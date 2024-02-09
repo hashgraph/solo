@@ -38,7 +38,7 @@ $ kubectx <context-name>
 ```
 
 * For a local cluster, you may use [kind](https://kind.sigs.k8s.io/) and [kubectl](https://kubernetes.io/docs/tasks/tools/) to create a cluster and namespace as below.
-  * In this case, ensure your Docker has enough resources (e.g. Memory >=8Gb, CPU: >=4).
+  * In this case, ensure your Docker engine has enough resources (e.g. Memory >=8Gb, CPU: >=4).
 
 ```
 $ export SOLO_CLUSTER_NAME=solo
@@ -150,6 +150,7 @@ hedera-node0.key  hedera-node1.key  hedera-node2.key  private-node1.pfx public.p
 ```
 
 * Setup cluster with shared components
+  * In a separate terminal, you may run `k9s` to view the pod status.
 
 ```
 $ solo cluster setup
@@ -166,8 +167,6 @@ Kubernetes Namespace    : solo
 
 ```
 
-In a separate terminal, you may run `k9s` to view the pod status.
-
 * Deploy helm chart with Hedera network components
   * It may take a while (5~15 minutes depending on your internet speed) to download various docker images and get the pods started.
   * If it fails, ensure you have enough resources allocated for Docker and restart.
@@ -181,8 +180,6 @@ Kubernetes Context      : kind-solo
 Kubernetes Cluster      : kind-solo
 Kubernetes Namespace    : solo
 **********************************************************************************
-(node:76336) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
-(Use `node --trace-deprecation ...` to show where the warning was created)
 ✔ Initialize
 ✔ Install chart 'fullstack-deployment' [3s]
 ✔ Waiting for network pods to be ready [8m54s]
@@ -204,8 +201,6 @@ Kubernetes Context      : kind-solo
 Kubernetes Cluster      : kind-solo
 Kubernetes Namespace    : solo
 **********************************************************************************
-(node:78205) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
-(Use `node --trace-deprecation ...` to show where the warning was created)
 ✔ Initialize
 ✔ Identify network pods
   ✔ Check network pod: node0
@@ -315,9 +310,9 @@ You may view the list of pods using `k9s` as below:
 
 Once the nodes are up, you may now expose various services (using `k9s` (shift-f) or `kubectl port-forward`) and access. Below are most used services that you may expose.
 
-* Node services: Prefix `network-<node ID>-svc`
+* Node services: `network-<node ID>-svc`
 * HAProxy: `haproxy-<node ID>-svc`
-* EnvoyProxy: `envoy-proxy-<node ID>-svc`
+* Envoy Proxy: `envoy-proxy-<node ID>-svc`
 * Hedera explorer: `fullstack-deployment-hedera-explorer`
 
 ```
@@ -360,7 +355,7 @@ $ solo init -t v0.47.0-alpha.0 -i n0,n1,n2 -n "${SOLO_NAMESPACE}" -s "${SOLO_CLU
 # output is similar as example-1 
 ```
 
-* Generate `pem` node keys for default node IDs: node0,node1,node2
+* Generate `pem` formatted node keys
 
 ```
 $ solo node keys --gossip-keys --tls-keys --key-format pem
