@@ -513,6 +513,6 @@ secring.*
 dev/local-node/config.txt
 dev/temp/.env
 charts/deleteme.yaml
-node_modules
-solo/coverage
+node_modules/
+coverage/
 dev/resources/nmt/version.properties
