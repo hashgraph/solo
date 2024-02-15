@@ -1,0 +1,62 @@
+# ======================================================================================================================
+# Address book Format Description
+# ======================================================================================================================
+# Address book format varies across versions since it evolved over time. As of July 27, 2023 the below formats were
+# relevant for recent versions. Latest version is available in the file: hedera-services/hedera-node/config.txt
+#
+#   - v.0.39.* (or before) format:
+#   Fields: address, <NODE_ID>, <NODE_NAME>, <NODE_STAKE_AMOUNT>, <INTERNAL_IP>, <INTERNAL_GOSSIP_PORT>, <EXTERNAL_IP>, <EXTERNAL_GOSSIP_PORT>, <ACCOUNT_ID>
+#   Example: address, 0, node0, 1, 10.128.0.27, 50111, 35.223.93.31, 30124, 0.0.3
+#
+#   - v.0.4* format:
+#   Fields: address, <NODE_ID>, <NODE_NICK_NAME>, <NODE_NAME>, <NODE_STAKE_AMOUNT>, <INTERNAL_IP>, <INTERNAL_GOSSIP_PORT>, <EXTERNAL_IP>, <EXTERNAL_GOSSIP_PORT>, <ACCOUNT_ID>
+#   Example: address, 0, n0, node0, 1, 10.128.0.27, 50111, 35.223.93.31, 30124, 0.0.3
+#
+#   - v.0.41* (onward) we need to append the below formatted line with next node ID after the list of "address" lines
+#   <address book lines>
+#   nextNodeId, <NEXT_NODE_ID>
+#
+# Field descriptions:
+# ===========================
+# NODE_ID: This increments for each node and starts from 0.
+# NEXT_NODE_ID: The id for the next node (i.e. last node ID + 1)
+# NODE_NICK_NAME: This is a string (alphanumeric). e.g. node0
+# NODE_NAME: This is a string (alphanumeric). e.g. node0 or n0
+# NODE_STAKE_AMOUNT: A long value. e.g. 1 or a larger number
+# INTERNAL_IP: This is the pod IP
+# INTERNAL_GOSSIP_PORT: Default gossip port is 50111. So use the exposed port that is mapped to 50111 in container.
+# EXTERNAL_IP: This is the service IP
+# EXTERNAL_GOSSIP_PORT: Default gossip port is 50111. This is usually same as INTERNAL_GOSSIP_PORT unless mapped differently.
+# ACCOUNT_ID: Must start from 0.0.3
+#
+
+# Account restrictions:
+# ===========================
+# All ACCOUNT_ID should start from 0.0.3 because of restricted accounts as below:
+#   - 0.0.0 restricted and not usable
+#   - 0.0.1 minting account and not usable
+#   - 0.0.2 treasury account
+#
+# Default Ports
+# ===========================
+# We only need to specify the gossip port (INTERNAL_GOSSIP_PORT, EXTERNAL_GOSSIP_PORT). Below are some details on other
+# ports that a node may expose:
+#   - 50111: gossip port
+#   - 50211: grpc non-tls (for platform services)
+#   - 50212: grpc tls (for platform services)
+#
+# IP Address
+# ===========================
+# When deploying in a kubernetes cluster, we need to use the following IP mapping:
+#   - INTERNAL_IP: This should be the Pod IP exposing gossip port (i.e. 50111)
+#   - EXTERNAL_IP: This should be the cluster IP of the service exposing gossip port (i.e. 50111)
+#
+#
+# Example config.txt (for v0.4* onward)
+# ===========================
+# swirld, 123
+# app, HederaNode.jar
+# address, 0, node0, node0, 1, 10.244.0.197, 56789, 10.96.61.84, 50111, 0.0.0
+# address, 1, node1, node1, 1, 10.244.0.198, 56789, 10.96.163.93, 50111, 0.0.1
+# nextNodeId, 2
+# ======================================================================================================================
