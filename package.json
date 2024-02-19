@@ -27,7 +27,7 @@
   "dependencies": {
     "@hashgraph/sdk": "^2.40.0",
     "@kubernetes/client-node": "^0.20.0",
-    "@listr2/prompt-adapter-enquirer": "^1.0.2",
+    "@listr2/prompt-adapter-enquirer": "^2.0.2",
     "@peculiar/x509": "^1.9.5",
     "adm-zip": "^0.5.10",
     "chalk": "^5.3.0",
