@@ -36,11 +36,20 @@ jobs:
     name: Code
     uses: ./.github/workflows/zxc-compile-code.yaml
 
+  code-style:
+    name: Code Style
+    uses: ./.github/workflows/zxc-compile-code.yaml
+    needs:
+      - build
+    with:
+      custom-job-label: Check
+      enable-code-style-check: true
+
   unit-tests:
     name: Unit Tests
     uses: ./.github/workflows/zxc-compile-code.yaml
     needs:
-      - build
+      - code-style
     with:
       custom-job-label: Standard
       enable-unit-tests: true
@@ -49,7 +58,7 @@ jobs:
     name: E2E Tests
     uses: ./.github/workflows/zxc-compile-code.yaml
     needs:
-      - build
+      - code-style
     if: false
     with:
       custom-job-label: Standard

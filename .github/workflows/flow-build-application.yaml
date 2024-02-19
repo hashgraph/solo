@@ -50,6 +50,15 @@ jobs:
       enable-unit-tests: ${{ github.event_name == 'push' || github.event.inputs.enable-unit-tests == 'true' }}
       #enable-e2e-tests: ${{ github.event_name == 'push' || github.event.inputs.enable-e2e-tests == 'true' }}
 
+  code-style:
+    name: Code Style
+    uses: ./.github/workflows/zxc-compile-code.yaml
+    needs:
+      - code
+    with:
+      custom-job-label: Check
+      enable-code-style-check: true
+
   analyze:
     name: Analyze
     uses: ./.github/workflows/zxc-code-analysis.yaml

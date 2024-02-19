@@ -28,6 +28,11 @@ on:
         type: boolean
         required: false
         default: false
+      enable-code-style-check:
+        description: "Code Style Check Enabled"
+        type: boolean
+        required: false
+        default: false
       enable-e2e-tests:
         description: "E2E Testing Enabled"
         type: boolean
@@ -91,6 +96,10 @@ jobs:
       - name: Install Dependencies
         id: npm-deps
         run: npm ci
+
+      - name: Check Code Style
+        if: ${{ inputs.enable-code-style-check && !cancelled() && !failure() }}
+        run: npm run check
 
       - name: Run Unit Tests
         if: ${{ inputs.enable-unit-tests && !cancelled() && !failure() }}
