@@ -23,7 +23,9 @@ import * as helpers from '../core/helpers.mjs'
 
 async function prompt (type, task, input, defaultValue, promptMessage, emptyCheckMessage, flagName) {
   try {
-    const needsPrompt = type === 'toggle' ? (input === undefined || typeof input !== 'boolean') : !input
+    let needsPrompt = type === 'toggle' ? (input === undefined || typeof input !== 'boolean') : !input
+    needsPrompt = type === 'number' ? typeof input !== 'number' : needsPrompt
+
     if (needsPrompt) {
       input = await task.prompt(ListrEnquirerPromptAdapter).run({
         type,
@@ -262,19 +264,11 @@ export async function promptOperatorKey (task, input) {
 }
 
 export async function promptReplicaCount (task, input) {
-  try {
-    if (typeof input !== 'number') {
-      input = await task.prompt(ListrEnquirerPromptAdapter).run({
-        type: 'number',
-        default: flags.replicaCount.definition.defaultValue,
-        message: 'How many replica do you want?'
-      })
-    }
-
-    return input
-  } catch (e) {
-    throw new FullstackTestingError(`input failed: ${flags.replicaCount.name}`, e)
-  }
+  return await prompt('number', task, input,
+    flags.replicaCount.definition.defaultValue,
+    'How many replica do you want? ',
+    null,
+    flags.replicaCount.name)
 }
 
 export async function promptGenerateGossipKeys (task, input) {
@@ -341,6 +335,30 @@ export async function promptUpdateAccountKeys (task, input) {
     flags.updateAccountKeys.name)
 }
 
+export async function promptPrivateKey (task, input) {
+  return await promptText(task, input,
+    flags.privateKey.definition.defaultValue,
+    'Enter the private key: ',
+    null,
+    flags.privateKey.name)
+}
+
+export async function promptAccountId (task, input) {
+  return await promptText(task, input,
+    flags.accountId.definition.defaultValue,
+    'Enter the account id: ',
+    null,
+    flags.accountId.name)
+}
+
+export async function promptAmount (task, input) {
+  return await prompt('number', task, input,
+    flags.amount.definition.defaultValue,
+    'How much HBAR do you want to add? ',
+    null,
+    flags.amount.name)
+}
+
 export function getPromptMap () {
   return new Map()
     .set(flags.nodeIDs.name, promptNodeIds)
@@ -372,6 +390,9 @@ export function getPromptMap () {
     .set(flags.keyFormat.name, promptKeyFormat)
     .set(flags.fstChartVersion.name, promptFstChartVersion)
     .set(flags.updateAccountKeys.name, promptUpdateAccountKeys)
+    .set(flags.privateKey.name, promptPrivateKey)
+    .set(flags.accountId.name, promptAccountId)
+    .set(flags.amount.name, promptAmount)
 }
 
 // build the prompt registry

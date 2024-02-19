@@ -14,23 +14,20 @@
  * limitations under the License.
  *
  */
-import fs from 'fs'
-import os from 'os'
-import path from 'path'
-import { logging } from '../src/core/index.mjs'
+const Sequencer = require('@jest/test-sequencer').default
 
-export const testLogger = logging.NewLogger('debug')
+const isEndToEnd = (test) => {
+  const contextConfig = test.context.config
+  return contextConfig.displayName.name === 'end-to-end'
+}
 
-export function getTestCacheDir (appendDir) {
-  const baseDir = 'test/data/tmp'
-  const d = appendDir ? path.join(baseDir, appendDir) : baseDir
-
-  if (!fs.existsSync(d)) {
-    fs.mkdirSync(d)
+class CustomSequencer extends Sequencer {
+  sort (tests) {
+    const copyTests = Array.from(tests)
+    const normalTests = copyTests.filter((t) => !isEndToEnd(t))
+    const endToEndTests = copyTests.filter((t) => isEndToEnd(t))
+    return super.sort(normalTests).concat(endToEndTests.sort((a, b) => (a.path > b.path ? 1 : -1)))
   }
-  return d
 }
 
-export function getTmpDir () {
-  return fs.mkdtempSync(path.join(os.tmpdir(), 'solo-'))
-}
+module.exports = CustomSequencer
