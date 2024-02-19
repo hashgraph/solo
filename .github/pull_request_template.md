@@ -2,8 +2,8 @@
 
 This pull request changes the following:
 
-- TBD
+* TBD
 
 ### Related Issues
 
-- Closes #
+* Closes #

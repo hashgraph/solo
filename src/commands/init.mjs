@@ -159,8 +159,8 @@ export class InitCommand extends BaseCommand {
           flags.clusterSetupNamespace,
           flags.cacheDir,
           flags.chartDirectory,
-          flags.keyFormat,
-          )
+          flags.keyFormat
+        )
       },
       handler: (argv) => {
         initCmd.init(argv).then(r => {
