@@ -1,0 +1,154 @@
+##
+# Copyright (C) 2023-2024 Hedera Hashgraph, LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+##
+
+name: "ZXC: Code Analysis"
+# The purpose of this reusable workflow is to perform static code analysis and code coverage reporting.
+# This reusable component is called by the following workflows:
+# - .github/workflows/flow-pull-request-checks.yaml
+# - .github/workflows/flow-build-application.yaml
+#
+# This workflow is only run if the pull request is coming from the original repository and not a fork.
+
+on:
+  workflow_call:
+    inputs:
+      enable-codecov-analysis:
+        description: "CodeCov Analysis Enabled"
+        type: boolean
+        required: false
+        default: false
+      enable-snyk-scan:
+        description: "Snyk Scan Enabled"
+        type: boolean
+        required: false
+        default: false
+      node-version:
+        description: "NodeJS Version:"
+        type: string
+        required: false
+        default: "20"
+      custom-job-label:
+        description: "Custom Job Label:"
+        type: string
+        required: false
+        default: "Analyze"
+    secrets:
+      snyk-token:
+        description: "The Snyk access token is used by Snyk to analyze the code for vulnerabilities "
+        required: false
+      codecov-token:
+        description: "The CodeCov access token is used by CodeCov.io to analyze the code coverage "
+        required: false
+
+defaults:
+  run:
+    shell: bash
+
+permissions:
+  contents: read
+  actions: read
+  pull-requests: write
+  checks: write
+  statuses: write
+
+jobs:
+  analyze:
+    name: ${{ inputs.custom-job-label || 'Analyze' }}
+    runs-on: [self-hosted, Linux, medium, ephemeral]
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        with:
+          ref: ${{ github.event.workflow_run.head_branch }}
+          fetch-depth: ${{ inputs.enable-sonar-analysis && '0' || '' }}
+
+      - name: Setup Node
+        uses: actions/setup-node@b39b52d1213e96004bfcb1c61a8a6fa8ab84f3e8 # v4.0.1
+        with:
+          node-version: ${{ inputs.node-version }}
+
+      - name: Download Coverage Reports
+        uses: actions/download-artifact@6b208ae046db98c579e8a3aa621ab581ff575935 # v4.1.1
+        if: ${{ (inputs.enable-codecov-analysis || inputs.enable-sonar-analysis) && !cancelled() && !failure() }}
+        with:
+          name: Coverage Reports
+
+      - name: Publish To Codecov
+        uses: codecov/codecov-action@e0b68c6749509c5f83f984dd99a76a1c1a231044 # v4.0.1
+        if: ${{ inputs.enable-codecov-analysis && !cancelled() && !failure() }}
+        env:
+          token: ${{ secrets.codecov-token }}
+          slug: hashgraph/solo
+
+      - name: Setup Snyk
+        env:
+          SNYK_TOKEN: ${{ secrets.snyk-token }}
+        if: ${{ inputs.enable-snyk-scan && !cancelled() && !failure() }}
+        run: npm install -g snyk snyk-to-html @wcj/html-to-markdown-cli
+
+      - name: Snyk Scan
+        id: snyk
+        env:
+          SNYK_TOKEN: ${{ secrets.snyk-token }}
+        if: ${{ inputs.enable-snyk-scan && !cancelled() && !failure() }}
+        run: snyk test --org=release-engineering-N6EoZVZn3jw4qNuVkiG5Qs --all-projects --severity-threshold=high --json-file-output=snyk-test.json
+
+      - name: Snyk Code
+        id: snyk-code
+        env:
+          SNYK_TOKEN: ${{ secrets.snyk-token }}
+        if: ${{ inputs.enable-snyk-scan && !cancelled() && !failure() }}
+        run: snyk code test --org=release-engineering-N6EoZVZn3jw4qNuVkiG5Qs --severity-threshold=high --json-file-output=snyk-code.json
+
+      - name: Publish Snyk Results
+        if: ${{ inputs.enable-snyk-scan && !cancelled() && !failure() }}
+        run: |
+          if [[ -f "snyk-test.json" && -n "$(cat snyk-test.json | tr -d '[:space:]')" ]]; then
+            snyk-to-html -i snyk-test.json -o snyk-test.html --summary
+            html-to-markdown snyk-test.html -o snyk
+            cat snyk/snyk-test.html.md >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Publish Snyk Code Results
+        if: ${{ inputs.enable-snyk-scan && !cancelled() && !failure() }}
+        run: |
+          if [[ -f "snyk-code.json" && -n "$(cat snyk-code.json | tr -d '[:space:]')" ]]; then
+            snyk-to-html -i snyk-code.json -o snyk-code.html --summary
+            html-to-markdown snyk-code.html -o snyk
+            cat snyk/snyk-code.html.md >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Check Snyk Files
+        if: ${{ always() }}
+        run: |
+          echo "::group::Snyk File List"
+            ls -lah snyk* || true
+          echo "::endgroup::"
+          echo "::group::Snyk Test Contents"
+            cat snyk-test.json || true
+          echo "::endgroup::"
+          echo "::group::Snyk Code Contents"
+            cat snyk-code.json || true
+          echo "::endgroup::"
+
+      - name: Publish Snyk Reports
+        uses: actions/upload-artifact@26f96dfa697d77e81fd5907df203aa23a56210a8 # v4.3.0
+        if: ${{ inputs.enable-snyk-scan && !cancelled() && !failure() }}
+        with:
+          name: Snyk Reports
+          path: |
+            snyk-*.html
+            snyk-*.json

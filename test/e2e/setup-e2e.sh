@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 SOLO_CLUSTER_NAME=solo-e2e
 SOLO_NAMESPACE=solo-e2e
 SOLO_CLUSTER_SETUP_NAMESPACE=solo-e2e-cluster
