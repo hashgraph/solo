@@ -46,7 +46,7 @@ jobs:
       enable-unit-tests: true
 
   e2e-tests:
-    name: Unit Tests
+    name: E2E Tests
     uses: ./.github/workflows/zxc-compile-code.yaml
     needs:
       - build
