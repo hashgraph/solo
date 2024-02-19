@@ -2,6 +2,23 @@
 
 An opinionated CLI tool to deploy and manage private Hedera Networks.
 
+## Table of Contents
+
+* [Requirements](#requirements)
+* [Setup](#setup)
+* [Install Solo](#install-solo)
+* [Setup Kubernetes cluster](#setup-kubernetes-cluster)
+* [Generate Node Keys](#generate-node-keys)
+  * [Legacy keys (.pfx file)](#legacy-keys-pfx-file)
+  * [Standard keys (.pem file)](#standard-keys-pem-file)
+* [Examples](#examples)
+  * [Example - 1: Deploy a private Hedera network (version `0.42.5`)](#example---1-deploy-a-private-hedera-network-version-0425)
+  * [Example - 2: Deploy a private Hedera network (version `0.47.0-alpha.0`)](#example---2-deploy-a-private-hedera-network-version-0470-alpha0)
+* [Support](#support)
+* [Contributing](#contributing)
+* [Code of Conduct](#code-of-conduct)
+* [License](#license)
+
 ## Requirements
 
 * Node(^18.19.0) (*lts/hydrogen*)
@@ -113,9 +130,9 @@ chmod +x gen-legacy-keys.sh
 These keys are supported by Hedera platform >=`0.47.0-alpha.0`.
 You may run `solo node keys --gossip-keys --tls-keys --key-format pem -i node0,node1,node2` command to generate the required node keys.
 
-# Examples
+## Examples
 
-## Example - 1: Deploy a private Hedera network (version `0.42.5`)
+### Example - 1: Deploy a private Hedera network (version `0.42.5`)
 
 * Initialize `solo` with tag `v0.42.5` and list of node names `node0,node1,node2`:
 
@@ -306,7 +323,7 @@ You may view the list of pods using `k9s` as below:
 │                                                                                                                                                                                                                  │
 ```
 
-### Access Hedera Network services
+#### Access Hedera Network services
 
 Once the nodes are up, you may now expose various services (using `k9s` (shift-f) or `kubectl port-forward`) and access. Below are most used services that you may expose.
 
@@ -345,7 +362,7 @@ Once the nodes are up, you may now expose various services (using `k9s` (shift-f
 │                                                                                                                                                                                                                  │
 ```
 
-## Example - 2: Deploy a private Hedera network (version `0.47.0-alpha.0`)
+### Example - 2: Deploy a private Hedera network (version `0.47.0-alpha.0`)
 
 * Initialize `solo` with tag `v0.47.0-alpha.0` and list of node names `n0,n1,n2`:
 
@@ -411,3 +428,20 @@ $ solo node start
 
 # output is similar to example-1 
 ```
+
+## Support
+
+If you have a question on how to use the product, please see our [support guide](https://github.com/hashgraph/.github/blob/main/SUPPORT.md).
+
+## Contributing
+
+Contributions are welcome. Please see the [contributing guide](https://github.com/hashgraph/.github/blob/main/CONTRIBUTING.md) to see how you can get involved.
+
+## Code of Conduct
+
+This project is governed by the [Contributor Covenant Code of Conduct](https://github.com/hashgraph/.github/blob/main/CODE_OF_CONDUCT.md). By participating, you are
+expected to uphold this code of conduct.
+
+## License
+
+[Apache License 2.0](LICENSE)
