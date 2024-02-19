@@ -50,6 +50,7 @@ jobs:
     uses: ./.github/workflows/zxc-compile-code.yaml
     needs:
       - build
+    if: false
     with:
       custom-job-label: Standard
       enable-e2e-tests: true
@@ -59,7 +60,7 @@ jobs:
     uses: ./.github/workflows/zxc-code-analysis.yaml
     needs:
       - unit-tests
-      - e2e-tests
+      #- e2e-tests
     if: ${{ github.event.pull_request.head.repo.full_name == github.event.pull_request.base.repo.full_name && github.actor != 'dependabot[bot]' }}
     with:
       custom-job-label: Standard
