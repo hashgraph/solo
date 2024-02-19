@@ -105,7 +105,10 @@ jobs:
 
       - name: Run E2E Tests
         if: ${{ inputs.enable-e2e-tests && !cancelled() && !failure() }}
-        run: ./test/e2e/setup-e2e.sh && npm run test-e2e
+        run: |
+          npm link
+          ./test/e2e/setup-e2e.sh
+          npm run test-e2e
 
       - name: Publish E2E Test Report
         uses: EnricoMi/publish-unit-test-result-action@8885e273a4343cd7b48eaa72428dea0c3067ea98 # v2.14.0
