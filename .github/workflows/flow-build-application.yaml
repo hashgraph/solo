@@ -23,13 +23,8 @@ on:
         type: boolean
         required: false
         default: true
-      enable-sonar-analysis:
-        description: "Sonar Analysis Enabled"
-        type: boolean
-        required: false
-        default: false
-      enable-spotless-check:
-        description: "Spotless Check Enabled"
+      enable-e2e-tests:
+        description: "E2E Testing Enabled"
         type: boolean
         required: false
         default: false
@@ -53,19 +48,18 @@ jobs:
     uses: ./.github/workflows/zxc-compile-code.yaml
     with:
       enable-unit-tests: ${{ github.event_name == 'push' || github.event.inputs.enable-unit-tests == 'true' }}
-      enable-spotless-check: ${{ github.event_name == 'push' || github.event.inputs.enable-spotless-check == 'true' }}
+      enable-e2e-tests: ${{ github.event_name == 'push' || github.event.inputs.enable-e2e-tests == 'true' }}
 
   analyze:
     name: Analyze
     uses: ./.github/workflows/zxc-code-analysis.yaml
     needs:
       - code
-    if: ${{ github.event_name == 'push' || github.event.inputs.enable-unit-tests == 'true' }}
+    if: ${{ github.event_name == 'push' || github.event.inputs.enable-unit-tests == 'true' || github.event.inputs.enable-e2e-tests == 'true' }}
     with:
       custom-job-label: Source Code
       enable-snyk-scan: ${{ github.event_name == 'push' || github.event.inputs.enable-snyk-scan == 'true' }}
-      enable-sonar-analysis: ${{ github.event_name == 'push' || github.event.inputs.enable-sonar-analysis == 'true' }}
-      enable-codecov-analysis: ${{ github.event_name == 'push' || github.event.inputs.enable-unit-tests == 'true' }}
+      enable-codecov-analysis: ${{ github.event_name == 'push' || github.event.inputs.enable-unit-tests == 'true' || github.event.inputs.enable-e2e-tests == 'true' }}
     secrets:
       snyk-token: ${{ secrets.SNYK_TOKEN }}
       codecov-token: ${{ secrets.CODECOV_TOKEN }}
