@@ -40,7 +40,7 @@ jobs:
     name: Unit Tests
     uses: ./.github/workflows/zxc-compile-code.yaml
     needs:
-      - code
+      - build
     with:
       custom-job-label: Standard
       enable-unit-tests: true
@@ -49,7 +49,7 @@ jobs:
     name: Unit Tests
     uses: ./.github/workflows/zxc-compile-code.yaml
     needs:
-      - code
+      - build
     with:
       custom-job-label: Standard
       enable-e2e-tests: true
