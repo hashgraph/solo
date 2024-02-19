@@ -45,22 +45,3 @@ jobs:
         uses: aslafy-z/conventional-pr-title-action@a0b851005a0f82ac983a56ead5a8111c0d8e044a # v3.2.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  code-formatting:
-    name: Code Formatting
-    runs-on: [self-hosted, Linux, medium, ephemeral]
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
-
-      - name: Setup Node
-        uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4.0.2
-        with:
-          node-version: 20
-          cache: npm
-
-      - name: Install Dependencies
-        run: npm ci
-
-      - name: Check Formatting
-        run: npm run check

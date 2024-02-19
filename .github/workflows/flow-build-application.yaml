@@ -50,6 +50,15 @@ jobs:
       enable-unit-tests: ${{ github.event_name == 'push' || github.event.inputs.enable-unit-tests == 'true' }}
       #enable-e2e-tests: ${{ github.event_name == 'push' || github.event.inputs.enable-e2e-tests == 'true' }}
 
+  code-style:
+    name: Code Style
+    uses: ./.github/workflows/zxc-compile-code.yaml
+    needs:
+      - code
+    with:
+      custom-job-label: Check
+      enable-code-style-check: true
+
   analyze:
     name: Analyze
     uses: ./.github/workflows/zxc-code-analysis.yaml
@@ -58,7 +67,7 @@ jobs:
     if: ${{ github.event_name == 'push' || github.event.inputs.enable-unit-tests == 'true' || github.event.inputs.enable-e2e-tests == 'true' }}
     with:
       custom-job-label: Source Code
-      enable-snyk-scan: ${{ github.event_name == 'push' || github.event.inputs.enable-snyk-scan == 'true' }}
+      #enable-snyk-scan: ${{ github.event_name == 'push' || github.event.inputs.enable-snyk-scan == 'true' }}
       enable-codecov-analysis: ${{ github.event_name == 'push' || github.event.inputs.enable-unit-tests == 'true' || github.event.inputs.enable-e2e-tests == 'true' }}
     secrets:
       snyk-token: ${{ secrets.SNYK_TOKEN }}

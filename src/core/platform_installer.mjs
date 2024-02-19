@@ -47,7 +47,7 @@ export class PlatformInstaller {
     try {
       // reset data directory
       // Note: we cannot delete the data/stats and data/saved as those are volume mounted
-      const reset_paths = [
+      const resetPaths = [
         `${constants.HEDERA_HAPI_PATH}/data/apps`,
         `${constants.HEDERA_HAPI_PATH}/data/config`,
         `${constants.HEDERA_HAPI_PATH}/data/keys`,
@@ -55,7 +55,7 @@ export class PlatformInstaller {
         `${constants.HEDERA_HAPI_PATH}/data/upgrade`
       ]
 
-      for (const p of reset_paths) {
+      for (const p of resetPaths) {
         await this.k8.execContainer(podName, containerName, `rm -rf ${p}`)
         await this.k8.execContainer(podName, containerName, `mkdir ${p}`)
       }
