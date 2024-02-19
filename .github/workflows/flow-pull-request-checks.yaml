@@ -1,0 +1,82 @@
+##
+# Copyright (C) 2023-2024 Hedera Hashgraph, LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+##
+
+name: "PR Checks"
+on:
+  workflow_dispatch:
+  pull_request:
+    types:
+      - opened
+      - reopened
+      - synchronize
+
+defaults:
+  run:
+    shell: bash
+
+concurrency:
+  group: pr-checks-${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Code
+    uses: ./.github/workflows/zxc-compile-code.yaml
+
+  unit-tests:
+    name: Unit Tests
+    uses: ./.github/workflows/zxc-compile-code.yaml
+    needs:
+      - build
+    with:
+      custom-job-label: Standard
+      enable-unit-tests: true
+
+  e2e-tests:
+    name: E2E Tests
+    uses: ./.github/workflows/zxc-compile-code.yaml
+    needs:
+      - build
+    if: false
+    with:
+      custom-job-label: Standard
+      enable-e2e-tests: true
+
+  codecov:
+    name: CodeCov
+    uses: ./.github/workflows/zxc-code-analysis.yaml
+    needs:
+      - unit-tests
+      #- e2e-tests
+    if: ${{ github.event.pull_request.head.repo.full_name == github.event.pull_request.base.repo.full_name && github.actor != 'dependabot[bot]' }}
+    with:
+      custom-job-label: Standard
+      enable-codecov-analysis: true
+    secrets:
+      codecov-token: ${{ secrets.CODECOV_TOKEN }}
+
+#  snyk:
+#    name: Snyk Scan
+#    uses: ./.github/workflows/zxc-code-analysis.yaml
+#    needs:
+#      - unit-tests
+#      - e2e-tests
+#    if: ${{ github.event.pull_request.head.repo.full_name == github.event.pull_request.base.repo.full_name && github.actor != 'dependabot[bot]' }}
+#    with:
+#      custom-job-label: Standard
+#      enable-snyk-scan: true
+#    secrets:
+#      snyk-token: ${{ secrets.SNYK_TOKEN }}
