@@ -19,6 +19,7 @@ import { InitCommand } from './init.mjs'
 import { NetworkCommand } from './network.mjs'
 import { NodeCommand } from './node.mjs'
 import { RelayCommand } from './relay.mjs'
+import { AccountCommand } from './account.mjs'
 import * as flags from './flags.mjs'
 
 /*
@@ -31,13 +32,15 @@ function Initialize (opts) {
   const networkCommand = new NetworkCommand(opts)
   const nodeCmd = new NodeCommand(opts)
   const relayCmd = new RelayCommand(opts)
+  const accountCmd = new AccountCommand(opts)
 
   return [
     InitCommand.getCommandDefinition(initCmd),
     ClusterCommand.getCommandDefinition(clusterCmd),
     NetworkCommand.getCommandDefinition(networkCommand),
     NodeCommand.getCommandDefinition(nodeCmd),
-    RelayCommand.getCommandDefinition(relayCmd)
+    RelayCommand.getCommandDefinition(relayCmd),
+    AccountCommand.getCommandDefinition(accountCmd)
   ]
 }
 

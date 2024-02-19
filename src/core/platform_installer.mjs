@@ -41,25 +41,22 @@ export class PlatformInstaller {
    * @param containerName
    * @return {Promise<boolean>}
    */
-  async setupHapiDirectories (podName, containerName = constants.ROOT_CONTAINER) {
+  async resetHapiDirectories (podName, containerName = constants.ROOT_CONTAINER) {
     if (!podName) throw new MissingArgumentError('podName is required')
 
     try {
       // reset data directory
-      await this.k8.execContainer(podName, containerName, `rm -rf ${constants.HEDERA_HAPI_PATH}/data`)
-
-      const paths = [
-        `${constants.HEDERA_HAPI_PATH}/data`,
+      // Note: we cannot delete the data/stats and data/saved as those are volume mounted
+      const reset_paths = [
         `${constants.HEDERA_HAPI_PATH}/data/apps`,
         `${constants.HEDERA_HAPI_PATH}/data/config`,
         `${constants.HEDERA_HAPI_PATH}/data/keys`,
         `${constants.HEDERA_HAPI_PATH}/data/lib`,
-        `${constants.HEDERA_HAPI_PATH}/data/stats`,
-        `${constants.HEDERA_HAPI_PATH}/data/saved`,
         `${constants.HEDERA_HAPI_PATH}/data/upgrade`
       ]
 
-      for (const p of paths) {
+      for (const p of reset_paths) {
+        await this.k8.execContainer(podName, containerName, `rm -rf ${p}`)
         await this.k8.execContainer(podName, containerName, `mkdir ${p}`)
       }
 

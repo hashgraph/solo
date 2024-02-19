@@ -2,7 +2,7 @@ checkSignedStateFromDisk,                      1
 csvFileName,                                   MainNetStats
 csvOutputFolder,                               data/stats
 doUpnp,                                        false
-enableEventStreaming,                          false
+enableEventStreaming,                          true
 eventsLogDir,                                  /opt/hgcapp/eventsStreams
 eventsLogPeriod,                               5
 maxEventQueueForCons,                          1000

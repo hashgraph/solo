@@ -47,11 +47,11 @@ describe('PackageInstallerE2E', () => {
     configManager.load()
   })
 
-  describe('setupHapiDirectories', () => {
+  describe('resetHapiDirectories', () => {
     it('should succeed with valid pod', async () => {
       expect.assertions(1)
       try {
-        await expect(installer.setupHapiDirectories(podName)).resolves.toBeTruthy()
+        await expect(installer.resetHapiDirectories(podName)).resolves.toBeTruthy()
       } catch (e) {
         console.error(e)
         expect(e).toBeNull()
@@ -124,7 +124,7 @@ describe('PackageInstallerE2E', () => {
       const shellRunner = new ShellRunner(testLogger)
       await shellRunner.run(`test/scripts/gen-legacy-keys.sh node0,node1 ${keysDir}`)
 
-      await installer.setupHapiDirectories(podName)
+      await installer.resetHapiDirectories(podName)
       const fileList = await installer.copyGossipKeys(podName, tmpDir, ['node0', 'node1'], constants.KEY_FORMAT_PFX)
 
       const destDir = `${constants.HEDERA_HAPI_PATH}/data/keys`
@@ -144,7 +144,7 @@ describe('PackageInstallerE2E', () => {
       const shellRunner = new ShellRunner(testLogger)
       await shellRunner.run(`test/scripts/gen-standard-keys.sh node0,node1 ${keysDir}`)
 
-      await installer.setupHapiDirectories(podName)
+      await installer.resetHapiDirectories(podName)
       const fileList = await installer.copyGossipKeys(podName, tmpDir, ['node0', 'node1'], constants.KEY_FORMAT_PEM)
 
       const destDir = `${constants.HEDERA_HAPI_PATH}/data/keys`
@@ -174,7 +174,7 @@ describe('PackageInstallerE2E', () => {
       fs.writeFileSync(path.join(keysDir, `hedera-${nodeId}.key`), '')
       fs.writeFileSync(path.join(keysDir, `hedera-${nodeId}.crt`), '')
 
-      await installer.setupHapiDirectories(podName)
+      await installer.resetHapiDirectories(podName)
 
       const fileList = await installer.copyTLSKeys(podName, tmpDir)
 
@@ -190,7 +190,7 @@ describe('PackageInstallerE2E', () => {
   describe('copyPlatformConfigFiles', () => {
     it('should succeed to copy platform config files for node0', async () => {
       const podName = 'network-node0-0'
-      await installer.setupHapiDirectories(podName)
+      await installer.resetHapiDirectories(podName)
 
       const tmpDir = getTmpDir()
       const nodeIDs = ['node0']

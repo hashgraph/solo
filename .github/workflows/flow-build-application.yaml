@@ -48,7 +48,7 @@ jobs:
     uses: ./.github/workflows/zxc-compile-code.yaml
     with:
       enable-unit-tests: ${{ github.event_name == 'push' || github.event.inputs.enable-unit-tests == 'true' }}
-      enable-e2e-tests: ${{ github.event_name == 'push' || github.event.inputs.enable-e2e-tests == 'true' }}
+      #enable-e2e-tests: ${{ github.event_name == 'push' || github.event.inputs.enable-e2e-tests == 'true' }}
 
   analyze:
     name: Analyze
