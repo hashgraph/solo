@@ -12,4 +12,5 @@ if [ -z "${2}" ]; then
     exit 1
 fi
 
+[[ -d "${2}" ]] || mkdir -p "${2}"
 cd "${2}" && jar xvf "${1}"

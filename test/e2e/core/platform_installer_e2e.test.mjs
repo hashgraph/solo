@@ -122,10 +122,10 @@ describe('PackageInstallerE2E', () => {
       const tmpDir = getTmpDir()
       const keysDir = path.join(tmpDir, 'keys')
       const shellRunner = new ShellRunner(testLogger)
-      await shellRunner.run(`test/scripts/gen-legacy-keys.sh node0,node1 ${keysDir}`)
+      await shellRunner.run(`test/scripts/gen-legacy-keys.sh node0,node1,node2 ${keysDir}`)
 
       await installer.resetHapiDirectories(podName)
-      const fileList = await installer.copyGossipKeys(podName, tmpDir, ['node0', 'node1'], constants.KEY_FORMAT_PFX)
+      const fileList = await installer.copyGossipKeys(podName, tmpDir, ['node0', 'node1', 'node2'], constants.KEY_FORMAT_PFX)
 
       const destDir = `${constants.HEDERA_HAPI_PATH}/data/keys`
       expect(fileList.length).toBe(2)
