@@ -378,6 +378,14 @@ export class K8 {
     ) === 'true'
   }
 
+  async mkdir (podName, containerName, destPath) {
+    return this.execContainer(
+      podName,
+      containerName,
+      ['bash', '-c', 'mkdir -p "' + destPath + '"']
+    )
+  }
+
   /**
    * Copy a file into a container
    *

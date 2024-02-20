@@ -30,6 +30,11 @@ on:
         type: boolean
         required: false
         default: false
+      enable-e2e-coverage-report:
+        description: "E2E Coverage Report Enabled"
+        type: boolean
+        required: false
+        default: false
       enable-snyk-scan:
         description: "Snyk Scan Enabled"
         type: boolean
@@ -80,11 +85,17 @@ jobs:
         with:
           node-version: ${{ inputs.node-version }}
 
-      - name: Download Coverage Reports
+      - name: Download Unit Test Coverage Report
         uses: actions/download-artifact@eaceaf801fd36c7dee90939fad912460b18a1ffe # v4.1.2
-        if: ${{ (inputs.enable-codecov-analysis || inputs.enable-sonar-analysis) && !cancelled() && !failure() }}
+        if: ${{ inputs.enable-codecov-analysis && !cancelled() && !failure() }}
         with:
-          name: Coverage Reports
+          name: Unit Test Coverage Report
+
+      - name: Download Unit Test Coverage Report
+        uses: actions/download-artifact@eaceaf801fd36c7dee90939fad912460b18a1ffe # v4.1.2
+        if: ${{ inputs.enable-codecov-analysis && inputs.enable-e2e-coverage-report && !cancelled() && !failure() }}
+        with:
+          name: E2E Coverage Report
 
       - name: Publish To Codecov
         uses: codecov/codecov-action@e0b68c6749509c5f83f984dd99a76a1c1a231044 # v4.0.1
