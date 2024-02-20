@@ -73,6 +73,7 @@ jobs:
     with:
       custom-job-label: Standard
       enable-codecov-analysis: true
+      enable-e2e-coverage-report: true
     secrets:
       codecov-token: ${{ secrets.CODECOV_TOKEN }}
 
