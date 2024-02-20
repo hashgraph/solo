@@ -378,7 +378,7 @@ export class K8 {
     ) === 'true'
   }
 
-  async mkdir(podName, containerName, destPath) {
+  async mkdir (podName, containerName, destPath) {
     return this.execContainer(
       podName,
       containerName,
