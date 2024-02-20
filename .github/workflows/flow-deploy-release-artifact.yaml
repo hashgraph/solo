@@ -1,0 +1,166 @@
+##
+# Copyright (C) 2023-2024 Hedera Hashgraph, LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+##
+
+name: "Deploy Release Artifact"
+on:
+  workflow_dispatch:
+    inputs:
+      dry-run-enabled:
+        description: "Perform Dry Run"
+        type: boolean
+        required: false
+        default: false
+
+env:
+  REGISTRY: ghcr.io
+
+defaults:
+  run:
+    shell: bash
+
+permissions:
+  contents: write
+  packages: write
+  pages: write
+  id-token: write
+
+jobs:
+  prepare-release:
+    name: Release / Prepare
+    runs-on: [self-hosted, Linux, medium, ephemeral]
+    outputs:
+      version: ${{ steps.tag.outputs.version }}
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@b39b52d1213e96004bfcb1c61a8a6fa8ab84f3e8 # v4.0.1
+        with:
+          node-version: 20
+
+      - name: Install Semantic Release
+        run: |
+          npm install -g semantic-release@21.0.7 @semantic-release/git@10.0.1 @semantic-release/exec@6.0.3 gradle-semantic-release-plugin@1.7.6
+          npm install -g conventional-changelog-conventionalcommits@6.1.0 @commitlint/cli@17.6.6 @commitlint/config-conventional@17.6.6
+          npm install -g marked-mangle@1.0.1 marked-gfm-heading-id@3.0.4 semantic-release-conventional-commits@3.0.0
+
+      - name: Calculate Next Version
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GIT_AUTHOR_NAME: ${{ secrets.GIT_USER_NAME }}
+          GIT_AUTHOR_EMAIL: ${{ secrets.GIT_USER_EMAIL }}
+          GIT_COMMITTER_NAME: ${{ secrets.GIT_USER_NAME }}
+          GIT_COMMITTER_EMAIL: ${{ secrets.GIT_USER_EMAIL }}
+        run: npx semantic-release --dry-run
+
+      - name: Extract Version
+        id: tag
+        run: |
+          [[ "${{ github.event.inputs.dry-run-enabled }}" == true && ! -f VERSION ]] && echo -n "0.0.0-latest" > VERSION
+          echo "version=$(cat VERSION | tr -d '[:space:]')" >> ${GITHUB_OUTPUT}
+
+  create-github-release:
+    name: Github / Release
+    runs-on: [self-hosted, Linux, medium, ephemeral]
+    needs:
+      - prepare-release
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        with:
+          token: ${{ secrets.GH_ACCESS_TOKEN }}
+          fetch-depth: 0
+
+      - name: Install GnuPG Tools
+        run: |
+          if ! command -v gpg2 >/dev/null 2>&1; then
+            echo "::group::Updating APT Repository Indices"
+              sudo apt update
+            echo "::endgroup::"
+            echo "::group::Installing GnuPG Tools"
+              sudo apt install -y gnupg2
+            echo "::endgroup::"
+          fi
+
+      - name: Import GPG key
+        id: gpg_key
+        uses: crazy-max/ghaction-import-gpg@01dd5d3ca463c7f10f7f4f7b4f177225ac661ee4 # v6.1.0
+        with:
+          gpg_private_key: ${{ secrets.GPG_KEY_CONTENTS }}
+          passphrase: ${{ secrets.GPG_KEY_PASSPHRASE }}
+          git_config_global: true
+          git_user_signingkey: true
+          git_commit_gpgsign: true
+          git_tag_gpgsign: false
+
+      - name: Setup Node
+        uses: actions/setup-node@b39b52d1213e96004bfcb1c61a8a6fa8ab84f3e8 # v4.0.1
+        with:
+          node-version: 20
+
+      - name: Setup JFrog CLI
+        uses: jfrog/setup-jfrog-cli@8fc3d0018a8721b9a797cd7fd97c8e4833f5a3d1 # v3.5.3
+        env:
+          JF_URL: ${{ vars.JF_URL }}
+          JF_ACCESS_TOKEN: ${{ secrets.JF_ACCESS_TOKEN }}
+
+      - name: Show JFrog Config
+        run: jfrog config show
+
+      - name: Verify JFrog Connectivity
+        run: jfrog rt ping
+
+      - name: Setup JFrog NPM Repository
+        run: |
+          jf npmc --server-id-resolve setup-jfrog-cli-server --server-id-deploy setup-jfrog-cli-server --repo-resolve solo-npm-release --repo-deploy solo-npm-release
+          echo "::group::JFrog NPM Repository Configuration"
+            cat .jfrog/projects/npm.yaml
+          echo "::endgroup::"
+
+      - name: Install Semantic Release
+        run: |
+          npm install -g semantic-release@21.0.7 @semantic-release/git@10.0.1 @semantic-release/exec@6.0.3 gradle-semantic-release-plugin@1.7.6
+          npm install -g conventional-changelog-conventionalcommits@6.1.0 @commitlint/cli@17.6.6 @commitlint/config-conventional@17.6.6
+          npm install -g marked-mangle@1.0.1 marked-gfm-heading-id@3.0.4 semantic-release-conventional-commits@3.0.0
+
+      - name: Install Dependencies
+        run: jf npm ci
+
+      - name: Setup NPM Authentication
+        run: |
+          # create .npmrc file to publish solo to Github NPM registry
+          rm -f .npmrc || true
+          echo '//registry.npmjs.org/:_authToken=${NPM_TOKEN}' > ".npmrc"
+          echo '@hashgraph:registry=https://registry.npmjs.org/' >> ".npmrc"
+
+      - name: Publish Semantic Release
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GH_ACCESS_TOKEN }}
+          GIT_AUTHOR_NAME: ${{ secrets.GIT_USER_NAME }}
+          GIT_AUTHOR_EMAIL: ${{ secrets.GIT_USER_EMAIL }}
+          GIT_COMMITTER_NAME: ${{ secrets.GIT_USER_NAME }}
+          GIT_COMMITTER_EMAIL: ${{ secrets.GIT_USER_EMAIL }}
+        if: ${{ github.event.inputs.dry-run-enabled != 'true' && !cancelled() && !failure() }}
+        run: npx semantic-release
+
+      - name: Deploy to JFrog Registry
+        if: ${{ github.event.inputs.dry-run-enabled != 'true' && !cancelled() && !failure() }}
+        run: jf npm publish
