@@ -84,6 +84,13 @@ jobs:
           node-version: ${{ inputs.node-version }}
           cache: npm
 
+      - name: Setup Java
+        uses: actions/setup-java@387ac29b308b003ca37ba93a6cab5eb57c8f5f93 # v4.0.0
+        if: ${{ inputs.enable-e2e-tests && !cancelled() && !failure() }}
+        with:
+          distribution: temurin
+          java-version: 21
+
       - name: Setup Kind
         uses: helm/kind-action@99576bfa6ddf9a8e612d83b513da5a75875caced # v1.9.0
         if: ${{ inputs.enable-e2e-tests && !cancelled() && !failure() }}
