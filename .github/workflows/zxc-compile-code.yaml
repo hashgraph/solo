@@ -70,6 +70,14 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
 
+      - name: Checkout Helm Charts
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        if: ${{ inputs.enable-e2e-tests && !cancelled() && !failure() }}
+        with:
+          repository: hashgraph/full-stack-testing
+          sparse-checkout: charts
+          path: helm-charts
+
       - name: Setup Node
         uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4.0.2
         with:
@@ -116,6 +124,10 @@ jobs:
         if: ${{ inputs.enable-e2e-tests && !cancelled() && !failure() }}
         run: docker image pull kindest/node:v1.27.3@sha256:3966ac761ae0136263ffdb6cfd4db23ef8a83cba8a463690e98317add2c9ba72
 
+      - name: Stage Helm Charts
+        if: ${{ inputs.enable-e2e-tests && !cancelled() && !failure() }}
+        run: mv -vf helm-charts/charts/ ./ && rm -rf helm-charts
+
       - name: Setup E2E Tests
         if: ${{ inputs.enable-e2e-tests && !cancelled() && !failure() }}
         run: | 
@@ -124,8 +136,7 @@ jobs:
 
       - name: Run E2E Tests
         if: ${{ inputs.enable-e2e-tests && !cancelled() && !failure() }}
-        run: |
-          npm run test-e2e
+        run: npm run test-e2e
 
       - name: Publish E2E Test Report
         uses: EnricoMi/publish-unit-test-result-action@8885e273a4343cd7b48eaa72428dea0c3067ea98 # v2.14.0
