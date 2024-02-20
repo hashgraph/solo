@@ -1,5 +1,7 @@
 # Solo
 
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/164c5e56f8e74506a6e10335eebcd045)](https://app.codacy.com/gh/hashgraph/solo?utm_source=github.com&utm_medium=referral&utm_content=hashgraph/solo&utm_campaign=Badge_Grade)
+
 An opinionated CLI tool to deploy and manage private Hedera Networks.
 
 ## Table of Contents
