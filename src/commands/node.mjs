@@ -484,6 +484,12 @@ export class NodeCommand extends BaseCommand {
         }
       },
       {
+        title: 'Update mirror node importer address book',
+        task: async (ctx, task) => {
+          await self.updateImporterAddressBook(ctx)
+        }
+      },
+      {
         title: 'Update special account keys',
         task: async (ctx, task) => {
           if (ctx.config.updateAccountKeys) {
@@ -506,6 +512,45 @@ export class NodeCommand extends BaseCommand {
     }
 
     return true
+  }
+
+  /**
+   * Will get the address book from the network and then use it to update the importer
+   * secret in Kubernetes
+   * @param ctx
+   * @returns {Promise<void>}
+   */
+  async updateImporterAddressBook (ctx) {
+    await self.accountManager.loadTreasuryAccount(ctx)
+    await self.accountManager.loadNodeClient(ctx)
+
+    // Retrieve the AddressBook as base64
+    const base64NodeAddressBook = await self.accountManager.prepareAddressBookBase64(ctx.nodeClient)
+
+    // update kubernetes secrets
+    const secrets = await self.k8.getSecretsByLabel(['app.kubernetes.io/component=importer'])
+
+    for (const secretObject of secrets) {
+      delete secretObject.metadata.creationTimestamp
+      delete secretObject.metadata.managedFields
+      delete secretObject.metadata.resourceVersion
+      delete secretObject.metadata.uid
+      secretObject.data['addressbook.bin'] = base64NodeAddressBook
+
+      await self.k8.updateSecret(secretObject)
+    }
+
+    // restart the importer pod
+    const pods = await self.k8.getPodsByLabel(['app.kubernetes.io/component=importer'])
+    if (pods.length <= 0) {
+      this.logger.showUser(chalk.yellow('expected to find mirror node importer but did not'))
+    }
+    for (const pod of pods) {
+      const resp = await self.k8.kubeClient.deleteNamespacedPod(pod.metadata.name, pod.metadata.namespace)
+      if (resp.response.statusCode !== 200) {
+        throw new FullstackTestingError('Error killing mirror node importer to restart it with updated address book')
+      }
+    }
   }
 
   async stop (argv) {
