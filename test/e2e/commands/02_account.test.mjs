@@ -36,7 +36,6 @@ import { AccountManager } from '../../../src/core/account_manager.mjs'
 import { AccountCommand } from '../../../src/commands/account.mjs'
 import { flags } from '../../../src/commands/index.mjs'
 import { sleep } from '../../../src/core/helpers.mjs'
-import * as HashgraphProto from '@hashgraph/proto'
 
 describe('account commands should work correctly', () => {
   const defaultTimeout = 20000
@@ -230,7 +229,7 @@ describe('account commands should work correctly', () => {
         delete secretObject.metadata.uid
         secretObject.data['addressbook.bin'] = base64NodeAddressBook
 
-        await k8.updateSecret(secretObject, ctx.config.namespace)
+        await k8.updateSecret(secretObject)
       }
 
       // restart the importer pod

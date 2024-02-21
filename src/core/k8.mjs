@@ -243,7 +243,7 @@ export class K8 {
   async updateSecret (secretObject) {
     const ns = this._getNamespace()
     try {
-      // patch is broke, need to use delete/create: https://github.com/kubernetes-client/javascript/issues/893
+      // patch is broke, need to use delete/create (workaround/fix in 1.0.0-rc4): https://github.com/kubernetes-client/javascript/issues/893
       // await k8.kubeClient.patchNamespacedSecret(secret.name, ctx.config.namespace, secret.data)
       await this.kubeClient.deleteNamespacedSecret(secretObject.metadata.name, ns)
       await this.kubeClient.createNamespacedSecret(ns, secretObject)
