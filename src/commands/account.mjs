@@ -73,21 +73,8 @@ export class AccountCommand extends BaseCommand {
     const serviceMap = await this.accountManager.getNodeServiceMap(ctx.config.namespace)
 
     ctx.nodeClient = await this.accountManager.getNodeClient(ctx.config.namespace,
-      serviceMap, ctx.treasuryAccountId, ctx.treasuryPrivateKey)
+      serviceMap, ctx.treasuryAccountInfo.accountId, ctx.treasuryAccountInfo.privateKey)
     this.nodeClient = ctx.nodeClient // store in class so that we can make sure connections are closed
-  }
-
-  async loadTreasuryAccount (ctx) {
-    ctx.treasuryAccountId = constants.TREASURY_ACCOUNT_ID
-    // check to see if the treasure account is in the secrets
-    const accountInfo = await this.accountManager.getAccountKeysFromSecret(ctx.treasuryAccountId, ctx.config.namespace)
-
-    // if it isn't in the secrets we can load genesis key
-    if (accountInfo) {
-      ctx.treasuryPrivateKey = accountInfo.privateKey
-    } else {
-      ctx.treasuryPrivateKey = constants.GENESIS_KEY
-    }
   }
 
   async getAccountInfo (ctx) {
@@ -156,7 +143,7 @@ export class AccountCommand extends BaseCommand {
 
           self.logger.debug('Initialized config', { config })
 
-          await self.loadTreasuryAccount(ctx)
+          ctx.treasuryAccountInfo = await self.accountManager.getTreasuryAccountKeys(ctx.config.namespace)
           await self.loadNodeClient(ctx)
         }
       },
@@ -219,7 +206,7 @@ export class AccountCommand extends BaseCommand {
       {
         title: 'get the account info',
         task: async (ctx, task) => {
-          await self.loadTreasuryAccount(ctx)
+          ctx.treasuryAccountInfo = await self.accountManager.getTreasuryAccountKeys(ctx.config.namespace)
           await self.loadNodeClient(ctx)
           ctx.accountInfo = await self.buildAccountInfo(await self.getAccountInfo(ctx), ctx.config.namespace, ctx.config.privateKey)
         }
@@ -286,7 +273,7 @@ export class AccountCommand extends BaseCommand {
       {
         title: 'get the account info',
         task: async (ctx, task) => {
-          await self.loadTreasuryAccount(ctx)
+          ctx.treasuryAccountInfo = await self.accountManager.getTreasuryAccountKeys(ctx.config.namespace)
           await self.loadNodeClient(ctx)
           self.accountInfo = await self.buildAccountInfo(await self.getAccountInfo(ctx), ctx.config.namespace, false)
           this.logger.showJSON('account info', self.accountInfo)

@@ -419,15 +419,28 @@ export class NodeCommand extends BaseCommand {
           self.configManager.update(argv)
           await prompts.execute(task, self.configManager, [
             flags.namespace,
+            flags.chartDirectory,
+            flags.fstChartVersion,
             flags.nodeIDs,
+            flags.deployHederaExplorer,
+            flags.deployMirrorNode,
             flags.updateAccountKeys
           ])
 
           ctx.config = {
             namespace: self.configManager.getFlag(flags.namespace),
+            chartDir: this.configManager.getFlag(flags.chartDirectory),
+            fstChartVersion: this.configManager.getFlag(flags.fstChartVersion),
             nodeIds: helpers.parseNodeIDs(self.configManager.getFlag(flags.nodeIDs)),
+            deployMirrorNode: this.configManager.getFlag(flags.deployMirrorNode),
+            deployHederaExplorer: this.configManager.getFlag(flags.deployHederaExplorer),
             updateAccountKeys: self.configManager.getFlag(flags.updateAccountKeys)
           }
+
+          ctx.config.chartPath = await this.prepareChartPath(ctx.config.chartDir,
+            constants.FULLSTACK_TESTING_CHART, constants.FULLSTACK_DEPLOYMENT_CHART)
+
+          ctx.config.valuesArg = ` --set hedera-mirror-node.enabled=${ctx.config.deployMirrorNode} --set hedera-explorer.enabled=${ctx.config.deployHederaExplorer}`
 
           if (!await this.k8.hasNamespace(ctx.config.namespace)) {
             throw new FullstackTestingError(`namespace ${ctx.config.namespace} does not exist`)
@@ -484,9 +497,41 @@ export class NodeCommand extends BaseCommand {
         }
       },
       {
-        title: 'Update mirror node importer address book',
-        task: async (ctx, task) => {
-          await self.updateImporterAddressBook(ctx)
+        title: 'Upgrade the network deployment to enable mirror node with the address book',
+        task: async (ctx, parentTask) => {
+          const subTasks = [
+            {
+              title: 'Get the mirror node importer address book',
+              task: async (ctx, _) => {
+                ctx.addressBook = await self.getAddressBook(ctx.config.namespace)
+                ctx.config.valuesArg += ` --set "hedera-mirror-node.importer.addressBook=${ctx.addressBook}"`
+              }
+            },
+            {
+              title: `Upgrade chart '${constants.FULLSTACK_DEPLOYMENT_CHART}'`,
+              task: async (ctx, _) => {
+                await this.chartManager.upgrade(
+                  ctx.config.namespace,
+                  constants.FULLSTACK_DEPLOYMENT_CHART,
+                  ctx.config.chartPath,
+                  ctx.config.valuesArg
+                )
+              }
+            },
+            {
+              title: 'Waiting for network pods to be ready',
+              task: async (ctx, _) => {
+                await this.k8.waitForPod(constants.POD_STATUS_RUNNING, [
+                  'fullstack.hedera.com/type=network-node'
+                ], 1)
+              }
+            }
+          ]
+
+          return parentTask.newListr(subTasks, {
+            concurrent: false,
+            rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
+          })
         }
       },
       {
@@ -515,41 +560,28 @@ export class NodeCommand extends BaseCommand {
   }
 
   /**
-   * Will get the address book from the network and then use it to update the importer
-   * secret in Kubernetes
-   * @param ctx
-   * @returns {Promise<void>}
+   * Will get the address book from the network (base64 encoded)
+   * @param namespace
+   * @returns {Promise<string>} the base64 encoded address book for the network
    */
-  async updateImporterAddressBook (ctx) {
-    await self.accountManager.loadTreasuryAccount(ctx)
-    await self.accountManager.loadNodeClient(ctx)
+  async getAddressBook (namespace) {
+    const treasuryAccountInfo = await this.accountManager.getTreasuryAccountKeys(namespace)
+    const serviceMap = await this.accountManager.getNodeServiceMap(namespace)
 
-    // Retrieve the AddressBook as base64
-    const base64NodeAddressBook = await self.accountManager.prepareAddressBookBase64(ctx.nodeClient)
+    const nodeClient = await this.accountManager.getNodeClient(namespace,
+      serviceMap, treasuryAccountInfo.accountId, treasuryAccountInfo.privateKey)
 
-    // update kubernetes secrets
-    const secrets = await self.k8.getSecretsByLabel(['app.kubernetes.io/component=importer'])
+    try {
+      // Retrieve the AddressBook as base64
+      const base64NodeAddressBook = await this.accountManager.prepareAddressBookBase64(nodeClient)
+      this.logger.showUser(chalk.yellow(`${base64NodeAddressBook}`))
 
-    for (const secretObject of secrets) {
-      delete secretObject.metadata.creationTimestamp
-      delete secretObject.metadata.managedFields
-      delete secretObject.metadata.resourceVersion
-      delete secretObject.metadata.uid
-      secretObject.data['addressbook.bin'] = base64NodeAddressBook
-
-      await self.k8.updateSecret(secretObject)
-    }
-
-    // restart the importer pod
-    const pods = await self.k8.getPodsByLabel(['app.kubernetes.io/component=importer'])
-    if (pods.length <= 0) {
-      this.logger.showUser(chalk.yellow('expected to find mirror node importer but did not'))
-    }
-    for (const pod of pods) {
-      const resp = await self.k8.kubeClient.deleteNamespacedPod(pod.metadata.name, pod.metadata.namespace)
-      if (resp.response.statusCode !== 200) {
-        throw new FullstackTestingError('Error killing mirror node importer to restart it with updated address book')
-      }
+      return base64NodeAddressBook
+    } catch (e) {
+      throw new FullstackTestingError('an error was encountered while trying to prepare the address book')
+    } finally {
+      await sleep(5) // sleep a few ticks to allow network connections to close
+      nodeClient.destroy()
     }
   }
 

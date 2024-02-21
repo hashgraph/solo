@@ -93,6 +93,29 @@ export class AccountManager {
   }
 
   /**
+   * Gets the treasury account private key from Kubernetes secret if it exists, else
+   * returns the Genesis private key, then will return an AccountInfo object with the
+   * accountId, privateKey, publicKey
+   * @param namespace the namespace that the secret is in
+   * @returns {Promise<{accountId: string, privateKey: string, publicKey: string}>}
+   */
+  async getTreasuryAccountKeys (namespace) {
+    // check to see if the treasure account is in the secrets
+    let accountInfo = await this.getAccountKeysFromSecret(constants.TREASURY_ACCOUNT_ID, namespace)
+
+    // if it isn't in the secrets we can load genesis key
+    if (!accountInfo) {
+      accountInfo = {
+        accountId: constants.TREASURY_ACCOUNT_ID,
+        privateKey: constants.GENESIS_KEY,
+        publicKey: PrivateKey.fromStringED25519(constants.GENESIS_KEY).publicKey.toString()
+      }
+
+      return accountInfo
+    }
+  }
+
+  /**
    * Prepares the accounts with updated keys so that they do not contain the default genesis keys
    * @param namespace the namespace to run the update of account keys for
    * @returns {Promise<void>}

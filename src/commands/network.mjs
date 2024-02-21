@@ -45,7 +45,7 @@ export class NetworkCommand extends BaseCommand {
       }
 
       if (tlsClusterIssuerType === 'self-signed') {
-        valuesArg += ' --set cloud.selfSignedClusterIssuer.enabled=true'
+        valuesArg += ' --set cloud.selfSignedClusterIssuer.enabled=true' // TODO test this with helm upgrade
       } else {
         valuesArg += ' --set cloud.acmeClusterIssuer.enabled=true'
         valuesArg += ` --set hedera-explorer.certClusterIssuerType=${tlsClusterIssuerType}`
@@ -76,7 +76,9 @@ export class NetworkCommand extends BaseCommand {
 
     valuesArg += this.prepareValuesFiles(config.valuesFile)
 
-    valuesArg += ` --set hedera-mirror-node.enabled=${config.deployMirrorNode} --set hedera-explorer.enabled=${config.deployHederaExplorer}`
+    // do not deploy mirror node until after we have the updated address book
+    valuesArg += ' --set hedera-mirror-node.enabled=false --set hedera-explorer.enabled=false'
+
     valuesArg += ` --set telemetry.prometheus.svcMonitor.enabled=${config.enablePrometheusSvcMonitor}`
 
     if (config.enableHederaExplorerTls) {
