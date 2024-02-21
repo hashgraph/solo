@@ -25,6 +25,7 @@
   "author": "Swirlds Labs",
   "license": "Apache2.0",
   "dependencies": {
+    "@hashgraph/proto": "^2.14.0-beta.3",
     "@hashgraph/sdk": "^2.41.0",
     "@kubernetes/client-node": "^0.20.0",
     "@listr2/prompt-adapter-enquirer": "^2.0.2",
@@ -37,6 +38,7 @@
     "figlet": "^1.7.0",
     "got": "^14.2.0",
     "inquirer": "^9.2.15",
+    "js-base64": "^3.7.6",
     "listr2": "^8.0.2",
     "tar": "^6.2.0",
     "uuid": "^9.0.1",
@@ -46,6 +48,7 @@
   },
   "devDependencies": {
     "@jest/globals": "^29.7.0",
+    "@jest/test-sequencer": "^29.7.0",
     "eslint": "^8.56.0",
     "eslint-config-standard": "^17.1.0",
     "eslint-plugin-headers": "^1.1.2",

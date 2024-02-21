@@ -14,13 +14,15 @@
  * limitations under the License.
  *
  */
+import * as HashgraphProto from '@hashgraph/proto'
+import * as Base64 from 'js-base64'
 import * as constants from './constants.mjs'
 import {
   AccountCreateTransaction,
   AccountId,
   AccountInfoQuery,
   AccountUpdateTransaction,
-  Client,
+  Client, FileContentsQuery, FileId,
   Hbar,
   HbarUnit,
   KeyList,
@@ -514,5 +516,41 @@ export class AccountManager {
       this.logger.error(errorMessage)
       throw new FullstackTestingError(errorMessage, e)
     }
+  }
+
+  /**
+   * Fetch and prepare address book as a base64 string
+   * @param nodeClient node client
+   * @return {Promise<string>}
+   */
+  async prepareAddressBookBase64 (nodeClient) {
+    // fetch AddressBook
+    const fileQuery = new FileContentsQuery().setFileId(FileId.ADDRESS_BOOK)
+    let addressBookBytes = await fileQuery.execute(nodeClient)
+
+    // ensure serviceEndpoint.ipAddressV4 value for all nodes in the addressBook is a 4 bytes array instead of string
+    // See: https://github.com/hashgraph/hedera-protobufs/blob/main/services/basic_types.proto#L1309
+    const addressBook = HashgraphProto.proto.NodeAddressBook.decode(addressBookBytes)
+    let modified = false
+    for (const nodeAddress of addressBook.nodeAddress) {
+      // overwrite ipAddressV4 as 4 bytes array if required
+      if (nodeAddress.serviceEndpoint[0].ipAddressV4.byteLength !== 4) {
+        const ipAddress = nodeAddress.serviceEndpoint[0].ipAddressV4.toString()
+        const parts = ipAddress.split('.')
+        if (parts.length !== 4) {
+          throw new FullstackTestingError(`expected node IP address to have 4 parts, found ${parts.length}: ${ipAddress}`)
+        }
+
+        nodeAddress.serviceEndpoint[0].ipAddressV4 = Uint8Array.from(parts)
+        modified = true
+      }
+    }
+
+    if (modified) {
+      addressBookBytes = HashgraphProto.proto.NodeAddressBook.encode(addressBook).finish()
+    }
+
+    // convert addressBook into base64
+    return Base64.encode(addressBookBytes)
   }
 }

@@ -57,7 +57,7 @@ export class PlatformInstaller {
 
       for (const p of resetPaths) {
         await this.k8.execContainer(podName, containerName, `rm -rf ${p}`)
-        await this.k8.execContainer(podName, containerName, `mkdir -p ${p}`)
+        await this.k8.execContainer(podName, containerName, `mkdir ${p}`)
       }
 
       await this.setPathPermission(podName, constants.HEDERA_SERVICES_PATH)
@@ -157,10 +157,6 @@ export class PlatformInstaller {
       for (const srcPath of srcFiles) {
         if (!fs.existsSync(srcPath)) {
           throw new FullstackTestingError(`file does not exist: ${srcPath}`)
-        }
-
-        if (!await this.k8.hasDir(podName, container, destDir)) {
-          await this.k8.mkdir(podName, container, destDir)
         }
 
         this.logger.debug(`Copying file into ${podName}: ${srcPath} -> ${destDir}`)

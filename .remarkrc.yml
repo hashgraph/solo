@@ -6,5 +6,3 @@ plugins:
   # list item indentation should be space
   - - remark-lint-list-item-indent
     - space
-  - - remark-lint-unordered-list-marker-style
-    - consistent

@@ -36,6 +36,7 @@ import { AccountManager } from '../../../src/core/account_manager.mjs'
 import { AccountCommand } from '../../../src/commands/account.mjs'
 import { flags } from '../../../src/commands/index.mjs'
 import { sleep } from '../../../src/core/helpers.mjs'
+import * as HashgraphProto from '@hashgraph/proto'
 
 describe('account commands should work correctly', () => {
   const defaultTimeout = 20000
@@ -200,6 +201,45 @@ describe('account commands should work correctly', () => {
       expect(accountInfo.privateKey).toBeUndefined()
       expect(accountInfo.publicKey).toBeTruthy()
       expect(accountInfo.balance).toEqual(1110)
+    } catch (e) {
+      testLogger.showUserError(e)
+      expect(e).toBeNull()
+    } finally {
+      await accountCmd.closeConnections()
+    }
+  }, defaultTimeout)
+
+  it('update addressBook and restart importer', async () => {
+    try {
+      const ctx = {
+        config: {}
+      }
+      ctx.config.namespace = configManager.getFlag(flags.namespace)
+      await accountCmd.loadTreasuryAccount(ctx)
+      await accountCmd.loadNodeClient(ctx)
+
+      // Retrieve the AddressBook as base64
+      const base64NodeAddressBook = await accountManager.prepareAddressBookBase64(ctx.nodeClient)
+
+      // update kubernetes secrets
+      const secrets = await k8.getSecretsByLabel(['app.kubernetes.io/component=importer'])
+      for (const secretObject of secrets) {
+        delete secretObject.metadata.creationTimestamp
+        delete secretObject.metadata.managedFields
+        delete secretObject.metadata.resourceVersion
+        delete secretObject.metadata.uid
+        secretObject.data['addressbook.bin'] = base64NodeAddressBook
+
+        await k8.updateSecret(secretObject, ctx.config.namespace)
+      }
+
+      // restart the importer pod
+      const pods = await k8.getPodsByLabel(['app.kubernetes.io/component=importer'])
+      expect(pods.length).toBeGreaterThan(0)
+      for (const pod of pods) {
+        const resp = await k8.kubeClient.deleteNamespacedPod(pod.metadata.name, pod.metadata.namespace)
+        expect(resp.response.statusCode).toEqual(200)
+      }
     } catch (e) {
       testLogger.showUserError(e)
       expect(e).toBeNull()
