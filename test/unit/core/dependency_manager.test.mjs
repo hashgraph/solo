@@ -15,13 +15,15 @@
  *
  */
 import { describe, expect, it } from '@jest/globals'
-import { DependencyManager } from '../../../src/core/dependency_manager.mjs'
+import fs from 'fs'
+import { DependencyManager, PackageDownloader, logging, constants } from '../../../src/core/index.mjs'
 import { FullstackTestingError } from '../../../src/core/errors.mjs'
-import { logging, constants } from '../../../src/core/index.mjs'
+import * as testUtil from '../../test_util.js'
 
 const testLogger = logging.NewLogger('debug')
 describe('DependencyManager', () => {
-  const depManager = new DependencyManager(testLogger)
+  const downloader = new PackageDownloader(testLogger)
+  const depManager = new DependencyManager(testLogger, downloader)
 
   describe('checks', () => {
     it('should succeed with checkHelm', async () => {
@@ -33,8 +35,19 @@ describe('DependencyManager', () => {
     it('should fail during invalid dependency check', async () => {
       await expect(depManager.checkDependency('INVALID_PROGRAM')).rejects.toThrowError(new FullstackTestingError('INVALID_PROGRAM:^undefined is not found'))
     })
+
     it('should succeed during kubectl dependency check', async () => {
       await expect(depManager.checkDependency(constants.HELM)).resolves.toBe(true)
+    })
+
+    it('should succeed in downloading helm installer', async () => {
+      const downloadedScript = `${testUtil.getTestCacheDir()}/get-helm-3`
+      await expect(depManager.downloadInstaller(DependencyManager.HELM_INSTALLER, downloadedScript)).resolves.toBeTruthy()
+      expect(fs.existsSync(downloadedScript)).toBeTruthy()
+    })
+
+    it('should succeed in installing helm', async () => {
+      await expect(depManager.installHelm()).resolves.toBeTruthy()
     })
   })
 })

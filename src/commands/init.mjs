@@ -75,7 +75,7 @@ export class InitCommand extends BaseCommand {
             core.constants.HELM
           ]
 
-          const subTasks = self.depManager.taskCheckDependencies(deps)
+          const subTasks = self.depManager.taskCheckDependencies(deps, self.configManager.getFlag(flags.install))
 
           // set up the sub-tasks
           return task.newListr(subTasks, {
@@ -137,7 +137,7 @@ export class InitCommand extends BaseCommand {
     try {
       await tasks.run()
     } catch (e) {
-      throw new FullstackTestingError('Error running init', e)
+      throw new FullstackTestingError(e.message, e)
     }
 
     return true
@@ -159,7 +159,8 @@ export class InitCommand extends BaseCommand {
           flags.clusterSetupNamespace,
           flags.cacheDir,
           flags.chartDirectory,
-          flags.keyFormat
+          flags.keyFormat,
+          flags.install
         )
       },
       handler: argv => initCmd.handleCommand(

@@ -203,6 +203,15 @@ export const force = {
   }
 }
 
+export const install = {
+  name: 'install',
+  definition: {
+    describe: 'Install dependencies if required',
+    defaultValue: true,
+    type: 'boolean'
+  }
+}
+
 export const chartDirectory = {
   name: 'chart-dir',
   definition: {
@@ -417,6 +426,7 @@ export const amount = {
 
 export const allFlags = [
   devMode,
+  install,
   clusterName,
   clusterSetupNamespace,
   namespace,

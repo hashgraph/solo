@@ -41,7 +41,7 @@ export function main (argv) {
     const downloader = new PackageDownloader(logger)
     const chartManager = new ChartManager(helm, logger)
     const configManager = new ConfigManager(logger)
-    const depManager = new DependencyManager(logger)
+    const depManager = new DependencyManager(logger, downloader)
     const k8 = new K8(configManager, logger)
     const platformInstaller = new PlatformInstaller(logger, k8)
     const keyManager = new KeyManager(logger)

@@ -14,22 +14,33 @@
  * limitations under the License.
  *
  */
-import { FullstackTestingError } from './errors.mjs'
+import fs from 'fs'
+import path from 'path'
+import { FullstackTestingError, MissingArgumentError } from './errors.mjs'
 import { constants } from './index.mjs'
 import * as core from './index.mjs'
 import * as helpers from './helpers.mjs'
 import { ShellRunner } from './shell_runner.mjs'
 
 export class DependencyManager extends ShellRunner {
+  static HELM_INSTALLER = 'https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3'
+
   static depVersions = new Map()
     .set(constants.HELM, 'v3.12.3')
 
-  constructor (logger) {
+  constructor (logger, downloader) {
     super(logger)
+
+    if (!downloader) throw new MissingArgumentError('An instance of core/PackageDownloader is required')
+    this.downloader = downloader
 
     // map of dependency checks
     this.checks = new Map()
       .set(core.constants.HELM, () => this.checkHelm())
+
+    // map of dependency installer
+    this.installers = new Map()
+      .set(core.constants.HELM, () => this.installHelm())
   }
 
   /**
@@ -49,6 +60,40 @@ export class DependencyManager extends ShellRunner {
     return false
   }
 
+  async downloadInstaller (fileURL, downloadPath) {
+    this.logger.debug(`Downloading from: ${fileURL}`)
+    const downloadDir = path.dirname(downloadPath)
+
+    try {
+      if (fs.existsSync(downloadPath)) {
+        return true
+      }
+
+      if (!fs.existsSync(downloadDir)) {
+        fs.mkdirSync(downloadDir, { recursive: true })
+      }
+
+      await this.downloader.fetchFile(fileURL, downloadPath)
+
+      return true
+    } catch (e) {
+      throw new FullstackTestingError(`failed to download: ${fileURL}`, e)
+    }
+  }
+
+  async installHelm () {
+    try {
+      const helmInstaller = `${constants.SOLO_CACHE_DIR}/get-helm-3`
+      if (await this.downloadInstaller(DependencyManager.HELM_INSTALLER, helmInstaller)) {
+        await this.run(`chmod +x ${helmInstaller}`)
+        await this.run(`${helmInstaller} --no-sudo`)
+      }
+      return true
+    } catch (e) {
+      throw new FullstackTestingError(`failed to install helm\n${e.message}\n\nRun 'solo init' with sudo/root access [e.g. sudo solo init]`, e)
+    }
+  }
+
   /**
    * Check if the required dependency is installed or not
    * @param dep is the name of the program
@@ -63,20 +108,25 @@ export class DependencyManager extends ShellRunner {
       status = await check()
     }
 
-    if (!status) {
-      throw new FullstackTestingError(`${dep}:^${DependencyManager.depVersions.get(dep)} is not found`)
-    }
-
     this.logger.debug(`Dependency ${dep} is found`)
-    return true
+    return status
   }
 
-  taskCheckDependencies (deps = []) {
+  taskCheckDependencies (deps = [], install = true) {
     const subTasks = []
     deps.forEach(dep => {
       subTasks.push({
         title: `Check dependency: ${dep}`,
-        task: () => this.checkDependency(dep)
+        task: async (_, task) => {
+          if (!await this.checkDependency(dep)) {
+            if (!install) {
+              throw new FullstackTestingError(`${dep} is not installed.`)
+            }
+
+            const installer = this.installers.get(dep)
+            await installer()
+          }
+        }
       })
     })
 

@@ -107,6 +107,14 @@ export async function promptForce (task, input) {
     flags.force.name)
 }
 
+export async function promptInstall (task, input) {
+  return await promptToggle(task, input,
+    flags.install.definition.defaultValue,
+    'Would you like to install dependencies? ',
+    null,
+    flags.install.name)
+}
+
 export async function promptChainId (task, input) {
   return await promptText(task, input,
     flags.chainId.definition.defaultValue,
@@ -393,6 +401,7 @@ export function getPromptMap () {
     .set(flags.privateKey.name, promptPrivateKey)
     .set(flags.accountId.name, promptAccountId)
     .set(flags.amount.name, promptAmount)
+    .set(flags.install.name, promptInstall)
 }
 
 // build the prompt registry
