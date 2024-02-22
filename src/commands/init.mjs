@@ -162,9 +162,9 @@ export class InitCommand extends BaseCommand {
           flags.keyFormat
         )
       },
-      handler: argv => BaseCommand.handleCommand(
+      handler: argv => initCmd.handleCommand(
         argv,
-        async () => await initCmd.init(argv),
+        async (args) => await initCmd.init(args),
         initCmd.logger
       )
     }

@@ -224,19 +224,15 @@ export class ClusterCommand extends BaseCommand {
           .command({
             command: 'list',
             desc: 'List all available clusters',
-            handler: argv => BaseCommand.handleCommand(
-              argv,
-              async () => await clusterCmd.showClusterList(argv),
-              clusterCmd.logger
+            handler: argv => clusterCmd.handleCommand(argv,
+              async (args) => await clusterCmd.showClusterList(args)
             )
           })
           .command({
             command: 'info',
             desc: 'Get cluster info',
-            handler: argv => BaseCommand.handleCommand(
-              argv,
-              async () => await clusterCmd.getClusterInfo(argv),
-              clusterCmd.logger
+            handler: argv => clusterCmd.handleCommand(argv,
+              async (args) => await clusterCmd.getClusterInfo(args)
             )
           })
           .command({
@@ -252,10 +248,8 @@ export class ClusterCommand extends BaseCommand {
               flags.deployCertManagerCrds,
               flags.fstChartVersion
             ),
-            handler: argv => BaseCommand.handleCommand(
-              argv,
-              async () => await clusterCmd.setup(argv),
-              clusterCmd.logger
+            handler: argv => clusterCmd.handleCommand(argv,
+              async (args) => await clusterCmd.setup(args)
             )
           })
           .command({
@@ -265,10 +259,8 @@ export class ClusterCommand extends BaseCommand {
               flags.clusterName,
               flags.clusterSetupNamespace
             ),
-            handler: argv => BaseCommand.handleCommand(
-              argv,
-              async () => await clusterCmd.reset(argv),
-              clusterCmd.logger
+            handler: argv => clusterCmd.handleCommand(argv,
+              async (args) => await clusterCmd.reset(args)
             )
           })
           .demandCommand(1, 'Select a cluster command')

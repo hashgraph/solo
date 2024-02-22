@@ -50,32 +50,40 @@ export class BaseCommand extends ShellRunner {
     this.depManager = opts.depManager
   }
 
-  static async handleCommand (argv, handleCmd, logger) {
+  /**
+   * Handle the execution of the command
+   *
+   * It ensures process file is locked before the handleFunc is called
+   *
+   * @param argv argv of the command
+   * @param handleFunc async function to be invoked
+   * @return {Promise<boolean>} true if the execution succeeded
+   */
+  async handleCommand (argv, handleFunc) {
     if (!argv) throw new MissingArgumentError('argv is required')
-    if (!handleCmd) throw new MissingArgumentError('handleCmd is required')
-    if (!logger) throw new MissingArgumentError('logger is required')
+    if (!handleFunc) throw new MissingArgumentError('handleFunc is required')
 
     let error = null
     try {
-      logger.debug(`==== Start: '${argv._.join(' ')}' ===`)
-      await ConfigManager.acquireProcessLock(logger)
-      await handleCmd()
+      this.logger.debug(`==== Start: '${argv._.join(' ')}' ===`)
+      await ConfigManager.acquireProcessLock(this.logger)
+      await handleFunc(argv)
     } catch (e) {
       error = new FullstackTestingError(`Error occurred: ${e.message}`, e)
     } finally {
-      await ConfigManager.releaseProcessLock(logger)
-      logger.debug(`==== End: '${argv._.join(' ')}' ===`)
+      await ConfigManager.releaseProcessLock(this.logger)
+      this.logger.debug(`==== End: '${argv._.join(' ')}' ===`)
     }
 
     if (error) {
-      logger.showUserError(error)
+      this.logger.showUserError(error)
 
       // do not exit immediately so that logger can flush properly
       setTimeout(() => {
         process.exit(1)
       }, 1)
 
-      return false
+      return false // we return false here, but process will exit with error code eventually.
     }
 
     return true

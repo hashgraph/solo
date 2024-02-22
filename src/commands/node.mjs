@@ -807,10 +807,8 @@ export class NodeCommand extends BaseCommand {
               flags.settingTxt,
               flags.log4j2Xml
             ),
-            handler: argv => BaseCommand.handleCommand(
-              argv,
-              async () => await nodeCmd.setup(argv),
-              nodeCmd.logger
+            handler: argv => nodeCmd.handleCommand(argv,
+              async (args) => await nodeCmd.setup(args)
             )
           })
           .command({
@@ -821,10 +819,8 @@ export class NodeCommand extends BaseCommand {
               flags.nodeIDs,
               flags.updateAccountKeys
             ),
-            handler: argv => BaseCommand.handleCommand(
-              argv,
-              async () => await nodeCmd.start(argv),
-              nodeCmd.logger
+            handler: argv => nodeCmd.handleCommand(argv,
+              async (args) => await nodeCmd.start(args)
             )
           })
           .command({
@@ -834,10 +830,8 @@ export class NodeCommand extends BaseCommand {
               flags.namespace,
               flags.nodeIDs
             ),
-            handler: argv => BaseCommand.handleCommand(
-              argv,
-              async () => await nodeCmd.stop(argv),
-              nodeCmd.logger
+            handler: argv => nodeCmd.handleCommand(argv,
+              async (args) => await nodeCmd.stop(args)
             )
           })
           .command({
@@ -850,10 +844,8 @@ export class NodeCommand extends BaseCommand {
               flags.generateTlsKeys,
               flags.keyFormat
             ),
-            handler: argv => BaseCommand.handleCommand(
-              argv,
-              async () => await nodeCmd.keys(argv),
-              nodeCmd.logger
+            handler: argv => nodeCmd.handleCommand(argv,
+              async (args) => await nodeCmd.keys(args)
             )
           })
           .demandCommand(1, 'Select a node command')

@@ -312,10 +312,8 @@ export class AccountCommand extends BaseCommand {
               flags.privateKey,
               flags.amount
             ),
-            handler: argv => BaseCommand.handleCommand(
-              argv,
-              async () => await accountCmd.create(argv),
-              accountCmd.logger
+            handler: argv => accountCmd.handleCommand(argv,
+              async (args) => await accountCmd.create(args)
             )
           })
           .command({
@@ -327,10 +325,8 @@ export class AccountCommand extends BaseCommand {
               flags.privateKey,
               flags.amount
             ),
-            handler: argv => BaseCommand.handleCommand(
-              argv,
-              async () => await accountCmd.update(argv),
-              accountCmd.logger
+            handler: argv => accountCmd.handleCommand(argv,
+              async (args) => await accountCmd.update(args)
             )
           })
           .command({
@@ -340,10 +336,8 @@ export class AccountCommand extends BaseCommand {
               flags.namespace,
               flags.accountId
             ),
-            handler: argv => BaseCommand.handleCommand(
-              argv,
-              async () => await accountCmd.get(argv),
-              accountCmd.logger
+            handler: argv => accountCmd.handleCommand(argv,
+              async (args) => await accountCmd.get(args)
             )
           })
           .demandCommand(1, 'Select an account command')

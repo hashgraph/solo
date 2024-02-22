@@ -236,10 +236,8 @@ export class RelayCommand extends BaseCommand {
                 flags.operatorKey
               )
             },
-            handler: argv => BaseCommand.handleCommand(
-              argv,
-              async () => await relayCmd.install(argv),
-              relayCmd.logger
+            handler: argv => relayCmd.handleCommand(argv,
+              async (args) => await relayCmd.install(args)
             )
           })
           .command({
@@ -249,10 +247,8 @@ export class RelayCommand extends BaseCommand {
               flags.namespace,
               flags.nodeIDs
             ),
-            handler: argv => BaseCommand.handleCommand(
-              argv,
-              async () => await relayCmd.uninstall(argv),
-              relayCmd.logger
+            handler: argv => relayCmd.handleCommand(argv,
+              async (args) => await relayCmd.uninstall(args)
             )
           })
           .demandCommand(1, 'Select a relay command')

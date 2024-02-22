@@ -368,10 +368,8 @@ export class NetworkCommand extends BaseCommand {
               flags.enablePrometheusSvcMonitor,
               flags.fstChartVersion
             ),
-            handler: argv => BaseCommand.handleCommand(
-              argv,
-              async () => await networkCmd.deploy(argv),
-              networkCmd.logger
+            handler: argv => networkCmd.handleCommand(argv,
+              async (args) => await networkCmd.deploy(args)
             )
           })
           .command({
@@ -382,10 +380,8 @@ export class NetworkCommand extends BaseCommand {
               flags.force,
               flags.deletePvcs
             ),
-            handler: argv => BaseCommand.handleCommand(
-              argv,
-              async () => await networkCmd.destroy(argv),
-              networkCmd.logger
+            handler: argv => networkCmd.handleCommand(argv,
+              async (args) => await networkCmd.destroy(args)
             )
           })
           .command({
@@ -403,10 +399,8 @@ export class NetworkCommand extends BaseCommand {
               flags.hederaExplorerTlsHostName,
               flags.enablePrometheusSvcMonitor
             ),
-            handler: argv => BaseCommand.handleCommand(
-              argv,
-              async () => await networkCmd.refresh(argv),
-              networkCmd.logger
+            handler: argv => networkCmd.handleCommand(argv,
+              async (args) => await networkCmd.refresh(args)
             )
           })
           .demandCommand(1, 'Select a chart command')
