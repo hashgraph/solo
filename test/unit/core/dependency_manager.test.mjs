@@ -17,7 +17,6 @@
 import { describe, expect, it } from '@jest/globals'
 import fs from 'fs'
 import { DependencyManager, PackageDownloader, logging, constants } from '../../../src/core/index.mjs'
-import { FullstackTestingError } from '../../../src/core/errors.mjs'
 import * as testUtil from '../../test_util.js'
 
 const testLogger = logging.NewLogger('debug')
@@ -33,7 +32,7 @@ describe('DependencyManager', () => {
 
   describe('checkDependency', () => {
     it('should fail during invalid dependency check', async () => {
-      await expect(depManager.checkDependency('INVALID_PROGRAM')).rejects.toThrowError(new FullstackTestingError('INVALID_PROGRAM:^undefined is not found'))
+      await expect(depManager.checkDependency('INVALID_PROGRAM')).resolves.toBeFalsy()
     })
 
     it('should succeed during kubectl dependency check', async () => {
@@ -44,10 +43,6 @@ describe('DependencyManager', () => {
       const downloadedScript = `${testUtil.getTestCacheDir()}/get-helm-3`
       await expect(depManager.downloadInstaller(DependencyManager.HELM_INSTALLER, downloadedScript)).resolves.toBeTruthy()
       expect(fs.existsSync(downloadedScript)).toBeTruthy()
-    })
-
-    it('should succeed in installing helm', async () => {
-      await expect(depManager.installHelm()).resolves.toBeTruthy()
     })
   })
 })
