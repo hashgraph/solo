@@ -70,6 +70,7 @@ export class BaseCommand extends ShellRunner {
     if (error) {
       logger.showUserError(error)
 
+      // do not exit immediately so that logger can flush properly
       setTimeout(() => {
         process.exit(1)
       }, 1)
