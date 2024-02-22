@@ -20,7 +20,6 @@ import { FullstackTestingError, MissingArgumentError } from './errors.mjs'
 import { constants } from './index.mjs'
 import { Logger } from './logging.mjs'
 import * as flags from '../commands/flags.mjs'
-import * as paths from 'path'
 import * as helpers from './helpers.mjs'
 
 /**
@@ -117,7 +116,7 @@ export class ConfigManager {
             case 'string':
               if (flag.name === flags.chartDirectory.name || flag.name === flags.cacheDir.name) {
                 this.logger.debug(`Resolving directory path for '${flag.name}': ${val}`)
-                val = paths.resolve(val)
+                val = path.resolve(val)
               }
               this.logger.debug(`Setting flag '${flag.name}' of type '${flag.definition.type}': ${val}`)
               this.config.flags[flag.name] = `${val}` // force convert to string
@@ -227,10 +226,6 @@ export class ConfigManager {
     return this.config.updatedAt
   }
 
-  static getPidFile () {
-    return path.join(constants.SOLO_HOME_DIR, 'solo.pid')
-  }
-
   /**
    * Acquire process lock
    *
@@ -239,21 +234,20 @@ export class ConfigManager {
    * @return {Promise<string | *>}
    */
   static acquireProcessLock (logger) {
-    const pidFilePath = this.getPidFile()
     const pid = process.pid.toString()
 
-    if (!fs.existsSync(pidFilePath)) {
-      fs.writeFileSync(pidFilePath, pid)
+    if (!fs.existsSync(constants.SOLO_PID_FILE)) {
+      fs.writeFileSync(constants.SOLO_PID_FILE, pid)
       logger.debug(`Acquired process lock '${pid}'`, {
-        pidFilePath,
+        pidFile: constants.SOLO_PID_FILE,
         pid
       })
-      return pidFilePath
+      return true
     }
 
     // pid lock exists
-    const existingPid = fs.readFileSync(pidFilePath).toString()
-    logger.showUserError(new FullstackTestingError(`Process lock exists: ${pidFilePath}` +
+    const existingPid = fs.readFileSync(constants.SOLO_PID_FILE).toString()
+    logger.showUserError(new FullstackTestingError(`Process lock exists: ${constants.SOLO_PID_FILE}` +
       `\nEnsure process '${existingPid}' is not running [ ps -p ${existingPid} ]`))
     process.exit(1)
   }
@@ -268,21 +262,20 @@ export class ConfigManager {
    * @return {Promise<void>}
    */
   static releaseProcessLock (logger) {
-    const pidFilePath = this.getPidFile()
-    if (fs.existsSync(pidFilePath)) {
-      const existingPid = fs.readFileSync(pidFilePath).toString()
+    if (fs.existsSync(constants.SOLO_PID_FILE)) {
+      const existingPid = fs.readFileSync(constants.SOLO_PID_FILE).toString()
       const pid = process.pid.toString()
 
       if (existingPid === process.pid.toString()) {
         logger.debug(`Releasing process lock '${pid}'`, {
-          pidFilePath,
+          pidFile: constants.SOLO_PID_FILE,
           pid
         })
 
-        fs.rmSync(pidFilePath)
+        fs.rmSync(constants.SOLO_PID_FILE)
       } else {
         logger.warn(`Unable to release process lock '${pid}'.\nEnsure process '${existingPid}' is not running [ps -p ${existingPid}]`, {
-          pidFilePath,
+          pidFile: constants.SOLO_PID_FILE,
           pid,
           existingPid
         })

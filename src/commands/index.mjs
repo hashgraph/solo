@@ -53,5 +53,5 @@ export {
   NodeCommand,
   RelayCommand,
   AccountCommand,
-  flags,
+  flags
 }
