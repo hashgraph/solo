@@ -1,10 +1,10 @@
 # Solo
 
 [![NPM Version](https://img.shields.io/npm/v/%40hashgraph%2Fsolo?logo=npm)](https://www.npmjs.com/package/@hashgraph/solo)
-[![GitHub License](https://img.shields.io/github/license/hashgraph/solo?logo=apache\&logoColor=red)](LICENSE)
+[![GitHub License](https://img.shields.io/github/license/hashgraph/solo?logo=apache&logoColor=red)](LICENSE)
 ![node-lts](https://img.shields.io/node/v-lts/%40hashgraph%2Fsolo)
 [![Build Application](https://github.com/hashgraph/solo/actions/workflows/flow-build-application.yaml/badge.svg)](https://github.com/hashgraph/solo/actions/workflows/flow-build-application.yaml)
-[![Codacy Badge](https://app.codacy.com/project/badge/Grade/83a423a3a1c942459127b3aec62ab0b5)](https://app.codacy.com/gh/hashgraph/solo/dashboard?utm_source=gh\&utm_medium=referral\&utm_content=\&utm_campaign=Badge_grade)
+[![Codacy Badge](https://app.codacy.com/project/badge/Grade/83a423a3a1c942459127b3aec62ab0b5)](https://app.codacy.com/gh/hashgraph/solo/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade)
 [![codecov](https://codecov.io/gh/hashgraph/solo/graph/badge.svg?token=hBkQdB1XO5)](https://codecov.io/gh/hashgraph/solo)
 
 An opinionated CLI tool to deploy and manage standalone test networks.
@@ -37,8 +37,8 @@ An opinionated CLI tool to deploy and manage standalone test networks.
 * Install [Node](https://nodejs.org/en/download). You may also use [nvm](https://github.com/nvm-sh/nvm) to manage different Node versions locally:
 
 ```
-nvm install lts/hydrogen
-nvm use lts/hydrogen 
+$ nvm install lts/hydrogen
+$ nvm use lts/hydrogen 
 ```
 
 * Install [kubectl](https://kubernetes.io/docs/tasks/tools/)
@@ -58,28 +58,20 @@ nvm use lts/hydrogen
   Check and select appropriate kubernetes context using `kubectx` command as below:
 
 ```
-kubectx <context-name>
+$ kubectx <context-name>
 ```
 
 * For a local cluster, you may use [kind](https://kind.sigs.k8s.io/) and [kubectl](https://kubernetes.io/docs/tasks/tools/) to create a cluster and namespace as below.
   * In this case, ensure your Docker engine has enough resources (e.g. Memory >=8Gb, CPU: >=4).
 
-First, use the following command to set up the environment variables:
 ```
-export SOLO_CLUSTER_NAME=solo
-export SOLO_NAMESPACE=solo
-export SOLO_CLUSTER_SETUP_NAMESPACE=solo-cluster
-```
+$ export SOLO_CLUSTER_NAME=solo
+$ export SOLO_NAMESPACE=solo
+$ export SOLO_CLUSTER_SETUP_NAMESPACE=solo-cluster
+$ kind create cluster -n "${SOLO_CLUSTER_NAME}" 
+$ kubectl create ns "${SOLO_NAMESPACE}" 
+$ kubectl create ns "${SOLO_CLUSTER_SETUP_NAMESPACE}"
 
-Then run the following command to set the kubectl context to the new cluster:
-```
-kind create cluster -n "${SOLO_CLUSTER_NAME}" 
-kubectl create ns "${SOLO_NAMESPACE}" 
-kubectl create ns "${SOLO_CLUSTER_SETUP_NAMESPACE}"
-```
-
-and the command output should look like this:
-```
 Creating cluster "solo" ...
  ✓ Ensuring node image (kindest/node:v1.27.3) 🖼
  ✓ Preparing nodes 📦
@@ -132,10 +124,10 @@ cache directory (`$HOME/.solo/cache/keys`):
 
 ```
 # Option - 1: Generate keys for default node IDs: node0,node1,node2
-/bin/bash -c "$(curl -fsSL  https://raw.githubusercontent.com/hashgraph/solo/main/test/scripts/gen-legacy-keys.sh)"
+/bin/bash -c "$(curl -fsSL  https://raw.githubusercontent.com/hashgraph/full-stack-testing/main/solo/test/scripts/gen-legacy-keys.sh)"
 
 # Option - 2: Generate keys for custom node IDs
-curl https://raw.githubusercontent.com/hashgraph/solo/main/test/scripts/gen-legacy-keys.sh -o gen-legacy-keys.sh
+curl https://raw.githubusercontent.com/hashgraph/full-stack-testing/main/solo/test/scripts/gen-legacy-keys.sh -o gen-legacy-keys.sh
 chmod +x gen-legacy-keys.sh
 ./gen-legacy-keys.sh alice,bob,carol
 ```
@@ -170,13 +162,12 @@ Kubernetes Namespace    : solo
 * Generate `pfx` node keys (You will need `curl`, `keytool` and `openssl`)
 
 ```
-curl https://raw.githubusercontent.com/hashgraph/solo/main/test/scripts/gen-legacy-keys.sh -o gen-legacy-keys.sh
-chmod +x gen-legacy-keys.sh
-./gen-legacy-keys.sh node0,node1,node2
+$ curl https://raw.githubusercontent.com/hashgraph/full-stack-testing/main/solo/test/scripts/gen-legacy-keys.sh -o gen-legacy-keys.sh
+$ chmod +x gen-legacy-keys.sh
+$ ./gen-legacy-keys.sh node0,node1,node2
 
 # view the list of generated keys in the cache folder
-
-ls ~/.solo/cache/keys                                                                    
+$ ls ~/.solo/cache/keys                                                                    
 hedera-node0.crt  hedera-node1.crt  hedera-node2.crt  private-node0.pfx private-node2.pfx
 hedera-node0.key  hedera-node1.key  hedera-node2.key  private-node1.pfx public.pfx
 
