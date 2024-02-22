@@ -66,8 +66,8 @@ describe.each([
   const helm = new Helm(testLogger)
   const chartManager = new ChartManager(helm, testLogger)
   const configManager = new ConfigManager(testLogger, path.join(getTestCacheDir(), 'solo.config'))
-  const packageDownloader = new PackageDownloader(testLogger)
-  const depManager = new DependencyManager(testLogger)
+  const downloader = new PackageDownloader(testLogger)
+  const depManager = new DependencyManager(testLogger, downloader)
   const k8 = new K8(configManager, testLogger)
   const platformInstaller = new PlatformInstaller(testLogger, k8)
   const keyManager = new KeyManager(testLogger)
@@ -79,7 +79,7 @@ describe.each([
     k8,
     chartManager,
     configManager,
-    downloader: packageDownloader,
+    downloader,
     platformInstaller,
     depManager,
     keyManager,

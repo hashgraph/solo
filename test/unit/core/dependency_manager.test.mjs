@@ -21,8 +21,8 @@ import * as testUtil from '../../test_util.js'
 
 const testLogger = logging.NewLogger('debug')
 describe('DependencyManager', () => {
-  const downloader = new PackageDownloader(testLogger)
-  const depManager = new DependencyManager(testLogger, downloader)
+  const downloadManager = new PackageDownloader(testLogger)
+  const depManager = new DependencyManager(testLogger, downloadManager)
 
   describe('checks', () => {
     it('should succeed with checkHelm', async () => {

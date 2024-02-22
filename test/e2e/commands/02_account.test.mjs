@@ -28,7 +28,8 @@ import {
   constants,
   DependencyManager,
   Helm,
-  K8
+  K8,
+  PackageDownloader
 } from '../../../src/core/index.mjs'
 import { getTestCacheDir, testLogger } from '../../test_util.js'
 import path from 'path'
@@ -45,6 +46,7 @@ describe('account commands should work correctly', () => {
   let k8
   let helm
   let chartManager
+  let downloader
   let depManager
   let argv = {}
   let accountId1
@@ -55,8 +57,9 @@ describe('account commands should work correctly', () => {
     k8 = new K8(configManager, testLogger)
     accountManager = new AccountManager(testLogger, k8, constants)
     helm = new Helm(testLogger)
+    downloader = new PackageDownloader(testLogger)
     chartManager = new ChartManager(helm, testLogger)
-    depManager = new DependencyManager(testLogger)
+    depManager = new DependencyManager(testLogger, downloader)
     accountCmd = new AccountCommand({
       logger: testLogger,
       helm,

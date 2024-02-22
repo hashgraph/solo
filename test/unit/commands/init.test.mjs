@@ -22,7 +22,8 @@ import {
   DependencyManager,
   Helm,
   KeyManager,
-  logging
+  logging,
+  PackageDownloader
 } from '../../../src/core/index.mjs'
 import { K8 } from '../../../src/core/k8.mjs'
 
@@ -31,7 +32,8 @@ describe('InitCommand', () => {
   const helm = new Helm(testLogger)
   const chartManager = new ChartManager(helm, testLogger)
   const configManager = new ConfigManager(testLogger)
-  const depManager = new DependencyManager(testLogger)
+  const downloader = new PackageDownloader(testLogger)
+  const depManager = new DependencyManager(testLogger, downloader)
   const keyManager = new KeyManager(testLogger)
   const k8 = new K8(configManager, testLogger)
 

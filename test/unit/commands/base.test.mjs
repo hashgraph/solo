@@ -20,7 +20,8 @@ import {
   ChartManager,
   ConfigManager,
   Helm,
-  logging
+  logging,
+  PackageDownloader
 } from '../../../src/core/index.mjs'
 import { BaseCommand } from '../../../src/commands/base.mjs'
 import { K8 } from '../../../src/core/k8.mjs'
@@ -31,7 +32,8 @@ describe('BaseCommand', () => {
   const helm = new Helm(testLogger)
   const chartManager = new ChartManager(helm, testLogger)
   const configManager = new ConfigManager(testLogger)
-  const depManager = new DependencyManager(testLogger)
+  const downloader = new PackageDownloader(testLogger)
+  const depManager = new DependencyManager(testLogger, downloader)
   const k8 = new K8(configManager, testLogger)
 
   const baseCmd = new BaseCommand({
