@@ -517,14 +517,6 @@ export class NodeCommand extends BaseCommand {
                   ctx.config.valuesArg
                 )
               }
-            },
-            {
-              title: 'Waiting for network pods to be ready',
-              task: async (ctx, _) => {
-                await this.k8.waitForPod(constants.POD_STATUS_RUNNING, [
-                  'fullstack.hedera.com/type=network-node'
-                ], 1)
-              }
             }
           ]
 
