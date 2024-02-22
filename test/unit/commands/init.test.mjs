@@ -14,7 +14,7 @@
  * limitations under the License.
  *
  */
-import { InitCommand } from '../../../src/commands/init.mjs'
+import { InitCommand } from '../../../src/commands/index.mjs'
 import { expect, describe, it } from '@jest/globals'
 import {
   ChartManager,

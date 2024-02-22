@@ -45,4 +45,13 @@ function Initialize (opts) {
 }
 
 // Expose components from the command module
-export { Initialize, flags }
+export {
+  Initialize,
+  InitCommand,
+  ClusterCommand,
+  NetworkCommand,
+  NodeCommand,
+  RelayCommand,
+  AccountCommand,
+  flags,
+}
