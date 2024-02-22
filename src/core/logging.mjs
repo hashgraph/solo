@@ -124,7 +124,7 @@ export const Logger = class {
       }
     }
 
-    console.log(chalk.red('*********************************** ERROR *****************************************'))
+    console.log(chalk.red('*********************************** ERROR ****************************************'))
     if (this.devMode) {
       let prefix = ''
       let indent = ''
@@ -140,7 +140,7 @@ export const Logger = class {
         console.log(chalk.yellow(line))
       })
     }
-    console.log(chalk.red('***********************************************************************************'))
+    console.log(chalk.red('**********************************************************************************'))
 
     this.error(err.message, { error: err.message, stacktrace: stack })
   }

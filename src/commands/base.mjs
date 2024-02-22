@@ -15,7 +15,8 @@
  *
  */
 'use strict'
-import { MissingArgumentError } from '../core/errors.mjs'
+import { FullstackTestingError, MissingArgumentError } from '../core/errors.mjs'
+import { ConfigManager } from '../core/index.mjs'
 import { ShellRunner } from '../core/shell_runner.mjs'
 
 export class BaseCommand extends ShellRunner {
@@ -47,5 +48,33 @@ export class BaseCommand extends ShellRunner {
     this.chartManager = opts.chartManager
     this.configManager = opts.configManager
     this.depManager = opts.depManager
+  }
+
+  static async handleCommand (argv, handleCmd, logger) {
+    if (!argv) throw new MissingArgumentError('argv is required')
+    if (!handleCmd) throw new MissingArgumentError('handleCmd is required')
+    if (!logger) throw new MissingArgumentError('logger is required')
+
+    let error = null
+    try {
+      logger.debug(`==== Start: '${argv._.join(' ')}' ===`)
+      await ConfigManager.acquireProcessLock(logger)
+      await handleCmd()
+    } catch (e) {
+      error = new FullstackTestingError(`Error occurred: ${e.message}`, e)
+    } finally {
+      await ConfigManager.releaseProcessLock(logger)
+      logger.debug(`==== End: '${argv._.join(' ')}' ===`)
+    }
+
+    if (error) {
+      logger.showUserError(error)
+
+      setTimeout(() => {
+        process.exit(1)
+      }, 1)
+    }
+
+    return true
   }
 }

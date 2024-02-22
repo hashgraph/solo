@@ -15,6 +15,7 @@
  *
  */
 import fs from 'fs'
+import path from 'path'
 import { FullstackTestingError, MissingArgumentError } from './errors.mjs'
 import { constants } from './index.mjs'
 import { Logger } from './logging.mjs'
@@ -148,7 +149,7 @@ export class ConfigManager {
 
       // store last command that was run
       if (argv._) {
-        this.config.lastCommand = argv._
+        this.config.lastCommand = argv._.join(' ')
       }
 
       this.config.updatedAt = new Date().toISOString()
@@ -224,5 +225,68 @@ export class ConfigManager {
    */
   getUpdatedAt () {
     return this.config.updatedAt
+  }
+
+  static getPidFile () {
+    return path.join(constants.SOLO_HOME_DIR, 'solo.pid')
+  }
+
+  /**
+   * Acquire process lock
+   *
+   * If no lock file exists, it will create a lock file and write the pid in the file
+   * @param logger
+   * @return {Promise<string | *>}
+   */
+  static acquireProcessLock (logger) {
+    const pidFilePath = this.getPidFile()
+    const pid = process.pid.toString()
+
+    if (!fs.existsSync(pidFilePath)) {
+      fs.writeFileSync(pidFilePath, pid)
+      logger.debug(`Acquired process lock '${pid}'`, {
+        pidFilePath,
+        pid
+      })
+      return pidFilePath
+    }
+
+    // pid lock exists
+    const existingPid = fs.readFileSync(pidFilePath).toString()
+    logger.showUserError(new FullstackTestingError(`Process lock exists: ${pidFilePath}` +
+      `\nEnsure process '${existingPid}' is not running [ ps -p ${existingPid} ]`))
+    process.exit(1)
+  }
+
+  /**
+   * Release process lock
+   *
+   * If current pid matches with the contents of the pid lock file, it will delete the lock file.
+   * Otherwise, it will log a warning
+   *
+   * @param logger
+   * @return {Promise<void>}
+   */
+  static releaseProcessLock (logger) {
+    const pidFilePath = this.getPidFile()
+    if (fs.existsSync(pidFilePath)) {
+      const existingPid = fs.readFileSync(pidFilePath).toString()
+      const pid = process.pid.toString()
+
+      if (existingPid === process.pid.toString()) {
+        logger.debug(`Releasing process lock '${pid}'`, {
+          pidFilePath,
+          pid
+        })
+
+        fs.rmSync(pidFilePath)
+      } else {
+        logger.warn(`Unable to release process lock '${pid}'.\nEnsure process '${existingPid}' is not running [ps -p ${existingPid}]`, {
+          pidFilePath,
+          pid,
+          existingPid
+        })
+      }
+    }
   }
 }
