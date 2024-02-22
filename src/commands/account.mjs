@@ -147,7 +147,7 @@ export class AccountCommand extends BaseCommand {
         }
       },
       {
-        title: 'create the new account',
+        title: 'Create the new account',
         task: async (ctx, task) => {
           self.accountInfo = await self.createNewAccount(ctx)
           const accountInfoCopy = { ...self.accountInfo }
@@ -203,7 +203,7 @@ export class AccountCommand extends BaseCommand {
         }
       },
       {
-        title: 'get the account info',
+        title: 'Get the account info',
         task: async (ctx, task) => {
           ctx.treasuryAccountInfo = await self.accountManager.getTreasuryAccountKeys(ctx.config.namespace)
           await self.loadNodeClient(ctx)
@@ -211,7 +211,7 @@ export class AccountCommand extends BaseCommand {
         }
       },
       {
-        title: 'update the account',
+        title: 'Update the account',
         task: async (ctx, task) => {
           if (!(await self.updateAccountInfo(ctx))) {
             throw new FullstackTestingError(`An error occurred updating account ${ctx.accountInfo.accountId}`)
@@ -219,7 +219,7 @@ export class AccountCommand extends BaseCommand {
         }
       },
       {
-        title: 'get the updated account info',
+        title: 'Get the updated account info',
         task: async (ctx, task) => {
           self.accountInfo = await self.buildAccountInfo(await self.getAccountInfo(ctx), ctx.config.namespace, false)
           this.logger.showJSON('account info', self.accountInfo)
@@ -270,7 +270,7 @@ export class AccountCommand extends BaseCommand {
         }
       },
       {
-        title: 'get the account info',
+        title: 'Get the account info',
         task: async (ctx, task) => {
           ctx.treasuryAccountInfo = await self.accountManager.getTreasuryAccountKeys(ctx.config.namespace)
           await self.loadNodeClient(ctx)
@@ -312,18 +312,11 @@ export class AccountCommand extends BaseCommand {
               flags.privateKey,
               flags.amount
             ),
-            handler: argv => {
-              accountCmd.logger.debug("==== Running 'account create' ===")
-              accountCmd.logger.debug(argv)
-
-              accountCmd.create(argv).then(r => {
-                accountCmd.logger.debug("==== Finished running 'account create' ===")
-                if (!r) process.exit(1)
-              }).catch(err => {
-                accountCmd.logger.showUserError(err)
-                process.exit(1)
-              })
-            }
+            handler: argv => BaseCommand.handleCommand(
+              argv,
+              async () => await accountCmd.create(argv),
+              accountCmd.logger
+            )
           })
           .command({
             command: 'update',
@@ -334,18 +327,11 @@ export class AccountCommand extends BaseCommand {
               flags.privateKey,
               flags.amount
             ),
-            handler: argv => {
-              accountCmd.logger.debug("==== Running 'account update' ===")
-              accountCmd.logger.debug(argv)
-
-              accountCmd.update(argv).then(r => {
-                accountCmd.logger.debug("==== Finished running 'account update' ===")
-                if (!r) process.exit(1)
-              }).catch(err => {
-                accountCmd.logger.showUserError(err)
-                process.exit(1)
-              })
-            }
+            handler: argv => BaseCommand.handleCommand(
+              argv,
+              async () => await accountCmd.update(argv),
+              accountCmd.logger
+            )
           })
           .command({
             command: 'get',
@@ -354,18 +340,11 @@ export class AccountCommand extends BaseCommand {
               flags.namespace,
               flags.accountId
             ),
-            handler: argv => {
-              accountCmd.logger.debug("==== Running 'account get' ===")
-              accountCmd.logger.debug(argv)
-
-              accountCmd.get(argv).then(r => {
-                accountCmd.logger.debug("==== Finished running 'account get' ===")
-                if (!r) process.exit(1)
-              }).catch(err => {
-                accountCmd.logger.showUserError(err)
-                process.exit(1)
-              })
-            }
+            handler: argv => BaseCommand.handleCommand(
+              argv,
+              async () => await accountCmd.get(argv),
+              accountCmd.logger
+            )
           })
           .demandCommand(1, 'Select an account command')
       }

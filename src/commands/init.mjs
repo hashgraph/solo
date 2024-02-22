@@ -162,14 +162,11 @@ export class InitCommand extends BaseCommand {
           flags.keyFormat
         )
       },
-      handler: (argv) => {
-        initCmd.init(argv).then(r => {
-          if (!r) process.exit(1)
-        }).catch(err => {
-          initCmd.logger.showUserError(err)
-          process.exit(1)
-        })
-      }
+      handler: argv => BaseCommand.handleCommand(
+        argv,
+        async () => await initCmd.init(argv),
+        initCmd.logger
+      )
     }
   }
 }

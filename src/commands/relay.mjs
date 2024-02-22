@@ -16,6 +16,7 @@
  */
 import { Listr } from 'listr2'
 import { FullstackTestingError, MissingArgumentError } from '../core/errors.mjs'
+import * as helpers from '../core/helpers.mjs'
 import { BaseCommand } from './base.mjs'
 import * as flags from './flags.mjs'
 import * as paths from 'path'
@@ -67,7 +68,7 @@ export class RelayCommand extends BaseCommand {
     return valuesArg
   }
 
-  prepareReleaseName (nodeIDs = []) {
+  prepareReleaseName (nodeIDs) {
     if (!nodeIDs) {
       throw new MissingArgumentError('Node IDs must be specified')
     }
@@ -87,34 +88,29 @@ export class RelayCommand extends BaseCommand {
         title: 'Initialize',
         task: async (ctx, task) => {
           self.configManager.update(argv)
+          await prompts.execute(task, self.configManager, [
+            flags.namespace,
+            flags.chartDirectory,
+            flags.valuesFile,
+            flags.nodeIDs,
+            flags.chainId,
+            flags.relayReleaseTag,
+            flags.replicaCount,
+            flags.operatorId,
+            flags.operatorKey
+          ])
 
-          // extract config values
-          const valuesFile = self.configManager.getFlag(flags.valuesFile)
-          const nodeIds = self.configManager.getFlag(flags.nodeIDs)
-          const chainId = self.configManager.getFlag(flags.chainId)
-          const relayRelease = self.configManager.getFlag(flags.relayReleaseTag)
-          const replicaCount = self.configManager.getFlag(flags.replicaCount)
-          const operatorId = self.configManager.getFlag(flags.operatorId)
-          const operatorKey = self.configManager.getFlag(flags.operatorKey)
-
-          const namespace = self.configManager.getFlag(flags.namespace)
-          const chartDir = self.configManager.getFlag(flags.chartDirectory)
-
-          // prompt if inputs are empty and set it in the context
-          const namespaces = await self.k8.getNamespaces()
           ctx.config = {
-            chartDir: await prompts.promptChartDir(task, chartDir),
-            namespace: await prompts.promptSelectNamespaceArg(task, namespace, namespaces),
-            valuesFile: await prompts.promptValuesFile(task, valuesFile),
-            nodeIds: await prompts.promptNodeIds(task, nodeIds),
-            chainId: await prompts.promptChainId(task, chainId),
-            relayRelease: await prompts.promptRelayReleaseTag(task, relayRelease),
-            replicaCount: await prompts.promptReplicaCount(task, replicaCount),
-            operatorId: await prompts.promptOperatorId(task, operatorId),
-            operatorKey: await prompts.promptOperatorId(task, operatorKey)
+            chartDir: self.configManager.getFlag(flags.chartDirectory),
+            namespace: self.configManager.getFlag(flags.namespace),
+            valuesFile: self.configManager.getFlag(flags.valuesFile),
+            nodeIds: helpers.parseNodeIDs(self.configManager.getFlag(flags.nodeIDs)),
+            chainId: self.configManager.getFlag(flags.chainId),
+            relayRelease: self.configManager.getFlag(flags.relayReleaseTag),
+            replicaCount: self.configManager.getFlag(flags.replicaCount),
+            operatorId: self.configManager.getFlag(flags.operatorId),
+            operatorKey: self.configManager.getFlag(flags.operatorKey)
           }
-
-          self.logger.debug('Finished prompts', { ctx })
 
           ctx.releaseName = this.prepareReleaseName(ctx.config.nodeIds)
           ctx.isChartInstalled = await this.chartManager.isChartInstalled(ctx.config.namespace, ctx.releaseName)
@@ -125,7 +121,7 @@ export class RelayCommand extends BaseCommand {
       {
         title: 'Prepare chart values',
         task: async (ctx, _) => {
-          ctx.chartPath = await this.prepareChartPath(ctx.config.chartDir, constants.JSON_RPC_RELAY_CHART, constants.CHART_JSON_RPC_RELAY_NAME)
+          ctx.chartPath = await this.prepareChartPath(ctx.config.chartDir, constants.JSON_RPC_RELAY_CHART, constants.JSON_RPC_RELAY_CHART)
           ctx.valuesArg = this.prepareValuesArg(
             ctx.config.valuesFile,
             ctx.config.nodeIds,
@@ -178,19 +174,19 @@ export class RelayCommand extends BaseCommand {
         task: async (ctx, task) => {
           self.configManager.update(argv)
 
-          // extract config values
-          const nodeIds = self.configManager.getFlag(flags.nodeIDs)
-          const namespace = self.configManager.getFlag(flags.namespace)
+          await prompts.execute(task, self.configManager, [
+            flags.namespace,
+            flags.nodeIDs
+          ])
 
-          // prompt if inputs are empty and set it in the context
-          const namespaces = await self.k8.getNamespaces()
           ctx.config = {
-            namespace: await prompts.promptSelectNamespaceArg(task, namespace, namespaces),
-            nodeIds: await prompts.promptNodeIds(task, nodeIds)
+            namespace: self.configManager.getFlag(flags.namespace),
+            nodeIds: helpers.parseNodeIDs(self.configManager.getFlag(flags.nodeIDs))
           }
 
-          ctx.config.releaseName = this.prepareReleaseName(ctx.config.nodeIds)
           self.logger.debug('Finished ctx initialization', { ctx })
+
+          ctx.config.releaseName = this.prepareReleaseName(ctx.config.nodeIds)
         }
       },
       {
@@ -240,18 +236,11 @@ export class RelayCommand extends BaseCommand {
                 flags.operatorKey
               )
             },
-            handler: argv => {
-              relayCmd.logger.debug("==== Running 'relay install' ===", { argv })
-
-              relayCmd.install(argv).then(r => {
-                relayCmd.logger.debug('==== Finished running `relay install`====')
-
-                if (!r) process.exit(1)
-              }).catch(err => {
-                relayCmd.logger.showUserError(err)
-                process.exit(1)
-              })
-            }
+            handler: argv => BaseCommand.handleCommand(
+              argv,
+              async () => await relayCmd.install(argv),
+              relayCmd.logger
+            )
           })
           .command({
             command: 'uninstall',
@@ -260,16 +249,11 @@ export class RelayCommand extends BaseCommand {
               flags.namespace,
               flags.nodeIDs
             ),
-            handler: argv => {
-              relayCmd.logger.debug("==== Running 'relay uninstall' ===", { argv })
-              relayCmd.logger.debug(argv)
-
-              relayCmd.uninstall(argv).then(r => {
-                relayCmd.logger.debug('==== Finished running `relay uninstall`====')
-
-                if (!r) process.exit(1)
-              })
-            }
+            handler: argv => BaseCommand.handleCommand(
+              argv,
+              async () => await relayCmd.uninstall(argv),
+              relayCmd.logger
+            )
           })
           .demandCommand(1, 'Select a relay command')
       }
