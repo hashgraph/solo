@@ -15,7 +15,9 @@
  *
  */
 import { expect, it, describe } from '@jest/globals'
+import fs from 'fs'
 import {
+  constants,
   DependencyManager,
   ChartManager,
   ConfigManager,
@@ -49,6 +51,40 @@ describe('BaseCommand', () => {
     })
     it('should succeed during valid program check', async () => {
       await expect(baseCmd.run('date')).resolves.not.toBeNull()
+    })
+  })
+
+  describe('handle command', () => {
+    it('should succeed in running a valid command handler', async () => {
+      expect.assertions(2)
+      expect(fs.existsSync(constants.SOLO_PID_FILE)).toBeFalsy()
+
+      const argv = {}
+      argv._ = ['test']
+
+      let error = null
+      await baseCmd.handleCommand(argv,
+        async () => {
+        },
+        (err, logger) => {
+          error = err
+        }
+      )
+      expect(error).toBeNull()
+    })
+
+    it('should throw error if it fails to do process lock', async () => {
+      expect.assertions(2)
+      expect(fs.existsSync(constants.SOLO_PID_FILE)).toBeFalsy()
+      await ConfigManager.acquireProcessLock(testLogger)
+
+      const argv = {}
+      argv._ = ['test']
+      await baseCmd.handleCommand(argv, () => {}, (err, logger) => {
+        expect(err.message.includes('Process lock exists')).toBeTruthy()
+      })
+
+      await ConfigManager.releaseProcessLock(testLogger)
     })
   })
 })

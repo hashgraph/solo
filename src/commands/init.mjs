@@ -163,14 +163,8 @@ export class InitCommand extends BaseCommand {
           flags.fstChartVersion
         )
       },
-      handler: (argv) => {
-        initCmd.init(argv).then(r => {
-          if (!r) process.exit(1)
-        }).catch(err => {
-          initCmd.logger.showUserError(err)
-          process.exit(1)
-        })
-      }
+      handler: argv => initCmd.handleCommand(
+        argv, async (args) => await initCmd.init(args))
     }
   }
 }

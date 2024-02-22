@@ -17,7 +17,7 @@
 import { afterAll, describe, expect, it } from '@jest/globals'
 import os from 'os'
 import path from 'path'
-import { ConfigManager } from '../../../src/core/index.mjs'
+import { ConfigManager, constants } from '../../../src/core/index.mjs'
 import * as flags from '../../../src/commands/flags.mjs'
 import fs from 'fs'
 import { testLogger } from '../../test_util.js'
@@ -43,6 +43,7 @@ describe('ConfigManager', () => {
     expect(cachedConfig.updatedAt).toStrictEqual(cm.getUpdatedAt())
     expect(cachedConfig.version).toStrictEqual(cm.getVersion())
     expect(cachedConfig.flags).toStrictEqual(cm.config.flags)
+    expect(cm.getUpdatedAt()).toStrictEqual(cachedConfig.updatedAt)
 
     fs.rmSync(tmpDir, { recursive: true })
   })
@@ -50,6 +51,50 @@ describe('ConfigManager', () => {
   describe('update values using argv', () => {
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'config-'))
     const tmpFile = path.join(tmpDir, 'test.json')
+
+    it('should not persist force flag', () => {
+      const cm = new ConfigManager(testLogger, tmpFile)
+      const argv = {}
+      argv[flags.force.name] = true
+      cm.update(argv)
+      expect(cm.getFlag(flags.force)).toStrictEqual(undefined)
+      cm.persist()
+      expect(cm.getFlag(flags.force)).toStrictEqual(undefined)
+      cm.load()
+      expect(cm.getFlag(flags.force)).toStrictEqual(undefined)
+    })
+
+    it('should update cache-dir flag', () => {
+      const cm = new ConfigManager(testLogger, tmpFile)
+      const argv = {}
+      argv[flags.cacheDir.name] = os.tmpdir()
+
+      try {
+        cm.update(argv)
+      } catch (e) {
+      }
+
+      cm.reset()
+      argv[flags.cacheDir.name] = `${constants.SOLO_HOME_DIR}/new-cache`
+      cm.update(argv)
+      expect(cm.getFlag(flags.cacheDir)).toStrictEqual(`${constants.SOLO_HOME_DIR}/new-cache`)
+    })
+
+    it('should update chart-directory flag', () => {
+      const cm = new ConfigManager(testLogger, tmpFile)
+      const argv = {}
+      argv[flags.chartDirectory.name] = os.tmpdir()
+
+      try {
+        cm.update(argv)
+      } catch (e) {
+      }
+
+      cm.reset()
+      argv[flags.chartDirectory.name] = `${constants.SOLO_HOME_DIR}/charts`
+      cm.update(argv)
+      expect(cm.getFlag(flags.chartDirectory)).toStrictEqual(`${constants.SOLO_HOME_DIR}/charts`)
+    })
 
     it('should update string flag value', () => {
       const cm = new ConfigManager(testLogger, tmpFile)
@@ -264,6 +309,25 @@ describe('ConfigManager', () => {
       expect(cm.getFlag(flags.clusterName)).not.toBe(argv[flags.clusterName.name])
       expect(cm.getFlag(flags.clusterName)).toBe(cachedConfig.flags[flags.clusterName.name])
       expect(cm.getFlag(flags.namespace)).toBe(argv[flags.namespace.name])
+    })
+  })
+
+  describe('process lock', () => {
+    it('should be able to acquire process lock', async () => {
+      expect.assertions(6)
+      expect(fs.existsSync(constants.SOLO_PID_FILE)).toBeFalsy()
+      expect(await ConfigManager.acquireProcessLock(testLogger)).toBeTruthy()
+      expect(fs.existsSync(constants.SOLO_PID_FILE)).toBeTruthy()
+      expect(fs.readFileSync(constants.SOLO_PID_FILE).toString()).toStrictEqual(process.pid.toString())
+
+      // re-attempt should fail
+      try {
+        await ConfigManager.acquireProcessLock(testLogger)
+      } catch (e) {
+        expect(e.message.startsWith('Process lock exists')).toBeTruthy()
+      }
+      await ConfigManager.releaseProcessLock(testLogger)
+      expect(fs.existsSync(constants.SOLO_PID_FILE)).toBeFalsy()
     })
   })
 })

@@ -124,7 +124,8 @@ export const Logger = class {
       }
     }
 
-    console.log(chalk.red('*********************************** ERROR *****************************************'))
+    console.log(chalk.red('*********************************** ERROR ****************************************'))
+    console.log(chalk.yellow(`Error Reference: ${this.traceId}`))
     if (this.devMode) {
       let prefix = ''
       let indent = ''

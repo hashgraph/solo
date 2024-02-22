@@ -367,19 +367,8 @@ export class NetworkCommand extends BaseCommand {
               flags.enablePrometheusSvcMonitor,
               flags.fstChartVersion
             ),
-            handler: argv => {
-              networkCmd.logger.debug("==== Running 'network deploy' ===")
-              networkCmd.logger.debug(argv)
-
-              networkCmd.deploy(argv).then(r => {
-                networkCmd.logger.debug('==== Finished running `network deploy`====')
-
-                if (!r) process.exit(1)
-              }).catch(err => {
-                networkCmd.logger.showUserError(err)
-                process.exit(1)
-              })
-            }
+            handler: argv => networkCmd.handleCommand(
+              argv, async (args) => await networkCmd.deploy(args))
           })
           .command({
             command: 'destroy',
@@ -389,19 +378,8 @@ export class NetworkCommand extends BaseCommand {
               flags.force,
               flags.deletePvcs
             ),
-            handler: argv => {
-              networkCmd.logger.debug("==== Running 'network destroy' ===")
-              networkCmd.logger.debug(argv)
-
-              networkCmd.destroy(argv).then(r => {
-                networkCmd.logger.debug('==== Finished running `network destroy`====')
-
-                if (!r) process.exit(1)
-              }).catch(err => {
-                networkCmd.logger.showUserError(err)
-                process.exit(1)
-              })
-            }
+            handler: argv => networkCmd.handleCommand(
+              argv, async (args) => await networkCmd.destroy(args))
           })
           .command({
             command: 'refresh',
@@ -418,19 +396,8 @@ export class NetworkCommand extends BaseCommand {
               flags.hederaExplorerTlsHostName,
               flags.enablePrometheusSvcMonitor
             ),
-            handler: argv => {
-              networkCmd.logger.debug("==== Running 'chart upgrade' ===")
-              networkCmd.logger.debug(argv)
-
-              networkCmd.refresh(argv).then(r => {
-                networkCmd.logger.debug('==== Finished running `chart upgrade`====')
-
-                if (!r) process.exit(1)
-              }).catch(err => {
-                networkCmd.logger.showUserError(err)
-                process.exit(1)
-              })
-            }
+            handler: argv => networkCmd.handleCommand(
+              argv, async (args) => await networkCmd.refresh(args))
           })
           .demandCommand(1, 'Select a chart command')
       }

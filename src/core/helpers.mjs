@@ -15,9 +15,11 @@
  *
  */
 import fs from 'fs'
+import path from 'path'
 import { FullstackTestingError } from './errors.mjs'
 import * as paths from 'path'
 import { fileURLToPath } from 'url'
+import { constants } from './index.mjs'
 
 // cache current directory
 const CUR_FILE_DIR = paths.dirname(fileURLToPath(import.meta.url))
@@ -131,4 +133,18 @@ export function getRootImageRepository (releaseTag) {
   }
 
   return 'hashgraph/full-stack-testing/ubi8-init-java21'
+}
+
+export function getTmpDir () {
+  return fs.mkdtempSync(path.join(constants.SOLO_TMP_DIR, 'solo-'))
+}
+
+/**
+ * This is a default command error handler used by handleCommand
+ * @param err error
+ * @param logger logger
+ */
+export function defaultErrorHandler (err, logger) {
+  // TODO add user friendly message for the error
+  logger.showUserError(err)
 }

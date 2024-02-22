@@ -14,9 +14,11 @@
  * limitations under the License.
  *
  */
-import { describe, expect, it } from '@jest/globals'
+import { describe, expect, it, jest } from '@jest/globals'
 import { FullstackTestingError } from '../../../src/core/errors.mjs'
+import { Logger } from '../../../src/core/logging.mjs'
 import * as helpers from '../../../src/core/helpers.mjs'
+import { testLogger } from '../../test_util.js'
 
 describe('Helpers', () => {
   it.each([
@@ -68,6 +70,16 @@ describe('Helpers', () => {
 
     it('should succeed with a later version', () => {
       expect(helpers.compareVersion('v3.12.3', 'v3.14.0')).toBe(1)
+    })
+  })
+
+  describe('default error handler', () => {
+    it('should exit with error code on error', () => {
+      expect.assertions(1)
+      const spy = jest.spyOn(Logger.prototype, 'showUserError').mockImplementation()
+      const err = new FullstackTestingError('test')
+      helpers.defaultErrorHandler(err, testLogger)
+      expect(spy).toHaveBeenCalledWith(err)
     })
   })
 })

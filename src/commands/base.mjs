@@ -15,8 +15,10 @@
  *
  */
 'use strict'
-import { MissingArgumentError } from '../core/errors.mjs'
+import { FullstackTestingError, MissingArgumentError } from '../core/errors.mjs'
+import { ConfigManager } from '../core/index.mjs'
 import { ShellRunner } from '../core/shell_runner.mjs'
+import * as helpers from '../core/helpers.mjs'
 
 export class BaseCommand extends ShellRunner {
   async prepareChartPath (chartDir, chartRepo, chartName) {
@@ -47,5 +49,36 @@ export class BaseCommand extends ShellRunner {
     this.chartManager = opts.chartManager
     this.configManager = opts.configManager
     this.depManager = opts.depManager
+  }
+
+  /**
+   * Handle the execution of the command
+   *
+   * It ensures process file is locked before the handleFunc is called
+   *
+   * @param argv argv of the command
+   * @param handleFunc async function to be invoked
+   * @param errHandler error handler
+   * @return {Promise<void>}
+   */
+  async handleCommand (argv, handleFunc, errHandler = helpers.defaultErrorHandler) {
+    if (!argv) throw new MissingArgumentError('argv is required')
+    if (!handleFunc) throw new MissingArgumentError('handleFunc is required')
+
+    let error = null
+    try {
+      this.logger.debug(`==== Start: '${argv._.join(' ')}' ===`, { config: this.configManager.config, argv })
+      await ConfigManager.acquireProcessLock(this.logger)
+      await handleFunc(argv)
+    } catch (e) {
+      error = new FullstackTestingError(`Error occurred: ${e.message}`, e)
+    } finally {
+      await ConfigManager.releaseProcessLock(this.logger)
+      this.logger.debug(`==== End: '${argv._.join(' ')}' ===`, { config: this.configManager.config, argv })
+    }
+
+    if (error) {
+      return errHandler(error, this.logger)
+    }
   }
 }

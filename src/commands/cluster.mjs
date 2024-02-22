@@ -223,33 +223,14 @@ export class ClusterCommand extends BaseCommand {
           .command({
             command: 'list',
             desc: 'List all available clusters',
-            handler: argv => {
-              clusterCmd.logger.debug("==== Running 'cluster list' ===", { argv })
-
-              clusterCmd.showClusterList().then(r => {
-                clusterCmd.logger.debug('==== Finished running `cluster list`====')
-
-                if (!r) process.exit(1)
-              }).catch(err => {
-                clusterCmd.logger.showUserError(err)
-                process.exit(1)
-              })
-            }
+            handler: argv => clusterCmd.handleCommand(
+              argv, async (args) => await clusterCmd.showClusterList(args))
           })
           .command({
             command: 'info',
             desc: 'Get cluster info',
-            handler: argv => {
-              clusterCmd.logger.debug("==== Running 'cluster info' ===", { argv })
-              clusterCmd.getClusterInfo(argv).then(r => {
-                clusterCmd.logger.debug('==== Finished running `cluster info`====')
-
-                if (!r) process.exit(1)
-              }).catch(err => {
-                clusterCmd.logger.showUserError(err)
-                process.exit(1)
-              })
-            }
+            handler: argv => clusterCmd.handleCommand(
+              argv, async (args) => await clusterCmd.getClusterInfo(args))
           })
           .command({
             command: 'setup',
@@ -264,18 +245,8 @@ export class ClusterCommand extends BaseCommand {
               flags.deployCertManagerCrds,
               flags.fstChartVersion
             ),
-            handler: argv => {
-              clusterCmd.logger.debug("==== Running 'cluster setup' ===", { argv })
-
-              clusterCmd.setup(argv).then(r => {
-                clusterCmd.logger.debug('==== Finished running `cluster setup`====')
-
-                if (!r) process.exit(1)
-              }).catch(err => {
-                clusterCmd.logger.showUserError(err)
-                process.exit(1)
-              })
-            }
+            handler: argv => clusterCmd.handleCommand(
+              argv, async (args) => await clusterCmd.setup(args))
           })
           .command({
             command: 'reset',
@@ -284,18 +255,8 @@ export class ClusterCommand extends BaseCommand {
               flags.clusterName,
               flags.clusterSetupNamespace
             ),
-            handler: argv => {
-              clusterCmd.logger.debug("==== Running 'cluster reset' ===", { argv })
-
-              clusterCmd.reset(argv).then(r => {
-                clusterCmd.logger.debug('==== Finished running `cluster reset`====')
-
-                if (!r) process.exit(1)
-              }).catch(err => {
-                clusterCmd.logger.showUserError(err)
-                process.exit(1)
-              })
-            }
+            handler: argv => clusterCmd.handleCommand(
+              argv, async (args) => await clusterCmd.reset(args))
           })
           .demandCommand(1, 'Select a cluster command')
       }

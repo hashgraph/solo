@@ -67,8 +67,6 @@ export class NodeCommand extends BaseCommand {
     let attempt = 0
     let isActive = false
 
-    await sleep(10000) // sleep in case this the user ran the start command again at a later time
-
     // check log file is accessible
     let logFileAccessible = false
     while (attempt++ < maxAttempt) {
@@ -77,7 +75,8 @@ export class NodeCommand extends BaseCommand {
           logFileAccessible = true
           break
         }
-      } catch (e) {} // ignore errors
+      } catch (e) { // ignore errors
+      }
 
       await sleep(1000)
     }
@@ -91,7 +90,7 @@ export class NodeCommand extends BaseCommand {
       try {
         const output = await this.k8.execContainer(podName, constants.ROOT_CONTAINER, ['tail', '-10', logfilePath])
         if (output.indexOf(`Terminating Netty = ${status}`) < 0 && // make sure we are not at the beginning of a restart
-            output.indexOf(`Now current platform status = ${status}`) > 0) {
+          output.indexOf(`Now current platform status = ${status}`) > 0) {
           this.logger.debug(`Node ${nodeId} is ${status} [ attempt: ${attempt}/${maxAttempt}]`)
           isActive = true
           break
@@ -576,7 +575,7 @@ export class NodeCommand extends BaseCommand {
       // Retrieve the AddressBook as base64
       return await this.accountManager.prepareAddressBookBase64(nodeClient)
     } catch (e) {
-      throw new FullstackTestingError('an error was encountered while trying to prepare the address book')
+      throw new FullstackTestingError(`an error was encountered while trying to prepare the address book: ${e.message}`, e)
     } finally {
       await this.accountManager.stopPortForwards()
       if (nodeClient) {
@@ -674,12 +673,12 @@ export class NodeCommand extends BaseCommand {
           }
 
           if (!fs.existsSync(config.keysDir)) {
-            fs.mkdirSync(config.keysDir)
+            fs.mkdirSync(config.keysDir, { recursive: true })
           }
 
           if (config.keyFormat === constants.KEY_FORMAT_PFX && config.generateGossipKeys) {
             throw new FullstackTestingError('Unable to generate PFX gossip keys.\n' +
-              `Please ensure you have pre-generated (*.pfx) key files in keys directory: ${config.keysDir}\n`
+              'Use --key-format pem'
             )
           }
 
@@ -799,18 +798,8 @@ export class NodeCommand extends BaseCommand {
               flags.settingTxt,
               flags.log4j2Xml
             ),
-            handler: argv => {
-              nodeCmd.logger.debug("==== Running 'node setup' ===")
-              nodeCmd.logger.debug(argv)
-
-              nodeCmd.setup(argv).then(r => {
-                nodeCmd.logger.debug('==== Finished running `node setup`====')
-                if (!r) process.exit(1)
-              }).catch(err => {
-                nodeCmd.logger.showUserError(err)
-                process.exit(1)
-              })
-            }
+            handler: argv => nodeCmd.handleCommand(
+              argv, async () => await nodeCmd.setup(argv))
           })
           .command({
             command: 'start',
@@ -820,18 +809,8 @@ export class NodeCommand extends BaseCommand {
               flags.nodeIDs,
               flags.updateAccountKeys
             ),
-            handler: argv => {
-              nodeCmd.logger.debug("==== Running 'node start' ===")
-              nodeCmd.logger.debug(argv)
-
-              nodeCmd.start(argv).then(r => {
-                nodeCmd.logger.debug('==== Finished running `node start`====')
-                if (!r) process.exit(1)
-              }).catch(err => {
-                nodeCmd.logger.showUserError(err)
-                process.exit(1)
-              })
-            }
+            handler: argv => nodeCmd.handleCommand(
+              argv, async () => await nodeCmd.start(argv))
           })
           .command({
             command: 'stop',
@@ -840,18 +819,8 @@ export class NodeCommand extends BaseCommand {
               flags.namespace,
               flags.nodeIDs
             ),
-            handler: argv => {
-              nodeCmd.logger.debug("==== Running 'node stop' ===")
-              nodeCmd.logger.debug(argv)
-
-              nodeCmd.stop(argv).then(r => {
-                nodeCmd.logger.debug('==== Finished running `node stop`====')
-                if (!r) process.exit(1)
-              }).catch(err => {
-                nodeCmd.logger.showUserError(err)
-                process.exit(1)
-              })
-            }
+            handler: argv => nodeCmd.handleCommand(
+              argv, async () => await nodeCmd.stop(argv))
           })
           .command({
             command: 'keys',
@@ -863,18 +832,8 @@ export class NodeCommand extends BaseCommand {
               flags.generateTlsKeys,
               flags.keyFormat
             ),
-            handler: argv => {
-              nodeCmd.logger.debug("==== Running 'node keys' ===")
-              nodeCmd.logger.debug(argv)
-
-              nodeCmd.keys(argv).then(r => {
-                nodeCmd.logger.debug('==== Finished running `node keys`====')
-                if (!r) process.exit(1)
-              }).catch(err => {
-                nodeCmd.logger.showUserError(err)
-                process.exit(1)
-              })
-            }
+            handler: argv => nodeCmd.handleCommand(
+              argv, async () => await nodeCmd.keys(argv))
           })
           .demandCommand(1, 'Select a node command')
       }

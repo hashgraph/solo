@@ -16,22 +16,26 @@
  */
 import { AccountId } from '@hashgraph/sdk'
 import { color, PRESET_TIMER } from 'listr2'
-import { dirname, normalize } from 'path'
+import os from 'os'
+import * as path from 'path'
 import { fileURLToPath } from 'url'
 import chalk from 'chalk'
 
 // -------------------- solo related constants ---------------------------------------------------------------------
-export const CUR_FILE_DIR = dirname(fileURLToPath(import.meta.url))
-export const USER = `${process.env.USER}`
-export const USER_SANITIZED = USER.replace(/[\W_]+/g, '-')
-export const SOLO_HOME_DIR = process.env.SOLO_HOME || `${process.env.HOME}/.solo`
-export const SOLO_LOGS_DIR = `${SOLO_HOME_DIR}/logs`
-export const SOLO_CACHE_DIR = `${SOLO_HOME_DIR}/cache`
+export const SOLO_HOME_DIR = process.env.SOLO_HOME_DIR || path.resolve(path.join(process.env.HOME, '.solo'))
+export const CUR_FILE_DIR = path.dirname(fileURLToPath(import.meta.url))
+export const SOLO_INSTALLATION_DIR = path.resolve(path.join(CUR_FILE_DIR, '/../..'))
+// resources directory of solo where various templates exists
+export const RESOURCES_DIR = path.resolve(path.join(SOLO_INSTALLATION_DIR, 'resources'))
+export const SOLO_TMP_DIR = process.env.SOLO_TMP_DIR || os.tmpdir()
+
+export const SOLO_LOGS_DIR = path.join(SOLO_HOME_DIR, 'logs')
+export const SOLO_PID_FILE = path.join(SOLO_HOME_DIR, 'solo.pid')
+export const SOLO_CACHE_DIR = path.join(SOLO_HOME_DIR, 'cache')
+export const SOLO_CONFIG_FILE = path.join(SOLO_HOME_DIR, 'solo.config')
+
 export const DEFAULT_NAMESPACE = 'default'
 export const HELM = 'helm'
-export const CWD = process.cwd()
-export const SOLO_CONFIG_FILE = `${SOLO_HOME_DIR}/solo.config`
-export const RESOURCES_DIR = normalize(CUR_FILE_DIR + '/../../resources')
 
 export const ROOT_CONTAINER = 'root-container'
 
