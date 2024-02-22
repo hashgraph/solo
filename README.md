@@ -1,6 +1,13 @@
 # Solo
 
-An opinionated CLI tool to deploy and manage private Hedera Networks.
+[![NPM Version](https://img.shields.io/npm/v/%40hashgraph%2Fsolo?logo=npm)](https://www.npmjs.com/package/@hashgraph/solo)
+[![GitHub License](https://img.shields.io/github/license/hashgraph/solo?logo=apache&logoColor=red)](LICENSE)
+![node-lts](https://img.shields.io/node/v-lts/%40hashgraph%2Fsolo)
+[![Build Application](https://github.com/hashgraph/solo/actions/workflows/flow-build-application.yaml/badge.svg)](https://github.com/hashgraph/solo/actions/workflows/flow-build-application.yaml)
+[![Codacy Badge](https://app.codacy.com/project/badge/Grade/83a423a3a1c942459127b3aec62ab0b5)](https://app.codacy.com/gh/hashgraph/solo/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade)
+[![codecov](https://codecov.io/gh/hashgraph/solo/graph/badge.svg?token=hBkQdB1XO5)](https://codecov.io/gh/hashgraph/solo)
+
+An opinionated CLI tool to deploy and manage standalone test networks.
 
 ## Table of Contents
 
@@ -12,8 +19,8 @@ An opinionated CLI tool to deploy and manage private Hedera Networks.
   * [Legacy keys (.pfx file)](#legacy-keys-pfx-file)
   * [Standard keys (.pem file)](#standard-keys-pem-file)
 * [Examples](#examples)
-  * [Example - 1: Deploy a private Hedera network (version `0.42.5`)](#example---1-deploy-a-private-hedera-network-version-0425)
-  * [Example - 2: Deploy a private Hedera network (version `0.47.0-alpha.0`)](#example---2-deploy-a-private-hedera-network-version-0470-alpha0)
+  * [Example - 1: Deploy a standalone test network (version `0.42.5`)](#example---1-deploy-a-standalone-test-network-version-0425)
+  * [Example - 2: Deploy a standalone test network (version `0.47.0-alpha.0`)](#example---2-deploy-a-standalone-test-network-version-0470-alpha0)
 * [Support](#support)
 * [Contributing](#contributing)
 * [Code of Conduct](#code-of-conduct)
@@ -132,7 +139,7 @@ You may run `solo node keys --gossip-keys --tls-keys --key-format pem -i node0,n
 
 ## Examples
 
-### Example - 1: Deploy a private Hedera network (version `0.42.5`)
+### Example - 1: Deploy a standalone test network (version `0.42.5`)
 
 * Initialize `solo` with tag `v0.42.5` and list of node names `node0,node1,node2`:
 
@@ -362,7 +369,7 @@ Once the nodes are up, you may now expose various services (using `k9s` (shift-f
 │                                                                                                                                                                                                                  │
 ```
 
-### Example - 2: Deploy a private Hedera network (version `0.47.0-alpha.0`)
+### Example - 2: Deploy a standalone test network (version `0.47.0-alpha.0`)
 
 * Initialize `solo` with tag `v0.47.0-alpha.0` and list of node names `n0,n1,n2`:
 
