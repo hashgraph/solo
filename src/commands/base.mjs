@@ -65,14 +65,14 @@ export class BaseCommand extends ShellRunner {
 
     let error = null
     try {
-      this.logger.debug(`==== Start: '${argv._.join(' ')}' ===`)
+      this.logger.debug(`==== Start: '${argv._.join(' ')}' ===`, { config: this.configManager.config, argv })
       await ConfigManager.acquireProcessLock(this.logger)
       await handleFunc(argv)
     } catch (e) {
       error = new FullstackTestingError(`Error occurred: ${e.message}`, e)
     } finally {
       await ConfigManager.releaseProcessLock(this.logger)
-      this.logger.debug(`==== End: '${argv._.join(' ')}' ===`)
+      this.logger.debug(`==== End: '${argv._.join(' ')}' ===`, { config: this.configManager.config, argv })
     }
 
     if (error) {
