@@ -47,7 +47,7 @@ export class NetworkCommand extends BaseCommand {
       if (tlsClusterIssuerType === 'self-signed') {
         valuesArg += ' --set cloud.selfSignedClusterIssuer.enabled=true' // TODO test this with helm upgrade
       } else {
-        valuesArg += ' --set cloud.acmeClusterIssuer.enabled=true'
+        valuesArg += ' --set cloud.acmeClusterIssuer.enabled=true' // TODO test this with helm upgrade
         valuesArg += ` --set hedera-explorer.certClusterIssuerType=${tlsClusterIssuerType}`
       }
     }
