@@ -74,6 +74,8 @@ export class BaseCommand extends ShellRunner {
       setTimeout(() => {
         process.exit(1)
       }, 1)
+
+      return false
     }
 
     return true
