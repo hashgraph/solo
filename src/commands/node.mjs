@@ -573,15 +573,15 @@ export class NodeCommand extends BaseCommand {
 
     try {
       // Retrieve the AddressBook as base64
-      const base64NodeAddressBook = await this.accountManager.prepareAddressBookBase64(nodeClient)
-      this.logger.showUser(chalk.yellow(`${base64NodeAddressBook}`))
-
-      return base64NodeAddressBook
+      return await this.accountManager.prepareAddressBookBase64(nodeClient)
     } catch (e) {
       throw new FullstackTestingError('an error was encountered while trying to prepare the address book')
     } finally {
+      await this.accountManager.stopPortForwards()
+      if (nodeClient) {
+        nodeClient.close()
+      }
       await sleep(5) // sleep a few ticks to allow network connections to close
-      nodeClient.destroy()
     }
   }
 
