@@ -149,7 +149,7 @@ export class ConfigManager {
 
       // store last command that was run
       if (argv._) {
-        this.config.lastCommand = argv._.join(' ')
+        this.config.lastCommand = argv._
       }
 
       this.config.updatedAt = new Date().toISOString()
