@@ -110,9 +110,9 @@ export class AccountManager {
         privateKey: constants.GENESIS_KEY,
         publicKey: PrivateKey.fromStringED25519(constants.GENESIS_KEY).publicKey.toString()
       }
-
-      return accountInfo
     }
+
+    return accountInfo
   }
 
   /**
