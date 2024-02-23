@@ -161,10 +161,6 @@ export const Logger = class {
     this.winstonLogger.debug(msg, ...args, this.prepMeta())
   }
 
-  silly (msg, ...args) {
-    this.winstonLogger.silly(msg, ...args, this.prepMeta())
-  }
-
   showList (title, items = []) {
     this.showUser(chalk.green(`\n *** ${title} ***`))
     this.showUser(chalk.green('-------------------------------------------------------------------------------'))

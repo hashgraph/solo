@@ -296,7 +296,6 @@ export class AccountManager {
     let keys
     try {
       keys = await this.getAccountKeys(accountId, nodeClient)
-      this.logger.silly(`retrieved keys for account ${accountId.toString()}`)
     } catch (e) {
       this.logger.error(`failed to get keys for accountId ${accountId.toString()}, e: ${e.toString()}\n  ${e.stack}`)
       return {
@@ -334,7 +333,6 @@ export class AccountManager {
           value: accountId.toString()
         }
       }
-      this.logger.silly(`created k8s secret for account ${accountId.toString()}`)
     } catch (e) {
       this.logger.error(`failed to create secret for accountId ${accountId.toString()}, e: ${e.toString()}`)
       return {
@@ -353,7 +351,6 @@ export class AccountManager {
           value: accountId.toString()
         }
       }
-      this.logger.silly(`sent account key update for account ${accountId.toString()}`)
     } catch (e) {
       this.logger.error(`failed to update account keys for accountId ${accountId.toString()}, e: ${e.toString()}`)
       return {
@@ -410,9 +407,6 @@ export class AccountManager {
    * @returns {Promise<boolean>} whether the update was successful
    */
   async sendAccountKeyUpdate (accountId, newPrivateKey, nodeClient, oldPrivateKey) {
-    this.logger.silly(
-        `Updating account ${accountId.toString()} with new public and private keys`)
-
     if (typeof newPrivateKey === 'string') {
       newPrivateKey = PrivateKey.fromStringED25519(newPrivateKey)
     }
@@ -436,9 +430,6 @@ export class AccountManager {
 
     // Request the receipt of the transaction
     const receipt = await txResponse.getReceipt(nodeClient)
-
-    this.logger.silly(
-        `The transaction consensus status for update of accountId ${accountId.toString()} is ${receipt.status}`)
 
     return receipt.status === Status.Success
   }
@@ -508,7 +499,6 @@ export class AccountManager {
 
       throw new FullstackTestingError(`failed to create secret for accountId ${accountInfo.accountId.toString()}, keys were sent to log file`)
     }
-    this.logger.silly(`created k8s secret for account ${accountInfo.accountId}`)
 
     return accountInfo
   }

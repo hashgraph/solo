@@ -88,7 +88,6 @@ export class AccountCommand extends BaseCommand {
         this.logger.error(`failed to update account keys for accountId ${ctx.accountInfo.accountId}`)
         return false
       }
-      this.logger.silly(`sent account key update for account ${ctx.accountInfo.accountId}`)
     } else {
       amount = amount || flags.amount.definition.defaultValue
     }

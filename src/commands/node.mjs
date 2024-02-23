@@ -497,7 +497,7 @@ export class NodeCommand extends BaseCommand {
         }
       },
       {
-        title: 'Upgrade the network deployment to enable mirror node with the address book',
+        title: 'Enable mirror node',
         task: async (ctx, parentTask) => {
           const subTasks = [
             {
