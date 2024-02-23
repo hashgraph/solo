@@ -129,7 +129,7 @@ export class ChartManager {
   async upgrade (namespaceName, chartName, chartPath, valuesArg = '') {
     try {
       this.logger.showUser(chalk.cyan('> upgrading chart:'), chalk.yellow(`${chartName}`))
-      await this.helm.upgrade(`-n ${namespaceName} ${chartName} ${chartPath} ${valuesArg}`)
+      await this.helm.upgrade(`-n ${namespaceName} ${chartName} ${chartPath} --reuse-values ${valuesArg}`)
       this.logger.showUser(chalk.green('OK'), `chart '${chartName}' is upgraded`)
     } catch (e) {
       throw new FullstackTestingError(`failed to upgrade chart ${chartName}: ${e.message}`, e)

@@ -196,6 +196,63 @@ export class K8 {
   }
 
   /**
+   * Get pods by labels
+   * @param labels list of labels
+   * @return {Promise<Array<V1Pod>>}
+   */
+  async getPodsByLabel (labels = []) {
+    const ns = this._getNamespace()
+    const labelSelector = labels.join(',')
+    const result = await this.kubeClient.listNamespacedPod(
+      ns,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      labelSelector
+    )
+
+    return result.body.items
+  }
+
+  /**
+   * Get secrets by labels
+   * @param labels list of labels
+   * @return {Promise<Array<V1Secret>>}
+   */
+  async getSecretsByLabel (labels = []) {
+    const ns = this._getNamespace()
+    const labelSelector = labels.join(',')
+    const result = await this.kubeClient.listNamespacedSecret(
+      ns,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      labelSelector
+    )
+
+    return result.body.items
+  }
+
+  /**
+   * Updates a kubernetes secrets
+   * @param secretObject
+   * @return {Promise<void>}
+   */
+  async updateSecret (secretObject) {
+    const ns = this._getNamespace()
+    try {
+      // patch is broke, need to use delete/create (workaround/fix in 1.0.0-rc4): https://github.com/kubernetes-client/javascript/issues/893
+      // await k8.kubeClient.patchNamespacedSecret(secret.name, ctx.config.namespace, secret.data)
+      await this.kubeClient.deleteNamespacedSecret(secretObject.metadata.name, ns)
+      await this.kubeClient.createNamespacedSecret(ns, secretObject)
+    } catch (e) {
+      throw new FullstackTestingError(`failed to update secret ${secretObject.metadata.name}: ${e.message}`, e)
+    }
+  }
+
+  /**
    * Get host IP of a podName
    * @param podNameName name of the podName
    * @returns {Promise<string>} podName IP
