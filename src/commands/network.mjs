@@ -365,6 +365,7 @@ export class NetworkCommand extends BaseCommand {
               flags.hederaExplorerTlsLoadBalancerIp,
               flags.hederaExplorerTlsHostName,
               flags.enablePrometheusSvcMonitor,
+              flags.fstChartVersion,
             ),
             handler: argv => {
               networkCmd.logger.debug("==== Running 'network deploy' ===")
