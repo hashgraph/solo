@@ -160,7 +160,7 @@ export class InitCommand extends BaseCommand {
           flags.cacheDir,
           flags.chartDirectory,
           flags.keyFormat,
-          flags.fstChartVersion,
+          flags.fstChartVersion
         )
       },
       handler: (argv) => {

@@ -16,7 +16,6 @@
  */
 import { constants } from '../core/index.mjs'
 import * as core from '../core/index.mjs'
-import * as helpers from '../core/helpers.mjs'
 
 /**
  * Set flag from the flag option
