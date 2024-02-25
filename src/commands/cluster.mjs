@@ -73,7 +73,6 @@ export class ClusterCommand extends BaseCommand {
           await prompts.execute(task, self.configManager, [
             flags.clusterSetupNamespace,
             flags.chartDirectory,
-            flags.fstChartVersion,
             flags.deployPrometheusStack,
             flags.deployMinio,
             flags.deployCertManager,

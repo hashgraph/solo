@@ -329,7 +329,7 @@ export const fstChartVersion = {
   name: 'fst-chart-version',
   definition: {
     describe: 'Fullstack testing chart version',
-    defaultValue: helpers.packageVersion(),
+    defaultValue: '',
     type: 'string'
   }
 }
