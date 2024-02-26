@@ -14,13 +14,15 @@
  * limitations under the License.
  *
  */
+import * as HashgraphProto from '@hashgraph/proto'
+import * as Base64 from 'js-base64'
 import * as constants from './constants.mjs'
 import {
   AccountCreateTransaction,
   AccountId,
   AccountInfoQuery,
   AccountUpdateTransaction,
-  Client,
+  Client, FileContentsQuery, FileId,
   Hbar,
   HbarUnit,
   KeyList,
@@ -88,6 +90,29 @@ export class AccountManager {
     } else {
       return null
     }
+  }
+
+  /**
+   * Gets the treasury account private key from Kubernetes secret if it exists, else
+   * returns the Genesis private key, then will return an AccountInfo object with the
+   * accountId, privateKey, publicKey
+   * @param namespace the namespace that the secret is in
+   * @returns {Promise<{accountId: string, privateKey: string, publicKey: string}>}
+   */
+  async getTreasuryAccountKeys (namespace) {
+    // check to see if the treasure account is in the secrets
+    let accountInfo = await this.getAccountKeysFromSecret(constants.TREASURY_ACCOUNT_ID, namespace)
+
+    // if it isn't in the secrets we can load genesis key
+    if (!accountInfo) {
+      accountInfo = {
+        accountId: constants.TREASURY_ACCOUNT_ID,
+        privateKey: constants.GENESIS_KEY,
+        publicKey: PrivateKey.fromStringED25519(constants.GENESIS_KEY).publicKey.toString()
+      }
+    }
+
+    return accountInfo
   }
 
   /**
@@ -271,7 +296,6 @@ export class AccountManager {
     let keys
     try {
       keys = await this.getAccountKeys(accountId, nodeClient)
-      this.logger.debug(`retrieved keys for account ${accountId.toString()}`)
     } catch (e) {
       this.logger.error(`failed to get keys for accountId ${accountId.toString()}, e: ${e.toString()}\n  ${e.stack}`)
       return {
@@ -309,7 +333,6 @@ export class AccountManager {
           value: accountId.toString()
         }
       }
-      this.logger.debug(`created k8s secret for account ${accountId.toString()}`)
     } catch (e) {
       this.logger.error(`failed to create secret for accountId ${accountId.toString()}, e: ${e.toString()}`)
       return {
@@ -328,7 +351,6 @@ export class AccountManager {
           value: accountId.toString()
         }
       }
-      this.logger.debug(`sent account key update for account ${accountId.toString()}`)
     } catch (e) {
       this.logger.error(`failed to update account keys for accountId ${accountId.toString()}, e: ${e.toString()}`)
       return {
@@ -385,9 +407,6 @@ export class AccountManager {
    * @returns {Promise<boolean>} whether the update was successful
    */
   async sendAccountKeyUpdate (accountId, newPrivateKey, nodeClient, oldPrivateKey) {
-    this.logger.debug(
-        `Updating account ${accountId.toString()} with new public and private keys`)
-
     if (typeof newPrivateKey === 'string') {
       newPrivateKey = PrivateKey.fromStringED25519(newPrivateKey)
     }
@@ -411,9 +430,6 @@ export class AccountManager {
 
     // Request the receipt of the transaction
     const receipt = await txResponse.getReceipt(nodeClient)
-
-    this.logger.debug(
-        `The transaction consensus status for update of accountId ${accountId.toString()} is ${receipt.status}`)
 
     return receipt.status === Status.Success
   }
@@ -483,7 +499,6 @@ export class AccountManager {
 
       throw new FullstackTestingError(`failed to create secret for accountId ${accountInfo.accountId.toString()}, keys were sent to log file`)
     }
-    this.logger.debug(`created k8s secret for account ${accountInfo.accountId}`)
 
     return accountInfo
   }
@@ -514,5 +529,41 @@ export class AccountManager {
       this.logger.error(errorMessage)
       throw new FullstackTestingError(errorMessage, e)
     }
+  }
+
+  /**
+   * Fetch and prepare address book as a base64 string
+   * @param nodeClient node client
+   * @return {Promise<string>}
+   */
+  async prepareAddressBookBase64 (nodeClient) {
+    // fetch AddressBook
+    const fileQuery = new FileContentsQuery().setFileId(FileId.ADDRESS_BOOK)
+    let addressBookBytes = await fileQuery.execute(nodeClient)
+
+    // ensure serviceEndpoint.ipAddressV4 value for all nodes in the addressBook is a 4 bytes array instead of string
+    // See: https://github.com/hashgraph/hedera-protobufs/blob/main/services/basic_types.proto#L1309
+    const addressBook = HashgraphProto.proto.NodeAddressBook.decode(addressBookBytes)
+    let modified = false
+    for (const nodeAddress of addressBook.nodeAddress) {
+      // overwrite ipAddressV4 as 4 bytes array if required
+      if (nodeAddress.serviceEndpoint[0].ipAddressV4.byteLength !== 4) {
+        const ipAddress = nodeAddress.serviceEndpoint[0].ipAddressV4.toString()
+        const parts = ipAddress.split('.')
+        if (parts.length !== 4) {
+          throw new FullstackTestingError(`expected node IP address to have 4 parts, found ${parts.length}: ${ipAddress}`)
+        }
+
+        nodeAddress.serviceEndpoint[0].ipAddressV4 = Uint8Array.from(parts)
+        modified = true
+      }
+    }
+
+    if (modified) {
+      addressBookBytes = HashgraphProto.proto.NodeAddressBook.encode(addressBook).finish()
+    }
+
+    // convert addressBook into base64
+    return Base64.encode(addressBookBytes)
   }
 }

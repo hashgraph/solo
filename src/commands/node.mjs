@@ -419,15 +419,28 @@ export class NodeCommand extends BaseCommand {
           self.configManager.update(argv)
           await prompts.execute(task, self.configManager, [
             flags.namespace,
+            flags.chartDirectory,
+            flags.fstChartVersion,
             flags.nodeIDs,
+            flags.deployHederaExplorer,
+            flags.deployMirrorNode,
             flags.updateAccountKeys
           ])
 
           ctx.config = {
             namespace: self.configManager.getFlag(flags.namespace),
+            chartDir: this.configManager.getFlag(flags.chartDirectory),
+            fstChartVersion: this.configManager.getFlag(flags.fstChartVersion),
             nodeIds: helpers.parseNodeIDs(self.configManager.getFlag(flags.nodeIDs)),
+            deployMirrorNode: this.configManager.getFlag(flags.deployMirrorNode),
+            deployHederaExplorer: this.configManager.getFlag(flags.deployHederaExplorer),
             updateAccountKeys: self.configManager.getFlag(flags.updateAccountKeys)
           }
+
+          ctx.config.chartPath = await this.prepareChartPath(ctx.config.chartDir,
+            constants.FULLSTACK_TESTING_CHART, constants.FULLSTACK_DEPLOYMENT_CHART)
+
+          ctx.config.valuesArg = ` --set hedera-mirror-node.enabled=${ctx.config.deployMirrorNode} --set hedera-explorer.enabled=${ctx.config.deployHederaExplorer}`
 
           if (!await this.k8.hasNamespace(ctx.config.namespace)) {
             throw new FullstackTestingError(`namespace ${ctx.config.namespace} does not exist`)
@@ -484,6 +497,36 @@ export class NodeCommand extends BaseCommand {
         }
       },
       {
+        title: 'Enable mirror node',
+        task: async (ctx, parentTask) => {
+          const subTasks = [
+            {
+              title: 'Get the mirror node importer address book',
+              task: async (ctx, _) => {
+                ctx.addressBook = await self.getAddressBook(ctx.config.namespace)
+                ctx.config.valuesArg += ` --set "hedera-mirror-node.importer.addressBook=${ctx.addressBook}"`
+              }
+            },
+            {
+              title: `Upgrade chart '${constants.FULLSTACK_DEPLOYMENT_CHART}'`,
+              task: async (ctx, _) => {
+                await this.chartManager.upgrade(
+                  ctx.config.namespace,
+                  constants.FULLSTACK_DEPLOYMENT_CHART,
+                  ctx.config.chartPath,
+                  ctx.config.valuesArg
+                )
+              }
+            }
+          ]
+
+          return parentTask.newListr(subTasks, {
+            concurrent: false,
+            rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
+          })
+        }
+      },
+      {
         title: 'Update special account keys',
         task: async (ctx, task) => {
           if (ctx.config.updateAccountKeys) {
@@ -493,8 +536,17 @@ export class NodeCommand extends BaseCommand {
               'skipping special account keys update, special accounts will retain genesis private keys'))
           }
         }
-      }
-    ], {
+      },
+      {
+        title: 'Waiting for explorer pod to be ready',
+        task: async (ctx, _) => {
+          if (ctx.config.deployHederaExplorer) {
+            await this.k8.waitForPod(constants.POD_STATUS_RUNNING, [
+              'app.kubernetes.io/component=hedera-explorer', 'app.kubernetes.io/name=hedera-explorer'
+            ], 1)
+          }
+        }
+      }], {
       concurrent: false,
       rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
     })
@@ -506,6 +558,32 @@ export class NodeCommand extends BaseCommand {
     }
 
     return true
+  }
+
+  /**
+   * Will get the address book from the network (base64 encoded)
+   * @param namespace
+   * @returns {Promise<string>} the base64 encoded address book for the network
+   */
+  async getAddressBook (namespace) {
+    const treasuryAccountInfo = await this.accountManager.getTreasuryAccountKeys(namespace)
+    const serviceMap = await this.accountManager.getNodeServiceMap(namespace)
+
+    const nodeClient = await this.accountManager.getNodeClient(namespace,
+      serviceMap, treasuryAccountInfo.accountId, treasuryAccountInfo.privateKey)
+
+    try {
+      // Retrieve the AddressBook as base64
+      return await this.accountManager.prepareAddressBookBase64(nodeClient)
+    } catch (e) {
+      throw new FullstackTestingError('an error was encountered while trying to prepare the address book')
+    } finally {
+      await this.accountManager.stopPortForwards()
+      if (nodeClient) {
+        nodeClient.close()
+      }
+      await sleep(5) // sleep a few ticks to allow network connections to close
+    }
   }
 
   async stop (argv) {
