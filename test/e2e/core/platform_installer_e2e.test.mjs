@@ -37,7 +37,6 @@ describe('PackageInstallerE2E', () => {
   const testCacheDir = getTestCacheDir()
   const podName = 'network-node0-0'
   const packageVersion = 'v0.42.5'
-  let packageFile = ''
 
   beforeAll(async () => {
     if (!fs.existsSync(testCacheDir)) {
@@ -73,8 +72,7 @@ describe('PackageInstallerE2E', () => {
     it('should succeed with valid tag and pod', async () => {
       expect.assertions(1)
       try {
-        packageFile = await downloader.fetchPlatform(packageVersion, testCacheDir)
-        await expect(installer.copyPlatform(podName, packageFile, true)).resolves.toBeTruthy()
+        await expect(installer.fetchPlatform(podName, packageVersion)).resolves.toBeTruthy()
         const outputs = await k8.execContainer(podName, constants.ROOT_CONTAINER, `ls -la ${constants.HEDERA_HAPI_PATH}`)
         testLogger.showUser(outputs)
       } catch (e) {

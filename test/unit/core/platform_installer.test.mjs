@@ -93,11 +93,11 @@ describe('PackageInstaller', () => {
   describe('extractPlatform', () => {
     it('should fail for missing pod name', async () => {
       expect.assertions(1)
-      await expect(installer.copyPlatform('', os.tmpdir())).rejects.toThrow(MissingArgumentError)
+      await expect(installer.fetchPlatform('', 'v0.42.5')).rejects.toThrow(MissingArgumentError)
     })
-    it('should fail for missing buildZipFile path', async () => {
+    it('should fail for missing tag', async () => {
       expect.assertions(1)
-      await expect(installer.copyPlatform('network-node0-0', '')).rejects.toThrow(MissingArgumentError)
+      await expect(installer.fetchPlatform('network-node0-0', '')).rejects.toThrow(MissingArgumentError)
     })
   })
 

@@ -228,15 +228,6 @@ export class NodeCommand extends BaseCommand {
         task: (ctx, task) => self.taskCheckNetworkNodePods(ctx, task)
       },
       {
-        title: 'Fetch platform software',
-        task: async (ctx, _) => {
-          const config = ctx.config
-          if (config.force || !fs.existsSync(config.buildZipFile)) {
-            ctx.config.buildZipFile = await self.downloader.fetchPlatform(ctx.config.releaseTag, config.cacheDir)
-          }
-        }
-      },
-      {
         title: 'Generate Gossip keys',
         task: async (ctx, _) => {
           const config = ctx.config
@@ -349,7 +340,7 @@ export class NodeCommand extends BaseCommand {
         }
       },
       {
-        title: 'Upload platform software into network nodes',
+        title: 'Fetch platform software into network nodes',
         task:
           async (ctx, task) => {
             const config = ctx.config
@@ -360,7 +351,7 @@ export class NodeCommand extends BaseCommand {
               subTasks.push({
                 title: `Node: ${chalk.yellow(nodeId)}`,
                 task: () =>
-                  self.plaformInstaller.copyPlatform(podName, config.buildZipFile)
+                  self.plaformInstaller.fetchPlatform(podName, config.releaseTag)
               })
             }
 
