@@ -420,7 +420,6 @@ export class NodeCommand extends BaseCommand {
           await prompts.execute(task, self.configManager, [
             flags.namespace,
             flags.chartDirectory,
-            flags.fstChartVersion,
             flags.nodeIDs,
             flags.deployHederaExplorer,
             flags.deployMirrorNode,
