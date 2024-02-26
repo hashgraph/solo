@@ -516,6 +516,16 @@ export class NodeCommand extends BaseCommand {
                   ctx.config.valuesArg
                 )
               }
+            },
+            {
+              title: 'Waiting for explorer pod to be ready',
+              task: async (ctx, _) => {
+                if (ctx.config.deployHederaExplorer) {
+                  await this.k8.waitForPod(constants.POD_STATUS_RUNNING, [
+                    'app.kubernetes.io/component=hedera-explorer', 'app.kubernetes.io/name=hedera-explorer'
+                  ], 1, 100)
+                }
+              }
             }
           ]
 
@@ -535,17 +545,8 @@ export class NodeCommand extends BaseCommand {
               'skipping special account keys update, special accounts will retain genesis private keys'))
           }
         }
-      },
-      {
-        title: 'Waiting for explorer pod to be ready',
-        task: async (ctx, _) => {
-          if (ctx.config.deployHederaExplorer) {
-            await this.k8.waitForPod(constants.POD_STATUS_RUNNING, [
-              'app.kubernetes.io/component=hedera-explorer', 'app.kubernetes.io/name=hedera-explorer'
-            ], 1)
-          }
-        }
-      }], {
+      }
+    ], {
       concurrent: false,
       rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
     })
