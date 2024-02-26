@@ -102,6 +102,8 @@ jobs:
         if: ${{ inputs.enable-codecov-analysis && !cancelled() && !failure() }}
         env:
           CODECOV_TOKEN: ${{ secrets.codecov-token }}
+        with:
+          verbose: true
 
       - name: Setup Snyk
         env:
