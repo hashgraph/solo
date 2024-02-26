@@ -99,10 +99,6 @@ jobs:
           name: E2E Coverage Report
           path: 'coverage/e2e'
 
-      - name: Debug Coverage Reports
-        if: ${{ inputs.enable-codecov-analysis && !cancelled() && !failure() }}
-        run: ls -alR .
-
       - name: Publish To Codecov
         uses: codecov/codecov-action@e0b68c6749509c5f83f984dd99a76a1c1a231044 # v4.0.1
         if: ${{ inputs.enable-codecov-analysis && !cancelled() && !failure() }}
