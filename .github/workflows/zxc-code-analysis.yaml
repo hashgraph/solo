@@ -98,7 +98,7 @@ jobs:
           name: E2E Coverage Report
 
       - name: TODO remove check dir
-        if: ${{ inputs.enable-snyk-scan && !cancelled() && !failure() }}
+        if: ${{ inputs.enable-codecov-analysis && !cancelled() && !failure() }}
         run: ls -alR .
 
       - name: Publish To Codecov
