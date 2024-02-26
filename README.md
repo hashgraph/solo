@@ -205,7 +205,7 @@ Kubernetes Namespace    : solo
   * If it fails, ensure you have enough resources allocated for Docker and restart.
 
 ```
-$ solo network deploy --fst-chart-version 0.22.0
+$ solo network deploy
 
 ******************************* Solo *********************************************
 Version                 : 0.19.1
@@ -422,7 +422,7 @@ In a separate terminal, you may run `k9s` to view the pod status.
 * Deploy helm chart with Hedera network components
 
 ```
-$ solo network deploy --fst-chart-version 0.22.0
+$ solo network deploy
 
 # output is similar to example-1 
 ```
