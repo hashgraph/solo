@@ -162,15 +162,12 @@ export class AccountManager {
       let localPort = constants.LOCAL_NODE_START_PORT
 
       for (const serviceObject of serviceMap.values()) {
-        if (!this.isLocalhost() && !serviceObject.loadBalancerIp) {
-          throw new Error(
-              `Expected service ${serviceObject.name} to have a loadBalancerIP set for basepath ${this.k8.kubeClient.basePath}`)
-        }
-        const host = this.isLocalhost() ? '127.0.0.1' : serviceObject.loadBalancerIp
+        const usePortForward = !(serviceObject.loadBalancerIp)
+        const host = usePortForward ? '127.0.0.1' : serviceObject.loadBalancerIp
         const port = serviceObject.grpcPort
-        const targetPort = this.isLocalhost() ? localPort : port
+        const targetPort = usePortForward ? localPort : port
 
-        if (this.isLocalhost()) {
+        if (usePortForward) {
           this.portForwards.push(await this.k8.portForward(serviceObject.podName, localPort, port))
         }
 
@@ -188,14 +185,6 @@ export class AccountManager {
     } catch (e) {
       throw new FullstackTestingError(`failed to setup node client: ${e.message}`, e)
     }
-  }
-
-  /**
-   * returns true if we detect that we are running against a local Kubernetes cluster
-   * @returns boolean true if we are running against a local Kubernetes cluster, else false
-   */
-  isLocalhost () {
-    return this.k8.kubeClient.basePath.includes('127.0.0.1')
   }
 
   /**
