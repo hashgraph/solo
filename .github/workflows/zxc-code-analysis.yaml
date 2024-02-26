@@ -85,17 +85,18 @@ jobs:
         with:
           node-version: ${{ inputs.node-version }}
 
-      - name: Download Unit Test Coverage Report
+      - name: Download Coverage Reports
         uses: actions/download-artifact@eaceaf801fd36c7dee90939fad912460b18a1ffe # v4.1.2
         if: ${{ inputs.enable-codecov-analysis && !cancelled() && !failure() }}
         with:
-          name: Unit Test Coverage Report
+          path: 'coverage'
+          merge-multiple: true
 
-      - name: Download E2E Coverage Report
-        uses: actions/download-artifact@eaceaf801fd36c7dee90939fad912460b18a1ffe # v4.1.2
-        if: ${{ inputs.enable-codecov-analysis && inputs.enable-e2e-coverage-report && !cancelled() && !failure() }}
-        with:
-          name: E2E Coverage Report
+#      - name: Download E2E Coverage Report
+#        uses: actions/download-artifact@eaceaf801fd36c7dee90939fad912460b18a1ffe # v4.1.2
+#        if: ${{ inputs.enable-codecov-analysis && inputs.enable-e2e-coverage-report && !cancelled() && !failure() }}
+#        with:
+#          name: E2E Coverage Report
 
       - name: TODO remove check dir
         if: ${{ inputs.enable-codecov-analysis && !cancelled() && !failure() }}
