@@ -109,6 +109,7 @@ jobs:
           CODECOV_TOKEN: ${{ secrets.codecov-token }}
         with:
           verbose: true
+#          directory: ''
 
       - name: Setup Snyk
         env:
