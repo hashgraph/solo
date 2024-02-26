@@ -492,7 +492,7 @@ export class NodeCommand extends BaseCommand {
 
           // set up the sub-tasks
           return task.newListr(subTasks, {
-            concurrent: false,
+            concurrent: true,
             rendererOptions: {
               collapseSubtasks: false
             }
@@ -586,7 +586,6 @@ export class NodeCommand extends BaseCommand {
       if (nodeClient) {
         nodeClient.close()
       }
-      await sleep(5) // sleep a few ticks to allow network connections to close
     }
   }
 

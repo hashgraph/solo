@@ -20,7 +20,6 @@ import { flags } from './index.mjs'
 import { Listr } from 'listr2'
 import * as prompts from './prompts.mjs'
 import { constants } from '../core/index.mjs'
-import { sleep } from '../core/helpers.mjs'
 import { HbarUnit, PrivateKey } from '@hashgraph/sdk'
 
 export class AccountCommand extends BaseCommand {
@@ -37,10 +36,8 @@ export class AccountCommand extends BaseCommand {
   async closeConnections () {
     if (this.nodeClient) {
       this.nodeClient.close()
-      await sleep(5) // sleep a couple of ticks for connections to close
     }
     await this.accountManager.stopPortForwards()
-    await sleep(5) // sleep a couple of ticks for connections to close
   }
 
   async buildAccountInfo (accountInfo, namespace, shouldRetrievePrivateKey) {

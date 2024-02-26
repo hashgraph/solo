@@ -35,6 +35,7 @@ import { sleep } from './helpers.mjs'
 import net from 'net'
 import chalk from 'chalk'
 import { Templates } from './templates.mjs'
+import * as util from 'util'
 
 const REASON_FAILED_TO_GET_KEYS = 'failed to get keys for accountId'
 const REASON_SKIPPED = 'skipped since it does not have a genesis key'
@@ -140,11 +141,19 @@ export class AccountManager {
    */
   async stopPortForwards () {
     if (this.portForwards) {
-      this.portForwards.forEach(server => {
-        server.close()
-      })
+      for (const webSocketServer of this.portForwards) {
+        // const serverClose = util.promisify(webSocketServer.close)
+        // await serverClose()
+        await (() => {
+          return new Promise((resolve, reject) => {
+            webSocketServer.close((err, data) => {
+              if (err) return reject(err)
+              resolve(data)
+            })
+          })
+        })()
+      }
       this.portForwards = []
-      await sleep(1) // give a tick for connections to close
     }
   }
 
@@ -233,43 +242,57 @@ export class AccountManager {
    */
   async updateSpecialAccountsKeys (namespace, nodeClient, accounts) {
     const genesisKey = PrivateKey.fromStringED25519(constants.OPERATOR_KEY)
-    const accountUpdatePromiseArray = []
     const realm = constants.HEDERA_NODE_ACCOUNT_ID_START.realm
     const shard = constants.HEDERA_NODE_ACCOUNT_ID_START.shard
+    const batchSize = constants.ACCOUNT_CREATE_BATCH_SIZE
+    const batchSets = []
 
+    let batchCounter = 0
+    let currentBatch = []
     for (const [start, end] of accounts) {
       for (let i = start; i <= end; i++) {
-        accountUpdatePromiseArray.push(this.updateAccountKeys(
-          namespace, nodeClient, AccountId.fromString(`${realm}.${shard}.${i}`), genesisKey))
-
-        await sleep(constants.ACCOUNT_KEYS_UPDATE_PAUSE) // sleep a little to prevent overwhelming the servers
+        if (++batchCounter >= batchSize) {
+          batchSets.push(currentBatch)
+          currentBatch = []
+        }
+        currentBatch.push(i)
       }
     }
 
-    await Promise.allSettled(accountUpdatePromiseArray).then((results) => {
-      let rejectedCount = 0
-      let fulfilledCount = 0
-      let skippedCount = 0
+    let rejectedCount = 0
+    let fulfilledCount = 0
+    let skippedCount = 0
 
-      for (const result of results) {
-        switch (result.status) {
-          case 'rejected':
-            if (result.reason === REASON_SKIPPED) {
-              skippedCount++
-            } else {
-              this.logger.error(`REJECT: ${result.reason}: ${result.value}`)
-              rejectedCount++
-            }
-            break
-          case 'fulfilled':
-            fulfilledCount++
-            break
-        }
+    for (const currentSet of batchSets) {
+      const accountUpdatePromiseArray = []
+
+      for (const accountNum of currentSet) {
+        accountUpdatePromiseArray.push(this.updateAccountKeys(
+          namespace, nodeClient, AccountId.fromString(`${realm}.${shard}.${accountNum}`), genesisKey))
       }
-      this.logger.showUser(chalk.green(`Account keys updated SUCCESSFULLY: ${fulfilledCount}`))
-      if (skippedCount > 0) this.logger.showUser(chalk.cyan(`Account keys updates SKIPPED: ${skippedCount}`))
-      if (rejectedCount > 0) this.logger.showUser(chalk.yellowBright(`Account keys updates with ERROR: ${rejectedCount}`))
-    })
+
+      await Promise.allSettled(accountUpdatePromiseArray).then((results) => {
+        for (const result of results) {
+          switch (result.status) {
+            case 'rejected':
+              if (result.reason === REASON_SKIPPED) {
+                skippedCount++
+              } else {
+                this.logger.error(`REJECT: ${result.reason}: ${result.value}`)
+                rejectedCount++
+              }
+              break
+            case 'fulfilled':
+              fulfilledCount++
+              break
+          }
+        }
+      })
+    }
+
+    this.logger.showUser(chalk.green(`Account keys updated SUCCESSFULLY: ${fulfilledCount}`))
+    if (skippedCount > 0) this.logger.showUser(chalk.cyan(`Account keys updates SKIPPED: ${skippedCount}`))
+    if (rejectedCount > 0) this.logger.showUser(chalk.yellowBright(`Account keys updates with ERROR: ${rejectedCount}`))
   }
 
   /**
@@ -448,8 +471,7 @@ export class AccountManager {
     if (!socket) {
       throw new FullstackTestingError(`failed to connect to port '${port}' of pod ${podName} at IP address ${host}`)
     }
-    socket.destroy()
-    await sleep(1) // gives a few ticks for connections to close
+    await socket.destroy()
   }
 
   /**
