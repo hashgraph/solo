@@ -3,6 +3,7 @@ plugins:
   - remark-preset-lint-consistent
   # Few recommended rules.
   - remark-preset-lint-recommended
+  - remark-lint-maximum-line-length: 120
   # list item indentation should be space
   - - remark-lint-list-item-indent
     - space
