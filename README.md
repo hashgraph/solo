@@ -65,6 +65,7 @@ kubectx <context-name>
   * In this case, ensure your Docker engine has enough resources (e.g. Memory >=8Gb, CPU: >=4).
 
 First, use the following command to set up the environment variables:
+
 ```
 export SOLO_CLUSTER_NAME=solo
 export SOLO_NAMESPACE=solo
@@ -72,6 +73,7 @@ export SOLO_CLUSTER_SETUP_NAMESPACE=solo-cluster
 ```
 
 Then run the following command to set the kubectl context to the new cluster:
+
 ```
 kind create cluster -n "${SOLO_CLUSTER_NAME}" 
 kubectl create ns "${SOLO_NAMESPACE}" 
@@ -79,6 +81,7 @@ kubectl create ns "${SOLO_CLUSTER_SETUP_NAMESPACE}"
 ```
 
 and the command output should look like this:
+
 ```
 Creating cluster "solo" ...
  ✓ Ensuring node image (kindest/node:v1.27.3) 🖼

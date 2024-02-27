@@ -15,9 +15,8 @@
  *
  */
 import { describe, expect, it } from '@jest/globals'
-import { DependencyManager } from '../../../src/core/dependency_manager.mjs'
+import { DependencyManager, logging, constants } from '../../../src/core/index.mjs'
 import { FullstackTestingError } from '../../../src/core/errors.mjs'
-import { logging, constants } from '../../../src/core/index.mjs'
 
 const testLogger = logging.NewLogger('debug')
 describe('DependencyManager', () => {
