@@ -15,7 +15,8 @@
  *
  */
 import * as x509 from '@peculiar/x509'
-import { DataValidationError, MissingArgumentError } from './errors.mjs'
+import path from 'path'
+import { DataValidationError, IllegalArgumentError, MissingArgumentError } from './errors.mjs'
 
 export class Templates {
   static renderNetworkPodName (nodeId) {
@@ -115,5 +116,25 @@ export class Templates {
     country = 'US'
   ) {
     return new x509.Name(`CN=${nodeId},ST=${state},L=${locality},O=${org},OU=${orgUnit},C=${country}`)
+  }
+
+  static renderStagingDir (configManager, flags) {
+    if (!configManager) throw new MissingArgumentError('configManager is required')
+    const cacheDir = configManager.getFlag(flags.cacheDir)
+    if (!cacheDir) {
+      throw new IllegalArgumentError('cacheDir cannot be empty')
+    }
+
+    const releaseTag = configManager.getFlag(flags.releaseTag)
+    if (!releaseTag) {
+      throw new IllegalArgumentError('releaseTag cannot be empty')
+    }
+
+    const releasePrefix = this.prepareReleasePrefix(releaseTag)
+    if (!releasePrefix) {
+      throw new IllegalArgumentError('releasePrefix cannot be empty')
+    }
+
+    return path.resolve(`${cacheDir}/${releasePrefix}/staging/${releaseTag}`)
   }
 }

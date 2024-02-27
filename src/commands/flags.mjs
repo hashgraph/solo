@@ -342,6 +342,15 @@ export const applicationProperties = {
   }
 }
 
+export const applicationEnv = {
+  name: 'application-env',
+  definition: {
+    describe: 'application.env file for node',
+    defaultValue: '',
+    type: 'string'
+  }
+}
+
 export const apiPermissionProperties = {
   name: 'api-permission-properties',
   definition: {
@@ -454,7 +463,8 @@ export const allFlags = [
   updateAccountKeys,
   privateKey,
   accountId,
-  amount
+  amount,
+  applicationEnv
 ]
 
 export const allFlagsMap = new Map(allFlags.map(f => [f.name, f]))
