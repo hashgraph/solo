@@ -77,6 +77,20 @@ jobs:
     secrets:
       codecov-token: ${{ secrets.CODECOV_TOKEN }}
 
+  codacy-coverage:
+    name: Codacy
+    uses: ./.github/workflows/zxc-code-analysis.yaml
+    needs:
+      - unit-tests
+      - e2e-tests
+    if: ${{ github.event.pull_request.head.repo.full_name == github.event.pull_request.base.repo.full_name && github.actor != 'dependabot[bot]' }}
+    with:
+      custom-job-label: Coverage
+      enable-codacy-coverage: true
+      enable-e2e-coverage-report: true
+    secrets:
+      codacy-project-token: ${{ secrets.CODACY_PROJECT_TOKEN }}
+
 #  snyk:
 #    name: Snyk Scan
 #    uses: ./.github/workflows/zxc-code-analysis.yaml
