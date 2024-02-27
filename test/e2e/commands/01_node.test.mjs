@@ -94,7 +94,6 @@ describe.each([
     argv[flags.keyFormat.name] = testKeyFormat
     argv[flags.nodeIDs.name] = 'node0,node1,node2'
     argv[flags.cacheDir.name] = cacheDir
-    argv[flags.chartDirectory.name] = './charts'
     argv[flags.force.name] = false
     argv[flags.chainId.name] = constants.HEDERA_CHAIN_ID
     argv[flags.generateGossipKeys.name] = false

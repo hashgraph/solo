@@ -110,7 +110,6 @@ export class NetworkCommand extends BaseCommand {
       flags.namespace,
       flags.nodeIDs,
       flags.chartDirectory,
-      flags.fstChartVersion,
       flags.valuesFile,
       flags.deployMirrorNode,
       flags.deployHederaExplorer,
