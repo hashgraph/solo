@@ -30,6 +30,11 @@ on:
         type: boolean
         required: false
         default: false
+      enable-codacy-coverage:
+        description: "Codacy Coverage Enabled"
+        type: boolean
+        required: false
+        default: false
       enable-e2e-coverage-report:
         description: "E2E Coverage Report Enabled"
         type: boolean
@@ -56,6 +61,9 @@ on:
         required: false
       codecov-token:
         description: "The CodeCov access token is used by CodeCov.io to analyze the code coverage "
+        required: false
+      codacy-project-token:
+        description: "The Codacy project token used to report code coverage."
         required: false
 
 defaults:
@@ -107,6 +115,12 @@ jobs:
         with:
           verbose: true
           directory: 'coverage'
+
+      - name: Publish to Codacy
+        env:
+          CODACY_PROJECT_TOKEN: ${{ secrets.codacy-project-token }}
+        if: ${{ inputs.enable-codacy-coverage && !cancelled() && !failure() }}
+        run: bash <(curl -Ls https://coverage.codacy.com/get.sh) report -l Javascript $(find . -name 'lcov.info' -printf '-r %p ')
 
       - name: Setup Snyk
         env:
