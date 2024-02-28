@@ -84,7 +84,7 @@ jobs:
       #enable-snyk-scan: ${{ github.event_name == 'push' || github.event.inputs.enable-snyk-scan == 'true' }}
       enable-codecov-analysis: true
       enable-codacy-coverage: true
-      enable-e2e-coverage-report: ${{ github.event.inputs.enable-e2e-tests == 'true' }}
+      enable-e2e-coverage-report: ${{ github.event_name == 'push' || github.event.inputs.enable-e2e-tests == 'true' }}
     secrets:
       snyk-token: ${{ secrets.SNYK_TOKEN }}
       codecov-token: ${{ secrets.CODECOV_TOKEN }}
