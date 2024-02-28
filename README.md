@@ -76,8 +76,6 @@ Then run the following command to set the kubectl context to the new cluster:
 
 ```
 kind create cluster -n "${SOLO_CLUSTER_NAME}" 
-kubectl create ns "${SOLO_NAMESPACE}" 
-kubectl create ns "${SOLO_CLUSTER_SETUP_NAMESPACE}"
 ```
 
 and the command output should look like this:
@@ -96,7 +94,6 @@ You can now use your cluster with:
 kubectl cluster-info --context kind-solo
 
 Have a nice day! 👋
-namespace/solo created
 ```
 
 You may now view pods in your cluster using `k9s -A` as below:
