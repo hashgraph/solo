@@ -99,14 +99,25 @@ export class PlatformInstaller {
     }
   }
 
-  async copyPlatform (podName, buildZipSrc) {
+  /**
+   * Fetch platform code into the container
+   *
+   * It uses curl to fetch the platform code directly inside the /home/hedera directory.
+   *
+   * @param podName pod name
+   * @param tag platform release tag
+   * @return {Promise<boolean|undefined>}
+   */
+  async fetchPlatform (podName, tag) {
     if (!podName) throw new MissingArgumentError('podName is required')
-    if (!buildZipSrc) throw new MissingArgumentError('buildZipSrc is required')
-    if (!fs.statSync(buildZipSrc).isFile()) throw new IllegalArgumentError('buildZipFile does not exists', buildZipSrc)
+    if (!tag) throw new MissingArgumentError('tag is required')
 
     try {
-      await this.copyFiles(podName, [buildZipSrc], constants.HEDERA_USER_HOME_DIR)
-      return this.extractPlatform(podName, buildZipSrc)
+      const releaseDir = Templates.prepareReleasePrefix(tag)
+      const packageURL = `${constants.HEDERA_BUILDS_URL}/node/software/${releaseDir}/build-${tag}.zip`
+      const buildZip = path.join(constants.HEDERA_USER_HOME_DIR, `build-${tag}.zip`)
+      await this.k8.execContainer(podName, constants.ROOT_CONTAINER, `curl -s ${packageURL} -o ${buildZip}`)
+      return this.extractPlatform(podName, buildZip)
     } catch (e) {
       throw new FullstackTestingError(`failed to copy platform code in to pod '${podName}': ${e.message}`, e)
     }

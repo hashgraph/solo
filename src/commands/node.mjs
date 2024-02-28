@@ -194,7 +194,7 @@ export class NodeCommand extends BaseCommand {
           config.releasePrefix = Templates.prepareReleasePrefix(config.releaseTag)
           config.buildZipFile = `${config.cacheDir}/${config.releasePrefix}/build-${config.releaseTag}.zip`
           config.keysDir = path.join(config.cacheDir, 'keys')
-          config.stagingDir = `${config.cacheDir}/${config.releasePrefix}/staging/${config.releaseTag}`
+          config.stagingDir = Templates.renderStagingDir(self.configManager, flags)
           config.stagingKeysDir = path.join(config.stagingDir, 'keys')
 
           if (config.keyFormat === constants.KEY_FORMAT_PFX && config.generateGossipKeys) {
@@ -226,15 +226,6 @@ export class NodeCommand extends BaseCommand {
       {
         title: 'Identify network pods',
         task: (ctx, task) => self.taskCheckNetworkNodePods(ctx, task)
-      },
-      {
-        title: 'Fetch platform software',
-        task: async (ctx, _) => {
-          const config = ctx.config
-          if (config.force || !fs.existsSync(config.buildZipFile)) {
-            ctx.config.buildZipFile = await self.downloader.fetchPlatform(ctx.config.releaseTag, config.cacheDir)
-          }
-        }
       },
       {
         title: 'Generate Gossip keys',
@@ -349,7 +340,7 @@ export class NodeCommand extends BaseCommand {
         }
       },
       {
-        title: 'Upload platform software into network nodes',
+        title: 'Fetch platform software into network nodes',
         task:
           async (ctx, task) => {
             const config = ctx.config
@@ -360,7 +351,7 @@ export class NodeCommand extends BaseCommand {
               subTasks.push({
                 title: `Node: ${chalk.yellow(nodeId)}`,
                 task: () =>
-                  self.plaformInstaller.copyPlatform(podName, config.buildZipFile)
+                  self.plaformInstaller.fetchPlatform(podName, config.releaseTag)
               })
             }
 
@@ -428,16 +419,20 @@ export class NodeCommand extends BaseCommand {
 
           ctx.config = {
             namespace: self.configManager.getFlag(flags.namespace),
-            chartDir: this.configManager.getFlag(flags.chartDirectory),
-            fstChartVersion: this.configManager.getFlag(flags.fstChartVersion),
+            chartDir: self.configManager.getFlag(flags.chartDirectory),
+            fstChartVersion: self.configManager.getFlag(flags.fstChartVersion),
             nodeIds: helpers.parseNodeIDs(self.configManager.getFlag(flags.nodeIDs)),
-            deployMirrorNode: this.configManager.getFlag(flags.deployMirrorNode),
-            deployHederaExplorer: this.configManager.getFlag(flags.deployHederaExplorer),
-            updateAccountKeys: self.configManager.getFlag(flags.updateAccountKeys)
+            deployMirrorNode: self.configManager.getFlag(flags.deployMirrorNode),
+            deployHederaExplorer: self.configManager.getFlag(flags.deployHederaExplorer),
+            updateAccountKeys: self.configManager.getFlag(flags.updateAccountKeys),
+            applicationEnv: self.configManager.getFlag(flags.applicationEnv),
+            cacheDir: self.configManager.getFlag(flags.cacheDir)
           }
 
           ctx.config.chartPath = await this.prepareChartPath(ctx.config.chartDir,
             constants.FULLSTACK_TESTING_CHART, constants.FULLSTACK_DEPLOYMENT_CHART)
+
+          ctx.config.stagingDir = Templates.renderStagingDir(self.configManager, flags)
 
           ctx.config.valuesArg = ` --set hedera-mirror-node.enabled=${ctx.config.deployMirrorNode} --set hedera-explorer.enabled=${ctx.config.deployHederaExplorer}`
 
@@ -460,6 +455,15 @@ export class NodeCommand extends BaseCommand {
               title: `Start node: ${chalk.yellow(nodeId)}`,
               task: async () => {
                 await self.k8.execContainer(podName, constants.ROOT_CONTAINER, ['rm', '-rf', `${constants.HEDERA_HAPI_PATH}/data/logs`])
+
+                // copy application.env file if required
+                if (ctx.config.applicationEnv) {
+                  const stagingDir = Templates.renderStagingDir(self.configManager, flags)
+                  const applicationEnvFile = path.join(stagingDir, 'application.env')
+                  fs.cpSync(ctx.config.applicationEnv, applicationEnvFile)
+                  await self.k8.copyTo(podName, constants.ROOT_CONTAINER, applicationEnvFile, `${constants.HEDERA_HAPI_PATH}`)
+                }
+
                 await self.k8.execContainer(podName, constants.ROOT_CONTAINER, ['systemctl', 'restart', 'network-node'])
               }
             })
@@ -818,7 +822,8 @@ export class NodeCommand extends BaseCommand {
             builder: y => flags.setCommandFlags(y,
               flags.namespace,
               flags.nodeIDs,
-              flags.updateAccountKeys
+              flags.updateAccountKeys,
+              flags.applicationEnv
             ),
             handler: argv => {
               nodeCmd.logger.debug("==== Running 'node start' ===")
