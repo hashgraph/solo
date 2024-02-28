@@ -59,16 +59,18 @@ jobs:
   unit-tests:
     name: Unit Tests
     uses: ./.github/workflows/zxc-compile-code.yaml
+    if: ${{ github.event_name == 'push' || github.event.inputs.enable-unit-tests == 'true' }}
     with:
       custom-job-label: Standard
-      enable-unit-tests: ${{ github.event_name == 'push' || github.event.inputs.enable-unit-tests == 'true' }}
+      enable-unit-tests: true
 
   e2e-tests:
     name: E2E Tests
     uses: ./.github/workflows/zxc-compile-code.yaml
+    if: ${{ github.event_name == 'push' || github.event.inputs.enable-e2e-tests == 'true' }}
     with:
       custom-job-label: Standard
-      enable-e2e-tests: ${{ github.event_name == 'push' || github.event.inputs.enable-e2e-tests == 'true' }}
+      enable-e2e-tests: true
 
   analyze:
     name: Analyze
@@ -76,12 +78,14 @@ jobs:
     needs:
       - unit-tests
       - e2e-tests
-    if: ${{ github.event_name == 'push' || github.event.inputs.enable-unit-tests == 'true' || github.event.inputs.enable-e2e-tests == 'true' }}
+    if: ${{ (github.event_name == 'push' || github.event.inputs.enable-unit-tests == 'true' || github.event.inputs.enable-e2e-tests == 'true') && !failure() && !cancelled() }}
     with:
       custom-job-label: Source Code
       #enable-snyk-scan: ${{ github.event_name == 'push' || github.event.inputs.enable-snyk-scan == 'true' }}
-      enable-codecov-analysis: ${{ github.event_name == 'push' || github.event.inputs.enable-unit-tests == 'true' || github.event.inputs.enable-e2e-tests == 'true' }}
-      enable-e2e-coverage-report: true
+      enable-codecov-analysis: true
+      enable-codacy-coverage: true
+      enable-e2e-coverage-report: ${{ github.event.inputs.enable-e2e-tests == 'true' }}
     secrets:
       snyk-token: ${{ secrets.SNYK_TOKEN }}
       codecov-token: ${{ secrets.CODECOV_TOKEN }}
+      codacy-project-token: ${{ secrets.CODACY_PROJECT_TOKEN }}
