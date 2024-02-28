@@ -35,12 +35,13 @@ import { sleep } from './helpers.mjs'
 import net from 'net'
 import chalk from 'chalk'
 import { Templates } from './templates.mjs'
-import * as util from 'util'
 
 const REASON_FAILED_TO_GET_KEYS = 'failed to get keys for accountId'
 const REASON_SKIPPED = 'skipped since it does not have a genesis key'
 const REASON_FAILED_TO_UPDATE_ACCOUNT = 'failed to update account keys'
 const REASON_FAILED_TO_CREATE_K8S_S_KEY = 'failed to create k8s scrt key'
+const FULFILLED = 'fulfilled'
+const REJECTED = 'rejected'
 
 /**
  * Copyright (C) 2024 Hedera Hashgraph, LLC
@@ -121,15 +122,17 @@ export class AccountManager {
    * @param namespace the namespace to run the update of account keys for
    * @returns {Promise<void>}
    */
-  async prepareAccounts (namespace) {
+  async prepareAccounts (namespace, task) { // TODO update task into jsdoc (multiple places)
     const serviceMap = await this.getNodeServiceMap(namespace)
 
     const nodeClient = await this.getNodeClient(
       namespace, serviceMap, constants.OPERATOR_ID, constants.OPERATOR_KEY)
 
-    await this.updateSpecialAccountsKeys(namespace, nodeClient, constants.SYSTEM_ACCOUNTS)
+    // TODO check to see if any account key secrets exist in the cluster, if they don't we can skip the deleteSecret
+
+    await this.updateSpecialAccountsKeys(namespace, nodeClient, constants.SYSTEM_ACCOUNTS, task)
     // update the treasury account last
-    await this.updateSpecialAccountsKeys(namespace, nodeClient, constants.TREASURY_ACCOUNTS)
+    await this.updateSpecialAccountsKeys(namespace, nodeClient, constants.TREASURY_ACCOUNTS, task)
 
     nodeClient.close()
     await this.stopPortForwards()
@@ -140,19 +143,60 @@ export class AccountManager {
    * @returns {Promise<void>}
    */
   async stopPortForwards () {
+    // const closedCount = 0
     if (this.portForwards) {
-      for (const webSocketServer of this.portForwards) {
-        // const serverClose = util.promisify(webSocketServer.close)
-        // await serverClose()
-        await (() => {
-          return new Promise((resolve, reject) => {
-            webSocketServer.close((err, data) => {
-              if (err) return reject(err)
-              resolve(data)
-            })
-          })
-        })()
-      }
+      // original
+      this.portForwards.forEach(server => {
+        server.close()
+      })
+      this.portForwards = []
+      await sleep(1) // give a tick for connections to close
+      // for (const webSocketServer of this.portForwards) {
+      // Option 1:
+      // const serverClose = util.promisify(webSocketServer.close)
+      // await serverClose()
+      // Option 2:
+      // await (() => {
+      //   return new Promise((resolve, reject) => {
+      //     webSocketServer.close((err, data) => {
+      //       if (err) return reject(err)
+      //       resolve(data)
+      //     })
+      //   })
+      // })()
+      // Option 3:
+      // const closeWebSocket = (callback) => {
+      //   // don't close if it's already closed
+      //   if (webSocketServer.readyState === 3) {
+      //     callback()
+      //   } else {
+      //     // don't notify on user-initiated shutdown ('disconnect' event)
+      //     webSocketServer.removeAllListeners('close')
+      //     webSocketServer.once('close', () => {
+      //       webSocketServer.removeAllListeners()
+      //       callback()
+      //     })
+      //     webSocketServer.close()
+      //   }
+      // }
+      // await new Promise((resolve, reject) => {
+      //   closeWebSocket(resolve)
+      // })
+      // Option 4:
+      // webSocketServer.addEventListener('close', (event) => {
+      //   console.log('The connection has been closed successfully.')
+      // })
+      // webSocketServer.onclose = (event) => {
+      //   closedCount++
+      //   console.log(`event: ${event}`)
+      // }
+      // webSocketServer.close()
+      // }
+      // let sleepCounter = 0
+      // while (closedCount < this.portForwards.length) {
+      //   await sleep(50)
+      //   console.log(`sleeping.... ${++sleepCounter}`)
+      // }
       this.portForwards = []
     }
   }
@@ -240,7 +284,7 @@ export class AccountManager {
    * @param accounts the accounts to update
    * @returns {Promise<void>}
    */
-  async updateSpecialAccountsKeys (namespace, nodeClient, accounts) {
+  async updateSpecialAccountsKeys (namespace, nodeClient, accounts, task) {
     const genesisKey = PrivateKey.fromStringED25519(constants.OPERATOR_KEY)
     const realm = constants.HEDERA_NODE_ACCOUNT_ID_START.realm
     const shard = constants.HEDERA_NODE_ACCOUNT_ID_START.shard
@@ -251,13 +295,16 @@ export class AccountManager {
     let currentBatch = []
     for (const [start, end] of accounts) {
       for (let i = start; i <= end; i++) {
-        if (++batchCounter >= batchSize) {
+        if (batchCounter >= batchSize) {
           batchSets.push(currentBatch)
           currentBatch = []
+          batchCounter = 0
         }
+        batchCounter++
         currentBatch.push(i)
       }
     }
+    batchSets.push(currentBatch)
 
     let rejectedCount = 0
     let fulfilledCount = 0
@@ -273,21 +320,22 @@ export class AccountManager {
 
       await Promise.allSettled(accountUpdatePromiseArray).then((results) => {
         for (const result of results) {
-          switch (result.status) {
-            case 'rejected':
-              if (result.reason === REASON_SKIPPED) {
+          switch (result.value.status) {
+            case REJECTED:
+              if (result.value.reason === REASON_SKIPPED) {
                 skippedCount++
               } else {
-                this.logger.error(`REJECT: ${result.reason}: ${result.value}`)
+                this.logger.error(`REJECT: ${result.value.reason}: ${result.value.value}`)
                 rejectedCount++
               }
               break
-            case 'fulfilled':
+            case FULFILLED:
               fulfilledCount++
               break
           }
         }
       })
+      task.output = `Current counts: [fulfilled: ${fulfilledCount}, skipped: ${skippedCount}, rejected: ${rejectedCount}`
     }
 
     this.logger.showUser(chalk.green(`Account keys updated SUCCESSFULLY: ${fulfilledCount}`))
@@ -311,7 +359,7 @@ export class AccountManager {
     } catch (e) {
       this.logger.error(`failed to get keys for accountId ${accountId.toString()}, e: ${e.toString()}\n  ${e.stack}`)
       return {
-        status: 'rejected',
+        status: REJECTED,
         reason: REASON_FAILED_TO_GET_KEYS,
         value: accountId.toString()
       }
@@ -320,7 +368,7 @@ export class AccountManager {
     if (constants.OPERATOR_PUBLIC_KEY !== keys[0].toString()) {
       this.logger.debug(`account ${accountId.toString()} can be skipped since it does not have a genesis key`)
       return {
-        status: 'rejected',
+        status: REJECTED,
         reason: REASON_SKIPPED,
         value: accountId.toString()
       }
@@ -340,7 +388,7 @@ export class AccountManager {
       ) {
         this.logger.error(`failed to create secret for accountId ${accountId.toString()}`)
         return {
-          status: 'rejected',
+          status: REJECTED,
           reason: REASON_FAILED_TO_CREATE_K8S_S_KEY,
           value: accountId.toString()
         }
@@ -348,7 +396,7 @@ export class AccountManager {
     } catch (e) {
       this.logger.error(`failed to create secret for accountId ${accountId.toString()}, e: ${e.toString()}`)
       return {
-        status: 'rejected',
+        status: REJECTED,
         reason: REASON_FAILED_TO_CREATE_K8S_S_KEY,
         value: accountId.toString()
       }
@@ -358,7 +406,7 @@ export class AccountManager {
       if (!(await this.sendAccountKeyUpdate(accountId, newPrivateKey, nodeClient, genesisKey))) {
         this.logger.error(`failed to update account keys for accountId ${accountId.toString()}`)
         return {
-          status: 'rejected',
+          status: REJECTED,
           reason: REASON_FAILED_TO_UPDATE_ACCOUNT,
           value: accountId.toString()
         }
@@ -366,14 +414,14 @@ export class AccountManager {
     } catch (e) {
       this.logger.error(`failed to update account keys for accountId ${accountId.toString()}, e: ${e.toString()}`)
       return {
-        status: 'rejected',
+        status: REJECTED,
         reason: REASON_FAILED_TO_UPDATE_ACCOUNT,
         value: accountId.toString()
       }
     }
 
     return {
-      status: 'fulfilled',
+      status: FULFILLED,
       value: accountId.toString()
     }
   }

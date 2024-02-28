@@ -543,7 +543,7 @@ export class NodeCommand extends BaseCommand {
         title: 'Update special account keys',
         task: async (ctx, task) => {
           if (ctx.config.updateAccountKeys) {
-            await self.accountManager.prepareAccounts(ctx.config.namespace)
+            await self.accountManager.prepareAccounts(ctx.config.namespace, task)
           } else {
             this.logger.showUser(chalk.yellowBright('> WARNING:'), chalk.yellow(
               'skipping special account keys update, special accounts will retain genesis private keys'))
@@ -580,7 +580,7 @@ export class NodeCommand extends BaseCommand {
       // Retrieve the AddressBook as base64
       return await this.accountManager.prepareAddressBookBase64(nodeClient)
     } catch (e) {
-      throw new FullstackTestingError('an error was encountered while trying to prepare the address book')
+      throw new FullstackTestingError(`an error was encountered while trying to prepare the address book: ${e.message}`, e)
     } finally {
       await this.accountManager.stopPortForwards()
       if (nodeClient) {
