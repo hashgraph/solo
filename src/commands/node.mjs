@@ -506,6 +506,7 @@ export class NodeCommand extends BaseCommand {
             {
               title: 'Get the mirror node importer address book',
               task: async (ctx, _) => {
+                await sleep(20000) // TODO is this needed?  previously there was an extra 20 seconds before I made the check nodes concurrent
                 ctx.addressBook = await self.getAddressBook(ctx.config.namespace)
                 ctx.config.valuesArg += ` --set "hedera-mirror-node.importer.addressBook=${ctx.addressBook}"`
               }

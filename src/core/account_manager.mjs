@@ -232,6 +232,15 @@ export class AccountManager {
 
       this.logger.debug(`creating client from network configuration: ${JSON.stringify(nodes)}`)
       const nodeClient = Client.fromConfig({ network: nodes })
+      // nodeClient.setMinBackoff(100) overriden by nodeWaitTime
+      nodeClient.setNodeMinBackoff(100)
+      nodeClient.setMaxExecutionTime(10000 * 6)
+      nodeClient.setNodeWaitTime(10000 * 6)
+      nodeClient.setMaxBackoff(8000 * 6)
+      nodeClient.setNodeMaxBackoff(8000 * 6)
+      nodeClient.setMaxAttempts(50)
+      nodeClient.setMaxNodeAttempts(10)
+      nodeClient.setRequestTimeout(10000 * 6)
       nodeClient.setOperator(operatorId, operatorKey)
 
       return nodeClient
