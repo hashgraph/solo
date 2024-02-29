@@ -60,14 +60,12 @@ export class NodeCommand extends BaseCommand {
     }
   }
 
-  async checkNetworkNodeStarted (nodeId, maxAttempt = 50, status = 'ACTIVE') {
+  async checkNetworkNodeStarted (nodeId, maxAttempt = 100, status = 'ACTIVE') {
     nodeId = nodeId.trim()
     const podName = Templates.renderNetworkPodName(nodeId)
     const logfilePath = `${constants.HEDERA_HAPI_PATH}/logs/hgcaa.log`
     let attempt = 0
     let isActive = false
-
-    await sleep(10000) // sleep in case this the user ran the start command again at a later time
 
     // check log file is accessible
     let logFileAccessible = false
@@ -90,7 +88,7 @@ export class NodeCommand extends BaseCommand {
     while (attempt < maxAttempt) {
       try {
         const output = await this.k8.execContainer(podName, constants.ROOT_CONTAINER, ['tail', '-10', logfilePath])
-        if (output.indexOf(`Terminating Netty = ${status}`) < 0 && // make sure we are not at the beginning of a restart
+        if (output.indexOf('Terminating Netty') < 0 && // make sure we are not at the beginning of a restart
             output.indexOf(`Now current platform status = ${status}`) > 0) {
           this.logger.debug(`Node ${nodeId} is ${status} [ attempt: ${attempt}/${maxAttempt}]`)
           isActive = true
@@ -492,7 +490,7 @@ export class NodeCommand extends BaseCommand {
 
           // set up the sub-tasks
           return task.newListr(subTasks, {
-            concurrent: true,
+            concurrent: false,
             rendererOptions: {
               collapseSubtasks: false
             }
@@ -506,7 +504,7 @@ export class NodeCommand extends BaseCommand {
             {
               title: 'Get the mirror node importer address book',
               task: async (ctx, _) => {
-                await sleep(20000) // TODO is this needed?  previously there was an extra 20 seconds before I made the check nodes concurrent
+                await sleep(15000) // give time for haproxy to detect that the node server is up on grpc port, queries every 10 seconds
                 ctx.addressBook = await self.getAddressBook(ctx.config.namespace)
                 ctx.config.valuesArg += ` --set "hedera-mirror-node.importer.addressBook=${ctx.addressBook}"`
               }

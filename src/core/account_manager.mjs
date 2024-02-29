@@ -42,6 +42,8 @@ const REASON_FAILED_TO_UPDATE_ACCOUNT = 'failed to update account keys'
 const REASON_FAILED_TO_CREATE_K8S_S_KEY = 'failed to create k8s scrt key'
 const FULFILLED = 'fulfilled'
 const REJECTED = 'rejected'
+const MAX_PORT_FORWARD_SLEEP_ITERATIONS = 500
+const PORT_FORWARD_CLOSE_SLEEP = 500
 
 /**
  * Copyright (C) 2024 Hedera Hashgraph, LLC
@@ -143,60 +145,24 @@ export class AccountManager {
    * @returns {Promise<void>}
    */
   async stopPortForwards () {
-    // const closedCount = 0
+    global.accountManagerPortForwardClosedCount = 0 // global variable to be used for WebSocketServer callback
+
     if (this.portForwards) {
-      // original
-      this.portForwards.forEach(server => {
-        server.close()
-      })
-      this.portForwards = []
-      await sleep(1) // give a tick for connections to close
-      // for (const webSocketServer of this.portForwards) {
-      // Option 1:
-      // const serverClose = util.promisify(webSocketServer.close)
-      // await serverClose()
-      // Option 2:
-      // await (() => {
-      //   return new Promise((resolve, reject) => {
-      //     webSocketServer.close((err, data) => {
-      //       if (err) return reject(err)
-      //       resolve(data)
-      //     })
-      //   })
-      // })()
-      // Option 3:
-      // const closeWebSocket = (callback) => {
-      //   // don't close if it's already closed
-      //   if (webSocketServer.readyState === 3) {
-      //     callback()
-      //   } else {
-      //     // don't notify on user-initiated shutdown ('disconnect' event)
-      //     webSocketServer.removeAllListeners('close')
-      //     webSocketServer.once('close', () => {
-      //       webSocketServer.removeAllListeners()
-      //       callback()
-      //     })
-      //     webSocketServer.close()
-      //   }
-      // }
-      // await new Promise((resolve, reject) => {
-      //   closeWebSocket(resolve)
-      // })
-      // Option 4:
-      // webSocketServer.addEventListener('close', (event) => {
-      //   console.log('The connection has been closed successfully.')
-      // })
-      // webSocketServer.onclose = (event) => {
-      //   closedCount++
-      //   console.log(`event: ${event}`)
-      // }
-      // webSocketServer.close()
-      // }
-      // let sleepCounter = 0
-      // while (closedCount < this.portForwards.length) {
-      //   await sleep(50)
-      //   console.log(`sleeping.... ${++sleepCounter}`)
-      // }
+      for (const webSocketServer of this.portForwards) {
+        webSocketServer.close(() => {
+          global.accountManagerPortForwardClosedCount++
+        })
+      }
+
+      let sleepCounter = 0
+      while (global.accountManagerPortForwardClosedCount < this.portForwards.length && sleepCounter < MAX_PORT_FORWARD_SLEEP_ITERATIONS) {
+        await sleep(PORT_FORWARD_CLOSE_SLEEP)
+        this.logger.debug(`waiting ${PORT_FORWARD_CLOSE_SLEEP}ms for port forward server to close .... ${++sleepCounter} of ${MAX_PORT_FORWARD_SLEEP_ITERATIONS}`)
+      }
+      if (sleepCounter >= MAX_PORT_FORWARD_SLEEP_ITERATIONS) {
+        this.logger.error(`failed to detect that all port forward servers closed correctly, only ${global.accountManagerPortForwardClosedCount} of ${this.portForwards.length} reported that they closed`)
+      }
+
       this.portForwards = []
     }
   }
@@ -232,15 +198,6 @@ export class AccountManager {
 
       this.logger.debug(`creating client from network configuration: ${JSON.stringify(nodes)}`)
       const nodeClient = Client.fromConfig({ network: nodes })
-      // nodeClient.setMinBackoff(100) overriden by nodeWaitTime
-      nodeClient.setNodeMinBackoff(100)
-      nodeClient.setMaxExecutionTime(10000 * 6)
-      nodeClient.setNodeWaitTime(10000 * 6)
-      nodeClient.setMaxBackoff(8000 * 6)
-      nodeClient.setNodeMaxBackoff(8000 * 6)
-      nodeClient.setMaxAttempts(50)
-      nodeClient.setMaxNodeAttempts(10)
-      nodeClient.setRequestTimeout(10000 * 6)
       nodeClient.setOperator(operatorId, operatorKey)
 
       return nodeClient
@@ -344,7 +301,9 @@ export class AccountManager {
           }
         }
       })
-      task.output = `Current counts: [fulfilled: ${fulfilledCount}, skipped: ${skippedCount}, rejected: ${rejectedCount}`
+      const message = `Current counts: [fulfilled: ${fulfilledCount}, skipped: ${skippedCount}, rejected: ${rejectedCount}`
+      task.output = message
+      this.logger.debug(message)
     }
 
     this.logger.showUser(chalk.green(`Account keys updated SUCCESSFULLY: ${fulfilledCount}`))
