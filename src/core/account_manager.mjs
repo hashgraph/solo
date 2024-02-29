@@ -122,22 +122,30 @@ export class AccountManager {
   /**
    * Prepares the accounts with updated keys so that they do not contain the default genesis keys
    * @param namespace the namespace to run the update of account keys for
+   * @param task the listr2 task so that we can send updates to the user
    * @returns {Promise<void>}
    */
-  async prepareAccounts (namespace, task) { // TODO update task into jsdoc (multiple places)
+  async prepareAccounts (namespace, task) {
     const serviceMap = await this.getNodeServiceMap(namespace)
 
+    const treasuryAccountInfo = await this.getTreasuryAccountKeys(namespace)
+
     const nodeClient = await this.getNodeClient(
-      namespace, serviceMap, constants.OPERATOR_ID, constants.OPERATOR_KEY)
+      namespace, serviceMap, treasuryAccountInfo.accountId, treasuryAccountInfo.privateKey)
 
-    // TODO check to see if any account key secrets exist in the cluster, if they don't we can skip the deleteSecret
+    const secrets = await this.k8.getSecretsByLabel(['fullstack.hedera.com/account-id'])
+    const updateSecrets = secrets.length > 0
 
-    await this.updateSpecialAccountsKeys(namespace, nodeClient, constants.SYSTEM_ACCOUNTS, task)
-    // update the treasury account last
-    await this.updateSpecialAccountsKeys(namespace, nodeClient, constants.TREASURY_ACCOUNTS, task)
-
-    nodeClient.close()
-    await this.stopPortForwards()
+    try {
+      await this.updateSpecialAccountsKeys(namespace, nodeClient, constants.SYSTEM_ACCOUNTS, task, updateSecrets)
+      // update the treasury account last
+      await this.updateSpecialAccountsKeys(namespace, nodeClient, constants.TREASURY_ACCOUNTS, task, updateSecrets)
+    } catch (e) {
+      this.logger.showUser(e)
+    } finally {
+      nodeClient.close()
+      await this.stopPortForwards()
+    }
   }
 
   /**
@@ -163,6 +171,7 @@ export class AccountManager {
         this.logger.error(`failed to detect that all port forward servers closed correctly, only ${global.accountManagerPortForwardClosedCount} of ${this.portForwards.length} reported that they closed`)
       }
 
+      delete global.accountManagerPortForwardClosedCount
       this.portForwards = []
     }
   }
@@ -248,9 +257,11 @@ export class AccountManager {
    * @param namespace the namespace of the nodes network
    * @param nodeClient the active node client configured to point at the network
    * @param accounts the accounts to update
+   * @param task the listr2 task so that we can send updates to the user
+   * @param updateSecrets whether to delete the secret prior to creating a new secret
    * @returns {Promise<void>}
    */
-  async updateSpecialAccountsKeys (namespace, nodeClient, accounts, task) {
+  async updateSpecialAccountsKeys (namespace, nodeClient, accounts, task, updateSecrets) {
     const genesisKey = PrivateKey.fromStringED25519(constants.OPERATOR_KEY)
     const realm = constants.HEDERA_NODE_ACCOUNT_ID_START.realm
     const shard = constants.HEDERA_NODE_ACCOUNT_ID_START.shard
@@ -281,7 +292,7 @@ export class AccountManager {
 
       for (const accountNum of currentSet) {
         accountUpdatePromiseArray.push(this.updateAccountKeys(
-          namespace, nodeClient, AccountId.fromString(`${realm}.${shard}.${accountNum}`), genesisKey))
+          namespace, nodeClient, AccountId.fromString(`${realm}.${shard}.${accountNum}`), genesisKey, updateSecrets))
       }
 
       await Promise.allSettled(accountUpdatePromiseArray).then((results) => {
@@ -318,9 +329,10 @@ export class AccountManager {
    * @param nodeClient the active node client configured to point at the network
    * @param accountId the account that will get its keys updated
    * @param genesisKey the genesis key to compare against
+   * @param updateSecrets whether to delete the secret prior to creating a new secret
    * @returns {Promise<{value: string, status: string}|{reason: string, value: string, status: string}>} the result of the call
    */
-  async updateAccountKeys (namespace, nodeClient, accountId, genesisKey) {
+  async updateAccountKeys (namespace, nodeClient, accountId, genesisKey, updateSecrets) {
     let keys
     try {
       keys = await this.getAccountKeys(accountId, nodeClient)
@@ -352,7 +364,7 @@ export class AccountManager {
       if (!(await this.k8.createSecret(
         Templates.renderAccountKeySecretName(accountId),
         namespace, 'Opaque', data,
-        Templates.renderAccountKeySecretLabelObject(accountId), true))
+        Templates.renderAccountKeySecretLabelObject(accountId), updateSecrets))
       ) {
         this.logger.error(`failed to create secret for accountId ${accountId.toString()}`)
         return {
