@@ -33,7 +33,6 @@ import {
 import { FullstackTestingError } from './errors.mjs'
 import { sleep } from './helpers.mjs'
 import net from 'net'
-import chalk from 'chalk'
 import { Templates } from './templates.mjs'
 
 const REASON_FAILED_TO_GET_KEYS = 'failed to get keys for accountId'
@@ -119,33 +118,27 @@ export class AccountManager {
     return accountInfo
   }
 
-  /**
-   * Prepares the accounts with updated keys so that they do not contain the default genesis keys
-   * @param namespace the namespace to run the update of account keys for
-   * @param task the listr2 task so that we can send updates to the user
-   * @returns {Promise<void>}
-   */
-  async prepareAccounts (namespace, task) {
-    const serviceMap = await this.getNodeServiceMap(namespace)
+  batchAccounts () {
+    const batchSize = constants.ACCOUNT_CREATE_BATCH_SIZE
+    const batchSets = []
 
-    const treasuryAccountInfo = await this.getTreasuryAccountKeys(namespace)
-
-    const nodeClient = await this.getNodeClient(
-      namespace, serviceMap, treasuryAccountInfo.accountId, treasuryAccountInfo.privateKey)
-
-    const secrets = await this.k8.getSecretsByLabel(['fullstack.hedera.com/account-id'])
-    const updateSecrets = secrets.length > 0
-
-    try {
-      await this.updateSpecialAccountsKeys(namespace, nodeClient, constants.SYSTEM_ACCOUNTS, task, updateSecrets)
-      // update the treasury account last
-      await this.updateSpecialAccountsKeys(namespace, nodeClient, constants.TREASURY_ACCOUNTS, task, updateSecrets)
-    } catch (e) {
-      this.logger.showUser(e)
-    } finally {
-      nodeClient.close()
-      await this.stopPortForwards()
+    let batchCounter = 0
+    let currentBatch = []
+    for (const [start, end] of constants.SYSTEM_ACCOUNTS) {
+      for (let i = start; i <= end; i++) {
+        if (batchCounter >= batchSize) {
+          batchSets.push(currentBatch)
+          currentBatch = []
+          batchCounter = 0
+        }
+        batchCounter++
+        currentBatch.push(i)
+      }
     }
+    batchSets.push(currentBatch)
+    batchSets.push([constants.TREASURY_ACCOUNT])
+
+    return batchSets
   }
 
   /**
@@ -256,70 +249,44 @@ export class AccountManager {
    * Kubernetes secret
    * @param namespace the namespace of the nodes network
    * @param nodeClient the active node client configured to point at the network
-   * @param accounts the accounts to update
-   * @param task the listr2 task so that we can send updates to the user
+   * @param currentSet the accounts to update
    * @param updateSecrets whether to delete the secret prior to creating a new secret
-   * @returns {Promise<void>}
+   * @param resultTracker an object to keep track of the results from the accounts that are being updated
+   * @returns {Promise<*>} the updated resultTracker object
    */
-  async updateSpecialAccountsKeys (namespace, nodeClient, accounts, task, updateSecrets) {
+  async updateSpecialAccountsKeys (namespace, nodeClient, currentSet, updateSecrets, resultTracker) {
     const genesisKey = PrivateKey.fromStringED25519(constants.OPERATOR_KEY)
     const realm = constants.HEDERA_NODE_ACCOUNT_ID_START.realm
     const shard = constants.HEDERA_NODE_ACCOUNT_ID_START.shard
-    const batchSize = constants.ACCOUNT_CREATE_BATCH_SIZE
-    const batchSets = []
 
-    let batchCounter = 0
-    let currentBatch = []
-    for (const [start, end] of accounts) {
-      for (let i = start; i <= end; i++) {
-        if (batchCounter >= batchSize) {
-          batchSets.push(currentBatch)
-          currentBatch = []
-          batchCounter = 0
-        }
-        batchCounter++
-        currentBatch.push(i)
-      }
-    }
-    batchSets.push(currentBatch)
+    const accountUpdatePromiseArray = []
 
-    let rejectedCount = 0
-    let fulfilledCount = 0
-    let skippedCount = 0
-
-    for (const currentSet of batchSets) {
-      const accountUpdatePromiseArray = []
-
-      for (const accountNum of currentSet) {
-        accountUpdatePromiseArray.push(this.updateAccountKeys(
-          namespace, nodeClient, AccountId.fromString(`${realm}.${shard}.${accountNum}`), genesisKey, updateSecrets))
-      }
-
-      await Promise.allSettled(accountUpdatePromiseArray).then((results) => {
-        for (const result of results) {
-          switch (result.value.status) {
-            case REJECTED:
-              if (result.value.reason === REASON_SKIPPED) {
-                skippedCount++
-              } else {
-                this.logger.error(`REJECT: ${result.value.reason}: ${result.value.value}`)
-                rejectedCount++
-              }
-              break
-            case FULFILLED:
-              fulfilledCount++
-              break
-          }
-        }
-      })
-      const message = `Current counts: [fulfilled: ${fulfilledCount}, skipped: ${skippedCount}, rejected: ${rejectedCount}`
-      task.output = message
-      this.logger.debug(message)
+    for (const accountNum of currentSet) {
+      accountUpdatePromiseArray.push(this.updateAccountKeys(
+        namespace, nodeClient, AccountId.fromString(`${realm}.${shard}.${accountNum}`), genesisKey, updateSecrets))
     }
 
-    this.logger.showUser(chalk.green(`Account keys updated SUCCESSFULLY: ${fulfilledCount}`))
-    if (skippedCount > 0) this.logger.showUser(chalk.cyan(`Account keys updates SKIPPED: ${skippedCount}`))
-    if (rejectedCount > 0) this.logger.showUser(chalk.yellowBright(`Account keys updates with ERROR: ${rejectedCount}`))
+    await Promise.allSettled(accountUpdatePromiseArray).then((results) => {
+      for (const result of results) {
+        switch (result.value.status) {
+          case REJECTED:
+            if (result.value.reason === REASON_SKIPPED) {
+              resultTracker.skippedCount++
+            } else {
+              this.logger.error(`REJECT: ${result.value.reason}: ${result.value.value}`)
+              resultTracker.rejectedCount++
+            }
+            break
+          case FULFILLED:
+            resultTracker.fulfilledCount++
+            break
+        }
+      }
+    })
+
+    this.logger.debug(`Current counts: [fulfilled: ${resultTracker.fulfilledCount}, skipped: ${resultTracker.skippedCount}, rejected: ${resultTracker.rejectedCount}`)
+
+    return resultTracker
   }
 
   /**
