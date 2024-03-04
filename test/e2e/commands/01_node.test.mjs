@@ -22,7 +22,7 @@ import {
 } from '@hashgraph/sdk'
 import {
   afterAll,
-  afterEach, beforeAll,
+  afterEach,
   describe,
   expect,
   it
