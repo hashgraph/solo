@@ -25,6 +25,7 @@ import * as sb from 'stream-buffers'
 import * as tar from 'tar'
 import { v4 as uuid4 } from 'uuid'
 import { V1ObjectMeta, V1Secret } from '@kubernetes/client-node'
+import killable from 'killable'
 
 /**
  * A kubernetes API wrapper class providing custom functionalities required by solo
@@ -669,6 +670,7 @@ export class K8 {
       forwarder.portForward(ns, podName, [podPort], socket, null, socket)
     })
 
+    killable(server)
     return server.listen(localPort, '127.0.0.1')
   }
 

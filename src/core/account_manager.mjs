@@ -61,6 +61,8 @@ const PORT_FORWARD_CLOSE_SLEEP = 500
  *
  */
 export class AccountManager {
+  static _openPortForwardConnections = 0
+
   /**
    * creates a new AccountManager instance
    * @param logger the logger to use
@@ -72,7 +74,8 @@ export class AccountManager {
 
     this.logger = logger
     this.k8 = k8
-    this.portForwards = []
+    this._portForwards = []
+    this._nodeClient = null
   }
 
   /**
@@ -126,47 +129,76 @@ export class AccountManager {
     let currentBatch = []
     for (const [start, end] of constants.SYSTEM_ACCOUNTS) {
       for (let i = start; i <= end; i++) {
-        if (batchCounter >= batchSize) {
+        currentBatch.push(i)
+        batchCounter++
+
+        // push only a single account for the first to give time for the
+        // network to create all the system accounts and become stable
+        if (batchCounter >= batchSize || batchSets.length < 1) {
           batchSets.push(currentBatch)
           currentBatch = []
           batchCounter = 0
         }
-        batchCounter++
-        currentBatch.push(i)
       }
     }
-    batchSets.push(currentBatch)
+
+    if (currentBatch.length > 0) {
+      batchSets.push(currentBatch)
+    }
+
     batchSets.push([constants.TREASURY_ACCOUNT])
 
     return batchSets
   }
 
   /**
+   * stops and closes the port forwards and the _nodeClient
+   * @returns {Promise<void>}
+   */
+  async close () {
+    if (this._nodeClient) {
+      this._nodeClient.close()
+      this._nodeClient = null
+    }
+    await this._stopPortForwards()
+  }
+
+  /**
    * stops and closes all of the port forwards that are running
    * @returns {Promise<void>}
    */
-  async stopPortForwards () {
-    global.accountManagerPortForwardClosedCount = 0 // global variable to be used for WebSocketServer callback
-
-    if (this.portForwards) {
-      for (const webSocketServer of this.portForwards) {
-        webSocketServer.close(() => {
-          global.accountManagerPortForwardClosedCount++
+  async _stopPortForwards () {
+    if (this._portForwards) {
+      for (const webSocketServer of this._portForwards) {
+        webSocketServer.kill(() => {
+          AccountManager._openPortForwardConnections--
         })
       }
 
       let sleepCounter = 0
-      while (global.accountManagerPortForwardClosedCount < this.portForwards.length && sleepCounter < MAX_PORT_FORWARD_SLEEP_ITERATIONS) {
+      while (AccountManager._openPortForwardConnections > 0 && sleepCounter < MAX_PORT_FORWARD_SLEEP_ITERATIONS) {
         await sleep(PORT_FORWARD_CLOSE_SLEEP)
         this.logger.debug(`waiting ${PORT_FORWARD_CLOSE_SLEEP}ms for port forward server to close .... ${++sleepCounter} of ${MAX_PORT_FORWARD_SLEEP_ITERATIONS}`)
       }
       if (sleepCounter >= MAX_PORT_FORWARD_SLEEP_ITERATIONS) {
-        this.logger.error(`failed to detect that all port forward servers closed correctly, only ${global.accountManagerPortForwardClosedCount} of ${this.portForwards.length} reported that they closed`)
+        this.logger.error(`failed to detect that all port forward servers closed correctly, ${AccountManager._openPortForwardConnections} of ${this._portForwards.length} remain open`)
       }
 
-      delete global.accountManagerPortForwardClosedCount
-      this.portForwards = []
+      this._portForwards = []
     }
+  }
+
+  /**
+   * loads and initializes the Node Client
+   * @param namespace the namespace of the network
+   * @returns {Promise<void>}
+   */
+  async loadNodeClient (namespace) {
+    const treasuryAccountInfo = await this.getTreasuryAccountKeys(namespace)
+    const serviceMap = await this.getNodeServiceMap(namespace)
+
+    this._nodeClient = await this._getNodeClient(namespace,
+      serviceMap, treasuryAccountInfo.accountId, treasuryAccountInfo.privateKey)
   }
 
   /**
@@ -177,7 +209,7 @@ export class AccountManager {
    * @param operatorKey the private key of the operator of the transactions
    * @returns {Promise<NodeClient>} a node client that can be used to call transactions
    */
-  async getNodeClient (namespace, serviceMap, operatorId, operatorKey) {
+  async _getNodeClient (namespace, serviceMap, operatorId, operatorKey) {
     const nodes = {}
     try {
       let localPort = constants.LOCAL_NODE_START_PORT
@@ -189,7 +221,8 @@ export class AccountManager {
         const targetPort = usePortForward ? localPort : port
 
         if (usePortForward) {
-          this.portForwards.push(await this.k8.portForward(serviceObject.podName, localPort, port))
+          this._portForwards.push(await this.k8.portForward(serviceObject.podName, localPort, port))
+          AccountManager._openPortForwardConnections++
         }
 
         nodes[`${host}:${targetPort}`] = AccountId.fromString(serviceObject.accountId)
@@ -199,10 +232,10 @@ export class AccountManager {
       }
 
       this.logger.debug(`creating client from network configuration: ${JSON.stringify(nodes)}`)
-      const nodeClient = Client.fromConfig({ network: nodes })
-      nodeClient.setOperator(operatorId, operatorKey)
+      this._nodeClient = Client.fromConfig({ network: nodes })
+      this._nodeClient.setOperator(operatorId, operatorKey)
 
-      return nodeClient
+      return this._nodeClient
     } catch (e) {
       throw new FullstackTestingError(`failed to setup node client: ${e.message}`, e)
     }
@@ -248,13 +281,12 @@ export class AccountManager {
    * updates a set of special accounts keys with a newly generated key and stores them in a
    * Kubernetes secret
    * @param namespace the namespace of the nodes network
-   * @param nodeClient the active node client configured to point at the network
    * @param currentSet the accounts to update
    * @param updateSecrets whether to delete the secret prior to creating a new secret
    * @param resultTracker an object to keep track of the results from the accounts that are being updated
    * @returns {Promise<*>} the updated resultTracker object
    */
-  async updateSpecialAccountsKeys (namespace, nodeClient, currentSet, updateSecrets, resultTracker) {
+  async updateSpecialAccountsKeys (namespace, currentSet, updateSecrets, resultTracker) {
     const genesisKey = PrivateKey.fromStringED25519(constants.OPERATOR_KEY)
     const realm = constants.HEDERA_NODE_ACCOUNT_ID_START.realm
     const shard = constants.HEDERA_NODE_ACCOUNT_ID_START.shard
@@ -263,7 +295,7 @@ export class AccountManager {
 
     for (const accountNum of currentSet) {
       accountUpdatePromiseArray.push(this.updateAccountKeys(
-        namespace, nodeClient, AccountId.fromString(`${realm}.${shard}.${accountNum}`), genesisKey, updateSecrets))
+        namespace, AccountId.fromString(`${realm}.${shard}.${accountNum}`), genesisKey, updateSecrets))
     }
 
     await Promise.allSettled(accountUpdatePromiseArray).then((results) => {
@@ -293,16 +325,16 @@ export class AccountManager {
    * update the account keys for a given account and store its new key in a Kubernetes
    * secret
    * @param namespace the namespace of the nodes network
-   * @param nodeClient the active node client configured to point at the network
    * @param accountId the account that will get its keys updated
    * @param genesisKey the genesis key to compare against
    * @param updateSecrets whether to delete the secret prior to creating a new secret
    * @returns {Promise<{value: string, status: string}|{reason: string, value: string, status: string}>} the result of the call
    */
-  async updateAccountKeys (namespace, nodeClient, accountId, genesisKey, updateSecrets) {
+  async updateAccountKeys (namespace, accountId, genesisKey, updateSecrets) {
     let keys
     try {
-      keys = await this.getAccountKeys(accountId, nodeClient)
+      this.logger.debug(`getAccountKeys: account ${accountId.toString()} begin`)
+      keys = await this.getAccountKeys(accountId)
     } catch (e) {
       this.logger.error(`failed to get keys for accountId ${accountId.toString()}, e: ${e.toString()}\n  ${e.stack}`)
       return {
@@ -350,7 +382,8 @@ export class AccountManager {
     }
 
     try {
-      if (!(await this.sendAccountKeyUpdate(accountId, newPrivateKey, nodeClient, genesisKey))) {
+      this.logger.debug(`sendAccountKeyUpdate: account ${accountId.toString()} begin...`)
+      if (!(await this.sendAccountKeyUpdate(accountId, newPrivateKey, genesisKey))) {
         this.logger.error(`failed to update account keys for accountId ${accountId.toString()}`)
         return {
           status: REJECTED,
@@ -358,6 +391,7 @@ export class AccountManager {
           value: accountId.toString()
         }
       }
+      this.logger.debug(`sendAccountKeyUpdate: account ${accountId.toString()} ...end`)
     } catch (e) {
       this.logger.error(`failed to update account keys for accountId ${accountId.toString()}, e: ${e.toString()}`)
       return {
@@ -376,23 +410,21 @@ export class AccountManager {
   /**
    * gets the account info from Hedera network
    * @param accountId the account
-   * @param nodeClient the active and configured node client
    * @returns {AccountInfo} the private key of the account
    */
-  async accountInfoQuery (accountId, nodeClient) {
+  async accountInfoQuery (accountId) {
     return await new AccountInfoQuery()
       .setAccountId(accountId)
-      .execute(nodeClient)
+      .execute(this._nodeClient)
   }
 
   /**
    * gets the account private and public key from the Kubernetes secret from which it is stored
    * @param accountId the account
-   * @param nodeClient the active and configured node client
    * @returns {Promise<Key[]>} the private key of the account
    */
-  async getAccountKeys (accountId, nodeClient) {
-    const accountInfo = await this.accountInfoQuery(accountId, nodeClient)
+  async getAccountKeys (accountId) {
+    const accountInfo = await this.accountInfoQuery(accountId)
 
     let keys
     if (accountInfo.key instanceof KeyList) {
@@ -409,11 +441,10 @@ export class AccountManager {
    * send an account key update transaction to the network of nodes
    * @param accountId the account that will get it's keys updated
    * @param newPrivateKey the new private key
-   * @param nodeClient the active and configured node client
    * @param oldPrivateKey the genesis key that is the current key
    * @returns {Promise<boolean>} whether the update was successful
    */
-  async sendAccountKeyUpdate (accountId, newPrivateKey, nodeClient, oldPrivateKey) {
+  async sendAccountKeyUpdate (accountId, newPrivateKey, oldPrivateKey) {
     if (typeof newPrivateKey === 'string') {
       newPrivateKey = PrivateKey.fromStringED25519(newPrivateKey)
     }
@@ -426,17 +457,17 @@ export class AccountManager {
     const transaction = await new AccountUpdateTransaction()
       .setAccountId(accountId)
       .setKey(newPrivateKey.publicKey)
-      .freezeWith(nodeClient)
+      .freezeWith(this._nodeClient)
 
     // Sign the transaction with the old key and new key
     const signTx = await (await transaction.sign(oldPrivateKey)).sign(
       newPrivateKey)
 
     // SIgn the transaction with the client operator private key and submit to a Hedera network
-    const txResponse = await signTx.execute(nodeClient)
+    const txResponse = await signTx.execute(this._nodeClient)
 
     // Request the receipt of the transaction
-    const receipt = await txResponse.getReceipt(nodeClient)
+    const receipt = await txResponse.getReceipt(this._nodeClient)
 
     return receipt.status === Status.Success
   }
@@ -472,20 +503,19 @@ export class AccountManager {
   /**
    * creates a new Hedera account
    * @param namespace the namespace to store the Kubernetes key secret into
-   * @param nodeClient the active and network configured node client
    * @param privateKey the private key of type PrivateKey
    * @param amount the amount of HBAR to add to the account
    * @returns {{accountId: AccountId, privateKey: string, publicKey: string, balance: number}} a
    * custom object with the account information in it
    */
-  async createNewAccount (namespace, nodeClient, privateKey, amount) {
+  async createNewAccount (namespace, privateKey, amount) {
     const newAccount = await new AccountCreateTransaction()
       .setKey(privateKey)
       .setInitialBalance(Hbar.from(amount, HbarUnit.Hbar))
-      .execute(nodeClient)
+      .execute(this._nodeClient)
 
     // Get the new account ID
-    const getReceipt = await newAccount.getReceipt(nodeClient)
+    const getReceipt = await newAccount.getReceipt(this._nodeClient)
     const accountInfo = {
       accountId: getReceipt.accountId.toString(),
       privateKey: privateKey.toString(),
@@ -511,21 +541,20 @@ export class AccountManager {
 
   /**
    * transfer the specified amount of HBAR from one account to another
-   * @param nodeClient the configured and active network node client
    * @param fromAccountId the account to pull the HBAR from
    * @param toAccountId the account to put the HBAR
    * @param hbarAmount the amount of HBAR
    * @returns {Promise<boolean>} if the transaction was successfully posted
    */
-  async transferAmount (nodeClient, fromAccountId, toAccountId, hbarAmount) {
+  async transferAmount (fromAccountId, toAccountId, hbarAmount) {
     try {
       const transaction = new TransferTransaction()
         .addHbarTransfer(fromAccountId, new Hbar(-1 * hbarAmount))
         .addHbarTransfer(toAccountId, new Hbar(hbarAmount))
 
-      const txResponse = await transaction.execute(nodeClient)
+      const txResponse = await transaction.execute(this._nodeClient)
 
-      const receipt = await txResponse.getReceipt(nodeClient)
+      const receipt = await txResponse.getReceipt(this._nodeClient)
 
       this.logger.debug(`The transfer from account ${fromAccountId} to account ${toAccountId} for amount ${hbarAmount} was ${receipt.status.toString()} `)
 
@@ -539,13 +568,12 @@ export class AccountManager {
 
   /**
    * Fetch and prepare address book as a base64 string
-   * @param nodeClient node client
    * @return {Promise<string>}
    */
-  async prepareAddressBookBase64 (nodeClient) {
+  async prepareAddressBookBase64 () {
     // fetch AddressBook
     const fileQuery = new FileContentsQuery().setFileId(FileId.ADDRESS_BOOK)
-    let addressBookBytes = await fileQuery.execute(nodeClient)
+    let addressBookBytes = await fileQuery.execute(this._nodeClient)
 
     // ensure serviceEndpoint.ipAddressV4 value for all nodes in the addressBook is a 4 bytes array instead of string
     // See: https://github.com/hashgraph/hedera-protobufs/blob/main/services/basic_types.proto#L1309

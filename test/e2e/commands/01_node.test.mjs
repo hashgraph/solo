@@ -54,7 +54,7 @@ class TestHelper {
     'this implies that node start did not finish the accountManager.prepareAccounts successfully')
     }
     const serviceMap = await accountManager.getNodeServiceMap(argv[flags.namespace.name])
-    return await accountManager.getNodeClient(argv[flags.namespace.name], serviceMap, operator.accountId, operator.privateKey)
+    return await accountManager._getNodeClient(argv[flags.namespace.name], serviceMap, operator.accountId, operator.privateKey)
   }
 }
 
@@ -155,10 +155,7 @@ describe.each([
       })
 
       afterAll(() => {
-        if (client) {
-          client.close()
-        }
-        accountManager.stopPortForwards().then().catch()
+        accountManager.close().then().catch()
         sleep(100).then().catch()
       })
 
@@ -225,6 +222,16 @@ describe.each([
           client.close()
         }
         await accountManager.stopPortForwards()
+      }
+    }, 20000)
+
+    it('checkNetworkNodeProxyUp should succeed', async () => {
+      expect.assertions(1)
+      try {
+        await expect(nodeCmd.checkNetworkNodeProxyUp('solo-e2e', 'node0')).resolves.toBeTruthy()
+      } catch (e) {
+        nodeCmd.logger.showUserError(e)
+        expect(e).toBeNull()
       }
     }, 20000)
   })

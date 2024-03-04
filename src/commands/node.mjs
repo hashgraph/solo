@@ -88,7 +88,7 @@ export class NodeCommand extends BaseCommand {
     while (attempt < maxAttempt) {
       try {
         const output = await this.k8.execContainer(podName, constants.ROOT_CONTAINER, ['tail', '-10', logfilePath])
-        if (output.indexOf('Terminating Netty') < 0 && // make sure we are not at the beginning of a restart
+        if (output && output.indexOf('Terminating Netty') < 0 && // make sure we are not at the beginning of a restart
             output.indexOf(`Now current platform status = ${status}`) > 0) {
           this.logger.debug(`Node ${nodeId} is ${status} [ attempt: ${attempt}/${maxAttempt}]`)
           isActive = true
@@ -438,11 +438,7 @@ export class NodeCommand extends BaseCommand {
             throw new FullstackTestingError(`namespace ${ctx.config.namespace} does not exist`)
           }
 
-          ctx.treasuryAccountInfo = await self.accountManager.getTreasuryAccountKeys(ctx.config.namespace)
-          const serviceMap = await self.accountManager.getNodeServiceMap(ctx.config.namespace)
-
-          ctx.nodeClient = await self.accountManager.getNodeClient(ctx.config.namespace,
-            serviceMap, ctx.treasuryAccountInfo.accountId, ctx.treasuryAccountInfo.privateKey)
+          await self.accountManager.loadNodeClient(ctx.config.namespace)
         }
       },
       {
@@ -511,8 +507,21 @@ export class NodeCommand extends BaseCommand {
               {
                 title: 'Wait for proxies to verify node servers are running',
                 task: async (ctx, _) => {
-                  // TODO change this into a wait for haproxy logs to show server is up
-                  await sleep(15000) // give time for haproxy to detect that the node server is up on grpc port, queries every 10 seconds
+                  const subTasks = []
+                  for (const nodeId of ctx.config.nodeIds) {
+                    subTasks.push({
+                      title: `Check node proxy: ${chalk.yellow(nodeId)}`,
+                      task: async () => await self.checkNetworkNodeProxyUp(ctx.config.namespace, nodeId)
+                    })
+                  }
+
+                  // set up the sub-tasks
+                  return parentTask.newListr(subTasks, {
+                    concurrent: false,
+                    rendererOptions: {
+                      collapseSubtasks: false
+                    }
+                  })
                 }
               },
               {
@@ -584,7 +593,7 @@ export class NodeCommand extends BaseCommand {
                           ctx.accountsBatchedSet.length)}`,
                       task: async (ctx) => {
                         ctx.resultTracker = await self.accountManager.updateSpecialAccountsKeys(
-                          ctx.config.namespace, ctx.nodeClient, currentSet,
+                          ctx.config.namespace, currentSet,
                           ctx.updateSecrets, ctx.resultTracker)
                       }
                     })
@@ -605,7 +614,10 @@ export class NodeCommand extends BaseCommand {
                 task: async (ctx) => {
                   self.logger.showUser(chalk.green(`Account keys updated SUCCESSFULLY: ${ctx.resultTracker.fulfilledCount}`))
                   if (ctx.resultTracker.skippedCount > 0) self.logger.showUser(chalk.cyan(`Account keys updates SKIPPED: ${ctx.resultTracker.skippedCount}`))
-                  if (ctx.resultTracker.rejectedCount > 0) self.logger.showUser(chalk.yellowBright(`Account keys updates with ERROR: ${ctx.resultTracker.rejectedCount}`))
+                  if (ctx.resultTracker.rejectedCount > 0) {
+                    self.logger.showUser(chalk.yellowBright(`Account keys updates with ERROR: ${ctx.resultTracker.rejectedCount}`))
+                    throw new FullstackTestingError(`Account keys updates failed for ${ctx.resultTracker.rejectedCount} accounts, exiting`)
+                  }
                 }
               }
             ], {
@@ -619,13 +631,6 @@ export class NodeCommand extends BaseCommand {
               'skipping special account keys update, special accounts will retain genesis private keys'))
           }
         }
-      },
-      {
-        title: 'Close connections',
-        task: async (ctx, task) => {
-          ctx.nodeClient.close()
-          await self.accountManager.stopPortForwards()
-        }
       }
     ], {
       concurrent: false,
@@ -637,9 +642,41 @@ export class NodeCommand extends BaseCommand {
       self.logger.debug('node start has completed')
     } catch (e) {
       throw new FullstackTestingError(`Error starting node: ${e.message}`, e)
+    } finally {
+      await self.accountManager.close()
     }
 
     return true
+  }
+
+  async checkNetworkNodeProxyUp (namespace, nodeId, maxAttempts = 100) {
+    const podArray = await this.k8.getPodsByLabel([`app=haproxy-${nodeId}`, 'fullstack.hedera.com/type=haproxy'])
+
+    if (podArray.length > 0) {
+      const podName = podArray[0].metadata.name
+
+      let attempts = 0
+      while (attempts < maxAttempts) {
+        const logResponse = await this.k8.kubeClient.readNamespacedPodLog(
+          podName, namespace)
+
+        if (logResponse.response.statusCode !== 200) {
+          throw new FullstackTestingError(`Expected pod ${podName} log query to execute successful, but instead got a status of ${logResponse.response.statusCode}`)
+        }
+
+        if (logResponse.body.includes('Server be_servers/server1 is UP')) {
+          return true
+        }
+
+        attempts++
+        this.logger.debug(`Checking for pod ${podName} to realize network node is UP [attempt: ${attempts}/${maxAttempts}]`)
+        await sleep(1000)
+      }
+    } else {
+      throw new FullstackTestingError('TBD')
+    }
+
+    return false
   }
 
   /**
