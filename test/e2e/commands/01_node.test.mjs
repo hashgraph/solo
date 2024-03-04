@@ -22,7 +22,7 @@ import {
 } from '@hashgraph/sdk'
 import {
   afterAll,
-  afterEach,
+  afterEach, beforeAll,
   describe,
   expect,
   it
@@ -45,18 +45,6 @@ import { ShellRunner } from '../../../src/core/shell_runner.mjs'
 import { getTestCacheDir, testLogger } from '../../test_util.js'
 import { AccountManager } from '../../../src/core/account_manager.mjs'
 import { sleep } from '../../../src/core/helpers.mjs'
-
-class TestHelper {
-  static async getNodeClient (accountManager, argv) {
-    const operator = await accountManager.getAccountKeysFromSecret(constants.OPERATOR_ID, argv[flags.namespace.name])
-    if (!operator) {
-      throw new Error(`account key not found for operator ${constants.OPERATOR_ID} during getNodeClient()\n` +
-    'this implies that node start did not finish the accountManager.prepareAccounts successfully')
-    }
-    const serviceMap = await accountManager.getNodeServiceMap(argv[flags.namespace.name])
-    return await accountManager._getNodeClient(argv[flags.namespace.name], serviceMap, operator.accountId, operator.privateKey)
-  }
-}
 
 describe.each([
   ['v0.42.5', constants.KEY_FORMAT_PFX]
@@ -145,10 +133,13 @@ describe.each([
     }, 600000)
 
     describe('only genesis account should have genesis key for all special accounts', () => {
-      const genesisKey = PrivateKey.fromStringED25519(constants.OPERATOR_KEY)
+      const genesisKey = PrivateKey.fromStringED25519(constants.GENESIS_KEY)
       const realm = constants.HEDERA_NODE_ACCOUNT_ID_START.realm
       const shard = constants.HEDERA_NODE_ACCOUNT_ID_START.shard
 
+      beforeAll(() => {
+        accountManager.loadNodeClient(argv[flags.namespace.name]).then().catch()
+      })
       afterAll(() => {
         accountManager.close().then().catch()
         sleep(100).then().catch()
@@ -168,50 +159,39 @@ describe.each([
 
     it('balance query should succeed', async () => {
       expect.assertions(1)
-      let client = null
 
       try {
-        client = await TestHelper.getNodeClient(accountManager, argv)
-
         const balance = await new AccountBalanceQuery()
-          .setAccountId(client.getOperator().accountId)
-          .execute(client)
+          .setAccountId(accountManager._nodeClient.getOperator().accountId)
+          .execute(accountManager._nodeClient)
 
         expect(balance.hbars).not.toBeNull()
       } catch (e) {
         nodeCmd.logger.showUserError(e)
         expect(e).toBeNull()
-      } finally {
-        await accountManager.close()
-        await sleep(100)
       }
     }, 20000)
 
     it('account creation should succeed', async () => {
       expect.assertions(1)
-      let client = null
 
       try {
-        client = await TestHelper.getNodeClient(accountManager, argv)
         const accountKey = PrivateKey.generate()
 
         let transaction = await new AccountCreateTransaction()
           .setNodeAccountIds([constants.HEDERA_NODE_ACCOUNT_ID_START])
           .setInitialBalance(new Hbar(0))
           .setKey(accountKey.publicKey)
-          .freezeWith(client)
+          .freezeWith(accountManager._nodeClient)
 
         transaction = await transaction.sign(accountKey)
-        const response = await transaction.execute(client)
-        const receipt = await response.getReceipt(client)
+        const response = await transaction.execute(accountManager._nodeClient)
+        const receipt = await response.getReceipt(accountManager._nodeClient)
 
         expect(receipt.accountId).not.toBeNull()
       } catch (e) {
         nodeCmd.logger.showUserError(e)
         expect(e).toBeNull()
-      } finally {
-        await accountManager.close()
-        await sleep(100)
       }
     }, 20000)
 
