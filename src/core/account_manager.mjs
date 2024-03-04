@@ -318,7 +318,7 @@ export class AccountManager {
       }
     })
 
-    this.logger.debug(`Current counts: [fulfilled: ${resultTracker.fulfilledCount}, skipped: ${resultTracker.skippedCount}, rejected: ${resultTracker.rejectedCount}`)
+    this.logger.debug(`Current counts: [fulfilled: ${resultTracker.fulfilledCount}, skipped: ${resultTracker.skippedCount}, rejected: ${resultTracker.rejectedCount}]`)
 
     return resultTracker
   }
