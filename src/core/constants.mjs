@@ -81,7 +81,7 @@ export const GENESIS_KEY = process.env.GENESIS_KEY || '302e020100300506032b65700
 export const SYSTEM_ACCOUNTS = [[3, 100], [200, 349], [400, 750], [900, 1000]] // do account 0.0.2 last and outside the loop
 export const TREASURY_ACCOUNT = 2
 export const LOCAL_NODE_START_PORT = process.env.LOCAL_NODE_START_PORT || 30212
-export const ACCOUNT_CREATE_BATCH_SIZE = process.env.ACCOUNT_CREATE_BATCH_SIZE || 50
+export const ACCOUNT_CREATE_BATCH_SIZE = process.env.ACCOUNT_CREATE_BATCH_SIZE || 25
 
 export const POD_STATUS_RUNNING = 'Running'
 export const POD_STATUS_READY = 'Ready'

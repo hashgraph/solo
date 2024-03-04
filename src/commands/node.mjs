@@ -511,18 +511,19 @@ export class NodeCommand extends BaseCommand {
               {
                 title: 'Wait for proxies to verify node servers are running',
                 task: async (ctx, _) => {
+                  // TODO change this into a wait for haproxy logs to show server is up
                   await sleep(15000) // give time for haproxy to detect that the node server is up on grpc port, queries every 10 seconds
                 }
               },
               {
-                title: 'Get the mirror node importer address book',
+                title: 'Prepare address book',
                 task: async (ctx, _) => {
                   ctx.addressBook = await self.getAddressBook(ctx.nodeClient)
                   ctx.config.valuesArg += ` --set "hedera-mirror-node.importer.addressBook=${ctx.addressBook}"`
                 }
               },
               {
-                title: `Upgrade chart '${constants.FULLSTACK_DEPLOYMENT_CHART}'`,
+                title: 'Deploy mirror node',
                 task: async (ctx, _) => {
                   await self.chartManager.upgrade(
                     ctx.config.namespace,
@@ -533,12 +534,12 @@ export class NodeCommand extends BaseCommand {
                 }
               },
               {
-                title: 'Waiting for explorer pod to be ready',
+                title: 'Waiting for Hedera Explorer to be ready',
                 task: async (ctx, _) => {
                   if (ctx.config.deployHederaExplorer) {
                     await self.k8.waitForPod(constants.POD_STATUS_RUNNING, [
                       'app.kubernetes.io/component=hedera-explorer', 'app.kubernetes.io/name=hedera-explorer'
-                    ], 1, 100)
+                    ], 1, 200)
                   }
                 }
               }
