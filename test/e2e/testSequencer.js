@@ -14,15 +14,16 @@
  * limitations under the License.
  *
  */
-const config = {
-  rootDir: '.',
-  testRunner: 'jest-circus/runner',
-  testEnvironment: '<rootDir>/test/jest/fail_fast.mjs',
-  testRegex: '(/__tests__/.*|(\\.|/)(test|spec))\\.(mjs?)$',
-  moduleFileExtensions: ['js', 'mjs'],
-  verbose: true,
-  testSequencer: "./test/e2e/testSequencer.js",
-  reporters: ['default', 'jest-junit']
+// testSequencer.js
+const Sequencer = require('@jest/test-sequencer').default;
+
+class CustomSequencer extends Sequencer {
+	sort(tests) {
+		// Test structure information
+		// https://github.com/facebook/jest/blob/6b8b1404a1d9254e7d5d90a8934087a9c9899dab/packages/jest-runner/src/types.ts#L17-L21
+		const copyTests = Array.from(tests);
+		return copyTests.sort((testA, testB) => (testA.path > testB.path ? 1 : -1));
+	}
 }
 
-export default config
+module.exports = CustomSequencer;
