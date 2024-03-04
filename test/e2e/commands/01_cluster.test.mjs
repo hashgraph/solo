@@ -78,6 +78,10 @@ describe('cluster commands should work correctly', () => {
 		argv[flags.namespace.name] = 'solo-e2e'
 		argv[flags.clusterName.name] = 'kind-solo-e2e'
 		argv[flags.clusterSetupNamespace.name] = 'solo-e2e-cluster'
+		argv[flags.deployPrometheusStack.name] = true
+		argv[flags.deployMinio.name] = true
+		argv[flags.deployCertManager.name] = true
+		argv[flags.deployCertManagerCrds.name] = true
 		configManager.update(argv, true)
 	})
 

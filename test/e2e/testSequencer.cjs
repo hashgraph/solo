@@ -14,7 +14,7 @@
  * limitations under the License.
  *
  */
-// testSequencer.js
+// testSequencer.cjs
 const Sequencer = require('@jest/test-sequencer').default;
 
 class CustomSequencer extends Sequencer {

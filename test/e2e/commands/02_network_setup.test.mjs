@@ -38,10 +38,11 @@ import { AccountCommand } from '../../../src/commands/account.mjs'
 import { flags } from '../../../src/commands/index.mjs'
 import { sleep } from '../../../src/core/helpers.mjs'
 import {ClusterCommand} from "../../../src/commands/cluster.mjs";
+import {NetworkCommand} from "../../../src/commands/network.mjs";
 
-describe('cluster commands should work correctly', () => {
+describe('network commands should work correctly', () => {
 	const defaultTimeout = 20000
-	let clusterCmd
+	let networkCmd
 	let accountManager
 	let configManager
 	let k8
@@ -57,7 +58,7 @@ describe('cluster commands should work correctly', () => {
 		helm = new Helm(testLogger)
 		chartManager = new ChartManager(helm, testLogger)
 		depManager = new DependencyManager(testLogger)
-		clusterCmd = new ClusterCommand({
+		networkCmd = new NetworkCommand({
 			logger: testLogger,
 			helm,
 			k8,
@@ -68,25 +69,37 @@ describe('cluster commands should work correctly', () => {
 	})
 
 	// afterAll(() => {
-	// 	clusterCmd.reset(argv)
+	// 	networkCmd.reset(argv)
 	// })
 
 	beforeEach(() => {
 		configManager.reset()
 		argv = {}
-		argv[flags.cacheDir.name] = getTestCacheDir('clusterCmd')
+		argv[flags.cacheDir.name] = getTestCacheDir('networkCmd')
 		argv[flags.namespace.name] = 'solo-e2e'
 		argv[flags.clusterName.name] = 'kind-solo-e2e'
 		argv[flags.clusterSetupNamespace.name] = 'solo-e2e-cluster'
+		argv[flags.deployMirrorNode.name] = false
+		argv[flags.deployHederaExplorer.name] = false
+		argv[flags.releaseTag.name] = "v0.42.5" //flags.releaseTag.definition.defaultValue
+		argv[flags.tlsClusterIssuerType.name] = flags.tlsClusterIssuerType.definition.defaultValue
+		argv[flags.hederaExplorerTlsHostName.name] = flags.hederaExplorerTlsHostName.definition.defaultValue
+		argv[flags.enablePrometheusSvcMonitor.name] = flags.enablePrometheusSvcMonitor.definition.defaultValue
+		argv[flags.enableHederaExplorerTls.name] = flags.enableHederaExplorerTls.definition.defaultValue
+		argv[flags.nodeIDs.name] = 'node0,node1,node2'
 		configManager.update(argv, true)
 	})
 
-	it('cluster delete should succeed', async () => {
+	afterEach(() => {
+		sleep(5).then().catch() // give a few ticks so that connections can close
+	})
+
+	it('network setup should succeed', async () => {
 		expect.assertions(1)
 		try {
-			await expect(clusterCmd.reset(argv)).resolves.toBeTruthy()
+			await expect(networkCmd.deploy(argv)).resolves.toBeTruthy()
 		} catch (e) {
-			clusterCmd.logger.showUserError(e)
+			networkCmd.logger.showUserError(e)
 			expect(e).toBeNull()
 		}
 	}, 60000)
