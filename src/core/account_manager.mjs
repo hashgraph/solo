@@ -121,6 +121,10 @@ export class AccountManager {
     return accountInfo
   }
 
+  /**
+   * batch up the accounts into sets to be processed
+   * @returns {*[]} an array of arrays of numbers representing the accounts to update
+   */
   batchAccounts () {
     const batchSize = constants.ACCOUNT_CREATE_BATCH_SIZE
     const batchSets = []
@@ -156,10 +160,8 @@ export class AccountManager {
    * @returns {Promise<void>}
    */
   async close () {
-    if (this._nodeClient) {
-      this._nodeClient.close()
-      this._nodeClient = null
-    }
+    this._nodeClient?.close()
+    this._nodeClient = null
     await this._stopPortForwards()
   }
 
@@ -333,7 +335,6 @@ export class AccountManager {
   async updateAccountKeys (namespace, accountId, genesisKey, updateSecrets) {
     let keys
     try {
-      this.logger.debug(`getAccountKeys: account ${accountId.toString()} begin`)
       keys = await this.getAccountKeys(accountId)
     } catch (e) {
       this.logger.error(`failed to get keys for accountId ${accountId.toString()}, e: ${e.toString()}\n  ${e.stack}`)
@@ -382,7 +383,6 @@ export class AccountManager {
     }
 
     try {
-      this.logger.debug(`sendAccountKeyUpdate: account ${accountId.toString()} begin...`)
       if (!(await this.sendAccountKeyUpdate(accountId, newPrivateKey, genesisKey))) {
         this.logger.error(`failed to update account keys for accountId ${accountId.toString()}`)
         return {
@@ -391,7 +391,6 @@ export class AccountManager {
           value: accountId.toString()
         }
       }
-      this.logger.debug(`sendAccountKeyUpdate: account ${accountId.toString()} ...end`)
     } catch (e) {
       this.logger.error(`failed to update account keys for accountId ${accountId.toString()}, e: ${e.toString()}`)
       return {

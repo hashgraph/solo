@@ -164,7 +164,7 @@ describe.each([
           it(`special account ${i} should not have genesis key`, async () => {
             const accountId = `${realm}.${shard}.${i}`
             nodeCmd.logger.info(`getAccountKeys: accountId ${accountId}`)
-            const keys = await accountManager.getAccountKeys(accountId, client)
+            const keys = await accountManager.getAccountKeys(accountId)
             expect(keys[0].toString()).not.toEqual(genesisKey.toString())
           }, 60000)
         }
@@ -187,10 +187,7 @@ describe.each([
         nodeCmd.logger.showUserError(e)
         expect(e).toBeNull()
       } finally {
-        if (client) {
-          client.close()
-        }
-        await accountManager.stopPortForwards()
+        await accountManager.close()
         await sleep(100)
       }
     }, 20000)
@@ -218,10 +215,7 @@ describe.each([
         nodeCmd.logger.showUserError(e)
         expect(e).toBeNull()
       } finally {
-        if (client) {
-          client.close()
-        }
-        await accountManager.stopPortForwards()
+        await accountManager.close()
       }
     }, 20000)
 
