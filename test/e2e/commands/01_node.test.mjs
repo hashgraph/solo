@@ -145,14 +145,9 @@ describe.each([
     }, 600000)
 
     describe('only genesis account should have genesis key for all special accounts', () => {
-      let client = null
       const genesisKey = PrivateKey.fromStringED25519(constants.OPERATOR_KEY)
       const realm = constants.HEDERA_NODE_ACCOUNT_ID_START.realm
       const shard = constants.HEDERA_NODE_ACCOUNT_ID_START.shard
-
-      beforeAll(async () => {
-        client = await TestHelper.getNodeClient(accountManager, argv)
-      })
 
       afterAll(() => {
         accountManager.close().then().catch()
@@ -216,6 +211,7 @@ describe.each([
         expect(e).toBeNull()
       } finally {
         await accountManager.close()
+        await sleep(100)
       }
     }, 20000)
 
