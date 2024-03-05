@@ -20,7 +20,7 @@ import net from 'net'
 import os from 'os'
 import path from 'path'
 import { flags } from '../commands/index.mjs'
-import { FullstackTestingError, MissingArgumentError } from './errors.mjs'
+import { FullstackTestingError, IllegalArgumentError, MissingArgumentError } from './errors.mjs'
 import * as sb from 'stream-buffers'
 import * as tar from 'tar'
 import { v4 as uuid4 } from 'uuid'
@@ -472,7 +472,10 @@ export class K8 {
 
       // zip the source file
       const tmpFile = this._tempFileFor(srcFile)
-      await tar.c({ file: tmpFile, cwd: srcDir }, [srcFile])
+      await tar.c({
+        file: tmpFile,
+        cwd: srcDir
+      }, [srcFile])
 
       const self = this
       return new Promise((resolve, reject) => {
@@ -614,6 +617,7 @@ export class K8 {
     if (!Array.isArray(command)) {
       command = command.split(' ')
     }
+    if (!await this.getPodByName(podName)) throw new IllegalArgumentError(`Invalid pod ${podName}`)
 
     const self = this
     return new Promise((resolve, reject) => {

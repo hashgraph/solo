@@ -357,7 +357,7 @@ export class NodeCommand extends BaseCommand {
 
             // set up the sub-tasks
             return task.newListr(subTasks, {
-              concurrent: false, // parallel uploading of the zip file seems to be unreliable, so we just upload in sequence
+              concurrent: true, // since we download in the container directly, we want this to be in parallel across all nodes
               rendererOptions: {
                 collapseSubtasks: false
               }
