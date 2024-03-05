@@ -94,7 +94,7 @@ describe('network commands should work correctly', () => {
 		sleep(5).then().catch() // give a few ticks so that connections can close
 	})
 
-	it('network setup should succeed', async () => {
+	it('network deploy should succeed', async () => {
 		expect.assertions(1)
 		try {
 			await expect(networkCmd.deploy(argv)).resolves.toBeTruthy()

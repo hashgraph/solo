@@ -135,6 +135,7 @@ jobs:
         run: | 
           npm link
           ./test/e2e/setup-e2e.sh
+          ./test/e2e/setup-network-e2e.sh
 
       - name: Run E2E Tests
         if: ${{ inputs.enable-e2e-tests && !cancelled() && !failure() }}
