@@ -25,21 +25,18 @@ import {
 import {
   ChartManager,
   ConfigManager,
-  constants,
   DependencyManager,
   Helm,
   K8
 } from '../../../src/core/index.mjs'
 import { getTestCacheDir, testLogger } from '../../test_util.js'
 import path from 'path'
-import { AccountManager } from '../../../src/core/account_manager.mjs'
 import { flags } from '../../../src/commands/index.mjs'
 import { sleep } from '../../../src/core/helpers.mjs'
 import { ClusterCommand } from '../../../src/commands/cluster.mjs'
 
 describe('cluster commands should work correctly', () => {
   let clusterCmd
-  let accountManager
   let configManager
   let k8
   let helm
@@ -50,7 +47,6 @@ describe('cluster commands should work correctly', () => {
   beforeAll(() => {
     configManager = new ConfigManager(testLogger, path.join(getTestCacheDir('accountCmd'), 'solo.config'))
     k8 = new K8(configManager, testLogger)
-    accountManager = new AccountManager(testLogger, k8, constants)
     helm = new Helm(testLogger)
     chartManager = new ChartManager(helm, testLogger)
     depManager = new DependencyManager(testLogger)
