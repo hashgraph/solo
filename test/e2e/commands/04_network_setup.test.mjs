@@ -25,7 +25,6 @@ import {
 import {
   ChartManager,
   ConfigManager,
-  constants,
   DependencyManager,
   Helm,
   K8
@@ -70,7 +69,7 @@ describe('network commands should work correctly', () => {
     argv[flags.clusterSetupNamespace.name] = 'solo-e2e-cluster'
     argv[flags.deployMirrorNode.name] = false
     argv[flags.deployHederaExplorer.name] = false
-    argv[flags.releaseTag.name] = 'v0.42.5' //flags.releaseTag.definition.defaultValue
+    argv[flags.releaseTag.name] = 'v0.42.5' // flags.releaseTag.definition.defaultValue
     argv[flags.tlsClusterIssuerType.name] = flags.tlsClusterIssuerType.definition.defaultValue
     argv[flags.hederaExplorerTlsHostName.name] = flags.hederaExplorerTlsHostName.definition.defaultValue
     argv[flags.enablePrometheusSvcMonitor.name] = flags.enablePrometheusSvcMonitor.definition.defaultValue
