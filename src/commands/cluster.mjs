@@ -164,15 +164,19 @@ export class ClusterCommand extends BaseCommand {
       {
         title: 'Initialize',
         task: async (ctx, task) => {
-          const confirm = await task.prompt(ListrEnquirerPromptAdapter).run({
-            type: 'toggle',
-            default: false,
-            message: 'Are you sure you would like to uninstall fullstack-cluster-setup chart?'
-          })
+          if (!argv.force) {
+            const confirm = await task.prompt(ListrEnquirerPromptAdapter).run({
+              type: 'toggle',
+              default: false,
+              message: 'Are you sure you would like to uninstall fullstack-cluster-setup chart?'
+            })
 
-          if (!confirm) {
-            process.exit(0)
+            if (!confirm) {
+              process.exit(0)
+            }
           }
+
+
 
           self.configManager.update(argv)
           const clusterName = self.configManager.getFlag(flags.clusterName)
