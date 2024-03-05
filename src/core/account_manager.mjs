@@ -34,6 +34,7 @@ import { FullstackTestingError } from './errors.mjs'
 import { sleep } from './helpers.mjs'
 import net from 'net'
 import { Templates } from './templates.mjs'
+import { K8 } from './k8.mjs'
 
 const REASON_FAILED_TO_GET_KEYS = 'failed to get keys for accountId'
 const REASON_SKIPPED = 'skipped since it does not have a genesis key'
@@ -162,6 +163,7 @@ export class AccountManager {
   async close () {
     this._nodeClient?.close()
     this._nodeClient = null
+    K8.close()
     await this._stopPortForwards()
   }
 
@@ -170,17 +172,24 @@ export class AccountManager {
    * @returns {Promise<void>}
    */
   async _stopPortForwards () {
+    let sleepCounter = 0
     if (this._portForwards) {
       for (const webSocketServer of this._portForwards) {
         webSocketServer.kill(() => {
           AccountManager._openPortForwardConnections--
         })
+
+        while (webSocketServer.sockets.length > 0 && sleepCounter < MAX_PORT_FORWARD_SLEEP_ITERATIONS) {
+          ++sleepCounter
+          this.logger.debug(`waiting ${PORT_FORWARD_CLOSE_SLEEP}ms for port forward server to close .... ${sleepCounter} of ${MAX_PORT_FORWARD_SLEEP_ITERATIONS}`)
+          await sleep(PORT_FORWARD_CLOSE_SLEEP)
+        }
       }
 
-      let sleepCounter = 0
       while (AccountManager._openPortForwardConnections > 0 && sleepCounter < MAX_PORT_FORWARD_SLEEP_ITERATIONS) {
+        ++sleepCounter
+        this.logger.debug(`waiting ${PORT_FORWARD_CLOSE_SLEEP}ms for port forward server to close .... ${sleepCounter} of ${MAX_PORT_FORWARD_SLEEP_ITERATIONS}`)
         await sleep(PORT_FORWARD_CLOSE_SLEEP)
-        this.logger.debug(`waiting ${PORT_FORWARD_CLOSE_SLEEP}ms for port forward server to close .... ${++sleepCounter} of ${MAX_PORT_FORWARD_SLEEP_ITERATIONS}`)
       }
       if (sleepCounter >= MAX_PORT_FORWARD_SLEEP_ITERATIONS) {
         this.logger.error(`failed to detect that all port forward servers closed correctly, ${AccountManager._openPortForwardConnections} of ${this._portForwards.length} remain open`)
@@ -196,11 +205,13 @@ export class AccountManager {
    * @returns {Promise<void>}
    */
   async loadNodeClient (namespace) {
-    const treasuryAccountInfo = await this.getTreasuryAccountKeys(namespace)
-    const serviceMap = await this.getNodeServiceMap(namespace)
+    if (!this._nodeClient || this._nodeClient.isClientShutDown) {
+      const treasuryAccountInfo = await this.getTreasuryAccountKeys(namespace)
+      const serviceMap = await this.getNodeServiceMap(namespace)
 
-    this._nodeClient = await this._getNodeClient(namespace,
-      serviceMap, treasuryAccountInfo.accountId, treasuryAccountInfo.privateKey)
+      this._nodeClient = await this._getNodeClient(namespace,
+        serviceMap, treasuryAccountInfo.accountId, treasuryAccountInfo.privateKey)
+    }
   }
 
   /**

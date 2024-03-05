@@ -140,6 +140,7 @@ describe.each([
       beforeAll(() => {
         accountManager.loadNodeClient(argv[flags.namespace.name]).then().catch()
       })
+
       afterAll(() => {
         accountManager.close().then().catch()
         sleep(100).then().catch()
