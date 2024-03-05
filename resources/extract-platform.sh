@@ -25,7 +25,7 @@ echo "Downloading ${BUILD_ZIP_URL}"
 echo "Downloading ${CHECKSUM_URL}"
 [ -f "${CHECKSUM_FILE}" ] || curl -sSf "${CHECKSUM_URL}" -o "${CHECKSUM_FILE}"
 [ $? == 0 ] || exit 1
-readonly sum="$(openssl dgst -sha384 ${BUILD_ZIP_FILE} | awk '{print $2}')"
+readonly sum="$(openssl dgst -sha384 "${BUILD_ZIP_FILE}" | awk '{print $2}')"
 readonly expected_sum="$(awk '{print $1}' < "${CHECKSUM_FILE}")"
 if [ "${sum}" != "${expected_sum}" ]; then
     echo "SHA sum of ${BUILD_ZIP_FILE} does not match. Aborting."
