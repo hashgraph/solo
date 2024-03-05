@@ -22,13 +22,13 @@ import {
   expect,
   it
 } from '@jest/globals'
+import { DependencyManager, HelmDependencyManager } from '../../../src/core/dependency_managers/index.mjs'
 import {
   ChartManager,
   ConfigManager,
   constants,
-  DependencyManager,
   Helm,
-  K8
+  K8, PackageDownloader, Zippy
 } from '../../../src/core/index.mjs'
 import { getTestCacheDir, testLogger } from '../../test_util.js'
 import path from 'path'
@@ -45,7 +45,6 @@ describe('account commands should work correctly', () => {
   let k8
   let helm
   let chartManager
-  let depManager
   let argv = {}
   let accountId1
   let accountId2
@@ -56,7 +55,12 @@ describe('account commands should work correctly', () => {
     accountManager = new AccountManager(testLogger, k8, constants)
     helm = new Helm(testLogger)
     chartManager = new ChartManager(helm, testLogger)
-    depManager = new DependencyManager(testLogger)
+    const downloader = new PackageDownloader(testLogger)
+    const zippy = new Zippy(testLogger)
+    const helmDepManager = new HelmDependencyManager(downloader, zippy, testLogger)
+    const depManagerMap = new Map().set(constants.HELM, helmDepManager)
+    const depManager = new DependencyManager(testLogger, depManagerMap)
+
     accountCmd = new AccountCommand({
       logger: testLogger,
       helm,

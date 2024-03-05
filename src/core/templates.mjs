@@ -15,8 +15,10 @@
  *
  */
 import * as x509 from '@peculiar/x509'
+import os from 'os'
 import path from 'path'
-import { DataValidationError, IllegalArgumentError, MissingArgumentError } from './errors.mjs'
+import { DataValidationError, FullstackTestingError, IllegalArgumentError, MissingArgumentError } from './errors.mjs'
+import { constants } from './index.mjs'
 
 export class Templates {
   static renderNetworkPodName (nodeId) {
@@ -99,7 +101,7 @@ export class Templates {
   /**
    * renders the label object to be used to store the new account key in the Kubernetes secret
    * @param accountId the account ID, string or AccountId type
-   * @returns {{"fullstack.hedera.com/account-id": string}} the label object to be used to
+   * @returns {{'fullstack.hedera.com/account-id': string}} the label object to be used to
    * store the new account key in the Kubernetes secret
    */
   static renderAccountKeySecretLabelObject (accountId) {
@@ -136,5 +138,24 @@ export class Templates {
     }
 
     return path.resolve(`${cacheDir}/${releasePrefix}/staging/${releaseTag}`)
+  }
+
+  static installationPath (
+    dep,
+    installationDir = path.join(constants.SOLO_HOME_DIR, 'bin'),
+    osPlatform = os.platform(),
+    osArch = os.arch()
+  ) {
+    switch (dep) {
+      case constants.HELM:
+        if (osPlatform === constants.OS_WINDOWS) {
+          return path.join(installationDir, `${dep}.exe`)
+        }
+
+        return path.join(installationDir, dep)
+
+      default:
+        throw new FullstackTestingError(`unknown dep: ${dep}`)
+    }
   }
 }
