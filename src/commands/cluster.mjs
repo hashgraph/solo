@@ -175,7 +175,7 @@ export class ClusterCommand extends BaseCommand {
               process.exit(0)
             }
           }
-          
+
           self.configManager.update(argv)
           const clusterName = self.configManager.getFlag(flags.clusterName)
           const clusterSetupNamespace = self.configManager.getFlag(flags.clusterSetupNamespace)
