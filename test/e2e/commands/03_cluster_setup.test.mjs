@@ -15,7 +15,6 @@
  *
  */
 import {
-  afterAll,
   afterEach,
   beforeAll,
   beforeEach,
@@ -34,14 +33,11 @@ import {
 import { getTestCacheDir, testLogger } from '../../test_util.js'
 import path from 'path'
 import { AccountManager } from '../../../src/core/account_manager.mjs'
-import { AccountCommand } from '../../../src/commands/account.mjs'
 import { flags } from '../../../src/commands/index.mjs'
 import { sleep } from '../../../src/core/helpers.mjs'
-import {ClusterCommand} from "../../../src/commands/cluster.mjs";
 import {NetworkCommand} from "../../../src/commands/network.mjs";
 
 describe('network commands should work correctly', () => {
-  const defaultTimeout = 20000
   let networkCmd
   let accountManager
   let configManager
@@ -67,10 +63,6 @@ describe('network commands should work correctly', () => {
       depManager
     })
   })
-
-  // afterAll(() => {
-  // 	networkCmd.reset(argv)
-  // })
 
   beforeEach(() => {
     configManager.reset()
