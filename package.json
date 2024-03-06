@@ -12,7 +12,7 @@
   },
   "scripts": {
     "test": "cross-env NODE_OPTIONS=--experimental-vm-modules JEST_SUITE_NAME=\"Unit Tests\" jest --runInBand --detectOpenHandles --forceExit --coverage --coverageDirectory='coverage/unit' --testPathIgnorePatterns=\".*/e2e/.*\"",
-    "test-e2e": "cross-env NODE_OPTIONS=--experimental-vm-modules JEST_SUITE_NAME='Jest E2E Tests' JEST_JUNIT_OUTPUT_NAME='junit-e2e.xml' jest --runInBand --detectOpenHandles --forceExit --coverage --coverageDirectory='coverage/e2e' --testPathIgnorePatterns=\\\".*/unit/.*\\\"",
+    "test-e2e": "cross-env NODE_OPTIONS=--experimental-vm-modules JEST_SUITE_NAME=\"Jest E2E Tests\" JEST_JUNIT_OUTPUT_NAME=\"junit-e2e.xml\" jest --runInBand --detectOpenHandles --forceExit --coverage --coverageDirectory='coverage/e2e' --testPathIgnorePatterns=\\\".*/unit/.*\\\"",
     "solo": "cross-env NODE_OPTIONS=--experimental-vm-modules node solo.mjs",
     "check": "remark . --quiet --frail && eslint .",
     "format": "remark . --quiet --frail --output && eslint --fix ."
