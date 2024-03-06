@@ -189,7 +189,7 @@ describe.each([
       }, 20000)
 
       it('account creation should succeed', async () => {
-        expect.assertions(1)
+        expect.assertions(2)
 
         try {
           expect(accountManager._nodeClient).not.toBeNull()
