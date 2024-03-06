@@ -71,7 +71,6 @@ jobs:
       matrix:
         os:
           - windows-2022
-          - windows-2019
           - [self-hosted, Linux, medium, ephemeral]
     steps:
       - name: Checkout Code
@@ -149,7 +148,7 @@ jobs:
         run: npm run test-e2e
 
       - name: Upload E2E Logs to GitHub
-        if: ${{ inputs.enable-e2e-tests && !cancelled() }}
+        if: ${{ runner.os == 'linux' && inputs.enable-e2e-tests && !cancelled() }}
         uses: actions/upload-artifact@5d5d22a31266ced268874388b861e4b58bb5c2f3 # v4.3.1
         with:
           name: solo.log
@@ -159,7 +158,7 @@ jobs:
 
       - name: Publish E2E Test Report
         uses: EnricoMi/publish-unit-test-result-action@f355d34d53ad4e7f506f699478db2dd71da9de5f # v2.15.1
-        if: ${{ inputs.enable-e2e-tests && steps.npm-deps.conclusion == 'success' && !cancelled() }}
+        if: ${{ runner.os == 'linux' && inputs.enable-e2e-tests && steps.npm-deps.conclusion == 'success' && !cancelled() }}
         with:
           check_name: 'E2E Test Results'
           files: "junit-e2e.xml"
