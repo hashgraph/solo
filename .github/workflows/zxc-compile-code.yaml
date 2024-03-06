@@ -138,7 +138,7 @@ jobs:
         run: docker image pull kindest/node:v1.27.3@sha256:3966ac761ae0136263ffdb6cfd4db23ef8a83cba8a463690e98317add2c9ba72
 
       - name: Setup E2E Tests
-        if: ${{ runner.os == 'linux' && inputs.enable-e2e-tests && !cancelled() && !failure() }}
+        if: ${{ inputs.enable-e2e-tests && !cancelled() && !failure() }}
         run: | 
           npm link
           ./test/e2e/setup-e2e.sh
