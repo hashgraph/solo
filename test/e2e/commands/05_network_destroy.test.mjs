@@ -66,7 +66,7 @@ describe('network commands should work correctly', () => {
     argv[flags.cacheDir.name] = getTestCacheDir('networkCmd')
     argv[flags.namespace.name] = 'solo-network-e2e'
     argv[flags.clusterName.name] = 'kind-solo-e2e'
-    argv[flags.clusterSetupNamespace.name] = 'solo-e2e-cluster'
+    argv[flags.clusterSetupNamespace.name] = 'solo-network-e2e-cluster'
     argv[flags.force.name] = true
     argv[flags.deletePvcs.name] = true
     configManager.update(argv, true)
