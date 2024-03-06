@@ -750,7 +750,7 @@ export class NodeCommand extends BaseCommand {
     try {
       await tasks.run()
     } catch (e) {
-      throw new FullstackTestingError('Error starting node', e)
+      throw new FullstackTestingError('Error stopping node', e)
     }
 
     return true
