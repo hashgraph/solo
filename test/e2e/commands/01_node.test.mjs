@@ -144,14 +144,17 @@ describe.each([
       afterAll(async () => {
         await accountManager.close()
         await sleep(5000) // sometimes takes a while to close all sockets
-      })
+      }, 10000)
 
       for (const [start, end] of constants.SYSTEM_ACCOUNTS) {
         for (let i = start; i <= end; i++) {
           it(`special account ${i} should not have genesis key`, async () => {
+            expect(accountManager._nodeClient).not.toBeNull()
+
             const accountId = `${realm}.${shard}.${i}`
             nodeCmd.logger.info(`getAccountKeys: accountId ${accountId}`)
             const keys = await accountManager.getAccountKeys(accountId)
+
             expect(keys[0].toString()).not.toEqual(genesisKey.toString())
           }, 60000)
         }
@@ -162,6 +165,8 @@ describe.each([
       expect.assertions(1)
 
       try {
+        expect(accountManager._nodeClient).not.toBeNull()
+
         const balance = await new AccountBalanceQuery()
           .setAccountId(accountManager._nodeClient.getOperator().accountId)
           .execute(accountManager._nodeClient)
@@ -177,6 +182,7 @@ describe.each([
       expect.assertions(1)
 
       try {
+        expect(accountManager._nodeClient).not.toBeNull()
         const accountKey = PrivateKey.generate()
 
         let transaction = await new AccountCreateTransaction()
