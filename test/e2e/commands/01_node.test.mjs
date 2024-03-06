@@ -101,8 +101,8 @@ describe.each([
     configManager.update(argv)
     const nodeIds = argv[flags.nodeIDs.name].split(',')
 
-    afterEach(() => {
-      sleep(5).then().catch() // give a few ticks so that connections can close
+    afterEach(async () => {
+      await sleep(5) // give a few ticks so that connections can close
     })
 
     it('should pre-generate keys', async () => {
@@ -137,13 +137,13 @@ describe.each([
       const realm = constants.HEDERA_NODE_ACCOUNT_ID_START.realm
       const shard = constants.HEDERA_NODE_ACCOUNT_ID_START.shard
 
-      beforeAll(() => {
-        accountManager.loadNodeClient(argv[flags.namespace.name]).then().catch()
+      beforeAll(async () => {
+        await accountManager.loadNodeClient(argv[flags.namespace.name])
       })
 
-      afterAll(() => {
-        accountManager.close().then().catch()
-        sleep(100).then().catch()
+      afterAll(async () => {
+        await accountManager.close()
+        await sleep(5000) // sometimes takes a while to close all sockets
       })
 
       for (const [start, end] of constants.SYSTEM_ACCOUNTS) {
