@@ -49,6 +49,6 @@ describe('BaseCommand', () => {
     })
     it('should succeed during valid program check', async () => {
       await expect(baseCmd.run('date')).resolves.not.toBeNull()
-    })
-  }, 10000)
+    }, 10000)
+  })
 })
