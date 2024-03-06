@@ -161,46 +161,57 @@ describe.each([
       }
     })
 
-    it('balance query should succeed', async () => {
-      expect.assertions(1)
+    describe('use the node client to interact with the Hedera network', () => {
+      beforeAll(async () => {
+        await accountManager.loadNodeClient(argv[flags.namespace.name])
+      })
 
-      try {
-        expect(accountManager._nodeClient).not.toBeNull()
+      afterAll(async () => {
+        await accountManager.close()
+        await sleep(5000) // sometimes takes a while to close all sockets
+      }, 10000)
 
-        const balance = await new AccountBalanceQuery()
-          .setAccountId(accountManager._nodeClient.getOperator().accountId)
-          .execute(accountManager._nodeClient)
+      it('balance query should succeed', async () => {
+        expect.assertions(2)
 
-        expect(balance.hbars).not.toBeNull()
-      } catch (e) {
-        nodeCmd.logger.showUserError(e)
-        expect(e).toBeNull()
-      }
-    }, 20000)
+        try {
+          expect(accountManager._nodeClient).not.toBeNull()
 
-    it('account creation should succeed', async () => {
-      expect.assertions(1)
+          const balance = await new AccountBalanceQuery()
+            .setAccountId(accountManager._nodeClient.getOperator().accountId)
+            .execute(accountManager._nodeClient)
 
-      try {
-        expect(accountManager._nodeClient).not.toBeNull()
-        const accountKey = PrivateKey.generate()
+          expect(balance.hbars).not.toBeNull()
+        } catch (e) {
+          nodeCmd.logger.showUserError(e)
+          expect(e).toBeNull()
+        }
+      }, 20000)
 
-        let transaction = await new AccountCreateTransaction()
-          .setNodeAccountIds([constants.HEDERA_NODE_ACCOUNT_ID_START])
-          .setInitialBalance(new Hbar(0))
-          .setKey(accountKey.publicKey)
-          .freezeWith(accountManager._nodeClient)
+      it('account creation should succeed', async () => {
+        expect.assertions(1)
 
-        transaction = await transaction.sign(accountKey)
-        const response = await transaction.execute(accountManager._nodeClient)
-        const receipt = await response.getReceipt(accountManager._nodeClient)
+        try {
+          expect(accountManager._nodeClient).not.toBeNull()
+          const accountKey = PrivateKey.generate()
 
-        expect(receipt.accountId).not.toBeNull()
-      } catch (e) {
-        nodeCmd.logger.showUserError(e)
-        expect(e).toBeNull()
-      }
-    }, 20000)
+          let transaction = await new AccountCreateTransaction()
+            .setNodeAccountIds([constants.HEDERA_NODE_ACCOUNT_ID_START])
+            .setInitialBalance(new Hbar(0))
+            .setKey(accountKey.publicKey)
+            .freezeWith(accountManager._nodeClient)
+
+          transaction = await transaction.sign(accountKey)
+          const response = await transaction.execute(accountManager._nodeClient)
+          const receipt = await response.getReceipt(accountManager._nodeClient)
+
+          expect(receipt.accountId).not.toBeNull()
+        } catch (e) {
+          nodeCmd.logger.showUserError(e)
+          expect(e).toBeNull()
+        }
+      }, 20000)
+    })
 
     it('checkNetworkNodeProxyUp should succeed', async () => {
       expect.assertions(1)
