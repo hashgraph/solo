@@ -100,50 +100,24 @@ export class PlatformInstaller {
   }
 
   /**
-   * Fetch platform code into the container
-   *
-   * It uses curl to fetch the platform code directly inside the /home/hedera directory.
-   *
+   * Fetch and extract platform code into the container
    * @param podName pod name
    * @param tag platform release tag
    * @return {Promise<boolean|undefined>}
    */
+
   async fetchPlatform (podName, tag) {
     if (!podName) throw new MissingArgumentError('podName is required')
     if (!tag) throw new MissingArgumentError('tag is required')
 
     try {
-      const releaseDir = Templates.prepareReleasePrefix(tag)
-      const packageURL = `${constants.HEDERA_BUILDS_URL}/node/software/${releaseDir}/build-${tag}.zip`
-      const buildZip = path.join(constants.HEDERA_USER_HOME_DIR, `build-${tag}.zip`)
-      await this.k8.execContainer(podName, constants.ROOT_CONTAINER, `curl -s ${packageURL} -o ${buildZip}`)
-      return this.extractPlatform(podName, buildZip)
-    } catch (e) {
-      throw new FullstackTestingError(`failed to copy platform code in to pod '${podName}': ${e.message}`, e)
-    }
-  }
+      const scriptName = 'extract-platform.sh'
+      const sourcePath = path.join(constants.RESOURCES_DIR, scriptName) // script source path
+      await this.copyFiles(podName, [sourcePath], constants.HEDERA_USER_HOME_DIR)
 
-  async extractPlatform (podName, buildZipSrc) {
-    if (!podName) throw new MissingArgumentError('podName is required')
-    if (!buildZipSrc) throw new MissingArgumentError('buildZipSrc is required')
-
-    const buildZipFileName = path.basename(buildZipSrc)
-    const buildZip = path.join(constants.HEDERA_USER_HOME_DIR, buildZipFileName) // inside the container
-    const extractScriptName = 'extract-jar.sh'
-    const extractScriptSrc = path.join(constants.RESOURCES_DIR, extractScriptName)
-    const extractScript = path.join(constants.HEDERA_USER_HOME_DIR, extractScriptName) // inside the container
-
-    this.logger.debug(`Extracting platform code in pod ${podName}`, {
-      extractScript,
-      buildZip,
-      dest: constants.HEDERA_HAPI_PATH
-    })
-
-    try {
-      await this.copyFiles(podName, [extractScriptSrc], constants.HEDERA_USER_HOME_DIR)
+      const extractScript = path.join(constants.HEDERA_USER_HOME_DIR, scriptName) // inside the container
       await this.k8.execContainer(podName, constants.ROOT_CONTAINER, `chmod +x ${extractScript}`)
-      await this.k8.execContainer(podName, constants.ROOT_CONTAINER, [extractScript, buildZip, constants.HEDERA_HAPI_PATH])
-
+      await this.k8.execContainer(podName, constants.ROOT_CONTAINER, [extractScript, tag])
       return true
     } catch (e) {
       throw new FullstackTestingError(`failed to extract platform code in this pod '${podName}': ${e.message}`, e)
