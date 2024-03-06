@@ -109,7 +109,9 @@ jobs:
 
       - name: Install Dependencies
         id: npm-deps
-        run: npm ci
+        if: ${{ runner.os == 'linux' }}
+        run:
+          npm ci
 
       - name: Check Code Style
         if: ${{ inputs.enable-code-style-check && !cancelled() && !failure() }}
