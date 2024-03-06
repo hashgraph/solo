@@ -33,6 +33,10 @@ import { V1ObjectMeta, V1Secret } from '@kubernetes/client-node'
  * For parallel execution, create separate instances by invoking clone()
  */
 export class K8 {
+  // track the webSocket generated when creating the Kubernetes port forward
+  // so that we can call destroy and speed up shutting down the server
+  static _webSocketGetters = []
+
   constructor (configManager, logger) {
     if (!configManager) throw new MissingArgumentError('An instance of core/ConfigManager is required')
     if (!logger) throw new MissingArgumentError('An instance of core/Logger is required')
@@ -41,6 +45,14 @@ export class K8 {
     this.logger = logger
 
     this.init()
+  }
+
+  static close () {
+    for (const webSocketGetter of K8._webSocketGetters) {
+      if (webSocketGetter) {
+        webSocketGetter()._sender?._socket?.destroy()
+      }
+    }
   }
 
   /**
@@ -652,6 +664,29 @@ export class K8 {
     })
   }
 
+  static makeKillable (server, webSocket) {
+    server.sockets = []
+    server.webSocket = webSocket
+
+    server.on('connection', function (socket) {
+      server.sockets.push(socket)
+    })
+
+    server.kill = function (cb) {
+      server.sockets.forEach(function (socket) {
+        socket.destroy(null, (exception) => {
+          server.sockets.splice(server.sockets.indexOf(socket), 1)
+        })
+      })
+
+      server.close(cb)
+
+      server.sockets = []
+    }
+
+    return server
+  }
+
   /**
    * Port forward a port from a pod to localhost
    *
@@ -664,10 +699,12 @@ export class K8 {
    */
   async portForward (podName, localPort, podPort) {
     const ns = this._getNamespace()
-    const forwarder = new k8s.PortForward(this.kubeConfig, true)
-    const server = net.createServer((socket) => {
-      forwarder.portForward(ns, podName, [podPort], socket, null, socket)
+    const forwarder = new k8s.PortForward(this.kubeConfig, false)
+    const server = await net.createServer(async (socket) => {
+      K8._webSocketGetters.push(await forwarder.portForward(ns, podName, [podPort], socket, null, socket, 3))
     })
+
+    K8.makeKillable(server)
 
     return server.listen(localPort, '127.0.0.1')
   }

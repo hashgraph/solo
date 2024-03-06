@@ -46,18 +46,6 @@ import { getTestCacheDir, testLogger } from '../../test_util.js'
 import { AccountManager } from '../../../src/core/account_manager.mjs'
 import { sleep } from '../../../src/core/helpers.mjs'
 
-class TestHelper {
-  static async getNodeClient (accountManager, argv) {
-    const operator = await accountManager.getAccountKeysFromSecret(constants.OPERATOR_ID, argv[flags.namespace.name])
-    if (!operator) {
-      throw new Error(`account key not found for operator ${constants.OPERATOR_ID} during getNodeClient()\n` +
-    'this implies that node start did not finish the accountManager.prepareAccounts successfully')
-    }
-    const serviceMap = await accountManager.getNodeServiceMap(argv[flags.namespace.name])
-    return await accountManager.getNodeClient(argv[flags.namespace.name], serviceMap, operator.accountId, operator.privateKey)
-  }
-}
-
 describe.each([
   ['v0.42.5', constants.KEY_FORMAT_PFX]
   // ['v0.47.0-alpha.0', constants.KEY_FORMAT_PFX],
@@ -113,8 +101,8 @@ describe.each([
     configManager.update(argv)
     const nodeIds = argv[flags.nodeIDs.name].split(',')
 
-    afterEach(() => {
-      sleep(5).then().catch() // give a few ticks so that connections can close
+    afterEach(async () => {
+      await sleep(5) // give a few ticks so that connections can close
     })
 
     it('should pre-generate keys', async () => {
@@ -145,86 +133,93 @@ describe.each([
     }, 600000)
 
     describe('only genesis account should have genesis key for all special accounts', () => {
-      let client = null
-      const genesisKey = PrivateKey.fromStringED25519(constants.OPERATOR_KEY)
+      const genesisKey = PrivateKey.fromStringED25519(constants.GENESIS_KEY)
       const realm = constants.HEDERA_NODE_ACCOUNT_ID_START.realm
       const shard = constants.HEDERA_NODE_ACCOUNT_ID_START.shard
 
       beforeAll(async () => {
-        client = await TestHelper.getNodeClient(accountManager, argv)
+        await accountManager.loadNodeClient(argv[flags.namespace.name])
       })
 
-      afterAll(() => {
-        if (client) {
-          client.close()
-        }
-        accountManager.stopPortForwards().then().catch()
-        sleep(100).then().catch()
-      })
+      afterAll(async () => {
+        await accountManager.close()
+        await sleep(5000) // sometimes takes a while to close all sockets
+      }, 10000)
 
       for (const [start, end] of constants.SYSTEM_ACCOUNTS) {
         for (let i = start; i <= end; i++) {
           it(`special account ${i} should not have genesis key`, async () => {
+            expect(accountManager._nodeClient).not.toBeNull()
+
             const accountId = `${realm}.${shard}.${i}`
             nodeCmd.logger.info(`getAccountKeys: accountId ${accountId}`)
-            const keys = await accountManager.getAccountKeys(accountId, client)
+            const keys = await accountManager.getAccountKeys(accountId)
+
             expect(keys[0].toString()).not.toEqual(genesisKey.toString())
           }, 60000)
         }
       }
     })
 
-    it('balance query should succeed', async () => {
+    describe('use the node client to interact with the Hedera network', () => {
+      beforeAll(async () => {
+        await accountManager.loadNodeClient(argv[flags.namespace.name])
+      })
+
+      afterAll(async () => {
+        await accountManager.close()
+        await sleep(5000) // sometimes takes a while to close all sockets
+      }, 10000)
+
+      it('balance query should succeed', async () => {
+        expect.assertions(2)
+
+        try {
+          expect(accountManager._nodeClient).not.toBeNull()
+
+          const balance = await new AccountBalanceQuery()
+            .setAccountId(accountManager._nodeClient.getOperator().accountId)
+            .execute(accountManager._nodeClient)
+
+          expect(balance.hbars).not.toBeNull()
+        } catch (e) {
+          nodeCmd.logger.showUserError(e)
+          expect(e).toBeNull()
+        }
+      }, 20000)
+
+      it('account creation should succeed', async () => {
+        expect.assertions(2)
+
+        try {
+          expect(accountManager._nodeClient).not.toBeNull()
+          const accountKey = PrivateKey.generate()
+
+          let transaction = await new AccountCreateTransaction()
+            .setNodeAccountIds([constants.HEDERA_NODE_ACCOUNT_ID_START])
+            .setInitialBalance(new Hbar(0))
+            .setKey(accountKey.publicKey)
+            .freezeWith(accountManager._nodeClient)
+
+          transaction = await transaction.sign(accountKey)
+          const response = await transaction.execute(accountManager._nodeClient)
+          const receipt = await response.getReceipt(accountManager._nodeClient)
+
+          expect(receipt.accountId).not.toBeNull()
+        } catch (e) {
+          nodeCmd.logger.showUserError(e)
+          expect(e).toBeNull()
+        }
+      }, 20000)
+    })
+
+    it('checkNetworkNodeProxyUp should succeed', async () => {
       expect.assertions(1)
-      let client = null
-
       try {
-        client = await TestHelper.getNodeClient(accountManager, argv)
-
-        const balance = await new AccountBalanceQuery()
-          .setAccountId(client.getOperator().accountId)
-          .execute(client)
-
-        expect(balance.hbars).not.toBeNull()
+        await expect(nodeCmd.checkNetworkNodeProxyUp('solo-e2e', 'node0')).resolves.toBeTruthy()
       } catch (e) {
         nodeCmd.logger.showUserError(e)
         expect(e).toBeNull()
-      } finally {
-        if (client) {
-          client.close()
-        }
-        await accountManager.stopPortForwards()
-        await sleep(100)
-      }
-    }, 20000)
-
-    it('account creation should succeed', async () => {
-      expect.assertions(1)
-      let client = null
-
-      try {
-        client = await TestHelper.getNodeClient(accountManager, argv)
-        const accountKey = PrivateKey.generate()
-
-        let transaction = await new AccountCreateTransaction()
-          .setNodeAccountIds([constants.HEDERA_NODE_ACCOUNT_ID_START])
-          .setInitialBalance(new Hbar(0))
-          .setKey(accountKey.publicKey)
-          .freezeWith(client)
-
-        transaction = await transaction.sign(accountKey)
-        const response = await transaction.execute(client)
-        const receipt = await response.getReceipt(client)
-
-        expect(receipt.accountId).not.toBeNull()
-      } catch (e) {
-        nodeCmd.logger.showUserError(e)
-        expect(e).toBeNull()
-      } finally {
-        if (client) {
-          client.close()
-        }
-        await accountManager.stopPortForwards()
       }
     }, 20000)
   })

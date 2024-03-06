@@ -20,7 +20,6 @@ import { flags } from './index.mjs'
 import { Listr } from 'listr2'
 import * as prompts from './prompts.mjs'
 import { constants } from '../core/index.mjs'
-import { sleep } from '../core/helpers.mjs'
 import { HbarUnit, PrivateKey } from '@hashgraph/sdk'
 
 export class AccountCommand extends BaseCommand {
@@ -30,17 +29,11 @@ export class AccountCommand extends BaseCommand {
     if (!opts || !opts.accountManager) throw new IllegalArgumentError('An instance of core/AccountManager is required', opts.accountManager)
 
     this.accountManager = opts.accountManager
-    this.nodeClient = null
     this.accountInfo = null
   }
 
   async closeConnections () {
-    if (this.nodeClient) {
-      this.nodeClient.close()
-      await sleep(5) // sleep a couple of ticks for connections to close
-    }
-    await this.accountManager.stopPortForwards()
-    await sleep(5) // sleep a couple of ticks for connections to close
+    await this.accountManager.close()
   }
 
   async buildAccountInfo (accountInfo, namespace, shouldRetrievePrivateKey) {
@@ -66,25 +59,17 @@ export class AccountCommand extends BaseCommand {
     }
 
     return await this.accountManager.createNewAccount(ctx.config.namespace,
-      ctx.nodeClient, ctx.privateKey, ctx.config.amount)
-  }
-
-  async loadNodeClient (ctx) {
-    const serviceMap = await this.accountManager.getNodeServiceMap(ctx.config.namespace)
-
-    ctx.nodeClient = await this.accountManager.getNodeClient(ctx.config.namespace,
-      serviceMap, ctx.treasuryAccountInfo.accountId, ctx.treasuryAccountInfo.privateKey)
-    this.nodeClient = ctx.nodeClient // store in class so that we can make sure connections are closed
+      ctx.privateKey, ctx.config.amount)
   }
 
   async getAccountInfo (ctx) {
-    return this.accountManager.accountInfoQuery(ctx.config.accountId, ctx.nodeClient)
+    return this.accountManager.accountInfoQuery(ctx.config.accountId)
   }
 
   async updateAccountInfo (ctx) {
     let amount = ctx.config.amount
     if (ctx.config.privateKey) {
-      if (!(await this.accountManager.sendAccountKeyUpdate(ctx.accountInfo.accountId, ctx.config.privateKey, ctx.nodeClient, ctx.accountInfo.privateKey))) {
+      if (!(await this.accountManager.sendAccountKeyUpdate(ctx.accountInfo.accountId, ctx.config.privateKey, ctx.accountInfo.privateKey))) {
         this.logger.error(`failed to update account keys for accountId ${ctx.accountInfo.accountId}`)
         return false
       }
@@ -98,7 +83,7 @@ export class AccountCommand extends BaseCommand {
     }
 
     if (hbarAmount > 0) {
-      if (!(await this.transferAmountFromOperator(ctx.nodeClient, ctx.accountInfo.accountId, hbarAmount))) {
+      if (!(await this.transferAmountFromOperator(ctx.accountInfo.accountId, hbarAmount))) {
         this.logger.error(`failed to transfer amount for accountId ${ctx.accountInfo.accountId}`)
         return false
       }
@@ -107,8 +92,8 @@ export class AccountCommand extends BaseCommand {
     return true
   }
 
-  async transferAmountFromOperator (nodeClient, toAccountId, amount) {
-    return await this.accountManager.transferAmount(nodeClient, constants.TREASURY_ACCOUNT_ID, toAccountId, amount)
+  async transferAmountFromOperator (toAccountId, amount) {
+    return await this.accountManager.transferAmount(constants.TREASURY_ACCOUNT_ID, toAccountId, amount)
   }
 
   async create (argv) {
@@ -142,8 +127,7 @@ export class AccountCommand extends BaseCommand {
 
           self.logger.debug('Initialized config', { config })
 
-          ctx.treasuryAccountInfo = await self.accountManager.getTreasuryAccountKeys(ctx.config.namespace)
-          await self.loadNodeClient(ctx)
+          await self.accountManager.loadNodeClient(ctx.config.namespace)
         }
       },
       {
@@ -199,14 +183,14 @@ export class AccountCommand extends BaseCommand {
           // set config in the context for later tasks to use
           ctx.config = config
 
+          await self.accountManager.loadNodeClient(config.namespace)
+
           self.logger.debug('Initialized config', { config })
         }
       },
       {
         title: 'get the account info',
         task: async (ctx, task) => {
-          ctx.treasuryAccountInfo = await self.accountManager.getTreasuryAccountKeys(ctx.config.namespace)
-          await self.loadNodeClient(ctx)
           ctx.accountInfo = await self.buildAccountInfo(await self.getAccountInfo(ctx), ctx.config.namespace, ctx.config.privateKey)
         }
       },
@@ -266,14 +250,14 @@ export class AccountCommand extends BaseCommand {
           // set config in the context for later tasks to use
           ctx.config = config
 
+          await self.accountManager.loadNodeClient(config.namespace)
+
           self.logger.debug('Initialized config', { config })
         }
       },
       {
         title: 'get the account info',
         task: async (ctx, task) => {
-          ctx.treasuryAccountInfo = await self.accountManager.getTreasuryAccountKeys(ctx.config.namespace)
-          await self.loadNodeClient(ctx)
           self.accountInfo = await self.buildAccountInfo(await self.getAccountInfo(ctx), ctx.config.namespace, false)
           this.logger.showJSON('account info', self.accountInfo)
         }

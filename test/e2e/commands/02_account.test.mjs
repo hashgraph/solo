@@ -78,8 +78,8 @@ describe('account commands should work correctly', () => {
     configManager.update(argv, true)
   })
 
-  afterEach(() => {
-    sleep(5).then().catch() // give a few ticks so that connections can close
+  afterEach(async () => {
+    await sleep(5) // give a few ticks so that connections can close
   })
 
   it('account create with no options', async () => {
@@ -96,8 +96,6 @@ describe('account commands should work correctly', () => {
     } catch (e) {
       testLogger.showUserError(e)
       expect(e).toBeNull()
-    } finally {
-      await accountCmd.closeConnections()
     }
   }, defaultTimeout)
 
@@ -119,8 +117,6 @@ describe('account commands should work correctly', () => {
     } catch (e) {
       testLogger.showUserError(e)
       expect(e).toBeNull()
-    } finally {
-      await accountCmd.closeConnections()
     }
   }, defaultTimeout)
 
@@ -140,8 +136,6 @@ describe('account commands should work correctly', () => {
     } catch (e) {
       testLogger.showUserError(e)
       expect(e).toBeNull()
-    } finally {
-      await accountCmd.closeConnections()
     }
   }, defaultTimeout)
 
@@ -163,8 +157,6 @@ describe('account commands should work correctly', () => {
     } catch (e) {
       testLogger.showUserError(e)
       expect(e).toBeNull()
-    } finally {
-      await accountCmd.closeConnections()
     }
   }, defaultTimeout)
 
@@ -183,8 +175,6 @@ describe('account commands should work correctly', () => {
     } catch (e) {
       testLogger.showUserError(e)
       expect(e).toBeNull()
-    } finally {
-      await accountCmd.closeConnections()
     }
   }, defaultTimeout)
 
@@ -203,8 +193,6 @@ describe('account commands should work correctly', () => {
     } catch (e) {
       testLogger.showUserError(e)
       expect(e).toBeNull()
-    } finally {
-      await accountCmd.closeConnections()
     }
   }, defaultTimeout)
 })
