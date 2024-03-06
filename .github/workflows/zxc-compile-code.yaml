@@ -109,7 +109,6 @@ jobs:
 
       - name: Install Dependencies
         id: npm-deps
-        if: ${{ runner.os == 'linux' }}
         run:
           npm ci
 
