@@ -114,7 +114,7 @@ jobs:
           npm ci
 
       - name: Check Code Style
-        if: ${{ inputs.enable-code-style-check && !cancelled() && !failure() }}
+        if: ${{ runner.os == 'linux' && inputs.enable-code-style-check && !cancelled() && !failure() }}
         run: npm run check
 
       - name: Run Unit Tests
