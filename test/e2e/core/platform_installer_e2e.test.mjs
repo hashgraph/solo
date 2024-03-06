@@ -16,7 +16,6 @@
  */
 import { beforeAll, describe, expect, it } from '@jest/globals'
 import {
-  PackageDownloader,
   PlatformInstaller,
   constants,
   Templates,
@@ -33,7 +32,6 @@ describe('PackageInstallerE2E', () => {
   const configManager = new ConfigManager(testLogger)
   const k8 = new K8(configManager, testLogger)
   const installer = new PlatformInstaller(testLogger, k8)
-  const downloader = new PackageDownloader(testLogger)
   const testCacheDir = getTestCacheDir()
   const podName = 'network-node0-0'
   const packageVersion = 'v0.42.5'
@@ -58,28 +56,38 @@ describe('PackageInstallerE2E', () => {
     })
   })
 
-  describe('copyPlatform', () => {
-    it('should succeed fetching platform release', async () => {
-      const releasePrefix = Templates.prepareReleasePrefix(packageVersion)
-      const destPath = `${testCacheDir}/${releasePrefix}/build-${packageVersion}.zip`
-      await expect(downloader.fetchPlatform(packageVersion, testCacheDir)).resolves.toBe(destPath)
-      expect(fs.existsSync(destPath)).toBeTruthy()
-      testLogger.showUser(destPath)
-
-      // do not delete the cache dir
-    }, 200000)
-
-    it('should succeed with valid tag and pod', async () => {
-      expect.assertions(1)
+  describe('fetchPlatform', () => {
+    it('should fail with invalid pod', async () => {
+      expect.assertions(2)
       try {
-        await expect(installer.fetchPlatform(podName, packageVersion)).resolves.toBeTruthy()
-        const outputs = await k8.execContainer(podName, constants.ROOT_CONTAINER, `ls -la ${constants.HEDERA_HAPI_PATH}`)
-        testLogger.showUser(outputs)
+        await installer.fetchPlatform('', packageVersion)
       } catch (e) {
-        console.error(e)
-        expect(e).toBeNull()
+        expect(e.message.includes('podName is required')).toBeTruthy()
+      }
+
+      try {
+        await installer.fetchPlatform('INVALID', packageVersion)
+      } catch (e) {
+        expect(e.message
+          .includes('failed to extract platform code in this pod'))
+          .toBeTruthy()
       }
     }, 20000)
+
+    it('should fail with invalid tag', async () => {
+      expect.assertions(1)
+      try {
+        await installer.fetchPlatform(podName, 'INVALID')
+      } catch (e) {
+        expect(e.message.includes('curl: (22) The requested URL returned error: 404')).toBeTruthy()
+      }
+    }, 20000)
+
+    it('should succeed with valid tag and pod', async () => {
+      await expect(installer.fetchPlatform(podName, packageVersion)).resolves.toBeTruthy()
+      const outputs = await k8.execContainer(podName, constants.ROOT_CONTAINER, `ls -la ${constants.HEDERA_HAPI_PATH}`)
+      testLogger.showUser(outputs)
+    }, 60000)
   })
 
   describe('prepareConfigTxt', () => {

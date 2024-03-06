@@ -60,14 +60,12 @@ export class NodeCommand extends BaseCommand {
     }
   }
 
-  async checkNetworkNodeStarted (nodeId, maxAttempt = 50, status = 'ACTIVE') {
+  async checkNetworkNodeStarted (nodeId, maxAttempt = 100, status = 'ACTIVE') {
     nodeId = nodeId.trim()
     const podName = Templates.renderNetworkPodName(nodeId)
     const logfilePath = `${constants.HEDERA_HAPI_PATH}/logs/hgcaa.log`
     let attempt = 0
     let isActive = false
-
-    await sleep(10000) // sleep in case this the user ran the start command again at a later time
 
     // check log file is accessible
     let logFileAccessible = false
@@ -90,7 +88,7 @@ export class NodeCommand extends BaseCommand {
     while (attempt < maxAttempt) {
       try {
         const output = await this.k8.execContainer(podName, constants.ROOT_CONTAINER, ['tail', '-10', logfilePath])
-        if (output.indexOf(`Terminating Netty = ${status}`) < 0 && // make sure we are not at the beginning of a restart
+        if (output && output.indexOf('Terminating Netty') < 0 && // make sure we are not at the beginning of a restart
             output.indexOf(`Now current platform status = ${status}`) > 0) {
           this.logger.debug(`Node ${nodeId} is ${status} [ attempt: ${attempt}/${maxAttempt}]`)
           isActive = true
@@ -357,7 +355,7 @@ export class NodeCommand extends BaseCommand {
 
             // set up the sub-tasks
             return task.newListr(subTasks, {
-              concurrent: false, // parallel uploading of the zip file seems to be unreliable, so we just upload in sequence
+              concurrent: true, // since we download in the container directly, we want this to be in parallel across all nodes
               rendererOptions: {
                 collapseSubtasks: false
               }
@@ -429,16 +427,18 @@ export class NodeCommand extends BaseCommand {
             cacheDir: self.configManager.getFlag(flags.cacheDir)
           }
 
-          ctx.config.chartPath = await this.prepareChartPath(ctx.config.chartDir,
+          ctx.config.chartPath = await self.prepareChartPath(ctx.config.chartDir,
             constants.FULLSTACK_TESTING_CHART, constants.FULLSTACK_DEPLOYMENT_CHART)
 
           ctx.config.stagingDir = Templates.renderStagingDir(self.configManager, flags)
 
           ctx.config.valuesArg = ` --set hedera-mirror-node.enabled=${ctx.config.deployMirrorNode} --set hedera-explorer.enabled=${ctx.config.deployHederaExplorer}`
 
-          if (!await this.k8.hasNamespace(ctx.config.namespace)) {
+          if (!await self.k8.hasNamespace(ctx.config.namespace)) {
             throw new FullstackTestingError(`namespace ${ctx.config.namespace} does not exist`)
           }
+
+          await self.accountManager.loadNodeClient(ctx.config.namespace)
         }
       },
       {
@@ -502,50 +502,132 @@ export class NodeCommand extends BaseCommand {
       {
         title: 'Enable mirror node',
         task: async (ctx, parentTask) => {
-          const subTasks = [
-            {
-              title: 'Get the mirror node importer address book',
-              task: async (ctx, _) => {
-                ctx.addressBook = await self.getAddressBook(ctx.config.namespace)
-                ctx.config.valuesArg += ` --set "hedera-mirror-node.importer.addressBook=${ctx.addressBook}"`
-              }
-            },
-            {
-              title: `Upgrade chart '${constants.FULLSTACK_DEPLOYMENT_CHART}'`,
-              task: async (ctx, _) => {
-                await this.chartManager.upgrade(
-                  ctx.config.namespace,
-                  constants.FULLSTACK_DEPLOYMENT_CHART,
-                  ctx.config.chartPath,
-                  ctx.config.valuesArg
-                )
-              }
-            },
-            {
-              title: 'Waiting for explorer pod to be ready',
-              task: async (ctx, _) => {
-                if (ctx.config.deployHederaExplorer) {
-                  await this.k8.waitForPod(constants.POD_STATUS_RUNNING, [
-                    'app.kubernetes.io/component=hedera-explorer', 'app.kubernetes.io/name=hedera-explorer'
-                  ], 1, 100)
+          if (ctx.config.deployMirrorNode) {
+            const subTasks = [
+              {
+                title: 'Check node proxies are ACTIVE',
+                task: async (ctx, _) => {
+                  const subTasks = []
+                  for (const nodeId of ctx.config.nodeIds) {
+                    subTasks.push({
+                      title: `Check proxy for node: ${chalk.yellow(nodeId)}`,
+                      task: async () => await self.checkNetworkNodeProxyUp(ctx.config.namespace, nodeId)
+                    })
+                  }
+
+                  // set up the sub-tasks
+                  return parentTask.newListr(subTasks, {
+                    concurrent: false,
+                    rendererOptions: {
+                      collapseSubtasks: false
+                    }
+                  })
+                }
+              },
+              {
+                title: 'Prepare address book',
+                task: async (ctx, _) => {
+                  ctx.addressBook = await self.getAddressBook(ctx.nodeClient)
+                  ctx.config.valuesArg += ` --set "hedera-mirror-node.importer.addressBook=${ctx.addressBook}"`
+                }
+              },
+              {
+                title: 'Deploy mirror node',
+                task: async (ctx, _) => {
+                  await self.chartManager.upgrade(
+                    ctx.config.namespace,
+                    constants.FULLSTACK_DEPLOYMENT_CHART,
+                    ctx.config.chartPath,
+                    ctx.config.valuesArg
+                  )
+                }
+              },
+              {
+                title: 'Waiting for Hedera Explorer to be ready',
+                task: async (ctx, _) => {
+                  if (ctx.config.deployHederaExplorer) {
+                    await self.k8.waitForPod(constants.POD_STATUS_RUNNING, [
+                      'app.kubernetes.io/component=hedera-explorer', 'app.kubernetes.io/name=hedera-explorer'
+                    ], 1, 200)
+                  }
                 }
               }
-            }
-          ]
+            ]
 
-          return parentTask.newListr(subTasks, {
-            concurrent: false,
-            rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
-          })
+            return parentTask.newListr(subTasks, {
+              concurrent: false,
+              rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
+            })
+          }
         }
       },
       {
         title: 'Update special account keys',
         task: async (ctx, task) => {
           if (ctx.config.updateAccountKeys) {
-            await self.accountManager.prepareAccounts(ctx.config.namespace)
+            return new Listr([
+              {
+                title: 'Prepare for account key updates',
+                task: async (ctx) => {
+                  const secrets = await self.k8.getSecretsByLabel(['fullstack.hedera.com/account-id'])
+                  ctx.updateSecrets = secrets.length > 0
+
+                  ctx.accountsBatchedSet = self.accountManager.batchAccounts()
+
+                  ctx.resultTracker = {
+                    rejectedCount: 0,
+                    fulfilledCount: 0,
+                    skippedCount: 0
+                  }
+                }
+              },
+              {
+                title: 'Update special account key sets',
+                task: async (ctx) => {
+                  let setIndex = 1
+                  const subTasks = []
+                  for (const currentSet of ctx.accountsBatchedSet) {
+                    subTasks.push({
+                      title: `Updating set ${chalk.yellow(
+                          setIndex)} of ${chalk.yellow(
+                          ctx.accountsBatchedSet.length)}`,
+                      task: async (ctx) => {
+                        ctx.resultTracker = await self.accountManager.updateSpecialAccountsKeys(
+                          ctx.config.namespace, currentSet,
+                          ctx.updateSecrets, ctx.resultTracker)
+                      }
+                    })
+                    setIndex++
+                  }
+
+                  // set up the sub-tasks
+                  return task.newListr(subTasks, {
+                    concurrent: false,
+                    rendererOptions: {
+                      collapseSubtasks: false
+                    }
+                  })
+                }
+              },
+              {
+                title: 'Display results',
+                task: async (ctx) => {
+                  self.logger.showUser(chalk.green(`Account keys updated SUCCESSFULLY: ${ctx.resultTracker.fulfilledCount}`))
+                  if (ctx.resultTracker.skippedCount > 0) self.logger.showUser(chalk.cyan(`Account keys updates SKIPPED: ${ctx.resultTracker.skippedCount}`))
+                  if (ctx.resultTracker.rejectedCount > 0) {
+                    self.logger.showUser(chalk.yellowBright(`Account keys updates with ERROR: ${ctx.resultTracker.rejectedCount}`))
+                    throw new FullstackTestingError(`Account keys updates failed for ${ctx.resultTracker.rejectedCount} accounts, exiting`)
+                  }
+                }
+              }
+            ], {
+              concurrent: false,
+              rendererOptions: {
+                collapseSubtasks: false
+              }
+            })
           } else {
-            this.logger.showUser(chalk.yellowBright('> WARNING:'), chalk.yellow(
+            self.logger.showUser(chalk.yellowBright('> WARNING:'), chalk.yellow(
               'skipping special account keys update, special accounts will retain genesis private keys'))
           }
         }
@@ -557,36 +639,57 @@ export class NodeCommand extends BaseCommand {
 
     try {
       await tasks.run()
+      self.logger.debug('node start has completed')
     } catch (e) {
       throw new FullstackTestingError(`Error starting node: ${e.message}`, e)
+    } finally {
+      await self.accountManager.close()
     }
 
     return true
   }
 
+  async checkNetworkNodeProxyUp (namespace, nodeId, maxAttempts = 100) {
+    const podArray = await this.k8.getPodsByLabel([`app=haproxy-${nodeId}`, 'fullstack.hedera.com/type=haproxy'])
+
+    let attempts = 0
+    if (podArray.length > 0) {
+      const podName = podArray[0].metadata.name
+
+      while (attempts < maxAttempts) {
+        const logResponse = await this.k8.kubeClient.readNamespacedPodLog(
+          podName, namespace)
+
+        if (logResponse.response.statusCode !== 200) {
+          throw new FullstackTestingError(`Expected pod ${podName} log query to execute successful, but instead got a status of ${logResponse.response.statusCode}`)
+        }
+
+        if (logResponse.body.includes('Server be_servers/server1 is UP')) {
+          return true
+        }
+
+        attempts++
+        this.logger.debug(`Checking for pod ${podName} to realize network node is UP [attempt: ${attempts}/${maxAttempts}]`)
+        await sleep(1000)
+      }
+    } else {
+      throw new FullstackTestingError(`proxy for '${nodeId}' is not ACTIVE [ attempt = ${attempts}/${maxAttempts}`)
+    }
+
+    return false
+  }
+
   /**
    * Will get the address book from the network (base64 encoded)
-   * @param namespace
+   * @param nodeClient the configured and active NodeClient to use to retrieve the address book
    * @returns {Promise<string>} the base64 encoded address book for the network
    */
-  async getAddressBook (namespace) {
-    const treasuryAccountInfo = await this.accountManager.getTreasuryAccountKeys(namespace)
-    const serviceMap = await this.accountManager.getNodeServiceMap(namespace)
-
-    const nodeClient = await this.accountManager.getNodeClient(namespace,
-      serviceMap, treasuryAccountInfo.accountId, treasuryAccountInfo.privateKey)
-
+  async getAddressBook (nodeClient) {
     try {
       // Retrieve the AddressBook as base64
       return await this.accountManager.prepareAddressBookBase64(nodeClient)
     } catch (e) {
-      throw new FullstackTestingError('an error was encountered while trying to prepare the address book')
-    } finally {
-      await this.accountManager.stopPortForwards()
-      if (nodeClient) {
-        nodeClient.close()
-      }
-      await sleep(5) // sleep a few ticks to allow network connections to close
+      throw new FullstackTestingError(`an error was encountered while trying to prepare the address book: ${e.message}`, e)
     }
   }
 
@@ -608,7 +711,7 @@ export class NodeCommand extends BaseCommand {
             nodeIds: helpers.parseNodeIDs(self.configManager.getFlag(flags.nodeIDs))
           }
 
-          if (!await this.k8.hasNamespace(ctx.config.namespace)) {
+          if (!await self.k8.hasNamespace(ctx.config.namespace)) {
             throw new FullstackTestingError(`namespace ${ctx.config.namespace} does not exist`)
           }
         }
