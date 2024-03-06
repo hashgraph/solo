@@ -33,6 +33,8 @@ import { V1ObjectMeta, V1Secret } from '@kubernetes/client-node'
  * For parallel execution, create separate instances by invoking clone()
  */
 export class K8 {
+  // track the webSocket generated when creating the Kubernetes port forward
+  // so that we can call destroy and speed up shutting down the server
   static _webSocketGetters = []
 
   constructor (configManager, logger) {

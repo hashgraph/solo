@@ -505,12 +505,12 @@ export class NodeCommand extends BaseCommand {
           if (ctx.config.deployMirrorNode) {
             const subTasks = [
               {
-                title: 'Wait for proxies to verify node servers are running',
+                title: 'Check node proxies are ACTIVE',
                 task: async (ctx, _) => {
                   const subTasks = []
                   for (const nodeId of ctx.config.nodeIds) {
                     subTasks.push({
-                      title: `Check node proxy: ${chalk.yellow(nodeId)}`,
+                      title: `Check proxy for node: ${chalk.yellow(nodeId)}`,
                       task: async () => await self.checkNetworkNodeProxyUp(ctx.config.namespace, nodeId)
                     })
                   }
@@ -652,10 +652,10 @@ export class NodeCommand extends BaseCommand {
   async checkNetworkNodeProxyUp (namespace, nodeId, maxAttempts = 100) {
     const podArray = await this.k8.getPodsByLabel([`app=haproxy-${nodeId}`, 'fullstack.hedera.com/type=haproxy'])
 
+    let attempts = 0
     if (podArray.length > 0) {
       const podName = podArray[0].metadata.name
 
-      let attempts = 0
       while (attempts < maxAttempts) {
         const logResponse = await this.k8.kubeClient.readNamespacedPodLog(
           podName, namespace)
@@ -673,7 +673,7 @@ export class NodeCommand extends BaseCommand {
         await sleep(1000)
       }
     } else {
-      throw new FullstackTestingError('TBD')
+      throw new FullstackTestingError(`proxy for '${nodeId}' is not ACTIVE [ attempt = ${attempts}/${maxAttempts}`)
     }
 
     return false
