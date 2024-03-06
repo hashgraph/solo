@@ -66,8 +66,6 @@ jobs:
   compile:
     name: ${{ inputs.custom-job-label || 'Compiles' }}
     runs-on: ${{ matrix.os }}
-    needs:
-      - generate-baseline
     strategy:
       fail-fast: false
       matrix:
