@@ -18,10 +18,10 @@ import * as fs from 'fs'
 import * as os from 'os'
 import { Listr } from 'listr2'
 import * as path from 'path'
+import * as semver from 'semver'
 import { FullstackTestingError, IllegalArgumentError, MissingArgumentError } from './errors.mjs'
 import { constants } from './index.mjs'
 import { Templates } from './templates.mjs'
-import * as helpers from './helpers.mjs'
 
 /**
  * PlatformInstaller install platform code in the root-container of a network pod
@@ -313,7 +313,7 @@ export class PlatformInstaller {
     const appName = constants.HEDERA_APP_NAME
     const nodeStakeAmount = constants.HEDERA_NODE_DEFAULT_STAKE_AMOUNT
 
-    const releaseVersion = helpers.parseSemver(releaseTag)
+    const releaseVersion = semver.parse(releaseTag, { includePrerelease: true })
 
     try {
       const configLines = []

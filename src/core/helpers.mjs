@@ -20,6 +20,7 @@ import path from 'path'
 import { FullstackTestingError } from './errors.mjs'
 import * as paths from 'path'
 import { fileURLToPath } from 'url'
+import * as semver from 'semver'
 
 // cache current directory
 const CUR_FILE_DIR = paths.dirname(fileURLToPath(import.meta.url))
@@ -69,65 +70,12 @@ export function packageVersion () {
 }
 
 /**
- * Split semantic version into its major, minor and patch number
- * @param semver release version
- * @return {{patch: number, major: number, minor: number}}
- */
-export function parseSemver (semver) {
-  if (!semver || semver[0] !== 'v') {
-    throw new FullstackTestingError(`invalid version. Expected 'v<MAJOR>.<MINOR>.<PATCH>', found '${semver}'`)
-  }
-
-  const version = semver.replace('v', '') // remove first 'v'
-  const parts = version.split('-')[0].split('.') // just take the major.minor.patch part of the version
-  if (parts.length < 3) {
-    throw new FullstackTestingError(`version '${semver}' must have the format MAJOR.MINOR.PATCH`)
-  }
-
-  return {
-    major: Number.parseInt(parts[0]),
-    minor: Number.parseInt(parts[1]),
-    patch: Number.parseInt(parts[2])
-  }
-}
-
-/**
- * Compare two version
- *
- * It returns 1, 0, -1 depending on the following three cases:
- *  - candidate > target: 1
- *  - candidate == target: 0
- *  - candidate < target: -1
- *
- * @param target target version
- * @param candidate candidate version
- * @return {number}
- */
-export function compareVersion (target, candidate) {
-  const v1 = parseSemver(target)
-  const v2 = parseSemver(candidate)
-
-  if (v2.major === v1.major && v2.minor === v1.minor && v2.patch === v1.patch) {
-    return 0
-  }
-
-  if ((v2.major > v1.major) ||
-    (v2.major >= v1.major && v2.minor > v1.minor) ||
-    (v2.major >= v1.major && v2.minor >= v1.minor && v2.patch >= v1.patch)
-  ) {
-    return 1
-  }
-
-  return -1
-}
-
-/**
  * Return the required root image for a platform version
  * @param releaseTag platform version
  * @return {string}
  */
 export function getRootImageRepository (releaseTag) {
-  const releaseVersion = parseSemver(releaseTag)
+  const releaseVersion = semver.parse(releaseTag, { includePrerelease: true })
   if (releaseVersion.minor < 46) {
     return 'hashgraph/full-stack-testing/ubi8-init-java17'
   }

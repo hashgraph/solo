@@ -23,7 +23,6 @@ import * as helpers from '../helpers.mjs'
 import { constants, Templates } from '../index.mjs'
 import * as version from '../../../version.mjs'
 import { ShellRunner } from '../shell_runner.mjs'
-import * as semver from 'semver'
 
 // constants required by HelmDependencyManager
 const HELM_RELEASE_BASE_URL = 'https://get.helm.sh'
@@ -122,6 +121,6 @@ export class HelmDependencyManager extends ShellRunner {
     const output = await this.run(`${this.helmPath} version --short`)
     const parts = output[0].split('+')
     this.logger.debug(`Found ${constants.HELM}:${parts[0]}`)
-    return semver.gte(parts[0], version.HELM_VERSION)
+    return helpers.compareVersion(version.HELM_VERSION, parts[0]) >= 0
   }
 }
