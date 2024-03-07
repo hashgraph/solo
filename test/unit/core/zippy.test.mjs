@@ -60,4 +60,39 @@ describe('Zippy', () => {
       fs.rmSync(tmpDir, { recursive: true, force: true }) // not very safe!
     })
   })
+
+  describe('untar', () => {
+    it('should fail if source file is missing', async () => {
+      expect.assertions(1)
+      await expect(zippy.untar('', '')).rejects.toThrow(MissingArgumentError)
+    })
+
+    it('should fail if destination file is missing', async () => {
+      expect.assertions(1)
+      await expect(zippy.untar('', '')).rejects.toThrow(MissingArgumentError)
+    })
+
+    it('should fail if source file is invalid', async () => {
+      expect.assertions(1)
+      await expect(zippy.untar('/INVALID', os.tmpdir())).rejects.toThrow(IllegalArgumentError)
+    })
+
+    it('should fail for a directory', async () => {
+      expect.assertions(1)
+      await expect(zippy.untar('test/data', os.tmpdir())).rejects.toThrow(FullstackTestingError)
+    })
+
+    it('should fail for a non-tar file', async () => {
+      expect.assertions(1)
+      await expect(zippy.untar('test/data/test.txt', os.tmpdir())).rejects.toThrow(FullstackTestingError)
+    })
+
+    it('should succeed for valid inputs', async () => {
+      const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'installer-'))
+      const tarFile = `${tmpDir}/test.tar.gz`
+      await expect(zippy.tar('test/data/.empty', tarFile)).resolves.toBe(tarFile)
+      await expect(zippy.untar(tarFile, tmpDir, true)).resolves.toBe(tmpDir)
+      fs.rmSync(tmpDir, { recursive: true, force: true }) // not very safe!
+    })
+  })
 })

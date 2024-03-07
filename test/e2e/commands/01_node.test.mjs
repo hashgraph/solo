@@ -30,6 +30,7 @@ import {
 import path from 'path'
 import { flags } from '../../../src/commands/index.mjs'
 import { NodeCommand } from '../../../src/commands/node.mjs'
+import { DependencyManager, HelmDependencyManager } from '../../../src/core/dependency_managers/index.mjs'
 import {
   ChartManager,
   ConfigManager,
@@ -38,8 +39,7 @@ import {
   PackageDownloader,
   PlatformInstaller,
   constants,
-  DependencyManager,
-  KeyManager
+  KeyManager, Zippy
 } from '../../../src/core/index.mjs'
 import { ShellRunner } from '../../../src/core/shell_runner.mjs'
 import { getTestCacheDir, testLogger } from '../../test_util.js'
@@ -54,8 +54,14 @@ describe.each([
   const helm = new Helm(testLogger)
   const chartManager = new ChartManager(helm, testLogger)
   const configManager = new ConfigManager(testLogger, path.join(getTestCacheDir(), 'solo.config'))
-  const packageDownloader = new PackageDownloader(testLogger)
-  const depManager = new DependencyManager(testLogger)
+
+  // prepare dependency manger registry
+  const downloader = new PackageDownloader(testLogger)
+  const zippy = new Zippy(testLogger)
+  const helmDepManager = new HelmDependencyManager(downloader, zippy, testLogger)
+  const depManagerMap = new Map().set(constants.HELM, helmDepManager)
+  const depManager = new DependencyManager(testLogger, depManagerMap)
+
   const k8 = new K8(configManager, testLogger)
   const platformInstaller = new PlatformInstaller(testLogger, k8)
   const keyManager = new KeyManager(testLogger)
@@ -67,7 +73,7 @@ describe.each([
     k8,
     chartManager,
     configManager,
-    downloader: packageDownloader,
+    downloader,
     platformInstaller,
     depManager,
     keyManager,
