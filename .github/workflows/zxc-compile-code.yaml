@@ -102,13 +102,13 @@ jobs:
 
       - name: Install choco for Windows
         uses: crazy-max/ghaction-chocolatey@v3.0.0
-        if: ${{ runner.os == 'windows-2022' && inputs.enable-e2e-tests && !cancelled( ) && !failure() }}
+        if: ${{ runner.os == 'Windows' && inputs.enable-e2e-tests && !cancelled( ) && !failure() }}
         with:
           args: -h
 
       - name: Setup Kind Windows
         id: setup-kind-windows
-        if: ${{ runner.os == 'windows-2022' && inputs.enable-e2e-tests && !cancelled() && !failure() }}
+        if: ${{ runner.os == 'Windows' && inputs.enable-e2e-tests && !cancelled() && !failure() }}
         run: |
           choco install kind -y
 
