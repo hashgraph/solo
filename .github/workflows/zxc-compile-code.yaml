@@ -151,7 +151,7 @@ jobs:
           path: 'coverage/unit'
 
       - name: Pull Kind Docker Image
-        if: ${{ inputs.enable-e2e-tests && !cancelled() && !failure() }}
+        if: ${{ runner.os == 'linux' && inputs.enable-e2e-tests && !cancelled() && !failure() }}
         run: docker image pull kindest/node:v1.27.3@sha256:3966ac761ae0136263ffdb6cfd4db23ef8a83cba8a463690e98317add2c9ba72
 
       - name: Setup E2E Tests
