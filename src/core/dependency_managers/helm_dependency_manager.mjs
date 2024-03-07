@@ -23,6 +23,7 @@ import * as helpers from '../helpers.mjs'
 import { constants, Templates } from '../index.mjs'
 import * as version from '../../../version.mjs'
 import { ShellRunner } from '../shell_runner.mjs'
+import { OS_WIN32, OS_WINDOWS } from '../constants.mjs'
 
 // constants required by HelmDependencyManager
 const HELM_RELEASE_BASE_URL = 'https://get.helm.sh'
@@ -31,7 +32,6 @@ const HELM_ARTIFACT_EXT = new Map()
   .set(constants.OS_DARWIN, 'tar.gz')
   .set(constants.OS_LINUX, 'tar.gz')
   .set(constants.OS_WINDOWS, 'zip')
-  .set(constants.OS_WIN32, 'zip')
 
 /**
  * Helm dependency manager installs or uninstalls helm client at SOLO_HOME_DIR/bin directory
@@ -56,6 +56,9 @@ export class HelmDependencyManager extends ShellRunner {
     this.zippy = zippy
     this.installationDir = installationDir
     this.osPlatform = osPlatform
+    if (osPlatform === OS_WIN32) {
+      this.osPlatform = OS_WINDOWS
+    }
     this.osArch = ['x64', 'x86-64'].includes(osArch) ? 'amd64' : osArch
     this.helmVersion = helmVersion
     this.helmPath = Templates.installationPath(constants.HELM, this.installationDir, this.osPlatform, this.osArch)
