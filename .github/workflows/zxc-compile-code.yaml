@@ -123,7 +123,7 @@ jobs:
         uses: EnricoMi/publish-unit-test-result-action@f355d34d53ad4e7f506f699478db2dd71da9de5f # v2.15.1
         if: ${{ runner.os == 'linux' && inputs.enable-unit-tests && steps.npm-deps.conclusion == 'success' && !cancelled() }}
         with:
-          check_name: 'Unit Test Results'
+          check_name: 'Unit Test Results - ${{ runner.os }}'
           files: "junit.xml"
 
       - name: Publish Unit Test Coverage Report
