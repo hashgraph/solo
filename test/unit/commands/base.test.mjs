@@ -15,12 +15,13 @@
  *
  */
 import { expect, it, describe } from '@jest/globals'
+import { HelmDependencyManager, DependencyManager } from '../../../src/core/dependency_managers/index.mjs'
 import {
-  DependencyManager,
   ChartManager,
   ConfigManager,
   Helm,
-  logging
+  logging, PackageDownloader, Zippy,
+  constants
 } from '../../../src/core/index.mjs'
 import { BaseCommand } from '../../../src/commands/base.mjs'
 import { K8 } from '../../../src/core/k8.mjs'
@@ -31,7 +32,13 @@ describe('BaseCommand', () => {
   const helm = new Helm(testLogger)
   const chartManager = new ChartManager(helm, testLogger)
   const configManager = new ConfigManager(testLogger)
-  const depManager = new DependencyManager(testLogger)
+
+  // prepare dependency manger registry
+  const downloader = new PackageDownloader(testLogger)
+  const zippy = new Zippy(testLogger)
+  const helmDepManager = new HelmDependencyManager(downloader, zippy, testLogger)
+  const depManagerMap = new Map().set(constants.HELM, helmDepManager)
+  const depManager = new DependencyManager(testLogger, depManagerMap)
   const k8 = new K8(configManager, testLogger)
 
   const baseCmd = new BaseCommand({

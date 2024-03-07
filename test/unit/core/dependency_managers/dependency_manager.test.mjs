@@ -15,24 +15,26 @@
  *
  */
 import { describe, expect, it } from '@jest/globals'
-import { DependencyManager, logging, constants } from '../../../src/core/index.mjs'
-import { FullstackTestingError } from '../../../src/core/errors.mjs'
+import { DependencyManager, HelmDependencyManager } from '../../../../src/core/dependency_managers/index.mjs'
+import { logging, constants, PackageDownloader, Zippy } from '../../../../src/core/index.mjs'
+import { FullstackTestingError } from '../../../../src/core/errors.mjs'
 
 const testLogger = logging.NewLogger('debug')
 describe('DependencyManager', () => {
-  const depManager = new DependencyManager(testLogger)
-
-  describe('checks', () => {
-    it('should succeed with checkHelm', async () => {
-      await expect(depManager.checkHelm()).resolves.toBe(true)
-    })
-  })
+  // prepare dependency manger registry
+  const downloader = new PackageDownloader(testLogger)
+  const zippy = new Zippy(testLogger)
+  const helmDepManager = new HelmDependencyManager(downloader, zippy, testLogger)
+  const depManagerMap = new Map()
+    .set(constants.HELM, helmDepManager)
+  const depManager = new DependencyManager(testLogger, depManagerMap)
 
   describe('checkDependency', () => {
     it('should fail during invalid dependency check', async () => {
-      await expect(depManager.checkDependency('INVALID_PROGRAM')).rejects.toThrowError(new FullstackTestingError('INVALID_PROGRAM:^undefined is not found'))
+      await expect(depManager.checkDependency('INVALID_PROGRAM')).rejects.toThrowError(new FullstackTestingError("Dependency 'INVALID_PROGRAM' is not found"))
     })
-    it('should succeed during kubectl dependency check', async () => {
+
+    it('should succeed during helm dependency check', async () => {
       await expect(depManager.checkDependency(constants.HELM)).resolves.toBe(true)
     })
   })
