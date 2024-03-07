@@ -91,7 +91,7 @@ jobs:
 
       - name: Setup Kind
         uses: helm/kind-action@99576bfa6ddf9a8e612d83b513da5a75875caced # v1.9.0
-        if: ${{ inputs.enable-e2e-tests && !cancelled() && !failure() }}
+        if: ${{ runner.os == 'linux' && inputs.enable-e2e-tests && !cancelled() && !failure() }}
         with:
           install_only: true
           node_image: kindest/node:v1.27.3@sha256:3966ac761ae0136263ffdb6cfd4db23ef8a83cba8a463690e98317add2c9ba72
