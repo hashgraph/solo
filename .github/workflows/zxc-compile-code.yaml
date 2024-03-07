@@ -125,7 +125,7 @@ jobs:
         run: npm test
 
       - name: Publish Windows Unit Test Report
-        uses: EnricoMi/publish-unit-test-result-action@windows@v2.15.1
+        uses: EnricoMi/publish-unit-test-result-action@v2.15.1
         if: ${{ runner.os == 'Windows' && inputs.enable-unit-tests && steps.npm-deps.conclusion == 'success' && !cancelled() }}
         with:
           check_name: 'Unit Test Results - ${{ runner.os }}'
