@@ -114,6 +114,7 @@ export const KEY_TYPE_TLS = 'tls'
 export const SIGNING_KEY_PREFIX = 's'
 export const AGREEMENT_KEY_PREFIX = 'a'
 
+export const OS_WIN32 = 'win32'
 export const OS_WINDOWS = 'windows'
 export const OS_DARWIN = 'darwin'
 export const OS_LINUX = 'linux'

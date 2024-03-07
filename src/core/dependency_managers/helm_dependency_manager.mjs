@@ -31,6 +31,7 @@ const HELM_ARTIFACT_EXT = new Map()
   .set(constants.OS_DARWIN, 'tar.gz')
   .set(constants.OS_LINUX, 'tar.gz')
   .set(constants.OS_WINDOWS, 'zip')
+  .set(constants.OS_WIN32, 'zip')
 
 /**
  * Helm dependency manager installs or uninstalls helm client at SOLO_HOME_DIR/bin directory
