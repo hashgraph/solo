@@ -110,6 +110,10 @@ jobs:
         id: npm-deps
         run:
           npm ci
+
+      - name: Test command line
+        id: test-command-line
+        run:
           date
 
       - name: Check Code Style
@@ -120,9 +124,16 @@ jobs:
         if: ${{ inputs.enable-unit-tests && !cancelled() && !failure() }}
         run: npm test
 
-      - name: Publish Unit Test Report
+      - name: Publish Windows Unit Test Report
+        uses: EnricoMi/publish-unit-test-result-action@windows@v2.15.1
+        if: ${{ runner.os == 'Windows' && inputs.enable-unit-tests && steps.npm-deps.conclusion == 'success' && !cancelled() }}
+        with:
+          check_name: 'Unit Test Results - ${{ runner.os }}'
+          files: "junit.xml"
+
+      - name: Publish Linux Unit Test Report
         uses: EnricoMi/publish-unit-test-result-action@f355d34d53ad4e7f506f699478db2dd71da9de5f # v2.15.1
-        if: ${{ inputs.enable-unit-tests && steps.npm-deps.conclusion == 'success' && !cancelled() }}
+        if: ${{ runner.os == 'linux' && inputs.enable-unit-tests && steps.npm-deps.conclusion == 'success' && !cancelled() }}
         with:
           check_name: 'Unit Test Results - ${{ runner.os }}'
           files: "junit.xml"
