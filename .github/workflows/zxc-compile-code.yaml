@@ -100,6 +100,18 @@ jobs:
           verbosity: 3
           wait: 120s
 
+      - name: Install choco for Windows
+        uses: crazy-max/ghaction-chocolatey@v3.0.0
+        if: ${{ runner.os == 'windows-2022' && inputs.enable-e2e-tests && !cancelled( ) && !failure() }}
+        with:
+          args: -h
+
+      - name: Setup Kind Windows
+        id: setup-kind-windows
+        if: ${{ runner.os == 'windows-2022' && inputs.enable-e2e-tests && !cancelled() && !failure() }}
+        run: |
+          choco install kind -y
+
       - name: Setup Helm
         uses: azure/setup-helm@29960d0f5f19214b88e1d9ba750a9914ab0f1a2f # v4.0.0
         if: ${{ (inputs.enable-unit-tests || inputs.enable-e2e-tests) && !cancelled() && !failure() }}
@@ -186,5 +198,5 @@ jobs:
         uses: actions/upload-artifact@5d5d22a31266ced268874388b861e4b58bb5c2f3 # v4.3.1
         if: ${{ inputs.enable-unit-tests && steps.npm-deps.conclusion == 'success' && !cancelled() }}
         with:
-          name: Test Reports
+          name: Test Reports - ${{ runner.os }}
           path: "junit*.xml"
