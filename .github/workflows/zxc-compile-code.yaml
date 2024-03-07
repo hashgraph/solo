@@ -100,17 +100,15 @@ jobs:
           verbosity: 3
           wait: 120s
 
-      - name: Install choco for Windows
-        uses: crazy-max/ghaction-chocolatey@v3.0.0
-        if: ${{ runner.os == 'Windows' && inputs.enable-e2e-tests && !cancelled( ) && !failure() }}
-        with:
-          args: -h
-
-      - name: Setup Kind Windows
-        id: setup-kind-windows
+      - name: Install scoop for Windows
+        id : install-scoop-windows
         if: ${{ runner.os == 'Windows' && inputs.enable-e2e-tests && !cancelled() && !failure() }}
+        shell: pwsh
         run: |
-          choco install kind -y
+          Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+          Invoke-RestMethod -Uri https://get.scoop.sh | Invoke-Expression
+          scoop install main/kind
+          scoop install kubectl
 
       - name: Setup Helm
         uses: azure/setup-helm@29960d0f5f19214b88e1d9ba750a9914ab0f1a2f # v4.0.0
@@ -122,11 +120,6 @@ jobs:
         id: npm-deps
         run:
           npm ci
-
-      - name: Test command line
-        id: test-command-line
-        run:
-          date
 
       - name: Check Code Style
         if: ${{ runner.os == 'linux' && inputs.enable-code-style-check && !cancelled() && !failure() }}
