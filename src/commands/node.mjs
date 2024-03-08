@@ -25,6 +25,7 @@ import { constants, Templates } from '../core/index.mjs'
 import { BaseCommand } from './base.mjs'
 import * as flags from './flags.mjs'
 import * as prompts from './prompts.mjs'
+import { V1ConfigMap } from '@kubernetes/client-node'
 
 /**
  * Defines the core functionalities of 'node' command
@@ -447,24 +448,44 @@ export class NodeCommand extends BaseCommand {
       },
       {
         title: 'Starting nodes',
-        task: (ctx, task) => {
+        task: async (ctx, task) => {
           const subTasks = []
           for (const nodeId of ctx.config.nodeIds) {
             const podName = ctx.config.podNames[nodeId]
+            // copy application.env file if required
+            if (ctx.config.applicationEnv) {
+              const stagingDir = Templates.renderStagingDir(self.configManager, flags)
+              const applicationEnvFile = path.join(stagingDir, 'application.env')
+              fs.cpSync(ctx.config.applicationEnv, applicationEnvFile)
+              // await self.k8.copyTo(podName, constants.ROOT_CONTAINER, applicationEnvFile, `${constants.HEDERA_HAPI_PATH}`)
+              const configMap = new V1ConfigMap()
+              configMap.data = {}
+              configMap.data.applicationEnv = fs.readFileSync(applicationEnvFile).toString()
+              configMap.metadata = {}
+              configMap.metadata.name = 'network-node-application-env'
+              try {
+                const response = await self.k8.kubeClient.createNamespacedConfigMap(ctx.config.namespace, configMap)
+                // async createNamespacedConfigMap(namespace, body: V1ConfigMap, pretty, dryRun, fieldManager, fieldValidation, options = { headers: {} }) {
+                console.log(response)
+                // response.response.statusCode === 201
+              } catch (e) {
+                console.log(e)
+                // e.statusCode === 409 (already exists, in rerun mode)
+              }
+            }
+
+            // TODO move this into network deploy, handle this in the helm chart instead of in solo
+
             subTasks.push({
               title: `Start node: ${chalk.yellow(nodeId)}`,
               task: async () => {
-                await self.k8.execContainer(podName, constants.ROOT_CONTAINER, ['rm', '-rf', `${constants.HEDERA_HAPI_PATH}/data/logs`])
-
-                // copy application.env file if required
                 if (ctx.config.applicationEnv) {
-                  const stagingDir = Templates.renderStagingDir(self.configManager, flags)
-                  const applicationEnvFile = path.join(stagingDir, 'application.env')
-                  fs.cpSync(ctx.config.applicationEnv, applicationEnvFile)
-                  await self.k8.copyTo(podName, constants.ROOT_CONTAINER, applicationEnvFile, `${constants.HEDERA_HAPI_PATH}`)
-                }
+                  await self.k8.execContainer(podName, constants.ROOT_CONTAINER,
+                    ['rm', '-rf', `${constants.HEDERA_HAPI_PATH}/data/logs`])
 
-                await self.k8.execContainer(podName, constants.ROOT_CONTAINER, ['systemctl', 'restart', 'network-node'])
+                  await self.k8.execContainer(podName, constants.ROOT_CONTAINER,
+                    ['systemctl', 'restart', 'network-node'])
+                }
               }
             })
           }
