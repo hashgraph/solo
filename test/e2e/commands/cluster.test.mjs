@@ -29,13 +29,13 @@ import {
   Helm,
   K8, PackageDownloader, Zippy
 } from '../../../src/core/index.mjs'
-import {DependencyManager, HelmDependencyManager} from '../../../src/core/dependency_managers/index.mjs'
-import {getTestCacheDir, testLogger} from '../../test_util.js'
+import { DependencyManager, HelmDependencyManager } from '../../../src/core/dependency_managers/index.mjs'
+import { getTestCacheDir, testLogger } from '../../test_util.js'
 import path from 'path'
-import {flags} from '../../../src/commands/index.mjs'
-import {sleep} from '../../../src/core/helpers.mjs'
-import {ClusterCommand} from '../../../src/commands/cluster.mjs'
-import {ShellRunner} from "../../../src/core/shell_runner.mjs";
+import { flags } from '../../../src/commands/index.mjs'
+import { sleep } from '../../../src/core/helpers.mjs'
+import { ClusterCommand } from '../../../src/commands/cluster.mjs'
+import { ShellRunner } from "../../../src/core/shell_runner.mjs"
 
 describe('ClusterCommand', () => {
   let clusterCmd
@@ -101,7 +101,6 @@ describe('ClusterCommand', () => {
 
     expect.assertions(1)
     try {
-      //expect output message contains error message
       await expect(clusterCmd.setup(argv)).rejects.toThrowError('Error on cluster setup')
     } catch (e) {
       clusterCmd.logger.showUserError(e)
