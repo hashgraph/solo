@@ -35,7 +35,7 @@ import path from 'path'
 import { flags } from '../../../src/commands/index.mjs'
 import { sleep } from '../../../src/core/helpers.mjs'
 import { ClusterCommand } from '../../../src/commands/cluster.mjs'
-import { ShellRunner } from "../../../src/core/shell_runner.mjs"
+import { ShellRunner } from '../../../src/core/shell_runner.mjs'
 
 describe('ClusterCommand', () => {
   let clusterCmd
