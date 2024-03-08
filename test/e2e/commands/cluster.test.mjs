@@ -96,7 +96,7 @@ describe('ClusterCommand', () => {
     argv[flags.deployMinio.name] = true
     argv[flags.deployCertManager.name] = true
     argv[flags.deployCertManagerCrds.name] = true
-    
+
     configManager.update(argv, true)
 
     expect.assertions(1)
@@ -125,6 +125,7 @@ describe('ClusterCommand', () => {
     }
   }, 60000)
 
+  // helm list would return an empty list if given invalid namespace
   it('solo cluster reset should fail with invalid cluster name', async () => {
     argv[flags.clusterSetupNamespace.name] = 'INVALID'
 
@@ -134,9 +135,10 @@ describe('ClusterCommand', () => {
 
     expect.assertions(1)
     try {
-      await expect(clusterCmd.reset(argv))
+      await expect(clusterCmd.reset(argv)).rejects.toThrowError('Error on cluster reset')
     } catch (e) {
-      expect(e.message.includes('cluster is invalid')).toBeTruthy()
+      clusterCmd.logger.showUserError(e)
+      expect(e).toBeNull()
     }
   }, 60000)
 
