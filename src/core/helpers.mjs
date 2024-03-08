@@ -15,6 +15,8 @@
  *
  */
 import fs from 'fs'
+import os from 'os'
+import path from 'path'
 import { FullstackTestingError } from './errors.mjs'
 import * as paths from 'path'
 import { fileURLToPath } from 'url'
@@ -131,4 +133,7 @@ export function getRootImageRepository (releaseTag) {
   }
 
   return 'hashgraph/full-stack-testing/ubi8-init-java21'
+}
+export function getTmpDir () {
+  return fs.mkdtempSync(path.join(os.tmpdir(), 'solo-'))
 }

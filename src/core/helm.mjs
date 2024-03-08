@@ -14,7 +14,11 @@
  * limitations under the License.
  *
  */
+import { constants } from './index.mjs'
 import { ShellRunner } from './shell_runner.mjs'
+import { Templates } from './templates.mjs'
+
+const helmPath = Templates.installationPath(constants.HELM)
 
 export class Helm extends ShellRunner {
   /**
@@ -24,7 +28,7 @@ export class Helm extends ShellRunner {
      * @returns {string}
      */
   prepareCommand (action, ...args) {
-    let cmd = `helm ${action}`
+    let cmd = `${helmPath} ${action}`
     args.forEach(arg => { cmd += ` ${arg}` })
     return cmd
   }
@@ -83,5 +87,13 @@ export class Helm extends ShellRunner {
      */
   async repo (subCommand, ...args) {
     return this.run(this.prepareCommand('repo', subCommand, ...args))
+  }
+
+  /**
+   * Get helm version
+   * @return {Promise<Array>}
+   */
+  async version (args = ['--short']) {
+    return this.run(this.prepareCommand('version', ...args))
   }
 }

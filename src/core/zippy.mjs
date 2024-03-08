@@ -17,6 +17,7 @@
 import { FullstackTestingError, IllegalArgumentError, MissingArgumentError } from './errors.mjs'
 import fs from 'fs'
 import AdmZip from 'adm-zip'
+import tar from 'tar'
 import chalk from 'chalk'
 import path from 'path'
 
@@ -83,6 +84,46 @@ export class Zippy {
       return destPath
     } catch (e) {
       throw new FullstackTestingError(`failed to unzip ${srcPath}: ${e.message}`, e)
+    }
+  }
+
+  async tar (srcPath, destPath) {
+    if (!srcPath) throw new MissingArgumentError('srcPath is required')
+    if (!destPath) throw new MissingArgumentError('destPath is required')
+    if (!destPath.endsWith('.tar.gz')) throw new MissingArgumentError('destPath must be a path to a tar.gz file')
+
+    if (!fs.existsSync(srcPath)) throw new IllegalArgumentError('srcPath does not exists', srcPath)
+
+    try {
+      tar.c({
+        gzip: true,
+        file: destPath,
+        sync: true
+      }, [srcPath])
+      return destPath
+    } catch (e) {
+      throw new FullstackTestingError(`failed to tar ${srcPath}: ${e.message}`, e)
+    }
+  }
+
+  async untar (srcPath, destPath) {
+    if (!srcPath) throw new MissingArgumentError('srcPath is required')
+    if (!destPath) throw new MissingArgumentError('destPath is required')
+
+    if (!fs.existsSync(srcPath)) throw new IllegalArgumentError('srcPath does not exists', srcPath)
+    if (!fs.existsSync(destPath)) {
+      fs.mkdirSync(destPath)
+    }
+
+    try {
+      tar.x({
+        C: destPath,
+        file: srcPath,
+        sync: true
+      })
+      return destPath
+    } catch (e) {
+      throw new FullstackTestingError(`failed to untar ${srcPath}: ${e.message}`, e)
     }
   }
 }
