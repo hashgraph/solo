@@ -34,9 +34,11 @@ import path from 'path'
 import { flags } from '../../../src/commands/index.mjs'
 import { sleep } from '../../../src/core/helpers.mjs'
 import { ClusterCommand } from '../../../src/commands/cluster.mjs'
+import {NetworkCommand} from "../../../src/commands/network.mjs";
 
 describe('cluster commands should work correctly', () => {
   let clusterCmd
+  let networkCmd
   let configManager
   let k8
   let helm
@@ -58,30 +60,87 @@ describe('cluster commands should work correctly', () => {
       configManager,
       depManager
     })
+    networkCmd = new NetworkCommand({
+      logger: testLogger,
+      helm,
+      k8,
+      chartManager,
+      configManager,
+      depManager
+    })
   })
 
   beforeEach(() => {
     configManager.reset()
     argv = {}
-    argv[flags.cacheDir.name] = getTestCacheDir('clusterCmd')
+    argv[flags.cacheDir.name] = getTestCacheDir('networkCmd')
     argv[flags.namespace.name] = 'solo-network-e2e'
     argv[flags.clusterName.name] = 'kind-solo-e2e'
     argv[flags.clusterSetupNamespace.name] = 'solo-network-e2e-cluster'
-    argv[flags.deployPrometheusStack.name] = true
-    argv[flags.deployMinio.name] = true
-    argv[flags.deployCertManager.name] = true
-    argv[flags.deployCertManagerCrds.name] = true
-    configManager.update(argv, true)
   })
 
   afterEach(() => {
     sleep(5).then().catch() // give a few ticks so that connections can close
   })
 
-  it('cluster setup should succeed', async () => {
+  it('1) cluster setup should succeed', async () => {
+    argv[flags.deployPrometheusStack.name] = true
+    argv[flags.deployMinio.name] = true
+    argv[flags.deployCertManager.name] = true
+    argv[flags.deployCertManagerCrds.name] = true
+    configManager.update(argv, true)
+
     expect.assertions(1)
     try {
       await expect(clusterCmd.setup(argv)).resolves.toBeTruthy()
+    } catch (e) {
+      clusterCmd.logger.showUserError(e)
+      expect(e).toBeNull()
+    }
+  }, 60000)
+
+  it('2) network deploy should succeed', async () => {
+    argv[flags.deployMirrorNode.name] = false
+    argv[flags.deployHederaExplorer.name] = false
+    argv[flags.releaseTag.name] = 'v0.42.5' // flags.releaseTag.definition.defaultValue
+    argv[flags.tlsClusterIssuerType.name] = flags.tlsClusterIssuerType.definition.defaultValue
+    argv[flags.hederaExplorerTlsHostName.name] = flags.hederaExplorerTlsHostName.definition.defaultValue
+    argv[flags.enablePrometheusSvcMonitor.name] = flags.enablePrometheusSvcMonitor.definition.defaultValue
+    argv[flags.enableHederaExplorerTls.name] = flags.enableHederaExplorerTls.definition.defaultValue
+    argv[flags.nodeIDs.name] = 'node0,node1,node2'
+    configManager.update(argv, true)
+
+    expect.assertions(1)
+    try {
+      await expect(networkCmd.deploy(argv)).resolves.toBeTruthy()
+    } catch (e) {
+      networkCmd.logger.showUserError(e)
+      expect(e).toBeNull()
+    }
+  }, 60000)
+
+  it('3) network destroy should succeed', async () => {
+    argv[flags.force.name] = true
+    argv[flags.deletePvcs.name] = true
+    configManager.update(argv, true)
+
+    expect.assertions(1)
+    try {
+      await expect(networkCmd.destroy(argv)).resolves.toBeTruthy()
+    } catch (e) {
+      networkCmd.logger.showUserError(e)
+      expect(e).toBeNull()
+    }
+  }, 60000)
+  
+  it('4) cluster reset should succeed', async () => {
+    argv[flags.force.name] = true
+    argv[flags.deletePvcs.name] = true
+    configManager.update(argv, true)
+
+    expect.assertions(1)
+    try {
+      await expect(clusterCmd.reset(argv)).resolves.toBeTruthy()
     } catch (e) {
       clusterCmd.logger.showUserError(e)
       expect(e).toBeNull()
