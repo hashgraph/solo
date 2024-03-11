@@ -114,7 +114,12 @@ jobs:
 #          cd "C:\ProgramData\chocolatey\lib\docker-cli\bin"
 #          dir
 
-
+      - name: Install Docker Desktop for Windows
+        if: ${{ runner.os == 'Windows' && inputs.enable-e2e-tests && !cancelled() && !failure() }}
+        run: |
+          curl -LO https://desktop.docker.com/win/main/amd64/Docker%20Desktop%20Installer.exe
+          "Docker Desktop Installer.exe" install
+          
       - name: Setup Helm
         uses: azure/setup-helm@29960d0f5f19214b88e1d9ba750a9914ab0f1a2f # v4.0.0
         if: ${{ (inputs.enable-unit-tests || inputs.enable-e2e-tests) && !cancelled() && !failure() }}
