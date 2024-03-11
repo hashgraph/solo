@@ -18,6 +18,8 @@ Below we describe how you can set up local environment and contribute to `solo`.
   * So you may use `tail -f $HOME/.solo/logs/solo.log | jq` in a separate terminal to keep an eye on the logs.
 * Before making a commit run `npm run format`
 
+
+
 ## E2E tests
 
 * In order to run E2E test, we need to set up cluster and install the chart.
