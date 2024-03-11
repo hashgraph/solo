@@ -14,7 +14,7 @@
 # limitations under the License.
 ##
 
-name: GitHub pages
+name: Publish JsDoc
 
 on:
   push:
@@ -25,13 +25,15 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    env:
+      PR_PATH: pull/${{github.event.number}}
     permissions:
       contents: write
     concurrency:
       group: ${{ github.workflow }}-${{ github.ref }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
 
       - name: Build
         uses: andstor/jsdoc-action@v1
@@ -42,9 +44,23 @@ jobs:
           template: minami
           front_page: README.md
 
-      - name: Deploy
+      - name: Deploy if this is the `main` branch
         uses: peaceiris/actions-gh-pages@v3
-        if: github.ref == 'refs/heads/00119-jsdoc-support'
+        if: github.ref == 'refs/heads/main'
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./public
+
+
+      - name: Set base URL for preview if PR
+        if: github.ref != 'refs/heads/main'
+        run: echo "BASE_URL=https://${{ env.DOMAIN }}/${{ github.event.repository.name }}/${{ env.PR_PATH}}/" >> $GITHUB_ENV
+
+      - name: Deploy to PR preview
+        uses: peaceiris/actions-gh-pages@v3
+        if: github.ref != 'refs/heads/main'
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./out
+          destination_dir: ${{ env.PR_PATH }} # TODO you need to set this if you're using a custom domain. Otherwise you can remove it.
+
