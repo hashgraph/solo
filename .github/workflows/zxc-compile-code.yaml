@@ -111,7 +111,7 @@ jobs:
           scoop install kubectl
           scoop install main/minikube
           choco install docker-cli
-          cd "C:\ProgramData\chocolatey\lib\docker-cli\"
+          cd "C:\ProgramData\chocolatey\lib\docker-cli\bin"
           dir
           
 
