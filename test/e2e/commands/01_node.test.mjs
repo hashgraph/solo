@@ -27,6 +27,7 @@ import {
   expect,
   it
 } from '@jest/globals'
+import fs from 'fs'
 import path from 'path'
 import { flags } from '../../../src/commands/index.mjs'
 import { NodeCommand } from '../../../src/commands/node.mjs'
@@ -41,47 +42,75 @@ import {
   constants,
   KeyManager, Zippy
 } from '../../../src/core/index.mjs'
-import { ShellRunner } from '../../../src/core/shell_runner.mjs'
 import { getTestCacheDir, testLogger } from '../../test_util.js'
 import { AccountManager } from '../../../src/core/account_manager.mjs'
 import { sleep } from '../../../src/core/helpers.mjs'
+
+const helm = new Helm(testLogger)
+const chartManager = new ChartManager(helm, testLogger)
+const configManager = new ConfigManager(testLogger, path.join(getTestCacheDir(), 'solo.config'))
+
+// prepare dependency manger registry
+const downloader = new PackageDownloader(testLogger)
+const zippy = new Zippy(testLogger)
+const helmDepManager = new HelmDependencyManager(downloader, zippy, testLogger)
+const depManagerMap = new Map().set(constants.HELM, helmDepManager)
+const depManager = new DependencyManager(testLogger, depManagerMap)
+
+const k8 = new K8(configManager, testLogger)
+const platformInstaller = new PlatformInstaller(testLogger, k8)
+const keyManager = new KeyManager(testLogger)
+const accountManager = new AccountManager(testLogger, k8, constants)
+
+const nodeCmd = new NodeCommand({
+  logger: testLogger,
+  helm,
+  k8,
+  chartManager,
+  configManager,
+  downloader,
+  platformInstaller,
+  depManager,
+  keyManager,
+  accountManager
+})
+
+const cacheDir = getTestCacheDir()
+
+describe.each([
+  { keyFormat: constants.KEY_FORMAT_PFX },
+  { keyFormat: constants.KEY_FORMAT_PEM }
+])('Node Keys', (input, _) => {
+  const argv = {}
+  argv[flags.keyFormat.name] = input.keyFormat
+  argv[flags.nodeIDs.name] = 'node0,node1,node2'
+  argv[flags.cacheDir.name] = cacheDir
+  argv[flags.force.name] = false
+  argv[flags.generateGossipKeys.name] = true
+  argv[flags.generateTlsKeys.name] = true
+  argv[flags.devMode.name] = true
+  configManager.update(argv)
+
+  afterAll(() => {
+    fs.rmSync(path.join(cacheDir, 'keys'), { recursive: true })
+  })
+
+  it(`should be able to generate keys [ keyFormat: ${input.keyFormat}]`, async () => {
+    expect.assertions(1)
+    try {
+      await expect(nodeCmd.keys(argv)).resolves.toBeTruthy()
+    } catch (e) {
+      nodeCmd.logger.showUserError(e)
+      expect(e).toBeNull()
+    }
+  }, 120000)
+})
 
 describe.each([
   ['v0.42.5', constants.KEY_FORMAT_PFX]
   // ['v0.47.0-alpha.0', constants.KEY_FORMAT_PFX],
   // ['v0.47.0-alpha.0', constants.KEY_FORMAT_PEM]
 ])('NodeCommand', (testRelease, testKeyFormat) => {
-  const helm = new Helm(testLogger)
-  const chartManager = new ChartManager(helm, testLogger)
-  const configManager = new ConfigManager(testLogger, path.join(getTestCacheDir(), 'solo.config'))
-
-  // prepare dependency manger registry
-  const downloader = new PackageDownloader(testLogger)
-  const zippy = new Zippy(testLogger)
-  const helmDepManager = new HelmDependencyManager(downloader, zippy, testLogger)
-  const depManagerMap = new Map().set(constants.HELM, helmDepManager)
-  const depManager = new DependencyManager(testLogger, depManagerMap)
-
-  const k8 = new K8(configManager, testLogger)
-  const platformInstaller = new PlatformInstaller(testLogger, k8)
-  const keyManager = new KeyManager(testLogger)
-  const accountManager = new AccountManager(testLogger, k8, constants)
-
-  const nodeCmd = new NodeCommand({
-    logger: testLogger,
-    helm,
-    k8,
-    chartManager,
-    configManager,
-    downloader,
-    platformInstaller,
-    depManager,
-    keyManager,
-    accountManager
-  })
-
-  const cacheDir = getTestCacheDir()
-
   describe(`node start should succeed [release ${testRelease}, keyFormat: ${testKeyFormat}]`, () => {
     const argv = {}
     argv[flags.releaseTag.name] = testRelease
@@ -113,8 +142,7 @@ describe.each([
 
     it('should pre-generate keys', async () => {
       if (argv[flags.keyFormat.name] === constants.KEY_FORMAT_PFX) {
-        const shellRunner = new ShellRunner(testLogger)
-        await shellRunner.run(`resources/scripts/gen-legacy-keys.sh ${nodeIds.join(',')} ${path.join(cacheDir, 'keys')}`)
+        await nodeCmd.run(`resources/scripts/gen-legacy-keys.sh ${nodeIds.join(',')} ${path.join(cacheDir, 'keys')}`)
       }
     }, 60000)
 
