@@ -80,7 +80,7 @@ export class KeytoolDependencyManager extends ShellRunner {
   }
 
   isInstalled () {
-    return fs.existsSync(this.keytoolPath) && fs.existsSync(this.keytoolPath)
+    return fs.existsSync(this.keytoolPath)
   }
 
   /**
@@ -88,11 +88,9 @@ export class KeytoolDependencyManager extends ShellRunner {
    * @return {Promise<void>}
    */
   async uninstall () {
-    [this.keytoolPath, this.keytoolPath].forEach(p => {
-      if (fs.existsSync(p)) {
-        fs.rmSync(p)
-      }
-    })
+    if (fs.existsSync(this.installationDir)) {
+      fs.rmSync(this.installationDir, {recursive: true})
+    }
   }
 
   async install (tmpDir = helpers.getTmpDir()) {
