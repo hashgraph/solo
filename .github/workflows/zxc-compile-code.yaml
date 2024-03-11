@@ -166,13 +166,17 @@ jobs:
           docker images
           docker context ls
           which docker
+          cd /c/Windows/system32/
+          ls -ltr docker*
 
       - name: Switch to Linux mode
         if: ${{ runner.os == 'Windows' && inputs.enable-e2e-tests && !cancelled() && !failure() }}
-        shell: pwsh
         run: |
-          cd "C:\Program Files\Docker\Docker"
-          DockerCli.exe -SwitchDaemon
+          cd /c/Windows/system32/
+          dockercli.exe -SwitchDaemon
+#          cd "C:\Program Files\Docker\Docker"
+#          DockerCli.exe -SwitchDaemon
+
 
       - name: Setup E2E Tests
         if: ${{ inputs.enable-e2e-tests && !cancelled() && !failure() }}
