@@ -413,6 +413,15 @@ export class NodeCommand extends BaseCommand {
             rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
           })
         }
+      },
+      {
+        title: 'Finalize',
+        task: (ctx, _) => {
+          // reset flags so that keys are not regenerated later
+          self.configManager.setFlag(flags.generateGossipKeys, false)
+          self.configManager.setFlag(flags.generateTlsKeys, false)
+          self.configManager.persist()
+        }
       }
     ], {
       concurrent: false,
@@ -859,6 +868,15 @@ export class NodeCommand extends BaseCommand {
           }
         },
         skip: (ctx, _) => !ctx.config.generateTlsKeys
+      },
+      {
+        title: 'Finalize',
+        task: (ctx, _) => {
+          // reset flags so that keys are not regenerated later
+          self.configManager.setFlag(flags.generateGossipKeys, false)
+          self.configManager.setFlag(flags.generateTlsKeys, false)
+          self.configManager.persist()
+        }
       }
     ])
 
@@ -901,7 +919,7 @@ export class NodeCommand extends BaseCommand {
               flags.log4j2Xml
             ),
             handler: argv => {
-              nodeCmd.logger.debug("==== Running 'node setup' ===")
+              nodeCmd.logger.debug('==== Running \'node setup\' ===')
               nodeCmd.logger.debug(argv)
 
               nodeCmd.setup(argv).then(r => {
@@ -923,7 +941,7 @@ export class NodeCommand extends BaseCommand {
               flags.applicationEnv
             ),
             handler: argv => {
-              nodeCmd.logger.debug("==== Running 'node start' ===")
+              nodeCmd.logger.debug('==== Running \'node start\' ===')
               nodeCmd.logger.debug(argv)
 
               nodeCmd.start(argv).then(r => {
@@ -943,7 +961,7 @@ export class NodeCommand extends BaseCommand {
               flags.nodeIDs
             ),
             handler: argv => {
-              nodeCmd.logger.debug("==== Running 'node stop' ===")
+              nodeCmd.logger.debug('==== Running \'node stop\' ===')
               nodeCmd.logger.debug(argv)
 
               nodeCmd.stop(argv).then(r => {
@@ -966,7 +984,7 @@ export class NodeCommand extends BaseCommand {
               flags.keyFormat
             ),
             handler: argv => {
-              nodeCmd.logger.debug("==== Running 'node keys' ===")
+              nodeCmd.logger.debug('==== Running \'node keys\' ===')
               nodeCmd.logger.debug(argv)
 
               nodeCmd.keys(argv).then(r => {

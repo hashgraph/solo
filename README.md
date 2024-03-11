@@ -120,31 +120,6 @@ You may now view pods in your cluster using `k9s -A` as below:
 │
 ```
 
-## Generate Node Keys
-
-### Legacy keys (.pfx file)
-
-All Hedera platform versions support the legacy `.pfx` formatted key files.
-
-Unfortunately `solo` is not able to generate legacy `PFX` formatted keys. However, if `curl`, `keytool` and `openssl`
-are installed, you may run the following command to generate the pfx formatted gossip keys in the default
-cache directory (`$HOME/.solo/cache/keys`):
-
-```
-# Option - 1: Generate keys for default node IDs: node0,node1,node2
-/bin/bash -c "$(curl -fsSL  https://raw.githubusercontent.com/hashgraph/solo/main/test/scripts/gen-legacy-keys.sh)"
-
-# Option - 2: Generate keys for custom node IDs
-curl https://raw.githubusercontent.com/hashgraph/solo/main/test/scripts/gen-legacy-keys.sh -o gen-legacy-keys.sh
-chmod +x gen-legacy-keys.sh
-./gen-legacy-keys.sh alice,bob,carol
-```
-
-### Standard keys (.pem file)
-
-These keys are supported by Hedera platform >=`0.47.0-alpha.0`.
-You may run `solo node keys --gossip-keys --tls-keys --key-format pem -i node0,node1,node2` command to generate the required node keys.
-
 ## Examples
 
 ### Example - 1: Deploy a standalone test network (version `0.42.5`)
@@ -152,7 +127,7 @@ You may run `solo node keys --gossip-keys --tls-keys --key-format pem -i node0,n
 * Initialize `solo` with tag `v0.42.5` and list of node names `node0,node1,node2`:
 
 ```
-$ solo init -t v0.42.5 -i node0,node1,node2 -n "${SOLO_NAMESPACE}" -s "${SOLO_CLUSTER_SETUP_NAMESPACE}" 
+$ solo init -t v0.42.5 -i node0,node1,node2 -n "${SOLO_NAMESPACE}" -s "${SOLO_CLUSTER_SETUP_NAMESPACE}" --key-format pfx 
 
 ******************************* Solo *********************************************
 Version                 : 0.19.1
@@ -167,19 +142,25 @@ Kubernetes Namespace    : solo
 ✔ Setup chart manager [1s]
 ```
 
-* Generate `pfx` node keys (You will need `curl`, `keytool` and `openssl`)
+* Generate `pfx` formatted node keys
+
+We need to generate `pfx` keys as `pem` key files are only supported by Hedera platform >=`0.47.0-alpha.0`.
 
 ```
-curl https://raw.githubusercontent.com/hashgraph/solo/main/test/scripts/gen-legacy-keys.sh -o gen-legacy-keys.sh
-chmod +x gen-legacy-keys.sh
-./gen-legacy-keys.sh node0,node1,node2
+$ solo node keys --gossip-keys --tls-keys --key-format pfx 
 
-# view the list of generated keys in the cache folder
+******************************* Solo *********************************************
+Version                 : 0.19.1
+Kubernetes Context      : kind-solo
+Kubernetes Cluster      : kind-solo
+Kubernetes Namespace    : solo
+**********************************************************************************
+✔ Initialize
+✔ Generate gossip keys
+✔ Generate gRPC TLS keys
 
-ls ~/.solo/cache/keys                                                                    
-hedera-node0.crt  hedera-node1.crt  hedera-node2.crt  private-node0.pfx private-node2.pfx
-hedera-node0.key  hedera-node1.key  hedera-node2.key  private-node1.pfx public.pfx
-
+$ ls ~/.solo/cache/keys  
+hedera-node0.crt  hedera-node0.key  hedera-node1.crt  hedera-node1.key  hedera-node2.crt  hedera-node2.key  private-node0.pfx private-node1.pfx private-node2.pfx public.pfx
 ```
 
 * Setup cluster with shared components
