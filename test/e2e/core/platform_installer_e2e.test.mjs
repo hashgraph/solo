@@ -118,7 +118,7 @@ describe('PackageInstallerE2E', () => {
       const shellRunner = new ShellRunner(testLogger)
       await shellRunner.run(`resources/scripts/gen-legacy-keys.sh node0,node1,node2 ${keysDir}`)
 
-      await installer.resetHapiDirectories(podName)
+      await k8.execContainer(podName, constants.ROOT_CONTAINER, ['bash', '-c', `rm -f ${constants.HEDERA_HAPI_PATH}/data/keys/*`])
       const fileList = await installer.copyGossipKeys(podName, tmpDir, ['node0', 'node1', 'node2'], constants.KEY_FORMAT_PFX)
 
       const destDir = `${constants.HEDERA_HAPI_PATH}/data/keys`
@@ -136,9 +136,9 @@ describe('PackageInstallerE2E', () => {
       const tmpDir = getTmpDir()
       const keysDir = path.join(tmpDir, 'keys')
       const shellRunner = new ShellRunner(testLogger)
-      await shellRunner.run(`resources/scripts/gen-standard-keys.sh node0,node1 ${keysDir}`)
+      await shellRunner.run(`test/scripts/gen-openssl-keys.sh node0,node1 ${keysDir}`)
 
-      await installer.resetHapiDirectories(podName)
+      await k8.execContainer(podName, constants.ROOT_CONTAINER, ['bash', '-c', `rm -f ${constants.HEDERA_HAPI_PATH}/data/keys/*`])
       const fileList = await installer.copyGossipKeys(podName, tmpDir, ['node0', 'node1'], constants.KEY_FORMAT_PEM)
 
       const destDir = `${constants.HEDERA_HAPI_PATH}/data/keys`
@@ -168,8 +168,7 @@ describe('PackageInstallerE2E', () => {
       fs.writeFileSync(path.join(keysDir, `hedera-${nodeId}.key`), '')
       fs.writeFileSync(path.join(keysDir, `hedera-${nodeId}.crt`), '')
 
-      await installer.resetHapiDirectories(podName)
-
+      await k8.execContainer(podName, constants.ROOT_CONTAINER, ['bash', '-c', `rm -f ${constants.HEDERA_HAPI_PATH}/hedera.*`])
       const fileList = await installer.copyTLSKeys(podName, tmpDir)
 
       expect(fileList.length).toBe(2) // [data , hedera.crt, hedera.key]
@@ -184,7 +183,9 @@ describe('PackageInstallerE2E', () => {
   describe('copyPlatformConfigFiles', () => {
     it('should succeed to copy platform config files for node0', async () => {
       const podName = 'network-node0-0'
-      await installer.resetHapiDirectories(podName)
+      await k8.execContainer(podName, constants.ROOT_CONTAINER, ['bash', '-c', `rm -f ${constants.HEDERA_HAPI_PATH}/*.txt`])
+      await k8.execContainer(podName, constants.ROOT_CONTAINER, ['bash', '-c', `rm -f ${constants.HEDERA_HAPI_PATH}/*.xml`])
+      await k8.execContainer(podName, constants.ROOT_CONTAINER, ['bash', '-c', `rm -f ${constants.HEDERA_HAPI_PATH}/data/config/*.properties`])
 
       const tmpDir = getTmpDir()
       const nodeIDs = ['node0']
