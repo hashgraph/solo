@@ -75,7 +75,8 @@ export class NodeCommand extends BaseCommand {
           logFileAccessible = true
           break
         }
-      } catch (e) {} // ignore errors
+      } catch (e) {
+      } // ignore errors
 
       await sleep(1000)
     }
@@ -89,7 +90,7 @@ export class NodeCommand extends BaseCommand {
       try {
         const output = await this.k8.execContainer(podName, constants.ROOT_CONTAINER, ['tail', '-10', logfilePath])
         if (output && output.indexOf('Terminating Netty') < 0 && // make sure we are not at the beginning of a restart
-            output.indexOf(`Now current platform status = ${status}`) > 0) {
+          output.indexOf(`Now current platform status = ${status}`) > 0) {
           this.logger.debug(`Node ${nodeId} is ${status} [ attempt: ${attempt}/${maxAttempt}]`)
           isActive = true
           break
@@ -146,6 +147,53 @@ export class NodeCommand extends BaseCommand {
     })
   }
 
+  async _genNodeKeys (keyFormat, nodeIds, keysDir, devMode = false) {
+    const nodeKeyFiles = new Map()
+    switch (keyFormat) {
+      case constants.KEY_FORMAT_PFX:
+        await this.run(`${constants.RESOURCES_DIR}/scripts/gen-legacy-keys.sh ${nodeIds.join(',')} ${keysDir}`)
+        break
+      case constants.KEY_FORMAT_PEM:
+        for (const nodeId of nodeIds) {
+          const signingKey = await this.keyManager.generateSigningKey(nodeId)
+          const signingKeyFiles = await this.keyManager.storeSigningKey(nodeId, signingKey, keysDir)
+          this.logger.debug(`generated Gossip signing keys for node ${nodeId}`, { keyFiles: signingKeyFiles })
+
+          const agreementKey = await this.keyManager.generateAgreementKey(nodeId, signingKey)
+          const agreementKeyFiles = await this.keyManager.storeAgreementKey(nodeId, agreementKey, keysDir)
+          this.logger.debug(`generated Gossip agreement keys for node ${nodeId}`, { keyFiles: agreementKeyFiles })
+
+          nodeKeyFiles.set(nodeId, {
+            signingKey,
+            agreementKey,
+            signingKeyFiles,
+            agreementKeyFiles
+          })
+        }
+
+        if (devMode) {
+          this.logger.showUser(chalk.green('*** Generated Node Gossip Keys ***'))
+          for (const entry of nodeKeyFiles.entries()) {
+            const nodeId = entry[0]
+            const fileList = entry[1]
+            this.logger.showUser(chalk.cyan('---------------------------------------------------------------------------------------------'))
+            this.logger.showUser(chalk.cyan(`Node ID: ${nodeId}`))
+            this.logger.showUser(chalk.cyan('==========================='))
+            this.logger.showUser(chalk.green('Signing key\t\t:'), chalk.yellow(fileList.signingKeyFiles.privateKeyFile))
+            this.logger.showUser(chalk.green('Signing certificate\t:'), chalk.yellow(fileList.signingKeyFiles.certificateFile))
+            this.logger.showUser(chalk.green('Agreement key\t\t:'), chalk.yellow(fileList.agreementKeyFiles.privateKeyFile))
+            this.logger.showUser(chalk.green('Agreement certificate\t:'), chalk.yellow(fileList.agreementKeyFiles.certificateFile))
+            this.logger.showUser(chalk.blue('Inspect certificate\t: '), chalk.yellow(`openssl storeutl -noout -text -certs ${fileList.agreementKeyFiles.certificateFile}`))
+            this.logger.showUser(chalk.blue('Verify certificate\t: '), chalk.yellow(`openssl verify -CAfile ${fileList.signingKeyFiles.certificateFile} ${fileList.agreementKeyFiles.certificateFile}`))
+          }
+          this.logger.showUser(chalk.cyan('---------------------------------------------------------------------------------------------'))
+        }
+        break
+      default:
+        throw new FullstackTestingError(`unsupported key-format: ${keyFormat}`)
+    }
+  }
+
   async _copyNodeKeys (nodeKey, destDir) {
     for (const keyFile of [nodeKey.privateKeyFile, nodeKey.certificateFile]) {
       if (!fs.existsSync(keyFile)) {
@@ -195,12 +243,6 @@ export class NodeCommand extends BaseCommand {
           config.stagingDir = Templates.renderStagingDir(self.configManager, flags)
           config.stagingKeysDir = path.join(config.stagingDir, 'keys')
 
-          if (config.keyFormat === constants.KEY_FORMAT_PFX && config.generateGossipKeys) {
-            throw new FullstackTestingError('Unable to generate PFX gossip keys.\n' +
-              `Please ensure you have pre-generated (*.pfx) key files in keys directory: ${config.keysDir}\n`
-            )
-          }
-
           if (!await this.k8.hasNamespace(config.namespace)) {
             throw new FullstackTestingError(`namespace ${config.namespace} does not exist`)
           }
@@ -229,19 +271,7 @@ export class NodeCommand extends BaseCommand {
         title: 'Generate Gossip keys',
         task: async (ctx, _) => {
           const config = ctx.config
-
-          // generate gossip keys if required
-          if (config.generateGossipKeys) {
-            for (const nodeId of ctx.config.nodeIds) {
-              const signingKey = await self.keyManager.generateSigningKey(nodeId)
-              const signingKeyFiles = await self.keyManager.storeSigningKey(nodeId, signingKey, config.keysDir)
-              self.logger.debug(`generated Gossip signing keys for node ${nodeId}`, { keyFiles: signingKeyFiles })
-
-              const agreementKey = await self.keyManager.generateAgreementKey(nodeId, signingKey)
-              const agreementKeyFiles = await self.keyManager.storeAgreementKey(nodeId, agreementKey, config.keysDir)
-              self.logger.debug(`generated Gossip agreement keys for node ${nodeId}`, { keyFiles: agreementKeyFiles })
-            }
-          }
+          await self._genNodeKeys(config.keyFormat, config.nodeIds, config.keysDir)
         },
         skip: (ctx, _) => !ctx.config.generateGossipKeys
       },
@@ -589,8 +619,8 @@ export class NodeCommand extends BaseCommand {
                   for (const currentSet of ctx.accountsBatchedSet) {
                     subTasks.push({
                       title: `Updating set ${chalk.yellow(
-                          setIndex)} of ${chalk.yellow(
-                          ctx.accountsBatchedSet.length)}`,
+                        setIndex)} of ${chalk.yellow(
+                        ctx.accountsBatchedSet.length)}`,
                       task: async (ctx) => {
                         ctx.resultTracker = await self.accountManager.updateSpecialAccountsKeys(
                           ctx.config.namespace, currentSet,
@@ -784,51 +814,15 @@ export class NodeCommand extends BaseCommand {
             fs.mkdirSync(config.keysDir)
           }
 
-          if (config.keyFormat === constants.KEY_FORMAT_PFX && config.generateGossipKeys) {
-            throw new FullstackTestingError('Unable to generate PFX gossip keys.\n' +
-              `Please ensure you have pre-generated (*.pfx) key files in keys directory: ${config.keysDir}\n`
-            )
-          }
-
           ctx.config = config
         }
       },
       {
         title: 'Generate gossip keys',
         task: async (ctx, task) => {
-          const keysDir = ctx.config.keysDir
-          const nodeKeyFiles = new Map()
+          const config = ctx.config
           if (ctx.config.generateGossipKeys) {
-            for (const nodeId of ctx.config.nodeIds) {
-              const signingKey = await self.keyManager.generateSigningKey(nodeId)
-              const signingKeyFiles = await self.keyManager.storeSigningKey(nodeId, signingKey, keysDir)
-              const agreementKey = await self.keyManager.generateAgreementKey(nodeId, signingKey)
-              const agreementKeyFiles = await self.keyManager.storeAgreementKey(nodeId, agreementKey, keysDir)
-              nodeKeyFiles.set(nodeId, {
-                signingKey,
-                agreementKey,
-                signingKeyFiles,
-                agreementKeyFiles
-              })
-            }
-
-            if (argv.dev) {
-              self.logger.showUser(chalk.green('*** Generated Node Gossip Keys ***'))
-              for (const entry of nodeKeyFiles.entries()) {
-                const nodeId = entry[0]
-                const fileList = entry[1]
-                self.logger.showUser(chalk.cyan('---------------------------------------------------------------------------------------------'))
-                self.logger.showUser(chalk.cyan(`Node ID: ${nodeId}`))
-                self.logger.showUser(chalk.cyan('==========================='))
-                self.logger.showUser(chalk.green('Signing key\t\t:'), chalk.yellow(fileList.signingKeyFiles.privateKeyFile))
-                self.logger.showUser(chalk.green('Signing certificate\t:'), chalk.yellow(fileList.signingKeyFiles.certificateFile))
-                self.logger.showUser(chalk.green('Agreement key\t\t:'), chalk.yellow(fileList.agreementKeyFiles.privateKeyFile))
-                self.logger.showUser(chalk.green('Agreement certificate\t:'), chalk.yellow(fileList.agreementKeyFiles.certificateFile))
-                self.logger.showUser(chalk.blue('Inspect certificate\t: '), chalk.yellow(`openssl storeutl -noout -text -certs ${fileList.agreementKeyFiles.certificateFile}`))
-                self.logger.showUser(chalk.blue('Verify certificate\t: '), chalk.yellow(`openssl verify -CAfile ${fileList.signingKeyFiles.certificateFile} ${fileList.agreementKeyFiles.certificateFile}`))
-              }
-              self.logger.showUser(chalk.cyan('---------------------------------------------------------------------------------------------'))
-            }
+            await self._genNodeKeys(config.keyFormat, config.nodeIds, config.keysDir, config.devMode)
           }
         },
         skip: (ctx, _) => !ctx.config.generateGossipKeys

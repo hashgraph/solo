@@ -35,39 +35,6 @@ export class PlatformInstaller {
     this.k8 = k8
   }
 
-  /**
-   * Setup directories
-   * @param podName
-   * @param containerName
-   * @return {Promise<boolean>}
-   */
-  async resetHapiDirectories (podName, containerName = constants.ROOT_CONTAINER) {
-    if (!podName) throw new MissingArgumentError('podName is required')
-
-    try {
-      // reset data directory
-      // Note: we cannot delete the data/stats and data/saved as those are volume mounted
-      const resetPaths = [
-        `${constants.HEDERA_HAPI_PATH}/data/apps`,
-        `${constants.HEDERA_HAPI_PATH}/data/config`,
-        `${constants.HEDERA_HAPI_PATH}/data/keys`,
-        `${constants.HEDERA_HAPI_PATH}/data/lib`,
-        `${constants.HEDERA_HAPI_PATH}/data/upgrade`
-      ]
-
-      for (const p of resetPaths) {
-        await this.k8.execContainer(podName, containerName, `rm -rf ${p}`)
-        await this.k8.execContainer(podName, containerName, `mkdir -p ${p}`)
-      }
-
-      await this.setPathPermission(podName, constants.HEDERA_SERVICES_PATH)
-
-      return true
-    } catch (e) {
-      throw new FullstackTestingError(`failed to setup directories in pod '${podName}': ${e.message}`, e)
-    }
-  }
-
   async validatePlatformReleaseDir (releaseDir) {
     if (!releaseDir) throw new MissingArgumentError('releaseDir is required')
     if (!fs.existsSync(releaseDir)) {

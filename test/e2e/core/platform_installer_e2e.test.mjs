@@ -44,18 +44,6 @@ describe('PackageInstallerE2E', () => {
     configManager.load()
   })
 
-  describe('resetHapiDirectories', () => {
-    it('should succeed with valid pod', async () => {
-      expect.assertions(1)
-      try {
-        await expect(installer.resetHapiDirectories(podName)).resolves.toBeTruthy()
-      } catch (e) {
-        console.error(e)
-        expect(e).toBeNull()
-      }
-    })
-  })
-
   describe('fetchPlatform', () => {
     it('should fail with invalid pod', async () => {
       expect.assertions(2)
@@ -128,7 +116,7 @@ describe('PackageInstallerE2E', () => {
       const tmpDir = getTmpDir()
       const keysDir = path.join(tmpDir, 'keys')
       const shellRunner = new ShellRunner(testLogger)
-      await shellRunner.run(`test/scripts/gen-legacy-keys.sh node0,node1,node2 ${keysDir}`)
+      await shellRunner.run(`resources/scripts/gen-legacy-keys.sh node0,node1,node2 ${keysDir}`)
 
       await installer.resetHapiDirectories(podName)
       const fileList = await installer.copyGossipKeys(podName, tmpDir, ['node0', 'node1', 'node2'], constants.KEY_FORMAT_PFX)
@@ -148,7 +136,7 @@ describe('PackageInstallerE2E', () => {
       const tmpDir = getTmpDir()
       const keysDir = path.join(tmpDir, 'keys')
       const shellRunner = new ShellRunner(testLogger)
-      await shellRunner.run(`test/scripts/gen-standard-keys.sh node0,node1 ${keysDir}`)
+      await shellRunner.run(`resources/scripts/gen-standard-keys.sh node0,node1 ${keysDir}`)
 
       await installer.resetHapiDirectories(podName)
       const fileList = await installer.copyGossipKeys(podName, tmpDir, ['node0', 'node1'], constants.KEY_FORMAT_PEM)
