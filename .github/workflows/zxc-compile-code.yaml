@@ -167,10 +167,9 @@ jobs:
 
       - name: Switch to Linux mode
         if: ${{ runner.os == 'Windows' && inputs.enable-e2e-tests && !cancelled() && !failure() }}
+        shell: pwsh
         run: |
-          cd "C:\ProgramData\chocolatey\lib\docker-cli\"
-          ls -ltr
-          DockerCli.exe -SwitchLinuxEngine
+          $Env:ProgramFiles\Docker\Docker\DockerCli.exe -SwitchLinuxEngine
 
       - name: Setup E2E Tests
         if: ${{ inputs.enable-e2e-tests && !cancelled() && !failure() }}
