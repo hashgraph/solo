@@ -72,7 +72,8 @@ export class InitCommand extends BaseCommand {
         title: 'Check dependencies',
         task: async (_, task) => {
           const deps = [
-            core.constants.HELM
+            core.constants.HELM,
+            core.constants.KEYTOOL
           ]
 
           const subTasks = self.depManager.taskCheckDependencies(deps)

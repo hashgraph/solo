@@ -153,6 +153,12 @@ export class Templates {
         }
 
         return path.join(installationDir, dep)
+      case constants.KEYTOOL:
+        if (osPlatform === constants.OS_WINDOWS) {
+          return path.join(installationDir, 'bin', `${dep}.exe`)
+        }
+
+        return path.join(installationDir, 'bin', dep)
 
       default:
         throw new FullstackTestingError(`unknown dep: ${dep}`)

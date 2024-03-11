@@ -18,7 +18,14 @@ import * as crypto from 'crypto'
 import * as fs from 'fs'
 import { pipeline as streamPipeline } from 'node:stream/promises'
 import got from 'got'
-import { DataValidationError, FullstackTestingError, IllegalArgumentError, ResourceNotFoundError } from './errors.mjs'
+import path from 'path'
+import {
+  DataValidationError,
+  FullstackTestingError,
+  IllegalArgumentError,
+  MissingArgumentError,
+  ResourceNotFoundError
+} from './errors.mjs'
 import * as https from 'https'
 import { Templates } from './templates.mjs'
 import { constants } from './index.mjs'
@@ -64,7 +71,7 @@ export class PackageDownloader {
 
           })
 
-          if (statusCode === 200) {
+          if ([200, 302].includes(statusCode)) {
             resolve(true)
             return
           }
@@ -110,13 +117,13 @@ export class PackageDownloader {
 
     try {
       await streamPipeline(
-        got.stream(url),
+        got.stream(url, { followRedirect: true }),
         fs.createWriteStream(destPath)
       )
 
       return destPath
     } catch (e) {
-      throw new ResourceNotFoundError(e.message, url, e)
+      throw new FullstackTestingError(`Error fetching file ${url}: ${e.message}`, e)
     }
   }
 
@@ -143,6 +150,10 @@ export class PackageDownloader {
           self.logger.debug(`Computed checksum '${d}' for '${filePath}' using algo '${algo}'`)
           resolve(d)
         })
+
+        s.on('error', (e) => {
+          reject(e)
+        })
       } catch (e) {
         reject(new FullstackTestingError('failed to compute checksum', e, { filePath, algo }))
       }
@@ -159,13 +170,60 @@ export class PackageDownloader {
    * @param algo hash algorithm to be used to compute checksum
    * @throws DataValidationError if the checksum doesn't match
    */
-  async verifyChecksum (sourceFile, checksum, algo = 'sha384') {
+  async verifyChecksum (sourceFile, checksum, algo = 'sha256') {
     const computed = await this.computeFileHash(sourceFile, algo)
     if (checksum !== computed) throw new DataValidationError('checksum', checksum, computed)
   }
 
   /**
-   * Fetch platform release artifact
+   * Fetch a remote package
+   * @param packageURL package URL
+   * @param checksumURL package checksum URL
+   * @param destDir a directory where the files should be downloaded to
+   * @param algo checksum algo
+   * @param force force download even if the file exists in the destDir
+   * @return {Promise<string>}
+   */
+  async fetchPackage (packageURL, checksumURL, destDir, algo = 'sha256', force = false) {
+    if (!packageURL) throw new Error('package URL is required')
+    if (!checksumURL) throw new Error('checksum URL is required')
+    if (!destDir) throw new Error('destination directory path is required')
+
+    this.logger.debug(`Downloading package: ${packageURL}, checksum: ${checksumURL}`)
+    if (!fs.existsSync(destDir)) {
+      fs.mkdirSync(destDir, { recursive: true })
+    }
+
+    const packageFile = `${destDir}/${path.basename(packageURL)}`
+    const checksumFile = `${destDir}/${path.basename(checksumURL)}`
+
+    try {
+      if (fs.existsSync(packageFile) && !force) {
+        return packageFile
+      }
+
+      await this.fetchFile(checksumURL, checksumFile)
+      const checksumData = fs.readFileSync(checksumFile).toString()
+      if (!checksumData) throw new FullstackTestingError(`unable to read checksum file: ${checksumFile}`)
+      const checksum = checksumData.split(' ')[0]
+      await this.fetchFile(packageURL, packageFile)
+      await this.verifyChecksum(packageFile, checksum, algo)
+      return packageFile
+    } catch (e) {
+      if (fs.existsSync(checksumFile)) {
+        fs.rmSync(checksumFile)
+      }
+
+      if (fs.existsSync(packageFile)) {
+        fs.rmSync(packageFile)
+      }
+
+      throw new FullstackTestingError(e.message, e)
+    }
+  }
+
+  /**
+   * Fetch Hedera platform release artifact
    *
    * It fetches the build.zip file containing the release from a URL like: https://builds.hedera.com/node/software/v0.40/build-v0.40.4.zip
    *
@@ -174,43 +232,16 @@ export class PackageDownloader {
    * @param force whether to download even if the file exists
    * @returns {Promise<string>} full path to the downloaded file
    */
+
   async fetchPlatform (tag, destDir, force = false) {
-    const self = this
+    if (!tag) throw new MissingArgumentError('tag is required')
+    if (!destDir) throw new MissingArgumentError('destination directory path is required')
+
     const releaseDir = Templates.prepareReleasePrefix(tag)
-
-    if (!destDir) throw new Error('destination directory path is required')
-
-    if (!fs.existsSync(destDir)) {
-      throw new IllegalArgumentError(`destDir (${destDir}) does not exist`, destDir)
-    } else if (!fs.statSync(destDir).isDirectory()) {
-      throw new IllegalArgumentError(`destDir (${destDir}) is not a directory`, destDir)
-    }
-
     const downloadDir = `${destDir}/${releaseDir}`
     const packageURL = `${constants.HEDERA_BUILDS_URL}/node/software/${releaseDir}/build-${tag}.zip`
-    const packageFile = `${downloadDir}/build-${tag}.zip`
     const checksumURL = `${constants.HEDERA_BUILDS_URL}/node/software/${releaseDir}/build-${tag}.sha384`
-    const checksumPath = `${downloadDir}/build-${tag}.sha384`
-    this.logger.debug(`Package URL: ${packageURL}`)
 
-    try {
-      if (fs.existsSync(packageFile) && !force) {
-        return packageFile
-      }
-
-      if (!fs.existsSync(downloadDir)) {
-        fs.mkdirSync(downloadDir, { recursive: true })
-      }
-
-      await this.fetchFile(packageURL, packageFile)
-      await this.fetchFile(checksumURL, checksumPath)
-
-      const checksum = fs.readFileSync(checksumPath).toString().split(' ')[0]
-      await this.verifyChecksum(packageFile, checksum)
-      return packageFile
-    } catch (e) {
-      self.logger.error(e)
-      throw new FullstackTestingError(e.message, e, { tag, destDir })
-    }
+    return this.fetchPackage(packageURL, checksumURL, downloadDir, 'sha384', force)
   }
 }

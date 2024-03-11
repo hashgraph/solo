@@ -29,6 +29,7 @@ export const SOLO_LOGS_DIR = `${SOLO_HOME_DIR}/logs`
 export const SOLO_CACHE_DIR = `${SOLO_HOME_DIR}/cache`
 export const DEFAULT_NAMESPACE = 'default'
 export const HELM = 'helm'
+export const KEYTOOL = 'keytool'
 export const CWD = process.cwd()
 export const SOLO_CONFIG_FILE = `${SOLO_HOME_DIR}/solo.config`
 export const RESOURCES_DIR = normalize(CUR_FILE_DIR + '/../../resources')
@@ -115,5 +116,7 @@ export const SIGNING_KEY_PREFIX = 's'
 export const AGREEMENT_KEY_PREFIX = 'a'
 
 export const OS_WINDOWS = 'windows'
+export const OS_WIN32 = 'win32'
 export const OS_DARWIN = 'darwin'
+export const OS_MAC = 'mac'
 export const OS_LINUX = 'linux'

@@ -63,6 +63,7 @@ export class HelmDependencyManager extends ShellRunner {
     const fileExt = HELM_ARTIFACT_EXT.get(this.osPlatform)
     this.artifactName = util.format(HELM_ARTIFACT_TEMPLATE, this.helmVersion, this.osPlatform, this.osArch, fileExt)
     this.helmURL = `${HELM_RELEASE_BASE_URL}/${this.artifactName}`
+    this.checksumURL = `${HELM_RELEASE_BASE_URL}/${this.artifactName}.sha256sum`
   }
 
   getHelmPath () {
@@ -83,19 +84,17 @@ export class HelmDependencyManager extends ShellRunner {
     }
   }
 
-  async install () {
-    const tmpDir = helpers.getTmpDir()
-    const extractedDir = path.join(tmpDir, 'extracted')
-    const tmpFile = path.join(tmpDir, this.artifactName)
+  async install (tmpDir = helpers.getTmpDir()) {
+    const extractedDir = path.join(tmpDir, 'extracted-helm')
     let helmSrc = path.join(extractedDir, `${this.osPlatform}-${this.osArch}`, constants.HELM)
 
-    await this.downloader.fetchFile(this.helmURL, tmpFile)
+    const packageFile = await this.downloader.fetchPackage(this.helmURL, this.checksumURL, tmpDir)
     if (this.osPlatform === constants.OS_WINDOWS) {
-      await this.zippy.unzip(tmpFile, extractedDir)
+      await this.zippy.unzip(packageFile, extractedDir)
       // append .exe for windows
       helmSrc = path.join(extractedDir, `${this.osPlatform}-${this.osArch}`, `${constants.HELM}.exe`)
     } else {
-      await this.zippy.untar(tmpFile, extractedDir)
+      await this.zippy.untar(packageFile, extractedDir)
     }
 
     if (!fs.existsSync(this.installationDir)) {
@@ -106,6 +105,10 @@ export class HelmDependencyManager extends ShellRunner {
     await this.uninstall()
     this.helmPath = Templates.installationPath(constants.HELM, this.installationDir, this.osPlatform)
     fs.cpSync(helmSrc, this.helmPath)
+
+    if (fs.existsSync(extractedDir)) {
+      fs.rmSync(extractedDir, { recursive: true })
+    }
 
     return this.isInstalled()
   }
