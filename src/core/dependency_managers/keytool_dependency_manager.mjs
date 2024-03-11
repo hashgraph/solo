@@ -89,7 +89,7 @@ export class KeytoolDependencyManager extends ShellRunner {
    */
   async uninstall () {
     if (fs.existsSync(this.installationDir)) {
-      fs.rmSync(this.installationDir, {recursive: true})
+      fs.rmSync(this.installationDir, { recursive: true })
     }
   }
 
