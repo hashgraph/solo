@@ -164,12 +164,13 @@ jobs:
         run: |
           docker version
           docker images
+          docker context ls
 
       - name: Switch to Linux mode
         if: ${{ runner.os == 'Windows' && inputs.enable-e2e-tests && !cancelled() && !failure() }}
         shell: pwsh
         run: |
-          $Env:ProgramFiles\Docker\Docker\DockerCli.exe -SwitchLinuxEngine
+          docker context update desktop-linux
 
       - name: Setup E2E Tests
         if: ${{ inputs.enable-e2e-tests && !cancelled() && !failure() }}
