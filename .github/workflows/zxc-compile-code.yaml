@@ -120,7 +120,7 @@ jobs:
         run: |
           pwd
           curl --version
-          curl https://desktop.docker.com/win/main/amd64/Docker%20Desktop%20Installer.exe
+          curl -O https://desktop.docker.com/win/main/amd64/Docker%20Desktop%20Installer.exe
           ls -ltr
 
       - name: Install Docker Desktop for Windows
