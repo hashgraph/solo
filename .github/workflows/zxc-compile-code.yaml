@@ -109,6 +109,7 @@ jobs:
           Invoke-RestMethod -Uri https://get.scoop.sh | Invoke-Expression
           scoop install main/kind
           scoop install kubectl
+          scoop install main/minikube
 
       - name: Setup Helm
         uses: azure/setup-helm@29960d0f5f19214b88e1d9ba750a9914ab0f1a2f # v4.0.0
@@ -153,6 +154,12 @@ jobs:
       - name: Pull Kind Docker Image
         if: ${{ runner.os == 'linux' && inputs.enable-e2e-tests && !cancelled() && !failure() }}
         run: docker image pull kindest/node:v1.27.3@sha256:3966ac761ae0136263ffdb6cfd4db23ef8a83cba8a463690e98317add2c9ba72
+
+      - name: Get Docker Info
+        if: ${{ inputs.enable-e2e-tests && !cancelled() && !failure() }}
+        run: |
+          docker version
+          docker images
 
       - name: Setup E2E Tests
         if: ${{ inputs.enable-e2e-tests && !cancelled() && !failure() }}
