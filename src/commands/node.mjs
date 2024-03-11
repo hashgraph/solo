@@ -493,7 +493,7 @@ export class NodeCommand extends BaseCommand {
             subTasks.push({
               title: `Start node: ${chalk.yellow(nodeId)}`,
               task: async () => {
-                await self.k8.execContainer(podName, constants.ROOT_CONTAINER, ['rm', '-rf', `${constants.HEDERA_HAPI_PATH}/data/logs`])
+                await self.k8.execContainer(podName, constants.ROOT_CONTAINER, ['bash', '-c', `rm -f ${constants.HEDERA_HAPI_PATH}/logs/*`])
 
                 // copy application.env file if required
                 if (ctx.config.applicationEnv) {
