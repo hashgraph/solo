@@ -170,7 +170,8 @@ jobs:
         if: ${{ runner.os == 'Windows' && inputs.enable-e2e-tests && !cancelled() && !failure() }}
         shell: pwsh
         run: |
-          docker context update desktop-linux
+          cd "C:\Program Files\Docker\Docker"
+          DockerCli.exe -SwitchDaemon
 
       - name: Setup E2E Tests
         if: ${{ inputs.enable-e2e-tests && !cancelled() && !failure() }}
