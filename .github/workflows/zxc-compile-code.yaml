@@ -128,7 +128,7 @@ jobs:
         shell: pwsh
         run: |
           dir
-          Start-Process '.\Docker%20Desktop%20Installer.exe' -Wait -ArgumentList 'install', '--accept-license', '--include-docker-cli', '--quiet', '--no-windows-containers'
+          Start-Process '.\Docker%20Desktop%20Installer.exe' -Wait -ArgumentList 'install', '--accept-license', '--include-docker-cli', '--quiet', '--no-windows-containers' >> install.log
 
 
       - name: Setup Helm
@@ -178,6 +178,7 @@ jobs:
       - name: Get Windows Docker Info
         if: ${{ runner.os == 'Windows' && inputs.enable-e2e-tests && !cancelled() && !failure() }}
         run: |
+          cat install.log
           docker context ls
           docker context use desktop-linux
 
