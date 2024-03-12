@@ -180,12 +180,12 @@ jobs:
         run: |
           cat install.log
           docker context ls
-          docker context use desktop-linux
 
       - name: Switch to Linux mode using docker context
         if: ${{ runner.os == 'Windows' && inputs.enable-e2e-tests && !cancelled() && !failure() }}
         run: |
-          docker context use desktop-linux
+#          docker context use desktop-linux
+          echo test
 
       - name: Switch to Linux mode using DockerCli.exe
         shell: pwsh
