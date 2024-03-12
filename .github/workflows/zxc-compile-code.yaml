@@ -128,7 +128,7 @@ jobs:
         shell: pwsh
         run: |
           dir
-          Start-Process '.\Docker%20Desktop%20Installer.exe' -Wait -ArgumentList 'install', '--backend=hyper-v', --accept-license', '--include-docker-cli', '--quiet', '--no-windows-containers' >> install.log
+          Start-Process '.\Docker%20Desktop%20Installer.exe' -Wait -ArgumentList 'install', '--backend=hyper-v', '--accept-license', '--include-docker-cli', '--quiet', '--no-windows-containers' >> install.log
 
 
       - name: Setup Helm
