@@ -182,7 +182,6 @@ jobs:
           docker images
           docker context ls
           which docker
-          ls -ltr docker*
 
       - name: Switch to Linux mode
         if: ${{ runner.os == 'Windows' && inputs.enable-e2e-tests && !cancelled() && !failure() }}
