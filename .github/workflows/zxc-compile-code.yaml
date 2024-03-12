@@ -128,7 +128,7 @@ jobs:
         shell: pwsh
         run: |
           dir
-          Start-Process '.\Docker%20Desktop%20Installer.exe' -Wait -ArgumentList 'install', '--accept-license', '--quiet', '--include-docker-cli'
+          Start-Process '.\Docker%20Desktop%20Installer.exe' -Wait -ArgumentList 'install', '--accept-license', '--include-docker-cli'
 
 
       - name: Setup Helm
@@ -182,14 +182,15 @@ jobs:
           docker images
           docker context ls
           which docker
+          which DockerCli.exe
 
       - name: Switch to Linux mode
         if: ${{ runner.os == 'Windows' && inputs.enable-e2e-tests && !cancelled() && !failure() }}
         run: |
           cd /c/Windows/system32/
-          dockercli.exe -SwitchDaemon
+#          dockercli.exe -SwitchDaemon
 #          cd "C:\Program Files\Docker\Docker"
-#          DockerCli.exe -SwitchDaemon
+          DockerCli.exe -SwitchDaemon
 
 
       - name: Setup E2E Tests
