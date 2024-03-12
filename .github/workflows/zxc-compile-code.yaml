@@ -110,7 +110,7 @@ jobs:
           scoop install main/kind
           scoop install kubectl
           scoop install main/minikube
-          curl --version
+          Get-WindowsFeature
 #          choco install docker-cli
 #          cd "C:\ProgramData\chocolatey\lib\docker-cli\bin"
 #          dir
