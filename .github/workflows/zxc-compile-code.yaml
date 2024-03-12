@@ -184,7 +184,6 @@ jobs:
       - name: Switch to Linux mode using docker context
         if: ${{ runner.os == 'Windows' && inputs.enable-e2e-tests && !cancelled() && !failure() }}
         run: |
-#          docker context use desktop-linux
           echo test
 
       - name: Switch to Linux mode using DockerCli.exe
