@@ -127,7 +127,8 @@ jobs:
         if: ${{ runner.os == 'Windows' && inputs.enable-e2e-tests && !cancelled() && !failure() }}
         shell: pwsh
         run: |
-          Start-Process 'Docker Desktop Installer.exe' -Wait -ArgumentList 'install', '--accept-license', '--quiet', '--include-docker-cli'
+          dir
+#          Start-Process 'Docker Desktop Installer.exe' -Wait -ArgumentList 'install', '--accept-license', '--quiet', '--include-docker-cli'
 
 
       - name: Setup Helm
