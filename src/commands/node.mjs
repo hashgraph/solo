@@ -548,7 +548,7 @@ export class NodeCommand extends BaseCommand {
                   if (ctx.config.deployHederaExplorer) {
                     await self.k8.waitForPod(constants.POD_STATUS_RUNNING, [
                       'app.kubernetes.io/component=hedera-explorer', 'app.kubernetes.io/name=hedera-explorer'
-                    ], 1, 200)
+                    ], 1, 900)
                   }
                 }
               }
@@ -563,6 +563,7 @@ export class NodeCommand extends BaseCommand {
       },
       {
         title: 'Update special account keys',
+        skip: (ctx, _) => !ctx.config.updateAccountKeys,
         task: async (ctx, task) => {
           if (ctx.config.updateAccountKeys) {
             return new Listr([
@@ -584,20 +585,21 @@ export class NodeCommand extends BaseCommand {
               {
                 title: 'Update special account key sets',
                 task: async (ctx) => {
-                  let setIndex = 1
                   const subTasks = []
+                  const realm = constants.HEDERA_NODE_ACCOUNT_ID_START.realm
+                  const shard = constants.HEDERA_NODE_ACCOUNT_ID_START.shard
                   for (const currentSet of ctx.accountsBatchedSet) {
+                    const accStart = `${realm}.${shard}.${currentSet[0]}`
+                    const accEnd = `${realm}.${shard}.${currentSet[currentSet.length - 1]}`
+                    const rangeStr = accStart !== accEnd ? `${chalk.yellow(accStart)} to ${chalk.yellow(accEnd)}` : `${chalk.yellow(accStart)}`
                     subTasks.push({
-                      title: `Updating set ${chalk.yellow(
-                          setIndex)} of ${chalk.yellow(
-                          ctx.accountsBatchedSet.length)}`,
+                      title: `Updating accounts [${rangeStr}]`,
                       task: async (ctx) => {
                         ctx.resultTracker = await self.accountManager.updateSpecialAccountsKeys(
                           ctx.config.namespace, currentSet,
                           ctx.updateSecrets, ctx.resultTracker)
                       }
                     })
-                    setIndex++
                   }
 
                   // set up the sub-tasks
@@ -616,8 +618,10 @@ export class NodeCommand extends BaseCommand {
                   if (ctx.resultTracker.skippedCount > 0) self.logger.showUser(chalk.cyan(`Account keys updates SKIPPED: ${ctx.resultTracker.skippedCount}`))
                   if (ctx.resultTracker.rejectedCount > 0) {
                     self.logger.showUser(chalk.yellowBright(`Account keys updates with ERROR: ${ctx.resultTracker.rejectedCount}`))
-                    throw new FullstackTestingError(`Account keys updates failed for ${ctx.resultTracker.rejectedCount} accounts, exiting`)
+                    throw new FullstackTestingError(`Account keys updates failed for ${ctx.resultTracker.rejectedCount} accounts.`)
                   }
+
+                  self.logger.showUser(chalk.gray('Waiting for sockets to be closed....'))
                 }
               }
             ], {

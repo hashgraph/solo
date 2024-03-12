@@ -25,6 +25,8 @@ import * as sb from 'stream-buffers'
 import * as tar from 'tar'
 import { v4 as uuid4 } from 'uuid'
 import { V1ObjectMeta, V1Secret } from '@kubernetes/client-node'
+import stoppable from 'stoppable'
+import { constants } from './index.mjs'
 
 /**
  * A kubernetes API wrapper class providing custom functionalities required by solo
@@ -33,10 +35,6 @@ import { V1ObjectMeta, V1Secret } from '@kubernetes/client-node'
  * For parallel execution, create separate instances by invoking clone()
  */
 export class K8 {
-  // track the webSocket generated when creating the Kubernetes port forward
-  // so that we can call destroy and speed up shutting down the server
-  static _webSocketGetters = []
-
   constructor (configManager, logger) {
     if (!configManager) throw new MissingArgumentError('An instance of core/ConfigManager is required')
     if (!logger) throw new MissingArgumentError('An instance of core/Logger is required')
@@ -45,14 +43,6 @@ export class K8 {
     this.logger = logger
 
     this.init()
-  }
-
-  static close () {
-    for (const webSocketGetter of K8._webSocketGetters) {
-      if (webSocketGetter) {
-        webSocketGetter()._sender?._socket?.destroy()
-      }
-    }
   }
 
   /**
@@ -664,29 +654,6 @@ export class K8 {
     })
   }
 
-  static makeKillable (server, webSocket) {
-    server.sockets = []
-    server.webSocket = webSocket
-
-    server.on('connection', function (socket) {
-      server.sockets.push(socket)
-    })
-
-    server.kill = function (cb) {
-      server.sockets.forEach(function (socket) {
-        socket.destroy(null, (exception) => {
-          server.sockets.splice(server.sockets.indexOf(socket), 1)
-        })
-      })
-
-      server.close(cb)
-
-      server.sockets = []
-    }
-
-    return server
-  }
-
   /**
    * Port forward a port from a pod to localhost
    *
@@ -701,12 +668,32 @@ export class K8 {
     const ns = this._getNamespace()
     const forwarder = new k8s.PortForward(this.kubeConfig, false)
     const server = await net.createServer(async (socket) => {
-      K8._webSocketGetters.push(await forwarder.portForward(ns, podName, [podPort], socket, null, socket, 3))
+      await forwarder.portForward(ns, podName, [podPort], socket, null, socket, 3)
     })
 
-    K8.makeKillable(server)
+    const stoppableServer = stoppable(server, 1000)
+    stoppableServer.info = `${podName}:${podPort} -> ${constants.LOCAL_HOST}:${localPort}`
 
-    return server.listen(localPort, '127.0.0.1')
+    return stoppableServer.listen(localPort, constants.LOCAL_HOST)
+  }
+
+  /**
+   * Stop the port forwarder server
+   *
+   * @param server an instance of server returned by portForward method
+   * @param cb callback to be passed to the server.stop() method
+   * @return {Promise<void>}
+   */
+  async stopPortForward (server,
+    cb = (err, status) => {
+      if (err) {
+        this.logger.debug(`Port-forwarder stop errored [status: ${status}, error: ${err.message}]`)
+      } else {
+        this.logger.debug(`Port-forwarder stopped [status: ${status}]`)
+      }
+    }) {
+    this.logger.debug(`Stopping port-forwarder [${server.info}]`)
+    server.stop(cb)
   }
 
   /**

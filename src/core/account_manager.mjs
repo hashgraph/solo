@@ -31,10 +31,8 @@ import {
   TransferTransaction
 } from '@hashgraph/sdk'
 import { FullstackTestingError } from './errors.mjs'
-import { sleep } from './helpers.mjs'
 import net from 'net'
 import { Templates } from './templates.mjs'
-import { K8 } from './k8.mjs'
 
 const REASON_FAILED_TO_GET_KEYS = 'failed to get keys for accountId'
 const REASON_SKIPPED = 'skipped since it does not have a genesis key'
@@ -42,8 +40,6 @@ const REASON_FAILED_TO_UPDATE_ACCOUNT = 'failed to update account keys'
 const REASON_FAILED_TO_CREATE_K8S_S_KEY = 'failed to create k8s scrt key'
 const FULFILLED = 'fulfilled'
 const REJECTED = 'rejected'
-const MAX_PORT_FORWARD_SLEEP_ITERATIONS = 500
-const PORT_FORWARD_CLOSE_SLEEP = 500
 
 /**
  * Copyright (C) 2024 Hedera Hashgraph, LLC
@@ -130,16 +126,14 @@ export class AccountManager {
     const batchSize = constants.ACCOUNT_CREATE_BATCH_SIZE
     const batchSets = []
 
-    let batchCounter = 0
     let currentBatch = []
     for (const [start, end] of constants.SYSTEM_ACCOUNTS) {
+      let batchCounter = start
       for (let i = start; i <= end; i++) {
         currentBatch.push(i)
         batchCounter++
 
-        // push only a single account for the first to give time for the
-        // network to create all the system accounts and become stable
-        if (batchCounter >= batchSize || batchSets.length < 1) {
+        if (batchCounter % batchSize === 0) {
           batchSets.push(currentBatch)
           currentBatch = []
           batchCounter = 0
@@ -162,41 +156,14 @@ export class AccountManager {
    */
   async close () {
     this._nodeClient?.close()
-    this._nodeClient = null
-    K8.close()
-    await this._stopPortForwards()
-  }
-
-  /**
-   * stops and closes all of the port forwards that are running
-   * @returns {Promise<void>}
-   */
-  async _stopPortForwards () {
-    let sleepCounter = 0
     if (this._portForwards) {
-      for (const webSocketServer of this._portForwards) {
-        webSocketServer.kill(() => {
-          AccountManager._openPortForwardConnections--
-        })
-
-        while (webSocketServer.sockets.length > 0 && sleepCounter < MAX_PORT_FORWARD_SLEEP_ITERATIONS) {
-          ++sleepCounter
-          this.logger.debug(`waiting ${PORT_FORWARD_CLOSE_SLEEP}ms for port forward server to close .... ${sleepCounter} of ${MAX_PORT_FORWARD_SLEEP_ITERATIONS}`)
-          await sleep(PORT_FORWARD_CLOSE_SLEEP)
-        }
+      for (const srv of this._portForwards) {
+        await this.k8.stopPortForward(srv)
       }
-
-      while (AccountManager._openPortForwardConnections > 0 && sleepCounter < MAX_PORT_FORWARD_SLEEP_ITERATIONS) {
-        ++sleepCounter
-        this.logger.debug(`waiting ${PORT_FORWARD_CLOSE_SLEEP}ms for port forward server to close .... ${sleepCounter} of ${MAX_PORT_FORWARD_SLEEP_ITERATIONS}`)
-        await sleep(PORT_FORWARD_CLOSE_SLEEP)
-      }
-      if (sleepCounter >= MAX_PORT_FORWARD_SLEEP_ITERATIONS) {
-        this.logger.error(`failed to detect that all port forward servers closed correctly, ${AccountManager._openPortForwardConnections} of ${this._portForwards.length} remain open`)
-      }
-
-      this._portForwards = []
     }
+
+    this._nodeClient = null
+    this._portForwards = []
   }
 
   /**
@@ -211,6 +178,7 @@ export class AccountManager {
 
       this._nodeClient = await this._getNodeClient(namespace,
         serviceMap, treasuryAccountInfo.accountId, treasuryAccountInfo.privateKey)
+      this._nodeClient.setMaxBackoff(2000)
     }
   }
 
@@ -304,30 +272,24 @@ export class AccountManager {
     const realm = constants.HEDERA_NODE_ACCOUNT_ID_START.realm
     const shard = constants.HEDERA_NODE_ACCOUNT_ID_START.shard
 
-    const accountUpdatePromiseArray = []
-
     for (const accountNum of currentSet) {
-      accountUpdatePromiseArray.push(this.updateAccountKeys(
-        namespace, AccountId.fromString(`${realm}.${shard}.${accountNum}`), genesisKey, updateSecrets))
-    }
+      const result = await this.updateAccountKeys(namespace,
+        AccountId.fromString(`${realm}.${shard}.${accountNum}`), genesisKey, updateSecrets)
 
-    await Promise.allSettled(accountUpdatePromiseArray).then((results) => {
-      for (const result of results) {
-        switch (result.value.status) {
-          case REJECTED:
-            if (result.value.reason === REASON_SKIPPED) {
-              resultTracker.skippedCount++
-            } else {
-              this.logger.error(`REJECT: ${result.value.reason}: ${result.value.value}`)
-              resultTracker.rejectedCount++
-            }
-            break
-          case FULFILLED:
-            resultTracker.fulfilledCount++
-            break
-        }
+      switch (result.status) {
+        case REJECTED:
+          if (result.reason === REASON_SKIPPED) {
+            resultTracker.skippedCount++
+          } else {
+            this.logger.error(`REJECT: ${result.reason}: ${result.value}`)
+            resultTracker.rejectedCount++
+          }
+          break
+        case FULFILLED:
+          resultTracker.fulfilledCount++
+          break
       }
-    })
+    }
 
     this.logger.debug(`Current counts: [fulfilled: ${resultTracker.fulfilledCount}, skipped: ${resultTracker.skippedCount}, rejected: ${resultTracker.rejectedCount}]`)
 
@@ -356,6 +318,14 @@ export class AccountManager {
       }
     }
 
+    if (!keys || !keys[0]) {
+      return {
+        status: REJECTED,
+        reason: REASON_FAILED_TO_GET_KEYS,
+        value: accountId.toString()
+      }
+    }
+
     if (constants.OPERATOR_PUBLIC_KEY !== keys[0].toString()) {
       this.logger.debug(`account ${accountId.toString()} can be skipped since it does not have a genesis key`)
       return {
@@ -364,6 +334,8 @@ export class AccountManager {
         value: accountId.toString()
       }
     }
+
+    this.logger.debug(`updating account ${accountId.toString()} since it is using the genesis key`)
 
     const newPrivateKey = PrivateKey.generateED25519()
     const data = {
@@ -487,27 +459,27 @@ export class AccountManager {
    * @param podName the podName is only used for logging messages and errors
    * @param host the host of the target connection
    * @param port the port of the target connection
-   * @returns {Promise<void>}
+   * @returns {Promise<boolean>}
    */
   async testConnection (podName, host, port) {
-    // check if the port is actually accessible
-    let attempt = 1
-    let socket = null
-    while (attempt < 10) {
-      try {
-        await sleep(250)
-        this.logger.debug(`Checking exposed port '${port}' of pod ${podName} at IP address ${host}`)
-        socket = net.createConnection({ host, port })
-        this.logger.debug(`Connected to port '${port}' of pod ${podName} at IP address ${host}`)
-        break
-      } catch (e) {
-        attempt += 1
-      }
-    }
-    if (!socket) {
-      throw new FullstackTestingError(`failed to connect to port '${port}' of pod ${podName} at IP address ${host}`)
-    }
-    await socket.destroy()
+    const self = this
+
+    return new Promise((resolve, reject) => {
+      const socket = net.createConnection({
+        host,
+        port
+      })
+      socket.on('error', (e) => {
+        socket.destroy()
+        reject(new FullstackTestingError(`failed to connect to '${host}:${port}': ${e.message}`, e))
+      })
+
+      socket.on('connect', () => {
+        self.logger.debug(`Connected to port '${port}' of pod ${podName} at IP address ${host}`)
+        socket.destroy()
+        resolve(true)
+      })
+    })
   }
 
   /**
