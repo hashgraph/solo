@@ -128,7 +128,7 @@ jobs:
         shell: pwsh
         run: |
           dir
-          Start-Process '.\Docker Desktop Installer.exe' -Wait -ArgumentList 'install', '--accept-license', '--quiet', '--include-docker-cli'
+          Start-Process '.\Docker%20Desktop%20Installer.exe' -Wait -ArgumentList 'install', '--accept-license', '--quiet', '--include-docker-cli'
 
 
       - name: Setup Helm
@@ -182,7 +182,6 @@ jobs:
           docker images
           docker context ls
           which docker
-          cd /c/Windows/system32/
           ls -ltr docker*
 
       - name: Switch to Linux mode
