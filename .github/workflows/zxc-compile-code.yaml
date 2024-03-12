@@ -182,12 +182,18 @@ jobs:
           docker context ls
           docker context use desktop-linux
 
-      - name: Switch to Linux mode
+      - name: Switch to Linux mode using docker context
         if: ${{ runner.os == 'Windows' && inputs.enable-e2e-tests && !cancelled() && !failure() }}
         run: |
           docker context use desktop-linux
 
-
+      - name: Switch to Linux mode using DockerCli.exe
+        shell: pwsh
+        if: ${{ runner.os == 'Windows' && inputs.enable-e2e-tests && !cancelled() }}
+        run: |
+          cd "C:\Program Files\Docker\Docker"
+          .\DockerCli.exe -SwitchLinuxEngine
+          
 
       - name: Setup E2E Tests
         if: ${{ inputs.enable-e2e-tests && !cancelled() && !failure() }}
