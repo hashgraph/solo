@@ -128,7 +128,7 @@ jobs:
         shell: pwsh
         run: |
           dir
-          Start-Process '.\Docker%20Desktop%20Installer.exe' -Wait -ArgumentList 'install', '--accept-license', '--include-docker-cli'
+          Start-Process '.\Docker%20Desktop%20Installer.exe' -Wait -ArgumentList 'install', '--accept-license', '--include-docker-cli', '--quiet', '--no-windows-containers'
 
 
       - name: Setup Helm
@@ -175,20 +175,18 @@ jobs:
         if: ${{ runner.os == 'linux' && inputs.enable-e2e-tests && !cancelled() && !failure() }}
         run: docker image pull kindest/node:v1.27.3@sha256:3966ac761ae0136263ffdb6cfd4db23ef8a83cba8a463690e98317add2c9ba72
 
-      - name: Get Docker Info
-        if: ${{ inputs.enable-e2e-tests && !cancelled() && !failure() }}
+      - name: Get Windows Docker Info
+        if: ${{ runner.os == 'Windows' && inputs.enable-e2e-tests && !cancelled() && !failure() }}
         run: |
-          docker version
-          docker images
           docker context ls
-          which docker
-          which DockerCli.exe
+          docker context use desktop-linux
 
       - name: Switch to Linux mode
         if: ${{ runner.os == 'Windows' && inputs.enable-e2e-tests && !cancelled() && !failure() }}
         run: |
-          cd /c/Windows/system32/
-          DockerCli.exe -SwitchDaemon
+          docker context use desktop-linux
+
+
 
       - name: Setup E2E Tests
         if: ${{ inputs.enable-e2e-tests && !cancelled() && !failure() }}
