@@ -188,10 +188,7 @@ jobs:
         if: ${{ runner.os == 'Windows' && inputs.enable-e2e-tests && !cancelled() && !failure() }}
         run: |
           cd /c/Windows/system32/
-#          dockercli.exe -SwitchDaemon
-#          cd "C:\Program Files\Docker\Docker"
           DockerCli.exe -SwitchDaemon
-
 
       - name: Setup E2E Tests
         if: ${{ inputs.enable-e2e-tests && !cancelled() && !failure() }}
