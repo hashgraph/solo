@@ -122,12 +122,12 @@ export class AccountManager {
    * batch up the accounts into sets to be processed
    * @returns {*[]} an array of arrays of numbers representing the accounts to update
    */
-  batchAccounts () {
+  batchAccounts (accountRange = constants.SYSTEM_ACCOUNTS) {
     const batchSize = constants.ACCOUNT_CREATE_BATCH_SIZE
     const batchSets = []
 
     let currentBatch = []
-    for (const [start, end] of constants.SYSTEM_ACCOUNTS) {
+    for (const [start, end] of accountRange) {
       let batchCounter = start
       for (let i = start; i <= end; i++) {
         currentBatch.push(i)

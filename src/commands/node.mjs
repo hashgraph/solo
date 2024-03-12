@@ -409,10 +409,7 @@ export class NodeCommand extends BaseCommand {
           await prompts.execute(task, self.configManager, [
             flags.namespace,
             flags.chartDirectory,
-            flags.nodeIDs,
-            flags.deployHederaExplorer,
-            flags.deployMirrorNode,
-            flags.updateAccountKeys
+            flags.nodeIDs
           ])
 
           ctx.config = {
@@ -420,9 +417,6 @@ export class NodeCommand extends BaseCommand {
             chartDir: self.configManager.getFlag(flags.chartDirectory),
             fstChartVersion: self.configManager.getFlag(flags.fstChartVersion),
             nodeIds: helpers.parseNodeIDs(self.configManager.getFlag(flags.nodeIDs)),
-            deployMirrorNode: self.configManager.getFlag(flags.deployMirrorNode),
-            deployHederaExplorer: self.configManager.getFlag(flags.deployHederaExplorer),
-            updateAccountKeys: self.configManager.getFlag(flags.updateAccountKeys),
             applicationEnv: self.configManager.getFlag(flags.applicationEnv),
             cacheDir: self.configManager.getFlag(flags.cacheDir)
           }
@@ -431,8 +425,6 @@ export class NodeCommand extends BaseCommand {
             constants.FULLSTACK_TESTING_CHART, constants.FULLSTACK_DEPLOYMENT_CHART)
 
           ctx.config.stagingDir = Templates.renderStagingDir(self.configManager, flags)
-
-          ctx.config.valuesArg = ` --set hedera-mirror-node.enabled=${ctx.config.deployMirrorNode} --set hedera-explorer.enabled=${ctx.config.deployHederaExplorer}`
 
           if (!await self.k8.hasNamespace(ctx.config.namespace)) {
             throw new FullstackTestingError(`namespace ${ctx.config.namespace} does not exist`)
@@ -500,140 +492,23 @@ export class NodeCommand extends BaseCommand {
         }
       },
       {
-        title: 'Enable mirror node',
+        title: 'Check node proxies are ACTIVE',
         task: async (ctx, parentTask) => {
-          if (ctx.config.deployMirrorNode) {
-            const subTasks = [
-              {
-                title: 'Check node proxies are ACTIVE',
-                task: async (ctx, _) => {
-                  const subTasks = []
-                  for (const nodeId of ctx.config.nodeIds) {
-                    subTasks.push({
-                      title: `Check proxy for node: ${chalk.yellow(nodeId)}`,
-                      task: async () => await self.checkNetworkNodeProxyUp(ctx.config.namespace, nodeId)
-                    })
-                  }
-
-                  // set up the sub-tasks
-                  return parentTask.newListr(subTasks, {
-                    concurrent: false,
-                    rendererOptions: {
-                      collapseSubtasks: false
-                    }
-                  })
-                }
-              },
-              {
-                title: 'Prepare address book',
-                task: async (ctx, _) => {
-                  ctx.addressBook = await self.getAddressBook(ctx.nodeClient)
-                  ctx.config.valuesArg += ` --set "hedera-mirror-node.importer.addressBook=${ctx.addressBook}"`
-                }
-              },
-              {
-                title: 'Deploy mirror node',
-                task: async (ctx, _) => {
-                  await self.chartManager.upgrade(
-                    ctx.config.namespace,
-                    constants.FULLSTACK_DEPLOYMENT_CHART,
-                    ctx.config.chartPath,
-                    ctx.config.valuesArg
-                  )
-                }
-              },
-              {
-                title: 'Waiting for Hedera Explorer to be ready',
-                task: async (ctx, _) => {
-                  if (ctx.config.deployHederaExplorer) {
-                    await self.k8.waitForPod(constants.POD_STATUS_RUNNING, [
-                      'app.kubernetes.io/component=hedera-explorer', 'app.kubernetes.io/name=hedera-explorer'
-                    ], 1, 900)
-                  }
-                }
-              }
-            ]
-
-            return parentTask.newListr(subTasks, {
-              concurrent: false,
-              rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
+          const subTasks = []
+          for (const nodeId of ctx.config.nodeIds) {
+            subTasks.push({
+              title: `Check proxy for node: ${chalk.yellow(nodeId)}`,
+              task: async () => await self.checkNetworkNodeProxyUp(ctx.config.namespace, nodeId)
             })
           }
-        }
-      },
-      {
-        title: 'Update special account keys',
-        skip: (ctx, _) => !ctx.config.updateAccountKeys,
-        task: async (ctx, task) => {
-          if (ctx.config.updateAccountKeys) {
-            return new Listr([
-              {
-                title: 'Prepare for account key updates',
-                task: async (ctx) => {
-                  const secrets = await self.k8.getSecretsByLabel(['fullstack.hedera.com/account-id'])
-                  ctx.updateSecrets = secrets.length > 0
 
-                  ctx.accountsBatchedSet = self.accountManager.batchAccounts()
-
-                  ctx.resultTracker = {
-                    rejectedCount: 0,
-                    fulfilledCount: 0,
-                    skippedCount: 0
-                  }
-                }
-              },
-              {
-                title: 'Update special account key sets',
-                task: async (ctx) => {
-                  const subTasks = []
-                  const realm = constants.HEDERA_NODE_ACCOUNT_ID_START.realm
-                  const shard = constants.HEDERA_NODE_ACCOUNT_ID_START.shard
-                  for (const currentSet of ctx.accountsBatchedSet) {
-                    const accStart = `${realm}.${shard}.${currentSet[0]}`
-                    const accEnd = `${realm}.${shard}.${currentSet[currentSet.length - 1]}`
-                    const rangeStr = accStart !== accEnd ? `${chalk.yellow(accStart)} to ${chalk.yellow(accEnd)}` : `${chalk.yellow(accStart)}`
-                    subTasks.push({
-                      title: `Updating accounts [${rangeStr}]`,
-                      task: async (ctx) => {
-                        ctx.resultTracker = await self.accountManager.updateSpecialAccountsKeys(
-                          ctx.config.namespace, currentSet,
-                          ctx.updateSecrets, ctx.resultTracker)
-                      }
-                    })
-                  }
-
-                  // set up the sub-tasks
-                  return task.newListr(subTasks, {
-                    concurrent: false,
-                    rendererOptions: {
-                      collapseSubtasks: false
-                    }
-                  })
-                }
-              },
-              {
-                title: 'Display results',
-                task: async (ctx) => {
-                  self.logger.showUser(chalk.green(`Account keys updated SUCCESSFULLY: ${ctx.resultTracker.fulfilledCount}`))
-                  if (ctx.resultTracker.skippedCount > 0) self.logger.showUser(chalk.cyan(`Account keys updates SKIPPED: ${ctx.resultTracker.skippedCount}`))
-                  if (ctx.resultTracker.rejectedCount > 0) {
-                    self.logger.showUser(chalk.yellowBright(`Account keys updates with ERROR: ${ctx.resultTracker.rejectedCount}`))
-                    throw new FullstackTestingError(`Account keys updates failed for ${ctx.resultTracker.rejectedCount} accounts.`)
-                  }
-
-                  self.logger.showUser(chalk.gray('Waiting for sockets to be closed....'))
-                }
-              }
-            ], {
-              concurrent: false,
-              rendererOptions: {
-                collapseSubtasks: false
-              }
-            })
-          } else {
-            self.logger.showUser(chalk.yellowBright('> WARNING:'), chalk.yellow(
-              'skipping special account keys update, special accounts will retain genesis private keys'))
-          }
+          // set up the sub-tasks
+          return parentTask.newListr(subTasks, {
+            concurrent: false,
+            rendererOptions: {
+              collapseSubtasks: false
+            }
+          })
         }
       }
     ], {
@@ -681,20 +556,6 @@ export class NodeCommand extends BaseCommand {
     }
 
     return false
-  }
-
-  /**
-   * Will get the address book from the network (base64 encoded)
-   * @param nodeClient the configured and active NodeClient to use to retrieve the address book
-   * @returns {Promise<string>} the base64 encoded address book for the network
-   */
-  async getAddressBook (nodeClient) {
-    try {
-      // Retrieve the AddressBook as base64
-      return await this.accountManager.prepareAddressBookBase64(nodeClient)
-    } catch (e) {
-      throw new FullstackTestingError(`an error was encountered while trying to prepare the address book: ${e.message}`, e)
-    }
   }
 
   async stop (argv) {
@@ -929,7 +790,6 @@ export class NodeCommand extends BaseCommand {
             builder: y => flags.setCommandFlags(y,
               flags.namespace,
               flags.nodeIDs,
-              flags.updateAccountKeys,
               flags.applicationEnv
             ),
             handler: argv => {
