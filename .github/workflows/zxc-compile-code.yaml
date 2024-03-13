@@ -167,11 +167,16 @@ jobs:
         if: ${{ runner.os == 'linux' && inputs.enable-e2e-tests && !cancelled() && !failure() }}
         run: docker image pull kindest/node:v1.27.3@sha256:3966ac761ae0136263ffdb6cfd4db23ef8a83cba8a463690e98317add2c9ba72
 
-      - name: Install WSL distribution
+      - name: Update WSL
         if: ${{ runner.os == 'Windows' && inputs.enable-e2e-tests && !cancelled() && !failure() }}
         shell: pwsh
         run: |
           wsl --update
+
+      - name: Install WSL distribution
+        if: ${{ runner.os == 'Windows' && inputs.enable-e2e-tests && !cancelled() && !failure() }}
+        shell: pwsh
+        run: |
           wsl --list --online
           wsl --install -d Ubuntu
 
