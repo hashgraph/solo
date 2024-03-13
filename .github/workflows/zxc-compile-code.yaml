@@ -170,7 +170,6 @@ jobs:
       - name: Get Windows Docker Info
         if: ${{ runner.os == 'Windows' && inputs.enable-e2e-tests && !cancelled() && !failure() }}
         run: |
-          cat install.log
           docker context ls
 
       - name: Setup E2E Tests Windows
