@@ -172,6 +172,8 @@ jobs:
         shell: pwsh
         run: |
           wsl --update
+          wsl -l -v
+          wsl.exe --set-default-version 2
 
       - name: Install WSL distribution
         if: ${{ runner.os == 'Windows' && inputs.enable-e2e-tests && !cancelled() && !failure() }}
