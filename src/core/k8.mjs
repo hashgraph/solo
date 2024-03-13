@@ -25,7 +25,6 @@ import * as sb from 'stream-buffers'
 import * as tar from 'tar'
 import { v4 as uuid4 } from 'uuid'
 import { V1ObjectMeta, V1Secret } from '@kubernetes/client-node'
-import stoppable from 'stoppable'
 import { constants } from './index.mjs'
 
 /**
@@ -671,29 +670,20 @@ export class K8 {
       await forwarder.portForward(ns, podName, [podPort], socket, null, socket, 3)
     })
 
-    const stoppableServer = stoppable(server, 1000)
-    stoppableServer.info = `${podName}:${podPort} -> ${constants.LOCAL_HOST}:${localPort}`
-
-    return stoppableServer.listen(localPort, constants.LOCAL_HOST)
+    // add info for logging
+    server.info = `${podName}:${podPort} -> ${constants.LOCAL_HOST}:${localPort}`
+    return server.listen(localPort, constants.LOCAL_HOST)
   }
 
   /**
    * Stop the port forwarder server
    *
    * @param server an instance of server returned by portForward method
-   * @param cb callback to be passed to the server.stop() method
    * @return {Promise<void>}
    */
-  async stopPortForward (server,
-    cb = (err, status) => {
-      if (err) {
-        this.logger.debug(`Port-forwarder stop errored [status: ${status}, error: ${err.message}]`)
-      } else {
-        this.logger.debug(`Port-forwarder stopped [status: ${status}]`)
-      }
-    }) {
+  async stopPortForward (server) {
     this.logger.debug(`Stopping port-forwarder [${server.info}]`)
-    server.stop(cb)
+    server.close()
   }
 
   /**
