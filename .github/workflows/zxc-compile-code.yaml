@@ -171,6 +171,7 @@ jobs:
         if: ${{ runner.os == 'Windows' && inputs.enable-e2e-tests && !cancelled() && !failure() }}
         shell: pwsh
         run: |
+          wsl --update
           wsl --list --online
           wsl --install -d Ubuntu
 
