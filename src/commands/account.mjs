@@ -180,10 +180,11 @@ export class AccountCommand extends BaseCommand {
                 if (ctx.resultTracker.skippedCount > 0) self.logger.showUser(chalk.cyan(`Account keys updates SKIPPED: ${ctx.resultTracker.skippedCount}`))
                 if (ctx.resultTracker.rejectedCount > 0) {
                   self.logger.showUser(chalk.yellowBright(`Account keys updates with ERROR: ${ctx.resultTracker.rejectedCount}`))
+                }
+                self.logger.showUser(chalk.gray('Waiting for sockets to be closed....'))
+                if (ctx.resultTracker.rejectedCount > 0) {
                   throw new FullstackTestingError(`Account keys updates failed for ${ctx.resultTracker.rejectedCount} accounts.`)
                 }
-
-                self.logger.showUser(chalk.gray('Waiting for sockets to be closed....'))
               }
             }
           ], {

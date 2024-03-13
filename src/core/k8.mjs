@@ -710,13 +710,13 @@ export class K8 {
     const fieldSelector = `status.phase=${status}`
     const labelSelector = labels.join(',')
 
-    this.logger.debug(`WaitForPod [${fieldSelector}, ${labelSelector}], maxAttempts: ${maxAttempts}`)
+    this.logger.debug(`WaitForPod [namespace:${ns}, fieldSector(${fieldSelector}, labelSelector: ${labelSelector}], maxAttempts: ${maxAttempts}`)
 
     return new Promise((resolve, reject) => {
       let attempts = 0
 
       const check = async () => {
-        this.logger.debug(`Checking for pod ${fieldSelector}, ${labelSelector} [attempt: ${attempts}/${maxAttempts}]`)
+        this.logger.debug(`Checking for pod [namespace:${ns}, fieldSector(${fieldSelector}, labelSelector: ${labelSelector}] [attempt: ${attempts}/${maxAttempts}]`)
 
         // wait for the pod to be available with the given status and labels
         const resp = await this.kubeClient.listNamespacedPod(
@@ -729,8 +729,8 @@ export class K8 {
           podCount
         )
 
+        this.logger.debug(`${resp.body.items.length}/${podCount} pod found [namespace:${ns}, fieldSector(${fieldSelector}, labelSelector: ${labelSelector}] [attempt: ${attempts}/${maxAttempts}]`)
         if (resp.body && resp.body.items && resp.body.items.length === podCount) {
-          this.logger.debug(`Found ${resp.body.items.length}/${podCount} pod with ${fieldSelector}, ${labelSelector} [attempt: ${attempts}/${maxAttempts}]`)
           return resolve(true)
         }
 
@@ -748,12 +748,19 @@ export class K8 {
   /**
    * Get a list of persistent volume claim names for the given namespace
    * @param namespace the namespace of the persistent volume claims to return
+   * @param labels labels
    * @returns {Promise<*[]>} list of persistent volume claims
    */
-  async listPvcsByNamespace (namespace) {
+  async listPvcsByNamespace (namespace, labels = []) {
     const pvcs = []
+    const labelSelector = labels.join(',')
     const resp = await this.kubeClient.listNamespacedPersistentVolumeClaim(
-      namespace
+      namespace,
+      null,
+      null,
+      null,
+      null,
+      labelSelector
     )
 
     for (const item of resp.body.items) {
