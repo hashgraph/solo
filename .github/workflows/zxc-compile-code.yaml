@@ -123,14 +123,6 @@ jobs:
           curl -O https://desktop.docker.com/win/main/amd64/Docker%20Desktop%20Installer.exe
           ls -ltr
 
-      - name: Install Docker Desktop for Windows
-        if: ${{ runner.os == 'Windows' && inputs.enable-e2e-tests && !cancelled() && !failure() }}
-        shell: pwsh
-        run: |
-          dir
-          Start-Process '.\Docker%20Desktop%20Installer.exe' -Wait -ArgumentList 'install', '--backend=hyper-v', '--accept-license', '--include-docker-cli', '--quiet', '--no-windows-containers' >> install.log
-
-
       - name: Setup Helm
         uses: azure/setup-helm@29960d0f5f19214b88e1d9ba750a9914ab0f1a2f # v4.0.0
         if: ${{ (inputs.enable-unit-tests || inputs.enable-e2e-tests) && !cancelled() && !failure() }}
@@ -180,18 +172,6 @@ jobs:
         run: |
           cat install.log
           docker context ls
-
-      - name: Switch to Linux mode using docker context
-        if: ${{ runner.os == 'Windows' && inputs.enable-e2e-tests && !cancelled() && !failure() }}
-        run: |
-          echo test
-
-      - name: Switch to Linux mode using DockerCli.exe
-        shell: pwsh
-        if: ${{ runner.os == 'Windows' && inputs.enable-e2e-tests && !cancelled() }}
-        run: |
-          cd "C:\Program Files\Docker\Docker"
-          .\DockerCli.exe -SwitchLinuxEngine
 
       - name: Setup E2E Tests Windows
         if: ${{ runner.os == 'Windows' && inputs.enable-e2e-tests && !cancelled() && !failure() }}
