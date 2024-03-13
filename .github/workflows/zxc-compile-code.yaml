@@ -171,7 +171,8 @@ jobs:
         if: ${{ runner.os == 'Windows' && inputs.enable-e2e-tests && !cancelled() && !failure() }}
         run: |
           docker context ls
-
+          wsl -l -v
+          
       - name: Setup E2E Tests Windows
         if: ${{ runner.os == 'Windows' && inputs.enable-e2e-tests && !cancelled() && !failure() }}
         run: |
