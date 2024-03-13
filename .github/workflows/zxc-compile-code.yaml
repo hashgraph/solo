@@ -172,7 +172,7 @@ jobs:
         shell: pwsh
         run: |
           wsl --list --online
-          wsl --install
+          wsl --install -d Ubuntu
 
       - name: Get WSL Info
         if: ${{ runner.os == 'Windows' && inputs.enable-e2e-tests && !cancelled() && !failure() }}
