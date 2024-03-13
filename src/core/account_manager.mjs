@@ -30,7 +30,7 @@ import {
   Status,
   TransferTransaction
 } from '@hashgraph/sdk'
-import { FullstackTestingError } from './errors.mjs'
+import { FullstackTestingError, MissingArgumentError } from './errors.mjs'
 import net from 'net'
 import { Templates } from './templates.mjs'
 
@@ -395,6 +395,10 @@ export class AccountManager {
    * @returns {AccountInfo} the private key of the account
    */
   async accountInfoQuery (accountId) {
+    if (!this._nodeClient) {
+      throw new MissingArgumentError('node client is not initialized')
+    }
+
     return await new AccountInfoQuery()
       .setAccountId(accountId)
       .execute(this._nodeClient)

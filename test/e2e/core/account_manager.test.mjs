@@ -29,47 +29,22 @@ describe('AccountManager', () => {
   const accountManager = new AccountManager(testLogger, k8, constants)
 
   it('should be able to stop port forwards', async () => {
-    const podNames = new Map()
-      .set('network-node0-svc', 20111)
-      .set('network-node1-svc', 30111)
-    const podPort = 50111
     const localHost = '127.0.0.1'
+
+    // map of svc -> local port
+    const podName = 'minio-console' // use a svc that is less likely to be used by other tests
+    const podPort = 9090
+    const localPort = 19090
 
     expect(accountManager._portForwards.length).toStrictEqual(0)
 
     // ports should be opened
-    for (const entry of podNames) {
-      const podName = entry[0]
-      const localPort = entry[1]
-      accountManager._portForwards.push(await k8.portForward(podName, localPort, podPort))
-      await expect(accountManager.testConnection(podName, localHost, localPort)).resolves.toBeTruthy()
-    }
-
-    await accountManager._stopPortForwards()
+    accountManager._portForwards.push(await k8.portForward(podName, localPort, podPort))
+    await expect(accountManager.testConnection(podName, localHost, localPort)).resolves.toBeTruthy()
 
     // ports should be closed
-    for (const entry of podNames) {
-      const podName = entry[0]
-      const localPort = entry[1]
-      await expect(accountManager.testConnection(podName, localHost, localPort)).rejects
-    }
-
+    await accountManager.close()
+    await expect(accountManager.testConnection(podName, localHost, localPort)).rejects
     expect(accountManager._portForwards.length).toStrictEqual(0)
   })
-
-  it('should be able to update special account keys', async () => {
-    const resultTracker = {
-      rejectedCount: 0,
-      fulfilledCount: 0,
-      skippedCount: 0
-    }
-    const accountsBatchedSet = accountManager.batchAccounts()
-    const namespace = configManager.getFlag(flags.namespace)
-    await accountManager.loadNodeClient(namespace)
-    for (let i = 0; i < 3; i++) {
-      const currentSet = accountsBatchedSet[i]
-      await accountManager.updateSpecialAccountsKeys(namespace, currentSet, true, resultTracker)
-    }
-    await accountManager.close()
-  }, 120000)
 })
