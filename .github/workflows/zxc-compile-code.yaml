@@ -192,10 +192,15 @@ jobs:
         run: |
           cd "C:\Program Files\Docker\Docker"
           .\DockerCli.exe -SwitchLinuxEngine
-          
 
-      - name: Setup E2E Tests
-        if: ${{ inputs.enable-e2e-tests && !cancelled() && !failure() }}
+      - name: Setup E2E Tests Windows
+        if: ${{ runner.os == 'Windows' && inputs.enable-e2e-tests && !cancelled() && !failure() }}
+        run: |
+          npm link
+           ./test/e2e/setup-e2e-windows.sh
+
+      - name: Setup E2E Tests Linux
+        if: ${{ runner.os == 'linux' && inputs.enable-e2e-tests && !cancelled() && !failure() }}
         run: | 
           npm link
           ./test/e2e/setup-e2e.sh
