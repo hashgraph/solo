@@ -172,15 +172,14 @@ jobs:
         shell: pwsh
         run: |
           wsl --update
-          wsl -l -v
-          wsl.exe --set-default-version 2
+          wsl --list --online
 
       - name: Install WSL distribution
         if: ${{ runner.os == 'Windows' && inputs.enable-e2e-tests && !cancelled() && !failure() }}
         shell: pwsh
         run: |
-          wsl --list --online
-          wsl --install -d Ubuntu-22.04
+          wsl --install Ubuntu-22.04
+          wsl.exe --set-default-version 2
 
       - name: Get WSL Info
         if: ${{ runner.os == 'Windows' && inputs.enable-e2e-tests && !cancelled() && !failure() }}
@@ -188,7 +187,6 @@ jobs:
         run: |
           wsl -l -v
           wsl --set-default-version 2
-          wsl --list --verbose
 
       - name: Setup E2E Tests Windows
         if: ${{ runner.os == 'Windows' && inputs.enable-e2e-tests && !cancelled() && !failure() }}
