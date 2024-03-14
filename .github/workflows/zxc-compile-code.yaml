@@ -178,7 +178,7 @@ jobs:
         if: ${{ runner.os == 'Windows' && inputs.enable-e2e-tests && !cancelled() && !failure() }}
         shell: pwsh
         run: |
-          wsl --install Ubuntu-22.04
+          wsl --install Ubuntu-18.04
           wsl.exe --set-default-version 2
 
       - name: Get WSL Info
