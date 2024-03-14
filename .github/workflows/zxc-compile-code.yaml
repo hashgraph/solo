@@ -133,6 +133,7 @@ jobs:
         id: npm-deps
         run:
           npm ci
+          docker info --format '{{.OSType}}'
 
       - name: Check Code Style
         if: ${{ runner.os == 'linux' && inputs.enable-code-style-check && !cancelled() && !failure() }}
