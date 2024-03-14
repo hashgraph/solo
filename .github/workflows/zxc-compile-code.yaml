@@ -122,6 +122,7 @@ jobs:
           curl --version
           curl -O https://desktop.docker.com/win/main/amd64/Docker%20Desktop%20Installer.exe
           ls -ltr
+          docker info --format '{{.OSType}}'
 
       - name: Setup Helm
         uses: azure/setup-helm@29960d0f5f19214b88e1d9ba750a9914ab0f1a2f # v4.0.0
@@ -133,7 +134,6 @@ jobs:
         id: npm-deps
         run:
           npm ci
-          docker info --format '{{.OSType}}'
 
       - name: Check Code Style
         if: ${{ runner.os == 'linux' && inputs.enable-code-style-check && !cancelled() && !failure() }}
