@@ -666,8 +666,8 @@ export class K8 {
   async portForward (podName, localPort, podPort) {
     const ns = this._getNamespace()
     const forwarder = new k8s.PortForward(this.kubeConfig, false)
-    const server = await net.createServer(async (socket) => {
-      await forwarder.portForward(ns, podName, [podPort], socket, null, socket, 3)
+    const server = await net.createServer((socket) => {
+      forwarder.portForward(ns, podName, [podPort], socket, null, socket, 3)
     })
 
     // add info for logging

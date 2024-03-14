@@ -469,18 +469,15 @@ export class AccountManager {
     const self = this
 
     return new Promise((resolve, reject) => {
-      const socket = net.createConnection({
-        host,
-        port
-      })
-      socket.on('error', (e) => {
-        socket.destroy()
+      const s = new net.Socket()
+      s.on('error', (e) => {
+        s.destroy()
         reject(new FullstackTestingError(`failed to connect to '${host}:${port}': ${e.message}`, e))
       })
 
-      socket.on('connect', () => {
-        self.logger.debug(`Connected to port '${port}' of pod ${podName} at IP address ${host}`)
-        socket.destroy()
+      s.connect(port, host, () => {
+        self.logger.debug(`Connection test successful: ${host}:${port}`)
+        s.destroy()
         resolve(true)
       })
     })
