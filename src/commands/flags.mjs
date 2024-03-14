@@ -16,6 +16,7 @@
  */
 import { constants } from '../core/index.mjs'
 import * as core from '../core/index.mjs'
+import * as version from '../../version.mjs'
 
 /**
  * Set flag from the flag option
@@ -328,7 +329,7 @@ export const fstChartVersion = {
   name: 'fst-chart-version',
   definition: {
     describe: 'Fullstack testing chart version',
-    defaultValue: '',
+    defaultValue: version.FST_CHART_VERSION,
     type: 'string'
   }
 }
