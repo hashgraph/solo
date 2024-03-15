@@ -16,7 +16,7 @@
  */
 import { PrivateKey } from '@hashgraph/sdk'
 import {
-  afterAll,
+  afterAll, beforeAll,
   describe,
   expect,
   it
@@ -63,6 +63,7 @@ argv[flags.generateTlsKeys.name] = true
 argv[flags.clusterName.name] = TEST_CLUSTER
 argv[flags.namespace.name] = namespace
 argv[flags.fstChartVersion.name] = version.FST_CHART_VERSION
+// argv[flags.chartDirectory.name] = '../full-stack-testing/charts'
 configManager.update(argv)
 
 // prepare dependency manger registry
@@ -110,9 +111,9 @@ describe('AccountCommand', () => {
 
   describe('node proxies should be UP', () => {
     for (const nodeId of argv[flags.nodeIDs.name].split(',')) {
-      it(`proxy for node ${nodeId} should be UP`, async () => {
-        await nodeCmd.checkNetworkNodeProxyUp(namespace, nodeId, 10)
-      })
+      it(`proxy should be UP: ${nodeId} `, async () => {
+        await nodeCmd.checkNetworkNodeProxyUp(namespace, nodeId)
+      }, 30000)
     }
   })
 
@@ -126,6 +127,14 @@ describe('AccountCommand', () => {
       const genesisKey = PrivateKey.fromStringED25519(constants.GENESIS_KEY)
       const realm = constants.HEDERA_NODE_ACCOUNT_ID_START.realm
       const shard = constants.HEDERA_NODE_ACCOUNT_ID_START.shard
+
+      beforeAll(async () => {
+        await accountManager.loadNodeClient(namespace)
+      })
+
+      afterAll(async () => {
+        await accountManager.close()
+      })
 
       for (const [start, end] of testSystemAccounts) {
         for (let i = start; i <= end; i++) {

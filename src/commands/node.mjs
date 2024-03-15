@@ -528,7 +528,7 @@ export class NodeCommand extends BaseCommand {
     return true
   }
 
-  async checkNetworkNodeProxyUp (namespace, nodeId, maxAttempts = 100) {
+  async checkNetworkNodeProxyUp (namespace, nodeId, maxAttempts = 5, delay = 5000) {
     const podArray = await this.k8.getPodsByLabel([`app=haproxy-${nodeId}`, 'fullstack.hedera.com/type=haproxy'])
 
     let attempts = 0
@@ -537,7 +537,17 @@ export class NodeCommand extends BaseCommand {
 
       while (attempts < maxAttempts) {
         const logResponse = await this.k8.kubeClient.readNamespacedPodLog(
-          podName, namespace)
+          podName,
+          namespace,
+          'haproxy',
+          undefined,
+          undefined,
+          1024,
+          undefined,
+          undefined,
+          undefined,
+          4
+        )
 
         if (logResponse.response.statusCode !== 200) {
           throw new FullstackTestingError(`Expected pod ${podName} log query to execute successful, but instead got a status of ${logResponse.response.statusCode}`)
@@ -545,19 +555,17 @@ export class NodeCommand extends BaseCommand {
 
         this.logger.debug(`Received HAProxy log from ${podName}`, { output: logResponse.body })
         if (logResponse.body.includes('Server be_servers/server1 is UP')) {
-          this.logger.debug(`HAProxy ${podName} is UP`)
+          this.logger.debug(`Proxy ${podName} is UP [attempt: ${attempts}/${maxAttempts}]`)
           return true
         }
 
         attempts++
-        this.logger.debug(`Checking if proxy ${podName} is UP [attempt: ${attempts}/${maxAttempts}]`)
-        await sleep(1000)
+        this.logger.debug(`Proxy ${podName} is not UP. Checking again in ${delay}ms ... [attempt: ${attempts}/${maxAttempts}]`)
+        await sleep(delay)
       }
-    } else {
-      throw new FullstackTestingError(`proxy for '${nodeId}' is not ACTIVE [ attempt = ${attempts}/${maxAttempts}`)
     }
 
-    return false
+    throw new FullstackTestingError(`proxy for '${nodeId}' is not UP [ attempt = ${attempts}/${maxAttempts}`)
   }
 
   async stop (argv) {
