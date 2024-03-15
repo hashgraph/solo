@@ -109,20 +109,22 @@ jobs:
           Invoke-RestMethod -Uri https://get.scoop.sh | Invoke-Expression
           scoop install main/kind
           scoop install kubectl
-          scoop install main/minikube
           Get-WindowsFeature
 #          choco install docker-cli
 #          cd "C:\ProgramData\chocolatey\lib\docker-cli\bin"
 #          dir
 
-      - name: Test Curl Download
+      - name: WSL Install
+        uses: Vampire/setup-wsl@v3
+        if: ${{ runner.os == 'Windows' &&  (inputs.enable-unit-tests || inputs.enable-e2e-tests) && !cancelled() && !failure() }}
+
+      - name: Get WSL Info
         if: ${{ runner.os == 'Windows' && inputs.enable-e2e-tests && !cancelled() && !failure() }}
+        shell: pwsh
         run: |
-          pwd
-          curl --version
-          curl -O https://desktop.docker.com/win/main/amd64/Docker%20Desktop%20Installer.exe
-          ls -ltr
-          docker info --format '{{.OSType}}'
+          wsl --version
+          wsl --list --verbose
+          wsl --status
 
       - name: Setup Helm
         uses: azure/setup-helm@29960d0f5f19214b88e1d9ba750a9914ab0f1a2f # v4.0.0
@@ -168,14 +170,9 @@ jobs:
         if: ${{ runner.os == 'linux' && inputs.enable-e2e-tests && !cancelled() && !failure() }}
         run: docker image pull kindest/node:v1.27.3@sha256:3966ac761ae0136263ffdb6cfd4db23ef8a83cba8a463690e98317add2c9ba72
 
-      - name: Setup E2E Tests Windows
-        if: ${{ runner.os == 'Windows' && inputs.enable-e2e-tests && !cancelled() && !failure() }}
-        run: |
-          npm link
-           ./test/e2e/setup-e2e-windows.sh
 
       - name: Setup E2E Tests Linux
-        if: ${{ runner.os == 'linux' && inputs.enable-e2e-tests && !cancelled() && !failure() }}
+        if: ${{ inputs.enable-e2e-tests && !cancelled() && !failure() }}
         run: | 
           npm link
           ./test/e2e/setup-e2e.sh
