@@ -89,6 +89,7 @@ jobs:
           wsl --list --verbose
 
       - shell: wsl-bash {0}
+        if: ${{ runner.os == 'Windows' && inputs.enable-e2e-tests && !cancelled() && !failure() }}
         run: pwd
 
       - name: Setup Node
