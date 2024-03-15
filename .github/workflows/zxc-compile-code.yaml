@@ -76,11 +76,27 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
 
+      - name: WSL Install
+        uses: Vampire/setup-wsl@v3
+        if: ${{ runner.os == 'Windows' &&  (inputs.enable-unit-tests || inputs.enable-e2e-tests) && !cancelled() && !failure() }}
+        with:
+          distribution: Ubuntu-22.04
+          set-as-default: 'true'
+
+      - name: Get WSL Info
+        if: ${{ runner.os == 'Windows' && inputs.enable-e2e-tests && !cancelled() && !failure() }}
+        run: |
+          wsl --list --verbose
+
+      - shell: wsl-bash {0}
+        run: pwd
+
       - name: Setup Node
         uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4.0.2
         with:
           node-version: ${{ inputs.node-version }}
           cache: npm
+
 
       - name: Setup Java
         uses: actions/setup-java@9704b39bf258b59bc04b50fa2dd55e9ed76b47a8 # v4.1.0
@@ -100,32 +116,6 @@ jobs:
           verbosity: 3
           wait: 120s
 
-      - name: Install scoop for Windows
-        id : install-scoop-windows
-        if: ${{ runner.os == 'Windows' && inputs.enable-e2e-tests && !cancelled() && !failure() }}
-        shell: pwsh
-        run: |
-          Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
-          Invoke-RestMethod -Uri https://get.scoop.sh | Invoke-Expression
-          scoop install main/kind
-          scoop install kubectl
-          Get-WindowsFeature
-#          choco install docker-cli
-#          cd "C:\ProgramData\chocolatey\lib\docker-cli\bin"
-#          dir
-
-      - name: WSL Install
-        uses: Vampire/setup-wsl@v3
-        if: ${{ runner.os == 'Windows' &&  (inputs.enable-unit-tests || inputs.enable-e2e-tests) && !cancelled() && !failure() }}
-        with:
-          distribution: Ubuntu-22.04
-          set-as-default: 'true'
-
-      - name: Get WSL Info
-        if: ${{ runner.os == 'Windows' && inputs.enable-e2e-tests && !cancelled() && !failure() }}
-        run: |
-          wsl --list --verbose
-          wsl --status
 
       - name: Setup Helm
         uses: azure/setup-helm@29960d0f5f19214b88e1d9ba750a9914ab0f1a2f # v4.0.0
