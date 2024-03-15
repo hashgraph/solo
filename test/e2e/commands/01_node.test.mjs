@@ -46,6 +46,7 @@ import {
   testLogger
 } from '../../test_util.js'
 import { AccountManager } from '../../../src/core/account_manager.mjs'
+import * as version from 'version.mjs'
 
 describe.each([
   ['v0.42.5', constants.KEY_FORMAT_PFX]
@@ -69,7 +70,7 @@ describe.each([
   argv[flags.generateTlsKeys.name] = true
   argv[flags.clusterName.name] = TEST_CLUSTER
   argv[flags.namespace.name] = namespace
-  argv[flags.fstChartVersion.name] = 'v0.22.0'
+  argv[flags.fstChartVersion.name] = version.FST_CHART_VERSION
 
   // prepare dependency manger registry
   const downloader = new PackageDownloader(testLogger)

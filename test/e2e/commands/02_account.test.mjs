@@ -32,6 +32,7 @@ import {
   Helm,
   K8, KeyManager, PackageDownloader, PlatformInstaller, Zippy
 } from '../../../src/core/index.mjs'
+import * as version from '../../../version.mjs'
 import {
   bootstrapNetwork,
   getDefaultArgv,
@@ -61,7 +62,7 @@ argv[flags.generateGossipKeys.name] = true
 argv[flags.generateTlsKeys.name] = true
 argv[flags.clusterName.name] = TEST_CLUSTER
 argv[flags.namespace.name] = namespace
-argv[flags.fstChartVersion.name] = 'v0.22.0'
+argv[flags.fstChartVersion.name] = version.FST_CHART_VERSION
 configManager.update(argv)
 
 // prepare dependency manger registry
