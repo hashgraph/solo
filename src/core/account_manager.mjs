@@ -178,7 +178,6 @@ export class AccountManager {
 
       this._nodeClient = await this._getNodeClient(namespace,
         serviceMap, treasuryAccountInfo.accountId, treasuryAccountInfo.privateKey)
-      this._nodeClient.setMaxBackoff(2000)
     }
   }
 

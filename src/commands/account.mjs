@@ -24,13 +24,14 @@ import { constants } from '../core/index.mjs'
 import { HbarUnit, PrivateKey } from '@hashgraph/sdk'
 
 export class AccountCommand extends BaseCommand {
-  constructor (opts) {
+  constructor (opts, systemAccounts = constants.SYSTEM_ACCOUNTS) {
     super(opts)
 
     if (!opts || !opts.accountManager) throw new IllegalArgumentError('An instance of core/AccountManager is required', opts.accountManager)
 
     this.accountManager = opts.accountManager
     this.accountInfo = null
+    this.systemAccounts = systemAccounts
   }
 
   async closeConnections () {
@@ -135,7 +136,7 @@ export class AccountCommand extends BaseCommand {
                 const secrets = await self.k8.getSecretsByLabel(['fullstack.hedera.com/account-id'])
                 ctx.updateSecrets = secrets.length > 0
 
-                ctx.accountsBatchedSet = self.accountManager.batchAccounts()
+                ctx.accountsBatchedSet = self.accountManager.batchAccounts(this.systemAccounts)
 
                 ctx.resultTracker = {
                   rejectedCount: 0,

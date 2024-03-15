@@ -71,7 +71,7 @@ export function getDefaultArgv () {
  * @param nodeCmd instance of NodeCommand
  */
 export function bootstrapNetwork (argv, namespace, k8, initCmd, clusterCmd, networkCmd, nodeCmd) {
-  describe('Preconfigure network for test', () => {
+  describe('Bootstrap network for test', () => {
     it('should cleanup previous deployment', async () => {
       await initCmd.init(argv)
 

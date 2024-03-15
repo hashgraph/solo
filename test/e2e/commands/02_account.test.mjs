@@ -14,189 +14,249 @@
  * limitations under the License.
  *
  */
+import { PrivateKey } from '@hashgraph/sdk'
 import {
-  afterEach,
-  beforeAll,
-  beforeEach,
+  afterAll,
   describe,
   expect,
   it
 } from '@jest/globals'
+import { ClusterCommand } from '../../../src/commands/cluster.mjs'
+import { InitCommand } from '../../../src/commands/init.mjs'
+import { NetworkCommand } from '../../../src/commands/network.mjs'
+import { NodeCommand } from '../../../src/commands/node.mjs'
 import { DependencyManager, HelmDependencyManager } from '../../../src/core/dependency_managers/index.mjs'
 import {
   ChartManager,
-  ConfigManager,
   constants,
   Helm,
-  K8, PackageDownloader, Zippy
+  K8, KeyManager, PackageDownloader, PlatformInstaller, Zippy
 } from '../../../src/core/index.mjs'
-import { getTestCacheDir, testLogger } from '../../test_util.js'
-import path from 'path'
+import {
+  bootstrapNetwork,
+  getDefaultArgv,
+  getTestCacheDir,
+  getTestConfigManager,
+  TEST_CLUSTER,
+  testLogger
+} from '../../test_util.js'
 import { AccountManager } from '../../../src/core/account_manager.mjs'
 import { AccountCommand } from '../../../src/commands/account.mjs'
 import { flags } from '../../../src/commands/index.mjs'
-import { sleep } from '../../../src/core/helpers.mjs'
 
-describe('account commands should work correctly', () => {
-  const defaultTimeout = 20000
-  let accountCmd
-  let accountManager
-  let configManager
-  let k8
-  let helm
-  let chartManager
-  let argv = {}
-  let accountId1
-  let accountId2
+const testName = 'account-cmd-e2e'
+const namespace = testName
+const helm = new Helm(testLogger)
+const chartManager = new ChartManager(helm, testLogger)
+const configManager = getTestConfigManager(`${testName}-solo.config`)
+const cacheDir = getTestCacheDir(testName)
 
-  beforeAll(() => {
-    configManager = new ConfigManager(testLogger, path.join(getTestCacheDir('accountCmd'), 'solo.config'))
-    k8 = new K8(configManager, testLogger)
-    accountManager = new AccountManager(testLogger, k8, constants)
-    helm = new Helm(testLogger)
-    chartManager = new ChartManager(helm, testLogger)
-    const downloader = new PackageDownloader(testLogger)
-    const zippy = new Zippy(testLogger)
-    const helmDepManager = new HelmDependencyManager(downloader, zippy, testLogger)
-    const depManagerMap = new Map().set(constants.HELM, helmDepManager)
-    const depManager = new DependencyManager(testLogger, depManagerMap)
+// set argv with defaults
+const argv = getDefaultArgv()
+argv[flags.releaseTag.name] = 'v0.47.0-alpha.0'
+argv[flags.keyFormat.name] = constants.KEY_FORMAT_PEM
+argv[flags.nodeIDs.name] = 'node0,node1,node2'
+argv[flags.cacheDir.name] = cacheDir
+argv[flags.generateGossipKeys.name] = true
+argv[flags.generateTlsKeys.name] = true
+argv[flags.clusterName.name] = TEST_CLUSTER
+argv[flags.namespace.name] = namespace
+argv[flags.fstChartVersion.name] = 'v0.22.0'
+configManager.update(argv)
 
-    accountCmd = new AccountCommand({
-      logger: testLogger,
-      helm,
-      k8,
-      chartManager,
-      configManager,
-      depManager,
-      accountManager
+// prepare dependency manger registry
+const downloader = new PackageDownloader(testLogger)
+const zippy = new Zippy(testLogger)
+const helmDepManager = new HelmDependencyManager(downloader, zippy, testLogger)
+const depManagerMap = new Map().set(constants.HELM, helmDepManager)
+const depManager = new DependencyManager(testLogger, depManagerMap)
+
+const k8 = new K8(configManager, testLogger)
+const platformInstaller = new PlatformInstaller(testLogger, k8)
+const keyManager = new KeyManager(testLogger)
+const accountManager = new AccountManager(testLogger, k8, constants)
+
+// reduce the total number of system accounts to be updated. This is to reduce total test execution time.
+const testSystemAccounts = [[5, 7]]
+
+// initialize command instances
+const opts = {
+  logger: testLogger,
+  helm,
+  k8,
+  chartManager,
+  configManager,
+  downloader,
+  platformInstaller,
+  depManager,
+  keyManager,
+  accountManager
+}
+const nodeCmd = new NodeCommand(opts)
+const initCmd = new InitCommand(opts)
+const clusterCmd = new ClusterCommand(opts)
+const networkCmd = new NetworkCommand(opts)
+const accountCmd = new AccountCommand(opts, testSystemAccounts)
+
+const defaultTimeout = 20000
+describe('AccountCommand', () => {
+  bootstrapNetwork(argv, namespace, k8, initCmd, clusterCmd, networkCmd, nodeCmd)
+
+  afterAll(async () => {
+    // await k8.deleteNamespace(namespace)
+    await accountManager.close()
+  })
+
+  describe('node proxies should be UP', () => {
+    for (const nodeId of argv[flags.nodeIDs.name].split(',')) {
+      it(`proxy for node ${nodeId} should be UP`, async () => {
+        await nodeCmd.checkNetworkNodeProxyUp(namespace, nodeId, 10)
+      })
+    }
+  })
+
+  describe('account init command', () => {
+    it('should succeed with init command', async () => {
+      const status = await accountCmd.init(argv, testSystemAccounts)
+      expect(status).toBeTruthy()
+    }, 60000)
+
+    describe('special accounts should have new keys', () => {
+      const genesisKey = PrivateKey.fromStringED25519(constants.GENESIS_KEY)
+      const realm = constants.HEDERA_NODE_ACCOUNT_ID_START.realm
+      const shard = constants.HEDERA_NODE_ACCOUNT_ID_START.shard
+
+      for (const [start, end] of testSystemAccounts) {
+        for (let i = start; i <= end; i++) {
+          it(`account ${i} should not have genesis key`, async () => {
+            expect(accountManager._nodeClient).not.toBeNull()
+            const accountId = `${realm}.${shard}.${i}`
+            nodeCmd.logger.info(`Fetching account keys: accountId ${accountId}`)
+            const keys = await accountManager.getAccountKeys(accountId)
+            nodeCmd.logger.info(`Fetched account keys: accountId ${accountId}`)
+            expect(keys[0].toString()).not.toEqual(genesisKey.toString())
+          }, 20000)
+        }
+      }
     })
   })
 
-  beforeEach(() => {
-    configManager.reset()
-    argv = {}
-    argv[flags.cacheDir.name] = getTestCacheDir('accountCmd')
-    argv[flags.namespace.name] = 'solo-e2e'
-    argv[flags.clusterName.name] = 'kind-solo-e2e'
-    argv[flags.clusterSetupNamespace.name] = 'solo-e2e-cluster'
-    configManager.update(argv, true)
+  describe('account create/update command', () => {
+    let accountId1, accountId2
+
+    it('should create account with no options', async () => {
+      try {
+        argv[flags.amount.name] = 200
+        await expect(accountCmd.create(argv)).resolves.toBeTruthy()
+        const accountInfo = accountCmd.accountInfo
+        expect(accountInfo).not.toBeNull()
+        expect(accountInfo.accountId).not.toBeNull()
+        accountId1 = accountInfo.accountId
+        expect(accountInfo.privateKey).not.toBeNull()
+        expect(accountInfo.publicKey).not.toBeNull()
+        expect(accountInfo.balance).toEqual(configManager.getFlag(flags.amount))
+      } catch (e) {
+        testLogger.showUserError(e)
+        expect(e).toBeNull()
+      }
+    }, defaultTimeout)
+
+    it('should create account with private key and hbar amount options', async () => {
+      try {
+        argv[flags.privateKey.name] = constants.GENESIS_KEY
+        argv[flags.amount.name] = 777
+        configManager.update(argv, true)
+
+        await expect(accountCmd.create(argv)).resolves.toBeTruthy()
+
+        const accountInfo = accountCmd.accountInfo
+        expect(accountInfo).not.toBeNull()
+        expect(accountInfo.accountId).not.toBeNull()
+        accountId2 = accountInfo.accountId
+        expect(accountInfo.privateKey.toString()).toEqual(constants.GENESIS_KEY)
+        expect(accountInfo.publicKey).not.toBeNull()
+        expect(accountInfo.balance).toEqual(configManager.getFlag(flags.amount))
+      } catch (e) {
+        testLogger.showUserError(e)
+        expect(e).toBeNull()
+      }
+    }, defaultTimeout)
+
+    it('should update account-1', async () => {
+      try {
+        argv[flags.amount.name] = 0
+        argv[flags.accountId.name] = accountId1
+        configManager.update(argv, true)
+
+        await expect(accountCmd.update(argv)).resolves.toBeTruthy()
+
+        const accountInfo = accountCmd.accountInfo
+        expect(accountInfo).not.toBeNull()
+        expect(accountInfo.accountId).toEqual(argv[flags.accountId.name])
+        expect(accountInfo.privateKey).toBeUndefined()
+        expect(accountInfo.publicKey).not.toBeNull()
+        expect(accountInfo.balance).toEqual(200)
+      } catch (e) {
+        testLogger.showUserError(e)
+        expect(e).toBeNull()
+      }
+    }, defaultTimeout)
+
+    it('should update account-2 with accountId, amount, new private key, and standard out options', async () => {
+      try {
+        argv[flags.accountId.name] = accountId2
+        argv[flags.privateKey.name] = constants.GENESIS_KEY
+        argv[flags.amount.name] = 333
+        configManager.update(argv, true)
+
+        await expect(accountCmd.update(argv)).resolves.toBeTruthy()
+
+        const accountInfo = accountCmd.accountInfo
+        expect(accountInfo).not.toBeNull()
+        expect(accountInfo.accountId).toEqual(argv[flags.accountId.name])
+        expect(accountInfo.privateKey).toBeUndefined()
+        expect(accountInfo.publicKey).not.toBeNull()
+        expect(accountInfo.balance).toEqual(1110)
+      } catch (e) {
+        testLogger.showUserError(e)
+        expect(e).toBeNull()
+      }
+    }, defaultTimeout)
+
+    it('should be able to get account-1', async () => {
+      try {
+        argv[flags.accountId.name] = accountId1
+        configManager.update(argv, true)
+
+        await expect(accountCmd.get(argv)).resolves.toBeTruthy()
+        const accountInfo = accountCmd.accountInfo
+        expect(accountInfo).not.toBeNull()
+        expect(accountInfo.accountId).toEqual(argv[flags.accountId.name])
+        expect(accountInfo.privateKey).toBeUndefined()
+        expect(accountInfo.publicKey).toBeTruthy()
+        expect(accountInfo.balance).toEqual(200)
+      } catch (e) {
+        testLogger.showUserError(e)
+        expect(e).toBeNull()
+      }
+    }, defaultTimeout)
+
+    it('should be able to get account-2', async () => {
+      try {
+        argv[flags.accountId.name] = accountId2
+        configManager.update(argv, true)
+
+        await expect(accountCmd.get(argv)).resolves.toBeTruthy()
+        const accountInfo = accountCmd.accountInfo
+        expect(accountInfo).not.toBeNull()
+        expect(accountInfo.accountId).toEqual(argv[flags.accountId.name])
+        expect(accountInfo.privateKey).toBeUndefined()
+        expect(accountInfo.publicKey).toBeTruthy()
+        expect(accountInfo.balance).toEqual(1110)
+      } catch (e) {
+        testLogger.showUserError(e)
+        expect(e).toBeNull()
+      }
+    }, defaultTimeout)
   })
-
-  afterEach(async () => {
-    await sleep(5) // give a few ticks so that connections can close
-  })
-
-  it('account create with no options', async () => {
-    try {
-      await expect(accountCmd.create(argv)).resolves.toBeTruthy()
-
-      const accountInfo = accountCmd.accountInfo
-      expect(accountInfo).not.toBeNull()
-      expect(accountInfo.accountId).not.toBeNull()
-      accountId1 = accountInfo.accountId
-      expect(accountInfo.privateKey).not.toBeNull()
-      expect(accountInfo.publicKey).not.toBeNull()
-      expect(accountInfo.balance).toEqual(flags.amount.definition.defaultValue)
-    } catch (e) {
-      testLogger.showUserError(e)
-      expect(e).toBeNull()
-    }
-  }, defaultTimeout)
-
-  it('account create with private key and hbar amount options', async () => {
-    try {
-      argv[flags.privateKey.name] = constants.GENESIS_KEY
-      argv[flags.amount.name] = 777
-      configManager.update(argv, true)
-
-      await expect(accountCmd.create(argv)).resolves.toBeTruthy()
-
-      const accountInfo = accountCmd.accountInfo
-      expect(accountInfo).not.toBeNull()
-      expect(accountInfo.accountId).not.toBeNull()
-      accountId2 = accountInfo.accountId
-      expect(accountInfo.privateKey.toString()).toEqual(constants.GENESIS_KEY)
-      expect(accountInfo.publicKey).not.toBeNull()
-      expect(accountInfo.balance).toEqual(777)
-    } catch (e) {
-      testLogger.showUserError(e)
-      expect(e).toBeNull()
-    }
-  }, defaultTimeout)
-
-  it('account update with account', async () => {
-    try {
-      argv[flags.accountId.name] = accountId1
-      configManager.update(argv, true)
-
-      await expect(accountCmd.update(argv)).resolves.toBeTruthy()
-
-      const accountInfo = accountCmd.accountInfo
-      expect(accountInfo).not.toBeNull()
-      expect(accountInfo.accountId).toEqual(argv[flags.accountId.name])
-      expect(accountInfo.privateKey).toBeUndefined()
-      expect(accountInfo.publicKey).not.toBeNull()
-      expect(accountInfo.balance).toEqual(200)
-    } catch (e) {
-      testLogger.showUserError(e)
-      expect(e).toBeNull()
-    }
-  }, defaultTimeout)
-
-  it('account update with account, amount, new private key, and standard out options', async () => {
-    try {
-      argv[flags.accountId.name] = accountId2
-      argv[flags.privateKey.name] = constants.GENESIS_KEY
-      argv[flags.amount.name] = 333
-      configManager.update(argv, true)
-
-      await expect(accountCmd.update(argv)).resolves.toBeTruthy()
-
-      const accountInfo = accountCmd.accountInfo
-      expect(accountInfo).not.toBeNull()
-      expect(accountInfo.accountId).toEqual(argv[flags.accountId.name])
-      expect(accountInfo.privateKey).toBeUndefined()
-      expect(accountInfo.publicKey).not.toBeNull()
-      expect(accountInfo.balance).toEqual(1110)
-    } catch (e) {
-      testLogger.showUserError(e)
-      expect(e).toBeNull()
-    }
-  }, defaultTimeout)
-
-  it('account get with account option', async () => {
-    try {
-      argv[flags.accountId.name] = accountId1
-      configManager.update(argv, true)
-
-      await expect(accountCmd.get(argv)).resolves.toBeTruthy()
-      const accountInfo = accountCmd.accountInfo
-      expect(accountInfo).not.toBeNull()
-      expect(accountInfo.accountId).toEqual(argv[flags.accountId.name])
-      expect(accountInfo.privateKey).toBeUndefined()
-      expect(accountInfo.publicKey).toBeTruthy()
-      expect(accountInfo.balance).toEqual(200)
-    } catch (e) {
-      testLogger.showUserError(e)
-      expect(e).toBeNull()
-    }
-  }, defaultTimeout)
-
-  it('account get with account id option', async () => {
-    try {
-      argv[flags.accountId.name] = accountId2
-      configManager.update(argv, true)
-
-      await expect(accountCmd.get(argv)).resolves.toBeTruthy()
-      const accountInfo = accountCmd.accountInfo
-      expect(accountInfo).not.toBeNull()
-      expect(accountInfo.accountId).toEqual(argv[flags.accountId.name])
-      expect(accountInfo.privateKey).toBeUndefined()
-      expect(accountInfo.publicKey).toBeTruthy()
-      expect(accountInfo.balance).toEqual(1110)
-    } catch (e) {
-      testLogger.showUserError(e)
-      expect(e).toBeNull()
-    }
-  }, defaultTimeout)
 })
