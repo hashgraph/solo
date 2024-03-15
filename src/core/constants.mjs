@@ -59,6 +59,7 @@ export const LOG_STATUS_DONE = chalk.green('OK')
 export const LOG_GROUP_DIVIDER = chalk.yellow('----------------------------------------------------------------------------')
 
 // --------------- Charts related constants ----------------------------------------------------------------------------
+export const FULLSTACK_SETUP_NAMESPACE = 'fullstack-setup'
 export const FULLSTACK_TESTING_CHART_URL = 'https://hashgraph.github.io/full-stack-testing/charts'
 export const FULLSTACK_TESTING_CHART = 'full-stack-testing'
 export const FULLSTACK_CLUSTER_SETUP_CHART = 'fullstack-cluster-setup'

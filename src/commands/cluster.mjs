@@ -164,14 +164,16 @@ export class ClusterCommand extends BaseCommand {
       {
         title: 'Initialize',
         task: async (ctx, task) => {
-          const confirm = await task.prompt(ListrEnquirerPromptAdapter).run({
-            type: 'toggle',
-            default: false,
-            message: 'Are you sure you would like to uninstall fullstack-cluster-setup chart?'
-          })
+          if (!argv[flags.force.name]) {
+            const confirm = await task.prompt(ListrEnquirerPromptAdapter).run({
+              type: 'toggle',
+              default: false,
+              message: 'Are you sure you would like to uninstall fullstack-cluster-setup chart?'
+            })
 
-          if (!confirm) {
-            process.exit(0)
+            if (!confirm) {
+              process.exit(0)
+            }
           }
 
           self.configManager.update(argv)
@@ -282,7 +284,8 @@ export class ClusterCommand extends BaseCommand {
             desc: 'Uninstall shared components from cluster',
             builder: y => flags.setCommandFlags(y,
               flags.clusterName,
-              flags.clusterSetupNamespace
+              flags.clusterSetupNamespace,
+              flags.force
             ),
             handler: argv => {
               clusterCmd.logger.debug("==== Running 'cluster reset' ===", { argv })

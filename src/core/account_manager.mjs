@@ -215,7 +215,6 @@ export class AccountManager {
       this.logger.debug(`creating client from network configuration: ${JSON.stringify(nodes)}`)
       this._nodeClient = Client.fromConfig({ network: nodes })
       this._nodeClient.setOperator(operatorId, operatorKey)
-
       return this._nodeClient
     } catch (e) {
       throw new FullstackTestingError(`failed to setup node client: ${e.message}`, e)
@@ -401,6 +400,8 @@ export class AccountManager {
 
     return await new AccountInfoQuery()
       .setAccountId(accountId)
+      .setMaxAttempts(3)
+      .setMaxBackoff(1000)
       .execute(this._nodeClient)
   }
 

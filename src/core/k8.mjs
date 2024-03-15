@@ -119,7 +119,6 @@ export class K8 {
   filterItem (items, filters = {}) {
     const filtered = this.applyMetadataFilter(items, filters)
     if (filtered.length > 1) throw new FullstackTestingError('multiple items found with filters', { filters })
-    if (filtered.length !== 1) throw new FullstackTestingError('item not found with filters', { filters })
     return filtered[0]
   }
 

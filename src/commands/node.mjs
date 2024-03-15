@@ -543,12 +543,14 @@ export class NodeCommand extends BaseCommand {
           throw new FullstackTestingError(`Expected pod ${podName} log query to execute successful, but instead got a status of ${logResponse.response.statusCode}`)
         }
 
+        this.logger.debug(`Received HAProxy log from ${podName}`, { output: logResponse.body })
         if (logResponse.body.includes('Server be_servers/server1 is UP')) {
+          this.logger.debug(`HAProxy ${podName} is UP`)
           return true
         }
 
         attempts++
-        this.logger.debug(`Checking for pod ${podName} to realize network node is UP [attempt: ${attempts}/${maxAttempts}]`)
+        this.logger.debug(`Checking if proxy ${podName} is UP [attempt: ${attempts}/${maxAttempts}]`)
         await sleep(1000)
       }
     } else {
