@@ -117,10 +117,12 @@ jobs:
       - name: WSL Install
         uses: Vampire/setup-wsl@v3
         if: ${{ runner.os == 'Windows' &&  (inputs.enable-unit-tests || inputs.enable-e2e-tests) && !cancelled() && !failure() }}
+        with:
+          distribution: Ubuntu-22.04
+          set-as-default: 'true'
 
       - name: Get WSL Info
         if: ${{ runner.os == 'Windows' && inputs.enable-e2e-tests && !cancelled() && !failure() }}
-        shell: pwsh
         run: |
           wsl --version
           wsl --list --verbose
