@@ -142,9 +142,8 @@ export class Templates {
 
   static installationPath (
     dep,
-    installationDir = path.join(constants.SOLO_HOME_DIR, 'bin'),
     osPlatform = os.platform(),
-    osArch = os.arch()
+    installationDir = path.join(constants.SOLO_HOME_DIR, 'bin')
   ) {
     switch (dep) {
       case constants.HELM:

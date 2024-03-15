@@ -58,7 +58,7 @@ export class HelmDependencyManager extends ShellRunner {
     this.osPlatform = osPlatform
     this.osArch = ['x64', 'x86-64'].includes(osArch) ? 'amd64' : osArch
     this.helmVersion = helmVersion
-    this.helmPath = Templates.installationPath(constants.HELM, this.installationDir, this.osPlatform, this.osArch)
+    this.helmPath = Templates.installationPath(constants.HELM, this.osPlatform, this.installationDir)
 
     const fileExt = HELM_ARTIFACT_EXT.get(this.osPlatform)
     this.artifactName = util.format(HELM_ARTIFACT_TEMPLATE, this.helmVersion, this.osPlatform, this.osArch, fileExt)
@@ -103,7 +103,7 @@ export class HelmDependencyManager extends ShellRunner {
 
     // install new helm
     await this.uninstall()
-    this.helmPath = Templates.installationPath(constants.HELM, this.installationDir, this.osPlatform)
+    this.helmPath = Templates.installationPath(constants.HELM, this.osPlatform, this.installationDir)
     fs.cpSync(helmSrc, this.helmPath)
 
     if (fs.existsSync(extractedDir)) {

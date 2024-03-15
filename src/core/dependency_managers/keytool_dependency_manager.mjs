@@ -64,8 +64,8 @@ export class KeytoolDependencyManager extends ShellRunner {
     }
 
     this.javaVersion = semver.parse(javaVersion, { includePrerelease: true })
-    this.keytoolPath = Templates.installationPath(constants.KEYTOOL, this.installationDir, this.osPlatform)
-    this.keytoolPath = Templates.installationPath(constants.KEYTOOL, this.installationDir, this.osPlatform)
+    this.keytoolPath = Templates.installationPath(constants.KEYTOOL, this.osPlatform, this.installationDir)
+    this.keytoolPath = Templates.installationPath(constants.KEYTOOL, this.osPlatform, this.installationDir)
   }
 
   async _fetchKeytoolArtifactUrl () {
