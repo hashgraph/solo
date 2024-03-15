@@ -124,7 +124,6 @@ jobs:
       - name: Get WSL Info
         if: ${{ runner.os == 'Windows' && inputs.enable-e2e-tests && !cancelled() && !failure() }}
         run: |
-          wsl --version
           wsl --list --verbose
           wsl --status
 
