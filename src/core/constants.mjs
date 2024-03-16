@@ -109,11 +109,10 @@ export const KEY_FORMAT_PEM = 'pem'
 
 export const KEY_FORMAT_PFX = 'pfx'
 
-export const KEY_TYPE_GOSSIP = 'gossip'
-
-export const KEY_TYPE_TLS = 'tls'
 export const SIGNING_KEY_PREFIX = 's'
 export const AGREEMENT_KEY_PREFIX = 'a'
+
+export const PUBLIC_PFX = 'public.pfx'
 
 export const OS_WINDOWS = 'windows'
 export const OS_WIN32 = 'win32'

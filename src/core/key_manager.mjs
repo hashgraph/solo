@@ -19,7 +19,8 @@ import crypto from 'crypto'
 import fs from 'fs'
 import path from 'path'
 import { FullstackTestingError, MissingArgumentError } from './errors.mjs'
-import { constants } from './index.mjs'
+import { getTmpDir } from './helpers.mjs'
+import { constants, Keytool } from './index.mjs'
 import { Logger } from './logging.mjs'
 import { Templates } from './templates.mjs'
 
@@ -193,7 +194,10 @@ export class KeyManager {
           fs.writeFileSync(nodeKeyFiles.certificateFile, certPem + '\n', { flag: 'a' })
         })
 
-        self.logger.debug(`Stored ${keyName} key for node: ${nodeId}`, { nodeKeyFiles, cert: certPems[0] })
+        self.logger.debug(`Stored ${keyName} key for node: ${nodeId}`, {
+          nodeKeyFiles,
+          cert: certPems[0]
+        })
 
         resolve(nodeKeyFiles)
       } catch (e) {
@@ -249,7 +253,10 @@ export class KeyManager {
 
     const certChain = await new x509.X509ChainBuilder({ certificates: certs.slice(1) }).build(certs[0])
 
-    this.logger.debug(`Loaded ${keyName}-key for node: ${nodeId}`, { nodeKeyFiles, cert: certs[0].toString('pem') })
+    this.logger.debug(`Loaded ${keyName}-key for node: ${nodeId}`, {
+      nodeKeyFiles,
+      cert: certs[0].toString('pem')
+    })
     return {
       privateKey: key,
       certificate: certs[0],
@@ -492,5 +499,148 @@ export class KeyManager {
   async loadTLSKey (nodeId, keysDir) {
     const nodeKeyFiles = this.prepareTLSKeyFilePaths(nodeId, keysDir)
     return this.loadNodeKey(nodeId, keysDir, KeyManager.TLSKeyAlgo, nodeKeyFiles, 'gRPC TLS')
+  }
+
+  /**
+   * Generate PFX keys
+   *
+   * It generates keys & certs and update the following file:
+   *  - private-<nodeID>.pfx: keys & certs for the node as follows:
+   *    - s-key & cert: self-signed signing key
+   *    - a-key & cert: agreement key and signed cert
+   *    - e-key & cert: encryption key and signed cert (currently unused)
+   *  - public.pfx: all certificates of the node
+   *
+   * @param keytool an instance of Keytool class
+   * @param nodeId node id
+   * @param keysDir directory where the pfx files should be stored
+   * @return {Promise<{privatePfx: string, publicPfx: string}>}
+   */
+  async generatePfxKeys (keytool, nodeId, keysDir) {
+    if (!keytool || !(keytool instanceof Keytool)) throw new MissingArgumentError('An instance of core/Keytool is required')
+    if (!nodeId) throw new MissingArgumentError('nodeId is required')
+    if (!keysDir) throw new MissingArgumentError('keysDir is required')
+    if (!fs.existsSync(keysDir)) throw new FullstackTestingError('keysDir does not exist')
+
+    const privatePfxFile = path.join(keysDir, `private-${nodeId}.pfx`)
+    const publicPfxFile = path.join(keysDir, constants.PUBLIC_PFX)
+
+    const validity = 36424
+    const signKeyPrefix = 's'
+    const agreementKeyPrefix = 'a'
+    const encryptionKeyPrefix = 'e'
+
+    // generate private-<nodeId>.pfx files
+    const tmpDir = getTmpDir()
+    const tmpKeysFiles = new Map()
+    const tmpPrivatePfxFile = path.join(tmpDir, `private-${nodeId}.pfx`)
+    const signedKeyAlias = `${signKeyPrefix}-${nodeId}`
+
+    // signing key (s key)
+    await keytool.genKeyPair(
+      `-alias ${signedKeyAlias}`,
+      `-keystore ${tmpPrivatePfxFile}`,
+      '-storetype pkcs12',
+      '-storepass password',
+      `-dname cn=s-${nodeId}`,
+      '-keyalg rsa',
+      '-sigalg SHA384withRSA',
+      '-keysize 3072',
+      `-validity ${validity}`
+    )
+
+    // generate signed keys
+    for (const keyPrefix of [agreementKeyPrefix, encryptionKeyPrefix]) {
+      const certReqFile = path.join(tmpDir, `${nodeId}-cert-req-${keyPrefix}.pfx`)
+      const certFile = path.join(tmpDir, `${nodeId}-signed-cert-${keyPrefix}.pfx`)
+      const alias = `${keyPrefix}-${nodeId}`
+      // generate key pair
+      await keytool.genKeyPair(
+        `-alias ${alias}`,
+        `-keystore "${tmpPrivatePfxFile}"`,
+        '-storetype pkcs12',
+        '-storepass password',
+        `-dname cn=${alias}`,
+        '-keyalg ec',
+        '-sigalg SHA384withECDSA',
+        '-groupname secp384r1',
+        `-validity ${validity}`
+      )
+
+      // cert-req
+      await keytool.certReq(
+        `-alias ${alias}`,
+        `-keystore "${tmpPrivatePfxFile}"`,
+        '-storetype pkcs12',
+        '-storepass password',
+        `-file "${certReqFile}"`
+      )
+
+      // signed cert
+      await keytool.genCert(
+        `-alias ${signedKeyAlias}`,
+        `-keystore "${tmpPrivatePfxFile}"`,
+        '-storetype pkcs12',
+        '-storepass password',
+        `-validity ${validity}`,
+        `-infile "${certReqFile}"`,
+        `-outfile "${certFile}"`
+      )
+
+      // import signed cert in private-pfx file
+      await keytool.importCert(
+        `-alias ${alias}`,
+        `-keystore "${tmpPrivatePfxFile}"`,
+        '-storetype pkcs12',
+        '-storepass password',
+        `-file "${certFile}"`
+      )
+    }
+
+    tmpKeysFiles.set(nodeId, tmpPrivatePfxFile)
+
+    // generate public.pfx
+    const tmpPublicPfxFile = path.join(tmpDir, constants.PUBLIC_PFX)
+    if (fs.existsSync(publicPfxFile)) {
+      // copy existing public pfx file to update
+      fs.cpSync(publicPfxFile, tmpPublicPfxFile)
+    }
+
+    for (const keyPrefix of [signKeyPrefix, agreementKeyPrefix, encryptionKeyPrefix]) {
+      const certFile = path.join(tmpDir, `${nodeId}-cert-${keyPrefix}.pfx`)
+      const alias = `${keyPrefix}-${nodeId}`
+
+      // export signed cert
+      await keytool.exportCert(
+        `-alias ${alias}`,
+        `-keystore "${tmpPrivatePfxFile}"`,
+        '-storetype pkcs12',
+        '-storepass password',
+        `-validity ${validity}`,
+        `-file "${certFile}"`
+      )
+
+      // import signed cert
+      await keytool.importCert(
+        `-alias ${alias}`,
+        `-keystore "${tmpPublicPfxFile}"`,
+        '-storetype pkcs12',
+        '-storepass password',
+        '-noprompt',
+        `-file "${certFile}"`
+      )
+    }
+
+    // copy generated pfx files to desired location
+    fs.cpSync(tmpPublicPfxFile, publicPfxFile)
+    fs.cpSync(tmpPrivatePfxFile, privatePfxFile)
+
+    // remove tmpDir
+    fs.rmSync(tmpDir, { recursive: true })
+
+    return {
+      privatePfx: privatePfxFile,
+      publicPfx: publicPfxFile
+    }
   }
 }

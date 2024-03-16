@@ -154,7 +154,7 @@ export class PlatformInstaller {
           break
         case constants.KEY_FORMAT_PFX:
           srcFiles.push(`${stagingDir}/keys/${Templates.renderGossipPfxPrivateKeyFile(nodeId)}`)
-          srcFiles.push(`${stagingDir}/keys/public.pfx`)
+          srcFiles.push(`${stagingDir}/keys/${constants.PUBLIC_PFX}`)
           break
         default:
           throw new FullstackTestingError(`Unsupported key file format ${keyFormat}`)

@@ -330,7 +330,7 @@ export class NodeCommand extends BaseCommand {
                     case constants.KEY_FORMAT_PFX: {
                       const privateKeyFile = Templates.renderGossipPfxPrivateKeyFile(nodeId)
                       fs.cpSync(`${config.keysDir}/${privateKeyFile}`, `${config.stagingKeysDir}/${privateKeyFile}`)
-                      fs.cpSync(`${config.keysDir}/public.pfx`, `${config.stagingKeysDir}/public.pfx`)
+                      fs.cpSync(`${config.keysDir}/${constants.PUBLIC_PFX}`, `${config.stagingKeysDir}/${constants.PUBLIC_PFX}`)
                       break
                     }
 

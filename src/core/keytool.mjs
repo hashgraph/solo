@@ -15,15 +15,28 @@
  *
  */
 import os from 'os'
+import * as semver from 'semver'
+import * as version from '../../version.mjs'
 import { constants } from './index.mjs'
 import { ShellRunner } from './shell_runner.mjs'
 import { Templates } from './templates.mjs'
+import { FullstackTestingError } from './errors.mjs'
 
 export class Keytool extends ShellRunner {
   constructor (logger, osPlatform = os.platform()) {
     super(logger)
     this.osPlatform = osPlatform
     this.keytoolPath = Templates.installationPath(constants.KEYTOOL, this.osPlatform)
+    if (!this.checkVersion().then()) {
+      throw new FullstackTestingError('keytool is not available')
+    }
+  }
+
+  async checkVersion () {
+    const output = await this.run(`${this.keytoolPath} -version`)
+    const parts = output[0].split(' ')
+    this.logger.debug(`Found ${constants.KEYTOOL}:${parts[1]}`)
+    return semver.gte(parts[1], version.JAVA_VERSION)
   }
 
   /**

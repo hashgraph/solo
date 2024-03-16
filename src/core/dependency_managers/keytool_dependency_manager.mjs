@@ -34,7 +34,7 @@ export class KeytoolDependencyManager extends ShellRunner {
     downloader,
     zippy,
     logger,
-    installationDir = path.join(constants.SOLO_HOME_DIR, 'bin', 'jre'),
+    installationDir = path.join(constants.SOLO_HOME_DIR, 'bin'),
     osPlatform = os.platform(),
     osArch = os.arch(),
     javaVersion = version.JAVA_VERSION
@@ -48,6 +48,7 @@ export class KeytoolDependencyManager extends ShellRunner {
     this.downloader = downloader
     this.zippy = zippy
     this.installationDir = installationDir
+    this.jreDir = path.join(this.installationDir, 'jre')
     this.osPlatform = ['mac', 'darwin'].includes(osPlatform) ? constants.OS_MAC : osPlatform
 
     switch (osArch) {
@@ -64,7 +65,6 @@ export class KeytoolDependencyManager extends ShellRunner {
     }
 
     this.javaVersion = semver.parse(javaVersion, { includePrerelease: true })
-    this.keytoolPath = Templates.installationPath(constants.KEYTOOL, this.osPlatform, this.installationDir)
     this.keytoolPath = Templates.installationPath(constants.KEYTOOL, this.osPlatform, this.installationDir)
   }
 
@@ -108,8 +108,8 @@ export class KeytoolDependencyManager extends ShellRunner {
       await this.zippy.untar(packageFile, extractedDir)
     }
 
-    if (!fs.existsSync(this.installationDir)) {
-      fs.mkdirSync(this.installationDir)
+    if (!fs.existsSync(this.jreDir)) {
+      fs.mkdirSync(this.jreDir, { recursive: true })
     }
 
     // install new keytool
@@ -128,7 +128,7 @@ export class KeytoolDependencyManager extends ShellRunner {
       keytoolSrcPath = path.join(keytoolSrcPath, 'Contents', 'Home')
     }
 
-    fs.cpSync(keytoolSrcPath, this.installationDir, { recursive: true })
+    fs.cpSync(keytoolSrcPath, this.jreDir, { recursive: true })
 
     if (fs.existsSync(extractedDir)) {
       fs.rmSync(extractedDir, { recursive: true })

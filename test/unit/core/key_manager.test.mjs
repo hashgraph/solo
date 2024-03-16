@@ -18,8 +18,9 @@ import { describe, expect, it } from '@jest/globals'
 import fs from 'fs'
 import os from 'os'
 import path from 'path'
-import { constants, logging } from '../../../src/core/index.mjs'
-import { KeyManager } from '../../../src/core/key_manager.mjs'
+import { KeytoolDependencyManager } from '../../../src/core/dependency_managers/index.mjs'
+import { constants, Keytool, logging, PackageDownloader, Zippy, KeyManager } from '../../../src/core/index.mjs'
+import { testLogger } from '../../test_util.js'
 
 describe('KeyManager', () => {
   const logger = logging.NewLogger('debug')
@@ -106,4 +107,24 @@ describe('KeyManager', () => {
 
     fs.rmSync(tmpDir, { recursive: true })
   }, 20000)
+
+  it('should generate pfx keys', async () => {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'keys-'))
+    const nodeIds = ['node0', 'node1', 'node2']
+    const downloader = new PackageDownloader(testLogger)
+    const zippy = new Zippy(testLogger)
+    const keytoolDepManager = new KeytoolDependencyManager(downloader, zippy, testLogger)
+    await keytoolDepManager.checkVersion()
+    const keytool = new Keytool(testLogger)
+    for (const nodeId of nodeIds) {
+      const keys = await keyManager.generatePfxKeys(keytool, nodeId, tmpDir)
+      const expectedPrivatePfx = path.join(tmpDir, `private-${nodeId}.pfx`)
+      const expectedPublicPfx = path.join(tmpDir, constants.PUBLIC_PFX)
+      expect(keys.privatePfx).toStrictEqual(expectedPrivatePfx)
+      expect(keys.publicPfx).toStrictEqual(expectedPublicPfx)
+      expect(fs.existsSync(expectedPrivatePfx)).toBeTruthy()
+      expect(fs.existsSync(expectedPublicPfx)).toBeTruthy()
+    }
+    fs.rmSync(tmpDir, { recursive: true })
+  }, 60000)
 })
