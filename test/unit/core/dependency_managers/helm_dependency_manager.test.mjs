@@ -20,6 +20,7 @@ import path from 'path'
 import { HelmDependencyManager } from '../../../../src/core/dependency_managers/index.mjs'
 import { PackageDownloader, Zippy } from '../../../../src/core/index.mjs'
 import { getTestCacheDir, getTmpDir, testLogger } from '../../../test_util.js'
+import * as version from '../../../../version.mjs'
 
 describe('HelmDependencyManager', () => {
   const downloader = new PackageDownloader(testLogger)
@@ -34,6 +35,11 @@ describe('HelmDependencyManager', () => {
     if (fs.existsSync(tmpDir)) {
       fs.rmSync(tmpDir, { recursive: true })
     }
+  })
+
+  it('should return helm version', () => {
+    const helmDependencyManager = new HelmDependencyManager(downloader, zippy, testLogger, tmpDir)
+    expect(helmDependencyManager.getHelmVersion()).toStrictEqual(version.HELM_VERSION)
   })
 
   it('should be able to check when helm not installed', () => {

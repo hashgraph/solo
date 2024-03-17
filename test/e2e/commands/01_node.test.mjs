@@ -125,7 +125,7 @@ describe.each([
     argv[flags.cacheDir.name] = cacheDir
     argv[flags.force.name] = false
     argv[flags.chainId.name] = constants.HEDERA_CHAIN_ID
-    argv[flags.generateGossipKeys.name] = false
+    argv[flags.generateGossipKeys.name] = true
     argv[flags.generateTlsKeys.name] = true
     argv[flags.applicationProperties.name] = flags.applicationProperties.definition.defaultValue
     argv[flags.apiPermissionProperties.name] = flags.apiPermissionProperties.definition.defaultValue
@@ -145,12 +145,6 @@ describe.each([
     afterEach(async () => {
       await sleep(5) // give a few ticks so that connections can close
     })
-
-    it('should pre-generate keys', async () => {
-      if (argv[flags.keyFormat.name] === constants.KEY_FORMAT_PFX) {
-        await nodeCmd.run(`test/scripts/gen-legacy-keys.sh ${nodeIds.join(',')} ${path.join(cacheDir, 'keys')}`)
-      }
-    }, 60000)
 
     it('node setup should succeed', async () => {
       expect.assertions(1)
