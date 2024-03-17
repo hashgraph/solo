@@ -148,7 +148,7 @@ describe.each([
 
     it('should pre-generate keys', async () => {
       if (argv[flags.keyFormat.name] === constants.KEY_FORMAT_PFX) {
-        await nodeCmd.run(`resources/scripts/gen-legacy-keys.sh ${nodeIds.join(',')} ${path.join(cacheDir, 'keys')}`)
+        await nodeCmd.run(`test/scripts/gen-legacy-keys.sh ${nodeIds.join(',')} ${path.join(cacheDir, 'keys')}`)
       }
     }, 60000)
 

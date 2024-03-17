@@ -116,7 +116,7 @@ describe('PackageInstallerE2E', () => {
       const tmpDir = getTmpDir()
       const keysDir = path.join(tmpDir, 'keys')
       const shellRunner = new ShellRunner(testLogger)
-      await shellRunner.run(`resources/scripts/gen-legacy-keys.sh node0,node1,node2 ${keysDir}`)
+      await shellRunner.run(`test/scripts/gen-legacy-keys.sh node0,node1,node2 ${keysDir}`)
 
       await k8.execContainer(podName, constants.ROOT_CONTAINER, ['bash', '-c', `rm -f ${constants.HEDERA_HAPI_PATH}/data/keys/*`])
       const fileList = await installer.copyGossipKeys(podName, tmpDir, ['node0', 'node1', 'node2'], constants.KEY_FORMAT_PFX)
