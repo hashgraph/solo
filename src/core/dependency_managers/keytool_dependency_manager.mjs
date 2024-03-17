@@ -21,7 +21,7 @@ import * as semver from 'semver'
 import * as util from 'util'
 import { MissingArgumentError, FullstackTestingError } from '../errors.mjs'
 import * as helpers from '../helpers.mjs'
-import { constants, Templates } from '../index.mjs'
+import { constants, Keytool, Templates } from '../index.mjs'
 import * as version from '../../../version.mjs'
 import { ShellRunner } from '../shell_runner.mjs'
 import got from 'got'
@@ -150,5 +150,18 @@ export class KeytoolDependencyManager extends ShellRunner {
     const parts = output[0].split(' ')
     this.logger.debug(`Found ${constants.KEYTOOL}:${parts[1]}`)
     return semver.gte(parts[1], version.JAVA_VERSION)
+  }
+
+  getKeytool () {
+    if (this.keytool) {
+      return this.keytool
+    }
+
+    this.keytool = new Keytool(this.logger, this.osPlatform)
+    return this.keytool
+  }
+
+  getKeytoolVersion () {
+    return version.JAVA_VERSION
   }
 }

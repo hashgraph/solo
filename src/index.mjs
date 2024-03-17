@@ -71,7 +71,8 @@ export function main (argv) {
       configManager,
       depManager,
       keyManager,
-      accountManager
+      accountManager,
+      keytoolDepManager
     }
 
     const processArguments = (argv, yargs) => {

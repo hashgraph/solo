@@ -37,11 +37,13 @@ export class NodeCommand extends BaseCommand {
     if (!opts || !opts.platformInstaller) throw new IllegalArgumentError('An instance of core/PlatformInstaller is required', opts.platformInstaller)
     if (!opts || !opts.keyManager) throw new IllegalArgumentError('An instance of core/KeyManager is required', opts.keyManager)
     if (!opts || !opts.accountManager) throw new IllegalArgumentError('An instance of core/AccountManager is required', opts.accountManager)
+    if (!opts || !opts.keytoolDepManager) throw new IllegalArgumentError('An instance of KeytoolDependencyManager is required', opts.keytoolDepManager)
 
     this.downloader = opts.downloader
     this.plaformInstaller = opts.platformInstaller
     this.keyManager = opts.keyManager
     this.accountManager = opts.accountManager
+    this.keytoolDepManager = opts.keytoolDepManager
   }
 
   async checkNetworkNodePod (namespace, nodeId) {
@@ -147,51 +149,123 @@ export class NodeCommand extends BaseCommand {
     })
   }
 
-  async _genNodeKeys (keyFormat, nodeIds, keysDir, devMode = false) {
+  /**
+   * Return a list of subtasks to generate gossip keys
+   *
+   * WARNING: These tasks must run in sequence
+   *
+   * @param keyFormat key format (pem | pfx)
+   * @param nodeIds node ids
+   * @param keysDir keys directory
+   * @param curDate current date
+   * @return {*[]}
+   * @private
+   */
+  _nodeGossipKeysTaskList (keyFormat, nodeIds, keysDir, curDate = new Date()) {
+    const self = this
     const nodeKeyFiles = new Map()
+    const subTasks = []
+
     switch (keyFormat) {
       case constants.KEY_FORMAT_PFX:
-        await this.run(`${constants.RESOURCES_DIR}/scripts/gen-legacy-keys.sh ${nodeIds.join(',')} ${keysDir}`)
-        break
-      case constants.KEY_FORMAT_PEM:
+        subTasks.push({
+          title: `Check keytool exists (Version: ${self.keytoolDepManager.getKeytoolVersion()})`,
+          task: async () => self.keytoolDepManager.checkVersion(true)
+
+        })
+
+        subTasks.push({
+          title: 'Backup old files',
+          task: () => helpers.backupOldPfxKeys(nodeIds, keysDir, curDate)
+        }
+        )
+
         for (const nodeId of nodeIds) {
-          const signingKey = await this.keyManager.generateSigningKey(nodeId)
-          const signingKeyFiles = await this.keyManager.storeSigningKey(nodeId, signingKey, keysDir)
-          this.logger.debug(`generated Gossip signing keys for node ${nodeId}`, { keyFiles: signingKeyFiles })
-
-          const agreementKey = await this.keyManager.generateAgreementKey(nodeId, signingKey)
-          const agreementKeyFiles = await this.keyManager.storeAgreementKey(nodeId, agreementKey, keysDir)
-          this.logger.debug(`generated Gossip agreement keys for node ${nodeId}`, { keyFiles: agreementKeyFiles })
-
-          nodeKeyFiles.set(nodeId, {
-            signingKey,
-            agreementKey,
-            signingKeyFiles,
-            agreementKeyFiles
+          subTasks.push({
+            title: `Gossip ${keyFormat} key for node: ${chalk.yellow(nodeId)}`,
+            task: async () => {
+              const keyFiles = await self.keyManager.generatePfxKeys(self.keytoolDepManager.getKeytool(), nodeId, keysDir)
+              nodeKeyFiles.set(nodeId, keyFiles.privatePfx)
+            }
           })
         }
 
-        if (devMode) {
-          this.logger.showUser(chalk.green('*** Generated Node Gossip Keys ***'))
-          for (const entry of nodeKeyFiles.entries()) {
-            const nodeId = entry[0]
-            const fileList = entry[1]
-            this.logger.showUser(chalk.cyan('---------------------------------------------------------------------------------------------'))
-            this.logger.showUser(chalk.cyan(`Node ID: ${nodeId}`))
-            this.logger.showUser(chalk.cyan('==========================='))
-            this.logger.showUser(chalk.green('Signing key\t\t:'), chalk.yellow(fileList.signingKeyFiles.privateKeyFile))
-            this.logger.showUser(chalk.green('Signing certificate\t:'), chalk.yellow(fileList.signingKeyFiles.certificateFile))
-            this.logger.showUser(chalk.green('Agreement key\t\t:'), chalk.yellow(fileList.agreementKeyFiles.privateKeyFile))
-            this.logger.showUser(chalk.green('Agreement certificate\t:'), chalk.yellow(fileList.agreementKeyFiles.certificateFile))
-            this.logger.showUser(chalk.blue('Inspect certificate\t: '), chalk.yellow(`openssl storeutl -noout -text -certs ${fileList.agreementKeyFiles.certificateFile}`))
-            this.logger.showUser(chalk.blue('Verify certificate\t: '), chalk.yellow(`openssl verify -CAfile ${fileList.signingKeyFiles.certificateFile} ${fileList.agreementKeyFiles.certificateFile}`))
-          }
-          this.logger.showUser(chalk.cyan('---------------------------------------------------------------------------------------------'))
-        }
         break
+
+      case constants.KEY_FORMAT_PEM:
+        subTasks.push({
+          title: 'Backup old files',
+          task: () => helpers.backupOldPemKeys(nodeIds, keysDir, curDate)
+        }
+        )
+
+        for (const nodeId of nodeIds) {
+          subTasks.push({
+            title: `Gossip ${keyFormat} key for node: ${chalk.yellow(nodeId)}`,
+            task: async () => {
+              const signingKey = await this.keyManager.generateSigningKey(nodeId)
+              const signingKeyFiles = await this.keyManager.storeSigningKey(nodeId, signingKey, keysDir)
+              this.logger.debug(`generated Gossip signing keys for node ${nodeId}`, { keyFiles: signingKeyFiles })
+
+              const agreementKey = await this.keyManager.generateAgreementKey(nodeId, signingKey)
+              const agreementKeyFiles = await this.keyManager.storeAgreementKey(nodeId, agreementKey, keysDir)
+              this.logger.debug(`generated Gossip agreement keys for node ${nodeId}`, { keyFiles: agreementKeyFiles })
+
+              nodeKeyFiles.set(nodeId, {
+                signingKey,
+                agreementKey,
+                signingKeyFiles,
+                agreementKeyFiles
+              })
+            }
+          })
+        }
+
+        break
+
       default:
         throw new FullstackTestingError(`unsupported key-format: ${keyFormat}`)
     }
+
+    return subTasks
+  }
+
+  /**
+   * Return a list of subtasks to generate gRPC TLS keys
+   *
+   * WARNING: These tasks should run in sequence
+   *
+   * @param nodeIds node ids
+   * @param keysDir keys directory
+   * @param curDate current date
+   * @return {*[]}
+   * @private
+   */
+  _nodeTlsKeyTaskList (nodeIds, keysDir, curDate = new Date()) {
+    const self = this
+    const nodeKeyFiles = new Map()
+    const subTasks = []
+
+    subTasks.push({
+      title: 'Backup old files',
+      task: () => helpers.backupOldTlsKeys(nodeIds, keysDir, curDate)
+    }
+    )
+
+    for (const nodeId of nodeIds) {
+      subTasks.push({
+        title: `TLS key for node: ${chalk.yellow(nodeId)}`,
+        task: async () => {
+          const tlsKey = await self.keyManager.generateGrpcTLSKey(nodeId)
+          const tlsKeyFiles = await self.keyManager.storeTLSKey(nodeId, tlsKey, keysDir)
+          nodeKeyFiles.set(nodeId, {
+            tlsKeyFiles
+          })
+        }
+      })
+    }
+
+    return subTasks
   }
 
   async _copyNodeKeys (nodeKey, destDir) {
@@ -233,7 +307,9 @@ export class NodeCommand extends BaseCommand {
             chainId: self.configManager.getFlag(flags.chainId),
             generateGossipKeys: self.configManager.getFlag(flags.generateGossipKeys),
             generateTlsKeys: self.configManager.getFlag(flags.generateTlsKeys),
-            keyFormat: self.configManager.getFlag(flags.keyFormat)
+            keyFormat: self.configManager.getFlag(flags.keyFormat),
+            devMode: self.configManager.getFlag(flags.devMode),
+            curDate: new Date()
           }
 
           // compute other config parameters
@@ -269,24 +345,33 @@ export class NodeCommand extends BaseCommand {
       },
       {
         title: 'Generate Gossip keys',
-        task: async (ctx, _) => {
+        task: async (ctx, parentTask) => {
           const config = ctx.config
-          await self._genNodeKeys(config.keyFormat, config.nodeIds, config.keysDir)
+          const subTasks = self._nodeGossipKeysTaskList(config.keyFormat, config.nodeIds, config.keysDir, config.curDate)
+          // set up the sub-tasks
+          return parentTask.newListr(subTasks, {
+            concurrent: true,
+            rendererOptions: {
+              collapseSubtasks: false,
+              timer: constants.LISTR_DEFAULT_RENDERER_TIMER_OPTION
+            }
+          })
         },
         skip: (ctx, _) => !ctx.config.generateGossipKeys
       },
       {
         title: 'Generate gRPC TLS keys',
-        task: async (ctx, _) => {
+        task: async (ctx, parentTask) => {
           const config = ctx.config
-          // generate TLS keys if required
-          if (config.generateTlsKeys) {
-            for (const nodeId of ctx.config.nodeIds) {
-              const tlsKeys = await self.keyManager.generateGrpcTLSKey(nodeId)
-              const tlsKeyFiles = await self.keyManager.storeTLSKey(nodeId, tlsKeys, config.keysDir)
-              self.logger.debug(`generated TLS keys for node: ${nodeId}`, { keyFiles: tlsKeyFiles })
+          const subTasks = self._nodeTlsKeyTaskList(config.nodeIds, config.keysDir, config.curDate)
+          // set up the sub-tasks
+          return parentTask.newListr(subTasks, {
+            concurrent: true,
+            rendererOptions: {
+              collapseSubtasks: false,
+              timer: constants.LISTR_DEFAULT_RENDERER_TIMER_OPTION
             }
-          }
+          })
         },
         skip: (ctx, _) => !ctx.config.generateTlsKeys
       },
@@ -816,7 +901,9 @@ export class NodeCommand extends BaseCommand {
             generateGossipKeys: self.configManager.getFlag(flags.generateGossipKeys),
             generateTlsKeys: self.configManager.getFlag(flags.generateTlsKeys),
             keyFormat: self.configManager.getFlag(flags.keyFormat),
-            keysDir: path.join(self.configManager.getFlag(flags.cacheDir), 'keys')
+            keysDir: path.join(self.configManager.getFlag(flags.cacheDir), 'keys'),
+            devMode: self.configManager.getFlag(flags.devMode),
+            curDate: new Date()
           }
 
           if (!fs.existsSync(config.keysDir)) {
@@ -828,44 +915,33 @@ export class NodeCommand extends BaseCommand {
       },
       {
         title: 'Generate gossip keys',
-        task: async (ctx, task) => {
+        task: async (ctx, parentTask) => {
           const config = ctx.config
-          if (ctx.config.generateGossipKeys) {
-            await self._genNodeKeys(config.keyFormat, config.nodeIds, config.keysDir, config.devMode)
-          }
+          const subTasks = self._nodeGossipKeysTaskList(config.keyFormat, config.nodeIds, config.keysDir, config.curDate)
+          // set up the sub-tasks
+          return parentTask.newListr(subTasks, {
+            concurrent: false,
+            rendererOptions: {
+              collapseSubtasks: false,
+              timer: constants.LISTR_DEFAULT_RENDERER_TIMER_OPTION
+            }
+          })
         },
         skip: (ctx, _) => !ctx.config.generateGossipKeys
       },
       {
         title: 'Generate gRPC TLS keys',
-        task: async (ctx, task) => {
-          const keysDir = ctx.config.keysDir
-          const nodeKeyFiles = new Map()
-          if (ctx.config.generateTlsKeys) {
-            for (const nodeId of ctx.config.nodeIds) {
-              const tlsKey = await self.keyManager.generateGrpcTLSKey(nodeId)
-              const tlsKeyFiles = await self.keyManager.storeTLSKey(nodeId, tlsKey, keysDir)
-              nodeKeyFiles.set(nodeId, {
-                tlsKeyFiles
-              })
+        task: async (ctx, parentTask) => {
+          const config = ctx.config
+          const subTasks = self._nodeTlsKeyTaskList(config.nodeIds, config.keysDir, config.curDate)
+          // set up the sub-tasks
+          return parentTask.newListr(subTasks, {
+            concurrent: true,
+            rendererOptions: {
+              collapseSubtasks: false,
+              timer: constants.LISTR_DEFAULT_RENDERER_TIMER_OPTION
             }
-
-            if (argv.dev) {
-              self.logger.showUser(chalk.green('*** Generated Node TLS Keys ***'))
-              for (const entry of nodeKeyFiles.entries()) {
-                const nodeId = entry[0]
-                const fileList = entry[1]
-                self.logger.showUser(chalk.cyan('---------------------------------------------------------------------------------------------'))
-                self.logger.showUser(chalk.cyan(`Node ID: ${nodeId}`))
-                self.logger.showUser(chalk.cyan('==========================='))
-                self.logger.showUser(chalk.green('TLS key\t\t:'), chalk.yellow(fileList.tlsKeyFiles.privateKeyFile))
-                self.logger.showUser(chalk.green('TLS certificate\t:'), chalk.yellow(fileList.tlsKeyFiles.certificateFile))
-                self.logger.showUser(chalk.blue('Inspect certificate\t: '), chalk.yellow(`openssl storeutl -noout -text -certs ${fileList.tlsKeyFiles.certificateFile}`))
-                self.logger.showUser(chalk.blue('Verify certificate\t: '), chalk.yellow(`openssl verify -CAfile ${fileList.tlsKeyFiles.certificateFile} ${fileList.tlsKeyFiles.certificateFile}`))
-              }
-              self.logger.showUser(chalk.cyan('---------------------------------------------------------------------------------------------'))
-            }
-          }
+          })
         },
         skip: (ctx, _) => !ctx.config.generateTlsKeys
       },

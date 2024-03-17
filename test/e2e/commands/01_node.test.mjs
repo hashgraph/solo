@@ -31,7 +31,11 @@ import fs from 'fs'
 import path from 'path'
 import { flags } from '../../../src/commands/index.mjs'
 import { NodeCommand } from '../../../src/commands/node.mjs'
-import { DependencyManager, HelmDependencyManager } from '../../../src/core/dependency_managers/index.mjs'
+import {
+  DependencyManager,
+  HelmDependencyManager,
+  KeytoolDependencyManager
+} from '../../../src/core/dependency_managers/index.mjs'
 import {
   ChartManager,
   ConfigManager,
@@ -54,7 +58,8 @@ const configManager = new ConfigManager(testLogger, path.join(getTestCacheDir(),
 const downloader = new PackageDownloader(testLogger)
 const zippy = new Zippy(testLogger)
 const helmDepManager = new HelmDependencyManager(downloader, zippy, testLogger)
-const depManagerMap = new Map().set(constants.HELM, helmDepManager)
+const keytoolDepManager = new KeytoolDependencyManager(downloader, zippy, testLogger)
+const depManagerMap = new Map().set(constants.HELM, helmDepManager).set(constants.KEYTOOL, keytoolDepManager)
 const depManager = new DependencyManager(testLogger, depManagerMap)
 
 const k8 = new K8(configManager, testLogger)
@@ -72,7 +77,8 @@ const nodeCmd = new NodeCommand({
   platformInstaller,
   depManager,
   keyManager,
-  accountManager
+  accountManager,
+  keytoolDepManager
 })
 
 const cacheDir = getTestCacheDir()

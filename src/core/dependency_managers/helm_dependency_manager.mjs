@@ -127,4 +127,8 @@ export class HelmDependencyManager extends ShellRunner {
     this.logger.debug(`Found ${constants.HELM}:${parts[0]}`)
     return semver.gte(parts[0], version.HELM_VERSION)
   }
+
+  getHelmVersion () {
+    return version.HELM_VERSION
+  }
 }

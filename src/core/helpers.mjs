@@ -17,10 +17,12 @@
 import fs from 'fs'
 import os from 'os'
 import path from 'path'
+import util from 'util'
 import { FullstackTestingError } from './errors.mjs'
 import * as paths from 'path'
 import { fileURLToPath } from 'url'
 import * as semver from 'semver'
+import { Templates } from './templates.mjs'
 
 // cache current directory
 const CUR_FILE_DIR = paths.dirname(fileURLToPath(import.meta.url))
@@ -82,6 +84,83 @@ export function getRootImageRepository (releaseTag) {
 
   return 'hashgraph/full-stack-testing/ubi8-init-java21'
 }
+
 export function getTmpDir () {
   return fs.mkdtempSync(path.join(os.tmpdir(), 'solo-'))
+}
+
+export function createBackupDir (destDir, prefix = 'backup', curDate = new Date()) {
+  const dateDir = util.format('%s%s%s_%s%s%s',
+    curDate.getFullYear(),
+    curDate.getMonth().toString().padStart(2, '0'),
+    curDate.getDate().toString().padStart(2, '0'),
+    curDate.getHours().toString().padStart(2, '0'),
+    curDate.getMinutes().toString().padStart(2, '0'),
+    curDate.getSeconds().toString().padStart(2, '0')
+  )
+
+  const backupDir = path.join(destDir, prefix, dateDir)
+  if (!fs.existsSync(backupDir)) {
+    fs.mkdirSync(backupDir, { recursive: true })
+  }
+
+  return backupDir
+}
+
+export function makeBackup (fileMap = new Map(), removeOld = true) {
+  for (const entry of fileMap) {
+    const srcPath = entry[0]
+    const destPath = entry[1]
+    if (fs.existsSync(srcPath)) {
+      fs.cpSync(srcPath, destPath)
+      if (removeOld) {
+        fs.rmSync(srcPath)
+      }
+    }
+  }
+}
+
+export function backupOldPfxKeys (nodeIds, keysDir, curDate = new Date(), dirPrefix = 'gossip-pfx') {
+  const backupDir = createBackupDir(keysDir, `unused-${dirPrefix}`, curDate)
+  const fileMap = new Map()
+  for (const nodeId of nodeIds) {
+    const srcPath = path.join(keysDir, `private-${nodeId}.pfx`)
+    const destPath = path.join(backupDir, `private-${nodeId}.pfx`)
+    fileMap.set(srcPath, destPath)
+  }
+
+  const srcPath = path.join(keysDir, 'public.pfx')
+  const destPath = path.join(backupDir, 'public.pfx')
+  fileMap.set(srcPath, destPath)
+  makeBackup(fileMap, true)
+
+  return backupDir
+}
+
+export function backupOldTlsKeys (nodeIds, keysDir, curDate = new Date(), dirPrefix = 'tls') {
+  const backupDir = createBackupDir(keysDir, `unused-${dirPrefix}`, curDate)
+  const fileMap = new Map()
+  for (const nodeId of nodeIds) {
+    const srcPath = path.join(keysDir, Templates.renderTLSPemPrivateKeyFile(nodeId))
+    const destPath = path.join(backupDir, Templates.renderTLSPemPublicKeyFile(nodeId))
+    fileMap.set(srcPath, destPath)
+  }
+
+  makeBackup(fileMap, true)
+
+  return backupDir
+}
+
+export function backupOldPemKeys (nodeIds, keysDir, curDate = new Date(), dirPrefix = 'gossip-pem') {
+  const backupDir = createBackupDir(keysDir, `unused-${dirPrefix}`, curDate)
+  const fileMap = new Map()
+  for (const nodeId of nodeIds) {
+    const srcPath = path.join(keysDir, Templates.renderGossipPemPrivateKeyFile(nodeId))
+    const destPath = path.join(backupDir, Templates.renderGossipPemPublicKeyFile(nodeId))
+    fileMap.set(srcPath, destPath)
+  }
+
+  makeBackup(fileMap, true)
+
+  return backupDir
 }
