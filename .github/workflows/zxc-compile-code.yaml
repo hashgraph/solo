@@ -117,8 +117,6 @@ jobs:
           sudo mv ./kind /usr/local/bin/kind
           which kind
           kind version
-          cat /etc/wsl.conf
-
 
       - name: WSL Install Docker
         if: ${{ runner.os == 'Windows' && inputs.enable-e2e-tests && !cancelled() && !failure() }}
