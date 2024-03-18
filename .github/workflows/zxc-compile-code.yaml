@@ -138,7 +138,6 @@ jobs:
           
           sudo apt-get -y install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
           # sudo systemctl start docker
-          sudo groupadd docker
           sudo usermod -aG docker $(whoami)
 
       - name: WSL Run Docker
