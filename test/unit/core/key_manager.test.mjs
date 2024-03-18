@@ -20,7 +20,7 @@ import os from 'os'
 import path from 'path'
 import { KeytoolDependencyManager } from '../../../src/core/dependency_managers/index.mjs'
 import { constants, Keytool, logging, PackageDownloader, Zippy, KeyManager } from '../../../src/core/index.mjs'
-import { testLogger } from '../../test_util.js'
+import { getTmpDir, testLogger } from '../../test_util.js'
 
 describe('KeyManager', () => {
   const logger = logging.NewLogger('debug')
@@ -109,7 +109,8 @@ describe('KeyManager', () => {
   }, 20000)
 
   it('should generate pfx keys', async () => {
-    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'keys-'))
+    const keysDir = getTmpDir()
+    const tmpDir = getTmpDir()
     const nodeIds = ['node0', 'node1', 'node2']
     const downloader = new PackageDownloader(testLogger)
     const zippy = new Zippy(testLogger)
@@ -117,14 +118,22 @@ describe('KeyManager', () => {
     await keytoolDepManager.checkVersion()
     const keytool = new Keytool(testLogger)
     for (const nodeId of nodeIds) {
-      const keys = await keyManager.generatePfxKeys(keytool, nodeId, tmpDir)
-      const expectedPrivatePfx = path.join(tmpDir, `private-${nodeId}.pfx`)
-      const expectedPublicPfx = path.join(tmpDir, constants.PUBLIC_PFX)
-      expect(keys.privatePfx).toStrictEqual(expectedPrivatePfx)
-      expect(keys.publicPfx).toStrictEqual(expectedPublicPfx)
+      const result = await keyManager.generatePrivatePfxKeys(keytool, nodeId, keysDir, tmpDir)
+      const expectedPrivatePfx = path.join(keysDir, `private-${nodeId}.pfx`)
+      expect(result).toStrictEqual(expectedPrivatePfx)
       expect(fs.existsSync(expectedPrivatePfx)).toBeTruthy()
-      expect(fs.existsSync(expectedPublicPfx)).toBeTruthy()
+      const output = await keytool.list(`-storetype pkcs12 -storepass password -keystore ${expectedPrivatePfx}`)
+      expect(output.includes('Your keystore contains 3 entries')).toBeTruthy()
     }
+
+    const result = await keyManager.updatePublicPfxKey(keytool, nodeIds, keysDir, tmpDir)
+    const expectedPublicPfx = path.join(keysDir, constants.PUBLIC_PFX)
+    expect(result).toStrictEqual(expectedPublicPfx)
+    expect(fs.existsSync(expectedPublicPfx)).toBeTruthy()
+
+    const output = await keytool.list(`-storetype pkcs12 -storepass password -keystore ${expectedPublicPfx}`)
+    expect(output.includes('Your keystore contains 9 entries')).toBeTruthy()
+    fs.rmSync(keysDir, { recursive: true })
     fs.rmSync(tmpDir, { recursive: true })
   }, 60000)
 })

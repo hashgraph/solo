@@ -153,7 +153,7 @@ describe.each([
         nodeCmd.logger.showUserError(e)
         expect(e).toBeNull()
       }
-    }, 60000)
+    }, 120000)
 
     it('node start should succeed', async () => {
       expect.assertions(1)

@@ -27,8 +27,6 @@ import { Templates } from './templates.mjs'
 x509.cryptoProvider.set(crypto)
 
 export class KeyManager {
-  static CertificateExpiryYears = 10
-
   static SigningKeyAlgo = {
     name: 'RSASSA-PKCS1-v1_5',
     hash: 'SHA-384',
@@ -286,7 +284,7 @@ export class KeyManager {
         serialNumber: '01',
         name: `CN=${friendlyName}`,
         notBefore: curDate,
-        notAfter: new Date().setFullYear(curDate.getFullYear() + KeyManager.CertificateExpiryYears),
+        notAfter: new Date().setFullYear(curDate.getFullYear() + constants.CERTIFICATE_VALIDITY_YEARS),
         keys: keypair,
         extensions: [
           new x509.BasicConstraintsExtension(true, 1, true),
@@ -348,7 +346,7 @@ export class KeyManager {
 
     try {
       const curDate = new Date()
-      const notAfter = new Date().setFullYear(curDate.getFullYear() + KeyManager.CertificateExpiryYears)
+      const notAfter = new Date().setFullYear(curDate.getFullYear() + constants.CERTIFICATE_VALIDITY_YEARS)
       const friendlyName = Templates.renderNodeFriendlyName(keyPrefix, nodeId)
 
       this.logger.debug(`generating ${keyPrefix}-key for node: ${nodeId}`, { friendlyName })
@@ -452,7 +450,7 @@ export class KeyManager {
         serialNumber: '01',
         name: distinguishedName,
         notBefore: curDate,
-        notAfter: new Date().setFullYear(curDate.getFullYear() + KeyManager.CertificateExpiryYears),
+        notAfter: new Date().setFullYear(curDate.getFullYear() + constants.CERTIFICATE_VALIDITY_YEARS),
         keys: keypair,
         extensions:
           [
@@ -502,39 +500,29 @@ export class KeyManager {
   }
 
   /**
-   * Generate PFX keys
+   * Generate PFX private key file
    *
-   * It generates keys & certs and update the following file:
-   *  - private-<nodeID>.pfx: keys & certs for the node as follows:
+   * It generates 'private-<nodeID>.pfx' containing:
    *    - s-key & cert: self-signed signing key
    *    - a-key & cert: agreement key and signed cert
    *    - e-key & cert: encryption key and signed cert (currently unused)
-   *  - public.pfx: all certificates of the node
    *
    * @param keytool an instance of Keytool class
    * @param nodeId node id
    * @param keysDir directory where the pfx files should be stored
-   * @return {Promise<{privatePfx: string, publicPfx: string}>}
+   * @param tmpDir tmp directory where intermediate files can be stored.
+   * @return {Promise<string>} path to the pfx file
    */
-  async generatePfxKeys (keytool, nodeId, keysDir) {
+  async generatePrivatePfxKeys (keytool, nodeId, keysDir, tmpDir = getTmpDir()) {
     if (!keytool || !(keytool instanceof Keytool)) throw new MissingArgumentError('An instance of core/Keytool is required')
     if (!nodeId) throw new MissingArgumentError('nodeId is required')
     if (!keysDir) throw new MissingArgumentError('keysDir is required')
-    if (!fs.existsSync(keysDir)) throw new FullstackTestingError('keysDir does not exist')
+    if (!fs.existsSync(keysDir)) throw new MissingArgumentError('keysDir does not exist')
 
     const privatePfxFile = path.join(keysDir, `private-${nodeId}.pfx`)
-    const publicPfxFile = path.join(keysDir, constants.PUBLIC_PFX)
-
-    const validity = 36424
-    const signKeyPrefix = 's'
-    const agreementKeyPrefix = 'a'
-    const encryptionKeyPrefix = 'e'
-
-    // generate private-<nodeId>.pfx files
-    const tmpDir = getTmpDir()
-    const tmpKeysFiles = new Map()
+    const validity = constants.CERTIFICATE_VALIDITY_YEARS * 365
     const tmpPrivatePfxFile = path.join(tmpDir, `private-${nodeId}.pfx`)
-    const signedKeyAlias = `${signKeyPrefix}-${nodeId}`
+    const signedKeyAlias = `${constants.SIGNING_KEY_PREFIX}-${nodeId}`
 
     // signing key (s key)
     await keytool.genKeyPair(
@@ -549,8 +537,8 @@ export class KeyManager {
       `-validity ${validity}`
     )
 
-    // generate signed keys
-    for (const keyPrefix of [agreementKeyPrefix, encryptionKeyPrefix]) {
+    // generate signed keys (a-key and e-key)
+    for (const keyPrefix of [constants.AGREEMENT_KEY_PREFIX, constants.ENCRYPTION_KEY_PREFIX]) {
       const certReqFile = path.join(tmpDir, `${nodeId}-cert-req-${keyPrefix}.pfx`)
       const certFile = path.join(tmpDir, `${nodeId}-signed-cert-${keyPrefix}.pfx`)
       const alias = `${keyPrefix}-${nodeId}`
@@ -597,50 +585,71 @@ export class KeyManager {
       )
     }
 
-    tmpKeysFiles.set(nodeId, tmpPrivatePfxFile)
+    this.logger.debug(`Copying generated private pfx file: ${tmpPrivatePfxFile} -> ${privatePfxFile}`)
+    fs.cpSync(tmpPrivatePfxFile, privatePfxFile)
 
-    // generate public.pfx
+    return privatePfxFile
+  }
+
+  /**
+   * Update PFX public key file
+   *
+   * WARNING: do not invoke this method in parallel as the same public.pfx will be modified for the given node ids.
+   *
+   * @param keytool an instance of core/Keytool
+   * @param nodeIds node Ids
+   * @param keysDir keys directory
+   * @param tmpDir tmp directory where intermediate files can be stored.
+   * @return {Promise<string>}
+   */
+  async updatePublicPfxKey (keytool, nodeIds, keysDir, tmpDir = getTmpDir()) {
+    if (!keytool || !(keytool instanceof Keytool)) throw new MissingArgumentError('An instance of core/Keytool is required')
+    if (!nodeIds) throw new MissingArgumentError('nodeId is required')
+    if (!keysDir) throw new MissingArgumentError('keysDir is required')
+    if (!fs.existsSync(keysDir)) throw new MissingArgumentError('keysDir does not exist')
+
+    const publicPfxFile = path.join(keysDir, 'public.pfx')
+    const validity = constants.CERTIFICATE_VALIDITY_YEARS * 365
     const tmpPublicPfxFile = path.join(tmpDir, constants.PUBLIC_PFX)
     if (fs.existsSync(publicPfxFile)) {
-      // copy existing public pfx file to update
       fs.cpSync(publicPfxFile, tmpPublicPfxFile)
     }
 
-    for (const keyPrefix of [signKeyPrefix, agreementKeyPrefix, encryptionKeyPrefix]) {
-      const certFile = path.join(tmpDir, `${nodeId}-cert-${keyPrefix}.pfx`)
-      const alias = `${keyPrefix}-${nodeId}`
+    for (const nodeId of nodeIds) {
+      const privatePfxFile = path.join(keysDir, `private-${nodeId}.pfx`)
+      if (!fs.existsSync(privatePfxFile)) throw new FullstackTestingError(`private pfx ${privatePfxFile} file does not exist`)
 
-      // export signed cert
-      await keytool.exportCert(
-        `-alias ${alias}`,
-        `-keystore "${tmpPrivatePfxFile}"`,
-        '-storetype pkcs12',
-        '-storepass password',
-        `-validity ${validity}`,
-        `-file "${certFile}"`
-      )
+      for (const keyPrefix of
+        [constants.SIGNING_KEY_PREFIX, constants.AGREEMENT_KEY_PREFIX, constants.ENCRYPTION_KEY_PREFIX]) {
+        const certFile = path.join(tmpDir, `${nodeId}-cert-${keyPrefix}.pfx`)
+        const alias = `${keyPrefix}-${nodeId}`
 
-      // import signed cert
-      await keytool.importCert(
-        `-alias ${alias}`,
-        `-keystore "${tmpPublicPfxFile}"`,
-        '-storetype pkcs12',
-        '-storepass password',
-        '-noprompt',
-        `-file "${certFile}"`
-      )
+        // export signed cert
+        await keytool.exportCert(
+          `-alias ${alias}`,
+          `-keystore "${privatePfxFile}"`,
+          '-storetype pkcs12',
+          '-storepass password',
+          `-validity ${validity}`,
+          `-file "${certFile}"`
+        )
+
+        // import signed cert
+        await keytool.importCert(
+          `-alias ${alias}`,
+          `-keystore "${tmpPublicPfxFile}"`,
+          '-storetype pkcs12',
+          '-storepass password',
+          '-noprompt',
+          `-file "${certFile}"`
+        )
+      }
     }
 
-    // copy generated pfx files to desired location
+    // copy generated pfx file to desired location
+    this.logger.debug(`Copying generated public.pfx file: ${tmpPublicPfxFile} -> ${publicPfxFile}`)
     fs.cpSync(tmpPublicPfxFile, publicPfxFile)
-    fs.cpSync(tmpPrivatePfxFile, privatePfxFile)
 
-    // remove tmpDir
-    fs.rmSync(tmpDir, { recursive: true })
-
-    return {
-      privatePfx: privatePfxFile,
-      publicPfx: publicPfxFile
-    }
+    return publicPfxFile
   }
 }

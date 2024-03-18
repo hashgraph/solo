@@ -20,7 +20,7 @@ import { Listr } from 'listr2'
 import path from 'path'
 import { FullstackTestingError, IllegalArgumentError } from '../core/errors.mjs'
 import * as helpers from '../core/helpers.mjs'
-import { sleep } from '../core/helpers.mjs'
+import { getTmpDir, sleep } from '../core/helpers.mjs'
 import { constants, Templates } from '../core/index.mjs'
 import { BaseCommand } from './base.mjs'
 import * as flags from './flags.mjs'
@@ -152,7 +152,7 @@ export class NodeCommand extends BaseCommand {
   /**
    * Return a list of subtasks to generate gossip keys
    *
-   * WARNING: These tasks must run in sequence
+   * WARNING: These tasks MUST run in sequence.
    *
    * @param keyFormat key format (pem | pfx)
    * @param nodeIds node ids
@@ -163,11 +163,13 @@ export class NodeCommand extends BaseCommand {
    */
   _nodeGossipKeysTaskList (keyFormat, nodeIds, keysDir, curDate = new Date()) {
     const self = this
-    const nodeKeyFiles = new Map()
     const subTasks = []
 
     switch (keyFormat) {
-      case constants.KEY_FORMAT_PFX:
+      case constants.KEY_FORMAT_PFX: {
+        const tmpDir = getTmpDir()
+        const keytool = self.keytoolDepManager.getKeytool()
+
         subTasks.push({
           title: `Check keytool exists (Version: ${self.keytoolDepManager.getKeytoolVersion()})`,
           task: async () => self.keytoolDepManager.checkVersion(true)
@@ -177,22 +179,44 @@ export class NodeCommand extends BaseCommand {
         subTasks.push({
           title: 'Backup old files',
           task: () => helpers.backupOldPfxKeys(nodeIds, keysDir, curDate)
-        }
-        )
+        })
 
         for (const nodeId of nodeIds) {
           subTasks.push({
-            title: `Gossip ${keyFormat} key for node: ${chalk.yellow(nodeId)}`,
+            title: `Generate ${Templates.renderGossipPfxPrivateKeyFile(nodeId)} for node: ${chalk.yellow(nodeId)}`,
             task: async () => {
-              const keyFiles = await self.keyManager.generatePfxKeys(self.keytoolDepManager.getKeytool(), nodeId, keysDir)
-              nodeKeyFiles.set(nodeId, keyFiles.privatePfx)
+              const privatePfxFile = await self.keyManager.generatePrivatePfxKeys(keytool, nodeId, keysDir, tmpDir)
+              const output = await keytool.list(`-storetype pkcs12 -storepass password -keystore ${privatePfxFile}`)
+              if (!output.includes('Your keystore contains 3 entries')) {
+                throw new FullstackTestingError(`malformed private pfx file: ${privatePfxFile}`)
+              }
             }
           })
         }
 
-        break
+        subTasks.push({
+          title: `Generate ${constants.PUBLIC_PFX} file`,
+          task: async () => {
+            const publicPfxFile = await self.keyManager.updatePublicPfxKey(self.keytoolDepManager.getKeytool(), nodeIds, keysDir, tmpDir)
+            const output = await keytool.list(`-storetype pkcs12 -storepass password -keystore ${publicPfxFile}`)
+            if (!output.includes('Your keystore contains 9 entries')) {
+              throw new FullstackTestingError(`malformed public.pfx file: ${publicPfxFile}`)
+            }
+          }
+        })
 
-      case constants.KEY_FORMAT_PEM:
+        subTasks.push({
+          title: 'Clean up temp files',
+          task: async () => {
+            if (fs.existsSync(tmpDir)) {
+              fs.rmSync(tmpDir, { recursive: true })
+            }
+          }
+        })
+        break
+      }
+
+      case constants.KEY_FORMAT_PEM: {
         subTasks.push({
           title: 'Backup old files',
           task: () => helpers.backupOldPemKeys(nodeIds, keysDir, curDate)
@@ -210,18 +234,12 @@ export class NodeCommand extends BaseCommand {
               const agreementKey = await this.keyManager.generateAgreementKey(nodeId, signingKey)
               const agreementKeyFiles = await this.keyManager.storeAgreementKey(nodeId, agreementKey, keysDir)
               this.logger.debug(`generated Gossip agreement keys for node ${nodeId}`, { keyFiles: agreementKeyFiles })
-
-              nodeKeyFiles.set(nodeId, {
-                signingKey,
-                agreementKey,
-                signingKeyFiles,
-                agreementKeyFiles
-              })
             }
           })
         }
 
         break
+      }
 
       default:
         throw new FullstackTestingError(`unsupported key-format: ${keyFormat}`)
@@ -350,7 +368,7 @@ export class NodeCommand extends BaseCommand {
           const subTasks = self._nodeGossipKeysTaskList(config.keyFormat, config.nodeIds, config.keysDir, config.curDate)
           // set up the sub-tasks
           return parentTask.newListr(subTasks, {
-            concurrent: true,
+            concurrent: false,
             rendererOptions: {
               collapseSubtasks: false,
               timer: constants.LISTR_DEFAULT_RENDERER_TIMER_OPTION
@@ -366,7 +384,7 @@ export class NodeCommand extends BaseCommand {
           const subTasks = self._nodeTlsKeyTaskList(config.nodeIds, config.keysDir, config.curDate)
           // set up the sub-tasks
           return parentTask.newListr(subTasks, {
-            concurrent: true,
+            concurrent: false,
             rendererOptions: {
               collapseSubtasks: false,
               timer: constants.LISTR_DEFAULT_RENDERER_TIMER_OPTION
