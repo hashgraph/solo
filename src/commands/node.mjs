@@ -528,7 +528,7 @@ export class NodeCommand extends BaseCommand {
     return true
   }
 
-  async checkNetworkNodeProxyUp (namespace, nodeId, maxAttempts = 5, delay = 5000) {
+  async checkNetworkNodeProxyUp (namespace, nodeId, maxAttempts = 10, delay = 5000) {
     const podArray = await this.k8.getPodsByLabel([`app=haproxy-${nodeId}`, 'fullstack.hedera.com/type=haproxy'])
 
     let attempts = 0

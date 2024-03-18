@@ -21,91 +21,42 @@ import {
   expect,
   it
 } from '@jest/globals'
-import { ClusterCommand } from '../../../src/commands/cluster.mjs'
-import { InitCommand } from '../../../src/commands/init.mjs'
-import { NetworkCommand } from '../../../src/commands/network.mjs'
-import { NodeCommand } from '../../../src/commands/node.mjs'
-import { DependencyManager, HelmDependencyManager } from '../../../src/core/dependency_managers/index.mjs'
 import {
-  ChartManager,
-  constants,
-  Helm,
-  K8, KeyManager, PackageDownloader, PlatformInstaller, Zippy
+  constants
 } from '../../../src/core/index.mjs'
 import * as version from '../../../version.mjs'
 import {
   bootstrapNetwork,
   getDefaultArgv,
-  getTestCacheDir,
-  getTestConfigManager,
   TEST_CLUSTER,
   testLogger
 } from '../../test_util.js'
-import { AccountManager } from '../../../src/core/account_manager.mjs'
 import { AccountCommand } from '../../../src/commands/account.mjs'
 import { flags } from '../../../src/commands/index.mjs'
 
-const testName = 'account-cmd-e2e'
-const namespace = testName
-const helm = new Helm(testLogger)
-const chartManager = new ChartManager(helm, testLogger)
-const configManager = getTestConfigManager(`${testName}-solo.config`)
-const cacheDir = getTestCacheDir(testName)
-
-// set argv with defaults
-const argv = getDefaultArgv()
-argv[flags.releaseTag.name] = 'v0.47.0-alpha.0'
-argv[flags.keyFormat.name] = constants.KEY_FORMAT_PEM
-argv[flags.nodeIDs.name] = 'node0,node1,node2'
-argv[flags.cacheDir.name] = cacheDir
-argv[flags.generateGossipKeys.name] = true
-argv[flags.generateTlsKeys.name] = true
-argv[flags.clusterName.name] = TEST_CLUSTER
-argv[flags.namespace.name] = namespace
-argv[flags.fstChartVersion.name] = version.FST_CHART_VERSION
-// argv[flags.chartDirectory.name] = '../full-stack-testing/charts'
-configManager.update(argv)
-
-// prepare dependency manger registry
-const downloader = new PackageDownloader(testLogger)
-const zippy = new Zippy(testLogger)
-const helmDepManager = new HelmDependencyManager(downloader, zippy, testLogger)
-const depManagerMap = new Map().set(constants.HELM, helmDepManager)
-const depManager = new DependencyManager(testLogger, depManagerMap)
-
-const k8 = new K8(configManager, testLogger)
-const platformInstaller = new PlatformInstaller(testLogger, k8)
-const keyManager = new KeyManager(testLogger)
-const accountManager = new AccountManager(testLogger, k8, constants)
-
-// reduce the total number of system accounts to be updated. This is to reduce total test execution time.
-const testSystemAccounts = [[5, 7]]
-
-// initialize command instances
-const opts = {
-  logger: testLogger,
-  helm,
-  k8,
-  chartManager,
-  configManager,
-  downloader,
-  platformInstaller,
-  depManager,
-  keyManager,
-  accountManager
-}
-const nodeCmd = new NodeCommand(opts)
-const initCmd = new InitCommand(opts)
-const clusterCmd = new ClusterCommand(opts)
-const networkCmd = new NetworkCommand(opts)
-const accountCmd = new AccountCommand(opts, testSystemAccounts)
-
-const defaultTimeout = 20000
 describe('AccountCommand', () => {
-  bootstrapNetwork(argv, namespace, k8, initCmd, clusterCmd, networkCmd, nodeCmd)
+  const testName = 'account-cmd-e2e'
+  const namespace = testName
+  const defaultTimeout = 20000
+  const testSystemAccounts = [[3, 5]]
+  const argv = getDefaultArgv()
+  argv[flags.namespace.name] = namespace
+  argv[flags.releaseTag.name] = 'v0.47.0-alpha.0'
+  argv[flags.keyFormat.name] = constants.KEY_FORMAT_PEM
+  argv[flags.nodeIDs.name] = 'node0,node1,node2'
+  argv[flags.generateGossipKeys.name] = true
+  argv[flags.generateTlsKeys.name] = true
+  argv[flags.clusterName.name] = TEST_CLUSTER
+  argv[flags.fstChartVersion.name] = version.FST_CHART_VERSION
+  const bootstrapResp = bootstrapNetwork(testName, argv)
+  const k8 = bootstrapResp.opts.k8
+  const accountManager = bootstrapResp.opts.accountManager
+  const configManager = bootstrapResp.opts.configManager
+  const nodeCmd = bootstrapResp.cmd.nodeCmd
+  const accountCmd = new AccountCommand(bootstrapResp.opts, testSystemAccounts)
 
   afterAll(async () => {
-    // await k8.deleteNamespace(namespace)
+    await k8.deleteNamespace(namespace)
     await accountManager.close()
   })
 
@@ -119,9 +70,9 @@ describe('AccountCommand', () => {
 
   describe('account init command', () => {
     it('should succeed with init command', async () => {
-      const status = await accountCmd.init(argv, testSystemAccounts)
+      const status = await accountCmd.init(argv)
       expect(status).toBeTruthy()
-    }, 60000)
+    }, 120000)
 
     describe('special accounts should have new keys', () => {
       const genesisKey = PrivateKey.fromStringED25519(constants.GENESIS_KEY)

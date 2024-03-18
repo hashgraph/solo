@@ -17,93 +17,39 @@
 import { AccountBalanceQuery, AccountCreateTransaction, Hbar, PrivateKey } from '@hashgraph/sdk'
 import {
   afterAll,
-  beforeAll,
   describe,
   expect,
   it
 } from '@jest/globals'
-import { ClusterCommand } from '../../../src/commands/cluster.mjs'
 import { flags } from '../../../src/commands/index.mjs'
-import { InitCommand } from '../../../src/commands/init.mjs'
-import { NetworkCommand } from '../../../src/commands/network.mjs'
-import { NodeCommand } from '../../../src/commands/node.mjs'
-import { DependencyManager, HelmDependencyManager } from '../../../src/core/dependency_managers/index.mjs'
 import {
-  ChartManager,
-  Helm,
-  K8,
-  PackageDownloader,
-  PlatformInstaller,
-  constants,
-  KeyManager, Zippy
+  constants
 } from '../../../src/core/index.mjs'
 import {
   bootstrapNetwork,
   getDefaultArgv,
-  getTestCacheDir,
-  getTestConfigManager,
-  TEST_CLUSTER,
-  testLogger
+  TEST_CLUSTER
 } from '../../test_util.js'
-import { AccountManager } from '../../../src/core/account_manager.mjs'
-import * as version from 'version.mjs'
 
 describe.each([
-  ['v0.42.5', constants.KEY_FORMAT_PFX]
+  // ['v0.42.5', constants.KEY_FORMAT_PFX]
   // ['v0.47.0-alpha.0', constants.KEY_FORMAT_PFX],
-  // ['v0.47.0-alpha.0', constants.KEY_FORMAT_PEM]
+  ['v0.47.0-alpha.0', constants.KEY_FORMAT_PEM]
 ])('NodeCommand', (testRelease, testKeyFormat) => {
   const testName = 'node-cmd-e2e'
   const namespace = testName
-  const helm = new Helm(testLogger)
-  const chartManager = new ChartManager(helm, testLogger)
-  const configManager = getTestConfigManager(`${testName}-solo.config`)
-  const cacheDir = getTestCacheDir(testName)
-
-  // set argv with defaults
   const argv = getDefaultArgv()
+  argv[flags.namespace.name] = namespace
   argv[flags.releaseTag.name] = testRelease
   argv[flags.keyFormat.name] = testKeyFormat
   argv[flags.nodeIDs.name] = 'node0,node1,node2'
-  argv[flags.cacheDir.name] = cacheDir
-  argv[flags.generateGossipKeys.name] = false
+  argv[flags.generateGossipKeys.name] = true
   argv[flags.generateTlsKeys.name] = true
   argv[flags.clusterName.name] = TEST_CLUSTER
-  argv[flags.namespace.name] = namespace
-  argv[flags.fstChartVersion.name] = version.FST_CHART_VERSION
-
-  // prepare dependency manger registry
-  const downloader = new PackageDownloader(testLogger)
-  const zippy = new Zippy(testLogger)
-  const helmDepManager = new HelmDependencyManager(downloader, zippy, testLogger)
-  const depManagerMap = new Map().set(constants.HELM, helmDepManager)
-  const depManager = new DependencyManager(testLogger, depManagerMap)
-
-  const k8 = new K8(configManager, testLogger)
-  const platformInstaller = new PlatformInstaller(testLogger, k8)
-  const keyManager = new KeyManager(testLogger)
-  const accountManager = new AccountManager(testLogger, k8, constants)
-
-  const opts = {
-    logger: testLogger,
-    helm,
-    k8,
-    chartManager,
-    configManager,
-    downloader,
-    platformInstaller,
-    depManager,
-    keyManager,
-    accountManager
-  }
-  const nodeCmd = new NodeCommand(opts)
-  const initCmd = new InitCommand(opts)
-  const clusterCmd = new ClusterCommand(opts)
-  const networkCmd = new NetworkCommand(opts)
-
-  beforeAll(async () => {
-    configManager.update(argv)
-  })
+  const bootstrapResp = bootstrapNetwork(testName, argv)
+  const accountManager = bootstrapResp.opts.accountManager
+  const k8 = bootstrapResp.opts.k8
+  const nodeCmd = bootstrapResp.cmd.nodeCmd
 
   afterAll(async () => {
     await k8.deleteNamespace(namespace)
@@ -111,8 +57,6 @@ describe.each([
   })
 
   describe(`Node should start successfully [release ${testRelease}, keyFormat: ${testKeyFormat}]`, () => {
-    bootstrapNetwork(argv, namespace, k8, initCmd, clusterCmd, networkCmd, nodeCmd)
-
     it('Balance query should succeed', async () => {
       expect.assertions(2)
 
