@@ -90,7 +90,10 @@ jobs:
 
       - shell: wsl-bash {0}
         if: ${{ runner.os == 'Windows' && inputs.enable-e2e-tests && !cancelled() && !failure() }}
-        run: pwd
+        run: |
+          pwd
+          ls -ltr
+          uname -a
 
       - name: Setup Node
         uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4.0.2
