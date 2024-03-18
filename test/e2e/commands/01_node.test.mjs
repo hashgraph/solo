@@ -140,7 +140,6 @@ describe.each([
     argv[flags.deployHederaExplorer.name] = true
     argv[flags.deployMirrorNode.name] = true
     configManager.update(argv)
-    const nodeIds = argv[flags.nodeIDs.name].split(',')
 
     afterEach(async () => {
       await sleep(5) // give a few ticks so that connections can close
