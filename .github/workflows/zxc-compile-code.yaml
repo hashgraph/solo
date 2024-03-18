@@ -152,7 +152,9 @@ jobs:
       - name: WSL Run Docker
         if: ${{ runner.os == 'Windows' && inputs.enable-e2e-tests && !cancelled() && !failure() }}
         shell: wsl-bash {0}
-        run: |          
+        run: |
+          echo $USER
+          sudo usermod -aG docker $USER
           sudo service docker restart
           sudo service docker status
           docker context ls
