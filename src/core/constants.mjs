@@ -111,6 +111,8 @@ export const KEY_FORMAT_PFX = 'pfx'
 
 export const KEY_TYPE_GOSSIP = 'gossip'
 
+export const PUBLIC_PFX = 'public.pfx'
+
 export const KEY_TYPE_TLS = 'tls'
 export const SIGNING_KEY_PREFIX = 's'
 export const AGREEMENT_KEY_PREFIX = 'a'
