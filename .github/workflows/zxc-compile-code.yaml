@@ -71,10 +71,25 @@ jobs:
       matrix:
         os:
           - windows-2022
-          - [self-hosted, Linux, medium, ephemeral]
+          - [self-hosted, Linux, Large, ephemeral]
     steps:
       - name: Checkout Code
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+
+      - name: Update WSL
+        if: ${{ runner.os == 'Windows' && inputs.enable-e2e-tests && !cancelled() && !failure() }}
+        shell: pwsh
+        run: |
+          wsl --update
+          wsl --list --online
+          wsl --set-default-version 2
+
+      - shell: wsl-bash {0}
+        if: ${{ runner.os == 'Windows' && inputs.enable-e2e-tests && !cancelled() && !failure() }}
+        run: |
+          pwd
+          ls -ltr
+          uname -a
 
       - name: WSL Install
         uses: Vampire/setup-wsl@v3
@@ -85,15 +100,10 @@ jobs:
 
       - name: Get WSL Info
         if: ${{ runner.os == 'Windows' && inputs.enable-e2e-tests && !cancelled() && !failure() }}
+        shell: pwsh
         run: |
-          wsl --list --verbose
-
-      - shell: wsl-bash {0}
-        if: ${{ runner.os == 'Windows' && inputs.enable-e2e-tests && !cancelled() && !failure() }}
-        run: |
-          pwd
-          ls -ltr
-          uname -a
+          wsl -l -v
+          wsl --set-default-version 2
 
       - name: WSL Install Helm
         if: ${{ runner.os == 'Windows' && inputs.enable-e2e-tests && !cancelled() && !failure() }}
@@ -154,10 +164,12 @@ jobs:
         shell: wsl-bash {0}
         run: |
           echo $USER
+          ls -l /var/run/docker.sock
+          stat /var/run/docker.sock
           sudo usermod -aG docker $USER
           sudo service docker restart
           sudo service docker status
-          docker context ls
+          sudo docker context ls
           sudo ps aux | grep docker
           sudo docker version
           sudo docker -D run hello-world
