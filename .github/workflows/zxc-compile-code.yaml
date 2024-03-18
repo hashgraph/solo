@@ -144,8 +144,10 @@ jobs:
         if: ${{ runner.os == 'Windows' && inputs.enable-e2e-tests && !cancelled() && !failure() }}
         shell: wsl-bash {0}
         run: |          
-          sudo service docker start
+          sudo service docker restart
           sudo service docker status
+          docker context ls
+          sudo ps aux | grep docker
           sudo docker version
           sudo docker -D run hello-world
 
