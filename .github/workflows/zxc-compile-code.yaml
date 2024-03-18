@@ -146,8 +146,8 @@ jobs:
         run: |          
           sudo service docker start
           sudo service docker status
-          sudo docker -D run hello-world
           sudo docker version
+          sudo docker -D run hello-world
 
       - name: WSL Install NodeJS
         if: ${{ runner.os == 'Windows' && inputs.enable-e2e-tests && !cancelled() && !failure() }}
