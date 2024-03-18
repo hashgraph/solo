@@ -140,6 +140,15 @@ jobs:
           # sudo systemctl start docker
           sudo usermod -aG docker $(whoami)
 
+      - name: WSL Install NodeJS
+        if: ${{ runner.os == 'Windows' && inputs.enable-e2e-tests && !cancelled() && !failure() }}
+        shell: wsl-bash {0}
+        run: |
+          curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.3/install.sh | bash
+          nvm install node
+          node -v
+          npm -v
+
       - name: WSL Run Docker
         if: ${{ runner.os == 'Windows' && inputs.enable-e2e-tests && !cancelled() && !failure() }}
         shell: wsl-bash {0}
@@ -151,14 +160,6 @@ jobs:
           sudo docker version
           sudo docker -D run hello-world
 
-      - name: WSL Install NodeJS
-        if: ${{ runner.os == 'Windows' && inputs.enable-e2e-tests && !cancelled() && !failure() }}
-        shell: wsl-bash {0}
-        run: |
-          curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.3/install.sh | bash
-          nvm install node
-          node -v
-          npm -v
 
 
 
