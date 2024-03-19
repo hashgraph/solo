@@ -70,8 +70,8 @@ jobs:
       fail-fast: false
       matrix:
         os:
-          - windows-2022
-          - [self-hosted, Linux, Large, ephemeral]
+          - [windows-2022, Large, ephemeral]
+          - [self-hosted, Linux, medium, ephemeral]
     steps:
       - name: Checkout Code
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
