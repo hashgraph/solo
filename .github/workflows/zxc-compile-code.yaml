@@ -65,13 +65,7 @@ permissions:
 jobs:
   compile:
     name: ${{ inputs.custom-job-label || 'Compiles' }}
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os:
-          - [windows-2022]
-          - [self-hosted, Linux, medium, ephemeral]
+    runs-on: solo-windows-2022-large
     steps:
       - name: Checkout Code
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
