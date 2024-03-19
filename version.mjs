@@ -21,4 +21,4 @@
 
 export const JAVA_VERSION = '21.0.1+12'
 export const HELM_VERSION = 'v3.14.2'
-export const FST_CHART_VERSION = 'v0.22.0'
+export const FST_CHART_VERSION = 'v0.23.0'

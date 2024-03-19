@@ -14,6 +14,7 @@
  * limitations under the License.
  *
  */
+import chalk from 'chalk'
 import { BaseCommand } from './base.mjs'
 import { FullstackTestingError, IllegalArgumentError } from '../core/errors.mjs'
 import { flags } from './index.mjs'
@@ -23,13 +24,14 @@ import { constants } from '../core/index.mjs'
 import { HbarUnit, PrivateKey } from '@hashgraph/sdk'
 
 export class AccountCommand extends BaseCommand {
-  constructor (opts) {
+  constructor (opts, systemAccounts = constants.SYSTEM_ACCOUNTS) {
     super(opts)
 
     if (!opts || !opts.accountManager) throw new IllegalArgumentError('An instance of core/AccountManager is required', opts.accountManager)
 
     this.accountManager = opts.accountManager
     this.accountInfo = null
+    this.systemAccounts = systemAccounts
   }
 
   async closeConnections () {
@@ -94,6 +96,120 @@ export class AccountCommand extends BaseCommand {
 
   async transferAmountFromOperator (toAccountId, amount) {
     return await this.accountManager.transferAmount(constants.TREASURY_ACCOUNT_ID, toAccountId, amount)
+  }
+
+  async init (argv) {
+    const self = this
+
+    const tasks = new Listr([
+      {
+        title: 'Initialize',
+        task: async (ctx, task) => {
+          self.configManager.update(argv)
+          await prompts.execute(task, self.configManager, [
+            flags.namespace
+          ])
+
+          const config = {
+            namespace: self.configManager.getFlag(flags.namespace)
+          }
+
+          if (!await this.k8.hasNamespace(config.namespace)) {
+            throw new FullstackTestingError(`namespace ${config.namespace} does not exist`)
+          }
+
+          // set config in the context for later tasks to use
+          ctx.config = config
+
+          self.logger.debug('Initialized config', { config })
+
+          await self.accountManager.loadNodeClient(ctx.config.namespace)
+        }
+      },
+      {
+        title: 'Update special account keys',
+        task: async (ctx, task) => {
+          return new Listr([
+            {
+              title: 'Prepare for account key updates',
+              task: async (ctx) => {
+                const secrets = await self.k8.getSecretsByLabel(['fullstack.hedera.com/account-id'])
+                ctx.updateSecrets = secrets.length > 0
+
+                ctx.accountsBatchedSet = self.accountManager.batchAccounts(this.systemAccounts)
+
+                ctx.resultTracker = {
+                  rejectedCount: 0,
+                  fulfilledCount: 0,
+                  skippedCount: 0
+                }
+              }
+            },
+            {
+              title: 'Update special account key sets',
+              task: async (ctx) => {
+                const subTasks = []
+                const realm = constants.HEDERA_NODE_ACCOUNT_ID_START.realm
+                const shard = constants.HEDERA_NODE_ACCOUNT_ID_START.shard
+                for (const currentSet of ctx.accountsBatchedSet) {
+                  const accStart = `${realm}.${shard}.${currentSet[0]}`
+                  const accEnd = `${realm}.${shard}.${currentSet[currentSet.length - 1]}`
+                  const rangeStr = accStart !== accEnd ? `${chalk.yellow(accStart)} to ${chalk.yellow(accEnd)}` : `${chalk.yellow(accStart)}`
+                  subTasks.push({
+                    title: `Updating accounts [${rangeStr}]`,
+                    task: async (ctx) => {
+                      ctx.resultTracker = await self.accountManager.updateSpecialAccountsKeys(
+                        ctx.config.namespace, currentSet,
+                        ctx.updateSecrets, ctx.resultTracker)
+                    }
+                  })
+                }
+
+                // set up the sub-tasks
+                return task.newListr(subTasks, {
+                  concurrent: false,
+                  rendererOptions: {
+                    collapseSubtasks: false
+                  }
+                })
+              }
+            },
+            {
+              title: 'Display results',
+              task: async (ctx) => {
+                self.logger.showUser(chalk.green(`Account keys updated SUCCESSFULLY: ${ctx.resultTracker.fulfilledCount}`))
+                if (ctx.resultTracker.skippedCount > 0) self.logger.showUser(chalk.cyan(`Account keys updates SKIPPED: ${ctx.resultTracker.skippedCount}`))
+                if (ctx.resultTracker.rejectedCount > 0) {
+                  self.logger.showUser(chalk.yellowBright(`Account keys updates with ERROR: ${ctx.resultTracker.rejectedCount}`))
+                }
+                self.logger.showUser(chalk.gray('Waiting for sockets to be closed....'))
+                if (ctx.resultTracker.rejectedCount > 0) {
+                  throw new FullstackTestingError(`Account keys updates failed for ${ctx.resultTracker.rejectedCount} accounts.`)
+                }
+              }
+            }
+          ], {
+            concurrent: false,
+            rendererOptions: {
+              collapseSubtasks: false
+            }
+          })
+        }
+      }
+    ], {
+      concurrent: false,
+      rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
+    })
+
+    try {
+      await tasks.run()
+    } catch (e) {
+      throw new FullstackTestingError(`Error in creating account: ${e.message}`, e)
+    } finally {
+      await this.closeConnections()
+    }
+
+    return true
   }
 
   async create (argv) {
@@ -288,6 +404,25 @@ export class AccountCommand extends BaseCommand {
       desc: 'Manage Hedera accounts in fullstack testing network',
       builder: yargs => {
         return yargs
+          .command({
+            command: 'init',
+            desc: 'Initialize system accounts with new keys',
+            builder: y => flags.setCommandFlags(y,
+              flags.namespace
+            ),
+            handler: argv => {
+              accountCmd.logger.debug('==== Running \'account init\' ===')
+              accountCmd.logger.debug(argv)
+
+              accountCmd.init(argv).then(r => {
+                accountCmd.logger.debug('==== Finished running \'account init\' ===')
+                if (!r) process.exit(1)
+              }).catch(err => {
+                accountCmd.logger.showUserError(err)
+                process.exit(1)
+              })
+            }
+          })
           .command({
             command: 'create',
             desc: 'Creates a new account with a new key and stores the key in the Kubernetes secrets',

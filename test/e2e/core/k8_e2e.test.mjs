@@ -108,20 +108,20 @@ describe('K8', () => {
       expect(server).not.toBeNull()
 
       // client
-      const client = new net.Socket()
-      client.on('ready', () => {
-        client.destroy()
-        server.close()
+      const s = new net.Socket()
+      s.on('ready', async () => {
+        s.destroy()
+        await k8.stopPortForward(server)
         done()
       })
 
-      client.on('error', (e) => {
-        client.destroy()
-        server.close()
+      s.on('error', async (e) => {
+        s.destroy()
+        await k8.stopPortForward(server)
         done(new FullstackTestingError(`could not connect to local port '${localPort}': ${e.message}`, e))
       })
 
-      client.connect(localPort)
+      s.connect(localPort)
     })
   })
 

@@ -165,7 +165,7 @@ export class ConfigManager {
   persist () {
     try {
       this.config.updatedAt = new Date().toISOString()
-      let configJSON = JSON.stringify(this.config)
+      let configJSON = JSON.stringify(this.config, null, 2)
       fs.writeFileSync(`${this.cachedConfigFile}`, configJSON)
 
       // refresh config with the file contents

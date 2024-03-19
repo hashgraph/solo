@@ -60,6 +60,7 @@ export const LOG_STATUS_DONE = chalk.green('OK')
 export const LOG_GROUP_DIVIDER = chalk.yellow('----------------------------------------------------------------------------')
 
 // --------------- Charts related constants ----------------------------------------------------------------------------
+export const FULLSTACK_SETUP_NAMESPACE = 'fullstack-setup'
 export const FULLSTACK_TESTING_CHART_URL = 'https://hashgraph.github.io/full-stack-testing/charts'
 export const FULLSTACK_TESTING_CHART = 'full-stack-testing'
 export const FULLSTACK_CLUSTER_SETUP_CHART = 'fullstack-cluster-setup'
@@ -82,7 +83,7 @@ export const GENESIS_KEY = process.env.GENESIS_KEY || '302e020100300506032b65700
 export const SYSTEM_ACCOUNTS = [[3, 100], [200, 349], [400, 750], [900, 1000]] // do account 0.0.2 last and outside the loop
 export const TREASURY_ACCOUNT = 2
 export const LOCAL_NODE_START_PORT = process.env.LOCAL_NODE_START_PORT || 30212
-export const ACCOUNT_CREATE_BATCH_SIZE = process.env.ACCOUNT_CREATE_BATCH_SIZE || 25
+export const ACCOUNT_CREATE_BATCH_SIZE = process.env.ACCOUNT_CREATE_BATCH_SIZE || 50
 
 export const POD_STATUS_RUNNING = 'Running'
 export const POD_STATUS_READY = 'Ready'
@@ -92,7 +93,7 @@ export const LISTR_DEFAULT_RENDERER_TIMER_OPTION = {
   ...PRESET_TIMER,
   condition: (duration) => duration > 100,
   format: (duration) => {
-    if (duration > 10000) {
+    if (duration > 30000) {
       return color.red
     }
 
@@ -108,7 +109,8 @@ export const LISTR_DEFAULT_RENDERER_OPTION = {
 export const KEY_FORMAT_PEM = 'pem'
 
 export const KEY_FORMAT_PFX = 'pfx'
-
+export const KEY_TYPE_GOSSIP = 'gossip'
+export const KEY_TYPE_TLS = 'tls'
 export const SIGNING_KEY_PREFIX = 's'
 export const AGREEMENT_KEY_PREFIX = 'a'
 export const ENCRYPTION_KEY_PREFIX = 'e'
@@ -121,3 +123,5 @@ export const OS_WIN32 = 'win32'
 export const OS_DARWIN = 'darwin'
 export const OS_MAC = 'mac'
 export const OS_LINUX = 'linux'
+
+export const LOCAL_HOST = '127.0.0.1'
