@@ -78,7 +78,6 @@ export class NetworkCommand extends BaseCommand {
 
     // do not deploy mirror node until after we have the updated address book
     valuesArg += ' --set hedera-mirror-node.enabled=false --set hedera-explorer.enabled=false'
-
     valuesArg += ` --set telemetry.prometheus.svcMonitor.enabled=${config.enablePrometheusSvcMonitor}`
 
     if (config.enableHederaExplorerTls) {
@@ -111,8 +110,6 @@ export class NetworkCommand extends BaseCommand {
       flags.nodeIDs,
       flags.chartDirectory,
       flags.valuesFile,
-      flags.deployMirrorNode,
-      flags.deployHederaExplorer,
       flags.tlsClusterIssuerType,
       flags.enableHederaExplorerTls,
       flags.hederaExplorerTlsHostName,
@@ -131,8 +128,6 @@ export class NetworkCommand extends BaseCommand {
       chartDir: this.configManager.getFlag(flags.chartDirectory),
       fstChartVersion: this.configManager.getFlag(flags.fstChartVersion),
       valuesFile: this.configManager.getFlag(flags.valuesFile),
-      deployMirrorNode: this.configManager.getFlag(flags.deployMirrorNode),
-      deployHederaExplorer: this.configManager.getFlag(flags.deployHederaExplorer),
       tlsClusterIssuerType: this.configManager.getFlag(flags.tlsClusterIssuerType),
       enableHederaExplorerTls: this.configManager.getFlag(flags.enableHederaExplorerTls),
       hederaExplorerTlsHostName: this.configManager.getFlag(flags.hederaExplorerTlsHostName),
@@ -358,8 +353,6 @@ export class NetworkCommand extends BaseCommand {
               flags.nodeIDs,
               flags.chartDirectory,
               flags.valuesFile,
-              flags.deployMirrorNode,
-              flags.deployHederaExplorer,
               flags.tlsClusterIssuerType,
               flags.enableHederaExplorerTls,
               flags.hederaExplorerTlsLoadBalancerIp,

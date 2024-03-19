@@ -16,6 +16,7 @@
  */
 import { constants } from '../core/index.mjs'
 import * as core from '../core/index.mjs'
+import * as version from '../../version.mjs'
 
 /**
  * Set flag from the flag option
@@ -53,6 +54,7 @@ export const clusterSetupNamespace = {
   name: 'cluster-setup-namespace',
   definition: {
     describe: 'Cluster Setup Namespace',
+    defaultValue: constants.FULLSTACK_SETUP_NAMESPACE,
     alias: 's',
     type: 'string'
   }
@@ -328,7 +330,7 @@ export const fstChartVersion = {
   name: 'fst-chart-version',
   definition: {
     describe: 'Fullstack testing chart version',
-    defaultValue: '',
+    defaultValue: version.FST_CHART_VERSION,
     type: 'string'
   }
 }

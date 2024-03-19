@@ -164,7 +164,7 @@ export class ClusterCommand extends BaseCommand {
       {
         title: 'Initialize',
         task: async (ctx, task) => {
-          if (!argv.force) {
+          if (!argv[flags.force.name]) {
             const confirm = await task.prompt(ListrEnquirerPromptAdapter).run({
               type: 'toggle',
               default: false,
@@ -287,7 +287,8 @@ export class ClusterCommand extends BaseCommand {
             desc: 'Uninstall shared components from cluster',
             builder: y => flags.setCommandFlags(y,
               flags.clusterName,
-              flags.clusterSetupNamespace
+              flags.clusterSetupNamespace,
+              flags.force
             ),
             handler: argv => {
               clusterCmd.logger.debug("==== Running 'cluster reset' ===", { argv })
