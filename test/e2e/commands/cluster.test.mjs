@@ -24,65 +24,52 @@ import {
   it
 } from '@jest/globals'
 import {
+  bootstrapNetwork,
+  getDefaultArgv,
+  TEST_CLUSTER,
+  testLogger
+} from '../../test_util.js'
+import {
   ChartManager,
   ConfigManager, constants,
   Helm,
   K8, PackageDownloader, Zippy
 } from '../../../src/core/index.mjs'
 import { DependencyManager, HelmDependencyManager } from '../../../src/core/dependency_managers/index.mjs'
-import { getTestCacheDir, testLogger } from '../../test_util.js'
 import path from 'path'
 import { flags } from '../../../src/commands/index.mjs'
 import { sleep } from '../../../src/core/helpers.mjs'
 import { ClusterCommand } from '../../../src/commands/cluster.mjs'
 import { ShellRunner } from '../../../src/core/shell_runner.mjs'
+import * as version from "../../../version.mjs";
 
 describe('ClusterCommand', () => {
-  let clusterCmd
-  let configManager
-  let k8
-  let helm
-  let chartManager
-  let argv = {}
-  const CLUSTER_NAME = 'solo-test-cluster-cmd'
-  const shellRunner = new ShellRunner(testLogger)
+  const testName = 'cluster-cmd-e2e'
+  const namespace = testName
+  const argv = getDefaultArgv()
+  argv[flags.namespace.name] = namespace
+  argv[flags.releaseTag.name] = 'v0.47.0-alpha.0'
+  argv[flags.keyFormat.name] = constants.KEY_FORMAT_PEM
+  argv[flags.nodeIDs.name] = 'node0,node1,node2'
+  argv[flags.generateGossipKeys.name] = true
+  argv[flags.generateTlsKeys.name] = true
+  argv[flags.clusterName.name] = TEST_CLUSTER
+  argv[flags.fstChartVersion.name] = version.FST_CHART_VERSION
 
-  beforeAll(async () => {
-    await shellRunner.run('kind create cluster -n ' + CLUSTER_NAME)
+  const bootstrapResp = bootstrapNetwork(testName, argv)
+  const k8 = bootstrapResp.opts.k8
+  const accountManager = bootstrapResp.opts.accountManager
+  const configManager = bootstrapResp.opts.configManager
 
-    configManager = new ConfigManager(testLogger, path.join(getTestCacheDir('clusterCmd'), 'solo.config'))
-    k8 = new K8(configManager, testLogger)
-    helm = new Helm(testLogger)
-    chartManager = new ChartManager(helm, testLogger)
-
-    // prepare dependency manger registry
-    const downloader = new PackageDownloader(testLogger)
-    const zippy = new Zippy(testLogger)
-    const helmDepManager = new HelmDependencyManager(downloader, zippy, testLogger)
-    const depManagerMap = new Map().set(constants.HELM, helmDepManager)
-    const depManager = new DependencyManager(testLogger, depManagerMap)
-
-    clusterCmd = new ClusterCommand({
-      logger: testLogger,
-      helm,
-      k8,
-      chartManager,
-      configManager,
-      depManager
-    })
-  }, 70000)
+  const clusterCmd = bootstrapResp.cmd.clusterCmd
 
   afterAll(async () => {
-    await shellRunner.run('kind delete cluster -n ' + CLUSTER_NAME)
-  }, 30000)
+    await k8.deleteNamespace(namespace)
+    await accountManager.close()
+  })
 
   beforeEach(() => {
     configManager.reset()
-    argv = {}
-    argv[flags.cacheDir.name] = getTestCacheDir('clusterCmd')
-    argv[flags.namespace.name] = CLUSTER_NAME
-    argv[flags.clusterName.name] = CLUSTER_NAME
-    argv[flags.clusterSetupNamespace.name] = CLUSTER_NAME + '-cluster'
   })
 
   afterEach(async () => {
@@ -109,6 +96,8 @@ describe('ClusterCommand', () => {
   }, 60000)
 
   it('solo cluster setup should work with valid args', async () => {
+    argv[flags.clusterSetupNamespace.name] = CLUSTER_NAME + '-cluster'
+
     argv[flags.deployPrometheusStack.name] = true
     argv[flags.deployMinio.name] = true
     argv[flags.deployCertManager.name] = true
@@ -142,6 +131,8 @@ describe('ClusterCommand', () => {
   }, 60000)
 
   it('solo cluster reset should work with valid args', async () => {
+    argv[flags.clusterSetupNamespace.name] = CLUSTER_NAME + '-cluster'
+
     argv[flags.force.name] = true
     argv[flags.deletePvcs.name] = true
     configManager.update(argv, true)
