@@ -270,24 +270,30 @@ export class AccountManager {
     const realm = constants.HEDERA_NODE_ACCOUNT_ID_START.realm
     const shard = constants.HEDERA_NODE_ACCOUNT_ID_START.shard
 
-    for (const accountNum of currentSet) {
-      const result = await this.updateAccountKeys(namespace,
-        AccountId.fromString(`${realm}.${shard}.${accountNum}`), genesisKey, updateSecrets)
+    const accountUpdatePromiseArray = []
 
-      switch (result.status) {
-        case REJECTED:
-          if (result.reason === REASON_SKIPPED) {
-            resultTracker.skippedCount++
-          } else {
-            this.logger.error(`REJECT: ${result.reason}: ${result.value}`)
-            resultTracker.rejectedCount++
-          }
-          break
-        case FULFILLED:
-          resultTracker.fulfilledCount++
-          break
-      }
+    for (const accountNum of currentSet) {
+      accountUpdatePromiseArray.push(this.updateAccountKeys(
+        namespace, AccountId.fromString(`${realm}.${shard}.${accountNum}`), genesisKey, updateSecrets))
     }
+
+    await Promise.allSettled(accountUpdatePromiseArray).then((results) => {
+      for (const result of results) {
+        switch (result.value.status) {
+          case REJECTED:
+            if (result.value.reason === REASON_SKIPPED) {
+              resultTracker.skippedCount++
+            } else {
+              this.logger.error(`REJECT: ${result.value.reason}: ${result.value.value}`)
+              resultTracker.rejectedCount++
+            }
+            break
+          case FULFILLED:
+            resultTracker.fulfilledCount++
+            break
+        }
+      }
+    })
 
     this.logger.debug(`Current counts: [fulfilled: ${resultTracker.fulfilledCount}, skipped: ${resultTracker.skippedCount}, rejected: ${resultTracker.rejectedCount}]`)
 
