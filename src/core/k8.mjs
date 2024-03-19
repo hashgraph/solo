@@ -25,6 +25,7 @@ import * as sb from 'stream-buffers'
 import * as tar from 'tar'
 import { v4 as uuid4 } from 'uuid'
 import { V1ObjectMeta, V1Secret } from '@kubernetes/client-node'
+import { constants } from './index.mjs'
 
 /**
  * A kubernetes API wrapper class providing custom functionalities required by solo
@@ -33,10 +34,6 @@ import { V1ObjectMeta, V1Secret } from '@kubernetes/client-node'
  * For parallel execution, create separate instances by invoking clone()
  */
 export class K8 {
-  // track the webSocket generated when creating the Kubernetes port forward
-  // so that we can call destroy and speed up shutting down the server
-  static _webSocketGetters = []
-
   constructor (configManager, logger) {
     if (!configManager) throw new MissingArgumentError('An instance of core/ConfigManager is required')
     if (!logger) throw new MissingArgumentError('An instance of core/Logger is required')
@@ -45,14 +42,6 @@ export class K8 {
     this.logger = logger
 
     this.init()
-  }
-
-  static close () {
-    for (const webSocketGetter of K8._webSocketGetters) {
-      if (webSocketGetter) {
-        webSocketGetter()._sender?._socket?.destroy()
-      }
-    }
   }
 
   /**
@@ -130,7 +119,6 @@ export class K8 {
   filterItem (items, filters = {}) {
     const filtered = this.applyMetadataFilter(items, filters)
     if (filtered.length > 1) throw new FullstackTestingError('multiple items found with filters', { filters })
-    if (filtered.length !== 1) throw new FullstackTestingError('item not found with filters', { filters })
     return filtered[0]
   }
 
@@ -664,29 +652,6 @@ export class K8 {
     })
   }
 
-  static makeKillable (server, webSocket) {
-    server.sockets = []
-    server.webSocket = webSocket
-
-    server.on('connection', function (socket) {
-      server.sockets.push(socket)
-    })
-
-    server.kill = function (cb) {
-      server.sockets.forEach(function (socket) {
-        socket.destroy(null, (exception) => {
-          server.sockets.splice(server.sockets.indexOf(socket), 1)
-        })
-      })
-
-      server.close(cb)
-
-      server.sockets = []
-    }
-
-    return server
-  }
-
   /**
    * Port forward a port from a pod to localhost
    *
@@ -700,13 +665,34 @@ export class K8 {
   async portForward (podName, localPort, podPort) {
     const ns = this._getNamespace()
     const forwarder = new k8s.PortForward(this.kubeConfig, false)
-    const server = await net.createServer(async (socket) => {
-      K8._webSocketGetters.push(await forwarder.portForward(ns, podName, [podPort], socket, null, socket, 3))
+    const server = await net.createServer((socket) => {
+      forwarder.portForward(ns, podName, [podPort], socket, null, socket, 3)
     })
 
-    K8.makeKillable(server)
+    // add info for logging
+    server.info = `${podName}:${podPort} -> ${constants.LOCAL_HOST}:${localPort}`
+    return server.listen(localPort, constants.LOCAL_HOST)
+  }
 
-    return server.listen(localPort, '127.0.0.1')
+  /**
+   * Stop the port forwarder server
+   *
+   * @param server an instance of server returned by portForward method
+   * @return {Promise<void>}
+   */
+  stopPortForward (server) {
+    this.logger.debug(`Stopping port-forwarder [${server.info}]`)
+    return new Promise((resolve, reject) => {
+      server.close((e) => {
+        if (e) {
+          this.logger.debug(`Failed to stop port-forwarder [${server.info}]: ${e.message}`)
+          reject(e)
+        } else {
+          this.logger.debug(`Stopped port-forwarder [${server.info}]`)
+          resolve()
+        }
+      })
+    })
   }
 
   /**
@@ -723,13 +709,13 @@ export class K8 {
     const fieldSelector = `status.phase=${status}`
     const labelSelector = labels.join(',')
 
-    this.logger.debug(`WaitForPod [${fieldSelector}, ${labelSelector}], maxAttempts: ${maxAttempts}`)
+    this.logger.debug(`WaitForPod [namespace:${ns}, fieldSector(${fieldSelector}, labelSelector: ${labelSelector}], maxAttempts: ${maxAttempts}`)
 
     return new Promise((resolve, reject) => {
       let attempts = 0
 
       const check = async () => {
-        this.logger.debug(`Checking for pod ${fieldSelector}, ${labelSelector} [attempt: ${attempts}/${maxAttempts}]`)
+        this.logger.debug(`Checking for pod [namespace:${ns}, fieldSector(${fieldSelector}, labelSelector: ${labelSelector}] [attempt: ${attempts}/${maxAttempts}]`)
 
         // wait for the pod to be available with the given status and labels
         const resp = await this.kubeClient.listNamespacedPod(
@@ -742,8 +728,8 @@ export class K8 {
           podCount
         )
 
+        this.logger.debug(`${resp.body.items.length}/${podCount} pod found [namespace:${ns}, fieldSector(${fieldSelector}, labelSelector: ${labelSelector}] [attempt: ${attempts}/${maxAttempts}]`)
         if (resp.body && resp.body.items && resp.body.items.length === podCount) {
-          this.logger.debug(`Found ${resp.body.items.length}/${podCount} pod with ${fieldSelector}, ${labelSelector} [attempt: ${attempts}/${maxAttempts}]`)
           return resolve(true)
         }
 
@@ -761,12 +747,19 @@ export class K8 {
   /**
    * Get a list of persistent volume claim names for the given namespace
    * @param namespace the namespace of the persistent volume claims to return
+   * @param labels labels
    * @returns {Promise<*[]>} list of persistent volume claims
    */
-  async listPvcsByNamespace (namespace) {
+  async listPvcsByNamespace (namespace, labels = []) {
     const pvcs = []
+    const labelSelector = labels.join(',')
     const resp = await this.kubeClient.listNamespacedPersistentVolumeClaim(
-      namespace
+      namespace,
+      null,
+      null,
+      null,
+      null,
+      labelSelector
     )
 
     for (const item of resp.body.items) {

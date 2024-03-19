@@ -16,6 +16,7 @@
  */
 import { ClusterCommand } from './cluster.mjs'
 import { InitCommand } from './init.mjs'
+import { MirrorNodeCommand } from './mirror_node.mjs'
 import { NetworkCommand } from './network.mjs'
 import { NodeCommand } from './node.mjs'
 import { RelayCommand } from './relay.mjs'
@@ -33,6 +34,7 @@ function Initialize (opts) {
   const nodeCmd = new NodeCommand(opts)
   const relayCmd = new RelayCommand(opts)
   const accountCmd = new AccountCommand(opts)
+  const mirrorNodeCmd = new MirrorNodeCommand(opts)
 
   return [
     InitCommand.getCommandDefinition(initCmd),
@@ -40,7 +42,8 @@ function Initialize (opts) {
     NetworkCommand.getCommandDefinition(networkCommand),
     NodeCommand.getCommandDefinition(nodeCmd),
     RelayCommand.getCommandDefinition(relayCmd),
-    AccountCommand.getCommandDefinition(accountCmd)
+    AccountCommand.getCommandDefinition(accountCmd),
+    MirrorNodeCommand.getCommandDefinition(mirrorNodeCmd)
   ]
 }
 
