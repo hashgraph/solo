@@ -148,9 +148,10 @@ jobs:
         if: ${{ runner.os == 'Windows' && inputs.enable-e2e-tests && !cancelled() && !failure() }}
         shell: wsl-bash {0}
         run: |
-          sudo apt-get -y install nodejs npm
+          curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.3/install.sh | sudo -E bash -
+          nvm install node
           node -v
-          npm -v          
+          npm -v      
 
       - name: WSL Run Docker
         if: ${{ runner.os == 'Windows' && inputs.enable-e2e-tests && !cancelled() && !failure() }}
