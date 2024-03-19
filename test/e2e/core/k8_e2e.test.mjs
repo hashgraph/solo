@@ -109,15 +109,15 @@ describe('K8', () => {
 
       // client
       const s = new net.Socket()
-      s.on('ready', () => {
+      s.on('ready', async () => {
         s.destroy()
-        k8.stopPortForward(server)
+        await k8.stopPortForward(server)
         done()
       })
 
-      s.on('error', (e) => {
+      s.on('error', async (e) => {
         s.destroy()
-        k8.stopPortForward(server)
+        await k8.stopPortForward(server)
         done(new FullstackTestingError(`could not connect to local port '${localPort}': ${e.message}`, e))
       })
 

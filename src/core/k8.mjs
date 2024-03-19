@@ -680,9 +680,19 @@ export class K8 {
    * @param server an instance of server returned by portForward method
    * @return {Promise<void>}
    */
-  async stopPortForward (server) {
+  stopPortForward (server) {
     this.logger.debug(`Stopping port-forwarder [${server.info}]`)
-    server.close()
+    return new Promise((resolve, reject) => {
+      server.close((e) => {
+        if (e) {
+          this.logger.debug(`Failed to stop port-forwarder [${server.info}]: ${e.message}`)
+          reject(e)
+        } else {
+          this.logger.debug(`Stopped port-forwarder [${server.info}]`)
+          resolve()
+        }
+      })
+    })
   }
 
   /**
