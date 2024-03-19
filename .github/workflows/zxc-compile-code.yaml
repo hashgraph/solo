@@ -92,6 +92,7 @@ jobs:
         run: |
           wsl --list --online
           wsl --set-default-version 2
+          wsl --set-default Ubuntu
 
       - shell: wsl-bash {0}
         if: ${{ runner.os == 'Windows' && inputs.enable-e2e-tests && !cancelled() && !failure() }}
