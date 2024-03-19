@@ -148,7 +148,8 @@ jobs:
         if: ${{ runner.os == 'Windows' && inputs.enable-e2e-tests && !cancelled() && !failure() }}
         shell: wsl-bash {0}
         run: |
-          curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.3/install.sh | sudo -E bash -
+          curl -O https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.3/install.sh
+          ./install.sh
           nvm install node
           node -v
           npm -v      
