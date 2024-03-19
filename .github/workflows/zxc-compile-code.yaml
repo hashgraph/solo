@@ -70,7 +70,7 @@ jobs:
       fail-fast: false
       matrix:
         os:
-          - [windows-2022, Large, ephemeral]
+          - [windows-2022, large, ephemeral]
           - [self-hosted, Linux, medium, ephemeral]
     steps:
       - name: Checkout Code
