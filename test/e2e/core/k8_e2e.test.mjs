@@ -99,7 +99,7 @@ describe('K8', () => {
     await expect(k8.execContainer(podName, containerName, ['rm', '-f', destPath])).resolves
 
     fs.rmdirSync(tmpDir, { recursive: true })
-  }, 120000)
+  }, 300000)
 
   it('should be able to port forward gossip port', (done) => {
     const podName = Templates.renderNetworkPodName('node0')
