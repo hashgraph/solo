@@ -83,6 +83,7 @@ jobs:
           wsl --update
           wsl --list --online
           wsl --set-default-version 2
+          wsl --install Ubuntu-22.04
 
       - shell: wsl-bash {0}
         if: ${{ runner.os == 'Windows' && inputs.enable-e2e-tests && !cancelled() && !failure() }}
@@ -91,12 +92,7 @@ jobs:
           ls -ltr
           uname -a
 
-      - name: WSL Install
-        uses: Vampire/setup-wsl@v3
-        if: ${{ runner.os == 'Windows' &&  (inputs.enable-unit-tests || inputs.enable-e2e-tests) && !cancelled() && !failure() }}
-        with:
-          distribution: Ubuntu-22.04
-          set-as-default: 'true'
+
 
       - name: Get WSL Info
         if: ${{ runner.os == 'Windows' && inputs.enable-e2e-tests && !cancelled() && !failure() }}
