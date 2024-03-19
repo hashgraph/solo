@@ -18,10 +18,10 @@ import * as fs from 'fs'
 import * as os from 'os'
 import { Listr } from 'listr2'
 import * as path from 'path'
+import * as semver from 'semver'
 import { FullstackTestingError, IllegalArgumentError, MissingArgumentError } from './errors.mjs'
 import { constants } from './index.mjs'
 import { Templates } from './templates.mjs'
-import * as helpers from './helpers.mjs'
 
 /**
  * PlatformInstaller install platform code in the root-container of a network pod
@@ -33,39 +33,6 @@ export class PlatformInstaller {
 
     this.logger = logger
     this.k8 = k8
-  }
-
-  /**
-   * Setup directories
-   * @param podName
-   * @param containerName
-   * @return {Promise<boolean>}
-   */
-  async resetHapiDirectories (podName, containerName = constants.ROOT_CONTAINER) {
-    if (!podName) throw new MissingArgumentError('podName is required')
-
-    try {
-      // reset data directory
-      // Note: we cannot delete the data/stats and data/saved as those are volume mounted
-      const resetPaths = [
-        `${constants.HEDERA_HAPI_PATH}/data/apps`,
-        `${constants.HEDERA_HAPI_PATH}/data/config`,
-        `${constants.HEDERA_HAPI_PATH}/data/keys`,
-        `${constants.HEDERA_HAPI_PATH}/data/lib`,
-        `${constants.HEDERA_HAPI_PATH}/data/upgrade`
-      ]
-
-      for (const p of resetPaths) {
-        await this.k8.execContainer(podName, containerName, `rm -rf ${p}`)
-        await this.k8.execContainer(podName, containerName, `mkdir -p ${p}`)
-      }
-
-      await this.setPathPermission(podName, constants.HEDERA_SERVICES_PATH)
-
-      return true
-    } catch (e) {
-      throw new FullstackTestingError(`failed to setup directories in pod '${podName}': ${e.message}`, e)
-    }
   }
 
   async validatePlatformReleaseDir (releaseDir) {
@@ -187,7 +154,7 @@ export class PlatformInstaller {
           break
         case constants.KEY_FORMAT_PFX:
           srcFiles.push(`${stagingDir}/keys/${Templates.renderGossipPfxPrivateKeyFile(nodeId)}`)
-          srcFiles.push(`${stagingDir}/keys/public.pfx`)
+          srcFiles.push(`${stagingDir}/keys/${constants.PUBLIC_PFX}`)
           break
         default:
           throw new FullstackTestingError(`Unsupported key file format ${keyFormat}`)
@@ -313,7 +280,7 @@ export class PlatformInstaller {
     const appName = constants.HEDERA_APP_NAME
     const nodeStakeAmount = constants.HEDERA_NODE_DEFAULT_STAKE_AMOUNT
 
-    const releaseVersion = helpers.parseSemver(releaseTag)
+    const releaseVersion = semver.parse(releaseTag, { includePrerelease: true })
 
     try {
       const configLines = []

@@ -14,4 +14,10 @@
  * limitations under the License.
  *
  */
+
+/**
+ * This file should only contain versions for dependencies
+ */
+
 export const HELM_VERSION = 'v3.14.2'
+export const FST_CHART_VERSION = 'v0.22.0'
