@@ -70,13 +70,14 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
 
-      - name: WSL Install
-        uses: Vampire/setup-wsl@v3
-        if: ${{ runner.os == 'Windows' &&  (inputs.enable-unit-tests || inputs.enable-e2e-tests) && !cancelled() && !failure() }}
-        with:
-          distribution: Ubuntu-22.04
-          set-as-default: 'true'
-
+      - name: Update WSL
+        if: ${{ runner.os == 'Windows' && inputs.enable-e2e-tests && !cancelled() && !failure() }}
+        shell: pwsh
+        run: |
+          wsl --update
+          wsl --list --online
+          wsl --set-default-version 2
+          wsl --install Ubuntu-22.04
 
       - shell: wsl-bash {0}
         if: ${{ runner.os == 'Windows' && inputs.enable-e2e-tests && !cancelled() && !failure() }}
