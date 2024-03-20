@@ -22,9 +22,7 @@ import {
   ConfigManager, Templates as Template
 } from '../../../src/core/index.mjs'
 import * as fs from 'fs'
-import * as path from 'path'
 import { K8 } from '../../../src/core/k8.mjs'
-import { ShellRunner } from '../../../src/core/shell_runner.mjs'
 
 import { getTestCacheDir, getTmpDir, testLogger } from '../../test_util.js'
 
@@ -113,33 +111,22 @@ describe('PackageInstallerE2E', () => {
       const nodeId = 'node0'
 
       // generate pfx keys
-      const tmpDir = getTmpDir()
-      const keysDir = path.join(tmpDir, 'keys')
-      const shellRunner = new ShellRunner(testLogger)
-      await shellRunner.run(`test/scripts/gen-legacy-keys.sh node0,node1,node2 ${keysDir}`)
-
+      const pfxDir = 'test/data/pfx'
       await k8.execContainer(podName, constants.ROOT_CONTAINER, ['bash', '-c', `rm -f ${constants.HEDERA_HAPI_PATH}/data/keys/*`])
-      const fileList = await installer.copyGossipKeys(podName, tmpDir, ['node0', 'node1', 'node2'], constants.KEY_FORMAT_PFX)
+      const fileList = await installer.copyGossipKeys(podName, pfxDir, ['node0', 'node1', 'node2'], constants.KEY_FORMAT_PFX)
 
       const destDir = `${constants.HEDERA_HAPI_PATH}/data/keys`
       expect(fileList.length).toBe(2)
       expect(fileList).toContain(`${destDir}/${Templates.renderGossipPfxPrivateKeyFile(nodeId)}`)
       expect(fileList).toContain(`${destDir}/public.pfx`)
-
-      fs.rmSync(tmpDir, { recursive: true })
     }, 60000)
 
     it('should succeed to copy pem gossip keys for node1', async () => {
       const podName = 'network-node1-0'
 
-      // generate pem keys
-      const tmpDir = getTmpDir()
-      const keysDir = path.join(tmpDir, 'keys')
-      const shellRunner = new ShellRunner(testLogger)
-      await shellRunner.run(`test/scripts/gen-openssl-keys.sh node0,node1 ${keysDir}`)
-
+      const pemDir = 'test/data/pem'
       await k8.execContainer(podName, constants.ROOT_CONTAINER, ['bash', '-c', `rm -f ${constants.HEDERA_HAPI_PATH}/data/keys/*`])
-      const fileList = await installer.copyGossipKeys(podName, tmpDir, ['node0', 'node1'], constants.KEY_FORMAT_PEM)
+      const fileList = await installer.copyGossipKeys(podName, pemDir, ['node0', 'node1'], constants.KEY_FORMAT_PEM)
 
       const destDir = `${constants.HEDERA_HAPI_PATH}/data/keys`
       expect(fileList.length).toBe(6)
@@ -151,8 +138,6 @@ describe('PackageInstallerE2E', () => {
       expect(fileList).toContain(`${destDir}/${Templates.renderGossipPemPublicKeyFile(constants.AGREEMENT_KEY_PREFIX, 'node0')}`)
       expect(fileList).toContain(`${destDir}/${Templates.renderGossipPemPublicKeyFile(constants.AGREEMENT_KEY_PREFIX, 'node1')}`)
       expect(fileList).toContain(`${destDir}/${Templates.renderGossipPemPublicKeyFile(constants.SIGNING_KEY_PREFIX, 'node1')}`)
-
-      fs.rmSync(tmpDir, { recursive: true })
     }, 60000)
   })
 
@@ -161,15 +146,11 @@ describe('PackageInstallerE2E', () => {
       const nodeId = 'node1'
       const podName = Template.renderNetworkPodName(nodeId)
       const tmpDir = getTmpDir()
-      const keysDir = path.join(tmpDir, 'keys')
 
       // create mock files
-      fs.mkdirSync(keysDir)
-      fs.writeFileSync(path.join(keysDir, `hedera-${nodeId}.key`), '')
-      fs.writeFileSync(path.join(keysDir, `hedera-${nodeId}.crt`), '')
-
+      const pemDir = 'test/data/pem'
       await k8.execContainer(podName, constants.ROOT_CONTAINER, ['bash', '-c', `rm -f ${constants.HEDERA_HAPI_PATH}/hedera.*`])
-      const fileList = await installer.copyTLSKeys(podName, tmpDir)
+      const fileList = await installer.copyTLSKeys(podName, pemDir)
 
       expect(fileList.length).toBe(2) // [data , hedera.crt, hedera.key]
       expect(fileList.length).toBeGreaterThanOrEqual(2)
