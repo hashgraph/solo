@@ -75,6 +75,8 @@ jobs:
         shell: pwsh
         run: |
           wsl --update
+          wsl --install
+          wsl -l -v
           wsl --list --online
           wsl --set-default-version 2
           wsl --install -d Ubuntu -n
