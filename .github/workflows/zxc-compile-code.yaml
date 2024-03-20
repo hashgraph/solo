@@ -78,6 +78,7 @@ jobs:
           wsl --list --online
           wsl --set-default-version 2
           wsl --install -d Ubuntu -n
+          wsl -l -v
 
       - name: Set WSL Version 2
         if: ${{ runner.os == 'Windows' && inputs.enable-e2e-tests && !cancelled() && !failure() }}
