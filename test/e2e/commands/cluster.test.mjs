@@ -42,6 +42,7 @@ import { sleep } from '../../../src/core/helpers.mjs'
 import { ClusterCommand } from '../../../src/commands/cluster.mjs'
 import { ShellRunner } from '../../../src/core/shell_runner.mjs'
 import * as version from "../../../version.mjs";
+import {FULLSTACK_SETUP_NAMESPACE} from "../../../src/core/constants.mjs";
 
 describe('ClusterCommand', () => {
   const testName = 'cluster-cmd-e2e'
@@ -80,7 +81,7 @@ describe('ClusterCommand', () => {
     argv[flags.clusterSetupNamespace.name] = 'INVALID'
 
     argv[flags.deployPrometheusStack.name] = true
-    argv[flags.deployMinio.name] = true
+    argv[flags.deployMinio.name] = false
     argv[flags.deployCertManager.name] = true
     argv[flags.deployCertManagerCrds.name] = true
 
@@ -96,10 +97,10 @@ describe('ClusterCommand', () => {
   }, 60000)
 
   it('solo cluster setup should work with valid args', async () => {
-    argv[flags.clusterSetupNamespace.name] = CLUSTER_NAME + '-cluster'
+    argv[flags.clusterSetupNamespace.name] = FULLSTACK_SETUP_NAMESPACE
 
     argv[flags.deployPrometheusStack.name] = true
-    argv[flags.deployMinio.name] = true
+    argv[flags.deployMinio.name] = false
     argv[flags.deployCertManager.name] = true
     argv[flags.deployCertManagerCrds.name] = true
     configManager.update(argv, true)
@@ -131,7 +132,7 @@ describe('ClusterCommand', () => {
   }, 60000)
 
   it('solo cluster reset should work with valid args', async () => {
-    argv[flags.clusterSetupNamespace.name] = CLUSTER_NAME + '-cluster'
+    argv[flags.clusterSetupNamespace.name] = FULLSTACK_SETUP_NAMESPACE
 
     argv[flags.force.name] = true
     argv[flags.deletePvcs.name] = true
