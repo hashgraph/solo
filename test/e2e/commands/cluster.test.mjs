@@ -17,7 +17,6 @@
 import {
   afterAll,
   afterEach,
-  beforeAll,
   beforeEach,
   describe,
   expect,
@@ -26,23 +25,16 @@ import {
 import {
   bootstrapNetwork,
   getDefaultArgv,
-  TEST_CLUSTER,
-  testLogger
+  TEST_CLUSTER
 } from '../../test_util.js'
 import {
-  ChartManager,
-  ConfigManager, constants,
-  Helm,
-  K8, PackageDownloader, Zippy
+  constants,
 } from '../../../src/core/index.mjs'
-import { DependencyManager, HelmDependencyManager } from '../../../src/core/dependency_managers/index.mjs'
-import path from 'path'
 import { flags } from '../../../src/commands/index.mjs'
 import { sleep } from '../../../src/core/helpers.mjs'
 import { ClusterCommand } from '../../../src/commands/cluster.mjs'
-import { ShellRunner } from '../../../src/core/shell_runner.mjs'
 import * as version from "../../../version.mjs";
-import {FULLSTACK_SETUP_NAMESPACE} from "../../../src/core/constants.mjs";
+import {FULLSTACK_SETUP_NAMESPACE} from '../../../src/core/constants.mjs'
 
 describe('ClusterCommand', () => {
   const testName = 'cluster-cmd-e2e'
