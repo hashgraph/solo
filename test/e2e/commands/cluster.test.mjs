@@ -28,13 +28,13 @@ import {
   TEST_CLUSTER
 } from '../../test_util.js'
 import {
-  constants,
+  constants
 } from '../../../src/core/index.mjs'
 import { flags } from '../../../src/commands/index.mjs'
 import { sleep } from '../../../src/core/helpers.mjs'
-import { ClusterCommand } from '../../../src/commands/cluster.mjs'
-import * as version from "../../../version.mjs";
-import {FULLSTACK_SETUP_NAMESPACE} from '../../../src/core/constants.mjs'
+
+import * as version from '../../../version.mjs'
+import { FULLSTACK_SETUP_NAMESPACE } from '../../../src/core/constants.mjs'
 
 describe('ClusterCommand', () => {
   const testName = 'cluster-cmd-e2e'
