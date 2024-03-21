@@ -32,7 +32,7 @@ import { flags } from '../../../src/commands/index.mjs'
 import * as version from '../../../version.mjs'
 
 describe('NetworkCommand', () => {
-  const testName = 'solo-e2e'
+  const testName = 'network-cmd-e2e'
   const namespace = testName
   const argv = getDefaultArgv()
   argv[flags.namespace.name] = namespace
