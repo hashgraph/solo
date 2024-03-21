@@ -81,7 +81,7 @@ export function getDefaultArgv () {
 }
 
 /**
- * Initialize command test variables
+ * Initialize common test variables
  *
  * @param testName test name
  * @param argv argv for commands
