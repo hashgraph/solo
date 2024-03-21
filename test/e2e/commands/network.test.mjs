@@ -57,17 +57,26 @@ describe('NetworkCommand', () => {
     await accountManager.close()
   })
 
-  it('solo network deploy should deploy three network nodes with defaults', async () => {
-    expect.assertions(1)
+  it('network deploy command should succeed', async () => {
+    expect.assertions(4)
     try {
       await expect(networkCmd.deploy(argv)).resolves.toBeTruthy()
+
+      // check pods name match expected values
+      await expect(k8.getPodByName('network-node0-0'))
+        .resolves.toHaveProperty('metadata.name', 'network-node0-0')
+      await expect(k8.getPodByName('network-node1-0'))
+        .resolves.toHaveProperty('metadata.name', 'network-node1-0')
+      await expect(k8.getPodByName('network-node2-0'))
+        .resolves.toHaveProperty('metadata.name', 'network-node2-0')
+
     } catch (e) {
       networkCmd.logger.showUserError(e)
       expect(e).toBeNull()
     }
   }, 60000)
 
-  it('solo network destroy should destroy deployed network', async () => {
+  it('network destroy should success', async () => {
     argv[flags.deletePvcs.name] = true
     configManager.update(argv, true)
 
