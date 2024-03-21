@@ -197,14 +197,14 @@ export class K8 {
 
   /**
    * Get pods by labels
+   * @param namespace the namespace of the pods
    * @param labels list of labels
    * @return {Promise<Array<V1Pod>>}
    */
-  async getPodsByLabel (labels = []) {
-    const ns = this._getNamespace()
+  async getPodsByLabel (namespace, labels = []) {
     const labelSelector = labels.join(',')
     const result = await this.kubeClient.listNamespacedPod(
-      ns,
+      namespace,
       undefined,
       undefined,
       undefined,
@@ -661,9 +661,10 @@ export class K8 {
    * @param podName pod name
    * @param localPort local port
    * @param podPort port of the pod
+   * @param namespace namespace of the pod (optional)
    */
-  async portForward (podName, localPort, podPort) {
-    const ns = this._getNamespace()
+  async portForward (podName, localPort, podPort, namespace = null) {
+    const ns = namespace || this._getNamespace()
     const forwarder = new k8s.PortForward(this.kubeConfig, false)
     const server = await net.createServer((socket) => {
       forwarder.portForward(ns, podName, [podPort], socket, null, socket, 3)
@@ -671,7 +672,32 @@ export class K8 {
 
     // add info for logging
     server.info = `${podName}:${podPort} -> ${constants.LOCAL_HOST}:${localPort}`
+    this.logger.debug(`Starting port-forwarder [${server.info}]`)
     return server.listen(localPort, constants.LOCAL_HOST)
+  }
+
+  /**
+   * to test the connection to a pod within the network
+   * @param host the host of the target connection
+   * @param port the port of the target connection
+   * @returns {Promise<boolean>}
+   */
+  async testConnection (host, port) {
+    const self = this
+
+    return new Promise((resolve, reject) => {
+      const s = new net.Socket()
+      s.on('error', (e) => {
+        s.destroy()
+        reject(new FullstackTestingError(`failed to connect to '${host}:${port}': ${e.message}`, e))
+      })
+
+      s.connect(port, host, () => {
+        self.logger.debug(`Connection test successful: ${host}:${port}`)
+        s.destroy()
+        resolve(true)
+      })
+    })
   }
 
   /**

@@ -97,5 +97,18 @@ describe.each([
         expect(e).toBeNull()
       }
     }, 20000)
+
+    it('Node Proxy should be UP', async () => {
+      expect.assertions(1)
+
+      try {
+        await expect(nodeCmd.checkNetworkNodeProxyUp(namespace, 'node0', 30313)).resolves.toBeTruthy()
+      } catch (e) {
+        nodeCmd.logger.showUserError(e)
+        expect(e).toBeNull()
+      } finally {
+        await nodeCmd.close()
+      }
+    }, 20000)
   })
 })

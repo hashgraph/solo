@@ -40,13 +40,13 @@ describe('AccountManager', () => {
 
     // ports should be opened
     accountManager._portForwards.push(await k8.portForward(podName, localPort, podPort))
-    const status = await accountManager.testConnection(podName, localHost, localPort)
+    const status = await k8.testConnection(localHost, localPort)
     expect(status).toBeTruthy()
 
     // ports should be closed
     await accountManager.close()
     try {
-      await accountManager.testConnection(podName, localHost, localPort)
+      await k8.testConnection(localHost, localPort)
     } catch (e) {
       expect(e.message.includes(`failed to connect to '${localHost}:${localPort}'`)).toBeTruthy()
     }
