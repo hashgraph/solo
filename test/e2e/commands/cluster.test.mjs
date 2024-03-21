@@ -23,7 +23,7 @@ import {
   it
 } from '@jest/globals'
 import {
-  bootstrapNetwork,
+  bootstrapTestVariables,
   getDefaultArgv,
   TEST_CLUSTER
 } from '../../test_util.js'
@@ -32,9 +32,7 @@ import {
 } from '../../../src/core/index.mjs'
 import { flags } from '../../../src/commands/index.mjs'
 import { sleep } from '../../../src/core/helpers.mjs'
-
 import * as version from '../../../version.mjs'
-import { FULLSTACK_SETUP_NAMESPACE } from '../../../src/core/constants.mjs'
 
 describe('ClusterCommand', () => {
   const testName = 'cluster-cmd-e2e'
@@ -48,11 +46,13 @@ describe('ClusterCommand', () => {
   argv[flags.generateTlsKeys.name] = true
   argv[flags.clusterName.name] = TEST_CLUSTER
   argv[flags.fstChartVersion.name] = version.FST_CHART_VERSION
+  argv[flags.force.name] = true
 
-  const bootstrapResp = bootstrapNetwork(testName, argv)
+  const bootstrapResp = bootstrapTestVariables(testName, argv)
   const k8 = bootstrapResp.opts.k8
   const accountManager = bootstrapResp.opts.accountManager
   const configManager = bootstrapResp.opts.configManager
+  const chartManager = bootstrapResp.opts.chartManager
 
   const clusterCmd = bootstrapResp.cmd.clusterCmd
 
@@ -69,14 +69,14 @@ describe('ClusterCommand', () => {
     await sleep(5) // give a few ticks so that connections can close
   })
 
+  it('should cleanup existing deployment', async () => {
+    if (await chartManager.isChartInstalled(constants.FULLSTACK_SETUP_NAMESPACE, constants.FULLSTACK_CLUSTER_SETUP_CHART)) {
+      await clusterCmd.reset(argv)
+    }
+  }, 60000)
+
   it('solo cluster setup should fail with invalid cluster name', async () => {
     argv[flags.clusterSetupNamespace.name] = 'INVALID'
-
-    argv[flags.deployPrometheusStack.name] = true
-    argv[flags.deployMinio.name] = false
-    argv[flags.deployCertManager.name] = true
-    argv[flags.deployCertManagerCrds.name] = true
-
     configManager.update(argv, true)
 
     expect.assertions(1)
@@ -89,12 +89,7 @@ describe('ClusterCommand', () => {
   }, 60000)
 
   it('solo cluster setup should work with valid args', async () => {
-    argv[flags.clusterSetupNamespace.name] = FULLSTACK_SETUP_NAMESPACE
-
-    argv[flags.deployPrometheusStack.name] = true
-    argv[flags.deployMinio.name] = false
-    argv[flags.deployCertManager.name] = true
-    argv[flags.deployCertManagerCrds.name] = true
+    argv[flags.clusterSetupNamespace.name] = namespace
     configManager.update(argv, true)
 
     expect.assertions(1)
@@ -109,9 +104,6 @@ describe('ClusterCommand', () => {
   // helm list would return an empty list if given invalid namespace
   it('solo cluster reset should fail with invalid cluster name', async () => {
     argv[flags.clusterSetupNamespace.name] = 'INVALID'
-
-    argv[flags.force.name] = true
-    argv[flags.deletePvcs.name] = true
     configManager.update(argv, true)
 
     expect.assertions(1)
@@ -124,10 +116,7 @@ describe('ClusterCommand', () => {
   }, 60000)
 
   it('solo cluster reset should work with valid args', async () => {
-    argv[flags.clusterSetupNamespace.name] = FULLSTACK_SETUP_NAMESPACE
-
-    argv[flags.force.name] = true
-    argv[flags.deletePvcs.name] = true
+    argv[flags.clusterSetupNamespace.name] = namespace
     configManager.update(argv, true)
 
     expect.assertions(1)
