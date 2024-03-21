@@ -29,7 +29,9 @@ import { sleep } from '../src/core/helpers.mjs'
 import {
   ChartManager,
   ConfigManager,
-  constants, Helm, K8,
+  constants,
+  Helm,
+  K8,
   KeyManager,
   logging,
   PackageDownloader,
@@ -75,7 +77,7 @@ export function getDefaultArgv () {
 }
 
 /**
- * Bootstrap network in a given namespace
+ * Initialize command test variables
  *
  * @param testName test name
  * @param argv argv for commands
@@ -85,14 +87,14 @@ export function getDefaultArgv () {
  * @param networkCmdArg an instance of command/NetworkCommand
  * @param nodeCmdArg an instance of command/NodeCommand
  */
-export function bootstrapNetwork (testName, argv,
+export function bootstrapTestVariables (testName, argv,
   k8Arg = null,
   initCmdArg = null,
   clusterCmdArg = null,
   networkCmdArg = null,
   nodeCmdArg = null
 ) {
-  const namespace = argv[flags.namespace.name] || 'bootstrap'
+  const namespace = argv[flags.namespace.name] || 'bootstrap-ns'
   const cacheDir = argv[flags.cacheDir.name] || getTestCacheDir(testName)
   const configManager = getTestConfigManager(`${testName}-solo.config`)
   configManager.update(argv, true)
@@ -126,7 +128,8 @@ export function bootstrapNetwork (testName, argv,
   const clusterCmd = clusterCmdArg || new ClusterCommand(opts)
   const networkCmd = networkCmdArg || new NetworkCommand(opts)
   const nodeCmd = nodeCmdArg || new NodeCommand(opts)
-  const bootstrapResp = {
+  return {
+    namespace,
     opts,
     cmd: {
       initCmd,
@@ -135,6 +138,34 @@ export function bootstrapNetwork (testName, argv,
       nodeCmd
     }
   }
+}
+
+/**
+ * Bootstrap network in a given namespace
+ *
+ * @param testName test name
+ * @param argv argv for commands
+ * @param k8Arg an instance of core/K8
+ * @param initCmdArg an instance of command/InitCommand
+ * @param clusterCmdArg an instance of command/ClusterCommand
+ * @param networkCmdArg an instance of command/NetworkCommand
+ * @param nodeCmdArg an instance of command/NodeCommand
+ */
+export function bootstrapNetwork (testName, argv,
+  k8Arg = null,
+  initCmdArg = null,
+  clusterCmdArg = null,
+  networkCmdArg = null,
+  nodeCmdArg = null
+) {
+  const bootstrapResp = bootstrapTestVariables(testName, argv, k8Arg, initCmdArg, clusterCmdArg, networkCmdArg, nodeCmdArg)
+  const namespace = bootstrapResp.namespace
+  const initCmd = bootstrapResp.cmd.initCmd
+  const k8 = bootstrapResp.opts.k8
+  const clusterCmd = bootstrapResp.cmd.clusterCmd
+  const networkCmd = bootstrapResp.cmd.networkCmd
+  const nodeCmd = bootstrapResp.cmd.nodeCmd
+  const chartManager = bootstrapResp.opts.chartManager
 
   describe('Bootstrap network for test', () => {
     it('should cleanup previous deployment', async () => {
@@ -149,7 +180,7 @@ export function bootstrapNetwork (testName, argv,
         }
       }
 
-      if (!await k8.hasNamespace(constants.FULLSTACK_SETUP_NAMESPACE)) {
+      if (!await chartManager.isChartInstalled(constants.FULLSTACK_SETUP_NAMESPACE, constants.FULLSTACK_CLUSTER_SETUP_CHART)) {
         await clusterCmd.setup(argv)
       }
     }, 60000)
