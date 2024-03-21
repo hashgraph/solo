@@ -17,7 +17,7 @@
 import { ListrEnquirerPromptAdapter } from '@listr2/prompt-adapter-enquirer'
 import chalk from 'chalk'
 import { Listr } from 'listr2'
-import { FullstackTestingError } from '../core/errors.mjs'
+import { FullstackTestingError, MissingArgumentError } from '../core/errors.mjs'
 import { BaseCommand } from './base.mjs'
 import * as flags from './flags.mjs'
 import * as paths from 'path'
@@ -26,6 +26,14 @@ import * as prompts from './prompts.mjs'
 import * as helpers from '../core/helpers.mjs'
 
 export class NetworkCommand extends BaseCommand {
+  constructor (opts) {
+    super(opts)
+
+    if (!opts || !opts.profileManager) throw new MissingArgumentError('An instance of core/ProfileManager is required', opts.downloader)
+
+    this.profileManager = opts.profileManager
+  }
+
   getTlsValueArguments (tlsClusterIssuerType, enableHederaExplorerTls, namespace,
     hederaExplorerTlsLoadBalancerIp, hederaExplorerTlsHostName) {
     let valuesArg = ''
@@ -77,8 +85,8 @@ export class NetworkCommand extends BaseCommand {
     valuesArg += this.prepareValuesFiles(config.valuesFile)
 
     // do not deploy mirror node until after we have the updated address book
-    valuesArg += ' --set hedera-mirror-node.enabled=false --set hedera-explorer.enabled=false'
-    valuesArg += ` --set telemetry.prometheus.svcMonitor.enabled=${config.enablePrometheusSvcMonitor}`
+    valuesArg += ' --set "hedera-mirror-node.enabled=false" --set "hedera-explorer.enabled=false"'
+    valuesArg += ` --set "telemetry.prometheus.svcMonitor.enabled=${config.enablePrometheusSvcMonitor}"`
 
     if (config.enableHederaExplorerTls) {
       valuesArg += this.getTlsValueArguments(config.tlsClusterIssuerType, config.enableHederaExplorerTls, config.namespace,
@@ -87,7 +95,7 @@ export class NetworkCommand extends BaseCommand {
 
     if (config.releaseTag) {
       const rootImage = helpers.getRootImageRepository(config.releaseTag)
-      valuesArg += ` --set defaults.root.image.repository=${rootImage}`
+      valuesArg += ` --set "defaults.root.image.repository=${rootImage}"`
     }
 
     // prepare name and account IDs for nodes
@@ -96,8 +104,10 @@ export class NetworkCommand extends BaseCommand {
     let accountId = constants.HEDERA_NODE_ACCOUNT_ID_START.num
     let i = 0
     config.nodeIds.forEach(nodeId => {
-      valuesArg += ` --set hedera.nodes[${i}].name=${nodeId},hedera.nodes[${i++}].accountId=${realm}.${shard}.${accountId++}`
+      valuesArg += ` --set "hedera.nodes[${i}].name=${nodeId}" --set "hedera.nodes[${i++}].accountId=${realm}.${shard}.${accountId++}"`
     })
+
+    valuesArg += this.profileManager.resourceValuesForFSTChart(this.configManager.getFlag(flags.profileName))
 
     this.logger.debug('Prepared helm chart values', { valuesArg })
     return valuesArg
@@ -115,7 +125,7 @@ export class NetworkCommand extends BaseCommand {
       flags.hederaExplorerTlsHostName,
       flags.enablePrometheusSvcMonitor,
       flags.profileFile,
-      flags.profile
+      flags.profileName
     ]
 
     this.configManager.update(argv)
@@ -143,7 +153,10 @@ export class NetworkCommand extends BaseCommand {
 
     config.valuesArg = this.prepareValuesArg(config)
 
-    this.logger.debug('Prepared config', { config, cachedConfig: this.configManager.config })
+    this.logger.debug('Prepared config', {
+      config,
+      cachedConfig: this.configManager.config
+    })
     return config
   }
 
@@ -362,10 +375,10 @@ export class NetworkCommand extends BaseCommand {
               flags.enablePrometheusSvcMonitor,
               flags.fstChartVersion,
               flags.profileFile,
-              flags.profile
+              flags.profileName
             ),
             handler: argv => {
-              networkCmd.logger.debug("==== Running 'network deploy' ===")
+              networkCmd.logger.debug('==== Running \'network deploy\' ===')
               networkCmd.logger.debug(argv)
 
               networkCmd.deploy(argv).then(r => {
@@ -387,7 +400,7 @@ export class NetworkCommand extends BaseCommand {
               flags.deletePvcs
             ),
             handler: argv => {
-              networkCmd.logger.debug("==== Running 'network destroy' ===")
+              networkCmd.logger.debug('==== Running \'network destroy\' ===')
               networkCmd.logger.debug(argv)
 
               networkCmd.destroy(argv).then(r => {
@@ -416,7 +429,7 @@ export class NetworkCommand extends BaseCommand {
               flags.enablePrometheusSvcMonitor
             ),
             handler: argv => {
-              networkCmd.logger.debug("==== Running 'chart upgrade' ===")
+              networkCmd.logger.debug('==== Running \'chart upgrade\' ===')
               networkCmd.logger.debug(argv)
 
               networkCmd.refresh(argv).then(r => {

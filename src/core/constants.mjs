@@ -133,3 +133,7 @@ export const PROFILE_LARGE = 'large'
 export const PROFILE_MEDIUM = 'medium'
 export const PROFILE_SMALL = 'small'
 export const PROFILE_TINY = 'tiny'
+export const PROFILE_LOCAL = 'local'
+
+export const DEFAULT_PROFILES = [PROFILE_LOCAL, PROFILE_TINY, PROFILE_SMALL, PROFILE_MEDIUM, PROFILE_LARGE]
+export const DEFAULT_PROFILE_FILE = `${RESOURCES_DIR}/profiles/custom-spec.yaml`
