@@ -24,7 +24,11 @@ import { InitCommand } from '../src/commands/init.mjs'
 import { NetworkCommand } from '../src/commands/network.mjs'
 import { NodeCommand } from '../src/commands/node.mjs'
 import { AccountManager } from '../src/core/account_manager.mjs'
-import { DependencyManager, HelmDependencyManager } from '../src/core/dependency_managers/index.mjs'
+import {
+  DependencyManager,
+  HelmDependencyManager,
+  KeytoolDependencyManager
+} from '../src/core/dependency_managers/index.mjs'
 import { sleep } from '../src/core/helpers.mjs'
 import {
   ChartManager,
@@ -102,6 +106,7 @@ export function bootstrapTestVariables (testName, argv,
   const downloader = new PackageDownloader(testLogger)
   const zippy = new Zippy(testLogger)
   const helmDepManager = new HelmDependencyManager(downloader, zippy, testLogger)
+  const keytoolDepManager = new KeytoolDependencyManager(downloader, zippy, testLogger)
   const depManagerMap = new Map().set(constants.HELM, helmDepManager)
   const depManager = new DependencyManager(testLogger, depManagerMap)
   const keyManager = new KeyManager(testLogger)
@@ -121,7 +126,8 @@ export function bootstrapTestVariables (testName, argv,
     depManager,
     keyManager,
     accountManager,
-    cacheDir
+    cacheDir,
+    keytoolDepManager
   }
 
   const initCmd = initCmdArg || new InitCommand(opts)
@@ -167,7 +173,7 @@ export function bootstrapNetwork (testName, argv,
   const nodeCmd = bootstrapResp.cmd.nodeCmd
   const chartManager = bootstrapResp.opts.chartManager
 
-  describe('Bootstrap network for test', () => {
+  describe(`Bootstrap network for test [release ${argv[flags.releaseTag.name]}, keyFormat: ${argv[flags.keyFormat.name]}]`, () => {
     it('should cleanup previous deployment', async () => {
       await initCmd.init(argv)
 

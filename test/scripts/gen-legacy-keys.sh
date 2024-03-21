@@ -19,6 +19,7 @@
 keysDir="${HOME}/.solo/cache/keys"
 ids="node0,node1,node2"
 validity=36524 # number of days
+keytool_path="${HOME}/.solo/bin/jre/bin/keytool"
 
 if [ "$#" -gt 0 ]; then
     ids="${1}"
@@ -30,6 +31,10 @@ fi
 
 if [ "$#" -eq 3 ]; then
     validity="${3}"
+fi
+
+if [ "$#" -eq 4 ]; then
+    keytool_path="${4}"
 fi
 
 mkdir -p "${keysDir}"
@@ -45,31 +50,31 @@ rmdir unused 2>/dev/null
 
 for nm in "${names[@]}"; do
   n="$(echo "${nm}" | tr '[A-Z]' '[a-z]')"
-  keytool -genkeypair -alias "s-$n" -keystore "private-$n.pfx" -storetype "pkcs12" -storepass "password" -dname "cn=s-$n" -keyalg "rsa" -sigalg "SHA384withRSA" -keysize "3072" -validity "${validity}"
-  keytool -genkeypair -alias "a-$n" -keystore "private-$n.pfx" -storetype "pkcs12" -storepass "password" -dname "cn=a-$n" -keyalg "ec" -sigalg "SHA384withECDSA" -groupname "secp384r1" -validity "${validity}"
-  keytool -genkeypair -alias "e-$n" -keystore "private-$n.pfx" -storetype "pkcs12" -storepass "password" -dname "cn=e-$n" -keyalg "ec" -sigalg "SHA384withECDSA" -groupname "secp384r1" -validity "${validity}"
+  "${keytool_path}" -genkeypair -alias "s-$n" -keystore "private-$n.pfx" -storetype "pkcs12" -storepass "password" -dname "cn=s-$n" -keyalg "rsa" -sigalg "SHA384withRSA" -keysize "3072" -validity "${validity}"
+  "${keytool_path}" -genkeypair -alias "a-$n" -keystore "private-$n.pfx" -storetype "pkcs12" -storepass "password" -dname "cn=a-$n" -keyalg "ec" -sigalg "SHA384withECDSA" -groupname "secp384r1" -validity "${validity}"
+  "${keytool_path}" -genkeypair -alias "e-$n" -keystore "private-$n.pfx" -storetype "pkcs12" -storepass "password" -dname "cn=e-$n" -keyalg "ec" -sigalg "SHA384withECDSA" -groupname "secp384r1" -validity "${validity}"
 
-  keytool -certreq -alias "a-$n" -keystore "private-$n.pfx" -storetype "pkcs12" -storepass "password" |
-    keytool -gencert -alias "s-$n" -keystore "private-$n.pfx" -storetype "pkcs12" -storepass "password" -validity "${validity}" |
-    keytool -importcert -alias "a-$n" -keystore "private-$n.pfx" -storetype "pkcs12" -storepass "password"
+  "${keytool_path}" -certreq -alias "a-$n" -keystore "private-$n.pfx" -storetype "pkcs12" -storepass "password" |
+    "${keytool_path}" -gencert -alias "s-$n" -keystore "private-$n.pfx" -storetype "pkcs12" -storepass "password" -validity "${validity}" |
+    "${keytool_path}" -importcert -alias "a-$n" -keystore "private-$n.pfx" -storetype "pkcs12" -storepass "password"
 
-  keytool -certreq -alias "e-$n" -keystore "private-$n.pfx" -storetype "pkcs12" -storepass "password" |
-    keytool -gencert -alias "s-$n" -keystore "private-$n.pfx" -storetype "pkcs12" -storepass "password" -validity "${validity}" |
-    keytool -importcert -alias "e-$n" -keystore "private-$n.pfx" -storetype "pkcs12" -storepass "password"
+  "${keytool_path}" -certreq -alias "e-$n" -keystore "private-$n.pfx" -storetype "pkcs12" -storepass "password" |
+    "${keytool_path}" -gencert -alias "s-$n" -keystore "private-$n.pfx" -storetype "pkcs12" -storepass "password" -validity "${validity}" |
+    "${keytool_path}" -importcert -alias "e-$n" -keystore "private-$n.pfx" -storetype "pkcs12" -storepass "password"
 
-  keytool -exportcert -alias "s-$n" -keystore "private-$n.pfx" -storetype "pkcs12" -storepass "password" |
-    keytool -importcert -alias "s-$n" -keystore "public.pfx" -storetype "pkcs12" -storepass "password" -noprompt
+  "${keytool_path}" -exportcert -alias "s-$n" -keystore "private-$n.pfx" -storetype "pkcs12" -storepass "password" |
+    "${keytool_path}" -importcert -alias "s-$n" -keystore "public.pfx" -storetype "pkcs12" -storepass "password" -noprompt
 
-  keytool -exportcert -alias "a-$n" -keystore "private-$n.pfx" -storetype "pkcs12" -storepass "password" |
-    keytool -importcert -alias "a-$n" -keystore "public.pfx" -storetype "pkcs12" -storepass "password" -noprompt
+  "${keytool_path}" -exportcert -alias "a-$n" -keystore "private-$n.pfx" -storetype "pkcs12" -storepass "password" |
+    "${keytool_path}" -importcert -alias "a-$n" -keystore "public.pfx" -storetype "pkcs12" -storepass "password" -noprompt
 
-  keytool -exportcert -alias "e-$n" -keystore "private-$n.pfx" -storetype "pkcs12" -storepass "password" |
-    keytool -importcert -alias "e-$n" -keystore "public.pfx" -storetype "pkcs12" -storepass "password" -noprompt
+  "${keytool_path}" -exportcert -alias "e-$n" -keystore "private-$n.pfx" -storetype "pkcs12" -storepass "password" |
+    "${keytool_path}" -importcert -alias "e-$n" -keystore "public.pfx" -storetype "pkcs12" -storepass "password" -noprompt
 
   echo "---------------------------------------------------------------------------------------------------------------"
   echo "Generated private key of node '${n}': ${keysDir}/private-$n.pfx"
   echo "---------------------------------------------------------------------------------------------------------------"
-  keytool -list -keystore "private-$n.pfx" -storetype "pkcs12" -storepass "password"
+  "${keytool_path}" -list -keystore "private-$n.pfx" -storetype "pkcs12" -storepass "password"
 
   # Generate node mTLS keys
   openssl req -new -newkey rsa:3072 -out "hedera-${n}.csr" -keyout "hedera-${n}.key" -sha384 -nodes -subj "/CN=${n}" || exit 1
@@ -80,6 +85,6 @@ done
 echo "---------------------------------------------------------------------------------------------------------------"
 echo "Generated public keys: ${keysDir}/public.pfx"
 echo "---------------------------------------------------------------------------------------------------------------"
-keytool -list -keystore "public.pfx" -storetype "pkcs12" -storepass "password"
+"${keytool_path}" -list -keystore "public.pfx" -storetype "pkcs12" -storepass "password"
 ls
 

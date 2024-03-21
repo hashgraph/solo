@@ -32,16 +32,15 @@ import {
 } from '../../test_util.js'
 
 describe.each([
-  // ['v0.42.5', constants.KEY_FORMAT_PFX]
-  // ['v0.47.0-alpha.0', constants.KEY_FORMAT_PFX],
-  ['v0.47.0-alpha.0', constants.KEY_FORMAT_PEM]
-])('NodeCommand', (testRelease, testKeyFormat) => {
-  const testName = 'node-cmd-e2e'
+  { releaseTag: 'v0.47.0-alpha.0', keyFormat: constants.KEY_FORMAT_PFX, testName: 'node-cmd-e2e-pfx' },
+  { releaseTag: 'v0.47.0-alpha.0', keyFormat: constants.KEY_FORMAT_PEM, testName: 'node-cmd-e2e-pem' }
+])('NodeCommand', (input) => {
+  const testName = input.testName
   const namespace = testName
   const argv = getDefaultArgv()
   argv[flags.namespace.name] = namespace
-  argv[flags.releaseTag.name] = testRelease
-  argv[flags.keyFormat.name] = testKeyFormat
+  argv[flags.releaseTag.name] = input.releaseTag
+  argv[flags.keyFormat.name] = input.keyFormat
   argv[flags.nodeIDs.name] = 'node0,node1,node2'
   argv[flags.generateGossipKeys.name] = true
   argv[flags.generateTlsKeys.name] = true
@@ -56,7 +55,7 @@ describe.each([
     await accountManager.close()
   })
 
-  describe(`Node should start successfully [release ${testRelease}, keyFormat: ${testKeyFormat}]`, () => {
+  describe(`Node should start successfully [release ${input.keyFormat}, keyFormat: ${input.releaseTag}]`, () => {
     it('Balance query should succeed', async () => {
       expect.assertions(2)
 
