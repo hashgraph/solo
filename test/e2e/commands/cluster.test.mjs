@@ -101,6 +101,33 @@ describe('ClusterCommand', () => {
     }
   }, 60000)
 
+  it('function getClusterInfo should return true', async () => {
+    try {
+      await expect(clusterCmd.getClusterInfo()).resolves.toBeTruthy()
+    } catch (e) {
+      clusterCmd.logger.showUserError(e)
+      expect(e).toBeNull()
+    }
+  }, 60000)
+
+  it('function showClusterList should return right true', async () => {
+    try {
+      await expect(clusterCmd.showClusterList()).resolves.toBeTruthy()
+    } catch (e) {
+      clusterCmd.logger.showUserError(e)
+      expect(e).toBeNull()
+    }
+  }, 60000)
+
+  it('function showInstalledChartList should return right true', async () => {
+    try {
+      await expect(clusterCmd.showInstalledChartList()).resolves.toBeUndefined()
+    } catch (e) {
+      clusterCmd.logger.showUserError(e)
+      expect(e).toBeNull()
+    }
+  }, 60000)
+
   // helm list would return an empty list if given invalid namespace
   it('solo cluster reset should fail with invalid cluster name', async () => {
     argv[flags.clusterSetupNamespace.name] = 'INVALID'
