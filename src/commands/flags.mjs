@@ -99,6 +99,24 @@ export const valuesFile = {
   }
 }
 
+export const profileFile = {
+  name: 'profile-file',
+  definition: {
+    describe: 'Resource profile definition file (e.g. custom-spec.yaml)',
+    defaultValue: '',
+    type: 'string'
+  }
+}
+
+export const profile = {
+  name: 'profile',
+  definition: {
+    describe: 'Resource profile for the fullstack network deployment (large | medium | small | tiny|',
+    defaultValue: '',
+    type: 'string'
+  }
+}
+
 export const deployPrometheusStack = {
   name: 'prometheus-stack',
   definition: {
@@ -466,7 +484,9 @@ export const allFlags = [
   privateKey,
   accountId,
   amount,
-  applicationEnv
+  applicationEnv,
+  profileFile,
+  profile
 ]
 
 export const allFlagsMap = new Map(allFlags.map(f => [f.name, f]))

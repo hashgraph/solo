@@ -128,3 +128,8 @@ export const OS_MAC = 'mac'
 export const OS_LINUX = 'linux'
 
 export const LOCAL_HOST = '127.0.0.1'
+
+export const PROFILE_LARGE = 'large'
+export const PROFILE_MEDIUM = 'medium'
+export const PROFILE_SMALL = 'small'
+export const PROFILE_TINY = 'tiny'

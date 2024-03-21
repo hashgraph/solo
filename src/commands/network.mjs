@@ -113,7 +113,9 @@ export class NetworkCommand extends BaseCommand {
       flags.tlsClusterIssuerType,
       flags.enableHederaExplorerTls,
       flags.hederaExplorerTlsHostName,
-      flags.enablePrometheusSvcMonitor
+      flags.enablePrometheusSvcMonitor,
+      flags.profileFile,
+      flags.profile
     ]
 
     this.configManager.update(argv)
@@ -358,7 +360,9 @@ export class NetworkCommand extends BaseCommand {
               flags.hederaExplorerTlsLoadBalancerIp,
               flags.hederaExplorerTlsHostName,
               flags.enablePrometheusSvcMonitor,
-              flags.fstChartVersion
+              flags.fstChartVersion,
+              flags.profileFile,
+              flags.profile
             ),
             handler: argv => {
               networkCmd.logger.debug("==== Running 'network deploy' ===")
