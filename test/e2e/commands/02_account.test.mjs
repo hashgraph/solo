@@ -63,7 +63,7 @@ describe('AccountCommand', () => {
   describe('node proxies should be UP', () => {
     for (const nodeId of argv[flags.nodeIDs.name].split(',')) {
       it(`proxy should be UP: ${nodeId} `, async () => {
-        await nodeCmd.checkNetworkNodeProxyUp(namespace, nodeId)
+        await nodeCmd.checkNetworkNodeProxyUp(namespace, nodeId, 30399)
       }, 30000)
     }
   })
