@@ -118,6 +118,10 @@ export async function promptChainId (task, input) {
 
 export async function promptChartDir (task, input) {
   try {
+    if (input === 'false') {
+      return ''
+    }
+
     if (input && !fs.existsSync(input)) {
       input = await task.prompt(ListrEnquirerPromptAdapter).run({
         type: 'text',
@@ -172,8 +176,7 @@ export async function promptProfileFile (task, input) {
   return input
 }
 
-export async function promptProfile (task, input, choices = [
-  constants.PROFILE_TINY, constants.PROFILE_SMALL, constants.PROFILE_MEDIUM, constants.PROFILE_LARGE]) {
+export async function promptProfile (task, input, choices = constants.ALL_PROFILES) {
   try {
     const initial = choices.indexOf(input)
     if (initial < 0) {
@@ -436,7 +439,7 @@ export function getPromptMap () {
     .set(flags.accountId.name, promptAccountId)
     .set(flags.amount.name, promptAmount)
     .set(flags.profileFile.name, promptProfileFile)
-    .set(flags.profile.name, promptProfile)
+    .set(flags.profileName.name, promptProfile)
 }
 
 // build the prompt registry

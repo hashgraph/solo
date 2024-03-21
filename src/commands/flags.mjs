@@ -102,17 +102,17 @@ export const valuesFile = {
 export const profileFile = {
   name: 'profile-file',
   definition: {
-    describe: 'Resource profile definition file (e.g. custom-spec.yaml)',
-    defaultValue: '',
+    describe: 'Resource profile definition (e.g. custom-spec.yaml)',
+    defaultValue: constants.DEFAULT_PROFILE_FILE,
     type: 'string'
   }
 }
 
-export const profile = {
+export const profileName = {
   name: 'profile',
   definition: {
-    describe: 'Resource profile for the fullstack network deployment (large | medium | small | tiny|',
-    defaultValue: '',
+    describe: `Resource profile (${constants.ALL_PROFILES.join(' | ')})`,
+    defaultValue: constants.PROFILE_LOCAL,
     type: 'string'
   }
 }
@@ -486,7 +486,7 @@ export const allFlags = [
   amount,
   applicationEnv,
   profileFile,
-  profile
+  profileName
 ]
 
 export const allFlagsMap = new Map(allFlags.map(f => [f.name, f]))

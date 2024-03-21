@@ -33,6 +33,7 @@ export const KEYTOOL = 'keytool'
 export const CWD = process.cwd()
 export const SOLO_CONFIG_FILE = `${SOLO_HOME_DIR}/solo.config`
 export const RESOURCES_DIR = normalize(CUR_FILE_DIR + '/../../resources')
+export const PROFILES_DIR = normalize(`${RESOURCES_DIR}/profiles`)
 
 export const ROOT_CONTAINER = 'root-container'
 
@@ -133,3 +134,7 @@ export const PROFILE_LARGE = 'large'
 export const PROFILE_MEDIUM = 'medium'
 export const PROFILE_SMALL = 'small'
 export const PROFILE_TINY = 'tiny'
+export const PROFILE_LOCAL = 'local'
+
+export const ALL_PROFILES = [PROFILE_LOCAL, PROFILE_TINY, PROFILE_SMALL, PROFILE_MEDIUM, PROFILE_LARGE]
+export const DEFAULT_PROFILE_FILE = `${PROFILES_DIR}/custom-spec.yaml`

@@ -513,3 +513,4 @@ secring.*
 junit*.xml
 node_modules/
 coverage/
+deleteme.yaml

@@ -16,7 +16,7 @@
  */
 import { ListrEnquirerPromptAdapter } from '@listr2/prompt-adapter-enquirer'
 import { Listr } from 'listr2'
-import { FullstackTestingError, IllegalArgumentError } from '../core/errors.mjs'
+import { FullstackTestingError, IllegalArgumentError, MissingArgumentError } from '../core/errors.mjs'
 import { Templates, constants } from '../core/index.mjs'
 import { BaseCommand } from './base.mjs'
 import * as flags from './flags.mjs'
@@ -26,7 +26,26 @@ export class MirrorNodeCommand extends BaseCommand {
   constructor (opts) {
     super(opts)
     if (!opts || !opts.accountManager) throw new IllegalArgumentError('An instance of core/AccountManager is required', opts.accountManager)
+    if (!opts || !opts.profileManager) throw new MissingArgumentError('An instance of core/ProfileManager is required', opts.downloader)
+
     this.accountManager = opts.accountManager
+    this.profileManager = opts.profileManager
+  }
+
+  async prepareValuesArg (valuesFile, deployHederaExplorer) {
+    let valuesArg = ''
+    if (valuesFile) {
+      valuesArg += this.prepareValuesFiles(valuesFile)
+    }
+
+    const profileName = this.configManager.getFlag(flags.profileName)
+    const profileValuesFile = await this.profileManager.prepareValuesForMirrorNodeChart(profileName)
+    if (profileValuesFile) {
+      valuesArg += this.prepareValuesFiles(profileValuesFile)
+    }
+
+    valuesArg += ` --set hedera-mirror-node.enabled=true --set hedera-explorer.enabled=${deployHederaExplorer}`
+    return valuesArg
   }
 
   async deploy (argv) {
@@ -53,7 +72,10 @@ export class MirrorNodeCommand extends BaseCommand {
 
           ctx.config.stagingDir = Templates.renderStagingDir(self.configManager, flags)
 
-          ctx.config.valuesArg = ` --set hedera-mirror-node.enabled=true --set hedera-explorer.enabled=${ctx.config.deployHederaExplorer}`
+          ctx.config.valuesArg = await self.prepareValuesArg(
+            ctx.config.valuesFile,
+            ctx.config.deployHederaExplorer
+          )
 
           if (!await self.k8.hasNamespace(ctx.config.namespace)) {
             throw new FullstackTestingError(`namespace ${ctx.config.namespace} does not exist`)
@@ -104,13 +126,6 @@ export class MirrorNodeCommand extends BaseCommand {
               ], 1, 900)
             },
             {
-              title: 'Check Importer',
-              task: async (ctx, _) => self.k8.waitForPod(constants.POD_STATUS_RUNNING, [
-                'app.kubernetes.io/component=importer',
-                'app.kubernetes.io/name=importer'
-              ], 1, 900)
-            },
-            {
               title: 'Check REST API',
               task: async (ctx, _) => self.k8.waitForPod(constants.POD_STATUS_RUNNING, [
                 'app.kubernetes.io/component=rest',
@@ -118,17 +133,24 @@ export class MirrorNodeCommand extends BaseCommand {
               ], 1, 900)
             },
             {
-              title: 'Check Web3',
-              task: async (ctx, _) => self.k8.waitForPod(constants.POD_STATUS_RUNNING, [
-                'app.kubernetes.io/component=web3',
-                'app.kubernetes.io/name=web3'
-              ], 1, 900)
-            },
-            {
               title: 'Check GRPC',
               task: async (ctx, _) => self.k8.waitForPod(constants.POD_STATUS_RUNNING, [
                 'app.kubernetes.io/component=grpc',
                 'app.kubernetes.io/name=grpc'
+              ], 1, 900)
+            },
+            {
+              title: 'Check Monitor',
+              task: async (ctx, _) => self.k8.waitForPod(constants.POD_STATUS_RUNNING, [
+                'app.kubernetes.io/component=monitor',
+                'app.kubernetes.io/name=monitor'
+              ], 1, 900)
+            },
+            {
+              title: 'Check Importer',
+              task: async (ctx, _) => self.k8.waitForPod(constants.POD_STATUS_RUNNING, [
+                'app.kubernetes.io/component=importer',
+                'app.kubernetes.io/name=importer'
               ], 1, 900)
             },
             {
@@ -142,7 +164,7 @@ export class MirrorNodeCommand extends BaseCommand {
           ]
 
           return parentTask.newListr(subTasks, {
-            concurrent: false,
+            concurrent: true,
             rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
           })
         }

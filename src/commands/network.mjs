@@ -17,15 +17,22 @@
 import { ListrEnquirerPromptAdapter } from '@listr2/prompt-adapter-enquirer'
 import chalk from 'chalk'
 import { Listr } from 'listr2'
-import { FullstackTestingError } from '../core/errors.mjs'
+import { FullstackTestingError, MissingArgumentError } from '../core/errors.mjs'
 import { BaseCommand } from './base.mjs'
 import * as flags from './flags.mjs'
-import * as paths from 'path'
 import { constants, Templates } from '../core/index.mjs'
 import * as prompts from './prompts.mjs'
 import * as helpers from '../core/helpers.mjs'
 
 export class NetworkCommand extends BaseCommand {
+  constructor (opts) {
+    super(opts)
+
+    if (!opts || !opts.profileManager) throw new MissingArgumentError('An instance of core/ProfileManager is required', opts.downloader)
+
+    this.profileManager = opts.profileManager
+  }
+
   getTlsValueArguments (tlsClusterIssuerType, enableHederaExplorerTls, namespace,
     hederaExplorerTlsLoadBalancerIp, hederaExplorerTlsHostName) {
     let valuesArg = ''
@@ -55,30 +62,25 @@ export class NetworkCommand extends BaseCommand {
     return valuesArg
   }
 
-  prepareValuesFiles (valuesFile) {
-    let valuesArg = ''
-    if (valuesFile) {
-      const valuesFiles = valuesFile.split(',')
-      valuesFiles.forEach(vf => {
-        const vfp = paths.resolve(vf)
-        valuesArg += ` --values ${vfp}`
-      })
-    }
-
-    return valuesArg
-  }
-
-  prepareValuesArg (config = {}) {
+  async prepareValuesArg (config = {}) {
     let valuesArg = ''
     if (config.chartDir) {
       valuesArg = `-f ${config.chartDir}/fullstack-deployment/values.yaml`
     }
 
-    valuesArg += this.prepareValuesFiles(config.valuesFile)
+    if (config.valuesFile) {
+      valuesArg += this.prepareValuesFiles(config.valuesFile)
+    }
+
+    const profileName = this.configManager.getFlag(flags.profileName)
+    const profileValuesFile = await this.profileManager.prepareValuesForFSTChart(profileName)
+    if (profileValuesFile) {
+      valuesArg += this.prepareValuesFiles(profileValuesFile)
+    }
 
     // do not deploy mirror node until after we have the updated address book
-    valuesArg += ' --set hedera-mirror-node.enabled=false --set hedera-explorer.enabled=false'
-    valuesArg += ` --set telemetry.prometheus.svcMonitor.enabled=${config.enablePrometheusSvcMonitor}`
+    valuesArg += ' --set "hedera-mirror-node.enabled=false" --set "hedera-explorer.enabled=false"'
+    valuesArg += ` --set "telemetry.prometheus.svcMonitor.enabled=${config.enablePrometheusSvcMonitor}"`
 
     if (config.enableHederaExplorerTls) {
       valuesArg += this.getTlsValueArguments(config.tlsClusterIssuerType, config.enableHederaExplorerTls, config.namespace,
@@ -87,17 +89,8 @@ export class NetworkCommand extends BaseCommand {
 
     if (config.releaseTag) {
       const rootImage = helpers.getRootImageRepository(config.releaseTag)
-      valuesArg += ` --set defaults.root.image.repository=${rootImage}`
+      valuesArg += ` --set "defaults.root.image.repository=${rootImage}"`
     }
-
-    // prepare name and account IDs for nodes
-    const realm = constants.HEDERA_NODE_ACCOUNT_ID_START.realm
-    const shard = constants.HEDERA_NODE_ACCOUNT_ID_START.shard
-    let accountId = constants.HEDERA_NODE_ACCOUNT_ID_START.num
-    let i = 0
-    config.nodeIds.forEach(nodeId => {
-      valuesArg += ` --set hedera.nodes[${i}].name=${nodeId},hedera.nodes[${i++}].accountId=${realm}.${shard}.${accountId++}`
-    })
 
     this.logger.debug('Prepared helm chart values', { valuesArg })
     return valuesArg
@@ -115,7 +108,7 @@ export class NetworkCommand extends BaseCommand {
       flags.hederaExplorerTlsHostName,
       flags.enablePrometheusSvcMonitor,
       flags.profileFile,
-      flags.profile
+      flags.profileName
     ]
 
     this.configManager.update(argv)
@@ -141,9 +134,12 @@ export class NetworkCommand extends BaseCommand {
     config.chartPath = await this.prepareChartPath(config.chartDir,
       constants.FULLSTACK_TESTING_CHART, constants.FULLSTACK_DEPLOYMENT_CHART)
 
-    config.valuesArg = this.prepareValuesArg(config)
+    config.valuesArg = await this.prepareValuesArg(config)
 
-    this.logger.debug('Prepared config', { config, cachedConfig: this.configManager.config })
+    this.logger.debug('Prepared config', {
+      config,
+      cachedConfig: this.configManager.config
+    })
     return config
   }
 
@@ -362,10 +358,10 @@ export class NetworkCommand extends BaseCommand {
               flags.enablePrometheusSvcMonitor,
               flags.fstChartVersion,
               flags.profileFile,
-              flags.profile
+              flags.profileName
             ),
             handler: argv => {
-              networkCmd.logger.debug("==== Running 'network deploy' ===")
+              networkCmd.logger.debug('==== Running \'network deploy\' ===')
               networkCmd.logger.debug(argv)
 
               networkCmd.deploy(argv).then(r => {
@@ -387,7 +383,7 @@ export class NetworkCommand extends BaseCommand {
               flags.deletePvcs
             ),
             handler: argv => {
-              networkCmd.logger.debug("==== Running 'network destroy' ===")
+              networkCmd.logger.debug('==== Running \'network destroy\' ===')
               networkCmd.logger.debug(argv)
 
               networkCmd.destroy(argv).then(r => {
@@ -416,7 +412,7 @@ export class NetworkCommand extends BaseCommand {
               flags.enablePrometheusSvcMonitor
             ),
             handler: argv => {
-              networkCmd.logger.debug("==== Running 'chart upgrade' ===")
+              networkCmd.logger.debug('==== Running \'chart upgrade\' ===')
               networkCmd.logger.debug(argv)
 
               networkCmd.refresh(argv).then(r => {

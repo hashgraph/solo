@@ -15,7 +15,6 @@
  *
  */
 import { Listr } from 'listr2'
-import * as paths from 'path'
 import { FullstackTestingError, MissingArgumentError } from '../core/errors.mjs'
 import * as helpers from '../core/helpers.mjs'
 import { constants } from '../core/index.mjs'
@@ -24,14 +23,24 @@ import * as flags from './flags.mjs'
 import * as prompts from './prompts.mjs'
 
 export class RelayCommand extends BaseCommand {
-  prepareValuesArg (valuesFile, nodeIDs, chainID, relayRelease, replicaCount, operatorID, operatorKey) {
+  constructor (opts) {
+    super(opts)
+
+    if (!opts || !opts.profileManager) throw new MissingArgumentError('An instance of core/ProfileManager is required', opts.downloader)
+
+    this.profileManager = opts.profileManager
+  }
+
+  async prepareValuesArg (valuesFile, nodeIDs, chainID, relayRelease, replicaCount, operatorID, operatorKey) {
     let valuesArg = ''
     if (valuesFile) {
-      const valuesFiles = valuesFile.split(',')
-      valuesFiles.forEach(vf => {
-        const vfp = paths.resolve(vf)
-        valuesArg += ` --values ${vfp}`
-      })
+      valuesArg += this.prepareValuesFiles(valuesFile)
+    }
+
+    const profileName = this.configManager.getFlag(flags.profileName)
+    const profileValuesFile = await this.profileManager.prepareValuesForRpcRelayChart(profileName)
+    if (profileValuesFile) {
+      valuesArg += this.prepareValuesFiles(profileValuesFile)
     }
 
     valuesArg += ` --set config.MIRROR_NODE_URL=${constants.FULLSTACK_DEPLOYMENT_CHART}-rest`
@@ -127,7 +136,7 @@ export class RelayCommand extends BaseCommand {
         title: 'Prepare chart values',
         task: async (ctx, _) => {
           ctx.chartPath = await self.prepareChartPath(ctx.config.chartDir, constants.JSON_RPC_RELAY_CHART, constants.JSON_RPC_RELAY_CHART)
-          ctx.valuesArg = self.prepareValuesArg(
+          ctx.valuesArg = await self.prepareValuesArg(
             ctx.config.valuesFile,
             ctx.config.nodeIds,
             ctx.config.chainId,
