@@ -62,13 +62,16 @@ describe('NetworkCommand', () => {
     try {
       await expect(networkCmd.deploy(argv)).resolves.toBeTruthy()
 
-      // check pods name match expected values
+      // check pod names should match expected values
       await expect(k8.getPodByName('network-node0-0'))
         .resolves.toHaveProperty('metadata.name', 'network-node0-0')
       await expect(k8.getPodByName('network-node1-0'))
         .resolves.toHaveProperty('metadata.name', 'network-node1-0')
       await expect(k8.getPodByName('network-node2-0'))
         .resolves.toHaveProperty('metadata.name', 'network-node2-0')
+      // get list of pvc using k8 listPvcsByNamespace function and print to log
+      const pvcs = await k8.listPvcsByNamespace(namespace)
+      networkCmd.logger.showList('PVCs', pvcs)
 
     } catch (e) {
       networkCmd.logger.showUserError(e)
@@ -80,9 +83,17 @@ describe('NetworkCommand', () => {
     argv[flags.deletePvcs.name] = true
     configManager.update(argv, true)
 
-    expect.assertions(1)
+    expect.assertions(3)
     try {
       await expect(networkCmd.destroy(argv)).resolves.toBeTruthy()
+
+      // check if chart is uninstalled
+      await expect(bootstrapResp.opts.chartManager.isChartInstalled(namespace, constants.FULLSTACK_DEPLOYMENT_CHART))
+        .resolves.toBeFalsy()
+
+      // check if pvc are deleted
+      await expect(k8.listPvcsByNamespace(namespace)).resolves.toHaveLength(0)
+
     } catch (e) {
       networkCmd.logger.showUserError(e)
       expect(e).toBeNull()
