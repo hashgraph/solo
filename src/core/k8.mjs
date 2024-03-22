@@ -197,14 +197,14 @@ export class K8 {
 
   /**
    * Get pods by labels
-   * @param namespace the namespace of the pods
    * @param labels list of labels
    * @return {Promise<Array<V1Pod>>}
    */
-  async getPodsByLabel (namespace, labels = []) {
+  async getPodsByLabel (labels = []) {
+    const ns = this._getNamespace()
     const labelSelector = labels.join(',')
     const result = await this.kubeClient.listNamespacedPod(
-      namespace,
+      ns,
       undefined,
       undefined,
       undefined,
@@ -661,10 +661,9 @@ export class K8 {
    * @param podName pod name
    * @param localPort local port
    * @param podPort port of the pod
-   * @param namespace namespace of the pod (optional)
    */
-  async portForward (podName, localPort, podPort, namespace = null) {
-    const ns = namespace || this._getNamespace()
+  async portForward (podName, localPort, podPort) {
+    const ns = this._getNamespace()
     const forwarder = new k8s.PortForward(this.kubeConfig, false)
     const server = await net.createServer((socket) => {
       forwarder.portForward(ns, podName, [podPort], socket, null, socket, 3)

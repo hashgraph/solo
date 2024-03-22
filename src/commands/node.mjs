@@ -696,12 +696,12 @@ export class NodeCommand extends BaseCommand {
    * @returns {Promise<boolean>} true if the proxy is up
    */
   async checkNetworkNodeProxyUp (namespace, nodeId, localPort, maxAttempts = 10, delay = 5000) {
-    const podArray = await this.k8.getPodsByLabel(namespace, [`app=haproxy-${nodeId}`, 'fullstack.hedera.com/type=haproxy'])
+    const podArray = await this.k8.getPodsByLabel([`app=haproxy-${nodeId}`, 'fullstack.hedera.com/type=haproxy'])
 
     let attempts = 0
     if (podArray.length > 0) {
       const podName = podArray[0].metadata.name
-      this._portForwards.push(await this.k8.portForward(podName, localPort, 5555, namespace))
+      this._portForwards.push(await this.k8.portForward(podName, localPort, 5555))
       try {
         await this.k8.testConnection('localhost', localPort)
       } catch (e) {
