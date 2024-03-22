@@ -31,7 +31,6 @@ import {
   TransferTransaction
 } from '@hashgraph/sdk'
 import { FullstackTestingError, MissingArgumentError } from './errors.mjs'
-import net from 'net'
 import { Templates } from './templates.mjs'
 
 const REASON_FAILED_TO_GET_KEYS = 'failed to get keys for accountId'
@@ -58,8 +57,6 @@ const REJECTED = 'rejected'
  *
  */
 export class AccountManager {
-  static _openPortForwardConnections = 0
-
   /**
    * creates a new AccountManager instance
    * @param logger the logger to use
@@ -202,12 +199,10 @@ export class AccountManager {
 
         if (usePortForward) {
           this._portForwards.push(await this.k8.portForward(serviceObject.podName, localPort, port))
-          AccountManager._openPortForwardConnections++
         }
 
         nodes[`${host}:${targetPort}`] = AccountId.fromString(serviceObject.accountId)
-        await this.testConnection(serviceObject.podName, host, targetPort)
-
+        await this.k8.testConnection(host, targetPort)
         localPort++
       }
 
@@ -462,31 +457,6 @@ export class AccountManager {
     const receipt = await txResponse.getReceipt(this._nodeClient)
 
     return receipt.status === Status.Success
-  }
-
-  /**
-   * to test the connection to the node within the network
-   * @param podName the podName is only used for logging messages and errors
-   * @param host the host of the target connection
-   * @param port the port of the target connection
-   * @returns {Promise<boolean>}
-   */
-  async testConnection (podName, host, port) {
-    const self = this
-
-    return new Promise((resolve, reject) => {
-      const s = new net.Socket()
-      s.on('error', (e) => {
-        s.destroy()
-        reject(new FullstackTestingError(`failed to connect to '${host}:${port}': ${e.message}`, e))
-      })
-
-      s.connect(port, host, () => {
-        self.logger.debug(`Connection test successful: ${host}:${port}`)
-        s.destroy()
-        resolve(true)
-      })
-    })
   }
 
   /**

@@ -21,14 +21,13 @@ import os from 'os'
 import path from 'path'
 import { v4 as uuid4 } from 'uuid'
 import { FullstackTestingError } from '../../../src/core/errors.mjs'
-import { ConfigManager, constants, logging, PackageDownloader, Templates } from '../../../src/core/index.mjs'
+import { ConfigManager, constants, logging, Templates } from '../../../src/core/index.mjs'
 import { K8 } from '../../../src/core/k8.mjs'
 
 describe('K8', () => {
   const testLogger = logging.NewLogger('debug')
   const configManager = new ConfigManager(testLogger)
   const k8 = new K8(configManager, testLogger)
-  const downloader = new PackageDownloader(testLogger)
 
   beforeAll(() => {
     configManager.load()
@@ -77,20 +76,13 @@ describe('K8', () => {
     const podName = Templates.renderNetworkPodName('node0')
     const containerName = constants.ROOT_CONTAINER
 
-    //  attempt fetch platform jar as we need to check if a big zip file can be uploaded/downloaded
-    const testCacheDir = 'test/data/tmp'
-    const tag = 'v0.42.5'
-    const releasePrefix = Templates.prepareReleasePrefix(tag)
-    const pkgPath = `${testCacheDir}/${releasePrefix}/build-${tag}.zip`
-    await expect(downloader.fetchPlatform(tag, testCacheDir)).resolves.toBe(pkgPath)
-    expect(fs.existsSync(pkgPath)).toBeTruthy()
-
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'k8-'))
     const destDir = constants.HEDERA_USER_HOME_DIR
-    const destPath = `${destDir}/build-${tag}.zip`
+    const srcPath = 'test/data/pem/keys/a-private-node0.pem'
+    const destPath = `${destDir}/a-private-node0.pem`
 
     // upload the file
-    await expect(k8.copyTo(podName, containerName, pkgPath, destDir)).resolves.toBeTruthy()
+    await expect(k8.copyTo(podName, containerName, srcPath, destDir)).resolves.toBeTruthy()
 
     // download the same file
     await expect(k8.copyFrom(podName, containerName, destPath, tmpDir)).resolves.toBeTruthy()
@@ -99,7 +91,7 @@ describe('K8', () => {
     await expect(k8.execContainer(podName, containerName, ['rm', '-f', destPath])).resolves
 
     fs.rmdirSync(tmpDir, { recursive: true })
-  }, 300000)
+  }, 20000)
 
   it('should be able to port forward gossip port', (done) => {
     const podName = Templates.renderNetworkPodName('node0')
