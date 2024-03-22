@@ -16,7 +16,7 @@
  */
 import { AccountBalanceQuery, AccountCreateTransaction, Hbar, PrivateKey } from '@hashgraph/sdk'
 import {
-  afterAll,
+  afterAll, beforeAll,
   describe,
   expect,
   it
@@ -110,5 +110,30 @@ describe.each([
         await nodeCmd.close()
       }
     }, 20000)
+  })
+
+  describe(`Node should refresh successfully [release ${input.keyFormat}, keyFormat: ${input.releaseTag}]`, () => {
+    let podName = ''
+    beforeAll(async () => {
+      const podArray = await k8.getPodsByLabel(['app=haproxy-node0', 'fullstack.hedera.com/type=haproxy'])
+
+      if (podArray.length > 0) {
+        podName = podArray[0].metadata.name
+        const resp = await k8.kubeClient.deleteNamespacedPod(podName, namespace)
+        expect(resp.response.statusCode).toEqual(200)
+      } else {
+        throw new Error('pod for node0 not found')
+      }
+    })
+
+    it('Node 0 should not be running', async () => {
+      expect(podName).toContain('node0')
+      const podArray = await this.k8.getPodsByLabel(['app=haproxy-node0', 'fullstack.hedera.com/type=haproxy'])
+      console.log(podArray)
+    })
+    it('Node refresh should succeed', async () => {
+    })
+    // TODO need to test with PVCs
+    // TODO will have changes when configMap/secrets are implemented
   })
 })
