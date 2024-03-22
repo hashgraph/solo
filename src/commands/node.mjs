@@ -656,7 +656,7 @@ export class NodeCommand extends BaseCommand {
           for (const nodeId of ctx.config.nodeIds) {
             subTasks.push({
               title: `Check proxy for node: ${chalk.yellow(nodeId)}`,
-              task: async () => await self.checkNetworkNodeProxyUp(ctx.config.namespace, nodeId, localPort++)
+              task: async () => await self.checkNetworkNodeProxyUp(nodeId, localPort++)
             })
           }
 
@@ -688,14 +688,13 @@ export class NodeCommand extends BaseCommand {
 
   /**
    * Check if the network node proxy is up, requires close() to be called after
-   * @param namespace the namespace
    * @param nodeId the node id
    * @param localPort the local port to forward to
    * @param maxAttempts the maximum number of attempts
    * @param delay the delay between attempts
    * @returns {Promise<boolean>} true if the proxy is up
    */
-  async checkNetworkNodeProxyUp (namespace, nodeId, localPort, maxAttempts = 10, delay = 5000) {
+  async checkNetworkNodeProxyUp (nodeId, localPort, maxAttempts = 10, delay = 5000) {
     const podArray = await this.k8.getPodsByLabel([`app=haproxy-${nodeId}`, 'fullstack.hedera.com/type=haproxy'])
 
     let attempts = 0

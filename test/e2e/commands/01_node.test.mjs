@@ -102,7 +102,7 @@ describe.each([
       expect.assertions(1)
 
       try {
-        await expect(nodeCmd.checkNetworkNodeProxyUp(namespace, 'node0', 30313)).resolves.toBeTruthy()
+        await expect(nodeCmd.checkNetworkNodeProxyUp('node0', 30313)).resolves.toBeTruthy()
       } catch (e) {
         nodeCmd.logger.showUserError(e)
         expect(e).toBeNull()

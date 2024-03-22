@@ -64,7 +64,7 @@ describe('AccountCommand', () => {
     let localPort = 30399
     for (const nodeId of argv[flags.nodeIDs.name].split(',')) {
       it(`proxy should be UP: ${nodeId} `, async () => {
-        await nodeCmd.checkNetworkNodeProxyUp(namespace, nodeId, localPort++)
+        await nodeCmd.checkNetworkNodeProxyUp(nodeId, localPort++)
       }, 30000)
     }
   })
