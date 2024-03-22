@@ -44,6 +44,21 @@ export class NodeCommand extends BaseCommand {
     this.keyManager = opts.keyManager
     this.accountManager = opts.accountManager
     this.keytoolDepManager = opts.keytoolDepManager
+    this._portForwards = []
+  }
+
+  /**
+   * stops and closes the port forwards
+   * @returns {Promise<void>}
+   */
+  async close () {
+    if (this._portForwards) {
+      for (const srv of this._portForwards) {
+        await this.k8.stopPortForward(srv)
+      }
+    }
+
+    this._portForwards = []
   }
 
   async checkNetworkNodePod (namespace, nodeId) {
@@ -637,10 +652,11 @@ export class NodeCommand extends BaseCommand {
         title: 'Check node proxies are ACTIVE',
         task: async (ctx, parentTask) => {
           const subTasks = []
+          let localPort = constants.LOCAL_NODE_PROXY_START_PORT
           for (const nodeId of ctx.config.nodeIds) {
             subTasks.push({
               title: `Check proxy for node: ${chalk.yellow(nodeId)}`,
-              task: async () => await self.checkNetworkNodeProxyUp(ctx.config.namespace, nodeId)
+              task: async () => await self.checkNetworkNodeProxyUp(nodeId, localPort++)
             })
           }
 
@@ -664,45 +680,47 @@ export class NodeCommand extends BaseCommand {
       throw new FullstackTestingError(`Error starting node: ${e.message}`, e)
     } finally {
       await self.accountManager.close()
+      await self.close()
     }
 
     return true
   }
 
-  async checkNetworkNodeProxyUp (namespace, nodeId, maxAttempts = 10, delay = 5000) {
+  /**
+   * Check if the network node proxy is up, requires close() to be called after
+   * @param nodeId the node id
+   * @param localPort the local port to forward to
+   * @param maxAttempts the maximum number of attempts
+   * @param delay the delay between attempts
+   * @returns {Promise<boolean>} true if the proxy is up
+   */
+  async checkNetworkNodeProxyUp (nodeId, localPort, maxAttempts = 10, delay = 5000) {
     const podArray = await this.k8.getPodsByLabel([`app=haproxy-${nodeId}`, 'fullstack.hedera.com/type=haproxy'])
 
     let attempts = 0
     if (podArray.length > 0) {
       const podName = podArray[0].metadata.name
+      this._portForwards.push(await this.k8.portForward(podName, localPort, 5555))
+      try {
+        await this.k8.testConnection('localhost', localPort)
+      } catch (e) {
+        throw new FullstackTestingError(`failed to create port forward for '${nodeId}' proxy on port ${localPort}`, e)
+      }
 
       while (attempts < maxAttempts) {
-        const logResponse = await this.k8.kubeClient.readNamespacedPodLog(
-          podName,
-          namespace,
-          'haproxy',
-          undefined,
-          undefined,
-          1024,
-          undefined,
-          undefined,
-          undefined,
-          4
-        )
+        try {
+          const status = await this.getNodeProxyStatus(`http://localhost:${localPort}/v2/services/haproxy/stats/native?type=backend`)
+          if (status === 'UP') {
+            this.logger.debug(`Proxy ${podName} is UP. [attempt: ${attempts}/${maxAttempts}]`)
+            return true
+          }
 
-        if (logResponse.response.statusCode !== 200) {
-          throw new FullstackTestingError(`Expected pod ${podName} log query to execute successful, but instead got a status of ${logResponse.response.statusCode}`)
+          attempts++
+          this.logger.debug(`Proxy ${podName} is not UP. Checking again in ${delay}ms ... [attempt: ${attempts}/${maxAttempts}]`)
+          await sleep(delay)
+        } catch (e) {
+          throw new FullstackTestingError(`failed to create port forward for '${nodeId}' proxy on port ${localPort}`, e)
         }
-
-        this.logger.debug(`Received HAProxy log from ${podName}`, { output: logResponse.body })
-        if (logResponse.body.includes('Server be_servers/server1 is UP')) {
-          this.logger.debug(`Proxy ${podName} is UP [attempt: ${attempts}/${maxAttempts}]`)
-          return true
-        }
-
-        attempts++
-        this.logger.debug(`Proxy ${podName} is not UP. Checking again in ${delay}ms ... [attempt: ${attempts}/${maxAttempts}]`)
-        await sleep(delay)
       }
     }
 
@@ -965,6 +983,34 @@ export class NodeCommand extends BaseCommand {
           })
           .demandCommand(1, 'Select a node command')
       }
+    }
+  }
+
+  async getNodeProxyStatus (url) {
+    try {
+      this.logger.debug(`Fetching proxy status from: ${url}`)
+      const res = await fetch(url, {
+        method: 'GET',
+        signal: AbortSignal.timeout(5000),
+        headers: {
+          Authorization: `Basic ${Buffer.from(
+              `${constants.NODE_PROXY_USER_ID}:${constants.NODE_PROXY_PASSWORD}`).toString(
+              'base64')}`
+        }
+      })
+      const response = await res.json()
+
+      if (res.status === 200) {
+        const status = response[0]?.stats?.filter(
+          (stat) => stat.name === 'http_backend')[0]?.stats?.status
+        this.logger.debug(`Proxy status: ${status}`)
+        return status
+      } else {
+        this.logger.debug(`Proxy request status code: ${res.status}`)
+        return null
+      }
+    } catch (e) {
+      this.logger.error(`Error in fetching proxy status: ${e.message}`, e)
     }
   }
 }

@@ -671,7 +671,32 @@ export class K8 {
 
     // add info for logging
     server.info = `${podName}:${podPort} -> ${constants.LOCAL_HOST}:${localPort}`
+    this.logger.debug(`Starting port-forwarder [${server.info}]`)
     return server.listen(localPort, constants.LOCAL_HOST)
+  }
+
+  /**
+   * to test the connection to a pod within the network
+   * @param host the host of the target connection
+   * @param port the port of the target connection
+   * @returns {Promise<boolean>}
+   */
+  async testConnection (host, port) {
+    const self = this
+
+    return new Promise((resolve, reject) => {
+      const s = new net.Socket()
+      s.on('error', (e) => {
+        s.destroy()
+        reject(new FullstackTestingError(`failed to connect to '${host}:${port}': ${e.message}`, e))
+      })
+
+      s.connect(port, host, () => {
+        self.logger.debug(`Connection test successful: ${host}:${port}`)
+        s.destroy()
+        resolve(true)
+      })
+    })
   }
 
   /**
