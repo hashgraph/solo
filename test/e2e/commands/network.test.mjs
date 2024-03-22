@@ -86,6 +86,16 @@ describe('NetworkCommand', () => {
     try {
       await expect(networkCmd.destroy(argv)).resolves.toBeTruthy()
 
+      while (await k8.getPodsByLabel(['fullstack.hedera.com/type=network-node'])) {
+        networkCmd.logger.showUser('Waiting for network pods to be deleted...')
+        await new Promise((resolve) => setTimeout(resolve, 3000))
+      }
+
+      while (await k8.getPodsByLabel(['app=minio'])) {
+        networkCmd.logger.showUser('Waiting for minio container to be deleted...')
+        await new Promise((resolve) => setTimeout(resolve, 3000))
+      }
+
       // check if chart is uninstalled
       await expect(bootstrapResp.opts.chartManager.isChartInstalled(namespace, constants.FULLSTACK_DEPLOYMENT_CHART))
         .resolves.toBeFalsy()
