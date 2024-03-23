@@ -41,6 +41,7 @@ describe('NetworkCommand', () => {
   argv[flags.nodeIDs.name] = 'node0,node1,node2'
   argv[flags.generateGossipKeys.name] = true
   argv[flags.generateTlsKeys.name] = true
+  argv[flags.deployMinio.name] = false
   argv[flags.clusterName.name] = TEST_CLUSTER
   argv[flags.fstChartVersion.name] = version.FST_CHART_VERSION
   argv[flags.force.name] = true
