@@ -71,7 +71,13 @@ describe('ClusterCommand', () => {
 
   it('should cleanup existing deployment', async () => {
     if (await chartManager.isChartInstalled(constants.FULLSTACK_SETUP_NAMESPACE, constants.FULLSTACK_CLUSTER_SETUP_CHART)) {
-      await clusterCmd.reset(argv)
+      expect.assertions(1)
+      try {
+        await expect(clusterCmd.reset(argv)).resolves.toBeTruthy()
+      } catch (e) {
+        clusterCmd.logger.showUserError(e)
+        expect(e).toBeNull()
+      }
     }
   }, 60000)
 
