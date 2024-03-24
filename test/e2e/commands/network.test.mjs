@@ -87,7 +87,7 @@ describe('NetworkCommand', () => {
     try {
       await expect(networkCmd.destroy(argv)).resolves.toBeTruthy()
 
-      while ((await k8.getPodsByLabel(['fullstack.hedera.com/type=network-node'])).length > 0 ) {
+      while ((await k8.getPodsByLabel(['fullstack.hedera.com/type=network-node'])).length > 0) {
         networkCmd.logger.debug('Pods are still running. Waiting...')
         await new Promise(resolve => setTimeout(resolve, 3000))
       }
