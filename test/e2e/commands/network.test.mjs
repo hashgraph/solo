@@ -87,12 +87,12 @@ describe('NetworkCommand', () => {
     try {
       await expect(networkCmd.destroy(argv)).resolves.toBeTruthy()
 
-      while (await k8.getPodsByLabel(['fullstack.hedera.com/type=network-node'])) {
-        networkCmd.logger.showUser('Waiting for network pods to be deleted...')
-        await new Promise((resolve) => setTimeout(resolve, 3000))
+      while ((await k8.getPodsByLabel(['fullstack.hedera.com/type=network-node'])).length > 0 ) {
+        networkCmd.logger.debug('Pods are still running. Waiting...')
+        await new Promise(resolve => setTimeout(resolve, 3000))
       }
 
-      while (await k8.getPodsByLabel(['app=minio'])) {
+      while ((await k8.getPodsByLabel(['app=minio'])).length > 0) {
         networkCmd.logger.showUser('Waiting for minio container to be deleted...')
         await new Promise((resolve) => setTimeout(resolve, 3000))
       }
