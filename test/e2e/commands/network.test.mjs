@@ -15,7 +15,7 @@
  *
  */
 import {
-  afterAll,
+  afterAll, beforeAll,
   describe,
   expect,
   it
@@ -52,10 +52,15 @@ describe('NetworkCommand', () => {
   const configManager = bootstrapResp.opts.configManager
 
   const networkCmd = bootstrapResp.cmd.networkCmd
+  const clusterCmd = bootstrapResp.cmd.clusterCmd
 
   afterAll(async () => {
     await k8.deleteNamespace(namespace)
     await accountManager.close()
+  })
+
+  beforeAll(async () => {
+    await clusterCmd.setup(argv)
   })
 
   it('network deploy command should succeed', async () => {
