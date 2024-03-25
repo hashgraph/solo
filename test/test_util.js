@@ -39,7 +39,7 @@ import {
   KeyManager,
   logging,
   PackageDownloader,
-  PlatformInstaller,
+  PlatformInstaller, ProfileManager,
   Zippy
 } from '../src/core/index.mjs'
 
@@ -115,6 +115,7 @@ export function bootstrapTestVariables (testName, argv,
   const k8 = k8Arg || new K8(configManager, testLogger)
   const platformInstaller = new PlatformInstaller(testLogger, k8)
   const accountManager = new AccountManager(testLogger, k8, constants)
+  const profileManager = new ProfileManager(testLogger, configManager)
   const opts = {
     logger: testLogger,
     helm,
@@ -127,7 +128,8 @@ export function bootstrapTestVariables (testName, argv,
     keyManager,
     accountManager,
     cacheDir,
-    keytoolDepManager
+    keytoolDepManager,
+    profileManager
   }
 
   const initCmd = initCmdArg || new InitCommand(opts)
