@@ -22,7 +22,7 @@ import {
 } from '@jest/globals'
 import {
   bootstrapTestVariables,
-  getDefaultArgv,
+  getDefaultArgv
 } from '../../test_util.js'
 import {
   constants
