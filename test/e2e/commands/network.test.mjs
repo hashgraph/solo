@@ -29,6 +29,7 @@ import {
 } from '../../../src/core/index.mjs'
 import { flags } from '../../../src/commands/index.mjs'
 import * as version from '../../../version.mjs'
+import { sleep } from '../../../src/core/helpers.mjs'
 
 describe('NetworkCommand', () => {
   const testName = 'network-cmd-e2e'
@@ -92,12 +93,12 @@ describe('NetworkCommand', () => {
 
       while ((await k8.getPodsByLabel(['fullstack.hedera.com/type=network-node'])).length > 0) {
         networkCmd.logger.debug('Pods are still running. Waiting...')
-        await new Promise(resolve => setTimeout(resolve, 3000))
+        await sleep(3000)
       }
 
       while ((await k8.getPodsByLabel(['app=minio'])).length > 0) {
         networkCmd.logger.showUser('Waiting for minio container to be deleted...')
-        await new Promise((resolve) => setTimeout(resolve, 3000))
+        await sleep(3000)
       }
 
       // check if chart is uninstalled
