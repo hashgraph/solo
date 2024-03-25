@@ -23,7 +23,7 @@ import * as helpers from '../helpers.mjs'
 import { constants, Templates } from '../index.mjs'
 import * as version from '../../../version.mjs'
 import { ShellRunner } from '../shell_runner.mjs'
-import { OS_WIN32, OS_WINDOWS } from '../constants.mjs'
+import * as semver from 'semver'
 
 // constants required by HelmDependencyManager
 const HELM_RELEASE_BASE_URL = 'https://get.helm.sh'
@@ -63,11 +63,12 @@ export class HelmDependencyManager extends ShellRunner {
     }
     this.osArch = ['x64', 'x86-64'].includes(osArch) ? 'amd64' : osArch
     this.helmVersion = helmVersion
-    this.helmPath = Templates.installationPath(constants.HELM, this.installationDir, this.osPlatform, this.osArch)
+    this.helmPath = Templates.installationPath(constants.HELM, this.osPlatform, this.installationDir)
 
     const fileExt = HELM_ARTIFACT_EXT.get(this.osPlatform)
     this.artifactName = util.format(HELM_ARTIFACT_TEMPLATE, this.helmVersion, this.osPlatform, this.osArch, fileExt)
     this.helmURL = `${HELM_RELEASE_BASE_URL}/${this.artifactName}`
+    this.checksumURL = `${HELM_RELEASE_BASE_URL}/${this.artifactName}.sha256sum`
   }
 
   getHelmPath () {
@@ -88,19 +89,17 @@ export class HelmDependencyManager extends ShellRunner {
     }
   }
 
-  async install () {
-    const tmpDir = helpers.getTmpDir()
-    const extractedDir = path.join(tmpDir, 'extracted')
-    const tmpFile = path.join(tmpDir, this.artifactName)
+  async install (tmpDir = helpers.getTmpDir()) {
+    const extractedDir = path.join(tmpDir, 'extracted-helm')
     let helmSrc = path.join(extractedDir, `${this.osPlatform}-${this.osArch}`, constants.HELM)
 
-    await this.downloader.fetchFile(this.helmURL, tmpFile)
+    const packageFile = await this.downloader.fetchPackage(this.helmURL, this.checksumURL, tmpDir)
     if (this.osPlatform === constants.OS_WINDOWS) {
-      await this.zippy.unzip(tmpFile, extractedDir)
+      await this.zippy.unzip(packageFile, extractedDir)
       // append .exe for windows
       helmSrc = path.join(extractedDir, `${this.osPlatform}-${this.osArch}`, `${constants.HELM}.exe`)
     } else {
-      await this.zippy.untar(tmpFile, extractedDir)
+      await this.zippy.untar(packageFile, extractedDir)
     }
 
     if (!fs.existsSync(this.installationDir)) {
@@ -109,8 +108,12 @@ export class HelmDependencyManager extends ShellRunner {
 
     // install new helm
     await this.uninstall()
-    this.helmPath = Templates.installationPath(constants.HELM, this.installationDir, this.osPlatform)
+    this.helmPath = Templates.installationPath(constants.HELM, this.osPlatform, this.installationDir)
     fs.cpSync(helmSrc, this.helmPath)
+
+    if (fs.existsSync(extractedDir)) {
+      fs.rmSync(extractedDir, { recursive: true })
+    }
 
     return this.isInstalled()
   }
@@ -127,6 +130,10 @@ export class HelmDependencyManager extends ShellRunner {
     const output = await this.run(`${this.helmPath} version --short`)
     const parts = output[0].split('+')
     this.logger.debug(`Found ${constants.HELM}:${parts[0]}`)
-    return helpers.compareVersion(version.HELM_VERSION, parts[0]) >= 0
+    return semver.gte(parts[0], version.HELM_VERSION)
+  }
+
+  getHelmVersion () {
+    return version.HELM_VERSION
   }
 }

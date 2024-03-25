@@ -24,12 +24,18 @@ import { InitCommand } from '../src/commands/init.mjs'
 import { NetworkCommand } from '../src/commands/network.mjs'
 import { NodeCommand } from '../src/commands/node.mjs'
 import { AccountManager } from '../src/core/account_manager.mjs'
-import { DependencyManager, HelmDependencyManager } from '../src/core/dependency_managers/index.mjs'
+import {
+  DependencyManager,
+  HelmDependencyManager,
+  KeytoolDependencyManager
+} from '../src/core/dependency_managers/index.mjs'
 import { sleep } from '../src/core/helpers.mjs'
 import {
   ChartManager,
   ConfigManager,
-  constants, Helm, K8,
+  constants,
+  Helm,
+  K8,
   KeyManager,
   logging,
   PackageDownloader,
@@ -75,7 +81,7 @@ export function getDefaultArgv () {
 }
 
 /**
- * Bootstrap network in a given namespace
+ * Initialize common test variables
  *
  * @param testName test name
  * @param argv argv for commands
@@ -85,14 +91,14 @@ export function getDefaultArgv () {
  * @param networkCmdArg an instance of command/NetworkCommand
  * @param nodeCmdArg an instance of command/NodeCommand
  */
-export function bootstrapNetwork (testName, argv,
+export function bootstrapTestVariables (testName, argv,
   k8Arg = null,
   initCmdArg = null,
   clusterCmdArg = null,
   networkCmdArg = null,
   nodeCmdArg = null
 ) {
-  const namespace = argv[flags.namespace.name] || 'bootstrap'
+  const namespace = argv[flags.namespace.name] || 'bootstrap-ns'
   const cacheDir = argv[flags.cacheDir.name] || getTestCacheDir(testName)
   const configManager = getTestConfigManager(`${testName}-solo.config`)
   configManager.update(argv, true)
@@ -100,6 +106,7 @@ export function bootstrapNetwork (testName, argv,
   const downloader = new PackageDownloader(testLogger)
   const zippy = new Zippy(testLogger)
   const helmDepManager = new HelmDependencyManager(downloader, zippy, testLogger)
+  const keytoolDepManager = new KeytoolDependencyManager(downloader, zippy, testLogger)
   const depManagerMap = new Map().set(constants.HELM, helmDepManager)
   const depManager = new DependencyManager(testLogger, depManagerMap)
   const keyManager = new KeyManager(testLogger)
@@ -119,14 +126,16 @@ export function bootstrapNetwork (testName, argv,
     depManager,
     keyManager,
     accountManager,
-    cacheDir
+    cacheDir,
+    keytoolDepManager
   }
 
   const initCmd = initCmdArg || new InitCommand(opts)
   const clusterCmd = clusterCmdArg || new ClusterCommand(opts)
   const networkCmd = networkCmdArg || new NetworkCommand(opts)
   const nodeCmd = nodeCmdArg || new NodeCommand(opts)
-  const bootstrapResp = {
+  return {
+    namespace,
     opts,
     cmd: {
       initCmd,
@@ -135,8 +144,36 @@ export function bootstrapNetwork (testName, argv,
       nodeCmd
     }
   }
+}
 
-  describe('Bootstrap network for test', () => {
+/**
+ * Bootstrap network in a given namespace
+ *
+ * @param testName test name
+ * @param argv argv for commands
+ * @param k8Arg an instance of core/K8
+ * @param initCmdArg an instance of command/InitCommand
+ * @param clusterCmdArg an instance of command/ClusterCommand
+ * @param networkCmdArg an instance of command/NetworkCommand
+ * @param nodeCmdArg an instance of command/NodeCommand
+ */
+export function bootstrapNetwork (testName, argv,
+  k8Arg = null,
+  initCmdArg = null,
+  clusterCmdArg = null,
+  networkCmdArg = null,
+  nodeCmdArg = null
+) {
+  const bootstrapResp = bootstrapTestVariables(testName, argv, k8Arg, initCmdArg, clusterCmdArg, networkCmdArg, nodeCmdArg)
+  const namespace = bootstrapResp.namespace
+  const initCmd = bootstrapResp.cmd.initCmd
+  const k8 = bootstrapResp.opts.k8
+  const clusterCmd = bootstrapResp.cmd.clusterCmd
+  const networkCmd = bootstrapResp.cmd.networkCmd
+  const nodeCmd = bootstrapResp.cmd.nodeCmd
+  const chartManager = bootstrapResp.opts.chartManager
+
+  describe(`Bootstrap network for test [release ${argv[flags.releaseTag.name]}, keyFormat: ${argv[flags.keyFormat.name]}]`, () => {
     it('should cleanup previous deployment', async () => {
       await initCmd.init(argv)
 
@@ -149,7 +186,7 @@ export function bootstrapNetwork (testName, argv,
         }
       }
 
-      if (!await k8.hasNamespace(constants.FULLSTACK_SETUP_NAMESPACE)) {
+      if (!await chartManager.isChartInstalled(constants.FULLSTACK_SETUP_NAMESPACE, constants.FULLSTACK_CLUSTER_SETUP_CHART)) {
         await clusterCmd.setup(argv)
       }
     }, 60000)

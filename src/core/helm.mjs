@@ -14,14 +14,16 @@
  * limitations under the License.
  *
  */
+import os from 'os'
 import { constants } from './index.mjs'
 import { ShellRunner } from './shell_runner.mjs'
 import { Templates } from './templates.mjs'
 
 export class Helm extends ShellRunner {
-  constructor (logger) {
+  constructor (logger, osPlatform = os.platform()) {
     super(logger)
-    this.helmPath = Templates.installationPath(constants.HELM)
+    this.osPlatform = osPlatform
+    this.helmPath = Templates.installationPath(constants.HELM, this.osPlatform)
   }
 
   /**
