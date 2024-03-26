@@ -123,7 +123,6 @@ export const PUBLIC_PFX = 'public.pfx'
 
 export const OS_WIN32 = 'win32'
 export const OS_WINDOWS = 'windows'
-export const OS_WIN32 = 'win32'
 export const OS_DARWIN = 'darwin'
 export const OS_MAC = 'mac'
 export const OS_LINUX = 'linux'
