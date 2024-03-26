@@ -170,8 +170,8 @@ export const releaseTag = {
 export const relayReleaseTag = {
   name: 'relay-release',
   definition: {
-    describe: 'Relay release tag to be used (e.g. v0.44.0)',
-    defaultValue: '',
+    describe: 'Relay release tag to be used (e.g. v0.43.0)',
+    defaultValue: 'v0.43.0',
     type: 'string'
   }
 }
