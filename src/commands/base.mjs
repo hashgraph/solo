@@ -19,17 +19,17 @@ import { MissingArgumentError } from '../core/errors.mjs'
 import { ShellRunner } from '../core/shell_runner.mjs'
 
 export class BaseCommand extends ShellRunner {
-  async prepareChartPath (chartDir, chartRepo, chartName) {
+  async prepareChartPath (chartDir, chartRepo, chartReleaseName) {
     if (!chartRepo) throw new MissingArgumentError('chart repo name is required')
-    if (!chartName) throw new MissingArgumentError('chart name is required')
+    if (!chartReleaseName) throw new MissingArgumentError('chart name is required')
 
     if (chartDir) {
-      const chartPath = `${chartDir}/${chartName}`
+      const chartPath = `${chartDir}/${chartReleaseName}`
       await this.helm.dependency('update', chartPath)
       return chartPath
     }
 
-    return `${chartRepo}/${chartName}`
+    return `${chartRepo}/${chartReleaseName}`
   }
 
   constructor (opts) {

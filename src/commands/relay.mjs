@@ -15,11 +15,12 @@
  *
  */
 import { Listr } from 'listr2'
+import * as paths from 'path'
 import { FullstackTestingError, MissingArgumentError } from '../core/errors.mjs'
+import * as helpers from '../core/helpers.mjs'
+import { constants } from '../core/index.mjs'
 import { BaseCommand } from './base.mjs'
 import * as flags from './flags.mjs'
-import * as paths from 'path'
-import { constants } from '../core/index.mjs'
 import * as prompts from './prompts.mjs'
 
 export class RelayCommand extends BaseCommand {
@@ -80,53 +81,53 @@ export class RelayCommand extends BaseCommand {
     return releaseName
   }
 
-  async install (argv) {
+  async deploy (argv) {
     const self = this
     const tasks = new Listr([
       {
         title: 'Initialize',
         task: async (ctx, task) => {
+          // reset nodeID
+          self.configManager.setFlag(flags.nodeIDs, '')
+
           self.configManager.update(argv)
 
-          // extract config values
-          const valuesFile = self.configManager.getFlag(flags.valuesFile)
-          const nodeIds = self.configManager.getFlag(flags.nodeIDs)
-          const chainId = self.configManager.getFlag(flags.chainId)
-          const relayRelease = self.configManager.getFlag(flags.relayReleaseTag)
-          const replicaCount = self.configManager.getFlag(flags.replicaCount)
-          const operatorId = self.configManager.getFlag(flags.operatorId)
-          const operatorKey = self.configManager.getFlag(flags.operatorKey)
-
-          const namespace = self.configManager.getFlag(flags.namespace)
-          const chartDir = self.configManager.getFlag(flags.chartDirectory)
+          await prompts.execute(task, self.configManager, [
+            flags.chartDirectory,
+            flags.namespace,
+            flags.valuesFile,
+            flags.nodeIDs,
+            flags.chainId,
+            flags.relayReleaseTag,
+            flags.replicaCount,
+            flags.operatorId,
+            flags.operatorKey
+          ])
 
           // prompt if inputs are empty and set it in the context
-          const namespaces = await self.k8.getNamespaces()
           ctx.config = {
-            chartDir: await prompts.promptChartDir(task, chartDir),
-            namespace: await prompts.promptSelectNamespaceArg(task, namespace, namespaces),
-            valuesFile: await prompts.promptValuesFile(task, valuesFile),
-            nodeIds: await prompts.promptNodeIds(task, nodeIds),
-            chainId: await prompts.promptChainId(task, chainId),
-            relayRelease: await prompts.promptRelayReleaseTag(task, relayRelease),
-            replicaCount: await prompts.promptReplicaCount(task, replicaCount),
-            operatorId: await prompts.promptOperatorId(task, operatorId),
-            operatorKey: await prompts.promptOperatorId(task, operatorKey)
+            chartDir: self.configManager.getFlag(flags.chartDirectory),
+            namespace: self.configManager.getFlag(flags.namespace),
+            valuesFile: self.configManager.getFlag(flags.valuesFile),
+            nodeIds: helpers.parseNodeIDs(self.configManager.getFlag(flags.nodeIDs)),
+            chainId: self.configManager.getFlag(flags.chainId),
+            relayRelease: self.configManager.getFlag(flags.relayReleaseTag),
+            replicaCount: self.configManager.getFlag(flags.replicaCount),
+            operatorId: self.configManager.getFlag(flags.operatorId),
+            operatorKey: self.configManager.getFlag(flags.operatorKey)
           }
 
-          self.logger.debug('Finished prompts', { ctx })
+          ctx.releaseName = self.prepareReleaseName(ctx.config.nodeIds)
+          ctx.isChartInstalled = await self.chartManager.isChartInstalled(ctx.config.namespace, ctx.releaseName)
 
-          ctx.releaseName = this.prepareReleaseName(ctx.config.nodeIds)
-          ctx.isChartInstalled = await this.chartManager.isChartInstalled(ctx.config.namespace, ctx.releaseName)
-
-          self.logger.debug('Finished ctx initialization', { ctx })
+          self.logger.debug('Initialized config', { config: ctx.config })
         }
       },
       {
         title: 'Prepare chart values',
         task: async (ctx, _) => {
-          ctx.chartPath = await this.prepareChartPath(ctx.config.chartDir, constants.JSON_RPC_RELAY_CHART, constants.CHART_JSON_RPC_RELAY_NAME)
-          ctx.valuesArg = this.prepareValuesArg(
+          ctx.chartPath = await self.prepareChartPath(ctx.config.chartDir, constants.JSON_RPC_RELAY_CHART, constants.JSON_RPC_RELAY_CHART)
+          ctx.valuesArg = self.prepareValuesArg(
             ctx.config.valuesFile,
             ctx.config.nodeIds,
             ctx.config.chainId,
@@ -138,21 +139,25 @@ export class RelayCommand extends BaseCommand {
         }
       },
       {
-        title: 'Install JSON RPC Relay',
+        title: 'Deploy JSON RPC Relay',
         task: async (ctx, _) => {
           const namespace = ctx.config.namespace
           const releaseName = ctx.releaseName
           const chartPath = ctx.chartPath
           const valuesArg = ctx.valuesArg
 
-          await this.chartManager.install(namespace, releaseName, chartPath, '', valuesArg)
+          await self.chartManager.install(namespace, releaseName, chartPath, '', valuesArg)
 
-          await this.k8.waitForPod(constants.POD_STATUS_RUNNING, [
+          await self.k8.waitForPod(constants.POD_STATUS_RUNNING, [
             'app=hedera-json-rpc-relay',
             `app.kubernetes.io/instance=${releaseName}`
           ], 1, 120, 1000)
 
           this.logger.showList('Deployed Relays', await self.chartManager.getInstalledCharts(namespace))
+
+          // reset nodeID
+          self.configManager.setFlag(flags.nodeIDs, '')
+          self.configManager.persist()
         }
       }
     ], {
@@ -169,40 +174,51 @@ export class RelayCommand extends BaseCommand {
     return true
   }
 
-  async uninstall (argv) {
+  async destroy (argv) {
     const self = this
 
     const tasks = new Listr([
       {
         title: 'Initialize',
         task: async (ctx, task) => {
-          self.configManager.update(argv)
+          // reset nodeID
+          self.configManager.setFlag(flags.nodeIDs, '')
 
-          // extract config values
-          const nodeIds = self.configManager.getFlag(flags.nodeIDs)
-          const namespace = self.configManager.getFlag(flags.namespace)
+          self.configManager.update(argv)
+          await prompts.execute(task, self.configManager, [
+            flags.chartDirectory,
+            flags.namespace,
+            flags.nodeIDs
+          ])
 
           // prompt if inputs are empty and set it in the context
-          const namespaces = await self.k8.getNamespaces()
           ctx.config = {
-            namespace: await prompts.promptSelectNamespaceArg(task, namespace, namespaces),
-            nodeIds: await prompts.promptNodeIds(task, nodeIds)
+            chartDir: self.configManager.getFlag(flags.chartDirectory),
+            namespace: self.configManager.getFlag(flags.namespace),
+            nodeIds: helpers.parseNodeIDs(self.configManager.getFlag(flags.nodeIDs))
           }
 
-          ctx.config.releaseName = this.prepareReleaseName(ctx.config.nodeIds)
-          self.logger.debug('Finished ctx initialization', { ctx })
+          ctx.releaseName = this.prepareReleaseName(ctx.config.nodeIds)
+          ctx.isChartInstalled = await this.chartManager.isChartInstalled(ctx.config.namespace, ctx.releaseName)
+
+          self.logger.debug('Initialized config', { config: ctx.config })
         }
       },
       {
-        title: 'Install JSON RPC Relay',
+        title: 'Destroy JSON RPC Relay',
         task: async (ctx, _) => {
           const namespace = ctx.config.namespace
-          const releaseName = ctx.config.releaseName
+          const releaseName = ctx.releaseName
 
           await this.chartManager.uninstall(namespace, releaseName)
 
-          this.logger.showList('Deployed Relays', await self.chartManager.getInstalledCharts(namespace))
-        }
+          this.logger.showList('Destroyed Relays', await self.chartManager.getInstalledCharts(namespace))
+
+          // reset nodeID
+          self.configManager.setFlag(flags.nodeIDs, '')
+          self.configManager.persist()
+        },
+        skip: (ctx, _) => !ctx.isChartInstalled
       }
     ], {
       concurrent: false,
@@ -225,8 +241,8 @@ export class RelayCommand extends BaseCommand {
       builder: yargs => {
         return yargs
           .command({
-            command: 'install',
-            desc: 'Install a JSON RPC relay',
+            command: 'deploy',
+            desc: 'Deploy a JSON RPC relay',
             builder: y => {
               flags.setCommandFlags(y,
                 flags.namespace,
@@ -243,7 +259,7 @@ export class RelayCommand extends BaseCommand {
             handler: argv => {
               relayCmd.logger.debug("==== Running 'relay install' ===", { argv })
 
-              relayCmd.install(argv).then(r => {
+              relayCmd.deploy(argv).then(r => {
                 relayCmd.logger.debug('==== Finished running `relay install`====')
 
                 if (!r) process.exit(1)
@@ -254,8 +270,8 @@ export class RelayCommand extends BaseCommand {
             }
           })
           .command({
-            command: 'uninstall',
-            desc: 'Uninstall JSON RPC relay',
+            command: 'destroy',
+            desc: 'Destroy JSON RPC relay',
             builder: y => flags.setCommandFlags(y,
               flags.namespace,
               flags.nodeIDs
@@ -264,7 +280,7 @@ export class RelayCommand extends BaseCommand {
               relayCmd.logger.debug("==== Running 'relay uninstall' ===", { argv })
               relayCmd.logger.debug(argv)
 
-              relayCmd.uninstall(argv).then(r => {
+              relayCmd.destroy(argv).then(r => {
                 relayCmd.logger.debug('==== Finished running `relay uninstall`====')
 
                 if (!r) process.exit(1)
