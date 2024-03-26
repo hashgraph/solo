@@ -33,8 +33,7 @@ export default class testSequencer extends Sequencer.default {
       this.logger.showUser(chalk.green(`Using timestamp seed ${seed} for random test order`))
     }
 
-    let randomNumGenerator
-    randomNumGenerator = new Seedrandom(seed)
+    const randomNumGenerator = new Seedrandom(seed)
     const copyTests = Array.from(tests)
 
     // use randomNumGenerator.int32() to generate random even or odd nuber
