@@ -19,7 +19,8 @@ import fs from 'fs'
 import path from 'path'
 import { HelmDependencyManager } from '../../../../src/core/dependency_managers/index.mjs'
 import { PackageDownloader, Zippy } from '../../../../src/core/index.mjs'
-import { getTmpDir, testLogger } from '../../../test_util.js'
+import { getTestCacheDir, getTmpDir, testLogger } from '../../../test_util.js'
+import * as version from '../../../../version.mjs'
 
 describe('HelmDependencyManager', () => {
   const downloader = new PackageDownloader(testLogger)
@@ -34,6 +35,11 @@ describe('HelmDependencyManager', () => {
     if (fs.existsSync(tmpDir)) {
       fs.rmSync(tmpDir, { recursive: true })
     }
+  })
+
+  it('should return helm version', () => {
+    const helmDependencyManager = new HelmDependencyManager(downloader, zippy, testLogger, tmpDir)
+    expect(helmDependencyManager.getHelmVersion()).toStrictEqual(version.HELM_VERSION)
   })
 
   it('should be able to check when helm not installed', () => {
@@ -51,15 +57,15 @@ describe('HelmDependencyManager', () => {
     {
       osPlatform: 'linux',
       osArch: 'x64'
+    },
+    {
+      osRelease: 'linux',
+      osArch: 'amd64'
+    },
+    {
+      osRelease: 'windows',
+      osArch: 'amd64'
     }
-    // {
-    //   osRelease: 'linux',
-    //   osArch: 'amd64'
-    // },
-    // {
-    //   osRelease: 'windows',
-    //   osArch: 'amd64'
-    // }
   ])('should be able to install helm base on os and architecture', async (input) => {
     const helmDependencyManager = new HelmDependencyManager(downloader, zippy, testLogger, tmpDir, input.osPlatform, input.osArch)
     if (fs.existsSync(tmpDir)) {
@@ -68,7 +74,7 @@ describe('HelmDependencyManager', () => {
 
     await helmDependencyManager.uninstall()
     expect(helmDependencyManager.isInstalled()).toBeFalsy()
-    await expect(helmDependencyManager.install()).resolves.toBeTruthy()
+    await expect(helmDependencyManager.install(getTestCacheDir())).resolves.toBeTruthy()
     expect(helmDependencyManager.isInstalled()).toBeTruthy()
     fs.rmSync(tmpDir, { recursive: true })
   }, 12000)
