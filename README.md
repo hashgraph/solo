@@ -124,7 +124,7 @@ You may now view pods in your cluster using `k9s -A` as below:
 $ solo init -t v0.42.5 -i node0,node1,node2 -n "${SOLO_NAMESPACE}" -s "${SOLO_CLUSTER_SETUP_NAMESPACE}" --key-format pfx 
 
 ******************************* Solo *********************************************
-Version                 : 0.22.0
+Version                 : 0.22.1
 Kubernetes Context      : kind-solo
 Kubernetes Cluster      : kind-solo
 Kubernetes Namespace    : solo
@@ -152,7 +152,7 @@ We need to generate `pfx` keys as `pem` key files are only supported by Hedera p
 $ solo node keys --gossip-keys --tls-keys --key-format pfx 
 
 ******************************* Solo *********************************************
-Version                 : 0.22.0
+Version                 : 0.22.1
 Kubernetes Context      : kind-solo
 Kubernetes Cluster      : kind-solo
 Kubernetes Namespace    : solo
@@ -175,7 +175,7 @@ hedera-node0.key  hedera-node1.key  hedera-node2.key  private-node1.pfx public.p
 $ solo cluster setup
 
 ******************************* Solo *********************************************
-Version                 : 0.22.0
+Version                 : 0.22.1
 Kubernetes Context      : kind-solo
 Kubernetes Cluster      : kind-solo
 Kubernetes Namespace    : solo
@@ -194,7 +194,7 @@ Kubernetes Namespace    : solo
 $ solo network deploy
 
 ******************************* Solo *********************************************
-Version                 : 0.22.0
+Version                 : 0.22.1
 Kubernetes Context      : kind-solo
 Kubernetes Cluster      : kind-solo
 Kubernetes Namespace    : solo
@@ -215,7 +215,7 @@ Kubernetes Namespace    : solo
 $ solo node setup
 
 ******************************* Solo *********************************************
-Version                 : 0.22.0
+Version                 : 0.22.1
 Kubernetes Context      : kind-solo
 Kubernetes Cluster      : kind-solo
 Kubernetes Namespace    : solo
@@ -262,12 +262,12 @@ Kubernetes Namespace    : solo
 $ solo node start
 
 ******************************* Solo *********************************************
-Version                 : 0.22.0
+Version                 : 0.22.1
 Kubernetes Context      : kind-solo
 Kubernetes Cluster      : kind-solo
 Kubernetes Namespace    : solo
 **********************************************************************************
-✔ Initialize [0.8s]
+✔ Initialize [0.1s]
 ✔ Identify network pods
   ✔ Check network pod: node0
   ✔ Check network pod: node1
@@ -280,93 +280,74 @@ Kubernetes Namespace    : solo
   ✔ Check node: node0 [24s]
   ✔ Check node: node1 [0.1s]
   ✔ Check node: node2 [0.1s]
-✔ Enable mirror node [33s]
-  ✔ Check node proxies are ACTIVE [7s]
-    ✔ Check proxy for node: node0 [2s]
-    ✔ Check proxy for node: node1 [1s]
-    ✔ Check proxy for node: node2 [4s]
-  ✔ Prepare address book [0.2s]
-  ✔ Deploy mirror node [3s]
-  ✔ Waiting for Hedera Explorer to be ready [22s]
-✔ Update special account keys [54s]
-  ✔ Prepare for account key updates
-  ✔ Update special account key sets [54s]
-    ✔ Updating set 1 of 30 [0.7s]
-    ✔ Updating set 2 of 30 [2s]
-    ✔ Updating set 3 of 30 [1s]
-    ✔ Updating set 4 of 30 [2s]
-    ✔ Updating set 5 of 30 [1s]
-    ✔ Updating set 6 of 30 [1s]
-    ✔ Updating set 7 of 30 [2s]
-    ✔ Updating set 8 of 30 [1s]
-    ✔ Updating set 9 of 30 [1s]
-    ✔ Updating set 10 of 30 [1s]
-    ✔ Updating set 11 of 30 [1s]
-    ✔ Updating set 12 of 30 [1s]
-    ✔ Updating set 13 of 30 [1s]
-    ✔ Updating set 14 of 30 [2s]
-    ✔ Updating set 15 of 30 [2s]
-    ✔ Updating set 16 of 30 [1s]
-    ✔ Updating set 17 of 30 [1s]
-    ✔ Updating set 18 of 30 [1s]
-    ✔ Updating set 19 of 30 [4s]
-    ✔ Updating set 20 of 30 [1s]
-    ✔ Updating set 21 of 30 [1s]
-    ✔ Updating set 22 of 30 [1s]
-    ✔ Updating set 23 of 30 [1s]
-    ✔ Updating set 24 of 30 [1s]
-    ✔ Updating set 25 of 30 [1s]
-    ✔ Updating set 26 of 30 [1s]
-    ✔ Updating set 27 of 30 [2s]
-    ✔ Updating set 28 of 30 [1s]
-    ✔ Updating set 29 of 30 [1s]
-    ✔ Updating set 30 of 30 [0.5s]
-  ✔ Display results
+✔ Check node proxies are ACTIVE [0.1s]
+  ✔ Check proxy for node: node0
+  ✔ Check proxy for node: node1
+  ✔ Check proxy for node: node2
+```
 
-> upgrading chart: fullstack-deployment
-OK chart 'fullstack-deployment' is upgraded
-Account keys updated SUCCESSFULLY: 701
+* Deploy mirror node
+
+```
+$ solo mirror-node deploy
+******************************* Solo *********************************************
+Version                 : 0.22.1
+Kubernetes Context      : kind-solo-e2e
+Kubernetes Cluster      : kind-solo-e2e
+Kubernetes Namespace    : solo
+**********************************************************************************
+✔ Initialize
+✔ Enable mirror-node [4s]
+  ✔ Prepare address book [0.1s]
+  ✔ Deploy mirror-node [3s]
+✔ Check Mirror node components are ACTIVE [3s]
+  ✔ Check Postgres DB [3s]
+  ✔ Check Importer
+  ✔ Check REST API
+  ✔ Check Web3
+  ✔ Check GRPC
+  ✔ Check Hedera Explorer
 ```
 
 You may view the list of pods using `k9s` as below:
 
 ```
- Context: kind-solo                                <0> all       <a>      Attac… ____  __.________
- Cluster: kind-solo                                <1> default   <ctrl-d> Delete|    |/ _/   __   \______
- User:    kind-solo                                              <d>      Descri|      < \____    /  ___/
- K9s Rev: v0.27.4 ⚡️v0.32.3                                      <e>      Edit  |    |  \   /    /\___ \
- K8s Rev: v1.27.3                                                <?>      Help  |____|__ \ /____//____  >
- CPU:     n/a                                                    <ctrl-k> Kill          \/            \/
+ Context: kind-solo-e2e                            <0> all       <a>      Attach     <l>     … ____  __.________
+ Cluster: kind-solo-e2e                            <1> default   <ctrl-d> Delete     <p>      |    |/ _/   __   \______
+ User:    kind-solo-e2e                                          <d>      Describe   <shift-f>|      < \____    /  ___/
+ K9s Rev: v0.27.4 ⚡️v0.32.4                                      <e>      Edit       <s>      |    |  \   /    /\___ \
+ K8s Rev: v1.27.3                                                <?>      Help       <n>      |____|__ \ /____//____  >
+ CPU:     n/a                                                    <ctrl-k> Kill       <f>              \/            \/
  MEM:     n/a
-┌──────────────────────────────────────────── Pods(all)[27] ─────────────────────────────────────────────┐
-│ NAMESPACE↑          NAME                                                   PF READY RESTARTS STATUS    │
-│ kube-system         coredns-5d78c9869d-kc27p                               ●  1/1          0 Running   │
-│ kube-system         coredns-5d78c9869d-r8mzz                               ●  1/1          0 Running   │
-│ kube-system         etcd-solo-control-plane                                ●  1/1          0 Running   │
-│ kube-system         kindnet-gppbk                                          ●  1/1          0 Running   │
-│ kube-system         kube-apiserver-solo-control-plane                      ●  1/1          0 Running   │
-│ kube-system         kube-controller-manager-solo-control-plane             ●  1/1          0 Running   │
-│ kube-system         kube-proxy-wb9w5                                       ●  1/1          0 Running   │
-│ kube-system         kube-scheduler-solo-control-plane                      ●  1/1          0 Running   │
-│ local-path-storage  local-path-provisioner-6bc4bddd6b-5vh5d                ●  1/1          0 Running   │
-│ solo                envoy-proxy-node0-84947f844f-5j4fc                     ●  1/1          0 Running   │
-│ solo                envoy-proxy-node1-65f8879dcc-ztmnw                     ●  1/1          0 Running   │
-│ solo                envoy-proxy-node2-667f848689-bj849                     ●  1/1          0 Running   │
-│ solo                fullstack-deployment-grpc-69f9cc5666-744mm             ●  1/1          0 Running   │
-│ solo                fullstack-deployment-hedera-explorer-79f79b7df4-w2bl4  ●  1/1          0 Running   │
-│ solo                fullstack-deployment-importer-65bb89757f-vqg2l         ●  1/1          0 Running   │
-│ solo                fullstack-deployment-postgres-postgresql-0             ●  1/1          0 Running   │
-│ solo                fullstack-deployment-rest-584f5cb6bb-v7gvj             ●  1/1          0 Running   │
-│ solo                fullstack-deployment-web3-69dcdfc4fb-rxzsc             ●  1/1          0 Running   │
-│ solo                haproxy-node0-96f8df6d-dcv88                           ●  1/1          0 Running   │
-│ solo                haproxy-node1-845fb68f48-z492b                         ●  1/1          0 Running   │
-│ solo                haproxy-node2-867656ff6-npgjc                          ●  1/1          0 Running   │
-│ solo                minio-pool-1-0                                         ●  2/2          1 Running   │
-│ solo                network-node0-0                                        ●  5/5          0 Running   │
-│ solo                network-node1-0                                        ●  5/5          0 Running   │
-│ solo                network-node2-0                                        ●  5/5          0 Running   │
-│ solo-cluster        console-557956d575-pdkqw                               ●  1/1          0 Running   │
-│ solo-cluster        minio-operator-7d575c5f84-8pjmf                        ●  1/1          0 Running   │
+┌─────────────────────────────────────────────────── Pods(all)[27] ────────────────────────────────────────────────────┐
+│ NAMESPACE↑          NAME                                                   PF READY RESTARTS STATUS   IP             │
+│ fullstack-setup     console-557956d575-fqctd                               ●  1/1          0 Running  10.244.0.4     │
+│ fullstack-setup     minio-operator-7d575c5f84-j9p6f                        ●  1/1          0 Running  10.244.0.3     │
+│ kube-system         coredns-5d78c9869d-gknqp                               ●  1/1          0 Running  10.244.0.6     │
+│ kube-system         coredns-5d78c9869d-q59pc                               ●  1/1          0 Running  10.244.0.5     │
+│ kube-system         etcd-solo-e2e-control-plane                            ●  1/1          0 Running  172.18.0.2     │
+│ kube-system         kindnet-w9ps5                                          ●  1/1          0 Running  172.18.0.2     │
+│ kube-system         kube-apiserver-solo-e2e-control-plane                  ●  1/1          0 Running  172.18.0.2     │
+│ kube-system         kube-controller-manager-solo-e2e-control-plane         ●  1/1          0 Running  172.18.0.2     │
+│ kube-system         kube-proxy-p69z8                                       ●  1/1          0 Running  172.18.0.2     │
+│ kube-system         kube-scheduler-solo-e2e-control-plane                  ●  1/1          0 Running  172.18.0.2     │
+│ local-path-storage  local-path-provisioner-6bc4bddd6b-8pkfk                ●  1/1          0 Running  10.244.0.2     │
+│ solo                envoy-proxy-node0-84947f844f-f28tp                     ●  1/1          0 Running  10.244.0.215   │
+│ solo                envoy-proxy-node1-65f8879dcc-j2lrk                     ●  1/1          0 Running  10.244.0.216   │
+│ solo                envoy-proxy-node2-667f848689-dkmf9                     ●  1/1          0 Running  10.244.0.214   │
+│ solo                fullstack-deployment-grpc-69f9cc5666-lf6ql             ●  1/1          0 Running  10.244.0.227   │
+│ solo                fullstack-deployment-hedera-explorer-79f79b7df4-wjdct  ●  1/1          0 Running  10.244.0.226   │
+│ solo                fullstack-deployment-importer-864489ffb8-6v8tk         ●  1/1          0 Running  10.244.0.228   │
+│ solo                fullstack-deployment-postgres-postgresql-0             ●  1/1          0 Running  10.244.0.232   │
+│ solo                fullstack-deployment-rest-584f5cb6bb-q9vnt             ●  1/1          0 Running  10.244.0.230   │
+│ solo                fullstack-deployment-web3-69dcdfc4fb-mm5pk             ●  1/1          0 Running  10.244.0.229   │
+│ solo                haproxy-node0-6969f76c77-n5cfl                         ●  1/1          1 Running  10.244.0.219   │
+│ solo                haproxy-node1-59f6976d45-x6xmp                         ●  1/1          1 Running  10.244.0.217   │
+│ solo                haproxy-node2-6df64d5457-hf9ps                         ●  1/1          1 Running  10.244.0.218   │
+│ solo                minio-pool-1-0                                         ●  2/2          1 Running  10.244.0.224   │
+│ solo                network-node0-0                                        ●  5/5          0 Running  10.244.0.221   │
+│ solo                network-node1-0                                        ●  5/5          0 Running  10.244.0.222   │
+│ solo                network-node2-0                                        ●  5/5          0 Running  10.244.0.220   │
 ```
 
 #### Access Hedera Network services
@@ -377,43 +358,21 @@ Once the nodes are up, you may now expose various services (using `k9s` (shift-f
 * HAProxy: `haproxy-<node ID>-svc`
 * Envoy Proxy: `envoy-proxy-<node ID>-svc`
 * Hedera explorer: `fullstack-deployment-hedera-explorer`
+* JSON Rpc Relays
+  * You can deploy JSON RPC relays for one or more nodes as below:
+  ```
+  $ solo relay deploy -i node0,node1 
 
-```
-Context: kind-solo                                <0> all       <ctrl-l> Bench Run/Stop   <p>       Logs Previous                                                                           ____  __.________
- Cluster: kind-solo                                <1> default   <ctrl-d> Delete           <shift-f> Port-Forward                                                                           |    |/ _/   __   \______
- User:    kind-solo                                              <d>      Describe         <y>       YAML                                                                                   |      < \____    /  ___/
- K9s Rev: v0.27.4 ⚡️v0.32.3                                      <e>      Edit                                                                                                              |    |  \   /    /\___ \
- K8s Rev: v1.27.3                                                <?>      Help                                                                                                              |____|__ \ /____//____  >
- CPU:     n/a                                                    <l>      Logs                                                                                                                      \/            \/
- MEM:     n/a
-┌──────────────────────────────────────────────────────────────────────────────────────────────── Services(all)[24] ─────────────────────────────────────────────────────────────────────────────────────────────────┐
-│ NAMESPACE↑    NAME                                               TYPE           CLUSTER-IP      EXTERNAL-IP  PORTS                                                                                        AGE      │
-│ default       kubernetes                                         ClusterIP      10.96.0.1                    https:443►0                                                                                  58m      │
-│ kube-system   kube-dns                                           ClusterIP      10.96.0.10                   dns:53►0╱UDP dns-tcp:53►0 metrics:9153►0                                                     58m      │
-│ solo          envoy-proxy-node0-svc                              ClusterIP      10.96.108.35                 hedera-grpc-web:8080►0 prometheus:9090►0                                                     5m43s    │
-│ solo          envoy-proxy-node1-svc                              ClusterIP      10.96.28.255                 hedera-grpc-web:8080►0 prometheus:9090►0                                                     5m43s    │
-│ solo          envoy-proxy-node2-svc                              ClusterIP      10.96.114.202                hedera-grpc-web:8080►0 prometheus:9090►0                                                     5m43s    │
-│ solo          fullstack-deployment-grpc                          ClusterIP      10.96.189.209                grpc:5600►0 http:80►0                                                                        3m37s    │
-│ solo          fullstack-deployment-hedera-explorer               ClusterIP      10.96.169.9                  http:80►0                                                                                    3m37s    │
-│ solo          fullstack-deployment-postgres-pgpool               ClusterIP      10.96.189.235                postgresql:5432►0                                                                            3m37s    │
-│ solo          fullstack-deployment-postgres-postgresql           ClusterIP      10.96.92.24                  postgresql:5432►0                                                                            3m37s    │
-│ solo          fullstack-deployment-postgres-postgresql-headless  ClusterIP                                   postgresql:5432►0                                                                            3m37s    │
-│ solo          fullstack-deployment-rest                          ClusterIP      10.96.247.93                 http:80►0                                                                                    3m37s    │
-│ solo          fullstack-deployment-web3                          ClusterIP      10.96.254.144                http:80►0                                                                                    3m37s    │
-│ solo          haproxy-node0-svc                                  LoadBalancer   10.96.245.12    <pending>    non-tls-grpc-client-port:50211►31715 tls-grpc-client-port:50212►31619 prometheus:9090►30237  5m43s    │
-│ solo          haproxy-node1-svc                                  LoadBalancer   10.96.132.20    <pending>    non-tls-grpc-client-port:50211►30805 tls-grpc-client-port:50212►30238 prometheus:9090►30936  5m43s    │
-│ solo          haproxy-node2-svc                                  LoadBalancer   10.96.171.41    <pending>    non-tls-grpc-client-port:50211►32476 tls-grpc-client-port:50212►31387 prometheus:9090►30776  5m43s    │
-│ solo          minio                                              ClusterIP      10.96.65.174                 http-minio:80►0                                                                              5m38s    │
-│ solo          minio-console                                      ClusterIP      10.96.211.100                http-console:9090►0                                                                          5m38s    │
-│ solo          minio-hl                                           ClusterIP                                   http-minio:9000►0                                                                            5m38s    │
-│ solo          network-node0-svc                                  ClusterIP      10.96.141.1                  gossip:50111►0 grpc-non-tls:50211►0 grpc-tls:50212►0 prometheus:9090►0                       5m43s    │
-│ solo          network-node1-svc                                  ClusterIP      10.96.92.144                 gossip:50111►0 grpc-non-tls:50211►0 grpc-tls:50212►0 prometheus:9090►0                       5m43s    │
-│ solo          network-node2-svc                                  ClusterIP      10.96.140.243                gossip:50111►0 grpc-non-tls:50211►0 grpc-tls:50212►0 prometheus:9090►0                       5m43s    │
-│ solo-cluster  console                                            ClusterIP      10.96.31.144                 http:9090►0 https:9443►0                                                                     54m      │
-│ solo-cluster  operator                                           ClusterIP      10.96.212.116                http:4221►0                                                                                  54m      │
-│ solo-cluster  sts                                                ClusterIP      10.96.108.130                https:4223►0                                                                                 54m      │
-│ 
-```
+  ******************************* Solo *********************************************
+  Version                 : 0.22.1
+  Kubernetes Context      : kind-solo-e2e
+  Kubernetes Cluster      : kind-solo-e2e
+  Kubernetes Namespace    : solo
+  **********************************************************************************
+  ✔ Initialize
+  ✔ Prepare chart values
+  ✔ Deploy JSON RPC Relay [1s]
+  ```
 
 ### Example - 2: Deploy a standalone test network (version `0.47.0-alpha.0`)
 
