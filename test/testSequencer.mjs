@@ -15,7 +15,7 @@
  *
  */
 import Sequencer from '@jest/test-sequencer'
-import seedrandom from 'seedrandom'
+import Seedrandom from 'seedrandom'
 import { NewLogger } from '../src/core/logging.mjs'
 import chalk from 'chalk'
 
@@ -33,7 +33,7 @@ export default class testSequencer extends Sequencer.default {
       this.logger.showUser(chalk.green(`Using timestamp seed ${seed} for random test order`))
     }
 
-    let randomNumGenerator = new seedrandom(seed)
+    let randomNumGenerator = new Seedrandom(seed)
     const copyTests = Array.from(tests)
 
     // use randomNumGenerator.int32() to generate random even or odd nuber
