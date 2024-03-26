@@ -21,7 +21,7 @@ import { ShellRunner } from '../core/shell_runner.mjs'
 export class BaseCommand extends ShellRunner {
   async prepareChartPath (chartDir, chartRepo, chartReleaseName) {
     if (!chartRepo) throw new MissingArgumentError('chart repo name is required')
-    if (!chartReleaseName) throw new MissingArgumentError('chart name is required')
+    if (!chartReleaseName) throw new MissingArgumentError('chart release name is required')
 
     if (chartDir) {
       const chartPath = `${chartDir}/${chartReleaseName}`
