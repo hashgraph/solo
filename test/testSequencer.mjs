@@ -16,27 +16,27 @@
  */
 import Sequencer from '@jest/test-sequencer'
 import seedrandom from 'seedrandom'
-import {NewLogger} from "../src/core/logging.mjs";
-import chalk from "chalk";
+import { NewLogger } from '../src/core/logging.mjs'
+import chalk from 'chalk'
 
 export default class testSequencer extends Sequencer.default {
   logger = NewLogger('debug')
-  sort(tests) {
+  sort( tests ) {
     // get value of environment variable RANDOM_SEED if it is set
     // or use current timestamp
     let seed
     if (process.env.RANDOM_SEED) {
-      seed = process.env.RANDOM_SEED;
-      this.logger.showUser(chalk.green(`Using preset seed ${seed} for random test order`));
+      seed = process.env.RANDOM_SEED
+      this.logger.showUser(chalk.green(`Using preset seed ${seed} for random test order`))
     } else {
       seed = new Date().getTime().toString()
-      this.logger.showUser(chalk.green(`Using timestamp seed ${seed} for random test order`));
+      this.logger.showUser(chalk.green(`Using timestamp seed ${seed} for random test order`))
     }
 
-    let randomNumGenerator = new seedrandom(seed);
-    const copyTests = Array.from(tests);
+    let randomNumGenerator = new seedrandom(seed)
+    const copyTests = Array.from(tests)
 
     // use randomNumGenerator.int32() to generate random even or odd nuber
-    return copyTests.sort((testA, testB) => (randomNumGenerator.int32() % 2 === 0 ? -1 : 1));
+    return copyTests.sort((testA, testB) => (randomNumGenerator.int32() % 2 === 0 ? -1 : 1))
   }
 }
