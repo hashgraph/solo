@@ -65,12 +65,11 @@ jobs:
         with:
           node-version: 20
 
-      - name: Build
-        uses: andstor/jsdoc-action@v1
-        with:
-          config_file: jsdoc.conf.json
-          template: minami
-          
+      - name: Install JSDoc
+        run: |
+          npm install -g jsdoc
+          jsdoc -c jsdoc.conf.json
+
       - name: Setup Pages
         id: pages
         uses: actions/configure-pages@v4
@@ -84,12 +83,17 @@ jobs:
           HUGO_ENV: production
         run: |
           cd docs
+          echo "base_url ${{ steps.pages.outputs.base_url }}"
+          echo "origin ${{ steps.pages.outputs.origin }}"
+          echo "host ${{ steps.pages.outputs.host }}"
+          echo "base_path ${{ steps.pages.outputs.base_path }}"
           mkdir -p themes/hugo-geekdoc
           curl -L https://github.com/thegeeklab/hugo-geekdoc/releases/latest/download/hugo-geekdoc.tar.gz | tar -xz -C themes/hugo-geekdoc/ --strip-components=1
           hugo \
             --gc \
             --minify \
             --baseURL "${{ steps.pages.outputs.base_url }}/"
+
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
