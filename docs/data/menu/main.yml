@@ -1,0 +1,6 @@
+---
+main:
+  - name: Classes
+    ref: "../static"
+  - name: Developer
+    ref: "/Developer"

@@ -1,0 +1,12 @@
+{
+  "source": {
+	"include": [ "src" ],
+	"includePattern": ".+\\.(js(doc|x)?|mjs)$"
+  },
+  "sourceType": "module",
+  "opts": {
+	"recurse": true,
+	"destination": "docs/static/classes"
+  }
+}
+
