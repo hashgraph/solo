@@ -60,17 +60,17 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Build
-        uses: andstor/jsdoc-action@v1
-        with:
-          config_file: jsdoc.conf.json
-          template: minami
-
       - name: Setup Node
         uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4.0.2
         with:
           node-version: 20
 
+      - name: Build
+        uses: andstor/jsdoc-action@v1
+        with:
+          config_file: jsdoc.conf.json
+          template: minami
+          
       - name: Setup Pages
         id: pages
         uses: actions/configure-pages@v4
