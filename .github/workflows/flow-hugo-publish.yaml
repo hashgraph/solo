@@ -66,8 +66,10 @@ jobs:
           config_file: jsdoc.conf.json
           template: minami
 
-      - name: Install Node.js dependencies
-        run: "[[ -f package-lock.json || -f npm-shrinkwrap.json ]] && npm ci || true"
+      - name: Setup Node
+        uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4.0.2
+        with:
+          node-version: 20
 
       - name: Setup Pages
         id: pages
@@ -82,6 +84,8 @@ jobs:
           HUGO_ENV: production
         run: |
           cd docs
+          mkdir -p themes/hugo-geekdoc
+          curl -L https://github.com/thegeeklab/hugo-geekdoc/releases/latest/download/hugo-geekdoc.tar.gz | tar -xz -C themes/hugo-geekdoc/ --strip-components=1
           hugo \
             --gc \
             --minify \
