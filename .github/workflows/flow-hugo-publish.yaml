@@ -60,9 +60,15 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Build
+        uses: andstor/jsdoc-action@v1
+        with:
+          config_file: jsdoc.conf.json
+          template: minami
+
       - name: Install Node.js dependencies
         run: "[[ -f package-lock.json || -f npm-shrinkwrap.json ]] && npm ci || true"
-        
+
       - name: Setup Pages
         id: pages
         uses: actions/configure-pages@v4
@@ -75,6 +81,7 @@ jobs:
           HUGO_ENVIRONMENT: production
           HUGO_ENV: production
         run: |
+          cd docs
           hugo \
             --gc \
             --minify \
