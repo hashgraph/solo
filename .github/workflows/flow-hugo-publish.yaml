@@ -68,17 +68,15 @@ jobs:
       - name: Install JSDoc
         run: |
           npm install -g jsdoc
-          jsdoc -c jsdoc.conf.json
+          jsdoc -c jsdoc.conf.json || true
 
       - name: Setup Pages
-        if: always()
         id: pages
         uses: actions/configure-pages@v4
         with:
           enablement: true
 
       - name: Build with Hugo
-        if: always()
         env:
           # For maximum backward compatibility with Hugo modules
           HUGO_ENVIRONMENT: production
@@ -97,7 +95,6 @@ jobs:
             --baseURL "${{ steps.pages.outputs.base_url }}/"
 
       - name: Upload artifact
-        if: always()
         uses: actions/upload-pages-artifact@v3
         with:
           path: ./public
