@@ -55,9 +55,6 @@ jobs:
           sudo apt update
           sudo apt install -y hugo
 
-      - name: Install Dart Sass
-        run: sudo snap install dart-sass
-
       - name: Checkout Code
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
         with:
