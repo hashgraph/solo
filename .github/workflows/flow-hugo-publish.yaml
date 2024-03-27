@@ -53,7 +53,7 @@ jobs:
       - name: Install Hugo CLI
         run: |
           sudo apt update
-          sudo apt install hugo
+          sudo apt install -y hugo
 
       - name: Install Dart Sass
         run: sudo snap install dart-sass
