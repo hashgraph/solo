@@ -52,6 +52,7 @@ jobs:
     steps:
       - name: Install Hugo CLI
         run: |
+          sudo apt update
           sudo apt install hugo
 
       - name: Install Dart Sass
