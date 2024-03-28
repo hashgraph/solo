@@ -117,7 +117,7 @@ export class AccountManager {
 
   /**
    * batch up the accounts into sets to be processed
-   * @returns {*[]} an array of arrays of numbers representing the accounts to update
+   * @returns an array of arrays of numbers representing the accounts to update
    */
   batchAccounts (accountRange = constants.SYSTEM_ACCOUNTS) {
     const batchSize = constants.ACCOUNT_CREATE_BATCH_SIZE
