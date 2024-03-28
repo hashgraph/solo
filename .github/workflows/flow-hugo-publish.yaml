@@ -77,6 +77,13 @@ jobs:
         with:
           enablement: true
 
+      - name: Install jsdoc-to-markdown
+        run: |
+          npm i jsdoc-to-markdown
+          cd docs
+          sleep 72000
+
+
       - name: Build with Hugo
         env:
           # For maximum backward compatibility with Hugo modules
