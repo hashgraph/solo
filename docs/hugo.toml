@@ -1,6 +1,6 @@
 baseURL = 'https://hashgraph.github.io/solo'
 languageCode = 'en-us'
-title = 'Solo landing page'
+title = 'Solo Documentation'
 theme = "hugo-geekdoc"
 
 # Geekdoc required configuration

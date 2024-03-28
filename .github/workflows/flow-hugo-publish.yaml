@@ -65,11 +65,6 @@ jobs:
         with:
           node-version: 20
 
-      - name: Install JSDoc
-        run: |
-          npm install -g jsdoc
-          jsdoc -c jsdoc.conf.json || true
-
       - name: Setup Pages
         id: pages
         uses: actions/configure-pages@v4
@@ -78,9 +73,10 @@ jobs:
 
       - name: Install jsdoc-to-markdown
         run: |
-          npm i jsdoc-to-markdown
           cd docs
-          sleep 72000
+          npm i jsdoc-to-markdown
+          ./generate_md.sh
+          cd -
 
       - name: Build with Hugo
         env:
