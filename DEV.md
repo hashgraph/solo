@@ -23,3 +23,10 @@ Below we describe how you can set up local environment and contribute to `solo`.
 * In order to run E2E test, we need to set up cluster and install the chart.
   * Run `./test/e2e/setup-e2e.sh`
   * Run `npm run test-e2e`
+
+* Tests are run in random order. The random seed value is shown as message such as:
+  `Using timestamp seed 1711414247085 for random test order`
+
+* If you like to rerun tests with the same seed, use environment variable `RANDOM_SEED=<integer_number>` with `npm run test-e2e` command.
+  * Example: `RANDOM_SEED=20 npm run test-e2e`,
+    and you should see an output like: `Using preset seed 20 for random test order`
