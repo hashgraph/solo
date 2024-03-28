@@ -69,7 +69,6 @@ jobs:
         run: |
           npm install -g jsdoc
           jsdoc -c jsdoc.conf.json || true
-          sleep 72000
 
       - name: Setup Pages
         id: pages
@@ -82,7 +81,6 @@ jobs:
           npm i jsdoc-to-markdown
           cd docs
           sleep 72000
-
 
       - name: Build with Hugo
         env:
