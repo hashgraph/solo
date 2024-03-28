@@ -1,16 +1,16 @@
 #!/usr/bin/env bash
 
 # find javascript files
-FIND_CMD = $(find ../src -name "*.js")
+FIND_CMD=$(find ../src -name "*js")
 
 # save result to array
-FILES = ($FIND_CMD)
+FILES=($FIND_CMD)
 
 
 for i in "${FILES[@]}"
 do
-	echo $i
+# 	echo $i
 	# extract base file name from path, remove path and extension
-	BASENAME = $(basename $i .js)
-	jsdoc2md $i > ./content/Classes/$BASENAME.md
+	BASENAME=$(basename $i .js)
+	jsdoc2md -c jsdoc.conf.json $i > ./content/Classes/$BASENAME.md
 done

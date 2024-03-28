@@ -1,6 +1,6 @@
 {
   "source": {
-	"include": [ "src" ],
+	"include": [ "../src" ],
 	"includePattern": ".+\\.(js(doc|x)?|mjs)$"
   },
   "sourceType": "module",
