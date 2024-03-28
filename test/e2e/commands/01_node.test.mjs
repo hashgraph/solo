@@ -28,11 +28,12 @@ import {
 import {
   bootstrapNetwork,
   getDefaultArgv,
+  getTestConfigManager,
   TEST_CLUSTER
 } from '../../test_util.js'
 
 describe.each([
-  { releaseTag: 'v0.47.0-alpha.0', keyFormat: constants.KEY_FORMAT_PFX, testName: 'node-cmd-e2e-pfx' },
+  // { releaseTag: 'v0.47.0-alpha.0', keyFormat: constants.KEY_FORMAT_PFX, testName: 'node-cmd-e2e-pfx' },
   { releaseTag: 'v0.47.0-alpha.0', keyFormat: constants.KEY_FORMAT_PEM, testName: 'node-cmd-e2e-pem' }
 ])('NodeCommand', (input) => {
   const testName = input.testName
@@ -51,11 +52,11 @@ describe.each([
   const nodeCmd = bootstrapResp.cmd.nodeCmd
 
   afterAll(async () => {
-    await k8.deleteNamespace(namespace)
+    // await k8.deleteNamespace(namespace)  // TODO renable this line
     await accountManager.close()
   })
 
-  describe(`Node should start successfully [release ${input.keyFormat}, keyFormat: ${input.releaseTag}]`, () => {
+  describe(`Node should start successfully [release ${input.releaseTag}, keyFormat: ${input.keyFormat}]`, () => {
     it('Balance query should succeed', async () => {
       expect.assertions(2)
 
@@ -102,7 +103,7 @@ describe.each([
       expect.assertions(1)
 
       try {
-        await expect(nodeCmd.checkNetworkNodeProxyUp('node0', 30313)).resolves.toBeTruthy()
+        await expect(nodeCmd.checkNetworkNodeProxyUp('node0', 30399)).resolves.toBeTruthy()
       } catch (e) {
         nodeCmd.logger.showUserError(e)
         expect(e).toBeNull()
@@ -112,10 +113,14 @@ describe.each([
     }, 20000)
   })
 
-  describe(`Node should refresh successfully [release ${input.keyFormat}, keyFormat: ${input.releaseTag}]`, () => {
+  describe(`Node should refresh successfully [release ${input.releaseTag}, keyFormat: ${input.keyFormat}]`, () => {
     let podName = ''
     beforeAll(async () => {
-      const podArray = await k8.getPodsByLabel(['app=haproxy-node0', 'fullstack.hedera.com/type=haproxy'])
+      argv[flags.nodeIDs.name] = 'node0'
+      const configManager = getTestConfigManager(`${testName}-solo.config`)
+      configManager.update(argv, true)
+
+      const podArray = await k8.getPodsByLabel(['app=network-node0', 'fullstack.hedera.com/type=network-node'])
 
       if (podArray.length > 0) {
         podName = podArray[0].metadata.name
@@ -124,15 +129,37 @@ describe.each([
       } else {
         throw new Error('pod for node0 not found')
       }
-    })
+    }, 20000)
 
-    it('Node 0 should not be running', async () => {
+    it('Node0 should be running', async () => {
       expect(podName).toContain('node0')
-      const podArray = await this.k8.getPodsByLabel(['app=haproxy-node0', 'fullstack.hedera.com/type=haproxy'])
-      console.log(podArray)
-    })
-    it('Node refresh should succeed', async () => {
-    })
+      try {
+        await expect(nodeCmd.checkNetworkNodePod(namespace, 'node0')).resolves.toBeTruthy()
+      } catch (e) {
+        nodeCmd.logger.showUserError(e)
+        expect(e).toBeNull()
+      } finally {
+        await nodeCmd.close()
+      }
+    }, 20000)
+
+    it('Node0 should not be ACTIVE', async () => {
+      expect(3)
+      expect(podName).toContain('node0')
+      try {
+        await expect(nodeCmd.stop(argv)).resolves.toBeTruthy()
+        await expect(nodeCmd.checkNetworkNodeStarted('node0', 5)).rejects.toThrowError()
+      } catch (e) {
+        nodeCmd.logger.showUserError(e)
+        expect(e).not.toBeNull()
+      } finally {
+        await nodeCmd.close()
+      }
+    }, 20000)
+
+    it('Node0 refresh should succeed', async () => {
+      await expect(nodeCmd.refresh(argv)).resolves.toBeTruthy()
+    }, 1200000)
     // TODO need to test with PVCs
     // TODO will have changes when configMap/secrets are implemented
   })

@@ -111,7 +111,7 @@ export function bootstrapNetwork (testName, argv,
   const helm = new Helm(testLogger)
   const chartManager = new ChartManager(helm, testLogger)
   const k8 = k8Arg || new K8(configManager, testLogger)
-  const platformInstaller = new PlatformInstaller(testLogger, k8)
+  const platformInstaller = new PlatformInstaller(testLogger, k8, configManager)
   const accountManager = new AccountManager(testLogger, k8, constants)
   const opts = {
     logger: testLogger,
