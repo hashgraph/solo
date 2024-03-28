@@ -6,6 +6,7 @@ FIND_CMD=$(find ../src -name "*js")
 # save result to array
 FILES=($FIND_CMD)
 
+mkdir -p content/Classes
 
 for i in "${FILES[@]}"
 do
