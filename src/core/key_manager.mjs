@@ -141,9 +141,9 @@ export class KeyManager {
    * @param nodeId node ID
    * @param nodeKey an object containing privateKeyPem, certificatePem data
    * @param keysDir directory where keys and certs are stored
-   * @param nodeKeyFiles an object {privateKeyFile: string, certificateFile: string}
+   * @param nodeKeyFiles an object stores privateKeyFile and certificateFile
    * @param keyName optional key type name for logging
-   * @return {privateKeyFile: string, certificateFile: string}
+   * @return a Promise that saves the keys and certs as PEM files
    */
   async storeNodeKey (nodeId, nodeKey, keysDir, nodeKeyFiles, keyName = '') {
     if (!nodeId) {
@@ -209,9 +209,9 @@ export class KeyManager {
    * @param nodeId node ID
    * @param keysDir directory where keys and certs are stored
    * @param algo algorithm used for key
-   * @param nodeKeyFiles an object {privateKeyFile: string, certificateFile: string}
+   * @param nodeKeyFiles an object stores privateKeyFile and certificateFile
    * @param keyName optional key type name for logging
-   * @return {privateKey: CryptoKey, certificate: x509.X509Certificate, certificateChain: x509.X509Certificates}
+   * @return returns a dictionary object contains privateKey, certificate, certificateChain
    */
   async loadNodeKey (nodeId, keysDir, algo, nodeKeyFiles, keyName = '') {
     if (!nodeId) {
@@ -265,7 +265,7 @@ export class KeyManager {
   /**
    * Generate signing key and certificate
    * @param nodeId node ID
-   * @return {privateKey: CryptoKey, certificate: x509.X509Certificate, certificateChain: x509.X509Certificates}
+   * @return returns a dictionary object stores privateKey, certificate, certificateChain
    */
   async generateSigningKey (nodeId) {
     try {
@@ -313,7 +313,7 @@ export class KeyManager {
    * @param nodeId node ID
    * @param nodeKey an object containing privateKeyPem, certificatePem data
    * @param keysDir directory where keys and certs are stored
-   * @return {privateKeyFile: string, certificateFile: string}
+   * @return returns a Promise that saves the keys and certs as PEM files
    */
   async storeSigningKey (nodeId, nodeKey, keysDir) {
     const nodeKeyFiles = this.prepareNodeKeyFilePaths(nodeId, keysDir, constants.SIGNING_KEY_PREFIX)
@@ -324,7 +324,7 @@ export class KeyManager {
    * Load signing key and certificate
    * @param nodeId node ID
    * @param keysDir directory path where pem files are stored
-   * @return {privateKey: CryptoKey, certificate: x509.X509Certificate, certificateChain: x509.X509Certificates}
+   * @return returns a dictionary object contains privateKey, certificate, certificateChain
    */
   async loadSigningKey (nodeId, keysDir) {
     const nodeKeyFiles = this.prepareNodeKeyFilePaths(nodeId, keysDir, constants.SIGNING_KEY_PREFIX)
@@ -337,7 +337,7 @@ export class KeyManager {
    * @param nodeId node ID
    * @param keyPrefix key prefix such as constants.PFX_AGREEMENT_KEY_PREFIX
    * @param signingKey signing key
-   * @return {privateKey: CryptoKey, certificate: x509.X509Certificate, certificateChain: x509.X509Certificates}
+   * @return a dictionary object stores privateKey, certificate, certificateChain
    */
   async ecKey (nodeId, keyPrefix, signingKey) {
     if (!nodeId) throw new MissingArgumentError('nodeId is required')
@@ -392,7 +392,7 @@ export class KeyManager {
    * Generate agreement key
    * @param nodeId node ID
    * @param signingKey signing key
-   * @return {privateKey: CryptoKey, certificate: x509.X509Certificate, certificateChain: x509.X509Certificates}
+   * @return a dictionary object stores privateKey, certificate, certificateChain
    */
   async generateAgreementKey (nodeId, signingKey) {
     return this.ecKey(nodeId, constants.AGREEMENT_KEY_PREFIX, signingKey)
@@ -403,7 +403,7 @@ export class KeyManager {
    * @param nodeId node ID
    * @param nodeKey an object containing privateKeyPem, certificatePem data
    * @param keysDir directory where keys and certs are stored
-   * @return {privateKeyFile: string, certificateFile: string}
+   * @return a Promise that saves the keys and certs as PEM files
    */
   async storeAgreementKey (nodeId, nodeKey, keysDir) {
     const nodeKeyFiles = this.prepareNodeKeyFilePaths(nodeId, keysDir, constants.AGREEMENT_KEY_PREFIX)
@@ -414,7 +414,7 @@ export class KeyManager {
    * Load agreement key and certificate
    * @param nodeId node ID
    * @param keysDir directory path where pem files are stored
-   * @return {privateKey: CryptoKey, certificate: x509.X509Certificate, certificateChain: x509.X509Certificates}
+   * @return a dictionary object contains privateKey, certificate, certificateChain
    */
   async loadAgreementKey (nodeId, keysDir) {
     const nodeKeyFiles = this.prepareNodeKeyFilePaths(nodeId, keysDir, constants.AGREEMENT_KEY_PREFIX)
@@ -481,7 +481,7 @@ export class KeyManager {
    * @param nodeId node ID
    * @param nodeKey an object containing privateKeyPem, certificatePem data
    * @param keysDir directory where keys and certs are stored
-   * @return {privateKeyFile: string, certificateFile: string}
+   * @return a Promise that saves the keys and certs as PEM files
    */
   async storeTLSKey (nodeId, nodeKey, keysDir) {
     const nodeKeyFiles = this.prepareTLSKeyFilePaths(nodeId, keysDir)
@@ -492,7 +492,7 @@ export class KeyManager {
    * Load TLS key and certificate
    * @param nodeId node ID
    * @param keysDir directory path where pem files are stored
-   * @return {privateKey: CryptoKey, certificate: x509.X509Certificate, certificateChain: x509.X509Certificates}
+   * @return a dictionary object contains privateKey, certificate, certificateChain
    */
   async loadTLSKey (nodeId, keysDir) {
     const nodeKeyFiles = this.prepareTLSKeyFilePaths(nodeId, keysDir)
