@@ -65,16 +65,121 @@ permissions:
 jobs:
   compile:
     name: ${{ inputs.custom-job-label || 'Compiles' }}
-    runs-on: [self-hosted, Linux, medium, ephemeral]
+    runs-on: solo-windows-2022-large
     steps:
       - name: Checkout Code
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+
+      - name: Update WSL
+        if: ${{ runner.os == 'Windows' && inputs.enable-e2e-tests && !cancelled() && !failure() }}
+        shell: pwsh
+        run: |
+          wsl --update
+          wsl --install
+          wsl --set-default-version 2
+
+      - name: Set WSL Version 2
+        if: ${{ runner.os == 'Windows' && inputs.enable-e2e-tests && !cancelled() && !failure() }}
+        shell: pwsh
+        run: |
+          wsl --status
+          wsl --update
+          wsl --list --online
+          wsl --set-default-version 2
+          wsl -l -v
+
+      - shell: wsl-bash {0}
+        if: ${{ runner.os == 'Windows' && inputs.enable-e2e-tests && !cancelled() && !failure() }}
+        run: |
+          pwd
+          ls -ltr
+          uname -a
+
+      - name: Get WSL Info
+        if: ${{ runner.os == 'Windows' && inputs.enable-e2e-tests && !cancelled() && !failure() }}
+        shell: pwsh
+        run: |
+          wsl -l -v
+
+      - name: WSL Install Helm
+        if: ${{ runner.os == 'Windows' && inputs.enable-e2e-tests && !cancelled() && !failure() }}
+        shell: wsl-bash {0}
+        run: |
+          
+          curl https://baltocdn.com/helm/signing.asc | gpg --dearmor | sudo tee /usr/share/keyrings/helm.gpg > /dev/null
+          sudo apt-get install apt-transport-https --yes
+          echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/helm.gpg] https://baltocdn.com/helm/stable/debian/ all main" | sudo tee /etc/apt/sources.list.d/helm-stable-debian.list
+          sudo apt-get update
+          sudo apt-get -y install helm
+          which helm
+          helm version
+
+      - name: WSL Install Kind
+        if: ${{ runner.os == 'Windows' && inputs.enable-e2e-tests && !cancelled() && !failure() }}
+        shell: wsl-bash {0}
+        run: |
+          [ $(uname -m) = x86_64 ] && curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.22.0/kind-linux-amd64
+          chmod +x ./kind
+          sudo mv ./kind /usr/local/bin/kind
+          which kind
+          kind version
+
+      - name: WSL Install Docker
+        if: ${{ runner.os == 'Windows' && inputs.enable-e2e-tests && !cancelled() && !failure() }}
+        shell: wsl-bash {0}
+        run: |
+          
+          sudo apt-get update
+          sudo apt-get -y install ca-certificates curl
+          sudo install -m 0755 -d /etc/apt/keyrings
+          sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+          sudo chmod a+r /etc/apt/keyrings/docker.asc
+          
+          # Add the repository to Apt sources:
+          echo \
+          "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
+          $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
+          sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+          sudo apt-get update
+          
+          sudo apt-get -y install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+          # sudo systemctl start docker
+          sudo usermod -aG docker $(whoami)
+
+      - name: WSL Install NodeJS
+        if: ${{ runner.os == 'Windows' && inputs.enable-e2e-tests && !cancelled() && !failure() }}
+        shell: wsl-bash {0}
+        run: |
+          curl -O https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.3/install.sh
+          ./install.sh
+          nvm install node
+          node -v
+          npm -v      
+
+      - name: WSL Run Docker
+        if: ${{ runner.os == 'Windows' && inputs.enable-e2e-tests && !cancelled() && !failure() }}
+        shell: wsl-bash {0}
+        run: |
+          echo $USER
+          ls -l /var/run/docker.sock
+          stat /var/run/docker.sock
+          sudo usermod -aG docker $USER
+          sudo service docker restart
+          sudo service docker status
+          sudo docker context ls
+          sudo ps aux | grep docker
+          sudo docker version
+          sudo docker -D run hello-world
+
+
+
 
       - name: Setup Node
         uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4.0.2
         with:
           node-version: ${{ inputs.node-version }}
           cache: npm
+
 
       - name: Setup Java
         uses: actions/setup-java@9704b39bf258b59bc04b50fa2dd55e9ed76b47a8 # v4.1.0
@@ -85,7 +190,7 @@ jobs:
 
       - name: Setup Kind
         uses: helm/kind-action@99576bfa6ddf9a8e612d83b513da5a75875caced # v1.9.0
-        if: ${{ inputs.enable-e2e-tests && !cancelled() && !failure() }}
+        if: ${{ runner.os == 'linux' && inputs.enable-e2e-tests && !cancelled() && !failure() }}
         with:
           install_only: true
           node_image: kindest/node:v1.27.3@sha256:3966ac761ae0136263ffdb6cfd4db23ef8a83cba8a463690e98317add2c9ba72
@@ -93,6 +198,7 @@ jobs:
           kubectl_version: v1.28.6
           verbosity: 3
           wait: 120s
+
 
       - name: Setup Helm
         uses: azure/setup-helm@29960d0f5f19214b88e1d9ba750a9914ab0f1a2f # v4.0.0
@@ -102,35 +208,44 @@ jobs:
 
       - name: Install Dependencies
         id: npm-deps
-        run: npm ci
+        run:
+          npm ci
 
       - name: Check Code Style
-        if: ${{ inputs.enable-code-style-check && !cancelled() && !failure() }}
+        if: ${{ runner.os == 'linux' && inputs.enable-code-style-check && !cancelled() && !failure() }}
         run: npm run check
 
       - name: Run Unit Tests
         if: ${{ inputs.enable-unit-tests && !cancelled() && !failure() }}
         run: npm test
 
-      - name: Publish Unit Test Report
-        uses: EnricoMi/publish-unit-test-result-action@f355d34d53ad4e7f506f699478db2dd71da9de5f # v2.15.1
-        if: ${{ inputs.enable-unit-tests && steps.npm-deps.conclusion == 'success' && !cancelled() }}
+      - name: Publish Windows Unit Test Report
+        uses: EnricoMi/publish-unit-test-result-action/windows/bash@v2.15.1
+        if: ${{ runner.os == 'Windows' && inputs.enable-unit-tests && steps.npm-deps.conclusion == 'success' && !cancelled() }}
         with:
-          check_name: 'Unit Test Results'
+          check_name: 'Unit Test Results - ${{ runner.os }}'
+          files: "junit.xml"
+
+      - name: Publish Linux Unit Test Report
+        uses: EnricoMi/publish-unit-test-result-action@f355d34d53ad4e7f506f699478db2dd71da9de5f # v2.15.1
+        if: ${{ runner.os == 'linux' && inputs.enable-unit-tests && steps.npm-deps.conclusion == 'success' && !cancelled() }}
+        with:
+          check_name: 'Unit Test Results - ${{ runner.os }}'
           files: "junit.xml"
 
       - name: Publish Unit Test Coverage Report
         uses: actions/upload-artifact@5d5d22a31266ced268874388b861e4b58bb5c2f3 # v4.3.1
-        if: ${{ inputs.enable-unit-tests && !cancelled() }}
+        if: ${{ runner.os == 'linux' && inputs.enable-unit-tests && !cancelled() }}
         with:
-          name: Unit Test Coverage Report
+          name: Unit Test Coverage Report - ${{ runner.os }}
           path: 'coverage/unit'
 
       - name: Pull Kind Docker Image
-        if: ${{ inputs.enable-e2e-tests && !cancelled() && !failure() }}
+        if: ${{ runner.os == 'linux' && inputs.enable-e2e-tests && !cancelled() && !failure() }}
         run: docker image pull kindest/node:v1.27.3@sha256:3966ac761ae0136263ffdb6cfd4db23ef8a83cba8a463690e98317add2c9ba72
 
-      - name: Setup E2E Tests
+
+      - name: Setup E2E Tests Linux
         if: ${{ inputs.enable-e2e-tests && !cancelled() && !failure() }}
         run: | 
           npm link
@@ -153,19 +268,19 @@ jobs:
         uses: EnricoMi/publish-unit-test-result-action@f355d34d53ad4e7f506f699478db2dd71da9de5f # v2.15.1
         if: ${{ inputs.enable-e2e-tests && steps.npm-deps.conclusion == 'success' && !cancelled() }}
         with:
-          check_name: 'E2E Test Results'
+          check_name: 'E2E Test Results - ${{ runner.os }}'
           files: "junit-e2e.xml"
 
       - name: Publish E2E Coverage Report
         uses: actions/upload-artifact@5d5d22a31266ced268874388b861e4b58bb5c2f3 # v4.3.1
         if: ${{ inputs.enable-e2e-tests && !cancelled() }}
         with:
-          name: E2E Coverage Report
+          name: E2E Coverage Report - ${{ runner.os }}
           path: 'coverage/e2e'
 
       - name: Publish Test Reports
         uses: actions/upload-artifact@5d5d22a31266ced268874388b861e4b58bb5c2f3 # v4.3.1
         if: ${{ inputs.enable-unit-tests && steps.npm-deps.conclusion == 'success' && !cancelled() }}
         with:
-          name: Test Reports
+          name: Test Reports - ${{ runner.os }}
           path: "junit*.xml"
