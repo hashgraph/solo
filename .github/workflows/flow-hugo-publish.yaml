@@ -97,6 +97,7 @@ jobs:
           hugo config
           hugo \
             --gc \
+            --config hugo.toml \
             --minify \
             --baseURL "${{ steps.pages.outputs.base_url }}/"
 
