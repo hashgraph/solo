@@ -53,7 +53,8 @@ jobs:
       - name: Install Hugo CLI
         run: |
           sudo apt update
-          sudo apt install -y hugo
+          sudo apt list --all-versions hugo
+          sudo apt install -y hugo=v0.124.1
 
       - name: Checkout Code
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
