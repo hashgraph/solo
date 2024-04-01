@@ -18,7 +18,7 @@
 import {
   afterAll, afterEach, describe,
   expect,
-  it, test
+  it
 } from '@jest/globals'
 import { flags } from '../../../src/commands/index.mjs'
 import {
@@ -62,10 +62,10 @@ describe('RelayCommand', () => {
     await sleep(5) // give a few ticks so that connections can close
   })
 
-  test.each([
-    { relayNodes: 'node0'},
-    { relayNodes: 'node0,node1'},
-    { relayNodes: 'node0,node1,node2'}
+  it.each([
+    { relayNodes: 'node0' },
+    { relayNodes: 'node0,node1' },
+    { relayNodes: 'node0,node1,node2' }
   ])('relay deploy and destroy should work with different number of relay nodes', async (input) => {
     argv[flags.nodeIDs.name] = input.relayNodes
     configManager.update(argv)
