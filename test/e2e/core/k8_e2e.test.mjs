@@ -149,10 +149,10 @@ describe('K8', () => {
     expect(pvcs.length).toBeGreaterThan(0)
   })
 
-  it('should be able to recyle pod by labels', async() => {
-    const podLabels = [`app=haproxy-node0`, 'fullstack.hedera.com/type=haproxy']
+  it('should be able to recyle pod by labels', async () => {
+    const podLabels = ['app=haproxy-node0', 'fullstack.hedera.com/type=haproxy']
     const podArray1 = await k8.getPodsByLabel(podLabels)
-    const podsArray2= await k8.recyclePodByLabels(podLabels)
+    const podsArray2 = await k8.recyclePodByLabels(podLabels)
     expect(podsArray2.length >= podArray1.length).toBeTruthy()
   })
 })

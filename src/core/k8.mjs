@@ -25,6 +25,7 @@ import * as sb from 'stream-buffers'
 import * as tar from 'tar'
 import { v4 as uuid4 } from 'uuid'
 import { V1ObjectMeta, V1Secret } from '@kubernetes/client-node'
+import { sleep } from './helpers.mjs'
 import { constants } from './index.mjs'
 
 /**
@@ -718,6 +719,27 @@ export class K8 {
         }
       })
     })
+  }
+
+  async recyclePodByLabels (podLabels, maxAttempts = 50) {
+    const podArray = await this.getPodsByLabel(podLabels)
+    for (const pod of podArray) {
+      const podName = pod.metadata.name
+      await this.kubeClient.deleteNamespacedPod(podName, this.configManager.getFlag(flags.namespace))
+    }
+
+    let attempts = 0
+    while (attempts++ < maxAttempts) {
+      const status = await this.waitForPod(constants.POD_STATUS_RUNNING, podLabels)
+      if (status) {
+        const newPods = await this.getPodsByLabel(podLabels)
+        if (newPods.length === podArray.length) return newPods
+      }
+
+      await sleep(2000)
+    }
+
+    throw new FullstackTestingError(`pods are not running after deletion with labels [${podLabels.join(',')}]`)
   }
 
   /**
