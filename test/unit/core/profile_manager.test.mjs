@@ -27,6 +27,7 @@ const configFile = path.join(tmpDir, 'resource-manager.config')
 const configManager = new ConfigManager(testLogger, configFile)
 const profileManager = new ProfileManager(testLogger, configManager, tmpDir)
 configManager.setFlag(flags.nodeIDs, 'node0,node1,node3')
+const testProfileFile = path.resolve('test/data/custom-profiles.yaml')
 
 describe('ProfileManager', () => {
   afterAll(() => {
@@ -63,7 +64,7 @@ describe('ProfileManager', () => {
     // { profileName: constants.PROFILE_MEDIUM },
     // { profileName: constants.PROFILE_SMALL },
     // { profileName: constants.PROFILE_TINY, profileFile: path.resolve(`${constants.PROFILES_DIR}/custom-spec.csv`) },
-    { profileName: constants.PROFILE_LOCAL, profileFile: path.resolve(`${constants.PROFILES_DIR}/custom-spec.yaml`) }
+    { profileName: constants.PROFILE_LOCAL, profileFile: testProfileFile }
   ])('determine chart values for a profile', (input) => {
     it(`should determine FST chart values [profile = ${input.profileName}]`, async () => {
       configManager.setFlag(flags.profileFile, input.profileFile)

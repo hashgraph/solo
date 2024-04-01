@@ -20,7 +20,7 @@ import { Listr } from 'listr2'
 import { FullstackTestingError, MissingArgumentError } from '../core/errors.mjs'
 import { BaseCommand } from './base.mjs'
 import * as flags from './flags.mjs'
-import { constants, Templates } from '../core/index.mjs'
+import { constants } from '../core/index.mjs'
 import * as prompts from './prompts.mjs'
 import * as helpers from '../core/helpers.mjs'
 
@@ -174,21 +174,83 @@ export class NetworkCommand extends BaseCommand {
         }
       },
       {
-        title: 'Waiting for network pods to be ready',
+        title: 'Check node pods are ready',
         task:
           async (ctx, task) => {
             const subTasks = []
+
+            // nodes
             for (const nodeId of ctx.config.nodeIds) {
-              const podName = Templates.renderNetworkPodName(nodeId)
               subTasks.push({
-                title: `Node: ${chalk.yellow(nodeId)} (Pod: ${podName})`,
+                title: `Check Node: ${chalk.yellow(nodeId)}`,
                 task: () =>
-                  self.k8.waitForPod(constants.POD_STATUS_RUNNING, [
+                  self.k8.waitForPodReady([
                     'fullstack.hedera.com/type=network-node',
                     `fullstack.hedera.com/node-name=${nodeId}`
                   ], 1, 60 * 15, 1000) // timeout 15 minutes
               })
             }
+
+            // set up the sub-tasks
+            return task.newListr(subTasks, {
+              concurrent: false, // no need to run concurrently since if one node is up, the rest should be up by then
+              rendererOptions: {
+                collapseSubtasks: false
+              }
+            })
+          }
+      },
+      {
+        title: 'Check proxy pods are ready',
+        task:
+          async (ctx, task) => {
+            const subTasks = []
+
+            // HAProxy
+            for (const nodeId of ctx.config.nodeIds) {
+              subTasks.push({
+                title: `Check HAProxy for: ${chalk.yellow(nodeId)}`,
+                task: () =>
+                  self.k8.waitForPodReady([
+                    'fullstack.hedera.com/type=envoy-proxy'
+                  ], 1, 60 * 15, 1000) // timeout 15 minutes
+              })
+            }
+
+            // Envoy Proxy
+            for (const nodeId of ctx.config.nodeIds) {
+              subTasks.push({
+                title: `Check Envoy Proxy for: ${chalk.yellow(nodeId)}`,
+                task: () =>
+                  self.k8.waitForPodReady([
+                    'fullstack.hedera.com/type=haproxy'
+                  ], 1, 60 * 15, 1000) // timeout 15 minutes
+              })
+            }
+
+            // set up the sub-tasks
+            return task.newListr(subTasks, {
+              concurrent: true,
+              rendererOptions: {
+                collapseSubtasks: false
+              }
+            })
+          }
+      },
+      {
+        title: 'Check auxiliary pods are ready',
+        task:
+          async (ctx, task) => {
+            const subTasks = []
+
+            // minio
+            subTasks.push({
+              title: 'Check MinIO',
+              task: () =>
+                self.k8.waitForPodReady([
+                  'v1.min.io/tenant=minio'
+                ], 1, 60 * 5, 1000) // timeout 5 minutes
+            })
 
             // set up the sub-tasks
             return task.newListr(subTasks, {

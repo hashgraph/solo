@@ -66,7 +66,8 @@ export class ProfileManager {
 
     // add profiles
     for (const key in profileItems) {
-      const profile = profileItems[key]
+      let profile = profileItems[key]
+      profile = profile || {}
       this.profiles.set(key, profile)
     }
 
@@ -155,7 +156,6 @@ export class ProfileManager {
 
   resourcesForConsensusPod (profile, nodeIds, yamlRoot) {
     if (!profile) throw new MissingArgumentError('profile is required')
-    if (!profile.consensus) return // use chart defaults
 
     // prepare name and account IDs for nodes
     const realm = constants.HEDERA_NODE_ACCOUNT_ID_START.realm
@@ -169,12 +169,14 @@ export class ProfileManager {
       this._setChartResources(`hedera.nodes.${nodeIndex}`, profile.consensus, yamlRoot)
     }
 
-    // set default for consensus pod
-    this._setChartResources('defaults.root', profile.consensus.root, yamlRoot)
+    if (profile.consensus) {
+      // set default for consensus pod
+      this._setChartResources('defaults.root', profile.consensus.root, yamlRoot)
 
-    // set sidecar resources
-    for (const sidecar of consensusSidecars) {
-      this._setChartResources(`defaults.sidecars.${sidecar}`, profile.consensus[sidecar], yamlRoot)
+      // set sidecar resources
+      for (const sidecar of consensusSidecars) {
+        this._setChartResources(`defaults.sidecars.${sidecar}`, profile.consensus[sidecar], yamlRoot)
+      }
     }
 
     return yamlRoot
@@ -225,7 +227,6 @@ export class ProfileManager {
   prepareValuesForFSTChart (profileName) {
     if (!profileName) throw new MissingArgumentError('profileName is required')
     const profile = this.getProfile(profileName)
-    if (!profile.consensus) return Promise.resolve()// use chart defaults
 
     const nodeIds = helpers.parseNodeIDs(this.configManager.getFlag(flags.nodeIDs))
     if (!nodeIds) throw new FullstackTestingError('Node IDs are not set in the config')

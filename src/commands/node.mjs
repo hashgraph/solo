@@ -66,7 +66,7 @@ export class NodeCommand extends BaseCommand {
     const podName = Templates.renderNetworkPodName(nodeId)
 
     try {
-      await this.k8.waitForPod(constants.POD_STATUS_RUNNING, [
+      await this.k8.waitForPodReady([
         'fullstack.hedera.com/type=network-node',
         `fullstack.hedera.com/node-name=${nodeId}`
       ], 1)

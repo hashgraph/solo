@@ -160,13 +160,28 @@ export class RelayCommand extends BaseCommand {
           await self.k8.waitForPod(constants.POD_STATUS_RUNNING, [
             'app=hedera-json-rpc-relay',
             `app.kubernetes.io/instance=${releaseName}`
-          ], 1, 120, 1000)
-
-          this.logger.showList('Deployed Relays', await self.chartManager.getInstalledCharts(namespace))
+          ], 1)
 
           // reset nodeID
           self.configManager.setFlag(flags.nodeIDs, '')
           self.configManager.persist()
+        }
+      },
+      {
+        title: 'Check relay is ready',
+        task: async (ctx, _) => {
+          const namespace = ctx.config.namespace
+          const releaseName = ctx.releaseName
+          try {
+            await self.k8.waitForPodReady([
+              'app=hedera-json-rpc-relay',
+              `app.kubernetes.io/instance=${releaseName}`
+            ], 1, 100, 2000)
+          } catch (e) {
+            throw new FullstackTestingError(`Relay ${releaseName} is not ready: ${e.message}`, e)
+          }
+
+          this.logger.showList('Deployed Relays', await self.chartManager.getInstalledCharts(namespace))
         }
       }
     ], {

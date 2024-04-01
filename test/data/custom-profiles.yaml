@@ -1,4 +1,53 @@
-local: # ~ 950 TPS,  use chart defaults
+local:
+  consensus:
+    root:
+      resources:
+        requests:
+          cpu: 0
+          memory: 0
+        limits:
+          cpu: 1000m
+          memory: 1000Mi
+    recordStreamUploader:
+      resources:
+        requests:
+          cpu: 0
+          memory: 0
+        limits:
+          cpu: 150m
+          memory: 250Mi
+    eventStreamUploader:
+      resources:
+        requests:
+          cpu: 0
+          memory: 0
+        limits:
+          cpu: 150m
+          memory: 250Mi
+    accountBalanceUploader:
+      resources:
+        requests:
+          cpu: 0
+          memory: 0
+        limits:
+          cpu: 150m
+          memory: 250Mi
+    backupUploader:
+      resources:
+        requests:
+          cpu: 0
+          memory: 0
+        limits:
+          cpu: 150m
+          memory: 250Mi
+    otelCollector:
+      resources:
+        requests:
+          cpu: 0
+          memory: 0
+        limits:
+          cpu: 250m
+          memory: 500Mi
   rpcRelay:
     resources:
       requests:
@@ -7,8 +56,110 @@ local: # ~ 950 TPS,  use chart defaults
       limits:
         cpu: 250m
         memory: 500Mi
-tiny: # ~ 950 TPS, use chart defaults
+  haproxy:
+    resources:
+      requests:
+        cpu: 0
+        memory: 0
+      limits:
+        cpu: 1000m
+        memory: 1000Mi
+  envoyProxy:
+    resources:
+      requests:
+        cpu: 0
+        memory: 0
+      limits:
+        cpu: 500m
+        memory: 500Mi
+  explorer:
+    resources:
+      requests:
+        cpu: 0
+        memory: 0
+      limits:
+        cpu: 250m
+        memory: 500Mi
+  mirror:
+    postgresql:
+      resources:
+        requests:
+          cpu: 0
+          memory: 0
+        limits:
+          cpu: 250m
+          memory: 500Mi
+    importer:
+      resources:
+        requests:
+          cpu: 0
+          memory: 0
+        limits:
+          cpu: 250m
+          memory: 1000Mi
+    rest:
+      resources:
+        requests:
+          cpu: 0
+          memory: 0
+        limits:
+          cpu: 250m
+          memory: 500Mi
+    grpc:
+      resources:
+        requests:
+          cpu: 0
+          memory: 0
+        limits:
+          cpu: 250m
+          memory: 500Mi
+    web3:
+      resources:
+        requests:
+          cpu: 0
+          memory: 0
+        limits:
+          cpu: 250m
+          memory: 500Mi
+    monitor:
+      resources:
+        requests:
+          cpu: 0
+          memory: 0
+        limits:
+          cpu: 250m
+          memory: 500Mi
+  minio:
+    operator:
+      resources:
+        requests:
+          cpu: 0
+          memory: 0
+        limits:
+          cpu: 250m
+          memory: 500Mi
+    tenant:
+      pools:
+        - servers: 1
+          name: pool-1
+          volumesPerServer: 1
+          size: 10G #volume size
+          resources:
+            requests:
+              cpu: 0
+              memory: 0
+            limits:
+              cpu: 1000m
+              memory: 2000Mi
+tiny:
   consensus:
+    resources:
+      requests:
+        cpu: 2500m
+        memory: 4500Mi
+      limits:
+        cpu: 2500m
+        memory: 4500Mi
     containers:
       root:
         resources:
@@ -153,7 +304,7 @@ tiny: # ~ 950 TPS, use chart defaults
             limits:
               cpu: 1000m
               memory: 2000Mi
-small: # 1K < TPS < 3K
+small:
   consensus:
     limits:
       cpu: 11
@@ -235,7 +386,7 @@ small: # 1K < TPS < 3K
             limits:
               cpu: 2
               memory: 8Gi
-medium: # 3K < TPS < 8K
+medium:
   consensus:
     limits:
       cpu: 22
@@ -316,7 +467,7 @@ medium: # 3K < TPS < 8K
             limits:
               cpu: 8
               memory: 16Gi
-large: # 10K < TPS < 20K
+large:
   consensus:
     limits:
       cpu: 40

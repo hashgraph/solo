@@ -90,7 +90,14 @@ export const NODE_PROXY_USER_ID = process.env.NODE_PROXY_USER_ID || 'admin'
 export const NODE_PROXY_PASSWORD = process.env.NODE_PROXY_PASSWORD || 'adminpwd'
 
 export const POD_STATUS_RUNNING = 'Running'
-export const POD_STATUS_READY = 'Ready'
+
+export const POD_CONDITION_INITIALIZED = 'Initialized'
+export const POD_CONDITION_READY = 'Ready'
+export const POD_CONDITION_CONTAINERS_READY = 'ContainersReady'
+
+export const POD_CONDITION_POD_SCHEDULED = 'PodScheduled'
+export const POD_CONDITION_STATUS_TRUE = 'True'
+export const POD_CONDITION_STATUS_FALSE = 'False'
 
 // Listr related
 export const LISTR_DEFAULT_RENDERER_TIMER_OPTION = {

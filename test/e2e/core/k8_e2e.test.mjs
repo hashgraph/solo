@@ -117,14 +117,35 @@ describe('K8', () => {
     })
   })
 
-  it('should be able to run watch for pod', async () => {
-    const nodeId = 'node0'
+  it('should be able to run wait for pod', async () => {
     const labels = [
-      'fullstack.hedera.com/type=network-node',
-      `fullstack.hedera.com/node-name=${nodeId}`
+      'fullstack.hedera.com/type=network-node'
     ]
 
-    await expect(k8.waitForPod(constants.POD_STATUS_RUNNING, labels)).resolves.toBeTruthy()
+    const pods = await k8.waitForPod(constants.POD_STATUS_RUNNING, labels, 3)
+    expect(pods.length).toStrictEqual(3)
+  })
+
+  it('should be able to run wait for pod ready', async () => {
+    const labels = [
+      'fullstack.hedera.com/type=network-node'
+    ]
+
+    const pods = await k8.waitForPodReady(labels, 3)
+    expect(pods.length).toStrictEqual(3)
+  })
+
+  it('should be able to run wait for pod conditions', async () => {
+    const labels = [
+      'fullstack.hedera.com/type=network-node'
+    ]
+
+    const conditions = new Map()
+      .set(constants.POD_CONDITION_INITIALIZED, constants.POD_CONDITION_STATUS_TRUE)
+      .set(constants.POD_CONDITION_POD_SCHEDULED, constants.POD_CONDITION_STATUS_TRUE)
+      .set(constants.POD_CONDITION_READY, constants.POD_CONDITION_STATUS_TRUE)
+    const pods = await k8.waitForPodCondition(conditions, labels, 3)
+    expect(pods.length).toStrictEqual(3)
   })
 
   it('should be able to cat a log file inside the container', async () => {
@@ -149,7 +170,7 @@ describe('K8', () => {
     expect(pvcs.length).toBeGreaterThan(0)
   })
 
-  it('should be able to recyle pod by labels', async () => {
+  it('should be able to recycle pod by labels', async () => {
     const podLabels = ['app=haproxy-node0', 'fullstack.hedera.com/type=haproxy']
     const podArray1 = await k8.getPodsByLabel(podLabels)
     const podsArray2 = await k8.recyclePodByLabels(podLabels)
