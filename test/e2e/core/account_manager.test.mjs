@@ -53,4 +53,10 @@ describe('AccountManager', () => {
 
     expect(accountManager._portForwards.length).toStrictEqual(0)
   })
+
+  it('should be able to load a new client', async () => {
+    await accountManager.loadNodeClient(configManager.getFlag(flags.namespace))
+    expect(accountManager._nodeClient).not.toBeNull()
+    await accountManager.close()
+  })
 })
