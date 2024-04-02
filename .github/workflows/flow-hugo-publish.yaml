@@ -75,7 +75,9 @@ jobs:
           cd docs
           npm i -g jsdoc-to-markdown
           which jsdoc2md
+          which jsdoc
           ./generate_md.sh
+          jsdoc -c jsdoc.conf.json
           cd -
 
       - name: Build with Hugo
