@@ -83,7 +83,7 @@ describe('RelayCommand', () => {
 
     // test relay destroy
     try {
-      await expect(relayCmd.deploy(argv)).resolves.toBeTruthy()
+      await expect(relayCmd.destroy(argv)).resolves.toBeTruthy()
     } catch (e) {
       relayCmd.logger.showUserError(e)
       expect(e).toBeNull()
