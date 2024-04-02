@@ -86,6 +86,13 @@ jobs:
           ./generate_md.sh
           cd -
 
+      - name: Copy existing documentation
+        run: |
+          mkdir -p docs/content/Developer
+          cp DEV.md docs/content/Developer/DEV.md
+          mkdir -p docs/content/User
+          cp README.md docs/content/User/README.md
+
       - name: Build with Hugo
         env:
           # For maximum backward compatibility with Hugo modules

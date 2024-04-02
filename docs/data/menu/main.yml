@@ -1,5 +1,7 @@
 ---
 main:
+  - name: User
+    ref: "/User/README.md"
   - name: Developer
     ref: "/Developer/DEV.md"
   - name: Classes
