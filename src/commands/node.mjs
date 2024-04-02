@@ -498,7 +498,7 @@ export class NodeCommand extends BaseCommand {
             for (const nodeId of ctx.config.nodeIds) {
               const podName = ctx.config.podNames[nodeId]
               subTasks.push({
-                title: `Updating node: ${chalk.yellow(nodeId)}`,
+                title: `Update node: ${chalk.yellow(nodeId)}`,
                 task: () =>
                   self.plaformInstaller.fetchPlatform(podName, config.releaseTag)
               })

@@ -241,7 +241,7 @@ export class MirrorNodeCommand extends BaseCommand {
         }
       },
       {
-        title: 'Delete PVCs for namespace',
+        title: 'Delete PVCs',
         task: async (ctx, _) => {
           const pvcs = await self.k8.listPvcsByNamespace(ctx.config.namespace, [
             'app.kubernetes.io/component=postgresql',

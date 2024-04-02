@@ -180,8 +180,6 @@ export class RelayCommand extends BaseCommand {
           } catch (e) {
             throw new FullstackTestingError(`Relay ${releaseName} is not ready: ${e.message}`, e)
           }
-
-          this.logger.showList('Deployed Relays', await self.chartManager.getInstalledCharts(namespace))
         }
       }
     ], {
