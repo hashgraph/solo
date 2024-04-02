@@ -74,7 +74,7 @@ jobs:
         run: |
           cd docs
           npm i -g jsdoc
-          which jsdoc
+          jsdoc --version
           jsdoc -c jsdoc.conf.json
           cd -
 
@@ -82,7 +82,7 @@ jobs:
         run: |
           cd docs
           npm i -g jsdoc-to-markdown
-          which jsdoc2md
+          jsdoc2md --version
           ./generate_md.sh
           cd -
 
