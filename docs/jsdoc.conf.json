@@ -6,7 +6,7 @@
   "sourceType": "module",
   "opts": {
 	"recurse": true,
-	"destination": "public/static/classes"
+	"destination": "public/static/Classes"
   }
 }
 

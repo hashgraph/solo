@@ -1,6 +1,7 @@
 ---
 main:
   - name: Developer
-    ref: "/Developer"
+    ref: "/Developer/DEV.md"
   - name: Classes
-    ref: "../static"
+    ref: "/solo/static/Classes/index.html"
+    external: true

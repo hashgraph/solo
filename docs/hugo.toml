@@ -29,3 +29,7 @@ style = "vs"
 [taxonomies]
 tag = "tags"
 
+[params]
+    # (Optional, default false) Render menu from data file in 'data/menu/main.yaml'.
+    # See also https://geekdocs.de/usage/menus/#bundle-menu.
+    geekdocMenuBundle = true
