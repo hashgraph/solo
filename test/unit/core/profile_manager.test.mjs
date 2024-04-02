@@ -60,11 +60,7 @@ describe('ProfileManager', () => {
   })
 
   describe.each([
-    // { profileName: constants.PROFILE_LARGE },
-    // { profileName: constants.PROFILE_MEDIUM },
-    // { profileName: constants.PROFILE_SMALL },
-    // { profileName: constants.PROFILE_TINY, profileFile: path.resolve(`${constants.PROFILES_DIR}/custom-spec.csv`) },
-    { profileName: constants.PROFILE_LOCAL, profileFile: testProfileFile }
+    { profileName: 'test', profileFile: testProfileFile }
   ])('determine chart values for a profile', (input) => {
     it(`should determine FST chart values [profile = ${input.profileName}]`, async () => {
       configManager.setFlag(flags.profileFile, input.profileFile)

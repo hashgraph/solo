@@ -1,400 +1,134 @@
-local: # ~ 950 TPS,  use chart defaults
+local: # 3 nodes, 5 vCPU, 13GB RAM, ~950 TPS
+  consensus: # use chart defaults
+  haproxy: # use chart defaults
+  envoyProxy: # use chart defaults
   rpcRelay:
     resources:
       requests:
         cpu: 0
         memory: 0
       limits:
-        cpu: 250m
-        memory: 500Mi
-tiny: # ~ 950 TPS, use chart defaults
-  consensus:
-    containers:
-      root:
-        resources:
-          requests:
-            cpu: 1000m
-            memory: 1000Mi
-          limits:
-            cpu: 1000m
-            memory: 2000Mi
-      recordStreamUploader:
-        resources:
-          requests:
-            cpu: 250m
-            memory: 250Mi
-          limits:
-            cpu: 250m
-            memory: 500Mi
-      eventStreamUploader:
-        resources:
-          requests:
-            cpu: 250m
-            memory: 250Mi
-          limits:
-            cpu: 250m
-            memory: 500Mi
-      accountBalanceUploader:
-        resources:
-          requests:
-            cpu: 250m
-            memory: 250Mi
-          limits:
-            cpu: 250m
-            memory: 500Mi
-      backupUploader:
-        resources:
-          requests:
-            cpu: 250m
-            memory: 250Mi
-          limits:
-            cpu: 250m
-            memory: 500Mi
-      otelCollector:
-        resources:
-          requests:
-            cpu: 500m
-            memory: 250Mi
-          limits:
-            cpu: 500m
-            memory: 500Mi
-  rpcRelay:
-    resources:
-      requests:
-        cpu: 1000m
-        memory: 250Mi
-      limits:
-        cpu: 1000m
-        memory: 750Mi
-  haproxy:
-    resources:
-      requests:
-        cpu: 1000m
-        memory: 250Mi
-      limits:
-        cpu: 1000m
-        memory: 750Mi
-  envoyProxy:
-    resources:
-      requests:
-        cpu: 1000m
-        memory: 250Mi
-      limits:
-        cpu: 1000m
-        memory: 750Mi
+        cpu: 5000m
+        memory: 1000Mi
   mirror:
     postgresql:
       resources:
         requests:
-          cpu: 1000m
-          memory: 500Mi
+          cpu: 0
+          memory: 0
         limits:
           cpu: 1000m
           memory: 1000Mi
     importer:
       resources:
         requests:
+          cpu: 0
+          memory: 0
+        limits:
           cpu: 1000m
+          memory: 2000Mi
+    rest:
+      resources:
+        requests:
+          cpu: 0
+          memory: 0
+        limits:
+          cpu: 500m
+          memory: 1000Mi
+    grpc:
+      resources:
+        requests:
+          cpu: 0
+          memory: 0
+        limits:
+          cpu: 500m
+          memory: 1000Mi
+    web3:
+      resources:
+        requests:
+          cpu: 0
+          memory: 0
+        limits:
+          cpu: 500m
           memory: 500Mi
+    monitor:
+      resources:
+        requests:
+          cpu: 0
+          memory: 0
+        limits:
+          cpu: 500m
+          memory: 500Mi
+  minio: # use chart defaults
+
+tiny: # 1 node, 3.5 vCPU, 4.5GB RAM, ~950 TPS
+  consensus:
+    root:
+      resources:
+        requests:
+          cpu: 3000m
+          memory: 3000Mi
+        limits:
+          cpu: 3500m
+          memory: 4500Mi
+  haproxy: # use chart defaults
+  envoyProxy: # use chart defaults
+  rpcRelay:
+    resources:
+      requests:
+        cpu: 0
+        memory: 0
+      limits:
+        cpu: 1000m
+        memory: 1000Mi
+  mirror:
+    postgresql:
+      resources:
+        requests:
+          cpu: 0
+          memory: 0
+        limits:
+          cpu: 2000m
+          memory: 2000Mi
+    importer:
+      resources:
+        requests:
+          cpu: 0
+          memory: 0
+        limits:
+          cpu: 2000m
+          memory: 4000Mi
+    rest:
+      resources:
+        requests:
+          cpu: 0
+          memory: 0
         limits:
           cpu: 1000m
           memory: 1000Mi
-    rest:
-      resources:
-        requests:
-          cpu: 100m
-          memory: 100Mi
-        limits:
-          cpu: 1000m
-          memory: 250Mi
     grpc:
       resources:
         requests:
-          cpu: 100m
-          memory: 100Mi
+          cpu: 0
+          memory: 0
         limits:
           cpu: 1000m
-          memory: 250Mi
+          memory: 1000Mi
     web3:
       resources:
         requests:
-          cpu: 100m
-          memory: 100Mi
+          cpu: 0
+          memory: 0
         limits:
           cpu: 1000m
-          memory: 250Mi
+          memory: 1000Mi
     monitor:
       resources:
         requests:
-          cpu: 100m
-          memory: 100Mi
+          cpu: 0
+          memory: 0
         limits:
           cpu: 1000m
-          memory: 250Mi
-  minio:
-    operator:
-      resources:
-        requests:
-          cpu: 1000m
-          memory: 250Mi
-        limits:
-          cpu: 1000m
-          memory: 500Mi
-    tenant:
-      pools:
-        - servers: 1
-          name: pool-1
-          volumesPerServer: 1
-          size: 10Gi # volume size
-          resources:
-            requests:
-              cpu: 0
-              memory: 0
-            limits:
-              cpu: 1000m
-              memory: 2000Mi
-small: # 1K < TPS < 3K
-  consensus:
-    limits:
-      cpu: 11
-      memory: 28Gi
-    containers:
-      root:
-        limits:
-          cpu: 8
-          memory: 20Gi
-      recordStreamUploader:
-        limits:
-          cpu: 0.5
-          memory: 1Gi
-      eventStreamUploader:
-        limits:
-          cpu: 0.5
-          memory: 1Gi
-      accountBalanceUploader:
-        limits:
-          cpu: 0.5
-          memory: 1Gi
-      backupUploader:
-        limits:
-          cpu: 0.5
-          memory: 1Gi
-      otelCollector:
-        limits:
-          cpu: 1
-          memory: 4Gi
-  rpcRelay:
-    limits:
-      cpu: 2
-      memory: 4Gi
-  haproxy:
-    limits:
-      cpu: 2
-      memory: 4Gi
-  envoyProxy:
-    limits:
-      cpu: 2
-      memory: 4Gi
-  mirror:
-    postgresql:
-      limits:
-        cpu: 3
-        memory: 8Gi
-    importer:
-      limits:
-        cpu: 3
-        memory: 8Gi
-    rest:
-      limits:
-        cpu: 1
-        memory: 4Gi
-    grpc:
-      limits:
-        cpu: 1
-        memory: 4Gi
-    web3:
-      limits:
-        cpu: 1
-        memory: 4Gi
-    monitor:
-      limits:
-        cpu: 1
-        memory: 4Gi
-  minio:
-    operator:
-      limits:
-        cpu: 1
-        memory: 4Gi
-    tenant:
-      pools:
-        - server: 1
-          name: pool-1
-          volumesPerServer: 1
-          size: 20Gi # volume size
-          resources:
-            limits:
-              cpu: 2
-              memory: 8Gi
-medium: # 3K < TPS < 8K
-  consensus:
-    limits:
-      cpu: 22
-      memory: 104Gi
-    containers:
-      root:
-        limits:
-          cpu: 16
-          memory: 84Gi
-      recordStreamUploader:
-        limits:
-          cpu: 1
-          memory: 4Gi
-      eventStreamUploader:
-        limits:
-          cpu: 1
-          memory: 4Gi
-      accountBalanceUploader:
-        limits:
-          cpu: 1
-          memory: 4Gi
-      backupUploader:
-        limits:
-          cpu: 1
-          memory: 4Gi
-      otelCollector:
-        limits:
-          cpu: 2
-          memory: 8Gi
-  rpcRelay:
-    limits:
-      cpu: 2
-      memory: 8Gi
-  haproxy:
-    limits:
-      cpu: 2
-      memory: 8Gi
-  envoyProxy:
-    limits:
-      cpu: 2
-      memory: 8Gi
-  mirror:
-    postgresql:
-      limits:
-        cpu: 6
-        memory: 16Gi
-    importer:
-      limits:
-        cpu: 3
-        memory: 8Gi
-    rest:
-      limits:
-        cpu: 1
-        memory: 4Gi
-    grpc:
-      limits:
-        cpu: 1
-        memory: 4Gi
-    web3:
-      limits:
-        cpu: 1
-        memory: 4Gi
-    monitor:
-      limits:
-        cpu: 1
-  minio:
-    operator:
-      limits:
-        cpu: 1
-        memory: 4Gi
-    tenant:
-      pools:
-        - server: 1
-          name: pool-1
-          volumesPerServer: 1
-          size: 40Gi # volume size
-          resources:
-            limits:
-              cpu: 8
-              memory: 16Gi
-large: # 10K < TPS < 20K
-  consensus:
-    limits:
-      cpu: 40
-      memory: 216Gi
-    containers:
-      root:
-        limits:
-          cpu: 30
-          memory: 182Gi
-      recordStreamUploader:
-        limits:
-          cpu: 2
-          memory: 8Gi
-      eventStreamUploader:
-        limits:
-          cpu: 2
-          memory: 8Gi
-      accountBalanceUploader:
-        limits:
-          cpu: 2
-          memory: 8Gi
-      backupUploader:
-        limits:
-          cpu: 2
-          memory: 8Gi
-      otelCollector:
-        limits:
-          cpu: 2
-          memory: 8Gi
-  rpcRelay:
-    limits:
-      cpu: 4
-      memory: 8Gi
-  haproxy:
-    limits:
-      cpu: 4
-      memory: 8Gi
-  envoyProxy:
-    limits:
-      cpu: 4
-      memory: 8Gi
-  mirror:
-    postgresql:
-      limits:
-        cpu: 12
-        memory: 32Gi
-    importer:
-      limits:
-        cpu: 4
-        memory: 16Gi
-    rest:
-      limits:
-        cpu: 2
-        memory: 8Gi
-    grpc:
-      limits:
-        cpu: 2
-        memory: 8Gi
-    web3:
-      limits:
-        cpu: 2
-        memory: 8Gi
-    monitor:
-      limits:
-        cpu: 2
-        memory: 8Gi
-  minio:
-    operator:
-      limits:
-        cpu: 1
-        memory: 2Gi
-    tenant:
-      pools:
-        - server: 1
-          name: pool-1
-          volumesPerServer: 1
-          size: 100Gi # volume size
-          resources:
-            limits:
-              cpu: 12
-              memory: 32Gi
+          memory: 1000Mi
+  minio: # use chart defaults
+
