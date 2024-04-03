@@ -39,8 +39,12 @@ jobs:
           node-version: 20
           cache: npm
 
+      - name: Install NVM
+        run: |
+          curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
+
       - name: Install solo
-        run:
+        run: |         
           nvm install lts/hydrogen
           nvm use lts/hydrogen
           npm install -g @hashgraph/solo
