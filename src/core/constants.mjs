@@ -27,6 +27,7 @@ export const USER_SANITIZED = USER.replace(/[\W_]+/g, '-')
 export const SOLO_HOME_DIR = process.env.SOLO_HOME || `${process.env.HOME}/.solo`
 export const SOLO_LOGS_DIR = `${SOLO_HOME_DIR}/logs`
 export const SOLO_CACHE_DIR = `${SOLO_HOME_DIR}/cache`
+export const SOLO_VALUES_DIR = `${SOLO_HOME_DIR}/cache/values-files`
 export const DEFAULT_NAMESPACE = 'default'
 export const HELM = 'helm'
 export const KEYTOOL = 'keytool'

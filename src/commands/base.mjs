@@ -20,22 +20,12 @@ import { MissingArgumentError } from '../core/errors.mjs'
 import { ShellRunner } from '../core/shell_runner.mjs'
 
 export class BaseCommand extends ShellRunner {
-  // when was the last time we ran helm dependency update
-  _lastHelmDepUpdated = null
-
   async prepareChartPath (chartDir, chartRepo, chartReleaseName) {
     if (!chartRepo) throw new MissingArgumentError('chart repo name is required')
     if (!chartReleaseName) throw new MissingArgumentError('chart release name is required')
 
     if (chartDir) {
-      const chartPath = `${chartDir}/${chartReleaseName}`
-
-      // only run helm dependency update if we haven't done in the last 10 mins
-      const curTime = new Date()
-      if (!this._lastHelmDepUpdated || (curTime - this._lastHelmDepUpdated) >= 10 * 60 * 100) {
-        await this.helm.dependency('update', chartPath)
-      }
-      return chartPath
+      return `${chartDir}/${chartReleaseName}`
     }
 
     return `${chartRepo}/${chartReleaseName}`

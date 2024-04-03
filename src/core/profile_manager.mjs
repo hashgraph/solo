@@ -31,9 +31,9 @@ export class ProfileManager {
    * Constructor
    * @param logger an instance of core/Logger
    * @param configManager an instance of core/ConfigManager
-   * @param profileCacheDir cache directory where the values file will be written. A yaml file named <profileName>.yaml is created.
+   * @param cacheDir cache directory where the values file will be written. A yaml file named <profileName>.yaml is created.
    */
-  constructor (logger, configManager, profileCacheDir = path.join(constants.SOLO_CACHE_DIR, 'profiles')) {
+  constructor (logger, configManager, cacheDir = constants.SOLO_VALUES_DIR) {
     if (!logger) throw new MissingArgumentError('An instance of core/Logger is required')
     if (!configManager) throw new MissingArgumentError('An instance of core/ConfigManager is required')
 
@@ -41,11 +41,8 @@ export class ProfileManager {
     this.configManager = configManager
     this.profiles = new Map()
 
-    profileCacheDir = path.resolve(profileCacheDir)
-    if (!fs.existsSync(profileCacheDir)) {
-      fs.mkdirSync(profileCacheDir)
-    }
-    this.profileCacheDir = profileCacheDir
+    cacheDir = path.resolve(cacheDir)
+    this.cacheDir = cacheDir
   }
 
   loadProfiles (forceReload = false) {
@@ -239,7 +236,7 @@ export class ProfileManager {
     this.resourcesForMinioTenantPod(profile, yamlRoot)
 
     // write the yaml
-    const cachedValuesFile = path.join(this.profileCacheDir, `fst-${profileName}.yaml`)
+    const cachedValuesFile = path.join(this.cacheDir, `fst-${profileName}.yaml`)
     return new Promise((resolve, reject) => {
       fs.writeFile(cachedValuesFile, yaml.dump(yamlRoot), (err) => {
         if (err) {
@@ -266,7 +263,7 @@ export class ProfileManager {
     this._setChartResources('', profile.rpcRelay, yamlRoot)
 
     // write the yaml
-    const cachedValuesFile = path.join(this.profileCacheDir, `rpcRelay-${profileName}.yaml`)
+    const cachedValuesFile = path.join(this.cacheDir, `rpcRelay-${profileName}.yaml`)
     return new Promise((resolve, reject) => {
       fs.writeFile(cachedValuesFile, yaml.dump(yamlRoot), (err) => {
         if (err) {
@@ -306,7 +303,7 @@ export class ProfileManager {
     this.resourcesForHederaExplorerPod(profile, yamlRoot)
 
     // write the yaml
-    const cachedValuesFile = path.join(this.profileCacheDir, `mirror-${profileName}.yaml`)
+    const cachedValuesFile = path.join(this.cacheDir, `mirror-${profileName}.yaml`)
     return new Promise((resolve, reject) => {
       fs.writeFile(cachedValuesFile, yaml.dump(yamlRoot), (err) => {
         if (err) {

@@ -35,7 +35,8 @@ export class InitCommand extends BaseCommand {
   setupHomeDirectory (dirs = [
     constants.SOLO_HOME_DIR,
     constants.SOLO_LOGS_DIR,
-    constants.SOLO_CACHE_DIR
+    constants.SOLO_CACHE_DIR,
+    constants.SOLO_VALUES_DIR
   ]) {
     const self = this
 
@@ -48,7 +49,7 @@ export class InitCommand extends BaseCommand {
       })
     } catch (e) {
       this.logger.error(e)
-      throw new FullstackTestingError(e.message, e)
+      throw new FullstackTestingError(`failed to create directory: ${e.message}`, e)
     }
 
     return dirs
@@ -60,11 +61,13 @@ export class InitCommand extends BaseCommand {
    */
   async init (argv) {
     const self = this
+    console.log(argv)
 
     const tasks = new Listr([
       {
         title: 'Setup home directory and cache',
         task: async (ctx, _) => {
+          self.configManager.update(argv)
           ctx.dirs = this.setupHomeDirectory()
         }
       },
@@ -160,7 +163,9 @@ export class InitCommand extends BaseCommand {
           flags.cacheDir,
           flags.chartDirectory,
           flags.keyFormat,
-          flags.fstChartVersion
+          flags.fstChartVersion,
+          flags.profileName,
+          flags.profileFile
         )
       },
       handler: (argv) => {

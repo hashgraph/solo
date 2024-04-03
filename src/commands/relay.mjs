@@ -110,7 +110,9 @@ export class RelayCommand extends BaseCommand {
             flags.relayReleaseTag,
             flags.replicaCount,
             flags.operatorId,
-            flags.operatorKey
+            flags.operatorKey,
+            flags.profileName,
+            flags.profileFile
           ])
 
           // prompt if inputs are empty and set it in the context
@@ -274,7 +276,9 @@ export class RelayCommand extends BaseCommand {
                 flags.nodeIDs,
                 flags.relayReleaseTag,
                 flags.operatorId,
-                flags.operatorKey
+                flags.operatorKey,
+                flags.profileName,
+                flags.profileFile
               )
             },
             handler: argv => {

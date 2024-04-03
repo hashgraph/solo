@@ -58,7 +58,9 @@ export class MirrorNodeCommand extends BaseCommand {
           self.configManager.update(argv)
           await prompts.execute(task, self.configManager, [
             flags.namespace,
-            flags.deployHederaExplorer
+            flags.deployHederaExplorer,
+            flags.profileName,
+            flags.profileFile
           ])
 
           ctx.config = {
@@ -288,7 +290,9 @@ export class MirrorNodeCommand extends BaseCommand {
             desc: 'Deploy mirror-node and its components',
             builder: y => flags.setCommandFlags(y,
               flags.namespace,
-              flags.deployHederaExplorer
+              flags.deployHederaExplorer,
+              flags.profileName,
+              flags.profileFile
             ),
             handler: argv => {
               mirrorNodeCmd.logger.debug('==== Running \'mirror-node deploy\' ===')

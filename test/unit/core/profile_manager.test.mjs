@@ -19,7 +19,7 @@ import fs from 'fs'
 import * as yaml from 'js-yaml'
 import path from 'path'
 import { flags } from '../../../src/commands/index.mjs'
-import { ConfigManager, ProfileManager, constants } from '../../../src/core/index.mjs'
+import { ConfigManager, ProfileManager } from '../../../src/core/index.mjs'
 import { getTmpDir, testLogger } from '../../test_util.js'
 
 const tmpDir = getTmpDir()
@@ -44,17 +44,15 @@ describe('ProfileManager', () => {
     }
   })
 
-  it.each([
-    { profileFile: path.resolve(`${constants.PROFILES_DIR}/custom-spec.yaml`) }
-  ])('should be able to load a profile file', (input) => {
-    configManager.setFlag(flags.profileFile, input.profileFile)
+  it('should be able to load a profile file', () => {
+    configManager.setFlag(flags.profileFile, testProfileFile)
     const profiles = profileManager.loadProfiles(true)
     expect(profiles).not.toBeNull()
     for (const entry of profiles) {
       const profile = entry[1]
       expect(profile).not.toBeNull()
-      for (const component of ['consensus', 'rpcRelay', 'haproxy', 'envoyProxy', 'mirror', 'minio']) {
-        expect(profile[component]).not.toBeNull()
+      for (const component of ['consensus', 'rpcRelay', 'haproxy', 'envoyProxy', 'explorer', 'mirror', 'minio']) {
+        expect(profile[component] !== undefined).toBeTruthy()
       }
     }
   })
