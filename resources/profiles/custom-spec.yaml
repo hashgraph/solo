@@ -81,78 +81,6 @@ tiny: # 3 nodes, ~990 TPS
         limits:
           cpu: 3750m
           memory: 7750Mi
-    recordStreamUploader:
-      resources:
-        requests:
-          cpu: 0
-          memory: 0
-        limits:
-          cpu: 250m
-          memory: 200Mi
-    eventStreamUploader:
-      resources:
-        requests:
-          cpu: 0
-          memory: 0
-        limits:
-          cpu: 250m
-          memory: 200Mi
-    accountBalanceUploader:
-      resources:
-        requests:
-          cpu: 0
-          memory: 0
-        limits:
-          cpu: 250m
-          memory: 200Mi
-    backupUploader:
-      resources:
-        requests:
-          cpu: 0
-          memory: 0
-        limits:
-          cpu: 250m
-          memory: 200Mi
-    otelCollector:
-      resources:
-        requests:
-          cpu: 0
-          memory: 0
-        limits:
-          cpu: 250m
-          memory: 200Mi
-  haproxy:
-    resources:
-      requests:
-        cpu: 0
-        memory: 0
-      limits:
-        cpu: 1000m
-        memory: 500Mi
-  envoyProxy:
-    resources:
-      requests:
-        cpu: 0
-        memory: 0
-      limits:
-        cpu: 1000m
-        memory: 500Mi
-  rpcRelay:
-    resources:
-      requests:
-        cpu: 0
-        memory: 0
-      limits:
-        cpu: 1000m
-        memory: 500Mi
-  explorer:
-    resources:
-      requests:
-        cpu: 200m
-        memory: 100Mi
-      limits:
-        cpu: 1000m
-        memory: 250Mi
   mirror:
     postgresql:
       persistence:
@@ -211,7 +139,7 @@ tiny: # 3 nodes, ~990 TPS
         - servers: 1
           name: pool-1
           volumesPerServer: 1
-          size: 10G #volume size
+          size: 10Gi #volume size
           resources:
             requests:
               cpu: 250m
@@ -220,3 +148,114 @@ tiny: # 3 nodes, ~990 TPS
               cpu: 1000m
               memory: 2000Mi
 
+small:
+  consensus:
+    root:
+      resources:
+        requests:
+          cpu: 8000m
+          memory: 8000Mi
+        limits:
+          cpu: 11500m
+          memory: 12000Mi
+  mirror:
+    importer:
+      resources:
+        requests:
+          cpu: 1000m
+          memory: 2000Mi
+        limits:
+          cpu: 2000m
+          memory: 4000Mi
+  minio:
+    tenant:
+      pools:
+        - servers: 1
+          name: pool-1
+          volumesPerServer: 1
+          size: 200Gi #volume size
+          resources:
+            requests:
+              cpu: 0
+              memory: 0
+            limits:
+              cpu: 0
+              memory: 0
+
+medium:
+  consensus:
+    root:
+      resources:
+        requests:
+          cpu: 12000m
+          memory: 16000Mi
+        limits:
+          cpu: 16000m
+          memory: 24000Mi
+  mirror:
+    importer:
+      resources:
+        requests:
+          cpu: 1000m
+          memory: 2000Mi
+        limits:
+          cpu: 2000m
+          memory: 4000Mi
+  minio:
+    tenant:
+      pools:
+        - servers: 1
+          name: pool-1
+          volumesPerServer: 1
+          size: 200Gi #volume size
+          resources:
+            requests:
+              cpu: 0
+              memory: 0
+            limits:
+              cpu: 0
+              memory: 0
+
+large:
+  consensus:
+    root:
+      resources:
+        requests:
+          cpu: 18000m
+          memory: 32000Mi
+        limits:
+          cpu: 24000m
+          memory: 64000Mi
+  mirror:
+    postgresql:
+      persistence:
+        size: 500Gi
+      resources:
+        requests:
+          cpu: 1500m
+          memory: 1500Mi
+        limits:
+          cpu: 4000m
+          memory: 4000Mi
+    importer:
+      resources:
+        requests:
+          cpu: 2000m
+          memory: 4000Mi
+        limits:
+          cpu: 2000m
+          memory: 8000Mi
+  minio:
+    tenant:
+      pools:
+        - servers: 1
+          name: pool-1
+          volumesPerServer: 1
+          size: 500Gi #volume size
+          resources:
+            requests:
+              cpu: 0
+              memory: 0
+            limits:
+              cpu: 0
+              memory: 0
