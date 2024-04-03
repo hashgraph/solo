@@ -39,6 +39,12 @@ jobs:
           node-version: 20
           cache: npm
 
+      - name: Install solo
+        run:
+          nvm install lts/hydrogen
+          nvm use lts/hydrogen
+          npm install -g @hashgraph/solo
+
       - name: Setup Kind
         uses: helm/kind-action@99576bfa6ddf9a8e612d83b513da5a75875caced # v1.9.0
         if: ${{ inputs.enable-e2e-tests && !cancelled() && !failure() }}
