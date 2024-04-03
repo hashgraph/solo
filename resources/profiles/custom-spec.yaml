@@ -8,10 +8,20 @@ local: # 3 nodes, ~950 TPS (Docker Desktop 8 cores, 16 GB RAM)
         cpu: 0
         memory: 0
       limits:
-        cpu: 5000m
+        cpu: 500m
         memory: 1000Mi
+  explorer:
+    resources:
+      requests:
+        cpu: 200m
+        memory: 100Mi
+      limits:
+        cpu: 1000m
+        memory: 250Mi
   mirror:
     postgresql:
+      persistence:
+        size: 10Gi
       resources:
         requests:
           cpu: 0
@@ -34,7 +44,7 @@ local: # 3 nodes, ~950 TPS (Docker Desktop 8 cores, 16 GB RAM)
           memory: 0
         limits:
           cpu: 500m
-          memory: 1000Mi
+          memory: 500Mi
     grpc:
       resources:
         requests:
@@ -58,10 +68,10 @@ local: # 3 nodes, ~950 TPS (Docker Desktop 8 cores, 16 GB RAM)
           memory: 0
         limits:
           cpu: 500m
-          memory: 500Mi
+          memory: 1000Mi
   minio: # use chart defaults
 
-tiny: # 3 nodes, ~990 TPS, (Consensus node resource limit: 4 vCPU, 8GB)
+tiny: # 3 nodes, ~990 TPS
   consensus:
     root:
       resources:
@@ -69,8 +79,8 @@ tiny: # 3 nodes, ~990 TPS, (Consensus node resource limit: 4 vCPU, 8GB)
           cpu: 3500m
           memory: 4000Mi
         limits:
-          cpu: 4000m
-          memory: 8000Mi
+          cpu: 3750m
+          memory: 7750Mi
     recordStreamUploader:
       resources:
         requests:
@@ -117,38 +127,49 @@ tiny: # 3 nodes, ~990 TPS, (Consensus node resource limit: 4 vCPU, 8GB)
         cpu: 0
         memory: 0
       limits:
-        cpu: 750m
-        memory: 250Mi
+        cpu: 1000m
+        memory: 500Mi
   envoyProxy:
     resources:
       requests:
         cpu: 0
         memory: 0
       limits:
-        cpu: 750m
-        memory: 250Mi
+        cpu: 1000m
+        memory: 500Mi
   rpcRelay:
     resources:
       requests:
         cpu: 0
         memory: 0
       limits:
-        cpu: 7500m
+        cpu: 1000m
         memory: 500Mi
+  explorer:
+    resources:
+      requests:
+        cpu: 200m
+        memory: 100Mi
+      limits:
+        cpu: 1000m
+        memory: 250Mi
   mirror:
     postgresql:
-      resources:
-        requests:
-          cpu: 0
-          memory: 0
-        limits:
-          cpu: 1500m
-          memory: 2000Mi
+      persistence:
+        size: 100Gi
+      postgresql:
+        resources:
+          requests:
+            cpu: 250m
+            memory: 500Mi
+          limits:
+            cpu: 1500m
+            memory: 2000Mi
     importer:
       resources:
         requests:
-          cpu: 0
-          memory: 0
+          cpu: 500m
+          memory: 1000Mi
         limits:
           cpu: 1500m
           memory: 2000Mi
@@ -158,7 +179,7 @@ tiny: # 3 nodes, ~990 TPS, (Consensus node resource limit: 4 vCPU, 8GB)
           cpu: 0
           memory: 0
         limits:
-          cpu: 500m
+          cpu: 1000m
           memory: 500Mi
     grpc:
       resources:
@@ -166,7 +187,7 @@ tiny: # 3 nodes, ~990 TPS, (Consensus node resource limit: 4 vCPU, 8GB)
           cpu: 0
           memory: 0
         limits:
-          cpu: 500m
+          cpu: 1000m
           memory: 1000Mi
     web3:
       resources:
@@ -174,7 +195,7 @@ tiny: # 3 nodes, ~990 TPS, (Consensus node resource limit: 4 vCPU, 8GB)
           cpu: 0
           memory: 0
         limits:
-          cpu: 500m
+          cpu: 1000m
           memory: 1000Mi
     monitor:
       resources:
@@ -182,17 +203,9 @@ tiny: # 3 nodes, ~990 TPS, (Consensus node resource limit: 4 vCPU, 8GB)
           cpu: 0
           memory: 0
         limits:
-          cpu: 500m
+          cpu: 1000m
           memory: 1000Mi
   minio:
-    operator:
-      resources:
-        requests:
-          cpu: 0
-          memory: 0
-        limits:
-          cpu: 250m
-          memory: 500Mi
     tenant:
       pools:
         - servers: 1
@@ -201,8 +214,8 @@ tiny: # 3 nodes, ~990 TPS, (Consensus node resource limit: 4 vCPU, 8GB)
           size: 10G #volume size
           resources:
             requests:
-              cpu: 0
-              memory: 0
+              cpu: 250m
+              memory: 1000Mi
             limits:
               cpu: 1000m
               memory: 2000Mi

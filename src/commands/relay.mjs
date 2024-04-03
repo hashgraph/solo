@@ -170,7 +170,6 @@ export class RelayCommand extends BaseCommand {
       {
         title: 'Check relay is ready',
         task: async (ctx, _) => {
-          const namespace = ctx.config.namespace
           const releaseName = ctx.releaseName
           try {
             await self.k8.waitForPodReady([

@@ -27,7 +27,7 @@ const configFile = path.join(tmpDir, 'resource-manager.config')
 const configManager = new ConfigManager(testLogger, configFile)
 const profileManager = new ProfileManager(testLogger, configManager, tmpDir)
 configManager.setFlag(flags.nodeIDs, 'node0,node1,node3')
-const testProfileFile = path.resolve('test/data/custom-profiles.yaml')
+const testProfileFile = path.resolve('test/data/test-profiles.yaml')
 
 describe('ProfileManager', () => {
   afterAll(() => {
@@ -101,7 +101,10 @@ describe('ProfileManager', () => {
 
       // validate yaml
       const valuesYaml = yaml.load(fs.readFileSync(valuesFile))
-      for (const component of ['postgresql', 'grpc', 'rest', 'web3', 'importer']) {
+      expect(valuesYaml['hedera-mirror-node'].postgresql.persistence.size).not.toBeNull()
+      expect(valuesYaml['hedera-mirror-node'].postgresql.postgresql.resources.limits.cpu).not.toBeNull()
+      expect(valuesYaml['hedera-mirror-node'].postgresql.postgresql.resources.limits.memory).not.toBeNull()
+      for (const component of ['grpc', 'rest', 'web3', 'importer']) {
         expect(valuesYaml['hedera-mirror-node'][component].resources.limits.cpu).not.toBeNull()
         expect(valuesYaml['hedera-mirror-node'][component].resources.limits.memory).not.toBeNull()
       }

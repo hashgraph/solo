@@ -290,7 +290,14 @@ export class ProfileManager {
 
     // generate the yaml
     const yamlRoot = {}
-    this._setChartResources('hedera-mirror-node.postgresql', profile.mirror.postgresql, yamlRoot)
+    if (profile.mirror.postgresql) {
+      if (profile.mirror.postgresql.persistence) {
+        this._setValue('hedera-mirror-node.postgresql.persistence.size', profile.mirror.postgresql.persistence.size, yamlRoot)
+      }
+
+      this._setChartResources('hedera-mirror-node.postgresql.postgresql', profile.mirror.postgresql.postgresql, yamlRoot)
+    }
+
     this._setChartResources('hedera-mirror-node.importer', profile.mirror.importer, yamlRoot)
     this._setChartResources('hedera-mirror-node.rest', profile.mirror.rest, yamlRoot)
     this._setChartResources('hedera-mirror-node.web3', profile.mirror.web3, yamlRoot)

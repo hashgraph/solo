@@ -328,7 +328,7 @@ export class NetworkCommand extends BaseCommand {
             }
           }
         },
-        skip: (ctx, _) => !ctx.config.pvcs
+        skip: (ctx, _) => !ctx.config.deletePvcs
       }
     ], {
       concurrent: false,

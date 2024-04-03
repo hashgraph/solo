@@ -75,20 +75,23 @@ test:
   explorer:
     resources:
       requests:
-        cpu: 0
-        memory: 0
+        cpu: 200m
+        memory: 100Mi
       limits:
-        cpu: 250m
-        memory: 500Mi
+        cpu: 1000m
+        memory: 250Mi
   mirror:
     postgresql:
-      resources:
-        requests:
-          cpu: 0
-          memory: 0
-        limits:
-          cpu: 250m
-          memory: 500Mi
+      persistence:
+        size: 250Gi
+      postgresql:
+        resources:
+          requests:
+            cpu: 1000m
+            memory: 1250Mi
+          limits:
+            cpu: 1500m
+            memory: 2000Mi
     importer:
       resources:
         requests:
@@ -130,14 +133,6 @@ test:
           cpu: 250m
           memory: 500Mi
   minio:
-    operator:
-      resources:
-        requests:
-          cpu: 0
-          memory: 0
-        limits:
-          cpu: 250m
-          memory: 500Mi
     tenant:
       pools:
         - servers: 1

@@ -318,6 +318,7 @@ Kubernetes Namespace    : solo
 ```
 
 * Deploy a JSON RPC relay
+
 ```
 $ solo relay deploy
 ******************************* Solo *********************************************
