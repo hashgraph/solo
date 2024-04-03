@@ -40,7 +40,6 @@ const REASON_FAILED_TO_CREATE_K8S_S_KEY = 'failed to create k8s scrt key'
 const FULFILLED = 'fulfilled'
 const REJECTED = 'rejected'
 
-
 export class AccountManager {
   /**
    * creates a new AccountManager instance
