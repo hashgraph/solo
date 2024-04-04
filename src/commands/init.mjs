@@ -66,7 +66,6 @@ export class InitCommand extends BaseCommand {
       cacheDir = constants.SOLO_CACHE_DIR
     }
 
-
     const tasks = new Listr([
       {
         title: 'Setup home directory and cache',
@@ -105,14 +104,14 @@ export class InitCommand extends BaseCommand {
           const resources = ['templates', 'profiles', 'dev']
           for (const dirName of resources) {
             const srcDir = path.resolve(path.join(constants.RESOURCES_DIR, dirName))
-            if (!fs.existsSync(srcDir)) continue;
+            if (!fs.existsSync(srcDir)) continue
 
-            const destDir= path.resolve(path.join(cacheDir, dirName))
+            const destDir = path.resolve(path.join(cacheDir, dirName))
             if (!fs.existsSync(destDir)) {
               fs.mkdirSync(destDir)
             }
 
-            fs.cpSync(srcDir, destDir, {recursive: true})
+            fs.cpSync(srcDir, destDir, { recursive: true })
           }
 
           if (argv.dev) {

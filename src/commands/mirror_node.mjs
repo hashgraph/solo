@@ -311,7 +311,8 @@ export class MirrorNodeCommand extends BaseCommand {
             command: 'destroy',
             desc: 'Destroy mirror-node components and database',
             builder: y => flags.setCommandFlags(y,
-              flags.namespace
+              flags.namespace,
+              flags.force
             ),
             handler: argv => {
               mirrorNodeCmd.logger.debug('==== Running \'mirror-node destroy\' ===')
