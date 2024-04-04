@@ -127,7 +127,7 @@ export const deployPrometheusStack = {
 }
 
 export const enablePrometheusSvcMonitor = {
-  name: 'enable-prometheus-svc-monitor',
+  name: 'prometheus-svc-monitor',
   definition: {
     describe: 'Enable prometheus service monitor for the network nodes',
     defaultValue: false,
@@ -181,6 +181,7 @@ export const releaseTag = {
   definition: {
     describe: 'Release tag to be used (e.g. v0.42.5)',
     alias: 't',
+    defaultValue: 'v0.47.0',
     type: 'string'
   }
 }
@@ -294,7 +295,7 @@ export const keyFormat = {
   name: 'key-format',
   definition: {
     describe: 'Public and Private key file format (pem or pfx)',
-    defaultValue: 'pfx',
+    defaultValue: 'pem',
     type: 'string'
   }
 }
