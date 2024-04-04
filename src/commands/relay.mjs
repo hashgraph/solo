@@ -162,7 +162,7 @@ export class RelayCommand extends BaseCommand {
           await self.k8.waitForPod(constants.POD_STATUS_RUNNING, [
             'app=hedera-json-rpc-relay',
             `app.kubernetes.io/instance=${releaseName}`
-          ], 1)
+          ], 1, 900, 1000)
 
           // reset nodeID
           self.configManager.setFlag(flags.nodeIDs, '')

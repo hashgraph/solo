@@ -31,8 +31,8 @@ function deploy-prometheus-operator() {
   local crd_count=$(kubectl get crd | grep -c "monitoring.coreos.com" )
   if [[ $crd_count -ne 10 ]]; then
 	  kubectl create -f "${PROMETHEUS_OPERATOR_YAML}"
-	  kubectl get pods "${NAMESPACE}"
-	  kubectl wait --for=condition=Ready pods -l  app.kubernetes.io/name=prometheus-operator --timeout 300s
+	  kubectl get pods -n "${NAMESPACE}"
+	  kubectl wait --for=condition=Ready pods -l  app.kubernetes.io/name=prometheus-operator --timeout 900s
 	else
 	  echo "Prometheus operator CRD is already installed"
 	  echo ""
@@ -81,8 +81,9 @@ function deploy-prometheus() {
 
 	kubectl create -f "${PROMETHEUS_YAML}" -n "${NAMESPACE}"
 
-	echo "Waiting for prometheus to be active (timeout 300s)..."
-	kubectl wait --for=condition=Ready pods -l  app.kubernetes.io/name=prometheus --timeout 300s -n "${NAMESPACE}"
+	sleep 10
+	echo "Waiting for prometheus to be active (timeout 900s)..."
+	kubectl wait --for=condition=Ready pods -l  app.kubernetes.io/name=prometheus --timeout 900s -n "${NAMESPACE}"
 
 	log_time "deploy-prometheus"
 }
@@ -129,12 +130,12 @@ function deploy_grafana_tempo() {
   helm repo add grafana https://grafana.github.io/helm-charts
   helm repo update
   helm upgrade --install tempo grafana/tempo -n "${NAMESPACE}"
-  echo "Waiting for tempo to be active (timeout 300s)..."
-  kubectl wait --for=jsonpath='{.status.phase}'=Running pod -l "app.kubernetes.io/name=tempo,app.kubernetes.io/instance=tempo" --timeout=300s -n "${NAMESPACE}"
+  echo "Waiting for tempo to be active (timeout 900s)..."
+  kubectl wait --for=jsonpath='{.status.phase}'=Running pod -l "app.kubernetes.io/name=tempo,app.kubernetes.io/instance=tempo" --timeout=900s -n "${NAMESPACE}"
 
   helm upgrade -f "${TELEMETRY_DIR}/grafana/grafana-values.yaml" --install grafana grafana/grafana -n "${NAMESPACE}"
-  echo "Waiting for grafana to be active (timeout 300s)..."
-  kubectl wait --for=jsonpath='{.status.phase}'=Running pod -l "app.kubernetes.io/name=grafana,app.kubernetes.io/instance=grafana" --timeout=300s -n "${NAMESPACE}"
+  echo "Waiting for grafana to be active (timeout 900s)..."
+  kubectl wait --for=jsonpath='{.status.phase}'=Running pod -l "app.kubernetes.io/name=grafana,app.kubernetes.io/instance=grafana" --timeout=900s -n "${NAMESPACE}"
 
   log_time "deploy_grafana_tempo"
 }
