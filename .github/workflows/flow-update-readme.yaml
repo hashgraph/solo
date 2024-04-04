@@ -122,8 +122,7 @@ jobs:
           sed -i 's/\[32m//g' README.md
           sed -i 's/\[33m//g' README.md
           sed -i 's/\[39m//g' README.md
-          sed -i '/↓/d' README.md
-          sed -i '/↓|❯|•/d' README.md
+          egrep -v '↓|❯|•' README.md > README.md.tmp && mv README.md.tmp README.md
           
 
       - name: Commit
