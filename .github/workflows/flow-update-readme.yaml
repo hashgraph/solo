@@ -70,6 +70,11 @@ jobs:
         id: npm-deps
         run: |
           npm ci
+
+      - name: Install gettext-base
+        id: gettext-base
+        run: |
+          sudp apt-get update
           sudo apt-get install gettext-base
 
       - name: Update README.md
