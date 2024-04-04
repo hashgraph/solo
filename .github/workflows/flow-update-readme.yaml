@@ -46,16 +46,6 @@ jobs:
           [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
           [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
 
-      - name: Install solo
-        run: |
-          export NVM_DIR="$HOME/.nvm"
-          [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
-          [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
-          nvm install lts/hydrogen
-          nvm use lts/hydrogen
-          npm install -g @hashgraph/solo
-          which solo
-
       - name: Setup Kind
         uses: helm/kind-action@99576bfa6ddf9a8e612d83b513da5a75875caced # v1.9.0
         with:
@@ -69,6 +59,11 @@ jobs:
       - name: Install Dependencies
         id: npm-deps
         run: |
+          export NVM_DIR="$HOME/.nvm"
+          [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
+          [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
+          nvm install lts/hydrogen
+          nvm use lts/hydrogen
           npm ci
 
       - name: Install gettext-base
@@ -127,6 +122,6 @@ jobs:
             git config user.name github-actions
             git config user.email github-actions@github.com
             git add .
-            git commit -m "update"
-            git push origin main
+            git commit -s -m "update"
+            git push
           fi
