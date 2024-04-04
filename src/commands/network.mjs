@@ -184,7 +184,7 @@ export class NetworkCommand extends BaseCommand {
               subTasks.push({
                 title: `Check Node: ${chalk.yellow(nodeId)}`,
                 task: () =>
-                  self.k8.waitForPodReady([
+                  self.k8.waitForPod( constants.POD_STATUS_RUNNING, [
                     'fullstack.hedera.com/type=network-node',
                     `fullstack.hedera.com/node-name=${nodeId}`
                   ], 1, 60 * 15, 1000) // timeout 15 minutes

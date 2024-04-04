@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 CUR_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
 source "${CUR_DIR}/env.sh"
-setup_kubectl_context
 
 # Run the below command to retrieve the latest version
 # curl -s "https://api.github.com/repos/prometheus-operator/prometheus-operator/releases/latest" | jq -cr .tag_name
