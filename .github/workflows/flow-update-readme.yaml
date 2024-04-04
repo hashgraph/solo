@@ -120,6 +120,8 @@ jobs:
             git config user.email github-actions@github.com
             git status
             git branch
+            git switch -
+            git branch
             git add .
             git commit -s -m "update"
             git push
