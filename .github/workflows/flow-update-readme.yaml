@@ -81,6 +81,7 @@ jobs:
         run: |
           npm install -g @hashgraph/solo
           which solo
+          sleep 7200
           
           export SOLO_CLUSTER_NAME=solo
           export SOLO_NAMESPACE=solo
