@@ -1,0 +1,9 @@
+---
+main:
+  - name: User
+    ref: "/User/README.md"
+  - name: Developer
+    ref: "/Developer/DEV.md"
+  - name: Classes
+    ref: "/solo/static/Classes/index.html"
+    external: true
