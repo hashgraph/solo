@@ -75,7 +75,8 @@ Then run the following command to set the kubectl context to the new cluster:
 ```bash
 kind create cluster -n "${SOLO_CLUSTER_NAME}"
 ```
-Output example
+Example output
+
 ```
 $KIND_CREATE_CLUSTER_OUTPUT
 ```
@@ -114,7 +115,9 @@ You may now view pods in your cluster using `k9s -A` as below:
 ```
 $ solo init -t v0.42.5 -i node0,node1,node2 -n "${SOLO_NAMESPACE}" -s "${SOLO_CLUSTER_SETUP_NAMESPACE}" --key-format pfx 
 ```
-Output
+
+Example output
+
 ```
 $SOLO_INIT_OUTPUT
 ```
@@ -127,7 +130,8 @@ We need to generate `pfx` keys as `pem` key files are only supported by Hedera p
 $ solo node keys --gossip-keys --tls-keys --key-format pfx 
 ```
 
-Output
+Example output
+
 ```
 $SOLO_NODE_KEYS_OUTPUT
 ```
@@ -145,7 +149,9 @@ hedera-node0.key  hedera-node1.key  hedera-node2.key  private-node1.pfx public.p
 ```
 $ solo cluster setup
 ```
-Output
+
+Example output
+
 ```
 $SOLO_CLUSTER_SETUP_OUTPUT
 ```
@@ -158,7 +164,9 @@ $SOLO_CLUSTER_SETUP_OUTPUT
 ```
 $ solo network deploy
 ```
-Output
+
+Example output
+
 ```
 $SOLO_NETWORK_DEPLOY_OUTPUT
 ```
@@ -169,7 +177,9 @@ $SOLO_NETWORK_DEPLOY_OUTPUT
 ```
 $ solo node setup
 ```
-Output
+
+Example output
+
 ```
 $SOLO_NODE_SETUP_OUTPUT
 ```
@@ -179,7 +189,9 @@ $SOLO_NODE_SETUP_OUTPUT
 ```
 $ solo node start
 ```
-Output
+
+Example output
+
 ```
 $SOLO_NODE_START_OUTPUT
 ```
@@ -188,7 +200,9 @@ $SOLO_NODE_START_OUTPUT
 ```
 $ solo mirror-node deploy
 ```
-Output
+
+Example output
+
 ```
 $SOLO_MIRROR_NODE_DEPLOY_OUTPUT
 ```
@@ -247,7 +261,9 @@ Once the nodes are up, you may now expose various services (using `k9s` (shift-f
   ```
   $ solo relay deploy -i node0,node1 
   ```
-Output
+
+Example output
+
 ```
 $SOLO_RELAY_DEPLAY_OUTPUT
 ```
@@ -262,7 +278,9 @@ $ rm -rf ~/.solo
 
 $ solo init -t v0.47.0-alpha.0 -i node0,node1,node2 -n "${SOLO_NAMESPACE}" -s "${SOLO_CLUSTER_SETUP_NAMESPACE}" --key-format pem 
 ```
-Output
+
+Example output
+
 ```
 $SOLO_INIT_047_OUTPUT
 ```
@@ -273,7 +291,8 @@ $SOLO_INIT_047_OUTPUT
 $ solo node keys --gossip-keys --tls-keys --key-format pem
 ```
 
-Output
+Example output
+
 ```
 $SOLO_NODE_KEY_PEM_OUTPUT
 ```
