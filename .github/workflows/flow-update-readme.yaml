@@ -119,6 +119,12 @@ jobs:
           $SOLO_NETWORK_DEPLOY_OUTPUT,$SOLO_NODE_SETUP_OUTPUT,$SOLO_NODE_START_OUTPUT,$SOLO_MIRROR_NODE_DEPLOY_OUTPUT,\
           $SOLO_RELAY_DEPLAY_OUTPUT,$SOLO_INIT_047_OUTPUT,$SOLO_NODE_KEY_PEM_OUTPUT' < README.md.template > README.md
 
+          sed -i 's/\[32m//g' README.md
+          sed -i 's/\[33m//g' README.md
+          sed -i 's/\[39m//g' README.md
+          sed -i '/❯|•|↓/d' README.md
+          
+
       - name: Commit
         run: |
           if git diff --exit-code; then
