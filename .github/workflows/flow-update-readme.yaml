@@ -79,35 +79,38 @@ jobs:
 
       - name: Update README.md
         run: |
+          npm install -g @hashgraph/solo
+          which solo
+          
           export SOLO_CLUSTER_NAME=solo
           export SOLO_NAMESPACE=solo
           export SOLO_CLUSTER_SETUP_NAMESPACE=solo-cluster
            
           echo "Perform the followng kind and solo commands and save output to environment variables"
           
-          export KIND_CREATE_CLUSTER_OUTPUT=$( kind create cluster -n "${SOLO_CLUSTER_NAME}" 2>&1 | tee /dev/tty )
+          export KIND_CREATE_CLUSTER_OUTPUT=$( kind create cluster -n "${SOLO_CLUSTER_NAME}" 2>&1 | tee /dev/null )
           
           export SOLO_INIT_OUTPUT=$( solo init -t v0.42.5 -i node0,node1,node2 -n "${SOLO_NAMESPACE}" -s \
-          "${SOLO_CLUSTER_SETUP_NAMESPACE}" --key-format pfx | tee /dev/tty )
+          "${SOLO_CLUSTER_SETUP_NAMESPACE}" --key-format pfx | tee /dev/null )
           
-          export SOLO_NODE_KEYS_OUTPUT=$( solo node keys --gossip-keys --tls-keys --key-format pfx | tee /dev/tty )
+          export SOLO_NODE_KEYS_OUTPUT=$( solo node keys --gossip-keys --tls-keys --key-format pfx | tee /dev/null )
 
-          export SOLO_CLUSTER_SETUP_OUTPUT=$( solo cluster setup | tee /dev/tty )
+          export SOLO_CLUSTER_SETUP_OUTPUT=$( solo cluster setup | tee /dev/null )
           
-          export SOLO_NETWORK_DEPLOY_OUTPUT=$( solo network deploy | tee /dev/tty )
+          export SOLO_NETWORK_DEPLOY_OUTPUT=$( solo network deploy | tee /dev/null )
           
-          export SOLO_NODE_SETUP_OUTPUT=$( solo node setup | tee /dev/tty )
+          export SOLO_NODE_SETUP_OUTPUT=$( solo node setup | tee /dev/null )
           
-          export SOLO_NODE_START_OUTPUT=$( solo node start | tee /dev/tty )
+          export SOLO_NODE_START_OUTPUT=$( solo node start | tee /dev/null )
           
-          export SOLO_MIRROR_NODE_DEPLOY_OUTPUT=$( solo mirror-node deploy | tee /dev/tty )
+          export SOLO_MIRROR_NODE_DEPLOY_OUTPUT=$( solo mirror-node deploy | tee /dev/null )
           
-          export SOLO_RELAY_DEPLAY_OUTPUT=$( solo relay deploy -i node0,node1 | tee /dev/tty )
+          export SOLO_RELAY_DEPLAY_OUTPUT=$( solo relay deploy -i node0,node1 | tee /dev/null )
           
           export SOLO_INIT_047_OUTPUT=$( solo init -t v0.47.0-alpha.0 -i node0,node1,node2 -n "${SOLO_NAMESPACE}" \
-          -s "${SOLO_CLUSTER_SETUP_NAMESPACE}" --key-format pem  | tee /dev/tty )
+          -s "${SOLO_CLUSTER_SETUP_NAMESPACE}" --key-format pem  | tee /dev/null )
           
-          export SOLO_NODE_KEY_PEM_OUTPUT=$( solo node keys --gossip-keys --tls-keys --key-format pem | tee /dev/tty )
+          export SOLO_NODE_KEY_PEM_OUTPUT=$( solo node keys --gossip-keys --tls-keys --key-format pem | tee /dev/null )
 
           echo "Generate README.md"
           
