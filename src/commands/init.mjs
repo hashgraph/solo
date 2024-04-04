@@ -61,7 +61,11 @@ export class InitCommand extends BaseCommand {
    */
   async init (argv) {
     const self = this
-    console.log(argv)
+    let cacheDir = this.configManager.getFlag(flags.cacheDir)
+    if (!cacheDir) {
+      cacheDir = constants.SOLO_CACHE_DIR
+    }
+
 
     const tasks = new Listr([
       {
@@ -96,29 +100,19 @@ export class InitCommand extends BaseCommand {
         }
       },
       {
-        title: 'Copy configuration file templates',
+        title: `Copy templates in '${cacheDir}'`,
         task: (ctx, _) => {
-          let cacheDir = this.configManager.getFlag(flags.cacheDir)
-          if (!cacheDir) {
-            cacheDir = constants.SOLO_CACHE_DIR
-          }
+          const resources = ['templates', 'profiles', 'dev']
+          for (const dirName of resources) {
+            const srcDir = path.resolve(path.join(constants.RESOURCES_DIR, dirName))
+            if (!fs.existsSync(srcDir)) continue;
 
-          const templatesDir = `${cacheDir}/templates`
-          if (!fs.existsSync(templatesDir)) {
-            fs.mkdirSync(templatesDir)
-          }
+            const destDir= path.resolve(path.join(cacheDir, dirName))
+            if (!fs.existsSync(destDir)) {
+              fs.mkdirSync(destDir)
+            }
 
-          const configFiles = [
-            `${constants.RESOURCES_DIR}/templates/application.properties`,
-            `${constants.RESOURCES_DIR}/templates/api-permission.properties`,
-            `${constants.RESOURCES_DIR}/templates/bootstrap.properties`,
-            `${constants.RESOURCES_DIR}/templates/settings.txt`,
-            `${constants.RESOURCES_DIR}/templates/log4j2.xml`
-          ]
-
-          for (const filePath of configFiles) {
-            const fileName = path.basename(filePath)
-            fs.cpSync(`${filePath}`, `${templatesDir}/${fileName}`, { recursive: true })
+            fs.cpSync(srcDir, destDir, {recursive: true})
           }
 
           if (argv.dev) {
