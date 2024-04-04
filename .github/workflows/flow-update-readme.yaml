@@ -45,10 +45,6 @@ jobs:
           export NVM_DIR="$HOME/.nvm"
           [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
           [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
-          curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
-          export NVM_DIR="$HOME/.nvm"
-          [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
-          [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
 
       - name: Install solo
         run: |
@@ -58,10 +54,10 @@ jobs:
           nvm install lts/hydrogen
           nvm use lts/hydrogen
           npm install -g @hashgraph/solo
+          which solo
 
       - name: Setup Kind
         uses: helm/kind-action@99576bfa6ddf9a8e612d83b513da5a75875caced # v1.9.0
-        if: ${{ inputs.enable-e2e-tests && !cancelled() && !failure() }}
         with:
           install_only: true
           node_image: kindest/node:v1.27.3@sha256:3966ac761ae0136263ffdb6cfd4db23ef8a83cba8a463690e98317add2c9ba72
@@ -72,7 +68,9 @@ jobs:
 
       - name: Install Dependencies
         id: npm-deps
-        run: npm ci
+        run: |
+          npm ci
+          sudo apt-get install gettext-base
 
       - name: Update README.md
         run: |
