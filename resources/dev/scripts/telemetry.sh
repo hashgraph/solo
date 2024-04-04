@@ -30,9 +30,9 @@ function deploy-prometheus-operator() {
   echo "-----------------------------------------------------------------------------------------------------"
   local crd_count=$(kubectl get crd | grep -c "monitoring.coreos.com" )
   if [[ $crd_count -ne 10 ]]; then
-	  kubectl create -f "${PROMETHEUS_OPERATOR_YAML}" -n "${NAMESPACE}"
+	  kubectl create -f "${PROMETHEUS_OPERATOR_YAML}"
 	  kubectl get pods "${NAMESPACE}"
-	  kubectl wait --for=condition=Ready pods -l  app.kubernetes.io/name=prometheus-operator --timeout 300s -n "${NAMESPACE}"
+	  kubectl wait --for=condition=Ready pods -l  app.kubernetes.io/name=prometheus-operator --timeout 300s
 	else
 	  echo "Prometheus operator CRD is already installed"
 	  echo ""
@@ -46,7 +46,7 @@ function destroy-prometheus-operator() {
 	echo "Destroying prometheus operator"
 	echo "PROMETHEUS_OPERATOR_YAML: ${PROMETHEUS_OPERATOR_YAML}"
   echo "-----------------------------------------------------------------------------------------------------"
-	kubectl delete -f "${PROMETHEUS_OPERATOR_YAML}" -n "${NAMESPACE}"
+	kubectl delete -f "${PROMETHEUS_OPERATOR_YAML}"
 	sleep 10
 
 	log_time "destroy-prometheus-operator"
@@ -57,6 +57,7 @@ function deploy-prometheus() {
 	echo "Deploying prometheus"
 	echo "PROMETHEUS_RBAC_YAML: ${PROMETHEUS_RBAC_YAML}"
 	echo "PROMETHEUS_YAML: ${PROMETHEUS_YAML}"
+	echo "Namespace: $NAMESPACE"
   echo "-----------------------------------------------------------------------------------------------------"
 	kubectl create -f "${PROMETHEUS_RBAC_YAML}" -n "${NAMESPACE}"
 
@@ -91,6 +92,7 @@ function destroy-prometheus() {
 	echo "Destroying prometheus"
 	echo "PROMETHEUS_RBAC_YAML: ${PROMETHEUS_RBAC_YAML}"
 	echo "PROMETHEUS_YAML: ${PROMETHEUS_YAML}"
+	echo "Namespace: $NAMESPACE"
   echo "-----------------------------------------------------------------------------------------------------"
 	kubectl delete -f "${PROMETHEUS_YAML}" -n "${NAMESPACE}" || true
 	kubectl delete -f "${PROMETHEUS_RBAC_YAML}" -n "${NAMESPACE}" || true
@@ -122,10 +124,11 @@ function unexpose_prometheus() {
 function deploy_grafana_tempo() {
   echo ""
 	echo "Deploying Grafana"
+	echo "Namespace: $NAMESPACE"
   echo "-----------------------------------------------------------------------------------------------------"
   helm repo add grafana https://grafana.github.io/helm-charts
   helm repo update
-  helm upgrade --install tempo grafana/tempo
+  helm upgrade --install tempo grafana/tempo -n "${NAMESPACE}"
   echo "Waiting for tempo to be active (timeout 300s)..."
   kubectl wait --for=jsonpath='{.status.phase}'=Running pod -l "app.kubernetes.io/name=tempo,app.kubernetes.io/instance=tempo" --timeout=300s -n "${NAMESPACE}"
 

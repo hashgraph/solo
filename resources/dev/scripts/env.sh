@@ -27,8 +27,6 @@ function show_env_vars() {
 
 # ----------------------------- Setup ENV Variables -------------------------------------------------------------
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
-load_env_file
-
 USER="${USER:-changeme}"
 CLUSTER_NAME="${SOLO_CLUSTER_NAME:-solo-e2e}"
 NAMESPACE="${SOLO_NAMESPACE:-solo}"
