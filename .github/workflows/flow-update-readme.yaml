@@ -31,10 +31,19 @@ jobs:
   update:
     runs-on: [self-hosted, Linux, medium, ephemeral]
     steps:
-      - name: Checkout Code
+      - name: Checkout Code for Push
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        if: github.event_name == 'push'
         with:
           fetch-depth: 0
+
+      # https://github.com/actions/checkout/issues/124
+      - name: Checkout Code for Pull Request
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        if: github.event_name == 'pull_request'
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.ref }}
 
       - name: Setup Node
         uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4.0.2
