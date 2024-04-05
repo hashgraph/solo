@@ -26,7 +26,8 @@ on:
 defaults:
   run:
     shell: bash
-
+env:
+  TOTAL_LINES_CHANGED: "0"
 jobs:
   update:
     runs-on: [self-hosted, Linux, medium, ephemeral]
@@ -125,29 +126,26 @@ jobs:
           sed -i 's/\[33m//g' README.md
           sed -i 's/\[39m//g' README.md
           egrep -v '↓|❯|•' README.md > README.md.tmp && mv README.md.tmp README.md
-          
 
-      - name: Commit
+      - name: Check README.md Changes
         run: |
-          sleep 7200
           CHANGES=$(git diff --stat)
           INSERTIONS=$(echo $CHANGES | grep -o -P '(?<=insertion\(\+\), )\d+')          
           DELETIONS=$(echo $CHANGES | grep -o '[0-9]\+' | tail -1)          
-          TOTAL_LINES_CHANGED=$(($INSERTIONS + $DELETIONS))
-          
-          if [ $TOTAL_LINES_CHANGED -gt 15 ]; then
-              echo "Total lines changed: $TOTAL_LINES_CHANGED"
-              echo "Committing changes to README.md"
+          README_LINES_CHANGED=$(($INSERTIONS + $DELETIONS))
+          echo "Insertions: $INSERTIONS"
+          echo "Deletions: $DELETIONS"
+          echo "Total README lines changed: $README_LINES_CHANGED"
 
-              git config user.name github-actions
-              git config user.email github-actions@github.com
-              git status
-              git branch
-              git add .
-              git commit -s -m "update"
-              git push
-          else
-              echo "Total lines changed: $TOTAL_LINES_CHANGED"
-              echo "No changes to commit."
-              exit 0
-          fi
+          echo "::set-env name=TOTAL_LINES_CHANGED::$README_LINES_CHANGED"
+          echo "Total lines changed: $TOTAL_LINES_CHANGED"
+
+      - name: Commit files
+        uses: swinton/commit@v2
+        if: ${{ $TOTAL_LINES_CHANGED > 20 }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          files: |
+            README.md
+          commit-message: Auto update README.md
