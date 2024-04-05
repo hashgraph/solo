@@ -142,7 +142,7 @@ jobs:
 
       - name: Commit files
         uses: swinton/commit@v2
-        if: ${{ $TOTAL_LINES_CHANGED > 20 }}
+        if: ${{ env.TOTAL_LINES_CHANGED > 20 }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
