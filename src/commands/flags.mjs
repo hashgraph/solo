@@ -179,9 +179,9 @@ export const deployJsonRpcRelay = {
 export const releaseTag = {
   name: 'release-tag',
   definition: {
-    describe: 'Release tag to be used (e.g. v0.42.5)',
+    describe: `Release tag to be used (e.g. ${version.HEDERA_PLATFORM_VERSION})`,
     alias: 't',
-    defaultValue: 'v0.47.0',
+    defaultValue: version.HEDERA_PLATFORM_VERSION,
     type: 'string'
   }
 }

@@ -333,7 +333,7 @@ export class NodeCommand extends BaseCommand {
 
           const config = {
             namespace: self.configManager.getFlag(flags.namespace),
-            nodeIds: helpers.parseNodeIDs(self.configManager.getFlag(flags.nodeIDs)),
+            nodeIds: helpers.parseNodeIds(self.configManager.getFlag(flags.nodeIDs)),
             releaseTag: self.configManager.getFlag(flags.releaseTag),
             cacheDir: self.configManager.getFlag(flags.cacheDir),
             force: self.configManager.getFlag(flags.force),
@@ -576,7 +576,7 @@ export class NodeCommand extends BaseCommand {
             namespace: self.configManager.getFlag(flags.namespace),
             chartDir: self.configManager.getFlag(flags.chartDirectory),
             fstChartVersion: self.configManager.getFlag(flags.fstChartVersion),
-            nodeIds: helpers.parseNodeIDs(self.configManager.getFlag(flags.nodeIDs)),
+            nodeIds: helpers.parseNodeIds(self.configManager.getFlag(flags.nodeIDs)),
             applicationEnv: self.configManager.getFlag(flags.applicationEnv),
             cacheDir: self.configManager.getFlag(flags.cacheDir)
           }
@@ -763,7 +763,7 @@ export class NodeCommand extends BaseCommand {
 
           ctx.config = {
             namespace: self.configManager.getFlag(flags.namespace),
-            nodeIds: helpers.parseNodeIDs(self.configManager.getFlag(flags.nodeIDs))
+            nodeIds: helpers.parseNodeIds(self.configManager.getFlag(flags.nodeIDs))
           }
 
           if (!await self.k8.hasNamespace(ctx.config.namespace)) {
@@ -827,7 +827,7 @@ export class NodeCommand extends BaseCommand {
           ])
 
           const config = {
-            nodeIds: helpers.parseNodeIDs(self.configManager.getFlag(flags.nodeIDs)),
+            nodeIds: helpers.parseNodeIds(self.configManager.getFlag(flags.nodeIDs)),
             cacheDir: self.configManager.getFlag(flags.cacheDir),
             generateGossipKeys: self.configManager.getFlag(flags.generateGossipKeys),
             generateTlsKeys: self.configManager.getFlag(flags.generateTlsKeys),

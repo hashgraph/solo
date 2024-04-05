@@ -179,7 +179,7 @@ export class ProfileManager {
     return yamlRoot
   }
 
-  resourcesForHAProxyPod (profile, yamlRoot) {
+  resourcesForHaProxyPod (profile, yamlRoot) {
     if (!profile) throw new MissingArgumentError('profile is required')
     if (!profile.haproxy) return // use chart defaults
 
@@ -221,17 +221,17 @@ export class ProfileManager {
    * @param profileName resource profile name
    * @return {Promise<string>} return the full path to the values file
    */
-  prepareValuesForFSTChart (profileName) {
+  prepareValuesForFstChart (profileName) {
     if (!profileName) throw new MissingArgumentError('profileName is required')
     const profile = this.getProfile(profileName)
 
-    const nodeIds = helpers.parseNodeIDs(this.configManager.getFlag(flags.nodeIDs))
+    const nodeIds = helpers.parseNodeIds(this.configManager.getFlag(flags.nodeIDs))
     if (!nodeIds) throw new FullstackTestingError('Node IDs are not set in the config')
 
     // generate the yaml
     const yamlRoot = {}
     this.resourcesForConsensusPod(profile, nodeIds, yamlRoot)
-    this.resourcesForHAProxyPod(profile, yamlRoot)
+    this.resourcesForHaProxyPod(profile, yamlRoot)
     this.resourcesForEnvoyProxyPod(profile, yamlRoot)
     this.resourcesForMinioTenantPod(profile, yamlRoot)
 

@@ -33,7 +33,7 @@ export function sleep (ms) {
   })
 }
 
-export function parseNodeIDs (input) {
+export function parseNodeIds (input) {
   if (typeof input === 'string') {
     const nodeIds = []
     input.split(',').forEach(item => {

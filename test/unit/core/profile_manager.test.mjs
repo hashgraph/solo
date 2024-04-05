@@ -63,7 +63,7 @@ describe('ProfileManager', () => {
     it(`should determine FST chart values [profile = ${input.profileName}]`, async () => {
       configManager.setFlag(flags.profileFile, input.profileFile)
       profileManager.loadProfiles(true)
-      const valuesFile = await profileManager.prepareValuesForFSTChart(input.profileName)
+      const valuesFile = await profileManager.prepareValuesForFstChart(input.profileName)
       expect(valuesFile).not.toBeNull()
       expect(fs.existsSync(valuesFile)).toBeTruthy()
 

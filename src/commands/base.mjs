@@ -25,7 +25,8 @@ export class BaseCommand extends ShellRunner {
     if (!chartReleaseName) throw new MissingArgumentError('chart release name is required')
 
     if (chartDir) {
-      return `${chartDir}/${chartReleaseName}`
+      const chartPath = `${chartDir}/${chartReleaseName}`
+      await this.helm.dependency('update', chartPath)
     }
 
     return `${chartRepo}/${chartReleaseName}`

@@ -120,7 +120,7 @@ export class RelayCommand extends BaseCommand {
             chartDir: self.configManager.getFlag(flags.chartDirectory),
             namespace: self.configManager.getFlag(flags.namespace),
             valuesFile: self.configManager.getFlag(flags.valuesFile),
-            nodeIds: helpers.parseNodeIDs(self.configManager.getFlag(flags.nodeIDs)),
+            nodeIds: helpers.parseNodeIds(self.configManager.getFlag(flags.nodeIDs)),
             chainId: self.configManager.getFlag(flags.chainId),
             relayRelease: self.configManager.getFlag(flags.relayReleaseTag),
             replicaCount: self.configManager.getFlag(flags.replicaCount),
@@ -218,7 +218,7 @@ export class RelayCommand extends BaseCommand {
           ctx.config = {
             chartDir: self.configManager.getFlag(flags.chartDirectory),
             namespace: self.configManager.getFlag(flags.namespace),
-            nodeIds: helpers.parseNodeIDs(self.configManager.getFlag(flags.nodeIDs))
+            nodeIds: helpers.parseNodeIds(self.configManager.getFlag(flags.nodeIDs))
           }
 
           ctx.releaseName = this.prepareReleaseName(ctx.config.nodeIds)

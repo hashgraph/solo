@@ -101,7 +101,7 @@ export class InitCommand extends BaseCommand {
       {
         title: `Copy templates in '${cacheDir}'`,
         task: (ctx, _) => {
-          const resources = ['templates', 'profiles', 'dev']
+          const resources = ['templates', 'profiles']
           for (const dirName of resources) {
             const srcDir = path.resolve(path.join(constants.RESOURCES_DIR, dirName))
             if (!fs.existsSync(srcDir)) continue

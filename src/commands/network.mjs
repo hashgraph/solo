@@ -73,7 +73,7 @@ export class NetworkCommand extends BaseCommand {
     }
 
     const profileName = this.configManager.getFlag(flags.profileName)
-    const profileValuesFile = await this.profileManager.prepareValuesForFSTChart(profileName)
+    const profileValuesFile = await this.profileManager.prepareValuesForFstChart(profileName)
     if (profileValuesFile) {
       valuesArg += this.prepareValuesFiles(profileValuesFile)
     }
@@ -119,7 +119,7 @@ export class NetworkCommand extends BaseCommand {
     const config = {
       releaseTag: this.configManager.getFlag(flags.releaseTag),
       namespace: this.configManager.getFlag(flags.namespace),
-      nodeIds: helpers.parseNodeIDs(this.configManager.getFlag(flags.nodeIDs)),
+      nodeIds: helpers.parseNodeIds(this.configManager.getFlag(flags.nodeIDs)),
       chartDir: this.configManager.getFlag(flags.chartDirectory),
       fstChartVersion: this.configManager.getFlag(flags.fstChartVersion),
       valuesFile: this.configManager.getFlag(flags.valuesFile),
