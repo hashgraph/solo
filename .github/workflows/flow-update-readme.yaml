@@ -129,19 +129,26 @@ jobs:
 
       - name: Check README.md Changes
         run: |
-          sleep 7200
           CHANGES=$(git diff --stat)
           echo "Changes: $CHANGES"
           
-          INSERTIONS=$(echo $CHANGES | grep -o -P '(?<=insertion\(\+\), )\d+')          
+          INSERTIONS=$(echo $CHANGES | grep -o -P '(?<=insertions\(\+\), )\d+')          
           echo "Insertions: $INSERTIONS"
 
           DELETIONS=$(echo $CHANGES | grep -o '[0-9]\+' | tail -1)          
           echo "Deletions: $DELETIONS"
-
+        
+          # Calculate total lines changed if INSERTIONS and DELETIONS are not empty
+          if [ -z "$INSERTIONS" ]; then
+            INSERTIONS=0
+          fi
+          if [ -z "$DELETIONS" ]; then
+              DELETIONS=0
+          fi
+          
           README_LINES_CHANGED=$(($INSERTIONS + $DELETIONS))
           echo "Total README lines changed: $README_LINES_CHANGED"
-
+          
           echo "::set-env name=TOTAL_LINES_CHANGED::$README_LINES_CHANGED"
           echo "Total lines changed: $TOTAL_LINES_CHANGED"
 
