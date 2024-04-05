@@ -141,7 +141,7 @@ jobs:
           echo "Total lines changed: $TOTAL_LINES_CHANGED"
 
       - name: Commit files
-        uses: swinton/commit@v2
+        uses: swinton/commit@v2.0.0
         if: ${{ env.TOTAL_LINES_CHANGED > 20 }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
