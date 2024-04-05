@@ -44,7 +44,7 @@ export class Helm extends ShellRunner {
      * @returns {Promise<Array>} console output as an array of strings
      */
   async install (...args) {
-    return this.run(this.prepareCommand('install', ...args), true)
+    return this.run(this.prepareCommand('install', ...args))
   }
 
   /**
