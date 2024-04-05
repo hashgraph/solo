@@ -130,15 +130,24 @@ jobs:
 
       - name: Commit
         run: |
-          if git diff --exit-code; then
-            echo "No changes to commit."
-            exit 0
+          CHANGES=$(git diff --stat)
+          INSERTIONS=$(echo $CHANGES | grep -o -P '(?<=insertion\(\+\), )\d+')          
+          DELETIONS=$(echo $CHANGES | grep -o '[0-9]\+' | tail -1)          
+          TOTAL_LINES_CHANGED=$(($INSERTIONS + $DELETIONS))
+          
+          if [ $TOTAL_LINES_CHANGED -gt 15 ]; then
+              echo "Total lines changed: $TOTAL_LINES_CHANGED"
+              echo "Committing changes to README.md"
+
+              git config user.name github-actions
+              git config user.email github-actions@github.com
+              git status
+              git branch
+              git add .
+              git commit -s -m "update"
+              git push
           else
-            git config user.name github-actions
-            git config user.email github-actions@github.com
-            git status
-            git branch
-            git add .
-            git commit -s -m "update"
-            git push
+              echo "Total lines changed: $TOTAL_LINES_CHANGED"
+              echo "No changes to commit."
+              exit 0
           fi
