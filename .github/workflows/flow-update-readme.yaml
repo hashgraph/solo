@@ -26,8 +26,6 @@ on:
 defaults:
   run:
     shell: bash
-env:
-  TOTAL_LINES_CHANGED: "0"
 jobs:
   update:
     runs-on: [self-hosted, Linux, medium, ephemeral]
@@ -128,6 +126,7 @@ jobs:
           egrep -v '↓|❯|•' README.md > README.md.tmp && mv README.md.tmp README.md
 
       - name: Check README.md Changes
+        id: check-readme-changes
         run: |
           CHANGES=$(git diff --stat)
           echo "Changes: $CHANGES"
@@ -146,15 +145,14 @@ jobs:
               DELETIONS=0
           fi
           
-          README_LINES_CHANGED=$(($INSERTIONS + $DELETIONS))
-          echo "Total README lines changed: $README_LINES_CHANGED"
-          
-          echo "::set-env name=TOTAL_LINES_CHANGED::$README_LINES_CHANGED"
-          echo "Total lines changed: $TOTAL_LINES_CHANGED"
+          TOTAL_LINES_CHANGED=$(($INSERTIONS + $DELETIONS))
+          echo "Total README lines changed: $TOTAL_LINES_CHANGED"
+          echo "TOTAL_LINES_CHANGED=$TOTAL_LINES_CHANGED" >> ${GITHUB_OUTPUT}
+
 
       - name: Commit files
         uses: swinton/commit@v2.0.0
-        if: ${{ env.TOTAL_LINES_CHANGED > 20 }}
+        if: ${{ step.check-readme-changes.outputs.$TOTAL_LINES_CHANGED > 20 }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
