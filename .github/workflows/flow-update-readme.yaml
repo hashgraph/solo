@@ -129,6 +129,7 @@ jobs:
 
       - name: Commit
         run: |
+          sleep 7200
           CHANGES=$(git diff --stat)
           INSERTIONS=$(echo $CHANGES | grep -o -P '(?<=insertion\(\+\), )\d+')          
           DELETIONS=$(echo $CHANGES | grep -o '[0-9]\+' | tail -1)          
