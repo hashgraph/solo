@@ -173,7 +173,7 @@ export class NodeCommand extends BaseCommand {
    * @param nodeIds node ids
    * @param keysDir keys directory
    * @param curDate current date
-   * @return {*[]}
+   * @return a list of subtasks
    * @private
    */
   _nodeGossipKeysTaskList (keyFormat, nodeIds, keysDir, curDate = new Date()) {
@@ -271,7 +271,7 @@ export class NodeCommand extends BaseCommand {
    * @param nodeIds node ids
    * @param keysDir keys directory
    * @param curDate current date
-   * @return {*[]}
+   * @return return a list of subtasks
    * @private
    */
   _nodeTlsKeyTaskList (nodeIds, keysDir, curDate = new Date()) {

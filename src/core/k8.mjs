@@ -85,7 +85,7 @@ export class K8 {
    * Apply filters to metadata
    * @param items list of items
    * @param filters an object with metadata fields and value
-   * @return {*[]}
+   * @return a list of items that match the filters
    */
   applyMetadataFilter (items, filters = {}) {
     if (!filters) throw new MissingArgumentError('filters are required')
@@ -153,7 +153,7 @@ export class K8 {
 
   /**
    * Get a list of namespaces
-   * @return {Promise<[string]>} list of namespaces
+   * @return list of namespaces
    */
   async getNamespaces () {
     const resp = await this.kubeClient.listNamespace()
@@ -306,7 +306,7 @@ export class K8 {
 
   /**
    * Get a list of clusters
-   * @return {Promise<[string]>} list of clusters
+   * @return a list of cluster names
    */
   async getClusters () {
     const clusters = []
@@ -319,7 +319,7 @@ export class K8 {
 
   /**
    * Get a list of contexts
-   * @return {Promise<[string]>} list of contexts
+   * @return a list of context names
    */
   async getContexts () {
     const contexts = []
@@ -455,7 +455,7 @@ export class K8 {
    * @param containerName container name
    * @param srcPath source file path in the local
    * @param destDir destination directory in the container
-   * @returns {Promise<>}
+   * @returns return a Promise that performs the copy operation
    */
   async copyTo (podName, containerName, srcPath, destDir) {
     const namespace = this._getNamespace()
@@ -860,7 +860,7 @@ export class K8 {
    * Get a list of persistent volume claim names for the given namespace
    * @param namespace the namespace of the persistent volume claims to return
    * @param labels labels
-   * @returns {Promise<*[]>} list of persistent volume claims
+   * @returns return list of persistent volume claim names
    */
   async listPvcsByNamespace (namespace, labels = []) {
     const pvcs = []
@@ -900,8 +900,7 @@ export class K8 {
    * retrieve the secret of the given namespace and label selector, if there is more than one, it returns the first
    * @param namespace the namespace of the secret to search for
    * @param labelSelector the label selector used to fetch the Kubernetes secret
-   * @returns {Promise<null|{data: {[p: string]: string}, name: string, namespace: string, type: string, labels: {[p: string]: string}}>} a
-   * custom secret object with the relevant attributes
+   * @returns a custom secret object with the relevant attributes
    */
   async getSecret (namespace, labelSelector) {
     const result = await this.kubeClient.listNamespacedSecret(
