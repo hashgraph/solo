@@ -147,7 +147,7 @@ jobs:
           
           TOTAL_LINES_CHANGED=$(($INSERTIONS + $DELETIONS))
           echo "Total README lines changed: $TOTAL_LINES_CHANGED"
-          echo "TOTAL_LINES_CHANGED=$TOTAL_LINES_CHANGED" >> ${GITHUB_OUTPUT}
+          echo "TOTAL_LINES_CHANGED=$TOTAL_LINES_CHANGED" >> "${GITHUB_OUTPUT}"
 
 
       - name: Commit files
