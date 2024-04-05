@@ -130,11 +130,15 @@ jobs:
       - name: Check README.md Changes
         run: |
           CHANGES=$(git diff --stat)
+          echo "Changes: $CHANGES"
+          
           INSERTIONS=$(echo $CHANGES | grep -o -P '(?<=insertion\(\+\), )\d+')          
-          DELETIONS=$(echo $CHANGES | grep -o '[0-9]\+' | tail -1)          
-          README_LINES_CHANGED=$(($INSERTIONS + $DELETIONS))
           echo "Insertions: $INSERTIONS"
+
+          DELETIONS=$(echo $CHANGES | grep -o '[0-9]\+' | tail -1)          
           echo "Deletions: $DELETIONS"
+
+          README_LINES_CHANGED=$(($INSERTIONS + $DELETIONS))
           echo "Total README lines changed: $README_LINES_CHANGED"
 
           echo "::set-env name=TOTAL_LINES_CHANGED::$README_LINES_CHANGED"
