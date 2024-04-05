@@ -279,7 +279,7 @@ $ rm -rf ~/.solo
 $ solo init -t v0.47.0-alpha.0 -i node0,node1,node2 -n "${SOLO_NAMESPACE}" -s "${SOLO_CLUSTER_SETUP_NAMESPACE}" --key-format pem 
 ```
 
-* Example output
+* Example output:
 
 ```
 $SOLO_INIT_047_OUTPUT
@@ -291,7 +291,7 @@ $SOLO_INIT_047_OUTPUT
 $ solo node keys --gossip-keys --tls-keys --key-format pem
 ```
 
-* Example output
+* Example output:
 
 ```
 $SOLO_NODE_KEY_PEM_OUTPUT
