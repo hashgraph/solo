@@ -29,6 +29,10 @@ defaults:
 jobs:
   update:
     runs-on: [self-hosted, Linux, medium, ephemeral]
+    permissions:
+      # Give the default GITHUB_TOKEN write permission to commit and push the
+      # added or changed files to the repository.
+      contents: write
     steps:
       - name: Checkout Code for Push
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
@@ -149,13 +153,10 @@ jobs:
           echo "Total README lines changed: $TOTAL_LINES_CHANGED"
           echo "TOTAL_LINES_CHANGED=$TOTAL_LINES_CHANGED" >> "${GITHUB_OUTPUT}"
 
-
-      - name: Commit files
-        uses: swinton/commit@v2.0.0
-        if: ${{ steps.check-readme-changes.outputs.TOTAL_LINES_CHANGED > 10 }}
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - uses: planetscale/ghcommit-action@v0.1.35
         with:
-          files: |
-            README.md
-          commit-message: Auto update README.md
+          commit_message: "auto update README.md"
+          repo: ${{ github.repository }}
+          branch: ${{ github.head_ref || github.ref_name }}
+        env:
+          GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
