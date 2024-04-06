@@ -22,7 +22,10 @@ on:
       - opened
       - reopened
       - synchronize
-
+    paths:
+      - '**/*.mjs'
+      - '**/*.js'
+      - '**/package*.json'
 defaults:
   run:
     shell: bash
