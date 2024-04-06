@@ -153,7 +153,9 @@ jobs:
           echo "Total README lines changed: $TOTAL_LINES_CHANGED"
           echo "TOTAL_LINES_CHANGED=$TOTAL_LINES_CHANGED" >> "${GITHUB_OUTPUT}"
 
-      - uses: planetscale/ghcommit-action@v0.1.35
+      - name: Commit README.md Changes
+        if: ${{ steps.check-readme-changes.outputs.TOTAL_LINES_CHANGED > 30 }}
+        uses: planetscale/ghcommit-action@v0.1.35
         with:
           commit_message: "auto update README.md"
           repo: ${{ github.repository }}
