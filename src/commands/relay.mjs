@@ -15,7 +15,6 @@
  *
  */
 import { Listr } from 'listr2'
-import * as paths from 'path'
 import { FullstackTestingError, MissingArgumentError } from '../core/errors.mjs'
 import * as helpers from '../core/helpers.mjs'
 import { constants } from '../core/index.mjs'
@@ -24,14 +23,24 @@ import * as flags from './flags.mjs'
 import * as prompts from './prompts.mjs'
 
 export class RelayCommand extends BaseCommand {
-  prepareValuesArg (valuesFile, nodeIDs, chainID, relayRelease, replicaCount, operatorID, operatorKey) {
+  constructor (opts) {
+    super(opts)
+
+    if (!opts || !opts.profileManager) throw new MissingArgumentError('An instance of core/ProfileManager is required', opts.downloader)
+
+    this.profileManager = opts.profileManager
+  }
+
+  async prepareValuesArg (valuesFile, nodeIDs, chainID, relayRelease, replicaCount, operatorID, operatorKey) {
     let valuesArg = ''
     if (valuesFile) {
-      const valuesFiles = valuesFile.split(',')
-      valuesFiles.forEach(vf => {
-        const vfp = paths.resolve(vf)
-        valuesArg += ` --values ${vfp}`
-      })
+      valuesArg += this.prepareValuesFiles(valuesFile)
+    }
+
+    const profileName = this.configManager.getFlag(flags.profileName)
+    const profileValuesFile = await this.profileManager.prepareValuesForRpcRelayChart(profileName)
+    if (profileValuesFile) {
+      valuesArg += this.prepareValuesFiles(profileValuesFile)
     }
 
     valuesArg += ` --set config.MIRROR_NODE_URL=${constants.FULLSTACK_DEPLOYMENT_CHART}-rest`
@@ -61,7 +70,7 @@ export class RelayCommand extends BaseCommand {
     }
 
     nodeIDs.forEach(nodeID => {
-      const networkKey = `network-${nodeID.trim()}-0-svc:50211`
+      const networkKey = `network-${nodeID.trim()}-0:50211`
       valuesArg += ` --set config.HEDERA_NETWORK.${networkKey}=0.0.3`
     })
 
@@ -101,7 +110,9 @@ export class RelayCommand extends BaseCommand {
             flags.relayReleaseTag,
             flags.replicaCount,
             flags.operatorId,
-            flags.operatorKey
+            flags.operatorKey,
+            flags.profileName,
+            flags.profileFile
           ])
 
           // prompt if inputs are empty and set it in the context
@@ -109,7 +120,7 @@ export class RelayCommand extends BaseCommand {
             chartDir: self.configManager.getFlag(flags.chartDirectory),
             namespace: self.configManager.getFlag(flags.namespace),
             valuesFile: self.configManager.getFlag(flags.valuesFile),
-            nodeIds: helpers.parseNodeIDs(self.configManager.getFlag(flags.nodeIDs)),
+            nodeIds: helpers.parseNodeIds(self.configManager.getFlag(flags.nodeIDs)),
             chainId: self.configManager.getFlag(flags.chainId),
             relayRelease: self.configManager.getFlag(flags.relayReleaseTag),
             replicaCount: self.configManager.getFlag(flags.replicaCount),
@@ -127,7 +138,7 @@ export class RelayCommand extends BaseCommand {
         title: 'Prepare chart values',
         task: async (ctx, _) => {
           ctx.chartPath = await self.prepareChartPath(ctx.config.chartDir, constants.JSON_RPC_RELAY_CHART, constants.JSON_RPC_RELAY_CHART)
-          ctx.valuesArg = self.prepareValuesArg(
+          ctx.valuesArg = await self.prepareValuesArg(
             ctx.config.valuesFile,
             ctx.config.nodeIds,
             ctx.config.chainId,
@@ -151,13 +162,25 @@ export class RelayCommand extends BaseCommand {
           await self.k8.waitForPod(constants.POD_STATUS_RUNNING, [
             'app=hedera-json-rpc-relay',
             `app.kubernetes.io/instance=${releaseName}`
-          ], 1, 120, 1000)
-
-          this.logger.showList('Deployed Relays', await self.chartManager.getInstalledCharts(namespace))
+          ], 1, 900, 1000)
 
           // reset nodeID
           self.configManager.setFlag(flags.nodeIDs, '')
           self.configManager.persist()
+        }
+      },
+      {
+        title: 'Check relay is ready',
+        task: async (ctx, _) => {
+          const releaseName = ctx.releaseName
+          try {
+            await self.k8.waitForPodReady([
+              'app=hedera-json-rpc-relay',
+              `app.kubernetes.io/instance=${releaseName}`
+            ], 1, 100, 2000)
+          } catch (e) {
+            throw new FullstackTestingError(`Relay ${releaseName} is not ready: ${e.message}`, e)
+          }
         }
       }
     ], {
@@ -195,7 +218,7 @@ export class RelayCommand extends BaseCommand {
           ctx.config = {
             chartDir: self.configManager.getFlag(flags.chartDirectory),
             namespace: self.configManager.getFlag(flags.namespace),
-            nodeIds: helpers.parseNodeIDs(self.configManager.getFlag(flags.nodeIDs))
+            nodeIds: helpers.parseNodeIds(self.configManager.getFlag(flags.nodeIDs))
           }
 
           ctx.releaseName = this.prepareReleaseName(ctx.config.nodeIds)
@@ -253,7 +276,9 @@ export class RelayCommand extends BaseCommand {
                 flags.nodeIDs,
                 flags.relayReleaseTag,
                 flags.operatorId,
-                flags.operatorKey
+                flags.operatorKey,
+                flags.profileName,
+                flags.profileFile
               )
             },
             handler: argv => {

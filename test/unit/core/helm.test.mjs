@@ -30,7 +30,7 @@ describe.each([
 
   it('should run helm install', async () => {
     await helm.install('arg')
-    expect(shellSpy).toHaveBeenCalledWith(`${helmPath} install arg`, true)
+    expect(shellSpy).toHaveBeenCalledWith(`${helmPath} install arg`)
   })
 
   it('should run helm uninstall', async () => {

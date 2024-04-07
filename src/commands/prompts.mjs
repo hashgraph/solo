@@ -43,6 +43,7 @@ async function prompt (type, task, input, defaultValue, promptMessage, emptyChec
     throw new FullstackTestingError(`input failed: ${flagName}: ${e.message}`, e)
   }
 }
+
 async function promptText (task, input, defaultValue, promptMessage, emptyCheckMessage, flagName) {
   return await prompt('text', task, input, defaultValue, promptMessage, emptyCheckMessage, flagName)
 }
@@ -117,6 +118,10 @@ export async function promptChainId (task, input) {
 
 export async function promptChartDir (task, input) {
   try {
+    if (input === 'false') {
+      return ''
+    }
+
     if (input && !fs.existsSync(input)) {
       input = await task.prompt(ListrEnquirerPromptAdapter).run({
         type: 'text',
@@ -152,6 +157,46 @@ export async function promptValuesFile (task, input) {
     return input
   } catch (e) {
     throw new FullstackTestingError(`input failed: ${flags.valuesFile.name}`, e)
+  }
+}
+
+export async function promptProfileFile (task, input) {
+  if (input && !fs.existsSync(input)) {
+    input = await task.prompt(ListrEnquirerPromptAdapter).run({
+      type: 'text',
+      default: flags.valuesFile.definition.defaultValue,
+      message: 'Enter path to custom resource profile definition file: '
+    })
+  }
+
+  if (input && !fs.existsSync(input)) {
+    throw new IllegalArgumentError(`Invalid profile definition file: ${input}}`, input)
+  }
+
+  return input
+}
+
+export async function promptProfile (task, input, choices = constants.ALL_PROFILES) {
+  try {
+    const initial = choices.indexOf(input)
+    if (initial < 0) {
+      const input = await task.prompt(ListrEnquirerPromptAdapter).run({
+        type: 'select',
+        initial: choices.indexOf(flags.keyFormat.definition.defaultValue),
+        message: 'Select profile for fullstack network deployment',
+        choices: helpers.cloneArray(choices)
+      })
+
+      if (!input) {
+        throw new FullstackTestingError('key-format cannot be empty')
+      }
+
+      return input
+    }
+
+    return input
+  } catch (e) {
+    throw new FullstackTestingError(`input failed: ${flags.keyFormat.name}: ${e.message}`, e)
   }
 }
 
@@ -393,6 +438,8 @@ export function getPromptMap () {
     .set(flags.privateKey.name, promptPrivateKey)
     .set(flags.accountId.name, promptAccountId)
     .set(flags.amount.name, promptAmount)
+    .set(flags.profileFile.name, promptProfileFile)
+    .set(flags.profileName.name, promptProfile)
 }
 
 // build the prompt registry

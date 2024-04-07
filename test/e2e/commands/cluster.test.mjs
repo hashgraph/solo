@@ -20,7 +20,7 @@ import {
   beforeEach,
   describe,
   expect,
-  it
+  it, jest
 } from '@jest/globals'
 import {
   bootstrapTestVariables,
@@ -28,13 +28,18 @@ import {
   TEST_CLUSTER
 } from '../../test_util.js'
 import {
-  constants
+  constants,
+  logging
 } from '../../../src/core/index.mjs'
 import { flags } from '../../../src/commands/index.mjs'
 import { sleep } from '../../../src/core/helpers.mjs'
 import * as version from '../../../version.mjs'
 
 describe('ClusterCommand', () => {
+  // mock showUser and showJSON to silent logging during tests
+  jest.spyOn(logging.Logger.prototype, 'showUser').mockImplementation()
+  jest.spyOn(logging.Logger.prototype, 'showJSON').mockImplementation()
+
   const testName = 'cluster-cmd-e2e'
   const namespace = testName
   const argv = getDefaultArgv()
@@ -75,7 +80,6 @@ describe('ClusterCommand', () => {
       try {
         await expect(clusterCmd.reset(argv)).resolves.toBeTruthy()
       } catch (e) {
-        clusterCmd.logger.showUserError(e)
         expect(e).toBeNull()
       }
     }
@@ -89,7 +93,6 @@ describe('ClusterCommand', () => {
     try {
       await expect(clusterCmd.setup(argv)).rejects.toThrowError('Error on cluster setup')
     } catch (e) {
-      clusterCmd.logger.showUserError(e)
       expect(e).toBeNull()
     }
   }, 60000)
@@ -102,7 +105,6 @@ describe('ClusterCommand', () => {
     try {
       await expect(clusterCmd.setup(argv)).resolves.toBeTruthy()
     } catch (e) {
-      clusterCmd.logger.showUserError(e)
       expect(e).toBeNull()
     }
   }, 60000)
@@ -111,7 +113,6 @@ describe('ClusterCommand', () => {
     try {
       await expect(clusterCmd.getClusterInfo()).resolves.toBeTruthy()
     } catch (e) {
-      clusterCmd.logger.showUserError(e)
       expect(e).toBeNull()
     }
   }, 60000)
@@ -120,7 +121,6 @@ describe('ClusterCommand', () => {
     try {
       await expect(clusterCmd.showClusterList()).resolves.toBeTruthy()
     } catch (e) {
-      clusterCmd.logger.showUserError(e)
       expect(e).toBeNull()
     }
   }, 60000)
@@ -129,7 +129,6 @@ describe('ClusterCommand', () => {
     try {
       await expect(clusterCmd.showInstalledChartList()).resolves.toBeUndefined()
     } catch (e) {
-      clusterCmd.logger.showUserError(e)
       expect(e).toBeNull()
     }
   }, 60000)
@@ -156,7 +155,6 @@ describe('ClusterCommand', () => {
     try {
       await expect(clusterCmd.reset(argv)).resolves.toBeTruthy()
     } catch (e) {
-      clusterCmd.logger.showUserError(e)
       expect(e).toBeNull()
     }
   }, 60000)

@@ -199,13 +199,21 @@ Kubernetes Context      : kind-solo
 Kubernetes Cluster      : kind-solo
 Kubernetes Namespace    : solo
 **********************************************************************************
-✔ Initialize
-✔ Install chart 'fullstack-deployment' [1s]
-✔ Waiting for network pods to be ready [2m38s]
-  ✔ Node: node0 (Pod: network-node0-0) [2m38s]
-  ✔ Node: node1 (Pod: network-node1-0)
-  ✔ Node: node2 (Pod: network-node2-0)
-
+✔ Initialize [5s]
+✔ Install chart 'fullstack-deployment' [19s]
+✔ Check node pods are ready [2s]
+  ✔ Check Node: node0 [0.8s]
+  ✔ Check Node: node1 [1s]
+  ✔ Check Node: node2 [0.9s]
+✔ Check proxy pods are ready [0.7s]
+  ✔ Check HAProxy for: node0 [0.7s]
+  ✔ Check HAProxy for: node1 [0.7s]
+  ✔ Check HAProxy for: node2 [0.7s]
+  ✔ Check Envoy Proxy for: node0 [0.7s]
+  ✔ Check Envoy Proxy for: node1 [0.7s]
+  ✔ Check Envoy Proxy for: node2 [0.7s]
+✔ Check auxiliary pods are ready [5s]
+  ✔ Check MinIO [5s]
 ```
 
 * Setup node with Hedera platform software.
@@ -233,9 +241,9 @@ Kubernetes Namespace    : solo
   ✔ Copy gRPC TLS keys to staging
   ✔ Prepare config.txt for the network
 ✔ Fetch platform software into network nodes [1m7s]
-  ✔ Node: node0 [48s]
-  ✔ Node: node1 [44s]
-  ✔ Node: node2 [1m7s]
+  ✔ Update node: node0 [48s]
+  ✔ Update node: node1 [44s]
+  ✔ Update node: node2 [1m7s]
 ✔ Setup network nodes [1s]
   ✔ Node: node0 [1s]
     ✔ Copy Gossip keys [0.2s]
@@ -296,17 +304,35 @@ Kubernetes Context      : kind-solo-e2e
 Kubernetes Cluster      : kind-solo-e2e
 Kubernetes Namespace    : solo
 **********************************************************************************
-✔ Initialize
-✔ Enable mirror-node [4s]
-  ✔ Prepare address book [0.1s]
-  ✔ Deploy mirror-node [3s]
-✔ Check Mirror node components are ACTIVE [3s]
-  ✔ Check Postgres DB [3s]
-  ✔ Check Importer
-  ✔ Check REST API
-  ✔ Check Web3
-  ✔ Check GRPC
-  ✔ Check Hedera Explorer
+✔ Initialize [7s]
+✔ Enable mirror-node [1m10s]
+  ✔ Prepare address book [1s]
+  ✔ Deploy mirror-node [1m9s]
+✔ Check pods are ready [59s]
+  ✔ Check Postgres DB [12s]
+  ✔ Check REST API [39s]
+  ✔ Check GRPC [30s]
+  ✔ Check Monitor [59s]
+  ✔ Check Importer [48s]
+  ✔ Check Hedera Explorer [0.7s]
+```
+
+* Deploy a JSON RPC relay
+
+```
+$ solo relay deploy
+******************************* Solo *********************************************
+Version                 : 0.22.1
+Kubernetes Context      : microk8s
+Kubernetes Cluster      : microk8s-cluster
+Kubernetes Namespace    : solo
+**********************************************************************************
+(node:7924) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+✔ Initialize [1s]
+✔ Prepare chart values
+✔ Deploy JSON RPC Relay [9s]
+✔ Check relay is ready [21s]
 ```
 
 You may view the list of pods using `k9s` as below:

@@ -99,6 +99,24 @@ export const valuesFile = {
   }
 }
 
+export const profileFile = {
+  name: 'profile-file',
+  definition: {
+    describe: 'Resource profile definition (e.g. custom-spec.yaml)',
+    defaultValue: constants.DEFAULT_PROFILE_FILE,
+    type: 'string'
+  }
+}
+
+export const profileName = {
+  name: 'profile',
+  definition: {
+    describe: `Resource profile (${constants.ALL_PROFILES.join(' | ')})`,
+    defaultValue: constants.PROFILE_LOCAL,
+    type: 'string'
+  }
+}
+
 export const deployPrometheusStack = {
   name: 'prometheus-stack',
   definition: {
@@ -109,7 +127,7 @@ export const deployPrometheusStack = {
 }
 
 export const enablePrometheusSvcMonitor = {
-  name: 'enable-prometheus-svc-monitor',
+  name: 'prometheus-svc-monitor',
   definition: {
     describe: 'Enable prometheus service monitor for the network nodes',
     defaultValue: false,
@@ -161,8 +179,9 @@ export const deployJsonRpcRelay = {
 export const releaseTag = {
   name: 'release-tag',
   definition: {
-    describe: 'Release tag to be used (e.g. v0.42.5)',
+    describe: `Release tag to be used (e.g. ${version.HEDERA_PLATFORM_VERSION})`,
     alias: 't',
+    defaultValue: version.HEDERA_PLATFORM_VERSION,
     type: 'string'
   }
 }
@@ -276,7 +295,7 @@ export const keyFormat = {
   name: 'key-format',
   definition: {
     describe: 'Public and Private key file format (pem or pfx)',
-    defaultValue: 'pfx',
+    defaultValue: 'pem',
     type: 'string'
   }
 }
@@ -466,7 +485,9 @@ export const allFlags = [
   privateKey,
   accountId,
   amount,
-  applicationEnv
+  applicationEnv,
+  profileFile,
+  profileName
 ]
 
 export const allFlagsMap = new Map(allFlags.map(f => [f.name, f]))

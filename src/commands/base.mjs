@@ -15,6 +15,7 @@
  *
  */
 'use strict'
+import paths from 'path'
 import { MissingArgumentError } from '../core/errors.mjs'
 import { ShellRunner } from '../core/shell_runner.mjs'
 
@@ -26,10 +27,22 @@ export class BaseCommand extends ShellRunner {
     if (chartDir) {
       const chartPath = `${chartDir}/${chartReleaseName}`
       await this.helm.dependency('update', chartPath)
-      return chartPath
     }
 
     return `${chartRepo}/${chartReleaseName}`
+  }
+
+  prepareValuesFiles (valuesFile) {
+    let valuesArg = ''
+    if (valuesFile) {
+      const valuesFiles = valuesFile.split(',')
+      valuesFiles.forEach(vf => {
+        const vfp = paths.resolve(vf)
+        valuesArg += ` --values ${vfp}`
+      })
+    }
+
+    return valuesArg
   }
 
   constructor (opts) {

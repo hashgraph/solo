@@ -114,7 +114,7 @@ export class ConfigManager {
           let val = argv[flag.name]
           switch (flag.definition.type) {
             case 'string':
-              if (flag.name === flags.chartDirectory.name || flag.name === flags.cacheDir.name) {
+              if (val && (flag.name === flags.chartDirectory.name || flag.name === flags.cacheDir.name)) {
                 this.logger.debug(`Resolving directory path for '${flag.name}': ${val}`)
                 val = paths.resolve(val)
               }

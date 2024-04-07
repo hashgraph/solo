@@ -33,7 +33,7 @@ export function sleep (ms) {
   })
 }
 
-export function parseNodeIDs (input) {
+export function parseNodeIds (input) {
   if (typeof input === 'string') {
     const nodeIds = []
     input.split(',').forEach(item => {
@@ -163,4 +163,10 @@ export function backupOldPemKeys (nodeIds, keysDir, curDate = new Date(), dirPre
   makeBackup(fileMap, true)
 
   return backupDir
+}
+
+export function isNumeric (str) {
+  if (typeof str !== 'string') return false // we only process strings!
+  return !isNaN(str) && // use type coercion to parse the _entirety_ of the string (`parseFloat` alone does not do this)...
+    !isNaN(parseFloat(str)) // ...and ensure strings of whitespace fail
 }

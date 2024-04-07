@@ -27,12 +27,14 @@ export const USER_SANITIZED = USER.replace(/[\W_]+/g, '-')
 export const SOLO_HOME_DIR = process.env.SOLO_HOME || `${process.env.HOME}/.solo`
 export const SOLO_LOGS_DIR = `${SOLO_HOME_DIR}/logs`
 export const SOLO_CACHE_DIR = `${SOLO_HOME_DIR}/cache`
+export const SOLO_VALUES_DIR = `${SOLO_CACHE_DIR}/values-files`
 export const DEFAULT_NAMESPACE = 'default'
 export const HELM = 'helm'
 export const KEYTOOL = 'keytool'
 export const CWD = process.cwd()
 export const SOLO_CONFIG_FILE = `${SOLO_HOME_DIR}/solo.config`
 export const RESOURCES_DIR = normalize(CUR_FILE_DIR + '/../../resources')
+export const PROFILES_DIR = normalize(`${RESOURCES_DIR}/profiles`)
 
 export const ROOT_CONTAINER = 'root-container'
 
@@ -89,7 +91,14 @@ export const NODE_PROXY_USER_ID = process.env.NODE_PROXY_USER_ID || 'admin'
 export const NODE_PROXY_PASSWORD = process.env.NODE_PROXY_PASSWORD || 'adminpwd'
 
 export const POD_STATUS_RUNNING = 'Running'
-export const POD_STATUS_READY = 'Ready'
+
+export const POD_CONDITION_INITIALIZED = 'Initialized'
+export const POD_CONDITION_READY = 'Ready'
+export const POD_CONDITION_CONTAINERS_READY = 'ContainersReady'
+
+export const POD_CONDITION_POD_SCHEDULED = 'PodScheduled'
+export const POD_CONDITION_STATUS_TRUE = 'True'
+export const POD_CONDITION_STATUS_FALSE = 'False'
 
 // Listr related
 export const LISTR_DEFAULT_RENDERER_TIMER_OPTION = {
@@ -128,3 +137,12 @@ export const OS_MAC = 'mac'
 export const OS_LINUX = 'linux'
 
 export const LOCAL_HOST = '127.0.0.1'
+
+export const PROFILE_LARGE = 'large'
+export const PROFILE_MEDIUM = 'medium'
+export const PROFILE_SMALL = 'small'
+export const PROFILE_TINY = 'tiny'
+export const PROFILE_LOCAL = 'local'
+
+export const ALL_PROFILES = [PROFILE_LOCAL, PROFILE_TINY, PROFILE_SMALL, PROFILE_MEDIUM, PROFILE_LARGE]
+export const DEFAULT_PROFILE_FILE = `${SOLO_CACHE_DIR}/profiles/custom-spec.yaml`

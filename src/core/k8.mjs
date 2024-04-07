@@ -25,6 +25,7 @@ import * as sb from 'stream-buffers'
 import * as tar from 'tar'
 import { v4 as uuid4 } from 'uuid'
 import { V1ObjectMeta, V1Secret } from '@kubernetes/client-node'
+import { sleep } from './helpers.mjs'
 import { constants } from './index.mjs'
 
 /**
@@ -34,6 +35,8 @@ import { constants } from './index.mjs'
  * For parallel execution, create separate instances by invoking clone()
  */
 export class K8 {
+  static PodReadyCondition = new Map().set(constants.POD_CONDITION_READY, constants.POD_CONDITION_STATUS_TRUE)
+
   constructor (configManager, logger) {
     if (!configManager) throw new MissingArgumentError('An instance of core/ConfigManager is required')
     if (!logger) throw new MissingArgumentError('An instance of core/Logger is required')
@@ -720,6 +723,27 @@ export class K8 {
     })
   }
 
+  async recyclePodByLabels (podLabels, maxAttempts = 50) {
+    const podArray = await this.getPodsByLabel(podLabels)
+    for (const pod of podArray) {
+      const podName = pod.metadata.name
+      await this.kubeClient.deleteNamespacedPod(podName, this.configManager.getFlag(flags.namespace))
+    }
+
+    let attempts = 0
+    while (attempts++ < maxAttempts) {
+      const status = await this.waitForPod(constants.POD_STATUS_RUNNING, podLabels)
+      if (status) {
+        const newPods = await this.getPodsByLabel(podLabels)
+        if (newPods.length === podArray.length) return newPods
+      }
+
+      await sleep(2000)
+    }
+
+    throw new FullstackTestingError(`pods are not running after deletion with labels [${podLabels.join(',')}]`)
+  }
+
   /**
    * Wait for pod
    * @param status phase of the pod
@@ -727,7 +751,7 @@ export class K8 {
    * @param podCount number of pod expected
    * @param maxAttempts maximum attempts to check
    * @param delay delay between checks in milliseconds
-   * @return {Promise<boolean>}
+   * @return {Promise<[*]>}
    */
   async waitForPod (status = 'Running', labels = [], podCount = 1, maxAttempts = 10, delay = 500) {
     const ns = this._getNamespace()
@@ -755,13 +779,76 @@ export class K8 {
 
         this.logger.debug(`${resp.body.items.length}/${podCount} pod found [namespace:${ns}, fieldSector(${fieldSelector}, labelSelector: ${labelSelector}] [attempt: ${attempts}/${maxAttempts}]`)
         if (resp.body && resp.body.items && resp.body.items.length === podCount) {
-          return resolve(true)
+          return resolve(resp.body.items)
         }
 
         if (attempts++ < maxAttempts) {
           setTimeout(check, delay)
         } else {
-          reject(new FullstackTestingError(`Expected number of pod (${podCount}) not found ${fieldSelector} ${labelSelector} [maxAttempts = ${maxAttempts}]`))
+          return reject(new FullstackTestingError(`Expected number of pod (${podCount}) not found ${fieldSelector} ${labelSelector} [attempts = ${attempts}/${maxAttempts}]`))
+        }
+      }
+
+      check()
+    })
+  }
+
+  async waitForPodReady (labels = [], podCount = 1, maxAttempts = 10, delay = 500) {
+    return this.waitForPodCondition(K8.PodReadyCondition, labels, podCount, maxAttempts, delay)
+  }
+
+  async waitForPodCondition (
+    conditionsMap,
+    labels = [],
+    podCount = 1, maxAttempts = 10, delay = 500) {
+    if (!conditionsMap || conditionsMap.size === 0) throw new MissingArgumentError('pod conditions are required')
+    const ns = this._getNamespace()
+    const labelSelector = labels.join(',')
+
+    this.logger.debug(`WaitForCondition [namespace:${ns}, conditions = ${conditionsMap.toString()} labelSelector: ${labelSelector}], maxAttempts: ${maxAttempts}`)
+
+    return new Promise((resolve, reject) => {
+      let attempts = 0
+
+      const check = async () => {
+        this.logger.debug(`Checking for pod ready [namespace:${ns}, labelSelector: ${labelSelector}] [attempt: ${attempts}/${maxAttempts}]`)
+
+        // wait for the pod to be available with the given status and labels
+        const pods = await this.waitForPod(constants.POD_STATUS_RUNNING, labels, podCount, maxAttempts, delay)
+        this.logger.debug(`${pods.length}/${podCount} pod found [namespace:${ns}, labelSelector: ${labelSelector}] [attempt: ${attempts}/${maxAttempts}]`)
+
+        if (pods.length >= podCount) {
+          const podWithMatchedCondition = []
+
+          // check conditions
+          for (const pod of pods) {
+            let matchedCondition = 0
+            for (const cond of pod.status.conditions) {
+              for (const entry of conditionsMap.entries()) {
+                const condType = entry[0]
+                const condStatus = entry[1]
+                if (cond.type === condType && cond.status === condStatus) {
+                  this.logger.debug(`Pod condition met for ${pod.metadata.name} [type: ${cond.type} status: ${cond.status}]`)
+                  matchedCondition++
+                }
+              }
+
+              if (matchedCondition >= conditionsMap.size) {
+                podWithMatchedCondition.push(pod)
+                break
+              }
+            }
+          }
+
+          if (podWithMatchedCondition.length >= podCount) {
+            return resolve(podWithMatchedCondition)
+          }
+        }
+
+        if (attempts++ < maxAttempts) {
+          setTimeout(check, delay)
+        } else {
+          return reject(new FullstackTestingError(`Pod not found with expected conditions [maxAttempts = ${maxAttempts}]`))
         }
       }
 
