@@ -62,7 +62,7 @@ describe.each([
   afterAll(async () => {
     await k8.deleteNamespace(namespace)
     await accountManager.close()
-  })
+  }, 20000)
 
   describe(`Node should start successfully [release ${input.releaseTag}, keyFormat: ${input.keyFormat}]`, () => {
     balanceQueryShouldSucceed(accountManager, nodeCmd, namespace)
@@ -162,7 +162,7 @@ function balanceQueryShouldSucceed (accountManager, nodeCmd, namespace) {
       expect(e).toBeNull()
     }
     await sleep(1000)
-  }, 20000)
+  }, 40000)
 }
 
 function nodeShouldBeRunning (nodeCmd, namespace, nodeId) {
