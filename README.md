@@ -579,6 +579,6 @@ Contributions are welcome. Please see the [contributing guide](https://github.co
 This project is governed by the [Contributor Covenant Code of Conduct](https://github.com/hashgraph/.github/blob/main/CODE_OF_CONDUCT.md). By participating, you are
 expected to uphold this code of conduct.
 
-## License
+## License 
 
 [Apache License 2.0](LICENSE)
