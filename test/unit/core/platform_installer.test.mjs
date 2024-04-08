@@ -28,7 +28,7 @@ describe('PackageInstaller', () => {
   const testLogger = core.logging.NewLogger('debug')
   const configManager = new ConfigManager(testLogger)
   const k8 = new core.K8(configManager, testLogger)
-  const installer = new PlatformInstaller(testLogger, k8)
+  const installer = new PlatformInstaller(testLogger, k8, configManager)
 
   describe('validatePlatformReleaseDir', () => {
     it('should fail for missing path', async () => {

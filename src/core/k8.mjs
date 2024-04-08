@@ -397,27 +397,34 @@ export class K8 {
     const parentDir = path.dirname(destPath)
     const fileName = path.basename(destPath)
     const filterMap = new Map(Object.entries(filters))
-    const entries = await this.listDir(podName, containerName, parentDir)
 
-    for (const item of entries) {
-      if (item.name === fileName && !item.directory) {
-        let found = true
+    try {
+      const entries = await this.listDir(podName, containerName, parentDir)
 
-        for (const entry of filterMap.entries()) {
-          const field = entry[0]
-          const value = entry[1]
-          this.logger.debug(`Checking file ${podName}:${containerName} ${destPath}; ${field} expected ${value}, found ${item[field]}`, { filters })
-          if (`${value}` !== `${item[field]}`) {
-            found = false
-            break
+      for (const item of entries) {
+        if (item.name === fileName && !item.directory) {
+          let found = true
+
+          for (const entry of filterMap.entries()) {
+            const field = entry[0]
+            const value = entry[1]
+            this.logger.debug(`Checking file ${podName}:${containerName} ${destPath}; ${field} expected ${value}, found ${item[field]}`, { filters })
+            if (`${value}` !== `${item[field]}`) {
+              found = false
+              break
+            }
+          }
+
+          if (found) {
+            this.logger.debug(`File check succeeded ${podName}:${containerName} ${destPath}`, { filters })
+            return true
           }
         }
-
-        if (found) {
-          this.logger.debug(`File check succeeded ${podName}:${containerName} ${destPath}`, { filters })
-          return true
-        }
       }
+    } catch (e) {
+      const error = new FullstackTestingError(`unable to check file in '${podName}':${containerName}' - ${destPath}: ${e.message}`, e)
+      this.logger.error(error.message, error)
+      throw error
     }
 
     return false

@@ -20,7 +20,7 @@ import { Listr } from 'listr2'
 import path from 'path'
 import { FullstackTestingError, IllegalArgumentError } from '../core/errors.mjs'
 import * as helpers from '../core/helpers.mjs'
-import { getTmpDir, sleep } from '../core/helpers.mjs'
+import { getTmpDir, sleep, validatePath } from '../core/helpers.mjs'
 import { constants, Templates } from '../core/index.mjs'
 import { BaseCommand } from './base.mjs'
 import * as flags from './flags.mjs'
@@ -40,7 +40,7 @@ export class NodeCommand extends BaseCommand {
     if (!opts || !opts.keytoolDepManager) throw new IllegalArgumentError('An instance of KeytoolDependencyManager is required', opts.keytoolDepManager)
 
     this.downloader = opts.downloader
-    this.plaformInstaller = opts.platformInstaller
+    this.platformInstaller = opts.platformInstaller
     this.keyManager = opts.keyManager
     this.accountManager = opts.accountManager
     this.keytoolDepManager = opts.keytoolDepManager
@@ -107,7 +107,8 @@ export class NodeCommand extends BaseCommand {
       try {
         const output = await this.k8.execContainer(podName, constants.ROOT_CONTAINER, ['tail', '-10', logfilePath])
         if (output && output.indexOf('Terminating Netty') < 0 && // make sure we are not at the beginning of a restart
-          output.indexOf(`Now current platform status = ${status}`) > 0) {
+            (output.indexOf(`Now current platform status = ${status}`) > 0 ||
+            output.indexOf(`is ${status}`) > 0)) { // 'is ACTIVE' is for newer versions, first seen in v0.49.0
           this.logger.debug(`Node ${nodeId} is ${status} [ attempt: ${attempt}/${maxAttempt}]`)
           isActive = true
           break
@@ -214,7 +215,7 @@ export class NodeCommand extends BaseCommand {
           task: async () => {
             const publicPfxFile = await self.keyManager.updatePublicPfxKey(self.keytoolDepManager.getKeytool(), nodeIds, keysDir, tmpDir)
             const output = await keytool.list(`-storetype pkcs12 -storepass password -keystore ${publicPfxFile}`)
-            if (!output.includes('Your keystore contains 9 entries')) {
+            if (!output.includes(`Your keystore contains ${nodeIds.length * 3} entries`)) {
               throw new FullstackTestingError(`malformed public.pfx file: ${publicPfxFile}`)
             }
           }
@@ -312,6 +313,51 @@ export class NodeCommand extends BaseCommand {
     }
   }
 
+  async initializeSetup (config, configManager, k8) {
+    // compute other config parameters
+    config.releasePrefix = Templates.prepareReleasePrefix(config.releaseTag)
+    config.buildZipFile = `${config.cacheDir}/${config.releasePrefix}/build-${config.releaseTag}.zip`
+    config.keysDir = path.join(validatePath(config.cacheDir), 'keys')
+    config.stagingDir = Templates.renderStagingDir(configManager, flags)
+    config.stagingKeysDir = path.join(validatePath(config.stagingDir), 'keys')
+
+    if (!await k8.hasNamespace(config.namespace)) {
+      throw new FullstackTestingError(`namespace ${config.namespace} does not exist`)
+    }
+
+    // prepare staging keys directory
+    if (!fs.existsSync(config.stagingKeysDir)) {
+      fs.mkdirSync(config.stagingKeysDir, { recursive: true })
+    }
+
+    // create cached keys dir if it does not exist yet
+    if (!fs.existsSync(config.keysDir)) {
+      fs.mkdirSync(config.keysDir)
+    }
+  }
+
+  fetchPlatformSoftware (ctx, task, platformInstaller) {
+    const config = ctx.config
+
+    const subTasks = []
+    for (const nodeId of ctx.config.nodeIds) {
+      const podName = ctx.config.podNames[nodeId]
+      subTasks.push({
+        title: `Update node: ${chalk.yellow(nodeId)}`,
+        task: () =>
+          platformInstaller.fetchPlatform(podName, config.releaseTag)
+      })
+    }
+
+    // set up the sub-tasks
+    return task.newListr(subTasks, {
+      concurrent: true, // since we download in the container directly, we want this to be in parallel across all nodes
+      rendererOptions: {
+        collapseSubtasks: false
+      }
+    })
+  }
+
   async setup (argv) {
     const self = this
 
@@ -345,26 +391,7 @@ export class NodeCommand extends BaseCommand {
             curDate: new Date()
           }
 
-          // compute other config parameters
-          config.releasePrefix = Templates.prepareReleasePrefix(config.releaseTag)
-          config.buildZipFile = `${config.cacheDir}/${config.releasePrefix}/build-${config.releaseTag}.zip`
-          config.keysDir = path.join(config.cacheDir, 'keys')
-          config.stagingDir = Templates.renderStagingDir(self.configManager, flags)
-          config.stagingKeysDir = path.join(config.stagingDir, 'keys')
-
-          if (!await this.k8.hasNamespace(config.namespace)) {
-            throw new FullstackTestingError(`namespace ${config.namespace} does not exist`)
-          }
-
-          // prepare staging keys directory
-          if (!fs.existsSync(config.stagingKeysDir)) {
-            fs.mkdirSync(config.stagingKeysDir, { recursive: true })
-          }
-
-          // create cached keys dir if it does not exist yet
-          if (!fs.existsSync(config.keysDir)) {
-            fs.mkdirSync(config.keysDir)
-          }
+          await self.initializeSetup(config, self.configManager, self.k8)
 
           // set config in the context for later tasks to use
           ctx.config = config
@@ -477,7 +504,7 @@ export class NodeCommand extends BaseCommand {
                 const config = ctx.config
                 const configTxtPath = `${config.stagingDir}/config.txt`
                 const template = `${constants.RESOURCES_DIR}/templates/config.template`
-                await self.plaformInstaller.prepareConfigTxt(config.nodeIds, configTxtPath, config.releaseTag, config.chainId, template)
+                await self.platformInstaller.prepareConfigTxt(config.nodeIds, configTxtPath, config.releaseTag, config.chainId, template)
               }
             }
           ]
@@ -492,25 +519,7 @@ export class NodeCommand extends BaseCommand {
         title: 'Fetch platform software into network nodes',
         task:
           async (ctx, task) => {
-            const config = ctx.config
-
-            const subTasks = []
-            for (const nodeId of ctx.config.nodeIds) {
-              const podName = ctx.config.podNames[nodeId]
-              subTasks.push({
-                title: `Update node: ${chalk.yellow(nodeId)}`,
-                task: () =>
-                  self.plaformInstaller.fetchPlatform(podName, config.releaseTag)
-              })
-            }
-
-            // set up the sub-tasks
-            return task.newListr(subTasks, {
-              concurrent: true, // since we download in the container directly, we want this to be in parallel across all nodes
-              rendererOptions: {
-                collapseSubtasks: false
-              }
-            })
+            return self.fetchPlatformSoftware(ctx, task, self.platformInstaller)
           }
       },
       {
@@ -524,7 +533,7 @@ export class NodeCommand extends BaseCommand {
             subTasks.push({
               title: `Node: ${chalk.yellow(nodeId)}`,
               task: () =>
-                self.plaformInstaller.taskInstall(podName, config.buildZipFile, config.stagingDir, config.nodeIds, config.keyFormat, config.force)
+                self.platformInstaller.taskInstall(podName, config.buildZipFile, config.stagingDir, config.nodeIds, config.keyFormat, config.force)
             })
           }
 
@@ -568,29 +577,21 @@ export class NodeCommand extends BaseCommand {
           self.configManager.update(argv)
           await prompts.execute(task, self.configManager, [
             flags.namespace,
-            flags.chartDirectory,
             flags.nodeIDs
           ])
 
           ctx.config = {
             namespace: self.configManager.getFlag(flags.namespace),
-            chartDir: self.configManager.getFlag(flags.chartDirectory),
-            fstChartVersion: self.configManager.getFlag(flags.fstChartVersion),
             nodeIds: helpers.parseNodeIds(self.configManager.getFlag(flags.nodeIDs)),
             applicationEnv: self.configManager.getFlag(flags.applicationEnv),
             cacheDir: self.configManager.getFlag(flags.cacheDir)
           }
-
-          ctx.config.chartPath = await self.prepareChartPath(ctx.config.chartDir,
-            constants.FULLSTACK_TESTING_CHART, constants.FULLSTACK_DEPLOYMENT_CHART)
 
           ctx.config.stagingDir = Templates.renderStagingDir(self.configManager, flags)
 
           if (!await self.k8.hasNamespace(ctx.config.namespace)) {
             throw new FullstackTestingError(`namespace ${ctx.config.namespace} does not exist`)
           }
-
-          await self.accountManager.loadNodeClient(ctx.config.namespace)
         }
       },
       {
@@ -682,7 +683,6 @@ export class NodeCommand extends BaseCommand {
     } catch (e) {
       throw new FullstackTestingError(`Error starting node: ${e.message}`, e)
     } finally {
-      await self.accountManager.close()
       await self.close()
     }
 
@@ -697,7 +697,7 @@ export class NodeCommand extends BaseCommand {
    * @param delay the delay between attempts
    * @returns {Promise<boolean>} true if the proxy is up
    */
-  async checkNetworkNodeProxyUp (nodeId, localPort, maxAttempts = 15, delay = 2000) {
+  async checkNetworkNodeProxyUp (nodeId, localPort, maxAttempts = 30, delay = 2000) {
     const podLabels = [`app=haproxy-${nodeId}`, 'fullstack.hedera.com/type=haproxy']
     let podArray = await this.k8.getPodsByLabel(podLabels)
 
@@ -896,6 +896,203 @@ export class NodeCommand extends BaseCommand {
     return true
   }
 
+  async refresh (argv) {
+    const self = this
+
+    const tasks = new Listr([
+      {
+        title: 'Initialize',
+        task: async (ctx, task) => {
+          self.configManager.update(argv)
+          await prompts.execute(task, self.configManager, [
+            flags.namespace,
+            flags.nodeIDs,
+            flags.releaseTag,
+            flags.cacheDir,
+            flags.keyFormat
+          ])
+
+          const config = {
+            namespace: self.configManager.getFlag(flags.namespace),
+            nodeIds: helpers.parseNodeIds(self.configManager.getFlag(flags.nodeIDs)),
+            releaseTag: self.configManager.getFlag(flags.releaseTag),
+            cacheDir: self.configManager.getFlag(flags.cacheDir),
+            force: self.configManager.getFlag(flags.force),
+            applicationEnv: self.configManager.getFlag(flags.applicationEnv),
+            keyFormat: self.configManager.getFlag(flags.keyFormat),
+            de3vMode: self.configManager.getFlag(flags.devMode),
+            curDate: new Date()
+          }
+
+          await self.initializeSetup(config, self.configManager, self.k8)
+
+          // set config in the context for later tasks to use
+          ctx.config = config
+
+          self.logger.debug('Initialized config', { config })
+        }
+      },
+      {
+        title: 'Identify network pods',
+        task: (ctx, task) => self.taskCheckNetworkNodePods(ctx, task)
+      },
+      {
+        title: 'Dump network nodes saved state',
+        task:
+            async (ctx, task) => {
+              const subTasks = []
+              for (const nodeId of ctx.config.nodeIds) {
+                const podName = ctx.config.podNames[nodeId]
+                subTasks.push({
+                  title: `Node: ${chalk.yellow(nodeId)}`,
+                  task: async () =>
+                    await self.k8.execContainer(podName, constants.ROOT_CONTAINER, ['bash', '-c', `rm -rf ${constants.HEDERA_HAPI_PATH}/data/saved/*`])
+                })
+              }
+
+              // set up the sub-tasks
+              return task.newListr(subTasks, {
+                concurrent: true,
+                rendererOptions: {
+                  collapseSubtasks: false
+                }
+              })
+            }
+      },
+      {
+        title: 'Fetch platform software into network nodes',
+        task:
+            async (ctx, task) => {
+              return self.fetchPlatformSoftware(ctx, task, self.platformInstaller)
+            }
+      },
+      {
+        title: 'Setup network nodes',
+        task: async (ctx, parentTask) => {
+          const config = ctx.config
+
+          const subTasks = []
+          const nodeList = []
+          const serviceMap = await self.accountManager.getNodeServiceMap(ctx.config.namespace)
+          for (const serviceObject of serviceMap.values()) {
+            nodeList.push(serviceObject.node)
+          }
+          for (const nodeId of config.nodeIds) {
+            const podName = config.podNames[nodeId]
+            subTasks.push({
+              title: `Node: ${chalk.yellow(nodeId)}`,
+              task: () =>
+                self.platformInstaller.taskInstall(podName, config.buildZipFile,
+                  config.stagingDir, nodeList, config.keyFormat, config.force)
+            })
+          }
+
+          // set up the sub-tasks
+          return parentTask.newListr(subTasks, {
+            concurrent: true,
+            rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
+          })
+        }
+      },
+      {
+        title: 'Finalize',
+        task: (ctx, _) => {
+          // reset flags so that keys are not regenerated later
+          self.configManager.setFlag(flags.generateGossipKeys, false)
+          self.configManager.setFlag(flags.generateTlsKeys, false)
+          self.configManager.persist()
+        }
+      },
+      {
+        title: 'Starting nodes',
+        task: (ctx, task) => {
+          const subTasks = []
+          for (const nodeId of ctx.config.nodeIds) {
+            const podName = ctx.config.podNames[nodeId]
+            subTasks.push({
+              title: `Start node: ${chalk.yellow(nodeId)}`,
+              task: async () => {
+                await self.k8.execContainer(podName, constants.ROOT_CONTAINER, ['bash', '-c', `rm -f ${constants.HEDERA_HAPI_PATH}/logs/*`])
+
+                // copy application.env file if required
+                if (ctx.config.applicationEnv) {
+                  const stagingDir = Templates.renderStagingDir(self.configManager, flags)
+                  const applicationEnvFile = path.join(stagingDir, 'application.env')
+                  fs.cpSync(ctx.config.applicationEnv, applicationEnvFile)
+                  await self.k8.copyTo(podName, constants.ROOT_CONTAINER, applicationEnvFile, `${constants.HEDERA_HAPI_PATH}`)
+                }
+
+                await self.k8.execContainer(podName, constants.ROOT_CONTAINER, ['systemctl', 'restart', 'network-node'])
+              }
+            })
+          }
+
+          // set up the sub-tasks
+          return task.newListr(subTasks, {
+            concurrent: true,
+            rendererOptions: {
+              collapseSubtasks: false,
+              timer: constants.LISTR_DEFAULT_RENDERER_TIMER_OPTION
+            }
+          })
+        }
+      },
+      {
+        title: 'Check nodes are ACTIVE',
+        task: (ctx, task) => {
+          const subTasks = []
+          for (const nodeId of ctx.config.nodeIds) {
+            subTasks.push({
+              title: `Check node: ${chalk.yellow(nodeId)}`,
+              task: () => self.checkNetworkNodeStarted(nodeId)
+            })
+          }
+
+          // set up the sub-tasks
+          return task.newListr(subTasks, {
+            concurrent: false,
+            rendererOptions: {
+              collapseSubtasks: false
+            }
+          })
+        }
+      },
+      {
+        title: 'Check node proxies are ACTIVE',
+        // this is more reliable than checking the nodes logs for ACTIVE, as the
+        // logs will have a lot of white noise from being behind
+        task: async (ctx, task) => {
+          const subTasks = []
+          let localPort = constants.LOCAL_NODE_PROXY_START_PORT
+          for (const nodeId of ctx.config.nodeIds) {
+            subTasks.push({
+              title: `Check proxy for node: ${chalk.yellow(nodeId)}`,
+              task: async () => await self.checkNetworkNodeProxyUp(nodeId, localPort++)
+            })
+          }
+
+          // set up the sub-tasks
+          return task.newListr(subTasks, {
+            concurrent: false,
+            rendererOptions: {
+              collapseSubtasks: false
+            }
+          })
+        }
+      }], {
+      concurrent: false,
+      rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
+    })
+
+    try {
+      await tasks.run()
+    } catch (e) {
+      throw new FullstackTestingError(`Error in refreshing nodes: ${e.message}`, e)
+    }
+
+    return true
+  }
+
   /**
    * Return Yargs command definition for 'node' command
    * @param nodeCmd an instance of NodeCommand
@@ -995,6 +1192,30 @@ export class NodeCommand extends BaseCommand {
 
               nodeCmd.keys(argv).then(r => {
                 nodeCmd.logger.debug('==== Finished running `node keys`====')
+                if (!r) process.exit(1)
+              }).catch(err => {
+                nodeCmd.logger.showUserError(err)
+                process.exit(1)
+              })
+            }
+          })
+          .command({
+            command: 'refresh',
+            desc: 'Refresh a node',
+            builder: y => flags.setCommandFlags(y,
+              flags.namespace,
+              flags.nodeIDs,
+              flags.releaseTag,
+              flags.cacheDir,
+              flags.applicationEnv,
+              flags.keyFormat
+            ),
+            handler: argv => {
+              nodeCmd.logger.debug('==== Running \'node refresh\' ===')
+              nodeCmd.logger.debug(argv)
+
+              nodeCmd.refresh(argv).then(r => {
+                nodeCmd.logger.debug('==== Finished running `node refresh`====')
                 if (!r) process.exit(1)
               }).catch(err => {
                 nodeCmd.logger.showUserError(err)
