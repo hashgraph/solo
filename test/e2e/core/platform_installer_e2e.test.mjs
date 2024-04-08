@@ -29,7 +29,7 @@ import { getTestCacheDir, getTmpDir, testLogger } from '../../test_util.js'
 describe('PackageInstallerE2E', () => {
   const configManager = new ConfigManager(testLogger)
   const k8 = new K8(configManager, testLogger)
-  const installer = new PlatformInstaller(testLogger, k8)
+  const installer = new PlatformInstaller(testLogger, k8, configManager)
   const testCacheDir = getTestCacheDir()
   const podName = 'network-node0-0'
   const packageVersion = 'v0.42.5'
