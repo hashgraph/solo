@@ -330,6 +330,10 @@ export class ClusterCommand extends BaseCommand {
     }
 
     valuesArg += ` --set cloud.prometheusStack.enabled=${prometheusStackEnabled}`
+    if (prometheusStackEnabled) {
+      valuesArg += '--set prometheus-stack.prometheus.prometheusSpec.enableRemoteWriteReceiver=true'
+    }
+
     valuesArg += ` --set cloud.minio.enabled=${minioEnabled}`
     valuesArg += ` --set cloud.certManager.enabled=${certManagerEnabled}`
     valuesArg += ` --set cert-manager.installCRDs=${certManagerCrdsEnabled}`
