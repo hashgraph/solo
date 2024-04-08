@@ -479,17 +479,24 @@ export class AccountManager {
    * @param namespace the namespace to store the Kubernetes key secret into
    * @param privateKey the private key of type PrivateKey
    * @param amount the amount of HBAR to add to the account
+   * @param setAlias whether to set the alias of the account to the public key,
+   * requires the privateKey supplied to be ECDSA
    * @returns {{accountId: AccountId, privateKey: string, publicKey: string, balance: number}} a
    * custom object with the account information in it
    */
-  async createNewAccount (namespace, privateKey, amount) {
-    const newAccount = await new AccountCreateTransaction()
+  async createNewAccount (namespace, privateKey, amount, setAlias = false) {
+    const newAccountTransaction = new AccountCreateTransaction()
       .setKey(privateKey)
       .setInitialBalance(Hbar.from(amount, HbarUnit.Hbar))
-      .execute(this._nodeClient)
+
+    if (setAlias) {
+      newAccountTransaction.setAlias(privateKey.publicKey.toEvmAddress())
+    }
+
+    const newAccountResponse = await newAccountTransaction.execute(this._nodeClient)
 
     // Get the new account ID
-    const getReceipt = await newAccount.getReceipt(this._nodeClient)
+    const getReceipt = await newAccountResponse.getReceipt(this._nodeClient)
     const accountInfo = {
       accountId: getReceipt.accountId.toString(),
       privateKey: privateKey.toString(),

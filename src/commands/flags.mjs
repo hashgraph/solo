@@ -420,9 +420,27 @@ export const updateAccountKeys = {
 export const privateKey = {
   name: 'private-key',
   definition: {
-    describe: 'private key for the Hedera account',
+    describe: 'ED25519 private key for the Hedera account',
     defaultValue: '',
     type: 'string'
+  }
+}
+
+export const ecdsaPrivateKey = {
+  name: 'ecdsa-private-key',
+  definition: {
+    describe: 'ECDSA private key for the Hedera account',
+    defaultValue: '',
+    type: 'string'
+  }
+}
+
+export const setAlias = {
+  name: 'set-alias',
+  definition: {
+    describe: 'Sets the alias for the Hedera account when it is created, requires --ecdsa-private-key',
+    defaultValue: false,
+    type: 'boolean'
   }
 }
 
@@ -483,6 +501,8 @@ export const allFlags = [
   log4j2Xml,
   updateAccountKeys,
   privateKey,
+  ecdsaPrivateKey,
+  setAlias,
   accountId,
   amount,
   applicationEnv,
