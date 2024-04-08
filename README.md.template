@@ -207,6 +207,18 @@ Example output
 $SOLO_MIRROR_NODE_DEPLOY_OUTPUT
 ```
 
+* Deploy a JSON RPC relay
+
+```
+$ solo relay deploy
+```
+
+Example output
+
+```
+$SOLO_RELAY_DEPLOY_OUTPUT
+```
+
 You may view the list of pods using `k9s` as below:
 
 ```
