@@ -72,11 +72,15 @@ export SOLO_CLUSTER_SETUP_NAMESPACE=solo-cluster
 
 Then run the following command to set the kubectl context to the new cluster:
 
-```
+```bash
 kind create cluster -n "${SOLO_CLUSTER_NAME}"
+```
+Example output
+
+```
 Creating cluster "solo" ...
- ✓ Ensuring node image (kindest/node:v1.27.3) 🖼
- ✓ Preparing nodes 📦
+ ✓ Ensuring node image (kindest/node:v1.29.1) 🖼
+ ✓ Preparing nodes 📦 
  ✓ Writing configuration 📜
  ✓ Starting control-plane 🕹️
  ✓ Installing CNI 🔌
@@ -86,7 +90,7 @@ You can now use your cluster with:
 
 kubectl cluster-info --context kind-solo
 
-Have a nice day! 👋
+Have a question, bug, or feature request? Let us know! https://kind.sigs.k8s.io/#community 🙂
 ```
 
 You may now view pods in your cluster using `k9s -A` as below:
@@ -122,26 +126,28 @@ You may now view pods in your cluster using `k9s -A` as below:
 
 ```
 $ solo init -t v0.42.5 -i node0,node1,node2 -n "${SOLO_NAMESPACE}" -s "${SOLO_CLUSTER_SETUP_NAMESPACE}" --key-format pfx 
+```
+
+Example output
+
+```
 
 ******************************* Solo *********************************************
-Version                 : 0.22.1
-Kubernetes Context      : kind-solo
-Kubernetes Cluster      : kind-solo
-Kubernetes Namespace    : solo
+Version			: 0.23.0
+Kubernetes Context	: kind-solo
+Kubernetes Cluster	: kind-solo
+Kubernetes Namespace	: solo
 **********************************************************************************
-✔ Setup home directory and cache
-✔ Check dependencies [17s]
-  ✔ Check dependency: helm [OS: darwin, Release: 22.6.0, Arch: arm64] [7s]
-  ✔ Check dependency: keytool [OS: darwin, Release: 22.6.0, Arch: arm64] [17s]
-✔ Setup chart manager [1s]
-✔ Copy configuration file templates
-
+✔ Setup home directory and cache
+✔ Check dependency: helm [OS: linux, Release: 5.15.0-1050-gke, Arch: x64]
+✔ Check dependencies
+✔ Setup chart manager
 
 ***************************************************************************************
-Note: solo stores various artifacts (config, logs, keys etc.) in its home directory: /Users/leninmehedy/.solo
+Note: solo stores various artifacts (config, logs, keys etc.) in its home directory: /home/runner/.solo
 If a full reset is needed, delete the directory or relevant sub-directories before running 'solo init'.
 ***************************************************************************************
-
+✔ Copy configuration file templates
 ```
 
 * Generate `pfx` formatted node keys
@@ -150,41 +156,64 @@ We need to generate `pfx` keys as `pem` key files are only supported by Hedera p
 
 ```
 $ solo node keys --gossip-keys --tls-keys --key-format pfx 
+```
+
+Example output
+
+```
 
 ******************************* Solo *********************************************
-Version                 : 0.22.1
-Kubernetes Context      : kind-solo
-Kubernetes Cluster      : kind-solo
-Kubernetes Namespace    : solo
+Version			: 0.23.0
+Kubernetes Context	: kind-solo
+Kubernetes Cluster	: kind-solo
+Kubernetes Namespace	: solo
 **********************************************************************************
-✔ Initialize
-✔ Generate gossip keys
-✔ Generate gRPC TLS keys
-✔ Finalize
+✔ Initialize
+✔ Check keytool exists (Version: 21.0.1+12)
+✔ Backup old files
+✔ Generate private-node0.pfx for node: node0
+✔ Generate private-node1.pfx for node: node1
+✔ Generate private-node2.pfx for node: node2
+✔ Generate public.pfx file
+✔ Clean up temp files
+✔ Generate gossip keys
+✔ Backup old files
+✔ TLS key for node: node2
+✔ TLS key for node: node0
+✔ TLS key for node: node1
+✔ Generate gRPC TLS keys
+✔ Finalize
+```
+Key files are generated in `~/.solo/keys` directory.
 
+```
 $ ls ~/.solo/cache/keys 
 
 hedera-node0.crt  hedera-node1.crt  hedera-node2.crt  private-node0.pfx private-node2.pfx
 hedera-node0.key  hedera-node1.key  hedera-node2.key  private-node1.pfx public.pfx
 ```
-
 * Setup cluster with shared components
   * In a separate terminal, you may run `k9s` to view the pod status.
 
 ```
 $ solo cluster setup
+```
 
-******************************* Solo *********************************************
-Version                 : 0.22.1
-Kubernetes Context      : kind-solo
-Kubernetes Cluster      : kind-solo
-Kubernetes Namespace    : solo
-**********************************************************************************
-✔ Initialize
-✔ Prepare chart values
-✔ Install 'fullstack-cluster-setup' chart [1s]
+Example output
 
 ```
+
+******************************* Solo *********************************************
+Version			: 0.23.0
+Kubernetes Context	: kind-solo
+Kubernetes Cluster	: kind-solo
+Kubernetes Namespace	: solo
+**********************************************************************************
+✔ Initialize
+✔ Prepare chart values
+✔ Install 'fullstack-cluster-setup' chart
+```
+
 
 * Deploy helm chart with Hedera network components
   * It may take a while (5~15 minutes depending on your internet speed) to download various docker images and get the pods started.
@@ -192,28 +221,24 @@ Kubernetes Namespace    : solo
 
 ```
 $ solo network deploy
+```
+
+Example output
+
+```
 
 ******************************* Solo *********************************************
-Version                 : 0.22.1
-Kubernetes Context      : kind-solo
-Kubernetes Cluster      : kind-solo
-Kubernetes Namespace    : solo
+Version			: 0.23.0
+Kubernetes Context	: kind-solo
+Kubernetes Cluster	: kind-solo
+Kubernetes Namespace	: solo
 **********************************************************************************
-✔ Initialize [5s]
-✔ Install chart 'fullstack-deployment' [19s]
-✔ Check node pods are ready [2s]
-  ✔ Check Node: node0 [0.8s]
-  ✔ Check Node: node1 [1s]
-  ✔ Check Node: node2 [0.9s]
-✔ Check proxy pods are ready [0.7s]
-  ✔ Check HAProxy for: node0 [0.7s]
-  ✔ Check HAProxy for: node1 [0.7s]
-  ✔ Check HAProxy for: node2 [0.7s]
-  ✔ Check Envoy Proxy for: node0 [0.7s]
-  ✔ Check Envoy Proxy for: node1 [0.7s]
-  ✔ Check Envoy Proxy for: node2 [0.7s]
-✔ Check auxiliary pods are ready [5s]
-  ✔ Check MinIO [5s]
+✔ Initialize
+✔ Install chart 'fullstack-deployment'
+✔ Node: node0 (Pod: network-node0-0)
+✔ Node: node1 (Pod: network-node1-0)
+✔ Node: node2 (Pod: network-node2-0)
+✔ Waiting for network pods to be ready
 ```
 
 * Setup node with Hedera platform software.
@@ -221,118 +246,141 @@ Kubernetes Namespace    : solo
 
 ```
 $ solo node setup
+```
+
+Example output
+
+```
 
 ******************************* Solo *********************************************
-Version                 : 0.22.1
-Kubernetes Context      : kind-solo
-Kubernetes Cluster      : kind-solo
-Kubernetes Namespace    : solo
+Version			: 0.23.0
+Kubernetes Context	: kind-solo
+Kubernetes Cluster	: kind-solo
+Kubernetes Namespace	: solo
 **********************************************************************************
-✔ Initialize
-✔ Identify network pods
-  ✔ Check network pod: node0
-  ✔ Check network pod: node1
-  ✔ Check network pod: node2
-↓ Generate Gossip keys
-↓ Generate gRPC TLS keys
-✔ Prepare staging directory
-  ✔ Copy configuration files
-  ✔ Copy Gossip keys to staging
-  ✔ Copy gRPC TLS keys to staging
-  ✔ Prepare config.txt for the network
-✔ Fetch platform software into network nodes [1m7s]
-  ✔ Update node: node0 [48s]
-  ✔ Update node: node1 [44s]
-  ✔ Update node: node2 [1m7s]
-✔ Setup network nodes [1s]
-  ✔ Node: node0 [1s]
-    ✔ Copy Gossip keys [0.2s]
-    ✔ Copy TLS keys [0.2s]
-    ✔ Copy configuration files [0.7s]
-    ✔ Set file permissions [0.1s]
-  ✔ Node: node1 [1s]
-    ✔ Copy Gossip keys [0.2s]
-    ✔ Copy TLS keys [0.2s]
-    ✔ Copy configuration files [0.7s]
-    ✔ Set file permissions
-  ✔ Node: node2 [1s]
-    ✔ Copy Gossip keys [0.2s]
-    ✔ Copy TLS keys [0.2s]
-    ✔ Copy configuration files [0.7s]
-    ✔ Set file permissions [0.1s]
-✔ Finalize
-
+✔ Initialize
+✔ Check network pod: node0
+✔ Check network pod: node1
+✔ Check network pod: node2
+✔ Identify network pods
+✔ Copy configuration files
+✔ Copy Gossip keys to staging
+✔ Copy gRPC TLS keys to staging
+✔ Prepare config.txt for the network
+✔ Prepare staging directory
+✔ Node: node1
+✔ Node: node0
+✔ Node: node2
+✔ Fetch platform software into network nodes
+✔ Copy Gossip keys
+✔ Copy Gossip keys
+✔ Copy Gossip keys
+✔ Copy TLS keys
+✔ Copy TLS keys
+✔ Copy TLS keys
+✔ Copy configuration files
+✔ Copy configuration files
+✔ Copy configuration files
+✔ Set file permissions
+✔ Node: node0
+✔ Set file permissions
+✔ Node: node1
+✔ Set file permissions
+✔ Node: node2
+✔ Setup network nodes
+✔ Finalize
 ```
 
 * Start the nodes.
 
 ```
 $ solo node start
-
-******************************* Solo *********************************************
-Version                 : 0.22.1
-Kubernetes Context      : kind-solo
-Kubernetes Cluster      : kind-solo
-Kubernetes Namespace    : solo
-**********************************************************************************
-✔ Initialize [0.1s]
-✔ Identify network pods
-  ✔ Check network pod: node0
-  ✔ Check network pod: node1
-  ✔ Check network pod: node2
-✔ Starting nodes [0.1s]
-  ✔ Start node: node0 [0.1s]
-  ✔ Start node: node1 [0.1s]
-  ✔ Start node: node2 [0.1s]
-✔ Check nodes are ACTIVE [24s]
-  ✔ Check node: node0 [24s]
-  ✔ Check node: node1 [0.1s]
-  ✔ Check node: node2 [0.1s]
-✔ Check node proxies are ACTIVE [0.1s]
-  ✔ Check proxy for node: node0
-  ✔ Check proxy for node: node1
-  ✔ Check proxy for node: node2
 ```
 
+Example output
+
+```
+
+******************************* Solo *********************************************
+Version			: 0.23.0
+Kubernetes Context	: kind-solo
+Kubernetes Cluster	: kind-solo
+Kubernetes Namespace	: solo
+**********************************************************************************
+✔ Initialize
+✔ Check network pod: node0
+✔ Check network pod: node2
+✔ Check network pod: node1
+✔ Identify network pods
+✔ Start node: node1
+✔ Start node: node2
+✔ Start node: node0
+✔ Starting nodes
+✔ Check node: node0
+✔ Check node: node1
+✔ Check node: node2
+✔ Check nodes are ACTIVE
+✔ Check proxy for node: node0
+✔ Check proxy for node: node1
+✔ Check proxy for node: node2
+✔ Check node proxies are ACTIVE
+```
 * Deploy mirror node
 
 ```
 $ solo mirror-node deploy
+```
+
+Example output
+
+```
+
 ******************************* Solo *********************************************
-Version                 : 0.22.1
-Kubernetes Context      : kind-solo-e2e
-Kubernetes Cluster      : kind-solo-e2e
-Kubernetes Namespace    : solo
+Version			: 0.23.0
+Kubernetes Context	: kind-solo
+Kubernetes Cluster	: kind-solo
+Kubernetes Namespace	: solo
 **********************************************************************************
-✔ Initialize [7s]
-✔ Enable mirror-node [1m10s]
-  ✔ Prepare address book [1s]
-  ✔ Deploy mirror-node [1m9s]
-✔ Check pods are ready [59s]
-  ✔ Check Postgres DB [12s]
-  ✔ Check REST API [39s]
-  ✔ Check GRPC [30s]
-  ✔ Check Monitor [59s]
-  ✔ Check Importer [48s]
-  ✔ Check Hedera Explorer [0.7s]
+✔ Initialize
+✔ Prepare address book
+✔ Deploy mirror-node
+✔ Enable mirror-node
+✔ Check Postgres DB
+✔ Check Importer
+✔ Check REST API
+✔ Check Web3
+✔ Check GRPC
+✔ Check Hedera Explorer
+✔ Check Mirror node components are ACTIVE
 ```
 
 * Deploy a JSON RPC relay
 
 ```
 $ solo relay deploy
+```
+
+Example output
+
+```
+
 ******************************* Solo *********************************************
-Version                 : 0.22.1
-Kubernetes Context      : microk8s
-Kubernetes Cluster      : microk8s-cluster
-Kubernetes Namespace    : solo
+Version			: 0.23.0
+Kubernetes Context	: kind-solo
+Kubernetes Cluster	: kind-solo
+Kubernetes Namespace	: solo
 **********************************************************************************
-(node:7924) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
-(Use `node --trace-deprecation ...` to show where the warning was created)
-✔ Initialize [1s]
-✔ Prepare chart values
-✔ Deploy JSON RPC Relay [9s]
-✔ Check relay is ready [21s]
+✔ Initialize
+✔ Prepare chart values
+
+ *** Deployed Relays ***
+-------------------------------------------------------------------------------
+ - fullstack-deployment [fullstack-deployment-0.24.2]
+ - relay-node0-node1 [hedera-json-rpc-relay-0.26.0-SNAPSHOT]
+ - relay-node0-node1-node2 [hedera-json-rpc-relay-0.26.0-SNAPSHOT]
+
+
+✔ Deploy JSON RPC Relay
 ```
 
 You may view the list of pods using `k9s` as below:
@@ -388,17 +436,29 @@ Once the nodes are up, you may now expose various services (using `k9s` (shift-f
   * You can deploy JSON RPC relays for one or more nodes as below:
   ```
   $ solo relay deploy -i node0,node1 
-
-  ******************************* Solo *********************************************
-  Version                 : 0.22.1
-  Kubernetes Context      : kind-solo-e2e
-  Kubernetes Cluster      : kind-solo-e2e
-  Kubernetes Namespace    : solo
-  **********************************************************************************
-  ✔ Initialize
-  ✔ Prepare chart values
-  ✔ Deploy JSON RPC Relay [1s]
   ```
+
+Example output
+
+```
+
+******************************* Solo *********************************************
+Version			: 0.23.0
+Kubernetes Context	: kind-solo
+Kubernetes Cluster	: kind-solo
+Kubernetes Namespace	: solo
+**********************************************************************************
+✔ Initialize
+✔ Prepare chart values
+
+ *** Deployed Relays ***
+-------------------------------------------------------------------------------
+ - fullstack-deployment [fullstack-deployment-0.24.2]
+ - relay-node0-node1 [hedera-json-rpc-relay-0.26.0-SNAPSHOT]
+
+
+✔ Deploy JSON RPC Relay
+```
 
 ### Example - 2: Deploy a standalone test network (version `0.47.0-alpha.0`)
 
@@ -409,51 +469,67 @@ Once the nodes are up, you may now expose various services (using `k9s` (shift-f
 $ rm -rf ~/.solo 
 
 $ solo init -t v0.47.0-alpha.0 -i node0,node1,node2 -n "${SOLO_NAMESPACE}" -s "${SOLO_CLUSTER_SETUP_NAMESPACE}" --key-format pem 
+```
+
+* Example output:
+
+```
 
 ******************************* Solo *********************************************
-Version                 : 0.22.0
-Kubernetes Context      : kind-solo
-Kubernetes Cluster      : kind-solo
-Kubernetes Namespace    : solo
+Version			: 0.23.0
+Kubernetes Context	: kind-solo
+Kubernetes Cluster	: kind-solo
+Kubernetes Namespace	: solo
 **********************************************************************************
-✔ Setup home directory and cache
-✔ Check dependencies [19s]
-  ✔ Check dependency: helm [OS: darwin, Release: 22.6.0, Arch: arm64] [8s]
-  ✔ Check dependency: keytool [OS: darwin, Release: 22.6.0, Arch: arm64] [19s]
-✔ Setup chart manager [2s]
-✔ Copy configuration file templates
-
+✔ Setup home directory and cache
+✔ Check dependency: helm [OS: linux, Release: 5.15.0-1050-gke, Arch: x64]
+✔ Check dependencies
+✔ Setup chart manager
 
 ***************************************************************************************
-Note: solo stores various artifacts (config, logs, keys etc.) in its home directory: /Users/leninmehedy/.solo
+Note: solo stores various artifacts (config, logs, keys etc.) in its home directory: /home/runner/.solo
 If a full reset is needed, delete the directory or relevant sub-directories before running 'solo init'.
 ***************************************************************************************
+✔ Copy configuration file templates
 ```
 
 * Generate `pem` formatted node keys
 
 ```
 $ solo node keys --gossip-keys --tls-keys --key-format pem
+```
+
+* Example output:
+
+```
 
 ******************************* Solo *********************************************
-Version                 : 0.22.0
-Kubernetes Context      : kind-solo
-Kubernetes Cluster      : kind-solo
-Kubernetes Namespace    : solo
+Version			: 0.23.0
+Kubernetes Context	: kind-solo
+Kubernetes Cluster	: kind-solo
+Kubernetes Namespace	: solo
 **********************************************************************************
-✔ Initialize
-✔ Generate gossip keys
-✔ Generate gRPC TLS keys
-✔ Finalize
-
+✔ Initialize
+✔ Backup old files
+✔ Gossip pem key for node: node0
+✔ Gossip pem key for node: node1
+✔ Gossip pem key for node: node2
+✔ Generate gossip keys
+✔ Backup old files
+✔ TLS key for node: node2
+✔ TLS key for node: node1
+✔ TLS key for node: node0
+✔ Generate gRPC TLS keys
+✔ Finalize
+```
+PEM key files are generated in `~/.solo/keys` directory.
+```
 $ ls ~/.solo/cache/keys  
 a-private-node0.pem a-public-node1.pem  hedera-node1.crt    s-private-node0.pem s-public-node1.pem
 a-private-node1.pem a-public-node2.pem  hedera-node1.key    s-private-node1.pem s-public-node2.pem
 a-private-node2.pem hedera-node0.crt    hedera-node2.crt    s-private-node2.pem
 a-public-node0.pem  hedera-node0.key    hedera-node2.key    s-public-node0.pem
-
 ```
-
 * Setup cluster with shared components
 
 ```
