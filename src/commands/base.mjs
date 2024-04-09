@@ -27,6 +27,7 @@ export class BaseCommand extends ShellRunner {
     if (chartDir) {
       const chartPath = `${chartDir}/${chartReleaseName}`
       await this.helm.dependency('update', chartPath)
+      return chartPath
     }
 
     return `${chartRepo}/${chartReleaseName}`
