@@ -17,7 +17,7 @@
 import { ListrEnquirerPromptAdapter } from '@listr2/prompt-adapter-enquirer'
 import chalk from 'chalk'
 import { Listr } from 'listr2'
-import { FullstackTestingError, MissingArgumentError } from '../core/errors.mjs'
+import { FullstackTestingError, IllegalArgumentError, MissingArgumentError } from '../core/errors.mjs'
 import { BaseCommand } from './base.mjs'
 import * as flags from './flags.mjs'
 import { constants } from '../core/index.mjs'
@@ -394,7 +394,7 @@ export class NetworkCommand extends BaseCommand {
 
   static getCommandDefinition (networkCmd) {
     if (!networkCmd || !(networkCmd instanceof NetworkCommand)) {
-      throw new MissingArgumentError('An instance of NetworkCommand is required', networkCmd)
+      throw new IllegalArgumentError('An instance of NetworkCommand is required', networkCmd)
     }
     return {
       command: 'network',

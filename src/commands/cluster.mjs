@@ -16,7 +16,7 @@
  */
 import { ListrEnquirerPromptAdapter } from '@listr2/prompt-adapter-enquirer'
 import { Listr } from 'listr2'
-import { FullstackTestingError } from '../core/errors.mjs'
+import { FullstackTestingError, IllegalArgumentError } from '../core/errors.mjs'
 import * as flags from './flags.mjs'
 import { BaseCommand } from './base.mjs'
 import chalk from 'chalk'
@@ -221,7 +221,7 @@ export class ClusterCommand extends BaseCommand {
    */
   static getCommandDefinition (clusterCmd) {
     if (!clusterCmd || !(clusterCmd instanceof ClusterCommand)) {
-      throw new FullstackTestingError('Invalid ClusterCommand instance')
+      throw new IllegalArgumentError('Invalid ClusterCommand instance')
     }
     return {
       command: 'cluster',

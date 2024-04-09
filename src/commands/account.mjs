@@ -21,8 +21,7 @@ import { flags } from './index.mjs'
 import { Listr } from 'listr2'
 import * as prompts from './prompts.mjs'
 import { constants } from '../core/index.mjs'
-import { AccountInfo, HbarUnit, PrivateKey } from '@hashgraph/sdk'
-import AccountId from '@hashgraph/sdk/lib/account/AccountId.js'
+import { AccountId, AccountInfo, HbarUnit, PrivateKey } from '@hashgraph/sdk'
 
 export class AccountCommand extends BaseCommand {
   constructor (opts, systemAccounts = constants.SYSTEM_ACCOUNTS) {
