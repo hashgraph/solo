@@ -22,7 +22,7 @@ import {
   PrivateKey
 } from '@hashgraph/sdk'
 import {
-  afterAll,
+  afterAll, afterEach,
   beforeAll,
   describe,
   expect,
@@ -59,9 +59,13 @@ describe.each([
   const k8 = bootstrapResp.opts.k8
   const nodeCmd = bootstrapResp.cmd.nodeCmd
 
+  afterEach(async () => {
+    await nodeCmd.close()
+    await accountManager.close()
+  }, 120000)
+
   afterAll(async () => {
     await k8.deleteNamespace(namespace)
-    await accountManager.close()
   }, 120000)
 
   describe(`Node should start successfully [mode ${input.mode}, release ${input.releaseTag}, keyFormat: ${input.keyFormat}]`, () => {
