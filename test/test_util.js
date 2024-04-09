@@ -43,7 +43,7 @@ import {
   Zippy
 } from '../src/core/index.mjs'
 
-export const testLogger = logging.NewLogger('debug')
+export const testLogger = logging.NewLogger('debug', true)
 export const TEST_CLUSTER = 'solo-e2e'
 
 export function getTestCacheDir (testName) {

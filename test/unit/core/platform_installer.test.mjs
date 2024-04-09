@@ -25,7 +25,7 @@ import {
   MissingArgumentError
 } from '../../../src/core/errors.mjs'
 describe('PackageInstaller', () => {
-  const testLogger = core.logging.NewLogger('debug')
+  const testLogger = core.logging.NewLogger('debug', true)
   const configManager = new ConfigManager(testLogger)
   const k8 = new core.K8(configManager, testLogger)
   const installer = new PlatformInstaller(testLogger, k8, configManager)

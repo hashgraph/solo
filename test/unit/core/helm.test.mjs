@@ -23,7 +23,7 @@ describe.each([
   { osPlatform: 'windows' },
   { osPlatform: 'darwin' }
 ])('Helm', (input) => {
-  const logger = logging.NewLogger('debug')
+  const logger = logging.NewLogger('debug', true)
   const helm = new Helm(logger, input.osPlatform)
   const shellSpy = jest.spyOn(ShellRunner.prototype, 'run').mockImplementation()
   const helmPath = Templates.installationPath(constants.HELM, input.osPlatform)
