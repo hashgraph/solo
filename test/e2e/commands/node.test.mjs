@@ -147,9 +147,10 @@ function accountCreationShouldSucceed (accountManager, nodeCmd, namespace) {
 
 function balanceQueryShouldSucceed (accountManager, nodeCmd, namespace) {
   it('Balance query should succeed', async () => {
-    expect.assertions(2)
+    expect.assertions(3)
 
     try {
+      expect(accountManager._nodeClient).toBeNull()
       await accountManager.loadNodeClient(namespace)
       expect(accountManager._nodeClient).not.toBeNull()
 
@@ -188,6 +189,7 @@ function nodeRefreshShouldSucceed (nodeId, nodeCmd, argv) {
       expect(e).toBeNull()
     } finally {
       await nodeCmd.close()
+      await sleep(10000) // sleep to wait for node to finish starting
     }
   }, 1200000)
 }
