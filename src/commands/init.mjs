@@ -43,7 +43,7 @@ export class InitCommand extends BaseCommand {
     try {
       dirs.forEach(dirPath => {
         if (!fs.existsSync(dirPath)) {
-          fs.mkdirSync(dirPath)
+          fs.mkdirSync(dirPath, { recursive: true })
         }
         self.logger.debug(`OK: setup directory: ${dirPath}`)
       })
@@ -108,7 +108,7 @@ export class InitCommand extends BaseCommand {
 
             const destDir = path.resolve(path.join(cacheDir, dirName))
             if (!fs.existsSync(destDir)) {
-              fs.mkdirSync(destDir)
+              fs.mkdirSync(destDir, { recursive: true })
             }
 
             fs.cpSync(srcDir, destDir, { recursive: true })

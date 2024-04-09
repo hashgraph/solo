@@ -51,7 +51,7 @@ export function getTestCacheDir (testName) {
   const d = testName ? path.join(baseDir, testName) : baseDir
 
   if (!fs.existsSync(d)) {
-    fs.mkdirSync(d)
+    fs.mkdirSync(d, { recursive: true })
   }
   return d
 }

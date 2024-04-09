@@ -21,7 +21,13 @@ on:
   # Runs on pushes targeting the default branch
   push:
     branches:
-      - 00120-D-hugo-pipeline
+      - main
+    paths:
+      - '**/*.mjs'
+      - '**/*.js'
+      - '**/package*.json'
+      - 'DEV.md'
+      - 'README.md'
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
