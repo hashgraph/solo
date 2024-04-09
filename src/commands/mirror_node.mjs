@@ -16,7 +16,7 @@
  */
 import { ListrEnquirerPromptAdapter } from '@listr2/prompt-adapter-enquirer'
 import { Listr } from 'listr2'
-import { FullstackTestingError, IllegalArgumentError } from '../core/errors.mjs'
+import { FullstackTestingError, IllegalArgumentError, MissingArgumentError } from '../core/errors.mjs'
 import { Templates, constants } from '../core/index.mjs'
 import { BaseCommand } from './base.mjs'
 import * as flags from './flags.mjs'
@@ -26,7 +26,26 @@ export class MirrorNodeCommand extends BaseCommand {
   constructor (opts) {
     super(opts)
     if (!opts || !opts.accountManager) throw new IllegalArgumentError('An instance of core/AccountManager is required', opts.accountManager)
+    if (!opts || !opts.profileManager) throw new MissingArgumentError('An instance of core/ProfileManager is required', opts.downloader)
+
     this.accountManager = opts.accountManager
+    this.profileManager = opts.profileManager
+  }
+
+  async prepareValuesArg (valuesFile, deployHederaExplorer) {
+    let valuesArg = ''
+    if (valuesFile) {
+      valuesArg += this.prepareValuesFiles(valuesFile)
+    }
+
+    const profileName = this.configManager.getFlag(flags.profileName)
+    const profileValuesFile = await this.profileManager.prepareValuesForMirrorNodeChart(profileName)
+    if (profileValuesFile) {
+      valuesArg += this.prepareValuesFiles(profileValuesFile)
+    }
+
+    valuesArg += ` --set hedera-mirror-node.enabled=true --set hedera-explorer.enabled=${deployHederaExplorer}`
+    return valuesArg
   }
 
   async deploy (argv) {
@@ -39,7 +58,9 @@ export class MirrorNodeCommand extends BaseCommand {
           self.configManager.update(argv)
           await prompts.execute(task, self.configManager, [
             flags.namespace,
-            flags.deployHederaExplorer
+            flags.deployHederaExplorer,
+            flags.profileName,
+            flags.profileFile
           ])
 
           ctx.config = {
@@ -53,7 +74,10 @@ export class MirrorNodeCommand extends BaseCommand {
 
           ctx.config.stagingDir = Templates.renderStagingDir(self.configManager, flags)
 
-          ctx.config.valuesArg = ` --set hedera-mirror-node.enabled=true --set hedera-explorer.enabled=${ctx.config.deployHederaExplorer}`
+          ctx.config.valuesArg = await self.prepareValuesArg(
+            ctx.config.valuesFile,
+            ctx.config.deployHederaExplorer
+          )
 
           if (!await self.k8.hasNamespace(ctx.config.namespace)) {
             throw new FullstackTestingError(`namespace ${ctx.config.namespace} does not exist`)
@@ -93,56 +117,56 @@ export class MirrorNodeCommand extends BaseCommand {
         }
       },
       {
-        title: 'Check Mirror node components are ACTIVE',
+        title: 'Check pods are ready',
         task: async (ctx, parentTask) => {
           const subTasks = [
             {
               title: 'Check Postgres DB',
-              task: async (ctx, _) => self.k8.waitForPod(constants.POD_STATUS_RUNNING, [
+              task: async (ctx, _) => self.k8.waitForPodReady([
                 'app.kubernetes.io/component=postgresql',
                 'app.kubernetes.io/name=postgres'
-              ], 1, 900)
-            },
-            {
-              title: 'Check Importer',
-              task: async (ctx, _) => self.k8.waitForPod(constants.POD_STATUS_RUNNING, [
-                'app.kubernetes.io/component=importer',
-                'app.kubernetes.io/name=importer'
-              ], 1, 900)
+              ], 1, 900, 2000)
             },
             {
               title: 'Check REST API',
-              task: async (ctx, _) => self.k8.waitForPod(constants.POD_STATUS_RUNNING, [
+              task: async (ctx, _) => self.k8.waitForPodReady([
                 'app.kubernetes.io/component=rest',
                 'app.kubernetes.io/name=rest'
-              ], 1, 900)
-            },
-            {
-              title: 'Check Web3',
-              task: async (ctx, _) => self.k8.waitForPod(constants.POD_STATUS_RUNNING, [
-                'app.kubernetes.io/component=web3',
-                'app.kubernetes.io/name=web3'
-              ], 1, 900)
+              ], 1, 900, 200)
             },
             {
               title: 'Check GRPC',
-              task: async (ctx, _) => self.k8.waitForPod(constants.POD_STATUS_RUNNING, [
+              task: async (ctx, _) => self.k8.waitForPodReady([
                 'app.kubernetes.io/component=grpc',
                 'app.kubernetes.io/name=grpc'
-              ], 1, 900)
+              ], 1, 900, 2000)
+            },
+            {
+              title: 'Check Monitor',
+              task: async (ctx, _) => self.k8.waitForPodReady([
+                'app.kubernetes.io/component=monitor',
+                'app.kubernetes.io/name=monitor'
+              ], 1, 900, 2000)
+            },
+            {
+              title: 'Check Importer',
+              task: async (ctx, _) => self.k8.waitForPodReady([
+                'app.kubernetes.io/component=importer',
+                'app.kubernetes.io/name=importer'
+              ], 1, 900, 2000)
             },
             {
               title: 'Check Hedera Explorer',
               skip: (ctx, _) => !ctx.config.deployHederaExplorer,
-              task: async (ctx, _) => self.k8.waitForPod(constants.POD_STATUS_RUNNING, [
+              task: async (ctx, _) => self.k8.waitForPodReady([
                 'app.kubernetes.io/component=hedera-explorer',
                 'app.kubernetes.io/name=hedera-explorer'
-              ], 1, 900)
+              ], 1, 900, 2000)
             }
           ]
 
           return parentTask.newListr(subTasks, {
-            concurrent: false,
+            concurrent: true,
             rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
           })
         }
@@ -219,7 +243,7 @@ export class MirrorNodeCommand extends BaseCommand {
         }
       },
       {
-        title: 'Delete PVCs for namespace',
+        title: 'Delete PVCs',
         task: async (ctx, _) => {
           const pvcs = await self.k8.listPvcsByNamespace(ctx.config.namespace, [
             'app.kubernetes.io/component=postgresql',
@@ -266,7 +290,9 @@ export class MirrorNodeCommand extends BaseCommand {
             desc: 'Deploy mirror-node and its components',
             builder: y => flags.setCommandFlags(y,
               flags.namespace,
-              flags.deployHederaExplorer
+              flags.deployHederaExplorer,
+              flags.profileName,
+              flags.profileFile
             ),
             handler: argv => {
               mirrorNodeCmd.logger.debug('==== Running \'mirror-node deploy\' ===')
@@ -285,7 +311,8 @@ export class MirrorNodeCommand extends BaseCommand {
             command: 'destroy',
             desc: 'Destroy mirror-node components and database',
             builder: y => flags.setCommandFlags(y,
-              flags.namespace
+              flags.namespace,
+              flags.force
             ),
             handler: argv => {
               mirrorNodeCmd.logger.debug('==== Running \'mirror-node destroy\' ===')

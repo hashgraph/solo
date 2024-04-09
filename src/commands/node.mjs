@@ -66,7 +66,7 @@ export class NodeCommand extends BaseCommand {
     const podName = Templates.renderNetworkPodName(nodeId)
 
     try {
-      await this.k8.waitForPod(constants.POD_STATUS_RUNNING, [
+      await this.k8.waitForPodReady([
         'fullstack.hedera.com/type=network-node',
         `fullstack.hedera.com/node-name=${nodeId}`
       ], 1)
@@ -333,7 +333,7 @@ export class NodeCommand extends BaseCommand {
 
           const config = {
             namespace: self.configManager.getFlag(flags.namespace),
-            nodeIds: helpers.parseNodeIDs(self.configManager.getFlag(flags.nodeIDs)),
+            nodeIds: helpers.parseNodeIds(self.configManager.getFlag(flags.nodeIDs)),
             releaseTag: self.configManager.getFlag(flags.releaseTag),
             cacheDir: self.configManager.getFlag(flags.cacheDir),
             force: self.configManager.getFlag(flags.force),
@@ -423,7 +423,10 @@ export class NodeCommand extends BaseCommand {
                   }
 
                   const fileName = path.basename(filePath)
-                  fs.cpSync(`${filePath}`, `${config.stagingDir}/templates/${fileName}`, { recursive: true })
+                  const destPath = `${config.stagingDir}/templates/${fileName}`
+                  self.logger.debug(`Copying configuration file to staging: ${filePath} -> ${destPath}`)
+
+                  fs.cpSync(filePath, destPath, { force: true })
                 }
               }
             },
@@ -495,7 +498,7 @@ export class NodeCommand extends BaseCommand {
             for (const nodeId of ctx.config.nodeIds) {
               const podName = ctx.config.podNames[nodeId]
               subTasks.push({
-                title: `Node: ${chalk.yellow(nodeId)}`,
+                title: `Update node: ${chalk.yellow(nodeId)}`,
                 task: () =>
                   self.plaformInstaller.fetchPlatform(podName, config.releaseTag)
               })
@@ -573,7 +576,7 @@ export class NodeCommand extends BaseCommand {
             namespace: self.configManager.getFlag(flags.namespace),
             chartDir: self.configManager.getFlag(flags.chartDirectory),
             fstChartVersion: self.configManager.getFlag(flags.fstChartVersion),
-            nodeIds: helpers.parseNodeIDs(self.configManager.getFlag(flags.nodeIDs)),
+            nodeIds: helpers.parseNodeIds(self.configManager.getFlag(flags.nodeIDs)),
             applicationEnv: self.configManager.getFlag(flags.applicationEnv),
             cacheDir: self.configManager.getFlag(flags.cacheDir)
           }
@@ -662,7 +665,7 @@ export class NodeCommand extends BaseCommand {
 
           // set up the sub-tasks
           return parentTask.newListr(subTasks, {
-            concurrent: false,
+            concurrent: true,
             rendererOptions: {
               collapseSubtasks: false
             }
@@ -694,33 +697,51 @@ export class NodeCommand extends BaseCommand {
    * @param delay the delay between attempts
    * @returns {Promise<boolean>} true if the proxy is up
    */
-  async checkNetworkNodeProxyUp (nodeId, localPort, maxAttempts = 10, delay = 5000) {
-    const podArray = await this.k8.getPodsByLabel([`app=haproxy-${nodeId}`, 'fullstack.hedera.com/type=haproxy'])
+  async checkNetworkNodeProxyUp (nodeId, localPort, maxAttempts = 15, delay = 2000) {
+    const podLabels = [`app=haproxy-${nodeId}`, 'fullstack.hedera.com/type=haproxy']
+    let podArray = await this.k8.getPodsByLabel(podLabels)
 
     let attempts = 0
+    let status = null
     if (podArray.length > 0) {
-      const podName = podArray[0].metadata.name
-      this._portForwards.push(await this.k8.portForward(podName, localPort, 5555))
-      try {
-        await this.k8.testConnection('localhost', localPort)
-      } catch (e) {
-        throw new FullstackTestingError(`failed to create port forward for '${nodeId}' proxy on port ${localPort}`, e)
-      }
+      let podName = podArray[0].metadata.name
+      let portForwarder = null
 
-      while (attempts < maxAttempts) {
-        try {
-          const status = await this.getNodeProxyStatus(`http://localhost:${localPort}/v2/services/haproxy/stats/native?type=backend`)
-          if (status === 'UP') {
-            this.logger.debug(`Proxy ${podName} is UP. [attempt: ${attempts}/${maxAttempts}]`)
-            return true
+      try {
+        while (attempts < maxAttempts) {
+          if (attempts === 0) {
+            portForwarder = await this.k8.portForward(podName, localPort, 5555)
+            await this.k8.testConnection('localhost', localPort)
+          } else if (attempts % 5 === 0) {
+            this.logger.debug(`Recycling proxy ${podName} [attempt: ${attempts}/${maxAttempts}]`)
+            await this.k8.stopPortForward(portForwarder)
+            await this.k8.recyclePodByLabels(podLabels, 50)
+            podArray = await this.k8.getPodsByLabel(podLabels)
+            podName = podArray[0].metadata.name
+            portForwarder = await this.k8.portForward(podName, localPort, 5555)
+            await this.k8.testConnection('localhost', localPort)
           }
 
-          attempts++
+          status = await this.getNodeProxyStatus(`http://localhost:${localPort}/v2/services/haproxy/stats/native?type=backend`)
+          if (status === 'UP') {
+            break
+          }
+
           this.logger.debug(`Proxy ${podName} is not UP. Checking again in ${delay}ms ... [attempt: ${attempts}/${maxAttempts}]`)
+          attempts++
           await sleep(delay)
-        } catch (e) {
-          throw new FullstackTestingError(`failed to create port forward for '${nodeId}' proxy on port ${localPort}`, e)
         }
+      } catch (e) {
+        throw new FullstackTestingError(`failed to check proxy for '${nodeId}' on port ${localPort}: ${e.message}`, e)
+      } finally {
+        if (portForwarder !== null) {
+          this._portForwards.push(portForwarder)
+        }
+      }
+
+      if (status === 'UP') {
+        this.logger.debug(`Proxy ${podName} is UP. [attempt: ${attempts}/${maxAttempts}]`)
+        return true
       }
     }
 
@@ -742,7 +763,7 @@ export class NodeCommand extends BaseCommand {
 
           ctx.config = {
             namespace: self.configManager.getFlag(flags.namespace),
-            nodeIds: helpers.parseNodeIDs(self.configManager.getFlag(flags.nodeIDs))
+            nodeIds: helpers.parseNodeIds(self.configManager.getFlag(flags.nodeIDs))
           }
 
           if (!await self.k8.hasNamespace(ctx.config.namespace)) {
@@ -806,7 +827,7 @@ export class NodeCommand extends BaseCommand {
           ])
 
           const config = {
-            nodeIds: helpers.parseNodeIDs(self.configManager.getFlag(flags.nodeIDs)),
+            nodeIds: helpers.parseNodeIds(self.configManager.getFlag(flags.nodeIDs)),
             cacheDir: self.configManager.getFlag(flags.cacheDir),
             generateGossipKeys: self.configManager.getFlag(flags.generateGossipKeys),
             generateTlsKeys: self.configManager.getFlag(flags.generateTlsKeys),
@@ -994,8 +1015,7 @@ export class NodeCommand extends BaseCommand {
         signal: AbortSignal.timeout(5000),
         headers: {
           Authorization: `Basic ${Buffer.from(
-              `${constants.NODE_PROXY_USER_ID}:${constants.NODE_PROXY_PASSWORD}`).toString(
-              'base64')}`
+            `${constants.NODE_PROXY_USER_ID}:${constants.NODE_PROXY_PASSWORD}`).toString('base64')}`
         }
       })
       const response = await res.json()

@@ -1,0 +1,170 @@
+##
+# Copyright (C) 2023-2024 Hedera Hashgraph, LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+##
+
+name: Update README.md
+on:
+  workflow_dispatch:
+  pull_request:
+    types:
+      - opened
+      - reopened
+      - synchronize
+    paths:
+      - '**/*.mjs'
+      - '**/*.js'
+      - '**/package*.json'
+defaults:
+  run:
+    shell: bash
+jobs:
+  update:
+    runs-on: [self-hosted, Linux, medium, ephemeral]
+    permissions:
+      # Give the default GITHUB_TOKEN write permission to commit and push the
+      # added or changed files to the repository.
+      contents: write
+    steps:
+      - name: Checkout Code for Push
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        if: github.event_name == 'push'
+        with:
+          fetch-depth: 0
+
+      # https://github.com/actions/checkout/issues/124
+      - name: Checkout Code for Pull Request
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        if: github.event_name == 'pull_request'
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.ref }}
+
+      - name: Setup Node
+        uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4.0.2
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Setup Kind
+        uses: helm/kind-action@99576bfa6ddf9a8e612d83b513da5a75875caced # v1.9.0
+        with:
+          install_only: true
+          node_image: kindest/node:v1.27.3@sha256:3966ac761ae0136263ffdb6cfd4db23ef8a83cba8a463690e98317add2c9ba72
+          version: v0.21.0
+          kubectl_version: v1.28.6
+          verbosity: 3
+          wait: 120s
+
+      - name: Install NVM & Dependencies
+        id: npm-deps
+        run: |
+          curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
+          export NVM_DIR="$HOME/.nvm"
+          [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
+          [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
+          nvm install lts/hydrogen
+          nvm use lts/hydrogen
+          npm ci
+
+      - name: Install gettext-base
+        id: gettext-base
+        run: |
+          sudo apt-get update
+          sudo apt-get install gettext-base
+
+      - name: Update README.md
+        run: |
+          npm install -g @hashgraph/solo
+          which solo
+          
+          export SOLO_CLUSTER_NAME=solo
+          export SOLO_NAMESPACE=solo
+          export SOLO_CLUSTER_SETUP_NAMESPACE=solo-cluster
+           
+          echo "Perform the followng kind and solo commands and save output to environment variables"
+          
+          export KIND_CREATE_CLUSTER_OUTPUT=$( kind create cluster -n "${SOLO_CLUSTER_NAME}" 2>&1 | tee test.log )
+          
+          export SOLO_INIT_OUTPUT=$( solo init -t v0.42.5 -i node0,node1,node2 -n "${SOLO_NAMESPACE}" -s \
+          "${SOLO_CLUSTER_SETUP_NAMESPACE}" --key-format pfx | tee test.log )
+          
+          export SOLO_NODE_KEYS_OUTPUT=$( solo node keys --gossip-keys --tls-keys --key-format pfx | tee test.log )
+
+          export SOLO_CLUSTER_SETUP_OUTPUT=$( solo cluster setup | tee test.log )
+          
+          export SOLO_NETWORK_DEPLOY_OUTPUT=$( solo network deploy | tee test.log )
+          
+          export SOLO_NODE_SETUP_OUTPUT=$( solo node setup | tee test.log )
+          
+          export SOLO_NODE_START_OUTPUT=$( solo node start | tee test.log )
+          
+          export SOLO_MIRROR_NODE_DEPLOY_OUTPUT=$( solo mirror-node deploy | tee test.log )
+          
+          export SOLO_RELAY_DEPLAY_OUTPUT=$( solo relay deploy -i node0,node1 | tee test.log )
+          
+          export SOLO_INIT_047_OUTPUT=$( solo init -t v0.47.0-alpha.0 -i node0,node1,node2 -n "${SOLO_NAMESPACE}" \
+          -s "${SOLO_CLUSTER_SETUP_NAMESPACE}" --key-format pem  | tee test.log )
+          
+          export SOLO_NODE_KEY_PEM_OUTPUT=$( solo node keys --gossip-keys --tls-keys --key-format pem | tee test.log )
+
+          export SOLO_RELAY_DEPLOY_OUTPUT=$( solo relay deploy | tee test.log )
+          echo "Generate README.md"
+          
+          envsubst '$KIND_CREATE_CLUSTER_OUTPUT,$SOLO_INIT_OUTPUT,$SOLO_NODE_KEYS_OUTPUT, $SOLO_CLUSTER_SETUP_OUTPUT, \
+          $SOLO_NETWORK_DEPLOY_OUTPUT,$SOLO_NODE_SETUP_OUTPUT,$SOLO_NODE_START_OUTPUT,$SOLO_MIRROR_NODE_DEPLOY_OUTPUT,\
+          $SOLO_RELAY_DEPLAY_OUTPUT,$SOLO_INIT_047_OUTPUT,$SOLO_NODE_KEY_PEM_OUTPUT,$SOLO_RELAY_DEPLOY_OUTPUT'\
+          < README.md.template > README.md
+
+          echo "Remove color codes and lines showing intermediate progress"
+          
+          sed -i 's/\[32m//g' README.md
+          sed -i 's/\[33m//g' README.md
+          sed -i 's/\[39m//g' README.md
+          egrep -v '↓|❯|•' README.md > README.md.tmp && mv README.md.tmp README.md
+
+      - name: Check README.md Changes
+        id: check-readme-changes
+        run: |
+          CHANGES=$(git diff --stat)
+          echo "Changes: $CHANGES"
+          
+          INSERTIONS=$(echo $CHANGES | grep -o -P '(?<=insertions\(\+\), )\d+')          
+          echo "Insertions: $INSERTIONS"
+
+          DELETIONS=$(echo $CHANGES | grep -o '[0-9]\+' | tail -1)          
+          echo "Deletions: $DELETIONS"
+        
+          # Calculate total lines changed if INSERTIONS and DELETIONS are not empty
+          if [ -z "$INSERTIONS" ]; then
+            INSERTIONS=0
+          fi
+          if [ -z "$DELETIONS" ]; then
+              DELETIONS=0
+          fi
+          
+          TOTAL_LINES_CHANGED=$(($INSERTIONS + $DELETIONS))
+          echo "Total README lines changed: $TOTAL_LINES_CHANGED"
+          echo "TOTAL_LINES_CHANGED=$TOTAL_LINES_CHANGED" >> "${GITHUB_OUTPUT}"
+
+      # Signed Commits by actions https://github.com/actions/runner/issues/667
+      - name: Commit README.md Changes
+        if: ${{ steps.check-readme-changes.outputs.TOTAL_LINES_CHANGED > 20 }}
+        uses: planetscale/ghcommit-action@v0.1.35
+        with:
+          commit_message: "auto update README.md"
+          repo: ${{ github.repository }}
+          branch: ${{ github.head_ref || github.ref_name }}
+        env:
+          GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}

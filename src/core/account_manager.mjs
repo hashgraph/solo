@@ -16,6 +16,7 @@
  */
 import * as HashgraphProto from '@hashgraph/proto'
 import * as Base64 from 'js-base64'
+import os from 'os'
 import * as constants from './constants.mjs'
 import {
   AccountCreateTransaction,
@@ -32,6 +33,7 @@ import {
 } from '@hashgraph/sdk'
 import { FullstackTestingError, MissingArgumentError } from './errors.mjs'
 import { Templates } from './templates.mjs'
+import ip from 'ip'
 
 const REASON_FAILED_TO_GET_KEYS = 'failed to get keys for accountId'
 const REASON_SKIPPED = 'skipped since it does not have a genesis key'
@@ -162,6 +164,35 @@ export class AccountManager {
     }
   }
 
+  shouldUseLocalHostPortForward (serviceObject) {
+    if (!serviceObject.loadBalancerIp) return true
+
+    const loadBalancerIp = serviceObject.loadBalancerIp
+    const interfaces = os.networkInterfaces()
+    let usePortForward = true
+    const loadBalancerIpFormat = ip.isV6Format(loadBalancerIp) ? 'ipv4' : 'ipv6'
+
+    // check if serviceIP falls into any subnet of the network interfaces
+    for (const nic of Object.keys(interfaces)) {
+      const inf = interfaces[nic]
+      for (const item of inf) {
+        if (item.family.toLowerCase() === loadBalancerIpFormat &&
+          ip.cidrSubnet(item.cidr).contains(loadBalancerIp)) {
+          usePortForward = false
+          break
+        }
+      }
+    }
+
+    if (usePortForward) {
+      this.logger.debug('Local network and Load balancer are in different network, using local host port forward')
+    } else {
+      this.logger.debug('Local network and Load balancer are in the same network, using load balancer IP port forward')
+    }
+
+    return usePortForward
+  }
+
   /**
    * Returns a node client that can be used to make calls against
    * @param namespace the namespace for which the node client resides
@@ -176,7 +207,7 @@ export class AccountManager {
       let localPort = constants.LOCAL_NODE_START_PORT
 
       for (const serviceObject of serviceMap.values()) {
-        const usePortForward = !(serviceObject.loadBalancerIp)
+        const usePortForward = this.shouldUseLocalHostPortForward(serviceObject)
         const host = usePortForward ? '127.0.0.1' : serviceObject.loadBalancerIp
         const port = serviceObject.grpcPort
         const targetPort = usePortForward ? localPort : port

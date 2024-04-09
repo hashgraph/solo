@@ -27,7 +27,7 @@ import {
   PlatformInstaller,
   Helm,
   logging,
-  KeyManager, Zippy, constants
+  KeyManager, Zippy, constants, ProfileManager
 } from './core/index.mjs'
 import 'dotenv/config'
 import { K8 } from './core/k8.mjs'
@@ -54,6 +54,7 @@ export function main (argv) {
     const platformInstaller = new PlatformInstaller(logger, k8)
     const keyManager = new KeyManager(logger)
     const accountManager = new AccountManager(logger, k8)
+    const profileManager = new ProfileManager(logger, configManager)
 
     // set cluster and namespace in the global configManager from kubernetes context
     // so that we don't need to prompt the user
@@ -72,7 +73,8 @@ export function main (argv) {
       depManager,
       keyManager,
       accountManager,
-      keytoolDepManager
+      keytoolDepManager,
+      profileManager
     }
 
     const processArguments = (argv, yargs) => {
