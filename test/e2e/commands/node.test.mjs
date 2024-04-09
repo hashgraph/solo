@@ -64,16 +64,16 @@ describe.each([
     await accountManager.close()
   }, 20000)
 
-  describe(`Node should start successfully [release ${input.releaseTag}, keyFormat: ${input.keyFormat}]`, () => {
+  describe(`Node should start successfully [mode ${input.mode}, release ${input.releaseTag}, keyFormat: ${input.keyFormat}]`, () => {
     balanceQueryShouldSucceed(accountManager, nodeCmd, namespace)
 
     accountCreationShouldSucceed(accountManager, nodeCmd, namespace)
 
-    it('Node Proxy should be UP', async () => {
+    it(`Node Proxy should be UP [mode ${input.mode}, release ${input.releaseTag}, keyFormat: ${input.keyFormat}`, async () => {
       expect.assertions(1)
 
       try {
-        await expect(nodeCmd.checkNetworkNodeProxyUp('node0', 30399)).resolves.toBeTruthy()
+        await expect(nodeCmd.checkNetworkNodeProxyUp('node0', 30499)).resolves.toBeTruthy()
       } catch (e) {
         nodeCmd.logger.showUserError(e)
         expect(e).toBeNull()
@@ -94,12 +94,13 @@ describe.each([
         await sleep(20000) // sleep to wait for pod to finish terminating
       } else if (input.mode === 'stop') {
         await expect(nodeCmd.stop(argv)).resolves.toBeTruthy()
+        await sleep(10000) // give time for node to stop and update its logs
       } else {
         throw new Error(`invalid mode: ${input.mode}`)
       }
     }, 120000)
 
-    nodeShouldBeRunning(nodeCmd, namespace, nodeId)
+    nodePodShouldBeRunning(nodeCmd, namespace, nodeId)
 
     nodeShouldNotBeActive(nodeCmd, nodeId)
 
@@ -165,7 +166,7 @@ function balanceQueryShouldSucceed (accountManager, nodeCmd, namespace) {
   }, 40000)
 }
 
-function nodeShouldBeRunning (nodeCmd, namespace, nodeId) {
+function nodePodShouldBeRunning (nodeCmd, namespace, nodeId) {
   it(`${nodeId} should be running`, async () => {
     try {
       await expect(nodeCmd.checkNetworkNodePod(namespace, nodeId)).resolves.toBeTruthy()
