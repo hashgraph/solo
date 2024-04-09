@@ -710,19 +710,47 @@ export class NodeCommand extends BaseCommand {
       try {
         while (attempts < maxAttempts) {
           if (attempts === 0) {
-            portForwarder = await this.k8.portForward(podName, localPort, 5555)
-            await this.k8.testConnection('localhost', localPort)
+            try {
+              portForwarder = await this.k8.portForward(podName, localPort, 5555)
+            } catch (e) {
+              throw new FullstackTestingError(`failed to portForward for podName ${podName} with localPort ${localPort}: ${e.message}`, e)
+            }
+            try {
+              await this.k8.testConnection('localhost', localPort)
+            } catch (e) {
+              throw new FullstackTestingError(`failed to test connection for podName ${podName} with localPort ${localPort}: ${e.message}`, e)
+            }
           } else if (attempts % 5 === 0) {
             this.logger.debug(`Recycling proxy ${podName} [attempt: ${attempts}/${maxAttempts}]`)
-            await this.k8.stopPortForward(portForwarder)
-            await this.k8.recyclePodByLabels(podLabels, 50)
+            try {
+              await this.k8.stopPortForward(portForwarder)
+            } catch (e) {
+              throw new FullstackTestingError(`failed to stop portForward for podName ${podName} with localPort ${localPort}: ${e.message}`, e)
+            }
+            try {
+              await this.k8.recyclePodByLabels(podLabels, 50)
+            } catch (e) {
+              throw new FullstackTestingError(`failed to recycle pod for podName ${podName} with localPort ${localPort}: ${e.message}`, e)
+            }
             podArray = await this.k8.getPodsByLabel(podLabels)
             podName = podArray[0].metadata.name
-            portForwarder = await this.k8.portForward(podName, localPort, 5555)
-            await this.k8.testConnection('localhost', localPort)
+            try {
+              portForwarder = await this.k8.portForward(podName, localPort, 5555)
+            } catch (e) {
+              throw new FullstackTestingError(`failed to portForward for podName ${podName} with localPort ${localPort}: ${e.message}`, e)
+            }
+            try {
+              await this.k8.testConnection('localhost', localPort)
+            } catch (e) {
+              throw new FullstackTestingError(`failed to test connection for podName ${podName} with localPort ${localPort}: ${e.message}`, e)
+            }
           }
 
-          status = await this.getNodeProxyStatus(`http://localhost:${localPort}/v2/services/haproxy/stats/native?type=backend`)
+          try {
+            status = await this.getNodeProxyStatus(`http://localhost:${localPort}/v2/services/haproxy/stats/native?type=backend`)
+          } catch (e) {
+            throw new FullstackTestingError(`failed to get proxy status at http://localhost:${localPort}/v2/services/haproxy/stats/native?type=backend: ${e.message}`, e)
+          }
           if (status === 'UP') {
             break
           }
@@ -732,7 +760,7 @@ export class NodeCommand extends BaseCommand {
           await sleep(delay)
         }
       } catch (e) {
-        throw new FullstackTestingError(`failed to check proxy for '${nodeId}' on port ${localPort}: ${e.message}`, e)
+        throw new FullstackTestingError(`failed to check proxy for '${nodeId}' with localPort ${localPort}: ${e.message}`, e)
       } finally {
         if (portForwarder !== null) {
           this._portForwards.push(portForwarder)
