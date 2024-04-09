@@ -53,7 +53,7 @@ export class ClusterCommand extends BaseCommand {
    * Show list of installed chart
    * @param clusterSetupNamespace
    */
-  async showInstalledChartList (clusterSetupNamespace) {
+  async showInstalledChartList (clusterSetupNamespace: string) {
     this.logger.showList('Installed Charts', await this.chartManager.getInstalledCharts(clusterSetupNamespace))
   }
 
@@ -219,7 +219,10 @@ export class ClusterCommand extends BaseCommand {
    * Return Yargs command definition for 'cluster' command
    * @param clusterCmd an instance of ClusterCommand
    */
-  static getCommandDefinition (clusterCmd) {
+  static getCommandDefinition (clusterCmd: ClusterCommand) {
+    if (!clusterCmd || !(clusterCmd instanceof ClusterCommand)) {
+      throw new FullstackTestingError('Invalid ClusterCommand instance')
+    }
     return {
       command: 'cluster',
       desc: 'Manage fullstack testing cluster',
@@ -318,11 +321,11 @@ export class ClusterCommand extends BaseCommand {
    * @param certManagerCrdsEnabled a bool to denote whether to install cert manager CRDs
    * @returns {string}
    */
-  prepareValuesArg (chartDir = flags.chartDirectory.definition.default,
-    prometheusStackEnabled = flags.deployPrometheusStack.definition.default,
-    minioEnabled = flags.deployMinio.definition.default,
-    certManagerEnabled = flags.deployCertManager.definition.default,
-    certManagerCrdsEnabled = flags.deployCertManagerCrds.definition.default
+  prepareValuesArg (chartDir: string = flags.chartDirectory.definition.default,
+    prometheusStackEnabled: boolean = flags.deployPrometheusStack.definition.default,
+    minioEnabled: boolean = flags.deployMinio.definition.default,
+    certManagerEnabled: boolean = flags.deployCertManager.definition.default,
+    certManagerCrdsEnabled: boolean = flags.deployCertManagerCrds.definition.default
   ) {
     let valuesArg = ''
     if (chartDir) {
@@ -347,7 +350,7 @@ export class ClusterCommand extends BaseCommand {
    * @param chartDir local charts directory (default is empty)
    * @returns {Promise<string>}
    */
-  async prepareChartPath (chartDir = flags.chartDirectory.definition.default) {
+  async prepareChartPath (chartDir: string = flags.chartDirectory.definition.default) {
     let chartPath = 'full-stack-testing/fullstack-cluster-setup'
     if (chartDir) {
       chartPath = `${chartDir}/fullstack-cluster-setup`

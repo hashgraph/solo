@@ -20,7 +20,7 @@ import { MissingArgumentError } from '../core/errors.mjs'
 import { ShellRunner } from '../core/shell_runner.mjs'
 
 export class BaseCommand extends ShellRunner {
-  async prepareChartPath (chartDir, chartRepo, chartReleaseName) {
+  async prepareChartPath (chartDir: string, chartRepo: string, chartReleaseName: string) {
     if (!chartRepo) throw new MissingArgumentError('chart repo name is required')
     if (!chartReleaseName) throw new MissingArgumentError('chart release name is required')
 
@@ -32,7 +32,7 @@ export class BaseCommand extends ShellRunner {
     return `${chartRepo}/${chartReleaseName}`
   }
 
-  prepareValuesFiles (valuesFile) {
+  prepareValuesFiles (valuesFile: string) {
     let valuesArg = ''
     if (valuesFile) {
       const valuesFiles = valuesFile.split(',')

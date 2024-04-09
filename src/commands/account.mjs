@@ -16,12 +16,13 @@
  */
 import chalk from 'chalk'
 import { BaseCommand } from './base.mjs'
-import { FullstackTestingError, IllegalArgumentError } from '../core/errors.mjs'
+import { FullstackTestingError, IllegalArgumentError, MissingArgumentError } from '../core/errors.mjs'
 import { flags } from './index.mjs'
 import { Listr } from 'listr2'
 import * as prompts from './prompts.mjs'
 import { constants } from '../core/index.mjs'
-import { HbarUnit, PrivateKey } from '@hashgraph/sdk'
+import { AccountInfo, HbarUnit, PrivateKey } from '@hashgraph/sdk'
+import AccountId from '@hashgraph/sdk/lib/account/AccountId.js'
 
 export class AccountCommand extends BaseCommand {
   constructor (opts, systemAccounts = constants.SYSTEM_ACCOUNTS) {
@@ -38,7 +39,9 @@ export class AccountCommand extends BaseCommand {
     await this.accountManager.close()
   }
 
-  async buildAccountInfo (accountInfo, namespace, shouldRetrievePrivateKey) {
+  async buildAccountInfo (accountInfo, namespace: string, shouldRetrievePrivateKey: boolean) {
+    if (!accountInfo || !(accountInfo instanceof AccountInfo)) throw new MissingArgumentError('An instance of AccountInfo is required')
+
     const newAccountInfo = {
       accountId: accountInfo.accountId.toString(),
       publicKey: accountInfo.key.toString(),
@@ -94,7 +97,7 @@ export class AccountCommand extends BaseCommand {
     return true
   }
 
-  async transferAmountFromOperator (toAccountId, amount) {
+  async transferAmountFromOperator (toAccountId: AccountId, amount: number) {
     return await this.accountManager.transferAmount(constants.TREASURY_ACCOUNT_ID, toAccountId, amount)
   }
 
@@ -398,7 +401,8 @@ export class AccountCommand extends BaseCommand {
    * Return Yargs command definition for 'node' command
    * @param accountCmd an instance of NodeCommand
    */
-  static getCommandDefinition (accountCmd) {
+  static getCommandDefinition (accountCmd: AccountCommand) {
+    if (!accountCmd | !(accountCmd instanceof AccountCommand)) throw new IllegalArgumentError('An instance of AccountCommand is required', accountCmd)
     return {
       command: 'account',
       desc: 'Manage Hedera accounts in fullstack testing network',

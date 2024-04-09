@@ -33,8 +33,8 @@ export class NetworkCommand extends BaseCommand {
     this.profileManager = opts.profileManager
   }
 
-  getTlsValueArguments (tlsClusterIssuerType, enableHederaExplorerTls, namespace,
-    hederaExplorerTlsLoadBalancerIp, hederaExplorerTlsHostName) {
+  getTlsValueArguments (tlsClusterIssuerType: string, enableHederaExplorerTls: boolean, namespace: string,
+    hederaExplorerTlsLoadBalancerIp: string, hederaExplorerTlsHostName: string) {
     let valuesArg = ''
 
     if (enableHederaExplorerTls) {
@@ -392,7 +392,10 @@ export class NetworkCommand extends BaseCommand {
     return true
   }
 
-  static getCommandDefinition (networkCmd) {
+  static getCommandDefinition (networkCmd: NetworkCommand) {
+    if (!networkCmd || !(networkCmd instanceof NetworkCommand)) {
+      throw new MissingArgumentError('An instance of NetworkCommand is required', networkCmd)
+    }
     return {
       command: 'network',
       desc: 'Manage fullstack testing network deployment',

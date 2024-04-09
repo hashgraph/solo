@@ -60,7 +60,7 @@ export class ChartManager {
    * List available clusters
    * @returns {Promise<string[]>}
    */
-  async getInstalledCharts (namespaceName) {
+  async getInstalledCharts (namespaceName: string) {
     try {
       return await this.helm.list(`-n ${namespaceName}`, '--no-headers | awk \'{print $1 " [" $9"]"}\'')
     } catch (e) {
