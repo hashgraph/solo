@@ -32,7 +32,7 @@ export class MirrorNodeCommand extends BaseCommand {
     this.profileManager = opts.profileManager
   }
 
-  async prepareValuesArg (valuesFile: string, deployHederaExplorer:boolean) {
+  async prepareValuesArg (valuesFile, deployHederaExplorer) {
     let valuesArg = ''
     if (valuesFile) {
       valuesArg += this.prepareValuesFiles(valuesFile)
@@ -279,7 +279,7 @@ export class MirrorNodeCommand extends BaseCommand {
    * Return Yargs command definition for 'mirror-mirror-node' command
    * @param mirrorNodeCmd an instance of NodeCommand
    */
-  static getCommandDefinition (mirrorNodeCmd: MirrorNodeCommand) {
+  static getCommandDefinition (mirrorNodeCmd) {
     if (!mirrorNodeCmd || !(mirrorNodeCmd instanceof MirrorNodeCommand)) {
       throw new IllegalArgumentError('Invalid MirrorNodeCommand instance', mirrorNodeCmd)
     }

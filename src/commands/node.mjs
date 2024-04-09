@@ -61,7 +61,7 @@ export class NodeCommand extends BaseCommand {
     this._portForwards = []
   }
 
-  async checkNetworkNodePod (namespace: string, nodeId: string) {
+  async checkNetworkNodePod (namespace, nodeId) {
     nodeId = nodeId.trim()
     const podName = Templates.renderNetworkPodName(nodeId)
 
@@ -77,7 +77,7 @@ export class NodeCommand extends BaseCommand {
     }
   }
 
-  async checkNetworkNodeStarted (nodeId: string, maxAttempt: number = 100, status: string = 'ACTIVE') {
+  async checkNetworkNodeStarted (nodeId, maxAttempt = 100, status = 'ACTIVE') {
     nodeId = nodeId.trim()
     const podName = Templates.renderNetworkPodName(nodeId)
     const logfilePath = `${constants.HEDERA_HAPI_PATH}/logs/hgcaa.log`
@@ -176,10 +176,9 @@ export class NodeCommand extends BaseCommand {
    * @return a list of subtasks
    * @private
    */
-  _nodeGossipKeysTaskList (keyFormat: string, nodeIds: Array, keysDir: string, curDate = new Date()) {
-    // check if nodeIds is an array of strings
+  _nodeGossipKeysTaskList (keyFormat, nodeIds, keysDir, curDate = new Date()) {
     if (!Array.isArray(nodeIds) || !nodeIds.every((nodeId) => typeof nodeId === 'string')) {
-      throw new FullstackTestingError('nodeIds must be an array of strings')
+      throw new IllegalArgumentError('nodeIds must be an array of strings')
     }
     const self = this
     const subTasks = []
@@ -278,7 +277,7 @@ export class NodeCommand extends BaseCommand {
    * @return return a list of subtasks
    * @private
    */
-  _nodeTlsKeyTaskList (nodeIds: Array, keysDir: string, curDate = new Date()) {
+  _nodeTlsKeyTaskList (nodeIds, keysDir, curDate = new Date()) {
     // check if nodeIds is an array of strings
     if (!Array.isArray(nodeIds) || !nodeIds.every((nodeId) => typeof nodeId === 'string')) {
       throw new FullstackTestingError('nodeIds must be an array of strings')

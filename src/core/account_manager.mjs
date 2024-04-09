@@ -31,7 +31,7 @@ import {
   Status,
   TransferTransaction
 } from '@hashgraph/sdk'
-import { FullstackTestingError, MissingArgumentError } from './errors.mjs'
+import { FullstackTestingError, IllegalArgumentError, MissingArgumentError } from './errors.mjs'
 import { Templates } from './templates.mjs'
 import ip from 'ip'
 
@@ -520,7 +520,12 @@ export class AccountManager {
    * @param hbarAmount the amount of HBAR
    * @returns {Promise<boolean>} if the transaction was successfully posted
    */
-  async transferAmount (fromAccountId: AccountId, toAccountId: AccountId, hbarAmount:number) {
+  async transferAmount (fromAccountId, toAccountId, hbarAmount) {
+    // check if fromAccountId is AccountId, throw error if not
+    if (!(fromAccountId instanceof AccountId)) {
+      throw new IllegalArgumentError('fromAccountId is not an instance of AccountId')
+    }
+
     try {
       const transaction = new TransferTransaction()
         .addHbarTransfer(fromAccountId, new Hbar(-1 * hbarAmount))

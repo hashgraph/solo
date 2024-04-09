@@ -16,7 +16,7 @@
  */
 import chalk from 'chalk'
 import { BaseCommand } from './base.mjs'
-import { FullstackTestingError, IllegalArgumentError, MissingArgumentError } from '../core/errors.mjs'
+import { FullstackTestingError, IllegalArgumentError } from '../core/errors.mjs'
 import { flags } from './index.mjs'
 import { Listr } from 'listr2'
 import * as prompts from './prompts.mjs'
@@ -39,8 +39,8 @@ export class AccountCommand extends BaseCommand {
     await this.accountManager.close()
   }
 
-  async buildAccountInfo (accountInfo, namespace: string, shouldRetrievePrivateKey: boolean) {
-    if (!accountInfo || !(accountInfo instanceof AccountInfo)) throw new MissingArgumentError('An instance of AccountInfo is required')
+  async buildAccountInfo (accountInfo, namespace, shouldRetrievePrivateKey) {
+    if (!accountInfo || !(accountInfo instanceof AccountInfo)) throw new IllegalArgumentError('An instance of AccountInfo is required')
 
     const newAccountInfo = {
       accountId: accountInfo.accountId.toString(),
@@ -97,7 +97,11 @@ export class AccountCommand extends BaseCommand {
     return true
   }
 
-  async transferAmountFromOperator (toAccountId: AccountId, amount: number) {
+  async transferAmountFromOperator (toAccountId, amount) {
+    if (!(toAccountId instanceof AccountId)) {
+      throw new IllegalArgumentError('toAccountId must be an instance of AccountId', toAccountId)
+    }
+
     return await this.accountManager.transferAmount(constants.TREASURY_ACCOUNT_ID, toAccountId, amount)
   }
 
@@ -401,8 +405,10 @@ export class AccountCommand extends BaseCommand {
    * Return Yargs command definition for 'node' command
    * @param accountCmd an instance of NodeCommand
    */
-  static getCommandDefinition (accountCmd: AccountCommand) {
-    if (!accountCmd | !(accountCmd instanceof AccountCommand)) throw new IllegalArgumentError('An instance of AccountCommand is required', accountCmd)
+  static getCommandDefinition (accountCmd) {
+    if (!accountCmd | !(accountCmd instanceof AccountCommand)) {
+      throw new IllegalArgumentError('An instance of AccountCommand is required', accountCmd)
+    }
     return {
       command: 'account',
       desc: 'Manage Hedera accounts in fullstack testing network',
