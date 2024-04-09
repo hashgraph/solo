@@ -58,6 +58,7 @@ describe('AccountCommand', () => {
   afterAll(async () => {
     await k8.deleteNamespace(namespace)
     await accountManager.close()
+    await nodeCmd.close()
   })
 
   describe('node proxies should be UP', () => {
