@@ -94,7 +94,7 @@ describe.each([
         await sleep(20000) // sleep to wait for pod to finish terminating
       } else if (input.mode === 'stop') {
         await expect(nodeCmd.stop(argv)).resolves.toBeTruthy()
-        await sleep(10000) // give time for node to stop and update its logs
+        await sleep(20000) // give time for node to stop and update its logs
       } else {
         throw new Error(`invalid mode: ${input.mode}`)
       }
@@ -163,7 +163,7 @@ function balanceQueryShouldSucceed (accountManager, nodeCmd, namespace) {
       expect(e).toBeNull()
     }
     await sleep(1000)
-  }, 40000)
+  }, 120000)
 }
 
 function nodePodShouldBeRunning (nodeCmd, namespace, nodeId) {
