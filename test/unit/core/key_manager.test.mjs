@@ -133,7 +133,6 @@ describe('KeyManager', () => {
 
     const output = await keytool.list(`-storetype pkcs12 -storepass password -keystore ${expectedPublicPfx}`)
     expect(output.includes('Your keystore contains 9 entries')).toBeTruthy()
-
     fs.rmSync(keysDir, { recursive: true })
     fs.rmSync(tmpDir, { recursive: true })
   }, 60000)

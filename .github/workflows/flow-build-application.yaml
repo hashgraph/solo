@@ -67,7 +67,7 @@ jobs:
   e2e-tests:
     name: E2E Tests
     uses: ./.github/workflows/zxc-compile-code.yaml
-    if: ${{ github.event_name == 'push' || github.event.inputs.enable-e2e-tests == 'true' }}
+    if: ${{ runner.os == 'linux' && github.event_name == 'push' || github.event.inputs.enable-e2e-tests == 'true' }}
     with:
       custom-job-label: Standard
       enable-e2e-tests: true
