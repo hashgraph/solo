@@ -18,7 +18,7 @@ import os from 'os'
 import { constants } from './index.mjs'
 import { ShellRunner } from './shell_runner.mjs'
 import { Templates } from './templates.mjs'
-import { MissingArgumentError } from '"./errors.mjs'
+import { MissingArgumentError } from './errors.mjs'
 
 export class Keytool extends ShellRunner {
   constructor (logger, osPlatform = os.platform()) {
