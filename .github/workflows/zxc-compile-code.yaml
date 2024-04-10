@@ -97,32 +97,25 @@ jobs:
         run: npm ci
 
       - name: Check Code Style
-        if: ${{ runner.os == 'linux' && inputs.enable-code-style-check && !cancelled() && !failure() }}
+        if: ${{ inputs.enable-code-style-check && !cancelled() && !failure() }}
         run: npm run check
 
       - name: Run Unit Tests
         if: ${{ inputs.enable-unit-tests && !cancelled() && !failure() }}
         run: npm test
 
-      - name: Publish Windows Unit Test Report
-        uses: EnricoMi/publish-unit-test-result-action/windows/bash@v2.15.1
-        if: ${{ runner.os == 'Windows' && inputs.enable-unit-tests && steps.npm-deps.conclusion == 'success' && !cancelled() }}
-        with:
-          check_name: 'Unit Test Results - ${{ runner.os }}'
-          files: "junit.xml"
-
-      - name: Publish Linux Unit Test Report
+      - name: Publish Unit Test Report
         uses: EnricoMi/publish-unit-test-result-action@f355d34d53ad4e7f506f699478db2dd71da9de5f # v2.15.1
-        if: ${{ runner.os == 'linux' && inputs.enable-unit-tests && steps.npm-deps.conclusion == 'success' && !cancelled() }}
+        if: ${{ inputs.enable-unit-tests && steps.npm-deps.conclusion == 'success' && !cancelled() }}
         with:
-          check_name: 'Unit Test Results - ${{ runner.os }}'
+          check_name: 'Unit Test Results'
           files: "junit.xml"
 
       - name: Publish Unit Test Coverage Report
         uses: actions/upload-artifact@5d5d22a31266ced268874388b861e4b58bb5c2f3 # v4.3.1
-        if: ${{ runner.os == 'linux' && inputs.enable-unit-tests && !cancelled() }}
+        if: ${{ && inputs.enable-unit-tests && !cancelled() }}
         with:
-          name: Unit Test Coverage Report - ${{ runner.os }}
+          name: Unit Test Coverage Report
           path: 'coverage/unit'
 
       - name: Pull Kind Docker Image
