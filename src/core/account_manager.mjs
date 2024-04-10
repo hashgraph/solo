@@ -521,11 +521,6 @@ export class AccountManager {
    * @returns {Promise<boolean>} if the transaction was successfully posted
    */
   async transferAmount (fromAccountId, toAccountId, hbarAmount) {
-    // check if fromAccountId is AccountId, throw error if not
-    if (!(fromAccountId instanceof AccountId)) {
-      throw new IllegalArgumentError('fromAccountId is not an instance of AccountId')
-    }
-
     try {
       const transaction = new TransferTransaction()
         .addHbarTransfer(fromAccountId, new Hbar(-1 * hbarAmount))
