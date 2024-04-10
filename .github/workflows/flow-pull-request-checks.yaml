@@ -39,7 +39,6 @@ jobs:
   code-style:
     name: Code Style
     uses: ./.github/workflows/zxc-compile-code.yaml
-    if: ${{ runner.os == 'linux' }}
     needs:
       - build
     with:
@@ -58,7 +57,6 @@ jobs:
   e2e-tests:
     name: E2E Tests
     uses: ./.github/workflows/zxc-compile-code.yaml
-    if: ${{ runner.os == 'linux' }}
     needs:
       - code-style
     with:
@@ -71,7 +69,7 @@ jobs:
     needs:
       - unit-tests
       - e2e-tests
-    if: ${{ runner.os == 'linux' && github.event.pull_request.head.repo.full_name == github.event.pull_request.base.repo.full_name && github.actor != 'dependabot[bot]' }}
+    if: ${{ github.event.pull_request.head.repo.full_name == github.event.pull_request.base.repo.full_name && github.actor != 'dependabot[bot]' }}
     with:
       custom-job-label: Standard
       enable-codecov-analysis: true
@@ -85,7 +83,7 @@ jobs:
     needs:
       - unit-tests
       - e2e-tests
-    if: ${{ runner.os == 'linux' && github.event.pull_request.head.repo.full_name == github.event.pull_request.base.repo.full_name && github.actor != 'dependabot[bot]' }}
+    if: ${{ github.event.pull_request.head.repo.full_name == github.event.pull_request.base.repo.full_name && github.actor != 'dependabot[bot]' }}
     with:
       custom-job-label: Coverage
       enable-codacy-coverage: true
