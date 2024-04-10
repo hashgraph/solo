@@ -31,7 +31,7 @@ import {
   Status,
   TransferTransaction
 } from '@hashgraph/sdk'
-import { FullstackTestingError, IllegalArgumentError, MissingArgumentError } from './errors.mjs'
+import { FullstackTestingError, MissingArgumentError } from './errors.mjs'
 import { Templates } from './templates.mjs'
 import ip from 'ip'
 
