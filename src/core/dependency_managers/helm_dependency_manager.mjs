@@ -56,12 +56,13 @@ export class HelmDependencyManager extends ShellRunner {
     this.downloader = downloader
     this.zippy = zippy
     this.installationDir = installationDir
-    this.osPlatform = osPlatform
-    this.osArch = ['x64', 'x86-64'].includes(osArch) ? 'amd64' : osArch
     // Node.js uses 'win32' for windows in package.json os field, but helm uses 'windows'
     if (osPlatform === OS_WIN32) {
       this.osPlatform = OS_WINDOWS
+    } else {
+      this.osPlatform = osPlatform
     }
+    this.osArch = ['x64', 'x86-64'].includes(osArch) ? 'amd64' : osArch
     this.helmVersion = helmVersion
     this.helmPath = Templates.installationPath(constants.HELM, this.osPlatform, this.installationDir)
 

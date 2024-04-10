@@ -117,28 +117,22 @@ describe('KeyManager', () => {
     const keytoolDepManager = new KeytoolDependencyManager(downloader, zippy, testLogger)
     await keytoolDepManager.checkVersion()
     const keytool = new Keytool(testLogger)
-    logger.showUser('step 1')
     for (const nodeId of nodeIds) {
       const result = await keyManager.generatePrivatePfxKeys(keytool, nodeId, keysDir, tmpDir)
-      logger.showUser('nodeId: ' + nodeId)
       const expectedPrivatePfx = path.join(keysDir, `private-${nodeId}.pfx`)
       expect(result).toStrictEqual(expectedPrivatePfx)
       expect(fs.existsSync(expectedPrivatePfx)).toBeTruthy()
       const output = await keytool.list(`-storetype pkcs12 -storepass password -keystore ${expectedPrivatePfx}`)
-      logger.showUser('output: ' + output)
       expect(output.includes('Your keystore contains 3 entries')).toBeTruthy()
     }
-    logger.showUser('step 2')
 
     const result = await keyManager.updatePublicPfxKey(keytool, nodeIds, keysDir, tmpDir)
     const expectedPublicPfx = path.join(keysDir, constants.PUBLIC_PFX)
     expect(result).toStrictEqual(expectedPublicPfx)
     expect(fs.existsSync(expectedPublicPfx)).toBeTruthy()
-    logger.showUser('stp 3')
 
     const output = await keytool.list(`-storetype pkcs12 -storepass password -keystore ${expectedPublicPfx}`)
     expect(output.includes('Your keystore contains 9 entries')).toBeTruthy()
-    logger.showUser('step 4')
 
     fs.rmSync(keysDir, { recursive: true })
     fs.rmSync(tmpDir, { recursive: true })
