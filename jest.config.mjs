@@ -21,7 +21,7 @@ const config = {
   testRegex: '(/__tests__/.*|(\\.|/)(test|spec))\\.(mjs?)$',
   moduleFileExtensions: ['js', 'mjs'],
   verbose: true,
-  reporters: ['default', 'jest-junit'],
+  reporters: [['default', { summaryThreshold: 1 }], 'jest-junit'],
   testSequencer: './test/testSequencer.mjs'
 }
 

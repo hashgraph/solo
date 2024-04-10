@@ -23,7 +23,7 @@ describe.each([
   { osPlatform: 'windows' },
   { osPlatform: 'darwin' }
 ])('Keytool', (input) => {
-  const logger = logging.NewLogger('debug')
+  const logger = logging.NewLogger('debug', true)
   const keytool = new Keytool(logger, input.osPlatform)
   const shellSpy = jest.spyOn(ShellRunner.prototype, 'run').mockImplementation()
   const keytoolPath = Templates.installationPath(constants.KEYTOOL, input.osPlatform)

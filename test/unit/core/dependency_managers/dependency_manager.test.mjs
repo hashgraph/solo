@@ -19,7 +19,7 @@ import { DependencyManager, HelmDependencyManager } from '../../../../src/core/d
 import { logging, constants, PackageDownloader, Zippy } from '../../../../src/core/index.mjs'
 import { FullstackTestingError } from '../../../../src/core/errors.mjs'
 
-const testLogger = logging.NewLogger('debug')
+const testLogger = logging.NewLogger('debug', true)
 describe('DependencyManager', () => {
   // prepare dependency manger registry
   const downloader = new PackageDownloader(testLogger)

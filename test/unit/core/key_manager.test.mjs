@@ -23,7 +23,7 @@ import { constants, Keytool, logging, PackageDownloader, Zippy, KeyManager } fro
 import { getTmpDir, testLogger } from '../../test_util.js'
 
 describe('KeyManager', () => {
-  const logger = logging.NewLogger('debug')
+  const logger = logging.NewLogger('debug', true)
   const keyManager = new KeyManager(logger)
 
   it('should generate signing key', async () => {

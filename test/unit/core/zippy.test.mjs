@@ -22,7 +22,7 @@ import fs from 'fs'
 import path from 'path'
 import { Zippy } from '../../../src/core/zippy.mjs'
 describe('Zippy', () => {
-  const testLogger = core.logging.NewLogger('debug')
+  const testLogger = core.logging.NewLogger('debug', true)
   const zippy = new Zippy(testLogger)
 
   describe('unzip', () => {
