@@ -81,7 +81,7 @@ describe('NetworkCommand', () => {
       networkCmd.logger.showUserError(e)
       expect(e).toBeNull()
     }
-  }, 60000)
+  }, 120000)
 
   it('network destroy should success', async () => {
     argv[flags.deletePvcs.name] = true

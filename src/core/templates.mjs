@@ -159,4 +159,12 @@ export class Templates {
         throw new FullstackTestingError(`unknown dep: ${dep}`)
     }
   }
+
+  static renderFullyQualifiedNetworkPodName (namespace, nodeId) {
+    return `${Templates.renderNetworkPodName(nodeId)}.${Templates.renderNetworkSvcName(nodeId)}.${namespace}.svc.cluster.local`
+  }
+
+  static renderFullyQualifiedNetworkSvcName (namespace, nodeId) {
+    return `${Templates.renderNetworkSvcName(nodeId)}.${namespace}.svc.cluster.local`
+  }
 }

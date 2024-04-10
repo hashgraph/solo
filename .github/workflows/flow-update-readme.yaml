@@ -93,7 +93,7 @@ jobs:
           export SOLO_NAMESPACE=solo
           export SOLO_CLUSTER_SETUP_NAMESPACE=solo-cluster
            
-          echo "Perform the followng kind and solo commands and save output to environment variables"
+          echo "Perform the following kind and solo commands and save output to environment variables"
           
           export KIND_CREATE_CLUSTER_OUTPUT=$( kind create cluster -n "${SOLO_CLUSTER_NAME}" 2>&1 | tee test.log )
           

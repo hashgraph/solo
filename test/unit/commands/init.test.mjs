@@ -30,7 +30,7 @@ import {
 } from '../../../src/core/index.mjs'
 import { K8 } from '../../../src/core/k8.mjs'
 
-const testLogger = logging.NewLogger('debug')
+const testLogger = logging.NewLogger('debug', true)
 describe('InitCommand', () => {
   // prepare dependency manger registry
   const downloader = new PackageDownloader(testLogger)

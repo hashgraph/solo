@@ -43,7 +43,7 @@ import {
   Zippy
 } from '../src/core/index.mjs'
 
-export const testLogger = logging.NewLogger('debug')
+export const testLogger = logging.NewLogger('debug', true)
 export const TEST_CLUSTER = 'solo-e2e'
 
 export function getTestCacheDir (testName) {
@@ -113,7 +113,7 @@ export function bootstrapTestVariables (testName, argv,
   const helm = new Helm(testLogger)
   const chartManager = new ChartManager(helm, testLogger)
   const k8 = k8Arg || new K8(configManager, testLogger)
-  const platformInstaller = new PlatformInstaller(testLogger, k8)
+  const platformInstaller = new PlatformInstaller(testLogger, k8, configManager)
   const accountManager = new AccountManager(testLogger, k8, constants)
   const profileManager = new ProfileManager(testLogger, configManager)
   const opts = {

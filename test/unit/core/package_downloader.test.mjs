@@ -22,7 +22,7 @@ import * as os from 'os'
 import { IllegalArgumentError, MissingArgumentError, ResourceNotFoundError } from '../../../src/core/errors.mjs'
 
 describe('PackageDownloader', () => {
-  const testLogger = core.logging.NewLogger('debug')
+  const testLogger = core.logging.NewLogger('debug', true)
   const downloader = new core.PackageDownloader(testLogger)
 
   describe('urlExists', () => {

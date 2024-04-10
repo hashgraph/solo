@@ -51,7 +51,7 @@ export function main (argv) {
     const chartManager = new ChartManager(helm, logger)
     const configManager = new ConfigManager(logger)
     const k8 = new K8(configManager, logger)
-    const platformInstaller = new PlatformInstaller(logger, k8)
+    const platformInstaller = new PlatformInstaller(logger, k8, configManager)
     const keyManager = new KeyManager(logger)
     const accountManager = new AccountManager(logger, k8)
     const profileManager = new ProfileManager(logger, configManager)

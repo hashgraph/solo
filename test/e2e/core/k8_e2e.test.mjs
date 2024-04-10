@@ -25,7 +25,7 @@ import { ConfigManager, constants, logging, Templates } from '../../../src/core/
 import { K8 } from '../../../src/core/k8.mjs'
 
 describe('K8', () => {
-  const testLogger = logging.NewLogger('debug')
+  const testLogger = logging.NewLogger('debug', true)
   const configManager = new ConfigManager(testLogger)
   const k8 = new K8(configManager, testLogger)
 
@@ -96,25 +96,30 @@ describe('K8', () => {
   it('should be able to port forward gossip port', (done) => {
     const podName = Templates.renderNetworkPodName('node0')
     const localPort = constants.HEDERA_NODE_INTERNAL_GOSSIP_PORT
-    k8.portForward(podName, localPort, constants.HEDERA_NODE_INTERNAL_GOSSIP_PORT).then((server) => {
-      expect(server).not.toBeNull()
+    try {
+      k8.portForward(podName, localPort, constants.HEDERA_NODE_INTERNAL_GOSSIP_PORT).then((server) => {
+        expect(server).not.toBeNull()
 
-      // client
-      const s = new net.Socket()
-      s.on('ready', async () => {
-        s.destroy()
-        await k8.stopPortForward(server)
-        done()
+        // client
+        const s = new net.Socket()
+        s.on('ready', async () => {
+          s.destroy()
+          await k8.stopPortForward(server)
+          done()
+        })
+
+        s.on('error', async (e) => {
+          s.destroy()
+          await k8.stopPortForward(server)
+          done(new FullstackTestingError(`could not connect to local port '${localPort}': ${e.message}`, e))
+        })
+
+        s.connect(localPort)
       })
-
-      s.on('error', async (e) => {
-        s.destroy()
-        await k8.stopPortForward(server)
-        done(new FullstackTestingError(`could not connect to local port '${localPort}': ${e.message}`, e))
-      })
-
-      s.connect(localPort)
-    })
+    } catch (e) {
+      testLogger.showUserError(e)
+      expect(e).toBeNull()
+    }
   })
 
   it('should be able to run wait for pod', async () => {

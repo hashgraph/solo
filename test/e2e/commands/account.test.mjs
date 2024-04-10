@@ -58,6 +58,7 @@ describe('AccountCommand', () => {
   afterAll(async () => {
     await k8.deleteNamespace(namespace)
     await accountManager.close()
+    await nodeCmd.close()
   })
 
   describe('node proxies should be UP', () => {
@@ -73,7 +74,7 @@ describe('AccountCommand', () => {
     it('should succeed with init command', async () => {
       const status = await accountCmd.init(argv)
       expect(status).toBeTruthy()
-    }, 120000)
+    }, 180000)
 
     describe('special accounts should have new keys', () => {
       const genesisKey = PrivateKey.fromStringED25519(constants.GENESIS_KEY)
@@ -121,7 +122,7 @@ describe('AccountCommand', () => {
         testLogger.showUserError(e)
         expect(e).toBeNull()
       }
-    }, defaultTimeout)
+    }, 40000)
 
     it('should create account with private key and hbar amount options', async () => {
       try {

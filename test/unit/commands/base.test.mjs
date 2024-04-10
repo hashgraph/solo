@@ -26,7 +26,7 @@ import {
 import { BaseCommand } from '../../../src/commands/base.mjs'
 import { K8 } from '../../../src/core/k8.mjs'
 
-const testLogger = logging.NewLogger('debug')
+const testLogger = logging.NewLogger('debug', true)
 
 describe('BaseCommand', () => {
   const helm = new Helm(testLogger)
