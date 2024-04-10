@@ -69,8 +69,11 @@ export class KeytoolDependencyManager extends ShellRunner {
   }
 
   async _fetchKeytoolArtifactUrl () {
+    console.log('osPlatform', this.osPlatform)
+    console.log('osArch', this.osArch)
     const keytoolRelease = `jdk-${this.javaVersion.major}.${this.javaVersion.minor}.${this.javaVersion.patch}%2B${this.javaVersion.build}`
     const adoptiumURL = `https://api.adoptium.net/v3/assets/release_name/eclipse/${keytoolRelease}?architecture=${this.osArch}&heap_size=normal&image_type=jre&os=${this.osPlatform}&project=jdk`
+    console.log('adoptiumURL', adoptiumURL)
     const data = await got.get(adoptiumURL).json()
     return data.binaries[0].package
   }
