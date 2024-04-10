@@ -18,9 +18,11 @@ import os from 'os'
 import { constants } from './index.mjs'
 import { ShellRunner } from './shell_runner.mjs'
 import { Templates } from './templates.mjs'
+import { IllegalArgumentError } from './errors.mjs'
 
 export class Helm extends ShellRunner {
   constructor (logger, osPlatform = os.platform()) {
+    if (!logger) throw new IllegalArgumentError('an instance of core/Logger is required', logger)
     super(logger)
     this.osPlatform = osPlatform
     this.helmPath = Templates.installationPath(constants.HELM, this.osPlatform)

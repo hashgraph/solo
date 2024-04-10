@@ -17,7 +17,7 @@
 import { ListrEnquirerPromptAdapter } from '@listr2/prompt-adapter-enquirer'
 import fs from 'fs'
 import { FullstackTestingError, IllegalArgumentError } from '../core/errors.mjs'
-import { constants } from '../core/index.mjs'
+import { ConfigManager, constants } from '../core/index.mjs'
 import * as flags from './flags.mjs'
 import * as helpers from '../core/helpers.mjs'
 
@@ -451,6 +451,9 @@ export function getPromptMap () {
  * @return {Promise<void>}
  */
 export async function execute (task, configManager, flagList = []) {
+  if (!configManager || !(configManager instanceof ConfigManager)) {
+    throw new IllegalArgumentError('an instance of ConfigManager is required')
+  }
   const prompts = getPromptMap()
   for (const flag of flagList) {
     if (!prompts.has(flag.name)) {

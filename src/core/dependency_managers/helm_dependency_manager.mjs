@@ -18,7 +18,7 @@ import fs from 'fs'
 import os from 'os'
 import path from 'path'
 import * as util from 'util'
-import { MissingArgumentError } from '../errors.mjs'
+import { IllegalArgumentError, MissingArgumentError } from '../errors.mjs'
 import * as helpers from '../helpers.mjs'
 import { constants, Templates } from '../index.mjs'
 import * as version from '../../../version.mjs'
@@ -50,6 +50,7 @@ export class HelmDependencyManager extends ShellRunner {
 
     if (!downloader) throw new MissingArgumentError('An instance of core/PackageDownloader is required')
     if (!zippy) throw new MissingArgumentError('An instance of core/Zippy is required')
+    if (!logger) throw new IllegalArgumentError('an instance of core/Logger is required', logger)
     if (!installationDir) throw new MissingArgumentError('installation directory is required')
 
     this.downloader = downloader

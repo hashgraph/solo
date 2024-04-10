@@ -18,9 +18,11 @@ import os from 'os'
 import { constants } from './index.mjs'
 import { ShellRunner } from './shell_runner.mjs'
 import { Templates } from './templates.mjs'
+import { MissingArgumentError } from '"./errors.mjs'
 
 export class Keytool extends ShellRunner {
   constructor (logger, osPlatform = os.platform()) {
+    if (!logger) throw new MissingArgumentError('an instance of core/Logger is required', logger)
     super(logger)
     this.osPlatform = osPlatform
     this.keytoolPath = Templates.installationPath(constants.KEYTOOL, this.osPlatform)

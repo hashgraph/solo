@@ -21,7 +21,7 @@ import { flags } from './index.mjs'
 import { Listr } from 'listr2'
 import * as prompts from './prompts.mjs'
 import { constants } from '../core/index.mjs'
-import { AccountId, AccountInfo, HbarUnit, PrivateKey } from '@hashgraph/sdk'
+import { AccountInfo, HbarUnit, PrivateKey } from '@hashgraph/sdk'
 
 export class AccountCommand extends BaseCommand {
   constructor (opts, systemAccounts = constants.SYSTEM_ACCOUNTS) {
@@ -97,10 +97,6 @@ export class AccountCommand extends BaseCommand {
   }
 
   async transferAmountFromOperator (toAccountId, amount) {
-    if (!(toAccountId instanceof AccountId)) {
-      throw new IllegalArgumentError('toAccountId must be an instance of AccountId', toAccountId)
-    }
-
     return await this.accountManager.transferAmount(constants.TREASURY_ACCOUNT_ID, toAccountId, amount)
   }
 

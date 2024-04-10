@@ -908,6 +908,9 @@ export class NodeCommand extends BaseCommand {
    * @param nodeCmd an instance of NodeCommand
    */
   static getCommandDefinition (nodeCmd) {
+    if (!nodeCmd || !(nodeCmd instanceof NodeCommand)) {
+      throw new IllegalArgumentError('An instance of NodeCommand is required', nodeCmd)
+    }
     return {
       command: 'node',
       desc: 'Manage Hedera platform node in fullstack testing network',

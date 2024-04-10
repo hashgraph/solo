@@ -20,6 +20,7 @@ import { ShellRunner } from '../shell_runner.mjs'
 
 export class DependencyManager extends ShellRunner {
   constructor (logger, depManagerMap) {
+    if (!logger) throw new MissingArgumentError('an instance of core/Logger is required', logger)
     super(logger)
     if (!depManagerMap) throw new MissingArgumentError('A map of dependency managers are required')
     this.depManagerMap = depManagerMap
