@@ -43,8 +43,14 @@ jobs:
           [[ "${#README_UPDATE_HASH}" -gt 0 ]] && BASE_HASH=$README_UPDATE_HASH || BASE_HASH=${{ github.event.pull_request.base.sha }}
           echo "BASE_HASH=$BASE_HASH"
           echo "# determine if any javascript files changed"
-          git --no-pager diff --name-only ${{ github.event.pull_request.head.ref }} $(git merge-base ${{ github.event.pull_request.head.ref }} $BASE_HASH)
+          git merge-base ${{ github.event.pull_request.head.ref }} $BASE_HASH
           echo 1
+          git --no-pager diff --name-only ${{ github.event.pull_request.head.ref }} $(git merge-base ${{ github.event.pull_request.head.ref }} $BASE_HASH)
+          echo 1.1
+          echo pacakge.json | grep -E -i ".*\.(mjs|cjs|js|package*\.json)"
+          echo 1.2
+          echo x | grep -E -i ".*\.(mjs|cjs|js|package*\.json)"
+          echo 1.3
           git --no-pager diff --name-only ${{ github.event.pull_request.head.ref }} $(git merge-base ${{ github.event.pull_request.head.ref }} $BASE_HASH) | grep -E -i ".*\.(mjs|cjs|js|package*\.json)"
           echo 1.5
           CHANGED_FILES=$(git --no-pager diff --name-only ${{ github.event.pull_request.head.ref }} $(git merge-base ${{ github.event.pull_request.head.ref }} $BASE_HASH) | grep -E -i ".*\.(mjs|cjs|js|package*\.json)")
