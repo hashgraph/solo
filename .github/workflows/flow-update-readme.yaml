@@ -47,13 +47,13 @@ jobs:
           echo 1
           git --no-pager diff --name-only ${{ github.event.pull_request.head.ref }} $(git merge-base ${{ github.event.pull_request.head.ref }} $BASE_HASH)
           echo 1.1
-          echo pacakge.json | grep -E -i ".*(mjs|cjs|js|package*\.json|README\.md\.template)$"
+          echo pacakge.json | grep -E -i ".*(\..?js|package.*\.json|README\.md\.template)$"
           echo 1.2
-          echo x | grep -E -i ".*(mjs|cjs|js|package*\.json|README\.md\.template)$" || true
+          echo x | grep -E -i ".*(\..?js|package.*\.json|README\.md\.template)$" || true
           echo 1.3
-          git --no-pager diff --name-only ${{ github.event.pull_request.head.ref }} $(git merge-base ${{ github.event.pull_request.head.ref }} $BASE_HASH) | grep -E -i ".*(mjs|cjs|js|package*\.json|README\.md\.template)$" || true
+          git --no-pager diff --name-only ${{ github.event.pull_request.head.ref }} $(git merge-base ${{ github.event.pull_request.head.ref }} $BASE_HASH) | grep -E -i ".*(\..?js|package.*\.json|README\.md\.template)$" || true
           echo 1.5
-          CHANGED_FILES=$(git --no-pager diff --name-only ${{ github.event.pull_request.head.ref }} $(git merge-base ${{ github.event.pull_request.head.ref }} $BASE_HASH) | grep -E -i ".*(mjs|cjs|js|package*\.json|README\.md\.template)$") || true
+          CHANGED_FILES=$(git --no-pager diff --name-only ${{ github.event.pull_request.head.ref }} $(git merge-base ${{ github.event.pull_request.head.ref }} $BASE_HASH) | grep -E -i ".*(\..?js|package.*\.json|README\.md\.template)$") || true
           echo 2
           [[ "${#CHANGED_FILES}" -gt 0 ]] && FILES_CHANGED=true || FILES_CHANGED=""
           echo "FILES_CHANGED=$FILES_CHANGED"
