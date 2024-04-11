@@ -18,14 +18,6 @@ name: Update README.md
 on:
   workflow_dispatch:
   pull_request:
-    types:
-      - opened
-      - reopened
-      - synchronize
-    paths:
-      - '**/*.mjs'
-      - '**/*.js'
-      - '**/package*.json'
 defaults:
   run:
     shell: bash
@@ -51,13 +43,24 @@ jobs:
           fetch-depth: 0
           ref: ${{ github.event.pull_request.head.ref }}
 
+      - name: Readme Update Check
+        id: readme-update-check
+        run: |
+          # determine if any javascript files change since last "auto update README.md"
+          CHANGED_FILES=$(git --no-pager diff --name-only ${{ github.event.pull_request.head.ref }} $(git merge-base ${{ github.event.pull_request.head.ref }} ${{ github.event.pull_request.base.ref }}) | grep -E -i ".*\.(mjs|cjs|js|package*\.json)")
+          [ "${#CHANGED_FILES}" -gt 0 ] && FILES_CHANGED=true || FILES_CHANGED=false
+          COMMITS_SINCE_UPDATE=$(git --no-pager log --reverse --pretty="%H|%an|%s" | awk '/github-actions\[bot\]\|auto update README\.md/ {s=""; next}  {s = s $0 RS} END {printf "%s", s}')
+          [ "${#COMMITS_SINCE_UPDATE}" -gt 0 ] && UPDATE_NEEDED=true || UPDATED_NEEDED=false
+
       - name: Setup Node
+        if: ${{ steps.readme-update-check.outputs.FILES_CHANGED == 'true' && steps.readme-update-check.outputs.UPDATE_NEEDED == 'true' }}
         uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4.0.2
         with:
           node-version: 20
           cache: npm
 
       - name: Setup Kind
+        if: ${{ steps.readme-update-check.outputs.FILES_CHANGED == 'true' && steps.readme-update-check.outputs.UPDATE_NEEDED == 'true' }}
         uses: helm/kind-action@99576bfa6ddf9a8e612d83b513da5a75875caced # v1.9.0
         with:
           install_only: true
@@ -68,6 +71,7 @@ jobs:
           wait: 120s
 
       - name: Install NVM & Dependencies
+        if: ${{ steps.readme-update-check.outputs.FILES_CHANGED == 'true' && steps.readme-update-check.outputs.UPDATE_NEEDED == 'true' }}
         id: npm-deps
         run: |
           curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
@@ -79,12 +83,14 @@ jobs:
           npm ci
 
       - name: Install gettext-base
+        if: ${{ steps.readme-update-check.outputs.FILES_CHANGED == 'true' && steps.readme-update-check.outputs.UPDATE_NEEDED == 'true' }}
         id: gettext-base
         run: |
           sudo apt-get update
           sudo apt-get install gettext-base
 
       - name: Update README.md
+        if: ${{ steps.readme-update-check.outputs.FILES_CHANGED == 'true' && steps.readme-update-check.outputs.UPDATE_NEEDED == 'true' }}
         run: |
           npm install -g @hashgraph/solo
           which solo
@@ -135,6 +141,7 @@ jobs:
           egrep -v '↓|❯|•' README.md > README.md.tmp && mv README.md.tmp README.md
 
       - name: Check README.md Changes
+        if: ${{ steps.readme-update-check.outputs.FILES_CHANGED == 'true' && steps.readme-update-check.outputs.UPDATE_NEEDED == 'true' }}
         id: check-readme-changes
         run: |
           CHANGES=$(git diff --stat)
@@ -160,7 +167,7 @@ jobs:
 
       # Signed Commits by actions https://github.com/actions/runner/issues/667
       - name: Commit README.md Changes
-        if: ${{ steps.check-readme-changes.outputs.TOTAL_LINES_CHANGED > 20 }}
+        if: ${{ steps.readme-update-check.outputs.FILES_CHANGED == 'true' && steps.readme-update-check.outputs.UPDATE_NEEDED == 'true' && steps.check-readme-changes.outputs.TOTAL_LINES_CHANGED > 20 }}
         uses: planetscale/ghcommit-action@v0.1.35
         with:
           commit_message: "auto update README.md"
