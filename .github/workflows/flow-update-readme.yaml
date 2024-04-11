@@ -41,6 +41,7 @@ jobs:
           # get the commit hash for the last "auto update README.md" commit
           README_UPDATE_HASH=$(git --no-pager log --reverse --pretty="%H|%an|%s" ${{ github.event.pull_request.base.ref }}..${{ github.event.pull_request.head.ref }} | grep -E 'github-actions\[bot\]\|auto update README\.md' | awk -F '|' '{print $1;}')
           [[ "${#README_UPDATE_HASH}" -gt 0 ]] && BASE_HASH=$README_UPDATE_HASH || BASE_HASH=${{ github.event.pull_request.base.sha }}
+          echo "BASE_HASH=$BASE_HASH"
           ##
           # determine if any javascript files changed
           git --no-pager diff --name-only ${{ github.event.pull_request.head.ref }} $(git merge-base ${{ github.event.pull_request.head.ref }} $BASE_HASH)
