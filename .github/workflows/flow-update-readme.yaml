@@ -38,18 +38,22 @@ jobs:
       - name: Readme Update Check
         id: readme-update-check
         run: |
-          echo "# get the commit hash for the last "auto update README.md" commit"
+          echo "# get the commit hash for the last 'auto update README.md' commit"
           README_UPDATE_HASH=$(git --no-pager log --reverse --pretty="%H|%an|%s" ${{ github.event.pull_request.base.ref }}..${{ github.event.pull_request.head.ref }} | grep -E 'github-actions\[bot\]\|auto update README\.md' | awk -F '|' '{print $1;}')
           [[ "${#README_UPDATE_HASH}" -gt 0 ]] && BASE_HASH=$README_UPDATE_HASH || BASE_HASH=${{ github.event.pull_request.base.sha }}
           echo "BASE_HASH=$BASE_HASH"
           echo "# determine if any javascript files changed"
           git --no-pager diff --name-only ${{ github.event.pull_request.head.ref }} $(git merge-base ${{ github.event.pull_request.head.ref }} $BASE_HASH)
+          echo 1
           CHANGED_FILES=$(git --no-pager diff --name-only ${{ github.event.pull_request.head.ref }} $(git merge-base ${{ github.event.pull_request.head.ref }} $BASE_HASH) | grep -E -i ".*\.(mjs|cjs|js|package*\.json)")
+          echo 2
           [[ "${#CHANGED_FILES}" -gt 0 ]] && FILES_CHANGED=true || FILES_CHANGED=false
           echo "FILES_CHANGED=$FILES_CHANGED"
           echo "# determine if commits since last 'auto update README.md' commit"
           git --no-pager log --reverse --pretty="%H|%an|%s" ${{ github.event.pull_request.base.ref }}..${{ github.event.pull_request.head.ref }}
+          echo 3
           COMMITS_SINCE_UPDATE=$(git --no-pager log --reverse --pretty="%H|%an|%s" ${{ github.event.pull_request.base.ref }}..${{ github.event.pull_request.head.ref }} | awk '/github-actions\[bot\]\|auto update README\.md/ {s=""; next}  {s = s $0 RS} END {printf "%s", s}')
+          echo 4
           [[ "${#COMMITS_SINCE_UPDATE}" -gt 0 ]] && UPDATE_NEEDED=true || UPDATED_NEEDED=false
           echo "UPDATE_NEEDED=$UPDATE_NEEDED"
           echo "# determine if we need to update the README.md"
