@@ -31,8 +31,9 @@ jobs:
     steps:
       - name: Checkout Code for Pull Request
         run: |
+          git --version
           git clone https://github.com/hashgraph/solo.git .
-          git checkout ${{ github.event.pull_request.head.sha }}
+          git checkout ${{ github.event.pull_request.head.ref }}
 
       - name: Readme Update Check
         id: readme-update-check
