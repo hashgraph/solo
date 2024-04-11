@@ -44,7 +44,7 @@ jobs:
           
           # determine if any javascript files changed
           git --no-pager diff --name-only ${{ github.event.pull_request.head.ref }} $(git merge-base ${{ github.event.pull_request.head.ref }} $BASE_HASH)
-          CHANGED_FILES=$(git --no-pager diff --name-only ${{ github.event.pull_request.head.ref }} $(git merge-base ${{ github.event.pull_request.head.ref }} ${{ github.event.pull_request.base.ref }}) | grep -E -i ".*\.(mjs|cjs|js|package*\.json)")
+          CHANGED_FILES=$(git --no-pager diff --name-only ${{ github.event.pull_request.head.ref }} $(git merge-base ${{ github.event.pull_request.head.ref }} $BASE_HASH) | grep -E -i ".*\.(mjs|cjs|js|package*\.json)")
           [[ "${#CHANGED_FILES}" -gt 0 ]] && FILES_CHANGED=true || FILES_CHANGED=false
           echo "FILES_CHANGED=$FILES_CHANGED"
           
