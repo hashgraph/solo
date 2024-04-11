@@ -29,19 +29,10 @@ jobs:
       # added or changed files to the repository.
       contents: write
     steps:
-      - name: Checkout Code for Push
-        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
-        if: github.event_name == 'push'
-        with:
-          fetch-depth: 0
-
-      # https://github.com/actions/checkout/issues/124
       - name: Checkout Code for Pull Request
-        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
-        if: github.event_name == 'pull_request'
-        with:
-          fetch-depth: 0
-          ref: ${{ github.event.pull_request.head.sha }}
+        run: |
+          git clone git@github.com:hashgraph/solo.git
+          git checkout ${{ github.event.pull_request.head.sha }}
 
       - name: Readme Update Check
         id: readme-update-check
