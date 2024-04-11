@@ -39,7 +39,7 @@ jobs:
         id: readme-update-check
         run: |
           echo "# get the commit hash for the last 'auto update README.md' commit"
-          README_UPDATE_HASH=$(git --no-pager log --reverse --pretty="%H|%an|%s" ${{ github.event.pull_request.base.ref }}..${{ github.event.pull_request.head.ref }} | grep -E 'github-actions\[bot\]\|auto update README\.md' | awk -F '|' '{print $1;}')
+          README_UPDATE_HASH=$(git --no-pager log --reverse --pretty="%H|%an|%s" ${{ github.event.pull_request.base.ref }}..${{ github.event.pull_request.head.ref }} | grep -E 'Swirlds Automation\|auto update README\.md' | awk -F '|' '{print $1;}')
           [[ "${#README_UPDATE_HASH}" -gt 0 ]] && BASE_HASH=$README_UPDATE_HASH || BASE_HASH=${{ github.event.pull_request.base.sha }}
           echo "BASE_HASH=$BASE_HASH"
 
@@ -54,7 +54,7 @@ jobs:
 
           echo "# determine if commits since last 'auto update README.md' commit"
           git --no-pager log --reverse --pretty="%H|%an|%s" ${{ github.event.pull_request.base.ref }}..${{ github.event.pull_request.head.ref }}
-          COMMITS_SINCE_UPDATE=$(git --no-pager log --reverse --pretty="%H|%an|%s" ${{ github.event.pull_request.base.ref }}..${{ github.event.pull_request.head.ref }} | awk '/github-actions\[bot\]\|auto update README\.md/ {s=""; next}  {s = s $0 RS} END {printf "%s", s}')
+          COMMITS_SINCE_UPDATE=$(git --no-pager log --reverse --pretty="%H|%an|%s" ${{ github.event.pull_request.base.ref }}..${{ github.event.pull_request.head.ref }} | awk '/Swirlds Automation\|auto update README\.md/ {s=""; next}  {s = s $0 RS} END {printf "%s", s}')
           [[ "${#COMMITS_SINCE_UPDATE}" -gt 0 ]] && NEW_COMMITS=true || NEW_COMMITS=""
           echo "NEW_COMMITS=$NEW_COMMITS"
 
@@ -186,5 +186,6 @@ jobs:
           commit_message: "auto update README.md"
           repo: ${{ github.repository }}
           branch: ${{ github.head_ref || github.ref_name }}
+          empty: true
         env:
           GITHUB_TOKEN: ${{secrets.GH_ACCESS_TOKEN}}
