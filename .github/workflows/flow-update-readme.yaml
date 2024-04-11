@@ -63,9 +63,10 @@ jobs:
           COMMITS_SINCE_UPDATE=$(git --no-pager log --reverse --pretty="%H|%an|%s" ${{ github.event.pull_request.base.ref }}..${{ github.event.pull_request.head.ref }} | awk '/github-actions\[bot\]\|auto update README\.md/ {s=""; next}  {s = s $0 RS} END {printf "%s", s}')
           echo 4
           [[ "${#COMMITS_SINCE_UPDATE}" -gt 0 ]] && UPDATE_NEEDED=true || UPDATED_NEEDED=false
-          echo "UPDATE_NEEDED=$UPDATE_NEEDED"
+          echo "NEW_COMMITS=$NEW_COMMITS"
           echo "# determine if we need to update the README.md"
-          [[ "${FILES_CHANGED}" == "true" && "${UPDATE_NEEDED}" == "true" ]] && RUN_UPDATE=true || RUN_UPDATE=false
+          [[ "${FILES_CHANGED}" == "true" && "${NEW_COMMITS}" == "true" ]] && RUN_UPDATE=true || RUN_UPDATE=false
+          echo "RUN_UPDATE=$RUN_UPDATE"
           echo "run-update=$RUN_UPDATE" >> "${GITHUB_OUTPUT}"
 
       - name: Setup Node
