@@ -47,8 +47,10 @@ jobs:
         id: readme-update-check
         run: |
           # determine if any javascript files change since last "auto update README.md"
+          git --no-pager diff --name-only ${{ github.event.pull_request.head.ref }} $(git merge-base ${{ github.event.pull_request.head.ref }} ${{ github.event.pull_request.base.ref }})
           CHANGED_FILES=$(git --no-pager diff --name-only ${{ github.event.pull_request.head.ref }} $(git merge-base ${{ github.event.pull_request.head.ref }} ${{ github.event.pull_request.base.ref }}) | grep -E -i ".*\.(mjs|cjs|js|package*\.json)")
           [ "${#CHANGED_FILES}" -gt 0 ] && FILES_CHANGED=true || FILES_CHANGED=false
+          git --no-pager log --reverse --pretty="%H|%an|%s" ${{ github.event.pull_request.base.ref }}..${{ github.event.pull_request.head.ref }} | awk '/github-actions\[bot\]\|auto update README\.md/ {s=""; next}  {s = s $0 RS} END {printf "%s", s}'
           COMMITS_SINCE_UPDATE=$(git --no-pager log --reverse --pretty="%H|%an|%s" ${{ github.event.pull_request.base.ref }}..${{ github.event.pull_request.head.ref }} | awk '/github-actions\[bot\]\|auto update README\.md/ {s=""; next}  {s = s $0 RS} END {printf "%s", s}')
           [ "${#COMMITS_SINCE_UPDATE}" -gt 0 ] && UPDATE_NEEDED=true || UPDATED_NEEDED=false
 
