@@ -62,7 +62,7 @@ jobs:
           echo 3
           COMMITS_SINCE_UPDATE=$(git --no-pager log --reverse --pretty="%H|%an|%s" ${{ github.event.pull_request.base.ref }}..${{ github.event.pull_request.head.ref }} | awk '/github-actions\[bot\]\|auto update README\.md/ {s=""; next}  {s = s $0 RS} END {printf "%s", s}')
           echo 4
-          [[ "${#COMMITS_SINCE_UPDATE}" -gt 0 ]] && UPDATE_NEEDED=true || UPDATED_NEEDED=""
+          [[ "${#COMMITS_SINCE_UPDATE}" -gt 0 ]] && NEW_COMMITS=true || NEW_COMMITS=""
           echo "NEW_COMMITS=$NEW_COMMITS"
           echo "# determine if we need to update the README.md"
           [[ "${FILES_CHANGED}" == "true" && "${NEW_COMMITS}" == "true" ]] && RUN_UPDATE=true || RUN_UPDATE=""
