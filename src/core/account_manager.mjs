@@ -70,8 +70,8 @@ export class AccountManager {
     if (secret) {
       return {
         accountId: secret.labels['fullstack.hedera.com/account-id'],
-        privateKey: secret.data.privateKey,
-        publicKey: secret.data.publicKey
+        privateKey: Base64.decode(secret.data.privateKey),
+        publicKey: Base64.decode(secret.data.publicKey)
       }
     } else {
       return null
@@ -496,25 +496,33 @@ export class AccountManager {
     const newAccountResponse = await newAccountTransaction.execute(this._nodeClient)
 
     // Get the new account ID
-    const getReceipt = await newAccountResponse.getReceipt(this._nodeClient)
+    const transactionReceipt = await newAccountResponse.getReceipt(this._nodeClient)
     const accountInfo = {
-      accountId: getReceipt.accountId.toString(),
+      accountId: transactionReceipt.accountId.toString(),
       privateKey: privateKey.toString(),
       publicKey: privateKey.publicKey.toString(),
       balance: amount
     }
 
-    if (!(await this.k8.createSecret(
-      Templates.renderAccountKeySecretName(accountInfo.accountId),
-      namespace, 'Opaque', {
-        privateKey: accountInfo.privateKey,
-        publicKey: accountInfo.publicKey
-      },
-      Templates.renderAccountKeySecretLabelObject(accountInfo.accountId), true))
-    ) {
-      this.logger.error(`new account created [accountId=${accountInfo.accountId}, amount=${amount} HBAR, publicKey=${accountInfo.publicKey}, privateKey=${accountInfo.privateKey}] but failed to create secret in Kubernetes`)
+    try {
+      const accountSecretCreated = await this.k8.createSecret(
+        Templates.renderAccountKeySecretName(accountInfo.accountId),
+        namespace, 'Opaque', {
+          privateKey: Base64.encode(accountInfo.privateKey),
+          publicKey: Base64.encode(accountInfo.publicKey)
+        },
+        Templates.renderAccountKeySecretLabelObject(accountInfo.accountId), true)
 
-      throw new FullstackTestingError(`failed to create secret for accountId ${accountInfo.accountId.toString()}, keys were sent to log file`)
+      if (!(accountSecretCreated)) {
+        this.logger.error(`new account created [accountId=${accountInfo.accountId}, amount=${amount} HBAR, publicKey=${accountInfo.publicKey}, privateKey=${accountInfo.privateKey}] but failed to create secret in Kubernetes`)
+
+        throw new FullstackTestingError(`failed to create secret for accountId ${accountInfo.accountId.toString()}, keys were sent to log file`)
+      }
+    } catch (e) {
+      if (e instanceof FullstackTestingError) {
+        throw e
+      }
+      throw new FullstackTestingError(`failed to create secret for accountId ${accountInfo.accountId.toString()}, e: ${e.toString()}`, e)
     }
 
     return accountInfo
