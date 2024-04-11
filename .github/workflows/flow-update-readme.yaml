@@ -177,10 +177,11 @@ jobs:
           TOTAL_LINES_CHANGED=$(($INSERTIONS + $DELETIONS))
           echo "Total README lines changed: $TOTAL_LINES_CHANGED"
           echo "TOTAL_LINES_CHANGED=$TOTAL_LINES_CHANGED" >> "${GITHUB_OUTPUT}"
+          [[ "${#TOTAL_LINES_CHANGED}" -le 20 ]] && git restore README.md || echo "README.md changes are 20 lines or more, commit changes"
 
       # Signed Commits by actions https://github.com/actions/runner/issues/667
       - name: Commit README.md Changes
-        if: ${{ steps.readme-update-check.outputs.run-update && steps.check-readme-changes.outputs.TOTAL_LINES_CHANGED > 20 }}
+        if: ${{ steps.readme-update-check.outputs.run-update }}
         uses: planetscale/ghcommit-action@v0.1.35
         with:
           commit_message: "auto update README.md"
