@@ -21,7 +21,7 @@ import { flags } from './index.mjs'
 import { Listr } from 'listr2'
 import * as prompts from './prompts.mjs'
 import { constants } from '../core/index.mjs'
-import { HbarUnit, PrivateKey } from '@hashgraph/sdk'
+import { AccountInfo, HbarUnit, PrivateKey } from '@hashgraph/sdk'
 
 export class AccountCommand extends BaseCommand {
   constructor (opts, systemAccounts = constants.SYSTEM_ACCOUNTS) {
@@ -39,6 +39,8 @@ export class AccountCommand extends BaseCommand {
   }
 
   async buildAccountInfo (accountInfo, namespace, shouldRetrievePrivateKey) {
+    if (!accountInfo || !(accountInfo instanceof AccountInfo)) throw new IllegalArgumentError('An instance of AccountInfo is required')
+
     const newAccountInfo = {
       accountId: accountInfo.accountId.toString(),
       publicKey: accountInfo.key.toString(),
@@ -399,6 +401,9 @@ export class AccountCommand extends BaseCommand {
    * @param accountCmd an instance of NodeCommand
    */
   static getCommandDefinition (accountCmd) {
+    if (!accountCmd | !(accountCmd instanceof AccountCommand)) {
+      throw new IllegalArgumentError('An instance of AccountCommand is required', accountCmd)
+    }
     return {
       command: 'account',
       desc: 'Manage Hedera accounts in fullstack testing network',
