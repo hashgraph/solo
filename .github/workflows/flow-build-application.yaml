@@ -53,7 +53,7 @@ jobs:
     needs:
       - code
     with:
-      custom-job-label: Check
+      custom-job-label: Code Style Check
       enable-code-style-check: true
 
   unit-tests:
@@ -61,7 +61,7 @@ jobs:
     uses: ./.github/workflows/zxc-compile-code.yaml
     if: ${{ github.event_name == 'push' || github.event.inputs.enable-unit-tests == 'true' }}
     with:
-      custom-job-label: Standard
+      custom-job-label: Unit Tests
       enable-unit-tests: true
 
   e2e-tests:
@@ -69,7 +69,7 @@ jobs:
     uses: ./.github/workflows/zxc-compile-code.yaml
     if: ${{ github.event_name == 'push' || github.event.inputs.enable-e2e-tests == 'true' }}
     with:
-      custom-job-label: Standard
+      custom-job-label: E2E Tests
       enable-e2e-tests: true
 
   analyze:
