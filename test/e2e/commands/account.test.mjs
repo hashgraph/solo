@@ -14,7 +14,7 @@
  * limitations under the License.
  *
  */
-import { PrivateKey } from '@hashgraph/sdk'
+import { AccountId, PrivateKey } from '@hashgraph/sdk'
 import {
   afterAll, beforeAll,
   describe,
@@ -56,12 +56,12 @@ describe('AccountCommand', () => {
   const accountCmd = new AccountCommand(bootstrapResp.opts, testSystemAccounts)
 
   afterAll(async () => {
-    // await k8.deleteNamespace(namespace)
+    await k8.deleteNamespace(namespace)
     await accountManager.close()
     await nodeCmd.close()
   })
 
-  describe.skip('node proxies should be UP', () => {
+  describe('node proxies should be UP', () => {
     let localPort = 30399
     for (const nodeId of argv[flags.nodeIDs.name].split(',')) {
       it(`proxy should be UP: ${nodeId} `, async () => {
@@ -70,7 +70,7 @@ describe('AccountCommand', () => {
     }
   })
 
-  describe.skip('account init command', () => {
+  describe('account init command', () => {
     it('should succeed with init command', async () => {
       const status = await accountCmd.init(argv)
       expect(status).toBeTruthy()
@@ -107,7 +107,7 @@ describe('AccountCommand', () => {
   describe('account create/update command', () => {
     let accountId1, accountId2
 
-    it.skip('should create account with no options', async () => {
+    it('should create account with no options', async () => {
       try {
         argv[flags.amount.name] = 200
         await expect(accountCmd.create(argv)).resolves.toBeTruthy()
@@ -124,7 +124,7 @@ describe('AccountCommand', () => {
       }
     }, 40000)
 
-    it.skip('should create account with private key and hbar amount options', async () => {
+    it('should create account with private key and hbar amount options', async () => {
       try {
         argv[flags.privateKey.name] = constants.GENESIS_KEY
         argv[flags.amount.name] = 777
@@ -145,7 +145,7 @@ describe('AccountCommand', () => {
       }
     }, defaultTimeout)
 
-    it.skip('should update account-1', async () => {
+    it('should update account-1', async () => {
       try {
         argv[flags.amount.name] = 0
         argv[flags.accountId.name] = accountId1
@@ -165,7 +165,7 @@ describe('AccountCommand', () => {
       }
     }, defaultTimeout)
 
-    it.skip('should update account-2 with accountId, amount, new private key, and standard out options', async () => {
+    it('should update account-2 with accountId, amount, new private key, and standard out options', async () => {
       try {
         argv[flags.accountId.name] = accountId2
         argv[flags.privateKey.name] = constants.GENESIS_KEY
@@ -186,7 +186,7 @@ describe('AccountCommand', () => {
       }
     }, defaultTimeout)
 
-    it.skip('should be able to get account-1', async () => {
+    it('should be able to get account-1', async () => {
       try {
         argv[flags.accountId.name] = accountId1
         configManager.update(argv, true)
@@ -204,7 +204,7 @@ describe('AccountCommand', () => {
       }
     }, defaultTimeout)
 
-    it.skip('should be able to get account-2', async () => {
+    it('should be able to get account-2', async () => {
       try {
         argv[flags.accountId.name] = accountId2
         configManager.update(argv, true)
@@ -223,28 +223,34 @@ describe('AccountCommand', () => {
     }, defaultTimeout)
 
     it('should create account with ecdsa private key and set alias', async () => {
-      // const ecdsaPrivateKey = PrivateKey.generateED25519()
       const ecdsaPrivateKey = PrivateKey.generateECDSA()
 
       try {
         argv[flags.ecdsaPrivateKey.name] = ecdsaPrivateKey.toString()
-        // argv[flags.privateKey.name] = ecdsaPrivateKey.toString()
         argv[flags.setAlias.name] = true
         configManager.update(argv, true)
 
         await expect(accountCmd.create(argv)).resolves.toBeTruthy()
 
-        const accountInfo = accountCmd.accountInfo
-        expect(accountInfo).not.toBeNull()
-        expect(accountInfo.accountId).not.toBeNull()
-        expect(accountInfo.privateKey.toString()).toEqual(ecdsaPrivateKey.toString())
-        expect(accountInfo.publicKey.toString()).toEqual(ecdsaPrivateKey.publicKey.toString())
-        expect(accountInfo.balance).toBeGreaterThan(0)
-        // account info query to try and get alias
+        const newAccountInfo = accountCmd.accountInfo
+        expect(newAccountInfo).not.toBeNull()
+        expect(newAccountInfo.accountId).not.toBeNull()
+        expect(newAccountInfo.privateKey.toString()).toEqual(ecdsaPrivateKey.toString())
+        expect(newAccountInfo.publicKey.toString()).toEqual(ecdsaPrivateKey.publicKey.toString())
+        expect(newAccountInfo.balance).toBeGreaterThan(0)
+
+        const accountId = AccountId.fromString(newAccountInfo.accountId)
+        expect(newAccountInfo.accountAlias).toEqual(`${accountId.realm}.${accountId.shard}.${ecdsaPrivateKey.publicKey.toEvmAddress()}`)
+
+        await accountManager.loadNodeClient(namespace)
+        const accountAliasInfo = await accountManager.accountInfoQuery(newAccountInfo.accountAlias)
+        expect(accountAliasInfo).not.toBeNull()
       } catch (e) {
         testLogger.showUserError(e)
         expect(e).toBeNull()
+      } finally {
+        await accountCmd.closeConnections()
       }
-    }, 999999) // TODO change to defaultTimeout
+    }, defaultTimeout)
   })
 })

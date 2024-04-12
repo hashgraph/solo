@@ -504,6 +504,15 @@ export class AccountManager {
       balance: amount
     }
 
+    // add the account alias if setAlias is true
+    if (setAlias) {
+      const accountId = accountInfo.accountId
+      const realm = transactionReceipt.accountId.realm
+      const shard = transactionReceipt.accountId.shard
+      const accountInfoQueryResult = await this.accountInfoQuery(accountId)
+      accountInfo.accountAlias = `${realm}.${shard}.${accountInfoQueryResult.contractAccountId}`
+    }
+
     try {
       const accountSecretCreated = await this.k8.createSecret(
         Templates.renderAccountKeySecretName(accountInfo.accountId),
