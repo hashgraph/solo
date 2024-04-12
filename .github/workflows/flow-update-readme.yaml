@@ -70,8 +70,8 @@ jobs:
           echo "FILES_CHANGED=$FILES_CHANGED"
 
           echo "# determine if commits since last 'auto update README.md' commit"
-          git --no-pager log --reverse --pretty="%H|%an|%s" ${{ github.event.pull_request.base.ref }}..${{ github.event.pull_request.head.ref }} || true
-          COMMITS_SINCE_UPDATE=$(git --no-pager log --reverse --pretty="%H|%an|%s" ${{ github.event.pull_request.base.ref }}..${{ github.event.pull_request.head.ref }} | awk '/Swirlds Automation\|auto update README\.md/ {s=""; next}  {s = s $0 RS} END {printf "%s", s}') || true
+          git --no-pager log --reverse --pretty="%H|%an|%s" origin/${{ github.event.pull_request.base.ref }}..${{ github.event.pull_request.head.ref }} || true
+          COMMITS_SINCE_UPDATE=$(git --no-pager log --reverse --pretty="%H|%an|%s" origin/${{ github.event.pull_request.base.ref }}..${{ github.event.pull_request.head.ref }} | awk '/Swirlds Automation\|auto update README\.md/ {s=""; next}  {s = s $0 RS} END {printf "%s", s}') || true
           [[ "${#COMMITS_SINCE_UPDATE}" -gt 0 ]] && NEW_COMMITS=true || NEW_COMMITS=""
           echo "NEW_COMMITS=$NEW_COMMITS"
 
