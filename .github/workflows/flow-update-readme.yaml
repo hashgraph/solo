@@ -29,12 +29,6 @@ jobs:
       # added or changed files to the repository.
       contents: write
     steps:
-      #      - name: Checkout Code for Pull Request
-      #        run: |
-      #          git --version
-      #          git clone https://github.com/hashgraph/solo.git .
-      #          git checkout ${{ github.event.pull_request.head.ref }}
-
       - name: Checkout Code for Push
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
         if: github.event_name == 'push'
@@ -220,10 +214,3 @@ jobs:
           commit_author: Swirlds Automation <swirlds-eng-automation@swirlds.com>
         env:
           GITHUB_TOKEN: ${{secrets.GH_ACCESS_TOKEN}}
-
-#      - name: Commit README.md Changes
-#        run: |
-#          git --no-pager config --global --list
-#          git add -u README.md
-#          git commit -s -S --no-verify --allow-empty -m "auto update README.md"
-#          git push
