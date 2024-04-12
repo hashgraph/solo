@@ -193,5 +193,6 @@ jobs:
           commit_options: '--no-verify --signoff --allow-empty'
           add_options: '-u'
           file_pattern: 'README.md'
+          skip_dirty_check: true
         env:
           GITHUB_TOKEN: ${{secrets.GH_ACCESS_TOKEN}}
