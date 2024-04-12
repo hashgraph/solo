@@ -179,14 +179,19 @@ jobs:
           echo "TOTAL_LINES_CHANGED=$TOTAL_LINES_CHANGED" >> "${GITHUB_OUTPUT}"
           [[ "${#TOTAL_LINES_CHANGED}" -le 20 ]] && git restore README.md || echo "README.md changes are 20 lines or more, commit changes"
 
-      # Signed Commits by actions https://github.com/actions/runner/issues/667
+      - name: Import GPG key
+        uses: crazy-max/ghaction-import-gpg@01dd5d3ca463c7f10f7f4f7b4f177225ac661ee4 # v6.1.0
+        with:
+          gpg_private_key: ${{ secrets.GH_ACCESS_GPG_KEY }}
+          passphrase: ${{ secrets.GH_ACCESS_PASSPHRASE }}
+
       - name: Commit README.md Changes
-        if: ${{ steps.readme-update-check.outputs.run-update }}
-        uses: planetscale/ghcommit-action@v0.1.35
+        uses: stefanzweifel/git-auto-commit-action@8621497c8c39c72f3e2a999a26b4ca1b5058a842 # v5.0.1
         with:
           commit_message: "auto update README.md"
-          repo: ${{ github.repository }}
+          repository: ${{ github.repository }}
           branch: ${{ github.head_ref || github.ref_name }}
-          empty: true
+          commit_options: '--no-verify --signoff --allow-empty'
+          file_pattern: 'README.md'
         env:
           GITHUB_TOKEN: ${{secrets.GH_ACCESS_TOKEN}}
