@@ -191,6 +191,7 @@ jobs:
           commit_message: "auto update README.md"
           branch: ${{ github.head_ref || github.ref_name }}
           commit_options: '--no-verify --signoff --allow-empty'
+          add_options: '-u'
           file_pattern: 'README.md'
         env:
           GITHUB_TOKEN: ${{secrets.GH_ACCESS_TOKEN}}
