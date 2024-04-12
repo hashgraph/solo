@@ -35,11 +35,12 @@ jobs:
 #          git clone https://github.com/hashgraph/solo.git .
 #          git checkout ${{ github.event.pull_request.head.ref }}
 
-#      - name: Checkout Code for Push
-#        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
-#        if: github.event_name == 'push'
-#        with:
-#          fetch-depth: 0
+      - name: Checkout Code for Push
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        if: github.event_name == 'push'
+        with:
+          fetch-depth: 0
+          token: ${{secrets.GH_ACCESS_TOKEN}}
 
       # https://github.com/actions/checkout/issues/124
       - name: Checkout Code for Pull Request
@@ -48,12 +49,14 @@ jobs:
         with:
           fetch-depth: 0
           ref: ${{ github.event.pull_request.head.ref }}
+          token: ${{secrets.GH_ACCESS_TOKEN}}
 
       - name: Readme Update Check
         id: readme-update-check
         run: |
           echo "# get the commit hash for the last 'auto update README.md' commit"
-          README_UPDATE_HASH=$(git --no-pager log --reverse --pretty="%H|%an|%s" ${{ github.event.pull_request.base.ref }}..${{ github.event.pull_request.head.ref }} | grep -E 'Swirlds Automation\|auto update README\.md' | awk -F '|' '{print $1;}') || true
+          git fetch origin ${{ github.event.pull_request.base.ref }}:refs/remotes/origin/${{ github.event.pull_request.base.ref }}
+          README_UPDATE_HASH=$(git --no-pager log --reverse --pretty="%H|%an|%s" origin/${{ github.event.pull_request.base.ref }}..${{ github.event.pull_request.head.ref }} | grep -E 'Swirlds Automation\|auto update README\.md' | awk -F '|' '{print $1;}') || true
           [[ "${#README_UPDATE_HASH}" -gt 0 ]] && BASE_HASH=$README_UPDATE_HASH || BASE_HASH=${{ github.event.pull_request.base.sha }}
           echo "BASE_HASH=$BASE_HASH"
 
