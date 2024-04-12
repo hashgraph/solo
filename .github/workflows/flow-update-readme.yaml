@@ -29,11 +29,11 @@ jobs:
       # added or changed files to the repository.
       contents: write
     steps:
-#      - name: Checkout Code for Pull Request
-#        run: |
-#          git --version
-#          git clone https://github.com/hashgraph/solo.git .
-#          git checkout ${{ github.event.pull_request.head.ref }}
+      #      - name: Checkout Code for Pull Request
+      #        run: |
+      #          git --version
+      #          git clone https://github.com/hashgraph/solo.git .
+      #          git checkout ${{ github.event.pull_request.head.ref }}
 
       - name: Checkout Code for Push
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
@@ -127,7 +127,7 @@ jobs:
           export SOLO_CLUSTER_NAME=solo
           export SOLO_NAMESPACE=solo
           export SOLO_CLUSTER_SETUP_NAMESPACE=solo-cluster
-           
+          
           echo "Perform the following kind and solo commands and save output to environment variables"
           
           export KIND_CREATE_CLUSTER_OUTPUT=$( kind create cluster -n "${SOLO_CLUSTER_NAME}" 2>&1 | tee test.log )
@@ -182,7 +182,7 @@ jobs:
 
           DELETIONS=$(echo $CHANGES | grep -o '[0-9]\+' | tail -1)          
           echo "Deletions: $DELETIONS"
-        
+          
           # Calculate total lines changed if INSERTIONS and DELETIONS are not empty
           if [ -z "$INSERTIONS" ]; then
             INSERTIONS=0
@@ -197,6 +197,7 @@ jobs:
           [[ "${#TOTAL_LINES_CHANGED}" -le 20 ]] && git restore README.md || echo "README.md changes are 20 lines or more, commit changes"
 
       - name: Import GPG key
+        if: ${{ steps.readme-update-check.outputs.run-update }}
         uses: crazy-max/ghaction-import-gpg@01dd5d3ca463c7f10f7f4f7b4f177225ac661ee4 # v6.1.0
         with:
           gpg_private_key: ${{ secrets.GH_ACCESS_GPG_KEY }}
@@ -205,6 +206,7 @@ jobs:
           git_commit_gpgsign: true
 
       - name: Commit README.md Changes
+        if: ${{ steps.readme-update-check.outputs.run-update }}
         uses: stefanzweifel/git-auto-commit-action@8621497c8c39c72f3e2a999a26b4ca1b5058a842 # v5.0.1
         with:
           commit_message: "auto update README.md"
