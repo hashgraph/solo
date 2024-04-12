@@ -189,6 +189,7 @@ jobs:
 
       - name: Commit README.md Changes
         run: |
+          git --no-pager config --global --list
           git add -u README.md
           git commit -s -S --no-verify --allow-empty -m "auto update README.md"
           git push
