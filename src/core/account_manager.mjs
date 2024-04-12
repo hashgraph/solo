@@ -353,8 +353,8 @@ export class AccountManager {
 
     const newPrivateKey = PrivateKey.generateED25519()
     const data = {
-      privateKey: newPrivateKey.toString(),
-      publicKey: newPrivateKey.publicKey.toString()
+      privateKey: Base64.encode(newPrivateKey.toString()),
+      publicKey: Base64.encode(newPrivateKey.publicKey.toString())
     }
 
     try {

@@ -248,8 +248,6 @@ describe('AccountCommand', () => {
       } catch (e) {
         testLogger.showUserError(e)
         expect(e).toBeNull()
-      } finally {
-        await accountCmd.closeConnections()
       }
     }, defaultTimeout)
   })
