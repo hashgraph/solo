@@ -29,11 +29,25 @@ jobs:
       # added or changed files to the repository.
       contents: write
     steps:
+#      - name: Checkout Code for Pull Request
+#        run: |
+#          git --version
+#          git clone https://github.com/hashgraph/solo.git .
+#          git checkout ${{ github.event.pull_request.head.ref }}
+
+#      - name: Checkout Code for Push
+#        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+#        if: github.event_name == 'push'
+#        with:
+#          fetch-depth: 0
+
+      # https://github.com/actions/checkout/issues/124
       - name: Checkout Code for Pull Request
-        run: |
-          git --version
-          git clone https://github.com/hashgraph/solo.git .
-          git checkout ${{ github.event.pull_request.head.ref }}
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        if: github.event_name == 'pull_request'
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.ref }}
 
       - name: Readme Update Check
         id: readme-update-check
@@ -188,8 +202,23 @@ jobs:
           git_commit_gpgsign: true
 
       - name: Commit README.md Changes
-        run: |
-          git --no-pager config --global --list
-          git add -u README.md
-          git commit -s -S --no-verify --allow-empty -m "auto update README.md"
-          git push
+        uses: stefanzweifel/git-auto-commit-action@8621497c8c39c72f3e2a999a26b4ca1b5058a842 # v5.0.1
+        with:
+          commit_message: "auto update README.md"
+          branch: ${{ github.head_ref || github.ref_name }}
+          commit_options: '--no-verify --signoff --allow-empty'
+          add_options: '-u'
+          file_pattern: 'README.md'
+          skip_dirty_check: true
+          commit_user_name: Swirlds Automation
+          commit_user_email: hedera-eng-automation@swirldslabs.com
+          commit_author: Swirlds Automation <hedera-eng-automation@swirldslabs.com>
+        env:
+          GITHUB_TOKEN: ${{secrets.GH_ACCESS_TOKEN}}
+
+#      - name: Commit README.md Changes
+#        run: |
+#          git --no-pager config --global --list
+#          git add -u README.md
+#          git commit -s -S --no-verify --allow-empty -m "auto update README.md"
+#          git push
