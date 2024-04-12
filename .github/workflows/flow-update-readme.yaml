@@ -194,5 +194,8 @@ jobs:
           add_options: '-u'
           file_pattern: 'README.md'
           skip_dirty_check: true
+          commit_user_name: Swirlds Automation
+          commit_user_email: hedera-eng-automation@swirldslabs.com
+          commit_author: Swirlds Automation <hedera-eng-automation@swirldslabs.com>
         env:
           GITHUB_TOKEN: ${{secrets.GH_ACCESS_TOKEN}}
