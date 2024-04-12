@@ -184,18 +184,11 @@ jobs:
         with:
           gpg_private_key: ${{ secrets.GH_ACCESS_GPG_KEY }}
           passphrase: ${{ secrets.GH_ACCESS_PASSPHRASE }}
+          git_user_signingkey: true
+          git_commit_gpgsign: true
 
       - name: Commit README.md Changes
-        uses: stefanzweifel/git-auto-commit-action@8621497c8c39c72f3e2a999a26b4ca1b5058a842 # v5.0.1
-        with:
-          commit_message: "auto update README.md"
-          branch: ${{ github.head_ref || github.ref_name }}
-          commit_options: '--no-verify --signoff --allow-empty'
-          add_options: '-u'
-          file_pattern: 'README.md'
-          skip_dirty_check: true
-          commit_user_name: Swirlds Automation
-          commit_user_email: hedera-eng-automation@swirldslabs.com
-          commit_author: Swirlds Automation <hedera-eng-automation@swirldslabs.com>
-        env:
-          GITHUB_TOKEN: ${{secrets.GH_ACCESS_TOKEN}}
+        run: |
+          git add -u README.md
+          git commit -s -S --no-verify --allow-empty -m "auto update README.md"
+          git push
