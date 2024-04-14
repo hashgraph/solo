@@ -56,14 +56,16 @@ export class AccountCommand extends BaseCommand {
   }
 
   async createNewAccount (ctx) {
-    if (ctx.config.privateKey) {
+    if (ctx.config.ecdsaPrivateKey) {
+      ctx.privateKey = PrivateKey.fromStringECDSA(ctx.config.ecdsaPrivateKey)
+    } else if (ctx.config.privateKey) {
       ctx.privateKey = PrivateKey.fromStringED25519(ctx.config.privateKey)
     } else {
       ctx.privateKey = PrivateKey.generateED25519()
     }
 
     return await this.accountManager.createNewAccount(ctx.config.namespace,
-      ctx.privateKey, ctx.config.amount)
+      ctx.privateKey, ctx.config.amount, ctx.config.ecdsaPrivateKey ? ctx.config.setAlias : false)
   }
 
   async getAccountInfo (ctx) {
@@ -229,7 +231,9 @@ export class AccountCommand extends BaseCommand {
           const config = {
             namespace: self.configManager.getFlag(flags.namespace),
             privateKey: self.configManager.getFlag(flags.privateKey),
-            amount: self.configManager.getFlag(flags.amount)
+            amount: self.configManager.getFlag(flags.amount),
+            setAlias: self.configManager.getFlag(flags.setAlias),
+            ecdsaPrivateKey: self.configManager.getFlag(flags.ecdsaPrivateKey)
           }
 
           if (!config.amount) {
@@ -434,6 +438,8 @@ export class AccountCommand extends BaseCommand {
             builder: y => flags.setCommandFlags(y,
               flags.namespace,
               flags.privateKey,
+              flags.ecdsaPrivateKey,
+              flags.setAlias,
               flags.amount
             ),
             handler: argv => {
