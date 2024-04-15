@@ -258,6 +258,9 @@ export class RelayCommand extends BaseCommand {
   }
 
   static getCommandDefinition (relayCmd) {
+    if (!relayCmd || !(relayCmd instanceof RelayCommand)) {
+      throw new MissingArgumentError('An instance of RelayCommand is required', relayCmd)
+    }
     return {
       command: 'relay',
       desc: 'Manage JSON RPC relays in fullstack testing network',

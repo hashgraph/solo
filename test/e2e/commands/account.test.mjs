@@ -14,7 +14,7 @@
  * limitations under the License.
  *
  */
-import { PrivateKey } from '@hashgraph/sdk'
+import { AccountId, PrivateKey } from '@hashgraph/sdk'
 import {
   afterAll, beforeAll,
   describe,
@@ -216,6 +216,35 @@ describe('AccountCommand', () => {
         expect(accountInfo.privateKey).toBeUndefined()
         expect(accountInfo.publicKey).toBeTruthy()
         expect(accountInfo.balance).toEqual(1110)
+      } catch (e) {
+        testLogger.showUserError(e)
+        expect(e).toBeNull()
+      }
+    }, defaultTimeout)
+
+    it('should create account with ecdsa private key and set alias', async () => {
+      const ecdsaPrivateKey = PrivateKey.generateECDSA()
+
+      try {
+        argv[flags.ecdsaPrivateKey.name] = ecdsaPrivateKey.toString()
+        argv[flags.setAlias.name] = true
+        configManager.update(argv, true)
+
+        await expect(accountCmd.create(argv)).resolves.toBeTruthy()
+
+        const newAccountInfo = accountCmd.accountInfo
+        expect(newAccountInfo).not.toBeNull()
+        expect(newAccountInfo.accountId).not.toBeNull()
+        expect(newAccountInfo.privateKey.toString()).toEqual(ecdsaPrivateKey.toString())
+        expect(newAccountInfo.publicKey.toString()).toEqual(ecdsaPrivateKey.publicKey.toString())
+        expect(newAccountInfo.balance).toBeGreaterThan(0)
+
+        const accountId = AccountId.fromString(newAccountInfo.accountId)
+        expect(newAccountInfo.accountAlias).toEqual(`${accountId.realm}.${accountId.shard}.${ecdsaPrivateKey.publicKey.toEvmAddress()}`)
+
+        await accountManager.loadNodeClient(namespace)
+        const accountAliasInfo = await accountManager.accountInfoQuery(newAccountInfo.accountAlias)
+        expect(accountAliasInfo).not.toBeNull()
       } catch (e) {
         testLogger.showUserError(e)
         expect(e).toBeNull()

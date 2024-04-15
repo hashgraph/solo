@@ -178,6 +178,9 @@ export class NodeCommand extends BaseCommand {
    * @private
    */
   _nodeGossipKeysTaskList (keyFormat, nodeIds, keysDir, curDate = new Date()) {
+    if (!Array.isArray(nodeIds) || !nodeIds.every((nodeId) => typeof nodeId === 'string')) {
+      throw new IllegalArgumentError('nodeIds must be an array of strings')
+    }
     const self = this
     const subTasks = []
 
@@ -276,6 +279,10 @@ export class NodeCommand extends BaseCommand {
    * @private
    */
   _nodeTlsKeyTaskList (nodeIds, keysDir, curDate = new Date()) {
+    // check if nodeIds is an array of strings
+    if (!Array.isArray(nodeIds) || !nodeIds.every((nodeId) => typeof nodeId === 'string')) {
+      throw new FullstackTestingError('nodeIds must be an array of strings')
+    }
     const self = this
     const nodeKeyFiles = new Map()
     const subTasks = []
@@ -1126,6 +1133,9 @@ export class NodeCommand extends BaseCommand {
    * @param nodeCmd an instance of NodeCommand
    */
   static getCommandDefinition (nodeCmd) {
+    if (!nodeCmd || !(nodeCmd instanceof NodeCommand)) {
+      throw new IllegalArgumentError('An instance of NodeCommand is required', nodeCmd)
+    }
     return {
       command: 'node',
       desc: 'Manage Hedera platform node in fullstack testing network',

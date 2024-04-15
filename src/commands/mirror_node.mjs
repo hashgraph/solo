@@ -280,6 +280,9 @@ export class MirrorNodeCommand extends BaseCommand {
    * @param mirrorNodeCmd an instance of NodeCommand
    */
   static getCommandDefinition (mirrorNodeCmd) {
+    if (!mirrorNodeCmd || !(mirrorNodeCmd instanceof MirrorNodeCommand)) {
+      throw new IllegalArgumentError('Invalid MirrorNodeCommand instance', mirrorNodeCmd)
+    }
     return {
       command: 'mirror-node',
       desc: 'Manage Hedera Mirror Node in fullstack testing network',
