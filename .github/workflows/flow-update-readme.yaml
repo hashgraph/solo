@@ -17,42 +17,36 @@
 name: Update README.md
 on:
   workflow_dispatch:
-  pull_request:
+  push:
+    branches:
+      - main
+    paths:
+      - '**/*.mjs'
+      - '**/*.js'
+      - '**/package*.json'
+      - '**/README.md.template'
 defaults:
   run:
     shell: bash
+permissions:
+  contents: read
 jobs:
   update:
     runs-on: [self-hosted, Linux, medium, ephemeral]
-    permissions:
-      # Give the default GITHUB_TOKEN write permission to commit and push the
-      # added or changed files to the repository.
-      contents: write
     steps:
       - name: Checkout Code for Push
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
-        if: github.event_name == 'push'
-        with:
-          fetch-depth: 0
-          token: ${{secrets.GH_ACCESS_TOKEN}}
-
-      # https://github.com/actions/checkout/issues/124
-      - name: Checkout Code for Pull Request
-        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
-        if: github.event_name == 'pull_request'
         with:
           fetch-depth: 0
           token: ${{secrets.GH_ACCESS_TOKEN}}
 
       - name: Setup Node
-        if: ${{ steps.readme-update-check.outputs.run-update }}
         uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4.0.2
         with:
           node-version: 20
           cache: npm
 
       - name: Setup Kind
-        if: ${{ steps.readme-update-check.outputs.run-update }}
         uses: helm/kind-action@99576bfa6ddf9a8e612d83b513da5a75875caced # v1.9.0
         with:
           install_only: true
@@ -63,7 +57,6 @@ jobs:
           wait: 120s
 
       - name: Install NVM & Dependencies
-        if: ${{ steps.readme-update-check.outputs.run-update }}
         id: npm-deps
         run: |
           curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
@@ -75,14 +68,12 @@ jobs:
           npm ci
 
       - name: Install gettext-base
-        if: ${{ steps.readme-update-check.outputs.run-update }}
         id: gettext-base
         run: |
           sudo apt-get update
           sudo apt-get install gettext-base
 
       - name: Update README.md
-        if: ${{ steps.readme-update-check.outputs.run-update }}
         run: |
           set -x
           npm install -g @hashgraph/solo
@@ -135,7 +126,6 @@ jobs:
           set +x
 
       - name: Check README.md Changes
-        if: ${{ steps.readme-update-check.outputs.run-update }}
         id: check-readme-changes
         run: |
           CHANGES=$(git diff --stat)
@@ -157,11 +147,8 @@ jobs:
           
           TOTAL_LINES_CHANGED=$(($INSERTIONS + $DELETIONS))
           echo "Total README lines changed: $TOTAL_LINES_CHANGED"
-          echo "TOTAL_LINES_CHANGED=$TOTAL_LINES_CHANGED" >> "${GITHUB_OUTPUT}"
-          [[ "${#TOTAL_LINES_CHANGED}" -le 20 ]] && git restore README.md || echo "README.md changes are 20 lines or more, commit changes"
 
       - name: Import GPG key
-        if: ${{ steps.readme-update-check.outputs.run-update }}
         uses: crazy-max/ghaction-import-gpg@01dd5d3ca463c7f10f7f4f7b4f177225ac661ee4 # v6.1.0
         with:
           gpg_private_key: ${{ secrets.GH_ACCESS_GPG_KEY }}
@@ -170,14 +157,12 @@ jobs:
           git_commit_gpgsign: true
 
       - name: Commit README.md Changes
-        if: ${{ steps.readme-update-check.outputs.run-update }}
         uses: stefanzweifel/git-auto-commit-action@8621497c8c39c72f3e2a999a26b4ca1b5058a842 # v5.0.1
         with:
-          commit_message: "auto update README.md"
-          commit_options: '--no-verify --signoff --allow-empty'
+          commit_message: "auto update README.md [skip ci]"
+          commit_options: '--no-verify --signoff'
           add_options: '-u'
           file_pattern: 'README.md'
-          skip_dirty_check: true
           commit_user_name: Swirlds Automation
           commit_user_email: swirlds-eng-automation@swirlds.com
           commit_author: Swirlds Automation <swirlds-eng-automation@swirlds.com>
