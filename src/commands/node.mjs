@@ -977,7 +977,7 @@ export class NodeCommand extends BaseCommand {
             force: self.configManager.getFlag(flags.force),
             applicationEnv: self.configManager.getFlag(flags.applicationEnv),
             keyFormat: self.configManager.getFlag(flags.keyFormat),
-            de3vMode: self.configManager.getFlag(flags.devMode),
+            devMode: self.configManager.getFlag(flags.devMode),
             curDate: new Date()
           }
 
@@ -1261,7 +1261,7 @@ export class NodeCommand extends BaseCommand {
           })
           .command({
             command: 'refresh',
-            desc: 'Refresh a node',
+            desc: 'Reset and restart a node',
             builder: y => flags.setCommandFlags(y,
               flags.namespace,
               flags.nodeIDs,
