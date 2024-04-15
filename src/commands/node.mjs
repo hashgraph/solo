@@ -536,8 +536,8 @@ export class NodeCommand extends BaseCommand {
                 subTasks.push({
                   title: `Copy local build to Node: ${chalk.yellow(nodeId)}`,
                   task: async () => {
-                      this.logger.debug(`Copying build files to pod: ${podName}`)
-                      await self.k8.copyTo(podName, constants.ROOT_CONTAINER, localDataLibBuildPath, `${constants.HEDERA_HAPI_PATH}`)
+                    this.logger.debug(`Copying build files to pod: ${podName}`)
+                    await self.k8.copyTo(podName, constants.ROOT_CONTAINER, localDataLibBuildPath, `${constants.HEDERA_HAPI_PATH}`)
                   }
                 })
               }
