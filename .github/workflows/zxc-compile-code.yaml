@@ -148,8 +148,9 @@ jobs:
           cd ..
           git clone https://github.com/hashgraph/hedera-services.git
           cd hedera-services
-          gradlew assemble
-          cd -
+          ls -ltr
+          ./gradlew assemble
+          cd ../solo
 
       - name: Setup E2E Tests
         if: ${{ runner.os == 'linux' && inputs.enable-e2e-tests && !cancelled() && !failure() }}
