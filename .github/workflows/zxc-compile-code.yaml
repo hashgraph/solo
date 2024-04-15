@@ -129,6 +129,21 @@ jobs:
         if: ${{ runner.os == 'linux' && inputs.enable-e2e-tests && !cancelled() && !failure() }}
         run: docker image pull kindest/node:v1.27.3@sha256:3966ac761ae0136263ffdb6cfd4db23ef8a83cba8a463690e98317add2c9ba72
 
+      - name: Setup Gradle
+        if: ${{ runner.os == 'linux' && inputs.enable-e2e-tests && !cancelled() && !failure() }}
+        uses: gradle/gradle-build-action@29c0906b64b8fc82467890bfb7a0a7ef34bda89e # v3.1.0
+        with:
+          cache-read-only: false
+
+      - name: Build Hedera code locally
+        if: ${{ runner.os == 'linux' && inputs.enable-e2e-tests && !cancelled() && !failure() }}
+        run: |
+          cd ..
+          git clone https://github.com/hashgraph/hedera-services.git
+          cd hedera-services
+          gradlew assemble
+          cd -
+
       - name: Setup E2E Tests
         if: ${{ runner.os == 'linux' && inputs.enable-e2e-tests && !cancelled() && !failure() }}
         run: | 

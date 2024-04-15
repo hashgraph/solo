@@ -526,7 +526,29 @@ export class NodeCommand extends BaseCommand {
         title: 'Fetch platform software into network nodes',
         task:
           async (ctx, task) => {
-            return self.fetchPlatformSoftware(ctx, task, self.platformInstaller)
+            if (argv[flags.localBuildPath.name] !== '') {
+              const config = ctx.config
+              self.logger.debug('no need to fetch, use local build jar files')
+              const localDataLibBuildPath = argv[flags.localBuildPath.name] + '/hedera-node/data'
+              const subTasks = []
+              for (const nodeId of config.nodeIds) {
+                const podName = config.podNames[nodeId]
+                subTasks.push({
+                  title: `Copy local build to Node: ${chalk.yellow(nodeId)}`,
+                  task: async () => {
+                      this.logger.debug(`Copying build files to pod: ${podName}`)
+                      await self.k8.copyTo(podName, constants.ROOT_CONTAINER, localDataLibBuildPath, `${constants.HEDERA_HAPI_PATH}`)
+                  }
+                })
+              }
+              // set up the sub-tasks
+              return task.newListr(subTasks, {
+                concurrent: true,
+                rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
+              })
+            } else {
+              return self.fetchPlatformSoftware(ctx, task, self.platformInstaller)
+            }
           }
       },
       {

@@ -399,6 +399,15 @@ export const settingTxt = {
   }
 }
 
+export const localBuildPath = {
+  name: 'local-build-path',
+  definition: {
+    describe: 'path of hedera local build',
+    defaultValue: '',
+    type: 'string'
+  }
+}
+
 export const log4j2Xml = {
   name: 'log4j2-xml',
   definition: {
@@ -507,7 +516,8 @@ export const allFlags = [
   amount,
   applicationEnv,
   profileFile,
-  profileName
+  profileName,
+  localBuildPath
 ]
 
 export const allFlagsMap = new Map(allFlags.map(f => [f.name, f]))
