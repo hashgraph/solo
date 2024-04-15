@@ -179,8 +179,8 @@ Kubernetes Namespace	: solo
 ✔ Generate gossip keys
 ✔ Backup old files
 ✔ TLS key for node: node0
-✔ TLS key for node: node1
 ✔ TLS key for node: node2
+✔ TLS key for node: node1
 ✔ Generate gRPC TLS keys
 ✔ Finalize
 ```
@@ -269,8 +269,8 @@ Kubernetes Namespace	: solo
 ✔ Prepare config.txt for the network
 ✔ Prepare staging directory
 ✔ Node: node1
-✔ Node: node2
 ✔ Node: node0
+✔ Node: node2
 ✔ Fetch platform software into network nodes
 ✔ Copy Gossip keys
 ✔ Copy Gossip keys
@@ -282,11 +282,11 @@ Kubernetes Namespace	: solo
 ✔ Copy configuration files
 ✔ Copy configuration files
 ✔ Set file permissions
-✔ Node: node2
-✔ Set file permissions
 ✔ Node: node1
 ✔ Set file permissions
 ✔ Node: node0
+✔ Set file permissions
+✔ Node: node2
 ✔ Setup network nodes
 ✔ Finalize
 ```
@@ -308,12 +308,12 @@ Kubernetes Cluster	: kind-solo
 Kubernetes Namespace	: solo
 **********************************************************************************
 ✔ Initialize
-✔ Check network pod: node1
-✔ Check network pod: node2
 ✔ Check network pod: node0
+✔ Check network pod: node2
+✔ Check network pod: node1
 ✔ Identify network pods
-✔ Start node: node0
 ✔ Start node: node2
+✔ Start node: node0
 ✔ Start node: node1
 ✔ Starting nodes
 ✔ Check node: node0
@@ -471,7 +471,7 @@ $ rm -rf ~/.solo
 $ solo init -t v0.47.0-alpha.0 -i node0,node1,node2 -n "${SOLO_NAMESPACE}" -s "${SOLO_CLUSTER_SETUP_NAMESPACE}" --key-format pem 
 ```
 
-* Example output:
+* Example output
 
 ```
 
@@ -499,7 +499,7 @@ If a full reset is needed, delete the directory or relevant sub-directories befo
 $ solo node keys --gossip-keys --tls-keys --key-format pem
 ```
 
-* Example output:
+* Example output
 
 ```
 
@@ -516,9 +516,9 @@ Kubernetes Namespace	: solo
 ✔ Gossip pem key for node: node2
 ✔ Generate gossip keys
 ✔ Backup old files
-✔ TLS key for node: node0
-✔ TLS key for node: node2
 ✔ TLS key for node: node1
+✔ TLS key for node: node2
+✔ TLS key for node: node0
 ✔ Generate gRPC TLS keys
 ✔ Finalize
 ```
