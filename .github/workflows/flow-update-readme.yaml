@@ -42,37 +42,7 @@ jobs:
         if: github.event_name == 'pull_request'
         with:
           fetch-depth: 0
-          ref: ${{ github.event.pull_request.head.ref }}
           token: ${{secrets.GH_ACCESS_TOKEN}}
-
-      - name: Readme Update Check
-        id: readme-update-check
-        run: |
-          echo "# get the commit hash for the last 'auto update README.md' commit"
-          git fetch origin ${{ github.event.pull_request.base.ref }}:refs/remotes/origin/${{ github.event.pull_request.base.ref }}
-          README_UPDATE_HASH=$(git --no-pager log --reverse --pretty="%H|%an|%s" origin/${{ github.event.pull_request.base.ref }}..${{ github.event.pull_request.head.ref }} | grep -E 'Swirlds Automation\|auto update README\.md' | awk -F '|' '{print $1;}') || true
-          [[ "${#README_UPDATE_HASH}" -gt 0 ]] && BASE_HASH=$README_UPDATE_HASH || BASE_HASH=${{ github.event.pull_request.base.sha }}
-          echo "BASE_HASH=$BASE_HASH"
-
-          echo "# determine if any javascript files changed"
-          git --no-pager diff --name-only ${{ github.event.pull_request.head.ref }} $(git merge-base ${{ github.event.pull_request.head.ref }} $BASE_HASH) || true
-
-          echo "# relevant files that changed"
-          git --no-pager diff --name-only ${{ github.event.pull_request.head.ref }} $(git merge-base ${{ github.event.pull_request.head.ref }} $BASE_HASH) | grep -E -i ".*(\..?js|package.*\.json|README\.md\.template)$" || true
-          CHANGED_FILES=$(git --no-pager diff --name-only ${{ github.event.pull_request.head.ref }} $(git merge-base ${{ github.event.pull_request.head.ref }} $BASE_HASH) | grep -E -i ".*(\..?js|package.*\.json|README\.md\.template)$") || true
-          [[ "${#CHANGED_FILES}" -gt 0 ]] && FILES_CHANGED=true || FILES_CHANGED=""
-          echo "FILES_CHANGED=$FILES_CHANGED"
-
-          echo "# determine if commits since last 'auto update README.md' commit"
-          git --no-pager log --reverse --pretty="%H|%an|%s" origin/${{ github.event.pull_request.base.ref }}..${{ github.event.pull_request.head.ref }} || true
-          COMMITS_SINCE_UPDATE=$(git --no-pager log --reverse --pretty="%H|%an|%s" origin/${{ github.event.pull_request.base.ref }}..${{ github.event.pull_request.head.ref }} | awk '/Swirlds Automation\|auto update README\.md/ {s=""; next}  {s = s $0 RS} END {printf "%s", s}') || true
-          [[ "${#COMMITS_SINCE_UPDATE}" -gt 0 ]] && NEW_COMMITS=true || NEW_COMMITS=""
-          echo "NEW_COMMITS=$NEW_COMMITS"
-
-          echo "# determine if we need to update the README.md"
-          [[ "${FILES_CHANGED}" == "true" && "${NEW_COMMITS}" == "true" ]] && RUN_UPDATE=true || RUN_UPDATE=""
-          echo "RUN_UPDATE=$RUN_UPDATE"
-          echo "run-update=$RUN_UPDATE" >> "${GITHUB_OUTPUT}"
 
       - name: Setup Node
         if: ${{ steps.readme-update-check.outputs.run-update }}
