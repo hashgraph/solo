@@ -11,11 +11,17 @@
     "access": "public"
   },
   "scripts": {
-    "test": "NODE_OPTIONS=--experimental-vm-modules JEST_SUITE_NAME='Unit Tests' jest --runInBand --detectOpenHandles --forceExit --coverage --coverageDirectory='coverage/unit' --testPathIgnorePatterns=\".*/e2e/.*\"",
+    "test": "cross-env NODE_OPTIONS=--experimental-vm-modules JEST_SUITE_NAME=\"Unit Tests\" jest --runInBand --detectOpenHandles --forceExit --coverage --coverageDirectory='coverage/unit' --testPathIgnorePatterns=\".*/e2e/.*\"",
     "test-e2e": "NODE_OPTIONS=--experimental-vm-modules JEST_SUITE_NAME='Jest E2E Tests' JEST_JUNIT_OUTPUT_NAME='junit-e2e.xml' jest --runInBand --detectOpenHandles --forceExit --coverage --coverageDirectory='coverage/e2e' --testPathIgnorePatterns=\\\".*/unit/.*\\\"",
+    "merge-clean": "rm -rf .nyc_output && mkdir  .nyc_output && rm -rf coverage/lcov-report && rm -rf coverage/solo && rm coverage/*.*",
+    "merge-e2e": "nyc merge ./coverage/e2e/ .nyc_output/coverage.json",
+    "merge-unit": "nyc merge ./coverage/unit/ .nyc_output/coverage.json",
+    "report-coverage": "npm run merge-clean && npm run merge-unit && npm run merge-e2e && nyc report --reporter=json --reporter=html --reporter=lcov",
     "solo": "NODE_OPTIONS=--experimental-vm-modules node --no-deprecation solo.mjs",
     "check": "remark . --quiet --frail && eslint .",
-    "format": "remark . --quiet --frail --output && eslint --fix ."
+    "format": "remark . --quiet --frail --output && eslint --fix .",
+    "test-setup": "./test/e2e/setup-e2e.sh",
+    "test-coverage": "npm run test && npm run test-setup &&  npm run test-e2e && npm run report-coverage"
   },
   "keywords": [
     "solo",
@@ -53,6 +59,7 @@
   "devDependencies": {
     "@jest/globals": "^29.7.0",
     "@jest/test-sequencer": "^29.7.0",
+    "cross-env": "^7.0.3",
     "eslint": "^8.57.0",
     "eslint-config-standard": "^17.1.0",
     "eslint-plugin-headers": "^1.1.2",
@@ -63,6 +70,7 @@
     "jest-circus": "^29.7.0",
     "jest-environment-node": "^29.7.0",
     "jest-junit": "^16.0.0",
+    "nyc": "^15.1.0",
     "remark-cli": "^12.0.0",
     "remark-lint-list-item-indent": "^3.1.2",
     "remark-lint-unordered-list-marker-style": "^3.1.2",
@@ -76,7 +84,8 @@
   },
   "os": [
     "darwin",
-    "linux"
+    "linux",
+    "win32"
   ],
   "engines": {
     "node": ">=18.18.2",

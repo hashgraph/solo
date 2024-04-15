@@ -18,12 +18,13 @@ import fs from 'fs'
 import os from 'os'
 import path from 'path'
 import * as util from 'util'
-import { MissingArgumentError } from '../errors.mjs'
+import { IllegalArgumentError, MissingArgumentError } from '../errors.mjs'
 import * as helpers from '../helpers.mjs'
 import { constants, Templates } from '../index.mjs'
 import * as version from '../../../version.mjs'
 import { ShellRunner } from '../shell_runner.mjs'
 import * as semver from 'semver'
+import { OS_WIN32, OS_WINDOWS } from '../constants.mjs'
 
 // constants required by HelmDependencyManager
 const HELM_RELEASE_BASE_URL = 'https://get.helm.sh'
@@ -50,12 +51,18 @@ export class HelmDependencyManager extends ShellRunner {
 
     if (!downloader) throw new MissingArgumentError('An instance of core/PackageDownloader is required')
     if (!zippy) throw new MissingArgumentError('An instance of core/Zippy is required')
+    if (!logger) throw new IllegalArgumentError('an instance of core/Logger is required', logger)
     if (!installationDir) throw new MissingArgumentError('installation directory is required')
 
     this.downloader = downloader
     this.zippy = zippy
     this.installationDir = installationDir
-    this.osPlatform = osPlatform
+    // Node.js uses 'win32' for windows in package.json os field, but helm uses 'windows'
+    if (osPlatform === OS_WIN32) {
+      this.osPlatform = OS_WINDOWS
+    } else {
+      this.osPlatform = osPlatform
+    }
     this.osArch = ['x64', 'x86-64'].includes(osArch) ? 'amd64' : osArch
     this.helmVersion = helmVersion
     this.helmPath = Templates.installationPath(constants.HELM, this.osPlatform, this.installationDir)

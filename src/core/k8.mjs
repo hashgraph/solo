@@ -239,23 +239,6 @@ export class K8 {
   }
 
   /**
-   * Updates a kubernetes secrets
-   * @param secretObject
-   * @return {Promise<void>}
-   */
-  async updateSecret (secretObject) {
-    const ns = this._getNamespace()
-    try {
-      // patch is broke, need to use delete/create (workaround/fix in 1.0.0-rc4): https://github.com/kubernetes-client/javascript/issues/893
-      // await k8.kubeClient.patchNamespacedSecret(secret.name, ctx.config.namespace, secret.data)
-      await this.kubeClient.deleteNamespacedSecret(secretObject.metadata.name, ns)
-      await this.kubeClient.createNamespacedSecret(ns, secretObject)
-    } catch (e) {
-      throw new FullstackTestingError(`failed to update secret ${secretObject.metadata.name}: ${e.message}`, e)
-    }
-  }
-
-  /**
    * Get host IP of a podName
    * @param podNameName name of the podName
    * @returns {Promise<string>} podName IP
@@ -961,7 +944,8 @@ export class K8 {
    * retrieve the secret of the given namespace and label selector, if there is more than one, it returns the first
    * @param namespace the namespace of the secret to search for
    * @param labelSelector the label selector used to fetch the Kubernetes secret
-   * @returns a custom secret object with the relevant attributes
+   * @returns a custom secret object with the relevant attributes, the values of the data key:value pair
+   * objects must be base64 decoded
    */
   async getSecret (namespace, labelSelector) {
     const result = await this.kubeClient.listNamespacedSecret(
@@ -985,7 +969,7 @@ export class K8 {
    * @param name the name of the new secret
    * @param namespace the namespace to store the secret
    * @param secretType the secret type
-   * @param data the secret
+   * @param data the secret, any values of a key:value pair must be base64 encoded
    * @param labels the label to use for future label selector queries
    * @param recreate if we should first run delete in the case that there the secret exists from a previous install
    * @returns {Promise<boolean>} whether the secret was created successfully
@@ -1008,9 +992,13 @@ export class K8 {
     v1Secret.metadata.name = name
     v1Secret.metadata.labels = labels
 
-    const resp = await this.kubeClient.createNamespacedSecret(namespace, v1Secret)
+    try {
+      const resp = await this.kubeClient.createNamespacedSecret(namespace, v1Secret)
 
-    return resp.response.statusCode === 201
+      return resp.response.statusCode === 201
+    } catch (e) {
+      throw new FullstackTestingError(`failed to create secret ${name} in namespace ${namespace}: ${e.message}, ${e?.body?.message}`, e)
+    }
   }
 
   _getNamespace () {

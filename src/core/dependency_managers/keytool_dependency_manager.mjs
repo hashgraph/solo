@@ -19,12 +19,13 @@ import os from 'os'
 import path from 'path'
 import * as semver from 'semver'
 import * as util from 'util'
-import { MissingArgumentError, FullstackTestingError } from '../errors.mjs'
+import { MissingArgumentError, FullstackTestingError, IllegalArgumentError } from '../errors.mjs'
 import * as helpers from '../helpers.mjs'
 import { constants, Keytool, Templates } from '../index.mjs'
 import * as version from '../../../version.mjs'
 import { ShellRunner } from '../shell_runner.mjs'
 import got from 'got'
+import { OS_WIN32, OS_WINDOWS } from '../constants.mjs'
 
 /**
  * Installs or uninstalls JRE client at SOLO_HOME_DIR/bin/jre directory
@@ -43,14 +44,19 @@ export class KeytoolDependencyManager extends ShellRunner {
 
     if (!downloader) throw new MissingArgumentError('An instance of core/PackageDownloader is required')
     if (!zippy) throw new MissingArgumentError('An instance of core/Zippy is required')
+    if (!logger) throw new IllegalArgumentError('an instance of core/Logger is required', logger)
     if (!installationDir) throw new MissingArgumentError('installation directory is required')
 
     this.downloader = downloader
     this.zippy = zippy
     this.installationDir = installationDir
     this.jreDir = path.join(this.installationDir, 'jre')
-    this.osPlatform = ['mac', 'darwin'].includes(osPlatform) ? constants.OS_MAC : osPlatform
-
+    // Node.js uses 'win32' for windows in package.json os field, but jdk too uses 'windows'
+    if (osPlatform === OS_WIN32) {
+      this.osPlatform = OS_WINDOWS
+    } else {
+      this.osPlatform = ['mac', 'darwin'].includes(osPlatform) ? constants.OS_MAC : osPlatform
+    }
     switch (osArch) {
       case 'x64':
       case 'x86-64':
