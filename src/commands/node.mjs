@@ -25,6 +25,7 @@ import { constants, Templates } from '../core/index.mjs'
 import { BaseCommand } from './base.mjs'
 import * as flags from './flags.mjs'
 import * as prompts from './prompts.mjs'
+import { AccountId } from '@hashgraph/sdk'
 
 /**
  * Defines the core functionalities of 'node' command
@@ -139,7 +140,7 @@ export class NodeCommand extends BaseCommand {
   /**
    * Return task for checking for all network node pods
    */
-  taskCheckNetworkNodePods (ctx, task) {
+  taskCheckNetworkNodePods (ctx, task, nodeIds) {
     if (!ctx.config) {
       ctx.config = {}
     }
@@ -147,7 +148,7 @@ export class NodeCommand extends BaseCommand {
     ctx.config.podNames = {}
 
     const subTasks = []
-    for (const nodeId of ctx.config.nodeIds) {
+    for (const nodeId of nodeIds) {
       subTasks.push({
         title: `Check network pod: ${chalk.yellow(nodeId)}`,
         task: async (ctx) => {
@@ -408,7 +409,7 @@ export class NodeCommand extends BaseCommand {
       },
       {
         title: 'Identify network pods',
-        task: (ctx, task) => self.taskCheckNetworkNodePods(ctx, task)
+        task: (ctx, task) => self.taskCheckNetworkNodePods(ctx, task, ctx.config.nodeIds)
       },
       {
         title: 'Generate Gossip keys',
@@ -603,7 +604,7 @@ export class NodeCommand extends BaseCommand {
       },
       {
         title: 'Identify network pods',
-        task: (ctx, task) => self.taskCheckNetworkNodePods(ctx, task)
+        task: (ctx, task) => self.taskCheckNetworkNodePods(ctx, task, ctx.config.nodeIds)
       },
       {
         title: 'Starting nodes',
@@ -808,7 +809,7 @@ export class NodeCommand extends BaseCommand {
       },
       {
         title: 'Identify network pods',
-        task: (ctx, task) => self.taskCheckNetworkNodePods(ctx, task)
+        task: (ctx, task) => self.taskCheckNetworkNodePods(ctx, task, ctx.config.nodeIds)
       },
       {
         title: 'Stopping nodes',
@@ -969,7 +970,7 @@ export class NodeCommand extends BaseCommand {
       },
       {
         title: 'Identify network pods',
-        task: (ctx, task) => self.taskCheckNetworkNodePods(ctx, task)
+        task: (ctx, task) => self.taskCheckNetworkNodePods(ctx, task, ctx.config.nodeIds)
       },
       {
         title: 'Dump network nodes saved state',
@@ -1150,6 +1151,7 @@ export class NodeCommand extends BaseCommand {
           const config = {
             namespace: self.configManager.getFlag(flags.namespace),
             nodeIds: helpers.parseNodeIds(self.configManager.getFlag(flags.nodeIDs)),
+            existingNodeIds: [],
             releaseTag: self.configManager.getFlag(flags.releaseTag),
             cacheDir: self.configManager.getFlag(flags.cacheDir),
             force: self.configManager.getFlag(flags.force),
@@ -1158,6 +1160,7 @@ export class NodeCommand extends BaseCommand {
             generateTlsKeys: self.configManager.getFlag(flags.generateTlsKeys),
             keyFormat: self.configManager.getFlag(flags.keyFormat),
             devMode: self.configManager.getFlag(flags.devMode),
+            chartDir: self.configManager.getFlag(flags.chartDirectory),
             curDate: new Date()
           }
 
@@ -1166,21 +1169,87 @@ export class NodeCommand extends BaseCommand {
           // set config in the context for later tasks to use
           ctx.config = config
 
+          ctx.config.chartPath = await self.prepareChartPath(ctx.config.chartDir,
+            constants.FULLSTACK_TESTING_CHART, constants.FULLSTACK_DEPLOYMENT_CHART)
+
           self.logger.debug('Initialized config', { config })
         }
       },
       {
         title: 'Identify existing network pods',
-        task: (ctx, task) => {
-          // TODO need to get a list of existing nodeIds, the next command gets the list of podNames for those nodeIds
-          self.taskCheckNetworkNodePods(ctx, task)
-          // TODO - use helm upgrade to deploy new node
+        task: async (ctx, task) => {
+          ctx.config.serviceMap = await self.accountManager.getNodeServiceMap(
+            ctx.config.namespace)
+          for (const serviceObject of ctx.config.serviceMap.values()) {
+            ctx.config.existingNodeIds.push(serviceObject.node)
+          }
+
+          return self.taskCheckNetworkNodePods(ctx, task, ctx.config.existingNodeIds)
+        }
+      },
+      {
+        title: 'Deploy new network node',
+        task: async (ctx, task) => {
+          // TODO override the values to provide a new list of network nodes and their values
+          const values = { hedera: { nodes: [] } }
+          let maxNum
+          for (const serviceObject of ctx.config.serviceMap.values()) {
+            values.hedera.nodes.push({
+              accountId: serviceObject.accountId,
+              name: serviceObject.node
+            })
+            maxNum = maxNum > AccountId.fromString(serviceObject.accountId).num ? maxNum : AccountId.fromString(serviceObject.accountId).num
+          }
+          for (const nodeId of ctx.config.nodeIds) {
+            const accountId = AccountId.fromString(values.hedera.nodes[0].accountId)
+            accountId.num = ++maxNum
+            values.hedera.nodes.push({
+              accountId: accountId.toString(),
+              name: nodeId
+            })
+          }
+
+          let valuesArg = ''
+          let index = 0
+          for (const node of values.hedera.nodes) {
+            valuesArg += `--set hedera.nodes[${index}].name=${node.name} --set hedera.nodes[${index}].accountId=${node.accountId} `
+            index++
+          }
+
+          await self.chartManager.upgrade(
+            ctx.config.namespace,
+            constants.FULLSTACK_DEPLOYMENT_CHART,
+            ctx.config.chartPath,
+            valuesArg
+          )
+          ctx.config.allNodeIds = [...ctx.config.existingNodeIds, ...ctx.config.nodeIds]
+        }
+      },
+      {
+        title: 'Check new network node pod is running',
+        task: async (ctx, task) => {
+          const subTasks = []
+          for (const nodeId of ctx.config.nodeIds) {
+            subTasks.push({
+              title: `Check new network pod: ${chalk.yellow(nodeId)}`,
+              task: async (ctx) => {
+                ctx.config.podNames[nodeId] = await this.checkNetworkNodePod(ctx.config.namespace, nodeId)
+              }
+            })
+          }
+
+          // setup the sub-tasks
+          return task.newListr(subTasks, {
+            concurrent: true,
+            rendererOptions: {
+              collapseSubtasks: false
+            }
+          })
         }
       },
       {
         title: 'Generate Gossip keys',
         task: async (ctx, parentTask) => {
-          // TODO - generate new keys
           const config = ctx.config
           const subTasks = self._nodeGossipKeysTaskList(config.keyFormat, config.nodeIds, config.keysDir, config.curDate)
           // set up the sub-tasks
@@ -1238,8 +1307,8 @@ export class NodeCommand extends BaseCommand {
                 const config = ctx.config
 
                 // copy gossip keys to the staging
-                for (const nodeId of ctx.config.nodeIds) {
-                  switch (config.keyFormat) {
+                for (const nodeId of ctx.config.allNodeIds) {
+                  switch (config.keyFormat) { // TODO DRY
                     case constants.KEY_FORMAT_PEM: {
                       const signingKeyFiles = self.keyManager.prepareNodeKeyFilePaths(nodeId, config.keysDir, constants.SIGNING_KEY_PREFIX)
                       await self._copyNodeKeys(signingKeyFiles, config.stagingKeysDir)
@@ -1267,7 +1336,7 @@ export class NodeCommand extends BaseCommand {
               title: 'Copy gRPC TLS keys to staging',
               task: async (ctx, _) => {
                 const config = ctx.config
-                for (const nodeId of ctx.config.nodeIds) {
+                for (const nodeId of ctx.config.allNodeIds) {
                   const tlsKeyFiles = self.keyManager.prepareTLSKeyFilePaths(nodeId, config.keysDir)
                   await self._copyNodeKeys(tlsKeyFiles, config.stagingKeysDir)
                 }
@@ -1276,11 +1345,10 @@ export class NodeCommand extends BaseCommand {
             {
               title: 'Prepare config.txt for the network',
               task: async (ctx, _) => {
-                // TODO - build a new config.txt
                 const config = ctx.config
                 const configTxtPath = `${config.stagingDir}/config.txt`
                 const template = `${constants.RESOURCES_DIR}/templates/config.template`
-                await self.platformInstaller.prepareConfigTxt(config.nodeIds, configTxtPath, config.releaseTag, config.chainId, template)
+                await self.platformInstaller.prepareConfigTxt(config.allNodeIds, configTxtPath, config.releaseTag, config.chainId, template)
               }
             }
           ]
@@ -1295,20 +1363,25 @@ export class NodeCommand extends BaseCommand {
         title: 'Fetch platform software into network nodes',
         task:
             async (ctx, task) => {
-              // TODO - update key files as needed (pfx?)
               return self.fetchPlatformSoftware(ctx, task, self.platformInstaller)
+            }
+      },
+      {
+        title: 'Send freeze transaction',
+        task:
+            async (ctx, task) => {
+              // TODO - send freeze transactions and wait for 2/3 majority to FREEZE
             }
       },
       {
         title: 'Setup network nodes',
         task: async (ctx, parentTask) => {
           const config = ctx.config
-          // TODO - send freeze transactions and wait for 2/3 majority to FREEZE
+          // TODO - update key files as needed (pfx?)
           // TODO - push config.txt and keys to all nodes
-          // TODO - restart/recycle all nodes
 
           const subTasks = []
-          for (const nodeId of config.nodeIds) {
+          for (const nodeId of config.allNodeIds) {
             const podName = config.podNames[nodeId]
             subTasks.push({
               title: `Node: ${chalk.yellow(nodeId)}`,
@@ -1322,6 +1395,12 @@ export class NodeCommand extends BaseCommand {
             concurrent: true,
             rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
           })
+        }
+      },
+      {
+        title: 'Restart all network nodes',
+        task: (ctx, _) => {
+          // TODO - restart/recycle all nodes
         }
       },
       {

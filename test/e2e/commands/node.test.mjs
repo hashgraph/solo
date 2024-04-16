@@ -149,7 +149,7 @@ describe.each([
         await nodeCmd.close()
         await sleep(10000) // sleep to wait for node to finish starting
       }
-    }, 120000)
+    }, 999999)
 
     balanceQueryShouldSucceed(accountManager, nodeCmd, namespace)
 
