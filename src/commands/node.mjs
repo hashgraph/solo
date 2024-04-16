@@ -530,6 +530,10 @@ export class NodeCommand extends BaseCommand {
               const config = ctx.config
               self.logger.debug('no need to fetch, use local build jar files')
               const localDataLibBuildPath = argv[flags.localBuildPath.name] + '/hedera-node/data'
+              // if the path does not exist, throw an error
+              if (!fs.existsSync(localDataLibBuildPath)) {
+                throw new FullstackTestingError(`local build path does not exist: ${localDataLibBuildPath}`)
+              }
               const subTasks = []
               for (const nodeId of config.nodeIds) {
                 const podName = config.podNames[nodeId]
