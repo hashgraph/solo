@@ -344,20 +344,22 @@ $ solo node setup
 # output is similar to example-1 
 ```
 
-* To deploy node with local build hedera code, first run `./gradlew assemble` at the root directory of hedera repo, then
-run the following command:
-```
-$ solo node setup --local-build-path <path-to-hedera-repo>
-
-# output is similar to example-1 
-```
-
 * Start the nodes
 
 ```
 $ solo node start
 
 # output is similar to example-1 
+```
+## For Developer Working on Hedera Repo
+
+To set customized `settings.txt` file, edit the file
+`./resources/templates/settings.txt` before `node setup` command.
+
+To deploy node with local build hedera code, first run `./gradlew assemble` at the root directory of hedera repo, then
+  run the following command:
+```
+$ solo node setup --local-build-path <path-to-hedera-repo>
 ```
 
 ## Support
