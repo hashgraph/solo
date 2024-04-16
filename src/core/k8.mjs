@@ -838,7 +838,11 @@ export class K8 {
   }
 
   async waitForPodReady (labels = [], podCount = 1, maxAttempts = 10, delay = 500) {
-    return this.waitForPodCondition(K8.PodReadyCondition, labels, podCount, maxAttempts, delay)
+    try {
+      return await this.waitForPodCondition(K8.PodReadyCondition, labels, podCount, maxAttempts, delay)
+    } catch (e) {
+      throw new FullstackTestingError(`Pod not ready [maxAttempts = ${maxAttempts}]`, e)
+    }
   }
 
   async waitForPodCondition (
@@ -858,35 +862,40 @@ export class K8 {
         this.logger.debug(`Checking for pod ready [namespace:${ns}, labelSelector: ${labelSelector}] [attempt: ${attempts}/${maxAttempts}]`)
 
         // wait for the pod to be available with the given status and labels
-        const pods = await this.waitForPod(constants.POD_STATUS_RUNNING, labels, podCount, maxAttempts, delay)
-        this.logger.debug(`${pods.length}/${podCount} pod found [namespace:${ns}, labelSelector: ${labelSelector}] [attempt: ${attempts}/${maxAttempts}]`)
+        let pods
+        try {
+          pods = await this.waitForPod(constants.POD_STATUS_RUNNING, labels, podCount, maxAttempts, delay)
+          this.logger.debug(`${pods.length}/${podCount} pod found [namespace:${ns}, labelSelector: ${labelSelector}] [attempt: ${attempts}/${maxAttempts}]`)
 
-        if (pods.length >= podCount) {
-          const podWithMatchedCondition = []
+          if (pods.length >= podCount) {
+            const podWithMatchedCondition = []
 
-          // check conditions
-          for (const pod of pods) {
-            let matchedCondition = 0
-            for (const cond of pod.status.conditions) {
-              for (const entry of conditionsMap.entries()) {
-                const condType = entry[0]
-                const condStatus = entry[1]
-                if (cond.type === condType && cond.status === condStatus) {
-                  this.logger.debug(`Pod condition met for ${pod.metadata.name} [type: ${cond.type} status: ${cond.status}]`)
-                  matchedCondition++
+            // check conditions
+            for (const pod of pods) {
+              let matchedCondition = 0
+              for (const cond of pod.status.conditions) {
+                for (const entry of conditionsMap.entries()) {
+                  const condType = entry[0]
+                  const condStatus = entry[1]
+                  if (cond.type === condType && cond.status === condStatus) {
+                    this.logger.debug(`Pod condition met for ${pod.metadata.name} [type: ${cond.type} status: ${cond.status}]`)
+                    matchedCondition++
+                  }
+                }
+
+                if (matchedCondition >= conditionsMap.size) {
+                  podWithMatchedCondition.push(pod)
+                  break
                 }
               }
+            }
 
-              if (matchedCondition >= conditionsMap.size) {
-                podWithMatchedCondition.push(pod)
-                break
-              }
+            if (podWithMatchedCondition.length >= podCount) {
+              return resolve(podWithMatchedCondition)
             }
           }
-
-          if (podWithMatchedCondition.length >= podCount) {
-            return resolve(podWithMatchedCondition)
-          }
+        } catch (e) {
+          this.logger.error(`Pod not found with expected conditions [maxAttempts = ${maxAttempts}], ${e.message}`, e)
         }
 
         if (attempts++ < maxAttempts) {

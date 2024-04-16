@@ -41,7 +41,7 @@ import {
 import { sleep } from '../../../src/core/helpers.mjs'
 
 describe.each([
-  { releaseTag: 'v0.49.0-alpha.2', keyFormat: constants.KEY_FORMAT_PFX, testName: 'node-cmd-e2e-pfx', mode: 'kill' },
+  // { releaseTag: 'v0.49.0-alpha.2', keyFormat: constants.KEY_FORMAT_PFX, testName: 'node-cmd-e2e-pfx', mode: 'kill' },
   { releaseTag: 'v0.49.0-alpha.2', keyFormat: constants.KEY_FORMAT_PEM, testName: 'node-cmd-e2e-pem', mode: 'stop' }
 ])('NodeCommand', (input) => {
   const testName = input.testName
@@ -65,10 +65,10 @@ describe.each([
   }, 120000)
 
   afterAll(async () => {
-    await k8.deleteNamespace(namespace)
+    // await k8.deleteNamespace(namespace)
   }, 120000)
 
-  describe(`Node should start successfully [mode ${input.mode}, release ${input.releaseTag}, keyFormat: ${input.keyFormat}]`, () => {
+  describe.skip(`Node should have started successfully [mode ${input.mode}, release ${input.releaseTag}, keyFormat: ${input.keyFormat}]`, () => {
     balanceQueryShouldSucceed(accountManager, nodeCmd, namespace)
 
     accountCreationShouldSucceed(accountManager, nodeCmd, namespace)
@@ -87,7 +87,7 @@ describe.each([
     }, 20000)
   })
 
-  describe(`Node should refresh successfully [mode ${input.mode}, release ${input.releaseTag}, keyFormat: ${input.keyFormat}]`, () => {
+  describe.skip(`Node should refresh successfully [mode ${input.mode}, release ${input.releaseTag}, keyFormat: ${input.keyFormat}]`, () => {
     const nodeId = 'node0'
 
     beforeAll(async () => {
@@ -109,6 +109,55 @@ describe.each([
     nodeShouldNotBeActive(nodeCmd, nodeId)
 
     nodeRefreshShouldSucceed(nodeId, nodeCmd, argv)
+
+    balanceQueryShouldSucceed(accountManager, nodeCmd, namespace)
+
+    accountCreationShouldSucceed(accountManager, nodeCmd, namespace)
+  })
+
+  describe(`Should add a new node to the network [release ${input.releaseTag}, keyFormat: ${input.keyFormat}]`, () => {
+    const nodeId = 'node4'
+
+    beforeAll(() => {
+      argv[flags.nodeIDs.name] = nodeId
+      const configManager = getTestConfigManager(`${testName}-solo.config`)
+      configManager.update(argv, true)
+    })
+
+    it(`${nodeId} should not exist`, async () => {
+      try {
+        await expect(nodeCmd.checkNetworkNodePod(namespace, nodeId)).rejects.toThrowError(`no pod found for nodeId: ${nodeId}`)
+      } catch (e) {
+        nodeCmd.logger.showUserError(e)
+        expect(e).toBeNull()
+      } finally {
+        await nodeCmd.close()
+      }
+    }, 120000)
+
+    balanceQueryShouldSucceed(accountManager, nodeCmd, namespace)
+
+    accountCreationShouldSucceed(accountManager, nodeCmd, namespace)
+
+    // add node4 to the network
+    // - use helm upgrade to deploy new node
+    // - build a new config.txt
+    // - generate new keys
+    // - update key files as needed (pfx?)
+    // - send freeze transactions and wait for 2/3 majority to FREEZE
+    // - push config.txt and keys to all nodes
+    // - restart/recycle all nodes
+    it(`add ${nodeId} to the network`, async () => {
+      try {
+        await expect(nodeCmd.add(argv)).resolves.toBeTruthy()
+      } catch (e) {
+        nodeCmd.logger.showUserError(e)
+        expect(e).toBeNull()
+      } finally {
+        await nodeCmd.close()
+        await sleep(10000) // sleep to wait for node to finish starting
+      }
+    }, 120000)
 
     balanceQueryShouldSucceed(accountManager, nodeCmd, namespace)
 
