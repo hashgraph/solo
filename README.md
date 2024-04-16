@@ -90,7 +90,7 @@ You can now use your cluster with:
 
 kubectl cluster-info --context kind-solo
 
-Not sure what to do next? 😅  Check out https://kind.sigs.k8s.io/docs/user/quick-start/
+Thanks for using kind! 😊
 ```
 
 You may now view pods in your cluster using `k9s -A` as below:
@@ -259,9 +259,9 @@ Kubernetes Cluster	: kind-solo
 Kubernetes Namespace	: solo
 **********************************************************************************
 ✔ Initialize
-✔ Check network pod: node0
 ✔ Check network pod: node1
 ✔ Check network pod: node2
+✔ Check network pod: node0
 ✔ Identify network pods
 ✔ Copy configuration files
 ✔ Copy Gossip keys to staging
@@ -282,11 +282,11 @@ Kubernetes Namespace	: solo
 ✔ Copy configuration files
 ✔ Copy configuration files
 ✔ Set file permissions
-✔ Node: node2
+✔ Node: node1
 ✔ Set file permissions
 ✔ Node: node0
 ✔ Set file permissions
-✔ Node: node1
+✔ Node: node2
 ✔ Setup network nodes
 ✔ Finalize
 ```
@@ -312,9 +312,9 @@ Kubernetes Namespace	: solo
 ✔ Check network pod: node2
 ✔ Check network pod: node1
 ✔ Identify network pods
-✔ Start node: node1
 ✔ Start node: node2
 ✔ Start node: node0
+✔ Start node: node1
 ✔ Starting nodes
 ✔ Check node: node0
 ✔ Check node: node1
@@ -471,7 +471,7 @@ $ rm -rf ~/.solo
 $ solo init -t v0.47.0-alpha.0 -i node0,node1,node2 -n "${SOLO_NAMESPACE}" -s "${SOLO_CLUSTER_SETUP_NAMESPACE}" --key-format pem 
 ```
 
-* Example output:
+* Example output
 
 ```
 
@@ -499,7 +499,7 @@ If a full reset is needed, delete the directory or relevant sub-directories befo
 $ solo node keys --gossip-keys --tls-keys --key-format pem
 ```
 
-* Example output:
+* Example output
 
 ```
 
