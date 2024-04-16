@@ -1184,6 +1184,7 @@ export class NodeCommand extends BaseCommand {
               flags.apiPermissionProperties,
               flags.bootstrapProperties,
               flags.settingTxt,
+              flags.localBuildPath,
               flags.log4j2Xml
             ),
             handler: argv => {
