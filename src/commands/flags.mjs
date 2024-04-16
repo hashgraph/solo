@@ -402,7 +402,7 @@ export const settingTxt = {
 export const localBuildPath = {
   name: 'local-build-path',
   definition: {
-    describe: 'path of hedera local build',
+    describe: 'path of hedera local repo',
     defaultValue: '',
     type: 'string'
   }
