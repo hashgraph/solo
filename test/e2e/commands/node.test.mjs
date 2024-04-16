@@ -139,14 +139,6 @@ describe.each([
 
     accountCreationShouldSucceed(accountManager, nodeCmd, namespace)
 
-    // add node4 to the network
-    // - use helm upgrade to deploy new node
-    // - build a new config.txt
-    // - generate new keys
-    // - update key files as needed (pfx?)
-    // - send freeze transactions and wait for 2/3 majority to FREEZE
-    // - push config.txt and keys to all nodes
-    // - restart/recycle all nodes
     it(`add ${nodeId} to the network`, async () => {
       try {
         await expect(nodeCmd.add(argv)).resolves.toBeTruthy()

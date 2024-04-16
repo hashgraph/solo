@@ -1128,6 +1128,225 @@ export class NodeCommand extends BaseCommand {
     return true
   }
 
+  async add (argv) {
+    const self = this
+
+    const tasks = new Listr([
+      {
+        title: 'Initialize',
+        task: async (ctx, task) => {
+          self.configManager.update(argv)
+          await prompts.execute(task, self.configManager, [
+            flags.namespace,
+            flags.nodeIDs,
+            flags.releaseTag,
+            flags.cacheDir,
+            flags.chainId,
+            flags.generateGossipKeys,
+            flags.generateTlsKeys,
+            flags.keyFormat
+          ])
+
+          const config = {
+            namespace: self.configManager.getFlag(flags.namespace),
+            nodeIds: helpers.parseNodeIds(self.configManager.getFlag(flags.nodeIDs)),
+            releaseTag: self.configManager.getFlag(flags.releaseTag),
+            cacheDir: self.configManager.getFlag(flags.cacheDir),
+            force: self.configManager.getFlag(flags.force),
+            chainId: self.configManager.getFlag(flags.chainId),
+            generateGossipKeys: self.configManager.getFlag(flags.generateGossipKeys),
+            generateTlsKeys: self.configManager.getFlag(flags.generateTlsKeys),
+            keyFormat: self.configManager.getFlag(flags.keyFormat),
+            devMode: self.configManager.getFlag(flags.devMode),
+            curDate: new Date()
+          }
+
+          await self.initializeSetup(config, self.configManager, self.k8)
+
+          // set config in the context for later tasks to use
+          ctx.config = config
+
+          self.logger.debug('Initialized config', { config })
+        }
+      },
+      {
+        title: 'Identify existing network pods',
+        task: (ctx, task) => {
+          // TODO need to get a list of existing nodeIds, the next command gets the list of podNames for those nodeIds
+          self.taskCheckNetworkNodePods(ctx, task)
+          // TODO - use helm upgrade to deploy new node
+        }
+      },
+      {
+        title: 'Generate Gossip keys',
+        task: async (ctx, parentTask) => {
+          // TODO - generate new keys
+          const config = ctx.config
+          const subTasks = self._nodeGossipKeysTaskList(config.keyFormat, config.nodeIds, config.keysDir, config.curDate)
+          // set up the sub-tasks
+          return parentTask.newListr(subTasks, {
+            concurrent: false,
+            rendererOptions: {
+              collapseSubtasks: false,
+              timer: constants.LISTR_DEFAULT_RENDERER_TIMER_OPTION
+            }
+          })
+        },
+        skip: (ctx, _) => !ctx.config.generateGossipKeys
+      },
+      {
+        title: 'Generate gRPC TLS keys',
+        task: async (ctx, parentTask) => {
+          const config = ctx.config
+          const subTasks = self._nodeTlsKeyTaskList(config.nodeIds, config.keysDir, config.curDate)
+          // set up the sub-tasks
+          return parentTask.newListr(subTasks, {
+            concurrent: false,
+            rendererOptions: {
+              collapseSubtasks: false,
+              timer: constants.LISTR_DEFAULT_RENDERER_TIMER_OPTION
+            }
+          })
+        },
+        skip: (ctx, _) => !ctx.config.generateTlsKeys
+      },
+      {
+        title: 'Prepare staging directory',
+        task: async (ctx, parentTask) => {
+          const config = ctx.config
+          const subTasks = [
+            {
+              title: 'Copy configuration files',
+              task: () => {
+                for (const flag of flags.nodeConfigFileFlags.values()) {
+                  const filePath = self.configManager.getFlag(flag)
+                  if (!filePath) {
+                    throw new FullstackTestingError(`Configuration file path is missing for: ${flag.name}`)
+                  }
+
+                  const fileName = path.basename(filePath)
+                  const destPath = `${config.stagingDir}/templates/${fileName}`
+                  self.logger.debug(`Copying configuration file to staging: ${filePath} -> ${destPath}`)
+
+                  fs.cpSync(filePath, destPath, { force: true })
+                }
+              }
+            },
+            {
+              title: 'Copy Gossip keys to staging',
+              task: async (ctx, _) => {
+                const config = ctx.config
+
+                // copy gossip keys to the staging
+                for (const nodeId of ctx.config.nodeIds) {
+                  switch (config.keyFormat) {
+                    case constants.KEY_FORMAT_PEM: {
+                      const signingKeyFiles = self.keyManager.prepareNodeKeyFilePaths(nodeId, config.keysDir, constants.SIGNING_KEY_PREFIX)
+                      await self._copyNodeKeys(signingKeyFiles, config.stagingKeysDir)
+
+                      // generate missing agreement keys
+                      const agreementKeyFiles = self.keyManager.prepareNodeKeyFilePaths(nodeId, config.keysDir, constants.AGREEMENT_KEY_PREFIX)
+                      await self._copyNodeKeys(agreementKeyFiles, config.stagingKeysDir)
+                      break
+                    }
+
+                    case constants.KEY_FORMAT_PFX: {
+                      const privateKeyFile = Templates.renderGossipPfxPrivateKeyFile(nodeId)
+                      fs.cpSync(`${config.keysDir}/${privateKeyFile}`, `${config.stagingKeysDir}/${privateKeyFile}`)
+                      fs.cpSync(`${config.keysDir}/${constants.PUBLIC_PFX}`, `${config.stagingKeysDir}/${constants.PUBLIC_PFX}`)
+                      break
+                    }
+
+                    default:
+                      throw new FullstackTestingError(`Unsupported key-format ${config.keyFormat}`)
+                  }
+                }
+              }
+            },
+            {
+              title: 'Copy gRPC TLS keys to staging',
+              task: async (ctx, _) => {
+                const config = ctx.config
+                for (const nodeId of ctx.config.nodeIds) {
+                  const tlsKeyFiles = self.keyManager.prepareTLSKeyFilePaths(nodeId, config.keysDir)
+                  await self._copyNodeKeys(tlsKeyFiles, config.stagingKeysDir)
+                }
+              }
+            },
+            {
+              title: 'Prepare config.txt for the network',
+              task: async (ctx, _) => {
+                // TODO - build a new config.txt
+                const config = ctx.config
+                const configTxtPath = `${config.stagingDir}/config.txt`
+                const template = `${constants.RESOURCES_DIR}/templates/config.template`
+                await self.platformInstaller.prepareConfigTxt(config.nodeIds, configTxtPath, config.releaseTag, config.chainId, template)
+              }
+            }
+          ]
+
+          return parentTask.newListr(subTasks, {
+            concurrent: false,
+            rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
+          })
+        }
+      },
+      {
+        title: 'Fetch platform software into network nodes',
+        task:
+            async (ctx, task) => {
+              // TODO - update key files as needed (pfx?)
+              return self.fetchPlatformSoftware(ctx, task, self.platformInstaller)
+            }
+      },
+      {
+        title: 'Setup network nodes',
+        task: async (ctx, parentTask) => {
+          const config = ctx.config
+          // TODO - send freeze transactions and wait for 2/3 majority to FREEZE
+          // TODO - push config.txt and keys to all nodes
+          // TODO - restart/recycle all nodes
+
+          const subTasks = []
+          for (const nodeId of config.nodeIds) {
+            const podName = config.podNames[nodeId]
+            subTasks.push({
+              title: `Node: ${chalk.yellow(nodeId)}`,
+              task: () =>
+                self.platformInstaller.taskInstall(podName, config.buildZipFile, config.stagingDir, config.nodeIds, config.keyFormat, config.force)
+            })
+          }
+
+          // set up the sub-tasks
+          return parentTask.newListr(subTasks, {
+            concurrent: true,
+            rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
+          })
+        }
+      },
+      {
+        title: 'Finalize',
+        task: (ctx, _) => {
+          // reset flags so that keys are not regenerated later
+          self.configManager.setFlag(flags.generateGossipKeys, false)
+          self.configManager.setFlag(flags.generateTlsKeys, false)
+          self.configManager.persist()
+        }
+      }
+    ], {
+      concurrent: false,
+      rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
+    })
+
+    try {
+      await tasks.run()
+    } catch (e) {
+      throw new FullstackTestingError(`Error in setting up nodes: ${e.message}`, e)
+    }
+
+    return true
+  }
+
   /**
    * Return Yargs command definition for 'node' command
    * @param nodeCmd an instance of NodeCommand
@@ -1254,6 +1473,38 @@ export class NodeCommand extends BaseCommand {
 
               nodeCmd.refresh(argv).then(r => {
                 nodeCmd.logger.debug('==== Finished running `node refresh`====')
+                if (!r) process.exit(1)
+              }).catch(err => {
+                nodeCmd.logger.showUserError(err)
+                process.exit(1)
+              })
+            }
+          })
+          .command({
+            command: 'add',
+            desc: 'Adds a node with a specific version of Hedera platform',
+            builder: y => flags.setCommandFlags(y,
+              flags.namespace,
+              flags.nodeIDs,
+              flags.releaseTag,
+              flags.generateGossipKeys,
+              flags.generateTlsKeys,
+              flags.cacheDir,
+              flags.chainId,
+              flags.force,
+              flags.keyFormat,
+              flags.applicationProperties,
+              flags.apiPermissionProperties,
+              flags.bootstrapProperties,
+              flags.settingTxt,
+              flags.log4j2Xml
+            ),
+            handler: argv => {
+              nodeCmd.logger.debug('==== Running \'node add\' ===')
+              nodeCmd.logger.debug(argv)
+
+              nodeCmd.add(argv).then(r => {
+                nodeCmd.logger.debug('==== Finished running `node add`====')
                 if (!r) process.exit(1)
               }).catch(err => {
                 nodeCmd.logger.showUserError(err)
