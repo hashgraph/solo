@@ -726,6 +726,8 @@ export class K8 {
       })
     })
 
+    this.logger.debug('Promise finished')
+
     // test to see if the port has been closed or if it is still open
     let attempts = 0
     while (attempts < maxAttempts) {
