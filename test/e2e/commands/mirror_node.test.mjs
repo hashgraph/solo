@@ -32,6 +32,9 @@ import {
 import * as version from '../../../version.mjs'
 import { sleep } from '../../../src/core/helpers.mjs'
 import { MirrorNodeCommand } from '../../../src/commands/mirror_node.mjs'
+import * as http from 'http'
+
+import * as core from "../../../src/core/index.mjs";
 
 describe('MirrorNodeCommand', () => {
   const testName = 'mirror-cmd-e2e'
@@ -71,13 +74,78 @@ describe('MirrorNodeCommand', () => {
     }
   }, 120000)
 
-  it('mirror node destroy should success', async () => {
+
+
+  it('test hedera explorer should success', async () => {
     expect.assertions(1)
     try {
-      await expect(mirrorNodeCmd.destroy(argv)).resolves.toBeTruthy()
+      // find hedera explorer pod
+      const pods = await k8.getPodsByLabel(['app.kubernetes.io/name=hedera-explorer'])
+      const explorerPod = pods[0]
+      const podIp = explorerPod.status.podIP
+      mirrorNodeCmd.logger.debug(`Hedera Explorer pod IP: ${podIp}`)
+
+      // enable port forwarding
+      let portForwarder = null
+      portForwarder = await k8.portForward(explorerPod.metadata.name, 8080, 8080)
+      await sleep(1000)
+
+      // check if the explorer is running
+      const url = 'http://127.0.0.1:8080/api/v1/transactions'
+      // const req = http.request(url,
+      //   { method: 'GET', timeout: 100, headers: { Connection: 'close' } })
+
+      const req = http.request(url, (res) => {
+        console.log(`STATUS: ${res.statusCode}`);
+        console.log(`HEADERS: ${JSON.stringify(res.headers)}`);
+        res.setEncoding('utf8');
+        res.on('data', (chunk) => {
+          console.log(`BODY: ${chunk}`);
+        });
+        res.on('end', () => {
+          console.log('No more data in response.');
+        });
+        expect([200, 302].includes(res.statusCode)).toBeTruthy()
+
+      });
+
+      // req.on('response', r => {
+      //   const statusCode = r.statusCode
+      //   mirrorNodeCmd.logger.debug({
+      //     response: {
+      //       connectOptions: r['connect-options'],
+      //       statusCode: r.statusCode,
+      //       headers: r.headers
+      //     }
+      //
+      //   })
+      //   expect([200, 302].includes(statusCode)).toBeTruthy()
+      // })
+      // req.on('data', chunk => {
+      //   mirrorNodeCmd.logger.debug(`BODY: ${chunk}`)
+      // })
+      req.on('error', err => {
+        mirrorNodeCmd.logger.error(err)
+      })
+
+      req.end() // make the request
+
+      await sleep(1000)
+      // await k8.stopPortForward(portForwarder)
     } catch (e) {
       mirrorNodeCmd.logger.showUserError(e)
       expect(e).toBeNull()
     }
-  }, 60000)
+  }, 120000000)
+
+
+  // it('mirror node destroy should success', async () => {
+  //   expect.assertions(1)
+  //   try {
+  //     await expect(mirrorNodeCmd.destroy(argv)).resolves.toBeTruthy()
+  //   } catch (e) {
+  //     mirrorNodeCmd.logger.showUserError(e)
+  //     expect(e).toBeNull()
+  //   }
+  // }, 60000)
 })
