@@ -91,6 +91,7 @@ You can now use your cluster with:
 kubectl cluster-info --context kind-solo
 
 Have a nice day! 👋
+
 ```
 
 You may now view pods in your cluster using `k9s -A` as below:
@@ -471,7 +472,7 @@ $ rm -rf ~/.solo
 $ solo init -t v0.47.0-alpha.0 -i node0,node1,node2 -n "${SOLO_NAMESPACE}" -s "${SOLO_CLUSTER_SETUP_NAMESPACE}" --key-format pem 
 ```
 
-* Example output:
+* Example output
 
 ```
 
@@ -499,7 +500,7 @@ If a full reset is needed, delete the directory or relevant sub-directories befo
 $ solo node keys --gossip-keys --tls-keys --key-format pem
 ```
 
-* Example output:
+* Example output
 
 ```
 

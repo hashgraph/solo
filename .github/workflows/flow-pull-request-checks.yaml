@@ -69,7 +69,7 @@ jobs:
     needs:
       - unit-tests
       - e2e-tests
-    if: ${{ github.event.pull_request.head.repo.full_name == github.event.pull_request.base.repo.full_name && github.actor != 'dependabot[bot]' }}
+    if: ${{ github.event.pull_request.head.repo.full_name == github.event.pull_request.base.repo.full_name }}
     with:
       custom-job-label: Standard
       enable-codecov-analysis: true
@@ -83,7 +83,7 @@ jobs:
     needs:
       - unit-tests
       - e2e-tests
-    if: ${{ github.event.pull_request.head.repo.full_name == github.event.pull_request.base.repo.full_name && github.actor != 'dependabot[bot]' }}
+    if: ${{ github.event.pull_request.head.repo.full_name == github.event.pull_request.base.repo.full_name }}
     with:
       custom-job-label: Coverage
       enable-codacy-coverage: true
