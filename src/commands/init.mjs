@@ -20,7 +20,7 @@ import { BaseCommand } from './base.mjs'
 import * as core from '../core/index.mjs'
 import { constants } from '../core/index.mjs'
 import * as fs from 'fs'
-import { FullstackTestingError } from '../core/errors.mjs'
+import { FullstackTestingError, IllegalArgumentError } from '../core/errors.mjs'
 import * as flags from './flags.mjs'
 import chalk from 'chalk'
 
@@ -35,20 +35,21 @@ export class InitCommand extends BaseCommand {
   setupHomeDirectory (dirs = [
     constants.SOLO_HOME_DIR,
     constants.SOLO_LOGS_DIR,
-    constants.SOLO_CACHE_DIR
+    constants.SOLO_CACHE_DIR,
+    constants.SOLO_VALUES_DIR
   ]) {
     const self = this
 
     try {
       dirs.forEach(dirPath => {
         if (!fs.existsSync(dirPath)) {
-          fs.mkdirSync(dirPath)
+          fs.mkdirSync(dirPath, { recursive: true })
         }
         self.logger.debug(`OK: setup directory: ${dirPath}`)
       })
     } catch (e) {
       this.logger.error(e)
-      throw new FullstackTestingError(e.message, e)
+      throw new FullstackTestingError(`failed to create directory: ${e.message}`, e)
     }
 
     return dirs
@@ -60,11 +61,16 @@ export class InitCommand extends BaseCommand {
    */
   async init (argv) {
     const self = this
+    let cacheDir = this.configManager.getFlag(flags.cacheDir)
+    if (!cacheDir) {
+      cacheDir = constants.SOLO_CACHE_DIR
+    }
 
     const tasks = new Listr([
       {
         title: 'Setup home directory and cache',
         task: async (ctx, _) => {
+          self.configManager.update(argv)
           ctx.dirs = this.setupHomeDirectory()
         }
       },
@@ -93,29 +99,19 @@ export class InitCommand extends BaseCommand {
         }
       },
       {
-        title: 'Copy configuration file templates',
+        title: `Copy templates in '${cacheDir}'`,
         task: (ctx, _) => {
-          let cacheDir = this.configManager.getFlag(flags.cacheDir)
-          if (!cacheDir) {
-            cacheDir = constants.SOLO_CACHE_DIR
-          }
+          const resources = ['templates', 'profiles']
+          for (const dirName of resources) {
+            const srcDir = path.resolve(path.join(constants.RESOURCES_DIR, dirName))
+            if (!fs.existsSync(srcDir)) continue
 
-          const templatesDir = `${cacheDir}/templates`
-          if (!fs.existsSync(templatesDir)) {
-            fs.mkdirSync(templatesDir)
-          }
+            const destDir = path.resolve(path.join(cacheDir, dirName))
+            if (!fs.existsSync(destDir)) {
+              fs.mkdirSync(destDir, { recursive: true })
+            }
 
-          const configFiles = [
-            `${constants.RESOURCES_DIR}/templates/application.properties`,
-            `${constants.RESOURCES_DIR}/templates/api-permission.properties`,
-            `${constants.RESOURCES_DIR}/templates/bootstrap.properties`,
-            `${constants.RESOURCES_DIR}/templates/settings.txt`,
-            `${constants.RESOURCES_DIR}/templates/log4j2.xml`
-          ]
-
-          for (const filePath of configFiles) {
-            const fileName = path.basename(filePath)
-            fs.cpSync(`${filePath}`, `${templatesDir}/${fileName}`, { recursive: true })
+            fs.cpSync(srcDir, destDir, { recursive: true })
           }
 
           if (argv.dev) {
@@ -148,6 +144,9 @@ export class InitCommand extends BaseCommand {
    * @param initCmd an instance of InitCommand
    */
   static getCommandDefinition (initCmd) {
+    if (!initCmd || !(initCmd instanceof InitCommand)) {
+      throw new IllegalArgumentError('Invalid InitCommand')
+    }
     return {
       command: 'init',
       desc: 'Initialize local environment and default flags',
@@ -160,7 +159,9 @@ export class InitCommand extends BaseCommand {
           flags.cacheDir,
           flags.chartDirectory,
           flags.keyFormat,
-          flags.fstChartVersion
+          flags.fstChartVersion,
+          flags.profileName,
+          flags.profileFile
         )
       },
       handler: (argv) => {

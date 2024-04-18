@@ -1,0 +1,11 @@
+#available icons: https://github.com/thegeeklab/hugo-geekdoc/tree/master/src/icons
+---
+more:
+  - name: Hedera Hashgraph
+    ref: "https://hedera.com/"
+    external: true
+  - name: "View Source"
+    ref: "https://github.com/hashgraph/solo/issues"
+    external: true
+    icon: "gdoc_github"
+

@@ -26,7 +26,7 @@ import {
 import { BaseCommand } from '../../../src/commands/base.mjs'
 import { K8 } from '../../../src/core/k8.mjs'
 
-const testLogger = logging.NewLogger('debug')
+const testLogger = logging.NewLogger('debug', true)
 
 describe('BaseCommand', () => {
   const helm = new Helm(testLogger)
@@ -55,7 +55,7 @@ describe('BaseCommand', () => {
       await expect(baseCmd.run('INVALID_PROGRAM')).rejects.toThrowError()
     })
     it('should succeed during valid program check', async () => {
-      await expect(baseCmd.run('date')).resolves.not.toBeNull()
+      await expect(baseCmd.run('echo')).resolves.not.toBeNull()
     })
   })
 })

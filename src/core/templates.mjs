@@ -25,12 +25,8 @@ export class Templates {
     return `network-${nodeId}-0`
   }
 
-  static renderNodeSvcName (nodeId) {
-    return `network-${nodeId}-svc`
-  }
-
   static renderNetworkSvcName (nodeId) {
-    return `network-${nodeId}-svc`
+    return `network-${nodeId}`
   }
 
   /**
@@ -142,9 +138,8 @@ export class Templates {
 
   static installationPath (
     dep,
-    installationDir = path.join(constants.SOLO_HOME_DIR, 'bin'),
     osPlatform = os.platform(),
-    osArch = os.arch()
+    installationDir = path.join(constants.SOLO_HOME_DIR, 'bin')
   ) {
     switch (dep) {
       case constants.HELM:
@@ -153,9 +148,23 @@ export class Templates {
         }
 
         return path.join(installationDir, dep)
+      case constants.KEYTOOL:
+        if (osPlatform === constants.OS_WINDOWS) {
+          return path.join(installationDir, 'jre', 'bin', `${dep}.exe`)
+        }
+
+        return path.join(installationDir, 'jre', 'bin', dep)
 
       default:
         throw new FullstackTestingError(`unknown dep: ${dep}`)
     }
+  }
+
+  static renderFullyQualifiedNetworkPodName (namespace, nodeId) {
+    return `${Templates.renderNetworkPodName(nodeId)}.${Templates.renderNetworkSvcName(nodeId)}.${namespace}.svc.cluster.local`
+  }
+
+  static renderFullyQualifiedNetworkSvcName (namespace, nodeId) {
+    return `${Templates.renderNetworkSvcName(nodeId)}.${namespace}.svc.cluster.local`
   }
 }

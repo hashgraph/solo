@@ -18,54 +18,29 @@ import * as fs from 'fs'
 import * as os from 'os'
 import { Listr } from 'listr2'
 import * as path from 'path'
+import * as semver from 'semver'
 import { FullstackTestingError, IllegalArgumentError, MissingArgumentError } from './errors.mjs'
 import { constants } from './index.mjs'
 import { Templates } from './templates.mjs'
-import * as helpers from './helpers.mjs'
+import { flags } from '../commands/index.mjs'
 
 /**
  * PlatformInstaller install platform code in the root-container of a network pod
  */
 export class PlatformInstaller {
-  constructor (logger, k8) {
+  constructor (logger, k8, configManager) {
     if (!logger) throw new MissingArgumentError('an instance of core/Logger is required')
     if (!k8) throw new MissingArgumentError('an instance of core/K8 is required')
 
     this.logger = logger
     this.k8 = k8
+    this.configManager = configManager
   }
 
-  /**
-   * Setup directories
-   * @param podName
-   * @param containerName
-   * @return {Promise<boolean>}
-   */
-  async resetHapiDirectories (podName, containerName = constants.ROOT_CONTAINER) {
-    if (!podName) throw new MissingArgumentError('podName is required')
-
-    try {
-      // reset data directory
-      // Note: we cannot delete the data/stats and data/saved as those are volume mounted
-      const resetPaths = [
-        `${constants.HEDERA_HAPI_PATH}/data/apps`,
-        `${constants.HEDERA_HAPI_PATH}/data/config`,
-        `${constants.HEDERA_HAPI_PATH}/data/keys`,
-        `${constants.HEDERA_HAPI_PATH}/data/lib`,
-        `${constants.HEDERA_HAPI_PATH}/data/upgrade`
-      ]
-
-      for (const p of resetPaths) {
-        await this.k8.execContainer(podName, containerName, `rm -rf ${p}`)
-        await this.k8.execContainer(podName, containerName, `mkdir -p ${p}`)
-      }
-
-      await this.setPathPermission(podName, constants.HEDERA_SERVICES_PATH)
-
-      return true
-    } catch (e) {
-      throw new FullstackTestingError(`failed to setup directories in pod '${podName}': ${e.message}`, e)
-    }
+  _getNamespace () {
+    const ns = this.configManager.getFlag(flags.namespace)
+    if (!ns) throw new MissingArgumentError('namespace is not set')
+    return ns
   }
 
   async validatePlatformReleaseDir (releaseDir) {
@@ -187,7 +162,7 @@ export class PlatformInstaller {
           break
         case constants.KEY_FORMAT_PFX:
           srcFiles.push(`${stagingDir}/keys/${Templates.renderGossipPfxPrivateKeyFile(nodeId)}`)
-          srcFiles.push(`${stagingDir}/keys/public.pfx`)
+          srcFiles.push(`${stagingDir}/keys/${constants.PUBLIC_PFX}`)
           break
         default:
           throw new FullstackTestingError(`Unsupported key file format ${keyFormat}`)
@@ -295,8 +270,6 @@ export class PlatformInstaller {
    * @returns {Promise<unknown>}
    */
   async prepareConfigTxt (nodeIDs, destPath, releaseTag, chainId = constants.HEDERA_CHAIN_ID, template = `${constants.RESOURCES_DIR}/templates/config.template`) {
-    const self = this
-
     if (!nodeIDs || nodeIDs.length === 0) throw new MissingArgumentError('list of node IDs is required')
     if (!destPath) throw new MissingArgumentError('destPath is required')
     if (!template) throw new MissingArgumentError('config templatePath is required')
@@ -313,7 +286,7 @@ export class PlatformInstaller {
     const appName = constants.HEDERA_APP_NAME
     const nodeStakeAmount = constants.HEDERA_NODE_DEFAULT_STAKE_AMOUNT
 
-    const releaseVersion = helpers.parseSemver(releaseTag)
+    const releaseVersion = semver.parse(releaseTag, { includePrerelease: true })
 
     try {
       const configLines = []
@@ -323,14 +296,11 @@ export class PlatformInstaller {
       let nodeSeq = 0
       let accountIdSeq = parseInt(startAccountId.num.toString(), 10)
       for (const nodeId of nodeIDs) {
-        const podName = Templates.renderNetworkPodName(nodeId)
-        const svcName = Templates.renderNetworkSvcName(nodeId)
-
         const nodeName = nodeId
         const nodeNickName = nodeId
 
-        const internalIP = await self.k8.getPodIP(podName)
-        const externalIP = await self.k8.getClusterIP(svcName)
+        const internalIP = Templates.renderFullyQualifiedNetworkPodName(this._getNamespace(), nodeId)
+        const externalIP = Templates.renderFullyQualifiedNetworkSvcName(this._getNamespace(), nodeId)
 
         const account = `${accountIdPrefix}.${accountIdSeq}`
         if (releaseVersion.minor >= 40) {

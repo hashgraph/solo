@@ -18,15 +18,19 @@ import { describe, expect, it, jest } from '@jest/globals'
 import { Helm, logging, Templates, constants } from '../../../src/core/index.mjs'
 import { ShellRunner } from '../../../src/core/shell_runner.mjs'
 
-describe('Helm', () => {
-  const logger = logging.NewLogger('debug')
-  const helm = new Helm(logger)
+describe.each([
+  { osPlatform: 'linux' },
+  { osPlatform: 'windows' },
+  { osPlatform: 'darwin' }
+])('Helm', (input) => {
+  const logger = logging.NewLogger('debug', true)
+  const helm = new Helm(logger, input.osPlatform)
   const shellSpy = jest.spyOn(ShellRunner.prototype, 'run').mockImplementation()
-  const helmPath = Templates.installationPath(constants.HELM)
+  const helmPath = Templates.installationPath(constants.HELM, input.osPlatform)
 
   it('should run helm install', async () => {
     await helm.install('arg')
-    expect(shellSpy).toHaveBeenCalledWith(`${helmPath} install arg`, true)
+    expect(shellSpy).toHaveBeenCalledWith(`${helmPath} install arg`)
   })
 
   it('should run helm uninstall', async () => {

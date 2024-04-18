@@ -16,6 +16,7 @@
  */
 import * as HashgraphProto from '@hashgraph/proto'
 import * as Base64 from 'js-base64'
+import os from 'os'
 import * as constants from './constants.mjs'
 import {
   AccountCreateTransaction,
@@ -30,11 +31,9 @@ import {
   Status,
   TransferTransaction
 } from '@hashgraph/sdk'
-import { FullstackTestingError } from './errors.mjs'
-import { sleep } from './helpers.mjs'
-import net from 'net'
+import { FullstackTestingError, MissingArgumentError } from './errors.mjs'
 import { Templates } from './templates.mjs'
-import { K8 } from './k8.mjs'
+import ip from 'ip'
 
 const REASON_FAILED_TO_GET_KEYS = 'failed to get keys for accountId'
 const REASON_SKIPPED = 'skipped since it does not have a genesis key'
@@ -42,28 +41,8 @@ const REASON_FAILED_TO_UPDATE_ACCOUNT = 'failed to update account keys'
 const REASON_FAILED_TO_CREATE_K8S_S_KEY = 'failed to create k8s scrt key'
 const FULFILLED = 'fulfilled'
 const REJECTED = 'rejected'
-const MAX_PORT_FORWARD_SLEEP_ITERATIONS = 500
-const PORT_FORWARD_CLOSE_SLEEP = 500
 
-/**
- * Copyright (C) 2024 Hedera Hashgraph, LLC
- *
- * Licensed under the Apache License, Version 2.0 (the ""License"");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an ""AS IS"" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- *
- */
 export class AccountManager {
-  static _openPortForwardConnections = 0
-
   /**
    * creates a new AccountManager instance
    * @param logger the logger to use
@@ -91,8 +70,8 @@ export class AccountManager {
     if (secret) {
       return {
         accountId: secret.labels['fullstack.hedera.com/account-id'],
-        privateKey: secret.data.privateKey,
-        publicKey: secret.data.publicKey
+        privateKey: Base64.decode(secret.data.privateKey),
+        publicKey: Base64.decode(secret.data.publicKey)
       }
     } else {
       return null
@@ -124,22 +103,20 @@ export class AccountManager {
 
   /**
    * batch up the accounts into sets to be processed
-   * @returns {*[]} an array of arrays of numbers representing the accounts to update
+   * @returns an array of arrays of numbers representing the accounts to update
    */
-  batchAccounts () {
+  batchAccounts (accountRange = constants.SYSTEM_ACCOUNTS) {
     const batchSize = constants.ACCOUNT_CREATE_BATCH_SIZE
     const batchSets = []
 
-    let batchCounter = 0
     let currentBatch = []
-    for (const [start, end] of constants.SYSTEM_ACCOUNTS) {
+    for (const [start, end] of accountRange) {
+      let batchCounter = start
       for (let i = start; i <= end; i++) {
         currentBatch.push(i)
         batchCounter++
 
-        // push only a single account for the first to give time for the
-        // network to create all the system accounts and become stable
-        if (batchCounter >= batchSize || batchSets.length < 1) {
+        if (batchCounter % batchSize === 0) {
           batchSets.push(currentBatch)
           currentBatch = []
           batchCounter = 0
@@ -162,41 +139,14 @@ export class AccountManager {
    */
   async close () {
     this._nodeClient?.close()
-    this._nodeClient = null
-    K8.close()
-    await this._stopPortForwards()
-  }
-
-  /**
-   * stops and closes all of the port forwards that are running
-   * @returns {Promise<void>}
-   */
-  async _stopPortForwards () {
-    let sleepCounter = 0
     if (this._portForwards) {
-      for (const webSocketServer of this._portForwards) {
-        webSocketServer.kill(() => {
-          AccountManager._openPortForwardConnections--
-        })
-
-        while (webSocketServer.sockets.length > 0 && sleepCounter < MAX_PORT_FORWARD_SLEEP_ITERATIONS) {
-          ++sleepCounter
-          this.logger.debug(`waiting ${PORT_FORWARD_CLOSE_SLEEP}ms for port forward server to close .... ${sleepCounter} of ${MAX_PORT_FORWARD_SLEEP_ITERATIONS}`)
-          await sleep(PORT_FORWARD_CLOSE_SLEEP)
-        }
+      for (const srv of this._portForwards) {
+        await this.k8.stopPortForward(srv)
       }
-
-      while (AccountManager._openPortForwardConnections > 0 && sleepCounter < MAX_PORT_FORWARD_SLEEP_ITERATIONS) {
-        ++sleepCounter
-        this.logger.debug(`waiting ${PORT_FORWARD_CLOSE_SLEEP}ms for port forward server to close .... ${sleepCounter} of ${MAX_PORT_FORWARD_SLEEP_ITERATIONS}`)
-        await sleep(PORT_FORWARD_CLOSE_SLEEP)
-      }
-      if (sleepCounter >= MAX_PORT_FORWARD_SLEEP_ITERATIONS) {
-        this.logger.error(`failed to detect that all port forward servers closed correctly, ${AccountManager._openPortForwardConnections} of ${this._portForwards.length} remain open`)
-      }
-
-      this._portForwards = []
     }
+
+    this._nodeClient = null
+    this._portForwards = []
   }
 
   /**
@@ -214,6 +164,35 @@ export class AccountManager {
     }
   }
 
+  shouldUseLocalHostPortForward (serviceObject) {
+    if (!serviceObject.loadBalancerIp) return true
+
+    const loadBalancerIp = serviceObject.loadBalancerIp
+    const interfaces = os.networkInterfaces()
+    let usePortForward = true
+    const loadBalancerIpFormat = ip.isV6Format(loadBalancerIp) ? 'ipv4' : 'ipv6'
+
+    // check if serviceIP falls into any subnet of the network interfaces
+    for (const nic of Object.keys(interfaces)) {
+      const inf = interfaces[nic]
+      for (const item of inf) {
+        if (item.family.toLowerCase() === loadBalancerIpFormat &&
+          ip.cidrSubnet(item.cidr).contains(loadBalancerIp)) {
+          usePortForward = false
+          break
+        }
+      }
+    }
+
+    if (usePortForward) {
+      this.logger.debug('Local network and Load balancer are in different network, using local host port forward')
+    } else {
+      this.logger.debug('Local network and Load balancer are in the same network, using load balancer IP port forward')
+    }
+
+    return usePortForward
+  }
+
   /**
    * Returns a node client that can be used to make calls against
    * @param namespace the namespace for which the node client resides
@@ -228,26 +207,23 @@ export class AccountManager {
       let localPort = constants.LOCAL_NODE_START_PORT
 
       for (const serviceObject of serviceMap.values()) {
-        const usePortForward = !(serviceObject.loadBalancerIp)
+        const usePortForward = this.shouldUseLocalHostPortForward(serviceObject)
         const host = usePortForward ? '127.0.0.1' : serviceObject.loadBalancerIp
         const port = serviceObject.grpcPort
         const targetPort = usePortForward ? localPort : port
 
         if (usePortForward) {
           this._portForwards.push(await this.k8.portForward(serviceObject.podName, localPort, port))
-          AccountManager._openPortForwardConnections++
         }
 
         nodes[`${host}:${targetPort}`] = AccountId.fromString(serviceObject.accountId)
-        await this.testConnection(serviceObject.podName, host, targetPort)
-
+        await this.k8.testConnection(host, targetPort)
         localPort++
       }
 
       this.logger.debug(`creating client from network configuration: ${JSON.stringify(nodes)}`)
       this._nodeClient = Client.fromConfig({ network: nodes })
       this._nodeClient.setOperator(operatorId, operatorKey)
-
       return this._nodeClient
     } catch (e) {
       throw new FullstackTestingError(`failed to setup node client: ${e.message}`, e)
@@ -356,6 +332,14 @@ export class AccountManager {
       }
     }
 
+    if (!keys || !keys[0]) {
+      return {
+        status: REJECTED,
+        reason: REASON_FAILED_TO_GET_KEYS,
+        value: accountId.toString()
+      }
+    }
+
     if (constants.OPERATOR_PUBLIC_KEY !== keys[0].toString()) {
       this.logger.debug(`account ${accountId.toString()} can be skipped since it does not have a genesis key`)
       return {
@@ -365,10 +349,12 @@ export class AccountManager {
       }
     }
 
+    this.logger.debug(`updating account ${accountId.toString()} since it is using the genesis key`)
+
     const newPrivateKey = PrivateKey.generateED25519()
     const data = {
-      privateKey: newPrivateKey.toString(),
-      publicKey: newPrivateKey.publicKey.toString()
+      privateKey: Base64.encode(newPrivateKey.toString()),
+      publicKey: Base64.encode(newPrivateKey.publicKey.toString())
     }
 
     try {
@@ -423,8 +409,14 @@ export class AccountManager {
    * @returns {AccountInfo} the private key of the account
    */
   async accountInfoQuery (accountId) {
+    if (!this._nodeClient) {
+      throw new MissingArgumentError('node client is not initialized')
+    }
+
     return await new AccountInfoQuery()
       .setAccountId(accountId)
+      .setMaxAttempts(3)
+      .setMaxBackoff(1000)
       .execute(this._nodeClient)
   }
 
@@ -483,67 +475,63 @@ export class AccountManager {
   }
 
   /**
-   * to test the connection to the node within the network
-   * @param podName the podName is only used for logging messages and errors
-   * @param host the host of the target connection
-   * @param port the port of the target connection
-   * @returns {Promise<void>}
-   */
-  async testConnection (podName, host, port) {
-    // check if the port is actually accessible
-    let attempt = 1
-    let socket = null
-    while (attempt < 10) {
-      try {
-        await sleep(250)
-        this.logger.debug(`Checking exposed port '${port}' of pod ${podName} at IP address ${host}`)
-        socket = net.createConnection({ host, port })
-        this.logger.debug(`Connected to port '${port}' of pod ${podName} at IP address ${host}`)
-        break
-      } catch (e) {
-        attempt += 1
-      }
-    }
-    if (!socket) {
-      throw new FullstackTestingError(`failed to connect to port '${port}' of pod ${podName} at IP address ${host}`)
-    }
-    await socket.destroy()
-  }
-
-  /**
    * creates a new Hedera account
    * @param namespace the namespace to store the Kubernetes key secret into
    * @param privateKey the private key of type PrivateKey
    * @param amount the amount of HBAR to add to the account
+   * @param setAlias whether to set the alias of the account to the public key,
+   * requires the privateKey supplied to be ECDSA
    * @returns {{accountId: AccountId, privateKey: string, publicKey: string, balance: number}} a
    * custom object with the account information in it
    */
-  async createNewAccount (namespace, privateKey, amount) {
-    const newAccount = await new AccountCreateTransaction()
+  async createNewAccount (namespace, privateKey, amount, setAlias = false) {
+    const newAccountTransaction = new AccountCreateTransaction()
       .setKey(privateKey)
       .setInitialBalance(Hbar.from(amount, HbarUnit.Hbar))
-      .execute(this._nodeClient)
+
+    if (setAlias) {
+      newAccountTransaction.setAlias(privateKey.publicKey.toEvmAddress())
+    }
+
+    const newAccountResponse = await newAccountTransaction.execute(this._nodeClient)
 
     // Get the new account ID
-    const getReceipt = await newAccount.getReceipt(this._nodeClient)
+    const transactionReceipt = await newAccountResponse.getReceipt(this._nodeClient)
     const accountInfo = {
-      accountId: getReceipt.accountId.toString(),
+      accountId: transactionReceipt.accountId.toString(),
       privateKey: privateKey.toString(),
       publicKey: privateKey.publicKey.toString(),
       balance: amount
     }
 
-    if (!(await this.k8.createSecret(
-      Templates.renderAccountKeySecretName(accountInfo.accountId),
-      namespace, 'Opaque', {
-        privateKey: accountInfo.privateKey,
-        publicKey: accountInfo.publicKey
-      },
-      Templates.renderAccountKeySecretLabelObject(accountInfo.accountId), true))
-    ) {
-      this.logger.error(`new account created [accountId=${accountInfo.accountId}, amount=${amount} HBAR, publicKey=${accountInfo.publicKey}, privateKey=${accountInfo.privateKey}] but failed to create secret in Kubernetes`)
+    // add the account alias if setAlias is true
+    if (setAlias) {
+      const accountId = accountInfo.accountId
+      const realm = transactionReceipt.accountId.realm
+      const shard = transactionReceipt.accountId.shard
+      const accountInfoQueryResult = await this.accountInfoQuery(accountId)
+      accountInfo.accountAlias = `${realm}.${shard}.${accountInfoQueryResult.contractAccountId}`
+    }
 
-      throw new FullstackTestingError(`failed to create secret for accountId ${accountInfo.accountId.toString()}, keys were sent to log file`)
+    try {
+      const accountSecretCreated = await this.k8.createSecret(
+        Templates.renderAccountKeySecretName(accountInfo.accountId),
+        namespace, 'Opaque', {
+          privateKey: Base64.encode(accountInfo.privateKey),
+          publicKey: Base64.encode(accountInfo.publicKey)
+        },
+        Templates.renderAccountKeySecretLabelObject(accountInfo.accountId), true)
+
+      if (!(accountSecretCreated)) {
+        this.logger.error(`new account created [accountId=${accountInfo.accountId}, amount=${amount} HBAR, publicKey=${accountInfo.publicKey}, privateKey=${accountInfo.privateKey}] but failed to create secret in Kubernetes`)
+
+        throw new FullstackTestingError(`failed to create secret for accountId ${accountInfo.accountId.toString()}, keys were sent to log file`)
+      }
+    } catch (e) {
+      if (e instanceof FullstackTestingError) {
+        throw e
+      }
+      throw new FullstackTestingError(`failed to create secret for accountId ${accountInfo.accountId.toString()}, e: ${e.toString()}`, e)
     }
 
     return accountInfo
