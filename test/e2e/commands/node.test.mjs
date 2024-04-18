@@ -243,7 +243,7 @@ function nodeShouldNotBeActive (nodeCmd, nodeId) {
   it(`${nodeId} should not be ACTIVE`, async () => {
     expect(2)
     try {
-      await expect(nodeCmd.checkNetworkNodeStarted(nodeId, 5)).rejects.toThrowError()
+      await expect(nodeCmd.checkNetworkNodeState(nodeId, 5)).rejects.toThrowError()
     } catch (e) {
       nodeCmd.logger.showUserError(e)
       expect(e).not.toBeNull()

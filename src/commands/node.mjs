@@ -25,7 +25,12 @@ import { constants, Templates } from '../core/index.mjs'
 import { BaseCommand } from './base.mjs'
 import * as flags from './flags.mjs'
 import * as prompts from './prompts.mjs'
-import { AccountId } from '@hashgraph/sdk'
+import {
+  AccountId,
+  FreezeTransaction,
+  FreezeType,
+  Timestamp
+} from '@hashgraph/sdk'
 
 /**
  * Defines the core functionalities of 'node' command
@@ -78,7 +83,7 @@ export class NodeCommand extends BaseCommand {
     }
   }
 
-  async checkNetworkNodeStarted (nodeId, maxAttempt = 100, status = 'ACTIVE') {
+  async checkNetworkNodeState (nodeId, maxAttempt = 100, status = 'ACTIVE') {
     nodeId = nodeId.trim()
     const podName = Templates.renderNetworkPodName(nodeId)
     const logfilePath = `${constants.HEDERA_HAPI_PATH}/logs/hgcaa.log`
@@ -647,7 +652,7 @@ export class NodeCommand extends BaseCommand {
           for (const nodeId of ctx.config.nodeIds) {
             subTasks.push({
               title: `Check node: ${chalk.yellow(nodeId)}`,
-              task: () => self.checkNetworkNodeStarted(nodeId)
+              task: () => self.checkNetworkNodeState(nodeId)
             })
           }
 
@@ -1080,7 +1085,7 @@ export class NodeCommand extends BaseCommand {
           for (const nodeId of ctx.config.nodeIds) {
             subTasks.push({
               title: `Check node: ${chalk.yellow(nodeId)}`,
-              task: () => self.checkNetworkNodeStarted(nodeId)
+              task: () => self.checkNetworkNodeState(nodeId)
             })
           }
 
@@ -1190,7 +1195,6 @@ export class NodeCommand extends BaseCommand {
       {
         title: 'Deploy new network node',
         task: async (ctx, task) => {
-          // TODO override the values to provide a new list of network nodes and their values
           const values = { hedera: { nodes: [] } }
           let maxNum
           for (const serviceObject of ctx.config.serviceMap.values()) {
@@ -1370,15 +1374,43 @@ export class NodeCommand extends BaseCommand {
         title: 'Send freeze transaction',
         task:
             async (ctx, task) => {
-              // TODO - send freeze transactions and wait for 2/3 majority to FREEZE
+              await self.accountManager.loadNodeClient(ctx.config.namespace)
+              const client = self.accountManager._nodeClient
+              const futureDate = new Date()
+              futureDate.setDate(futureDate.getDate() + (1 / 24 / 60)) // 1 minute in the future
+
+              await new FreezeTransaction()
+                .setFreezeType(FreezeType.FreezeOnly)
+                .setStartTimestamp(Timestamp.fromDate(futureDate))
+                .freezeWith(client)
+                .execute(client)
             }
+      },
+      {
+        title: 'Check nodes are FREEZE_COMPLETE',
+        task: (ctx, task) => {
+          const subTasks = []
+          for (const nodeId of ctx.config.existingNodeIds) {
+            subTasks.push({
+              title: `Check node: ${chalk.yellow(nodeId)}`,
+              task: () => self.checkNetworkNodeState(nodeId, 100, 'FREEZE_COMPLETE')
+            })
+          }
+
+          // set up the sub-tasks
+          return task.newListr(subTasks, {
+            concurrent: false,
+            rendererOptions: {
+              collapseSubtasks: false
+            }
+          })
+        }
       },
       {
         title: 'Setup network nodes',
         task: async (ctx, parentTask) => {
           const config = ctx.config
           // TODO - update key files as needed (pfx?)
-          // TODO - push config.txt and keys to all nodes
 
           const subTasks = []
           for (const nodeId of config.allNodeIds) {
@@ -1386,7 +1418,7 @@ export class NodeCommand extends BaseCommand {
             subTasks.push({
               title: `Node: ${chalk.yellow(nodeId)}`,
               task: () =>
-                self.platformInstaller.taskInstall(podName, config.buildZipFile, config.stagingDir, config.nodeIds, config.keyFormat, config.force)
+                self.platformInstaller.taskInstall(podName, config.buildZipFile, config.stagingDir, config.allNodeIds, config.keyFormat, config.force)
             })
           }
 
@@ -1398,9 +1430,80 @@ export class NodeCommand extends BaseCommand {
         }
       },
       {
-        title: 'Restart all network nodes',
-        task: (ctx, _) => {
-          // TODO - restart/recycle all nodes
+        title: 'Starting nodes',
+        task: (ctx, task) => {
+          const subTasks = []
+          for (const nodeId of ctx.config.allNodeIds) {
+            const podName = ctx.config.podNames[nodeId] // TODO DRY
+            subTasks.push({
+              title: `Start node: ${chalk.yellow(nodeId)}`,
+              task: async () => {
+                await self.k8.execContainer(podName, constants.ROOT_CONTAINER, ['bash', '-c', `rm -f ${constants.HEDERA_HAPI_PATH}/logs/*`])
+
+                // copy application.env file if required
+                if (ctx.config.applicationEnv) {
+                  const stagingDir = Templates.renderStagingDir(self.configManager, flags)
+                  const applicationEnvFile = path.join(stagingDir, 'application.env')
+                  fs.cpSync(ctx.config.applicationEnv, applicationEnvFile)
+                  await self.k8.copyTo(podName, constants.ROOT_CONTAINER, applicationEnvFile, `${constants.HEDERA_HAPI_PATH}`)
+                }
+
+                await self.k8.execContainer(podName, constants.ROOT_CONTAINER, ['systemctl', 'restart', 'network-node'])
+              }
+            })
+          }
+
+          // set up the sub-tasks
+          return task.newListr(subTasks, {
+            concurrent: true,
+            rendererOptions: {
+              collapseSubtasks: false,
+              timer: constants.LISTR_DEFAULT_RENDERER_TIMER_OPTION
+            }
+          })
+        }
+      },
+      {
+        title: 'Check nodes are ACTIVE',
+        task: (ctx, task) => {
+          const subTasks = []
+          for (const nodeId of ctx.config.allNodeIds) {
+            subTasks.push({
+              title: `Check node: ${chalk.yellow(nodeId)}`,
+              task: () => self.checkNetworkNodeState(nodeId, 200)
+            })
+          }
+
+          // set up the sub-tasks
+          return task.newListr(subTasks, {
+            concurrent: false,
+            rendererOptions: {
+              collapseSubtasks: false
+            }
+          })
+        }
+      },
+      {
+        title: 'Check node proxies are ACTIVE',
+        // this is more reliable than checking the nodes logs for ACTIVE, as the
+        // logs will have a lot of white noise from being behind
+        task: async (ctx, task) => {
+          const subTasks = []
+          let localPort = constants.LOCAL_NODE_PROXY_START_PORT
+          for (const nodeId of ctx.config.allNodeIds) {
+            subTasks.push({
+              title: `Check proxy for node: ${chalk.yellow(nodeId)}`,
+              task: async () => await self.checkNetworkNodeProxyUp(nodeId, localPort++)
+            })
+          }
+
+          // set up the sub-tasks
+          return task.newListr(subTasks, {
+            concurrent: false,
+            rendererOptions: {
+              collapseSubtasks: false
+            }
+          })
         }
       },
       {
