@@ -171,6 +171,11 @@ export function isNumeric (str) {
     !isNaN(parseFloat(str)) // ...and ensure strings of whitespace fail
 }
 
+/**
+ * Validate a path provided by the user to prevent path traversal attacks
+ * @param input the input provided by the user
+ * @returns {*} a validated path
+ */
 export function validatePath (input) {
   if (input.indexOf('\0') !== -1) {
     throw new FullstackTestingError(`access denied for path: ${input}`)
