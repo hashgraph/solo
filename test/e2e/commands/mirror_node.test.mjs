@@ -16,7 +16,7 @@
  */
 
 import {
-  afterAll, afterEach, describe,
+  afterAll, afterEach, beforeAll, describe,
   expect,
   it
 } from '@jest/globals'
@@ -33,6 +33,7 @@ import * as version from '../../../version.mjs'
 import { sleep } from '../../../src/core/helpers.mjs'
 import { MirrorNodeCommand } from '../../../src/commands/mirror_node.mjs'
 import * as core from '../../../src/core/index.mjs'
+import {TopicCreateTransaction, TopicMessageSubmitTransaction} from "@hashgraph/sdk";
 
 describe('MirrorNodeCommand', () => {
   const testName = 'mirror-cmd-e2e'
@@ -54,6 +55,12 @@ describe('MirrorNodeCommand', () => {
   const k8 = bootstrapResp.opts.k8
   const mirrorNodeCmd = new MirrorNodeCommand(bootstrapResp.opts)
   const downloader = new core.PackageDownloader(mirrorNodeCmd.logger)
+  const accountManager = bootstrapResp.opts.accountManager
+  const client = accountManager._nodeClient
+
+  beforeAll(async () => {
+    await accountManager.loadNodeClient(namespace)
+  })
 
   afterAll(async () => {
     await k8.deleteNamespace(namespace)
@@ -96,12 +103,33 @@ describe('MirrorNodeCommand', () => {
       await sleep(2000)
 
       mirrorNodeCmd.logger.debug('API and GUI are running')
-      await k8.stopPortForward(portForwarder)
+
+
+
+      // Create a new public topic
+      let txResponse = await new TopicCreateTransaction().execute(client);
+
+      // Grab the newly generated topic ID
+      let receipt = await txResponse.getReceipt(client);
+      let topicId = receipt.topicId;
+      console.log(`Your topic ID is: ${topicId}`);
+
+      // Submit messages
+      await new TopicMessageSubmitTransaction({
+        topicId: topicId,
+        message: "Message 1",
+      }).execute(client);
+
+      let queryURL = `http://localhost:8080/api/v1/topics/${topicId}/messages`
+      await expect(downloader.urlExists(queryURL)).resolves.toBeTruthy()
+
+      await sleep(12000000)
+      // await k8.stopPortForward(portForwarder)
     } catch (e) {
       mirrorNodeCmd.logger.showUserError(e)
       expect(e).toBeNull()
     }
-  }, 180000)
+  }, 180000000)
 
   it('mirror node destroy should success', async () => {
     expect.assertions(1)
@@ -111,5 +139,5 @@ describe('MirrorNodeCommand', () => {
       mirrorNodeCmd.logger.showUserError(e)
       expect(e).toBeNull()
     }
-  }, 60000)
+  }, 60000000)
 })
