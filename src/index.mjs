@@ -19,15 +19,15 @@ import yargs from 'yargs'
 import { hideBin } from 'yargs/helpers'
 import { flags } from './commands/index.mjs'
 import * as commands from './commands/index.mjs'
+import { HelmDependencyManager, DependencyManager, KeytoolDependencyManager } from './core/dependency_managers/index.mjs'
 import {
   ChartManager,
   ConfigManager,
-  DependencyManager,
   PackageDownloader,
   PlatformInstaller,
   Helm,
   logging,
-  KeyManager
+  KeyManager, Zippy, constants, ProfileManager
 } from './core/index.mjs'
 import 'dotenv/config'
 import { K8 } from './core/k8.mjs'
@@ -37,15 +37,24 @@ export function main (argv) {
   const logger = logging.NewLogger('debug')
 
   try {
-    const helm = new Helm(logger)
+    // prepare dependency manger registry
     const downloader = new PackageDownloader(logger)
+    const zippy = new Zippy(logger)
+    const helmDepManager = new HelmDependencyManager(downloader, zippy, logger)
+    const keytoolDepManager = new KeytoolDependencyManager(downloader, zippy, logger)
+    const depManagerMap = new Map()
+      .set(constants.HELM, helmDepManager)
+      .set(constants.KEYTOOL, keytoolDepManager)
+    const depManager = new DependencyManager(logger, depManagerMap)
+
+    const helm = new Helm(logger)
     const chartManager = new ChartManager(helm, logger)
     const configManager = new ConfigManager(logger)
-    const depManager = new DependencyManager(logger)
     const k8 = new K8(configManager, logger)
-    const platformInstaller = new PlatformInstaller(logger, k8)
+    const platformInstaller = new PlatformInstaller(logger, k8, configManager)
     const keyManager = new KeyManager(logger)
     const accountManager = new AccountManager(logger, k8)
+    const profileManager = new ProfileManager(logger, configManager)
 
     // set cluster and namespace in the global configManager from kubernetes context
     // so that we don't need to prompt the user
@@ -63,7 +72,9 @@ export function main (argv) {
       configManager,
       depManager,
       keyManager,
-      accountManager
+      accountManager,
+      keytoolDepManager,
+      profileManager
     }
 
     const processArguments = (argv, yargs) => {

@@ -15,20 +15,18 @@
  *
  */
 import * as x509 from '@peculiar/x509'
+import os from 'os'
 import path from 'path'
-import { DataValidationError, IllegalArgumentError, MissingArgumentError } from './errors.mjs'
+import { DataValidationError, FullstackTestingError, IllegalArgumentError, MissingArgumentError } from './errors.mjs'
+import { constants } from './index.mjs'
 
 export class Templates {
   static renderNetworkPodName (nodeId) {
     return `network-${nodeId}-0`
   }
 
-  static renderNodeSvcName (nodeId) {
-    return `network-${nodeId}-svc`
-  }
-
   static renderNetworkSvcName (nodeId) {
-    return `network-${nodeId}-svc`
+    return `network-${nodeId}`
   }
 
   /**
@@ -99,7 +97,7 @@ export class Templates {
   /**
    * renders the label object to be used to store the new account key in the Kubernetes secret
    * @param accountId the account ID, string or AccountId type
-   * @returns {{"fullstack.hedera.com/account-id": string}} the label object to be used to
+   * @returns {{'fullstack.hedera.com/account-id': string}} the label object to be used to
    * store the new account key in the Kubernetes secret
    */
   static renderAccountKeySecretLabelObject (accountId) {
@@ -136,5 +134,37 @@ export class Templates {
     }
 
     return path.resolve(`${cacheDir}/${releasePrefix}/staging/${releaseTag}`)
+  }
+
+  static installationPath (
+    dep,
+    osPlatform = os.platform(),
+    installationDir = path.join(constants.SOLO_HOME_DIR, 'bin')
+  ) {
+    switch (dep) {
+      case constants.HELM:
+        if (osPlatform === constants.OS_WINDOWS) {
+          return path.join(installationDir, `${dep}.exe`)
+        }
+
+        return path.join(installationDir, dep)
+      case constants.KEYTOOL:
+        if (osPlatform === constants.OS_WINDOWS) {
+          return path.join(installationDir, 'jre', 'bin', `${dep}.exe`)
+        }
+
+        return path.join(installationDir, 'jre', 'bin', dep)
+
+      default:
+        throw new FullstackTestingError(`unknown dep: ${dep}`)
+    }
+  }
+
+  static renderFullyQualifiedNetworkPodName (namespace, nodeId) {
+    return `${Templates.renderNetworkPodName(nodeId)}.${Templates.renderNetworkSvcName(nodeId)}.${namespace}.svc.cluster.local`
+  }
+
+  static renderFullyQualifiedNetworkSvcName (namespace, nodeId) {
+    return `${Templates.renderNetworkSvcName(nodeId)}.${namespace}.svc.cluster.local`
   }
 }

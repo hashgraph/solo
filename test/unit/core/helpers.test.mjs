@@ -15,59 +15,58 @@
  *
  */
 import { describe, expect, it } from '@jest/globals'
-import { FullstackTestingError } from '../../../src/core/errors.mjs'
 import * as helpers from '../../../src/core/helpers.mjs'
 
 describe('Helpers', () => {
   it.each([
-    ['v0.42.5', { major: 0, minor: 42, patch: 5 }],
-    ['v0.42.5-alpha.0', { major: 0, minor: 42, patch: 5 }]
-  ])('should parse release tag into major, minor and patch numbers', (input, expected) => {
-    const result = helpers.parseSemver(input)
-    expect(result).toEqual(expected)
+    {
+      input: '',
+      output: []
+    },
+    {
+      input: 'node0',
+      output: ['node0']
+    },
+    {
+      input: 'node0,node2',
+      output: ['node0', 'node2']
+    }
+  ])('should be able to parse node ID', (t) => {
+    expect(helpers.parseNodeIds(t.input)).toStrictEqual(t.output)
   })
 
   it.each([
-    ['', new FullstackTestingError('invalid version. Expected \'v<MAJOR>.<MINOR>.<PATCH>\', found \'\'')],
-    ['0.42.5', new FullstackTestingError('invalid version. Expected \'v<MAJOR>.<MINOR>.<PATCH>\', found \'0.42.5\'')],
-    ['v0.42', new FullstackTestingError("version 'v0.42' must have the format MAJOR.MINOR.PATCH")],
-    ['v0.NEW', new FullstackTestingError("version 'v0.NEW' must have the format MAJOR.MINOR.PATCH")]
-  ])('should throw error in parsing release tag', (input, expectedError) => {
-    expect.assertions(1)
-    try {
-      helpers.parseSemver(input) // Error(new FullstackTestingError('releaseTag must have the format MAJOR.MINOR.PATCH'))
-    } catch (e) {
-      expect(e).toEqual(expectedError)
+    {
+      input: [],
+      output: []
+    },
+    {
+      input: [1, 2, 3],
+      output: [1, 2, 3]
+    },
+    {
+      input: ['a', '2', '3'],
+      output: ['a', '2', '3']
     }
+  ])('should be able to clone array', (t) => {
+    expect(helpers.cloneArray(t.input)).toStrictEqual(t.output)
+    expect(helpers.cloneArray(t.input)).not.toBe(t.input)
   })
 
-  describe('compareVersion', () => {
-    it('should succeed with same version', () => {
-      expect(helpers.compareVersion('v3.14.0', 'v3.14.0')).toBe(0)
-    })
+  it('should be able to load version from package json', async () => {
+    const p = helpers.loadPackageJSON()
+    expect(p).not.toBeNull()
+    expect(p.version).not.toBeNull()
+    expect(p.version).toStrictEqual(helpers.packageVersion())
+  })
 
-    it('should succeed with patch higher than target', () => {
-      expect(helpers.compareVersion('v3.14.0', 'v3.14.1')).toBe(1)
-    })
-
-    it('should succeed with minor version higher than target', () => {
-      expect(helpers.compareVersion('v3.14.0', 'v3.15.0')).toBe(1)
-    })
-
-    it('should succeed with major version higher than target', () => {
-      expect(helpers.compareVersion('v3.14.0', 'v4.14.0')).toBe(1)
-    })
-
-    it('should fail with major version lower than target', () => {
-      expect(helpers.compareVersion('v3.14.0', 'v2.14.0')).toBe(-1)
-    })
-
-    it('should fail with minor version lower than target', () => {
-      expect(helpers.compareVersion('v3.14.0', 'v3.11.0')).toBe(-1)
-    })
-
-    it('should succeed with a later version', () => {
-      expect(helpers.compareVersion('v3.12.3', 'v3.14.0')).toBe(1)
-    })
+  it.each([
+    { input: 'v0.42.5', output: 'hashgraph/full-stack-testing/ubi8-init-java17' },
+    { input: 'v0.45.1', output: 'hashgraph/full-stack-testing/ubi8-init-java17' },
+    { input: 'v0.46.0', output: 'hashgraph/full-stack-testing/ubi8-init-java21' },
+    { input: 'v0.47.1', output: 'hashgraph/full-stack-testing/ubi8-init-java21' },
+    { input: 'v0.47.1-alpha.0', output: 'hashgraph/full-stack-testing/ubi8-init-java21' }
+  ])('should be able to determine root-image based on Hedera platform version', (t) => {
+    expect(helpers.getRootImageRepository(t.input)).toStrictEqual(t.output)
   })
 })

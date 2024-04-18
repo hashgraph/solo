@@ -14,20 +14,8 @@
  * limitations under the License.
  *
  */
-const Sequencer = require('@jest/test-sequencer').default
+import { DependencyManager } from './dependency_manager.mjs'
+import { HelmDependencyManager } from './helm_dependency_manager.mjs'
+import { KeytoolDependencyManager } from './keytool_dependency_manager.mjs'
 
-const isEndToEnd = (test) => {
-  const contextConfig = test.context.config
-  return contextConfig.displayName.name === 'end-to-end'
-}
-
-class CustomSequencer extends Sequencer {
-  sort (tests) {
-    const copyTests = Array.from(tests)
-    const normalTests = copyTests.filter((t) => !isEndToEnd(t))
-    const endToEndTests = copyTests.filter((t) => isEndToEnd(t))
-    return super.sort(normalTests).concat(endToEndTests.sort((a, b) => (a.path > b.path ? 1 : -1)))
-  }
-}
-
-module.exports = CustomSequencer
+export { HelmDependencyManager, KeytoolDependencyManager, DependencyManager }

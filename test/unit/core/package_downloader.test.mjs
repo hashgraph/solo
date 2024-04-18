@@ -22,7 +22,7 @@ import * as os from 'os'
 import { IllegalArgumentError, MissingArgumentError, ResourceNotFoundError } from '../../../src/core/errors.mjs'
 
 describe('PackageDownloader', () => {
-  const testLogger = core.logging.NewLogger('debug')
+  const testLogger = core.logging.NewLogger('debug', true)
   const downloader = new core.PackageDownloader(testLogger)
 
   describe('urlExists', () => {
@@ -31,7 +31,7 @@ describe('PackageDownloader', () => {
       const url = 'https://builds.hedera.com/node/software/v0.42/build-v0.42.5.sha384'
       await expect(downloader.urlExists(url)).resolves.toBe(true)
     })
-    it('should return false if source URL is valid', async () => {
+    it('should return false if source URL is invalid', async () => {
       expect.assertions(1)
       const url = 'https://builds.hedera.com/node/software/v0.42/build-v0.42.5.INVALID'
       await expect(downloader.urlExists(url)).resolves.toBe(false)

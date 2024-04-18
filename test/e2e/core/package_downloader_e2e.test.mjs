@@ -19,7 +19,7 @@ import * as fs from 'fs'
 import { logging, PackageDownloader, Templates } from '../../../src/core/index.mjs'
 
 describe('PackageDownloaderE2E', () => {
-  const testLogger = logging.NewLogger('debug')
+  const testLogger = logging.NewLogger('debug', true)
   const downloader = new PackageDownloader(testLogger)
 
   it('should succeed with a valid Hedera release tag', async () => {

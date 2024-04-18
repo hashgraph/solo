@@ -17,15 +17,22 @@
 import { ListrEnquirerPromptAdapter } from '@listr2/prompt-adapter-enquirer'
 import chalk from 'chalk'
 import { Listr } from 'listr2'
-import { FullstackTestingError } from '../core/errors.mjs'
+import { FullstackTestingError, IllegalArgumentError, MissingArgumentError } from '../core/errors.mjs'
 import { BaseCommand } from './base.mjs'
 import * as flags from './flags.mjs'
-import * as paths from 'path'
-import { constants, Templates } from '../core/index.mjs'
+import { constants } from '../core/index.mjs'
 import * as prompts from './prompts.mjs'
 import * as helpers from '../core/helpers.mjs'
 
 export class NetworkCommand extends BaseCommand {
+  constructor (opts) {
+    super(opts)
+
+    if (!opts || !opts.profileManager) throw new MissingArgumentError('An instance of core/ProfileManager is required', opts.downloader)
+
+    this.profileManager = opts.profileManager
+  }
+
   getTlsValueArguments (tlsClusterIssuerType, enableHederaExplorerTls, namespace,
     hederaExplorerTlsLoadBalancerIp, hederaExplorerTlsHostName) {
     let valuesArg = ''
@@ -55,31 +62,25 @@ export class NetworkCommand extends BaseCommand {
     return valuesArg
   }
 
-  prepareValuesFiles (valuesFile) {
-    let valuesArg = ''
-    if (valuesFile) {
-      const valuesFiles = valuesFile.split(',')
-      valuesFiles.forEach(vf => {
-        const vfp = paths.resolve(vf)
-        valuesArg += ` --values ${vfp}`
-      })
-    }
-
-    return valuesArg
-  }
-
-  prepareValuesArg (config = {}) {
+  async prepareValuesArg (config = {}) {
     let valuesArg = ''
     if (config.chartDir) {
       valuesArg = `-f ${config.chartDir}/fullstack-deployment/values.yaml`
     }
 
-    valuesArg += this.prepareValuesFiles(config.valuesFile)
+    if (config.valuesFile) {
+      valuesArg += this.prepareValuesFiles(config.valuesFile)
+    }
+
+    const profileName = this.configManager.getFlag(flags.profileName)
+    const profileValuesFile = await this.profileManager.prepareValuesForFstChart(profileName)
+    if (profileValuesFile) {
+      valuesArg += this.prepareValuesFiles(profileValuesFile)
+    }
 
     // do not deploy mirror node until after we have the updated address book
-    valuesArg += ' --set hedera-mirror-node.enabled=false --set hedera-explorer.enabled=false'
-
-    valuesArg += ` --set telemetry.prometheus.svcMonitor.enabled=${config.enablePrometheusSvcMonitor}`
+    valuesArg += ' --set "hedera-mirror-node.enabled=false" --set "hedera-explorer.enabled=false"'
+    valuesArg += ` --set "telemetry.prometheus.svcMonitor.enabled=${config.enablePrometheusSvcMonitor}"`
 
     if (config.enableHederaExplorerTls) {
       valuesArg += this.getTlsValueArguments(config.tlsClusterIssuerType, config.enableHederaExplorerTls, config.namespace,
@@ -88,17 +89,8 @@ export class NetworkCommand extends BaseCommand {
 
     if (config.releaseTag) {
       const rootImage = helpers.getRootImageRepository(config.releaseTag)
-      valuesArg += ` --set defaults.root.image.repository=${rootImage}`
+      valuesArg += ` --set "defaults.root.image.repository=${rootImage}"`
     }
-
-    // prepare name and account IDs for nodes
-    const realm = constants.HEDERA_NODE_ACCOUNT_ID_START.realm
-    const shard = constants.HEDERA_NODE_ACCOUNT_ID_START.shard
-    let accountId = constants.HEDERA_NODE_ACCOUNT_ID_START.num
-    let i = 0
-    config.nodeIds.forEach(nodeId => {
-      valuesArg += ` --set hedera.nodes[${i}].name=${nodeId},hedera.nodes[${i++}].accountId=${realm}.${shard}.${accountId++}`
-    })
 
     this.logger.debug('Prepared helm chart values', { valuesArg })
     return valuesArg
@@ -111,12 +103,12 @@ export class NetworkCommand extends BaseCommand {
       flags.nodeIDs,
       flags.chartDirectory,
       flags.valuesFile,
-      flags.deployMirrorNode,
-      flags.deployHederaExplorer,
       flags.tlsClusterIssuerType,
       flags.enableHederaExplorerTls,
       flags.hederaExplorerTlsHostName,
-      flags.enablePrometheusSvcMonitor
+      flags.enablePrometheusSvcMonitor,
+      flags.profileFile,
+      flags.profileName
     ]
 
     this.configManager.update(argv)
@@ -127,12 +119,10 @@ export class NetworkCommand extends BaseCommand {
     const config = {
       releaseTag: this.configManager.getFlag(flags.releaseTag),
       namespace: this.configManager.getFlag(flags.namespace),
-      nodeIds: helpers.parseNodeIDs(this.configManager.getFlag(flags.nodeIDs)),
+      nodeIds: helpers.parseNodeIds(this.configManager.getFlag(flags.nodeIDs)),
       chartDir: this.configManager.getFlag(flags.chartDirectory),
       fstChartVersion: this.configManager.getFlag(flags.fstChartVersion),
       valuesFile: this.configManager.getFlag(flags.valuesFile),
-      deployMirrorNode: this.configManager.getFlag(flags.deployMirrorNode),
-      deployHederaExplorer: this.configManager.getFlag(flags.deployHederaExplorer),
       tlsClusterIssuerType: this.configManager.getFlag(flags.tlsClusterIssuerType),
       enableHederaExplorerTls: this.configManager.getFlag(flags.enableHederaExplorerTls),
       hederaExplorerTlsHostName: this.configManager.getFlag(flags.hederaExplorerTlsHostName),
@@ -144,9 +134,12 @@ export class NetworkCommand extends BaseCommand {
     config.chartPath = await this.prepareChartPath(config.chartDir,
       constants.FULLSTACK_TESTING_CHART, constants.FULLSTACK_DEPLOYMENT_CHART)
 
-    config.valuesArg = this.prepareValuesArg(config)
+    config.valuesArg = await this.prepareValuesArg(config)
 
-    this.logger.debug('Prepared config', { config, cachedConfig: this.configManager.config })
+    this.logger.debug('Prepared config', {
+      config,
+      cachedConfig: this.configManager.config
+    })
     return config
   }
 
@@ -181,14 +174,15 @@ export class NetworkCommand extends BaseCommand {
         }
       },
       {
-        title: 'Waiting for network pods to be ready',
+        title: 'Check node pods are ready',
         task:
           async (ctx, task) => {
             const subTasks = []
+
+            // nodes
             for (const nodeId of ctx.config.nodeIds) {
-              const podName = Templates.renderNetworkPodName(nodeId)
               subTasks.push({
-                title: `Node: ${chalk.yellow(nodeId)} (Pod: ${podName})`,
+                title: `Check Node: ${chalk.yellow(nodeId)}`,
                 task: () =>
                   self.k8.waitForPod(constants.POD_STATUS_RUNNING, [
                     'fullstack.hedera.com/type=network-node',
@@ -196,6 +190,67 @@ export class NetworkCommand extends BaseCommand {
                   ], 1, 60 * 15, 1000) // timeout 15 minutes
               })
             }
+
+            // set up the sub-tasks
+            return task.newListr(subTasks, {
+              concurrent: false, // no need to run concurrently since if one node is up, the rest should be up by then
+              rendererOptions: {
+                collapseSubtasks: false
+              }
+            })
+          }
+      },
+      {
+        title: 'Check proxy pods are ready',
+        task:
+          async (ctx, task) => {
+            const subTasks = []
+
+            // HAProxy
+            for (const nodeId of ctx.config.nodeIds) {
+              subTasks.push({
+                title: `Check HAProxy for: ${chalk.yellow(nodeId)}`,
+                task: () =>
+                  self.k8.waitForPodReady([
+                    'fullstack.hedera.com/type=envoy-proxy'
+                  ], 1, 60 * 15, 1000) // timeout 15 minutes
+              })
+            }
+
+            // Envoy Proxy
+            for (const nodeId of ctx.config.nodeIds) {
+              subTasks.push({
+                title: `Check Envoy Proxy for: ${chalk.yellow(nodeId)}`,
+                task: () =>
+                  self.k8.waitForPodReady([
+                    'fullstack.hedera.com/type=haproxy'
+                  ], 1, 60 * 15, 1000) // timeout 15 minutes
+              })
+            }
+
+            // set up the sub-tasks
+            return task.newListr(subTasks, {
+              concurrent: true,
+              rendererOptions: {
+                collapseSubtasks: false
+              }
+            })
+          }
+      },
+      {
+        title: 'Check auxiliary pods are ready',
+        task:
+          async (ctx, task) => {
+            const subTasks = []
+
+            // minio
+            subTasks.push({
+              title: 'Check MinIO',
+              task: () =>
+                self.k8.waitForPodReady([
+                  'v1.min.io/tenant=minio'
+                ], 1, 60 * 5, 1000) // timeout 5 minutes
+            })
 
             // set up the sub-tasks
             return task.newListr(subTasks, {
@@ -263,23 +318,17 @@ export class NetworkCommand extends BaseCommand {
         }
       },
       {
-        title: 'Get PVCs for namespace',
+        title: 'Delete PVCs',
         task: async (ctx, _) => {
-          if (ctx.config.deletePvcs === true) {
-            ctx.config.pvcs = await self.k8.listPvcsByNamespace(ctx.config.namespace)
-          }
-        }
-      },
-      {
-        title: 'Delete PVCs for namespace',
-        task: async (ctx, _) => {
+          ctx.config.pvcs = await self.k8.listPvcsByNamespace(ctx.config.namespace)
+
           if (ctx.config.pvcs) {
             for (const pvc of ctx.config.pvcs) {
               await self.k8.deletePvc(pvc, ctx.config.namespace)
             }
           }
         },
-        skip: (ctx, _) => !ctx.config.pvcs
+        skip: (ctx, _) => !ctx.config.deletePvcs
       }
     ], {
       concurrent: false,
@@ -289,7 +338,7 @@ export class NetworkCommand extends BaseCommand {
     try {
       await tasks.run()
     } catch (e) {
-      throw new FullstackTestingError('Error starting node', e)
+      throw new FullstackTestingError('Error destroying network', e)
     }
 
     return true
@@ -344,6 +393,9 @@ export class NetworkCommand extends BaseCommand {
   }
 
   static getCommandDefinition (networkCmd) {
+    if (!networkCmd || !(networkCmd instanceof NetworkCommand)) {
+      throw new IllegalArgumentError('An instance of NetworkCommand is required', networkCmd)
+    }
     return {
       command: 'network',
       desc: 'Manage fullstack testing network deployment',
@@ -358,17 +410,17 @@ export class NetworkCommand extends BaseCommand {
               flags.nodeIDs,
               flags.chartDirectory,
               flags.valuesFile,
-              flags.deployMirrorNode,
-              flags.deployHederaExplorer,
               flags.tlsClusterIssuerType,
               flags.enableHederaExplorerTls,
               flags.hederaExplorerTlsLoadBalancerIp,
               flags.hederaExplorerTlsHostName,
               flags.enablePrometheusSvcMonitor,
-              flags.fstChartVersion
+              flags.fstChartVersion,
+              flags.profileFile,
+              flags.profileName
             ),
             handler: argv => {
-              networkCmd.logger.debug("==== Running 'network deploy' ===")
+              networkCmd.logger.debug('==== Running \'network deploy\' ===')
               networkCmd.logger.debug(argv)
 
               networkCmd.deploy(argv).then(r => {
@@ -390,7 +442,7 @@ export class NetworkCommand extends BaseCommand {
               flags.deletePvcs
             ),
             handler: argv => {
-              networkCmd.logger.debug("==== Running 'network destroy' ===")
+              networkCmd.logger.debug('==== Running \'network destroy\' ===')
               networkCmd.logger.debug(argv)
 
               networkCmd.destroy(argv).then(r => {
@@ -419,7 +471,7 @@ export class NetworkCommand extends BaseCommand {
               flags.enablePrometheusSvcMonitor
             ),
             handler: argv => {
-              networkCmd.logger.debug("==== Running 'chart upgrade' ===")
+              networkCmd.logger.debug('==== Running \'chart upgrade\' ===')
               networkCmd.logger.debug(argv)
 
               networkCmd.refresh(argv).then(r => {

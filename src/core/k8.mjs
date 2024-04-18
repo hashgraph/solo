@@ -25,6 +25,8 @@ import * as sb from 'stream-buffers'
 import * as tar from 'tar'
 import { v4 as uuid4 } from 'uuid'
 import { V1ObjectMeta, V1Secret } from '@kubernetes/client-node'
+import { sleep } from './helpers.mjs'
+import { constants } from './index.mjs'
 
 /**
  * A kubernetes API wrapper class providing custom functionalities required by solo
@@ -33,6 +35,8 @@ import { V1ObjectMeta, V1Secret } from '@kubernetes/client-node'
  * For parallel execution, create separate instances by invoking clone()
  */
 export class K8 {
+  static PodReadyCondition = new Map().set(constants.POD_CONDITION_READY, constants.POD_CONDITION_STATUS_TRUE)
+
   constructor (configManager, logger) {
     if (!configManager) throw new MissingArgumentError('An instance of core/ConfigManager is required')
     if (!logger) throw new MissingArgumentError('An instance of core/Logger is required')
@@ -81,7 +85,7 @@ export class K8 {
    * Apply filters to metadata
    * @param items list of items
    * @param filters an object with metadata fields and value
-   * @return {*[]}
+   * @return a list of items that match the filters
    */
   applyMetadataFilter (items, filters = {}) {
     if (!filters) throw new MissingArgumentError('filters are required')
@@ -118,7 +122,6 @@ export class K8 {
   filterItem (items, filters = {}) {
     const filtered = this.applyMetadataFilter(items, filters)
     if (filtered.length > 1) throw new FullstackTestingError('multiple items found with filters', { filters })
-    if (filtered.length !== 1) throw new FullstackTestingError('item not found with filters', { filters })
     return filtered[0]
   }
 
@@ -150,7 +153,7 @@ export class K8 {
 
   /**
    * Get a list of namespaces
-   * @return {Promise<[string]>} list of namespaces
+   * @return list of namespaces
    */
   async getNamespaces () {
     const resp = await this.kubeClient.listNamespace()
@@ -236,23 +239,6 @@ export class K8 {
   }
 
   /**
-   * Updates a kubernetes secrets
-   * @param secretObject
-   * @return {Promise<void>}
-   */
-  async updateSecret (secretObject) {
-    const ns = this._getNamespace()
-    try {
-      // patch is broke, need to use delete/create (workaround/fix in 1.0.0-rc4): https://github.com/kubernetes-client/javascript/issues/893
-      // await k8.kubeClient.patchNamespacedSecret(secret.name, ctx.config.namespace, secret.data)
-      await this.kubeClient.deleteNamespacedSecret(secretObject.metadata.name, ns)
-      await this.kubeClient.createNamespacedSecret(ns, secretObject)
-    } catch (e) {
-      throw new FullstackTestingError(`failed to update secret ${secretObject.metadata.name}: ${e.message}`, e)
-    }
-  }
-
-  /**
    * Get host IP of a podName
    * @param podNameName name of the podName
    * @returns {Promise<string>} podName IP
@@ -303,7 +289,7 @@ export class K8 {
 
   /**
    * Get a list of clusters
-   * @return {Promise<[string]>} list of clusters
+   * @return a list of cluster names
    */
   async getClusters () {
     const clusters = []
@@ -316,7 +302,7 @@ export class K8 {
 
   /**
    * Get a list of contexts
-   * @return {Promise<[string]>} list of contexts
+   * @return a list of context names
    */
   async getContexts () {
     const contexts = []
@@ -394,27 +380,34 @@ export class K8 {
     const parentDir = path.dirname(destPath)
     const fileName = path.basename(destPath)
     const filterMap = new Map(Object.entries(filters))
-    const entries = await this.listDir(podName, containerName, parentDir)
 
-    for (const item of entries) {
-      if (item.name === fileName && !item.directory) {
-        let found = true
+    try {
+      const entries = await this.listDir(podName, containerName, parentDir)
 
-        for (const entry of filterMap.entries()) {
-          const field = entry[0]
-          const value = entry[1]
-          this.logger.debug(`Checking file ${podName}:${containerName} ${destPath}; ${field} expected ${value}, found ${item[field]}`, { filters })
-          if (`${value}` !== `${item[field]}`) {
-            found = false
-            break
+      for (const item of entries) {
+        if (item.name === fileName && !item.directory) {
+          let found = true
+
+          for (const entry of filterMap.entries()) {
+            const field = entry[0]
+            const value = entry[1]
+            this.logger.debug(`Checking file ${podName}:${containerName} ${destPath}; ${field} expected ${value}, found ${item[field]}`, { filters })
+            if (`${value}` !== `${item[field]}`) {
+              found = false
+              break
+            }
+          }
+
+          if (found) {
+            this.logger.debug(`File check succeeded ${podName}:${containerName} ${destPath}`, { filters })
+            return true
           }
         }
-
-        if (found) {
-          this.logger.debug(`File check succeeded ${podName}:${containerName} ${destPath}`, { filters })
-          return true
-        }
       }
+    } catch (e) {
+      const error = new FullstackTestingError(`unable to check file in '${podName}':${containerName}' - ${destPath}: ${e.message}`, e)
+      this.logger.error(error.message, error)
+      throw error
     }
 
     return false
@@ -452,7 +445,7 @@ export class K8 {
    * @param containerName container name
    * @param srcPath source file path in the local
    * @param destDir destination directory in the container
-   * @returns {Promise<>}
+   * @returns return a Promise that performs the copy operation
    */
   async copyTo (podName, containerName, srcPath, destDir) {
     const namespace = this._getNamespace()
@@ -664,12 +657,135 @@ export class K8 {
    */
   async portForward (podName, localPort, podPort) {
     const ns = this._getNamespace()
-    const forwarder = new k8s.PortForward(this.kubeConfig, true)
-    const server = net.createServer((socket) => {
-      forwarder.portForward(ns, podName, [podPort], socket, null, socket)
+    const forwarder = new k8s.PortForward(this.kubeConfig, false)
+    const server = await net.createServer((socket) => {
+      forwarder.portForward(ns, podName, [podPort], socket, null, socket, 3)
     })
 
-    return server.listen(localPort, '127.0.0.1')
+    // add info for logging
+    server.info = `${podName}:${podPort} -> ${constants.LOCAL_HOST}:${localPort}`
+    server.localPort = localPort
+    this.logger.debug(`Starting port-forwarder [${server.info}]`)
+    return server.listen(localPort, constants.LOCAL_HOST)
+  }
+
+  /**
+   * to test the connection to a pod within the network
+   * @param host the host of the target connection
+   * @param port the port of the target connection
+   * @returns {Promise<boolean>}
+   */
+  async testConnection (host, port) {
+    const self = this
+
+    return new Promise((resolve, reject) => {
+      const s = new net.Socket()
+      s.on('error', (e) => {
+        s.destroy()
+        reject(new FullstackTestingError(`failed to connect to '${host}:${port}': ${e.message}`, e))
+      })
+
+      s.connect(port, host, () => {
+        self.logger.debug(`Connection test successful: ${host}:${port}`)
+        s.destroy()
+        resolve(true)
+      })
+    })
+  }
+
+  /**
+   * Stop the port forwarder server
+   *
+   * @param server an instance of server returned by portForward method
+   * @param maxAttempts the maximum number of attempts to check if the server is stopped
+   * @param timeout the delay between checks in milliseconds
+   * @return {Promise<void>}
+   */
+  async stopPortForward (server, maxAttempts = 20, timeout = 500) {
+    if (!server) {
+      return
+    }
+
+    this.logger.debug(`Stopping port-forwarder [${server.info}]`)
+
+    // try to close the websocket server
+    await new Promise((resolve, reject) => {
+      server.close((e) => {
+        if (e) {
+          if (e.message.contains('Server is not running')) {
+            this.logger.debug(`Server not running, port-forwarder [${server.info}]`)
+            resolve()
+          } else {
+            this.logger.debug(`Failed to stop port-forwarder [${server.info}]: ${e.message}`)
+            reject(e)
+          }
+        } else {
+          this.logger.debug(`Stopped port-forwarder [${server.info}]`)
+          resolve()
+        }
+      })
+    })
+
+    // test to see if the port has been closed or if it is still open
+    let attempts = 0
+    while (attempts < maxAttempts) {
+      let hasError = 0
+      attempts++
+
+      try {
+        const isPortOpen = await new Promise((resolve, reject) => {
+          const testServer = net.createServer()
+            .once('error', err => {
+              if (err) {
+                resolve(false)
+              }
+            })
+            .once('listening', () => {
+              testServer
+                .once('close', () => {
+                  hasError++
+                  if (hasError > 1) {
+                    resolve(false)
+                  } else {
+                    resolve(true)
+                  }
+                })
+                .close()
+            })
+            .listen(server.localPort, '0.0.0.0')
+        })
+        if (isPortOpen) {
+          return
+        }
+      } catch (e) {
+        return
+      }
+      await sleep(timeout)
+    }
+    if (attempts >= maxAttempts) {
+      throw new FullstackTestingError(`failed to stop port-forwarder [${server.info}]`)
+    }
+  }
+
+  async recyclePodByLabels (podLabels, maxAttempts = 50) {
+    const podArray = await this.getPodsByLabel(podLabels)
+    for (const pod of podArray) {
+      const podName = pod.metadata.name
+      await this.kubeClient.deleteNamespacedPod(podName, this.configManager.getFlag(flags.namespace))
+    }
+
+    let attempts = 0
+    while (attempts++ < maxAttempts) {
+      const status = await this.waitForPod(constants.POD_STATUS_RUNNING, podLabels)
+      if (status) {
+        const newPods = await this.getPodsByLabel(podLabels)
+        if (newPods.length === podArray.length) return newPods
+      }
+
+      await sleep(2000)
+    }
+
+    throw new FullstackTestingError(`pods are not running after deletion with labels [${podLabels.join(',')}]`)
   }
 
   /**
@@ -679,20 +795,20 @@ export class K8 {
    * @param podCount number of pod expected
    * @param maxAttempts maximum attempts to check
    * @param delay delay between checks in milliseconds
-   * @return {Promise<boolean>}
+   * @return {Promise<[*]>}
    */
   async waitForPod (status = 'Running', labels = [], podCount = 1, maxAttempts = 10, delay = 500) {
     const ns = this._getNamespace()
     const fieldSelector = `status.phase=${status}`
     const labelSelector = labels.join(',')
 
-    this.logger.debug(`WaitForPod [${fieldSelector}, ${labelSelector}], maxAttempts: ${maxAttempts}`)
+    this.logger.debug(`WaitForPod [namespace:${ns}, fieldSector(${fieldSelector}, labelSelector: ${labelSelector}], maxAttempts: ${maxAttempts}`)
 
     return new Promise((resolve, reject) => {
       let attempts = 0
 
       const check = async () => {
-        this.logger.debug(`Checking for pod ${fieldSelector}, ${labelSelector} [attempt: ${attempts}/${maxAttempts}]`)
+        this.logger.debug(`Checking for pod [namespace:${ns}, fieldSector(${fieldSelector}, labelSelector: ${labelSelector}] [attempt: ${attempts}/${maxAttempts}]`)
 
         // wait for the pod to be available with the given status and labels
         const resp = await this.kubeClient.listNamespacedPod(
@@ -705,15 +821,78 @@ export class K8 {
           podCount
         )
 
+        this.logger.debug(`${resp.body.items.length}/${podCount} pod found [namespace:${ns}, fieldSector(${fieldSelector}, labelSelector: ${labelSelector}] [attempt: ${attempts}/${maxAttempts}]`)
         if (resp.body && resp.body.items && resp.body.items.length === podCount) {
-          this.logger.debug(`Found ${resp.body.items.length}/${podCount} pod with ${fieldSelector}, ${labelSelector} [attempt: ${attempts}/${maxAttempts}]`)
-          return resolve(true)
+          return resolve(resp.body.items)
         }
 
         if (attempts++ < maxAttempts) {
           setTimeout(check, delay)
         } else {
-          reject(new FullstackTestingError(`Expected number of pod (${podCount}) not found ${fieldSelector} ${labelSelector} [maxAttempts = ${maxAttempts}]`))
+          return reject(new FullstackTestingError(`Expected number of pod (${podCount}) not found ${fieldSelector} ${labelSelector} [attempts = ${attempts}/${maxAttempts}]`))
+        }
+      }
+
+      check()
+    })
+  }
+
+  async waitForPodReady (labels = [], podCount = 1, maxAttempts = 10, delay = 500) {
+    return this.waitForPodCondition(K8.PodReadyCondition, labels, podCount, maxAttempts, delay)
+  }
+
+  async waitForPodCondition (
+    conditionsMap,
+    labels = [],
+    podCount = 1, maxAttempts = 10, delay = 500) {
+    if (!conditionsMap || conditionsMap.size === 0) throw new MissingArgumentError('pod conditions are required')
+    const ns = this._getNamespace()
+    const labelSelector = labels.join(',')
+
+    this.logger.debug(`WaitForCondition [namespace:${ns}, conditions = ${conditionsMap.toString()} labelSelector: ${labelSelector}], maxAttempts: ${maxAttempts}`)
+
+    return new Promise((resolve, reject) => {
+      let attempts = 0
+
+      const check = async () => {
+        this.logger.debug(`Checking for pod ready [namespace:${ns}, labelSelector: ${labelSelector}] [attempt: ${attempts}/${maxAttempts}]`)
+
+        // wait for the pod to be available with the given status and labels
+        const pods = await this.waitForPod(constants.POD_STATUS_RUNNING, labels, podCount, maxAttempts, delay)
+        this.logger.debug(`${pods.length}/${podCount} pod found [namespace:${ns}, labelSelector: ${labelSelector}] [attempt: ${attempts}/${maxAttempts}]`)
+
+        if (pods.length >= podCount) {
+          const podWithMatchedCondition = []
+
+          // check conditions
+          for (const pod of pods) {
+            let matchedCondition = 0
+            for (const cond of pod.status.conditions) {
+              for (const entry of conditionsMap.entries()) {
+                const condType = entry[0]
+                const condStatus = entry[1]
+                if (cond.type === condType && cond.status === condStatus) {
+                  this.logger.debug(`Pod condition met for ${pod.metadata.name} [type: ${cond.type} status: ${cond.status}]`)
+                  matchedCondition++
+                }
+              }
+
+              if (matchedCondition >= conditionsMap.size) {
+                podWithMatchedCondition.push(pod)
+                break
+              }
+            }
+          }
+
+          if (podWithMatchedCondition.length >= podCount) {
+            return resolve(podWithMatchedCondition)
+          }
+        }
+
+        if (attempts++ < maxAttempts) {
+          setTimeout(check, delay)
+        } else {
+          return reject(new FullstackTestingError(`Pod not found with expected conditions [maxAttempts = ${maxAttempts}]`))
         }
       }
 
@@ -724,12 +903,19 @@ export class K8 {
   /**
    * Get a list of persistent volume claim names for the given namespace
    * @param namespace the namespace of the persistent volume claims to return
-   * @returns {Promise<*[]>} list of persistent volume claims
+   * @param labels labels
+   * @returns return list of persistent volume claim names
    */
-  async listPvcsByNamespace (namespace) {
+  async listPvcsByNamespace (namespace, labels = []) {
     const pvcs = []
+    const labelSelector = labels.join(',')
     const resp = await this.kubeClient.listNamespacedPersistentVolumeClaim(
-      namespace
+      namespace,
+      null,
+      null,
+      null,
+      null,
+      labelSelector
     )
 
     for (const item of resp.body.items) {
@@ -758,8 +944,8 @@ export class K8 {
    * retrieve the secret of the given namespace and label selector, if there is more than one, it returns the first
    * @param namespace the namespace of the secret to search for
    * @param labelSelector the label selector used to fetch the Kubernetes secret
-   * @returns {Promise<null|{data: {[p: string]: string}, name: string, namespace: string, type: string, labels: {[p: string]: string}}>} a
-   * custom secret object with the relevant attributes
+   * @returns a custom secret object with the relevant attributes, the values of the data key:value pair
+   * objects must be base64 decoded
    */
   async getSecret (namespace, labelSelector) {
     const result = await this.kubeClient.listNamespacedSecret(
@@ -783,7 +969,7 @@ export class K8 {
    * @param name the name of the new secret
    * @param namespace the namespace to store the secret
    * @param secretType the secret type
-   * @param data the secret
+   * @param data the secret, any values of a key:value pair must be base64 encoded
    * @param labels the label to use for future label selector queries
    * @param recreate if we should first run delete in the case that there the secret exists from a previous install
    * @returns {Promise<boolean>} whether the secret was created successfully
@@ -806,9 +992,13 @@ export class K8 {
     v1Secret.metadata.name = name
     v1Secret.metadata.labels = labels
 
-    const resp = await this.kubeClient.createNamespacedSecret(namespace, v1Secret)
+    try {
+      const resp = await this.kubeClient.createNamespacedSecret(namespace, v1Secret)
 
-    return resp.response.statusCode === 201
+      return resp.response.statusCode === 201
+    } catch (e) {
+      throw new FullstackTestingError(`failed to create secret ${name} in namespace ${namespace}: ${e.message}, ${e?.body?.message}`, e)
+    }
   }
 
   _getNamespace () {

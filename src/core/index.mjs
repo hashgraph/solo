@@ -24,13 +24,16 @@ import { Zippy } from './zippy.mjs'
 import { Templates } from './templates.mjs'
 import { ChartManager } from './chart_manager.mjs'
 import { ConfigManager } from './config_manager.mjs'
-import { DependencyManager } from './dependency_manager.mjs'
 import { KeyManager } from './key_manager.mjs'
+import { Keytool } from './keytool.mjs'
+import { ProfileManager } from './profile_manager.mjs'
+import * as helpers from './helpers.mjs'
 
 // Expose components from the core module
 export {
   logging,
   constants,
+  helpers,
   Helm,
   K8,
   PackageDownloader,
@@ -39,6 +42,7 @@ export {
   Templates,
   ChartManager,
   ConfigManager,
-  DependencyManager,
-  KeyManager
+  KeyManager,
+  Keytool,
+  ProfileManager
 }

@@ -1,0 +1,148 @@
+test:
+  consensus:
+    root:
+      resources:
+        requests:
+          cpu: 0
+          memory: 0
+        limits:
+          cpu: 1000m
+          memory: 1000Mi
+    recordStreamUploader:
+      resources:
+        requests:
+          cpu: 0
+          memory: 0
+        limits:
+          cpu: 150m
+          memory: 250Mi
+    eventStreamUploader:
+      resources:
+        requests:
+          cpu: 0
+          memory: 0
+        limits:
+          cpu: 150m
+          memory: 250Mi
+    accountBalanceUploader:
+      resources:
+        requests:
+          cpu: 0
+          memory: 0
+        limits:
+          cpu: 150m
+          memory: 250Mi
+    backupUploader:
+      resources:
+        requests:
+          cpu: 0
+          memory: 0
+        limits:
+          cpu: 150m
+          memory: 250Mi
+    otelCollector:
+      resources:
+        requests:
+          cpu: 0
+          memory: 0
+        limits:
+          cpu: 250m
+          memory: 500Mi
+  rpcRelay:
+    resources:
+      requests:
+        cpu: 0
+        memory: 0
+      limits:
+        cpu: 250m
+        memory: 500Mi
+  haproxy:
+    resources:
+      requests:
+        cpu: 0
+        memory: 0
+      limits:
+        cpu: 1000m
+        memory: 1000Mi
+  envoyProxy:
+    resources:
+      requests:
+        cpu: 0
+        memory: 0
+      limits:
+        cpu: 500m
+        memory: 500Mi
+  explorer:
+    resources:
+      requests:
+        cpu: 200m
+        memory: 100Mi
+      limits:
+        cpu: 1000m
+        memory: 250Mi
+  mirror:
+    postgresql:
+      persistence:
+        size: 250Gi
+      postgresql:
+        resources:
+          requests:
+            cpu: 1000m
+            memory: 1250Mi
+          limits:
+            cpu: 1500m
+            memory: 2000Mi
+    importer:
+      resources:
+        requests:
+          cpu: 0
+          memory: 0
+        limits:
+          cpu: 250m
+          memory: 1000Mi
+    rest:
+      resources:
+        requests:
+          cpu: 0
+          memory: 0
+        limits:
+          cpu: 250m
+          memory: 500Mi
+    grpc:
+      resources:
+        requests:
+          cpu: 0
+          memory: 0
+        limits:
+          cpu: 250m
+          memory: 500Mi
+    web3:
+      resources:
+        requests:
+          cpu: 0
+          memory: 0
+        limits:
+          cpu: 250m
+          memory: 500Mi
+    monitor:
+      resources:
+        requests:
+          cpu: 0
+          memory: 0
+        limits:
+          cpu: 250m
+          memory: 500Mi
+  minio:
+    tenant:
+      pools:
+        - servers: 1
+          name: pool-1
+          volumesPerServer: 1
+          size: 10G #volume size
+          resources:
+            requests:
+              cpu: 0
+              memory: 0
+            limits:
+              cpu: 1000m
+              memory: 2000Mi

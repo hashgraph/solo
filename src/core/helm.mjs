@@ -14,9 +14,20 @@
  * limitations under the License.
  *
  */
+import os from 'os'
+import { constants } from './index.mjs'
 import { ShellRunner } from './shell_runner.mjs'
+import { Templates } from './templates.mjs'
+import { IllegalArgumentError } from './errors.mjs'
 
 export class Helm extends ShellRunner {
+  constructor (logger, osPlatform = os.platform()) {
+    if (!logger) throw new IllegalArgumentError('an instance of core/Logger is required', logger)
+    super(logger)
+    this.osPlatform = osPlatform
+    this.helmPath = Templates.installationPath(constants.HELM, this.osPlatform)
+  }
+
   /**
      * Prepare a `helm` shell command string
      * @param action represents a helm command (e.g. create | install | get )
@@ -24,7 +35,7 @@ export class Helm extends ShellRunner {
      * @returns {string}
      */
   prepareCommand (action, ...args) {
-    let cmd = `helm ${action}`
+    let cmd = `${this.helmPath} ${action}`
     args.forEach(arg => { cmd += ` ${arg}` })
     return cmd
   }
@@ -35,7 +46,7 @@ export class Helm extends ShellRunner {
      * @returns {Promise<Array>} console output as an array of strings
      */
   async install (...args) {
-    return this.run(this.prepareCommand('install', ...args), true)
+    return this.run(this.prepareCommand('install', ...args))
   }
 
   /**
@@ -83,5 +94,13 @@ export class Helm extends ShellRunner {
      */
   async repo (subCommand, ...args) {
     return this.run(this.prepareCommand('repo', subCommand, ...args))
+  }
+
+  /**
+   * Get helm version
+   * @return {Promise<Array>}
+   */
+  async version (args = ['--short']) {
+    return this.run(this.prepareCommand('version', ...args))
   }
 }

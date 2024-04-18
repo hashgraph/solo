@@ -142,7 +142,7 @@ export const Logger = class {
     }
     console.log(chalk.red('***********************************************************************************'))
 
-    this.error(err.message, { error: err.message, stacktrace: stack })
+    this.debug(err.message, { error: err.message, stacktrace: stack })
   }
 
   error (msg, ...args) {

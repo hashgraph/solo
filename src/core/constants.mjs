@@ -27,11 +27,14 @@ export const USER_SANITIZED = USER.replace(/[\W_]+/g, '-')
 export const SOLO_HOME_DIR = process.env.SOLO_HOME || `${process.env.HOME}/.solo`
 export const SOLO_LOGS_DIR = `${SOLO_HOME_DIR}/logs`
 export const SOLO_CACHE_DIR = `${SOLO_HOME_DIR}/cache`
+export const SOLO_VALUES_DIR = `${SOLO_CACHE_DIR}/values-files`
 export const DEFAULT_NAMESPACE = 'default'
 export const HELM = 'helm'
+export const KEYTOOL = 'keytool'
 export const CWD = process.cwd()
 export const SOLO_CONFIG_FILE = `${SOLO_HOME_DIR}/solo.config`
 export const RESOURCES_DIR = normalize(CUR_FILE_DIR + '/../../resources')
+export const PROFILES_DIR = normalize(`${RESOURCES_DIR}/profiles`)
 
 export const ROOT_CONTAINER = 'root-container'
 
@@ -59,6 +62,7 @@ export const LOG_STATUS_DONE = chalk.green('OK')
 export const LOG_GROUP_DIVIDER = chalk.yellow('----------------------------------------------------------------------------')
 
 // --------------- Charts related constants ----------------------------------------------------------------------------
+export const FULLSTACK_SETUP_NAMESPACE = 'fullstack-setup'
 export const FULLSTACK_TESTING_CHART_URL = 'https://hashgraph.github.io/full-stack-testing/charts'
 export const FULLSTACK_TESTING_CHART = 'full-stack-testing'
 export const FULLSTACK_CLUSTER_SETUP_CHART = 'fullstack-cluster-setup'
@@ -79,19 +83,29 @@ export const OPERATOR_PUBLIC_KEY = process.env.SOLO_OPERATOR_PUBLIC_KEY || '302a
 export const TREASURY_ACCOUNT_ID = `${HEDERA_NODE_ACCOUNT_ID_START.realm}.${HEDERA_NODE_ACCOUNT_ID_START.shard}.2`
 export const GENESIS_KEY = process.env.GENESIS_KEY || '302e020100300506032b65700422042091132178e72057a1d7528025956fe39b0b847f200ab59b2fdd367017f3087137'
 export const SYSTEM_ACCOUNTS = [[3, 100], [200, 349], [400, 750], [900, 1000]] // do account 0.0.2 last and outside the loop
-export const TREASURY_ACCOUNTS = [[2, 2]]
+export const TREASURY_ACCOUNT = 2
 export const LOCAL_NODE_START_PORT = process.env.LOCAL_NODE_START_PORT || 30212
-export const ACCOUNT_KEYS_UPDATE_PAUSE = process.env.ACCOUNT_KEYS_UPDATE_PAUSE || 5
+export const LOCAL_NODE_PROXY_START_PORT = process.env.LOCAL_NODE_PROXY_START_PORT || 30313
+export const ACCOUNT_CREATE_BATCH_SIZE = process.env.ACCOUNT_CREATE_BATCH_SIZE || 50
+export const NODE_PROXY_USER_ID = process.env.NODE_PROXY_USER_ID || 'admin'
+export const NODE_PROXY_PASSWORD = process.env.NODE_PROXY_PASSWORD || 'adminpwd'
 
 export const POD_STATUS_RUNNING = 'Running'
-export const POD_STATUS_READY = 'Ready'
+
+export const POD_CONDITION_INITIALIZED = 'Initialized'
+export const POD_CONDITION_READY = 'Ready'
+export const POD_CONDITION_CONTAINERS_READY = 'ContainersReady'
+
+export const POD_CONDITION_POD_SCHEDULED = 'PodScheduled'
+export const POD_CONDITION_STATUS_TRUE = 'True'
+export const POD_CONDITION_STATUS_FALSE = 'False'
 
 // Listr related
 export const LISTR_DEFAULT_RENDERER_TIMER_OPTION = {
   ...PRESET_TIMER,
   condition: (duration) => duration > 100,
   format: (duration) => {
-    if (duration > 10000) {
+    if (duration > 30000) {
       return color.red
     }
 
@@ -107,9 +121,28 @@ export const LISTR_DEFAULT_RENDERER_OPTION = {
 export const KEY_FORMAT_PEM = 'pem'
 
 export const KEY_FORMAT_PFX = 'pfx'
-
 export const KEY_TYPE_GOSSIP = 'gossip'
-
 export const KEY_TYPE_TLS = 'tls'
 export const SIGNING_KEY_PREFIX = 's'
 export const AGREEMENT_KEY_PREFIX = 'a'
+export const ENCRYPTION_KEY_PREFIX = 'e'
+export const CERTIFICATE_VALIDITY_YEARS = 100 // years
+
+export const PUBLIC_PFX = 'public.pfx'
+
+export const OS_WINDOWS = 'windows'
+export const OS_WIN32 = 'win32'
+export const OS_DARWIN = 'darwin'
+export const OS_MAC = 'mac'
+export const OS_LINUX = 'linux'
+
+export const LOCAL_HOST = '127.0.0.1'
+
+export const PROFILE_LARGE = 'large'
+export const PROFILE_MEDIUM = 'medium'
+export const PROFILE_SMALL = 'small'
+export const PROFILE_TINY = 'tiny'
+export const PROFILE_LOCAL = 'local'
+
+export const ALL_PROFILES = [PROFILE_LOCAL, PROFILE_TINY, PROFILE_SMALL, PROFILE_MEDIUM, PROFILE_LARGE]
+export const DEFAULT_PROFILE_FILE = `${SOLO_CACHE_DIR}/profiles/custom-spec.yaml`
