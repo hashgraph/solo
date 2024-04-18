@@ -32,7 +32,7 @@ import {
 import * as version from '../../../version.mjs'
 import { sleep } from '../../../src/core/helpers.mjs'
 import { MirrorNodeCommand } from '../../../src/commands/mirror_node.mjs'
-import * as http from 'http'
+import * as core from '../../../src/core/index.mjs'
 
 describe('MirrorNodeCommand', () => {
   const testName = 'mirror-cmd-e2e'
@@ -53,6 +53,7 @@ describe('MirrorNodeCommand', () => {
   const bootstrapResp = bootstrapNetwork(testName, argv)
   const k8 = bootstrapResp.opts.k8
   const mirrorNodeCmd = new MirrorNodeCommand(bootstrapResp.opts)
+  const downloader = new core.PackageDownloader(mirrorNodeCmd.logger)
 
   afterAll(async () => {
     await k8.deleteNamespace(namespace)
@@ -81,42 +82,26 @@ describe('MirrorNodeCommand', () => {
 
       // enable port forwarding
       let portForwarder = null
-      let statusCode = 0
       portForwarder = await k8.portForward(explorerPod.metadata.name, 8080, 8080)
-      mirrorNodeCmd.logger.debug(`portForwarder: ${portForwarder}`)
-      await sleep(1000)
+      await sleep(2000)
 
       // check if mirror node api server is running
       const apiURL = 'http://127.0.0.1:8080/api/v1/transactions'
-      const apiReq = http.request(apiURL, (res) => {
-        statusCode = res.statusCode
-      })
-      apiReq.on('error', err => {
-        mirrorNodeCmd.logger.error(err)
-      })
-      apiReq.end() // make the request
-
-      await sleep(1000)
-      expect([200, 302].includes(statusCode)).toBeTruthy()
+      await expect(downloader.urlExists(apiURL)).resolves.toBeTruthy()
+      await sleep(2000)
 
       // check if the explorer GUI is running
       const guiURL = 'http://127.0.0.1:8080/localnet/dashboard'
-      const guiReq = http.request(guiURL, (res) => {
-        statusCode = res.statusCode
-      })
-      guiReq.on('data', (chunk) => {
-        mirrorNodeCmd.logger.debug(chunk)
-      })
-      guiReq.end() // make the request
-      expect([200, 302].includes(statusCode)).toBeTruthy()
+      await expect(downloader.urlExists(guiURL)).resolves.toBeTruthy()
+      await sleep(2000)
 
-      await sleep(1000)
-      // await k8.stopPortForward(portForwarder)
+      mirrorNodeCmd.logger.debug('API and GUI are running')
+      await k8.stopPortForward(portForwarder)
     } catch (e) {
       mirrorNodeCmd.logger.showUserError(e)
       expect(e).toBeNull()
     }
-  }, 120000)
+  }, 180000)
 
   it('mirror node destroy should success', async () => {
     expect.assertions(1)
