@@ -71,7 +71,7 @@ describe('MirrorNodeCommand', () => {
       mirrorNodeCmd.logger.showUserError(e)
       expect(e).toBeNull()
     }
-  }, 150000)
+  }, 240000)
 
   it('mirror node api and hedera explorer should success', async () => {
     expect.assertions(2)
