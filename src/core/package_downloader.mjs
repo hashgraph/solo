@@ -76,7 +76,7 @@ export class PackageDownloader {
             }
 
           })
-
+          req.destroy()
           if ([200, 302].includes(statusCode)) {
             resolve(true)
             return
@@ -88,6 +88,7 @@ export class PackageDownloader {
         req.on('error', err => {
           self.logger.error(err)
           resolve(false)
+          req.destroy()
         })
 
         req.end() // make the request
