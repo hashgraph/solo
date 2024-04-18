@@ -26,11 +26,12 @@ import { BaseCommand } from './base.mjs'
 import * as flags from './flags.mjs'
 import * as prompts from './prompts.mjs'
 import {
-  AccountId,
+  AccountId, FileContentsQuery, FileId,
   FreezeTransaction,
-  FreezeType,
+  FreezeType, NetworkVersionInfoQuery,
   Timestamp
 } from '@hashgraph/sdk'
+import * as crypto from 'crypto'
 
 /**
  * Defines the core functionalities of 'node' command
@@ -1376,14 +1377,62 @@ export class NodeCommand extends BaseCommand {
             async (ctx, task) => {
               await self.accountManager.loadNodeClient(ctx.config.namespace)
               const client = self.accountManager._nodeClient
-              const futureDate = new Date()
-              futureDate.setDate(futureDate.getDate() + (1 / 24 / 60)) // 1 minute in the future
 
-              await new FreezeTransaction()
-                .setFreezeType(FreezeType.FreezeOnly)
-                .setStartTimestamp(Timestamp.fromDate(futureDate))
-                .freezeWith(client)
-                .execute(client)
+              self.logger.debug(await new NetworkVersionInfoQuery().execute(client))
+
+              try {
+                // fetch special file
+                const fileId = FileId.fromString('0.0.150')
+                const fileQuery = new FileContentsQuery().setFileId(fileId)
+                const addressBookBytes = await fileQuery.execute(client)
+                const fileHash = crypto.createHash('sha384').update(addressBookBytes).digest('hex')
+
+                const prepareUpgradeTx = await new FreezeTransaction()
+                  .setFreezeType(FreezeType.PrepareUpgrade)
+                  .setFileId(fileId)
+                  .setFileHash(fileHash)
+                  .freezeWith(client)
+                  .execute(client)
+
+                const prepareUpgradeReceipt = await prepareUpgradeTx.getReceipt(client)
+
+                self.logger.debug(
+                `Upgrade prepared with transaction id: ${prepareUpgradeTx.transactionId.toString()}`,
+                prepareUpgradeReceipt.status.toString()
+                )
+
+                const futureDate = new Date()
+                futureDate.setDate(futureDate.getDate() + (1 / 24 / 60)) // 1 minute in the future
+
+                // const freezeUpgradeTx = await new FreezeTransaction()
+                await new FreezeTransaction()
+                  .setFreezeType(FreezeType.FreezeUpgrade)
+                  .setStartTimestamp(Timestamp.fromDate(futureDate))
+                  .setFileId(fileId)
+                  .setFileHash(fileHash)
+                  .freezeWith(client)
+                  .execute(client)
+                // const freezeUpgradeReceipt = await freezeUpgradeTx.getReceipt(client)
+                //
+                // self.logger.debug(
+                //     `Freeze upgrade finished with transaction id: ${freezeUpgradeTx.transactionId.toString()}`,
+                //     freezeUpgradeReceipt.status.toString()
+                // )
+              } catch (e) {
+                self.logger.error(`Error in freeze upgrade: ${e.message}`, e)
+                throw new FullstackTestingError(`Error in freeze upgrade: ${e.message}`, e)
+              }
+
+              self.logger.debug(await new NetworkVersionInfoQuery().execute(client))
+
+              // const futureDate = new Date()
+              // futureDate.setDate(futureDate.getDate() + (1 / 24 / 60)) // 1 minute in the future
+              //
+              // await new FreezeTransaction()
+              //   .setFreezeType(FreezeType.FreezeOnly)
+              //   .setStartTimestamp(Timestamp.fromDate(futureDate))
+              //   .freezeWith(client)
+              //   .execute(client)
             }
       },
       {
@@ -1411,6 +1460,15 @@ export class NodeCommand extends BaseCommand {
         task: async (ctx, parentTask) => {
           const config = ctx.config
           // TODO - update key files as needed (pfx?)
+
+          // TODO modify application.properties to trick Hedera Services into receiving an updated address book
+          // `${stagingDir}/templates/application.properties`
+          // hedera.config.version=1
+          fs.appendFile(`${config.stagingDir}/templates/application.properties`, 'hedera.config.version=1', (err) => {
+            if (err) {
+              throw new FullstackTestingError(`Error appending to application.properties: ${err.message}`, err)
+            }
+          })
 
           const subTasks = []
           for (const nodeId of config.allNodeIds) {
