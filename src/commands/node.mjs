@@ -343,6 +343,32 @@ export class NodeCommand extends BaseCommand {
     }
   }
 
+  uploadPlatformSoftware (ctx, task, localBuildPath) {
+    const config = ctx.config
+    self.logger.debug('no need to fetch, use local build jar files')
+    const localDataLibBuildPath = path.join(localBuildPath, 'hedera-node', 'data')
+    // if the path does not exist, throw an error
+    if (!fs.existsSync(localDataLibBuildPath)) {
+      throw new FullstackTestingError(`local build path does not exist: ${localDataLibBuildPath}`)
+    }
+    const subTasks = []
+    for (const nodeId of config.nodeIds) {
+      const podName = config.podNames[nodeId]
+      subTasks.push({
+        title: `Copy local build to Node: ${chalk.yellow(nodeId)}`,
+        task: async () => {
+          this.logger.debug(`Copying build files to pod: ${podName}`)
+          await self.k8.copyTo(podName, constants.ROOT_CONTAINER, localDataLibBuildPath, `${constants.HEDERA_HAPI_PATH}`)
+        }
+      })
+    }
+    // set up the sub-tasks
+    return task.newListr(subTasks, {
+      concurrent: true,
+      rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
+    })
+  }
+
   fetchPlatformSoftware (ctx, task, platformInstaller) {
     const config = ctx.config
 
@@ -526,30 +552,9 @@ export class NodeCommand extends BaseCommand {
         title: 'Fetch platform software into network nodes',
         task:
           async (ctx, task) => {
-            if (argv[flags.localBuildPath.name] !== '') {
-              const config = ctx.config
-              self.logger.debug('no need to fetch, use local build jar files')
-              const localDataLibBuildPath = argv[flags.localBuildPath.name] + '/hedera-node/data'
-              // if the path does not exist, throw an error
-              if (!fs.existsSync(localDataLibBuildPath)) {
-                throw new FullstackTestingError(`local build path does not exist: ${localDataLibBuildPath}`)
-              }
-              const subTasks = []
-              for (const nodeId of config.nodeIds) {
-                const podName = config.podNames[nodeId]
-                subTasks.push({
-                  title: `Copy local build to Node: ${chalk.yellow(nodeId)}`,
-                  task: async () => {
-                    this.logger.debug(`Copying build files to pod: ${podName}`)
-                    await self.k8.copyTo(podName, constants.ROOT_CONTAINER, localDataLibBuildPath, `${constants.HEDERA_HAPI_PATH}`)
-                  }
-                })
-              }
-              // set up the sub-tasks
-              return task.newListr(subTasks, {
-                concurrent: true,
-                rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
-              })
+            const localBuildPath = self.configManager.getFlag(flags.localBuildPath)
+            if (localBuildPath !== '') {
+              return self.uploadPlatformSoftware(ctx, task, localBuildPath)
             } else {
               return self.fetchPlatformSoftware(ctx, task, self.platformInstaller)
             }
