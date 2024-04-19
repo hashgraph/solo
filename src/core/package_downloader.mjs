@@ -27,6 +27,7 @@ import {
   ResourceNotFoundError
 } from './errors.mjs'
 import * as https from 'https'
+import * as http from 'http'
 import { Templates } from './templates.mjs'
 import { constants } from './index.mjs'
 
@@ -57,8 +58,13 @@ export class PackageDownloader {
     return new Promise((resolve, reject) => {
       try {
         self.logger.debug(`Checking URL: ${url}`)
+        let req
         // attempt to send a HEAD request to check URL exists
-        const req = https.request(url, { method: 'HEAD', timeout: 100, headers: { Connection: 'close' } })
+        if (url.startsWith('http://')) {
+          req = http.request(url, { method: 'HEAD', timeout: 100, headers: { Connection: 'close' } })
+        } else {
+          req = https.request(url, { method: 'HEAD', timeout: 100, headers: { Connection: 'close' } })
+        }
 
         req.on('response', r => {
           const statusCode = r.statusCode
@@ -70,7 +76,7 @@ export class PackageDownloader {
             }
 
           })
-
+          req.destroy()
           if ([200, 302].includes(statusCode)) {
             resolve(true)
             return
@@ -82,6 +88,7 @@ export class PackageDownloader {
         req.on('error', err => {
           self.logger.error(err)
           resolve(false)
+          req.destroy()
         })
 
         req.end() // make the request
