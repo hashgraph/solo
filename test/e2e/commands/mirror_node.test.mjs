@@ -163,5 +163,5 @@ describe('MirrorNodeCommand', () => {
       mirrorNodeCmd.logger.showUserError(e)
       expect(e).toBeNull()
     }
-  }, 60000000)
+  }, 60000)
 })
