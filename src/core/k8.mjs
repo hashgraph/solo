@@ -701,15 +701,15 @@ export class K8 {
    * @param timeout the delay between checks in milliseconds
    * @return {Promise<void>}
    */
-  async stopPortForward (server, maxAttempts = 20, timeout = 500) {
+  stopPortForward (server, maxAttempts = 20, timeout = 500) {
     if (!server) {
-      return
+      return Promise.resolve()
     }
 
     this.logger.debug(`Stopping port-forwarder [${server.info}]`)
 
     // try to close the websocket server
-    await new Promise((resolve, reject) => {
+    return new Promise((resolve, reject) => {
       server.close((e) => {
         if (e) {
           if (e.message.contains('Server is not running')) {
@@ -725,46 +725,6 @@ export class K8 {
         }
       })
     })
-
-    // test to see if the port has been closed or if it is still open
-    let attempts = 0
-    while (attempts < maxAttempts) {
-      let hasError = 0
-      attempts++
-
-      try {
-        const isPortOpen = await new Promise((resolve, reject) => {
-          const testServer = net.createServer()
-            .once('error', err => {
-              if (err) {
-                resolve(false)
-              }
-            })
-            .once('listening', () => {
-              testServer
-                .once('close', () => {
-                  hasError++
-                  if (hasError > 1) {
-                    resolve(false)
-                  } else {
-                    resolve(true)
-                  }
-                })
-                .close()
-            })
-            .listen(server.localPort, '0.0.0.0')
-        })
-        if (isPortOpen) {
-          return
-        }
-      } catch (e) {
-        return
-      }
-      await sleep(timeout)
-    }
-    if (attempts >= maxAttempts) {
-      throw new FullstackTestingError(`failed to stop port-forwarder [${server.info}]`)
-    }
   }
 
   async recyclePodByLabels (podLabels, maxAttempts = 50) {
