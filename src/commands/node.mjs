@@ -16,6 +16,7 @@
  */
 import chalk from 'chalk'
 import * as fs from 'fs'
+import { readFile, writeFile } from 'fs/promises'
 import { Listr } from 'listr2'
 import path from 'path'
 import { FullstackTestingError, IllegalArgumentError } from '../core/errors.mjs'
@@ -26,9 +27,12 @@ import { BaseCommand } from './base.mjs'
 import * as flags from './flags.mjs'
 import * as prompts from './prompts.mjs'
 import {
-  AccountId, FileContentsQuery, FileId,
+  AccountId,
+  FileContentsQuery,
+  FileId,
   FreezeTransaction,
-  FreezeType, NetworkVersionInfoQuery,
+  FreezeType,
+  NetworkVersionInfoQuery,
   Timestamp
 } from '@hashgraph/sdk'
 import * as crypto from 'crypto'
@@ -1459,18 +1463,9 @@ export class NodeCommand extends BaseCommand {
         title: 'Setup network nodes',
         task: async (ctx, parentTask) => {
           const config = ctx.config
-          // TODO - update key files as needed (pfx?)
 
-          // TODO modify application.properties to trick Hedera Services into receiving an updated address book
-          // `${stagingDir}/templates/application.properties`
-          // hedera.config.version=1
-          // TODO better to check if the config row already exists, then update it if it does than assume it isn't present,
-          //  also might need to add a new line if the previous row didn't have one
-          fs.appendFile(`${config.stagingDir}/templates/application.properties`, 'hedera.config.version=1', (err) => {
-            if (err) {
-              throw new FullstackTestingError(`Error appending to application.properties: ${err.message}`, err)
-            }
-          })
+          // modify application.properties to trick Hedera Services into receiving an updated address book
+          await self.bumpHederaConfigVersion(`${config.stagingDir}/templates/application.properties`)
 
           const subTasks = []
           for (const nodeId of config.allNodeIds) {
@@ -1784,5 +1779,19 @@ export class NodeCommand extends BaseCommand {
     } catch (e) {
       this.logger.error(`Error in fetching proxy status: ${e.message}`, e)
     }
+  }
+
+  async bumpHederaConfigVersion (configTxtPath) {
+    const lines = (await readFile(configTxtPath, 'utf-8')).split('\n')
+
+    for (const line of lines) {
+      if (line.startsWith('hedera.config.version=')) {
+        const version = parseInt(line.split('=')[1]) + 1
+        lines[lines.indexOf(line)] = `hedera.config.version=${version}`
+        break
+      }
+    }
+
+    await writeFile(configTxtPath, lines.join('\n'))
   }
 }
