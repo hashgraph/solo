@@ -16,7 +16,7 @@
  */
 
 import {
-  afterAll, afterEach, beforeAll, describe,
+  afterAll, afterEach, describe,
   expect,
   it
 } from '@jest/globals'
@@ -33,7 +33,8 @@ import * as version from '../../../version.mjs'
 import { sleep } from '../../../src/core/helpers.mjs'
 import { MirrorNodeCommand } from '../../../src/commands/mirror_node.mjs'
 import * as core from '../../../src/core/index.mjs'
-import {TopicCreateTransaction, TopicMessageSubmitTransaction} from "@hashgraph/sdk";
+import { TopicCreateTransaction, TopicMessageSubmitTransaction } from '@hashgraph/sdk'
+import * as http from 'http'
 
 describe('MirrorNodeCommand', () => {
   const testName = 'mirror-cmd-e2e'
@@ -56,11 +57,6 @@ describe('MirrorNodeCommand', () => {
   const mirrorNodeCmd = new MirrorNodeCommand(bootstrapResp.opts)
   const downloader = new core.PackageDownloader(mirrorNodeCmd.logger)
   const accountManager = bootstrapResp.opts.accountManager
-  const client = accountManager._nodeClient
-
-  beforeAll(async () => {
-    await accountManager.loadNodeClient(namespace)
-  })
 
   afterAll(async () => {
     await k8.deleteNamespace(namespace)
@@ -81,7 +77,8 @@ describe('MirrorNodeCommand', () => {
   }, 240000)
 
   it('mirror node api and hedera explorer should success', async () => {
-    expect.assertions(2)
+    await accountManager.loadNodeClient(namespace)
+    expect.assertions(3)
     try {
       // find hedera explorer pod
       const pods = await k8.getPodsByLabel(['app.kubernetes.io/name=hedera-explorer'])
@@ -102,34 +99,61 @@ describe('MirrorNodeCommand', () => {
       await expect(downloader.urlExists(guiURL)).resolves.toBeTruthy()
       await sleep(2000)
 
-      mirrorNodeCmd.logger.debug('API and GUI are running')
+      mirrorNodeCmd.logger.debug('mirror node API and explorer GUI are running')
 
+      // Create a new public topic and submit a message
+      const txResponse = await new TopicCreateTransaction().execute(accountManager._nodeClient)
+      const receipt = await txResponse.getReceipt(accountManager._nodeClient)
+      const newTopicId = receipt.topicId
+      mirrorNodeCmd.logger.debug(`Newly created topic ID is: ${newTopicId}`)
 
-
-      // Create a new public topic
-      let txResponse = await new TopicCreateTransaction().execute(client);
-
-      // Grab the newly generated topic ID
-      let receipt = await txResponse.getReceipt(client);
-      let topicId = receipt.topicId;
-      console.log(`Your topic ID is: ${topicId}`);
-
-      // Submit messages
+      const testMessage = 'Mirror node test message'
       await new TopicMessageSubmitTransaction({
-        topicId: topicId,
-        message: "Message 1",
-      }).execute(client);
+        topicId: newTopicId,
+        message: testMessage
+      }).execute(accountManager._nodeClient)
 
-      let queryURL = `http://localhost:8080/api/v1/topics/${topicId}/messages`
-      await expect(downloader.urlExists(queryURL)).resolves.toBeTruthy()
+      await sleep(4000)
 
-      await sleep(12000000)
-      // await k8.stopPortForward(portForwarder)
+      const queryURL = `http://localhost:8080/api/v1/topics/${newTopicId}/messages`
+      let received = false
+      let receivedMessage = ''
+
+      // wait until the transaction reached consensus and retrievable from the mirror node API
+      while (!received) {
+        const req = http.request(queryURL,
+          { method: 'GET', timeout: 100, headers: { Connection: 'close' } },
+          (res) => {
+            res.setEncoding('utf8')
+            res.on('data', (chunk) => {
+              // convert chunk to json object
+              const obj = JSON.parse(chunk)
+              if (obj.messages.length === 0) {
+                mirrorNodeCmd.logger.debug('No messages yet')
+              } else {
+                // convert message from base64 to utf-8
+                const base64 = obj.messages[0].message
+                const buff = Buffer.from(base64, 'base64')
+                receivedMessage = buff.toString('utf-8')
+                mirrorNodeCmd.logger.debug(`Received message: ${receivedMessage}`)
+                received = true
+              }
+            })
+          })
+        req.on('error', (e) => {
+          mirrorNodeCmd.logger.debug(`problem with request: ${e.message}`)
+        })
+        req.end() // make the request
+        await sleep(2000)
+      }
+      await sleep(1000)
+      expect(receivedMessage).toBe(testMessage)
+      await k8.stopPortForward(portForwarder)
     } catch (e) {
       mirrorNodeCmd.logger.showUserError(e)
       expect(e).toBeNull()
     }
-  }, 180000000)
+  }, 240000)
 
   it('mirror node destroy should success', async () => {
     expect.assertions(1)
