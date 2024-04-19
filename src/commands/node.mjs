@@ -32,7 +32,6 @@ import {
   FileId,
   FreezeTransaction,
   FreezeType,
-  NetworkVersionInfoQuery,
   Timestamp
 } from '@hashgraph/sdk'
 import * as crypto from 'crypto'
