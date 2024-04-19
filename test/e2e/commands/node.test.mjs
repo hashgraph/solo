@@ -22,11 +22,13 @@ import {
   PrivateKey
 } from '@hashgraph/sdk'
 import {
-  afterAll, afterEach,
+  afterAll,
+  afterEach,
   beforeAll,
   describe,
   expect,
-  it
+  it,
+  jest
 } from '@jest/globals'
 import { flags } from '../../../src/commands/index.mjs'
 import {
@@ -208,7 +210,7 @@ function balanceQueryShouldSucceed (accountManager, nodeCmd, namespace) {
       nodeCmd.logger.showUserError(e)
       expect(e).toBeNull()
     }
-    await sleep(1000)
+    jest.runAllTicks()
   }, 120000)
 }
 
