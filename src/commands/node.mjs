@@ -1127,7 +1127,7 @@ export class NodeCommand extends BaseCommand {
         }
       },
       {
-        title: 'Identify existing network pods',
+        title: 'Identify existing network nodes',
         task: async (ctx, task) => {
           ctx.config.serviceMap = await self.accountManager.getNodeServiceMap(
             ctx.config.namespace)
@@ -1294,71 +1294,14 @@ export class NodeCommand extends BaseCommand {
             }
       },
       {
-        title: 'Send freeze transaction',
+        title: 'Freeze network nodes',
         task:
             async (ctx, task) => {
-              await self.accountManager.loadNodeClient(ctx.config.namespace)
-              const client = self.accountManager._nodeClient
-
-              self.logger.debug(await new NetworkVersionInfoQuery().execute(client))
-
-              try {
-                // fetch special file
-                const fileId = FileId.fromString('0.0.150')
-                const fileQuery = new FileContentsQuery().setFileId(fileId)
-                const addressBookBytes = await fileQuery.execute(client)
-                const fileHash = crypto.createHash('sha384').update(addressBookBytes).digest('hex')
-
-                const prepareUpgradeTx = await new FreezeTransaction()
-                  .setFreezeType(FreezeType.PrepareUpgrade)
-                  .setFileId(fileId)
-                  .setFileHash(fileHash)
-                  .freezeWith(client)
-                  .execute(client)
-
-                const prepareUpgradeReceipt = await prepareUpgradeTx.getReceipt(client)
-
-                self.logger.debug(
-                `Upgrade prepared with transaction id: ${prepareUpgradeTx.transactionId.toString()}`,
-                prepareUpgradeReceipt.status.toString()
-                )
-
-                const futureDate = new Date()
-                futureDate.setDate(futureDate.getDate() + (1 / 24 / 60)) // 1 minute in the future
-
-                // const freezeUpgradeTx = await new FreezeTransaction()
-                await new FreezeTransaction()
-                  .setFreezeType(FreezeType.FreezeUpgrade)
-                  .setStartTimestamp(Timestamp.fromDate(futureDate))
-                  .setFileId(fileId)
-                  .setFileHash(fileHash)
-                  .freezeWith(client)
-                  .execute(client)
-                // const freezeUpgradeReceipt = await freezeUpgradeTx.getReceipt(client)
-                //
-                // self.logger.debug(
-                //     `Freeze upgrade finished with transaction id: ${freezeUpgradeTx.transactionId.toString()}`,
-                //     freezeUpgradeReceipt.status.toString()
-                // )
-              } catch (e) {
-                self.logger.error(`Error in freeze upgrade: ${e.message}`, e)
-                throw new FullstackTestingError(`Error in freeze upgrade: ${e.message}`, e)
-              }
-
-              self.logger.debug(await new NetworkVersionInfoQuery().execute(client))
-
-              // const futureDate = new Date()
-              // futureDate.setDate(futureDate.getDate() + (1 / 24 / 60)) // 1 minute in the future
-              //
-              // await new FreezeTransaction()
-              //   .setFreezeType(FreezeType.FreezeOnly)
-              //   .setStartTimestamp(Timestamp.fromDate(futureDate))
-              //   .freezeWith(client)
-              //   .execute(client)
+              await this.freezeNetworkNodes(ctx.config)
             }
       },
       {
-        title: 'Check nodes are FREEZE_COMPLETE',
+        title: 'Check nodes are frozen',
         task: (ctx, task) => {
           const subTasks = []
           for (const nodeId of ctx.config.existingNodeIds) {
@@ -1482,6 +1425,49 @@ export class NodeCommand extends BaseCommand {
     }
 
     return true
+  }
+
+  async freezeNetworkNodes (config) {
+    await this.accountManager.loadNodeClient(config.namespace)
+    const client = this.accountManager._nodeClient
+
+    try {
+      // fetch special file
+      const fileId = FileId.fromString('0.0.150')
+      const fileQuery = new FileContentsQuery().setFileId(fileId)
+      const addressBookBytes = await fileQuery.execute(client)
+      const fileHash = crypto.createHash('sha384').update(addressBookBytes).digest('hex')
+
+      const prepareUpgradeTx = await new FreezeTransaction()
+        .setFreezeType(FreezeType.PrepareUpgrade)
+        .setFileId(fileId)
+        .setFileHash(fileHash)
+        .freezeWith(client)
+        .execute(client)
+
+      const prepareUpgradeReceipt = await prepareUpgradeTx.getReceipt(client)
+
+      this.logger.debug(
+          `Upgrade prepared with transaction id: ${prepareUpgradeTx.transactionId.toString()}`,
+          prepareUpgradeReceipt.status.toString()
+      )
+
+      const futureDate = new Date()
+      futureDate.setDate(futureDate.getDate() + (1 / 24 / 60)) // 1 minute in the future
+
+      const freezeUpgradeTx = await new FreezeTransaction()
+        .setFreezeType(FreezeType.FreezeUpgrade)
+        .setStartTimestamp(Timestamp.fromDate(futureDate))
+        .setFileId(fileId)
+        .setFileHash(fileHash)
+        .freezeWith(client)
+        .execute(client)
+
+      this.logger.debug(`Upgrade frozen with transaction id: ${freezeUpgradeTx.transactionId.toString()}`)
+    } catch (e) {
+      this.logger.error(`Error in freeze upgrade: ${e.message}`, e)
+      throw new FullstackTestingError(`Error in freeze upgrade: ${e.message}`, e)
+    }
   }
 
   startNodes (config, nodeIds, subTasks) {
