@@ -480,30 +480,7 @@ export class NodeCommand extends BaseCommand {
               task: async (ctx, _) => {
                 const config = ctx.config
 
-                // copy gossip keys to the staging
-                for (const nodeId of ctx.config.nodeIds) {
-                  switch (config.keyFormat) {
-                    case constants.KEY_FORMAT_PEM: {
-                      const signingKeyFiles = self.keyManager.prepareNodeKeyFilePaths(nodeId, config.keysDir, constants.SIGNING_KEY_PREFIX)
-                      await self._copyNodeKeys(signingKeyFiles, config.stagingKeysDir)
-
-                      // generate missing agreement keys
-                      const agreementKeyFiles = self.keyManager.prepareNodeKeyFilePaths(nodeId, config.keysDir, constants.AGREEMENT_KEY_PREFIX)
-                      await self._copyNodeKeys(agreementKeyFiles, config.stagingKeysDir)
-                      break
-                    }
-
-                    case constants.KEY_FORMAT_PFX: {
-                      const privateKeyFile = Templates.renderGossipPfxPrivateKeyFile(nodeId)
-                      fs.cpSync(`${config.keysDir}/${privateKeyFile}`, `${config.stagingKeysDir}/${privateKeyFile}`)
-                      fs.cpSync(`${config.keysDir}/${constants.PUBLIC_PFX}`, `${config.stagingKeysDir}/${constants.PUBLIC_PFX}`)
-                      break
-                    }
-
-                    default:
-                      throw new FullstackTestingError(`Unsupported key-format ${config.keyFormat}`)
-                  }
-                }
+                await this.copyGossipKeysToStaging(config, ctx.config.nodeIds)
               }
             },
             {
@@ -620,25 +597,7 @@ export class NodeCommand extends BaseCommand {
         title: 'Starting nodes',
         task: (ctx, task) => {
           const subTasks = []
-          for (const nodeId of ctx.config.nodeIds) {
-            const podName = ctx.config.podNames[nodeId]
-            subTasks.push({
-              title: `Start node: ${chalk.yellow(nodeId)}`,
-              task: async () => {
-                await self.k8.execContainer(podName, constants.ROOT_CONTAINER, ['bash', '-c', `rm -f ${constants.HEDERA_HAPI_PATH}/logs/*`])
-
-                // copy application.env file if required
-                if (ctx.config.applicationEnv) {
-                  const stagingDir = Templates.renderStagingDir(self.configManager, flags)
-                  const applicationEnvFile = path.join(stagingDir, 'application.env')
-                  fs.cpSync(ctx.config.applicationEnv, applicationEnvFile)
-                  await self.k8.copyTo(podName, constants.ROOT_CONTAINER, applicationEnvFile, `${constants.HEDERA_HAPI_PATH}`)
-                }
-
-                await self.k8.execContainer(podName, constants.ROOT_CONTAINER, ['systemctl', 'restart', 'network-node'])
-              }
-            })
-          }
+          self.startNodes(ctx.config, ctx.config.nodeIds, subTasks)
 
           // set up the sub-tasks
           return task.newListr(subTasks, {
@@ -1053,25 +1012,7 @@ export class NodeCommand extends BaseCommand {
         title: 'Starting nodes',
         task: (ctx, task) => {
           const subTasks = []
-          for (const nodeId of ctx.config.nodeIds) {
-            const podName = ctx.config.podNames[nodeId]
-            subTasks.push({
-              title: `Start node: ${chalk.yellow(nodeId)}`,
-              task: async () => {
-                await self.k8.execContainer(podName, constants.ROOT_CONTAINER, ['bash', '-c', `rm -f ${constants.HEDERA_HAPI_PATH}/logs/*`])
-
-                // copy application.env file if required
-                if (ctx.config.applicationEnv) {
-                  const stagingDir = Templates.renderStagingDir(self.configManager, flags)
-                  const applicationEnvFile = path.join(stagingDir, 'application.env')
-                  fs.cpSync(ctx.config.applicationEnv, applicationEnvFile)
-                  await self.k8.copyTo(podName, constants.ROOT_CONTAINER, applicationEnvFile, `${constants.HEDERA_HAPI_PATH}`)
-                }
-
-                await self.k8.execContainer(podName, constants.ROOT_CONTAINER, ['systemctl', 'restart', 'network-node'])
-              }
-            })
-          }
+          self.startNodes(ctx.config, ctx.config.nodeIds, subTasks)
 
           // set up the sub-tasks
           return task.newListr(subTasks, {
@@ -1315,30 +1256,7 @@ export class NodeCommand extends BaseCommand {
               task: async (ctx, _) => {
                 const config = ctx.config
 
-                // copy gossip keys to the staging
-                for (const nodeId of ctx.config.allNodeIds) {
-                  switch (config.keyFormat) { // TODO DRY
-                    case constants.KEY_FORMAT_PEM: {
-                      const signingKeyFiles = self.keyManager.prepareNodeKeyFilePaths(nodeId, config.keysDir, constants.SIGNING_KEY_PREFIX)
-                      await self._copyNodeKeys(signingKeyFiles, config.stagingKeysDir)
-
-                      // generate missing agreement keys
-                      const agreementKeyFiles = self.keyManager.prepareNodeKeyFilePaths(nodeId, config.keysDir, constants.AGREEMENT_KEY_PREFIX)
-                      await self._copyNodeKeys(agreementKeyFiles, config.stagingKeysDir)
-                      break
-                    }
-
-                    case constants.KEY_FORMAT_PFX: {
-                      const privateKeyFile = Templates.renderGossipPfxPrivateKeyFile(nodeId)
-                      fs.cpSync(`${config.keysDir}/${privateKeyFile}`, `${config.stagingKeysDir}/${privateKeyFile}`)
-                      fs.cpSync(`${config.keysDir}/${constants.PUBLIC_PFX}`, `${config.stagingKeysDir}/${constants.PUBLIC_PFX}`)
-                      break
-                    }
-
-                    default:
-                      throw new FullstackTestingError(`Unsupported key-format ${config.keyFormat}`)
-                  }
-                }
+                await this.copyGossipKeysToStaging(config, ctx.config.allNodeIds)
               }
             },
             {
@@ -1488,25 +1406,7 @@ export class NodeCommand extends BaseCommand {
         title: 'Starting nodes',
         task: (ctx, task) => {
           const subTasks = []
-          for (const nodeId of ctx.config.allNodeIds) {
-            const podName = ctx.config.podNames[nodeId] // TODO DRY
-            subTasks.push({
-              title: `Start node: ${chalk.yellow(nodeId)}`,
-              task: async () => {
-                await self.k8.execContainer(podName, constants.ROOT_CONTAINER, ['bash', '-c', `rm -f ${constants.HEDERA_HAPI_PATH}/logs/*`])
-
-                // copy application.env file if required
-                if (ctx.config.applicationEnv) {
-                  const stagingDir = Templates.renderStagingDir(self.configManager, flags)
-                  const applicationEnvFile = path.join(stagingDir, 'application.env')
-                  fs.cpSync(ctx.config.applicationEnv, applicationEnvFile)
-                  await self.k8.copyTo(podName, constants.ROOT_CONTAINER, applicationEnvFile, `${constants.HEDERA_HAPI_PATH}`)
-                }
-
-                await self.k8.execContainer(podName, constants.ROOT_CONTAINER, ['systemctl', 'restart', 'network-node'])
-              }
-            })
-          }
+          self.startNodes(ctx.config, ctx.config.allNodeIds, subTasks)
 
           // set up the sub-tasks
           return task.newListr(subTasks, {
@@ -1582,6 +1482,55 @@ export class NodeCommand extends BaseCommand {
     }
 
     return true
+  }
+
+  startNodes (config, nodeIds, subTasks) {
+    for (const nodeId of nodeIds) {
+      const podName = config.podNames[nodeId]
+      subTasks.push({
+        title: `Start node: ${chalk.yellow(nodeId)}`,
+        task: async () => {
+          await this.k8.execContainer(podName, constants.ROOT_CONTAINER, ['bash', '-c', `rm -f ${constants.HEDERA_HAPI_PATH}/logs/*`])
+
+          // copy application.env file if required
+          if (config.applicationEnv) {
+            const stagingDir = Templates.renderStagingDir(this.configManager, flags)
+            const applicationEnvFile = path.join(stagingDir, 'application.env')
+            fs.cpSync(config.applicationEnv, applicationEnvFile)
+            await this.k8.copyTo(podName, constants.ROOT_CONTAINER, applicationEnvFile, `${constants.HEDERA_HAPI_PATH}`)
+          }
+
+          await this.k8.execContainer(podName, constants.ROOT_CONTAINER, ['systemctl', 'restart', 'network-node'])
+        }
+      })
+    }
+  }
+
+  async copyGossipKeysToStaging (config, nodeIds) {
+    // copy gossip keys to the staging
+    for (const nodeId of nodeIds) {
+      switch (config.keyFormat) {
+        case constants.KEY_FORMAT_PEM: {
+          const signingKeyFiles = this.keyManager.prepareNodeKeyFilePaths(nodeId, config.keysDir, constants.SIGNING_KEY_PREFIX)
+          await this._copyNodeKeys(signingKeyFiles, config.stagingKeysDir)
+
+          // generate missing agreement keys
+          const agreementKeyFiles = this.keyManager.prepareNodeKeyFilePaths(nodeId, config.keysDir, constants.AGREEMENT_KEY_PREFIX)
+          await this._copyNodeKeys(agreementKeyFiles, config.stagingKeysDir)
+          break
+        }
+
+        case constants.KEY_FORMAT_PFX: {
+          const privateKeyFile = Templates.renderGossipPfxPrivateKeyFile(nodeId)
+          fs.cpSync(`${config.keysDir}/${privateKeyFile}`, `${config.stagingKeysDir}/${privateKeyFile}`)
+          fs.cpSync(`${config.keysDir}/${constants.PUBLIC_PFX}`, `${config.stagingKeysDir}/${constants.PUBLIC_PFX}`)
+          break
+        }
+
+        default:
+          throw new FullstackTestingError(`Unsupported key-format ${config.keyFormat}`)
+      }
+    }
   }
 
   /**
