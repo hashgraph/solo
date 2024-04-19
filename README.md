@@ -90,7 +90,7 @@ You can now use your cluster with:
 
 kubectl cluster-info --context kind-solo
 
-Not sure what to do next? 😅  Check out https://kind.sigs.k8s.io/docs/user/quick-start/
+Thanks for using kind! 😊
 ```
 
 You may now view pods in your cluster using `k9s -A` as below:
@@ -133,7 +133,7 @@ Example output
 ```
 
 ******************************* Solo *********************************************
-Version			: 0.23.0
+Version			: 0.24.0
 Kubernetes Context	: kind-solo
 Kubernetes Cluster	: kind-solo
 Kubernetes Namespace	: solo
@@ -147,7 +147,7 @@ Kubernetes Namespace	: solo
 Note: solo stores various artifacts (config, logs, keys etc.) in its home directory: /home/runner/.solo
 If a full reset is needed, delete the directory or relevant sub-directories before running 'solo init'.
 ***************************************************************************************
-✔ Copy configuration file templates
+✔ Copy templates in '/home/runner/.solo/cache'
 ```
 
 * Generate `pfx` formatted node keys
@@ -163,7 +163,7 @@ Example output
 ```
 
 ******************************* Solo *********************************************
-Version			: 0.23.0
+Version			: 0.24.0
 Kubernetes Context	: kind-solo
 Kubernetes Cluster	: kind-solo
 Kubernetes Namespace	: solo
@@ -179,8 +179,8 @@ Kubernetes Namespace	: solo
 ✔ Generate gossip keys
 ✔ Backup old files
 ✔ TLS key for node: node0
-✔ TLS key for node: node1
 ✔ TLS key for node: node2
+✔ TLS key for node: node1
 ✔ Generate gRPC TLS keys
 ✔ Finalize
 ```
@@ -204,7 +204,7 @@ Example output
 ```
 
 ******************************* Solo *********************************************
-Version			: 0.23.0
+Version			: 0.24.0
 Kubernetes Context	: kind-solo
 Kubernetes Cluster	: kind-solo
 Kubernetes Namespace	: solo
@@ -228,17 +228,26 @@ Example output
 ```
 
 ******************************* Solo *********************************************
-Version			: 0.23.0
+Version			: 0.24.0
 Kubernetes Context	: kind-solo
 Kubernetes Cluster	: kind-solo
 Kubernetes Namespace	: solo
 **********************************************************************************
 ✔ Initialize
 ✔ Install chart 'fullstack-deployment'
-✔ Node: node0 (Pod: network-node0-0)
-✔ Node: node1 (Pod: network-node1-0)
-✔ Node: node2 (Pod: network-node2-0)
-✔ Waiting for network pods to be ready
+✔ Check Node: node0
+✔ Check Node: node1
+✔ Check Node: node2
+✔ Check node pods are ready
+✔ Check HAProxy for: node1
+✔ Check HAProxy for: node0
+✔ Check HAProxy for: node2
+✔ Check Envoy Proxy for: node0
+✔ Check Envoy Proxy for: node2
+✔ Check Envoy Proxy for: node1
+✔ Check proxy pods are ready
+✔ Check MinIO
+✔ Check auxiliary pods are ready
 ```
 
 * Setup node with Hedera platform software.
@@ -253,24 +262,24 @@ Example output
 ```
 
 ******************************* Solo *********************************************
-Version			: 0.23.0
+Version			: 0.24.0
 Kubernetes Context	: kind-solo
 Kubernetes Cluster	: kind-solo
 Kubernetes Namespace	: solo
 **********************************************************************************
 ✔ Initialize
-✔ Check network pod: node0
-✔ Check network pod: node1
 ✔ Check network pod: node2
+✔ Check network pod: node1
+✔ Check network pod: node0
 ✔ Identify network pods
 ✔ Copy configuration files
 ✔ Copy Gossip keys to staging
 ✔ Copy gRPC TLS keys to staging
 ✔ Prepare config.txt for the network
 ✔ Prepare staging directory
-✔ Node: node0
-✔ Node: node2
-✔ Node: node1
+✔ Update node: node2
+✔ Update node: node1
+✔ Update node: node0
 ✔ Fetch platform software into network nodes
 ✔ Copy Gossip keys
 ✔ Copy Gossip keys
@@ -282,11 +291,11 @@ Kubernetes Namespace	: solo
 ✔ Copy configuration files
 ✔ Copy configuration files
 ✔ Set file permissions
+✔ Node: node0
+✔ Set file permissions
 ✔ Node: node2
 ✔ Set file permissions
 ✔ Node: node1
-✔ Set file permissions
-✔ Node: node0
 ✔ Setup network nodes
 ✔ Finalize
 ```
@@ -302,27 +311,27 @@ Example output
 ```
 
 ******************************* Solo *********************************************
-Version			: 0.23.0
+Version			: 0.24.0
 Kubernetes Context	: kind-solo
 Kubernetes Cluster	: kind-solo
 Kubernetes Namespace	: solo
 **********************************************************************************
 ✔ Initialize
-✔ Check network pod: node1
 ✔ Check network pod: node2
 ✔ Check network pod: node0
+✔ Check network pod: node1
 ✔ Identify network pods
 ✔ Start node: node0
-✔ Start node: node1
 ✔ Start node: node2
+✔ Start node: node1
 ✔ Starting nodes
 ✔ Check node: node0
 ✔ Check node: node1
 ✔ Check node: node2
 ✔ Check nodes are ACTIVE
-✔ Check proxy for node: node0
-✔ Check proxy for node: node1
 ✔ Check proxy for node: node2
+✔ Check proxy for node: node1
+✔ Check proxy for node: node0
 ✔ Check node proxies are ACTIVE
 ```
 * Deploy mirror node
@@ -336,7 +345,7 @@ Example output
 ```
 
 ******************************* Solo *********************************************
-Version			: 0.23.0
+Version			: 0.24.0
 Kubernetes Context	: kind-solo
 Kubernetes Cluster	: kind-solo
 Kubernetes Namespace	: solo
@@ -345,13 +354,13 @@ Kubernetes Namespace	: solo
 ✔ Prepare address book
 ✔ Deploy mirror-node
 ✔ Enable mirror-node
+✔ Check Hedera Explorer
+✔ Check Monitor
 ✔ Check Postgres DB
 ✔ Check Importer
 ✔ Check REST API
-✔ Check Web3
 ✔ Check GRPC
-✔ Check Hedera Explorer
-✔ Check Mirror node components are ACTIVE
+✔ Check pods are ready
 ```
 
 * Deploy a JSON RPC relay
@@ -365,22 +374,15 @@ Example output
 ```
 
 ******************************* Solo *********************************************
-Version			: 0.23.0
+Version			: 0.24.0
 Kubernetes Context	: kind-solo
 Kubernetes Cluster	: kind-solo
 Kubernetes Namespace	: solo
 **********************************************************************************
 ✔ Initialize
 ✔ Prepare chart values
-
- *** Deployed Relays ***
--------------------------------------------------------------------------------
- - fullstack-deployment [fullstack-deployment-0.24.3]
- - relay-node0-node1 [hedera-json-rpc-relay-0.26.0-SNAPSHOT]
- - relay-node0-node1-node2 [hedera-json-rpc-relay-0.26.0-SNAPSHOT]
-
-
 ✔ Deploy JSON RPC Relay
+✔ Check relay is ready
 ```
 
 You may view the list of pods using `k9s` as below:
@@ -443,21 +445,15 @@ Example output
 ```
 
 ******************************* Solo *********************************************
-Version			: 0.23.0
+Version			: 0.24.0
 Kubernetes Context	: kind-solo
 Kubernetes Cluster	: kind-solo
 Kubernetes Namespace	: solo
 **********************************************************************************
 ✔ Initialize
 ✔ Prepare chart values
-
- *** Deployed Relays ***
--------------------------------------------------------------------------------
- - fullstack-deployment [fullstack-deployment-0.24.3]
- - relay-node0-node1 [hedera-json-rpc-relay-0.26.0-SNAPSHOT]
-
-
 ✔ Deploy JSON RPC Relay
+✔ Check relay is ready
 ```
 
 ### Example - 2: Deploy a standalone test network (version `0.47.0-alpha.0`)
@@ -476,7 +472,7 @@ $ solo init -t v0.47.0-alpha.0 -i node0,node1,node2 -n "${SOLO_NAMESPACE}" -s "$
 ```
 
 ******************************* Solo *********************************************
-Version			: 0.23.0
+Version			: 0.24.0
 Kubernetes Context	: kind-solo
 Kubernetes Cluster	: kind-solo
 Kubernetes Namespace	: solo
@@ -490,7 +486,7 @@ Kubernetes Namespace	: solo
 Note: solo stores various artifacts (config, logs, keys etc.) in its home directory: /home/runner/.solo
 If a full reset is needed, delete the directory or relevant sub-directories before running 'solo init'.
 ***************************************************************************************
-✔ Copy configuration file templates
+✔ Copy templates in '/home/runner/.solo/cache'
 ```
 
 * Generate `pem` formatted node keys
@@ -504,7 +500,7 @@ $ solo node keys --gossip-keys --tls-keys --key-format pem
 ```
 
 ******************************* Solo *********************************************
-Version			: 0.23.0
+Version			: 0.24.0
 Kubernetes Context	: kind-solo
 Kubernetes Cluster	: kind-solo
 Kubernetes Namespace	: solo
@@ -516,9 +512,9 @@ Kubernetes Namespace	: solo
 ✔ Gossip pem key for node: node2
 ✔ Generate gossip keys
 ✔ Backup old files
-✔ TLS key for node: node2
 ✔ TLS key for node: node1
 ✔ TLS key for node: node0
+✔ TLS key for node: node2
 ✔ Generate gRPC TLS keys
 ✔ Finalize
 ```
