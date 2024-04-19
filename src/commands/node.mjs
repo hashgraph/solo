@@ -68,7 +68,7 @@ export class NodeCommand extends BaseCommand {
     this._portForwards = []
   }
 
-  async checkNetworkNodePod (namespace, nodeId) {
+  async checkNetworkNodePod (namespace, nodeId, maxAttempts = 10, delay = 500) {
     nodeId = nodeId.trim()
     const podName = Templates.renderNetworkPodName(nodeId)
 
@@ -76,7 +76,7 @@ export class NodeCommand extends BaseCommand {
       await this.k8.waitForPodReady([
         'fullstack.hedera.com/type=network-node',
         `fullstack.hedera.com/node-name=${nodeId}`
-      ], 1)
+      ], 1, maxAttempts, delay)
 
       return podName
     } catch (e) {
@@ -184,7 +184,7 @@ export class NodeCommand extends BaseCommand {
    * @return a list of subtasks
    * @private
    */
-  _nodeGossipKeysTaskList (keyFormat, nodeIds, keysDir, curDate = new Date()) {
+  _nodeGossipKeysTaskList (keyFormat, nodeIds, keysDir, curDate = new Date(), overwriteKeys = true) {
     if (!Array.isArray(nodeIds) || !nodeIds.every((nodeId) => typeof nodeId === 'string')) {
       throw new IllegalArgumentError('nodeIds must be an array of strings')
     }
@@ -211,7 +211,7 @@ export class NodeCommand extends BaseCommand {
           subTasks.push({
             title: `Generate ${Templates.renderGossipPfxPrivateKeyFile(nodeId)} for node: ${chalk.yellow(nodeId)}`,
             task: async () => {
-              const privatePfxFile = await self.keyManager.generatePrivatePfxKeys(keytool, nodeId, keysDir, tmpDir)
+              const privatePfxFile = await self.keyManager.generatePrivatePfxKeys(keytool, nodeId, keysDir, tmpDir, overwriteKeys)
               const output = await keytool.list(`-storetype pkcs12 -storepass password -keystore ${privatePfxFile}`)
               if (!output.includes('Your keystore contains 3 entries')) {
                 throw new FullstackTestingError(`malformed private pfx file: ${privatePfxFile}`)
@@ -1256,7 +1256,7 @@ export class NodeCommand extends BaseCommand {
         title: 'Generate Gossip keys',
         task: async (ctx, parentTask) => {
           const config = ctx.config
-          const subTasks = self._nodeGossipKeysTaskList(config.keyFormat, config.nodeIds, config.keysDir, config.curDate)
+          const subTasks = self._nodeGossipKeysTaskList(config.keyFormat, config.allNodeIds, config.keysDir, config.curDate, false)
           // set up the sub-tasks
           return parentTask.newListr(subTasks, {
             concurrent: false,
@@ -1464,6 +1464,8 @@ export class NodeCommand extends BaseCommand {
           // TODO modify application.properties to trick Hedera Services into receiving an updated address book
           // `${stagingDir}/templates/application.properties`
           // hedera.config.version=1
+          // TODO better to check if the config row already exists, then update it if it does than assume it isn't present,
+          //  also might need to add a new line if the previous row didn't have one
           fs.appendFile(`${config.stagingDir}/templates/application.properties`, 'hedera.config.version=1', (err) => {
             if (err) {
               throw new FullstackTestingError(`Error appending to application.properties: ${err.message}`, err)

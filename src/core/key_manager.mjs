@@ -513,13 +513,18 @@ export class KeyManager {
    * @param tmpDir tmp directory where intermediate files can be stored.
    * @return {Promise<string>} path to the pfx file
    */
-  async generatePrivatePfxKeys (keytool, nodeId, keysDir, tmpDir = getTmpDir()) {
+  async generatePrivatePfxKeys (keytool, nodeId, keysDir, tmpDir = getTmpDir(), overwriteKeys = true) {
     if (!keytool || !(keytool instanceof Keytool)) throw new MissingArgumentError('An instance of core/Keytool is required')
     if (!nodeId) throw new MissingArgumentError('nodeId is required')
     if (!keysDir) throw new MissingArgumentError('keysDir is required')
     if (!fs.existsSync(keysDir)) throw new MissingArgumentError('keysDir does not exist')
 
     const privatePfxFile = path.join(keysDir, `private-${nodeId}.pfx`)
+    if (fs.existsSync(privatePfxFile) && !overwriteKeys) {
+      this.logger.debug(`overwriteKeys is set to false and private pfx file already exists: ${privatePfxFile}`)
+      return privatePfxFile
+    }
+
     const validity = constants.CERTIFICATE_VALIDITY_YEARS * 365
     const tmpPrivatePfxFile = path.join(tmpDir, `private-${nodeId}.pfx`)
     const signedKeyAlias = `${constants.SIGNING_KEY_PREFIX}-${nodeId}`
