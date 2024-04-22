@@ -40,7 +40,7 @@ describe('NodeCommand', () => {
   argv[flags.generateGossipKeys.name] = true
   argv[flags.generateTlsKeys.name] = true
   argv[flags.clusterName.name] = TEST_CLUSTER
-  argv[flags.localBuildPath.name] = '../hedera-services/'
+  argv[flags.localBuildPath.name] = 'node0=../hedera-services/,node1=../hedera-services/,node2=../hedera2/hedera-services/'
   const bootstrapResp = bootstrapNetwork(testName, argv)
   const accountManager = bootstrapResp.opts.accountManager
   const k8 = bootstrapResp.opts.k8

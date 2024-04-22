@@ -344,20 +344,28 @@ export class NodeCommand extends BaseCommand {
   }
 
   uploadPlatformSoftware (ctx, task, localBuildPath) {
+    const subTasks = []
+
     const config = ctx.config
     self.logger.debug('no need to fetch, use local build jar files')
-    const localDataLibBuildPath = path.join(localBuildPath, 'hedera-node', 'data')
-    // if the path does not exist, throw an error
-    if (!fs.existsSync(localDataLibBuildPath)) {
-      throw new FullstackTestingError(`local build path does not exist: ${localDataLibBuildPath}`)
-    }
-    const subTasks = []
-    for (const nodeId of config.nodeIds) {
+    //localBuildPath example input 'node0=../hedera-services/,node1=../hedera-services/,node2=../hedera2/hedera-services/'
+    // split the input string by ','
+    const parameterPairs = localBuildPath.split(',')
+    // iterate over the localBuildPaths
+    for (const parameterPair of parameterPairs) {
+      // split the localBuildPath by '='
+      const [nodeId, localBuildPath] = parameterPair.split('=')
+      // if the path does not exist, throw an error
+      const localDataLibBuildPath = path.join(localBuildPath, 'hedera-node', 'data')
+      // if the path does not exist, throw an error
+      if (!fs.existsSync(localDataLibBuildPath)) {
+        throw new FullstackTestingError(`local build path does not exist: ${localDataLibBuildPath}`)
+      }
       const podName = config.podNames[nodeId]
       subTasks.push({
-        title: `Copy local build to Node: ${chalk.yellow(nodeId)}`,
+        title: `Copy local build to Node: ${chalk.yellow(nodeId)} from ${localDataLibBuildPath}`,
         task: async () => {
-          this.logger.debug(`Copying build files to pod: ${podName}`)
+          this.logger.debug(`Copying build files to pod: ${podName} from ${localDataLibBuildPath}`)
           await self.k8.copyTo(podName, constants.ROOT_CONTAINER, localDataLibBuildPath, `${constants.HEDERA_HAPI_PATH}`)
         }
       })
