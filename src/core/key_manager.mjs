@@ -511,6 +511,7 @@ export class KeyManager {
    * @param nodeId node id
    * @param keysDir directory where the pfx files should be stored
    * @param tmpDir tmp directory where intermediate files can be stored.
+   * @param overwriteKeys if existing keys are found will overwrite them, defaults to true
    * @return {Promise<string>} path to the pfx file
    */
   async generatePrivatePfxKeys (keytool, nodeId, keysDir, tmpDir = getTmpDir(), overwriteKeys = true) {

@@ -184,6 +184,7 @@ export class NodeCommand extends BaseCommand {
    * @param nodeIds node ids
    * @param keysDir keys directory
    * @param curDate current date
+   * @param overwriteKeys if existing keys are found if they should be overwritten, defaults to true
    * @return a list of subtasks
    * @private
    */
