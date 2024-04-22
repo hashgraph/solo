@@ -511,17 +511,16 @@ export class KeyManager {
    * @param nodeId node id
    * @param keysDir directory where the pfx files should be stored
    * @param tmpDir tmp directory where intermediate files can be stored.
-   * @param overwriteKeys if existing keys are found will overwrite them, defaults to true
    * @return {Promise<string>} path to the pfx file
    */
-  async generatePrivatePfxKeys (keytool, nodeId, keysDir, tmpDir = getTmpDir(), overwriteKeys = true) {
+  async generatePrivatePfxKeys (keytool, nodeId, keysDir, tmpDir = getTmpDir()) {
     if (!keytool || !(keytool instanceof Keytool)) throw new MissingArgumentError('An instance of core/Keytool is required')
     if (!nodeId) throw new MissingArgumentError('nodeId is required')
     if (!keysDir) throw new MissingArgumentError('keysDir is required')
     if (!fs.existsSync(keysDir)) throw new MissingArgumentError('keysDir does not exist')
 
     const privatePfxFile = path.join(keysDir, `private-${nodeId}.pfx`)
-    if (fs.existsSync(privatePfxFile) && !overwriteKeys) {
+    if (fs.existsSync(privatePfxFile)) {
       this.logger.debug(`overwriteKeys is set to false and private pfx file already exists: ${privatePfxFile}`)
       return privatePfxFile
     }

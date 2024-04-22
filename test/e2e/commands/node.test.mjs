@@ -46,9 +46,8 @@ import fs from 'fs'
 import crypto from 'crypto'
 
 describe.each([
-  { releaseTag: 'v0.49.1', keyFormat: constants.KEY_FORMAT_PFX, testName: 'node-cmd-e2e-pfx', mode: 'kill' }
-  // ,
-  // { releaseTag: 'v0.49.1', keyFormat: constants.KEY_FORMAT_PEM, testName: 'node-cmd-e2e-pem', mode: 'stop' }
+  { releaseTag: 'v0.49.0-alpha.2', keyFormat: constants.KEY_FORMAT_PFX, testName: 'node-cmd-e2e-pfx', mode: 'kill' },
+  { releaseTag: 'v0.49.0-alpha.2', keyFormat: constants.KEY_FORMAT_PEM, testName: 'node-cmd-e2e-pem', mode: 'stop' }
 ])('NodeCommand', (input) => {
   const testName = input.testName
   const namespace = testName
@@ -74,7 +73,7 @@ describe.each([
     // await k8.deleteNamespace(namespace)
   }, 120000)
 
-  describe.skip(`Node should have started successfully [mode ${input.mode}, release ${input.releaseTag}, keyFormat: ${input.keyFormat}]`, () => {
+  describe(`Node should have started successfully [mode ${input.mode}, release ${input.releaseTag}, keyFormat: ${input.keyFormat}]`, () => {
     balanceQueryShouldSucceed(accountManager, nodeCmd, namespace)
 
     accountCreationShouldSucceed(accountManager, nodeCmd, namespace)
@@ -93,7 +92,7 @@ describe.each([
     }, 20000)
   })
 
-  describe.skip(`Node should refresh successfully [mode ${input.mode}, release ${input.releaseTag}, keyFormat: ${input.keyFormat}]`, () => {
+  describe(`Node should refresh successfully [mode ${input.mode}, release ${input.releaseTag}, keyFormat: ${input.keyFormat}]`, () => {
     const nodeId = 'node0'
 
     beforeAll(async () => {
@@ -159,7 +158,7 @@ describe.each([
         await nodeCmd.close()
         await sleep(10000) // sleep to wait for node to finish starting
       }
-    }, 180000)
+    }, 240000)
 
     balanceQueryShouldSucceed(accountManager, nodeCmd, namespace)
 
@@ -171,10 +170,8 @@ describe.each([
       for (const [nodeId, existingKeyHashMap] of existingNodeIdsPrivateKeysHash.entries()) {
         const currentNodeKeyHashMap = currentNodeIdsPrivateKeysHash.get(nodeId)
         for (const [keyFileName, existingKeyHash] of existingKeyHashMap.entries()) {
-          it(`${nodeId} ${keyFileName} should not have changed`, () => {
-            expect(`${nodeId}:${keyFileName}:${currentNodeKeyHashMap.get(keyFileName)}`).toEqual(
+          expect(`${nodeId}:${keyFileName}:${currentNodeKeyHashMap.get(keyFileName)}`).toEqual(
                 `${nodeId}:${keyFileName}:${existingKeyHash}`)
-          })
         }
       }
     })

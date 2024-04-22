@@ -184,11 +184,12 @@ export class NodeCommand extends BaseCommand {
    * @param nodeIds node ids
    * @param keysDir keys directory
    * @param curDate current date
-   * @param overwriteKeys if existing keys are found if they should be overwritten, defaults to true
+   * @param allNodeIds includes the nodeIds to get new keys as well as existing nodeIds that will be included in the public.pfx file
    * @return a list of subtasks
    * @private
    */
-  _nodeGossipKeysTaskList (keyFormat, nodeIds, keysDir, curDate = new Date(), overwriteKeys = true) {
+  _nodeGossipKeysTaskList (keyFormat, nodeIds, keysDir, curDate = new Date(), allNodeIds = null) {
+    allNodeIds = allNodeIds || nodeIds
     if (!Array.isArray(nodeIds) || !nodeIds.every((nodeId) => typeof nodeId === 'string')) {
       throw new IllegalArgumentError('nodeIds must be an array of strings')
     }
@@ -215,7 +216,7 @@ export class NodeCommand extends BaseCommand {
           subTasks.push({
             title: `Generate ${Templates.renderGossipPfxPrivateKeyFile(nodeId)} for node: ${chalk.yellow(nodeId)}`,
             task: async () => {
-              const privatePfxFile = await self.keyManager.generatePrivatePfxKeys(keytool, nodeId, keysDir, tmpDir, overwriteKeys)
+              const privatePfxFile = await self.keyManager.generatePrivatePfxKeys(keytool, nodeId, keysDir, tmpDir)
               const output = await keytool.list(`-storetype pkcs12 -storepass password -keystore ${privatePfxFile}`)
               if (!output.includes('Your keystore contains 3 entries')) {
                 throw new FullstackTestingError(`malformed private pfx file: ${privatePfxFile}`)
@@ -227,9 +228,9 @@ export class NodeCommand extends BaseCommand {
         subTasks.push({
           title: `Generate ${constants.PUBLIC_PFX} file`,
           task: async () => {
-            const publicPfxFile = await self.keyManager.updatePublicPfxKey(self.keytoolDepManager.getKeytool(), nodeIds, keysDir, tmpDir)
+            const publicPfxFile = await self.keyManager.updatePublicPfxKey(self.keytoolDepManager.getKeytool(), allNodeIds, keysDir, tmpDir)
             const output = await keytool.list(`-storetype pkcs12 -storepass password -keystore ${publicPfxFile}`)
-            if (!output.includes(`Your keystore contains ${nodeIds.length * 3} entries`)) {
+            if (!output.includes(`Your keystore contains ${allNodeIds.length * 3} entries`)) {
               throw new FullstackTestingError(`malformed public.pfx file: ${publicPfxFile}`)
             }
           }
@@ -1201,7 +1202,7 @@ export class NodeCommand extends BaseCommand {
         title: 'Generate Gossip keys',
         task: async (ctx, parentTask) => {
           const config = ctx.config
-          const subTasks = self._nodeGossipKeysTaskList(config.keyFormat, config.allNodeIds, config.keysDir, config.curDate, false)
+          const subTasks = self._nodeGossipKeysTaskList(config.keyFormat, config.nodeIds, config.keysDir, config.curDate, config.allNodeIds)
           // set up the sub-tasks
           return parentTask.newListr(subTasks, {
             concurrent: false,
