@@ -520,6 +520,11 @@ export class KeyManager {
     if (!fs.existsSync(keysDir)) throw new MissingArgumentError('keysDir does not exist')
 
     const privatePfxFile = path.join(keysDir, `private-${nodeId}.pfx`)
+    if (fs.existsSync(privatePfxFile)) {
+      this.logger.debug(`overwriteKeys is set to false and private pfx file already exists: ${privatePfxFile}`)
+      return privatePfxFile
+    }
+
     const validity = constants.CERTIFICATE_VALIDITY_YEARS * 365
     const tmpPrivatePfxFile = path.join(tmpDir, `private-${nodeId}.pfx`)
     const signedKeyAlias = `${constants.SIGNING_KEY_PREFIX}-${nodeId}`
