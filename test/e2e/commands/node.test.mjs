@@ -169,6 +169,7 @@ describe.each([
 
       for (const [nodeId, existingKeyHashMap] of existingNodeIdsPrivateKeysHash.entries()) {
         const currentNodeKeyHashMap = currentNodeIdsPrivateKeysHash.get(nodeId)
+
         for (const [keyFileName, existingKeyHash] of existingKeyHashMap.entries()) {
           expect(`${nodeId}:${keyFileName}:${currentNodeKeyHashMap.get(keyFileName)}`).toEqual(
                 `${nodeId}:${keyFileName}:${existingKeyHash}`)
