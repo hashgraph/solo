@@ -344,6 +344,7 @@ export class NodeCommand extends BaseCommand {
   }
 
   uploadPlatformSoftware (ctx, task, localBuildPath) {
+    const self = this
     const subTasks = []
 
     const config = ctx.config
