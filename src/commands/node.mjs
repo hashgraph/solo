@@ -349,7 +349,7 @@ export class NodeCommand extends BaseCommand {
 
     const config = ctx.config
     self.logger.debug('no need to fetch, use local build jar files')
-    //localBuildPath example input 'node0=../hedera-services/,node1=../hedera-services/,node2=../hedera2/hedera-services/'
+    // localBuildPath example input 'node0=../hedera-services/,node1=../hedera-services/,node2=../hedera2/hedera-services/'
     // split the input string by ','
     const parameterPairs = localBuildPath.split(',')
     // iterate over the localBuildPaths
