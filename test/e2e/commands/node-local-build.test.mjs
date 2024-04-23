@@ -41,6 +41,7 @@ describe('NodeCommand', () => {
   argv[flags.generateTlsKeys.name] = true
   argv[flags.clusterName.name] = TEST_CLUSTER
   argv[flags.localBuildPath.name] = 'node0=../hedera-services/,node1=../hedera-services/,node2=../hedera-services/'
+  argv[flags.pttTestConfig.name] = 'PlatformTestingTool.jar,../hedera-services/platform-sdk/platform-apps/tests/PlatformTestingTool/src/main/resources/FCMFCQ-Basic-2.5k-5m.json'
   const bootstrapResp = bootstrapNetwork(testName, argv)
   const accountManager = bootstrapResp.opts.accountManager
   const k8 = bootstrapResp.opts.k8

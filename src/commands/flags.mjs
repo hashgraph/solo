@@ -399,6 +399,15 @@ export const settingTxt = {
   }
 }
 
+export const pttTestConfig = {
+  name: 'ptt-test-config',
+  definition: {
+    describe: 'PTT test jar and config file',
+    defaultValue: '',
+    type: 'string'
+  }
+}
+
 export const localBuildPath = {
   name: 'local-build-path',
   definition: {
@@ -517,7 +526,8 @@ export const allFlags = [
   applicationEnv,
   profileFile,
   profileName,
-  localBuildPath
+  localBuildPath,
+  pttTestConfig
 ]
 
 export const allFlagsMap = new Map(allFlags.map(f => [f.name, f]))

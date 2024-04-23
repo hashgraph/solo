@@ -77,10 +77,10 @@ export class NodeCommand extends BaseCommand {
     }
   }
 
-  async checkNetworkNodeStarted (nodeId, maxAttempt = 100, status = 'ACTIVE') {
+  async checkNetworkNodeStarted (nodeId, maxAttempt = 100, status = 'ACTIVE', logfile = 'logs/hgcaa.log') {
     nodeId = nodeId.trim()
     const podName = Templates.renderNetworkPodName(nodeId)
-    const logfilePath = `${constants.HEDERA_HAPI_PATH}/logs/hgcaa.log`
+    const logfilePath = `${constants.HEDERA_HAPI_PATH}/${logfile}`
     let attempt = 0
     let isActive = false
 
@@ -108,6 +108,7 @@ export class NodeCommand extends BaseCommand {
         const output = await this.k8.execContainer(podName, constants.ROOT_CONTAINER, ['tail', '-10', logfilePath])
         if (output && output.indexOf('Terminating Netty') < 0 && // make sure we are not at the beginning of a restart
             (output.indexOf(`Now current platform status = ${status}`) > 0 ||
+            output.indexOf(`Platform Status Change ${status}`) > 0 ||
             output.indexOf(`is ${status}`) > 0)) { // 'is ACTIVE' is for newer versions, first seen in v0.49.0
           this.logger.debug(`Node ${nodeId} is ${status} [ attempt: ${attempt}/${maxAttempt}]`)
           isActive = true
@@ -352,12 +353,18 @@ export class NodeCommand extends BaseCommand {
     // localBuildPath example input 'node0=../hedera-services/,node1=../hedera-services/,node2=../hedera2/hedera-services/'
     // split the input string by ','
     const parameterPairs = localBuildPath.split(',')
-    // iterate over the localBuildPaths
+    const pttTestConfig = self.configManager.getFlag(flags.pttTestConfig)
+    if (pttTestConfig !== '') {
+    }
     for (const parameterPair of parameterPairs) {
       // split the localBuildPath by '='
       const [nodeId, localBuildPath] = parameterPair.split('=')
       // if the path does not exist, throw an error
-      const localDataLibBuildPath = path.join(localBuildPath, 'hedera-node', 'data')
+      if (pttTestConfig !== '') {
+        const localDataLibBuildPath = path.join(localBuildPath, 'hedera-node', 'sdk', 'data')
+      } else {
+        const localDataLibBuildPath = path.join(localBuildPath, 'platform-sdk', 'sdk', 'data')
+      }
       // if the path does not exist, throw an error
       if (!fs.existsSync(localDataLibBuildPath)) {
         throw new FullstackTestingError(`local build path does not exist: ${localDataLibBuildPath}`)
@@ -368,6 +375,11 @@ export class NodeCommand extends BaseCommand {
         task: async () => {
           this.logger.debug(`Copying build files to pod: ${podName} from ${localDataLibBuildPath}`)
           await self.k8.copyTo(podName, constants.ROOT_CONTAINER, localDataLibBuildPath, `${constants.HEDERA_HAPI_PATH}`)
+          const pttTestConfig = self.configManager.getFlag(flags.pttTestConfig)
+          if (pttTestConfig !== '') {
+            const [pttJar, testJson] = pttTestConfig.split(',')
+            await self.k8.copyTo(podName, constants.ROOT_CONTAINER, testJson, `${constants.HEDERA_HAPI_PATH}`)
+          }
         }
       })
     }
@@ -546,7 +558,17 @@ export class NodeCommand extends BaseCommand {
                 const config = ctx.config
                 const configTxtPath = `${config.stagingDir}/config.txt`
                 const template = `${constants.RESOURCES_DIR}/templates/config.template`
-                await self.platformInstaller.prepareConfigTxt(config.nodeIds, configTxtPath, config.releaseTag, config.chainId, template)
+                const pttTestConfig = self.configManager.getFlag(flags.pttTestConfig)
+                if (pttTestConfig !== '') {
+                  const [pttJar, testJson] = pttTestConfig.split(',')
+                  self.logger.debug(`PTT test jar: ${pttJar}, test json: ${testJson}`)
+                  if (!fs.existsSync(testJson)) {
+                    throw new FullstackTestingError(`test json file does not exist: ${testJson}`)
+                  }
+                  await self.platformInstaller.prepareConfigTxt(config.nodeIds, configTxtPath, config.releaseTag, config.chainId, template, pttJar)
+                } else {
+                  await self.platformInstaller.prepareConfigTxt(config.nodeIds, configTxtPath, config.releaseTag, config.chainId, template)
+                }
               }
             }
           ]
@@ -684,10 +706,18 @@ export class NodeCommand extends BaseCommand {
         task: (ctx, task) => {
           const subTasks = []
           for (const nodeId of ctx.config.nodeIds) {
-            subTasks.push({
-              title: `Check node: ${chalk.yellow(nodeId)}`,
-              task: () => self.checkNetworkNodeStarted(nodeId)
-            })
+            const pttTestConfig = self.configManager.getFlag(flags.pttTestConfig)
+            if (pttTestConfig !== '') {
+              subTasks.push({
+                title: `Check node: ${chalk.yellow(nodeId)}`,
+                task: () => self.checkNetworkNodeStarted(nodeId, 100, 'ACTIVE', 'logs/swirlds.log')
+              })
+            } else {
+              subTasks.push({
+                title: `Check node: ${chalk.yellow(nodeId)}`,
+                task: () => self.checkNetworkNodeStarted(nodeId)
+              })
+            }
           }
 
           // set up the sub-tasks
@@ -1117,10 +1147,18 @@ export class NodeCommand extends BaseCommand {
         task: (ctx, task) => {
           const subTasks = []
           for (const nodeId of ctx.config.nodeIds) {
-            subTasks.push({
-              title: `Check node: ${chalk.yellow(nodeId)}`,
-              task: () => self.checkNetworkNodeStarted(nodeId)
-            })
+            const pttTestConfig = self.configManager.getFlag(flags.pttTestConfig)
+            if (pttTestConfig !== '') {
+              subTasks.push({
+                title: `Check node: ${chalk.yellow(nodeId)}`,
+                task: () => self.checkNetworkNodeStarted(nodeId, 'logs/swirlds.log')
+              })
+            } else {
+              subTasks.push({
+                title: `Check node: ${chalk.yellow(nodeId)}`,
+                task: () => self.checkNetworkNodeStarted(nodeId)
+              })
+            }
           }
 
           // set up the sub-tasks
@@ -1199,6 +1237,7 @@ export class NodeCommand extends BaseCommand {
               flags.bootstrapProperties,
               flags.settingTxt,
               flags.localBuildPath,
+              flags.pttTestConfig,
               flags.log4j2Xml
             ),
             handler: argv => {
