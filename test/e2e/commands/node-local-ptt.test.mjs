@@ -15,10 +15,8 @@
  *
  */
 import {
-  afterAll, afterEach,
-  describe,
-  expect,
-  it
+  afterAll,
+  describe
 } from '@jest/globals'
 import { flags } from '../../../src/commands/index.mjs'
 import {

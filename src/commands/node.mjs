@@ -380,6 +380,8 @@ export class NodeCommand extends BaseCommand {
         throw new FullstackTestingError(`local build path does not exist: ${localDataLibBuildPath}`)
       }
       const podName = config.podNames[nodeId]
+      const [pttJar, testJson] = pttTestConfig.split(',')
+      self.logger.debug(`PTT test jar: ${pttJar}, test json: ${testJson}`)
       subTasks.push({
         title: `Copy local build to Node: ${chalk.yellow(nodeId)} from ${localDataLibBuildPath}`,
         task: async () => {
@@ -387,7 +389,6 @@ export class NodeCommand extends BaseCommand {
           await self.k8.copyTo(podName, constants.ROOT_CONTAINER, localDataLibBuildPath, `${constants.HEDERA_HAPI_PATH}`)
           const pttTestConfig = self.configManager.getFlag(flags.pttTestConfig)
           if (pttTestConfig !== '') {
-            const [pttJar, testJson] = pttTestConfig.split(',')
             await self.k8.copyTo(podName, constants.ROOT_CONTAINER, testJson, `${constants.HEDERA_HAPI_PATH}`)
           }
         }
