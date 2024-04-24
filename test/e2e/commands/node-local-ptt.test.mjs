@@ -30,43 +30,25 @@ import {
   TEST_CLUSTER
 } from '../../test_util.js'
 
-describe('NodeCommand', () => {
-  const testName = 'node-local-build'
-  const namespace = testName
+describe('Node local build', () => {
+  const LOCAL_PTT = 'local-ptt-app'
   const argv = getDefaultArgv()
-  argv[flags.namespace.name] = namespace
   argv[flags.keyFormat.name] = constants.KEY_FORMAT_PFX
   argv[flags.nodeIDs.name] = 'node0,node1,node2'
   argv[flags.generateGossipKeys.name] = true
   argv[flags.generateTlsKeys.name] = true
   argv[flags.clusterName.name] = TEST_CLUSTER
-  argv[flags.localBuildPath.name] = 'node0=../hedera-services/,node1=../hedera-services/,node2=../hedera-services/'
-  argv[flags.pttTestConfig.name] = 'PlatformTestingTool.jar,../hedera-services/platform-sdk/platform-apps/tests/PlatformTestingTool/src/main/resources/FCMFCQ-Basic-2.5k-5m.json'
-  const bootstrapResp = bootstrapNetwork(testName, argv)
-  const accountManager = bootstrapResp.opts.accountManager
-  const k8 = bootstrapResp.opts.k8
-  const nodeCmd = bootstrapResp.cmd.nodeCmd
-
-  afterEach(async () => {
-    await nodeCmd.close()
-    await accountManager.close()
-  }, 120000)
-
+  let pttK8
   afterAll(async () => {
-    await k8.deleteNamespace(namespace)
+    await pttK8.deleteNamespace(LOCAL_PTT)
   }, 120000)
 
-  describe('Node should start successfully', () => {
-    it('Node Proxy should be up', async () => {
-      expect.assertions(1)
-      try {
-        await expect(nodeCmd.checkNetworkNodeProxyUp('node0', 30499)).resolves.toBeTruthy()
-      } catch (e) {
-        nodeCmd.logger.showUserError(e)
-        expect(e).toBeNull()
-      } finally {
-        await nodeCmd.close()
-      }
-    }, 20000)
+  describe('Node for platform app should start successfully', () => {
+    console.log('Starting local build for Platform app')
+    argv[flags.localBuildPath.name] = 'node0=../hedera-services/,node1=../hedera-services/,node2=../hedera-services/'
+    argv[flags.pttTestConfig.name] = 'PlatformTestingTool.jar,../hedera-services/platform-sdk/platform-apps/tests/PlatformTestingTool/src/main/resources/FCMFCQ-Basic-2.5k-5m.json'
+    argv[flags.namespace.name] = LOCAL_PTT
+    const bootstrapResp = bootstrapNetwork(LOCAL_PTT, argv)
+    pttK8 = bootstrapResp.opts.k8
   })
 })

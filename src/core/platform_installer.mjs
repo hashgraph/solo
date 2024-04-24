@@ -269,10 +269,7 @@ export class PlatformInstaller {
    * @param chainId chain ID (298 for local network)
    * @returns {Promise<unknown>}
    */
-  async prepareConfigTxt (nodeIDs, destPath, releaseTag,
-                          chainId = constants.HEDERA_CHAIN_ID,
-                          template = `${constants.RESOURCES_DIR}/templates/config.template`,
-                          appName = constants.HEDERA_APP_NAME) {
+  async prepareConfigTxt (nodeIDs, destPath, releaseTag, chainId = constants.HEDERA_CHAIN_ID, template = `${constants.RESOURCES_DIR}/templates/config.template`, appName = constants.HEDERA_APP_NAME) {
     if (!nodeIDs || nodeIDs.length === 0) throw new MissingArgumentError('list of node IDs is required')
     if (!destPath) throw new MissingArgumentError('destPath is required')
     if (!template) throw new MissingArgumentError('config templatePath is required')

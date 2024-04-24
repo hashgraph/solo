@@ -84,6 +84,7 @@ export class NodeCommand extends BaseCommand {
     let attempt = 0
     let isActive = false
 
+    this.logger.debug(`Checking if node ${nodeId} is ${status}...`)
     // check log file is accessible
     let logFileAccessible = false
     while (attempt++ < maxAttempt) {
@@ -105,7 +106,7 @@ export class NodeCommand extends BaseCommand {
     attempt = 0
     while (attempt < maxAttempt) {
       try {
-        const output = await this.k8.execContainer(podName, constants.ROOT_CONTAINER, ['tail', '-10', logfilePath])
+        const output = await this.k8.execContainer(podName, constants.ROOT_CONTAINER, ['tail', '-100', logfilePath])
         if (output && output.indexOf('Terminating Netty') < 0 && // make sure we are not at the beginning of a restart
             (output.indexOf(`Now current platform status = ${status}`) > 0 ||
             output.indexOf(`Platform Status Change ${status}`) > 0 ||
@@ -354,17 +355,14 @@ export class NodeCommand extends BaseCommand {
     // split the input string by ','
     const parameterPairs = localBuildPath.split(',')
     const pttTestConfig = self.configManager.getFlag(flags.pttTestConfig)
-    if (pttTestConfig !== '') {
-    }
     for (const parameterPair of parameterPairs) {
       // split the localBuildPath by '='
       const [nodeId, localBuildPath] = parameterPair.split('=')
-      // if the path does not exist, throw an error
+      let localDataLibBuildPath = path.join(localBuildPath, 'hedera-node', 'data')
       if (pttTestConfig !== '') {
-        const localDataLibBuildPath = path.join(localBuildPath, 'hedera-node', 'sdk', 'data')
-      } else {
-        const localDataLibBuildPath = path.join(localBuildPath, 'platform-sdk', 'sdk', 'data')
+        localDataLibBuildPath = path.join(localBuildPath, 'platform-sdk', 'sdk', 'data')
       }
+
       // if the path does not exist, throw an error
       if (!fs.existsSync(localDataLibBuildPath)) {
         throw new FullstackTestingError(`local build path does not exist: ${localDataLibBuildPath}`)
@@ -748,7 +746,8 @@ export class NodeCommand extends BaseCommand {
               collapseSubtasks: false
             }
           })
-        }
+        },
+        skip: (ctx, _) => self.configManager.getFlag(flags.pttTestConfig) !== ''
       }], {
       concurrent: false,
       rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
@@ -1151,7 +1150,7 @@ export class NodeCommand extends BaseCommand {
             if (pttTestConfig !== '') {
               subTasks.push({
                 title: `Check node: ${chalk.yellow(nodeId)}`,
-                task: () => self.checkNetworkNodeStarted(nodeId, 'logs/swirlds.log')
+                task: () => self.checkNetworkNodeStarted(nodeId, 100, 'ACTIVE', 'logs/swirlds.log')
               })
             } else {
               subTasks.push({
@@ -1191,7 +1190,8 @@ export class NodeCommand extends BaseCommand {
               collapseSubtasks: false
             }
           })
-        }
+        },
+        skip: (ctx, _) => self.configManager.getFlag(flags.pttTestConfig) !== ''
       }], {
       concurrent: false,
       rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION

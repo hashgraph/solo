@@ -365,6 +365,10 @@ To have nodes running with different versions of hedera application, please clon
 checkout to the respective version and build the code. Then run the above command
 and provide the path to the respective node.
 
+To deploy node with local build PTT code, run the following command:
+```
+$ solo node setup --local-build-path node0=<path-to-hedera-repo>,node1=<path-to-hedera-repo>,node2=<path-to-hedera-repo> --ptt-test-config PlatformTestingTool.jar,<path-to-test-json>
+```
 ## Support
 
 If you have a question on how to use the product, please see our [support guide](https://github.com/hashgraph/.github/blob/main/SUPPORT.md).
