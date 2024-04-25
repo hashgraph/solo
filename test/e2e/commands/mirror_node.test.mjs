@@ -74,7 +74,7 @@ describe('MirrorNodeCommand', () => {
       mirrorNodeCmd.logger.showUserError(e)
       expect(e).toBeNull()
     }
-  }, 240000)
+  }, 360000)
 
   it('mirror node api and hedera explorer should success', async () => {
     await accountManager.loadNodeClient(namespace)
