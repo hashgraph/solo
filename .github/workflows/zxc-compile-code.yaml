@@ -82,6 +82,7 @@ jobs:
           cache: npm
 
       - name: Install wget
+        if: ${{ runner.os == 'linux' && inputs.enable-e2e-tests && !cancelled() && !failure() }}
         run: |
           sudo apt-get update
           sudo apt-get install -y wget
