@@ -1,0 +1,40 @@
+#!/bin/sh
+SOLO_CLUSTER=solo-e2e
+SOLO_IMAGE_LIST=(docker.io/bitnami/postgresql-repmgr:14.7.0-debian-11-r27 \
+                docker.io/envoyproxy/envoy:v1.21.1 \
+                docker.io/grafana/grafana:10.1.5 \
+                docker.io/haproxytech/haproxy-alpine:2.4.25 \
+                quay.io/prometheus-operator/prometheus-operator:v0.68.0 \
+                docker.io/otel/opentelemetry-collector-contrib:0.72.0 \
+                gcr.io/hedera-registry/hedera-mirror-node-explorer:23.8.0 \
+                gcr.io/hedera-registry/uploader-mirror:1.3.0 \
+                quay.io/prometheus/alertmanager:v0.26.0 \
+                gcr.io/mirrornode/hedera-mirror-grpc:0.86.0 \
+                gcr.io/mirrornode/hedera-mirror-importer:0.86.0 \
+                gcr.io/mirrornode/hedera-mirror-monitor:0.86.0 \
+                quay.io/prometheus-operator/prometheus-config-reloader:v0.68.0 \
+                gcr.io/mirrornode/hedera-mirror-rest:0.86.0 \
+                ghcr.io/hashgraph/full-stack-testing/ubi8-init-java21:0.24.3 \
+                ghcr.io/hashgraph/hedera-json-rpc-relay:0.43.0 \
+                quay.io/prometheus/node-exporter:v1.6.1
+                quay.io/minio/minio:RELEASE.2024-02-09T21-25-16Z \
+                quay.io/minio/operator:v5.0.7 \
+                quay.io/prometheus/prometheus:v2.47.1 \
+                registry.k8s.io/ingress-nginx/kube-webhook-certgen:v20221220-controller-v1.5.1-58-g787ea74b6 \
+                quay.io/kiwigrid/k8s-sidecar:1.25.1 \
+                registry.k8s.io/kube-state-metrics/kube-state-metrics:v2.10.0
+            )
+
+function download_images() {
+    for im in $SOLO_IMAGE_LIST[@]; do
+        echo "Pulling image: ${im}"
+        docker pull --quiet "${im}"
+    done
+}
+
+function load_images() {
+    for im in $SOLO_IMAGE_LIST[@]; do
+        echo "Loading image: ${im}"
+        kind load docker-image "${im}" -n $SOLO_CLUSTER
+    done
+}
