@@ -156,6 +156,13 @@ export class MirrorNodeCommand extends BaseCommand {
               ], 1, 900, 2000)
             },
             {
+              title: 'Check Web3',
+              task: async (ctx, _) => self.k8.waitForPodReady([
+                'app.kubernetes.io/component=web3',
+                'app.kubernetes.io/name=web3'
+              ], 1, 900, 2000)
+            },
+            {
               title: 'Check Hedera Explorer',
               skip: (ctx, _) => !ctx.config.deployHederaExplorer,
               task: async (ctx, _) => self.k8.waitForPodReady([
