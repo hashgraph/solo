@@ -70,7 +70,7 @@ export class RelayCommand extends BaseCommand {
     }
 
     nodeIDs.forEach(nodeID => {
-      const networkKey = `network-${nodeID.trim()}-0:50211`
+      const networkKey = `network-${nodeID.trim()}:50211`
       valuesArg += ` --set config.HEDERA_NETWORK.${networkKey}=0.0.3`
     })
 
