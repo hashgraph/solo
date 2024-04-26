@@ -132,7 +132,7 @@ export class MirrorNodeCommand extends BaseCommand {
               task: async (ctx, _) => self.k8.waitForPodReady([
                 'app.kubernetes.io/component=rest',
                 'app.kubernetes.io/name=rest'
-              ], 1, 1500, 200) // timeout 30 minutes
+              ], 1, 1500, 2000) // timeout 30 minutes
             },
             {
               title: 'Check GRPC',
