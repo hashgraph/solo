@@ -21,5 +21,5 @@
 
 export const JAVA_VERSION = '21.0.1+12'
 export const HELM_VERSION = 'v3.14.2'
-export const FST_CHART_VERSION = 'v0.24.3'
+export const FST_CHART_VERSION = 'v0.24.4'
 export const HEDERA_PLATFORM_VERSION = 'v0.47.0'
