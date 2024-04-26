@@ -81,6 +81,12 @@ jobs:
           node-version: ${{ inputs.node-version }}
           cache: npm
 
+      - name: Install wget
+        if: ${{ runner.os == 'linux' && inputs.enable-e2e-tests && !cancelled() && !failure() }}
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y wget
+
       - name: Setup Kind
         uses: helm/kind-action@99576bfa6ddf9a8e612d83b513da5a75875caced # v1.9.0
         if: ${{ runner.os == 'linux' && inputs.enable-e2e-tests && !cancelled() && !failure() }}
