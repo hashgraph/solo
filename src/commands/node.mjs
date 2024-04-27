@@ -367,6 +367,7 @@ export class NodeCommand extends BaseCommand {
 
   async setup (argv) {
     const self = this
+    let platformVersion = argv[flags.releaseTag.name] // for task label
 
     const tasks = new Listr([
       {
@@ -398,6 +399,7 @@ export class NodeCommand extends BaseCommand {
             curDate: new Date()
           }
 
+          platformVersion = self.configManager.getFlag(flags.releaseTag)
           await self.initializeSetup(config, self.configManager, self.k8)
 
           // set config in the context for later tasks to use
@@ -523,7 +525,7 @@ export class NodeCommand extends BaseCommand {
         }
       },
       {
-        title: 'Fetch platform software into network nodes',
+        title: `Fetch platform software into network nodes[ platform version: ${platformVersion}]`,
         task:
           async (ctx, task) => {
             return self.fetchPlatformSoftware(ctx, task, self.platformInstaller)
