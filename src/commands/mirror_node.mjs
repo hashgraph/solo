@@ -127,35 +127,42 @@ export class MirrorNodeCommand extends BaseCommand {
               task: async (ctx, _) => self.k8.waitForPodReady([
                 'app.kubernetes.io/component=postgresql',
                 'app.kubernetes.io/name=postgres'
-              ], 1, 900, 2000)
+              ], 1, 1500, 2000) // timeout 30 minutes
             },
             {
               title: 'Check REST API',
               task: async (ctx, _) => self.k8.waitForPodReady([
                 'app.kubernetes.io/component=rest',
                 'app.kubernetes.io/name=rest'
-              ], 1, 900, 200)
+              ], 1, 1500, 2000) // timeout 30 minutes
             },
             {
               title: 'Check GRPC',
               task: async (ctx, _) => self.k8.waitForPodReady([
                 'app.kubernetes.io/component=grpc',
                 'app.kubernetes.io/name=grpc'
-              ], 1, 900, 2000)
+              ], 1, 1500, 2000) // timeout 30 minutes
             },
             {
               title: 'Check Monitor',
               task: async (ctx, _) => self.k8.waitForPodReady([
                 'app.kubernetes.io/component=monitor',
                 'app.kubernetes.io/name=monitor'
-              ], 1, 900, 2000)
+              ], 1, 1500, 2000) // timeout 30 minutes
             },
             {
               title: 'Check Importer',
               task: async (ctx, _) => self.k8.waitForPodReady([
                 'app.kubernetes.io/component=importer',
                 'app.kubernetes.io/name=importer'
-              ], 1, 900, 2000)
+              ], 1, 1500, 2000)
+            },
+            {
+              title: 'Check Web3',
+              task: async (ctx, _) => self.k8.waitForPodReady([
+                'app.kubernetes.io/component=web3',
+                'app.kubernetes.io/name=web3'
+              ], 1, 1500, 2000)
             },
             {
               title: 'Check Hedera Explorer',
@@ -163,7 +170,7 @@ export class MirrorNodeCommand extends BaseCommand {
               task: async (ctx, _) => self.k8.waitForPodReady([
                 'app.kubernetes.io/component=hedera-explorer',
                 'app.kubernetes.io/name=hedera-explorer'
-              ], 1, 900, 2000)
+              ], 1, 1500, 2000)
             }
           ]
 

@@ -36,6 +36,6 @@ describe('DependencyManager', () => {
 
     it('should succeed during helm dependency check', async () => {
       await expect(depManager.checkDependency(constants.HELM)).resolves.toBe(true)
-    })
-  }, 10000)
+    }, 60000)
+  })
 })

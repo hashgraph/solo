@@ -75,6 +75,7 @@ Then run the following command to set the kubectl context to the new cluster:
 ```bash
 kind create cluster -n "${SOLO_CLUSTER_NAME}"
 ```
+
 Example output
 
 ```
@@ -184,6 +185,7 @@ Kubernetes Namespace	: solo
 ✔ Generate gRPC TLS keys
 ✔ Finalize
 ```
+
 Key files are generated in `~/.solo/keys` directory.
 
 ```
@@ -192,6 +194,7 @@ $ ls ~/.solo/cache/keys
 hedera-node0.crt  hedera-node1.crt  hedera-node2.crt  private-node0.pfx private-node2.pfx
 hedera-node0.key  hedera-node1.key  hedera-node2.key  private-node1.pfx public.pfx
 ```
+
 * Setup cluster with shared components
   * In a separate terminal, you may run `k9s` to view the pod status.
 
@@ -213,7 +216,6 @@ Kubernetes Namespace	: solo
 ✔ Prepare chart values
 ✔ Install 'fullstack-cluster-setup' chart
 ```
-
 
 * Deploy helm chart with Hedera network components
   * It may take a while (5~15 minutes depending on your internet speed) to download various docker images and get the pods started.
@@ -334,6 +336,7 @@ Kubernetes Namespace	: solo
 ✔ Check proxy for node: node1
 ✔ Check node proxies are ACTIVE
 ```
+
 * Deploy mirror node
 
 ```
@@ -518,7 +521,9 @@ Kubernetes Namespace	: solo
 ✔ Generate gRPC TLS keys
 ✔ Finalize
 ```
+
 PEM key files are generated in `~/.solo/keys` directory.
+
 ```
 $ ls ~/.solo/cache/keys  
 a-private-node0.pem a-public-node1.pem  hedera-node1.crt    s-private-node0.pem s-public-node1.pem
@@ -526,6 +531,7 @@ a-private-node1.pem a-public-node2.pem  hedera-node1.key    s-private-node1.pem 
 a-private-node2.pem hedera-node0.crt    hedera-node2.crt    s-private-node2.pem
 a-public-node0.pem  hedera-node0.key    hedera-node2.key    s-public-node0.pem
 ```
+
 * Setup cluster with shared components
 
 ```
