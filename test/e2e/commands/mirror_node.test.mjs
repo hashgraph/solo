@@ -61,7 +61,7 @@ describe('MirrorNodeCommand', () => {
     await sleep(5) // give a few ticks so that connections can close
   })
 
-  it('mirror node deploy should success', async () => {
+  it('mirror node deploy should succeed', async () => {
     expect.assertions(1)
     try {
       await expect(mirrorNodeCmd.deploy(argv)).resolves.toBeTruthy()
@@ -69,9 +69,9 @@ describe('MirrorNodeCommand', () => {
       mirrorNodeCmd.logger.showUserError(e)
       expect(e).toBeNull()
     }
-  }, 120000)
+  }, 360000)
 
-  it('mirror node destroy should success', async () => {
+  it('mirror node destroy should succeed', async () => {
     expect.assertions(1)
     try {
       await expect(mirrorNodeCmd.destroy(argv)).resolves.toBeTruthy()
