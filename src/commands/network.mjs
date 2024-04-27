@@ -187,7 +187,7 @@ export class NetworkCommand extends BaseCommand {
                   self.k8.waitForPod(constants.POD_STATUS_RUNNING, [
                     'fullstack.hedera.com/type=network-node',
                     `fullstack.hedera.com/node-name=${nodeId}`
-                  ], 1, 60 * 15, 1000) // timeout 15 minutes
+                  ], 1, 1500, 2000) // timeout 30 minutes
               })
             }
 

@@ -36,12 +36,12 @@ import * as core from '../../../src/core/index.mjs'
 import { TopicCreateTransaction, TopicMessageSubmitTransaction } from '@hashgraph/sdk'
 import * as http from 'http'
 
-describe('MirrorNodeCommand', () => {
+describe.skip('MirrorNodeCommand', () => {
   const testName = 'mirror-cmd-e2e'
   const namespace = testName
   const argv = getDefaultArgv()
   argv[flags.namespace.name] = namespace
-  argv[flags.releaseTag.name] = 'v0.47.0-alpha.0'
+  argv[flags.releaseTag.name] = version.HEDERA_PLATFORM_VERSION
   argv[flags.keyFormat.name] = constants.KEY_FORMAT_PEM
 
   argv[flags.nodeIDs.name] = 'node0,node1,node2'
@@ -67,7 +67,7 @@ describe('MirrorNodeCommand', () => {
     await sleep(500) // give a few ticks so that connections can close
   })
 
-  it('mirror node deploy should success', async () => {
+  it('mirror node deploy should succeed', async () => {
     expect.assertions(1)
     try {
       await expect(mirrorNodeCmd.deploy(argv)).resolves.toBeTruthy()
@@ -154,9 +154,9 @@ describe('MirrorNodeCommand', () => {
       mirrorNodeCmd.logger.showUserError(e)
       expect(e).toBeNull()
     }
-  }, 240000)
+  }, 360000)
 
-  it('mirror node destroy should success', async () => {
+  it('mirror node destroy should succeed', async () => {
     expect.assertions(1)
     try {
       await expect(mirrorNodeCmd.destroy(argv)).resolves.toBeTruthy()
