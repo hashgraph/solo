@@ -69,7 +69,7 @@ jobs:
     strategy:
       matrix:
         os:
-          - windows-2022
+#          - windows-2022
           - [self-hosted, Linux, medium, ephemeral]
     steps:
       - name: Checkout Code

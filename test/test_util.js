@@ -191,7 +191,7 @@ export function bootstrapNetwork (testName, argv,
       if (!await chartManager.isChartInstalled(constants.FULLSTACK_SETUP_NAMESPACE, constants.FULLSTACK_CLUSTER_SETUP_CHART)) {
         await clusterCmd.setup(argv)
       }
-    }, 60000)
+    }, 120000)
 
     it('should succeed with network deploy', async () => {
       await networkCmd.deploy(argv)

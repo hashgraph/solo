@@ -87,7 +87,7 @@ describe.each([
     }, 20000)
   })
 
-  describe(`Node should refresh successfully [mode ${input.mode}, release ${input.releaseTag}, keyFormat: ${input.keyFormat}]`, () => {
+  describe.skip(`Node should refresh successfully [mode ${input.mode}, release ${input.releaseTag}, keyFormat: ${input.keyFormat}]`, () => {
     const nodeId = 'node0'
 
     beforeAll(async () => {

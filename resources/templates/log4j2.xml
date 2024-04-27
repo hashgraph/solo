@@ -53,12 +53,12 @@
 
   </Appenders>
   <Loggers>
-    <Root level="TRACE">
+    <Root level="INFO">
       <!-- <AppenderRef ref="Console"/> -->
       <AppenderRef ref="fileLog"/>
     </Root>
 
-    <Logger name="com.swirlds" level="TRACE" additivity="false">
+    <Logger name="com.swirlds" level="INFO" additivity="false">
       <AppenderRef ref="fileLog">
         <Filters>
           <!-- JasperDB & Virtual Merkle -->
