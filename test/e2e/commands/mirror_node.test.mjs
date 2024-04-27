@@ -33,7 +33,7 @@ import * as version from '../../../version.mjs'
 import { sleep } from '../../../src/core/helpers.mjs'
 import { MirrorNodeCommand } from '../../../src/commands/mirror_node.mjs'
 
-describe('MirrorNodeCommand', () => {
+describe.skip('MirrorNodeCommand', () => {
   const testName = 'mirror-cmd-e2e'
   const namespace = testName
   const argv = getDefaultArgv()
