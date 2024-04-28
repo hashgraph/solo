@@ -27,8 +27,7 @@ import {
   beforeAll,
   describe,
   expect,
-  it,
-  jest
+  it
 } from '@jest/globals'
 import { flags } from '../../../src/commands/index.mjs'
 import {
@@ -230,7 +229,7 @@ function balanceQueryShouldSucceed (accountManager, nodeCmd, namespace) {
       nodeCmd.logger.showUserError(e)
       expect(e).toBeNull()
     }
-    jest.runAllTicks()
+    await sleep(1000)
   }, 120000)
 }
 
