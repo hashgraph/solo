@@ -46,7 +46,7 @@ jobs:
       enable-code-style-check: true
 
   unit-tests:
-    name: Unit Tests
+    name: Unit Tests ${{ runner.os }}
     uses: ./.github/workflows/zxc-compile-code.yaml
     needs:
       - code-style
@@ -55,7 +55,7 @@ jobs:
       enable-unit-tests: true
 
   e2e-tests:
-    name: E2E Tests
+    name: E2E Tests ${{ runner.os }}
     uses: ./.github/workflows/zxc-compile-code.yaml
     needs:
       - code-style
