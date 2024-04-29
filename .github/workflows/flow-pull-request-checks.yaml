@@ -46,21 +46,21 @@ jobs:
       enable-code-style-check: true
 
   unit-tests:
-    name: Unit Tests ${{ runner.os }}
+    name: Unit Tests
     uses: ./.github/workflows/zxc-compile-code.yaml
     needs:
       - code-style
     with:
-      custom-job-label: Standard
+      custom-job-label: Standard ${{ runner.os }}
       enable-unit-tests: true
 
   e2e-tests:
-    name: E2E Tests ${{ runner.os }}
+    name: E2E Tests
     uses: ./.github/workflows/zxc-compile-code.yaml
     needs:
       - code-style
     with:
-      custom-job-label: Standard
+      custom-job-label: Standard ${{ runner.os }}
       enable-e2e-tests: true
 
   codecov:
