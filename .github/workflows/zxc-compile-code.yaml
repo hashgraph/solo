@@ -47,7 +47,7 @@ on:
         description: "Custom Job Label:"
         type: string
         required: false
-        default: ${{ runner.os }}
+        default: "Compiles"
 
 defaults:
   run:
@@ -64,7 +64,7 @@ permissions:
 
 jobs:
   compile:
-    name: ${{ inputs.custom-job-label || 'Compiles' }}
+    name: ${{ runner.os || 'Compiles' }}
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
