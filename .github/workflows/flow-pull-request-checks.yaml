@@ -47,20 +47,30 @@ jobs:
 
   unit-tests:
     name: Unit Tests
+    strategy:
+      matrix:
+        os:
+          - windows-2022
+          - [self-hosted, Linux, medium, ephemeral]
     uses: ./.github/workflows/zxc-compile-code.yaml
     needs:
       - code-style
     with:
-      custom-job-label: Standard ${{ runner.os }}
+      custom-job-label: ${{ matrix.os }}
       enable-unit-tests: true
 
   e2e-tests:
     name: E2E Tests
+    strategy:
+      matrix:
+        os:
+          - windows-2022
+          - [self-hosted, Linux, medium, ephemeral]
     uses: ./.github/workflows/zxc-compile-code.yaml
     needs:
       - code-style
     with:
-      custom-job-label: Standard ${{ runner.os }}
+      custom-job-label: ${{ matrix.os }}
       enable-e2e-tests: true
 
   codecov:
