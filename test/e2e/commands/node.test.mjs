@@ -69,7 +69,7 @@ describe.each([
   }, 120000)
 
   afterAll(async () => {
-    // await k8.deleteNamespace(namespace)
+    await k8.deleteNamespace(namespace)
   }, 120000)
 
   describe(`Node should have started successfully [mode ${input.mode}, release ${input.releaseTag}, keyFormat: ${input.keyFormat}]`, () => {

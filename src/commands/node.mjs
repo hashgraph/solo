@@ -62,6 +62,7 @@ export class NodeCommand extends BaseCommand {
    * @returns {Promise<void>}
    */
   async close () {
+    this.accountManager.close()
     if (this._portForwards) {
       for (const srv of this._portForwards) {
         await this.k8.stopPortForward(srv)
@@ -1124,6 +1125,9 @@ export class NodeCommand extends BaseCommand {
           ctx.config.chartPath = await self.prepareChartPath(ctx.config.chartDir,
             constants.FULLSTACK_TESTING_CHART, constants.FULLSTACK_DEPLOYMENT_CHART)
 
+          // initialize Node Client with existing network nodes prior to adding the new node which isn't functioning, yet
+          await this.accountManager.loadNodeClient(ctx.config.namespace)
+
           self.logger.debug('Initialized config', { config })
         }
       },
@@ -1423,6 +1427,8 @@ export class NodeCommand extends BaseCommand {
       await tasks.run()
     } catch (e) {
       throw new FullstackTestingError(`Error in setting up nodes: ${e.message}`, e)
+    } finally {
+      await self.close()
     }
 
     return true
