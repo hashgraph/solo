@@ -60,6 +60,7 @@ describe('MirrorNodeCommand', () => {
 
   afterAll(async () => {
     await k8.deleteNamespace(namespace)
+    await accountManager.close()
   })
 
   afterEach(async () => {
@@ -152,6 +153,8 @@ describe('MirrorNodeCommand', () => {
     } catch (e) {
       mirrorNodeCmd.logger.showUserError(e)
       expect(e).toBeNull()
+    } finally {
+      await accountManager.close()
     }
   }, 240000)
 
