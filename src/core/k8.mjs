@@ -712,7 +712,7 @@ export class K8 {
     await new Promise((resolve, reject) => {
       server.close((e) => {
         if (e) {
-          if (e.message?.contains('Server is not running')) {
+          if (e.message?.includes('Server is not running')) {
             this.logger.debug(`Server not running, port-forwarder [${server.info}]`)
             resolve()
           } else {

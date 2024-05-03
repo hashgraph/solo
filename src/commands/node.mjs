@@ -1114,7 +1114,8 @@ export class NodeCommand extends BaseCommand {
             keyFormat: self.configManager.getFlag(flags.keyFormat),
             devMode: self.configManager.getFlag(flags.devMode),
             chartDir: self.configManager.getFlag(flags.chartDirectory),
-            curDate: new Date()
+            curDate: new Date(),
+            fstChartVersion: self.configManager.getFlag(flags.fstChartVersion)
           }
 
           await self.initializeSetup(config, self.configManager, self.k8)
@@ -1167,7 +1168,7 @@ export class NodeCommand extends BaseCommand {
           let valuesArg = ''
           let index = 0
           for (const node of values.hedera.nodes) {
-            valuesArg += `--set hedera.nodes[${index}].name=${node.name} --set hedera.nodes[${index}].accountId=${node.accountId} `
+            valuesArg += ` --set "hedera.nodes[${index}].accountId=${node.accountId}" --set "hedera.nodes[${index}].name=${node.name}"`
             index++
           }
 
@@ -1175,7 +1176,8 @@ export class NodeCommand extends BaseCommand {
             ctx.config.namespace,
             constants.FULLSTACK_DEPLOYMENT_CHART,
             ctx.config.chartPath,
-            valuesArg
+            valuesArg,
+            ctx.config.fstChartVersion
           )
           ctx.config.allNodeIds = [...ctx.config.existingNodeIds, ...ctx.config.nodeIds]
         }
