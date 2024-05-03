@@ -62,6 +62,7 @@ export class NodeCommand extends BaseCommand {
    * @returns {Promise<void>}
    */
   async close () {
+    this.accountManager.close()
     if (this._portForwards) {
       for (const srv of this._portForwards) {
         await this.k8.stopPortForward(srv)
@@ -1113,7 +1114,8 @@ export class NodeCommand extends BaseCommand {
             keyFormat: self.configManager.getFlag(flags.keyFormat),
             devMode: self.configManager.getFlag(flags.devMode),
             chartDir: self.configManager.getFlag(flags.chartDirectory),
-            curDate: new Date()
+            curDate: new Date(),
+            fstChartVersion: self.configManager.getFlag(flags.fstChartVersion)
           }
 
           await self.initializeSetup(config, self.configManager, self.k8)
@@ -1123,6 +1125,9 @@ export class NodeCommand extends BaseCommand {
 
           ctx.config.chartPath = await self.prepareChartPath(ctx.config.chartDir,
             constants.FULLSTACK_TESTING_CHART, constants.FULLSTACK_DEPLOYMENT_CHART)
+
+          // initialize Node Client with existing network nodes prior to adding the new node which isn't functioning, yet
+          await this.accountManager.loadNodeClient(ctx.config.namespace)
 
           self.logger.debug('Initialized config', { config })
         }
@@ -1163,7 +1168,7 @@ export class NodeCommand extends BaseCommand {
           let valuesArg = ''
           let index = 0
           for (const node of values.hedera.nodes) {
-            valuesArg += `--set hedera.nodes[${index}].name=${node.name} --set hedera.nodes[${index}].accountId=${node.accountId} `
+            valuesArg += ` --set "hedera.nodes[${index}].accountId=${node.accountId}" --set "hedera.nodes[${index}].name=${node.name}"`
             index++
           }
 
@@ -1171,7 +1176,8 @@ export class NodeCommand extends BaseCommand {
             ctx.config.namespace,
             constants.FULLSTACK_DEPLOYMENT_CHART,
             ctx.config.chartPath,
-            valuesArg
+            valuesArg,
+            ctx.config.fstChartVersion
           )
           ctx.config.allNodeIds = [...ctx.config.existingNodeIds, ...ctx.config.nodeIds]
         }
@@ -1423,6 +1429,8 @@ export class NodeCommand extends BaseCommand {
       await tasks.run()
     } catch (e) {
       throw new FullstackTestingError(`Error in setting up nodes: ${e.message}`, e)
+    } finally {
+      await self.close()
     }
 
     return true

@@ -66,7 +66,8 @@ export class MirrorNodeCommand extends BaseCommand {
           ctx.config = {
             namespace: self.configManager.getFlag(flags.namespace),
             chartDir: self.configManager.getFlag(flags.chartDirectory),
-            deployHederaExplorer: self.configManager.getFlag(flags.deployHederaExplorer)
+            deployHederaExplorer: self.configManager.getFlag(flags.deployHederaExplorer),
+            fstChartVersion: this.configManager.getFlag(flags.fstChartVersion)
           }
 
           ctx.config.chartPath = await self.prepareChartPath(ctx.config.chartDir,
@@ -104,7 +105,8 @@ export class MirrorNodeCommand extends BaseCommand {
                   ctx.config.namespace,
                   constants.FULLSTACK_DEPLOYMENT_CHART,
                   ctx.config.chartPath,
-                  ctx.config.valuesArg
+                  ctx.config.valuesArg,
+                  ctx.config.fstChartVersion
                 )
               }
             }
@@ -214,7 +216,8 @@ export class MirrorNodeCommand extends BaseCommand {
 
           ctx.config = {
             namespace: self.configManager.getFlag(flags.namespace),
-            chartDir: self.configManager.getFlag(flags.chartDirectory)
+            chartDir: self.configManager.getFlag(flags.chartDirectory),
+            fstChartVersion: this.configManager.getFlag(flags.fstChartVersion)
           }
 
           ctx.config.chartPath = await self.prepareChartPath(ctx.config.chartDir,
@@ -238,7 +241,8 @@ export class MirrorNodeCommand extends BaseCommand {
             ctx.config.namespace,
             constants.FULLSTACK_DEPLOYMENT_CHART,
             ctx.config.chartPath,
-            ctx.config.valuesArg
+            ctx.config.valuesArg,
+            ctx.config.fstChartVersion
           )
         }
       },
