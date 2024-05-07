@@ -44,7 +44,7 @@ describe.skip('MirrorNodeCommand', () => {
   argv[flags.releaseTag.name] = version.HEDERA_PLATFORM_VERSION
   argv[flags.keyFormat.name] = constants.KEY_FORMAT_PEM
 
-  argv[flags.nodeIDs.name] = 'node0,node1,node2'
+  argv[flags.nodeIDs.name] = 'node0' // provision a single node to reduce resource usage during tests
   argv[flags.generateGossipKeys.name] = true
   argv[flags.generateTlsKeys.name] = true
   argv[flags.clusterName.name] = TEST_CLUSTER
