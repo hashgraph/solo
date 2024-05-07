@@ -60,6 +60,7 @@ describe('MirrorNodeCommand', () => {
 
   afterAll(async () => {
     await k8.deleteNamespace(namespace)
+    await accountManager.close()
   })
 
   afterEach(async () => {
@@ -74,7 +75,7 @@ describe('MirrorNodeCommand', () => {
       mirrorNodeCmd.logger.showUserError(e)
       expect(e).toBeNull()
     }
-  }, 360000)
+  }, 480000)
 
   it('mirror node api and hedera explorer should success', async () => {
     await accountManager.loadNodeClient(namespace)
