@@ -146,10 +146,10 @@ jobs:
         run: npm run test-e2e
 
       - name: Upload E2E Logs to GitHub
-        if: ${{ runner.os == 'linux' && inputs.enable-e2e-tests && !cancelled() }}
+        if: ${{ inputs.enable-e2e-tests && !cancelled() }}
         uses: actions/upload-artifact@5d5d22a31266ced268874388b861e4b58bb5c2f3 # v4.3.1
         with:
-          name: solo.log
+          name: ${{ runner.os }}_solo.log
           path: ~/.solo/logs/solo.log
           overwrite: true
           if-no-files-found: error
