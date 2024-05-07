@@ -16,7 +16,7 @@
  */
 
 import {
-  afterAll, afterEach, describe,
+  afterAll, afterEach, beforeAll, describe,
   expect,
   it
 } from '@jest/globals'
@@ -58,9 +58,15 @@ describe('MirrorNodeCommand', () => {
   const downloader = new core.PackageDownloader(mirrorNodeCmd.logger)
   const accountManager = bootstrapResp.opts.accountManager
 
+  beforeAll(() => {
+    bootstrapResp.opts.logger.showUser(`------------------------- START: ${testName} ----------------------------`)
+  })
+
   afterAll(async () => {
     await k8.deleteNamespace(namespace)
     await accountManager.close()
+
+    bootstrapResp.opts.logger.showUser(`------------------------- END: ${testName} ----------------------------`)
   })
 
   afterEach(async () => {
