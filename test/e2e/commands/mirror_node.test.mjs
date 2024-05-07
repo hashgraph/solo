@@ -44,7 +44,7 @@ describe('MirrorNodeCommand', () => {
   argv[flags.releaseTag.name] = 'v0.47.0-alpha.0'
   argv[flags.keyFormat.name] = constants.KEY_FORMAT_PEM
 
-  argv[flags.nodeIDs.name] = 'node0,node1,node2'
+  argv[flags.nodeIDs.name] = 'node0' // use a single node to reduce usage during e2e tests
   argv[flags.generateGossipKeys.name] = true
   argv[flags.generateTlsKeys.name] = true
   argv[flags.clusterName.name] = TEST_CLUSTER
