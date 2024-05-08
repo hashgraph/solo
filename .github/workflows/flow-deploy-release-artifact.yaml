@@ -49,10 +49,15 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Setup Node
-        uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4.0.2
+      - name: Setup Node with Retry
+        uses: Wandalen/wretry.action@0dd1d5d77d019a6f85beb53d29e2ea2c7294d4f2 # v3.4.0
         with:
-          node-version: 20
+          action: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4.0.2
+          with: |
+            node-version: 20
+            cache: npm
+          attempt_limit: 3
+          attempt_delay: 5000
 
       - name: Install Semantic Release
         run: |
@@ -110,13 +115,18 @@ jobs:
           git_commit_gpgsign: true
           git_tag_gpgsign: false
 
-      - name: Setup Node
-        uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4.0.2
+      - name: Setup Node with Retry
+        uses: Wandalen/wretry.action@0dd1d5d77d019a6f85beb53d29e2ea2c7294d4f2 # v3.4.0
         with:
-          node-version: 20
+          action: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4.0.2
+          with: |
+            node-version: 20
+            cache: npm
+          attempt_limit: 3
+          attempt_delay: 5000
 
       - name: Setup JFrog CLI
-        uses: jfrog/setup-jfrog-cli@26da2259ee7690e63b5410d7451b2938d08ce1f9 # v4.0.0
+        uses: jfrog/setup-jfrog-cli@d82fe26823e1f25529250895d5673f65b02af085 # v4.0.1
         env:
           JF_URL: ${{ vars.JF_URL }}
           JF_ACCESS_TOKEN: ${{ secrets.JF_ACCESS_TOKEN }}
