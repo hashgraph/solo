@@ -115,14 +115,14 @@ jobs:
         run: npm test
 
       - name: Publish Windows Unit Test Report
-        uses: EnricoMi/publish-unit-test-result-action/windows/bash@f355d34d53ad4e7f506f699478db2dd71da9de5f # v2.15.1
+        uses: EnricoMi/publish-unit-test-result-action/windows/bash@30eadd5010312f995f0d3b3cff7fe2984f69409e # v2.16.1
         if: ${{ runner.os == 'Windows' && inputs.enable-unit-tests && steps.npm-deps.conclusion == 'success' && !cancelled() }}
         with:
           check_name: 'Unit Test Results - ${{ runner.os }}'
           files: "junit.xml"
 
       - name: Publish Linux Unit Test Report
-        uses: EnricoMi/publish-unit-test-result-action@f355d34d53ad4e7f506f699478db2dd71da9de5f # v2.15.1
+        uses: EnricoMi/publish-unit-test-result-action@30eadd5010312f995f0d3b3cff7fe2984f69409e # v2.16.1
         if: ${{ runner.os == 'linux' && inputs.enable-unit-tests && steps.npm-deps.conclusion == 'success' && !cancelled() }}
         with:
           check_name: 'Unit Test Results - ${{ runner.os }}'
@@ -159,7 +159,7 @@ jobs:
           if-no-files-found: error
 
       - name: Publish E2E Test Report
-        uses: EnricoMi/publish-unit-test-result-action@f355d34d53ad4e7f506f699478db2dd71da9de5f # v2.15.1
+        uses: EnricoMi/publish-unit-test-result-action@30eadd5010312f995f0d3b3cff7fe2984f69409e # v2.16.1
         if: ${{ runner.os == 'linux' && inputs.enable-e2e-tests && steps.npm-deps.conclusion == 'success' && !cancelled() }}
         with:
           check_name: 'E2E Test Results'
