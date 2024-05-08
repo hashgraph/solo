@@ -795,7 +795,7 @@ export class K8 {
    * @param podCount number of pod expected
    * @param maxAttempts maximum attempts to check
    * @param delay delay between checks in milliseconds
-   * @return {Promise<[*]>}
+   * @return a Promise that resolves to an array of pods
    */
   async waitForPod (status = 'Running', labels = [], podCount = 1, maxAttempts = 10, delay = 500) {
     const ns = this._getNamespace()
