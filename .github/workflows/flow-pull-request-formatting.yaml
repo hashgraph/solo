@@ -33,7 +33,7 @@ permissions:
   statuses: write
 
 concurrency:
-  group: pr-formatting-${{ github.repository }}-${{ github.ref }}
+  group: pr-formatting-${{ github.workflow }}-${{ github.head_ref || github.run_id }}
   cancel-in-progress: true
 
 jobs:
