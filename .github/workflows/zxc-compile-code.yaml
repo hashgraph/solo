@@ -132,6 +132,7 @@ jobs:
           path: 'coverage/unit'
 
       - name: Cache Docker images
+        if: ${{ runner.os == 'linux' && inputs.enable-e2e-tests && !cancelled() && !failure() }}
         uses: ScribeMD/docker-cache@fb28c93772363301b8d0a6072ce850224b73f74e # v0.5.0
         with:
           key: docker-${{ runner.os }}-${{ hashFiles('test/data/warmup-cluster.sh') }}
