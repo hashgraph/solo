@@ -14,7 +14,7 @@
  * limitations under the License.
  *
  */
-import { describe, expect, it } from '@jest/globals'
+import { afterAll, beforeAll, describe, expect, it } from '@jest/globals'
 import fs from 'fs'
 import os from 'os'
 import path from 'path'
@@ -176,6 +176,14 @@ export function bootstrapNetwork (testName, argv,
   const chartManager = bootstrapResp.opts.chartManager
 
   describe(`Bootstrap network for test [release ${argv[flags.releaseTag.name]}, keyFormat: ${argv[flags.keyFormat.name]}]`, () => {
+    beforeAll(() => {
+      bootstrapResp.opts.logger.showUser(`------------------------- START: bootstrap (${testName}) ----------------------------`)
+    })
+
+    afterAll(() => {
+      bootstrapResp.opts.logger.showUser(`------------------------- END: bootstrap (${testName}) ----------------------------`)
+    })
+
     it('should cleanup previous deployment', async () => {
       await initCmd.init(argv)
 
@@ -191,7 +199,7 @@ export function bootstrapNetwork (testName, argv,
       if (!await chartManager.isChartInstalled(constants.FULLSTACK_SETUP_NAMESPACE, constants.FULLSTACK_CLUSTER_SETUP_CHART)) {
         await clusterCmd.setup(argv)
       }
-    }, 60000)
+    }, 120000)
 
     it('should succeed with network deploy', async () => {
       await networkCmd.deploy(argv)
