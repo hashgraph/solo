@@ -91,7 +91,7 @@ export class NodeCommand extends BaseCommand {
   async checkNetworkNodeState (nodeId, maxAttempt = 100, status = 'ACTIVE') {
     nodeId = nodeId.trim()
     const podName = Templates.renderNetworkPodName(nodeId)
-    const logfilePath = `${constants.HEDERA_HAPI_PATH}/logs/hgcaa.log`
+    const logfilePath = `${constants.HEDERA_HAPI_PATH}/output/hgcaa.log`
     let attempt = 0
     let isActive = false
 
@@ -131,8 +131,8 @@ export class NodeCommand extends BaseCommand {
         // ls the HAPI path for debugging
         await this.k8.execContainer(podName, constants.ROOT_CONTAINER, `ls -la ${constants.HEDERA_HAPI_PATH}`)
 
-        // ls the logs directory for debugging
-        await this.k8.execContainer(podName, constants.ROOT_CONTAINER, `ls -la ${constants.HEDERA_HAPI_PATH}/logs`)
+        // ls the output directory for debugging
+        await this.k8.execContainer(podName, constants.ROOT_CONTAINER, `ls -la ${constants.HEDERA_HAPI_PATH}/output`)
       }
       attempt += 1
       await sleep(1000)
@@ -1485,7 +1485,7 @@ export class NodeCommand extends BaseCommand {
       subTasks.push({
         title: `Start node: ${chalk.yellow(nodeId)}`,
         task: async () => {
-          await this.k8.execContainer(podName, constants.ROOT_CONTAINER, ['bash', '-c', `rm -f ${constants.HEDERA_HAPI_PATH}/logs/*`])
+          await this.k8.execContainer(podName, constants.ROOT_CONTAINER, ['bash', '-c', `rm -f ${constants.HEDERA_HAPI_PATH}/output/*`])
 
           // copy application.env file if required
           if (config.applicationEnv) {
