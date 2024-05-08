@@ -178,8 +178,8 @@ Kubernetes Namespace	: solo
 ✔ Clean up temp files
 ✔ Generate gossip keys
 ✔ Backup old files
-✔ TLS key for node: node1
 ✔ TLS key for node: node2
+✔ TLS key for node: node1
 ✔ TLS key for node: node0
 ✔ Generate gRPC TLS keys
 ✔ Finalize
@@ -239,12 +239,12 @@ Kubernetes Namespace	: solo
 ✔ Check Node: node1
 ✔ Check Node: node2
 ✔ Check node pods are ready
-✔ Check HAProxy for: node1
 ✔ Check HAProxy for: node2
 ✔ Check HAProxy for: node0
+✔ Check HAProxy for: node1
+✔ Check Envoy Proxy for: node1
 ✔ Check Envoy Proxy for: node0
 ✔ Check Envoy Proxy for: node2
-✔ Check Envoy Proxy for: node1
 ✔ Check proxy pods are ready
 ✔ Check MinIO
 ✔ Check auxiliary pods are ready
@@ -268,17 +268,17 @@ Kubernetes Cluster	: kind-solo
 Kubernetes Namespace	: solo
 **********************************************************************************
 ✔ Initialize
+✔ Check network pod: node2
 ✔ Check network pod: node1
 ✔ Check network pod: node0
-✔ Check network pod: node2
 ✔ Identify network pods
 ✔ Copy configuration files
 ✔ Copy Gossip keys to staging
 ✔ Copy gRPC TLS keys to staging
 ✔ Prepare config.txt for the network
 ✔ Prepare staging directory
-✔ Update node: node0
 ✔ Update node: node2
+✔ Update node: node0
 ✔ Update node: node1
 ✔ Fetch platform software into network nodes
 ✔ Copy Gossip keys
@@ -291,11 +291,11 @@ Kubernetes Namespace	: solo
 ✔ Copy configuration files
 ✔ Copy configuration files
 ✔ Set file permissions
+✔ Node: node1
+✔ Set file permissions
 ✔ Node: node2
 ✔ Set file permissions
 ✔ Node: node0
-✔ Set file permissions
-✔ Node: node1
 ✔ Setup network nodes
 ✔ Finalize
 ```
@@ -318,20 +318,20 @@ Kubernetes Namespace	: solo
 **********************************************************************************
 ✔ Initialize
 ✔ Check network pod: node0
-✔ Check network pod: node1
 ✔ Check network pod: node2
+✔ Check network pod: node1
 ✔ Identify network pods
-✔ Start node: node2
-✔ Start node: node1
 ✔ Start node: node0
+✔ Start node: node1
+✔ Start node: node2
 ✔ Starting nodes
 ✔ Check node: node0
 ✔ Check node: node1
 ✔ Check node: node2
 ✔ Check nodes are ACTIVE
 ✔ Check proxy for node: node1
-✔ Check proxy for node: node0
 ✔ Check proxy for node: node2
+✔ Check proxy for node: node0
 ✔ Check node proxies are ACTIVE
 ```
 * Deploy mirror node
@@ -356,10 +356,10 @@ Kubernetes Namespace	: solo
 ✔ Enable mirror-node
 ✔ Check Hedera Explorer
 ✔ Check Postgres DB
-✔ Check Monitor
-✔ Check GRPC
 ✔ Check REST API
 ✔ Check Importer
+✔ Check Monitor
+✔ Check GRPC
 ✔ Check pods are ready
 ```
 
@@ -512,9 +512,9 @@ Kubernetes Namespace	: solo
 ✔ Gossip pem key for node: node2
 ✔ Generate gossip keys
 ✔ Backup old files
-✔ TLS key for node: node1
-✔ TLS key for node: node2
 ✔ TLS key for node: node0
+✔ TLS key for node: node2
+✔ TLS key for node: node1
 ✔ Generate gRPC TLS keys
 ✔ Finalize
 ```
