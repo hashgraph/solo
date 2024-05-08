@@ -20,6 +20,7 @@ import path from 'path'
 import { KeytoolDependencyManager } from '../../../../src/core/dependency_managers/index.mjs'
 import { PackageDownloader, Zippy } from '../../../../src/core/index.mjs'
 import { getTestCacheDir, testLogger } from '../../../test_util.js'
+import os from 'os'
 
 describe('KeytoolDependencyManager', () => {
   const downloader = new PackageDownloader(testLogger)
@@ -36,15 +37,30 @@ describe('KeytoolDependencyManager', () => {
     }
   })
 
-  it('should be able to check when keytool not installed', () => {
-    const keytoolDependencyManager = new KeytoolDependencyManager(downloader, zippy, testLogger, tmpDir)
+  it('should be able to install keytool base on os and architecture', async () => {
+    let osPlatform = ''
+    let osArch = ''
+    switch (os.platform()) {
+      case 'linux':
+        osPlatform = 'linux'
+        osArch = 'x64'
+        break
+      case 'darwin':
+        osPlatform = 'darwin'
+        osArch = 'arm64'
+        break
+      case 'win32':
+        osPlatform = 'windows'
+        osArch = 'x64'
+        break
+      default:
+        throw new Error('Unsupported platform')
+    }
+    const keytoolDependencyManager = new KeytoolDependencyManager(
+      downloader, zippy, testLogger, tmpDir, osPlatform, osArch)
+    await keytoolDependencyManager.uninstall()
     expect(keytoolDependencyManager.isInstalled()).toBeFalsy()
-  })
-
-  it('should be able to check when keytool is installed', () => {
-    const keytoolDependencyManager = new KeytoolDependencyManager(downloader, zippy, testLogger, tmpDir)
-    fs.mkdirSync(path.dirname(keytoolDependencyManager.getKeytoolPath()), { recursive: true })
-    fs.writeFileSync(keytoolDependencyManager.getKeytoolPath(), '')
+    await expect(keytoolDependencyManager.install(getTestCacheDir())).resolves.toBeTruthy()
     expect(keytoolDependencyManager.isInstalled()).toBeTruthy()
-  })
+  }, 60000)
 })
