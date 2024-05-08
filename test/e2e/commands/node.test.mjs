@@ -75,6 +75,9 @@ describe.each([
     await k8.deleteNamespace(namespace)
   }, 120000)
 
+  /**
+   * @jest-environment steps
+   */
   describe(`Node should have started successfully [mode ${input.mode}, release ${input.releaseTag}, keyFormat: ${input.keyFormat}]`, () => {
     balanceQueryShouldSucceed(accountManager, nodeCmd, namespace)
 
@@ -94,6 +97,9 @@ describe.each([
     }, 20000)
   })
 
+  /**
+   * @jest-environment steps
+   */
   describe(`Node should refresh successfully [mode ${input.mode}, release ${input.releaseTag}, keyFormat: ${input.keyFormat}]`, () => {
     const nodeId = 'node0'
 
@@ -122,6 +128,9 @@ describe.each([
     accountCreationShouldSucceed(accountManager, nodeCmd, namespace)
   })
 
+  /**
+   * @jest-environment steps
+   */
   describe(`Should add a new node to the network [release ${input.releaseTag}, keyFormat: ${input.keyFormat}]`, () => {
     const nodeId = 'node4'
     let existingServiceMap
