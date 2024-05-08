@@ -28,6 +28,9 @@ describe('KeytoolDependencyManager', () => {
   const zippy = new Zippy(testLogger)
 
   beforeAll(async () => {
+    if (fs.existsSync(tmpDir)) {
+      fs.rmSync(tmpDir, { recursive: true })
+    }
     fs.mkdirSync(tmpDir, { recursive: true })
   })
 
