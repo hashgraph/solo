@@ -34,6 +34,9 @@ import {
 import { AccountCommand } from '../../../src/commands/account.mjs'
 import { flags } from '../../../src/commands/index.mjs'
 
+/**
+ * @jest-environment steps
+ */
 describe('AccountCommand', () => {
   const testName = 'account-cmd-e2e'
   const namespace = testName

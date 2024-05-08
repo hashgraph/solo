@@ -36,6 +36,9 @@ import * as core from '../../../src/core/index.mjs'
 import { TopicCreateTransaction, TopicMessageSubmitTransaction } from '@hashgraph/sdk'
 import * as http from 'http'
 
+/**
+ * @jest-environment steps
+ */
 describe('MirrorNodeCommand', () => {
   const testName = 'mirror-cmd-e2e'
   const namespace = testName

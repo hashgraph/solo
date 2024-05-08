@@ -44,6 +44,9 @@ import path from 'path'
 import fs from 'fs'
 import crypto from 'crypto'
 
+/**
+ * @jest-environment steps
+ */
 describe.each([
   { releaseTag: 'v0.49.0-alpha.2', keyFormat: constants.KEY_FORMAT_PFX, testName: 'node-cmd-e2e-pfx', mode: 'kill' },
   { releaseTag: 'v0.49.0-alpha.2', keyFormat: constants.KEY_FORMAT_PEM, testName: 'node-cmd-e2e-pem', mode: 'stop' }
