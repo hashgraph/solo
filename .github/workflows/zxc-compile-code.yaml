@@ -75,11 +75,15 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@1d96c772d19495a3b5c517cd2bc0cb401ea0529f # v4.1.3
 
-      - name: Setup Node
-        uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4.0.2
+      - name: Setup Node with Retry
+        uses: Wandalen/wretry.action@0dd1d5d77d019a6f85beb53d29e2ea2c7294d4f2 # v3.4.0
         with:
-          node-version: ${{ inputs.node-version }}
-          cache: npm
+          action: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4.0.2
+          with: |
+            node-version: ${{ inputs.node-version }}
+            cache: npm
+          attempt_limit: 3
+          attempt_delay: 5000
 
       - name: Install wget
         if: ${{ runner.os == 'linux' && inputs.enable-e2e-tests && !cancelled() && !failure() }}
@@ -111,7 +115,7 @@ jobs:
         run: npm test
 
       - name: Publish Windows Unit Test Report
-        uses: EnricoMi/publish-unit-test-result-action/windows/bash@v2.15.1
+        uses: EnricoMi/publish-unit-test-result-action/windows/bash@f355d34d53ad4e7f506f699478db2dd71da9de5f # v2.15.1
         if: ${{ runner.os == 'Windows' && inputs.enable-unit-tests && steps.npm-deps.conclusion == 'success' && !cancelled() }}
         with:
           check_name: 'Unit Test Results - ${{ runner.os }}'
