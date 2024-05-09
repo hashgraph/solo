@@ -110,6 +110,9 @@ jobs:
     needs:
       - unit-tests
       - e2e-tests
+      - e2e-mirror-node-tests
+      - e2e-node-tests
+      - e2e-relay-tests
     if: ${{ github.event.pull_request.head.repo.full_name == github.event.pull_request.base.repo.full_name }}
     with:
       custom-job-label: Standard
@@ -141,6 +144,9 @@ jobs:
 #    needs:
 #      - unit-tests
 #      - e2e-tests
+#      - e2e-mirror-node-tests
+#      - e2e-node-tests
+#      - e2e-relay-tests
 #    if: ${{ github.event.pull_request.head.repo.full_name == github.event.pull_request.base.repo.full_name && github.actor != 'dependabot[bot]' }}
 #    with:
 #      custom-job-label: Standard

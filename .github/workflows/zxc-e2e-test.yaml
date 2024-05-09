@@ -49,8 +49,6 @@ on:
         required: false
         default: "E2E Tests Coverage Report"
 
-
-
 defaults:
   run:
     shell: bash
@@ -115,7 +113,7 @@ jobs:
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@5d5d22a31266ced268874388b861e4b58bb5c2f3 # v4.3.1
         with:
-          name: solo.log
+          name: solo-${{ inputs.npm-test-script }}.log
           path: ~/.solo/logs/solo.log
           overwrite: true
           if-no-files-found: error
