@@ -64,13 +64,15 @@ permissions:
 
 jobs:
   compile:
-    name: ${{ inputs.custom-job-label || 'Compiles' }}
-    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
+        # run unit tests on medium, and e2e on large
         os:
           - windows-2022
+          - [self-hosted, Linux, medium, ephemeral]
           - [self-hosted, Linux, large, ephemeral]
+    runs-on: ${{ matrix.os }}
+    name: "(${{ join(matrix.os, ', ') }})"
     steps:
       - name: Checkout Code
         uses: actions/checkout@1d96c772d19495a3b5c517cd2bc0cb401ea0529f # v4.1.3
@@ -86,14 +88,18 @@ jobs:
           attempt_delay: 5000
 
       - name: Install wget
-        if: ${{ runner.os == 'linux' && inputs.enable-e2e-tests && !cancelled() && !failure() }}
+        if: ${{ runner.os == 'linux' && inputs.enable-e2e-tests && env.RUNNER_LABELS == 'self-hosted,Linux,large,ephemeral' && !cancelled() && !failure() }}
         run: |
           sudo apt-get update
           sudo apt-get install -y wget
+          # TODO remove
+          echo "HOSTNAME=${HOSTNAME}"
+          echo "RUNNER_LABELS=${RUNNER_LABELS}"
+          echo "RUNNER_NAME=${RUNNER_NAME}"
 
       - name: Setup Kind
         uses: helm/kind-action@0025e74a8c7512023d06dc019c617aa3cf561fde # v1.10.0
-        if: ${{ runner.os == 'linux' && inputs.enable-e2e-tests && !cancelled() && !failure() }}
+        if: ${{ runner.os == 'linux' && inputs.enable-e2e-tests && env.RUNNER_LABELS == 'self-hosted,Linux,large,ephemeral' && !cancelled() && !failure() }}
         with:
           install_only: true
           node_image: kindest/node:v1.27.3@sha256:3966ac761ae0136263ffdb6cfd4db23ef8a83cba8a463690e98317add2c9ba72
@@ -107,11 +113,11 @@ jobs:
         run: npm ci
 
       - name: Check Code Style
-        if: ${{ runner.os == 'linux' && inputs.enable-code-style-check && !cancelled() && !failure() }}
+        if: ${{ runner.os == 'linux' && inputs.enable-code-style-check && env.RUNNER_LABELS == 'self-hosted,Linux,medium,ephemeral' && !cancelled() && !failure() }}
         run: npm run check
 
       - name: Run Unit Tests
-        if: ${{ inputs.enable-unit-tests && !cancelled() && !failure() }}
+        if: ${{ inputs.enable-unit-tests && env.RUNNER_LABELS == 'self-hosted,Linux,medium,ephemeral' && !cancelled() && !failure() }}
         run: npm test
 
       - name: Publish Windows Unit Test Report
@@ -123,34 +129,34 @@ jobs:
 
       - name: Publish Linux Unit Test Report
         uses: EnricoMi/publish-unit-test-result-action@30eadd5010312f995f0d3b3cff7fe2984f69409e # v2.16.1
-        if: ${{ runner.os == 'linux' && inputs.enable-unit-tests && steps.npm-deps.conclusion == 'success' && !cancelled() }}
+        if: ${{ runner.os == 'linux' && inputs.enable-unit-tests && env.RUNNER_LABELS == 'self-hosted,Linux,medium,ephemeral' && steps.npm-deps.conclusion == 'success' && !cancelled() }}
         with:
           check_name: 'Unit Test Results - ${{ runner.os }}'
           files: "junit.xml"
 
       - name: Publish Unit Test Coverage Report
         uses: actions/upload-artifact@5d5d22a31266ced268874388b861e4b58bb5c2f3 # v4.3.1
-        if: ${{ runner.os == 'linux' && inputs.enable-unit-tests && !cancelled() }}
+        if: ${{ runner.os == 'linux' && inputs.enable-unit-tests && env.RUNNER_LABELS == 'self-hosted,Linux,medium,ephemeral' && !cancelled() }}
         with:
           name: Unit Test Coverage Report
           path: 'coverage/unit'
 
       - name: Pull Kind Docker Image
-        if: ${{ runner.os == 'linux' && inputs.enable-e2e-tests && !cancelled() && !failure() }}
+        if: ${{ runner.os == 'linux' && inputs.enable-e2e-tests && env.RUNNER_LABELS == 'self-hosted,Linux,large,ephemeral' && !cancelled() && !failure() }}
         run: docker image pull kindest/node:v1.27.3@sha256:3966ac761ae0136263ffdb6cfd4db23ef8a83cba8a463690e98317add2c9ba72
 
       - name: Setup E2E Tests
-        if: ${{ runner.os == 'linux' && inputs.enable-e2e-tests && !cancelled() && !failure() }}
+        if: ${{ runner.os == 'linux' && inputs.enable-e2e-tests && env.RUNNER_LABELS == 'self-hosted,Linux,large,ephemeral' && !cancelled() && !failure() }}
         run: | 
           npm link
           ./test/e2e/setup-e2e.sh
 
       - name: Run E2E Tests
-        if: ${{ runner.os == 'linux' && inputs.enable-e2e-tests && !cancelled() && !failure() }}
+        if: ${{ runner.os == 'linux' && inputs.enable-e2e-tests && env.RUNNER_LABELS == 'self-hosted,Linux,large,ephemeral' && !cancelled() && !failure() }}
         run: npm run test-e2e
 
       - name: Upload E2E Logs to GitHub
-        if: ${{ runner.os == 'linux' && inputs.enable-e2e-tests && !cancelled() }}
+        if: ${{ runner.os == 'linux' && inputs.enable-e2e-tests && env.RUNNER_LABELS == 'self-hosted,Linux,large,ephemeral' && !cancelled() }}
         uses: actions/upload-artifact@5d5d22a31266ced268874388b861e4b58bb5c2f3 # v4.3.1
         with:
           name: solo.log
@@ -160,21 +166,21 @@ jobs:
 
       - name: Publish E2E Test Report
         uses: EnricoMi/publish-unit-test-result-action@30eadd5010312f995f0d3b3cff7fe2984f69409e # v2.16.1
-        if: ${{ runner.os == 'linux' && inputs.enable-e2e-tests && steps.npm-deps.conclusion == 'success' && !cancelled() }}
+        if: ${{ runner.os == 'linux' && inputs.enable-e2e-tests && env.RUNNER_LABELS == 'self-hosted,Linux,large,ephemeral' && steps.npm-deps.conclusion == 'success' && !cancelled() }}
         with:
           check_name: 'E2E Test Results'
           files: "junit-e2e.xml"
 
       - name: Publish E2E Coverage Report
         uses: actions/upload-artifact@5d5d22a31266ced268874388b861e4b58bb5c2f3 # v4.3.1
-        if: ${{ runner.os == 'linux' && inputs.enable-e2e-tests && !cancelled() }}
+        if: ${{ runner.os == 'linux' && inputs.enable-e2e-tests && env.RUNNER_LABELS == 'self-hosted,Linux,large,ephemeral' && !cancelled() }}
         with:
           name: E2E Coverage Report
           path: 'coverage/e2e'
 
       - name: Publish Test Reports
         uses: actions/upload-artifact@5d5d22a31266ced268874388b861e4b58bb5c2f3 # v4.3.1
-        if: ${{ runner.os == 'linux' && inputs.enable-unit-tests && steps.npm-deps.conclusion == 'success' && !cancelled() }}
+        if: ${{ runner.os == 'linux' && inputs.enable-unit-tests && env.RUNNER_LABELS == 'self-hosted,Linux,medium,ephemeral' && steps.npm-deps.conclusion == 'success' && !cancelled() }}
         with:
           name: Test Reports
           path: "junit*.xml"
