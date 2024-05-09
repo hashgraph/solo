@@ -15,7 +15,7 @@
 ##
 
 name: "ZXC: Unit Test"
-# The purpose of this reusable workflow is to compile the code and run the unit tests on every PR and commit.
+# The purpose of this reusable workflow is to run the unit tests on every PR and commit.
 # This reusable component is called by the following workflows:
 # - .github/workflows/flow-pull-request-checks.yaml
 # - .github/workflows/flow-build-application.yaml
