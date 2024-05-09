@@ -69,7 +69,6 @@ jobs:
         # run unit tests on medium, and e2e on large
         os:
           - windows-2022
-          - [self-hosted, Linux, medium, ephemeral]
           - [self-hosted, Linux, large, ephemeral]
     runs-on: ${{ matrix.os }}
     name: "(${{ join(matrix.os, ', ') }})"
