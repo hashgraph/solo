@@ -55,6 +55,46 @@ on:
         type: string
         required: false
         default: "Analyze"
+      e2e-test-subdir:
+        description: "E2E Test Subdirectory:"
+        type: string
+        required: false
+        default: "e2e"
+      e2e-mirror-node-test-subdir:
+        description: "E2E Mirror Node Test Subdirectory:"
+        type: string
+        required: false
+        default: "e2e-mirror-node"
+      e2e-node-test-subdir:
+        description: "E2E Node Test Subdirectory:"
+        type: string
+        required: false
+        default: "e2e-node"
+      e2e-relay-test-subdir:
+        description: "E2E Relay Test Subdirectory:"
+        type: string
+        required: false
+        default: "e2e-relay"
+      e2e-coverage-report:
+        description: "E2E Coverage Report:"
+        type: string
+        required: false
+        default: "E2E Tests Coverage Report"
+      e2e-mirror-node-coverage-report:
+        description: "E2E Mirror Node Coverage Report:"
+        type: string
+        required: false
+        default: "E2E Mirror Node Tests Coverage Report"
+      e2e-node-coverage-report:
+        description: "E2E Node Coverage Report:"
+        type: string
+        required: false
+        default: "E2E Node Tests Coverage Report"
+      e2e-relay-coverage-report:
+        description: "E2E Relay Coverage Report:"
+        type: string
+        required: false
+        default: "E2E Relay Tests Coverage Report"
     secrets:
       snyk-token:
         description: "The Snyk access token is used by Snyk to analyze the code for vulnerabilities "
@@ -65,16 +105,6 @@ on:
       codacy-project-token:
         description: "The Codacy project token used to report code coverage."
         required: false
-
-env:
-  E2E_TEST_SUBDIR: e2e
-  E2E_MIRROR_NODE_TEST_SUBDIR: e2e-mirror-node
-  E2E_NODE_TEST_SUBDIR: e2e-node
-  E2E_RELAY_TEST_SUBDIR: e2e-relay
-  E2E_COVERAGE_REPORT: "E2E Tests Coverage Report"
-  E2E_MIRROR_NODE_COVERAGE_REPORT: "E2E Mirror Node Tests Coverage Report"
-  E2E_NODE_COVERAGE_REPORT: "E2E Node Tests Coverage Report"
-  E2E_RELAY_COVERAGE_REPORT: "E2E Relay Tests Coverage Report"
 
 defaults:
   run:
@@ -119,29 +149,29 @@ jobs:
         uses: actions/download-artifact@9c19ed7fe5d278cd354c7dfd5d3b88589c7e2395 # v4.1.6
         if: ${{ (inputs.enable-codecov-analysis || inputs.enable-codacy-coverage) && inputs.enable-e2e-coverage-report && !cancelled() && !failure() }}
         with:
-          name: ${{ env.E2E_COVERAGE_REPORT }}
-          path: 'coverage/${{ env.E2E_TEST_SUBDIR }}'
+          name: ${{ inputs.e2e-coverage-report }}
+          path: 'coverage/${{ inputs.e2e-test-subdir }}'
 
       - name: Download E2E Mirror Node Coverage Report
         uses: actions/download-artifact@9c19ed7fe5d278cd354c7dfd5d3b88589c7e2395 # v4.1.6
         if: ${{ (inputs.enable-codecov-analysis || inputs.enable-codacy-coverage) && inputs.enable-e2e-coverage-report && !cancelled() && !failure() }}
         with:
-          name: ${{ env.E2E_MIRROR_NODE_COVERAGE_REPORT }}
-          path: 'coverage/${{ env.E2E_MIRROR_NODE_TEST_SUBDIR }}'
+          name: ${{ inputs.e2e-mirror-node-coverage-report }}
+          path: 'coverage/${{ inputs.e2e-mirror-node-test-subdir }}'
 
       - name: Download E2E Node Coverage Report
         uses: actions/download-artifact@9c19ed7fe5d278cd354c7dfd5d3b88589c7e2395 # v4.1.6
         if: ${{ (inputs.enable-codecov-analysis || inputs.enable-codacy-coverage) && inputs.enable-e2e-coverage-report && !cancelled() && !failure() }}
         with:
-          name: ${{ env.E2E_NODE_COVERAGE_REPORT }}
-          path: 'coverage/${{ env.E2E_NODE_TEST_SUBDIR }}'
+          name: ${{ inputs.e2e-node-coverage-report }}
+          path: 'coverage/${{ inputs.e2e-node-test-subdir }}'
 
       - name: Download E2E Relay Coverage Report
         uses: actions/download-artifact@9c19ed7fe5d278cd354c7dfd5d3b88589c7e2395 # v4.1.6
         if: ${{ (inputs.enable-codecov-analysis || inputs.enable-codacy-coverage) && inputs.enable-e2e-coverage-report && !cancelled() && !failure() }}
         with:
-          name: ${{ env.E2E_RELAY_COVERAGE_REPORT }}
-          path: 'coverage/${{ env.E2E_RELAY_TEST_SUBDIR }}'
+          name: ${{ inputs.e2e-relay-coverage-report }}
+          path: 'coverage/${{ inputs.e2e-relay-test-subdir }}'
 
       - name: Publish To Codecov
         uses: codecov/codecov-action@5ecb98a3c6b747ed38dc09f787459979aebb39be # v4.3.1

@@ -27,25 +27,17 @@ defaults:
   run:
     shell: bash
 
-env:
-  E2E_TEST_SCRIPT: test-e2e
-  E2E_MIRROR_NODE_TEST_SCRIPT: test-e2e-mirror-node
-  E2E_NODE_TEST_SCRIPT: test-e2e-node
-  E2E_RELAY_TEST_SCRIPT: test-e2e-relay
-  E2E_TEST_SUBDIR: e2e
-  E2E_MIRROR_NODE_TEST_SUBDIR: e2e-mirror-node
-  E2E_NODE_TEST_SUBDIR: e2e-node
-  E2E_RELAY_TEST_SUBDIR: e2e-relay
-  E2E_COVERAGE_REPORT: "E2E Tests Coverage Report"
-  E2E_MIRROR_NODE_COVERAGE_REPORT: "E2E Mirror Node Tests Coverage Report"
-  E2E_NODE_COVERAGE_REPORT: "E2E Node Tests Coverage Report"
-  E2E_RELAY_COVERAGE_REPORT: "E2E Relay Tests Coverage Report"
-
 concurrency:
   group: pr-checks-${{ github.workflow }}-${{ github.head_ref || github.run_id }}
   cancel-in-progress: true
 
 jobs:
+  env-vars:
+    name: Set Environment Variables
+    uses: ./.github/workflows/zxc-env-vars.yaml
+    with:
+      custom-job-label: Set Environment Variables
+
   code-style:
     name: Code Style
     uses: ./.github/workflows/zxc-code-style.yaml
@@ -64,50 +56,55 @@ jobs:
     name: E2E Tests
     uses: ./.github/workflows/zxc-e2e-test.yaml
     needs:
+      - env-vars
       - code-style
     with:
       custom-job-label: Standard
-      npm-test-script: ${{ env.E2E_TEST_SCRIPT }}
-      coverage-subdirectory: ${{ env.E2E_TEST_SUBDIR }}
-      coverage-report-name: ${{ env.E2E_COVERAGE_REPORT }}
+      npm-test-script: ${{ needs.env-vars.outputs.e2e_test_script }}
+      coverage-subdirectory: ${{ needs.env-vars.outputs.e2e_test_subdir }}
+      coverage-report-name: ${{ needs.env-vars.outputs.e2e_coverage_report }}
 
   e2e-mirror-node-tests:
     name: E2E Tests
     uses: ./.github/workflows/zxc-e2e-test.yaml
     needs:
+      - env-vars
       - code-style
     with:
       custom-job-label: Mirror Node
-      npm-test-script: ${{ env.E2E_MIRROR_NODE_TEST_SCRIPT }}
-      coverage-subdirectory: ${{ env.E2E_MIRROR_NODE_TEST_SUBDIR }}
-      coverage-report-name: ${{ env.E2E_MIRROR_NODE_COVERAGE_REPORT }}
+      npm-test-script: ${{ needs.env-vars.outputs.e2e_mirror_node_test_script }}
+      coverage-subdirectory: ${{ needs.env-vars.outputs.e2e_mirror_node_test_subdir }}
+      coverage-report-name: ${{ needs.env-vars.outputs.e2e_mirror_node_coverage_report }}
 
   e2e-node-tests:
     name: E2E Tests
     uses: ./.github/workflows/zxc-e2e-test.yaml
     needs:
+      - env-vars
       - code-style
     with:
       custom-job-label: Node
-      npm-test-script: ${{ env.E2E_NODE_TEST_SCRIPT }}
-      coverage-subdirectory: ${{ env.E2E_NODE_TEST_SUBDIR }}
-      coverage-report-name: ${{ env.E2E_NODE_COVERAGE_REPORT }}
+      npm-test-script: ${{ needs.env-vars.outputs.e2e_node_test_script }}
+      coverage-subdirectory: ${{ needs.env-vars.outputs.e2e_node_test_subdir }}
+      coverage-report-name: ${{ needs.env-vars.outputs.e2e_node_coverage_report }}
 
   e2e-relay-tests:
     name: E2E Tests
     uses: ./.github/workflows/zxc-e2e-test.yaml
     needs:
+      - env-vars
       - code-style
     with:
       custom-job-label: Relay
-      npm-test-script: ${{ env.E2E_RELAY_TEST_SCRIPT }}
-      coverage-subdirectory: ${{ env.E2E_RELAY_TEST_SUBDIR }}
-      coverage-report-name: ${{ env.E2E_RELAY_COVERAGE_REPORT }}
+      npm-test-script: ${{ needs.env-vars.outputs.e2e_relay_test_script }}
+      coverage-subdirectory: ${{ needs.env-vars.outputs.e2e_relay_test_subdir }}
+      coverage-report-name: ${{ needs.env-vars.outputs.e2e_relay_coverage_report }}
 
   codecov:
     name: CodeCov
     uses: ./.github/workflows/zxc-code-analysis.yaml
     needs:
+      - env-vars
       - unit-tests
       - e2e-tests
       - e2e-mirror-node-tests
@@ -118,6 +115,14 @@ jobs:
       custom-job-label: Standard
       enable-codecov-analysis: true
       enable-e2e-coverage-report: true
+      e2e-test-subdir: ${{ needs.env-vars.outputs.e2e_test_subdir }}
+      e2e-mirror-node-test-subdir: ${{ needs.env-vars.outputs.e2e_mirror_node_test_subdir }}
+      e2e-node-test-subdir: ${{ needs.env-vars.outputs.e2e_node_test_subdir }}
+      e2e-relay-test-subdir: ${{ needs.env-vars.outputs.e2e_relay_test_subdir }}
+      e2e-coverage-report: ${{ needs.env-vars.outputs.e2e_coverage_report }}
+      e2e-mirror-node-coverage-report: ${{ needs.env-vars.outputs.e2e_mirror_node_coverage_report }}
+      e2e-node-coverage-report: ${{ needs.env-vars.outputs.e2e_node_coverage_report }}
+      e2e-relay-coverage-report: ${{ needs.env-vars.outputs.e2e_relay_coverage_report }}
     secrets:
       codecov-token: ${{ secrets.CODECOV_TOKEN }}
 
@@ -125,6 +130,7 @@ jobs:
     name: Codacy
     uses: ./.github/workflows/zxc-code-analysis.yaml
     needs:
+      - env-vars
       - unit-tests
       - e2e-tests
       - e2e-mirror-node-tests
@@ -135,6 +141,14 @@ jobs:
       custom-job-label: Coverage
       enable-codacy-coverage: true
       enable-e2e-coverage-report: true
+      e2e-test-subdir: ${{ needs.env-vars.outputs.e2e_test_subdir }}
+      e2e-mirror-node-test-subdir: ${{ needs.env-vars.outputs.e2e_mirror_node_test_subdir }}
+      e2e-node-test-subdir: ${{ needs.env-vars.outputs.e2e_node_test_subdir }}
+      e2e-relay-test-subdir: ${{ needs.env-vars.outputs.e2e_relay_test_subdir }}
+      e2e-coverage-report: ${{ needs.env-vars.outputs.e2e_coverage_report }}
+      e2e-mirror-node-coverage-report: ${{ needs.env-vars.outputs.e2e_mirror_node_coverage_report }}
+      e2e-node-coverage-report: ${{ needs.env-vars.outputs.e2e_node_coverage_report }}
+      e2e-relay-coverage-report: ${{ needs.env-vars.outputs.e2e_relay_coverage_report }}
     secrets:
       codacy-project-token: ${{ secrets.CODACY_PROJECT_TOKEN }}
 
@@ -142,6 +156,7 @@ jobs:
 #    name: Snyk Scan
 #    uses: ./.github/workflows/zxc-code-analysis.yaml
 #    needs:
+#      - env-vars
 #      - unit-tests
 #      - e2e-tests
 #      - e2e-mirror-node-tests
@@ -151,5 +166,13 @@ jobs:
 #    with:
 #      custom-job-label: Standard
 #      enable-snyk-scan: true
+#      e2e-test-subdir: ${{ needs.env-vars.outputs.e2e_test_subdir }}
+#      e2e-mirror-node-test-subdir: ${{ needs.env-vars.outputs.e2e_mirror_node_test_subdir }}
+#      e2e-node-test-subdir: ${{ needs.env-vars.outputs.e2e_node_test_subdir }}
+#      e2e-relay-test-subdir: ${{ needs.env-vars.outputs.e2e_relay_test_subdir }}
+#      e2e-coverage-report: ${{ needs.env-vars.outputs.e2e_coverage_report }}
+#      e2e-mirror-node-coverage-report: ${{ needs.env-vars.outputs.e2e_mirror_node_coverage_report }}
+#      e2e-node-coverage-report: ${{ needs.env-vars.outputs.e2e_node_coverage_report }}
+#      e2e-relay-coverage-report: ${{ needs.env-vars.outputs.e2e_relay_coverage_report }}
 #    secrets:
 #      snyk-token: ${{ secrets.SNYK_TOKEN }}
