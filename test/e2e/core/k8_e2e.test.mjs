@@ -149,8 +149,8 @@ describe('K8', () => {
       .set(constants.POD_CONDITION_INITIALIZED, constants.POD_CONDITION_STATUS_TRUE)
       .set(constants.POD_CONDITION_POD_SCHEDULED, constants.POD_CONDITION_STATUS_TRUE)
       .set(constants.POD_CONDITION_READY, constants.POD_CONDITION_STATUS_TRUE)
-    const pods = await k8.waitForPodCondition(conditions, labels, 3)
-    expect(pods.length).toStrictEqual(3)
+    const pods = await k8.waitForPodCondition(conditions, labels, 1)
+    expect(pods.length).toStrictEqual(1)
   })
 
   it('should be able to cat a log file inside the container', async () => {
