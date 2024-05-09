@@ -1485,7 +1485,7 @@ export class NodeCommand extends BaseCommand {
       subTasks.push({
         title: `Start node: ${chalk.yellow(nodeId)}`,
         task: async () => {
-          await this.k8.execContainer(podName, constants.ROOT_CONTAINER, ['bash', '-c', `rm -f ${constants.HEDERA_HAPI_PATH}/output/*`])
+          await this.k8.execContainer(podName, constants.ROOT_CONTAINER, ['bash', '-c', `sudo rm -f ${constants.HEDERA_HAPI_PATH}/output/*`])
 
           // copy application.env file if required
           if (config.applicationEnv) {
