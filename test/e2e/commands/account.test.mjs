@@ -13,7 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
+ * @jest-environment steps
  */
+
 import { AccountId, PrivateKey } from '@hashgraph/sdk'
 import {
   afterAll, beforeAll,

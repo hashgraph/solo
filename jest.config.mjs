@@ -15,9 +15,6 @@
  *
  */
 const config = {
-  rootDir: '.',
-  testRunner: 'jest-circus/runner',
-  testEnvironment: '<rootDir>/test/jest/fail_fast.mjs',
   testRegex: '(/__tests__/.*|(\\.|/)(test|spec))\\.(mjs?)$',
   moduleFileExtensions: ['js', 'mjs'],
   verbose: true,
