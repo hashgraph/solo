@@ -74,10 +74,6 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y wget
-          # TODO remove
-          echo "HOSTNAME=${HOSTNAME}"
-          echo "RUNNER_LABELS=${RUNNER_LABELS}"
-          echo "RUNNER_NAME=${RUNNER_NAME}"
 
       - name: Setup Kind
         uses: helm/kind-action@0025e74a8c7512023d06dc019c617aa3cf561fde # v1.10.0
