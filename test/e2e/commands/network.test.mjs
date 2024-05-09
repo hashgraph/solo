@@ -14,6 +14,10 @@
  * limitations under the License.
  *
  */
+/**
+ * @jest-environment steps
+ */
+
 import {
   afterAll, beforeAll,
   describe,
@@ -31,9 +35,6 @@ import { flags } from '../../../src/commands/index.mjs'
 import * as version from '../../../version.mjs'
 import { sleep } from '../../../src/core/helpers.mjs'
 
-/**
- * @jest-environment steps
- */
 describe('NetworkCommand', () => {
   const testName = 'network-cmd-e2e'
   const namespace = testName

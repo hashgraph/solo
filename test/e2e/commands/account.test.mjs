@@ -14,6 +14,10 @@
  * limitations under the License.
  *
  */
+/**
+ * @jest-environment steps
+ */
+
 import { AccountId, PrivateKey } from '@hashgraph/sdk'
 import {
   afterAll, beforeAll,
@@ -34,9 +38,6 @@ import {
 import { AccountCommand } from '../../../src/commands/account.mjs'
 import { flags } from '../../../src/commands/index.mjs'
 
-/**
- * @jest-environment steps
- */
 describe('AccountCommand', () => {
   const testName = 'account-cmd-e2e'
   const namespace = testName
@@ -64,9 +65,6 @@ describe('AccountCommand', () => {
     await nodeCmd.close()
   })
 
-  /**
-   * @jest-environment steps
-   */
   describe('node proxies should be UP', () => {
     let localPort = 30399
     for (const nodeId of argv[flags.nodeIDs.name].split(',')) {
@@ -76,18 +74,12 @@ describe('AccountCommand', () => {
     }
   })
 
-  /**
-   * @jest-environment steps
-   */
   describe('account init command', () => {
     it('should succeed with init command', async () => {
       const status = await accountCmd.init(argv)
       expect(status).toBeTruthy()
     }, 180000)
 
-    /**
-     * @jest-environment steps
-     */
     describe('special accounts should have new keys', () => {
       const genesisKey = PrivateKey.fromStringED25519(constants.GENESIS_KEY)
       const realm = constants.HEDERA_NODE_ACCOUNT_ID_START.realm
@@ -116,9 +108,6 @@ describe('AccountCommand', () => {
     })
   })
 
-  /**
-   * @jest-environment steps
-   */
   describe('account create/update command', () => {
     let accountId1, accountId2
 

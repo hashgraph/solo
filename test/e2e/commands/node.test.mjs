@@ -14,6 +14,10 @@
  * limitations under the License.
  *
  */
+/**
+ * @jest-environment steps
+ */
+
 import {
   AccountBalanceQuery,
   AccountCreateTransaction,
@@ -44,9 +48,6 @@ import path from 'path'
 import fs from 'fs'
 import crypto from 'crypto'
 
-/**
- * @jest-environment steps
- */
 describe.each([
   { releaseTag: 'v0.49.0-alpha.2', keyFormat: constants.KEY_FORMAT_PFX, testName: 'node-cmd-e2e-pfx', mode: 'kill' },
   { releaseTag: 'v0.49.0-alpha.2', keyFormat: constants.KEY_FORMAT_PEM, testName: 'node-cmd-e2e-pem', mode: 'stop' }
@@ -75,9 +76,6 @@ describe.each([
     await k8.deleteNamespace(namespace)
   }, 120000)
 
-  /**
-   * @jest-environment steps
-   */
   describe(`Node should have started successfully [mode ${input.mode}, release ${input.releaseTag}, keyFormat: ${input.keyFormat}]`, () => {
     balanceQueryShouldSucceed(accountManager, nodeCmd, namespace)
 
@@ -97,9 +95,6 @@ describe.each([
     }, 20000)
   })
 
-  /**
-   * @jest-environment steps
-   */
   describe(`Node should refresh successfully [mode ${input.mode}, release ${input.releaseTag}, keyFormat: ${input.keyFormat}]`, () => {
     const nodeId = 'node0'
 
@@ -128,9 +123,6 @@ describe.each([
     accountCreationShouldSucceed(accountManager, nodeCmd, namespace)
   })
 
-  /**
-   * @jest-environment steps
-   */
   describe(`Should add a new node to the network [release ${input.releaseTag}, keyFormat: ${input.keyFormat}]`, () => {
     const nodeId = 'node4'
     let existingServiceMap
