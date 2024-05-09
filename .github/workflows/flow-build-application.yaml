@@ -60,12 +60,42 @@ jobs:
 
   e2e-tests:
     name: E2E Tests
-    uses: ./.github/workflows/zxc-e2e-test.yaml
     if: ${{ github.event_name == 'push' || github.event.inputs.enable-e2e-tests == 'true' }}
+    uses: ./.github/workflows/zxc-e2e-test.yaml
     needs:
       - code-style
     with:
       custom-job-label: Standard
+
+  e2e-mirror-node-tests:
+    name: E2E Mirror Node Tests
+    if: ${{ github.event_name == 'push' || github.event.inputs.enable-e2e-tests == 'true' }}
+    uses: ./.github/workflows/zxc-e2e-test.yaml
+    needs:
+      - code-style
+    with:
+      custom-job-label: Standard
+      npm-script: e2e-mirror-node
+
+  e2e-node-tests:
+    name: E2E Node Tests
+    if: ${{ github.event_name == 'push' || github.event.inputs.enable-e2e-tests == 'true' }}
+    uses: ./.github/workflows/zxc-e2e-test.yaml
+    needs:
+      - code-style
+    with:
+      custom-job-label: Standard
+      npm-script: e2e-node
+
+  e2e-relay-tests:
+    name: E2E Relay Tests
+    if: ${{ github.event_name == 'push' || github.event.inputs.enable-e2e-tests == 'true' }}
+    uses: ./.github/workflows/zxc-e2e-test.yaml
+    needs:
+      - code-style
+    with:
+      custom-job-label: Standard
+      npm-script: e2e-relay
 
   analyze:
     name: Analyze

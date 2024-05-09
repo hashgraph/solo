@@ -33,6 +33,11 @@ on:
         type: string
         required: false
         default: "E2E Test"
+      npm-script:
+        description: "NPM Run Script:"
+        type: string
+        required: false
+        default: "e2e"
 
 defaults:
   run:
@@ -101,7 +106,7 @@ jobs:
 
       - name: Run E2E Tests
         if: ${{ !cancelled() && !failure() }}
-        run: npm run test-e2e
+        run: npm run test-${{ inputs.npm-script }}
 
       - name: Upload E2E Logs to GitHub
         if: ${{ !cancelled() }}
@@ -117,11 +122,11 @@ jobs:
         if: ${{ steps.npm-deps.conclusion == 'success' && !cancelled() }}
         with:
           check_name: 'E2E Test Results'
-          files: "junit-e2e.xml"
+          files: "junit-${{ inputs.npm-script }}.xml"
 
       - name: Publish E2E Coverage Report
         uses: actions/upload-artifact@5d5d22a31266ced268874388b861e4b58bb5c2f3 # v4.3.1
         if: ${{ !cancelled() }}
         with:
           name: E2E Coverage Report
-          path: 'coverage/e2e'
+          path: 'coverage/${{ inputs.npm-script }}'

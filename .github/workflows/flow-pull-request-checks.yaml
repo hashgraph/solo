@@ -54,6 +54,33 @@ jobs:
     with:
       custom-job-label: Standard
 
+  e2e-mirror-node-tests:
+    name: E2E Mirror Node Tests
+    uses: ./.github/workflows/zxc-e2e-test.yaml
+    needs:
+      - code-style
+    with:
+      custom-job-label: Standard
+      npm-script: e2e-mirror-node
+
+  e2e-node-tests:
+    name: E2E Node Tests
+    uses: ./.github/workflows/zxc-e2e-test.yaml
+    needs:
+      - code-style
+    with:
+      custom-job-label: Standard
+      npm-script: e2e-node
+
+  e2e-relay-tests:
+    name: E2E Relay Tests
+    uses: ./.github/workflows/zxc-e2e-test.yaml
+    needs:
+      - code-style
+    with:
+      custom-job-label: Standard
+      npm-script: e2e-relay
+
   codecov:
     name: CodeCov
     uses: ./.github/workflows/zxc-code-analysis.yaml
