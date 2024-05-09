@@ -334,7 +334,7 @@ export class PlatformInstaller {
    *   ${staging}/keys/a-<nodeId>.key: agreement key for a node
    *   ${staging}/keys/a-<nodeId>.crt: agreement cert for a node
    *   ${staging}/keys/hedera-<nodeId>.key: gRPC TLS key for a node
-   *   ${staging}/keys/hedera-<nodeId>.crt: gRPC TSL cert for a node
+   *   ${staging}/keys/hedera-<nodeId>.crt: gRPC TLS cert for a node
    *   ${staging}/properties: contains all properties files
    *   ${staging}/log4j2.xml: LOG4J file
    *   ${staging}/settings.txt: settings.txt file for the network

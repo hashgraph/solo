@@ -53,7 +53,7 @@ export const HEDERA_NODE_INTERNAL_GOSSIP_PORT = process.env.SOLO_NODE_INTERNAL_G
 export const HEDERA_NODE_EXTERNAL_GOSSIP_PORT = process.env.SOLO_NODE_EXTERNAL_GOSSIP_PORT || '50111'
 
 export const HEDERA_NODE_GRPC_PORT = process.env.SOLO_NODE_GRPC_PORT || '50211'
-export const HEDERA_NODE_GRPCS_PORT = process.env.SOLO_NODE_GRPC_PORT || '50212'
+export const HEDERA_NODE_GRPCS_PORT = process.env.SOLO_NODE_GRPCS_PORT || '50212'
 export const HEDERA_NODE_DEFAULT_STAKE_AMOUNT = process.env.SOLO_NODE_DEFAULT_STAKE_AMOUNT || 1
 
 // --------------- Logging related constants ---------------------------------------------------------------------------
