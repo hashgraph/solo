@@ -65,8 +65,8 @@ permissions:
 
 jobs:
   e2e-test:
-    runs-on: [self-hosted, Linux, large, ephemeral]
     name: ${{ inputs.custom-job-label || 'E2E Test' }}
+    runs-on: [self-hosted, Linux, large, ephemeral]
     steps:
       - name: Checkout Code
         uses: actions/checkout@1d96c772d19495a3b5c517cd2bc0cb401ea0529f # v4.1.3
