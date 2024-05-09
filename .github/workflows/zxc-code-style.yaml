@@ -48,7 +48,7 @@ permissions:
 
 jobs:
   code-style:
-    runs-on: [self-hosted, Linux, large, ephemeral]
+    runs-on: [self-hosted, Linux, medium, ephemeral]
     name: ${{ inputs.custom-job-label || 'Code Style' }}
     steps:
       - name: Checkout Code

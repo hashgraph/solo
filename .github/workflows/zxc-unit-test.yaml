@@ -52,7 +52,7 @@ jobs:
       matrix:
         os:
           - windows-2022
-          - [self-hosted, Linux, large, ephemeral]
+          - [self-hosted, Linux, medium, ephemeral]
     runs-on: ${{ matrix.os }}
     name: "(${{ join(matrix.os, ', ') }})"
     steps:
