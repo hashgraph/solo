@@ -73,7 +73,7 @@ jobs:
       - code-style
     with:
       custom-job-label: Standard
-      npm-test-script: ${{ needs.env-vars.outputs.e2e-test-script }}
+      npm-test-script: test-${{ needs.env-vars.outputs.e2e-test-subdir }}
       coverage-subdirectory: ${{ needs.env-vars.outputs.e2e-test-subdir }}
       coverage-report-name: ${{ needs.env-vars.outputs.e2e-coverage-report }}
 
@@ -86,7 +86,7 @@ jobs:
       - code-style
     with:
       custom-job-label: Mirror Node
-      npm-test-script: ${{ needs.env-vars.outputs.e2e-mirror-node-test-script }}
+      npm-test-script: test-${{ needs.env-vars.outputs.e2e-mirror-node-test-subdir }}
       coverage-subdirectory: ${{ needs.env-vars.outputs.e2e-mirror-node-test-subdir }}
       coverage-report-name: ${{ needs.env-vars.outputs.e2e-mirror-node-coverage-report }}
 
@@ -99,7 +99,7 @@ jobs:
       - code-style
     with:
       custom-job-label: Node
-      npm-test-script: ${{ needs.env-vars.outputs.e2e-node-test-script }}
+      npm-test-script: test-${{ needs.env-vars.outputs.e2e-node-test-subdir }}
       coverage-subdirectory: ${{ needs.env-vars.outputs.e2e-node-test-subdir }}
       coverage-report-name: ${{ needs.env-vars.outputs.e2e-node-coverage-report }}
 
@@ -112,7 +112,7 @@ jobs:
       - code-style
     with:
       custom-job-label: Relay
-      npm-test-script: ${{ needs.env-vars.outputs.e2e-relay-test-script }}
+      npm-test-script: test-${{ needs.env-vars.outputs.e2e-relay-test-subdir }}
       coverage-subdirectory: ${{ needs.env-vars.outputs.e2e-relay-test-subdir }}
       coverage-report-name: ${{ needs.env-vars.outputs.e2e-relay-coverage-report }}
 
