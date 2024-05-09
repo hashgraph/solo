@@ -57,18 +57,18 @@ defaults:
     shell: bash
 
 jobs:
-  code:
-    name: Code
-    uses: ./.github/workflows/zxc-code.yaml
+  code-style:
+    name: Code Style
+    uses: ./.github/workflows/zxc-code-style.yaml
     with:
-      custom-job-label: Compiles
+      custom-job-label: Standard
 
   unit-tests:
     name: Unit Tests
     uses: ./.github/workflows/zxc-unit-test.yaml
     if: ${{ github.event_name == 'push' || github.event.inputs.enable-unit-tests == 'true' }}
     needs:
-      - code
+      - code-style
     with:
       custom-job-label: Standard
 
@@ -77,7 +77,7 @@ jobs:
     if: ${{ github.event_name == 'push' || github.event.inputs.enable-e2e-tests == 'true' }}
     uses: ./.github/workflows/zxc-e2e-test.yaml
     needs:
-      - code
+      - code-style
     with:
       custom-job-label: Standard
       npm-test-script: ${{ env.E2E_TEST_SCRIPT }}
@@ -89,7 +89,7 @@ jobs:
     if: ${{ github.event_name == 'push' || github.event.inputs.enable-e2e-tests == 'true' }}
     uses: ./.github/workflows/zxc-e2e-test.yaml
     needs:
-      - code
+      - code-style
     with:
       custom-job-label: Mirror Node
       npm-test-script: ${{ env.E2E_MIRROR_NODE_TEST_SCRIPT }}
@@ -101,7 +101,7 @@ jobs:
     if: ${{ github.event_name == 'push' || github.event.inputs.enable-e2e-tests == 'true' }}
     uses: ./.github/workflows/zxc-e2e-test.yaml
     needs:
-      - code
+      - code-style
     with:
       custom-job-label: Node
       npm-test-script: ${{ env.E2E_NODE_TEST_SCRIPT }}
@@ -113,7 +113,7 @@ jobs:
     if: ${{ github.event_name == 'push' || github.event.inputs.enable-e2e-tests == 'true' }}
     uses: ./.github/workflows/zxc-e2e-test.yaml
     needs:
-      - code
+      - code-style
     with:
       custom-job-label: Relay
       npm-test-script: ${{ env.E2E_RELAY_TEST_SCRIPT }}

@@ -14,7 +14,7 @@
 # limitations under the License.
 ##
 
-name: "ZXC: Code"
+name: "ZXC: Code Style"
 # The purpose of this reusable workflow is to cache dependencies and run a code style check on every PR and commit.
 # This reusable component is called by the following workflows:
 # - .github/workflows/flow-pull-request-checks.yaml
@@ -32,7 +32,7 @@ on:
         description: "Custom Job Label:"
         type: string
         required: false
-        default: "Code"
+        default: "Code Style"
 
 defaults:
   run:
@@ -47,8 +47,8 @@ permissions:
   statuses: write
 
 jobs:
-  code:
-    name: ${{ inputs.custom-job-label || 'Code' }}
+  code-style:
+    name: ${{ inputs.custom-job-label || 'Code Style' }}
     runs-on: [self-hosted, Linux, medium, ephemeral]
     steps:
       - name: Checkout Code
