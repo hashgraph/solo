@@ -6,6 +6,6 @@ plugins:
   - remark-lint-maximum-line-length: 120
   # list item indentation should be space
   - - remark-lint-list-item-indent
-    - space
+    - one
   - - remark-lint-unordered-list-marker-style
     - consistent
