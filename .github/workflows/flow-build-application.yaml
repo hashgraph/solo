@@ -43,10 +43,6 @@ defaults:
     shell: bash
 
 jobs:
-  code:
-    name: Code
-    uses: ./.github/workflows/zxc-compile-code.yaml
-
   code-style:
     name: Code Style
     uses: ./.github/workflows/zxc-compile-code.yaml
