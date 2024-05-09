@@ -77,7 +77,7 @@ export const Logger = class {
         // - Write all logs with importance level of `info` or less to `solo.log`
         //
         new winston.transports.File({ filename: `${constants.SOLO_LOGS_DIR}/solo.log` })
-        // new winston.transports.File({filename: constants.TMP_DIR + "/output/error.log", level: 'error'}),
+        // new winston.transports.File({filename: constants.TMP_DIR + "/logs/error.log", level: 'error'}),
         // new winston.transports.Console({format: customFormat})
       ]
     })
