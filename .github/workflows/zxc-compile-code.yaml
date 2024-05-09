@@ -65,27 +65,35 @@ permissions:
 jobs:
   compile:
     name: ${{ inputs.custom-job-label || 'Compiles' }}
-    runs-on: [self-hosted, Linux, medium, ephemeral]
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os:
+          - windows-2022
+          - [self-hosted, Linux, large, ephemeral]
     steps:
       - name: Checkout Code
-        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        uses: actions/checkout@1d96c772d19495a3b5c517cd2bc0cb401ea0529f # v4.1.3
 
-      - name: Setup Node
-        uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4.0.2
+      - name: Setup Node with Retry
+        uses: Wandalen/wretry.action@0dd1d5d77d019a6f85beb53d29e2ea2c7294d4f2 # v3.4.0
         with:
-          node-version: ${{ inputs.node-version }}
-          cache: npm
+          action: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4.0.2
+          with: |
+            node-version: ${{ inputs.node-version }}
+            cache: npm
+          attempt_limit: 3
+          attempt_delay: 5000
 
-      - name: Setup Java
-        uses: actions/setup-java@9704b39bf258b59bc04b50fa2dd55e9ed76b47a8 # v4.1.0
-        if: ${{ inputs.enable-e2e-tests && !cancelled() && !failure() }}
-        with:
-          distribution: temurin
-          java-version: 21
+      - name: Install wget
+        if: ${{ runner.os == 'linux' && inputs.enable-e2e-tests && !cancelled() && !failure() }}
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y wget
 
       - name: Setup Kind
-        uses: helm/kind-action@99576bfa6ddf9a8e612d83b513da5a75875caced # v1.9.0
-        if: ${{ inputs.enable-e2e-tests && !cancelled() && !failure() }}
+        uses: helm/kind-action@0025e74a8c7512023d06dc019c617aa3cf561fde # v1.10.0
+        if: ${{ runner.os == 'linux' && inputs.enable-e2e-tests && !cancelled() && !failure() }}
         with:
           install_only: true
           node_image: kindest/node:v1.27.3@sha256:3966ac761ae0136263ffdb6cfd4db23ef8a83cba8a463690e98317add2c9ba72
@@ -94,54 +102,55 @@ jobs:
           verbosity: 3
           wait: 120s
 
-      - name: Setup Helm
-        uses: azure/setup-helm@29960d0f5f19214b88e1d9ba750a9914ab0f1a2f # v4.0.0
-        if: ${{ (inputs.enable-unit-tests || inputs.enable-e2e-tests) && !cancelled() && !failure() }}
-        with:
-          version: "v3.12.3" #  helm version
-
       - name: Install Dependencies
         id: npm-deps
         run: npm ci
 
       - name: Check Code Style
-        if: ${{ inputs.enable-code-style-check && !cancelled() && !failure() }}
+        if: ${{ runner.os == 'linux' && inputs.enable-code-style-check && !cancelled() && !failure() }}
         run: npm run check
 
       - name: Run Unit Tests
         if: ${{ inputs.enable-unit-tests && !cancelled() && !failure() }}
         run: npm test
 
-      - name: Publish Unit Test Report
-        uses: EnricoMi/publish-unit-test-result-action@f355d34d53ad4e7f506f699478db2dd71da9de5f # v2.15.1
-        if: ${{ inputs.enable-unit-tests && steps.npm-deps.conclusion == 'success' && !cancelled() }}
+      - name: Publish Windows Unit Test Report
+        uses: EnricoMi/publish-unit-test-result-action/windows/bash@30eadd5010312f995f0d3b3cff7fe2984f69409e # v2.16.1
+        if: ${{ runner.os == 'Windows' && inputs.enable-unit-tests && steps.npm-deps.conclusion == 'success' && !cancelled() }}
         with:
-          check_name: 'Unit Test Results'
+          check_name: 'Unit Test Results - ${{ runner.os }}'
+          files: "junit.xml"
+
+      - name: Publish Linux Unit Test Report
+        uses: EnricoMi/publish-unit-test-result-action@30eadd5010312f995f0d3b3cff7fe2984f69409e # v2.16.1
+        if: ${{ runner.os == 'linux' && inputs.enable-unit-tests && steps.npm-deps.conclusion == 'success' && !cancelled() }}
+        with:
+          check_name: 'Unit Test Results - ${{ runner.os }}'
           files: "junit.xml"
 
       - name: Publish Unit Test Coverage Report
         uses: actions/upload-artifact@5d5d22a31266ced268874388b861e4b58bb5c2f3 # v4.3.1
-        if: ${{ inputs.enable-unit-tests && !cancelled() }}
+        if: ${{ runner.os == 'linux' && inputs.enable-unit-tests && !cancelled() }}
         with:
           name: Unit Test Coverage Report
           path: 'coverage/unit'
 
       - name: Pull Kind Docker Image
-        if: ${{ inputs.enable-e2e-tests && !cancelled() && !failure() }}
+        if: ${{ runner.os == 'linux' && inputs.enable-e2e-tests && !cancelled() && !failure() }}
         run: docker image pull kindest/node:v1.27.3@sha256:3966ac761ae0136263ffdb6cfd4db23ef8a83cba8a463690e98317add2c9ba72
 
       - name: Setup E2E Tests
-        if: ${{ inputs.enable-e2e-tests && !cancelled() && !failure() }}
+        if: ${{ runner.os == 'linux' && inputs.enable-e2e-tests && !cancelled() && !failure() }}
         run: | 
           npm link
           ./test/e2e/setup-e2e.sh
 
       - name: Run E2E Tests
-        if: ${{ inputs.enable-e2e-tests && !cancelled() && !failure() }}
+        if: ${{ runner.os == 'linux' && inputs.enable-e2e-tests && !cancelled() && !failure() }}
         run: npm run test-e2e
 
       - name: Upload E2E Logs to GitHub
-        if: ${{ inputs.enable-e2e-tests && !cancelled() }}
+        if: ${{ runner.os == 'linux' && inputs.enable-e2e-tests && !cancelled() }}
         uses: actions/upload-artifact@5d5d22a31266ced268874388b861e4b58bb5c2f3 # v4.3.1
         with:
           name: solo.log
@@ -150,22 +159,22 @@ jobs:
           if-no-files-found: error
 
       - name: Publish E2E Test Report
-        uses: EnricoMi/publish-unit-test-result-action@f355d34d53ad4e7f506f699478db2dd71da9de5f # v2.15.1
-        if: ${{ inputs.enable-e2e-tests && steps.npm-deps.conclusion == 'success' && !cancelled() }}
+        uses: EnricoMi/publish-unit-test-result-action@30eadd5010312f995f0d3b3cff7fe2984f69409e # v2.16.1
+        if: ${{ runner.os == 'linux' && inputs.enable-e2e-tests && steps.npm-deps.conclusion == 'success' && !cancelled() }}
         with:
           check_name: 'E2E Test Results'
           files: "junit-e2e.xml"
 
       - name: Publish E2E Coverage Report
         uses: actions/upload-artifact@5d5d22a31266ced268874388b861e4b58bb5c2f3 # v4.3.1
-        if: ${{ inputs.enable-e2e-tests && !cancelled() }}
+        if: ${{ runner.os == 'linux' && inputs.enable-e2e-tests && !cancelled() }}
         with:
           name: E2E Coverage Report
           path: 'coverage/e2e'
 
       - name: Publish Test Reports
         uses: actions/upload-artifact@5d5d22a31266ced268874388b861e4b58bb5c2f3 # v4.3.1
-        if: ${{ inputs.enable-unit-tests && steps.npm-deps.conclusion == 'success' && !cancelled() }}
+        if: ${{ runner.os == 'linux' && inputs.enable-unit-tests && steps.npm-deps.conclusion == 'success' && !cancelled() }}
         with:
           name: Test Reports
           path: "junit*.xml"

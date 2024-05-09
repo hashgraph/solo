@@ -21,7 +21,7 @@ import { flags } from './index.mjs'
 import { Listr } from 'listr2'
 import * as prompts from './prompts.mjs'
 import { constants } from '../core/index.mjs'
-import { HbarUnit, PrivateKey } from '@hashgraph/sdk'
+import { AccountInfo, HbarUnit, PrivateKey } from '@hashgraph/sdk'
 
 export class AccountCommand extends BaseCommand {
   constructor (opts, systemAccounts = constants.SYSTEM_ACCOUNTS) {
@@ -39,6 +39,8 @@ export class AccountCommand extends BaseCommand {
   }
 
   async buildAccountInfo (accountInfo, namespace, shouldRetrievePrivateKey) {
+    if (!accountInfo || !(accountInfo instanceof AccountInfo)) throw new IllegalArgumentError('An instance of AccountInfo is required')
+
     const newAccountInfo = {
       accountId: accountInfo.accountId.toString(),
       publicKey: accountInfo.key.toString(),
@@ -54,14 +56,16 @@ export class AccountCommand extends BaseCommand {
   }
 
   async createNewAccount (ctx) {
-    if (ctx.config.privateKey) {
+    if (ctx.config.ecdsaPrivateKey) {
+      ctx.privateKey = PrivateKey.fromStringECDSA(ctx.config.ecdsaPrivateKey)
+    } else if (ctx.config.privateKey) {
       ctx.privateKey = PrivateKey.fromStringED25519(ctx.config.privateKey)
     } else {
       ctx.privateKey = PrivateKey.generateED25519()
     }
 
     return await this.accountManager.createNewAccount(ctx.config.namespace,
-      ctx.privateKey, ctx.config.amount)
+      ctx.privateKey, ctx.config.amount, ctx.config.ecdsaPrivateKey ? ctx.config.setAlias : false)
   }
 
   async getAccountInfo (ctx) {
@@ -227,7 +231,9 @@ export class AccountCommand extends BaseCommand {
           const config = {
             namespace: self.configManager.getFlag(flags.namespace),
             privateKey: self.configManager.getFlag(flags.privateKey),
-            amount: self.configManager.getFlag(flags.amount)
+            amount: self.configManager.getFlag(flags.amount),
+            setAlias: self.configManager.getFlag(flags.setAlias),
+            ecdsaPrivateKey: self.configManager.getFlag(flags.ecdsaPrivateKey)
           }
 
           if (!config.amount) {
@@ -399,6 +405,9 @@ export class AccountCommand extends BaseCommand {
    * @param accountCmd an instance of NodeCommand
    */
   static getCommandDefinition (accountCmd) {
+    if (!accountCmd | !(accountCmd instanceof AccountCommand)) {
+      throw new IllegalArgumentError('An instance of AccountCommand is required', accountCmd)
+    }
     return {
       command: 'account',
       desc: 'Manage Hedera accounts in fullstack testing network',
@@ -429,6 +438,8 @@ export class AccountCommand extends BaseCommand {
             builder: y => flags.setCommandFlags(y,
               flags.namespace,
               flags.privateKey,
+              flags.ecdsaPrivateKey,
+              flags.setAlias,
               flags.amount
             ),
             handler: argv => {

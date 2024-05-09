@@ -16,7 +16,7 @@
  */
 import { ListrEnquirerPromptAdapter } from '@listr2/prompt-adapter-enquirer'
 import { Listr } from 'listr2'
-import { FullstackTestingError } from '../core/errors.mjs'
+import { FullstackTestingError, IllegalArgumentError } from '../core/errors.mjs'
 import * as flags from './flags.mjs'
 import { BaseCommand } from './base.mjs'
 import chalk from 'chalk'
@@ -185,6 +185,9 @@ export class ClusterCommand extends BaseCommand {
           }
 
           ctx.isChartInstalled = await this.chartManager.isChartInstalled(ctx.config.clusterSetupNamespace, constants.FULLSTACK_CLUSTER_SETUP_CHART)
+          if (!ctx.isChartInstalled) {
+            throw new FullstackTestingError('No chart found for the cluster')
+          }
         }
       },
       {
@@ -217,6 +220,9 @@ export class ClusterCommand extends BaseCommand {
    * @param clusterCmd an instance of ClusterCommand
    */
   static getCommandDefinition (clusterCmd) {
+    if (!clusterCmd || !(clusterCmd instanceof ClusterCommand)) {
+      throw new IllegalArgumentError('Invalid ClusterCommand instance')
+    }
     return {
       command: 'cluster',
       desc: 'Manage fullstack testing cluster',

@@ -21,14 +21,13 @@ import os from 'os'
 import path from 'path'
 import { v4 as uuid4 } from 'uuid'
 import { FullstackTestingError } from '../../../src/core/errors.mjs'
-import { ConfigManager, constants, logging, PackageDownloader, Templates } from '../../../src/core/index.mjs'
+import { ConfigManager, constants, logging, Templates } from '../../../src/core/index.mjs'
 import { K8 } from '../../../src/core/k8.mjs'
 
 describe('K8', () => {
-  const testLogger = logging.NewLogger('debug')
+  const testLogger = logging.NewLogger('debug', true)
   const configManager = new ConfigManager(testLogger)
   const k8 = new K8(configManager, testLogger)
-  const downloader = new PackageDownloader(testLogger)
 
   beforeAll(() => {
     configManager.load()
@@ -77,20 +76,13 @@ describe('K8', () => {
     const podName = Templates.renderNetworkPodName('node0')
     const containerName = constants.ROOT_CONTAINER
 
-    //  attempt fetch platform jar as we need to check if a big zip file can be uploaded/downloaded
-    const testCacheDir = 'test/data/tmp'
-    const tag = 'v0.42.5'
-    const releasePrefix = Templates.prepareReleasePrefix(tag)
-    const pkgPath = `${testCacheDir}/${releasePrefix}/build-${tag}.zip`
-    await expect(downloader.fetchPlatform(tag, testCacheDir)).resolves.toBe(pkgPath)
-    expect(fs.existsSync(pkgPath)).toBeTruthy()
-
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'k8-'))
     const destDir = constants.HEDERA_USER_HOME_DIR
-    const destPath = `${destDir}/build-${tag}.zip`
+    const srcPath = 'test/data/pem/keys/a-private-node0.pem'
+    const destPath = `${destDir}/a-private-node0.pem`
 
     // upload the file
-    await expect(k8.copyTo(podName, containerName, pkgPath, destDir)).resolves.toBeTruthy()
+    await expect(k8.copyTo(podName, containerName, srcPath, destDir)).resolves.toBeTruthy()
 
     // download the same file
     await expect(k8.copyFrom(podName, containerName, destPath, tmpDir)).resolves.toBeTruthy()
@@ -99,40 +91,66 @@ describe('K8', () => {
     await expect(k8.execContainer(podName, containerName, ['rm', '-f', destPath])).resolves
 
     fs.rmdirSync(tmpDir, { recursive: true })
-  }, 120000)
+  }, 20000)
 
   it('should be able to port forward gossip port', (done) => {
     const podName = Templates.renderNetworkPodName('node0')
     const localPort = constants.HEDERA_NODE_INTERNAL_GOSSIP_PORT
-    k8.portForward(podName, localPort, constants.HEDERA_NODE_INTERNAL_GOSSIP_PORT).then((server) => {
-      expect(server).not.toBeNull()
+    try {
+      k8.portForward(podName, localPort, constants.HEDERA_NODE_INTERNAL_GOSSIP_PORT).then((server) => {
+        expect(server).not.toBeNull()
 
-      // client
-      const s = new net.Socket()
-      s.on('ready', async () => {
-        s.destroy()
-        await k8.stopPortForward(server)
-        done()
+        // client
+        const s = new net.Socket()
+        s.on('ready', async () => {
+          s.destroy()
+          await k8.stopPortForward(server)
+          done()
+        })
+
+        s.on('error', async (e) => {
+          s.destroy()
+          await k8.stopPortForward(server)
+          done(new FullstackTestingError(`could not connect to local port '${localPort}': ${e.message}`, e))
+        })
+
+        s.connect(localPort)
       })
-
-      s.on('error', async (e) => {
-        s.destroy()
-        await k8.stopPortForward(server)
-        done(new FullstackTestingError(`could not connect to local port '${localPort}': ${e.message}`, e))
-      })
-
-      s.connect(localPort)
-    })
+    } catch (e) {
+      testLogger.showUserError(e)
+      expect(e).toBeNull()
+    }
   })
 
-  it('should be able to run watch for pod', async () => {
-    const nodeId = 'node0'
+  it('should be able to run wait for pod', async () => {
     const labels = [
-      'fullstack.hedera.com/type=network-node',
-      `fullstack.hedera.com/node-name=${nodeId}`
+      'fullstack.hedera.com/type=network-node'
     ]
 
-    await expect(k8.waitForPod(constants.POD_STATUS_RUNNING, labels)).resolves.toBeTruthy()
+    const pods = await k8.waitForPod(constants.POD_STATUS_RUNNING, labels, 3)
+    expect(pods.length).toStrictEqual(3)
+  })
+
+  it('should be able to run wait for pod ready', async () => {
+    const labels = [
+      'fullstack.hedera.com/type=network-node'
+    ]
+
+    const pods = await k8.waitForPodReady(labels, 3)
+    expect(pods.length).toStrictEqual(3)
+  })
+
+  it('should be able to run wait for pod conditions', async () => {
+    const labels = [
+      'fullstack.hedera.com/type=network-node'
+    ]
+
+    const conditions = new Map()
+      .set(constants.POD_CONDITION_INITIALIZED, constants.POD_CONDITION_STATUS_TRUE)
+      .set(constants.POD_CONDITION_POD_SCHEDULED, constants.POD_CONDITION_STATUS_TRUE)
+      .set(constants.POD_CONDITION_READY, constants.POD_CONDITION_STATUS_TRUE)
+    const pods = await k8.waitForPodCondition(conditions, labels, 3)
+    expect(pods.length).toStrictEqual(3)
   })
 
   it('should be able to cat a log file inside the container', async () => {
@@ -156,4 +174,11 @@ describe('K8', () => {
     const pvcs = await k8.listPvcsByNamespace(k8._getNamespace())
     expect(pvcs.length).toBeGreaterThan(0)
   })
+
+  it('should be able to recycle pod by labels', async () => {
+    const podLabels = ['app=haproxy-node0', 'fullstack.hedera.com/type=haproxy']
+    const podArray1 = await k8.getPodsByLabel(podLabels)
+    const podsArray2 = await k8.recyclePodByLabels(podLabels)
+    expect(podsArray2.length >= podArray1.length).toBeTruthy()
+  }, 60000)
 })

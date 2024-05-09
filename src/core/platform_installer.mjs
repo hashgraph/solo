@@ -22,17 +22,25 @@ import * as semver from 'semver'
 import { FullstackTestingError, IllegalArgumentError, MissingArgumentError } from './errors.mjs'
 import { constants } from './index.mjs'
 import { Templates } from './templates.mjs'
+import { flags } from '../commands/index.mjs'
 
 /**
  * PlatformInstaller install platform code in the root-container of a network pod
  */
 export class PlatformInstaller {
-  constructor (logger, k8) {
+  constructor (logger, k8, configManager) {
     if (!logger) throw new MissingArgumentError('an instance of core/Logger is required')
     if (!k8) throw new MissingArgumentError('an instance of core/K8 is required')
 
     this.logger = logger
     this.k8 = k8
+    this.configManager = configManager
+  }
+
+  _getNamespace () {
+    const ns = this.configManager.getFlag(flags.namespace)
+    if (!ns) throw new MissingArgumentError('namespace is not set')
+    return ns
   }
 
   async validatePlatformReleaseDir (releaseDir) {
@@ -262,8 +270,6 @@ export class PlatformInstaller {
    * @returns {Promise<unknown>}
    */
   async prepareConfigTxt (nodeIDs, destPath, releaseTag, chainId = constants.HEDERA_CHAIN_ID, template = `${constants.RESOURCES_DIR}/templates/config.template`) {
-    const self = this
-
     if (!nodeIDs || nodeIDs.length === 0) throw new MissingArgumentError('list of node IDs is required')
     if (!destPath) throw new MissingArgumentError('destPath is required')
     if (!template) throw new MissingArgumentError('config templatePath is required')
@@ -290,14 +296,11 @@ export class PlatformInstaller {
       let nodeSeq = 0
       let accountIdSeq = parseInt(startAccountId.num.toString(), 10)
       for (const nodeId of nodeIDs) {
-        const podName = Templates.renderNetworkPodName(nodeId)
-        const svcName = Templates.renderNetworkSvcName(nodeId)
-
         const nodeName = nodeId
         const nodeNickName = nodeId
 
-        const internalIP = await self.k8.getPodIP(podName)
-        const externalIP = await self.k8.getClusterIP(svcName)
+        const internalIP = Templates.renderFullyQualifiedNetworkPodName(this._getNamespace(), nodeId)
+        const externalIP = Templates.renderFullyQualifiedNetworkSvcName(this._getNamespace(), nodeId)
 
         const account = `${accountIdPrefix}.${accountIdSeq}`
         if (releaseVersion.minor >= 40) {

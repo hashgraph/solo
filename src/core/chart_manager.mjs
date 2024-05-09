@@ -70,9 +70,9 @@ export class ChartManager {
     return []
   }
 
-  async install (namespaceName, chartName, chartPath, version, valuesArg = '') {
+  async install (namespaceName, chartReleaseName, chartPath, version, valuesArg = '') {
     try {
-      const isInstalled = await this.isChartInstalled(namespaceName, chartName)
+      const isInstalled = await this.isChartInstalled(namespaceName, chartReleaseName)
       if (!isInstalled) {
         let versionArg = ''
         if (version) {
@@ -85,23 +85,23 @@ export class ChartManager {
         }
 
         this.logger.debug(`> installing chart:${chartPath}`)
-        await this.helm.install(`${chartName} ${chartPath} ${versionArg} ${namespaceArg} ${valuesArg}`)
-        this.logger.debug(`OK: chart is installed: ${chartName} (${chartPath})`)
+        await this.helm.install(`${chartReleaseName} ${chartPath} ${versionArg} ${namespaceArg} ${valuesArg}`)
+        this.logger.debug(`OK: chart is installed: ${chartReleaseName} (${chartPath})`)
       } else {
-        this.logger.debug(`OK: chart is already installed:${chartName} (${chartPath})`)
+        this.logger.debug(`OK: chart is already installed:${chartReleaseName} (${chartPath})`)
       }
     } catch (e) {
-      throw new FullstackTestingError(`failed to install chart ${chartName}: ${e.message}`, e)
+      throw new FullstackTestingError(`failed to install chart ${chartReleaseName}: ${e.message}`, e)
     }
 
     return true
   }
 
-  async isChartInstalled (namespaceName, chartName) {
-    this.logger.debug(`> checking if chart is installed [ chart: ${chartName}, namespace: ${namespaceName} ]`)
+  async isChartInstalled (namespaceName, chartReleaseName) {
+    this.logger.debug(`> checking if chart is installed [ chart: ${chartReleaseName}, namespace: ${namespaceName} ]`)
     const charts = await this.getInstalledCharts(namespaceName)
     for (const item of charts) {
-      if (item.startsWith(chartName)) {
+      if (item.startsWith(chartReleaseName)) {
         return true
       }
     }
@@ -109,30 +109,35 @@ export class ChartManager {
     return false
   }
 
-  async uninstall (namespaceName, chartName) {
+  async uninstall (namespaceName, chartReleaseName) {
     try {
-      const isInstalled = await this.isChartInstalled(namespaceName, chartName)
+      const isInstalled = await this.isChartInstalled(namespaceName, chartReleaseName)
       if (isInstalled) {
-        this.logger.debug(`uninstalling chart release: ${chartName}`)
-        await this.helm.uninstall(`-n ${namespaceName} ${chartName}`)
-        this.logger.debug(`OK: chart release is uninstalled: ${chartName}`)
+        this.logger.debug(`uninstalling chart release: ${chartReleaseName}`)
+        await this.helm.uninstall(`-n ${namespaceName} ${chartReleaseName}`)
+        this.logger.debug(`OK: chart release is uninstalled: ${chartReleaseName}`)
       } else {
-        this.logger.debug(`OK: chart release is already uninstalled: ${chartName}`)
+        this.logger.debug(`OK: chart release is already uninstalled: ${chartReleaseName}`)
       }
     } catch (e) {
-      throw new FullstackTestingError(`failed to uninstall chart ${chartName}: ${e.message}`, e)
+      throw new FullstackTestingError(`failed to uninstall chart ${chartReleaseName}: ${e.message}`, e)
     }
 
     return true
   }
 
-  async upgrade (namespaceName, chartName, chartPath, valuesArg = '') {
+  async upgrade (namespaceName, chartReleaseName, chartPath, valuesArg = '', version = '') {
+    let versionArg = ''
+    if (version) {
+      versionArg = `--version ${version}`
+    }
+
     try {
-      this.logger.debug(chalk.cyan('> upgrading chart:'), chalk.yellow(`${chartName}`))
-      await this.helm.upgrade(`-n ${namespaceName} ${chartName} ${chartPath} --reuse-values ${valuesArg}`)
-      this.logger.debug(chalk.green('OK'), `chart '${chartName}' is upgraded`)
+      this.logger.debug(chalk.cyan('> upgrading chart:'), chalk.yellow(`${chartReleaseName}`))
+      await this.helm.upgrade(`-n ${namespaceName} ${chartReleaseName} ${chartPath} ${versionArg} --reuse-values ${valuesArg}`)
+      this.logger.debug(chalk.green('OK'), `chart '${chartReleaseName}' is upgraded`)
     } catch (e) {
-      throw new FullstackTestingError(`failed to upgrade chart ${chartName}: ${e.message}`, e)
+      throw new FullstackTestingError(`failed to upgrade chart ${chartReleaseName}: ${e.message}`, e)
     }
 
     return true

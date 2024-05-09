@@ -16,7 +16,11 @@
  */
 import { InitCommand } from '../../../src/commands/init.mjs'
 import { expect, describe, it } from '@jest/globals'
-import { HelmDependencyManager, DependencyManager } from '../../../src/core/dependency_managers/index.mjs'
+import {
+  HelmDependencyManager,
+  DependencyManager,
+  KeytoolDependencyManager
+} from '../../../src/core/dependency_managers/index.mjs'
 import {
   ChartManager,
   ConfigManager, constants,
@@ -26,13 +30,16 @@ import {
 } from '../../../src/core/index.mjs'
 import { K8 } from '../../../src/core/k8.mjs'
 
-const testLogger = logging.NewLogger('debug')
+const testLogger = logging.NewLogger('debug', true)
 describe('InitCommand', () => {
   // prepare dependency manger registry
   const downloader = new PackageDownloader(testLogger)
   const zippy = new Zippy(testLogger)
   const helmDepManager = new HelmDependencyManager(downloader, zippy, testLogger)
-  const depManagerMap = new Map().set(constants.HELM, helmDepManager)
+  const keytoolDepManager = new KeytoolDependencyManager(downloader, zippy, testLogger)
+  const depManagerMap = new Map()
+    .set(constants.HELM, helmDepManager)
+    .set(constants.KEYTOOL, keytoolDepManager)
   const depManager = new DependencyManager(testLogger, depManagerMap)
 
   const helm = new Helm(testLogger)
