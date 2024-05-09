@@ -17,7 +17,7 @@
 import { FullstackTestingError, IllegalArgumentError, MissingArgumentError } from './errors.mjs'
 import fs from 'fs'
 import AdmZip from 'adm-zip'
-import tar from 'tar'
+import * as tar from 'tar'
 import chalk from 'chalk'
 import path from 'path'
 
