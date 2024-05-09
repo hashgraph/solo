@@ -25,6 +25,31 @@ on:
         type: string
         required: false
         default: "Set Environment Variables"
+    outputs:
+      e2e-test-subdir:
+        description: "E2E Test Subdirectory"
+        value: ${{ jobs.env-vars.outputs.e2e_test_subdir }}
+      e2e-mirror-node-test-subdir:
+        description: "E2E Mirror Node Test Subdirectory"
+        value: ${{ jobs.env-vars.outputs.e2e_mirror_node_test_subdir }}
+      e2e-node-test-subdir:
+        description: "E2E Node Test Subdirectory"
+        value: ${{ jobs.env-vars.outputs.e2e_node_test_subdir }}
+      e2e-relay-test-subdir:
+        description: "E2E Relay Test Subdirectory"
+        value: ${{ jobs.env-vars.outputs.e2e_relay_test_subdir }}
+      e2e-coverage-report:
+        description: "E2E Tests Coverage Report"
+        value: ${{ jobs.env-vars.outputs.e2e_coverage_report }}
+      e2e-mirror-node-coverage-report:
+        description: "E2E Mirror Node Tests Coverage Report"
+        value: ${{ jobs.env-vars.outputs.e2e_mirror_node_coverage_report }}
+      e2e-node-coverage-report:
+        description: "E2E Node Tests Coverage Report"
+        value: ${{ jobs.env-vars.outputs.e2e_node_coverage_report }}
+      e2e-relay-coverage-report:
+        description: "E2E Relay Tests Coverage Report"
+        value: ${{ jobs.env-vars.outputs.e2e_relay_coverage_report }}
 
 env:
   e2e_test_subdir: e2e

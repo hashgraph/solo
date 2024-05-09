@@ -73,9 +73,9 @@ jobs:
       - code-style
     with:
       custom-job-label: Standard
-      npm-test-script: ${{ needs.env-vars.outputs.e2e_test_script }}
-      coverage-subdirectory: ${{ needs.env-vars.outputs.e2e_test_subdir }}
-      coverage-report-name: ${{ needs.env-vars.outputs.e2e_coverage_report }}
+      npm-test-script: ${{ needs.env-vars.outputs.e2e-test-script }}
+      coverage-subdirectory: ${{ needs.env-vars.outputs.e2e-test-subdir }}
+      coverage-report-name: ${{ needs.env-vars.outputs.e2e-coverage-report }}
 
   e2e-mirror-node-tests:
     name: E2E Tests
@@ -86,9 +86,9 @@ jobs:
       - code-style
     with:
       custom-job-label: Mirror Node
-      npm-test-script: ${{ needs.env-vars.outputs.e2e_mirror_node_test_script }}
-      coverage-subdirectory: ${{ needs.env-vars.outputs.e2e_mirror_node_test_subdir }}
-      coverage-report-name: ${{ needs.env-vars.outputs.e2e_mirror_node_coverage_report }}
+      npm-test-script: ${{ needs.env-vars.outputs.e2e-mirror-node-test-script }}
+      coverage-subdirectory: ${{ needs.env-vars.outputs.e2e-mirror-node-test-subdir }}
+      coverage-report-name: ${{ needs.env-vars.outputs.e2e-mirror-node-coverage-report }}
 
   e2e-node-tests:
     name: E2E Tests
@@ -99,9 +99,9 @@ jobs:
       - code-style
     with:
       custom-job-label: Node
-      npm-test-script: ${{ needs.env-vars.outputs.e2e_node_test_script }}
-      coverage-subdirectory: ${{ needs.env-vars.outputs.e2e_node_test_subdir }}
-      coverage-report-name: ${{ needs.env-vars.outputs.e2e_node_coverage_report }}
+      npm-test-script: ${{ needs.env-vars.outputs.e2e-node-test-script }}
+      coverage-subdirectory: ${{ needs.env-vars.outputs.e2e-node-test-subdir }}
+      coverage-report-name: ${{ needs.env-vars.outputs.e2e-node-coverage-report }}
 
   e2e-relay-tests:
     name: E2E Tests
@@ -112,9 +112,9 @@ jobs:
       - code-style
     with:
       custom-job-label: Relay
-      npm-test-script: ${{ needs.env-vars.outputs.e2e_relay_test_script }}
-      coverage-subdirectory: ${{ needs.env-vars.outputs.e2e_relay_test_subdir }}
-      coverage-report-name: ${{ needs.env-vars.outputs.e2e_relay_coverage_report }}
+      npm-test-script: ${{ needs.env-vars.outputs.e2e-relay-test-script }}
+      coverage-subdirectory: ${{ needs.env-vars.outputs.e2e-relay-test-subdir }}
+      coverage-report-name: ${{ needs.env-vars.outputs.e2e-relay-coverage-report }}
 
   analyze:
     name: Analyze
@@ -133,14 +133,14 @@ jobs:
       enable-codecov-analysis: true
       enable-codacy-coverage: true
       enable-e2e-coverage-report: ${{ github.event_name == 'push' || github.event.inputs.enable-e2e-tests == 'true' }}
-      e2e-test-subdir: ${{ needs.env-vars.outputs.e2e_test_subdir }}
-      e2e-mirror-node-test-subdir: ${{ needs.env-vars.outputs.e2e_mirror_node_test_subdir }}
-      e2e-node-test-subdir: ${{ needs.env-vars.outputs.e2e_node_test_subdir }}
-      e2e-relay-test-subdir: ${{ needs.env-vars.outputs.e2e_relay_test_subdir }}
-      e2e-coverage-report: ${{ needs.env-vars.outputs.e2e_coverage_report }}
-      e2e-mirror-node-coverage-report: ${{ needs.env-vars.outputs.e2e_mirror_node_coverage_report }}
-      e2e-node-coverage-report: ${{ needs.env-vars.outputs.e2e_node_coverage_report }}
-      e2e-relay-coverage-report: ${{ needs.env-vars.outputs.e2e_relay_coverage_report }}
+      e2e-test-subdir: ${{ needs.env-vars.outputs.e2e-test-subdir }}
+      e2e-mirror-node-test-subdir: ${{ needs.env-vars.outputs.e2e-mirror-node-test-subdir }}
+      e2e-node-test-subdir: ${{ needs.env-vars.outputs.e2e-node-test-subdir }}
+      e2e-relay-test-subdir: ${{ needs.env-vars.outputs.e2e-relay-test-subdir }}
+      e2e-coverage-report: ${{ needs.env-vars.outputs.e2e-coverage-report }}
+      e2e-mirror-node-coverage-report: ${{ needs.env-vars.outputs.e2e-mirror-node-coverage-report }}
+      e2e-node-coverage-report: ${{ needs.env-vars.outputs.e2e-node-coverage-report }}
+      e2e-relay-coverage-report: ${{ needs.env-vars.outputs.e2e-relay-coverage-report }}
     secrets:
       snyk-token: ${{ secrets.SNYK_TOKEN }}
       codecov-token: ${{ secrets.CODECOV_TOKEN }}
