@@ -86,11 +86,11 @@ describe('PackageInstallerE2E', () => {
       const configLines = await installer.prepareConfigTxt(nodeIDs, configPath, packageVersion, chainId)
 
       // verify format is correct
-      expect(configLines.length).toBe(6)
+      expect(configLines.length).toBe(4)
       expect(configLines[0]).toBe(`swirld, ${chainId}`)
       expect(configLines[1]).toBe(`app, ${constants.HEDERA_APP_NAME}`)
       expect(configLines[2]).toContain('address, 0, node0, node0, 1')
-      expect(configLines[5]).toBe('nextNodeId, 1')
+      expect(configLines[3]).toBe('nextNodeId, 1')
 
       // verify the file exists
       expect(fs.existsSync(configPath)).toBeTruthy()
@@ -119,7 +119,7 @@ describe('PackageInstallerE2E', () => {
       expect(fileList).toContain(`${destDir}/public.pfx`)
     }, 60000)
 
-    it('should succeed to copy pem gossip keys for node1', async () => {
+    it('should succeed to copy pem gossip keys for node0', async () => {
       const podName = 'network-node0-0'
 
       const pemDir = 'test/data/pem'
@@ -127,7 +127,7 @@ describe('PackageInstallerE2E', () => {
       const fileList = await installer.copyGossipKeys(podName, pemDir, ['node0'], constants.KEY_FORMAT_PEM)
 
       const destDir = `${constants.HEDERA_HAPI_PATH}/data/keys`
-      expect(fileList.length).toBe(2)
+      expect(fileList.length).toBe(4)
       expect(fileList).toContain(`${destDir}/${Templates.renderGossipPemPrivateKeyFile(constants.SIGNING_KEY_PREFIX, 'node0')}`)
       expect(fileList).toContain(`${destDir}/${Templates.renderGossipPemPrivateKeyFile(constants.AGREEMENT_KEY_PREFIX, 'node0')}`)
 
