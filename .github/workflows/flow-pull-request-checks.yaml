@@ -47,10 +47,12 @@ concurrency:
 
 jobs:
   code-style:
-    name: Code Style
+#    name: Code Style
+    name: Code
     uses: ./.github/workflows/zxc-code-style.yaml
     with:
-      custom-job-label: Standard
+#      custom-job-label: Standard
+      custom-job-label: Compiles
 
   unit-tests:
     name: Unit Tests
