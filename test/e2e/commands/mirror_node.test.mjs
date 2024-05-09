@@ -13,8 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
- */
-/**
  * @jest-environment steps
  */
 
@@ -84,7 +82,7 @@ describe('MirrorNodeCommand', () => {
       mirrorNodeCmd.logger.showUserError(e)
       expect(e).toBeNull()
     }
-  }, 600000)
+  }, 5000) // TODO revert   }, 600000)
 
   it('mirror node api and hedera explorer should success', async () => {
     await accountManager.loadNodeClient(namespace)
