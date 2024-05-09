@@ -10,7 +10,7 @@ kind create cluster -n "${SOLO_CLUSTER_NAME}" --image "${KIND_IMAGE}" || exit 1
 # **********************************************************************************************************************
 # Warm up the cluster
 # **********************************************************************************************************************
-source test/data/warmup-cluster.sh; download_images; load_images
+# source test/data/warmup-cluster.sh; download_images; load_images
 
 # **********************************************************************************************************************
 # Init and deploy a network for e2e tests in (test/e2e/core)
