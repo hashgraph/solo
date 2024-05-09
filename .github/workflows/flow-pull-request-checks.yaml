@@ -32,17 +32,17 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  code-style:
-    name: Code Style
-    uses: ./.github/workflows/zxc-code-style.yaml
+  code:
+    name: Code
+    uses: ./.github/workflows/zxc-code.yaml
     with:
-      custom-job-label: Check
+      custom-job-label: Check Code
 
   unit-tests:
     name: Unit Tests
     uses: ./.github/workflows/zxc-unit-test.yaml
     needs:
-      - code-style
+      - code
     with:
       custom-job-label: Standard
 
@@ -50,7 +50,7 @@ jobs:
     name: E2E Tests
     uses: ./.github/workflows/zxc-e2e-test.yaml
     needs:
-      - code-style
+      - code
     with:
       custom-job-label: Standard
 
@@ -58,7 +58,7 @@ jobs:
     name: E2E Mirror Node Tests
     uses: ./.github/workflows/zxc-e2e-test.yaml
     needs:
-      - code-style
+      - code
     with:
       custom-job-label: Standard
       npm-script: e2e-mirror-node
@@ -67,7 +67,7 @@ jobs:
     name: E2E Node Tests
     uses: ./.github/workflows/zxc-e2e-test.yaml
     needs:
-      - code-style
+      - code
     with:
       custom-job-label: Standard
       npm-script: e2e-node
@@ -76,7 +76,7 @@ jobs:
     name: E2E Relay Tests
     uses: ./.github/workflows/zxc-e2e-test.yaml
     needs:
-      - code-style
+      - code
     with:
       custom-job-label: Standard
       npm-script: e2e-relay
