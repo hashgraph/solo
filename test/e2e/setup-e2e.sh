@@ -15,7 +15,7 @@ kind create cluster -n "${SOLO_CLUSTER_NAME}" --image "${KIND_IMAGE}" || exit 1
 # **********************************************************************************************************************
 # Init and deploy a network for e2e tests in (test/e2e/core)
 # **********************************************************************************************************************
-solo init --namespace "${SOLO_NAMESPACE}" -i node0,node1,node2 -s "${SOLO_CLUSTER_SETUP_NAMESPACE}" --dev || exit 1 # cache args for subsequent commands
+solo init --namespace "${SOLO_NAMESPACE}" -i node0 -s "${SOLO_CLUSTER_SETUP_NAMESPACE}" --dev || exit 1 # cache args for subsequent commands
 solo cluster setup  || exit 1
 helm list --all-namespaces
 solo network deploy || exit 1

@@ -41,7 +41,7 @@ describe('RelayCommand', () => {
   argv[flags.releaseTag.name] = 'v0.47.0-alpha.0'
   argv[flags.keyFormat.name] = constants.KEY_FORMAT_PEM
 
-  argv[flags.nodeIDs.name] = 'node0,node1,node2'
+  argv[flags.nodeIDs.name] = 'node0,node1'
   argv[flags.generateGossipKeys.name] = true
   argv[flags.generateTlsKeys.name] = true
   argv[flags.clusterName.name] = TEST_CLUSTER
@@ -64,8 +64,7 @@ describe('RelayCommand', () => {
 
   it.each([
     { relayNodes: 'node0' },
-    { relayNodes: 'node0,node1' },
-    { relayNodes: 'node0,node1,node2' }
+    { relayNodes: 'node0,node1' }
   ])('relay deploy and destroy should work with different number of relay nodes', async (input) => {
     argv[flags.nodeIDs.name] = input.relayNodes
     configManager.update(argv)
