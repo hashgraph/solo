@@ -33,11 +33,23 @@ on:
         type: string
         required: false
         default: "E2E Test"
-      npm-script:
-        description: "NPM Run Script:"
+      npm-test-script:
+        description: "NPM Test Run Script:"
+        type: string
+        required: false
+        default: "test-e2e"
+      coverage-subdirectory:
+        description: "Coverage Report Subdirectory:"
         type: string
         required: false
         default: "e2e"
+      coverage-report-name:
+        description: "Coverage Report Name:"
+        type: string
+        required: false
+        default: "E2E Tests Coverage Report"
+
+
 
 defaults:
   run:
@@ -70,14 +82,12 @@ jobs:
           attempt_delay: 5000
 
       - name: Install wget
-        if: ${{ !cancelled() && !failure() }}
         run: |
           sudo apt-get update
           sudo apt-get install -y wget
 
       - name: Setup Kind
         uses: helm/kind-action@0025e74a8c7512023d06dc019c617aa3cf561fde # v1.10.0
-        if: ${{ !cancelled() && !failure() }}
         with:
           install_only: true
           node_image: kindest/node:v1.27.3@sha256:3966ac761ae0136263ffdb6cfd4db23ef8a83cba8a463690e98317add2c9ba72
@@ -91,18 +101,15 @@ jobs:
         run: npm ci
 
       - name: Pull Kind Docker Image
-        if: ${{ !cancelled() && !failure() }}
         run: docker image pull kindest/node:v1.27.3@sha256:3966ac761ae0136263ffdb6cfd4db23ef8a83cba8a463690e98317add2c9ba72
 
       - name: Setup E2E Tests
-        if: ${{ !cancelled() && !failure() }}
         run: | 
           npm link
           ./test/e2e/setup-e2e.sh
 
       - name: Run E2E Tests
-        if: ${{ !cancelled() && !failure() }}
-        run: npm run test-${{ inputs.npm-script }}
+        run: npm run ${{ inputs.npm-test-script }}
 
       - name: Upload E2E Logs to GitHub
         if: ${{ !cancelled() }}
@@ -117,12 +124,13 @@ jobs:
         uses: EnricoMi/publish-unit-test-result-action@30eadd5010312f995f0d3b3cff7fe2984f69409e # v2.16.1
         if: ${{ steps.npm-deps.conclusion == 'success' && !cancelled() }}
         with:
-          check_name: '${{ inputs.custom-job-label}} Results'
-          files: "junit-${{ inputs.npm-script }}.xml"
+          check_name: ${{ inputs.coverage-report-name }}
+          # the subdirectory is also used in the junit name to avoid conflicts
+          files: "junit-${{ inputs.coverage-subdirectory }}.xml"
 
       - name: Publish E2E Coverage Report
         uses: actions/upload-artifact@5d5d22a31266ced268874388b861e4b58bb5c2f3 # v4.3.1
         if: ${{ !cancelled() }}
         with:
-          name: '${{ inputs.custom-job-label}} Coverage Report'
-          path: 'coverage/${{ inputs.npm-script }}'
+          name: ${{ inputs.coverage-report-name }}
+          path: 'coverage/${{ inputs.coverage-subdirectory }}'

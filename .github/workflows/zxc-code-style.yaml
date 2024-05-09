@@ -69,5 +69,4 @@ jobs:
         run: npm ci
 
       - name: Check Code Style
-        if: ${{ !cancelled() && !failure() }}
         run: npm run check

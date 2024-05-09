@@ -23,6 +23,20 @@ on:
       - reopened
       - synchronize
 
+env:
+  E2E_TEST_SCRIPT: test-e2e
+  E2E_MIRROR_NODE_TEST_SCRIPT: test-e2e-mirror-node
+  E2E_NODE_TEST_SCRIPT: test-e2e-node
+  E2E_RELAY_TEST_SCRIPT: test-e2e-relay
+  E2E_TEST_SUBDIR: e2e
+  E2E_MIRROR_NODE_TEST_SUBDIR: e2e-mirror-node
+  E2E_NODE_TEST_SUBDIR: e2e-node
+  E2E_RELAY_TEST_SUBDIR: e2e-relay
+  E2E_COVERAGE_REPORT: "E2E Tests Coverage Report"
+  E2E_MIRROR_NODE_COVERAGE_REPORT: "E2E Mirror Node Tests Coverage Report"
+  E2E_NODE_COVERAGE_REPORT: "E2E Node Tests Coverage Report"
+  E2E_RELAY_COVERAGE_REPORT: "E2E Relay Tests Coverage Report"
+
 defaults:
   run:
     shell: bash
@@ -32,54 +46,63 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  code:
-    name: Code
-    uses: ./.github/workflows/zxc-code.yaml
+  code-style:
+    name: Code Style
+    uses: ./.github/workflows/zxc-code-style.yaml
     with:
-      custom-job-label: Check Code
+      custom-job-label: Standard
 
   unit-tests:
     name: Unit Tests
     uses: ./.github/workflows/zxc-unit-test.yaml
     needs:
-      - code
+      - code-style
     with:
-      custom-job-label: Unit Tests
+      custom-job-label: Standard
 
   e2e-tests:
     name: E2E Tests
     uses: ./.github/workflows/zxc-e2e-test.yaml
     needs:
-      - code
+      - code-style
     with:
-      custom-job-label: E2E Tests
+      custom-job-label: Standard
+      npm-test-script: ${{ env.E2E_TEST_SCRIPT }}
+      coverage-subdirectory: ${{ env.E2E_TEST_SUBDIR }}
+      coverage-report-name: ${{ env.E2E_COVERAGE_REPORT }}
 
   e2e-mirror-node-tests:
-    name: E2E Mirror Node Tests
+    name: E2E Tests
     uses: ./.github/workflows/zxc-e2e-test.yaml
     needs:
-      - code
+      - code-style
     with:
-      custom-job-label: E2E Mirror Node Tests
-      npm-script: e2e-mirror-node
+      custom-job-label: Mirror Node
+      npm-test-script: ${{ env.E2E_MIRROR_NODE_TEST_SCRIPT }}
+      coverage-subdirectory: ${{ env.E2E_MIRROR_NODE_TEST_SUBDIR }}
+      coverage-report-name: ${{ env.E2E_MIRROR_NODE_COVERAGE_REPORT }}
 
   e2e-node-tests:
-    name: E2E Node Tests
+    name: E2E Tests
     uses: ./.github/workflows/zxc-e2e-test.yaml
     needs:
-      - code
+      - code-style
     with:
-      custom-job-label: E2E Node Tests
-      npm-script: e2e-node
+      custom-job-label: Node
+      npm-test-script: ${{ env.E2E_NODE_TEST_SCRIPT }}
+      coverage-subdirectory: ${{ env.E2E_NODE_TEST_SUBDIR }}
+      coverage-report-name: ${{ env.E2E_NODE_COVERAGE_REPORT }}
 
   e2e-relay-tests:
-    name: E2E Relay Tests
+    name: E2E Tests
     uses: ./.github/workflows/zxc-e2e-test.yaml
     needs:
-      - code
+      - code-style
     with:
-      custom-job-label: E2E Relay Tests
-      npm-script: e2e-relay
+      custom-job-label: Relay
+      npm-test-script: ${{ env.E2E_RELAY_TEST_SCRIPT }}
+      coverage-subdirectory: ${{ env.E2E_RELAY_TEST_SUBDIR }}
+      coverage-report-name: ${{ env.E2E_RELAY_COVERAGE_REPORT }}
 
   codecov:
     name: CodeCov
@@ -101,6 +124,9 @@ jobs:
     needs:
       - unit-tests
       - e2e-tests
+      - e2e-mirror-node-tests
+      - e2e-node-tests
+      - e2e-relay-tests
     if: ${{ github.event.pull_request.head.repo.full_name == github.event.pull_request.base.repo.full_name }}
     with:
       custom-job-label: Coverage

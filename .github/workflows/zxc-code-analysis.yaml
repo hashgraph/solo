@@ -66,6 +66,16 @@ on:
         description: "The Codacy project token used to report code coverage."
         required: false
 
+env:
+  E2E_TEST_SUBDIR: e2e
+  E2E_MIRROR_NODE_TEST_SUBDIR: e2e-mirror-node
+  E2E_NODE_TEST_SUBDIR: e2e-node
+  E2E_RELAY_TEST_SUBDIR: e2e-relay
+  E2E_COVERAGE_REPORT: "E2E Tests Coverage Report"
+  E2E_MIRROR_NODE_COVERAGE_REPORT: "E2E Mirror Node Tests Coverage Report"
+  E2E_NODE_COVERAGE_REPORT: "E2E Node Tests Coverage Report"
+  E2E_RELAY_COVERAGE_REPORT: "E2E Relay Tests Coverage Report"
+
 defaults:
   run:
     shell: bash
@@ -109,8 +119,29 @@ jobs:
         uses: actions/download-artifact@9c19ed7fe5d278cd354c7dfd5d3b88589c7e2395 # v4.1.6
         if: ${{ (inputs.enable-codecov-analysis || inputs.enable-codacy-coverage) && inputs.enable-e2e-coverage-report && !cancelled() && !failure() }}
         with:
-          name: E2E Coverage Report
-          path: 'coverage/e2e'
+          name: ${{ env.E2E_COVERAGE_REPORT }}
+          path: 'coverage/${{ env.E2E_TEST_SUBDIR }}'
+
+      - name: Download E2E Mirror Node Coverage Report
+        uses: actions/download-artifact@9c19ed7fe5d278cd354c7dfd5d3b88589c7e2395 # v4.1.6
+        if: ${{ (inputs.enable-codecov-analysis || inputs.enable-codacy-coverage) && inputs.enable-e2e-coverage-report && !cancelled() && !failure() }}
+        with:
+          name: ${{ env.E2E_MIRROR_NODE_COVERAGE_REPORT }}
+          path: 'coverage/${{ env.E2E_MIRROR_NODE_TEST_SUBDIR }}'
+
+      - name: Download E2E Node Coverage Report
+        uses: actions/download-artifact@9c19ed7fe5d278cd354c7dfd5d3b88589c7e2395 # v4.1.6
+        if: ${{ (inputs.enable-codecov-analysis || inputs.enable-codacy-coverage) && inputs.enable-e2e-coverage-report && !cancelled() && !failure() }}
+        with:
+          name: ${{ env.E2E_NODE_COVERAGE_REPORT }}
+          path: 'coverage/${{ env.E2E_NODE_TEST_SUBDIR }}'
+
+      - name: Download E2E Relay Coverage Report
+        uses: actions/download-artifact@9c19ed7fe5d278cd354c7dfd5d3b88589c7e2395 # v4.1.6
+        if: ${{ (inputs.enable-codecov-analysis || inputs.enable-codacy-coverage) && inputs.enable-e2e-coverage-report && !cancelled() && !failure() }}
+        with:
+          name: ${{ env.E2E_RELAY_COVERAGE_REPORT }}
+          path: 'coverage/${{ env.E2E_RELAY_TEST_SUBDIR }}'
 
       - name: Publish To Codecov
         uses: codecov/codecov-action@5ecb98a3c6b747ed38dc09f787459979aebb39be # v4.3.1
