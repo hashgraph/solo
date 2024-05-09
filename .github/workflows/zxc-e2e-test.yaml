@@ -14,7 +14,7 @@
 # limitations under the License.
 ##
 
-name: "ZXC: Compile Code"
+name: "ZXC: E2E Test"
 # The purpose of this reusable workflow is to compile the code and run the unit tests on every PR and commit.
 # This reusable component is called by the following workflows:
 # - .github/workflows/flow-pull-request-checks.yaml
@@ -23,21 +23,6 @@ name: "ZXC: Compile Code"
 on:
   workflow_call:
     inputs:
-      enable-unit-tests:
-        description: "Unit Testing Enabled"
-        type: boolean
-        required: false
-        default: false
-      enable-code-style-check:
-        description: "Code Style Check Enabled"
-        type: boolean
-        required: false
-        default: false
-      enable-e2e-tests:
-        description: "E2E Testing Enabled"
-        type: boolean
-        required: false
-        default: false
       node-version:
         description: "NodeJS Version:"
         type: string
@@ -47,7 +32,7 @@ on:
         description: "Custom Job Label:"
         type: string
         required: false
-        default: "Compiles"
+        default: "E2E Test"
 
 defaults:
   run:
@@ -61,17 +46,10 @@ permissions:
   checks: write
   statuses: write
 
-
 jobs:
-  compile:
-    strategy:
-      matrix:
-        # run unit tests on medium, and e2e on large
-        os:
-          - windows-2022
-          - [self-hosted, Linux, large, ephemeral]
-    runs-on: ${{ matrix.os }}
-    name: "(${{ join(matrix.os, ', ') }})"
+  e2e-test:
+    runs-on: [self-hosted, Linux, large, ephemeral]
+    name: ${{ inputs.custom-job-label || 'E2E Test' }}
     steps:
       - name: Checkout Code
         uses: actions/checkout@1d96c772d19495a3b5c517cd2bc0cb401ea0529f # v4.1.3
@@ -87,7 +65,7 @@ jobs:
           attempt_delay: 5000
 
       - name: Install wget
-        if: ${{ runner.os == 'linux' && inputs.enable-e2e-tests && !cancelled() && !failure() }}
+        if: ${{ !cancelled() && !failure() }}
         run: |
           sudo apt-get update
           sudo apt-get install -y wget
@@ -98,7 +76,7 @@ jobs:
 
       - name: Setup Kind
         uses: helm/kind-action@0025e74a8c7512023d06dc019c617aa3cf561fde # v1.10.0
-        if: ${{ runner.os == 'linux' && inputs.enable-e2e-tests && !cancelled() && !failure() }}
+        if: ${{ !cancelled() && !failure() }}
         with:
           install_only: true
           node_image: kindest/node:v1.27.3@sha256:3966ac761ae0136263ffdb6cfd4db23ef8a83cba8a463690e98317add2c9ba72
@@ -111,51 +89,22 @@ jobs:
         id: npm-deps
         run: npm ci
 
-      - name: Check Code Style
-        if: ${{ runner.os == 'linux' && inputs.enable-code-style-check && !cancelled() && !failure() }}
-        run: npm run check
-
-      - name: Run Unit Tests
-        if: ${{ inputs.enable-unit-tests && !cancelled() && !failure() }}
-        run: npm test
-
-      - name: Publish Windows Unit Test Report
-        uses: EnricoMi/publish-unit-test-result-action/windows/bash@30eadd5010312f995f0d3b3cff7fe2984f69409e # v2.16.1
-        if: ${{ runner.os == 'Windows' && inputs.enable-unit-tests && steps.npm-deps.conclusion == 'success' && !cancelled() }}
-        with:
-          check_name: 'Unit Test Results - ${{ runner.os }}'
-          files: "junit.xml"
-
-      - name: Publish Linux Unit Test Report
-        uses: EnricoMi/publish-unit-test-result-action@30eadd5010312f995f0d3b3cff7fe2984f69409e # v2.16.1
-        if: ${{ runner.os == 'linux' && inputs.enable-unit-tests && steps.npm-deps.conclusion == 'success' && !cancelled() }}
-        with:
-          check_name: 'Unit Test Results - ${{ runner.os }}'
-          files: "junit.xml"
-
-      - name: Publish Unit Test Coverage Report
-        uses: actions/upload-artifact@5d5d22a31266ced268874388b861e4b58bb5c2f3 # v4.3.1
-        if: ${{ runner.os == 'linux' && inputs.enable-unit-tests && !cancelled() }}
-        with:
-          name: Unit Test Coverage Report
-          path: 'coverage/unit'
-
       - name: Pull Kind Docker Image
-        if: ${{ runner.os == 'linux' && inputs.enable-e2e-tests && !cancelled() && !failure() }}
+        if: ${{ !cancelled() && !failure() }}
         run: docker image pull kindest/node:v1.27.3@sha256:3966ac761ae0136263ffdb6cfd4db23ef8a83cba8a463690e98317add2c9ba72
 
       - name: Setup E2E Tests
-        if: ${{ runner.os == 'linux' && inputs.enable-e2e-tests && !cancelled() && !failure() }}
+        if: ${{ !cancelled() && !failure() }}
         run: | 
           npm link
           ./test/e2e/setup-e2e.sh
 
       - name: Run E2E Tests
-        if: ${{ runner.os == 'linux' && inputs.enable-e2e-tests && !cancelled() && !failure() }}
+        if: ${{ !cancelled() && !failure() }}
         run: npm run test-e2e
 
       - name: Upload E2E Logs to GitHub
-        if: ${{ runner.os == 'linux' && inputs.enable-e2e-tests && !cancelled() }}
+        if: ${{ !cancelled() }}
         uses: actions/upload-artifact@5d5d22a31266ced268874388b861e4b58bb5c2f3 # v4.3.1
         with:
           name: solo.log
@@ -165,21 +114,14 @@ jobs:
 
       - name: Publish E2E Test Report
         uses: EnricoMi/publish-unit-test-result-action@30eadd5010312f995f0d3b3cff7fe2984f69409e # v2.16.1
-        if: ${{ runner.os == 'linux' && inputs.enable-e2e-tests && steps.npm-deps.conclusion == 'success' && !cancelled() }}
+        if: ${{ steps.npm-deps.conclusion == 'success' && !cancelled() }}
         with:
           check_name: 'E2E Test Results'
           files: "junit-e2e.xml"
 
       - name: Publish E2E Coverage Report
         uses: actions/upload-artifact@5d5d22a31266ced268874388b861e4b58bb5c2f3 # v4.3.1
-        if: ${{ runner.os == 'linux' && inputs.enable-e2e-tests && !cancelled() }}
+        if: ${{ !cancelled() }}
         with:
           name: E2E Coverage Report
           path: 'coverage/e2e'
-
-      - name: Publish Test Reports
-        uses: actions/upload-artifact@5d5d22a31266ced268874388b861e4b58bb5c2f3 # v4.3.1
-        if: ${{ runner.os == 'linux' && inputs.enable-unit-tests && steps.npm-deps.conclusion == 'success' && !cancelled() }}
-        with:
-          name: Test Reports
-          path: "junit*.xml"
