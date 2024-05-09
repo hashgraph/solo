@@ -38,6 +38,10 @@ on:
       - main
       - 'release/*'
 
+defaults:
+  run:
+    shell: bash
+
 env:
   E2E_TEST_SCRIPT: test-e2e
   E2E_MIRROR_NODE_TEST_SCRIPT: test-e2e-mirror-node
@@ -51,10 +55,6 @@ env:
   E2E_MIRROR_NODE_COVERAGE_REPORT: "E2E Mirror Node Tests Coverage Report"
   E2E_NODE_COVERAGE_REPORT: "E2E Node Tests Coverage Report"
   E2E_RELAY_COVERAGE_REPORT: "E2E Relay Tests Coverage Report"
-
-defaults:
-  run:
-    shell: bash
 
 jobs:
   code-style:
