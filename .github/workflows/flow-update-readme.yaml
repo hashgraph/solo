@@ -50,6 +50,11 @@ jobs:
           attempt_limit: 3
           attempt_delay: 5000
 
+      - name: Install wget
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y wget
+
       - name: Setup Kind
         uses: helm/kind-action@0025e74a8c7512023d06dc019c617aa3cf561fde # v1.10.0
         with:
