@@ -45,9 +45,13 @@ export class RelayCommand extends BaseCommand {
 
     valuesArg += ` --set config.MIRROR_NODE_URL=http://${constants.FULLSTACK_DEPLOYMENT_CHART}-rest`
 
+    valuesArg += ` --set config.MIRROR_NODE_URL_WEB3=http://${constants.FULLSTACK_DEPLOYMENT_CHART}-web3`
+
     if (chainID) {
       valuesArg += ` --set config.CHAIN_ID=${chainID}`
     }
+
+    valuesArg += ' --set config.LOG_LEVEL=debug'
 
     if (relayRelease) {
       valuesArg += ` --set image.tag=${relayRelease.replace(/^v/, '')}`
