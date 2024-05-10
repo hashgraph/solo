@@ -105,6 +105,8 @@ describe('ProfileManager', () => {
       for (const component of ['grpc', 'rest', 'web3', 'importer']) {
         expect(valuesYaml['hedera-mirror-node'][component].resources.limits.cpu).not.toBeNull()
         expect(valuesYaml['hedera-mirror-node'][component].resources.limits.memory).not.toBeNull()
+        expect(valuesYaml['hedera-mirror-node'][component].readinessProbe.failureThreshold).toEqual(60)
+        expect(valuesYaml['hedera-mirror-node'][component].livenessProbe.failureThreshold).toEqual(60)
       }
       expect(valuesYaml['hedera-explorer'].resources.limits.cpu).not.toBeNull()
       expect(valuesYaml['hedera-explorer'].resources.limits.memory).not.toBeNull()

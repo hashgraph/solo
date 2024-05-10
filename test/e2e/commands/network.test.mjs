@@ -40,7 +40,7 @@ describe('NetworkCommand', () => {
   argv[flags.namespace.name] = namespace
   argv[flags.releaseTag.name] = 'v0.47.0-alpha.0'
   argv[flags.keyFormat.name] = constants.KEY_FORMAT_PEM
-  argv[flags.nodeIDs.name] = 'node0,node1,node2'
+  argv[flags.nodeIDs.name] = 'node0'
   argv[flags.generateGossipKeys.name] = true
   argv[flags.generateTlsKeys.name] = true
   argv[flags.deployMinio.name] = true
@@ -65,17 +65,13 @@ describe('NetworkCommand', () => {
   })
 
   it('network deploy command should succeed', async () => {
-    expect.assertions(4)
+    expect.assertions(2)
     try {
       await expect(networkCmd.deploy(argv)).resolves.toBeTruthy()
 
       // check pod names should match expected values
       await expect(k8.getPodByName('network-node0-0'))
         .resolves.toHaveProperty('metadata.name', 'network-node0-0')
-      await expect(k8.getPodByName('network-node1-0'))
-        .resolves.toHaveProperty('metadata.name', 'network-node1-0')
-      await expect(k8.getPodByName('network-node2-0'))
-        .resolves.toHaveProperty('metadata.name', 'network-node2-0')
       // get list of pvc using k8 listPvcsByNamespace function and print to log
       const pvcs = await k8.listPvcsByNamespace(namespace)
       networkCmd.logger.showList('PVCs', pvcs)

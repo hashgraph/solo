@@ -20,9 +20,8 @@ import { FullstackTestingError, IllegalArgumentError, MissingArgumentError } fro
 import * as yaml from 'js-yaml'
 import { flags } from '../commands/index.mjs'
 import { constants, helpers } from './index.mjs'
+import dot from 'dot-object'
 
-const resourceRequestTypes = ['requests', 'limits']
-const hardwareTypes = ['cpu', 'memory']
 const consensusSidecars = [
   'recordStreamUploader', 'eventStreamUploader', 'backupUploader', 'accountBalanceUploader', 'otelCollector']
 
@@ -126,27 +125,22 @@ export class ProfileManager {
   }
 
   /**
-   * Set resources for the chart
-   * @param itemPath item path in the yaml
-   * @param itemResources item resources object
-   * @param yamlRoot root of the yaml object
+   * Set items for the chart
+   * @param itemPath item path in the yaml, if empty then root of the yaml object will be used
+   * @param items the element object
+   * @param yamlRoot root of the yaml object to update
    * @private
    */
-  _setChartResources (itemPath, itemResources, yamlRoot) {
-    if (!itemResources || !itemResources.resources) return
+  _setChartItems (itemPath, items, yamlRoot) {
+    if (!items) return
 
-    for (const resourceRequestType of resourceRequestTypes) {
-      if (itemResources && itemResources.resources[resourceRequestType]) {
-        const resources = itemResources.resources[resourceRequestType]
-        for (const hardware of hardwareTypes) {
-          if (resources[hardware] !== undefined) {
-            if (itemPath) {
-              this._setValue(`${itemPath}.resources.${resourceRequestType}.${hardware}`, resources[hardware], yamlRoot)
-            } else {
-              this._setValue(`resources.${resourceRequestType}.${hardware}`, resources[hardware], yamlRoot)
-            }
-          }
-        }
+    const dotItems = dot.dot(items)
+
+    for (const key in dotItems) {
+      if (itemPath) {
+        this._setValue(`${itemPath}.${key}`, dotItems[key], yamlRoot)
+      } else {
+        this._setValue(key, dotItems[key], yamlRoot)
       }
     }
   }
@@ -163,16 +157,16 @@ export class ProfileManager {
     for (let nodeIndex = 0; nodeIndex < nodeIds.length; nodeIndex++) {
       this._setValue(`hedera.nodes.${nodeIndex}.name`, nodeIds[nodeIndex], yamlRoot)
       this._setValue(`hedera.nodes.${nodeIndex}.accountId`, `${realm}.${shard}.${accountId++}`, yamlRoot)
-      this._setChartResources(`hedera.nodes.${nodeIndex}`, profile.consensus, yamlRoot)
+      this._setChartItems(`hedera.nodes.${nodeIndex}`, profile.consensus, yamlRoot)
     }
 
     if (profile.consensus) {
       // set default for consensus pod
-      this._setChartResources('defaults.root', profile.consensus.root, yamlRoot)
+      this._setChartItems('defaults.root', profile.consensus.root, yamlRoot)
 
       // set sidecar resources
       for (const sidecar of consensusSidecars) {
-        this._setChartResources(`defaults.sidecars.${sidecar}`, profile.consensus[sidecar], yamlRoot)
+        this._setChartItems(`defaults.sidecars.${sidecar}`, profile.consensus[sidecar], yamlRoot)
       }
     }
 
@@ -183,19 +177,19 @@ export class ProfileManager {
     if (!profile) throw new MissingArgumentError('profile is required')
     if (!profile.haproxy) return // use chart defaults
 
-    return this._setChartResources('defaults.haproxy', profile.haproxy, yamlRoot)
+    return this._setChartItems('defaults.haproxy', profile.haproxy, yamlRoot)
   }
 
   resourcesForEnvoyProxyPod (profile, yamlRoot) {
     if (!profile) throw new MissingArgumentError('profile is required')
     if (!profile.envoyProxy) return // use chart defaults
-    return this._setChartResources('defaults.envoyProxy', profile.envoyProxy, yamlRoot)
+    return this._setChartItems('defaults.envoyProxy', profile.envoyProxy, yamlRoot)
   }
 
   resourcesForHederaExplorerPod (profile, yamlRoot) {
     if (!profile) throw new MissingArgumentError('profile is required')
     if (!profile.explorer) return
-    return this._setChartResources('hedera-explorer', profile.explorer, yamlRoot)
+    return this._setChartItems('hedera-explorer', profile.explorer, yamlRoot)
   }
 
   resourcesForMinioTenantPod (profile, yamlRoot) {
@@ -210,7 +204,7 @@ export class ProfileManager {
         }
       }
 
-      this._setChartResources(`minio-server.tenant.pools.${poolIndex}`, pool, yamlRoot)
+      this._setChartItems(`minio-server.tenant.pools.${poolIndex}`, pool, yamlRoot)
     }
 
     return yamlRoot
@@ -260,7 +254,7 @@ export class ProfileManager {
 
     // generate the yaml
     const yamlRoot = {}
-    this._setChartResources('', profile.rpcRelay, yamlRoot)
+    this._setChartItems('', profile.rpcRelay, yamlRoot)
 
     // write the yaml
     const cachedValuesFile = path.join(this.cacheDir, `rpcRelay-${profileName}.yaml`)
@@ -292,14 +286,14 @@ export class ProfileManager {
         this._setValue('hedera-mirror-node.postgresql.persistence.size', profile.mirror.postgresql.persistence.size, yamlRoot)
       }
 
-      this._setChartResources('hedera-mirror-node.postgresql.postgresql', profile.mirror.postgresql.postgresql, yamlRoot)
+      this._setChartItems('hedera-mirror-node.postgresql.postgresql', profile.mirror.postgresql.postgresql, yamlRoot)
     }
 
-    this._setChartResources('hedera-mirror-node.importer', profile.mirror.importer, yamlRoot)
-    this._setChartResources('hedera-mirror-node.rest', profile.mirror.rest, yamlRoot)
-    this._setChartResources('hedera-mirror-node.web3', profile.mirror.web3, yamlRoot)
-    this._setChartResources('hedera-mirror-node.grpc', profile.mirror.grpc, yamlRoot)
-    this._setChartResources('hedera-mirror-node.monitor', profile.mirror.monitor, yamlRoot)
+    this._setChartItems('hedera-mirror-node.importer', profile.mirror.importer, yamlRoot)
+    this._setChartItems('hedera-mirror-node.rest', profile.mirror.rest, yamlRoot)
+    this._setChartItems('hedera-mirror-node.web3', profile.mirror.web3, yamlRoot)
+    this._setChartItems('hedera-mirror-node.grpc', profile.mirror.grpc, yamlRoot)
+    this._setChartItems('hedera-mirror-node.monitor', profile.mirror.monitor, yamlRoot)
     this.resourcesForHederaExplorerPod(profile, yamlRoot)
 
     // write the yaml

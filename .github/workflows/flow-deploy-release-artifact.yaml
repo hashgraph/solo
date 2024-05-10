@@ -45,7 +45,7 @@ jobs:
       version: ${{ steps.tag.outputs.version }}
     steps:
       - name: Checkout Code
-        uses: actions/checkout@1d96c772d19495a3b5c517cd2bc0cb401ea0529f # v4.1.3
+        uses: actions/checkout@44c2b7a8a4ea60a981eaca3cf939b5f4305c123b # v4.1.5
         with:
           fetch-depth: 0
 
@@ -88,7 +88,7 @@ jobs:
       - prepare-release
     steps:
       - name: Checkout Code
-        uses: actions/checkout@1d96c772d19495a3b5c517cd2bc0cb401ea0529f # v4.1.3
+        uses: actions/checkout@44c2b7a8a4ea60a981eaca3cf939b5f4305c123b # v4.1.5
         with:
           token: ${{ secrets.GH_ACCESS_TOKEN }}
           fetch-depth: 0
@@ -126,7 +126,7 @@ jobs:
           attempt_delay: 5000
 
       - name: Setup JFrog CLI
-        uses: jfrog/setup-jfrog-cli@d82fe26823e1f25529250895d5673f65b02af085 # v4.0.1
+        uses: jfrog/setup-jfrog-cli@727b480bafd0d8adbdfdb2257a7d7c2e08eb1779 # v4.0.2
         env:
           JF_URL: ${{ vars.JF_URL }}
           JF_ACCESS_TOKEN: ${{ secrets.JF_ACCESS_TOKEN }}
