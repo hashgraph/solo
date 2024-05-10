@@ -56,7 +56,7 @@ jobs:
 
     steps:
       - name: Setup Hugo
-        uses: peaceiris/actions-hugo@v2
+        uses: peaceiris/actions-hugo@v3
         with:
           hugo-version: '0.124.1'
 
@@ -65,10 +65,15 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Setup Node
-        uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4.0.2
+      - name: Setup Node with Retry
+        uses: Wandalen/wretry.action@0dd1d5d77d019a6f85beb53d29e2ea2c7294d4f2 # v3.4.0
         with:
-          node-version: 20
+          action: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4.0.2
+          with: |
+            node-version: 20
+            cache: npm
+          attempt_limit: 3
+          attempt_delay: 5000
 
       - name: Setup Pages
         id: pages

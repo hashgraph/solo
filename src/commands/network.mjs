@@ -366,7 +366,8 @@ export class NetworkCommand extends BaseCommand {
             ctx.config.namespace,
             constants.FULLSTACK_DEPLOYMENT_CHART,
             ctx.config.chartPath,
-            ctx.config.valuesArg
+            ctx.config.valuesArg,
+            ctx.config.fstChartVersion
           )
         }
       },

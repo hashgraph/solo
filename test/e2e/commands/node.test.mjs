@@ -13,7 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
+ * @jest-environment steps
  */
+
 import {
   AccountBalanceQuery,
   AccountCreateTransaction,
@@ -27,8 +29,7 @@ import {
   beforeAll,
   describe,
   expect,
-  it,
-  jest
+  it
 } from '@jest/globals'
 import { flags } from '../../../src/commands/index.mjs'
 import {
@@ -70,7 +71,7 @@ describe.each([
   }, 120000)
 
   afterAll(async () => {
-    // await k8.deleteNamespace(namespace)
+    await k8.deleteNamespace(namespace)
   }, 120000)
 
   describe(`Node should have started successfully [mode ${input.mode}, release ${input.releaseTag}, keyFormat: ${input.keyFormat}]`, () => {
@@ -230,7 +231,7 @@ function balanceQueryShouldSucceed (accountManager, nodeCmd, namespace) {
       nodeCmd.logger.showUserError(e)
       expect(e).toBeNull()
     }
-    jest.runAllTicks()
+    await sleep(1000)
   }, 120000)
 }
 

@@ -712,11 +712,11 @@ export class K8 {
     await new Promise((resolve, reject) => {
       server.close((e) => {
         if (e) {
-          if (e.message.contains('Server is not running')) {
+          if (e.message?.includes('Server is not running')) {
             this.logger.debug(`Server not running, port-forwarder [${server.info}]`)
             resolve()
           } else {
-            this.logger.debug(`Failed to stop port-forwarder [${server.info}]: ${e.message}`)
+            this.logger.debug(`Failed to stop port-forwarder [${server.info}]: ${e.message}`, e)
             reject(e)
           }
         } else {
@@ -795,7 +795,7 @@ export class K8 {
    * @param podCount number of pod expected
    * @param maxAttempts maximum attempts to check
    * @param delay delay between checks in milliseconds
-   * @return {Promise<[*]>}
+   * @return a Promise that checks the status of an array of pods
    */
   async waitForPod (status = 'Running', labels = [], podCount = 1, maxAttempts = 10, delay = 500) {
     const ns = this._getNamespace()
@@ -837,6 +837,14 @@ export class K8 {
     })
   }
 
+  /**
+   * Check if pod is ready
+   * @param labels pod labels
+   * @param podCount number of pod expected
+   * @param maxAttempts maximum attempts to check
+   * @param delay delay between checks in milliseconds
+   * @return {Promise<unknown>}
+   */
   async waitForPodReady (labels = [], podCount = 1, maxAttempts = 10, delay = 500) {
     try {
       return await this.waitForPodCondition(K8.PodReadyCondition, labels, podCount, maxAttempts, delay)
@@ -844,6 +852,16 @@ export class K8 {
       throw new FullstackTestingError(`Pod not ready [maxAttempts = ${maxAttempts}]`, e)
     }
   }
+
+  /**
+   * Check pods for conditions
+   * @param conditionsMap a map of conditions and values
+   * @param labels pod labels
+   * @param podCount number of pod expected
+   * @param maxAttempts maximum attempts to check
+   * @param delay delay between checks in milliseconds
+   * @return {Promise<unknown>}
+   */
 
   async waitForPodCondition (
     conditionsMap,

@@ -88,10 +88,15 @@ jobs:
           ref: ${{ github.event.workflow_run.head_branch }}
           fetch-depth: ${{ inputs.enable-sonar-analysis && '0' || '' }}
 
-      - name: Setup Node
-        uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4.0.2
+      - name: Setup Node with Retry
+        uses: Wandalen/wretry.action@0dd1d5d77d019a6f85beb53d29e2ea2c7294d4f2 # v3.4.0
         with:
-          node-version: ${{ inputs.node-version }}
+          action: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4.0.2
+          with: |
+            node-version: ${{ inputs.node-version }}
+            cache: npm
+          attempt_limit: 3
+          attempt_delay: 5000
 
       - name: Download Unit Test Coverage Report
         uses: actions/download-artifact@9c19ed7fe5d278cd354c7dfd5d3b88589c7e2395 # v4.1.6
@@ -108,7 +113,7 @@ jobs:
           path: 'coverage/e2e'
 
       - name: Publish To Codecov
-        uses: codecov/codecov-action@54bcd8715eee62d40e33596ef5e8f0f48dbbccab # v4.1.0
+        uses: codecov/codecov-action@5ecb98a3c6b747ed38dc09f787459979aebb39be # v4.3.1
         if: ${{ inputs.enable-codecov-analysis && !cancelled() && !failure() }}
         env:
           CODECOV_TOKEN: ${{ secrets.codecov-token }}

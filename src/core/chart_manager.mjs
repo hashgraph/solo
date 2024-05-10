@@ -126,10 +126,15 @@ export class ChartManager {
     return true
   }
 
-  async upgrade (namespaceName, chartReleaseName, chartPath, valuesArg = '') {
+  async upgrade (namespaceName, chartReleaseName, chartPath, valuesArg = '', version = '') {
+    let versionArg = ''
+    if (version) {
+      versionArg = `--version ${version}`
+    }
+
     try {
       this.logger.debug(chalk.cyan('> upgrading chart:'), chalk.yellow(`${chartReleaseName}`))
-      await this.helm.upgrade(`-n ${namespaceName} ${chartReleaseName} ${chartPath} --reuse-values ${valuesArg}`)
+      await this.helm.upgrade(`-n ${namespaceName} ${chartReleaseName} ${chartPath} ${versionArg} --reuse-values ${valuesArg}`)
       this.logger.debug(chalk.green('OK'), `chart '${chartReleaseName}' is upgraded`)
     } catch (e) {
       throw new FullstackTestingError(`failed to upgrade chart ${chartReleaseName}: ${e.message}`, e)

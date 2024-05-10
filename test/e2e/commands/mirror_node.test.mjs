@@ -13,10 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
+ * @jest-environment steps
  */
 
 import {
-  afterAll, afterEach, describe,
+  afterAll, afterEach, beforeAll, describe,
   expect,
   it
 } from '@jest/globals'
@@ -44,7 +45,7 @@ describe('MirrorNodeCommand', () => {
   argv[flags.releaseTag.name] = 'v0.47.0-alpha.0'
   argv[flags.keyFormat.name] = constants.KEY_FORMAT_PEM
 
-  argv[flags.nodeIDs.name] = 'node0,node1,node2'
+  argv[flags.nodeIDs.name] = 'node0' // use a single node to reduce resource during e2e tests
   argv[flags.generateGossipKeys.name] = true
   argv[flags.generateTlsKeys.name] = true
   argv[flags.clusterName.name] = TEST_CLUSTER
@@ -58,8 +59,15 @@ describe('MirrorNodeCommand', () => {
   const downloader = new core.PackageDownloader(mirrorNodeCmd.logger)
   const accountManager = bootstrapResp.opts.accountManager
 
+  beforeAll(() => {
+    bootstrapResp.opts.logger.showUser(`------------------------- START: ${testName} ----------------------------`)
+  })
+
   afterAll(async () => {
     await k8.deleteNamespace(namespace)
+    await accountManager.close()
+
+    bootstrapResp.opts.logger.showUser(`------------------------- END: ${testName} ----------------------------`)
   })
 
   afterEach(async () => {
@@ -74,7 +82,7 @@ describe('MirrorNodeCommand', () => {
       mirrorNodeCmd.logger.showUserError(e)
       expect(e).toBeNull()
     }
-  }, 240000)
+  }, 600000)
 
   it('mirror node api and hedera explorer should success', async () => {
     await accountManager.loadNodeClient(namespace)
