@@ -372,7 +372,7 @@ export class NodeCommand extends BaseCommand {
       // split the localBuildPath by '='
       const [nodeId, localBuildPath] = parameterPair.split('=')
       let localDataLibBuildPath = path.join(localBuildPath, 'hedera-node', 'data')
-      if (pttTestConfig !== '') {
+      if (pttTestConfig !== '' && fs.existsSync(pttTestConfig)) {
         localDataLibBuildPath = path.join(localBuildPath, 'platform-sdk', 'sdk', 'data')
       }
 
@@ -389,7 +389,7 @@ export class NodeCommand extends BaseCommand {
           this.logger.debug(`Copying build files to pod: ${podName} from ${localDataLibBuildPath}`)
           await self.k8.copyTo(podName, constants.ROOT_CONTAINER, localDataLibBuildPath, `${constants.HEDERA_HAPI_PATH}`)
           const pttTestConfig = self.configManager.getFlag(flags.pttTestConfig)
-          if (pttTestConfig !== '') {
+          if (pttTestConfig !== '' && fs.existsSync(pttTestConfig)) {
             await self.k8.copyTo(podName, constants.ROOT_CONTAINER, testJson, `${constants.HEDERA_HAPI_PATH}`)
           }
         }
@@ -548,7 +548,7 @@ export class NodeCommand extends BaseCommand {
                 const configTxtPath = `${config.stagingDir}/config.txt`
                 const template = `${constants.RESOURCES_DIR}/templates/config.template`
                 const pttTestConfig = self.configManager.getFlag(flags.pttTestConfig)
-                if (pttTestConfig !== '') {
+                if (pttTestConfig !== '' && fs.existsSync(pttTestConfig)) {
                   const [pttJar, testJson] = pttTestConfig.split(',')
                   self.logger.debug(`PTT test jar: ${pttJar}, test json: ${testJson}`)
                   if (!fs.existsSync(testJson)) {
@@ -678,7 +678,7 @@ export class NodeCommand extends BaseCommand {
           const subTasks = []
           for (const nodeId of ctx.config.nodeIds) {
             const pttTestConfig = self.configManager.getFlag(flags.pttTestConfig)
-            if (pttTestConfig !== '') {
+            if (pttTestConfig !== '' && fs.existsSync(pttTestConfig)) {
               subTasks.push({
                 title: `Check node: ${chalk.yellow(nodeId)}`,
                 task: () => self.checkNetworkNodeState(nodeId, 100, 'ACTIVE', 'logs/swirlds.log')
@@ -1102,7 +1102,7 @@ export class NodeCommand extends BaseCommand {
           const subTasks = []
           for (const nodeId of ctx.config.nodeIds) {
             const pttTestConfig = self.configManager.getFlag(flags.pttTestConfig)
-            if (pttTestConfig !== '') {
+            if (pttTestConfig !== '' && fs.existsSync(pttTestConfig)) {
               subTasks.push({
                 title: `Check node: ${chalk.yellow(nodeId)}`,
                 task: () => self.checkNetworkNodeState(nodeId, 100, 'ACTIVE', 'logs/swirlds.log')
