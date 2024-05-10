@@ -45,6 +45,10 @@ local: # 3 nodes, ~950 TPS (Docker Desktop 8 cores, 16 GB RAM)
         limits:
           cpu: 500m
           memory: 500Mi
+      readinessProbe:
+        failureThreshold: 60
+      livenessProbe:
+        failureThreshold: 60
     grpc:
       resources:
         requests:
@@ -53,6 +57,10 @@ local: # 3 nodes, ~950 TPS (Docker Desktop 8 cores, 16 GB RAM)
         limits:
           cpu: 500m
           memory: 1000Mi
+      readinessProbe:
+        failureThreshold: 60
+      livenessProbe:
+        failureThreshold: 60
     web3:
       resources:
         requests:
@@ -61,6 +69,10 @@ local: # 3 nodes, ~950 TPS (Docker Desktop 8 cores, 16 GB RAM)
         limits:
           cpu: 500m
           memory: 500Mi
+      readinessProbe:
+        failureThreshold: 60
+      livenessProbe:
+        failureThreshold: 60
     monitor:
       resources:
         requests:
