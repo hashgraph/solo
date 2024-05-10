@@ -43,7 +43,7 @@ export class RelayCommand extends BaseCommand {
       valuesArg += this.prepareValuesFiles(profileValuesFile)
     }
 
-    valuesArg += ` --set config.MIRROR_NODE_URL=${constants.FULLSTACK_DEPLOYMENT_CHART}-rest`
+    valuesArg += ` --set config.MIRROR_NODE_URL=http://${constants.FULLSTACK_DEPLOYMENT_CHART}-rest`
 
     if (chainID) {
       valuesArg += ` --set config.CHAIN_ID=${chainID}`
