@@ -69,8 +69,8 @@ jobs:
         os:
           - windows-2022
           - [self-hosted, Linux, large, ephemeral]
-    runs-on: ${{ matrix.os }}
     name: "(${{ join(matrix.os, ',') }})"
+    runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout Code
         uses: actions/checkout@1d96c772d19495a3b5c517cd2bc0cb401ea0529f # v4.1.3
