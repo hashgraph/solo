@@ -131,7 +131,7 @@ export function e2eNodeKeyRefreshAddTest (keyFormat, testName, mode, releaseTag 
         configManager.update(argv, true)
         existingServiceMap = await accountManager.getNodeServiceMap(namespace)
         existingNodeIdsPrivateKeysHash = await getNodeIdsPrivateKeysHash(existingServiceMap, namespace, keyFormat, k8, getTmpDir())
-      })
+      }, defaultTimeout)
 
       it(`${nodeId} should not exist`, async () => {
         try {
