@@ -74,6 +74,7 @@ jobs:
 
       - name: Setup Control Groups
         run: |
+          set -x
           echo "::group::Get System Configuration"
             USR_ID="$(id -un)"
             GRP_ID="$(id -gn)"
@@ -108,6 +109,8 @@ jobs:
             sudo cgclassify --sticky -g cpu,memory:${AGENT_GROUP_NAME} $(pgrep 'Runner.Listener' | tr '\n' ' ')
             sudo cgclassify -g cpu,memory:${AGENT_GROUP_NAME} $(pgrep 'Runner.Worker' | tr '\n' ' ')
           echo "::endgroup::"
+          
+          set +x
 
       - name: Setup Node with Retry
         uses: Wandalen/wretry.action@6feedb7dedadeb826de0f45ff482b53b379a7844 # v3.5.0
