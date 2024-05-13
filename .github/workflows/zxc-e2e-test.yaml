@@ -155,6 +155,7 @@ jobs:
       - name: Run E2E Tests
         run: |
           set -x
+          cat /proc/self/cgroup
           ${CG_EXEC} npm run ${{ inputs.npm-test-script }}
           set +x
 
