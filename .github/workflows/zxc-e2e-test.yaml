@@ -81,10 +81,12 @@ jobs:
             GRP_ID="$(id -gn)"
             E2E_MEM_LIMIT="30064771072"
             AGENT_MEM_LIMIT="2147483648"
+            USER_SLICE="user.slice/user-$(id -u).slice"
+            USER_SERVICE="${USER_SLICE}/user@$(id -u).service" 
             E2E_GROUP_NAME="e2e-${{ github.run_id }}"
-            E2E_GROUP_NAME_FQ="user.slice/user-$(id -u).slice/user@$(id -u).service/${E2E_GROUP_NAME}"
+            E2E_GROUP_NAME_FQ="${USER_SERVICE}/${E2E_GROUP_NAME}"
             AGENT_GROUP_NAME="agent-${{ github.run_id }}"
-            AGENT_GROUP_NAME_FQ="user.slice/user-$(id -u).slice/user@$(id -u).service/${AGENT_GROUP_NAME}"
+            AGENT_GROUP_NAME_FQ="${USER_SERVICE}/${AGENT_GROUP_NAME}"
           echo "::endgroup::"
 
           echo "::group::Install Control Group Tools"
@@ -113,6 +115,9 @@ jobs:
             sudo cgclassify -g cpu,memory:${AGENT_GROUP_NAME_FQ} $(pgrep 'Runner.Worker' | tr '\n' ' ')
           echo "::endgroup::"
           
+          ls -al /sys/fs/cgroup/user.slice
+          ls -al /sys/fs/cgroup/${USER_SLICE}
+          ls -al /sys/fs/cgroup/${USER_SERVICE}
           set +x
 
       - name: Setup Node with Retry
