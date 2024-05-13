@@ -70,7 +70,7 @@ on:
         type: string
         required: false
         default: "e2e-node-pem-stop-add"
-      e2e-node-test-subdir:
+      e2e-node-pfx-kill-add-test-subdir:
         description: "E2E Node PFX Kill Add Test Subdirectory:"
         type: string
         required: false
