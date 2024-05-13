@@ -62,7 +62,7 @@ permissions:
   statuses: write
 
 env:
-  CG_EXEC: CGROUP_LOGLEVEL=DEBUG cgexec -g cpu,memory:e2e-${{ github.run_id }}
+  CG_EXEC: CGROUP_LOGLEVEL=DEBUG cgexec -g cpu,memory:user.slice/user-$(id -u).slice/user@$(id -u).service/e2e-${{ github.run_id }}
   # CG_EXEC: cgexec -g cpu,memory:e2e-${{ github.run_id }} --sticky ionice -c 2 -n 2 nice -n 19
 
 jobs:
@@ -82,7 +82,9 @@ jobs:
             E2E_MEM_LIMIT="30064771072"
             AGENT_MEM_LIMIT="2147483648"
             E2E_GROUP_NAME="e2e-${{ github.run_id }}"
+            E2E_GROUP_NAME_FQ="user.slice/user-$(id -u).slice/user@$(id -u).service/${E2E_GROUP_NAME}"
             AGENT_GROUP_NAME="agent-${{ github.run_id }}"
+            AGENT_GROUP_NAME_FQ="user.slice/user-$(id -u).slice/user@$(id -u).service/${AGENT_GROUP_NAME}"
           echo "::endgroup::"
 
           echo "::group::Install Control Group Tools"
@@ -93,22 +95,22 @@ jobs:
           echo "::endgroup::"
 
           echo "::group::Create Control Groups"
-            sudo cgcreate -g cpu,memory:${E2E_GROUP_NAME} -a ${USR_ID}:${GRP_ID} -t ${USR_ID}:${GRP_ID}
-            sudo cgcreate -g cpu,memory:${AGENT_GROUP_NAME} -a ${USR_ID}:${GRP_ID} -t ${USR_ID}:${GRP_ID}
+            sudo cgcreate -g cpu,memory:${E2E_GROUP_NAME_FQ} -a ${USR_ID}:${GRP_ID} -t ${USR_ID}:${GRP_ID}
+            sudo cgcreate -g cpu,memory:${AGENT_GROUP_NAME_FQ} -a ${USR_ID}:${GRP_ID} -t ${USR_ID}:${GRP_ID}
           echo "::endgroup::"
 
           echo "::group::Set Control Group Limits"
-            cgset -r cpu.weight=768 ${E2E_GROUP_NAME}
-            cgset -r cpu.weight=500 ${AGENT_GROUP_NAME}
-            cgset -r memory.max=${E2E_MEM_LIMIT} ${E2E_GROUP_NAME}
-            cgset -r memory.max=${AGENT_MEM_LIMIT} ${AGENT_GROUP_NAME}
-            cgset -r memory.swap.max=${E2E_MEM_LIMIT} ${E2E_GROUP_NAME}
-            cgset -r memory.swap.max=${AGENT_MEM_LIMIT} ${AGENT_GROUP_NAME}
+            cgset -r cpu.weight=768 ${E2E_GROUP_NAME_FQ}
+            cgset -r cpu.weight=500 ${AGENT_GROUP_NAME_FQ}
+            cgset -r memory.max=${E2E_MEM_LIMIT} ${E2E_GROUP_NAME_FQ}
+            cgset -r memory.max=${AGENT_MEM_LIMIT} ${AGENT_GROUP_NAME_FQ}
+            cgset -r memory.swap.max=${E2E_MEM_LIMIT} ${E2E_GROUP_NAME_FQ}
+            cgset -r memory.swap.max=${AGENT_MEM_LIMIT} ${AGENT_GROUP_NAME_FQ}
           echo "::endgroup::"
 
           echo "::group::Move Runner Processes to Control Groups"
-            sudo cgclassify --sticky -g cpu,memory:${AGENT_GROUP_NAME} $(pgrep 'Runner.Listener' | tr '\n' ' ')
-            sudo cgclassify -g cpu,memory:${AGENT_GROUP_NAME} $(pgrep 'Runner.Worker' | tr '\n' ' ')
+            sudo cgclassify --sticky -g cpu,memory:${AGENT_GROUP_NAME_FQ} $(pgrep 'Runner.Listener' | tr '\n' ' ')
+            sudo cgclassify -g cpu,memory:${AGENT_GROUP_NAME_FQ} $(pgrep 'Runner.Worker' | tr '\n' ' ')
           echo "::endgroup::"
           
           set +x
