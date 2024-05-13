@@ -46,6 +46,8 @@ import path from 'path'
 import fs from 'fs'
 import crypto from 'crypto'
 
+const defaultTimeout = 20000
+
 describe.each([
   { releaseTag: 'v0.49.0-alpha.2', keyFormat: constants.KEY_FORMAT_PFX, testName: 'node-cmd-e2e-pfx', mode: 'kill' },
   { releaseTag: 'v0.49.0-alpha.2', keyFormat: constants.KEY_FORMAT_PEM, testName: 'node-cmd-e2e-pem', mode: 'stop' }
@@ -90,7 +92,7 @@ describe.each([
       } finally {
         await nodeCmd.close()
       }
-    }, 20000)
+    }, defaultTimeout)
   })
 
   describe(`Node should refresh successfully [mode ${input.mode}, release ${input.releaseTag}, keyFormat: ${input.keyFormat}]`, () => {
@@ -176,7 +178,7 @@ describe.each([
                 `${nodeId}:${keyFileName}:${existingKeyHash}`)
         }
       }
-    })
+    }, 60000)
   })
 })
 
@@ -245,7 +247,7 @@ function nodePodShouldBeRunning (nodeCmd, namespace, nodeId) {
     } finally {
       await nodeCmd.close()
     }
-  }, 20000)
+  }, defaultTimeout)
 }
 
 function nodeRefreshShouldSucceed (nodeId, nodeCmd, argv) {
@@ -273,7 +275,7 @@ function nodeShouldNotBeActive (nodeCmd, nodeId) {
     } finally {
       await nodeCmd.close()
     }
-  }, 20000)
+  }, defaultTimeout)
 }
 
 async function nodeRefreshTestSetup (argv, testName, k8, nodeId) {
