@@ -351,23 +351,26 @@ $ solo node start
 
 # output is similar to example-1 
 ```
-## For Developer Working on Hedera Repo
+## For Developers Working on Hedera Service Repo
+
+First, pleaes clone hedera service repo `https://github.com/hashgraph/hedera-services/` and build the code
+with `./gradlew assemble`. If need to running nodes with different versions or releases, please duplicate the repo or build directories in
+multiple directories, checkout to the respective version and build the code. 
 
 To set customized `settings.txt` file, edit the file
-`./resources/templates/settings.txt` before `node setup` command.
+`~/.solo/cache/templates/settings.txt` after `solo init` command.
 
-To deploy node with local build hedera code, first run `./gradlew assemble` at the root directory of hedera repo, then
-  run the following command:
+
 ```
-$ solo node setup --local-build-path node0=<path-to-hedera-repo>,node1=<path-to-hedera-repo>,node2=<path-to-hedera-repo>
+solo node setup --local-build-path <default path to hedera repo>,node1=<custom build hedera repo>,node2=<custom build repo>
 ```
-To have nodes running with different versions of hedera application, please clone the repo in multiple directories,
-checkout to the respective version and build the code. Then run the above command
-and provide the path to the respective node.
+
+## For Developers Working on Platform core
 
 To deploy node with local build PTT code, run the following command:
 ```
-$ solo node setup --local-build-path node0=<path-to-hedera-repo>,node1=<path-to-hedera-repo>,node2=<path-to-hedera-repo> --ptt-test-config PlatformTestingTool.jar,<path-to-test-json>
+solo node setup --local-build-path <default path to hedera repo>,node1=<custom build hedera repo>,node2=<custom build repo>
+ --app PlatformTestingTool.jar --app-config <path-to-test-json1,path-to-test-json2>
 ```
 ## Support
 

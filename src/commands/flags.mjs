@@ -408,7 +408,6 @@ export const app = {
   }
 }
 
-
 export const appConfig = {
   name: 'app-config',
   definition: {

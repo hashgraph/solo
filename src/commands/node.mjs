@@ -362,10 +362,9 @@ export class NodeCommand extends BaseCommand {
     const self = this
     const subTasks = []
 
-    const config = ctx.config
     self.logger.debug('no need to fetch, use local build jar files')
     // create a map of node id to local build path
-    let buildPathMap = new Map()
+    const buildPathMap = new Map()
     let defaultDataLibBuildPath
     // localBuildPath example input '../hedera-services/,node1=../hedera-services/,node2=../hedera2/hedera-services/'
     const parameterPairs = localBuildPath.split(',')
@@ -395,9 +394,8 @@ export class NodeCommand extends BaseCommand {
         task: async () => {
           this.logger.debug(`Copying build files to pod: ${podName} from ${localDataLibBuildPath}`)
           await self.k8.copyTo(podName, constants.ROOT_CONTAINER, localDataLibBuildPath, `${constants.HEDERA_HAPI_PATH}`)
-          const testJsonFiles = self.configManager.getFlag(flags.appConfig).split(",")
-          for (const jsonFile of testJsonFiles)
-          {
+          const testJsonFiles = self.configManager.getFlag(flags.appConfig).split(',')
+          for (const jsonFile of testJsonFiles) {
             if (fs.existsSync(jsonFile)) {
               await self.k8.copyTo(podName, constants.ROOT_CONTAINER, jsonFile, `${constants.HEDERA_HAPI_PATH}`)
             }
@@ -558,7 +556,7 @@ export class NodeCommand extends BaseCommand {
                 const configTxtPath = `${config.stagingDir}/config.txt`
                 const template = `${constants.RESOURCES_DIR}/templates/config.template`
                 const appName = self.configManager.getFlag(flags.app)
-                if (fs.existsSync(appName)) {
+                if (appName !== '') {
                   await self.platformInstaller.prepareConfigTxt(config.nodeIds, configTxtPath, config.releaseTag, config.chainId, template, appName)
                 } else {
                   await self.platformInstaller.prepareConfigTxt(config.nodeIds, configTxtPath, config.releaseTag, config.chainId, template)
@@ -682,10 +680,10 @@ export class NodeCommand extends BaseCommand {
         task: (ctx, task) => {
           const subTasks = []
           for (const nodeId of ctx.config.nodeIds) {
-            if (fs.existsSync(self.configManager.getFlag(flags.app))) {
+            if (self.configManager.getFlag(flags.app) !== '') {
               subTasks.push({
                 title: `Check node: ${chalk.yellow(nodeId)}`,
-                task: () => self.checkNetworkNodeState(nodeId, 100, 'ACTIVE', 'logs/swirlds.log')
+                task: () => self.checkNetworkNodeState(nodeId, 100, 'ACTIVE', 'output/swirlds.log')
               })
             } else {
               subTasks.push({
@@ -1105,10 +1103,10 @@ export class NodeCommand extends BaseCommand {
         task: (ctx, task) => {
           const subTasks = []
           for (const nodeId of ctx.config.nodeIds) {
-            if (fs.existsSync(self.configManager.getFlag(flags.app))) {
+            if (self.configManager.getFlag(flags.app) !== '') {
               subTasks.push({
                 title: `Check node: ${chalk.yellow(nodeId)}`,
-                task: () => self.checkNetworkNodeState(nodeId, 100, 'ACTIVE', 'logs/swirlds.log')
+                task: () => self.checkNetworkNodeState(nodeId, 100, 'ACTIVE', 'output/swirlds.log')
               })
             } else {
               subTasks.push({
