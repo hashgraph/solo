@@ -364,33 +364,43 @@ export class NodeCommand extends BaseCommand {
 
     const config = ctx.config
     self.logger.debug('no need to fetch, use local build jar files')
-    // localBuildPath example input 'node0=../hedera-services/,node1=../hedera-services/,node2=../hedera2/hedera-services/'
-    // split the input string by ','
+    // create a map of node id to local build path
+    let buildPathMap = new Map()
+    let defaultDataLibBuildPath
+    // localBuildPath example input '../hedera-services/,node1=../hedera-services/,node2=../hedera2/hedera-services/'
     const parameterPairs = localBuildPath.split(',')
-    const pttTestConfig = self.configManager.getFlag(flags.pttTestConfig)
     for (const parameterPair of parameterPairs) {
-      // split the localBuildPath by '='
-      const [nodeId, localBuildPath] = parameterPair.split('=')
-      let localDataLibBuildPath = path.join(localBuildPath, 'hedera-node', 'data')
-      if (pttTestConfig !== '' && fs.existsSync(pttTestConfig)) {
-        localDataLibBuildPath = path.join(localBuildPath, 'platform-sdk', 'sdk', 'data')
+      if (parameterPair.includes('=')) {
+        const [nodeId, localDataLibBuildPath] = parameterPair.split('=')
+        buildPathMap.set(nodeId, localDataLibBuildPath)
+      } else {
+        defaultDataLibBuildPath = parameterPair
+      }
+    }
+    let localDataLibBuildPath
+    for (const nodeId of ctx.config.nodeIds) {
+      const podName = ctx.config.podNames[nodeId]
+      if (buildPathMap.has(nodeId)) {
+        localDataLibBuildPath = buildPathMap.get(nodeId)
+      } else {
+        localDataLibBuildPath = defaultDataLibBuildPath
       }
 
       // if the path does not exist, throw an error
       if (!fs.existsSync(localDataLibBuildPath)) {
         throw new FullstackTestingError(`local build path does not exist: ${localDataLibBuildPath}`)
       }
-      const podName = config.podNames[nodeId]
-      const [pttJar, testJson] = pttTestConfig.split(',')
-      self.logger.debug(`PTT test jar: ${pttJar}, test json: ${testJson}`)
       subTasks.push({
         title: `Copy local build to Node: ${chalk.yellow(nodeId)} from ${localDataLibBuildPath}`,
         task: async () => {
           this.logger.debug(`Copying build files to pod: ${podName} from ${localDataLibBuildPath}`)
           await self.k8.copyTo(podName, constants.ROOT_CONTAINER, localDataLibBuildPath, `${constants.HEDERA_HAPI_PATH}`)
-          const pttTestConfig = self.configManager.getFlag(flags.pttTestConfig)
-          if (pttTestConfig !== '' && fs.existsSync(pttTestConfig)) {
-            await self.k8.copyTo(podName, constants.ROOT_CONTAINER, testJson, `${constants.HEDERA_HAPI_PATH}`)
+          const testJsonFiles = self.configManager.getFlag(flags.appConfig).split(",")
+          for (const jsonFile of testJsonFiles)
+          {
+            if (fs.existsSync(jsonFile)) {
+              await self.k8.copyTo(podName, constants.ROOT_CONTAINER, jsonFile, `${constants.HEDERA_HAPI_PATH}`)
+            }
           }
         }
       })
@@ -547,14 +557,9 @@ export class NodeCommand extends BaseCommand {
                 const config = ctx.config
                 const configTxtPath = `${config.stagingDir}/config.txt`
                 const template = `${constants.RESOURCES_DIR}/templates/config.template`
-                const pttTestConfig = self.configManager.getFlag(flags.pttTestConfig)
-                if (pttTestConfig !== '' && fs.existsSync(pttTestConfig)) {
-                  const [pttJar, testJson] = pttTestConfig.split(',')
-                  self.logger.debug(`PTT test jar: ${pttJar}, test json: ${testJson}`)
-                  if (!fs.existsSync(testJson)) {
-                    throw new FullstackTestingError(`test json file does not exist: ${testJson}`)
-                  }
-                  await self.platformInstaller.prepareConfigTxt(config.nodeIds, configTxtPath, config.releaseTag, config.chainId, template, pttJar)
+                const appName = self.configManager.getFlag(flags.app)
+                if (fs.existsSync(appName)) {
+                  await self.platformInstaller.prepareConfigTxt(config.nodeIds, configTxtPath, config.releaseTag, config.chainId, template, appName)
                 } else {
                   await self.platformInstaller.prepareConfigTxt(config.nodeIds, configTxtPath, config.releaseTag, config.chainId, template)
                 }
@@ -677,8 +682,7 @@ export class NodeCommand extends BaseCommand {
         task: (ctx, task) => {
           const subTasks = []
           for (const nodeId of ctx.config.nodeIds) {
-            const pttTestConfig = self.configManager.getFlag(flags.pttTestConfig)
-            if (pttTestConfig !== '' && fs.existsSync(pttTestConfig)) {
+            if (fs.existsSync(self.configManager.getFlag(flags.app))) {
               subTasks.push({
                 title: `Check node: ${chalk.yellow(nodeId)}`,
                 task: () => self.checkNetworkNodeState(nodeId, 100, 'ACTIVE', 'logs/swirlds.log')
@@ -720,7 +724,7 @@ export class NodeCommand extends BaseCommand {
             }
           })
         },
-        skip: (ctx, _) => self.configManager.getFlag(flags.pttTestConfig) !== ''
+        skip: (ctx, _) => self.configManager.getFlag(flags.app) !== ''
       }], {
       concurrent: false,
       rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
@@ -1101,8 +1105,7 @@ export class NodeCommand extends BaseCommand {
         task: (ctx, task) => {
           const subTasks = []
           for (const nodeId of ctx.config.nodeIds) {
-            const pttTestConfig = self.configManager.getFlag(flags.pttTestConfig)
-            if (pttTestConfig !== '' && fs.existsSync(pttTestConfig)) {
+            if (fs.existsSync(self.configManager.getFlag(flags.app))) {
               subTasks.push({
                 title: `Check node: ${chalk.yellow(nodeId)}`,
                 task: () => self.checkNetworkNodeState(nodeId, 100, 'ACTIVE', 'logs/swirlds.log')
@@ -1146,7 +1149,7 @@ export class NodeCommand extends BaseCommand {
             }
           })
         },
-        skip: (ctx, _) => self.configManager.getFlag(flags.pttTestConfig) !== ''
+        skip: (ctx, _) => self.configManager.getFlag(flags.app) !== ''
       }], {
       concurrent: false,
       rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
@@ -1638,7 +1641,8 @@ export class NodeCommand extends BaseCommand {
               flags.bootstrapProperties,
               flags.settingTxt,
               flags.localBuildPath,
-              flags.pttTestConfig,
+              flags.app,
+              flags.appConfig,
               flags.log4j2Xml
             ),
             handler: argv => {

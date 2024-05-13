@@ -43,8 +43,9 @@ describe('Node local build', () => {
 
   describe('Node for platform app should start successfully', () => {
     console.log('Starting local build for Platform app')
-    argv[flags.localBuildPath.name] = 'node0=../hedera-services/,node1=../hedera-services/,node2=../hedera-services/'
-    argv[flags.pttTestConfig.name] = 'PlatformTestingTool.jar,../hedera-services/platform-sdk/platform-apps/tests/PlatformTestingTool/src/main/resources/FCMFCQ-Basic-2.5k-5m.json'
+    argv[flags.localBuildPath.name] = '../hedera-services/platform-sdk/sdk/data,node1=../hedera-services/platform-sdk/sdk/data,node2=../hedera-services/platform-sdk/sdk/data'
+    argv[flags.app.name] = 'PlatformTestingTool.jar'
+    argv[flags.appConfig.name] = '../hedera-services/platform-sdk/platform-apps/tests/PlatformTestingTool/src/main/resources/FCMFCQ-Basic-2.5k-5m.json'
     argv[flags.namespace.name] = LOCAL_PTT
     const bootstrapResp = bootstrapNetwork(LOCAL_PTT, argv)
     pttK8 = bootstrapResp.opts.k8

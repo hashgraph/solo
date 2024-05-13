@@ -43,7 +43,7 @@ describe('Node local build', () => {
 
   describe('Node for hedera app should start successfully', () => {
     console.log('Starting local build for Hedera app')
-    argv[flags.localBuildPath.name] = 'node0=../hedera-services/,node1=../hedera-services/,node2=../hedera-services/'
+    argv[flags.localBuildPath.name] = 'node0=../hedera-services/hedera-node/data/,../hedera-services/hedera-node/data,node2=../hedera-services/hedera-node/data'
     argv[flags.namespace.name] = LOCAL_HEDERA
     const bootstrapResp = bootstrapNetwork(LOCAL_HEDERA, argv)
     hederaK8 = bootstrapResp.opts.k8
