@@ -62,7 +62,7 @@ permissions:
   statuses: write
 
 env:
-  CG_EXEC: CGROUP_LOGLEVEL=DEBUG cgexec -g cpu,memory:user.slice/user-$(id -u).slice/user@$(id -u).service/e2e-${{ github.run_id }}
+  CG_EXEC: CGROUP_LOGLEVEL=DEBUG cgexec -g 'cpu,memory:user.slice/user-$(id -u).slice/user@$(id -u).service/e2e-${{ github.run_id }}'
   # CG_EXEC: cgexec -g cpu,memory:e2e-${{ github.run_id }} --sticky ionice -c 2 -n 2 nice -n 19
 
 jobs:
