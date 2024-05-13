@@ -62,7 +62,8 @@ permissions:
   statuses: write
 
 env:
-  CG_EXEC: cgexec -g cpu,memory:e2e-${{ github.run_id }} --sticky ionice -c 2 -n 2 nice -n 19
+  CG_EXEC: cgexec -g cpu,memory:e2e-${{ github.run_id }}
+  # CG_EXEC: cgexec -g cpu,memory:e2e-${{ github.run_id }} --sticky ionice -c 2 -n 2 nice -n 19
 
 jobs:
   e2e-test:
@@ -97,12 +98,12 @@ jobs:
           echo "::endgroup::"
 
           echo "::group::Set Control Group Limits"
-            sudo cgset -r cpu.weight=768 ${E2E_GROUP_NAME}
-            sudo cgset -r cpu.weight=500 ${AGENT_GROUP_NAME}
-            sudo cgset -r memory.max=${E2E_MEM_LIMIT} ${E2E_GROUP_NAME}
-            sudo cgset -r memory.max=${AGENT_MEM_LIMIT} ${AGENT_GROUP_NAME}
-            sudo cgset -r memory.swap.max=${E2E_MEM_LIMIT} ${E2E_GROUP_NAME}
-            sudo cgset -r memory.swap.max=${AGENT_MEM_LIMIT} ${AGENT_GROUP_NAME}
+            cgset -r cpu.weight=768 ${E2E_GROUP_NAME}
+            cgset -r cpu.weight=500 ${AGENT_GROUP_NAME}
+            cgset -r memory.max=${E2E_MEM_LIMIT} ${E2E_GROUP_NAME}
+            cgset -r memory.max=${AGENT_MEM_LIMIT} ${AGENT_GROUP_NAME}
+            cgset -r memory.swap.max=${E2E_MEM_LIMIT} ${E2E_GROUP_NAME}
+            cgset -r memory.swap.max=${AGENT_MEM_LIMIT} ${AGENT_GROUP_NAME}
           echo "::endgroup::"
 
           echo "::group::Move Runner Processes to Control Groups"
