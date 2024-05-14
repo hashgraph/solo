@@ -360,14 +360,14 @@ multiple directories, checkout to the respective version and build the code.
 To set customized `settings.txt` file, edit the file
 `~/.solo/cache/templates/settings.txt` after `solo init` command.
 
-
+Then you can start customized built hedera network with the following command:
 ```
 solo node setup --local-build-path <default path to hedera repo>,node1=<custom build hedera repo>,node2=<custom build repo>
 ```
 
 ## For Developers Working on Platform core
 
-To deploy node with local build PTT code, run the following command:
+To deploy node with local build PTT jar files, run the following command:
 ```
 solo node setup --local-build-path <default path to hedera repo>,node1=<custom build hedera repo>,node2=<custom build repo>
  --app PlatformTestingTool.jar --app-config <path-to-test-json1,path-to-test-json2>

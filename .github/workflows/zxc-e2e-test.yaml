@@ -102,20 +102,20 @@ jobs:
         run: docker image pull kindest/node:v1.27.3@sha256:3966ac761ae0136263ffdb6cfd4db23ef8a83cba8a463690e98317add2c9ba72
 
       - name: Setup Java
-        if: ${{ runner.os == 'linux' && inputs.npm-test-script == 'test-e2e' && !cancelled() && !failure() }}
+        if: ${{ runner.os == 'linux' && inputs.npm-test-script == 'test-e2e-node' && !cancelled() && !failure() }}
         uses: actions/setup-java@387ac29b308b003ca37ba93a6cab5eb57c8f5f93 # v4.0.0
         with:
           distribution: temurin
           java-version: 21.0.1
 
       - name: Setup Gradle
-        if: ${{ runner.os == 'linux' && inputs.npm-test-script == 'test-e2e' && !cancelled() && !failure() }}
+        if: ${{ runner.os == 'linux' && inputs.npm-test-script == 'test-e2e-node' && !cancelled() && !failure() }}
         uses: gradle/gradle-build-action@29c0906b64b8fc82467890bfb7a0a7ef34bda89e # v3.1.0
         with:
           cache-read-only: false
 
       - name: Build Hedera code locally
-        if: ${{ runner.os == 'linux' && inputs.npm-test-script == 'test-e2e' && !cancelled() && !failure() }}
+        if: ${{ runner.os == 'linux' && inputs.npm-test-script == 'test-e2e-node' && !cancelled() && !failure() }}
         run: |
           cd ..
           git clone https://github.com/hashgraph/hedera-services.git
@@ -123,7 +123,7 @@ jobs:
           ls -ltr
           ./gradlew assemble
           cd ../solo
-          
+
       - name: Setup E2E Tests
         run: | 
           npm link

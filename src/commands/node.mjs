@@ -363,10 +363,9 @@ export class NodeCommand extends BaseCommand {
     const subTasks = []
 
     self.logger.debug('no need to fetch, use local build jar files')
-    // create a map of node id to local build path
+
     const buildPathMap = new Map()
     let defaultDataLibBuildPath
-    // localBuildPath example input '../hedera-services/,node1=../hedera-services/,node2=../hedera2/hedera-services/'
     const parameterPairs = localBuildPath.split(',')
     for (const parameterPair of parameterPairs) {
       if (parameterPair.includes('=')) {
@@ -376,6 +375,7 @@ export class NodeCommand extends BaseCommand {
         defaultDataLibBuildPath = parameterPair
       }
     }
+
     let localDataLibBuildPath
     for (const nodeId of ctx.config.nodeIds) {
       const podName = ctx.config.podNames[nodeId]
@@ -385,10 +385,10 @@ export class NodeCommand extends BaseCommand {
         localDataLibBuildPath = defaultDataLibBuildPath
       }
 
-      // if the path does not exist, throw an error
       if (!fs.existsSync(localDataLibBuildPath)) {
         throw new FullstackTestingError(`local build path does not exist: ${localDataLibBuildPath}`)
       }
+
       subTasks.push({
         title: `Copy local build to Node: ${chalk.yellow(nodeId)} from ${localDataLibBuildPath}`,
         task: async () => {
