@@ -151,6 +151,7 @@ jobs:
       e2e-mirror-node-test-subdir: ${{ needs.env-vars.outputs.e2e-mirror-node-test-subdir }}
       e2e-node-pem-stop-add-test-subdir: ${{ needs.env-vars.outputs.e2e-node-pem-stop-add-test-subdir }}
       e2e-node-pfx-kill-add-test-subdir: ${{ needs.env-vars.outputs.e2e-node-pfx-kill-add-test-subdir }}
+      e2e-node-local-build-test-subdir: ${{ needs.env-vars.outputs.e2e-node-local-build-test-subdir }}
       e2e-relay-test-subdir: ${{ needs.env-vars.outputs.e2e-relay-test-subdir }}
       e2e-coverage-report: ${{ needs.env-vars.outputs.e2e-coverage-report }}
       e2e-mirror-node-coverage-report: ${{ needs.env-vars.outputs.e2e-mirror-node-coverage-report }}
