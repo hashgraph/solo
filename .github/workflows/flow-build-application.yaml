@@ -116,6 +116,18 @@ jobs:
       coverage-subdirectory: ${{ needs.env-vars.outputs.e2e-node-pfx-kill-add-test-subdir }}
       coverage-report-name: ${{ needs.env-vars.outputs.e2e-node-pfx-kill-add-coverage-report }}
 
+  e2e-node-local-build-tests:
+    name: E2E Local Build Tests
+    uses: ./.github/workflows/zxc-e2e-test.yaml
+    needs:
+      - env-vars
+      - code-style
+    with:
+      custom-job-label: Node Local Build
+      npm-test-script: test-${{ needs.env-vars.outputs.e2e-node-local-build-test-subdir }}
+      coverage-subdirectory: ${{ needs.env-vars.outputs.e2e-node-local-build-test-subdir }}
+      coverage-report-name: ${{ needs.env-vars.outputs.e2e-node-local-build-coverage-report }}
+
   e2e-relay-tests:
     name: E2E Tests
     if: ${{ github.event_name == 'push' || github.event.inputs.enable-e2e-tests == 'true' }}
