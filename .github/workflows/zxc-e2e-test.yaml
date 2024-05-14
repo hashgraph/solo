@@ -62,8 +62,7 @@ permissions:
   statuses: write
 
 env:
-  CG_EXEC: export R_UID=$(id -u); CGROUP_LOGLEVEL=DEBUG cgexec -g cpu,memory:user.slice/user-${R_UID}.slice/user@${R_UID}.service/e2e-${{ github.run_id }}
-  # CG_EXEC: cgexec -g cpu,memory:e2e-${{ github.run_id }} --sticky ionice -c 2 -n 2 nice -n 19
+  CG_EXEC: export R_UID=$(id -u); CGROUP_LOGLEVEL=DEBUG cgexec -g cpu,memory:user.slice/user-${R_UID}.slice/user@${R_UID}.service/e2e-${{ github.run_id }} --sticky ionice -c 2 -n 2 nice -n 19
 
 jobs:
   e2e-test:
@@ -115,9 +114,6 @@ jobs:
             sudo cgclassify -g cpu,memory:${AGENT_GROUP_NAME} $(pgrep 'Runner.Worker' | tr '\n' ' ')
           echo "::endgroup::"
           
-          ls -al /sys/fs/cgroup/user.slice
-          ls -al /sys/fs/cgroup/${USER_SLICE}
-          ls -al /sys/fs/cgroup/${USER_SERVICE}
           set +x
 
       - name: Setup Node with Retry
@@ -156,7 +152,6 @@ jobs:
         run: | 
           set -x
           npm link
-          cat /proc/self/cgroup
           ${{ env.CG_EXEC }} ./test/e2e/setup-e2e.sh
           set +x
 
