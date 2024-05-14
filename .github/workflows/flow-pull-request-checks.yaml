@@ -76,17 +76,29 @@ jobs:
       coverage-subdirectory: ${{ needs.env-vars.outputs.e2e-mirror-node-test-subdir }}
       coverage-report-name: ${{ needs.env-vars.outputs.e2e-mirror-node-coverage-report }}
 
-  e2e-node-tests:
+  e2e-node-pem-stop-add-tests:
     name: E2E Tests
     uses: ./.github/workflows/zxc-e2e-test.yaml
     needs:
       - env-vars
       - code-style
     with:
-      custom-job-label: Node
-      npm-test-script: test-${{ needs.env-vars.outputs.e2e-node-test-subdir }}
-      coverage-subdirectory: ${{ needs.env-vars.outputs.e2e-node-test-subdir }}
-      coverage-report-name: ${{ needs.env-vars.outputs.e2e-node-coverage-report }}
+      custom-job-label: Node PEM Stop Add
+      npm-test-script: test-${{ needs.env-vars.outputs.e2e-node-pem-stop-add-test-subdir }}
+      coverage-subdirectory: ${{ needs.env-vars.outputs.e2e-node-pem-stop-add-test-subdir }}
+      coverage-report-name: ${{ needs.env-vars.outputs.e2e-node-pem-stop-add-coverage-report }}
+
+  e2e-node-pfx-kill-add-tests:
+    name: E2E Tests
+    uses: ./.github/workflows/zxc-e2e-test.yaml
+    needs:
+      - env-vars
+      - code-style
+    with:
+      custom-job-label: Node PFX Kill Add
+      npm-test-script: test-${{ needs.env-vars.outputs.e2e-node-pfx-kill-add-test-subdir }}
+      coverage-subdirectory: ${{ needs.env-vars.outputs.e2e-node-pfx-kill-add-test-subdir }}
+      coverage-report-name: ${{ needs.env-vars.outputs.e2e-node-pfx-kill-add-coverage-report }}
 
   e2e-relay-tests:
     name: E2E Tests
@@ -108,7 +120,8 @@ jobs:
       - unit-tests
       - e2e-tests
       - e2e-mirror-node-tests
-      - e2e-node-tests
+      - e2e-node-pem-stop-add-tests
+      - e2e-node-pfx-kill-add-tests
       - e2e-relay-tests
     if: ${{ github.event.pull_request.head.repo.full_name == github.event.pull_request.base.repo.full_name }}
     with:
@@ -117,11 +130,13 @@ jobs:
       enable-e2e-coverage-report: true
       e2e-test-subdir: ${{ needs.env-vars.outputs.e2e-test-subdir }}
       e2e-mirror-node-test-subdir: ${{ needs.env-vars.outputs.e2e-mirror-node-test-subdir }}
-      e2e-node-test-subdir: ${{ needs.env-vars.outputs.e2e-node-test-subdir }}
+      e2e-node-pem-stop-add-test-subdir: ${{ needs.env-vars.outputs.e2e-node-pem-stop-add-test-subdir }}
+      e2e-node-pfx-kill-add-test-subdir: ${{ needs.env-vars.outputs.e2e-node-pfx-kill-add-test-subdir }}
       e2e-relay-test-subdir: ${{ needs.env-vars.outputs.e2e-relay-test-subdir }}
       e2e-coverage-report: ${{ needs.env-vars.outputs.e2e-coverage-report }}
       e2e-mirror-node-coverage-report: ${{ needs.env-vars.outputs.e2e-mirror-node-coverage-report }}
-      e2e-node-coverage-report: ${{ needs.env-vars.outputs.e2e-node-coverage-report }}
+      e2e-node-pem-stop-add-coverage-report: ${{ needs.env-vars.outputs.e2e-node-pem-stop-add-coverage-report }}
+      e2e-node-pfx-kill-add-coverage-report: ${{ needs.env-vars.outputs.e2e-node-pfx-kill-add-coverage-report }}
       e2e-relay-coverage-report: ${{ needs.env-vars.outputs.e2e-relay-coverage-report }}
     secrets:
       codecov-token: ${{ secrets.CODECOV_TOKEN }}
@@ -134,7 +149,8 @@ jobs:
       - unit-tests
       - e2e-tests
       - e2e-mirror-node-tests
-      - e2e-node-tests
+      - e2e-node-pem-stop-add-tests
+      - e2e-node-pfx-kill-add-tests
       - e2e-relay-tests
     if: ${{ github.event.pull_request.head.repo.full_name == github.event.pull_request.base.repo.full_name }}
     with:
@@ -143,11 +159,13 @@ jobs:
       enable-e2e-coverage-report: true
       e2e-test-subdir: ${{ needs.env-vars.outputs.e2e-test-subdir }}
       e2e-mirror-node-test-subdir: ${{ needs.env-vars.outputs.e2e-mirror-node-test-subdir }}
-      e2e-node-test-subdir: ${{ needs.env-vars.outputs.e2e-node-test-subdir }}
+      e2e-node-pem-stop-add-test-subdir: ${{ needs.env-vars.outputs.e2e-node-pem-stop-add-test-subdir }}
+      e2e-node-pfx-kill-add-test-subdir: ${{ needs.env-vars.outputs.e2e-node-pfx-kill-add-test-subdir }}
       e2e-relay-test-subdir: ${{ needs.env-vars.outputs.e2e-relay-test-subdir }}
       e2e-coverage-report: ${{ needs.env-vars.outputs.e2e-coverage-report }}
       e2e-mirror-node-coverage-report: ${{ needs.env-vars.outputs.e2e-mirror-node-coverage-report }}
-      e2e-node-coverage-report: ${{ needs.env-vars.outputs.e2e-node-coverage-report }}
+      e2e-node-pem-stop-add-coverage-report: ${{ needs.env-vars.outputs.e2e-node-pem-stop-add-coverage-report }}
+      e2e-node-pfx-kill-add-coverage-report: ${{ needs.env-vars.outputs.e2e-node-pfx-kill-add-coverage-report }}
       e2e-relay-coverage-report: ${{ needs.env-vars.outputs.e2e-relay-coverage-report }}
     secrets:
       codacy-project-token: ${{ secrets.CODACY_PROJECT_TOKEN }}
@@ -160,7 +178,8 @@ jobs:
 #      - unit-tests
 #      - e2e-tests
 #      - e2e-mirror-node-tests
-#      - e2e-node-tests
+#      - e2e-node-pem-stop-add-tests
+#      - e2e-node-pfx-kill-add-tests
 #      - e2e-relay-tests
 #    if: ${{ github.event.pull_request.head.repo.full_name == github.event.pull_request.base.repo.full_name && github.actor != 'dependabot[bot]' }}
 #    with:
@@ -168,11 +187,13 @@ jobs:
 #      enable-snyk-scan: true
 #      e2e-test-subdir: ${{ needs.env-vars.outputs.e2e-test-subdir }}
 #      e2e-mirror-node-test-subdir: ${{ needs.env-vars.outputs.e2e-mirror-node-test-subdir }}
-#      e2e-node-test-subdir: ${{ needs.env-vars.outputs.e2e-node-test-subdir }}
+#      e2e-node-pem-stop-add-test-subdir: ${{ needs.env-vars.outputs.e2e-node-pem-stop-add-test-subdir }}
+#      e2e-node-pfx-kill-add-test-subdir: ${{ needs.env-vars.outputs.e2e-node-pfx-kill-add-test-subdir }}
 #      e2e-relay-test-subdir: ${{ needs.env-vars.outputs.e2e-relay-test-subdir }}
 #      e2e-coverage-report: ${{ needs.env-vars.outputs.e2e-coverage-report }}
 #      e2e-mirror-node-coverage-report: ${{ needs.env-vars.outputs.e2e-mirror-node-coverage-report }}
-#      e2e-node-coverage-report: ${{ needs.env-vars.outputs.e2e-node-coverage-report }}
+#      e2e-node-pem-stop-add-coverage-report: ${{ needs.env-vars.outputs.e2e-node-pem-stop-add-coverage-report }}
+#      e2e-node-pfx-kill-add-coverage-report: ${{ needs.env-vars.outputs.e2e-node-pfx-kill-add-coverage-report }}
 #      e2e-relay-coverage-report: ${{ needs.env-vars.outputs.e2e-relay-coverage-report }}
 #    secrets:
 #      snyk-token: ${{ secrets.SNYK_TOKEN }}
