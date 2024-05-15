@@ -151,6 +151,7 @@ jobs:
       - e2e-mirror-node-tests
       - e2e-node-pem-stop-add-tests
       - e2e-node-pfx-kill-add-tests
+      - e2e-node-local-build-tests
       - e2e-relay-tests
     if: ${{ (github.event_name == 'push' || github.event.inputs.enable-unit-tests == 'true' || github.event.inputs.enable-e2e-tests == 'true') && !failure() && !cancelled() }}
     with:
@@ -169,6 +170,7 @@ jobs:
       e2e-mirror-node-coverage-report: ${{ needs.env-vars.outputs.e2e-mirror-node-coverage-report }}
       e2e-node-pem-stop-add-coverage-report: ${{ needs.env-vars.outputs.e2e-node-pem-stop-add-coverage-report }}
       e2e-node-pfx-kill-add-coverage-report: ${{ needs.env-vars.outputs.e2e-node-pfx-kill-add-coverage-report }}
+      e2e-node-local-build-coverage-report: ${{ needs.env-vars.outputs.e2e-node-local-build-coverage-report }}
       e2e-relay-coverage-report: ${{ needs.env-vars.outputs.e2e-relay-coverage-report }}
     secrets:
       snyk-token: ${{ secrets.SNYK_TOKEN }}

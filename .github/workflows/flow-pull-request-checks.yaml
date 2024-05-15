@@ -101,7 +101,7 @@ jobs:
       coverage-report-name: ${{ needs.env-vars.outputs.e2e-node-pfx-kill-add-coverage-report }}
 
   e2e-node-local-build-tests:
-    name: E2E Local Build Tests
+    name: E2E Tests
     uses: ./.github/workflows/zxc-e2e-test.yaml
     needs:
       - env-vars
@@ -151,6 +151,7 @@ jobs:
       e2e-mirror-node-coverage-report: ${{ needs.env-vars.outputs.e2e-mirror-node-coverage-report }}
       e2e-node-pem-stop-add-coverage-report: ${{ needs.env-vars.outputs.e2e-node-pem-stop-add-coverage-report }}
       e2e-node-pfx-kill-add-coverage-report: ${{ needs.env-vars.outputs.e2e-node-pfx-kill-add-coverage-report }}
+      e2e-node-e2e-node-local-build-coverage-report: ${{ needs.env-vars.outputs.e2e-node-local-build-coverage-report }}
       e2e-relay-coverage-report: ${{ needs.env-vars.outputs.e2e-relay-coverage-report }}
     secrets:
       codecov-token: ${{ secrets.CODECOV_TOKEN }}
@@ -182,6 +183,7 @@ jobs:
       e2e-mirror-node-coverage-report: ${{ needs.env-vars.outputs.e2e-mirror-node-coverage-report }}
       e2e-node-pem-stop-add-coverage-report: ${{ needs.env-vars.outputs.e2e-node-pem-stop-add-coverage-report }}
       e2e-node-pfx-kill-add-coverage-report: ${{ needs.env-vars.outputs.e2e-node-pfx-kill-add-coverage-report }}
+      e2e-node-local-build-coverage-report: ${{ needs.env-vars.outputs.e2e-node-local-build-coverage-report }}
       e2e-relay-coverage-report: ${{ needs.env-vars.outputs.e2e-relay-coverage-report }}
     secrets:
       codacy-project-token: ${{ secrets.CODACY_PROJECT_TOKEN }}
