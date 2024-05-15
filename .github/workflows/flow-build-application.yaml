@@ -117,7 +117,7 @@ jobs:
       coverage-report-name: ${{ needs.env-vars.outputs.e2e-node-pfx-kill-add-coverage-report }}
 
   e2e-node-local-build-tests:
-    name: E2E Local Build Tests
+    name: E2E Tests
     uses: ./.github/workflows/zxc-e2e-test.yaml
     needs:
       - env-vars
