@@ -109,7 +109,7 @@ on:
         description: "E2E Node Local Build Coverage Report:"
         type: string
         required: false
-        default: "E2E Node Local Build Coverage Report"
+        default: "E2E Node Local Build Tests Coverage Report"
       e2e-relay-coverage-report:
         description: "E2E Relay Coverage Report:"
         type: string
