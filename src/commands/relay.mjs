@@ -21,6 +21,7 @@ import { constants } from '../core/index.mjs'
 import { BaseCommand } from './base.mjs'
 import * as flags from './flags.mjs'
 import * as prompts from './prompts.mjs'
+import { RPC_RELAY_CHART_VERSION } from '../../version.mjs'
 
 export class RelayCommand extends BaseCommand {
   constructor (opts) {
