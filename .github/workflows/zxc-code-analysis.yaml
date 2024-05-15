@@ -105,7 +105,7 @@ on:
         type: string
         required: false
         default: "E2E Node PFX Kill Add Tests Coverage Report"
-      e2e-node-local-build-report:
+      e2e-node-local-build-coverage-report:
         description: "E2E Node Local Build Coverage Report:"
         type: string
         required: false
