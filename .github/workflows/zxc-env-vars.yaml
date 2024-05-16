@@ -82,7 +82,7 @@ jobs:
       e2e_mirror_node_coverage_report: "E2E Mirror Node Tests Coverage Report"
       e2e_node_pem_stop_add_coverage_report: "E2E Node PEM Stop Add Tests Coverage Report"
       e2e_node_pfx_kill_add_coverage_report: "E2E Node PFX Kill Add Tests Coverage Report"
-      e2e-node_local_build_coverage_report: "E2E Node Local Build Tests Coverage Report"
+      e2e_node_local_build_coverage_report: "E2E Node Local Build Tests Coverage Report"
       e2e_relay_coverage_report: "E2E Relay Tests Coverage Report"
     steps:
       - run: echo "Exposing environment variables to reusable workflows"
