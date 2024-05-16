@@ -88,13 +88,14 @@ export class NodeCommand extends BaseCommand {
     }
   }
 
-  async checkNetworkNodeState (nodeId, maxAttempt = 100, status = 'ACTIVE') {
+  async checkNetworkNodeState (nodeId, maxAttempt = 100, status = 'ACTIVE', logfile = 'output/hgcaa.log') {
     nodeId = nodeId.trim()
     const podName = Templates.renderNetworkPodName(nodeId)
-    const logfilePath = `${constants.HEDERA_HAPI_PATH}/output/hgcaa.log`
+    const logfilePath = `${constants.HEDERA_HAPI_PATH}/${logfile}`
     let attempt = 0
     let isActive = false
 
+    this.logger.debug(`Checking if node ${nodeId} is ${status}...`)
     // check log file is accessible
     let logFileAccessible = false
     while (attempt++ < maxAttempt) {
@@ -116,9 +117,10 @@ export class NodeCommand extends BaseCommand {
     attempt = 0
     while (attempt < maxAttempt) {
       try {
-        const output = await this.k8.execContainer(podName, constants.ROOT_CONTAINER, ['tail', '-10', logfilePath])
+        const output = await this.k8.execContainer(podName, constants.ROOT_CONTAINER, ['tail', '-100', logfilePath])
         if (output && output.indexOf('Terminating Netty') < 0 && // make sure we are not at the beginning of a restart
             (output.indexOf(`Now current platform status = ${status}`) > 0 ||
+            output.indexOf(`Platform Status Change ${status}`) > 0 ||
             output.indexOf(`is ${status}`) > 0)) { // 'is ACTIVE' is for newer versions, first seen in v0.49.0
           this.logger.debug(`Node ${nodeId} is ${status} [ attempt: ${attempt}/${maxAttempt}]`)
           isActive = true
@@ -356,6 +358,58 @@ export class NodeCommand extends BaseCommand {
     }
   }
 
+  uploadPlatformSoftware (ctx, task, localBuildPath) {
+    const self = this
+    const subTasks = []
+
+    self.logger.debug('no need to fetch, use local build jar files')
+
+    const buildPathMap = new Map()
+    let defaultDataLibBuildPath
+    const parameterPairs = localBuildPath.split(',')
+    for (const parameterPair of parameterPairs) {
+      if (parameterPair.includes('=')) {
+        const [nodeId, localDataLibBuildPath] = parameterPair.split('=')
+        buildPathMap.set(nodeId, localDataLibBuildPath)
+      } else {
+        defaultDataLibBuildPath = parameterPair
+      }
+    }
+
+    let localDataLibBuildPath
+    for (const nodeId of ctx.config.nodeIds) {
+      const podName = ctx.config.podNames[nodeId]
+      if (buildPathMap.has(nodeId)) {
+        localDataLibBuildPath = buildPathMap.get(nodeId)
+      } else {
+        localDataLibBuildPath = defaultDataLibBuildPath
+      }
+
+      if (!fs.existsSync(localDataLibBuildPath)) {
+        throw new FullstackTestingError(`local build path does not exist: ${localDataLibBuildPath}`)
+      }
+
+      subTasks.push({
+        title: `Copy local build to Node: ${chalk.yellow(nodeId)} from ${localDataLibBuildPath}`,
+        task: async () => {
+          this.logger.debug(`Copying build files to pod: ${podName} from ${localDataLibBuildPath}`)
+          await self.k8.copyTo(podName, constants.ROOT_CONTAINER, localDataLibBuildPath, `${constants.HEDERA_HAPI_PATH}`)
+          const testJsonFiles = self.configManager.getFlag(flags.appConfig).split(',')
+          for (const jsonFile of testJsonFiles) {
+            if (fs.existsSync(jsonFile)) {
+              await self.k8.copyTo(podName, constants.ROOT_CONTAINER, jsonFile, `${constants.HEDERA_HAPI_PATH}`)
+            }
+          }
+        }
+      })
+    }
+    // set up the sub-tasks
+    return task.newListr(subTasks, {
+      concurrent: true,
+      rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
+    })
+  }
+
   fetchPlatformSoftware (ctx, task, platformInstaller) {
     const config = ctx.config
 
@@ -501,7 +555,12 @@ export class NodeCommand extends BaseCommand {
                 const config = ctx.config
                 const configTxtPath = `${config.stagingDir}/config.txt`
                 const template = `${constants.RESOURCES_DIR}/templates/config.template`
-                await self.platformInstaller.prepareConfigTxt(config.nodeIds, configTxtPath, config.releaseTag, config.chainId, template)
+                const appName = self.configManager.getFlag(flags.app)
+                if (appName !== '') {
+                  await self.platformInstaller.prepareConfigTxt(config.nodeIds, configTxtPath, config.releaseTag, config.chainId, template, appName)
+                } else {
+                  await self.platformInstaller.prepareConfigTxt(config.nodeIds, configTxtPath, config.releaseTag, config.chainId, template)
+                }
               }
             }
           ]
@@ -516,7 +575,12 @@ export class NodeCommand extends BaseCommand {
         title: 'Fetch platform software into network nodes',
         task:
           async (ctx, task) => {
-            return self.fetchPlatformSoftware(ctx, task, self.platformInstaller)
+            const localBuildPath = self.configManager.getFlag(flags.localBuildPath)
+            if (localBuildPath !== '') {
+              return self.uploadPlatformSoftware(ctx, task, localBuildPath)
+            } else {
+              return self.fetchPlatformSoftware(ctx, task, self.platformInstaller)
+            }
           }
       },
       {
@@ -616,10 +680,17 @@ export class NodeCommand extends BaseCommand {
         task: (ctx, task) => {
           const subTasks = []
           for (const nodeId of ctx.config.nodeIds) {
-            subTasks.push({
-              title: `Check node: ${chalk.yellow(nodeId)}`,
-              task: () => self.checkNetworkNodeState(nodeId)
-            })
+            if (self.configManager.getFlag(flags.app) !== '') {
+              subTasks.push({
+                title: `Check node: ${chalk.yellow(nodeId)}`,
+                task: () => self.checkNetworkNodeState(nodeId, 100, 'ACTIVE', 'output/swirlds.log')
+              })
+            } else {
+              subTasks.push({
+                title: `Check node: ${chalk.yellow(nodeId)}`,
+                task: () => self.checkNetworkNodeState(nodeId)
+              })
+            }
           }
 
           // set up the sub-tasks
@@ -650,7 +721,8 @@ export class NodeCommand extends BaseCommand {
               collapseSubtasks: false
             }
           })
-        }
+        },
+        skip: (ctx, _) => self.configManager.getFlag(flags.app) !== ''
       }], {
       concurrent: false,
       rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
@@ -1031,10 +1103,17 @@ export class NodeCommand extends BaseCommand {
         task: (ctx, task) => {
           const subTasks = []
           for (const nodeId of ctx.config.nodeIds) {
-            subTasks.push({
-              title: `Check node: ${chalk.yellow(nodeId)}`,
-              task: () => self.checkNetworkNodeState(nodeId)
-            })
+            if (self.configManager.getFlag(flags.app) !== '') {
+              subTasks.push({
+                title: `Check node: ${chalk.yellow(nodeId)}`,
+                task: () => self.checkNetworkNodeState(nodeId, 100, 'ACTIVE', 'output/swirlds.log')
+              })
+            } else {
+              subTasks.push({
+                title: `Check node: ${chalk.yellow(nodeId)}`,
+                task: () => self.checkNetworkNodeState(nodeId)
+              })
+            }
           }
 
           // set up the sub-tasks
@@ -1067,7 +1146,8 @@ export class NodeCommand extends BaseCommand {
               collapseSubtasks: false
             }
           })
-        }
+        },
+        skip: (ctx, _) => self.configManager.getFlag(flags.app) !== ''
       }], {
       concurrent: false,
       rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
@@ -1558,6 +1638,9 @@ export class NodeCommand extends BaseCommand {
               flags.apiPermissionProperties,
               flags.bootstrapProperties,
               flags.settingTxt,
+              flags.localBuildPath,
+              flags.app,
+              flags.appConfig,
               flags.log4j2Xml
             ),
             handler: argv => {

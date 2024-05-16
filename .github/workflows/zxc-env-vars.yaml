@@ -38,6 +38,9 @@ on:
       e2e-node-pfx-kill-add-test-subdir:
         description: "E2E Node PFX Kill Add Test Subdirectory"
         value: ${{ jobs.env-vars.outputs.e2e_node_pfx_kill_add_test_subdir }}
+      e2e-node-local-build-test-subdir:
+        description: "E2E Node Local Build Test Subdirectory"
+        value: ${{ jobs.env-vars.outputs.e2e_node_local_build_test_subdir }}
       e2e-relay-test-subdir:
         description: "E2E Relay Test Subdirectory"
         value: ${{ jobs.env-vars.outputs.e2e_relay_test_subdir }}
@@ -53,6 +56,9 @@ on:
       e2e-node-pfx-kill-add-coverage-report:
         description: "E2E Node PFX Kill Add Tests Coverage Report"
         value: ${{ jobs.env-vars.outputs.e2e_node_pfx_kill_add_coverage_report }}
+      e2e-node-local-build-coverage-report:
+        description: "E2E Node Local Build Tests Coverage Report"
+        value: ${{ jobs.env-vars.outputs.e2e_node_local_build_coverage_report }}
       e2e-relay-coverage-report:
         description: "E2E Relay Tests Coverage Report"
         value: ${{ jobs.env-vars.outputs.e2e_relay_coverage_report }}
@@ -70,11 +76,13 @@ jobs:
       e2e_mirror_node_test_subdir: e2e-mirror-node
       e2e_node_pem_stop_add_test_subdir: e2e-node-pem-stop-add
       e2e_node_pfx_kill_add_test_subdir: e2e-node-pfx-kill-add
+      e2e_node_local_build_test_subdir: e2e-node-local-build
       e2e_relay_test_subdir: e2e-relay
       e2e_coverage_report: "E2E Tests Coverage Report"
       e2e_mirror_node_coverage_report: "E2E Mirror Node Tests Coverage Report"
       e2e_node_pem_stop_add_coverage_report: "E2E Node PEM Stop Add Tests Coverage Report"
       e2e_node_pfx_kill_add_coverage_report: "E2E Node PFX Kill Add Tests Coverage Report"
+      e2e_node_local_build_coverage_report: "E2E Node Local Build Tests Coverage Report"
       e2e_relay_coverage_report: "E2E Relay Tests Coverage Report"
     steps:
       - run: echo "Exposing environment variables to reusable workflows"
