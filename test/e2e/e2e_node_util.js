@@ -89,7 +89,7 @@ export function e2eNodeKeyRefreshAddTest (keyFormat, testName, mode, releaseTag 
         } finally {
           await nodeCmd.close()
         }
-      }, defaultTimeout)
+      }, 60000)
     })
 
     describe(`Node should refresh successfully [mode ${mode}, release ${releaseTag}, keyFormat: ${keyFormat}]`, () => {
