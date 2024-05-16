@@ -65,14 +65,20 @@ env:
   CG_EXEC: export R_UID=$(id -u); CGROUP_LOGLEVEL=DEBUG cgexec -g cpu,memory:user.slice/user-${R_UID}.slice/user@${R_UID}.service/e2e-${{ github.run_id }} --sticky ionice -c 2 -n 2 nice -n 19
 
 jobs:
+  workflow-telemetry-action:
+    name: Workflow Telemetry  ${{ inputs.custom-job-label || 'E2E Test' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Workflow Telemetry
+        uses: catchpoint/workflow-telemetry-action@v2
+
   e2e-test:
     name: ${{ inputs.custom-job-label || 'E2E Test' }}
     runs-on: [self-hosted, Linux, large, ephemeral]
+    needs: workflow-telemetry-action
     steps:
       - name: Workflow Telemetry ${{ inputs.custom-job-label || 'E2E Test' }}
         uses: catchpoint/workflow-telemetry-action@v2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Checkout Code
         uses: actions/checkout@44c2b7a8a4ea60a981eaca3cf939b5f4305c123b # v4.1.5
