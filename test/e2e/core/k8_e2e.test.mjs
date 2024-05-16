@@ -120,7 +120,7 @@ describe('K8', () => {
       testLogger.showUserError(e)
       expect(e).toBeNull()
     }
-  })
+  }, 20000)
 
   it('should be able to run wait for pod', async () => {
     const labels = [
@@ -180,5 +180,5 @@ describe('K8', () => {
     const podArray1 = await k8.getPodsByLabel(podLabels)
     const podsArray2 = await k8.recyclePodByLabels(podLabels)
     expect(podsArray2.length >= podArray1.length).toBeTruthy()
-  }, 60000)
+  }, 120000)
 })

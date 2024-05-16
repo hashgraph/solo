@@ -777,7 +777,7 @@ export class K8 {
     let attempts = 0
     while (attempts++ < maxAttempts) {
       // wait longer for pods to be deleted and recreated when running in CI with high loads of parallel runners
-      const status = await this.waitForPod(constants.POD_STATUS_RUNNING, podLabels, 1, 120, 1000)
+      const status = await this.waitForPod(constants.POD_STATUS_RUNNING, podLabels, 1, 120, 2000)
       if (status) {
         const newPods = await this.getPodsByLabel(podLabels)
         if (newPods.length === podArray.length) return newPods

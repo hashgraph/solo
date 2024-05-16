@@ -82,14 +82,14 @@ export function e2eNodeKeyRefreshAddTest (keyFormat, testName, mode, releaseTag 
         expect.assertions(1)
 
         try {
-          await expect(nodeCmd.checkNetworkNodeProxyUp('node0', 30499)).resolves.toBeTruthy()
+          await expect(nodeCmd.checkNetworkNodeProxyUp('node0', 30499, 30, 10000)).resolves.toBeTruthy()
         } catch (e) {
           nodeCmd.logger.showUserError(e)
           expect(e).toBeNull()
         } finally {
           await nodeCmd.close()
         }
-      }, defaultTimeout)
+      }, 60000)
     })
 
     describe(`Node should refresh successfully [mode ${mode}, release ${releaseTag}, keyFormat: ${keyFormat}]`, () => {
@@ -131,7 +131,7 @@ export function e2eNodeKeyRefreshAddTest (keyFormat, testName, mode, releaseTag 
         configManager.update(argv, true)
         existingServiceMap = await accountManager.getNodeServiceMap(namespace)
         existingNodeIdsPrivateKeysHash = await getNodeIdsPrivateKeysHash(existingServiceMap, namespace, keyFormat, k8, getTmpDir())
-      }, defaultTimeout)
+      }, 120000)
 
       it(`${nodeId} should not exist`, async () => {
         try {
@@ -142,7 +142,7 @@ export function e2eNodeKeyRefreshAddTest (keyFormat, testName, mode, releaseTag 
         } finally {
           await nodeCmd.close()
         }
-      }, 120000)
+      }, 180000)
 
       balanceQueryShouldSucceed(accountManager, nodeCmd, namespace)
 
