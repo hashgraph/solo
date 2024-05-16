@@ -73,7 +73,7 @@ export class RelayCommand extends BaseCommand {
 
     nodeIDs.forEach(nodeID => {
       const networkKey = `network-${nodeID.trim()}-0:50211`
-      valuesArg += ` --set config.HEDERA_NETWORK.${networkKey}=0.0.3`
+      valuesArg += ` --set config.HEDERA_NETWORK='{\"${networkKey}\":\"0.0.3\"}'`
     })
 
     return valuesArg
@@ -159,7 +159,7 @@ export class RelayCommand extends BaseCommand {
           const chartPath = ctx.chartPath
           const valuesArg = ctx.valuesArg
 
-          await self.chartManager.install(namespace, releaseName, chartPath, '', valuesArg)
+          await self.chartManager.install(namespace, releaseName, '/Users/jeffrey/hedera-json-rpc-relay/charts/hedera-json-rpc-relay', 'main', valuesArg)
 
           await self.k8.waitForPod(constants.POD_STATUS_RUNNING, [
             'app=hedera-json-rpc-relay',
