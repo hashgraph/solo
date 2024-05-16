@@ -66,7 +66,7 @@ env:
 
 jobs:
   workflow-telemetry-action:
-    name: Workflow Telemetry
+    name: Workflow Telemetry  ${{ inputs.custom-job-label || 'E2E Test' }}
     runs-on: ubuntu-latest
     steps:
       - name: Workflow Telemetry
@@ -77,9 +77,6 @@ jobs:
     runs-on: [self-hosted, Linux, large, ephemeral]
     needs: workflow-telemetry-action
     steps:
-      - name: Workflow Telemetry ${{ inputs.custom-job-label || 'E2E Test' }}
-        uses: catchpoint/workflow-telemetry-action@v2
-
       - name: Checkout Code
         uses: actions/checkout@44c2b7a8a4ea60a981eaca3cf939b5f4305c123b # v4.1.5
 
