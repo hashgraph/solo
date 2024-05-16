@@ -165,7 +165,7 @@ jobs:
           git clone https://github.com/hashgraph/hedera-services.git
           cd hedera-services
           ls -ltr
-          ./gradlew assemble
+          ${{ env.CG_EXEC }} ./gradlew assemble --stacktrace --info
           cd ../solo
 
       - name: Setup E2E Tests
