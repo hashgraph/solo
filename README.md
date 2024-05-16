@@ -139,7 +139,7 @@ Kubernetes Cluster	: kind-solo
 Kubernetes Namespace	: solo
 **********************************************************************************
 ✔ Setup home directory and cache
-✔ Check dependency: helm [OS: linux, Release: 5.15.0-1050-gke, Arch: x64]
+✔ Check dependency: helm [OS: linux, Release: 5.15.0-1054-gke, Arch: x64]
 ✔ Check dependencies
 ✔ Setup chart manager
 
@@ -179,8 +179,8 @@ Kubernetes Namespace	: solo
 ✔ Generate gossip keys
 ✔ Backup old files
 ✔ TLS key for node: node1
-✔ TLS key for node: node0
 ✔ TLS key for node: node2
+✔ TLS key for node: node0
 ✔ Generate gRPC TLS keys
 ✔ Finalize
 ```
@@ -240,10 +240,10 @@ Kubernetes Namespace	: solo
 ✔ Check Node: node2
 ✔ Check node pods are ready
 ✔ Check HAProxy for: node0
-✔ Check HAProxy for: node2
 ✔ Check HAProxy for: node1
-✔ Check Envoy Proxy for: node1
+✔ Check HAProxy for: node2
 ✔ Check Envoy Proxy for: node0
+✔ Check Envoy Proxy for: node1
 ✔ Check Envoy Proxy for: node2
 ✔ Check proxy pods are ready
 ✔ Check MinIO
@@ -278,8 +278,8 @@ Kubernetes Namespace	: solo
 ✔ Prepare config.txt for the network
 ✔ Prepare staging directory
 ✔ Update node: node1
-✔ Update node: node0
 ✔ Update node: node2
+✔ Update node: node0
 ✔ Fetch platform software into network nodes
 ✔ Copy Gossip keys
 ✔ Copy Gossip keys
@@ -291,11 +291,11 @@ Kubernetes Namespace	: solo
 ✔ Copy configuration files
 ✔ Copy configuration files
 ✔ Set file permissions
+✔ Node: node0
+✔ Set file permissions
 ✔ Node: node1
 ✔ Set file permissions
 ✔ Node: node2
-✔ Set file permissions
-✔ Node: node0
 ✔ Setup network nodes
 ✔ Finalize
 ```
@@ -317,21 +317,21 @@ Kubernetes Cluster	: kind-solo
 Kubernetes Namespace	: solo
 **********************************************************************************
 ✔ Initialize
-✔ Check network pod: node1
 ✔ Check network pod: node0
+✔ Check network pod: node1
 ✔ Check network pod: node2
 ✔ Identify network pods
-✔ Start node: node2
-✔ Start node: node1
 ✔ Start node: node0
+✔ Start node: node1
+✔ Start node: node2
 ✔ Starting nodes
 ✔ Check node: node0
 ✔ Check node: node1
 ✔ Check node: node2
 ✔ Check nodes are ACTIVE
-✔ Check proxy for node: node2
-✔ Check proxy for node: node1
 ✔ Check proxy for node: node0
+✔ Check proxy for node: node1
+✔ Check proxy for node: node2
 ✔ Check node proxies are ACTIVE
 ```
 * Deploy mirror node
@@ -356,10 +356,10 @@ Kubernetes Namespace	: solo
 ✔ Enable mirror-node
 ✔ Check Hedera Explorer
 ✔ Check Postgres DB
-✔ Check Monitor
-✔ Check GRPC
 ✔ Check REST API
 ✔ Check Importer
+✔ Check Monitor
+✔ Check GRPC
 ✔ Check pods are ready
 ```
 
@@ -478,7 +478,7 @@ Kubernetes Cluster	: kind-solo
 Kubernetes Namespace	: solo
 **********************************************************************************
 ✔ Setup home directory and cache
-✔ Check dependency: helm [OS: linux, Release: 5.15.0-1050-gke, Arch: x64]
+✔ Check dependency: helm [OS: linux, Release: 5.15.0-1054-gke, Arch: x64]
 ✔ Check dependencies
 ✔ Setup chart manager
 
@@ -512,9 +512,9 @@ Kubernetes Namespace	: solo
 ✔ Gossip pem key for node: node2
 ✔ Generate gossip keys
 ✔ Backup old files
+✔ TLS key for node: node2
 ✔ TLS key for node: node1
 ✔ TLS key for node: node0
-✔ TLS key for node: node2
 ✔ Generate gRPC TLS keys
 ✔ Finalize
 ```
@@ -561,7 +561,27 @@ $ solo node start
 
 # output is similar to example-1 
 ```
+## For Developers Working on Hedera Service Repo
 
+First, pleaes clone hedera service repo `https://github.com/hashgraph/hedera-services/` and build the code
+with `./gradlew assemble`. If need to running nodes with different versions or releases, please duplicate the repo or build directories in
+multiple directories, checkout to the respective version and build the code. 
+
+To set customized `settings.txt` file, edit the file
+`~/.solo/cache/templates/settings.txt` after `solo init` command.
+
+Then you can start customized built hedera network with the following command:
+```
+solo node setup --local-build-path <default path to hedera repo>,node1=<custom build hedera repo>,node2=<custom build repo>
+```
+
+## For Developers Working on Platform core
+
+To deploy node with local build PTT jar files, run the following command:
+```
+solo node setup --local-build-path <default path to hedera repo>,node1=<custom build hedera repo>,node2=<custom build repo>
+ --app PlatformTestingTool.jar --app-config <path-to-test-json1,path-to-test-json2>
+```
 ## Support
 
 If you have a question on how to use the product, please see our [support guide](https://github.com/hashgraph/.github/blob/main/SUPPORT.md).
