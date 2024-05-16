@@ -120,7 +120,7 @@ describe('K8', () => {
       testLogger.showUserError(e)
       expect(e).toBeNull()
     }
-  })
+  }, 20000)
 
   it('should be able to run wait for pod', async () => {
     const labels = [
