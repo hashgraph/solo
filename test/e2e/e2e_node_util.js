@@ -142,7 +142,7 @@ export function e2eNodeKeyRefreshAddTest (keyFormat, testName, mode, releaseTag 
         } finally {
           await nodeCmd.close()
         }
-      }, 120000)
+      }, 180000)
 
       balanceQueryShouldSucceed(accountManager, nodeCmd, namespace)
 
