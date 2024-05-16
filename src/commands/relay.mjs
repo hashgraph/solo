@@ -45,7 +45,9 @@ export class RelayCommand extends BaseCommand {
     }
 
     valuesArg += ` --set config.MIRROR_NODE_URL=http://${constants.FULLSTACK_DEPLOYMENT_CHART}-rest`
+    valuesArg += ` --set config.MIRROR_NODE_URL_WEB3=http://${constants.FULLSTACK_DEPLOYMENT_CHART}-web3`
     valuesArg += ' --set config.MIRROR_NODE_AGENT_CACHEABLE_DNS=false'
+
 
     if (chainID) {
       valuesArg += ` --set config.CHAIN_ID=${chainID}`
@@ -72,7 +74,7 @@ export class RelayCommand extends BaseCommand {
     }
 
     nodeIDs.forEach(nodeID => {
-      const networkKey = `network-${nodeID.trim()}-0:50211`
+      const networkKey = `network-${nodeID.trim()}:50211`
       valuesArg += ` --set config.HEDERA_NETWORK='{\"${networkKey}\":\"0.0.3\"}'`
     })
 
