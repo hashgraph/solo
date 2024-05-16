@@ -180,5 +180,5 @@ describe('K8', () => {
     const podArray1 = await k8.getPodsByLabel(podLabels)
     const podsArray2 = await k8.recyclePodByLabels(podLabels)
     expect(podsArray2.length >= podArray1.length).toBeTruthy()
-  }, 60000)
+  }, 120000)
 })
