@@ -82,7 +82,7 @@ export function e2eNodeKeyRefreshAddTest (keyFormat, testName, mode, releaseTag 
         expect.assertions(1)
 
         try {
-          await expect(nodeCmd.checkNetworkNodeProxyUp('node0', 30499)).resolves.toBeTruthy()
+          await expect(nodeCmd.checkNetworkNodeProxyUp('node0', 30499, 30, 10000)).resolves.toBeTruthy()
         } catch (e) {
           nodeCmd.logger.showUserError(e)
           expect(e).toBeNull()
@@ -131,7 +131,7 @@ export function e2eNodeKeyRefreshAddTest (keyFormat, testName, mode, releaseTag 
         configManager.update(argv, true)
         existingServiceMap = await accountManager.getNodeServiceMap(namespace)
         existingNodeIdsPrivateKeysHash = await getNodeIdsPrivateKeysHash(existingServiceMap, namespace, keyFormat, k8, getTmpDir())
-      }, defaultTimeout)
+      }, 60000)
 
       it(`${nodeId} should not exist`, async () => {
         try {
