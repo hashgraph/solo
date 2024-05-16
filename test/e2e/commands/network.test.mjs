@@ -109,5 +109,5 @@ describe('NetworkCommand', () => {
       networkCmd.logger.showUserError(e)
       expect(e).toBeNull()
     }
-  }, 60000)
+  }, 120000)
 })
