@@ -68,7 +68,6 @@ jobs:
   e2e-test:
     name: ${{ inputs.custom-job-label || 'E2E Test' }}
     runs-on: [self-hosted, Linux, large, ephemeral]
-    needs: workflow-telemetry-action
     steps:
       - name: Workflow Telemetry ${{ inputs.custom-job-label || 'E2E Test' }}
         uses: catchpoint/workflow-telemetry-action@v2
