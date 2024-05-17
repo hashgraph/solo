@@ -70,6 +70,7 @@ jobs:
     runs-on: [self-hosted, Linux, large, ephemeral]
     steps:
       - name: Workflow Telemetry ${{ inputs.custom-job-label || 'E2E Test' }}
+        if: ${{ runner.os == 'linux' && inputs.npm-test-script == 'test-e2e-node-local-build' && !cancelled() && !failure() }}
         uses: catchpoint/workflow-telemetry-action@v2
         with:
           metric_frequency: 15
