@@ -1781,6 +1781,9 @@ export class NodeCommand extends BaseCommand {
     }
   }
 
+  // TODO: have the haproxy use the data plane api to decide liveness/readiness probe check, and don't expose port 5555 to the world. curl the 5555 endpoint
+  // TODO: open a ticket to fix the haproxy readiness probe separately
+  // TODO: get rid of the need to kill the haproxy
   async getNodeProxyStatus (url) {
     try {
       this.logger.debug(`Fetching proxy status from: ${url}`)

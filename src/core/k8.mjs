@@ -767,7 +767,7 @@ export class K8 {
     }
   }
 
-  async recyclePodByLabels (podLabels, maxAttempts = 50) {
+  async recyclePodByLabels (podLabels, maxAttempts = 50, delay = 2000, waitForPodMaxAttempts = 120, waitForPodDelay = 2000) {
     const podArray = await this.getPodsByLabel(podLabels)
     for (const pod of podArray) {
       const podName = pod.metadata.name
@@ -776,14 +776,19 @@ export class K8 {
 
     let attempts = 0
     while (attempts++ < maxAttempts) {
-      // wait longer for pods to be deleted and recreated when running in CI with high loads of parallel runners
-      const status = await this.waitForPod(constants.POD_STATUS_RUNNING, podLabels, 1, 120, 2000)
-      if (status) {
-        const newPods = await this.getPodsByLabel(podLabels)
-        if (newPods.length === podArray.length) return newPods
+      try {
+        // wait longer for pods to be deleted and recreated when running in CI with high loads of parallel runners
+        const status = await this.waitForPod(constants.POD_STATUS_RUNNING,
+          podLabels, 1, waitForPodMaxAttempts, waitForPodDelay)
+        if (status) {
+          const newPods = await this.getPodsByLabel(podLabels)
+          if (newPods.length === podArray.length) return newPods
+        }
+      } catch (e) {
+        this.logger.warn(`deleted pod still not running [${podLabels.join(',')}, attempt: ${attempts}/${maxAttempts}]`)
       }
 
-      await sleep(2000)
+      await sleep(delay)
     }
 
     throw new FullstackTestingError(`pods are not running after deletion with labels [${podLabels.join(',')}]`)
@@ -798,6 +803,12 @@ export class K8 {
    * @param delay delay between checks in milliseconds
    * @return a Promise that checks the status of an array of pods
    */
+  // TODO take a predicate function?  have waitForPodConditions to set the predicate
+  // TODO: waitForPods (plural)
+  // TODO: call the predicate (condition check) if the desired number of pods is met
+  // TODO: predicate is last, if it is null don't call it
+  // TODO: waitForPods handles the status(phase?) (array of phases/status), predicate handles the complex conditions objects (or whatever the predicate wants to do)
+  // TODO: check the first two conditions, status + number of pods, then call the predicate
   async waitForPod (status = 'Running', labels = [], podCount = 1, maxAttempts = 10, delay = 500) {
     const ns = this._getNamespace()
     const fieldSelector = `status.phase=${status}`
@@ -823,6 +834,7 @@ export class K8 {
         )
 
         this.logger.debug(`${resp.body.items.length}/${podCount} pod found [namespace:${ns}, fieldSector(${fieldSelector}, labelSelector: ${labelSelector}] [attempt: ${attempts}/${maxAttempts}]`)
+        // TODO: if (resp.body?.items?.length === podCount) {
         if (resp.body && resp.body.items && resp.body.items.length === podCount) {
           return resolve(resp.body.items)
         }
@@ -846,7 +858,7 @@ export class K8 {
    * @param delay delay between checks in milliseconds
    * @return {Promise<unknown>}
    */
-  async waitForPodReady (labels = [], podCount = 1, maxAttempts = 10, delay = 500) {
+  async waitForPodReady (labels = [], podCount = 1, maxAttempts = 10, delay = 500) { // TODO, calls waitForPodCondition
     try {
       return await this.waitForPodCondition(K8.PodReadyCondition, labels, podCount, maxAttempts, delay)
     } catch (e) {
@@ -864,10 +876,10 @@ export class K8 {
    * @return {Promise<unknown>}
    */
 
-  async waitForPodCondition (
+  async waitForPodCondition ( // TODO, maxAttempts is squared
     conditionsMap,
     labels = [],
-    podCount = 1, maxAttempts = 10, delay = 500) {
+    podCount = 1, maxAttempts = 10, delay = 500, waitForPodMaxAttempts = 120, waitForPodDelay = 2000) {
     if (!conditionsMap || conditionsMap.size === 0) throw new MissingArgumentError('pod conditions are required')
     const ns = this._getNamespace()
     const labelSelector = labels.join(',')
@@ -883,7 +895,7 @@ export class K8 {
         // wait for the pod to be available with the given status and labels
         let pods
         try {
-          pods = await this.waitForPod(constants.POD_STATUS_RUNNING, labels, podCount, maxAttempts, delay)
+          pods = await this.waitForPod(constants.POD_STATUS_RUNNING, labels, podCount, waitForPodMaxAttempts, waitForPodDelay)
           this.logger.debug(`${pods.length}/${podCount} pod found [namespace:${ns}, labelSelector: ${labelSelector}] [attempt: ${attempts}/${maxAttempts}]`)
 
           if (pods.length >= podCount) {
