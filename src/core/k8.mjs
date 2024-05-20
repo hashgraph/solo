@@ -889,7 +889,7 @@ export class K8 {
     if (!conditionsMap || conditionsMap.size === 0) throw new MissingArgumentError('pod conditions are required')
 
     return await this.waitForPods([constants.POD_PHASE_RUNNING], labels, podCount, maxAttempts, delay, (pod) => {
-      for (const cond of pod.status.conditions) {
+      for (const cond of pod?.status?.conditions) {
         for (const entry of conditionsMap.entries()) {
           const condType = entry[0]
           const condStatus = entry[1]
