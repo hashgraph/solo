@@ -831,7 +831,7 @@ export class K8 {
           let predicateMatchCount = 0
 
           for (const item of resp.body.items) {
-            if (phases.includes(item.status.phase)) {
+            if (phases.includes(item.status?.phase)) {
               phaseMatchCount++
             }
 
@@ -889,13 +889,15 @@ export class K8 {
     if (!conditionsMap || conditionsMap.size === 0) throw new MissingArgumentError('pod conditions are required')
 
     return await this.waitForPods([constants.POD_PHASE_RUNNING], labels, podCount, maxAttempts, delay, (pod) => {
-      for (const cond of pod?.status?.conditions) {
-        for (const entry of conditionsMap.entries()) {
-          const condType = entry[0]
-          const condStatus = entry[1]
-          if (cond.type === condType && cond.status === condStatus) {
-            this.logger.debug(`Pod condition met for ${pod.metadata.name} [type: ${cond.type} status: ${cond.status}]`)
-            return true
+      if (pod.status?.conditions?.length > 0) {
+        for (const cond of pod.status.conditions) {
+          for (const entry of conditionsMap.entries()) {
+            const condType = entry[0]
+            const condStatus = entry[1]
+            if (cond.type === condType && cond.status === condStatus) {
+              this.logger.debug(`Pod condition met for ${pod.metadata.name} [type: ${cond.type} status: ${cond.status}]`)
+              return true
+            }
           }
         }
       }

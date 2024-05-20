@@ -19,6 +19,20 @@ import { constants, K8 } from '../../../src/core/index.mjs'
 import { getTestConfigManager, testLogger } from '../../test_util.js'
 import { flags } from '../../../src/commands/index.mjs'
 
+export function listNamespacedPodMockSetup (k8, numOfFailures, result) {
+  for (let i = 0; i < numOfFailures - 1; i++) {
+    k8.kubeClient.listNamespacedPod.mockReturnValueOnce(Promise.resolve({
+      body: {
+        items: []
+      }
+    }))
+  }
+  k8.kubeClient.listNamespacedPod.mockReturnValueOnce(Promise.resolve({
+    body: {
+      items: result
+    }
+  }))
+}
 describe('K8 Unit Tests', () => {
   const argv = { }
   const expectedResult = [
@@ -57,18 +71,7 @@ describe('K8 Unit Tests', () => {
 
   it('waitForPods with first time failure, later success', async () => {
     const maxNumOfFailures = 500
-    for (let i = 0; i < maxNumOfFailures - 1; i++) {
-      k8.kubeClient.listNamespacedPod.mockReturnValueOnce(Promise.resolve({
-        body: {
-          items: []
-        }
-      }))
-    }
-    k8.kubeClient.listNamespacedPod.mockReturnValueOnce(Promise.resolve({
-      body: {
-        items: expectedResult
-      }
-    }))
+    listNamespacedPodMockSetup(k8, maxNumOfFailures, expectedResult)
 
     const result = await k8.waitForPods([constants.POD_PHASE_RUNNING], ['labels'], 1, maxNumOfFailures, 0)
     expect(result).toBe(expectedResult)
@@ -76,41 +79,58 @@ describe('K8 Unit Tests', () => {
 
   it('waitForPodConditions with first time failure, later success', async () => {
     const maxNumOfFailures = 500
-    for (let i = 0; i < maxNumOfFailures - 1; i++) {
-      k8.kubeClient.listNamespacedPod.mockReturnValueOnce(Promise.resolve({
-        body: {
-          items: []
-        }
-      }))
-    }
-    k8.kubeClient.listNamespacedPod.mockReturnValueOnce(Promise.resolve({
-      body: {
-        items: expectedResult
-      }
-    }))
+    listNamespacedPodMockSetup(k8, maxNumOfFailures, expectedResult)
 
     const result = await k8.waitForPodConditions(K8.PodReadyCondition, ['labels'], 1, maxNumOfFailures, 0)
     expect(result).not.toBeNull()
     expect(result[0]).toBe(expectedResult[0])
-  }, 20000)
+  })
+
+  it('waitForPodConditions with partial pod data', async () => {
+    const expectedResult = [
+      {
+        metadata: { name: 'pod' }
+      }
+    ]
+
+    const maxNumOfFailures = 5
+    listNamespacedPodMockSetup(k8, maxNumOfFailures, expectedResult)
+
+    try {
+      await k8.waitForPodConditions(K8.PodReadyCondition, ['labels'], 1, maxNumOfFailures, 0)
+    } catch (e) {
+      expect(e).not.toBeNull()
+      expect(e.message).toContain('Expected number of pod (1) not found for labels: labels, phases: Running [attempts = ')
+    }
+  })
+
+  it('waitForPodConditions with no conditions', async () => {
+    const expectedResult = [
+      {
+        metadata: { name: 'pod' },
+        status: {
+          phase: constants.POD_PHASE_RUNNING
+        }
+      }
+    ]
+
+    const maxNumOfFailures = 5
+    listNamespacedPodMockSetup(k8, maxNumOfFailures, expectedResult)
+
+    try {
+      await k8.waitForPodConditions(K8.PodReadyCondition, ['labels'], 1, maxNumOfFailures, 0)
+    } catch (e) {
+      expect(e).not.toBeNull()
+      expect(e.message).toContain('Expected number of pod (1) not found for labels: labels, phases: Running [attempts = ')
+    }
+  })
 
   it('recyclePodByLabels with first time failure, later success', async () => {
     const waitForPodMaxAttempts = 120
-    const numOfFailures = waitForPodMaxAttempts * 2 - 1
-    for (let i = 0; i < numOfFailures; i++) {
-      k8.kubeClient.listNamespacedPod.mockReturnValueOnce(Promise.resolve({
-        body: {
-          items: []
-        }
-      }))
-    }
-    k8.kubeClient.listNamespacedPod.mockReturnValueOnce(Promise.resolve({
-      body: {
-        items: expectedResult
-      }
-    }))
+    const numOfFailures = waitForPodMaxAttempts * 2
+    listNamespacedPodMockSetup(k8, numOfFailures, expectedResult)
 
     const result = await k8.recyclePodByLabels(['labels'], 2, 0, waitForPodMaxAttempts, 0)
     expect(result[0]).toBe(expectedResult[0])
-  }, 20000)
+  })
 })
