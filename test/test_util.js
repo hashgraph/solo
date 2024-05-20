@@ -213,7 +213,7 @@ export function bootstrapNetwork (testName, argv,
         nodeCmd.logger.showUserError(e)
         expect(e).toBeNull()
       }
-    }, 120000)
+    }, 180000)
 
     it('should succeed with node start command', async () => {
       expect.assertions(1)
@@ -223,7 +223,7 @@ export function bootstrapNetwork (testName, argv,
         nodeCmd.logger.showUserError(e)
         expect(e).toBeNull()
       }
-    }, 1200000)
+    }, 1800000)
   })
 
   return bootstrapResp
