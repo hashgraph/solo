@@ -161,7 +161,7 @@ export class RelayCommand extends BaseCommand {
           const chartPath = ctx.chartPath
           const valuesArg = ctx.valuesArg
 
-          await self.chartManager.install(namespace, releaseName, '/Users/jeffrey/hedera-json-rpc-relay/charts/hedera-json-rpc-relay', 'main', valuesArg)
+          await self.chartManager.install(namespace, releaseName, chartPath, '', valuesArg)
 
           await self.k8.waitForPod(constants.POD_STATUS_RUNNING, [
             'app=hedera-json-rpc-relay',
