@@ -72,9 +72,10 @@ jobs:
       - name: Workflow Telemetry ${{ inputs.custom-job-label || 'E2E Test' }}
         if: ${{ runner.os == 'linux' && inputs.npm-test-script == 'test-e2e-node-local-build' && !cancelled() && !failure() }}
         uses: catchpoint/workflow-telemetry-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           metric_frequency: 15
-          github_token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Checkout Code
         uses: actions/checkout@44c2b7a8a4ea60a981eaca3cf939b5f4305c123b # v4.1.5
