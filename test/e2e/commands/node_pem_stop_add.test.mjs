@@ -13,14 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
+ * @jest-environment steps
  */
 
-/**
- * This file should only contain versions for dependencies
- */
+import { describe } from '@jest/globals'
+import { constants } from '../../../src/core/index.mjs'
+import { e2eNodeKeyRefreshAddTest } from '../e2e_node_util.js'
 
-export const JAVA_VERSION = '21.0.1+12'
-export const HELM_VERSION = 'v3.14.2'
-export const FST_CHART_VERSION = 'v0.24.5'
-export const HEDERA_PLATFORM_VERSION = 'v0.48.0'
-export const RPC_RELAY_CHART_VERSION = '0.48.0-SNAPSHOT'
+describe('NodeCommand', () => {
+  e2eNodeKeyRefreshAddTest(constants.KEY_FORMAT_PEM, 'node-cmd-e2e-pem', 'stop')
+})

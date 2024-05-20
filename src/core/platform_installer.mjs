@@ -269,7 +269,7 @@ export class PlatformInstaller {
    * @param chainId chain ID (298 for local network)
    * @returns {Promise<unknown>}
    */
-  async prepareConfigTxt (nodeIDs, destPath, releaseTag, chainId = constants.HEDERA_CHAIN_ID, template = `${constants.RESOURCES_DIR}/templates/config.template`) {
+  async prepareConfigTxt (nodeIDs, destPath, releaseTag, chainId = constants.HEDERA_CHAIN_ID, template = `${constants.RESOURCES_DIR}/templates/config.template`, appName = constants.HEDERA_APP_NAME) {
     if (!nodeIDs || nodeIDs.length === 0) throw new MissingArgumentError('list of node IDs is required')
     if (!destPath) throw new MissingArgumentError('destPath is required')
     if (!template) throw new MissingArgumentError('config templatePath is required')
@@ -283,7 +283,6 @@ export class PlatformInstaller {
     const accountIdPrefix = `${startAccountId.realm}.${startAccountId.shard}`
     const internalPort = constants.HEDERA_NODE_INTERNAL_GOSSIP_PORT
     const externalPort = constants.HEDERA_NODE_EXTERNAL_GOSSIP_PORT
-    const appName = constants.HEDERA_APP_NAME
     const nodeStakeAmount = constants.HEDERA_NODE_DEFAULT_STAKE_AMOUNT
 
     const releaseVersion = semver.parse(releaseTag, { includePrerelease: true })
