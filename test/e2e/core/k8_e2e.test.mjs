@@ -127,7 +127,7 @@ describe('K8', () => {
       'fullstack.hedera.com/type=network-node'
     ]
 
-    const pods = await k8.waitForPod(constants.POD_STATUS_RUNNING, labels, 1)
+    const pods = await k8.waitForPods([constants.POD_PHASE_RUNNING], labels, 1)
     expect(pods.length).toStrictEqual(1)
   })
 
@@ -149,7 +149,7 @@ describe('K8', () => {
       .set(constants.POD_CONDITION_INITIALIZED, constants.POD_CONDITION_STATUS_TRUE)
       .set(constants.POD_CONDITION_POD_SCHEDULED, constants.POD_CONDITION_STATUS_TRUE)
       .set(constants.POD_CONDITION_READY, constants.POD_CONDITION_STATUS_TRUE)
-    const pods = await k8.waitForPodCondition(conditions, labels, 1)
+    const pods = await k8.waitForPodConditions(conditions, labels, 1)
     expect(pods.length).toStrictEqual(1)
   })
 
