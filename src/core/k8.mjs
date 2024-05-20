@@ -767,7 +767,7 @@ export class K8 {
     }
   }
 
-  async recyclePodByLabels (podLabels, maxAttempts = 50, delay = 2000, waitForPodMaxAttempts = 10, waitForPodDelay = 2000) {
+  async recyclePodByLabels (podLabels, maxAttempts = 30, delay = 2000, waitForPodMaxAttempts = 10, waitForPodDelay = 2000) {
     const podArray = await this.getPodsByLabel(podLabels)
     for (const pod of podArray) {
       const podName = pod.metadata.name
@@ -888,7 +888,7 @@ export class K8 {
     podCount = 1, maxAttempts = 10, delay = 500) {
     if (!conditionsMap || conditionsMap.size === 0) throw new MissingArgumentError('pod conditions are required')
 
-    await this.waitForPods([constants.POD_PHASE_RUNNING], labels, podCount, maxAttempts, delay, (pod) => {
+    return await this.waitForPods([constants.POD_PHASE_RUNNING], labels, podCount, maxAttempts, delay, (pod) => {
       for (const cond of pod.status.conditions) {
         for (const entry of conditionsMap.entries()) {
           const condType = entry[0]

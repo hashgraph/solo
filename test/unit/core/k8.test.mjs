@@ -90,12 +90,13 @@ describe('K8 Unit Tests', () => {
     }))
 
     const result = await k8.waitForPodConditions(K8.PodReadyCondition, ['labels'], 1, maxNumOfFailures, 0)
+    expect(result).not.toBeNull()
     expect(result[0]).toBe(expectedResult[0])
   }, 20000)
 
   it('recyclePodByLabels with first time failure, later success', async () => {
     const waitForPodMaxAttempts = 120
-    const numOfFailures = (waitForPodMaxAttempts + 1) * 2 - 1
+    const numOfFailures = waitForPodMaxAttempts * 2 - 1
     for (let i = 0; i < numOfFailures; i++) {
       k8.kubeClient.listNamespacedPod.mockReturnValueOnce(Promise.resolve({
         body: {
