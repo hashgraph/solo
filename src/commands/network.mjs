@@ -184,7 +184,7 @@ export class NetworkCommand extends BaseCommand {
               subTasks.push({
                 title: `Check Node: ${chalk.yellow(nodeId)}`,
                 task: () =>
-                  self.k8.waitForPod(constants.POD_STATUS_RUNNING, [
+                  self.k8.waitForPods([constants.POD_PHASE_RUNNING], [
                     'fullstack.hedera.com/type=network-node',
                     `fullstack.hedera.com/node-name=${nodeId}`
                   ], 1, 60 * 15, 1000) // timeout 15 minutes
@@ -374,7 +374,7 @@ export class NetworkCommand extends BaseCommand {
       {
         title: 'Waiting for network pods to be ready',
         task: async (ctx, _) => {
-          await this.k8.waitForPod(constants.POD_STATUS_RUNNING, [
+          await this.k8.waitForPods([constants.POD_PHASE_RUNNING], [
             'fullstack.hedera.com/type=network-node'
           ], 1)
         }

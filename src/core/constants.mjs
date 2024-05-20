@@ -90,7 +90,7 @@ export const ACCOUNT_CREATE_BATCH_SIZE = process.env.ACCOUNT_CREATE_BATCH_SIZE |
 export const NODE_PROXY_USER_ID = process.env.NODE_PROXY_USER_ID || 'admin'
 export const NODE_PROXY_PASSWORD = process.env.NODE_PROXY_PASSWORD || 'adminpwd'
 
-export const POD_STATUS_RUNNING = 'Running'
+export const POD_PHASE_RUNNING = 'Running'
 
 export const POD_CONDITION_INITIALIZED = 'Initialized'
 export const POD_CONDITION_READY = 'Ready'

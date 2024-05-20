@@ -767,7 +767,7 @@ export class K8 {
     }
   }
 
-  async recyclePodByLabels (podLabels, maxAttempts = 50, delay = 2000, waitForPodMaxAttempts = 120, waitForPodDelay = 2000) {
+  async recyclePodByLabels (podLabels, maxAttempts = 50, delay = 2000, waitForPodMaxAttempts = 10, waitForPodDelay = 2000) {
     const podArray = await this.getPodsByLabel(podLabels)
     for (const pod of podArray) {
       const podName = pod.metadata.name
@@ -777,12 +777,10 @@ export class K8 {
     let attempts = 0
     while (attempts++ < maxAttempts) {
       try {
-        // wait longer for pods to be deleted and recreated when running in CI with high loads of parallel runners
-        const status = await this.waitForPod(constants.POD_STATUS_RUNNING,
+        const pods = await this.waitForPods([constants.POD_PHASE_RUNNING],
           podLabels, 1, waitForPodMaxAttempts, waitForPodDelay)
-        if (status) {
-          const newPods = await this.getPodsByLabel(podLabels)
-          if (newPods.length === podArray.length) return newPods
+        if (pods.length === podArray.length) {
+          return pods
         }
       } catch (e) {
         this.logger.warn(`deleted pod still not running [${podLabels.join(',')}, attempt: ${attempts}/${maxAttempts}]`)
@@ -796,31 +794,25 @@ export class K8 {
 
   /**
    * Wait for pod
-   * @param status phase of the pod
+   * @param phases an array of acceptable phases of the pods
    * @param labels pod labels
    * @param podCount number of pod expected
    * @param maxAttempts maximum attempts to check
    * @param delay delay between checks in milliseconds
+   * @param podItemPredicate a predicate function to check the pod item
    * @return a Promise that checks the status of an array of pods
    */
-  // TODO take a predicate function?  have waitForPodConditions to set the predicate
-  // TODO: waitForPods (plural)
-  // TODO: call the predicate (condition check) if the desired number of pods is met
-  // TODO: predicate is last, if it is null don't call it
-  // TODO: waitForPods handles the status(phase?) (array of phases/status), predicate handles the complex conditions objects (or whatever the predicate wants to do)
-  // TODO: check the first two conditions, status + number of pods, then call the predicate
-  async waitForPod (status = 'Running', labels = [], podCount = 1, maxAttempts = 10, delay = 500) {
+  async waitForPods (phases = [constants.POD_PHASE_RUNNING], labels = [], podCount = 1, maxAttempts = 10, delay = 500, podItemPredicate) {
     const ns = this._getNamespace()
-    const fieldSelector = `status.phase=${status}`
     const labelSelector = labels.join(',')
 
-    this.logger.debug(`WaitForPod [namespace:${ns}, fieldSector(${fieldSelector}, labelSelector: ${labelSelector}], maxAttempts: ${maxAttempts}`)
+    this.logger.debug(`WaitForPod [namespace:${ns}, labelSelector: ${labelSelector}], maxAttempts: ${maxAttempts}`)
 
     return new Promise((resolve, reject) => {
       let attempts = 0
 
-      const check = async () => {
-        this.logger.debug(`Checking for pod [namespace:${ns}, fieldSector(${fieldSelector}, labelSelector: ${labelSelector}] [attempt: ${attempts}/${maxAttempts}]`)
+      const check = async (resolve, reject) => {
+        this.logger.debug(`Checking for pod [namespace:${ns}, labelSelector: ${labelSelector}] [attempt: ${attempts}/${maxAttempts}]`)
 
         // wait for the pod to be available with the given status and labels
         const resp = await this.kubeClient.listNamespacedPod(
@@ -828,25 +820,39 @@ export class K8 {
           false,
           false,
           undefined,
-          fieldSelector,
+          undefined,
           labelSelector,
           podCount
         )
 
-        this.logger.debug(`${resp.body.items.length}/${podCount} pod found [namespace:${ns}, fieldSector(${fieldSelector}, labelSelector: ${labelSelector}] [attempt: ${attempts}/${maxAttempts}]`)
-        // TODO: if (resp.body?.items?.length === podCount) {
-        if (resp.body && resp.body.items && resp.body.items.length === podCount) {
-          return resolve(resp.body.items)
+        this.logger.debug(`${resp.body?.items?.length}/${podCount} pod found [namespace:${ns}, labelSelector: ${labelSelector}] [attempt: ${attempts}/${maxAttempts}]`)
+        if (resp.body?.items?.length === podCount) {
+          let phaseMatchCount = 0
+          let predicateMatchCount = 0
+
+          for (const item of resp.body.items) {
+            if (phases.includes(item.status.phase)) {
+              phaseMatchCount++
+            }
+
+            if (podItemPredicate && podItemPredicate(item)) {
+              predicateMatchCount++
+            }
+          }
+
+          if (phaseMatchCount === podCount && (!podItemPredicate || (predicateMatchCount === podCount))) {
+            return resolve(resp.body.items)
+          }
         }
 
-        if (attempts++ < maxAttempts) {
-          setTimeout(check, delay)
+        if (++attempts < maxAttempts) {
+          setTimeout(() => check(resolve, reject), delay)
         } else {
-          return reject(new FullstackTestingError(`Expected number of pod (${podCount}) not found ${fieldSelector} ${labelSelector} [attempts = ${attempts}/${maxAttempts}]`))
+          return reject(new FullstackTestingError(`Expected number of pod (${podCount}) not found for labels: ${labelSelector}, phases: ${phases.join(',')} [attempts = ${attempts}/${maxAttempts}]`))
         }
       }
 
-      check()
+      check(resolve, reject)
     })
   }
 
@@ -858,9 +864,9 @@ export class K8 {
    * @param delay delay between checks in milliseconds
    * @return {Promise<unknown>}
    */
-  async waitForPodReady (labels = [], podCount = 1, maxAttempts = 10, delay = 500) { // TODO, calls waitForPodCondition
+  async waitForPodReady (labels = [], podCount = 1, maxAttempts = 10, delay = 500) {
     try {
-      return await this.waitForPodCondition(K8.PodReadyCondition, labels, podCount, maxAttempts, delay)
+      return await this.waitForPodConditions(K8.PodReadyCondition, labels, podCount, maxAttempts, delay)
     } catch (e) {
       throw new FullstackTestingError(`Pod not ready [maxAttempts = ${maxAttempts}]`, e)
     }
@@ -876,67 +882,26 @@ export class K8 {
    * @return {Promise<unknown>}
    */
 
-  async waitForPodCondition ( // TODO, maxAttempts is squared
+  async waitForPodConditions (
     conditionsMap,
     labels = [],
-    podCount = 1, maxAttempts = 10, delay = 500, waitForPodMaxAttempts = 120, waitForPodDelay = 2000) {
+    podCount = 1, maxAttempts = 10, delay = 500) {
     if (!conditionsMap || conditionsMap.size === 0) throw new MissingArgumentError('pod conditions are required')
-    const ns = this._getNamespace()
-    const labelSelector = labels.join(',')
 
-    this.logger.debug(`WaitForCondition [namespace:${ns}, conditions = ${conditionsMap.toString()} labelSelector: ${labelSelector}], maxAttempts: ${maxAttempts}`)
-
-    return new Promise((resolve, reject) => {
-      let attempts = 0
-
-      const check = async () => {
-        this.logger.debug(`Checking for pod ready [namespace:${ns}, labelSelector: ${labelSelector}] [attempt: ${attempts}/${maxAttempts}]`)
-
-        // wait for the pod to be available with the given status and labels
-        let pods
-        try {
-          pods = await this.waitForPod(constants.POD_STATUS_RUNNING, labels, podCount, waitForPodMaxAttempts, waitForPodDelay)
-          this.logger.debug(`${pods.length}/${podCount} pod found [namespace:${ns}, labelSelector: ${labelSelector}] [attempt: ${attempts}/${maxAttempts}]`)
-
-          if (pods.length >= podCount) {
-            const podWithMatchedCondition = []
-
-            // check conditions
-            for (const pod of pods) {
-              let matchedCondition = 0
-              for (const cond of pod.status.conditions) {
-                for (const entry of conditionsMap.entries()) {
-                  const condType = entry[0]
-                  const condStatus = entry[1]
-                  if (cond.type === condType && cond.status === condStatus) {
-                    this.logger.debug(`Pod condition met for ${pod.metadata.name} [type: ${cond.type} status: ${cond.status}]`)
-                    matchedCondition++
-                  }
-                }
-
-                if (matchedCondition >= conditionsMap.size) {
-                  podWithMatchedCondition.push(pod)
-                  break
-                }
-              }
-            }
-
-            if (podWithMatchedCondition.length >= podCount) {
-              return resolve(podWithMatchedCondition)
-            }
+    await this.waitForPods([constants.POD_PHASE_RUNNING], labels, podCount, maxAttempts, delay, (pod) => {
+      for (const cond of pod.status.conditions) {
+        for (const entry of conditionsMap.entries()) {
+          const condType = entry[0]
+          const condStatus = entry[1]
+          if (cond.type === condType && cond.status === condStatus) {
+            this.logger.debug(`Pod condition met for ${pod.metadata.name} [type: ${cond.type} status: ${cond.status}]`)
+            return true
           }
-        } catch (e) {
-          this.logger.error(`Pod not found with expected conditions [maxAttempts = ${maxAttempts}], ${e.message}`, e)
-        }
-
-        if (attempts++ < maxAttempts) {
-          setTimeout(check, delay)
-        } else {
-          return reject(new FullstackTestingError(`Pod not found with expected conditions [maxAttempts = ${maxAttempts}]`))
         }
       }
 
-      check()
+      // condition not found
+      return false
     })
   }
 
