@@ -72,7 +72,7 @@ export class NodeCommand extends BaseCommand {
     this._portForwards = []
   }
 
-  async checkNetworkNodePod (namespace, nodeId, maxAttempts = 30, delay = 2000) {
+  async checkNetworkNodePod (namespace, nodeId, maxAttempts = 60, delay = 2000) {
     nodeId = nodeId.trim()
     const podName = Templates.renderNetworkPodName(nodeId)
 

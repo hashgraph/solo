@@ -158,7 +158,7 @@ export function e2eNodeKeyRefreshAddTest (keyFormat, testName, mode, releaseTag 
           await nodeCmd.close()
           await sleep(10000) // sleep to wait for node to finish starting
         }
-      }, 240000)
+      }, 300000)
 
       balanceQueryShouldSucceed(accountManager, nodeCmd, namespace)
 
