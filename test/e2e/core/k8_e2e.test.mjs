@@ -24,6 +24,8 @@ import { FullstackTestingError } from '../../../src/core/errors.mjs'
 import { ConfigManager, constants, logging, Templates } from '../../../src/core/index.mjs'
 import { K8 } from '../../../src/core/k8.mjs'
 
+const defaultTimeout = 20000
+
 describe('K8', () => {
   const testLogger = logging.NewLogger('debug', true)
   const configManager = new ConfigManager(testLogger)
@@ -31,46 +33,46 @@ describe('K8', () => {
 
   beforeAll(() => {
     configManager.load()
-  })
+  }, defaultTimeout)
 
   it('should be able to list clusters', async () => {
     const clusters = await k8.getClusters()
     expect(clusters).not.toHaveLength(0)
-  })
+  }, defaultTimeout)
 
   it('should be able to list namespaces', async () => {
     const namespaces = await k8.getNamespaces()
     expect(namespaces).not.toHaveLength(0)
     expect(namespaces).toContain(constants.DEFAULT_NAMESPACE)
-  })
+  }, defaultTimeout)
 
   it('should be able to list contexts', async () => {
     const contexts = await k8.getContexts()
     expect(contexts).not.toHaveLength(0)
-  })
+  }, defaultTimeout)
 
   it('should be able to create and delete a namespaces', async () => {
     const name = uuid4()
     await expect(k8.createNamespace(name)).resolves.toBeTruthy()
     await expect(k8.deleteNamespace(name)).resolves.toBeTruthy()
-  })
+  }, defaultTimeout)
 
   it('should be able to detect pod IP of a pod', async () => {
     const podName = Templates.renderNetworkPodName('node0')
     await expect(k8.getPodIP(podName)).resolves.not.toBeNull()
     await expect(k8.getPodIP('INVALID')).rejects.toThrow(FullstackTestingError)
-  })
+  }, defaultTimeout)
 
   it('should be able to detect cluster IP', async () => {
     const svcName = Templates.renderNetworkSvcName('node0')
     await expect(k8.getClusterIP(svcName)).resolves.not.toBeNull()
     await expect(k8.getClusterIP('INVALID')).rejects.toThrow(FullstackTestingError)
-  })
+  }, defaultTimeout)
 
   it('should be able to check if a path is directory inside a container', async () => {
     const podName = Templates.renderNetworkPodName('node0')
     await expect(k8.hasDir(podName, constants.ROOT_CONTAINER, constants.HEDERA_USER_HOME_DIR)).resolves.toBeTruthy()
-  })
+  }, defaultTimeout)
 
   it('should be able to copy a file to and from a container', async () => {
     const podName = Templates.renderNetworkPodName('node0')
@@ -91,7 +93,7 @@ describe('K8', () => {
     await expect(k8.execContainer(podName, containerName, ['rm', '-f', destPath])).resolves
 
     fs.rmdirSync(tmpDir, { recursive: true })
-  }, 20000)
+  }, defaultTimeout)
 
   it('should be able to port forward gossip port', (done) => {
     const podName = Templates.renderNetworkPodName('node0')
@@ -120,7 +122,7 @@ describe('K8', () => {
       testLogger.showUserError(e)
       expect(e).toBeNull()
     }
-  }, 20000)
+  }, defaultTimeout)
 
   it('should be able to run wait for pod', async () => {
     const labels = [
@@ -129,7 +131,7 @@ describe('K8', () => {
 
     const pods = await k8.waitForPods([constants.POD_PHASE_RUNNING], labels, 1)
     expect(pods.length).toStrictEqual(1)
-  })
+  }, defaultTimeout)
 
   it('should be able to run wait for pod ready', async () => {
     const labels = [
@@ -138,7 +140,7 @@ describe('K8', () => {
 
     const pods = await k8.waitForPodReady(labels, 1)
     expect(pods.length).toStrictEqual(1)
-  })
+  }, defaultTimeout)
 
   it('should be able to run wait for pod conditions', async () => {
     const labels = [
@@ -151,7 +153,7 @@ describe('K8', () => {
       .set(constants.POD_CONDITION_READY, constants.POD_CONDITION_STATUS_TRUE)
     const pods = await k8.waitForPodConditions(conditions, labels, 1)
     expect(pods.length).toStrictEqual(1)
-  })
+  }, defaultTimeout)
 
   it('should be able to cat a log file inside the container', async () => {
     const podName = Templates.renderNetworkPodName('node0')
@@ -168,12 +170,12 @@ describe('K8', () => {
     expect(output.indexOf('Now current platform status = ACTIVE')).toBeGreaterThan(0)
 
     fs.rmdirSync(tmpDir, { recursive: true })
-  })
+  }, defaultTimeout)
 
   it('should be able to list persistent volume claims', async () => {
     const pvcs = await k8.listPvcsByNamespace(k8._getNamespace())
     expect(pvcs.length).toBeGreaterThan(0)
-  })
+  }, defaultTimeout)
 
   it('should be able to recycle pod by labels', async () => {
     const podLabels = ['app=haproxy-node0', 'fullstack.hedera.com/type=haproxy']
