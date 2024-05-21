@@ -779,7 +779,7 @@ export class NodeCommand extends BaseCommand {
               throw new FullstackTestingError(`failed to stop portForward for podName ${podName} with localPort ${localPort}: ${e.message}`, e)
             }
             try {
-              await this.k8.recyclePodByLabels(podLabels, 50)
+              await this.k8.recyclePodByLabels(podLabels)
             } catch (e) {
               throw new FullstackTestingError(`failed to recycle pod for podName ${podName} with localPort ${localPort}: ${e.message}`, e)
             }
