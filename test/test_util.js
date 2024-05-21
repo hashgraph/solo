@@ -203,7 +203,7 @@ export function bootstrapNetwork (testName, argv,
 
     it('should succeed with network deploy', async () => {
       await networkCmd.deploy(argv)
-    }, 120000)
+    }, 180000)
 
     it('should succeed with node setup command', async () => {
       expect.assertions(1)

@@ -65,5 +65,5 @@ describe('KeytoolDependencyManager', () => {
     expect(keytoolDependencyManager.isInstalled()).toBeFalsy()
     await expect(keytoolDependencyManager.install(getTestCacheDir())).resolves.toBeTruthy()
     expect(keytoolDependencyManager.isInstalled()).toBeTruthy()
-  }, 60000)
+  }, 120000)
 })

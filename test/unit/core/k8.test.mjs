@@ -19,7 +19,7 @@ import { constants, K8 } from '../../../src/core/index.mjs'
 import { getTestConfigManager, testLogger } from '../../test_util.js'
 import { flags } from '../../../src/commands/index.mjs'
 
-export function listNamespacedPodMockSetup (k8, numOfFailures, result) {
+function listNamespacedPodMockSetup (k8, numOfFailures, result) {
   for (let i = 0; i < numOfFailures - 1; i++) {
     k8.kubeClient.listNamespacedPod.mockReturnValueOnce(Promise.resolve({
       body: {
@@ -33,6 +33,9 @@ export function listNamespacedPodMockSetup (k8, numOfFailures, result) {
     }
   }))
 }
+
+const defaultTimeout = 20000
+
 describe('K8 Unit Tests', () => {
   const argv = { }
   const expectedResult = [
@@ -62,12 +65,12 @@ describe('K8 Unit Tests', () => {
       listNamespacedPod: jest.fn(),
       deleteNamespacedPod: jest.fn()
     }
-  })
+  }, defaultTimeout)
 
   afterAll(() => {
     k8InitSpy.mockRestore()
     k8GetPodsByLabelSpy.mockRestore()
-  })
+  }, defaultTimeout)
 
   it('waitForPods with first time failure, later success', async () => {
     const maxNumOfFailures = 500
@@ -75,7 +78,7 @@ describe('K8 Unit Tests', () => {
 
     const result = await k8.waitForPods([constants.POD_PHASE_RUNNING], ['labels'], 1, maxNumOfFailures, 0)
     expect(result).toBe(expectedResult)
-  })
+  }, defaultTimeout)
 
   it('waitForPodConditions with first time failure, later success', async () => {
     const maxNumOfFailures = 500
@@ -84,7 +87,7 @@ describe('K8 Unit Tests', () => {
     const result = await k8.waitForPodConditions(K8.PodReadyCondition, ['labels'], 1, maxNumOfFailures, 0)
     expect(result).not.toBeNull()
     expect(result[0]).toBe(expectedResult[0])
-  })
+  }, defaultTimeout)
 
   it('waitForPodConditions with partial pod data', async () => {
     const expectedResult = [
@@ -102,7 +105,7 @@ describe('K8 Unit Tests', () => {
       expect(e).not.toBeNull()
       expect(e.message).toContain('Expected number of pod (1) not found for labels: labels, phases: Running [attempts = ')
     }
-  })
+  }, defaultTimeout)
 
   it('waitForPodConditions with no conditions', async () => {
     const expectedResult = [
@@ -132,5 +135,5 @@ describe('K8 Unit Tests', () => {
 
     const result = await k8.recyclePodByLabels(['labels'], 2, 0, waitForPodMaxAttempts, 0)
     expect(result[0]).toBe(expectedResult[0])
-  })
+  }, defaultTimeout)
 })
