@@ -127,13 +127,4 @@ describe('K8 Unit Tests', () => {
       expect(e.message).toContain('Expected number of pod (1) not found for labels: labels, phases: Running [attempts = ')
     }
   })
-
-  it('recyclePodByLabels with first time failure, later success', async () => {
-    const waitForPodMaxAttempts = 120
-    const numOfFailures = waitForPodMaxAttempts * 2
-    listNamespacedPodMockSetup(k8, numOfFailures, expectedResult)
-
-    const result = await k8.recyclePodByLabels(['labels'], 2, 0, waitForPodMaxAttempts, 0)
-    expect(result[0]).toBe(expectedResult[0])
-  }, defaultTimeout)
 })

@@ -20,11 +20,13 @@ import {
   beforeEach,
   describe,
   expect,
-  it, jest
+  it,
+  jest
 } from '@jest/globals'
 import {
   bootstrapTestVariables,
   getDefaultArgv,
+  HEDERA_PLATFORM_VERSION_TAG,
   TEST_CLUSTER
 } from '../../test_util.js'
 import {
@@ -44,7 +46,7 @@ describe('ClusterCommand', () => {
   const namespace = testName
   const argv = getDefaultArgv()
   argv[flags.namespace.name] = namespace
-  argv[flags.releaseTag.name] = 'v0.47.0-alpha.0'
+  argv[flags.releaseTag.name] = HEDERA_PLATFORM_VERSION_TAG
   argv[flags.keyFormat.name] = constants.KEY_FORMAT_PEM
   argv[flags.nodeIDs.name] = 'node0'
   argv[flags.generateGossipKeys.name] = true
