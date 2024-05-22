@@ -18,7 +18,8 @@
 
 import { AccountId, PrivateKey } from '@hashgraph/sdk'
 import {
-  afterAll, beforeAll,
+  afterAll,
+  beforeAll,
   describe,
   expect,
   it
@@ -30,6 +31,7 @@ import * as version from '../../../version.mjs'
 import {
   bootstrapNetwork,
   getDefaultArgv,
+  HEDERA_PLATFORM_VERSION_TAG,
   TEST_CLUSTER,
   testLogger
 } from '../../test_util.js'
@@ -43,7 +45,7 @@ describe('AccountCommand', () => {
   const testSystemAccounts = [[3, 5]]
   const argv = getDefaultArgv()
   argv[flags.namespace.name] = namespace
-  argv[flags.releaseTag.name] = 'v0.47.0-alpha.0'
+  argv[flags.releaseTag.name] = HEDERA_PLATFORM_VERSION_TAG
   argv[flags.keyFormat.name] = constants.KEY_FORMAT_PEM
   argv[flags.nodeIDs.name] = 'node0'
   argv[flags.generateGossipKeys.name] = true

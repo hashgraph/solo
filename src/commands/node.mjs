@@ -706,11 +706,12 @@ export class NodeCommand extends BaseCommand {
         title: 'Check node proxies are ACTIVE',
         task: async (ctx, parentTask) => {
           const subTasks = []
-          let localPort = constants.LOCAL_NODE_PROXY_START_PORT
           for (const nodeId of ctx.config.nodeIds) {
             subTasks.push({
               title: `Check proxy for node: ${chalk.yellow(nodeId)}`,
-              task: async () => await self.checkNetworkNodeProxyUp(nodeId, localPort++)
+              task: async () => await self.k8.waitForPodReady(
+                [`app=haproxy-${nodeId}`, 'fullstack.hedera.com/type=haproxy'],
+                1, 300, 2000)
             })
           }
 
@@ -738,93 +739,6 @@ export class NodeCommand extends BaseCommand {
     }
 
     return true
-  }
-
-  /**
-   * Check if the network node proxy is up, requires close() to be called after
-   * @param nodeId the node id
-   * @param localPort the local port to forward to
-   * @param maxAttempts the maximum number of attempts
-   * @param delay the delay between attempts
-   * @returns {Promise<boolean>} true if the proxy is up
-   */
-  async checkNetworkNodeProxyUp (nodeId, localPort, maxAttempts = 6, delay = 20000) {
-    const podLabels = [`app=haproxy-${nodeId}`, 'fullstack.hedera.com/type=haproxy']
-    let podArray = await this.k8.getPodsByLabel(podLabels)
-
-    let attempts = 0
-    let status = null
-    if (podArray.length > 0) {
-      let podName = podArray[0].metadata.name
-      let portForwarder = null
-
-      try {
-        while (attempts < maxAttempts) {
-          if (attempts === 0) {
-            try {
-              portForwarder = await this.k8.portForward(podName, localPort, 5555)
-            } catch (e) {
-              throw new FullstackTestingError(`failed to portForward for podName ${podName} with localPort ${localPort}: ${e.message}`, e)
-            }
-            try {
-              await this.k8.testConnection('localhost', localPort)
-            } catch (e) {
-              throw new FullstackTestingError(`failed to test connection for podName ${podName} with localPort ${localPort}: ${e.message}`, e)
-            }
-          } else if (attempts % 5 === 0) {
-            this.logger.debug(`Recycling proxy ${podName} [attempt: ${attempts}/${maxAttempts}]`)
-            try {
-              await this.k8.stopPortForward(portForwarder)
-            } catch (e) {
-              throw new FullstackTestingError(`failed to stop portForward for podName ${podName} with localPort ${localPort}: ${e.message}`, e)
-            }
-            try {
-              await this.k8.recyclePodByLabels(podLabels)
-            } catch (e) {
-              throw new FullstackTestingError(`failed to recycle pod for podName ${podName} with localPort ${localPort}: ${e.message}`, e)
-            }
-            podArray = await this.k8.getPodsByLabel(podLabels)
-            podName = podArray[0].metadata.name
-            try {
-              portForwarder = await this.k8.portForward(podName, localPort, 5555)
-            } catch (e) {
-              throw new FullstackTestingError(`failed to portForward for podName ${podName} with localPort ${localPort}: ${e.message}`, e)
-            }
-            try {
-              await this.k8.testConnection('localhost', localPort)
-            } catch (e) {
-              throw new FullstackTestingError(`failed to test connection for podName ${podName} with localPort ${localPort}: ${e.message}`, e)
-            }
-          }
-
-          try {
-            status = await this.getNodeProxyStatus(`http://localhost:${localPort}/v2/services/haproxy/stats/native?type=backend`)
-          } catch (e) {
-            throw new FullstackTestingError(`failed to get proxy status at http://localhost:${localPort}/v2/services/haproxy/stats/native?type=backend: ${e.message}`, e)
-          }
-          if (status === 'UP') {
-            break
-          }
-
-          this.logger.debug(`Proxy ${podName} is not UP. Checking again in ${delay}ms ... [attempt: ${attempts}/${maxAttempts}]`)
-          attempts++
-          await sleep(delay)
-        }
-      } catch (e) {
-        throw new FullstackTestingError(`failed to check proxy for '${nodeId}' with localPort ${localPort}: ${e.message}`, e)
-      } finally {
-        if (portForwarder !== null) {
-          this._portForwards.push(portForwarder)
-        }
-      }
-
-      if (status === 'UP') {
-        this.logger.debug(`Proxy ${podName} is UP. [attempt: ${attempts}/${maxAttempts}]`)
-        return true
-      }
-    }
-
-    throw new FullstackTestingError(`proxy for '${nodeId}' is not UP [ attempt = ${attempts}/${maxAttempts}`)
   }
 
   async stop (argv) {
@@ -1131,11 +1045,12 @@ export class NodeCommand extends BaseCommand {
         // logs will have a lot of white noise from being behind
         task: async (ctx, task) => {
           const subTasks = []
-          let localPort = constants.LOCAL_NODE_PROXY_START_PORT
           for (const nodeId of ctx.config.nodeIds) {
             subTasks.push({
               title: `Check proxy for node: ${chalk.yellow(nodeId)}`,
-              task: async () => await self.checkNetworkNodeProxyUp(nodeId, localPort++)
+              task: async () => await self.k8.waitForPodReady(
+                [`app=haproxy-${nodeId}`, 'fullstack.hedera.com/type=haproxy'],
+                1, 300, 2000)
             })
           }
 
@@ -1474,11 +1389,12 @@ export class NodeCommand extends BaseCommand {
         // logs will have a lot of white noise from being behind
         task: async (ctx, task) => {
           const subTasks = []
-          let localPort = constants.LOCAL_NODE_PROXY_START_PORT
-          for (const nodeId of ctx.config.allNodeIds) {
+          for (const nodeId of ctx.config.nodeIds) {
             subTasks.push({
               title: `Check proxy for node: ${chalk.yellow(nodeId)}`,
-              task: async () => await self.checkNetworkNodeProxyUp(nodeId, localPort++)
+              task: async () => await self.k8.waitForPodReady(
+                [`app=haproxy-${nodeId}`, 'fullstack.hedera.com/type=haproxy'],
+                1, 300, 2000)
             })
           }
 
@@ -1778,33 +1694,6 @@ export class NodeCommand extends BaseCommand {
           })
           .demandCommand(1, 'Select a node command')
       }
-    }
-  }
-
-  async getNodeProxyStatus (url) {
-    try {
-      this.logger.debug(`Fetching proxy status from: ${url}`)
-      const res = await fetch(url, {
-        method: 'GET',
-        signal: AbortSignal.timeout(5000),
-        headers: {
-          Authorization: `Basic ${Buffer.from(
-            `${constants.NODE_PROXY_USER_ID}:${constants.NODE_PROXY_PASSWORD}`).toString('base64')}`
-        }
-      })
-      const response = await res.json()
-
-      if (res.status === 200) {
-        const status = response[0]?.stats?.filter(
-          (stat) => stat.name === 'http_backend')[0]?.stats?.status
-        this.logger.debug(`Proxy status: ${status}`)
-        return status
-      } else {
-        this.logger.debug(`Proxy request status code: ${res.status}`)
-        return null
-      }
-    } catch (e) {
-      this.logger.error(`Error in fetching proxy status: ${e.message}`, e)
     }
   }
 

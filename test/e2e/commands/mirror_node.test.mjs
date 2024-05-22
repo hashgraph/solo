@@ -17,7 +17,10 @@
  */
 
 import {
-  afterAll, afterEach, beforeAll, describe,
+  afterAll,
+  afterEach,
+  beforeAll,
+  describe,
   expect,
   it
 } from '@jest/globals'
@@ -28,6 +31,7 @@ import {
 import {
   bootstrapNetwork,
   getDefaultArgv,
+  HEDERA_PLATFORM_VERSION_TAG,
   TEST_CLUSTER
 } from '../../test_util.js'
 import * as version from '../../../version.mjs'
@@ -42,7 +46,7 @@ describe('MirrorNodeCommand', () => {
   const namespace = testName
   const argv = getDefaultArgv()
   argv[flags.namespace.name] = namespace
-  argv[flags.releaseTag.name] = 'v0.47.0-alpha.0'
+  argv[flags.releaseTag.name] = HEDERA_PLATFORM_VERSION_TAG
   argv[flags.keyFormat.name] = constants.KEY_FORMAT_PEM
 
   argv[flags.nodeIDs.name] = 'node0' // use a single node to reduce resource during e2e tests

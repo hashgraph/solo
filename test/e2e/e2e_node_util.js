@@ -38,7 +38,9 @@ import {
 import {
   bootstrapNetwork,
   getDefaultArgv,
-  getTestConfigManager, getTmpDir,
+  getTestConfigManager,
+  getTmpDir,
+  HEDERA_PLATFORM_VERSION_TAG,
   TEST_CLUSTER
 } from '../test_util.js'
 import { sleep } from '../../src/core/helpers.mjs'
@@ -46,7 +48,7 @@ import path from 'path'
 import fs from 'fs'
 import crypto from 'crypto'
 
-export function e2eNodeKeyRefreshAddTest (keyFormat, testName, mode, releaseTag = 'v0.49.0-alpha.2') {
+export function e2eNodeKeyRefreshAddTest (keyFormat, testName, mode, releaseTag = HEDERA_PLATFORM_VERSION_TAG) {
   const defaultTimeout = 20000
 
   describe(`NodeCommand [testName ${testName}, mode ${mode}, keyFormat: ${keyFormat}, release ${releaseTag}]`, () => {
