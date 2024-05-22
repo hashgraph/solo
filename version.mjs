@@ -21,5 +21,5 @@
 
 export const JAVA_VERSION = '21.0.1+12'
 export const HELM_VERSION = 'v3.14.2'
-export const FST_CHART_VERSION = 'v0.24.5'
+export const FST_CHART_VERSION = 'v0.24.5' // TODO update after I tag the release
 export const HEDERA_PLATFORM_VERSION = 'v0.49.0-alpha.2'
