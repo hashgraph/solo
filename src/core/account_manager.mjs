@@ -27,6 +27,8 @@ import {
   Hbar,
   HbarUnit,
   KeyList,
+  Logger,
+  LogLevel,
   PrivateKey,
   Status,
   TransferTransaction
@@ -224,6 +226,13 @@ export class AccountManager {
       this.logger.debug(`creating client from network configuration: ${JSON.stringify(nodes)}`)
       this._nodeClient = Client.fromConfig({ network: nodes })
       this._nodeClient.setOperator(operatorId, operatorKey)
+      // TODO: need updated version of SDK to set log file
+      const sdkLogger = new Logger(LogLevel.Trace, `${constants.SOLO_LOGS_DIR}/hashgraph-sdk.log`)
+      this._nodeClient.setLogger(sdkLogger)
+      this._nodeClient.setMaxAttempts(constants.NODE_CLIENT_MAX_ATTEMPTS)
+      this._nodeClient.setMinBackoff(constants.NODE_CLIENT_MIN_BACKOFF)
+      this._nodeClient.setMaxBackoff(constants.NODE_CLIENT_MAX_BACKOFF)
+      this._nodeClient.setRequestTimeout(constants.NODE_CLIENT_REQUEST_TIMEOUT)
       return this._nodeClient
     } catch (e) {
       throw new FullstackTestingError(`failed to setup node client: ${e.message}`, e)
