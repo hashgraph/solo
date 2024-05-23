@@ -515,3 +515,4 @@ node_modules/
 coverage/
 deleteme.yaml
 /.nyc_output/
+/.nvmrc

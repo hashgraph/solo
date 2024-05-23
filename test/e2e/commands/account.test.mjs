@@ -66,10 +66,11 @@ describe('AccountCommand', () => {
   })
 
   describe('node proxies should be UP', () => {
-    let localPort = 30399
     for (const nodeId of argv[flags.nodeIDs.name].split(',')) {
       it(`proxy should be UP: ${nodeId} `, async () => {
-        await nodeCmd.checkNetworkNodeProxyUp(nodeId, localPort++)
+        await self.k8.waitForPodReady(
+          [`app=haproxy-${nodeId}`, 'fullstack.hedera.com/type=haproxy'],
+          1, 300, 2000)
       }, 30000)
     }
   })
