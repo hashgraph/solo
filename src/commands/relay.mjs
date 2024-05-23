@@ -93,7 +93,7 @@ export class RelayCommand extends BaseCommand {
 
       jsonString += `"${networkKey}":"${accountId}"`
 
-      //if nodeID is not the last in nodeIDs, add a comma
+      // if nodeID is not the last in nodeIDs, add a comma
       if (nodeIDs.indexOf(nodeID) !== nodeIDs.length - 1) {
         jsonString += ','
       }
