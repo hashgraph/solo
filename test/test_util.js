@@ -42,6 +42,7 @@ import {
   PlatformInstaller, ProfileManager,
   Zippy
 } from '../src/core/index.mjs'
+import { AccountBalanceQuery } from '@hashgraph/sdk'
 
 export const testLogger = logging.NewLogger('debug', true)
 export const TEST_CLUSTER = 'solo-e2e'
@@ -228,4 +229,26 @@ export function bootstrapNetwork (testName, argv,
   })
 
   return bootstrapResp
+}
+
+export function balanceQueryShouldSucceed (accountManager, cmd, namespace) {
+  it('Balance query should succeed', async () => {
+    expect.assertions(3)
+
+    try {
+      expect(accountManager._nodeClient).toBeNull()
+      await accountManager.loadNodeClient(namespace)
+      expect(accountManager._nodeClient).not.toBeNull()
+
+      const balance = await new AccountBalanceQuery()
+        .setAccountId(accountManager._nodeClient.getOperator().accountId)
+        .execute(accountManager._nodeClient)
+
+      expect(balance.hbars).not.toBeNull()
+    } catch (e) {
+      cmd.logger.showUserError(e)
+      expect(e).toBeNull()
+    }
+    await sleep(1000)
+  }, 120000)
 }

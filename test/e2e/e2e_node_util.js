@@ -17,7 +17,6 @@
  */
 
 import {
-  AccountBalanceQuery,
   AccountCreateTransaction,
   Hbar,
   HbarUnit,
@@ -36,6 +35,7 @@ import {
   constants, Templates
 } from '../../src/core/index.mjs'
 import {
+  balanceQueryShouldSucceed,
   bootstrapNetwork,
   getDefaultArgv,
   getTestConfigManager,
@@ -214,28 +214,6 @@ export function e2eNodeKeyRefreshAddTest (keyFormat, testName, mode, releaseTag 
         expect(e).toBeNull()
       }
     }, 60000)
-  }
-
-  function balanceQueryShouldSucceed (accountManager, nodeCmd, namespace) {
-    it('Balance query should succeed', async () => {
-      expect.assertions(3)
-
-      try {
-        expect(accountManager._nodeClient).toBeNull()
-        await accountManager.loadNodeClient(namespace)
-        expect(accountManager._nodeClient).not.toBeNull()
-
-        const balance = await new AccountBalanceQuery()
-          .setAccountId(accountManager._nodeClient.getOperator().accountId)
-          .execute(accountManager._nodeClient)
-
-        expect(balance.hbars).not.toBeNull()
-      } catch (e) {
-        nodeCmd.logger.showUserError(e)
-        expect(e).toBeNull()
-      }
-      await sleep(1000)
-    }, 120000)
   }
 
   function nodePodShouldBeRunning (nodeCmd, namespace, nodeId) {

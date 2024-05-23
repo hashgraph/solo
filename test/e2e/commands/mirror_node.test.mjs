@@ -29,6 +29,7 @@ import {
   constants
 } from '../../../src/core/index.mjs'
 import {
+  balanceQueryShouldSucceed,
   bootstrapNetwork,
   getDefaultArgv,
   HEDERA_PLATFORM_VERSION_TAG,
@@ -77,6 +78,8 @@ describe('MirrorNodeCommand', () => {
   afterEach(async () => {
     await sleep(500) // give a few ticks so that connections can close
   })
+
+  balanceQueryShouldSucceed(accountManager, mirrorNodeCmd, namespace)
 
   it('mirror node deploy should success', async () => {
     expect.assertions(1)
