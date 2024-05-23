@@ -21,6 +21,7 @@ import { constants } from '../core/index.mjs'
 import { BaseCommand } from './base.mjs'
 import * as flags from './flags.mjs'
 import * as prompts from './prompts.mjs'
+import { getNodeAccountMap } from '../core/constants.mjs'
 
 export class RelayCommand extends BaseCommand {
   constructor (opts) {
@@ -71,12 +72,35 @@ export class RelayCommand extends BaseCommand {
       throw new MissingArgumentError('Node IDs must be specified')
     }
 
+    const networkJsonString = this.prepareNetworkJsonString(nodeIDs)
+    valuesArg += ` --set config.HEDERA_NETWORK='${networkJsonString}'`
+    return valuesArg
+  }
+
+  // created a json string to represent the map between the node keys and their ids
+  // output example '{"node-1": "0.0.3", "node-2": "0.004"}'
+  prepareNetworkJsonString (nodeIDs = []) {
+    if (!nodeIDs) {
+      throw new MissingArgumentError('Node IDs must be specified')
+    }
+
+    let jsonString = '{'
+    const accountMap = getNodeAccountMap(nodeIDs)
+
     nodeIDs.forEach(nodeID => {
       const networkKey = `network-${nodeID.trim()}:50211`
-      valuesArg += ` --set config.HEDERA_NETWORK='{"${networkKey}":"0.0.3"}'`
-    })
+      const accountId = accountMap.get(nodeID)
 
-    return valuesArg
+      jsonString += `"${networkKey}":"${accountId}"`
+
+      //if nodeID is not the last in nodeIDs, add a comma
+      if (nodeIDs.indexOf(nodeID) !== nodeIDs.length - 1) {
+        jsonString += ','
+      }
+    })
+    jsonString += '}'
+
+    return jsonString
   }
 
   prepareReleaseName (nodeIDs = []) {
