@@ -212,7 +212,7 @@ export class NetworkCommand extends BaseCommand {
                 title: `Check HAProxy for: ${chalk.yellow(nodeId)}`,
                 task: () =>
                   self.k8.waitForPodReady([
-                    'fullstack.hedera.com/type=envoy-proxy'
+                    'fullstack.hedera.com/type=haproxy'
                   ], 1, 60 * 15, 1000) // timeout 15 minutes
               })
             }
@@ -223,7 +223,7 @@ export class NetworkCommand extends BaseCommand {
                 title: `Check Envoy Proxy for: ${chalk.yellow(nodeId)}`,
                 task: () =>
                   self.k8.waitForPodReady([
-                    'fullstack.hedera.com/type=haproxy'
+                    'fullstack.hedera.com/type=envoy-proxy'
                   ], 1, 60 * 15, 1000) // timeout 15 minutes
               })
             }
