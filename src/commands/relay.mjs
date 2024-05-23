@@ -185,7 +185,7 @@ export class RelayCommand extends BaseCommand {
 
           await self.chartManager.install(namespace, releaseName, chartPath, '', valuesArg)
 
-          await self.k8.waitForPod(constants.POD_STATUS_RUNNING, [
+          await self.k8.waitForPods([constants.POD_PHASE_RUNNING], [
             'app=hedera-json-rpc-relay',
             `app.kubernetes.io/instance=${releaseName}`
           ], 1, 900, 1000)

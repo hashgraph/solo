@@ -26,6 +26,8 @@ import { K8 } from '../../../src/core/k8.mjs'
 
 import { getTestCacheDir, getTmpDir, testLogger } from '../../test_util.js'
 
+const defaultTimeout = 20000
+
 describe('PackageInstallerE2E', () => {
   const configManager = new ConfigManager(testLogger)
   const k8 = new K8(configManager, testLogger)
@@ -40,7 +42,7 @@ describe('PackageInstallerE2E', () => {
     }
 
     configManager.load()
-  })
+  }, defaultTimeout)
 
   describe('fetchPlatform', () => {
     it('should fail with invalid pod', async () => {
@@ -58,7 +60,7 @@ describe('PackageInstallerE2E', () => {
           .includes('failed to extract platform code in this pod'))
           .toBeTruthy()
       }
-    }, 20000)
+    }, defaultTimeout)
 
     it('should fail with invalid tag', async () => {
       expect.assertions(1)
@@ -67,7 +69,7 @@ describe('PackageInstallerE2E', () => {
       } catch (e) {
         expect(e.message.includes('curl: (22) The requested URL returned error: 404')).toBeTruthy()
       }
-    }, 20000)
+    }, defaultTimeout)
 
     it('should succeed with valid tag and pod', async () => {
       await expect(installer.fetchPlatform(podName, packageVersion)).resolves.toBeTruthy()
@@ -100,7 +102,7 @@ describe('PackageInstallerE2E', () => {
       expect(fileContents).toBe(configLines.join('\n'))
 
       fs.rmSync(tmpDir, { recursive: true })
-    })
+    }, defaultTimeout)
   })
 
   describe('copyGossipKeys', () => {
@@ -154,7 +156,7 @@ describe('PackageInstallerE2E', () => {
       expect(fileList).toContain(`${constants.HEDERA_HAPI_PATH}/hedera.key`)
 
       fs.rmSync(tmpDir, { recursive: true })
-    })
+    }, defaultTimeout)
   })
 
   describe('copyPlatformConfigFiles', () => {
@@ -180,6 +182,6 @@ describe('PackageInstallerE2E', () => {
       expect(fileList).toContain(`${constants.HEDERA_HAPI_PATH}/data/config/application.properties`)
       expect(fileList).toContain(`${constants.HEDERA_HAPI_PATH}/data/config/bootstrap.properties`)
       fs.rmSync(tmpDir, { recursive: true })
-    }, 10000)
+    }, defaultTimeout)
   })
 })

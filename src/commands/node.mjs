@@ -72,7 +72,7 @@ export class NodeCommand extends BaseCommand {
     this._portForwards = []
   }
 
-  async checkNetworkNodePod (namespace, nodeId, maxAttempts = 10, delay = 500) {
+  async checkNetworkNodePod (namespace, nodeId, maxAttempts = 60, delay = 2000) {
     nodeId = nodeId.trim()
     const podName = Templates.renderNetworkPodName(nodeId)
 
@@ -748,7 +748,7 @@ export class NodeCommand extends BaseCommand {
    * @param delay the delay between attempts
    * @returns {Promise<boolean>} true if the proxy is up
    */
-  async checkNetworkNodeProxyUp (nodeId, localPort, maxAttempts = 30, delay = 2000) {
+  async checkNetworkNodeProxyUp (nodeId, localPort, maxAttempts = 6, delay = 20000) {
     const podLabels = [`app=haproxy-${nodeId}`, 'fullstack.hedera.com/type=haproxy']
     let podArray = await this.k8.getPodsByLabel(podLabels)
 
@@ -779,7 +779,7 @@ export class NodeCommand extends BaseCommand {
               throw new FullstackTestingError(`failed to stop portForward for podName ${podName} with localPort ${localPort}: ${e.message}`, e)
             }
             try {
-              await this.k8.recyclePodByLabels(podLabels, 50)
+              await this.k8.recyclePodByLabels(podLabels)
             } catch (e) {
               throw new FullstackTestingError(`failed to recycle pod for podName ${podName} with localPort ${localPort}: ${e.message}`, e)
             }
