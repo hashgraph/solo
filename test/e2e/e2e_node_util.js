@@ -84,7 +84,7 @@ export function e2eNodeKeyRefreshAddTest (keyFormat, testName, mode, releaseTag 
         expect.assertions(1)
 
         try {
-          await expect(self.k8.waitForPodReady(
+          await expect(k8.waitForPodReady(
             ['app=haproxy-node0', 'fullstack.hedera.com/type=haproxy'],
             1, 300, 1000)).resolves.toBeTruthy()
         } catch (e) {
