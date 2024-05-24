@@ -161,6 +161,7 @@
         <MarkerFilter marker="ADV_CRYPTO_SYSTEM"      onMatch="DENY"   onMismatch="NEUTRAL"/>
 
         <!-- Startup/Restart/Reconnect -->
+        <MarkerFilter marker="CONFIG"                 onMatch="ACCEPT" onMismatch="NEUTRAL"/>
         <MarkerFilter marker="STARTUP"                onMatch="ACCEPT" onMismatch="NEUTRAL"/>
         <MarkerFilter marker="PLATFORM_STATUS"        onMatch="ACCEPT" onMismatch="NEUTRAL"/>
         <MarkerFilter marker="RECONNECT"              onMatch="ACCEPT" onMismatch="NEUTRAL"/>
