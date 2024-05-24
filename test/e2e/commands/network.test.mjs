@@ -38,7 +38,6 @@ describe('NetworkCommand', () => {
   const namespace = testName
   const argv = getDefaultArgv()
   argv[flags.namespace.name] = namespace
-  argv[flags.releaseTag.name] = 'v0.47.0-alpha.0'
   argv[flags.keyFormat.name] = constants.KEY_FORMAT_PEM
   argv[flags.nodeIDs.name] = 'node0'
   argv[flags.generateGossipKeys.name] = true
