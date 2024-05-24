@@ -45,8 +45,9 @@ import { sleep } from '../../src/core/helpers.mjs'
 import path from 'path'
 import fs from 'fs'
 import crypto from 'crypto'
+import { HEDERA_PLATFORM_VERSION } from '../../version.mjs'
 
-export function e2eNodeKeyRefreshAddTest (keyFormat, testName, mode, releaseTag = 'v0.49.0-alpha.2') {
+export function e2eNodeKeyRefreshAddTest (keyFormat, testName, mode, releaseTag = HEDERA_PLATFORM_VERSION) {
   const defaultTimeout = 20000
 
   describe(`NodeCommand [testName ${testName}, mode ${mode}, keyFormat: ${keyFormat}, release ${releaseTag}]`, () => {
