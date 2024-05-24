@@ -1544,7 +1544,7 @@ export class NodeCommand extends BaseCommand {
       const futureDate = new Date()
       this.logger.debug(`Current time: ${futureDate}`)
 
-      futureDate.setTime(futureDate.getTime() + 60000) // 1 minute in the future
+      futureDate.setTime(futureDate.getTime() + 20000) // 20 seconds in the future
       this.logger.debug(`Freeze time: ${futureDate}`)
 
       const freezeUpgradeTx = await new FreezeTransaction()
@@ -1561,6 +1561,7 @@ export class NodeCommand extends BaseCommand {
         freezeUpgradeReceipt.status.toString())
     } catch (e) {
       this.logger.error(`Error in freeze upgrade: ${e.message}`, e)
+      await sleep(360000)
       throw new FullstackTestingError(`Error in freeze upgrade: ${e.message}`, e)
     }
   }
