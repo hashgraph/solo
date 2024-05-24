@@ -1542,7 +1542,10 @@ export class NodeCommand extends BaseCommand {
       )
 
       const futureDate = new Date()
-      futureDate.setDate(futureDate.getDate() + (1 / 24 / 60)) // 1 minute in the future
+      this.logger.debug(`Current time: ${futureDate}`)
+
+      futureDate.setTime(futureDate.getTime() + 60000) // 1 minute in the future
+      this.logger.debug(`Freeze time: ${futureDate}`)
 
       const freezeUpgradeTx = await new FreezeTransaction()
         .setFreezeType(FreezeType.FreezeUpgrade)
