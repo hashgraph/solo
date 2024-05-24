@@ -26,6 +26,10 @@ export class Templates {
   }
 
   static renderNetworkSvcName (nodeId) {
+    return `network-${nodeId}-svc`
+  }
+
+  static renderNetworkHeadlessSvcName (nodeId) {
     return `network-${nodeId}`
   }
 
@@ -161,7 +165,7 @@ export class Templates {
   }
 
   static renderFullyQualifiedNetworkPodName (namespace, nodeId) {
-    return `${Templates.renderNetworkPodName(nodeId)}.${Templates.renderNetworkSvcName(nodeId)}.${namespace}.svc.cluster.local`
+    return `${Templates.renderNetworkPodName(nodeId)}.${Templates.renderNetworkHeadlessSvcName(nodeId)}.${namespace}.svc.cluster.local`
   }
 
   static renderFullyQualifiedNetworkSvcName (namespace, nodeId) {
