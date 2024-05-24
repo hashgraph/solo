@@ -585,14 +585,17 @@ export class AccountManager {
     // ensure serviceEndpoint.ipAddressV4 value for all nodes in the addressBook is a 4 bytes array instead of string
     // See: https://github.com/hashgraph/hedera-protobufs/blob/main/services/basic_types.proto#L1309
     const addressBook = HashgraphProto.proto.NodeAddressBook.decode(addressBookBytes)
+    const hasAlphaRegEx = /[a-zA-Z]+/
     let modified = false
     for (const nodeAddress of addressBook.nodeAddress) {
-      // overwrite ipAddressV4 as 4 bytes array if required
-      if (nodeAddress.serviceEndpoint[0].ipAddressV4.byteLength !== 4) {
-        const ipAddress = nodeAddress.serviceEndpoint[0].ipAddressV4.toString()
-        const parts = ipAddress.split('.')
+      const address = nodeAddress.serviceEndpoint[0].ipAddressV4.toString()
+
+      // overwrite ipAddressV4 as 4 bytes array if required, unless there is alpha, which means it is a domain name
+      if (nodeAddress.serviceEndpoint[0].ipAddressV4.byteLength !== 4 && !hasAlphaRegEx.test(address)) {
+        const parts = address.split('.')
+
         if (parts.length !== 4) {
-          throw new FullstackTestingError(`expected node IP address to have 4 parts, found ${parts.length}: ${ipAddress}`)
+          throw new FullstackTestingError(`expected node IP address to have 4 parts, found ${parts.length}: ${address}`)
         }
 
         nodeAddress.serviceEndpoint[0].ipAddressV4 = Uint8Array.from(parts)
