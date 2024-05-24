@@ -1553,6 +1553,11 @@ export class NodeCommand extends BaseCommand {
         .execute(client)
 
       this.logger.debug(`Upgrade frozen with transaction id: ${freezeUpgradeTx.transactionId.toString()}`)
+      const freezeUpgradeReceipt = await freezeUpgradeTx.getReceipt(client)
+
+      this.logger.debug(`Upgrade frozen with transaction id: ${freezeUpgradeTx.transactionId.toString()}`,
+        freezeUpgradeReceipt.status.toString())
+
     } catch (e) {
       this.logger.error(`Error in freeze upgrade: ${e.message}`, e)
       throw new FullstackTestingError(`Error in freeze upgrade: ${e.message}`, e)
