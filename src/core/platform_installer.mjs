@@ -28,13 +28,16 @@ import { flags } from '../commands/index.mjs'
  * PlatformInstaller install platform code in the root-container of a network pod
  */
 export class PlatformInstaller {
-  constructor (logger, k8, configManager) {
+  constructor (logger, k8, configManager, accountManager) {
     if (!logger) throw new MissingArgumentError('an instance of core/Logger is required')
     if (!k8) throw new MissingArgumentError('an instance of core/K8 is required')
+    if (!configManager) throw new MissingArgumentError('an instance of core/ConfigManager is required')
+    if (!accountManager) throw new MissingArgumentError('an instance of core/AccountManager is required')
 
     this.logger = logger
     this.k8 = k8
     this.configManager = configManager
+    this.accountManager = accountManager
   }
 
   _getNamespace () {
@@ -267,7 +270,7 @@ export class PlatformInstaller {
    * @param releaseTag release tag e.g. v0.42.0
    * @param template path to the confit.template file
    * @param chainId chain ID (298 for local network)
-   * @returns {Promise<unknown>}
+   * @returns {Promise<string[]>}
    */
   async prepareConfigTxt (nodeIDs, destPath, releaseTag, chainId = constants.HEDERA_CHAIN_ID, template = `${constants.RESOURCES_DIR}/templates/config.template`, appName = constants.HEDERA_APP_NAME) {
     if (!nodeIDs || nodeIDs.length === 0) throw new MissingArgumentError('list of node IDs is required')
@@ -279,8 +282,6 @@ export class PlatformInstaller {
     if (!fs.existsSync(template)) throw new IllegalArgumentError(`config templatePath does not exist: ${template}`, destPath)
 
     // init variables
-    const startAccountId = constants.HEDERA_NODE_ACCOUNT_ID_START
-    const accountIdPrefix = `${startAccountId.realm}.${startAccountId.shard}`
     const internalPort = constants.HEDERA_NODE_INTERNAL_GOSSIP_PORT
     const externalPort = constants.HEDERA_NODE_EXTERNAL_GOSSIP_PORT
     const nodeStakeAmount = constants.HEDERA_NODE_DEFAULT_STAKE_AMOUNT
@@ -288,20 +289,22 @@ export class PlatformInstaller {
     const releaseVersion = semver.parse(releaseTag, { includePrerelease: true })
 
     try {
+      const networkNodeServicesMap = await this.accountManager.getNodeServiceMap(this._getNamespace())
+      /** @type {string[]} */
       const configLines = []
       configLines.push(`swirld, ${chainId}`)
       configLines.push(`app, ${appName}`)
 
       let nodeSeq = 0
-      let accountIdSeq = parseInt(startAccountId.num.toString(), 10)
       for (const nodeId of nodeIDs) {
+        const networkNodeServices = networkNodeServicesMap.get(nodeId)
         const nodeName = nodeId
         const nodeNickName = nodeId
 
         const internalIP = Templates.renderFullyQualifiedNetworkPodName(this._getNamespace(), nodeId)
-        const externalIP = Templates.renderFullyQualifiedNetworkSvcName(this._getNamespace(), nodeId)
+        const externalIP = networkNodeServices.nodeServiceClusterIp
 
-        const account = `${accountIdPrefix}.${accountIdSeq}`
+        const account = networkNodeServices.accountId
         if (releaseVersion.minor >= 40) {
           configLines.push(`address, ${nodeSeq}, ${nodeNickName}, ${nodeName}, ${nodeStakeAmount}, ${internalIP}, ${internalPort}, ${externalIP}, ${externalPort}, ${account}`)
         } else {
@@ -309,7 +312,6 @@ export class PlatformInstaller {
         }
 
         nodeSeq += 1
-        accountIdSeq += 1
       }
 
       if (releaseVersion.minor >= 41) {

@@ -23,7 +23,9 @@ import {
   AccountId,
   AccountInfoQuery,
   AccountUpdateTransaction,
-  Client, FileContentsQuery, FileId,
+  Client,
+  FileContentsQuery,
+  FileId,
   Hbar,
   HbarUnit,
   KeyList,
@@ -36,6 +38,7 @@ import {
 import { FullstackTestingError, MissingArgumentError } from './errors.mjs'
 import { Templates } from './templates.mjs'
 import ip from 'ip'
+import { NetworkNodeServicesBuilder } from './network_node_services.mjs'
 
 const REASON_FAILED_TO_GET_KEYS = 'failed to get keys for accountId'
 const REASON_SKIPPED = 'skipped since it does not have a genesis key'
@@ -159,17 +162,22 @@ export class AccountManager {
   async loadNodeClient (namespace) {
     if (!this._nodeClient || this._nodeClient.isClientShutDown) {
       const treasuryAccountInfo = await this.getTreasuryAccountKeys(namespace)
-      const serviceMap = await this.getNodeServiceMap(namespace)
+      const networkNodeServicesMap = await this.getNodeServiceMap(namespace)
 
       this._nodeClient = await this._getNodeClient(namespace,
-        serviceMap, treasuryAccountInfo.accountId, treasuryAccountInfo.privateKey)
+        networkNodeServicesMap, treasuryAccountInfo.accountId, treasuryAccountInfo.privateKey)
     }
   }
 
-  shouldUseLocalHostPortForward (serviceObject) {
-    if (!serviceObject.loadBalancerIp) return true
+  /**
+   * if the load balancer IP is not set, then we should use the local host port forward
+   * @param {NetworkNodeServices} networkNodeServices
+   * @returns {boolean} whether to use the local host port forward
+   */
+  shouldUseLocalHostPortForward (networkNodeServices) {
+    if (!networkNodeServices.haProxyLoadBalancerIp) return true
 
-    const loadBalancerIp = serviceObject.loadBalancerIp
+    const loadBalancerIp = networkNodeServices.haProxyLoadBalancerIp
     const interfaces = os.networkInterfaces()
     let usePortForward = true
     const loadBalancerIpFormat = ip.isV6Format(loadBalancerIp) ? 'ipv4' : 'ipv6'
@@ -198,27 +206,27 @@ export class AccountManager {
   /**
    * Returns a node client that can be used to make calls against
    * @param namespace the namespace for which the node client resides
-   * @param serviceMap a map of the service objects that proxy the nodes
+   * @param {Map<string, NetworkNodeServices>}networkNodeServicesMap a map of the service objects that proxy the nodes
    * @param operatorId the account id of the operator of the transactions
    * @param operatorKey the private key of the operator of the transactions
    * @returns {Promise<NodeClient>} a node client that can be used to call transactions
    */
-  async _getNodeClient (namespace, serviceMap, operatorId, operatorKey) {
+  async _getNodeClient (namespace, networkNodeServicesMap, operatorId, operatorKey) {
     const nodes = {}
     try {
       let localPort = constants.LOCAL_NODE_START_PORT
 
-      for (const serviceObject of serviceMap.values()) {
-        const usePortForward = this.shouldUseLocalHostPortForward(serviceObject)
-        const host = usePortForward ? '127.0.0.1' : serviceObject.loadBalancerIp
-        const port = serviceObject.grpcPort
+      for (const networkNodeService of networkNodeServicesMap.values()) {
+        const usePortForward = this.shouldUseLocalHostPortForward(networkNodeService)
+        const host = usePortForward ? '127.0.0.1' : networkNodeService.haProxyLoadBalancerIp
+        const port = networkNodeService.haProxyGrpcPort
         const targetPort = usePortForward ? localPort : port
 
         if (usePortForward) {
-          this._portForwards.push(await this.k8.portForward(serviceObject.podName, localPort, port))
+          this._portForwards.push(await this.k8.portForward(networkNodeService.haProxyPodName, localPort, port))
         }
 
-        nodes[`${host}:${targetPort}`] = AccountId.fromString(serviceObject.accountId)
+        nodes[`${host}:${targetPort}`] = AccountId.fromString(networkNodeService.accountId)
         await this.k8.testConnection(host, targetPort)
         localPort++
       }
@@ -242,34 +250,68 @@ export class AccountManager {
   /**
    * Gets a Map of the Hedera node services and the attributes needed
    * @param namespace the namespace of the fullstack network deployment
-   * @returns {Map<any, any>} the Map of <nodeName:string, serviceObject>
+   * @returns {Promise<Map<String,NetworkNodeServices>>} a map of the network node services
    */
   async getNodeServiceMap (namespace) {
-    const labelSelector = 'fullstack.hedera.com/node-name,fullstack.hedera.com/type=haproxy-svc'
-    const serviceMap = new Map()
+    const labelSelector = 'fullstack.hedera.com/node-name'
+
+    /** @type {Map<String,NetworkNodeServicesBuilder>} **/
+    const serviceBuilderMap = new Map()
 
     const serviceList = await this.k8.kubeClient.listNamespacedService(
       namespace, undefined, undefined, undefined, undefined, labelSelector)
 
     // retrieve the list of services and build custom objects for the attributes we need
     for (const service of serviceList.body.items) {
-      const serviceObject = {}
-      serviceObject.name = service.metadata.name
-      serviceObject.loadBalancerIp = service.status.loadBalancer.ingress ? service.status.loadBalancer.ingress[0].ip : undefined
-      serviceObject.grpcPort = service.spec.ports.filter(port => port.name === 'non-tls-grpc-client-port')[0].port
-      serviceObject.grpcsPort = service.spec.ports.filter(port => port.name === 'tls-grpc-client-port')[0].port
-      serviceObject.node = service.metadata.labels['fullstack.hedera.com/node-name']
-      serviceObject.accountId = service.metadata.labels['fullstack.hedera.com/account-id']
-      serviceObject.selector = service.spec.selector.app
-      serviceMap.set(serviceObject.node, serviceObject)
+      const serviceType = service.metadata.labels['fullstack.hedera.com/type']
+      let serviceBuilder = new NetworkNodeServicesBuilder(service.metadata.labels['fullstack.hedera.com/node-name'])
+
+      if (serviceBuilderMap.has(serviceBuilder.key())) {
+        serviceBuilder = serviceBuilderMap.get(serviceBuilder.key())
+      }
+
+      switch (serviceType) {
+        // fullstack.hedera.com/type: envoy-proxy-svc
+        case 'envoy-proxy-svc':
+          serviceBuilder.withEnvoyProxyName(service.metadata.name)
+            .withEnvoyProxyClusterIp(service.spec.clusterIP)
+            .withEnvoyProxyLoadBalancerIp(service.status.loadBalancer.ingress ? service.status.loadBalancer.ingress[0].ip : undefined)
+            .withEnvoyProxyGrpcWebPort(service.spec.ports.filter(port => port.name === 'hedera-grpc-web')[0].port)
+          break
+        // fullstack.hedera.com/type: haproxy-svc
+        case 'haproxy-svc':
+          serviceBuilder.withAccountId(service.metadata.labels['fullstack.hedera.com/account-id'])
+            .withHaProxyAppSelector(service.spec.selector.app)
+            .withHaProxyName(service.metadata.name)
+            .withHaProxyClusterIp(service.spec.clusterIP)
+            .withHaProxyLoadBalancerIp(service.status.loadBalancer.ingress ? service.status.loadBalancer.ingress[0].ip : undefined)
+            .withHaProxyGrpcPort(service.spec.ports.filter(port => port.name === 'non-tls-grpc-client-port')[0].port)
+            .withHaProxyGrpcsPort(service.spec.ports.filter(port => port.name === 'tls-grpc-client-port')[0].port)
+          break
+        // fullstack.hedera.com/type: network-node-svc
+        case 'network-node-svc':
+          serviceBuilder.withNodeServiceName(service.metadata.name)
+            .withNodeServiceClusterIp(service.spec.clusterIP)
+            .withNodeServiceLoadBalancerIp(service.status.loadBalancer.ingress ? service.status.loadBalancer.ingress[0].ip : undefined)
+            .withNodeServiceGossipPort(service.spec.ports.filter(port => port.name === 'gossip')[0].port)
+            .withNodeServiceGrpcPort(service.spec.ports.filter(port => port.name === 'grpc-non-tls')[0].port)
+            .withNodeServiceGrpcsPort(service.spec.ports.filter(port => port.name === 'grpc-tls')[0].port)
+          break
+      }
+      serviceBuilderMap.set(serviceBuilder.key(), serviceBuilder)
     }
 
     // get the pod name for the service to use with portForward if needed
-    for (const serviceObject of serviceMap.values()) {
-      const labelSelector = `app=${serviceObject.selector}`
+    for (const serviceBuilder of serviceBuilderMap.values()) {
       const podList = await this.k8.kubeClient.listNamespacedPod(
-        namespace, null, null, null, null, labelSelector)
-      serviceObject.podName = podList.body.items[0].metadata.name
+        namespace, null, null, null, null, `app=${serviceBuilder.haProxyAppSelector}`)
+      serviceBuilder.withHaProxyPodName(podList.body.items[0].metadata.name)
+    }
+
+    /** @type {Map<String,NetworkNodeServices>} **/
+    const serviceMap = new Map()
+    for (const networkNodeServicesBuilder of serviceBuilderMap.values()) {
+      serviceMap.set(networkNodeServicesBuilder.key(), networkNodeServicesBuilder.build())
     }
 
     return serviceMap

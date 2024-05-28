@@ -79,6 +79,7 @@ export function getDefaultArgv () {
   for (const f of flags.allFlags) {
     argv[f.name] = f.definition.defaultValue
   }
+
   return argv
 }
 
@@ -115,8 +116,8 @@ export function bootstrapTestVariables (testName, argv,
   const helm = new Helm(testLogger)
   const chartManager = new ChartManager(helm, testLogger)
   const k8 = k8Arg || new K8(configManager, testLogger)
-  const platformInstaller = new PlatformInstaller(testLogger, k8, configManager)
   const accountManager = new AccountManager(testLogger, k8, constants)
+  const platformInstaller = new PlatformInstaller(testLogger, k8, configManager, accountManager)
   const profileManager = new ProfileManager(testLogger, configManager)
   const opts = {
     logger: testLogger,

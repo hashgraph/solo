@@ -556,11 +556,7 @@ export class NodeCommand extends BaseCommand {
                 const configTxtPath = `${config.stagingDir}/config.txt`
                 const template = `${constants.RESOURCES_DIR}/templates/config.template`
                 const appName = self.configManager.getFlag(flags.app)
-                if (appName !== '') {
-                  await self.platformInstaller.prepareConfigTxt(config.nodeIds, configTxtPath, config.releaseTag, config.chainId, template, appName)
-                } else {
-                  await self.platformInstaller.prepareConfigTxt(config.nodeIds, configTxtPath, config.releaseTag, config.chainId, template)
-                }
+                await self.platformInstaller.prepareConfigTxt(config.nodeIds, configTxtPath, config.releaseTag, config.chainId, template, appName || undefined)
               }
             }
           ]
@@ -966,10 +962,11 @@ export class NodeCommand extends BaseCommand {
 
           const subTasks = []
           const nodeList = []
-          const serviceMap = await self.accountManager.getNodeServiceMap(ctx.config.namespace)
-          for (const serviceObject of serviceMap.values()) {
-            nodeList.push(serviceObject.node)
+          const networkNodeServicesMap = await self.accountManager.getNodeServiceMap(ctx.config.namespace)
+          for (const networkNodeServices of networkNodeServicesMap.values()) {
+            nodeList.push(networkNodeServices.nodeName)
           }
+
           for (const nodeId of config.nodeIds) {
             const podName = config.podNames[nodeId]
             subTasks.push({
@@ -1132,8 +1129,8 @@ export class NodeCommand extends BaseCommand {
         task: async (ctx, task) => {
           ctx.config.serviceMap = await self.accountManager.getNodeServiceMap(
             ctx.config.namespace)
-          for (const serviceObject of ctx.config.serviceMap.values()) {
-            ctx.config.existingNodeIds.push(serviceObject.node)
+          for (/** @type {NetworkNodeServices} **/ const networkNodeServices of ctx.config.serviceMap.values()) {
+            ctx.config.existingNodeIds.push(networkNodeServices.nodeName)
           }
 
           return self.taskCheckNetworkNodePods(ctx, task, ctx.config.existingNodeIds)
@@ -1144,12 +1141,14 @@ export class NodeCommand extends BaseCommand {
         task: async (ctx, task) => {
           const values = { hedera: { nodes: [] } }
           let maxNum
-          for (const serviceObject of ctx.config.serviceMap.values()) {
+          for (/** @type {NetworkNodeServices} **/ const networkNodeServices of ctx.config.serviceMap.values()) {
             values.hedera.nodes.push({
-              accountId: serviceObject.accountId,
-              name: serviceObject.node
+              accountId: networkNodeServices.accountId,
+              name: networkNodeServices.nodeName
             })
-            maxNum = maxNum > AccountId.fromString(serviceObject.accountId).num ? maxNum : AccountId.fromString(serviceObject.accountId).num
+            maxNum = maxNum > AccountId.fromString(networkNodeServices.accountId).num
+              ? maxNum
+              : AccountId.fromString(networkNodeServices.accountId).num
           }
           for (const nodeId of ctx.config.nodeIds) {
             const accountId = AccountId.fromString(values.hedera.nodes[0].accountId)
