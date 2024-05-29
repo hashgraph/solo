@@ -302,7 +302,7 @@ export class PlatformInstaller {
         const nodeNickName = nodeId
 
         const internalIP = Templates.renderFullyQualifiedNetworkPodName(this._getNamespace(), nodeId)
-        const externalIP = networkNodeServices.nodeServiceClusterIp
+        const externalIP = Templates.renderFullyQualifiedNetworkSvcName(this._getNamespace(), nodeId)
 
         const account = networkNodeServices.accountId
         if (releaseVersion.minor >= 40) {
