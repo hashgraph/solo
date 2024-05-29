@@ -617,12 +617,16 @@ export class AccountManager {
 
   /**
    * Fetch and prepare address book as a base64 string
+   * @param {string} namespace the namespace of the network
    * @return {Promise<string>}
    */
-  async prepareAddressBookBase64 () {
+  async prepareAddressBookBase64 (namespace) {
     // fetch AddressBook
     const fileQuery = new FileContentsQuery().setFileId(FileId.ADDRESS_BOOK)
     let addressBookBytes = await fileQuery.execute(this._nodeClient)
+
+    /** @type {Map<string, NetworkNodeServices>} **/
+    const networkNodeServicesMap = await this.getNodeServiceMap(namespace)
 
     // ensure serviceEndpoint.ipAddressV4 value for all nodes in the addressBook is a 4 bytes array instead of string
     // See: https://github.com/hashgraph/hedera-protobufs/blob/main/services/basic_types.proto#L1309
@@ -632,8 +636,15 @@ export class AccountManager {
     for (const nodeAddress of addressBook.nodeAddress) {
       const address = nodeAddress.serviceEndpoint[0].ipAddressV4.toString()
 
+      if (hasAlphaRegEx.test(address)) {
+        const nodeId = Templates.nodeIdFromFullyQualifiedNetworkSvcName(address)
+        nodeAddress.serviceEndpoint[0].ipAddressV4 = Uint8Array.from(ip.toBuffer(networkNodeServicesMap.get(nodeId).nodeServiceClusterIp))
+        nodeAddress.ipAddress = Uint8Array.from(ip.toBuffer(networkNodeServicesMap.get(nodeId).nodeServiceClusterIp))
+        modified = true
+        continue
+      }
       // overwrite ipAddressV4 as 4 bytes array if required, unless there is alpha, which means it is a domain name
-      if (nodeAddress.serviceEndpoint[0].ipAddressV4.byteLength !== 4 && !hasAlphaRegEx.test(address)) {
+      if (nodeAddress.serviceEndpoint[0].ipAddressV4.byteLength !== 4) {
         const parts = address.split('.')
 
         if (parts.length !== 4) {
