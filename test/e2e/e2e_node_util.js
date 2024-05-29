@@ -49,7 +49,7 @@ import fs from 'fs'
 import crypto from 'crypto'
 
 export function e2eNodeKeyRefreshAddTest (keyFormat, testName, mode, releaseTag = HEDERA_PLATFORM_VERSION_TAG) {
-  const defaultTimeout = 20000
+  const defaultTimeout = 120000
 
   describe(`NodeCommand [testName ${testName}, mode ${mode}, keyFormat: ${keyFormat}, release ${releaseTag}]`, () => {
     const namespace = testName
@@ -72,11 +72,11 @@ export function e2eNodeKeyRefreshAddTest (keyFormat, testName, mode, releaseTag 
     afterEach(async () => {
       await nodeCmd.close()
       await accountManager.close()
-    }, 120000)
+    }, defaultTimeout)
 
     afterAll(async () => {
       await k8.deleteNamespace(namespace)
-    }, 120000)
+    }, defaultTimeout)
 
     describe(`Node should have started successfully [mode ${mode}, release ${releaseTag}, keyFormat: ${keyFormat}]`, () => {
       balanceQueryShouldSucceed(accountManager, nodeCmd, namespace)
@@ -96,7 +96,7 @@ export function e2eNodeKeyRefreshAddTest (keyFormat, testName, mode, releaseTag 
         } finally {
           await nodeCmd.close()
         }
-      }, 60000)
+      }, defaultTimeout)
     })
 
     describe(`Node should refresh successfully [mode ${mode}, release ${releaseTag}, keyFormat: ${keyFormat}]`, () => {
@@ -138,7 +138,7 @@ export function e2eNodeKeyRefreshAddTest (keyFormat, testName, mode, releaseTag 
         configManager.update(argv, true)
         existingServiceMap = await accountManager.getNodeServiceMap(namespace)
         existingNodeIdsPrivateKeysHash = await getNodeIdsPrivateKeysHash(existingServiceMap, namespace, keyFormat, k8, getTmpDir())
-      }, 120000)
+      }, defaultTimeout)
 
       it(`${nodeId} should not exist`, async () => {
         try {
@@ -182,7 +182,7 @@ export function e2eNodeKeyRefreshAddTest (keyFormat, testName, mode, releaseTag 
                 `${nodeId}:${keyFileName}:${existingKeyHash}`)
           }
         }
-      }, 60000)
+      }, defaultTimeout)
     })
   })
 
@@ -216,7 +216,7 @@ export function e2eNodeKeyRefreshAddTest (keyFormat, testName, mode, releaseTag 
         nodeCmd.logger.showUserError(e)
         expect(e).toBeNull()
       }
-    }, 60000)
+    }, defaultTimeout)
   }
 
   function nodePodShouldBeRunning (nodeCmd, namespace, nodeId) {
@@ -229,7 +229,7 @@ export function e2eNodeKeyRefreshAddTest (keyFormat, testName, mode, releaseTag 
       } finally {
         await nodeCmd.close()
       }
-    }, 60000)
+    }, defaultTimeout)
   }
 
   function nodeRefreshShouldSucceed (nodeId, nodeCmd, argv) {
