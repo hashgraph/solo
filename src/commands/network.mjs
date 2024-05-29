@@ -174,7 +174,7 @@ export class NetworkCommand extends BaseCommand {
         }
       },
       {
-        title: 'Check node pods are ready',
+        title: 'Check node pods are running',
         task:
           async (ctx, task) => {
             const subTasks = []
@@ -201,7 +201,7 @@ export class NetworkCommand extends BaseCommand {
           }
       },
       {
-        title: 'Check proxy pods are ready',
+        title: 'Check proxy pods are running',
         task:
           async (ctx, task) => {
             const subTasks = []
@@ -372,7 +372,7 @@ export class NetworkCommand extends BaseCommand {
         }
       },
       {
-        title: 'Waiting for network pods to be ready',
+        title: 'Waiting for network pods to be running',
         task: async (ctx, _) => {
           await this.k8.waitForPods([constants.POD_PHASE_RUNNING], [
             'fullstack.hedera.com/type=network-node'
