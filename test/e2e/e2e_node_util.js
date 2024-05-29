@@ -78,7 +78,7 @@ export function e2eNodeKeyRefreshAddTest (keyFormat, testName, mode, releaseTag 
       await k8.deleteNamespace(namespace)
     }, 120000)
 
-    describe.skip(`Node should have started successfully [mode ${mode}, release ${releaseTag}, keyFormat: ${keyFormat}]`, () => {
+    describe(`Node should have started successfully [mode ${mode}, release ${releaseTag}, keyFormat: ${keyFormat}]`, () => {
       balanceQueryShouldSucceed(accountManager, nodeCmd, namespace)
 
       accountCreationShouldSucceed(accountManager, nodeCmd, namespace)
@@ -99,7 +99,7 @@ export function e2eNodeKeyRefreshAddTest (keyFormat, testName, mode, releaseTag 
       }, 60000)
     })
 
-    describe.skip(`Node should refresh successfully [mode ${mode}, release ${releaseTag}, keyFormat: ${keyFormat}]`, () => {
+    describe(`Node should refresh successfully [mode ${mode}, release ${releaseTag}, keyFormat: ${keyFormat}]`, () => {
       const nodeId = 'node0'
 
       beforeAll(async () => {
