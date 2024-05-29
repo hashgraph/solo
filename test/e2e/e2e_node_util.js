@@ -75,7 +75,7 @@ export function e2eNodeKeyRefreshAddTest (keyFormat, testName, mode, releaseTag 
     }, 120000)
 
     afterAll(async () => {
-      // await k8.deleteNamespace(namespace)
+      await k8.deleteNamespace(namespace)
     }, 120000)
 
     describe.skip(`Node should have started successfully [mode ${mode}, release ${releaseTag}, keyFormat: ${keyFormat}]`, () => {
