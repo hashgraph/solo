@@ -29,6 +29,10 @@ export class Templates {
     return `network-${nodeId}-svc`
   }
 
+  static nodeIdFromNetworkSvcName (svcName) {
+    return svcName.split('-').slice(1, -1).join('-')
+  }
+
   static renderNetworkHeadlessSvcName (nodeId) {
     return `network-${nodeId}`
   }
@@ -170,5 +174,10 @@ export class Templates {
 
   static renderFullyQualifiedNetworkSvcName (namespace, nodeId) {
     return `${Templates.renderNetworkSvcName(nodeId)}.${namespace}.svc.cluster.local`
+  }
+
+  static nodeIdFromFullyQualifiedNetworkSvcName (svcName) {
+    const parts = svcName.split('.')
+    return this.nodeIdFromNetworkSvcName(parts[0])
   }
 }
