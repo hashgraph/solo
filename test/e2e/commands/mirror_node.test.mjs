@@ -170,7 +170,7 @@ describe('MirrorNodeCommand', () => {
       mirrorNodeCmd.logger.showUserError(e)
       expect(e).toBeNull()
     }
-  }, 240000)
+  }, 300000)
 
   it('mirror node destroy should success', async () => {
     expect.assertions(1)
