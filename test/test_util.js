@@ -42,9 +42,11 @@ import {
   PlatformInstaller, ProfileManager,
   Zippy
 } from '../src/core/index.mjs'
+import { AccountBalanceQuery } from '@hashgraph/sdk'
 
 export const testLogger = logging.NewLogger('debug', true)
 export const TEST_CLUSTER = 'solo-e2e'
+export const HEDERA_PLATFORM_VERSION_TAG = 'v0.49.0-alpha.2'
 
 export function getTestCacheDir (testName) {
   const baseDir = 'test/data/tmp'
@@ -77,6 +79,7 @@ export function getDefaultArgv () {
   for (const f of flags.allFlags) {
     argv[f.name] = f.definition.defaultValue
   }
+
   return argv
 }
 
@@ -113,8 +116,8 @@ export function bootstrapTestVariables (testName, argv,
   const helm = new Helm(testLogger)
   const chartManager = new ChartManager(helm, testLogger)
   const k8 = k8Arg || new K8(configManager, testLogger)
-  const platformInstaller = new PlatformInstaller(testLogger, k8, configManager)
   const accountManager = new AccountManager(testLogger, k8, constants)
+  const platformInstaller = new PlatformInstaller(testLogger, k8, configManager, accountManager)
   const profileManager = new ProfileManager(testLogger, configManager)
   const opts = {
     logger: testLogger,
@@ -227,4 +230,26 @@ export function bootstrapNetwork (testName, argv,
   })
 
   return bootstrapResp
+}
+
+export function balanceQueryShouldSucceed (accountManager, cmd, namespace) {
+  it('Balance query should succeed', async () => {
+    expect.assertions(3)
+
+    try {
+      expect(accountManager._nodeClient).toBeNull()
+      await accountManager.loadNodeClient(namespace)
+      expect(accountManager._nodeClient).not.toBeNull()
+
+      const balance = await new AccountBalanceQuery()
+        .setAccountId(accountManager._nodeClient.getOperator().accountId)
+        .execute(accountManager._nodeClient)
+
+      expect(balance.hbars).not.toBeNull()
+    } catch (e) {
+      cmd.logger.showUserError(e)
+      expect(e).toBeNull()
+    }
+    await sleep(1000)
+  }, 120000)
 }

@@ -17,7 +17,6 @@
  */
 
 import {
-  AccountBalanceQuery,
   AccountCreateTransaction,
   Hbar,
   HbarUnit,
@@ -36,9 +35,12 @@ import {
   constants, Templates
 } from '../../src/core/index.mjs'
 import {
+  balanceQueryShouldSucceed,
   bootstrapNetwork,
   getDefaultArgv,
-  getTestConfigManager, getTmpDir,
+  getTestConfigManager,
+  getTmpDir,
+  HEDERA_PLATFORM_VERSION_TAG,
   TEST_CLUSTER
 } from '../test_util.js'
 import { sleep } from '../../src/core/helpers.mjs'
@@ -46,8 +48,8 @@ import path from 'path'
 import fs from 'fs'
 import crypto from 'crypto'
 
-export function e2eNodeKeyRefreshAddTest (keyFormat, testName, mode, releaseTag = 'v0.49.0-alpha.2') {
-  const defaultTimeout = 20000
+export function e2eNodeKeyRefreshAddTest (keyFormat, testName, mode, releaseTag = HEDERA_PLATFORM_VERSION_TAG) {
+  const defaultTimeout = 120000
 
   describe(`NodeCommand [testName ${testName}, mode ${mode}, keyFormat: ${keyFormat}, release ${releaseTag}]`, () => {
     const namespace = testName
@@ -59,6 +61,9 @@ export function e2eNodeKeyRefreshAddTest (keyFormat, testName, mode, releaseTag 
     argv[flags.generateGossipKeys.name] = true
     argv[flags.generateTlsKeys.name] = true
     argv[flags.clusterName.name] = TEST_CLUSTER
+    // set the env variable SOLO_FST_CHARTS_DIR if developer wants to use local FST charts
+    argv[flags.chartDirectory.name] = process.env.SOLO_FST_CHARTS_DIR ? process.env.SOLO_FST_CHARTS_DIR : undefined
+
     const bootstrapResp = bootstrapNetwork(testName, argv)
     const accountManager = bootstrapResp.opts.accountManager
     const k8 = bootstrapResp.opts.k8
@@ -67,11 +72,11 @@ export function e2eNodeKeyRefreshAddTest (keyFormat, testName, mode, releaseTag 
     afterEach(async () => {
       await nodeCmd.close()
       await accountManager.close()
-    }, 120000)
+    }, defaultTimeout)
 
     afterAll(async () => {
       await k8.deleteNamespace(namespace)
-    }, 120000)
+    }, defaultTimeout)
 
     describe(`Node should have started successfully [mode ${mode}, release ${releaseTag}, keyFormat: ${keyFormat}]`, () => {
       balanceQueryShouldSucceed(accountManager, nodeCmd, namespace)
@@ -82,14 +87,16 @@ export function e2eNodeKeyRefreshAddTest (keyFormat, testName, mode, releaseTag 
         expect.assertions(1)
 
         try {
-          await expect(nodeCmd.checkNetworkNodeProxyUp('node0', 30499, 30, 10000)).resolves.toBeTruthy()
+          await expect(k8.waitForPodReady(
+            ['app=haproxy-node0', 'fullstack.hedera.com/type=haproxy'],
+            1, 300, 1000)).resolves.toBeTruthy()
         } catch (e) {
           nodeCmd.logger.showUserError(e)
           expect(e).toBeNull()
         } finally {
           await nodeCmd.close()
         }
-      }, 60000)
+      }, defaultTimeout)
     })
 
     describe(`Node should refresh successfully [mode ${mode}, release ${releaseTag}, keyFormat: ${keyFormat}]`, () => {
@@ -131,7 +138,7 @@ export function e2eNodeKeyRefreshAddTest (keyFormat, testName, mode, releaseTag 
         configManager.update(argv, true)
         existingServiceMap = await accountManager.getNodeServiceMap(namespace)
         existingNodeIdsPrivateKeysHash = await getNodeIdsPrivateKeysHash(existingServiceMap, namespace, keyFormat, k8, getTmpDir())
-      }, 120000)
+      }, defaultTimeout)
 
       it(`${nodeId} should not exist`, async () => {
         try {
@@ -175,7 +182,7 @@ export function e2eNodeKeyRefreshAddTest (keyFormat, testName, mode, releaseTag 
                 `${nodeId}:${keyFileName}:${existingKeyHash}`)
           }
         }
-      }, 60000)
+      }, defaultTimeout)
     })
   })
 
@@ -209,29 +216,7 @@ export function e2eNodeKeyRefreshAddTest (keyFormat, testName, mode, releaseTag 
         nodeCmd.logger.showUserError(e)
         expect(e).toBeNull()
       }
-    }, 60000)
-  }
-
-  function balanceQueryShouldSucceed (accountManager, nodeCmd, namespace) {
-    it('Balance query should succeed', async () => {
-      expect.assertions(3)
-
-      try {
-        expect(accountManager._nodeClient).toBeNull()
-        await accountManager.loadNodeClient(namespace)
-        expect(accountManager._nodeClient).not.toBeNull()
-
-        const balance = await new AccountBalanceQuery()
-          .setAccountId(accountManager._nodeClient.getOperator().accountId)
-          .execute(accountManager._nodeClient)
-
-        expect(balance.hbars).not.toBeNull()
-      } catch (e) {
-        nodeCmd.logger.showUserError(e)
-        expect(e).toBeNull()
-      }
-      await sleep(1000)
-    }, 120000)
+    }, defaultTimeout)
   }
 
   function nodePodShouldBeRunning (nodeCmd, namespace, nodeId) {
@@ -292,13 +277,13 @@ export function e2eNodeKeyRefreshAddTest (keyFormat, testName, mode, releaseTag 
     }
   }
 
-  async function getNodeIdsPrivateKeysHash (existingServiceMap, namespace, keyFormat, k8, destDir) {
+  async function getNodeIdsPrivateKeysHash (networkNodeServicesMap, namespace, keyFormat, k8, destDir) {
     const dataKeysDir = `${constants.HEDERA_HAPI_PATH}/data/keys`
     const tlsKeysDir = constants.HEDERA_HAPI_PATH
     const nodeKeyHashMap = new Map()
-    for (const serviceObject of existingServiceMap.values()) {
+    for (const networkNodeServices of networkNodeServicesMap.values()) {
       const keyHashMap = new Map()
-      const nodeId = serviceObject.node
+      const nodeId = networkNodeServices.nodeName
       const uniqueNodeDestDir = path.join(destDir, nodeId)
       if (!fs.existsSync(uniqueNodeDestDir)) {
         fs.mkdirSync(uniqueNodeDestDir, { recursive: true })

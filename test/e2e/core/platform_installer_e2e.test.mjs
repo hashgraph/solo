@@ -25,13 +25,15 @@ import * as fs from 'fs'
 import { K8 } from '../../../src/core/k8.mjs'
 
 import { getTestCacheDir, getTmpDir, testLogger } from '../../test_util.js'
+import { AccountManager } from '../../../src/core/account_manager.mjs'
 
 const defaultTimeout = 20000
 
 describe('PackageInstallerE2E', () => {
   const configManager = new ConfigManager(testLogger)
   const k8 = new K8(configManager, testLogger)
-  const installer = new PlatformInstaller(testLogger, k8, configManager)
+  const accountManager = new AccountManager(testLogger, k8)
+  const installer = new PlatformInstaller(testLogger, k8, configManager, accountManager)
   const testCacheDir = getTestCacheDir()
   const podName = 'network-node0-0'
   const packageVersion = 'v0.42.5'

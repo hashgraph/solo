@@ -146,3 +146,9 @@ export const PROFILE_LOCAL = 'local'
 
 export const ALL_PROFILES = [PROFILE_LOCAL, PROFILE_TINY, PROFILE_SMALL, PROFILE_MEDIUM, PROFILE_LARGE]
 export const DEFAULT_PROFILE_FILE = `${SOLO_CACHE_DIR}/profiles/custom-spec.yaml`
+
+// ------ Hedera SDK Related ------
+export const NODE_CLIENT_MAX_ATTEMPTS = process.env.NODE_CLIENT_MAX_ATTEMPTS || 60
+export const NODE_CLIENT_MIN_BACKOFF = process.env.NODE_CLIENT_MIN_BACKOFF || 1000
+export const NODE_CLIENT_MAX_BACKOFF = process.env.NODE_CLIENT_MAX_BACKOFF || 1000
+export const NODE_CLIENT_REQUEST_TIMEOUT = process.env.NODE_CLIENT_REQUEST_TIMEOUT || 120000

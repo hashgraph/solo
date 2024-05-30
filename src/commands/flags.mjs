@@ -402,7 +402,7 @@ export const settingTxt = {
 export const app = {
   name: 'app',
   definition: {
-    describe: 'Testing app anme',
+    describe: 'Testing app name',
     defaultValue: '',
     type: 'string'
   }

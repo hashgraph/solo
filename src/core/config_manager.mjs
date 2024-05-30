@@ -115,7 +115,7 @@ export class ConfigManager {
           switch (flag.definition.type) {
             case 'string':
               if (val && (flag.name === flags.chartDirectory.name || flag.name === flags.cacheDir.name)) {
-                this.logger.debug(`Resolving directory path for '${flag.name}': ${val}`)
+                this.logger.debug(`Resolving directory path for '${flag.name}': ${val}, to: ${paths.resolve(val)}, note: ~/ is not supported`)
                 val = paths.resolve(val)
               }
               this.logger.debug(`Setting flag '${flag.name}' of type '${flag.definition.type}': ${val}`)

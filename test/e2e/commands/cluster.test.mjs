@@ -20,11 +20,13 @@ import {
   beforeEach,
   describe,
   expect,
-  it, jest
+  it,
+  jest
 } from '@jest/globals'
 import {
   bootstrapTestVariables,
   getDefaultArgv,
+  HEDERA_PLATFORM_VERSION_TAG,
   TEST_CLUSTER
 } from '../../test_util.js'
 import {
@@ -44,6 +46,7 @@ describe('ClusterCommand', () => {
   const namespace = testName
   const argv = getDefaultArgv()
   argv[flags.namespace.name] = namespace
+  argv[flags.releaseTag.name] = HEDERA_PLATFORM_VERSION_TAG
   argv[flags.keyFormat.name] = constants.KEY_FORMAT_PEM
   argv[flags.nodeIDs.name] = 'node0'
   argv[flags.generateGossipKeys.name] = true
@@ -51,6 +54,8 @@ describe('ClusterCommand', () => {
   argv[flags.clusterName.name] = TEST_CLUSTER
   argv[flags.fstChartVersion.name] = version.FST_CHART_VERSION
   argv[flags.force.name] = true
+  // set the env variable SOLO_FST_CHARTS_DIR if developer wants to use local FST charts
+  argv[flags.chartDirectory.name] = process.env.SOLO_FST_CHARTS_DIR ? process.env.SOLO_FST_CHARTS_DIR : undefined
 
   const bootstrapResp = bootstrapTestVariables(testName, argv)
   const k8 = bootstrapResp.opts.k8
