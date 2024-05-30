@@ -17,7 +17,10 @@
  */
 
 import {
-  afterAll, afterEach, beforeAll, describe,
+  afterAll,
+  afterEach,
+  beforeAll,
+  describe,
   expect,
   it
 } from '@jest/globals'
@@ -26,8 +29,10 @@ import {
   constants
 } from '../../../src/core/index.mjs'
 import {
+  balanceQueryShouldSucceed,
   bootstrapNetwork,
   getDefaultArgv,
+  HEDERA_PLATFORM_VERSION_TAG,
   TEST_CLUSTER
 } from '../../test_util.js'
 import * as version from '../../../version.mjs'
@@ -42,7 +47,7 @@ describe('MirrorNodeCommand', () => {
   const namespace = testName
   const argv = getDefaultArgv()
   argv[flags.namespace.name] = namespace
-  argv[flags.releaseTag.name] = 'v0.47.0-alpha.0'
+  argv[flags.releaseTag.name] = HEDERA_PLATFORM_VERSION_TAG
   argv[flags.keyFormat.name] = constants.KEY_FORMAT_PEM
 
   argv[flags.nodeIDs.name] = 'node0' // use a single node to reduce resource during e2e tests
@@ -52,6 +57,8 @@ describe('MirrorNodeCommand', () => {
   argv[flags.fstChartVersion.name] = version.FST_CHART_VERSION
   argv[flags.force.name] = true
   argv[flags.relayReleaseTag.name] = flags.relayReleaseTag.definition.defaultValue
+  // set the env variable SOLO_FST_CHARTS_DIR if developer wants to use local FST charts
+  argv[flags.chartDirectory.name] = process.env.SOLO_FST_CHARTS_DIR ? process.env.SOLO_FST_CHARTS_DIR : undefined
 
   const bootstrapResp = bootstrapNetwork(testName, argv)
   const k8 = bootstrapResp.opts.k8
@@ -73,6 +80,8 @@ describe('MirrorNodeCommand', () => {
   afterEach(async () => {
     await sleep(500) // give a few ticks so that connections can close
   })
+
+  balanceQueryShouldSucceed(accountManager, mirrorNodeCmd, namespace)
 
   it('mirror node deploy should success', async () => {
     expect.assertions(1)
@@ -161,7 +170,7 @@ describe('MirrorNodeCommand', () => {
       mirrorNodeCmd.logger.showUserError(e)
       expect(e).toBeNull()
     }
-  }, 240000)
+  }, 300000)
 
   it('mirror node destroy should success', async () => {
     expect.assertions(1)

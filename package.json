@@ -27,7 +27,7 @@
     "check": "remark . --quiet --frail && eslint .",
     "format": "remark . --quiet --frail --output && eslint --fix .",
     "test-setup": "./test/e2e/setup-e2e.sh",
-    "test-coverage": "npm run test && npm run test-setup &&  npm run test-e2e-all && npm run report-coverage"
+    "test-coverage": "npm run test && npm run test-setup && npm run test-e2e-all && npm run report-coverage"
   },
   "keywords": [
     "solo",

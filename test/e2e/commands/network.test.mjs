@@ -17,14 +17,16 @@
  */
 
 import {
-  afterAll, beforeAll,
+  afterAll,
+  beforeAll,
   describe,
   expect,
   it
 } from '@jest/globals'
 import {
   bootstrapTestVariables,
-  getDefaultArgv
+  getDefaultArgv,
+  HEDERA_PLATFORM_VERSION_TAG
 } from '../../test_util.js'
 import {
   constants
@@ -38,7 +40,7 @@ describe('NetworkCommand', () => {
   const namespace = testName
   const argv = getDefaultArgv()
   argv[flags.namespace.name] = namespace
-  argv[flags.releaseTag.name] = 'v0.47.0-alpha.0'
+  argv[flags.releaseTag.name] = HEDERA_PLATFORM_VERSION_TAG
   argv[flags.keyFormat.name] = constants.KEY_FORMAT_PEM
   argv[flags.nodeIDs.name] = 'node0'
   argv[flags.generateGossipKeys.name] = true
@@ -46,6 +48,8 @@ describe('NetworkCommand', () => {
   argv[flags.deployMinio.name] = true
   argv[flags.fstChartVersion.name] = version.FST_CHART_VERSION
   argv[flags.force.name] = true
+  // set the env variable SOLO_FST_CHARTS_DIR if developer wants to use local FST charts
+  argv[flags.chartDirectory.name] = process.env.SOLO_FST_CHARTS_DIR ? process.env.SOLO_FST_CHARTS_DIR : undefined
 
   const bootstrapResp = bootstrapTestVariables(testName, argv)
   const k8 = bootstrapResp.opts.k8

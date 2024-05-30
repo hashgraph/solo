@@ -94,7 +94,7 @@ export class MirrorNodeCommand extends BaseCommand {
             {
               title: 'Prepare address book',
               task: async (ctx, _) => {
-                ctx.addressBook = await self.accountManager.prepareAddressBookBase64()
+                ctx.addressBook = await self.accountManager.prepareAddressBookBase64(ctx.config.namespace)
                 ctx.config.valuesArg += ` --set "hedera-mirror-node.importer.addressBook=${ctx.addressBook}"`
               }
             },
