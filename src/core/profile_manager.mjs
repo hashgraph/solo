@@ -230,10 +230,9 @@ export class ProfileManager {
     this.resourcesForEnvoyProxyPod(profile, yamlRoot)
     this.resourcesForMinioTenantPod(profile, yamlRoot)
 
-    // TODO add the application.env file contents
-    // if (applicationEnvFilePath) {
-    //   this.setFileContentsAsValue(applicationEnvFilePath, 'hedera.configMaps.applicationEnv', yamlRoot)
-    // }
+    if (applicationEnvFilePath) {
+      this._setFileContentsAsValue('hedera.configMaps.applicationEnv', applicationEnvFilePath, yamlRoot)
+    }
 
     // write the yaml
     const cachedValuesFile = path.join(this.cacheDir, `fst-${profileName}.yaml`)
@@ -313,5 +312,17 @@ export class ProfileManager {
         resolve(cachedValuesFile)
       })
     })
+  }
+
+  /**
+   * Writes the contents of a file as a value for the given nested item path in the yaml object
+   * @param {string} itemPath nested item path in the yaml object to store the file contents
+   * @param {string} valueFilePath path to the file whose contents will be stored in the yaml object
+   * @param {Object} yamlRoot root of the yaml object
+   * @private
+   */
+  _setFileContentsAsValue (itemPath, valueFilePath, yamlRoot) {
+    const fileContents = fs.readFileSync(valueFilePath, 'utf8')
+    this._setValue(itemPath, fileContents, yamlRoot)
   }
 }

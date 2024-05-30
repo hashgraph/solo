@@ -73,9 +73,9 @@ export class NetworkCommand extends BaseCommand {
     }
 
     const profileName = this.configManager.getFlag(flags.profileName)
-    const profileValuesFile = await this.profileManager.prepareValuesForFstChart(profileName)
-    if (profileValuesFile) {
-      valuesArg += this.prepareValuesFiles(profileValuesFile)
+    this.profileValuesFile = await this.profileManager.prepareValuesForFstChart(profileName, config.applicationEnv)
+    if (this.profileValuesFile) {
+      valuesArg += this.prepareValuesFiles(this.profileValuesFile)
     }
 
     // do not deploy mirror node until after we have the updated address book
@@ -126,7 +126,8 @@ export class NetworkCommand extends BaseCommand {
       tlsClusterIssuerType: this.configManager.getFlag(flags.tlsClusterIssuerType),
       enableHederaExplorerTls: this.configManager.getFlag(flags.enableHederaExplorerTls),
       hederaExplorerTlsHostName: this.configManager.getFlag(flags.hederaExplorerTlsHostName),
-      enablePrometheusSvcMonitor: this.configManager.getFlag(flags.enablePrometheusSvcMonitor)
+      enablePrometheusSvcMonitor: this.configManager.getFlag(flags.enablePrometheusSvcMonitor),
+      applicationEnv: this.configManager.getFlag(flags.applicationEnv)
     }
 
     // compute values
@@ -418,7 +419,8 @@ export class NetworkCommand extends BaseCommand {
               flags.enablePrometheusSvcMonitor,
               flags.fstChartVersion,
               flags.profileFile,
-              flags.profileName
+              flags.profileName,
+              flags.applicationEnv
             ),
             handler: argv => {
               networkCmd.logger.debug('==== Running \'network deploy\' ===')
@@ -469,7 +471,8 @@ export class NetworkCommand extends BaseCommand {
               flags.enableHederaExplorerTls,
               flags.hederaExplorerTlsLoadBalancerIp,
               flags.hederaExplorerTlsHostName,
-              flags.enablePrometheusSvcMonitor
+              flags.enablePrometheusSvcMonitor,
+              flags.applicationEnv
             ),
             handler: argv => {
               networkCmd.logger.debug('==== Running \'chart upgrade\' ===')
