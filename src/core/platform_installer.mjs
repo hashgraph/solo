@@ -234,14 +234,19 @@ export class PlatformInstaller {
     if (!podName) throw new MissingArgumentError('podName is required')
     if (!destPath) throw new MissingArgumentError('destPath is required')
 
+    const recursiveFlag = recursive ? '-R' : ''
     try {
-      const recursiveFlag = recursive ? '-R' : ''
       await this.k8.execContainer(podName, container, `chown ${recursiveFlag} hedera:hedera ${destPath}`)
-      await this.k8.execContainer(podName, container, `chmod ${recursiveFlag} ${mode} ${destPath}`)
-      return true
     } catch (e) {
-      throw new FullstackTestingError(`failed to set permission in '${podName}': ${destPath}`, e)
+      // ignore error, can't change settings on files that come from configMaps or secrets
     }
+    try {
+      await this.k8.execContainer(podName, container, `chmod ${recursiveFlag} ${mode} ${destPath}`)
+    } catch (e) {
+      // ignore error, can't change settings on files that come from configMaps or secrets
+    }
+
+    return true
   }
 
   async setPlatformDirPermissions (podName) {

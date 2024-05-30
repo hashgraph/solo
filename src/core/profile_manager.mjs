@@ -213,9 +213,10 @@ export class ProfileManager {
   /**
    * Prepare a values file for FST Helm chart
    * @param profileName resource profile name
+   * @param applicationEnvFilePath path to the application.env file
    * @return {Promise<string>} return the full path to the values file
    */
-  prepareValuesForFstChart (profileName) {
+  prepareValuesForFstChart (profileName, applicationEnvFilePath = null) {
     if (!profileName) throw new MissingArgumentError('profileName is required')
     const profile = this.getProfile(profileName)
 
@@ -228,6 +229,11 @@ export class ProfileManager {
     this.resourcesForHaProxyPod(profile, yamlRoot)
     this.resourcesForEnvoyProxyPod(profile, yamlRoot)
     this.resourcesForMinioTenantPod(profile, yamlRoot)
+
+    // TODO add the application.env file contents
+    // if (applicationEnvFilePath) {
+    //   this.setFileContentsAsValue(applicationEnvFilePath, 'hedera.configMaps.applicationEnv', yamlRoot)
+    // }
 
     // write the yaml
     const cachedValuesFile = path.join(this.cacheDir, `fst-${profileName}.yaml`)
