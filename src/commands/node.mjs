@@ -1700,7 +1700,7 @@ export class NodeCommand extends BaseCommand {
           })
           .command({
             command: 'logs',
-            desc: 'Download logs from a node',
+            desc: 'Download logs from nodes',
             builder: y => flags.setCommandFlags(y,
               flags.nodeIDs
             ),
