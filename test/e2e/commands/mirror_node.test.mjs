@@ -99,7 +99,7 @@ describe('MirrorNodeCommand', () => {
 
   it('mirror node API should be running', async () => {
     await accountManager.loadNodeClient(namespace)
-    expect.assertions(2)
+    expect.assertions(1)
     try {
       // find hedera explorer pod
       const pods = await k8.getPodsByLabel(['app.kubernetes.io/name=hedera-explorer'])
@@ -119,6 +119,7 @@ describe('MirrorNodeCommand', () => {
   }, 60000)
 
   it('Explorer GUI should be running', async () => {
+    expect.assertions(1)
     try {
       const guiURL = 'http://127.0.0.1:8080/localnet/dashboard'
       await expect(downloader.urlExists(guiURL)).resolves.toBeTruthy()
