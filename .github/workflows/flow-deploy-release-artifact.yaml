@@ -126,7 +126,7 @@ jobs:
           attempt_delay: 5000
 
       - name: Setup JFrog CLI
-        uses: jfrog/setup-jfrog-cli@d730afd3a0551249ed4b178855aa53b36f2cca6a # v4.1.0
+        uses: jfrog/setup-jfrog-cli@1405ca8c4227d79f4c8303964f757a4e4e2369c2 # v4.1.1
         env:
           JF_URL: ${{ vars.JF_URL }}
           JF_ACCESS_TOKEN: ${{ secrets.JF_ACCESS_TOKEN }}
