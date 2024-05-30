@@ -1075,23 +1075,20 @@ export class NodeCommand extends BaseCommand {
   }
 
   async logs (argv) {
+    const self = this
+
     const tasks = new Listr([
       {
         title: 'Initialize',
         task: async (ctx, task) => {
-          self.configManager.update(argv)
           await prompts.execute(task, self.configManager, [
             flags.nodeIDs
           ])
 
-          const config = {
+          ctx.config = {
             nodeIds: helpers.parseNodeIds(self.configManager.getFlag(flags.nodeIDs))
           }
-          await self.initializeSetup(config, self.configManager, self.k8)
-
-          // set config in the context for later tasks to use
-          ctx.config = config
-          self.logger.debug('Initialized config', { config })
+          self.logger.debug('Initialized config', { config: ctx.config })
         }
       },
       {
