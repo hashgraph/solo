@@ -23,6 +23,7 @@ import * as paths from 'path'
 import { fileURLToPath } from 'url'
 import * as semver from 'semver'
 import { Templates } from './templates.mjs'
+import { HEDERA_HAPI_PATH, ROOT_CONTAINER, SOLO_LOGS_DIR } from './constants.mjs'
 
 // cache current directory
 const CUR_FILE_DIR = paths.dirname(fileURLToPath(import.meta.url))
@@ -181,4 +182,24 @@ export function validatePath (input) {
     throw new FullstackTestingError(`access denied for path: ${input}`)
   }
   return input
+}
+
+/**
+ * Download logs files from the network pods and save to local solo log directory
+ * @param k8
+ *    an instance of core/K8
+ * @param nodeIds
+ *    a list of node ids
+ * @returns A promise that resolves when the logs are downloaded
+ */
+export async function getNodeLogs (k8, nodeIds) {
+  for (const nodeId of nodeIds) {
+    const podName = Templates.renderNetworkPodName(nodeId)
+
+    const targetDir = `${SOLO_LOGS_DIR}/${nodeId}`
+    fs.mkdirSync(targetDir, { recursive: true })
+
+    await k8.copyFrom(podName, ROOT_CONTAINER, `${HEDERA_HAPI_PATH}/output/swirlds.log`, targetDir)
+    await k8.copyFrom(podName, ROOT_CONTAINER, `${HEDERA_HAPI_PATH}/output/hgcaa.log`, targetDir)
+  }
 }
