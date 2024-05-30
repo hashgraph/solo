@@ -212,11 +212,11 @@ export class ProfileManager {
 
   /**
    * Prepare a values file for FST Helm chart
-   * @param profileName resource profile name
-   * @param applicationEnvFilePath path to the application.env file
+   * @param {string} profileName resource profile name
+   * @param {string} applicationEnvFilePath path to the application.env file
    * @return {Promise<string>} return the full path to the values file
    */
-  prepareValuesForFstChart (profileName, applicationEnvFilePath = null) {
+  prepareValuesForFstChart (profileName, applicationEnvFilePath = '') {
     if (!profileName) throw new MissingArgumentError('profileName is required')
     const profile = this.getProfile(profileName)
 
