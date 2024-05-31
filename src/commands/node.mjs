@@ -1084,6 +1084,7 @@ export class NodeCommand extends BaseCommand {
           ])
 
           ctx.config = {
+            namespace: self.configManager.getFlag(flags.namespace),
             nodeIds: helpers.parseNodeIds(self.configManager.getFlag(flags.nodeIDs))
           }
           self.logger.debug('Initialized config', { config: ctx.config })
@@ -1092,7 +1093,7 @@ export class NodeCommand extends BaseCommand {
       {
         title: 'Copy logs from all nodes',
         task: (ctx, _) => {
-          getNodeLogs(this.k8, flags.namespace)
+          getNodeLogs(this.k8, ctx.config.namespace)
         }
       }
     ], {
