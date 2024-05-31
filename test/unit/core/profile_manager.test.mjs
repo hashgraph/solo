@@ -68,7 +68,7 @@ describe('ProfileManager', () => {
       expect(fs.existsSync(valuesFile)).toBeTruthy()
 
       // validate the yaml
-      const valuesYaml = yaml.load(fs.readFileSync(valuesFile))
+      const valuesYaml = yaml.load(fs.readFileSync(valuesFile).toString())
       expect(valuesYaml.hedera.nodes.length).toStrictEqual(3)
       expect(valuesYaml.defaults.root.resources.limits.cpu).not.toBeNull()
       expect(valuesYaml.defaults.root.resources.limits.memory).not.toBeNull()
@@ -98,7 +98,7 @@ describe('ProfileManager', () => {
       expect(fs.existsSync(valuesFile)).toBeTruthy()
 
       // validate yaml
-      const valuesYaml = yaml.load(fs.readFileSync(valuesFile))
+      const valuesYaml = yaml.load(fs.readFileSync(valuesFile).toString())
       expect(valuesYaml['hedera-mirror-node'].postgresql.persistence.size).not.toBeNull()
       expect(valuesYaml['hedera-mirror-node'].postgresql.postgresql.resources.limits.cpu).not.toBeNull()
       expect(valuesYaml['hedera-mirror-node'].postgresql.postgresql.resources.limits.memory).not.toBeNull()
@@ -118,9 +118,20 @@ describe('ProfileManager', () => {
       const valuesFile = await profileManager.prepareValuesForRpcRelayChart(input.profileName)
       expect(fs.existsSync(valuesFile)).toBeTruthy()
       // validate yaml
-      const valuesYaml = yaml.load(fs.readFileSync(valuesFile))
+      const valuesYaml = yaml.load(fs.readFileSync(valuesFile).toString())
       expect(valuesYaml.resources.limits.cpu).not.toBeNull()
       expect(valuesYaml.resources.limits.memory).not.toBeNull()
     })
+  })
+
+  it('prepareValuesForFstChart should set the value of a key to the contents of a file', async () => {
+    configManager.setFlag(flags.profileFile, testProfileFile)
+    // profileManager.loadProfiles(true)
+    const file = path.join(tmpDir, '_setFileContentsAsValue.txt')
+    const fileContents = '# row 1\n# row 2\n# row 3'
+    fs.writeFileSync(file, fileContents)
+    const cachedValuesFile = await profileManager.prepareValuesForFstChart('test', file)
+    const valuesYaml = yaml.load(fs.readFileSync(cachedValuesFile).toString())
+    expect(valuesYaml.hedera.configMaps.applicationEnv).toEqual(fileContents)
   })
 })

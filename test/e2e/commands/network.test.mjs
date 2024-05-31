@@ -26,6 +26,7 @@ import {
 import {
   bootstrapTestVariables,
   getDefaultArgv,
+  getTmpDir,
   HEDERA_PLATFORM_VERSION_TAG
 } from '../../test_util.js'
 import {
@@ -34,10 +35,15 @@ import {
 import { flags } from '../../../src/commands/index.mjs'
 import * as version from '../../../version.mjs'
 import { sleep } from '../../../src/core/helpers.mjs'
+import path from 'path'
+import fs from 'fs'
 
 describe('NetworkCommand', () => {
   const testName = 'network-cmd-e2e'
   const namespace = testName
+  const applicationEnvFileContents = '# row 1\n# row 2\n# row 3'
+  const applicationEnvParentDirectory = path.join(getTmpDir(), 'network-command-test')
+  const applicationEnvFilePath = path.join(applicationEnvParentDirectory, 'application.env')
   const argv = getDefaultArgv()
   argv[flags.namespace.name] = namespace
   argv[flags.releaseTag.name] = HEDERA_PLATFORM_VERSION_TAG
@@ -48,6 +54,7 @@ describe('NetworkCommand', () => {
   argv[flags.deployMinio.name] = true
   argv[flags.fstChartVersion.name] = version.FST_CHART_VERSION
   argv[flags.force.name] = true
+  argv[flags.applicationEnv.name] = applicationEnvFilePath
   // set the env variable SOLO_FST_CHARTS_DIR if developer wants to use local FST charts
   argv[flags.chartDirectory.name] = process.env.SOLO_FST_CHARTS_DIR ? process.env.SOLO_FST_CHARTS_DIR : undefined
 
@@ -66,6 +73,8 @@ describe('NetworkCommand', () => {
 
   beforeAll(async () => {
     await clusterCmd.setup(argv)
+    fs.mkdirSync(applicationEnvParentDirectory, { recursive: true })
+    fs.writeFileSync(applicationEnvFilePath, applicationEnvFileContents)
   })
 
   it('network deploy command should succeed', async () => {
@@ -84,6 +93,15 @@ describe('NetworkCommand', () => {
       expect(e).toBeNull()
     }
   }, 240000)
+
+  it('application env file contents should be in cached values file', async () => {
+    expect.assertions(3)
+    const valuesYaml = fs.readFileSync(networkCmd.profileValuesFile).toString()
+    const fileRows = applicationEnvFileContents.split('\n')
+    for (const fileRow of fileRows) {
+      expect(valuesYaml).toContain(fileRow)
+    }
+  })
 
   it('network destroy should success', async () => {
     argv[flags.deletePvcs.name] = true
