@@ -1455,7 +1455,10 @@ export class NodeCommand extends BaseCommand {
       )
 
       const futureDate = new Date()
-      futureDate.setDate(futureDate.getDate() + (1 / 24 / 60)) // 1 minute in the future
+      this.logger.debug(`Current time: ${futureDate}`)
+
+      futureDate.setTime(futureDate.getTime() + 20000) // 20 seconds in the future
+      this.logger.debug(`Freeze time: ${futureDate}`)
 
       const freezeUpgradeTx = await new FreezeTransaction()
         .setFreezeType(FreezeType.FreezeUpgrade)
@@ -1465,7 +1468,10 @@ export class NodeCommand extends BaseCommand {
         .freezeWith(client)
         .execute(client)
 
-      this.logger.debug(`Upgrade frozen with transaction id: ${freezeUpgradeTx.transactionId.toString()}`)
+      const freezeUpgradeReceipt = await freezeUpgradeTx.getReceipt(client)
+
+      this.logger.debug(`Upgrade frozen with transaction id: ${freezeUpgradeTx.transactionId.toString()}`,
+        freezeUpgradeReceipt.status.toString())
     } catch (e) {
       this.logger.error(`Error in freeze upgrade: ${e.message}`, e)
       throw new FullstackTestingError(`Error in freeze upgrade: ${e.message}`, e)
