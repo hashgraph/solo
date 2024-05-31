@@ -552,6 +552,7 @@ export class NodeCommand extends BaseCommand {
             {
               title: 'Prepare config.txt for the network',
               task: async (ctx, _) => {
+                // TODO: move this to profile manager, the flags need to go to init and network commands
                 const config = ctx.config
                 const configTxtPath = `${config.stagingDir}/config.txt`
                 const template = `${constants.RESOURCES_DIR}/templates/config.template`
@@ -1311,6 +1312,7 @@ export class NodeCommand extends BaseCommand {
             {
               title: 'Prepare config.txt for the network',
               task: async (ctx, _) => {
+                // TODO: move this to profile manager, the flags need to go to init and network commands
                 const config = ctx.config
                 const configTxtPath = `${config.stagingDir}/config.txt`
                 const template = `${constants.RESOURCES_DIR}/templates/config.template`

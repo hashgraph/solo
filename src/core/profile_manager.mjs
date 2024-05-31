@@ -145,6 +145,7 @@ export class ProfileManager {
     }
   }
 
+  // TODO need to pass through the config.releaseTag, config.chainId, and config.app
   resourcesForConsensusPod (profile, nodeIds, yamlRoot) {
     if (!profile) throw new MissingArgumentError('profile is required')
 
@@ -155,10 +156,24 @@ export class ProfileManager {
 
     // set consensus pod level resources
     for (let nodeIndex = 0; nodeIndex < nodeIds.length; nodeIndex++) {
+      // TODO here is where the nodeId is set, hedera.nodes.${nodeIndex}.name
       this._setValue(`hedera.nodes.${nodeIndex}.name`, nodeIds[nodeIndex], yamlRoot)
+      // TODO here is where the accountId is set, hedera.nodes.${nodeIndex}.accountId
       this._setValue(`hedera.nodes.${nodeIndex}.accountId`, `${realm}.${shard}.${accountId++}`, yamlRoot)
       this._setChartItems(`hedera.nodes.${nodeIndex}`, profile.consensus, yamlRoot)
     }
+
+    // TODO prepareConfigTxt then set the value
+    // TODO load the files and set the values
+    // hedera:
+    //     configMaps:
+    //         apiPermissionsProperties: ""
+    //         applicationEnv: ""
+    //         applicationProperties: ""
+    //         bootstrapProperties: ""
+    //         configTxt: ""
+    //         log4j2Xml: ""
+    //         settingsTxt: ""
 
     if (profile.consensus) {
       // set default for consensus pod
@@ -217,6 +232,8 @@ export class ProfileManager {
    * @return {Promise<string>} return the full path to the values file
    */
   prepareValuesForFstChart (profileName, applicationEnvFilePath = '') {
+    // TODO need to pass through the config.releaseTag, config.chainId, and config.app
+
     if (!profileName) throw new MissingArgumentError('profileName is required')
     const profile = this.getProfile(profileName)
 
@@ -225,6 +242,7 @@ export class ProfileManager {
 
     // generate the yaml
     const yamlRoot = {}
+    // TODO yamlRoot returned from ProfileManager.resourcesForConsensusPod (called from prepareValuesForFstChart) has: { hedera.nodes.${nodeIndex}.name & hedera.nodes.${nodeIndex}.accountId }
     this.resourcesForConsensusPod(profile, nodeIds, yamlRoot)
     this.resourcesForHaProxyPod(profile, yamlRoot)
     this.resourcesForEnvoyProxyPod(profile, yamlRoot)
