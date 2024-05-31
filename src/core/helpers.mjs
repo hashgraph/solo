@@ -186,7 +186,7 @@ export function validatePath (input) {
 
 /**
  * Download logs files from all network pods and save to local solo log directory
- * @param k8
+ * @param {k8}
  *    an instance of core/K8
  * @returns {Promise<void>} A promise that resolves when the logs are downloaded
  */
