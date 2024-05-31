@@ -640,7 +640,6 @@ export class NodeCommand extends BaseCommand {
           ctx.config = {
             namespace: self.configManager.getFlag(flags.namespace),
             nodeIds: helpers.parseNodeIds(self.configManager.getFlag(flags.nodeIDs)),
-            applicationEnv: self.configManager.getFlag(flags.applicationEnv),
             cacheDir: self.configManager.getFlag(flags.cacheDir)
           }
 
@@ -907,7 +906,6 @@ export class NodeCommand extends BaseCommand {
             releaseTag: self.configManager.getFlag(flags.releaseTag),
             cacheDir: self.configManager.getFlag(flags.cacheDir),
             force: self.configManager.getFlag(flags.force),
-            applicationEnv: self.configManager.getFlag(flags.applicationEnv),
             keyFormat: self.configManager.getFlag(flags.keyFormat),
             devMode: self.configManager.getFlag(flags.devMode),
             curDate: new Date()
@@ -1481,15 +1479,6 @@ export class NodeCommand extends BaseCommand {
         title: `Start node: ${chalk.yellow(nodeId)}`,
         task: async () => {
           await this.k8.execContainer(podName, constants.ROOT_CONTAINER, ['bash', '-c', `rm -rf ${constants.HEDERA_HAPI_PATH}/output/*`])
-
-          // copy application.env file if required
-          if (config.applicationEnv) {
-            const stagingDir = Templates.renderStagingDir(this.configManager, flags)
-            const applicationEnvFile = path.join(stagingDir, 'application.env')
-            fs.cpSync(config.applicationEnv, applicationEnvFile)
-            await this.k8.copyTo(podName, constants.ROOT_CONTAINER, applicationEnvFile, `${constants.HEDERA_HAPI_PATH}`)
-          }
-
           await this.k8.execContainer(podName, constants.ROOT_CONTAINER, ['systemctl', 'restart', 'network-node'])
         }
       })
@@ -1576,8 +1565,7 @@ export class NodeCommand extends BaseCommand {
             desc: 'Start a node',
             builder: y => flags.setCommandFlags(y,
               flags.namespace,
-              flags.nodeIDs,
-              flags.applicationEnv
+              flags.nodeIDs
             ),
             handler: argv => {
               nodeCmd.logger.debug('==== Running \'node start\' ===')
@@ -1643,7 +1631,6 @@ export class NodeCommand extends BaseCommand {
               flags.nodeIDs,
               flags.releaseTag,
               flags.cacheDir,
-              flags.applicationEnv,
               flags.keyFormat
             ),
             handler: argv => {
