@@ -39,7 +39,7 @@ import * as version from '../../../version.mjs'
 import { sleep } from '../../../src/core/helpers.mjs'
 import { MirrorNodeCommand } from '../../../src/commands/mirror_node.mjs'
 import * as core from '../../../src/core/index.mjs'
-import { TopicCreateTransaction, TopicMessageSubmitTransaction } from '@hashgraph/sdk'
+import { Status, TopicCreateTransaction, TopicMessageSubmitTransaction } from '@hashgraph/sdk'
 import * as http from 'http'
 
 describe('MirrorNodeCommand', () => {
@@ -65,6 +65,10 @@ describe('MirrorNodeCommand', () => {
   const mirrorNodeCmd = new MirrorNodeCommand(bootstrapResp.opts)
   const downloader = new core.PackageDownloader(mirrorNodeCmd.logger)
   const accountManager = bootstrapResp.opts.accountManager
+
+  const testMessage = 'Mirror node test message'
+  let portForwarder = null
+  let newTopicId = null
 
   beforeAll(() => {
     bootstrapResp.opts.logger.showUser(`------------------------- START: ${testName} ----------------------------`)
@@ -93,16 +97,14 @@ describe('MirrorNodeCommand', () => {
     }
   }, 600000)
 
-  it('mirror node api and hedera explorer should success', async () => {
+  it('mirror node API should be running', async () => {
     await accountManager.loadNodeClient(namespace)
-    expect.assertions(3)
+    expect.assertions(1)
     try {
       // find hedera explorer pod
       const pods = await k8.getPodsByLabel(['app.kubernetes.io/name=hedera-explorer'])
       const explorerPod = pods[0]
 
-      // enable port forwarding
-      let portForwarder = null
       portForwarder = await k8.portForward(explorerPod.metadata.name, 8080, 8080)
       await sleep(2000)
 
@@ -110,28 +112,51 @@ describe('MirrorNodeCommand', () => {
       const apiURL = 'http://127.0.0.1:8080/api/v1/transactions'
       await expect(downloader.urlExists(apiURL)).resolves.toBeTruthy()
       await sleep(2000)
+    } catch (e) {
+      mirrorNodeCmd.logger.showUserError(e)
+      expect(e).toBeNull()
+    }
+  }, 60000)
 
-      // check if the explorer GUI is running
+  it('Explorer GUI should be running', async () => {
+    expect.assertions(1)
+    try {
       const guiURL = 'http://127.0.0.1:8080/localnet/dashboard'
       await expect(downloader.urlExists(guiURL)).resolves.toBeTruthy()
       await sleep(2000)
 
       mirrorNodeCmd.logger.debug('mirror node API and explorer GUI are running')
+    } catch (e) {
+      mirrorNodeCmd.logger.showUserError(e)
+      expect(e).toBeNull()
+    }
+  }, 60000)
 
+  it('Create topic and submit message should success', async () => {
+    expect.assertions(1)
+    try {
       // Create a new public topic and submit a message
       const txResponse = await new TopicCreateTransaction().execute(accountManager._nodeClient)
       const receipt = await txResponse.getReceipt(accountManager._nodeClient)
-      const newTopicId = receipt.topicId
+      newTopicId = receipt.topicId
       mirrorNodeCmd.logger.debug(`Newly created topic ID is: ${newTopicId}`)
 
-      const testMessage = 'Mirror node test message'
-      await new TopicMessageSubmitTransaction({
+      const submitResponse = await new TopicMessageSubmitTransaction({
         topicId: newTopicId,
         message: testMessage
       }).execute(accountManager._nodeClient)
 
-      await sleep(4000)
+      const submitReceipt = await submitResponse.getReceipt(accountManager._nodeClient)
+      expect(submitReceipt.status).toBe(Status.Success)
+    } catch (e) {
+      mirrorNodeCmd.logger.showUserError(e)
+      expect(e).toBeNull()
+    }
+  }, 60000)
 
+  it('Check submit message result should success', async () => {
+    expect.assertions(1)
+    try {
       const queryURL = `http://localhost:8080/api/v1/topics/${newTopicId}/messages`
       let received = false
       let receivedMessage = ''
