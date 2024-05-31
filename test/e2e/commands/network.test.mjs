@@ -34,7 +34,7 @@ import {
 } from '../../../src/core/index.mjs'
 import { flags } from '../../../src/commands/index.mjs'
 import * as version from '../../../version.mjs'
-import { sleep } from '../../../src/core/helpers.mjs'
+import { getNodeLogs, sleep } from '../../../src/core/helpers.mjs'
 import path from 'path'
 import fs from 'fs'
 
@@ -67,6 +67,7 @@ describe('NetworkCommand', () => {
   const clusterCmd = bootstrapResp.cmd.clusterCmd
 
   afterAll(async () => {
+    await getNodeLogs(k8, namespace)
     await k8.deleteNamespace(namespace)
     await accountManager.close()
   })

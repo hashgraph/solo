@@ -76,7 +76,7 @@ export function e2eNodeKeyRefreshAddTest (keyFormat, testName, mode, releaseTag 
     }, defaultTimeout)
 
     afterAll(async () => {
-      await getNodeLogs(k8)
+      await getNodeLogs(k8, namespace)
       await k8.deleteNamespace(namespace)
     }, defaultTimeout)
 

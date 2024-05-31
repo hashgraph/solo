@@ -27,6 +27,7 @@ import {
   getDefaultArgv,
   TEST_CLUSTER
 } from '../../test_util.js'
+import { getNodeLogs } from '../../../src/core/helpers.mjs'
 
 describe('Node local build', () => {
   const LOCAL_PTT = 'local-ptt-app'
@@ -41,6 +42,7 @@ describe('Node local build', () => {
 
   let pttK8
   afterAll(async () => {
+    await getNodeLogs(pttK8, LOCAL_PTT)
     await pttK8.deleteNamespace(LOCAL_PTT)
   }, 120000)
 

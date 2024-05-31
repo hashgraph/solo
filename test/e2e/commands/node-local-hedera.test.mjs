@@ -27,6 +27,7 @@ import {
   getDefaultArgv,
   TEST_CLUSTER
 } from '../../test_util.js'
+import { getNodeLogs } from '../../../src/core/helpers.mjs'
 
 describe('Node local build', () => {
   const LOCAL_HEDERA = 'local-hedera-app'
@@ -41,6 +42,7 @@ describe('Node local build', () => {
 
   let hederaK8
   afterAll(async () => {
+    await getNodeLogs(hederaK8, LOCAL_HEDERA)
     await hederaK8.deleteNamespace(LOCAL_HEDERA)
   }, 120000)
 

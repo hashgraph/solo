@@ -188,15 +188,25 @@ export function validatePath (input) {
  * Download logs files from all network pods and save to local solo log directory
  * @param k8
  *    an instance of core/K8
- * @returns A promise that resolves when the logs are downloaded
+ * @returns {Promise<void>} A promise that resolves when the logs are downloaded
  */
-export async function getNodeLogs (k8) {
+export async function getNodeLogs (k8, namespace) {
   const pods = await k8.getPodsByLabel(['fullstack.hedera.com/type=network-node'])
+
   for (const pod of pods) {
     const podName = pod.metadata.name
-    const targetDir = `${SOLO_LOGS_DIR}/${podName}`
-    fs.mkdirSync(targetDir, { recursive: true })
-    await k8.copyFrom(podName, ROOT_CONTAINER, `${HEDERA_HAPI_PATH}/output/swirlds.log`, targetDir)
-    await k8.copyFrom(podName, ROOT_CONTAINER, `${HEDERA_HAPI_PATH}/output/hgcaa.log`, targetDir)
+    const targetDir = `${SOLO_LOGS_DIR}/${namespace}/${podName}`
+    try {
+      if (fs.existsSync(targetDir)) {
+        fs.rmdirSync(targetDir, { recursive: true })
+      }
+      fs.mkdirSync(targetDir, { recursive: true })
+      await k8.copyFrom(podName, ROOT_CONTAINER, `${HEDERA_HAPI_PATH}/output/swirlds.log`, targetDir)
+      await k8.copyFrom(podName, ROOT_CONTAINER, `${HEDERA_HAPI_PATH}/output/hgcaa.log`, targetDir)
+    } catch (e) {
+      // not throw error here, so we can continue to finish downloading logs from other pods
+      // and also delete namespace in the end
+      k8.logger.error(`failed to download logs from pod ${podName}`, e)
+    }
   }
 }

@@ -33,7 +33,7 @@ import {
   TEST_CLUSTER
 } from '../../test_util.js'
 import * as version from '../../../version.mjs'
-import { sleep } from '../../../src/core/helpers.mjs'
+import { getNodeLogs, sleep } from '../../../src/core/helpers.mjs'
 import { RelayCommand } from '../../../src/commands/relay.mjs'
 
 describe('RelayCommand', () => {
@@ -58,6 +58,7 @@ describe('RelayCommand', () => {
   const relayCmd = new RelayCommand(bootstrapResp.opts)
 
   afterAll(async () => {
+    await getNodeLogs(k8, namespace)
     await k8.deleteNamespace(namespace)
   })
 

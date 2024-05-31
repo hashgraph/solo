@@ -1092,7 +1092,7 @@ export class NodeCommand extends BaseCommand {
       {
         title: 'Copy logs from all nodes',
         task: (ctx, _) => {
-          getNodeLogs(this.k8)
+          getNodeLogs(this.k8, flags.namespace)
         }
       }
     ], {
@@ -1687,7 +1687,7 @@ export class NodeCommand extends BaseCommand {
           })
           .command({
             command: 'logs',
-            desc: 'Download logs from nodes',
+            desc: 'Download application logs from the network nodes and stores them in <SOLO_LOGS_DIR>/<namespace>/<podName>/ directory',
             builder: y => flags.setCommandFlags(y,
               flags.nodeIDs
             ),
