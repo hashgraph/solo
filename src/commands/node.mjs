@@ -1094,7 +1094,7 @@ export class NodeCommand extends BaseCommand {
       {
         title: 'Copy logs from all nodes',
         task: (ctx, _) => {
-          getNodeLogs(this.k8, ctx.config.nodeIds)
+          getNodeLogs(this.k8)
         }
       }
     ], {

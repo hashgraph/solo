@@ -185,20 +185,17 @@ export function validatePath (input) {
 }
 
 /**
- * Download logs files from the network pods and save to local solo log directory
+ * Download logs files from all network pods and save to local solo log directory
  * @param k8
  *    an instance of core/K8
- * @param nodeIds
- *    a list of node ids
  * @returns A promise that resolves when the logs are downloaded
  */
-export async function getNodeLogs (k8, nodeIds) {
-  for (const nodeId of nodeIds) {
-    const podName = Templates.renderNetworkPodName(nodeId)
-
-    const targetDir = `${SOLO_LOGS_DIR}/${nodeId}`
+export async function getNodeLogs (k8) {
+  const pods = await k8.getPodsByLabel(['fullstack.hedera.com/type=network-node'])
+  for (const pod of pods) {
+    const podName = pod.metadata.name
+    const targetDir = `${SOLO_LOGS_DIR}/${podName}`
     fs.mkdirSync(targetDir, { recursive: true })
-
     await k8.copyFrom(podName, ROOT_CONTAINER, `${HEDERA_HAPI_PATH}/output/swirlds.log`, targetDir)
     await k8.copyFrom(podName, ROOT_CONTAINER, `${HEDERA_HAPI_PATH}/output/hgcaa.log`, targetDir)
   }

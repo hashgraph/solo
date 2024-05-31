@@ -36,7 +36,7 @@ import {
   TEST_CLUSTER
 } from '../../test_util.js'
 import * as version from '../../../version.mjs'
-import { getNodeLogs, parseNodeIds, sleep } from '../../../src/core/helpers.mjs'
+import { getNodeLogs, sleep } from '../../../src/core/helpers.mjs'
 import { MirrorNodeCommand } from '../../../src/commands/mirror_node.mjs'
 import * as core from '../../../src/core/index.mjs'
 import { TopicCreateTransaction, TopicMessageSubmitTransaction } from '@hashgraph/sdk'
@@ -71,7 +71,7 @@ describe('MirrorNodeCommand', () => {
   })
 
   afterAll(async () => {
-    await getNodeLogs(k8, parseNodeIds(argv[flags.nodeIDs.name]))
+    await getNodeLogs(k8)
     await k8.deleteNamespace(namespace)
     await accountManager.close()
 

@@ -43,7 +43,7 @@ import {
   HEDERA_PLATFORM_VERSION_TAG,
   TEST_CLUSTER
 } from '../test_util.js'
-import { getNodeLogs, parseNodeIds, sleep } from '../../src/core/helpers.mjs'
+import { getNodeLogs, sleep } from '../../src/core/helpers.mjs'
 import path from 'path'
 import fs from 'fs'
 import crypto from 'crypto'
@@ -76,7 +76,7 @@ export function e2eNodeKeyRefreshAddTest (keyFormat, testName, mode, releaseTag 
     }, defaultTimeout)
 
     afterAll(async () => {
-      await getNodeLogs(k8, parseNodeIds(argv[flags.nodeIDs.name]))
+      await getNodeLogs(k8)
       await k8.deleteNamespace(namespace)
     }, defaultTimeout)
 
