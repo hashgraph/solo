@@ -1476,7 +1476,6 @@ export class NodeCommand extends BaseCommand {
         freezeUpgradeReceipt.status.toString())
     } catch (e) {
       this.logger.error(`Error in freeze upgrade: ${e.message}`, e)
-      await sleep(360000)
       throw new FullstackTestingError(`Error in freeze upgrade: ${e.message}`, e)
     }
   }
