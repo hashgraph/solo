@@ -43,10 +43,11 @@ import {
   HEDERA_PLATFORM_VERSION_TAG,
   TEST_CLUSTER
 } from '../test_util.js'
-import { sleep } from '../../src/core/helpers.mjs'
+import { getNodeLogs, sleep } from '../../src/core/helpers.mjs'
 import path from 'path'
 import fs from 'fs'
 import crypto from 'crypto'
+import { ROOT_CONTAINER } from '../../src/core/constants.mjs'
 
 export function e2eNodeKeyRefreshAddTest (keyFormat, testName, mode, releaseTag = HEDERA_PLATFORM_VERSION_TAG) {
   const defaultTimeout = 120000
@@ -75,6 +76,7 @@ export function e2eNodeKeyRefreshAddTest (keyFormat, testName, mode, releaseTag 
     }, defaultTimeout)
 
     afterAll(async () => {
+      await getNodeLogs(k8, namespace)
       await k8.deleteNamespace(namespace)
     }, defaultTimeout)
 
@@ -308,7 +310,7 @@ export function e2eNodeKeyRefreshAddTest (keyFormat, testName, mode, releaseTag 
   async function addKeyHashToMap (k8, nodeId, keyDir, uniqueNodeDestDir, keyHashMap, privateKeyFileName) {
     await k8.copyFrom(
       Templates.renderNetworkPodName(nodeId),
-      'root-container',
+      ROOT_CONTAINER,
       path.join(keyDir, privateKeyFileName),
       uniqueNodeDestDir)
     const keyBytes = await fs.readFileSync(path.join(uniqueNodeDestDir, privateKeyFileName))

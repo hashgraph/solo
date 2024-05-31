@@ -21,7 +21,7 @@ import { Listr } from 'listr2'
 import path from 'path'
 import { FullstackTestingError, IllegalArgumentError } from '../core/errors.mjs'
 import * as helpers from '../core/helpers.mjs'
-import { getTmpDir, sleep, validatePath } from '../core/helpers.mjs'
+import { getNodeLogs, getTmpDir, sleep, validatePath } from '../core/helpers.mjs'
 import { constants, Templates } from '../core/index.mjs'
 import { BaseCommand } from './base.mjs'
 import * as flags from './flags.mjs'
@@ -1072,6 +1072,45 @@ export class NodeCommand extends BaseCommand {
     return true
   }
 
+  async logs (argv) {
+    const self = this
+
+    const tasks = new Listr([
+      {
+        title: 'Initialize',
+        task: async (ctx, task) => {
+          await prompts.execute(task, self.configManager, [
+            flags.nodeIDs
+          ])
+
+          ctx.config = {
+            nodeIds: helpers.parseNodeIds(self.configManager.getFlag(flags.nodeIDs))
+          }
+          self.logger.debug('Initialized config', { config: ctx.config })
+        }
+      },
+      {
+        title: 'Copy logs from all nodes',
+        task: (ctx, _) => {
+          getNodeLogs(this.k8, flags.namespace)
+        }
+      }
+    ], {
+      concurrent: false,
+      rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
+    })
+
+    try {
+      await tasks.run()
+    } catch (e) {
+      throw new FullstackTestingError(`Error in downloading log from nodes: ${e.message}`, e)
+    } finally {
+      await self.close()
+    }
+
+    return true
+  }
+
   async add (argv) {
     const self = this
 
@@ -1645,6 +1684,25 @@ export class NodeCommand extends BaseCommand {
 
               nodeCmd.refresh(argv).then(r => {
                 nodeCmd.logger.debug('==== Finished running `node refresh`====')
+                if (!r) process.exit(1)
+              }).catch(err => {
+                nodeCmd.logger.showUserError(err)
+                process.exit(1)
+              })
+            }
+          })
+          .command({
+            command: 'logs',
+            desc: 'Download application logs from the network nodes and stores them in <SOLO_LOGS_DIR>/<namespace>/<podName>/ directory',
+            builder: y => flags.setCommandFlags(y,
+              flags.nodeIDs
+            ),
+            handler: argv => {
+              nodeCmd.logger.debug('==== Running \'node logs\' ===')
+              nodeCmd.logger.debug(argv)
+
+              nodeCmd.logs(argv).then(r => {
+                nodeCmd.logger.debug('==== Finished running `node logs`====')
                 if (!r) process.exit(1)
               }).catch(err => {
                 nodeCmd.logger.showUserError(err)

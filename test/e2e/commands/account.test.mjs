@@ -37,6 +37,7 @@ import {
 } from '../../test_util.js'
 import { AccountCommand } from '../../../src/commands/account.mjs'
 import { flags } from '../../../src/commands/index.mjs'
+import { getNodeLogs } from '../../../src/core/helpers.mjs'
 
 describe('AccountCommand', () => {
   const testName = 'account-cmd-e2e'
@@ -62,6 +63,7 @@ describe('AccountCommand', () => {
   const accountCmd = new AccountCommand(bootstrapResp.opts, testSystemAccounts)
 
   afterAll(async () => {
+    await getNodeLogs(k8, namespace)
     await k8.deleteNamespace(namespace)
     await accountManager.close()
     await nodeCmd.close()
