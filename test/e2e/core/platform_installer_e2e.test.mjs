@@ -160,30 +160,4 @@ describe('PackageInstallerE2E', () => {
       fs.rmSync(tmpDir, { recursive: true })
     }, defaultTimeout)
   })
-
-  describe('copyPlatformConfigFiles', () => {
-    it('should succeed to copy platform config files for node0', async () => {
-      const podName = 'network-node0-0'
-      await k8.execContainer(podName, constants.ROOT_CONTAINER, ['bash', '-c', `rm -f ${constants.HEDERA_HAPI_PATH}/*.txt`])
-      await k8.execContainer(podName, constants.ROOT_CONTAINER, ['bash', '-c', `rm -f ${constants.HEDERA_HAPI_PATH}/*.xml`])
-      await k8.execContainer(podName, constants.ROOT_CONTAINER, ['bash', '-c', `rm -f ${constants.HEDERA_HAPI_PATH}/data/config/*.properties`])
-
-      const tmpDir = getTmpDir()
-      const nodeIDs = ['node0']
-      const releaseTag = 'v0.42.0'
-
-      fs.cpSync(`${constants.RESOURCES_DIR}/templates`, `${tmpDir}/templates`, { recursive: true })
-      await installer.prepareConfigTxt(nodeIDs, `${tmpDir}/config.txt`, releaseTag, constants.HEDERA_CHAIN_ID, `${tmpDir}/templates/config.template`)
-
-      const fileList = await installer.copyPlatformConfigFiles(podName, tmpDir)
-      expect(fileList.length).toBeGreaterThanOrEqual(6)
-      expect(fileList).toContain(`${constants.HEDERA_HAPI_PATH}/config.txt`)
-      expect(fileList).toContain(`${constants.HEDERA_HAPI_PATH}/log4j2.xml`)
-      expect(fileList).toContain(`${constants.HEDERA_HAPI_PATH}/settings.txt`)
-      expect(fileList).toContain(`${constants.HEDERA_HAPI_PATH}/data/config/api-permission.properties`)
-      expect(fileList).toContain(`${constants.HEDERA_HAPI_PATH}/data/config/application.properties`)
-      expect(fileList).toContain(`${constants.HEDERA_HAPI_PATH}/data/config/bootstrap.properties`)
-      fs.rmSync(tmpDir, { recursive: true })
-    }, defaultTimeout)
-  })
 })

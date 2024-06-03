@@ -177,36 +177,6 @@ export class PlatformInstaller {
     }
   }
 
-  // TODO delete this we will update profileManager.resourcesForConsensusPod to read these files and put into the values.yaml
-  async copyPlatformConfigFiles (podName, stagingDir) {
-    const self = this
-
-    if (!podName) throw new MissingArgumentError('podName is required')
-    if (!stagingDir) throw new MissingArgumentError('stagingDir is required')
-
-    try {
-      const srcFilesSet1 = [
-        `${stagingDir}/config.txt`,
-        `${stagingDir}/templates/log4j2.xml`,
-        `${stagingDir}/templates/settings.txt`
-      ]
-
-      const fileList1 = await self.copyFiles(podName, srcFilesSet1, constants.HEDERA_HAPI_PATH)
-
-      const srcFilesSet2 = [
-        `${stagingDir}/templates/api-permission.properties`,
-        `${stagingDir}/templates/application.properties`,
-        `${stagingDir}/templates/bootstrap.properties`
-      ]
-
-      const fileList2 = await self.copyFiles(podName, srcFilesSet2, `${constants.HEDERA_HAPI_PATH}/data/config`)
-
-      return fileList1.concat(fileList2)
-    } catch (e) {
-      throw new FullstackTestingError(`failed to copy config files to pod '${podName}': ${e.message}`, e)
-    }
-  }
-
   async copyTLSKeys (podName, stagingDir) {
     if (!podName) throw new MissingArgumentError('podName is required')
     if (!stagingDir) throw new MissingArgumentError('stagingDir is required')
@@ -270,74 +240,6 @@ export class PlatformInstaller {
   }
 
   /**
-   * Prepares config.txt file for the node
-   * @param {string[]} nodeIDs node IDs
-   * @param {string} destPath path where config.txt should be written
-   * @param {string} releaseTag release tag e.g. v0.42.0
-   * @param {string} template path to the config.template file
-   * @param {string} chainId chain ID (298 for local network)
-   * @param {string} appName the app name (default: HederaNode.jar)
-   * @returns {Promise<string[]>}
-   */
-  async prepareConfigTxt (nodeIDs, destPath, releaseTag, chainId = constants.HEDERA_CHAIN_ID, template = `${constants.RESOURCES_DIR}/templates/config.template`, appName = constants.HEDERA_APP_NAME) {
-    // TODO: move this to profile manager
-    // TODO: nodeIds should come from argv, it is required, it is already in profileManager.resourcesForConsensusPod
-    if (!nodeIDs || nodeIDs.length === 0) throw new MissingArgumentError('list of node IDs is required')
-    if (!destPath) throw new MissingArgumentError('destPath is required')
-    if (!template) throw new MissingArgumentError('config templatePath is required')
-    if (!releaseTag) throw new MissingArgumentError('release tag is required')
-
-    if (!fs.existsSync(path.dirname(destPath))) throw new IllegalArgumentError(`destPath does not exist: ${destPath}`, destPath)
-    if (!fs.existsSync(template)) throw new IllegalArgumentError(`config templatePath does not exist: ${template}`, destPath)
-
-    // init variables
-    const internalPort = constants.HEDERA_NODE_INTERNAL_GOSSIP_PORT
-    const externalPort = constants.HEDERA_NODE_EXTERNAL_GOSSIP_PORT
-    const nodeStakeAmount = constants.HEDERA_NODE_DEFAULT_STAKE_AMOUNT
-
-    const releaseVersion = semver.parse(releaseTag, { includePrerelease: true })
-
-    try {
-      // TODO we need to build the config.txt prior to deploying the network
-      const networkNodeServicesMap = await this.accountManager.getNodeServiceMap(this._getNamespace())
-      /** @type {string[]} */
-      const configLines = fs.readFileSync(template, 'utf-8').split('\n')
-      configLines.push(`swirld, ${chainId}`)
-      configLines.push(`app, ${appName}`)
-
-      let nodeSeq = 0
-      for (const nodeId of nodeIDs) {
-        const networkNodeServices = networkNodeServicesMap.get(nodeId)
-        const nodeName = nodeId
-        const nodeNickName = nodeId
-
-        const internalIP = Templates.renderFullyQualifiedNetworkPodName(this._getNamespace(), nodeId)
-        const externalIP = Templates.renderFullyQualifiedNetworkSvcName(this._getNamespace(), nodeId)
-
-        // TODO yamlRoot returned from ProfileManager.resourcesForConsensusPod (called from prepareValuesForFstChart) has: { hedera.nodes.${nodeIndex}.name & hedera.nodes.${nodeIndex}.accountId }        const account = networkNodeServices.accountId
-        const account = networkNodeServices.accountId
-        if (releaseVersion.minor >= 40) {
-          configLines.push(`address, ${nodeSeq}, ${nodeNickName}, ${nodeName}, ${nodeStakeAmount}, ${internalIP}, ${internalPort}, ${externalIP}, ${externalPort}, ${account}`)
-        } else {
-          configLines.push(`address, ${nodeSeq}, ${nodeName}, ${nodeStakeAmount}, ${internalIP}, ${internalPort}, ${externalIP}, ${externalPort}, ${account}`)
-        }
-
-        nodeSeq += 1
-      }
-
-      if (releaseVersion.minor >= 41) {
-        configLines.push(`nextNodeId, ${nodeSeq}`)
-      }
-
-      fs.writeFileSync(destPath, configLines.join('\n'))
-
-      return configLines
-    } catch (e) {
-      throw new FullstackTestingError('failed to generate config.txt', e)
-    }
-  }
-
-  /**
    * Return a list of task to perform node installation
    *
    * It assumes the staging directory has the following files and resources:
@@ -372,11 +274,6 @@ export class PlatformInstaller {
         title: 'Copy TLS keys',
         task: (_, task) =>
           self.copyTLSKeys(podName, stagingDir, keyFormat)
-      },
-      {
-        title: 'Copy configuration files',
-        task: (_, task) =>
-          self.copyPlatformConfigFiles(podName, stagingDir)
       },
       {
         title: 'Set file permissions',
