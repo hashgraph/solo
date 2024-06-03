@@ -161,8 +161,7 @@ export class InitCommand extends BaseCommand {
           flags.keyFormat,
           flags.fstChartVersion,
           flags.profileName,
-          flags.profileFile,
-          flags.applicationEnv
+          flags.profileFile
         )
       },
       handler: (argv) => {
