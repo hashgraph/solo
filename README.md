@@ -243,8 +243,8 @@ Kubernetes Namespace	: solo
 ✔ Check Envoy Proxy for: node2
 ✔ Check Envoy Proxy for: node1
 ✔ Check HAProxy for: node1
-✔ Check HAProxy for: node0
 ✔ Check HAProxy for: node2
+✔ Check HAProxy for: node0
 ✔ Check proxy pods are running
 ✔ Check MinIO
 ✔ Check auxiliary pods are ready
@@ -268,9 +268,9 @@ Kubernetes Cluster	: kind-solo
 Kubernetes Namespace	: solo
 **********************************************************************************
 ✔ Initialize
-✔ Check network pod: node2
 ✔ Check network pod: node0
 ✔ Check network pod: node1
+✔ Check network pod: node2
 ✔ Identify network pods
 ✔ Copy configuration files
 ✔ Copy Gossip keys to staging
@@ -278,8 +278,8 @@ Kubernetes Namespace	: solo
 ✔ Prepare config.txt for the network
 ✔ Prepare staging directory
 ✔ Update node: node1
-✔ Update node: node2
 ✔ Update node: node0
+✔ Update node: node2
 ✔ Fetch platform software into network nodes
 ✔ Copy Gossip keys
 ✔ Copy Gossip keys
@@ -289,11 +289,11 @@ Kubernetes Namespace	: solo
 ✔ Copy TLS keys
 ✔ Copy configuration files
 ✔ Copy configuration files
-✔ Set file permissions
-✔ Node: node1
+✔ Copy configuration files
 ✔ Set file permissions
 ✔ Node: node0
-✔ Copy configuration files
+✔ Set file permissions
+✔ Node: node1
 ✔ Set file permissions
 ✔ Node: node2
 ✔ Setup network nodes
@@ -512,9 +512,9 @@ Kubernetes Namespace	: solo
 ✔ Gossip pem key for node: node2
 ✔ Generate gossip keys
 ✔ Backup old files
+✔ TLS key for node: node0
 ✔ TLS key for node: node1
 ✔ TLS key for node: node2
-✔ TLS key for node: node0
 ✔ Generate gRPC TLS keys
 ✔ Finalize
 ```
