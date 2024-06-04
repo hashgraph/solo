@@ -263,6 +263,8 @@ export class PlatformInstaller {
    * @returns {Listr<ListrContext, ListrPrimaryRendererValue, ListrSecondaryRendererValue>}
    */
   taskInstall (podName, buildZipFile, stagingDir, nodeIds, keyFormat = constants.KEY_FORMAT_PEM, force = false) {
+    // TODO: buildZipFile is not used, remove it from the signature
+    // TODO: make sure that application.properties is still being copied, it is now part of a configMap
     const self = this
     return new Listr([
       {
