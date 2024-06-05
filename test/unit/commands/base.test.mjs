@@ -25,6 +25,7 @@ import {
 } from '../../../src/core/index.mjs'
 import { BaseCommand } from '../../../src/commands/base.mjs'
 import { K8 } from '../../../src/core/k8.mjs'
+import * as flags from '../../../src/commands/flags.mjs'
 
 const testLogger = logging.NewLogger('debug', true)
 
@@ -56,6 +57,34 @@ describe('BaseCommand', () => {
     })
     it('should succeed during valid program check', async () => {
       await expect(baseCmd.run('echo')).resolves.not.toBeNull()
+    })
+    it('dynamically alter a class', async () => {
+      const flagsList = [
+        flags.releaseTag,
+        flags.tlsClusterIssuerType,
+        flags.valuesFile
+
+      ]
+      const newClass = class {
+        constructor () {
+          this.usedConfigs = new Map()
+        }
+
+        getUnusedConfigs () {
+          return flagsList.filter(flag => !this.usedConfigs.has(flag.constName))
+        }
+      }
+      for (const flag of flagsList) {
+        newClass.prototype[`#${flag.constName}`] = 'this.configManager.getFlag(flag)'
+        newClass.prototype[`get ${flag.constName}`] = function () {
+          this.usedConfigs.set(flag.constName, this.usedConfigs.get(flag.constName) + 1 || 1)
+          return 'this.configManager.getFlag(flag) 2'
+        }
+      }
+
+      const newClassInstance = Object.create(newClass.prototype)
+      const releaseTag = newClassInstance.releaseTag
+      console.log(releaseTag)
     })
   })
 })
