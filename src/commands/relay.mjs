@@ -84,23 +84,15 @@ export class RelayCommand extends BaseCommand {
       throw new MissingArgumentError('Node IDs must be specified')
     }
 
-    let jsonString = '{'
+    const netWorkIds = {}
     const accountMap = getNodeAccountMap(nodeIDs)
 
     nodeIDs.forEach(nodeID => {
       const networkKey = `network-${nodeID.trim()}:50211`
-      const accountId = accountMap.get(nodeID)
-
-      jsonString += `"${networkKey}":"${accountId}"`
-
-      // if nodeID is not the last in nodeIDs, add a comma
-      if (nodeIDs.indexOf(nodeID) !== nodeIDs.length - 1) {
-        jsonString += ','
-      }
+      netWorkIds[networkKey] = accountMap.get(nodeID)
     })
-    jsonString += '}'
 
-    return jsonString
+    return JSON.stringify(netWorkIds)
   }
 
   prepareReleaseName (nodeIDs = []) {
