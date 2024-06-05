@@ -447,7 +447,7 @@ export function getPromptMap () {
  * Run prompts for the given set of flags
  * @param task task object from listr2
  * @param configManager config manager to store flag values
- * @param flagList list of flag objects
+ * @param {CommandFlag[]} flagList list of flag objects
  * @return {Promise<void>}
  */
 export async function execute (task, configManager, flagList = []) {
@@ -456,6 +456,10 @@ export async function execute (task, configManager, flagList = []) {
   }
   const prompts = getPromptMap()
   for (const flag of flagList) {
+    if (flag.definition.disablePrompt) {
+      continue
+    }
+
     if (!prompts.has(flag.name)) {
       throw new FullstackTestingError(`No prompt available for flag: ${flag.name}`)
     }

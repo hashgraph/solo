@@ -37,6 +37,12 @@ import {
 import * as crypto from 'crypto'
 
 /**
+ * @typedef {Object} NodeInfo
+ * @property {string} nodeName
+ * @property {string} accountId
+ */
+
+/**
  * Defines the core functionalities of 'node' command
  */
 export class NodeCommand extends BaseCommand {
@@ -441,6 +447,7 @@ export class NodeCommand extends BaseCommand {
         task: async (ctx, task) => {
           self.configManager.update(argv)
           await prompts.execute(task, self.configManager, [
+            // TODO expand this list (maybe store in an array constant
             flags.namespace,
             flags.nodeIDs,
             flags.releaseTag,
@@ -547,16 +554,6 @@ export class NodeCommand extends BaseCommand {
                   const tlsKeyFiles = self.keyManager.prepareTLSKeyFilePaths(nodeId, config.keysDir)
                   await self._copyNodeKeys(tlsKeyFiles, config.stagingKeysDir)
                 }
-              }
-            },
-            {
-              title: 'Prepare config.txt for the network',
-              task: async (ctx, _) => {
-                const config = ctx.config
-                const configTxtPath = `${config.stagingDir}/config.txt`
-                const template = `${constants.RESOURCES_DIR}/templates/config.template`
-                const appName = self.configManager.getFlag(flags.app)
-                await self.platformInstaller.prepareConfigTxt(config.nodeIds, configTxtPath, config.releaseTag, config.chainId, template, appName || undefined)
               }
             }
           ]
@@ -1121,31 +1118,38 @@ export class NodeCommand extends BaseCommand {
         task: async (ctx, task) => {
           self.configManager.update(argv)
           await prompts.execute(task, self.configManager, [
-            flags.namespace,
-            flags.nodeIDs,
-            flags.releaseTag,
+            // TODO expand this list
+            flags.app,
             flags.cacheDir,
             flags.chainId,
+            flags.chartDirectory,
+            flags.fstChartVersion,
             flags.generateGossipKeys,
             flags.generateTlsKeys,
-            flags.keyFormat
+            flags.keyFormat,
+            flags.namespace,
+            flags.nodeIDs,
+            flags.profileName,
+            flags.releaseTag
           ])
 
           const config = {
-            namespace: self.configManager.getFlag(flags.namespace),
-            nodeIds: helpers.parseNodeIds(self.configManager.getFlag(flags.nodeIDs)),
-            existingNodeIds: [],
-            releaseTag: self.configManager.getFlag(flags.releaseTag),
+            appName: self.configManager.getFlag(flags.app),
             cacheDir: self.configManager.getFlag(flags.cacheDir),
-            force: self.configManager.getFlag(flags.force),
             chainId: self.configManager.getFlag(flags.chainId),
+            chartDir: self.configManager.getFlag(flags.chartDirectory),
+            curDate: new Date(),
+            devMode: self.configManager.getFlag(flags.devMode),
+            existingNodeIds: [],
+            force: self.configManager.getFlag(flags.force),
+            fstChartVersion: self.configManager.getFlag(flags.fstChartVersion),
             generateGossipKeys: self.configManager.getFlag(flags.generateGossipKeys),
             generateTlsKeys: self.configManager.getFlag(flags.generateTlsKeys),
             keyFormat: self.configManager.getFlag(flags.keyFormat),
-            devMode: self.configManager.getFlag(flags.devMode),
-            chartDir: self.configManager.getFlag(flags.chartDirectory),
-            curDate: new Date(),
-            fstChartVersion: self.configManager.getFlag(flags.fstChartVersion)
+            namespace: self.configManager.getFlag(flags.namespace),
+            nodeIds: helpers.parseNodeIds(self.configManager.getFlag(flags.nodeIDs)),
+            profileName: self.configManager.getFlag(flags.profileName),
+            releaseTag: self.configManager.getFlag(flags.releaseTag)
           }
 
           await self.initializeSetup(config, self.configManager, self.k8)
@@ -1178,31 +1182,47 @@ export class NodeCommand extends BaseCommand {
         title: 'Deploy new network node',
         task: async (ctx, task) => {
           const values = { hedera: { nodes: [] } }
-          let maxNum
+          let maxAccountNumber = 0
+          /** @type {Map<string,NodeInfo>} **/
+          const nodeMap = new Map()
+
           for (/** @type {NetworkNodeServices} **/ const networkNodeServices of ctx.config.serviceMap.values()) {
             values.hedera.nodes.push({
               accountId: networkNodeServices.accountId,
               name: networkNodeServices.nodeName
             })
-            maxNum = maxNum > AccountId.fromString(networkNodeServices.accountId).num
-              ? maxNum
+            maxAccountNumber = maxAccountNumber > AccountId.fromString(networkNodeServices.accountId).num
+              ? maxAccountNumber
               : AccountId.fromString(networkNodeServices.accountId).num
+            nodeMap.set(networkNodeServices.nodeName, {
+              nodeName: networkNodeServices.nodeName,
+              accountId: networkNodeServices.accountId
+            })
           }
+
           for (const nodeId of ctx.config.nodeIds) {
             const accountId = AccountId.fromString(values.hedera.nodes[0].accountId)
-            accountId.num = ++maxNum
+            accountId.num = ++maxAccountNumber
             values.hedera.nodes.push({
               accountId: accountId.toString(),
               name: nodeId
+            })
+            nodeMap.set(nodeId, {
+              nodeName: nodeId,
+              accountId: accountId.toString()
             })
           }
 
           let valuesArg = ''
           let index = 0
+
           for (const node of values.hedera.nodes) {
             valuesArg += ` --set "hedera.nodes[${index}].accountId=${node.accountId}" --set "hedera.nodes[${index}].name=${node.name}"`
             index++
           }
+
+          const valuesFilePath = await this.profileManager.prepareValuesForNodeAdd(ctx.config.profileName, nodeMap)
+          valuesArg += this.prepareValuesFiles(valuesFilePath)
 
           await self.chartManager.upgrade(
             ctx.config.namespace,
@@ -1306,15 +1326,6 @@ export class NodeCommand extends BaseCommand {
                   const tlsKeyFiles = self.keyManager.prepareTLSKeyFilePaths(nodeId, config.keysDir)
                   await self._copyNodeKeys(tlsKeyFiles, config.stagingKeysDir)
                 }
-              }
-            },
-            {
-              title: 'Prepare config.txt for the network',
-              task: async (ctx, _) => {
-                const config = ctx.config
-                const configTxtPath = `${config.stagingDir}/config.txt`
-                const template = `${constants.RESOURCES_DIR}/templates/config.template`
-                await self.platformInstaller.prepareConfigTxt(config.allNodeIds, configTxtPath, config.releaseTag, config.chainId, template)
               }
             }
           ]
@@ -1575,23 +1586,23 @@ export class NodeCommand extends BaseCommand {
             command: 'setup',
             desc: 'Setup node with a specific version of Hedera platform',
             builder: y => flags.setCommandFlags(y,
-              flags.namespace,
-              flags.nodeIDs,
-              flags.releaseTag,
-              flags.generateGossipKeys,
-              flags.generateTlsKeys,
+              flags.apiPermissionProperties, // TODO move
+              flags.app,
+              flags.appConfig,
+              flags.applicationProperties, // TODO move
+              flags.bootstrapProperties, // TODO move
               flags.cacheDir,
               flags.chainId,
               flags.force,
+              flags.generateGossipKeys,
+              flags.generateTlsKeys,
               flags.keyFormat,
-              flags.applicationProperties,
-              flags.apiPermissionProperties,
-              flags.bootstrapProperties,
-              flags.settingTxt,
               flags.localBuildPath,
-              flags.app,
-              flags.appConfig,
-              flags.log4j2Xml
+              flags.log4j2Xml, // TODO move
+              flags.namespace,
+              flags.nodeIDs,
+              flags.releaseTag,
+              flags.settingTxt // TODO move
             ),
             handler: argv => {
               nodeCmd.logger.debug('==== Running \'node setup\' ===')
@@ -1715,20 +1726,21 @@ export class NodeCommand extends BaseCommand {
             command: 'add',
             desc: 'Adds a node with a specific version of Hedera platform',
             builder: y => flags.setCommandFlags(y,
-              flags.namespace,
-              flags.nodeIDs,
-              flags.releaseTag,
-              flags.generateGossipKeys,
-              flags.generateTlsKeys,
+              // TODO expand this list?
+              flags.apiPermissionProperties,
+              flags.applicationProperties,
+              flags.bootstrapProperties,
               flags.cacheDir,
               flags.chainId,
               flags.force,
+              flags.generateGossipKeys,
+              flags.generateTlsKeys,
               flags.keyFormat,
-              flags.applicationProperties,
-              flags.apiPermissionProperties,
-              flags.bootstrapProperties,
-              flags.settingTxt,
-              flags.log4j2Xml
+              flags.log4j2Xml,
+              flags.namespace,
+              flags.nodeIDs,
+              flags.releaseTag,
+              flags.settingTxt
             ),
             handler: argv => {
               nodeCmd.logger.debug('==== Running \'node add\' ===')
