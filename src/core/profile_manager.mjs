@@ -210,10 +210,11 @@ export class ProfileManager {
 
   /**
    * Prepare a values file for FST Helm chart
-   * @param profileName resource profile name
+   * @param {string} profileName resource profile name
+   * @param {string} applicationEnvFilePath path to the application.env file
    * @return {Promise<string>} return the full path to the values file
    */
-  prepareValuesForFstChart (profileName) {
+  prepareValuesForFstChart (profileName, applicationEnvFilePath = '') {
     if (!profileName) throw new MissingArgumentError('profileName is required')
     const profile = this.getProfile(profileName)
 
@@ -226,6 +227,10 @@ export class ProfileManager {
     this.resourcesForHaProxyPod(profile, yamlRoot)
     this.resourcesForEnvoyProxyPod(profile, yamlRoot)
     this.resourcesForMinioTenantPod(profile, yamlRoot)
+
+    if (applicationEnvFilePath) {
+      this._setFileContentsAsValue('hedera.configMaps.applicationEnv', applicationEnvFilePath, yamlRoot)
+    }
 
     // write the yaml
     const cachedValuesFile = path.join(this.cacheDir, `fst-${profileName}.yaml`)
@@ -305,5 +310,17 @@ export class ProfileManager {
         resolve(cachedValuesFile)
       })
     })
+  }
+
+  /**
+   * Writes the contents of a file as a value for the given nested item path in the yaml object
+   * @param {string} itemPath nested item path in the yaml object to store the file contents
+   * @param {string} valueFilePath path to the file whose contents will be stored in the yaml object
+   * @param {Object} yamlRoot root of the yaml object
+   * @private
+   */
+  _setFileContentsAsValue (itemPath, valueFilePath, yamlRoot) {
+    const fileContents = fs.readFileSync(valueFilePath, 'utf8')
+    this._setValue(itemPath, fileContents, yamlRoot)
   }
 }

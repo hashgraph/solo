@@ -17,7 +17,10 @@
  */
 
 import {
-  afterAll, afterEach, beforeAll, describe,
+  afterAll,
+  afterEach,
+  beforeAll,
+  describe,
   expect,
   it
 } from '@jest/globals'
@@ -26,15 +29,17 @@ import {
   constants
 } from '../../../src/core/index.mjs'
 import {
+  balanceQueryShouldSucceed,
   bootstrapNetwork,
   getDefaultArgv,
+  HEDERA_PLATFORM_VERSION_TAG,
   TEST_CLUSTER
 } from '../../test_util.js'
 import * as version from '../../../version.mjs'
-import { sleep } from '../../../src/core/helpers.mjs'
+import { getNodeLogs, sleep } from '../../../src/core/helpers.mjs'
 import { MirrorNodeCommand } from '../../../src/commands/mirror_node.mjs'
 import * as core from '../../../src/core/index.mjs'
-import { TopicCreateTransaction, TopicMessageSubmitTransaction } from '@hashgraph/sdk'
+import { Status, TopicCreateTransaction, TopicMessageSubmitTransaction } from '@hashgraph/sdk'
 import * as http from 'http'
 
 describe('MirrorNodeCommand', () => {
@@ -42,7 +47,7 @@ describe('MirrorNodeCommand', () => {
   const namespace = testName
   const argv = getDefaultArgv()
   argv[flags.namespace.name] = namespace
-  argv[flags.releaseTag.name] = 'v0.47.0-alpha.0'
+  argv[flags.releaseTag.name] = HEDERA_PLATFORM_VERSION_TAG
   argv[flags.keyFormat.name] = constants.KEY_FORMAT_PEM
 
   argv[flags.nodeIDs.name] = 'node0' // use a single node to reduce resource during e2e tests
@@ -52,6 +57,8 @@ describe('MirrorNodeCommand', () => {
   argv[flags.fstChartVersion.name] = version.FST_CHART_VERSION
   argv[flags.force.name] = true
   argv[flags.relayReleaseTag.name] = flags.relayReleaseTag.definition.defaultValue
+  // set the env variable SOLO_FST_CHARTS_DIR if developer wants to use local FST charts
+  argv[flags.chartDirectory.name] = process.env.SOLO_FST_CHARTS_DIR ? process.env.SOLO_FST_CHARTS_DIR : undefined
 
   const bootstrapResp = bootstrapNetwork(testName, argv)
   const k8 = bootstrapResp.opts.k8
@@ -59,11 +66,16 @@ describe('MirrorNodeCommand', () => {
   const downloader = new core.PackageDownloader(mirrorNodeCmd.logger)
   const accountManager = bootstrapResp.opts.accountManager
 
+  const testMessage = 'Mirror node test message'
+  let portForwarder = null
+  let newTopicId = null
+
   beforeAll(() => {
     bootstrapResp.opts.logger.showUser(`------------------------- START: ${testName} ----------------------------`)
   })
 
   afterAll(async () => {
+    await getNodeLogs(k8, namespace)
     await k8.deleteNamespace(namespace)
     await accountManager.close()
 
@@ -73,6 +85,8 @@ describe('MirrorNodeCommand', () => {
   afterEach(async () => {
     await sleep(500) // give a few ticks so that connections can close
   })
+
+  balanceQueryShouldSucceed(accountManager, mirrorNodeCmd, namespace)
 
   it('mirror node deploy should success', async () => {
     expect.assertions(1)
@@ -84,16 +98,14 @@ describe('MirrorNodeCommand', () => {
     }
   }, 600000)
 
-  it('mirror node api and hedera explorer should success', async () => {
+  it('mirror node API should be running', async () => {
     await accountManager.loadNodeClient(namespace)
-    expect.assertions(3)
+    expect.assertions(1)
     try {
       // find hedera explorer pod
       const pods = await k8.getPodsByLabel(['app.kubernetes.io/name=hedera-explorer'])
       const explorerPod = pods[0]
 
-      // enable port forwarding
-      let portForwarder = null
       portForwarder = await k8.portForward(explorerPod.metadata.name, 8080, 8080)
       await sleep(2000)
 
@@ -101,28 +113,51 @@ describe('MirrorNodeCommand', () => {
       const apiURL = 'http://127.0.0.1:8080/api/v1/transactions'
       await expect(downloader.urlExists(apiURL)).resolves.toBeTruthy()
       await sleep(2000)
+    } catch (e) {
+      mirrorNodeCmd.logger.showUserError(e)
+      expect(e).toBeNull()
+    }
+  }, 60000)
 
-      // check if the explorer GUI is running
+  it('Explorer GUI should be running', async () => {
+    expect.assertions(1)
+    try {
       const guiURL = 'http://127.0.0.1:8080/localnet/dashboard'
       await expect(downloader.urlExists(guiURL)).resolves.toBeTruthy()
       await sleep(2000)
 
       mirrorNodeCmd.logger.debug('mirror node API and explorer GUI are running')
+    } catch (e) {
+      mirrorNodeCmd.logger.showUserError(e)
+      expect(e).toBeNull()
+    }
+  }, 60000)
 
+  it('Create topic and submit message should success', async () => {
+    expect.assertions(1)
+    try {
       // Create a new public topic and submit a message
       const txResponse = await new TopicCreateTransaction().execute(accountManager._nodeClient)
       const receipt = await txResponse.getReceipt(accountManager._nodeClient)
-      const newTopicId = receipt.topicId
+      newTopicId = receipt.topicId
       mirrorNodeCmd.logger.debug(`Newly created topic ID is: ${newTopicId}`)
 
-      const testMessage = 'Mirror node test message'
-      await new TopicMessageSubmitTransaction({
+      const submitResponse = await new TopicMessageSubmitTransaction({
         topicId: newTopicId,
         message: testMessage
       }).execute(accountManager._nodeClient)
 
-      await sleep(4000)
+      const submitReceipt = await submitResponse.getReceipt(accountManager._nodeClient)
+      expect(submitReceipt.status).toBe(Status.Success)
+    } catch (e) {
+      mirrorNodeCmd.logger.showUserError(e)
+      expect(e).toBeNull()
+    }
+  }, 60000)
 
+  it('Check submit message result should success', async () => {
+    expect.assertions(1)
+    try {
       const queryURL = `http://localhost:8080/api/v1/topics/${newTopicId}/messages`
       let received = false
       let receivedMessage = ''
@@ -161,7 +196,7 @@ describe('MirrorNodeCommand', () => {
       mirrorNodeCmd.logger.showUserError(e)
       expect(e).toBeNull()
     }
-  }, 240000)
+  }, 300000)
 
   it('mirror node destroy should success', async () => {
     expect.assertions(1)

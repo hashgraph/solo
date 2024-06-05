@@ -73,9 +73,9 @@ export class NetworkCommand extends BaseCommand {
     }
 
     const profileName = this.configManager.getFlag(flags.profileName)
-    const profileValuesFile = await this.profileManager.prepareValuesForFstChart(profileName)
-    if (profileValuesFile) {
-      valuesArg += this.prepareValuesFiles(profileValuesFile)
+    this.profileValuesFile = await this.profileManager.prepareValuesForFstChart(profileName, config.applicationEnv)
+    if (this.profileValuesFile) {
+      valuesArg += this.prepareValuesFiles(this.profileValuesFile)
     }
 
     // do not deploy mirror node until after we have the updated address book
@@ -126,7 +126,8 @@ export class NetworkCommand extends BaseCommand {
       tlsClusterIssuerType: this.configManager.getFlag(flags.tlsClusterIssuerType),
       enableHederaExplorerTls: this.configManager.getFlag(flags.enableHederaExplorerTls),
       hederaExplorerTlsHostName: this.configManager.getFlag(flags.hederaExplorerTlsHostName),
-      enablePrometheusSvcMonitor: this.configManager.getFlag(flags.enablePrometheusSvcMonitor)
+      enablePrometheusSvcMonitor: this.configManager.getFlag(flags.enablePrometheusSvcMonitor),
+      applicationEnv: this.configManager.getFlag(flags.applicationEnv)
     }
 
     // compute values
@@ -174,7 +175,7 @@ export class NetworkCommand extends BaseCommand {
         }
       },
       {
-        title: 'Check node pods are ready',
+        title: 'Check node pods are running',
         task:
           async (ctx, task) => {
             const subTasks = []
@@ -201,7 +202,7 @@ export class NetworkCommand extends BaseCommand {
           }
       },
       {
-        title: 'Check proxy pods are ready',
+        title: 'Check proxy pods are running',
         task:
           async (ctx, task) => {
             const subTasks = []
@@ -211,7 +212,7 @@ export class NetworkCommand extends BaseCommand {
               subTasks.push({
                 title: `Check HAProxy for: ${chalk.yellow(nodeId)}`,
                 task: () =>
-                  self.k8.waitForPodReady([
+                  self.k8.waitForPods([constants.POD_PHASE_RUNNING], [
                     'fullstack.hedera.com/type=haproxy'
                   ], 1, 60 * 15, 1000) // timeout 15 minutes
               })
@@ -222,7 +223,7 @@ export class NetworkCommand extends BaseCommand {
               subTasks.push({
                 title: `Check Envoy Proxy for: ${chalk.yellow(nodeId)}`,
                 task: () =>
-                  self.k8.waitForPodReady([
+                  self.k8.waitForPods([constants.POD_PHASE_RUNNING], [
                     'fullstack.hedera.com/type=envoy-proxy'
                   ], 1, 60 * 15, 1000) // timeout 15 minutes
               })
@@ -372,7 +373,7 @@ export class NetworkCommand extends BaseCommand {
         }
       },
       {
-        title: 'Waiting for network pods to be ready',
+        title: 'Waiting for network pods to be running',
         task: async (ctx, _) => {
           await this.k8.waitForPods([constants.POD_PHASE_RUNNING], [
             'fullstack.hedera.com/type=network-node'
@@ -418,7 +419,8 @@ export class NetworkCommand extends BaseCommand {
               flags.enablePrometheusSvcMonitor,
               flags.fstChartVersion,
               flags.profileFile,
-              flags.profileName
+              flags.profileName,
+              flags.applicationEnv
             ),
             handler: argv => {
               networkCmd.logger.debug('==== Running \'network deploy\' ===')
@@ -469,7 +471,8 @@ export class NetworkCommand extends BaseCommand {
               flags.enableHederaExplorerTls,
               flags.hederaExplorerTlsLoadBalancerIp,
               flags.hederaExplorerTlsHostName,
-              flags.enablePrometheusSvcMonitor
+              flags.enablePrometheusSvcMonitor,
+              flags.applicationEnv
             ),
             handler: argv => {
               networkCmd.logger.debug('==== Running \'chart upgrade\' ===')

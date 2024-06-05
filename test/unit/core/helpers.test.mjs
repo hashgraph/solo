@@ -16,6 +16,7 @@
  */
 import { describe, expect, it } from '@jest/globals'
 import * as helpers from '../../../src/core/helpers.mjs'
+import { HEDERA_PLATFORM_VERSION } from '../../../version.mjs'
 
 describe('Helpers', () => {
   it.each([
@@ -65,7 +66,8 @@ describe('Helpers', () => {
     { input: 'v0.45.1', output: 'hashgraph/full-stack-testing/ubi8-init-java17' },
     { input: 'v0.46.0', output: 'hashgraph/full-stack-testing/ubi8-init-java21' },
     { input: 'v0.47.1', output: 'hashgraph/full-stack-testing/ubi8-init-java21' },
-    { input: 'v0.47.1-alpha.0', output: 'hashgraph/full-stack-testing/ubi8-init-java21' }
+    { input: 'v0.47.1-alpha.0', output: 'hashgraph/full-stack-testing/ubi8-init-java21' },
+    { input: HEDERA_PLATFORM_VERSION, output: 'hashgraph/full-stack-testing/ubi8-init-java21' }
   ])('should be able to determine root-image based on Hedera platform version', (t) => {
     expect(helpers.getRootImageRepository(t.input)).toStrictEqual(t.output)
   })

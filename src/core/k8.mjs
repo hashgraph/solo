@@ -767,31 +767,6 @@ export class K8 {
     }
   }
 
-  async recyclePodByLabels (podLabels, maxAttempts = 30, delay = 2000, waitForPodMaxAttempts = 10, waitForPodDelay = 2000) {
-    const podArray = await this.getPodsByLabel(podLabels)
-    for (const pod of podArray) {
-      const podName = pod.metadata.name
-      await this.kubeClient.deleteNamespacedPod(podName, this.configManager.getFlag(flags.namespace))
-    }
-
-    let attempts = 0
-    while (attempts++ < maxAttempts) {
-      try {
-        const pods = await this.waitForPods([constants.POD_PHASE_RUNNING],
-          podLabels, 1, waitForPodMaxAttempts, waitForPodDelay)
-        if (pods.length === podArray.length) {
-          return pods
-        }
-      } catch (e) {
-        this.logger.warn(`deleted pod still not running [${podLabels.join(',')}, attempt: ${attempts}/${maxAttempts}]`)
-      }
-
-      await sleep(delay)
-    }
-
-    throw new FullstackTestingError(`pods are not running after deletion with labels [${podLabels.join(',')}]`)
-  }
-
   /**
    * Wait for pod
    * @param phases an array of acceptable phases of the pods

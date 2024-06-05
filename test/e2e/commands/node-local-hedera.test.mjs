@@ -27,6 +27,7 @@ import {
   getDefaultArgv,
   TEST_CLUSTER
 } from '../../test_util.js'
+import { getNodeLogs } from '../../../src/core/helpers.mjs'
 
 describe('Node local build', () => {
   const LOCAL_HEDERA = 'local-hedera-app'
@@ -36,8 +37,12 @@ describe('Node local build', () => {
   argv[flags.generateGossipKeys.name] = true
   argv[flags.generateTlsKeys.name] = true
   argv[flags.clusterName.name] = TEST_CLUSTER
+  // set the env variable SOLO_FST_CHARTS_DIR if developer wants to use local FST charts
+  argv[flags.chartDirectory.name] = process.env.SOLO_FST_CHARTS_DIR ? process.env.SOLO_FST_CHARTS_DIR : undefined
+
   let hederaK8
   afterAll(async () => {
+    await getNodeLogs(hederaK8, LOCAL_HEDERA)
     await hederaK8.deleteNamespace(LOCAL_HEDERA)
   }, 120000)
 

@@ -182,7 +182,7 @@ jobs:
         uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
         with:
           name: solo-${{ inputs.npm-test-script }}.log
-          path: ~/.solo/logs/solo.log
+          path: ~/.solo/logs/*
           overwrite: true
           if-no-files-found: error
 

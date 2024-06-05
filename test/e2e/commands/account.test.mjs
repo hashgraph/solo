@@ -18,7 +18,8 @@
 
 import { AccountId, PrivateKey } from '@hashgraph/sdk'
 import {
-  afterAll, beforeAll,
+  afterAll,
+  beforeAll,
   describe,
   expect,
   it
@@ -30,11 +31,13 @@ import * as version from '../../../version.mjs'
 import {
   bootstrapNetwork,
   getDefaultArgv,
+  HEDERA_PLATFORM_VERSION_TAG,
   TEST_CLUSTER,
   testLogger
 } from '../../test_util.js'
 import { AccountCommand } from '../../../src/commands/account.mjs'
 import { flags } from '../../../src/commands/index.mjs'
+import { getNodeLogs } from '../../../src/core/helpers.mjs'
 
 describe('AccountCommand', () => {
   const testName = 'account-cmd-e2e'
@@ -43,13 +46,15 @@ describe('AccountCommand', () => {
   const testSystemAccounts = [[3, 5]]
   const argv = getDefaultArgv()
   argv[flags.namespace.name] = namespace
-  argv[flags.releaseTag.name] = 'v0.47.0-alpha.0'
+  argv[flags.releaseTag.name] = HEDERA_PLATFORM_VERSION_TAG
   argv[flags.keyFormat.name] = constants.KEY_FORMAT_PEM
   argv[flags.nodeIDs.name] = 'node0'
   argv[flags.generateGossipKeys.name] = true
   argv[flags.generateTlsKeys.name] = true
   argv[flags.clusterName.name] = TEST_CLUSTER
   argv[flags.fstChartVersion.name] = version.FST_CHART_VERSION
+  // set the env variable SOLO_FST_CHARTS_DIR if developer wants to use local FST charts
+  argv[flags.chartDirectory.name] = process.env.SOLO_FST_CHARTS_DIR ? process.env.SOLO_FST_CHARTS_DIR : undefined
   const bootstrapResp = bootstrapNetwork(testName, argv)
   const k8 = bootstrapResp.opts.k8
   const accountManager = bootstrapResp.opts.accountManager
@@ -58,16 +63,18 @@ describe('AccountCommand', () => {
   const accountCmd = new AccountCommand(bootstrapResp.opts, testSystemAccounts)
 
   afterAll(async () => {
+    await getNodeLogs(k8, namespace)
     await k8.deleteNamespace(namespace)
     await accountManager.close()
     await nodeCmd.close()
   })
 
   describe('node proxies should be UP', () => {
-    let localPort = 30399
     for (const nodeId of argv[flags.nodeIDs.name].split(',')) {
       it(`proxy should be UP: ${nodeId} `, async () => {
-        await nodeCmd.checkNetworkNodeProxyUp(nodeId, localPort++)
+        await k8.waitForPodReady(
+          [`app=haproxy-${nodeId}`, 'fullstack.hedera.com/type=haproxy'],
+          1, 300, 2000)
       }, 30000)
     }
   })

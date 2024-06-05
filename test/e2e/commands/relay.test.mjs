@@ -16,7 +16,9 @@
  */
 
 import {
-  afterAll, afterEach, describe,
+  afterAll,
+  afterEach,
+  describe,
   expect,
   it
 } from '@jest/globals'
@@ -27,10 +29,11 @@ import {
 import {
   bootstrapNetwork,
   getDefaultArgv,
+  HEDERA_PLATFORM_VERSION_TAG,
   TEST_CLUSTER
 } from '../../test_util.js'
 import * as version from '../../../version.mjs'
-import { sleep } from '../../../src/core/helpers.mjs'
+import { getNodeLogs, sleep } from '../../../src/core/helpers.mjs'
 import { RelayCommand } from '../../../src/commands/relay.mjs'
 
 describe('RelayCommand', () => {
@@ -38,7 +41,7 @@ describe('RelayCommand', () => {
   const namespace = testName
   const argv = getDefaultArgv()
   argv[flags.namespace.name] = namespace
-  argv[flags.releaseTag.name] = 'v0.47.0-alpha.0'
+  argv[flags.releaseTag.name] = HEDERA_PLATFORM_VERSION_TAG
   argv[flags.keyFormat.name] = constants.KEY_FORMAT_PEM
 
   argv[flags.nodeIDs.name] = 'node0,node1'
@@ -55,6 +58,7 @@ describe('RelayCommand', () => {
   const relayCmd = new RelayCommand(bootstrapResp.opts)
 
   afterAll(async () => {
+    await getNodeLogs(k8, namespace)
     await k8.deleteNamespace(namespace)
   })
 
