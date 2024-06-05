@@ -177,6 +177,60 @@ jobs:
         run: |
           ${{ env.CG_EXEC }} npm run ${{ inputs.npm-test-script }}
 
+      - name: RPC relay smoke test
+        if: ${{ runner.os == 'linux' && inputs.npm-test-script == 'test-e2e-relay' && !cancelled() && !failure() }}
+        run: |
+          ./test/e2e/setup-e2e.sh  
+          solo node keys --gossip-keys --tls-keys --key-format pfx -i node0  
+          solo node setup -i node0  
+          solo node start -i node0
+          solo mirror-node deploy
+          solo relay deploy -i node0
+          kubectl port-forward svc/relay-node0-hedera-json-rpc-relay -n solo-e2e 7546:7546 &
+          kubectl port-forward svc/haproxy-node0-svc -n solo-e2e 50211:50211 &
+          kubectl port-forward svc/fullstack-deployment-hedera-explorer -n solo-e2e 8080:80 &
+          
+          cd ..
+          git clone https://github.com/hashgraph/hedera-local-node@v2.25.0
+          cd hedera-local-node
+          npm install
+          npm run generate-accounts 3 >> key.log
+          sed -n 's/.* - \(0x[0-9a-f]*\) - \(0x[0-9a-f]*\) - .*/\1 \2/p' key.log > key.txt
+          cat key.txt
+          # only keep the second column of each line of file key.txt, add double quote and write to key2.txt
+          # adding comma to the end of each line 
+
+          awk '{print "\"" $2 "\","}' key.txt > key2.txt
+          cat key2.txt
+          
+          # remove the comma of the last line
+          cat key2.txt | sed '$ s/.$//' > key3.txt
+          cat key3.txt
+
+          #  file hardhat.config.js format
+          #
+          #  require("@nomicfoundation/hardhat-toolbox");
+          #
+          #  /** @type import('hardhat/config').HardhatUserConfig */
+          #  module.exports = {
+          #solidity: "0.8.17",
+          #defaultNetwork: 'relay',
+          #networks: {
+          #  relay: {
+          #    url: 'http://localhost:7546',
+          #    accounts: [
+          #      "0x81d342828d099fe2c1ed47c4cfd054e321c4dd42aa82a9fcdced1b38dba391b8",
+          #      "0xb5094436eeda6721649ac7c322bed8dd6691a455e11e2422bcde37448065a650",
+          #      "0xd82ec3cb4ddc8d3436a1013ffe2b905f4c5d74520b9203840a1d9d22fe4fb932"
+          #    ],
+          #    chainId: 298,
+          #  }
+          #}
+          #};
+          # deleting three lines after "accounts: [" and replacing with the key2.txt file
+          sed -i '/accounts: \[/,+3d' test/smoke/hardhat.config.js
+          cat test/smoke/hardhat.config.js
+
       - name: Upload E2E Logs to GitHub
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
