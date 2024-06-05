@@ -47,6 +47,8 @@ export class RelayCommand extends BaseCommand {
     valuesArg += ` --set config.MIRROR_NODE_URL=http://${constants.FULLSTACK_DEPLOYMENT_CHART}-rest`
     valuesArg += ` --set config.MIRROR_NODE_URL_WEB3=http://${constants.FULLSTACK_DEPLOYMENT_CHART}-web3`
     valuesArg += ' --set config.MIRROR_NODE_AGENT_CACHEABLE_DNS=false'
+    valuesArg += ' --set config.MIRROR_NODE_RETRY_DELAY=2001'
+    valuesArg += ' --set config.MIRROR_NODE_GET_CONTRACT_RESULTS_DEFAULT_RETRIES=21'
 
     if (chainID) {
       valuesArg += ` --set config.CHAIN_ID=${chainID}`
