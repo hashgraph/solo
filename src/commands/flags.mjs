@@ -19,6 +19,21 @@ import * as core from '../core/index.mjs'
 import * as version from '../../version.mjs'
 
 /**
+ * @typedef {Object} CommandFlag
+ * @property {string} name - flag name
+ * @property {Definition} definition - flag definition
+ */
+
+/**
+ * @typedef {Object} Definition
+ * @property {string} describe - description of the flag
+ * @property {(boolean | string | number)} [defaultValue] - default value of the flag
+ * @property {string} [alias] - alias of the flag
+ * @property {string} [type] - type of the flag
+ * @property {boolean} [disablePrompt] - disable prompt for the flag
+ */
+
+/**
  * Set flag from the flag option
  * @param y an instance of yargs
  * @param commandFlags a set of command flags
@@ -30,6 +45,7 @@ export function setCommandFlags (y, ...commandFlags) {
   })
 }
 
+/** @type {CommandFlag} **/
 export const devMode = {
   name: 'dev',
   definition: {
@@ -40,6 +56,7 @@ export const devMode = {
 }
 
 // list of common flags across commands. command specific flags are defined in the command's module.
+/** @type {CommandFlag} **/
 export const clusterName = {
   name: 'cluster-name',
   definition: {
@@ -50,6 +67,7 @@ export const clusterName = {
   }
 }
 
+/** @type {CommandFlag} **/
 export const clusterSetupNamespace = {
   name: 'cluster-setup-namespace',
   definition: {
@@ -60,6 +78,7 @@ export const clusterSetupNamespace = {
   }
 }
 
+/** @type {CommandFlag} **/
 export const namespace = {
   name: 'namespace',
   definition: {
@@ -69,6 +88,7 @@ export const namespace = {
   }
 }
 
+/** @type {CommandFlag} **/
 export const deployMirrorNode = {
   name: 'mirror-node',
   definition: {
@@ -79,6 +99,7 @@ export const deployMirrorNode = {
   }
 }
 
+/** @type {CommandFlag} **/
 export const deployHederaExplorer = {
   name: 'hedera-explorer',
   definition: {
@@ -89,6 +110,7 @@ export const deployHederaExplorer = {
   }
 }
 
+/** @type {CommandFlag} **/
 export const valuesFile = {
   name: 'values-file',
   definition: {
@@ -99,6 +121,7 @@ export const valuesFile = {
   }
 }
 
+/** @type {CommandFlag} **/
 export const profileFile = {
   name: 'profile-file',
   definition: {
@@ -108,6 +131,7 @@ export const profileFile = {
   }
 }
 
+/** @type {CommandFlag} **/
 export const profileName = {
   name: 'profile',
   definition: {
@@ -117,6 +141,7 @@ export const profileName = {
   }
 }
 
+/** @type {CommandFlag} **/
 export const deployPrometheusStack = {
   name: 'prometheus-stack',
   definition: {
@@ -126,6 +151,7 @@ export const deployPrometheusStack = {
   }
 }
 
+/** @type {CommandFlag} **/
 export const enablePrometheusSvcMonitor = {
   name: 'prometheus-svc-monitor',
   definition: {
@@ -135,6 +161,7 @@ export const enablePrometheusSvcMonitor = {
   }
 }
 
+/** @type {CommandFlag} **/
 export const deployMinio = {
   name: 'minio',
   definition: {
@@ -144,6 +171,7 @@ export const deployMinio = {
   }
 }
 
+/** @type {CommandFlag} **/
 export const deployCertManager = {
   name: 'cert-manager',
   definition: {
@@ -157,6 +185,7 @@ export const deployCertManager = {
     Deploy cert manager CRDs separately from cert manager itself.  Cert manager
     CRDs are required for cert manager to deploy successfully.
  */
+/** @type {CommandFlag} **/
 export const deployCertManagerCrds = {
   name: 'cert-manager-crds',
   definition: {
@@ -166,6 +195,7 @@ export const deployCertManagerCrds = {
   }
 }
 
+/** @type {CommandFlag} **/
 export const deployJsonRpcRelay = {
   name: 'json-rpc-relay',
   definition: {
@@ -176,6 +206,7 @@ export const deployJsonRpcRelay = {
   }
 }
 
+/** @type {CommandFlag} **/
 export const releaseTag = {
   name: 'release-tag',
   definition: {
@@ -186,6 +217,7 @@ export const releaseTag = {
   }
 }
 
+/** @type {CommandFlag} **/
 export const relayReleaseTag = {
   name: 'relay-release',
   definition: {
@@ -195,6 +227,7 @@ export const relayReleaseTag = {
   }
 }
 
+/** @type {CommandFlag} **/
 export const cacheDir = {
   name: 'cache-dir',
   definition: {
@@ -204,6 +237,7 @@ export const cacheDir = {
   }
 }
 
+/** @type {CommandFlag} **/
 export const nodeIDs = {
   name: 'node-ids',
   definition: {
@@ -213,6 +247,7 @@ export const nodeIDs = {
   }
 }
 
+/** @type {CommandFlag} **/
 export const force = {
   name: 'force',
   definition: {
@@ -223,6 +258,7 @@ export const force = {
   }
 }
 
+/** @type {CommandFlag} **/
 export const chartDirectory = {
   name: 'chart-dir',
   definition: {
@@ -233,6 +269,7 @@ export const chartDirectory = {
   }
 }
 
+/** @type {CommandFlag} **/
 export const replicaCount = {
   name: 'replica-count',
   definition: {
@@ -243,6 +280,7 @@ export const replicaCount = {
   }
 }
 
+/** @type {CommandFlag} **/
 export const chainId = {
   name: 'ledger-id',
   definition: {
@@ -254,6 +292,7 @@ export const chainId = {
 }
 
 // Ref: https://github.com/hashgraph/hedera-json-rpc-relay/blob/main/docs/configuration.md
+/** @type {CommandFlag} **/
 export const operatorId = {
   name: 'operator-id',
   definition: {
@@ -264,6 +303,7 @@ export const operatorId = {
 }
 
 // Ref: https://github.com/hashgraph/hedera-json-rpc-relay/blob/main/docs/configuration.md
+/** @type {CommandFlag} **/
 export const operatorKey = {
   name: 'operator-key',
   definition: {
@@ -273,6 +313,7 @@ export const operatorKey = {
   }
 }
 
+/** @type {CommandFlag} **/
 export const generateGossipKeys = {
   name: 'gossip-keys',
   definition: {
@@ -282,6 +323,7 @@ export const generateGossipKeys = {
   }
 }
 
+/** @type {CommandFlag} **/
 export const generateTlsKeys = {
   name: 'tls-keys',
   definition: {
@@ -291,6 +333,7 @@ export const generateTlsKeys = {
   }
 }
 
+/** @type {CommandFlag} **/
 export const keyFormat = {
   name: 'key-format',
   definition: {
@@ -300,6 +343,7 @@ export const keyFormat = {
   }
 }
 
+/** @type {CommandFlag} **/
 export const tlsClusterIssuerType = {
   name: 'tls-cluster-issuer-type',
   definition: {
@@ -309,6 +353,7 @@ export const tlsClusterIssuerType = {
   }
 }
 
+/** @type {CommandFlag} **/
 export const enableHederaExplorerTls = { // KEEP
   name: 'enable-hedera-explorer-tls',
   definition: {
@@ -318,6 +363,7 @@ export const enableHederaExplorerTls = { // KEEP
   }
 }
 
+/** @type {CommandFlag} **/
 export const hederaExplorerTlsLoadBalancerIp = {
   name: 'hedera-explorer-tls-load-balancer-ip',
   definition: {
@@ -327,6 +373,7 @@ export const hederaExplorerTlsLoadBalancerIp = {
   }
 }
 
+/** @type {CommandFlag} **/
 export const hederaExplorerTlsHostName = {
   name: 'hedera-explorer-tls-host-name',
   definition: {
@@ -336,6 +383,7 @@ export const hederaExplorerTlsHostName = {
   }
 }
 
+/** @type {CommandFlag} **/
 export const deletePvcs = {
   name: 'delete-pvcs',
   definition: {
@@ -345,6 +393,7 @@ export const deletePvcs = {
   }
 }
 
+/** @type {CommandFlag} **/
 export const fstChartVersion = {
   name: 'fst-chart-version',
   definition: {
@@ -354,6 +403,7 @@ export const fstChartVersion = {
   }
 }
 
+/** @type {CommandFlag} **/
 export const applicationProperties = {
   name: 'application-properties',
   definition: {
@@ -363,6 +413,7 @@ export const applicationProperties = {
   }
 }
 
+/** @type {CommandFlag} **/
 export const applicationEnv = {
   name: 'application-env',
   definition: {
@@ -372,6 +423,7 @@ export const applicationEnv = {
   }
 }
 
+/** @type {CommandFlag} **/
 export const apiPermissionProperties = {
   name: 'api-permission-properties',
   definition: {
@@ -381,6 +433,7 @@ export const apiPermissionProperties = {
   }
 }
 
+/** @type {CommandFlag} **/
 export const bootstrapProperties = {
   name: 'bootstrap-properties',
   definition: {
@@ -390,6 +443,7 @@ export const bootstrapProperties = {
   }
 }
 
+/** @type {CommandFlag} **/
 export const settingTxt = {
   name: 'settings-txt',
   definition: {
@@ -399,6 +453,7 @@ export const settingTxt = {
   }
 }
 
+/** @type {CommandFlag} **/
 export const app = {
   name: 'app',
   definition: {
@@ -408,6 +463,7 @@ export const app = {
   }
 }
 
+/** @type {CommandFlag} **/
 export const appConfig = {
   name: 'app-config',
   definition: {
@@ -417,6 +473,7 @@ export const appConfig = {
   }
 }
 
+/** @type {CommandFlag} **/
 export const localBuildPath = {
   name: 'local-build-path',
   definition: {
@@ -426,6 +483,7 @@ export const localBuildPath = {
   }
 }
 
+/** @type {CommandFlag} **/
 export const log4j2Xml = {
   name: 'log4j2-xml',
   definition: {
@@ -435,6 +493,7 @@ export const log4j2Xml = {
   }
 }
 
+/** @type {CommandFlag} **/
 export const updateAccountKeys = {
   name: 'update-account-keys',
   definition: {
@@ -444,6 +503,7 @@ export const updateAccountKeys = {
   }
 }
 
+/** @type {CommandFlag} **/
 export const privateKey = {
   name: 'private-key',
   definition: {
@@ -453,6 +513,7 @@ export const privateKey = {
   }
 }
 
+/** @type {CommandFlag} **/
 export const ecdsaPrivateKey = {
   name: 'ecdsa-private-key',
   definition: {
@@ -462,6 +523,7 @@ export const ecdsaPrivateKey = {
   }
 }
 
+/** @type {CommandFlag} **/
 export const setAlias = {
   name: 'set-alias',
   definition: {
@@ -471,6 +533,7 @@ export const setAlias = {
   }
 }
 
+/** @type {CommandFlag} **/
 export const accountId = {
   name: 'account-id',
   definition: {
@@ -480,6 +543,7 @@ export const accountId = {
   }
 }
 
+/** @type {CommandFlag} **/
 export const amount = {
   name: 'hbar-amount',
   definition: {
@@ -489,64 +553,66 @@ export const amount = {
   }
 }
 
+/** @type {CommandFlag[]} **/
 export const allFlags = [
-  devMode,
-  clusterName,
-  clusterSetupNamespace,
-  namespace,
-  deployMirrorNode,
-  deployHederaExplorer,
-  deployJsonRpcRelay,
-  valuesFile,
-  deployPrometheusStack,
-  enablePrometheusSvcMonitor,
-  deployMinio,
-  deployCertManager,
-  deployCertManagerCrds,
-  releaseTag,
-  relayReleaseTag,
-  cacheDir,
-  nodeIDs,
-  chartDirectory,
-  replicaCount,
-  chainId,
-  operatorId,
-  operatorKey,
-  generateGossipKeys,
-  generateTlsKeys,
-  keyFormat,
-  tlsClusterIssuerType,
-  enableHederaExplorerTls,
-  hederaExplorerTlsLoadBalancerIp,
-  hederaExplorerTlsHostName,
-  deletePvcs,
-  fstChartVersion,
-  applicationProperties,
-  apiPermissionProperties,
-  bootstrapProperties,
-  settingTxt,
-  log4j2Xml,
-  updateAccountKeys,
-  privateKey,
-  ecdsaPrivateKey,
-  setAlias,
   accountId,
   amount,
+  apiPermissionProperties,
+  app,
+  appConfig,
   applicationEnv,
+  applicationProperties,
+  bootstrapProperties,
+  cacheDir,
+  chainId,
+  chartDirectory,
+  clusterName,
+  clusterSetupNamespace,
+  deletePvcs,
+  deployCertManager,
+  deployCertManagerCrds,
+  deployHederaExplorer,
+  deployJsonRpcRelay,
+  deployMinio,
+  deployMirrorNode,
+  deployPrometheusStack,
+  devMode,
+  ecdsaPrivateKey,
+  enableHederaExplorerTls,
+  enablePrometheusSvcMonitor,
+  fstChartVersion,
+  generateGossipKeys,
+  generateTlsKeys,
+  hederaExplorerTlsHostName,
+  hederaExplorerTlsLoadBalancerIp,
+  keyFormat,
+  localBuildPath,
+  log4j2Xml,
+  namespace,
+  nodeIDs,
+  operatorId,
+  operatorKey,
+  privateKey,
   profileFile,
   profileName,
-  localBuildPath,
-  app,
-  appConfig
+  relayReleaseTag,
+  releaseTag,
+  replicaCount,
+  setAlias,
+  settingTxt,
+  tlsClusterIssuerType,
+  updateAccountKeys,
+  valuesFile
 ]
 
 export const allFlagsMap = new Map(allFlags.map(f => [f.name, f]))
+
 export const nodeConfigFileFlags = new Map([
-  applicationProperties,
   apiPermissionProperties,
+  applicationProperties,
   bootstrapProperties,
-  settingTxt,
-  log4j2Xml
+  log4j2Xml,
+  settingTxt
 ].map(f => [f.name, f]))
 
 export const integerFlags = new Map([replicaCount].map(f => [f.name, f]))
