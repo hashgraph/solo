@@ -191,7 +191,7 @@ jobs:
           kubectl port-forward svc/fullstack-deployment-hedera-explorer -n solo-e2e 8080:80 &
           
           cd ..
-          git clone https://github.com/hashgraph/hedera-local-node@v2.25.0
+          git clone https://github.com/hashgraph/hedera-local-node --branch v2.25.0
           cd hedera-local-node
           npm install
           npm run generate-accounts 3 >> key.log
