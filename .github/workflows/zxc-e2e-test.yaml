@@ -176,6 +176,8 @@ jobs:
       - name: RPC relay smoke test
         if: ${{ runner.os == 'linux' && inputs.npm-test-script == 'test-e2e-relay' && !cancelled() && !failure() }}
         run: |
+          echo "Starting a test network with a single node"
+          
           ./test/e2e/setup-e2e.sh  
           solo node keys --gossip-keys --tls-keys --key-format pfx -i node0  
           solo node setup -i node0  
@@ -186,60 +188,35 @@ jobs:
           kubectl port-forward svc/haproxy-node0-svc -n solo-e2e 50211:50211 &
           kubectl port-forward svc/fullstack-deployment-hedera-explorer -n solo-e2e 8080:80 &
           
+          echo "Clone hedera local node"
+          
           cd ..
           git clone https://github.com/hashgraph/hedera-local-node --branch v2.25.3
           cd hedera-local-node
           npm install
+          
+          echo "Generate keys, extract from output and save to key.txt"
           npm run generate-accounts 3 >> key.log
           sed -n 's/.* - \(0x[0-9a-f]*\) - \(0x[0-9a-f]*\) - .*/\1 \2/p' key.log > key.txt
-          cat key.txt
-          # only keep the second column of each line of file key.txt, add double quote and write to key2.txt
-          # adding comma to the end of each line 
 
+          echo "Only keep the second column of each line of file key.txt"
           awk '{print "\"" $2 "\","}' key.txt > key2.txt
-          cat key2.txt
           
-          # remove the comma of the last line
+          echo "Remove the comma of the last line before add to json file"
           cat key2.txt | sed '$ s/.$//' > key3.txt
-          cat key3.txt
 
-          #  file hardhat.config.js format
-          #
-          #  require("@nomicfoundation/hardhat-toolbox");
-          #
-          #  /** @type import('hardhat/config').HardhatUserConfig */
-          #  module.exports = {
-          #solidity: "0.8.17",
-          #defaultNetwork: 'relay',
-          #networks: {
-          #  relay: {
-          #    url: 'http://localhost:7546',
-          #    accounts: [
-          #      "0x81d342828d099fe2c1ed47c4cfd054e321c4dd42aa82a9fcdced1b38dba391b8",
-          #      "0xb5094436eeda6721649ac7c322bed8dd6691a455e11e2422bcde37448065a650",
-          #    ],
-          #    chainId: 298,
-          #  }
-          #}
-          #};
-          # save key3.txt to environment variable NEW_KEYS
           NEW_KEYS=$(cat key3.txt)
-          echo $NEW_KEYS
-          
-          # deleting two lines after "accounts: [" ,but keep the line "accounts: ["
+
+          echo "Add new keys to hardhat.config.js"          
           awk '/accounts: \[/ {print; getline; getline; next} 1' test/smoke/hardhat.config.js > test/smoke/hardhat.config.js.tmp
-          
-          # insert NEW_KEYS before line "]," , need to consider NEW_KEYS contains special characters such as double quotes
           awk -v new_keys="$NEW_KEYS" '/\],/ {print new_keys; print; next} 1' test/smoke/hardhat.config.js.tmp > test/smoke/hardhat.config.js
-          
           cat test/smoke/hardhat.config.js
+          
+          echo "Run smoke test"
           
           cd test/smoke
           npm install
           npx hardhat test
-          
-          
-          
 
       - name: Upload E2E Logs to GitHub
         if: ${{ !cancelled() }}
