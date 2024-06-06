@@ -63,28 +63,85 @@ describe('BaseCommand', () => {
         flags.releaseTag,
         flags.tlsClusterIssuerType,
         flags.valuesFile
-
       ]
-      const newClass = class {
+      const argv = {}
+      argv[flags.releaseTag.name] = 'releaseTag1'
+      argv[flags.tlsClusterIssuerType.name] = 'type2'
+      argv[flags.valuesFile.name] = 'file3'
+      configManager.update(argv)
+
+      const extraVars = ['var1', 'var2']
+
+      const NewClass = class {
         constructor () {
           this.usedConfigs = new Map()
+          flagsList.forEach(flag => {
+            this[`_${flag.constName}`] = configManager.getFlag(flag)
+            Object.defineProperty(this, flag.constName, {
+              get () {
+                this.usedConfigs.set(flag.constName, this.usedConfigs.get(flag.constName) + 1 || 1)
+                return this[`_${flag.constName}`]
+              }
+            })
+          })
+          extraVars.forEach(name => {
+            this[`_${name}`] = ''
+            Object.defineProperty(this, name, {
+              get () {
+                this.usedConfigs.set(name, this.usedConfigs.get(name) + 1 || 1)
+                return this[`_${name}`]
+              },
+              set (value) {
+                this[`_${name}`] = value
+              }
+            })
+          })
         }
 
         getUnusedConfigs () {
-          return flagsList.filter(flag => !this.usedConfigs.has(flag.constName))
-        }
-      }
-      for (const flag of flagsList) {
-        newClass.prototype[`#${flag.constName}`] = 'this.configManager.getFlag(flag)'
-        newClass.prototype[`get ${flag.constName}`] = function () {
-          this.usedConfigs.set(flag.constName, this.usedConfigs.get(flag.constName) + 1 || 1)
-          return 'this.configManager.getFlag(flag) 2'
+          const unusedConfigs = []
+          flagsList.forEach(flag => {
+            if (!this.usedConfigs.has(flag.constName)) {
+              unusedConfigs.push(flag.constName)
+            }
+          })
+          extraVars.forEach(item => {
+            if (!this.usedConfigs.has(item)) {
+              unusedConfigs.push(item)
+            }
+          })
+          return unusedConfigs
         }
       }
 
-      const newClassInstance = Object.create(newClass.prototype)
-      const releaseTag = newClassInstance.releaseTag
-      console.log(releaseTag)
+      const newClassInstance1 = new NewClass()
+      expect(newClassInstance1.releaseTag).toBe('releaseTag1')
+      expect(newClassInstance1.tlsClusterIssuerType).toBe('type2')
+      expect(newClassInstance1.valuesFile).toBe('file3')
+      expect(newClassInstance1.var1).toBe('')
+      expect(newClassInstance1.var2).toBe('')
+      expect(newClassInstance1.getUnusedConfigs()).toEqual([])
+
+      const newClassInstance2 = new NewClass()
+      newClassInstance2.var1 = 'var1'
+      newClassInstance2.var2 = 'var2'
+      expect(newClassInstance2.var1).toBe('var1')
+      expect(newClassInstance2.var2).toBe('var2')
+      expect(newClassInstance2.getUnusedConfigs()).toEqual([
+        flags.releaseTag.constName,
+        flags.tlsClusterIssuerType.constName,
+        flags.valuesFile.constName
+      ])
+
+      const newClassInstance3 = new NewClass()
+      newClassInstance3.var1 = 'var1'
+      expect(newClassInstance3.var1).toBe('var1')
+      expect(newClassInstance3.tlsClusterIssuerType).toBe('type2')
+      expect(newClassInstance3.getUnusedConfigs()).toEqual([
+        flags.releaseTag.constName,
+        flags.valuesFile.constName,
+        'var2'
+      ])
     })
   })
 })
