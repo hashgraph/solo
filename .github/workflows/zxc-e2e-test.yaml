@@ -230,6 +230,7 @@ jobs:
           # deleting three lines after "accounts: [" and replacing with the key2.txt file
           sed -i '/accounts: \[/,+3d' test/smoke/hardhat.config.js
           cat test/smoke/hardhat.config.js
+          sleep 7200
 
       - name: Upload E2E Logs to GitHub
         if: ${{ !cancelled() }}
