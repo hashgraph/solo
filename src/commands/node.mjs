@@ -35,6 +35,7 @@ import {
   Timestamp
 } from '@hashgraph/sdk'
 import * as crypto from 'crypto'
+import {FREEZE_ADMIN_ACCOUNT} from "../core/constants.mjs";
 
 /**
  * Defines the core functionalities of 'node' command
@@ -1160,6 +1161,9 @@ export class NodeCommand extends BaseCommand {
           await this.accountManager.loadNodeClient(ctx.config.namespace)
 
           self.logger.debug('Initialized config', { config })
+
+          self.logger.debug(`****** generateTlsKeys: ${ctx.config.generateTlsKeys}`)
+          self.logger.debug(`****** generateGossipKeys: ${ctx.config.generateGossipKeys}`)
         }
       },
       {
@@ -1472,7 +1476,7 @@ export class NodeCommand extends BaseCommand {
   async freezeNetworkNodes (config) {
     await this.accountManager.loadNodeClient(config.namespace)
     const client = this.accountManager._nodeClient
-
+    client.setOperator(FREEZE_ADMIN_ACCOUNT)
     try {
       // fetch special file
       const fileId = FileId.fromString('0.0.150')
