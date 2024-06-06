@@ -1476,7 +1476,8 @@ export class NodeCommand extends BaseCommand {
   async freezeNetworkNodes (config) {
     await this.accountManager.loadNodeClient(config.namespace)
     const client = this.accountManager._nodeClient
-    client.setOperator(FREEZE_ADMIN_ACCOUNT)
+    // client.setOperator(FREEZE_ADMIN_ACCOUNT)
+    // const accountKeys = await this.accountManager.getAccountKeysFromSecret(FREEZE_ADMIN_ACCOUNT, config.namespace)
     try {
       // fetch special file
       const fileId = FileId.fromString('0.0.150')
