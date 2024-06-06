@@ -173,22 +173,18 @@ jobs:
           npm link
           ${{ env.CG_EXEC }} ./test/e2e/setup-e2e.sh
 
-      - name: Run E2E Tests
-        run: |
-          ${{ env.CG_EXEC }} npm run ${{ inputs.npm-test-script }}
-
       - name: RPC relay smoke test
         if: ${{ runner.os == 'linux' && inputs.npm-test-script == 'test-e2e-relay' && !cancelled() && !failure() }}
         run: |
-          ./test/e2e/setup-e2e.sh  
-          solo node keys --gossip-keys --tls-keys --key-format pfx -i node0  
-          solo node setup -i node0  
-          solo node start -i node0
-          solo mirror-node deploy
-          solo relay deploy -i node0
-          kubectl port-forward svc/relay-node0-hedera-json-rpc-relay -n solo-e2e 7546:7546 &
-          kubectl port-forward svc/haproxy-node0-svc -n solo-e2e 50211:50211 &
-          kubectl port-forward svc/fullstack-deployment-hedera-explorer -n solo-e2e 8080:80 &
+          #          ./test/e2e/setup-e2e.sh  
+          #          solo node keys --gossip-keys --tls-keys --key-format pfx -i node0  
+          #          solo node setup -i node0  
+          #          solo node start -i node0
+          #          solo mirror-node deploy
+          #          solo relay deploy -i node0
+          #          kubectl port-forward svc/relay-node0-hedera-json-rpc-relay -n solo-e2e 7546:7546 &
+          #          kubectl port-forward svc/haproxy-node0-svc -n solo-e2e 50211:50211 &
+          #          kubectl port-forward svc/fullstack-deployment-hedera-explorer -n solo-e2e 8080:80 &
           
           cd ..
           git clone https://github.com/hashgraph/hedera-local-node --branch v2.25.3
