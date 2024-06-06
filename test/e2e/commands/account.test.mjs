@@ -67,7 +67,7 @@ describe('AccountCommand', () => {
     await k8.deleteNamespace(namespace)
     await accountManager.close()
     await nodeCmd.close()
-  })
+  }, 120000)
 
   describe('node proxies should be UP', () => {
     for (const nodeId of argv[flags.nodeIDs.name].split(',')) {
@@ -92,11 +92,11 @@ describe('AccountCommand', () => {
 
       beforeAll(async () => {
         await accountManager.loadNodeClient(namespace)
-      })
+      }, 20000)
 
       afterAll(async () => {
         await accountManager.close()
-      })
+      }, 20000)
 
       for (const [start, end] of testSystemAccounts) {
         for (let i = start; i <= end; i++) {

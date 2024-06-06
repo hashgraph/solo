@@ -70,7 +70,7 @@ describe('NetworkCommand', () => {
     await getNodeLogs(k8, namespace)
     await k8.deleteNamespace(namespace)
     await accountManager.close()
-  })
+  }, 120000)
 
   beforeAll(async () => {
     await clusterCmd.setup(argv)
