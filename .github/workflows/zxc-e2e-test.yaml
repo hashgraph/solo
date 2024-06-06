@@ -235,6 +235,7 @@ jobs:
           cat test/smoke/hardhat.config.js
           
           cd test/smoke
+          npm install
           npx hardhat test
           
           
