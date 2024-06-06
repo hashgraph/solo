@@ -217,16 +217,28 @@ jobs:
           #    accounts: [
           #      "0x81d342828d099fe2c1ed47c4cfd054e321c4dd42aa82a9fcdced1b38dba391b8",
           #      "0xb5094436eeda6721649ac7c322bed8dd6691a455e11e2422bcde37448065a650",
-          #      "0xd82ec3cb4ddc8d3436a1013ffe2b905f4c5d74520b9203840a1d9d22fe4fb932"
           #    ],
           #    chainId: 298,
           #  }
           #}
           #};
-          # deleting three lines after "accounts: [" and replacing with the key2.txt file
-          sed -i '/accounts: \[/,+3d' test/smoke/hardhat.config.js
+          # save key3.txt to environment variable NEW_KEYS
+          NEW_KEYS=$(cat key3.txt)
+          echo $NEW_KEYS
+          
+          # deleting two lines after "accounts: [" ,but keep the line "accounts: ["
+          awk '/accounts: \[/ {print; getline; getline; next} 1' test/smoke/hardhat.config.js > test/smoke/hardhat.config.js.tmp
+          
+          # insert NEW_KEYS before line "]," , need to consider NEW_KEYS contains special characters such as double quotes
+          awk -v new_keys="$NEW_KEYS" '/\],/ {print new_keys; print; next} 1' test/smoke/hardhat.config.js.tmp > test/smoke/hardhat.config.js
+          
           cat test/smoke/hardhat.config.js
-          sleep 7200
+          
+          cd test/smoke
+          npx hardhat test
+          
+          
+          
 
       - name: Upload E2E Logs to GitHub
         if: ${{ !cancelled() }}
