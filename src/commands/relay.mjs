@@ -30,9 +30,10 @@ export class RelayCommand extends BaseCommand {
     if (!opts || !opts.profileManager) throw new MissingArgumentError('An instance of core/ProfileManager is required', opts.downloader)
 
     this.profileManager = opts.profileManager
+    this.accountManager = opts.accountManager
   }
 
-  async prepareValuesArg (valuesFile, nodeIDs, chainID, relayRelease, replicaCount, operatorID, operatorKey) {
+  async prepareValuesArg (valuesFile, nodeIDs, chainID, relayRelease, replicaCount, operatorID, operatorKey, namespace) {
     let valuesArg = ''
     if (valuesFile) {
       valuesArg += this.prepareValuesFiles(valuesFile)
@@ -74,14 +75,14 @@ export class RelayCommand extends BaseCommand {
       throw new MissingArgumentError('Node IDs must be specified')
     }
 
-    const networkJsonString = this.prepareNetworkJsonString(nodeIDs)
+    const networkJsonString = await this.prepareNetworkJsonString(nodeIDs, namespace)
     valuesArg += ` --set config.HEDERA_NETWORK='${networkJsonString}'`
     return valuesArg
   }
 
   // created a json string to represent the map between the node keys and their ids
   // output example '{"node-1": "0.0.3", "node-2": "0.004"}'
-  prepareNetworkJsonString (nodeIDs = []) {
+  async prepareNetworkJsonString (nodeIDs = [], namespace) {
     if (!nodeIDs) {
       throw new MissingArgumentError('Node IDs must be specified')
     }
@@ -89,8 +90,11 @@ export class RelayCommand extends BaseCommand {
     const netWorkIds = {}
     const accountMap = getNodeAccountMap(nodeIDs)
 
+    const networkNodeServicesMap = await this.accountManager.getNodeServiceMap(namespace)
     nodeIDs.forEach(nodeID => {
-      const networkKey = `network-${nodeID.trim()}:50211`
+      const nodeName = networkNodeServicesMap.get(nodeID).nodeName
+      const haProxyGrpcPort = networkNodeServicesMap.get(nodeID).haProxyGrpcPort
+      const networkKey = `network-${nodeName}:${haProxyGrpcPort}`
       netWorkIds[networkKey] = accountMap.get(nodeID)
     })
 
@@ -165,7 +169,8 @@ export class RelayCommand extends BaseCommand {
             ctx.config.relayRelease,
             ctx.config.replicaCount,
             ctx.config.operatorId,
-            ctx.config.operatorKey
+            ctx.config.operatorKey,
+            ctx.config.namespace
           )
         }
       },
