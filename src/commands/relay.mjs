@@ -87,7 +87,7 @@ export class RelayCommand extends BaseCommand {
       throw new MissingArgumentError('Node IDs must be specified')
     }
 
-    const netWorkIds = {}
+    const networkIds = {}
     const accountMap = getNodeAccountMap(nodeIDs)
 
     const networkNodeServicesMap = await this.accountManager.getNodeServiceMap(namespace)
@@ -95,10 +95,10 @@ export class RelayCommand extends BaseCommand {
       const nodeName = networkNodeServicesMap.get(nodeID).nodeName
       const haProxyGrpcPort = networkNodeServicesMap.get(nodeID).haProxyGrpcPort
       const networkKey = `network-${nodeName}:${haProxyGrpcPort}`
-      netWorkIds[networkKey] = accountMap.get(nodeID)
+      networkIds[networkKey] = accountMap.get(nodeID)
     })
 
-    return JSON.stringify(netWorkIds)
+    return JSON.stringify(networkIds)
   }
 
   prepareReleaseName (nodeIDs = []) {
