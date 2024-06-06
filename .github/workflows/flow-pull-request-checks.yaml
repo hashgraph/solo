@@ -70,11 +70,6 @@ jobs:
     needs:
       - env-vars
       - unit-tests
-      - e2e-tests
-      - e2e-mirror-node-tests
-      - e2e-node-pem-stop-add-tests
-      - e2e-node-pfx-kill-add-tests
-      - e2e-node-local-build-tests
       - e2e-relay-tests
     if: ${{ github.event.pull_request.head.repo.full_name == github.event.pull_request.base.repo.full_name }}
     with:
