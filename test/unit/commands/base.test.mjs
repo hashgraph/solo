@@ -58,7 +58,7 @@ describe('BaseCommand', () => {
     it('should succeed during valid program check', async () => {
       await expect(baseCmd.run('echo')).resolves.not.toBeNull()
     })
-    it('dynamically alter a class', async () => {
+    it('getConfig tracks property usage', async () => {
       const flagsList = [
         flags.releaseTag,
         flags.tlsClusterIssuerType,
@@ -73,12 +73,20 @@ describe('BaseCommand', () => {
       const extraVars = ['var1', 'var2']
 
       /**
-       * @typedef {Object} newClassInstance1
+       * @typedef {Object} newClassInstance
        * @property {string} releaseTag
+       * @property {string} tlsClusterIssuerType
+       * @property {string} valuesFile
+       * @property {string} var1
+       * @property {string} var2
+       * @property {getUnusedConfigs} getUnusedConfigs
+       */
+      /**
+       * @callback getUnusedConfigs
+       * @returns {string[]}
        */
 
-      /** type {newClassInstance1} newClassInstance1 **/
-      const newClassInstance1 = getNewClassInstance(configManager, flagsList, extraVars)
+      const newClassInstance1 = /** @type {newClassInstance} **/ baseCmd.getConfig(flagsList, extraVars)
       expect(newClassInstance1.releaseTag).toBe('releaseTag1')
       expect(newClassInstance1.tlsClusterIssuerType).toBe('type2')
       expect(newClassInstance1.valuesFile).toBe('file3')
@@ -86,7 +94,7 @@ describe('BaseCommand', () => {
       expect(newClassInstance1.var2).toBe('')
       expect(newClassInstance1.getUnusedConfigs()).toEqual([])
 
-      const newClassInstance2 = getNewClassInstance(configManager, flagsList, extraVars)
+      const newClassInstance2 = /** @type {newClassInstance} **/ baseCmd.getConfig(flagsList, extraVars)
       newClassInstance2.var1 = 'var1'
       newClassInstance2.var2 = 'var2'
       expect(newClassInstance2.var1).toBe('var1')
@@ -97,7 +105,7 @@ describe('BaseCommand', () => {
         flags.valuesFile.constName
       ])
 
-      const newClassInstance3 = getNewClassInstance(configManager, flagsList, extraVars)
+      const newClassInstance3 = /** @type {newClassInstance} **/ baseCmd.getConfig(flagsList, extraVars)
       newClassInstance3.var1 = 'var1'
       expect(newClassInstance3.var1).toBe('var1')
       expect(newClassInstance3.tlsClusterIssuerType).toBe('type2')
@@ -106,54 +114,9 @@ describe('BaseCommand', () => {
         flags.valuesFile.constName,
         'var2'
       ])
+
+      const newClassInstance4 = baseCmd.getConfig([])
+      expect(newClassInstance4.getUnusedConfigs()).toEqual([])
     })
   })
 })
-
-function getNewClassInstance (configManager, flagsList, extraVars) {
-  return new class {
-    constructor () {
-      this.usedConfigs = new Map()
-      flagsList.forEach(flag => {
-        this[`_${flag.constName}`] = configManager.getFlag(flag)
-        Object.defineProperty(this, flag.constName, {
-          get () {
-            this.usedConfigs.set(flag.constName, this.usedConfigs.get(flag.constName) + 1 || 1)
-            return this[`_${flag.constName}`]
-          }
-        })
-      })
-      extraVars.forEach(name => {
-        this[`_${name}`] = ''
-        Object.defineProperty(this, name, {
-          get () {
-            this.usedConfigs.set(name, this.usedConfigs.get(name) + 1 || 1)
-            return this[`_${name}`]
-          },
-          set (value) {
-            this[`_${name}`] = value
-          }
-        })
-      })
-    }
-
-    /**
-     * Get the list of unused configurations
-     * @returns {string[]}
-     */
-    getUnusedConfigs () {
-      const unusedConfigs = []
-      flagsList.forEach(flag => {
-        if (!this.usedConfigs.has(flag.constName)) {
-          unusedConfigs.push(flag.constName)
-        }
-      })
-      extraVars.forEach(item => {
-        if (!this.usedConfigs.has(item)) {
-          unusedConfigs.push(item)
-        }
-      })
-      return unusedConfigs
-    }
-  }()
-}

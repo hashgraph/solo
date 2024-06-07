@@ -63,56 +63,61 @@ export class BaseCommand extends ShellRunner {
     this.depManager = opts.depManager
   }
 
-  // /**
-  //  * Builds a map of the given flags where the key is the flag name
-  //  * @param {CommandFlag[]} flags the flags to be converted to a map
-  //  * @returns {Object} the config object
-  //  */
-  // getConfig (flags) {
-  //   const config = {
-  //     usedConfigs: []
-  //   }
-  //   for (const flag of flags) {
-  //     config[flag.constName] = get () {
-  //       config.usedConfigs.push(flag.name)
-  //       return this.configManager.getFlag(flag)
-  //     }
-  //   }
-  //   return config
-  // }
+  /**
+   * Dynamically builds a class with properties from the provided list of flags
+   * and extra properties, will keep track of which properties are used.  Call
+   * getUnusedConfigs() to get an array of unused properties.
+   *
+   * @param {CommandFlag[]} flags an array of flags
+   * @param {string[]} [extraProperties] an array of extra properties
+   * @returns {Object} the instance of the new class
+   */
+  getConfig (flags, extraProperties = []) {
+    const configManager = this.configManager
+    return new class {
+      constructor () {
+        this.usedConfigs = new Map()
+        flags?.forEach(flag => {
+          this[`_${flag.constName}`] = configManager.getFlag(flag)
+          Object.defineProperty(this, flag.constName, {
+            get () {
+              this.usedConfigs.set(flag.constName, this.usedConfigs.get(flag.constName) + 1 || 1)
+              return this[`_${flag.constName}`]
+            }
+          })
+        })
+        extraProperties?.forEach(name => {
+          this[`_${name}`] = ''
+          Object.defineProperty(this, name, {
+            get () {
+              this.usedConfigs.set(name, this.usedConfigs.get(name) + 1 || 1)
+              return this[`_${name}`]
+            },
+            set (value) {
+              this[`_${name}`] = value
+            }
+          })
+        })
+      }
 
-  // /**
-  //  *
-  //  * @param {CommandFlag[]} flags
-  //  */
-  // newDynamicClass (flags) {
-  //   const newClass = class {
-  //     constructor () {
-  //       this.usedConfigs = new Map()
-  //     }
-  //
-  //     getUnusedConfigs () {
-  //       return flags.filter(flag => !this.usedConfigs.has(flag.constName))
-  //     }
-  //   }
-  //   for (const flag of flags) {
-  //     newClass.prototype[flag.constName] = function () {
-  //       this.usedConfigs.set(flag.constName, this.usedConfigs.get(flag.constName) + 1 || 1)
-  //       return this.configManager.getFlag(flag)
-  //     }
-  //   }
-  // }
-  //
-  // /**
-  //  * Builds a map of the given flags where the key is the flag name
-  //  * @param {CommandFlag[]} flags the flags to be converted to a map
-  //  * @returns {(Map<string,CommandFlag> | UsageMap<string,CommandFlag>)} the map of flags
-  //  */
-  // getConfigMap (flags) {
-  //   const map = this.trackConfigMapUsage ? new UsageMap() : new Map()
-  //   for (const flag of flags) {
-  //     map.set(flag.name, flag)
-  //   }
-  //   return map
-  // }
+      /**
+       * Get the list of unused configurations that were not accessed
+       * @returns {string[]} an array of unused configurations
+       */
+      getUnusedConfigs () {
+        const unusedConfigs = []
+        flags?.forEach(flag => {
+          if (!this.usedConfigs.has(flag.constName)) {
+            unusedConfigs.push(flag.constName)
+          }
+        })
+        extraProperties?.forEach(item => {
+          if (!this.usedConfigs.has(item)) {
+            unusedConfigs.push(item)
+          }
+        })
+        return unusedConfigs
+      }
+    }()
+  }
 }
