@@ -71,22 +71,22 @@ export class ClusterCommand extends BaseCommand {
         task: async (ctx, task) => {
           self.configManager.update(argv)
           await prompts.execute(task, self.configManager, [
-            flags.clusterSetupNamespace,
             flags.chartDirectory,
-            flags.deployPrometheusStack,
-            flags.deployMinio,
+            flags.clusterSetupNamespace,
             flags.deployCertManager,
-            flags.deployCertManagerCrds
+            flags.deployCertManagerCrds,
+            flags.deployMinio,
+            flags.deployPrometheusStack
           ])
 
           // prepare config
           ctx.config = {
-            clusterSetupNamespace: self.configManager.getFlag(flags.clusterSetupNamespace),
             chartDir: self.configManager.getFlag(flags.chartDirectory),
-            deployPrometheusStack: self.configManager.getFlag(flags.deployPrometheusStack),
-            deployMinio: self.configManager.getFlag(flags.deployMinio),
+            clusterSetupNamespace: self.configManager.getFlag(flags.clusterSetupNamespace),
             deployCertManager: self.configManager.getFlag(flags.deployCertManager),
             deployCertManagerCrds: self.configManager.getFlag(flags.deployCertManagerCrds),
+            deployMinio: self.configManager.getFlag(flags.deployMinio),
+            deployPrometheusStack: self.configManager.getFlag(flags.deployPrometheusStack),
             fstChartVersion: self.configManager.getFlag(flags.fstChartVersion)
           }
 
@@ -263,13 +263,13 @@ export class ClusterCommand extends BaseCommand {
             command: 'setup',
             desc: 'Setup cluster with shared components',
             builder: y => flags.setCommandFlags(y,
+              flags.chartDirectory,
               flags.clusterName,
               flags.clusterSetupNamespace,
-              flags.chartDirectory,
-              flags.deployPrometheusStack,
-              flags.deployMinio,
               flags.deployCertManager,
               flags.deployCertManagerCrds,
+              flags.deployMinio,
+              flags.deployPrometheusStack,
               flags.fstChartVersion
             ),
             handler: argv => {
