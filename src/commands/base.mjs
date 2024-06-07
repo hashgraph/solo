@@ -63,41 +63,6 @@ export class BaseCommand extends ShellRunner {
     this.depManager = opts.depManager
   }
 
-  /**
-   *
-   * @param {CommandFlag[]} flags
-   */
-  newDynamicClass (flags) {
-    const newClass = class {
-      constructor () {
-        this.usedConfigs = new Map()
-      }
-
-      getUnusedConfigs () {
-        return flags.filter(flag => !this.usedConfigs.has(flag.constName))
-      }
-    }
-    for (const flag of flags) {
-      newClass.prototype[flag.constName] = function () {
-        this.usedConfigs.set(flag.constName, this.usedConfigs.get(flag.constName) + 1 || 1)
-        return this.configManager.getFlag(flag)
-      }
-    }
-  }
-
-  // /**
-  //  * Builds a map of the given flags where the key is the flag name
-  //  * @param {CommandFlag[]} flags the flags to be converted to a map
-  //  * @returns {(Map<string,CommandFlag> | UsageMap<string,CommandFlag>)} the map of flags
-  //  */
-  // getConfigMap (flags) {
-  //   const map = this.trackConfigMapUsage ? new UsageMap() : new Map()
-  //   for (const flag of flags) {
-  //     map.set(flag.name, flag)
-  //   }
-  //   return map
-  // }
-
   // /**
   //  * Builds a map of the given flags where the key is the flag name
   //  * @param {CommandFlag[]} flags the flags to be converted to a map
@@ -114,5 +79,40 @@ export class BaseCommand extends ShellRunner {
   //     }
   //   }
   //   return config
+  // }
+
+  // /**
+  //  *
+  //  * @param {CommandFlag[]} flags
+  //  */
+  // newDynamicClass (flags) {
+  //   const newClass = class {
+  //     constructor () {
+  //       this.usedConfigs = new Map()
+  //     }
+  //
+  //     getUnusedConfigs () {
+  //       return flags.filter(flag => !this.usedConfigs.has(flag.constName))
+  //     }
+  //   }
+  //   for (const flag of flags) {
+  //     newClass.prototype[flag.constName] = function () {
+  //       this.usedConfigs.set(flag.constName, this.usedConfigs.get(flag.constName) + 1 || 1)
+  //       return this.configManager.getFlag(flag)
+  //     }
+  //   }
+  // }
+  //
+  // /**
+  //  * Builds a map of the given flags where the key is the flag name
+  //  * @param {CommandFlag[]} flags the flags to be converted to a map
+  //  * @returns {(Map<string,CommandFlag> | UsageMap<string,CommandFlag>)} the map of flags
+  //  */
+  // getConfigMap (flags) {
+  //   const map = this.trackConfigMapUsage ? new UsageMap() : new Map()
+  //   for (const flag of flags) {
+  //     map.set(flag.name, flag)
+  //   }
+  //   return map
   // }
 }
