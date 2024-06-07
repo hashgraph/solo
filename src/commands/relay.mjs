@@ -21,6 +21,7 @@ import { constants } from '../core/index.mjs'
 import { BaseCommand } from './base.mjs'
 import * as flags from './flags.mjs'
 import * as prompts from './prompts.mjs'
+import { getNodeAccountMap } from '../core/constants.mjs'
 
 export class RelayCommand extends BaseCommand {
   constructor (opts) {
@@ -29,9 +30,10 @@ export class RelayCommand extends BaseCommand {
     if (!opts || !opts.profileManager) throw new MissingArgumentError('An instance of core/ProfileManager is required', opts.downloader)
 
     this.profileManager = opts.profileManager
+    this.accountManager = opts.accountManager
   }
 
-  async prepareValuesArg (valuesFile, nodeIDs, chainID, relayRelease, replicaCount, operatorID, operatorKey) {
+  async prepareValuesArg (valuesFile, nodeIDs, chainID, relayRelease, replicaCount, operatorID, operatorKey, namespace) {
     let valuesArg = ''
     if (valuesFile) {
       valuesArg += this.prepareValuesFiles(valuesFile)
@@ -43,7 +45,11 @@ export class RelayCommand extends BaseCommand {
       valuesArg += this.prepareValuesFiles(profileValuesFile)
     }
 
-    valuesArg += ` --set config.MIRROR_NODE_URL=${constants.FULLSTACK_DEPLOYMENT_CHART}-rest`
+    valuesArg += ` --set config.MIRROR_NODE_URL=http://${constants.FULLSTACK_DEPLOYMENT_CHART}-rest`
+    valuesArg += ` --set config.MIRROR_NODE_URL_WEB3=http://${constants.FULLSTACK_DEPLOYMENT_CHART}-web3`
+    valuesArg += ' --set config.MIRROR_NODE_AGENT_CACHEABLE_DNS=false'
+    valuesArg += ' --set config.MIRROR_NODE_RETRY_DELAY=2001'
+    valuesArg += ' --set config.MIRROR_NODE_GET_CONTRACT_RESULTS_DEFAULT_RETRIES=21'
 
     if (chainID) {
       valuesArg += ` --set config.CHAIN_ID=${chainID}`
@@ -69,12 +75,30 @@ export class RelayCommand extends BaseCommand {
       throw new MissingArgumentError('Node IDs must be specified')
     }
 
+    const networkJsonString = await this.prepareNetworkJsonString(nodeIDs, namespace)
+    valuesArg += ` --set config.HEDERA_NETWORK='${networkJsonString}'`
+    return valuesArg
+  }
+
+  // created a json string to represent the map between the node keys and their ids
+  // output example '{"node-1": "0.0.3", "node-2": "0.004"}'
+  async prepareNetworkJsonString (nodeIDs = [], namespace) {
+    if (!nodeIDs) {
+      throw new MissingArgumentError('Node IDs must be specified')
+    }
+
+    const networkIds = {}
+    const accountMap = getNodeAccountMap(nodeIDs)
+
+    const networkNodeServicesMap = await this.accountManager.getNodeServiceMap(namespace)
     nodeIDs.forEach(nodeID => {
-      const networkKey = `network-${nodeID.trim()}-0:50211`
-      valuesArg += ` --set config.HEDERA_NETWORK.${networkKey}=0.0.3`
+      const nodeName = networkNodeServicesMap.get(nodeID).nodeName
+      const haProxyGrpcPort = networkNodeServicesMap.get(nodeID).haProxyGrpcPort
+      const networkKey = `network-${nodeName}:${haProxyGrpcPort}`
+      networkIds[networkKey] = accountMap.get(nodeID)
     })
 
-    return valuesArg
+    return JSON.stringify(networkIds)
   }
 
   prepareReleaseName (nodeIDs = []) {
@@ -145,7 +169,8 @@ export class RelayCommand extends BaseCommand {
             ctx.config.relayRelease,
             ctx.config.replicaCount,
             ctx.config.operatorId,
-            ctx.config.operatorKey
+            ctx.config.operatorKey,
+            ctx.config.namespace
           )
         }
       },
