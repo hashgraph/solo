@@ -25,7 +25,8 @@ export class ShellRunner {
 
   /**
    * Returns a promise that invokes the shell command
-   * @param cmd shell command string
+   * @param {string} cmd shell command string
+   * @param {boolean} verbose - if true, the output will be shown in the console
    * @returns {Promise<Array>} console output as an array of strings
    */
   async run (cmd, verbose = false) {
