@@ -145,8 +145,6 @@ export class NetworkCommand extends BaseCommand {
 
     await prompts.execute(task, this.configManager, NetworkCommand.DEPLOY_FLAGS_LIST)
 
-    // TODO check the getUnusedConfigs() for an empty list in e2e tests for this command
-
     /**
      * @typedef {Object} deployConfigClass
      * -- flags --
