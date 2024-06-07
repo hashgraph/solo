@@ -27,6 +27,7 @@ import { BaseCommand } from './base.mjs'
 import * as flags from './flags.mjs'
 import * as prompts from './prompts.mjs'
 import {
+  AccountBalanceQuery,
   AccountId,
   FileContentsQuery,
   FileId,
@@ -1475,24 +1476,22 @@ export class NodeCommand extends BaseCommand {
 
   async freezeNetworkNodes (config) {
     await this.accountManager.loadNodeClient(config.namespace)
-
-    await this.accountManager.transferAmount(constants.TREASURY_ACCOUNT_ID, FREEZE_ADMIN_ACCOUNT, 100000)
-
-    const balance = await new AccountBalanceQuery()
-      .setAccountId(FREEZE_ADMIN_ACCOUNT)
-      .execute(this.accountManager._nodeClient)
-    this.logger.debug(`Freeze admin account balance: ${balance.hbars}`)
-
-
-    const client = this.accountManager._nodeClient
-    const accountKeys = await this.accountManager.getAccountKeysFromSecret(FREEZE_ADMIN_ACCOUNT, config.namespace)
-    const freezeAdminPrivateKey = accountKeys.privateKey
-
-    this.logger.debug(`Freeze admin account: ${FREEZE_ADMIN_ACCOUNT}`)
-    this.logger.debug(`Freeze admin private key: ${freezeAdminPrivateKey}`)
-
-    client.setOperator(FREEZE_ADMIN_ACCOUNT, freezeAdminPrivateKey)
     try {
+      // transfer some tiny amount to the freeze admin account
+      await this.accountManager.transferAmount(constants.TREASURY_ACCOUNT_ID, FREEZE_ADMIN_ACCOUNT, 100000)
+
+      // query the balance
+      const balance = await new AccountBalanceQuery()
+        .setAccountId(FREEZE_ADMIN_ACCOUNT)
+        .execute(this.accountManager._nodeClient)
+      this.logger.debug(`Freeze admin account balance: ${balance.hbars}`)
+
+      // set operator of freeze transaction as freeze admin account
+      const client = this.accountManager._nodeClient
+      const accountKeys = await this.accountManager.getAccountKeysFromSecret(FREEZE_ADMIN_ACCOUNT, config.namespace)
+      const freezeAdminPrivateKey = accountKeys.privateKey
+      client.setOperator(FREEZE_ADMIN_ACCOUNT, freezeAdminPrivateKey)
+
       // fetch special file
       const fileId = FileId.fromString('0.0.150')
       const fileQuery = new FileContentsQuery().setFileId(fileId)
