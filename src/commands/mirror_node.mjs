@@ -315,7 +315,6 @@ export class MirrorNodeCommand extends BaseCommand {
               })
             }
           })
-        // TODO sort all of these setCommandFlags in all commands
           .command({
             command: 'destroy',
             desc: 'Destroy mirror-node components and database',
