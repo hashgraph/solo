@@ -1162,9 +1162,6 @@ export class NodeCommand extends BaseCommand {
           await this.accountManager.loadNodeClient(ctx.config.namespace)
 
           self.logger.debug('Initialized config', { config })
-
-          self.logger.debug(`****** generateTlsKeys: ${ctx.config.generateTlsKeys}`)
-          self.logger.debug(`****** generateGossipKeys: ${ctx.config.generateGossipKeys}`)
         }
       },
       {
@@ -1476,6 +1473,7 @@ export class NodeCommand extends BaseCommand {
 
   async freezeNetworkNodes (config) {
     await this.accountManager.loadNodeClient(config.namespace)
+    const client = this.accountManager._nodeClient
     try {
       // transfer some tiny amount to the freeze admin account
       await this.accountManager.transferAmount(constants.TREASURY_ACCOUNT_ID, FREEZE_ADMIN_ACCOUNT, 100000)
@@ -1487,7 +1485,6 @@ export class NodeCommand extends BaseCommand {
       this.logger.debug(`Freeze admin account balance: ${balance.hbars}`)
 
       // set operator of freeze transaction as freeze admin account
-      const client = this.accountManager._nodeClient
       const accountKeys = await this.accountManager.getAccountKeysFromSecret(FREEZE_ADMIN_ACCOUNT, config.namespace)
       const freezeAdminPrivateKey = accountKeys.privateKey
       client.setOperator(FREEZE_ADMIN_ACCOUNT, freezeAdminPrivateKey)
