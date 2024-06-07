@@ -229,11 +229,11 @@ export class AccountCommand extends BaseCommand {
           ])
 
           const config = {
+            amount: self.configManager.getFlag(flags.amount),
+            ecdsaPrivateKey: self.configManager.getFlag(flags.ecdsaPrivateKey),
             namespace: self.configManager.getFlag(flags.namespace),
             privateKey: self.configManager.getFlag(flags.privateKey),
-            amount: self.configManager.getFlag(flags.amount),
-            setAlias: self.configManager.getFlag(flags.setAlias),
-            ecdsaPrivateKey: self.configManager.getFlag(flags.ecdsaPrivateKey)
+            setAlias: self.configManager.getFlag(flags.setAlias)
           }
 
           if (!config.amount) {
@@ -287,15 +287,15 @@ export class AccountCommand extends BaseCommand {
         task: async (ctx, task) => {
           self.configManager.update(argv)
           await prompts.execute(task, self.configManager, [
-            flags.namespace,
-            flags.accountId
+            flags.accountId,
+            flags.namespace
           ])
 
           const config = {
-            namespace: self.configManager.getFlag(flags.namespace),
             accountId: self.configManager.getFlag(flags.accountId),
-            privateKey: self.configManager.getFlag(flags.privateKey),
-            amount: self.configManager.getFlag(flags.amount)
+            amount: self.configManager.getFlag(flags.amount),
+            namespace: self.configManager.getFlag(flags.namespace),
+            privateKey: self.configManager.getFlag(flags.privateKey)
           }
 
           if (!await this.k8.hasNamespace(config.namespace)) {
@@ -356,13 +356,13 @@ export class AccountCommand extends BaseCommand {
         task: async (ctx, task) => {
           self.configManager.update(argv)
           await prompts.execute(task, self.configManager, [
-            flags.namespace,
-            flags.accountId
+            flags.accountId,
+            flags.namespace
           ])
 
           const config = {
-            namespace: self.configManager.getFlag(flags.namespace),
-            accountId: self.configManager.getFlag(flags.accountId)
+            accountId: self.configManager.getFlag(flags.accountId),
+            namespace: self.configManager.getFlag(flags.namespace)
           }
 
           if (!await this.k8.hasNamespace(config.namespace)) {
@@ -436,11 +436,11 @@ export class AccountCommand extends BaseCommand {
             command: 'create',
             desc: 'Creates a new account with a new key and stores the key in the Kubernetes secrets',
             builder: y => flags.setCommandFlags(y,
+              flags.amount,
+              flags.ecdsaPrivateKey,
               flags.namespace,
               flags.privateKey,
-              flags.ecdsaPrivateKey,
-              flags.setAlias,
-              flags.amount
+              flags.setAlias
             ),
             handler: argv => {
               accountCmd.logger.debug("==== Running 'account create' ===")
@@ -459,10 +459,10 @@ export class AccountCommand extends BaseCommand {
             command: 'update',
             desc: 'Updates an existing account with the provided info\n',
             builder: y => flags.setCommandFlags(y,
-              flags.namespace,
               flags.accountId,
-              flags.privateKey,
-              flags.amount
+              flags.amount,
+              flags.namespace,
+              flags.privateKey
             ),
             handler: argv => {
               accountCmd.logger.debug("==== Running 'account update' ===")
@@ -481,8 +481,8 @@ export class AccountCommand extends BaseCommand {
             command: 'get',
             desc: 'Gets the account info including the current amount of HBAR',
             builder: y => flags.setCommandFlags(y,
-              flags.namespace,
-              flags.accountId
+              flags.accountId,
+              flags.namespace
             ),
             handler: argv => {
               accountCmd.logger.debug("==== Running 'account get' ===")
