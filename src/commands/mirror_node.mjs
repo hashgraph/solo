@@ -292,6 +292,7 @@ export class MirrorNodeCommand extends BaseCommand {
       desc: 'Manage Hedera Mirror Node in fullstack testing network',
       builder: yargs => {
         return yargs
+        // TODO: mirror node deploy
           .command({
             command: 'deploy',
             desc: 'Deploy mirror-node and its components',
@@ -314,6 +315,7 @@ export class MirrorNodeCommand extends BaseCommand {
               })
             }
           })
+        // TODO sort all of these setCommandFlags in all commands
           .command({
             command: 'destroy',
             desc: 'Destroy mirror-node components and database',

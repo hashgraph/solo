@@ -291,6 +291,7 @@ export class RelayCommand extends BaseCommand {
       desc: 'Manage JSON RPC relays in fullstack testing network',
       builder: yargs => {
         return yargs
+        // TODO relay deploy (get Jeffrey's changes first)
           .command({
             command: 'deploy',
             desc: 'Deploy a JSON RPC relay',

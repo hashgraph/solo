@@ -1571,6 +1571,7 @@ export class NodeCommand extends BaseCommand {
       desc: 'Manage Hedera platform node in fullstack testing network',
       builder: yargs => {
         return yargs
+        // TODO: node setup
           .command({
             command: 'setup',
             desc: 'Setup node with a specific version of Hedera platform',
@@ -1646,6 +1647,7 @@ export class NodeCommand extends BaseCommand {
               })
             }
           })
+        // TODO node keys
           .command({
             command: 'keys',
             desc: 'Generate node keys',
@@ -1669,6 +1671,7 @@ export class NodeCommand extends BaseCommand {
               })
             }
           })
+        // TODO node refresh
           .command({
             command: 'refresh',
             desc: 'Reset and restart a node',
@@ -1711,6 +1714,7 @@ export class NodeCommand extends BaseCommand {
               })
             }
           })
+        // TODO node add
           .command({
             command: 'add',
             desc: 'Adds a node with a specific version of Hedera platform',

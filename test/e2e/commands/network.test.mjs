@@ -90,7 +90,7 @@ describe('NetworkCommand', () => {
       // get list of pvc using k8 listPvcsByNamespace function and print to log
       const pvcs = await k8.listPvcsByNamespace(namespace)
       networkCmd.logger.showList('PVCs', pvcs)
-      // TODO: this should be empty, needs cleanup work
+      // TODO: this should be empty, needs cleanup work, looks like the mirror node and explorer settings are being set in values.yaml during network deploy, and is missing from mirror node command
       expect(networkCmd.getUnusedConfigs(NetworkCommand.DEPLOY_CONFIGS_NAME)).toEqual(
         ['deployHederaExplorer', 'deployMirrorNode', 'hederaExplorerTlsHostName',
           'hederaExplorerTlsLoadBalancerIp', 'profileFile', 'profileName', 'tlsClusterIssuerType'])
