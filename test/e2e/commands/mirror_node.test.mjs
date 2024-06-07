@@ -80,7 +80,7 @@ describe('MirrorNodeCommand', () => {
     await accountManager.close()
 
     bootstrapResp.opts.logger.showUser(`------------------------- END: ${testName} ----------------------------`)
-  })
+  }, 180000)
 
   afterEach(async () => {
     await sleep(500) // give a few ticks so that connections can close

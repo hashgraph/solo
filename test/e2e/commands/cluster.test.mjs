@@ -69,7 +69,7 @@ describe('ClusterCommand', () => {
     await getNodeLogs(k8, namespace)
     await k8.deleteNamespace(namespace)
     await accountManager.close()
-  })
+  }, 180000)
 
   beforeEach(() => {
     configManager.reset()
