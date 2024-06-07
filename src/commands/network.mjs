@@ -107,21 +107,44 @@ export class NetworkCommand extends BaseCommand {
     ])
     await prompts.execute(task, this.configManager, DEPLOY_FLAGS_LIST)
 
+    // TODO check the getUnusedConfigs() for an empty list in e2e tests for this command
+    /**
+     * @typedef {Object} deployConfigClass
+     * @property {string} applicationEnv
+     * @property {string} chartDirectory
+     * @property {boolean} deployHederaExplorer
+     * @property {boolean} deployMirrorNode
+     * @property {boolean} enableHederaExplorerTls
+     * @property {boolean} enablePrometheusSvcMonitor
+     * @property {string} fstChartVersion
+     * @property {string} hederaExplorerTlsHostName
+     * @property {string} hederaExplorerTlsLoadBalancerIp
+     * @property {string} namespace
+     * @property {string} nodeIDs
+     * @property {string} profileFile
+     * @property {string} profileName
+     * @property {string} releaseTag
+     * @property {string} tlsClusterIssuerType
+     * @property {string[]} nodeIds
+     * @property {string} chartPath
+     * @property {string} valuesArg
+     * @property {getUnusedConfigs} getUnusedConfigs
+     */
+    /**
+     * @callback getUnusedConfigs
+     * @returns {string[]}
+     */
     // create a config object for subsequent steps
-    const config = this.getConfigMap(DEPLOY_FLAGS_LIST)
-    config.set('nodeIds', helpers.parseNodeIds(this.configManager.getFlag(flags.nodeIDs)))
+    const config = /** @type {deployConfigClass} **/ this.getConfig(DEPLOY_FLAGS_LIST,
+      ['nodeIds', 'chartPath', 'valuesArg'])
 
-    // TODO: the items above are already in the configManager, why keep them separate?
-    // TODO: the items below are manually set, intelliJ sees them as valid, but won't show you if they have been used or not
-    // TODO: I can do dynamic variable setting, but then IntelliJ won't even see them as valid and throws warnings
-    // TODO: I could create a class for each one, but then would also need to add a getter and setter if I wanted to track usage
-    // TODO: I could store them in a map, this would allow me to do the dynamic logic, and would not throw the warnings, but I would need to update the code to use the map
+    config.nodeIds = helpers.parseNodeIds(this.configManager.getFlag(flags.nodeIDs))
 
     // compute values
-    config.set('chartPath', await this.prepareChartPath(config.get(flags.chartDirectory.name),
-      constants.FULLSTACK_TESTING_CHART, constants.FULLSTACK_DEPLOYMENT_CHART))
+    config.chartPath = await this.prepareChartPath(config.chartDirectory,
+      constants.FULLSTACK_TESTING_CHART, constants.FULLSTACK_DEPLOYMENT_CHART)
 
-    config.set('valuesArg', await this.prepareValuesArg(config))
+    config.valuesArg = await this.prepareValuesArg(config)
 
     this.logger.debug('Prepared config', {
       config,
