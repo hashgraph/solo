@@ -37,6 +37,7 @@ import * as version from '../../../version.mjs'
 import { getNodeLogs, sleep } from '../../../src/core/helpers.mjs'
 import path from 'path'
 import fs from 'fs'
+import { NetworkCommand } from '../../../src/commands/network.mjs'
 
 describe('NetworkCommand', () => {
   const testName = 'network-cmd-e2e'
@@ -89,6 +90,7 @@ describe('NetworkCommand', () => {
       // get list of pvc using k8 listPvcsByNamespace function and print to log
       const pvcs = await k8.listPvcsByNamespace(namespace)
       networkCmd.logger.showList('PVCs', pvcs)
+      expect(networkCmd.getUnusedConfigs(NetworkCommand.DEPLOY_CONFIGS_NAME)).toHaveLength(0)
     } catch (e) {
       networkCmd.logger.showUserError(e)
       expect(e).toBeNull()
@@ -128,6 +130,7 @@ describe('NetworkCommand', () => {
 
       // check if pvc are deleted
       await expect(k8.listPvcsByNamespace(namespace)).resolves.toHaveLength(0)
+      expect(networkCmd.getUnusedConfigs(NetworkCommand.DESTROY_CONFIGS_NAME)).toHaveLength(0)
     } catch (e) {
       networkCmd.logger.showUserError(e)
       expect(e).toBeNull()
