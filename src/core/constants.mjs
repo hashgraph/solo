@@ -132,20 +132,6 @@ export const PROFILE_LOCAL = 'local'
 export const ALL_PROFILES = [PROFILE_LOCAL, PROFILE_TINY, PROFILE_SMALL, PROFILE_MEDIUM, PROFILE_LARGE]
 export const DEFAULT_PROFILE_FILE = `${SOLO_CACHE_DIR}/profiles/custom-spec.yaml`
 
-// a function generate map between the nodeId and their account ids
-export function getNodeAccountMap (nodeIDs) {
-  const accountMap = new Map()
-  const realm = constants.HEDERA_NODE_ACCOUNT_ID_START.realm
-  const shard = constants.HEDERA_NODE_ACCOUNT_ID_START.shard
-  let accountId = constants.HEDERA_NODE_ACCOUNT_ID_START.num
-
-  nodeIDs.forEach(nodeID => {
-    const nodeAccount = `${realm}.${shard}.${accountId++}`
-    accountMap.set(nodeID, nodeAccount)
-  })
-  return accountMap
-}
-
 // ------ Hedera SDK Related ------
 export const NODE_CLIENT_MAX_ATTEMPTS = process.env.NODE_CLIENT_MAX_ATTEMPTS || 60
 export const NODE_CLIENT_MIN_BACKOFF = process.env.NODE_CLIENT_MIN_BACKOFF || 1000
