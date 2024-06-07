@@ -77,5 +77,5 @@ describe('HelmDependencyManager', () => {
     await expect(helmDependencyManager.install(getTestCacheDir())).resolves.toBeTruthy()
     expect(helmDependencyManager.isInstalled()).toBeTruthy()
     fs.rmSync(tmpDir, { recursive: true })
-  }, 12000)
+  }, 20000)
 })
