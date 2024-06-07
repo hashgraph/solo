@@ -78,7 +78,7 @@ export function e2eNodeKeyRefreshAddTest (keyFormat, testName, mode, releaseTag 
     afterAll(async () => {
       await getNodeLogs(k8, namespace)
       await k8.deleteNamespace(namespace)
-    }, defaultTimeout)
+    }, 180000)
 
     describe(`Node should have started successfully [mode ${mode}, release ${releaseTag}, keyFormat: ${keyFormat}]`, () => {
       balanceQueryShouldSucceed(accountManager, nodeCmd, namespace)
@@ -254,7 +254,6 @@ export function e2eNodeKeyRefreshAddTest (keyFormat, testName, mode, releaseTag 
       try {
         await expect(nodeCmd.checkNetworkNodeState(nodeId, 5)).rejects.toThrowError()
       } catch (e) {
-        nodeCmd.logger.showUserError(e)
         expect(e).not.toBeNull()
       } finally {
         await nodeCmd.close()
