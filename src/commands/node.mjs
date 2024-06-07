@@ -35,7 +35,7 @@ import {
   Timestamp
 } from '@hashgraph/sdk'
 import * as crypto from 'crypto'
-import {FREEZE_ADMIN_ACCOUNT} from "../core/constants.mjs";
+import { FREEZE_ADMIN_ACCOUNT } from '../core/constants.mjs'
 
 /**
  * Defines the core functionalities of 'node' command
@@ -1475,9 +1475,23 @@ export class NodeCommand extends BaseCommand {
 
   async freezeNetworkNodes (config) {
     await this.accountManager.loadNodeClient(config.namespace)
+
+    await this.accountManager.transferAmount(constants.TREASURY_ACCOUNT_ID, FREEZE_ADMIN_ACCOUNT, 100000)
+
+    const balance = await new AccountBalanceQuery()
+      .setAccountId(FREEZE_ADMIN_ACCOUNT)
+      .execute(this.accountManager._nodeClient)
+    this.logger.debug(`Freeze admin account balance: ${balance.hbars}`)
+
+
     const client = this.accountManager._nodeClient
-    // client.setOperator(FREEZE_ADMIN_ACCOUNT)
-    // const accountKeys = await this.accountManager.getAccountKeysFromSecret(FREEZE_ADMIN_ACCOUNT, config.namespace)
+    const accountKeys = await this.accountManager.getAccountKeysFromSecret(FREEZE_ADMIN_ACCOUNT, config.namespace)
+    const freezeAdminPrivateKey = accountKeys.privateKey
+
+    this.logger.debug(`Freeze admin account: ${FREEZE_ADMIN_ACCOUNT}`)
+    this.logger.debug(`Freeze admin private key: ${freezeAdminPrivateKey}`)
+
+    client.setOperator(FREEZE_ADMIN_ACCOUNT, freezeAdminPrivateKey)
     try {
       // fetch special file
       const fileId = FileId.fromString('0.0.150')
