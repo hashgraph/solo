@@ -21,6 +21,7 @@ import * as yaml from 'js-yaml'
 import { flags } from '../commands/index.mjs'
 import { constants, helpers } from './index.mjs'
 import dot from 'dot-object'
+import { getNodeAccountMap } from './constants.mjs'
 
 const consensusSidecars = [
   'recordStreamUploader', 'eventStreamUploader', 'backupUploader', 'accountBalanceUploader', 'otelCollector']
@@ -148,15 +149,12 @@ export class ProfileManager {
   resourcesForConsensusPod (profile, nodeIds, yamlRoot) {
     if (!profile) throw new MissingArgumentError('profile is required')
 
-    // prepare name and account IDs for nodes
-    const realm = constants.HEDERA_NODE_ACCOUNT_ID_START.realm
-    const shard = constants.HEDERA_NODE_ACCOUNT_ID_START.shard
-    let accountId = constants.HEDERA_NODE_ACCOUNT_ID_START.num
+    const accountMap = getNodeAccountMap(nodeIds)
 
     // set consensus pod level resources
     for (let nodeIndex = 0; nodeIndex < nodeIds.length; nodeIndex++) {
       this._setValue(`hedera.nodes.${nodeIndex}.name`, nodeIds[nodeIndex], yamlRoot)
-      this._setValue(`hedera.nodes.${nodeIndex}.accountId`, `${realm}.${shard}.${accountId++}`, yamlRoot)
+      this._setValue(`hedera.nodes.${nodeIndex}.accountId`, accountMap.get(nodeIds[nodeIndex]), yamlRoot)
       this._setChartItems(`hedera.nodes.${nodeIndex}`, profile.consensus, yamlRoot)
     }
 
