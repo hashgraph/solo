@@ -181,7 +181,7 @@ export class NetworkCommand extends BaseCommand {
     const config = /** @type {deployConfigClass} **/ this.getConfig(NetworkCommand.DEPLOY_CONFIGS_NAME, NetworkCommand.DEPLOY_FLAGS_LIST,
       ['nodeIds', 'chartPath', 'valuesArg'])
 
-    config.nodeIds = helpers.parseNodeIds(this.configManager.getFlag(flags.nodeIDs))
+    config.nodeIds = helpers.parseNodeIds(config.nodeIDs)
 
     // compute values
     config.chartPath = await this.prepareChartPath(config.chartDirectory,
@@ -340,31 +340,7 @@ export class NetworkCommand extends BaseCommand {
       {
         title: 'Initialize',
         task: async (ctx, task) => {
-          self.configManager.update(argv)
-
-          // disable the prompts that we don't want to prompt the user for
-          prompts.disablePrompts([flags.force])
-
-          await prompts.execute(task, self.configManager, NetworkCommand.DESTROY_FLAGS_LIST)
-
-          /**
-           * @typedef {Object} destroyConfigClass
-           * -- flags --
-           * @property {string} deletePvcs
-           * @property {boolean} force
-           * @property {string} namespace
-           * -- extra args --
-           * @property {string[]} pvcs
-           * -- methods --
-           * @property {getUnusedConfigs} getUnusedConfigs
-           */
-          /**
-           * @callback getUnusedConfigs
-           * @returns {string[]}
-           */
-          ctx.config = /** @type {destroyConfigClass} **/ this.getConfig(NetworkCommand.DESTROY_CONFIGS_NAME, NetworkCommand.DESTROY_FLAGS_LIST, ['pvcs'])
-
-          if (!ctx.config.force) {
+          if (!argv.force) {
             const confirm = await task.prompt(ListrEnquirerPromptAdapter).run({
               type: 'toggle',
               default: false,
@@ -500,7 +476,11 @@ export class NetworkCommand extends BaseCommand {
           .command({
             command: 'destroy',
             desc: 'Destroy fullstack testing network',
-            builder: y => flags.setCommandFlags(y, NetworkCommand.DESTROY_FLAGS_LIST),
+            builder: y => flags.setCommandFlags(y,
+              flags.deletePvcs,
+              flags.force,
+              flags.namespace
+            ),
             handler: argv => {
               networkCmd.logger.debug('==== Running \'network destroy\' ===')
               networkCmd.logger.debug(argv)
