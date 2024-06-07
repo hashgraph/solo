@@ -24,6 +24,33 @@ import { constants } from '../core/index.mjs'
 import * as prompts from './prompts.mjs'
 import * as helpers from '../core/helpers.mjs'
 
+export const DEPLOY_CONFIGS_NAME = 'deployConfigs'
+const DEPLOY_FLAGS_LIST = [
+  flags.applicationEnv,
+  flags.chartDirectory,
+  flags.deployHederaExplorer,
+  flags.deployMirrorNode,
+  flags.enableHederaExplorerTls,
+  flags.enablePrometheusSvcMonitor,
+  flags.fstChartVersion,
+  flags.hederaExplorerTlsHostName,
+  flags.hederaExplorerTlsLoadBalancerIp,
+  flags.namespace,
+  flags.nodeIDs,
+  flags.profileFile,
+  flags.profileName,
+  flags.releaseTag,
+  flags.tlsClusterIssuerType,
+  flags.valuesFile
+]
+
+export const DESTROY_CONFIGS_NAME = 'destroyConfigs'
+const DESTROY_FLAGS_LIST = [
+  flags.deletePvcs,
+  flags.force,
+  flags.namespace
+]
+
 export class NetworkCommand extends BaseCommand {
   constructor (opts) {
     super(opts)
@@ -99,17 +126,22 @@ export class NetworkCommand extends BaseCommand {
   async prepareConfig (task, argv) {
     this.configManager.update(argv)
     this.logger.debug('Loaded cached config', { config: this.configManager.config })
+
+    // disable the prompts that we don't want to prompt the user for
     prompts.disablePrompts([
       flags.applicationEnv,
       flags.deployHederaExplorer,
       flags.deployMirrorNode,
       flags.hederaExplorerTlsLoadBalancerIp
     ])
+
     await prompts.execute(task, this.configManager, DEPLOY_FLAGS_LIST)
 
     // TODO check the getUnusedConfigs() for an empty list in e2e tests for this command
+
     /**
      * @typedef {Object} deployConfigClass
+     * -- flags --
      * @property {string} applicationEnv
      * @property {string} chartDirectory
      * @property {boolean} deployHederaExplorer
@@ -125,17 +157,20 @@ export class NetworkCommand extends BaseCommand {
      * @property {string} profileName
      * @property {string} releaseTag
      * @property {string} tlsClusterIssuerType
+     * -- extra args --
      * @property {string[]} nodeIds
      * @property {string} chartPath
      * @property {string} valuesArg
+     * -- methods --
      * @property {getUnusedConfigs} getUnusedConfigs
      */
     /**
      * @callback getUnusedConfigs
      * @returns {string[]}
      */
+
     // create a config object for subsequent steps
-    const config = /** @type {deployConfigClass} **/ this.getConfig(DEPLOY_FLAGS_LIST,
+    const config = /** @type {deployConfigClass} **/ this.getConfig(DEPLOY_CONFIGS_NAME, DEPLOY_FLAGS_LIST,
       ['nodeIds', 'chartPath', 'valuesArg'])
 
     config.nodeIds = helpers.parseNodeIds(this.configManager.getFlag(flags.nodeIDs))
@@ -297,7 +332,31 @@ export class NetworkCommand extends BaseCommand {
       {
         title: 'Initialize',
         task: async (ctx, task) => {
-          if (!argv.force) {
+          self.configManager.update(argv)
+
+          // disable the prompts that we don't want to prompt the user for
+          prompts.disablePrompts([flags.force])
+
+          await prompts.execute(task, self.configManager, DESTROY_FLAGS_LIST)
+
+          /**
+           * @typedef {Object} destroyConfigClass
+           * -- flags --
+           * @property {string} deletePvcs
+           * @property {boolean} force
+           * @property {string} namespace
+           * -- extra args --
+           * @property {string[]} pvcs
+           * -- methods --
+           * @property {getUnusedConfigs} getUnusedConfigs
+           */
+          /**
+           * @callback getUnusedConfigs
+           * @returns {string[]}
+           */
+          ctx.config = /** @type {destroyConfigClass} **/ this.getConfig(DESTROY_CONFIGS_NAME, DESTROY_FLAGS_LIST, ['pvcs'])
+
+          if (!ctx.config.force) {
             const confirm = await task.prompt(ListrEnquirerPromptAdapter).run({
               type: 'toggle',
               default: false,

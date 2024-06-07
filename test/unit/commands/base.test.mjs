@@ -86,36 +86,39 @@ describe('BaseCommand', () => {
        * @returns {string[]}
        */
 
-      const newClassInstance1 = /** @type {newClassInstance} **/ baseCmd.getConfig(flagsList, extraVars)
+      const NEW_CLASS1_NAME = 'newClassInstance1'
+      const newClassInstance1 = /** @type {newClassInstance} **/ baseCmd.getConfig(NEW_CLASS1_NAME, flagsList, extraVars)
       expect(newClassInstance1.releaseTag).toBe('releaseTag1')
       expect(newClassInstance1.tlsClusterIssuerType).toBe('type2')
       expect(newClassInstance1.valuesFile).toBe('file3')
       expect(newClassInstance1.var1).toBe('')
       expect(newClassInstance1.var2).toBe('')
-      expect(newClassInstance1.getUnusedConfigs()).toEqual([])
+      expect(baseCmd.getUnusedConfigs(NEW_CLASS1_NAME)).toEqual([])
 
-      const newClassInstance2 = /** @type {newClassInstance} **/ baseCmd.getConfig(flagsList, extraVars)
+      const NEW_CLASS2_NAME = 'newClassInstance2'
+      const newClassInstance2 = /** @type {newClassInstance} **/ baseCmd.getConfig(NEW_CLASS2_NAME, flagsList, extraVars)
       newClassInstance2.var1 = 'var1'
       newClassInstance2.var2 = 'var2'
       expect(newClassInstance2.var1).toBe('var1')
       expect(newClassInstance2.var2).toBe('var2')
-      expect(newClassInstance2.getUnusedConfigs()).toEqual([
+      expect(baseCmd.getUnusedConfigs(NEW_CLASS2_NAME)).toEqual([
         flags.releaseTag.constName,
         flags.tlsClusterIssuerType.constName,
         flags.valuesFile.constName
       ])
 
-      const newClassInstance3 = /** @type {newClassInstance} **/ baseCmd.getConfig(flagsList, extraVars)
+      const NEW_CLASS3_NAME = 'newClassInstance3'
+      const newClassInstance3 = /** @type {newClassInstance} **/ baseCmd.getConfig(NEW_CLASS3_NAME, flagsList, extraVars)
       newClassInstance3.var1 = 'var1'
       expect(newClassInstance3.var1).toBe('var1')
       expect(newClassInstance3.tlsClusterIssuerType).toBe('type2')
-      expect(newClassInstance3.getUnusedConfigs()).toEqual([
+      expect(baseCmd.getUnusedConfigs(NEW_CLASS3_NAME)).toEqual([
         flags.releaseTag.constName,
         flags.valuesFile.constName,
         'var2'
       ])
 
-      const newClassInstance4 = baseCmd.getConfig([])
+      const newClassInstance4 = baseCmd.getConfig('newClassInstance4', [])
       expect(newClassInstance4.getUnusedConfigs()).toEqual([])
     })
   })

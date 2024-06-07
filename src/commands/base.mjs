@@ -61,6 +61,7 @@ export class BaseCommand extends ShellRunner {
     this.chartManager = opts.chartManager
     this.configManager = opts.configManager
     this.depManager = opts.depManager
+    this._configMaps = new Map()
   }
 
   /**
@@ -68,13 +69,14 @@ export class BaseCommand extends ShellRunner {
    * and extra properties, will keep track of which properties are used.  Call
    * getUnusedConfigs() to get an array of unused properties.
    *
+   * @param {string} configName the name of the configuration
    * @param {CommandFlag[]} flags an array of flags
    * @param {string[]} [extraProperties] an array of extra properties
    * @returns {Object} the instance of the new class
    */
-  getConfig (flags, extraProperties = []) {
+  getConfig (configName, flags, extraProperties = []) {
     const configManager = this.configManager
-    return new class {
+    const NewConfigClass = class {
       constructor () {
         this.usedConfigs = new Map()
         flags?.forEach(flag => {
@@ -118,6 +120,18 @@ export class BaseCommand extends ShellRunner {
         })
         return unusedConfigs
       }
-    }()
+    }
+    const newConfigInstance = new NewConfigClass()
+    this._configMaps.set(configName, newConfigInstance)
+    return newConfigInstance
+  }
+
+  /**
+   * Get the list of unused configurations that were not accessed
+   * @param {string} configName
+   * @returns {string[]} an array of unused configurations
+   */
+  getUnusedConfigs (configName) {
+    return this._configMaps.get(configName).getUnusedConfigs()
   }
 }
