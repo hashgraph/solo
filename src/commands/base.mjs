@@ -76,9 +76,14 @@ export class BaseCommand extends ShellRunner {
    */
   getConfig (configName, flags, extraProperties = []) {
     const configManager = this.configManager
+
+    // build the dynamic class that will keep track of which properties are used
     const NewConfigClass = class {
       constructor () {
+        // the map to keep track of which properties are used
         this.usedConfigs = new Map()
+
+        // add the flags as properties to this class
         flags?.forEach(flag => {
           this[`_${flag.constName}`] = configManager.getFlag(flag)
           Object.defineProperty(this, flag.constName, {
@@ -88,6 +93,8 @@ export class BaseCommand extends ShellRunner {
             }
           })
         })
+
+        // add the extra properties as properties to this class
         extraProperties?.forEach(name => {
           this[`_${name}`] = ''
           Object.defineProperty(this, name, {
@@ -108,11 +115,15 @@ export class BaseCommand extends ShellRunner {
        */
       getUnusedConfigs () {
         const unusedConfigs = []
+
+        // add the flag constName to the unusedConfigs array if it was not accessed
         flags?.forEach(flag => {
           if (!this.usedConfigs.has(flag.constName)) {
             unusedConfigs.push(flag.constName)
           }
         })
+
+        // add the extra properties to the unusedConfigs array if it was not accessed
         extraProperties?.forEach(item => {
           if (!this.usedConfigs.has(item)) {
             unusedConfigs.push(item)
@@ -121,8 +132,13 @@ export class BaseCommand extends ShellRunner {
         return unusedConfigs
       }
     }
+
     const newConfigInstance = new NewConfigClass()
+
+    // add the new instance to the configMaps so that it can be used to get the
+    // unused configurations using the configName from the BaseCommand
     this._configMaps.set(configName, newConfigInstance)
+
     return newConfigInstance
   }
 
