@@ -319,7 +319,7 @@ export class RelayCommand extends BaseCommand {
             command: 'deploy',
             desc: 'Deploy a JSON RPC relay',
             builder: y => {
-              flags.setCommandFlags(y, RelayCommand.DEPLOY_FLAGS_LIST)
+              flags.setCommandFlags(y, ...RelayCommand.DEPLOY_FLAGS_LIST)
             },
             handler: argv => {
               relayCmd.logger.debug("==== Running 'relay install' ===", { argv })

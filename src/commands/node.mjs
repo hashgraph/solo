@@ -1808,7 +1808,7 @@ export class NodeCommand extends BaseCommand {
           .command({
             command: 'setup',
             desc: 'Setup node with a specific version of Hedera platform',
-            builder: y => flags.setCommandFlags(y, NodeCommand.SETUP_FLAGS_LIST),
+            builder: y => flags.setCommandFlags(y, ...NodeCommand.SETUP_FLAGS_LIST),
             handler: argv => {
               nodeCmd.logger.debug('==== Running \'node setup\' ===')
               nodeCmd.logger.debug(argv)
@@ -1865,7 +1865,7 @@ export class NodeCommand extends BaseCommand {
           .command({
             command: 'keys',
             desc: 'Generate node keys',
-            builder: y => flags.setCommandFlags(y, NodeCommand.KEYS_FLAGS_LIST),
+            builder: y => flags.setCommandFlags(y, ...NodeCommand.KEYS_FLAGS_LIST),
             handler: argv => {
               nodeCmd.logger.debug('==== Running \'node keys\' ===')
               nodeCmd.logger.debug(argv)
@@ -1882,7 +1882,7 @@ export class NodeCommand extends BaseCommand {
           .command({
             command: 'refresh',
             desc: 'Reset and restart a node',
-            builder: y => flags.setCommandFlags(y, NodeCommand.REFRESH_FLAGS_LIST),
+            builder: y => flags.setCommandFlags(y, ...NodeCommand.REFRESH_FLAGS_LIST),
             handler: argv => {
               nodeCmd.logger.debug('==== Running \'node refresh\' ===')
               nodeCmd.logger.debug(argv)
@@ -1918,7 +1918,7 @@ export class NodeCommand extends BaseCommand {
           .command({
             command: 'add',
             desc: 'Adds a node with a specific version of Hedera platform',
-            builder: y => flags.setCommandFlags(y, NodeCommand.ADD_FLAGS_LIST),
+            builder: y => flags.setCommandFlags(y, ...NodeCommand.ADD_FLAGS_LIST),
             handler: argv => {
               nodeCmd.logger.debug('==== Running \'node add\' ===')
               nodeCmd.logger.debug(argv)

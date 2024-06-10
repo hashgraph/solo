@@ -332,7 +332,7 @@ export class MirrorNodeCommand extends BaseCommand {
           .command({
             command: 'deploy',
             desc: 'Deploy mirror-node and its components',
-            builder: y => flags.setCommandFlags(y, MirrorNodeCommand.DEPLOY_FLAGS_LIST),
+            builder: y => flags.setCommandFlags(y, ...MirrorNodeCommand.DEPLOY_FLAGS_LIST),
             handler: argv => {
               mirrorNodeCmd.logger.debug('==== Running \'mirror-node deploy\' ===')
               mirrorNodeCmd.logger.debug(argv)

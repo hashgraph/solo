@@ -446,7 +446,7 @@ export class NetworkCommand extends BaseCommand {
           .command({
             command: 'deploy',
             desc: 'Deploy fullstack testing network',
-            builder: y => flags.setCommandFlags(y, NetworkCommand.DEPLOY_FLAGS_LIST),
+            builder: y => flags.setCommandFlags(y, ...NetworkCommand.DEPLOY_FLAGS_LIST),
             handler: argv => {
               networkCmd.logger.debug('==== Running \'network deploy\' ===')
               networkCmd.logger.debug(argv)
@@ -486,7 +486,7 @@ export class NetworkCommand extends BaseCommand {
           .command({
             command: 'refresh',
             desc: 'Refresh fullstack testing network deployment',
-            builder: y => flags.setCommandFlags(y, NetworkCommand.DEPLOY_FLAGS_LIST),
+            builder: y => flags.setCommandFlags(y, ...NetworkCommand.DEPLOY_FLAGS_LIST),
             handler: argv => {
               networkCmd.logger.debug('==== Running \'chart upgrade\' ===')
               networkCmd.logger.debug(argv)
