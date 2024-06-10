@@ -336,10 +336,10 @@ export class NetworkCommand extends BaseCommand {
       {
         title: 'Delete Secrets',
         task: async (ctx, _) => {
-          ctx.config.secrets = await self.k8.listSecretsByNamespace(ctx.config.namespace)
+          const secrets = await self.k8.listSecretsByNamespace(ctx.config.namespace)
 
-          if (ctx.config.secrets) {
-            for (const secret of ctx.config.secrets) {
+          if (secrets) {
+            for (const secret of secrets) {
               await self.k8.deleteSecret(secret, ctx.config.namespace)
             }
           }
