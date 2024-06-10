@@ -18,8 +18,6 @@ import { AccountId } from '@hashgraph/sdk'
 import { color, PRESET_TIMER } from 'listr2'
 import { dirname, normalize } from 'path'
 import { fileURLToPath } from 'url'
-import chalk from 'chalk'
-import { constants } from './index.mjs'
 
 // -------------------- solo related constants ---------------------------------------------------------------------
 export const CUR_FILE_DIR = dirname(fileURLToPath(import.meta.url))
