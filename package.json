@@ -60,7 +60,7 @@
     "tar": "^7.2.0",
     "uuid": "^9.0.1",
     "winston": "^3.13.0",
-    "yaml": "^2.4.3",
+    "yaml": "^2.4.5",
     "yargs": "^17.7.2"
   },
   "devDependencies": {
