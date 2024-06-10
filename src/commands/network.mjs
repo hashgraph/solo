@@ -323,10 +323,10 @@ export class NetworkCommand extends BaseCommand {
       {
         title: 'Delete PVCs',
         task: async (ctx, _) => {
-          ctx.config.pvcs = await self.k8.listPvcsByNamespace(ctx.config.namespace)
+          const pvcs = await self.k8.listPvcsByNamespace(ctx.config.namespace)
 
-          if (ctx.config.pvcs) {
-            for (const pvc of ctx.config.pvcs) {
+          if (pvcs) {
+            for (const pvc of pvcs) {
               await self.k8.deletePvc(pvc, ctx.config.namespace)
             }
           }
