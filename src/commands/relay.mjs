@@ -112,9 +112,9 @@ export class RelayCommand extends BaseCommand {
 
     const networkNodeServicesMap = await this.accountManager.getNodeServiceMap(namespace)
     nodeIDs.forEach(nodeID => {
-      const nodeName = networkNodeServicesMap.get(nodeID).nodeName
+      const haProxyClusterIp = networkNodeServicesMap.get(nodeID).haProxyClusterIp
       const haProxyGrpcPort = networkNodeServicesMap.get(nodeID).haProxyGrpcPort
-      const networkKey = `network-${nodeName}:${haProxyGrpcPort}`
+      const networkKey = `${haProxyClusterIp}:${haProxyGrpcPort}`
       networkIds[networkKey] = accountMap.get(nodeID)
     })
 
