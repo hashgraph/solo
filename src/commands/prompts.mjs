@@ -471,3 +471,15 @@ export async function execute (task, configManager, flagList = []) {
 
   configManager.persist()
 }
+
+/**
+ * Disable prompts for the given set of flags
+ * @param {CommandFlag[]} flags list of flags to disable prompts for
+ */
+export function disablePrompts (flags) {
+  for (const flag of flags) {
+    if (flag.definition) {
+      flag.definition.disablePrompt = true
+    }
+  }
+}
