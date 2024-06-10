@@ -58,16 +58,6 @@ export class NetworkCommand extends BaseCommand {
     ]
   }
 
-  static get DESTROY_CONFIGS_NAME () { return 'destroyConfigs' }
-
-  static get DESTROY_FLAGS_LIST () {
-    return [
-      flags.deletePvcs,
-      flags.force,
-      flags.namespace
-    ]
-  }
-
   getTlsValueArguments (tlsClusterIssuerType, enableHederaExplorerTls, namespace,
     hederaExplorerTlsLoadBalancerIp, hederaExplorerTlsHostName) {
     let valuesArg = ''
