@@ -428,6 +428,17 @@ export const deletePvcs = {
 }
 
 /** @type {CommandFlag} **/
+export const deleteSecrets = {
+  constName: 'deleteSecrets',
+  name: 'delete-secrets',
+  definition: {
+    describe: 'Delete the network secrets',
+    defaultValue: false,
+    type: 'boolean'
+  }
+}
+
+/** @type {CommandFlag} **/
 export const fstChartVersion = {
   constName: 'fstChartVersion',
   name: 'fst-chart-version',
@@ -619,6 +630,7 @@ export const allFlags = [
   clusterName,
   clusterSetupNamespace,
   deletePvcs,
+  deleteSecrets,
   deployCertManager,
   deployCertManagerCrds,
   deployHederaExplorer,

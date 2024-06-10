@@ -340,6 +340,14 @@ export async function promptDeletePvcs (task, input) {
     flags.deletePvcs.name)
 }
 
+export async function promptDeleteSecrets (task, input) {
+  return await promptToggle(task, input,
+    flags.deleteSecrets.definition.defaultValue,
+    'Would you like to delete secrets upon uninstall? ',
+    null,
+    flags.deleteSecrets.name)
+}
+
 export async function promptKeyFormat (task, input, choices = [constants.KEY_FORMAT_PFX, constants.KEY_FORMAT_PEM]) {
   try {
     const initial = choices.indexOf(input)
@@ -413,6 +421,7 @@ export function getPromptMap () {
     .set(flags.chartDirectory.name, promptChartDir)
     .set(flags.clusterSetupNamespace.name, promptClusterSetupNamespace)
     .set(flags.deletePvcs.name, promptDeletePvcs)
+    .set(flags.deleteSecrets.name, promptDeleteSecrets)
     .set(flags.deployCertManager.name, promptDeployCertManager)
     .set(flags.deployCertManagerCrds.name, promptDeployCertManagerCrds)
     .set(flags.deployHederaExplorer.name, promptDeployHederaExplorer)
