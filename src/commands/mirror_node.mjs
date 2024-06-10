@@ -83,7 +83,7 @@ export class MirrorNodeCommand extends BaseCommand {
           await prompts.execute(task, self.configManager, MirrorNodeCommand.DEPLOY_FLAGS_LIST)
 
           /**
-           * @typedef {Object} mirrorNodeDeployConfigClass
+           * @typedef {Object} MirrorNodeDeployConfigClass
            * -- flags --
            * @property {string} chartDirectory
            * @property {boolean} deployHederaExplorer
@@ -104,7 +104,7 @@ export class MirrorNodeCommand extends BaseCommand {
            * @returns {string[]}
            */
 
-          ctx.config = /** @type {mirrorNodeDeployConfigClass} **/ this.getConfig(MirrorNodeCommand.DEPLOY_CONFIGS_NAME, MirrorNodeCommand.DEPLOY_FLAGS_LIST,
+          ctx.config = /** @type {MirrorNodeDeployConfigClass} **/ this.getConfig(MirrorNodeCommand.DEPLOY_CONFIGS_NAME, MirrorNodeCommand.DEPLOY_FLAGS_LIST,
             ['chartPath', 'stagingDir', 'valuesArg'])
 
           ctx.config.chartPath = await self.prepareChartPath(ctx.config.chartDirectory,
