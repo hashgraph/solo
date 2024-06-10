@@ -21,7 +21,7 @@ import { constants } from '../core/index.mjs'
 import { BaseCommand } from './base.mjs'
 import * as flags from './flags.mjs'
 import * as prompts from './prompts.mjs'
-import { getNodeAccountMap } from '../core/constants.mjs'
+import { getNodeAccountMap } from '../core/helpers.mjs'
 
 export class RelayCommand extends BaseCommand {
   constructor (opts) {

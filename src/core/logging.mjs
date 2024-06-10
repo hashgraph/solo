@@ -56,14 +56,15 @@ const customFormat = winston.format.combine(
 export const Logger = class {
   /**
    * Create a new logger
-   * @param level logging level as supported by winston library:
+   * @param {string} level logging level as supported by winston library:
+   * @param {boolean} devMode if true, show full stack traces in error messages
    * @constructor
    */
   constructor (level = 'debug', devMode = false) {
     this.nextTraceId()
     this.devMode = devMode
 
-    this.winstonLogger = winston.createLogger({
+    this.winstonLogger = /** @type {winston.Logger} **/ winston.createLogger({
       level,
       format: winston.format.combine(
         customFormat,

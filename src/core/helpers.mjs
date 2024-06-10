@@ -24,6 +24,7 @@ import { fileURLToPath } from 'url'
 import * as semver from 'semver'
 import { Templates } from './templates.mjs'
 import { HEDERA_HAPI_PATH, ROOT_CONTAINER, SOLO_LOGS_DIR } from './constants.mjs'
+import { constants } from './index.mjs'
 
 // cache current directory
 const CUR_FILE_DIR = paths.dirname(fileURLToPath(import.meta.url))
@@ -186,8 +187,9 @@ export function validatePath (input) {
 
 /**
  * Download logs files from all network pods and save to local solo log directory
- * @param {k8}
  *    an instance of core/K8
+ * @param {K8} k8 an instance of core/K8
+ * @param {string} namespace the namespace of the network
  * @returns {Promise<void>} A promise that resolves when the logs are downloaded
  */
 export async function getNodeLogs (k8, namespace) {
@@ -211,4 +213,18 @@ export async function getNodeLogs (k8, namespace) {
       k8.logger.error(`failed to download logs from pod ${podName}`, e)
     }
   }
+}
+
+// a function generate map between the nodeId and their account ids
+export function getNodeAccountMap (nodeIDs) {
+  const accountMap = new Map()
+  const realm = constants.HEDERA_NODE_ACCOUNT_ID_START.realm
+  const shard = constants.HEDERA_NODE_ACCOUNT_ID_START.shard
+  let accountId = constants.HEDERA_NODE_ACCOUNT_ID_START.num
+
+  nodeIDs.forEach(nodeID => {
+    const nodeAccount = `${realm}.${shard}.${accountId++}`
+    accountMap.set(nodeID, nodeAccount)
+  })
+  return accountMap
 }
