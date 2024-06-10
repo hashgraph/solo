@@ -146,7 +146,7 @@ export class NetworkCommand extends BaseCommand {
     await prompts.execute(task, this.configManager, NetworkCommand.DEPLOY_FLAGS_LIST)
 
     /**
-     * @typedef {Object} networkDeployConfigClass
+     * @typedef {Object} NetworkDeployConfigClass
      * -- flags --
      * @property {string} applicationEnv
      * @property {string} chartDirectory
@@ -176,7 +176,7 @@ export class NetworkCommand extends BaseCommand {
      */
 
     // create a config object for subsequent steps
-    const config = /** @type {networkDeployConfigClass} **/ this.getConfig(NetworkCommand.DEPLOY_CONFIGS_NAME, NetworkCommand.DEPLOY_FLAGS_LIST,
+    const config = /** @type {NetworkDeployConfigClass} **/ this.getConfig(NetworkCommand.DEPLOY_CONFIGS_NAME, NetworkCommand.DEPLOY_FLAGS_LIST,
       ['nodeIds', 'chartPath', 'valuesArg'])
 
     config.nodeIds = helpers.parseNodeIds(config.nodeIDs)
