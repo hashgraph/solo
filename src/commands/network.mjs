@@ -302,13 +302,13 @@ export class NetworkCommand extends BaseCommand {
 
           self.configManager.update(argv)
           await prompts.execute(task, self.configManager, [
-            flags.namespace,
-            flags.deletePvcs
+            flags.deletePvcs,
+            flags.namespace
           ])
 
           ctx.config = {
-            namespace: self.configManager.getFlag(flags.namespace),
-            deletePvcs: self.configManager.getFlag(flags.deletePvcs)
+            deletePvcs: self.configManager.getFlag(flags.deletePvcs),
+            namespace: self.configManager.getFlag(flags.namespace)
           }
         }
       },
@@ -440,9 +440,9 @@ export class NetworkCommand extends BaseCommand {
             command: 'destroy',
             desc: 'Destroy fullstack testing network',
             builder: y => flags.setCommandFlags(y,
-              flags.namespace,
+              flags.deletePvcs,
               flags.force,
-              flags.deletePvcs
+              flags.namespace
             ),
             handler: argv => {
               networkCmd.logger.debug('==== Running \'network destroy\' ===')

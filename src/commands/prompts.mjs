@@ -406,40 +406,40 @@ export async function promptAmount (task, input) {
 
 export function getPromptMap () {
   return new Map()
-    .set(flags.nodeIDs.name, promptNodeIds)
-    .set(flags.releaseTag.name, promptReleaseTag)
-    .set(flags.relayReleaseTag.name, promptRelayReleaseTag)
-    .set(flags.clusterSetupNamespace.name, promptClusterSetupNamespace)
-    .set(flags.namespace.name, promptNamespace)
-    .set(flags.cacheDir.name, promptCacheDir)
-    .set(flags.force.name, promptForce)
-    .set(flags.chainId.name, promptChainId)
-    .set(flags.chartDirectory.name, promptChartDir)
-    .set(flags.valuesFile.name, promptValuesFile)
-    .set(flags.deployPrometheusStack.name, promptDeployPrometheusStack)
-    .set(flags.enablePrometheusSvcMonitor.name, promptEnablePrometheusSvcMonitor)
-    .set(flags.deployMinio.name, promptDeployMinio)
-    .set(flags.deployCertManager.name, promptDeployCertManager)
-    .set(flags.deployCertManagerCrds.name, promptDeployCertManagerCrds)
-    .set(flags.deployMirrorNode.name, promptDeployMirrorNode)
-    .set(flags.deployHederaExplorer.name, promptDeployHederaExplorer)
-    .set(flags.tlsClusterIssuerType.name, promptTlsClusterIssuerType)
-    .set(flags.enableHederaExplorerTls.name, promptEnableHederaExplorerTls)
-    .set(flags.hederaExplorerTlsHostName.name, promptHederaExplorerTlsHostName)
-    .set(flags.operatorId.name, promptOperatorId)
-    .set(flags.operatorKey.name, promptOperatorKey)
-    .set(flags.replicaCount.name, promptReplicaCount)
-    .set(flags.generateGossipKeys.name, promptGenerateGossipKeys)
-    .set(flags.generateTlsKeys.name, promptGenerateTLSKeys)
-    .set(flags.deletePvcs.name, promptDeletePvcs)
-    .set(flags.keyFormat.name, promptKeyFormat)
-    .set(flags.fstChartVersion.name, promptFstChartVersion)
-    .set(flags.updateAccountKeys.name, promptUpdateAccountKeys)
-    .set(flags.privateKey.name, promptPrivateKey)
     .set(flags.accountId.name, promptAccountId)
     .set(flags.amount.name, promptAmount)
+    .set(flags.cacheDir.name, promptCacheDir)
+    .set(flags.chainId.name, promptChainId)
+    .set(flags.chartDirectory.name, promptChartDir)
+    .set(flags.clusterSetupNamespace.name, promptClusterSetupNamespace)
+    .set(flags.deletePvcs.name, promptDeletePvcs)
+    .set(flags.deployCertManager.name, promptDeployCertManager)
+    .set(flags.deployCertManagerCrds.name, promptDeployCertManagerCrds)
+    .set(flags.deployHederaExplorer.name, promptDeployHederaExplorer)
+    .set(flags.deployMinio.name, promptDeployMinio)
+    .set(flags.deployMirrorNode.name, promptDeployMirrorNode)
+    .set(flags.deployPrometheusStack.name, promptDeployPrometheusStack)
+    .set(flags.enableHederaExplorerTls.name, promptEnableHederaExplorerTls)
+    .set(flags.enablePrometheusSvcMonitor.name, promptEnablePrometheusSvcMonitor)
+    .set(flags.force.name, promptForce)
+    .set(flags.fstChartVersion.name, promptFstChartVersion)
+    .set(flags.generateGossipKeys.name, promptGenerateGossipKeys)
+    .set(flags.generateTlsKeys.name, promptGenerateTLSKeys)
+    .set(flags.hederaExplorerTlsHostName.name, promptHederaExplorerTlsHostName)
+    .set(flags.keyFormat.name, promptKeyFormat)
+    .set(flags.namespace.name, promptNamespace)
+    .set(flags.nodeIDs.name, promptNodeIds)
+    .set(flags.operatorId.name, promptOperatorId)
+    .set(flags.operatorKey.name, promptOperatorKey)
+    .set(flags.privateKey.name, promptPrivateKey)
     .set(flags.profileFile.name, promptProfileFile)
     .set(flags.profileName.name, promptProfile)
+    .set(flags.relayReleaseTag.name, promptRelayReleaseTag)
+    .set(flags.releaseTag.name, promptReleaseTag)
+    .set(flags.replicaCount.name, promptReplicaCount)
+    .set(flags.tlsClusterIssuerType.name, promptTlsClusterIssuerType)
+    .set(flags.updateAccountKeys.name, promptUpdateAccountKeys)
+    .set(flags.valuesFile.name, promptValuesFile)
 }
 
 // build the prompt registry
@@ -447,7 +447,7 @@ export function getPromptMap () {
  * Run prompts for the given set of flags
  * @param task task object from listr2
  * @param configManager config manager to store flag values
- * @param flagList list of flag objects
+ * @param {CommandFlag[]} flagList list of flag objects
  * @return {Promise<void>}
  */
 export async function execute (task, configManager, flagList = []) {
@@ -456,6 +456,10 @@ export async function execute (task, configManager, flagList = []) {
   }
   const prompts = getPromptMap()
   for (const flag of flagList) {
+    if (flag.definition.disablePrompt) {
+      continue
+    }
+
     if (!prompts.has(flag.name)) {
       throw new FullstackTestingError(`No prompt available for flag: ${flag.name}`)
     }
@@ -466,4 +470,16 @@ export async function execute (task, configManager, flagList = []) {
   }
 
   configManager.persist()
+}
+
+/**
+ * Disable prompts for the given set of flags
+ * @param {CommandFlag[]} flags list of flags to disable prompts for
+ */
+export function disablePrompts (flags) {
+  for (const flag of flags) {
+    if (flag.definition) {
+      flag.definition.disablePrompt = true
+    }
+  }
 }

@@ -152,17 +152,17 @@ export class InitCommand extends BaseCommand {
       desc: 'Initialize local environment and default flags',
       builder: y => {
         flags.setCommandFlags(y,
-          flags.releaseTag,
-          flags.nodeIDs,
-          flags.namespace,
-          flags.clusterSetupNamespace,
+          flags.applicationEnv,
           flags.cacheDir,
           flags.chartDirectory,
-          flags.keyFormat,
+          flags.clusterSetupNamespace,
           flags.fstChartVersion,
-          flags.profileName,
+          flags.keyFormat,
+          flags.namespace,
+          flags.nodeIDs,
           flags.profileFile,
-          flags.applicationEnv
+          flags.profileName,
+          flags.releaseTag
         )
       },
       handler: (argv) => {
