@@ -175,6 +175,7 @@ export class RelayCommand extends BaseCommand {
           ctx.config = /** @type {RelayDeployConfigClass} **/ this.getConfig(RelayCommand.DEPLOY_CONFIGS_NAME, RelayCommand.DEPLOY_FLAGS_LIST,
             ['nodeIds'])
 
+          ctx.config.nodeIds = helpers.parseNodeIds(ctx.config.nodeIDs)
           ctx.releaseName = self.prepareReleaseName(ctx.config.nodeIds)
           ctx.isChartInstalled = await self.chartManager.isChartInstalled(ctx.config.namespace, ctx.releaseName)
 
