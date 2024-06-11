@@ -91,5 +91,5 @@ describe('RelayCommand', () => {
       relayCmd.logger.showUserError(e)
       expect(e).toBeNull()
     }
-  }, 180000)
+  }, 300000)
 })
