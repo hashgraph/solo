@@ -90,7 +90,7 @@ You can now use your cluster with:
 
 kubectl cluster-info --context kind-solo
 
-Not sure what to do next? 😅  Check out https://kind.sigs.k8s.io/docs/user/quick-start/
+Have a question, bug, or feature request? Let us know! https://kind.sigs.k8s.io/#community 🙂
 ```
 
 You may now view pods in your cluster using `k9s -A` as below:
@@ -239,12 +239,12 @@ Kubernetes Namespace	: solo
 ✔ Check Node: node1
 ✔ Check Node: node2
 ✔ Check node pods are running
-✔ Check Envoy Proxy for: node0
-✔ Check Envoy Proxy for: node2
 ✔ Check Envoy Proxy for: node1
-✔ Check HAProxy for: node2
+✔ Check Envoy Proxy for: node2
+✔ Check Envoy Proxy for: node0
 ✔ Check HAProxy for: node0
 ✔ Check HAProxy for: node1
+✔ Check HAProxy for: node2
 ✔ Check proxy pods are running
 ✔ Check MinIO
 ✔ Check auxiliary pods are ready
@@ -268,18 +268,18 @@ Kubernetes Cluster	: kind-solo
 Kubernetes Namespace	: solo
 **********************************************************************************
 ✔ Initialize
-✔ Check network pod: node2
-✔ Check network pod: node1
 ✔ Check network pod: node0
+✔ Check network pod: node1
+✔ Check network pod: node2
 ✔ Identify network pods
 ✔ Copy configuration files
 ✔ Copy Gossip keys to staging
 ✔ Copy gRPC TLS keys to staging
 ✔ Prepare config.txt for the network
 ✔ Prepare staging directory
-✔ Update node: node0
-✔ Update node: node1
 ✔ Update node: node2
+✔ Update node: node1
+✔ Update node: node0
 ✔ Fetch platform software into network nodes
 ✔ Copy Gossip keys
 ✔ Copy Gossip keys
@@ -291,11 +291,11 @@ Kubernetes Namespace	: solo
 ✔ Copy configuration files
 ✔ Copy configuration files
 ✔ Set file permissions
-✔ Node: node2
-✔ Set file permissions
 ✔ Node: node1
 ✔ Set file permissions
 ✔ Node: node0
+✔ Set file permissions
+✔ Node: node2
 ✔ Setup network nodes
 ✔ Finalize
 ```
@@ -318,12 +318,12 @@ Kubernetes Namespace	: solo
 **********************************************************************************
 ✔ Initialize
 ✔ Check network pod: node0
-✔ Check network pod: node2
 ✔ Check network pod: node1
+✔ Check network pod: node2
 ✔ Identify network pods
+✔ Start node: node0
 ✔ Start node: node1
 ✔ Start node: node2
-✔ Start node: node0
 ✔ Starting nodes
 ✔ Check node: node0
 ✔ Check node: node1
@@ -358,8 +358,8 @@ Kubernetes Namespace	: solo
 ✔ Check Postgres DB
 ✔ Check Monitor
 ✔ Check GRPC
-✔ Check Importer
 ✔ Check REST API
+✔ Check Importer
 ✔ Check pods are ready
 ```
 
