@@ -106,9 +106,10 @@ describe('NetworkCommand', () => {
 
   it('network destroy should success', async () => {
     argv[flags.deletePvcs.name] = true
+    argv[flags.deleteSecrets.name] = true
     configManager.update(argv, true)
 
-    expect.assertions(3)
+    expect.assertions(4)
     try {
       await expect(networkCmd.destroy(argv)).resolves.toBeTruthy()
 
@@ -128,6 +129,9 @@ describe('NetworkCommand', () => {
 
       // check if pvc are deleted
       await expect(k8.listPvcsByNamespace(namespace)).resolves.toHaveLength(0)
+
+      // check if secrets are deleted
+      await expect(k8.listSecretsByNamespace(namespace)).resolves.toHaveLength(0)
     } catch (e) {
       networkCmd.logger.showUserError(e)
       expect(e).toBeNull()

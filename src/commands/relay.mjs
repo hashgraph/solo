@@ -21,7 +21,7 @@ import { constants } from '../core/index.mjs'
 import { BaseCommand } from './base.mjs'
 import * as flags from './flags.mjs'
 import * as prompts from './prompts.mjs'
-import { getNodeAccountMap } from '../core/constants.mjs'
+import { getNodeAccountMap } from '../core/helpers.mjs'
 
 export class RelayCommand extends BaseCommand {
   constructor (opts) {
@@ -126,30 +126,30 @@ export class RelayCommand extends BaseCommand {
           self.configManager.update(argv)
 
           await prompts.execute(task, self.configManager, [
+            flags.chainId,
             flags.chartDirectory,
             flags.namespace,
-            flags.valuesFile,
             flags.nodeIDs,
-            flags.chainId,
-            flags.relayReleaseTag,
-            flags.replicaCount,
             flags.operatorId,
             flags.operatorKey,
+            flags.profileFile,
             flags.profileName,
-            flags.profileFile
+            flags.relayReleaseTag,
+            flags.replicaCount,
+            flags.valuesFile
           ])
 
           // prompt if inputs are empty and set it in the context
           ctx.config = {
+            chainId: self.configManager.getFlag(flags.chainId),
             chartDir: self.configManager.getFlag(flags.chartDirectory),
             namespace: self.configManager.getFlag(flags.namespace),
-            valuesFile: self.configManager.getFlag(flags.valuesFile),
             nodeIds: helpers.parseNodeIds(self.configManager.getFlag(flags.nodeIDs)),
-            chainId: self.configManager.getFlag(flags.chainId),
+            operatorId: self.configManager.getFlag(flags.operatorId),
+            operatorKey: self.configManager.getFlag(flags.operatorKey),
             relayRelease: self.configManager.getFlag(flags.relayReleaseTag),
             replicaCount: self.configManager.getFlag(flags.replicaCount),
-            operatorId: self.configManager.getFlag(flags.operatorId),
-            operatorKey: self.configManager.getFlag(flags.operatorKey)
+            valuesFile: self.configManager.getFlag(flags.valuesFile)
           }
 
           ctx.releaseName = self.prepareReleaseName(ctx.config.nodeIds)
@@ -296,17 +296,17 @@ export class RelayCommand extends BaseCommand {
             desc: 'Deploy a JSON RPC relay',
             builder: y => {
               flags.setCommandFlags(y,
-                flags.namespace,
-                flags.valuesFile,
-                flags.chartDirectory,
-                flags.replicaCount,
                 flags.chainId,
+                flags.chartDirectory,
+                flags.namespace,
                 flags.nodeIDs,
-                flags.relayReleaseTag,
                 flags.operatorId,
                 flags.operatorKey,
+                flags.profileFile,
                 flags.profileName,
-                flags.profileFile
+                flags.relayReleaseTag,
+                flags.replicaCount,
+                flags.valuesFile
               )
             },
             handler: argv => {

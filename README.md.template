@@ -28,7 +28,7 @@ An opinionated CLI tool to deploy and manage standalone test networks.
 
 ## Requirements
 
-* Node(>=18.19.0) (*lts/hydrogen*)
+* Node(>=20.14.0) (*lts/hydrogen*)
 
 ## Setup
 

@@ -57,17 +57,17 @@ export class MirrorNodeCommand extends BaseCommand {
         task: async (ctx, task) => {
           self.configManager.update(argv)
           await prompts.execute(task, self.configManager, [
-            flags.namespace,
             flags.deployHederaExplorer,
-            flags.profileName,
-            flags.profileFile
+            flags.namespace,
+            flags.profileFile,
+            flags.profileName
           ])
 
           ctx.config = {
-            namespace: self.configManager.getFlag(flags.namespace),
             chartDir: self.configManager.getFlag(flags.chartDirectory),
             deployHederaExplorer: self.configManager.getFlag(flags.deployHederaExplorer),
-            fstChartVersion: this.configManager.getFlag(flags.fstChartVersion)
+            fstChartVersion: this.configManager.getFlag(flags.fstChartVersion),
+            namespace: self.configManager.getFlag(flags.namespace)
           }
 
           ctx.config.chartPath = await self.prepareChartPath(ctx.config.chartDir,
@@ -215,9 +215,9 @@ export class MirrorNodeCommand extends BaseCommand {
           ])
 
           ctx.config = {
-            namespace: self.configManager.getFlag(flags.namespace),
             chartDir: self.configManager.getFlag(flags.chartDirectory),
-            fstChartVersion: this.configManager.getFlag(flags.fstChartVersion)
+            fstChartVersion: this.configManager.getFlag(flags.fstChartVersion),
+            namespace: self.configManager.getFlag(flags.namespace)
           }
 
           ctx.config.chartPath = await self.prepareChartPath(ctx.config.chartDir,
@@ -296,10 +296,10 @@ export class MirrorNodeCommand extends BaseCommand {
             command: 'deploy',
             desc: 'Deploy mirror-node and its components',
             builder: y => flags.setCommandFlags(y,
-              flags.namespace,
               flags.deployHederaExplorer,
-              flags.profileName,
-              flags.profileFile
+              flags.namespace,
+              flags.profileFile,
+              flags.profileName
             ),
             handler: argv => {
               mirrorNodeCmd.logger.debug('==== Running \'mirror-node deploy\' ===')
@@ -318,8 +318,8 @@ export class MirrorNodeCommand extends BaseCommand {
             command: 'destroy',
             desc: 'Destroy mirror-node components and database',
             builder: y => flags.setCommandFlags(y,
-              flags.namespace,
-              flags.force
+              flags.force,
+              flags.namespace
             ),
             handler: argv => {
               mirrorNodeCmd.logger.debug('==== Running \'mirror-node destroy\' ===')

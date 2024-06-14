@@ -443,28 +443,28 @@ export class NodeCommand extends BaseCommand {
         task: async (ctx, task) => {
           self.configManager.update(argv)
           await prompts.execute(task, self.configManager, [
-            flags.namespace,
-            flags.nodeIDs,
-            flags.releaseTag,
             flags.cacheDir,
             flags.chainId,
             flags.generateGossipKeys,
             flags.generateTlsKeys,
-            flags.keyFormat
+            flags.keyFormat,
+            flags.namespace,
+            flags.nodeIDs,
+            flags.releaseTag
           ])
 
           const config = {
-            namespace: self.configManager.getFlag(flags.namespace),
-            nodeIds: helpers.parseNodeIds(self.configManager.getFlag(flags.nodeIDs)),
-            releaseTag: self.configManager.getFlag(flags.releaseTag),
             cacheDir: self.configManager.getFlag(flags.cacheDir),
-            force: self.configManager.getFlag(flags.force),
             chainId: self.configManager.getFlag(flags.chainId),
+            curDate: new Date(),
+            devMode: self.configManager.getFlag(flags.devMode),
+            force: self.configManager.getFlag(flags.force),
             generateGossipKeys: self.configManager.getFlag(flags.generateGossipKeys),
             generateTlsKeys: self.configManager.getFlag(flags.generateTlsKeys),
             keyFormat: self.configManager.getFlag(flags.keyFormat),
-            devMode: self.configManager.getFlag(flags.devMode),
-            curDate: new Date()
+            namespace: self.configManager.getFlag(flags.namespace),
+            nodeIds: helpers.parseNodeIds(self.configManager.getFlag(flags.nodeIDs)),
+            releaseTag: self.configManager.getFlag(flags.releaseTag)
           }
 
           await self.initializeSetup(config, self.configManager, self.k8)
@@ -640,9 +640,9 @@ export class NodeCommand extends BaseCommand {
           ])
 
           ctx.config = {
+            cacheDir: self.configManager.getFlag(flags.cacheDir),
             namespace: self.configManager.getFlag(flags.namespace),
-            nodeIds: helpers.parseNodeIds(self.configManager.getFlag(flags.nodeIDs)),
-            cacheDir: self.configManager.getFlag(flags.cacheDir)
+            nodeIds: helpers.parseNodeIds(self.configManager.getFlag(flags.nodeIDs))
           }
 
           ctx.config.stagingDir = Templates.renderStagingDir(self.configManager, flags)
@@ -809,22 +809,22 @@ export class NodeCommand extends BaseCommand {
         task: async (ctx, task) => {
           self.configManager.update(argv)
           await prompts.execute(task, self.configManager, [
-            flags.nodeIDs,
             flags.cacheDir,
             flags.generateGossipKeys,
             flags.generateTlsKeys,
-            flags.keyFormat
+            flags.keyFormat,
+            flags.nodeIDs
           ])
 
           const config = {
-            nodeIds: helpers.parseNodeIds(self.configManager.getFlag(flags.nodeIDs)),
             cacheDir: self.configManager.getFlag(flags.cacheDir),
+            curDate: new Date(),
+            devMode: self.configManager.getFlag(flags.devMode),
             generateGossipKeys: self.configManager.getFlag(flags.generateGossipKeys),
             generateTlsKeys: self.configManager.getFlag(flags.generateTlsKeys),
             keyFormat: self.configManager.getFlag(flags.keyFormat),
             keysDir: path.join(self.configManager.getFlag(flags.cacheDir), 'keys'),
-            devMode: self.configManager.getFlag(flags.devMode),
-            curDate: new Date()
+            nodeIds: helpers.parseNodeIds(self.configManager.getFlag(flags.nodeIDs))
           }
 
           if (!fs.existsSync(config.keysDir)) {
@@ -895,22 +895,22 @@ export class NodeCommand extends BaseCommand {
         task: async (ctx, task) => {
           self.configManager.update(argv)
           await prompts.execute(task, self.configManager, [
+            flags.cacheDir,
+            flags.keyFormat,
             flags.namespace,
             flags.nodeIDs,
-            flags.releaseTag,
-            flags.cacheDir,
-            flags.keyFormat
+            flags.releaseTag
           ])
 
           const config = {
-            namespace: self.configManager.getFlag(flags.namespace),
-            nodeIds: helpers.parseNodeIds(self.configManager.getFlag(flags.nodeIDs)),
-            releaseTag: self.configManager.getFlag(flags.releaseTag),
             cacheDir: self.configManager.getFlag(flags.cacheDir),
+            curDate: new Date(),
+            devMode: self.configManager.getFlag(flags.devMode),
             force: self.configManager.getFlag(flags.force),
             keyFormat: self.configManager.getFlag(flags.keyFormat),
-            devMode: self.configManager.getFlag(flags.devMode),
-            curDate: new Date()
+            namespace: self.configManager.getFlag(flags.namespace),
+            nodeIds: helpers.parseNodeIds(self.configManager.getFlag(flags.nodeIDs)),
+            releaseTag: self.configManager.getFlag(flags.releaseTag)
           }
 
           await self.initializeSetup(config, self.configManager, self.k8)
@@ -1123,31 +1123,31 @@ export class NodeCommand extends BaseCommand {
         task: async (ctx, task) => {
           self.configManager.update(argv)
           await prompts.execute(task, self.configManager, [
-            flags.namespace,
-            flags.nodeIDs,
-            flags.releaseTag,
             flags.cacheDir,
             flags.chainId,
             flags.generateGossipKeys,
             flags.generateTlsKeys,
-            flags.keyFormat
+            flags.keyFormat,
+            flags.namespace,
+            flags.nodeIDs,
+            flags.releaseTag
           ])
 
           const config = {
-            namespace: self.configManager.getFlag(flags.namespace),
-            nodeIds: helpers.parseNodeIds(self.configManager.getFlag(flags.nodeIDs)),
-            existingNodeIds: [],
-            releaseTag: self.configManager.getFlag(flags.releaseTag),
             cacheDir: self.configManager.getFlag(flags.cacheDir),
-            force: self.configManager.getFlag(flags.force),
             chainId: self.configManager.getFlag(flags.chainId),
+            chartDir: self.configManager.getFlag(flags.chartDirectory),
+            curDate: new Date(),
+            devMode: self.configManager.getFlag(flags.devMode),
+            existingNodeIds: [],
+            force: self.configManager.getFlag(flags.force),
+            fstChartVersion: self.configManager.getFlag(flags.fstChartVersion),
             generateGossipKeys: self.configManager.getFlag(flags.generateGossipKeys),
             generateTlsKeys: self.configManager.getFlag(flags.generateTlsKeys),
             keyFormat: self.configManager.getFlag(flags.keyFormat),
-            devMode: self.configManager.getFlag(flags.devMode),
-            chartDir: self.configManager.getFlag(flags.chartDirectory),
-            curDate: new Date(),
-            fstChartVersion: self.configManager.getFlag(flags.fstChartVersion)
+            namespace: self.configManager.getFlag(flags.namespace),
+            nodeIds: helpers.parseNodeIds(self.configManager.getFlag(flags.nodeIDs)),
+            releaseTag: self.configManager.getFlag(flags.releaseTag)
           }
 
           await self.initializeSetup(config, self.configManager, self.k8)
@@ -1590,23 +1590,23 @@ export class NodeCommand extends BaseCommand {
             command: 'setup',
             desc: 'Setup node with a specific version of Hedera platform',
             builder: y => flags.setCommandFlags(y,
-              flags.namespace,
-              flags.nodeIDs,
-              flags.releaseTag,
-              flags.generateGossipKeys,
-              flags.generateTlsKeys,
+              flags.apiPermissionProperties,
+              flags.app,
+              flags.appConfig,
+              flags.applicationProperties,
+              flags.bootstrapProperties,
               flags.cacheDir,
               flags.chainId,
               flags.force,
+              flags.generateGossipKeys,
+              flags.generateTlsKeys,
               flags.keyFormat,
-              flags.applicationProperties,
-              flags.apiPermissionProperties,
-              flags.bootstrapProperties,
-              flags.settingTxt,
               flags.localBuildPath,
-              flags.app,
-              flags.appConfig,
-              flags.log4j2Xml
+              flags.log4j2Xml,
+              flags.namespace,
+              flags.nodeIDs,
+              flags.releaseTag,
+              flags.settingTxt
             ),
             handler: argv => {
               nodeCmd.logger.debug('==== Running \'node setup\' ===')
@@ -1665,11 +1665,11 @@ export class NodeCommand extends BaseCommand {
             command: 'keys',
             desc: 'Generate node keys',
             builder: y => flags.setCommandFlags(y,
-              flags.nodeIDs,
               flags.cacheDir,
               flags.generateGossipKeys,
               flags.generateTlsKeys,
-              flags.keyFormat
+              flags.keyFormat,
+              flags.nodeIDs
             ),
             handler: argv => {
               nodeCmd.logger.debug('==== Running \'node keys\' ===')
@@ -1688,11 +1688,11 @@ export class NodeCommand extends BaseCommand {
             command: 'refresh',
             desc: 'Reset and restart a node',
             builder: y => flags.setCommandFlags(y,
+              flags.cacheDir,
+              flags.keyFormat,
               flags.namespace,
               flags.nodeIDs,
-              flags.releaseTag,
-              flags.cacheDir,
-              flags.keyFormat
+              flags.releaseTag
             ),
             handler: argv => {
               nodeCmd.logger.debug('==== Running \'node refresh\' ===')
@@ -1730,20 +1730,20 @@ export class NodeCommand extends BaseCommand {
             command: 'add',
             desc: 'Adds a node with a specific version of Hedera platform',
             builder: y => flags.setCommandFlags(y,
-              flags.namespace,
-              flags.nodeIDs,
-              flags.releaseTag,
-              flags.generateGossipKeys,
-              flags.generateTlsKeys,
+              flags.apiPermissionProperties,
+              flags.applicationProperties,
+              flags.bootstrapProperties,
               flags.cacheDir,
               flags.chainId,
               flags.force,
+              flags.generateGossipKeys,
+              flags.generateTlsKeys,
               flags.keyFormat,
-              flags.applicationProperties,
-              flags.apiPermissionProperties,
-              flags.bootstrapProperties,
-              flags.settingTxt,
-              flags.log4j2Xml
+              flags.log4j2Xml,
+              flags.namespace,
+              flags.nodeIDs,
+              flags.releaseTag,
+              flags.settingTxt
             ),
             handler: argv => {
               nodeCmd.logger.debug('==== Running \'node add\' ===')
