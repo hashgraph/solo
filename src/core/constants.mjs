@@ -18,13 +18,9 @@ import { AccountId } from '@hashgraph/sdk'
 import { color, PRESET_TIMER } from 'listr2'
 import { dirname, normalize } from 'path'
 import { fileURLToPath } from 'url'
-import chalk from 'chalk'
-import { constants } from './index.mjs'
 
 // -------------------- solo related constants ---------------------------------------------------------------------
 export const CUR_FILE_DIR = dirname(fileURLToPath(import.meta.url))
-export const USER = `${process.env.USER}`
-export const USER_SANITIZED = USER.replace(/[\W_]+/g, '-')
 export const SOLO_HOME_DIR = process.env.SOLO_HOME || `${process.env.HOME}/.solo`
 export const SOLO_LOGS_DIR = `${SOLO_HOME_DIR}/logs`
 export const SOLO_CACHE_DIR = `${SOLO_HOME_DIR}/cache`
@@ -32,10 +28,8 @@ export const SOLO_VALUES_DIR = `${SOLO_CACHE_DIR}/values-files`
 export const DEFAULT_NAMESPACE = 'default'
 export const HELM = 'helm'
 export const KEYTOOL = 'keytool'
-export const CWD = process.cwd()
 export const SOLO_CONFIG_FILE = `${SOLO_HOME_DIR}/solo.config`
 export const RESOURCES_DIR = normalize(CUR_FILE_DIR + '/../../resources')
-export const PROFILES_DIR = normalize(`${RESOURCES_DIR}/profiles`)
 
 export const ROOT_CONTAINER = 'root-container'
 
@@ -52,15 +46,7 @@ export const HEDERA_BUILDS_URL = 'https://builds.hedera.com'
 export const HEDERA_NODE_ACCOUNT_ID_START = AccountId.fromString(process.env.SOLO_NODE_ACCOUNT_ID_START || '0.0.3')
 export const HEDERA_NODE_INTERNAL_GOSSIP_PORT = process.env.SOLO_NODE_INTERNAL_GOSSIP_PORT || '50111'
 export const HEDERA_NODE_EXTERNAL_GOSSIP_PORT = process.env.SOLO_NODE_EXTERNAL_GOSSIP_PORT || '50111'
-
-export const HEDERA_NODE_GRPC_PORT = process.env.SOLO_NODE_GRPC_PORT || '50211'
-export const HEDERA_NODE_GRPCS_PORT = process.env.SOLO_NODE_GRPCS_PORT || '50212'
 export const HEDERA_NODE_DEFAULT_STAKE_AMOUNT = process.env.SOLO_NODE_DEFAULT_STAKE_AMOUNT || 1
-
-// --------------- Logging related constants ---------------------------------------------------------------------------
-export const LOG_STATUS_PROGRESS = chalk.cyan('>>')
-export const LOG_STATUS_DONE = chalk.green('OK')
-export const LOG_GROUP_DIVIDER = chalk.yellow('----------------------------------------------------------------------------')
 
 // --------------- Charts related constants ----------------------------------------------------------------------------
 export const FULLSTACK_SETUP_NAMESPACE = 'fullstack-setup'
@@ -95,11 +81,9 @@ export const POD_PHASE_RUNNING = 'Running'
 
 export const POD_CONDITION_INITIALIZED = 'Initialized'
 export const POD_CONDITION_READY = 'Ready'
-export const POD_CONDITION_CONTAINERS_READY = 'ContainersReady'
 
 export const POD_CONDITION_POD_SCHEDULED = 'PodScheduled'
 export const POD_CONDITION_STATUS_TRUE = 'True'
-export const POD_CONDITION_STATUS_FALSE = 'False'
 
 // Listr related
 export const LISTR_DEFAULT_RENDERER_TIMER_OPTION = {
@@ -122,8 +106,6 @@ export const LISTR_DEFAULT_RENDERER_OPTION = {
 export const KEY_FORMAT_PEM = 'pem'
 
 export const KEY_FORMAT_PFX = 'pfx'
-export const KEY_TYPE_GOSSIP = 'gossip'
-export const KEY_TYPE_TLS = 'tls'
 export const SIGNING_KEY_PREFIX = 's'
 export const AGREEMENT_KEY_PREFIX = 'a'
 export const ENCRYPTION_KEY_PREFIX = 'e'
@@ -147,20 +129,6 @@ export const PROFILE_LOCAL = 'local'
 
 export const ALL_PROFILES = [PROFILE_LOCAL, PROFILE_TINY, PROFILE_SMALL, PROFILE_MEDIUM, PROFILE_LARGE]
 export const DEFAULT_PROFILE_FILE = `${SOLO_CACHE_DIR}/profiles/custom-spec.yaml`
-
-// a function generate map between the nodeId and their account ids
-export function getNodeAccountMap (nodeIDs) {
-  const accountMap = new Map()
-  const realm = constants.HEDERA_NODE_ACCOUNT_ID_START.realm
-  const shard = constants.HEDERA_NODE_ACCOUNT_ID_START.shard
-  let accountId = constants.HEDERA_NODE_ACCOUNT_ID_START.num
-
-  nodeIDs.forEach(nodeID => {
-    const nodeAccount = `${realm}.${shard}.${accountId++}`
-    accountMap.set(nodeID, nodeAccount)
-  })
-  return accountMap
-}
 
 // ------ Hedera SDK Related ------
 export const NODE_CLIENT_MAX_ATTEMPTS = process.env.NODE_CLIENT_MAX_ATTEMPTS || 60

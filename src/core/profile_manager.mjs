@@ -21,7 +21,7 @@ import * as yaml from 'js-yaml'
 import { flags } from '../commands/index.mjs'
 import { constants, helpers } from './index.mjs'
 import dot from 'dot-object'
-import { getNodeAccountMap } from './constants.mjs'
+import { getNodeAccountMap } from './helpers.mjs'
 
 const consensusSidecars = [
   'recordStreamUploader', 'eventStreamUploader', 'backupUploader', 'accountBalanceUploader', 'otelCollector']

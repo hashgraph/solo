@@ -302,13 +302,15 @@ export class NetworkCommand extends BaseCommand {
 
           self.configManager.update(argv)
           await prompts.execute(task, self.configManager, [
-            flags.namespace,
-            flags.deletePvcs
+            flags.deletePvcs,
+            flags.deleteSecrets,
+            flags.namespace
           ])
 
           ctx.config = {
-            namespace: self.configManager.getFlag(flags.namespace),
-            deletePvcs: self.configManager.getFlag(flags.deletePvcs)
+            deletePvcs: self.configManager.getFlag(flags.deletePvcs),
+            deleteSecrets: self.configManager.getFlag(flags.deleteSecrets),
+            namespace: self.configManager.getFlag(flags.namespace)
           }
         }
       },
@@ -321,15 +323,28 @@ export class NetworkCommand extends BaseCommand {
       {
         title: 'Delete PVCs',
         task: async (ctx, _) => {
-          ctx.config.pvcs = await self.k8.listPvcsByNamespace(ctx.config.namespace)
+          const pvcs = await self.k8.listPvcsByNamespace(ctx.config.namespace)
 
-          if (ctx.config.pvcs) {
-            for (const pvc of ctx.config.pvcs) {
+          if (pvcs) {
+            for (const pvc of pvcs) {
               await self.k8.deletePvc(pvc, ctx.config.namespace)
             }
           }
         },
         skip: (ctx, _) => !ctx.config.deletePvcs
+      },
+      {
+        title: 'Delete Secrets',
+        task: async (ctx, _) => {
+          const secrets = await self.k8.listSecretsByNamespace(ctx.config.namespace)
+
+          if (secrets) {
+            for (const secret of secrets) {
+              await self.k8.deleteSecret(secret, ctx.config.namespace)
+            }
+          }
+        },
+        skip: (ctx, _) => !ctx.config.deleteSecrets
       }
     ], {
       concurrent: false,
@@ -440,9 +455,10 @@ export class NetworkCommand extends BaseCommand {
             command: 'destroy',
             desc: 'Destroy fullstack testing network',
             builder: y => flags.setCommandFlags(y,
-              flags.namespace,
+              flags.deletePvcs,
+              flags.deleteSecrets,
               flags.force,
-              flags.deletePvcs
+              flags.namespace
             ),
             handler: argv => {
               networkCmd.logger.debug('==== Running \'network destroy\' ===')

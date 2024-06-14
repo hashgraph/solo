@@ -908,6 +908,31 @@ export class K8 {
   }
 
   /**
+   * Get a list of secrets for the given namespace
+   * @param namespace the namespace of the secrets to return
+   * @param labels labels
+   * @returns return list of secret names
+   */
+  async listSecretsByNamespace (namespace, labels = []) {
+    const secrets = []
+    const labelSelector = labels.join(',')
+    const resp = await this.kubeClient.listNamespacedSecret(
+      namespace,
+      null,
+      null,
+      null,
+      null,
+      labelSelector
+    )
+
+    for (const item of resp.body.items) {
+      secrets.push(item.metadata.name)
+    }
+
+    return secrets
+  }
+
+  /**
    * Delete a persistent volume claim
    * @param name the name of the persistent volume claim to delete
    * @param namespace the namespace of the persistent volume claim to delete
@@ -981,6 +1006,17 @@ export class K8 {
     } catch (e) {
       throw new FullstackTestingError(`failed to create secret ${name} in namespace ${namespace}: ${e.message}, ${e?.body?.message}`, e)
     }
+  }
+
+  /**
+   * delete a secret from the namespace
+   * @param name the name of the new secret
+   * @param namespace the namespace to store the secret
+   * @returns {Promise<boolean>} whether the secret was deleted successfully
+   */
+  async deleteSecret (name, namespace) {
+    const resp = await this.kubeClient.deleteNamespacedSecret(name, namespace)
+    return resp.response.statusCode === 200.0
   }
 
   _getNamespace () {
