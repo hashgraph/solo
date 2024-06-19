@@ -1,12 +1,10 @@
 #!/usr/bin/env bash
-readonly KIND_IMAGE="kindest/node:v1.27.3@sha256:3966ac761ae0136263ffdb6cfd4db23ef8a83cba8a463690e98317add2c9ba72"
-echo "SOLO_FST_CHARTS_DIR: ${SOLO_FST_CHARTS_DIR}"
 
 SOLO_CLUSTER_NAME=solo-e2e
 SOLO_NAMESPACE=solo-e2e
-SOLO_CLUSTER_SETUP_NAMESPACE=fullstack-setup
+  SOLO_CLUSTER_SETUP_NAMESPACE=solo-e2e-cluster
 kind delete cluster -n "${SOLO_CLUSTER_NAME}" || true
-kind create cluster -n "${SOLO_CLUSTER_NAME}" --image "${KIND_IMAGE}" || exit 1
+  kind create cluster -n "${SOLO_CLUSTER_NAME}" || return
 
 # **********************************************************************************************************************
 # Warm up the cluster
@@ -17,7 +15,5 @@ kind create cluster -n "${SOLO_CLUSTER_NAME}" --image "${KIND_IMAGE}" || exit 1
 # Init and deploy a network for e2e tests in (test/e2e/core)
 # -d ${SOLO_CHARTS_DIR} is optional, if you want to use a local chart, it will be ignored if not set
 # **********************************************************************************************************************
-solo init --namespace "${SOLO_NAMESPACE}" -i node0 -s "${SOLO_CLUSTER_SETUP_NAMESPACE}" -d "${SOLO_FST_CHARTS_DIR}" --dev || exit 1 # cache args for subsequent commands
+  solo init --namespace "${SOLO_NAMESPACE}" -i node0,node1,node2 -t v0.49.0-alpha.2 -s "${SOLO_CLUSTER_SETUP_NAMESPACE}" || return
 solo cluster setup  || exit 1
-helm list --all-namespaces
-solo network deploy || exit 1
