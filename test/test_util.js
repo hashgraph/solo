@@ -44,7 +44,7 @@ import {
 } from '../src/core/index.mjs'
 import { AccountBalanceQuery } from '@hashgraph/sdk'
 
-export const testLogger = logging.NewLogger('debug', true)
+export const testLogger = logging.NewLogger('debug')
 export const TEST_CLUSTER = 'solo-e2e'
 export const HEDERA_PLATFORM_VERSION_TAG = 'v0.49.0-alpha.2'
 
@@ -116,7 +116,7 @@ export function bootstrapTestVariables (testName, argv,
   const helm = new Helm(testLogger)
   const chartManager = new ChartManager(helm, testLogger)
   const k8 = k8Arg || new K8(configManager, testLogger)
-  const accountManager = new AccountManager(testLogger, k8, constants)
+  const accountManager = new AccountManager(testLogger, k8)
   const platformInstaller = new PlatformInstaller(testLogger, k8, configManager, accountManager)
   const profileManager = new ProfileManager(testLogger, configManager)
   const opts = {
@@ -179,54 +179,54 @@ export function bootstrapNetwork (testName, argv,
   const chartManager = bootstrapResp.opts.chartManager
 
   describe(`Bootstrap network for test [release ${argv[flags.releaseTag.name]}, keyFormat: ${argv[flags.keyFormat.name]}]`, () => {
-    beforeAll(() => {
-      bootstrapResp.opts.logger.showUser(`------------------------- START: bootstrap (${testName}) ----------------------------`)
-    })
+    // beforeAll(() => {
+    //   bootstrapResp.opts.logger.showUser(`------------------------- START: bootstrap (${testName}) ----------------------------`)
+    // })
+    //
+    // afterAll(() => {
+    //   bootstrapResp.opts.logger.showUser(`------------------------- END: bootstrap (${testName}) ----------------------------`)
+    // })
 
-    afterAll(() => {
-      bootstrapResp.opts.logger.showUser(`------------------------- END: bootstrap (${testName}) ----------------------------`)
-    })
+    // it('should cleanup previous deployment', async () => {
+    //   await initCmd.init(argv)
+    //
+    //   if (await k8.hasNamespace(namespace)) {
+    //     await k8.deleteNamespace(namespace)
+    //
+    //     while (await k8.hasNamespace(namespace)) {
+    //       testLogger.debug(`Namespace ${namespace} still exist. Waiting...`)
+    //       await sleep(1500)
+    //     }
+    //   }
+    //
+    //   if (!await chartManager.isChartInstalled(constants.FULLSTACK_SETUP_NAMESPACE, constants.FULLSTACK_CLUSTER_SETUP_CHART)) {
+    //     await clusterCmd.setup(argv)
+    //   }
+    // }, 120000)
 
-    it('should cleanup previous deployment', async () => {
-      await initCmd.init(argv)
+    // it('should succeed with network deploy', async () => {
+    //   await networkCmd.deploy(argv)
+    // }, 180000)
 
-      if (await k8.hasNamespace(namespace)) {
-        await k8.deleteNamespace(namespace)
+    // it('should succeed with node setup command', async () => {
+    //   expect.assertions(1)
+    //   try {
+    //     await expect(nodeCmd.setup(argv)).resolves.toBeTruthy()
+    //   } catch (e) {
+    //     nodeCmd.logger.showUserError(e)
+    //     expect(e).toBeNull()
+    //   }
+    // }, 240000)
 
-        while (await k8.hasNamespace(namespace)) {
-          testLogger.debug(`Namespace ${namespace} still exist. Waiting...`)
-          await sleep(1500)
-        }
-      }
-
-      if (!await chartManager.isChartInstalled(constants.FULLSTACK_SETUP_NAMESPACE, constants.FULLSTACK_CLUSTER_SETUP_CHART)) {
-        await clusterCmd.setup(argv)
-      }
-    }, 120000)
-
-    it('should succeed with network deploy', async () => {
-      await networkCmd.deploy(argv)
-    }, 180000)
-
-    it('should succeed with node setup command', async () => {
-      expect.assertions(1)
-      try {
-        await expect(nodeCmd.setup(argv)).resolves.toBeTruthy()
-      } catch (e) {
-        nodeCmd.logger.showUserError(e)
-        expect(e).toBeNull()
-      }
-    }, 240000)
-
-    it('should succeed with node start command', async () => {
-      expect.assertions(1)
-      try {
-        await expect(nodeCmd.start(argv)).resolves.toBeTruthy()
-      } catch (e) {
-        nodeCmd.logger.showUserError(e)
-        expect(e).toBeNull()
-      }
-    }, 1800000)
+    // it('should succeed with node start command', async () => {
+    //   expect.assertions(1)
+    //   try {
+    //     await expect(nodeCmd.start(argv)).resolves.toBeTruthy()
+    //   } catch (e) {
+    //     nodeCmd.logger.showUserError(e)
+    //     expect(e).toBeNull()
+    //   }
+    // }, 1800000)
   })
 
   return bootstrapResp

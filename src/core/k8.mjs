@@ -982,6 +982,9 @@ export class K8 {
    * @returns {Promise<boolean>} whether the secret was created successfully
    */
   async createSecret (name, namespace, secretType, data, labels, recreate) {
+
+    //measure time to run below
+    const start = new Date().getTime()
     if (recreate) {
       try {
         await this.kubeClient.deleteNamespacedSecret(name, namespace)
@@ -1002,6 +1005,9 @@ export class K8 {
     try {
       const resp = await this.kubeClient.createNamespacedSecret(namespace, v1Secret)
 
+      const end = new Date().getTime()
+      console.log('created secret = ', name, ' in namespace = ', namespace, 'type = ', secretType, 'data = ', data, 'labels = ', labels)
+      this.logger.debug(`createSecret took ${end - start} ms`)
       return resp.response.statusCode === 201
     } catch (e) {
       throw new FullstackTestingError(`failed to create secret ${name} in namespace ${namespace}: ${e.message}, ${e?.body?.message}`, e)

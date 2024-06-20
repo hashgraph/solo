@@ -13,6 +13,5 @@ SOLO_CLUSTER_NAME=solo-e2e
   solo network deploy  || return
   solo node setup  --gossip-keys --tls-keys --key-format pem || return
   solo node start  || return
-  solo account init || return
 
 
