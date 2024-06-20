@@ -77,11 +77,6 @@ export function e2eNodeKeyRefreshAddTest (keyFormat, testName, mode, releaseTag 
       await accountManager.close()
     }, defaultTimeout)
 
-    // afterAll(async () => {
-    //   await getNodeLogs(k8, namespace)
-    //   await k8.deleteNamespace(namespace)
-    // }, 180000)
-
     describe('should succeed with init command', () => {
       it('should succeed with init command', async () => {
         const status = await accountCmd.init(argv)

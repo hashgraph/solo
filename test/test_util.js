@@ -178,56 +178,7 @@ export function bootstrapNetwork (testName, argv,
   const nodeCmd = bootstrapResp.cmd.nodeCmd
   const chartManager = bootstrapResp.opts.chartManager
 
-  describe(`Bootstrap network for test [release ${argv[flags.releaseTag.name]}, keyFormat: ${argv[flags.keyFormat.name]}]`, () => {
-    // beforeAll(() => {
-    //   bootstrapResp.opts.logger.showUser(`------------------------- START: bootstrap (${testName}) ----------------------------`)
-    // })
-    //
-    // afterAll(() => {
-    //   bootstrapResp.opts.logger.showUser(`------------------------- END: bootstrap (${testName}) ----------------------------`)
-    // })
 
-    // it('should cleanup previous deployment', async () => {
-    //   await initCmd.init(argv)
-    //
-    //   if (await k8.hasNamespace(namespace)) {
-    //     await k8.deleteNamespace(namespace)
-    //
-    //     while (await k8.hasNamespace(namespace)) {
-    //       testLogger.debug(`Namespace ${namespace} still exist. Waiting...`)
-    //       await sleep(1500)
-    //     }
-    //   }
-    //
-    //   if (!await chartManager.isChartInstalled(constants.FULLSTACK_SETUP_NAMESPACE, constants.FULLSTACK_CLUSTER_SETUP_CHART)) {
-    //     await clusterCmd.setup(argv)
-    //   }
-    // }, 120000)
-
-    // it('should succeed with network deploy', async () => {
-    //   await networkCmd.deploy(argv)
-    // }, 180000)
-
-    // it('should succeed with node setup command', async () => {
-    //   expect.assertions(1)
-    //   try {
-    //     await expect(nodeCmd.setup(argv)).resolves.toBeTruthy()
-    //   } catch (e) {
-    //     nodeCmd.logger.showUserError(e)
-    //     expect(e).toBeNull()
-    //   }
-    // }, 240000)
-
-    // it('should succeed with node start command', async () => {
-    //   expect.assertions(1)
-    //   try {
-    //     await expect(nodeCmd.start(argv)).resolves.toBeTruthy()
-    //   } catch (e) {
-    //     nodeCmd.logger.showUserError(e)
-    //     expect(e).toBeNull()
-    //   }
-    // }, 1800000)
-  })
 
   return bootstrapResp
 }

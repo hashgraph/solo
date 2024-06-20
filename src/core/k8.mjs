@@ -1006,7 +1006,6 @@ export class K8 {
       const resp = await this.kubeClient.createNamespacedSecret(namespace, v1Secret)
 
       const end = new Date().getTime()
-      console.log('created secret = ', name, ' in namespace = ', namespace, 'type = ', secretType, 'data = ', data, 'labels = ', labels)
       this.logger.debug(`createSecret took ${end - start} ms`)
       return resp.response.statusCode === 201
     } catch (e) {
