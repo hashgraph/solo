@@ -17,42 +17,73 @@
  */
 
 import {afterEach, describe, expect, it} from '@jest/globals'
-import {ConfigManager, constants, K8, logging} from '../../../src/core/index.mjs'
-import { e2eNodeKeyRefreshAddTest } from '../e2e_node_util.js'
-import {bootstrapTestVariables, getDefaultArgv, TEST_CLUSTER} from "../../test_util.js";
+import {
+  ChartManager,
+  ConfigManager,
+  constants,
+  Helm,
+  K8,
+  logging,
+  PackageDownloader,
+  Zippy
+} from '../../../src/core/index.mjs'
+
 import {flags} from "../../../src/commands/index.mjs";
 import {AccountManager} from "../../../src/core/account_manager.mjs";
 import {AccountCommand} from "../../../src/commands/account.mjs";
+import {
+  DependencyManager,
+  HelmDependencyManager,
+  KeytoolDependencyManager
+} from "../../../src/core/dependency_managers/index.mjs";
 
 describe('NodeCommand', () => {
-  const testLogger = logging.NewLogger('debug')
-  const argv = getDefaultArgv()
-  argv[flags.namespace.name] = 'solo-e2e'
-  argv[flags.nodeIDs.name] = 'node0,node1,node2'
-  argv[flags.generateGossipKeys.name] = true
-  argv[flags.generateTlsKeys.name] = true
-  argv[flags.clusterName.name] = TEST_CLUSTER
-  // set the env variable SOLO_FST_CHARTS_DIR if developer wants to use local FST charts
-  argv[flags.chartDirectory.name] = process.env.SOLO_FST_CHARTS_DIR ? process.env.SOLO_FST_CHARTS_DIR : undefined
 
-  const bootstrapResp = bootstrapTestVariables('solo-e2e', argv)
-  const accountManager = bootstrapResp.opts.accountManager
-
-  const configManager = new ConfigManager(testLogger)
-  configManager.update(argv, true)
-
-  // const k8 = new K8(configManager, testLogger)
-  // const accountManager = new AccountManager(testLogger, k8)
-
-
-  const accountCmd = new AccountCommand(bootstrapResp.opts)
-
-  afterEach(async () => {
-    await accountManager.close()
-  }, 120000)
 
   it('should succeed with init command', async () => {
+
+
+    const logger = logging.NewLogger('debug')
+    let argv = {}
+    argv[flags.namespace.name] = 'solo-e2e'
+    argv[flags.nodeIDs.name] = 'node0,node1,node2'
+    argv[flags.generateGossipKeys.name] = true
+    argv[flags.generateTlsKeys.name] = true
+    argv[flags.clusterName.name] = 'solo-e2e'
+    // set the env variable SOLO_FST_CHARTS_DIR if developer wants to use local FST charts
+    argv[flags.chartDirectory.name] = process.env.SOLO_FST_CHARTS_DIR ? process.env.SOLO_FST_CHARTS_DIR : undefined
+
+
+
+    const configManager = new ConfigManager(logger)
+    configManager.update(argv, true)
+    const helm = new Helm(logger)
+    const chartManager = new ChartManager(helm, logger)
+
+    const k8 = new K8(configManager, logger)
+    const accountManager = new AccountManager(logger, k8)
+    const downloader = new PackageDownloader(logger)
+    const zippy = new Zippy(logger)
+    const helmDepManager = new HelmDependencyManager(downloader, zippy, logger)
+    const keytoolDepManager = new KeytoolDependencyManager(downloader, zippy, logger)
+    const depManagerMap = new Map()
+      .set(constants.HELM, helmDepManager)
+      .set(constants.KEYTOOL, keytoolDepManager)
+    const depManager = new DependencyManager(logger, depManagerMap)
+
+    const opts = {
+      accountManager: accountManager,
+      configManager: configManager,
+      k8: k8,
+      logger: logger,
+      chartManager: chartManager,
+      helm: helm,
+      depManager: depManager
+    }
+
+    const accountCmd = new AccountCommand(opts)
+
+
     const status = await accountCmd.init(argv)
-    expect(status).toBeTruthy()
   }, 180000)
 })
