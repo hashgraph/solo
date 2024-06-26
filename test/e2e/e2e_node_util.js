@@ -43,7 +43,7 @@ import {
   HEDERA_PLATFORM_VERSION_TAG,
   TEST_CLUSTER
 } from '../test_util.js'
-import { getNodeLogs, sleep } from '../../src/core/helpers.mjs'
+import {getNodeAccountMap, getNodeLogs, sleep} from '../../src/core/helpers.mjs'
 import path from 'path'
 import fs from 'fs'
 import crypto from 'crypto'
