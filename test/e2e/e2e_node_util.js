@@ -43,12 +43,11 @@ import {
   HEDERA_PLATFORM_VERSION_TAG,
   TEST_CLUSTER
 } from '../test_util.js'
-import {getNodeAccountMap, getNodeLogs, sleep} from '../../src/core/helpers.mjs'
+import { getNodeLogs, sleep } from '../../src/core/helpers.mjs'
 import path from 'path'
 import fs from 'fs'
 import crypto from 'crypto'
 import { ROOT_CONTAINER } from '../../src/core/constants.mjs'
-import { AccountCommand } from '../../src/commands/account.mjs'
 
 export function e2eNodeKeyRefreshAddTest (keyFormat, testName, mode, releaseTag = HEDERA_PLATFORM_VERSION_TAG) {
   const defaultTimeout = 120000
@@ -56,10 +55,10 @@ export function e2eNodeKeyRefreshAddTest (keyFormat, testName, mode, releaseTag 
   describe(`NodeCommand [testName ${testName}, mode ${mode}, keyFormat: ${keyFormat}, release ${releaseTag}]`, () => {
     const namespace = testName
     const argv = getDefaultArgv()
-    argv[flags.namespace.name] = 'solo-e2e'
+    argv[flags.namespace.name] = namespace
     argv[flags.releaseTag.name] = releaseTag
     argv[flags.keyFormat.name] = keyFormat
-    argv[flags.nodeIDs.name] = 'node0,node1,node2'
+    argv[flags.nodeIDs.name] = 'node0,node1,node2,node3'
     argv[flags.generateGossipKeys.name] = true
     argv[flags.generateTlsKeys.name] = true
     argv[flags.clusterName.name] = TEST_CLUSTER
@@ -70,20 +69,123 @@ export function e2eNodeKeyRefreshAddTest (keyFormat, testName, mode, releaseTag 
     const accountManager = bootstrapResp.opts.accountManager
     const k8 = bootstrapResp.opts.k8
     const nodeCmd = bootstrapResp.cmd.nodeCmd
-    const accountCmd = new AccountCommand(bootstrapResp.opts)
 
     afterEach(async () => {
       await nodeCmd.close()
       await accountManager.close()
     }, defaultTimeout)
 
-    describe('should succeed with init command', () => {
-      it('should succeed with init command', async () => {
-        const status = await accountCmd.init(argv)
-        expect(status).toBeTruthy()
-      }, 180000)
+    afterAll(async () => {
+      await getNodeLogs(k8, namespace)
+      await k8.deleteNamespace(namespace)
+    }, 180000)
+
+    describe(`Node should have started successfully [mode ${mode}, release ${releaseTag}, keyFormat: ${keyFormat}]`, () => {
+      balanceQueryShouldSucceed(accountManager, nodeCmd, namespace)
+
+      accountCreationShouldSucceed(accountManager, nodeCmd, namespace)
+
+      it(`Node Proxy should be UP [mode ${mode}, release ${releaseTag}, keyFormat: ${keyFormat}`, async () => {
+        expect.assertions(1)
+
+        try {
+          await expect(k8.waitForPodReady(
+            ['app=haproxy-node0', 'fullstack.hedera.com/type=haproxy'],
+            1, 300, 1000)).resolves.toBeTruthy()
+        } catch (e) {
+          nodeCmd.logger.showUserError(e)
+          expect(e).toBeNull()
+        } finally {
+          await nodeCmd.close()
+        }
+      }, defaultTimeout)
     })
 
+    describe(`Node should refresh successfully [mode ${mode}, release ${releaseTag}, keyFormat: ${keyFormat}]`, () => {
+      const nodeId = 'node0'
+
+      beforeAll(async () => {
+        const podName = await nodeRefreshTestSetup(argv, testName, k8, nodeId)
+        if (mode === 'kill') {
+          const resp = await k8.kubeClient.deleteNamespacedPod(podName, namespace)
+          expect(resp.response.statusCode).toEqual(200)
+          await sleep(20000) // sleep to wait for pod to finish terminating
+        } else if (mode === 'stop') {
+          await expect(nodeCmd.stop(argv)).resolves.toBeTruthy()
+          await sleep(20000) // give time for node to stop and update its logs
+        } else {
+          throw new Error(`invalid mode: ${mode}`)
+        }
+      }, 120000)
+
+      nodePodShouldBeRunning(nodeCmd, namespace, nodeId)
+
+      nodeShouldNotBeActive(nodeCmd, nodeId)
+
+      nodeRefreshShouldSucceed(nodeId, nodeCmd, argv)
+
+      balanceQueryShouldSucceed(accountManager, nodeCmd, namespace)
+
+      accountCreationShouldSucceed(accountManager, nodeCmd, namespace)
+    })
+
+    describe(`Should add a new node to the network [release ${releaseTag}, keyFormat: ${keyFormat}]`, () => {
+      const nodeId = 'node4'
+      let existingServiceMap
+      let existingNodeIdsPrivateKeysHash
+
+      beforeAll(async () => {
+        argv[flags.nodeIDs.name] = nodeId
+        const configManager = getTestConfigManager(`${testName}-solo.config`)
+        configManager.update(argv, true)
+        existingServiceMap = await accountManager.getNodeServiceMap(namespace)
+        existingNodeIdsPrivateKeysHash = await getNodeIdsPrivateKeysHash(existingServiceMap, namespace, keyFormat, k8, getTmpDir())
+      }, defaultTimeout)
+
+      it(`${nodeId} should not exist`, async () => {
+        try {
+          await expect(nodeCmd.checkNetworkNodePod(namespace, nodeId, 10, 50)).rejects.toThrowError(`no pod found for nodeId: ${nodeId}`)
+        } catch (e) {
+          nodeCmd.logger.showUserError(e)
+          expect(e).toBeNull()
+        } finally {
+          await nodeCmd.close()
+        }
+      }, 180000)
+
+      balanceQueryShouldSucceed(accountManager, nodeCmd, namespace)
+
+      accountCreationShouldSucceed(accountManager, nodeCmd, namespace)
+
+      it(`add ${nodeId} to the network`, async () => {
+        try {
+          await expect(nodeCmd.add(argv)).resolves.toBeTruthy()
+        } catch (e) {
+          nodeCmd.logger.showUserError(e)
+          expect(e).toBeNull()
+        } finally {
+          await nodeCmd.close()
+          await sleep(10000) // sleep to wait for node to finish starting
+        }
+      }, 600000)
+
+      balanceQueryShouldSucceed(accountManager, nodeCmd, namespace)
+
+      accountCreationShouldSucceed(accountManager, nodeCmd, namespace)
+
+      it('existing nodes private keys should not have changed', async () => {
+        const currentNodeIdsPrivateKeysHash = await getNodeIdsPrivateKeysHash(existingServiceMap, namespace, keyFormat, k8, getTmpDir())
+
+        for (const [nodeId, existingKeyHashMap] of existingNodeIdsPrivateKeysHash.entries()) {
+          const currentNodeKeyHashMap = currentNodeIdsPrivateKeysHash.get(nodeId)
+
+          for (const [keyFileName, existingKeyHash] of existingKeyHashMap.entries()) {
+            expect(`${nodeId}:${keyFileName}:${currentNodeKeyHashMap.get(keyFileName)}`).toEqual(
+              `${nodeId}:${keyFileName}:${existingKeyHash}`)
+          }
+        }
+      }, defaultTimeout)
+    })
   })
 
   function accountCreationShouldSucceed (accountManager, nodeCmd, namespace) {
