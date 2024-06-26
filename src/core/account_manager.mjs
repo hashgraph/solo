@@ -434,7 +434,7 @@ export class AccountManager {
     }
 
     const endCreateTime = new Date().getTime()
-    // this.logger.debug(`Time taken to create secret for account ${accountId.toString()} is ${endCreateTime - startCreateTime} ms`)
+    this.logger.debug(`Time taken to create secret for account ${accountId.toString()} is ${endCreateTime - startCreateTime} ms`)
 
     //measure time to run below try catch block
     const startUpdateTime = new Date().getTime()
