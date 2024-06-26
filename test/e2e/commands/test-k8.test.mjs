@@ -22,7 +22,6 @@ import * as Base64 from "js-base64";
 import {PrivateKey} from "@hashgraph/sdk";
 
 
-
 const defaultTimeout = 20000
 
 describe('K8 Create Secret Unit Tests', () => {
@@ -36,10 +35,9 @@ describe('K8 Create Secret Unit Tests', () => {
     k8 = await new K8(configManager, testLogger)
   }, defaultTimeout)
 
-
   it('k8 create secret in a loop many times', async () => {
     const privateKey = PrivateKey.fromStringED25519(constants.GENESIS_KEY)
-    for (let i = 0; i < 100; i++) {
+    for (let i = 1000; i < 2000; i++) {
       const index = i.toString()
       const accountSecretCreated = await k8.createSecret(
         index,
@@ -52,3 +50,5 @@ describe('K8 Create Secret Unit Tests', () => {
   }, defaultTimeout)
 
 })
+
+// 12.9 seconds
