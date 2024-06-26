@@ -21,17 +21,18 @@ import { Listr } from 'listr2'
 import path from 'path'
 import { FullstackTestingError, IllegalArgumentError } from '../core/errors.mjs'
 import * as helpers from '../core/helpers.mjs'
-import { getNodeLogs, getTmpDir, sleep, validatePath } from '../core/helpers.mjs'
+import {getNodeAccountMap, getNodeLogs, getTmpDir, sleep, validatePath} from '../core/helpers.mjs'
 import { constants, Templates } from '../core/index.mjs'
 import { BaseCommand } from './base.mjs'
 import * as flags from './flags.mjs'
 import * as prompts from './prompts.mjs'
 import {
-  AccountId,
+  AccountBalanceQuery,
+  AccountId, AccountUpdateTransaction,
   FileContentsQuery,
   FileId,
   FreezeTransaction,
-  FreezeType,
+  FreezeType, PrivateKey,
   Timestamp
 } from '@hashgraph/sdk'
 import * as crypto from 'crypto'
@@ -70,6 +71,49 @@ export class NodeCommand extends BaseCommand {
     }
 
     this._portForwards = []
+  }
+
+  async addStake(namespace, accountId) {
+    try {
+      await this.accountManager.loadNodeClient(namespace)
+      const client = this.accountManager._nodeClient
+
+      // get some initial balance
+      await this.accountManager.transferAmount(constants.TREASURY_ACCOUNT_ID, accountId, 100)
+
+      // check balance
+      const balance = await new AccountBalanceQuery()
+        .setAccountId(accountId)
+        .execute(client)
+      console.log(`Account ${accountId} balance: ${balance.hbars}`)
+
+
+      // Create the transaction
+      const transaction = await new AccountUpdateTransaction()
+        .setAccountId(accountId)
+        .setStakedAccountId(accountId)
+        .freezeWith(client)
+
+      const genesisKey = PrivateKey.fromStringED25519(constants.GENESIS_KEY)
+
+      // Sign the transaction with the account's private key
+      const signTx = await transaction.sign(genesisKey);
+
+      // Submit the transaction to a Hedera network
+      const txResponse = await signTx.execute(client);
+
+      // Request the receipt of the transaction
+      const receipt = await txResponse.getReceipt(client);
+
+      // Get the transaction status
+      const transactionStatus = receipt.status;
+      console.log("The transaction consensus status is " + transactionStatus.toString());
+
+      const accountInfo = await this.accountManager.accountInfoQuery(accountId)
+      console.log(`Account info: ${accountInfo}`)
+    } catch (e) {
+      this.logger.error(`Error in adding stake: ${e.message}`)
+    }
   }
 
   async checkNetworkNodePod (namespace, nodeId, maxAttempts = 60, delay = 2000) {
@@ -719,6 +763,28 @@ export class NodeCommand extends BaseCommand {
           })
         },
         skip: (ctx, _) => self.configManager.getFlag(flags.app) !== ''
+      },
+      {
+        title: 'Add node stakes',
+        task: (ctx, task) => {
+          const subTasks = []
+          const accountMap = getNodeAccountMap(ctx.config.nodeIds)
+          for (const nodeId of ctx.config.nodeIds) {
+            const accountId = accountMap.get(nodeId)
+            subTasks.push({
+              title: `Adding stake for node: ${chalk.yellow(nodeId)}`,
+              task: () => self.addStake(ctx.config.namespace, accountId)
+            })
+          }
+
+          // set up the sub-tasks
+          return task.newListr(subTasks, {
+            concurrent: false,
+            rendererOptions: {
+              collapseSubtasks: false
+            }
+          })
+        }
       }], {
       concurrent: false,
       rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
@@ -736,7 +802,7 @@ export class NodeCommand extends BaseCommand {
     return true
   }
 
-  async stop (argv) {
+   async stop (argv) {
     const self = this
 
     const tasks = new Listr([
