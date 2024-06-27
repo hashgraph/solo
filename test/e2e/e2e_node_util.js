@@ -162,7 +162,7 @@ export function e2eNodeKeyRefreshAddTest (keyFormat, testName, mode, releaseTag 
       it('should succeed with init command', async () => {
         const status = await accountCmd.init(argv)
         expect(status).toBeTruthy()
-      }, 180000)
+      }, 350000)
 
       it(`add ${nodeId} to the network`, async () => {
         try {

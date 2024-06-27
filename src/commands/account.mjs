@@ -166,7 +166,7 @@ export class AccountCommand extends BaseCommand {
                       ctx.resultTracker = await self.accountManager.updateSpecialAccountsKeys(
                         ctx.config.namespace, currentSet,
                         ctx.updateSecrets, ctx.resultTracker)
-                      sleep(50)
+                      await sleep(50)
                     }
                   })
                 }
