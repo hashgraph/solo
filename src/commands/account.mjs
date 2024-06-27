@@ -22,6 +22,7 @@ import { Listr } from 'listr2'
 import * as prompts from './prompts.mjs'
 import { constants } from '../core/index.mjs'
 import { AccountInfo, HbarUnit, PrivateKey } from '@hashgraph/sdk'
+import { sleep } from '../core/helpers.mjs'
 
 export class AccountCommand extends BaseCommand {
   constructor (opts, systemAccounts = constants.SYSTEM_ACCOUNTS) {
@@ -165,6 +166,7 @@ export class AccountCommand extends BaseCommand {
                       ctx.resultTracker = await self.accountManager.updateSpecialAccountsKeys(
                         ctx.config.namespace, currentSet,
                         ctx.updateSecrets, ctx.resultTracker)
+                      sleep(50)
                     }
                   })
                 }

@@ -95,11 +95,11 @@ export function getDefaultArgv () {
  * @param nodeCmdArg an instance of command/NodeCommand
  */
 export function bootstrapTestVariables (testName, argv,
-                                        k8Arg = null,
-                                        initCmdArg = null,
-                                        clusterCmdArg = null,
-                                        networkCmdArg = null,
-                                        nodeCmdArg = null
+  k8Arg = null,
+  initCmdArg = null,
+  clusterCmdArg = null,
+  networkCmdArg = null,
+  nodeCmdArg = null
 ) {
   const namespace = argv[flags.namespace.name] || 'bootstrap-ns'
   const cacheDir = argv[flags.cacheDir.name] || getTestCacheDir(testName)
@@ -163,11 +163,11 @@ export function bootstrapTestVariables (testName, argv,
  * @param nodeCmdArg an instance of command/NodeCommand
  */
 export function bootstrapNetwork (testName, argv,
-                                  k8Arg = null,
-                                  initCmdArg = null,
-                                  clusterCmdArg = null,
-                                  networkCmdArg = null,
-                                  nodeCmdArg = null
+  k8Arg = null,
+  initCmdArg = null,
+  clusterCmdArg = null,
+  networkCmdArg = null,
+  nodeCmdArg = null
 ) {
   const bootstrapResp = bootstrapTestVariables(testName, argv, k8Arg, initCmdArg, clusterCmdArg, networkCmdArg, nodeCmdArg)
   const namespace = bootstrapResp.namespace

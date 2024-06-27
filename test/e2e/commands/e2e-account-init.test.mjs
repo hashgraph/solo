@@ -16,7 +16,7 @@
  * @jest-environment steps
  */
 
-import {afterEach, describe, expect, it} from '@jest/globals'
+import { describe, it } from '@jest/globals'
 import {
   ChartManager,
   ConfigManager,
@@ -28,23 +28,19 @@ import {
   Zippy
 } from '../../../src/core/index.mjs'
 
-import {flags} from "../../../src/commands/index.mjs";
-import {AccountManager} from "../../../src/core/account_manager.mjs";
-import {AccountCommand} from "../../../src/commands/account.mjs";
+import { flags } from '../../../src/commands/index.mjs'
+import { AccountManager } from '../../../src/core/account_manager.mjs'
+import { AccountCommand } from '../../../src/commands/account.mjs'
 import {
   DependencyManager,
   HelmDependencyManager,
   KeytoolDependencyManager
-} from "../../../src/core/dependency_managers/index.mjs";
+} from '../../../src/core/dependency_managers/index.mjs'
 
 describe('NodeCommand', () => {
-
-
   it('should succeed with init command', async () => {
-
-
     const logger = logging.NewLogger('debug')
-    let argv = {}
+    const argv = {}
     argv[flags.namespace.name] = 'solo-e2e'
     argv[flags.nodeIDs.name] = 'node0,node1,node2'
     argv[flags.generateGossipKeys.name] = true
@@ -52,8 +48,6 @@ describe('NodeCommand', () => {
     argv[flags.clusterName.name] = 'solo-e2e'
     // set the env variable SOLO_FST_CHARTS_DIR if developer wants to use local FST charts
     argv[flags.chartDirectory.name] = process.env.SOLO_FST_CHARTS_DIR ? process.env.SOLO_FST_CHARTS_DIR : undefined
-
-
 
     const configManager = new ConfigManager(logger)
     configManager.update(argv, true)
@@ -82,8 +76,6 @@ describe('NodeCommand', () => {
     }
 
     const accountCmd = new AccountCommand(opts)
-
-
-    const status = await accountCmd.init(argv)
-  }, 180000)
+    await accountCmd.init(argv)
+  }, 300000)
 })

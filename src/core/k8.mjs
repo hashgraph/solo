@@ -982,8 +982,7 @@ export class K8 {
    * @returns {Promise<boolean>} whether the secret was created successfully
    */
   async createSecret (name, namespace, secretType, data, labels, recreate) {
-
-    //measure time to run below
+    // measure time to run below
     const start = new Date().getTime()
     if (recreate) {
       try {
