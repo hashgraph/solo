@@ -409,8 +409,6 @@ export class AccountManager {
       publicKey: Base64.encode(newPrivateKey.publicKey.toString())
     }
 
-    // measure time to run below try catch block
-    const startCreateTime = new Date().getTime()
     try {
       if (!(await this.k8.createSecret(
         Templates.renderAccountKeySecretName(accountId),
@@ -433,11 +431,6 @@ export class AccountManager {
       }
     }
 
-    const endCreateTime = new Date().getTime()
-    this.logger.debug(`Time taken to create secret for account ${accountId.toString()} is ${endCreateTime - startCreateTime} ms`)
-
-    // measure time to run below try catch block
-    const startUpdateTime = new Date().getTime()
     try {
       if (!(await this.sendAccountKeyUpdate(accountId, newPrivateKey, genesisKey))) {
         this.logger.error(`failed to update account keys for accountId ${accountId.toString()}`)
@@ -455,8 +448,6 @@ export class AccountManager {
         value: accountId.toString()
       }
     }
-    const endUpdateTime = new Date().getTime()
-    this.logger.debug(`Time taken to update account keys for account ${accountId.toString()} is ${endUpdateTime - startUpdateTime} ms`)
 
     return {
       status: FULFILLED,
@@ -516,8 +507,6 @@ export class AccountManager {
       oldPrivateKey = PrivateKey.fromStringED25519(oldPrivateKey)
     }
 
-    // measure time to run below
-    let start = new Date().getTime()
     // Create the transaction to update the key on the account
     const transaction = await new AccountUpdateTransaction()
       .setAccountId(accountId)
@@ -528,18 +517,11 @@ export class AccountManager {
     const signTx = await (await transaction.sign(oldPrivateKey)).sign(
       newPrivateKey)
 
-    let end = new Date().getTime()
-    this.logger.debug(`update transaction for account ${accountId.toString()} is ${end - start} ms`)
-
-    start = new Date().getTime()
-
     // SIgn the transaction with the client operator private key and submit to a Hedera network
     const txResponse = await signTx.execute(this._nodeClient)
 
     // Request the receipt of the transaction
     const receipt = await txResponse.getReceipt(this._nodeClient)
-    end = new Date().getTime()
-    this.logger.debug(`sign transaction for account ${accountId.toString()} is ${end - start} ms`)
     return receipt.status === Status.Success
   }
 

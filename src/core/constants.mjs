@@ -49,7 +49,7 @@ export const HEDERA_NODE_EXTERNAL_GOSSIP_PORT = process.env.SOLO_NODE_EXTERNAL_G
 export const HEDERA_NODE_DEFAULT_STAKE_AMOUNT = process.env.SOLO_NODE_DEFAULT_STAKE_AMOUNT || 1
 
 // --------------- Charts related constants ----------------------------------------------------------------------------
-export const FULLSTACK_SETUP_NAMESPACE = 'solo-e2e-cluster'
+export const FULLSTACK_SETUP_NAMESPACE = 'fullstack-setup'
 export const FULLSTACK_TESTING_CHART_URL = 'https://hashgraph.github.io/full-stack-testing/charts'
 export const FULLSTACK_TESTING_CHART = 'full-stack-testing'
 export const FULLSTACK_CLUSTER_SETUP_CHART = 'fullstack-cluster-setup'
