@@ -21,6 +21,10 @@ import { Templates, constants } from '../core/index.mjs'
 import { BaseCommand } from './base.mjs'
 import * as flags from './flags.mjs'
 import * as prompts from './prompts.mjs'
+import * as path from "path";
+import * as fs from "fs";
+import {exec} from "child_process";
+import {getFileContents} from "../core/helpers.mjs";
 
 export class MirrorNodeCommand extends BaseCommand {
   constructor (opts) {
@@ -45,6 +49,8 @@ export class MirrorNodeCommand extends BaseCommand {
     }
 
     valuesArg += ` --set hedera-mirror-node.enabled=true --set hedera-explorer.enabled=${deployHederaExplorer}`
+    valuesArg += ` --set hedera-mirror-node.importer.config.hedera.mirror.importer.parser.record.sidecar.enabled=true`;
+
     return valuesArg
   }
 
@@ -172,7 +178,50 @@ export class MirrorNodeCommand extends BaseCommand {
             rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
           })
         }
-      }
+      },
+      {
+        title: 'Seed DB data',
+        task: async (ctx, parentTask) => {
+          const subTasks = [
+            {
+              title: 'Insert data in public.file_data',
+              task: async (ctx, _) => {
+                const namespace = self.configManager.getFlag(flags.namespace)
+
+                const feesFileIdNum = 111;
+                const exchangeRatesFileIdNum = 112;
+                const timestamp = Date.now();
+
+                const fees = await getFileContents(this.accountManager, namespace, feesFileIdNum);
+                const exchangeRates = await getFileContents(this.accountManager, namespace, exchangeRatesFileIdNum);
+
+                const importFeesQuery = `INSERT INTO public.file_data(file_data, consensus_timestamp, entity_id, transaction_type) VALUES (decode('${fees}', 'hex'), ${timestamp + '000000'}, ${feesFileIdNum}, 17);`
+                const importExchangeRatesQuery = `INSERT INTO public.file_data(file_data, consensus_timestamp, entity_id, transaction_type) VALUES (decode('${exchangeRates}', 'hex'), ${
+                    timestamp + '000001'
+                }, ${exchangeRatesFileIdNum}, 17);`;
+                const sqlPath = path.resolve(constants.TEMP_DIR, 'importFeesAndExchangeRates.sql');
+
+                fs.writeFileSync(  sqlPath, [importFeesQuery, importExchangeRatesQuery].join(`\n`) );
+
+                const scriptName = 'insert-fee-data.sh'
+                const scriptPath = path.join(constants.RESOURCES_DIR, scriptName)
+
+                exec(`sh ${scriptPath}`, (error, stdout, stderr) => {
+                  fs.unlink(sqlPath, (err, info) => {
+                    if (err) throw err;
+                  });
+                });
+
+              }
+            }
+          ]
+
+          return parentTask.newListr(subTasks, {
+            concurrent: false,
+            rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
+          })
+        }
+      },
     ], {
       concurrent: false,
       rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
