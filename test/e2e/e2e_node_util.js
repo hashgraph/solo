@@ -48,6 +48,7 @@ import path from 'path'
 import fs from 'fs'
 import crypto from 'crypto'
 import { ROOT_CONTAINER } from '../../src/core/constants.mjs'
+import { AccountCommand } from '../../src/commands/account.mjs'
 
 export function e2eNodeKeyRefreshAddTest (keyFormat, testName, mode, releaseTag = HEDERA_PLATFORM_VERSION_TAG) {
   const defaultTimeout = 120000
@@ -69,6 +70,7 @@ export function e2eNodeKeyRefreshAddTest (keyFormat, testName, mode, releaseTag 
     const accountManager = bootstrapResp.opts.accountManager
     const k8 = bootstrapResp.opts.k8
     const nodeCmd = bootstrapResp.cmd.nodeCmd
+    const accountCmd = new AccountCommand(bootstrapResp.opts)
 
     afterEach(async () => {
       await nodeCmd.close()
@@ -157,6 +159,11 @@ export function e2eNodeKeyRefreshAddTest (keyFormat, testName, mode, releaseTag 
 
       accountCreationShouldSucceed(accountManager, nodeCmd, namespace)
 
+      it('should succeed with init command', async () => {
+        const status = await accountCmd.init(argv)
+        expect(status).toBeTruthy()
+      }, 350000)
+
       it(`add ${nodeId} to the network`, async () => {
         try {
           await expect(nodeCmd.add(argv)).resolves.toBeTruthy()
@@ -181,7 +188,7 @@ export function e2eNodeKeyRefreshAddTest (keyFormat, testName, mode, releaseTag 
 
           for (const [keyFileName, existingKeyHash] of existingKeyHashMap.entries()) {
             expect(`${nodeId}:${keyFileName}:${currentNodeKeyHashMap.get(keyFileName)}`).toEqual(
-                `${nodeId}:${keyFileName}:${existingKeyHash}`)
+              `${nodeId}:${keyFileName}:${existingKeyHash}`)
           }
         }
       }, defaultTimeout)

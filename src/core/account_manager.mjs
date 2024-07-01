@@ -519,7 +519,6 @@ export class AccountManager {
 
     // Request the receipt of the transaction
     const receipt = await txResponse.getReceipt(this._nodeClient)
-
     return receipt.status === Status.Success
   }
 
