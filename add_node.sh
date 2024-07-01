@@ -13,4 +13,4 @@
   solo node setup || return
   solo node start || return
 
-#  solo node add -i node3 --gossip-keys --tls-keys  || return
+  solo node add -i node3 --gossip-keys --tls-keys  || return
