@@ -25,6 +25,7 @@ import * as semver from 'semver'
 import { Templates } from './templates.mjs'
 import { HEDERA_HAPI_PATH, ROOT_CONTAINER, SOLO_LOGS_DIR } from './constants.mjs'
 import { constants } from './index.mjs'
+import {FileContentsQuery, FileId} from "@hashgraph/sdk";
 
 // cache current directory
 const CUR_FILE_DIR = paths.dirname(fileURLToPath(import.meta.url))
@@ -227,4 +228,12 @@ export function getNodeAccountMap (nodeIDs) {
     accountMap.set(nodeID, nodeAccount)
   })
   return accountMap
+}
+
+export async function getFileContents (accountManager, namespace, fileNum) {
+  await accountManager.loadNodeClient(namespace)
+  const client = accountManager._nodeClient;
+  const fileId = FileId.fromString(`0.0.${fileNum}`)
+  const queryFees = new FileContentsQuery().setFileId(fileId);
+  return Buffer.from(await queryFees.execute(client)).toString('hex');
 }
