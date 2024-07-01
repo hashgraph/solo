@@ -56,7 +56,7 @@
     "js-yaml": "^4.1.0",
     "listr2": "^8.2.3",
     "semver": "^7.6.2",
-    "stream-buffers": "^3.0.2",
+    "stream-buffers": "^3.0.3",
     "tar": "^7.4.0",
     "uuid": "^10.0.0",
     "winston": "^3.13.0",
