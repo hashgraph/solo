@@ -26,11 +26,13 @@ import { constants, Templates } from '../core/index.mjs'
 import { BaseCommand } from './base.mjs'
 import * as flags from './flags.mjs'
 import * as prompts from './prompts.mjs'
+import AdmZip from 'adm-zip'
+
 import {
   AccountBalanceQuery,
   AccountId, AccountUpdateTransaction,
   FileContentsQuery,
-  FileId,
+  FileId, FileUpdateTransaction,
   FreezeTransaction,
   FreezeType, PrivateKey,
   Timestamp
@@ -1773,14 +1775,41 @@ export class NodeCommand extends BaseCommand {
     try {
       // fetch special file
       const fileId = FileId.fromString('0.0.150')
-      const fileQuery = new FileContentsQuery().setFileId(fileId)
-      const addressBookBytes = await fileQuery.execute(client)
-      const fileHash = crypto.createHash('sha384').update(addressBookBytes).digest('hex')
+      // const fileQuery = new FileContentsQuery().setFileId(fileId)
+      // const addressBookBytes = await fileQuery.execute(client)
+      // const fileHash = crypto.createHash('sha384').update(addressBookBytes).digest('hex')
+
+      // create a file VERSION with content
+      // VERSION=0.2
+      //  Thu Jun 27 11:07:20 UTC 2024
+      const versionFile = `${config.stagingDir}/VERSION`
+      fs.writeFileSync(versionFile, '0.2\n')
+      fs.appendFileSync(versionFile, `${new Date().toUTCString()}\n`)
+
+      // bundle config.txt and VERSIO into a zip file
+      const zipFile = `${config.stagingDir}/freeze.zip`
+      const zip = AdmZip('', {})
+      zip.addLocalFile(`${config.stagingDir}/VERSION`)
+      zip.addLocalFile(`${config.stagingDir}/config.txt`)
+      // get byte value of the zip file
+      const zipBytes = zip.toBuffer()
+      const zipHash = crypto.createHash('sha384').update(zipBytes).digest('hex')
+      // save zip file to local disk
+      fs.writeFileSync(zipFile, zipBytes)
+
+      this.logger.debug(`zipHash = ${zipHash} zipBytes.length = ${zipBytes.length}`)
+      // create a file upload transaction to upload file to the network
+      const fileTransaction = new FileUpdateTransaction()
+        .setFileId(fileId)
+        .setContents(zipBytes)
+
+      const fileTransactionReceipt = await fileTransaction.execute(client)
+      this.logger.debug(`fileTransactionReceipt = ${fileTransactionReceipt.toString()}`)
 
       const prepareUpgradeTx = await new FreezeTransaction()
         .setFreezeType(FreezeType.PrepareUpgrade)
         .setFileId(fileId)
-        .setFileHash(fileHash)
+        .setFileHash(zipHash)
         .freezeWith(client)
         .execute(client)
 
@@ -1790,6 +1819,14 @@ export class NodeCommand extends BaseCommand {
           `Upgrade prepared with transaction id: ${prepareUpgradeTx.transactionId.toString()}`,
           prepareUpgradeReceipt.status.toString()
       )
+
+      const fileQuery = new FileContentsQuery().setFileId(fileId)
+      const updateFileBinary = await fileQuery.execute(client)
+      // save updateFileBinary to a file
+      fs.writeFileSync(`${config.stagingDir}/update2.zip`, updateFileBinary)
+
+      await sleep(50000000)
+
 
       const futureDate = new Date()
       this.logger.debug(`Current time: ${futureDate}`)
@@ -1801,7 +1838,7 @@ export class NodeCommand extends BaseCommand {
         .setFreezeType(FreezeType.FreezeUpgrade)
         .setStartTimestamp(Timestamp.fromDate(futureDate))
         .setFileId(fileId)
-        .setFileHash(fileHash)
+        .setFileHash(zipHash)
         .freezeWith(client)
         .execute(client)
 
