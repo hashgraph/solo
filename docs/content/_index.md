@@ -1,11 +1,10 @@
 ---
-title: Welcome to the Solo Documentation
 geekdocNav: true
 geekdocAlign: center
 geekdocAnchor: false
 geekdocDescription: Home page for Solo Documentation
 ---
-
+# Welcome to Solo Documentation
 <!-- markdownlint-capture -->
 <!-- markdownlint-disable MD033 -->
 <!-- markdownlint-restore -->
