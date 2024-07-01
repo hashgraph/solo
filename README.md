@@ -90,7 +90,7 @@ You can now use your cluster with:
 
 kubectl cluster-info --context kind-solo
 
-Thanks for using kind! 😊
+Have a nice day! 👋
 ```
 
 You may now view pods in your cluster using `k9s -A` as below:
@@ -178,9 +178,9 @@ Kubernetes Namespace	: solo
 ✔ Clean up temp files
 ✔ Generate gossip keys
 ✔ Backup old files
+✔ TLS key for node: node1
 ✔ TLS key for node: node0
 ✔ TLS key for node: node2
-✔ TLS key for node: node1
 ✔ Generate gRPC TLS keys
 ✔ Finalize
 ```
@@ -239,12 +239,12 @@ Kubernetes Namespace	: solo
 ✔ Check Node: node1
 ✔ Check Node: node2
 ✔ Check node pods are running
-✔ Check Envoy Proxy for: node2
 ✔ Check Envoy Proxy for: node0
-✔ Check Envoy Proxy for: node1
-✔ Check HAProxy for: node2
+✔ Check Envoy Proxy for: node2
 ✔ Check HAProxy for: node1
 ✔ Check HAProxy for: node0
+✔ Check HAProxy for: node2
+✔ Check Envoy Proxy for: node1
 ✔ Check proxy pods are running
 ✔ Check MinIO
 ✔ Check auxiliary pods are ready
@@ -277,9 +277,9 @@ Kubernetes Namespace	: solo
 ✔ Copy gRPC TLS keys to staging
 ✔ Prepare config.txt for the network
 ✔ Prepare staging directory
-✔ Update node: node1
 ✔ Update node: node2
 ✔ Update node: node0
+✔ Update node: node1
 ✔ Fetch platform software into network nodes
 ✔ Copy Gossip keys
 ✔ Copy Gossip keys
@@ -289,9 +289,9 @@ Kubernetes Namespace	: solo
 ✔ Copy TLS keys
 ✔ Copy configuration files
 ✔ Copy configuration files
-✔ Copy configuration files
 ✔ Set file permissions
 ✔ Node: node2
+✔ Copy configuration files
 ✔ Set file permissions
 ✔ Node: node0
 ✔ Set file permissions
@@ -317,20 +317,20 @@ Kubernetes Cluster	: kind-solo
 Kubernetes Namespace	: solo
 **********************************************************************************
 ✔ Initialize
-✔ Check network pod: node0
 ✔ Check network pod: node1
+✔ Check network pod: node0
 ✔ Check network pod: node2
 ✔ Identify network pods
 ✔ Start node: node0
-✔ Start node: node2
 ✔ Start node: node1
+✔ Start node: node2
 ✔ Starting nodes
 ✔ Check node: node0
 ✔ Check node: node1
 ✔ Check node: node2
 ✔ Check nodes are ACTIVE
-✔ Check proxy for node: node1
 ✔ Check proxy for node: node0
+✔ Check proxy for node: node1
 ✔ Check proxy for node: node2
 ✔ Check node proxies are ACTIVE
 ```
@@ -355,12 +355,10 @@ Kubernetes Namespace	: solo
 ✔ Deploy mirror-node
 ✔ Enable mirror-node
 ✔ Check Hedera Explorer
-✔ Check Postgres DB
 ✔ Check Monitor
-✔ Check GRPC
-✔ Check Importer
-✔ Check REST API
-✔ Check pods are ready
+*********************************** ERROR *****************************************
+Error starting node: Pod not ready [maxAttempts = 300]
+***********************************************************************************
 ```
 
 * Deploy a JSON RPC relay
@@ -512,9 +510,9 @@ Kubernetes Namespace	: solo
 ✔ Gossip pem key for node: node2
 ✔ Generate gossip keys
 ✔ Backup old files
-✔ TLS key for node: node1
 ✔ TLS key for node: node2
 ✔ TLS key for node: node0
+✔ TLS key for node: node1
 ✔ Generate gRPC TLS keys
 ✔ Finalize
 ```
