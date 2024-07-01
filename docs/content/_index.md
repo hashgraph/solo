@@ -1,10 +1,11 @@
 ---
+title: Welcome to Solo Documentation
 geekdocNav: true
 geekdocAlign: center
 geekdocAnchor: false
 geekdocDescription: Home page for Solo Documentation
 ---
-# Welcome to Solo Documentation
+
 <!-- markdownlint-capture -->
 <!-- markdownlint-disable MD033 -->
 <!-- markdownlint-restore -->
@@ -18,7 +19,8 @@ geekdocDescription: Home page for Solo Documentation
 
 Solo is an opinionated CLI tool to deploy and manage standalone test networks.
 
-## Feature overview
+Feature overview
+-----------------------------
 
 {{< columns >}}
 
