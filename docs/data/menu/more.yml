@@ -4,8 +4,12 @@ more:
   - name: Hedera Hashgraph
     ref: "https://hedera.com/"
     external: true
+  - name: Releases
+    ref: "https://github.com/hashgraph/solo/releases"
+    external: true
+    icon: "gdoc_download"
   - name: "View Source"
-    ref: "https://github.com/hashgraph/solo/issues"
+    ref: "https://github.com/hashgraph/solo"
     external: true
     icon: "gdoc_github"
 

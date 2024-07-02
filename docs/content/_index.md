@@ -19,6 +19,8 @@ geekdocDescription: Home page for Solo Documentation
 
 Solo is an opinionated CLI tool to deploy and manage standalone test networks.
 
+{{< button size="large" relref="getting-started/installation.md" >}}Getting Started{{< /button >}}
+
 Feature overview
 -----------------------------
 
