@@ -159,49 +159,49 @@ jobs:
           attempt_delay: 5000
 
       - name: Download Unit Test Coverage Report
-        uses: actions/download-artifact@65a9edc5881444af0b9093a5e628f2fe47ea3b2e # v4.1.7
+        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
         if: ${{ (inputs.enable-codecov-analysis || inputs.enable-codacy-coverage) && !cancelled() && !failure() }}
         with:
           name: Unit Test Coverage Report
           path: 'coverage/unit'
 
       - name: Download E2E Coverage Report
-        uses: actions/download-artifact@65a9edc5881444af0b9093a5e628f2fe47ea3b2e # v4.1.7
+        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
         if: ${{ (inputs.enable-codecov-analysis || inputs.enable-codacy-coverage) && inputs.enable-e2e-coverage-report && !cancelled() && !failure() }}
         with:
           name: ${{ inputs.e2e-coverage-report }}
           path: 'coverage/${{ inputs.e2e-test-subdir }}'
 
       - name: Download E2E Mirror Node Coverage Report
-        uses: actions/download-artifact@65a9edc5881444af0b9093a5e628f2fe47ea3b2e # v4.1.7
+        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
         if: ${{ (inputs.enable-codecov-analysis || inputs.enable-codacy-coverage) && inputs.enable-e2e-coverage-report && !cancelled() && !failure() }}
         with:
           name: ${{ inputs.e2e-mirror-node-coverage-report }}
           path: 'coverage/${{ inputs.e2e-mirror-node-test-subdir }}'
 
       - name: Download E2E Node PEM Stop Add Coverage Report
-        uses: actions/download-artifact@65a9edc5881444af0b9093a5e628f2fe47ea3b2e # v4.1.7
+        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
         if: ${{ (inputs.enable-codecov-analysis || inputs.enable-codacy-coverage) && inputs.enable-e2e-coverage-report && !cancelled() && !failure() }}
         with:
           name: ${{ inputs.e2e-node-pem-stop-add-coverage-report }}
           path: 'coverage/${{ inputs.e2e-node-pem-stop-add-test-subdir }}'
 
       - name: Download E2E Node PFX Kill Add Coverage Report
-        uses: actions/download-artifact@65a9edc5881444af0b9093a5e628f2fe47ea3b2e # v4.1.7
+        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
         if: ${{ (inputs.enable-codecov-analysis || inputs.enable-codacy-coverage) && inputs.enable-e2e-coverage-report && !cancelled() && !failure() }}
         with:
           name: ${{ inputs.e2e-node-pfx-kill-add-coverage-report }}
           path: 'coverage/${{ inputs.e2e-node-pfx-kill-add-test-subdir }}'
 
       - name: Download E2E Relay Coverage Report
-        uses: actions/download-artifact@65a9edc5881444af0b9093a5e628f2fe47ea3b2e # v4.1.7
+        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
         if: ${{ (inputs.enable-codecov-analysis || inputs.enable-codacy-coverage) && inputs.enable-e2e-coverage-report && !cancelled() && !failure() }}
         with:
           name: ${{ inputs.e2e-relay-coverage-report }}
           path: 'coverage/${{ inputs.e2e-relay-test-subdir }}'
 
       - name: Download E2E Local Build Coverage Report
-        uses: actions/download-artifact@65a9edc5881444af0b9093a5e628f2fe47ea3b2e # v4.1.7
+        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
         if: ${{ (inputs.enable-codecov-analysis || inputs.enable-codacy-coverage) && inputs.enable-e2e-coverage-report && !cancelled() && !failure() }}
         with:
           name: ${{ inputs.e2e-node-local-build-test-coverage-report }}
