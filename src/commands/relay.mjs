@@ -21,7 +21,7 @@ import { constants } from '../core/index.mjs'
 import { BaseCommand } from './base.mjs'
 import * as flags from './flags.mjs'
 import * as prompts from './prompts.mjs'
-import { getNodeAccountMap } from '../core/constants.mjs'
+import { getNodeAccountMap } from '../core/helpers.mjs'
 
 export class RelayCommand extends BaseCommand {
   constructor (opts) {
@@ -30,9 +30,10 @@ export class RelayCommand extends BaseCommand {
     if (!opts || !opts.profileManager) throw new MissingArgumentError('An instance of core/ProfileManager is required', opts.downloader)
 
     this.profileManager = opts.profileManager
+    this.accountManager = opts.accountManager
   }
 
-  async prepareValuesArg (valuesFile, nodeIDs, chainID, relayRelease, replicaCount, operatorID, operatorKey) {
+  async prepareValuesArg (valuesFile, nodeIDs, chainID, relayRelease, replicaCount, operatorID, operatorKey, namespace) {
     let valuesArg = ''
     if (valuesFile) {
       valuesArg += this.prepareValuesFiles(valuesFile)
@@ -47,6 +48,11 @@ export class RelayCommand extends BaseCommand {
     valuesArg += ` --set config.MIRROR_NODE_URL=http://${constants.FULLSTACK_DEPLOYMENT_CHART}-rest`
     valuesArg += ` --set config.MIRROR_NODE_URL_WEB3=http://${constants.FULLSTACK_DEPLOYMENT_CHART}-web3`
     valuesArg += ' --set config.MIRROR_NODE_AGENT_CACHEABLE_DNS=false'
+<<<<<<< HEAD
+=======
+    valuesArg += ' --set config.MIRROR_NODE_RETRY_DELAY=2001'
+    valuesArg += ' --set config.MIRROR_NODE_GET_CONTRACT_RESULTS_DEFAULT_RETRIES=21'
+>>>>>>> main
 
     if (chainID) {
       valuesArg += ` --set config.CHAIN_ID=${chainID}`
@@ -72,18 +78,27 @@ export class RelayCommand extends BaseCommand {
       throw new MissingArgumentError('Node IDs must be specified')
     }
 
+<<<<<<< HEAD
     const networkJsonString = this.prepareNetworkJsonString(nodeIDs)
+=======
+    const networkJsonString = await this.prepareNetworkJsonString(nodeIDs, namespace)
+>>>>>>> main
     valuesArg += ` --set config.HEDERA_NETWORK='${networkJsonString}'`
     return valuesArg
   }
 
   // created a json string to represent the map between the node keys and their ids
   // output example '{"node-1": "0.0.3", "node-2": "0.004"}'
+<<<<<<< HEAD
   prepareNetworkJsonString (nodeIDs = []) {
+=======
+  async prepareNetworkJsonString (nodeIDs = [], namespace) {
+>>>>>>> main
     if (!nodeIDs) {
       throw new MissingArgumentError('Node IDs must be specified')
     }
 
+<<<<<<< HEAD
     const netWorkIds = {}
     const accountMap = getNodeAccountMap(nodeIDs)
 
@@ -93,6 +108,20 @@ export class RelayCommand extends BaseCommand {
     })
 
     return JSON.stringify(netWorkIds)
+=======
+    const networkIds = {}
+    const accountMap = getNodeAccountMap(nodeIDs)
+
+    const networkNodeServicesMap = await this.accountManager.getNodeServiceMap(namespace)
+    nodeIDs.forEach(nodeID => {
+      const nodeName = networkNodeServicesMap.get(nodeID).nodeName
+      const haProxyGrpcPort = networkNodeServicesMap.get(nodeID).haProxyGrpcPort
+      const networkKey = `network-${nodeName}:${haProxyGrpcPort}`
+      networkIds[networkKey] = accountMap.get(nodeID)
+    })
+
+    return JSON.stringify(networkIds)
+>>>>>>> main
   }
 
   prepareReleaseName (nodeIDs = []) {
@@ -120,30 +149,30 @@ export class RelayCommand extends BaseCommand {
           self.configManager.update(argv)
 
           await prompts.execute(task, self.configManager, [
+            flags.chainId,
             flags.chartDirectory,
             flags.namespace,
-            flags.valuesFile,
             flags.nodeIDs,
-            flags.chainId,
-            flags.relayReleaseTag,
-            flags.replicaCount,
             flags.operatorId,
             flags.operatorKey,
+            flags.profileFile,
             flags.profileName,
-            flags.profileFile
+            flags.relayReleaseTag,
+            flags.replicaCount,
+            flags.valuesFile
           ])
 
           // prompt if inputs are empty and set it in the context
           ctx.config = {
+            chainId: self.configManager.getFlag(flags.chainId),
             chartDir: self.configManager.getFlag(flags.chartDirectory),
             namespace: self.configManager.getFlag(flags.namespace),
-            valuesFile: self.configManager.getFlag(flags.valuesFile),
             nodeIds: helpers.parseNodeIds(self.configManager.getFlag(flags.nodeIDs)),
-            chainId: self.configManager.getFlag(flags.chainId),
+            operatorId: self.configManager.getFlag(flags.operatorId),
+            operatorKey: self.configManager.getFlag(flags.operatorKey),
             relayRelease: self.configManager.getFlag(flags.relayReleaseTag),
             replicaCount: self.configManager.getFlag(flags.replicaCount),
-            operatorId: self.configManager.getFlag(flags.operatorId),
-            operatorKey: self.configManager.getFlag(flags.operatorKey)
+            valuesFile: self.configManager.getFlag(flags.valuesFile)
           }
 
           ctx.releaseName = self.prepareReleaseName(ctx.config.nodeIds)
@@ -163,7 +192,8 @@ export class RelayCommand extends BaseCommand {
             ctx.config.relayRelease,
             ctx.config.replicaCount,
             ctx.config.operatorId,
-            ctx.config.operatorKey
+            ctx.config.operatorKey,
+            ctx.config.namespace
           )
         }
       },
@@ -289,17 +319,17 @@ export class RelayCommand extends BaseCommand {
             desc: 'Deploy a JSON RPC relay',
             builder: y => {
               flags.setCommandFlags(y,
-                flags.namespace,
-                flags.valuesFile,
-                flags.chartDirectory,
-                flags.replicaCount,
                 flags.chainId,
+                flags.chartDirectory,
+                flags.namespace,
                 flags.nodeIDs,
-                flags.relayReleaseTag,
                 flags.operatorId,
                 flags.operatorKey,
+                flags.profileFile,
                 flags.profileName,
-                flags.profileFile
+                flags.relayReleaseTag,
+                flags.replicaCount,
+                flags.valuesFile
               )
             },
             handler: argv => {

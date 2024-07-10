@@ -84,6 +84,7 @@ jobs:
     needs:
       - env-vars
       - code-style
+      - e2e-tests
     with:
       custom-job-label: Mirror Node
       npm-test-script: test-${{ needs.env-vars.outputs.e2e-mirror-node-test-subdir }}
@@ -135,6 +136,7 @@ jobs:
     needs:
       - env-vars
       - code-style
+      - e2e-mirror-node-tests
     with:
       custom-job-label: Relay
       npm-test-script: test-${{ needs.env-vars.outputs.e2e-relay-test-subdir }}

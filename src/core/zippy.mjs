@@ -29,9 +29,10 @@ export class Zippy {
 
   /**
    * Zip a file or directory
-   * @param srcPath path to a file or directory
-   * @param destPath path to the output zip file
-   * @returns {Promise<unknown>}
+   * @param {string} srcPath path to a file or directory
+   * @param {string} destPath path to the output zip file
+   * @param {boolean} verbose if true, log the progress
+   * @returns {Promise<string>} path to the output zip file
    */
   async zip (srcPath, destPath, verbose = false) {
     if (!srcPath) throw new MissingArgumentError('srcPath is required')

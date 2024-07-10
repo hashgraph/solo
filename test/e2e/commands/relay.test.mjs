@@ -60,7 +60,7 @@ describe('RelayCommand', () => {
   afterAll(async () => {
     await getNodeLogs(k8, namespace)
     await k8.deleteNamespace(namespace)
-  })
+  }, 180000)
 
   afterEach(async () => {
     await sleep(5) // give a few ticks so that connections can close
@@ -91,5 +91,5 @@ describe('RelayCommand', () => {
       relayCmd.logger.showUserError(e)
       expect(e).toBeNull()
     }
-  }, 180000)
+  }, 300000)
 })

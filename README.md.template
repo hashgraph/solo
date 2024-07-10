@@ -28,7 +28,7 @@ An opinionated CLI tool to deploy and manage standalone test networks.
 
 ## Requirements
 
-* Node(>=18.19.0) (*lts/hydrogen*)
+* Node(>=20.14.0) (*lts/hydrogen*)
 
 ## Setup
 
@@ -372,6 +372,12 @@ To deploy node with local build PTT jar files, run the following command:
 solo node setup --local-build-path <default path to hedera repo>,node1=<custom build hedera repo>,node2=<custom build repo>
  --app PlatformTestingTool.jar --app-config <path-to-test-json1,path-to-test-json2>
 ```
+## Logs
+You can find log for running solo command under the directory `~/.solo/logs/`
+The file `solo.log` contains the logs for the solo command. 
+The file `hashgraph-sdk.log` contains the logs from solo client when sending transactions to network nodes.
+
+
 ## Support
 
 If you have a question on how to use the product, please see our [support guide](https://github.com/hashgraph/.github/blob/main/SUPPORT.md).

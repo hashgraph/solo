@@ -28,7 +28,7 @@ An opinionated CLI tool to deploy and manage standalone test networks.
 
 ## Requirements
 
-* Node(>=18.19.0) (*lts/hydrogen*)
+* Node(>=20.14.0) (*lts/hydrogen*)
 
 ## Setup
 
@@ -90,7 +90,7 @@ You can now use your cluster with:
 
 kubectl cluster-info --context kind-solo
 
-Have a question, bug, or feature request? Let us know! https://kind.sigs.k8s.io/#community 🙂
+Have a nice day! 👋
 ```
 
 You may now view pods in your cluster using `k9s -A` as below:
@@ -133,13 +133,13 @@ Example output
 ```
 
 ******************************* Solo *********************************************
-Version			: 0.26.0
+Version			: 0.27.0
 Kubernetes Context	: kind-solo
 Kubernetes Cluster	: kind-solo
 Kubernetes Namespace	: solo
 **********************************************************************************
 ✔ Setup home directory and cache
-✔ Check dependency: helm [OS: linux, Release: 5.15.0-1054-gke, Arch: x64]
+✔ Check dependency: helm [OS: linux, Release: 5.15.0-1061-gke, Arch: x64]
 ✔ Check dependencies
 ✔ Setup chart manager
 
@@ -163,7 +163,7 @@ Example output
 ```
 
 ******************************* Solo *********************************************
-Version			: 0.26.0
+Version			: 0.27.0
 Kubernetes Context	: kind-solo
 Kubernetes Cluster	: kind-solo
 Kubernetes Namespace	: solo
@@ -178,8 +178,8 @@ Kubernetes Namespace	: solo
 ✔ Clean up temp files
 ✔ Generate gossip keys
 ✔ Backup old files
-✔ TLS key for node: node1
 ✔ TLS key for node: node2
+✔ TLS key for node: node1
 ✔ TLS key for node: node0
 ✔ Generate gRPC TLS keys
 ✔ Finalize
@@ -204,7 +204,7 @@ Example output
 ```
 
 ******************************* Solo *********************************************
-Version			: 0.26.0
+Version			: 0.27.0
 Kubernetes Context	: kind-solo
 Kubernetes Cluster	: kind-solo
 Kubernetes Namespace	: solo
@@ -228,7 +228,7 @@ Example output
 ```
 
 ******************************* Solo *********************************************
-Version			: 0.26.0
+Version			: 0.27.0
 Kubernetes Context	: kind-solo
 Kubernetes Cluster	: kind-solo
 Kubernetes Namespace	: solo
@@ -240,11 +240,11 @@ Kubernetes Namespace	: solo
 ✔ Check Node: node2
 ✔ Check node pods are running
 ✔ Check Envoy Proxy for: node0
-✔ Check Envoy Proxy for: node1
 ✔ Check Envoy Proxy for: node2
-✔ Check HAProxy for: node2
+✔ Check Envoy Proxy for: node1
 ✔ Check HAProxy for: node0
 ✔ Check HAProxy for: node1
+✔ Check HAProxy for: node2
 ✔ Check proxy pods are running
 ✔ Check MinIO
 ✔ Check auxiliary pods are ready
@@ -262,24 +262,24 @@ Example output
 ```
 
 ******************************* Solo *********************************************
-Version			: 0.26.0
+Version			: 0.27.0
 Kubernetes Context	: kind-solo
 Kubernetes Cluster	: kind-solo
 Kubernetes Namespace	: solo
 **********************************************************************************
 ✔ Initialize
-✔ Check network pod: node2
 ✔ Check network pod: node0
 ✔ Check network pod: node1
+✔ Check network pod: node2
 ✔ Identify network pods
 ✔ Copy configuration files
 ✔ Copy Gossip keys to staging
 ✔ Copy gRPC TLS keys to staging
 ✔ Prepare config.txt for the network
 ✔ Prepare staging directory
+✔ Update node: node0
 ✔ Update node: node1
 ✔ Update node: node2
-✔ Update node: node0
 ✔ Fetch platform software into network nodes
 ✔ Copy Gossip keys
 ✔ Copy Gossip keys
@@ -311,19 +311,19 @@ Example output
 ```
 
 ******************************* Solo *********************************************
-Version			: 0.26.0
+Version			: 0.27.0
 Kubernetes Context	: kind-solo
 Kubernetes Cluster	: kind-solo
 Kubernetes Namespace	: solo
 **********************************************************************************
 ✔ Initialize
-✔ Check network pod: node2
 ✔ Check network pod: node0
+✔ Check network pod: node2
 ✔ Check network pod: node1
 ✔ Identify network pods
-✔ Start node: node2
-✔ Start node: node0
 ✔ Start node: node1
+✔ Start node: node0
+✔ Start node: node2
 ✔ Starting nodes
 ✔ Check node: node0
 ✔ Check node: node1
@@ -345,7 +345,7 @@ Example output
 ```
 
 ******************************* Solo *********************************************
-Version			: 0.26.0
+Version			: 0.27.0
 Kubernetes Context	: kind-solo
 Kubernetes Cluster	: kind-solo
 Kubernetes Namespace	: solo
@@ -356,10 +356,10 @@ Kubernetes Namespace	: solo
 ✔ Enable mirror-node
 ✔ Check Hedera Explorer
 ✔ Check Postgres DB
-✔ Check Monitor
 ✔ Check GRPC
-✔ Check Importer
+✔ Check Monitor
 ✔ Check REST API
+✔ Check Importer
 ✔ Check pods are ready
 ```
 
@@ -374,7 +374,7 @@ Example output
 ```
 
 ******************************* Solo *********************************************
-Version			: 0.26.0
+Version			: 0.27.0
 Kubernetes Context	: kind-solo
 Kubernetes Cluster	: kind-solo
 Kubernetes Namespace	: solo
@@ -445,7 +445,7 @@ Example output
 ```
 
 ******************************* Solo *********************************************
-Version			: 0.26.0
+Version			: 0.27.0
 Kubernetes Context	: kind-solo
 Kubernetes Cluster	: kind-solo
 Kubernetes Namespace	: solo
@@ -472,13 +472,13 @@ $ solo init -t v0.47.0-alpha.0 -i node0,node1,node2 -n "${SOLO_NAMESPACE}" -s "$
 ```
 
 ******************************* Solo *********************************************
-Version			: 0.26.0
+Version			: 0.27.0
 Kubernetes Context	: kind-solo
 Kubernetes Cluster	: kind-solo
 Kubernetes Namespace	: solo
 **********************************************************************************
 ✔ Setup home directory and cache
-✔ Check dependency: helm [OS: linux, Release: 5.15.0-1054-gke, Arch: x64]
+✔ Check dependency: helm [OS: linux, Release: 5.15.0-1061-gke, Arch: x64]
 ✔ Check dependencies
 ✔ Setup chart manager
 
@@ -500,7 +500,7 @@ $ solo node keys --gossip-keys --tls-keys --key-format pem
 ```
 
 ******************************* Solo *********************************************
-Version			: 0.26.0
+Version			: 0.27.0
 Kubernetes Context	: kind-solo
 Kubernetes Cluster	: kind-solo
 Kubernetes Namespace	: solo
@@ -512,9 +512,9 @@ Kubernetes Namespace	: solo
 ✔ Gossip pem key for node: node2
 ✔ Generate gossip keys
 ✔ Backup old files
+✔ TLS key for node: node0
 ✔ TLS key for node: node1
 ✔ TLS key for node: node2
-✔ TLS key for node: node0
 ✔ Generate gRPC TLS keys
 ✔ Finalize
 ```
@@ -582,6 +582,12 @@ To deploy node with local build PTT jar files, run the following command:
 solo node setup --local-build-path <default path to hedera repo>,node1=<custom build hedera repo>,node2=<custom build repo>
  --app PlatformTestingTool.jar --app-config <path-to-test-json1,path-to-test-json2>
 ```
+## Logs
+You can find log for running solo command under the directory `~/.solo/logs/`
+The file `solo.log` contains the logs for the solo command. 
+The file `hashgraph-sdk.log` contains the logs from solo client when sending transactions to network nodes.
+
+
 ## Support
 
 If you have a question on how to use the product, please see our [support guide](https://github.com/hashgraph/.github/blob/main/SUPPORT.md).
