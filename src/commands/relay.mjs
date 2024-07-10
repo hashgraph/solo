@@ -48,11 +48,8 @@ export class RelayCommand extends BaseCommand {
     valuesArg += ` --set config.MIRROR_NODE_URL=http://${constants.FULLSTACK_DEPLOYMENT_CHART}-rest`
     valuesArg += ` --set config.MIRROR_NODE_URL_WEB3=http://${constants.FULLSTACK_DEPLOYMENT_CHART}-web3`
     valuesArg += ' --set config.MIRROR_NODE_AGENT_CACHEABLE_DNS=false'
-<<<<<<< HEAD
-=======
     valuesArg += ' --set config.MIRROR_NODE_RETRY_DELAY=2001'
     valuesArg += ' --set config.MIRROR_NODE_GET_CONTRACT_RESULTS_DEFAULT_RETRIES=21'
->>>>>>> main
 
     if (chainID) {
       valuesArg += ` --set config.CHAIN_ID=${chainID}`
@@ -78,37 +75,18 @@ export class RelayCommand extends BaseCommand {
       throw new MissingArgumentError('Node IDs must be specified')
     }
 
-<<<<<<< HEAD
-    const networkJsonString = this.prepareNetworkJsonString(nodeIDs)
-=======
     const networkJsonString = await this.prepareNetworkJsonString(nodeIDs, namespace)
->>>>>>> main
     valuesArg += ` --set config.HEDERA_NETWORK='${networkJsonString}'`
     return valuesArg
   }
 
   // created a json string to represent the map between the node keys and their ids
   // output example '{"node-1": "0.0.3", "node-2": "0.004"}'
-<<<<<<< HEAD
-  prepareNetworkJsonString (nodeIDs = []) {
-=======
   async prepareNetworkJsonString (nodeIDs = [], namespace) {
->>>>>>> main
     if (!nodeIDs) {
       throw new MissingArgumentError('Node IDs must be specified')
     }
 
-<<<<<<< HEAD
-    const netWorkIds = {}
-    const accountMap = getNodeAccountMap(nodeIDs)
-
-    nodeIDs.forEach(nodeID => {
-      const networkKey = `network-${nodeID.trim()}:50211`
-      netWorkIds[networkKey] = accountMap.get(nodeID)
-    })
-
-    return JSON.stringify(netWorkIds)
-=======
     const networkIds = {}
     const accountMap = getNodeAccountMap(nodeIDs)
 
@@ -121,7 +99,6 @@ export class RelayCommand extends BaseCommand {
     })
 
     return JSON.stringify(networkIds)
->>>>>>> main
   }
 
   prepareReleaseName (nodeIDs = []) {
