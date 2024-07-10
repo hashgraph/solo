@@ -456,6 +456,16 @@ export class NodeCommand extends BaseCommand {
     })
   }
 
+  fetchLocalOrReleasedPlatformSoftware (ctx, task) {
+    const self = this
+    const localBuildPath = self.configManager.getFlag(flags.localBuildPath)
+    if (localBuildPath !== '') {
+      return self.uploadPlatformSoftware(ctx, task, localBuildPath)
+    } else {
+      return self.fetchPlatformSoftware(ctx, task, self.platformInstaller)
+    }
+  }
+
   fetchPlatformSoftware (ctx, task, platformInstaller) {
     const config = ctx.config
 
@@ -617,12 +627,7 @@ export class NodeCommand extends BaseCommand {
         title: 'Fetch platform software into network nodes',
         task:
           async (ctx, task) => {
-            const localBuildPath = self.configManager.getFlag(flags.localBuildPath)
-            if (localBuildPath !== '') {
-              return self.uploadPlatformSoftware(ctx, task, localBuildPath)
-            } else {
-              return self.fetchPlatformSoftware(ctx, task, self.platformInstaller)
-            }
+            return self.fetchLocalOrReleasedPlatformSoftware(ctx, task)
           }
       },
       {
@@ -1018,7 +1023,7 @@ export class NodeCommand extends BaseCommand {
         title: 'Fetch platform software into network nodes',
         task:
             async (ctx, task) => {
-              return self.fetchPlatformSoftware(ctx, task, self.platformInstaller)
+              return self.fetchLocalOrReleasedPlatformSoftware(ctx, task)
             }
       },
       {
@@ -1397,7 +1402,7 @@ export class NodeCommand extends BaseCommand {
         title: 'Fetch platform software into network nodes',
         task:
             async (ctx, task) => {
-              return self.fetchPlatformSoftware(ctx, task, self.platformInstaller)
+              return self.fetchLocalOrReleasedPlatformSoftware(ctx, task)
             }
       },
       {
@@ -1405,6 +1410,7 @@ export class NodeCommand extends BaseCommand {
         task:
             async (ctx, task) => {
               await this.freezeNetworkNodes(ctx.config)
+              await this.logs(argv)
             }
       },
       {
@@ -1542,20 +1548,14 @@ export class NodeCommand extends BaseCommand {
     const client = this.accountManager._nodeClient
 
     try {
-      // fetch special file
-      const fileId = FileId.fromString('0.0.150')
-      // const fileQuery = new FileContentsQuery().setFileId(fileId)
-      // const addressBookBytes = await fileQuery.execute(client)
-      // const fileHash = crypto.createHash('sha384').update(addressBookBytes).digest('hex')
 
-      // create a file VERSION with content
-      // VERSION=0.2
-      //  Thu Jun 27 11:07:20 UTC 2024
+      const fileId = FileId.fromString('0.0.150')
+
+      // bundle config.txt and VERSION into a zip file
       const versionFile = `${config.stagingDir}/VERSION`
       fs.writeFileSync(versionFile, '0.2\n')
       fs.appendFileSync(versionFile, `${new Date().toUTCString()}\n`)
 
-      // bundle config.txt and VERSIO into a zip file
       const zipFile = `${config.stagingDir}/freeze.zip`
       const zip = AdmZip('', {})
       zip.addLocalFile(`${config.stagingDir}/VERSION`)
@@ -1567,10 +1567,13 @@ export class NodeCommand extends BaseCommand {
       fs.writeFileSync(zipFile, zipBytes)
 
       this.logger.debug(`zipHash = ${zipHash} zipBytes.length = ${zipBytes.length}`)
+
       // create a file upload transaction to upload file to the network
       const fileTransaction = new FileUpdateTransaction()
         .setFileId(fileId)
         .setContents(zipBytes)
+
+      // await sleep(5000)
 
       const fileTransactionReceipt = await fileTransaction.execute(client)
       this.logger.debug(`fileTransactionReceipt = ${fileTransactionReceipt.toString()}`)
@@ -1589,12 +1592,13 @@ export class NodeCommand extends BaseCommand {
           prepareUpgradeReceipt.status.toString()
       )
 
+      // read back file 0.0.150
       const fileQuery = new FileContentsQuery().setFileId(fileId)
       const updateFileBinary = await fileQuery.execute(client)
       // save updateFileBinary to a file
       fs.writeFileSync(`${config.stagingDir}/update2.zip`, updateFileBinary)
 
-      await sleep(50000000)
+      await sleep(5000)
 
 
       const futureDate = new Date()
@@ -1611,10 +1615,21 @@ export class NodeCommand extends BaseCommand {
         .freezeWith(client)
         .execute(client)
 
+      await sleep(5000)
+
       const freezeUpgradeReceipt = await freezeUpgradeTx.getReceipt(client)
 
       this.logger.debug(`Upgrade frozen with transaction id: ${freezeUpgradeTx.transactionId.toString()}`,
         freezeUpgradeReceipt.status.toString())
+
+      // overwrite config.text fro all nodes except ctx.config.nodeIds
+      for (const nodeId of config.allNodeIds) {
+        if (!config.nodeIds.includes(nodeId)) {
+          const podName = config.podNames[nodeId]
+          this.logger.info(`copy config.txt for node =    ${nodeId}`)
+          await this.k8.copyTo(podName, constants.ROOT_CONTAINER, `${config.stagingDir}/config.txt`, `${constants.HEDERA_HAPI_PATH}/data/upgrade/current/`)
+        }
+      }
     } catch (e) {
       this.logger.error(`Error in freeze upgrade: ${e.message}`, e)
       throw new FullstackTestingError(`Error in freeze upgrade: ${e.message}`, e)

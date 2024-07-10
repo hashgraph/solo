@@ -195,18 +195,27 @@ export function validatePath (input) {
 export async function getNodeLogs (k8, namespace) {
   const pods = await k8.getPodsByLabel(['fullstack.hedera.com/type=network-node'])
 
+  const timeString = new Date().toISOString().replace(/:/g, '-').replace(/\./g, '-')
+
   for (const pod of pods) {
     const podName = pod.metadata.name
     const targetDir = `${SOLO_LOGS_DIR}/${namespace}/${podName}`
     try {
-      if (fs.existsSync(targetDir)) {
-        fs.rmdirSync(targetDir, { recursive: true })
+      if (!fs.existsSync(targetDir)) {
+        fs.mkdirSync(targetDir, { recursive: true })
       }
-      fs.mkdirSync(targetDir, { recursive: true })
       await k8.copyFrom(podName, ROOT_CONTAINER, `${HEDERA_HAPI_PATH}/output/swirlds.log`, targetDir)
       await k8.copyFrom(podName, ROOT_CONTAINER, `${HEDERA_HAPI_PATH}/output/hgcaa.log`, targetDir)
       await k8.copyFrom(podName, ROOT_CONTAINER, `${HEDERA_HAPI_PATH}/config.txt`, targetDir)
       await k8.copyFrom(podName, ROOT_CONTAINER, `${HEDERA_HAPI_PATH}/settings.txt`, targetDir)
+
+      // rename all files with timeString as prefix to avoid overwrite
+      fs.readdirSync(targetDir).forEach(file => {
+        const oldPath = path.join(targetDir, file)
+        const newPath = path.join(targetDir, `${timeString}-${file}`)
+        fs.renameSync(oldPath, newPath)
+      })
+
     } catch (e) {
       // not throw error here, so we can continue to finish downloading logs from other pods
       // and also delete namespace in the end

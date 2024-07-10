@@ -10,7 +10,8 @@
   solo node keys --gossip-keys --tls-keys --key-format pem || return
   solo cluster setup  || return
   solo network deploy || return
-  solo node setup || return
-  solo node start || return
+  solo node setup --local-build-path /Users/jeffrey/hedera-services/hedera-node/data/ || return
 
+  solo node start || return
   solo node add -i node3 --gossip-keys --tls-keys  || return
+  solo node logs
