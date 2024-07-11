@@ -49,6 +49,7 @@ export class MirrorNodeCommand extends BaseCommand {
     }
 
     valuesArg += ` --set hedera-mirror-node.enabled=true --set hedera-explorer.enabled=${deployHederaExplorer}`
+    valuesArg += ` --set hedera-mirror-node.importer.config.hedera.mirror.importer.parser.record.sidecar.enabled=true`;
 
     return valuesArg
   }
