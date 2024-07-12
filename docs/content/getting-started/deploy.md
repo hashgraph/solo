@@ -481,7 +481,7 @@ $ solo node start
 
 ```
 
-## For Developers Working on Hedera Service Repo
+### For Developers Working on Hedera Service Repo
 
 First, pleaes clone hedera service repo `https://github.com/hashgraph/hedera-services/` and build the code
 with `./gradlew assemble`. If need to running nodes with different versions or releases, please duplicate the repo or build directories in
@@ -497,7 +497,7 @@ solo node setup --local-build-path <default path to hedera repo>,node1=<custom b
 
 ```
 
-## For Developers Working on Platform core
+### For Developers Working on Platform core
 
 To deploy node with local build PTT jar files, run the following command:
 
@@ -507,7 +507,7 @@ solo node setup --local-build-path <default path to hedera repo>,node1=<custom b
 
 ```
 
-## Logs
+### Logs
 
 You can find log for running solo command under the directory `~/.solo/logs/`
 The file `solo.log` contains the logs for the solo command.

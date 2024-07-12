@@ -10,7 +10,7 @@ geekdocAnchor: false
 
 Node(>=20.14.0) (_lts/hydrogen_)
 
-## Setup
+### Setup
 
 Install [Node](https://nodejs.org/en/download). You may also use [nvm](https://github.com/nvm-sh/nvm) to manage different Node versions locally:
 
@@ -20,7 +20,7 @@ nvm install lts/hydrogen
 nvm use lts/hydrogen
 ```
 
-## Install Solo
+### Install Solo
 
 Run `npm install -g @hashgraph/solo`
 
