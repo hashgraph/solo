@@ -187,7 +187,7 @@ jobs:
           if-no-files-found: error
 
       - name: Publish E2E Test Report
-        uses: EnricoMi/publish-unit-test-result-action@30eadd5010312f995f0d3b3cff7fe2984f69409e # v2.16.1
+        uses: EnricoMi/publish-unit-test-result-action@567cc7f8dcea3eba5da355f6ebc95663310d8a07 # v2.17.0
         if: ${{ steps.npm-deps.conclusion == 'success' && !cancelled() }}
         with:
           check_name: ${{ inputs.coverage-report-name }}
