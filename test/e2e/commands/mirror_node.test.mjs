@@ -89,13 +89,19 @@ describe('MirrorNodeCommand', () => {
   balanceQueryShouldSucceed(accountManager, mirrorNodeCmd, namespace)
 
   it('mirror node deploy should success', async () => {
-    expect.assertions(1)
+    expect.assertions(2)
     try {
       await expect(mirrorNodeCmd.deploy(argv)).resolves.toBeTruthy()
     } catch (e) {
       mirrorNodeCmd.logger.showUserError(e)
       expect(e).toBeNull()
     }
+    // TODO: stagingDir?
+    expect(mirrorNodeCmd.getUnusedConfigs(MirrorNodeCommand.DEPLOY_CONFIGS_NAME)).toEqual([
+      'profileFile',
+      'profileName',
+      'stagingDir'
+    ])
   }, 600000)
 
   it('mirror node API should be running', async () => {

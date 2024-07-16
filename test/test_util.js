@@ -205,13 +205,33 @@ export function bootstrapNetwork (testName, argv,
     }, 120000)
 
     it('should succeed with network deploy', async () => {
+      expect.assertions(1)
       await networkCmd.deploy(argv)
+      // TODO: network deploy unused should just have ['profileFile', 'profileName'], the others need to be moved to MirrorNodeCommand
+      expect(networkCmd.getUnusedConfigs(NetworkCommand.DEPLOY_CONFIGS_NAME)).toEqual([
+        'deployHederaExplorer',
+        'deployMirrorNode',
+        'hederaExplorerTlsHostName',
+        'hederaExplorerTlsLoadBalancerIp',
+        'profileFile',
+        'profileName',
+        'tlsClusterIssuerType'
+      ])
     }, 180000)
 
     it('should succeed with node setup command', async () => {
-      expect.assertions(1)
+      expect.assertions(2)
       try {
         await expect(nodeCmd.setup(argv)).resolves.toBeTruthy()
+        expect(nodeCmd.getUnusedConfigs(NodeCommand.SETUP_CONFIGS_NAME)).toEqual([
+          'apiPermissionProperties',
+          'appConfig',
+          'applicationProperties',
+          'bootstrapProperties',
+          'devMode',
+          'log4j2Xml',
+          'settingTxt'
+        ])
       } catch (e) {
         nodeCmd.logger.showUserError(e)
         expect(e).toBeNull()

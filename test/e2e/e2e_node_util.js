@@ -48,6 +48,7 @@ import path from 'path'
 import fs from 'fs'
 import crypto from 'crypto'
 import { ROOT_CONTAINER } from '../../src/core/constants.mjs'
+import { NodeCommand } from '../../src/commands/node.mjs'
 
 export function e2eNodeKeyRefreshAddTest (keyFormat, testName, mode, releaseTag = HEDERA_PLATFORM_VERSION_TAG) {
   const defaultTimeout = 120000
@@ -238,6 +239,7 @@ export function e2eNodeKeyRefreshAddTest (keyFormat, testName, mode, releaseTag 
     it(`${nodeId} refresh should succeed`, async () => {
       try {
         await expect(nodeCmd.refresh(argv)).resolves.toBeTruthy()
+        expect(nodeCmd.getUnusedConfigs(NodeCommand.REFRESH_CONFIGS_NAME)).toEqual([])
       } catch (e) {
         nodeCmd.logger.showUserError(e)
         expect(e).toBeNull()

@@ -57,6 +57,91 @@ export class NodeCommand extends BaseCommand {
     this._portForwards = []
   }
 
+  static get SETUP_CONFIGS_NAME () {
+    return 'setupConfigs'
+  }
+
+  static get SETUP_FLAGS_LIST () {
+    return [
+      flags.apiPermissionProperties,
+      flags.app,
+      flags.appConfig,
+      flags.applicationProperties,
+      flags.bootstrapProperties,
+      flags.cacheDir,
+      flags.chainId,
+      flags.devMode,
+      flags.force,
+      flags.generateGossipKeys,
+      flags.generateTlsKeys,
+      flags.keyFormat,
+      flags.localBuildPath,
+      flags.log4j2Xml,
+      flags.namespace,
+      flags.nodeIDs,
+      flags.releaseTag,
+      flags.settingTxt
+    ]
+  }
+
+  static get KEYS_CONFIGS_NAME () {
+    return 'keysConfigs'
+  }
+
+  static get KEYS_FLAGS_LIST () {
+    return [
+      flags.cacheDir,
+      flags.devMode,
+      flags.generateGossipKeys,
+      flags.generateTlsKeys,
+      flags.keyFormat,
+      flags.nodeIDs
+    ]
+  }
+
+  static get REFRESH_CONFIGS_NAME () {
+    return 'refreshConfigs'
+  }
+
+  static get REFRESH_FLAGS_LIST () {
+    return [
+      flags.app,
+      flags.cacheDir,
+      flags.devMode,
+      flags.force,
+      flags.keyFormat,
+      flags.namespace,
+      flags.nodeIDs,
+      flags.releaseTag
+    ]
+  }
+
+  static get ADD_CONFIGS_NAME () {
+    return 'addConfigs'
+  }
+
+  static get ADD_FLAGS_LIST () {
+    return [
+      flags.apiPermissionProperties,
+      flags.applicationProperties,
+      flags.bootstrapProperties,
+      flags.cacheDir,
+      flags.chainId,
+      flags.chartDirectory,
+      flags.devMode,
+      flags.force,
+      flags.fstChartVersion,
+      flags.generateGossipKeys,
+      flags.generateTlsKeys,
+      flags.keyFormat,
+      flags.log4j2Xml,
+      flags.namespace,
+      flags.nodeIDs,
+      flags.releaseTag,
+      flags.settingTxt
+    ]
+  }
+
   /**
    * stops and closes the port forwards
    * @returns {Promise<void>}
@@ -440,30 +525,74 @@ export class NodeCommand extends BaseCommand {
         title: 'Initialize',
         task: async (ctx, task) => {
           self.configManager.update(argv)
-          await prompts.execute(task, self.configManager, [
-            flags.cacheDir,
-            flags.chainId,
-            flags.generateGossipKeys,
-            flags.generateTlsKeys,
-            flags.keyFormat,
-            flags.namespace,
-            flags.nodeIDs,
-            flags.releaseTag
+
+          // disable the prompts that we don't want to prompt the user for
+          prompts.disablePrompts([
+            flags.apiPermissionProperties,
+            flags.app,
+            flags.appConfig,
+            flags.applicationProperties,
+            flags.bootstrapProperties,
+            flags.devMode,
+            flags.force,
+            flags.localBuildPath,
+            flags.log4j2Xml,
+            flags.settingTxt
           ])
 
-          const config = {
-            cacheDir: self.configManager.getFlag(flags.cacheDir),
-            chainId: self.configManager.getFlag(flags.chainId),
-            curDate: new Date(),
-            devMode: self.configManager.getFlag(flags.devMode),
-            force: self.configManager.getFlag(flags.force),
-            generateGossipKeys: self.configManager.getFlag(flags.generateGossipKeys),
-            generateTlsKeys: self.configManager.getFlag(flags.generateTlsKeys),
-            keyFormat: self.configManager.getFlag(flags.keyFormat),
-            namespace: self.configManager.getFlag(flags.namespace),
-            nodeIds: helpers.parseNodeIds(self.configManager.getFlag(flags.nodeIDs)),
-            releaseTag: self.configManager.getFlag(flags.releaseTag)
-          }
+          await prompts.execute(task, self.configManager, NodeCommand.SETUP_FLAGS_LIST)
+
+          /**
+           * @typedef {Object} NodeSetupConfigClass
+           * -- flags --
+           * @property {string} apiPermissionProperties
+           * @property {string} app
+           * @property {string} appConfig
+           * @property {string} applicationProperties
+           * @property {string} bootstrapProperties
+           * @property {string} cacheDir
+           * @property {string} chainId
+           * @property {boolean} devMode
+           * @property {boolean} force
+           * @property {boolean} generateGossipKeys
+           * @property {boolean} generateTlsKeys
+           * @property {string} keyFormat
+           * @property {string} localBuildPath
+           * @property {string} log4j2Xml
+           * @property {string} namespace
+           * @property {string} nodeIDs
+           * @property {string} releaseTag
+           * @property {string} settingTxt
+           * -- extra args --
+           * @property {string} buildZipFile
+           * @property {Date} curDate
+           * @property {string} keysDir
+           * @property {string[]} nodeIds
+           * @property {string} releasePrefix
+           * @property {string} stagingDir
+           * @property {string} stagingKeysDir
+           * -- methods --
+           * @property {getUnusedConfigs} getUnusedConfigs
+           */
+          /**
+           * @callback getUnusedConfigs
+           * @returns {string[]}
+           */
+
+          // create a config object for subsequent steps
+          const config = /** @type {NodeSetupConfigClass} **/ this.getConfig(NodeCommand.SETUP_CONFIGS_NAME, NodeCommand.SETUP_FLAGS_LIST,
+            [
+              'buildZipFile',
+              'curDate',
+              'keysDir',
+              'nodeIds',
+              'releasePrefix',
+              'stagingDir',
+              'stagingKeysDir'
+            ])
+
+          config.nodeIds = helpers.parseNodeIds(config.nodeIDs)
+          config.curDate = new Date()
 
           await self.initializeSetup(config, self.configManager, self.k8)
 
@@ -534,15 +663,12 @@ export class NodeCommand extends BaseCommand {
             {
               title: 'Copy Gossip keys to staging',
               task: async (ctx, _) => {
-                const config = ctx.config
-
-                await this.copyGossipKeysToStaging(config, ctx.config.nodeIds)
+                await this.copyGossipKeysToStaging(ctx.config, ctx.config.nodeIds)
               }
             },
             {
               title: 'Copy gRPC TLS keys to staging',
               task: async (ctx, _) => {
-                const config = ctx.config
                 for (const nodeId of ctx.config.nodeIds) {
                   const tlsKeyFiles = self.keyManager.prepareTLSKeyFilePaths(nodeId, config.keysDir)
                   await self._copyNodeKeys(tlsKeyFiles, config.stagingKeysDir)
@@ -552,11 +678,15 @@ export class NodeCommand extends BaseCommand {
             {
               title: 'Prepare config.txt for the network',
               task: async (ctx, _) => {
-                const config = ctx.config
-                const configTxtPath = `${config.stagingDir}/config.txt`
+                const configTxtPath = `${ctx.config.stagingDir}/config.txt`
                 const template = `${constants.RESOURCES_DIR}/templates/config.template`
-                const appName = self.configManager.getFlag(flags.app)
-                await self.platformInstaller.prepareConfigTxt(config.nodeIds, configTxtPath, config.releaseTag, config.chainId, template, appName || undefined)
+                await self.platformInstaller.prepareConfigTxt(
+                  ctx.config.nodeIds,
+                  configTxtPath,
+                  ctx.config.releaseTag,
+                  ctx.config.chainId,
+                  template,
+                  ctx.config.app || undefined)
               }
             }
           ]
@@ -571,9 +701,8 @@ export class NodeCommand extends BaseCommand {
         title: 'Fetch platform software into network nodes',
         task:
           async (ctx, task) => {
-            const localBuildPath = self.configManager.getFlag(flags.localBuildPath)
-            if (localBuildPath !== '') {
-              return self.uploadPlatformSoftware(ctx, task, localBuildPath)
+            if (ctx.config.localBuildPath !== '') {
+              return self.uploadPlatformSoftware(ctx, task, ctx.config.localBuildPath)
             } else {
               return self.fetchPlatformSoftware(ctx, task, self.platformInstaller)
             }
@@ -582,15 +711,19 @@ export class NodeCommand extends BaseCommand {
       {
         title: 'Setup network nodes',
         task: async (ctx, parentTask) => {
-          const config = ctx.config
-
           const subTasks = []
-          for (const nodeId of config.nodeIds) {
-            const podName = config.podNames[nodeId]
+          for (const nodeId of ctx.config.nodeIds) {
+            const podName = ctx.config.podNames[nodeId]
             subTasks.push({
               title: `Node: ${chalk.yellow(nodeId)}`,
               task: () =>
-                self.platformInstaller.taskInstall(podName, config.buildZipFile, config.stagingDir, config.nodeIds, config.keyFormat, config.force)
+                self.platformInstaller.taskInstall(
+                  podName,
+                  ctx.config.buildZipFile,
+                  ctx.config.stagingDir,
+                  ctx.config.nodeIds,
+                  ctx.config.keyFormat,
+                  ctx.config.force)
             })
           }
 
@@ -806,24 +939,45 @@ export class NodeCommand extends BaseCommand {
         title: 'Initialize',
         task: async (ctx, task) => {
           self.configManager.update(argv)
-          await prompts.execute(task, self.configManager, [
-            flags.cacheDir,
-            flags.generateGossipKeys,
-            flags.generateTlsKeys,
-            flags.keyFormat,
-            flags.nodeIDs
+
+          // disable the prompts that we don't want to prompt the user for
+          prompts.disablePrompts([
+            flags.devMode
           ])
 
-          const config = {
-            cacheDir: self.configManager.getFlag(flags.cacheDir),
-            curDate: new Date(),
-            devMode: self.configManager.getFlag(flags.devMode),
-            generateGossipKeys: self.configManager.getFlag(flags.generateGossipKeys),
-            generateTlsKeys: self.configManager.getFlag(flags.generateTlsKeys),
-            keyFormat: self.configManager.getFlag(flags.keyFormat),
-            keysDir: path.join(self.configManager.getFlag(flags.cacheDir), 'keys'),
-            nodeIds: helpers.parseNodeIds(self.configManager.getFlag(flags.nodeIDs))
-          }
+          await prompts.execute(task, self.configManager, NodeCommand.KEYS_FLAGS_LIST)
+
+          /**
+           * @typedef {Object} NodeKeysConfigClass
+           * -- flags --
+           * @property {string} cacheDir
+           * @property {boolean} devMode
+           * @property {boolean} generateGossipKeys
+           * @property {boolean} generateTlsKeys
+           * @property {string} keyFormat
+           * @property {string} nodeIDs
+           * -- extra args --
+           * @property {Date} curDate
+           * @property {string} keysDir
+           * @property {string[]} nodeIds
+           * -- methods --
+           * @property {getUnusedConfigs} getUnusedConfigs
+           */
+          /**
+           * @callback getUnusedConfigs
+           * @returns {string[]}
+           */
+
+          // create a config object for subsequent steps
+          const config = /** @type {NodeKeysConfigClass} **/ this.getConfig(NodeCommand.SETUP_CONFIGS_NAME, NodeCommand.SETUP_FLAGS_LIST,
+            [
+              'curDate',
+              'keysDir',
+              'nodeIds'
+            ])
+
+          config.curDate = new Date()
+          config.nodeIds = helpers.parseNodeIds(config.nodeIDs)
 
           if (!fs.existsSync(config.keysDir)) {
             fs.mkdirSync(config.keysDir)
@@ -892,31 +1046,62 @@ export class NodeCommand extends BaseCommand {
         title: 'Initialize',
         task: async (ctx, task) => {
           self.configManager.update(argv)
-          await prompts.execute(task, self.configManager, [
-            flags.cacheDir,
-            flags.keyFormat,
-            flags.namespace,
-            flags.nodeIDs,
-            flags.releaseTag
+          // disable the prompts that we don't want to prompt the user for
+          prompts.disablePrompts([
+            flags.app,
+            flags.devMode,
+            flags.force
           ])
 
-          const config = {
-            cacheDir: self.configManager.getFlag(flags.cacheDir),
-            curDate: new Date(),
-            devMode: self.configManager.getFlag(flags.devMode),
-            force: self.configManager.getFlag(flags.force),
-            keyFormat: self.configManager.getFlag(flags.keyFormat),
-            namespace: self.configManager.getFlag(flags.namespace),
-            nodeIds: helpers.parseNodeIds(self.configManager.getFlag(flags.nodeIDs)),
-            releaseTag: self.configManager.getFlag(flags.releaseTag)
-          }
+          await prompts.execute(task, self.configManager, NodeCommand.REFRESH_FLAGS_LIST)
 
-          await self.initializeSetup(config, self.configManager, self.k8)
+          /**
+           * @typedef {Object} NodeRefreshConfigClass
+           * -- flags --
+           * @property {string} app
+           * @property {string} cacheDir
+           * @property {boolean} devMode
+           * @property {boolean} force
+           * @property {string} keyFormat
+           * @property {string} namespace
+           * @property {string} nodeIDs
+           * @property {string} releaseTag
+           * -- extra args --
+           * @property {string} buildZipFile
+           * @property {Date} curDate
+           * @property {string} keysDir
+           * @property {string[]} nodeIds
+           * @property {Object} podNames
+           * @property {string} releasePrefix
+           * @property {string} stagingDir
+           * @property {string} stagingKeysDir
+           * -- methods --
+           * @property {getUnusedConfigs} getUnusedConfigs
+           */
+          /**
+           * @callback getUnusedConfigs
+           * @returns {string[]}
+           */
 
-          // set config in the context for later tasks to use
-          ctx.config = config
+          // create a config object for subsequent steps
+          ctx.config = /** @type {NodeRefreshConfigClass} **/ this.getConfig(NodeCommand.REFRESH_CONFIGS_NAME, NodeCommand.REFRESH_FLAGS_LIST,
+            [
+              'buildZipFile',
+              'curDate',
+              'keysDir',
+              'nodeIds',
+              'podNames',
+              'releasePrefix',
+              'stagingDir',
+              'stagingKeysDir'
+            ])
 
-          self.logger.debug('Initialized config', { config })
+          ctx.config.curDate = new Date()
+          ctx.config.nodeIds = helpers.parseNodeIds(ctx.config.nodeIDs)
+
+          await self.initializeSetup(ctx.config, self.configManager, self.k8)
+
+          self.logger.debug('Initialized config', ctx.config)
         }
       },
       {
@@ -1012,7 +1197,7 @@ export class NodeCommand extends BaseCommand {
         task: (ctx, task) => {
           const subTasks = []
           for (const nodeId of ctx.config.nodeIds) {
-            if (self.configManager.getFlag(flags.app) !== '') {
+            if (ctx.config.app !== '') {
               subTasks.push({
                 title: `Check node: ${chalk.yellow(nodeId)}`,
                 task: () => self.checkNetworkNodeState(nodeId, 100, 'ACTIVE', 'output/swirlds.log')
@@ -1057,7 +1242,7 @@ export class NodeCommand extends BaseCommand {
             }
           })
         },
-        skip: (ctx, _) => self.configManager.getFlag(flags.app) !== ''
+        skip: (ctx, _) => ctx.config.app !== ''
       }], {
       concurrent: false,
       rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
@@ -1120,40 +1305,89 @@ export class NodeCommand extends BaseCommand {
         title: 'Initialize',
         task: async (ctx, task) => {
           self.configManager.update(argv)
-          await prompts.execute(task, self.configManager, [
-            flags.cacheDir,
-            flags.chainId,
-            flags.generateGossipKeys,
-            flags.generateTlsKeys,
-            flags.keyFormat,
-            flags.namespace,
-            flags.nodeIDs,
-            flags.releaseTag
+
+          // disable the prompts that we don't want to prompt the user for
+          prompts.disablePrompts([
+            flags.apiPermissionProperties,
+            flags.applicationProperties,
+            flags.bootstrapProperties,
+            flags.chartDirectory,
+            flags.devMode,
+            flags.force,
+            flags.fstChartVersion,
+            flags.log4j2Xml,
+            flags.settingTxt
           ])
 
-          const config = {
-            cacheDir: self.configManager.getFlag(flags.cacheDir),
-            chainId: self.configManager.getFlag(flags.chainId),
-            chartDir: self.configManager.getFlag(flags.chartDirectory),
-            curDate: new Date(),
-            devMode: self.configManager.getFlag(flags.devMode),
-            existingNodeIds: [],
-            force: self.configManager.getFlag(flags.force),
-            fstChartVersion: self.configManager.getFlag(flags.fstChartVersion),
-            generateGossipKeys: self.configManager.getFlag(flags.generateGossipKeys),
-            generateTlsKeys: self.configManager.getFlag(flags.generateTlsKeys),
-            keyFormat: self.configManager.getFlag(flags.keyFormat),
-            namespace: self.configManager.getFlag(flags.namespace),
-            nodeIds: helpers.parseNodeIds(self.configManager.getFlag(flags.nodeIDs)),
-            releaseTag: self.configManager.getFlag(flags.releaseTag)
-          }
+          await prompts.execute(task, self.configManager, NodeCommand.ADD_FLAGS_LIST)
+
+          // TODO Node Add should use 'app' for local build .zip?
+          /**
+           * @typedef {Object} NodeAddConfigClass
+           * -- flags --
+           * @property {string} apiPermissionProperties
+           * @property {string} applicationProperties
+           * @property {string} bootstrapProperties
+           * @property {string} cacheDir
+           * @property {string} chainId
+           * @property {string} chartDirectory
+           * @property {boolean} devMode
+           * @property {boolean} force
+           * @property {string} fstChartVersion
+           * @property {boolean} generateGossipKeys
+           * @property {boolean} generateTlsKeys
+           * @property {string} keyFormat
+           * @property {string} log4j2Xml
+           * @property {string} namespace
+           * @property {string} nodeIDs
+           * @property {string} releaseTag
+           * @property {string} settingTxt
+           * -- extra args --
+           * @property {string[]} allNodeIds
+           * @property {string} buildZipFile
+           * @property {Date} curDate
+           * @property {string[]} existingNodeIds
+           * @property {string} keysDir
+           * @property {string[]} nodeIds
+           * @property {Object} podNames
+           * @property {string} releasePrefix
+           * @property {Map<String, NetworkNodeServices>} serviceMap
+           * @property {string} stagingDir
+           * @property {string} stagingKeysDir
+           * -- methods --
+           * @property {getUnusedConfigs} getUnusedConfigs
+           */
+          /**
+           * @callback getUnusedConfigs
+           * @returns {string[]}
+           */
+
+          // create a config object for subsequent steps
+          const config = /** @type {NodeAddConfigClass} **/ this.getConfig(NodeCommand.ADD_CONFIGS_NAME, NodeCommand.ADD_FLAGS_LIST,
+            [
+              'allNodeIds',
+              'buildZipFile',
+              'curDate',
+              'existingNodeIds',
+              'keysDir',
+              'nodeIds',
+              'podNames',
+              'releasePrefix',
+              'serviceMap',
+              'stagingDir',
+              'stagingKeysDir'
+            ])
+
+          config.nodeIds = helpers.parseNodeIds(config.nodeIDs)
+          config.curDate = new Date()
+          config.existingNodeIds = []
 
           await self.initializeSetup(config, self.configManager, self.k8)
 
           // set config in the context for later tasks to use
           ctx.config = config
 
-          ctx.config.chartPath = await self.prepareChartPath(ctx.config.chartDir,
+          ctx.config.chartPath = await self.prepareChartPath(ctx.config.chartDirectory,
             constants.FULLSTACK_TESTING_CHART, constants.FULLSTACK_DEPLOYMENT_CHART)
 
           // initialize Node Client with existing network nodes prior to adding the new node which isn't functioning, yet
@@ -1574,25 +1808,7 @@ export class NodeCommand extends BaseCommand {
           .command({
             command: 'setup',
             desc: 'Setup node with a specific version of Hedera platform',
-            builder: y => flags.setCommandFlags(y,
-              flags.apiPermissionProperties,
-              flags.app,
-              flags.appConfig,
-              flags.applicationProperties,
-              flags.bootstrapProperties,
-              flags.cacheDir,
-              flags.chainId,
-              flags.force,
-              flags.generateGossipKeys,
-              flags.generateTlsKeys,
-              flags.keyFormat,
-              flags.localBuildPath,
-              flags.log4j2Xml,
-              flags.namespace,
-              flags.nodeIDs,
-              flags.releaseTag,
-              flags.settingTxt
-            ),
+            builder: y => flags.setCommandFlags(y, ...NodeCommand.SETUP_FLAGS_LIST),
             handler: argv => {
               nodeCmd.logger.debug('==== Running \'node setup\' ===')
               nodeCmd.logger.debug(argv)
@@ -1649,13 +1865,7 @@ export class NodeCommand extends BaseCommand {
           .command({
             command: 'keys',
             desc: 'Generate node keys',
-            builder: y => flags.setCommandFlags(y,
-              flags.cacheDir,
-              flags.generateGossipKeys,
-              flags.generateTlsKeys,
-              flags.keyFormat,
-              flags.nodeIDs
-            ),
+            builder: y => flags.setCommandFlags(y, ...NodeCommand.KEYS_FLAGS_LIST),
             handler: argv => {
               nodeCmd.logger.debug('==== Running \'node keys\' ===')
               nodeCmd.logger.debug(argv)
@@ -1672,13 +1882,7 @@ export class NodeCommand extends BaseCommand {
           .command({
             command: 'refresh',
             desc: 'Reset and restart a node',
-            builder: y => flags.setCommandFlags(y,
-              flags.cacheDir,
-              flags.keyFormat,
-              flags.namespace,
-              flags.nodeIDs,
-              flags.releaseTag
-            ),
+            builder: y => flags.setCommandFlags(y, ...NodeCommand.REFRESH_FLAGS_LIST),
             handler: argv => {
               nodeCmd.logger.debug('==== Running \'node refresh\' ===')
               nodeCmd.logger.debug(argv)
@@ -1714,22 +1918,7 @@ export class NodeCommand extends BaseCommand {
           .command({
             command: 'add',
             desc: 'Adds a node with a specific version of Hedera platform',
-            builder: y => flags.setCommandFlags(y,
-              flags.apiPermissionProperties,
-              flags.applicationProperties,
-              flags.bootstrapProperties,
-              flags.cacheDir,
-              flags.chainId,
-              flags.force,
-              flags.generateGossipKeys,
-              flags.generateTlsKeys,
-              flags.keyFormat,
-              flags.log4j2Xml,
-              flags.namespace,
-              flags.nodeIDs,
-              flags.releaseTag,
-              flags.settingTxt
-            ),
+            builder: y => flags.setCommandFlags(y, ...NodeCommand.ADD_FLAGS_LIST),
             handler: argv => {
               nodeCmd.logger.debug('==== Running \'node add\' ===')
               nodeCmd.logger.debug(argv)
