@@ -273,8 +273,9 @@ export class PlatformInstaller {
    * @param nodeIDs node IDs
    * @param destPath path where config.txt should be written
    * @param releaseTag release tag e.g. v0.42.0
-   * @param template path to the confit.template file
+   * @param template path to the config.template file
    * @param chainId chain ID (298 for local network)
+   * @param appName the app name to be used in the config.txt (optional, defaults to HederaNode.jar)
    * @returns {Promise<string[]>}
    */
   async prepareConfigTxt (nodeIDs, destPath, releaseTag, chainId = constants.HEDERA_CHAIN_ID, template = `${constants.RESOURCES_DIR}/templates/config.template`, appName = constants.HEDERA_APP_NAME) {
