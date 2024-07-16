@@ -96,11 +96,10 @@ describe('MirrorNodeCommand', () => {
       mirrorNodeCmd.logger.showUserError(e)
       expect(e).toBeNull()
     }
-    // TODO: stagingDir?
+
     expect(mirrorNodeCmd.getUnusedConfigs(MirrorNodeCommand.DEPLOY_CONFIGS_NAME)).toEqual([
       'profileFile',
-      'profileName',
-      'stagingDir'
+      'profileName'
     ])
   }, 600000)
 

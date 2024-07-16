@@ -105,12 +105,10 @@ export class MirrorNodeCommand extends BaseCommand {
            */
 
           ctx.config = /** @type {MirrorNodeDeployConfigClass} **/ this.getConfig(MirrorNodeCommand.DEPLOY_CONFIGS_NAME, MirrorNodeCommand.DEPLOY_FLAGS_LIST,
-            ['chartPath', 'stagingDir', 'valuesArg'])
+            ['chartPath', 'valuesArg'])
 
           ctx.config.chartPath = await self.prepareChartPath(ctx.config.chartDirectory,
             constants.FULLSTACK_TESTING_CHART, constants.FULLSTACK_DEPLOYMENT_CHART)
-
-          ctx.config.stagingDir = Templates.renderStagingDir(self.configManager, flags)
 
           ctx.config.valuesArg = await self.prepareValuesArg(
             ctx.config.valuesFile,
@@ -259,8 +257,6 @@ export class MirrorNodeCommand extends BaseCommand {
 
           ctx.config.chartPath = await self.prepareChartPath(ctx.config.chartDirectory,
             constants.FULLSTACK_TESTING_CHART, constants.FULLSTACK_DEPLOYMENT_CHART)
-
-          ctx.config.stagingDir = Templates.renderStagingDir(self.configManager, flags)
 
           ctx.config.valuesArg = ' --set hedera-mirror-node.enabled=false --set hedera-explorer.enabled=false'
 
