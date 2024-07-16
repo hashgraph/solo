@@ -17,7 +17,7 @@
 import { ListrEnquirerPromptAdapter } from '@listr2/prompt-adapter-enquirer'
 import { Listr } from 'listr2'
 import { FullstackTestingError, IllegalArgumentError, MissingArgumentError } from '../core/errors.mjs'
-import { Templates, constants } from '../core/index.mjs'
+import { constants } from '../core/index.mjs'
 import { BaseCommand } from './base.mjs'
 import * as flags from './flags.mjs'
 import * as prompts from './prompts.mjs'
