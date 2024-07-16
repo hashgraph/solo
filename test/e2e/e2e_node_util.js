@@ -63,6 +63,7 @@ export function e2eNodeKeyRefreshAddTest (keyFormat, testName, mode, releaseTag 
     argv[flags.generateGossipKeys.name] = true
     argv[flags.generateTlsKeys.name] = true
     argv[flags.clusterName.name] = TEST_CLUSTER
+    argv[flags.devMode.name] = true
     // set the env variable SOLO_FST_CHARTS_DIR if developer wants to use local FST charts
     argv[flags.chartDirectory.name] = process.env.SOLO_FST_CHARTS_DIR ? process.env.SOLO_FST_CHARTS_DIR : undefined
 
@@ -239,7 +240,7 @@ export function e2eNodeKeyRefreshAddTest (keyFormat, testName, mode, releaseTag 
     it(`${nodeId} refresh should succeed`, async () => {
       try {
         await expect(nodeCmd.refresh(argv)).resolves.toBeTruthy()
-        expect(nodeCmd.getUnusedConfigs(NodeCommand.REFRESH_CONFIGS_NAME)).toEqual([])
+        expect(nodeCmd.getUnusedConfigs(NodeCommand.REFRESH_CONFIGS_NAME)).toEqual([flags.devMode.constName])
       } catch (e) {
         nodeCmd.logger.showUserError(e)
         expect(e).toBeNull()

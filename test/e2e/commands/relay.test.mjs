@@ -82,8 +82,8 @@ describe('RelayCommand', () => {
       expect(e).toBeNull()
     }
     expect(relayCmd.getUnusedConfigs(RelayCommand.DEPLOY_CONFIGS_NAME)).toEqual([
-      'profileFile',
-      'profileName'
+      flags.profileFile.constName,
+      flags.profileName.constName
     ])
     await sleep(500)
 

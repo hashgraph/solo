@@ -92,13 +92,13 @@ describe('NetworkCommand', () => {
       networkCmd.logger.showList('PVCs', pvcs)
       // TODO: network deploy unused should just have ['profileFile', 'profileName'], the others need to be moved to MirrorNodeCommand
       expect(networkCmd.getUnusedConfigs(NetworkCommand.DEPLOY_CONFIGS_NAME)).toEqual([
-        'deployHederaExplorer',
-        'deployMirrorNode',
-        'hederaExplorerTlsHostName',
-        'hederaExplorerTlsLoadBalancerIp',
-        'profileFile',
-        'profileName',
-        'tlsClusterIssuerType'
+        flags.deployHederaExplorer.constName,
+        flags.deployMirrorNode.constName,
+        flags.hederaExplorerTlsHostName.constName,
+        flags.hederaExplorerTlsLoadBalancerIp.constName,
+        flags.profileFile.constName,
+        flags.profileName.constName,
+        flags.tlsClusterIssuerType.constName
       ])
     } catch (e) {
       networkCmd.logger.showUserError(e)

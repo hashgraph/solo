@@ -98,8 +98,8 @@ describe('MirrorNodeCommand', () => {
     }
 
     expect(mirrorNodeCmd.getUnusedConfigs(MirrorNodeCommand.DEPLOY_CONFIGS_NAME)).toEqual([
-      'profileFile',
-      'profileName'
+      flags.profileFile.constName,
+      flags.profileName.constName
     ])
   }, 600000)
 

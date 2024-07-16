@@ -1068,7 +1068,6 @@ export class NodeCommand extends BaseCommand {
            * @property {string} releaseTag
            * -- extra args --
            * @property {string} buildZipFile
-           * @property {Date} curDate
            * @property {string} keysDir
            * @property {string[]} nodeIds
            * @property {Object} podNames
@@ -1087,7 +1086,6 @@ export class NodeCommand extends BaseCommand {
           ctx.config = /** @type {NodeRefreshConfigClass} **/ this.getConfig(NodeCommand.REFRESH_CONFIGS_NAME, NodeCommand.REFRESH_FLAGS_LIST,
             [
               'buildZipFile',
-              'curDate',
               'keysDir',
               'nodeIds',
               'podNames',
@@ -1096,7 +1094,6 @@ export class NodeCommand extends BaseCommand {
               'stagingKeysDir'
             ])
 
-          ctx.config.curDate = new Date()
           ctx.config.nodeIds = helpers.parseNodeIds(ctx.config.nodeIDs)
 
           await self.initializeSetup(ctx.config, self.configManager, self.k8)

@@ -209,13 +209,13 @@ export function bootstrapNetwork (testName, argv,
       await networkCmd.deploy(argv)
       // TODO: network deploy unused should just have ['profileFile', 'profileName'], the others need to be moved to MirrorNodeCommand
       expect(networkCmd.getUnusedConfigs(NetworkCommand.DEPLOY_CONFIGS_NAME)).toEqual([
-        'deployHederaExplorer',
-        'deployMirrorNode',
-        'hederaExplorerTlsHostName',
-        'hederaExplorerTlsLoadBalancerIp',
-        'profileFile',
-        'profileName',
-        'tlsClusterIssuerType'
+        flags.deployHederaExplorer.constName,
+        flags.deployMirrorNode.constName,
+        flags.hederaExplorerTlsHostName.constName,
+        flags.hederaExplorerTlsLoadBalancerIp.constName,
+        flags.profileFile.constName,
+        flags.profileName.constName,
+        flags.tlsClusterIssuerType.constName
       ])
     }, 180000)
 
@@ -224,13 +224,13 @@ export function bootstrapNetwork (testName, argv,
       try {
         await expect(nodeCmd.setup(argv)).resolves.toBeTruthy()
         expect(nodeCmd.getUnusedConfigs(NodeCommand.SETUP_CONFIGS_NAME)).toEqual([
-          'apiPermissionProperties',
-          'appConfig',
-          'applicationProperties',
-          'bootstrapProperties',
-          'devMode',
-          'log4j2Xml',
-          'settingTxt'
+          flags.apiPermissionProperties.constName,
+          flags.appConfig.constName,
+          flags.applicationProperties.constName,
+          flags.bootstrapProperties.constName,
+          flags.devMode.constName,
+          flags.log4j2Xml.constName,
+          flags.settingTxt.constName
         ])
       } catch (e) {
         nodeCmd.logger.showUserError(e)

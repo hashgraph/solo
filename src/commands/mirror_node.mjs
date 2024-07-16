@@ -94,7 +94,6 @@ export class MirrorNodeCommand extends BaseCommand {
            * @property {string} valuesFile
            * -- extra args --
            * @property {string} chartPath
-           * @property {string} stagingDir
            * @property {string} valuesArg
            * -- methods --
            * @property {getUnusedConfigs} getUnusedConfigs
