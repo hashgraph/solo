@@ -163,7 +163,7 @@ export class ProfileManager {
 
     const configTxtPath = this.prepareConfigTxt(
       this.configManager.getFlag(flags.namespace),
-      nodeMap,
+      accountMap,
       stagingDir,
       this.configManager.getFlag(flags.releaseTag),
       this.configManager.getFlag(flags.app),
