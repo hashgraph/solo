@@ -98,7 +98,7 @@ export class NetworkCommand extends BaseCommand {
     }
 
     const profileName = this.configManager.getFlag(flags.profileName)
-    this.profileValuesFile = await this.profileManager.prepareValuesForFstChart(profileName, config.applicationEnv)
+    this.profileValuesFile = await this.profileManager.prepareValuesForFstChart(profileName)
     if (this.profileValuesFile) {
       valuesArg += this.prepareValuesFiles(this.profileValuesFile)
     }

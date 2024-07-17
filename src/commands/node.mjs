@@ -37,6 +37,12 @@ import {
 import * as crypto from 'crypto'
 
 /**
+ * @typedef {Object} NodeInfo
+ * @property {string} nodeName
+ * @property {string} accountId
+ */
+
+/**
  * Defines the core functionalities of 'node' command
  */
 export class NodeCommand extends BaseCommand {
@@ -63,11 +69,11 @@ export class NodeCommand extends BaseCommand {
 
   static get SETUP_FLAGS_LIST () {
     return [
-      flags.apiPermissionProperties,
+      flags.apiPermissionProperties, // TODO move
       flags.app,
       flags.appConfig,
-      flags.applicationProperties,
-      flags.bootstrapProperties,
+      flags.applicationProperties, // TODO move
+      flags.bootstrapProperties, // TODO move
       flags.cacheDir,
       flags.chainId,
       flags.devMode,
@@ -76,11 +82,11 @@ export class NodeCommand extends BaseCommand {
       flags.generateTlsKeys,
       flags.keyFormat,
       flags.localBuildPath,
-      flags.log4j2Xml,
+      flags.log4j2Xml, // TODO move
       flags.namespace,
       flags.nodeIDs,
       flags.releaseTag,
-      flags.settingTxt
+      flags.settingTxt // TODO move
     ]
   }
 
@@ -673,20 +679,6 @@ export class NodeCommand extends BaseCommand {
                   const tlsKeyFiles = self.keyManager.prepareTLSKeyFilePaths(nodeId, config.keysDir)
                   await self._copyNodeKeys(tlsKeyFiles, config.stagingKeysDir)
                 }
-              }
-            },
-            {
-              title: 'Prepare config.txt for the network',
-              task: async (ctx, _) => {
-                const configTxtPath = `${ctx.config.stagingDir}/config.txt`
-                const template = `${constants.RESOURCES_DIR}/templates/config.template`
-                await self.platformInstaller.prepareConfigTxt(
-                  ctx.config.nodeIds,
-                  configTxtPath,
-                  ctx.config.releaseTag,
-                  ctx.config.chainId,
-                  template,
-                  ctx.config.app || undefined)
               }
             }
           ]
@@ -1409,31 +1401,47 @@ export class NodeCommand extends BaseCommand {
         title: 'Deploy new network node',
         task: async (ctx, task) => {
           const values = { hedera: { nodes: [] } }
-          let maxNum
+          let maxAccountNumber = 0
+          /** @type {Map<string,NodeInfo>} **/
+          const nodeMap = new Map()
+
           for (/** @type {NetworkNodeServices} **/ const networkNodeServices of ctx.config.serviceMap.values()) {
             values.hedera.nodes.push({
               accountId: networkNodeServices.accountId,
               name: networkNodeServices.nodeName
             })
-            maxNum = maxNum > AccountId.fromString(networkNodeServices.accountId).num
-              ? maxNum
+            maxAccountNumber = maxAccountNumber > AccountId.fromString(networkNodeServices.accountId).num
+              ? maxAccountNumber
               : AccountId.fromString(networkNodeServices.accountId).num
+            nodeMap.set(networkNodeServices.nodeName, {
+              nodeName: networkNodeServices.nodeName,
+              accountId: networkNodeServices.accountId
+            })
           }
+
           for (const nodeId of ctx.config.nodeIds) {
             const accountId = AccountId.fromString(values.hedera.nodes[0].accountId)
-            accountId.num = ++maxNum
+            accountId.num = ++maxAccountNumber
             values.hedera.nodes.push({
               accountId: accountId.toString(),
               name: nodeId
+            })
+            nodeMap.set(nodeId, {
+              nodeName: nodeId,
+              accountId: accountId.toString()
             })
           }
 
           let valuesArg = ''
           let index = 0
+
           for (const node of values.hedera.nodes) {
             valuesArg += ` --set "hedera.nodes[${index}].accountId=${node.accountId}" --set "hedera.nodes[${index}].name=${node.name}"`
             index++
           }
+
+          const valuesFilePath = await this.profileManager.prepareValuesForNodeAdd(ctx.config.profileName, nodeMap)
+          valuesArg += this.prepareValuesFiles(valuesFilePath)
 
           await self.chartManager.upgrade(
             ctx.config.namespace,
@@ -1537,15 +1545,6 @@ export class NodeCommand extends BaseCommand {
                   const tlsKeyFiles = self.keyManager.prepareTLSKeyFilePaths(nodeId, config.keysDir)
                   await self._copyNodeKeys(tlsKeyFiles, config.stagingKeysDir)
                 }
-              }
-            },
-            {
-              title: 'Prepare config.txt for the network',
-              task: async (ctx, _) => {
-                const config = ctx.config
-                const configTxtPath = `${config.stagingDir}/config.txt`
-                const template = `${constants.RESOURCES_DIR}/templates/config.template`
-                await self.platformInstaller.prepareConfigTxt(config.allNodeIds, configTxtPath, config.releaseTag, config.chainId, template)
               }
             }
           ]

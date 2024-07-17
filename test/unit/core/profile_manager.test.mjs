@@ -130,7 +130,8 @@ describe('ProfileManager', () => {
     const file = path.join(tmpDir, '_setFileContentsAsValue.txt')
     const fileContents = '# row 1\n# row 2\n# row 3'
     fs.writeFileSync(file, fileContents)
-    const cachedValuesFile = await profileManager.prepareValuesForFstChart('test', file)
+    configManager.setFlag(flags.applicationEnv, file)
+    const cachedValuesFile = await profileManager.prepareValuesForFstChart('test')
     const valuesYaml = yaml.load(fs.readFileSync(cachedValuesFile).toString())
     expect(valuesYaml.hedera.configMaps.applicationEnv).toEqual(fileContents)
   })
