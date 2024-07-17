@@ -24,12 +24,6 @@ import dot from 'dot-object'
 import { getNodeAccountMap } from './helpers.mjs'
 import * as semver from 'semver'
 
-/**
- * @typedef {Object} NodeInfo
- * @property {string} nodeName
- * @property {string} accountId
- */
-
 const consensusSidecars = [
   'recordStreamUploader', 'eventStreamUploader', 'backupUploader', 'accountBalanceUploader', 'otelCollector']
 
@@ -158,18 +152,11 @@ export class ProfileManager {
 
     const accountMap = getNodeAccountMap(nodeIds)
 
-    /** @type {Map<string, NodeInfo>} **/
-    const nodeMap = new Map()
-
     // set consensus pod level resources
     for (let nodeIndex = 0; nodeIndex < nodeIds.length; nodeIndex++) {
-      const fullAccountId = `${realm}.${shard}.${accountId++}`
-
       this._setValue(`hedera.nodes.${nodeIndex}.name`, nodeIds[nodeIndex], yamlRoot)
-      this._setValue(`hedera.nodes.${nodeIndex}.accountId`, fullAccountId, yamlRoot)
+      this._setValue(`hedera.nodes.${nodeIndex}.accountId`, accountMap.get(nodeIds[nodeIndex]), yamlRoot)
       this._setChartItems(`hedera.nodes.${nodeIndex}`, profile.consensus, yamlRoot)
-
-      nodeMap.set(nodeIds[nodeIndex], { nodeName: nodeIds[nodeIndex], accountId: fullAccountId })
     }
 
     const stagingDir = Templates.renderStagingDir(this.configManager, flags)
@@ -385,7 +372,7 @@ export class ProfileManager {
   /**
    * Prepares config.txt file for the node
    * @param {string} namespace namespace where the network is deployed
-   * @param {Map<string, NodeInfo>} nodeMap Map of NodeInfo objects
+   * @param {Map<string, string>} nodeAccountMap the map of node IDs to account IDs
    * @param {string} destPath path to the destination directory to write the config.txt file
    * @param {string} releaseTag release tag e.g. v0.42.0
    * @param {string} appName the app name (default: HederaNode.jar)
@@ -393,8 +380,8 @@ export class ProfileManager {
    * @param {string} template path to the config.template file
    * @returns {string} the config.txt file path
    */
-  prepareConfigTxt (namespace, nodeMap, destPath, releaseTag, appName = constants.HEDERA_APP_NAME, chainId = constants.HEDERA_CHAIN_ID, template = `${constants.RESOURCES_DIR}/templates/config.template`) {
-    if (!nodeMap || nodeMap.length === 0) throw new MissingArgumentError('map of NodeInfo objects is required')
+  prepareConfigTxt (namespace, nodeAccountMap, destPath, releaseTag, appName = constants.HEDERA_APP_NAME, chainId = constants.HEDERA_CHAIN_ID, template = `${constants.RESOURCES_DIR}/templates/config.template`) {
+    if (!nodeAccountMap || nodeAccountMap.length === 0) throw new MissingArgumentError('nodeAccountMap the map of node IDs to account IDs is required')
     if (!template) throw new MissingArgumentError('config templatePath is required')
     if (!releaseTag) throw new MissingArgumentError('release tag is required')
 
@@ -415,16 +402,15 @@ export class ProfileManager {
       configLines.push(`app, ${appName}`)
 
       let nodeSeq = 0
-      for (const nodeInfo of nodeMap.values()) {
-        const nodeName = nodeInfo.nodeId
-        const nodeNickName = nodeInfo.nodeId
+      for (const nodeID of nodeAccountMap.keys()) {
+        const nodeName = nodeID
 
         const internalIP = Templates.renderFullyQualifiedNetworkPodName(namespace, nodeName)
         const externalIP = Templates.renderFullyQualifiedNetworkSvcName(namespace, nodeName)
 
-        const account = nodeInfo.accountId
+        const account = nodeAccountMap.get(nodeID)
         if (releaseVersion.minor >= 40) {
-          configLines.push(`address, ${nodeSeq}, ${nodeNickName}, ${nodeName}, ${nodeStakeAmount}, ${internalIP}, ${internalPort}, ${externalIP}, ${externalPort}, ${account}`)
+          configLines.push(`address, ${nodeSeq}, ${nodeName}, ${nodeName}, ${nodeStakeAmount}, ${internalIP}, ${internalPort}, ${externalIP}, ${externalPort}, ${account}`)
         } else {
           configLines.push(`address, ${nodeSeq}, ${nodeName}, ${nodeStakeAmount}, ${internalIP}, ${internalPort}, ${externalIP}, ${externalPort}, ${account}`)
         }

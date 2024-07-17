@@ -69,11 +69,11 @@ export class NodeCommand extends BaseCommand {
 
   static get SETUP_FLAGS_LIST () {
     return [
-      flags.apiPermissionProperties, // TODO move
+      flags.apiPermissionProperties, // TODO move to `network deploy`
       flags.app,
       flags.appConfig,
-      flags.applicationProperties, // TODO move
-      flags.bootstrapProperties, // TODO move
+      flags.applicationProperties, // TODO move to `network deploy`
+      flags.bootstrapProperties, // TODO move to `network deploy`
       flags.cacheDir,
       flags.chainId,
       flags.devMode,
@@ -82,11 +82,11 @@ export class NodeCommand extends BaseCommand {
       flags.generateTlsKeys,
       flags.keyFormat,
       flags.localBuildPath,
-      flags.log4j2Xml, // TODO move
+      flags.log4j2Xml, // TODO move to `network deploy`
       flags.namespace,
       flags.nodeIDs,
       flags.releaseTag,
-      flags.settingTxt // TODO move
+      flags.settingTxt // TODO move to `network deploy`
     ]
   }
 
