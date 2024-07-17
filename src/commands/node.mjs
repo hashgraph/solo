@@ -806,7 +806,7 @@ export class NodeCommand extends BaseCommand {
         task: (ctx, task) => {
           const subTasks = []
           for (const nodeId of ctx.config.nodeIds) {
-            if (self.configManager.getFlag(flags.app) !== '') {
+            if (self.configManager.getFlag(flags.app) !== '' && self.configManager.getFlag(flags.app) !== constants.HEDERA_APP_NAME) {
               subTasks.push({
                 title: `Check node: ${chalk.yellow(nodeId)}`,
                 task: () => self.checkNetworkNodeState(nodeId, 100, 'ACTIVE', 'output/swirlds.log')
@@ -1193,7 +1193,7 @@ export class NodeCommand extends BaseCommand {
         task: (ctx, task) => {
           const subTasks = []
           for (const nodeId of ctx.config.nodeIds) {
-            if (ctx.config.app !== '') {
+            if (ctx.config.app !== '' && ctx.config.app !== constants.HEDERA_APP_NAME) {
               subTasks.push({
                 title: `Check node: ${chalk.yellow(nodeId)}`,
                 task: () => self.checkNetworkNodeState(nodeId, 100, 'ACTIVE', 'output/swirlds.log')
