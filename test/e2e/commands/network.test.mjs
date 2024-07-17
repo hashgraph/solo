@@ -90,7 +90,7 @@ describe('NetworkCommand', () => {
       // get list of pvc using k8 listPvcsByNamespace function and print to log
       const pvcs = await k8.listPvcsByNamespace(namespace)
       networkCmd.logger.showList('PVCs', pvcs)
-      // TODO: network deploy unused should just have ['profileFile', 'profileName'], the others need to be moved to MirrorNodeCommand
+
       expect(networkCmd.getUnusedConfigs(NetworkCommand.DEPLOY_CONFIGS_NAME)).toEqual([
         flags.deployHederaExplorer.constName,
         flags.deployMirrorNode.constName,

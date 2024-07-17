@@ -207,7 +207,7 @@ export function bootstrapNetwork (testName, argv,
     it('should succeed with network deploy', async () => {
       expect.assertions(1)
       await networkCmd.deploy(argv)
-      // TODO: network deploy unused should just have ['profileFile', 'profileName'], the others need to be moved to MirrorNodeCommand
+
       expect(networkCmd.getUnusedConfigs(NetworkCommand.DEPLOY_CONFIGS_NAME)).toEqual([
         flags.deployHederaExplorer.constName,
         flags.deployMirrorNode.constName,

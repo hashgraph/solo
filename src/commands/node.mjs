@@ -1318,7 +1318,6 @@ export class NodeCommand extends BaseCommand {
 
           await prompts.execute(task, self.configManager, NodeCommand.ADD_FLAGS_LIST)
 
-          // TODO Node Add should use 'app' for local build .zip?
           /**
            * @typedef {Object} NodeAddConfigClass
            * -- flags --
