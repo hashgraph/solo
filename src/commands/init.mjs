@@ -18,11 +18,12 @@ import { Listr } from 'listr2'
 import path from 'path'
 import { BaseCommand } from './base.mjs'
 import * as core from '../core/index.mjs'
-import { constants } from '../core/index.mjs'
+import { constants, Templates } from '../core/index.mjs'
 import * as fs from 'fs'
 import { FullstackTestingError, IllegalArgumentError } from '../core/errors.mjs'
 import * as flags from './flags.mjs'
 import chalk from 'chalk'
+import * as version from '../../version.mjs'
 
 /**
  * Defines the core functionalities of 'init' command
@@ -64,6 +65,13 @@ export class InitCommand extends BaseCommand {
     let cacheDir = this.configManager.getFlag(flags.cacheDir)
     if (!cacheDir) {
       cacheDir = constants.SOLO_CACHE_DIR
+      this.configManager.setFlag(flags.cacheDir, cacheDir)
+    }
+
+    let releaseTag = this.configManager.getFlag(flags.releaseTag)
+    if (!releaseTag) {
+      releaseTag = version.HEDERA_PLATFORM_VERSION
+      this.configManager.setFlag(flags.releaseTag, releaseTag)
     }
 
     const tasks = new Listr([
@@ -101,12 +109,17 @@ export class InitCommand extends BaseCommand {
       {
         title: `Copy templates in '${cacheDir}'`,
         task: (ctx, _) => {
+          const stagingDir = Templates.renderStagingDir(
+            self.configManager.getFlag(flags.cacheDir),
+            self.configManager.getFlag(flags.releaseTag)
+          )
+
           const resources = ['templates', 'profiles']
           for (const dirName of resources) {
             const srcDir = path.resolve(path.join(constants.RESOURCES_DIR, dirName))
             if (!fs.existsSync(srcDir)) continue
 
-            const destDir = path.resolve(path.join(cacheDir, dirName))
+            const destDir = path.resolve(path.join(stagingDir, dirName))
             if (!fs.existsSync(destDir)) {
               fs.mkdirSync(destDir, { recursive: true })
             }

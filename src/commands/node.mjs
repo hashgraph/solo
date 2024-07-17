@@ -431,7 +431,10 @@ export class NodeCommand extends BaseCommand {
     config.releasePrefix = Templates.prepareReleasePrefix(config.releaseTag)
     config.buildZipFile = `${config.cacheDir}/${config.releasePrefix}/build-${config.releaseTag}.zip`
     config.keysDir = path.join(validatePath(config.cacheDir), 'keys')
-    config.stagingDir = Templates.renderStagingDir(configManager, flags)
+    config.stagingDir = Templates.renderStagingDir(
+      configManager.getFlag(flags.cacheDir),
+      configManager.getFlag(flags.releaseTag)
+    )
     config.stagingKeysDir = path.join(validatePath(config.stagingDir), 'keys')
 
     if (!await k8.hasNamespace(config.namespace)) {
@@ -768,7 +771,10 @@ export class NodeCommand extends BaseCommand {
             nodeIds: helpers.parseNodeIds(self.configManager.getFlag(flags.nodeIDs))
           }
 
-          ctx.config.stagingDir = Templates.renderStagingDir(self.configManager, flags)
+          ctx.config.stagingDir = Templates.renderStagingDir(
+            self.configManager.getFlag(flags.cacheDir),
+            self.configManager.getFlag(flags.releaseTag)
+          )
 
           if (!await self.k8.hasNamespace(ctx.config.namespace)) {
             throw new FullstackTestingError(`namespace ${ctx.config.namespace} does not exist`)
@@ -1402,8 +1408,8 @@ export class NodeCommand extends BaseCommand {
         task: async (ctx, task) => {
           const values = { hedera: { nodes: [] } }
           let maxAccountNumber = 0
-          /** @type {Map<string,NodeInfo>} **/
-          const nodeMap = new Map()
+
+          const nodeAccountMap = /** @type {Map<string,string>} **/ new Map()
 
           for (/** @type {NetworkNodeServices} **/ const networkNodeServices of ctx.config.serviceMap.values()) {
             values.hedera.nodes.push({
@@ -1413,10 +1419,7 @@ export class NodeCommand extends BaseCommand {
             maxAccountNumber = maxAccountNumber > AccountId.fromString(networkNodeServices.accountId).num
               ? maxAccountNumber
               : AccountId.fromString(networkNodeServices.accountId).num
-            nodeMap.set(networkNodeServices.nodeName, {
-              nodeName: networkNodeServices.nodeName,
-              accountId: networkNodeServices.accountId
-            })
+            nodeAccountMap.set(networkNodeServices.nodeName, networkNodeServices.accountId)
           }
 
           for (const nodeId of ctx.config.nodeIds) {
@@ -1426,10 +1429,7 @@ export class NodeCommand extends BaseCommand {
               accountId: accountId.toString(),
               name: nodeId
             })
-            nodeMap.set(nodeId, {
-              nodeName: nodeId,
-              accountId: accountId.toString()
-            })
+            nodeAccountMap.set(nodeId, accountId.toString())
           }
 
           let valuesArg = ''
@@ -1440,7 +1440,7 @@ export class NodeCommand extends BaseCommand {
             index++
           }
 
-          const valuesFilePath = await this.profileManager.prepareValuesForNodeAdd(ctx.config.profileName, nodeMap)
+          const valuesFilePath = await this.profileManager.prepareValuesForNodeAdd(ctx.config.profileName, nodeAccountMap)
           valuesArg += this.prepareValuesFiles(valuesFilePath)
 
           await self.chartManager.upgrade(

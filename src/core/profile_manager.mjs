@@ -159,7 +159,10 @@ export class ProfileManager {
       this._setChartItems(`hedera.nodes.${nodeIndex}`, profile.consensus, yamlRoot)
     }
 
-    const stagingDir = Templates.renderStagingDir(this.configManager, flags)
+    const stagingDir = Templates.renderStagingDir(
+      this.configManager.getFlag(flags.cacheDir),
+      this.configManager.getFlag(flags.releaseTag)
+    )
 
     const configTxtPath = this.prepareConfigTxt(
       this.configManager.getFlag(flags.namespace),
@@ -173,7 +176,7 @@ export class ProfileManager {
     this._setFileContentsAsValue('hedera.configMaps.log4j2Xml', `${stagingDir}/templates/log4j2.xml`, yamlRoot)
     this._setFileContentsAsValue('hedera.configMaps.settingsTxt', `${stagingDir}/templates/settings.txt`, yamlRoot)
     this._setFileContentsAsValue('hedera.configMaps.applicationProperties', `${stagingDir}/templates/application.properties`, yamlRoot)
-    this._setFileContentsAsValue('hedera.configMaps.apiPermissionsProperties', `${stagingDir}/templates/api-permissions.properties`, yamlRoot)
+    this._setFileContentsAsValue('hedera.configMaps.apiPermissionsProperties', `${stagingDir}/templates/api-permission.properties`, yamlRoot)
     this._setFileContentsAsValue('hedera.configMaps.bootstrapProperties', `${stagingDir}/templates/bootstrap.properties`, yamlRoot)
     if (this.configManager.getFlag(flags.applicationEnv)) {
       this._setFileContentsAsValue('hedera.configMaps.applicationEnv', this.configManager.getFlag(flags.applicationEnv), yamlRoot)
@@ -272,7 +275,10 @@ export class ProfileManager {
     const configTxtPath = this.prepareConfigTxt(
       this.configManager.getFlag(flags.namespace),
       nodeMap,
-      Templates.renderStagingDir(this.configManager, flags),
+      Templates.renderStagingDir(
+        this.configManager.getFlag(flags.cacheDir),
+        this.configManager.getFlag(flags.releaseTag)
+      ),
       this.configManager.getFlag(flags.releaseTag),
       this.configManager.getFlag(flags.app),
       this.configManager.getFlag(flags.chainId))

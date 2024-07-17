@@ -19,8 +19,13 @@ import fs from 'fs'
 import * as yaml from 'js-yaml'
 import path from 'path'
 import { flags } from '../../../src/commands/index.mjs'
-import { ConfigManager, ProfileManager } from '../../../src/core/index.mjs'
-import { getTmpDir, testLogger } from '../../test_util.js'
+import {
+  ConfigManager,
+  constants,
+  ProfileManager, Templates
+} from '../../../src/core/index.mjs'
+import { getTestCacheDir, getTmpDir, testLogger } from '../../test_util.js'
+import * as version from '../../../version.mjs'
 
 const tmpDir = getTmpDir()
 const configFile = path.join(tmpDir, 'resource-manager.config')
@@ -62,6 +67,27 @@ describe('ProfileManager', () => {
   ])('determine chart values for a profile', (input) => {
     it(`should determine FST chart values [profile = ${input.profileName}]`, async () => {
       configManager.setFlag(flags.profileFile, input.profileFile)
+      configManager.setFlag(flags.cacheDir, getTestCacheDir('ProfileManager'))
+      configManager.setFlag(flags.releaseTag, version.HEDERA_PLATFORM_VERSION)
+
+      const stagingDir = Templates.renderStagingDir(
+        configManager.getFlag(flags.cacheDir),
+        configManager.getFlag(flags.releaseTag)
+      )
+
+      const resources = ['templates', 'profiles']
+      for (const dirName of resources) {
+        const srcDir = path.resolve(path.join(constants.RESOURCES_DIR, dirName))
+        if (!fs.existsSync(srcDir)) continue
+
+        const destDir = path.resolve(path.join(stagingDir, dirName))
+        if (!fs.existsSync(destDir)) {
+          fs.mkdirSync(destDir, { recursive: true })
+        }
+
+        fs.cpSync(srcDir, destDir, { recursive: true })
+      }
+
       profileManager.loadProfiles(true)
       const valuesFile = await profileManager.prepareValuesForFstChart(input.profileName)
       expect(valuesFile).not.toBeNull()
@@ -93,6 +119,8 @@ describe('ProfileManager', () => {
 
     it(`should determine mirror-node chart values [profile = ${input.profileName}]`, async () => {
       configManager.setFlag(flags.profileFile, input.profileFile)
+      configManager.setFlag(flags.cacheDir, getTestCacheDir('ProfileManager'))
+      configManager.setFlag(flags.releaseTag, version.HEDERA_PLATFORM_VERSION)
       profileManager.loadProfiles(true)
       const valuesFile = await profileManager.prepareValuesForMirrorNodeChart(input.profileName)
       expect(fs.existsSync(valuesFile)).toBeTruthy()
