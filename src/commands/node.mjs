@@ -978,6 +978,7 @@ export class NodeCommand extends BaseCommand {
 
           config.curDate = new Date()
           config.nodeIds = helpers.parseNodeIds(config.nodeIDs)
+          config.keysDir = path.join(self.configManager.getFlag(flags.cacheDir), 'keys')
 
           if (!fs.existsSync(config.keysDir)) {
             fs.mkdirSync(config.keysDir)
