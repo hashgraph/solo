@@ -70,6 +70,11 @@ describe('ProfileManager', () => {
       configManager.setFlag(flags.profileFile, input.profileFile)
       configManager.setFlag(flags.cacheDir, getTestCacheDir('ProfileManager'))
       configManager.setFlag(flags.releaseTag, version.HEDERA_PLATFORM_VERSION)
+      configManager.setFlag(flags.apiPermissionProperties, flags.apiPermissionProperties.definition.defaultValue)
+      configManager.setFlag(flags.applicationProperties, flags.applicationProperties.definition.defaultValue)
+      configManager.setFlag(flags.bootstrapProperties, flags.bootstrapProperties.definition.defaultValue)
+      configManager.setFlag(flags.log4j2Xml, flags.log4j2Xml.definition.defaultValue)
+      configManager.setFlag(flags.settingTxt, flags.settingTxt.definition.defaultValue)
 
       const stagingDir = Templates.renderStagingDir(
         configManager.getFlag(flags.cacheDir),
@@ -155,6 +160,11 @@ describe('ProfileManager', () => {
 
   it('prepareValuesForFstChart should set the value of a key to the contents of a file', async () => {
     configManager.setFlag(flags.profileFile, testProfileFile)
+    configManager.setFlag(flags.apiPermissionProperties, flags.apiPermissionProperties.definition.defaultValue)
+    configManager.setFlag(flags.applicationProperties, flags.applicationProperties.definition.defaultValue)
+    configManager.setFlag(flags.bootstrapProperties, flags.bootstrapProperties.definition.defaultValue)
+    configManager.setFlag(flags.log4j2Xml, flags.log4j2Xml.definition.defaultValue)
+    configManager.setFlag(flags.settingTxt, flags.settingTxt.definition.defaultValue)
     // profileManager.loadProfiles(true)
     const file = path.join(tmpDir, '_setFileContentsAsValue.txt')
     const fileContents = '# row 1\n# row 2\n# row 3'
