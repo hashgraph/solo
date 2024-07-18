@@ -267,14 +267,14 @@ export class ProfileManager {
   /**
    * Prepare values for node add
    * @param {string} profileName resource profile name
-   * @param {Map<string,NodeInfo>} nodeMap map of NodeInfo objects
+   * @param {Map<string,string>} nodeAccountMap node ID to account ID map
    * @return {Promise<string>} return the full path to the values file
    */
-  prepareValuesForNodeAdd (profileName, nodeMap) {
+  prepareValuesForNodeAdd (profileName, nodeAccountMap) {
     const yamlRoot = {}
     const configTxtPath = this.prepareConfigTxt(
       this.configManager.getFlag(flags.namespace),
-      nodeMap,
+      nodeAccountMap,
       Templates.renderStagingDir(
         this.configManager.getFlag(flags.cacheDir),
         this.configManager.getFlag(flags.releaseTag)

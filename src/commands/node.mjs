@@ -37,12 +37,6 @@ import {
 import * as crypto from 'crypto'
 
 /**
- * @typedef {Object} NodeInfo
- * @property {string} nodeName
- * @property {string} accountId
- */
-
-/**
  * Defines the core functionalities of 'node' command
  */
 export class NodeCommand extends BaseCommand {
