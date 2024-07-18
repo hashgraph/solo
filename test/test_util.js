@@ -231,10 +231,13 @@ export function bootstrapNetwork (testName, argv,
       expect.assertions(2)
       try {
         await expect(nodeCmd.setup(argv)).resolves.toBeTruthy()
-        expect(nodeCmd.getUnusedConfigs(NodeCommand.SETUP_CONFIGS_NAME)).toEqual([
-          flags.appConfig.constName,
-          flags.devMode.constName
-        ])
+        const expectedUnusedConfigs = []
+        expectedUnusedConfigs.push(flags.appConfig.constName)
+        expectedUnusedConfigs.push(flags.devMode.constName)
+        if (testName === 'local-hedera-app') {
+          expectedUnusedConfigs.push(flags.releaseTag.constName)
+        }
+        expect(nodeCmd.getUnusedConfigs(NodeCommand.SETUP_CONFIGS_NAME)).toEqual(expectedUnusedConfigs)
       } catch (e) {
         nodeCmd.logger.showUserError(e)
         expect(e).toBeNull()
