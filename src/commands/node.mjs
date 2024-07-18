@@ -645,35 +645,19 @@ export class NodeCommand extends BaseCommand {
       {
         title: 'Prepare staging directory',
         task: async (ctx, parentTask) => {
-          const config = ctx.config
           const subTasks = [
-            {
-              title: 'Copy configuration files',
-              task: () => {
-                for (const flag of flags.nodeConfigFileFlags.values()) {
-                  const filePath = self.configManager.getFlag(flag)
-                  if (!filePath) {
-                    throw new FullstackTestingError(`Configuration file path is missing for: ${flag.name}`)
-                  }
-
-                  const fileName = path.basename(filePath)
-                  const destPath = `${config.stagingDir}/templates/${fileName}`
-                  self.logger.debug(`Copying configuration file to staging: ${filePath} -> ${destPath}`)
-
-                  fs.cpSync(filePath, destPath, { force: true })
-                }
-              }
-            },
             {
               title: 'Copy Gossip keys to staging',
               task: async (ctx, _) => {
-                await this.copyGossipKeysToStaging(ctx.config, ctx.config.nodeIds)
+                const config = /** @type {NodeSetupConfigClass} **/ ctx.config
+                await this.copyGossipKeysToStaging(config.keyFormat, config.keysDir, config.stagingKeysDir, ctx.config.nodeIds)
               }
             },
             {
               title: 'Copy gRPC TLS keys to staging',
               task: async (ctx, _) => {
                 for (const nodeId of ctx.config.nodeIds) {
+                  const config = /** @type {NodeSetupConfigClass} **/ ctx.config
                   const tlsKeyFiles = self.keyManager.prepareTLSKeyFilePaths(nodeId, config.keysDir)
                   await self._copyNodeKeys(tlsKeyFiles, config.stagingKeysDir)
                 }
@@ -1505,38 +1489,20 @@ export class NodeCommand extends BaseCommand {
       {
         title: 'Prepare staging directory',
         task: async (ctx, parentTask) => {
-          const config = ctx.config
           const subTasks = [
-            {
-              title: 'Copy configuration files',
-              task: () => {
-                for (const flag of flags.nodeConfigFileFlags.values()) {
-                  const filePath = self.configManager.getFlag(flag)
-                  if (!filePath) {
-                    throw new FullstackTestingError(`Configuration file path is missing for: ${flag.name}`)
-                  }
-
-                  const fileName = path.basename(filePath)
-                  const destPath = `${config.stagingDir}/templates/${fileName}`
-                  self.logger.debug(`Copying configuration file to staging: ${filePath} -> ${destPath}`)
-
-                  fs.cpSync(filePath, destPath, { force: true })
-                }
-              }
-            },
             {
               title: 'Copy Gossip keys to staging',
               task: async (ctx, _) => {
-                const config = ctx.config
+                const config = /** @type {NodeAddConfigClass} **/ ctx.config
 
-                await this.copyGossipKeysToStaging(config, ctx.config.allNodeIds)
+                await this.copyGossipKeysToStaging(config.keyFormat, config.keysDir, config.stagingKeysDir, config.allNodeIds)
               }
             },
             {
               title: 'Copy gRPC TLS keys to staging',
               task: async (ctx, _) => {
-                const config = ctx.config
-                for (const nodeId of ctx.config.allNodeIds) {
+                const config = /** @type {NodeAddConfigClass} **/ ctx.config
+                for (const nodeId of config.allNodeIds) {
                   const tlsKeyFiles = self.keyManager.prepareTLSKeyFilePaths(nodeId, config.keysDir)
                   await self._copyNodeKeys(tlsKeyFiles, config.stagingKeysDir)
                 }
@@ -1756,29 +1722,29 @@ export class NodeCommand extends BaseCommand {
     }
   }
 
-  async copyGossipKeysToStaging (config, nodeIds) {
+  async copyGossipKeysToStaging (keyFormat, keysDir, stagingKeysDir, nodeIds) {
     // copy gossip keys to the staging
     for (const nodeId of nodeIds) {
-      switch (config.keyFormat) {
+      switch (keyFormat) {
         case constants.KEY_FORMAT_PEM: {
-          const signingKeyFiles = this.keyManager.prepareNodeKeyFilePaths(nodeId, config.keysDir, constants.SIGNING_KEY_PREFIX)
-          await this._copyNodeKeys(signingKeyFiles, config.stagingKeysDir)
+          const signingKeyFiles = this.keyManager.prepareNodeKeyFilePaths(nodeId, keysDir, constants.SIGNING_KEY_PREFIX)
+          await this._copyNodeKeys(signingKeyFiles, stagingKeysDir)
 
           // generate missing agreement keys
-          const agreementKeyFiles = this.keyManager.prepareNodeKeyFilePaths(nodeId, config.keysDir, constants.AGREEMENT_KEY_PREFIX)
-          await this._copyNodeKeys(agreementKeyFiles, config.stagingKeysDir)
+          const agreementKeyFiles = this.keyManager.prepareNodeKeyFilePaths(nodeId, keysDir, constants.AGREEMENT_KEY_PREFIX)
+          await this._copyNodeKeys(agreementKeyFiles, stagingKeysDir)
           break
         }
 
         case constants.KEY_FORMAT_PFX: {
           const privateKeyFile = Templates.renderGossipPfxPrivateKeyFile(nodeId)
-          fs.cpSync(`${config.keysDir}/${privateKeyFile}`, `${config.stagingKeysDir}/${privateKeyFile}`)
-          fs.cpSync(`${config.keysDir}/${constants.PUBLIC_PFX}`, `${config.stagingKeysDir}/${constants.PUBLIC_PFX}`)
+          fs.cpSync(`${keysDir}/${privateKeyFile}`, `${stagingKeysDir}/${privateKeyFile}`)
+          fs.cpSync(`${keysDir}/${constants.PUBLIC_PFX}`, `${stagingKeysDir}/${constants.PUBLIC_PFX}`)
           break
         }
 
         default:
-          throw new FullstackTestingError(`Unsupported key-format ${config.keyFormat}`)
+          throw new FullstackTestingError(`Unsupported key-format ${keyFormat}`)
       }
     }
   }

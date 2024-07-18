@@ -172,7 +172,19 @@ export class ProfileManager {
       this.configManager.getFlag(flags.app),
       this.configManager.getFlag(flags.chainId))
 
-    // TODO: what about when overrides are provided through command options?
+    for (const flag of flags.nodeConfigFileFlags.values()) {
+      const filePath = this.configManager.getFlag(flag)
+      if (!filePath) {
+        throw new FullstackTestingError(`Configuration file path is missing for: ${flag.name}`)
+      }
+
+      const fileName = path.basename(filePath)
+      const destPath = `${stagingDir}/templates/${fileName}`
+      this.logger.debug(`Copying configuration file to staging: ${filePath} -> ${destPath}`)
+
+      fs.cpSync(filePath, destPath, { force: true })
+    }
+
     this._setFileContentsAsValue('hedera.configMaps.configTxt', configTxtPath, yamlRoot)
     this._setFileContentsAsValue('hedera.configMaps.log4j2Xml', `${stagingDir}/templates/log4j2.xml`, yamlRoot)
     this._setFileContentsAsValue('hedera.configMaps.settingsTxt', `${stagingDir}/templates/settings.txt`, yamlRoot)
