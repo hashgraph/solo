@@ -43,7 +43,10 @@ import {
   Timestamp
 } from '@hashgraph/sdk'
 import * as crypto from 'crypto'
-import { GENESIS_KEY } from '../core/constants.mjs'
+import {
+  GENESIS_KEY,
+  HEDERA_NODE_DEFAULT_STAKE_AMOUNT
+} from '../core/constants.mjs'
 
 /**
  * Defines the core functionalities of 'node' command
@@ -172,7 +175,7 @@ export class NodeCommand extends BaseCommand {
       const client = this.accountManager._nodeClient
 
       // get some initial balance
-      await this.accountManager.transferAmount(constants.TREASURY_ACCOUNT_ID, accountId, 100)
+      await this.accountManager.transferAmount(constants.TREASURY_ACCOUNT_ID, accountId, HEDERA_NODE_DEFAULT_STAKE_AMOUNT)
 
       // check balance
       const balance = await new AccountBalanceQuery()
@@ -186,10 +189,10 @@ export class NodeCommand extends BaseCommand {
         .setStakedAccountId(accountId)
         .freezeWith(client)
 
-      const genesisKey = PrivateKey.fromStringED25519(constants.GENESIS_KEY)
+      const treasuryKey = this.accountManager.getTreasuryAccountKeys(namespace)
 
       // Sign the transaction with the account's private key
-      const signTx = await transaction.sign(genesisKey)
+      const signTx = await transaction.sign(treasuryKey)
 
       // Submit the transaction to a Hedera network
       const txResponse = await signTx.execute(client)
