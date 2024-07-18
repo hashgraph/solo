@@ -618,7 +618,8 @@ export class NodeCommand extends BaseCommand {
       {
         title: 'Generate Gossip keys',
         task: async (ctx, parentTask) => {
-          const config = ctx.config
+          const config = /** @type {NodeSetupConfigClass} **/ ctx.config // TODO more typedefs
+
           const subTasks = self._nodeGossipKeysTaskList(config.keyFormat, config.nodeIds, config.keysDir, config.curDate)
           // set up the sub-tasks
           return parentTask.newListr(subTasks, {
