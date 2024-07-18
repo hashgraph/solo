@@ -1617,6 +1617,8 @@ export class NodeCommand extends BaseCommand {
             },
             {
               // TODO: not needed?
+              // TODO: might need to read this from an existing node, at the perfect time, which is? after freeze prepare upgrade
+              // the config.txt to get is in the same directory where the upgradeArtifactsPath located, such as data/upgrade/current
               title: 'Prepare config.txt for the network',
               task: async (ctx, _) => {
                 const config = ctx.config
@@ -1640,35 +1642,6 @@ export class NodeCommand extends BaseCommand {
               return self.fetchPlatformSoftware(ctx, task, self.platformInstaller)
             }
       },
-      // {
-      //   // TODO: not needed?
-      //   title: 'Freeze network nodes',
-      //   task:
-      //       async (ctx, task) => {
-      //         await this.freezeNetworkNodes(ctx.config)
-      //       }
-      // },
-      // {
-      //   // TODO: not needed?
-      //   title: 'Check nodes are frozen',
-      //   task: (ctx, task) => {
-      //     const subTasks = []
-      //     for (const nodeId of ctx.config.existingNodeIds) {
-      //       subTasks.push({
-      //         title: `Check node: ${chalk.yellow(nodeId)}`,
-      //         task: () => self.checkNetworkNodeState(nodeId, 100, 'FREEZE_COMPLETE')
-      //       })
-      //     }
-      //
-      //     // set up the sub-tasks
-      //     return task.newListr(subTasks, {
-      //       concurrent: false,
-      //       rendererOptions: {
-      //         collapseSubtasks: false
-      //       }
-      //     })
-      //   }
-      // },
       {
         title: 'Add new node(s) to network',
         task:
@@ -1701,6 +1674,8 @@ export class NodeCommand extends BaseCommand {
                     .setServiceEndpoints(serviceEndpoints)
                     .setGossipCaCertificate(privateKeyAsUint8Array)
                   // TODO create Issue to add this later: .setCertificateHash()
+                  // TODO if any k8s secrets exists for account IDs, we know that `solo account init` has been ran,
+                  //  and we need to generate a new key for the new account and store it in the k8s secrets
                     .setAdminKey(PrivateKey.fromStringED25519(GENESIS_KEY))
                     .execute(client)
                   const nodeCreateReceipt = await nodeCreateTx.getReceipt(client)
@@ -1712,16 +1687,41 @@ export class NodeCommand extends BaseCommand {
             }
       },
       {
+        title: 'Freeze network nodes',
+        task:
+            async (ctx, task) => {
+              await this.freezeNetworkNodes(ctx.config)
+            }
+      },
+      {
+        title: 'Check nodes are frozen',
+        task: (ctx, task) => {
+          const subTasks = []
+          for (const nodeId of ctx.config.existingNodeIds) {
+            subTasks.push({
+              title: `Check node: ${chalk.yellow(nodeId)}`,
+              task: () => self.checkNetworkNodeState(nodeId, 100, 'FREEZE_COMPLETE')
+            })
+          }
+
+          // set up the sub-tasks
+          return task.newListr(subTasks, {
+            concurrent: false,
+            rendererOptions: {
+              collapseSubtasks: false
+            }
+          })
+        }
+      },
+      {
         title: 'Setup network nodes',
         task: async (ctx, parentTask) => {
           const config = ctx.config
 
-          // // TODO: not needed?
-          // // modify application.properties to trick Hedera Services into receiving an updated address book
-          // await self.bumpHederaConfigVersion(`${config.stagingDir}/templates/application.properties`)
+          // modify application.properties to trick Hedera Services into receiving an updated address book
+          await self.bumpHederaConfigVersion(`${config.stagingDir}/templates/application.properties`)
 
           const subTasks = []
-          // TODO: still needed for copying keys?
           for (const nodeId of config.allNodeIds) {
             const podName = config.podNames[nodeId]
             subTasks.push({
@@ -1802,6 +1802,7 @@ export class NodeCommand extends BaseCommand {
           })
         }
       },
+      // TODO: add stake to the new node
       {
         title: 'Finalize',
         task: (ctx, _) => {
@@ -1878,6 +1879,8 @@ export class NodeCommand extends BaseCommand {
           `Upgrade prepared with transaction id: ${prepareUpgradeTx.transactionId.toString()}`,
           prepareUpgradeReceipt.status.toString()
       )
+
+      // TODO: split?  now we need to get the config.txt?
 
       const fileQuery = new FileContentsQuery().setFileId(fileId)
       const updateFileBinary = await fileQuery.execute(client)
