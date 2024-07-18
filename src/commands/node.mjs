@@ -435,7 +435,7 @@ export class NodeCommand extends BaseCommand {
     }
   }
 
-  uploadPlatformSoftware (ctx, task, localBuildPath) {
+  uploadPlatformSoftware (nodeIds, podNames, task, localBuildPath) {
     const self = this
     const subTasks = []
 
@@ -454,8 +454,8 @@ export class NodeCommand extends BaseCommand {
     }
 
     let localDataLibBuildPath
-    for (const nodeId of ctx.config.nodeIds) {
-      const podName = ctx.config.podNames[nodeId]
+    for (const nodeId of nodeIds) {
+      const podName = podNames[nodeId]
       if (buildPathMap.has(nodeId)) {
         localDataLibBuildPath = buildPathMap.get(nodeId)
       } else {
@@ -487,16 +487,14 @@ export class NodeCommand extends BaseCommand {
     })
   }
 
-  fetchPlatformSoftware (ctx, task, platformInstaller) {
-    const config = ctx.config
-
+  fetchPlatformSoftware (nodeIds, podNames, releaseTag, task, platformInstaller) {
     const subTasks = []
-    for (const nodeId of ctx.config.nodeIds) {
-      const podName = ctx.config.podNames[nodeId]
+    for (const nodeId of nodeIds) {
+      const podName = podNames[nodeId]
       subTasks.push({
         title: `Update node: ${chalk.yellow(nodeId)}`,
         task: () =>
-          platformInstaller.fetchPlatform(podName, config.releaseTag)
+          platformInstaller.fetchPlatform(podName, releaseTag)
       })
     }
 
@@ -549,6 +547,7 @@ export class NodeCommand extends BaseCommand {
            * @property {Date} curDate
            * @property {string} keysDir
            * @property {string[]} nodeIds
+           * @property {string[]} podNames
            * @property {string} releasePrefix
            * @property {string} stagingDir
            * @property {string} stagingKeysDir
@@ -566,6 +565,7 @@ export class NodeCommand extends BaseCommand {
               'curDate',
               'keysDir',
               'nodeIds',
+              'podNames',
               'releasePrefix',
               'stagingDir',
               'stagingKeysDir'
@@ -589,7 +589,7 @@ export class NodeCommand extends BaseCommand {
       {
         title: 'Generate Gossip keys',
         task: async (ctx, parentTask) => {
-          const config = /** @type {NodeSetupConfigClass} **/ ctx.config // TODO more typedefs
+          const config = /** @type {NodeSetupConfigClass} **/ ctx.config
 
           const subTasks = self._nodeGossipKeysTaskList(config.keyFormat, config.nodeIds, config.keysDir, config.curDate)
           // set up the sub-tasks
@@ -652,10 +652,11 @@ export class NodeCommand extends BaseCommand {
         title: 'Fetch platform software into network nodes',
         task:
           async (ctx, task) => {
-            if (ctx.config.localBuildPath !== '') {
-              return self.uploadPlatformSoftware(ctx, task, ctx.config.localBuildPath)
+            const config = /** @type {NodeSetupConfigClass} **/ ctx.config
+            if (config.localBuildPath !== '') {
+              return self.uploadPlatformSoftware(config.nodeIds, config.podNames, task, config.localBuildPath)
             } else {
-              return self.fetchPlatformSoftware(ctx, task, self.platformInstaller)
+              return self.fetchPlatformSoftware(config.nodeIds, config.podNames, config.releaseTag, task, self.platformInstaller)
             }
           }
       },
@@ -1084,7 +1085,8 @@ export class NodeCommand extends BaseCommand {
         title: 'Fetch platform software into network nodes',
         task:
             async (ctx, task) => {
-              return self.fetchPlatformSoftware(ctx, task, self.platformInstaller)
+              const config = /** @type {NodeRefreshConfigClass} **/ ctx.config
+              return self.fetchPlatformSoftware(config.nodeIds, config.podNames, config.releaseTag, task, self.platformInstaller)
             }
       },
       {
@@ -1481,7 +1483,8 @@ export class NodeCommand extends BaseCommand {
         title: 'Fetch platform software into network nodes',
         task:
             async (ctx, task) => {
-              return self.fetchPlatformSoftware(ctx, task, self.platformInstaller)
+              const config = /** @type {NodeAddConfigClass} **/ ctx.config
+              return self.fetchPlatformSoftware(config.nodeIds, config.podNames, config.releaseTag, task, self.platformInstaller)
             }
       },
       {
