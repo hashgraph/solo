@@ -46,7 +46,7 @@ import { AccountBalanceQuery } from '@hashgraph/sdk'
 
 export const testLogger = logging.NewLogger('debug', true)
 export const TEST_CLUSTER = 'solo-e2e'
-export const HEDERA_PLATFORM_VERSION_TAG = 'v0.51.0'
+export const HEDERA_PLATFORM_VERSION_TAG = 'v0.53.0-develop.xd2fbe98'
 
 export function getTestCacheDir (testName) {
   const baseDir = 'test/data/tmp'

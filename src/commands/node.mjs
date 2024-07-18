@@ -21,7 +21,7 @@ import { Listr } from 'listr2'
 import path from 'path'
 import { FullstackTestingError, IllegalArgumentError } from '../core/errors.mjs'
 import * as helpers from '../core/helpers.mjs'
-import {getNodeAccountMap, getNodeLogs, getTmpDir, sleep, validatePath} from '../core/helpers.mjs'
+import { getNodeAccountMap, getNodeLogs, getTmpDir, sleep, validatePath } from '../core/helpers.mjs'
 import { constants, Templates } from '../core/index.mjs'
 import { BaseCommand } from './base.mjs'
 import * as flags from './flags.mjs'
@@ -30,14 +30,20 @@ import AdmZip from 'adm-zip'
 
 import {
   AccountBalanceQuery,
-  AccountId, AccountUpdateTransaction,
+  AccountId,
+  AccountUpdateTransaction,
   FileContentsQuery,
-  FileId, FileUpdateTransaction,
+  FileId,
+  FileUpdateTransaction,
   FreezeTransaction,
-  FreezeType, PrivateKey,
+  FreezeType,
+  NodeCreateTransaction,
+  PrivateKey,
+  ServiceEndpoint,
   Timestamp
 } from '@hashgraph/sdk'
 import * as crypto from 'crypto'
+import { GENESIS_KEY } from '../core/constants.mjs'
 
 /**
  * Defines the core functionalities of 'node' command
@@ -160,7 +166,7 @@ export class NodeCommand extends BaseCommand {
     this._portForwards = []
   }
 
-  async addStake(namespace, accountId) {
+  async addStake (namespace, accountId) {
     try {
       await this.accountManager.loadNodeClient(namespace)
       const client = this.accountManager._nodeClient
@@ -174,7 +180,6 @@ export class NodeCommand extends BaseCommand {
         .execute(client)
       console.log(`Account ${accountId} balance: ${balance.hbars}`)
 
-
       // Create the transaction
       const transaction = await new AccountUpdateTransaction()
         .setAccountId(accountId)
@@ -184,17 +189,17 @@ export class NodeCommand extends BaseCommand {
       const genesisKey = PrivateKey.fromStringED25519(constants.GENESIS_KEY)
 
       // Sign the transaction with the account's private key
-      const signTx = await transaction.sign(genesisKey);
+      const signTx = await transaction.sign(genesisKey)
 
       // Submit the transaction to a Hedera network
-      const txResponse = await signTx.execute(client);
+      const txResponse = await signTx.execute(client)
 
       // Request the receipt of the transaction
-      const receipt = await txResponse.getReceipt(client);
+      const receipt = await txResponse.getReceipt(client)
 
       // Get the transaction status
-      const transactionStatus = receipt.status;
-      console.log("The transaction consensus status is " + transactionStatus.toString());
+      const transactionStatus = receipt.status
+      console.log('The transaction consensus status is ' + transactionStatus.toString())
 
       const accountInfo = await this.accountManager.accountInfoQuery(accountId)
       console.log(`Account info: ${accountInfo}`)
@@ -937,7 +942,7 @@ export class NodeCommand extends BaseCommand {
     return true
   }
 
-   async stop (argv) {
+  async stop (argv) {
     const self = this
 
     const tasks = new Listr([
@@ -1608,6 +1613,7 @@ export class NodeCommand extends BaseCommand {
               }
             },
             {
+              // TODO: not needed?
               title: 'Prepare config.txt for the network',
               task: async (ctx, _) => {
                 const config = ctx.config
@@ -1631,42 +1637,88 @@ export class NodeCommand extends BaseCommand {
               return self.fetchPlatformSoftware(ctx, task, self.platformInstaller)
             }
       },
+      // {
+      //   // TODO: not needed?
+      //   title: 'Freeze network nodes',
+      //   task:
+      //       async (ctx, task) => {
+      //         await this.freezeNetworkNodes(ctx.config)
+      //       }
+      // },
+      // {
+      //   // TODO: not needed?
+      //   title: 'Check nodes are frozen',
+      //   task: (ctx, task) => {
+      //     const subTasks = []
+      //     for (const nodeId of ctx.config.existingNodeIds) {
+      //       subTasks.push({
+      //         title: `Check node: ${chalk.yellow(nodeId)}`,
+      //         task: () => self.checkNetworkNodeState(nodeId, 100, 'FREEZE_COMPLETE')
+      //       })
+      //     }
+      //
+      //     // set up the sub-tasks
+      //     return task.newListr(subTasks, {
+      //       concurrent: false,
+      //       rendererOptions: {
+      //         collapseSubtasks: false
+      //       }
+      //     })
+      //   }
+      // },
       {
-        title: 'Freeze network nodes',
+        title: 'Add new node(s) to network',
         task:
             async (ctx, task) => {
-              await this.freezeNetworkNodes(ctx.config)
-            }
-      },
-      {
-        title: 'Check nodes are frozen',
-        task: (ctx, task) => {
-          const subTasks = []
-          for (const nodeId of ctx.config.existingNodeIds) {
-            subTasks.push({
-              title: `Check node: ${chalk.yellow(nodeId)}`,
-              task: () => self.checkNetworkNodeState(nodeId, 100, 'FREEZE_COMPLETE')
-            })
-          }
+              const config = /** @type {NodeAddConfigClass} **/ ctx.config
+              const networkNodeServicesMap = await this.accountManager.getNodeServiceMap(config.namespace)
+              const client = this.accountManager._nodeClient
 
-          // set up the sub-tasks
-          return task.newListr(subTasks, {
-            concurrent: false,
-            rendererOptions: {
-              collapseSubtasks: false
+              for (const nodeId of config.nodeIds) {
+                const privateKeyFile = Templates.renderGossipPfxPrivateKeyFile(nodeId)
+                const privateKeyFullPath = `${config.stagingKeysDir}/${privateKeyFile}`
+                const privateKeyAsBuffer = fs.readFileSync(privateKeyFullPath)
+                const privateKeyAsUint8Array = new Uint8Array(privateKeyAsBuffer)
+
+                const networkNodeServices = networkNodeServicesMap.get(nodeId)
+                const gossipEndpoints = /** @type {ServiceEndpoint[]} **/ []
+                gossipEndpoints.push(new ServiceEndpoint({
+                  port: networkNodeServices.nodeServiceGossipPort,
+                  domainName: Templates.renderFullyQualifiedNetworkSvcName(config.namespace, nodeId)
+                }))
+                const serviceEndpoints = /** @type {ServiceEndpoint[]} **/ []
+                serviceEndpoints.push(new ServiceEndpoint({
+                  port: networkNodeServices.nodeServiceGrpcPort,
+                  domainName: Templates.renderFullyQualifiedNetworkSvcName(config.namespace, nodeId)
+                }))
+                try {
+                  const nodeCreateTx = await new NodeCreateTransaction()
+                    .setAccountId(networkNodeServices.accountId)
+                    .setGossipEndpoints(gossipEndpoints)
+                    .setServiceEndpoints(serviceEndpoints)
+                    .setGossipCaCertificate(privateKeyAsUint8Array)
+                  // TODO create Issue to add this later: .setCertificateHash()
+                    .setAdminKey(PrivateKey.fromStringED25519(GENESIS_KEY))
+                    .execute(client)
+                  const nodeCreateReceipt = await nodeCreateTx.getReceipt(client)
+                  this.logger.debug(`NodeCreateReceipt: ${nodeCreateReceipt.toString()}`)
+                } catch (e) {
+                  throw new FullstackTestingError(`Error adding node to network: ${e.message}`, e)
+                }
+              }
             }
-          })
-        }
       },
       {
         title: 'Setup network nodes',
         task: async (ctx, parentTask) => {
           const config = ctx.config
 
-          // modify application.properties to trick Hedera Services into receiving an updated address book
-          await self.bumpHederaConfigVersion(`${config.stagingDir}/templates/application.properties`)
+          // // TODO: not needed?
+          // // modify application.properties to trick Hedera Services into receiving an updated address book
+          // await self.bumpHederaConfigVersion(`${config.stagingDir}/templates/application.properties`)
 
           const subTasks = []
+          // TODO: still needed for copying keys?
           for (const nodeId of config.allNodeIds) {
             const podName = config.podNames[nodeId]
             subTasks.push({
@@ -1687,7 +1739,11 @@ export class NodeCommand extends BaseCommand {
         title: 'Starting nodes',
         task: (ctx, task) => {
           const subTasks = []
-          self.startNodes(ctx.config, ctx.config.allNodeIds, subTasks)
+          // TODO: only start new nodes?
+          // self.startNodes(ctx.config, ctx.config.allNodeIds, subTasks)
+          self.startNodes(ctx.config, ctx.config.nodeIds, subTasks)
+
+          // TODO: stake new node?
 
           // set up the sub-tasks
           return task.newListr(subTasks, {
@@ -1826,7 +1882,6 @@ export class NodeCommand extends BaseCommand {
       fs.writeFileSync(`${config.stagingDir}/update2.zip`, updateFileBinary)
 
       await sleep(50000000)
-
 
       const futureDate = new Date()
       this.logger.debug(`Current time: ${futureDate}`)
