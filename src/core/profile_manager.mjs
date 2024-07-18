@@ -172,6 +172,7 @@ export class ProfileManager {
       this.configManager.getFlag(flags.app),
       this.configManager.getFlag(flags.chainId))
 
+    // TODO: what about when overrides are provided through command options?
     this._setFileContentsAsValue('hedera.configMaps.configTxt', configTxtPath, yamlRoot)
     this._setFileContentsAsValue('hedera.configMaps.log4j2Xml', `${stagingDir}/templates/log4j2.xml`, yamlRoot)
     this._setFileContentsAsValue('hedera.configMaps.settingsTxt', `${stagingDir}/templates/settings.txt`, yamlRoot)
@@ -387,7 +388,7 @@ export class ProfileManager {
    * @returns {string} the config.txt file path
    */
   prepareConfigTxt (namespace, nodeAccountMap, destPath, releaseTag, appName = constants.HEDERA_APP_NAME, chainId = constants.HEDERA_CHAIN_ID, template = `${constants.RESOURCES_DIR}/templates/config.template`) {
-    if (!nodeAccountMap || nodeAccountMap.length === 0) throw new MissingArgumentError('nodeAccountMap the map of node IDs to account IDs is required')
+    if (!nodeAccountMap || nodeAccountMap.size === 0) throw new MissingArgumentError('nodeAccountMap the map of node IDs to account IDs is required')
     if (!template) throw new MissingArgumentError('config templatePath is required')
     if (!releaseTag) throw new MissingArgumentError('release tag is required')
 
