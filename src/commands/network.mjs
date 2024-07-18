@@ -40,9 +40,11 @@ export class NetworkCommand extends BaseCommand {
   static get DEPLOY_FLAGS_LIST () {
     return [
       flags.apiPermissionProperties,
+      flags.app,
       flags.applicationEnv,
       flags.applicationProperties,
       flags.bootstrapProperties,
+      flags.chainId,
       flags.chartDirectory,
       flags.deployHederaExplorer,
       flags.deployMirrorNode,
@@ -133,9 +135,11 @@ export class NetworkCommand extends BaseCommand {
     // disable the prompts that we don't want to prompt the user for
     prompts.disablePrompts([
       flags.apiPermissionProperties,
+      flags.app,
       flags.applicationEnv,
       flags.applicationProperties,
       flags.bootstrapProperties,
+      flags.chainId,
       flags.deployHederaExplorer,
       flags.deployMirrorNode,
       flags.hederaExplorerTlsLoadBalancerIp,

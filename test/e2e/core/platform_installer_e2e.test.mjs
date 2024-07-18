@@ -80,33 +80,6 @@ describe('PackageInstallerE2E', () => {
     }, 60000)
   })
 
-  describe('prepareConfigTxt', () => {
-    it('should succeed in generating config.txt', async () => {
-      const tmpDir = getTmpDir()
-      const configPath = `${tmpDir}/config.txt`
-      const nodeIDs = ['node0']
-      const chainId = '299'
-
-      const configLines = await installer.prepareConfigTxt(nodeIDs, configPath, packageVersion, chainId)
-
-      // verify format is correct
-      expect(configLines.length).toBe(4)
-      expect(configLines[0]).toBe(`swirld, ${chainId}`)
-      expect(configLines[1]).toBe(`app, ${constants.HEDERA_APP_NAME}`)
-      expect(configLines[2]).toContain('address, 0, node0, node0, 1')
-      expect(configLines[3]).toBe('nextNodeId, 1')
-
-      // verify the file exists
-      expect(fs.existsSync(configPath)).toBeTruthy()
-      const fileContents = fs.readFileSync(configPath).toString()
-
-      // verify file content matches
-      expect(fileContents).toBe(configLines.join('\n'))
-
-      fs.rmSync(tmpDir, { recursive: true })
-    }, defaultTimeout)
-  })
-
   describe('copyGossipKeys', () => {
     it('should succeed to copy legacy pfx gossip keys for node0', async () => {
       const podName = 'network-node0-0'

@@ -63,10 +63,8 @@ export class NodeCommand extends BaseCommand {
 
   static get SETUP_FLAGS_LIST () {
     return [
-      flags.app,
       flags.appConfig,
       flags.cacheDir,
-      flags.chainId,
       flags.devMode,
       flags.force,
       flags.generateGossipKeys,
@@ -100,7 +98,6 @@ export class NodeCommand extends BaseCommand {
 
   static get REFRESH_FLAGS_LIST () {
     return [
-      flags.app,
       flags.cacheDir,
       flags.devMode,
       flags.force,
@@ -117,6 +114,7 @@ export class NodeCommand extends BaseCommand {
 
   static get ADD_FLAGS_LIST () {
     return [
+      flags.app,
       flags.cacheDir,
       flags.chainId,
       flags.chartDirectory,
@@ -412,7 +410,6 @@ export class NodeCommand extends BaseCommand {
 
   async initializeSetup (config, configManager, k8) {
     // compute other config parameters
-    config.releasePrefix = Templates.prepareReleasePrefix(config.releaseTag)
     config.keysDir = path.join(validatePath(config.cacheDir), 'keys')
     config.stagingDir = Templates.renderStagingDir(
       configManager.getFlag(flags.cacheDir),
@@ -518,7 +515,6 @@ export class NodeCommand extends BaseCommand {
 
           // disable the prompts that we don't want to prompt the user for
           prompts.disablePrompts([
-            flags.app,
             flags.appConfig,
             flags.devMode,
             flags.force,
@@ -533,7 +529,6 @@ export class NodeCommand extends BaseCommand {
            * @property {string} app
            * @property {string} appConfig
            * @property {string} cacheDir
-           * @property {string} chainId
            * @property {boolean} devMode
            * @property {boolean} force
            * @property {boolean} generateGossipKeys
@@ -548,7 +543,6 @@ export class NodeCommand extends BaseCommand {
            * @property {string} keysDir
            * @property {string[]} nodeIds
            * @property {string[]} podNames
-           * @property {string} releasePrefix
            * @property {string} stagingDir
            * @property {string} stagingKeysDir
            * -- methods --
@@ -566,7 +560,6 @@ export class NodeCommand extends BaseCommand {
               'keysDir',
               'nodeIds',
               'podNames',
-              'releasePrefix',
               'stagingDir',
               'stagingKeysDir'
             ])
@@ -805,7 +798,7 @@ export class NodeCommand extends BaseCommand {
             }
           })
         },
-        skip: (ctx, _) => self.configManager.getFlag(flags.app) !== ''
+        skip: (ctx, _) => self.configManager.getFlag(flags.app) !== '' && self.configManager.getFlag(flags.app) !== constants.HEDERA_APP_NAME
       }], {
       concurrent: false,
       rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
@@ -1003,7 +996,6 @@ export class NodeCommand extends BaseCommand {
           self.configManager.update(argv)
           // disable the prompts that we don't want to prompt the user for
           prompts.disablePrompts([
-            flags.app,
             flags.devMode,
             flags.force
           ])
@@ -1013,7 +1005,6 @@ export class NodeCommand extends BaseCommand {
           /**
            * @typedef {Object} NodeRefreshConfigClass
            * -- flags --
-           * @property {string} app
            * @property {string} cacheDir
            * @property {boolean} devMode
            * @property {boolean} force
@@ -1025,7 +1016,6 @@ export class NodeCommand extends BaseCommand {
            * @property {string} keysDir
            * @property {string[]} nodeIds
            * @property {Object} podNames
-           * @property {string} releasePrefix
            * @property {string} stagingDir
            * @property {string} stagingKeysDir
            * -- methods --
@@ -1042,7 +1032,6 @@ export class NodeCommand extends BaseCommand {
               'keysDir',
               'nodeIds',
               'podNames',
-              'releasePrefix',
               'stagingDir',
               'stagingKeysDir'
             ])
@@ -1258,6 +1247,8 @@ export class NodeCommand extends BaseCommand {
 
           // disable the prompts that we don't want to prompt the user for
           prompts.disablePrompts([
+            flags.app,
+            flags.chainId,
             flags.chartDirectory,
             flags.devMode,
             flags.force,
@@ -1269,6 +1260,7 @@ export class NodeCommand extends BaseCommand {
           /**
            * @typedef {Object} NodeAddConfigClass
            * -- flags --
+           * @property {string} app
            * @property {string} cacheDir
            * @property {string} chainId
            * @property {string} chartDirectory
@@ -1288,7 +1280,6 @@ export class NodeCommand extends BaseCommand {
            * @property {string} keysDir
            * @property {string[]} nodeIds
            * @property {Object} podNames
-           * @property {string} releasePrefix
            * @property {Map<String, NetworkNodeServices>} serviceMap
            * @property {string} stagingDir
            * @property {string} stagingKeysDir
@@ -1309,7 +1300,6 @@ export class NodeCommand extends BaseCommand {
               'keysDir',
               'nodeIds',
               'podNames',
-              'releasePrefix',
               'serviceMap',
               'stagingDir',
               'stagingKeysDir'
@@ -1747,6 +1737,7 @@ export class NodeCommand extends BaseCommand {
             command: 'start',
             desc: 'Start a node',
             builder: y => flags.setCommandFlags(y,
+              flags.app,
               flags.namespace,
               flags.nodeIDs
             ),
