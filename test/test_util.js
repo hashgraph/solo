@@ -224,13 +224,8 @@ export function bootstrapNetwork (testName, argv,
       try {
         await expect(nodeCmd.setup(argv)).resolves.toBeTruthy()
         expect(nodeCmd.getUnusedConfigs(NodeCommand.SETUP_CONFIGS_NAME)).toEqual([
-          flags.apiPermissionProperties.constName,
           flags.appConfig.constName,
-          flags.applicationProperties.constName,
-          flags.bootstrapProperties.constName,
-          flags.devMode.constName,
-          flags.log4j2Xml.constName,
-          flags.settingTxt.constName
+          flags.devMode.constName
         ])
       } catch (e) {
         nodeCmd.logger.showUserError(e)

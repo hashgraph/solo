@@ -63,11 +63,8 @@ export class NodeCommand extends BaseCommand {
 
   static get SETUP_FLAGS_LIST () {
     return [
-      flags.apiPermissionProperties, // TODO move to `network deploy`
       flags.app,
       flags.appConfig,
-      flags.applicationProperties, // TODO move to `network deploy`
-      flags.bootstrapProperties, // TODO move to `network deploy`
       flags.cacheDir,
       flags.chainId,
       flags.devMode,
@@ -76,11 +73,9 @@ export class NodeCommand extends BaseCommand {
       flags.generateTlsKeys,
       flags.keyFormat,
       flags.localBuildPath,
-      flags.log4j2Xml, // TODO move to `network deploy`
       flags.namespace,
       flags.nodeIDs,
-      flags.releaseTag,
-      flags.settingTxt // TODO move to `network deploy`
+      flags.releaseTag
     ]
   }
 
@@ -122,9 +117,6 @@ export class NodeCommand extends BaseCommand {
 
   static get ADD_FLAGS_LIST () {
     return [
-      flags.apiPermissionProperties,
-      flags.applicationProperties,
-      flags.bootstrapProperties,
       flags.cacheDir,
       flags.chainId,
       flags.chartDirectory,
@@ -134,11 +126,9 @@ export class NodeCommand extends BaseCommand {
       flags.generateGossipKeys,
       flags.generateTlsKeys,
       flags.keyFormat,
-      flags.log4j2Xml,
       flags.namespace,
       flags.nodeIDs,
-      flags.releaseTag,
-      flags.settingTxt
+      flags.releaseTag
     ]
   }
 
@@ -423,7 +413,6 @@ export class NodeCommand extends BaseCommand {
   async initializeSetup (config, configManager, k8) {
     // compute other config parameters
     config.releasePrefix = Templates.prepareReleasePrefix(config.releaseTag)
-    config.buildZipFile = `${config.cacheDir}/${config.releasePrefix}/build-${config.releaseTag}.zip`
     config.keysDir = path.join(validatePath(config.cacheDir), 'keys')
     config.stagingDir = Templates.renderStagingDir(
       configManager.getFlag(flags.cacheDir),
@@ -531,16 +520,11 @@ export class NodeCommand extends BaseCommand {
 
           // disable the prompts that we don't want to prompt the user for
           prompts.disablePrompts([
-            flags.apiPermissionProperties,
             flags.app,
             flags.appConfig,
-            flags.applicationProperties,
-            flags.bootstrapProperties,
             flags.devMode,
             flags.force,
-            flags.localBuildPath,
-            flags.log4j2Xml,
-            flags.settingTxt
+            flags.localBuildPath
           ])
 
           await prompts.execute(task, self.configManager, NodeCommand.SETUP_FLAGS_LIST)
@@ -548,11 +532,8 @@ export class NodeCommand extends BaseCommand {
           /**
            * @typedef {Object} NodeSetupConfigClass
            * -- flags --
-           * @property {string} apiPermissionProperties
            * @property {string} app
            * @property {string} appConfig
-           * @property {string} applicationProperties
-           * @property {string} bootstrapProperties
            * @property {string} cacheDir
            * @property {string} chainId
            * @property {boolean} devMode
@@ -561,13 +542,10 @@ export class NodeCommand extends BaseCommand {
            * @property {boolean} generateTlsKeys
            * @property {string} keyFormat
            * @property {string} localBuildPath
-           * @property {string} log4j2Xml
            * @property {string} namespace
            * @property {string} nodeIDs
            * @property {string} releaseTag
-           * @property {string} settingTxt
            * -- extra args --
-           * @property {string} buildZipFile
            * @property {Date} curDate
            * @property {string} keysDir
            * @property {string[]} nodeIds
@@ -585,7 +563,6 @@ export class NodeCommand extends BaseCommand {
           // create a config object for subsequent steps
           const config = /** @type {NodeSetupConfigClass} **/ this.getConfig(NodeCommand.SETUP_CONFIGS_NAME, NodeCommand.SETUP_FLAGS_LIST,
             [
-              'buildZipFile',
               'curDate',
               'keysDir',
               'nodeIds',
@@ -693,7 +670,6 @@ export class NodeCommand extends BaseCommand {
               task: () =>
                 self.platformInstaller.taskInstall(
                   podName,
-                  ctx.config.buildZipFile,
                   ctx.config.stagingDir,
                   ctx.config.nodeIds,
                   ctx.config.keyFormat,
@@ -1045,7 +1021,6 @@ export class NodeCommand extends BaseCommand {
            * @property {string} nodeIDs
            * @property {string} releaseTag
            * -- extra args --
-           * @property {string} buildZipFile
            * @property {string} keysDir
            * @property {string[]} nodeIds
            * @property {Object} podNames
@@ -1063,7 +1038,6 @@ export class NodeCommand extends BaseCommand {
           // create a config object for subsequent steps
           ctx.config = /** @type {NodeRefreshConfigClass} **/ this.getConfig(NodeCommand.REFRESH_CONFIGS_NAME, NodeCommand.REFRESH_FLAGS_LIST,
             [
-              'buildZipFile',
               'keysDir',
               'nodeIds',
               'podNames',
@@ -1130,8 +1104,7 @@ export class NodeCommand extends BaseCommand {
             subTasks.push({
               title: `Node: ${chalk.yellow(nodeId)}`,
               task: () =>
-                self.platformInstaller.taskInstall(podName, config.buildZipFile,
-                  config.stagingDir, nodeList, config.keyFormat, config.force)
+                self.platformInstaller.taskInstall(podName, config.stagingDir, nodeList, config.keyFormat, config.force)
             })
           }
 
@@ -1283,15 +1256,10 @@ export class NodeCommand extends BaseCommand {
 
           // disable the prompts that we don't want to prompt the user for
           prompts.disablePrompts([
-            flags.apiPermissionProperties,
-            flags.applicationProperties,
-            flags.bootstrapProperties,
             flags.chartDirectory,
             flags.devMode,
             flags.force,
-            flags.fstChartVersion,
-            flags.log4j2Xml,
-            flags.settingTxt
+            flags.fstChartVersion
           ])
 
           await prompts.execute(task, self.configManager, NodeCommand.ADD_FLAGS_LIST)
@@ -1299,9 +1267,6 @@ export class NodeCommand extends BaseCommand {
           /**
            * @typedef {Object} NodeAddConfigClass
            * -- flags --
-           * @property {string} apiPermissionProperties
-           * @property {string} applicationProperties
-           * @property {string} bootstrapProperties
            * @property {string} cacheDir
            * @property {string} chainId
            * @property {string} chartDirectory
@@ -1311,14 +1276,11 @@ export class NodeCommand extends BaseCommand {
            * @property {boolean} generateGossipKeys
            * @property {boolean} generateTlsKeys
            * @property {string} keyFormat
-           * @property {string} log4j2Xml
            * @property {string} namespace
            * @property {string} nodeIDs
            * @property {string} releaseTag
-           * @property {string} settingTxt
            * -- extra args --
            * @property {string[]} allNodeIds
-           * @property {string} buildZipFile
            * @property {Date} curDate
            * @property {string[]} existingNodeIds
            * @property {string} keysDir
@@ -1340,7 +1302,6 @@ export class NodeCommand extends BaseCommand {
           const config = /** @type {NodeAddConfigClass} **/ this.getConfig(NodeCommand.ADD_CONFIGS_NAME, NodeCommand.ADD_FLAGS_LIST,
             [
               'allNodeIds',
-              'buildZipFile',
               'curDate',
               'existingNodeIds',
               'keysDir',
@@ -1564,7 +1525,7 @@ export class NodeCommand extends BaseCommand {
             subTasks.push({
               title: `Node: ${chalk.yellow(nodeId)}`,
               task: () =>
-                self.platformInstaller.taskInstall(podName, config.buildZipFile, config.stagingDir, config.allNodeIds, config.keyFormat, config.force)
+                self.platformInstaller.taskInstall(podName, config.stagingDir, config.allNodeIds, config.keyFormat, config.force)
             })
           }
 

@@ -248,22 +248,15 @@ export class PlatformInstaller {
    *   ${staging}/keys/a-<nodeId>.crt: agreement cert for a node
    *   ${staging}/keys/hedera-<nodeId>.key: gRPC TLS key for a node
    *   ${staging}/keys/hedera-<nodeId>.crt: gRPC TLS cert for a node
-   *   ${staging}/properties: contains all properties files
-   *   ${staging}/log4j2.xml: LOG4J file
-   *   ${staging}/settings.txt: settings.txt file for the network
-   *   ${staging}/config.txt: config.txt file for the network
    *
    * @param podName name of the pod
-   * @param buildZipFile path to the platform build.zip file
    * @param stagingDir staging directory path
    * @param nodeIds list of node ids
    * @param keyFormat key format (pfx or pem)
    * @param force force flag
    * @returns {Listr<ListrContext, ListrPrimaryRendererValue, ListrSecondaryRendererValue>}
    */
-  taskInstall (podName, buildZipFile, stagingDir, nodeIds, keyFormat = constants.KEY_FORMAT_PEM, force = false) {
-    // TODO: buildZipFile is not used, remove it from the signature
-    // TODO: make sure that application.properties is still being copied, it is now part of a configMap
+  taskInstall (podName, stagingDir, nodeIds, keyFormat = constants.KEY_FORMAT_PEM, force = false) {
     const self = this
     return new Listr([
       {
