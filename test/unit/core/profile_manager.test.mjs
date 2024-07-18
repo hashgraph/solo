@@ -27,7 +27,6 @@ import {
 } from '../../../src/core/index.mjs'
 import { getTestCacheDir, getTmpDir, testLogger } from '../../test_util.js'
 import * as version from '../../../version.mjs'
-import { MissingArgumentError } from '../../../src/core/errors.mjs'
 
 const tmpDir = getTmpDir()
 const configFile = path.join(tmpDir, 'resource-manager.config')
