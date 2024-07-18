@@ -33,6 +33,31 @@ export class NetworkCommand extends BaseCommand {
     this.profileManager = opts.profileManager
   }
 
+  static get DEPLOY_CONFIGS_NAME () {
+    return 'deployConfigs'
+  }
+
+  static get DEPLOY_FLAGS_LIST () {
+    return [
+      flags.applicationEnv,
+      flags.chartDirectory,
+      flags.deployHederaExplorer,
+      flags.deployMirrorNode,
+      flags.enableHederaExplorerTls,
+      flags.enablePrometheusSvcMonitor,
+      flags.fstChartVersion,
+      flags.hederaExplorerTlsHostName,
+      flags.hederaExplorerTlsLoadBalancerIp,
+      flags.namespace,
+      flags.nodeIDs,
+      flags.profileFile,
+      flags.profileName,
+      flags.releaseTag,
+      flags.tlsClusterIssuerType,
+      flags.valuesFile
+    ]
+  }
+
   getTlsValueArguments (tlsClusterIssuerType, enableHederaExplorerTls, namespace,
     hederaExplorerTlsLoadBalancerIp, hederaExplorerTlsHostName) {
     let valuesArg = ''
@@ -64,8 +89,8 @@ export class NetworkCommand extends BaseCommand {
 
   async prepareValuesArg (config = {}) {
     let valuesArg = ''
-    if (config.chartDir) {
-      valuesArg = `-f ${config.chartDir}/fullstack-deployment/values.yaml`
+    if (config.chartDirectory) {
+      valuesArg = `-f ${config.chartDirectory}/fullstack-deployment/values.yaml`
     }
 
     if (config.valuesFile) {
@@ -97,42 +122,57 @@ export class NetworkCommand extends BaseCommand {
   }
 
   async prepareConfig (task, argv) {
-    const flagList = [
-      flags.releaseTag, // we need it to determine which version of root image(Java17 or Java21) we should use
-      flags.namespace,
-      flags.nodeIDs,
-      flags.chartDirectory,
-      flags.valuesFile,
-      flags.tlsClusterIssuerType,
-      flags.enableHederaExplorerTls,
-      flags.hederaExplorerTlsHostName,
-      flags.enablePrometheusSvcMonitor,
-      flags.profileFile,
-      flags.profileName
-    ]
-
     this.configManager.update(argv)
     this.logger.debug('Loaded cached config', { config: this.configManager.config })
-    await prompts.execute(task, this.configManager, flagList)
+
+    // disable the prompts that we don't want to prompt the user for
+    prompts.disablePrompts([
+      flags.applicationEnv,
+      flags.deployHederaExplorer,
+      flags.deployMirrorNode,
+      flags.hederaExplorerTlsLoadBalancerIp
+    ])
+
+    await prompts.execute(task, this.configManager, NetworkCommand.DEPLOY_FLAGS_LIST)
+
+    /**
+     * @typedef {Object} NetworkDeployConfigClass
+     * -- flags --
+     * @property {string} applicationEnv
+     * @property {string} chartDirectory
+     * @property {boolean} deployHederaExplorer
+     * @property {boolean} deployMirrorNode
+     * @property {boolean} enableHederaExplorerTls
+     * @property {boolean} enablePrometheusSvcMonitor
+     * @property {string} fstChartVersion
+     * @property {string} hederaExplorerTlsHostName
+     * @property {string} hederaExplorerTlsLoadBalancerIp
+     * @property {string} namespace
+     * @property {string} nodeIDs
+     * @property {string} profileFile
+     * @property {string} profileName
+     * @property {string} releaseTag
+     * @property {string} tlsClusterIssuerType
+     * -- extra args --
+     * @property {string[]} nodeIds
+     * @property {string} chartPath
+     * @property {string} valuesArg
+     * -- methods --
+     * @property {getUnusedConfigs} getUnusedConfigs
+     */
+    /**
+     * @callback getUnusedConfigs
+     * @returns {string[]}
+     */
 
     // create a config object for subsequent steps
-    const config = {
-      releaseTag: this.configManager.getFlag(flags.releaseTag),
-      namespace: this.configManager.getFlag(flags.namespace),
-      nodeIds: helpers.parseNodeIds(this.configManager.getFlag(flags.nodeIDs)),
-      chartDir: this.configManager.getFlag(flags.chartDirectory),
-      fstChartVersion: this.configManager.getFlag(flags.fstChartVersion),
-      valuesFile: this.configManager.getFlag(flags.valuesFile),
-      tlsClusterIssuerType: this.configManager.getFlag(flags.tlsClusterIssuerType),
-      enableHederaExplorerTls: this.configManager.getFlag(flags.enableHederaExplorerTls),
-      hederaExplorerTlsHostName: this.configManager.getFlag(flags.hederaExplorerTlsHostName),
-      enablePrometheusSvcMonitor: this.configManager.getFlag(flags.enablePrometheusSvcMonitor),
-      applicationEnv: this.configManager.getFlag(flags.applicationEnv)
-    }
+    const config = /** @type {NetworkDeployConfigClass} **/ this.getConfig(NetworkCommand.DEPLOY_CONFIGS_NAME, NetworkCommand.DEPLOY_FLAGS_LIST,
+      ['nodeIds', 'chartPath', 'valuesArg'])
+
+    config.nodeIds = helpers.parseNodeIds(config.nodeIDs)
 
     // compute values
-    config.hederaExplorerTlsLoadBalancerIp = argv.hederaExplorerTlsLoadBalancerIp
-    config.chartPath = await this.prepareChartPath(config.chartDir,
+    config.chartPath = await this.prepareChartPath(config.chartDirectory,
       constants.FULLSTACK_TESTING_CHART, constants.FULLSTACK_DEPLOYMENT_CHART)
 
     config.valuesArg = await this.prepareValuesArg(config)
@@ -421,22 +461,7 @@ export class NetworkCommand extends BaseCommand {
           .command({
             command: 'deploy',
             desc: 'Deploy fullstack testing network',
-            builder: y => flags.setCommandFlags(y,
-              flags.releaseTag,
-              flags.namespace,
-              flags.nodeIDs,
-              flags.chartDirectory,
-              flags.valuesFile,
-              flags.tlsClusterIssuerType,
-              flags.enableHederaExplorerTls,
-              flags.hederaExplorerTlsLoadBalancerIp,
-              flags.hederaExplorerTlsHostName,
-              flags.enablePrometheusSvcMonitor,
-              flags.fstChartVersion,
-              flags.profileFile,
-              flags.profileName,
-              flags.applicationEnv
-            ),
+            builder: y => flags.setCommandFlags(y, ...NetworkCommand.DEPLOY_FLAGS_LIST),
             handler: argv => {
               networkCmd.logger.debug('==== Running \'network deploy\' ===')
               networkCmd.logger.debug(argv)
@@ -477,19 +502,7 @@ export class NetworkCommand extends BaseCommand {
           .command({
             command: 'refresh',
             desc: 'Refresh fullstack testing network deployment',
-            builder: y => flags.setCommandFlags(y,
-              flags.namespace,
-              flags.chartDirectory,
-              flags.valuesFile,
-              flags.deployMirrorNode,
-              flags.deployHederaExplorer,
-              flags.tlsClusterIssuerType,
-              flags.enableHederaExplorerTls,
-              flags.hederaExplorerTlsLoadBalancerIp,
-              flags.hederaExplorerTlsHostName,
-              flags.enablePrometheusSvcMonitor,
-              flags.applicationEnv
-            ),
+            builder: y => flags.setCommandFlags(y, ...NetworkCommand.DEPLOY_FLAGS_LIST),
             handler: argv => {
               networkCmd.logger.debug('==== Running \'chart upgrade\' ===')
               networkCmd.logger.debug(argv)

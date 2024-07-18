@@ -72,7 +72,7 @@ describe('RelayCommand', () => {
   ])('relay deploy and destroy should work with different number of relay nodes', async (input) => {
     argv[flags.nodeIDs.name] = input.relayNodes
     configManager.update(argv)
-    expect.assertions(2)
+    expect.assertions(3)
 
     // test relay deploy
     try {
@@ -81,7 +81,10 @@ describe('RelayCommand', () => {
       relayCmd.logger.showUserError(e)
       expect(e).toBeNull()
     }
-
+    expect(relayCmd.getUnusedConfigs(RelayCommand.DEPLOY_CONFIGS_NAME)).toEqual([
+      flags.profileFile.constName,
+      flags.profileName.constName
+    ])
     await sleep(500)
 
     // test relay destroy
