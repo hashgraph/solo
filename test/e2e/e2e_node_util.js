@@ -48,6 +48,7 @@ import path from 'path'
 import fs from 'fs'
 import crypto from 'crypto'
 import { ROOT_CONTAINER } from '../../src/core/constants.mjs'
+import { NodeCommand } from '../../src/commands/node.mjs'
 
 export function e2eNodeKeyRefreshAddTest (keyFormat, testName, mode, releaseTag = HEDERA_PLATFORM_VERSION_TAG) {
   const defaultTimeout = 120000
@@ -62,6 +63,7 @@ export function e2eNodeKeyRefreshAddTest (keyFormat, testName, mode, releaseTag 
     argv[flags.generateGossipKeys.name] = true
     argv[flags.generateTlsKeys.name] = true
     argv[flags.clusterName.name] = TEST_CLUSTER
+    argv[flags.devMode.name] = true
     // set the env variable SOLO_FST_CHARTS_DIR if developer wants to use local FST charts
     argv[flags.chartDirectory.name] = process.env.SOLO_FST_CHARTS_DIR ? process.env.SOLO_FST_CHARTS_DIR : undefined
 
@@ -77,7 +79,7 @@ export function e2eNodeKeyRefreshAddTest (keyFormat, testName, mode, releaseTag 
 
     afterAll(async () => {
       await getNodeLogs(k8, namespace)
-      await k8.deleteNamespace(namespace)
+      // await k8.deleteNamespace(namespace) // TODO revert
     }, 180000)
 
     describe(`Node should have started successfully [mode ${mode}, release ${releaseTag}, keyFormat: ${keyFormat}]`, () => {
@@ -238,6 +240,7 @@ export function e2eNodeKeyRefreshAddTest (keyFormat, testName, mode, releaseTag 
     it(`${nodeId} refresh should succeed`, async () => {
       try {
         await expect(nodeCmd.refresh(argv)).resolves.toBeTruthy()
+        expect(nodeCmd.getUnusedConfigs(NodeCommand.REFRESH_CONFIGS_NAME)).toEqual([flags.devMode.constName])
       } catch (e) {
         nodeCmd.logger.showUserError(e)
         expect(e).toBeNull()

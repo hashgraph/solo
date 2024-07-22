@@ -215,7 +215,6 @@ export async function getNodeLogs (k8, namespace) {
         const newPath = path.join(targetDir, `${timeString}-${file}`)
         fs.renameSync(oldPath, newPath)
       })
-
     } catch (e) {
       // not throw error here, so we can continue to finish downloading logs from other pods
       // and also delete namespace in the end

@@ -57,10 +57,10 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout Code
-        uses: actions/checkout@a5ac7e51b41094c92402da3b24376905380afc29 # v4.1.6
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
       - name: Setup Node
-        uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4.0.2
+        uses: actions/setup-node@1e60f620b9541d16bece96c5465dc8ee9832be0b # v4.0.3
         with:
           node-version: ${{ inputs.node-version }}
           cache: npm
@@ -73,28 +73,28 @@ jobs:
         run: npm test
 
       - name: Publish Windows Unit Test Report
-        uses: EnricoMi/publish-unit-test-result-action/windows/bash@30eadd5010312f995f0d3b3cff7fe2984f69409e # v2.16.1
+        uses: EnricoMi/publish-unit-test-result-action/windows/bash@567cc7f8dcea3eba5da355f6ebc95663310d8a07 # v2.17.0
         if: ${{ runner.os == 'Windows' && steps.npm-deps.conclusion == 'success' && !cancelled() }}
         with:
           check_name: 'Unit Test Results - ${{ runner.os }}'
           files: "junit.xml"
 
       - name: Publish Linux Unit Test Report
-        uses: EnricoMi/publish-unit-test-result-action@30eadd5010312f995f0d3b3cff7fe2984f69409e # v2.16.1
+        uses: EnricoMi/publish-unit-test-result-action@567cc7f8dcea3eba5da355f6ebc95663310d8a07 # v2.17.0
         if: ${{ runner.os == 'linux' && steps.npm-deps.conclusion == 'success' && !cancelled() }}
         with:
           check_name: 'Unit Test Results - ${{ runner.os }}'
           files: "junit.xml"
 
       - name: Publish Unit Test Coverage Report
-        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
+        uses: actions/upload-artifact@0b2256b8c012f0828dc542b3febcab082c67f72b # v4.3.4
         if: ${{ runner.os == 'linux' && !cancelled() }}
         with:
           name: Unit Test Coverage Report
           path: 'coverage/unit'
 
       - name: Publish Test Reports
-        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
+        uses: actions/upload-artifact@0b2256b8c012f0828dc542b3febcab082c67f72b # v4.3.4
         if: ${{ runner.os == 'linux' && steps.npm-deps.conclusion == 'success' && !cancelled() }}
         with:
           name: Test Reports

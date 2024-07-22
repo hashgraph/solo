@@ -46,7 +46,7 @@ import { AccountBalanceQuery } from '@hashgraph/sdk'
 
 export const testLogger = logging.NewLogger('debug', true)
 export const TEST_CLUSTER = 'solo-e2e'
-export const HEDERA_PLATFORM_VERSION_TAG = 'v0.51.0'
+export const HEDERA_PLATFORM_VERSION_TAG = 'v0.53.0-develop.xd2fbe98'
 
 export function getTestCacheDir (testName) {
   const baseDir = 'test/data/tmp'
@@ -205,13 +205,33 @@ export function bootstrapNetwork (testName, argv,
     }, 120000)
 
     it('should succeed with network deploy', async () => {
+      expect.assertions(1)
       await networkCmd.deploy(argv)
+
+      expect(networkCmd.getUnusedConfigs(NetworkCommand.DEPLOY_CONFIGS_NAME)).toEqual([
+        flags.deployHederaExplorer.constName,
+        flags.deployMirrorNode.constName,
+        flags.hederaExplorerTlsHostName.constName,
+        flags.hederaExplorerTlsLoadBalancerIp.constName,
+        flags.profileFile.constName,
+        flags.profileName.constName,
+        flags.tlsClusterIssuerType.constName
+      ])
     }, 180000)
 
     it('should succeed with node setup command', async () => {
-      expect.assertions(1)
+      expect.assertions(2)
       try {
         await expect(nodeCmd.setup(argv)).resolves.toBeTruthy()
+        expect(nodeCmd.getUnusedConfigs(NodeCommand.SETUP_CONFIGS_NAME)).toEqual([
+          flags.apiPermissionProperties.constName,
+          flags.appConfig.constName,
+          flags.applicationProperties.constName,
+          flags.bootstrapProperties.constName,
+          flags.devMode.constName,
+          flags.log4j2Xml.constName,
+          flags.settingTxt.constName
+        ])
       } catch (e) {
         nodeCmd.logger.showUserError(e)
         expect(e).toBeNull()

@@ -46,7 +46,7 @@ export const HEDERA_BUILDS_URL = 'https://builds.hedera.com'
 export const HEDERA_NODE_ACCOUNT_ID_START = AccountId.fromString(process.env.SOLO_NODE_ACCOUNT_ID_START || '0.0.3')
 export const HEDERA_NODE_INTERNAL_GOSSIP_PORT = process.env.SOLO_NODE_INTERNAL_GOSSIP_PORT || '50111'
 export const HEDERA_NODE_EXTERNAL_GOSSIP_PORT = process.env.SOLO_NODE_EXTERNAL_GOSSIP_PORT || '50111'
-export const HEDERA_NODE_DEFAULT_STAKE_AMOUNT = process.env.SOLO_NODE_DEFAULT_STAKE_AMOUNT || 1
+export const HEDERA_NODE_DEFAULT_STAKE_AMOUNT = process.env.SOLO_NODE_DEFAULT_STAKE_AMOUNT || 500
 
 // --------------- Charts related constants ----------------------------------------------------------------------------
 export const FULLSTACK_SETUP_NAMESPACE = 'fullstack-setup'
