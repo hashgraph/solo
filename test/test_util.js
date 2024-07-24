@@ -229,6 +229,7 @@ export function bootstrapNetwork (testName, argv,
           flags.applicationProperties.constName,
           flags.bootstrapProperties.constName,
           flags.devMode.constName,
+          flags.localBuildPath.constName,
           flags.log4j2Xml.constName,
           flags.settingTxt.constName
         ])
