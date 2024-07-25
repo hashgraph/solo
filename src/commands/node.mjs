@@ -912,29 +912,30 @@ export class NodeCommand extends BaseCommand {
           })
         },
         skip: (ctx, _) => self.configManager.getFlag(flags.app) !== ''
-      },
-      {
-        title: 'Add node stakes',
-        task: (ctx, task) => {
-          const subTasks = []
-          const accountMap = getNodeAccountMap(ctx.config.nodeIds)
-          for (const nodeId of ctx.config.nodeIds) {
-            const accountId = accountMap.get(nodeId)
-            subTasks.push({
-              title: `Adding stake for node: ${chalk.yellow(nodeId)}`,
-              task: () => self.addStake(ctx.config.namespace, accountId)
-            })
-          }
-
-          // set up the sub-tasks
-          return task.newListr(subTasks, {
-            concurrent: false,
-            rendererOptions: {
-              collapseSubtasks: false
-            }
-          })
-        }
-      }], {
+      }
+      // {
+      //   title: 'Add node stakes',
+      //   task: (ctx, task) => {
+      //     const subTasks = []
+      //     const accountMap = getNodeAccountMap(ctx.config.nodeIds)
+      //     for (const nodeId of ctx.config.nodeIds) {
+      //       const accountId = accountMap.get(nodeId)
+      //       subTasks.push({
+      //         title: `Adding stake for node: ${chalk.yellow(nodeId)}`,
+      //         task: () => self.addStake(ctx.config.namespace, accountId)
+      //       })
+      //     }
+      //
+      //     // set up the sub-tasks
+      //     return task.newListr(subTasks, {
+      //       concurrent: false,
+      //       rendererOptions: {
+      //         collapseSubtasks: false
+      //       }
+      //     })
+      //   }
+      // }
+      ], {
       concurrent: false,
       rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
     })
@@ -1586,23 +1587,23 @@ export class NodeCommand extends BaseCommand {
         task: async (ctx, parentTask) => {
           const config = ctx.config
           const subTasks = [
-            {
-              title: 'Copy configuration files',
-              task: () => {
-                for (const flag of flags.nodeConfigFileFlags.values()) {
-                  const filePath = self.configManager.getFlag(flag)
-                  if (!filePath) {
-                    throw new FullstackTestingError(`Configuration file path is missing for: ${flag.name}`)
-                  }
-
-                  const fileName = path.basename(filePath)
-                  const destPath = `${config.stagingDir}/templates/${fileName}`
-                  self.logger.debug(`Copying configuration file to staging: ${filePath} -> ${destPath}`)
-
-                  fs.cpSync(filePath, destPath, { force: true })
-                }
-              }
-            },
+            // {
+            //   title: 'Copy configuration files',
+            //   task: () => {
+            //     for (const flag of flags.nodeConfigFileFlags.values()) {
+            //       const filePath = self.configManager.getFlag(flag)
+            //       if (!filePath) {
+            //         throw new FullstackTestingError(`Configuration file path is missing for: ${flag.name}`)
+            //       }
+            //
+            //       const fileName = path.basename(filePath)
+            //       const destPath = `${config.stagingDir}/templates/${fileName}`
+            //       self.logger.debug(`Copying configuration file to staging: ${filePath} -> ${destPath}`)
+            //
+            //       fs.cpSync(filePath, destPath, { force: true })
+            //     }
+            //   }
+            // },
             {
               title: 'Copy Gossip keys to staging',
               task: async (ctx, _) => {
@@ -1620,19 +1621,19 @@ export class NodeCommand extends BaseCommand {
                   await self._copyNodeKeys(tlsKeyFiles, config.stagingKeysDir)
                 }
               }
-            },
-            {
-              // TODO: not needed?
-              // TODO: might need to read this from an existing node, at the perfect time, which is? after freeze prepare upgrade
-              // the config.txt to get is in the same directory where the upgradeArtifactsPath located, such as data/upgrade/current
-              title: 'Prepare config.txt for the network',
-              task: async (ctx, _) => {
-                const config = ctx.config
-                const configTxtPath = `${config.stagingDir}/config.txt`
-                const template = `${constants.RESOURCES_DIR}/templates/config.template`
-                await self.platformInstaller.prepareConfigTxt(config.allNodeIds, configTxtPath, config.releaseTag, config.chainId, template)
-              }
             }
+            // {
+            //   // TODO: not needed?
+            //   // TODO: might need to read this from an existing node, at the perfect time, which is? after freeze prepare upgrade
+            //   // the config.txt to get is in the same directory where the upgradeArtifactsPath located, such as data/upgrade/current
+            //   title: 'Prepare config.txt for the network',
+            //   task: async (ctx, _) => {
+            //     const config = ctx.config
+            //     const configTxtPath = `${config.stagingDir}/config.txt`
+            //     const template = `${constants.RESOURCES_DIR}/templates/config.template`
+            //     await self.platformInstaller.prepareConfigTxt(config.allNodeIds, configTxtPath, config.releaseTag, config.chainId, template)
+            //   }
+            // }
           ]
 
           return parentTask.newListr(subTasks, {
@@ -1656,8 +1657,31 @@ export class NodeCommand extends BaseCommand {
               const networkNodeServicesMap = await this.accountManager.getNodeServiceMap(config.namespace)
               const client = this.accountManager._nodeClient
 
-              for (const nodeId of config.nodeIds) {
-                const privateKeyFile = Templates.renderGossipPfxPrivateKeyFile(nodeId)
+              const accountMap = getNodeAccountMap(ctx.config.allNodeIds)
+
+
+
+              for (const nodeId of ctx.config.nodeIds) {
+
+                const accountId = accountMap.get(nodeId)
+
+                // get some initial balance
+                await this.accountManager.transferAmount(constants.TREASURY_ACCOUNT_ID, accountId, HEDERA_NODE_DEFAULT_STAKE_AMOUNT)
+
+                // check balance
+                const balance = await new AccountBalanceQuery()
+                  .setAccountId(accountId)
+                  .execute(client)
+                this.logger.debug(`Account ${accountId} balance: ${balance.hbars}`)
+
+                await sleep(2000)
+
+                let privateKeyFile
+                if (config.keyFormat === 'pfx') {
+                  privateKeyFile = Templates.renderGossipPfxPrivateKeyFileWithPrefix(constants.SIGNING_KEY_PREFIX, nodeId)
+                } else if (config.keyFormat === 'pem') {
+                  privateKeyFile = Templates.renderGossipPemPrivateKeyFile(constants.SIGNING_KEY_PREFIX, nodeId)
+                }
                 const privateKeyFullPath = `${config.stagingKeysDir}/${privateKeyFile}`
                 const privateKeyAsBuffer = fs.readFileSync(privateKeyFullPath)
                 const privateKeyAsUint8Array = new Uint8Array(privateKeyAsBuffer)
@@ -1836,36 +1860,16 @@ export class NodeCommand extends BaseCommand {
   }
 
   async freezeNetworkNodes (config) {
+    this.logger.debug('Freezing network nodes')
     await this.accountManager.loadNodeClient(config.namespace)
     const client = this.accountManager._nodeClient
 
     try {
+      // fetch special file
       const fileId = FileId.fromString('0.0.150')
-
-      // bundle config.txt and VERSION into a zip file
-      const versionFile = `${config.stagingDir}/VERSION`
-      fs.writeFileSync(versionFile, '0.2\n')
-      fs.appendFileSync(versionFile, `${new Date().toUTCString()}\n`)
-
-      // bundle config.txt and VERSIO into a zip file
-      const zipFile = `${config.stagingDir}/freeze.zip`
-      const zip = AdmZip('', {})
-      zip.addLocalFile(`${config.stagingDir}/VERSION`)
-      zip.addLocalFile(`${config.stagingDir}/config.txt`)
-      // get byte value of the zip file
-      const zipBytes = zip.toBuffer()
-      const zipHash = crypto.createHash('sha384').update(zipBytes).digest('hex')
-      // save zip file to local disk
-      fs.writeFileSync(zipFile, zipBytes)
-
-      this.logger.debug(`zipHash = ${zipHash} zipBytes.length = ${zipBytes.length}`)
-      // create a file upload transaction to upload file to the network
-      const fileTransaction = new FileUpdateTransaction()
-        .setFileId(fileId)
-        .setContents(zipBytes)
-
-      const fileTransactionReceipt = await fileTransaction.execute(client)
-      this.logger.debug(`fileTransactionReceipt = ${fileTransactionReceipt.toString()}`)
+      const fileQuery = new FileContentsQuery().setFileId(fileId)
+      const addressBookBytes = await fileQuery.execute(client)
+      const fileHash = crypto.createHash('sha384').update(addressBookBytes).digest('hex')
 
       const prepareUpgradeTx = await new FreezeTransaction()
         .setFreezeType(FreezeType.PrepareUpgrade)
@@ -1881,14 +1885,6 @@ export class NodeCommand extends BaseCommand {
           prepareUpgradeReceipt.status.toString()
       )
 
-      // TODO: split?  now we need to get the config.txt?
-
-      const fileQuery = new FileContentsQuery().setFileId(fileId)
-      const updateFileBinary = await fileQuery.execute(client)
-      // save updateFileBinary to a file
-      fs.writeFileSync(`${config.stagingDir}/update2.zip`, updateFileBinary)
-
-      await sleep(5000)
 
       const futureDate = new Date()
       this.logger.debug(`Current time: ${futureDate}`)
@@ -1911,14 +1907,14 @@ export class NodeCommand extends BaseCommand {
       this.logger.debug(`Upgrade frozen with transaction id: ${freezeUpgradeTx.transactionId.toString()}`,
         freezeUpgradeReceipt.status.toString())
 
-      // overwrite config.text fro all nodes except ctx.config.nodeIds
-      for (const nodeId of config.allNodeIds) {
-        if (!config.nodeIds.includes(nodeId)) {
-          const podName = config.podNames[nodeId]
-          this.logger.info(`copy config.txt for node =    ${nodeId}`)
-          await this.k8.copyTo(podName, constants.ROOT_CONTAINER, `${config.stagingDir}/config.txt`, `${constants.HEDERA_HAPI_PATH}/data/upgrade/current/`)
-        }
-      }
+      // // overwrite config.text fro all nodes except ctx.config.nodeIds
+      // for (const nodeId of config.allNodeIds) {
+      //   if (!config.nodeIds.includes(nodeId)) {
+      //     const podName = config.podNames[nodeId]
+      //     this.logger.info(`copy config.txt for node =    ${nodeId}`)
+      //     await this.k8.copyTo(podName, constants.ROOT_CONTAINER, `${config.stagingDir}/config.txt`, `${constants.HEDERA_HAPI_PATH}/data/upgrade/current/`)
+      //   }
+      // }
     } catch (e) {
       this.logger.error(`Error in freeze upgrade: ${e.message}`, e)
       throw new FullstackTestingError(`Error in freeze upgrade: ${e.message}`, e)

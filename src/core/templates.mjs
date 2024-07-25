@@ -46,6 +46,10 @@ export class Templates {
     return `private-${nodeId}.pfx`
   }
 
+  static renderGossipPfxPrivateKeyFileWithPrefix (prefix, nodeId) {
+    return `${prefix}-private-${nodeId}.pfx`
+  }
+
   static renderGossipPemPrivateKeyFile (prefix, nodeId) {
     // s-node0-key.pem
     return `${prefix}-private-${nodeId}.pem`
