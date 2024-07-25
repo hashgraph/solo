@@ -1678,7 +1678,7 @@ export class NodeCommand extends BaseCommand {
 
                 let privateKeyFile
                 if (config.keyFormat === 'pfx') {
-                  privateKeyFile = Templates.renderGossipPfxPrivateKeyFileWithPrefix(constants.SIGNING_KEY_PREFIX, nodeId)
+                  privateKeyFile = Templates.renderGossipPfxPrivateKeyFile(nodeId)
                 } else if (config.keyFormat === 'pem') {
                   privateKeyFile = Templates.renderGossipPemPrivateKeyFile(constants.SIGNING_KEY_PREFIX, nodeId)
                 }
@@ -1851,7 +1851,7 @@ export class NodeCommand extends BaseCommand {
     try {
       await tasks.run()
     } catch (e) {
-      throw new FullstackTestingError(`Error in setting up nodes: ${e.message}`, e)
+      throw new FullstackTestingError(`Error in add nodes: ${e.message}`, e)
     } finally {
       await self.close()
     }
