@@ -37,6 +37,7 @@ import * as version from '../../../version.mjs'
 import { getNodeLogs, sleep } from '../../../src/core/helpers.mjs'
 import path from 'path'
 import fs from 'fs'
+import { NetworkCommand } from '../../../src/commands/network.mjs'
 
 describe('NetworkCommand', () => {
   const testName = 'network-cmd-e2e'
@@ -79,7 +80,7 @@ describe('NetworkCommand', () => {
   })
 
   it('network deploy command should succeed', async () => {
-    expect.assertions(2)
+    expect.assertions(3)
     try {
       await expect(networkCmd.deploy(argv)).resolves.toBeTruthy()
 
@@ -89,6 +90,16 @@ describe('NetworkCommand', () => {
       // get list of pvc using k8 listPvcsByNamespace function and print to log
       const pvcs = await k8.listPvcsByNamespace(namespace)
       networkCmd.logger.showList('PVCs', pvcs)
+
+      expect(networkCmd.getUnusedConfigs(NetworkCommand.DEPLOY_CONFIGS_NAME)).toEqual([
+        flags.deployHederaExplorer.constName,
+        flags.deployMirrorNode.constName,
+        flags.hederaExplorerTlsHostName.constName,
+        flags.hederaExplorerTlsLoadBalancerIp.constName,
+        flags.profileFile.constName,
+        flags.profileName.constName,
+        flags.tlsClusterIssuerType.constName
+      ])
     } catch (e) {
       networkCmd.logger.showUserError(e)
       expect(e).toBeNull()
@@ -107,6 +118,7 @@ describe('NetworkCommand', () => {
   it('network destroy should success', async () => {
     argv[flags.deletePvcs.name] = true
     argv[flags.deleteSecrets.name] = true
+    argv[flags.force.name] = true
     configManager.update(argv, true)
 
     expect.assertions(4)

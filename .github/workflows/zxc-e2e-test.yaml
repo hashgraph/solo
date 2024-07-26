@@ -154,7 +154,7 @@ jobs:
 
       - name: Setup Gradle
         if: ${{ runner.os == 'linux' && inputs.npm-test-script == 'test-e2e-node-local-build' && !cancelled() && !failure() }}
-        uses: gradle/gradle-build-action@66535aaf56f831b35e3a8481c9c99b665b84dd45 # v3.4.2
+        uses: gradle/gradle-build-action@ac2d340dc04d9e1113182899e983b5400c17cda1 # v3.5.0
         with:
           cache-read-only: false
 
@@ -179,7 +179,7 @@ jobs:
 
       - name: Upload E2E Logs to GitHub
         if: ${{ !cancelled() }}
-        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
+        uses: actions/upload-artifact@0b2256b8c012f0828dc542b3febcab082c67f72b # v4.3.4
         with:
           name: solo-${{ inputs.npm-test-script }}.log
           path: ~/.solo/logs/*
@@ -187,7 +187,7 @@ jobs:
           if-no-files-found: error
 
       - name: Publish E2E Test Report
-        uses: EnricoMi/publish-unit-test-result-action@30eadd5010312f995f0d3b3cff7fe2984f69409e # v2.16.1
+        uses: EnricoMi/publish-unit-test-result-action@567cc7f8dcea3eba5da355f6ebc95663310d8a07 # v2.17.0
         if: ${{ steps.npm-deps.conclusion == 'success' && !cancelled() }}
         with:
           check_name: ${{ inputs.coverage-report-name }}
@@ -195,7 +195,7 @@ jobs:
           files: "junit-${{ inputs.coverage-subdirectory }}.xml"
 
       - name: Publish E2E Coverage Report
-        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
+        uses: actions/upload-artifact@0b2256b8c012f0828dc542b3febcab082c67f72b # v4.3.4
         if: ${{ !cancelled() }}
         with:
           name: ${{ inputs.coverage-report-name }}

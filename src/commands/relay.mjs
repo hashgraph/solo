@@ -33,6 +33,26 @@ export class RelayCommand extends BaseCommand {
     this.accountManager = opts.accountManager
   }
 
+  static get DEPLOY_CONFIGS_NAME () {
+    return 'deployConfigs'
+  }
+
+  static get DEPLOY_FLAGS_LIST () {
+    return [
+      flags.chainId,
+      flags.chartDirectory,
+      flags.namespace,
+      flags.nodeIDs,
+      flags.operatorId,
+      flags.operatorKey,
+      flags.profileFile,
+      flags.profileName,
+      flags.relayReleaseTag,
+      flags.replicaCount,
+      flags.valuesFile
+    ]
+  }
+
   async prepareValuesArg (valuesFile, nodeIDs, chainID, relayRelease, replicaCount, operatorID, operatorKey, namespace) {
     let valuesArg = ''
     if (valuesFile) {
@@ -92,9 +112,9 @@ export class RelayCommand extends BaseCommand {
 
     const networkNodeServicesMap = await this.accountManager.getNodeServiceMap(namespace)
     nodeIDs.forEach(nodeID => {
-      const nodeName = networkNodeServicesMap.get(nodeID).nodeName
+      const haProxyClusterIp = networkNodeServicesMap.get(nodeID).haProxyClusterIp
       const haProxyGrpcPort = networkNodeServicesMap.get(nodeID).haProxyGrpcPort
-      const networkKey = `network-${nodeName}:${haProxyGrpcPort}`
+      const networkKey = `${haProxyClusterIp}:${haProxyGrpcPort}`
       networkIds[networkKey] = accountMap.get(nodeID)
     })
 
@@ -125,33 +145,37 @@ export class RelayCommand extends BaseCommand {
 
           self.configManager.update(argv)
 
-          await prompts.execute(task, self.configManager, [
-            flags.chainId,
-            flags.chartDirectory,
-            flags.namespace,
-            flags.nodeIDs,
-            flags.operatorId,
-            flags.operatorKey,
-            flags.profileFile,
-            flags.profileName,
-            flags.relayReleaseTag,
-            flags.replicaCount,
-            flags.valuesFile
-          ])
+          await prompts.execute(task, self.configManager, RelayCommand.DEPLOY_FLAGS_LIST)
+
+          /**
+           * @typedef {Object} RelayDeployConfigClass
+           * -- flags --
+           * @property {string} chainId
+           * @property {string} chartDirectory
+           * @property {string} namespace
+           * @property {string} nodeIDs
+           * @property {string} operatorId
+           * @property {string} operatorKey
+           * @property {string} profileFile
+           * @property {string} profileName
+           * @property {string} relayReleaseTag
+           * @property {number} replicaCount
+           * @property {string} valuesFile
+           * -- extra args --
+           * @property {string[]} nodeIds
+           * -- methods --
+           * @property {getUnusedConfigs} getUnusedConfigs
+           */
+          /**
+           * @callback getUnusedConfigs
+           * @returns {string[]}
+           */
 
           // prompt if inputs are empty and set it in the context
-          ctx.config = {
-            chainId: self.configManager.getFlag(flags.chainId),
-            chartDir: self.configManager.getFlag(flags.chartDirectory),
-            namespace: self.configManager.getFlag(flags.namespace),
-            nodeIds: helpers.parseNodeIds(self.configManager.getFlag(flags.nodeIDs)),
-            operatorId: self.configManager.getFlag(flags.operatorId),
-            operatorKey: self.configManager.getFlag(flags.operatorKey),
-            relayRelease: self.configManager.getFlag(flags.relayReleaseTag),
-            replicaCount: self.configManager.getFlag(flags.replicaCount),
-            valuesFile: self.configManager.getFlag(flags.valuesFile)
-          }
+          ctx.config = /** @type {RelayDeployConfigClass} **/ this.getConfig(RelayCommand.DEPLOY_CONFIGS_NAME, RelayCommand.DEPLOY_FLAGS_LIST,
+            ['nodeIds'])
 
+          ctx.config.nodeIds = helpers.parseNodeIds(ctx.config.nodeIDs)
           ctx.releaseName = self.prepareReleaseName(ctx.config.nodeIds)
           ctx.isChartInstalled = await self.chartManager.isChartInstalled(ctx.config.namespace, ctx.releaseName)
 
@@ -161,12 +185,12 @@ export class RelayCommand extends BaseCommand {
       {
         title: 'Prepare chart values',
         task: async (ctx, _) => {
-          ctx.chartPath = await self.prepareChartPath(ctx.config.chartDir, constants.JSON_RPC_RELAY_CHART, constants.JSON_RPC_RELAY_CHART)
+          ctx.chartPath = await self.prepareChartPath(ctx.config.chartDirectory, constants.JSON_RPC_RELAY_CHART, constants.JSON_RPC_RELAY_CHART)
           ctx.valuesArg = await self.prepareValuesArg(
             ctx.config.valuesFile,
             ctx.config.nodeIds,
             ctx.config.chainId,
-            ctx.config.relayRelease,
+            ctx.config.relayReleaseTag,
             ctx.config.replicaCount,
             ctx.config.operatorId,
             ctx.config.operatorKey,
@@ -241,7 +265,7 @@ export class RelayCommand extends BaseCommand {
 
           // prompt if inputs are empty and set it in the context
           ctx.config = {
-            chartDir: self.configManager.getFlag(flags.chartDirectory),
+            chartDirectory: self.configManager.getFlag(flags.chartDirectory),
             namespace: self.configManager.getFlag(flags.namespace),
             nodeIds: helpers.parseNodeIds(self.configManager.getFlag(flags.nodeIDs))
           }
@@ -295,19 +319,7 @@ export class RelayCommand extends BaseCommand {
             command: 'deploy',
             desc: 'Deploy a JSON RPC relay',
             builder: y => {
-              flags.setCommandFlags(y,
-                flags.chainId,
-                flags.chartDirectory,
-                flags.namespace,
-                flags.nodeIDs,
-                flags.operatorId,
-                flags.operatorKey,
-                flags.profileFile,
-                flags.profileName,
-                flags.relayReleaseTag,
-                flags.replicaCount,
-                flags.valuesFile
-              )
+              flags.setCommandFlags(y, ...RelayCommand.DEPLOY_FLAGS_LIST)
             },
             handler: argv => {
               relayCmd.logger.debug("==== Running 'relay install' ===", { argv })
@@ -326,6 +338,7 @@ export class RelayCommand extends BaseCommand {
             command: 'destroy',
             desc: 'Destroy JSON RPC relay',
             builder: y => flags.setCommandFlags(y,
+              flags.chartDirectory,
               flags.namespace,
               flags.nodeIDs
             ),

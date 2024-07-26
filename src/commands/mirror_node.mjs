@@ -17,7 +17,7 @@
 import { ListrEnquirerPromptAdapter } from '@listr2/prompt-adapter-enquirer'
 import { Listr } from 'listr2'
 import { FullstackTestingError, IllegalArgumentError, MissingArgumentError } from '../core/errors.mjs'
-import { Templates, constants } from '../core/index.mjs'
+import { constants } from '../core/index.mjs'
 import { BaseCommand } from './base.mjs'
 import * as flags from './flags.mjs'
 import * as prompts from './prompts.mjs'
@@ -34,6 +34,22 @@ export class MirrorNodeCommand extends BaseCommand {
 
     this.accountManager = opts.accountManager
     this.profileManager = opts.profileManager
+  }
+
+  static get DEPLOY_CONFIGS_NAME () {
+    return 'deployConfigs'
+  }
+
+  static get DEPLOY_FLAGS_LIST () {
+    return [
+      flags.chartDirectory,
+      flags.deployHederaExplorer,
+      flags.fstChartVersion,
+      flags.namespace,
+      flags.profileFile,
+      flags.profileName,
+      flags.valuesFile
+    ]
   }
 
   async prepareValuesArg (valuesFile, deployHederaExplorer) {
@@ -62,24 +78,42 @@ export class MirrorNodeCommand extends BaseCommand {
         title: 'Initialize',
         task: async (ctx, task) => {
           self.configManager.update(argv)
-          await prompts.execute(task, self.configManager, [
-            flags.deployHederaExplorer,
-            flags.namespace,
-            flags.profileFile,
-            flags.profileName
+
+          // disable the prompts that we don't want to prompt the user for
+          prompts.disablePrompts([
+            flags.chartDirectory,
+            flags.fstChartVersion,
+            flags.valuesFile
           ])
 
-          ctx.config = {
-            chartDir: self.configManager.getFlag(flags.chartDirectory),
-            deployHederaExplorer: self.configManager.getFlag(flags.deployHederaExplorer),
-            fstChartVersion: this.configManager.getFlag(flags.fstChartVersion),
-            namespace: self.configManager.getFlag(flags.namespace)
-          }
+          await prompts.execute(task, self.configManager, MirrorNodeCommand.DEPLOY_FLAGS_LIST)
 
-          ctx.config.chartPath = await self.prepareChartPath(ctx.config.chartDir,
+          /**
+           * @typedef {Object} MirrorNodeDeployConfigClass
+           * -- flags --
+           * @property {string} chartDirectory
+           * @property {boolean} deployHederaExplorer
+           * @property {string} fstChartVersion
+           * @property {string} namespace
+           * @property {string} profileFile
+           * @property {string} profileName
+           * @property {string} valuesFile
+           * -- extra args --
+           * @property {string} chartPath
+           * @property {string} valuesArg
+           * -- methods --
+           * @property {getUnusedConfigs} getUnusedConfigs
+           */
+          /**
+           * @callback getUnusedConfigs
+           * @returns {string[]}
+           */
+
+          ctx.config = /** @type {MirrorNodeDeployConfigClass} **/ this.getConfig(MirrorNodeCommand.DEPLOY_CONFIGS_NAME, MirrorNodeCommand.DEPLOY_FLAGS_LIST,
+            ['chartPath', 'valuesArg'])
+
+          ctx.config.chartPath = await self.prepareChartPath(ctx.config.chartDirectory,
             constants.FULLSTACK_TESTING_CHART, constants.FULLSTACK_DEPLOYMENT_CHART)
-
-          ctx.config.stagingDir = Templates.renderStagingDir(self.configManager, flags)
 
           ctx.config.valuesArg = await self.prepareValuesArg(
             ctx.config.valuesFile,
@@ -264,15 +298,13 @@ export class MirrorNodeCommand extends BaseCommand {
           ])
 
           ctx.config = {
-            chartDir: self.configManager.getFlag(flags.chartDirectory),
+            chartDirectory: self.configManager.getFlag(flags.chartDirectory),
             fstChartVersion: this.configManager.getFlag(flags.fstChartVersion),
             namespace: self.configManager.getFlag(flags.namespace)
           }
 
-          ctx.config.chartPath = await self.prepareChartPath(ctx.config.chartDir,
+          ctx.config.chartPath = await self.prepareChartPath(ctx.config.chartDirectory,
             constants.FULLSTACK_TESTING_CHART, constants.FULLSTACK_DEPLOYMENT_CHART)
-
-          ctx.config.stagingDir = Templates.renderStagingDir(self.configManager, flags)
 
           ctx.config.valuesArg = ' --set hedera-mirror-node.enabled=false --set hedera-explorer.enabled=false'
 
@@ -344,12 +376,7 @@ export class MirrorNodeCommand extends BaseCommand {
           .command({
             command: 'deploy',
             desc: 'Deploy mirror-node and its components',
-            builder: y => flags.setCommandFlags(y,
-              flags.deployHederaExplorer,
-              flags.namespace,
-              flags.profileFile,
-              flags.profileName
-            ),
+            builder: y => flags.setCommandFlags(y, ...MirrorNodeCommand.DEPLOY_FLAGS_LIST),
             handler: argv => {
               mirrorNodeCmd.logger.debug('==== Running \'mirror-node deploy\' ===')
               mirrorNodeCmd.logger.debug(argv)
@@ -367,7 +394,9 @@ export class MirrorNodeCommand extends BaseCommand {
             command: 'destroy',
             desc: 'Destroy mirror-node components and database',
             builder: y => flags.setCommandFlags(y,
+              flags.chartDirectory,
               flags.force,
+              flags.fstChartVersion,
               flags.namespace
             ),
             handler: argv => {
