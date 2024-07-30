@@ -645,7 +645,7 @@ export const grpcEndpoints = {
 }
 
 /** @type {CommandFlag} **/
-export const endpointType= {
+export const endpointType = {
   constName: 'endpointType',
   name: 'endpoint-type',
   definition: {
@@ -683,15 +683,19 @@ export const allFlags = [
   ecdsaPrivateKey,
   enableHederaExplorerTls,
   enablePrometheusSvcMonitor,
+  endpointType,
   fstChartVersion,
   generateGossipKeys,
   generateTlsKeys,
+  gossipEndpoints,
+  grpcEndpoints,
   hederaExplorerTlsHostName,
   hederaExplorerTlsLoadBalancerIp,
   keyFormat,
   localBuildPath,
   log4j2Xml,
   namespace,
+  nodeID,
   nodeIDs,
   operatorId,
   operatorKey,
@@ -705,11 +709,7 @@ export const allFlags = [
   settingTxt,
   tlsClusterIssuerType,
   updateAccountKeys,
-  valuesFile,
-  nodeID,
-  gossipEndpoints,
-  grpcEndpoints,
-  endpointType,
+  valuesFile
 ]
 
 export const allFlagsMap = new Map(allFlags.map(f => [f.name, f]))
@@ -719,7 +719,7 @@ export const nodeConfigFileFlags = new Map([
   applicationProperties,
   bootstrapProperties,
   log4j2Xml,
-  settingTxt,
+  settingTxt
 ].map(f => [f.name, f]))
 
 export const integerFlags = new Map([replicaCount].map(f => [f.name, f]))

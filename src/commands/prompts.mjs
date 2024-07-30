@@ -412,7 +412,7 @@ export async function promptAmount (task, input) {
     flags.amount.name)
 }
 
-export async function promptNewNodeId(task, input) {
+export async function promptNewNodeId (task, input) {
   return await promptText(task, input,
     flags.nodeID.definition.defaultValue,
     'Enter the new node id: ',
@@ -420,7 +420,7 @@ export async function promptNewNodeId(task, input) {
     flags.nodeID.name)
 }
 
-export async function promptGossipEndpoints(task, input) {
+export async function promptGossipEndpoints (task, input) {
   return await promptText(task, input,
     flags.gossipEndpoints.definition.defaultValue,
     'Enter the gossip endpoints(comma separated): ',
@@ -428,7 +428,7 @@ export async function promptGossipEndpoints(task, input) {
     flags.gossipEndpoints.name)
 }
 
-export async function promptGrpcEndpoints(task, input) {
+export async function promptGrpcEndpoints (task, input) {
   return await promptText(task, input,
     flags.grpcEndpoints.definition.defaultValue,
     'Enter the gRPC endpoints(comma separated): ',
@@ -436,7 +436,7 @@ export async function promptGrpcEndpoints(task, input) {
     flags.grpcEndpoints.name)
 }
 
-export async function promptEndpointType(task, input) {
+export async function promptEndpointType (task, input) {
   return await promptText(task, input,
     flags.endpointType.definition.defaultValue,
     'Enter the endpoint type(IP or FQDN): ',

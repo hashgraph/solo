@@ -39,7 +39,7 @@ export function parseNodeIds (input) {
   return splitFlagInput(input, ',')
 }
 
-export function splitFlagInput(input, separator = ',') {
+export function splitFlagInput (input, separator = ',') {
   if (typeof input === 'string') {
     const items = []
     input.split(separator).forEach(s => {
@@ -241,14 +241,13 @@ export function getNodeAccountMap (nodeIDs) {
   return accountMap
 }
 
-export function parseIpAddressToUint8Array(ipAddress) {
-  const parts = ipAddress.split('.');
-  const uint8Array = new Uint8Array(4);
+export function parseIpAddressToUint8Array (ipAddress) {
+  const parts = ipAddress.split('.')
+  const uint8Array = new Uint8Array(4)
 
   for (let i = 0; i < 4; i++) {
-    uint8Array[i] = parseInt(parts[i], 10);
+    uint8Array[i] = parseInt(parts[i], 10)
   }
 
-  return uint8Array;
+  return uint8Array
 }
-

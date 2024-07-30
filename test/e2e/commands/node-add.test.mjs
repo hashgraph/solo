@@ -15,10 +15,9 @@
  *
  */
 import { describe, it } from '@jest/globals'
-import { bootstrapProperties } from '../../../src/commands/flags.mjs'
 import { flags } from '../../../src/commands/index.mjs'
 import { constants } from '../../../src/core/index.mjs'
-import { bootstrapNetwork, bootstrapTestVariables, getDefaultArgv } from '../../test_util.js'
+import { bootstrapTestVariables, getDefaultArgv } from '../../test_util.js'
 
 describe('Node add', () => {
   const TEST_NAMESPACE = 'node-add'
