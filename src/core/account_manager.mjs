@@ -79,7 +79,12 @@ export class AccountManager {
         publicKey: Base64.decode(secret.data.publicKey)
       }
     } else {
-      return null
+      // if it isn't in the secrets we can load genesis key
+      return {
+        accountId,
+        privateKey: constants.GENESIS_KEY,
+        publicKey: PrivateKey.fromStringED25519(constants.GENESIS_KEY).publicKey.toString()
+      }
     }
   }
 
@@ -92,18 +97,7 @@ export class AccountManager {
    */
   async getTreasuryAccountKeys (namespace) {
     // check to see if the treasure account is in the secrets
-    let accountInfo = await this.getAccountKeysFromSecret(constants.TREASURY_ACCOUNT_ID, namespace)
-
-    // if it isn't in the secrets we can load genesis key
-    if (!accountInfo) {
-      accountInfo = {
-        accountId: constants.TREASURY_ACCOUNT_ID,
-        privateKey: constants.GENESIS_KEY,
-        publicKey: PrivateKey.fromStringED25519(constants.GENESIS_KEY).publicKey.toString()
-      }
-    }
-
-    return accountInfo
+    return await this.getAccountKeysFromSecret(constants.TREASURY_ACCOUNT_ID, namespace)
   }
 
   /**
@@ -256,8 +250,7 @@ export class AccountManager {
   async getNodeServiceMap (namespace) {
     const labelSelector = 'fullstack.hedera.com/node-name'
 
-    /** @type {Map<String,NetworkNodeServicesBuilder>} **/
-    const serviceBuilderMap = new Map()
+    const serviceBuilderMap = /** @type {Map<String,NetworkNodeServicesBuilder>} **/ new Map()
 
     const serviceList = await this.k8.kubeClient.listNamespacedService(
       namespace, undefined, undefined, undefined, undefined, labelSelector)

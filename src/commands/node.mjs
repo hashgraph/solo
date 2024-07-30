@@ -44,7 +44,7 @@ import {
 import * as crypto from 'crypto'
 import {
   FREEZE_ADMIN_ACCOUNT,
-  HEDERA_NODE_DEFAULT_STAKE_AMOUNT
+  HEDERA_NODE_DEFAULT_STAKE_AMOUNT, TREASURY_ACCOUNT_ID
 } from '../core/constants.mjs'
 
 /**
@@ -655,9 +655,10 @@ export class NodeCommand extends BaseCommand {
     }
   }
 
-  async prepareUpgradeNetworkNodes (config, upgradeZipHash, client) {
+  async prepareUpgradeNetworkNodes (/** @type {NodeAddConfigClass} **/ config, upgradeZipHash, client) {
     try {
       // transfer some tiny amount to the freeze admin account
+      // TODO: if we do multiple adds, then it will keep adding more hbar to the freeze account instead of just checking to see if it has enough first
       await this.accountManager.transferAmount(constants.TREASURY_ACCOUNT_ID, FREEZE_ADMIN_ACCOUNT, 100000)
 
       // query the balance
@@ -668,8 +669,8 @@ export class NodeCommand extends BaseCommand {
 
       // set operator of freeze transaction as freeze admin account
       const accountKeys = await this.accountManager.getAccountKeysFromSecret(FREEZE_ADMIN_ACCOUNT, config.namespace)
-      const freezeAdminPrivateKey = accountKeys.privateKey
-      client.setOperator(FREEZE_ADMIN_ACCOUNT, freezeAdminPrivateKey)
+      config.freezeAdminPrivateKey = accountKeys.privateKey
+      client.setOperator(FREEZE_ADMIN_ACCOUNT, config.freezeAdminPrivateKey)
 
       const prepareUpgradeTx = await new FreezeTransaction()
         .setFreezeType(FreezeType.PrepareUpgrade)
@@ -690,7 +691,7 @@ export class NodeCommand extends BaseCommand {
     }
   }
 
-  async freezeUpgradeNetworkNodes (config, upgradeZipHash, client) {
+  async freezeUpgradeNetworkNodes (/** @type {NodeAddConfigClass} **/ config, upgradeZipHash, client) {
     try {
       const futureDate = new Date()
       this.logger.debug(`Current time: ${futureDate}`)
@@ -698,6 +699,7 @@ export class NodeCommand extends BaseCommand {
       futureDate.setTime(futureDate.getTime() + 5000) // 5 seconds in the future
       this.logger.debug(`Freeze time: ${futureDate}`)
 
+      client.setOperator(FREEZE_ADMIN_ACCOUNT, config.freezeAdminPrivateKey)
       const freezeUpgradeTx = await new FreezeTransaction()
         .setFreezeType(FreezeType.FreezeUpgrade)
         .setStartTimestamp(Timestamp.fromDate(futureDate))
@@ -1651,11 +1653,16 @@ export class NodeCommand extends BaseCommand {
            * @property {string} releaseTag
            * @property {string} settingTxt
            * -- extra args --
+           * @property {PrivateKey} adminKey
            * @property {string[]} allNodeIds
            * @property {string} buildZipFile
+           * @property {string} chartPath
            * @property {Date} curDate
            * @property {string[]} existingNodeIds
+           * @property {string} freezeAdminPrivateKey
+           * @property {ServiceEndpoint[]} grpcServiceEndpoints
            * @property {string} keysDir
+           * @property {string[]} nodeIds
            * @property {Object} podNames
            * @property {string} releasePrefix
            * @property {Map<String, NetworkNodeServices>} serviceMap
@@ -1672,11 +1679,16 @@ export class NodeCommand extends BaseCommand {
           // create a config object for subsequent steps
           const config = /** @type {NodeAddConfigClass} **/ this.getConfig(NodeCommand.ADD_CONFIGS_NAME, NodeCommand.ADD_FLAGS_LIST,
             [
+              'adminKey',
               'allNodeIds',
               'buildZipFile',
+              'chartPath',
               'curDate',
               'existingNodeIds',
+              'freezeAdminPrivateKey',
+              'grpcServiceEndpoints',
               'keysDir',
+              'nodeIds',
               'podNames',
               'releasePrefix',
               'serviceMap',
@@ -1686,6 +1698,7 @@ export class NodeCommand extends BaseCommand {
 
           config.curDate = new Date()
           config.existingNodeIds = []
+          config.nodeIds = [config.nodeId]
 
           if (config.keyFormat !== constants.KEY_FORMAT_PEM) {
             throw new FullstackTestingError('key type cannot be PFX')
@@ -1721,7 +1734,7 @@ export class NodeCommand extends BaseCommand {
         title: 'Determine new node account number',
         task: (ctx, task) => {
           const values = { hedera: { nodes: [] } }
-          let maxNum
+          let maxNum = 0
 
           for (/** @type {NetworkNodeServices} **/ const networkNodeServices of ctx.config.serviceMap.values()) {
             values.hedera.nodes.push({
@@ -1802,47 +1815,50 @@ export class NodeCommand extends BaseCommand {
       {
         title: 'Prepare gossip endpoints',
         task: (ctx, task) => {
+          const config = /** @type {NodeAddConfigClass} **/ ctx.config
           let endpoints = []
-          if (!ctx.config.gossipEndpoints) {
-            if (ctx.config.endpointType !== constants.ENDPOINT_TYPE_FQDN) {
+          if (!config.gossipEndpoints) {
+            if (config.endpointType !== constants.ENDPOINT_TYPE_FQDN) {
               throw new FullstackTestingError(`--gossip-endpoints must be set if --endpoint-type is: ${constants.ENDPOINT_TYPE_IP}`)
             }
 
             endpoints = [
-              `${Templates.renderFullyQualifiedNetworkPodName(ctx.config.namespace, ctx.config.nodeId)}:${constants.HEDERA_NODE_INTERNAL_GOSSIP_PORT}`,
-              `${Templates.renderFullyQualifiedNetworkSvcName(ctx.config.namespace, ctx.config.nodeId)}:${constants.HEDERA_NODE_EXTERNAL_GOSSIP_PORT}`
+              `${Templates.renderFullyQualifiedNetworkPodName(config.namespace, config.nodeId)}:${constants.HEDERA_NODE_INTERNAL_GOSSIP_PORT}`,
+              `${Templates.renderFullyQualifiedNetworkSvcName(config.namespace, config.nodeId)}:${constants.HEDERA_NODE_EXTERNAL_GOSSIP_PORT}`
             ]
           } else {
-            endpoints = helpers.splitFlagInput(ctx.config.gossipEndpoints)
+            endpoints = helpers.splitFlagInput(config.gossipEndpoints)
           }
 
-          ctx.gossipEndpoints = this.prepareEndpoints(ctx.config, endpoints, constants.HEDERA_NODE_INTERNAL_GOSSIP_PORT)
+          ctx.gossipEndpoints = this.prepareEndpoints(config, endpoints, constants.HEDERA_NODE_INTERNAL_GOSSIP_PORT)
         }
       },
       {
         title: 'Prepare grpc service endpoints',
         task: (ctx, task) => {
+          const config = /** @type {NodeAddConfigClass} **/ ctx.config
           let endpoints = []
 
-          if (!ctx.config.grpcServiceEndpoints) {
-            if (ctx.config.endpointType !== constants.ENDPOINT_TYPE_FQDN) {
+          if (!config.grpcServiceEndpoints) {
+            if (config.endpointType !== constants.ENDPOINT_TYPE_FQDN) {
               throw new FullstackTestingError(`--grpc-endpoints must be set if --endpoint-type is: ${constants.ENDPOINT_TYPE_IP}`)
             }
 
             endpoints = [
-              `${Templates.renderFullyQualifiedNetworkSvcName(ctx.config.namespace, ctx.config.nodeId)}:${constants.HEDERA_NODE_EXTERNAL_GOSSIP_PORT}`
+              `${Templates.renderFullyQualifiedNetworkSvcName(config.namespace, config.nodeId)}:${constants.HEDERA_NODE_EXTERNAL_GOSSIP_PORT}`
             ]
           } else {
-            endpoints = helpers.splitFlagInput(ctx.config.grpcServiceEndpoints)
+            endpoints = helpers.splitFlagInput(config.grpcServiceEndpoints)
           }
 
-          ctx.grpcServiceEndpoints = this.prepareEndpoints(ctx.config, endpoints, constants.HEDERA_NODE_EXTERNAL_GOSSIP_PORT)
+          ctx.grpcServiceEndpoints = this.prepareEndpoints(config, endpoints, constants.HEDERA_NODE_EXTERNAL_GOSSIP_PORT)
         }
       },
       {
         title: 'Load node admin key',
         task: async (ctx, task) => {
-          ctx.adminKey = PrivateKey.fromStringED25519(constants.GENESIS_KEY)
+          const config = /** @type {NodeAddConfigClass} **/ ctx.config
+          config.adminKey = PrivateKey.fromStringED25519(constants.GENESIS_KEY)
           // await accountManager.loadNodeClient(config.namespace)
           // const keys = await accountManager.getAccountKeys(constants.COUNCIL_ACCOUNT_ID)
           // if (keys && keys.length > 0 && keys[0].toString() !== constants.GENESIS_KEY) {
@@ -1851,19 +1867,39 @@ export class NodeCommand extends BaseCommand {
         }
       },
       {
+        title: 'Prepare upgrade zip file for node upgrade process',
+        task: async (ctx, task) => {
+          const config = /** @type {NodeAddConfigClass} **/ ctx.config
+          ctx.nodeClient = await this.accountManager.loadNodeClient(config.namespace)
+          ctx.upgradeZipFile = await this.prepareUpgradeZip(config)
+          ctx.upgradeZipHash = await this.uploadUpgradeZip(config, ctx.upgradeZipFile, ctx.nodeClient)
+        }
+      },
+      {
+        title: 'Send prepare upgrade transaction',
+        task: async (ctx, task) => {
+          const config = /** @type {NodeAddConfigClass} **/ ctx.config
+          await this.prepareUpgradeNetworkNodes(config, ctx.upgradeZipHash, ctx.nodeClient)
+        }
+      },
+      {
         title: 'Send node create transaction',
         task: async (ctx, task) => {
+          const config = /** @type {NodeAddConfigClass} **/ ctx.config
+
           try {
             const nodeClient = this.accountManager._nodeClient
+            nodeClient.setOperator(TREASURY_ACCOUNT_ID, config.adminKey.toString())
+
             const nodeCreateTx = await new NodeCreateTransaction()
               .setAccountId(ctx.newNode.accountId)
               .setGossipEndpoints(ctx.gossipEndpoints)
               .setServiceEndpoints(ctx.grpcServiceEndpoints)
               .setGossipCaCertificate(ctx.signingCertDer)
               .setCertificateHash(ctx.tlsCertHash)
-              .setAdminKey(ctx.adminKey.publicKey)
+              .setAdminKey(config.adminKey.publicKey)
               .freezeWith(nodeClient)
-            const signedTx = await nodeCreateTx.sign(ctx.adminKey)
+            const signedTx = await nodeCreateTx.sign(config.adminKey)
             const txResp = await signedTx.execute(nodeClient)
             const nodeCreateReceipt = await txResp.getReceipt(nodeClient)
             this.logger.debug(`NodeCreateReceipt: ${nodeCreateReceipt.toString()}`)
@@ -1873,30 +1909,18 @@ export class NodeCommand extends BaseCommand {
         }
       },
       {
-        title: 'Prepare upgrade zip file for node upgrade process',
-        task: async (ctx, task) => {
-          ctx.nodeClient = await this.accountManager.loadNodeClient(ctx.config.namespace)
-          ctx.upgradeZipFile = await this.prepareUpgradeZip(ctx.config)
-          ctx.upgradeZipHash = await this.uploadUpgradeZip(ctx.config, ctx.upgradeZipFile, ctx.nodeClient)
-        }
-      },
-      {
-        title: 'Send prepare upgrade transaction',
-        task: async (ctx, task) => {
-          await this.prepareUpgradeNetworkNodes(ctx.config, ctx.upgradeZipHash, ctx.nodeClient)
-        }
-      },
-      {
         title: 'Send freeze upgrade transaction',
         task: async (ctx, task) => {
-          await this.freezeUpgradeNetworkNodes(ctx.config, ctx.upgradeZipHash, ctx.nodeClient)
+          const config = /** @type {NodeAddConfigClass} **/ ctx.config
+          await this.freezeUpgradeNetworkNodes(config, ctx.upgradeZipHash, ctx.nodeClient)
         }
       },
       {
         title: 'Check network nodes are frozen',
         task: (ctx, task) => {
+          const config = /** @type {NodeAddConfigClass} **/ ctx.config
           const subTasks = []
-          for (const nodeId of ctx.config.existingNodeIds) {
+          for (const nodeId of config.existingNodeIds) {
             subTasks.push({
               title: `Check node: ${chalk.yellow(nodeId)}`,
               task: () => self.checkNetworkNodeState(nodeId, 100, 'FREEZE_COMPLETE')
@@ -1921,46 +1945,36 @@ export class NodeCommand extends BaseCommand {
       {
         title: 'Deploy new network node',
         task: async (ctx, task) => {
-          const index = ctx.existingNodeIds.length
-          const valuesArg = ` --set "hedera.nodes[${index}].accountId=${ctx.newNode.accountId}" --set "hedera.nodes[${index}].name=${ctx.newNode.name}"`
+          const config = /** @type {NodeAddConfigClass} **/ ctx.config
+          const index = config.existingNodeIds.length
+          let valuesArg = ''
+          for (let i = 0; i < index; i++) {
+            valuesArg += ` --set "hedera.nodes.${i}.accountId=${config.serviceMap.get(config.existingNodeIds[i]).accountId}" --set "hedera.nodes.${i}.name=${config.existingNodeIds[i]}"`
+          }
+          valuesArg += ` --set "hedera.nodes.${index}.accountId=${ctx.newNode.accountId}" --set "hedera.nodes.${index}.name=${ctx.newNode.name}"`
 
           await self.chartManager.upgrade(
-            ctx.config.namespace,
+            config.namespace,
             constants.FULLSTACK_DEPLOYMENT_CHART,
-            ctx.config.chartPath,
+            config.chartPath,
             valuesArg,
-            ctx.config.fstChartVersion
+            config.fstChartVersion
           )
 
-          ctx.config.allNodeIds = [...ctx.config.existingNodeIds, ctx.config.nodeId]
+          config.allNodeIds = [...config.existingNodeIds, config.nodeId]
         }
       },
       {
         title: 'Check new network node pod is running',
         task: async (ctx, task) => {
-          const subTasks = []
-          for (const nodeId of ctx.config.nodeIds) {
-            subTasks.push({
-              title: `Check new network pod: ${chalk.yellow(nodeId)}`,
-              task: async (ctx) => {
-                ctx.config.podNames[nodeId] = await this.checkNetworkNodePod(ctx.config.namespace, nodeId)
-              }
-            })
-          }
-
-          // setup the sub-tasks
-          return task.newListr(subTasks, {
-            concurrent: true,
-            rendererOptions: {
-              collapseSubtasks: false
-            }
-          })
+          const config = /** @type {NodeAddConfigClass} **/ ctx.config
+          config.podNames[config.nodeId] = await this.checkNetworkNodePod(config.namespace, config.nodeId)
         }
       },
       {
         title: 'Prepare staging directory',
         task: async (ctx, parentTask) => {
-          const config = ctx.config
+          const config = /** @type {NodeAddConfigClass} **/ ctx.config
           const subTasks = [
             {
               title: 'Copy configuration files',
@@ -1982,16 +1996,16 @@ export class NodeCommand extends BaseCommand {
             {
               title: 'Copy Gossip keys to staging',
               task: async (ctx, _) => {
-                const config = ctx.config
+                const config = /** @type {NodeAddConfigClass} **/ ctx.config
 
-                await this.copyGossipKeysToStaging(config, ctx.config.allNodeIds)
+                await this.copyGossipKeysToStaging(config, config.allNodeIds)
               }
             },
             {
               title: 'Copy gRPC TLS keys to staging',
               task: async (ctx, _) => {
-                const config = ctx.config
-                for (const nodeId of ctx.config.allNodeIds) {
+                const config = /** @type {NodeAddConfigClass} **/ ctx.config
+                for (const nodeId of config.allNodeIds) {
                   const tlsKeyFiles = self.keyManager.prepareTLSKeyFilePaths(nodeId, config.keysDir)
                   await self._copyNodeKeys(tlsKeyFiles, config.stagingKeysDir)
                 }
@@ -2003,7 +2017,7 @@ export class NodeCommand extends BaseCommand {
               // the config.txt to get is in the same directory where the upgradeArtifactsPath located, such as data/upgrade/current
               title: 'Prepare config.txt for the network',
               task: async (ctx, _) => {
-                const config = ctx.config
+                const config = /** @type {NodeAddConfigClass} **/ ctx.config
                 const configTxtPath = `${config.stagingDir}/config.txt`
                 const template = `${constants.RESOURCES_DIR}/templates/config.template`
                 await self.platformInstaller.prepareConfigTxt(config.allNodeIds, configTxtPath, config.releaseTag, config.chainId, template)
@@ -2027,7 +2041,7 @@ export class NodeCommand extends BaseCommand {
       {
         title: 'Setup new network node',
         task: async (ctx, parentTask) => {
-          const config = ctx.config
+          const config = /** @type {NodeAddConfigClass} **/ ctx.config
 
           // modify application.properties to trick Hedera Services into receiving an updated address book
           await self.bumpHederaConfigVersion(`${config.stagingDir}/templates/application.properties`)
@@ -2052,10 +2066,11 @@ export class NodeCommand extends BaseCommand {
       {
         title: 'Start network nodes',
         task: (ctx, task) => {
+          const config = /** @type {NodeAddConfigClass} **/ ctx.config
           const subTasks = []
           // TODO: only start new nodes?
           // self.startNodes(ctx.config, ctx.config.allNodeIds, subTasks)
-          self.startNodes(ctx.config, ctx.config.allNodeIds, subTasks)
+          self.startNodes(config, config.allNodeIds, subTasks)
 
           // TODO: stake new node?
 
@@ -2094,8 +2109,9 @@ export class NodeCommand extends BaseCommand {
         // this is more reliable than checking the nodes logs for ACTIVE, as the
         // logs will have a lot of white noise from being behind
         task: async (ctx, task) => {
+          const config = /** @type {NodeAddConfigClass} **/ ctx.config
           const subTasks = []
-          for (const nodeId of ctx.config.nodeIds) {
+          for (const nodeId of config.allNodeIds) {
             subTasks.push({
               title: `Check proxy for node: ${chalk.yellow(nodeId)}`,
               task: async () => await self.k8.waitForPodReady(

@@ -14,10 +14,15 @@
  * limitations under the License.
  *
  */
-import { describe, it } from '@jest/globals'
+import { afterAll, describe, it } from '@jest/globals'
 import { flags } from '../../../src/commands/index.mjs'
 import { constants } from '../../../src/core/index.mjs'
-import { bootstrapTestVariables, getDefaultArgv } from '../../test_util.js'
+import {
+  bootstrapNetwork,
+  getDefaultArgv,
+  HEDERA_PLATFORM_VERSION_TAG
+} from '../../test_util.js'
+import { getNodeLogs } from '../../../src/core/helpers.mjs'
 
 describe('Node add', () => {
   const TEST_NAMESPACE = 'node-add'
@@ -28,24 +33,24 @@ describe('Node add', () => {
   argv[flags.generateTlsKeys.name] = true
   // set the env variable SOLO_FST_CHARTS_DIR if developer wants to use local FST charts
   argv[flags.chartDirectory.name] = process.env.SOLO_FST_CHARTS_DIR ? process.env.SOLO_FST_CHARTS_DIR : undefined
-  argv[flags.releaseTag] = 'v0.53.0-develop.xd2fbe98'
+  argv[flags.releaseTag] = HEDERA_PLATFORM_VERSION_TAG
 
   argv[flags.namespace.name] = TEST_NAMESPACE
-  // const bootstrapResp = bootstrapNetwork(TEST_NAMESPACE, argv)
-  const bootstrapResp = bootstrapTestVariables(TEST_NAMESPACE, argv)
+  const bootstrapResp = bootstrapNetwork(TEST_NAMESPACE, argv)
+  // const bootstrapResp = bootstrapTestVariables(TEST_NAMESPACE, argv)
   const nodeCmd = bootstrapResp.cmd.nodeCmd
 
-  // afterAll(async () => {
-  //   await getNodeLogs(hederaK8, TEST_NAMESPACE)
+  afterAll(async () => {
+    await getNodeLogs(nodeCmd.k8, TEST_NAMESPACE)
   //   await hederaK8.deleteNamespace(TEST_NAMESPACE)
-  // }, 120000)
+  }, 120000)
 
   it('should add a new node to the network successfully', async () => {
-    argv[flags.nodeID.name] = 'lenin-1'
+    argv[flags.nodeID.name] = 'uniquenodename' // TODO: open an issue: node ID cannot have a hyphen, platform strips it out, also, can't have capital letters
     argv[flags.generateGossipKeys.name] = true
     argv[flags.generateTlsKeys.name] = true
     argv[flags.keyFormat.name] = constants.KEY_FORMAT_PEM
 
     await nodeCmd.add(argv)
-  })
+  }, 120000)
 })
