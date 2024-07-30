@@ -614,6 +614,47 @@ export const amount = {
   }
 }
 
+/** @type {CommandFlag} **/
+export const nodeID = {
+  constName: 'nodeId',
+  name: 'node-id',
+  definition: {
+    describe: 'Node id (e.g. node99)',
+    type: 'string'
+  }
+}
+
+/** @type {CommandFlag} **/
+export const gossipEndpoints = {
+  constName: 'gossipEndpoints',
+  name: 'gossip-endpoints',
+  definition: {
+    describe: 'Comma separated gossip endpoints of the node(e.g. first one is internal, second one is external)',
+    type: 'string'
+  }
+}
+
+/** @type {CommandFlag} **/
+export const grpcEndpoints = {
+  constName: 'grpcEndpoints',
+  name: 'grpc-endpoints',
+  definition: {
+    describe: 'Comma separated gRPC endpoints of the node (at most 8)',
+    type: 'string'
+  }
+}
+
+/** @type {CommandFlag} **/
+export const endpointType= {
+  constName: 'endpointType',
+  name: 'endpoint-type',
+  definition: {
+    describe: 'Endpoint type (IP or FQDN)',
+    defaultValue: constants.ENDPOINT_TYPE_FQDN,
+    type: 'string'
+  }
+}
+
 /** @type {CommandFlag[]} **/
 export const allFlags = [
   accountId,
@@ -664,7 +705,11 @@ export const allFlags = [
   settingTxt,
   tlsClusterIssuerType,
   updateAccountKeys,
-  valuesFile
+  valuesFile,
+  nodeID,
+  gossipEndpoints,
+  grpcEndpoints,
+  endpointType,
 ]
 
 export const allFlagsMap = new Map(allFlags.map(f => [f.name, f]))
@@ -674,7 +719,7 @@ export const nodeConfigFileFlags = new Map([
   applicationProperties,
   bootstrapProperties,
   log4j2Xml,
-  settingTxt
+  settingTxt,
 ].map(f => [f.name, f]))
 
 export const integerFlags = new Map([replicaCount].map(f => [f.name, f]))

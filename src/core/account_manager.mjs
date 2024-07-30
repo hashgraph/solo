@@ -167,6 +167,8 @@ export class AccountManager {
       this._nodeClient = await this._getNodeClient(namespace,
         networkNodeServicesMap, treasuryAccountInfo.accountId, treasuryAccountInfo.privateKey)
     }
+
+    return this._nodeClient
   }
 
   /**
@@ -478,12 +480,9 @@ export class AccountManager {
   async getAccountKeys (accountId) {
     const accountInfo = await this.accountInfoQuery(accountId)
 
-    let keys
+    let keys = []
     if (accountInfo.key instanceof KeyList) {
       keys = accountInfo.key.toArray()
-    } else {
-      keys = []
-      keys.push(accountInfo.key)
     }
 
     return keys

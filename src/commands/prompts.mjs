@@ -412,6 +412,38 @@ export async function promptAmount (task, input) {
     flags.amount.name)
 }
 
+export async function promptNewNodeId(task, input) {
+  return await promptText(task, input,
+    flags.nodeID.definition.defaultValue,
+    'Enter the new node id: ',
+    null,
+    flags.nodeID.name)
+}
+
+export async function promptGossipEndpoints(task, input) {
+  return await promptText(task, input,
+    flags.gossipEndpoints.definition.defaultValue,
+    'Enter the gossip endpoints(comma separated): ',
+    null,
+    flags.gossipEndpoints.name)
+}
+
+export async function promptGrpcEndpoints(task, input) {
+  return await promptText(task, input,
+    flags.grpcEndpoints.definition.defaultValue,
+    'Enter the gRPC endpoints(comma separated): ',
+    null,
+    flags.grpcEndpoints.name)
+}
+
+export async function promptEndpointType(task, input) {
+  return await promptText(task, input,
+    flags.endpointType.definition.defaultValue,
+    'Enter the endpoint type(IP or FQDN): ',
+    null,
+    flags.endpointType.name)
+}
+
 export function getPromptMap () {
   return new Map()
     .set(flags.accountId.name, promptAccountId)
@@ -449,6 +481,10 @@ export function getPromptMap () {
     .set(flags.tlsClusterIssuerType.name, promptTlsClusterIssuerType)
     .set(flags.updateAccountKeys.name, promptUpdateAccountKeys)
     .set(flags.valuesFile.name, promptValuesFile)
+    .set(flags.nodeID.name, promptNewNodeId)
+    .set(flags.gossipEndpoints.name, promptGossipEndpoints)
+    .set(flags.grpcEndpoints.name, promptGrpcEndpoints)
+    .set(flags.endpointType.name, promptEndpointType)
 }
 
 // build the prompt registry

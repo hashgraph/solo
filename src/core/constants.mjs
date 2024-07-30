@@ -14,7 +14,7 @@
  * limitations under the License.
  *
  */
-import { AccountId } from '@hashgraph/sdk'
+import { AccountId, FileId } from '@hashgraph/sdk'
 import { color, PRESET_TIMER } from 'listr2'
 import { dirname, normalize } from 'path'
 import { fileURLToPath } from 'url'
@@ -68,6 +68,7 @@ export const OPERATOR_ID = process.env.SOLO_OPERATOR_ID || '0.0.2'
 export const OPERATOR_KEY = process.env.SOLO_OPERATOR_KEY || '302e020100300506032b65700422042091132178e72057a1d7528025956fe39b0b847f200ab59b2fdd367017f3087137'
 export const OPERATOR_PUBLIC_KEY = process.env.SOLO_OPERATOR_PUBLIC_KEY || '302a300506032b65700321000aa8e21064c61eab86e2a9c164565b4e7a9a4146106e0a6cd03a8c395a110e92'
 export const TREASURY_ACCOUNT_ID = `${HEDERA_NODE_ACCOUNT_ID_START.realm}.${HEDERA_NODE_ACCOUNT_ID_START.shard}.2`
+export const COUNCIL_ACCOUNT_ID = `${HEDERA_NODE_ACCOUNT_ID_START.realm}.${HEDERA_NODE_ACCOUNT_ID_START.shard}.55`
 export const GENESIS_KEY = process.env.GENESIS_KEY || '302e020100300506032b65700422042091132178e72057a1d7528025956fe39b0b847f200ab59b2fdd367017f3087137'
 export const SYSTEM_ACCOUNTS = [[3, 100], [200, 349], [400, 750], [900, 1000]] // do account 0.0.2 last and outside the loop
 export const TREASURY_ACCOUNT = 2
@@ -135,3 +136,12 @@ export const NODE_CLIENT_MAX_ATTEMPTS = process.env.NODE_CLIENT_MAX_ATTEMPTS || 
 export const NODE_CLIENT_MIN_BACKOFF = process.env.NODE_CLIENT_MIN_BACKOFF || 1000
 export const NODE_CLIENT_MAX_BACKOFF = process.env.NODE_CLIENT_MAX_BACKOFF || 1000
 export const NODE_CLIENT_REQUEST_TIMEOUT = process.env.NODE_CLIENT_REQUEST_TIMEOUT || 120000
+
+// ---- New Node Related ----
+export const ENDPOINT_TYPE_IP = 'IP'
+export const ENDPOINT_TYPE_FQDN = 'FQDN'
+
+// file-id must be between 0.0.150 and 0.0.159
+// file must be uploaded using FileUpdateTransaction in maximum of 5Kb chunks
+export const UPGRADE_FILE_ID = FileId.fromString('0.0.150')
+export const UPGRADE_FILE_CHUNK_SIZE = 1024 * 5 // 5Kb
