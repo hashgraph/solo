@@ -39,10 +39,11 @@ import {
   Timestamp,
   PrivateKey,
   AccountId,
-  NodeCreateTransaction,
+  NodeCreateTransaction
 } from '@hashgraph/sdk'
 import * as crypto from 'crypto'
 import {
+  FREEZE_ADMIN_ACCOUNT,
   HEDERA_NODE_DEFAULT_STAKE_AMOUNT
 } from '../core/constants.mjs'
 
@@ -139,19 +140,19 @@ export class NodeCommand extends BaseCommand {
       flags.chainId,
       flags.chartDirectory,
       flags.devMode,
+      flags.endpointType,
       flags.force,
       flags.fstChartVersion,
       flags.generateGossipKeys,
       flags.generateTlsKeys,
+      flags.gossipEndpoints,
+      flags.grpcEndpoints,
       flags.keyFormat,
       flags.log4j2Xml,
       flags.namespace,
-      flags.releaseTag,
-      flags.settingTxt,
       flags.nodeID,
-      flags.gossipEndpoints,
-      flags.grpcEndpoints,
-      flags.endpointType
+      flags.releaseTag,
+      flags.settingTxt
     ]
   }
 
@@ -392,9 +393,9 @@ export class NodeCommand extends BaseCommand {
 
       case constants.KEY_FORMAT_PEM: {
         subTasks.push({
-            title: 'Backup old files',
-            task: () => helpers.backupOldPemKeys(nodeIds, keysDir, curDate)
-          }
+          title: 'Backup old files',
+          task: () => helpers.backupOldPemKeys(nodeIds, keysDir, curDate)
+        }
         )
 
         for (const nodeId of nodeIds) {
@@ -443,9 +444,9 @@ export class NodeCommand extends BaseCommand {
     const subTasks = []
 
     subTasks.push({
-        title: 'Backup old files',
-        task: () => helpers.backupOldTlsKeys(nodeIds, keysDir, curDate)
-      }
+      title: 'Backup old files',
+      task: () => helpers.backupOldTlsKeys(nodeIds, keysDir, curDate)
+    }
     )
 
     for (const nodeId of nodeIds) {
@@ -590,7 +591,7 @@ export class NodeCommand extends BaseCommand {
     const zipper = new Zippy(this.logger)
     const upgradeConfigDir = `${config.stagingDir}/mock-upgrade/data/config`
     if (!fs.existsSync(upgradeConfigDir)) {
-      fs.mkdirSync(upgradeConfigDir, {recursive: true})
+      fs.mkdirSync(upgradeConfigDir, { recursive: true })
     }
     // const fileList = ['templates/application.properties']
     // fileList.forEach(filePath => {
@@ -656,6 +657,20 @@ export class NodeCommand extends BaseCommand {
 
   async prepareUpgradeNetworkNodes (config, upgradeZipHash, client) {
     try {
+      // transfer some tiny amount to the freeze admin account
+      await this.accountManager.transferAmount(constants.TREASURY_ACCOUNT_ID, FREEZE_ADMIN_ACCOUNT, 100000)
+
+      // query the balance
+      const balance = await new AccountBalanceQuery()
+        .setAccountId(FREEZE_ADMIN_ACCOUNT)
+        .execute(this.accountManager._nodeClient)
+      this.logger.debug(`Freeze admin account balance: ${balance.hbars}`)
+
+      // set operator of freeze transaction as freeze admin account
+      const accountKeys = await this.accountManager.getAccountKeysFromSecret(FREEZE_ADMIN_ACCOUNT, config.namespace)
+      const freezeAdminPrivateKey = accountKeys.privateKey
+      client.setOperator(FREEZE_ADMIN_ACCOUNT, freezeAdminPrivateKey)
+
       const prepareUpgradeTx = await new FreezeTransaction()
         .setFreezeType(FreezeType.PrepareUpgrade)
         .setFileId(constants.UPGRADE_FILE_ID)
@@ -667,7 +682,7 @@ export class NodeCommand extends BaseCommand {
 
       this.logger.debug(
         `sent prepare upgrade transaction [id: ${prepareUpgradeTx.transactionId.toString()}]`,
-        prepareUpgradeReceipt.status.toString(),
+        prepareUpgradeReceipt.status.toString()
       )
     } catch (e) {
       this.logger.error(`Error in prepare upgrade: ${e.message}`, e)
@@ -691,7 +706,9 @@ export class NodeCommand extends BaseCommand {
         .freezeWith(client)
         .execute(client)
 
-      this.logger.debug('send freeze-upgrade transaction')
+      const freezeUpgradeReceipt = await freezeUpgradeTx.getReceipt(client)
+      this.logger.debug(`Upgrade frozen with transaction id: ${freezeUpgradeTx.transactionId.toString()}`,
+        freezeUpgradeReceipt.status.toString())
     } catch (e) {
       this.logger.error(`Error in freeze upgrade: ${e.message}`, e)
       throw new FullstackTestingError(`Error in freeze upgrade: ${e.message}`, e)
@@ -771,13 +788,13 @@ export class NodeCommand extends BaseCommand {
 
       if (config.endpointType.toUpperCase() === constants.ENDPOINT_TYPE_IP) {
         ret.push(new ServiceEndpoint({
-          port: port,
-          ipAddressV4: helpers.parseIpAddressToUint8Array(url),
+          port,
+          ipAddressV4: helpers.parseIpAddressToUint8Array(url)
         }))
       } else {
         ret.push(new ServiceEndpoint({
-          port: port,
-          domainName: url,
+          port,
+          domainName: url
         }))
       }
     }
@@ -849,17 +866,17 @@ export class NodeCommand extends BaseCommand {
            * @returns {string[]}
            */
 
-            // create a config object for subsequent steps
+          // create a config object for subsequent steps
           const config = /** @type {NodeSetupConfigClass} **/ this.getConfig(NodeCommand.SETUP_CONFIGS_NAME, NodeCommand.SETUP_FLAGS_LIST,
-              [
-                'buildZipFile',
-                'curDate',
-                'keysDir',
-                'nodeIds',
-                'releasePrefix',
-                'stagingDir',
-                'stagingKeysDir'
-              ])
+            [
+              'buildZipFile',
+              'curDate',
+              'keysDir',
+              'nodeIds',
+              'releasePrefix',
+              'stagingDir',
+              'stagingKeysDir'
+            ])
 
           config.nodeIds = helpers.parseNodeIds(config.nodeIDs)
           config.curDate = new Date()
@@ -1256,13 +1273,13 @@ export class NodeCommand extends BaseCommand {
            * @returns {string[]}
            */
 
-            // create a config object for subsequent steps
+          // create a config object for subsequent steps
           const config = /** @type {NodeKeysConfigClass} **/ this.getConfig(NodeCommand.SETUP_CONFIGS_NAME, NodeCommand.SETUP_FLAGS_LIST,
-              [
-                'curDate',
-                'keysDir',
-                'nodeIds'
-              ])
+            [
+              'curDate',
+              'keysDir',
+              'nodeIds'
+            ])
 
           config.curDate = new Date()
           config.nodeIds = helpers.parseNodeIds(config.nodeIDs)
@@ -1599,13 +1616,13 @@ export class NodeCommand extends BaseCommand {
             flags.bootstrapProperties,
             flags.chartDirectory,
             flags.devMode,
+            flags.endpointType,
             flags.force,
             flags.fstChartVersion,
-            flags.log4j2Xml,
-            flags.settingTxt,
             flags.gossipEndpoints,
             flags.grpcEndpoints,
-            flags.endpointType,
+            flags.log4j2Xml,
+            flags.settingTxt
           ])
 
           await prompts.execute(task, self.configManager, NodeCommand.ADD_FLAGS_LIST)
@@ -1620,26 +1637,25 @@ export class NodeCommand extends BaseCommand {
            * @property {string} chainId
            * @property {string} chartDirectory
            * @property {boolean} devMode
+           * @property {string} endpointType
            * @property {boolean} force
            * @property {string} fstChartVersion
            * @property {boolean} generateGossipKeys
            * @property {boolean} generateTlsKeys
+           * @property {string} gossipEndpoints
+           * @property {string} grpcEndpoints
            * @property {string} keyFormat
            * @property {string} log4j2Xml
            * @property {string} namespace
+           * @property {string} nodeId
            * @property {string} releaseTag
            * @property {string} settingTxt
-           * @property {string} nodeId
-           * @property {string} gossipEndpoints
-           * @property {string} grpcEndpoints
-           * @property {string} endpointType
            * -- extra args --
            * @property {string[]} allNodeIds
            * @property {string} buildZipFile
            * @property {Date} curDate
            * @property {string[]} existingNodeIds
            * @property {string} keysDir
-           * @property {string[]} nodeIds
            * @property {Object} podNames
            * @property {string} releasePrefix
            * @property {Map<String, NetworkNodeServices>} serviceMap
@@ -1653,21 +1669,20 @@ export class NodeCommand extends BaseCommand {
            * @returns {string[]}
            */
 
-            // create a config object for subsequent steps
+          // create a config object for subsequent steps
           const config = /** @type {NodeAddConfigClass} **/ this.getConfig(NodeCommand.ADD_CONFIGS_NAME, NodeCommand.ADD_FLAGS_LIST,
-              [
-                'allNodeIds',
-                'buildZipFile',
-                'curDate',
-                'existingNodeIds',
-                'keysDir',
-                'nodeIds',
-                'podNames',
-                'releasePrefix',
-                'serviceMap',
-                'stagingDir',
-                'stagingKeysDir'
-              ])
+            [
+              'allNodeIds',
+              'buildZipFile',
+              'curDate',
+              'existingNodeIds',
+              'keysDir',
+              'podNames',
+              'releasePrefix',
+              'serviceMap',
+              'stagingDir',
+              'stagingKeysDir'
+            ])
 
           config.curDate = new Date()
           config.existingNodeIds = []
@@ -1906,7 +1921,7 @@ export class NodeCommand extends BaseCommand {
       {
         title: 'Deploy new network node',
         task: async (ctx, task) => {
-          let index = ctx.existingNodeIds.length
+          const index = ctx.existingNodeIds.length
           const valuesArg = ` --set "hedera.nodes[${index}].accountId=${ctx.newNode.accountId}" --set "hedera.nodes[${index}].name=${ctx.newNode.name}"`
 
           await self.chartManager.upgrade(
