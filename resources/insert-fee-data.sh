@@ -1,9 +1,9 @@
 #!/bin/bash
 
-POSTGRES_POD=$(kubectl get pods -n solo | grep fullstack-deployment-postgres | cut -d ' ' -f1)
-HEDERA_MIRROR_IMPORTER_DB_OWNER=$(kubectl exec -it $POSTGRES_POD -n solo -- /bin/bash -c printenv | grep HEDERA_MIRROR_IMPORTER_DB_OWNER= | cut -d '=' -f2 | tr -d '\n\r' )
-HEDERA_MIRROR_IMPORTER_DB_OWNERPASSWORD=$(kubectl exec -it $POSTGRES_POD -n solo -- /bin/bash -c printenv | grep HEDERA_MIRROR_IMPORTER_DB_OWNERPASSWORD= | cut -d '=' -f2 | tr -d '\n\r' )
-HEDERA_MIRROR_IMPORTER_DB_NAME=$(kubectl exec -it $POSTGRES_POD -n solo -- /bin/bash -c printenv | grep HEDERA_MIRROR_IMPORTER_DB_NAME= | cut -d '=' -f2 | tr -d '\n\r' )
+POSTGRES_POD=$(kubectl get pods -n solo | grep fullstack-deployment-postgres | cut -d " " -f1)
+HEDERA_MIRROR_IMPORTER_DB_OWNER=$(kubectl exec -it $POSTGRES_POD -n solo -- /bin/bash -c printenv | grep HEDERA_MIRROR_IMPORTER_DB_OWNER= | cut -d "=" -f2 | tr -d "\n\r" )
+HEDERA_MIRROR_IMPORTER_DB_OWNERPASSWORD=$(kubectl exec -it $POSTGRES_POD -n solo -- /bin/bash -c printenv | grep HEDERA_MIRROR_IMPORTER_DB_OWNERPASSWORD= | cut -d "=" -f2 | tr -d "\n\r" )
+HEDERA_MIRROR_IMPORTER_DB_NAME=$(kubectl exec -it $POSTGRES_POD -n solo -- /bin/bash -c printenv | grep HEDERA_MIRROR_IMPORTER_DB_NAME= | cut -d "=" -f2 | tr -d "\n\r" )
 
 DIRNAME=$(dirname "$0")
 file_path="$DIRNAME/../temp/importFeesAndExchangeRates.sql"
