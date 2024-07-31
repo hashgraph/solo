@@ -53,4 +53,11 @@ describe('Node add', () => {
 
     await nodeCmd.add(argv)
   }, 120000)
+
+  // it('test', async () => {
+  //   const addressBookPath = `${HEDERA_HAPI_PATH}/data/saved/address_book/`
+  //   const output = await nodeCmd.k8.execContainer('network-node0-0', ROOT_CONTAINER,
+  //     ['bash', '-c', `for file in ${addressBookPath}* ; do echo ; echo File: $file ; echo ; cat "$file" ; done`])
+  //   console.log(output)
+  // }, 120000)
 })
