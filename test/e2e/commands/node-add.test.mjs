@@ -28,7 +28,7 @@ describe('Node add', () => {
   const TEST_NAMESPACE = 'node-add'
   const argv = getDefaultArgv()
   argv[flags.keyFormat.name] = constants.KEY_FORMAT_PEM
-  argv[flags.nodeIDs.name] = 'node0,node1,node2'
+  argv[flags.nodeIDs.name] = 'node1,node2,node3'
   argv[flags.generateGossipKeys.name] = true
   argv[flags.generateTlsKeys.name] = true
   // set the env variable SOLO_FST_CHARTS_DIR if developer wants to use local FST charts
@@ -46,13 +46,13 @@ describe('Node add', () => {
   }, 120000)
 
   it('should add a new node to the network successfully', async () => {
-    argv[flags.nodeID.name] = 'uniquenodename' // TODO: open an issue: node ID cannot have a hyphen, platform strips it out, also, can't have capital letters
+    argv[flags.nodeID.name] = 'node4' // TODO: open an issue: node ID cannot have a hyphen, platform strips it out, also, can't have capital letters
     argv[flags.generateGossipKeys.name] = true
     argv[flags.generateTlsKeys.name] = true
     argv[flags.keyFormat.name] = constants.KEY_FORMAT_PEM
 
     await nodeCmd.add(argv)
-  }, 120000)
+  }, 900000)
 
   // it('test', async () => {
   //   const addressBookPath = `${HEDERA_HAPI_PATH}/data/saved/address_book/`

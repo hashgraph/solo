@@ -190,6 +190,7 @@ export class NodeCommand extends BaseCommand {
         .setAccountId(accountId)
         .setStakedAccountId(accountId)
         .freezeWith(client)
+      // TODO fix the staking
 
       const treasuryKey = this.accountManager.getTreasuryAccountKeys(namespace)
 
@@ -210,6 +211,8 @@ export class NodeCommand extends BaseCommand {
       console.log(`Account info: ${accountInfo}`)
     } catch (e) {
       this.logger.error(`Error in adding stake: ${e.message}`)
+
+      // throw new FullstackTestingError(`Error in adding stake: ${e.message}`, e)
     }
   }
 
@@ -1795,6 +1798,7 @@ export class NodeCommand extends BaseCommand {
           if (!decodedDers || decodedDers.length === 0) {
             throw new FullstackTestingError('unable to decode public key: ' + signingCertFile)
           }
+          // TODO validate this is right??
           ctx.signingCertDer = new Uint8Array(decodedDers[0])
         }
       },
@@ -1876,13 +1880,6 @@ export class NodeCommand extends BaseCommand {
         }
       },
       {
-        title: 'Send prepare upgrade transaction',
-        task: async (ctx, task) => {
-          const config = /** @type {NodeAddConfigClass} **/ ctx.config
-          await this.prepareUpgradeNetworkNodes(config, ctx.upgradeZipHash, ctx.nodeClient)
-        }
-      },
-      {
         title: 'Send node create transaction',
         task: async (ctx, task) => {
           const config = /** @type {NodeAddConfigClass} **/ ctx.config
@@ -1909,6 +1906,29 @@ export class NodeCommand extends BaseCommand {
         }
       },
       {
+        title: 'Send prepare upgrade transaction',
+        task: async (ctx, task) => {
+          const config = /** @type {NodeAddConfigClass} **/ ctx.config
+          await this.prepareUpgradeNetworkNodes(config, ctx.upgradeZipHash, ctx.nodeClient)
+        }
+      },
+      // {
+      //   title: 'Prepare latest state for new node with updated config.txt',
+      //   task: async (ctx, task) => {
+      //     const config = /** @type {NodeAddConfigClass} **/ ctx.config
+      //     const node1FullyQualifiedPodName = Templates.renderNetworkPodName(config.existingNodeIds[0])
+      //     const configTxtPath = `${config.stagingDir}/config.txt`
+      //     if (!fs.existsSync(config.stagingDir)) {
+      //       fs.mkdirSync(config.stagingDir, { recursive: true })
+      //     }
+      //
+      //     await self.k8.copyFrom(node1FullyQualifiedPodName, constants.ROOT_CONTAINER, `${constants.HEDERA_HAPI_PATH}/data/upgrade/current/config.txt`, configTxtPath)
+      //   }
+      // },
+      // TODO copy the node 4 pem file into the Hapi directory on all of the old nodes, also the file size and hash are different from the old ones
+      // the java code is using a pemparser utility
+      // TODO copy the new config.txt into the Hapi directory on all of the old nodes
+      {
         title: 'Send freeze upgrade transaction',
         task: async (ctx, task) => {
           const config = /** @type {NodeAddConfigClass} **/ ctx.config
@@ -1934,12 +1954,6 @@ export class NodeCommand extends BaseCommand {
               collapseSubtasks: false
             }
           })
-        }
-      },
-      {
-        title: 'Prepare latest state for new node with updated config.txt',
-        task: async (ctx, task) => {
-
         }
       },
       {
@@ -2063,6 +2077,8 @@ export class NodeCommand extends BaseCommand {
           })
         }
       },
+      // TODO new node needs to get the freeze state from the data/saved folder, the latest state to disk and copy to new node, genesis state is not supported, needs to be primed with last state
+      // /opt/hgcapp/services-hedera/HapiApp2.0/data/saved/com.hedera.services.ServicesMain/0/123 (the 0 is the network node number), then ls -1 to get the last/greatest i.e.: 452, copy the entire directory and put it on the new machine
       {
         title: 'Start network nodes',
         task: (ctx, task) => {
