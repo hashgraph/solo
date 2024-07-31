@@ -27,6 +27,7 @@ import { BaseCommand } from './base.mjs'
 import * as flags from './flags.mjs'
 import * as prompts from './prompts.mjs'
 import {
+  AccountBalanceQuery,
   AccountId,
   FileContentsQuery,
   FileId,
@@ -35,6 +36,7 @@ import {
   Timestamp
 } from '@hashgraph/sdk'
 import * as crypto from 'crypto'
+import { FREEZE_ADMIN_ACCOUNT } from '../core/constants.mjs'
 
 /**
  * Defines the core functionalities of 'node' command
@@ -1705,6 +1707,20 @@ export class NodeCommand extends BaseCommand {
     const client = this.accountManager._nodeClient
 
     try {
+      // transfer some tiny amount to the freeze admin account
+      await this.accountManager.transferAmount(constants.TREASURY_ACCOUNT_ID, FREEZE_ADMIN_ACCOUNT, 100000)
+
+      // query the balance
+      const balance = await new AccountBalanceQuery()
+        .setAccountId(FREEZE_ADMIN_ACCOUNT)
+        .execute(this.accountManager._nodeClient)
+      this.logger.debug(`Freeze admin account balance: ${balance.hbars}`)
+
+      // set operator of freeze transaction as freeze admin account
+      const accountKeys = await this.accountManager.getAccountKeysFromSecret(FREEZE_ADMIN_ACCOUNT, config.namespace)
+      const freezeAdminPrivateKey = accountKeys.privateKey
+      client.setOperator(FREEZE_ADMIN_ACCOUNT, freezeAdminPrivateKey)
+
       // fetch special file
       const fileId = FileId.fromString('0.0.150')
       const fileQuery = new FileContentsQuery().setFileId(fileId)
