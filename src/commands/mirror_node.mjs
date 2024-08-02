@@ -240,13 +240,13 @@ export class MirrorNodeCommand extends BaseCommand {
 
                 exec(`sh ${scriptPath}`, (error, stdout, stderr) => {
                   if (error) {
-                    throw new FullstackTestingError(`Error seeding data: ${error.message}`)
-                  } else {
-                    fs.unlink(sqlPath, (err, info) => {
-                      if (err) throw err
-                    })
+                    throw new FullstackTestingError(`Error seeding data: ${error.message}`, error)
                   }
-                })
+                  fs.unlink(sqlPath, (err, info) => {
+                    if (err) throw err;
+                  });
+                });
+
               }
             }
           ]
