@@ -38,7 +38,7 @@
   "license": "Apache2.0",
   "dependencies": {
     "@hashgraph/proto": "^2.15.0",
-    "@hashgraph/sdk": "^2.48.1",
+    "@hashgraph/sdk": "^2.49.2",
     "@kubernetes/client-node": "^0.21.0",
     "@listr2/prompt-adapter-enquirer": "^2.0.10",
     "@peculiar/x509": "^1.11.0",
