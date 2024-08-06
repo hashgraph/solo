@@ -237,3 +237,8 @@ export async function getFileContents (accountManager, namespace, fileNum) {
   const queryFees = new FileContentsQuery().setFileId(fileId)
   return Buffer.from(await queryFees.execute(client)).toString('hex')
 }
+
+export function getEnvValue (envVarArray, name) {
+  const kvPair = envVarArray.find(v => v.startsWith(`${name}=`))
+  return kvPair ? kvPair.split('=')[1] : null
+}

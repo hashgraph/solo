@@ -21,10 +21,7 @@ import { constants } from '../core/index.mjs'
 import { BaseCommand } from './base.mjs'
 import * as flags from './flags.mjs'
 import * as prompts from './prompts.mjs'
-import * as path from 'path'
-import * as fs from 'fs'
-import { exec } from 'child_process'
-import { getFileContents } from '../core/helpers.mjs'
+import { getFileContents, getEnvValue } from '../core/helpers.mjs'
 
 export class MirrorNodeCommand extends BaseCommand {
   constructor (opts) {
@@ -229,23 +226,32 @@ export class MirrorNodeCommand extends BaseCommand {
 
                 const importFeesQuery = `INSERT INTO public.file_data(file_data, consensus_timestamp, entity_id, transaction_type) VALUES (decode('${fees}', 'hex'), ${timestamp + '000000'}, ${feesFileIdNum}, 17);`
                 const importExchangeRatesQuery = `INSERT INTO public.file_data(file_data, consensus_timestamp, entity_id, transaction_type) VALUES (decode('${exchangeRates}', 'hex'), ${
-                    timestamp + '000001'
+                  timestamp + '000001'
                 }, ${exchangeRatesFileIdNum}, 17);`
-                const sqlPath = path.resolve(constants.TEMP_DIR, 'importFeesAndExchangeRates.sql')
+                const sqlQuery = [importFeesQuery, importExchangeRatesQuery].join('\n')
 
-                fs.writeFileSync(sqlPath, [importFeesQuery, importExchangeRatesQuery].join('\n'))
+                const pods = await this.k8.getPodsByLabel(['app.kubernetes.io/name=postgres'])
+                if (pods.length === 0) {
+                  throw new FullstackTestingError('postgres pod not found')
+                }
+                const postgresPodName = pods[0].metadata.name
 
-                const scriptName = 'insert-fee-data.sh'
-                const scriptPath = path.join(constants.RESOURCES_DIR, scriptName)
+                const postgresContainerName = 'postgresql'
 
-                exec(`sh ${scriptPath}`, (error, stdout, stderr) => {
-                  if (error) {
-                    throw new FullstackTestingError(`Error seeding data: ${error.message}`, error)
-                  }
-                  fs.unlink(sqlPath, (err, info) => {
-                    if (err) throw err
-                  })
-                })
+                this.logger.debug(`Running SQL query: ${sqlQuery} on pod ${postgresPodName}`)
+
+                const mirrorEnvVars = await self.k8.execContainer(postgresPodName, postgresContainerName, '/bin/bash -c printenv')
+                const mirrorEnvVarsArray = mirrorEnvVars.split('\n')
+                const HEDERA_MIRROR_IMPORTER_DB_OWNER = getEnvValue(mirrorEnvVarsArray, 'HEDERA_MIRROR_IMPORTER_DB_OWNER')
+                const HEDERA_MIRROR_IMPORTER_DB_OWNERPASSWORD = getEnvValue(mirrorEnvVarsArray, 'HEDERA_MIRROR_IMPORTER_DB_OWNERPASSWORD')
+                const HEDERA_MIRROR_IMPORTER_DB_NAME = getEnvValue(mirrorEnvVarsArray, 'HEDERA_MIRROR_IMPORTER_DB_NAME')
+
+                await self.k8.execContainer(postgresPodName, postgresContainerName, [
+                  'psql',
+                  `postgresql://${HEDERA_MIRROR_IMPORTER_DB_OWNER}:${HEDERA_MIRROR_IMPORTER_DB_OWNERPASSWORD}@localhost:5432/${HEDERA_MIRROR_IMPORTER_DB_NAME}`,
+                  '-c',
+                  sqlQuery
+                ])
               }
             }
           ]
