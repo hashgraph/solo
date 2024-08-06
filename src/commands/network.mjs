@@ -45,7 +45,6 @@ export class NetworkCommand extends BaseCommand {
       flags.deployMirrorNode,
       flags.enableHederaExplorerTls,
       flags.enablePrometheusSvcMonitor,
-      flags.fstChartVersion,
       flags.hederaExplorerTlsHostName,
       flags.hederaExplorerTlsLoadBalancerIp,
       flags.namespace,
