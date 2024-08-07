@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 
-
 echo "Starting a test network with a single node"
 
 ./test/e2e/setup-e2e.sh
