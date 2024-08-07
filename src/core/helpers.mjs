@@ -25,7 +25,7 @@ import * as semver from 'semver'
 import { Templates } from './templates.mjs'
 import { HEDERA_HAPI_PATH, ROOT_CONTAINER, SOLO_LOGS_DIR } from './constants.mjs'
 import { constants } from './index.mjs'
-import {FileContentsQuery, FileId} from "@hashgraph/sdk";
+import { FileContentsQuery, FileId } from '@hashgraph/sdk'
 
 // cache current directory
 const CUR_FILE_DIR = paths.dirname(fileURLToPath(import.meta.url))
@@ -232,13 +232,13 @@ export function getNodeAccountMap (nodeIDs) {
 
 export async function getFileContents (accountManager, namespace, fileNum) {
   await accountManager.loadNodeClient(namespace)
-  const client = accountManager._nodeClient;
+  const client = accountManager._nodeClient
   const fileId = FileId.fromString(`0.0.${fileNum}`)
-  const queryFees = new FileContentsQuery().setFileId(fileId);
-  return Buffer.from(await queryFees.execute(client)).toString('hex');
+  const queryFees = new FileContentsQuery().setFileId(fileId)
+  return Buffer.from(await queryFees.execute(client)).toString('hex')
 }
 
 export function getEnvValue (envVarArray, name) {
-  const kvPair = envVarArray.find(v => v.startsWith(`${name}=`));
-  return kvPair ? kvPair.split('=')[1] : null;
+  const kvPair = envVarArray.find(v => v.startsWith(`${name}=`))
+  return kvPair ? kvPair.split('=')[1] : null
 }

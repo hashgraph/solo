@@ -21,7 +21,7 @@ import { constants } from '../core/index.mjs'
 import { BaseCommand } from './base.mjs'
 import * as flags from './flags.mjs'
 import * as prompts from './prompts.mjs'
-import {getFileContents, getEnvValue} from "../core/helpers.mjs";
+import { getFileContents, getEnvValue } from '../core/helpers.mjs'
 
 export class MirrorNodeCommand extends BaseCommand {
   constructor (opts) {
@@ -215,39 +215,39 @@ export class MirrorNodeCommand extends BaseCommand {
             {
               title: 'Insert data in public.file_data',
               task: async (ctx, _) => {
-                const namespace = self.configManager.getFlag(flags.namespace);
+                const namespace = self.configManager.getFlag(flags.namespace)
 
-                const feesFileIdNum = 111;
-                const exchangeRatesFileIdNum = 112;
-                const timestamp = Date.now();
+                const feesFileIdNum = 111
+                const exchangeRatesFileIdNum = 112
+                const timestamp = Date.now()
 
-                const fees = await getFileContents(this.accountManager, namespace, feesFileIdNum);
-                const exchangeRates = await getFileContents(this.accountManager, namespace, exchangeRatesFileIdNum);
+                const fees = await getFileContents(this.accountManager, namespace, feesFileIdNum)
+                const exchangeRates = await getFileContents(this.accountManager, namespace, exchangeRatesFileIdNum)
 
                 const importFeesQuery = `INSERT INTO public.file_data(file_data, consensus_timestamp, entity_id, transaction_type) VALUES (decode('${fees}', 'hex'), ${timestamp + '000000'}, ${feesFileIdNum}, 17);`
                 const importExchangeRatesQuery = `INSERT INTO public.file_data(file_data, consensus_timestamp, entity_id, transaction_type) VALUES (decode('${exchangeRates}', 'hex'), ${
                     timestamp + '000001'
-                }, ${exchangeRatesFileIdNum}, 17);`;
-                const sqlQuery = [importFeesQuery, importExchangeRatesQuery].join(`\n`);
+                }, ${exchangeRatesFileIdNum}, 17);`
+                const sqlQuery = [importFeesQuery, importExchangeRatesQuery].join('\n')
 
-                const pods = await this.k8.getPodsByLabel(['app.kubernetes.io/name=postgres']);
+                const pods = await this.k8.getPodsByLabel(['app.kubernetes.io/name=postgres'])
                 if (pods.length === 0) {
-                  throw new FullstackTestingError("postgres pod not found");
+                  throw new FullstackTestingError('postgres pod not found')
                 }
-                const postgresPodName = pods[0].metadata.name;
-                const postgresContainerName = 'postgresql';
-                const mirrorEnvVars = await self.k8.execContainer(postgresPodName, postgresContainerName, `/bin/bash -c printenv`);
-                const mirrorEnvVarsArray = mirrorEnvVars.split('\n');
-                const HEDERA_MIRROR_IMPORTER_DB_OWNER = getEnvValue(mirrorEnvVarsArray, 'HEDERA_MIRROR_IMPORTER_DB_OWNER');
-                const HEDERA_MIRROR_IMPORTER_DB_OWNERPASSWORD = getEnvValue(mirrorEnvVarsArray, 'HEDERA_MIRROR_IMPORTER_DB_OWNERPASSWORD');
-                const HEDERA_MIRROR_IMPORTER_DB_NAME = getEnvValue(mirrorEnvVarsArray, 'HEDERA_MIRROR_IMPORTER_DB_NAME');
+                const postgresPodName = pods[0].metadata.name
+                const postgresContainerName = 'postgresql'
+                const mirrorEnvVars = await self.k8.execContainer(postgresPodName, postgresContainerName, '/bin/bash -c printenv')
+                const mirrorEnvVarsArray = mirrorEnvVars.split('\n')
+                const HEDERA_MIRROR_IMPORTER_DB_OWNER = getEnvValue(mirrorEnvVarsArray, 'HEDERA_MIRROR_IMPORTER_DB_OWNER')
+                const HEDERA_MIRROR_IMPORTER_DB_OWNERPASSWORD = getEnvValue(mirrorEnvVarsArray, 'HEDERA_MIRROR_IMPORTER_DB_OWNERPASSWORD')
+                const HEDERA_MIRROR_IMPORTER_DB_NAME = getEnvValue(mirrorEnvVarsArray, 'HEDERA_MIRROR_IMPORTER_DB_NAME')
 
                 await self.k8.execContainer(postgresPodName, postgresContainerName, [
-                    `psql`,
+                  'psql',
                   `postgresql://${HEDERA_MIRROR_IMPORTER_DB_OWNER}:${HEDERA_MIRROR_IMPORTER_DB_OWNERPASSWORD}@localhost:5432/${HEDERA_MIRROR_IMPORTER_DB_NAME}`,
-                  `-c`,
+                  '-c',
                   sqlQuery
-                ]);
+                ])
               }
             }
           ]
@@ -257,7 +257,7 @@ export class MirrorNodeCommand extends BaseCommand {
             rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
           })
         }
-      },
+      }
     ], {
       concurrent: false,
       rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
