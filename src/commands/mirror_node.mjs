@@ -215,7 +215,7 @@ export class MirrorNodeCommand extends BaseCommand {
             {
               title: 'Insert data in public.file_data',
               task: async (ctx, _) => {
-                const namespace = self.configManager.getFlag(flags.namespace)
+                const namespace = self.configManager.getFlag(flags.namespace);
 
                 const feesFileIdNum = 111;
                 const exchangeRatesFileIdNum = 112;
@@ -229,9 +229,13 @@ export class MirrorNodeCommand extends BaseCommand {
                     timestamp + '000001'
                 }, ${exchangeRatesFileIdNum}, 17);`;
                 const sqlQuery = [importFeesQuery, importExchangeRatesQuery].join(`\n`);
-                const postgresPodName = 'fullstack-deployment-postgres-postgresql-0';
-                const postgresContainerName = 'postgresql';
 
+                const pods = await this.k8.getPodsByLabel(['app.kubernetes.io/name=postgres']);
+                if (pods.length === 0) {
+                  throw new FullstackTestingError("postgres pod not found");
+                }
+                const postgresPodName = pods[0].metadata.name;
+                const postgresContainerName = 'postgresql';
                 const mirrorEnvVars = await self.k8.execContainer(postgresPodName, postgresContainerName, `/bin/bash -c printenv`);
                 const mirrorEnvVarsArray = mirrorEnvVars.split('\n');
                 const HEDERA_MIRROR_IMPORTER_DB_OWNER = getEnvValue(mirrorEnvVarsArray, 'HEDERA_MIRROR_IMPORTER_DB_OWNER');
