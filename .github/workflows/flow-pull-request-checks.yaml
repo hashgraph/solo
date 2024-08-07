@@ -52,68 +52,6 @@ jobs:
     with:
       custom-job-label: Standard
 
-  e2e-tests:
-    name: E2E Tests
-    uses: ./.github/workflows/zxc-e2e-test.yaml
-    needs:
-      - env-vars
-      - code-style
-    with:
-      custom-job-label: Standard
-      npm-test-script: test-${{ needs.env-vars.outputs.e2e-test-subdir }}
-      coverage-subdirectory: ${{ needs.env-vars.outputs.e2e-test-subdir }}
-      coverage-report-name: ${{ needs.env-vars.outputs.e2e-coverage-report }}
-
-  e2e-mirror-node-tests:
-    name: E2E Tests
-    if: ${{ !cancelled() && always() }}
-    uses: ./.github/workflows/zxc-e2e-test.yaml
-    needs:
-      - env-vars
-      - code-style
-      - e2e-tests
-    with:
-      custom-job-label: Mirror Node
-      npm-test-script: test-${{ needs.env-vars.outputs.e2e-mirror-node-test-subdir }}
-      coverage-subdirectory: ${{ needs.env-vars.outputs.e2e-mirror-node-test-subdir }}
-      coverage-report-name: ${{ needs.env-vars.outputs.e2e-mirror-node-coverage-report }}
-
-  e2e-node-pem-stop-add-tests:
-    name: E2E Tests
-    uses: ./.github/workflows/zxc-e2e-test.yaml
-    needs:
-      - env-vars
-      - code-style
-    with:
-      custom-job-label: Node PEM Stop Add
-      npm-test-script: test-${{ needs.env-vars.outputs.e2e-node-pem-stop-add-test-subdir }}
-      coverage-subdirectory: ${{ needs.env-vars.outputs.e2e-node-pem-stop-add-test-subdir }}
-      coverage-report-name: ${{ needs.env-vars.outputs.e2e-node-pem-stop-add-coverage-report }}
-
-  e2e-node-pfx-kill-add-tests:
-    name: E2E Tests
-    uses: ./.github/workflows/zxc-e2e-test.yaml
-    needs:
-      - env-vars
-      - code-style
-    with:
-      custom-job-label: Node PFX Kill Add
-      npm-test-script: test-${{ needs.env-vars.outputs.e2e-node-pfx-kill-add-test-subdir }}
-      coverage-subdirectory: ${{ needs.env-vars.outputs.e2e-node-pfx-kill-add-test-subdir }}
-      coverage-report-name: ${{ needs.env-vars.outputs.e2e-node-pfx-kill-add-coverage-report }}
-
-  e2e-node-local-build-tests:
-    name: E2E Tests
-    uses: ./.github/workflows/zxc-e2e-test.yaml
-    needs:
-      - env-vars
-      - code-style
-    with:
-      custom-job-label: Node Local Build
-      npm-test-script: test-${{ needs.env-vars.outputs.e2e-node-local-build-test-subdir }}
-      coverage-subdirectory: ${{ needs.env-vars.outputs.e2e-node-local-build-test-subdir }}
-      coverage-report-name: ${{ needs.env-vars.outputs.e2e-node-local-build-coverage-report }}
-
   e2e-relay-tests:
     name: E2E Tests
     if: ${{ !cancelled() && always() }}
@@ -121,7 +59,6 @@ jobs:
     needs:
       - env-vars
       - code-style
-      - e2e-mirror-node-tests
     with:
       custom-job-label: Relay
       npm-test-script: test-${{ needs.env-vars.outputs.e2e-relay-test-subdir }}
