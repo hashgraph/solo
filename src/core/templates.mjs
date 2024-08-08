@@ -180,4 +180,12 @@ export class Templates {
     const parts = svcName.split('.')
     return this.nodeIdFromNetworkSvcName(parts[0])
   }
+
+  static nodeNumberFromNodeId (nodeId) {
+    for (let i = nodeId.length - 1; i > 0; i--) {
+      if (isNaN(nodeId[i])) {
+        return parseInt(nodeId.substring(i + 1, nodeId.length))
+      }
+    }
+  }
 }

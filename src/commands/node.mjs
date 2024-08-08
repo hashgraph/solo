@@ -35,6 +35,8 @@ import {
   FileAppendTransaction,
   FreezeTransaction,
   FreezeType,
+  Hbar,
+  HbarUnit,
   ServiceEndpoint,
   Timestamp,
   PrivateKey,
@@ -171,13 +173,13 @@ export class NodeCommand extends BaseCommand {
     this._portForwards = []
   }
 
-  async addStake (namespace, accountId) {
+  async addStake (namespace, accountId, nodeId) {
     try {
       await this.accountManager.loadNodeClient(namespace)
       const client = this.accountManager._nodeClient
 
       // get some initial balance
-      await this.accountManager.transferAmount(constants.TREASURY_ACCOUNT_ID, accountId, HEDERA_NODE_DEFAULT_STAKE_AMOUNT)
+      await this.accountManager.transferAmount(constants.TREASURY_ACCOUNT_ID, accountId, HEDERA_NODE_DEFAULT_STAKE_AMOUNT + 1)
 
       // check balance
       const balance = await new AccountBalanceQuery()
@@ -188,14 +190,14 @@ export class NodeCommand extends BaseCommand {
       // Create the transaction
       const transaction = await new AccountUpdateTransaction()
         .setAccountId(accountId)
-        .setStakedAccountId(accountId)
+        .setStakedNodeId(Templates.nodeNumberFromNodeId(nodeId) - 1)
         .freezeWith(client)
-      // TODO fix the staking
 
-      const treasuryKey = this.accountManager.getTreasuryAccountKeys(namespace)
+      const treasuryKey = await this.accountManager.getTreasuryAccountKeys(namespace)
+      const treasuryPrivateKey = PrivateKey.fromStringED25519(treasuryKey.privateKey)
 
       // Sign the transaction with the account's private key
-      const signTx = await transaction.sign(treasuryKey)
+      const signTx = await transaction.sign(treasuryPrivateKey)
 
       // Submit the transaction to a Hedera network
       const txResponse = await signTx.execute(client)
@@ -205,14 +207,12 @@ export class NodeCommand extends BaseCommand {
 
       // Get the transaction status
       const transactionStatus = receipt.status
-      console.log('The transaction consensus status is ' + transactionStatus.toString())
+      this.logger.debug(`The transaction consensus status is ${transactionStatus.toString()}`)
 
       const accountInfo = await this.accountManager.accountInfoQuery(accountId)
-      console.log(`Account info: ${accountInfo}`)
+      this.logger.info(`Account ID: ${accountId}, nodeId: ${nodeId - 1}, amount staked: ${accountInfo.stakingInfo.stakedToMe.toString(HbarUnit.Hbar)}`)
     } catch (e) {
-      this.logger.error(`Error in adding stake: ${e.message}`)
-
-      // throw new FullstackTestingError(`Error in adding stake: ${e.message}`, e)
+      throw new FullstackTestingError(`Error in adding stake: ${e.message}`, e)
     }
   }
 
@@ -726,7 +726,7 @@ export class NodeCommand extends BaseCommand {
       subTasks.push({
         title: `Start node: ${chalk.yellow(nodeId)}`,
         task: async () => {
-          await this.k8.execContainer(podName, constants.ROOT_CONTAINER, ['bash', '-c', `rm -rf ${constants.HEDERA_HAPI_PATH}/output/*`])
+          // await this.k8.execContainer(podName, constants.ROOT_CONTAINER, ['bash', '-c', `rm -rf ${constants.HEDERA_HAPI_PATH}/output/*`])
           await this.k8.execContainer(podName, constants.ROOT_CONTAINER, ['systemctl', 'restart', 'network-node'])
         }
       })
@@ -1150,7 +1150,7 @@ export class NodeCommand extends BaseCommand {
             const accountId = accountMap.get(nodeId)
             subTasks.push({
               title: `Adding stake for node: ${chalk.yellow(nodeId)}`,
-              task: () => self.addStake(ctx.config.namespace, accountId)
+              task: () => self.addStake(ctx.config.namespace, accountId, nodeId)
             })
           }
 
@@ -1665,6 +1665,7 @@ export class NodeCommand extends BaseCommand {
            * @property {string} freezeAdminPrivateKey
            * @property {ServiceEndpoint[]} grpcServiceEndpoints
            * @property {string} keysDir
+           * @property {string} lastStateZipPath
            * @property {string[]} nodeIds
            * @property {Object} podNames
            * @property {string} releasePrefix
@@ -1691,6 +1692,7 @@ export class NodeCommand extends BaseCommand {
               'freezeAdminPrivateKey',
               'grpcServiceEndpoints',
               'keysDir',
+              'lastStateZipPath',
               'nodeIds',
               'podNames',
               'releasePrefix',
@@ -1880,6 +1882,21 @@ export class NodeCommand extends BaseCommand {
         }
       },
       {
+        title: 'Check existing nodes staked amount',
+        task: async (ctx, task) => {
+          // const config = /** @type {NodeAddConfigClass} **/ ctx.config
+          await sleep(60000)
+          const accountMap = getNodeAccountMap(ctx.config.existingNodeIds)
+          for (const nodeId of ctx.config.existingNodeIds) {
+            const accountId = accountMap.get(nodeId)
+            const accountInfo = await this.accountManager.accountInfoQuery(accountId)
+            this.logger.info(`Account ID: ${accountId}, amount staked: ${accountInfo.stakingInfo.stakedToMe.toString(HbarUnit.Hbar)}`)
+            await this.accountManager.transferAmount(constants.TREASURY_ACCOUNT_ID, accountId, 1)
+          }
+        }
+      },
+
+      {
         title: 'Send node create transaction',
         task: async (ctx, task) => {
           const config = /** @type {NodeAddConfigClass} **/ ctx.config
@@ -1912,22 +1929,23 @@ export class NodeCommand extends BaseCommand {
           await this.prepareUpgradeNetworkNodes(config, ctx.upgradeZipHash, ctx.nodeClient)
         }
       },
-      // {
-      //   title: 'Prepare latest state for new node with updated config.txt',
-      //   task: async (ctx, task) => {
-      //     const config = /** @type {NodeAddConfigClass} **/ ctx.config
-      //     const node1FullyQualifiedPodName = Templates.renderNetworkPodName(config.existingNodeIds[0])
-      //     const configTxtPath = `${config.stagingDir}/config.txt`
-      //     if (!fs.existsSync(config.stagingDir)) {
-      //       fs.mkdirSync(config.stagingDir, { recursive: true })
-      //     }
-      //
-      //     await self.k8.copyFrom(node1FullyQualifiedPodName, constants.ROOT_CONTAINER, `${constants.HEDERA_HAPI_PATH}/data/upgrade/current/config.txt`, configTxtPath)
-      //   }
-      // },
-      // TODO copy the node 4 pem file into the Hapi directory on all of the old nodes, also the file size and hash are different from the old ones
-      // the java code is using a pemparser utility
-      // TODO copy the new config.txt into the Hapi directory on all of the old nodes
+      {
+        title: 'Download generated files from an existing node',
+        task: async (ctx, task) => {
+          const config = /** @type {NodeAddConfigClass} **/ ctx.config
+          const node1FullyQualifiedPodName = Templates.renderNetworkPodName(config.existingNodeIds[0])
+
+          // copy the config.txt file from the node1 upgrade directory
+          // const configTxtPath = `${config.stagingDir}/config.txt`
+          await self.k8.copyFrom(node1FullyQualifiedPodName, constants.ROOT_CONTAINER, `${constants.HEDERA_HAPI_PATH}/data/upgrade/current/config.txt`, config.stagingDir)
+
+          const signedKeyFiles = (await self.k8.listDir(node1FullyQualifiedPodName, constants.ROOT_CONTAINER, `${constants.HEDERA_HAPI_PATH}/data/upgrade/current`)).filter(file => file.name.startsWith(constants.SIGNING_KEY_PREFIX))
+          for (const signedKeyFile of signedKeyFiles) {
+            await self.k8.execContainer(node1FullyQualifiedPodName, constants.ROOT_CONTAINER, ['bash', '-c', `[[ ! -f "${constants.HEDERA_HAPI_PATH}/data/keys/${signedKeyFile.name}" ]] || cp ${constants.HEDERA_HAPI_PATH}/data/keys/${signedKeyFile.name} ${constants.HEDERA_HAPI_PATH}/data/keys/${signedKeyFile.name}.old`])
+            await self.k8.copyFrom(node1FullyQualifiedPodName, constants.ROOT_CONTAINER, `${constants.HEDERA_HAPI_PATH}/data/upgrade/current/${signedKeyFile.name}`, `${config.keysDir}`)
+          }
+        }
+      },
       {
         title: 'Send freeze upgrade transaction',
         task: async (ctx, task) => {
@@ -1954,6 +1972,16 @@ export class NodeCommand extends BaseCommand {
               collapseSubtasks: false
             }
           })
+        }
+      },
+      {
+        title: 'Purge pces files from existing nodes',
+        task: async (ctx, task) => {
+          const config = /** @type {NodeAddConfigClass} **/ ctx.config
+          for (const nodeId of config.existingNodeIds) {
+            const nodeFullyQualifiedPodName = Templates.renderNetworkPodName(nodeId)
+            await self.k8.execContainer(nodeFullyQualifiedPodName, constants.ROOT_CONTAINER, ['bash', '-c', `rm -rf ${constants.HEDERA_HAPI_PATH}/data/saved/preconsensus-events/*`])
+          }
         }
       },
       {
@@ -2024,18 +2052,6 @@ export class NodeCommand extends BaseCommand {
                   await self._copyNodeKeys(tlsKeyFiles, config.stagingKeysDir)
                 }
               }
-            },
-            {
-              // TODO: not needed?
-              // TODO: might need to read this from an existing node, at the perfect time, which is? after freeze prepare upgrade
-              // the config.txt to get is in the same directory where the upgradeArtifactsPath located, such as data/upgrade/current
-              title: 'Prepare config.txt for the network',
-              task: async (ctx, _) => {
-                const config = /** @type {NodeAddConfigClass} **/ ctx.config
-                const configTxtPath = `${config.stagingDir}/config.txt`
-                const template = `${constants.RESOURCES_DIR}/templates/config.template`
-                await self.platformInstaller.prepareConfigTxt(config.allNodeIds, configTxtPath, config.releaseTag, config.chainId, template)
-              }
             }
           ]
 
@@ -2051,6 +2067,34 @@ export class NodeCommand extends BaseCommand {
           async (ctx, task) => {
             return self.fetchLocalOrReleasedPlatformSoftware(ctx, task)
           }
+      },
+      {
+        title: 'Download last state from an existing node',
+        task: async (ctx, task) => {
+          const config = /** @type {NodeAddConfigClass} **/ ctx.config
+          const node1FullyQualifiedPodName = Templates.renderNetworkPodName(config.existingNodeIds[0])
+          const upgradeDirectory = `${constants.HEDERA_HAPI_PATH}/data/saved/com.hedera.services.ServicesMain/0/123`
+          // zip the contents of the newest folder on node1 within /opt/hgcapp/services-hedera/HapiApp2.0/data/saved/com.hedera.services.ServicesMain/0/123/
+          const zipFileName = await self.k8.execContainer(node1FullyQualifiedPodName, constants.ROOT_CONTAINER, ['bash', '-c', `cd ${upgradeDirectory} && mapfile -t states < <(ls -1t .) && jar cf "\${states[0]}.zip" -C "\${states[0]}" . && echo -n \${states[0]}.zip`])
+          await self.k8.copyFrom(node1FullyQualifiedPodName, constants.ROOT_CONTAINER, `${upgradeDirectory}/${zipFileName}`, config.stagingDir)
+          config.lastStateZipPath = `${config.stagingDir}/${zipFileName}`
+        }
+      },
+      // TODO: update all nodeIds used in tests to start with node1 instead of node0
+      {
+        title: 'Upload last saved state to new network node',
+        task:
+            async (ctx, task) => {
+              const config = /** @type {NodeAddConfigClass} **/ ctx.config
+              const newNodeFullyQualifiedPodName = Templates.renderNetworkPodName(config.nodeId)
+              const nodeNumber = Templates.nodeNumberFromNodeId(config.nodeId)
+              const savedStateDir = (config.lastStateZipPath.match(/\/(\d+)\.zip$/))[1]
+              const savedStatePath = `${constants.HEDERA_HAPI_PATH}/data/saved/com.hedera.services.ServicesMain/${nodeNumber}/123/${savedStateDir}`
+              await self.k8.execContainer(newNodeFullyQualifiedPodName, constants.ROOT_CONTAINER, ['bash', '-c', `mkdir -p ${savedStatePath}`])
+              await self.k8.copyTo(newNodeFullyQualifiedPodName, constants.ROOT_CONTAINER, config.lastStateZipPath, savedStatePath)
+              await self.platformInstaller.setPathPermission(newNodeFullyQualifiedPodName, constants.HEDERA_HAPI_PATH)
+              await self.k8.execContainer(newNodeFullyQualifiedPodName, constants.ROOT_CONTAINER, ['bash', '-c', `cd ${savedStatePath} && jar xf ${path.basename(config.lastStateZipPath)} && rm -f ${path.basename(config.lastStateZipPath)}`])
+            }
       },
       {
         title: 'Setup new network node',
@@ -2077,18 +2121,13 @@ export class NodeCommand extends BaseCommand {
           })
         }
       },
-      // TODO new node needs to get the freeze state from the data/saved folder, the latest state to disk and copy to new node, genesis state is not supported, needs to be primed with last state
-      // /opt/hgcapp/services-hedera/HapiApp2.0/data/saved/com.hedera.services.ServicesMain/0/123 (the 0 is the network node number), then ls -1 to get the last/greatest i.e.: 452, copy the entire directory and put it on the new machine
+      // TODO: get a copy of the previous hgcaa.log/swirlds.log before restart
       {
         title: 'Start network nodes',
         task: (ctx, task) => {
           const config = /** @type {NodeAddConfigClass} **/ ctx.config
           const subTasks = []
-          // TODO: only start new nodes?
-          // self.startNodes(ctx.config, ctx.config.allNodeIds, subTasks)
           self.startNodes(config, config.allNodeIds, subTasks)
-
-          // TODO: stake new node?
 
           // set up the sub-tasks
           return task.newListr(subTasks, {
@@ -2145,6 +2184,7 @@ export class NodeCommand extends BaseCommand {
           })
         }
       },
+      // TODO: stake new node?
       {
         title: 'Finalize',
         task: (ctx, _) => {

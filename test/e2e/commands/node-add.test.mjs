@@ -16,13 +16,14 @@
  */
 import { afterAll, describe, it } from '@jest/globals'
 import { flags } from '../../../src/commands/index.mjs'
-import { constants } from '../../../src/core/index.mjs'
+import { constants, Templates } from '../../../src/core/index.mjs'
 import {
-  bootstrapNetwork,
+  bootstrapNetwork, bootstrapTestVariables,
   getDefaultArgv,
   HEDERA_PLATFORM_VERSION_TAG
 } from '../../test_util.js'
 import { getNodeLogs } from '../../../src/core/helpers.mjs'
+import fs from 'fs'
 
 describe('Node add', () => {
   const TEST_NAMESPACE = 'node-add'
@@ -41,7 +42,7 @@ describe('Node add', () => {
   const nodeCmd = bootstrapResp.cmd.nodeCmd
 
   afterAll(async () => {
-    await getNodeLogs(nodeCmd.k8, TEST_NAMESPACE)
+    // await getNodeLogs(nodeCmd.k8, TEST_NAMESPACE)
   //   await hederaK8.deleteNamespace(TEST_NAMESPACE)
   }, 120000)
 
@@ -55,9 +56,8 @@ describe('Node add', () => {
   }, 900000)
 
   // it('test', async () => {
-  //   const addressBookPath = `${HEDERA_HAPI_PATH}/data/saved/address_book/`
-  //   const output = await nodeCmd.k8.execContainer('network-node0-0', ROOT_CONTAINER,
-  //     ['bash', '-c', `for file in ${addressBookPath}* ; do echo ; echo File: $file ; echo ; cat "$file" ; done`])
-  //   console.log(output)
+  //   const node1FullyQualifiedPodName = Templates.renderNetworkPodName('node1')
+  //   const zipFileName = await nodeCmd.k8.execContainer(node1FullyQualifiedPodName, constants.ROOT_CONTAINER, ['bash', '-c', `cd ${constants.HEDERA_HAPI_PATH}/data/saved/com.hedera.services.ServicesMain/0/123 && mapfile -t states < <(ls -1t .) && jar cf "\${states[0]}.zip" -C "\${states[0]}" . && echo -n \${states[0]}.zip`])
+  //   console.log(zipFileName)
   // }, 120000)
 })
