@@ -47,6 +47,7 @@ cat test/smoke/hardhat.config.js
 cd ..
 git clone https://github.com/hashgraph/hedera-smart-contracts --branch only-erc20-tests
 cd hedera-smart-contracts
+git branch
 npm install
 npx hardhat compile
 
