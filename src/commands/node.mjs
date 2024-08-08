@@ -2148,6 +2148,7 @@ export class NodeCommand extends BaseCommand {
           const subTasks = []
           for (const nodeId of ctx.config.allNodeIds) {
             subTasks.push({
+              // TODO: during node add, this seems to trip accidentally as true when message said that node isn't ACTIVE
               title: `Check node: ${chalk.yellow(nodeId)}`,
               task: () => self.checkNetworkNodeState(nodeId, 200)
             })
