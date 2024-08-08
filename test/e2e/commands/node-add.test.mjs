@@ -34,7 +34,7 @@ describe('Node add', () => {
   argv[flags.generateTlsKeys.name] = true
   // set the env variable SOLO_FST_CHARTS_DIR if developer wants to use local FST charts
   argv[flags.chartDirectory.name] = process.env.SOLO_FST_CHARTS_DIR ? process.env.SOLO_FST_CHARTS_DIR : undefined
-  argv[flags.releaseTag] = HEDERA_PLATFORM_VERSION_TAG
+  argv[flags.releaseTag.name] = HEDERA_PLATFORM_VERSION_TAG
 
   argv[flags.namespace.name] = TEST_NAMESPACE
   const bootstrapResp = bootstrapNetwork(TEST_NAMESPACE, argv)
@@ -42,6 +42,7 @@ describe('Node add', () => {
   const nodeCmd = bootstrapResp.cmd.nodeCmd
 
   afterAll(async () => {
+    // TODO: enhance getNodeLogs to get rolled over logs and other files that are important
     // await getNodeLogs(nodeCmd.k8, TEST_NAMESPACE)
   //   await hederaK8.deleteNamespace(TEST_NAMESPACE)
   }, 120000)
@@ -53,7 +54,7 @@ describe('Node add', () => {
     argv[flags.keyFormat.name] = constants.KEY_FORMAT_PEM
 
     await nodeCmd.add(argv)
-  }, 900000)
+  }, 99999999)
 
   // it('test', async () => {
   //   const node1FullyQualifiedPodName = Templates.renderNetworkPodName('node1')

@@ -1895,7 +1895,6 @@ export class NodeCommand extends BaseCommand {
           }
         }
       },
-
       {
         title: 'Send node create transaction',
         task: async (ctx, task) => {
@@ -1974,16 +1973,16 @@ export class NodeCommand extends BaseCommand {
           })
         }
       },
-      {
-        title: 'Purge pces files from existing nodes',
-        task: async (ctx, task) => {
-          const config = /** @type {NodeAddConfigClass} **/ ctx.config
-          for (const nodeId of config.existingNodeIds) {
-            const nodeFullyQualifiedPodName = Templates.renderNetworkPodName(nodeId)
-            await self.k8.execContainer(nodeFullyQualifiedPodName, constants.ROOT_CONTAINER, ['bash', '-c', `rm -rf ${constants.HEDERA_HAPI_PATH}/data/saved/preconsensus-events/*`])
-          }
-        }
-      },
+      // {
+      //   title: 'Purge pces files from existing nodes',
+      //   task: async (ctx, task) => {
+      //     const config = /** @type {NodeAddConfigClass} **/ ctx.config
+      //     for (const nodeId of config.existingNodeIds) {
+      //       const nodeFullyQualifiedPodName = Templates.renderNetworkPodName(nodeId)
+      //       await self.k8.execContainer(nodeFullyQualifiedPodName, constants.ROOT_CONTAINER, ['bash', '-c', `rm -rf ${constants.HEDERA_HAPI_PATH}/data/saved/preconsensus-events/*`])
+      //     }
+      //   }
+      // },
       {
         title: 'Deploy new network node',
         task: async (ctx, task) => {
@@ -1991,9 +1990,13 @@ export class NodeCommand extends BaseCommand {
           const index = config.existingNodeIds.length
           let valuesArg = ''
           for (let i = 0; i < index; i++) {
-            valuesArg += ` --set "hedera.nodes.${i}.accountId=${config.serviceMap.get(config.existingNodeIds[i]).accountId}" --set "hedera.nodes.${i}.name=${config.existingNodeIds[i]}"`
+            valuesArg += ` --set "hedera.nodes[${i}].accountId=${config.serviceMap.get(config.existingNodeIds[i]).accountId}" --set "hedera.nodes[${i}].name=${config.existingNodeIds[i]}"`
+            // if (i === 0) {
+            //   valuesArg += ` --set "hedera.nodes[${i}].root.extraEnv[0].name=JAVA_OPTS"`
+            //   valuesArg += ` --set "hedera.nodes[${i}].root.extraEnv[0].value=-agentlib:jdwp=transport=dt_socket\\,server=y\\,suspend=y\\,address=*:5005"`
+            // }
           }
-          valuesArg += ` --set "hedera.nodes.${index}.accountId=${ctx.newNode.accountId}" --set "hedera.nodes.${index}.name=${ctx.newNode.name}"`
+          valuesArg += ` --set "hedera.nodes[${index}].accountId=${ctx.newNode.accountId}" --set "hedera.nodes[${index}].name=${ctx.newNode.name}"`
 
           await self.chartManager.upgrade(
             config.namespace,
@@ -2184,7 +2187,27 @@ export class NodeCommand extends BaseCommand {
           })
         }
       },
-      // TODO: stake new node?
+      {
+        title: 'Stake new node',
+        task: (ctx, _) => {
+          const config = /** @type {NodeAddConfigClass} **/ ctx.config
+          self.addStake(config.namespace, ctx.newNode.accountId, config.nodeId)
+        }
+      },
+      {
+        title: 'Check existing nodes staked amount',
+        task: async (ctx, task) => {
+          const config = /** @type {NodeAddConfigClass} **/ ctx.config
+          await sleep(60000)
+          const accountMap = getNodeAccountMap(config.allNodeIds)
+          for (const nodeId of config.allNodeIds) {
+            const accountId = accountMap.get(nodeId)
+            const accountInfo = await this.accountManager.accountInfoQuery(accountId)
+            this.logger.info(`Account ID: ${accountId}, amount staked: ${accountInfo.stakingInfo.stakedToMe.toString(HbarUnit.Hbar)}`)
+            await this.accountManager.transferAmount(constants.TREASURY_ACCOUNT_ID, accountId, 1)
+          }
+        }
+      },
       {
         title: 'Finalize',
         task: (ctx, _) => {

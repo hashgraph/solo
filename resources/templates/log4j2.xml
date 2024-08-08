@@ -93,7 +93,7 @@
       <AppenderRef ref="fileLog"/>
     </Root>
 
-    <Logger name="com.swirlds" level="INFO" additivity="false">
+    <Logger name="com.swirlds" level="TRACE" additivity="false">
       <AppenderRef ref="fileLog">
         <Filters>
           <!-- MerkleDb & Virtual Merkle -->
