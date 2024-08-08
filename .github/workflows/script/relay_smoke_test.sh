@@ -37,7 +37,7 @@ awk -v new_keys="$NEW_KEYS" '/\],/ {print new_keys; print; next} 1' test/smoke/h
 cat test/smoke/hardhat.config.js
 
 echo "Start background transaction"
-watch npm run generate-accounts 3 >> background.log &
+#watch npm run generate-accounts 3 >> background.log &
 
 echo "Run smoke test"
 
