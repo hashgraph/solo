@@ -226,7 +226,7 @@ export class MirrorNodeCommand extends BaseCommand {
 
                 const importFeesQuery = `INSERT INTO public.file_data(file_data, consensus_timestamp, entity_id, transaction_type) VALUES (decode('${fees}', 'hex'), ${timestamp + '000000'}, ${feesFileIdNum}, 17);`
                 const importExchangeRatesQuery = `INSERT INTO public.file_data(file_data, consensus_timestamp, entity_id, transaction_type) VALUES (decode('${exchangeRates}', 'hex'), ${
-                  timestamp + '000001'
+                    timestamp + '000001'
                 }, ${exchangeRatesFileIdNum}, 17);`
                 const sqlQuery = [importFeesQuery, importExchangeRatesQuery].join('\n')
 
@@ -235,11 +235,7 @@ export class MirrorNodeCommand extends BaseCommand {
                   throw new FullstackTestingError('postgres pod not found')
                 }
                 const postgresPodName = pods[0].metadata.name
-
                 const postgresContainerName = 'postgresql'
-
-                this.logger.debug(`Running SQL query: ${sqlQuery} on pod ${postgresPodName}`)
-
                 const mirrorEnvVars = await self.k8.execContainer(postgresPodName, postgresContainerName, '/bin/bash -c printenv')
                 const mirrorEnvVarsArray = mirrorEnvVars.split('\n')
                 const HEDERA_MIRROR_IMPORTER_DB_OWNER = getEnvValue(mirrorEnvVarsArray, 'HEDERA_MIRROR_IMPORTER_DB_OWNER')
