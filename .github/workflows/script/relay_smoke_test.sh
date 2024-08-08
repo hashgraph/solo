@@ -15,7 +15,7 @@ kubectl port-forward svc/fullstack-deployment-hedera-explorer -n solo-e2e 8080:8
 echo "Clone hedera local node"
 
 cd ..
-git clone https://github.com/hashgraph/hedera-local-node --branch v2.25.3
+git clone https://github.com/hashgraph/hedera-local-node --branch release-2.29.0
 cd hedera-local-node
 npm install
 
