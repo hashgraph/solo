@@ -41,6 +41,21 @@ watch npm run generate-accounts 3 >> background.log &
 
 echo "Run smoke test"
 
-cd test/smoke
+#cd test/smoke
+#npm install
+#npx hardhat test
+
+cd ..
+git clone https://github.com/hashgraph/hedera-smart-contracts --branch only-erc20-tests
+cd hedera-smart-contracts
 npm install
-npx hardhat test
+npx hardhat compile
+
+echo "Build .env file"
+
+echo "PRIVATE_KEYS=$NEW_KEYS" > .env
+echo "RETRY_DELAY=5000 # ms" >> .env
+echo "MAX_RETRY=5" >> .env
+
+
+npm run hh:test
