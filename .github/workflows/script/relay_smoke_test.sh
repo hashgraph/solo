@@ -59,7 +59,7 @@ echo "MAX_RETRY=5" >> .env
 cat .env
 
 echo "Start background transaction"
-# cd ../hedera-local-node;  watch npm run generate-accounts 3 >> background.log &  cd -
+cd ../hedera-local-node;  watch npm run generate-accounts 3 >> background.log &  cd -
 
 npm list
 echo "Run contract test"
