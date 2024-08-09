@@ -212,6 +212,7 @@ export async function getNodeLogs (k8, namespace) {
       await k8.copyFrom(podName, ROOT_CONTAINER, `${HEDERA_HAPI_PATH}/output/hgcaa.log`, targetDir)
       await k8.copyFrom(podName, ROOT_CONTAINER, `${HEDERA_HAPI_PATH}/config.txt`, targetDir)
       await k8.copyFrom(podName, ROOT_CONTAINER, `${HEDERA_HAPI_PATH}/settings.txt`, targetDir)
+      await k8.copyFrom(podName, ROOT_CONTAINER, `${HEDERA_HAPI_PATH}/settingsUsed.txt`, targetDir)
 
       // get the saved address books
       const addressBookPath = `${HEDERA_HAPI_PATH}/data/saved/address_book/`
@@ -219,6 +220,7 @@ export async function getNodeLogs (k8, namespace) {
         ['bash', '-c', `for file in ${addressBookPath}* ; do echo ; echo File: $file ; echo ; cat "$file" ; done`])
       fs.writeFileSync(`${targetDir}/address_book.txt`, output)
 
+      // TODO: open issue, this will cause it to prefix the prefix if old files are already in the directory running locally
       // rename all files with timeString as prefix to avoid overwrite
       fs.readdirSync(targetDir).forEach(file => {
         const oldPath = path.join(targetDir, file)

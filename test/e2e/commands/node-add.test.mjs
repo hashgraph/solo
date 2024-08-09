@@ -16,14 +16,13 @@
  */
 import { afterAll, describe, it } from '@jest/globals'
 import { flags } from '../../../src/commands/index.mjs'
-import { constants, Templates } from '../../../src/core/index.mjs'
+import { constants } from '../../../src/core/index.mjs'
 import {
-  bootstrapNetwork, bootstrapTestVariables,
+  bootstrapNetwork,
   getDefaultArgv,
   HEDERA_PLATFORM_VERSION_TAG
 } from '../../test_util.js'
 import { getNodeLogs } from '../../../src/core/helpers.mjs'
-import fs from 'fs'
 
 describe('Node add', () => {
   const TEST_NAMESPACE = 'node-add'
@@ -38,13 +37,12 @@ describe('Node add', () => {
 
   argv[flags.namespace.name] = TEST_NAMESPACE
   const bootstrapResp = bootstrapNetwork(TEST_NAMESPACE, argv)
-  // const bootstrapResp = bootstrapTestVariables(TEST_NAMESPACE, argv)
   const nodeCmd = bootstrapResp.cmd.nodeCmd
+  const k8 = bootstrapResp.opts.k8
 
   afterAll(async () => {
-    // TODO: enhance getNodeLogs to get rolled over logs and other files that are important
-    // await getNodeLogs(nodeCmd.k8, TEST_NAMESPACE)
-  //   await hederaK8.deleteNamespace(TEST_NAMESPACE)
+    await getNodeLogs(k8, TEST_NAMESPACE)
+    await k8.deleteNamespace(TEST_NAMESPACE)
   }, 120000)
 
   it('should add a new node to the network successfully', async () => {
@@ -54,11 +52,5 @@ describe('Node add', () => {
     argv[flags.keyFormat.name] = constants.KEY_FORMAT_PEM
 
     await nodeCmd.add(argv)
-  }, 99999999)
-
-  // it('test', async () => {
-  //   const node1FullyQualifiedPodName = Templates.renderNetworkPodName('node1')
-  //   const zipFileName = await nodeCmd.k8.execContainer(node1FullyQualifiedPodName, constants.ROOT_CONTAINER, ['bash', '-c', `cd ${constants.HEDERA_HAPI_PATH}/data/saved/com.hedera.services.ServicesMain/0/123 && mapfile -t states < <(ls -1t .) && jar cf "\${states[0]}.zip" -C "\${states[0]}" . && echo -n \${states[0]}.zip`])
-  //   console.log(zipFileName)
-  // }, 120000)
+  }, 600000)
 })
