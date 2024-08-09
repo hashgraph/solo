@@ -111,7 +111,7 @@ export class AccountManager {
    * @returns an array of arrays of numbers representing the accounts to update
    */
   batchAccounts (accountRange = constants.SYSTEM_ACCOUNTS) {
-    const batchSize = constants.ACCOUNT_CREATE_BATCH_SIZE
+    const batchSize = constants.ACCOUNT_UPDATE_BATCH_SIZE
     const batchSets = []
 
     let currentBatch = []
