@@ -476,6 +476,8 @@ export class AccountManager {
     let keys = []
     if (accountInfo.key instanceof KeyList) {
       keys = accountInfo.key.toArray()
+    } else {
+      keys.push(accountInfo.key)
     }
 
     return keys
