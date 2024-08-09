@@ -209,12 +209,20 @@ export function bootstrapNetwork (testName, argv,
       await networkCmd.deploy(argv)
 
       expect(networkCmd.getUnusedConfigs(NetworkCommand.DEPLOY_CONFIGS_NAME)).toEqual([
+        flags.apiPermissionProperties.constName,
+        flags.app.constName,
+        flags.applicationEnv.constName,
+        flags.applicationProperties.constName,
+        flags.bootstrapProperties.constName,
+        flags.chainId.constName,
         flags.deployHederaExplorer.constName,
         flags.deployMirrorNode.constName,
         flags.hederaExplorerTlsHostName.constName,
         flags.hederaExplorerTlsLoadBalancerIp.constName,
+        flags.log4j2Xml.constName,
         flags.profileFile.constName,
         flags.profileName.constName,
+        flags.settingTxt.constName,
         flags.tlsClusterIssuerType.constName
       ])
     }, 180000)
@@ -223,15 +231,13 @@ export function bootstrapNetwork (testName, argv,
       expect.assertions(2)
       try {
         await expect(nodeCmd.setup(argv)).resolves.toBeTruthy()
-        expect(nodeCmd.getUnusedConfigs(NodeCommand.SETUP_CONFIGS_NAME)).toEqual([
-          flags.apiPermissionProperties.constName,
-          flags.appConfig.constName,
-          flags.applicationProperties.constName,
-          flags.bootstrapProperties.constName,
-          flags.devMode.constName,
-          flags.log4j2Xml.constName,
-          flags.settingTxt.constName
-        ])
+        const expectedUnusedConfigs = []
+        expectedUnusedConfigs.push(flags.appConfig.constName)
+        expectedUnusedConfigs.push(flags.devMode.constName)
+        if (testName === 'local-hedera-app') {
+          expectedUnusedConfigs.push(flags.releaseTag.constName)
+        }
+        expect(nodeCmd.getUnusedConfigs(NodeCommand.SETUP_CONFIGS_NAME)).toEqual(expectedUnusedConfigs)
       } catch (e) {
         nodeCmd.logger.showUserError(e)
         expect(e).toBeNull()
