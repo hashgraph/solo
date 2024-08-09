@@ -106,6 +106,7 @@ describe('AccountCommand', () => {
             nodeCmd.logger.info(`Fetching account keys: accountId ${accountId}`)
             const keys = await accountManager.getAccountKeys(accountId)
             nodeCmd.logger.info(`Fetched account keys: accountId ${accountId}`)
+            expect(keys.length).not.toEqual(0)
             expect(keys[0].toString()).not.toEqual(genesisKey.toString())
           }, 20000)
         }

@@ -46,7 +46,7 @@ import { AccountBalanceQuery } from '@hashgraph/sdk'
 
 export const testLogger = logging.NewLogger('debug', true)
 export const TEST_CLUSTER = 'solo-e2e'
-export const HEDERA_PLATFORM_VERSION_TAG = 'v0.49.0-alpha.2'
+export const HEDERA_PLATFORM_VERSION_TAG = 'v0.53.0-release-0.53.xff7c43d'
 
 export function getTestCacheDir (testName) {
   const baseDir = 'test/data/tmp'
@@ -229,6 +229,7 @@ export function bootstrapNetwork (testName, argv,
           flags.applicationProperties.constName,
           flags.bootstrapProperties.constName,
           flags.devMode.constName,
+          flags.localBuildPath.constName,
           flags.log4j2Xml.constName,
           flags.settingTxt.constName
         ])

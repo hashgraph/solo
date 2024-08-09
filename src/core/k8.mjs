@@ -331,7 +331,7 @@ export class K8 {
    * @param containerName container name
    * @param destPath path inside the container
    * @param timeout timeout in ms
-   * @return {Promise<{}>}
+   * @return {Promise<[]>}
    */
   async listDir (podName, containerName, destPath, timeout = 5000) {
     try {
@@ -344,8 +344,13 @@ export class K8 {
       for (let line of lines) {
         line = line.replace(/\s+/g, '|')
         const parts = line.split('|')
-        if (parts.length === 9) {
-          const name = parts[parts.length - 1]
+        if (parts.length >= 9) {
+          let name = parts[parts.length - 1]
+          // handle unique file format (without single quotes): 'usedAddressBook_vHederaSoftwareVersion{hapiVersion=v0.53.0, servicesVersion=v0.53.0}_2024-07-30-20-39-06_node_0.txt.debug'
+          for (let i = parts.length - 1; i > 8; i--) {
+            name = `${parts[i - 1]} ${name}`
+          }
+
           if (name !== '.' && name !== '..') {
             const permission = parts[0]
             const item = {

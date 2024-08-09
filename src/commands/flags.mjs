@@ -614,6 +614,47 @@ export const amount = {
   }
 }
 
+/** @type {CommandFlag} **/
+export const nodeID = {
+  constName: 'nodeId',
+  name: 'node-id',
+  definition: {
+    describe: 'Node id (e.g. node99)',
+    type: 'string'
+  }
+}
+
+/** @type {CommandFlag} **/
+export const gossipEndpoints = {
+  constName: 'gossipEndpoints',
+  name: 'gossip-endpoints',
+  definition: {
+    describe: 'Comma separated gossip endpoints of the node(e.g. first one is internal, second one is external)',
+    type: 'string'
+  }
+}
+
+/** @type {CommandFlag} **/
+export const grpcEndpoints = {
+  constName: 'grpcEndpoints',
+  name: 'grpc-endpoints',
+  definition: {
+    describe: 'Comma separated gRPC endpoints of the node (at most 8)',
+    type: 'string'
+  }
+}
+
+/** @type {CommandFlag} **/
+export const endpointType = {
+  constName: 'endpointType',
+  name: 'endpoint-type',
+  definition: {
+    describe: 'Endpoint type (IP or FQDN)',
+    defaultValue: constants.ENDPOINT_TYPE_FQDN,
+    type: 'string'
+  }
+}
+
 /** @type {CommandFlag[]} **/
 export const allFlags = [
   accountId,
@@ -642,15 +683,19 @@ export const allFlags = [
   ecdsaPrivateKey,
   enableHederaExplorerTls,
   enablePrometheusSvcMonitor,
+  endpointType,
   fstChartVersion,
   generateGossipKeys,
   generateTlsKeys,
+  gossipEndpoints,
+  grpcEndpoints,
   hederaExplorerTlsHostName,
   hederaExplorerTlsLoadBalancerIp,
   keyFormat,
   localBuildPath,
   log4j2Xml,
   namespace,
+  nodeID,
   nodeIDs,
   operatorId,
   operatorKey,

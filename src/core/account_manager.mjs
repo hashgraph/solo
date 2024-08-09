@@ -79,7 +79,12 @@ export class AccountManager {
         publicKey: Base64.decode(secret.data.publicKey)
       }
     } else {
-      return null
+      // if it isn't in the secrets we can load genesis key
+      return {
+        accountId,
+        privateKey: constants.GENESIS_KEY,
+        publicKey: PrivateKey.fromStringED25519(constants.GENESIS_KEY).publicKey.toString()
+      }
     }
   }
 
@@ -92,18 +97,7 @@ export class AccountManager {
    */
   async getTreasuryAccountKeys (namespace) {
     // check to see if the treasure account is in the secrets
-    let accountInfo = await this.getAccountKeysFromSecret(constants.TREASURY_ACCOUNT_ID, namespace)
-
-    // if it isn't in the secrets we can load genesis key
-    if (!accountInfo) {
-      accountInfo = {
-        accountId: constants.TREASURY_ACCOUNT_ID,
-        privateKey: constants.GENESIS_KEY,
-        publicKey: PrivateKey.fromStringED25519(constants.GENESIS_KEY).publicKey.toString()
-      }
-    }
-
-    return accountInfo
+    return await this.getAccountKeysFromSecret(constants.TREASURY_ACCOUNT_ID, namespace)
   }
 
   /**
@@ -167,6 +161,8 @@ export class AccountManager {
       this._nodeClient = await this._getNodeClient(namespace,
         networkNodeServicesMap, treasuryAccountInfo.accountId, treasuryAccountInfo.privateKey)
     }
+
+    return this._nodeClient
   }
 
   /**
@@ -232,7 +228,8 @@ export class AccountManager {
       }
 
       this.logger.debug(`creating client from network configuration: ${JSON.stringify(nodes)}`)
-      this._nodeClient = Client.fromConfig({ network: nodes })
+      // scheduleNetworkUpdate is set to false, because the ports 50212/50211 are hardcoded in JS SDK that will not work when running locally or in a pipeline
+      this._nodeClient = Client.fromConfig({ network: nodes, scheduleNetworkUpdate: false })
       this._nodeClient.setOperator(operatorId, operatorKey)
       this._nodeClient.setLogger(new Logger(LogLevel.Trace, `${constants.SOLO_LOGS_DIR}/hashgraph-sdk.log`))
       this._nodeClient.setMaxAttempts(constants.NODE_CLIENT_MAX_ATTEMPTS)
@@ -253,8 +250,7 @@ export class AccountManager {
   async getNodeServiceMap (namespace) {
     const labelSelector = 'fullstack.hedera.com/node-name'
 
-    /** @type {Map<String,NetworkNodeServicesBuilder>} **/
-    const serviceBuilderMap = new Map()
+    const serviceBuilderMap = /** @type {Map<String,NetworkNodeServicesBuilder>} **/ new Map()
 
     const serviceList = await this.k8.kubeClient.listNamespacedService(
       namespace, undefined, undefined, undefined, undefined, labelSelector)
@@ -477,12 +473,9 @@ export class AccountManager {
   async getAccountKeys (accountId) {
     const accountInfo = await this.accountInfoQuery(accountId)
 
-    let keys
+    let keys = []
     if (accountInfo.key instanceof KeyList) {
       keys = accountInfo.key.toArray()
-    } else {
-      keys = []
-      keys.push(accountInfo.key)
     }
 
     return keys
