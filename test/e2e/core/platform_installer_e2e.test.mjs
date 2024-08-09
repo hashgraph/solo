@@ -93,7 +93,7 @@ describe('PackageInstallerE2E', () => {
       expect(configLines.length).toBe(4)
       expect(configLines[0]).toBe(`swirld, ${chainId}`)
       expect(configLines[1]).toBe(`app, ${constants.HEDERA_APP_NAME}`)
-      expect(configLines[2]).toContain('address, 0, node0, node0, 1')
+      expect(configLines[2]).toContain(`address, 0, node0, node0, ${constants.HEDERA_NODE_DEFAULT_STAKE_AMOUNT}`)
       expect(configLines[3]).toBe('nextNodeId, 1')
 
       // verify the file exists

@@ -14,7 +14,7 @@
  * limitations under the License.
  *
  */
-import { afterAll, describe, it } from '@jest/globals'
+import { afterAll, describe, expect, it } from '@jest/globals'
 import { flags } from '../../../src/commands/index.mjs'
 import { constants } from '../../../src/core/index.mjs'
 import {
@@ -23,6 +23,7 @@ import {
   HEDERA_PLATFORM_VERSION_TAG
 } from '../../test_util.js'
 import { getNodeLogs } from '../../../src/core/helpers.mjs'
+import { NodeCommand } from '../../../src/commands/node.mjs'
 
 describe('Node add', () => {
   const TEST_NAMESPACE = 'node-add'
@@ -52,5 +53,14 @@ describe('Node add', () => {
     argv[flags.keyFormat.name] = constants.KEY_FORMAT_PEM
 
     await nodeCmd.add(argv)
+    expect(nodeCmd.getUnusedConfigs(NodeCommand.ADD_CONFIGS_NAME)).toEqual([
+      flags.apiPermissionProperties.constName,
+      flags.applicationProperties.constName,
+      flags.bootstrapProperties.constName,
+      flags.chainId.constName,
+      flags.devMode.constName,
+      flags.log4j2Xml.constName,
+      flags.settingTxt.constName
+    ])
   }, 600000)
 })
