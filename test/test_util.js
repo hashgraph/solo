@@ -247,7 +247,7 @@ export function bootstrapNetwork (testName, argv,
         nodeCmd.logger.showUserError(e)
         expect(e).toBeNull()
       }
-    }, 99999999)
+    }, 1800000)
   })
 
   return bootstrapResp
