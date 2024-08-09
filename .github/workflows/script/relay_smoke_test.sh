@@ -45,7 +45,7 @@ cat test/smoke/hardhat.config.js
 #npx hardhat test
 
 cd ..
-git clone https://github.com/hashgraph/hedera-smart-contracts
+git clone https://github.com/hashgraph/hedera-smart-contracts --branch only-erc20-tests
 cd hedera-smart-contracts
 git branch
 npm install
@@ -63,4 +63,4 @@ echo "Start background transaction"
 
 npm list
 echo "Run contract test"
-npm run hardhat test --grep "@OZERC20 Test Suite"
+npm run hh:test
