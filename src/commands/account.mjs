@@ -22,6 +22,7 @@ import { Listr } from 'listr2'
 import * as prompts from './prompts.mjs'
 import { constants } from '../core/index.mjs'
 import { AccountInfo, HbarUnit, PrivateKey } from '@hashgraph/sdk'
+import { FREEZE_ADMIN_ACCOUNT } from '../core/constants.mjs'
 
 export class AccountCommand extends BaseCommand {
   constructor (opts, systemAccounts = constants.SYSTEM_ACCOUNTS) {
@@ -147,6 +148,9 @@ export class AccountCommand extends BaseCommand {
                   fulfilledCount: 0,
                   skippedCount: 0
                 }
+
+                // do a write transaction to trigger the handler and generate the system accounts to complete genesis
+                await self.accountManager.transferAmount(constants.TREASURY_ACCOUNT_ID, FREEZE_ADMIN_ACCOUNT, 1)
               }
             },
             {
