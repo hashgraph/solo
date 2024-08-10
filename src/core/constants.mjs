@@ -75,7 +75,7 @@ export const SHORTER_SYSTEM_ACCOUNTS = [[3, 60]]
 export const TREASURY_ACCOUNT = 2
 export const LOCAL_NODE_START_PORT = process.env.LOCAL_NODE_START_PORT || 30212
 export const LOCAL_NODE_PROXY_START_PORT = process.env.LOCAL_NODE_PROXY_START_PORT || 30313
-export const ACCOUNT_CREATE_BATCH_SIZE = process.env.ACCOUNT_CREATE_BATCH_SIZE || 20
+export const ACCOUNT_UPDATE_BATCH_SIZE = process.env.ACCOUNT_UPDATE_BATCH_SIZE || 10
 export const NODE_PROXY_USER_ID = process.env.NODE_PROXY_USER_ID || 'admin'
 export const NODE_PROXY_PASSWORD = process.env.NODE_PROXY_PASSWORD || 'adminpwd'
 
