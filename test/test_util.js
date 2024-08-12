@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
+ * @jest-environment steps
  */
 import { afterAll, beforeAll, describe, expect, it } from '@jest/globals'
 import fs from 'fs'
@@ -39,10 +40,17 @@ import {
   KeyManager,
   logging,
   PackageDownloader,
-  PlatformInstaller, ProfileManager,
+  PlatformInstaller, ProfileManager, Templates,
   Zippy
 } from '../src/core/index.mjs'
-import { AccountBalanceQuery } from '@hashgraph/sdk'
+import {
+  AccountBalanceQuery,
+  AccountCreateTransaction, Hbar, HbarUnit,
+  PrivateKey
+} from '@hashgraph/sdk'
+import { ROOT_CONTAINER } from '../src/core/constants.mjs'
+import crypto from 'crypto'
+import { AccountCommand } from '../src/commands/account.mjs'
 
 export const testLogger = logging.NewLogger('debug', true)
 export const TEST_CLUSTER = 'solo-e2e'
@@ -93,13 +101,15 @@ export function getDefaultArgv () {
  * @param clusterCmdArg an instance of command/ClusterCommand
  * @param networkCmdArg an instance of command/NetworkCommand
  * @param nodeCmdArg an instance of command/NodeCommand
+ * @param accountCmdArg an instance of command/AccountCommand
  */
 export function bootstrapTestVariables (testName, argv,
   k8Arg = null,
   initCmdArg = null,
   clusterCmdArg = null,
   networkCmdArg = null,
-  nodeCmdArg = null
+  nodeCmdArg = null,
+  accountCmdArg = null
 ) {
   const namespace = argv[flags.namespace.name] || 'bootstrap-ns'
   const cacheDir = argv[flags.cacheDir.name] || getTestCacheDir(testName)
@@ -139,6 +149,7 @@ export function bootstrapTestVariables (testName, argv,
   const clusterCmd = clusterCmdArg || new ClusterCommand(opts)
   const networkCmd = networkCmdArg || new NetworkCommand(opts)
   const nodeCmd = nodeCmdArg || new NodeCommand(opts)
+  const accountCmd = accountCmdArg || new AccountCommand(opts, constants.SHORTER_SYSTEM_ACCOUNTS)
   return {
     namespace,
     opts,
@@ -146,7 +157,8 @@ export function bootstrapTestVariables (testName, argv,
       initCmd,
       clusterCmd,
       networkCmd,
-      nodeCmd
+      nodeCmd,
+      accountCmd
     }
   }
 }
@@ -161,15 +173,17 @@ export function bootstrapTestVariables (testName, argv,
  * @param clusterCmdArg an instance of command/ClusterCommand
  * @param networkCmdArg an instance of command/NetworkCommand
  * @param nodeCmdArg an instance of command/NodeCommand
+ * @param accountCmdArg an instance of command/AccountCommand
  */
 export function bootstrapNetwork (testName, argv,
   k8Arg = null,
   initCmdArg = null,
   clusterCmdArg = null,
   networkCmdArg = null,
-  nodeCmdArg = null
+  nodeCmdArg = null,
+  accountCmdArg = null
 ) {
-  const bootstrapResp = bootstrapTestVariables(testName, argv, k8Arg, initCmdArg, clusterCmdArg, networkCmdArg, nodeCmdArg)
+  const bootstrapResp = bootstrapTestVariables(testName, argv, k8Arg, initCmdArg, clusterCmdArg, networkCmdArg, nodeCmdArg, accountCmdArg)
   const namespace = bootstrapResp.namespace
   const initCmd = bootstrapResp.cmd.initCmd
   const k8 = bootstrapResp.opts.k8
@@ -273,4 +287,76 @@ export function balanceQueryShouldSucceed (accountManager, cmd, namespace) {
     }
     await sleep(1000)
   }, 120000)
+}
+
+export function accountCreationShouldSucceed (accountManager, nodeCmd, namespace) {
+  it('Account creation should succeed', async () => {
+    expect.assertions(3)
+
+    try {
+      await accountManager.loadNodeClient(namespace)
+      expect(accountManager._nodeClient).not.toBeNull()
+      const privateKey = PrivateKey.generate()
+      const amount = 100
+
+      const newAccount = await new AccountCreateTransaction()
+        .setKey(privateKey)
+        .setInitialBalance(Hbar.from(amount, HbarUnit.Hbar))
+        .execute(accountManager._nodeClient)
+
+      // Get the new account ID
+      const getReceipt = await newAccount.getReceipt(accountManager._nodeClient)
+      const accountInfo = {
+        accountId: getReceipt.accountId.toString(),
+        privateKey: privateKey.toString(),
+        publicKey: privateKey.publicKey.toString(),
+        balance: amount
+      }
+
+      expect(accountInfo.accountId).not.toBeNull()
+      expect(accountInfo.balance).toEqual(amount)
+    } catch (e) {
+      nodeCmd.logger.showUserError(e)
+      expect(e).toBeNull()
+    }
+  }, 120000)
+}
+
+export async function getNodeIdsPrivateKeysHash (networkNodeServicesMap, namespace, keyFormat, k8, destDir) {
+  const dataKeysDir = `${constants.HEDERA_HAPI_PATH}/data/keys`
+  const tlsKeysDir = constants.HEDERA_HAPI_PATH
+  const nodeKeyHashMap = new Map()
+  for (const networkNodeServices of networkNodeServicesMap.values()) {
+    const keyHashMap = new Map()
+    const nodeId = networkNodeServices.nodeName
+    const uniqueNodeDestDir = path.join(destDir, nodeId)
+    if (!fs.existsSync(uniqueNodeDestDir)) {
+      fs.mkdirSync(uniqueNodeDestDir, { recursive: true })
+    }
+    switch (keyFormat) {
+      case constants.KEY_FORMAT_PFX:
+        await addKeyHashToMap(k8, nodeId, dataKeysDir, uniqueNodeDestDir, keyHashMap, Templates.renderGossipPfxPrivateKeyFile(nodeId))
+        break
+      case constants.KEY_FORMAT_PEM:
+        await addKeyHashToMap(k8, nodeId, dataKeysDir, uniqueNodeDestDir, keyHashMap, Templates.renderGossipPemPrivateKeyFile(constants.SIGNING_KEY_PREFIX, nodeId))
+        await addKeyHashToMap(k8, nodeId, dataKeysDir, uniqueNodeDestDir, keyHashMap, Templates.renderGossipPemPrivateKeyFile(constants.AGREEMENT_KEY_PREFIX, nodeId))
+        break
+      default:
+        throw new Error(`invalid keyFormat: ${keyFormat}`)
+    }
+    await addKeyHashToMap(k8, nodeId, tlsKeysDir, uniqueNodeDestDir, keyHashMap, 'hedera.key')
+    nodeKeyHashMap.set(nodeId, keyHashMap)
+  }
+  return nodeKeyHashMap
+}
+
+async function addKeyHashToMap (k8, nodeId, keyDir, uniqueNodeDestDir, keyHashMap, privateKeyFileName) {
+  await k8.copyFrom(
+    Templates.renderNetworkPodName(nodeId),
+    ROOT_CONTAINER,
+    path.join(keyDir, privateKeyFileName),
+    uniqueNodeDestDir)
+  const keyBytes = await fs.readFileSync(path.join(uniqueNodeDestDir, privateKeyFileName))
+  const keyString = keyBytes.toString()
+  keyHashMap.set(privateKeyFileName, crypto.createHash('sha256').update(keyString).digest('base64'))
 }

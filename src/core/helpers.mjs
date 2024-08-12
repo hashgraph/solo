@@ -197,41 +197,30 @@ export function validatePath (input) {
  * @returns {Promise<void>} A promise that resolves when the logs are downloaded
  */
 export async function getNodeLogs (k8, namespace) {
+  k8.logger.debug('getNodeLogs: begin...')
   const pods = await k8.getPodsByLabel(['fullstack.hedera.com/type=network-node'])
 
   const timeString = new Date().toISOString().replace(/:/g, '-').replace(/\./g, '-')
 
   for (const pod of pods) {
     const podName = pod.metadata.name
-    const targetDir = `${SOLO_LOGS_DIR}/${namespace}/${podName}`
+    const targetDir = `${SOLO_LOGS_DIR}/${namespace}/${timeString}`
     try {
       if (!fs.existsSync(targetDir)) {
         fs.mkdirSync(targetDir, { recursive: true })
       }
-      await k8.copyFrom(podName, ROOT_CONTAINER, `${HEDERA_HAPI_PATH}/output/swirlds.log`, targetDir)
-      await k8.copyFrom(podName, ROOT_CONTAINER, `${HEDERA_HAPI_PATH}/output/hgcaa.log`, targetDir)
-      await k8.copyFrom(podName, ROOT_CONTAINER, `${HEDERA_HAPI_PATH}/config.txt`, targetDir)
-      await k8.copyFrom(podName, ROOT_CONTAINER, `${HEDERA_HAPI_PATH}/settings.txt`, targetDir)
-      await k8.copyFrom(podName, ROOT_CONTAINER, `${HEDERA_HAPI_PATH}/settingsUsed.txt`, targetDir)
-
-      // get the saved address books
-      const addressBookPath = `${HEDERA_HAPI_PATH}/data/saved/address_book/`
-      const output = await k8.execContainer(podName, ROOT_CONTAINER,
-        ['bash', '-c', `for file in ${addressBookPath}* ; do echo ; echo File: $file ; echo ; cat "$file" ; done`])
-      fs.writeFileSync(`${targetDir}/address_book.txt`, output)
-
-      // TODO: open issue, this will cause it to prefix the prefix if old files are already in the directory running locally
-      // rename all files with timeString as prefix to avoid overwrite
-      fs.readdirSync(targetDir).forEach(file => {
-        const oldPath = path.join(targetDir, file)
-        const newPath = path.join(targetDir, `${timeString}-${file}`)
-        fs.renameSync(oldPath, newPath)
-      })
+      const scriptName = 'support-zip.sh'
+      const sourcePath = path.join(constants.RESOURCES_DIR, scriptName) // script source path
+      await k8.copyTo(podName, ROOT_CONTAINER, sourcePath, `${HEDERA_HAPI_PATH}`)
+      await k8.execContainer(podName, ROOT_CONTAINER, `chmod 0755 ${HEDERA_HAPI_PATH}/${scriptName}`)
+      await k8.execContainer(podName, ROOT_CONTAINER, `${HEDERA_HAPI_PATH}/${scriptName}`)
+      await k8.copyFrom(podName, ROOT_CONTAINER, `${HEDERA_HAPI_PATH}/${podName}.zip`, targetDir)
     } catch (e) {
       // not throw error here, so we can continue to finish downloading logs from other pods
       // and also delete namespace in the end
       k8.logger.error(`failed to download logs from pod ${podName}`, e)
     }
+    k8.logger.debug('getNodeLogs: ...end')
   }
 }
 

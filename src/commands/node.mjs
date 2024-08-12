@@ -1541,6 +1541,7 @@ export class NodeCommand extends BaseCommand {
            * @property {string} freezeAdminPrivateKey
            * @property {string} keysDir
            * @property {string} lastStateZipPath
+           * @property {Object} nodeClient
            * @property {string[]} nodeIds
            * @property {Object} podNames
            * @property {string} releasePrefix
@@ -1567,6 +1568,7 @@ export class NodeCommand extends BaseCommand {
               'freezeAdminPrivateKey',
               'keysDir',
               'lastStateZipPath',
+              'nodeClient',
               'nodeIds',
               'podNames',
               'releasePrefix',
@@ -1592,7 +1594,7 @@ export class NodeCommand extends BaseCommand {
             constants.FULLSTACK_TESTING_CHART, constants.FULLSTACK_DEPLOYMENT_CHART)
 
           // initialize Node Client with existing network nodes prior to adding the new node which isn't functioning, yet
-          await this.accountManager.loadNodeClient(ctx.config.namespace)
+          ctx.config.nodeClient = await this.accountManager.loadNodeClient(ctx.config.namespace)
 
           const accountKeys = await this.accountManager.getAccountKeysFromSecret(FREEZE_ADMIN_ACCOUNT, config.namespace)
           config.freezeAdminPrivateKey = accountKeys.privateKey
@@ -1749,9 +1751,8 @@ export class NodeCommand extends BaseCommand {
         title: 'Prepare upgrade zip file for node upgrade process',
         task: async (ctx, task) => {
           const config = /** @type {NodeAddConfigClass} **/ ctx.config
-          ctx.nodeClient = await this.accountManager.loadNodeClient(config.namespace)
           ctx.upgradeZipFile = await this.prepareUpgradeZip(config.stagingDir)
-          ctx.upgradeZipHash = await this.uploadUpgradeZip(ctx.upgradeZipFile, ctx.nodeClient)
+          ctx.upgradeZipHash = await this.uploadUpgradeZip(ctx.upgradeZipFile, config.nodeClient)
         }
       },
       {
@@ -1773,7 +1774,8 @@ export class NodeCommand extends BaseCommand {
 
           try {
             const nodeClient = this.accountManager._nodeClient
-            nodeClient.setOperator(TREASURY_ACCOUNT_ID, config.adminKey.toString())
+            const treasuryAccountPrivateKey = this.accountManager.getTreasuryAccountKeys(config.namespace).privateKey
+            nodeClient.setOperator(TREASURY_ACCOUNT_ID, treasuryAccountPrivateKey)
 
             const nodeCreateTx = await new NodeCreateTransaction()
               .setAccountId(ctx.newNode.accountId)
@@ -1796,7 +1798,7 @@ export class NodeCommand extends BaseCommand {
         title: 'Send prepare upgrade transaction',
         task: async (ctx, task) => {
           const config = /** @type {NodeAddConfigClass} **/ ctx.config
-          await this.prepareUpgradeNetworkNodes(config.freezeAdminPrivateKey, ctx.upgradeZipHash, ctx.nodeClient)
+          await this.prepareUpgradeNetworkNodes(config.freezeAdminPrivateKey, ctx.upgradeZipHash, config.nodeClient)
         }
       },
       {
@@ -1819,7 +1821,7 @@ export class NodeCommand extends BaseCommand {
         title: 'Send freeze upgrade transaction',
         task: async (ctx, task) => {
           const config = /** @type {NodeAddConfigClass} **/ ctx.config
-          await this.freezeUpgradeNetworkNodes(config.freezeAdminPrivateKey, ctx.upgradeZipHash, ctx.nodeClient)
+          await this.freezeUpgradeNetworkNodes(config.freezeAdminPrivateKey, ctx.upgradeZipHash, config.nodeClient)
         }
       },
       {

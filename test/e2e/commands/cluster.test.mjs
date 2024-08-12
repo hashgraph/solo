@@ -66,6 +66,7 @@ describe('ClusterCommand', () => {
   const clusterCmd = bootstrapResp.cmd.clusterCmd
 
   afterAll(async () => {
+    await chartManager.isChartInstalled(constants.FULLSTACK_SETUP_NAMESPACE, constants.FULLSTACK_CLUSTER_SETUP_CHART)
     await getNodeLogs(k8, namespace)
     await k8.deleteNamespace(namespace)
     await accountManager.close()

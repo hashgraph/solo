@@ -56,11 +56,12 @@ describe('AccountCommand', () => {
   // set the env variable SOLO_FST_CHARTS_DIR if developer wants to use local FST charts
   argv[flags.chartDirectory.name] = process.env.SOLO_FST_CHARTS_DIR ? process.env.SOLO_FST_CHARTS_DIR : undefined
   const bootstrapResp = bootstrapNetwork(testName, argv)
+  const accountCmd = new AccountCommand(bootstrapResp.opts, testSystemAccounts)
+  bootstrapResp.cmd.accountCmd = accountCmd
   const k8 = bootstrapResp.opts.k8
   const accountManager = bootstrapResp.opts.accountManager
   const configManager = bootstrapResp.opts.configManager
   const nodeCmd = bootstrapResp.cmd.nodeCmd
-  const accountCmd = new AccountCommand(bootstrapResp.opts, testSystemAccounts)
 
   afterAll(async () => {
     await getNodeLogs(k8, namespace)
