@@ -647,118 +647,6 @@ export class NodeCommand extends BaseCommand {
     }
   }
 
-  async prepareUpgradeNetworkNodes (freezeAdminPrivateKey, upgradeZipHash, client) {
-    try {
-      // transfer some tiny amount to the freeze admin account
-      await this.accountManager.transferAmount(constants.TREASURY_ACCOUNT_ID, FREEZE_ADMIN_ACCOUNT, 100000)
-
-      // query the balance
-      const balance = await new AccountBalanceQuery()
-        .setAccountId(FREEZE_ADMIN_ACCOUNT)
-        .execute(this.accountManager._nodeClient)
-      this.logger.debug(`Freeze admin account balance: ${balance.hbars}`)
-
-      // set operator of freeze transaction as freeze admin account
-      client.setOperator(FREEZE_ADMIN_ACCOUNT, freezeAdminPrivateKey)
-
-      const prepareUpgradeTx = await new FreezeTransaction()
-        .setFreezeType(FreezeType.PrepareUpgrade)
-        .setFileId(constants.UPGRADE_FILE_ID)
-        .setFileHash(upgradeZipHash)
-        .freezeWith(client)
-        .execute(client)
-
-      const prepareUpgradeReceipt = await prepareUpgradeTx.getReceipt(client)
-
-      this.logger.debug(
-        `sent prepare upgrade transaction [id: ${prepareUpgradeTx.transactionId.toString()}]`,
-        prepareUpgradeReceipt.status.toString()
-      )
-    } catch (e) {
-      this.logger.error(`Error in prepare upgrade: ${e.message}`, e)
-      throw new FullstackTestingError(`Error in prepare upgrade: ${e.message}`, e)
-    }
-  }
-
-  async freezeUpgradeNetworkNodes (freezeAdminPrivateKey, upgradeZipHash, client) {
-    try {
-      const futureDate = new Date()
-      this.logger.debug(`Current time: ${futureDate}`)
-
-      futureDate.setTime(futureDate.getTime() + 5000) // 5 seconds in the future
-      this.logger.debug(`Freeze time: ${futureDate}`)
-
-      client.setOperator(FREEZE_ADMIN_ACCOUNT, freezeAdminPrivateKey)
-      const freezeUpgradeTx = await new FreezeTransaction()
-        .setFreezeType(FreezeType.FreezeUpgrade)
-        .setStartTimestamp(Timestamp.fromDate(futureDate))
-        .setFileId(constants.UPGRADE_FILE_ID)
-        .setFileHash(upgradeZipHash)
-        .freezeWith(client)
-        .execute(client)
-
-      const freezeUpgradeReceipt = await freezeUpgradeTx.getReceipt(client)
-      this.logger.debug(`Upgrade frozen with transaction id: ${freezeUpgradeTx.transactionId.toString()}`,
-        freezeUpgradeReceipt.status.toString())
-    } catch (e) {
-      this.logger.error(`Error in freeze upgrade: ${e.message}`, e)
-      throw new FullstackTestingError(`Error in freeze upgrade: ${e.message}`, e)
-    }
-  }
-
-  startNodes (podNames, nodeIds, subTasks) {
-    for (const nodeId of nodeIds) {
-      const podName = podNames[nodeId]
-      subTasks.push({
-        title: `Start node: ${chalk.yellow(nodeId)}`,
-        task: async () => {
-          await this.k8.execContainer(podName, constants.ROOT_CONTAINER, ['systemctl', 'restart', 'network-node'])
-        }
-      })
-    }
-  }
-
-  async copyGossipKeysToStaging (keyFormat, keysDir, stagingKeysDir, nodeIds) {
-    // copy gossip keys to the staging
-    for (const nodeId of nodeIds) {
-      switch (keyFormat) {
-        case constants.KEY_FORMAT_PEM: {
-          const signingKeyFiles = this.keyManager.prepareNodeKeyFilePaths(nodeId, keysDir, constants.SIGNING_KEY_PREFIX)
-          await this._copyNodeKeys(signingKeyFiles, stagingKeysDir)
-
-          // generate missing agreement keys
-          const agreementKeyFiles = this.keyManager.prepareNodeKeyFilePaths(nodeId, keysDir, constants.AGREEMENT_KEY_PREFIX)
-          await this._copyNodeKeys(agreementKeyFiles, stagingKeysDir)
-          break
-        }
-
-        case constants.KEY_FORMAT_PFX: {
-          const privateKeyFile = Templates.renderGossipPfxPrivateKeyFile(nodeId)
-          fs.cpSync(`${keysDir}/${privateKeyFile}`, `${stagingKeysDir}/${privateKeyFile}`)
-          fs.cpSync(`${keysDir}/${constants.PUBLIC_PFX}`, `${stagingKeysDir}/${constants.PUBLIC_PFX}`)
-          break
-        }
-
-        default:
-          throw new FullstackTestingError(`Unsupported key-format ${keyFormat}`)
-      }
-    }
-  }
-
-  async bumpHederaConfigVersion (configTxtPath) {
-    const lines = (await readFile(configTxtPath, 'utf-8')).split('\n')
-
-    for (const line of lines) {
-      if (line.startsWith('hedera.config.version=')) {
-        const version = parseInt(line.split('=')[1]) + 1
-        lines[lines.indexOf(line)] = `hedera.config.version=${version}`
-        break
-      }
-    }
-
-    await writeFile(configTxtPath, lines.join('\n'))
-  }
-
   prepareEndpoints (endpointType, endpoints, defaultPort) {
     const ret = /** @typedef ServiceEndpoint **/[]
     for (const endpoint of endpoints) {
@@ -2202,6 +2090,104 @@ export class NodeCommand extends BaseCommand {
     return true
   }
 
+  async prepareUpgradeNetworkNodes (freezeAdminPrivateKey, upgradeZipHash, client) {
+    try {
+      // transfer some tiny amount to the freeze admin account
+      await this.accountManager.transferAmount(constants.TREASURY_ACCOUNT_ID, FREEZE_ADMIN_ACCOUNT, 100000)
+
+      // query the balance
+      const balance = await new AccountBalanceQuery()
+        .setAccountId(FREEZE_ADMIN_ACCOUNT)
+        .execute(this.accountManager._nodeClient)
+      this.logger.debug(`Freeze admin account balance: ${balance.hbars}`)
+
+      // set operator of freeze transaction as freeze admin account
+      client.setOperator(FREEZE_ADMIN_ACCOUNT, freezeAdminPrivateKey)
+
+      const prepareUpgradeTx = await new FreezeTransaction()
+        .setFreezeType(FreezeType.PrepareUpgrade)
+        .setFileId(constants.UPGRADE_FILE_ID)
+        .setFileHash(upgradeZipHash)
+        .freezeWith(client)
+        .execute(client)
+
+      const prepareUpgradeReceipt = await prepareUpgradeTx.getReceipt(client)
+
+      this.logger.debug(
+          `sent prepare upgrade transaction [id: ${prepareUpgradeTx.transactionId.toString()}]`,
+          prepareUpgradeReceipt.status.toString()
+      )
+    } catch (e) {
+      this.logger.error(`Error in prepare upgrade: ${e.message}`, e)
+      throw new FullstackTestingError(`Error in prepare upgrade: ${e.message}`, e)
+    }
+  }
+
+  async freezeUpgradeNetworkNodes (freezeAdminPrivateKey, upgradeZipHash, client) {
+    try {
+      const futureDate = new Date()
+      this.logger.debug(`Current time: ${futureDate}`)
+
+      futureDate.setTime(futureDate.getTime() + 5000) // 5 seconds in the future
+      this.logger.debug(`Freeze time: ${futureDate}`)
+
+      client.setOperator(FREEZE_ADMIN_ACCOUNT, freezeAdminPrivateKey)
+      const freezeUpgradeTx = await new FreezeTransaction()
+        .setFreezeType(FreezeType.FreezeUpgrade)
+        .setStartTimestamp(Timestamp.fromDate(futureDate))
+        .setFileId(constants.UPGRADE_FILE_ID)
+        .setFileHash(upgradeZipHash)
+        .freezeWith(client)
+        .execute(client)
+
+      const freezeUpgradeReceipt = await freezeUpgradeTx.getReceipt(client)
+      this.logger.debug(`Upgrade frozen with transaction id: ${freezeUpgradeTx.transactionId.toString()}`,
+        freezeUpgradeReceipt.status.toString())
+    } catch (e) {
+      this.logger.error(`Error in freeze upgrade: ${e.message}`, e)
+      throw new FullstackTestingError(`Error in freeze upgrade: ${e.message}`, e)
+    }
+  }
+
+  startNodes (podNames, nodeIds, subTasks) {
+    for (const nodeId of nodeIds) {
+      const podName = podNames[nodeId]
+      subTasks.push({
+        title: `Start node: ${chalk.yellow(nodeId)}`,
+        task: async () => {
+          await this.k8.execContainer(podName, constants.ROOT_CONTAINER, ['systemctl', 'restart', 'network-node'])
+        }
+      })
+    }
+  }
+
+  async copyGossipKeysToStaging (keyFormat, keysDir, stagingKeysDir, nodeIds) {
+    // copy gossip keys to the staging
+    for (const nodeId of nodeIds) {
+      switch (keyFormat) {
+        case constants.KEY_FORMAT_PEM: {
+          const signingKeyFiles = this.keyManager.prepareNodeKeyFilePaths(nodeId, keysDir, constants.SIGNING_KEY_PREFIX)
+          await this._copyNodeKeys(signingKeyFiles, stagingKeysDir)
+
+          // generate missing agreement keys
+          const agreementKeyFiles = this.keyManager.prepareNodeKeyFilePaths(nodeId, keysDir, constants.AGREEMENT_KEY_PREFIX)
+          await this._copyNodeKeys(agreementKeyFiles, stagingKeysDir)
+          break
+        }
+
+        case constants.KEY_FORMAT_PFX: {
+          const privateKeyFile = Templates.renderGossipPfxPrivateKeyFile(nodeId)
+          fs.cpSync(`${keysDir}/${privateKeyFile}`, `${stagingKeysDir}/${privateKeyFile}`)
+          fs.cpSync(`${keysDir}/${constants.PUBLIC_PFX}`, `${stagingKeysDir}/${constants.PUBLIC_PFX}`)
+          break
+        }
+
+        default:
+          throw new FullstackTestingError(`Unsupported key-format ${keyFormat}`)
+      }
+    }
+  }
+
   // Command Definition
   /**
    * Return Yargs command definition for 'node' command
@@ -2346,5 +2332,19 @@ export class NodeCommand extends BaseCommand {
           .demandCommand(1, 'Select a node command')
       }
     }
+  }
+
+  async bumpHederaConfigVersion (configTxtPath) {
+    const lines = (await readFile(configTxtPath, 'utf-8')).split('\n')
+
+    for (const line of lines) {
+      if (line.startsWith('hedera.config.version=')) {
+        const version = parseInt(line.split('=')[1]) + 1
+        lines[lines.indexOf(line)] = `hedera.config.version=${version}`
+        break
+      }
+    }
+
+    await writeFile(configTxtPath, lines.join('\n'))
   }
 }
