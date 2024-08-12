@@ -567,7 +567,7 @@ export class NodeCommand extends BaseCommand {
     for (const nodeId of ctx.config.nodeIds) {
       const podName = ctx.config.podNames[nodeId]
       subTasks.push({
-        title: `Update node: ${chalk.yellow(nodeId)} [ platformVersion = ${ctx.config.releaseTag} ]`,
+        title: `Update node: ${chalk.yellow(nodeId)} [ platformVersion = ${config.releaseTag} ]`,
         task: () =>
           platformInstaller.fetchPlatform(podName, config.releaseTag)
       })
@@ -582,7 +582,7 @@ export class NodeCommand extends BaseCommand {
     })
   }
 
-  async prepareUpgradeZip (config) {
+  async prepareUpgradeZip (/** @type {NodeAddConfigClass} **/ config) {
     // we build a mock upgrade.zip file as we really don't need to upgrade the network
     // also the platform zip file is ~80Mb in size requiring a lot of transactions since the max
     // transaction size is 6Kb and in practice we need to send the file as 4Kb chunks.
@@ -613,7 +613,7 @@ export class NodeCommand extends BaseCommand {
     return await zipper.zip(`${config.stagingDir}/mock-upgrade`, `${config.stagingDir}/mock-upgrade.zip`)
   }
 
-  async uploadUpgradeZip (config, upgradeZipFile, nodeClient) {
+  async uploadUpgradeZip (upgradeZipFile, nodeClient) {
     // get byte value of the zip file
     const zipBytes = fs.readFileSync(upgradeZipFile)
     const zipHash = crypto.createHash('sha384').update(zipBytes).digest('hex')
@@ -684,7 +684,7 @@ export class NodeCommand extends BaseCommand {
     }
   }
 
-  async freezeUpgradeNetworkNodes (/** @type {NodeAddConfigClass} **/ config, upgradeZipHash, client) {
+  async freezeUpgradeNetworkNodes (freezeAdminPrivateKey, upgradeZipHash, client) {
     try {
       const futureDate = new Date()
       this.logger.debug(`Current time: ${futureDate}`)
@@ -692,7 +692,7 @@ export class NodeCommand extends BaseCommand {
       futureDate.setTime(futureDate.getTime() + 5000) // 5 seconds in the future
       this.logger.debug(`Freeze time: ${futureDate}`)
 
-      client.setOperator(FREEZE_ADMIN_ACCOUNT, config.freezeAdminPrivateKey)
+      client.setOperator(FREEZE_ADMIN_ACCOUNT, freezeAdminPrivateKey)
       const freezeUpgradeTx = await new FreezeTransaction()
         .setFreezeType(FreezeType.FreezeUpgrade)
         .setStartTimestamp(Timestamp.fromDate(futureDate))
@@ -710,9 +710,9 @@ export class NodeCommand extends BaseCommand {
     }
   }
 
-  startNodes (config, nodeIds, subTasks) {
+  startNodes (podNames, nodeIds, subTasks) {
     for (const nodeId of nodeIds) {
-      const podName = config.podNames[nodeId]
+      const podName = podNames[nodeId]
       subTasks.push({
         title: `Start node: ${chalk.yellow(nodeId)}`,
         task: async () => {
@@ -722,29 +722,29 @@ export class NodeCommand extends BaseCommand {
     }
   }
 
-  async copyGossipKeysToStaging (config, nodeIds) {
+  async copyGossipKeysToStaging (keyFormat, keysDir, stagingKeysDir, nodeIds) {
     // copy gossip keys to the staging
     for (const nodeId of nodeIds) {
-      switch (config.keyFormat) {
+      switch (keyFormat) {
         case constants.KEY_FORMAT_PEM: {
-          const signingKeyFiles = this.keyManager.prepareNodeKeyFilePaths(nodeId, config.keysDir, constants.SIGNING_KEY_PREFIX)
-          await this._copyNodeKeys(signingKeyFiles, config.stagingKeysDir)
+          const signingKeyFiles = this.keyManager.prepareNodeKeyFilePaths(nodeId, keysDir, constants.SIGNING_KEY_PREFIX)
+          await this._copyNodeKeys(signingKeyFiles, stagingKeysDir)
 
           // generate missing agreement keys
-          const agreementKeyFiles = this.keyManager.prepareNodeKeyFilePaths(nodeId, config.keysDir, constants.AGREEMENT_KEY_PREFIX)
-          await this._copyNodeKeys(agreementKeyFiles, config.stagingKeysDir)
+          const agreementKeyFiles = this.keyManager.prepareNodeKeyFilePaths(nodeId, keysDir, constants.AGREEMENT_KEY_PREFIX)
+          await this._copyNodeKeys(agreementKeyFiles, stagingKeysDir)
           break
         }
 
         case constants.KEY_FORMAT_PFX: {
           const privateKeyFile = Templates.renderGossipPfxPrivateKeyFile(nodeId)
-          fs.cpSync(`${config.keysDir}/${privateKeyFile}`, `${config.stagingKeysDir}/${privateKeyFile}`)
-          fs.cpSync(`${config.keysDir}/${constants.PUBLIC_PFX}`, `${config.stagingKeysDir}/${constants.PUBLIC_PFX}`)
+          fs.cpSync(`${keysDir}/${privateKeyFile}`, `${stagingKeysDir}/${privateKeyFile}`)
+          fs.cpSync(`${keysDir}/${constants.PUBLIC_PFX}`, `${stagingKeysDir}/${constants.PUBLIC_PFX}`)
           break
         }
 
         default:
-          throw new FullstackTestingError(`Unsupported key-format ${config.keyFormat}`)
+          throw new FullstackTestingError(`Unsupported key-format ${keyFormat}`)
       }
     }
   }
@@ -944,7 +944,7 @@ export class NodeCommand extends BaseCommand {
             {
               title: 'Copy Gossip keys to staging',
               task: async (ctx, _) => {
-                await this.copyGossipKeysToStaging(ctx.config, ctx.config.nodeIds)
+                await this.copyGossipKeysToStaging(ctx.config.keyFormat, ctx.config.keysDir, ctx.config.stagingKeysDir, ctx.config.nodeIds)
               }
             },
             {
@@ -1068,7 +1068,7 @@ export class NodeCommand extends BaseCommand {
         title: 'Starting nodes',
         task: (ctx, task) => {
           const subTasks = []
-          self.startNodes(ctx.config, ctx.config.nodeIds, subTasks)
+          self.startNodes(ctx.config.podNames, ctx.config.nodeIds, subTasks)
 
           // set up the sub-tasks
           return task.newListr(subTasks, {
@@ -1477,7 +1477,7 @@ export class NodeCommand extends BaseCommand {
         title: 'Starting nodes',
         task: (ctx, task) => {
           const subTasks = []
-          self.startNodes(ctx.config, ctx.config.nodeIds, subTasks)
+          self.startNodes(ctx.config.podNames, ctx.config.nodeIds, subTasks)
 
           // set up the sub-tasks
           return task.newListr(subTasks, {
@@ -1859,7 +1859,7 @@ export class NodeCommand extends BaseCommand {
           const config = /** @type {NodeAddConfigClass} **/ ctx.config
           ctx.nodeClient = await this.accountManager.loadNodeClient(config.namespace)
           ctx.upgradeZipFile = await this.prepareUpgradeZip(config)
-          ctx.upgradeZipHash = await this.uploadUpgradeZip(config, ctx.upgradeZipFile, ctx.nodeClient)
+          ctx.upgradeZipHash = await this.uploadUpgradeZip(ctx.upgradeZipFile, ctx.nodeClient)
         }
       },
       {
@@ -1929,7 +1929,7 @@ export class NodeCommand extends BaseCommand {
         title: 'Send freeze upgrade transaction',
         task: async (ctx, task) => {
           const config = /** @type {NodeAddConfigClass} **/ ctx.config
-          await this.freezeUpgradeNetworkNodes(config, ctx.upgradeZipHash, ctx.nodeClient)
+          await this.freezeUpgradeNetworkNodes(config.freezeAdminPrivateKey, ctx.upgradeZipHash, ctx.nodeClient)
         }
       },
       {
@@ -2009,7 +2009,7 @@ export class NodeCommand extends BaseCommand {
               task: async (ctx, _) => {
                 const config = /** @type {NodeAddConfigClass} **/ ctx.config
 
-                await this.copyGossipKeysToStaging(config, config.allNodeIds)
+                await this.copyGossipKeysToStaging(config.keyFormat, config.keysDir, config.stagingKeysDir, config.allNodeIds)
               }
             },
             {
@@ -2094,7 +2094,7 @@ export class NodeCommand extends BaseCommand {
         task: (ctx, task) => {
           const config = /** @type {NodeAddConfigClass} **/ ctx.config
           const subTasks = []
-          self.startNodes(config, config.allNodeIds, subTasks)
+          self.startNodes(config.podNames, config.allNodeIds, subTasks)
 
           // set up the sub-tasks
           return task.newListr(subTasks, {
