@@ -498,7 +498,7 @@ export class NodeCommand extends BaseCommand {
     }
   }
 
-  uploadPlatformSoftware (ctx, task, localBuildPath) {
+  uploadPlatformSoftware (nodeIds, podNames, task, localBuildPath) {
     const self = this
     const subTasks = []
 
@@ -517,8 +517,8 @@ export class NodeCommand extends BaseCommand {
     }
 
     let localDataLibBuildPath
-    for (const nodeId of ctx.config.nodeIds) {
-      const podName = ctx.config.podNames[nodeId]
+    for (const nodeId of nodeIds) {
+      const podName = podNames[nodeId]
       if (buildPathMap.has(nodeId)) {
         localDataLibBuildPath = buildPathMap.get(nodeId)
       } else {
@@ -550,26 +550,24 @@ export class NodeCommand extends BaseCommand {
     })
   }
 
-  fetchLocalOrReleasedPlatformSoftware (ctx, task) {
+  fetchLocalOrReleasedPlatformSoftware (nodeIds, podNames, releaseTag, task) {
     const self = this
     const localBuildPath = self.configManager.getFlag(flags.localBuildPath)
     if (localBuildPath !== '') {
-      return self.uploadPlatformSoftware(ctx, task, localBuildPath)
+      return self.uploadPlatformSoftware(nodeIds, podNames, task, localBuildPath)
     } else {
-      return self.fetchPlatformSoftware(ctx, task, self.platformInstaller)
+      return self.fetchPlatformSoftware(nodeIds, podNames, releaseTag, task, self.platformInstaller)
     }
   }
 
-  fetchPlatformSoftware (ctx, task, platformInstaller) {
-    const config = ctx.config
-
+  fetchPlatformSoftware (nodeIds, podNames, releaseTag, task, platformInstaller) {
     const subTasks = []
-    for (const nodeId of ctx.config.nodeIds) {
-      const podName = ctx.config.podNames[nodeId]
+    for (const nodeId of nodeIds) {
+      const podName = podNames[nodeId]
       subTasks.push({
-        title: `Update node: ${chalk.yellow(nodeId)} [ platformVersion = ${config.releaseTag} ]`,
+        title: `Update node: ${chalk.yellow(nodeId)} [ platformVersion = ${releaseTag} ]`,
         task: () =>
-          platformInstaller.fetchPlatform(podName, config.releaseTag)
+          platformInstaller.fetchPlatform(podName, releaseTag)
       })
     }
 
@@ -582,19 +580,19 @@ export class NodeCommand extends BaseCommand {
     })
   }
 
-  async prepareUpgradeZip (/** @type {NodeAddConfigClass} **/ config) {
+  async prepareUpgradeZip (stagingDir) {
     // we build a mock upgrade.zip file as we really don't need to upgrade the network
     // also the platform zip file is ~80Mb in size requiring a lot of transactions since the max
     // transaction size is 6Kb and in practice we need to send the file as 4Kb chunks.
     // Note however that in DAB phase-2, we won't need to trigger this fake upgrade process
     const zipper = new Zippy(this.logger)
-    const upgradeConfigDir = `${config.stagingDir}/mock-upgrade/data/config`
+    const upgradeConfigDir = `${stagingDir}/mock-upgrade/data/config`
     if (!fs.existsSync(upgradeConfigDir)) {
       fs.mkdirSync(upgradeConfigDir, { recursive: true })
     }
 
     // bump field hedera.config.version
-    const fileBytes = fs.readFileSync(`${config.stagingDir}/templates/application.properties`)
+    const fileBytes = fs.readFileSync(`${stagingDir}/templates/application.properties`)
     const lines = fileBytes.toString().split('\n')
     const newLines = []
     for (let line of lines) {
@@ -610,7 +608,7 @@ export class NodeCommand extends BaseCommand {
     }
     fs.writeFileSync(`${upgradeConfigDir}/application.properties`, newLines.join('\n'))
 
-    return await zipper.zip(`${config.stagingDir}/mock-upgrade`, `${config.stagingDir}/mock-upgrade.zip`)
+    return await zipper.zip(`${stagingDir}/mock-upgrade`, `${stagingDir}/mock-upgrade.zip`)
   }
 
   async uploadUpgradeZip (upgradeZipFile, nodeClient) {
@@ -649,7 +647,7 @@ export class NodeCommand extends BaseCommand {
     }
   }
 
-  async prepareUpgradeNetworkNodes (/** @type {NodeAddConfigClass} **/ config, upgradeZipHash, client) {
+  async prepareUpgradeNetworkNodes (freezeAdminPrivateKey, upgradeZipHash, client) {
     try {
       // transfer some tiny amount to the freeze admin account
       await this.accountManager.transferAmount(constants.TREASURY_ACCOUNT_ID, FREEZE_ADMIN_ACCOUNT, 100000)
@@ -661,9 +659,7 @@ export class NodeCommand extends BaseCommand {
       this.logger.debug(`Freeze admin account balance: ${balance.hbars}`)
 
       // set operator of freeze transaction as freeze admin account
-      const accountKeys = await this.accountManager.getAccountKeysFromSecret(FREEZE_ADMIN_ACCOUNT, config.namespace)
-      config.freezeAdminPrivateKey = accountKeys.privateKey
-      client.setOperator(FREEZE_ADMIN_ACCOUNT, config.freezeAdminPrivateKey)
+      client.setOperator(FREEZE_ADMIN_ACCOUNT, freezeAdminPrivateKey)
 
       const prepareUpgradeTx = await new FreezeTransaction()
         .setFreezeType(FreezeType.PrepareUpgrade)
@@ -763,7 +759,7 @@ export class NodeCommand extends BaseCommand {
     await writeFile(configTxtPath, lines.join('\n'))
   }
 
-  prepareEndpoints (config, endpoints, defaultPort) {
+  prepareEndpoints (endpointType, endpoints, defaultPort) {
     const ret = /** @typedef ServiceEndpoint **/[]
     for (const endpoint of endpoints) {
       const parts = endpoint.split(':')
@@ -780,7 +776,7 @@ export class NodeCommand extends BaseCommand {
         throw new FullstackTestingError(`incorrect endpoint format. expected url:port, found ${endpoint}`)
       }
 
-      if (config.endpointType.toUpperCase() === constants.ENDPOINT_TYPE_IP) {
+      if (endpointType.toUpperCase() === constants.ENDPOINT_TYPE_IP) {
         ret.push(new ServiceEndpoint({
           port,
           ipAddressV4: helpers.parseIpAddressToUint8Array(url)
@@ -849,6 +845,7 @@ export class NodeCommand extends BaseCommand {
            * @property {Date} curDate
            * @property {string} keysDir
            * @property {string[]} nodeIds
+           * @property {Object} podNames
            * @property {string} releasePrefix
            * @property {string} stagingDir
            * @property {string} stagingKeysDir
@@ -867,6 +864,7 @@ export class NodeCommand extends BaseCommand {
               'curDate',
               'keysDir',
               'nodeIds',
+              'podNames',
               'releasePrefix',
               'stagingDir',
               'stagingKeysDir'
@@ -982,7 +980,8 @@ export class NodeCommand extends BaseCommand {
         title: 'Fetch platform software into network nodes',
         task:
           async (ctx, task) => {
-            return self.fetchLocalOrReleasedPlatformSoftware(ctx, task)
+            const config = /** @type {NodeSetupConfigClass} **/ ctx.config
+            return self.fetchLocalOrReleasedPlatformSoftware(config.nodeIds, config.podNames, config.releaseTag, task)
           }
       },
       {
@@ -1432,7 +1431,7 @@ export class NodeCommand extends BaseCommand {
         title: 'Fetch platform software into network nodes',
         task:
           async (ctx, task) => {
-            return self.fetchLocalOrReleasedPlatformSoftware(ctx, task)
+            return self.fetchLocalOrReleasedPlatformSoftware(ctx.config.nodeIds, ctx.config.podNames, ctx.config.releaseTag, task)
           }
       },
       {
@@ -1707,6 +1706,9 @@ export class NodeCommand extends BaseCommand {
           // initialize Node Client with existing network nodes prior to adding the new node which isn't functioning, yet
           await this.accountManager.loadNodeClient(ctx.config.namespace)
 
+          const accountKeys = await this.accountManager.getAccountKeysFromSecret(FREEZE_ADMIN_ACCOUNT, config.namespace)
+          config.freezeAdminPrivateKey = accountKeys.privateKey
+
           self.logger.debug('Initialized config', { config })
         }
       },
@@ -1822,7 +1824,7 @@ export class NodeCommand extends BaseCommand {
             endpoints = helpers.splitFlagInput(config.gossipEndpoints)
           }
 
-          ctx.gossipEndpoints = this.prepareEndpoints(config, endpoints, constants.HEDERA_NODE_INTERNAL_GOSSIP_PORT)
+          ctx.gossipEndpoints = this.prepareEndpoints(config.endpointType, endpoints, constants.HEDERA_NODE_INTERNAL_GOSSIP_PORT)
         }
       },
       {
@@ -1843,7 +1845,7 @@ export class NodeCommand extends BaseCommand {
             endpoints = helpers.splitFlagInput(config.grpcEndpoints)
           }
 
-          ctx.grpcServiceEndpoints = this.prepareEndpoints(config, endpoints, constants.HEDERA_NODE_EXTERNAL_GOSSIP_PORT)
+          ctx.grpcServiceEndpoints = this.prepareEndpoints(config.endpointType, endpoints, constants.HEDERA_NODE_EXTERNAL_GOSSIP_PORT)
         }
       },
       {
@@ -1858,7 +1860,7 @@ export class NodeCommand extends BaseCommand {
         task: async (ctx, task) => {
           const config = /** @type {NodeAddConfigClass} **/ ctx.config
           ctx.nodeClient = await this.accountManager.loadNodeClient(config.namespace)
-          ctx.upgradeZipFile = await this.prepareUpgradeZip(config)
+          ctx.upgradeZipFile = await this.prepareUpgradeZip(config.stagingDir)
           ctx.upgradeZipHash = await this.uploadUpgradeZip(ctx.upgradeZipFile, ctx.nodeClient)
         }
       },
@@ -1906,7 +1908,7 @@ export class NodeCommand extends BaseCommand {
         title: 'Send prepare upgrade transaction',
         task: async (ctx, task) => {
           const config = /** @type {NodeAddConfigClass} **/ ctx.config
-          await this.prepareUpgradeNetworkNodes(config, ctx.upgradeZipHash, ctx.nodeClient)
+          await this.prepareUpgradeNetworkNodes(config.freezeAdminPrivateKey, ctx.upgradeZipHash, ctx.nodeClient)
         }
       },
       {
@@ -2034,7 +2036,8 @@ export class NodeCommand extends BaseCommand {
         title: 'Fetch platform software into new network node',
         task:
           async (ctx, task) => {
-            return self.fetchLocalOrReleasedPlatformSoftware(ctx, task)
+            const config = /** @type {NodeAddConfigClass} **/ ctx.config
+            return self.fetchLocalOrReleasedPlatformSoftware(config.nodeIds, config.podNames, config.releaseTag, task)
           }
       },
       {
