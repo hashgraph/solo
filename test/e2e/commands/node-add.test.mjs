@@ -47,7 +47,7 @@ describe('Node add', () => {
   }, 120000)
 
   it('should add a new node to the network successfully', async () => {
-    argv[flags.nodeID.name] = 'node4' // TODO: open an issue: node ID cannot have a hyphen, platform strips it out, also, can't have capital letters
+    argv[flags.nodeID.name] = 'node4'
     argv[flags.generateGossipKeys.name] = true
     argv[flags.generateTlsKeys.name] = true
     argv[flags.keyFormat.name] = constants.KEY_FORMAT_PEM
