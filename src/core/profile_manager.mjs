@@ -156,10 +156,6 @@ export class ProfileManager {
       this._setValue(`hedera.nodes.${nodeIndex}.name`, nodeIds[nodeIndex], yamlRoot)
       this._setValue(`hedera.nodes.${nodeIndex}.accountId`, accountMap.get(nodeIds[nodeIndex]), yamlRoot)
       this._setChartItems(`hedera.nodes.${nodeIndex}`, profile.consensus, yamlRoot)
-      // if (nodeIndex === 0) {
-      //   this._setValue(`hedera.nodes.${nodeIndex}.root.extraEnv.0.name`, 'JAVA_OPTS', yamlRoot)
-      //   this._setValue(`hedera.nodes.${nodeIndex}.root.extraEnv.0.value`, '-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:5005', yamlRoot)
-      // }
     }
 
     if (profile.consensus) {
