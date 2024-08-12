@@ -596,11 +596,6 @@ export class NodeCommand extends BaseCommand {
     if (!fs.existsSync(upgradeConfigDir)) {
       fs.mkdirSync(upgradeConfigDir, { recursive: true })
     }
-    // const fileList = ['templates/application.properties']
-    // fileList.forEach(filePath => {
-    //   const fileName = path.basename(filePath)
-    //   fs.copyFileSync(path.join(ctx.config.stagingDir, filePath), path.join(upgradeConfigDir, fileName))
-    // })
 
     // bump field hedera.config.version
     const fileBytes = fs.readFileSync(`${config.stagingDir}/templates/application.properties`)
@@ -725,7 +720,6 @@ export class NodeCommand extends BaseCommand {
       subTasks.push({
         title: `Start node: ${chalk.yellow(nodeId)}`,
         task: async () => {
-          // await this.k8.execContainer(podName, constants.ROOT_CONTAINER, ['bash', '-c', `rm -rf ${constants.HEDERA_HAPI_PATH}/output/*`])
           await this.k8.execContainer(podName, constants.ROOT_CONTAINER, ['systemctl', 'restart', 'network-node'])
         }
       })
@@ -2118,8 +2112,10 @@ export class NodeCommand extends BaseCommand {
       },
       {
         title: 'Check all nodes are ACTIVE',
-        task: (ctx, task) => {
+        task: async (ctx, task) => {
           const subTasks = []
+          // sleep for 30 seconds to give time for the logs to roll over to prevent capturing an invalid "ACTIVE" string
+          await sleep(30000)
           for (const nodeId of ctx.config.allNodeIds) {
             subTasks.push({
               title: `Check node: ${chalk.yellow(nodeId)}`,
