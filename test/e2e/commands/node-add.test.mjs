@@ -85,7 +85,7 @@ describe('Node add', () => {
   accountCreationShouldSucceed(nodeCmd.accountManager, nodeCmd, namespace)
 
   it('existing nodes private keys should not have changed', async () => {
-    const currentNodeIdsPrivateKeysHash = await getNodeIdsPrivateKeysHash(existingServiceMap, namespace, keyFormat, k8, getTmpDir())
+    const currentNodeIdsPrivateKeysHash = await getNodeIdsPrivateKeysHash(existingServiceMap, namespace, constants.KEY_FORMAT_PEM, k8, getTmpDir())
 
     for (const [nodeId, existingKeyHashMap] of existingNodeIdsPrivateKeysHash.entries()) {
       const currentNodeKeyHashMap = currentNodeIdsPrivateKeysHash.get(nodeId)

@@ -35,7 +35,6 @@ import {
   FileAppendTransaction,
   FreezeTransaction,
   FreezeType,
-  HbarUnit,
   ServiceEndpoint,
   Timestamp,
   PrivateKey,
