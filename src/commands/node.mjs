@@ -185,7 +185,7 @@ export class NodeCommand extends BaseCommand {
       const balance = await new AccountBalanceQuery()
         .setAccountId(accountId)
         .execute(client)
-      console.log(`Account ${accountId} balance: ${balance.hbars}`)
+      this.logger.debug(`Account ${accountId} balance: ${balance.hbars}`)
 
       // Create the transaction
       const transaction = await new AccountUpdateTransaction()
