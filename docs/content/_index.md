@@ -5,7 +5,8 @@ geekdocNav: true
 geekdocAlign: center
 geekdocAnchor: false
 geekdocDescription: Home page for Solo Documentation
-----------------------------------------------------
+
+***
 
 <!-- markdownlint-capture -->
 
