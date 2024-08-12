@@ -1782,8 +1782,9 @@ export class NodeCommand extends BaseCommand {
       {
         title: 'Load signing key certificate',
         task: async (ctx, task) => {
-          const signingCertFile = Templates.renderGossipPemPublicKeyFile(constants.SIGNING_KEY_PREFIX, ctx.config.nodeId)
-          const signingCertFullPath = `${ctx.config.keysDir}/${signingCertFile}`
+          const config = /** @type {NodeAddConfigClass} **/ ctx.config
+          const signingCertFile = Templates.renderGossipPemPublicKeyFile(constants.SIGNING_KEY_PREFIX, config.nodeId)
+          const signingCertFullPath = `${config.keysDir}/${signingCertFile}`
           const signingCertPem = fs.readFileSync(signingCertFullPath).toString()
           const decodedDers = x509.PemConverter.decode(signingCertPem)
           if (!decodedDers || decodedDers.length === 0) {
@@ -1795,8 +1796,9 @@ export class NodeCommand extends BaseCommand {
       {
         title: 'Compute mTLS certificate hash',
         task: async (ctx, task) => {
-          const tlsCertFile = Templates.renderTLSPemPublicKeyFile(ctx.config.nodeId)
-          const tlsCertFullPath = `${ctx.config.keysDir}/${tlsCertFile}`
+          const config = /** @type {NodeAddConfigClass} **/ ctx.config
+          const tlsCertFile = Templates.renderTLSPemPublicKeyFile(config.nodeId)
+          const tlsCertFullPath = `${config.keysDir}/${tlsCertFile}`
           const tlsCertPem = fs.readFileSync(tlsCertFullPath).toString()
           const tlsCertDers = x509.PemConverter.decode(tlsCertPem)
           if (!tlsCertDers || tlsCertDers.length === 0) {
@@ -1867,13 +1869,11 @@ export class NodeCommand extends BaseCommand {
       {
         title: 'Check existing nodes staked amount',
         task: async (ctx, task) => {
-          // const config = /** @type {NodeAddConfigClass} **/ ctx.config
+          const config = /** @type {NodeAddConfigClass} **/ ctx.config
           await sleep(60000)
-          const accountMap = getNodeAccountMap(ctx.config.existingNodeIds)
-          for (const nodeId of ctx.config.existingNodeIds) {
+          const accountMap = getNodeAccountMap(config.existingNodeIds)
+          for (const nodeId of config.existingNodeIds) {
             const accountId = accountMap.get(nodeId)
-            const accountInfo = await this.accountManager.accountInfoQuery(accountId)
-            this.logger.info(`Account ID: ${accountId}, amount staked: ${accountInfo.stakingInfo.stakedToMe.toString(HbarUnit.Hbar)}`)
             await this.accountManager.transferAmount(constants.TREASURY_ACCOUNT_ID, accountId, 1)
           }
         }
@@ -2164,15 +2164,15 @@ export class NodeCommand extends BaseCommand {
         }
       },
       {
-        title: 'Check existing nodes staked amount',
+        title: 'Trigger stake weight calculate',
         task: async (ctx, task) => {
           const config = /** @type {NodeAddConfigClass} **/ ctx.config
+          // sleep 60 seconds for the handler to be able to trigger the network node stake weight recalculate
           await sleep(60000)
           const accountMap = getNodeAccountMap(config.allNodeIds)
+          // send some write transactions to invoke the handler that will trigger the stake weight recalculate
           for (const nodeId of config.allNodeIds) {
             const accountId = accountMap.get(nodeId)
-            const accountInfo = await this.accountManager.accountInfoQuery(accountId)
-            this.logger.info(`Account ID: ${accountId}, amount staked: ${accountInfo.stakingInfo.stakedToMe.toString(HbarUnit.Hbar)}`)
             await this.accountManager.transferAmount(constants.TREASURY_ACCOUNT_ID, accountId, 1)
           }
         }
