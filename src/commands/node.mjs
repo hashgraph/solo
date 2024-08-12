@@ -208,9 +208,6 @@ export class NodeCommand extends BaseCommand {
       // Get the transaction status
       const transactionStatus = receipt.status
       this.logger.debug(`The transaction consensus status is ${transactionStatus.toString()}`)
-
-      const accountInfo = await this.accountManager.accountInfoQuery(accountId)
-      this.logger.info(`Account ID: ${accountId}, nodeId: ${nodeId - 1}, amount staked: ${accountInfo.stakingInfo.stakedToMe.toString(HbarUnit.Hbar)}`)
     } catch (e) {
       throw new FullstackTestingError(`Error in adding stake: ${e.message}`, e)
     }
