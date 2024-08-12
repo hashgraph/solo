@@ -111,7 +111,7 @@ export class AccountManager {
    * @returns an array of arrays of numbers representing the accounts to update
    */
   batchAccounts (accountRange = constants.SYSTEM_ACCOUNTS) {
-    const batchSize = constants.ACCOUNT_CREATE_BATCH_SIZE
+    const batchSize = constants.ACCOUNT_UPDATE_BATCH_SIZE
     const batchSets = []
 
     let currentBatch = []
@@ -232,7 +232,8 @@ export class AccountManager {
       }
 
       this.logger.debug(`creating client from network configuration: ${JSON.stringify(nodes)}`)
-      this._nodeClient = Client.fromConfig({ network: nodes })
+      // scheduleNetworkUpdate is set to false, because the ports 50212/50211 are hardcoded in JS SDK that will not work when running locally or in a pipeline
+      this._nodeClient = Client.fromConfig({ network: nodes, scheduleNetworkUpdate: false })
       this._nodeClient.setOperator(operatorId, operatorKey)
       this._nodeClient.setLogger(new Logger(LogLevel.Trace, `${constants.SOLO_LOGS_DIR}/hashgraph-sdk.log`))
       this._nodeClient.setMaxAttempts(constants.NODE_CLIENT_MAX_ATTEMPTS)
