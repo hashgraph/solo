@@ -220,7 +220,6 @@ describe('K8', () => {
       const v1Metadata = new V1ObjectMeta()
       v1Metadata.name = 'test-pvc'
       v1Pvc.metadata = v1Metadata
-      // PersistentVolumeClaim "" is invalid: [metadata.name: Required value: name or generateName is required, spec.resources[storage]: Required value]
       response = await k8.kubeClient.createNamespacedPersistentVolumeClaim(testNamespace, v1Pvc)
       console.log(response)
       const pvcs = await k8.listPvcsByNamespace(testNamespace)
