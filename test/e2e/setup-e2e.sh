@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 readonly KIND_IMAGE="kindest/node:v1.27.3@sha256:3966ac761ae0136263ffdb6cfd4db23ef8a83cba8a463690e98317add2c9ba72"
 echo "SOLO_FST_CHARTS_DIR: ${SOLO_FST_CHARTS_DIR}"
+export PATH=${PATH}:~/.solo/bin
 
 SOLO_CLUSTER_NAME=solo-e2e
 SOLO_NAMESPACE=solo-e2e
