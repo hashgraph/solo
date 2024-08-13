@@ -174,6 +174,7 @@ export function bootstrapTestVariables (testName, argv,
  * @param networkCmdArg an instance of command/NetworkCommand
  * @param nodeCmdArg an instance of command/NodeCommand
  * @param accountCmdArg an instance of command/AccountCommand
+ * @param startNodes start nodes after deployment, default is true
  */
 export function bootstrapNetwork (testName, argv,
   k8Arg = null,
@@ -181,7 +182,8 @@ export function bootstrapNetwork (testName, argv,
   clusterCmdArg = null,
   networkCmdArg = null,
   nodeCmdArg = null,
-  accountCmdArg = null
+  accountCmdArg = null,
+  startNodes = true
 ) {
   const bootstrapResp = bootstrapTestVariables(testName, argv, k8Arg, initCmdArg, clusterCmdArg, networkCmdArg, nodeCmdArg, accountCmdArg)
   const namespace = bootstrapResp.namespace
@@ -233,35 +235,37 @@ export function bootstrapNetwork (testName, argv,
       ])
     }, 180000)
 
-    it('should succeed with node setup command', async () => {
-      expect.assertions(2)
-      try {
-        await expect(nodeCmd.setup(argv)).resolves.toBeTruthy()
-        expect(nodeCmd.getUnusedConfigs(NodeCommand.SETUP_CONFIGS_NAME)).toEqual([
-          flags.apiPermissionProperties.constName,
-          flags.appConfig.constName,
-          flags.applicationProperties.constName,
-          flags.bootstrapProperties.constName,
-          flags.devMode.constName,
-          flags.localBuildPath.constName,
-          flags.log4j2Xml.constName,
-          flags.settingTxt.constName
-        ])
-      } catch (e) {
-        nodeCmd.logger.showUserError(e)
-        expect(e).toBeNull()
-      }
-    }, 240000)
+    if (startNodes) {
+      it('should succeed with node setup command', async () => {
+        expect.assertions(2)
+        try {
+          await expect(nodeCmd.setup(argv)).resolves.toBeTruthy()
+          expect(nodeCmd.getUnusedConfigs(NodeCommand.SETUP_CONFIGS_NAME)).toEqual([
+            flags.apiPermissionProperties.constName,
+            flags.appConfig.constName,
+            flags.applicationProperties.constName,
+            flags.bootstrapProperties.constName,
+            flags.devMode.constName,
+            flags.localBuildPath.constName,
+            flags.log4j2Xml.constName,
+            flags.settingTxt.constName
+          ])
+        } catch (e) {
+          nodeCmd.logger.showUserError(e)
+          expect(e).toBeNull()
+        }
+      }, 240000)
 
-    it('should succeed with node start command', async () => {
-      expect.assertions(1)
-      try {
-        await expect(nodeCmd.start(argv)).resolves.toBeTruthy()
-      } catch (e) {
-        nodeCmd.logger.showUserError(e)
-        expect(e).toBeNull()
-      }
-    }, 1800000)
+      it('should succeed with node start command', async () => {
+        expect.assertions(1)
+        try {
+          await expect(nodeCmd.start(argv)).resolves.toBeTruthy()
+        } catch (e) {
+          nodeCmd.logger.showUserError(e)
+          expect(e).toBeNull()
+        }
+      }, 1800000)
+    }
   })
 
   return bootstrapResp

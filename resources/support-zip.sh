@@ -14,6 +14,7 @@ readonly ADDRESS_BOOK_DIR=${DATA_DIR}/saved/address_book
 readonly CONFIG_DIR=${DATA_DIR}/config
 readonly KEYS_DIR=${DATA_DIR}/keys
 readonly UPGRADE_DIR=${DATA_DIR}/upgrade
+readonly JOURNAL_CTL_LOG=${OUTPUT_DIR}/journalctl.log
 
 AddToFileList()
 {
@@ -31,7 +32,7 @@ AddToFileList()
 
 cd ${HAPI_DIR}
 echo -n > ${FILE_LIST}
-
+journalctl > ${JOURNAL_CTL_LOG}
 AddToFileList ${CONFIG_TXT}
 AddToFileList ${SETTINGS_TXT}
 AddToFileList ${SETTINGS_USED_TXT}

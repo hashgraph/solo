@@ -14,7 +14,7 @@
  * limitations under the License.
  *
  */
-import { beforeAll, describe, expect, it } from '@jest/globals'
+import { afterAll, beforeAll, describe, expect, it } from '@jest/globals'
 import fs from 'fs'
 import net from 'net'
 import os from 'os'
@@ -23,6 +23,14 @@ import { v4 as uuid4 } from 'uuid'
 import { FullstackTestingError } from '../../../src/core/errors.mjs'
 import { ConfigManager, constants, logging, Templates } from '../../../src/core/index.mjs'
 import { K8 } from '../../../src/core/k8.mjs'
+import { flags } from '../../../src/commands/index.mjs'
+import {
+  V1Container,
+  V1ObjectMeta,
+  V1PersistentVolumeClaim, V1PersistentVolumeClaimSpec,
+  V1Pod,
+  V1PodSpec, V1VolumeResourceRequirements
+} from '@kubernetes/client-node'
 
 const defaultTimeout = 20000
 
@@ -30,9 +38,18 @@ describe('K8', () => {
   const testLogger = logging.NewLogger('debug', true)
   const configManager = new ConfigManager(testLogger)
   const k8 = new K8(configManager, testLogger)
+  const testNamespace = 'k8-e2e'
+  const argv = []
 
-  beforeAll(() => {
-    configManager.load()
+  beforeAll(async () => {
+    argv[flags.namespace.name] = constants.FULLSTACK_SETUP_NAMESPACE
+    configManager.update(argv)
+    await k8.createNamespace(testNamespace)
+  }, defaultTimeout)
+
+  afterAll(async () => {
+    await k8.kubeClient.deleteNamespacedPod('test-pod', testNamespace)
+    await k8.deleteNamespace(testNamespace)
   }, defaultTimeout)
 
   it('should be able to list clusters', async () => {
@@ -58,41 +75,65 @@ describe('K8', () => {
   }, defaultTimeout)
 
   it('should be able to detect pod IP of a pod', async () => {
-    const podName = Templates.renderNetworkPodName('node0')
+    const pods = await k8.getPodsByLabel(['app.kubernetes.io/instance=fullstack-cluster-setup-console'])
+    const podName = pods[0].metadata.name
     await expect(k8.getPodIP(podName)).resolves.not.toBeNull()
     await expect(k8.getPodIP('INVALID')).rejects.toThrow(FullstackTestingError)
   }, defaultTimeout)
 
   it('should be able to detect cluster IP', async () => {
-    const svcName = Templates.renderNetworkSvcName('node0')
+    const svcName = 'console'
     await expect(k8.getClusterIP(svcName)).resolves.not.toBeNull()
     await expect(k8.getClusterIP('INVALID')).rejects.toThrow(FullstackTestingError)
   }, defaultTimeout)
 
   it('should be able to check if a path is directory inside a container', async () => {
-    const podName = Templates.renderNetworkPodName('node0')
-    await expect(k8.hasDir(podName, constants.ROOT_CONTAINER, constants.HEDERA_USER_HOME_DIR)).resolves.toBeTruthy()
+    const pods = await k8.getPodsByLabel(['app.kubernetes.io/instance=fullstack-cluster-setup-console'])
+    const podName = pods[0].metadata.name
+    await expect(k8.hasDir(podName, 'minio-operator', '/tmp')).resolves.toBeTruthy()
   }, defaultTimeout)
 
   it('should be able to copy a file to and from a container', async () => {
-    const podName = Templates.renderNetworkPodName('node0')
-    const containerName = constants.ROOT_CONTAINER
+    const podName = 'test-pod'
+    const containerName = 'alpine'
+    const v1Pod = new V1Pod()
+    const v1Metadata = new V1ObjectMeta()
+    v1Metadata.name = podName
+    v1Metadata.namespace = testNamespace
+    v1Metadata.labels = { app: 'test' }
+    v1Pod.metadata = v1Metadata
+    const v1Container = new V1Container()
+    v1Container.name = containerName
+    v1Container.image = 'alpine:latest'
+    v1Container.command = ['/bin/sh', '-c', 'sleep 7200']
+    const v1Spec = new V1PodSpec()
+    v1Spec.containers = [v1Container]
+    v1Pod.spec = v1Spec
+    await k8.kubeClient.createNamespacedPod(testNamespace, v1Pod)
+    try {
+      argv[flags.namespace.name] = testNamespace
+      configManager.update(argv)
+      const pods = await k8.waitForPodReady(['app=test'], 1, 20)
+      expect(pods.length).toStrictEqual(1)
+      const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'k8-'))
+      const destDir = '/tmp'
+      const srcPath = 'test/data/pem/keys/a-private-node0.pem'
+      const destPath = `${destDir}/a-private-node0.pem`
 
-    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'k8-'))
-    const destDir = constants.HEDERA_USER_HOME_DIR
-    const srcPath = 'test/data/pem/keys/a-private-node0.pem'
-    const destPath = `${destDir}/a-private-node0.pem`
+      // upload the file
+      await expect(k8.copyTo(podName, containerName, srcPath, destDir)).resolves.toBeTruthy()
 
-    // upload the file
-    await expect(k8.copyTo(podName, containerName, srcPath, destDir)).resolves.toBeTruthy()
+      // download the same file
+      await expect(k8.copyFrom(podName, containerName, destPath, tmpDir)).resolves.toBeTruthy()
 
-    // download the same file
-    await expect(k8.copyFrom(podName, containerName, destPath, tmpDir)).resolves.toBeTruthy()
+      // rm file inside the container
+      await expect(k8.execContainer(podName, containerName, ['rm', '-f', destPath])).resolves
 
-    // rm file inside the container
-    await expect(k8.execContainer(podName, containerName, ['rm', '-f', destPath])).resolves
-
-    fs.rmdirSync(tmpDir, { recursive: true })
+      fs.rmdirSync(tmpDir, { recursive: true })
+    } finally {
+      argv[flags.namespace.name] = constants.FULLSTACK_SETUP_NAMESPACE
+      configManager.update(argv)
+    }
   }, defaultTimeout)
 
   it('should be able to port forward gossip port', (done) => {
@@ -122,11 +163,12 @@ describe('K8', () => {
       testLogger.showUserError(e)
       expect(e).toBeNull()
     }
+    // TODO why is this passing?
   }, defaultTimeout)
 
   it('should be able to run wait for pod', async () => {
     const labels = [
-      'fullstack.hedera.com/type=network-node'
+      'app.kubernetes.io/instance=fullstack-cluster-setup-console'
     ]
 
     const pods = await k8.waitForPods([constants.POD_PHASE_RUNNING], labels, 1)
@@ -135,7 +177,7 @@ describe('K8', () => {
 
   it('should be able to run wait for pod ready', async () => {
     const labels = [
-      'fullstack.hedera.com/type=network-node'
+      'app.kubernetes.io/instance=fullstack-cluster-setup-console'
     ]
 
     const pods = await k8.waitForPodReady(labels, 1)
@@ -144,7 +186,7 @@ describe('K8', () => {
 
   it('should be able to run wait for pod conditions', async () => {
     const labels = [
-      'fullstack.hedera.com/type=network-node'
+      'app.kubernetes.io/instance=fullstack-cluster-setup-console'
     ]
 
     const conditions = new Map()
@@ -155,25 +197,36 @@ describe('K8', () => {
     expect(pods.length).toStrictEqual(1)
   }, defaultTimeout)
 
-  it('should be able to cat a log file inside the container', async () => {
-    const podName = Templates.renderNetworkPodName('node0')
-    const containerName = constants.ROOT_CONTAINER
-    const testFileName = 'test.txt'
-    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'k8-'))
-    const tmpFile = path.join(tmpDir, testFileName)
-    const destDir = constants.HEDERA_USER_HOME_DIR
-    const destPath = `${destDir}/${testFileName}`
-    fs.writeFileSync(tmpFile, 'TEST\nNow current platform status = ACTIVE')
-
-    await expect(k8.copyTo(podName, containerName, tmpFile, destDir)).resolves.toBeTruthy()
-    const output = await k8.execContainer(podName, containerName, ['tail', '-10', destPath])
-    expect(output.indexOf('Now current platform status = ACTIVE')).toBeGreaterThan(0)
-
-    fs.rmdirSync(tmpDir, { recursive: true })
+  it('should be able to cat a file inside the container', async () => {
+    const pods = await k8.getPodsByLabel(['app.kubernetes.io/instance=fullstack-cluster-setup-console'])
+    const podName = pods[0].metadata.name
+    const containerName = 'minio-operator'
+    const output = await k8.execContainer(podName, containerName, ['cat', '/etc/hostname'])
+    expect(output.indexOf('console')).toEqual(0)
   }, defaultTimeout)
 
   it('should be able to list persistent volume claims', async () => {
-    const pvcs = await k8.listPvcsByNamespace(k8._getNamespace())
-    expect(pvcs.length).toBeGreaterThan(0)
+    let response
+    try {
+      const v1Pvc = new V1PersistentVolumeClaim()
+      v1Pvc.name = 'test-pvc'
+      const v1Spec = new V1PersistentVolumeClaimSpec()
+      v1Spec.accessModes = ['ReadWriteOnce']
+      const v1ResReq = new V1VolumeResourceRequirements()
+      v1ResReq.requests = { storage: '50Mi' }
+      v1Spec.resources = v1ResReq
+      v1Pvc.spec = v1Spec
+      const v1Metadata = new V1ObjectMeta()
+      v1Metadata.name = 'test-pvc'
+      v1Pvc.metadata = v1Metadata
+      // PersistentVolumeClaim "" is invalid: [metadata.name: Required value: name or generateName is required, spec.resources[storage]: Required value]
+      response = await k8.kubeClient.createNamespacedPersistentVolumeClaim(testNamespace, v1Pvc)
+      console.log(response)
+      const pvcs = await k8.listPvcsByNamespace(testNamespace)
+      expect(pvcs.length).toBeGreaterThan(0)
+    } catch (e) {
+      console.error(e)
+      throw e
+    }
   }, defaultTimeout)
 })

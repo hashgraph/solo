@@ -14,19 +14,33 @@
  * limitations under the License.
  *
  */
-import { describe, expect, it } from '@jest/globals'
-import path from 'path'
+import { afterAll, describe, expect, it } from '@jest/globals'
 import { flags } from '../../../src/commands/index.mjs'
-import { AccountManager } from '../../../src/core/account_manager.mjs'
-import { ConfigManager, constants, K8 } from '../../../src/core/index.mjs'
-import { getTestCacheDir, testLogger } from '../../test_util.js'
+import {
+  bootstrapNetwork,
+  getDefaultArgv,
+  TEST_CLUSTER
+} from '../../test_util.js'
+import * as version from '../../../version.mjs'
 
 describe('AccountManager', () => {
-  const configManager = new ConfigManager(testLogger, path.join(getTestCacheDir('accountCmd'), 'solo.config'))
-  configManager.setFlag(flags.namespace, 'solo-e2e')
+  const namespace = 'account-mngr-e2e'
+  const argv = getDefaultArgv()
+  argv[flags.namespace.name] = namespace
+  argv[flags.nodeIDs.name] = 'node0'
+  argv[flags.clusterName.name] = TEST_CLUSTER
+  argv[flags.fstChartVersion.name] = version.FST_CHART_VERSION
+  // set the env variable SOLO_FST_CHARTS_DIR if developer wants to use local FST charts
+  argv[flags.chartDirectory.name] = process.env.SOLO_FST_CHARTS_DIR ? process.env.SOLO_FST_CHARTS_DIR : undefined
+  const bootstrapResp = bootstrapNetwork(namespace, argv, null, null, null, null, null, null, false)
+  const k8 = bootstrapResp.opts.k8
+  const accountManager = bootstrapResp.opts.accountManager
+  const configManager = bootstrapResp.opts.configManager
 
-  const k8 = new K8(configManager, testLogger)
-  const accountManager = new AccountManager(testLogger, k8, constants)
+  afterAll(async () => {
+    await k8.deleteNamespace(namespace)
+    await accountManager.close()
+  }, 180000)
 
   it('should be able to stop port forwards', async () => {
     expect.assertions(4)

@@ -38,7 +38,7 @@ describe('ChartManager', () => {
   it('should be able to check if a chart is installed', async () => {
     const ns = configManager.getFlag(flags.namespace)
     expect(ns).not.toBeNull()
-    const isInstalled = await chartManager.isChartInstalled(ns, constants.FULLSTACK_DEPLOYMENT_CHART)
+    const isInstalled = await chartManager.isChartInstalled(ns, constants.FULLSTACK_CLUSTER_SETUP_CHART)
     expect(isInstalled).toBeTruthy()
   })
 })

@@ -429,7 +429,7 @@ export class K8 {
     return await this.execContainer(
       podName,
       containerName,
-      ['bash', '-c', '[[ -d "' + destPath + '" ]] && echo -n "true" || echo -n "false"']
+      ['sh', '-c', '[[ -d "' + destPath + '" ]] && echo -n "true" || echo -n "false"']
     ) === 'true'
   }
 
@@ -437,7 +437,7 @@ export class K8 {
     return this.execContainer(
       podName,
       containerName,
-      ['bash', '-c', 'mkdir -p "' + destPath + '"']
+      ['sh', '-c', 'mkdir -p "' + destPath + '"']
     )
   }
 
@@ -600,11 +600,11 @@ export class K8 {
   }
 
   /**
-   * Invoke bash command within a container and return the console output as string
+   * Invoke sh command within a container and return the console output as string
    *
    * @param podName pod name
    * @param containerName container name
-   * @param command bash commands as an array to be run within the containerName (e.g 'ls -la /opt/hgcapp')
+   * @param command sh commands as an array to be run within the containerName (e.g 'ls -la /opt/hgcapp')
    * @param timeoutMs timout in milliseconds
    * @returns {Promise<string>} console output as string
    */
