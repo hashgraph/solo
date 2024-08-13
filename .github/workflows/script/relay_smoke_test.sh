@@ -35,8 +35,8 @@ awk '{print "\"" $2 "\","}' key.txt > private_key_with_quote.txt
 awk '{print "" $2 ","}' key.txt > private_key_without_quote.txt
 
 echo "Remove the comma of the last line before add to json file"
-cat private_key_with_quote.txt | sed '$ s/.$//' > private_key_with_quote_final.txt
-cat private_key_without_quote.txt | sed '$ s/.$//' > private_key_without_quote_final.txt
+sed '$ s/.$//' private_key_with_quote.txt > private_key_with_quote_final.txt
+sed '$ s/.$//' private_key_without_quote.txt > private_key_without_quote_final.txt
 
 LOCAL_NODE_KEYS=$(cat private_key_with_quote_final.txt)
 CONTRACT_TEST_KEYS=$(cat private_key_without_quote_final.txt)
