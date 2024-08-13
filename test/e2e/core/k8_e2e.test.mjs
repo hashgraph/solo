@@ -50,6 +50,8 @@ describe('K8', () => {
   afterAll(async () => {
     await k8.kubeClient.deleteNamespacedPod('test-pod', testNamespace)
     await k8.deleteNamespace(testNamespace)
+    argv[flags.namespace.name] = constants.FULLSTACK_SETUP_NAMESPACE
+    configManager.update(argv)
   }, defaultTimeout)
 
   it('should be able to list clusters', async () => {

@@ -23,9 +23,11 @@ describe('ChartManager', () => {
   const helm = new Helm(testLogger)
   const chartManager = new ChartManager(helm, testLogger)
   const configManager = new ConfigManager(testLogger)
+  const argv = []
 
   beforeAll(() => {
-    configManager.load()
+    argv[flags.namespace.name] = constants.FULLSTACK_SETUP_NAMESPACE
+    configManager.update(argv)
   })
 
   it('should be able to list installed charts', async () => {
