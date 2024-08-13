@@ -204,7 +204,7 @@ export async function getNodeLogs (k8, namespace) {
 
   for (const pod of pods) {
     const podName = pod.metadata.name
-    const targetDir = `${SOLO_LOGS_DIR}/${namespace}/${timeString}`
+    const targetDir = path.join(SOLO_LOGS_DIR, namespace, timeString)
     try {
       if (!fs.existsSync(targetDir)) {
         fs.mkdirSync(targetDir, { recursive: true })

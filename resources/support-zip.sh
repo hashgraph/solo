@@ -41,4 +41,4 @@ AddToFileList ${ADDRESS_BOOK_DIR}
 AddToFileList ${CONFIG_DIR}
 AddToFileList ${KEYS_DIR}
 AddToFileList ${UPGRADE_DIR}
-jar cvfM ${ZIP_FULLPATH} @${FILE_LIST}
+jar cvfM "${ZIP_FULLPATH}" "@${FILE_LIST}"
