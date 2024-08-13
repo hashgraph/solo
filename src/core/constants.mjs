@@ -30,6 +30,7 @@ export const HELM = 'helm'
 export const KEYTOOL = 'keytool'
 export const SOLO_CONFIG_FILE = `${SOLO_HOME_DIR}/solo.config`
 export const RESOURCES_DIR = normalize(CUR_FILE_DIR + '/../../resources')
+export const TEMP_DIR = normalize(CUR_FILE_DIR + '/../../temp')
 
 export const ROOT_CONTAINER = 'root-container'
 
