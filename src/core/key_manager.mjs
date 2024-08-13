@@ -193,8 +193,7 @@ export class KeyManager {
         })
 
         self.logger.debug(`Stored ${keyName} key for node: ${nodeId}`, {
-          nodeKeyFiles,
-          cert: certPems[0]
+          nodeKeyFiles
         })
 
         resolve(nodeKeyFiles)

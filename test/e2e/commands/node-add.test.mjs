@@ -60,7 +60,7 @@ describe('Node add', () => {
   afterAll(async () => {
     await getNodeLogs(k8, namespace)
     await k8.deleteNamespace(namespace)
-  }, defaultTimeout)
+  }, 600000)
 
   it('should succeed with init command', async () => {
     const status = await accountCmd.init(argv)

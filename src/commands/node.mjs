@@ -44,7 +44,8 @@ import {
 import * as crypto from 'crypto'
 import {
   FREEZE_ADMIN_ACCOUNT,
-  HEDERA_NODE_DEFAULT_STAKE_AMOUNT, TREASURY_ACCOUNT_ID
+  HEDERA_NODE_DEFAULT_STAKE_AMOUNT,
+  TREASURY_ACCOUNT_ID
 } from '../core/constants.mjs'
 
 /**
@@ -934,6 +935,7 @@ export class NodeCommand extends BaseCommand {
           ])
 
           ctx.config = {
+            app: self.configManager.getFlag(flags.app),
             cacheDir: self.configManager.getFlag(flags.cacheDir),
             namespace: self.configManager.getFlag(flags.namespace),
             nodeIds: helpers.parseNodeIds(self.configManager.getFlag(flags.nodeIDs))
@@ -1019,23 +1021,25 @@ export class NodeCommand extends BaseCommand {
       {
         title: 'Add node stakes',
         task: (ctx, task) => {
-          const subTasks = []
-          const accountMap = getNodeAccountMap(ctx.config.nodeIds)
-          for (const nodeId of ctx.config.nodeIds) {
-            const accountId = accountMap.get(nodeId)
-            subTasks.push({
-              title: `Adding stake for node: ${chalk.yellow(nodeId)}`,
-              task: () => self.addStake(ctx.config.namespace, accountId, nodeId)
+          if (ctx.config.app === '' || ctx.config.app === constants.HEDERA_APP_NAME) {
+            const subTasks = []
+            const accountMap = getNodeAccountMap(ctx.config.nodeIds)
+            for (const nodeId of ctx.config.nodeIds) {
+              const accountId = accountMap.get(nodeId)
+              subTasks.push({
+                title: `Adding stake for node: ${chalk.yellow(nodeId)}`,
+                task: () => self.addStake(ctx.config.namespace, accountId, nodeId)
+              })
+            }
+
+            // set up the sub-tasks
+            return task.newListr(subTasks, {
+              concurrent: false,
+              rendererOptions: {
+                collapseSubtasks: false
+              }
             })
           }
-
-          // set up the sub-tasks
-          return task.newListr(subTasks, {
-            concurrent: false,
-            rendererOptions: {
-              collapseSubtasks: false
-            }
-          })
         }
       }], {
       concurrent: false,
@@ -1778,8 +1782,6 @@ export class NodeCommand extends BaseCommand {
           const config = /** @type {NodeAddConfigClass} **/ ctx.config
 
           try {
-            config.nodeClient.setOperator(TREASURY_ACCOUNT_ID, config.treasuryKey)
-
             const nodeCreateTx = await new NodeCreateTransaction()
               .setAccountId(ctx.newNode.accountId)
               .setGossipEndpoints(ctx.gossipEndpoints)
@@ -1793,6 +1795,7 @@ export class NodeCommand extends BaseCommand {
             const nodeCreateReceipt = await txResp.getReceipt(config.nodeClient)
             this.logger.debug(`NodeCreateReceipt: ${nodeCreateReceipt.toString()}`)
           } catch (e) {
+            this.logger.error(`Error adding node to network: ${e.message}`, e)
             throw new FullstackTestingError(`Error adding node to network: ${e.message}`, e)
           }
         }
@@ -2230,6 +2233,7 @@ export class NodeCommand extends BaseCommand {
             command: 'start',
             desc: 'Start a node',
             builder: y => flags.setCommandFlags(y,
+              flags.app,
               flags.namespace,
               flags.nodeIDs
             ),

@@ -48,7 +48,6 @@ describe('K8', () => {
   }, defaultTimeout)
 
   afterAll(async () => {
-    await k8.kubeClient.deleteNamespacedPod('test-pod', testNamespace)
     await k8.deleteNamespace(testNamespace)
     argv[flags.namespace.name] = constants.FULLSTACK_SETUP_NAMESPACE
     configManager.update(argv)
@@ -165,7 +164,7 @@ describe('K8', () => {
       testLogger.showUserError(e)
       expect(e).toBeNull()
     }
-    // TODO why is this passing?
+    // TODO enhance this test to do something with the port, this pod isn't even running, but it is still passing
   }, defaultTimeout)
 
   it('should be able to run wait for pod', async () => {

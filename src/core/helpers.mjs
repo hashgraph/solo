@@ -149,7 +149,7 @@ export function backupOldTlsKeys (nodeIds, keysDir, curDate = new Date(), dirPre
   const fileMap = new Map()
   for (const nodeId of nodeIds) {
     const srcPath = path.join(keysDir, Templates.renderTLSPemPrivateKeyFile(nodeId))
-    const destPath = path.join(backupDir, Templates.renderTLSPemPublicKeyFile(nodeId))
+    const destPath = path.join(backupDir, Templates.renderTLSPemPrivateKeyFile(nodeId))
     fileMap.set(srcPath, destPath)
   }
 
@@ -163,7 +163,7 @@ export function backupOldPemKeys (nodeIds, keysDir, curDate = new Date(), dirPre
   const fileMap = new Map()
   for (const nodeId of nodeIds) {
     const srcPath = path.join(keysDir, Templates.renderGossipPemPrivateKeyFile(nodeId))
-    const destPath = path.join(backupDir, Templates.renderGossipPemPublicKeyFile(nodeId))
+    const destPath = path.join(backupDir, Templates.renderGossipPemPrivateKeyFile(nodeId))
     fileMap.set(srcPath, destPath)
   }
 

@@ -327,7 +327,7 @@ export function accountCreationShouldSucceed (accountManager, nodeCmd, namespace
 }
 
 export async function getNodeIdsPrivateKeysHash (networkNodeServicesMap, namespace, keyFormat, k8, destDir) {
-  const dataKeysDir = `${constants.HEDERA_HAPI_PATH}/data/keys`
+  const dataKeysDir = path.join(constants.HEDERA_HAPI_PATH, 'data', 'keys')
   const tlsKeysDir = constants.HEDERA_HAPI_PATH
   const nodeKeyHashMap = new Map()
   for (const networkNodeServices of networkNodeServicesMap.values()) {
