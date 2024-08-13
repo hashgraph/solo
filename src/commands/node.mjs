@@ -175,6 +175,9 @@ export class NodeCommand extends BaseCommand {
     try {
       await this.accountManager.loadNodeClient(namespace)
       const client = this.accountManager._nodeClient
+      const treasuryKey = await this.accountManager.getTreasuryAccountKeys(namespace)
+      const treasuryPrivateKey = PrivateKey.fromStringED25519(treasuryKey.privateKey)
+      client.setOperator(TREASURY_ACCOUNT_ID, treasuryPrivateKey)
 
       // get some initial balance
       await this.accountManager.transferAmount(constants.TREASURY_ACCOUNT_ID, accountId, HEDERA_NODE_DEFAULT_STAKE_AMOUNT + 1)
@@ -190,9 +193,6 @@ export class NodeCommand extends BaseCommand {
         .setAccountId(accountId)
         .setStakedNodeId(Templates.nodeNumberFromNodeId(nodeId) - 1)
         .freezeWith(client)
-
-      const treasuryKey = await this.accountManager.getTreasuryAccountKeys(namespace)
-      const treasuryPrivateKey = PrivateKey.fromStringED25519(treasuryKey.privateKey)
 
       // Sign the transaction with the account's private key
       const signTx = await transaction.sign(treasuryPrivateKey)
@@ -1545,6 +1545,7 @@ export class NodeCommand extends BaseCommand {
            * @property {Object} podNames
            * @property {string} releasePrefix
            * @property {Map<String, NetworkNodeServices>} serviceMap
+           * @property {PrivateKey} treasuryKey
            * @property {string} stagingDir
            * @property {string} stagingKeysDir
            * -- methods --
@@ -1573,7 +1574,8 @@ export class NodeCommand extends BaseCommand {
               'releasePrefix',
               'serviceMap',
               'stagingDir',
-              'stagingKeysDir'
+              'stagingKeysDir',
+              'treasuryKey'
             ])
 
           config.curDate = new Date()
@@ -1597,6 +1599,10 @@ export class NodeCommand extends BaseCommand {
 
           const accountKeys = await this.accountManager.getAccountKeysFromSecret(FREEZE_ADMIN_ACCOUNT, config.namespace)
           config.freezeAdminPrivateKey = accountKeys.privateKey
+
+          const treasuryAccount = await this.accountManager.getTreasuryAccountKeys(config.namespace)
+          const treasuryAccountPrivateKey = treasuryAccount.privateKey
+          config.treasuryKey = PrivateKey.fromStringED25519(treasuryAccountPrivateKey)
 
           self.logger.debug('Initialized config', { config })
         }
@@ -1772,9 +1778,7 @@ export class NodeCommand extends BaseCommand {
           const config = /** @type {NodeAddConfigClass} **/ ctx.config
 
           try {
-            const nodeClient = this.accountManager._nodeClient
-            const treasuryAccountPrivateKey = this.accountManager.getTreasuryAccountKeys(config.namespace).privateKey
-            nodeClient.setOperator(TREASURY_ACCOUNT_ID, treasuryAccountPrivateKey)
+            config.nodeClient.setOperator(TREASURY_ACCOUNT_ID, config.treasuryKey)
 
             const nodeCreateTx = await new NodeCreateTransaction()
               .setAccountId(ctx.newNode.accountId)
@@ -1783,10 +1787,10 @@ export class NodeCommand extends BaseCommand {
               .setGossipCaCertificate(ctx.signingCertDer)
               .setCertificateHash(ctx.tlsCertHash)
               .setAdminKey(config.adminKey.publicKey)
-              .freezeWith(nodeClient)
+              .freezeWith(config.nodeClient)
             const signedTx = await nodeCreateTx.sign(config.adminKey)
-            const txResp = await signedTx.execute(nodeClient)
-            const nodeCreateReceipt = await txResp.getReceipt(nodeClient)
+            const txResp = await signedTx.execute(config.nodeClient)
+            const nodeCreateReceipt = await txResp.getReceipt(config.nodeClient)
             this.logger.debug(`NodeCreateReceipt: ${nodeCreateReceipt.toString()}`)
           } catch (e) {
             throw new FullstackTestingError(`Error adding node to network: ${e.message}`, e)
@@ -2062,6 +2066,7 @@ export class NodeCommand extends BaseCommand {
           // send some write transactions to invoke the handler that will trigger the stake weight recalculate
           for (const nodeId of config.allNodeIds) {
             const accountId = accountMap.get(nodeId)
+            config.nodeClient.setOperator(TREASURY_ACCOUNT_ID, config.treasuryKey)
             await this.accountManager.transferAmount(constants.TREASURY_ACCOUNT_ID, accountId, 1)
           }
         }
@@ -2083,6 +2088,7 @@ export class NodeCommand extends BaseCommand {
     try {
       await tasks.run()
     } catch (e) {
+      self.logger.error(`Error in setting up nodes: ${e.message}`, e)
       throw new FullstackTestingError(`Error in setting up nodes: ${e.message}`, e)
     } finally {
       await self.close()

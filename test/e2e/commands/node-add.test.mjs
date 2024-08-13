@@ -78,6 +78,7 @@ describe('Node add', () => {
       flags.log4j2Xml.constName,
       flags.settingTxt.constName
     ])
+    await nodeCmd.accountManager.close()
   }, 600000)
 
   balanceQueryShouldSucceed(nodeCmd.accountManager, nodeCmd, namespace)
