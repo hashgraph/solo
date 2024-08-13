@@ -15,12 +15,19 @@ kubectl port-forward svc/fullstack-deployment-hedera-explorer -n solo-e2e 8080:8
 echo "Clone hedera local node"
 
 cd ..
-git clone https://github.com/hashgraph/hedera-local-node --branch release-2.29.0
+
+if [ -d "hedera-local-node" ]; then
+  echo "Directory hedera-local-node exists."
+else
+  echo "Directory hedera-local-node does not exist."
+  git clone https://github.com/hashgraph/hedera-local-node --branch release-2.29.0
+fi
+
 cd hedera-local-node
 npm install
 
 echo "Generate ECDSA keys, extract from output and save to key.txt"
-npm run generate-accounts 3 >> key.log
+npm run generate-accounts 3 > key.log
 sed -n 's/.* - \(0x[0-9a-f]*\) - \(0x[0-9a-f]*\) - .*/\1 \2/p' key.log > key.txt
 
 echo "Only keep the private key, the second column of each line of file key.txt"
@@ -45,7 +52,13 @@ cat test/smoke/hardhat.config.js
 #npx hardhat test
 
 cd ..
-git clone https://github.com/hashgraph/hedera-smart-contracts --branch only-erc20-tests
+
+if [ -d "hedera-smart-contracts" ]; then
+  echo "Directory hedera-smart-contracts exists."
+else
+  echo "Directory hedera-smart-contracts does not exist."
+  git clone https://github.com/hashgraph/hedera-smart-contracts --branch only-erc20-tests
+fi
 cd hedera-smart-contracts
 git branch
 npm install
@@ -59,7 +72,7 @@ echo "MAX_RETRY=5" >> .env
 cat .env
 
 echo "Start background transaction"
-cd ../hedera-local-node;  watch npm run generate-accounts 3 >> background.log &  cd -
+cd ../hedera-local-node;  watch npm run generate-accounts 3 > background.log &  cd -
 
 npm list
 echo "Run contract test"
