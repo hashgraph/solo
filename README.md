@@ -90,7 +90,7 @@ You can now use your cluster with:
 
 kubectl cluster-info --context kind-solo
 
-Have a nice day! 👋
+Not sure what to do next? 😅  Check out https://kind.sigs.k8s.io/docs/user/quick-start/
 ```
 
 You may now view pods in your cluster using `k9s -A` as below:
@@ -178,9 +178,9 @@ Kubernetes Namespace	: solo
 ✔ Clean up temp files
 ✔ Generate gossip keys
 ✔ Backup old files
-✔ TLS key for node: node0
-✔ TLS key for node: node2
 ✔ TLS key for node: node1
+✔ TLS key for node: node2
+✔ TLS key for node: node0
 ✔ Generate gRPC TLS keys
 ✔ Finalize
 ```
@@ -269,8 +269,8 @@ Kubernetes Namespace	: solo
 **********************************************************************************
 ✔ Initialize
 ✔ Check network pod: node1
-✔ Check network pod: node2
 ✔ Check network pod: node0
+✔ Check network pod: node2
 ✔ Identify network pods
 ✔ Copy configuration files
 ✔ Copy Gossip keys to staging
@@ -291,11 +291,11 @@ Kubernetes Namespace	: solo
 ✔ Copy configuration files
 ✔ Copy configuration files
 ✔ Set file permissions
-✔ Node: node1
-✔ Set file permissions
 ✔ Node: node0
 ✔ Set file permissions
 ✔ Node: node2
+✔ Set file permissions
+✔ Node: node1
 ✔ Setup network nodes
 ✔ Finalize
 ```
@@ -317,13 +317,13 @@ Kubernetes Cluster	: kind-solo
 Kubernetes Namespace	: solo
 **********************************************************************************
 ✔ Initialize
+✔ Check network pod: node2
 ✔ Check network pod: node0
 ✔ Check network pod: node1
-✔ Check network pod: node2
 ✔ Identify network pods
+✔ Start node: node2
 ✔ Start node: node1
 ✔ Start node: node0
-✔ Start node: node2
 ✔ Starting nodes
 ✔ Check node: node0
 ✔ Check node: node1
@@ -513,8 +513,8 @@ Kubernetes Namespace	: solo
 ✔ Generate gossip keys
 ✔ Backup old files
 ✔ TLS key for node: node0
-✔ TLS key for node: node2
 ✔ TLS key for node: node1
+✔ TLS key for node: node2
 ✔ Generate gRPC TLS keys
 ✔ Finalize
 ```
