@@ -94,12 +94,20 @@ describe('NetworkCommand', () => {
       networkCmd.logger.showList('PVCs', pvcs)
 
       expect(networkCmd.getUnusedConfigs(NetworkCommand.DEPLOY_CONFIGS_NAME)).toEqual([
+        flags.apiPermissionProperties.constName,
+        flags.app.constName,
+        flags.applicationEnv.constName,
+        flags.applicationProperties.constName,
+        flags.bootstrapProperties.constName,
+        flags.chainId.constName,
         flags.deployHederaExplorer.constName,
         flags.deployMirrorNode.constName,
         flags.hederaExplorerTlsHostName.constName,
         flags.hederaExplorerTlsLoadBalancerIp.constName,
+        flags.log4j2Xml.constName,
         flags.profileFile.constName,
         flags.profileName.constName,
+        flags.settingTxt.constName,
         flags.tlsClusterIssuerType.constName
       ])
     } catch (e) {
