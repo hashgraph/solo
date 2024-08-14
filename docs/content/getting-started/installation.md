@@ -1,14 +1,15 @@
----
+***
+
 title: Installation
 weight: -20
 geekdocNav: true
 geekdocAlign: center
 geekdocAnchor: false
----
+--------------------
 
 ### Requirements
 
-Node(>=20.14.0) (_lts/hydrogen_)
+Node(>=20.14.0) (*lts/hydrogen*)
 
 ### Setup
 

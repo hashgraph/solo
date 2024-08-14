@@ -331,7 +331,7 @@ export class K8 {
    * @param containerName container name
    * @param destPath path inside the container
    * @param timeout timeout in ms
-   * @return {Promise<{}>}
+   * @return {Promise<[]>}
    */
   async listDir (podName, containerName, destPath, timeout = 5000) {
     try {
@@ -344,8 +344,13 @@ export class K8 {
       for (let line of lines) {
         line = line.replace(/\s+/g, '|')
         const parts = line.split('|')
-        if (parts.length === 9) {
-          const name = parts[parts.length - 1]
+        if (parts.length >= 9) {
+          let name = parts[parts.length - 1]
+          // handle unique file format (without single quotes): 'usedAddressBook_vHederaSoftwareVersion{hapiVersion=v0.53.0, servicesVersion=v0.53.0}_2024-07-30-20-39-06_node_0.txt.debug'
+          for (let i = parts.length - 1; i > 8; i--) {
+            name = `${parts[i - 1]} ${name}`
+          }
+
           if (name !== '.' && name !== '..') {
             const permission = parts[0]
             const item = {
@@ -424,7 +429,7 @@ export class K8 {
     return await this.execContainer(
       podName,
       containerName,
-      ['bash', '-c', '[[ -d "' + destPath + '" ]] && echo -n "true" || echo -n "false"']
+      ['sh', '-c', '[[ -d "' + destPath + '" ]] && echo -n "true" || echo -n "false"']
     ) === 'true'
   }
 
@@ -432,7 +437,7 @@ export class K8 {
     return this.execContainer(
       podName,
       containerName,
-      ['bash', '-c', 'mkdir -p "' + destPath + '"']
+      ['sh', '-c', 'mkdir -p "' + destPath + '"']
     )
   }
 
@@ -595,11 +600,11 @@ export class K8 {
   }
 
   /**
-   * Invoke bash command within a container and return the console output as string
+   * Invoke sh command within a container and return the console output as string
    *
    * @param podName pod name
    * @param containerName container name
-   * @param command bash commands as an array to be run within the containerName (e.g 'ls -la /opt/hgcapp')
+   * @param command sh commands as an array to be run within the containerName (e.g 'ls -la /opt/hgcapp')
    * @param timeoutMs timout in milliseconds
    * @returns {Promise<string>} console output as string
    */

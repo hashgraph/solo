@@ -65,21 +65,26 @@ on:
         type: string
         required: false
         default: "e2e-mirror-node"
-      e2e-node-pem-stop-add-test-subdir:
-        description: "E2E Node PEM Stop Add Test Subdirectory:"
+      e2e-node-pem-stop-test-subdir:
+        description: "E2E Node PEM Stop Test Subdirectory:"
         type: string
         required: false
-        default: "e2e-node-pem-stop-add"
-      e2e-node-pfx-kill-add-test-subdir:
-        description: "E2E Node PFX Kill Add Test Subdirectory:"
+        default: "e2e-node-pem-stop"
+      e2e-node-pfx-kill-test-subdir:
+        description: "E2E Node PFX Kill Test Subdirectory:"
         type: string
         required: false
-        default: "e2e-node-pfx-kill-add"
+        default: "e2e-node-pfx-kill"
       e2e-node-local-build-test-subdir:
         description: "E2E Node Local Build Test Subdirectory:"
         type: string
         required: false
         default: "e2e-node-local-build"
+      e2e-node-add-test-subdir:
+        description: "E2E Node Add Test Subdirectory:"
+        type: string
+        required: false
+        default: "e2e-node-add"
       e2e-relay-test-subdir:
         description: "E2E Relay Test Subdirectory:"
         type: string
@@ -95,21 +100,26 @@ on:
         type: string
         required: false
         default: "E2E Mirror Node Tests Coverage Report"
-      e2e-node-pem-stop-add-coverage-report:
-        description: "E2E Node PEM Stop Add Coverage Report:"
+      e2e-node-pem-stop-coverage-report:
+        description: "E2E Node PEM Stop Coverage Report:"
         type: string
         required: false
-        default: "E2E Node PEM Stop Add Tests Coverage Report"
-      e2e-node-pfx-kill-add-coverage-report:
-        description: "E2E Node PFX Kill Add Coverage Report:"
+        default: "E2E Node PEM Stop Tests Coverage Report"
+      e2e-node-pfx-kill-coverage-report:
+        description: "E2E Node PFX Kill Coverage Report:"
         type: string
         required: false
-        default: "E2E Node PFX Kill Add Tests Coverage Report"
+        default: "E2E Node PFX Kill Tests Coverage Report"
       e2e-node-local-build-coverage-report:
         description: "E2E Node Local Build Coverage Report:"
         type: string
         required: false
         default: "E2E Node Local Build Tests Coverage Report"
+      e2e-node-add-coverage-report:
+        description: "E2E Node Add Coverage Report:"
+        type: string
+        required: false
+        default: "E2E Node Add Tests Coverage Report"
       e2e-relay-coverage-report:
         description: "E2E Relay Coverage Report:"
         type: string
@@ -179,19 +189,19 @@ jobs:
           name: ${{ inputs.e2e-mirror-node-coverage-report }}
           path: 'coverage/${{ inputs.e2e-mirror-node-test-subdir }}'
 
-      - name: Download E2E Node PEM Stop Add Coverage Report
+      - name: Download E2E Node PEM Stop Coverage Report
         uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
         if: ${{ (inputs.enable-codecov-analysis || inputs.enable-codacy-coverage) && inputs.enable-e2e-coverage-report && !cancelled() && !failure() }}
         with:
-          name: ${{ inputs.e2e-node-pem-stop-add-coverage-report }}
-          path: 'coverage/${{ inputs.e2e-node-pem-stop-add-test-subdir }}'
+          name: ${{ inputs.e2e-node-pem-stop-coverage-report }}
+          path: 'coverage/${{ inputs.e2e-node-pem-stop-test-subdir }}'
 
-      - name: Download E2E Node PFX Kill Add Coverage Report
+      - name: Download E2E Node PFX Kill Coverage Report
         uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
         if: ${{ (inputs.enable-codecov-analysis || inputs.enable-codacy-coverage) && inputs.enable-e2e-coverage-report && !cancelled() && !failure() }}
         with:
-          name: ${{ inputs.e2e-node-pfx-kill-add-coverage-report }}
-          path: 'coverage/${{ inputs.e2e-node-pfx-kill-add-test-subdir }}'
+          name: ${{ inputs.e2e-node-pfx-kill-coverage-report }}
+          path: 'coverage/${{ inputs.e2e-node-pfx-kill-test-subdir }}'
 
       - name: Download E2E Relay Coverage Report
         uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
@@ -204,8 +214,15 @@ jobs:
         uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
         if: ${{ (inputs.enable-codecov-analysis || inputs.enable-codacy-coverage) && inputs.enable-e2e-coverage-report && !cancelled() && !failure() }}
         with:
-          name: ${{ inputs.e2e-node-local-build-test-coverage-report }}
+          name: ${{ inputs.e2e-node-local-build-coverage-report }}
           path: 'coverage/${{ inputs.e2e-node-local-build-test-subdir }}'
+
+      - name: Download E2E Add Coverage Report
+        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
+        if: ${{ (inputs.enable-codecov-analysis || inputs.enable-codacy-coverage) && inputs.enable-e2e-coverage-report && !cancelled() && !failure() }}
+        with:
+          name: ${{ inputs.e2e-node-add-coverage-report }}
+          path: 'coverage/${{ inputs.e2e-node-add-test-subdir }}'
 
       - name: Publish To Codecov
         uses: codecov/codecov-action@e28ff129e5465c2c0dcc6f003fc735cb6ae0c673 # v4.5.0

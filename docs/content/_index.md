@@ -1,13 +1,17 @@
----
+***
+
 title: Welcome to Solo Documentation
 geekdocNav: true
 geekdocAlign: center
 geekdocAnchor: false
 geekdocDescription: Home page for Solo Documentation
----
+
+***
 
 <!-- markdownlint-capture -->
+
 <!-- markdownlint-disable MD033 -->
+
 <!-- markdownlint-restore -->
 
 [![NPM Version](https://img.shields.io/npm/v/%40hashgraph%2Fsolo?logo=npm)](https://www.npmjs.com/package/@hashgraph/solo)
@@ -21,8 +25,7 @@ Solo is an opinionated CLI tool to deploy and manage standalone test networks.
 
 {{< button size="large" relref="getting-started/installation.md" >}}Getting Started{{< /button >}}
 
-Feature overview
------------------------------
+## Feature overview
 
 {{< columns >}}
 
@@ -33,6 +36,7 @@ Stay focused on deployment and don't get overwhelmed by a complex design.
 {{< /columns >}}
 
 {{< columns >}}
+
 ### Easy configuration
 
 Getting started in minutes. Solo comes with easy to use configuration.

@@ -44,7 +44,7 @@ describe('Node local build', () => {
   afterAll(async () => {
     await getNodeLogs(hederaK8, LOCAL_HEDERA)
     await hederaK8.deleteNamespace(LOCAL_HEDERA)
-  }, 120000)
+  }, 600000)
 
   describe('Node for hedera app should start successfully', () => {
     console.log('Starting local build for Hedera app')

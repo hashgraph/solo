@@ -1,10 +1,11 @@
----
+***
+
 title: Deploy
 weight: -20
 geekdocNav: true
 geekdocAlign: center
 geekdocAnchor: false
----
+--------------------
 
 ### Example - 1: Deploy a standalone test network (version `0.42.5`)
 
