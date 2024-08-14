@@ -252,6 +252,8 @@ export function bootstrapNetwork (testName, argv,
         expectedUnusedConfigs.push(flags.devMode.constName)
         if (testName === 'local-hedera-app') {
           expectedUnusedConfigs.push(flags.releaseTag.constName)
+        } else {
+          expectedUnusedConfigs.push(flags.localBuildPath.constName)
         }
         expect(nodeCmd.getUnusedConfigs(NodeCommand.SETUP_CONFIGS_NAME)).toEqual(expectedUnusedConfigs)
       } catch (e) {
