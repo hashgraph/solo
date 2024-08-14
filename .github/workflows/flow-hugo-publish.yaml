@@ -52,7 +52,7 @@ defaults:
 jobs:
   # Build job
   build:
-    runs-on: [self-hosted, Linux, medium, ephemeral]
+    runs-on: solo-linux-medium
 
     steps:
       - name: Setup Hugo
@@ -136,7 +136,7 @@ jobs:
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
-    runs-on: [self-hosted, Linux, medium, ephemeral]
+    runs-on: solo-linux-medium
     needs: build
     steps:
       - name: Deploy to GitHub Pages
