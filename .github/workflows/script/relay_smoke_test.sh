@@ -64,8 +64,8 @@ else
 fi
 cd hedera-smart-contracts
 
-npm install
 npm i @nomicfoundation/hardhat-foundry
+npm install
 npx hardhat compile
 
 echo "Build .env file"
