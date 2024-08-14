@@ -164,6 +164,10 @@ export class ProfileManager {
       this.configManager.getFlag(flags.releaseTag)
     )
 
+    if (!fs.existsSync(stagingDir)) {
+      fs.mkdirSync(stagingDir, { recursive: true })
+    }
+
     const configTxtPath = this.prepareConfigTxt(
       this.configManager.getFlag(flags.namespace),
       accountMap,
