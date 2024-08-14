@@ -27,9 +27,14 @@ import { flags } from '../../../src/commands/index.mjs'
 import {
   V1Container,
   V1ObjectMeta,
-  V1PersistentVolumeClaim, V1PersistentVolumeClaimSpec,
+  V1PersistentVolumeClaim,
+  V1PersistentVolumeClaimSpec,
   V1Pod,
-  V1PodSpec, V1VolumeResourceRequirements
+  V1PodSpec,
+  V1Service,
+  V1ServicePort,
+  V1ServiceSpec,
+  V1VolumeResourceRequirements
 } from '@kubernetes/client-node'
 
 const defaultTimeout = 20000
@@ -43,31 +48,56 @@ describe('K8', () => {
   const podName = 'test-pod'
   const containerName = 'alpine'
   const podLabel = 'app=test'
+  const serviceName = 'test-service'
 
   beforeAll(async () => {
-    argv[flags.namespace.name] = testNamespace
-    configManager.update(argv)
-    await k8.createNamespace(testNamespace)
-    const v1Pod = new V1Pod()
-    const v1Metadata = new V1ObjectMeta()
-    v1Metadata.name = podName
-    v1Metadata.namespace = testNamespace
-    v1Metadata.labels = { app: 'test' }
-    v1Pod.metadata = v1Metadata
-    const v1Container = new V1Container()
-    v1Container.name = containerName
-    v1Container.image = 'alpine:latest'
-    v1Container.command = ['/bin/sh', '-c', 'sleep 7200']
-    const v1Spec = new V1PodSpec()
-    v1Spec.containers = [v1Container]
-    v1Pod.spec = v1Spec
-    await k8.kubeClient.createNamespacedPod(testNamespace, v1Pod)
+    try {
+      argv[flags.namespace.name] = testNamespace
+      configManager.update(argv)
+      await k8.createNamespace(testNamespace)
+      const v1Pod = new V1Pod()
+      const v1Metadata = new V1ObjectMeta()
+      v1Metadata.name = podName
+      v1Metadata.namespace = testNamespace
+      v1Metadata.labels = { app: 'test' }
+      v1Pod.metadata = v1Metadata
+      const v1Container = new V1Container()
+      v1Container.name = containerName
+      v1Container.image = 'alpine:latest'
+      v1Container.command = ['/bin/sh', '-c', 'sleep 7200']
+      const v1Spec = new V1PodSpec()
+      v1Spec.containers = [v1Container]
+      v1Pod.spec = v1Spec
+      await k8.kubeClient.createNamespacedPod(testNamespace, v1Pod)
+      const v1Svc = new V1Service()
+      const v1SvcMetadata = new V1ObjectMeta()
+      v1SvcMetadata.name = serviceName
+      v1SvcMetadata.namespace = testNamespace
+      v1SvcMetadata.labels = { app: 'svc-test' }
+      v1Svc.metadata = v1SvcMetadata
+      const v1SvcSpec = new V1ServiceSpec()
+      const v1SvcPort = new V1ServicePort()
+      v1SvcPort.port = 80
+      v1SvcPort.targetPort = 80
+      v1SvcSpec.ports = [v1SvcPort]
+      v1Svc.spec = v1SvcSpec
+      await k8.kubeClient.createNamespacedService(testNamespace, v1Svc)
+    } catch (e) {
+      console.log(e)
+      throw e
+    }
   }, defaultTimeout)
 
   afterAll(async () => {
-    await k8.deleteNamespace(testNamespace)
-    argv[flags.namespace.name] = constants.FULLSTACK_SETUP_NAMESPACE
-    configManager.update(argv)
+    try {
+      await k8.kubeClient.deleteNamespacedPod(podName, testNamespace, undefined, undefined, 1)
+      await k8.deleteNamespace(testNamespace)
+      argv[flags.namespace.name] = constants.FULLSTACK_SETUP_NAMESPACE
+      configManager.update(argv)
+    } catch (e) {
+      console.log(e)
+      throw e
+    }
   }, defaultTimeout)
 
   it('should be able to list clusters', async () => {
@@ -92,6 +122,31 @@ describe('K8', () => {
     await expect(k8.deleteNamespace(name)).resolves.toBeTruthy()
   }, defaultTimeout)
 
+  it('should be able to run wait for pod', async () => {
+    const labels = [podLabel]
+
+    const pods = await k8.waitForPods([constants.POD_PHASE_RUNNING], labels, 1)
+    expect(pods.length).toStrictEqual(1)
+  }, defaultTimeout)
+
+  it('should be able to run wait for pod ready', async () => {
+    const labels = [podLabel]
+
+    const pods = await k8.waitForPodReady(labels, 1)
+    expect(pods.length).toStrictEqual(1)
+  }, defaultTimeout)
+
+  it('should be able to run wait for pod conditions', async () => {
+    const labels = [podLabel]
+
+    const conditions = new Map()
+      .set(constants.POD_CONDITION_INITIALIZED, constants.POD_CONDITION_STATUS_TRUE)
+      .set(constants.POD_CONDITION_POD_SCHEDULED, constants.POD_CONDITION_STATUS_TRUE)
+      .set(constants.POD_CONDITION_READY, constants.POD_CONDITION_STATUS_TRUE)
+    const pods = await k8.waitForPodConditions(conditions, labels, 1)
+    expect(pods.length).toStrictEqual(1)
+  }, defaultTimeout)
+
   it('should be able to detect pod IP of a pod', async () => {
     const pods = await k8.getPodsByLabel([podLabel])
     const podName = pods[0].metadata.name
@@ -100,9 +155,7 @@ describe('K8', () => {
   }, defaultTimeout)
 
   it('should be able to detect cluster IP', async () => {
-    // TODO
-    const svcName = 'console'
-    await expect(k8.getClusterIP(svcName)).resolves.not.toBeNull()
+    await expect(k8.getClusterIP(serviceName)).resolves.not.toBeNull()
     await expect(k8.getClusterIP('INVALID')).rejects.toThrow(FullstackTestingError)
   }, defaultTimeout)
 
@@ -113,30 +166,23 @@ describe('K8', () => {
   }, defaultTimeout)
 
   it('should be able to copy a file to and from a container', async () => {
-    try {
-      argv[flags.namespace.name] = testNamespace
-      configManager.update(argv)
-      const pods = await k8.waitForPodReady([podLabel], 1, 20)
-      expect(pods.length).toStrictEqual(1)
-      const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'k8-'))
-      const destDir = '/tmp'
-      const srcPath = 'test/data/pem/keys/a-private-node0.pem'
-      const destPath = `${destDir}/a-private-node0.pem`
+    const pods = await k8.waitForPodReady([podLabel], 1, 20)
+    expect(pods.length).toStrictEqual(1)
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'k8-'))
+    const destDir = '/tmp'
+    const srcPath = 'test/data/pem/keys/a-private-node0.pem'
+    const destPath = `${destDir}/a-private-node0.pem`
 
-      // upload the file
-      await expect(k8.copyTo(podName, containerName, srcPath, destDir)).resolves.toBeTruthy()
+    // upload the file
+    await expect(k8.copyTo(podName, containerName, srcPath, destDir)).resolves.toBeTruthy()
 
-      // download the same file
-      await expect(k8.copyFrom(podName, containerName, destPath, tmpDir)).resolves.toBeTruthy()
+    // download the same file
+    await expect(k8.copyFrom(podName, containerName, destPath, tmpDir)).resolves.toBeTruthy()
 
-      // rm file inside the container
-      await expect(k8.execContainer(podName, containerName, ['rm', '-f', destPath])).resolves
+    // rm file inside the container
+    await expect(k8.execContainer(podName, containerName, ['rm', '-f', destPath])).resolves
 
-      fs.rmdirSync(tmpDir, { recursive: true })
-    } finally {
-      argv[flags.namespace.name] = constants.FULLSTACK_SETUP_NAMESPACE
-      configManager.update(argv)
-    }
+    fs.rmdirSync(tmpDir, { recursive: true })
   }, defaultTimeout)
 
   it('should be able to port forward gossip port', (done) => {
@@ -167,31 +213,6 @@ describe('K8', () => {
       expect(e).toBeNull()
     }
     // TODO enhance this test to do something with the port, this pod isn't even running, but it is still passing
-  }, defaultTimeout)
-
-  it('should be able to run wait for pod', async () => {
-    const labels = [podLabel]
-
-    const pods = await k8.waitForPods([constants.POD_PHASE_RUNNING], labels, 1)
-    expect(pods.length).toStrictEqual(1)
-  }, defaultTimeout)
-
-  it('should be able to run wait for pod ready', async () => {
-    const labels = [podLabel]
-
-    const pods = await k8.waitForPodReady(labels, 1)
-    expect(pods.length).toStrictEqual(1)
-  }, defaultTimeout)
-
-  it('should be able to run wait for pod conditions', async () => {
-    const labels = [podLabel]
-
-    const conditions = new Map()
-      .set(constants.POD_CONDITION_INITIALIZED, constants.POD_CONDITION_STATUS_TRUE)
-      .set(constants.POD_CONDITION_POD_SCHEDULED, constants.POD_CONDITION_STATUS_TRUE)
-      .set(constants.POD_CONDITION_READY, constants.POD_CONDITION_STATUS_TRUE)
-    const pods = await k8.waitForPodConditions(conditions, labels, 1)
-    expect(pods.length).toStrictEqual(1)
   }, defaultTimeout)
 
   it('should be able to cat a file inside the container', async () => {
