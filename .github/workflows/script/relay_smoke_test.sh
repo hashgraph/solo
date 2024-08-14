@@ -44,8 +44,9 @@ LOCAL_NODE_KEYS=$(cat private_key_with_quote_final.txt)
 CONTRACT_TEST_KEYS=$(cat private_key_without_quote_final.txt)
 
 echo "Add new keys to hardhat.config.js"
+git checkout test/smoke/hardhat.config.js
 awk '/accounts: \[/ {print; getline; getline; next} 1' test/smoke/hardhat.config.js > test/smoke/hardhat.config.js.tmp
-awk -v new_keys="$LOCAL_NODE_KEYS" '/\],/ {print new_keys; print; next} 1' test/smoke/hardhat.config.js.tmp > test/smoke/hardhat.config.js
+awk -v new_keys="$LOCAL_NODE_KEYS" '/\],/ {print new_keys; print; next} 1' test/smoke/hardhat.config.js.tmp > test/smoke/hardhat.config.js || true
 cat test/smoke/hardhat.config.js
 
 #echo "Run smoke test"
@@ -59,7 +60,7 @@ if [ -d "hedera-smart-contracts" ]; then
   echo "Directory hedera-smart-contracts exists."
 else
   echo "Directory hedera-smart-contracts does not exist."
-  git clone https://github.com/hashgraph/hedera-smart-contracts --branch only-erc20-tests
+  git clone https://github.com/hashgraph/hedera-smart-contracts v0.9.0
 fi
 cd hedera-smart-contracts
 git branch
@@ -78,4 +79,4 @@ cd ../hedera-local-node;  watch npm run generate-accounts 3 > background.log &  
 
 npm list
 echo "Run contract test"
-npm run hh:test
+npx hardhat test --grep "@OZERC20 Test Suite"
