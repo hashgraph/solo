@@ -71,7 +71,7 @@ export function e2eNodeKeyRefreshTest (keyFormat, testName, mode, releaseTag = H
         afterAll(async () => {
           await getNodeLogs(k8, namespace)
           await k8.deleteNamespace(namespace)
-        }, 180000)
+        }, 600000)
 
         describe(
             `Node should have started successfully [mode ${mode}, release ${releaseTag}, keyFormat: ${keyFormat}]`,

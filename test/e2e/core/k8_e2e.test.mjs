@@ -40,11 +40,28 @@ describe('K8', () => {
   const k8 = new K8(configManager, testLogger)
   const testNamespace = 'k8-e2e'
   const argv = []
+  const podName = 'test-pod'
+  const containerName = 'alpine'
+  const podLabel = 'app=test'
 
   beforeAll(async () => {
-    argv[flags.namespace.name] = constants.FULLSTACK_SETUP_NAMESPACE
+    argv[flags.namespace.name] = testNamespace
     configManager.update(argv)
     await k8.createNamespace(testNamespace)
+    const v1Pod = new V1Pod()
+    const v1Metadata = new V1ObjectMeta()
+    v1Metadata.name = podName
+    v1Metadata.namespace = testNamespace
+    v1Metadata.labels = { app: 'test' }
+    v1Pod.metadata = v1Metadata
+    const v1Container = new V1Container()
+    v1Container.name = containerName
+    v1Container.image = 'alpine:latest'
+    v1Container.command = ['/bin/sh', '-c', 'sleep 7200']
+    const v1Spec = new V1PodSpec()
+    v1Spec.containers = [v1Container]
+    v1Pod.spec = v1Spec
+    await k8.kubeClient.createNamespacedPod(testNamespace, v1Pod)
   }, defaultTimeout)
 
   afterAll(async () => {
@@ -76,45 +93,30 @@ describe('K8', () => {
   }, defaultTimeout)
 
   it('should be able to detect pod IP of a pod', async () => {
-    const pods = await k8.getPodsByLabel(['app.kubernetes.io/instance=fullstack-cluster-setup-console'])
+    const pods = await k8.getPodsByLabel([podLabel])
     const podName = pods[0].metadata.name
     await expect(k8.getPodIP(podName)).resolves.not.toBeNull()
     await expect(k8.getPodIP('INVALID')).rejects.toThrow(FullstackTestingError)
   }, defaultTimeout)
 
   it('should be able to detect cluster IP', async () => {
+    // TODO
     const svcName = 'console'
     await expect(k8.getClusterIP(svcName)).resolves.not.toBeNull()
     await expect(k8.getClusterIP('INVALID')).rejects.toThrow(FullstackTestingError)
   }, defaultTimeout)
 
   it('should be able to check if a path is directory inside a container', async () => {
-    const pods = await k8.getPodsByLabel(['app.kubernetes.io/instance=fullstack-cluster-setup-console'])
+    const pods = await k8.getPodsByLabel([podLabel])
     const podName = pods[0].metadata.name
-    await expect(k8.hasDir(podName, 'minio-operator', '/tmp')).resolves.toBeTruthy()
+    await expect(k8.hasDir(podName, containerName, '/tmp')).resolves.toBeTruthy()
   }, defaultTimeout)
 
   it('should be able to copy a file to and from a container', async () => {
-    const podName = 'test-pod'
-    const containerName = 'alpine'
-    const v1Pod = new V1Pod()
-    const v1Metadata = new V1ObjectMeta()
-    v1Metadata.name = podName
-    v1Metadata.namespace = testNamespace
-    v1Metadata.labels = { app: 'test' }
-    v1Pod.metadata = v1Metadata
-    const v1Container = new V1Container()
-    v1Container.name = containerName
-    v1Container.image = 'alpine:latest'
-    v1Container.command = ['/bin/sh', '-c', 'sleep 7200']
-    const v1Spec = new V1PodSpec()
-    v1Spec.containers = [v1Container]
-    v1Pod.spec = v1Spec
-    await k8.kubeClient.createNamespacedPod(testNamespace, v1Pod)
     try {
       argv[flags.namespace.name] = testNamespace
       configManager.update(argv)
-      const pods = await k8.waitForPodReady(['app=test'], 1, 20)
+      const pods = await k8.waitForPodReady([podLabel], 1, 20)
       expect(pods.length).toStrictEqual(1)
       const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'k8-'))
       const destDir = '/tmp'
@@ -168,27 +170,21 @@ describe('K8', () => {
   }, defaultTimeout)
 
   it('should be able to run wait for pod', async () => {
-    const labels = [
-      'app.kubernetes.io/instance=fullstack-cluster-setup-console'
-    ]
+    const labels = [podLabel]
 
     const pods = await k8.waitForPods([constants.POD_PHASE_RUNNING], labels, 1)
     expect(pods.length).toStrictEqual(1)
   }, defaultTimeout)
 
   it('should be able to run wait for pod ready', async () => {
-    const labels = [
-      'app.kubernetes.io/instance=fullstack-cluster-setup-console'
-    ]
+    const labels = [podLabel]
 
     const pods = await k8.waitForPodReady(labels, 1)
     expect(pods.length).toStrictEqual(1)
   }, defaultTimeout)
 
   it('should be able to run wait for pod conditions', async () => {
-    const labels = [
-      'app.kubernetes.io/instance=fullstack-cluster-setup-console'
-    ]
+    const labels = [podLabel]
 
     const conditions = new Map()
       .set(constants.POD_CONDITION_INITIALIZED, constants.POD_CONDITION_STATUS_TRUE)
@@ -199,11 +195,10 @@ describe('K8', () => {
   }, defaultTimeout)
 
   it('should be able to cat a file inside the container', async () => {
-    const pods = await k8.getPodsByLabel(['app.kubernetes.io/instance=fullstack-cluster-setup-console'])
+    const pods = await k8.getPodsByLabel([podLabel])
     const podName = pods[0].metadata.name
-    const containerName = 'minio-operator'
     const output = await k8.execContainer(podName, containerName, ['cat', '/etc/hostname'])
-    expect(output.indexOf('console')).toEqual(0)
+    expect(output.indexOf(podName)).toEqual(0)
   }, defaultTimeout)
 
   it('should be able to list persistent volume claims', async () => {
