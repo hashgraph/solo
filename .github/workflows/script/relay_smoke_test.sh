@@ -60,11 +60,10 @@ if [ -d "hedera-smart-contracts" ]; then
   echo "Directory hedera-smart-contracts exists."
 else
   echo "Directory hedera-smart-contracts does not exist."
-  git clone https://github.com/hashgraph/hedera-smart-contracts --branch v0.9.0
+  git clone https://github.com/hashgraph/hedera-smart-contracts --branch only-erc20-tests
 fi
 cd hedera-smart-contracts
 
-npm i @nomicfoundation/hardhat-foundry
 npm install
 npx hardhat compile
 
@@ -80,4 +79,4 @@ cd ../hedera-local-node;  watch npm run generate-accounts 3 > background.log &  
 
 npm list
 echo "Run contract test"
-npx hardhat test --grep "@OZERC20 Test Suite"
+npm run hh:test
