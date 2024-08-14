@@ -66,6 +66,7 @@ describe('NetworkCommand', () => {
 
   const networkCmd = bootstrapResp.cmd.networkCmd
   const clusterCmd = bootstrapResp.cmd.clusterCmd
+  const initCmd = bootstrapResp.cmd.initCmd
 
   afterAll(async () => {
     await getNodeLogs(k8, namespace)
@@ -74,6 +75,7 @@ describe('NetworkCommand', () => {
   }, 180000)
 
   beforeAll(async () => {
+    await initCmd.init(argv)
     await clusterCmd.setup(argv)
     fs.mkdirSync(applicationEnvParentDirectory, { recursive: true })
     fs.writeFileSync(applicationEnvFilePath, applicationEnvFileContents)
