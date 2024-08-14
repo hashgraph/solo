@@ -29,6 +29,7 @@ import {
   constants
 } from '../../../src/core/index.mjs'
 import {
+  accountCreationShouldSucceed,
   balanceQueryShouldSucceed,
   bootstrapNetwork,
   getDefaultArgv,
@@ -159,6 +160,10 @@ describe('MirrorNodeCommand', () => {
       expect(e).toBeNull()
     }
   }, 60000)
+
+  // trigger some extra transactions to trigger MirrorNode to fetch the transactions
+  accountCreationShouldSucceed(accountManager, mirrorNodeCmd, namespace)
+  accountCreationShouldSucceed(accountManager, mirrorNodeCmd, namespace)
 
   it('Check submit message result should success', async () => {
     expect.assertions(1)

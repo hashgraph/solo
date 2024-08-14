@@ -79,7 +79,12 @@ export class AccountManager {
         publicKey: Base64.decode(secret.data.publicKey)
       }
     } else {
-      return null
+      // if it isn't in the secrets we can load genesis key
+      return {
+        accountId,
+        privateKey: constants.GENESIS_KEY,
+        publicKey: PrivateKey.fromStringED25519(constants.GENESIS_KEY).publicKey.toString()
+      }
     }
   }
 
@@ -92,18 +97,7 @@ export class AccountManager {
    */
   async getTreasuryAccountKeys (namespace) {
     // check to see if the treasure account is in the secrets
-    let accountInfo = await this.getAccountKeysFromSecret(constants.TREASURY_ACCOUNT_ID, namespace)
-
-    // if it isn't in the secrets we can load genesis key
-    if (!accountInfo) {
-      accountInfo = {
-        accountId: constants.TREASURY_ACCOUNT_ID,
-        privateKey: constants.GENESIS_KEY,
-        publicKey: PrivateKey.fromStringED25519(constants.GENESIS_KEY).publicKey.toString()
-      }
-    }
-
-    return accountInfo
+    return await this.getAccountKeysFromSecret(constants.TREASURY_ACCOUNT_ID, namespace)
   }
 
   /**
@@ -167,6 +161,8 @@ export class AccountManager {
       this._nodeClient = await this._getNodeClient(namespace,
         networkNodeServicesMap, treasuryAccountInfo.accountId, treasuryAccountInfo.privateKey)
     }
+
+    return this._nodeClient
   }
 
   /**
@@ -254,8 +250,7 @@ export class AccountManager {
   async getNodeServiceMap (namespace) {
     const labelSelector = 'fullstack.hedera.com/node-name'
 
-    /** @type {Map<String,NetworkNodeServicesBuilder>} **/
-    const serviceBuilderMap = new Map()
+    const serviceBuilderMap = /** @type {Map<String,NetworkNodeServicesBuilder>} **/ new Map()
 
     const serviceList = await this.k8.kubeClient.listNamespacedService(
       namespace, undefined, undefined, undefined, undefined, labelSelector)
@@ -478,11 +473,10 @@ export class AccountManager {
   async getAccountKeys (accountId) {
     const accountInfo = await this.accountInfoQuery(accountId)
 
-    let keys
+    let keys = []
     if (accountInfo.key instanceof KeyList) {
       keys = accountInfo.key.toArray()
     } else {
-      keys = []
       keys.push(accountInfo.key)
     }
 
@@ -629,6 +623,7 @@ export class AccountManager {
 
     // ensure serviceEndpoint.ipAddressV4 value for all nodes in the addressBook is a 4 bytes array instead of string
     // See: https://github.com/hashgraph/hedera-protobufs/blob/main/services/basic_types.proto#L1309
+    // TODO: with v0.53 will mirror node no longer need this and we can remove @hashgraph/proto?
     const addressBook = HashgraphProto.proto.NodeAddressBook.decode(addressBookBytes)
     const hasAlphaRegEx = /[a-zA-Z]+/
     let modified = false

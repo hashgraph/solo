@@ -1,10 +1,11 @@
----
+***
+
 title: Setup
 weight: -20
 geekdocNav: true
 geekdocAlign: center
 geekdocAnchor: false
----
+--------------------
 
 ### Remote cluster
 

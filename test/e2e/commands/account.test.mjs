@@ -56,11 +56,12 @@ describe('AccountCommand', () => {
   // set the env variable SOLO_FST_CHARTS_DIR if developer wants to use local FST charts
   argv[flags.chartDirectory.name] = process.env.SOLO_FST_CHARTS_DIR ? process.env.SOLO_FST_CHARTS_DIR : undefined
   const bootstrapResp = bootstrapNetwork(testName, argv)
+  const accountCmd = new AccountCommand(bootstrapResp.opts, testSystemAccounts)
+  bootstrapResp.cmd.accountCmd = accountCmd
   const k8 = bootstrapResp.opts.k8
   const accountManager = bootstrapResp.opts.accountManager
   const configManager = bootstrapResp.opts.configManager
   const nodeCmd = bootstrapResp.cmd.nodeCmd
-  const accountCmd = new AccountCommand(bootstrapResp.opts, testSystemAccounts)
 
   afterAll(async () => {
     await getNodeLogs(k8, namespace)
@@ -106,6 +107,7 @@ describe('AccountCommand', () => {
             nodeCmd.logger.info(`Fetching account keys: accountId ${accountId}`)
             const keys = await accountManager.getAccountKeys(accountId)
             nodeCmd.logger.info(`Fetched account keys: accountId ${accountId}`)
+            expect(keys.length).not.toEqual(0)
             expect(keys[0].toString()).not.toEqual(genesisKey.toString())
           }, 20000)
         }

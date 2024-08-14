@@ -37,19 +37,23 @@ export function sleep (ms) {
 }
 
 export function parseNodeIds (input) {
+  return splitFlagInput(input, ',')
+}
+
+export function splitFlagInput (input, separator = ',') {
   if (typeof input === 'string') {
-    const nodeIds = []
-    input.split(',').forEach(item => {
-      const nodeId = item.trim()
-      if (nodeId) {
-        nodeIds.push(nodeId)
+    const items = []
+    input.split(separator).forEach(s => {
+      const item = s.trim()
+      if (s) {
+        items.push(item)
       }
     })
 
-    return nodeIds
+    return items
   }
 
-  throw new FullstackTestingError('node IDs is not a comma separated string')
+  throw new FullstackTestingError('input is not a comma separated string')
 }
 
 export function cloneArray (arr) {
@@ -145,7 +149,7 @@ export function backupOldTlsKeys (nodeIds, keysDir, curDate = new Date(), dirPre
   const fileMap = new Map()
   for (const nodeId of nodeIds) {
     const srcPath = path.join(keysDir, Templates.renderTLSPemPrivateKeyFile(nodeId))
-    const destPath = path.join(backupDir, Templates.renderTLSPemPublicKeyFile(nodeId))
+    const destPath = path.join(backupDir, Templates.renderTLSPemPrivateKeyFile(nodeId))
     fileMap.set(srcPath, destPath)
   }
 
@@ -159,7 +163,7 @@ export function backupOldPemKeys (nodeIds, keysDir, curDate = new Date(), dirPre
   const fileMap = new Map()
   for (const nodeId of nodeIds) {
     const srcPath = path.join(keysDir, Templates.renderGossipPemPrivateKeyFile(nodeId))
-    const destPath = path.join(backupDir, Templates.renderGossipPemPublicKeyFile(nodeId))
+    const destPath = path.join(backupDir, Templates.renderGossipPemPrivateKeyFile(nodeId))
     fileMap.set(srcPath, destPath)
   }
 
@@ -194,25 +198,30 @@ export function validatePath (input) {
  * @returns {Promise<void>} A promise that resolves when the logs are downloaded
  */
 export async function getNodeLogs (k8, namespace) {
+  k8.logger.debug('getNodeLogs: begin...')
   const pods = await k8.getPodsByLabel(['fullstack.hedera.com/type=network-node'])
+
+  const timeString = new Date().toISOString().replace(/:/g, '-').replace(/\./g, '-')
 
   for (const pod of pods) {
     const podName = pod.metadata.name
-    const targetDir = `${SOLO_LOGS_DIR}/${namespace}/${podName}`
+    const targetDir = path.join(SOLO_LOGS_DIR, namespace, timeString)
     try {
-      if (fs.existsSync(targetDir)) {
-        fs.rmdirSync(targetDir, { recursive: true })
+      if (!fs.existsSync(targetDir)) {
+        fs.mkdirSync(targetDir, { recursive: true })
       }
-      fs.mkdirSync(targetDir, { recursive: true })
-      await k8.copyFrom(podName, ROOT_CONTAINER, `${HEDERA_HAPI_PATH}/output/swirlds.log`, targetDir)
-      await k8.copyFrom(podName, ROOT_CONTAINER, `${HEDERA_HAPI_PATH}/output/hgcaa.log`, targetDir)
-      await k8.copyFrom(podName, ROOT_CONTAINER, `${HEDERA_HAPI_PATH}/config.txt`, targetDir)
-      await k8.copyFrom(podName, ROOT_CONTAINER, `${HEDERA_HAPI_PATH}/settings.txt`, targetDir)
+      const scriptName = 'support-zip.sh'
+      const sourcePath = path.join(constants.RESOURCES_DIR, scriptName) // script source path
+      await k8.copyTo(podName, ROOT_CONTAINER, sourcePath, `${HEDERA_HAPI_PATH}`)
+      await k8.execContainer(podName, ROOT_CONTAINER, `chmod 0755 ${HEDERA_HAPI_PATH}/${scriptName}`)
+      await k8.execContainer(podName, ROOT_CONTAINER, `${HEDERA_HAPI_PATH}/${scriptName}`)
+      await k8.copyFrom(podName, ROOT_CONTAINER, `${HEDERA_HAPI_PATH}/${podName}.zip`, targetDir)
     } catch (e) {
       // not throw error here, so we can continue to finish downloading logs from other pods
       // and also delete namespace in the end
       k8.logger.error(`failed to download logs from pod ${podName}`, e)
     }
+    k8.logger.debug('getNodeLogs: ...end')
   }
 }
 
@@ -241,4 +250,15 @@ export async function getFileContents (accountManager, namespace, fileNum) {
 export function getEnvValue (envVarArray, name) {
   const kvPair = envVarArray.find(v => v.startsWith(`${name}=`))
   return kvPair ? kvPair.split('=')[1] : null
+}
+
+export function parseIpAddressToUint8Array (ipAddress) {
+  const parts = ipAddress.split('.')
+  const uint8Array = new Uint8Array(4)
+
+  for (let i = 0; i < 4; i++) {
+    uint8Array[i] = parseInt(parts[i], 10)
+  }
+
+  return uint8Array
 }

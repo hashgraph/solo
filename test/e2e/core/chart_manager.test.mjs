@@ -23,9 +23,11 @@ describe('ChartManager', () => {
   const helm = new Helm(testLogger)
   const chartManager = new ChartManager(helm, testLogger)
   const configManager = new ConfigManager(testLogger)
+  const argv = []
 
   beforeAll(() => {
-    configManager.load()
+    argv[flags.namespace.name] = constants.FULLSTACK_SETUP_NAMESPACE
+    configManager.update(argv)
   })
 
   it('should be able to list installed charts', async () => {
@@ -38,7 +40,7 @@ describe('ChartManager', () => {
   it('should be able to check if a chart is installed', async () => {
     const ns = configManager.getFlag(flags.namespace)
     expect(ns).not.toBeNull()
-    const isInstalled = await chartManager.isChartInstalled(ns, constants.FULLSTACK_DEPLOYMENT_CHART)
+    const isInstalled = await chartManager.isChartInstalled(ns, constants.FULLSTACK_CLUSTER_SETUP_CHART)
     expect(isInstalled).toBeTruthy()
   })
 })

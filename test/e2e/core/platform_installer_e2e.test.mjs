@@ -14,29 +14,47 @@
  * limitations under the License.
  *
  */
-import { beforeAll, describe, expect, it } from '@jest/globals'
+import { afterAll, beforeAll, describe, expect, it } from '@jest/globals'
 import {
-  PlatformInstaller,
   constants,
-  Templates,
-  ConfigManager, Templates as Template
+  Templates
 } from '../../../src/core/index.mjs'
 import * as fs from 'fs'
-import { K8 } from '../../../src/core/k8.mjs'
 
-import { getTestCacheDir, getTmpDir, testLogger } from '../../test_util.js'
-import { AccountManager } from '../../../src/core/account_manager.mjs'
+import {
+  bootstrapNetwork,
+  getDefaultArgv,
+  getTestCacheDir,
+  getTmpDir, TEST_CLUSTER,
+  testLogger
+} from '../../test_util.js'
+import { flags } from '../../../src/commands/index.mjs'
+import * as version from '../../../version.mjs'
 
 const defaultTimeout = 20000
 
 describe('PackageInstallerE2E', () => {
-  const configManager = new ConfigManager(testLogger)
-  const k8 = new K8(configManager, testLogger)
-  const accountManager = new AccountManager(testLogger, k8)
-  const installer = new PlatformInstaller(testLogger, k8, configManager, accountManager)
+  const namespace = 'pkg-installer-e2e'
+  const argv = getDefaultArgv()
+  argv[flags.namespace.name] = namespace
+  argv[flags.nodeIDs.name] = 'node0'
+  argv[flags.clusterName.name] = TEST_CLUSTER
+  argv[flags.fstChartVersion.name] = version.FST_CHART_VERSION
+  // set the env variable SOLO_FST_CHARTS_DIR if developer wants to use local FST charts
+  argv[flags.chartDirectory.name] = process.env.SOLO_FST_CHARTS_DIR ? process.env.SOLO_FST_CHARTS_DIR : undefined
+  const bootstrapResp = bootstrapNetwork(namespace, argv, undefined, undefined, undefined, undefined, undefined, undefined, false)
+  const k8 = bootstrapResp.opts.k8
+  const accountManager = bootstrapResp.opts.accountManager
+  const configManager = bootstrapResp.opts.configManager
+  const installer = bootstrapResp.opts.platformInstaller
   const testCacheDir = getTestCacheDir()
   const podName = 'network-node0-0'
   const packageVersion = 'v0.42.5'
+
+  afterAll(async () => {
+    await k8.deleteNamespace(namespace)
+    await accountManager.close()
+  }, 180000)
 
   beforeAll(async () => {
     if (!fs.existsSync(testCacheDir)) {
@@ -93,7 +111,7 @@ describe('PackageInstallerE2E', () => {
       expect(configLines.length).toBe(4)
       expect(configLines[0]).toBe(`swirld, ${chainId}`)
       expect(configLines[1]).toBe(`app, ${constants.HEDERA_APP_NAME}`)
-      expect(configLines[2]).toContain('address, 0, node0, node0, 1')
+      expect(configLines[2]).toContain(`address, 0, node0, node0, ${constants.HEDERA_NODE_DEFAULT_STAKE_AMOUNT}`)
       expect(configLines[3]).toBe('nextNodeId, 1')
 
       // verify the file exists
@@ -144,7 +162,7 @@ describe('PackageInstallerE2E', () => {
   describe('copyTLSKeys', () => {
     it('should succeed to copy TLS keys for node0', async () => {
       const nodeId = 'node0'
-      const podName = Template.renderNetworkPodName(nodeId)
+      const podName = Templates.renderNetworkPodName(nodeId)
       const tmpDir = getTmpDir()
 
       // create mock files
