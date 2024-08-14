@@ -145,6 +145,8 @@ export class NetworkCommand extends BaseCommand {
       flags.deployMirrorNode,
       flags.hederaExplorerTlsLoadBalancerIp,
       flags.log4j2Xml,
+      flags.profileName,
+      flags.profileFile,
       flags.settingTxt
     ])
 
