@@ -33,6 +33,14 @@ const configManager = new ConfigManager(testLogger, configFile)
 const profileManager = new ProfileManager(testLogger, configManager, tmpDir)
 configManager.setFlag(flags.nodeIDs, 'node0,node1,node3')
 const testProfileFile = path.join('test', 'data', 'test-profiles.yaml')
+configManager.setFlag(flags.cacheDir, getTestCacheDir('ProfileManager'))
+configManager.setFlag(flags.releaseTag, version.HEDERA_PLATFORM_VERSION)
+const cacheDir = configManager.getFlag(flags.cacheDir)
+configManager.setFlag(flags.apiPermissionProperties, path.join(cacheDir, 'templates/api-permission.properties'))
+configManager.setFlag(flags.applicationProperties, path.join(cacheDir, 'templates/application.properties'))
+configManager.setFlag(flags.bootstrapProperties, path.join(cacheDir, 'templates/bootstrap.properties'))
+configManager.setFlag(flags.log4j2Xml, path.join(cacheDir, 'templates/log4j2.xml'))
+configManager.setFlag(flags.settingTxt, path.join(cacheDir, 'templates/settings.txt'))
 
 describe('ProfileManager', () => {
   afterAll(() => {
@@ -67,14 +75,6 @@ describe('ProfileManager', () => {
   ])('determine chart values for a profile', (input) => {
     it(`should determine FST chart values [profile = ${input.profileName}]`, async () => {
       configManager.setFlag(flags.profileFile, input.profileFile)
-      configManager.setFlag(flags.cacheDir, getTestCacheDir('ProfileManager'))
-      configManager.setFlag(flags.releaseTag, version.HEDERA_PLATFORM_VERSION)
-      const cacheDir = configManager.getFlag(flags.cacheDir)
-      configManager.setFlag(flags.apiPermissionProperties, path.join(cacheDir, 'templates/api-permission.properties'))
-      configManager.setFlag(flags.applicationProperties, path.join(cacheDir, 'templates/application.properties'))
-      configManager.setFlag(flags.bootstrapProperties, path.join(cacheDir, 'templates/bootstrap.properties'))
-      configManager.setFlag(flags.log4j2Xml, path.join(cacheDir, 'templates/log4j2.xml'))
-      configManager.setFlag(flags.settingTxt, path.join(cacheDir, 'templates/settings.txt'))
 
       const resources = ['templates', 'profiles']
       for (const dirName of resources) {
@@ -155,12 +155,7 @@ describe('ProfileManager', () => {
 
   it('prepareValuesForFstChart should set the value of a key to the contents of a file', async () => {
     configManager.setFlag(flags.profileFile, testProfileFile)
-    const cacheDir = configManager.getFlag(flags.cacheDir)
-    configManager.setFlag(flags.apiPermissionProperties, path.join(cacheDir, 'templates/api-permission.properties'))
-    configManager.setFlag(flags.applicationProperties, path.join(cacheDir, 'templates/application.properties'))
-    configManager.setFlag(flags.bootstrapProperties, path.join(cacheDir, 'templates/bootstrap.properties'))
-    configManager.setFlag(flags.log4j2Xml, path.join(cacheDir, 'templates/log4j2.xml'))
-    configManager.setFlag(flags.settingTxt, path.join(cacheDir, 'templates/settings.txt'))
+
     // profileManager.loadProfiles(true)
     const file = path.join(tmpDir, '_setFileContentsAsValue.txt')
     const fileContents = '# row 1\n# row 2\n# row 3'
