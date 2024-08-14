@@ -60,10 +60,10 @@ if [ -d "hedera-smart-contracts" ]; then
   echo "Directory hedera-smart-contracts exists."
 else
   echo "Directory hedera-smart-contracts does not exist."
-  git clone https://github.com/hashgraph/hedera-smart-contracts v0.9.0
+  git clone https://github.com/hashgraph/hedera-smart-contracts --branch v0.9.0
 fi
 cd hedera-smart-contracts
-git branch
+
 npm install
 npx hardhat compile
 
