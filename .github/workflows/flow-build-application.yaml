@@ -148,7 +148,6 @@ jobs:
     needs:
       - env-vars
       - code-style
-      - e2e-mirror-node-tests
     with:
       custom-job-label: Relay
       npm-test-script: test-${{ needs.env-vars.outputs.e2e-relay-test-subdir }}
@@ -162,6 +161,7 @@ jobs:
       - env-vars
       - unit-tests
       - e2e-tests
+      - e2e-mirror-node-tests
       - e2e-node-pem-stop-tests
       - e2e-node-pfx-kill-tests
       - e2e-node-local-build-tests
