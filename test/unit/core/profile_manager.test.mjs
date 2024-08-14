@@ -22,8 +22,7 @@ import { flags } from '../../../src/commands/index.mjs'
 import {
   ConfigManager,
   constants,
-  ProfileManager,
-  Templates
+  ProfileManager
 } from '../../../src/core/index.mjs'
 import { getTestCacheDir, getTmpDir, testLogger } from '../../test_util.js'
 import * as version from '../../../version.mjs'
@@ -70,23 +69,19 @@ describe('ProfileManager', () => {
       configManager.setFlag(flags.profileFile, input.profileFile)
       configManager.setFlag(flags.cacheDir, getTestCacheDir('ProfileManager'))
       configManager.setFlag(flags.releaseTag, version.HEDERA_PLATFORM_VERSION)
-      configManager.setFlag(flags.apiPermissionProperties, flags.apiPermissionProperties.definition.defaultValue)
-      configManager.setFlag(flags.applicationProperties, flags.applicationProperties.definition.defaultValue)
-      configManager.setFlag(flags.bootstrapProperties, flags.bootstrapProperties.definition.defaultValue)
-      configManager.setFlag(flags.log4j2Xml, flags.log4j2Xml.definition.defaultValue)
-      configManager.setFlag(flags.settingTxt, flags.settingTxt.definition.defaultValue)
-
-      const stagingDir = Templates.renderStagingDir(
-        configManager.getFlag(flags.cacheDir),
-        configManager.getFlag(flags.releaseTag)
-      )
+      const cacheDir = configManager.getFlag(flags.cacheDir)
+      configManager.setFlag(flags.apiPermissionProperties, path.join(cacheDir, 'templates/api-permission.properties'))
+      configManager.setFlag(flags.applicationProperties, path.join(cacheDir, 'templates/application.properties'))
+      configManager.setFlag(flags.bootstrapProperties, path.join(cacheDir, 'templates/bootstrap.properties'))
+      configManager.setFlag(flags.log4j2Xml, path.join(cacheDir, 'templates/log4j2.xml'))
+      configManager.setFlag(flags.settingTxt, path.join(cacheDir, 'templates/settings.txt'))
 
       const resources = ['templates', 'profiles']
       for (const dirName of resources) {
         const srcDir = path.resolve(path.join(constants.RESOURCES_DIR, dirName))
         if (!fs.existsSync(srcDir)) continue
 
-        const destDir = path.resolve(path.join(stagingDir, dirName))
+        const destDir = path.resolve(path.join(cacheDir, dirName))
         if (!fs.existsSync(destDir)) {
           fs.mkdirSync(destDir, { recursive: true })
         }
@@ -160,11 +155,12 @@ describe('ProfileManager', () => {
 
   it('prepareValuesForFstChart should set the value of a key to the contents of a file', async () => {
     configManager.setFlag(flags.profileFile, testProfileFile)
-    configManager.setFlag(flags.apiPermissionProperties, flags.apiPermissionProperties.definition.defaultValue)
-    configManager.setFlag(flags.applicationProperties, flags.applicationProperties.definition.defaultValue)
-    configManager.setFlag(flags.bootstrapProperties, flags.bootstrapProperties.definition.defaultValue)
-    configManager.setFlag(flags.log4j2Xml, flags.log4j2Xml.definition.defaultValue)
-    configManager.setFlag(flags.settingTxt, flags.settingTxt.definition.defaultValue)
+    const cacheDir = configManager.getFlag(flags.cacheDir)
+    configManager.setFlag(flags.apiPermissionProperties, path.join(cacheDir, 'templates/api-permission.properties'))
+    configManager.setFlag(flags.applicationProperties, path.join(cacheDir, 'templates/application.properties'))
+    configManager.setFlag(flags.bootstrapProperties, path.join(cacheDir, 'templates/bootstrap.properties'))
+    configManager.setFlag(flags.log4j2Xml, path.join(cacheDir, 'templates/log4j2.xml'))
+    configManager.setFlag(flags.settingTxt, path.join(cacheDir, 'templates/settings.txt'))
     // profileManager.loadProfiles(true)
     const file = path.join(tmpDir, '_setFileContentsAsValue.txt')
     const fileContents = '# row 1\n# row 2\n# row 3'
