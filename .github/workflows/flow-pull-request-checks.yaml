@@ -135,7 +135,6 @@ jobs:
       - env-vars
       - unit-tests
       - e2e-tests
-      - e2e-mirror-node-tests
       - e2e-node-pem-stop-add-tests
       - e2e-node-pfx-kill-add-tests
       - e2e-node-local-build-tests

@@ -1,4 +1,5 @@
 #!/bin/bash
+set -eo pipefail
 
 echo "Starting test network with a single node"
 
