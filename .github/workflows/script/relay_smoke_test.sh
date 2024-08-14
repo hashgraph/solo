@@ -4,6 +4,7 @@ set -eo pipefail
 echo "Starting test network with a single node"
 
 ./test/e2e/setup-e2e.sh
+solo network deploy
 solo node keys --gossip-keys --tls-keys --key-format pfx -i node0
 solo node setup -i node0
 solo node start -i node0
