@@ -310,7 +310,7 @@ export const chainId = {
   name: 'ledger-id',
   definition: {
     describe: 'Ledger ID (a.k.a. Chain ID)',
-    defaultValue: '298', // Ref: https://github.com/hashgraph/hedera-json-rpc-relay#configuration
+    defaultValue: constants.HEDERA_CHAIN_ID, // Ref: https://github.com/hashgraph/hedera-json-rpc-relay#configuration
     alias: 'l',
     type: 'string'
   }
@@ -511,7 +511,7 @@ export const app = {
   name: 'app',
   definition: {
     describe: 'Testing app name',
-    defaultValue: '',
+    defaultValue: constants.HEDERA_APP_NAME,
     type: 'string'
   }
 }

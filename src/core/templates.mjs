@@ -124,14 +124,11 @@ export class Templates {
     return new x509.Name(`CN=${nodeId},ST=${state},L=${locality},O=${org},OU=${orgUnit},C=${country}`)
   }
 
-  static renderStagingDir (configManager, flags) {
-    if (!configManager) throw new MissingArgumentError('configManager is required')
-    const cacheDir = configManager.getFlag(flags.cacheDir)
+  static renderStagingDir (cacheDir, releaseTag) {
     if (!cacheDir) {
       throw new IllegalArgumentError('cacheDir cannot be empty')
     }
 
-    const releaseTag = configManager.getFlag(flags.releaseTag)
     if (!releaseTag) {
       throw new IllegalArgumentError('releaseTag cannot be empty')
     }
