@@ -60,12 +60,14 @@ export class NodeCommand extends BaseCommand {
     if (!opts || !opts.keyManager) throw new IllegalArgumentError('An instance of core/KeyManager is required', opts.keyManager)
     if (!opts || !opts.accountManager) throw new IllegalArgumentError('An instance of core/AccountManager is required', opts.accountManager)
     if (!opts || !opts.keytoolDepManager) throw new IllegalArgumentError('An instance of KeytoolDependencyManager is required', opts.keytoolDepManager)
+    if (!opts || !opts.profileManager) throw new IllegalArgumentError('An instance of ProfileManager is required', opts.profileManager)
 
     this.downloader = opts.downloader
     this.platformInstaller = opts.platformInstaller
     this.keyManager = opts.keyManager
     this.accountManager = opts.accountManager
     this.keytoolDepManager = opts.keytoolDepManager
+    this.profileManager = opts.profileManager
     this._portForwards = []
   }
 
@@ -1794,6 +1796,11 @@ export class NodeCommand extends BaseCommand {
             valuesArg += ` --set "hedera.nodes[${i}].accountId=${config.serviceMap.get(config.existingNodeIds[i]).accountId}" --set "hedera.nodes[${i}].name=${config.existingNodeIds[i]}"`
           }
           valuesArg += ` --set "hedera.nodes[${index}].accountId=${ctx.newNode.accountId}" --set "hedera.nodes[${index}].name=${ctx.newNode.name}"`
+
+          this.profileValuesFile = await self.profileManager.updateConfigTxtValue(path.join(config.stagingDir, 'config.txt'))
+          if (this.profileValuesFile) {
+            valuesArg += this.prepareValuesFiles(this.profileValuesFile)
+          }
 
           await self.chartManager.upgrade(
             config.namespace,

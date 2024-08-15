@@ -212,6 +212,21 @@ export class ProfileManager {
     return yamlRoot
   }
 
+  updateConfigTxtValue (configTxtPath) {
+    const yamlRoot = {}
+    this._setFileContentsAsValue('hedera.configMaps.configTxt', configTxtPath, yamlRoot)
+    const cachedValuesFile = path.join(this.cacheDir, 'fst-node-add.yaml')
+    return new Promise((resolve, reject) => {
+      fs.writeFile(cachedValuesFile, yaml.dump(yamlRoot), (err) => {
+        if (err) {
+          reject(err)
+        }
+
+        resolve(cachedValuesFile)
+      })
+    })
+  }
+
   resourcesForHaProxyPod (profile, yamlRoot) {
     if (!profile) throw new MissingArgumentError('profile is required')
     if (!profile.haproxy) return // use chart defaults
