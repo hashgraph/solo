@@ -243,37 +243,39 @@ export function bootstrapNetwork (testName, argv,
       ])
     }, 180000)
 
-    it('should succeed with node setup command', async () => {
-      expect.assertions(2)
-      try {
-        await expect(nodeCmd.setup(argv)).resolves.toBeTruthy()
-        const expectedUnusedConfigs = []
-        expectedUnusedConfigs.push(flags.appConfig.constName)
-        expectedUnusedConfigs.push(flags.devMode.constName)
-        if (testName === 'local-hedera-app') {
-          expectedUnusedConfigs.push(flags.releaseTag.constName)
-        } else {
-          expectedUnusedConfigs.push(flags.localBuildPath.constName)
+    if (startNodes) {
+      it('should succeed with node setup command', async () => {
+        expect.assertions(2)
+        try {
+          await expect(nodeCmd.setup(argv)).resolves.toBeTruthy()
+          const expectedUnusedConfigs = []
+          expectedUnusedConfigs.push(flags.appConfig.constName)
+          expectedUnusedConfigs.push(flags.devMode.constName)
+          if (testName === 'local-hedera-app') {
+            expectedUnusedConfigs.push(flags.releaseTag.constName)
+          } else {
+            expectedUnusedConfigs.push(flags.localBuildPath.constName)
+          }
+          if (!bootstrapResp.opts.configManager.getFlag(flags.generateGossipKeys)) {
+            expectedUnusedConfigs.push('curDate')
+          }
+          expect(nodeCmd.getUnusedConfigs(NodeCommand.SETUP_CONFIGS_NAME)).toEqual(expectedUnusedConfigs)
+        } catch (e) {
+          nodeCmd.logger.showUserError(e)
+          expect(e).toBeNull()
         }
-        if (!bootstrapResp.opts.configManager.getFlag(flags.generateGossipKeys)) {
-          expectedUnusedConfigs.push('curDate')
-        }
-        expect(nodeCmd.getUnusedConfigs(NodeCommand.SETUP_CONFIGS_NAME)).toEqual(expectedUnusedConfigs)
-      } catch (e) {
-        nodeCmd.logger.showUserError(e)
-        expect(e).toBeNull()
-      }
-    }, 240000)
+      }, 240000)
 
-    it('should succeed with node start command', async () => {
-      expect.assertions(1)
-      try {
-        await expect(nodeCmd.start(argv)).resolves.toBeTruthy()
-      } catch (e) {
-        nodeCmd.logger.showUserError(e)
-        expect(e).toBeNull()
-      }
-    }, 1800000)
+      it('should succeed with node start command', async () => {
+        expect.assertions(1)
+        try {
+          await expect(nodeCmd.start(argv)).resolves.toBeTruthy()
+        } catch (e) {
+          nodeCmd.logger.showUserError(e)
+          expect(e).toBeNull()
+        }
+      }, 1800000)
+    }
   })
 
   return bootstrapResp

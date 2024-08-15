@@ -36,6 +36,8 @@ const defaultTimeout = 20000
 describe('PackageInstallerE2E', () => {
   const namespace = 'pkg-installer-e2e'
   const argv = getDefaultArgv()
+  const testCacheDir = getTestCacheDir()
+  argv[flags.cacheDir.name] = testCacheDir
   argv[flags.namespace.name] = namespace
   argv[flags.nodeIDs.name] = 'node0'
   argv[flags.clusterName.name] = TEST_CLUSTER
@@ -47,7 +49,6 @@ describe('PackageInstallerE2E', () => {
   const accountManager = bootstrapResp.opts.accountManager
   const configManager = bootstrapResp.opts.configManager
   const installer = bootstrapResp.opts.platformInstaller
-  const testCacheDir = getTestCacheDir()
   const podName = 'network-node0-0'
   const packageVersion = 'v0.42.5'
 
