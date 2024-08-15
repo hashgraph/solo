@@ -76,7 +76,7 @@ defaults:
 jobs:
   env-vars:
     name: ${{ inputs.custom-job-label || 'Set Environment Variables' }}
-    runs-on: [self-hosted, Linux, medium, ephemeral]
+    runs-on: solo-linux-medium
     outputs:
       e2e_test_subdir: e2e
       e2e_mirror_node_test_subdir: e2e-mirror-node

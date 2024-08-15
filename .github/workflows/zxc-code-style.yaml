@@ -49,7 +49,7 @@ permissions:
 jobs:
   code-style:
     name: ${{ inputs.custom-job-label || 'Code Style' }}
-    runs-on: [self-hosted, Linux, medium, ephemeral]
+    runs-on: solo-linux-medium
     steps:
       - name: Checkout Code
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
