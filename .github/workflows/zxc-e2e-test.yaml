@@ -178,6 +178,12 @@ jobs:
         run: |
           ${{ env.CG_EXEC }} npm run ${{ inputs.npm-test-script }}
 
+      - name: RPC relay smoke test
+        if: ${{ runner.os == 'linux' && inputs.npm-test-script == 'test-e2e-relay' && !cancelled() && !failure() }}
+        run: |
+          echo "Skipped smoke test for relay"
+          #.github/workflows/script/relay_smoke_test.sh
+
       - name: Upload E2E Logs to GitHub
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@834a144ee995460fba8ed112a2fc961b36a5ec5a # v4.3.6
