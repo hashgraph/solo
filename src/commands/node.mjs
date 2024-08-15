@@ -249,7 +249,8 @@ export class NodeCommand extends BaseCommand {
         if (output && output.indexOf('Terminating Netty') < 0 && // make sure we are not at the beginning of a restart
           (output.indexOf(`Now current platform status = ${status}`) > 0 ||
             output.indexOf(`Platform Status Change ${status}`) > 0 ||
-            output.indexOf(`is ${status}`) > 0)) { // 'is ACTIVE' is for newer versions, first seen in v0.49.0
+            output.indexOf(`is ${status}`) > 0 ||
+            output.indexOf(`"newStatus":"${status}"`) > 0)) {
           this.logger.debug(`Node ${nodeId} is ${status} [ attempt: ${attempt}/${maxAttempt}]`)
           isActive = true
           break
