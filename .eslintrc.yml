@@ -1,11 +1,18 @@
 env:
   browser: true
   es2021: true
+  jest: true
 extends: standard
 parserOptions:
   ecmaVersion: latest
   sourceType: module
 rules:
+  "jest/valid-expect": [
+    "error",
+    {
+      "maxArgs": 2
+    }
+  ]
   headers/header-format:
     - error
     - source: "string"
