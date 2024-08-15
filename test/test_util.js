@@ -255,6 +255,9 @@ export function bootstrapNetwork (testName, argv,
         } else {
           expectedUnusedConfigs.push(flags.localBuildPath.constName)
         }
+        if (!bootstrapResp.opts.configManager.getFlag(flags.generateGossipKeys)) {
+          expectedUnusedConfigs.push('curDate')
+        }
         expect(nodeCmd.getUnusedConfigs(NodeCommand.SETUP_CONFIGS_NAME)).toEqual(expectedUnusedConfigs)
       } catch (e) {
         nodeCmd.logger.showUserError(e)
