@@ -139,7 +139,7 @@ Kubernetes Cluster	: kind-solo
 Kubernetes Namespace	: solo
 **********************************************************************************
 ✔ Setup home directory and cache
-✔ Check dependency: helm [OS: linux, Release: 5.15.0-1061-gke, Arch: x64]
+✔ Check dependency: helm [OS: linux, Release: 5.15.0-118-generic, Arch: x64]
 ✔ Check dependencies
 ✔ Setup chart manager
 
@@ -240,10 +240,10 @@ Kubernetes Namespace	: solo
 ✔ Check Node: node2
 ✔ Check node pods are running
 ✔ Check Envoy Proxy for: node1
-✔ Check Envoy Proxy for: node0
 ✔ Check Envoy Proxy for: node2
-✔ Check HAProxy for: node2
 ✔ Check HAProxy for: node0
+✔ Check Envoy Proxy for: node0
+✔ Check HAProxy for: node2
 ✔ Check HAProxy for: node1
 ✔ Check proxy pods are running
 ✔ Check MinIO
@@ -268,18 +268,18 @@ Kubernetes Cluster	: kind-solo
 Kubernetes Namespace	: solo
 **********************************************************************************
 ✔ Initialize
-✔ Check network pod: node1
-✔ Check network pod: node2
 ✔ Check network pod: node0
+✔ Check network pod: node2
+✔ Check network pod: node1
 ✔ Identify network pods
 ✔ Copy configuration files
 ✔ Copy Gossip keys to staging
 ✔ Copy gRPC TLS keys to staging
 ✔ Prepare config.txt for the network
 ✔ Prepare staging directory
-✔ Update node: node0
-✔ Update node: node2
 ✔ Update node: node1
+✔ Update node: node2
+✔ Update node: node0
 ✔ Fetch platform software into network nodes
 ✔ Copy Gossip keys
 ✔ Copy Gossip keys
@@ -317,13 +317,13 @@ Kubernetes Cluster	: kind-solo
 Kubernetes Namespace	: solo
 **********************************************************************************
 ✔ Initialize
-✔ Check network pod: node2
-✔ Check network pod: node1
 ✔ Check network pod: node0
+✔ Check network pod: node1
+✔ Check network pod: node2
 ✔ Identify network pods
-✔ Start node: node2
-✔ Start node: node1
 ✔ Start node: node0
+✔ Start node: node1
+✔ Start node: node2
 ✔ Starting nodes
 ✔ Check node: node0
 ✔ Check node: node1
@@ -356,9 +356,9 @@ Kubernetes Namespace	: solo
 ✔ Enable mirror-node
 ✔ Check Hedera Explorer
 ✔ Check Postgres DB
-✔ Check Monitor
 ✔ Check GRPC
 ✔ Check REST API
+✔ Check Monitor
 ✔ Check Importer
 ✔ Check pods are ready
 ```
@@ -478,7 +478,7 @@ Kubernetes Cluster	: kind-solo
 Kubernetes Namespace	: solo
 **********************************************************************************
 ✔ Setup home directory and cache
-✔ Check dependency: helm [OS: linux, Release: 5.15.0-1061-gke, Arch: x64]
+✔ Check dependency: helm [OS: linux, Release: 5.15.0-118-generic, Arch: x64]
 ✔ Check dependencies
 ✔ Setup chart manager
 
@@ -512,9 +512,9 @@ Kubernetes Namespace	: solo
 ✔ Gossip pem key for node: node2
 ✔ Generate gossip keys
 ✔ Backup old files
-✔ TLS key for node: node1
 ✔ TLS key for node: node2
 ✔ TLS key for node: node0
+✔ TLS key for node: node1
 ✔ Generate gRPC TLS keys
 ✔ Finalize
 ```
