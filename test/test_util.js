@@ -246,6 +246,8 @@ export function bootstrapNetwork (testName, argv,
     if (startNodes) {
       it('should succeed with node setup command', async () => {
         expect.assertions(2)
+        // cache this, because `solo node setup.finalize()` will reset it to false
+        const generateGossipKeys = bootstrapResp.opts.configManager.getFlag(flags.generateGossipKeys)
         try {
           await expect(nodeCmd.setup(argv)).resolves.toBeTruthy()
           const expectedUnusedConfigs = []
@@ -256,7 +258,7 @@ export function bootstrapNetwork (testName, argv,
           } else {
             expectedUnusedConfigs.push(flags.localBuildPath.constName)
           }
-          if (!bootstrapResp.opts.configManager.getFlag(flags.generateGossipKeys)) {
+          if (!generateGossipKeys) {
             expectedUnusedConfigs.push('curDate')
           }
           expect(nodeCmd.getUnusedConfigs(NodeCommand.SETUP_CONFIGS_NAME)).toEqual(expectedUnusedConfigs)
