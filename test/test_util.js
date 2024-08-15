@@ -253,11 +253,6 @@ export function bootstrapNetwork (testName, argv,
           const expectedUnusedConfigs = []
           expectedUnusedConfigs.push(flags.appConfig.constName)
           expectedUnusedConfigs.push(flags.devMode.constName)
-          if (testName === 'local-hedera-app') {
-            expectedUnusedConfigs.push(flags.releaseTag.constName)
-          } else {
-            expectedUnusedConfigs.push(flags.localBuildPath.constName)
-          }
           if (!generateGossipKeys) {
             expectedUnusedConfigs.push('curDate')
           }

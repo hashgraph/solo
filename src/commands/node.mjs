@@ -114,6 +114,7 @@ export class NodeCommand extends BaseCommand {
       flags.devMode,
       flags.force,
       flags.keyFormat,
+      flags.localBuildPath,
       flags.namespace,
       flags.nodeIDs,
       flags.releaseTag
@@ -139,6 +140,7 @@ export class NodeCommand extends BaseCommand {
       flags.gossipEndpoints,
       flags.grpcEndpoints,
       flags.keyFormat,
+      flags.localBuildPath,
       flags.namespace,
       flags.nodeID,
       flags.releaseTag
@@ -464,12 +466,12 @@ export class NodeCommand extends BaseCommand {
     }
   }
 
-  async initializeSetup (config, configManager, k8) {
+  async initializeSetup (config, k8) {
     // compute other config parameters
     config.keysDir = path.join(validatePath(config.cacheDir), 'keys')
     config.stagingDir = Templates.renderStagingDir(
-      configManager.getFlag(flags.cacheDir),
-      configManager.getFlag(flags.releaseTag)
+      config.cacheDir,
+      config.releaseTag
     )
     config.stagingKeysDir = path.join(validatePath(config.stagingDir), 'keys')
 
@@ -540,9 +542,8 @@ export class NodeCommand extends BaseCommand {
     })
   }
 
-  fetchLocalOrReleasedPlatformSoftware (nodeIds, podNames, releaseTag, task) {
+  fetchLocalOrReleasedPlatformSoftware (nodeIds, podNames, releaseTag, task, localBuildPath) {
     const self = this
-    const localBuildPath = self.configManager.getFlag(flags.localBuildPath)
     if (localBuildPath !== '') {
       return self.uploadPlatformSoftware(nodeIds, podNames, task, localBuildPath)
     } else {
@@ -735,7 +736,7 @@ export class NodeCommand extends BaseCommand {
           config.nodeIds = helpers.parseNodeIds(config.nodeIDs)
           config.curDate = new Date()
 
-          await self.initializeSetup(config, self.configManager, self.k8)
+          await self.initializeSetup(config, self.k8)
 
           // set config in the context for later tasks to use
           ctx.config = config
@@ -814,7 +815,7 @@ export class NodeCommand extends BaseCommand {
         task:
           async (ctx, task) => {
             const config = /** @type {NodeSetupConfigClass} **/ ctx.config
-            return self.fetchLocalOrReleasedPlatformSoftware(config.nodeIds, config.podNames, config.releaseTag, task)
+            return self.fetchLocalOrReleasedPlatformSoftware(config.nodeIds, config.podNames, config.releaseTag, task, config.localBuildPath)
           }
       },
       {
@@ -1198,6 +1199,7 @@ export class NodeCommand extends BaseCommand {
            * @property {boolean} devMode
            * @property {boolean} force
            * @property {string} keyFormat
+           * @property {string} localBuildPath
            * @property {string} namespace
            * @property {string} nodeIDs
            * @property {string} releaseTag
@@ -1227,7 +1229,7 @@ export class NodeCommand extends BaseCommand {
 
           ctx.config.nodeIds = helpers.parseNodeIds(ctx.config.nodeIDs)
 
-          await self.initializeSetup(ctx.config, self.configManager, self.k8)
+          await self.initializeSetup(ctx.config, self.k8)
 
           self.logger.debug('Initialized config', ctx.config)
         }
@@ -1264,7 +1266,7 @@ export class NodeCommand extends BaseCommand {
         task:
           async (ctx, task) => {
             const config = /** @type {NodeRefreshConfigClass} **/ ctx.config
-            return self.fetchLocalOrReleasedPlatformSoftware(config.nodeIds, config.podNames, config.releaseTag, task)
+            return self.fetchLocalOrReleasedPlatformSoftware(config.nodeIds, config.podNames, config.releaseTag, task, config.localBuildPath)
           }
       },
       {
@@ -1465,6 +1467,7 @@ export class NodeCommand extends BaseCommand {
            * @property {string} gossipEndpoints
            * @property {string} grpcEndpoints
            * @property {string} keyFormat
+           * @property {string} localBuildPath
            * @property {string} namespace
            * @property {string} nodeId
            * @property {string} releaseTag
@@ -1520,7 +1523,7 @@ export class NodeCommand extends BaseCommand {
             throw new FullstackTestingError('key type cannot be PFX')
           }
 
-          await self.initializeSetup(config, self.configManager, self.k8)
+          await self.initializeSetup(config, self.k8)
 
           // set config in the context for later tasks to use
           ctx.config = config
@@ -1845,7 +1848,7 @@ export class NodeCommand extends BaseCommand {
         task:
           async (ctx, task) => {
             const config = /** @type {NodeAddConfigClass} **/ ctx.config
-            return self.fetchLocalOrReleasedPlatformSoftware(config.nodeIds, config.podNames, config.releaseTag, task)
+            return self.fetchLocalOrReleasedPlatformSoftware(config.nodeIds, config.podNames, config.releaseTag, task, config.localBuildPath)
           }
       },
       {
