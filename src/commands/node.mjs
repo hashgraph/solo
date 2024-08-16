@@ -17,7 +17,6 @@
 import * as x509 from '@peculiar/x509'
 import chalk from 'chalk'
 import * as fs from 'fs'
-import { readFile, writeFile } from 'fs/promises'
 import { Listr } from 'listr2'
 import path from 'path'
 import { FullstackTestingError, IllegalArgumentError } from '../core/errors.mjs'
@@ -1546,6 +1545,7 @@ export class NodeCommand extends BaseCommand {
           self.logger.debug('Initialized config', { config })
         }
       },
+      // TODO check PVC before continuing
       {
         title: 'Identify existing network nodes',
         task: async (ctx, task) => {
@@ -1786,6 +1786,16 @@ export class NodeCommand extends BaseCommand {
           })
         }
       },
+      // TODO getNodeLogs?
+      {
+        title: 'Kill nodes to pick up updated configMaps',
+        task: async (ctx, task) => {
+          const config = /** @type {NodeAddConfigClass} **/ ctx.config
+          for (const /** @type {NetworkNodeServices} **/ service of config.serviceMap.values()) {
+            await self.k8.kubeClient.deleteNamespacedPod(service.nodePodName, config.namespace, undefined, undefined, 1)
+          }
+        }
+      },
       {
         title: 'Deploy new network node',
         task: async (ctx, task) => {
@@ -1797,7 +1807,9 @@ export class NodeCommand extends BaseCommand {
           }
           valuesArg += ` --set "hedera.nodes[${index}].accountId=${ctx.newNode.accountId}" --set "hedera.nodes[${index}].name=${ctx.newNode.name}"`
 
-          this.profileValuesFile = await self.profileManager.updateConfigTxtValue(path.join(config.stagingDir, 'config.txt'))
+          this.profileValuesFile = await self.profileManager.prepareValuesForNodeAdd(
+            path.join(config.stagingDir, 'config.txt'),
+            path.join(config.stagingDir, 'templates', 'application.properties'))
           if (this.profileValuesFile) {
             valuesArg += this.prepareValuesFiles(this.profileValuesFile)
           }
@@ -1814,11 +1826,32 @@ export class NodeCommand extends BaseCommand {
         }
       },
       {
-        title: 'Check new network node pod is running',
-        task: async (ctx, task) => {
-          const config = /** @type {NodeAddConfigClass} **/ ctx.config
-          config.podNames[config.nodeId] = await this.checkNetworkNodePod(config.namespace, config.nodeId)
-        }
+        title: 'Check node pods are running',
+        task:
+            async (ctx, task) => {
+              const subTasks = []
+              const config = /** @type {NodeAddConfigClass} **/ ctx.config
+
+              // nodes
+              for (const nodeId of config.allNodeIds) {
+                subTasks.push({
+                  title: `Check Node: ${chalk.yellow(nodeId)}`,
+                  task: () =>
+                    self.k8.waitForPods([constants.POD_PHASE_RUNNING], [
+                      'fullstack.hedera.com/type=network-node',
+                        `fullstack.hedera.com/node-name=${nodeId}`
+                    ], 1, 60 * 15, 1000) // timeout 15 minutes
+                })
+              }
+
+              // set up the sub-tasks
+              return task.newListr(subTasks, {
+                concurrent: false, // no need to run concurrently since if one node is up, the rest should be up by then
+                rendererOptions: {
+                  collapseSubtasks: false
+                }
+              })
+            }
       },
       {
         title: 'Prepare staging directory',
@@ -1851,11 +1884,11 @@ export class NodeCommand extends BaseCommand {
         }
       },
       {
-        title: 'Fetch platform software into new network node',
+        title: 'Fetch platform software into all network nodes',
         task:
           async (ctx, task) => {
             const config = /** @type {NodeAddConfigClass} **/ ctx.config
-            return self.fetchLocalOrReleasedPlatformSoftware(config.nodeIds, config.podNames, config.releaseTag, task, config.localBuildPath)
+            return self.fetchLocalOrReleasedPlatformSoftware(config.allNodeIds, config.podNames, config.releaseTag, task, config.localBuildPath)
           }
       },
       {
@@ -1890,9 +1923,6 @@ export class NodeCommand extends BaseCommand {
         task: async (ctx, parentTask) => {
           const config = /** @type {NodeAddConfigClass} **/ ctx.config
 
-          // modify application.properties to trick Hedera Services into receiving an updated address book
-          await self.bumpHederaConfigVersion(`${config.stagingDir}/templates/application.properties`)
-
           const subTasks = []
           for (const nodeId of config.allNodeIds) {
             const podName = config.podNames[nodeId]
@@ -1912,9 +1942,11 @@ export class NodeCommand extends BaseCommand {
       },
       {
         title: 'Start network nodes',
-        task: (ctx, task) => {
+        task: async (ctx, task) => {
           const config = /** @type {NodeAddConfigClass} **/ ctx.config
           const subTasks = []
+          await sleep(60000) // wait 60 seconds for the kubelet syncFrequency = 1m to sync the updated configMap for config.txt
+          // TODO does the application.properties with the bump version working? that might also be a configMap mount, I don't think it is readonly though.
           self.startNodes(config.podNames, config.allNodeIds, subTasks)
 
           // set up the sub-tasks
@@ -2265,19 +2297,5 @@ export class NodeCommand extends BaseCommand {
           .demandCommand(1, 'Select a node command')
       }
     }
-  }
-
-  async bumpHederaConfigVersion (configTxtPath) {
-    const lines = (await readFile(configTxtPath, 'utf-8')).split('\n')
-
-    for (const line of lines) {
-      if (line.startsWith('hedera.config.version=')) {
-        const version = parseInt(line.split('=')[1]) + 1
-        lines[lines.indexOf(line)] = `hedera.config.version=${version}`
-        break
-      }
-    }
-
-    await writeFile(configTxtPath, lines.join('\n'))
   }
 }

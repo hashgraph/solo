@@ -23,6 +23,7 @@ import { constants, helpers, Templates } from './index.mjs'
 import dot from 'dot-object'
 import { getNodeAccountMap } from './helpers.mjs'
 import * as semver from 'semver'
+import { readFile, writeFile } from 'fs/promises'
 
 const consensusSidecars = [
   'recordStreamUploader', 'eventStreamUploader', 'backupUploader', 'accountBalanceUploader', 'otelCollector']
@@ -212,21 +213,6 @@ export class ProfileManager {
     return yamlRoot
   }
 
-  updateConfigTxtValue (configTxtPath) {
-    const yamlRoot = {}
-    this._setFileContentsAsValue('hedera.configMaps.configTxt', configTxtPath, yamlRoot)
-    const cachedValuesFile = path.join(this.cacheDir, 'fst-node-add.yaml')
-    return new Promise((resolve, reject) => {
-      fs.writeFile(cachedValuesFile, yaml.dump(yamlRoot), (err) => {
-        if (err) {
-          reject(err)
-        }
-
-        resolve(cachedValuesFile)
-      })
-    })
-  }
-
   resourcesForHaProxyPod (profile, yamlRoot) {
     if (!profile) throw new MissingArgumentError('profile is required')
     if (!profile.haproxy) return // use chart defaults
@@ -296,27 +282,28 @@ export class ProfileManager {
     })
   }
 
-  /**
-   * Prepare values for node add
-   * @param {string} profileName resource profile name
-   * @param {Map<string,string>} nodeAccountMap node ID to account ID map
-   * @return {Promise<string>} return the full path to the values file
-   */
-  prepareValuesForNodeAdd (profileName, nodeAccountMap) {
+  async bumpHederaConfigVersion (applicationPropertiesPath) {
+    const lines = (await readFile(applicationPropertiesPath, 'utf-8')).split('\n')
+
+    for (const line of lines) {
+      if (line.startsWith('hedera.config.version=')) {
+        const version = parseInt(line.split('=')[1]) + 1
+        lines[lines.indexOf(line)] = `hedera.config.version=${version}`
+        break
+      }
+    }
+
+    await writeFile(applicationPropertiesPath, lines.join('\n'))
+  }
+
+  async prepareValuesForNodeAdd (configTxtPath, applicationPropertiesPath) {
     const yamlRoot = {}
-    const configTxtPath = this.prepareConfigTxt(
-      this.configManager.getFlag(flags.namespace),
-      nodeAccountMap,
-      Templates.renderStagingDir(
-        this.configManager.getFlag(flags.cacheDir),
-        this.configManager.getFlag(flags.releaseTag)
-      ),
-      this.configManager.getFlag(flags.releaseTag),
-      this.configManager.getFlag(flags.app),
-      this.configManager.getFlag(flags.chainId))
     this._setFileContentsAsValue('hedera.configMaps.configTxt', configTxtPath, yamlRoot)
+    await this.bumpHederaConfigVersion(applicationPropertiesPath)
+    this._setFileContentsAsValue('hedera.configMaps.applicationProperties', configTxtPath, yamlRoot)
+
     // write the yaml
-    const cachedValuesFile = path.join(this.cacheDir, `fst-node-add-${profileName}.yaml`)
+    const cachedValuesFile = path.join(this.cacheDir, 'fst-node-add.yaml')
     return new Promise((resolve, reject) => {
       fs.writeFile(cachedValuesFile, yaml.dump(yamlRoot), (err) => {
         if (err) {
