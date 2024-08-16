@@ -21,7 +21,13 @@ import { Listr } from 'listr2'
 import path from 'path'
 import { FullstackTestingError, IllegalArgumentError } from '../core/errors.mjs'
 import * as helpers from '../core/helpers.mjs'
-import { getNodeAccountMap, getNodeLogs, getTmpDir, sleep, validatePath } from '../core/helpers.mjs'
+import {
+  getNodeAccountMap,
+  getNodeLogs,
+  getTmpDir,
+  sleep,
+  validatePath
+} from '../core/helpers.mjs'
 import { constants, Templates, Zippy } from '../core/index.mjs'
 import { BaseCommand } from './base.mjs'
 import * as flags from './flags.mjs'
@@ -29,16 +35,16 @@ import * as prompts from './prompts.mjs'
 
 import {
   AccountBalanceQuery,
+  AccountId,
   AccountUpdateTransaction,
-  FileUpdateTransaction,
   FileAppendTransaction,
+  FileUpdateTransaction,
   FreezeTransaction,
   FreezeType,
-  ServiceEndpoint,
-  Timestamp,
+  NodeCreateTransaction,
   PrivateKey,
-  AccountId,
-  NodeCreateTransaction
+  ServiceEndpoint,
+  Timestamp
 } from '@hashgraph/sdk'
 import * as crypto from 'crypto'
 import {
@@ -1482,7 +1488,6 @@ export class NodeCommand extends BaseCommand {
            * @property {string} keysDir
            * @property {string} lastStateZipPath
            * @property {Object} nodeClient
-           * @property {string[]} nodeIds
            * @property {Object} podNames
            * @property {Map<String, NetworkNodeServices>} serviceMap
            * @property {PrivateKey} treasuryKey
@@ -1508,7 +1513,6 @@ export class NodeCommand extends BaseCommand {
               'keysDir',
               'lastStateZipPath',
               'nodeClient',
-              'nodeIds',
               'podNames',
               'serviceMap',
               'stagingDir',
@@ -1518,7 +1522,6 @@ export class NodeCommand extends BaseCommand {
 
           config.curDate = new Date()
           config.existingNodeIds = []
-          config.nodeIds = [config.nodeId]
 
           if (config.keyFormat !== constants.KEY_FORMAT_PEM) {
             throw new FullstackTestingError('key type cannot be PFX')
@@ -1788,16 +1791,6 @@ export class NodeCommand extends BaseCommand {
           })
         }
       },
-      // TODO getNodeLogs?
-      {
-        title: 'Kill nodes to pick up updated configMaps',
-        task: async (ctx, task) => {
-          const config = /** @type {NodeAddConfigClass} **/ ctx.config
-          for (const /** @type {NetworkNodeServices} **/ service of config.serviceMap.values()) {
-            await self.k8.kubeClient.deleteNamespacedPod(service.nodePodName, config.namespace, undefined, undefined, 1)
-          }
-        }
-      },
       {
         title: 'Deploy new network node',
         task: async (ctx, task) => {
@@ -1825,6 +1818,16 @@ export class NodeCommand extends BaseCommand {
           )
 
           config.allNodeIds = [...config.existingNodeIds, config.nodeId]
+        }
+      },
+      // TODO getNodeLogs?
+      {
+        title: 'Kill nodes to pick up updated configMaps',
+        task: async (ctx, task) => {
+          const config = /** @type {NodeAddConfigClass} **/ ctx.config
+          for (const /** @type {NetworkNodeServices} **/ service of config.serviceMap.values()) {
+            await self.k8.kubeClient.deleteNamespacedPod(service.nodePodName, config.namespace, undefined, undefined, 1)
+          }
         }
       },
       {
@@ -1892,8 +1895,8 @@ export class NodeCommand extends BaseCommand {
             const config = /** @type {NodeAddConfigClass} **/ ctx.config
             config.serviceMap = await self.accountManager.getNodeServiceMap(
               config.namespace)
-            const newPodName = config.serviceMap.get(config.nodeId).nodePodName
-            config.podNames = [...config.podNames, newPodName]
+            config.podNames[config.nodeId] = config.serviceMap.get(
+              config.nodeId).nodePodName
             return self.fetchLocalOrReleasedPlatformSoftware(config.allNodeIds, config.podNames, config.releaseTag, task, config.localBuildPath)
           }
       },
@@ -2021,7 +2024,7 @@ export class NodeCommand extends BaseCommand {
         title: 'Trigger stake weight calculate',
         task: async (ctx, task) => {
           const config = /** @type {NodeAddConfigClass} **/ ctx.config
-          // sleep 60 seconds for the handler to be able to trigger the network node stake weight recalculate
+          self.logger.info('sleep 60 seconds for the handler to be able to trigger the network node stake weight recalculate')
           await sleep(60000)
           const accountMap = getNodeAccountMap(config.allNodeIds)
           // send some write transactions to invoke the handler that will trigger the stake weight recalculate
