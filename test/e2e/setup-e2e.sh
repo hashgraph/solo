@@ -8,7 +8,7 @@ SOLO_CLUSTER_NAME=solo-e2e
 SOLO_NAMESPACE=solo-e2e
 SOLO_CLUSTER_SETUP_NAMESPACE=fullstack-setup
 kind delete cluster -n "${SOLO_CLUSTER_NAME}" || true
-kind create cluster -n "${SOLO_CLUSTER_NAME}" --image "${KIND_IMAGE}" --config "${SCRIPT_DIR}/kind-config.yaml"|| exit 1
+kind create cluster -n "${SOLO_CLUSTER_NAME}" --image "${KIND_IMAGE}" || exit 1
 
 # **********************************************************************************************************************
 # Warm up the cluster
