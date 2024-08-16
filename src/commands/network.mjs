@@ -23,6 +23,7 @@ import * as flags from './flags.mjs'
 import { constants } from '../core/index.mjs'
 import * as prompts from './prompts.mjs'
 import * as helpers from '../core/helpers.mjs'
+import path from 'path'
 
 export class NetworkCommand extends BaseCommand {
   constructor (opts) {
