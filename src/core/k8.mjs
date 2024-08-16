@@ -537,7 +537,7 @@ export class K8 {
 
       const srcFile = path.basename(srcPath)
       const srcDir = path.dirname(srcPath)
-      const destPath = `${destDir}/${srcFile}`
+      const destPath = path.join(destDir, srcFile)
 
       // download the tar file to a temp location
       const tmpFile = this._tempFileFor(srcFile)

@@ -23,6 +23,7 @@ import * as flags from './flags.mjs'
 import { constants } from '../core/index.mjs'
 import * as prompts from './prompts.mjs'
 import * as helpers from '../core/helpers.mjs'
+import path from 'path'
 
 export class NetworkCommand extends BaseCommand {
   constructor (opts) {
@@ -90,7 +91,7 @@ export class NetworkCommand extends BaseCommand {
   async prepareValuesArg (config = {}) {
     let valuesArg = ''
     if (config.chartDirectory) {
-      valuesArg = `-f ${config.chartDirectory}/fullstack-deployment/values.yaml`
+      valuesArg = `-f ${path.join(config.chartDirectory, 'fullstack-deployment', 'values.yaml')}`
     }
 
     if (config.valuesFile) {

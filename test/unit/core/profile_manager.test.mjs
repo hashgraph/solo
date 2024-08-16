@@ -27,7 +27,7 @@ const configFile = path.join(tmpDir, 'resource-manager.config')
 const configManager = new ConfigManager(testLogger, configFile)
 const profileManager = new ProfileManager(testLogger, configManager, tmpDir)
 configManager.setFlag(flags.nodeIDs, 'node0,node1,node3')
-const testProfileFile = path.resolve('test/data/test-profiles.yaml')
+const testProfileFile = path.join('test', 'data', 'test-profiles.yaml')
 
 describe('ProfileManager', () => {
   afterAll(() => {

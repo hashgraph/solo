@@ -66,7 +66,7 @@ export function cloneArray (arr) {
  */
 export function loadPackageJSON () {
   try {
-    const raw = fs.readFileSync(`${CUR_FILE_DIR}/../../package.json`)
+    const raw = fs.readFileSync(path.join(CUR_FILE_DIR, '..', '..', 'package.json'))
     return JSON.parse(raw.toString())
   } catch (e) {
     throw new FullstackTestingError('failed to load package.json', e)
