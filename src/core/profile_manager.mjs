@@ -183,18 +183,18 @@ export class ProfileManager {
       }
 
       const fileName = path.basename(filePath)
-      const destPath = `${stagingDir}/templates/${fileName}`
+      const destPath = path.join(stagingDir, 'templates', fileName)
       this.logger.debug(`Copying configuration file to staging: ${filePath} -> ${destPath}`)
 
       fs.cpSync(filePath, destPath, { force: true })
     }
 
     this._setFileContentsAsValue('hedera.configMaps.configTxt', configTxtPath, yamlRoot)
-    this._setFileContentsAsValue('hedera.configMaps.log4j2Xml', `${stagingDir}/templates/log4j2.xml`, yamlRoot)
-    this._setFileContentsAsValue('hedera.configMaps.settingsTxt', `${stagingDir}/templates/settings.txt`, yamlRoot)
-    this._setFileContentsAsValue('hedera.configMaps.applicationProperties', `${stagingDir}/templates/application.properties`, yamlRoot)
-    this._setFileContentsAsValue('hedera.configMaps.apiPermissionsProperties', `${stagingDir}/templates/api-permission.properties`, yamlRoot)
-    this._setFileContentsAsValue('hedera.configMaps.bootstrapProperties', `${stagingDir}/templates/bootstrap.properties`, yamlRoot)
+    this._setFileContentsAsValue('hedera.configMaps.log4j2Xml', path.join(stagingDir, 'templates', 'log4j2.xml'), yamlRoot)
+    this._setFileContentsAsValue('hedera.configMaps.settingsTxt', path.join(stagingDir, 'templates', 'settings.txt'), yamlRoot)
+    this._setFileContentsAsValue('hedera.configMaps.applicationProperties', path.join(stagingDir, 'templates', 'application.properties'), yamlRoot)
+    this._setFileContentsAsValue('hedera.configMaps.apiPermissionsProperties', path.join(stagingDir, 'templates', 'api-permission.properties'), yamlRoot)
+    this._setFileContentsAsValue('hedera.configMaps.bootstrapProperties', path.join(stagingDir, 'templates', 'bootstrap.properties'), yamlRoot)
     if (this.configManager.getFlag(flags.applicationEnv)) {
       this._setFileContentsAsValue('hedera.configMaps.applicationEnv', this.configManager.getFlag(flags.applicationEnv), yamlRoot)
     }
@@ -418,7 +418,7 @@ export class ProfileManager {
    * @param {string} template path to the config.template file
    * @returns {string} the config.txt file path
    */
-  prepareConfigTxt (namespace, nodeAccountMap, destPath, releaseTag, appName = constants.HEDERA_APP_NAME, chainId = constants.HEDERA_CHAIN_ID, template = `${constants.RESOURCES_DIR}/templates/config.template`) {
+  prepareConfigTxt (namespace, nodeAccountMap, destPath, releaseTag, appName = constants.HEDERA_APP_NAME, chainId = constants.HEDERA_CHAIN_ID, template = path.join(constants.RESOURCES_DIR, 'templates', 'config.template')) {
     if (!nodeAccountMap || nodeAccountMap.size === 0) throw new MissingArgumentError('nodeAccountMap the map of node IDs to account IDs is required')
     if (!template) throw new MissingArgumentError('config templatePath is required')
     if (!releaseTag) throw new MissingArgumentError('release tag is required')

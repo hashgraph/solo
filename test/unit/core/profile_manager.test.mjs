@@ -36,11 +36,11 @@ const testProfileFile = path.join('test', 'data', 'test-profiles.yaml')
 configManager.setFlag(flags.cacheDir, getTestCacheDir('ProfileManager'))
 configManager.setFlag(flags.releaseTag, version.HEDERA_PLATFORM_VERSION)
 const cacheDir = configManager.getFlag(flags.cacheDir)
-configManager.setFlag(flags.apiPermissionProperties, path.join(cacheDir, 'templates/api-permission.properties'))
-configManager.setFlag(flags.applicationProperties, path.join(cacheDir, 'templates/application.properties'))
-configManager.setFlag(flags.bootstrapProperties, path.join(cacheDir, 'templates/bootstrap.properties'))
-configManager.setFlag(flags.log4j2Xml, path.join(cacheDir, 'templates/log4j2.xml'))
-configManager.setFlag(flags.settingTxt, path.join(cacheDir, 'templates/settings.txt'))
+configManager.setFlag(flags.apiPermissionProperties, path.join(cacheDir, 'templates', 'api-permission.properties'))
+configManager.setFlag(flags.applicationProperties, path.join(cacheDir, 'templates', 'application.properties'))
+configManager.setFlag(flags.bootstrapProperties, path.join(cacheDir, 'templates', 'bootstrap.properties'))
+configManager.setFlag(flags.log4j2Xml, path.join(cacheDir, 'templates', 'log4j2.xml'))
+configManager.setFlag(flags.settingTxt, path.join(cacheDir, 'templates', 'settings.txt'))
 
 describe('ProfileManager', () => {
   afterAll(() => {
