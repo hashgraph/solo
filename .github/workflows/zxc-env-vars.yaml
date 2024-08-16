@@ -98,6 +98,7 @@ jobs:
       e2e_node_pfx_kill_coverage_report: "E2E Node PFX Kill Tests Coverage Report"
       e2e_node_local_build_coverage_report: "E2E Node Local Build Tests Coverage Report"
       e2e_node_add_coverage_report: "E2E Node Add Tests Coverage Report"
+      e2e_node_delete_coverage_report: "E2E Node Delete Tests Coverage Report"
       e2e_relay_coverage_report: "E2E Relay Tests Coverage Report"
     steps:
       - run: echo "Exposing environment variables to reusable workflows"
