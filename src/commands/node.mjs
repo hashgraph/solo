@@ -1549,22 +1549,24 @@ export class NodeCommand extends BaseCommand {
       {
         title: 'Identify existing network nodes',
         task: async (ctx, task) => {
-          ctx.config.serviceMap = await self.accountManager.getNodeServiceMap(
-            ctx.config.namespace)
-          for (/** @type {NetworkNodeServices} **/ const networkNodeServices of ctx.config.serviceMap.values()) {
-            ctx.config.existingNodeIds.push(networkNodeServices.nodeName)
+          const config = /** @type {NodeAddConfigClass} **/ ctx.config
+          config.serviceMap = await self.accountManager.getNodeServiceMap(
+            config.namespace)
+          for (/** @type {NetworkNodeServices} **/ const networkNodeServices of config.serviceMap.values()) {
+            config.existingNodeIds.push(networkNodeServices.nodeName)
           }
 
-          return self.taskCheckNetworkNodePods(ctx, task, ctx.config.existingNodeIds)
+          return self.taskCheckNetworkNodePods(ctx, task, config.existingNodeIds)
         }
       },
       {
         title: 'Determine new node account number',
         task: (ctx, task) => {
+          const config = /** @type {NodeAddConfigClass} **/ ctx.config
           const values = { hedera: { nodes: [] } }
           let maxNum = 0
 
-          for (/** @type {NetworkNodeServices} **/ const networkNodeServices of ctx.config.serviceMap.values()) {
+          for (/** @type {NetworkNodeServices} **/ const networkNodeServices of config.serviceMap.values()) {
             values.hedera.nodes.push({
               accountId: networkNodeServices.accountId,
               name: networkNodeServices.nodeName
@@ -1577,14 +1579,14 @@ export class NodeCommand extends BaseCommand {
           ctx.maxNum = maxNum
           ctx.newNode = {
             accountId: `${constants.HEDERA_NODE_ACCOUNT_ID_START.realm}.${constants.HEDERA_NODE_ACCOUNT_ID_START.shard}.${++maxNum}`,
-            name: ctx.config.nodeId
+            name: config.nodeId
           }
         }
       },
       {
         title: 'Generate Gossip key',
         task: async (ctx, parentTask) => {
-          const config = ctx.config
+          const config = /** @type {NodeAddConfigClass} **/ ctx.config
           const subTasks = self._nodeGossipKeysTaskList(config.keyFormat, [config.nodeId], config.keysDir, config.curDate, config.allNodeIds)
           // set up the sub-tasks
           return parentTask.newListr(subTasks, {
@@ -1600,7 +1602,7 @@ export class NodeCommand extends BaseCommand {
       {
         title: 'Generate gRPC TLS key',
         task: async (ctx, parentTask) => {
-          const config = ctx.config
+          const config = /** @type {NodeAddConfigClass} **/ ctx.config
           const subTasks = self._nodeTlsKeyTaskList([config.nodeId], config.keysDir, config.curDate)
           // set up the sub-tasks
           return parentTask.newListr(subTasks, {
@@ -1888,6 +1890,10 @@ export class NodeCommand extends BaseCommand {
         task:
           async (ctx, task) => {
             const config = /** @type {NodeAddConfigClass} **/ ctx.config
+            config.serviceMap = await self.accountManager.getNodeServiceMap(
+              config.namespace)
+            const newPodName = config.serviceMap.get(config.nodeId).nodePodName
+            config.podNames = [...config.podNames, newPodName]
             return self.fetchLocalOrReleasedPlatformSoftware(config.allNodeIds, config.podNames, config.releaseTag, task, config.localBuildPath)
           }
       },
@@ -1945,8 +1951,6 @@ export class NodeCommand extends BaseCommand {
         task: async (ctx, task) => {
           const config = /** @type {NodeAddConfigClass} **/ ctx.config
           const subTasks = []
-          await sleep(60000) // wait 60 seconds for the kubelet syncFrequency = 1m to sync the updated configMap for config.txt
-          // TODO does the application.properties with the bump version working? that might also be a configMap mount, I don't think it is readonly though.
           self.startNodes(config.podNames, config.allNodeIds, subTasks)
 
           // set up the sub-tasks
