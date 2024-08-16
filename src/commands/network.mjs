@@ -128,7 +128,7 @@ export class NetworkCommand extends BaseCommand {
     // TODO make this a flag
     // TODO should node add check to see if this flag is enabled?
     // TODO test with mirror node connected before node add, might need to upgrade mirror node and the address book to use FQDNS, (or add GH Issue for this)
-    valuesArg += ' --set "defaults.volumeClaims.enabled=true'
+    valuesArg += ' --set "defaults.volumeClaims.enabled=true"'
 
     this.logger.debug('Prepared helm chart values', { valuesArg })
     return valuesArg
