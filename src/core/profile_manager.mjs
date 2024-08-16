@@ -300,7 +300,7 @@ export class ProfileManager {
     const yamlRoot = {}
     this._setFileContentsAsValue('hedera.configMaps.configTxt', configTxtPath, yamlRoot)
     await this.bumpHederaConfigVersion(applicationPropertiesPath)
-    this._setFileContentsAsValue('hedera.configMaps.applicationProperties', configTxtPath, yamlRoot)
+    this._setFileContentsAsValue('hedera.configMaps.applicationProperties', applicationPropertiesPath, yamlRoot)
 
     // write the yaml
     const cachedValuesFile = path.join(this.cacheDir, 'fst-node-add.yaml')
