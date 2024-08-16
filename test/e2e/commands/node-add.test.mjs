@@ -15,7 +15,6 @@
  *
  * @jest-environment steps
  */
-import { afterAll, beforeAll, describe, expect, it } from '@jest/globals'
 import { flags } from '../../../src/commands/index.mjs'
 import { constants } from '../../../src/core/index.mjs'
 import {
@@ -45,7 +44,7 @@ describe('Node add', () => {
   argv[flags.chartDirectory.name] = process.env.SOLO_FST_CHARTS_DIR ? process.env.SOLO_FST_CHARTS_DIR : undefined
   argv[flags.releaseTag.name] = HEDERA_PLATFORM_VERSION_TAG
   argv[flags.namespace.name] = namespace
-  // argv[flags.persistentVolumeClaims.name] = true
+  argv[flags.persistentVolumeClaims.name] = true
   const bootstrapResp = bootstrapNetwork(namespace, argv)
   const nodeCmd = bootstrapResp.cmd.nodeCmd
   const accountCmd = bootstrapResp.cmd.accountCmd
