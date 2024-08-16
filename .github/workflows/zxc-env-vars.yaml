@@ -44,6 +44,9 @@ on:
       e2e-node-add-test-subdir:
         description: "E2E Node Add Test Subdirectory"
         value: ${{ jobs.env-vars.outputs.e2e_node_add_test_subdir }}
+      e2e-node-delete-test-subdir:
+        description: "E2E Node Delete Test Subdirectory"
+        value: ${{ jobs.env-vars.outputs.e2e_node_delete_test_subdir }}
       e2e-relay-test-subdir:
         description: "E2E Relay Test Subdirectory"
         value: ${{ jobs.env-vars.outputs.e2e_relay_test_subdir }}
@@ -65,6 +68,9 @@ on:
       e2e-node-add-coverage-report:
         description: "E2E Node Add Tests Coverage Report"
         value: ${{ jobs.env-vars.outputs.e2e_node_add_coverage_report }}
+      e2e-node-delete-coverage-report:
+        description: "E2E Node Delete Tests Coverage Report"
+        value: ${{ jobs.env-vars.outputs.e2e_node_delete_coverage_report }}
       e2e-relay-coverage-report:
         description: "E2E Relay Tests Coverage Report"
         value: ${{ jobs.env-vars.outputs.e2e_relay_coverage_report }}
@@ -84,6 +90,7 @@ jobs:
       e2e_node_pfx_kill_test_subdir: e2e-node-pfx-kill
       e2e_node_local_build_test_subdir: e2e-node-local-build
       e2e_node_add_test_subdir: e2e-node-add
+      e2e_node_delete_test_subdir: e2e-node-delete
       e2e_relay_test_subdir: e2e-relay
       e2e_coverage_report: "E2E Tests Coverage Report"
       e2e_mirror_node_coverage_report: "E2E Mirror Node Tests Coverage Report"
