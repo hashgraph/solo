@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 readonly KIND_IMAGE="kindest/node:v1.27.3@sha256:3966ac761ae0136263ffdb6cfd4db23ef8a83cba8a463690e98317add2c9ba72"
 echo "SOLO_FST_CHARTS_DIR: ${SOLO_FST_CHARTS_DIR}"
 export PATH=${PATH}:~/.solo/bin
