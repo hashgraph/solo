@@ -39,6 +39,7 @@ import { FullstackTestingError, MissingArgumentError } from './errors.mjs'
 import { Templates } from './templates.mjs'
 import ip from 'ip'
 import { NetworkNodeServicesBuilder } from './network_node_services.mjs'
+import path from 'path'
 
 const REASON_FAILED_TO_GET_KEYS = 'failed to get keys for accountId'
 const REASON_SKIPPED = 'skipped since it does not have a genesis key'
@@ -231,7 +232,7 @@ export class AccountManager {
       // scheduleNetworkUpdate is set to false, because the ports 50212/50211 are hardcoded in JS SDK that will not work when running locally or in a pipeline
       this._nodeClient = Client.fromConfig({ network: nodes, scheduleNetworkUpdate: false })
       this._nodeClient.setOperator(operatorId, operatorKey)
-      this._nodeClient.setLogger(new Logger(LogLevel.Trace, `${constants.SOLO_LOGS_DIR}/hashgraph-sdk.log`))
+      this._nodeClient.setLogger(new Logger(LogLevel.Trace, path.join(constants.SOLO_LOGS_DIR, 'hashgraph-sdk.log')))
       this._nodeClient.setMaxAttempts(constants.NODE_CLIENT_MAX_ATTEMPTS)
       this._nodeClient.setMinBackoff(constants.NODE_CLIENT_MIN_BACKOFF)
       this._nodeClient.setMaxBackoff(constants.NODE_CLIENT_MAX_BACKOFF)

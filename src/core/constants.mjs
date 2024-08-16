@@ -16,21 +16,21 @@
  */
 import { AccountId, FileId } from '@hashgraph/sdk'
 import { color, PRESET_TIMER } from 'listr2'
-import { dirname, normalize } from 'path'
+import path, { dirname, normalize } from 'path'
 import { fileURLToPath } from 'url'
 
 // -------------------- solo related constants ---------------------------------------------------------------------
 export const CUR_FILE_DIR = dirname(fileURLToPath(import.meta.url))
-export const SOLO_HOME_DIR = process.env.SOLO_HOME || `${process.env.HOME}/.solo`
-export const SOLO_LOGS_DIR = `${SOLO_HOME_DIR}/logs`
-export const SOLO_CACHE_DIR = `${SOLO_HOME_DIR}/cache`
-export const SOLO_VALUES_DIR = `${SOLO_CACHE_DIR}/values-files`
+export const SOLO_HOME_DIR = process.env.SOLO_HOME || path.join(process.env.HOME, '.solo')
+export const SOLO_LOGS_DIR = path.join(SOLO_HOME_DIR, 'logs')
+export const SOLO_CACHE_DIR = path.join(SOLO_HOME_DIR, 'cache')
+export const SOLO_VALUES_DIR = path.join(SOLO_CACHE_DIR, 'values-files')
 export const DEFAULT_NAMESPACE = 'default'
 export const HELM = 'helm'
 export const KEYTOOL = 'keytool'
-export const SOLO_CONFIG_FILE = `${SOLO_HOME_DIR}/solo.config`
-export const RESOURCES_DIR = normalize(CUR_FILE_DIR + '/../../resources')
-export const TEMP_DIR = normalize(CUR_FILE_DIR + '/../../temp')
+export const SOLO_CONFIG_FILE = path.join(SOLO_HOME_DIR, 'solo.config')
+export const RESOURCES_DIR = normalize(path.join(CUR_FILE_DIR, '..', '..', 'resources'))
+export const TEMP_DIR = normalize(path.join(CUR_FILE_DIR, '..', '..', 'temp'))
 
 export const ROOT_CONTAINER = 'root-container'
 
@@ -132,7 +132,7 @@ export const PROFILE_TINY = 'tiny'
 export const PROFILE_LOCAL = 'local'
 
 export const ALL_PROFILES = [PROFILE_LOCAL, PROFILE_TINY, PROFILE_SMALL, PROFILE_MEDIUM, PROFILE_LARGE]
-export const DEFAULT_PROFILE_FILE = `${SOLO_CACHE_DIR}/profiles/custom-spec.yaml`
+export const DEFAULT_PROFILE_FILE = path.join(SOLO_CACHE_DIR, 'profiles', 'custom-spec.yaml')
 
 // ------ Hedera SDK Related ------
 export const NODE_CLIENT_MAX_ATTEMPTS = process.env.NODE_CLIENT_MAX_ATTEMPTS || 60

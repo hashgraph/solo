@@ -19,6 +19,7 @@ import { constants } from './index.mjs'
 import { v4 as uuidv4 } from 'uuid'
 import * as util from 'util'
 import chalk from 'chalk'
+import path from 'path'
 
 const customFormat = winston.format.combine(
   winston.format.label({ label: 'SOLO', message: false }),
@@ -77,7 +78,7 @@ export const Logger = class {
         // - Write all logs with importance level of `error` or less to `error.log`
         // - Write all logs with importance level of `info` or less to `solo.log`
         //
-        new winston.transports.File({ filename: `${constants.SOLO_LOGS_DIR}/solo.log` })
+        new winston.transports.File({ filename: path.join(constants.SOLO_LOGS_DIR, 'solo.log') })
         // new winston.transports.File({filename: constants.TMP_DIR + "/logs/error.log", level: 'error'}),
         // new winston.transports.Console({format: customFormat})
       ]

@@ -456,7 +456,7 @@ export const applicationProperties = {
   name: 'application-properties',
   definition: {
     describe: 'application.properties file for node',
-    defaultValue: path.join(constants.SOLO_CACHE_DIR, '/templates/application.properties'),
+    defaultValue: path.join(constants.SOLO_CACHE_DIR, 'templates', 'application.properties'),
     type: 'string'
   }
 }
@@ -478,7 +478,7 @@ export const apiPermissionProperties = {
   name: 'api-permission-properties',
   definition: {
     describe: 'api-permission.properties file for node',
-    defaultValue: path.join(constants.SOLO_CACHE_DIR, '/templates/api-permission.properties'),
+    defaultValue: path.join(constants.SOLO_CACHE_DIR, 'templates', 'api-permission.properties'),
     type: 'string'
   }
 }
@@ -489,7 +489,7 @@ export const bootstrapProperties = {
   name: 'bootstrap-properties',
   definition: {
     describe: 'bootstrap.properties file for node',
-    defaultValue: path.join(constants.SOLO_CACHE_DIR, '/templates/bootstrap.properties'),
+    defaultValue: path.join(constants.SOLO_CACHE_DIR, 'templates', 'bootstrap.properties'),
     type: 'string'
   }
 }
@@ -500,7 +500,7 @@ export const settingTxt = {
   name: 'settings-txt',
   definition: {
     describe: 'settings.txt file for node',
-    defaultValue: path.join(constants.SOLO_CACHE_DIR, '/templates/settings.txt'),
+    defaultValue: path.join(constants.SOLO_CACHE_DIR, 'templates', 'settings.txt'),
     type: 'string'
   }
 }
@@ -544,7 +544,7 @@ export const log4j2Xml = {
   name: 'log4j2-xml',
   definition: {
     describe: 'log4j2.xml file for node',
-    defaultValue: path.join(constants.SOLO_CACHE_DIR, '/templates/log4j2.xml'),
+    defaultValue: path.join(constants.SOLO_CACHE_DIR, 'templates', 'log4j2.xml'),
     type: 'string'
   }
 }

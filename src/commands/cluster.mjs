@@ -22,6 +22,7 @@ import { BaseCommand } from './base.mjs'
 import chalk from 'chalk'
 import { constants } from '../core/index.mjs'
 import * as prompts from './prompts.mjs'
+import path from 'path'
 
 /**
  * Define the core functionalities of 'cluster' command
@@ -329,7 +330,7 @@ export class ClusterCommand extends BaseCommand {
   ) {
     let valuesArg = ''
     if (chartDir) {
-      valuesArg = `-f ${chartDir}/fullstack-cluster-setup/values.yaml`
+      valuesArg = `-f ${path.join(chartDir, 'fullstack-cluster-setup', 'values.yaml')}`
     }
 
     valuesArg += ` --set cloud.prometheusStack.enabled=${prometheusStackEnabled}`
@@ -353,7 +354,7 @@ export class ClusterCommand extends BaseCommand {
   async prepareChartPath (chartDir = flags.chartDirectory.definition.default) {
     let chartPath = 'full-stack-testing/fullstack-cluster-setup'
     if (chartDir) {
-      chartPath = `${chartDir}/fullstack-cluster-setup`
+      chartPath = path.join(chartDir, 'fullstack-cluster-setup')
       await this.helm.dependency('update', chartPath)
     }
 

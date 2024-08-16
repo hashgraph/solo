@@ -141,7 +141,7 @@ export class Templates {
       throw new IllegalArgumentError('releasePrefix cannot be empty')
     }
 
-    return path.resolve(`${cacheDir}/${releasePrefix}/staging/${releaseTag}`)
+    return path.resolve(path.join(cacheDir, releasePrefix, 'staging', releaseTag))
   }
 
   static installationPath (

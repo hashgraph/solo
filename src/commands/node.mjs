@@ -471,7 +471,7 @@ export class NodeCommand extends BaseCommand {
       }
 
       const fileName = path.basename(keyFile)
-      fs.cpSync(keyFile, `${destDir}/${fileName}`)
+      fs.cpSync(keyFile, path.join(destDir, fileName))
     }
   }
 
@@ -586,13 +586,13 @@ export class NodeCommand extends BaseCommand {
     // transaction size is 6Kb and in practice we need to send the file as 4Kb chunks.
     // Note however that in DAB phase-2, we won't need to trigger this fake upgrade process
     const zipper = new Zippy(this.logger)
-    const upgradeConfigDir = `${stagingDir}/mock-upgrade/data/config`
+    const upgradeConfigDir = path.join(stagingDir, 'mock-upgrade', 'data', 'config')
     if (!fs.existsSync(upgradeConfigDir)) {
       fs.mkdirSync(upgradeConfigDir, { recursive: true })
     }
 
     // bump field hedera.config.version
-    const fileBytes = fs.readFileSync(`${stagingDir}/templates/application.properties`)
+    const fileBytes = fs.readFileSync(path.join(stagingDir, 'templates', 'application.properties'))
     const lines = fileBytes.toString().split('\n')
     const newLines = []
     for (let line of lines) {
@@ -606,9 +606,9 @@ export class NodeCommand extends BaseCommand {
         newLines.push(line)
       }
     }
-    fs.writeFileSync(`${upgradeConfigDir}/application.properties`, newLines.join('\n'))
+    fs.writeFileSync(path.join(upgradeConfigDir, 'application.properties'), newLines.join('\n'))
 
-    return await zipper.zip(`${stagingDir}/mock-upgrade`, `${stagingDir}/mock-upgrade.zip`)
+    return await zipper.zip(path.join(stagingDir, 'mock-upgrade'), path.join(stagingDir, 'mock-upgrade.zip'))
   }
 
   async uploadUpgradeZip (upgradeZipFile, nodeClient) {
@@ -1683,7 +1683,7 @@ export class NodeCommand extends BaseCommand {
         task: async (ctx, task) => {
           const config = /** @type {NodeAddConfigClass} **/ ctx.config
           const signingCertFile = Templates.renderGossipPemPublicKeyFile(constants.SIGNING_KEY_PREFIX, config.nodeId)
-          const signingCertFullPath = `${config.keysDir}/${signingCertFile}`
+          const signingCertFullPath = path.join(config.keysDir, signingCertFile)
           const signingCertPem = fs.readFileSync(signingCertFullPath).toString()
           const decodedDers = x509.PemConverter.decode(signingCertPem)
           if (!decodedDers || decodedDers.length === 0) {
@@ -1697,7 +1697,7 @@ export class NodeCommand extends BaseCommand {
         task: async (ctx, task) => {
           const config = /** @type {NodeAddConfigClass} **/ ctx.config
           const tlsCertFile = Templates.renderTLSPemPublicKeyFile(config.nodeId)
-          const tlsCertFullPath = `${config.keysDir}/${tlsCertFile}`
+          const tlsCertFullPath = path.join(config.keysDir, tlsCertFile)
           const tlsCertPem = fs.readFileSync(tlsCertFullPath).toString()
           const tlsCertDers = x509.PemConverter.decode(tlsCertPem)
           if (!tlsCertDers || tlsCertDers.length === 0) {
@@ -1945,7 +1945,7 @@ export class NodeCommand extends BaseCommand {
           // zip the contents of the newest folder on node1 within /opt/hgcapp/services-hedera/HapiApp2.0/data/saved/com.hedera.services.ServicesMain/0/123/
           const zipFileName = await self.k8.execContainer(node1FullyQualifiedPodName, constants.ROOT_CONTAINER, ['bash', '-c', `cd ${upgradeDirectory} && mapfile -t states < <(ls -1t .) && jar cf "\${states[0]}.zip" -C "\${states[0]}" . && echo -n \${states[0]}.zip`])
           await self.k8.copyFrom(node1FullyQualifiedPodName, constants.ROOT_CONTAINER, `${upgradeDirectory}/${zipFileName}`, config.stagingDir)
-          config.lastStateZipPath = `${config.stagingDir}/${zipFileName}`
+          config.lastStateZipPath = path.join(config.stagingDir, zipFileName)
         }
       },
       {
@@ -2187,8 +2187,8 @@ export class NodeCommand extends BaseCommand {
 
         case constants.KEY_FORMAT_PFX: {
           const privateKeyFile = Templates.renderGossipPfxPrivateKeyFile(nodeId)
-          fs.cpSync(`${keysDir}/${privateKeyFile}`, `${stagingKeysDir}/${privateKeyFile}`)
-          fs.cpSync(`${keysDir}/${constants.PUBLIC_PFX}`, `${stagingKeysDir}/${constants.PUBLIC_PFX}`)
+          fs.cpSync(path.join(keysDir, privateKeyFile), path.join(stagingKeysDir, privateKeyFile))
+          fs.cpSync(path.join(keysDir, constants.PUBLIC_PFX), path.join(stagingKeysDir, constants.PUBLIC_PFX))
           break
         }
 

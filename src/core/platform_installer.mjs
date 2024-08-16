@@ -154,18 +154,18 @@ export class PlatformInstaller {
       switch (keyFormat) {
         case constants.KEY_FORMAT_PEM:
           // copy private keys for the node
-          srcFiles.push(`${stagingDir}/keys/${Templates.renderGossipPemPrivateKeyFile(constants.SIGNING_KEY_PREFIX, nodeId)}`)
-          srcFiles.push(`${stagingDir}/keys/${Templates.renderGossipPemPrivateKeyFile(constants.AGREEMENT_KEY_PREFIX, nodeId)}`)
+          srcFiles.push(path.join(stagingDir, 'keys', Templates.renderGossipPemPrivateKeyFile(constants.SIGNING_KEY_PREFIX, nodeId)))
+          srcFiles.push(path.join(stagingDir, 'keys', Templates.renderGossipPemPrivateKeyFile(constants.AGREEMENT_KEY_PREFIX, nodeId)))
 
           // copy all public keys for all nodes
           nodeIds.forEach(id => {
-            srcFiles.push(`${stagingDir}/keys/${Templates.renderGossipPemPublicKeyFile(constants.SIGNING_KEY_PREFIX, id)}`)
-            srcFiles.push(`${stagingDir}/keys/${Templates.renderGossipPemPublicKeyFile(constants.AGREEMENT_KEY_PREFIX, id)}`)
+            srcFiles.push(path.join(stagingDir, 'keys', Templates.renderGossipPemPublicKeyFile(constants.SIGNING_KEY_PREFIX, id)))
+            srcFiles.push(path.join(stagingDir, 'keys', Templates.renderGossipPemPublicKeyFile(constants.AGREEMENT_KEY_PREFIX, id)))
           })
           break
         case constants.KEY_FORMAT_PFX:
-          srcFiles.push(`${stagingDir}/keys/${Templates.renderGossipPfxPrivateKeyFile(nodeId)}`)
-          srcFiles.push(`${stagingDir}/keys/${constants.PUBLIC_PFX}`)
+          srcFiles.push(path.join(stagingDir, 'keys', Templates.renderGossipPfxPrivateKeyFile(nodeId)))
+          srcFiles.push(path.join(stagingDir, 'keys', constants.PUBLIC_PFX))
           break
         default:
           throw new FullstackTestingError(`Unsupported key file format ${keyFormat}`)
@@ -215,14 +215,14 @@ export class PlatformInstaller {
       const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), `${nodeId}-tls-keys-`))
 
       // rename files appropriately in the tmp directory
-      fs.cpSync(`${stagingDir}/keys/${Templates.renderTLSPemPrivateKeyFile(nodeId)}`,
-        `${tmpDir}/hedera.key`)
-      fs.cpSync(`${stagingDir}/keys/${Templates.renderTLSPemPublicKeyFile(nodeId)}`,
-        `${tmpDir}/hedera.crt`)
+      fs.cpSync(path.join(stagingDir, 'keys', Templates.renderTLSPemPrivateKeyFile(nodeId)),
+        path.join(tmpDir, 'hedera.key'))
+      fs.cpSync(path.join(stagingDir, 'keys', Templates.renderTLSPemPublicKeyFile(nodeId)),
+        path.join(tmpDir, 'hedera.crt'))
 
       const srcFiles = []
-      srcFiles.push(`${tmpDir}/hedera.key`)
-      srcFiles.push(`${tmpDir}/hedera.crt`)
+      srcFiles.push(path.join(tmpDir, 'hedera.key'))
+      srcFiles.push(path.join(tmpDir, 'hedera.crt'))
 
       return this.copyFiles(podName, srcFiles, constants.HEDERA_HAPI_PATH)
     } catch (e) {

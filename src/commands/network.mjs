@@ -90,7 +90,7 @@ export class NetworkCommand extends BaseCommand {
   async prepareValuesArg (config = {}) {
     let valuesArg = ''
     if (config.chartDirectory) {
-      valuesArg = `-f ${config.chartDirectory}/fullstack-deployment/values.yaml`
+      valuesArg = `-f ${path.join(config.chartDirectory, 'fullstack-deployment', 'values.yaml')}`
     }
 
     if (config.valuesFile) {
