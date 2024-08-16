@@ -656,6 +656,17 @@ export const endpointType = {
   }
 }
 
+/** @type {CommandFlag} **/
+export const persistentVolumeClaims = {
+  constName: 'persistentVolumeClaims',
+  name: 'pvcs',
+  definition: {
+    describe: 'Enable persistent volume claims to store data outside the pod, required for node add',
+    defaultValue: false,
+    type: 'boolean'
+  }
+}
+
 /** @type {CommandFlag[]} **/
 export const allFlags = [
   accountId,
@@ -700,6 +711,7 @@ export const allFlags = [
   nodeIDs,
   operatorId,
   operatorKey,
+  persistentVolumeClaims,
   privateKey,
   profileFile,
   profileName,

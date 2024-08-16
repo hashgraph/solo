@@ -1548,7 +1548,14 @@ export class NodeCommand extends BaseCommand {
           self.logger.debug('Initialized config', { config })
         }
       },
-      // TODO check PVC before continuing
+      {
+        title: 'Check that PVCs are enabled',
+        task: async (ctx, task) => {
+          if (!self.configManager.getFlag(flags.persistentVolumeClaims)) {
+            throw new FullstackTestingError('PVCs are not enabled. Please enable PVCs before adding a node')
+          }
+        }
+      },
       {
         title: 'Identify existing network nodes',
         task: async (ctx, task) => {
@@ -1792,6 +1799,13 @@ export class NodeCommand extends BaseCommand {
         }
       },
       {
+        title: 'Get node logs and configs',
+        task: async (ctx, task) => {
+          const config = /** @type {NodeAddConfigClass} **/ ctx.config
+          await helpers.getNodeLogs(self.k8, config.namespace)
+        }
+      },
+      {
         title: 'Deploy new network node',
         task: async (ctx, task) => {
           const config = /** @type {NodeAddConfigClass} **/ ctx.config
@@ -1820,7 +1834,6 @@ export class NodeCommand extends BaseCommand {
           config.allNodeIds = [...config.existingNodeIds, config.nodeId]
         }
       },
-      // TODO getNodeLogs?
       {
         title: 'Kill nodes to pick up updated configMaps',
         task: async (ctx, task) => {

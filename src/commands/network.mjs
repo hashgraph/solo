@@ -57,6 +57,7 @@ export class NetworkCommand extends BaseCommand {
       flags.log4j2Xml,
       flags.namespace,
       flags.nodeIDs,
+      flags.persistentVolumeClaims,
       flags.profileFile,
       flags.profileName,
       flags.releaseTag,
@@ -125,9 +126,7 @@ export class NetworkCommand extends BaseCommand {
       valuesArg += ` --set "defaults.root.image.repository=${rootImage}"`
     }
 
-    // TODO make this a flag
-    // TODO should node add check to see if this flag is enabled?
-    valuesArg += ' --set "defaults.volumeClaims.enabled=true"'
+    valuesArg += ` --set "defaults.volumeClaims.enabled=${config.persistentVolumeClaims}"`
 
     this.logger.debug('Prepared helm chart values', { valuesArg })
     return valuesArg
@@ -149,6 +148,7 @@ export class NetworkCommand extends BaseCommand {
       flags.deployMirrorNode,
       flags.hederaExplorerTlsLoadBalancerIp,
       flags.log4j2Xml,
+      flags.persistentVolumeClaims,
       flags.profileName,
       flags.profileFile,
       flags.settingTxt
@@ -170,6 +170,7 @@ export class NetworkCommand extends BaseCommand {
      * @property {string} hederaExplorerTlsLoadBalancerIp
      * @property {string} namespace
      * @property {string} nodeIDs
+     * @property {string} persistentVolumeClaims
      * @property {string} profileFile
      * @property {string} profileName
      * @property {string} releaseTag
