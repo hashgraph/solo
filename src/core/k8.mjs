@@ -331,7 +331,7 @@ export class K8 {
    * @param containerName container name
    * @param destPath path inside the container
    * @param timeout timeout in ms
-   * @return {Promise<[]>}
+   * @return {Promise<Object[]>} array of directory entries, custom object
    */
   async listDir (podName, containerName, destPath, timeout = 5000) {
     try {
