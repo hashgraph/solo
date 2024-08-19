@@ -2391,9 +2391,13 @@ export class NodeCommand extends BaseCommand {
         task: async (ctx, task) => {
           const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
 
+          const nodeId = Templates.nodeNumberFromNodeId(ctx.newNode.name) - 1
+
           self.logger.info(`ctx.newNode.accountId: ${ctx.newNode.accountId}`)
+          self.logger.info(`nodeId: ${nodeId}`)
           try {
             const nodeCreateTx = await new NodeUpdateTransaction()
+              .setNodeId(nodeId)
               .setAccountId(ctx.newNode.accountId)
               .setGossipEndpoints(ctx.gossipEndpoints)
               .setServiceEndpoints(ctx.grpcServiceEndpoints)
