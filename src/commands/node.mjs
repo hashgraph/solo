@@ -188,9 +188,7 @@ export class NodeCommand extends BaseCommand {
 
   static get UPDATE_FLAGS_LIST () {
     return [
-      flags.apiPermissionProperties,
-      flags.applicationProperties,
-      flags.bootstrapProperties,
+      flags.app,
       flags.cacheDir,
       flags.chainId,
       flags.chartDirectory,
@@ -203,11 +201,10 @@ export class NodeCommand extends BaseCommand {
       flags.gossipEndpoints,
       flags.grpcEndpoints,
       flags.keyFormat,
-      flags.log4j2Xml,
+      flags.localBuildPath,
       flags.namespace,
       flags.nodeID,
-      flags.releaseTag,
-      flags.settingTxt
+      flags.releaseTag
     ]
   }
 
@@ -2146,6 +2143,7 @@ export class NodeCommand extends BaseCommand {
             flags.chainId,
             flags.chartDirectory,
             flags.devMode,
+            flags.localBuildPath,
             flags.endpointType,
             flags.force,
             flags.fstChartVersion,
@@ -2158,9 +2156,7 @@ export class NodeCommand extends BaseCommand {
           /**
            * @typedef {Object} NodeUpdateConfigClass
            * -- flags --
-           * @property {string} apiPermissionProperties
-           * @property {string} applicationProperties
-           * @property {string} bootstrapProperties
+           * @property {string} app
            * @property {string} cacheDir
            * @property {string} chainId
            * @property {string} chartDirectory
@@ -2173,15 +2169,13 @@ export class NodeCommand extends BaseCommand {
            * @property {string} gossipEndpoints
            * @property {string} grpcEndpoints
            * @property {string} keyFormat
-           * @property {string} log4j2Xml
+           * @property {string} localBuildPath
            * @property {string} namespace
            * @property {string} nodeId
            * @property {string} releaseTag
-           * @property {string} settingTxt
            * -- extra args --
            * @property {PrivateKey} adminKey
            * @property {string[]} allNodeIds
-           * @property {string} buildZipFile
            * @property {string} chartPath
            * @property {Date} curDate
            * @property {string[]} existingNodeIds
@@ -2189,9 +2183,7 @@ export class NodeCommand extends BaseCommand {
            * @property {string} keysDir
            * @property {string} lastStateZipPath
            * @property {Object} nodeClient
-           * @property {string[]} nodeIds
            * @property {Object} podNames
-           * @property {string} releasePrefix
            * @property {Map<String, NetworkNodeServices>} serviceMap
            * @property {PrivateKey} treasuryKey
            * @property {string} stagingDir
@@ -2209,7 +2201,6 @@ export class NodeCommand extends BaseCommand {
             [
               'adminKey',
               'allNodeIds',
-              'buildZipFile',
               'chartPath',
               'curDate',
               'existingNodeIds',
@@ -2217,9 +2208,7 @@ export class NodeCommand extends BaseCommand {
               'keysDir',
               'lastStateZipPath',
               'nodeClient',
-              'nodeIds',
               'podNames',
-              'releasePrefix',
               'serviceMap',
               'stagingDir',
               'stagingKeysDir',
@@ -2228,13 +2217,12 @@ export class NodeCommand extends BaseCommand {
 
           config.curDate = new Date()
           config.existingNodeIds = []
-          config.nodeIds = [config.nodeId]
 
           if (config.keyFormat !== constants.KEY_FORMAT_PEM) {
             throw new FullstackTestingError('key type cannot be PFX')
           }
 
-          await self.initializeSetup(config, self.configManager, self.k8)
+          await self.initializeSetup(config, self.k8)
 
           // set config in the context for later tasks to use
           ctx.config = config
@@ -2255,25 +2243,35 @@ export class NodeCommand extends BaseCommand {
           self.logger.debug('Initialized config', { config })
         }
       },
+      // {
+      //   title: 'Check that PVCs are enabled',
+      //   task: async (ctx, task) => {
+      //     if (!self.configManager.getFlag(flags.persistentVolumeClaims)) {
+      //       throw new FullstackTestingError('PVCs are not enabled. Please enable PVCs before adding a node')
+      //     }
+      //   }
+      // },
       {
         title: 'Identify existing network nodes',
         task: async (ctx, task) => {
-          ctx.config.serviceMap = await self.accountManager.getNodeServiceMap(
-            ctx.config.namespace)
-          for (/** @type {NetworkNodeServices} **/ const networkNodeServices of ctx.config.serviceMap.values()) {
-            ctx.config.existingNodeIds.push(networkNodeServices.nodeName)
+          const config = /** @type {NodeAddConfigClass} **/ ctx.config
+          config.serviceMap = await self.accountManager.getNodeServiceMap(
+            config.namespace)
+          for (/** @type {NetworkNodeServices} **/ const networkNodeServices of config.serviceMap.values()) {
+            config.existingNodeIds.push(networkNodeServices.nodeName)
           }
 
-          return self.taskCheckNetworkNodePods(ctx, task, ctx.config.existingNodeIds)
+          return self.taskCheckNetworkNodePods(ctx, task, config.existingNodeIds)
         }
       },
       {
         title: 'Determine new node account number',
         task: (ctx, task) => {
+          const config = /** @type {NodeAddConfigClass} **/ ctx.config
           const values = { hedera: { nodes: [] } }
           let maxNum = 0
 
-          for (/** @type {NetworkNodeServices} **/ const networkNodeServices of ctx.config.serviceMap.values()) {
+          for (/** @type {NetworkNodeServices} **/ const networkNodeServices of config.serviceMap.values()) {
             values.hedera.nodes.push({
               accountId: networkNodeServices.accountId,
               name: networkNodeServices.nodeName
@@ -2286,8 +2284,37 @@ export class NodeCommand extends BaseCommand {
           ctx.maxNum = maxNum
           ctx.newNode = {
             accountId: `${constants.HEDERA_NODE_ACCOUNT_ID_START.realm}.${constants.HEDERA_NODE_ACCOUNT_ID_START.shard}.${++maxNum}`,
-            name: ctx.config.nodeId
+            name: config.nodeId
           }
+        }
+      },
+      {
+        title: 'Load signing key certificate',
+        task: async (ctx, task) => {
+          const config = /** @type {NodeAddConfigClass} **/ ctx.config
+          const signingCertFile = Templates.renderGossipPemPublicKeyFile(constants.SIGNING_KEY_PREFIX, config.nodeId)
+          const signingCertFullPath = path.join(config.keysDir, signingCertFile)
+          const signingCertPem = fs.readFileSync(signingCertFullPath).toString()
+          const decodedDers = x509.PemConverter.decode(signingCertPem)
+          if (!decodedDers || decodedDers.length === 0) {
+            throw new FullstackTestingError('unable to decode public key: ' + signingCertFile)
+          }
+          ctx.signingCertDer = new Uint8Array(decodedDers[0])
+        }
+      },
+      {
+        title: 'Compute mTLS certificate hash',
+        task: async (ctx, task) => {
+          const config = /** @type {NodeAddConfigClass} **/ ctx.config
+          const tlsCertFile = Templates.renderTLSPemPublicKeyFile(config.nodeId)
+          const tlsCertFullPath = path.join(config.keysDir, tlsCertFile)
+          const tlsCertPem = fs.readFileSync(tlsCertFullPath).toString()
+          const tlsCertDers = x509.PemConverter.decode(tlsCertPem)
+          if (!tlsCertDers || tlsCertDers.length === 0) {
+            throw new FullstackTestingError('unable to decode tls cert: ' + tlsCertFullPath)
+          }
+          const tlsCertDer = new Uint8Array(tlsCertDers[0])
+          ctx.tlsCertHash = crypto.createHash('sha384').update(tlsCertDer).digest()
         }
       },
       {
@@ -2376,12 +2403,13 @@ export class NodeCommand extends BaseCommand {
               .freezeWith(config.nodeClient)
             const signedTx = await nodeCreateTx.sign(config.adminKey)
             const txResp = await signedTx.execute(config.nodeClient)
-            const nodeCreateReceipt = await txResp.getReceipt(config.nodeClient)
-            this.logger.debug(`NodeCreateReceipt: ${nodeCreateReceipt.toString()}`)
+            const nodeUpdateReceipt = await txResp.getReceipt(config.nodeClient)
+            this.logger.debug(`NodeUpdateReceipt: ${nodeUpdateReceipt.toString()}`)
           } catch (e) {
             this.logger.error(`Error updating node to network: ${e.message}`, e)
             // log error stack trace
             this.logger.error(e.stack)
+            console.error(e);
             throw new FullstackTestingError(`Error updating node to network: ${e.message}`, e)
           }
         }
@@ -2493,7 +2521,7 @@ export class NodeCommand extends BaseCommand {
       },
       {
         title: 'Start network nodes',
-        task: (ctx, task) => {
+        task: async (ctx, task) => {
           const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
           const subTasks = []
           self.startNodes(config.podNames, config.allNodeIds, subTasks)
@@ -2559,7 +2587,7 @@ export class NodeCommand extends BaseCommand {
         title: 'Trigger stake weight calculate',
         task: async (ctx, task) => {
           const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
-          // sleep 60 seconds for the handler to be able to trigger the network node stake weight recalculate
+          self.logger.info('sleep 60 seconds for the handler to be able to trigger the network node stake weight recalculate')
           await sleep(60000)
           const accountMap = getNodeAccountMap(config.allNodeIds)
           // send some write transactions to invoke the handler that will trigger the stake weight recalculate
@@ -2807,8 +2835,8 @@ export class NodeCommand extends BaseCommand {
 
             const signedTx = await nodeCreateTx.sign(config.adminKey)
             const txResp = await signedTx.execute(config.nodeClient)
-            const nodeCreateReceipt = await txResp.getReceipt(config.nodeClient)
-            this.logger.debug(`NodeCreateReceipt: ${nodeCreateReceipt.toString()}`)
+            const nodeUpdateReceipt = await txResp.getReceipt(config.nodeClient)
+            this.logger.debug(`NodeUpdateReceipt: ${nodeUpdateReceipt.toString()}`)
           } catch (e) {
             this.logger.error(`Error deleting node from network: ${e.message}`, e)
             throw new FullstackTestingError(`Error deleting node from network: ${e.message}`, e)
