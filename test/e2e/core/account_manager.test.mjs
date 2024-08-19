@@ -14,7 +14,6 @@
  * limitations under the License.
  *
  */
-import { afterAll, describe, expect, it } from '@jest/globals'
 import { flags } from '../../../src/commands/index.mjs'
 import {
   bootstrapNetwork,
@@ -43,6 +42,7 @@ describe('AccountManager', () => {
   }, 180000)
 
   it('should be able to stop port forwards', async () => {
+    await accountManager.close()
     expect.assertions(4)
     const localHost = '127.0.0.1'
 
@@ -50,22 +50,22 @@ describe('AccountManager', () => {
     const podPort = 9090
     const localPort = 19090
 
-    expect(accountManager._portForwards.length).toStrictEqual(0)
+    expect(accountManager._portForwards.length, 'starting accountManager port forwards lengths should be zero').toStrictEqual(0)
 
     // ports should be opened
     accountManager._portForwards.push(await k8.portForward(podName, localPort, podPort))
     const status = await k8.testConnection(localHost, localPort)
-    expect(status).toBeTruthy()
+    expect(status, 'test connection status should be true').toBeTruthy()
 
     // ports should be closed
     await accountManager.close()
     try {
       await k8.testConnection(localHost, localPort)
     } catch (e) {
-      expect(e.message.includes(`failed to connect to '${localHost}:${localPort}'`)).toBeTruthy()
+      expect(e.message.includes(`failed to connect to '${localHost}:${localPort}'`), 'expect failed test connection').toBeTruthy()
     }
 
-    expect(accountManager._portForwards.length).toStrictEqual(0)
+    expect(accountManager._portForwards.length, 'expect that the closed account manager should have no port forwards').toStrictEqual(0)
   })
 
   it('should be able to load a new client', async () => {

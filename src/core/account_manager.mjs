@@ -303,6 +303,15 @@ export class AccountManager {
       serviceBuilder.withHaProxyPodName(podList.body.items[0].metadata.name)
     }
 
+    // get the pod name of the network node
+    const pods = await this.k8.getPodsByLabel(['fullstack.hedera.com/type=network-node'])
+    for (const pod of pods) {
+      const podName = pod.metadata.name
+      const nodeName = pod.metadata.labels['fullstack.hedera.com/node-name']
+      const serviceBuilder = /** @type {NetworkNodeServicesBuilder} **/ serviceBuilderMap.get(nodeName)
+      serviceBuilder.withNodePodName(podName)
+    }
+
     /** @type {Map<String,NetworkNodeServices>} **/
     const serviceMap = new Map()
     for (const networkNodeServicesBuilder of serviceBuilderMap.values()) {
@@ -624,7 +633,7 @@ export class AccountManager {
 
     // ensure serviceEndpoint.ipAddressV4 value for all nodes in the addressBook is a 4 bytes array instead of string
     // See: https://github.com/hashgraph/hedera-protobufs/blob/main/services/basic_types.proto#L1309
-    // TODO: with v0.53 will mirror node no longer need this and we can remove @hashgraph/proto?
+    // TODO: with v0.53 will mirror node no longer need this and we can remove @hashgraph/proto: https://github.com/hashgraph/solo/issues/493
     const addressBook = HashgraphProto.proto.NodeAddressBook.decode(addressBookBytes)
     const hasAlphaRegEx = /[a-zA-Z]+/
     let modified = false

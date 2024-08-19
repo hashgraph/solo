@@ -14,31 +14,23 @@
  * limitations under the License.
  *
  */
-import { beforeAll, describe, expect, it } from '@jest/globals'
-import { flags } from '../../../src/commands/index.mjs'
-import { ChartManager, ConfigManager, Helm, constants } from '../../../src/core/index.mjs'
+import { describe, expect, it } from '@jest/globals'
+import { ChartManager, Helm, constants } from '../../../src/core/index.mjs'
 import { testLogger } from '../../test_util.js'
 
 describe('ChartManager', () => {
   const helm = new Helm(testLogger)
   const chartManager = new ChartManager(helm, testLogger)
-  const configManager = new ConfigManager(testLogger)
-  const argv = []
-
-  beforeAll(() => {
-    argv[flags.namespace.name] = constants.FULLSTACK_SETUP_NAMESPACE
-    configManager.update(argv)
-  })
 
   it('should be able to list installed charts', async () => {
-    const ns = configManager.getFlag(flags.namespace)
+    const ns = constants.FULLSTACK_SETUP_NAMESPACE
     expect(ns).not.toBeNull()
     const list = await chartManager.getInstalledCharts(ns)
     expect(list.length).not.toBe(0)
   })
 
   it('should be able to check if a chart is installed', async () => {
-    const ns = configManager.getFlag(flags.namespace)
+    const ns = constants.FULLSTACK_SETUP_NAMESPACE
     expect(ns).not.toBeNull()
     const isInstalled = await chartManager.isChartInstalled(ns, constants.FULLSTACK_CLUSTER_SETUP_CHART)
     expect(isInstalled).toBeTruthy()

@@ -225,9 +225,13 @@ export async function getNodeLogs (k8, namespace) {
   }
 }
 
-// a function generate map between the nodeId and their account ids
+/**
+ * Create a map of node IDs to account IDs
+ * @param nodeIDs an array of the node IDs
+ * @returns {Map<string,string>} the map of node IDs to account IDs
+ */
 export function getNodeAccountMap (nodeIDs) {
-  const accountMap = new Map()
+  const accountMap = /** @type {Map<string,string>} **/ new Map()
   const realm = constants.HEDERA_NODE_ACCOUNT_ID_START.realm
   const shard = constants.HEDERA_NODE_ACCOUNT_ID_START.shard
   let accountId = constants.HEDERA_NODE_ACCOUNT_ID_START.num

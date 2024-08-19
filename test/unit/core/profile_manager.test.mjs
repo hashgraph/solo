@@ -19,8 +19,13 @@ import fs from 'fs'
 import * as yaml from 'js-yaml'
 import path from 'path'
 import { flags } from '../../../src/commands/index.mjs'
-import { ConfigManager, ProfileManager } from '../../../src/core/index.mjs'
-import { getTmpDir, testLogger } from '../../test_util.js'
+import {
+  ConfigManager,
+  constants,
+  ProfileManager
+} from '../../../src/core/index.mjs'
+import { getTestCacheDir, getTmpDir, testLogger } from '../../test_util.js'
+import * as version from '../../../version.mjs'
 
 const tmpDir = getTmpDir()
 const configFile = path.join(tmpDir, 'resource-manager.config')
@@ -28,6 +33,14 @@ const configManager = new ConfigManager(testLogger, configFile)
 const profileManager = new ProfileManager(testLogger, configManager, tmpDir)
 configManager.setFlag(flags.nodeIDs, 'node0,node1,node3')
 const testProfileFile = path.join('test', 'data', 'test-profiles.yaml')
+configManager.setFlag(flags.cacheDir, getTestCacheDir('ProfileManager'))
+configManager.setFlag(flags.releaseTag, version.HEDERA_PLATFORM_VERSION)
+const cacheDir = configManager.getFlag(flags.cacheDir)
+configManager.setFlag(flags.apiPermissionProperties, path.join(cacheDir, 'templates', 'api-permission.properties'))
+configManager.setFlag(flags.applicationProperties, path.join(cacheDir, 'templates', 'application.properties'))
+configManager.setFlag(flags.bootstrapProperties, path.join(cacheDir, 'templates', 'bootstrap.properties'))
+configManager.setFlag(flags.log4j2Xml, path.join(cacheDir, 'templates', 'log4j2.xml'))
+configManager.setFlag(flags.settingTxt, path.join(cacheDir, 'templates', 'settings.txt'))
 
 describe('ProfileManager', () => {
   afterAll(() => {
@@ -62,6 +75,20 @@ describe('ProfileManager', () => {
   ])('determine chart values for a profile', (input) => {
     it(`should determine FST chart values [profile = ${input.profileName}]`, async () => {
       configManager.setFlag(flags.profileFile, input.profileFile)
+
+      const resources = ['templates', 'profiles']
+      for (const dirName of resources) {
+        const srcDir = path.resolve(path.join(constants.RESOURCES_DIR, dirName))
+        if (!fs.existsSync(srcDir)) continue
+
+        const destDir = path.resolve(path.join(cacheDir, dirName))
+        if (!fs.existsSync(destDir)) {
+          fs.mkdirSync(destDir, { recursive: true })
+        }
+
+        fs.cpSync(srcDir, destDir, { recursive: true })
+      }
+
       profileManager.loadProfiles(true)
       const valuesFile = await profileManager.prepareValuesForFstChart(input.profileName)
       expect(valuesFile).not.toBeNull()
@@ -93,6 +120,8 @@ describe('ProfileManager', () => {
 
     it(`should determine mirror-node chart values [profile = ${input.profileName}]`, async () => {
       configManager.setFlag(flags.profileFile, input.profileFile)
+      configManager.setFlag(flags.cacheDir, getTestCacheDir('ProfileManager'))
+      configManager.setFlag(flags.releaseTag, version.HEDERA_PLATFORM_VERSION)
       profileManager.loadProfiles(true)
       const valuesFile = await profileManager.prepareValuesForMirrorNodeChart(input.profileName)
       expect(fs.existsSync(valuesFile)).toBeTruthy()
@@ -126,12 +155,87 @@ describe('ProfileManager', () => {
 
   it('prepareValuesForFstChart should set the value of a key to the contents of a file', async () => {
     configManager.setFlag(flags.profileFile, testProfileFile)
+
     // profileManager.loadProfiles(true)
     const file = path.join(tmpDir, '_setFileContentsAsValue.txt')
     const fileContents = '# row 1\n# row 2\n# row 3'
     fs.writeFileSync(file, fileContents)
-    const cachedValuesFile = await profileManager.prepareValuesForFstChart('test', file)
+    configManager.setFlag(flags.applicationEnv, file)
+    const cachedValuesFile = await profileManager.prepareValuesForFstChart('test')
     const valuesYaml = yaml.load(fs.readFileSync(cachedValuesFile).toString())
     expect(valuesYaml.hedera.configMaps.applicationEnv).toEqual(fileContents)
+  })
+
+  describe('prepareConfigText', () => {
+    it('should write and return the path to the config.txt file', () => {
+      const nodeAccountMap = /** @type {Map<string, string>} */ new Map()
+      nodeAccountMap.set('node0', '0.0.3')
+      nodeAccountMap.set('node1', '0.0.4')
+      nodeAccountMap.set('node2', '0.0.5')
+      const destPath = path.join(tmpDir, 'staging')
+      fs.mkdirSync(destPath, { recursive: true })
+      const namespace = 'test-namespace'
+      profileManager.prepareConfigTxt(namespace, nodeAccountMap, destPath, version.HEDERA_PLATFORM_VERSION)
+
+      // expect that the config.txt file was created and exists
+      const configFile = path.join(destPath, 'config.txt')
+      expect(fs.existsSync(configFile)).toBeTruthy()
+
+      const configText = fs.readFileSync(configFile).toString()
+
+      // expect that the config.txt file contains the namespace
+      expect(configText.includes(namespace)).toBeTruthy()
+      // expect that the config.txt file contains the node account IDs
+      expect(configText.includes('0.0.3')).toBeTruthy()
+      expect(configText.includes('0.0.4')).toBeTruthy()
+      expect(configText.includes('0.0.5')).toBeTruthy()
+      // expect the config.txt file to contain the node IDs
+      expect(configText.includes('node0')).toBeTruthy()
+      expect(configText.includes('node1')).toBeTruthy()
+      expect(configText.includes('node2')).toBeTruthy()
+    })
+
+    it('should fail when no nodeIDs', () => {
+      const nodeAccountMap = /** @type {Map<string, string>} */ new Map()
+      expect(() => profileManager.prepareConfigTxt('', nodeAccountMap, '', version.HEDERA_PLATFORM_VERSION)).toThrow('nodeAccountMap the map of node IDs to account IDs is required')
+    })
+
+    it('should fail when an invalid template path is provided', () => {
+      const nodeAccountMap = /** @type {Map<string, string>} */ new Map()
+      nodeAccountMap.set('node0', '0.0.3')
+      expect(() => profileManager.prepareConfigTxt('', nodeAccountMap, '', version.HEDERA_PLATFORM_VERSION, constants.HEDERA_APP_NAME, constants.HEDERA_CHAIN_ID, '')).toThrow('config templatePath is required')
+    })
+
+    it('should fail when no releaseTag is provided', () => {
+      const nodeAccountMap = /** @type {Map<string, string>} */ new Map()
+      nodeAccountMap.set('node0', '0.0.3')
+      expect(() => profileManager.prepareConfigTxt('', nodeAccountMap, '', undefined)).toThrow('release tag is required')
+    })
+
+    it('should fail when destPath does not exist', () => {
+      expect.assertions(2)
+      const nodeAccountMap = /** @type {Map<string, string>} */ new Map()
+      nodeAccountMap.set('node0', '0.0.3')
+      const destPath = path.join(tmpDir, 'missing-directory')
+      try {
+        profileManager.prepareConfigTxt('', nodeAccountMap, destPath, version.HEDERA_PLATFORM_VERSION)
+      } catch (e) {
+        expect(e.message).toContain('config destPath does not exist')
+        expect(e.message).toContain(destPath)
+      }
+    })
+
+    it('should fail when template path does not exist', () => {
+      expect.assertions(2)
+      const nodeAccountMap = /** @type {Map<string, string>} */ new Map()
+      nodeAccountMap.set('node0', '0.0.3')
+      const destPath = path.join(tmpDir, 'staging')
+      try {
+        profileManager.prepareConfigTxt('', nodeAccountMap, destPath, version.HEDERA_PLATFORM_VERSION, constants.HEDERA_APP_NAME, constants.HEDERA_CHAIN_ID, 'INVALID')
+      } catch (e) {
+        expect(e.message).toContain('config templatePath does not exist')
+        expect(e.message).toContain('INVALID')
+      }
+    })
   })
 })

@@ -19,7 +19,8 @@ const config = {
   moduleFileExtensions: ['js', 'mjs'],
   verbose: true,
   reporters: [['default', { summaryThreshold: 1 }], 'jest-junit'],
-  testSequencer: './test/testSequencer.mjs'
+  testSequencer: './test/testSequencer.mjs',
+  setupFilesAfterEnv: ['jest-expect-message']
 }
 
 export default config

@@ -444,6 +444,14 @@ export async function promptEndpointType (task, input) {
     flags.endpointType.name)
 }
 
+export async function promptPersistentVolumeClaims (task, input) {
+  return await promptToggle(task, input,
+    flags.persistentVolumeClaims.definition.defaultValue,
+    'Would you like to enable persistent volume claims to store data outside the pod? ',
+    null,
+    flags.persistentVolumeClaims.name)
+}
+
 export function getPromptMap () {
   return new Map()
     .set(flags.accountId.name, promptAccountId)
@@ -472,6 +480,7 @@ export function getPromptMap () {
     .set(flags.nodeIDs.name, promptNodeIds)
     .set(flags.operatorId.name, promptOperatorId)
     .set(flags.operatorKey.name, promptOperatorKey)
+    .set(flags.persistentVolumeClaims.name, promptPersistentVolumeClaims)
     .set(flags.privateKey.name, promptPrivateKey)
     .set(flags.profileFile.name, promptProfileFile)
     .set(flags.profileName.name, promptProfile)

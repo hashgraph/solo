@@ -57,7 +57,7 @@ export class BaseCommand extends ShellRunner {
     super(opts.logger)
 
     this.helm = opts.helm
-    this.k8 = opts.k8
+    this.k8 = /** @type {K8} **/ opts.k8
     this.chartManager = opts.chartManager
     this.configManager = opts.configManager
     this.depManager = opts.depManager
