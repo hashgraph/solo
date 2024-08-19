@@ -17,6 +17,7 @@
 import { constants } from '../core/index.mjs'
 import * as core from '../core/index.mjs'
 import * as version from '../../version.mjs'
+import path from 'path'
 
 /**
  * @typedef {Object} CommandFlag
@@ -309,7 +310,7 @@ export const chainId = {
   name: 'ledger-id',
   definition: {
     describe: 'Ledger ID (a.k.a. Chain ID)',
-    defaultValue: '298', // Ref: https://github.com/hashgraph/hedera-json-rpc-relay#configuration
+    defaultValue: constants.HEDERA_CHAIN_ID, // Ref: https://github.com/hashgraph/hedera-json-rpc-relay#configuration
     alias: 'l',
     type: 'string'
   }
@@ -455,7 +456,7 @@ export const applicationProperties = {
   name: 'application-properties',
   definition: {
     describe: 'application.properties file for node',
-    defaultValue: `${constants.SOLO_CACHE_DIR}/templates/application.properties`,
+    defaultValue: path.join(constants.SOLO_CACHE_DIR, 'templates', 'application.properties'),
     type: 'string'
   }
 }
@@ -477,7 +478,7 @@ export const apiPermissionProperties = {
   name: 'api-permission-properties',
   definition: {
     describe: 'api-permission.properties file for node',
-    defaultValue: `${constants.SOLO_CACHE_DIR}/templates/api-permission.properties`,
+    defaultValue: path.join(constants.SOLO_CACHE_DIR, 'templates', 'api-permission.properties'),
     type: 'string'
   }
 }
@@ -488,7 +489,7 @@ export const bootstrapProperties = {
   name: 'bootstrap-properties',
   definition: {
     describe: 'bootstrap.properties file for node',
-    defaultValue: `${constants.SOLO_CACHE_DIR}/templates/bootstrap.properties`,
+    defaultValue: path.join(constants.SOLO_CACHE_DIR, 'templates', 'bootstrap.properties'),
     type: 'string'
   }
 }
@@ -499,7 +500,7 @@ export const settingTxt = {
   name: 'settings-txt',
   definition: {
     describe: 'settings.txt file for node',
-    defaultValue: `${constants.SOLO_CACHE_DIR}/templates/settings.txt`,
+    defaultValue: path.join(constants.SOLO_CACHE_DIR, 'templates', 'settings.txt'),
     type: 'string'
   }
 }
@@ -510,7 +511,7 @@ export const app = {
   name: 'app',
   definition: {
     describe: 'Testing app name',
-    defaultValue: '',
+    defaultValue: constants.HEDERA_APP_NAME,
     type: 'string'
   }
 }
@@ -543,7 +544,7 @@ export const log4j2Xml = {
   name: 'log4j2-xml',
   definition: {
     describe: 'log4j2.xml file for node',
-    defaultValue: `${constants.SOLO_CACHE_DIR}/templates/log4j2.xml`,
+    defaultValue: path.join(constants.SOLO_CACHE_DIR, 'templates', 'log4j2.xml'),
     type: 'string'
   }
 }
@@ -655,6 +656,17 @@ export const endpointType = {
   }
 }
 
+/** @type {CommandFlag} **/
+export const persistentVolumeClaims = {
+  constName: 'persistentVolumeClaims',
+  name: 'pvcs',
+  definition: {
+    describe: 'Enable persistent volume claims to store data outside the pod, required for node add',
+    defaultValue: false,
+    type: 'boolean'
+  }
+}
+
 /** @type {CommandFlag[]} **/
 export const allFlags = [
   accountId,
@@ -699,6 +711,7 @@ export const allFlags = [
   nodeIDs,
   operatorId,
   operatorKey,
+  persistentVolumeClaims,
   privateKey,
   profileFile,
   profileName,

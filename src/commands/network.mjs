@@ -23,6 +23,7 @@ import * as flags from './flags.mjs'
 import { constants } from '../core/index.mjs'
 import * as prompts from './prompts.mjs'
 import * as helpers from '../core/helpers.mjs'
+import path from 'path'
 
 export class NetworkCommand extends BaseCommand {
   constructor (opts) {
@@ -39,7 +40,12 @@ export class NetworkCommand extends BaseCommand {
 
   static get DEPLOY_FLAGS_LIST () {
     return [
+      flags.apiPermissionProperties,
+      flags.app,
       flags.applicationEnv,
+      flags.applicationProperties,
+      flags.bootstrapProperties,
+      flags.chainId,
       flags.chartDirectory,
       flags.deployHederaExplorer,
       flags.deployMirrorNode,
@@ -48,11 +54,14 @@ export class NetworkCommand extends BaseCommand {
       flags.fstChartVersion,
       flags.hederaExplorerTlsHostName,
       flags.hederaExplorerTlsLoadBalancerIp,
+      flags.log4j2Xml,
       flags.namespace,
       flags.nodeIDs,
+      flags.persistentVolumeClaims,
       flags.profileFile,
       flags.profileName,
       flags.releaseTag,
+      flags.settingTxt,
       flags.tlsClusterIssuerType,
       flags.valuesFile
     ]
@@ -90,7 +99,7 @@ export class NetworkCommand extends BaseCommand {
   async prepareValuesArg (config = {}) {
     let valuesArg = ''
     if (config.chartDirectory) {
-      valuesArg = `-f ${config.chartDirectory}/fullstack-deployment/values.yaml`
+      valuesArg = `-f ${path.join(config.chartDirectory, 'fullstack-deployment', 'values.yaml')}`
     }
 
     if (config.valuesFile) {
@@ -98,7 +107,7 @@ export class NetworkCommand extends BaseCommand {
     }
 
     const profileName = this.configManager.getFlag(flags.profileName)
-    this.profileValuesFile = await this.profileManager.prepareValuesForFstChart(profileName, config.applicationEnv)
+    this.profileValuesFile = await this.profileManager.prepareValuesForFstChart(profileName)
     if (this.profileValuesFile) {
       valuesArg += this.prepareValuesFiles(this.profileValuesFile)
     }
@@ -117,6 +126,8 @@ export class NetworkCommand extends BaseCommand {
       valuesArg += ` --set "defaults.root.image.repository=${rootImage}"`
     }
 
+    valuesArg += ` --set "defaults.volumeClaims.enabled=${config.persistentVolumeClaims}"`
+
     this.logger.debug('Prepared helm chart values', { valuesArg })
     return valuesArg
   }
@@ -127,10 +138,20 @@ export class NetworkCommand extends BaseCommand {
 
     // disable the prompts that we don't want to prompt the user for
     prompts.disablePrompts([
+      flags.apiPermissionProperties,
+      flags.app,
       flags.applicationEnv,
+      flags.applicationProperties,
+      flags.bootstrapProperties,
+      flags.chainId,
       flags.deployHederaExplorer,
       flags.deployMirrorNode,
-      flags.hederaExplorerTlsLoadBalancerIp
+      flags.hederaExplorerTlsLoadBalancerIp,
+      flags.log4j2Xml,
+      flags.persistentVolumeClaims,
+      flags.profileName,
+      flags.profileFile,
+      flags.settingTxt
     ])
 
     await prompts.execute(task, this.configManager, NetworkCommand.DEPLOY_FLAGS_LIST)
@@ -149,6 +170,7 @@ export class NetworkCommand extends BaseCommand {
      * @property {string} hederaExplorerTlsLoadBalancerIp
      * @property {string} namespace
      * @property {string} nodeIDs
+     * @property {string} persistentVolumeClaims
      * @property {string} profileFile
      * @property {string} profileName
      * @property {string} releaseTag
@@ -196,22 +218,23 @@ export class NetworkCommand extends BaseCommand {
       {
         title: 'Initialize',
         task: async (ctx, task) => {
-          ctx.config = await self.prepareConfig(task, argv)
+          ctx.config = /** @type {NetworkDeployConfigClass} **/ await self.prepareConfig(task, argv)
         }
       },
       {
         title: `Install chart '${constants.FULLSTACK_DEPLOYMENT_CHART}'`,
         task: async (ctx, _) => {
-          if (await self.chartManager.isChartInstalled(ctx.config.namespace, constants.FULLSTACK_DEPLOYMENT_CHART)) {
-            await self.chartManager.uninstall(ctx.config.namespace, constants.FULLSTACK_DEPLOYMENT_CHART)
+          const config = /** @type {NetworkDeployConfigClass} **/ ctx.config
+          if (await self.chartManager.isChartInstalled(config.namespace, constants.FULLSTACK_DEPLOYMENT_CHART)) {
+            await self.chartManager.uninstall(config.namespace, constants.FULLSTACK_DEPLOYMENT_CHART)
           }
 
           await this.chartManager.install(
-            ctx.config.namespace,
+            config.namespace,
             constants.FULLSTACK_DEPLOYMENT_CHART,
-            ctx.config.chartPath,
-            ctx.config.fstChartVersion,
-            ctx.config.valuesArg)
+            config.chartPath,
+            config.fstChartVersion,
+            config.valuesArg)
         }
       },
       {
@@ -219,9 +242,10 @@ export class NetworkCommand extends BaseCommand {
         task:
           async (ctx, task) => {
             const subTasks = []
+            const config = /** @type {NetworkDeployConfigClass} **/ ctx.config
 
             // nodes
-            for (const nodeId of ctx.config.nodeIds) {
+            for (const nodeId of config.nodeIds) {
               subTasks.push({
                 title: `Check Node: ${chalk.yellow(nodeId)}`,
                 task: () =>
@@ -246,9 +270,10 @@ export class NetworkCommand extends BaseCommand {
         task:
           async (ctx, task) => {
             const subTasks = []
+            const config = /** @type {NetworkDeployConfigClass} **/ ctx.config
 
             // HAProxy
-            for (const nodeId of ctx.config.nodeIds) {
+            for (const nodeId of config.nodeIds) {
               subTasks.push({
                 title: `Check HAProxy for: ${chalk.yellow(nodeId)}`,
                 task: () =>
@@ -259,7 +284,7 @@ export class NetworkCommand extends BaseCommand {
             }
 
             // Envoy Proxy
-            for (const nodeId of ctx.config.nodeIds) {
+            for (const nodeId of config.nodeIds) {
               subTasks.push({
                 title: `Check Envoy Proxy for: ${chalk.yellow(nodeId)}`,
                 task: () =>
@@ -418,12 +443,13 @@ export class NetworkCommand extends BaseCommand {
       {
         title: `Upgrade chart '${constants.FULLSTACK_DEPLOYMENT_CHART}'`,
         task: async (ctx, _) => {
+          const config = ctx.config
           await this.chartManager.upgrade(
-            ctx.config.namespace,
+            config.namespace,
             constants.FULLSTACK_DEPLOYMENT_CHART,
-            ctx.config.chartPath,
-            ctx.config.valuesArg,
-            ctx.config.fstChartVersion
+            config.chartPath,
+            config.valuesArg,
+            config.fstChartVersion
           )
         }
       },

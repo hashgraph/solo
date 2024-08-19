@@ -15,14 +15,15 @@
  *
  * @jest-environment steps
  */
-import { afterAll, beforeAll, describe, expect, it } from '@jest/globals'
 import { flags } from '../../../src/commands/index.mjs'
 import { constants } from '../../../src/core/index.mjs'
 import {
   accountCreationShouldSucceed,
   balanceQueryShouldSucceed,
   bootstrapNetwork,
-  getDefaultArgv, getNodeIdsPrivateKeysHash, getTestConfigManager, getTmpDir,
+  getDefaultArgv,
+  getNodeIdsPrivateKeysHash,
+  getTmpDir,
   HEDERA_PLATFORM_VERSION_TAG
 } from '../../test_util.js'
 import { getNodeLogs } from '../../../src/core/helpers.mjs'
@@ -43,6 +44,7 @@ describe('Node add', () => {
   argv[flags.chartDirectory.name] = process.env.SOLO_FST_CHARTS_DIR ? process.env.SOLO_FST_CHARTS_DIR : undefined
   argv[flags.releaseTag.name] = HEDERA_PLATFORM_VERSION_TAG
   argv[flags.namespace.name] = namespace
+  argv[flags.persistentVolumeClaims.name] = true
   const bootstrapResp = bootstrapNetwork(namespace, argv)
   const nodeCmd = bootstrapResp.cmd.nodeCmd
   const accountCmd = bootstrapResp.cmd.accountCmd
@@ -50,17 +52,15 @@ describe('Node add', () => {
   let existingServiceMap
   let existingNodeIdsPrivateKeysHash
 
-  beforeAll(async () => {
-    const configManager = getTestConfigManager(`${namespace}-solo.config`)
-    configManager.update(argv, true)
-    existingServiceMap = await nodeCmd.accountManager.getNodeServiceMap(namespace)
-    existingNodeIdsPrivateKeysHash = await getNodeIdsPrivateKeysHash(existingServiceMap, namespace, constants.KEY_FORMAT_PEM, k8, getTmpDir())
-  }, defaultTimeout)
-
   afterAll(async () => {
     await getNodeLogs(k8, namespace)
     await k8.deleteNamespace(namespace)
   }, 600000)
+
+  it('cache current version of private keys', async () => {
+    existingServiceMap = await nodeCmd.accountManager.getNodeServiceMap(namespace)
+    existingNodeIdsPrivateKeysHash = await getNodeIdsPrivateKeysHash(existingServiceMap, namespace, constants.KEY_FORMAT_PEM, k8, getTmpDir())
+  }, defaultTimeout)
 
   it('should succeed with init command', async () => {
     const status = await accountCmd.init(argv)
@@ -70,13 +70,9 @@ describe('Node add', () => {
   it('should add a new node to the network successfully', async () => {
     await nodeCmd.add(argv)
     expect(nodeCmd.getUnusedConfigs(NodeCommand.ADD_CONFIGS_NAME)).toEqual([
-      flags.apiPermissionProperties.constName,
-      flags.applicationProperties.constName,
-      flags.bootstrapProperties.constName,
+      flags.app.constName,
       flags.chainId.constName,
-      flags.devMode.constName,
-      flags.log4j2Xml.constName,
-      flags.settingTxt.constName
+      flags.devMode.constName
     ])
     await nodeCmd.accountManager.close()
   }, 600000)

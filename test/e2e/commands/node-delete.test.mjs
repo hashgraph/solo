@@ -36,6 +36,7 @@ describe('Node delete', () => {
   argv[flags.nodeID.name] = nodeId
   argv[flags.generateGossipKeys.name] = true
   argv[flags.generateTlsKeys.name] = true
+  argv[flags.persistentVolumeClaims.name] = true
   argv[flags.keyFormat.name] = constants.KEY_FORMAT_PEM
   // set the env variable SOLO_FST_CHARTS_DIR if developer wants to use local FST charts
   argv[flags.chartDirectory.name] = process.env.SOLO_FST_CHARTS_DIR ? process.env.SOLO_FST_CHARTS_DIR : undefined

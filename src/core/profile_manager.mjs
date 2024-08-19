@@ -19,9 +19,11 @@ import path from 'path'
 import { FullstackTestingError, IllegalArgumentError, MissingArgumentError } from './errors.mjs'
 import * as yaml from 'js-yaml'
 import { flags } from '../commands/index.mjs'
-import { constants, helpers } from './index.mjs'
+import { constants, helpers, Templates } from './index.mjs'
 import dot from 'dot-object'
 import { getNodeAccountMap } from './helpers.mjs'
+import * as semver from 'semver'
+import { readFile, writeFile } from 'fs/promises'
 
 const consensusSidecars = [
   'recordStreamUploader', 'eventStreamUploader', 'backupUploader', 'accountBalanceUploader', 'otelCollector']
@@ -158,6 +160,46 @@ export class ProfileManager {
       this._setChartItems(`hedera.nodes.${nodeIndex}`, profile.consensus, yamlRoot)
     }
 
+    const stagingDir = Templates.renderStagingDir(
+      this.configManager.getFlag(flags.cacheDir),
+      this.configManager.getFlag(flags.releaseTag)
+    )
+
+    if (!fs.existsSync(stagingDir)) {
+      fs.mkdirSync(stagingDir, { recursive: true })
+    }
+
+    const configTxtPath = this.prepareConfigTxt(
+      this.configManager.getFlag(flags.namespace),
+      accountMap,
+      stagingDir,
+      this.configManager.getFlag(flags.releaseTag),
+      this.configManager.getFlag(flags.app),
+      this.configManager.getFlag(flags.chainId))
+
+    for (const flag of flags.nodeConfigFileFlags.values()) {
+      const filePath = this.configManager.getFlag(flag)
+      if (!filePath) {
+        throw new FullstackTestingError(`Configuration file path is missing for: ${flag.name}`)
+      }
+
+      const fileName = path.basename(filePath)
+      const destPath = path.join(stagingDir, 'templates', fileName)
+      this.logger.debug(`Copying configuration file to staging: ${filePath} -> ${destPath}`)
+
+      fs.cpSync(filePath, destPath, { force: true })
+    }
+
+    this._setFileContentsAsValue('hedera.configMaps.configTxt', configTxtPath, yamlRoot)
+    this._setFileContentsAsValue('hedera.configMaps.log4j2Xml', path.join(stagingDir, 'templates', 'log4j2.xml'), yamlRoot)
+    this._setFileContentsAsValue('hedera.configMaps.settingsTxt', path.join(stagingDir, 'templates', 'settings.txt'), yamlRoot)
+    this._setFileContentsAsValue('hedera.configMaps.applicationProperties', path.join(stagingDir, 'templates', 'application.properties'), yamlRoot)
+    this._setFileContentsAsValue('hedera.configMaps.apiPermissionsProperties', path.join(stagingDir, 'templates', 'api-permission.properties'), yamlRoot)
+    this._setFileContentsAsValue('hedera.configMaps.bootstrapProperties', path.join(stagingDir, 'templates', 'bootstrap.properties'), yamlRoot)
+    if (this.configManager.getFlag(flags.applicationEnv)) {
+      this._setFileContentsAsValue('hedera.configMaps.applicationEnv', this.configManager.getFlag(flags.applicationEnv), yamlRoot)
+    }
+
     if (profile.consensus) {
       // set default for consensus pod
       this._setChartItems('defaults.root', profile.consensus.root, yamlRoot)
@@ -211,10 +253,9 @@ export class ProfileManager {
   /**
    * Prepare a values file for FST Helm chart
    * @param {string} profileName resource profile name
-   * @param {string} applicationEnvFilePath path to the application.env file
    * @return {Promise<string>} return the full path to the values file
    */
-  prepareValuesForFstChart (profileName, applicationEnvFilePath = '') {
+  prepareValuesForFstChart (profileName) {
     if (!profileName) throw new MissingArgumentError('profileName is required')
     const profile = this.getProfile(profileName)
 
@@ -228,12 +269,41 @@ export class ProfileManager {
     this.resourcesForEnvoyProxyPod(profile, yamlRoot)
     this.resourcesForMinioTenantPod(profile, yamlRoot)
 
-    if (applicationEnvFilePath) {
-      this._setFileContentsAsValue('hedera.configMaps.applicationEnv', applicationEnvFilePath, yamlRoot)
-    }
-
     // write the yaml
     const cachedValuesFile = path.join(this.cacheDir, `fst-${profileName}.yaml`)
+    return new Promise((resolve, reject) => {
+      fs.writeFile(cachedValuesFile, yaml.dump(yamlRoot), (err) => {
+        if (err) {
+          reject(err)
+        }
+
+        resolve(cachedValuesFile)
+      })
+    })
+  }
+
+  async bumpHederaConfigVersion (applicationPropertiesPath) {
+    const lines = (await readFile(applicationPropertiesPath, 'utf-8')).split('\n')
+
+    for (const line of lines) {
+      if (line.startsWith('hedera.config.version=')) {
+        const version = parseInt(line.split('=')[1]) + 1
+        lines[lines.indexOf(line)] = `hedera.config.version=${version}`
+        break
+      }
+    }
+
+    await writeFile(applicationPropertiesPath, lines.join('\n'))
+  }
+
+  async prepareValuesForNodeAdd (configTxtPath, applicationPropertiesPath) {
+    const yamlRoot = {}
+    this._setFileContentsAsValue('hedera.configMaps.configTxt', configTxtPath, yamlRoot)
+    await this.bumpHederaConfigVersion(applicationPropertiesPath)
+    this._setFileContentsAsValue('hedera.configMaps.applicationProperties', applicationPropertiesPath, yamlRoot)
+
+    // write the yaml
+    const cachedValuesFile = path.join(this.cacheDir, 'fst-node-add.yaml')
     return new Promise((resolve, reject) => {
       fs.writeFile(cachedValuesFile, yaml.dump(yamlRoot), (err) => {
         if (err) {
@@ -322,5 +392,67 @@ export class ProfileManager {
   _setFileContentsAsValue (itemPath, valueFilePath, yamlRoot) {
     const fileContents = fs.readFileSync(valueFilePath, 'utf8')
     this._setValue(itemPath, fileContents, yamlRoot)
+  }
+
+  /**
+   * Prepares config.txt file for the node
+   * @param {string} namespace namespace where the network is deployed
+   * @param {Map<string, string>} nodeAccountMap the map of node IDs to account IDs
+   * @param {string} destPath path to the destination directory to write the config.txt file
+   * @param {string} releaseTag release tag e.g. v0.42.0
+   * @param {string} appName the app name (default: HederaNode.jar)
+   * @param {string} chainId chain ID (298 for local network)
+   * @param {string} template path to the config.template file
+   * @returns {string} the config.txt file path
+   */
+  prepareConfigTxt (namespace, nodeAccountMap, destPath, releaseTag, appName = constants.HEDERA_APP_NAME, chainId = constants.HEDERA_CHAIN_ID, template = path.join(constants.RESOURCES_DIR, 'templates', 'config.template')) {
+    if (!nodeAccountMap || nodeAccountMap.size === 0) throw new MissingArgumentError('nodeAccountMap the map of node IDs to account IDs is required')
+    if (!template) throw new MissingArgumentError('config templatePath is required')
+    if (!releaseTag) throw new MissingArgumentError('release tag is required')
+
+    if (!fs.existsSync(destPath)) throw new IllegalArgumentError(`config destPath does not exist: ${destPath}`, destPath)
+    if (!fs.existsSync(template)) throw new IllegalArgumentError(`config templatePath does not exist: ${template}`, template)
+
+    // init variables
+    const internalPort = constants.HEDERA_NODE_INTERNAL_GOSSIP_PORT
+    const externalPort = constants.HEDERA_NODE_EXTERNAL_GOSSIP_PORT
+    const nodeStakeAmount = constants.HEDERA_NODE_DEFAULT_STAKE_AMOUNT
+
+    const releaseVersion = semver.parse(releaseTag, { includePrerelease: true })
+
+    try {
+      /** @type {string[]} */
+      const configLines = fs.readFileSync(template, 'utf-8').split('\n')
+      configLines.push(`swirld, ${chainId}`)
+      configLines.push(`app, ${appName}`)
+
+      let nodeSeq = 0
+      for (const nodeID of nodeAccountMap.keys()) {
+        const nodeName = nodeID
+
+        const internalIP = Templates.renderFullyQualifiedNetworkPodName(namespace, nodeName)
+        const externalIP = Templates.renderFullyQualifiedNetworkSvcName(namespace, nodeName)
+
+        const account = nodeAccountMap.get(nodeID)
+        if (releaseVersion.minor >= 40) {
+          configLines.push(`address, ${nodeSeq}, ${nodeName}, ${nodeName}, ${nodeStakeAmount}, ${internalIP}, ${internalPort}, ${externalIP}, ${externalPort}, ${account}`)
+        } else {
+          configLines.push(`address, ${nodeSeq}, ${nodeName}, ${nodeStakeAmount}, ${internalIP}, ${internalPort}, ${externalIP}, ${externalPort}, ${account}`)
+        }
+
+        nodeSeq += 1
+      }
+
+      if (releaseVersion.minor >= 41) {
+        configLines.push(`nextNodeId, ${nodeSeq}`)
+      }
+
+      const configFilePath = path.join(destPath, 'config.txt')
+      fs.writeFileSync(configFilePath, configLines.join('\n'))
+
+      return configFilePath
+    } catch (e) {
+      throw new FullstackTestingError('failed to generate config.txt', e)
+    }
   }
 }

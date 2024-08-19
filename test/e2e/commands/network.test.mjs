@@ -66,6 +66,7 @@ describe('NetworkCommand', () => {
 
   const networkCmd = bootstrapResp.cmd.networkCmd
   const clusterCmd = bootstrapResp.cmd.clusterCmd
+  const initCmd = bootstrapResp.cmd.initCmd
 
   afterAll(async () => {
     await getNodeLogs(k8, namespace)
@@ -74,6 +75,7 @@ describe('NetworkCommand', () => {
   }, 180000)
 
   beforeAll(async () => {
+    await initCmd.init(argv)
     await clusterCmd.setup(argv)
     fs.mkdirSync(applicationEnvParentDirectory, { recursive: true })
     fs.writeFileSync(applicationEnvFilePath, applicationEnvFileContents)
@@ -92,12 +94,20 @@ describe('NetworkCommand', () => {
       networkCmd.logger.showList('PVCs', pvcs)
 
       expect(networkCmd.getUnusedConfigs(NetworkCommand.DEPLOY_CONFIGS_NAME)).toEqual([
+        flags.apiPermissionProperties.constName,
+        flags.app.constName,
+        flags.applicationEnv.constName,
+        flags.applicationProperties.constName,
+        flags.bootstrapProperties.constName,
+        flags.chainId.constName,
         flags.deployHederaExplorer.constName,
         flags.deployMirrorNode.constName,
         flags.hederaExplorerTlsHostName.constName,
         flags.hederaExplorerTlsLoadBalancerIp.constName,
+        flags.log4j2Xml.constName,
         flags.profileFile.constName,
         flags.profileName.constName,
+        flags.settingTxt.constName,
         flags.tlsClusterIssuerType.constName
       ])
     } catch (e) {

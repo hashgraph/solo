@@ -17,6 +17,7 @@
 export class NetworkNodeServices {
   constructor (builder) {
     this.nodeName = builder.nodeName
+    this.nodePodName = builder.nodePodName
     this.haProxyName = builder.haProxyName
     this.haProxyLoadBalancerIp = builder.haProxyLoadBalancerIp
     this.haProxyClusterIp = builder.haProxyClusterIp
@@ -84,6 +85,11 @@ export class NetworkNodeServicesBuilder {
 
   withHaProxyPodName (haProxyPodName) {
     this.haProxyPodName = haProxyPodName
+    return this
+  }
+
+  withNodePodName (nodePodName) {
+    this.nodePodName = nodePodName
     return this
   }
 

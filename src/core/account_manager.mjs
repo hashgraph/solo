@@ -39,6 +39,7 @@ import { FullstackTestingError, MissingArgumentError } from './errors.mjs'
 import { Templates } from './templates.mjs'
 import ip from 'ip'
 import { NetworkNodeServicesBuilder } from './network_node_services.mjs'
+import path from 'path'
 
 const REASON_FAILED_TO_GET_KEYS = 'failed to get keys for accountId'
 const REASON_SKIPPED = 'skipped since it does not have a genesis key'
@@ -231,7 +232,7 @@ export class AccountManager {
       // scheduleNetworkUpdate is set to false, because the ports 50212/50211 are hardcoded in JS SDK that will not work when running locally or in a pipeline
       this._nodeClient = Client.fromConfig({ network: nodes, scheduleNetworkUpdate: false })
       this._nodeClient.setOperator(operatorId, operatorKey)
-      this._nodeClient.setLogger(new Logger(LogLevel.Trace, `${constants.SOLO_LOGS_DIR}/hashgraph-sdk.log`))
+      this._nodeClient.setLogger(new Logger(LogLevel.Trace, path.join(constants.SOLO_LOGS_DIR, 'hashgraph-sdk.log')))
       this._nodeClient.setMaxAttempts(constants.NODE_CLIENT_MAX_ATTEMPTS)
       this._nodeClient.setMinBackoff(constants.NODE_CLIENT_MIN_BACKOFF)
       this._nodeClient.setMaxBackoff(constants.NODE_CLIENT_MAX_BACKOFF)
@@ -300,6 +301,15 @@ export class AccountManager {
       const podList = await this.k8.kubeClient.listNamespacedPod(
         namespace, null, null, null, null, `app=${serviceBuilder.haProxyAppSelector}`)
       serviceBuilder.withHaProxyPodName(podList.body.items[0].metadata.name)
+    }
+
+    // get the pod name of the network node
+    const pods = await this.k8.getPodsByLabel(['fullstack.hedera.com/type=network-node'])
+    for (const pod of pods) {
+      const podName = pod.metadata.name
+      const nodeName = pod.metadata.labels['fullstack.hedera.com/node-name']
+      const serviceBuilder = /** @type {NetworkNodeServicesBuilder} **/ serviceBuilderMap.get(nodeName)
+      serviceBuilder.withNodePodName(podName)
     }
 
     /** @type {Map<String,NetworkNodeServices>} **/
@@ -623,7 +633,7 @@ export class AccountManager {
 
     // ensure serviceEndpoint.ipAddressV4 value for all nodes in the addressBook is a 4 bytes array instead of string
     // See: https://github.com/hashgraph/hedera-protobufs/blob/main/services/basic_types.proto#L1309
-    // TODO: with v0.53 will mirror node no longer need this and we can remove @hashgraph/proto?
+    // TODO: with v0.53 will mirror node no longer need this and we can remove @hashgraph/proto: https://github.com/hashgraph/solo/issues/493
     const addressBook = HashgraphProto.proto.NodeAddressBook.decode(addressBookBytes)
     const hasAlphaRegEx = /[a-zA-Z]+/
     let modified = false

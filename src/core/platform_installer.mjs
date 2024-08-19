@@ -18,7 +18,6 @@ import * as fs from 'fs'
 import * as os from 'os'
 import { Listr } from 'listr2'
 import * as path from 'path'
-import * as semver from 'semver'
 import { FullstackTestingError, IllegalArgumentError, MissingArgumentError } from './errors.mjs'
 import { constants } from './index.mjs'
 import { Templates } from './templates.mjs'
@@ -154,18 +153,18 @@ export class PlatformInstaller {
       switch (keyFormat) {
         case constants.KEY_FORMAT_PEM:
           // copy private keys for the node
-          srcFiles.push(`${stagingDir}/keys/${Templates.renderGossipPemPrivateKeyFile(constants.SIGNING_KEY_PREFIX, nodeId)}`)
-          srcFiles.push(`${stagingDir}/keys/${Templates.renderGossipPemPrivateKeyFile(constants.AGREEMENT_KEY_PREFIX, nodeId)}`)
+          srcFiles.push(path.join(stagingDir, 'keys', Templates.renderGossipPemPrivateKeyFile(constants.SIGNING_KEY_PREFIX, nodeId)))
+          srcFiles.push(path.join(stagingDir, 'keys', Templates.renderGossipPemPrivateKeyFile(constants.AGREEMENT_KEY_PREFIX, nodeId)))
 
           // copy all public keys for all nodes
           nodeIds.forEach(id => {
-            srcFiles.push(`${stagingDir}/keys/${Templates.renderGossipPemPublicKeyFile(constants.SIGNING_KEY_PREFIX, id)}`)
-            srcFiles.push(`${stagingDir}/keys/${Templates.renderGossipPemPublicKeyFile(constants.AGREEMENT_KEY_PREFIX, id)}`)
+            srcFiles.push(path.join(stagingDir, 'keys', Templates.renderGossipPemPublicKeyFile(constants.SIGNING_KEY_PREFIX, id)))
+            srcFiles.push(path.join(stagingDir, 'keys', Templates.renderGossipPemPublicKeyFile(constants.AGREEMENT_KEY_PREFIX, id)))
           })
           break
         case constants.KEY_FORMAT_PFX:
-          srcFiles.push(`${stagingDir}/keys/${Templates.renderGossipPfxPrivateKeyFile(nodeId)}`)
-          srcFiles.push(`${stagingDir}/keys/${constants.PUBLIC_PFX}`)
+          srcFiles.push(path.join(stagingDir, 'keys', Templates.renderGossipPfxPrivateKeyFile(nodeId)))
+          srcFiles.push(path.join(stagingDir, 'keys', constants.PUBLIC_PFX))
           break
         default:
           throw new FullstackTestingError(`Unsupported key file format ${keyFormat}`)
@@ -174,35 +173,6 @@ export class PlatformInstaller {
       return await self.copyFiles(podName, srcFiles, keysDir)
     } catch (e) {
       throw new FullstackTestingError(`failed to copy gossip keys to pod '${podName}': ${e.message}`, e)
-    }
-  }
-
-  async copyPlatformConfigFiles (podName, stagingDir) {
-    const self = this
-
-    if (!podName) throw new MissingArgumentError('podName is required')
-    if (!stagingDir) throw new MissingArgumentError('stagingDir is required')
-
-    try {
-      const srcFilesSet1 = [
-        `${stagingDir}/config.txt`,
-        `${stagingDir}/templates/log4j2.xml`,
-        `${stagingDir}/templates/settings.txt`
-      ]
-
-      const fileList1 = await self.copyFiles(podName, srcFilesSet1, constants.HEDERA_HAPI_PATH)
-
-      const srcFilesSet2 = [
-        `${stagingDir}/templates/api-permission.properties`,
-        `${stagingDir}/templates/application.properties`,
-        `${stagingDir}/templates/bootstrap.properties`
-      ]
-
-      const fileList2 = await self.copyFiles(podName, srcFilesSet2, `${constants.HEDERA_HAPI_PATH}/data/config`)
-
-      return fileList1.concat(fileList2)
-    } catch (e) {
-      throw new FullstackTestingError(`failed to copy config files to pod '${podName}': ${e.message}`, e)
     }
   }
 
@@ -215,14 +185,14 @@ export class PlatformInstaller {
       const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), `${nodeId}-tls-keys-`))
 
       // rename files appropriately in the tmp directory
-      fs.cpSync(`${stagingDir}/keys/${Templates.renderTLSPemPrivateKeyFile(nodeId)}`,
-        `${tmpDir}/hedera.key`)
-      fs.cpSync(`${stagingDir}/keys/${Templates.renderTLSPemPublicKeyFile(nodeId)}`,
-        `${tmpDir}/hedera.crt`)
+      fs.cpSync(path.join(stagingDir, 'keys', Templates.renderTLSPemPrivateKeyFile(nodeId)),
+        path.join(tmpDir, 'hedera.key'))
+      fs.cpSync(path.join(stagingDir, 'keys', Templates.renderTLSPemPublicKeyFile(nodeId)),
+        path.join(tmpDir, 'hedera.crt'))
 
       const srcFiles = []
-      srcFiles.push(`${tmpDir}/hedera.key`)
-      srcFiles.push(`${tmpDir}/hedera.crt`)
+      srcFiles.push(path.join(tmpDir, 'hedera.key'))
+      srcFiles.push(path.join(tmpDir, 'hedera.crt'))
 
       return this.copyFiles(podName, srcFiles, constants.HEDERA_HAPI_PATH)
     } catch (e) {
@@ -269,70 +239,6 @@ export class PlatformInstaller {
   }
 
   /**
-   * Prepares config.txt file for the node
-   * @param nodeIDs node IDs
-   * @param destPath path where config.txt should be written
-   * @param releaseTag release tag e.g. v0.42.0
-   * @param template path to the config.template file
-   * @param chainId chain ID (298 for local network)
-   * @param appName the app name to be used in the config.txt (optional, defaults to HederaNode.jar)
-   * @returns {Promise<string[]>}
-   */
-  async prepareConfigTxt (nodeIDs, destPath, releaseTag, chainId = constants.HEDERA_CHAIN_ID, template = `${constants.RESOURCES_DIR}/templates/config.template`, appName = constants.HEDERA_APP_NAME) {
-    if (!nodeIDs || nodeIDs.length === 0) throw new MissingArgumentError('list of node IDs is required')
-    if (!destPath) throw new MissingArgumentError('destPath is required')
-    if (!template) throw new MissingArgumentError('config templatePath is required')
-    if (!releaseTag) throw new MissingArgumentError('release tag is required')
-
-    if (!fs.existsSync(path.dirname(destPath))) throw new IllegalArgumentError(`destPath does not exist: ${destPath}`, destPath)
-    if (!fs.existsSync(template)) throw new IllegalArgumentError(`config templatePath does not exist: ${template}`, destPath)
-
-    // init variables
-    const internalPort = constants.HEDERA_NODE_INTERNAL_GOSSIP_PORT
-    const externalPort = constants.HEDERA_NODE_EXTERNAL_GOSSIP_PORT
-    const nodeStakeAmount = constants.HEDERA_NODE_DEFAULT_STAKE_AMOUNT
-
-    const releaseVersion = semver.parse(releaseTag, { includePrerelease: true })
-
-    try {
-      const networkNodeServicesMap = await this.accountManager.getNodeServiceMap(this._getNamespace())
-      /** @type {string[]} */
-      const configLines = []
-      configLines.push(`swirld, ${chainId}`)
-      configLines.push(`app, ${appName}`)
-
-      let nodeSeq = 0
-      for (const nodeId of nodeIDs) {
-        const networkNodeServices = networkNodeServicesMap.get(nodeId)
-        const nodeName = nodeId
-        const nodeNickName = nodeId
-
-        const internalIP = Templates.renderFullyQualifiedNetworkPodName(this._getNamespace(), nodeId)
-        const externalIP = Templates.renderFullyQualifiedNetworkSvcName(this._getNamespace(), nodeId)
-
-        const account = networkNodeServices.accountId
-        if (releaseVersion.minor >= 40) {
-          configLines.push(`address, ${nodeSeq}, ${nodeNickName}, ${nodeName}, ${nodeStakeAmount}, ${internalIP}, ${internalPort}, ${externalIP}, ${externalPort}, ${account}`)
-        } else {
-          configLines.push(`address, ${nodeSeq}, ${nodeName}, ${nodeStakeAmount}, ${internalIP}, ${internalPort}, ${externalIP}, ${externalPort}, ${account}`)
-        }
-
-        nodeSeq += 1
-      }
-
-      if (releaseVersion.minor >= 41) {
-        configLines.push(`nextNodeId, ${nodeSeq}`)
-      }
-
-      fs.writeFileSync(destPath, configLines.join('\n'))
-
-      return configLines
-    } catch (e) {
-      throw new FullstackTestingError('failed to generate config.txt', e)
-    }
-  }
-
-  /**
    * Return a list of task to perform node installation
    *
    * It assumes the staging directory has the following files and resources:
@@ -342,20 +248,15 @@ export class PlatformInstaller {
    *   ${staging}/keys/a-<nodeId>.crt: agreement cert for a node
    *   ${staging}/keys/hedera-<nodeId>.key: gRPC TLS key for a node
    *   ${staging}/keys/hedera-<nodeId>.crt: gRPC TLS cert for a node
-   *   ${staging}/properties: contains all properties files
-   *   ${staging}/log4j2.xml: LOG4J file
-   *   ${staging}/settings.txt: settings.txt file for the network
-   *   ${staging}/config.txt: config.txt file for the network
    *
    * @param podName name of the pod
-   * @param buildZipFile path to the platform build.zip file
    * @param stagingDir staging directory path
    * @param nodeIds list of node ids
    * @param keyFormat key format (pfx or pem)
    * @param force force flag
    * @returns {Listr<ListrContext, ListrPrimaryRendererValue, ListrSecondaryRendererValue>}
    */
-  taskInstall (podName, buildZipFile, stagingDir, nodeIds, keyFormat = constants.KEY_FORMAT_PEM, force = false) {
+  taskInstall (podName, stagingDir, nodeIds, keyFormat = constants.KEY_FORMAT_PEM, force = false) {
     const self = this
     return new Listr([
       {
@@ -367,11 +268,6 @@ export class PlatformInstaller {
         title: 'Copy TLS keys',
         task: (_, task) =>
           self.copyTLSKeys(podName, stagingDir, keyFormat)
-      },
-      {
-        title: 'Copy configuration files',
-        task: (_, task) =>
-          self.copyPlatformConfigFiles(podName, stagingDir)
       },
       {
         title: 'Set file permissions',
