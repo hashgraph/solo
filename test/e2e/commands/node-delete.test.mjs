@@ -47,11 +47,6 @@ describe('Node delete', () => {
   const accountCmd = bootstrapResp.cmd.accountCmd
   const k8 = bootstrapResp.opts.k8
 
-  beforeAll(async () => {
-    const configManager = getTestConfigManager(`${namespace}-solo.config`)
-    configManager.update(argv, true)
-  }, defaultTimeout)
-
   afterAll(async () => {
     await getNodeLogs(k8, namespace)
     // await k8.deleteNamespace(namespace)
@@ -65,17 +60,14 @@ describe('Node delete', () => {
   it('should delete a new node to the network successfully', async () => {
     await nodeCmd.delete(argv)
     expect(nodeCmd.getUnusedConfigs(NodeCommand.DELETE_CONFIGS_NAME)).toEqual([
-      flags.apiPermissionProperties.constName,
-      flags.applicationProperties.constName,
-      flags.bootstrapProperties.constName,
+      flags.app.constName,
       flags.chainId.constName,
       flags.devMode.constName,
       flags.force.constName,
       flags.fstChartVersion.constName,
       flags.generateGossipKeys.constName,
       flags.generateTlsKeys.constName,
-      flags.log4j2Xml.constName,
-      flags.settingTxt.constName
+      flags.localBuildPath.constName
     ])
     await nodeCmd.accountManager.close()
   }, 600000)

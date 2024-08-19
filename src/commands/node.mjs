@@ -162,9 +162,7 @@ export class NodeCommand extends BaseCommand {
 
   static get DELETE_FLAGS_LIST () {
     return [
-      flags.apiPermissionProperties,
-      flags.applicationProperties,
-      flags.bootstrapProperties,
+      flags.app,
       flags.cacheDir,
       flags.chainId,
       flags.chartDirectory,
@@ -177,11 +175,10 @@ export class NodeCommand extends BaseCommand {
       flags.gossipEndpoints,
       flags.grpcEndpoints,
       flags.keyFormat,
-      flags.log4j2Xml,
+      flags.localBuildPath,
       flags.namespace,
       flags.nodeID,
-      flags.releaseTag,
-      flags.settingTxt
+      flags.releaseTag
     ]
   }
 
@@ -2145,18 +2142,15 @@ export class NodeCommand extends BaseCommand {
 
           // disable the prompts that we don't want to prompt the user for
           prompts.disablePrompts([
-            flags.apiPermissionProperties,
-            flags.applicationProperties,
-            flags.bootstrapProperties,
+            flags.app,
+            flags.chainId,
             flags.chartDirectory,
             flags.devMode,
             flags.endpointType,
             flags.force,
             flags.fstChartVersion,
             flags.gossipEndpoints,
-            flags.grpcEndpoints,
-            flags.log4j2Xml,
-            flags.settingTxt
+            flags.grpcEndpoints
           ])
 
           await prompts.execute(task, self.configManager, NodeCommand.UPDATE_FLAGS_LIST)
@@ -2613,18 +2607,16 @@ export class NodeCommand extends BaseCommand {
 
           // disable the prompts that we don't want to prompt the user for
           prompts.disablePrompts([
-            flags.apiPermissionProperties,
-            flags.applicationProperties,
-            flags.bootstrapProperties,
+            flags.app,
+            flags.chainId,
+            flags.localBuildPath,
             flags.chartDirectory,
             flags.devMode,
             flags.endpointType,
             flags.force,
             flags.fstChartVersion,
             flags.gossipEndpoints,
-            flags.grpcEndpoints,
-            flags.log4j2Xml,
-            flags.settingTxt
+            flags.grpcEndpoints
           ])
 
           await prompts.execute(task, self.configManager, NodeCommand.DELETE_FLAGS_LIST)
@@ -2632,9 +2624,7 @@ export class NodeCommand extends BaseCommand {
           /**
            * @typedef {Object} NodeDeleteConfigClass
            * -- flags --
-           * @property {string} apiPermissionProperties
-           * @property {string} applicationProperties
-           * @property {string} bootstrapProperties
+           * @property {string} app
            * @property {string} cacheDir
            * @property {string} chainId
            * @property {string} chartDirectory
@@ -2647,15 +2637,13 @@ export class NodeCommand extends BaseCommand {
            * @property {string} gossipEndpoints
            * @property {string} grpcEndpoints
            * @property {string} keyFormat
-           * @property {string} log4j2Xml
+           * @property {string} localBuildPath
            * @property {string} namespace
            * @property {string} nodeId
            * @property {string} releaseTag
-           * @property {string} settingTxt
            * -- extra args --
            * @property {PrivateKey} adminKey
            * @property {string[]} allNodeIds
-           * @property {string} buildZipFile
            * @property {string} chartPath
            * @property {Date} curDate
            * @property {string[]} existingNodeIds
@@ -2663,9 +2651,7 @@ export class NodeCommand extends BaseCommand {
            * @property {string} keysDir
            * @property {string} lastStateZipPath
            * @property {Object} nodeClient
-           * @property {string[]} nodeIds
            * @property {Object} podNames
-           * @property {string} releasePrefix
            * @property {Map<String, NetworkNodeServices>} serviceMap
            * @property {PrivateKey} treasuryKey
            * @property {string} stagingDir
@@ -2688,7 +2674,6 @@ export class NodeCommand extends BaseCommand {
               'keysDir',
               'nodeClient',
               'podNames',
-              'releasePrefix',
               'serviceMap',
               'stagingDir',
               'stagingKeysDir',
@@ -2697,13 +2682,12 @@ export class NodeCommand extends BaseCommand {
 
           config.curDate = new Date()
           config.existingNodeIds = []
-          config.nodeIds = [config.nodeId]
 
           if (config.keyFormat !== constants.KEY_FORMAT_PEM) {
             throw new FullstackTestingError('key type cannot be PFX')
           }
 
-          await self.initializeSetup(config, self.configManager, self.k8)
+          await self.initializeSetup(config, self.k8)
 
           // set config in the context for later tasks to use
           ctx.config = config
@@ -2727,13 +2711,14 @@ export class NodeCommand extends BaseCommand {
       {
         title: 'Identify existing network nodes',
         task: async (ctx, task) => {
-          ctx.config.serviceMap = await self.accountManager.getNodeServiceMap(
-            ctx.config.namespace)
-          for (/** @type {NetworkNodeServices} **/ const networkNodeServices of ctx.config.serviceMap.values()) {
-            ctx.config.existingNodeIds.push(networkNodeServices.nodeName)
+          const config = /** @type {NodeAddConfigClass} **/ ctx.config
+          config.serviceMap = await self.accountManager.getNodeServiceMap(
+            config.namespace)
+          for (/** @type {NetworkNodeServices} **/ const networkNodeServices of config.serviceMap.values()) {
+            config.existingNodeIds.push(networkNodeServices.nodeName)
           }
 
-          return self.taskCheckNetworkNodePods(ctx, task, ctx.config.existingNodeIds)
+          return self.taskCheckNetworkNodePods(ctx, task, config.existingNodeIds)
         }
       },
 
@@ -2884,7 +2869,7 @@ export class NodeCommand extends BaseCommand {
 
       {
         title: 'Start network nodes',
-        task: (ctx, task) => {
+        task: async (ctx, task) => {
           const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
           const subTasks = []
 
