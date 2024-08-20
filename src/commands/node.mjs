@@ -2226,6 +2226,187 @@ export class NodeCommand extends BaseCommand {
     }
   }
 
+  // Command Definition
+  /**
+   * Return Yargs command definition for 'node' command
+   * @param nodeCmd an instance of NodeCommand
+   */
+  static getCommandDefinition (nodeCmd) {
+    if (!nodeCmd || !(nodeCmd instanceof NodeCommand)) {
+      throw new IllegalArgumentError('An instance of NodeCommand is required', nodeCmd)
+    }
+    return {
+      command: 'node',
+      desc: 'Manage Hedera platform node in fullstack testing network',
+      builder: yargs => {
+        return yargs
+          .command({
+            command: 'setup',
+            desc: 'Setup node with a specific version of Hedera platform',
+            builder: y => flags.setCommandFlags(y, ...NodeCommand.SETUP_FLAGS_LIST),
+            handler: argv => {
+              nodeCmd.logger.debug('==== Running \'node setup\' ===')
+              nodeCmd.logger.debug(argv)
+
+              nodeCmd.setup(argv).then(r => {
+                nodeCmd.logger.debug('==== Finished running `node setup`====')
+                if (!r) process.exit(1)
+              }).catch(err => {
+                nodeCmd.logger.showUserError(err)
+                process.exit(1)
+              })
+            }
+          })
+          .command({
+            command: 'start',
+            desc: 'Start a node',
+            builder: y => flags.setCommandFlags(y,
+              flags.app,
+              flags.namespace,
+              flags.nodeIDs
+            ),
+            handler: argv => {
+              nodeCmd.logger.debug('==== Running \'node start\' ===')
+              nodeCmd.logger.debug(argv)
+
+              nodeCmd.start(argv).then(r => {
+                nodeCmd.logger.debug('==== Finished running `node start`====')
+                if (!r) process.exit(1)
+              }).catch(err => {
+                nodeCmd.logger.showUserError(err)
+                process.exit(1)
+              })
+            }
+          })
+          .command({
+            command: 'stop',
+            desc: 'Stop a node',
+            builder: y => flags.setCommandFlags(y,
+              flags.namespace,
+              flags.nodeIDs
+            ),
+            handler: argv => {
+              nodeCmd.logger.debug('==== Running \'node stop\' ===')
+              nodeCmd.logger.debug(argv)
+
+              nodeCmd.stop(argv).then(r => {
+                nodeCmd.logger.debug('==== Finished running `node stop`====')
+                if (!r) process.exit(1)
+              }).catch(err => {
+                nodeCmd.logger.showUserError(err)
+                process.exit(1)
+              })
+            }
+          })
+          .command({
+            command: 'keys',
+            desc: 'Generate node keys',
+            builder: y => flags.setCommandFlags(y, ...NodeCommand.KEYS_FLAGS_LIST),
+            handler: argv => {
+              nodeCmd.logger.debug('==== Running \'node keys\' ===')
+              nodeCmd.logger.debug(argv)
+
+              nodeCmd.keys(argv).then(r => {
+                nodeCmd.logger.debug('==== Finished running `node keys`====')
+                if (!r) process.exit(1)
+              }).catch(err => {
+                nodeCmd.logger.showUserError(err)
+                process.exit(1)
+              })
+            }
+          })
+          .command({
+            command: 'refresh',
+            desc: 'Reset and restart a node',
+            builder: y => flags.setCommandFlags(y, ...NodeCommand.REFRESH_FLAGS_LIST),
+            handler: argv => {
+              nodeCmd.logger.debug('==== Running \'node refresh\' ===')
+              nodeCmd.logger.debug(argv)
+
+              nodeCmd.refresh(argv).then(r => {
+                nodeCmd.logger.debug('==== Finished running `node refresh`====')
+                if (!r) process.exit(1)
+              }).catch(err => {
+                nodeCmd.logger.showUserError(err)
+                process.exit(1)
+              })
+            }
+          })
+          .command({
+            command: 'logs',
+            desc: 'Download application logs from the network nodes and stores them in <SOLO_LOGS_DIR>/<namespace>/<podName>/ directory',
+            builder: y => flags.setCommandFlags(y,
+              flags.nodeIDs
+            ),
+            handler: argv => {
+              nodeCmd.logger.debug('==== Running \'node logs\' ===')
+              nodeCmd.logger.debug(argv)
+
+              nodeCmd.logs(argv).then(r => {
+                nodeCmd.logger.debug('==== Finished running `node logs`====')
+                if (!r) process.exit(1)
+              }).catch(err => {
+                nodeCmd.logger.showUserError(err)
+                process.exit(1)
+              })
+            }
+          })
+          .command({
+            command: 'add',
+            desc: 'Adds a node with a specific version of Hedera platform',
+            builder: y => flags.setCommandFlags(y, ...NodeCommand.ADD_FLAGS_LIST),
+            handler: argv => {
+              nodeCmd.logger.debug('==== Running \'node add\' ===')
+              nodeCmd.logger.debug(argv)
+
+              nodeCmd.add(argv).then(r => {
+                nodeCmd.logger.debug('==== Finished running `node add`====')
+                if (!r) process.exit(1)
+              }).catch(err => {
+                nodeCmd.logger.showUserError(err)
+                process.exit(1)
+              })
+            }
+          })
+          .command({
+            command: 'update',
+            desc: 'Update a node with a specific version of Hedera platform',
+            builder: y => flags.setCommandFlags(y, ...NodeCommand.ADD_FLAGS_LIST),
+            handler: argv => {
+              nodeCmd.logger.debug('==== Running \'node update\' ===')
+              nodeCmd.logger.debug(argv)
+
+              nodeCmd.update(argv).then(r => {
+                nodeCmd.logger.debug('==== Finished running `node update`====')
+                if (!r) process.exit(1)
+              }).catch(err => {
+                nodeCmd.logger.showUserError(err)
+                process.exit(1)
+              })
+            }
+          })
+          .command({
+            command: 'delete',
+            desc: 'Delete a node with a specific version of Hedera platform',
+            builder: y => flags.setCommandFlags(y, ...NodeCommand.DELETE_FLAGS_LIST),
+            handler: argv => {
+              nodeCmd.logger.debug('==== Running \'node delete\' ===')
+              nodeCmd.logger.debug(argv)
+
+              nodeCmd.delete(argv).then(r => {
+                nodeCmd.logger.debug('==== Finished running `node add`====')
+                if (!r) process.exit(1)
+              }).catch(err => {
+                nodeCmd.logger.showUserError(err)
+                process.exit(1)
+              })
+            }
+          })
+          .demandCommand(1, 'Select a node command')
+      }
+    }
+  }
+
   async update (argv) {
     const self = this
 
@@ -3045,186 +3226,5 @@ export class NodeCommand extends BaseCommand {
     }
 
     return true
-  }
-
-  // Command Definition
-  /**
-   * Return Yargs command definition for 'node' command
-   * @param nodeCmd an instance of NodeCommand
-   */
-  static getCommandDefinition (nodeCmd) {
-    if (!nodeCmd || !(nodeCmd instanceof NodeCommand)) {
-      throw new IllegalArgumentError('An instance of NodeCommand is required', nodeCmd)
-    }
-    return {
-      command: 'node',
-      desc: 'Manage Hedera platform node in fullstack testing network',
-      builder: yargs => {
-        return yargs
-          .command({
-            command: 'setup',
-            desc: 'Setup node with a specific version of Hedera platform',
-            builder: y => flags.setCommandFlags(y, ...NodeCommand.SETUP_FLAGS_LIST),
-            handler: argv => {
-              nodeCmd.logger.debug('==== Running \'node setup\' ===')
-              nodeCmd.logger.debug(argv)
-
-              nodeCmd.setup(argv).then(r => {
-                nodeCmd.logger.debug('==== Finished running `node setup`====')
-                if (!r) process.exit(1)
-              }).catch(err => {
-                nodeCmd.logger.showUserError(err)
-                process.exit(1)
-              })
-            }
-          })
-          .command({
-            command: 'start',
-            desc: 'Start a node',
-            builder: y => flags.setCommandFlags(y,
-              flags.app,
-              flags.namespace,
-              flags.nodeIDs
-            ),
-            handler: argv => {
-              nodeCmd.logger.debug('==== Running \'node start\' ===')
-              nodeCmd.logger.debug(argv)
-
-              nodeCmd.start(argv).then(r => {
-                nodeCmd.logger.debug('==== Finished running `node start`====')
-                if (!r) process.exit(1)
-              }).catch(err => {
-                nodeCmd.logger.showUserError(err)
-                process.exit(1)
-              })
-            }
-          })
-          .command({
-            command: 'stop',
-            desc: 'Stop a node',
-            builder: y => flags.setCommandFlags(y,
-              flags.namespace,
-              flags.nodeIDs
-            ),
-            handler: argv => {
-              nodeCmd.logger.debug('==== Running \'node stop\' ===')
-              nodeCmd.logger.debug(argv)
-
-              nodeCmd.stop(argv).then(r => {
-                nodeCmd.logger.debug('==== Finished running `node stop`====')
-                if (!r) process.exit(1)
-              }).catch(err => {
-                nodeCmd.logger.showUserError(err)
-                process.exit(1)
-              })
-            }
-          })
-          .command({
-            command: 'keys',
-            desc: 'Generate node keys',
-            builder: y => flags.setCommandFlags(y, ...NodeCommand.KEYS_FLAGS_LIST),
-            handler: argv => {
-              nodeCmd.logger.debug('==== Running \'node keys\' ===')
-              nodeCmd.logger.debug(argv)
-
-              nodeCmd.keys(argv).then(r => {
-                nodeCmd.logger.debug('==== Finished running `node keys`====')
-                if (!r) process.exit(1)
-              }).catch(err => {
-                nodeCmd.logger.showUserError(err)
-                process.exit(1)
-              })
-            }
-          })
-          .command({
-            command: 'refresh',
-            desc: 'Reset and restart a node',
-            builder: y => flags.setCommandFlags(y, ...NodeCommand.REFRESH_FLAGS_LIST),
-            handler: argv => {
-              nodeCmd.logger.debug('==== Running \'node refresh\' ===')
-              nodeCmd.logger.debug(argv)
-
-              nodeCmd.refresh(argv).then(r => {
-                nodeCmd.logger.debug('==== Finished running `node refresh`====')
-                if (!r) process.exit(1)
-              }).catch(err => {
-                nodeCmd.logger.showUserError(err)
-                process.exit(1)
-              })
-            }
-          })
-          .command({
-            command: 'logs',
-            desc: 'Download application logs from the network nodes and stores them in <SOLO_LOGS_DIR>/<namespace>/<podName>/ directory',
-            builder: y => flags.setCommandFlags(y,
-              flags.nodeIDs
-            ),
-            handler: argv => {
-              nodeCmd.logger.debug('==== Running \'node logs\' ===')
-              nodeCmd.logger.debug(argv)
-
-              nodeCmd.logs(argv).then(r => {
-                nodeCmd.logger.debug('==== Finished running `node logs`====')
-                if (!r) process.exit(1)
-              }).catch(err => {
-                nodeCmd.logger.showUserError(err)
-                process.exit(1)
-              })
-            }
-          })
-          .command({
-            command: 'add',
-            desc: 'Adds a node with a specific version of Hedera platform',
-            builder: y => flags.setCommandFlags(y, ...NodeCommand.ADD_FLAGS_LIST),
-            handler: argv => {
-              nodeCmd.logger.debug('==== Running \'node add\' ===')
-              nodeCmd.logger.debug(argv)
-
-              nodeCmd.add(argv).then(r => {
-                nodeCmd.logger.debug('==== Finished running `node add`====')
-                if (!r) process.exit(1)
-              }).catch(err => {
-                nodeCmd.logger.showUserError(err)
-                process.exit(1)
-              })
-            }
-          })
-          .command({
-            command: 'update',
-            desc: 'Update a node with a specific version of Hedera platform',
-            builder: y => flags.setCommandFlags(y, ...NodeCommand.ADD_FLAGS_LIST),
-            handler: argv => {
-              nodeCmd.logger.debug('==== Running \'node update\' ===')
-              nodeCmd.logger.debug(argv)
-
-              nodeCmd.update(argv).then(r => {
-                nodeCmd.logger.debug('==== Finished running `node update`====')
-                if (!r) process.exit(1)
-              }).catch(err => {
-                nodeCmd.logger.showUserError(err)
-                process.exit(1)
-              })
-            }
-          })
-          .command({
-            command: 'delete',
-            desc: 'Delete a node with a specific version of Hedera platform',
-            builder: y => flags.setCommandFlags(y, ...NodeCommand.DELETE_FLAGS_LIST),
-            handler: argv => {
-              nodeCmd.logger.debug('==== Running \'node delete\' ===')
-              nodeCmd.logger.debug(argv)
-
-              nodeCmd.delete(argv).then(r => {
-                nodeCmd.logger.debug('==== Finished running `node add`====')
-                if (!r) process.exit(1)
-              }).catch(err => {
-                nodeCmd.logger.showUserError(err)
-                process.exit(1)
-              })
-            }
-          })
-          .demandCommand(1, 'Select a node command')
-      }
-    }
   }
 }
