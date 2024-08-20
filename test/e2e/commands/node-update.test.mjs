@@ -15,14 +15,14 @@
  *
  * @jest-environment steps
  */
-import { afterAll, beforeAll, describe, expect, it } from '@jest/globals'
+import { afterAll, describe, expect, it } from '@jest/globals'
 import { flags } from '../../../src/commands/index.mjs'
 import { constants } from '../../../src/core/index.mjs'
 import {
   accountCreationShouldSucceed,
   balanceQueryShouldSucceed,
   bootstrapNetwork,
-  getDefaultArgv, getNodeIdsPrivateKeysHash, getTestConfigManager, getTmpDir,
+  getDefaultArgv, getNodeIdsPrivateKeysHash, getTmpDir,
   HEDERA_PLATFORM_VERSION_TAG
 } from '../../test_util.js'
 import { getNodeLogs } from '../../../src/core/helpers.mjs'
@@ -71,7 +71,7 @@ describe('Node add', () => {
     expect(nodeCmd.getUnusedConfigs(NodeCommand.UPDATE_CONFIGS_NAME)).toEqual([
       flags.app.constName,
       flags.chainId.constName,
-      flags.devMode.constName,
+      flags.devMode.constName
     ])
     await nodeCmd.accountManager.close()
   }, 600000)

@@ -2413,7 +2413,7 @@ export class NodeCommand extends BaseCommand {
             this.logger.error(`Error updating node to network: ${e.message}`, e)
             // log error stack trace
             this.logger.error(e.stack)
-            console.error(e);
+            console.error(e)
             throw new FullstackTestingError(`Error updating node to network: ${e.message}`, e)
           }
         }

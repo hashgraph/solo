@@ -15,19 +15,18 @@
  *
  * @jest-environment steps
  */
-import { afterAll, beforeAll, describe, expect, it } from '@jest/globals'
+import { afterAll, describe, expect, it } from '@jest/globals'
 import { flags } from '../../../src/commands/index.mjs'
 import { constants } from '../../../src/core/index.mjs'
 import {
   bootstrapNetwork,
-  getDefaultArgv, getTestConfigManager,
+  getDefaultArgv,
   HEDERA_PLATFORM_VERSION_TAG
 } from '../../test_util.js'
 import { getNodeLogs } from '../../../src/core/helpers.mjs'
 import { NodeCommand } from '../../../src/commands/node.mjs'
 
 describe('Node delete', () => {
-  const defaultTimeout = 120000
   const namespace = 'node-delete'
   const nodeId = 'node4'
   const argv = getDefaultArgv()
