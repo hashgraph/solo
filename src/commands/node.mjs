@@ -2498,31 +2498,31 @@ export class NodeCommand extends BaseCommand {
           })
         }
       },
-      {
-        title: 'Setup new network node',
-        task: async (ctx, parentTask) => {
-          const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
-
-          // modify application.properties to trick Hedera Services into receiving an updated address book
-          await self.bumpHederaConfigVersion(`${config.stagingDir}/templates/application.properties`)
-
-          const subTasks = []
-          for (const nodeId of config.allNodeIds) {
-            const podName = config.podNames[nodeId]
-            subTasks.push({
-              title: `Node: ${chalk.yellow(nodeId)}`,
-              task: () =>
-                self.platformInstaller.taskInstall(podName, config.buildZipFile, config.stagingDir, config.allNodeIds, config.keyFormat, config.force)
-            })
-          }
-
-          // set up the sub-tasks
-          return parentTask.newListr(subTasks, {
-            concurrent: true,
-            rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
-          })
-        }
-      },
+      // {
+      //   title: 'Setup new network node',
+      //   task: async (ctx, parentTask) => {
+      //     const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
+      //
+      //     // modify application.properties to trick Hedera Services into receiving an updated address book
+      //     await self.bumpHederaConfigVersion(`${config.stagingDir}/templates/application.properties`)
+      //
+      //     const subTasks = []
+      //     for (const nodeId of config.allNodeIds) {
+      //       const podName = config.podNames[nodeId]
+      //       subTasks.push({
+      //         title: `Node: ${chalk.yellow(nodeId)}`,
+      //         task: () =>
+      //           self.platformInstaller.taskInstall(podName, config.buildZipFile, config.stagingDir, config.allNodeIds, config.keyFormat, config.force)
+      //       })
+      //     }
+      //
+      //     // set up the sub-tasks
+      //     return parentTask.newListr(subTasks, {
+      //       concurrent: true,
+      //       rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
+      //     })
+      //   }
+      // },
       {
         title: 'Start network nodes',
         task: async (ctx, task) => {
