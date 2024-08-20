@@ -191,17 +191,11 @@ export class NodeCommand extends BaseCommand {
       flags.app,
       flags.cacheDir,
       flags.chainId,
-      flags.chartDirectory,
       flags.devMode,
       flags.endpointType,
-      flags.force,
-      flags.fstChartVersion,
-      flags.generateGossipKeys,
-      flags.generateTlsKeys,
       flags.gossipEndpoints,
       flags.grpcEndpoints,
       flags.keyFormat,
-      flags.localBuildPath,
       flags.namespace,
       flags.nodeID,
       flags.releaseTag
@@ -2455,12 +2449,9 @@ export class NodeCommand extends BaseCommand {
            * -- extra args --
            * @property {PrivateKey} adminKey
            * @property {string[]} allNodeIds
-           * @property {string} chartPath
-           * @property {Date} curDate
            * @property {string[]} existingNodeIds
            * @property {string} freezeAdminPrivateKey
            * @property {string} keysDir
-           * @property {string} lastStateZipPath
            * @property {Object} nodeClient
            * @property {Object} podNames
            * @property {Map<String, NetworkNodeServices>} serviceMap
@@ -2480,12 +2471,9 @@ export class NodeCommand extends BaseCommand {
             [
               'adminKey',
               'allNodeIds',
-              'chartPath',
-              'curDate',
               'existingNodeIds',
               'freezeAdminPrivateKey',
               'keysDir',
-              'lastStateZipPath',
               'nodeClient',
               'podNames',
               'serviceMap',
@@ -2896,12 +2884,9 @@ export class NodeCommand extends BaseCommand {
            * -- extra args --
            * @property {PrivateKey} adminKey
            * @property {string[]} allNodeIds
-           * @property {string} chartPath
-           * @property {Date} curDate
            * @property {string[]} existingNodeIds
            * @property {string} freezeAdminPrivateKey
            * @property {string} keysDir
-           * @property {string} lastStateZipPath
            * @property {Object} nodeClient
            * @property {Object} podNames
            * @property {Map<String, NetworkNodeServices>} serviceMap
