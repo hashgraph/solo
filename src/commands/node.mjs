@@ -2243,14 +2243,6 @@ export class NodeCommand extends BaseCommand {
           self.logger.debug('Initialized config', { config })
         }
       },
-      // {
-      //   title: 'Check that PVCs are enabled',
-      //   task: async (ctx, task) => {
-      //     if (!self.configManager.getFlag(flags.persistentVolumeClaims)) {
-      //       throw new FullstackTestingError('PVCs are not enabled. Please enable PVCs before adding a node')
-      //     }
-      //   }
-      // },
       {
         title: 'Identify existing network nodes',
         task: async (ctx, task) => {
@@ -2470,64 +2462,11 @@ export class NodeCommand extends BaseCommand {
         }
       },
       {
-        title: 'Prepare staging directory',
-        task: async (ctx, parentTask) => {
-          const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
-          const subTasks = [
-            {
-              title: 'Copy configuration files',
-              task: () => {
-                for (const flag of flags.nodeConfigFileFlags.values()) {
-                  const filePath = self.configManager.getFlag(flag)
-                  if (!filePath) {
-                    throw new FullstackTestingError(`Configuration file path is missing for: ${flag.name}`)
-                  }
-
-                  const fileName = path.basename(filePath)
-                  const destPath = `${config.stagingDir}/templates/${fileName}`
-                  self.logger.debug(`Copying configuration file to staging: ${filePath} -> ${destPath}`)
-
-                  fs.cpSync(filePath, destPath, { force: true })
-                }
-              }
-            }
-          ]
-          return parentTask.newListr(subTasks, {
-            concurrent: false,
-            rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
-          })
-        }
-      },
-      // {
-      //   title: 'Setup new network node',
-      //   task: async (ctx, parentTask) => {
-      //     const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
-      //
-      //     // modify application.properties to trick Hedera Services into receiving an updated address book
-      //     await self.bumpHederaConfigVersion(`${config.stagingDir}/templates/application.properties`)
-      //
-      //     const subTasks = []
-      //     for (const nodeId of config.allNodeIds) {
-      //       const podName = config.podNames[nodeId]
-      //       subTasks.push({
-      //         title: `Node: ${chalk.yellow(nodeId)}`,
-      //         task: () =>
-      //           self.platformInstaller.taskInstall(podName, config.buildZipFile, config.stagingDir, config.allNodeIds, config.keyFormat, config.force)
-      //       })
-      //     }
-      //
-      //     // set up the sub-tasks
-      //     return parentTask.newListr(subTasks, {
-      //       concurrent: true,
-      //       rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
-      //     })
-      //   }
-      // },
-      {
         title: 'Start network nodes',
         task: async (ctx, task) => {
           const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
           const subTasks = []
+          ctx.config.allNodeIds = ctx.config.existingNodeIds
           self.startNodes(config.podNames, config.allNodeIds, subTasks)
 
           // set up the sub-tasks
