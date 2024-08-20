@@ -31,7 +31,7 @@ import { NodeCommand } from '../../../src/commands/node.mjs'
 describe('Node add', () => {
   const defaultTimeout = 120000
   const namespace = 'node-update'
-  const nodeId = 'node4'
+  const nodeId = 'node3'
   const argv = getDefaultArgv()
   argv[flags.keyFormat.name] = constants.KEY_FORMAT_PEM
   argv[flags.nodeIDs.name] = 'node1,node2,node3'
