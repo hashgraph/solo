@@ -70,7 +70,6 @@ describe('Node add', () => {
     await nodeCmd.update(argv)
     expect(nodeCmd.getUnusedConfigs(NodeCommand.UPDATE_CONFIGS_NAME)).toEqual([
       flags.app.constName,
-      flags.chainId.constName,
       flags.devMode.constName
     ])
     await nodeCmd.accountManager.close()

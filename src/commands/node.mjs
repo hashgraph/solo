@@ -164,18 +164,10 @@ export class NodeCommand extends BaseCommand {
     return [
       flags.app,
       flags.cacheDir,
-      flags.chainId,
-      flags.chartDirectory,
       flags.devMode,
       flags.endpointType,
-      flags.force,
-      flags.fstChartVersion,
-      flags.generateGossipKeys,
-      flags.generateTlsKeys,
       flags.gossipEndpoints,
       flags.grpcEndpoints,
-      flags.keyFormat,
-      flags.localBuildPath,
       flags.namespace,
       flags.nodeID,
       flags.releaseTag
@@ -190,12 +182,10 @@ export class NodeCommand extends BaseCommand {
     return [
       flags.app,
       flags.cacheDir,
-      flags.chainId,
       flags.devMode,
       flags.endpointType,
       flags.gossipEndpoints,
       flags.grpcEndpoints,
-      flags.keyFormat,
       flags.namespace,
       flags.nodeID,
       flags.releaseTag
@@ -2365,7 +2355,7 @@ export class NodeCommand extends BaseCommand {
           .command({
             command: 'update',
             desc: 'Update a node with a specific version of Hedera platform',
-            builder: y => flags.setCommandFlags(y, ...NodeCommand.ADD_FLAGS_LIST),
+            builder: y => flags.setCommandFlags(y, ...NodeCommand.UPDATE_FLAGS_LIST),
             handler: argv => {
               nodeCmd.logger.debug('==== Running \'node update\' ===')
               nodeCmd.logger.debug(argv)
@@ -2413,7 +2403,6 @@ export class NodeCommand extends BaseCommand {
           // disable the prompts that we don't want to prompt the user for
           prompts.disablePrompts([
             flags.app,
-            flags.chainId,
             flags.chartDirectory,
             flags.devMode,
             flags.localBuildPath,
@@ -2431,18 +2420,10 @@ export class NodeCommand extends BaseCommand {
            * -- flags --
            * @property {string} app
            * @property {string} cacheDir
-           * @property {string} chainId
-           * @property {string} chartDirectory
            * @property {boolean} devMode
            * @property {string} endpointType
-           * @property {boolean} force
-           * @property {string} fstChartVersion
-           * @property {boolean} generateGossipKeys
-           * @property {boolean} generateTlsKeys
            * @property {string} gossipEndpoints
            * @property {string} grpcEndpoints
-           * @property {string} keyFormat
-           * @property {string} localBuildPath
            * @property {string} namespace
            * @property {string} nodeId
            * @property {string} releaseTag
@@ -2484,10 +2465,6 @@ export class NodeCommand extends BaseCommand {
 
           config.curDate = new Date()
           config.existingNodeIds = []
-
-          if (config.keyFormat !== constants.KEY_FORMAT_PEM) {
-            throw new FullstackTestingError('key type cannot be PFX')
-          }
 
           await self.initializeSetup(config, self.k8)
 
@@ -2866,18 +2843,10 @@ export class NodeCommand extends BaseCommand {
            * -- flags --
            * @property {string} app
            * @property {string} cacheDir
-           * @property {string} chainId
-           * @property {string} chartDirectory
            * @property {boolean} devMode
            * @property {string} endpointType
-           * @property {boolean} force
-           * @property {string} fstChartVersion
-           * @property {boolean} generateGossipKeys
-           * @property {boolean} generateTlsKeys
            * @property {string} gossipEndpoints
            * @property {string} grpcEndpoints
-           * @property {string} keyFormat
-           * @property {string} localBuildPath
            * @property {string} namespace
            * @property {string} nodeId
            * @property {string} releaseTag
@@ -2919,10 +2888,6 @@ export class NodeCommand extends BaseCommand {
 
           config.curDate = new Date()
           config.existingNodeIds = []
-
-          if (config.keyFormat !== constants.KEY_FORMAT_PEM) {
-            throw new FullstackTestingError('key type cannot be PFX')
-          }
 
           await self.initializeSetup(config, self.k8)
 

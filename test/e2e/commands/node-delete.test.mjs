@@ -60,13 +60,7 @@ describe('Node delete', () => {
     await nodeCmd.delete(argv)
     expect(nodeCmd.getUnusedConfigs(NodeCommand.DELETE_CONFIGS_NAME)).toEqual([
       flags.app.constName,
-      flags.chainId.constName,
-      flags.devMode.constName,
-      flags.force.constName,
-      flags.fstChartVersion.constName,
-      flags.generateGossipKeys.constName,
-      flags.generateTlsKeys.constName,
-      flags.localBuildPath.constName
+      flags.devMode.constName
     ])
     await nodeCmd.accountManager.close()
   }, 600000)
