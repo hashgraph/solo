@@ -2490,7 +2490,7 @@ export class NodeCommand extends BaseCommand {
       {
         title: 'Identify existing network nodes',
         task: async (ctx, task) => {
-          const config = /** @type {NodeAddConfigClass} **/ ctx.config
+          const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
           config.serviceMap = await self.accountManager.getNodeServiceMap(
             config.namespace)
           for (/** @type {NetworkNodeServices} **/ const networkNodeServices of config.serviceMap.values()) {
@@ -2503,7 +2503,7 @@ export class NodeCommand extends BaseCommand {
       {
         title: 'Determine new node account number',
         task: (ctx, task) => {
-          const config = /** @type {NodeAddConfigClass} **/ ctx.config
+          const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
           const values = { hedera: { nodes: [] } }
           let maxNum = 0
 
@@ -2527,7 +2527,7 @@ export class NodeCommand extends BaseCommand {
       {
         title: 'Load signing key certificate',
         task: async (ctx, task) => {
-          const config = /** @type {NodeAddConfigClass} **/ ctx.config
+          const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
           const signingCertFile = Templates.renderGossipPemPublicKeyFile(constants.SIGNING_KEY_PREFIX, config.nodeId)
           const signingCertFullPath = path.join(config.keysDir, signingCertFile)
           const signingCertPem = fs.readFileSync(signingCertFullPath).toString()
@@ -2541,7 +2541,7 @@ export class NodeCommand extends BaseCommand {
       {
         title: 'Compute mTLS certificate hash',
         task: async (ctx, task) => {
-          const config = /** @type {NodeAddConfigClass} **/ ctx.config
+          const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
           const tlsCertFile = Templates.renderTLSPemPublicKeyFile(config.nodeId)
           const tlsCertFullPath = path.join(config.keysDir, tlsCertFile)
           const tlsCertPem = fs.readFileSync(tlsCertFullPath).toString()
@@ -2659,22 +2659,6 @@ export class NodeCommand extends BaseCommand {
         task: async (ctx, task) => {
           const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
           await this.prepareUpgradeNetworkNodes(config.freezeAdminPrivateKey, ctx.upgradeZipHash, config.nodeClient)
-        }
-      },
-      {
-        title: 'Download generated files from an existing node',
-        task: async (ctx, task) => {
-          const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
-          const node1FullyQualifiedPodName = Templates.renderNetworkPodName(config.existingNodeIds[0])
-
-          // copy the config.txt file from the node1 upgrade directory
-          await self.k8.copyFrom(node1FullyQualifiedPodName, constants.ROOT_CONTAINER, `${constants.HEDERA_HAPI_PATH}/data/upgrade/current/config.txt`, config.stagingDir)
-
-          const signedKeyFiles = (await self.k8.listDir(node1FullyQualifiedPodName, constants.ROOT_CONTAINER, `${constants.HEDERA_HAPI_PATH}/data/upgrade/current`)).filter(file => file.name.startsWith(constants.SIGNING_KEY_PREFIX))
-          for (const signedKeyFile of signedKeyFiles) {
-            await self.k8.execContainer(node1FullyQualifiedPodName, constants.ROOT_CONTAINER, ['bash', '-c', `[[ ! -f "${constants.HEDERA_HAPI_PATH}/data/keys/${signedKeyFile.name}" ]] || cp ${constants.HEDERA_HAPI_PATH}/data/keys/${signedKeyFile.name} ${constants.HEDERA_HAPI_PATH}/data/keys/${signedKeyFile.name}.old`])
-            await self.k8.copyFrom(node1FullyQualifiedPodName, constants.ROOT_CONTAINER, `${constants.HEDERA_HAPI_PATH}/data/upgrade/current/${signedKeyFile.name}`, `${config.keysDir}`)
-          }
         }
       },
       {
@@ -3022,22 +3006,6 @@ export class NodeCommand extends BaseCommand {
         task: async (ctx, task) => {
           const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
           await this.prepareUpgradeNetworkNodes(config.freezeAdminPrivateKey, ctx.upgradeZipHash, config.nodeClient)
-        }
-      },
-      {
-        title: 'Download generated files from an existing node',
-        task: async (ctx, task) => {
-          const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
-          const node1FullyQualifiedPodName = Templates.renderNetworkPodName(config.existingNodeIds[0])
-
-          // copy the config.txt file from the node1 upgrade directory
-          await self.k8.copyFrom(node1FullyQualifiedPodName, constants.ROOT_CONTAINER, `${constants.HEDERA_HAPI_PATH}/data/upgrade/current/config.txt`, config.stagingDir)
-
-          const signedKeyFiles = (await self.k8.listDir(node1FullyQualifiedPodName, constants.ROOT_CONTAINER, `${constants.HEDERA_HAPI_PATH}/data/upgrade/current`)).filter(file => file.name.startsWith(constants.SIGNING_KEY_PREFIX))
-          for (const signedKeyFile of signedKeyFiles) {
-            await self.k8.execContainer(node1FullyQualifiedPodName, constants.ROOT_CONTAINER, ['bash', '-c', `[[ ! -f "${constants.HEDERA_HAPI_PATH}/data/keys/${signedKeyFile.name}" ]] || cp ${constants.HEDERA_HAPI_PATH}/data/keys/${signedKeyFile.name} ${constants.HEDERA_HAPI_PATH}/data/keys/${signedKeyFile.name}.old`])
-            await self.k8.copyFrom(node1FullyQualifiedPodName, constants.ROOT_CONTAINER, `${constants.HEDERA_HAPI_PATH}/data/upgrade/current/${signedKeyFile.name}`, `${config.keysDir}`)
-          }
         }
       },
       {
