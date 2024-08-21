@@ -2897,7 +2897,7 @@ export class NodeCommand extends BaseCommand {
       {
         title: 'Identify existing network nodes',
         task: async (ctx, task) => {
-          const config = /** @type {NodeAddConfigClass} **/ ctx.config
+          const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
           config.serviceMap = await self.accountManager.getNodeServiceMap(
             config.namespace)
           for (/** @type {NetworkNodeServices} **/ const networkNodeServices of config.serviceMap.values()) {
