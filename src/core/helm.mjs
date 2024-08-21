@@ -14,6 +14,7 @@
  * limitations under the License.
  *
  */
+'use strict'
 import os from 'os'
 import { constants } from './index.mjs'
 import { ShellRunner } from './shell_runner.mjs'

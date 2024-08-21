@@ -14,6 +14,7 @@
  * limitations under the License.
  *
  */
+'use strict'
 import fs from 'fs'
 import os from 'os'
 import path from 'path'
@@ -32,7 +33,7 @@ const CUR_FILE_DIR = paths.dirname(fileURLToPath(import.meta.url))
 
 /**
  * @param {number} ms
- * @returns {Promise}
+ * @returns {Promise<void>}
  */
 export function sleep (ms) {
   return new Promise((resolve) => {
@@ -305,7 +306,7 @@ export function getNodeAccountMap (nodeIDs) {
 /**
  * @param {AccountManager} accountManager
  * @param {string} namespace
- * @param fileNum
+ * @param {number} fileNum
  * @returns {Promise<string>}
  */
 export async function getFileContents (accountManager, namespace, fileNum) {
@@ -316,11 +317,20 @@ export async function getFileContents (accountManager, namespace, fileNum) {
   return Buffer.from(await queryFees.execute(client)).toString('hex')
 }
 
+/**
+ * @param {Array} envVarArray
+ * @param {string} name
+ * @returns {string|null}
+ */
 export function getEnvValue (envVarArray, name) {
   const kvPair = envVarArray.find(v => v.startsWith(`${name}=`))
   return kvPair ? kvPair.split('=')[1] : null
 }
 
+/**
+ * @param {string} ipAddress
+ * @returns {Uint8Array}
+ */
 export function parseIpAddressToUint8Array (ipAddress) {
   const parts = ipAddress.split('.')
   const uint8Array = new Uint8Array(4)

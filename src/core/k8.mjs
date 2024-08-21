@@ -14,6 +14,7 @@
  * limitations under the License.
  *
  */
+'use strict'
 import * as k8s from '@kubernetes/client-node'
 import fs from 'fs'
 import net from 'net'
@@ -62,6 +63,9 @@ export class K8 {
     return c.init()
   }
 
+  /**
+   * @returns {k8s.KubeConfig}
+   */
   getKubeConfig () {
     return this.kubeConfig
   }
@@ -92,7 +96,7 @@ export class K8 {
    * Apply filters to metadata
    * @param {Array} items - list of items
    * @param {Object} [filters] - an object with metadata fields and value
-   * @returns a list of items that match the filters
+   * @returns {Array} a list of items that match the filters
    */
   applyMetadataFilter (items, filters = {}) {
     if (!filters) throw new MissingArgumentError('filters are required')
@@ -160,7 +164,7 @@ export class K8 {
 
   /**
    * Get a list of namespaces
-   * @returns list of namespaces
+   * @returns {string[]} list of namespaces
    */
   async getNamespaces () {
     const resp = await this.kubeClient.listNamespace()
@@ -440,6 +444,12 @@ export class K8 {
     ) === 'true'
   }
 
+  /**
+   * @param {string} podName
+   * @param {string} containerName
+   * @param {string} destPath
+   * @returns {Promise<string>}
+   */
   async mkdir (podName, containerName, destPath) {
     return this.execContainer(
       podName,
@@ -453,7 +463,7 @@ export class K8 {
    *
    * It overwrites any existing file inside the container at the destination directory
    *
-   * @param {string} podName - podName name
+   * @param {string} podName
    * @param {string} containerName
    * @param {string} srcPath - source file path in the local
    * @param {string} destDir - destination directory in the container
@@ -519,7 +529,7 @@ export class K8 {
    *
    * It overwrites any existing file at the destination directory
    *
-   * @param {string} podName - podName name
+   * @param {string} podName
    * @param {string} containerName
    * @param {string} srcPath - source file path in the container
    * @param {string} destDir - destination directory in the local
