@@ -14,6 +14,7 @@
  * limitations under the License.
  *
  */
+'use strict'
 import { ClusterCommand } from './cluster.mjs'
 import { InitCommand } from './init.mjs'
 import { MirrorNodeCommand } from './mirror_node.mjs'
@@ -23,9 +24,10 @@ import { RelayCommand } from './relay.mjs'
 import { AccountCommand } from './account.mjs'
 import * as flags from './flags.mjs'
 
-/*
+/**
  * Return a list of Yargs command builder to be exposed through CLI
- * @param opts it is an Options object containing logger
+ * @param {Object} opts it is an Options object containing logger
+ * @returns {Array<>} TODO
  */
 function Initialize (opts) {
   const initCmd = new InitCommand(opts)

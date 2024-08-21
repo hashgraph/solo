@@ -14,6 +14,7 @@
  * limitations under the License.
  *
  */
+'use strict'
 import { ListrEnquirerPromptAdapter } from '@listr2/prompt-adapter-enquirer'
 import chalk from 'chalk'
 import { Listr } from 'listr2'
@@ -26,6 +27,10 @@ import * as helpers from '../core/helpers.mjs'
 import path from 'path'
 
 export class NetworkCommand extends BaseCommand {
+  /**
+   * @param {{profileManager: ProfileManager, logger: Logger, helm: Helm, k8: K8, chartManager: ChartManager,
+   * configManager: ConfigManager, depManager: DependencyManager, downloader: PackageDownloader}} opts
+   */
   constructor (opts) {
     super(opts)
 
@@ -34,10 +39,16 @@ export class NetworkCommand extends BaseCommand {
     this.profileManager = opts.profileManager
   }
 
+  /**
+   * @returns {string}
+   */
   static get DEPLOY_CONFIGS_NAME () {
     return 'deployConfigs'
   }
 
+  /**
+   * @returns {*[]}
+   */
   static get DEPLOY_FLAGS_LIST () {
     return [
       flags.apiPermissionProperties,
@@ -67,6 +78,14 @@ export class NetworkCommand extends BaseCommand {
     ]
   }
 
+  /**
+   * @param {string} tlsClusterIssuerType
+   * @param {boolean} enableHederaExplorerTls
+   * @param {string} namespace
+   * @param {string} hederaExplorerTlsLoadBalancerIp
+   * @param {string} hederaExplorerTlsHostName
+   * @returns {string}
+   */
   getTlsValueArguments (tlsClusterIssuerType, enableHederaExplorerTls, namespace,
     hederaExplorerTlsLoadBalancerIp, hederaExplorerTlsHostName) {
     let valuesArg = ''
@@ -96,6 +115,10 @@ export class NetworkCommand extends BaseCommand {
     return valuesArg
   }
 
+  /**
+   * @param {Object} config
+   * @returns {Promise<string>}
+   */
   async prepareValuesArg (config = {}) {
     let valuesArg = ''
     if (config.chartDirectory) {
@@ -132,6 +155,11 @@ export class NetworkCommand extends BaseCommand {
     return valuesArg
   }
 
+  /**
+   * @param task
+   * @param argv
+   * @returns {Promise<NetworkDeployConfigClass>}
+   */
   async prepareConfig (task, argv) {
     this.configManager.update(argv)
     this.logger.debug('Loaded cached config', { config: this.configManager.config })
@@ -208,8 +236,8 @@ export class NetworkCommand extends BaseCommand {
 
   /**
    * Run helm install and deploy network components
-   * @param argv
-   * @return {Promise<boolean>}
+   * @param {Object} argv
+   * @returns {Promise<boolean>}
    */
   async deploy (argv) {
     const self = this
@@ -343,8 +371,8 @@ export class NetworkCommand extends BaseCommand {
 
   /**
    * Run helm uninstall and destroy network components
-   * @param argv
-   * @return {Promise<boolean>}
+   * @param {Object} argv
+   * @returns {Promise<boolean>}
    */
   async destroy (argv) {
     const self = this
@@ -427,8 +455,8 @@ export class NetworkCommand extends BaseCommand {
 
   /**
    * Run helm upgrade to refresh network components with new settings
-   * @param argv
-   * @return {Promise<boolean>}
+   * @param {Object} argv
+   * @returns {Promise<boolean>}
    */
   async refresh (argv) {
     const self = this
@@ -475,6 +503,10 @@ export class NetworkCommand extends BaseCommand {
     return true
   }
 
+  /**
+   * @param {NetworkCommand} networkCmd
+   * @returns {{command: string, desc: string, builder: Function}}
+   */
   static getCommandDefinition (networkCmd) {
     if (!networkCmd || !(networkCmd instanceof NetworkCommand)) {
       throw new IllegalArgumentError('An instance of NetworkCommand is required', networkCmd)

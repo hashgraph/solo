@@ -14,10 +14,14 @@
  * limitations under the License.
  *
  */
+'use strict'
 import { spawn } from 'child_process'
 import chalk from 'chalk'
 
 export class ShellRunner {
+  /**
+   * @param {Logger} logger
+   */
   constructor (logger) {
     if (!logger) throw new Error('An instance of core/Logger is required')
     this.logger = logger
@@ -25,7 +29,7 @@ export class ShellRunner {
 
   /**
    * Returns a promise that invokes the shell command
-   * @param {string} cmd shell command string
+   * @param {string} cmd - shell command string
    * @param {boolean} verbose - if true, the output will be shown in the console
    * @returns {Promise<Array>} console output as an array of strings
    */

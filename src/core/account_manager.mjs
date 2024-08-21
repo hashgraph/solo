@@ -14,6 +14,7 @@
  * limitations under the License.
  *
  */
+'use strict';
 import * as HashgraphProto from '@hashgraph/proto'
 import * as Base64 from 'js-base64'
 import os from 'os'
@@ -51,8 +52,8 @@ const REJECTED = 'rejected'
 export class AccountManager {
   /**
    * creates a new AccountManager instance
-   * @param logger the logger to use
-   * @param k8 the K8 instance
+   * @param {Logger} logger - the logger to use
+   * @param {K8} k8 - the K8 instance
    */
   constructor (logger, k8) {
     if (!logger) throw new Error('An instance of core/Logger is required')
@@ -61,15 +62,21 @@ export class AccountManager {
     this.logger = logger
     this.k8 = k8
     this._portForwards = []
+
+    /**
+     * @type {NodeClient|null}
+     * @public
+     */
     this._nodeClient = null
   }
 
   /**
    * Gets the account keys from the Kubernetes secret from which it is stored
-   * @param accountId the account ID for which we want its keys
-   * @param namespace the namespace that is storing the secret
-   * @returns {Promise<{accountId: string, privateKey: string, publicKey: string}|null>} a
-   * custom object with the account id, private key, and public key
+   * TODO SEEMS NOT TO BE STRING accountId
+   * @param {string} accountId - the account ID for which we want its keys
+   * @param {string} namespace - the namespace that is storing the secret
+   * @returns {Promise<{accountId: string, privateKey: string, publicKey: string}|null>} a custom object
+   * with the account id, private key, and public key
    */
   async getAccountKeysFromSecret (accountId, namespace) {
     const secret = await this.k8.getSecret(namespace, Templates.renderAccountKeySecretLabelSelector(accountId))
@@ -93,7 +100,7 @@ export class AccountManager {
    * Gets the treasury account private key from Kubernetes secret if it exists, else
    * returns the Genesis private key, then will return an AccountInfo object with the
    * accountId, privateKey, publicKey
-   * @param namespace the namespace that the secret is in
+   * @param {string} namespace - the namespace that the secret is in
    * @returns {Promise<{accountId: string, privateKey: string, publicKey: string}>}
    */
   async getTreasuryAccountKeys (namespace) {
@@ -103,6 +110,7 @@ export class AccountManager {
 
   /**
    * batch up the accounts into sets to be processed
+   * @param {number[][]} [accountRange]
    * @returns an array of arrays of numbers representing the accounts to update
    */
   batchAccounts (accountRange = constants.SYSTEM_ACCOUNTS) {
@@ -151,8 +159,8 @@ export class AccountManager {
 
   /**
    * loads and initializes the Node Client
-   * @param namespace the namespace of the network
-   * @returns {Promise<void>}
+   * @param {string} namespace - the namespace of the network
+   * @returns {Promise<NodeClient>}
    */
   async loadNodeClient (namespace) {
     if (!this._nodeClient || this._nodeClient.isClientShutDown) {
@@ -206,7 +214,7 @@ export class AccountManager {
    * @param {Map<string, NetworkNodeServices>}networkNodeServicesMap a map of the service objects that proxy the nodes
    * @param operatorId the account id of the operator of the transactions
    * @param operatorKey the private key of the operator of the transactions
-   * @returns {Promise<NodeClient>} a node client that can be used to call transactions
+   * @returns {Promise<import('@hashgraph/sdk').Client>} a node client that can be used to call transactions
    */
   async _getNodeClient (namespace, networkNodeServicesMap, operatorId, operatorKey) {
     const nodes = {}
@@ -621,7 +629,7 @@ export class AccountManager {
   /**
    * Fetch and prepare address book as a base64 string
    * @param {string} namespace the namespace of the network
-   * @return {Promise<string>}
+   * @returns {Promise<string>}
    */
   async prepareAddressBookBase64 (namespace) {
     // fetch AddressBook

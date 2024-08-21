@@ -14,6 +14,7 @@
  * limitations under the License.
  *
  */
+'use strict'
 import * as x509 from '@peculiar/x509'
 import chalk from 'chalk'
 import * as fs from 'fs'
@@ -57,6 +58,12 @@ import {
  * Defines the core functionalities of 'node' command
  */
 export class NodeCommand extends BaseCommand {
+  /**
+   * @param {{logger: Logger, helm: Helm, k8: K8, chartManager: ChartManager, configManager: ConfigManager,
+   * depManager: DependencyManager, keytoolDepManager: KeytoolDependencyManager, downloader: PackageDownloader,
+   * platformInstaller: PlatformInstaller, keyManager: KeyManager, accountManager: AccountManager,
+   * profileManager: ProfileManager}} opts
+   */
   constructor (opts) {
     super(opts)
 
@@ -76,10 +83,16 @@ export class NodeCommand extends BaseCommand {
     this._portForwards = []
   }
 
+  /**
+   * @returns {string}
+   */
   static get SETUP_CONFIGS_NAME () {
     return 'setupConfigs'
   }
 
+  /**
+   * @returns {CommandFlag[]}
+   */
   static get SETUP_FLAGS_LIST () {
     return [
       flags.appConfig,
@@ -96,10 +109,16 @@ export class NodeCommand extends BaseCommand {
     ]
   }
 
+  /**
+   * @returns {string}
+   */
   static get KEYS_CONFIGS_NAME () {
     return 'keysConfigs'
   }
 
+  /**
+   * @returns {CommandFlag[]}
+   */
   static get KEYS_FLAGS_LIST () {
     return [
       flags.cacheDir,
@@ -111,10 +130,16 @@ export class NodeCommand extends BaseCommand {
     ]
   }
 
+  /**
+   * @returns {string}
+   */
   static get REFRESH_CONFIGS_NAME () {
     return 'refreshConfigs'
   }
 
+  /**
+   * @returns {CommandFlag[]}
+   */
   static get REFRESH_FLAGS_LIST () {
     return [
       flags.cacheDir,
@@ -128,10 +153,16 @@ export class NodeCommand extends BaseCommand {
     ]
   }
 
+  /**
+   * @returns {string}
+   */
   static get ADD_CONFIGS_NAME () {
     return 'addConfigs'
   }
 
+  /**
+   * @returns {CommandFlag[]}
+   */
   static get ADD_FLAGS_LIST () {
     return [
       flags.app,
@@ -159,7 +190,8 @@ export class NodeCommand extends BaseCommand {
    * @returns {Promise<void>}
    */
   async close () {
-    this.accountManager.close()
+    // TODO VALIDATE AWAIT IS NEEDED
+    await this.accountManager.close()
     if (this._portForwards) {
       for (const srv of this._portForwards) {
         await this.k8.stopPortForward(srv)
@@ -169,6 +201,12 @@ export class NodeCommand extends BaseCommand {
     this._portForwards = []
   }
 
+  /**
+   * @param {string} namespace
+   * @param {string} accountId
+   * @param {string} nodeId
+   * @returns {Promise<void>}
+   */
   async addStake (namespace, accountId, nodeId) {
     try {
       await this.accountManager.loadNodeClient(namespace)
@@ -209,6 +247,13 @@ export class NodeCommand extends BaseCommand {
     }
   }
 
+  /**
+   * @param {string} namespace
+   * @param {string} nodeId
+   * @param {number} [maxAttempts]
+   * @param {number} [delay]
+   * @returns {Promise<string>}
+   */
   async checkNetworkNodePod (namespace, nodeId, maxAttempts = 60, delay = 2000) {
     nodeId = nodeId.trim()
     const podName = Templates.renderNetworkPodName(nodeId)
@@ -225,6 +270,13 @@ export class NodeCommand extends BaseCommand {
     }
   }
 
+  /**
+   * @param {string} nodeId
+   * @param {number} [maxAttempt]
+   * @param {string} [status]
+   * @param {string} [logfile]
+   * @returns {Promise<boolean>}
+   */
   async checkNetworkNodeState (nodeId, maxAttempt = 100, status = 'ACTIVE', logfile = 'output/hgcaa.log') {
     nodeId = nodeId.trim()
     const podName = Templates.renderNetworkPodName(nodeId)
@@ -289,6 +341,10 @@ export class NodeCommand extends BaseCommand {
 
   /**
    * Return task for checking for all network node pods
+   * @param ctx
+   * @param task
+   * @param {string[]} nodeIds
+   * @returns {*}
    */
   taskCheckNetworkNodePods (ctx, task, nodeIds) {
     if (!ctx.config) {
@@ -321,12 +377,12 @@ export class NodeCommand extends BaseCommand {
    *
    * WARNING: These tasks MUST run in sequence.
    *
-   * @param keyFormat key format (pem | pfx)
-   * @param nodeIds node ids
-   * @param keysDir keys directory
-   * @param curDate current date
-   * @param allNodeIds includes the nodeIds to get new keys as well as existing nodeIds that will be included in the public.pfx file
-   * @return a list of subtasks
+   * @param {string} keyFormat - key format (pem | pfx)
+   * @param {string[]} nodeIds
+   * @param {string} keysDir
+   * @param {Date} [curDate]
+   * @param {string[]|null} [allNodeIds] - includes the nodeIds to get new keys as well as existing nodeIds that will be included in the public.pfx file
+   * @returns {{title: string, task: () => Promise<*>}[]} a list of subtasks
    * @private
    */
   _nodeGossipKeysTaskList (keyFormat, nodeIds, keysDir, curDate = new Date(), allNodeIds = null) {
@@ -425,10 +481,10 @@ export class NodeCommand extends BaseCommand {
    *
    * WARNING: These tasks should run in sequence
    *
-   * @param nodeIds node ids
-   * @param keysDir keys directory
-   * @param curDate current date
-   * @return return a list of subtasks
+   * @param {string[]} nodeIds
+   * @param {string} keysDir
+   * @param {Date} [curDate]
+   * @returns {{title: string, task: () => Promise<*>}[]} return a list of subtasks
    * @private
    */
   _nodeTlsKeyTaskList (nodeIds, keysDir, curDate = new Date()) {
@@ -462,6 +518,12 @@ export class NodeCommand extends BaseCommand {
     return subTasks
   }
 
+  /**
+   * @param nodeKey
+   * @param {string} destDir
+   * @returns {Promise<void>}
+   * @private
+   */
   async _copyNodeKeys (nodeKey, destDir) {
     for (const keyFile of [nodeKey.privateKeyFile, nodeKey.certificateFile]) {
       if (!fs.existsSync(keyFile)) {
@@ -473,6 +535,11 @@ export class NodeCommand extends BaseCommand {
     }
   }
 
+  /**
+   * @param {Object} config
+   * @param {K8} k8
+   * @returns {Promise<void>}
+   */
   async initializeSetup (config, k8) {
     // compute other config parameters
     config.keysDir = path.join(validatePath(config.cacheDir), 'keys')
@@ -497,6 +564,13 @@ export class NodeCommand extends BaseCommand {
     }
   }
 
+  /**
+   * @param {string[]} nodeIds
+   * @param {Object} podNames
+   * @param {*} task
+   * @param {string} localBuildPath
+   * @returns {Listr<any, any, any>}
+   */
   uploadPlatformSoftware (nodeIds, podNames, task, localBuildPath) {
     const self = this
     const subTasks = []
@@ -549,6 +623,14 @@ export class NodeCommand extends BaseCommand {
     })
   }
 
+  /**
+   * @param {string[]} nodeIds
+   * @param {Object} podNames
+   * @param {string} releaseTag
+   * @param task
+   * @param {string} localBuildPath
+   * @returns {Listr<*, *, *>|*}
+   */
   fetchLocalOrReleasedPlatformSoftware (nodeIds, podNames, releaseTag, task, localBuildPath) {
     const self = this
     if (localBuildPath !== '') {
@@ -558,6 +640,14 @@ export class NodeCommand extends BaseCommand {
     }
   }
 
+  /**
+   * @param {string[]} nodeIds
+   * @param {Object} podNames
+   * @param {string} releaseTag
+   * @param task
+   * @param platformInstaller
+   * @returns {Listr<any, any, any>}
+   */
   fetchPlatformSoftware (nodeIds, podNames, releaseTag, task, platformInstaller) {
     const subTasks = []
     for (const nodeId of nodeIds) {
@@ -578,6 +668,10 @@ export class NodeCommand extends BaseCommand {
     })
   }
 
+  /**
+   * @param {string} stagingDir
+   * @returns {Promise<string>}
+   */
   async prepareUpgradeZip (stagingDir) {
     // we build a mock upgrade.zip file as we really don't need to upgrade the network
     // also the platform zip file is ~80Mb in size requiring a lot of transactions since the max
@@ -609,6 +703,11 @@ export class NodeCommand extends BaseCommand {
     return await zipper.zip(path.join(stagingDir, 'mock-upgrade'), path.join(stagingDir, 'mock-upgrade.zip'))
   }
 
+  /**
+   * @param {string} upgradeZipFile
+   * @param nodeClient
+   * @returns {Promise<string>}
+   */
   async uploadUpgradeZip (upgradeZipFile, nodeClient) {
     // get byte value of the zip file
     const zipBytes = fs.readFileSync(upgradeZipFile)
@@ -645,6 +744,12 @@ export class NodeCommand extends BaseCommand {
     }
   }
 
+  /**
+   * @param {string} endpointType
+   * @param {string[]} endpoints
+   * @param {number} defaultPort
+   * @returns {ServiceEndpoint[]}
+   */
   prepareEndpoints (endpointType, endpoints, defaultPort) {
     const ret = /** @typedef ServiceEndpoint **/[]
     for (const endpoint of endpoints) {
@@ -679,7 +784,10 @@ export class NodeCommand extends BaseCommand {
   }
 
   // List of Commands
-
+  /**
+   * @param {Object} argv
+   * @returns {Promise<boolean>}
+   */
   async setup (argv) {
     const self = this
 
@@ -873,6 +981,10 @@ export class NodeCommand extends BaseCommand {
     return true
   }
 
+  /**
+   * @param {Object} argv
+   * @returns {Promise<boolean>}
+   */
   async start (argv) {
     const self = this
 
@@ -1013,6 +1125,10 @@ export class NodeCommand extends BaseCommand {
     return true
   }
 
+  /**
+   * @param {Object} argv
+   * @returns {Promise<boolean>}
+   */
   async stop (argv) {
     const self = this
 
@@ -1076,6 +1192,10 @@ export class NodeCommand extends BaseCommand {
     return true
   }
 
+  /**
+   * @param {Object} argv
+   * @returns {Promise<boolean>}
+   */
   async keys (argv) {
     const self = this
     const tasks = new Listr([
@@ -1183,6 +1303,10 @@ export class NodeCommand extends BaseCommand {
     return true
   }
 
+  /**
+   * @param {Object} argv
+   * @returns {Promise<boolean>}
+   */
   async refresh (argv) {
     const self = this
 
@@ -1394,6 +1518,10 @@ export class NodeCommand extends BaseCommand {
     return true
   }
 
+  /**
+   * @param {Object} argv
+   * @returns {Promise<boolean>}
+   */
   async logs (argv) {
     const self = this
 
@@ -1434,6 +1562,10 @@ export class NodeCommand extends BaseCommand {
     return true
   }
 
+  /**
+   * @param {Object} argv
+   * @returns {Promise<boolean>}
+   */
   async add (argv) {
     const self = this
 
@@ -2074,6 +2206,12 @@ export class NodeCommand extends BaseCommand {
     return true
   }
 
+  /**
+   * @param {PrivateKey|string} freezeAdminPrivateKey
+   * @param {Uint8Array|string} upgradeZipHash
+   * @param {Client<import('../channel/Channel.js').default,import('../channel/MirrorChannel.js').default>} client
+   * @returns {Promise<void>}
+   */
   async prepareUpgradeNetworkNodes (freezeAdminPrivateKey, upgradeZipHash, client) {
     try {
       // transfer some tiny amount to the freeze admin account
@@ -2107,6 +2245,12 @@ export class NodeCommand extends BaseCommand {
     }
   }
 
+  /**
+   * @param {PrivateKey|string} freezeAdminPrivateKey
+   * @param {Uint8Array|string} upgradeZipHash
+   * @param {Client<import('../channel/Channel.js').default,import('../channel/MirrorChannel.js').default>} client
+   * @returns {Promise<void>}
+   */
   async freezeUpgradeNetworkNodes (freezeAdminPrivateKey, upgradeZipHash, client) {
     try {
       const futureDate = new Date()
@@ -2133,6 +2277,11 @@ export class NodeCommand extends BaseCommand {
     }
   }
 
+  /**
+   * @param {Object} podNames
+   * @param {string} nodeIds
+   * @param {{title: string, task: () => Promise<void>}[]} subTasks
+   */
   startNodes (podNames, nodeIds, subTasks) {
     for (const nodeId of nodeIds) {
       const podName = podNames[nodeId]
@@ -2145,6 +2294,13 @@ export class NodeCommand extends BaseCommand {
     }
   }
 
+  /**
+   * @param {string} keyFormat
+   * @param {string} keysDir
+   * @param {string} stagingKeysDir
+   * @param {string[]} nodeIds
+   * @returns {Promise<void>}
+   */
   async copyGossipKeysToStaging (keyFormat, keysDir, stagingKeysDir, nodeIds) {
     // copy gossip keys to the staging
     for (const nodeId of nodeIds) {
@@ -2175,7 +2331,8 @@ export class NodeCommand extends BaseCommand {
   // Command Definition
   /**
    * Return Yargs command definition for 'node' command
-   * @param nodeCmd an instance of NodeCommand
+   * @param {NodeCommand} nodeCmd - an instance of NodeCommand
+   * @returns {{command: string, desc: string, builder: Function}}
    */
   static getCommandDefinition (nodeCmd) {
     if (!nodeCmd || !(nodeCmd instanceof NodeCommand)) {

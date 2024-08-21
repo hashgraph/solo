@@ -14,6 +14,7 @@
  * limitations under the License.
  *
  */
+'use strict';
 import fs from 'fs'
 import { FullstackTestingError, MissingArgumentError } from './errors.mjs'
 import { constants } from './index.mjs'
@@ -29,6 +30,10 @@ import * as helpers from './helpers.mjs'
  * doesn't need to enter it repeatedly. However, user should still be able to specify the flag explicitly for any command.
  */
 export class ConfigManager {
+  /**
+   * @param {Logger} logger
+   * @param {PathLike} cachedConfigFile
+   */
   constructor (logger, cachedConfigFile = constants.SOLO_CONFIG_FILE) {
     if (!logger || !(logger instanceof Logger)) throw new MissingArgumentError('An instance of core/Logger is required')
     if (!cachedConfigFile) throw new MissingArgumentError('cached config file path is required')
@@ -45,6 +50,8 @@ export class ConfigManager {
     try {
       if (fs.existsSync(this.cachedConfigFile)) {
         const configJSON = fs.readFileSync(this.cachedConfigFile)
+
+        /** @type {Object} */
         this.config = JSON.parse(configJSON.toString())
       }
     } catch (e) {
@@ -71,9 +78,9 @@ export class ConfigManager {
    *  2. Cached config value of the command flag.
    *  3. Default value of the command flag if the command is not 'init'.
    *
-   * @param argv yargs.argv
-   * @param aliases yargv.parsed.aliases
-   * @return {*} updated argv
+   * @param {yargs.argv} argv
+   * @param {yargv.parsed.aliases} aliases
+   * @returns {Object} updated argv
    */
   applyPrecedence (argv, aliases) {
     for (const key of Object.keys(aliases)) {
@@ -95,8 +102,8 @@ export class ConfigManager {
   /**
    * Update the config using the argv
    *
-   * @param argv list of yargs argv
-   * @param persist
+   * @param {Object} [argv] - list of yargs argv
+   * @param {boolean} persist
    */
   update (argv = {}, persist = false) {
     if (argv && Object.keys(argv).length > 0) {
@@ -178,8 +185,8 @@ export class ConfigManager {
 
   /**
    * Check if a flag value is set
-   * @param flag flag object
-   * @return {boolean}
+   * @param {{name: string}} flag flag object
+   * @returns {boolean}
    */
   hasFlag (flag) {
     return this.config.flags[flag.name] !== undefined
@@ -188,8 +195,8 @@ export class ConfigManager {
   /**
    * Return the value of the given flag
    *
-   * @param flag flag object
-   * @return {*|string} value of the flag or undefined if flag value is not available
+   * @param {{name: string}} flag flag object
+   * @returns {undefined|string} value of the flag or undefined if flag value is not available
    */
   getFlag (flag) {
     if (this.config.flags[flag.name] !== undefined) {
@@ -201,8 +208,8 @@ export class ConfigManager {
 
   /**
    * Set value for the flag
-   * @param flag flag object
-   * @param value value of the flag
+   * @param {{name: string}} flag - flag object
+   * @param value - value of the flag
    */
 
   setFlag (flag, value) {
@@ -212,7 +219,7 @@ export class ConfigManager {
 
   /**
    * Get package version
-   * @return {*}
+   * @returns {*}
    */
   getVersion () {
     return this.config.version
@@ -220,7 +227,7 @@ export class ConfigManager {
 
   /**
    * Get last updated at timestamp
-   * @return {string}
+   * @returns {string}
    */
   getUpdatedAt () {
     return this.config.updatedAt

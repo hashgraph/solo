@@ -143,7 +143,7 @@ export class KeyManager {
    * @param keysDir directory where keys and certs are stored
    * @param nodeKeyFiles an object stores privateKeyFile and certificateFile
    * @param keyName optional key type name for logging
-   * @return a Promise that saves the keys and certs as PEM files
+   * @returns a Promise that saves the keys and certs as PEM files
    */
   async storeNodeKey (nodeId, nodeKey, keysDir, nodeKeyFiles, keyName = '') {
     if (!nodeId) {
@@ -210,7 +210,7 @@ export class KeyManager {
    * @param algo algorithm used for key
    * @param nodeKeyFiles an object stores privateKeyFile and certificateFile
    * @param keyName optional key type name for logging
-   * @return returns a dictionary object contains privateKey, certificate, certificateChain
+   * @returns returns a dictionary object contains privateKey, certificate, certificateChain
    */
   async loadNodeKey (nodeId, keysDir, algo, nodeKeyFiles, keyName = '') {
     if (!nodeId) {
@@ -264,7 +264,7 @@ export class KeyManager {
   /**
    * Generate signing key and certificate
    * @param nodeId node ID
-   * @return returns a dictionary object stores privateKey, certificate, certificateChain
+   * @returns returns a dictionary object stores privateKey, certificate, certificateChain
    */
   async generateSigningKey (nodeId) {
     try {
@@ -312,7 +312,7 @@ export class KeyManager {
    * @param nodeId node ID
    * @param nodeKey an object containing privateKeyPem, certificatePem data
    * @param keysDir directory where keys and certs are stored
-   * @return returns a Promise that saves the keys and certs as PEM files
+   * @returns returns a Promise that saves the keys and certs as PEM files
    */
   async storeSigningKey (nodeId, nodeKey, keysDir) {
     const nodeKeyFiles = this.prepareNodeKeyFilePaths(nodeId, keysDir, constants.SIGNING_KEY_PREFIX)
@@ -323,7 +323,7 @@ export class KeyManager {
    * Load signing key and certificate
    * @param nodeId node ID
    * @param keysDir directory path where pem files are stored
-   * @return returns a dictionary object contains privateKey, certificate, certificateChain
+   * @returns returns a dictionary object contains privateKey, certificate, certificateChain
    */
   async loadSigningKey (nodeId, keysDir) {
     const nodeKeyFiles = this.prepareNodeKeyFilePaths(nodeId, keysDir, constants.SIGNING_KEY_PREFIX)
@@ -336,7 +336,7 @@ export class KeyManager {
    * @param nodeId node ID
    * @param keyPrefix key prefix such as constants.PFX_AGREEMENT_KEY_PREFIX
    * @param signingKey signing key
-   * @return a dictionary object stores privateKey, certificate, certificateChain
+   * @returns a dictionary object stores privateKey, certificate, certificateChain
    */
   async ecKey (nodeId, keyPrefix, signingKey) {
     if (!nodeId) throw new MissingArgumentError('nodeId is required')
@@ -391,7 +391,7 @@ export class KeyManager {
    * Generate agreement key
    * @param nodeId node ID
    * @param signingKey signing key
-   * @return a dictionary object stores privateKey, certificate, certificateChain
+   * @returns a dictionary object stores privateKey, certificate, certificateChain
    */
   async generateAgreementKey (nodeId, signingKey) {
     return this.ecKey(nodeId, constants.AGREEMENT_KEY_PREFIX, signingKey)
@@ -402,7 +402,7 @@ export class KeyManager {
    * @param nodeId node ID
    * @param nodeKey an object containing privateKeyPem, certificatePem data
    * @param keysDir directory where keys and certs are stored
-   * @return a Promise that saves the keys and certs as PEM files
+   * @returns a Promise that saves the keys and certs as PEM files
    */
   async storeAgreementKey (nodeId, nodeKey, keysDir) {
     const nodeKeyFiles = this.prepareNodeKeyFilePaths(nodeId, keysDir, constants.AGREEMENT_KEY_PREFIX)
@@ -413,7 +413,7 @@ export class KeyManager {
    * Load agreement key and certificate
    * @param nodeId node ID
    * @param keysDir directory path where pem files are stored
-   * @return a dictionary object contains privateKey, certificate, certificateChain
+   * @returns a dictionary object contains privateKey, certificate, certificateChain
    */
   async loadAgreementKey (nodeId, keysDir) {
     const nodeKeyFiles = this.prepareNodeKeyFilePaths(nodeId, keysDir, constants.AGREEMENT_KEY_PREFIX)
@@ -429,7 +429,7 @@ export class KeyManager {
    *
    * @param nodeId
    * @param distinguishedName distinguished name as: new x509.Name(`CN=${nodeId},ST=${state},L=${locality},O=${org},OU=${orgUnit},C=${country}`)
-   * @return {Promise<privateKeyFile:string|certificateFile:string>}
+   * @returns {Promise<privateKeyFile:string|certificateFile:string>}
    */
   async generateGrpcTLSKey (nodeId, distinguishedName = new x509.Name(`CN=${nodeId}`)) {
     if (!nodeId) throw new MissingArgumentError('nodeId is required')
@@ -480,7 +480,7 @@ export class KeyManager {
    * @param nodeId node ID
    * @param nodeKey an object containing privateKeyPem, certificatePem data
    * @param keysDir directory where keys and certs are stored
-   * @return a Promise that saves the keys and certs as PEM files
+   * @returns a Promise that saves the keys and certs as PEM files
    */
   async storeTLSKey (nodeId, nodeKey, keysDir) {
     const nodeKeyFiles = this.prepareTLSKeyFilePaths(nodeId, keysDir)
@@ -491,7 +491,7 @@ export class KeyManager {
    * Load TLS key and certificate
    * @param nodeId node ID
    * @param keysDir directory path where pem files are stored
-   * @return a dictionary object contains privateKey, certificate, certificateChain
+   * @returns a dictionary object contains privateKey, certificate, certificateChain
    */
   async loadTLSKey (nodeId, keysDir) {
     const nodeKeyFiles = this.prepareTLSKeyFilePaths(nodeId, keysDir)
@@ -510,7 +510,7 @@ export class KeyManager {
    * @param nodeId node id
    * @param keysDir directory where the pfx files should be stored
    * @param tmpDir tmp directory where intermediate files can be stored.
-   * @return {Promise<string>} path to the pfx file
+   * @returns {Promise<string>} path to the pfx file
    */
   async generatePrivatePfxKeys (keytool, nodeId, keysDir, tmpDir = getTmpDir()) {
     if (!keytool || !(keytool instanceof Keytool)) throw new MissingArgumentError('An instance of core/Keytool is required')
@@ -604,7 +604,7 @@ export class KeyManager {
    * @param nodeIds node Ids
    * @param keysDir keys directory
    * @param tmpDir tmp directory where intermediate files can be stored.
-   * @return {Promise<string>}
+   * @returns {Promise<string>}
    */
   async updatePublicPfxKey (keytool, nodeIds, keysDir, tmpDir = getTmpDir()) {
     if (!keytool || !(keytool instanceof Keytool)) throw new MissingArgumentError('An instance of core/Keytool is required')

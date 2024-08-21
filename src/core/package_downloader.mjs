@@ -14,6 +14,7 @@
  * limitations under the License.
  *
  */
+'use strict'
 import * as crypto from 'crypto'
 import * as fs from 'fs'
 import { pipeline as streamPipeline } from 'node:stream/promises'
@@ -34,24 +35,31 @@ import { constants } from './index.mjs'
 export class PackageDownloader {
   /**
    * Create an instance of Downloader
-   * @param logger an instance of core/Logger
+   * @param {Logger} logger - an instance of core/Logger
    */
   constructor (logger) {
     if (!logger) throw new IllegalArgumentError('an instance of core/Logger is required', logger)
     this.logger = logger
   }
 
+  /**
+   * @param {string} url
+   * @returns {boolean}
+   */
   isValidURL (url) {
     try {
       // attempt to parse to check URL format
       const out = new URL(url)
       return out.href !== undefined
-    } catch (e) {
-    }
+    } catch {}
 
     return false
   }
 
+  /**
+   * @param {string} url
+   * @returns {Promise<boolean>}
+   */
   async urlExists (url) {
     const self = this
 
@@ -102,8 +110,9 @@ export class PackageDownloader {
   /**
    * Fetch data from a URL and save the output to a file
    *
-   * @param url source file URL
-   * @param destPath destination path for the downloaded file
+   * @param {string} url - source file URL
+   * @param {string} destPath - destination path for the downloaded file
+   * @returns {Promise<string>}
    */
   async fetchFile (url, destPath) {
     if (!url) {
@@ -136,8 +145,8 @@ export class PackageDownloader {
 
   /**
    * Compute hash of the file contents
-   * @param filePath path of the file
-   * @param algo hash algorithm
+   * @param {string} filePath - path of the file
+   * @param {string} [algo] - hash algorithm
    * @returns {Promise<string>} returns hex digest of the computed hash
    * @throws Error if the file cannot be read
    */
@@ -172,9 +181,10 @@ export class PackageDownloader {
    *
    * It throws error if the checksum doesn't match.
    *
-   * @param sourceFile path to the file for which checksum to be computed
-   * @param checksum expected checksum
-   * @param algo hash algorithm to be used to compute checksum
+   * @param {string} sourceFile - path to the file for which checksum to be computed
+   * @param checksum - expected checksum
+   * @param {string} [algo] - hash algorithm to be used to compute checksum
+   * @returns {Promise<void>}
    * @throws DataValidationError if the checksum doesn't match
    */
   async verifyChecksum (sourceFile, checksum, algo = 'sha256') {
@@ -184,12 +194,12 @@ export class PackageDownloader {
 
   /**
    * Fetch a remote package
-   * @param packageURL package URL
-   * @param checksumURL package checksum URL
-   * @param destDir a directory where the files should be downloaded to
-   * @param algo checksum algo
-   * @param force force download even if the file exists in the destDir
-   * @return {Promise<string>}
+   * @param {string} packageURL - package URL
+   * @param {string} checksumURL - package checksum URL
+   * @param {string} destDir - a directory where the files should be downloaded to
+   * @param {string} algo - checksum algo
+   * @param {boolean} [force] - force download even if the file exists in the destDir
+   * @returns {Promise<string>}
    */
   async fetchPackage (packageURL, checksumURL, destDir, algo = 'sha256', force = false) {
     if (!packageURL) throw new Error('package URL is required')
@@ -234,12 +244,11 @@ export class PackageDownloader {
    *
    * It fetches the build.zip file containing the release from a URL like: https://builds.hedera.com/node/software/v0.40/build-v0.40.4.zip
    *
-   * @param tag full semantic version e.g. v0.40.4
-   * @param destDir directory where the artifact needs to be saved
-   * @param force whether to download even if the file exists
+   * @param {string} tag - full semantic version e.g. v0.40.4
+   * @param {string} destDir - directory where the artifact needs to be saved
+   * @param {boolean} [force] - whether to download even if the file exists
    * @returns {Promise<string>} full path to the downloaded file
    */
-
   async fetchPlatform (tag, destDir, force = false) {
     if (!tag) throw new MissingArgumentError('tag is required')
     if (!destDir) throw new MissingArgumentError('destination directory path is required')

@@ -14,6 +14,7 @@
  * limitations under the License.
  *
  */
+'use strict';
 import * as winston from 'winston'
 import { constants } from './index.mjs'
 import { v4 as uuidv4 } from 'uuid'

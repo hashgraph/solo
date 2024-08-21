@@ -14,6 +14,7 @@
  * limitations under the License.
  *
  */
+'use strict'
 import fs from 'fs'
 import os from 'os'
 import path from 'path'
@@ -29,6 +30,8 @@ import { OS_WIN32, OS_WINDOWS } from '../constants.mjs'
 // constants required by HelmDependencyManager
 const HELM_RELEASE_BASE_URL = 'https://get.helm.sh'
 const HELM_ARTIFACT_TEMPLATE = 'helm-%s-%s-%s.%s'
+
+/** @type {Map<string, string>} */
 const HELM_ARTIFACT_EXT = new Map()
   .set(constants.OS_DARWIN, 'tar.gz')
   .set(constants.OS_LINUX, 'tar.gz')
@@ -38,6 +41,15 @@ const HELM_ARTIFACT_EXT = new Map()
  * Helm dependency manager installs or uninstalls helm client at SOLO_HOME_DIR/bin directory
  */
 export class HelmDependencyManager extends ShellRunner {
+  /**
+   * @param {PackageDownloader} downloader
+   * @param {Zippy} zippy
+   * @param {Logger} logger
+   * @param {string} [installationDir]
+   * @param {NodeJS.Platform} [osPlatform]
+   * @param {string} [osArch]
+   * @param {string} [helmVersion]
+   */
   constructor (
     downloader,
     zippy,
@@ -73,17 +85,23 @@ export class HelmDependencyManager extends ShellRunner {
     this.checksumURL = `${HELM_RELEASE_BASE_URL}/${this.artifactName}.sha256sum`
   }
 
+  /**
+   * @returns {string}
+   */
   getHelmPath () {
     return this.helmPath
   }
 
+  /**
+   * @returns {boolean}
+   */
   isInstalled () {
     return fs.existsSync(this.helmPath)
   }
 
   /**
    * Uninstall helm from solo bin folder
-   * @return {Promise<void>}
+   * @returns {Promise<void>}
    */
   async uninstall () {
     if (this.isInstalled()) {
@@ -91,6 +109,10 @@ export class HelmDependencyManager extends ShellRunner {
     }
   }
 
+  /**
+   * @param {string} [tmpDir]
+   * @returns {Promise<boolean>}
+   */
   async install (tmpDir = helpers.getTmpDir()) {
     const extractedDir = path.join(tmpDir, 'extracted-helm')
     let helmSrc = path.join(extractedDir, `${this.osPlatform}-${this.osArch}`, constants.HELM)
@@ -120,6 +142,10 @@ export class HelmDependencyManager extends ShellRunner {
     return this.isInstalled()
   }
 
+  /**
+   * @param {boolean} [shouldInstall]
+   * @returns {Promise<boolean>}
+   */
   async checkVersion (shouldInstall = true) {
     if (!this.isInstalled()) {
       if (shouldInstall) {
@@ -135,6 +161,9 @@ export class HelmDependencyManager extends ShellRunner {
     return semver.gte(parts[0], version.HELM_VERSION)
   }
 
+  /**
+   * @returns {string}
+   */
   getHelmVersion () {
     return version.HELM_VERSION
   }

@@ -14,6 +14,7 @@
  * limitations under the License.
  *
  */
+'use strict';
 import { Listr } from 'listr2'
 import { FullstackTestingError, MissingArgumentError } from '../core/errors.mjs'
 import * as helpers from '../core/helpers.mjs'
@@ -24,6 +25,11 @@ import * as prompts from './prompts.mjs'
 import { getNodeAccountMap } from '../core/helpers.mjs'
 
 export class RelayCommand extends BaseCommand {
+  /**
+   * @param {{profileManager: ProfileManager, accountManager?: AccountManager, logger: Logger, helm: Helm, k8: K8,
+   * chartManager: ChartManager, configManager: ConfigManager, depManager: DependencyManager,
+   * downloader: PackageDownloader}} opts
+   */
   constructor (opts) {
     super(opts)
 
@@ -33,10 +39,16 @@ export class RelayCommand extends BaseCommand {
     this.accountManager = opts.accountManager
   }
 
+  /**
+   * @returns {string}
+   */
   static get DEPLOY_CONFIGS_NAME () {
     return 'deployConfigs'
   }
 
+  /**
+   * @returns {*[]}
+   */
   static get DEPLOY_FLAGS_LIST () {
     return [
       flags.chainId,
@@ -53,6 +65,17 @@ export class RelayCommand extends BaseCommand {
     ]
   }
 
+  /**
+   * @param {string} valuesFile
+   * @param {string} nodeIDs
+   * @param {string} chainID
+   * @param {string} relayRelease
+   * @param {number} replicaCount
+   * @param {string} operatorID
+   * @param {string} operatorKey
+   * @param {string} namespace
+   * @returns {Promise<string>}
+   */
   async prepareValuesArg (valuesFile, nodeIDs, chainID, relayRelease, replicaCount, operatorID, operatorKey, namespace) {
     let valuesArg = ''
     if (valuesFile) {
@@ -100,8 +123,13 @@ export class RelayCommand extends BaseCommand {
     return valuesArg
   }
 
-  // created a json string to represent the map between the node keys and their ids
-  // output example '{"node-1": "0.0.3", "node-2": "0.004"}'
+  /**
+   * created a json string to represent the map between the node keys and their ids
+   * output example '{"node-1": "0.0.3", "node-2": "0.004"}'
+   * @param {string[]} nodeIDs
+   * @param {string} namespace
+   * @returns {Promise<string>}
+   */
   async prepareNetworkJsonString (nodeIDs = [], namespace) {
     if (!nodeIDs) {
       throw new MissingArgumentError('Node IDs must be specified')
@@ -121,6 +149,10 @@ export class RelayCommand extends BaseCommand {
     return JSON.stringify(networkIds)
   }
 
+  /**
+   * @param {string[]} nodeIDs
+   * @returns {string}
+   */
   prepareReleaseName (nodeIDs = []) {
     if (!nodeIDs) {
       throw new MissingArgumentError('Node IDs must be specified')
@@ -134,6 +166,10 @@ export class RelayCommand extends BaseCommand {
     return releaseName
   }
 
+  /**
+   * @param {Object} argv
+   * @returns {Promise<boolean>}
+   */
   async deploy (argv) {
     const self = this
     const tasks = new Listr([
@@ -248,6 +284,10 @@ export class RelayCommand extends BaseCommand {
     return true
   }
 
+  /**
+   * @param {Object} argv
+   * @returns {Promise<boolean>}
+   */
   async destroy (argv) {
     const self = this
 
@@ -307,6 +347,10 @@ export class RelayCommand extends BaseCommand {
     return true
   }
 
+  /**
+   * @param {RelayCommand} relayCmd
+   * @returns {{command: string, desc: string, builder: Function}}
+   */
   static getCommandDefinition (relayCmd) {
     if (!relayCmd || !(relayCmd instanceof RelayCommand)) {
       throw new MissingArgumentError('An instance of RelayCommand is required', relayCmd)

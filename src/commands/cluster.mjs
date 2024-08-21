@@ -14,6 +14,7 @@
  * limitations under the License.
  *
  */
+'use strict';
 import { ListrEnquirerPromptAdapter } from '@listr2/prompt-adapter-enquirer'
 import { Listr } from 'listr2'
 import { FullstackTestingError, IllegalArgumentError } from '../core/errors.mjs'
@@ -28,6 +29,9 @@ import path from 'path'
  * Define the core functionalities of 'cluster' command
  */
 export class ClusterCommand extends BaseCommand {
+  /**
+   * @returns {Promise<boolean>}
+   */
   async showClusterList () {
     this.logger.showList('Clusters', await this.k8.getClusters())
     return true
@@ -52,7 +56,7 @@ export class ClusterCommand extends BaseCommand {
 
   /**
    * Show list of installed chart
-   * @param clusterSetupNamespace
+   * @param {string} clusterSetupNamespace
    */
   async showInstalledChartList (clusterSetupNamespace) {
     this.logger.showList('Installed Charts', await this.chartManager.getInstalledCharts(clusterSetupNamespace))
@@ -60,7 +64,7 @@ export class ClusterCommand extends BaseCommand {
 
   /**
    * Setup cluster with shared components
-   * @param argv
+   * @param {Object} argv
    * @returns {Promise<boolean>}
    */
   async setup (argv) {
@@ -155,7 +159,7 @@ export class ClusterCommand extends BaseCommand {
 
   /**
    * Uninstall shared components from the cluster and perform any other necessary cleanups
-   * @param argv
+   * @param {Object} argv
    * @returns {Promise<boolean>}
    */
   async reset (argv) {
@@ -218,7 +222,8 @@ export class ClusterCommand extends BaseCommand {
 
   /**
    * Return Yargs command definition for 'cluster' command
-   * @param clusterCmd an instance of ClusterCommand
+   * @param {ClusterCommand} clusterCmd an instance of ClusterCommand
+   * @returns {{command: string, desc: string, builder: Function}}
    */
   static getCommandDefinition (clusterCmd) {
     if (!clusterCmd || !(clusterCmd instanceof ClusterCommand)) {
@@ -315,11 +320,11 @@ export class ClusterCommand extends BaseCommand {
   /**
    * Prepare values arg for cluster setup command
    *
-   * @param chartDir local charts directory (default is empty)
-   * @param prometheusStackEnabled a bool to denote whether to install prometheus stack
-   * @param minioEnabled a bool to denote whether to install minio
-   * @param certManagerEnabled a bool to denote whether to install cert manager
-   * @param certManagerCrdsEnabled a bool to denote whether to install cert manager CRDs
+   * @param {string} chartDir - local charts directory (default is empty)
+   * @param {boolean} prometheusStackEnabled - a bool to denote whether to install prometheus stack
+   * @param {boolean} minioEnabled - a bool to denote whether to install minio
+   * @param {boolean} certManagerEnabled - a bool to denote whether to install cert manager
+   * @param {boolean} certManagerCrdsEnabled - a bool to denote whether to install cert manager CRDs
    * @returns {string}
    */
   prepareValuesArg (chartDir = flags.chartDirectory.definition.default,
@@ -348,7 +353,7 @@ export class ClusterCommand extends BaseCommand {
 
   /**
    * Prepare chart path
-   * @param chartDir local charts directory (default is empty)
+   * @param {string} [chartDir] - local charts directory (default is empty)
    * @returns {Promise<string>}
    */
   async prepareChartPath (chartDir = flags.chartDirectory.definition.default) {

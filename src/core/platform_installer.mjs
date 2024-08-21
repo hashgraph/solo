@@ -14,6 +14,7 @@
  * limitations under the License.
  *
  */
+'use strict'
 import * as fs from 'fs'
 import * as os from 'os'
 import { Listr } from 'listr2'
@@ -27,6 +28,12 @@ import { flags } from '../commands/index.mjs'
  * PlatformInstaller install platform code in the root-container of a network pod
  */
 export class PlatformInstaller {
+  /**
+   * @param {Logger} logger
+   * @param {K8} k8
+   * @param {ConfigManager} configManager
+   * @param {AccountManager} accountManager
+   */
   constructor (logger, k8, configManager, accountManager) {
     if (!logger) throw new MissingArgumentError('an instance of core/Logger is required')
     if (!k8) throw new MissingArgumentError('an instance of core/K8 is required')
@@ -39,12 +46,20 @@ export class PlatformInstaller {
     this.accountManager = accountManager
   }
 
+  /**
+   * @returns {string}
+   * @private
+   */
   _getNamespace () {
     const ns = this.configManager.getFlag(flags.namespace)
     if (!ns) throw new MissingArgumentError('namespace is not set')
     return ns
   }
 
+  /**
+   * @param {string} releaseDir
+   * @returns {Promise<void>}
+   */
   async validatePlatformReleaseDir (releaseDir) {
     if (!releaseDir) throw new MissingArgumentError('releaseDir is required')
     if (!fs.existsSync(releaseDir)) {
@@ -78,11 +93,10 @@ export class PlatformInstaller {
 
   /**
    * Fetch and extract platform code into the container
-   * @param podName pod name
-   * @param tag platform release tag
-   * @return {Promise<boolean|undefined>}
+   * @param {string} podName
+   * @param {string} tag - platform release tag
+   * @returns {Promise<boolean|undefined>}
    */
-
   async fetchPlatform (podName, tag) {
     if (!podName) throw new MissingArgumentError('podName is required')
     if (!tag) throw new MissingArgumentError('tag is required')
@@ -104,12 +118,11 @@ export class PlatformInstaller {
   /**
    * Copy a list of files to a directory in the container
    *
-   * @param podName pod name
-   * @param srcFiles list of source files
-   * @param destDir destination directory
-   * @param container name of the container
-   *
-   * @return {Promise<string[]>} list of pathso of the copied files insider the container
+   * @param {string} podName
+   * @param {string[]} srcFiles - list of source files
+   * @param {string} destDir - destination directory
+   * @param {string} container - name of the container
+   * @returns {Promise<string[]>} list of pathso of the copied files insider the container
    */
   async copyFiles (podName, srcFiles, destDir, container = constants.ROOT_CONTAINER) {
     try {
@@ -138,6 +151,13 @@ export class PlatformInstaller {
     }
   }
 
+  /**
+   * @param {string} podName
+   * @param {string} stagingDir
+   * @param {string[]} nodeIds
+   * @param {string} [keyFormat]
+   * @returns {Promise<string[]>}
+   */
   async copyGossipKeys (podName, stagingDir, nodeIds, keyFormat = constants.KEY_FORMAT_PEM) {
     const self = this
 
@@ -176,6 +196,11 @@ export class PlatformInstaller {
     }
   }
 
+  /**
+   * @param {string} podName
+   * @param {string} stagingDir
+   * @returns {Promise<string[]>}
+   */
   async copyTLSKeys (podName, stagingDir) {
     if (!podName) throw new MissingArgumentError('podName is required')
     if (!stagingDir) throw new MissingArgumentError('stagingDir is required')
@@ -200,6 +225,14 @@ export class PlatformInstaller {
     }
   }
 
+  /**
+   * @param {string} podName
+   * @param {string} destPath
+   * @param {string} [mode]
+   * @param {boolean} [recursive]
+   * @param {string} [container]
+   * @returns {Promise<boolean>}
+   */
   async setPathPermission (podName, destPath, mode = '0755', recursive = true, container = constants.ROOT_CONTAINER) {
     if (!podName) throw new MissingArgumentError('podName is required')
     if (!destPath) throw new MissingArgumentError('destPath is required')
@@ -207,18 +240,22 @@ export class PlatformInstaller {
     const recursiveFlag = recursive ? '-R' : ''
     try {
       await this.k8.execContainer(podName, container, `chown ${recursiveFlag} hedera:hedera ${destPath}`)
-    } catch (e) {
+    } catch {
       // ignore error, can't change settings on files that come from configMaps or secrets
     }
     try {
       await this.k8.execContainer(podName, container, `chmod ${recursiveFlag} ${mode} ${destPath}`)
-    } catch (e) {
+    } catch {
       // ignore error, can't change settings on files that come from configMaps or secrets
     }
 
     return true
   }
 
+  /**
+   * @param {string} podName
+   * @returns {Promise<boolean>}
+   */
   async setPlatformDirPermissions (podName) {
     const self = this
     if (!podName) throw new MissingArgumentError('podName is required')
@@ -249,11 +286,11 @@ export class PlatformInstaller {
    *   ${staging}/keys/hedera-<nodeId>.key: gRPC TLS key for a node
    *   ${staging}/keys/hedera-<nodeId>.crt: gRPC TLS cert for a node
    *
-   * @param podName name of the pod
-   * @param stagingDir staging directory path
-   * @param nodeIds list of node ids
-   * @param keyFormat key format (pfx or pem)
-   * @param force force flag
+   * @param {string} podName - name of the pod
+   * @param {string} stagingDir - staging directory path
+   * @param {string[]} nodeIds - list of node ids
+   * @param {string} [keyFormat] - key format (pfx or pem)
+   * @param {boolean} [force] - force flag
    * @returns {Listr<ListrContext, ListrPrimaryRendererValue, ListrSecondaryRendererValue>}
    */
   taskInstall (podName, stagingDir, nodeIds, keyFormat = constants.KEY_FORMAT_PEM, force = false) {
@@ -267,7 +304,7 @@ export class PlatformInstaller {
       {
         title: 'Copy TLS keys',
         task: (_, task) =>
-          self.copyTLSKeys(podName, stagingDir, keyFormat)
+          self.copyTLSKeys(podName, stagingDir, keyFormat) // TODO keyFormat not expected
       },
       {
         title: 'Set file permissions',

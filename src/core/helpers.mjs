@@ -30,16 +30,29 @@ import { FileContentsQuery, FileId } from '@hashgraph/sdk'
 // cache current directory
 const CUR_FILE_DIR = paths.dirname(fileURLToPath(import.meta.url))
 
+/**
+ * @param {number} ms
+ * @returns {Promise}
+ */
 export function sleep (ms) {
   return new Promise((resolve) => {
     setTimeout(resolve, ms)
   })
 }
 
+/**
+ * @param {string} input
+ * @returns {string[]}
+ */
 export function parseNodeIds (input) {
   return splitFlagInput(input, ',')
 }
 
+/**
+ * @param {string} input
+ * @param {string} separator
+ * @returns {string[]}
+ */
 export function splitFlagInput (input, separator = ',') {
   if (typeof input === 'string') {
     const items = []
@@ -56,13 +69,18 @@ export function splitFlagInput (input, separator = ',') {
   throw new FullstackTestingError('input is not a comma separated string')
 }
 
+/**
+ * @template T
+ * @param {T[]} arr - The array to be cloned
+ * @returns {T[]} A new array with the same elements as the input array
+ */
 export function cloneArray (arr) {
   return JSON.parse(JSON.stringify(arr))
 }
 
 /**
  * load package.json
- * @returns {any}
+ * @returns {*}
  */
 export function loadPackageJSON () {
   try {
@@ -73,6 +91,9 @@ export function loadPackageJSON () {
   }
 }
 
+/**
+ * @returns {string}
+ */
 export function packageVersion () {
   const packageJson = loadPackageJSON()
   return packageJson.version
@@ -80,8 +101,8 @@ export function packageVersion () {
 
 /**
  * Return the required root image for a platform version
- * @param releaseTag platform version
- * @return {string}
+ * @param {string} releaseTag - platform version
+ * @returns {string}
  */
 export function getRootImageRepository (releaseTag) {
   const releaseVersion = semver.parse(releaseTag, { includePrerelease: true })
@@ -92,10 +113,19 @@ export function getRootImageRepository (releaseTag) {
   return 'hashgraph/full-stack-testing/ubi8-init-java21'
 }
 
+/**
+ * @returns {string}
+ */
 export function getTmpDir () {
   return fs.mkdtempSync(path.join(os.tmpdir(), 'solo-'))
 }
 
+/**
+ * @param {string} destDir
+ * @param {string} prefix
+ * @param {Date} curDate
+ * @returns {string}
+ */
 export function createBackupDir (destDir, prefix = 'backup', curDate = new Date()) {
   const dateDir = util.format('%s%s%s_%s%s%s',
     curDate.getFullYear(),
@@ -114,6 +144,10 @@ export function createBackupDir (destDir, prefix = 'backup', curDate = new Date(
   return backupDir
 }
 
+/**
+ * @param {Map} [fileMap]
+ * @param {boolean} removeOld
+ */
 export function makeBackup (fileMap = new Map(), removeOld = true) {
   for (const entry of fileMap) {
     const srcPath = entry[0]
@@ -127,6 +161,13 @@ export function makeBackup (fileMap = new Map(), removeOld = true) {
   }
 }
 
+/**
+ * @param {string[]} nodeIds
+ * @param {string} keysDir
+ * @param {Date} curDate
+ * @param {string} dirPrefix
+ * @returns {string}
+ */
 export function backupOldPfxKeys (nodeIds, keysDir, curDate = new Date(), dirPrefix = 'gossip-pfx') {
   const backupDir = createBackupDir(keysDir, `unused-${dirPrefix}`, curDate)
   const fileMap = new Map()
@@ -144,6 +185,13 @@ export function backupOldPfxKeys (nodeIds, keysDir, curDate = new Date(), dirPre
   return backupDir
 }
 
+/**
+ * @param {string[]} nodeIds
+ * @param {string} keysDir
+ * @param {Date} curDate
+ * @param {string} dirPrefix
+ * @returns {string}
+ */
 export function backupOldTlsKeys (nodeIds, keysDir, curDate = new Date(), dirPrefix = 'tls') {
   const backupDir = createBackupDir(keysDir, `unused-${dirPrefix}`, curDate)
   const fileMap = new Map()
@@ -158,6 +206,13 @@ export function backupOldTlsKeys (nodeIds, keysDir, curDate = new Date(), dirPre
   return backupDir
 }
 
+/**
+ * @param {string[]} nodeIds
+ * @param {string} keysDir
+ * @param {Date} curDate
+ * @param {string} dirPrefix
+ * @returns {string}
+ */
 export function backupOldPemKeys (nodeIds, keysDir, curDate = new Date(), dirPrefix = 'gossip-pem') {
   const backupDir = createBackupDir(keysDir, `unused-${dirPrefix}`, curDate)
   const fileMap = new Map()
@@ -172,6 +227,10 @@ export function backupOldPemKeys (nodeIds, keysDir, curDate = new Date(), dirPre
   return backupDir
 }
 
+/**
+ * @param {string} str
+ * @returns {boolean}
+ */
 export function isNumeric (str) {
   if (typeof str !== 'string') return false // we only process strings!
   return !isNaN(str) && // use type coercion to parse the _entirety_ of the string (`parseFloat` alone does not do this)...
@@ -180,8 +239,8 @@ export function isNumeric (str) {
 
 /**
  * Validate a path provided by the user to prevent path traversal attacks
- * @param input the input provided by the user
- * @returns {*} a validated path
+ * @param {string} input - the input provided by the user
+ * @returns {string} a validated path
  */
 export function validatePath (input) {
   if (input.indexOf('\0') !== -1) {
@@ -193,8 +252,8 @@ export function validatePath (input) {
 /**
  * Download logs files from all network pods and save to local solo log directory
  *    an instance of core/K8
- * @param {K8} k8 an instance of core/K8
- * @param {string} namespace the namespace of the network
+ * @param {K8} k8 - an instance of core/K8
+ * @param {string} namespace - the namespace of the network
  * @returns {Promise<void>} A promise that resolves when the logs are downloaded
  */
 export async function getNodeLogs (k8, namespace) {
@@ -227,8 +286,8 @@ export async function getNodeLogs (k8, namespace) {
 
 /**
  * Create a map of node IDs to account IDs
- * @param nodeIDs an array of the node IDs
- * @returns {Map<string,string>} the map of node IDs to account IDs
+ * @param {string[]} nodeIDs - an array of the node IDs
+ * @returns {Map<string, string>} the map of node IDs to account IDs
  */
 export function getNodeAccountMap (nodeIDs) {
   const accountMap = /** @type {Map<string,string>} **/ new Map()
@@ -243,6 +302,12 @@ export function getNodeAccountMap (nodeIDs) {
   return accountMap
 }
 
+/**
+ * @param {AccountManager} accountManager
+ * @param {string} namespace
+ * @param fileNum
+ * @returns {Promise<string>}
+ */
 export async function getFileContents (accountManager, namespace, fileNum) {
   await accountManager.loadNodeClient(namespace)
   const client = accountManager._nodeClient
