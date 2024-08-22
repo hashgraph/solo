@@ -182,6 +182,10 @@ export class NodeCommand extends BaseCommand {
     return [
       flags.app,
       flags.cacheDir,
+      flags.newAccountNumber,
+      flags.newAdminKey,
+      flags.newCACertificate,
+      flags.newGRPCHash,
       flags.devMode,
       flags.endpointType,
       flags.gossipEndpoints,
@@ -614,6 +618,15 @@ export class NodeCommand extends BaseCommand {
         collapseSubtasks: false
       }
     })
+  }
+
+  async loadPermCertificate (certFullPath) {
+    const certPem = fs.readFileSync(certFullPath).toString()
+    const decodedDers = x509.PemConverter.decode(certPem)
+    if (!decodedDers || decodedDers.length === 0) {
+      throw new FullstackTestingError('unable to decode public key: ' + certFullPath)
+    }
+    return (new Uint8Array(decodedDers[0]))
   }
 
   async prepareUpgradeZip (stagingDir) {
@@ -1669,12 +1682,7 @@ export class NodeCommand extends BaseCommand {
           const config = /** @type {NodeAddConfigClass} **/ ctx.config
           const signingCertFile = Templates.renderGossipPemPublicKeyFile(constants.SIGNING_KEY_PREFIX, config.nodeId)
           const signingCertFullPath = path.join(config.keysDir, signingCertFile)
-          const signingCertPem = fs.readFileSync(signingCertFullPath).toString()
-          const decodedDers = x509.PemConverter.decode(signingCertPem)
-          if (!decodedDers || decodedDers.length === 0) {
-            throw new FullstackTestingError('unable to decode public key: ' + signingCertFile)
-          }
-          ctx.signingCertDer = new Uint8Array(decodedDers[0])
+          ctx.signingCertDer = await this.loadPermCertificate(signingCertFullPath)
         }
       },
       {
@@ -1683,12 +1691,7 @@ export class NodeCommand extends BaseCommand {
           const config = /** @type {NodeAddConfigClass} **/ ctx.config
           const tlsCertFile = Templates.renderTLSPemPublicKeyFile(config.nodeId)
           const tlsCertFullPath = path.join(config.keysDir, tlsCertFile)
-          const tlsCertPem = fs.readFileSync(tlsCertFullPath).toString()
-          const tlsCertDers = x509.PemConverter.decode(tlsCertPem)
-          if (!tlsCertDers || tlsCertDers.length === 0) {
-            throw new FullstackTestingError('unable to decode tls cert: ' + tlsCertFullPath)
-          }
-          const tlsCertDer = new Uint8Array(tlsCertDers[0])
+          const tlsCertDer = await this.loadPermCertificate(tlsCertFullPath)
           ctx.tlsCertHash = crypto.createHash('sha384').update(tlsCertDer).digest()
         }
       },
@@ -2410,7 +2413,11 @@ export class NodeCommand extends BaseCommand {
             flags.force,
             flags.fstChartVersion,
             flags.gossipEndpoints,
-            flags.grpcEndpoints
+            flags.grpcEndpoints,
+            flags.newAccountNumber,
+            flags.newAdminKey,
+            flags.newGRPCHash,
+            flags.newCACertificate
           ])
 
           await prompts.execute(task, self.configManager, NodeCommand.UPDATE_FLAGS_LIST)
@@ -2425,6 +2432,10 @@ export class NodeCommand extends BaseCommand {
            * @property {string} gossipEndpoints
            * @property {string} grpcEndpoints
            * @property {string} namespace
+           * @property {string} newAccountNumber
+           * @property {string} newAdminKey
+           * @property {string} newGRPCHash
+           * @property {string} newCACertificate
            * @property {string} nodeId
            * @property {string} releaseTag
            * -- extra args --
@@ -2450,7 +2461,6 @@ export class NodeCommand extends BaseCommand {
           // create a config object for subsequent steps
           const config = /** @type {NodeUpdateConfigClass} **/ this.getConfig(NodeCommand.UPDATE_CONFIGS_NAME, NodeCommand.UPDATE_FLAGS_LIST,
             [
-              'adminKey',
               'allNodeIds',
               'existingNodeIds',
               'freezeAdminPrivateKey',
@@ -2498,30 +2508,6 @@ export class NodeCommand extends BaseCommand {
           }
 
           return self.taskCheckNetworkNodePods(ctx, task, config.existingNodeIds)
-        }
-      },
-      {
-        title: 'Determine new node account number',
-        task: (ctx, task) => {
-          const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
-          const values = { hedera: { nodes: [] } }
-          let maxNum = 0
-
-          for (/** @type {NetworkNodeServices} **/ const networkNodeServices of config.serviceMap.values()) {
-            values.hedera.nodes.push({
-              accountId: networkNodeServices.accountId,
-              name: networkNodeServices.nodeName
-            })
-            maxNum = maxNum > AccountId.fromString(networkNodeServices.accountId).num
-              ? maxNum
-              : AccountId.fromString(networkNodeServices.accountId).num
-          }
-
-          ctx.maxNum = maxNum
-          ctx.newNode = {
-            accountId: `${constants.HEDERA_NODE_ACCOUNT_ID_START.realm}.${constants.HEDERA_NODE_ACCOUNT_ID_START.shard}.${++maxNum}`,
-            name: config.nodeId
-          }
         }
       },
       {
@@ -2627,21 +2613,50 @@ export class NodeCommand extends BaseCommand {
         task: async (ctx, task) => {
           const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
 
-          const nodeId = Templates.nodeNumberFromNodeId(ctx.newNode.name) - 1
-
-          self.logger.info(`ctx.newNode.accountId: ${ctx.newNode.accountId}`)
+          const nodeId = Templates.nodeNumberFromNodeId(config.nodeId) - 1
           self.logger.info(`nodeId: ${nodeId}`)
+          self.logger.info(`config.newAccountNumber: ${config.newAccountNumber}`)
+
+          self.logger.info(`ctx.signingCertDer: ${ctx.signingCertDer}`)
+          self.logger.info(`ctx.tlsCertHash: ${ctx.tlsCertHash}`)
           try {
-            const nodeCreateTx = await new NodeUpdateTransaction()
+            const nodeUpdateTx = await new NodeUpdateTransaction()
               .setNodeId(nodeId)
-              .setAccountId(ctx.newNode.accountId)
               .setGossipEndpoints(ctx.gossipEndpoints)
               .setServiceEndpoints(ctx.grpcServiceEndpoints)
               .setGossipCaCertificate(ctx.signingCertDer)
               .setCertificateHash(ctx.tlsCertHash)
-              .setAdminKey(config.adminKey.publicKey)
-              .freezeWith(config.nodeClient)
-            const signedTx = await nodeCreateTx.sign(config.adminKey)
+
+            if (config.newGRPCHash) {
+              const tlsCertDer = await this.loadPermCertificate(config.newCACertificate)
+              const tlsCertHash = crypto.createHash('sha384').update(tlsCertDer).digest()
+              nodeUpdateTx.setCertificateHash(tlsCertHash)
+            }
+
+            if (config.newCACertificate) {
+              const signingCertDer = await this.loadPermCertificate(config.newCACertificate)
+              nodeUpdateTx.setGossipCaCertificate(signingCertDer)
+            }
+
+            if (config.newAccountNumber) {
+              nodeUpdateTx.setAccountId(config.newAccountNumber)
+            }
+
+            let parsedNewKey
+            if (config.newAdminKey) {
+              parsedNewKey = PrivateKey.fromStringED25519(config.newAdminKey)
+              nodeUpdateTx.setAdminKey(parsedNewKey.publicKey)
+            }
+            await nodeUpdateTx.freezeWith(config.nodeClient)
+
+            // config.adminKey contains the original key, needed to sign the transaction
+            let signedTx
+
+            if (config.newAdminKey) {
+              signedTx = await nodeUpdateTx.sign(config.adminKey)
+            } else {
+              signedTx = await nodeUpdateTx.sign(config.adminKey)
+            }
             const txResp = await signedTx.execute(config.nodeClient)
             const nodeUpdateReceipt = await txResp.getReceipt(config.nodeClient)
             this.logger.debug(`NodeUpdateReceipt: ${nodeUpdateReceipt.toString()}`)
@@ -2907,49 +2922,6 @@ export class NodeCommand extends BaseCommand {
           return self.taskCheckNetworkNodePods(ctx, task, config.existingNodeIds)
         }
       },
-
-      {
-        title: 'Prepare gossip endpoints',
-        task: (ctx, task) => {
-          const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
-          let endpoints = []
-          if (!config.gossipEndpoints) {
-            if (config.endpointType !== constants.ENDPOINT_TYPE_FQDN) {
-              throw new FullstackTestingError(`--gossip-endpoints must be set if --endpoint-type is: ${constants.ENDPOINT_TYPE_IP}`)
-            }
-
-            endpoints = [
-              `${Templates.renderFullyQualifiedNetworkPodName(config.namespace, config.nodeId)}:${constants.HEDERA_NODE_INTERNAL_GOSSIP_PORT}`,
-              `${Templates.renderFullyQualifiedNetworkSvcName(config.namespace, config.nodeId)}:${constants.HEDERA_NODE_EXTERNAL_GOSSIP_PORT}`
-            ]
-          } else {
-            endpoints = helpers.splitFlagInput(config.gossipEndpoints)
-          }
-
-          ctx.gossipEndpoints = this.prepareEndpoints(config.endpointType, endpoints, constants.HEDERA_NODE_INTERNAL_GOSSIP_PORT)
-        }
-      },
-      {
-        title: 'Prepare grpc service endpoints',
-        task: (ctx, task) => {
-          const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
-          let endpoints = []
-
-          if (!config.grpcEndpoints) {
-            if (config.endpointType !== constants.ENDPOINT_TYPE_FQDN) {
-              throw new FullstackTestingError(`--grpc-endpoints must be set if --endpoint-type is: ${constants.ENDPOINT_TYPE_IP}`)
-            }
-
-            endpoints = [
-              `${Templates.renderFullyQualifiedNetworkSvcName(config.namespace, config.nodeId)}:${constants.HEDERA_NODE_EXTERNAL_GOSSIP_PORT}`
-            ]
-          } else {
-            endpoints = helpers.splitFlagInput(config.grpcEndpoints)
-          }
-
-          ctx.grpcServiceEndpoints = this.prepareEndpoints(config.endpointType, endpoints, constants.HEDERA_NODE_EXTERNAL_GOSSIP_PORT)
-        }
-      },
       {
         title: 'Load node admin key',
         task: async (ctx, task) => {
@@ -2987,11 +2959,11 @@ export class NodeCommand extends BaseCommand {
             const deleteAccountId = accountMap.get(ctx.config.nodeId)
             this.logger.debug(`Deleting node: ${ctx.config.nodeId} with account: ${deleteAccountId}`)
 
-            const nodeCreateTx = await new NodeDeleteTransaction()
+            const nodeDeleteTx = await new NodeDeleteTransaction()
               .setNodeId(ctx.config.nodeId)
               .freezeWith(config.nodeClient)
 
-            const signedTx = await nodeCreateTx.sign(config.adminKey)
+            const signedTx = await nodeDeleteTx.sign(config.adminKey)
             const txResp = await signedTx.execute(config.nodeClient)
             const nodeUpdateReceipt = await txResp.getReceipt(config.nodeClient)
             this.logger.debug(`NodeUpdateReceipt: ${nodeUpdateReceipt.toString()}`)

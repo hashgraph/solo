@@ -19,6 +19,8 @@ import { afterAll, describe, expect, it } from '@jest/globals'
 import { flags } from '../../../src/commands/index.mjs'
 import { constants } from '../../../src/core/index.mjs'
 import {
+  accountCreationShouldSucceed,
+  balanceQueryShouldSucceed,
   bootstrapNetwork,
   getDefaultArgv,
   HEDERA_PLATFORM_VERSION_TAG
@@ -60,8 +62,15 @@ describe('Node delete', () => {
     await nodeCmd.delete(argv)
     expect(nodeCmd.getUnusedConfigs(NodeCommand.DELETE_CONFIGS_NAME)).toEqual([
       flags.app.constName,
-      flags.devMode.constName
+      flags.devMode.constName,
+      flags.endpointType.constName,
+      flags.gossipEndpoints.constName,
+      flags.grpcEndpoints.constName
     ])
     await nodeCmd.accountManager.close()
   }, 600000)
+
+  balanceQueryShouldSucceed(nodeCmd.accountManager, nodeCmd, namespace)
+
+  accountCreationShouldSucceed(nodeCmd.accountManager, nodeCmd, namespace)
 })

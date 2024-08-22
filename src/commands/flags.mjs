@@ -539,6 +539,50 @@ export const localBuildPath = {
 }
 
 /** @type {CommandFlag} **/
+export const newAccountNumber = {
+  constName: 'newAccountNumber',
+  name: 'new-account-number',
+  definition: {
+    describe: 'new account number for node update transaction',
+    defaultValue: '',
+    type: 'string'
+  }
+}
+
+/** @type {CommandFlag} **/
+export const newAdminKey = {
+  constName: 'newAdminKey',
+  name: 'new-admin-key',
+  definition: {
+    describe: 'new admin key for the Hedera account',
+    defaultValue: '',
+    type: 'string'
+  }
+}
+
+/** @type {CommandFlag} **/
+export const newCACertificate = {
+  constName: 'newCACertificate',
+  name: 'new-ca-certificate',
+  definition: {
+    describe: 'file name of the new CA certificate for gossip',
+    defaultValue: '',
+    type: 'string'
+  }
+}
+
+/** @type {CommandFlag} **/
+export const newGRPCHash = {
+  constName: 'newGRPCHash',
+  name: 'new-grpc-hash',
+  definition: {
+    describe: 'file name of the new grpc certificate',
+    defaultValue: '',
+    type: 'string'
+  }
+}
+
+/** @type {CommandFlag} **/
 export const log4j2Xml = {
   constName: 'log4j2Xml',
   name: 'log4j2-xml',
@@ -670,6 +714,10 @@ export const persistentVolumeClaims = {
 /** @type {CommandFlag[]} **/
 export const allFlags = [
   accountId,
+  newAdminKey,
+  newAccountNumber,
+  newCACertificate,
+  newGRPCHash,
   amount,
   apiPermissionProperties,
   app,
