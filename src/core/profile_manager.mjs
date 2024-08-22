@@ -27,7 +27,7 @@ import * as semver from 'semver'
 import { readFile, writeFile } from 'fs/promises'
 
 const consensusSidecars = [
-  'recordStreamUploader', 'eventStreamUploader', 'backupUploader', 'accountBalanceUploader', 'otelCollector'] // TODO FIX TYPO ON LAST LORD
+  'recordStreamUploader', 'eventStreamUploader', 'backupUploader', 'accountBalanceUploader', 'otelCollector']
 
 export class ProfileManager {
   /**

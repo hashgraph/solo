@@ -304,7 +304,7 @@ export class PlatformInstaller {
       {
         title: 'Copy TLS keys',
         task: (_, task) =>
-          self.copyTLSKeys(podName, stagingDir, keyFormat) // TODO keyFormat not expected
+          self.copyTLSKeys(podName, stagingDir, keyFormat)
       },
       {
         title: 'Set file permissions',
