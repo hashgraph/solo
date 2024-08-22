@@ -24,6 +24,11 @@ import * as prompts from './prompts.mjs'
 import { getFileContents, getEnvValue } from '../core/helpers.mjs'
 
 export class MirrorNodeCommand extends BaseCommand {
+  /**
+   * @param {{accountManager: AccountManager, profileManager: ProfileManager, logger: Logger, helm: Helm, k8: K8,
+   * hartManager: ChartManager, configManager: ConfigManager, depManager: DependencyManager,
+   * downloader: PackageDownloader}} opts
+   */
   constructor (opts) {
     super(opts)
     if (!opts || !opts.accountManager) throw new IllegalArgumentError('An instance of core/AccountManager is required', opts.accountManager)
@@ -33,10 +38,16 @@ export class MirrorNodeCommand extends BaseCommand {
     this.profileManager = opts.profileManager
   }
 
+  /**
+   * @returns {string}
+   */
   static get DEPLOY_CONFIGS_NAME () {
     return 'deployConfigs'
   }
 
+  /**
+   * @returns {CommandFlag[]}
+   */
   static get DEPLOY_FLAGS_LIST () {
     return [
       flags.chartDirectory,
@@ -49,6 +60,11 @@ export class MirrorNodeCommand extends BaseCommand {
     ]
   }
 
+  /**
+   * @param {string} valuesFile
+   * @param {boolean} deployHederaExplorer
+   * @returns {Promise<string>}
+   */
   async prepareValuesArg (valuesFile, deployHederaExplorer) {
     let valuesArg = ''
     if (valuesFile) {
@@ -65,6 +81,10 @@ export class MirrorNodeCommand extends BaseCommand {
     return valuesArg
   }
 
+  /**
+   * @param {Object} argv
+   * @returns {Promise<boolean>}
+   */
   async deploy (argv) {
     const self = this
 
@@ -275,6 +295,10 @@ export class MirrorNodeCommand extends BaseCommand {
     return true
   }
 
+  /**
+   * @param {Object} argv
+   * @returns {Promise<boolean>}
+   */
   async destroy (argv) {
     const self = this
 
@@ -364,7 +388,8 @@ export class MirrorNodeCommand extends BaseCommand {
 
   /**
    * Return Yargs command definition for 'mirror-mirror-node' command
-   * @param mirrorNodeCmd an instance of NodeCommand
+   * @param {MirrorNodeCommand} mirrorNodeCmd an instance of NodeCommand
+   * @returns {{command: string, desc: string, builder: Function}}
    */
   static getCommandDefinition (mirrorNodeCmd) {
     if (!mirrorNodeCmd || !(mirrorNodeCmd instanceof MirrorNodeCommand)) {

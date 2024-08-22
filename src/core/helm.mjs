@@ -14,6 +14,7 @@
  * limitations under the License.
  *
  */
+'use strict'
 import os from 'os'
 import { constants } from './index.mjs'
 import { ShellRunner } from './shell_runner.mjs'
@@ -21,6 +22,10 @@ import { Templates } from './templates.mjs'
 import { IllegalArgumentError } from './errors.mjs'
 
 export class Helm extends ShellRunner {
+  /**
+   * @param {Logger} logger
+   * @param {NodeJS.Platform} [osPlatform]
+   */
   constructor (logger, osPlatform = os.platform()) {
     if (!logger) throw new IllegalArgumentError('an instance of core/Logger is required', logger)
     super(logger)
@@ -30,8 +35,8 @@ export class Helm extends ShellRunner {
 
   /**
      * Prepare a `helm` shell command string
-     * @param action represents a helm command (e.g. create | install | get )
-     * @param args args of the command
+     * @param {string} action - represents a helm command (e.g. create | install | get )
+     * @param {string} args - args of the command
      * @returns {string}
      */
   prepareCommand (action, ...args) {
@@ -42,7 +47,7 @@ export class Helm extends ShellRunner {
 
   /**
      * Invoke `helm install` command
-     * @param args args of the command
+     * @param {string} args - args of the command
      * @returns {Promise<Array>} console output as an array of strings
      */
   async install (...args) {
@@ -51,7 +56,7 @@ export class Helm extends ShellRunner {
 
   /**
      * Invoke `helm uninstall` command
-     * @param args args of the command
+     * @param {string} args - args of the command
      * @returns {Promise<Array>} console output as an array of strings
      */
   async uninstall (...args) {
@@ -60,7 +65,7 @@ export class Helm extends ShellRunner {
 
   /**
      * Invoke `helm upgrade` command
-     * @param args args of the command
+     * @param {string} args - args of the command
      * @returns {Promise<Array>} console output as an array of strings
      */
   async upgrade (...args) {
@@ -69,7 +74,7 @@ export class Helm extends ShellRunner {
 
   /**
      * Invoke `helm list` command
-     * @param args args of the command
+     * @param {string} args - args of the command
      * @returns {Promise<Array>} console output as an array of strings
      */
   async list (...args) {
@@ -78,8 +83,8 @@ export class Helm extends ShellRunner {
 
   /**
      * Invoke `helm dependency` command
-     * @param subCommand sub-command
-     * @param args args of the command
+     * @param {string} subCommand - sub-command
+     * @param {string} args - args of the command
      * @returns {Promise<Array>} console output as an array of strings
      */
   async dependency (subCommand, ...args) {
@@ -88,8 +93,8 @@ export class Helm extends ShellRunner {
 
   /**
      * Invoke `helm repo` command
-     * @param subCommand sub-command
-     * @param args args of the command
+     * @param {string} subCommand - sub-command
+     * @param {string} args - args of the command
      * @returns {Promise<Array>} console output as an array of strings
      */
   async repo (subCommand, ...args) {
@@ -98,7 +103,8 @@ export class Helm extends ShellRunner {
 
   /**
    * Get helm version
-   * @return {Promise<Array>}
+   * @param {string[]} args
+   * @returns {Promise<Array>}
    */
   async version (args = ['--short']) {
     return this.run(this.prepareCommand('version', ...args))

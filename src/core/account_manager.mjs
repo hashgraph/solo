@@ -14,6 +14,7 @@
  * limitations under the License.
  *
  */
+'use strict'
 import * as HashgraphProto from '@hashgraph/proto'
 import * as Base64 from 'js-base64'
 import os from 'os'
@@ -41,6 +42,13 @@ import ip from 'ip'
 import { NetworkNodeServicesBuilder } from './network_node_services.mjs'
 import path from 'path'
 
+/**
+ * @typedef {Object} AccountIdWithKeyPairObject
+ * @property {string} accountId
+ * @property {string} privateKey
+ * @property {string} publicKey
+ */
+
 const REASON_FAILED_TO_GET_KEYS = 'failed to get keys for accountId'
 const REASON_SKIPPED = 'skipped since it does not have a genesis key'
 const REASON_FAILED_TO_UPDATE_ACCOUNT = 'failed to update account keys'
@@ -51,8 +59,8 @@ const REJECTED = 'rejected'
 export class AccountManager {
   /**
    * creates a new AccountManager instance
-   * @param logger the logger to use
-   * @param k8 the K8 instance
+   * @param {Logger} logger - the logger to use
+   * @param {K8} k8 - the K8 instance
    */
   constructor (logger, k8) {
     if (!logger) throw new Error('An instance of core/Logger is required')
@@ -61,15 +69,19 @@ export class AccountManager {
     this.logger = logger
     this.k8 = k8
     this._portForwards = []
+
+    /**
+     * @type {NodeClient|null}
+     * @public
+     */
     this._nodeClient = null
   }
 
   /**
    * Gets the account keys from the Kubernetes secret from which it is stored
-   * @param accountId the account ID for which we want its keys
-   * @param namespace the namespace that is storing the secret
-   * @returns {Promise<{accountId: string, privateKey: string, publicKey: string}|null>} a
-   * custom object with the account id, private key, and public key
+   * @param {string} accountId - the account ID for which we want its keys
+   * @param {string} namespace - the namespace that is storing the secret
+   * @returns {Promise<AccountIdWithKeyPairObject>}
    */
   async getAccountKeysFromSecret (accountId, namespace) {
     const secret = await this.k8.getSecret(namespace, Templates.renderAccountKeySecretLabelSelector(accountId))
@@ -93,8 +105,8 @@ export class AccountManager {
    * Gets the treasury account private key from Kubernetes secret if it exists, else
    * returns the Genesis private key, then will return an AccountInfo object with the
    * accountId, privateKey, publicKey
-   * @param namespace the namespace that the secret is in
-   * @returns {Promise<{accountId: string, privateKey: string, publicKey: string}>}
+   * @param {string} namespace - the namespace that the secret is in
+   * @returns {Promise<AccountIdWithKeyPairObject>}
    */
   async getTreasuryAccountKeys (namespace) {
     // check to see if the treasure account is in the secrets
@@ -103,7 +115,8 @@ export class AccountManager {
 
   /**
    * batch up the accounts into sets to be processed
-   * @returns an array of arrays of numbers representing the accounts to update
+   * @param {number[][]} [accountRange]
+   * @returns {number[][]} an array of arrays of numbers representing the accounts to update
    */
   batchAccounts (accountRange = constants.SYSTEM_ACCOUNTS) {
     const batchSize = constants.ACCOUNT_UPDATE_BATCH_SIZE
@@ -151,8 +164,8 @@ export class AccountManager {
 
   /**
    * loads and initializes the Node Client
-   * @param namespace the namespace of the network
-   * @returns {Promise<void>}
+   * @param {string} namespace - the namespace of the network
+   * @returns {Promise<NodeClient>}
    */
   async loadNodeClient (namespace) {
     if (!this._nodeClient || this._nodeClient.isClientShutDown) {
@@ -202,10 +215,10 @@ export class AccountManager {
 
   /**
    * Returns a node client that can be used to make calls against
-   * @param namespace the namespace for which the node client resides
-   * @param {Map<string, NetworkNodeServices>}networkNodeServicesMap a map of the service objects that proxy the nodes
-   * @param operatorId the account id of the operator of the transactions
-   * @param operatorKey the private key of the operator of the transactions
+   * @param {string} namespace - the namespace for which the node client resides
+   * @param {Map<string, NetworkNodeServices>} networkNodeServicesMap - a map of the service objects that proxy the nodes
+   * @param {string} operatorId - the account id of the operator of the transactions
+   * @param {string} operatorKey - the private key of the operator of the transactions
    * @returns {Promise<NodeClient>} a node client that can be used to call transactions
    */
   async _getNodeClient (namespace, networkNodeServicesMap, operatorId, operatorKey) {
@@ -245,8 +258,8 @@ export class AccountManager {
 
   /**
    * Gets a Map of the Hedera node services and the attributes needed
-   * @param namespace the namespace of the fullstack network deployment
-   * @returns {Promise<Map<String,NetworkNodeServices>>} a map of the network node services
+   * @param {string} namespace - the namespace of the fullstack network deployment
+   * @returns {Promise<Map<string, NetworkNodeServices>>} a map of the network node services
    */
   async getNodeServiceMap (namespace) {
     const labelSelector = 'fullstack.hedera.com/node-name'
@@ -322,12 +335,11 @@ export class AccountManager {
   }
 
   /**
-   * updates a set of special accounts keys with a newly generated key and stores them in a
-   * Kubernetes secret
-   * @param namespace the namespace of the nodes network
-   * @param currentSet the accounts to update
-   * @param updateSecrets whether to delete the secret prior to creating a new secret
-   * @param resultTracker an object to keep track of the results from the accounts that are being updated
+   * updates a set of special accounts keys with a newly generated key and stores them in a Kubernetes secret
+   * @param {string} namespace the namespace of the nodes network
+   * @param {string[]} currentSet - the accounts to update
+   * @param {boolean} updateSecrets - whether to delete the secret prior to creating a new secret
+   * @param {Object} resultTracker - an object to keep track of the results from the accounts that are being updated
    * @returns {Promise<*>} the updated resultTracker object
    */
   async updateSpecialAccountsKeys (namespace, currentSet, updateSecrets, resultTracker) {
@@ -366,12 +378,11 @@ export class AccountManager {
   }
 
   /**
-   * update the account keys for a given account and store its new key in a Kubernetes
-   * secret
-   * @param namespace the namespace of the nodes network
-   * @param accountId the account that will get its keys updated
-   * @param genesisKey the genesis key to compare against
-   * @param updateSecrets whether to delete the secret prior to creating a new secret
+   * update the account keys for a given account and store its new key in a Kubernetes secret
+   * @param {string} namespace - the namespace of the nodes network
+   * @param {AccountId} accountId - the account that will get its keys updated
+   * @param {PrivateKey} genesisKey - the genesis key to compare against
+   * @param {boolean} updateSecrets - whether to delete the secret prior to creating a new secret
    * @returns {Promise<{value: string, status: string}|{reason: string, value: string, status: string}>} the result of the call
    */
   async updateAccountKeys (namespace, accountId, genesisKey, updateSecrets) {
@@ -460,7 +471,7 @@ export class AccountManager {
 
   /**
    * gets the account info from Hedera network
-   * @param accountId the account
+   * @param {AccountId|string} accountId - the account
    * @returns {AccountInfo} the private key of the account
    */
   async accountInfoQuery (accountId) {
@@ -477,7 +488,7 @@ export class AccountManager {
 
   /**
    * gets the account private and public key from the Kubernetes secret from which it is stored
-   * @param accountId the account
+   * @param {AccountId|string} accountId - the account
    * @returns {Promise<Key[]>} the private key of the account
    */
   async getAccountKeys (accountId) {
@@ -495,9 +506,9 @@ export class AccountManager {
 
   /**
    * send an account key update transaction to the network of nodes
-   * @param accountId the account that will get it's keys updated
-   * @param newPrivateKey the new private key
-   * @param oldPrivateKey the genesis key that is the current key
+   * @param {AccountId|string} accountId - the account that will get its keys updated
+   * @param {PrivateKey|string} newPrivateKey - the new private key
+   * @param {PrivateKey|string} oldPrivateKey - the genesis key that is the current key
    * @returns {Promise<boolean>} whether the update was successful
    */
   async sendAccountKeyUpdate (accountId, newPrivateKey, oldPrivateKey) {
@@ -530,13 +541,13 @@ export class AccountManager {
 
   /**
    * creates a new Hedera account
-   * @param namespace the namespace to store the Kubernetes key secret into
-   * @param privateKey the private key of type PrivateKey
-   * @param amount the amount of HBAR to add to the account
-   * @param setAlias whether to set the alias of the account to the public key,
-   * requires the privateKey supplied to be ECDSA
-   * @returns {{accountId: AccountId, privateKey: string, publicKey: string, balance: number}} a
-   * custom object with the account information in it
+   * @param {string} namespace - the namespace to store the Kubernetes key secret into
+   * @param {Key} privateKey - the private key of type PrivateKey
+   * @param {number} amount - the amount of HBAR to add to the account
+   * @param {boolean} [setAlias] - whether to set the alias of the account to the public key, requires
+   * the privateKey supplied to be ECDSA
+   * @returns {{accountId: AccountId, privateKey: string, publicKey: string, balance: number}} a custom object with
+   * the account information in it
    */
   async createNewAccount (namespace, privateKey, amount, setAlias = false) {
     const newAccountTransaction = new AccountCreateTransaction()
@@ -593,9 +604,9 @@ export class AccountManager {
 
   /**
    * transfer the specified amount of HBAR from one account to another
-   * @param fromAccountId the account to pull the HBAR from
-   * @param toAccountId the account to put the HBAR
-   * @param hbarAmount the amount of HBAR
+   * @param {AccountId|string} fromAccountId - the account to pull the HBAR from
+   * @param {AccountId|string} toAccountId - the account to put the HBAR
+   * @param {number} hbarAmount - the amount of HBAR
    * @returns {Promise<boolean>} if the transaction was successfully posted
    */
   async transferAmount (fromAccountId, toAccountId, hbarAmount) {
@@ -621,7 +632,7 @@ export class AccountManager {
   /**
    * Fetch and prepare address book as a base64 string
    * @param {string} namespace the namespace of the network
-   * @return {Promise<string>}
+   * @returns {Promise<string>}
    */
   async prepareAddressBookBase64 (namespace) {
     // fetch AddressBook
