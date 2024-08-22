@@ -47,7 +47,7 @@ export class NetworkCommand extends BaseCommand {
   }
 
   /**
-   * @returns {*[]}
+   * @returns {CommandFlag[]}
    */
   static get DEPLOY_FLAGS_LIST () {
     return [
@@ -157,7 +157,7 @@ export class NetworkCommand extends BaseCommand {
 
   /**
    * @param task
-   * @param argv
+   * @param {Object} argv
    * @returns {Promise<NetworkDeployConfigClass>}
    */
   async prepareConfig (task, argv) {

@@ -146,7 +146,7 @@ export function createBackupDir (destDir, prefix = 'backup', curDate = new Date(
 }
 
 /**
- * @param {Map} [fileMap]
+ * @param {Map<string, string>} [fileMap]
  * @param {boolean} removeOld
  */
 export function makeBackup (fileMap = new Map(), removeOld = true) {
@@ -287,7 +287,7 @@ export async function getNodeLogs (k8, namespace) {
 
 /**
  * Create a map of node IDs to account IDs
- * @param {string[]} nodeIDs - an array of the node IDs
+ * @param {string[]} nodeIDs
  * @returns {Map<string, string>} the map of node IDs to account IDs
  */
 export function getNodeAccountMap (nodeIDs) {

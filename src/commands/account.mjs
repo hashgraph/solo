@@ -129,8 +129,8 @@ export class AccountCommand extends BaseCommand {
   }
 
   /**
-   * @param toAccountId
-   * @param amount
+   * @param {AccountId} toAccountId
+   * @param {number} amount
    * @returns {Promise<boolean>}
    */
   async transferAmountFromOperator (toAccountId, amount) {

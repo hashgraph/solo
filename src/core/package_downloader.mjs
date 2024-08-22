@@ -194,10 +194,10 @@ export class PackageDownloader {
 
   /**
    * Fetch a remote package
-   * @param {string} packageURL - package URL
+   * @param {string} packageURL
    * @param {string} checksumURL - package checksum URL
    * @param {string} destDir - a directory where the files should be downloaded to
-   * @param {string} algo - checksum algo
+   * @param {string} [algo] - checksum algo
    * @param {boolean} [force] - force download even if the file exists in the destDir
    * @returns {Promise<string>}
    */

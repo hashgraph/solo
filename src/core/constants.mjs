@@ -14,6 +14,7 @@
  * limitations under the License.
  *
  */
+'use strict'
 import { AccountId, FileId } from '@hashgraph/sdk'
 import { color, PRESET_TIMER } from 'listr2'
 import path, { dirname, normalize } from 'path'
@@ -77,11 +78,9 @@ export const GENESIS_KEY = process.env.GENESIS_KEY || '302e020100300506032b65700
 export const SYSTEM_ACCOUNTS = [[3, 100], [200, 349], [400, 750], [900, 1000]] // do account 0.0.2 last and outside the loop
 export const SHORTER_SYSTEM_ACCOUNTS = [[3, 60]]
 export const TREASURY_ACCOUNT = 2
-
-// TODO Verify that parsing to integer is required
-export const LOCAL_NODE_START_PORT = parseInt(process.env.LOCAL_NODE_START_PORT) || 30212
-export const LOCAL_NODE_PROXY_START_PORT = parseInt(process.env.LOCAL_NODE_PROXY_START_PORT) || 30313
-export const ACCOUNT_UPDATE_BATCH_SIZE = parseInt(process.env.ACCOUNT_UPDATE_BATCH_SIZE) || 10
+export const LOCAL_NODE_START_PORT = process.env.LOCAL_NODE_START_PORT || 30212
+export const LOCAL_NODE_PROXY_START_PORT = process.env.LOCAL_NODE_PROXY_START_PORT || 30313
+export const ACCOUNT_UPDATE_BATCH_SIZE = process.env.ACCOUNT_UPDATE_BATCH_SIZE || 10
 
 export const NODE_PROXY_USER_ID = process.env.NODE_PROXY_USER_ID || 'admin'
 export const NODE_PROXY_PASSWORD = process.env.NODE_PROXY_PASSWORD || 'adminpwd'
@@ -142,12 +141,11 @@ export const PROFILE_LOCAL = 'local'
 export const ALL_PROFILES = [PROFILE_LOCAL, PROFILE_TINY, PROFILE_SMALL, PROFILE_MEDIUM, PROFILE_LARGE]
 export const DEFAULT_PROFILE_FILE = path.join(SOLO_CACHE_DIR, 'profiles', 'custom-spec.yaml')
 
-// TODO Verify that parsing to integer is required
 // ------ Hedera SDK Related ------
-export const NODE_CLIENT_MAX_ATTEMPTS = parseInt(process.env.NODE_CLIENT_MAX_ATTEMPTS) || 60
-export const NODE_CLIENT_MIN_BACKOFF = parseInt(process.env.NODE_CLIENT_MIN_BACKOFF) || 1000
-export const NODE_CLIENT_MAX_BACKOFF = parseInt(process.env.NODE_CLIENT_MAX_BACKOFF) || 1000
-export const NODE_CLIENT_REQUEST_TIMEOUT = parseInt(process.env.NODE_CLIENT_REQUEST_TIMEOUT) || 120000
+export const NODE_CLIENT_MAX_ATTEMPTS = process.env.NODE_CLIENT_MAX_ATTEMPTS || 60
+export const NODE_CLIENT_MIN_BACKOFF = process.env.NODE_CLIENT_MIN_BACKOFF || 1000
+export const NODE_CLIENT_MAX_BACKOFF = process.env.NODE_CLIENT_MAX_BACKOFF || 1000
+export const NODE_CLIENT_REQUEST_TIMEOUT = process.env.NODE_CLIENT_REQUEST_TIMEOUT || 120000
 
 // ---- New Node Related ----
 export const ENDPOINT_TYPE_IP = 'IP'

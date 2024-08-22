@@ -47,7 +47,7 @@ export class RelayCommand extends BaseCommand {
   }
 
   /**
-   * @returns {*[]}
+   * @returns {CommandFlag[]}
    */
   static get DEPLOY_FLAGS_LIST () {
     return [

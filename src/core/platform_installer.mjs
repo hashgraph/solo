@@ -95,7 +95,7 @@ export class PlatformInstaller {
    * Fetch and extract platform code into the container
    * @param {string} podName
    * @param {string} tag - platform release tag
-   * @returns {Promise<boolean|undefined>}
+   * @returns {Promise<boolean>}
    */
   async fetchPlatform (podName, tag) {
     if (!podName) throw new MissingArgumentError('podName is required')
@@ -121,7 +121,7 @@ export class PlatformInstaller {
    * @param {string} podName
    * @param {string[]} srcFiles - list of source files
    * @param {string} destDir - destination directory
-   * @param {string} container - name of the container
+   * @param {string} [container] - name of the container
    * @returns {Promise<string[]>} list of pathso of the copied files insider the container
    */
   async copyFiles (podName, srcFiles, destDir, container = constants.ROOT_CONTAINER) {
@@ -286,7 +286,7 @@ export class PlatformInstaller {
    *   ${staging}/keys/hedera-<nodeId>.key: gRPC TLS key for a node
    *   ${staging}/keys/hedera-<nodeId>.crt: gRPC TLS cert for a node
    *
-   * @param {string} podName - name of the pod
+   * @param {string} podName
    * @param {string} stagingDir - staging directory path
    * @param {string[]} nodeIds - list of node ids
    * @param {string} [keyFormat] - key format (pfx or pem)

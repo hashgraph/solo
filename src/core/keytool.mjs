@@ -14,6 +14,7 @@
  * limitations under the License.
  *
  */
+'use strict'
 import os from 'os'
 import { constants } from './index.mjs'
 import { ShellRunner } from './shell_runner.mjs'
@@ -23,7 +24,7 @@ import { MissingArgumentError } from './errors.mjs'
 export class Keytool extends ShellRunner {
   /**
    * @param {Logger} logger
-   * @param {NodeJS.Platform} osPlatform
+   * @param {NodeJS.Platform} [osPlatform]
    */
   constructor (logger, osPlatform = os.platform()) {
     if (!logger) throw new MissingArgumentError('an instance of core/Logger is required', logger)

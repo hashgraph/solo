@@ -14,7 +14,7 @@
  * limitations under the License.
  *
  */
-'use strict';
+'use strict'
 import * as winston from 'winston'
 import { constants } from './index.mjs'
 import { v4 as uuidv4 } from 'uuid'
@@ -86,11 +86,17 @@ export const Logger = class {
     })
   }
 
+  /**
+   * @param {boolean} devMode
+   */
   setDevMode (devMode) {
     this.debug(`dev mode logging: ${devMode}`)
     this.devMode = devMode
   }
 
+  /**
+   * @param {string} level
+   */
   setLevel (level) {
     this.winstonLogger.setLevel(level)
   }
@@ -99,6 +105,10 @@ export const Logger = class {
     this.traceId = uuidv4()
   }
 
+  /**
+   * @param {Object|undefined} meta
+   * @returns {Object}
+   */
   prepMeta (meta) {
     if (meta === undefined) {
       meta = {}
@@ -108,10 +118,17 @@ export const Logger = class {
     return meta
   }
 
+  /**
+   * @param msg
+   * @param args
+   */
   showUser (msg, ...args) {
     console.log(util.format(msg, ...args))
   }
 
+  /**
+   * @param {Error} err
+   */
   showUserError (err) {
     const stack = [{ message: err.message, stacktrace: err.stack }]
     if (err.cause) {
@@ -148,22 +165,43 @@ export const Logger = class {
     this.debug(err.message, { error: err.message, stacktrace: stack })
   }
 
+  /**
+   * @param {string} msg
+   * @param {*} args
+   */
   error (msg, ...args) {
     this.winstonLogger.error(msg, ...args, this.prepMeta())
   }
 
+  /**
+   * @param {string} msg
+   * @param {*} args
+   */
   warn (msg, ...args) {
     this.winstonLogger.warn(msg, ...args, this.prepMeta())
   }
 
+  /**
+   * @param {string} msg
+   * @param {*} args
+   */
   info (msg, ...args) {
     this.winstonLogger.info(msg, ...args, this.prepMeta())
   }
 
+  /**
+   * @param {string} msg
+   * @param {*} args
+   */
   debug (msg, ...args) {
     this.winstonLogger.debug(msg, ...args, this.prepMeta())
   }
 
+  /**
+   * @param {string} title
+   * @param {string[]} items
+   * @returns {boolean}
+   */
   showList (title, items = []) {
     this.showUser(chalk.green(`\n *** ${title} ***`))
     this.showUser(chalk.green('-------------------------------------------------------------------------------'))
@@ -177,6 +215,10 @@ export const Logger = class {
     return true
   }
 
+  /**
+   * @param {string} title
+   * @param {Object} obj
+   */
   showJSON (title, obj) {
     this.showUser(chalk.green(`\n *** ${title} ***`))
     this.showUser(chalk.green('-------------------------------------------------------------------------------'))
@@ -184,6 +226,12 @@ export const Logger = class {
   }
 }
 
+/**
+ * @param {string} [level]
+ * @param {boolean} [devMode]
+ * @returns {Logger}
+ * @constructor
+ */
 export function NewLogger (level = 'debug', devMode = false) {
   return new Logger(level, devMode)
 }

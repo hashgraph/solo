@@ -14,7 +14,7 @@
  * limitations under the License.
  *
  */
-'use strict';
+'use strict'
 import { constants } from '../core/index.mjs'
 import * as core from '../core/index.mjs'
 import * as version from '../../version.mjs'

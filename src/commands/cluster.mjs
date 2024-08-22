@@ -222,7 +222,7 @@ export class ClusterCommand extends BaseCommand {
 
   /**
    * Return Yargs command definition for 'cluster' command
-   * @param {ClusterCommand} clusterCmd an instance of ClusterCommand
+   * @param {ClusterCommand} clusterCmd - an instance of ClusterCommand
    * @returns {{command: string, desc: string, builder: Function}}
    */
   static getCommandDefinition (clusterCmd) {

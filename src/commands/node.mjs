@@ -190,7 +190,6 @@ export class NodeCommand extends BaseCommand {
    * @returns {Promise<void>}
    */
   async close () {
-    // TODO VALIDATE AWAIT IS NEEDED
     await this.accountManager.close()
     if (this._portForwards) {
       for (const srv of this._portForwards) {
@@ -569,7 +568,7 @@ export class NodeCommand extends BaseCommand {
    * @param {Object} podNames
    * @param {*} task
    * @param {string} localBuildPath
-   * @returns {Listr<any, any, any>}
+   * @returns {Listr<*, *, *>}
    */
   uploadPlatformSoftware (nodeIds, podNames, task, localBuildPath) {
     const self = this
@@ -627,9 +626,9 @@ export class NodeCommand extends BaseCommand {
    * @param {string[]} nodeIds
    * @param {Object} podNames
    * @param {string} releaseTag
-   * @param task
+   * @param {*} task
    * @param {string} localBuildPath
-   * @returns {Listr<*, *, *>|*}
+   * @returns {Listr<*, *, *>}
    */
   fetchLocalOrReleasedPlatformSoftware (nodeIds, podNames, releaseTag, task, localBuildPath) {
     const self = this
@@ -644,8 +643,8 @@ export class NodeCommand extends BaseCommand {
    * @param {string[]} nodeIds
    * @param {Object} podNames
    * @param {string} releaseTag
-   * @param task
-   * @param platformInstaller
+   * @param {*} task
+   * @param {PlatformInstaller} platformInstaller
    * @returns {Listr<any, any, any>}
    */
   fetchPlatformSoftware (nodeIds, podNames, releaseTag, task, platformInstaller) {

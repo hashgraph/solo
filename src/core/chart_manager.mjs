@@ -14,11 +14,16 @@
  * limitations under the License.
  *
  */
+'use strict'
 import { constants } from './index.mjs'
 import chalk from 'chalk'
 import { FullstackTestingError } from './errors.mjs'
 
 export class ChartManager {
+  /**
+   * @param {Helm} helm
+   * @param {Logger} logger
+   */
   constructor (helm, logger) {
     if (!logger) throw new Error('An instance of core/Logger is required')
     if (!helm) throw new Error('An instance of core/Helm is required')
@@ -32,7 +37,7 @@ export class ChartManager {
    *
    * This must be invoked before calling other methods
    *
-   * @param repoURLs - a map of name and chart repository URLs
+   * @param {Map<string, string>} repoURLs - a map of name and chart repository URLs
    * @param {boolean} force - whether or not to update the repo
    * @returns {Promise<string[]>}
    */

@@ -94,9 +94,9 @@ export class K8 {
 
   /**
    * Apply filters to metadata
-   * @param {Array} items - list of items
+   * @param {Object[]} items - list of items
    * @param {Object} [filters] - an object with metadata fields and value
-   * @returns {Array} a list of items that match the filters
+   * @returns {Object[]} a list of items that match the filters
    */
   applyMetadataFilter (items, filters = {}) {
     if (!filters) throw new MissingArgumentError('filters are required')
@@ -126,9 +126,9 @@ export class K8 {
 
   /**
    * Filter a single item using metadata filter
-   * @param {Array} items - list of items
-   * @param {Object} filters - an object with metadata fields and value
-   * @returns {*}
+   * @param {Object[]} items - list of items
+   * @param {Object} [filters] - an object with metadata fields and value
+   * @returns {Object}
    */
   filterItem (items, filters = {}) {
     const filtered = this.applyMetadataFilter(items, filters)
@@ -212,7 +212,7 @@ export class K8 {
   /**
    * Get pods by labels
    * @param {string[]} labels - list of labels
-   * @returns {Promise<Array<V1Pod>>}
+   * @returns {Promise<Array<import('@kubernetes/client-node').V1Pod>>}
    */
   async getPodsByLabel (labels = []) {
     const ns = this._getNamespace()
@@ -342,7 +342,8 @@ export class K8 {
    * @param {string} containerName
    * @param {string} destPath - path inside the container
    * @param {number} [timeout] - timeout in ms
-   * @returns {Promise<{owner: string, size: number, modifiedAt: string, name: string, directory: boolean, group: string}[]>} array of directory entries, custom object
+   * @returns {Promise<{owner: string, size: number, modifiedAt: string, name: string, directory: boolean, group: string}[]>}
+   * array of directory entries, custom object
    */
   async listDir (podName, containerName, destPath, timeout = 5000) {
     try {
@@ -798,7 +799,7 @@ export class K8 {
    * @param {number} [maxAttempts] - maximum attempts to check
    * @param {number} [delay] - delay between checks in milliseconds
    * @param {Function} podItemPredicate - a predicate function to check the pod item
-   * @returns {Promise<*>} a Promise that checks the status of an array of pods
+   * @returns {Promise<Object[]>} a Promise that checks the status of an array of pods
    */
   async waitForPods (phases = [constants.POD_PHASE_RUNNING], labels = [], podCount = 1, maxAttempts = 10, delay = 500, podItemPredicate) {
     const ns = this._getNamespace()
@@ -873,13 +874,12 @@ export class K8 {
   /**
    * Check pods for conditions
    * @param {Map} conditionsMap - a map of conditions and values
-   * @param {string[]} labels - pod labels
-   * @param {number} podCount - number of pod expected
-   * @param {number} maxAttempts - maximum attempts to check
-   * @param {number} delay - delay between checks in milliseconds
-   * @returns {Promise<*>}
+   * @param {string[]} [labels] - pod labels
+   * @param {number} [podCount] - number of pod expected
+   * @param {number} [maxAttempts] - maximum attempts to check
+   * @param {number} [delay] - delay between checks in milliseconds
+   * @returns {Promise<Object[]>}
    */
-
   async waitForPodConditions (
     conditionsMap,
     labels = [],
@@ -934,7 +934,7 @@ export class K8 {
    * Get a list of secrets for the given namespace
    * @param {string} namespace - the namespace of the secrets to return
    * @param {string[]} [labels] - labels
-   * @returns {Promise<*[]>} return list of secret names
+   * @returns {Promise<string[]>} return list of secret names
    */
   async listSecretsByNamespace (namespace, labels = []) {
     const secrets = []
@@ -974,8 +974,8 @@ export class K8 {
    * retrieve the secret of the given namespace and label selector, if there is more than one, it returns the first
    * @param {string} namespace - the namespace of the secret to search for
    * @param {string} labelSelector - the label selector used to fetch the Kubernetes secret
-   * @returns {Promise<{name: string, labels: Object, namespace: string, type: string, data: Object} | null>} a custom secret
-   * object with the relevant attributes, the values of the data key:value pair objects must be base64 decoded
+   * @returns {Promise<{name: string, labels: Object, namespace: string, type: string, data: Object} | null>} a custom
+   * secret object with the relevant attributes, the values of the data key:value pair objects must be base64 decoded
    */
   async getSecret (namespace, labelSelector) {
     const result = await this.kubeClient.listNamespacedSecret(

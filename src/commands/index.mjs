@@ -27,7 +27,7 @@ import * as flags from './flags.mjs'
 /**
  * Return a list of Yargs command builder to be exposed through CLI
  * @param {Object} opts it is an Options object containing logger
- * @returns {Array<>} TODO
+ * @returns {Array<{command: string, desc: string, builder: Function, handler?: Function}[]>}
  */
 function Initialize (opts) {
   const initCmd = new InitCommand(opts)

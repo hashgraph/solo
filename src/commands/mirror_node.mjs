@@ -46,7 +46,7 @@ export class MirrorNodeCommand extends BaseCommand {
   }
 
   /**
-   * @returns {*[]}
+   * @returns {CommandFlag[]}
    */
   static get DEPLOY_FLAGS_LIST () {
     return [

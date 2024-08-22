@@ -14,7 +14,7 @@
  * limitations under the License.
  *
  */
-'use strict';
+'use strict'
 import fs from 'fs'
 import { FullstackTestingError, MissingArgumentError } from './errors.mjs'
 import { constants } from './index.mjs'

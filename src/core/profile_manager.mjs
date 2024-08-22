@@ -27,11 +27,10 @@ import * as semver from 'semver'
 import { readFile, writeFile } from 'fs/promises'
 
 const consensusSidecars = [
-  'recordStreamUploader', 'eventStreamUploader', 'backupUploader', 'accountBalanceUploader', 'otelCollector']
+  'recordStreamUploader', 'eventStreamUploader', 'backupUploader', 'accountBalanceUploader', 'otelCollector'] // TODO FIX TYPO ON LAST LORD
 
 export class ProfileManager {
   /**
-   * Constructor
    * @param {Logger} logger - an instance of core/Logger
    * @param {ConfigManager} configManager - an instance of core/ConfigManager
    * @param {string} cacheDir - cache directory where the values file will be written. A yaml file named <profileName>.yaml is created.
@@ -42,6 +41,8 @@ export class ProfileManager {
 
     this.logger = logger
     this.configManager = configManager
+
+    /** @type {Map<string, Object>} */
     this.profiles = new Map()
 
     cacheDir = path.resolve(cacheDir)
@@ -139,7 +140,7 @@ export class ProfileManager {
   /**
    * Set items for the chart
    * @param {string} itemPath - item path in the yaml, if empty then root of the yaml object will be used
-   * @param items - the element object
+   * @param {*} items - the element object
    * @param {Object} yamlRoot - root of the yaml object to update
    * @private
    */
@@ -158,7 +159,7 @@ export class ProfileManager {
   }
 
   /**
-   * @param {string} profile // TODO VALIDATE PROFILE ORIGIN AND TYPE
+   * @param {Object} profile
    * @param {string[]} nodeIds
    * @param {Object} yamlRoot
    * @returns {Object}
@@ -229,7 +230,7 @@ export class ProfileManager {
   }
 
   /**
-   * @param {*} profile
+   * @param {Object} profile
    * @param {Object} yamlRoot
    * @returns {void}
    */
@@ -241,7 +242,7 @@ export class ProfileManager {
   }
 
   /**
-   * @param {*} profile
+   * @param {Object} profile
    * @param {Object} yamlRoot
    * @returns {void}
    */
@@ -252,7 +253,7 @@ export class ProfileManager {
   }
 
   /**
-   * @param {*} profile
+   * @param {Object} profile
    * @param {Object} yamlRoot
    * @returns {void}
    */
@@ -263,7 +264,7 @@ export class ProfileManager {
   }
 
   /**
-   * @param {*} profile
+   * @param {Object} profile
    * @param {Object} yamlRoot
    * @returns {Object}
    */
@@ -444,9 +445,9 @@ export class ProfileManager {
    * @param {Map<string, string>} nodeAccountMap - the map of node IDs to account IDs
    * @param {string} destPath - path to the destination directory to write the config.txt file
    * @param {string} releaseTag - release tag e.g. v0.42.0
-   * @param {string} appName - the app name (default: HederaNode.jar)
-   * @param {string} chainId - chain ID (298 for local network)
-   * @param {string} template - path to the config.template file
+   * @param {string} [appName] - the app name (default: HederaNode.jar)
+   * @param {string} [chainId] - chain ID (298 for local network)
+   * @param {string} [template] - path to the config.template file
    * @returns {string} the config.txt file path
    */
   prepareConfigTxt (namespace, nodeAccountMap, destPath, releaseTag, appName = constants.HEDERA_APP_NAME, chainId = constants.HEDERA_CHAIN_ID, template = path.join(constants.RESOURCES_DIR, 'templates', 'config.template')) {

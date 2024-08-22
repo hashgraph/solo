@@ -14,6 +14,7 @@
  * limitations under the License.
  *
  */
+'use strict'
 import * as x509 from '@peculiar/x509'
 import os from 'os'
 import path from 'path'
@@ -135,7 +136,7 @@ export class Templates {
 
   /**
    * renders the name to be used to store the new account key as a Kubernetes secret
-   * @param accountId - the account ID, string or AccountId type
+   * @param {AccountId|string} accountId
    * @returns {string} the name of the Kubernetes secret to store the account key
    */
   static renderAccountKeySecretName (accountId) {
@@ -144,7 +145,7 @@ export class Templates {
 
   /**
    * renders the label selector to be used to fetch the new account key from the Kubernetes secret
-   * @param accountId - the account ID, string or AccountId type
+   * @param {AccountId|string} accountId
    * @returns {string} the label selector of the Kubernetes secret to retrieve the account key   */
   static renderAccountKeySecretLabelSelector (accountId) {
     return `fullstack.hedera.com/account-id=${accountId.toString()}`
@@ -152,7 +153,7 @@ export class Templates {
 
   /**
    * renders the label object to be used to store the new account key in the Kubernetes secret
-   * @param accountId - the account ID, string or AccountId type
+   * @param {AccountId|string} accountId
    * @returns {{'fullstack.hedera.com/account-id': string}} the label object to be used to
    * store the new account key in the Kubernetes secret
    */
