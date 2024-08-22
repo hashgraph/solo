@@ -14,7 +14,7 @@
  * limitations under the License.
  *
  */
-'use strict';
+'use strict'
 import { ListrEnquirerPromptAdapter } from '@listr2/prompt-adapter-enquirer'
 import { Listr } from 'listr2'
 import { FullstackTestingError, IllegalArgumentError } from '../core/errors.mjs'

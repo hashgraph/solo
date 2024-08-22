@@ -34,6 +34,7 @@ export class AccountCommand extends BaseCommand {
     super(opts)
 
     if (!opts || !opts.accountManager) throw new IllegalArgumentError('An instance of core/AccountManager is required', opts.accountManager)
+
     this.accountManager = opts.accountManager
     this.accountInfo = null
     this.systemAccounts = systemAccounts
@@ -82,12 +83,8 @@ export class AccountCommand extends BaseCommand {
       ctx.privateKey = PrivateKey.generateED25519()
     }
 
-    return this.accountManager.createNewAccount(
-      ctx.config.namespace,
-      ctx.privateKey,
-      ctx.config.amount,
-      ctx.config.ecdsaPrivateKey ? ctx.config.setAlias : false
-    )
+    return this.accountManager.createNewAccount(ctx.config.namespace,
+      ctx.privateKey, ctx.config.amount, ctx.config.ecdsaPrivateKey ? ctx.config.setAlias : false)
   }
 
   /**

@@ -169,7 +169,7 @@ export class InitCommand extends BaseCommand {
           flags.releaseTag
         )
       },
-      handler: () => {
+      handler: (argv) => {
         initCmd.init(argv).then(r => {
           if (!r) process.exit(1)
         }).catch(err => {

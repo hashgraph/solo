@@ -51,7 +51,8 @@ export class PackageDownloader {
       // attempt to parse to check URL format
       const out = new URL(url)
       return out.href !== undefined
-    } catch {}
+    } catch (e) {
+    }
 
     return false
   }

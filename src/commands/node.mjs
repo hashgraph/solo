@@ -190,7 +190,7 @@ export class NodeCommand extends BaseCommand {
    * @returns {Promise<void>}
    */
   async close () {
-    await this.accountManager.close()
+    this.accountManager.close() // TODO Review
     if (this._portForwards) {
       for (const srv of this._portForwards) {
         await this.k8.stopPortForward(srv)

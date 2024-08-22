@@ -219,7 +219,7 @@ export class AccountManager {
    * @param {Map<string, NetworkNodeServices>} networkNodeServicesMap - a map of the service objects that proxy the nodes
    * @param {string} operatorId - the account id of the operator of the transactions
    * @param {string} operatorKey - the private key of the operator of the transactions
-   * @returns {Promise<import('@hashgraph/sdk').Client>} a node client that can be used to call transactions
+   * @returns {Promise<NodeClient>} a node client that can be used to call transactions
    */
   async _getNodeClient (namespace, networkNodeServicesMap, operatorId, operatorKey) {
     const nodes = {}

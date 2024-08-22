@@ -240,12 +240,12 @@ export class PlatformInstaller {
     const recursiveFlag = recursive ? '-R' : ''
     try {
       await this.k8.execContainer(podName, container, `chown ${recursiveFlag} hedera:hedera ${destPath}`)
-    } catch {
+    } catch (e) {
       // ignore error, can't change settings on files that come from configMaps or secrets
     }
     try {
       await this.k8.execContainer(podName, container, `chmod ${recursiveFlag} ${mode} ${destPath}`)
-    } catch {
+    } catch (e) {
       // ignore error, can't change settings on files that come from configMaps or secrets
     }
 

@@ -14,7 +14,7 @@
  * limitations under the License.
  *
  */
-'use strict';
+'use strict'
 import { Listr } from 'listr2'
 import { FullstackTestingError, MissingArgumentError } from '../core/errors.mjs'
 import * as helpers from '../core/helpers.mjs'
