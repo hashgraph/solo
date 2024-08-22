@@ -46,7 +46,7 @@ import {
   NodeUpdateTransaction,
   NodeDeleteTransaction,
   ServiceEndpoint,
-  Timestamp
+  Timestamp, Transaction
 } from '@hashgraph/sdk'
 import * as crypto from 'crypto'
 import {
@@ -618,6 +618,15 @@ export class NodeCommand extends BaseCommand {
         collapseSubtasks: false
       }
     })
+  }
+
+  async signTransactionWithKeyList (keyList, /** @type {Transaction} **/ transaction) {
+    for (const key of keyList) {
+      this.logger.debug(`signing transaction with key: ${key.toString()}`)
+      const signature = key.signTransaction(transaction)
+      transaction.addSignature(key.publicKey, signature)
+    }
+    return transaction
   }
 
   async loadPermCertificate (certFullPath) {
@@ -2646,6 +2655,7 @@ export class NodeCommand extends BaseCommand {
             if (config.newAdminKey) {
               parsedNewKey = PrivateKey.fromStringED25519(config.newAdminKey)
               nodeUpdateTx.setAdminKey(parsedNewKey.publicKey)
+              await nodeUpdateTx.signWithOperator(config.nodeClient)
             }
             await nodeUpdateTx.freezeWith(config.nodeClient)
 
@@ -2653,7 +2663,7 @@ export class NodeCommand extends BaseCommand {
             let signedTx
 
             if (config.newAdminKey) {
-              signedTx = await nodeUpdateTx.sign(config.adminKey)
+              signedTx = await this.signTransactionWithKeyList([parsedNewKey, config.adminKey], nodeUpdateTx)
             } else {
               signedTx = await nodeUpdateTx.sign(config.adminKey)
             }
