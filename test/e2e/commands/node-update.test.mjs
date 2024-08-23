@@ -41,7 +41,7 @@ describe('Node add', () => {
   argv[flags.newGRPCHash.name] = path.join('test', 'data', 'new_tls.crt')
   argv[flags.newCACertificate.name] = path.join('test', 'data', 'new_sign.pem')
   // genesis
-  argv[flags.newAdminKey.name] = '302e020100300506032b65700422042091132178e72057a1d7528025956fe39b0b847f200ab59b2fdd367017f3087137'
+  // argv[flags.newAdminKey.name] = '302e020100300506032b65700422042091132178e72057a1d7528025956fe39b0b847f200ab59b2fdd367017f3087137'
 
   // new
   // argv[flags.newAdminKey.name] = '302e020100300506032b6570042204200cde8d512569610f184b8b399e91e46899805c6171f7c2b8666d2a417bcc66c2'
