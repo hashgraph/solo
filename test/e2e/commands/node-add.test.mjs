@@ -15,7 +15,7 @@
  *
  * @jest-environment steps
  */
-import { describe, expect, it } from '@jest/globals'
+import { afterAll, describe, expect, it } from '@jest/globals'
 import { flags } from '../../../src/commands/index.mjs'
 import { constants } from '../../../src/core/index.mjs'
 import {
@@ -34,8 +34,9 @@ describe.each([
   { localBuildPath: '' },
   { localBuildPath: 'node0=../hedera-services/hedera-node/data/,../hedera-services/hedera-node/data,node2=../hedera-services/hedera-node/data' }
 ])('Node add', (input) => {
+  const suffix = input.localBuildPath.substring(0, 5)
   const defaultTimeout = 120000
-  const namespace = 'node-add'
+  const namespace = 'node-add' + suffix
   const nodeId = 'node4'
   const argv = getDefaultArgv()
   argv[flags.keyFormat.name] = constants.KEY_FORMAT_PEM
@@ -48,19 +49,24 @@ describe.each([
   argv[flags.chartDirectory.name] = process.env.SOLO_FST_CHARTS_DIR ? process.env.SOLO_FST_CHARTS_DIR : undefined
   argv[flags.releaseTag.name] = HEDERA_PLATFORM_VERSION_TAG
   argv[flags.namespace.name] = namespace
+  argv[flags.force.name] = true
   argv[flags.persistentVolumeClaims.name] = true
   argv[flags.localBuildPath.name] = input.localBuildPath
 
   const bootstrapResp = bootstrapNetwork(namespace, argv)
   const nodeCmd = bootstrapResp.cmd.nodeCmd
   const accountCmd = bootstrapResp.cmd.accountCmd
+  const networkCmd = bootstrapResp.cmd.networkCmd
   const k8 = bootstrapResp.opts.k8
   let existingServiceMap
   let existingNodeIdsPrivateKeysHash
 
   afterAll(async () => {
     await getNodeLogs(k8, namespace)
+    await nodeCmd.stop(argv)
+    await networkCmd.destroy(argv)
     await k8.deleteNamespace(namespace)
+    await new Promise((resolve) => setTimeout(resolve, 10000))
   }, 600000)
 
   it('cache current version of private keys', async () => {
