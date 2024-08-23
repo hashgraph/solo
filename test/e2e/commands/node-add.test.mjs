@@ -15,6 +15,7 @@
  *
  * @jest-environment steps
  */
+import { describe, expect, it } from '@jest/globals'
 import { flags } from '../../../src/commands/index.mjs'
 import { constants } from '../../../src/core/index.mjs'
 import {
@@ -29,7 +30,10 @@ import {
 import { getNodeLogs } from '../../../src/core/helpers.mjs'
 import { NodeCommand } from '../../../src/commands/node.mjs'
 
-describe('Node add', () => {
+describe.each([
+  { localBuildPath: '' },
+  { localBuildPath: 'node0=../hedera-services/hedera-node/data/,../hedera-services/hedera-node/data,node2=../hedera-services/hedera-node/data' }
+])('Node add', (input) => {
   const defaultTimeout = 120000
   const namespace = 'node-add'
   const nodeId = 'node4'
@@ -45,6 +49,8 @@ describe('Node add', () => {
   argv[flags.releaseTag.name] = HEDERA_PLATFORM_VERSION_TAG
   argv[flags.namespace.name] = namespace
   argv[flags.persistentVolumeClaims.name] = true
+  argv[flags.localBuildPath.name] = input.localBuildPath
+
   const bootstrapResp = bootstrapNetwork(namespace, argv)
   const nodeCmd = bootstrapResp.cmd.nodeCmd
   const accountCmd = bootstrapResp.cmd.accountCmd
@@ -71,6 +77,7 @@ describe('Node add', () => {
     await nodeCmd.add(argv)
     expect(nodeCmd.getUnusedConfigs(NodeCommand.ADD_CONFIGS_NAME)).toEqual([
       flags.app.constName,
+      flags.appConfig.constName,
       flags.chainId.constName,
       flags.devMode.constName
     ])
