@@ -182,15 +182,15 @@ export class NodeCommand extends BaseCommand {
     return [
       flags.app,
       flags.cacheDir,
-      flags.newAccountNumber,
-      flags.newAdminKey,
-      flags.newCACertificate,
-      flags.newGRPCHash,
       flags.devMode,
       flags.endpointType,
       flags.gossipEndpoints,
       flags.grpcEndpoints,
       flags.namespace,
+      flags.newAccountNumber,
+      flags.newAdminKey,
+      flags.newCACertificate,
+      flags.newGRPCHash,
       flags.nodeID,
       flags.releaseTag
     ]
@@ -2408,7 +2408,6 @@ export class NodeCommand extends BaseCommand {
             flags.app,
             flags.chartDirectory,
             flags.devMode,
-            flags.localBuildPath,
             flags.endpointType,
             flags.force,
             flags.fstChartVersion,
@@ -2434,8 +2433,8 @@ export class NodeCommand extends BaseCommand {
            * @property {string} namespace
            * @property {string} newAccountNumber
            * @property {string} newAdminKey
-           * @property {string} newGRPCHash
            * @property {string} newCACertificate
+           * @property {string} newGRPCHash
            * @property {string} nodeId
            * @property {string} releaseTag
            * -- extra args --
@@ -2447,9 +2446,9 @@ export class NodeCommand extends BaseCommand {
            * @property {Object} nodeClient
            * @property {Object} podNames
            * @property {Map<String, NetworkNodeServices>} serviceMap
-           * @property {PrivateKey} treasuryKey
            * @property {string} stagingDir
            * @property {string} stagingKeysDir
+           * @property {PrivateKey} treasuryKey
            * -- methods --
            * @property {getUnusedConfigs} getUnusedConfigs
            */
@@ -2624,8 +2623,6 @@ export class NodeCommand extends BaseCommand {
               .setNodeId(nodeId)
               .setGossipEndpoints(ctx.gossipEndpoints)
               .setServiceEndpoints(ctx.grpcServiceEndpoints)
-              .setGossipCaCertificate(ctx.signingCertDer)
-              .setCertificateHash(ctx.tlsCertHash)
 
             if (config.newGRPCHash) {
               const tlsCertDer = await this.loadPermCertificate(config.newCACertificate)
@@ -2858,9 +2855,9 @@ export class NodeCommand extends BaseCommand {
            * @property {Object} nodeClient
            * @property {Object} podNames
            * @property {Map<String, NetworkNodeServices>} serviceMap
-           * @property {PrivateKey} treasuryKey
            * @property {string} stagingDir
            * @property {string} stagingKeysDir
+           * @property {PrivateKey} treasuryKey
            * -- methods --
            * @property {getUnusedConfigs} getUnusedConfigs
            */
