@@ -62,6 +62,27 @@ export class MirrorNodeCommand extends BaseCommand {
     }
 
     valuesArg += ` --set hedera-mirror-node.enabled=true --set hedera-explorer.enabled=${deployHederaExplorer}`
+
+    // Prepare values for Monitor Pinger
+    const startAccId = constants.HEDERA_NODE_ACCOUNT_ID_START
+    const networkPods = await this.k8.getPodsByLabel(['fullstack.hedera.com/type=network-node'])
+    const grpcPod = await this.k8.getPodsByLabel(['app.kubernetes.io/name=grpc'])
+    const restPod = await this.k8.getPodsByLabel(['app.kubernetes.io/name=rest'])
+
+    for (let i = 0; i < networkPods.length; i++) {
+      const pod = networkPods[i]
+      const accountId = new AccountId(startAccId.realm, startAccId.shard, Number(startAccId.num) + 1)
+      valuesArg += ` --set hedera-mirror-node.importer.config.hedera.mirror.monitor.nodes.${i}.accountId=${accountId}`
+      valuesArg += ` --set hedera-mirror-node.importer.config.hedera.mirror.monitor.nodes.${i}.host=${pod.metadata.name}`
+    }
+
+    valuesArg += ` --set hedera-mirror-node.importer.config.hedera.mirror.monitor.mirrorNode.grpc.host=${grpcPod.metadata.name}`
+    valuesArg += ' --set hedera-mirror-node.importer.config.hedera.mirror.monitor.mirrorNode.grpc.port=5600'
+    valuesArg += ` --set hedera-mirror-node.importer.config.hedera.mirror.monitor.mirrorNode.rest.host=${restPod.metadata.name}`
+    valuesArg += ' --set hedera-mirror-node.importer.config.hedera.mirror.monitor.mirrorNode.rest.port=5551'
+    valuesArg += ` --set hedera-mirror-node.monitor.config.hedera.mirror.monitor.operator.accountId=${constants.OPERATOR_ID}`
+    valuesArg += ` --set hedera-mirror-node.monitor.config.hedera.mirror.monitor.operator.privateKey=${constants.OPERATOR_KEY}`
+
     return valuesArg
   }
 
