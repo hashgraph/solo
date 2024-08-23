@@ -620,15 +620,6 @@ export class NodeCommand extends BaseCommand {
     })
   }
 
-  async signTransactionWithKeyList (keyList, /** @type {Transaction} **/ transaction) {
-    for (const key of keyList) {
-      this.logger.debug(`signing transaction with key: ${key.toString()}`)
-      const signature = key.signTransaction(transaction)
-      transaction.addSignature(key.publicKey, signature)
-    }
-    return transaction
-  }
-
   async loadPermCertificate (certFullPath) {
     const certPem = fs.readFileSync(certFullPath).toString()
     const decodedDers = x509.PemConverter.decode(certPem)
@@ -2655,15 +2646,14 @@ export class NodeCommand extends BaseCommand {
             if (config.newAdminKey) {
               parsedNewKey = PrivateKey.fromStringED25519(config.newAdminKey)
               nodeUpdateTx.setAdminKey(parsedNewKey.publicKey)
-              await nodeUpdateTx.signWithOperator(config.nodeClient)
             }
             await nodeUpdateTx.freezeWith(config.nodeClient)
 
             // config.adminKey contains the original key, needed to sign the transaction
             let signedTx
-
             if (config.newAdminKey) {
-              signedTx = await this.signTransactionWithKeyList([parsedNewKey, config.adminKey], nodeUpdateTx)
+              await nodeUpdateTx.sign(parsedNewKey)
+              signedTx = await nodeUpdateTx.sign(config.adminKey)
             } else {
               signedTx = await nodeUpdateTx.sign(config.adminKey)
             }

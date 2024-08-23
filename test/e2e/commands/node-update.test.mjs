@@ -37,14 +37,12 @@ describe('Node add', () => {
   argv[flags.keyFormat.name] = constants.KEY_FORMAT_PEM
   argv[flags.nodeIDs.name] = 'node1,node2,node3'
   argv[flags.nodeID.name] = nodeId
+
   argv[flags.newAccountNumber.name] = '0.0.7'
   argv[flags.newGRPCHash.name] = path.join('test', 'data', 'new_tls.crt')
   argv[flags.newCACertificate.name] = path.join('test', 'data', 'new_sign.pem')
-  // genesis
-  // argv[flags.newAdminKey.name] = '302e020100300506032b65700422042091132178e72057a1d7528025956fe39b0b847f200ab59b2fdd367017f3087137'
-
-  // new
-  // argv[flags.newAdminKey.name] = '302e020100300506032b6570042204200cde8d512569610f184b8b399e91e46899805c6171f7c2b8666d2a417bcc66c2'
+  argv[flags.newAdminKey.name] = '302e020100300506032b6570042204200cde8d512569610f184b8b399e91e46899805c6171f7c2b8666d2a417bcc66c2'
+  
   argv[flags.generateGossipKeys.name] = true
   argv[flags.generateTlsKeys.name] = true
   argv[flags.keyFormat.name] = constants.KEY_FORMAT_PEM
