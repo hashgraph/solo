@@ -42,7 +42,7 @@ describe('Node add', () => {
   argv[flags.newGRPCHash.name] = path.join('test', 'data', 'new_tls.crt')
   argv[flags.newCACertificate.name] = path.join('test', 'data', 'new_sign.pem')
   argv[flags.newAdminKey.name] = '302e020100300506032b6570042204200cde8d512569610f184b8b399e91e46899805c6171f7c2b8666d2a417bcc66c2'
-  
+
   argv[flags.generateGossipKeys.name] = true
   argv[flags.generateTlsKeys.name] = true
   argv[flags.keyFormat.name] = constants.KEY_FORMAT_PEM

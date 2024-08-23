@@ -46,7 +46,7 @@ import {
   NodeUpdateTransaction,
   NodeDeleteTransaction,
   ServiceEndpoint,
-  Timestamp, Transaction
+  Timestamp
 } from '@hashgraph/sdk'
 import * as crypto from 'crypto'
 import {
