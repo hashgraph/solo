@@ -28,17 +28,20 @@ import {
 import { getNodeLogs } from '../../../src/core/helpers.mjs'
 import { NodeCommand } from '../../../src/commands/node.mjs'
 import path from 'path'
+import { HEDERA_HAPI_PATH, ROOT_CONTAINER } from '../../../src/core/constants.mjs'
+import fs from 'fs'
 
 describe('Node add', () => {
   const defaultTimeout = 120000
   const namespace = 'node-update'
   const nodeId = 'node3'
+  const newAccountId = '0.0.7'
   const argv = getDefaultArgv()
   argv[flags.keyFormat.name] = constants.KEY_FORMAT_PEM
   argv[flags.nodeIDs.name] = 'node1,node2,node3'
   argv[flags.nodeID.name] = nodeId
 
-  argv[flags.newAccountNumber.name] = '0.0.7'
+  argv[flags.newAccountNumber.name] = newAccountId
   argv[flags.newGRPCHash.name] = path.join('test', 'data', 'new_tls.crt')
   argv[flags.newCACertificate.name] = path.join('test', 'data', 'new_sign.pem')
   argv[flags.newAdminKey.name] = '302e020100300506032b6570042204200cde8d512569610f184b8b399e91e46899805c6171f7c2b8666d2a417bcc66c2'
@@ -98,4 +101,15 @@ describe('Node add', () => {
       }
     }
   }, defaultTimeout)
+
+  it('config.txt should be changed with new account id', async () => {
+    // read config.txt file from first node, read config.txt line by line, it should not contain value of nodeId
+    const pods = await k8.getPodsByLabel(['fullstack.hedera.com/type=network-node'])
+    const podName = pods[0].metadata.name
+    const tmpDir = getTmpDir()
+    await k8.copyFrom(podName, ROOT_CONTAINER, `${HEDERA_HAPI_PATH}/config.txt`, tmpDir)
+    const configTxt = fs.readFileSync(`${tmpDir}/config.txt`, 'utf8')
+    console.log('config.txt:', configTxt)
+    expect(configTxt).toContain(newAccountId)
+  }, 600000)
 })

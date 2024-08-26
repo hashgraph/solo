@@ -168,6 +168,8 @@ export class NodeCommand extends BaseCommand {
       flags.endpointType,
       flags.gossipEndpoints,
       flags.grpcEndpoints,
+      flags.keyFormat,
+      flags.localBuildPath,
       flags.namespace,
       flags.nodeID,
       flags.releaseTag
@@ -186,6 +188,7 @@ export class NodeCommand extends BaseCommand {
       flags.endpointType,
       flags.gossipEndpoints,
       flags.grpcEndpoints,
+      flags.localBuildPath,
       flags.namespace,
       flags.newAccountNumber,
       flags.newAdminKey,
@@ -2413,6 +2416,7 @@ export class NodeCommand extends BaseCommand {
             flags.fstChartVersion,
             flags.gossipEndpoints,
             flags.grpcEndpoints,
+            flags.localBuildPath,
             flags.newAccountNumber,
             flags.newAdminKey,
             flags.newGRPCHash,
@@ -2430,6 +2434,7 @@ export class NodeCommand extends BaseCommand {
            * @property {string} endpointType
            * @property {string} gossipEndpoints
            * @property {string} grpcEndpoints
+           * @property {string} localBuildPath
            * @property {string} namespace
            * @property {string} newAccountNumber
            * @property {string} newAdminKey
@@ -2681,6 +2686,22 @@ export class NodeCommand extends BaseCommand {
         }
       },
       {
+        title: 'Download generated files from an existing node',
+        task: async (ctx, task) => {
+          const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
+          const node1FullyQualifiedPodName = Templates.renderNetworkPodName(config.existingNodeIds[0])
+
+          // copy the config.txt file from the node1 upgrade directory
+          await self.k8.copyFrom(node1FullyQualifiedPodName, constants.ROOT_CONTAINER, `${constants.HEDERA_HAPI_PATH}/data/upgrade/current/config.txt`, config.stagingDir)
+
+          const signedKeyFiles = (await self.k8.listDir(node1FullyQualifiedPodName, constants.ROOT_CONTAINER, `${constants.HEDERA_HAPI_PATH}/data/upgrade/current`)).filter(file => file.name.startsWith(constants.SIGNING_KEY_PREFIX))
+          for (const signedKeyFile of signedKeyFiles) {
+            await self.k8.execContainer(node1FullyQualifiedPodName, constants.ROOT_CONTAINER, ['bash', '-c', `[[ ! -f "${constants.HEDERA_HAPI_PATH}/data/keys/${signedKeyFile.name}" ]] || cp ${constants.HEDERA_HAPI_PATH}/data/keys/${signedKeyFile.name} ${constants.HEDERA_HAPI_PATH}/data/keys/${signedKeyFile.name}.old`])
+            await self.k8.copyFrom(node1FullyQualifiedPodName, constants.ROOT_CONTAINER, `${constants.HEDERA_HAPI_PATH}/data/upgrade/current/${signedKeyFile.name}`, `${config.keysDir}`)
+          }
+        }
+      },
+      {
         title: 'Check network nodes are frozen',
         task: (ctx, task) => {
           const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
@@ -2701,12 +2722,83 @@ export class NodeCommand extends BaseCommand {
           })
         }
       },
+
+      {
+        title: 'Kill nodes to pick up updated configMaps',
+        task: async (ctx, task) => {
+          const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
+          for (const /** @type {NetworkNodeServices} **/ service of config.serviceMap.values()) {
+            await self.k8.kubeClient.deleteNamespacedPod(service.nodePodName, config.namespace, undefined, undefined, 1)
+          }
+        }
+      },
+      {
+        title: 'Check node pods are running',
+        task:
+          async (ctx, task) => {
+            const subTasks = []
+            const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
+            ctx.config.allNodeIds = ctx.config.existingNodeIds
+            // nodes
+            for (const nodeId of config.allNodeIds) {
+              subTasks.push({
+                title: `Check Node: ${chalk.yellow(nodeId)}`,
+                task: () =>
+                  self.k8.waitForPods([constants.POD_PHASE_RUNNING], [
+                    'fullstack.hedera.com/type=network-node',
+                    `fullstack.hedera.com/node-name=${nodeId}`
+                  ], 1, 60 * 15, 1000) // timeout 15 minutes
+              })
+            }
+
+            // set up the sub-tasks
+            return task.newListr(subTasks, {
+              concurrent: false, // no need to run concurrently since if one node is up, the rest should be up by then
+              rendererOptions: {
+                collapseSubtasks: false
+              }
+            })
+          }
+      },
+      {
+        title: 'Fetch platform software into network nodes',
+        task:
+          async (ctx, task) => {
+            // sleep 20 seconds
+            await sleep(20000)
+            ctx.config.allNodeIds = ctx.config.existingNodeIds
+            const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
+            return self.fetchLocalOrReleasedPlatformSoftware(config.allNodeIds, config.podNames, config.releaseTag, task, config.localBuildPath)
+          }
+      },
+      {
+        title: 'Setup new network node',
+        task: async (ctx, parentTask) => {
+          const config = /** @type {NodeAddConfigClass} **/ ctx.config
+
+          const subTasks = []
+          for (const nodeId of config.allNodeIds) {
+            const podName = config.podNames[nodeId]
+            subTasks.push({
+              title: `Node: ${chalk.yellow(nodeId)}`,
+              task: () =>
+                self.platformInstaller.taskInstall(podName, config.stagingDir, config.allNodeIds, config.keyFormat, config.force)
+            })
+          }
+
+          // set up the sub-tasks
+          return parentTask.newListr(subTasks, {
+            concurrent: true,
+            rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
+          })
+        }
+      },
       {
         title: 'Start network nodes',
         task: async (ctx, task) => {
           const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
           const subTasks = []
-          ctx.config.allNodeIds = ctx.config.existingNodeIds
+          // ctx.config.allNodeIds = ctx.config.existingNodeIds
           self.startNodes(config.podNames, config.allNodeIds, subTasks)
 
           // set up the sub-tasks
@@ -2843,6 +2935,8 @@ export class NodeCommand extends BaseCommand {
            * @property {string} endpointType
            * @property {string} gossipEndpoints
            * @property {string} grpcEndpoints
+           * @property {string} keyFormat
+           * @property {string} localBuildPath
            * @property {string} namespace
            * @property {string} nodeId
            * @property {string} releaseTag
@@ -2955,9 +3049,9 @@ export class NodeCommand extends BaseCommand {
             const accountMap = getNodeAccountMap(config.existingNodeIds)
             const deleteAccountId = accountMap.get(ctx.config.nodeId)
             this.logger.debug(`Deleting node: ${ctx.config.nodeId} with account: ${deleteAccountId}`)
-
+            const nodeId = Templates.nodeNumberFromNodeId(ctx.config.nodeId) - 1
             const nodeDeleteTx = await new NodeDeleteTransaction()
-              .setNodeId(ctx.config.nodeId)
+              .setNodeId(nodeId)
               .freezeWith(config.nodeClient)
 
             const signedTx = await nodeDeleteTx.sign(config.adminKey)
@@ -2985,6 +3079,16 @@ export class NodeCommand extends BaseCommand {
         }
       },
       {
+        title: 'Download new config.txt',
+        task: async (ctx, task) => {
+          const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
+          const node1FullyQualifiedPodName = Templates.renderNetworkPodName(config.existingNodeIds[0])
+
+          // copy the config.txt file from the node1 upgrade directory
+          await self.k8.copyFrom(node1FullyQualifiedPodName, constants.ROOT_CONTAINER, `${constants.HEDERA_HAPI_PATH}/data/upgrade/current/config.txt`, config.stagingDir)
+        }
+      },
+      {
         title: 'Check network nodes are frozen',
         task: (ctx, task) => {
           const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
@@ -3005,16 +3109,123 @@ export class NodeCommand extends BaseCommand {
           })
         }
       },
+      {
+        title: 'Kill nodes to pick up updated configMaps',
+        task: async (ctx, task) => {
+          const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
+          for (const /** @type {NetworkNodeServices} **/ service of config.serviceMap.values()) {
+            await self.k8.kubeClient.deleteNamespacedPod(service.nodePodName, config.namespace, undefined, undefined, 1)
+          }
+        }
+      },
+      {
+        title: 'Check node pods are running',
+        task:
+          async (ctx, task) => {
+            const subTasks = []
+            const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
 
+            // remove nodeId from existingNodeIds
+            ctx.config.allNodeIds = ctx.config.existingNodeIds.filter(nodeId => nodeId !== ctx.config.nodeId)
+
+            // nodes
+            for (const nodeId of config.allNodeIds) {
+              subTasks.push({
+                title: `Check Node: ${chalk.yellow(nodeId)}`,
+                task: () =>
+                  self.k8.waitForPods([constants.POD_PHASE_RUNNING], [
+                    'fullstack.hedera.com/type=network-node',
+                    `fullstack.hedera.com/node-name=${nodeId}`
+                  ], 1, 60 * 15, 1000) // timeout 15 minutes
+              })
+            }
+
+            // set up the sub-tasks
+            return task.newListr(subTasks, {
+              concurrent: false, // no need to run concurrently since if one node is up, the rest should be up by then
+              rendererOptions: {
+                collapseSubtasks: false
+              }
+            })
+          }
+      },
+      {
+        title: 'Prepare staging directory',
+        task: async (ctx, parentTask) => {
+          const subTasks = [
+            {
+              title: 'Copy Gossip keys to staging',
+              task: async (ctx, _) => {
+                const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
+
+                await this.copyGossipKeysToStaging(config.keyFormat, config.keysDir, config.stagingKeysDir, config.allNodeIds)
+              }
+            },
+            {
+              title: 'Copy gRPC TLS keys to staging',
+              task: async (ctx, _) => {
+                const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
+                for (const nodeId of config.allNodeIds) {
+                  const tlsKeyFiles = self.keyManager.prepareTLSKeyFilePaths(nodeId, config.keysDir)
+                  await self._copyNodeKeys(tlsKeyFiles, config.stagingKeysDir)
+                }
+              }
+            }
+          ]
+
+          return parentTask.newListr(subTasks, {
+            concurrent: false,
+            rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
+          })
+        }
+      },
+      {
+        title: 'Fetch platform software into all network nodes',
+        task:
+          async (ctx, task) => {
+            await sleep(10000)
+            const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
+            config.serviceMap = await self.accountManager.getNodeServiceMap(
+              config.namespace)
+            config.podNames[config.nodeId] = config.serviceMap.get(
+              config.nodeId).nodePodName
+            return self.fetchLocalOrReleasedPlatformSoftware(config.allNodeIds, config.podNames, config.releaseTag, task, config.localBuildPath)
+          }
+      },
+      {
+        title: 'Setup new network node',
+        task: async (ctx, parentTask) => {
+          const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
+
+          // remove nodeId from existingNodeIds
+          ctx.config.allNodeIds = ctx.config.existingNodeIds.filter(nodeId => nodeId !== ctx.config.nodeId)
+
+          const subTasks = []
+          for (const nodeId of config.allNodeIds) {
+            const podName = config.podNames[nodeId]
+            subTasks.push({
+              title: `Node: ${chalk.yellow(nodeId)}`,
+              task: () =>
+                self.platformInstaller.taskInstall(podName, config.stagingDir, config.allNodeIds, config.keyFormat, config.force)
+            })
+          }
+
+          // set up the sub-tasks
+          return parentTask.newListr(subTasks, {
+            concurrent: true,
+            rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
+          })
+        }
+      },
       {
         title: 'Start network nodes',
         task: async (ctx, task) => {
           const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
           const subTasks = []
 
-          // remove nodeId from existingNodeIds
-          ctx.config.allNodeIds = ctx.config.existingNodeIds.filter(nodeId => nodeId !== ctx.config.nodeId)
-          self.logger.debug(`config.allNodeIds = ${ctx.config.allNodeIds}`)
+          // // remove nodeId from existingNodeIds
+          // ctx.config.allNodeIds = ctx.config.existingNodeIds.filter(nodeId => nodeId !== ctx.config.nodeId)
+          // self.logger.debug(`config.allNodeIds = ${ctx.config.allNodeIds}`)
           self.startNodes(config.podNames, config.allNodeIds, subTasks)
 
           // set up the sub-tasks

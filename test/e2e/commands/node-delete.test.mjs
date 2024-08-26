@@ -25,8 +25,10 @@ import {
   getDefaultArgv,
   HEDERA_PLATFORM_VERSION_TAG
 } from '../../test_util.js'
-import { getNodeLogs } from '../../../src/core/helpers.mjs'
+import { getNodeLogs, getTmpDir } from '../../../src/core/helpers.mjs'
 import { NodeCommand } from '../../../src/commands/node.mjs'
+import { HEDERA_HAPI_PATH, ROOT_CONTAINER } from '../../../src/core/constants.mjs'
+import fs from 'fs'
 
 describe('Node delete', () => {
   const namespace = 'node-delete'
@@ -67,10 +69,22 @@ describe('Node delete', () => {
       flags.gossipEndpoints.constName,
       flags.grpcEndpoints.constName
     ])
+
     await nodeCmd.accountManager.close()
   }, 600000)
 
   balanceQueryShouldSucceed(nodeCmd.accountManager, nodeCmd, namespace)
 
   accountCreationShouldSucceed(nodeCmd.accountManager, nodeCmd, namespace)
+
+  it('config.txt should no longer contain removed nodeid', async () => {
+    // read config.txt file from first node, read config.txt line by line, it should not contain value of nodeId
+    const pods = await k8.getPodsByLabel(['fullstack.hedera.com/type=network-node'])
+    const podName = pods[0].metadata.name
+    const tmpDir = getTmpDir()
+    await k8.copyFrom(podName, ROOT_CONTAINER, `${HEDERA_HAPI_PATH}/config.txt`, tmpDir)
+    const configTxt = fs.readFileSync(`${tmpDir}/config.txt`, 'utf8')
+    console.log('config.txt:', configTxt)
+    expect(configTxt).not.toContain(nodeId)
+  }, 600000)
 })
