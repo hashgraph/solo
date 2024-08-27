@@ -32,7 +32,7 @@ import fs from 'fs'
 
 describe('Node delete', () => {
   const namespace = 'node-delete'
-  const nodeId = 'node4'
+  const nodeId = 'node1'
   const argv = getDefaultArgv()
   argv[flags.keyFormat.name] = constants.KEY_FORMAT_PEM
   argv[flags.nodeIDs.name] = 'node1,node2,node3,node4'

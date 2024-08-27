@@ -34,7 +34,7 @@ import fs from 'fs'
 describe('Node add', () => {
   const defaultTimeout = 120000
   const namespace = 'node-update'
-  const nodeId = 'node3'
+  const nodeId = 'node1'
   const newAccountId = '0.0.7'
   const argv = getDefaultArgv()
   argv[flags.keyFormat.name] = constants.KEY_FORMAT_PEM

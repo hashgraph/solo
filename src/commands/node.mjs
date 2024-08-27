@@ -164,6 +164,7 @@ export class NodeCommand extends BaseCommand {
     return [
       flags.app,
       flags.cacheDir,
+      flags.chartDirectory,
       flags.devMode,
       flags.endpointType,
       flags.gossipEndpoints,
@@ -186,6 +187,7 @@ export class NodeCommand extends BaseCommand {
       flags.cacheDir,
       flags.devMode,
       flags.endpointType,
+      flags.fstChartVersion,
       flags.gossipEndpoints,
       flags.grpcEndpoints,
       flags.localBuildPath,
@@ -2434,6 +2436,7 @@ export class NodeCommand extends BaseCommand {
            * @property {string} endpointType
            * @property {string} gossipEndpoints
            * @property {string} grpcEndpoints
+           * @property {string} fstChartVersion
            * @property {string} localBuildPath
            * @property {string} namespace
            * @property {string} newAccountNumber
@@ -2445,6 +2448,7 @@ export class NodeCommand extends BaseCommand {
            * -- extra args --
            * @property {PrivateKey} adminKey
            * @property {string[]} allNodeIds
+           * @property {string} chartPath
            * @property {string[]} existingNodeIds
            * @property {string} freezeAdminPrivateKey
            * @property {string} keysDir
@@ -2722,7 +2726,38 @@ export class NodeCommand extends BaseCommand {
           })
         }
       },
+      {
+        title: 'Get node logs and configs',
+        task: async (ctx, task) => {
+          const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
+          await helpers.getNodeLogs(self.k8, config.namespace)
+        }
+      },
+      {
+        title: 'Update chart to use new configMap',
+        task: async (ctx, task) => {
+          const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
+          const index = config.existingNodeIds.length
+          let valuesArg = ''
+          for (let i = 0; i < index; i++) {
+            valuesArg += ` --set "hedera.nodes[${i}].accountId=${config.serviceMap.get(config.existingNodeIds[i]).accountId}" --set "hedera.nodes[${i}].name=${config.existingNodeIds[i]}"`
+          }
+          this.profileValuesFile = await self.profileManager.prepareValuesForNodeAdd(
+            path.join(config.stagingDir, 'config.txt'),
+            path.join(config.stagingDir, 'templates', 'application.properties'))
+          if (this.profileValuesFile) {
+            valuesArg += this.prepareValuesFiles(this.profileValuesFile)
+          }
 
+          await self.chartManager.upgrade(
+            config.namespace,
+            constants.FULLSTACK_DEPLOYMENT_CHART,
+            config.chartPath,
+            valuesArg,
+            config.fstChartVersion
+          )
+        }
+      },
       {
         title: 'Kill nodes to pick up updated configMaps',
         task: async (ctx, task) => {
@@ -2774,7 +2809,7 @@ export class NodeCommand extends BaseCommand {
       {
         title: 'Setup new network node',
         task: async (ctx, parentTask) => {
-          const config = /** @type {NodeAddConfigClass} **/ ctx.config
+          const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
 
           const subTasks = []
           for (const nodeId of config.allNodeIds) {
@@ -2931,8 +2966,10 @@ export class NodeCommand extends BaseCommand {
            * -- flags --
            * @property {string} app
            * @property {string} cacheDir
+           * @property {string} charDirectory
            * @property {boolean} devMode
            * @property {string} endpointType
+           * @property {string} fstChartVersion
            * @property {string} gossipEndpoints
            * @property {string} grpcEndpoints
            * @property {string} keyFormat
@@ -2943,6 +2980,7 @@ export class NodeCommand extends BaseCommand {
            * -- extra args --
            * @property {PrivateKey} adminKey
            * @property {string[]} allNodeIds
+           * @property {string} chartPath
            * @property {string[]} existingNodeIds
            * @property {string} freezeAdminPrivateKey
            * @property {string} keysDir
@@ -3110,6 +3148,39 @@ export class NodeCommand extends BaseCommand {
         }
       },
       {
+        title: 'Get node logs and configs',
+        task: async (ctx, task) => {
+          const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
+          await helpers.getNodeLogs(self.k8, config.namespace)
+        }
+      },
+      {
+        title: 'Update chart to use new configMap',
+        task: async (ctx, task) => {
+          const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
+          const index = config.existingNodeIds.length
+          let valuesArg = ''
+          for (let i = 0; i < index; i++) {
+            valuesArg += ` --set "hedera.nodes[${i}].accountId=${config.serviceMap.get(config.existingNodeIds[i]).accountId}" --set "hedera.nodes[${i}].name=${config.existingNodeIds[i]}"`
+          }
+
+          this.profileValuesFile = await self.profileManager.prepareValuesForNodeAdd(
+            path.join(config.stagingDir, 'config.txt'),
+            path.join(config.stagingDir, 'templates', 'application.properties'))
+          if (this.profileValuesFile) {
+            valuesArg += this.prepareValuesFiles(this.profileValuesFile)
+          }
+
+          await self.chartManager.upgrade(
+            config.namespace,
+            constants.FULLSTACK_DEPLOYMENT_CHART,
+            config.chartPath,
+            valuesArg,
+            config.fstChartVersion
+          )
+        }
+      },
+      {
         title: 'Kill nodes to pick up updated configMaps',
         task: async (ctx, task) => {
           const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
@@ -3122,6 +3193,7 @@ export class NodeCommand extends BaseCommand {
         title: 'Check node pods are running',
         task:
           async (ctx, task) => {
+            await sleep(20000)
             const subTasks = []
             const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
 
