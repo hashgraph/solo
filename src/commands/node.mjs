@@ -1452,6 +1452,7 @@ export class NodeCommand extends BaseCommand {
             flags.endpointType,
             flags.force,
             flags.fstChartVersion,
+            flags.localBuildPath,
             flags.gossipEndpoints,
             flags.grpcEndpoints
           ])
