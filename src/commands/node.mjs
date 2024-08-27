@@ -2900,10 +2900,13 @@ export class NodeCommand extends BaseCommand {
           self.logger.info('sleep 60 seconds for the handler to be able to trigger the network node stake weight recalculate')
           await sleep(60000)
           const accountMap = getNodeAccountMap(config.allNodeIds)
+          // update map with current account ids
+          accountMap.set(config.nodeId, config.newAccountNumber)
           // send some write transactions to invoke the handler that will trigger the stake weight recalculate
           for (const nodeId of config.allNodeIds) {
             const accountId = accountMap.get(nodeId)
             config.nodeClient.setOperator(TREASURY_ACCOUNT_ID, config.treasuryKey)
+            self.logger.info(`Sending 1 tinybar to account: ${accountId}`)
             await this.accountManager.transferAmount(constants.TREASURY_ACCOUNT_ID, accountId, 1)
           }
         }
