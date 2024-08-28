@@ -96,7 +96,7 @@ export class AccountCommand extends BaseCommand {
   }
 
   /**
-   * @param ctx
+   * @param {any} ctx
    * @returns {Promise<boolean>}
    */
   async updateAccountInfo (ctx) {
