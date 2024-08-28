@@ -88,7 +88,7 @@ export class AccountCommand extends BaseCommand {
   }
 
   /**
-   * @param ctx
+   * @param {any} ctx
    * @returns {Promise<AccountInfo>}
    */
   async getAccountInfo (ctx) {
