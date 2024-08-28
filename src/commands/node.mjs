@@ -135,7 +135,6 @@ export class NodeCommand extends BaseCommand {
   static get ADD_FLAGS_LIST () {
     return [
       flags.app,
-      flags.appConfig,
       flags.cacheDir,
       flags.chainId,
       flags.chartDirectory,
@@ -1465,7 +1464,6 @@ export class NodeCommand extends BaseCommand {
            * @typedef {Object} NodeAddConfigClass
            * -- flags --
            * @property {string} app
-           * @property {string} appConfig
            * @property {string} cacheDir
            * @property {string} chainId
            * @property {string} chartDirectory
