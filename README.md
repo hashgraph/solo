@@ -139,7 +139,7 @@ Kubernetes Cluster	: kind-solo
 Kubernetes Namespace	: solo
 **********************************************************************************
 ✔ Setup home directory and cache
-✔ Check dependency: helm [OS: linux, Release: 5.15.0-119-generic, Arch: x64]
+✔ Check dependency: helm [OS: linux, Release: 5.15.0-118-generic, Arch: x64]
 ✔ Check dependencies
 ✔ Setup chart manager
 
@@ -178,8 +178,8 @@ Kubernetes Namespace	: solo
 ✔ Clean up temp files
 ✔ Generate gossip keys
 ✔ Backup old files
-✔ TLS key for node: node2
 ✔ TLS key for node: node1
+✔ TLS key for node: node2
 ✔ TLS key for node: node0
 ✔ Generate gRPC TLS keys
 ✔ Finalize
@@ -239,9 +239,9 @@ Kubernetes Namespace	: solo
 ✔ Check Node: node1
 ✔ Check Node: node2
 ✔ Check node pods are running
-✔ Check Envoy Proxy for: node1
 ✔ Check Envoy Proxy for: node0
 ✔ Check Envoy Proxy for: node2
+✔ Check Envoy Proxy for: node1
 ✔ Check HAProxy for: node0
 ✔ Check HAProxy for: node1
 ✔ Check HAProxy for: node2
@@ -268,8 +268,8 @@ Kubernetes Cluster	: kind-solo
 Kubernetes Namespace	: solo
 **********************************************************************************
 ✔ Initialize
-✔ Check network pod: node1
 ✔ Check network pod: node0
+✔ Check network pod: node1
 ✔ Check network pod: node2
 ✔ Identify network pods
 ✔ Copy Gossip keys to staging
@@ -286,11 +286,11 @@ Kubernetes Namespace	: solo
 ✔ Copy TLS keys
 ✔ Copy TLS keys
 ✔ Set file permissions
+✔ Node: node1
+✔ Set file permissions
 ✔ Node: node0
 ✔ Set file permissions
 ✔ Node: node2
-✔ Set file permissions
-✔ Node: node1
 ✔ Setup network nodes
 ✔ Finalize
 ```
@@ -312,12 +312,12 @@ Kubernetes Cluster	: kind-solo
 Kubernetes Namespace	: solo
 **********************************************************************************
 ✔ Initialize
+✔ Check network pod: node2
 ✔ Check network pod: node0
 ✔ Check network pod: node1
-✔ Check network pod: node2
 ✔ Identify network pods
-✔ Start node: node0
 ✔ Start node: node2
+✔ Start node: node0
 ✔ Start node: node1
 ✔ Starting nodes
 ✔ Check node: node0
@@ -465,7 +465,7 @@ Kubernetes Cluster	: kind-solo
 Kubernetes Namespace	: solo
 **********************************************************************************
 ✔ Setup home directory and cache
-✔ Check dependency: helm [OS: linux, Release: 5.15.0-119-generic, Arch: x64]
+✔ Check dependency: helm [OS: linux, Release: 5.15.0-118-generic, Arch: x64]
 ✔ Check dependencies
 ✔ Setup chart manager
 
@@ -499,9 +499,9 @@ Kubernetes Namespace	: solo
 ✔ Gossip pem key for node: node2
 ✔ Generate gossip keys
 ✔ Backup old files
+✔ TLS key for node: node0
 ✔ TLS key for node: node2
 ✔ TLS key for node: node1
-✔ TLS key for node: node0
 ✔ Generate gRPC TLS keys
 ✔ Finalize
 ```
