@@ -773,6 +773,17 @@ export const allFlags = [
   valuesFile
 ]
 
+/**
+ * Resets the definition.disablePrompt for all flags
+ */
+export function resetDisabledPrompts () {
+  allFlags.forEach(f => {
+    if (f.definition.disablePrompt) {
+      delete f.definition.disablePrompt
+    }
+  })
+}
+
 export const allFlagsMap = new Map(allFlags.map(f => [f.name, f]))
 
 export const nodeConfigFileFlags = new Map([

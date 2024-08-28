@@ -1,6 +1,6 @@
 {
   "name": "@hashgraph/solo",
-  "version": "0.27.0",
+  "version": "0.28.1",
   "description": "An opinionated CLI tool to deploy and manage private Hedera Networks.",
   "main": "src/index.mjs",
   "type": "module",
@@ -40,7 +40,6 @@
   "author": "Swirlds Labs",
   "license": "Apache2.0",
   "dependencies": {
-    "@hashgraph/proto": "^2.15.0-beta.3",
     "@hashgraph/sdk": "^2.50.0",
     "@kubernetes/client-node": "^0.21.0",
     "@listr2/prompt-adapter-enquirer": "^2.0.11",
