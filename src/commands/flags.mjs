@@ -572,11 +572,11 @@ export const newCACertificate = {
 }
 
 /** @type {CommandFlag} **/
-export const newGRPCHash = {
-  constName: 'newGRPCHash',
-  name: 'new-grpc-hash',
+export const tlsKey = {
+  constName: 'tlsKey',
+  name: 'tls-key',
   definition: {
-    describe: 'file name of the new grpc certificate',
+    describe: 'path and file name of the private TLS key to be used',
     defaultValue: '',
     type: 'string'
   }
