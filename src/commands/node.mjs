@@ -1195,7 +1195,8 @@ export class NodeCommand extends BaseCommand {
           // disable the prompts that we don't want to prompt the user for
           prompts.disablePrompts([
             flags.devMode,
-            flags.force
+            flags.force,
+            flags.localBuildPath
           ])
 
           await prompts.execute(task, self.configManager, NodeCommand.REFRESH_FLAGS_LIST)
@@ -1453,6 +1454,7 @@ export class NodeCommand extends BaseCommand {
             flags.endpointType,
             flags.force,
             flags.fstChartVersion,
+            flags.localBuildPath,
             flags.gossipEndpoints,
             flags.grpcEndpoints
           ])

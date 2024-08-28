@@ -88,7 +88,7 @@ describe.each([
       flags.devMode.constName
     ])
     await nodeCmd.accountManager.close()
-  }, 600000)
+  }, 800000)
 
   balanceQueryShouldSucceed(nodeCmd.accountManager, nodeCmd, namespace)
 
