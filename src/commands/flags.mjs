@@ -561,11 +561,11 @@ export const newAdminKey = {
 }
 
 /** @type {CommandFlag} **/
-export const newCACertificate = {
-  constName: 'newCACertificate',
-  name: 'new-ca-certificate',
+export const gossipKey = {
+  constName: 'gossipKey',
+  name: 'gossip-key',
   definition: {
-    describe: 'file name of the new CA certificate for gossip',
+    describe: 'path and file name of the private signing gossip key in PEM key format to be used',
     defaultValue: '',
     type: 'string'
   }
