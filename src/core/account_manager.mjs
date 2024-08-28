@@ -168,11 +168,11 @@ export class AccountManager {
    * @returns {Promise<void>}
    */
   async refreshNodeClient (namespace) {
-      const treasuryAccountInfo = await this.getTreasuryAccountKeys(namespace)
-      const networkNodeServicesMap = await this.getNodeServiceMap(namespace)
+    const treasuryAccountInfo = await this.getTreasuryAccountKeys(namespace)
+    const networkNodeServicesMap = await this.getNodeServiceMap(namespace)
 
-      this._nodeClient = await this._getNodeClient(namespace,
-        networkNodeServicesMap, treasuryAccountInfo.accountId, treasuryAccountInfo.privateKey)
+    this._nodeClient = await this._getNodeClient(namespace,
+      networkNodeServicesMap, treasuryAccountInfo.accountId, treasuryAccountInfo.privateKey)
   }
 
   /**
