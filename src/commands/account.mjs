@@ -71,7 +71,7 @@ export class AccountCommand extends BaseCommand {
   }
 
   /**
-   * @param ctx
+   * @param {*} ctx
    * @returns {Promise<{accountId: AccountId, privateKey: string, publicKey: string, balance: number}>}
    */
   async createNewAccount (ctx) {
@@ -88,7 +88,7 @@ export class AccountCommand extends BaseCommand {
   }
 
   /**
-   * @param ctx
+   * @param {*} ctx
    * @returns {Promise<AccountInfo>}
    */
   async getAccountInfo (ctx) {
@@ -96,7 +96,7 @@ export class AccountCommand extends BaseCommand {
   }
 
   /**
-   * @param ctx
+   * @param {*} ctx
    * @returns {Promise<boolean>}
    */
   async updateAccountInfo (ctx) {
