@@ -55,12 +55,15 @@ export function testNodeAdd (localBuildPath
     const bootstrapResp = bootstrapNetwork(namespace, argv)
     const nodeCmd = bootstrapResp.cmd.nodeCmd
     const accountCmd = bootstrapResp.cmd.accountCmd
+    const networkCmd = bootstrapResp.cmd.networkCmd
     const k8 = bootstrapResp.opts.k8
     let existingServiceMap
     let existingNodeIdsPrivateKeysHash
 
     afterAll(async () => {
       await getNodeLogs(k8, namespace)
+      await nodeCmd.stop(argv)
+      await networkCmd.destroy(argv)
       await k8.deleteNamespace(namespace)
     }, 600000)
 

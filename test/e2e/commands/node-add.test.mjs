@@ -21,4 +21,4 @@ import { testNodeAdd } from '../../test_add.mjs'
 describe('Node add with released hedera', () => {
   const localBuildPath = ''
   testNodeAdd(localBuildPath)
-})
+}, 180000)

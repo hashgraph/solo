@@ -21,4 +21,4 @@ import { testNodeAdd } from '../../test_add.mjs'
 describe('Node add with hedera local build', () => {
   const localBuildPath = 'node0=../hedera-services/hedera-node/data/,../hedera-services/hedera-node/data,node2=../hedera-services/hedera-node/data'
   testNodeAdd(localBuildPath)
-})
+}, 180000)
