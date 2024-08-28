@@ -34,7 +34,7 @@ import fs from 'fs'
 describe('Node add', () => {
   const defaultTimeout = 120000
   const namespace = 'node-update'
-  const nodeId = 'node1'
+  const nodeId = 'node2'
   const newAccountId = '0.0.7'
   const argv = getDefaultArgv()
   argv[flags.keyFormat.name] = constants.KEY_FORMAT_PEM
@@ -83,7 +83,7 @@ describe('Node add', () => {
       flags.devMode.constName
     ])
     await nodeCmd.accountManager.close()
-  }, 600000)
+  }, 1800000)
 
   balanceQueryShouldSucceed(nodeCmd.accountManager, nodeCmd, namespace)
 

@@ -2608,7 +2608,7 @@ export class NodeCommand extends BaseCommand {
         title: 'Check existing nodes staked amount',
         task: async (ctx, task) => {
           const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
-          await sleep(60000)
+          await sleep(15000)
           const accountMap = getNodeAccountMap(config.existingNodeIds)
           for (const nodeId of config.existingNodeIds) {
             const accountId = accountMap.get(nodeId)
@@ -2630,8 +2630,6 @@ export class NodeCommand extends BaseCommand {
           try {
             const nodeUpdateTx = await new NodeUpdateTransaction()
               .setNodeId(nodeId)
-              .setGossipEndpoints(ctx.gossipEndpoints)
-              .setServiceEndpoints(ctx.grpcServiceEndpoints)
 
             if (config.newGRPCHash) {
               const tlsCertDer = await this.loadPermCertificate(config.newCACertificate)
@@ -2738,9 +2736,14 @@ export class NodeCommand extends BaseCommand {
         task: async (ctx, task) => {
           const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
           const index = config.existingNodeIds.length
+          const nodeId = Templates.nodeNumberFromNodeId(config.nodeId) - 1
           let valuesArg = ''
           for (let i = 0; i < index; i++) {
-            valuesArg += ` --set "hedera.nodes[${i}].accountId=${config.serviceMap.get(config.existingNodeIds[i]).accountId}" --set "hedera.nodes[${i}].name=${config.existingNodeIds[i]}"`
+            if (i !== nodeId) {
+              valuesArg += ` --set "hedera.nodes[${i}].accountId=${config.serviceMap.get(config.existingNodeIds[i]).accountId}" --set "hedera.nodes[${i}].name=${config.existingNodeIds[i]}"`
+            } else {
+              valuesArg += ` --set "hedera.nodes[${i}].accountId=${config.newAccountNumber}" --set "hedera.nodes[${i}].name=${config.existingNodeIds[i]}"`
+            }
           }
           this.profileValuesFile = await self.profileManager.prepareValuesForNodeAdd(
             path.join(config.stagingDir, 'config.txt'),
@@ -2902,6 +2905,10 @@ export class NodeCommand extends BaseCommand {
           const accountMap = getNodeAccountMap(config.allNodeIds)
           // update map with current account ids
           accountMap.set(config.nodeId, config.newAccountNumber)
+
+          // update _nodeClient with the new service map since one of the account ids has changed
+          await this.accountManager.refreshNodeClient(config.namespace)
+
           // send some write transactions to invoke the handler that will trigger the stake weight recalculate
           for (const nodeId of config.allNodeIds) {
             const accountId = accountMap.get(nodeId)
@@ -3120,16 +3127,6 @@ export class NodeCommand extends BaseCommand {
         }
       },
       {
-        title: 'Download new config.txt',
-        task: async (ctx, task) => {
-          const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
-          const node1FullyQualifiedPodName = Templates.renderNetworkPodName(config.existingNodeIds[0])
-
-          // copy the config.txt file from the node1 upgrade directory
-          await self.k8.copyFrom(node1FullyQualifiedPodName, constants.ROOT_CONTAINER, `${constants.HEDERA_HAPI_PATH}/data/upgrade/current/config.txt`, config.stagingDir)
-        }
-      },
-      {
         title: 'Check network nodes are frozen',
         task: (ctx, task) => {
           const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
@@ -3148,6 +3145,16 @@ export class NodeCommand extends BaseCommand {
               collapseSubtasks: false
             }
           })
+        }
+      },
+      {
+        title: 'Download new config.txt',
+        task: async (ctx, task) => {
+          const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
+          const node1FullyQualifiedPodName = Templates.renderNetworkPodName(config.existingNodeIds[0])
+
+          // copy the config.txt file from the node1 upgrade directory
+          await self.k8.copyFrom(node1FullyQualifiedPodName, constants.ROOT_CONTAINER, `${constants.HEDERA_HAPI_PATH}/data/upgrade/current/config.txt`, config.stagingDir)
         }
       },
       {

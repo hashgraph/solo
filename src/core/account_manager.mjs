@@ -156,14 +156,23 @@ export class AccountManager {
    */
   async loadNodeClient (namespace) {
     if (!this._nodeClient || this._nodeClient.isClientShutDown) {
+      await this.refreshNodeClient(namespace)
+    }
+
+    return this._nodeClient
+  }
+
+  /**
+   * loads and initializes the Node Client
+   * @param namespace the namespace of the network
+   * @returns {Promise<void>}
+   */
+  async refreshNodeClient (namespace) {
       const treasuryAccountInfo = await this.getTreasuryAccountKeys(namespace)
       const networkNodeServicesMap = await this.getNodeServiceMap(namespace)
 
       this._nodeClient = await this._getNodeClient(namespace,
         networkNodeServicesMap, treasuryAccountInfo.accountId, treasuryAccountInfo.privateKey)
-    }
-
-    return this._nodeClient
   }
 
   /**
@@ -219,7 +228,7 @@ export class AccountManager {
         const port = networkNodeService.haProxyGrpcPort
         const targetPort = usePortForward ? localPort : port
 
-        if (usePortForward) {
+        if (usePortForward && this._portForwards.length < networkNodeServicesMap.size) {
           this._portForwards.push(await this.k8.portForward(networkNodeService.haProxyPodName, localPort, port))
         }
 

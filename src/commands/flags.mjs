@@ -714,10 +714,6 @@ export const persistentVolumeClaims = {
 /** @type {CommandFlag[]} **/
 export const allFlags = [
   accountId,
-  newAdminKey,
-  newAccountNumber,
-  newCACertificate,
-  newGRPCHash,
   amount,
   apiPermissionProperties,
   app,
@@ -755,6 +751,10 @@ export const allFlags = [
   localBuildPath,
   log4j2Xml,
   namespace,
+  newAccountNumber,
+  newAdminKey,
+  newCACertificate,
+  newGRPCHash,
   nodeID,
   nodeIDs,
   operatorId,
