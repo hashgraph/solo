@@ -2603,7 +2603,7 @@ export class NodeCommand extends BaseCommand {
               .setNodeId(nodeId)
 
             if (config.tlsKey) {
-              const tlsCertDer = await this.loadPermCertificate(config.gossipKey)
+              const tlsCertDer = await this.loadPermCertificate(config.tlsKey)
               const tlsCertHash = crypto.createHash('sha384').update(tlsCertDer).digest()
               nodeUpdateTx.setCertificateHash(tlsCertHash)
 
