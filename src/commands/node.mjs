@@ -2652,9 +2652,7 @@ export class NodeCommand extends BaseCommand {
             this.logger.debug(`NodeUpdateReceipt: ${nodeUpdateReceipt.toString()}`)
           } catch (e) {
             this.logger.error(`Error updating node to network: ${e.message}`, e)
-            // log error stack trace
             this.logger.error(e.stack)
-            console.error(e)
             throw new FullstackTestingError(`Error updating node to network: ${e.message}`, e)
           }
         }
@@ -2948,7 +2946,6 @@ export class NodeCommand extends BaseCommand {
     } catch (e) {
       self.logger.error(`Error in updating nodes: ${e.message}`, e)
       this.logger.error(e.stack)
-      console.error(e)
       throw new FullstackTestingError(`Error in updating nodes: ${e.message}`, e)
     } finally {
       await self.close()
