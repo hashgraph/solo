@@ -194,8 +194,8 @@ export class NodeCommand extends BaseCommand {
       flags.namespace,
       flags.newAccountNumber,
       flags.newAdminKey,
-      flags.newCACertificate,
-      flags.newGRPCHash,
+      flags.gossipKey,
+      flags.tlsKey,
       flags.nodeID,
       flags.releaseTag
     ]
@@ -629,7 +629,7 @@ export class NodeCommand extends BaseCommand {
     const certPem = fs.readFileSync(certFullPath).toString()
     const decodedDers = x509.PemConverter.decode(certPem)
     if (!decodedDers || decodedDers.length === 0) {
-      throw new FullstackTestingError('unable to decode public key: ' + certFullPath)
+      throw new FullstackTestingError('unable to load perm key: ' + certFullPath)
     }
     return (new Uint8Array(decodedDers[0]))
   }
@@ -2423,8 +2423,8 @@ export class NodeCommand extends BaseCommand {
             flags.localBuildPath,
             flags.newAccountNumber,
             flags.newAdminKey,
-            flags.newGRPCHash,
-            flags.newCACertificate
+            flags.tlsKey,
+            flags.gossipKey
           ])
 
           await prompts.execute(task, self.configManager, NodeCommand.UPDATE_FLAGS_LIST)
@@ -2443,8 +2443,8 @@ export class NodeCommand extends BaseCommand {
            * @property {string} namespace
            * @property {string} newAccountNumber
            * @property {string} newAdminKey
-           * @property {string} newCACertificate
-           * @property {string} newGRPCHash
+           * @property {string} gossipKey
+           * @property {string} tlsKey
            * @property {string} nodeId
            * @property {string} releaseTag
            * -- extra args --
@@ -2518,35 +2518,6 @@ export class NodeCommand extends BaseCommand {
           }
 
           return self.taskCheckNetworkNodePods(ctx, task, config.existingNodeIds)
-        }
-      },
-      {
-        title: 'Load signing key certificate',
-        task: async (ctx, task) => {
-          const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
-          const signingCertFile = Templates.renderGossipPemPublicKeyFile(constants.SIGNING_KEY_PREFIX, config.nodeId)
-          const signingCertFullPath = path.join(config.keysDir, signingCertFile)
-          const signingCertPem = fs.readFileSync(signingCertFullPath).toString()
-          const decodedDers = x509.PemConverter.decode(signingCertPem)
-          if (!decodedDers || decodedDers.length === 0) {
-            throw new FullstackTestingError('unable to decode public key: ' + signingCertFile)
-          }
-          ctx.signingCertDer = new Uint8Array(decodedDers[0])
-        }
-      },
-      {
-        title: 'Compute mTLS certificate hash',
-        task: async (ctx, task) => {
-          const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
-          const tlsCertFile = Templates.renderTLSPemPublicKeyFile(config.nodeId)
-          const tlsCertFullPath = path.join(config.keysDir, tlsCertFile)
-          const tlsCertPem = fs.readFileSync(tlsCertFullPath).toString()
-          const tlsCertDers = x509.PemConverter.decode(tlsCertPem)
-          if (!tlsCertDers || tlsCertDers.length === 0) {
-            throw new FullstackTestingError('unable to decode tls cert: ' + tlsCertFullPath)
-          }
-          const tlsCertDer = new Uint8Array(tlsCertDers[0])
-          ctx.tlsCertHash = crypto.createHash('sha384').update(tlsCertDer).digest()
         }
       },
       {
@@ -2627,21 +2598,61 @@ export class NodeCommand extends BaseCommand {
           self.logger.info(`nodeId: ${nodeId}`)
           self.logger.info(`config.newAccountNumber: ${config.newAccountNumber}`)
 
-          self.logger.info(`ctx.signingCertDer: ${ctx.signingCertDer}`)
-          self.logger.info(`ctx.tlsCertHash: ${ctx.tlsCertHash}`)
           try {
             const nodeUpdateTx = await new NodeUpdateTransaction()
               .setNodeId(nodeId)
 
-            if (config.newGRPCHash) {
-              const tlsCertDer = await this.loadPermCertificate(config.newCACertificate)
+            if (config.tlsKey) {
+              const tlsCertDer = await this.loadPermCertificate(config.gossipKey)
               const tlsCertHash = crypto.createHash('sha384').update(tlsCertDer).digest()
               nodeUpdateTx.setCertificateHash(tlsCertHash)
+
+              const tlsKeyDir = path.dirname(config.tlsKey)
+              // if given tls key file is not expected name, rename it before copying
+              const publicKeyFile = Templates.renderTLSPemPublicKeyFile(config.nodeId)
+              if (path.basename(config.tlsKey) !== publicKeyFile) {
+                fs.renameSync(config.tlsKey, path.join(tlsKeyDir, publicKeyFile))
+              }
+              // copy public key and private key to key directory
+              fs.copyFile(path.join(tlsKeyDir, publicKeyFile), path.join(config.keysDir, publicKeyFile), (err) => {
+                if (err) {
+                  self.logger.error(`Error copying tls public key: ${err.message}`)
+                  throw new FullstackTestingError(`Error copying tls public key: ${err.message}`, err)
+                }
+              })
+              const privateKeyFile = Templates.renderTLSPemPrivateKeyFile(config.nodeId)
+              fs.copyFile(path.join(tlsKeyDir, privateKeyFile), path.join(config.keysDir, privateKeyFile), (err) => {
+                if (err) {
+                  self.logger.error(`Error copying tls private key: ${err.message}`)
+                  throw new FullstackTestingError(`Error copying tls private key: ${err.message}`, err)
+                }
+              })
             }
 
-            if (config.newCACertificate) {
-              const signingCertDer = await this.loadPermCertificate(config.newCACertificate)
+            if (config.gossipKey) {
+              const signingCertDer = await this.loadPermCertificate(config.gossipKey)
               nodeUpdateTx.setGossipCaCertificate(signingCertDer)
+
+              const gossipKeyDir = path.dirname(config.gossipKey)
+              // if given certificate file is not expected name, rename it before copying
+              const publicKeyFile = Templates.renderGossipPemPublicKeyFile(constants.SIGNING_KEY_PREFIX, config.nodeId)
+              if (path.basename(config.gossipKey) !== publicKeyFile) {
+                fs.renameSync(config.gossipKey, path.join(gossipKeyDir, publicKeyFile))
+              }
+              // copy public key and private key to key directory
+              fs.copyFile(path.join(gossipKeyDir, publicKeyFile), path.join(config.keysDir, publicKeyFile), (err) => {
+                if (err) {
+                  self.logger.error(`Error copying gossip public key: ${err.message}`)
+                  throw new FullstackTestingError(`Error copying gossip public key: ${err.message}`, err)
+                }
+              })
+              const privateKeyFile = Templates.renderGossipPemPrivateKeyFile(constants.SIGNING_KEY_PREFIX, config.nodeId)
+              fs.copyFile(path.join(gossipKeyDir, privateKeyFile), path.join(config.keysDir, privateKeyFile), (err) => {
+                if (err) {
+                  self.logger.error(`Error copying gossip private key: ${err.message}`)
+                  throw new FullstackTestingError(`Error copying gossip private key: ${err.message}`, err)
+                }
+              })
             }
 
             if (config.newAccountNumber) {
