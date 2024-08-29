@@ -187,16 +187,16 @@ export class NodeCommand extends BaseCommand {
       flags.endpointType,
       flags.fstChartVersion,
       flags.gossipEndpoints,
+      flags.gossipKey,
       flags.grpcEndpoints,
       flags.keyFormat,
       flags.localBuildPath,
       flags.namespace,
       flags.newAccountNumber,
       flags.newAdminKey,
-      flags.gossipKey,
-      flags.tlsKey,
       flags.nodeID,
-      flags.releaseTag
+      flags.releaseTag,
+      flags.tlsKey
     ]
   }
 
@@ -2387,7 +2387,7 @@ export class NodeCommand extends BaseCommand {
               nodeCmd.logger.debug(argv)
 
               nodeCmd.delete(argv).then(r => {
-                nodeCmd.logger.debug('==== Finished running `node add`====')
+                nodeCmd.logger.debug('==== Finished running `node delete`====')
                 if (!r) process.exit(1)
               }).catch(err => {
                 nodeCmd.logger.showUserError(err)
@@ -2418,12 +2418,12 @@ export class NodeCommand extends BaseCommand {
             flags.force,
             flags.fstChartVersion,
             flags.gossipEndpoints,
+            flags.gossipKey,
             flags.grpcEndpoints,
             flags.localBuildPath,
             flags.newAccountNumber,
             flags.newAdminKey,
-            flags.tlsKey,
-            flags.gossipKey
+            flags.tlsKey
           ])
 
           await prompts.execute(task, self.configManager, NodeCommand.UPDATE_FLAGS_LIST)
@@ -2435,18 +2435,18 @@ export class NodeCommand extends BaseCommand {
            * @property {string} cacheDir
            * @property {boolean} devMode
            * @property {string} endpointType
-           * @property {string} gossipEndpoints
-           * @property {string} grpcEndpoints
            * @property {string} fstChartVersion
+           * @property {string} gossipEndpoints
+           * @property {string} gossipKey
+           * @property {string} grpcEndpoints
            * @property {string} keyFormat
            * @property {string} localBuildPath
            * @property {string} namespace
            * @property {string} newAccountNumber
            * @property {string} newAdminKey
-           * @property {string} gossipKey
-           * @property {string} tlsKey
            * @property {string} nodeId
            * @property {string} releaseTag
+           * @property {string} tlsKey
            * -- extra args --
            * @property {PrivateKey} adminKey
            * @property {string[]} allNodeIds
@@ -2669,7 +2669,6 @@ export class NodeCommand extends BaseCommand {
             // config.adminKey contains the original key, needed to sign the transaction
             if (config.newAdminKey) {
               await nodeUpdateTx.sign(parsedNewKey)
-            } else {
             }
             const signedTx = await nodeUpdateTx.sign(config.adminKey)
             const txResp = await signedTx.execute(config.nodeClient)
@@ -2994,14 +2993,14 @@ export class NodeCommand extends BaseCommand {
           prompts.disablePrompts([
             flags.app,
             flags.chainId,
-            flags.localBuildPath,
             flags.chartDirectory,
             flags.devMode,
             flags.endpointType,
             flags.force,
             flags.fstChartVersion,
             flags.gossipEndpoints,
-            flags.grpcEndpoints
+            flags.grpcEndpoints,
+            flags.localBuildPath
           ])
 
           await prompts.execute(task, self.configManager, NodeCommand.DELETE_FLAGS_LIST)

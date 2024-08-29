@@ -744,6 +744,7 @@ export const allFlags = [
   generateGossipKeys,
   generateTlsKeys,
   gossipEndpoints,
+  gossipKey,
   grpcEndpoints,
   hederaExplorerTlsHostName,
   hederaExplorerTlsLoadBalancerIp,
@@ -753,8 +754,6 @@ export const allFlags = [
   namespace,
   newAccountNumber,
   newAdminKey,
-  gossipKey,
-  tlsKey,
   nodeID,
   nodeIDs,
   operatorId,
@@ -769,6 +768,7 @@ export const allFlags = [
   setAlias,
   settingTxt,
   tlsClusterIssuerType,
+  tlsKey,
   updateAccountKeys,
   valuesFile
 ]
