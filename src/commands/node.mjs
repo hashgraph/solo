@@ -167,8 +167,6 @@ export class NodeCommand extends BaseCommand {
       flags.chartDirectory,
       flags.devMode,
       flags.endpointType,
-      flags.gossipEndpoints,
-      flags.grpcEndpoints,
       flags.keyFormat,
       flags.localBuildPath,
       flags.namespace,
@@ -2669,13 +2667,11 @@ export class NodeCommand extends BaseCommand {
             await nodeUpdateTx.freezeWith(config.nodeClient)
 
             // config.adminKey contains the original key, needed to sign the transaction
-            let signedTx
             if (config.newAdminKey) {
               await nodeUpdateTx.sign(parsedNewKey)
-              signedTx = await nodeUpdateTx.sign(config.adminKey)
             } else {
-              signedTx = await nodeUpdateTx.sign(config.adminKey)
             }
+            const signedTx = await nodeUpdateTx.sign(config.adminKey)
             const txResp = await signedTx.execute(config.nodeClient)
             const nodeUpdateReceipt = await txResp.getReceipt(config.nodeClient)
             this.logger.debug(`NodeUpdateReceipt: ${nodeUpdateReceipt.toString()}`)
@@ -3019,8 +3015,6 @@ export class NodeCommand extends BaseCommand {
            * @property {boolean} devMode
            * @property {string} endpointType
            * @property {string} fstChartVersion
-           * @property {string} gossipEndpoints
-           * @property {string} grpcEndpoints
            * @property {string} keyFormat
            * @property {string} localBuildPath
            * @property {string} namespace
