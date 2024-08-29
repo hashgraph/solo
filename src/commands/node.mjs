@@ -2698,7 +2698,7 @@ export class NodeCommand extends BaseCommand {
         }
       },
       {
-        title: 'Download generated files from an existing node',
+        title: 'Download newly generated config.txt from an existing node',
         task: async (ctx, task) => {
           const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
           const node1FullyQualifiedPodName = Templates.renderNetworkPodName(config.existingNodeIds[0])
@@ -2736,7 +2736,7 @@ export class NodeCommand extends BaseCommand {
         }
       },
       {
-        title: 'Update chart to use new configMap',
+        title: 'Update chart to use new configMap due to account number change',
         task: async (ctx, task) => {
           const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
           const index = config.existingNodeIds.length
@@ -2746,6 +2746,7 @@ export class NodeCommand extends BaseCommand {
             if (i !== nodeId) {
               valuesArg += ` --set "hedera.nodes[${i}].accountId=${config.serviceMap.get(config.existingNodeIds[i]).accountId}" --set "hedera.nodes[${i}].name=${config.existingNodeIds[i]}"`
             } else {
+              // use new account number for this node id
               valuesArg += ` --set "hedera.nodes[${i}].accountId=${config.newAccountNumber}" --set "hedera.nodes[${i}].name=${config.existingNodeIds[i]}"`
             }
           }
@@ -2940,7 +2941,7 @@ export class NodeCommand extends BaseCommand {
           // update map with current account ids
           accountMap.set(config.nodeId, config.newAccountNumber)
 
-          // update _nodeClient with the new service map since one of the account ids has changed
+          // update _nodeClient with the new service map since one of the account number has changed
           await this.accountManager.refreshNodeClient(config.namespace)
 
           // send some write transactions to invoke the handler that will trigger the stake weight recalculate
@@ -3112,7 +3113,6 @@ export class NodeCommand extends BaseCommand {
         title: 'Check existing nodes staked amount',
         task: async (ctx, task) => {
           const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
-          await sleep(60000)
           const accountMap = getNodeAccountMap(config.existingNodeIds)
           for (const nodeId of config.existingNodeIds) {
             const accountId = accountMap.get(nodeId)
@@ -3297,7 +3297,6 @@ export class NodeCommand extends BaseCommand {
         title: 'Fetch platform software into all network nodes',
         task:
           async (ctx, task) => {
-            await sleep(10000)
             const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
             config.serviceMap = await self.accountManager.getNodeServiceMap(
               config.namespace)
@@ -3337,9 +3336,6 @@ export class NodeCommand extends BaseCommand {
           const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
           const subTasks = []
 
-          // // remove nodeId from existingNodeIds
-          // ctx.config.allNodeIds = ctx.config.existingNodeIds.filter(nodeId => nodeId !== ctx.config.nodeId)
-          // self.logger.debug(`config.allNodeIds = ${ctx.config.allNodeIds}`)
           self.startNodes(config.podNames, config.allNodeIds, subTasks)
 
           // set up the sub-tasks
