@@ -25,6 +25,7 @@ import {
   getNodeAccountMap,
   getNodeLogs,
   getTmpDir,
+  renameAndCopyFile,
   sleep,
   validatePath
 } from '../core/helpers.mjs'
@@ -187,7 +188,8 @@ export class NodeCommand extends BaseCommand {
       flags.endpointType,
       flags.fstChartVersion,
       flags.gossipEndpoints,
-      flags.gossipKey,
+      flags.gossipPrivateKey,
+      flags.gossipPublicKey,
       flags.grpcEndpoints,
       flags.keyFormat,
       flags.localBuildPath,
@@ -196,7 +198,8 @@ export class NodeCommand extends BaseCommand {
       flags.newAdminKey,
       flags.nodeID,
       flags.releaseTag,
-      flags.tlsKey
+      flags.tlsPrivateKey,
+      flags.tlsPublicKey
     ]
   }
 
@@ -2418,12 +2421,14 @@ export class NodeCommand extends BaseCommand {
             flags.force,
             flags.fstChartVersion,
             flags.gossipEndpoints,
-            flags.gossipKey,
+            flags.gossipPrivateKey,
+            flags.gossipPublicKey,
             flags.grpcEndpoints,
             flags.localBuildPath,
             flags.newAccountNumber,
             flags.newAdminKey,
-            flags.tlsKey
+            flags.tlsPrivateKey,
+            flags.tlsPublicKey
           ])
 
           await prompts.execute(task, self.configManager, NodeCommand.UPDATE_FLAGS_LIST)
@@ -2437,7 +2442,8 @@ export class NodeCommand extends BaseCommand {
            * @property {string} endpointType
            * @property {string} fstChartVersion
            * @property {string} gossipEndpoints
-           * @property {string} gossipKey
+           * @property {string} gossipPrivateKey
+           * @property {string} gossipPublicKey
            * @property {string} grpcEndpoints
            * @property {string} keyFormat
            * @property {string} localBuildPath
@@ -2446,7 +2452,8 @@ export class NodeCommand extends BaseCommand {
            * @property {string} newAdminKey
            * @property {string} nodeId
            * @property {string} releaseTag
-           * @property {string} tlsKey
+           * @property {string} tlsPrivateKey
+           * @property {string} tlsPublicKey
            * -- extra args --
            * @property {PrivateKey} adminKey
            * @property {string[]} allNodeIds
@@ -2581,7 +2588,6 @@ export class NodeCommand extends BaseCommand {
         title: 'Check existing nodes staked amount',
         task: async (ctx, task) => {
           const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
-          await sleep(15000)
           const accountMap = getNodeAccountMap(config.existingNodeIds)
           for (const nodeId of config.existingNodeIds) {
             const accountId = accountMap.get(nodeId)
@@ -2602,57 +2608,27 @@ export class NodeCommand extends BaseCommand {
             const nodeUpdateTx = await new NodeUpdateTransaction()
               .setNodeId(nodeId)
 
-            if (config.tlsKey) {
-              const tlsCertDer = await this.loadPermCertificate(config.tlsKey)
+            if (config.tlsPublicKey && config.tlsPrivateKey) {
+              self.logger.info(`config.tlsPublicKey: ${config.tlsPublicKey}`)
+              const tlsCertDer = await this.loadPermCertificate(config.tlsPublicKey)
               const tlsCertHash = crypto.createHash('sha384').update(tlsCertDer).digest()
               nodeUpdateTx.setCertificateHash(tlsCertHash)
 
-              const tlsKeyDir = path.dirname(config.tlsKey)
-              // if given tls key file is not expected name, rename it before copying
               const publicKeyFile = Templates.renderTLSPemPublicKeyFile(config.nodeId)
-              if (path.basename(config.tlsKey) !== publicKeyFile) {
-                fs.renameSync(config.tlsKey, path.join(tlsKeyDir, publicKeyFile))
-              }
-              // copy public key and private key to key directory
-              fs.copyFile(path.join(tlsKeyDir, publicKeyFile), path.join(config.keysDir, publicKeyFile), (err) => {
-                if (err) {
-                  self.logger.error(`Error copying tls public key: ${err.message}`)
-                  throw new FullstackTestingError(`Error copying tls public key: ${err.message}`, err)
-                }
-              })
               const privateKeyFile = Templates.renderTLSPemPrivateKeyFile(config.nodeId)
-              fs.copyFile(path.join(tlsKeyDir, privateKeyFile), path.join(config.keysDir, privateKeyFile), (err) => {
-                if (err) {
-                  self.logger.error(`Error copying tls private key: ${err.message}`)
-                  throw new FullstackTestingError(`Error copying tls private key: ${err.message}`, err)
-                }
-              })
+              renameAndCopyFile(config.tlsPublicKey, publicKeyFile, config.keysDir)
+              renameAndCopyFile(config.tlsPrivateKey, privateKeyFile, config.keysDir)
             }
 
-            if (config.gossipKey) {
-              const signingCertDer = await this.loadPermCertificate(config.gossipKey)
+            if (config.gossipPublicKey && config.gossipPrivateKey) {
+              self.logger.info(`config.gossipPublicKey: ${config.gossipPublicKey}`)
+              const signingCertDer = await this.loadPermCertificate(config.gossipPublicKey)
               nodeUpdateTx.setGossipCaCertificate(signingCertDer)
 
-              const gossipKeyDir = path.dirname(config.gossipKey)
-              // if given certificate file is not expected name, rename it before copying
               const publicKeyFile = Templates.renderGossipPemPublicKeyFile(constants.SIGNING_KEY_PREFIX, config.nodeId)
-              if (path.basename(config.gossipKey) !== publicKeyFile) {
-                fs.renameSync(config.gossipKey, path.join(gossipKeyDir, publicKeyFile))
-              }
-              // copy public key and private key to key directory
-              fs.copyFile(path.join(gossipKeyDir, publicKeyFile), path.join(config.keysDir, publicKeyFile), (err) => {
-                if (err) {
-                  self.logger.error(`Error copying gossip public key: ${err.message}`)
-                  throw new FullstackTestingError(`Error copying gossip public key: ${err.message}`, err)
-                }
-              })
               const privateKeyFile = Templates.renderGossipPemPrivateKeyFile(constants.SIGNING_KEY_PREFIX, config.nodeId)
-              fs.copyFile(path.join(gossipKeyDir, privateKeyFile), path.join(config.keysDir, privateKeyFile), (err) => {
-                if (err) {
-                  self.logger.error(`Error copying gossip private key: ${err.message}`)
-                  throw new FullstackTestingError(`Error copying gossip private key: ${err.message}`, err)
-                }
-              })
+              renameAndCopyFile(config.gossipPublicKey, publicKeyFile, config.keysDir)
+              renameAndCopyFile(config.gossipPrivateKey, privateKeyFile, config.keysDir)
             }
 
             if (config.newAccountNumber) {
@@ -2837,8 +2813,8 @@ export class NodeCommand extends BaseCommand {
         title: 'Fetch platform software into network nodes',
         task:
           async (ctx, task) => {
-            // sleep 20 seconds
-            await sleep(20000)
+            // without this sleep, copy software from local build to container sometimes fail
+            await sleep(15000)
             ctx.config.allNodeIds = ctx.config.existingNodeIds
             const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
             return self.fetchLocalOrReleasedPlatformSoftware(config.allNodeIds, config.podNames, config.releaseTag, task, config.localBuildPath)

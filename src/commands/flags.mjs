@@ -561,20 +561,42 @@ export const newAdminKey = {
 }
 
 /** @type {CommandFlag} **/
-export const gossipKey = {
-  constName: 'gossipKey',
-  name: 'gossip-key',
+export const gossipPublicKey = {
+  constName: 'gossipPublicKey',
+  name: 'gossip-public-key',
   definition: {
-    describe: 'path and file name of the private signing gossip key in PEM key format to be used',
+    describe: 'path and file name of the public key for signing gossip in PEM key format to be used',
     defaultValue: '',
     type: 'string'
   }
 }
 
 /** @type {CommandFlag} **/
-export const tlsKey = {
-  constName: 'tlsKey',
-  name: 'tls-key',
+export const gossipPrivateKey = {
+  constName: 'gossipPrivateKey',
+  name: 'gossip-private-key',
+  definition: {
+    describe: 'path and file name of the private key for signing gossip in PEM key format to be used',
+    defaultValue: '',
+    type: 'string'
+  }
+}
+
+/** @type {CommandFlag} **/
+export const tlsPublicKey = {
+  constName: 'tlsPublicKey',
+  name: 'tls-public-key',
+  definition: {
+    describe: 'path and file name of the public TLS key to be used',
+    defaultValue: '',
+    type: 'string'
+  }
+}
+
+/** @type {CommandFlag} **/
+export const tlsPrivateKey = {
+  constName: 'tlsPrivateKey',
+  name: 'tls-private-key',
   definition: {
     describe: 'path and file name of the private TLS key to be used',
     defaultValue: '',
@@ -744,7 +766,8 @@ export const allFlags = [
   generateGossipKeys,
   generateTlsKeys,
   gossipEndpoints,
-  gossipKey,
+  gossipPrivateKey,
+  gossipPublicKey,
   grpcEndpoints,
   hederaExplorerTlsHostName,
   hederaExplorerTlsLoadBalancerIp,
@@ -768,7 +791,8 @@ export const allFlags = [
   setAlias,
   settingTxt,
   tlsClusterIssuerType,
-  tlsKey,
+  tlsPrivateKey,
+  tlsPublicKey,
   updateAccountKeys,
   valuesFile
 ]

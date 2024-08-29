@@ -30,7 +30,7 @@ import { NodeCommand } from '../../../src/commands/node.mjs'
 import { HEDERA_HAPI_PATH, ROOT_CONTAINER } from '../../../src/core/constants.mjs'
 import fs from 'fs'
 
-describe('Node add', () => {
+describe('Node update', () => {
   const defaultTimeout = 120000
   const namespace = 'node-update'
   const updateNodeId = 'node2'
@@ -76,15 +76,18 @@ describe('Node add', () => {
   it('should update a new node property successfully', async () => {
     // generate gossip and tls keys for the updated node
     const tmpDir = getTmpDir()
+
     const signingKey = await nodeCmd.keyManager.generateSigningKey(updateNodeId)
     const signingKeyFiles = await nodeCmd.keyManager.storeSigningKey(updateNodeId, signingKey, tmpDir)
     nodeCmd.logger.debug(`generated test gossip signing keys for node ${updateNodeId} : ${signingKeyFiles.certificateFile}`)
-    argv[flags.gossipKey.name] = signingKeyFiles.certificateFile
+    argv[flags.gossipPublicKey.name] = signingKeyFiles.certificateFile
+    argv[flags.gossipPrivateKey.name] = signingKeyFiles.privateKeyFile
 
     const tlsKey = await nodeCmd.keyManager.generateGrpcTLSKey(updateNodeId)
     const tlsKeyFiles = await nodeCmd.keyManager.storeTLSKey(updateNodeId, tlsKey, tmpDir)
     nodeCmd.logger.debug(`generated test TLS keys for node ${updateNodeId} : ${tlsKeyFiles.certificateFile}`)
-    argv[flags.tlsKey.name] = tlsKeyFiles.certificateFile
+    argv[flags.tlsPublicKey.name] = tlsKeyFiles.certificateFile
+    argv[flags.tlsPrivateKey.name] = tlsKeyFiles.privateKeyFile
 
     await nodeCmd.update(argv)
     expect(nodeCmd.getUnusedConfigs(NodeCommand.UPDATE_CONFIGS_NAME)).toEqual([
