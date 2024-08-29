@@ -98,14 +98,15 @@ describe('Node add', () => {
 
   accountCreationShouldSucceed(nodeCmd.accountManager, nodeCmd, namespace)
 
-  it('existing nodes private keys should not match for node id', async () => {
+  it('signing key and tls key should not match previous one', async () => {
     const currentNodeIdsPrivateKeysHash = await getNodeIdsPrivateKeysHash(existingServiceMap, namespace, constants.KEY_FORMAT_PEM, k8, getTmpDir())
 
     for (const [nodeId, existingKeyHashMap] of existingNodeIdsPrivateKeysHash.entries()) {
       const currentNodeKeyHashMap = currentNodeIdsPrivateKeysHash.get(nodeId)
 
       for (const [keyFileName, existingKeyHash] of existingKeyHashMap.entries()) {
-        if (nodeId === updateNodeId) {
+        if (nodeId === updateNodeId &&
+          (keyFileName.startsWith(constants.SIGNING_KEY_PREFIX) || keyFileName.startsWith('hedera'))) {
           expect(`${nodeId}:${keyFileName}:${currentNodeKeyHashMap.get(keyFileName)}`).not.toEqual(
             `${nodeId}:${keyFileName}:${existingKeyHash}`)
         } else {
