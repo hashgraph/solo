@@ -109,9 +109,6 @@ describe('Node update', () => {
       const currentNodeKeyHashMap = currentNodeIdsPrivateKeysHash.get(nodeId)
 
       for (const [keyFileName, existingKeyHash] of existingKeyHashMap.entries()) {
-
-        // Temporarily disable gossip keys generation due to unsolved bug
-
       //   if (nodeId === updateNodeId &&
       //     (keyFileName.startsWith(constants.SIGNING_KEY_PREFIX) || keyFileName.startsWith('hedera'))) {
       //     expect(`${nodeId}:${keyFileName}:${currentNodeKeyHashMap.get(keyFileName)}`).not.toEqual(

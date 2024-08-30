@@ -2627,10 +2627,11 @@ export class NodeCommand extends BaseCommand {
               const signingCertDer = await this.loadPermCertificate(config.gossipPublicKey)
               nodeUpdateTx.setGossipCaCertificate(signingCertDer)
 
-              const publicKeyFile = Templates.renderGossipPemPublicKeyFile(constants.SIGNING_KEY_PREFIX, config.nodeId)
-              const privateKeyFile = Templates.renderGossipPemPrivateKeyFile(constants.SIGNING_KEY_PREFIX, config.nodeId)
-
               // Temporarily disable gossip keys generation due to unsolved bug
+
+              // const publicKeyFile = Templates.renderGossipPemPublicKeyFile(constants.SIGNING_KEY_PREFIX, config.nodeId)
+              // const privateKeyFile = Templates.renderGossipPemPrivateKeyFile(constants.SIGNING_KEY_PREFIX, config.nodeId)
+
               // renameAndCopyFile(config.gossipPublicKey, publicKeyFile, config.keysDir)
               // renameAndCopyFile(config.gossipPrivateKey, privateKeyFile, config.keysDir)
             }
