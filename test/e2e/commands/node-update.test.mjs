@@ -81,8 +81,8 @@ describe('Node update', () => {
     const signingKeyFiles = await nodeCmd.keyManager.storeSigningKey(updateNodeId, signingKey, tmpDir)
     nodeCmd.logger.debug(`generated test gossip signing keys for node ${updateNodeId} : ${signingKeyFiles.certificateFile}`)
     // Temporarily disable gossip keys generation due to unsolved bug
-    // argv[flags.gossipPublicKey.name] = signingKeyFiles.certificateFile
-    // argv[flags.gossipPrivateKey.name] = signingKeyFiles.privateKeyFile
+    argv[flags.gossipPublicKey.name] = signingKeyFiles.certificateFile
+    argv[flags.gossipPrivateKey.name] = signingKeyFiles.privateKeyFile
 
     const tlsKey = await nodeCmd.keyManager.generateGrpcTLSKey(updateNodeId)
     const tlsKeyFiles = await nodeCmd.keyManager.storeTLSKey(updateNodeId, tlsKey, tmpDir)
@@ -109,6 +109,9 @@ describe('Node update', () => {
       const currentNodeKeyHashMap = currentNodeIdsPrivateKeysHash.get(nodeId)
 
       for (const [keyFileName, existingKeyHash] of existingKeyHashMap.entries()) {
+
+        // Temporarily disable gossip keys generation due to unsolved bug
+
       //   if (nodeId === updateNodeId &&
       //     (keyFileName.startsWith(constants.SIGNING_KEY_PREFIX) || keyFileName.startsWith('hedera'))) {
       //     expect(`${nodeId}:${keyFileName}:${currentNodeKeyHashMap.get(keyFileName)}`).not.toEqual(

@@ -2629,8 +2629,10 @@ export class NodeCommand extends BaseCommand {
 
               const publicKeyFile = Templates.renderGossipPemPublicKeyFile(constants.SIGNING_KEY_PREFIX, config.nodeId)
               const privateKeyFile = Templates.renderGossipPemPrivateKeyFile(constants.SIGNING_KEY_PREFIX, config.nodeId)
-              renameAndCopyFile(config.gossipPublicKey, publicKeyFile, config.keysDir)
-              renameAndCopyFile(config.gossipPrivateKey, privateKeyFile, config.keysDir)
+
+              // Temporarily disable gossip keys generation due to unsolved bug
+              // renameAndCopyFile(config.gossipPublicKey, publicKeyFile, config.keysDir)
+              // renameAndCopyFile(config.gossipPrivateKey, privateKeyFile, config.keysDir)
             }
 
             if (config.newAccountNumber) {
