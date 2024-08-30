@@ -62,6 +62,7 @@ export function testNodeAdd (localBuildPath
 
     afterAll(async () => {
       await getNodeLogs(k8, namespace)
+      await nodeCmd.accountManager.close()
       await nodeCmd.stop(argv)
       await networkCmd.destroy(argv)
       await k8.deleteNamespace(namespace)
