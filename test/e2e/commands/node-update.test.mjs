@@ -19,8 +19,8 @@ import { afterAll, describe, expect, it } from '@jest/globals'
 import { flags } from '../../../src/commands/index.mjs'
 import { constants } from '../../../src/core/index.mjs'
 import {
-  accountCreationShouldSucceed,
-  balanceQueryShouldSucceed,
+  // accountCreationShouldSucceed,
+  // balanceQueryShouldSucceed,
   bootstrapNetwork,
   getDefaultArgv, getNodeIdsPrivateKeysHash, getTmpDir,
   HEDERA_PLATFORM_VERSION_TAG
