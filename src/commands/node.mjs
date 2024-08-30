@@ -24,8 +24,7 @@ import * as helpers from '../core/helpers.mjs'
 import {
   getNodeAccountMap,
   getNodeLogs,
-  getTmpDir,
-  renameAndCopyFile,
+  getTmpDir, renameAndCopyFile,
   sleep,
   validatePath
 } from '../core/helpers.mjs'
@@ -2627,13 +2626,10 @@ export class NodeCommand extends BaseCommand {
               const signingCertDer = await this.loadPermCertificate(config.gossipPublicKey)
               nodeUpdateTx.setGossipCaCertificate(signingCertDer)
 
-              // Temporarily disable gossip keys generation due to unsolved bug
-
-              // const publicKeyFile = Templates.renderGossipPemPublicKeyFile(constants.SIGNING_KEY_PREFIX, config.nodeId)
-              // const privateKeyFile = Templates.renderGossipPemPrivateKeyFile(constants.SIGNING_KEY_PREFIX, config.nodeId)
-
-              // renameAndCopyFile(config.gossipPublicKey, publicKeyFile, config.keysDir)
-              // renameAndCopyFile(config.gossipPrivateKey, privateKeyFile, config.keysDir)
+              const publicKeyFile = Templates.renderGossipPemPublicKeyFile(constants.SIGNING_KEY_PREFIX, config.nodeId)
+              const privateKeyFile = Templates.renderGossipPemPrivateKeyFile(constants.SIGNING_KEY_PREFIX, config.nodeId)
+              renameAndCopyFile(config.gossipPublicKey, publicKeyFile, config.keysDir)
+              renameAndCopyFile(config.gossipPrivateKey, privateKeyFile, config.keysDir)
             }
 
             if (config.newAccountNumber) {
