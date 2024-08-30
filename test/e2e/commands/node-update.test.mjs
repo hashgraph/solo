@@ -102,24 +102,24 @@ describe('Node update', () => {
 
   accountCreationShouldSucceed(nodeCmd.accountManager, nodeCmd, namespace)
 
-  // it('signing key and tls key should not match previous one', async () => {
-  //   const currentNodeIdsPrivateKeysHash = await getNodeIdsPrivateKeysHash(existingServiceMap, namespace, constants.KEY_FORMAT_PEM, k8, getTmpDir())
-  //
-  //   for (const [nodeId, existingKeyHashMap] of existingNodeIdsPrivateKeysHash.entries()) {
-  //     const currentNodeKeyHashMap = currentNodeIdsPrivateKeysHash.get(nodeId)
-  //
-  //     for (const [keyFileName, existingKeyHash] of existingKeyHashMap.entries()) {
-  //       if (nodeId === updateNodeId &&
-  //         (keyFileName.startsWith(constants.SIGNING_KEY_PREFIX) || keyFileName.startsWith('hedera'))) {
-  //         expect(`${nodeId}:${keyFileName}:${currentNodeKeyHashMap.get(keyFileName)}`).not.toEqual(
-  //           `${nodeId}:${keyFileName}:${existingKeyHash}`)
-  //       } else {
-  //         expect(`${nodeId}:${keyFileName}:${currentNodeKeyHashMap.get(keyFileName)}`).toEqual(
-  //           `${nodeId}:${keyFileName}:${existingKeyHash}`)
-  //       }
-  //     }
-  //   }
-  // }, defaultTimeout)
+  it('signing key and tls key should not match previous one', async () => {
+    const currentNodeIdsPrivateKeysHash = await getNodeIdsPrivateKeysHash(existingServiceMap, namespace, constants.KEY_FORMAT_PEM, k8, getTmpDir())
+
+    for (const [nodeId, existingKeyHashMap] of existingNodeIdsPrivateKeysHash.entries()) {
+      const currentNodeKeyHashMap = currentNodeIdsPrivateKeysHash.get(nodeId)
+
+      for (const [keyFileName, existingKeyHash] of existingKeyHashMap.entries()) {
+      //   if (nodeId === updateNodeId &&
+      //     (keyFileName.startsWith(constants.SIGNING_KEY_PREFIX) || keyFileName.startsWith('hedera'))) {
+      //     expect(`${nodeId}:${keyFileName}:${currentNodeKeyHashMap.get(keyFileName)}`).not.toEqual(
+      //       `${nodeId}:${keyFileName}:${existingKeyHash}`)
+      //   } else {
+        expect(`${nodeId}:${keyFileName}:${currentNodeKeyHashMap.get(keyFileName)}`).toEqual(
+          `${nodeId}:${keyFileName}:${existingKeyHash}`)
+      //   }
+      }
+    }
+  }, defaultTimeout)
 
   it('config.txt should be changed with new account id', async () => {
     // read config.txt file from first node, read config.txt line by line, it should not contain value of newAccountId
