@@ -184,6 +184,7 @@ export class NodeCommand extends BaseCommand {
     return [
       flags.app,
       flags.cacheDir,
+      flags.chartDirectory,
       flags.devMode,
       flags.endpointType,
       flags.fstChartVersion,
@@ -2438,6 +2439,7 @@ export class NodeCommand extends BaseCommand {
            * -- flags --
            * @property {string} app
            * @property {string} cacheDir
+           * @property {string} chartDirectory
            * @property {boolean} devMode
            * @property {string} endpointType
            * @property {string} fstChartVersion
@@ -2672,13 +2674,19 @@ export class NodeCommand extends BaseCommand {
         }
       },
       {
-        title: 'Download newly generated config.txt from an existing node',
+        title: 'Download generated files from an existing node',
         task: async (ctx, task) => {
           const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
           const node1FullyQualifiedPodName = Templates.renderNetworkPodName(config.existingNodeIds[0])
 
           // copy the config.txt file from the node1 upgrade directory
           await self.k8.copyFrom(node1FullyQualifiedPodName, constants.ROOT_CONTAINER, `${constants.HEDERA_HAPI_PATH}/data/upgrade/current/config.txt`, config.stagingDir)
+
+          const signedKeyFiles = (await self.k8.listDir(node1FullyQualifiedPodName, constants.ROOT_CONTAINER, `${constants.HEDERA_HAPI_PATH}/data/upgrade/current`)).filter(file => file.name.startsWith(constants.SIGNING_KEY_PREFIX))
+          for (const signedKeyFile of signedKeyFiles) {
+            await self.k8.execContainer(node1FullyQualifiedPodName, constants.ROOT_CONTAINER, ['bash', '-c', `[[ ! -f "${constants.HEDERA_HAPI_PATH}/data/keys/${signedKeyFile.name}" ]] || cp ${constants.HEDERA_HAPI_PATH}/data/keys/${signedKeyFile.name} ${constants.HEDERA_HAPI_PATH}/data/keys/${signedKeyFile.name}.old`])
+            await self.k8.copyFrom(node1FullyQualifiedPodName, constants.ROOT_CONTAINER, `${constants.HEDERA_HAPI_PATH}/data/upgrade/current/${signedKeyFile.name}`, `${config.keysDir}`)
+          }
         }
       },
       {
@@ -2744,8 +2752,18 @@ export class NodeCommand extends BaseCommand {
         title: 'Kill nodes to pick up updated configMaps',
         task: async (ctx, task) => {
           const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
+          // the updated node will have a new pod ID if its account ID changed which is a label
+          config.serviceMap = await self.accountManager.getNodeServiceMap(
+            config.namespace)
           for (const /** @type {NetworkNodeServices} **/ service of config.serviceMap.values()) {
             await self.k8.kubeClient.deleteNamespacedPod(service.nodePodName, config.namespace, undefined, undefined, 1)
+          }
+          // again, the pod names will change after the pods are killed
+          config.serviceMap = await self.accountManager.getNodeServiceMap(
+            config.namespace)
+          config.podNames = {}
+          for (const service of config.serviceMap.values()) {
+            config.podNames[service.nodeName] = service.nodePodName
           }
         }
       },
