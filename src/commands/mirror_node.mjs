@@ -22,7 +22,7 @@ import { BaseCommand } from './base.mjs'
 import * as flags from './flags.mjs'
 import * as prompts from './prompts.mjs'
 import { getFileContents, getEnvValue } from '../core/helpers.mjs'
-import {AccountId} from "@hashgraph/sdk"
+import { AccountId } from '@hashgraph/sdk'
 
 export class MirrorNodeCommand extends BaseCommand {
   constructor (opts) {
