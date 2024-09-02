@@ -566,7 +566,7 @@ export class NodeCommand extends BaseCommand {
   /**
    * @param {string[]} nodeIds
    * @param {Object} podNames
-   * @param {*} task
+   * @param {typeof import('listr2').TaskWrapper} task
    * @param {string} localBuildPath
    * @returns {Listr<*, *, *>}
    */
