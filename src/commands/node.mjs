@@ -340,8 +340,8 @@ export class NodeCommand extends BaseCommand {
 
   /**
    * Return task for checking for all network node pods
-   * @param ctx
-   * @param task
+   * @param {any} ctx
+   * @param {typeof import('listr2').TaskWrapper} task
    * @param {string[]} nodeIds
    * @returns {*}
    */
