@@ -41,7 +41,8 @@ describe('Node update', () => {
   argv[flags.nodeID.name] = updateNodeId
 
   argv[flags.newAccountNumber.name] = newAccountId
-  argv[flags.newAdminKey.name] = '302e020100300506032b6570042204200cde8d512569610f184b8b399e91e46899805c6171f7c2b8666d2a417bcc66c2'
+  // argv[flags.newAdminKey.name] = '302e020100300506032b6570042204200cde8d512569610f184b8b399e91e46899805c6171f7c2b8666d2a417bcc66c2'
+  argv[flags.localBuildPath.name] = 'node0=../hedera-services/hedera-node/data/,../hedera-services/hedera-node/data,node2=../hedera-services/hedera-node/data'
 
   argv[flags.generateGossipKeys.name] = true
   argv[flags.generateTlsKeys.name] = true
@@ -60,7 +61,8 @@ describe('Node update', () => {
 
   afterAll(async () => {
     await getNodeLogs(k8, namespace)
-    await k8.deleteNamespace(namespace)
+    await nodeCmd.stop(argv)
+    // await k8.deleteNamespace(namespace)
   }, 600000)
 
   it('cache current version of private keys', async () => {
@@ -73,7 +75,7 @@ describe('Node update', () => {
     expect(status).toBeTruthy()
   }, 450000)
 
-  it.skip('should update a new node property successfully', async () => {
+  it('should update a new node property successfully', async () => {
     // generate gossip and tls keys for the updated node
     const tmpDir = getTmpDir()
 
@@ -83,11 +85,11 @@ describe('Node update', () => {
     argv[flags.gossipPublicKey.name] = signingKeyFiles.certificateFile
     argv[flags.gossipPrivateKey.name] = signingKeyFiles.privateKeyFile
 
-    const tlsKey = await nodeCmd.keyManager.generateGrpcTLSKey(updateNodeId)
-    const tlsKeyFiles = await nodeCmd.keyManager.storeTLSKey(updateNodeId, tlsKey, tmpDir)
-    nodeCmd.logger.debug(`generated test TLS keys for node ${updateNodeId} : ${tlsKeyFiles.certificateFile}`)
-    argv[flags.tlsPublicKey.name] = tlsKeyFiles.certificateFile
-    argv[flags.tlsPrivateKey.name] = tlsKeyFiles.privateKeyFile
+    // const tlsKey = await nodeCmd.keyManager.generateGrpcTLSKey(updateNodeId)
+    // const tlsKeyFiles = await nodeCmd.keyManager.storeTLSKey(updateNodeId, tlsKey, tmpDir)
+    // nodeCmd.logger.debug(`generated test TLS keys for node ${updateNodeId} : ${tlsKeyFiles.certificateFile}`)
+    // argv[flags.tlsPublicKey.name] = tlsKeyFiles.certificateFile
+    // argv[flags.tlsPrivateKey.name] = tlsKeyFiles.privateKeyFile
 
     await nodeCmd.update(argv)
     expect(nodeCmd.getUnusedConfigs(NodeCommand.UPDATE_CONFIGS_NAME)).toEqual([
@@ -101,7 +103,7 @@ describe('Node update', () => {
   //
   // accountCreationShouldSucceed(nodeCmd.accountManager, nodeCmd, namespace)
 
-  it.skip('signing key and tls key should not match previous one', async () => {
+  it('signing key and tls key should not match previous one', async () => {
     const currentNodeIdsPrivateKeysHash = await getNodeIdsPrivateKeysHash(existingServiceMap, namespace, constants.KEY_FORMAT_PEM, k8, getTmpDir())
 
     for (const [nodeId, existingKeyHashMap] of existingNodeIdsPrivateKeysHash.entries()) {
@@ -120,7 +122,7 @@ describe('Node update', () => {
     }
   }, defaultTimeout)
 
-  it.skip('config.txt should be changed with new account id', async () => {
+  it('config.txt should be changed with new account id', async () => {
     // read config.txt file from first node, read config.txt line by line, it should not contain value of newAccountId
     const pods = await k8.getPodsByLabel(['fullstack.hedera.com/type=network-node'])
     const podName = pods[0].metadata.name

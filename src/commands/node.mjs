@@ -2724,7 +2724,7 @@ export class NodeCommand extends BaseCommand {
           const nodeId = Templates.nodeNumberFromNodeId(config.nodeId) - 1
           let valuesArg = ''
           for (let i = 0; i < index; i++) {
-            if (i !== nodeId) {
+            if (i !== nodeId && config.newAccountNumber) {
               valuesArg += ` --set "hedera.nodes[${i}].accountId=${config.serviceMap.get(config.existingNodeIds[i]).accountId}" --set "hedera.nodes[${i}].name=${config.existingNodeIds[i]}"`
             } else {
               // use new account number for this node id
@@ -2745,7 +2745,9 @@ export class NodeCommand extends BaseCommand {
             valuesArg,
             config.fstChartVersion
           )
-        }
+        },
+        // no need to run this step if the account number is not changed, therefore config.txt will be the same
+        skip: (ctx, _) => !ctx.config.newAccountNumber
       },
       {
         title: 'Kill nodes to pick up updated configMaps',
