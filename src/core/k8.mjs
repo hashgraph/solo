@@ -522,9 +522,17 @@ export class K8 {
     const namespace = this._getNamespace()
 
     // get stat for source file in the container
-    const entries = await this.listDir(podName, containerName, srcPath)
+    let entries = await this.listDir(podName, containerName, srcPath)
     if (entries.length !== 1) {
       throw new FullstackTestingError(`invalid source path: ${srcPath}`)
+    }
+    // handle symbolic link
+    if (entries[0].name.indexOf(' -> ') > -1) {
+      const redirectSrcPath = path.join(path.dirname(srcPath), entries[0].name.substring(entries[0].name.indexOf(' -> ') + 4))
+      entries = await this.listDir(podName, containerName, redirectSrcPath)
+      if (entries.length !== 1) {
+        throw new FullstackTestingError(`invalid source path: ${redirectSrcPath}`)
+      }
     }
     const srcFileDesc = entries[0] // cache for later comparison after copy
 
@@ -535,8 +543,8 @@ export class K8 {
     try {
       const srcFileSize = Number.parseInt(srcFileDesc.size)
 
-      const srcFile = path.basename(srcPath)
-      const srcDir = path.dirname(srcPath)
+      const srcFile = path.basename(entries[0].name)
+      const srcDir = path.dirname(entries[0].name)
       const destPath = path.join(destDir, srcFile)
 
       // download the tar file to a temp location
@@ -570,17 +578,21 @@ export class K8 {
                 return reject(new FullstackTestingError(`failed to copy because of error (${code}): ${reason}`))
               }
 
-              // extract the downloaded file
-              await tar.x({
-                file: tmpFile,
-                cwd: destDir
-              })
+              try {
+                // extract the downloaded file
+                await tar.x({
+                  file: tmpFile,
+                  cwd: destDir
+                })
 
-              self._deleteTempFile(tmpFile)
+                self._deleteTempFile(tmpFile)
 
-              const stat = fs.statSync(destPath)
-              if (stat && stat.size === srcFileSize) {
-                return resolve(true)
+                const stat = fs.statSync(destPath)
+                if (stat && stat.size === srcFileSize) {
+                  return resolve(true)
+                }
+              } catch (e) {
+                return reject(new FullstackTestingError(`failed to extract file: ${destPath}`, e))
               }
 
               return reject(new FullstackTestingError(`failed to download file completely: ${destPath}`))

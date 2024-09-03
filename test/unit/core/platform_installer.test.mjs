@@ -109,7 +109,7 @@ describe('PackageInstaller', () => {
     })
 
     it('should fail for missing stagingDir path', async () => {
-      await expect(installer.copyGossipKeys('network-node0-0', '')).rejects.toThrow(MissingArgumentError)
+      await expect(installer.copyGossipKeys('node0', '')).rejects.toThrow(MissingArgumentError)
     })
   })
 })
