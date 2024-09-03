@@ -52,9 +52,4 @@ describe.each([
     await keytool.exportCert('-alias s-node0')
     expect(shellSpy).toHaveBeenCalledWith(`${keytoolPath} -exportcert -alias s-node0`, true)
   })
-
-  it(`should run keytool -list [${input.osPlatform}]`, async () => {
-    await keytool.list('-keystore private-node0.pfx')
-    expect(shellSpy).toHaveBeenCalledWith(`${keytoolPath} -list -keystore private-node0.pfx`, true)
-  })
 })

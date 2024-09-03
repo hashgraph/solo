@@ -162,10 +162,6 @@ export class PlatformInstaller {
             srcFiles.push(path.join(stagingDir, 'keys', Templates.renderGossipPemPublicKeyFile(constants.AGREEMENT_KEY_PREFIX, id)))
           })
           break
-        case constants.KEY_FORMAT_PFX:
-          srcFiles.push(path.join(stagingDir, 'keys', Templates.renderGossipPfxPrivateKeyFile(nodeId)))
-          srcFiles.push(path.join(stagingDir, 'keys', constants.PUBLIC_PFX))
-          break
         default:
           throw new FullstackTestingError(`Unsupported key file format ${keyFormat}`)
       }
@@ -252,7 +248,7 @@ export class PlatformInstaller {
    * @param podName name of the pod
    * @param stagingDir staging directory path
    * @param nodeIds list of node ids
-   * @param keyFormat key format (pfx or pem)
+   * @param keyFormat key format (pem)
    * @param force force flag
    * @returns {Listr<ListrContext, ListrPrimaryRendererValue, ListrSecondaryRendererValue>}
    */

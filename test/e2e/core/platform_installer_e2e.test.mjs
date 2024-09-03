@@ -100,21 +100,6 @@ describe('PackageInstallerE2E', () => {
   })
 
   describe('copyGossipKeys', () => {
-    it('should succeed to copy legacy pfx gossip keys for node0', async () => {
-      const podName = 'network-node0-0'
-      const nodeId = 'node0'
-
-      // generate pfx keys
-      const pfxDir = 'test/data/pfx'
-      await k8.execContainer(podName, constants.ROOT_CONTAINER, ['bash', '-c', `rm -f ${constants.HEDERA_HAPI_PATH}/data/keys/*`])
-      const fileList = await installer.copyGossipKeys(podName, pfxDir, ['node0'], constants.KEY_FORMAT_PFX)
-
-      const destDir = `${constants.HEDERA_HAPI_PATH}/data/keys`
-      expect(fileList.length).toBe(2)
-      expect(fileList).toContain(`${destDir}/${Templates.renderGossipPfxPrivateKeyFile(nodeId)}`)
-      expect(fileList).toContain(`${destDir}/public.pfx`)
-    }, 60000)
-
     it('should succeed to copy pem gossip keys for node0', async () => {
       const podName = 'network-node0-0'
 

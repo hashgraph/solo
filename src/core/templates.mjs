@@ -37,15 +37,6 @@ export class Templates {
     return `network-${nodeId}`
   }
 
-  /**
-   * Generate pfx node private key file name
-   * @param nodeId node ID
-   * @returns {string}
-   */
-  static renderGossipPfxPrivateKeyFile (nodeId) {
-    return `private-${nodeId}.pfx`
-  }
-
   static renderGossipPemPrivateKeyFile (prefix, nodeId) {
     // s-node0-key.pem
     return `${prefix}-private-${nodeId}.pem`

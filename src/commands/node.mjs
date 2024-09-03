@@ -24,7 +24,7 @@ import * as helpers from '../core/helpers.mjs'
 import {
   getNodeAccountMap,
   getNodeLogs,
-  getTmpDir, renameAndCopyFile,
+  renameAndCopyFile,
   sleep,
   validatePath
 } from '../core/helpers.mjs'
@@ -370,73 +370,20 @@ export class NodeCommand extends BaseCommand {
    *
    * WARNING: These tasks MUST run in sequence.
    *
-   * @param keyFormat key format (pem | pfx)
+   * @param keyFormat key format (pem)
    * @param nodeIds node ids
    * @param keysDir keys directory
    * @param curDate current date
-   * @param allNodeIds includes the nodeIds to get new keys as well as existing nodeIds that will be included in the public.pfx file
    * @return a list of subtasks
    * @private
    */
-  _nodeGossipKeysTaskList (keyFormat, nodeIds, keysDir, curDate = new Date(), allNodeIds = null) {
-    allNodeIds = allNodeIds || nodeIds
+  _nodeGossipKeysTaskList (keyFormat, nodeIds, keysDir, curDate = new Date()) {
     if (!Array.isArray(nodeIds) || !nodeIds.every((nodeId) => typeof nodeId === 'string')) {
       throw new IllegalArgumentError('nodeIds must be an array of strings')
     }
-    const self = this
     const subTasks = []
 
     switch (keyFormat) {
-      case constants.KEY_FORMAT_PFX: {
-        const tmpDir = getTmpDir()
-        const keytool = self.keytoolDepManager.getKeytool()
-
-        subTasks.push({
-          title: `Check keytool exists (Version: ${self.keytoolDepManager.getKeytoolVersion()})`,
-          task: async () => self.keytoolDepManager.checkVersion(true)
-
-        })
-
-        subTasks.push({
-          title: 'Backup old files',
-          task: () => helpers.backupOldPfxKeys(nodeIds, keysDir, curDate)
-        })
-
-        for (const nodeId of nodeIds) {
-          subTasks.push({
-            title: `Generate ${Templates.renderGossipPfxPrivateKeyFile(nodeId)} for node: ${chalk.yellow(nodeId)}`,
-            task: async () => {
-              const privatePfxFile = await self.keyManager.generatePrivatePfxKeys(keytool, nodeId, keysDir, tmpDir)
-              const output = await keytool.list(`-storetype pkcs12 -storepass password -keystore ${privatePfxFile}`)
-              if (!output.includes('Your keystore contains 3 entries')) {
-                throw new FullstackTestingError(`malformed private pfx file: ${privatePfxFile}`)
-              }
-            }
-          })
-        }
-
-        subTasks.push({
-          title: `Generate ${constants.PUBLIC_PFX} file`,
-          task: async () => {
-            const publicPfxFile = await self.keyManager.updatePublicPfxKey(self.keytoolDepManager.getKeytool(), allNodeIds, keysDir, tmpDir)
-            const output = await keytool.list(`-storetype pkcs12 -storepass password -keystore ${publicPfxFile}`)
-            if (!output.includes(`Your keystore contains ${allNodeIds.length * 3} entries`)) {
-              throw new FullstackTestingError(`malformed public.pfx file: ${publicPfxFile}`)
-            }
-          }
-        })
-
-        subTasks.push({
-          title: 'Clean up temp files',
-          task: async () => {
-            if (fs.existsSync(tmpDir)) {
-              fs.rmSync(tmpDir, { recursive: true })
-            }
-          }
-        })
-        break
-      }
-
       case constants.KEY_FORMAT_PEM: {
         subTasks.push({
           title: 'Backup old files',
@@ -1584,7 +1531,7 @@ export class NodeCommand extends BaseCommand {
           config.existingNodeIds = []
 
           if (config.keyFormat !== constants.KEY_FORMAT_PEM) {
-            throw new FullstackTestingError('key type cannot be PFX')
+            throw new FullstackTestingError('key type cannot be non PEM')
           }
 
           await self.initializeSetup(config, self.k8)
@@ -1657,7 +1604,7 @@ export class NodeCommand extends BaseCommand {
         title: 'Generate Gossip key',
         task: async (ctx, parentTask) => {
           const config = /** @type {NodeAddConfigClass} **/ ctx.config
-          const subTasks = self._nodeGossipKeysTaskList(config.keyFormat, [config.nodeId], config.keysDir, config.curDate, config.allNodeIds)
+          const subTasks = self._nodeGossipKeysTaskList(config.keyFormat, [config.nodeId], config.keysDir, config.curDate)
           // set up the sub-tasks
           return parentTask.newListr(subTasks, {
             concurrent: false,
@@ -2206,13 +2153,6 @@ export class NodeCommand extends BaseCommand {
           // generate missing agreement keys
           const agreementKeyFiles = this.keyManager.prepareNodeKeyFilePaths(nodeId, keysDir, constants.AGREEMENT_KEY_PREFIX)
           await this._copyNodeKeys(agreementKeyFiles, stagingKeysDir)
-          break
-        }
-
-        case constants.KEY_FORMAT_PFX: {
-          const privateKeyFile = Templates.renderGossipPfxPrivateKeyFile(nodeId)
-          fs.cpSync(path.join(keysDir, privateKeyFile), path.join(stagingKeysDir, privateKeyFile))
-          fs.cpSync(path.join(keysDir, constants.PUBLIC_PFX), path.join(stagingKeysDir, constants.PUBLIC_PFX))
           break
         }
 

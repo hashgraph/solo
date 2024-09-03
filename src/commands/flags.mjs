@@ -367,7 +367,7 @@ export const keyFormat = {
   constName: 'keyFormat',
   name: 'key-format',
   definition: {
-    describe: 'Public and Private key file format (pem or pfx)',
+    describe: 'Public and Private key file format (pem)',
     defaultValue: 'pem',
     type: 'string'
   }

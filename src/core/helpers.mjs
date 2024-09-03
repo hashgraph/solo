@@ -127,23 +127,6 @@ export function makeBackup (fileMap = new Map(), removeOld = true) {
   }
 }
 
-export function backupOldPfxKeys (nodeIds, keysDir, curDate = new Date(), dirPrefix = 'gossip-pfx') {
-  const backupDir = createBackupDir(keysDir, `unused-${dirPrefix}`, curDate)
-  const fileMap = new Map()
-  for (const nodeId of nodeIds) {
-    const srcPath = path.join(keysDir, `private-${nodeId}.pfx`)
-    const destPath = path.join(backupDir, `private-${nodeId}.pfx`)
-    fileMap.set(srcPath, destPath)
-  }
-
-  const srcPath = path.join(keysDir, 'public.pfx')
-  const destPath = path.join(backupDir, 'public.pfx')
-  fileMap.set(srcPath, destPath)
-  makeBackup(fileMap, true)
-
-  return backupDir
-}
-
 export function backupOldTlsKeys (nodeIds, keysDir, curDate = new Date(), dirPrefix = 'tls') {
   const backupDir = createBackupDir(keysDir, `unused-${dirPrefix}`, curDate)
   const fileMap = new Map()

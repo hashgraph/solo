@@ -90,18 +90,6 @@ jobs:
       coverage-subdirectory: ${{ needs.env-vars.outputs.e2e-node-pem-stop-test-subdir }}
       coverage-report-name: ${{ needs.env-vars.outputs.e2e-node-pem-stop-coverage-report }}
 
-  e2e-node-pfx-kill-tests:
-    name: E2E Tests
-    uses: ./.github/workflows/zxc-e2e-test.yaml
-    needs:
-      - env-vars
-      - code-style
-    with:
-      custom-job-label: Node PFX Kill
-      npm-test-script: test-${{ needs.env-vars.outputs.e2e-node-pfx-kill-test-subdir }}
-      coverage-subdirectory: ${{ needs.env-vars.outputs.e2e-node-pfx-kill-test-subdir }}
-      coverage-report-name: ${{ needs.env-vars.outputs.e2e-node-pfx-kill-coverage-report }}
-
   e2e-node-local-build-tests:
     name: E2E Tests
     uses: ./.github/workflows/zxc-e2e-test.yaml
@@ -172,7 +160,6 @@ jobs:
       - e2e-tests
       - e2e-mirror-node-tests
       - e2e-node-pem-stop-tests
-      - e2e-node-pfx-kill-tests
       - e2e-node-local-build-tests
       - e2e-node-add-tests
       - e2e-node-update-tests
@@ -186,7 +173,6 @@ jobs:
       e2e-test-subdir: ${{ needs.env-vars.outputs.e2e-test-subdir }}
       e2e-mirror-node-test-subdir: ${{ needs.env-vars.outputs.e2e-mirror-node-test-subdir }}
       e2e-node-pem-stop-test-subdir: ${{ needs.env-vars.outputs.e2e-node-pem-stop-test-subdir }}
-      e2e-node-pfx-kill-test-subdir: ${{ needs.env-vars.outputs.e2e-node-pfx-kill-test-subdir }}
       e2e-node-local-build-test-subdir: ${{ needs.env-vars.outputs.e2e-node-local-build-test-subdir }}
       e2e-node-add-test-subdir: ${{ needs.env-vars.outputs.e2e-node-add-test-subdir }}
       e2e-node-update-test-subdir: ${{ needs.env-vars.outputs.e2e-node-update-test-subdir }}
@@ -195,7 +181,6 @@ jobs:
       e2e-coverage-report: ${{ needs.env-vars.outputs.e2e-coverage-report }}
       e2e-mirror-node-coverage-report: ${{ needs.env-vars.outputs.e2e-mirror-node-coverage-report }}
       e2e-node-pem-stop-coverage-report: ${{ needs.env-vars.outputs.e2e-node-pem-stop-coverage-report }}
-      e2e-node-pfx-kill-coverage-report: ${{ needs.env-vars.outputs.e2e-node-pfx-kill-coverage-report }}
       e2e-node-local-build-coverage-report: ${{ needs.env-vars.outputs.e2e-node-local-build-coverage-report }}
       e2e-node-add-coverage-report: ${{ needs.env-vars.outputs.e2e-node-add-coverage-report }}
       e2e-node-update-coverage-report: ${{ needs.env-vars.outputs.e2e-node-update-coverage-report }}
@@ -213,7 +198,6 @@ jobs:
       - e2e-tests
       - e2e-mirror-node-tests
       - e2e-node-pem-stop-tests
-      - e2e-node-pfx-kill-tests
       - e2e-node-local-build-tests
       - e2e-node-add-tests
       - e2e-node-update-tests
@@ -227,7 +211,6 @@ jobs:
       e2e-test-subdir: ${{ needs.env-vars.outputs.e2e-test-subdir }}
       e2e-mirror-node-test-subdir: ${{ needs.env-vars.outputs.e2e-mirror-node-test-subdir }}
       e2e-node-pem-stop-test-subdir: ${{ needs.env-vars.outputs.e2e-node-pem-stop-test-subdir }}
-      e2e-node-pfx-kill-test-subdir: ${{ needs.env-vars.outputs.e2e-node-pfx-kill-test-subdir }}
       e2e-node-local-build-test-subdir: ${{ needs.env-vars.outputs.e2e-node-local-build-test-subdir }}
       e2e-node-add-test-subdir: ${{ needs.env-vars.outputs.e2e-node-add-test-subdir }}
       e2e-node-update-test-subdir: ${{ needs.env-vars.outputs.e2e-node-update-test-subdir }}
@@ -236,7 +219,6 @@ jobs:
       e2e-coverage-report: ${{ needs.env-vars.outputs.e2e-coverage-report }}
       e2e-mirror-node-coverage-report: ${{ needs.env-vars.outputs.e2e-mirror-node-coverage-report }}
       e2e-node-pem-stop-coverage-report: ${{ needs.env-vars.outputs.e2e-node-pem-stop-coverage-report }}
-      e2e-node-pfx-kill-coverage-report: ${{ needs.env-vars.outputs.e2e-node-pfx-kill-coverage-report }}
       e2e-node-local-build-coverage-report: ${{ needs.env-vars.outputs.e2e-node-local-build-coverage-report }}
       e2e-node-add-coverage-report: ${{ needs.env-vars.outputs.e2e-node-add-coverage-report }}
       e2e-node-update-coverage-report: ${{ needs.env-vars.outputs.e2e-node-update-coverage-report }}
@@ -254,7 +236,6 @@ jobs:
 #      - e2e-tests
 #      - e2e-mirror-node-tests
 #      - e2e-node-pem-stop-tests
-#      - e2e-node-pfx-kill-tests
 #      - e2e-node-local-build-tests
 #      - e2e-node-add-tests
 #      - e2e-node-update-tests
@@ -267,7 +248,6 @@ jobs:
 #      e2e-test-subdir: ${{ needs.env-vars.outputs.e2e-test-subdir }}
 #      e2e-mirror-node-test-subdir: ${{ needs.env-vars.outputs.e2e-mirror-node-test-subdir }}
 #      e2e-node-pem-stop-test-subdir: ${{ needs.env-vars.outputs.e2e-node-pem-stop-test-subdir }}
-#      e2e-node-pfx-kill-test-subdir: ${{ needs.env-vars.outputs.e2e-node-pfx-kill-test-subdir }}
 #      e2e-node-local-build-test-subdir: ${{ needs.env-vars.outputs.e2e-node-local-build-test-subdir }}
 #      e2e-node-add-test-subdir: ${{ needs.env-vars.outputs.e2e-node-add-test-subdir }}
 #      e2e-node-update-test-subdir: ${{ needs.env-vars.outputs.e2e-node-update-test-subdir }}
@@ -276,7 +256,6 @@ jobs:
 #      e2e-coverage-report: ${{ needs.env-vars.outputs.e2e-coverage-report }}
 #      e2e-mirror-node-coverage-report: ${{ needs.env-vars.outputs.e2e-mirror-node-coverage-report }}
 #      e2e-node-pem-stop-coverage-report: ${{ needs.env-vars.outputs.e2e-node-pem-stop-coverage-report }}
-#      e2e-node-pfx-kill-coverage-report: ${{ needs.env-vars.outputs.e2e-node-pfx-kill-coverage-report }}
 #      e2e-node-local-build-coverage-report: ${{ needs.env-vars.outputs.e2e-node-local-build-coverage-report }}
 #      e2e-node-add-coverage-report: ${{ needs.env-vars.outputs.e2e-node-add-coverage-report }}
 #      e2e-node-update-coverage-report: ${{ needs.env-vars.outputs.e2e-node-update-coverage-report }}

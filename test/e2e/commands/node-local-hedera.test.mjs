@@ -32,7 +32,7 @@ import { getNodeLogs } from '../../../src/core/helpers.mjs'
 describe('Node local build', () => {
   const LOCAL_HEDERA = 'local-hedera-app'
   const argv = getDefaultArgv()
-  argv[flags.keyFormat.name] = constants.KEY_FORMAT_PFX
+  argv[flags.keyFormat.name] = constants.KEY_FORMAT_PEM
   argv[flags.nodeIDs.name] = 'node0,node1,node2'
   argv[flags.generateGossipKeys.name] = true
   argv[flags.generateTlsKeys.name] = true

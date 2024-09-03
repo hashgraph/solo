@@ -345,9 +345,6 @@ export async function getNodeIdsPrivateKeysHash (networkNodeServicesMap, namespa
       fs.mkdirSync(uniqueNodeDestDir, { recursive: true })
     }
     switch (keyFormat) {
-      case constants.KEY_FORMAT_PFX:
-        await addKeyHashToMap(k8, nodeId, dataKeysDir, uniqueNodeDestDir, keyHashMap, Templates.renderGossipPfxPrivateKeyFile(nodeId))
-        break
       case constants.KEY_FORMAT_PEM:
         await addKeyHashToMap(k8, nodeId, dataKeysDir, uniqueNodeDestDir, keyHashMap, Templates.renderGossipPemPrivateKeyFile(constants.SIGNING_KEY_PREFIX, nodeId))
         await addKeyHashToMap(k8, nodeId, dataKeysDir, uniqueNodeDestDir, keyHashMap, Templates.renderGossipPemPrivateKeyFile(constants.AGREEMENT_KEY_PREFIX, nodeId))

@@ -349,7 +349,7 @@ export async function promptDeleteSecrets (task, input) {
     flags.deleteSecrets.name)
 }
 
-export async function promptKeyFormat (task, input, choices = [constants.KEY_FORMAT_PFX, constants.KEY_FORMAT_PEM]) {
+export async function promptKeyFormat (task, input, choices = [constants.KEY_FORMAT_PEM]) {
   try {
     const initial = choices.indexOf(input)
     if (initial < 0) {
