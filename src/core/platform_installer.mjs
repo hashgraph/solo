@@ -281,12 +281,12 @@ export class PlatformInstaller {
    * Return a list of task to copy the node keys to the staging directory
    *
    * It assumes the staging directory has the following files and resources:
-   *   ${staging}/keys/s-<nodeId>.key: signing key for a node
-   *   ${staging}/keys/s-<nodeId>.crt: signing cert for a node
-   *   ${staging}/keys/a-<nodeId>.key: agreement key for a node
-   *   ${staging}/keys/a-<nodeId>.crt: agreement cert for a node
-   *   ${staging}/keys/hedera-<nodeId>.key: gRPC TLS key for a node
-   *   ${staging}/keys/hedera-<nodeId>.crt: gRPC TLS cert for a node
+   * <li>${staging}/keys/s-public-<nodeId>.pem: private signing key for a node</li>
+   * <li>${staging}/keys/s-private-<nodeId>.pem: public signing key for a node</li>
+   * <li>${staging}/keys/a-public-<nodeId>.pem: private agreement key for a node</li>
+   * <li>${staging}/keys/a-private-<nodeId>.pem: public agreement key for a node</li>
+   * <li>${staging}/keys/hedera-<nodeId>.key: gRPC TLS key for a node</li>
+   * <li>${staging}/keys/hedera-<nodeId>.crt: gRPC TLS cert for a node</li>
    *
    * @param stagingDir staging directory path
    * @param nodeIds list of node ids
