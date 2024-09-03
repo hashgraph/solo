@@ -55,7 +55,7 @@ describe('KeyManager', () => {
 
   it('should generate agreement key', async () => {
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'keys-'))
-    const nodeId = 'node1'
+    const nodeId = 'node0'
 
     const signingKeyFiles = keyManager.prepareNodeKeyFilePaths(nodeId, 'test/data', constants.SIGNING_KEY_PREFIX)
     const signignKey = await keyManager.loadNodeKey(nodeId, 'test/data', KeyManager.SigningKeyAlgo, signingKeyFiles)
