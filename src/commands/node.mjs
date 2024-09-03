@@ -24,7 +24,7 @@ import * as helpers from '../core/helpers.mjs'
 import {
   getNodeAccountMap,
   getNodeLogs,
-  getTmpDir,
+  getTmpDir, renameAndCopyFile,
   sleep,
   validatePath
 } from '../core/helpers.mjs'
@@ -41,8 +41,10 @@ import {
   FileUpdateTransaction,
   FreezeTransaction,
   FreezeType,
-  NodeCreateTransaction,
   PrivateKey,
+  NodeCreateTransaction,
+  NodeUpdateTransaction,
+  NodeDeleteTransaction,
   ServiceEndpoint,
   Timestamp
 } from '@hashgraph/sdk'
@@ -151,6 +153,53 @@ export class NodeCommand extends BaseCommand {
       flags.namespace,
       flags.nodeID,
       flags.releaseTag
+    ]
+  }
+
+  static get DELETE_CONFIGS_NAME () {
+    return 'deleteConfigs'
+  }
+
+  static get DELETE_FLAGS_LIST () {
+    return [
+      flags.app,
+      flags.cacheDir,
+      flags.chartDirectory,
+      flags.devMode,
+      flags.endpointType,
+      flags.keyFormat,
+      flags.localBuildPath,
+      flags.namespace,
+      flags.nodeID,
+      flags.releaseTag
+    ]
+  }
+
+  static get UPDATE_CONFIGS_NAME () {
+    return 'updateConfigs'
+  }
+
+  static get UPDATE_FLAGS_LIST () {
+    return [
+      flags.app,
+      flags.cacheDir,
+      flags.chartDirectory,
+      flags.devMode,
+      flags.endpointType,
+      flags.fstChartVersion,
+      flags.gossipEndpoints,
+      flags.gossipPrivateKey,
+      flags.gossipPublicKey,
+      flags.grpcEndpoints,
+      flags.keyFormat,
+      flags.localBuildPath,
+      flags.namespace,
+      flags.newAccountNumber,
+      flags.newAdminKey,
+      flags.nodeID,
+      flags.releaseTag,
+      flags.tlsPrivateKey,
+      flags.tlsPublicKey
     ]
   }
 
@@ -576,6 +625,15 @@ export class NodeCommand extends BaseCommand {
         collapseSubtasks: false
       }
     })
+  }
+
+  async loadPermCertificate (certFullPath) {
+    const certPem = fs.readFileSync(certFullPath).toString()
+    const decodedDers = x509.PemConverter.decode(certPem)
+    if (!decodedDers || decodedDers.length === 0) {
+      throw new FullstackTestingError('unable to load perm key: ' + certFullPath)
+    }
+    return (new Uint8Array(decodedDers[0]))
   }
 
   async prepareUpgradeZip (stagingDir) {
@@ -1633,12 +1691,7 @@ export class NodeCommand extends BaseCommand {
           const config = /** @type {NodeAddConfigClass} **/ ctx.config
           const signingCertFile = Templates.renderGossipPemPublicKeyFile(constants.SIGNING_KEY_PREFIX, config.nodeId)
           const signingCertFullPath = path.join(config.keysDir, signingCertFile)
-          const signingCertPem = fs.readFileSync(signingCertFullPath).toString()
-          const decodedDers = x509.PemConverter.decode(signingCertPem)
-          if (!decodedDers || decodedDers.length === 0) {
-            throw new FullstackTestingError('unable to decode public key: ' + signingCertFile)
-          }
-          ctx.signingCertDer = new Uint8Array(decodedDers[0])
+          ctx.signingCertDer = await this.loadPermCertificate(signingCertFullPath)
         }
       },
       {
@@ -1647,12 +1700,7 @@ export class NodeCommand extends BaseCommand {
           const config = /** @type {NodeAddConfigClass} **/ ctx.config
           const tlsCertFile = Templates.renderTLSPemPublicKeyFile(config.nodeId)
           const tlsCertFullPath = path.join(config.keysDir, tlsCertFile)
-          const tlsCertPem = fs.readFileSync(tlsCertFullPath).toString()
-          const tlsCertDers = x509.PemConverter.decode(tlsCertPem)
-          if (!tlsCertDers || tlsCertDers.length === 0) {
-            throw new FullstackTestingError('unable to decode tls cert: ' + tlsCertFullPath)
-          }
-          const tlsCertDer = new Uint8Array(tlsCertDers[0])
+          const tlsCertDer = await this.loadPermCertificate(tlsCertFullPath)
           ctx.tlsCertHash = crypto.createHash('sha384').update(tlsCertDer).digest()
         }
       },
@@ -2067,8 +2115,8 @@ export class NodeCommand extends BaseCommand {
     try {
       await tasks.run()
     } catch (e) {
-      self.logger.error(`Error in setting up nodes: ${e.message}`, e)
-      throw new FullstackTestingError(`Error in setting up nodes: ${e.message}`, e)
+      self.logger.error(`Error in adding nodes: ${e.message}`, e)
+      throw new FullstackTestingError(`Error in adding nodes: ${e.message}`, e)
     } finally {
       await self.close()
     }
@@ -2316,8 +2364,1063 @@ export class NodeCommand extends BaseCommand {
               })
             }
           })
+          .command({
+            command: 'update',
+            desc: 'Update a node with a specific version of Hedera platform',
+            builder: y => flags.setCommandFlags(y, ...NodeCommand.UPDATE_FLAGS_LIST),
+            handler: argv => {
+              nodeCmd.logger.debug('==== Running \'node update\' ===')
+              nodeCmd.logger.debug(argv)
+
+              nodeCmd.update(argv).then(r => {
+                nodeCmd.logger.debug('==== Finished running `node update`====')
+                if (!r) process.exit(1)
+              }).catch(err => {
+                nodeCmd.logger.showUserError(err)
+                process.exit(1)
+              })
+            }
+          })
+          .command({
+            command: 'delete',
+            desc: 'Delete a node with a specific version of Hedera platform',
+            builder: y => flags.setCommandFlags(y, ...NodeCommand.DELETE_FLAGS_LIST),
+            handler: argv => {
+              nodeCmd.logger.debug('==== Running \'node delete\' ===')
+              nodeCmd.logger.debug(argv)
+
+              nodeCmd.delete(argv).then(r => {
+                nodeCmd.logger.debug('==== Finished running `node delete`====')
+                if (!r) process.exit(1)
+              }).catch(err => {
+                nodeCmd.logger.showUserError(err)
+                process.exit(1)
+              })
+            }
+          })
           .demandCommand(1, 'Select a node command')
       }
     }
+  }
+
+  async update (argv) {
+    const self = this
+
+    const tasks = new Listr([
+      {
+        title: 'Initialize',
+        task: async (ctx, task) => {
+          self.configManager.update(argv)
+
+          // disable the prompts that we don't want to prompt the user for
+          prompts.disablePrompts([
+            flags.app,
+            flags.chartDirectory,
+            flags.devMode,
+            flags.endpointType,
+            flags.force,
+            flags.fstChartVersion,
+            flags.gossipEndpoints,
+            flags.gossipPrivateKey,
+            flags.gossipPublicKey,
+            flags.grpcEndpoints,
+            flags.localBuildPath,
+            flags.newAccountNumber,
+            flags.newAdminKey,
+            flags.tlsPrivateKey,
+            flags.tlsPublicKey
+          ])
+
+          await prompts.execute(task, self.configManager, NodeCommand.UPDATE_FLAGS_LIST)
+
+          /**
+           * @typedef {Object} NodeUpdateConfigClass
+           * -- flags --
+           * @property {string} app
+           * @property {string} cacheDir
+           * @property {string} chartDirectory
+           * @property {boolean} devMode
+           * @property {string} endpointType
+           * @property {string} fstChartVersion
+           * @property {string} gossipEndpoints
+           * @property {string} gossipPrivateKey
+           * @property {string} gossipPublicKey
+           * @property {string} grpcEndpoints
+           * @property {string} keyFormat
+           * @property {string} localBuildPath
+           * @property {string} namespace
+           * @property {string} newAccountNumber
+           * @property {string} newAdminKey
+           * @property {string} nodeId
+           * @property {string} releaseTag
+           * @property {string} tlsPrivateKey
+           * @property {string} tlsPublicKey
+           * -- extra args --
+           * @property {PrivateKey} adminKey
+           * @property {string[]} allNodeIds
+           * @property {string} chartPath
+           * @property {string[]} existingNodeIds
+           * @property {string} freezeAdminPrivateKey
+           * @property {string} keysDir
+           * @property {Object} nodeClient
+           * @property {Object} podNames
+           * @property {Map<String, NetworkNodeServices>} serviceMap
+           * @property {string} stagingDir
+           * @property {string} stagingKeysDir
+           * @property {PrivateKey} treasuryKey
+           * -- methods --
+           * @property {getUnusedConfigs} getUnusedConfigs
+           */
+          /**
+           * @callback getUnusedConfigs
+           * @returns {string[]}
+           */
+
+          // create a config object for subsequent steps
+          const config = /** @type {NodeUpdateConfigClass} **/ this.getConfig(NodeCommand.UPDATE_CONFIGS_NAME, NodeCommand.UPDATE_FLAGS_LIST,
+            [
+              'allNodeIds',
+              'existingNodeIds',
+              'freezeAdminPrivateKey',
+              'keysDir',
+              'nodeClient',
+              'podNames',
+              'serviceMap',
+              'stagingDir',
+              'stagingKeysDir',
+              'treasuryKey'
+            ])
+
+          config.curDate = new Date()
+          config.existingNodeIds = []
+
+          await self.initializeSetup(config, self.k8)
+
+          // set config in the context for later tasks to use
+          ctx.config = config
+
+          ctx.config.chartPath = await self.prepareChartPath(ctx.config.chartDirectory,
+            constants.FULLSTACK_TESTING_CHART, constants.FULLSTACK_DEPLOYMENT_CHART)
+
+          // initialize Node Client with existing network nodes prior to adding the new node which isn't functioning, yet
+          ctx.config.nodeClient = await this.accountManager.loadNodeClient(ctx.config.namespace)
+
+          const accountKeys = await this.accountManager.getAccountKeysFromSecret(FREEZE_ADMIN_ACCOUNT, config.namespace)
+          config.freezeAdminPrivateKey = accountKeys.privateKey
+
+          const treasuryAccount = await this.accountManager.getTreasuryAccountKeys(config.namespace)
+          const treasuryAccountPrivateKey = treasuryAccount.privateKey
+          config.treasuryKey = PrivateKey.fromStringED25519(treasuryAccountPrivateKey)
+
+          self.logger.debug('Initialized config', { config })
+        }
+      },
+      {
+        title: 'Identify existing network nodes',
+        task: async (ctx, task) => {
+          const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
+          config.serviceMap = await self.accountManager.getNodeServiceMap(
+            config.namespace)
+          for (/** @type {NetworkNodeServices} **/ const networkNodeServices of config.serviceMap.values()) {
+            config.existingNodeIds.push(networkNodeServices.nodeName)
+          }
+
+          return self.taskCheckNetworkNodePods(ctx, task, config.existingNodeIds)
+        }
+      },
+      {
+        title: 'Prepare gossip endpoints',
+        task: (ctx, task) => {
+          const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
+          let endpoints = []
+          if (!config.gossipEndpoints) {
+            if (config.endpointType !== constants.ENDPOINT_TYPE_FQDN) {
+              throw new FullstackTestingError(`--gossip-endpoints must be set if --endpoint-type is: ${constants.ENDPOINT_TYPE_IP}`)
+            }
+
+            endpoints = [
+              `${Templates.renderFullyQualifiedNetworkPodName(config.namespace, config.nodeId)}:${constants.HEDERA_NODE_INTERNAL_GOSSIP_PORT}`,
+              `${Templates.renderFullyQualifiedNetworkSvcName(config.namespace, config.nodeId)}:${constants.HEDERA_NODE_EXTERNAL_GOSSIP_PORT}`
+            ]
+          } else {
+            endpoints = helpers.splitFlagInput(config.gossipEndpoints)
+          }
+
+          ctx.gossipEndpoints = this.prepareEndpoints(config.endpointType, endpoints, constants.HEDERA_NODE_INTERNAL_GOSSIP_PORT)
+        }
+      },
+      {
+        title: 'Prepare grpc service endpoints',
+        task: (ctx, task) => {
+          const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
+          let endpoints = []
+
+          if (!config.grpcEndpoints) {
+            if (config.endpointType !== constants.ENDPOINT_TYPE_FQDN) {
+              throw new FullstackTestingError(`--grpc-endpoints must be set if --endpoint-type is: ${constants.ENDPOINT_TYPE_IP}`)
+            }
+
+            endpoints = [
+              `${Templates.renderFullyQualifiedNetworkSvcName(config.namespace, config.nodeId)}:${constants.HEDERA_NODE_EXTERNAL_GOSSIP_PORT}`
+            ]
+          } else {
+            endpoints = helpers.splitFlagInput(config.grpcEndpoints)
+          }
+
+          ctx.grpcServiceEndpoints = this.prepareEndpoints(config.endpointType, endpoints, constants.HEDERA_NODE_EXTERNAL_GOSSIP_PORT)
+        }
+      },
+      {
+        title: 'Load node admin key',
+        task: async (ctx, task) => {
+          const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
+          config.adminKey = PrivateKey.fromStringED25519(constants.GENESIS_KEY)
+        }
+      },
+      {
+        title: 'Prepare upgrade zip file for node upgrade process',
+        task: async (ctx, task) => {
+          const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
+          ctx.upgradeZipFile = await this.prepareUpgradeZip(config.stagingDir)
+          ctx.upgradeZipHash = await this.uploadUpgradeZip(ctx.upgradeZipFile, config.nodeClient)
+        }
+      },
+      {
+        title: 'Check existing nodes staked amount',
+        task: async (ctx, task) => {
+          const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
+          const accountMap = getNodeAccountMap(config.existingNodeIds)
+          for (const nodeId of config.existingNodeIds) {
+            const accountId = accountMap.get(nodeId)
+            await this.accountManager.transferAmount(constants.TREASURY_ACCOUNT_ID, accountId, 1)
+          }
+        }
+      },
+      {
+        title: 'Send node update transaction',
+        task: async (ctx, task) => {
+          const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
+
+          const nodeId = Templates.nodeNumberFromNodeId(config.nodeId) - 1
+          self.logger.info(`nodeId: ${nodeId}`)
+          self.logger.info(`config.newAccountNumber: ${config.newAccountNumber}`)
+
+          try {
+            const nodeUpdateTx = await new NodeUpdateTransaction()
+              .setNodeId(nodeId)
+
+            if (config.tlsPublicKey && config.tlsPrivateKey) {
+              self.logger.info(`config.tlsPublicKey: ${config.tlsPublicKey}`)
+              const tlsCertDer = await this.loadPermCertificate(config.tlsPublicKey)
+              const tlsCertHash = crypto.createHash('sha384').update(tlsCertDer).digest()
+              nodeUpdateTx.setCertificateHash(tlsCertHash)
+
+              const publicKeyFile = Templates.renderTLSPemPublicKeyFile(config.nodeId)
+              const privateKeyFile = Templates.renderTLSPemPrivateKeyFile(config.nodeId)
+              renameAndCopyFile(config.tlsPublicKey, publicKeyFile, config.keysDir)
+              renameAndCopyFile(config.tlsPrivateKey, privateKeyFile, config.keysDir)
+            }
+
+            if (config.gossipPublicKey && config.gossipPrivateKey) {
+              self.logger.info(`config.gossipPublicKey: ${config.gossipPublicKey}`)
+              const signingCertDer = await this.loadPermCertificate(config.gossipPublicKey)
+              nodeUpdateTx.setGossipCaCertificate(signingCertDer)
+
+              const publicKeyFile = Templates.renderGossipPemPublicKeyFile(constants.SIGNING_KEY_PREFIX, config.nodeId)
+              const privateKeyFile = Templates.renderGossipPemPrivateKeyFile(constants.SIGNING_KEY_PREFIX, config.nodeId)
+              renameAndCopyFile(config.gossipPublicKey, publicKeyFile, config.keysDir)
+              renameAndCopyFile(config.gossipPrivateKey, privateKeyFile, config.keysDir)
+            }
+
+            if (config.newAccountNumber) {
+              nodeUpdateTx.setAccountId(config.newAccountNumber)
+            }
+
+            let parsedNewKey
+            if (config.newAdminKey) {
+              parsedNewKey = PrivateKey.fromStringED25519(config.newAdminKey)
+              nodeUpdateTx.setAdminKey(parsedNewKey.publicKey)
+            }
+            await nodeUpdateTx.freezeWith(config.nodeClient)
+
+            // config.adminKey contains the original key, needed to sign the transaction
+            if (config.newAdminKey) {
+              await nodeUpdateTx.sign(parsedNewKey)
+            }
+            const signedTx = await nodeUpdateTx.sign(config.adminKey)
+            const txResp = await signedTx.execute(config.nodeClient)
+            const nodeUpdateReceipt = await txResp.getReceipt(config.nodeClient)
+            this.logger.debug(`NodeUpdateReceipt: ${nodeUpdateReceipt.toString()}`)
+          } catch (e) {
+            this.logger.error(`Error updating node to network: ${e.message}`, e)
+            this.logger.error(e.stack)
+            throw new FullstackTestingError(`Error updating node to network: ${e.message}`, e)
+          }
+        }
+      },
+      {
+        title: 'Send prepare upgrade transaction',
+        task: async (ctx, task) => {
+          const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
+          await this.prepareUpgradeNetworkNodes(config.freezeAdminPrivateKey, ctx.upgradeZipHash, config.nodeClient)
+        }
+      },
+      {
+        title: 'Send freeze upgrade transaction',
+        task: async (ctx, task) => {
+          const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
+          await this.freezeUpgradeNetworkNodes(config.freezeAdminPrivateKey, ctx.upgradeZipHash, config.nodeClient)
+        }
+      },
+      {
+        title: 'Download generated files from an existing node',
+        task: async (ctx, task) => {
+          const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
+          const node1FullyQualifiedPodName = Templates.renderNetworkPodName(config.existingNodeIds[0])
+
+          // copy the config.txt file from the node1 upgrade directory
+          await self.k8.copyFrom(node1FullyQualifiedPodName, constants.ROOT_CONTAINER, `${constants.HEDERA_HAPI_PATH}/data/upgrade/current/config.txt`, config.stagingDir)
+
+          const signedKeyFiles = (await self.k8.listDir(node1FullyQualifiedPodName, constants.ROOT_CONTAINER, `${constants.HEDERA_HAPI_PATH}/data/upgrade/current`)).filter(file => file.name.startsWith(constants.SIGNING_KEY_PREFIX))
+          for (const signedKeyFile of signedKeyFiles) {
+            await self.k8.execContainer(node1FullyQualifiedPodName, constants.ROOT_CONTAINER, ['bash', '-c', `[[ ! -f "${constants.HEDERA_HAPI_PATH}/data/keys/${signedKeyFile.name}" ]] || cp ${constants.HEDERA_HAPI_PATH}/data/keys/${signedKeyFile.name} ${constants.HEDERA_HAPI_PATH}/data/keys/${signedKeyFile.name}.old`])
+            await self.k8.copyFrom(node1FullyQualifiedPodName, constants.ROOT_CONTAINER, `${constants.HEDERA_HAPI_PATH}/data/upgrade/current/${signedKeyFile.name}`, `${config.keysDir}`)
+          }
+        }
+      },
+      {
+        title: 'Check network nodes are frozen',
+        task: (ctx, task) => {
+          const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
+          const subTasks = []
+          for (const nodeId of config.existingNodeIds) {
+            subTasks.push({
+              title: `Check node: ${chalk.yellow(nodeId)}`,
+              task: () => self.checkNetworkNodeState(nodeId, 100, 'FREEZE_COMPLETE')
+            })
+          }
+
+          // set up the sub-tasks
+          return task.newListr(subTasks, {
+            concurrent: false,
+            rendererOptions: {
+              collapseSubtasks: false
+            }
+          })
+        }
+      },
+      {
+        title: 'Get node logs and configs',
+        task: async (ctx, task) => {
+          const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
+          await helpers.getNodeLogs(self.k8, config.namespace)
+        }
+      },
+      {
+        title: 'Update chart to use new configMap due to account number change',
+        task: async (ctx, task) => {
+          const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
+          const index = config.existingNodeIds.length
+          const nodeId = Templates.nodeNumberFromNodeId(config.nodeId) - 1
+          let valuesArg = ''
+          for (let i = 0; i < index; i++) {
+            if (i !== nodeId) {
+              valuesArg += ` --set "hedera.nodes[${i}].accountId=${config.serviceMap.get(config.existingNodeIds[i]).accountId}" --set "hedera.nodes[${i}].name=${config.existingNodeIds[i]}"`
+            } else {
+              // use new account number for this node id
+              valuesArg += ` --set "hedera.nodes[${i}].accountId=${config.newAccountNumber}" --set "hedera.nodes[${i}].name=${config.existingNodeIds[i]}"`
+            }
+          }
+          this.profileValuesFile = await self.profileManager.prepareValuesForNodeAdd(
+            path.join(config.stagingDir, 'config.txt'),
+            path.join(config.stagingDir, 'templates', 'application.properties'))
+          if (this.profileValuesFile) {
+            valuesArg += this.prepareValuesFiles(this.profileValuesFile)
+          }
+
+          await self.chartManager.upgrade(
+            config.namespace,
+            constants.FULLSTACK_DEPLOYMENT_CHART,
+            config.chartPath,
+            valuesArg,
+            config.fstChartVersion
+          )
+        }
+      },
+      {
+        title: 'Kill nodes to pick up updated configMaps',
+        task: async (ctx, task) => {
+          const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
+          // the updated node will have a new pod ID if its account ID changed which is a label
+          config.serviceMap = await self.accountManager.getNodeServiceMap(
+            config.namespace)
+          for (const /** @type {NetworkNodeServices} **/ service of config.serviceMap.values()) {
+            await self.k8.kubeClient.deleteNamespacedPod(service.nodePodName, config.namespace, undefined, undefined, 1)
+          }
+          // again, the pod names will change after the pods are killed
+          config.serviceMap = await self.accountManager.getNodeServiceMap(
+            config.namespace)
+          config.podNames = {}
+          for (const service of config.serviceMap.values()) {
+            config.podNames[service.nodeName] = service.nodePodName
+          }
+        }
+      },
+      {
+        title: 'Check node pods are running',
+        task:
+          async (ctx, task) => {
+            const subTasks = []
+            const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
+            ctx.config.allNodeIds = ctx.config.existingNodeIds
+            // nodes
+            for (const nodeId of config.allNodeIds) {
+              subTasks.push({
+                title: `Check Node: ${chalk.yellow(nodeId)}`,
+                task: () =>
+                  self.k8.waitForPods([constants.POD_PHASE_RUNNING], [
+                    'fullstack.hedera.com/type=network-node',
+                    `fullstack.hedera.com/node-name=${nodeId}`
+                  ], 1, 60 * 15, 1000) // timeout 15 minutes
+              })
+            }
+
+            // set up the sub-tasks
+            return task.newListr(subTasks, {
+              concurrent: false, // no need to run concurrently since if one node is up, the rest should be up by then
+              rendererOptions: {
+                collapseSubtasks: false
+              }
+            })
+          }
+      },
+      {
+        title: 'Prepare staging directory',
+        task: async (ctx, parentTask) => {
+          const subTasks = [
+            {
+              title: 'Copy Gossip keys to staging',
+              task: async (ctx, _) => {
+                const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
+
+                await this.copyGossipKeysToStaging(config.keyFormat, config.keysDir, config.stagingKeysDir, config.allNodeIds)
+              }
+            },
+            {
+              title: 'Copy gRPC TLS keys to staging',
+              task: async (ctx, _) => {
+                const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
+                for (const nodeId of config.allNodeIds) {
+                  const tlsKeyFiles = self.keyManager.prepareTLSKeyFilePaths(nodeId, config.keysDir)
+                  await self._copyNodeKeys(tlsKeyFiles, config.stagingKeysDir)
+                }
+              }
+            }
+          ]
+
+          return parentTask.newListr(subTasks, {
+            concurrent: false,
+            rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
+          })
+        }
+      },
+      {
+        title: 'Fetch platform software into network nodes',
+        task:
+          async (ctx, task) => {
+            // without this sleep, copy software from local build to container sometimes fail
+            await sleep(15000)
+            ctx.config.allNodeIds = ctx.config.existingNodeIds
+            const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
+            return self.fetchLocalOrReleasedPlatformSoftware(config.allNodeIds, config.podNames, config.releaseTag, task, config.localBuildPath)
+          }
+      },
+      {
+        title: 'Setup new network node',
+        task: async (ctx, parentTask) => {
+          const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
+
+          const subTasks = []
+          for (const nodeId of config.allNodeIds) {
+            const podName = config.podNames[nodeId]
+            subTasks.push({
+              title: `Node: ${chalk.yellow(nodeId)}`,
+              task: () =>
+                self.platformInstaller.taskInstall(podName, config.stagingDir, config.allNodeIds, config.keyFormat, config.force)
+            })
+          }
+
+          // set up the sub-tasks
+          return parentTask.newListr(subTasks, {
+            concurrent: true,
+            rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
+          })
+        }
+      },
+      {
+        title: 'Start network nodes',
+        task: async (ctx, task) => {
+          const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
+          const subTasks = []
+          // ctx.config.allNodeIds = ctx.config.existingNodeIds
+          self.startNodes(config.podNames, config.allNodeIds, subTasks)
+
+          // set up the sub-tasks
+          return task.newListr(subTasks, {
+            concurrent: true,
+            rendererOptions: {
+              collapseSubtasks: false,
+              timer: constants.LISTR_DEFAULT_RENDERER_TIMER_OPTION
+            }
+          })
+        }
+      },
+      {
+        title: 'Check all nodes are ACTIVE',
+        task: async (ctx, task) => {
+          const subTasks = []
+          // sleep for 30 seconds to give time for the logs to roll over to prevent capturing an invalid "ACTIVE" string
+          await sleep(30000)
+          for (const nodeId of ctx.config.allNodeIds) {
+            subTasks.push({
+              title: `Check node: ${chalk.yellow(nodeId)}`,
+              task: () => self.checkNetworkNodeState(nodeId, 200)
+            })
+          }
+
+          // set up the sub-tasks
+          return task.newListr(subTasks, {
+            concurrent: false,
+            rendererOptions: {
+              collapseSubtasks: false
+            }
+          })
+        }
+      },
+      {
+        title: 'Check all node proxies are ACTIVE',
+        // this is more reliable than checking the nodes logs for ACTIVE, as the
+        // logs will have a lot of white noise from being behind
+        task: async (ctx, task) => {
+          const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
+          const subTasks = []
+          for (const nodeId of config.allNodeIds) {
+            subTasks.push({
+              title: `Check proxy for node: ${chalk.yellow(nodeId)}`,
+              task: async () => await self.k8.waitForPodReady(
+                [`app=haproxy-${nodeId}`, 'fullstack.hedera.com/type=haproxy'],
+                1, 300, 2000)
+            })
+          }
+
+          // set up the sub-tasks
+          return task.newListr(subTasks, {
+            concurrent: false,
+            rendererOptions: {
+              collapseSubtasks: false
+            }
+          })
+        }
+      },
+      {
+        title: 'Trigger stake weight calculate',
+        task: async (ctx, task) => {
+          const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
+          self.logger.info('sleep 60 seconds for the handler to be able to trigger the network node stake weight recalculate')
+          await sleep(60000)
+          const accountMap = getNodeAccountMap(config.allNodeIds)
+          // update map with current account ids
+          accountMap.set(config.nodeId, config.newAccountNumber)
+
+          // update _nodeClient with the new service map since one of the account number has changed
+          await this.accountManager.refreshNodeClient(config.namespace)
+
+          // send some write transactions to invoke the handler that will trigger the stake weight recalculate
+          for (const nodeId of config.allNodeIds) {
+            const accountId = accountMap.get(nodeId)
+            config.nodeClient.setOperator(TREASURY_ACCOUNT_ID, config.treasuryKey)
+            self.logger.info(`Sending 1 tinybar to account: ${accountId}`)
+            await this.accountManager.transferAmount(constants.TREASURY_ACCOUNT_ID, accountId, 1)
+          }
+        }
+      },
+      {
+        title: 'Finalize',
+        task: (ctx, _) => {
+          // reset flags so that keys are not regenerated later
+          self.configManager.setFlag(flags.generateGossipKeys, false)
+          self.configManager.setFlag(flags.generateTlsKeys, false)
+          self.configManager.persist()
+        }
+      }
+    ], {
+      concurrent: false,
+      rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
+    })
+
+    try {
+      await tasks.run()
+    } catch (e) {
+      self.logger.error(`Error in updating nodes: ${e.message}`, e)
+      this.logger.error(e.stack)
+      throw new FullstackTestingError(`Error in updating nodes: ${e.message}`, e)
+    } finally {
+      await self.close()
+    }
+
+    return true
+  }
+
+  async delete (argv) {
+    const self = this
+
+    const tasks = new Listr([
+      {
+        title: 'Initialize',
+        task: async (ctx, task) => {
+          self.configManager.update(argv)
+
+          // disable the prompts that we don't want to prompt the user for
+          prompts.disablePrompts([
+            flags.app,
+            flags.chainId,
+            flags.chartDirectory,
+            flags.devMode,
+            flags.endpointType,
+            flags.force,
+            flags.fstChartVersion,
+            flags.localBuildPath
+          ])
+
+          await prompts.execute(task, self.configManager, NodeCommand.DELETE_FLAGS_LIST)
+
+          /**
+           * @typedef {Object} NodeDeleteConfigClass
+           * -- flags --
+           * @property {string} app
+           * @property {string} cacheDir
+           * @property {string} charDirectory
+           * @property {boolean} devMode
+           * @property {string} endpointType
+           * @property {string} fstChartVersion
+           * @property {string} keyFormat
+           * @property {string} localBuildPath
+           * @property {string} namespace
+           * @property {string} nodeId
+           * @property {string} releaseTag
+           * -- extra args --
+           * @property {PrivateKey} adminKey
+           * @property {string[]} allNodeIds
+           * @property {string} chartPath
+           * @property {string[]} existingNodeIds
+           * @property {string} freezeAdminPrivateKey
+           * @property {string} keysDir
+           * @property {Object} nodeClient
+           * @property {Object} podNames
+           * @property {Map<String, NetworkNodeServices>} serviceMap
+           * @property {string} stagingDir
+           * @property {string} stagingKeysDir
+           * @property {PrivateKey} treasuryKey
+           * -- methods --
+           * @property {getUnusedConfigs} getUnusedConfigs
+           */
+          /**
+           * @callback getUnusedConfigs
+           * @returns {string[]}
+           */
+
+          // create a config object for subsequent steps
+          const config = /** @type {NodeDeleteConfigClass} **/ this.getConfig(NodeCommand.DELETE_CONFIGS_NAME, NodeCommand.DELETE_FLAGS_LIST,
+            [
+              'adminKey',
+              'allNodeIds',
+              'existingNodeIds',
+              'freezeAdminPrivateKey',
+              'keysDir',
+              'nodeClient',
+              'podNames',
+              'serviceMap',
+              'stagingDir',
+              'stagingKeysDir',
+              'treasuryKey'
+            ])
+
+          config.curDate = new Date()
+          config.existingNodeIds = []
+
+          await self.initializeSetup(config, self.k8)
+
+          // set config in the context for later tasks to use
+          ctx.config = config
+
+          ctx.config.chartPath = await self.prepareChartPath(ctx.config.chartDirectory,
+            constants.FULLSTACK_TESTING_CHART, constants.FULLSTACK_DEPLOYMENT_CHART)
+
+          // initialize Node Client with existing network nodes prior to adding the new node which isn't functioning, yet
+          ctx.config.nodeClient = await this.accountManager.loadNodeClient(ctx.config.namespace)
+
+          const accountKeys = await this.accountManager.getAccountKeysFromSecret(FREEZE_ADMIN_ACCOUNT, config.namespace)
+          config.freezeAdminPrivateKey = accountKeys.privateKey
+
+          const treasuryAccount = await this.accountManager.getTreasuryAccountKeys(config.namespace)
+          const treasuryAccountPrivateKey = treasuryAccount.privateKey
+          config.treasuryKey = PrivateKey.fromStringED25519(treasuryAccountPrivateKey)
+
+          self.logger.debug('Initialized config', { config })
+        }
+      },
+      {
+        title: 'Identify existing network nodes',
+        task: async (ctx, task) => {
+          const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
+          config.serviceMap = await self.accountManager.getNodeServiceMap(
+            config.namespace)
+          for (/** @type {NetworkNodeServices} **/ const networkNodeServices of config.serviceMap.values()) {
+            config.existingNodeIds.push(networkNodeServices.nodeName)
+          }
+
+          return self.taskCheckNetworkNodePods(ctx, task, config.existingNodeIds)
+        }
+      },
+      {
+        title: 'Load node admin key',
+        task: async (ctx, task) => {
+          const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
+          config.adminKey = PrivateKey.fromStringED25519(constants.GENESIS_KEY)
+        }
+      },
+      {
+        title: 'Prepare upgrade zip file for node upgrade process',
+        task: async (ctx, task) => {
+          const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
+          ctx.upgradeZipFile = await this.prepareUpgradeZip(config.stagingDir)
+          ctx.upgradeZipHash = await this.uploadUpgradeZip(ctx.upgradeZipFile, config.nodeClient)
+        }
+      },
+      {
+        title: 'Check existing nodes staked amount',
+        task: async (ctx, task) => {
+          const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
+          const accountMap = getNodeAccountMap(config.existingNodeIds)
+          for (const nodeId of config.existingNodeIds) {
+            const accountId = accountMap.get(nodeId)
+            await this.accountManager.transferAmount(constants.TREASURY_ACCOUNT_ID, accountId, 1)
+          }
+        }
+      },
+      {
+        title: 'Send node delete transaction',
+        task: async (ctx, task) => {
+          const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
+
+          try {
+            const accountMap = getNodeAccountMap(config.existingNodeIds)
+            const deleteAccountId = accountMap.get(ctx.config.nodeId)
+            this.logger.debug(`Deleting node: ${ctx.config.nodeId} with account: ${deleteAccountId}`)
+            const nodeId = Templates.nodeNumberFromNodeId(ctx.config.nodeId) - 1
+            const nodeDeleteTx = await new NodeDeleteTransaction()
+              .setNodeId(nodeId)
+              .freezeWith(config.nodeClient)
+
+            const signedTx = await nodeDeleteTx.sign(config.adminKey)
+            const txResp = await signedTx.execute(config.nodeClient)
+            const nodeUpdateReceipt = await txResp.getReceipt(config.nodeClient)
+            this.logger.debug(`NodeUpdateReceipt: ${nodeUpdateReceipt.toString()}`)
+          } catch (e) {
+            this.logger.error(`Error deleting node from network: ${e.message}`, e)
+            throw new FullstackTestingError(`Error deleting node from network: ${e.message}`, e)
+          }
+        }
+      },
+      {
+        title: 'Send prepare upgrade transaction',
+        task: async (ctx, task) => {
+          const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
+          await this.prepareUpgradeNetworkNodes(config.freezeAdminPrivateKey, ctx.upgradeZipHash, config.nodeClient)
+        }
+      },
+      {
+        title: 'Send freeze upgrade transaction',
+        task: async (ctx, task) => {
+          const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
+          await this.freezeUpgradeNetworkNodes(config.freezeAdminPrivateKey, ctx.upgradeZipHash, config.nodeClient)
+        }
+      },
+      {
+        title: 'Check network nodes are frozen',
+        task: (ctx, task) => {
+          const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
+          const subTasks = []
+          for (const nodeId of config.existingNodeIds) {
+            subTasks.push({
+              title: `Check node: ${chalk.yellow(nodeId)}`,
+              task: () => self.checkNetworkNodeState(nodeId, 100, 'FREEZE_COMPLETE')
+            })
+          }
+
+          // set up the sub-tasks
+          return task.newListr(subTasks, {
+            concurrent: false,
+            rendererOptions: {
+              collapseSubtasks: false
+            }
+          })
+        }
+      },
+      {
+        title: 'Download new config.txt',
+        task: async (ctx, task) => {
+          const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
+          const node1FullyQualifiedPodName = Templates.renderNetworkPodName(config.existingNodeIds[0])
+
+          // copy the config.txt file from the node1 upgrade directory
+          await self.k8.copyFrom(node1FullyQualifiedPodName, constants.ROOT_CONTAINER, `${constants.HEDERA_HAPI_PATH}/data/upgrade/current/config.txt`, config.stagingDir)
+        }
+      },
+      {
+        title: 'Get node logs and configs',
+        task: async (ctx, task) => {
+          const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
+          await helpers.getNodeLogs(self.k8, config.namespace)
+        }
+      },
+      {
+        title: 'Update chart to use new configMap',
+        task: async (ctx, task) => {
+          const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
+          const index = config.existingNodeIds.length
+          let valuesArg = ''
+          for (let i = 0; i < index; i++) {
+            valuesArg += ` --set "hedera.nodes[${i}].accountId=${config.serviceMap.get(config.existingNodeIds[i]).accountId}" --set "hedera.nodes[${i}].name=${config.existingNodeIds[i]}"`
+          }
+
+          this.profileValuesFile = await self.profileManager.prepareValuesForNodeAdd(
+            path.join(config.stagingDir, 'config.txt'),
+            path.join(config.stagingDir, 'templates', 'application.properties'))
+          if (this.profileValuesFile) {
+            valuesArg += this.prepareValuesFiles(this.profileValuesFile)
+          }
+
+          await self.chartManager.upgrade(
+            config.namespace,
+            constants.FULLSTACK_DEPLOYMENT_CHART,
+            config.chartPath,
+            valuesArg,
+            config.fstChartVersion
+          )
+        }
+      },
+      {
+        title: 'Kill nodes to pick up updated configMaps',
+        task: async (ctx, task) => {
+          const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
+          for (const /** @type {NetworkNodeServices} **/ service of config.serviceMap.values()) {
+            await self.k8.kubeClient.deleteNamespacedPod(service.nodePodName, config.namespace, undefined, undefined, 1)
+          }
+        }
+      },
+      {
+        title: 'Check node pods are running',
+        task:
+          async (ctx, task) => {
+            await sleep(20000)
+            const subTasks = []
+            const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
+
+            // remove nodeId from existingNodeIds
+            ctx.config.allNodeIds = ctx.config.existingNodeIds.filter(nodeId => nodeId !== ctx.config.nodeId)
+
+            // nodes
+            for (const nodeId of config.allNodeIds) {
+              subTasks.push({
+                title: `Check Node: ${chalk.yellow(nodeId)}`,
+                task: () =>
+                  self.k8.waitForPods([constants.POD_PHASE_RUNNING], [
+                    'fullstack.hedera.com/type=network-node',
+                    `fullstack.hedera.com/node-name=${nodeId}`
+                  ], 1, 60 * 15, 1000) // timeout 15 minutes
+              })
+            }
+
+            // set up the sub-tasks
+            return task.newListr(subTasks, {
+              concurrent: false, // no need to run concurrently since if one node is up, the rest should be up by then
+              rendererOptions: {
+                collapseSubtasks: false
+              }
+            })
+          }
+      },
+      {
+        title: 'Prepare staging directory',
+        task: async (ctx, parentTask) => {
+          const subTasks = [
+            {
+              title: 'Copy Gossip keys to staging',
+              task: async (ctx, _) => {
+                const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
+
+                await this.copyGossipKeysToStaging(config.keyFormat, config.keysDir, config.stagingKeysDir, config.allNodeIds)
+              }
+            },
+            {
+              title: 'Copy gRPC TLS keys to staging',
+              task: async (ctx, _) => {
+                const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
+                for (const nodeId of config.allNodeIds) {
+                  const tlsKeyFiles = self.keyManager.prepareTLSKeyFilePaths(nodeId, config.keysDir)
+                  await self._copyNodeKeys(tlsKeyFiles, config.stagingKeysDir)
+                }
+              }
+            }
+          ]
+
+          return parentTask.newListr(subTasks, {
+            concurrent: false,
+            rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
+          })
+        }
+      },
+      {
+        title: 'Fetch platform software into all network nodes',
+        task:
+          async (ctx, task) => {
+            const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
+            config.serviceMap = await self.accountManager.getNodeServiceMap(
+              config.namespace)
+            config.podNames[config.nodeId] = config.serviceMap.get(
+              config.nodeId).nodePodName
+            return self.fetchLocalOrReleasedPlatformSoftware(config.allNodeIds, config.podNames, config.releaseTag, task, config.localBuildPath)
+          }
+      },
+      {
+        title: 'Setup new network node',
+        task: async (ctx, parentTask) => {
+          const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
+
+          // remove nodeId from existingNodeIds
+          ctx.config.allNodeIds = ctx.config.existingNodeIds.filter(nodeId => nodeId !== ctx.config.nodeId)
+
+          const subTasks = []
+          for (const nodeId of config.allNodeIds) {
+            const podName = config.podNames[nodeId]
+            subTasks.push({
+              title: `Node: ${chalk.yellow(nodeId)}`,
+              task: () =>
+                self.platformInstaller.taskInstall(podName, config.stagingDir, config.allNodeIds, config.keyFormat, config.force)
+            })
+          }
+
+          // set up the sub-tasks
+          return parentTask.newListr(subTasks, {
+            concurrent: true,
+            rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
+          })
+        }
+      },
+      {
+        title: 'Start network nodes',
+        task: async (ctx, task) => {
+          const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
+          const subTasks = []
+
+          self.startNodes(config.podNames, config.allNodeIds, subTasks)
+
+          // set up the sub-tasks
+          return task.newListr(subTasks, {
+            concurrent: true,
+            rendererOptions: {
+              collapseSubtasks: false,
+              timer: constants.LISTR_DEFAULT_RENDERER_TIMER_OPTION
+            }
+          })
+        }
+      },
+      {
+        title: 'Check all nodes are ACTIVE',
+        task: async (ctx, task) => {
+          const subTasks = []
+          // sleep for 30 seconds to give time for the logs to roll over to prevent capturing an invalid "ACTIVE" string
+          await sleep(30000)
+          for (const nodeId of ctx.config.allNodeIds) {
+            subTasks.push({
+              title: `Check node: ${chalk.yellow(nodeId)}`,
+              task: () => self.checkNetworkNodeState(nodeId, 200)
+            })
+          }
+
+          // set up the sub-tasks
+          return task.newListr(subTasks, {
+            concurrent: false,
+            rendererOptions: {
+              collapseSubtasks: false
+            }
+          })
+        }
+      },
+      {
+        title: 'Check all node proxies are ACTIVE',
+        // this is more reliable than checking the nodes logs for ACTIVE, as the
+        // logs will have a lot of white noise from being behind
+        task: async (ctx, task) => {
+          const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
+          const subTasks = []
+          for (const nodeId of config.allNodeIds) {
+            subTasks.push({
+              title: `Check proxy for node: ${chalk.yellow(nodeId)}`,
+              task: async () => await self.k8.waitForPodReady(
+                [`app=haproxy-${nodeId}`, 'fullstack.hedera.com/type=haproxy'],
+                1, 300, 2000)
+            })
+          }
+
+          // set up the sub-tasks
+          return task.newListr(subTasks, {
+            concurrent: false,
+            rendererOptions: {
+              collapseSubtasks: false
+            }
+          })
+        }
+      },
+      {
+        title: 'Trigger stake weight calculate',
+        task: async (ctx, task) => {
+          const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
+          // sleep 60 seconds for the handler to be able to trigger the network node stake weight recalculate
+          await sleep(60000)
+          const accountMap = getNodeAccountMap(config.allNodeIds)
+          // send some write transactions to invoke the handler that will trigger the stake weight recalculate
+          for (const nodeId of config.allNodeIds) {
+            const accountId = accountMap.get(nodeId)
+            config.nodeClient.setOperator(TREASURY_ACCOUNT_ID, config.treasuryKey)
+            await this.accountManager.transferAmount(constants.TREASURY_ACCOUNT_ID, accountId, 1)
+          }
+        }
+      },
+      {
+        title: 'Finalize',
+        task: (ctx, _) => {
+          // reset flags so that keys are not regenerated later
+          self.configManager.setFlag(flags.generateGossipKeys, false)
+          self.configManager.setFlag(flags.generateTlsKeys, false)
+          self.configManager.persist()
+        }
+      }
+    ], {
+      concurrent: false,
+      rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
+    })
+
+    try {
+      await tasks.run()
+    } catch (e) {
+      self.logger.error(`Error in deleting nodes: ${e.message}`, e)
+      throw new FullstackTestingError(`Error in deleting nodes: ${e.message}`, e)
+    } finally {
+      await self.close()
+    }
+
+    return true
   }
 }

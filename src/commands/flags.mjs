@@ -539,6 +539,72 @@ export const localBuildPath = {
 }
 
 /** @type {CommandFlag} **/
+export const newAccountNumber = {
+  constName: 'newAccountNumber',
+  name: 'new-account-number',
+  definition: {
+    describe: 'new account number for node update transaction',
+    defaultValue: '',
+    type: 'string'
+  }
+}
+
+/** @type {CommandFlag} **/
+export const newAdminKey = {
+  constName: 'newAdminKey',
+  name: 'new-admin-key',
+  definition: {
+    describe: 'new admin key for the Hedera account',
+    defaultValue: '',
+    type: 'string'
+  }
+}
+
+/** @type {CommandFlag} **/
+export const gossipPublicKey = {
+  constName: 'gossipPublicKey',
+  name: 'gossip-public-key',
+  definition: {
+    describe: 'path and file name of the public key for signing gossip in PEM key format to be used',
+    defaultValue: '',
+    type: 'string'
+  }
+}
+
+/** @type {CommandFlag} **/
+export const gossipPrivateKey = {
+  constName: 'gossipPrivateKey',
+  name: 'gossip-private-key',
+  definition: {
+    describe: 'path and file name of the private key for signing gossip in PEM key format to be used',
+    defaultValue: '',
+    type: 'string'
+  }
+}
+
+/** @type {CommandFlag} **/
+export const tlsPublicKey = {
+  constName: 'tlsPublicKey',
+  name: 'tls-public-key',
+  definition: {
+    describe: 'path and file name of the public TLS key to be used',
+    defaultValue: '',
+    type: 'string'
+  }
+}
+
+/** @type {CommandFlag} **/
+export const tlsPrivateKey = {
+  constName: 'tlsPrivateKey',
+  name: 'tls-private-key',
+  definition: {
+    describe: 'path and file name of the private TLS key to be used',
+    defaultValue: '',
+    type: 'string'
+  }
+}
+
+/** @type {CommandFlag} **/
 export const log4j2Xml = {
   constName: 'log4j2Xml',
   name: 'log4j2-xml',
@@ -700,6 +766,8 @@ export const allFlags = [
   generateGossipKeys,
   generateTlsKeys,
   gossipEndpoints,
+  gossipPrivateKey,
+  gossipPublicKey,
   grpcEndpoints,
   hederaExplorerTlsHostName,
   hederaExplorerTlsLoadBalancerIp,
@@ -707,6 +775,8 @@ export const allFlags = [
   localBuildPath,
   log4j2Xml,
   namespace,
+  newAccountNumber,
+  newAdminKey,
   nodeID,
   nodeIDs,
   operatorId,
@@ -721,6 +791,8 @@ export const allFlags = [
   setAlias,
   settingTxt,
   tlsClusterIssuerType,
+  tlsPrivateKey,
+  tlsPublicKey,
   updateAccountKeys,
   valuesFile
 ]
