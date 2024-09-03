@@ -24,7 +24,7 @@ import * as helpers from '../core/helpers.mjs'
 import {
   getNodeAccountMap,
   getNodeLogs,
-  getTmpDir, renameAndCopyFile,
+  renameAndCopyFile,
   sleep,
   validatePath
 } from '../core/helpers.mjs'
