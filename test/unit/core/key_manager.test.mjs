@@ -28,7 +28,7 @@ describe('KeyManager', () => {
 
   it('should generate signing key', async () => {
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'keys-'))
-    const nodeId = 'node0'
+    const nodeId = 'node1'
     const keyPrefix = constants.SIGNING_KEY_PREFIX
 
     const signingKey = await keyManager.generateSigningKey(nodeId)
@@ -55,7 +55,7 @@ describe('KeyManager', () => {
 
   it('should generate agreement key', async () => {
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'keys-'))
-    const nodeId = 'node0'
+    const nodeId = 'node1'
 
     const signingKeyFiles = keyManager.prepareNodeKeyFilePaths(nodeId, 'test/data', constants.SIGNING_KEY_PREFIX)
     const signignKey = await keyManager.loadNodeKey(nodeId, 'test/data', KeyManager.SigningKeyAlgo, signingKeyFiles)
@@ -80,7 +80,7 @@ describe('KeyManager', () => {
 
   it('should generate TLS key', async () => {
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'keys-'))
-    const nodeId = 'node0'
+    const nodeId = 'node1'
     const keyName = 'TLS'
 
     const tlsKey = await keyManager.generateGrpcTLSKey(nodeId)
@@ -111,7 +111,7 @@ describe('KeyManager', () => {
   it('should generate pfx keys', async () => {
     const keysDir = getTmpDir()
     const tmpDir = getTmpDir()
-    const nodeIds = ['node0', 'node1', 'node2']
+    const nodeIds = ['node1', 'node2', 'node3']
     const downloader = new PackageDownloader(testLogger)
     const zippy = new Zippy(testLogger)
     const keytoolDepManager = new KeytoolDependencyManager(downloader, zippy, testLogger)

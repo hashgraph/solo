@@ -47,12 +47,12 @@ export class Templates {
   }
 
   static renderGossipPemPrivateKeyFile (prefix, nodeId) {
-    // s-node0-key.pem
+    // s-node1-key.pem
     return `${prefix}-private-${nodeId}.pem`
   }
 
   static renderGossipPemPublicKeyFile (prefix, nodeId) {
-    // s-node0-cert.pem
+    // s-node1-cert.pem
     return `${prefix}-public-${nodeId}.pem`
   }
 
@@ -61,7 +61,7 @@ export class Templates {
   }
 
   static renderTLSPemPublicKeyFile (nodeId) {
-    // s-node0-cert.pem
+    // s-node1-cert.pem
     return `hedera-${nodeId}.crt`
   }
 

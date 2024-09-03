@@ -39,7 +39,7 @@ describe('PackageInstallerE2E', () => {
   const testCacheDir = getTestCacheDir()
   argv[flags.cacheDir.name] = testCacheDir
   argv[flags.namespace.name] = namespace
-  argv[flags.nodeIDs.name] = 'node0'
+  argv[flags.nodeIDs.name] = 'node1'
   argv[flags.clusterName.name] = TEST_CLUSTER
   argv[flags.fstChartVersion.name] = version.FST_CHART_VERSION
   // set the env variable SOLO_FST_CHARTS_DIR if developer wants to use local FST charts
@@ -49,7 +49,7 @@ describe('PackageInstallerE2E', () => {
   const accountManager = bootstrapResp.opts.accountManager
   const configManager = bootstrapResp.opts.configManager
   const installer = bootstrapResp.opts.platformInstaller
-  const podName = 'network-node0-0'
+  const podName = 'network-node1-0'
   const packageVersion = 'v0.42.5'
 
   afterAll(async () => {
@@ -100,14 +100,14 @@ describe('PackageInstallerE2E', () => {
   })
 
   describe('copyGossipKeys', () => {
-    it('should succeed to copy legacy pfx gossip keys for node0', async () => {
-      const podName = 'network-node0-0'
-      const nodeId = 'node0'
+    it('should succeed to copy legacy pfx gossip keys for node1', async () => {
+      const podName = 'network-node1-0'
+      const nodeId = 'node1'
 
       // generate pfx keys
       const pfxDir = 'test/data/pfx'
       await k8.execContainer(podName, constants.ROOT_CONTAINER, ['bash', '-c', `rm -f ${constants.HEDERA_HAPI_PATH}/data/keys/*`])
-      const fileList = await installer.copyGossipKeys(podName, pfxDir, ['node0'], constants.KEY_FORMAT_PFX)
+      const fileList = await installer.copyGossipKeys(podName, pfxDir, ['node1'], constants.KEY_FORMAT_PFX)
 
       const destDir = `${constants.HEDERA_HAPI_PATH}/data/keys`
       expect(fileList.length).toBe(2)
@@ -115,27 +115,27 @@ describe('PackageInstallerE2E', () => {
       expect(fileList).toContain(`${destDir}/public.pfx`)
     }, 60000)
 
-    it('should succeed to copy pem gossip keys for node0', async () => {
-      const podName = 'network-node0-0'
+    it('should succeed to copy pem gossip keys for node1', async () => {
+      const podName = 'network-node1-0'
 
       const pemDir = 'test/data/pem'
       await k8.execContainer(podName, constants.ROOT_CONTAINER, ['bash', '-c', `rm -f ${constants.HEDERA_HAPI_PATH}/data/keys/*`])
-      const fileList = await installer.copyGossipKeys(podName, pemDir, ['node0'], constants.KEY_FORMAT_PEM)
+      const fileList = await installer.copyGossipKeys(podName, pemDir, ['node1'], constants.KEY_FORMAT_PEM)
 
       const destDir = `${constants.HEDERA_HAPI_PATH}/data/keys`
       expect(fileList.length).toBe(4)
-      expect(fileList).toContain(`${destDir}/${Templates.renderGossipPemPrivateKeyFile(constants.SIGNING_KEY_PREFIX, 'node0')}`)
-      expect(fileList).toContain(`${destDir}/${Templates.renderGossipPemPrivateKeyFile(constants.AGREEMENT_KEY_PREFIX, 'node0')}`)
+      expect(fileList).toContain(`${destDir}/${Templates.renderGossipPemPrivateKeyFile(constants.SIGNING_KEY_PREFIX, 'node1')}`)
+      expect(fileList).toContain(`${destDir}/${Templates.renderGossipPemPrivateKeyFile(constants.AGREEMENT_KEY_PREFIX, 'node1')}`)
 
       // public keys
-      expect(fileList).toContain(`${destDir}/${Templates.renderGossipPemPublicKeyFile(constants.SIGNING_KEY_PREFIX, 'node0')}`)
-      expect(fileList).toContain(`${destDir}/${Templates.renderGossipPemPublicKeyFile(constants.AGREEMENT_KEY_PREFIX, 'node0')}`)
+      expect(fileList).toContain(`${destDir}/${Templates.renderGossipPemPublicKeyFile(constants.SIGNING_KEY_PREFIX, 'node1')}`)
+      expect(fileList).toContain(`${destDir}/${Templates.renderGossipPemPublicKeyFile(constants.AGREEMENT_KEY_PREFIX, 'node1')}`)
     }, 60000)
   })
 
   describe('copyTLSKeys', () => {
-    it('should succeed to copy TLS keys for node0', async () => {
-      const nodeId = 'node0'
+    it('should succeed to copy TLS keys for node1', async () => {
+      const nodeId = 'node1'
       const podName = Templates.renderNetworkPodName(nodeId)
       const tmpDir = getTmpDir()
 

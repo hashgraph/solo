@@ -71,7 +71,7 @@ export async function promptClusterSetupNamespace (task, input) {
 
 export async function promptNodeIds (task, input) {
   return await prompt('input', task, input,
-    'node0,node1,node2',
+    'node1,node2,node3',
     'Enter list of node IDs (comma separated list): ',
     null,
     flags.nodeIDs.name)

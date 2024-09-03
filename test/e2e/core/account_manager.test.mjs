@@ -26,7 +26,7 @@ describe('AccountManager', () => {
   const namespace = 'account-mngr-e2e'
   const argv = getDefaultArgv()
   argv[flags.namespace.name] = namespace
-  argv[flags.nodeIDs.name] = 'node0'
+  argv[flags.nodeIDs.name] = 'node1'
   argv[flags.clusterName.name] = TEST_CLUSTER
   argv[flags.fstChartVersion.name] = version.FST_CHART_VERSION
   // set the env variable SOLO_FST_CHARTS_DIR if developer wants to use local FST charts

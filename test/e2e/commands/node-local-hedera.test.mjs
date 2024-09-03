@@ -33,7 +33,7 @@ describe('Node local build', () => {
   const LOCAL_HEDERA = 'local-hedera-app'
   const argv = getDefaultArgv()
   argv[flags.keyFormat.name] = constants.KEY_FORMAT_PFX
-  argv[flags.nodeIDs.name] = 'node0,node1,node2'
+  argv[flags.nodeIDs.name] = 'node1,node2,node3'
   argv[flags.generateGossipKeys.name] = true
   argv[flags.generateTlsKeys.name] = true
   argv[flags.clusterName.name] = TEST_CLUSTER
@@ -48,7 +48,7 @@ describe('Node local build', () => {
 
   describe('Node for hedera app should start successfully', () => {
     console.log('Starting local build for Hedera app')
-    argv[flags.localBuildPath.name] = 'node0=../hedera-services/hedera-node/data/,../hedera-services/hedera-node/data,node2=../hedera-services/hedera-node/data'
+    argv[flags.localBuildPath.name] = 'node1=../hedera-services/hedera-node/data/,../hedera-services/hedera-node/data,node3=../hedera-services/hedera-node/data'
     argv[flags.namespace.name] = LOCAL_HEDERA
     const bootstrapResp = bootstrapNetwork(LOCAL_HEDERA, argv)
     hederaK8 = bootstrapResp.opts.k8

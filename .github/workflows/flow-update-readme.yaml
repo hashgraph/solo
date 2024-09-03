@@ -96,7 +96,7 @@ jobs:
           
           export KIND_CREATE_CLUSTER_OUTPUT=$( kind create cluster -n "${SOLO_CLUSTER_NAME}" 2>&1 | tee test.log )
           
-          export SOLO_INIT_OUTPUT=$( solo init -t v0.42.5 -i node0,node1,node2 -n "${SOLO_NAMESPACE}" -s \
+          export SOLO_INIT_OUTPUT=$( solo init -t v0.42.5 -i node1,node2,node3 -n "${SOLO_NAMESPACE}" -s \
           "${SOLO_CLUSTER_SETUP_NAMESPACE}" --key-format pfx | tee test.log )
           
           export SOLO_NODE_KEYS_OUTPUT=$( solo node keys --gossip-keys --tls-keys --key-format pfx | tee test.log )
@@ -111,9 +111,9 @@ jobs:
           
           export SOLO_MIRROR_NODE_DEPLOY_OUTPUT=$( solo mirror-node deploy | tee test.log )
           
-          export SOLO_RELAY_DEPLAY_OUTPUT=$( solo relay deploy -i node0,node1 | tee test.log )
+          export SOLO_RELAY_DEPLAY_OUTPUT=$( solo relay deploy -i node1,node2 | tee test.log )
           
-          export SOLO_INIT_047_OUTPUT=$( solo init -t v0.48.0-alpha.0 -i node0,node1,node2 -n "${SOLO_NAMESPACE}" \
+          export SOLO_INIT_047_OUTPUT=$( solo init -t v0.48.0-alpha.0 -i node1,node2,node3 -n "${SOLO_NAMESPACE}" \
           -s "${SOLO_CLUSTER_SETUP_NAMESPACE}" --key-format pem  | tee test.log )
           
           export SOLO_NODE_KEY_PEM_OUTPUT=$( solo node keys --gossip-keys --tls-keys --key-format pem | tee test.log )
