@@ -2243,6 +2243,8 @@ export class NodeCommand extends BaseCommand {
             config.existingNodeIds.push(networkNodeServices.nodeName)
           }
 
+          config.allNodeIds = [...config.existingNodeIds]
+
           return self.taskCheckNetworkNodePods(ctx, task, config.existingNodeIds)
         }
       },
@@ -2384,13 +2386,6 @@ export class NodeCommand extends BaseCommand {
         }
       },
       {
-        title: 'Send freeze upgrade transaction',
-        task: async (ctx, task) => {
-          const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
-          await this.freezeUpgradeNetworkNodes(config.freezeAdminPrivateKey, ctx.upgradeZipHash, config.nodeClient)
-        }
-      },
-      {
         title: 'Download generated files from an existing node',
         task: async (ctx, task) => {
           const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
@@ -2400,10 +2395,61 @@ export class NodeCommand extends BaseCommand {
           await self.k8.copyFrom(node1FullyQualifiedPodName, constants.ROOT_CONTAINER, `${constants.HEDERA_HAPI_PATH}/data/upgrade/current/config.txt`, config.stagingDir)
 
           const signedKeyFiles = (await self.k8.listDir(node1FullyQualifiedPodName, constants.ROOT_CONTAINER, `${constants.HEDERA_HAPI_PATH}/data/upgrade/current`)).filter(file => file.name.startsWith(constants.SIGNING_KEY_PREFIX))
+          await self.k8.execContainer(node1FullyQualifiedPodName, constants.ROOT_CONTAINER, ['bash', '-c', `mkdir -p ${constants.HEDERA_HAPI_PATH}/data/keys_backup && cp ${constants.HEDERA_HAPI_PATH}/data/keys/..data/* ${constants.HEDERA_HAPI_PATH}/data/keys_backup/`])
           for (const signedKeyFile of signedKeyFiles) {
-            await self.k8.execContainer(node1FullyQualifiedPodName, constants.ROOT_CONTAINER, ['bash', '-c', `[[ ! -f "${constants.HEDERA_HAPI_PATH}/data/keys/${signedKeyFile.name}" ]] || cp ${constants.HEDERA_HAPI_PATH}/data/keys/${signedKeyFile.name} ${constants.HEDERA_HAPI_PATH}/data/keys/${signedKeyFile.name}.old`])
             await self.k8.copyFrom(node1FullyQualifiedPodName, constants.ROOT_CONTAINER, `${constants.HEDERA_HAPI_PATH}/data/upgrade/current/${signedKeyFile.name}`, `${config.keysDir}`)
           }
+        }
+      },
+      {
+        title: 'Send freeze upgrade transaction',
+        task: async (ctx, task) => {
+          const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
+          await this.freezeUpgradeNetworkNodes(config.freezeAdminPrivateKey, ctx.upgradeZipHash, config.nodeClient)
+        }
+      },
+      {
+        title: 'Prepare staging directory',
+        task: async (ctx, parentTask) => {
+          const subTasks = [
+            {
+              title: 'Copy Gossip keys to staging',
+              task: async (ctx, _) => {
+                const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
+
+                await this.keyManager.copyGossipKeysToStaging(config.keyFormat, config.keysDir, config.stagingKeysDir, config.allNodeIds)
+              }
+            },
+            {
+              title: 'Copy gRPC TLS keys to staging',
+              task: async (ctx, _) => {
+                const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
+                for (const nodeId of config.allNodeIds) {
+                  const tlsKeyFiles = self.keyManager.prepareTLSKeyFilePaths(nodeId, config.keysDir)
+                  await self.keyManager.copyNodeKeysToStaging(tlsKeyFiles, config.stagingKeysDir)
+                }
+              }
+            }
+          ]
+
+          return parentTask.newListr(subTasks, {
+            concurrent: false,
+            rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
+          })
+        }
+      },
+      {
+        title: 'Copy node keys to secrets',
+        task: async (ctx, parentTask) => {
+          const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
+
+          const subTasks = self.platformInstaller.copyNodeKeys(config.stagingDir, config.allNodeIds, config.keyFormat)
+
+          // set up the sub-tasks
+          return parentTask.newListr(subTasks, {
+            concurrent: true,
+            rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
+          })
         }
       },
       {
@@ -2490,7 +2536,7 @@ export class NodeCommand extends BaseCommand {
           async (ctx, task) => {
             const subTasks = []
             const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
-            ctx.config.allNodeIds = ctx.config.existingNodeIds
+
             // nodes
             for (const nodeId of config.allNodeIds) {
               subTasks.push({
@@ -2513,48 +2559,18 @@ export class NodeCommand extends BaseCommand {
           }
       },
       {
-        title: 'Prepare staging directory',
-        task: async (ctx, parentTask) => {
-          const subTasks = [
-            {
-              title: 'Copy Gossip keys to staging',
-              task: async (ctx, _) => {
-                const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
-
-                await this.copyGossipKeysToStaging(config.keyFormat, config.keysDir, config.stagingKeysDir, config.allNodeIds)
-              }
-            },
-            {
-              title: 'Copy gRPC TLS keys to staging',
-              task: async (ctx, _) => {
-                const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
-                for (const nodeId of config.allNodeIds) {
-                  const tlsKeyFiles = self.keyManager.prepareTLSKeyFilePaths(nodeId, config.keysDir)
-                  await self._copyNodeKeys(tlsKeyFiles, config.stagingKeysDir)
-                }
-              }
-            }
-          ]
-
-          return parentTask.newListr(subTasks, {
-            concurrent: false,
-            rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
-          })
-        }
-      },
-      {
         title: 'Fetch platform software into network nodes',
         task:
           async (ctx, task) => {
             // without this sleep, copy software from local build to container sometimes fail
             await sleep(15000)
-            ctx.config.allNodeIds = ctx.config.existingNodeIds
+
             const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
             return self.fetchLocalOrReleasedPlatformSoftware(config.allNodeIds, config.podNames, config.releaseTag, task, config.localBuildPath)
           }
       },
       {
-        title: 'Setup new network node',
+        title: 'Setup network nodes',
         task: async (ctx, parentTask) => {
           const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
 
@@ -2564,7 +2580,7 @@ export class NodeCommand extends BaseCommand {
             subTasks.push({
               title: `Node: ${chalk.yellow(nodeId)}`,
               task: () =>
-                self.platformInstaller.taskInstall(podName, config.stagingDir, config.allNodeIds, config.keyFormat, config.force)
+                self.platformInstaller.taskSetup(podName)
             })
           }
 
@@ -2657,7 +2673,7 @@ export class NodeCommand extends BaseCommand {
           for (const nodeId of config.allNodeIds) {
             const accountId = accountMap.get(nodeId)
             config.nodeClient.setOperator(TREASURY_ACCOUNT_ID, config.treasuryKey)
-            self.logger.info(`Sending 1 tinybar to account: ${accountId}`)
+            self.logger.info(`Sending 1 HBAR to account: ${accountId}`)
             await this.accountManager.transferAmount(constants.TREASURY_ACCOUNT_ID, accountId, 1)
           }
         }
@@ -2717,7 +2733,7 @@ export class NodeCommand extends BaseCommand {
            * -- flags --
            * @property {string} app
            * @property {string} cacheDir
-           * @property {string} charDirectory
+           * @property {string} chartDirectory
            * @property {boolean} devMode
            * @property {string} endpointType
            * @property {string} fstChartVersion
@@ -2833,9 +2849,9 @@ export class NodeCommand extends BaseCommand {
 
           try {
             const accountMap = getNodeAccountMap(config.existingNodeIds)
-            const deleteAccountId = accountMap.get(ctx.config.nodeId)
-            this.logger.debug(`Deleting node: ${ctx.config.nodeId} with account: ${deleteAccountId}`)
-            const nodeId = Templates.nodeNumberFromNodeId(ctx.config.nodeId) - 1
+            const deleteAccountId = accountMap.get(config.nodeId)
+            this.logger.debug(`Deleting node: ${config.nodeId} with account: ${deleteAccountId}`)
+            const nodeId = Templates.nodeNumberFromNodeId(config.nodeId) - 1
             const nodeDeleteTx = await new NodeDeleteTransaction()
               .setNodeId(nodeId)
               .freezeWith(config.nodeClient)
@@ -2858,10 +2874,72 @@ export class NodeCommand extends BaseCommand {
         }
       },
       {
+        title: 'Download generated files from an existing node',
+        task: async (ctx, task) => {
+          const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
+          const node1FullyQualifiedPodName = Templates.renderNetworkPodName(config.existingNodeIds[0])
+
+          // copy the config.txt file from the node1 upgrade directory
+          await self.k8.copyFrom(node1FullyQualifiedPodName, constants.ROOT_CONTAINER, `${constants.HEDERA_HAPI_PATH}/data/upgrade/current/config.txt`, config.stagingDir)
+
+          const signedKeyFiles = (await self.k8.listDir(node1FullyQualifiedPodName, constants.ROOT_CONTAINER, `${constants.HEDERA_HAPI_PATH}/data/upgrade/current`)).filter(file => file.name.startsWith(constants.SIGNING_KEY_PREFIX))
+          await self.k8.execContainer(node1FullyQualifiedPodName, constants.ROOT_CONTAINER, ['bash', '-c', `mkdir -p ${constants.HEDERA_HAPI_PATH}/data/keys_backup && cp ${constants.HEDERA_HAPI_PATH}/data/keys/..data/* ${constants.HEDERA_HAPI_PATH}/data/keys_backup/`])
+          for (const signedKeyFile of signedKeyFiles) {
+            await self.k8.copyFrom(node1FullyQualifiedPodName, constants.ROOT_CONTAINER, `${constants.HEDERA_HAPI_PATH}/data/upgrade/current/${signedKeyFile.name}`, `${config.keysDir}`)
+          }
+        }
+      },
+      {
         title: 'Send freeze upgrade transaction',
         task: async (ctx, task) => {
           const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
           await this.freezeUpgradeNetworkNodes(config.freezeAdminPrivateKey, ctx.upgradeZipHash, config.nodeClient)
+        }
+      },
+      {
+        title: 'Prepare staging directory',
+        task: async (ctx, parentTask) => {
+          const subTasks = [
+            {
+              title: 'Copy Gossip keys to staging',
+              task: async (ctx, _) => {
+                const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
+
+                await this.keyManager.copyGossipKeysToStaging(config.keyFormat, config.keysDir, config.stagingKeysDir, config.existingNodeIds)
+              }
+            },
+            {
+              title: 'Copy gRPC TLS keys to staging',
+              task: async (ctx, _) => {
+                const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
+                for (const nodeId of config.existingNodeIds) {
+                  const tlsKeyFiles = self.keyManager.prepareTLSKeyFilePaths(nodeId, config.keysDir)
+                  await self.keyManager.copyNodeKeysToStaging(tlsKeyFiles, config.stagingKeysDir)
+                }
+              }
+            }
+          ]
+
+          return parentTask.newListr(subTasks, {
+            concurrent: false,
+            rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
+          })
+        }
+      },
+      {
+        title: 'Copy node keys to secrets',
+        task: async (ctx, parentTask) => {
+          const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
+
+          // remove nodeId from existingNodeIds
+          config.allNodeIds = config.existingNodeIds.filter(nodeId => nodeId !== ctx.config.nodeId)
+          const subTasks = self.platformInstaller.copyNodeKeys(config.stagingDir, config.allNodeIds, config.keyFormat)
+
+          // set up the sub-tasks
+          return parentTask.newListr(subTasks, {
+            concurrent: true,
+            rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
+          })
         }
       },
       {
@@ -2883,16 +2961,6 @@ export class NodeCommand extends BaseCommand {
               collapseSubtasks: false
             }
           })
-        }
-      },
-      {
-        title: 'Download new config.txt',
-        task: async (ctx, task) => {
-          const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
-          const node1FullyQualifiedPodName = Templates.renderNetworkPodName(config.existingNodeIds[0])
-
-          // copy the config.txt file from the node1 upgrade directory
-          await self.k8.copyFrom(node1FullyQualifiedPodName, constants.ROOT_CONTAINER, `${constants.HEDERA_HAPI_PATH}/data/upgrade/current/config.txt`, config.stagingDir)
         }
       },
       {
@@ -2945,9 +3013,6 @@ export class NodeCommand extends BaseCommand {
             const subTasks = []
             const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
 
-            // remove nodeId from existingNodeIds
-            ctx.config.allNodeIds = ctx.config.existingNodeIds.filter(nodeId => nodeId !== ctx.config.nodeId)
-
             // nodes
             for (const nodeId of config.allNodeIds) {
               subTasks.push({
@@ -2970,36 +3035,6 @@ export class NodeCommand extends BaseCommand {
           }
       },
       {
-        title: 'Prepare staging directory',
-        task: async (ctx, parentTask) => {
-          const subTasks = [
-            {
-              title: 'Copy Gossip keys to staging',
-              task: async (ctx, _) => {
-                const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
-
-                await this.copyGossipKeysToStaging(config.keyFormat, config.keysDir, config.stagingKeysDir, config.allNodeIds)
-              }
-            },
-            {
-              title: 'Copy gRPC TLS keys to staging',
-              task: async (ctx, _) => {
-                const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
-                for (const nodeId of config.allNodeIds) {
-                  const tlsKeyFiles = self.keyManager.prepareTLSKeyFilePaths(nodeId, config.keysDir)
-                  await self._copyNodeKeys(tlsKeyFiles, config.stagingKeysDir)
-                }
-              }
-            }
-          ]
-
-          return parentTask.newListr(subTasks, {
-            concurrent: false,
-            rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
-          })
-        }
-      },
-      {
         title: 'Fetch platform software into all network nodes',
         task:
           async (ctx, task) => {
@@ -3012,12 +3047,9 @@ export class NodeCommand extends BaseCommand {
           }
       },
       {
-        title: 'Setup new network node',
+        title: 'Setup network nodes',
         task: async (ctx, parentTask) => {
           const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
-
-          // remove nodeId from existingNodeIds
-          ctx.config.allNodeIds = ctx.config.existingNodeIds.filter(nodeId => nodeId !== ctx.config.nodeId)
 
           const subTasks = []
           for (const nodeId of config.allNodeIds) {
@@ -3025,7 +3057,7 @@ export class NodeCommand extends BaseCommand {
             subTasks.push({
               title: `Node: ${chalk.yellow(nodeId)}`,
               task: () =>
-                self.platformInstaller.taskInstall(podName, config.stagingDir, config.allNodeIds, config.keyFormat, config.force)
+                self.platformInstaller.taskSetup(podName)
             })
           }
 
