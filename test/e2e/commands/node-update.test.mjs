@@ -19,8 +19,8 @@ import { afterAll, describe, expect, it } from '@jest/globals'
 import { flags } from '../../../src/commands/index.mjs'
 import { constants } from '../../../src/core/index.mjs'
 import {
-  // accountCreationShouldSucceed,
-  // balanceQueryShouldSucceed,
+  accountCreationShouldSucceed,
+  balanceQueryShouldSucceed,
   bootstrapNetwork,
   getDefaultArgv, getNodeIdsPrivateKeysHash, getTmpDir,
   HEDERA_PLATFORM_VERSION_TAG
@@ -41,7 +41,7 @@ describe('Node update', () => {
   argv[flags.nodeID.name] = updateNodeId
 
   argv[flags.newAccountNumber.name] = newAccountId
-  // argv[flags.newAdminKey.name] = '302e020100300506032b6570042204200cde8d512569610f184b8b399e91e46899805c6171f7c2b8666d2a417bcc66c2'
+  argv[flags.newAdminKey.name] = '302e020100300506032b6570042204200cde8d512569610f184b8b399e91e46899805c6171f7c2b8666d2a417bcc66c2'
   argv[flags.localBuildPath.name] = 'node0=../hedera-services/hedera-node/data/,../hedera-services/hedera-node/data,node2=../hedera-services/hedera-node/data'
 
   argv[flags.generateGossipKeys.name] = true
@@ -85,11 +85,17 @@ describe('Node update', () => {
     argv[flags.gossipPublicKey.name] = signingKeyFiles.certificateFile
     argv[flags.gossipPrivateKey.name] = signingKeyFiles.privateKeyFile
 
-    // const tlsKey = await nodeCmd.keyManager.generateGrpcTLSKey(updateNodeId)
-    // const tlsKeyFiles = await nodeCmd.keyManager.storeTLSKey(updateNodeId, tlsKey, tmpDir)
-    // nodeCmd.logger.debug(`generated test TLS keys for node ${updateNodeId} : ${tlsKeyFiles.certificateFile}`)
-    // argv[flags.tlsPublicKey.name] = tlsKeyFiles.certificateFile
-    // argv[flags.tlsPrivateKey.name] = tlsKeyFiles.privateKeyFile
+    // should also regenerate agreement keys
+    const agreementKey = await nodeCmd.keyManager.generateAgreementKey(updateNodeId, signingKey)
+    const agreementKeyFiles = await nodeCmd.keyManager.storeAgreementKey(updateNodeId, agreementKey, tmpDir)
+    argv[flags.agreementPublicKey.name] = agreementKeyFiles.certificateFile
+    argv[flags.agreementPrivateKey.name] = agreementKeyFiles.privateKeyFile
+
+    const tlsKey = await nodeCmd.keyManager.generateGrpcTLSKey(updateNodeId)
+    const tlsKeyFiles = await nodeCmd.keyManager.storeTLSKey(updateNodeId, tlsKey, tmpDir)
+    nodeCmd.logger.debug(`generated test TLS keys for node ${updateNodeId} : ${tlsKeyFiles.certificateFile}`)
+    argv[flags.tlsPublicKey.name] = tlsKeyFiles.certificateFile
+    argv[flags.tlsPrivateKey.name] = tlsKeyFiles.privateKeyFile
 
     await nodeCmd.update(argv)
     expect(nodeCmd.getUnusedConfigs(NodeCommand.UPDATE_CONFIGS_NAME)).toEqual([
@@ -99,9 +105,9 @@ describe('Node update', () => {
     await nodeCmd.accountManager.close()
   }, 1800000)
 
-  // balanceQueryShouldSucceed(nodeCmd.accountManager, nodeCmd, namespace)
-  //
-  // accountCreationShouldSucceed(nodeCmd.accountManager, nodeCmd, namespace)
+  balanceQueryShouldSucceed(nodeCmd.accountManager, nodeCmd, namespace)
+
+  accountCreationShouldSucceed(nodeCmd.accountManager, nodeCmd, namespace)
 
   it('signing key and tls key should not match previous one', async () => {
     const currentNodeIdsPrivateKeysHash = await getNodeIdsPrivateKeysHash(existingServiceMap, namespace, constants.KEY_FORMAT_PEM, k8, getTmpDir())
@@ -111,7 +117,7 @@ describe('Node update', () => {
 
       for (const [keyFileName, existingKeyHash] of existingKeyHashMap.entries()) {
         if (nodeId === updateNodeId &&
-          (keyFileName.startsWith(constants.SIGNING_KEY_PREFIX) || keyFileName.startsWith('hedera'))) {
+          (keyFileName.startsWith(constants.SIGNING_KEY_PREFIX) || keyFileName.startsWith(constants.AGREEMENT_KEY_PREFIX) || keyFileName.startsWith('hedera'))) {
           expect(`${nodeId}:${keyFileName}:${currentNodeKeyHashMap.get(keyFileName)}`).not.toEqual(
             `${nodeId}:${keyFileName}:${existingKeyHash}`)
         } else {
