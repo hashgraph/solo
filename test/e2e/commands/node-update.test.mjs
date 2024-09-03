@@ -42,7 +42,6 @@ describe('Node update', () => {
 
   argv[flags.newAccountNumber.name] = newAccountId
   argv[flags.newAdminKey.name] = '302e020100300506032b6570042204200cde8d512569610f184b8b399e91e46899805c6171f7c2b8666d2a417bcc66c2'
-  argv[flags.localBuildPath.name] = 'node0=../hedera-services/hedera-node/data/,../hedera-services/hedera-node/data,node2=../hedera-services/hedera-node/data'
 
   argv[flags.generateGossipKeys.name] = true
   argv[flags.generateTlsKeys.name] = true
@@ -62,7 +61,7 @@ describe('Node update', () => {
   afterAll(async () => {
     await getNodeLogs(k8, namespace)
     await nodeCmd.stop(argv)
-    // await k8.deleteNamespace(namespace)
+    await k8.deleteNamespace(namespace)
   }, 600000)
 
   it('cache current version of private keys', async () => {

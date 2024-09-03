@@ -2758,7 +2758,7 @@ export class NodeCommand extends BaseCommand {
             config.fstChartVersion
           )
         },
-        // no need to run this step if the account number is not changed, therefore config.txt will be the same
+        // no need to run this step if the account number is not changed, since config.txt will be the same
         skip: (ctx, _) => !ctx.config.newAccountNumber
       },
       {
