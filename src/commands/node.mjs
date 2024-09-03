@@ -1435,10 +1435,10 @@ export class NodeCommand extends BaseCommand {
     return true
   }
 
-  async add (argv) {
+  getAddPrepareTasks (argv) {
     const self = this
 
-    const tasks = new Listr([
+    return [
       {
         title: 'Initialize',
         task: async (ctx, task) => {
@@ -1503,24 +1503,24 @@ export class NodeCommand extends BaseCommand {
            * @returns {string[]}
            */
 
-          // create a config object for subsequent steps
+              // create a config object for subsequent steps
           const config = /** @type {NodeAddConfigClass} **/ this.getConfig(NodeCommand.ADD_CONFIGS_NAME, NodeCommand.ADD_FLAGS_LIST,
-            [
-              'adminKey',
-              'allNodeIds',
-              'chartPath',
-              'curDate',
-              'existingNodeIds',
-              'freezeAdminPrivateKey',
-              'keysDir',
-              'lastStateZipPath',
-              'nodeClient',
-              'podNames',
-              'serviceMap',
-              'stagingDir',
-              'stagingKeysDir',
-              'treasuryKey'
-            ])
+                  [
+                    'adminKey',
+                    'allNodeIds',
+                    'chartPath',
+                    'curDate',
+                    'existingNodeIds',
+                    'freezeAdminPrivateKey',
+                    'keysDir',
+                    'lastStateZipPath',
+                    'nodeClient',
+                    'podNames',
+                    'serviceMap',
+                    'stagingDir',
+                    'stagingKeysDir',
+                    'treasuryKey'
+                  ])
 
           config.curDate = new Date()
           config.existingNodeIds = []
@@ -1535,7 +1535,7 @@ export class NodeCommand extends BaseCommand {
           ctx.config = config
 
           ctx.config.chartPath = await self.prepareChartPath(ctx.config.chartDirectory,
-            constants.FULLSTACK_TESTING_CHART, constants.FULLSTACK_DEPLOYMENT_CHART)
+              constants.FULLSTACK_TESTING_CHART, constants.FULLSTACK_DEPLOYMENT_CHART)
 
           // initialize Node Client with existing network nodes prior to adding the new node which isn't functioning, yet
           ctx.config.nodeClient = await this.accountManager.loadNodeClient(ctx.config.namespace)
@@ -1563,7 +1563,7 @@ export class NodeCommand extends BaseCommand {
         task: async (ctx, task) => {
           const config = /** @type {NodeAddConfigClass} **/ ctx.config
           config.serviceMap = await self.accountManager.getNodeServiceMap(
-            config.namespace)
+              config.namespace)
           for (/** @type {NetworkNodeServices} **/ const networkNodeServices of config.serviceMap.values()) {
             config.existingNodeIds.push(networkNodeServices.nodeName)
           }
@@ -1584,8 +1584,8 @@ export class NodeCommand extends BaseCommand {
               name: networkNodeServices.nodeName
             })
             maxNum = maxNum > AccountId.fromString(networkNodeServices.accountId).num
-              ? maxNum
-              : AccountId.fromString(networkNodeServices.accountId).num
+                ? maxNum
+                : AccountId.fromString(networkNodeServices.accountId).num
           }
 
           ctx.maxNum = maxNum
@@ -1732,13 +1732,13 @@ export class NodeCommand extends BaseCommand {
 
           try {
             const nodeCreateTx = await new NodeCreateTransaction()
-              .setAccountId(ctx.newNode.accountId)
-              .setGossipEndpoints(ctx.gossipEndpoints)
-              .setServiceEndpoints(ctx.grpcServiceEndpoints)
-              .setGossipCaCertificate(ctx.signingCertDer)
-              .setCertificateHash(ctx.tlsCertHash)
-              .setAdminKey(config.adminKey.publicKey)
-              .freezeWith(config.nodeClient)
+                .setAccountId(ctx.newNode.accountId)
+                .setGossipEndpoints(ctx.gossipEndpoints)
+                .setServiceEndpoints(ctx.grpcServiceEndpoints)
+                .setGossipCaCertificate(ctx.signingCertDer)
+                .setCertificateHash(ctx.tlsCertHash)
+                .setAdminKey(config.adminKey.publicKey)
+                .freezeWith(config.nodeClient)
             const signedTx = await nodeCreateTx.sign(config.adminKey)
             const txResp = await signedTx.execute(config.nodeClient)
             const nodeCreateReceipt = await txResp.getReceipt(config.nodeClient)
@@ -1748,7 +1748,12 @@ export class NodeCommand extends BaseCommand {
             throw new FullstackTestingError(`Error adding node to network: ${e.message}`, e)
           }
         }
-      },
+      }
+    ]
+  }
+
+  getAddExecuteTasks (argv) {
+    return [
       {
         title: 'Send prepare upgrade transaction',
         task: async (ctx, task) => {
@@ -1819,18 +1824,18 @@ export class NodeCommand extends BaseCommand {
           valuesArg += ` --set "hedera.nodes[${index}].accountId=${ctx.newNode.accountId}" --set "hedera.nodes[${index}].name=${ctx.newNode.name}"`
 
           this.profileValuesFile = await self.profileManager.prepareValuesForNodeAdd(
-            path.join(config.stagingDir, 'config.txt'),
-            path.join(config.stagingDir, 'templates', 'application.properties'))
+              path.join(config.stagingDir, 'config.txt'),
+              path.join(config.stagingDir, 'templates', 'application.properties'))
           if (this.profileValuesFile) {
             valuesArg += this.prepareValuesFiles(this.profileValuesFile)
           }
 
           await self.chartManager.upgrade(
-            config.namespace,
-            constants.FULLSTACK_DEPLOYMENT_CHART,
-            config.chartPath,
-            valuesArg,
-            config.fstChartVersion
+              config.namespace,
+              constants.FULLSTACK_DEPLOYMENT_CHART,
+              config.chartPath,
+              valuesArg,
+              config.fstChartVersion
           )
 
           config.allNodeIds = [...config.existingNodeIds, config.nodeId]
@@ -1857,10 +1862,10 @@ export class NodeCommand extends BaseCommand {
                 subTasks.push({
                   title: `Check Node: ${chalk.yellow(nodeId)}`,
                   task: () =>
-                    self.k8.waitForPods([constants.POD_PHASE_RUNNING], [
-                      'fullstack.hedera.com/type=network-node',
+                      self.k8.waitForPods([constants.POD_PHASE_RUNNING], [
+                        'fullstack.hedera.com/type=network-node',
                         `fullstack.hedera.com/node-name=${nodeId}`
-                    ], 1, 60 * 15, 1000) // timeout 15 minutes
+                      ], 1, 60 * 15, 1000) // timeout 15 minutes
                 })
               }
 
@@ -1906,14 +1911,14 @@ export class NodeCommand extends BaseCommand {
       {
         title: 'Fetch platform software into all network nodes',
         task:
-          async (ctx, task) => {
-            const config = /** @type {NodeAddConfigClass} **/ ctx.config
-            config.serviceMap = await self.accountManager.getNodeServiceMap(
-              config.namespace)
-            config.podNames[config.nodeId] = config.serviceMap.get(
-              config.nodeId).nodePodName
-            return self.fetchLocalOrReleasedPlatformSoftware(config.allNodeIds, config.podNames, config.releaseTag, task, config.localBuildPath)
-          }
+            async (ctx, task) => {
+              const config = /** @type {NodeAddConfigClass} **/ ctx.config
+              config.serviceMap = await self.accountManager.getNodeServiceMap(
+                  config.namespace)
+              config.podNames[config.nodeId] = config.serviceMap.get(
+                  config.nodeId).nodePodName
+              return self.fetchLocalOrReleasedPlatformSoftware(config.allNodeIds, config.podNames, config.releaseTag, task, config.localBuildPath)
+            }
       },
       {
         title: 'Download last state from an existing node',
@@ -1953,7 +1958,7 @@ export class NodeCommand extends BaseCommand {
             subTasks.push({
               title: `Node: ${chalk.yellow(nodeId)}`,
               task: () =>
-                self.platformInstaller.taskInstall(podName, config.stagingDir, config.allNodeIds, config.keyFormat, config.force)
+                  self.platformInstaller.taskInstall(podName, config.stagingDir, config.allNodeIds, config.keyFormat, config.force)
             })
           }
 
@@ -2014,8 +2019,8 @@ export class NodeCommand extends BaseCommand {
             subTasks.push({
               title: `Check proxy for node: ${chalk.yellow(nodeId)}`,
               task: async () => await self.k8.waitForPodReady(
-                [`app=haproxy-${nodeId}`, 'fullstack.hedera.com/type=haproxy'],
-                1, 300, 2000)
+                  [`app=haproxy-${nodeId}`, 'fullstack.hedera.com/type=haproxy'],
+                  1, 300, 2000)
             })
           }
 
@@ -2059,10 +2064,63 @@ export class NodeCommand extends BaseCommand {
           self.configManager.persist()
         }
       }
+    ]
+  }
+
+  async addPrepare (argv) {
+    const self = this
+
+    const prepareTasks = this.getAddPrepareTasks(argv)
+    const tasks = new Listr(prepareTasks, {
+      concurrent: false,
+      rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
+    });
+
+    try {
+      await tasks.run()
+    } catch (e) {
+      self.logger.error(`Error in setting up nodes: ${e.message}`, e)
+      throw new FullstackTestingError(`Error in setting up nodes: ${e.message}`, e)
+    } finally {
+      await self.close()
+    }
+
+    return true
+  }
+
+  async addExecute (argv) {
+    const self = this
+
+    const executeTasks = this.getAddExecuteTasks(argv)
+    const tasks = new Listr(executeTasks, {
+      concurrent: false,
+      rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
+    });
+
+    try {
+      await tasks.run()
+    } catch (e) {
+      self.logger.error(`Error in starting up nodes: ${e.message}`, e)
+      throw new FullstackTestingError(`Error in setting up nodes: ${e.message}`, e)
+    } finally {
+      await self.close()
+    }
+
+    return true
+  }
+
+  async add (argv) {
+    const self = this
+
+    const prepareTasks = this.getAddPrepareTasks(argv);
+    const executeTasks = this.getAddExecuteTasks(argv);
+    const tasks = new Listr([
+      ...prepareTasks,
+      ...executeTasks
     ], {
       concurrent: false,
       rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
-    })
+    });
 
     try {
       await tasks.run()
@@ -2308,6 +2366,40 @@ export class NodeCommand extends BaseCommand {
               nodeCmd.logger.debug(argv)
 
               nodeCmd.add(argv).then(r => {
+                nodeCmd.logger.debug('==== Finished running `node add`====')
+                if (!r) process.exit(1)
+              }).catch(err => {
+                nodeCmd.logger.showUserError(err)
+                process.exit(1)
+              })
+            }
+          })
+          .command({
+            command: 'add-prepare',
+            desc: 'Prepares the addition of a node with a specific version of Hedera platform',
+            builder: y => flags.setCommandFlags(y, ...NodeCommand.ADD_FLAGS_LIST),
+            handler: argv => {
+              nodeCmd.logger.debug('==== Running \'node add\' ===')
+              nodeCmd.logger.debug(argv)
+
+              nodeCmd.addPrepare(argv).then(r => {
+                nodeCmd.logger.debug('==== Finished running `node add`====')
+                if (!r) process.exit(1)
+              }).catch(err => {
+                nodeCmd.logger.showUserError(err)
+                process.exit(1)
+              })
+            }
+          })
+          .command({
+            command: 'add-execute',
+            desc: 'Executes the addition of a previously prepared node',
+            builder: y => flags.setCommandFlags(y, ...NodeCommand.ADD_FLAGS_LIST),
+            handler: argv => {
+              nodeCmd.logger.debug('==== Running \'node add\' ===')
+              nodeCmd.logger.debug(argv)
+
+              nodeCmd.addExecute(argv).then(r => {
                 nodeCmd.logger.debug('==== Finished running `node add`====')
                 if (!r) process.exit(1)
               }).catch(err => {
