@@ -70,6 +70,11 @@ on:
         type: string
         required: false
         default: "e2e-node-pem-stop"
+      e2e-node-pem-kill-test-subdir:
+        description: "E2E Node PEM Kill Test Subdirectory:"
+        type: string
+        required: false
+        default: "e2e-node-pem-kill"
       e2e-node-local-build-test-subdir:
         description: "E2E Node Local Build Test Subdirectory:"
         type: string
@@ -110,6 +115,11 @@ on:
         type: string
         required: false
         default: "E2E Node PEM Stop Tests Coverage Report"
+      e2e-node-pem-kill-coverage-report:
+        description: "E2E Node PEM Kill Coverage Report:"
+        type: string
+        required: false
+        default: "E2E Node PEM Kill Tests Coverage Report"
       e2e-node-local-build-coverage-report:
         description: "E2E Node Local Build Coverage Report:"
         type: string
@@ -205,6 +215,13 @@ jobs:
         with:
           name: ${{ inputs.e2e-node-pem-stop-coverage-report }}
           path: 'coverage/${{ inputs.e2e-node-pem-stop-test-subdir }}'
+
+      - name: Download E2E Node PEM Kill Coverage Report
+        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
+        if: ${{ (inputs.enable-codecov-analysis || inputs.enable-codacy-coverage) && inputs.enable-e2e-coverage-report && !cancelled() && !failure() }}
+        with:
+          name: ${{ inputs.e2e-node-pem-kill-coverage-report }}
+          path: 'coverage/${{ inputs.e2e-node-pem-kill-test-subdir }}'
 
       - name: Download E2E Relay Coverage Report
         uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
