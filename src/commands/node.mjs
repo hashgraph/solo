@@ -14,6 +14,7 @@
  * limitations under the License.
  *
  */
+'use strict'
 import * as x509 from '@peculiar/x509'
 import chalk from 'chalk'
 import * as fs from 'fs'
@@ -59,6 +60,12 @@ import {
  * Defines the core functionalities of 'node' command
  */
 export class NodeCommand extends BaseCommand {
+  /**
+   * @param {{logger: Logger, helm: Helm, k8: K8, chartManager: ChartManager, configManager: ConfigManager,
+   * depManager: DependencyManager, keytoolDepManager: KeytoolDependencyManager, downloader: PackageDownloader,
+   * platformInstaller: PlatformInstaller, keyManager: KeyManager, accountManager: AccountManager,
+   * profileManager: ProfileManager}} opts
+   */
   constructor (opts) {
     super(opts)
 
@@ -78,10 +85,16 @@ export class NodeCommand extends BaseCommand {
     this._portForwards = []
   }
 
+  /**
+   * @returns {string}
+   */
   static get SETUP_CONFIGS_NAME () {
     return 'setupConfigs'
   }
 
+  /**
+   * @returns {CommandFlag[]}
+   */
   static get SETUP_FLAGS_LIST () {
     return [
       flags.appConfig,
@@ -94,10 +107,16 @@ export class NodeCommand extends BaseCommand {
     ]
   }
 
+  /**
+   * @returns {string}
+   */
   static get KEYS_CONFIGS_NAME () {
     return 'keysConfigs'
   }
 
+  /**
+   * @returns {CommandFlag[]}
+   */
   static get KEYS_FLAGS_LIST () {
     return [
       flags.cacheDir,
@@ -109,10 +128,16 @@ export class NodeCommand extends BaseCommand {
     ]
   }
 
+  /**
+   * @returns {string}
+   */
   static get REFRESH_CONFIGS_NAME () {
     return 'refreshConfigs'
   }
 
+  /**
+   * @returns {CommandFlag[]}
+   */
   static get REFRESH_FLAGS_LIST () {
     return [
       flags.app,
@@ -125,10 +150,16 @@ export class NodeCommand extends BaseCommand {
     ]
   }
 
+  /**
+   * @returns {string}
+   */
   static get ADD_CONFIGS_NAME () {
     return 'addConfigs'
   }
 
+  /**
+   * @returns {CommandFlag[]}
+   */
   static get ADD_FLAGS_LIST () {
     return [
       flags.app,
@@ -214,6 +245,12 @@ export class NodeCommand extends BaseCommand {
     this._portForwards = []
   }
 
+  /**
+   * @param {string} namespace
+   * @param {string} accountId
+   * @param {string} nodeId
+   * @returns {Promise<void>}
+   */
   async addStake (namespace, accountId, nodeId) {
     try {
       await this.accountManager.loadNodeClient(namespace)
@@ -254,6 +291,13 @@ export class NodeCommand extends BaseCommand {
     }
   }
 
+  /**
+   * @param {string} namespace
+   * @param {string} nodeId
+   * @param {number} [maxAttempts]
+   * @param {number} [delay]
+   * @returns {Promise<string>}
+   */
   async checkNetworkNodePod (namespace, nodeId, maxAttempts = 60, delay = 2000) {
     nodeId = nodeId.trim()
     const podName = Templates.renderNetworkPodName(nodeId)
@@ -270,6 +314,13 @@ export class NodeCommand extends BaseCommand {
     }
   }
 
+  /**
+   * @param {string} nodeId
+   * @param {number} [maxAttempt]
+   * @param {string} [status]
+   * @param {string} [logfile]
+   * @returns {Promise<boolean>}
+   */
   async checkNetworkNodeState (nodeId, maxAttempt = 100, status = 'ACTIVE', logfile = 'output/hgcaa.log') {
     nodeId = nodeId.trim()
     const podName = Templates.renderNetworkPodName(nodeId)
@@ -334,6 +385,10 @@ export class NodeCommand extends BaseCommand {
 
   /**
    * Return task for checking for all network node pods
+   * @param {any} ctx
+   * @param {typeof import('listr2').TaskWrapper} task
+   * @param {string[]} nodeIds
+   * @returns {*}
    */
   taskCheckNetworkNodePods (ctx, task, nodeIds) {
     if (!ctx.config) {
@@ -385,6 +440,13 @@ export class NodeCommand extends BaseCommand {
     }
   }
 
+  /**
+   * @param {string[]} nodeIds
+   * @param {Object} podNames
+   * @param {typeof import('listr2').TaskWrapper} task
+   * @param {string} localBuildPath
+   * @returns {Listr<*, *, *>}
+   */
   uploadPlatformSoftware (nodeIds, podNames, task, localBuildPath) {
     const self = this
     const subTasks = []
@@ -437,6 +499,14 @@ export class NodeCommand extends BaseCommand {
     })
   }
 
+  /**
+   * @param {string[]} nodeIds
+   * @param {Object} podNames
+   * @param {string} releaseTag
+   * @param {typeof import('listr2').TaskWrapper} task
+   * @param {string} localBuildPath
+   * @returns {Listr<*, *, *>}
+   */
   fetchLocalOrReleasedPlatformSoftware (nodeIds, podNames, releaseTag, task, localBuildPath) {
     const self = this
     if (localBuildPath !== '') {
@@ -446,6 +516,14 @@ export class NodeCommand extends BaseCommand {
     }
   }
 
+  /**
+   * @param {string[]} nodeIds
+   * @param {Object} podNames
+   * @param {string} releaseTag
+   * @param {typeof import('listr2').TaskWrapper} task
+   * @param {PlatformInstaller} platformInstaller
+   * @returns {Listr<any, any, any>}
+   */
   fetchPlatformSoftware (nodeIds, podNames, releaseTag, task, platformInstaller) {
     const subTasks = []
     for (const nodeId of nodeIds) {
@@ -506,6 +584,11 @@ export class NodeCommand extends BaseCommand {
     return await zipper.zip(path.join(stagingDir, 'mock-upgrade'), path.join(stagingDir, 'mock-upgrade.zip'))
   }
 
+  /**
+   * @param {string} upgradeZipFile
+   * @param nodeClient
+   * @returns {Promise<string>}
+   */
   async uploadUpgradeZip (upgradeZipFile, nodeClient) {
     // get byte value of the zip file
     const zipBytes = fs.readFileSync(upgradeZipFile)
@@ -542,6 +625,12 @@ export class NodeCommand extends BaseCommand {
     }
   }
 
+  /**
+   * @param {string} endpointType
+   * @param {string[]} endpoints
+   * @param {number} defaultPort
+   * @returns {ServiceEndpoint[]}
+   */
   prepareEndpoints (endpointType, endpoints, defaultPort) {
     const ret = /** @typedef ServiceEndpoint **/[]
     for (const endpoint of endpoints) {
@@ -576,7 +665,10 @@ export class NodeCommand extends BaseCommand {
   }
 
   // List of Commands
-
+  /**
+   * @param {Object} argv
+   * @returns {Promise<boolean>}
+   */
   async setup (argv) {
     const self = this
 
@@ -680,6 +772,10 @@ export class NodeCommand extends BaseCommand {
     return true
   }
 
+  /**
+   * @param {Object} argv
+   * @returns {Promise<boolean>}
+   */
   async start (argv) {
     const self = this
 
@@ -820,6 +916,10 @@ export class NodeCommand extends BaseCommand {
     return true
   }
 
+  /**
+   * @param {Object} argv
+   * @returns {Promise<boolean>}
+   */
   async stop (argv) {
     const self = this
 
@@ -883,6 +983,10 @@ export class NodeCommand extends BaseCommand {
     return true
   }
 
+  /**
+   * @param {Object} argv
+   * @returns {Promise<boolean>}
+   */
   async keys (argv) {
     const self = this
     const tasks = new Listr([
@@ -990,6 +1094,10 @@ export class NodeCommand extends BaseCommand {
     return true
   }
 
+  /**
+   * @param {Object} argv
+   * @returns {Promise<boolean>}
+   */
   async refresh (argv) {
     const self = this
 
@@ -1184,6 +1292,10 @@ export class NodeCommand extends BaseCommand {
     return true
   }
 
+  /**
+   * @param {Object} argv
+   * @returns {Promise<boolean>}
+   */
   async logs (argv) {
     const self = this
 
@@ -1224,6 +1336,10 @@ export class NodeCommand extends BaseCommand {
     return true
   }
 
+  /**
+   * @param {Object} argv
+   * @returns {Promise<boolean>}
+   */
   async add (argv) {
     const self = this
 
@@ -1871,6 +1987,12 @@ export class NodeCommand extends BaseCommand {
     return true
   }
 
+  /**
+   * @param {PrivateKey|string} freezeAdminPrivateKey
+   * @param {Uint8Array|string} upgradeZipHash
+   * @param {Client<import('../channel/Channel.js').default,import('../channel/MirrorChannel.js').default>} client
+   * @returns {Promise<void>}
+   */
   async prepareUpgradeNetworkNodes (freezeAdminPrivateKey, upgradeZipHash, client) {
     try {
       // transfer some tiny amount to the freeze admin account
@@ -1904,6 +2026,12 @@ export class NodeCommand extends BaseCommand {
     }
   }
 
+  /**
+   * @param {PrivateKey|string} freezeAdminPrivateKey
+   * @param {Uint8Array|string} upgradeZipHash
+   * @param {Client<import('../channel/Channel.js').default,import('../channel/MirrorChannel.js').default>} client
+   * @returns {Promise<void>}
+   */
   async freezeUpgradeNetworkNodes (freezeAdminPrivateKey, upgradeZipHash, client) {
     try {
       const futureDate = new Date()
@@ -1930,6 +2058,11 @@ export class NodeCommand extends BaseCommand {
     }
   }
 
+  /**
+   * @param {Object} podNames
+   * @param {string} nodeIds
+   * @param {{title: string, task: () => Promise<void>}[]} subTasks
+   */
   startNodes (podNames, nodeIds, subTasks) {
     for (const nodeId of nodeIds) {
       const podName = podNames[nodeId]
@@ -1945,7 +2078,8 @@ export class NodeCommand extends BaseCommand {
   // Command Definition
   /**
    * Return Yargs command definition for 'node' command
-   * @param nodeCmd an instance of NodeCommand
+   * @param {NodeCommand} nodeCmd - an instance of NodeCommand
+   * @returns {{command: string, desc: string, builder: Function}}
    */
   static getCommandDefinition (nodeCmd) {
     if (!nodeCmd || !(nodeCmd instanceof NodeCommand)) {

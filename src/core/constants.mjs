@@ -14,6 +14,7 @@
  * limitations under the License.
  *
  */
+'use strict'
 import { AccountId, FileId } from '@hashgraph/sdk'
 import { color, PRESET_TIMER } from 'listr2'
 import path, { dirname, normalize } from 'path'
@@ -59,6 +60,8 @@ export const JSON_RPC_RELAY_CHART_URL = 'https://hashgraph.github.io/hedera-json
 export const JSON_RPC_RELAY_CHART = 'hedera-json-rpc-relay'
 export const MIRROR_NODE_CHART_URL = 'https://hashgraph.github.io/hedera-mirror-node/charts'
 export const MIRROR_NODE_CHART = 'hedera-mirror'
+
+/** @type {Map<string, string>} */
 export const DEFAULT_CHART_REPO = new Map()
   .set(FULLSTACK_TESTING_CHART, FULLSTACK_TESTING_CHART_URL)
   .set(JSON_RPC_RELAY_CHART, JSON_RPC_RELAY_CHART_URL)
@@ -78,6 +81,7 @@ export const TREASURY_ACCOUNT = 2
 export const LOCAL_NODE_START_PORT = process.env.LOCAL_NODE_START_PORT || 30212
 export const LOCAL_NODE_PROXY_START_PORT = process.env.LOCAL_NODE_PROXY_START_PORT || 30313
 export const ACCOUNT_UPDATE_BATCH_SIZE = process.env.ACCOUNT_UPDATE_BATCH_SIZE || 10
+
 export const NODE_PROXY_USER_ID = process.env.NODE_PROXY_USER_ID || 'admin'
 export const NODE_PROXY_PASSWORD = process.env.NODE_PROXY_PASSWORD || 'adminpwd'
 
@@ -89,7 +93,10 @@ export const POD_CONDITION_READY = 'Ready'
 export const POD_CONDITION_POD_SCHEDULED = 'PodScheduled'
 export const POD_CONDITION_STATUS_TRUE = 'True'
 
-// Listr related
+/**
+ * Listr related
+ * @type {LoggerFieldFn<[number]> & {condition: (duration: number) => boolean, format: (duration: number) => Color}}
+ */
 export const LISTR_DEFAULT_RENDERER_TIMER_OPTION = {
   ...PRESET_TIMER,
   condition: (duration) => duration > 100,

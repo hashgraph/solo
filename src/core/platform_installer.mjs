@@ -14,6 +14,7 @@
  * limitations under the License.
  *
  */
+'use strict'
 import * as fs from 'fs'
 import { Listr } from 'listr2'
 import * as path from 'path'
@@ -28,6 +29,12 @@ import chalk from 'chalk'
  * PlatformInstaller install platform code in the root-container of a network pod
  */
 export class PlatformInstaller {
+  /**
+   * @param {Logger} logger
+   * @param {K8} k8
+   * @param {ConfigManager} configManager
+   * @param {AccountManager} accountManager
+   */
   constructor (logger, k8, configManager, accountManager) {
     if (!logger) throw new MissingArgumentError('an instance of core/Logger is required')
     if (!k8) throw new MissingArgumentError('an instance of core/K8 is required')
@@ -40,12 +47,20 @@ export class PlatformInstaller {
     this.accountManager = accountManager
   }
 
+  /**
+   * @returns {string}
+   * @private
+   */
   _getNamespace () {
     const ns = this.configManager.getFlag(flags.namespace)
     if (!ns) throw new MissingArgumentError('namespace is not set')
     return ns
   }
 
+  /**
+   * @param {string} releaseDir
+   * @returns {Promise<void>}
+   */
   async validatePlatformReleaseDir (releaseDir) {
     if (!releaseDir) throw new MissingArgumentError('releaseDir is required')
     if (!fs.existsSync(releaseDir)) {
@@ -79,11 +94,10 @@ export class PlatformInstaller {
 
   /**
    * Fetch and extract platform code into the container
-   * @param podName pod name
-   * @param tag platform release tag
-   * @return {Promise<boolean|undefined>}
+   * @param {string} podName
+   * @param {string} tag - platform release tag
+   * @returns {Promise<boolean>}
    */
-
   async fetchPlatform (podName, tag) {
     if (!podName) throw new MissingArgumentError('podName is required')
     if (!tag) throw new MissingArgumentError('tag is required')
@@ -105,12 +119,11 @@ export class PlatformInstaller {
   /**
    * Copy a list of files to a directory in the container
    *
-   * @param podName pod name
-   * @param srcFiles list of source files
-   * @param destDir destination directory
-   * @param container name of the container
-   *
-   * @return {Promise<string[]>} list of pathso of the copied files insider the container
+   * @param {string} podName
+   * @param {string[]} srcFiles - list of source files
+   * @param {string} destDir - destination directory
+   * @param {string} [container] - name of the container
+   * @returns {Promise<string[]>} list of pathso of the copied files insider the container
    */
   async copyFiles (podName, srcFiles, destDir, container = constants.ROOT_CONTAINER) {
     try {
@@ -216,6 +229,14 @@ export class PlatformInstaller {
     }
   }
 
+  /**
+   * @param {string} podName
+   * @param {string} destPath
+   * @param {string} [mode]
+   * @param {boolean} [recursive]
+   * @param {string} [container]
+   * @returns {Promise<boolean>}
+   */
   async setPathPermission (podName, destPath, mode = '0755', recursive = true, container = constants.ROOT_CONTAINER) {
     if (!podName) throw new MissingArgumentError('podName is required')
     if (!destPath) throw new MissingArgumentError('destPath is required')
@@ -235,6 +256,10 @@ export class PlatformInstaller {
     return true
   }
 
+  /**
+   * @param {string} podName
+   * @returns {Promise<boolean>}
+   */
   async setPlatformDirPermissions (podName) {
     const self = this
     if (!podName) throw new MissingArgumentError('podName is required')
