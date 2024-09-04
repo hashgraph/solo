@@ -14,11 +14,16 @@
  * limitations under the License.
  *
  */
+'use strict'
 import os from 'os'
 import { FullstackTestingError, MissingArgumentError } from '../errors.mjs'
 import { ShellRunner } from '../shell_runner.mjs'
 
 export class DependencyManager extends ShellRunner {
+  /**
+   * @param {Logger} logger
+   * @param {Map<string, *>} depManagerMap
+   */
   constructor (logger, depManagerMap) {
     if (!logger) throw new MissingArgumentError('an instance of core/Logger is required', logger)
     super(logger)
@@ -28,8 +33,8 @@ export class DependencyManager extends ShellRunner {
 
   /**
    * Check if the required dependency is installed or not
-   * @param dep is the name of the program
-   * @param shouldInstall Whether or not install the dependency if not installed
+   * @param {string} dep - is the name of the program
+   * @param {boolean} [shouldInstall] - Whether or not install the dependency if not installed
    * @returns {Promise<boolean>}
    */
   async checkDependency (dep, shouldInstall = true) {
@@ -49,6 +54,10 @@ export class DependencyManager extends ShellRunner {
     return true
   }
 
+  /**
+   * @param {*[]} [deps]
+   * @returns {{title: string, task: () => Promise<void>}[]}
+   */
   taskCheckDependencies (deps = []) {
     const subTasks = []
     deps.forEach(dep => {

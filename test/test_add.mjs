@@ -26,7 +26,6 @@ import {
   HEDERA_PLATFORM_VERSION_TAG
 } from './test_util.js'
 import { flags } from '../src/commands/index.mjs'
-import { constants } from '../src/core/index.mjs'
 import { getNodeLogs } from '../src/core/helpers.mjs'
 import { NodeCommand } from '../src/commands/node.mjs'
 

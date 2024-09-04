@@ -17,7 +17,6 @@
  */
 
 import { describe } from '@jest/globals'
-import { constants } from '../../../src/core/index.mjs'
 import { e2eNodeKeyRefreshTest } from '../e2e_node_util.js'
 
 describe('NodeCommand', () => {

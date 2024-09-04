@@ -14,6 +14,7 @@
  * limitations under the License.
  *
  */
+'use strict'
 import { ListrEnquirerPromptAdapter } from '@listr2/prompt-adapter-enquirer'
 import fs from 'fs'
 import { FullstackTestingError, IllegalArgumentError } from '../core/errors.mjs'
@@ -428,6 +429,9 @@ export async function promptPersistentVolumeClaims (task, input) {
     flags.persistentVolumeClaims.name)
 }
 
+/**
+ * @returns {Map<string, Function>}
+ */
 export function getPromptMap () {
   return new Map()
     .set(flags.accountId.name, promptAccountId)
@@ -477,7 +481,7 @@ export function getPromptMap () {
  * @param task task object from listr2
  * @param configManager config manager to store flag values
  * @param {CommandFlag[]} flagList list of flag objects
- * @return {Promise<void>}
+ * @returns {Promise<void>}
  */
 export async function execute (task, configManager, flagList = []) {
   if (!configManager || !(configManager instanceof ConfigManager)) {

@@ -20,6 +20,12 @@ import { MissingArgumentError } from '../core/errors.mjs'
 import { ShellRunner } from '../core/shell_runner.mjs'
 
 export class BaseCommand extends ShellRunner {
+  /**
+   * @param {string} chartDir
+   * @param {string} chartRepo
+   * @param {string} chartReleaseName
+   * @returns {Promise<string>}
+   */
   async prepareChartPath (chartDir, chartRepo, chartReleaseName) {
     if (!chartRepo) throw new MissingArgumentError('chart repo name is required')
     if (!chartReleaseName) throw new MissingArgumentError('chart release name is required')
@@ -33,6 +39,10 @@ export class BaseCommand extends ShellRunner {
     return `${chartRepo}/${chartReleaseName}`
   }
 
+  /**
+   * @param {string} valuesFile
+   * @returns {string}
+   */
   prepareValuesFiles (valuesFile) {
     let valuesArg = ''
     if (valuesFile) {
@@ -46,6 +56,9 @@ export class BaseCommand extends ShellRunner {
     return valuesArg
   }
 
+  /**
+   * @param {{logger: Logger, helm: Helm, k8: K8, chartManager: ChartManager, configManager: ConfigManager, depManager: DependencyManager}} opts
+   */
   constructor (opts) {
     if (!opts || !opts.logger) throw new Error('An instance of core/Logger is required')
     if (!opts || !opts.helm) throw new Error('An instance of core/Helm is required')

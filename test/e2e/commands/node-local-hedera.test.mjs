@@ -20,9 +20,6 @@ import {
 } from '@jest/globals'
 import { flags } from '../../../src/commands/index.mjs'
 import {
-  constants
-} from '../../../src/core/index.mjs'
-import {
   bootstrapNetwork,
   getDefaultArgv,
   TEST_CLUSTER

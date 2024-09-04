@@ -71,7 +71,6 @@ jobs:
     needs:
       - env-vars
       - code-style
-      - e2e-tests
     with:
       custom-job-label: Mirror Node
       npm-test-script: test-${{ needs.env-vars.outputs.e2e-mirror-node-test-subdir }}
