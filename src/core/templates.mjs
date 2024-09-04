@@ -272,4 +272,14 @@ export class Templates {
       }
     }
   }
+
+  static renderGossipKeySecretName (nodeId) {
+    return `network-${nodeId}-keys-secrets`
+  }
+
+  static renderGossipKeySecretLabelObject (nodeId) {
+    return {
+      'fullstack.hedera.com/node-name': nodeId
+    }
+  }
 }

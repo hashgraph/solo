@@ -16,13 +16,14 @@
  */
 'use strict'
 import * as fs from 'fs'
-import * as os from 'os'
 import { Listr } from 'listr2'
 import * as path from 'path'
 import { FullstackTestingError, IllegalArgumentError, MissingArgumentError } from './errors.mjs'
 import { constants } from './index.mjs'
 import { Templates } from './templates.mjs'
 import { flags } from '../commands/index.mjs'
+import * as Base64 from 'js-base64'
+import chalk from 'chalk'
 
 /**
  * PlatformInstaller install platform code in the root-container of a network pod
@@ -151,23 +152,12 @@ export class PlatformInstaller {
     }
   }
 
-  /**
-   * @param {string} podName
-   * @param {string} stagingDir
-   * @param {string[]} nodeIds
-   * @param {string} [keyFormat]
-   * @returns {Promise<string[]>}
-   */
-  async copyGossipKeys (podName, stagingDir, nodeIds, keyFormat = constants.KEY_FORMAT_PEM) {
-    const self = this
-
-    if (!podName) throw new MissingArgumentError('podName is required')
+  async copyGossipKeys (nodeId, stagingDir, nodeIds, keyFormat = constants.KEY_FORMAT_PEM) {
+    if (!nodeId) throw new MissingArgumentError('nodeId is required')
     if (!stagingDir) throw new MissingArgumentError('stagingDir is required')
     if (!nodeIds || nodeIds.length <= 0) throw new MissingArgumentError('nodeIds cannot be empty')
 
     try {
-      const keysDir = `${constants.HEDERA_HAPI_PATH}/data/keys`
-      const nodeId = Templates.extractNodeIdFromPodName(podName)
       const srcFiles = []
 
       switch (keyFormat) {
@@ -190,38 +180,52 @@ export class PlatformInstaller {
           throw new FullstackTestingError(`Unsupported key file format ${keyFormat}`)
       }
 
-      return await self.copyFiles(podName, srcFiles, keysDir)
+      const data = {}
+      for (const srcFile of srcFiles) {
+        const fileContents = fs.readFileSync(srcFile)
+        const fileName = path.basename(srcFile)
+        data[fileName] = Base64.encode(fileContents)
+      }
+
+      if (!await this.k8.createSecret(
+        Templates.renderGossipKeySecretName(nodeId),
+        this._getNamespace(), 'Opaque', data,
+        Templates.renderGossipKeySecretLabelObject(nodeId), true)) {
+        throw new FullstackTestingError(`failed to create secret for gossip keys for node '${nodeId}'`)
+      }
     } catch (e) {
-      throw new FullstackTestingError(`failed to copy gossip keys to pod '${podName}': ${e.message}`, e)
+      this.logger.error(`failed to copy gossip keys to secret '${Templates.renderGossipKeySecretName(nodeId)}': ${e.message}`, e)
+      throw new FullstackTestingError(`failed to copy gossip keys to secret '${Templates.renderGossipKeySecretName(nodeId)}': ${e.message}`, e)
     }
   }
 
-  /**
-   * @param {string} podName
-   * @param {string} stagingDir
-   * @returns {Promise<string[]>}
-   */
-  async copyTLSKeys (podName, stagingDir) {
-    if (!podName) throw new MissingArgumentError('podName is required')
+  async copyTLSKeys (nodeIds, stagingDir) {
+    if (!nodeIds) throw new MissingArgumentError('nodeId is required')
     if (!stagingDir) throw new MissingArgumentError('stagingDir is required')
 
     try {
-      const nodeId = Templates.extractNodeIdFromPodName(podName)
-      const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), `${nodeId}-tls-keys-`))
+      const data = {}
 
-      // rename files appropriately in the tmp directory
-      fs.cpSync(path.join(stagingDir, 'keys', Templates.renderTLSPemPrivateKeyFile(nodeId)),
-        path.join(tmpDir, 'hedera.key'))
-      fs.cpSync(path.join(stagingDir, 'keys', Templates.renderTLSPemPublicKeyFile(nodeId)),
-        path.join(tmpDir, 'hedera.crt'))
+      for (const nodeId of nodeIds) {
+        const srcFiles = []
+        srcFiles.push(path.join(stagingDir, 'keys', Templates.renderTLSPemPrivateKeyFile(nodeId)))
+        srcFiles.push(path.join(stagingDir, 'keys', Templates.renderTLSPemPublicKeyFile(nodeId)))
 
-      const srcFiles = []
-      srcFiles.push(path.join(tmpDir, 'hedera.key'))
-      srcFiles.push(path.join(tmpDir, 'hedera.crt'))
-
-      return this.copyFiles(podName, srcFiles, constants.HEDERA_HAPI_PATH)
+        for (const srcFile of srcFiles) {
+          const fileContents = fs.readFileSync(srcFile)
+          const fileName = path.basename(srcFile)
+          data[fileName] = Base64.encode(fileContents)
+        }
+      }
+      if (!await this.k8.createSecret(
+        'network-node-hapi-app-secrets',
+        this._getNamespace(), 'Opaque', data,
+        undefined, true)) {
+        throw new FullstackTestingError('failed to create secret for TLS keys')
+      }
     } catch (e) {
-      throw new FullstackTestingError(`failed to copy TLS keys to pod '${podName}': ${e.message}`, e)
+      this.logger.error('failed to copy TLS keys to secret', e)
+      throw new FullstackTestingError('failed to copy TLS keys to secret', e)
     }
   }
 
@@ -276,36 +280,14 @@ export class PlatformInstaller {
   }
 
   /**
-   * Return a list of task to perform node installation
+   * Return a list of task to perform node directory setup
    *
-   * It assumes the staging directory has the following files and resources:
-   *   ${staging}/keys/s-<nodeId>.key: signing key for a node
-   *   ${staging}/keys/s-<nodeId>.crt: signing cert for a node
-   *   ${staging}/keys/a-<nodeId>.key: agreement key for a node
-   *   ${staging}/keys/a-<nodeId>.crt: agreement cert for a node
-   *   ${staging}/keys/hedera-<nodeId>.key: gRPC TLS key for a node
-   *   ${staging}/keys/hedera-<nodeId>.crt: gRPC TLS cert for a node
-   *
-   * @param {string} podName
-   * @param {string} stagingDir - staging directory path
-   * @param {string[]} nodeIds - list of node ids
-   * @param {string} [keyFormat] - key format (pfx or pem)
-   * @param {boolean} [force] - force flag
+   * @param podName name of the pod
    * @returns {Listr<ListrContext, ListrPrimaryRendererValue, ListrSecondaryRendererValue>}
    */
-  taskInstall (podName, stagingDir, nodeIds, keyFormat = constants.KEY_FORMAT_PEM, force = false) {
+  taskSetup (podName) {
     const self = this
     return new Listr([
-      {
-        title: 'Copy Gossip keys',
-        task: (_, task) =>
-          self.copyGossipKeys(podName, stagingDir, nodeIds, keyFormat)
-      },
-      {
-        title: 'Copy TLS keys',
-        task: (_, task) =>
-          self.copyTLSKeys(podName, stagingDir, keyFormat)
-      },
       {
         title: 'Set file permissions',
         task: (_, task) =>
@@ -317,7 +299,51 @@ export class PlatformInstaller {
       rendererOptions: {
         collapseSubtasks: false
       }
+    })
+  }
+
+  /**
+   * Return a list of task to copy the node keys to the staging directory
+   *
+   * It assumes the staging directory has the following files and resources:
+   * <li>${staging}/keys/s-public-<nodeId>.pem: private signing key for a node</li>
+   * <li>${staging}/keys/s-private-<nodeId>.pem: public signing key for a node</li>
+   * <li>${staging}/keys/a-public-<nodeId>.pem: private agreement key for a node</li>
+   * <li>${staging}/keys/a-private-<nodeId>.pem: public agreement key for a node</li>
+   * <li>${staging}/keys/hedera-<nodeId>.key: gRPC TLS key for a node</li>
+   * <li>${staging}/keys/hedera-<nodeId>.crt: gRPC TLS cert for a node</li>
+   *
+   * @param stagingDir staging directory path
+   * @param nodeIds list of node ids
+   * @param keyFormat key format (pfx or pem)
+   * @returns {Listr<ListrContext, ListrPrimaryRendererValue, ListrSecondaryRendererValue>[]}
+   */
+  copyNodeKeys (stagingDir, nodeIds, keyFormat = constants.KEY_FORMAT_PEM) {
+    const self = this
+    const subTasks = []
+    subTasks.push({
+      title: 'Copy TLS keys',
+      task: (_, task) =>
+        self.copyTLSKeys(nodeIds, stagingDir, keyFormat)
+    })
+
+    for (const nodeId of nodeIds) {
+      subTasks.push({
+        title: `Node: ${chalk.yellow(nodeId)}`,
+        task: () => new Listr([{
+          title: 'Copy Gossip keys',
+          task: (_, task) =>
+            self.copyGossipKeys(nodeId, stagingDir, nodeIds, keyFormat)
+        }
+        ],
+        {
+          concurrent: false,
+          rendererOptions: {
+            collapseSubtasks: false
+          }
+        })
+      })
     }
-    )
+    return subTasks
   }
 }
