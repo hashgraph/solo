@@ -23,6 +23,7 @@ import path from 'path'
 import { FullstackTestingError, IllegalArgumentError } from '../core/errors.mjs'
 import * as helpers from '../core/helpers.mjs'
 import {
+  addDebugOptions,
   getNodeAccountMap,
   getNodeLogs,
   renameAndCopyFile,
@@ -167,6 +168,7 @@ export class NodeCommand extends BaseCommand {
       flags.chainId,
       flags.chartDirectory,
       flags.devMode,
+      flags.debugNodeId,
       flags.endpointType,
       flags.fstChartVersion,
       flags.generateGossipKeys,
@@ -191,6 +193,7 @@ export class NodeCommand extends BaseCommand {
       flags.cacheDir,
       flags.chartDirectory,
       flags.devMode,
+      flags.debugNodeId,
       flags.endpointType,
       flags.keyFormat,
       flags.localBuildPath,
@@ -212,6 +215,7 @@ export class NodeCommand extends BaseCommand {
       flags.cacheDir,
       flags.chartDirectory,
       flags.devMode,
+      flags.debugNodeId,
       flags.endpointType,
       flags.fstChartVersion,
       flags.gossipEndpoints,
@@ -1372,6 +1376,7 @@ export class NodeCommand extends BaseCommand {
            * @property {string} chainId
            * @property {string} chartDirectory
            * @property {boolean} devMode
+           * @property {string} debugNodeId
            * @property {string} endpointType
            * @property {string} fstChartVersion
            * @property {boolean} generateGossipKeys
@@ -1766,6 +1771,7 @@ export class NodeCommand extends BaseCommand {
           if (this.profileValuesFile) {
             valuesArg += this.prepareValuesFiles(this.profileValuesFile)
           }
+          valuesArg = addDebugOptions(valuesArg, config.debugNodeId)
 
           await self.chartManager.upgrade(
             config.namespace,
@@ -2298,6 +2304,7 @@ export class NodeCommand extends BaseCommand {
            * @property {string} cacheDir
            * @property {string} chartDirectory
            * @property {boolean} devMode
+           * @property {string} debugNodeId
            * @property {string} endpointType
            * @property {string} fstChartVersion
            * @property {string} gossipEndpoints
@@ -2647,6 +2654,7 @@ export class NodeCommand extends BaseCommand {
           if (this.profileValuesFile) {
             valuesArg += this.prepareValuesFiles(this.profileValuesFile)
           }
+          valuesArg = addDebugOptions(valuesArg, config.debugNodeId)
 
           await self.chartManager.upgrade(
             config.namespace,
@@ -2883,6 +2891,7 @@ export class NodeCommand extends BaseCommand {
            * @property {string} cacheDir
            * @property {string} chartDirectory
            * @property {boolean} devMode
+           * @property {string} debugNodeId
            * @property {string} endpointType
            * @property {string} fstChartVersion
            * @property {string} keyFormat
@@ -3134,6 +3143,8 @@ export class NodeCommand extends BaseCommand {
           if (this.profileValuesFile) {
             valuesArg += this.prepareValuesFiles(this.profileValuesFile)
           }
+
+          valuesArg = addDebugOptions(valuesArg, config.debugNodeId)
 
           await self.chartManager.upgrade(
             config.namespace,

@@ -361,3 +361,18 @@ export function renameAndCopyFile (srcFilePath, expectedBaseName, destDir) {
     }
   })
 }
+
+/**
+ * Add debug options to valuesArg used by helm chart
+ * @param valuesArg the valuesArg to update
+ * @param debugNodeId the node ID to attach the debugger to
+ * @returns updated valuesArg
+ */
+export function addDebugOptions (valuesArg, debugNodeId) {
+  if (debugNodeId) {
+    const nodeId = Templates.nodeNumberFromNodeId(debugNodeId) - 1
+    valuesArg += ` --set "hedera.nodes[${nodeId}].root.extraEnv[0].name=JAVA_OPTS"`
+    valuesArg += ` --set "hedera.nodes[${nodeId}].root.extraEnv[0].value=-agentlib:jdwp=transport=dt_socket\\,server=y\\,suspend=n\\,address=*:5005"`
+  }
+  return valuesArg
+}

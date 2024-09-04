@@ -25,7 +25,7 @@ import { constants, Templates } from '../core/index.mjs'
 import * as prompts from './prompts.mjs'
 import * as helpers from '../core/helpers.mjs'
 import path from 'path'
-import { validatePath } from '../core/helpers.mjs'
+import { addDebugOptions, validatePath } from '../core/helpers.mjs'
 import fs from 'fs'
 
 export class NetworkCommand extends BaseCommand {
@@ -140,12 +140,7 @@ export class NetworkCommand extends BaseCommand {
       valuesArg += this.prepareValuesFiles(config.valuesFile)
     }
 
-    if (config.debugNodeId) {
-      // get node id from nodeid
-      const nodeId = Templates.nodeNumberFromNodeId(config.debugNodeId) - 1
-      valuesArg += ` --set "hedera.nodes[${nodeId}].root.extraEnv[0].name=JAVA_OPTS"`
-      valuesArg += ` --set "hedera.nodes[${nodeId}].root.extraEnv[0].value=-agentlib:jdwp=transport=dt_socket\\,server=y\\,suspend=y\\,address=*:5005"`
-    }
+    valuesArg = addDebugOptions(valuesArg, config.debugNodeId)
 
     const profileName = this.configManager.getFlag(flags.profileName)
     this.profileValuesFile = await this.profileManager.prepareValuesForFstChart(profileName)
