@@ -175,6 +175,8 @@ export class NodeCommand extends BaseCommand {
 
   static get UPDATE_FLAGS_LIST () {
     return [
+      flags.agreementPrivateKey,
+      flags.agreementPublicKey,
       flags.app,
       flags.cacheDir,
       flags.chartDirectory,
@@ -2132,6 +2134,8 @@ export class NodeCommand extends BaseCommand {
 
           // disable the prompts that we don't want to prompt the user for
           prompts.disablePrompts([
+            flags.agreementPrivateKey,
+            flags.agreementPublicKey,
             flags.app,
             flags.chartDirectory,
             flags.devMode,
@@ -2154,6 +2158,8 @@ export class NodeCommand extends BaseCommand {
           /**
            * @typedef {Object} NodeUpdateConfigClass
            * -- flags --
+           * @property {string} agreementPrivateKey
+           * @property {string} agreementPublicKey
            * @property {string} app
            * @property {string} cacheDir
            * @property {string} chartDirectory
@@ -2341,7 +2347,8 @@ export class NodeCommand extends BaseCommand {
               renameAndCopyFile(config.tlsPrivateKey, privateKeyFile, config.keysDir)
             }
 
-            if (config.gossipPublicKey && config.gossipPrivateKey) {
+            if (config.gossipPublicKey && config.gossipPrivateKey &&
+              config.agreementPrivateKey && config.agreementPublicKey) {
               self.logger.info(`config.gossipPublicKey: ${config.gossipPublicKey}`)
               const signingCertDer = await this.loadPermCertificate(config.gossipPublicKey)
               nodeUpdateTx.setGossipCaCertificate(signingCertDer)
@@ -2350,6 +2357,11 @@ export class NodeCommand extends BaseCommand {
               const privateKeyFile = Templates.renderGossipPemPrivateKeyFile(constants.SIGNING_KEY_PREFIX, config.nodeId)
               renameAndCopyFile(config.gossipPublicKey, publicKeyFile, config.keysDir)
               renameAndCopyFile(config.gossipPrivateKey, privateKeyFile, config.keysDir)
+
+              const agreePublicKeyFile = Templates.renderGossipPemPublicKeyFile(constants.AGREEMENT_KEY_PREFIX, config.nodeId)
+              const agreePrivateKeyFile = Templates.renderGossipPemPrivateKeyFile(constants.AGREEMENT_KEY_PREFIX, config.nodeId)
+              renameAndCopyFile(config.agreementPublicKey, agreePublicKeyFile, config.keysDir)
+              renameAndCopyFile(config.agreementPrivateKey, agreePrivateKeyFile, config.keysDir)
             }
 
             if (config.newAccountNumber) {
@@ -2488,7 +2500,7 @@ export class NodeCommand extends BaseCommand {
           const nodeId = Templates.nodeNumberFromNodeId(config.nodeId) - 1
           let valuesArg = ''
           for (let i = 0; i < index; i++) {
-            if (i !== nodeId) {
+            if (i !== nodeId && config.newAccountNumber) {
               valuesArg += ` --set "hedera.nodes[${i}].accountId=${config.serviceMap.get(config.existingNodeIds[i]).accountId}" --set "hedera.nodes[${i}].name=${config.existingNodeIds[i]}"`
             } else {
               // use new account number for this node id
@@ -2509,7 +2521,9 @@ export class NodeCommand extends BaseCommand {
             valuesArg,
             config.fstChartVersion
           )
-        }
+        },
+        // no need to run this step if the account number is not changed, since config.txt will be the same
+        skip: (ctx, _) => !ctx.config.newAccountNumber
       },
       {
         title: 'Kill nodes to pick up updated configMaps',
