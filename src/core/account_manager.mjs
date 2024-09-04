@@ -553,7 +553,7 @@ export class AccountManager {
    * @param {number} amount - the amount of HBAR to add to the account
    * @param {boolean} [setAlias] - whether to set the alias of the account to the public key, requires
    * the privateKey supplied to be ECDSA
-   * @returns {{accountId: AccountId, privateKey: string, publicKey: string, balance: number}} a custom object with
+   * @returns {Promise<{accountId: AccountId, privateKey: string, publicKey: string, balance: number}>} a custom object with
    * the account information in it
    */
   async createNewAccount (namespace, privateKey, amount, setAlias = false) {
