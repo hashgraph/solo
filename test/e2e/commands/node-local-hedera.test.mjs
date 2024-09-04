@@ -37,13 +37,14 @@ describe('Node local build', () => {
   argv[flags.generateGossipKeys.name] = true
   argv[flags.generateTlsKeys.name] = true
   argv[flags.clusterName.name] = TEST_CLUSTER
+  argv[flags.debugNodeId.name] = 'node1'
   // set the env variable SOLO_FST_CHARTS_DIR if developer wants to use local FST charts
   argv[flags.chartDirectory.name] = process.env.SOLO_FST_CHARTS_DIR ? process.env.SOLO_FST_CHARTS_DIR : undefined
 
   let hederaK8
   afterAll(async () => {
     await getNodeLogs(hederaK8, LOCAL_HEDERA)
-    await hederaK8.deleteNamespace(LOCAL_HEDERA)
+    // await hederaK8.deleteNamespace(LOCAL_HEDERA)
   }, 600000)
 
   describe('Node for hedera app should start successfully', () => {

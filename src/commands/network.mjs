@@ -74,6 +74,7 @@ export class NetworkCommand extends BaseCommand {
       flags.fstChartVersion,
       flags.hederaExplorerTlsHostName,
       flags.hederaExplorerTlsLoadBalancerIp,
+      flags.debugNodeId,
       flags.keyFormat,
       flags.log4j2Xml,
       flags.namespace,
@@ -139,6 +140,13 @@ export class NetworkCommand extends BaseCommand {
       valuesArg += this.prepareValuesFiles(config.valuesFile)
     }
 
+    if (config.debugNodeId) {
+      // get node id from nodeid
+      const nodeId = Templates.nodeNumberFromNodeId(config.debugNodeId) - 1
+      valuesArg += ` --set "hedera.nodes[${nodeId}].root.extraEnv[0].name=JAVA_OPTS"`
+      valuesArg += ` --set "hedera.nodes[${nodeId}].root.extraEnv[0].value=-agentlib:jdwp=transport=dt_socket\\,server=y\\,suspend=y\\,address=*:5005"`
+    }
+
     const profileName = this.configManager.getFlag(flags.profileName)
     this.profileValuesFile = await this.profileManager.prepareValuesForFstChart(profileName)
     if (this.profileValuesFile) {
@@ -187,6 +195,7 @@ export class NetworkCommand extends BaseCommand {
       flags.deployMirrorNode,
       flags.hederaExplorerTlsLoadBalancerIp,
       flags.keyFormat,
+      flags.debugNodeId,
       flags.log4j2Xml,
       flags.persistentVolumeClaims,
       flags.profileName,
@@ -209,6 +218,7 @@ export class NetworkCommand extends BaseCommand {
      * @property {string} fstChartVersion
      * @property {string} hederaExplorerTlsHostName
      * @property {string} hederaExplorerTlsLoadBalancerIp
+     * @property {string} debugNodeId
      * @property {string} keyFormat
      * @property {string} namespace
      * @property {string} nodeIDs
