@@ -37,7 +37,7 @@ import {
   V1VolumeResourceRequirements
 } from '@kubernetes/client-node'
 
-const defaultTimeout = 20000
+const defaultTimeout = 120000
 
 describe('K8', () => {
   const testLogger = logging.NewLogger('debug', true)
@@ -45,21 +45,23 @@ describe('K8', () => {
   const k8 = new K8(configManager, testLogger)
   const testNamespace = 'k8-e2e'
   const argv = []
-  const podName = 'test-pod'
+  const podName = `test-pod-${uuid4()}`
   const containerName = 'alpine'
-  const podLabel = 'app=test'
-  const serviceName = 'test-service'
+  const podLabelValue = `test-${uuid4()}`
+  const serviceName = `test-service-${uuid4()}`
 
   beforeAll(async () => {
     try {
       argv[flags.namespace.name] = testNamespace
       configManager.update(argv)
-      await k8.createNamespace(testNamespace)
+      if (!await k8.hasNamespace(testNamespace)) {
+        await k8.createNamespace(testNamespace)
+      }
       const v1Pod = new V1Pod()
       const v1Metadata = new V1ObjectMeta()
       v1Metadata.name = podName
       v1Metadata.namespace = testNamespace
-      v1Metadata.labels = { app: 'test' }
+      v1Metadata.labels = { app: podLabelValue }
       v1Pod.metadata = v1Metadata
       const v1Container = new V1Container()
       v1Container.name = containerName
@@ -83,7 +85,7 @@ describe('K8', () => {
       v1Svc.spec = v1SvcSpec
       await k8.kubeClient.createNamespacedService(testNamespace, v1Svc)
     } catch (e) {
-      console.log(e)
+      console.log(`${e}, ${e.stack}`)
       throw e
     }
   }, defaultTimeout)
@@ -91,7 +93,6 @@ describe('K8', () => {
   afterAll(async () => {
     try {
       await k8.kubeClient.deleteNamespacedPod(podName, testNamespace, undefined, undefined, 1)
-      await k8.deleteNamespace(testNamespace)
       argv[flags.namespace.name] = constants.FULLSTACK_SETUP_NAMESPACE
       configManager.update(argv)
     } catch (e) {
@@ -123,21 +124,21 @@ describe('K8', () => {
   }, defaultTimeout)
 
   it('should be able to run wait for pod', async () => {
-    const labels = [podLabel]
+    const labels = [`app=${podLabelValue}`]
 
     const pods = await k8.waitForPods([constants.POD_PHASE_RUNNING], labels, 1)
     expect(pods.length).toStrictEqual(1)
   }, defaultTimeout)
 
   it('should be able to run wait for pod ready', async () => {
-    const labels = [podLabel]
+    const labels = [`app=${podLabelValue}`]
 
     const pods = await k8.waitForPodReady(labels, 1)
     expect(pods.length).toStrictEqual(1)
   }, defaultTimeout)
 
   it('should be able to run wait for pod conditions', async () => {
-    const labels = [podLabel]
+    const labels = [`app=${podLabelValue}`]
 
     const conditions = new Map()
       .set(constants.POD_CONDITION_INITIALIZED, constants.POD_CONDITION_STATUS_TRUE)
@@ -148,7 +149,7 @@ describe('K8', () => {
   }, defaultTimeout)
 
   it('should be able to detect pod IP of a pod', async () => {
-    const pods = await k8.getPodsByLabel([podLabel])
+    const pods = await k8.getPodsByLabel([`app=${podLabelValue}`])
     const podName = pods[0].metadata.name
     await expect(k8.getPodIP(podName)).resolves.not.toBeNull()
     await expect(k8.getPodIP('INVALID')).rejects.toThrow(FullstackTestingError)
@@ -160,13 +161,13 @@ describe('K8', () => {
   }, defaultTimeout)
 
   it('should be able to check if a path is directory inside a container', async () => {
-    const pods = await k8.getPodsByLabel([podLabel])
+    const pods = await k8.getPodsByLabel([`app=${podLabelValue}`])
     const podName = pods[0].metadata.name
     await expect(k8.hasDir(podName, containerName, '/tmp')).resolves.toBeTruthy()
   }, defaultTimeout)
 
   it('should be able to copy a file to and from a container', async () => {
-    const pods = await k8.waitForPodReady([podLabel], 1, 20)
+    const pods = await k8.waitForPodReady([`app=${podLabelValue}`], 1, 20)
     expect(pods.length).toStrictEqual(1)
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'k8-'))
     const destDir = '/tmp'
@@ -216,7 +217,7 @@ describe('K8', () => {
   }, defaultTimeout)
 
   it('should be able to cat a file inside the container', async () => {
-    const pods = await k8.getPodsByLabel([podLabel])
+    const pods = await k8.getPodsByLabel([`app=${podLabelValue}`])
     const podName = pods[0].metadata.name
     const output = await k8.execContainer(podName, containerName, ['cat', '/etc/hostname'])
     expect(output.indexOf(podName)).toEqual(0)
@@ -224,9 +225,9 @@ describe('K8', () => {
 
   it('should be able to list persistent volume claims', async () => {
     let response
+    const v1Pvc = new V1PersistentVolumeClaim()
     try {
-      const v1Pvc = new V1PersistentVolumeClaim()
-      v1Pvc.name = 'test-pvc'
+      v1Pvc.name = `test-pvc-${uuid4()}`
       const v1Spec = new V1PersistentVolumeClaimSpec()
       v1Spec.accessModes = ['ReadWriteOnce']
       const v1ResReq = new V1VolumeResourceRequirements()
@@ -234,7 +235,7 @@ describe('K8', () => {
       v1Spec.resources = v1ResReq
       v1Pvc.spec = v1Spec
       const v1Metadata = new V1ObjectMeta()
-      v1Metadata.name = 'test-pvc'
+      v1Metadata.name = v1Pvc.name
       v1Pvc.metadata = v1Metadata
       response = await k8.kubeClient.createNamespacedPersistentVolumeClaim(testNamespace, v1Pvc)
       console.log(response)
@@ -243,6 +244,8 @@ describe('K8', () => {
     } catch (e) {
       console.error(e)
       throw e
+    } finally {
+      await k8.deletePvc(v1Pvc.name, testNamespace)
     }
   }, defaultTimeout)
 })

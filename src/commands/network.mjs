@@ -14,30 +14,49 @@
  * limitations under the License.
  *
  */
+'use strict'
 import { ListrEnquirerPromptAdapter } from '@listr2/prompt-adapter-enquirer'
 import chalk from 'chalk'
 import { Listr } from 'listr2'
 import { FullstackTestingError, IllegalArgumentError, MissingArgumentError } from '../core/errors.mjs'
 import { BaseCommand } from './base.mjs'
 import * as flags from './flags.mjs'
-import { constants } from '../core/index.mjs'
+import { constants, Templates } from '../core/index.mjs'
 import * as prompts from './prompts.mjs'
 import * as helpers from '../core/helpers.mjs'
 import path from 'path'
+import { validatePath } from '../core/helpers.mjs'
+import fs from 'fs'
 
 export class NetworkCommand extends BaseCommand {
+  /**
+   * @param {{profileManager: ProfileManager, logger: Logger, helm: Helm, k8: K8, chartManager: ChartManager,
+   * configManager: ConfigManager, depManager: DependencyManager, downloader: PackageDownloader}} opts
+   */
   constructor (opts) {
     super(opts)
 
+    if (!opts || !opts.k8) throw new Error('An instance of core/K8 is required')
+    if (!opts || !opts.keyManager) throw new IllegalArgumentError('An instance of core/KeyManager is required', opts.keyManager)
+    if (!opts || !opts.platformInstaller) throw new IllegalArgumentError('An instance of core/PlatformInstaller is required', opts.platformInstaller)
     if (!opts || !opts.profileManager) throw new MissingArgumentError('An instance of core/ProfileManager is required', opts.downloader)
 
+    this.k8 = opts.k8
+    this.keyManager = opts.keyManager
+    this.platformInstaller = opts.platformInstaller
     this.profileManager = opts.profileManager
   }
 
+  /**
+   * @returns {string}
+   */
   static get DEPLOY_CONFIGS_NAME () {
     return 'deployConfigs'
   }
 
+  /**
+   * @returns {CommandFlag[]}
+   */
   static get DEPLOY_FLAGS_LIST () {
     return [
       flags.apiPermissionProperties,
@@ -45,6 +64,7 @@ export class NetworkCommand extends BaseCommand {
       flags.applicationEnv,
       flags.applicationProperties,
       flags.bootstrapProperties,
+      flags.cacheDir,
       flags.chainId,
       flags.chartDirectory,
       flags.deployHederaExplorer,
@@ -54,6 +74,7 @@ export class NetworkCommand extends BaseCommand {
       flags.fstChartVersion,
       flags.hederaExplorerTlsHostName,
       flags.hederaExplorerTlsLoadBalancerIp,
+      flags.keyFormat,
       flags.log4j2Xml,
       flags.namespace,
       flags.nodeIDs,
@@ -67,6 +88,14 @@ export class NetworkCommand extends BaseCommand {
     ]
   }
 
+  /**
+   * @param {string} tlsClusterIssuerType
+   * @param {boolean} enableHederaExplorerTls
+   * @param {string} namespace
+   * @param {string} hederaExplorerTlsLoadBalancerIp
+   * @param {string} hederaExplorerTlsHostName
+   * @returns {string}
+   */
   getTlsValueArguments (tlsClusterIssuerType, enableHederaExplorerTls, namespace,
     hederaExplorerTlsLoadBalancerIp, hederaExplorerTlsHostName) {
     let valuesArg = ''
@@ -96,6 +125,10 @@ export class NetworkCommand extends BaseCommand {
     return valuesArg
   }
 
+  /**
+   * @param {Object} config
+   * @returns {Promise<string>}
+   */
   async prepareValuesArg (config = {}) {
     let valuesArg = ''
     if (config.chartDirectory) {
@@ -132,6 +165,11 @@ export class NetworkCommand extends BaseCommand {
     return valuesArg
   }
 
+  /**
+   * @param task
+   * @param {Object} argv
+   * @returns {Promise<NetworkDeployConfigClass>}
+   */
   async prepareConfig (task, argv) {
     this.configManager.update(argv)
     this.logger.debug('Loaded cached config', { config: this.configManager.config })
@@ -143,10 +181,12 @@ export class NetworkCommand extends BaseCommand {
       flags.applicationEnv,
       flags.applicationProperties,
       flags.bootstrapProperties,
+      flags.cacheDir,
       flags.chainId,
       flags.deployHederaExplorer,
       flags.deployMirrorNode,
       flags.hederaExplorerTlsLoadBalancerIp,
+      flags.keyFormat,
       flags.log4j2Xml,
       flags.persistentVolumeClaims,
       flags.profileName,
@@ -160,6 +200,7 @@ export class NetworkCommand extends BaseCommand {
      * @typedef {Object} NetworkDeployConfigClass
      * -- flags --
      * @property {string} applicationEnv
+     * @property {string} cacheDir
      * @property {string} chartDirectory
      * @property {boolean} deployHederaExplorer
      * @property {boolean} deployMirrorNode
@@ -168,6 +209,7 @@ export class NetworkCommand extends BaseCommand {
      * @property {string} fstChartVersion
      * @property {string} hederaExplorerTlsHostName
      * @property {string} hederaExplorerTlsLoadBalancerIp
+     * @property {string} keyFormat
      * @property {string} namespace
      * @property {string} nodeIDs
      * @property {string} persistentVolumeClaims
@@ -176,8 +218,11 @@ export class NetworkCommand extends BaseCommand {
      * @property {string} releaseTag
      * @property {string} tlsClusterIssuerType
      * -- extra args --
-     * @property {string[]} nodeIds
      * @property {string} chartPath
+     * @property {string} keysDir
+     * @property {string[]} nodeIds
+     * @property {string} stagingDir
+     * @property {string} stagingKeysDir
      * @property {string} valuesArg
      * -- methods --
      * @property {getUnusedConfigs} getUnusedConfigs
@@ -189,7 +234,14 @@ export class NetworkCommand extends BaseCommand {
 
     // create a config object for subsequent steps
     const config = /** @type {NetworkDeployConfigClass} **/ this.getConfig(NetworkCommand.DEPLOY_CONFIGS_NAME, NetworkCommand.DEPLOY_FLAGS_LIST,
-      ['nodeIds', 'chartPath', 'valuesArg'])
+      [
+        'chartPath',
+        'keysDir',
+        'nodeIds',
+        'stagingDir',
+        'stagingKeysDir',
+        'valuesArg'
+      ])
 
     config.nodeIds = helpers.parseNodeIds(config.nodeIDs)
 
@@ -198,6 +250,28 @@ export class NetworkCommand extends BaseCommand {
       constants.FULLSTACK_TESTING_CHART, constants.FULLSTACK_DEPLOYMENT_CHART)
 
     config.valuesArg = await this.prepareValuesArg(config)
+
+    // compute other config parameters
+    config.keysDir = path.join(validatePath(config.cacheDir), 'keys')
+    config.stagingDir = Templates.renderStagingDir(
+      config.cacheDir,
+      config.releaseTag
+    )
+    config.stagingKeysDir = path.join(validatePath(config.stagingDir), 'keys')
+
+    if (!await this.k8.hasNamespace(config.namespace)) {
+      await this.k8.createNamespace(config.namespace)
+    }
+
+    // prepare staging keys directory
+    if (!fs.existsSync(config.stagingKeysDir)) {
+      fs.mkdirSync(config.stagingKeysDir, { recursive: true })
+    }
+
+    // create cached keys dir if it does not exist yet
+    if (!fs.existsSync(config.keysDir)) {
+      fs.mkdirSync(config.keysDir)
+    }
 
     this.logger.debug('Prepared config', {
       config,
@@ -208,8 +282,8 @@ export class NetworkCommand extends BaseCommand {
 
   /**
    * Run helm install and deploy network components
-   * @param argv
-   * @return {Promise<boolean>}
+   * @param {Object} argv
+   * @returns {Promise<boolean>}
    */
   async deploy (argv) {
     const self = this
@@ -219,6 +293,50 @@ export class NetworkCommand extends BaseCommand {
         title: 'Initialize',
         task: async (ctx, task) => {
           ctx.config = /** @type {NetworkDeployConfigClass} **/ await self.prepareConfig(task, argv)
+        }
+      },
+      {
+        title: 'Prepare staging directory',
+        task: async (ctx, parentTask) => {
+          const subTasks = [
+            {
+              title: 'Copy Gossip keys to staging',
+              task: async (ctx, _) => {
+                const config = /** @type {NetworkDeployConfigClass} **/ ctx.config
+
+                await this.keyManager.copyGossipKeysToStaging(config.keyFormat, config.keysDir, config.stagingKeysDir, config.nodeIds)
+              }
+            },
+            {
+              title: 'Copy gRPC TLS keys to staging',
+              task: async (ctx, _) => {
+                const config = /** @type {NetworkDeployConfigClass} **/ ctx.config
+                for (const nodeId of config.nodeIds) {
+                  const tlsKeyFiles = self.keyManager.prepareTLSKeyFilePaths(nodeId, config.keysDir)
+                  await self.keyManager.copyNodeKeysToStaging(tlsKeyFiles, config.stagingKeysDir)
+                }
+              }
+            }
+          ]
+
+          return parentTask.newListr(subTasks, {
+            concurrent: false,
+            rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
+          })
+        }
+      },
+      {
+        title: 'Copy node keys to secrets',
+        task: async (ctx, parentTask) => {
+          const config = /** @type {NetworkDeployConfigClass} **/ ctx.config
+
+          const subTasks = self.platformInstaller.copyNodeKeys(config.stagingDir, config.nodeIds, config.keyFormat)
+
+          // set up the sub-tasks
+          return parentTask.newListr(subTasks, {
+            concurrent: true,
+            rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
+          })
         }
       },
       {
@@ -343,8 +461,8 @@ export class NetworkCommand extends BaseCommand {
 
   /**
    * Run helm uninstall and destroy network components
-   * @param argv
-   * @return {Promise<boolean>}
+   * @param {Object} argv
+   * @returns {Promise<boolean>}
    */
   async destroy (argv) {
     const self = this
@@ -427,8 +545,8 @@ export class NetworkCommand extends BaseCommand {
 
   /**
    * Run helm upgrade to refresh network components with new settings
-   * @param argv
-   * @return {Promise<boolean>}
+   * @param {Object} argv
+   * @returns {Promise<boolean>}
    */
   async refresh (argv) {
     const self = this
@@ -475,6 +593,10 @@ export class NetworkCommand extends BaseCommand {
     return true
   }
 
+  /**
+   * @param {NetworkCommand} networkCmd
+   * @returns {{command: string, desc: string, builder: Function}}
+   */
   static getCommandDefinition (networkCmd) {
     if (!networkCmd || !(networkCmd instanceof NetworkCommand)) {
       throw new IllegalArgumentError('An instance of NetworkCommand is required', networkCmd)

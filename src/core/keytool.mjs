@@ -14,6 +14,7 @@
  * limitations under the License.
  *
  */
+'use strict'
 import os from 'os'
 import { constants } from './index.mjs'
 import { ShellRunner } from './shell_runner.mjs'
@@ -21,6 +22,10 @@ import { Templates } from './templates.mjs'
 import { MissingArgumentError } from './errors.mjs'
 
 export class Keytool extends ShellRunner {
+  /**
+   * @param {Logger} logger
+   * @param {NodeJS.Platform} [osPlatform]
+   */
   constructor (logger, osPlatform = os.platform()) {
     if (!logger) throw new MissingArgumentError('an instance of core/Logger is required', logger)
     super(logger)
@@ -30,8 +35,8 @@ export class Keytool extends ShellRunner {
 
   /**
    * Prepare a `keytool` shell command string
-   * @param action represents a helm command (e.g. create | install | get )
-   * @param args args of the command
+   * @param {string} action - represents a helm command (e.g. create | install | get )
+   * @param {string} args - args of the command
    * @returns {string}
    */
   prepareCommand (action, ...args) {
@@ -44,7 +49,7 @@ export class Keytool extends ShellRunner {
 
   /**
    * Invoke `keytool -genkeypair` command
-   * @param args args of the command
+   * @param {string} args - args of the command
    * @returns {Promise<Array>} console output as an array of strings
    */
   async genKeyPair (...args) {
@@ -53,7 +58,7 @@ export class Keytool extends ShellRunner {
 
   /**
    * Invoke `keytool -certreq` command
-   * @param args args of the command
+   * @param {string} args - args of the command
    * @returns {Promise<Array>} console output as an array of strings
    */
   async certReq (...args) {
@@ -62,7 +67,7 @@ export class Keytool extends ShellRunner {
 
   /**
    * Invoke `keytool -gencert` command
-   * @param args args of the command
+   * @param {string} args - args of the command
    * @returns {Promise<Array>} console output as an array of strings
    */
   async genCert (...args) {
@@ -71,7 +76,7 @@ export class Keytool extends ShellRunner {
 
   /**
    * Invoke `keytool -importcert` command
-   * @param args args of the command
+   * @param {string} args - args of the command
    * @returns {Promise<Array>} console output as an array of strings
    */
   async importCert (...args) {
@@ -80,7 +85,7 @@ export class Keytool extends ShellRunner {
 
   /**
    * Invoke `keytool -exportcert` command
-   * @param args args of the command
+   * @param {string} args - args of the command
    * @returns {Promise<Array>} console output as an array of strings
    */
   async exportCert (...args) {
@@ -89,7 +94,7 @@ export class Keytool extends ShellRunner {
 
   /**
    * Invoke `keytool -list` command
-   * @param args args of the command
+   * @param {string} args - args of the command
    * @returns {Promise<Array>} console output as an array of strings
    */
   async list (...args) {

@@ -19,8 +19,8 @@ import { afterAll, describe, expect, it } from '@jest/globals'
 import { flags } from '../../../src/commands/index.mjs'
 import { constants } from '../../../src/core/index.mjs'
 import {
-  // accountCreationShouldSucceed,
-  // balanceQueryShouldSucceed,
+  accountCreationShouldSucceed,
+  balanceQueryShouldSucceed,
   bootstrapNetwork,
   getDefaultArgv, getNodeIdsPrivateKeysHash, getTmpDir,
   HEDERA_PLATFORM_VERSION_TAG
@@ -60,6 +60,7 @@ describe('Node update', () => {
 
   afterAll(async () => {
     await getNodeLogs(k8, namespace)
+    await nodeCmd.stop(argv)
     await k8.deleteNamespace(namespace)
   }, 600000)
 
@@ -73,7 +74,7 @@ describe('Node update', () => {
     expect(status).toBeTruthy()
   }, 450000)
 
-  it.skip('should update a new node property successfully', async () => {
+  it('should update a new node property successfully', async () => {
     // generate gossip and tls keys for the updated node
     const tmpDir = getTmpDir()
 
@@ -82,6 +83,12 @@ describe('Node update', () => {
     nodeCmd.logger.debug(`generated test gossip signing keys for node ${updateNodeId} : ${signingKeyFiles.certificateFile}`)
     argv[flags.gossipPublicKey.name] = signingKeyFiles.certificateFile
     argv[flags.gossipPrivateKey.name] = signingKeyFiles.privateKeyFile
+
+    // should also regenerate agreement keys
+    const agreementKey = await nodeCmd.keyManager.generateAgreementKey(updateNodeId, signingKey)
+    const agreementKeyFiles = await nodeCmd.keyManager.storeAgreementKey(updateNodeId, agreementKey, tmpDir)
+    argv[flags.agreementPublicKey.name] = agreementKeyFiles.certificateFile
+    argv[flags.agreementPrivateKey.name] = agreementKeyFiles.privateKeyFile
 
     const tlsKey = await nodeCmd.keyManager.generateGrpcTLSKey(updateNodeId)
     const tlsKeyFiles = await nodeCmd.keyManager.storeTLSKey(updateNodeId, tlsKey, tmpDir)
@@ -97,11 +104,11 @@ describe('Node update', () => {
     await nodeCmd.accountManager.close()
   }, 1800000)
 
-  // balanceQueryShouldSucceed(nodeCmd.accountManager, nodeCmd, namespace)
-  //
-  // accountCreationShouldSucceed(nodeCmd.accountManager, nodeCmd, namespace)
+  balanceQueryShouldSucceed(nodeCmd.accountManager, nodeCmd, namespace)
 
-  it.skip('signing key and tls key should not match previous one', async () => {
+  accountCreationShouldSucceed(nodeCmd.accountManager, nodeCmd, namespace)
+
+  it('signing key and tls key should not match previous one', async () => {
     const currentNodeIdsPrivateKeysHash = await getNodeIdsPrivateKeysHash(existingServiceMap, namespace, constants.KEY_FORMAT_PEM, k8, getTmpDir())
 
     for (const [nodeId, existingKeyHashMap] of existingNodeIdsPrivateKeysHash.entries()) {
@@ -109,7 +116,7 @@ describe('Node update', () => {
 
       for (const [keyFileName, existingKeyHash] of existingKeyHashMap.entries()) {
         if (nodeId === updateNodeId &&
-          (keyFileName.startsWith(constants.SIGNING_KEY_PREFIX) || keyFileName.startsWith('hedera'))) {
+          (keyFileName.startsWith(constants.SIGNING_KEY_PREFIX) || keyFileName.startsWith(constants.AGREEMENT_KEY_PREFIX) || keyFileName.startsWith('hedera'))) {
           expect(`${nodeId}:${keyFileName}:${currentNodeKeyHashMap.get(keyFileName)}`).not.toEqual(
             `${nodeId}:${keyFileName}:${existingKeyHash}`)
         } else {
@@ -120,7 +127,7 @@ describe('Node update', () => {
     }
   }, defaultTimeout)
 
-  it.skip('config.txt should be changed with new account id', async () => {
+  it('config.txt should be changed with new account id', async () => {
     // read config.txt file from first node, read config.txt line by line, it should not contain value of newAccountId
     const pods = await k8.getPodsByLabel(['fullstack.hedera.com/type=network-node'])
     const podName = pods[0].metadata.name
