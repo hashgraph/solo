@@ -13,13 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
+ * @jest-environment steps
  */
+import { describe } from '@jest/globals'
+import { testNodeAdd } from '../../test_add.mjs'
 
-/**
- * This file should only contain versions for dependencies
- */
-
-export const JAVA_VERSION = '21.0.1+12'
-export const HELM_VERSION = 'v3.14.2'
-export const FST_CHART_VERSION = 'v0.29.1'
-export const HEDERA_PLATFORM_VERSION = 'v0.53.2'
+describe('Node add with hedera local build', () => {
+  const localBuildPath = 'node0=../hedera-services/hedera-node/data/,../hedera-services/hedera-node/data,node2=../hedera-services/hedera-node/data'
+  testNodeAdd(localBuildPath)
+}, 180000)

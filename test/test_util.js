@@ -54,7 +54,7 @@ import { AccountCommand } from '../src/commands/account.mjs'
 
 export const testLogger = logging.NewLogger('debug', true)
 export const TEST_CLUSTER = 'solo-e2e'
-export const HEDERA_PLATFORM_VERSION_TAG = 'v0.53.0-release-0.53.xff7c43d'
+export const HEDERA_PLATFORM_VERSION_TAG = 'v0.53.2'
 
 export function getTestCacheDir (testName) {
   const baseDir = 'test/data/tmp'

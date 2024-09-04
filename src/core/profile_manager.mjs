@@ -480,7 +480,7 @@ export class ProfileManager {
 
         const account = nodeAccountMap.get(nodeID)
         if (releaseVersion.minor >= 40) {
-          configLines.push(`address, ${nodeSeq}, ${nodeName}, ${nodeName}, ${nodeStakeAmount}, ${internalIP}, ${internalPort}, ${externalIP}, ${externalPort}, ${account}`)
+          configLines.push(`address, ${nodeSeq}, ${nodeSeq}, ${nodeName}, ${nodeStakeAmount}, ${internalIP}, ${internalPort}, ${externalIP}, ${externalPort}, ${account}`)
         } else {
           configLines.push(`address, ${nodeSeq}, ${nodeName}, ${nodeStakeAmount}, ${internalIP}, ${internalPort}, ${externalIP}, ${externalPort}, ${account}`)
         }

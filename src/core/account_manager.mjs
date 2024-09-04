@@ -14,8 +14,6 @@
  * limitations under the License.
  *
  */
-'use strict'
-import * as HashgraphProto from '@hashgraph/proto'
 import * as Base64 from 'js-base64'
 import os from 'os'
 import * as constants from './constants.mjs'
@@ -169,14 +167,23 @@ export class AccountManager {
    */
   async loadNodeClient (namespace) {
     if (!this._nodeClient || this._nodeClient.isClientShutDown) {
-      const treasuryAccountInfo = await this.getTreasuryAccountKeys(namespace)
-      const networkNodeServicesMap = await this.getNodeServiceMap(namespace)
-
-      this._nodeClient = await this._getNodeClient(namespace,
-        networkNodeServicesMap, treasuryAccountInfo.accountId, treasuryAccountInfo.privateKey)
+      await this.refreshNodeClient(namespace)
     }
 
     return this._nodeClient
+  }
+
+  /**
+   * loads and initializes the Node Client
+   * @param namespace the namespace of the network
+   * @returns {Promise<void>}
+   */
+  async refreshNodeClient (namespace) {
+    const treasuryAccountInfo = await this.getTreasuryAccountKeys(namespace)
+    const networkNodeServicesMap = await this.getNodeServiceMap(namespace)
+
+    this._nodeClient = await this._getNodeClient(namespace,
+      networkNodeServicesMap, treasuryAccountInfo.accountId, treasuryAccountInfo.privateKey)
   }
 
   /**
@@ -232,7 +239,7 @@ export class AccountManager {
         const port = networkNodeService.haProxyGrpcPort
         const targetPort = usePortForward ? localPort : port
 
-        if (usePortForward) {
+        if (usePortForward && this._portForwards.length < networkNodeServicesMap.size) {
           this._portForwards.push(await this.k8.portForward(networkNodeService.haProxyPodName, localPort, port))
         }
 
@@ -637,43 +644,7 @@ export class AccountManager {
   async prepareAddressBookBase64 (namespace) {
     // fetch AddressBook
     const fileQuery = new FileContentsQuery().setFileId(FileId.ADDRESS_BOOK)
-    let addressBookBytes = await fileQuery.execute(this._nodeClient)
-
-    /** @type {Map<string, NetworkNodeServices>} **/
-    const networkNodeServicesMap = await this.getNodeServiceMap(namespace)
-
-    // ensure serviceEndpoint.ipAddressV4 value for all nodes in the addressBook is a 4 bytes array instead of string
-    // See: https://github.com/hashgraph/hedera-protobufs/blob/main/services/basic_types.proto#L1309
-    // TODO: with v0.53 will mirror node no longer need this and we can remove @hashgraph/proto: https://github.com/hashgraph/solo/issues/493
-    const addressBook = HashgraphProto.proto.NodeAddressBook.decode(addressBookBytes)
-    const hasAlphaRegEx = /[a-zA-Z]+/
-    let modified = false
-    for (const nodeAddress of addressBook.nodeAddress) {
-      const address = nodeAddress.serviceEndpoint[0].ipAddressV4.toString()
-
-      if (hasAlphaRegEx.test(address)) {
-        const nodeId = Templates.nodeIdFromFullyQualifiedNetworkSvcName(address)
-        nodeAddress.serviceEndpoint[0].ipAddressV4 = Uint8Array.from(ip.toBuffer(networkNodeServicesMap.get(nodeId).nodeServiceClusterIp))
-        nodeAddress.ipAddress = Uint8Array.from(ip.toBuffer(networkNodeServicesMap.get(nodeId).nodeServiceClusterIp))
-        modified = true
-        continue
-      }
-      // overwrite ipAddressV4 as 4 bytes array if required, unless there is alpha, which means it is a domain name
-      if (nodeAddress.serviceEndpoint[0].ipAddressV4.byteLength !== 4) {
-        const parts = address.split('.')
-
-        if (parts.length !== 4) {
-          throw new FullstackTestingError(`expected node IP address to have 4 parts, found ${parts.length}: ${address}`)
-        }
-
-        nodeAddress.serviceEndpoint[0].ipAddressV4 = Uint8Array.from(parts)
-        modified = true
-      }
-    }
-
-    if (modified) {
-      addressBookBytes = HashgraphProto.proto.NodeAddressBook.encode(addressBook).finish()
-    }
+    const addressBookBytes = await fileQuery.execute(this._nodeClient)
 
     // convert addressBook into base64
     return Base64.encode(addressBookBytes)

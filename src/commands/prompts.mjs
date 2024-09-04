@@ -21,6 +21,7 @@ import { FullstackTestingError, IllegalArgumentError } from '../core/errors.mjs'
 import { ConfigManager, constants } from '../core/index.mjs'
 import * as flags from './flags.mjs'
 import * as helpers from '../core/helpers.mjs'
+import { resetDisabledPrompts } from './flags.mjs'
 
 async function prompt (type, task, input, defaultValue, promptMessage, emptyCheckMessage, flagName) {
   try {
@@ -535,6 +536,7 @@ export async function execute (task, configManager, flagList = []) {
  * @param {CommandFlag[]} flags list of flags to disable prompts for
  */
 export function disablePrompts (flags) {
+  resetDisabledPrompts()
   for (const flag of flags) {
     if (flag.definition) {
       flag.definition.disablePrompt = true
