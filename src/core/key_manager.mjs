@@ -18,11 +18,17 @@ import * as x509 from '@peculiar/x509'
 import crypto from 'crypto'
 import fs from 'fs'
 import path from 'path'
-import { FullstackTestingError, MissingArgumentError } from './errors.mjs'
+import {
+  FullstackTestingError,
+  IllegalArgumentError,
+  MissingArgumentError
+} from './errors.mjs'
 import { getTmpDir } from './helpers.mjs'
 import { constants, Keytool } from './index.mjs'
 import { Logger } from './logging.mjs'
 import { Templates } from './templates.mjs'
+import * as helpers from './helpers.mjs'
+import chalk from 'chalk'
 
 x509.cryptoProvider.set(crypto)
 
@@ -592,6 +598,11 @@ export class KeyManager {
     this.logger.debug(`Copying generated private pfx file: ${tmpPrivatePfxFile} -> ${privatePfxFile}`)
     fs.cpSync(tmpPrivatePfxFile, privatePfxFile)
 
+    const output = await keytool.list(`-storetype pkcs12 -storepass password -keystore ${privatePfxFile}`)
+    if (!output.includes('Your keystore contains 3 entries')) {
+      throw new FullstackTestingError(`malformed private pfx file: ${privatePfxFile}`)
+    }
+
     return privatePfxFile
   }
 
@@ -654,6 +665,188 @@ export class KeyManager {
     this.logger.debug(`Copying generated public.pfx file: ${tmpPublicPfxFile} -> ${publicPfxFile}`)
     fs.cpSync(tmpPublicPfxFile, publicPfxFile)
 
+    const output = await keytool.list(`-storetype pkcs12 -storepass password -keystore ${publicPfxFile}`)
+    if (!output.includes(`Your keystore contains ${nodeIds.length * 3} entries`)) {
+      throw new FullstackTestingError(`malformed public.pfx file: ${publicPfxFile}`)
+    }
+
     return publicPfxFile
+  }
+
+  async copyNodeKeysToStaging (nodeKey, destDir) {
+    for (const keyFile of [nodeKey.privateKeyFile, nodeKey.certificateFile]) {
+      if (!fs.existsSync(keyFile)) {
+        throw new FullstackTestingError(`file (${keyFile}) is missing`)
+      }
+
+      const fileName = path.basename(keyFile)
+      fs.cpSync(keyFile, path.join(destDir, fileName))
+    }
+  }
+
+  async copyGossipKeysToStaging (keyFormat, keysDir, stagingKeysDir, nodeIds) {
+    // copy gossip keys to the staging
+    for (const nodeId of nodeIds) {
+      switch (keyFormat) {
+        case constants.KEY_FORMAT_PEM: {
+          const signingKeyFiles = this.prepareNodeKeyFilePaths(nodeId, keysDir, constants.SIGNING_KEY_PREFIX)
+          await this.copyNodeKeysToStaging(signingKeyFiles, stagingKeysDir)
+
+          // generate missing agreement keys
+          const agreementKeyFiles = this.prepareNodeKeyFilePaths(nodeId, keysDir, constants.AGREEMENT_KEY_PREFIX)
+          await this.copyNodeKeysToStaging(agreementKeyFiles, stagingKeysDir)
+          break
+        }
+
+        case constants.KEY_FORMAT_PFX: {
+          const privateKeyFile = Templates.renderGossipPfxPrivateKeyFile(nodeId)
+          fs.cpSync(path.join(keysDir, privateKeyFile), path.join(stagingKeysDir, privateKeyFile))
+          fs.cpSync(path.join(keysDir, constants.PUBLIC_PFX), path.join(stagingKeysDir, constants.PUBLIC_PFX))
+          break
+        }
+
+        default:
+          throw new FullstackTestingError(`Unsupported key-format ${keyFormat}`)
+      }
+    }
+  }
+
+  /**
+   * Return a list of subtasks to generate gossip keys
+   *
+   * WARNING: These tasks MUST run in sequence.
+   *
+   * @param keytoolDepManager an instance of core/KeytoolDepManager
+   * @param keyFormat key format (pem | pfx)
+   * @param nodeIds node ids
+   * @param keysDir keys directory
+   * @param curDate current date
+   * @param allNodeIds includes the nodeIds to get new keys as well as existing nodeIds that will be included in the public.pfx file
+   * @return a list of subtasks
+   * @private
+   */
+  taskGenerateGossipKeys (keytoolDepManager, keyFormat, nodeIds, keysDir, curDate = new Date(), allNodeIds = null) {
+    allNodeIds = allNodeIds || nodeIds
+    if (!Array.isArray(nodeIds) || !nodeIds.every((nodeId) => typeof nodeId === 'string')) {
+      throw new IllegalArgumentError('nodeIds must be an array of strings')
+    }
+    const self = this
+    const subTasks = []
+
+    switch (keyFormat) {
+      case constants.KEY_FORMAT_PFX: {
+        const tmpDir = getTmpDir()
+        const keytool = keytoolDepManager.getKeytool()
+
+        subTasks.push({
+          title: `Check keytool exists (Version: ${keytoolDepManager.getKeytoolVersion()})`,
+          task: async () => keytoolDepManager.checkVersion(true)
+
+        })
+
+        subTasks.push({
+          title: 'Backup old files',
+          task: () => helpers.backupOldPfxKeys(nodeIds, keysDir, curDate)
+        })
+
+        for (const nodeId of nodeIds) {
+          subTasks.push({
+            title: `Generate ${Templates.renderGossipPfxPrivateKeyFile(nodeId)} for node: ${chalk.yellow(nodeId)}`,
+            task: async () => {
+              await self.generatePrivatePfxKeys(keytool, nodeId, keysDir, tmpDir)
+            }
+          })
+        }
+
+        subTasks.push({
+          title: `Generate ${constants.PUBLIC_PFX} file`,
+          task: async () => {
+            await self.updatePublicPfxKey(keytool, allNodeIds, keysDir, tmpDir)
+          }
+        })
+
+        subTasks.push({
+          title: 'Clean up temp files',
+          task: async () => {
+            if (fs.existsSync(tmpDir)) {
+              fs.rmSync(tmpDir, { recursive: true })
+            }
+          }
+        })
+        break
+      }
+
+      case constants.KEY_FORMAT_PEM: {
+        subTasks.push({
+          title: 'Backup old files',
+          task: () => helpers.backupOldPemKeys(nodeIds, keysDir, curDate)
+        }
+        )
+
+        for (const nodeId of nodeIds) {
+          subTasks.push({
+            title: `Gossip ${keyFormat} key for node: ${chalk.yellow(nodeId)}`,
+            task: async () => {
+              const signingKey = await self.generateSigningKey(nodeId)
+              const signingKeyFiles = await self.storeSigningKey(nodeId, signingKey, keysDir)
+              this.logger.debug(`generated Gossip signing keys for node ${nodeId}`, { keyFiles: signingKeyFiles })
+
+              const agreementKey = await self.generateAgreementKey(nodeId, signingKey)
+              const agreementKeyFiles = await self.storeAgreementKey(nodeId, agreementKey, keysDir)
+              this.logger.debug(`generated Gossip agreement keys for node ${nodeId}`, { keyFiles: agreementKeyFiles })
+            }
+          })
+        }
+
+        break
+      }
+
+      default:
+        throw new FullstackTestingError(`unsupported key-format: ${keyFormat}`)
+    }
+
+    return subTasks
+  }
+
+  /**
+   *  Return a list of subtasks to generate gRPC TLS keys
+   *
+   * WARNING: These tasks should run in sequence
+   *
+   * @param nodeIds node ids
+   * @param keysDir keys directory
+   * @param curDate current date
+   * @return return a list of subtasks
+   * @private
+   */
+  taskGenerateTLSKeys (nodeIds, keysDir, curDate = new Date()) {
+    // check if nodeIds is an array of strings
+    if (!Array.isArray(nodeIds) || !nodeIds.every((nodeId) => typeof nodeId === 'string')) {
+      throw new FullstackTestingError('nodeIds must be an array of strings')
+    }
+    const self = this
+    const nodeKeyFiles = new Map()
+    const subTasks = []
+
+    subTasks.push({
+      title: 'Backup old files',
+      task: () => helpers.backupOldTlsKeys(nodeIds, keysDir, curDate)
+    }
+    )
+
+    for (const nodeId of nodeIds) {
+      subTasks.push({
+        title: `TLS key for node: ${chalk.yellow(nodeId)}`,
+        task: async () => {
+          const tlsKey = await self.generateGrpcTLSKey(nodeId)
+          const tlsKeyFiles = await self.storeTLSKey(nodeId, tlsKey, keysDir)
+          nodeKeyFiles.set(nodeId, {
+            tlsKeyFiles
+          })
+        }
+      })
+    }
+
+    return subTasks
   }
 }
