@@ -150,21 +150,15 @@ export class PlatformInstaller {
       const nodeId = Templates.extractNodeIdFromPodName(podName)
       const srcFiles = []
 
-      switch (keyFormat) {
-        case constants.KEY_FORMAT_PEM:
-          // copy private keys for the node
-          srcFiles.push(path.join(stagingDir, 'keys', Templates.renderGossipPemPrivateKeyFile(constants.SIGNING_KEY_PREFIX, nodeId)))
-          srcFiles.push(path.join(stagingDir, 'keys', Templates.renderGossipPemPrivateKeyFile(constants.AGREEMENT_KEY_PREFIX, nodeId)))
+      // copy private keys for the node
+      srcFiles.push(path.join(stagingDir, 'keys', Templates.renderGossipPemPrivateKeyFile(constants.SIGNING_KEY_PREFIX, nodeId)))
+      srcFiles.push(path.join(stagingDir, 'keys', Templates.renderGossipPemPrivateKeyFile(constants.AGREEMENT_KEY_PREFIX, nodeId)))
 
-          // copy all public keys for all nodes
-          nodeIds.forEach(id => {
-            srcFiles.push(path.join(stagingDir, 'keys', Templates.renderGossipPemPublicKeyFile(constants.SIGNING_KEY_PREFIX, id)))
-            srcFiles.push(path.join(stagingDir, 'keys', Templates.renderGossipPemPublicKeyFile(constants.AGREEMENT_KEY_PREFIX, id)))
-          })
-          break
-        default:
-          throw new FullstackTestingError(`Unsupported key file format ${keyFormat}`)
-      }
+      // copy all public keys for all nodes
+      nodeIds.forEach(id => {
+        srcFiles.push(path.join(stagingDir, 'keys', Templates.renderGossipPemPublicKeyFile(constants.SIGNING_KEY_PREFIX, id)))
+        srcFiles.push(path.join(stagingDir, 'keys', Templates.renderGossipPemPublicKeyFile(constants.AGREEMENT_KEY_PREFIX, id)))
+      })
 
       return await self.copyFiles(podName, srcFiles, keysDir)
     } catch (e) {

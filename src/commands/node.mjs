@@ -382,37 +382,26 @@ export class NodeCommand extends BaseCommand {
       throw new IllegalArgumentError('nodeIds must be an array of strings')
     }
     const subTasks = []
-
-    switch (keyFormat) {
-      case constants.KEY_FORMAT_PEM: {
-        subTasks.push({
-          title: 'Backup old files',
-          task: () => helpers.backupOldPemKeys(nodeIds, keysDir, curDate)
-        }
-        )
-
-        for (const nodeId of nodeIds) {
-          subTasks.push({
-            title: `Gossip ${keyFormat} key for node: ${chalk.yellow(nodeId)}`,
-            task: async () => {
-              const signingKey = await this.keyManager.generateSigningKey(nodeId)
-              const signingKeyFiles = await this.keyManager.storeSigningKey(nodeId, signingKey, keysDir)
-              this.logger.debug(`generated Gossip signing keys for node ${nodeId}`, { keyFiles: signingKeyFiles })
-
-              const agreementKey = await this.keyManager.generateAgreementKey(nodeId, signingKey)
-              const agreementKeyFiles = await this.keyManager.storeAgreementKey(nodeId, agreementKey, keysDir)
-              this.logger.debug(`generated Gossip agreement keys for node ${nodeId}`, { keyFiles: agreementKeyFiles })
-            }
-          })
-        }
-
-        break
-      }
-
-      default:
-        throw new FullstackTestingError(`unsupported key-format: ${keyFormat}`)
+    subTasks.push({
+      title: 'Backup old files',
+      task: () => helpers.backupOldPemKeys(nodeIds, keysDir, curDate)
     }
+    )
 
+    for (const nodeId of nodeIds) {
+      subTasks.push({
+        title: `Gossip ${keyFormat} key for node: ${chalk.yellow(nodeId)}`,
+        task: async () => {
+          const signingKey = await this.keyManager.generateSigningKey(nodeId)
+          const signingKeyFiles = await this.keyManager.storeSigningKey(nodeId, signingKey, keysDir)
+          this.logger.debug(`generated Gossip signing keys for node ${nodeId}`, { keyFiles: signingKeyFiles })
+
+          const agreementKey = await this.keyManager.generateAgreementKey(nodeId, signingKey)
+          const agreementKeyFiles = await this.keyManager.storeAgreementKey(nodeId, agreementKey, keysDir)
+          this.logger.debug(`generated Gossip agreement keys for node ${nodeId}`, { keyFiles: agreementKeyFiles })
+        }
+      })
+    }
     return subTasks
   }
 
@@ -1530,10 +1519,6 @@ export class NodeCommand extends BaseCommand {
           config.curDate = new Date()
           config.existingNodeIds = []
 
-          if (config.keyFormat !== constants.KEY_FORMAT_PEM) {
-            throw new FullstackTestingError('key type cannot be non PEM')
-          }
-
           await self.initializeSetup(config, self.k8)
 
           // set config in the context for later tasks to use
@@ -2145,20 +2130,12 @@ export class NodeCommand extends BaseCommand {
   async copyGossipKeysToStaging (keyFormat, keysDir, stagingKeysDir, nodeIds) {
     // copy gossip keys to the staging
     for (const nodeId of nodeIds) {
-      switch (keyFormat) {
-        case constants.KEY_FORMAT_PEM: {
-          const signingKeyFiles = this.keyManager.prepareNodeKeyFilePaths(nodeId, keysDir, constants.SIGNING_KEY_PREFIX)
-          await this._copyNodeKeys(signingKeyFiles, stagingKeysDir)
+      const signingKeyFiles = this.keyManager.prepareNodeKeyFilePaths(nodeId, keysDir, constants.SIGNING_KEY_PREFIX)
+      await this._copyNodeKeys(signingKeyFiles, stagingKeysDir)
 
-          // generate missing agreement keys
-          const agreementKeyFiles = this.keyManager.prepareNodeKeyFilePaths(nodeId, keysDir, constants.AGREEMENT_KEY_PREFIX)
-          await this._copyNodeKeys(agreementKeyFiles, stagingKeysDir)
-          break
-        }
-
-        default:
-          throw new FullstackTestingError(`Unsupported key-format ${keyFormat}`)
-      }
+      // generate missing agreement keys
+      const agreementKeyFiles = this.keyManager.prepareNodeKeyFilePaths(nodeId, keysDir, constants.AGREEMENT_KEY_PREFIX)
+      await this._copyNodeKeys(agreementKeyFiles, stagingKeysDir)
     }
   }
 
