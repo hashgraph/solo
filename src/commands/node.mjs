@@ -1676,7 +1676,7 @@ export class NodeCommand extends BaseCommand {
               task: async (ctx, _) => {
                 const config = /** @type {NodeAddConfigClass} **/ ctx.config
 
-                await this.keyManager.copyGossipKeysToStaging(config.keyFormat, config.keysDir, config.stagingKeysDir, config.allNodeIds)
+                await this.keyManager.copyGossipKeysToStaging(config.keysDir, config.stagingKeysDir, config.allNodeIds)
               }
             },
             {
@@ -1702,7 +1702,7 @@ export class NodeCommand extends BaseCommand {
         task: async (ctx, parentTask) => {
           const config = /** @type {NodeAddConfigClass} **/ ctx.config
 
-          const subTasks = self.platformInstaller.copyNodeKeys(config.stagingDir, config.allNodeIds, config.keyFormat)
+          const subTasks = self.platformInstaller.copyNodeKeys(config.stagingDir, config.allNodeIds)
 
           // set up the sub-tasks
           return parentTask.newListr(subTasks, {
@@ -2552,7 +2552,7 @@ export class NodeCommand extends BaseCommand {
               task: async (ctx, _) => {
                 const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
 
-                await this.keyManager.copyGossipKeysToStaging(config.keyFormat, config.keysDir, config.stagingKeysDir, config.allNodeIds)
+                await this.keyManager.copyGossipKeysToStaging(config.keysDir, config.stagingKeysDir, config.allNodeIds)
               }
             },
             {
@@ -2578,7 +2578,7 @@ export class NodeCommand extends BaseCommand {
         task: async (ctx, parentTask) => {
           const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
 
-          const subTasks = self.platformInstaller.copyNodeKeys(config.stagingDir, config.allNodeIds, config.keyFormat)
+          const subTasks = self.platformInstaller.copyNodeKeys(config.stagingDir, config.allNodeIds)
 
           // set up the sub-tasks
           return parentTask.newListr(subTasks, {
@@ -3041,7 +3041,7 @@ export class NodeCommand extends BaseCommand {
               task: async (ctx, _) => {
                 const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
 
-                await this.keyManager.copyGossipKeysToStaging(config.keyFormat, config.keysDir, config.stagingKeysDir, config.existingNodeIds)
+                await this.keyManager.copyGossipKeysToStaging(config.keysDir, config.stagingKeysDir, config.existingNodeIds)
               }
             },
             {
@@ -3069,7 +3069,7 @@ export class NodeCommand extends BaseCommand {
 
           // remove nodeId from existingNodeIds
           config.allNodeIds = config.existingNodeIds.filter(nodeId => nodeId !== ctx.config.nodeId)
-          const subTasks = self.platformInstaller.copyNodeKeys(config.stagingDir, config.allNodeIds, config.keyFormat)
+          const subTasks = self.platformInstaller.copyNodeKeys(config.stagingDir, config.allNodeIds)
 
           // set up the sub-tasks
           return parentTask.newListr(subTasks, {

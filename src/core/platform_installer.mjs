@@ -305,16 +305,15 @@ export class PlatformInstaller {
    *
    * @param stagingDir staging directory path
    * @param nodeIds list of node ids
-   * @param keyFormat key format (pfx or pem)
    * @returns {Listr<ListrContext, ListrPrimaryRendererValue, ListrSecondaryRendererValue>[]}
    */
-  copyNodeKeys (stagingDir, nodeIds, keyFormat = constants.KEY_FORMAT_PEM) {
+  copyNodeKeys (stagingDir, nodeIds) {
     const self = this
     const subTasks = []
     subTasks.push({
       title: 'Copy TLS keys',
       task: (_, task) =>
-        self.copyTLSKeys(nodeIds, stagingDir, keyFormat)
+        self.copyTLSKeys(nodeIds, stagingDir)
     })
 
     for (const nodeId of nodeIds) {
@@ -323,7 +322,7 @@ export class PlatformInstaller {
         task: () => new Listr([{
           title: 'Copy Gossip keys',
           task: (_, task) =>
-            self.copyGossipKeys(nodeId, stagingDir, nodeIds, keyFormat)
+            self.copyGossipKeys(nodeId, stagingDir, nodeIds)
         }
         ],
         {
