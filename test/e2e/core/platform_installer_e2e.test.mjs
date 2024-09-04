@@ -15,13 +15,13 @@
  *
  */
 import { afterAll, beforeAll, describe, expect, it } from '@jest/globals'
-import { constants, Templates } from '../../../src/core/index.mjs'
+import { constants } from '../../../src/core/index.mjs'
 import * as fs from 'fs'
 
 import {
   bootstrapNetwork,
   getDefaultArgv,
-  getTestCacheDir, getTmpDir,
+  getTestCacheDir,
   TEST_CLUSTER,
   testLogger
 } from '../../test_util.js'
