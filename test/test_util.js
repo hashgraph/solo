@@ -194,7 +194,7 @@ export function bootstrapNetwork (testName, argv,
   const nodeCmd = bootstrapResp.cmd.nodeCmd
   const chartManager = bootstrapResp.opts.chartManager
 
-  describe(`Bootstrap network for test [release ${argv[flags.releaseTag.name]}, keyFormat: ${argv[flags.keyFormat.name]}]`, () => {
+  describe(`Bootstrap network for test [release ${argv[flags.releaseTag.name]}}]`, () => {
     beforeAll(() => {
       bootstrapResp.opts.logger.showUser(`------------------------- START: bootstrap (${testName}) ----------------------------`)
     })
@@ -333,7 +333,7 @@ export function accountCreationShouldSucceed (accountManager, nodeCmd, namespace
   }, 120000)
 }
 
-export async function getNodeIdsPrivateKeysHash (networkNodeServicesMap, namespace, keyFormat, k8, destDir) {
+export async function getNodeIdsPrivateKeysHash (networkNodeServicesMap, namespace, k8, destDir) {
   const dataKeysDir = path.join(constants.HEDERA_HAPI_PATH, 'data', 'keys')
   const tlsKeysDir = constants.HEDERA_HAPI_PATH
   const nodeKeyHashMap = new Map()

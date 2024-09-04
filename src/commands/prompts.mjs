@@ -183,7 +183,6 @@ export async function promptProfile (task, input, choices = constants.ALL_PROFIL
     if (initial < 0) {
       const input = await task.prompt(ListrEnquirerPromptAdapter).run({
         type: 'select',
-        initial: choices.indexOf(flags.keyFormat.definition.defaultValue),
         message: 'Select profile for fullstack network deployment',
         choices: helpers.cloneArray(choices)
       })
@@ -197,7 +196,7 @@ export async function promptProfile (task, input, choices = constants.ALL_PROFIL
 
     return input
   } catch (e) {
-    throw new FullstackTestingError(`input failed: ${flags.keyFormat.name}: ${e.message}`, e)
+    throw new FullstackTestingError(`input failed: ${flags.profileName.name}`, e)
   }
 }
 
@@ -349,30 +348,6 @@ export async function promptDeleteSecrets (task, input) {
     flags.deleteSecrets.name)
 }
 
-export async function promptKeyFormat (task, input, choices = [constants.KEY_FORMAT_PEM]) {
-  try {
-    const initial = choices.indexOf(input)
-    if (initial < 0) {
-      const input = await task.prompt(ListrEnquirerPromptAdapter).run({
-        type: 'select',
-        initial: choices.indexOf(flags.keyFormat.definition.defaultValue),
-        message: 'Select key format',
-        choices: helpers.cloneArray(choices)
-      })
-
-      if (!input) {
-        throw new FullstackTestingError('key-format cannot be empty')
-      }
-
-      return input
-    }
-
-    return input
-  } catch (e) {
-    throw new FullstackTestingError(`input failed: ${flags.keyFormat.name}: ${e.message}`, e)
-  }
-}
-
 export async function promptFstChartVersion (task, input) {
   return await promptText(task, input,
     flags.fstChartVersion.definition.defaultValue,
@@ -476,7 +451,6 @@ export function getPromptMap () {
     .set(flags.generateGossipKeys.name, promptGenerateGossipKeys)
     .set(flags.generateTlsKeys.name, promptGenerateTLSKeys)
     .set(flags.hederaExplorerTlsHostName.name, promptHederaExplorerTlsHostName)
-    .set(flags.keyFormat.name, promptKeyFormat)
     .set(flags.namespace.name, promptNamespace)
     .set(flags.nodeIDs.name, promptNodeIds)
     .set(flags.operatorId.name, promptOperatorId)

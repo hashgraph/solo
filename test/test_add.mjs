@@ -38,12 +38,10 @@ export function testNodeAdd (localBuildPath
     const namespace = 'node-add' + suffix
     const nodeId = 'node4'
     const argv = getDefaultArgv()
-    argv[flags.keyFormat.name] = constants.KEY_FORMAT_PEM
     argv[flags.nodeIDs.name] = 'node1,node2,node3'
     argv[flags.nodeID.name] = nodeId
     argv[flags.generateGossipKeys.name] = true
     argv[flags.generateTlsKeys.name] = true
-    argv[flags.keyFormat.name] = constants.KEY_FORMAT_PEM
     // set the env variable SOLO_FST_CHARTS_DIR if developer wants to use local FST charts
     argv[flags.chartDirectory.name] = process.env.SOLO_FST_CHARTS_DIR ? process.env.SOLO_FST_CHARTS_DIR : undefined
     argv[flags.releaseTag.name] = HEDERA_PLATFORM_VERSION_TAG
@@ -70,7 +68,7 @@ export function testNodeAdd (localBuildPath
 
     it('cache current version of private keys', async () => {
       existingServiceMap = await nodeCmd.accountManager.getNodeServiceMap(namespace)
-      existingNodeIdsPrivateKeysHash = await getNodeIdsPrivateKeysHash(existingServiceMap, namespace, constants.KEY_FORMAT_PEM, k8, getTmpDir())
+      existingNodeIdsPrivateKeysHash = await getNodeIdsPrivateKeysHash(existingServiceMap, namespace, k8, getTmpDir())
     }, defaultTimeout)
 
     it('should succeed with init command', async () => {
@@ -93,7 +91,7 @@ export function testNodeAdd (localBuildPath
     accountCreationShouldSucceed(nodeCmd.accountManager, nodeCmd, namespace)
 
     it('existing nodes private keys should not have changed', async () => {
-      const currentNodeIdsPrivateKeysHash = await getNodeIdsPrivateKeysHash(existingServiceMap, namespace, constants.KEY_FORMAT_PEM, k8, getTmpDir())
+      const currentNodeIdsPrivateKeysHash = await getNodeIdsPrivateKeysHash(existingServiceMap, namespace, k8, getTmpDir())
 
       for (const [nodeId, existingKeyHashMap] of existingNodeIdsPrivateKeysHash.entries()) {
         const currentNodeKeyHashMap = currentNodeIdsPrivateKeysHash.get(nodeId)

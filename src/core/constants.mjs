@@ -107,7 +107,6 @@ export const LISTR_DEFAULT_RENDERER_OPTION = {
   timer: LISTR_DEFAULT_RENDERER_TIMER_OPTION
 }
 
-export const KEY_FORMAT_PEM = 'pem'
 export const SIGNING_KEY_PREFIX = 's'
 export const AGREEMENT_KEY_PREFIX = 'a'
 export const ENCRYPTION_KEY_PREFIX = 'e'

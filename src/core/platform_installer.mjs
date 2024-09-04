@@ -138,7 +138,7 @@ export class PlatformInstaller {
     }
   }
 
-  async copyGossipKeys (podName, stagingDir, nodeIds, keyFormat = constants.KEY_FORMAT_PEM) {
+  async copyGossipKeys (podName, stagingDir, nodeIds) {
     const self = this
 
     if (!podName) throw new MissingArgumentError('podName is required')
@@ -242,22 +242,21 @@ export class PlatformInstaller {
    * @param podName name of the pod
    * @param stagingDir staging directory path
    * @param nodeIds list of node ids
-   * @param keyFormat key format (pem)
    * @param force force flag
    * @returns {Listr<ListrContext, ListrPrimaryRendererValue, ListrSecondaryRendererValue>}
    */
-  taskInstall (podName, stagingDir, nodeIds, keyFormat = constants.KEY_FORMAT_PEM, force = false) {
+  taskInstall (podName, stagingDir, nodeIds, force = false) {
     const self = this
     return new Listr([
       {
         title: 'Copy Gossip keys',
         task: (_, task) =>
-          self.copyGossipKeys(podName, stagingDir, nodeIds, keyFormat)
+          self.copyGossipKeys(podName, stagingDir, nodeIds)
       },
       {
         title: 'Copy TLS keys',
         task: (_, task) =>
-          self.copyTLSKeys(podName, stagingDir, keyFormat)
+          self.copyTLSKeys(podName, stagingDir)
       },
       {
         title: 'Set file permissions',

@@ -105,7 +105,7 @@ describe('PackageInstallerE2E', () => {
 
       const pemDir = 'test/data/pem'
       await k8.execContainer(podName, constants.ROOT_CONTAINER, ['bash', '-c', `rm -f ${constants.HEDERA_HAPI_PATH}/data/keys/*`])
-      const fileList = await installer.copyGossipKeys(podName, pemDir, ['node0'], constants.KEY_FORMAT_PEM)
+      const fileList = await installer.copyGossipKeys(podName, pemDir, ['node0'])
 
       const destDir = `${constants.HEDERA_HAPI_PATH}/data/keys`
       expect(fileList.length).toBe(4)
