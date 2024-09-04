@@ -97,43 +97,4 @@ describe('PackageInstallerE2E', () => {
       testLogger.showUser(outputs)
     }, 60000)
   })
-
-  describe('copyGossipKeys', () => {
-    it('should succeed to copy pem gossip keys for node0', async () => {
-      const podName = 'network-node0-0'
-
-      const pemDir = 'test/data/pem'
-      await k8.execContainer(podName, constants.ROOT_CONTAINER, ['bash', '-c', `rm -f ${constants.HEDERA_HAPI_PATH}/data/keys/*`])
-      const fileList = await installer.copyGossipKeys(podName, pemDir, ['node0'])
-
-      const destDir = `${constants.HEDERA_HAPI_PATH}/data/keys`
-      expect(fileList.length).toBe(4)
-      expect(fileList).toContain(`${destDir}/${Templates.renderGossipPemPrivateKeyFile(constants.SIGNING_KEY_PREFIX, 'node0')}`)
-      expect(fileList).toContain(`${destDir}/${Templates.renderGossipPemPrivateKeyFile(constants.AGREEMENT_KEY_PREFIX, 'node0')}`)
-
-      // public keys
-      expect(fileList).toContain(`${destDir}/${Templates.renderGossipPemPublicKeyFile(constants.SIGNING_KEY_PREFIX, 'node0')}`)
-      expect(fileList).toContain(`${destDir}/${Templates.renderGossipPemPublicKeyFile(constants.AGREEMENT_KEY_PREFIX, 'node0')}`)
-    }, 60000)
-  })
-
-  describe('copyTLSKeys', () => {
-    it('should succeed to copy TLS keys for node0', async () => {
-      const nodeId = 'node0'
-      const podName = Templates.renderNetworkPodName(nodeId)
-      const tmpDir = getTmpDir()
-
-      // create mock files
-      const pemDir = 'test/data/pem'
-      await k8.execContainer(podName, constants.ROOT_CONTAINER, ['bash', '-c', `rm -f ${constants.HEDERA_HAPI_PATH}/hedera.*`])
-      const fileList = await installer.copyTLSKeys(podName, pemDir)
-
-      expect(fileList.length).toBe(2) // [data , hedera.crt, hedera.key]
-      expect(fileList.length).toBeGreaterThanOrEqual(2)
-      expect(fileList).toContain(`${constants.HEDERA_HAPI_PATH}/hedera.crt`)
-      expect(fileList).toContain(`${constants.HEDERA_HAPI_PATH}/hedera.key`)
-
-      fs.rmSync(tmpDir, { recursive: true })
-    }, defaultTimeout)
-  })
 })

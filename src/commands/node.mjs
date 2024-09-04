@@ -2065,18 +2065,6 @@ export class NodeCommand extends BaseCommand {
     }
   }
 
-  async copyGossipKeysToStaging (keysDir, stagingKeysDir, nodeIds) {
-    // copy gossip keys to the staging
-    for (const nodeId of nodeIds) {
-      const signingKeyFiles = this.keyManager.prepareNodeKeyFilePaths(nodeId, keysDir, constants.SIGNING_KEY_PREFIX)
-      await this._copyNodeKeys(signingKeyFiles, stagingKeysDir)
-
-      // generate missing agreement keys
-      const agreementKeyFiles = this.keyManager.prepareNodeKeyFilePaths(nodeId, keysDir, constants.AGREEMENT_KEY_PREFIX)
-      await this._copyNodeKeys(agreementKeyFiles, stagingKeysDir)
-    }
-  }
-
   // Command Definition
   /**
    * Return Yargs command definition for 'node' command
