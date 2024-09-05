@@ -54,6 +54,11 @@ export class Templates {
     return `network-${nodeId}`
   }
 
+  /**
+   * @param {string} prefix
+   * @param {string} nodeId
+   * @returns {string}
+   */
   static renderGossipPemPrivateKeyFile (prefix, nodeId) {
     // s-node0-key.pem
     return `${prefix}-private-${nodeId}.pem`
