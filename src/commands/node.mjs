@@ -134,10 +134,12 @@ export class NodeCommand extends BaseCommand {
 
   static get ADD_FLAGS_LIST () {
     return [
+      // flags.adminKey,
       flags.app,
       flags.cacheDir,
       flags.chainId,
       flags.chartDirectory,
+      flags.ctxPath,
       flags.devMode,
       flags.endpointType,
       flags.force,
@@ -1435,121 +1437,147 @@ export class NodeCommand extends BaseCommand {
     return true
   }
 
+  addInitializeTask (argv) {
+    const self = this;
+
+    return {
+      title: 'Initialize',
+          task: async (ctx, task) => {
+      self.configManager.update(argv)
+
+      // disable the prompts that we don't want to prompt the user for
+      prompts.disablePrompts([
+        // flags.adminKey,
+        flags.app,
+        flags.chainId,
+        flags.chartDirectory,
+        flags.ctxPath,
+        flags.devMode,
+        flags.endpointType,
+        flags.force,
+        flags.fstChartVersion,
+        flags.localBuildPath,
+        flags.gossipEndpoints,
+        flags.grpcEndpoints
+      ])
+
+      await prompts.execute(task, self.configManager, NodeCommand.ADD_FLAGS_LIST)
+
+      /**
+       * @typedef {Object} NodeAddConfigClass
+       * -- flags --
+       * @property {string} app
+       * @property {string} cacheDir
+       * @property {string} chainId
+       * @property {string} chartDirectory
+       * @property {boolean} devMode
+       * @property {string} endpointType
+       * @property {boolean} force
+       * @property {string} fstChartVersion
+       * @property {boolean} generateGossipKeys
+       * @property {boolean} generateTlsKeys
+       * @property {string} gossipEndpoints
+       * @property {string} grpcEndpoints
+       * @property {string} keyFormat
+       * @property {string} localBuildPath
+       * @property {string} namespace
+       * @property {string} nodeId
+       * @property {string} releaseTag
+       * -- extra args --
+       * @property {PrivateKey} adminKey
+       * @property {string[]} allNodeIds
+       * @property {string} chartPath
+       * @property {Date} curDate
+       * @property {string[]} existingNodeIds
+       * @property {string} freezeAdminPrivateKey
+       * @property {string} keysDir
+       * @property {string} lastStateZipPath
+       * @property {Object} nodeClient
+       * @property {Object} podNames
+       * @property {Map<String, NetworkNodeServices>} serviceMap
+       * @property {PrivateKey} treasuryKey
+       * @property {string} stagingDir
+       * @property {string} stagingKeysDir
+       * -- methods --
+       * @property {getUnusedConfigs} getUnusedConfigs
+       */
+      /**
+       * @callback getUnusedConfigs
+       * @returns {string[]}
+       */
+
+          // create a config object for subsequent steps
+      const config = /** @type {NodeAddConfigClass} **/ this.getConfig(NodeCommand.ADD_CONFIGS_NAME, NodeCommand.ADD_FLAGS_LIST,
+              [
+                'allNodeIds',
+                'chartPath',
+                'curDate',
+                'existingNodeIds',
+                'freezeAdminPrivateKey',
+                'keysDir',
+                'lastStateZipPath',
+                'nodeClient',
+                'podNames',
+                'serviceMap',
+                'stagingDir',
+                'stagingKeysDir',
+                'treasuryKey'
+              ])
+
+      config.adminKey = PrivateKey.fromStringED25519(constants.GENESIS_KEY)
+      config.curDate = new Date()
+      config.existingNodeIds = []
+
+      if (config.keyFormat !== constants.KEY_FORMAT_PEM) {
+        throw new FullstackTestingError('key type cannot be PFX')
+      }
+
+      await self.initializeSetup(config, self.k8)
+
+      // set config in the context for later tasks to use
+      ctx.config = config
+
+      ctx.config.chartPath = await self.prepareChartPath(ctx.config.chartDirectory,
+          constants.FULLSTACK_TESTING_CHART, constants.FULLSTACK_DEPLOYMENT_CHART)
+
+      // initialize Node Client with existing network nodes prior to adding the new node which isn't functioning, yet
+      ctx.config.nodeClient = await this.accountManager.loadNodeClient(ctx.config.namespace)
+
+      const accountKeys = await this.accountManager.getAccountKeysFromSecret(FREEZE_ADMIN_ACCOUNT, config.namespace)
+      config.freezeAdminPrivateKey = accountKeys.privateKey
+
+      const treasuryAccount = await this.accountManager.getTreasuryAccountKeys(config.namespace)
+      const treasuryAccountPrivateKey = treasuryAccount.privateKey
+      config.treasuryKey = PrivateKey.fromStringED25519(treasuryAccountPrivateKey)
+
+      self.logger.debug('Initialized config', { config })
+    }
+    }
+  }
+
+  getIdentifyExistingNetworkNodesTask (argv) {
+    const self = this;
+
+    return {
+      title: 'Identify existing network nodes',
+      task: async (ctx, task) => {
+        const config = /** @type {NodeAddConfigClass} **/ ctx.config
+        config.serviceMap = await self.accountManager.getNodeServiceMap(
+            config.namespace)
+        for (/** @type {NetworkNodeServices} **/ const networkNodeServices of config.serviceMap.values()) {
+          config.existingNodeIds.push(networkNodeServices.nodeName)
+        }
+
+        return self.taskCheckNetworkNodePods(ctx, task, config.existingNodeIds)
+      }
+    }
+  }
+
   getAddPrepareTasks (argv) {
     const self = this
 
     return [
-      {
-        title: 'Initialize',
-        task: async (ctx, task) => {
-          self.configManager.update(argv)
-
-          // disable the prompts that we don't want to prompt the user for
-          prompts.disablePrompts([
-            flags.app,
-            flags.chainId,
-            flags.chartDirectory,
-            flags.devMode,
-            flags.endpointType,
-            flags.force,
-            flags.fstChartVersion,
-            flags.localBuildPath,
-            flags.gossipEndpoints,
-            flags.grpcEndpoints
-          ])
-
-          await prompts.execute(task, self.configManager, NodeCommand.ADD_FLAGS_LIST)
-
-          /**
-           * @typedef {Object} NodeAddConfigClass
-           * -- flags --
-           * @property {string} app
-           * @property {string} cacheDir
-           * @property {string} chainId
-           * @property {string} chartDirectory
-           * @property {boolean} devMode
-           * @property {string} endpointType
-           * @property {boolean} force
-           * @property {string} fstChartVersion
-           * @property {boolean} generateGossipKeys
-           * @property {boolean} generateTlsKeys
-           * @property {string} gossipEndpoints
-           * @property {string} grpcEndpoints
-           * @property {string} keyFormat
-           * @property {string} localBuildPath
-           * @property {string} namespace
-           * @property {string} nodeId
-           * @property {string} releaseTag
-           * -- extra args --
-           * @property {PrivateKey} adminKey
-           * @property {string[]} allNodeIds
-           * @property {string} chartPath
-           * @property {Date} curDate
-           * @property {string[]} existingNodeIds
-           * @property {string} freezeAdminPrivateKey
-           * @property {string} keysDir
-           * @property {string} lastStateZipPath
-           * @property {Object} nodeClient
-           * @property {Object} podNames
-           * @property {Map<String, NetworkNodeServices>} serviceMap
-           * @property {PrivateKey} treasuryKey
-           * @property {string} stagingDir
-           * @property {string} stagingKeysDir
-           * -- methods --
-           * @property {getUnusedConfigs} getUnusedConfigs
-           */
-          /**
-           * @callback getUnusedConfigs
-           * @returns {string[]}
-           */
-
-              // create a config object for subsequent steps
-          const config = /** @type {NodeAddConfigClass} **/ this.getConfig(NodeCommand.ADD_CONFIGS_NAME, NodeCommand.ADD_FLAGS_LIST,
-                  [
-                    'adminKey',
-                    'allNodeIds',
-                    'chartPath',
-                    'curDate',
-                    'existingNodeIds',
-                    'freezeAdminPrivateKey',
-                    'keysDir',
-                    'lastStateZipPath',
-                    'nodeClient',
-                    'podNames',
-                    'serviceMap',
-                    'stagingDir',
-                    'stagingKeysDir',
-                    'treasuryKey'
-                  ])
-
-          config.curDate = new Date()
-          config.existingNodeIds = []
-
-          if (config.keyFormat !== constants.KEY_FORMAT_PEM) {
-            throw new FullstackTestingError('key type cannot be PFX')
-          }
-
-          await self.initializeSetup(config, self.k8)
-
-          // set config in the context for later tasks to use
-          ctx.config = config
-
-          ctx.config.chartPath = await self.prepareChartPath(ctx.config.chartDirectory,
-              constants.FULLSTACK_TESTING_CHART, constants.FULLSTACK_DEPLOYMENT_CHART)
-
-          // initialize Node Client with existing network nodes prior to adding the new node which isn't functioning, yet
-          ctx.config.nodeClient = await this.accountManager.loadNodeClient(ctx.config.namespace)
-
-          const accountKeys = await this.accountManager.getAccountKeysFromSecret(FREEZE_ADMIN_ACCOUNT, config.namespace)
-          config.freezeAdminPrivateKey = accountKeys.privateKey
-
-          const treasuryAccount = await this.accountManager.getTreasuryAccountKeys(config.namespace)
-          const treasuryAccountPrivateKey = treasuryAccount.privateKey
-          config.treasuryKey = PrivateKey.fromStringED25519(treasuryAccountPrivateKey)
-
-          self.logger.debug('Initialized config', { config })
-        }
-      },
+      self.addInitializeTask(argv),
       {
         title: 'Check that PVCs are enabled',
         task: async (ctx, task) => {
@@ -1558,19 +1586,7 @@ export class NodeCommand extends BaseCommand {
           }
         }
       },
-      {
-        title: 'Identify existing network nodes',
-        task: async (ctx, task) => {
-          const config = /** @type {NodeAddConfigClass} **/ ctx.config
-          config.serviceMap = await self.accountManager.getNodeServiceMap(
-              config.namespace)
-          for (/** @type {NetworkNodeServices} **/ const networkNodeServices of config.serviceMap.values()) {
-            config.existingNodeIds.push(networkNodeServices.nodeName)
-          }
-
-          return self.taskCheckNetworkNodePods(ctx, task, config.existingNodeIds)
-        }
-      },
+      self.getIdentifyExistingNetworkNodesTask(argv),
       {
         title: 'Determine new node account number',
         task: (ctx, task) => {
@@ -1699,13 +1715,6 @@ export class NodeCommand extends BaseCommand {
         }
       },
       {
-        title: 'Load node admin key',
-        task: async (ctx, task) => {
-          const config = /** @type {NodeAddConfigClass} **/ ctx.config
-          config.adminKey = PrivateKey.fromStringED25519(constants.GENESIS_KEY)
-        }
-      },
-      {
         title: 'Prepare upgrade zip file for node upgrade process',
         task: async (ctx, task) => {
           const config = /** @type {NodeAddConfigClass} **/ ctx.config
@@ -1725,6 +1734,75 @@ export class NodeCommand extends BaseCommand {
           }
         }
       },
+      self.saveContextDataTask(argv)
+    ]
+  }
+
+  saveContextDataTask (argv) {
+    return {
+      title: 'Save context data',
+      task: async (ctx, task) => {
+        if (argv.exportCtxData) {
+          const ctxPath = argv[flags.ctxPath.name];
+          if (!ctxPath) {
+            throw new FullstackTestingError(`Path to export context data not specified. Please set a value for --${flags.ctxPath.name}`)
+          }
+
+          if (!fs.existsSync(ctxPath)) {
+            fs.mkdirSync(ctxPath, {recursive: true})
+          }
+          const exportedFields = [
+            'tlsCertHash',
+            'upgradeZipHash',
+            'newNode',
+          ]
+          const exportedCtx = {};
+
+          exportedCtx.signingCertDer = ctx.signingCertDer.toString();
+          exportedCtx.gossipEndpoints = ctx.gossipEndpoints.map(ep => `${ep.getDomainName}:${ep.getPort}`);
+          exportedCtx.grpcServiceEndpoints = ctx.grpcServiceEndpoints.map(ep => `${ep.getDomainName}:${ep.getPort}`);
+
+          for (let prop of exportedFields) {
+            exportedCtx[prop] = ctx[prop];
+          }
+
+          fs.writeFileSync(path.join(ctxPath, 'ctx.json'), JSON.stringify(exportedCtx));
+        }
+      }
+    };
+  }
+
+  loadContextDataTask (argv) {
+    return {
+      title: 'Load context data',
+      task: async (ctx, task) => {
+        if (argv.importCtxData) {
+          const ctxPath = argv[flags.ctxPath.name];
+          if (!ctxPath) {
+            throw new FullstackTestingError(`Path to context data not specified. Please set a value for --${flags.ctxPath.name}`)
+          }
+          const ctxData = JSON.parse(fs.readFileSync(path.join(ctxPath, 'ctx.json')));
+
+          ctx.signingCertDer = new Uint8Array(ctxData.signingCertDer.split(','));
+          ctx.gossipEndpoints = this.prepareEndpoints(ctx.config.endpointType, ctxData.gossipEndpoints, constants.HEDERA_NODE_INTERNAL_GOSSIP_PORT)
+          ctx.grpcServiceEndpoints = this.prepareEndpoints(ctx.config.endpointType, ctxData.grpcServiceEndpoints, constants.HEDERA_NODE_EXTERNAL_GOSSIP_PORT)
+
+          const fieldsToImport = [
+            'tlsCertHash',
+            'upgradeZipHash',
+            'newNode',
+          ]
+
+          for (let prop of fieldsToImport) {
+            ctx[prop] = ctxData[prop];
+          }
+        }
+      }
+    };
+  }
+
+  getAddTransactionTasks (argv) {
+    return [
       {
         title: 'Send node create transaction',
         task: async (ctx, task) => {
@@ -1748,12 +1826,7 @@ export class NodeCommand extends BaseCommand {
             throw new FullstackTestingError(`Error adding node to network: ${e.message}`, e)
           }
         }
-      }
-    ]
-  }
-
-  getAddExecuteTasks (argv) {
-    return [
+      },
       {
         title: 'Send prepare upgrade transaction',
         task: async (ctx, task) => {
@@ -1761,6 +1834,21 @@ export class NodeCommand extends BaseCommand {
           await this.prepareUpgradeNetworkNodes(config.freezeAdminPrivateKey, ctx.upgradeZipHash, config.nodeClient)
         }
       },
+      {
+        title: 'Send freeze upgrade transaction',
+        task: async (ctx, task) => {
+          const config = /** @type {NodeAddConfigClass} **/ ctx.config
+          await this.freezeUpgradeNetworkNodes(config.freezeAdminPrivateKey, ctx.upgradeZipHash, config.nodeClient)
+        }
+      },
+
+    ]
+  }
+
+  getAddExecuteTasks (argv) {
+    const self = this
+
+    return [
       {
         title: 'Download generated files from an existing node',
         task: async (ctx, task) => {
@@ -1778,16 +1866,10 @@ export class NodeCommand extends BaseCommand {
         }
       },
       {
-        title: 'Send freeze upgrade transaction',
-        task: async (ctx, task) => {
-          const config = /** @type {NodeAddConfigClass} **/ ctx.config
-          await this.freezeUpgradeNetworkNodes(config.freezeAdminPrivateKey, ctx.upgradeZipHash, config.nodeClient)
-        }
-      },
-      {
         title: 'Check network nodes are frozen',
         task: (ctx, task) => {
           const config = /** @type {NodeAddConfigClass} **/ ctx.config
+
           const subTasks = []
           for (const nodeId of config.existingNodeIds) {
             subTasks.push({
@@ -1816,6 +1898,11 @@ export class NodeCommand extends BaseCommand {
         title: 'Deploy new network node',
         task: async (ctx, task) => {
           const config = /** @type {NodeAddConfigClass} **/ ctx.config
+
+          if (!config.serviceMap) {
+            config.serviceMap = await self.accountManager.getNodeServiceMap(config.namespace)
+          }
+
           const index = config.existingNodeIds.length
           let valuesArg = ''
           for (let i = 0; i < index; i++) {
@@ -2070,6 +2157,7 @@ export class NodeCommand extends BaseCommand {
   async addPrepare (argv) {
     const self = this
 
+    argv.exportCtxData = true;
     const prepareTasks = this.getAddPrepareTasks(argv)
     const tasks = new Listr(prepareTasks, {
       concurrent: false,
@@ -2088,11 +2176,43 @@ export class NodeCommand extends BaseCommand {
     return true
   }
 
+  async addSubmitTransactions (argv) {
+    const self = this
+
+    argv.importCtxData = true;
+    const transactionTasks = this.getAddTransactionTasks(argv)
+    const tasks = new Listr([
+        self.addInitializeTask(argv),
+        self.loadContextDataTask(argv),
+        ...transactionTasks
+      ], {
+      concurrent: false,
+      rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
+    });
+
+    try {
+      await tasks.run()
+    } catch (e) {
+      self.logger.error(`Error in submitting transactions to node: ${e.message}`, e)
+      throw new FullstackTestingError(`Error in submitting transactions to up node: ${e.message}`, e)
+    } finally {
+      await self.close()
+    }
+
+    return true
+  }
+
   async addExecute (argv) {
     const self = this
 
+    argv.importCtxData = true;
     const executeTasks = this.getAddExecuteTasks(argv)
-    const tasks = new Listr(executeTasks, {
+    const tasks = new Listr([
+        self.addInitializeTask(argv),
+        self.loadContextDataTask(argv),
+        self.getIdentifyExistingNetworkNodesTask(argv),
+        ...executeTasks
+      ], {
       concurrent: false,
       rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
     });
@@ -2113,9 +2233,11 @@ export class NodeCommand extends BaseCommand {
     const self = this
 
     const prepareTasks = this.getAddPrepareTasks(argv);
+    const transactionTasks = this.getAddTransactionTasks(argv);
     const executeTasks = this.getAddExecuteTasks(argv);
     const tasks = new Listr([
       ...prepareTasks,
+      ...transactionTasks,
       ...executeTasks
     ], {
       concurrent: false,
@@ -2383,6 +2505,23 @@ export class NodeCommand extends BaseCommand {
               nodeCmd.logger.debug(argv)
 
               nodeCmd.addPrepare(argv).then(r => {
+                nodeCmd.logger.debug('==== Finished running `node add`====')
+                if (!r) process.exit(1)
+              }).catch(err => {
+                nodeCmd.logger.showUserError(err)
+                process.exit(1)
+              })
+            }
+          })
+          .command({
+            command: 'add-submit-transactions',
+            desc: 'Submits NodeCreateTransaction and Upgrade transactions to the network nodes',
+            builder: y => flags.setCommandFlags(y, ...NodeCommand.ADD_FLAGS_LIST),
+            handler: argv => {
+              nodeCmd.logger.debug('==== Running \'node add\' ===')
+              nodeCmd.logger.debug(argv)
+
+              nodeCmd.addSubmitTransactions(argv).then(r => {
                 nodeCmd.logger.debug('==== Finished running `node add`====')
                 if (!r) process.exit(1)
               }).catch(err => {

@@ -667,6 +667,28 @@ export const persistentVolumeClaims = {
   }
 }
 
+/** @type {CommandFlag} **/
+export const ctxPath = {
+  constName: 'ctxPath',
+  name: 'ctx-path',
+  definition: {
+    describe: 'Path to the directory where the command context will be saved to and/or loaded from',
+    defaultValue: '',
+    type: 'string'
+  }
+}
+
+/** @type {CommandFlag} **/
+export const adminKey = {
+  constName: 'adminKey',
+  name: 'admin-key',
+  definition: {
+    describe: 'Admin key',
+    defaultValue: constants.GENESIS_KEY,
+    type: 'string'
+  }
+}
+
 /** @type {CommandFlag[]} **/
 export const allFlags = [
   accountId,
