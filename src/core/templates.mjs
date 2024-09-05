@@ -95,7 +95,6 @@ export class Templates {
    * @returns {string}
    */
   static renderTLSPemPublicKeyFile (nodeId) {
-    // s-node1-cert.pem
     return `hedera-${nodeId}.crt`
   }
 
