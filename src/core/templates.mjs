@@ -69,7 +69,6 @@ export class Templates {
    * @returns {string}
    */
   static renderGossipPemPrivateKeyFile (prefix, nodeId) {
-    // s-node1-key.pem
     return `${prefix}-private-${nodeId}.pem`
   }
 
