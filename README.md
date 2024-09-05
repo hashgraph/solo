@@ -75,6 +75,7 @@ Then run the following command to set the kubectl context to the new cluster:
 ```bash
 kind create cluster -n "${SOLO_CLUSTER_NAME}"
 ```
+
 Example output
 
 ```
@@ -184,6 +185,7 @@ Kubernetes Namespace	: solo
 ✔ Generate gRPC TLS keys
 ✔ Finalize
 ```
+
 Key files are generated in `~/.solo/keys` directory.
 
 ```
@@ -192,6 +194,7 @@ $ ls ~/.solo/cache/keys
 hedera-node0.crt  hedera-node1.crt  hedera-node2.crt  private-node0.pfx private-node2.pfx
 hedera-node0.key  hedera-node1.key  hedera-node2.key  private-node1.pfx public.pfx
 ```
+
 * Setup cluster with shared components
   * In a separate terminal, you may run `k9s` to view the pod status.
 
@@ -213,7 +216,6 @@ Kubernetes Namespace	: solo
 ✔ Prepare chart values
 ✔ Install 'fullstack-cluster-setup' chart
 ```
-
 
 * Deploy helm chart with Hedera network components
   * It may take a while (5~15 minutes depending on your internet speed) to download various docker images and get the pods started.
@@ -328,6 +330,7 @@ Kubernetes Namespace	: solo
 Error starting node: Pod not ready [maxAttempts = 300]
 ***********************************************************************************
 ```
+
 * Deploy mirror node
 
 ```
@@ -505,7 +508,9 @@ Kubernetes Namespace	: solo
 ✔ Generate gRPC TLS keys
 ✔ Finalize
 ```
+
 PEM key files are generated in `~/.solo/keys` directory.
+
 ```
 $ ls ~/.solo/cache/keys  
 a-private-node0.pem a-public-node1.pem  hedera-node1.crt    s-private-node0.pem s-public-node1.pem
@@ -513,6 +518,7 @@ a-private-node1.pem a-public-node2.pem  hedera-node1.key    s-private-node1.pem 
 a-private-node2.pem hedera-node0.crt    hedera-node2.crt    s-private-node2.pem
 a-public-node0.pem  hedera-node0.key    hedera-node2.key    s-public-node0.pem
 ```
+
 * Setup cluster with shared components
 
 ```
@@ -548,16 +554,18 @@ $ solo node start
 
 # output is similar to example-1 
 ```
+
 ## For Developers Working on Hedera Service Repo
 
 First, pleaes clone hedera service repo `https://github.com/hashgraph/hedera-services/` and build the code
 with `./gradlew assemble`. If need to running nodes with different versions or releases, please duplicate the repo or build directories in
-multiple directories, checkout to the respective version and build the code. 
+multiple directories, checkout to the respective version and build the code.
 
 To set customized `settings.txt` file, edit the file
 `~/.solo/cache/templates/settings.txt` after `solo init` command.
 
 Then you can start customized built hedera network with the following command:
+
 ```
 solo node setup --local-build-path <default path to hedera repo>,node1=<custom build hedera repo>,node2=<custom build repo>
 ```
@@ -565,15 +573,17 @@ solo node setup --local-build-path <default path to hedera repo>,node1=<custom b
 ## For Developers Working on Platform core
 
 To deploy node with local build PTT jar files, run the following command:
+
 ```
 solo node setup --local-build-path <default path to hedera repo>,node1=<custom build hedera repo>,node2=<custom build repo>
  --app PlatformTestingTool.jar --app-config <path-to-test-json1,path-to-test-json2>
 ```
-## Logs
-You can find log for running solo command under the directory `~/.solo/logs/`
-The file `solo.log` contains the logs for the solo command. 
-The file `hashgraph-sdk.log` contains the logs from solo client when sending transactions to network nodes.
 
+## Logs
+
+You can find log for running solo command under the directory `~/.solo/logs/`
+The file `solo.log` contains the logs for the solo command.
+The file `hashgraph-sdk.log` contains the logs from solo client when sending transactions to network nodes.
 
 ## Support
 
