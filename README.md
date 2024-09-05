@@ -90,7 +90,7 @@ You can now use your cluster with:
 
 kubectl cluster-info --context kind-solo
 
-Not sure what to do next? 😅  Check out https://kind.sigs.k8s.io/docs/user/quick-start/
+Have a nice day! 👋
 ```
 
 You may now view pods in your cluster using `k9s -A` as below:
@@ -122,10 +122,10 @@ You may now view pods in your cluster using `k9s -A` as below:
 
 ### Example - 1: Deploy a standalone test network (version `0.42.5`)
 
-* Initialize `solo` with tag `v0.42.5` and list of node names `node0,node1,node2`:
+* Initialize `solo` with tag `v0.42.5` and list of node names `node1,node2,node3`:
 
 ```
-$ solo init -t v0.42.5 -i node0,node1,node2 -n "${SOLO_NAMESPACE}" -s "${SOLO_CLUSTER_SETUP_NAMESPACE}" --key-format pfx 
+$ solo init -t v0.42.5 -i node1,node2,node3 -n "${SOLO_NAMESPACE}" -s "${SOLO_CLUSTER_SETUP_NAMESPACE}" --key-format pfx 
 ```
 
 Example output
@@ -171,16 +171,16 @@ Kubernetes Namespace	: solo
 ✔ Initialize
 ✔ Check keytool exists (Version: 21.0.1+12)
 ✔ Backup old files
-✔ Generate private-node0.pfx for node: node0
 ✔ Generate private-node1.pfx for node: node1
 ✔ Generate private-node2.pfx for node: node2
+✔ Generate private-node3.pfx for node: node3
 ✔ Generate public.pfx file
 ✔ Clean up temp files
 ✔ Generate gossip keys
 ✔ Backup old files
-✔ TLS key for node: node2
+✔ TLS key for node: node3
 ✔ TLS key for node: node1
-✔ TLS key for node: node0
+✔ TLS key for node: node2
 ✔ Generate gRPC TLS keys
 ✔ Finalize
 ```
@@ -189,8 +189,8 @@ Key files are generated in `~/.solo/keys` directory.
 ```
 $ ls ~/.solo/cache/keys 
 
-hedera-node0.crt  hedera-node1.crt  hedera-node2.crt  private-node0.pfx private-node2.pfx
-hedera-node0.key  hedera-node1.key  hedera-node2.key  private-node1.pfx public.pfx
+hedera-node1.crt  hedera-node2.crt  hedera-node3.crt  private-node1.pfx private-node3.pfx
+hedera-node1.key  hedera-node2.key  hedera-node3.key  private-node2.pfx public.pfx
 ```
 * Setup cluster with shared components
   * In a separate terminal, you may run `k9s` to view the pod status.
@@ -235,16 +235,16 @@ Kubernetes Namespace	: solo
 **********************************************************************************
 ✔ Initialize
 ✔ Install chart 'fullstack-deployment'
-✔ Check Node: node0
 ✔ Check Node: node1
 ✔ Check Node: node2
+✔ Check Node: node3
 ✔ Check node pods are running
 ✔ Check Envoy Proxy for: node2
-✔ Check Envoy Proxy for: node0
 ✔ Check Envoy Proxy for: node1
+✔ Check Envoy Proxy for: node3
 ✔ Check HAProxy for: node1
-✔ Check HAProxy for: node0
 ✔ Check HAProxy for: node2
+✔ Check HAProxy for: node3
 ✔ Check proxy pods are running
 ✔ Check MinIO
 ✔ Check auxiliary pods are ready
@@ -268,16 +268,16 @@ Kubernetes Cluster	: kind-solo
 Kubernetes Namespace	: solo
 **********************************************************************************
 ✔ Initialize
-✔ Check network pod: node0
-✔ Check network pod: node1
+✔ Check network pod: node3
 ✔ Check network pod: node2
+✔ Check network pod: node1
 ✔ Identify network pods
 ✔ Copy Gossip keys to staging
 ✔ Copy gRPC TLS keys to staging
 ✔ Prepare staging directory
-✔ Update node: node2 [ platformVersion = v0.42.5 ]
-✔ Update node: node0 [ platformVersion = v0.42.5 ]
+✔ Update node: node3 [ platformVersion = v0.42.5 ]
 ✔ Update node: node1 [ platformVersion = v0.42.5 ]
+✔ Update node: node2 [ platformVersion = v0.42.5 ]
 ✔ Fetch platform software into network nodes
 ✔ Copy Gossip keys
 ✔ Copy Gossip keys
@@ -286,11 +286,11 @@ Kubernetes Namespace	: solo
 ✔ Copy TLS keys
 ✔ Copy TLS keys
 ✔ Set file permissions
-✔ Node: node2
-✔ Set file permissions
-✔ Node: node0
+✔ Node: node3
 ✔ Set file permissions
 ✔ Node: node1
+✔ Set file permissions
+✔ Node: node2
 ✔ Setup network nodes
 ✔ Finalize
 ```
@@ -313,16 +313,16 @@ Kubernetes Namespace	: solo
 **********************************************************************************
 ✔ Initialize
 ✔ Check network pod: node1
-✔ Check network pod: node0
+✔ Check network pod: node3
 ✔ Check network pod: node2
 ✔ Identify network pods
-✔ Start node: node0
 ✔ Start node: node1
+✔ Start node: node3
 ✔ Start node: node2
 ✔ Starting nodes
-✔ Check node: node0
 ✔ Check node: node1
 ✔ Check node: node2
+✔ Check node: node3
 ✔ Check nodes are ACTIVE
 *********************************** ERROR *****************************************
 Error starting node: Pod not ready [maxAttempts = 300]
@@ -424,7 +424,7 @@ Once the nodes are up, you may now expose various services (using `k9s` (shift-f
 * JSON Rpc Relays
   * You can deploy JSON RPC relays for one or more nodes as below:
   ```
-  $ solo relay deploy -i node0,node1 
+  $ solo relay deploy -i node1,node2 
   ```
 
 Example output
@@ -445,13 +445,13 @@ Kubernetes Namespace	: solo
 
 ### Example - 2: Deploy a standalone test network (version `0.47.0-alpha.0`)
 
-* Initialize `solo` with tag `v0.47.0-alpha.0` and list of node names `node0,node1,node2`:
+* Initialize `solo` with tag `v0.47.0-alpha.0` and list of node names `node1,node2,node3`:
 
 ```
 # reset .solo directory
 $ rm -rf ~/.solo 
 
-$ solo init -t v0.47.0-alpha.0 -i node0,node1,node2 -n "${SOLO_NAMESPACE}" -s "${SOLO_CLUSTER_SETUP_NAMESPACE}" --key-format pem 
+$ solo init -t v0.47.0-alpha.0 -i node1,node2,node3 -n "${SOLO_NAMESPACE}" -s "${SOLO_CLUSTER_SETUP_NAMESPACE}" --key-format pem 
 ```
 
 * Example output
@@ -494,24 +494,25 @@ Kubernetes Namespace	: solo
 **********************************************************************************
 ✔ Initialize
 ✔ Backup old files
-✔ Gossip pem key for node: node0
 ✔ Gossip pem key for node: node1
 ✔ Gossip pem key for node: node2
+✔ Gossip pem key for node: node3
 ✔ Generate gossip keys
 ✔ Backup old files
-✔ TLS key for node: node2
 ✔ TLS key for node: node1
-✔ TLS key for node: node0
+✔ TLS key for node: node2
+✔ TLS key for node: node3
 ✔ Generate gRPC TLS keys
 ✔ Finalize
 ```
 PEM key files are generated in `~/.solo/keys` directory.
 ```
 $ ls ~/.solo/cache/keys  
-a-private-node0.pem a-public-node1.pem  hedera-node1.crt    s-private-node0.pem s-public-node1.pem
-a-private-node1.pem a-public-node2.pem  hedera-node1.key    s-private-node1.pem s-public-node2.pem
-a-private-node2.pem hedera-node0.crt    hedera-node2.crt    s-private-node2.pem
-a-public-node0.pem  hedera-node0.key    hedera-node2.key    s-public-node0.pem
+a-private-node1.pem  a-private-node3.pem  a-public-node2.pem   hedera-node1.crt     
+hedera-node2.crt     hedera-node3.crt     s-private-node1.pem  s-private-node3.pem  
+s-public-node2.pem   unused-gossip-pem/
+a-private-node2.pem  a-public-node1.pem   a-public-node3.pem   hedera-node1.key     
+hedera-node2.key     hedera-node3.key     s-private-node2.pem  s-public-node1.pem   s-public-node3.pem   unused-tls/
 ```
 * Setup cluster with shared components
 
