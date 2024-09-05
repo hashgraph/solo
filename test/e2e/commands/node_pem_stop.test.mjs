@@ -20,5 +20,5 @@ import { describe } from '@jest/globals'
 import { e2eNodeKeyRefreshTest } from '../e2e_node_util.js'
 
 describe('NodeCommand', () => {
-  e2eNodeKeyRefreshTest('node-cmd-e2e-pem', 'stop')
+  e2eNodeKeyRefreshTest('node-cmd-e2e-pem-stop', 'stop')
 })
