@@ -26,7 +26,7 @@ describe('KeyManager', () => {
 
   it('should generate signing key', async () => {
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'keys-'))
-    const nodeId = 'node0'
+    const nodeId = 'node1'
     const keyPrefix = constants.SIGNING_KEY_PREFIX
 
     const signingKey = await keyManager.generateSigningKey(nodeId)
@@ -78,7 +78,7 @@ describe('KeyManager', () => {
 
   it('should generate TLS key', async () => {
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'keys-'))
-    const nodeId = 'node0'
+    const nodeId = 'node1'
     const keyName = 'TLS'
 
     const tlsKey = await keyManager.generateGrpcTLSKey(nodeId)

@@ -40,7 +40,7 @@ describe('RelayCommand', () => {
   argv[flags.namespace.name] = namespace
   argv[flags.releaseTag.name] = HEDERA_PLATFORM_VERSION_TAG
 
-  argv[flags.nodeIDs.name] = 'node0,node1'
+  argv[flags.nodeIDs.name] = 'node1,node2'
   argv[flags.generateGossipKeys.name] = true
   argv[flags.generateTlsKeys.name] = true
   argv[flags.clusterName.name] = TEST_CLUSTER
@@ -63,8 +63,8 @@ describe('RelayCommand', () => {
   })
 
   it.each([
-    { relayNodes: 'node0' },
-    { relayNodes: 'node0,node1' }
+    { relayNodes: 'node1' },
+    { relayNodes: 'node1,node2' }
   ])('relay deploy and destroy should work with different number of relay nodes', async (input) => {
     argv[flags.nodeIDs.name] = input.relayNodes
     configManager.update(argv)

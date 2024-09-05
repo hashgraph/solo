@@ -109,10 +109,10 @@ You may now view pods in your cluster using `k9s -A` as below:
 
 ### Example - 1: Deploy a standalone test network (version `0.42.5`)
 
-* Initialize `solo` with tag `v0.42.5` and list of node names `node0,node1,node2`:
+* Initialize `solo` with tag `v0.42.5` and list of node names `node1,node2,node3`:
 
 ```
-$ solo init -t v0.42.5 -i node0,node1,node2 -n "${SOLO_NAMESPACE}" -s "${SOLO_CLUSTER_SETUP_NAMESPACE}"
+$ solo init -t v0.42.5 -i node1,node2,node3 -n "${SOLO_NAMESPACE}" -s "${SOLO_CLUSTER_SETUP_NAMESPACE}"
 ```
 
 Example output
@@ -139,8 +139,8 @@ Key files are generated in `~/.solo/keys` directory.
 ```
 $ ls ~/.solo/cache/keys 
 
-hedera-node0.crt  hedera-node1.crt  hedera-node2.crt  private-node0.pem private-node2.pem
-hedera-node0.key  hedera-node1.key  hedera-node2.key  private-node1.pem public.pem
+hedera-node1.crt  hedera-node2.crt  hedera-node3.crt  private-node1.pfx private-node3.pfx
+hedera-node1.key  hedera-node2.key  hedera-node3.key  private-node2.pfx public.pfx
 ```
 * Setup cluster with shared components
   * In a separate terminal, you may run `k9s` to view the pod status.
@@ -270,7 +270,7 @@ Once the nodes are up, you may now expose various services (using `k9s` (shift-f
 * JSON Rpc Relays
   * You can deploy JSON RPC relays for one or more nodes as below:
   ```
-  $ solo relay deploy -i node0,node1 
+  $ solo relay deploy -i node1,node2 
   ```
 
 Example output
@@ -281,13 +281,13 @@ $SOLO_RELAY_DEPLAY_OUTPUT
 
 ### Example - 2: Deploy a standalone test network (version `0.47.0-alpha.0`)
 
-* Initialize `solo` with tag `v0.47.0-alpha.0` and list of node names `node0,node1,node2`:
+* Initialize `solo` with tag `v0.47.0-alpha.0` and list of node names `node1,node2,node3`:
 
 ```
 # reset .solo directory
 $ rm -rf ~/.solo 
 
-$ solo init -t v0.47.0-alpha.0 -i node0,node1,node2 -n "${SOLO_NAMESPACE}" -s "${SOLO_CLUSTER_SETUP_NAMESPACE}" --key-format pem 
+$ solo init -t v0.47.0-alpha.0 -i node1,node2,node3 -n "${SOLO_NAMESPACE}" -s "${SOLO_CLUSTER_SETUP_NAMESPACE}" --key-format pem 
 ```
 
 * Example output
@@ -310,10 +310,11 @@ $SOLO_NODE_KEY_PEM_OUTPUT
 PEM key files are generated in `~/.solo/keys` directory.
 ```
 $ ls ~/.solo/cache/keys  
-a-private-node0.pem a-public-node1.pem  hedera-node1.crt    s-private-node0.pem s-public-node1.pem
-a-private-node1.pem a-public-node2.pem  hedera-node1.key    s-private-node1.pem s-public-node2.pem
-a-private-node2.pem hedera-node0.crt    hedera-node2.crt    s-private-node2.pem
-a-public-node0.pem  hedera-node0.key    hedera-node2.key    s-public-node0.pem
+a-private-node1.pem  a-private-node3.pem  a-public-node2.pem   hedera-node1.crt     
+hedera-node2.crt     hedera-node3.crt     s-private-node1.pem  s-private-node3.pem  
+s-public-node2.pem   unused-gossip-pem/
+a-private-node2.pem  a-public-node1.pem   a-public-node3.pem   hedera-node1.key     
+hedera-node2.key     hedera-node3.key     s-private-node2.pem  s-public-node1.pem   s-public-node3.pem   unused-tls/
 ```
 * Setup cluster with shared components
 

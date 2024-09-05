@@ -5,13 +5,13 @@ echo "Starting test network with a single node"
 
 ./test/e2e/setup-e2e.sh
 solo network deploy
-solo node keys --gossip-keys --tls-keys -i node0
-solo node setup -i node0
-solo node start -i node0
+solo node keys --gossip-keys --tls-keys -i node1
+solo node setup -i node1
+solo node start -i node1
 solo mirror-node deploy
-solo relay deploy -i node0
-kubectl port-forward svc/relay-node0-hedera-json-rpc-relay -n solo-e2e 7546:7546 &
-kubectl port-forward svc/haproxy-node0-svc -n solo-e2e 50211:50211 &
+solo relay deploy -i node1
+kubectl port-forward svc/relay-node1-hedera-json-rpc-relay -n solo-e2e 7546:7546 &
+kubectl port-forward svc/haproxy-node1-svc -n solo-e2e 50211:50211 &
 kubectl port-forward svc/fullstack-deployment-hedera-explorer -n solo-e2e 8080:80 &
 
 echo "Clone hedera local node"

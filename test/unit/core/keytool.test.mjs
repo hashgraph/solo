@@ -29,27 +29,27 @@ describe.each([
   const keytoolPath = Templates.installationPath(constants.KEYTOOL, input.osPlatform)
 
   it(`should run keytool -genkeypair [${input.osPlatform}]`, async () => {
-    await keytool.genKeyPair('-alias s-node0')
-    expect(shellSpy).toHaveBeenCalledWith(`${keytoolPath} -genkeypair -alias s-node0`, true)
+    await keytool.genKeyPair('-alias s-node1')
+    expect(shellSpy).toHaveBeenCalledWith(`${keytoolPath} -genkeypair -alias s-node1`, true)
   })
 
   it(`should run keytool -certreq [${input.osPlatform}]`, async () => {
-    await keytool.certReq('-alias s-node0')
-    expect(shellSpy).toHaveBeenCalledWith(`${keytoolPath} -certreq -alias s-node0`, true)
+    await keytool.certReq('-alias s-node1')
+    expect(shellSpy).toHaveBeenCalledWith(`${keytoolPath} -certreq -alias s-node1`, true)
   })
 
   it(`should run keytool -gencert [${input.osPlatform}]`, async () => {
-    await keytool.genCert('-alias s-node0')
-    expect(shellSpy).toHaveBeenCalledWith(`${keytoolPath} -gencert -alias s-node0`, true)
+    await keytool.genCert('-alias s-node1')
+    expect(shellSpy).toHaveBeenCalledWith(`${keytoolPath} -gencert -alias s-node1`, true)
   })
 
   it(`should run keytool -importcert [${input.osPlatform}]`, async () => {
-    await keytool.importCert('-alias s-node0')
-    expect(shellSpy).toHaveBeenCalledWith(`${keytoolPath} -importcert -alias s-node0`, true)
+    await keytool.importCert('-alias s-node1')
+    expect(shellSpy).toHaveBeenCalledWith(`${keytoolPath} -importcert -alias s-node1`, true)
   })
 
   it(`should run keytool -exportcert [${input.osPlatform}]`, async () => {
-    await keytool.exportCert('-alias s-node0')
-    expect(shellSpy).toHaveBeenCalledWith(`${keytoolPath} -exportcert -alias s-node0`, true)
+    await keytool.exportCert('-alias s-node1')
+    expect(shellSpy).toHaveBeenCalledWith(`${keytoolPath} -exportcert -alias s-node1`, true)
   })
 })
