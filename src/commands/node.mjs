@@ -326,65 +326,70 @@ export class NodeCommand extends BaseCommand {
    * @returns {Promise<boolean>}
    */
   async checkNetworkNodeState (nodeId, maxAttempt = 100, status = 'ACTIVE', logfile = 'output/hgcaa.log') {
-    nodeId = nodeId.trim()
-    const podName = Templates.renderNetworkPodName(nodeId)
-    const logfilePath = `${constants.HEDERA_HAPI_PATH}/${logfile}`
-    let attempt = 0
-    let isActive = false
+    try {
+      nodeId = nodeId.trim()
+      const podName = Templates.renderNetworkPodName(nodeId)
+      const logfilePath = `${constants.HEDERA_HAPI_PATH}/${logfile}`
+      let attempt = 0
+      let isActive = false
 
-    this.logger.debug(`Checking if node ${nodeId} is ${status}...`)
-    // check log file is accessible
-    let logFileAccessible = false
-    while (attempt++ < maxAttempt) {
-      try {
-        if (await this.k8.hasFile(podName, constants.ROOT_CONTAINER, logfilePath)) {
-          logFileAccessible = true
-          break
-        }
-      } catch (e) {
-      } // ignore errors
+      this.logger.debug(`Checking if node ${nodeId} is ${status}...`)
+      // check log file is accessible
+      let logFileAccessible = false
+      while (attempt++ < maxAttempt) {
+        try {
+          if (await this.k8.hasFile(podName, constants.ROOT_CONTAINER, logfilePath)) {
+            logFileAccessible = true
+            break
+          }
+        } catch (e) {
+          this.logger.warn(`error in checking if log file is accessible: ${e.message}`) // ignore errors
+        } // ignore errors
 
-      await sleep(1000)
-    }
-
-    if (!logFileAccessible) {
-      throw new FullstackTestingError(`Logs are not accessible: ${logfilePath}`)
-    }
-
-    attempt = 0
-    while (attempt < maxAttempt) {
-      try {
-        const output = await this.k8.execContainer(podName, constants.ROOT_CONTAINER, ['tail', '-100', logfilePath])
-        if (output && output.indexOf('Terminating Netty') < 0 && // make sure we are not at the beginning of a restart
-          (output.indexOf(`Now current platform status = ${status}`) > 0 ||
-            output.indexOf(`Platform Status Change ${status}`) > 0 ||
-            output.indexOf(`is ${status}`) > 0 ||
-            output.indexOf(`"newStatus":"${status}"`) > 0)) {
-          this.logger.debug(`Node ${nodeId} is ${status} [ attempt: ${attempt}/${maxAttempt}]`)
-          isActive = true
-          break
-        }
-        this.logger.debug(`Node ${nodeId} is not ${status} yet. Trying again... [ attempt: ${attempt}/${maxAttempt} ]`)
-      } catch (e) {
-        this.logger.warn(`error in checking if node ${nodeId} is ${status}: ${e.message}. Trying again... [ attempt: ${attempt}/${maxAttempt} ]`)
-
-        // ls the HAPI path for debugging
-        await this.k8.execContainer(podName, constants.ROOT_CONTAINER, `ls -la ${constants.HEDERA_HAPI_PATH}`)
-
-        // ls the output directory for debugging
-        await this.k8.execContainer(podName, constants.ROOT_CONTAINER, `ls -la ${constants.HEDERA_HAPI_PATH}/output`)
+        await sleep(1000)
       }
-      attempt += 1
-      await sleep(1000)
+
+      if (!logFileAccessible) {
+        throw new FullstackTestingError(`Logs are not accessible: ${logfilePath}`)
+      }
+
+      attempt = 0
+      while (attempt < maxAttempt) {
+        try {
+          const output = await this.k8.execContainer(podName, constants.ROOT_CONTAINER, ['tail', '-100', logfilePath])
+          if (output && output.indexOf('Terminating Netty') < 0 && // make sure we are not at the beginning of a restart
+            (output.indexOf(`Now current platform status = ${status}`) > 0 ||
+              output.indexOf(`Platform Status Change ${status}`) > 0 ||
+              output.indexOf(`is ${status}`) > 0 ||
+              output.indexOf(`"newStatus":"${status}"`) > 0)) {
+            this.logger.debug(`Node ${nodeId} is ${status} [ attempt: ${attempt}/${maxAttempt}]`)
+            isActive = true
+            break
+          }
+          this.logger.debug(`Node ${nodeId} is not ${status} yet. Trying again... [ attempt: ${attempt}/${maxAttempt} ]`)
+        } catch (e) {
+          this.logger.warn(`error in checking if node ${nodeId} is ${status}: ${e.message}. Trying again... [ attempt: ${attempt}/${maxAttempt} ]`)
+
+          // ls the HAPI path for debugging
+          await this.k8.execContainer(podName, constants.ROOT_CONTAINER, `ls -la ${constants.HEDERA_HAPI_PATH}`)
+
+          // ls the output directory for debugging
+          await this.k8.execContainer(podName, constants.ROOT_CONTAINER, `ls -la ${constants.HEDERA_HAPI_PATH}/output`)
+        }
+        attempt += 1
+        await sleep(1000)
+      }
+
+      this.logger.info(`!> -- Node ${nodeId} is ${status} -- <!`)
+
+      if (!isActive) {
+        throw new FullstackTestingError(`node '${nodeId}' is not ${status} [ attempt = ${attempt}/${maxAttempt} ]`)
+      }
+
+      return true
+    } catch (e) {
+      throw new FullstackTestingError(`Error in checking node state: ${e.stack}`, e)
     }
-
-    this.logger.info(`!> -- Node ${nodeId} is ${status} -- <!`)
-
-    if (!isActive) {
-      throw new FullstackTestingError(`node '${nodeId}' is not ${status} [ attempt = ${attempt}/${maxAttempt} ]`)
-    }
-
-    return true
   }
 
   /**
@@ -796,6 +801,7 @@ export class NodeCommand extends BaseCommand {
           ctx.config = {
             app: self.configManager.getFlag(flags.app),
             cacheDir: self.configManager.getFlag(flags.cacheDir),
+            debugNodeId : self.configManager.getFlag(flags.debugNodeId),
             namespace: self.configManager.getFlag(flags.namespace),
             nodeIds: helpers.parseNodeIds(self.configManager.getFlag(flags.nodeIDs))
           }
@@ -811,9 +817,56 @@ export class NodeCommand extends BaseCommand {
         }
       },
       {
-        title: 'Identify network pods',
-        task: (ctx, task) => self.taskCheckNetworkNodePods(ctx, task, ctx.config.nodeIds)
+        title: 'Identify existing network nodes',
+        task: async (ctx, task) => {
+          const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
+          config.existingNodeIds = []
+          config.serviceMap = await self.accountManager.getNodeServiceMap(
+            config.namespace)
+          for (/** @type {NetworkNodeServices} **/ const networkNodeServices of config.serviceMap.values()) {
+            config.existingNodeIds.push(networkNodeServices.nodeName)
+          }
+
+          config.allNodeIds = [...config.existingNodeIds]
+
+          return self.taskCheckNetworkNodePods(ctx, task, config.existingNodeIds)
+        }
       },
+      // {
+      //   title: 'Add jvm debug options to start nodes',
+      //   task: async (ctx, _) => {
+      //     ctx.config.chartPath = await self.prepareChartPath(ctx.config.chartDirectory,
+      //       constants.FULLSTACK_TESTING_CHART, constants.FULLSTACK_DEPLOYMENT_CHART)
+      //
+      //     const config = ctx.config
+      //     const podName = `network-${ctx.config.debugNodeId}-0`
+      //     this.logger.debug(`Enable port forwarding for JVM debugger on node ${podName}`)
+      //     // const forwarder = await this.k8.portForward(podName, constants.JVM_DEBUG_PORT, constants.JVM_DEBUG_PORT)
+      //
+      //     const index = config.existingNodeIds.length
+      //     let valuesArg = ''
+      //     for (let i = 0; i < index; i++) {
+      //       valuesArg += ` --set "hedera.nodes[${i}].accountId=${config.serviceMap.get(config.existingNodeIds[i]).accountId}" --set "hedera.nodes[${i}].name=${config.existingNodeIds[i]}"`
+      //     }
+      //
+      //     this.profileValuesFile = await self.profileManager.prepareValuesForNodeAdd(
+      //       path.join(config.stagingDir, 'config.txt'),
+      //       path.join(config.stagingDir, 'templates', 'application.properties'))
+      //     if (this.profileValuesFile) {
+      //       valuesArg += this.prepareValuesFiles(this.profileValuesFile)
+      //     }
+      //     valuesArg += addDebugOptions(valuesArg, config.debugNodeId)
+      //
+      //     await self.chartManager.upgrade(
+      //       config.namespace,
+      //       constants.FULLSTACK_DEPLOYMENT_CHART,
+      //       config.chartPath,
+      //       valuesArg,
+      //       config.fstChartVersion
+      //     )
+      //   },
+      //   skip: (ctx, _) => !ctx.config.debugNodeId
+      // },
       {
         title: 'Starting nodes',
         task: (ctx, task) => {
@@ -850,12 +903,13 @@ export class NodeCommand extends BaseCommand {
 
           // set up the sub-tasks
           return task.newListr(subTasks, {
-            concurrent: false,
+            concurrent: true,
             rendererOptions: {
               collapseSubtasks: false
             }
           })
-        }
+        },
+        skip: (ctx, _) => ctx.config.debugNodeId
       },
       {
         title: 'Check node proxies are ACTIVE',
@@ -878,7 +932,9 @@ export class NodeCommand extends BaseCommand {
             }
           })
         },
-        skip: (ctx, _) => self.configManager.getFlag(flags.app) !== '' && self.configManager.getFlag(flags.app) !== constants.HEDERA_APP_NAME
+        skip: (ctx, _) =>
+          (self.configManager.getFlag(flags.app) !== '' && self.configManager.getFlag(flags.app) !== constants.HEDERA_APP_NAME) ||
+          ctx.config.debugNodeId
       },
       {
         title: 'Add node stakes',
@@ -902,10 +958,12 @@ export class NodeCommand extends BaseCommand {
               }
             })
           }
-        }
-      }], {
-      concurrent: false,
-      rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
+        },
+        skip: (ctx, _) => ctx.config.debugNodeId
+      }
+      ], {
+        concurrent: false,
+        rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
     })
 
     try {
@@ -1359,6 +1417,7 @@ export class NodeCommand extends BaseCommand {
             flags.chainId,
             flags.chartDirectory,
             flags.devMode,
+            flags.debugNodeId,
             flags.endpointType,
             flags.fstChartVersion,
             flags.localBuildPath,
@@ -1771,7 +1830,7 @@ export class NodeCommand extends BaseCommand {
           if (this.profileValuesFile) {
             valuesArg += this.prepareValuesFiles(this.profileValuesFile)
           }
-          valuesArg = addDebugOptions(valuesArg, config.debugNodeId)
+          valuesArg += addDebugOptions(valuesArg, config.debugNodeId)
 
           await self.chartManager.upgrade(
             config.namespace,
@@ -2118,6 +2177,7 @@ export class NodeCommand extends BaseCommand {
             desc: 'Start a node',
             builder: y => flags.setCommandFlags(y,
               flags.app,
+              flags.debugNodeId,
               flags.namespace,
               flags.nodeIDs
             ),
@@ -2279,6 +2339,7 @@ export class NodeCommand extends BaseCommand {
             flags.app,
             flags.chartDirectory,
             flags.devMode,
+            flags.debugNodeId,
             flags.endpointType,
             flags.force,
             flags.fstChartVersion,
@@ -2654,7 +2715,8 @@ export class NodeCommand extends BaseCommand {
           if (this.profileValuesFile) {
             valuesArg += this.prepareValuesFiles(this.profileValuesFile)
           }
-          valuesArg = addDebugOptions(valuesArg, config.debugNodeId)
+
+          valuesArg += addDebugOptions(valuesArg, config.debugNodeId)
 
           await self.chartManager.upgrade(
             config.namespace,
@@ -2876,6 +2938,7 @@ export class NodeCommand extends BaseCommand {
             flags.chainId,
             flags.chartDirectory,
             flags.devMode,
+            flags.debugNodeId,
             flags.endpointType,
             flags.force,
             flags.fstChartVersion,
@@ -3144,7 +3207,7 @@ export class NodeCommand extends BaseCommand {
             valuesArg += this.prepareValuesFiles(this.profileValuesFile)
           }
 
-          valuesArg = addDebugOptions(valuesArg, config.debugNodeId)
+          valuesArg += addDebugOptions(valuesArg, config.debugNodeId)
 
           await self.chartManager.upgrade(
             config.namespace,

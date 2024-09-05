@@ -25,7 +25,7 @@ import { constants, Templates } from '../core/index.mjs'
 import * as prompts from './prompts.mjs'
 import * as helpers from '../core/helpers.mjs'
 import path from 'path'
-import { validatePath } from '../core/helpers.mjs'
+import { addDebugOptions, validatePath } from '../core/helpers.mjs'
 import fs from 'fs'
 
 export class NetworkCommand extends BaseCommand {
@@ -74,6 +74,7 @@ export class NetworkCommand extends BaseCommand {
       flags.fstChartVersion,
       flags.hederaExplorerTlsHostName,
       flags.hederaExplorerTlsLoadBalancerIp,
+      flags.debugNodeId,
       flags.keyFormat,
       flags.log4j2Xml,
       flags.namespace,
@@ -139,6 +140,8 @@ export class NetworkCommand extends BaseCommand {
       valuesArg += this.prepareValuesFiles(config.valuesFile)
     }
 
+    valuesArg = addDebugOptions(valuesArg, config.debugNodeId)
+
     const profileName = this.configManager.getFlag(flags.profileName)
     this.profileValuesFile = await this.profileManager.prepareValuesForFstChart(profileName)
     if (this.profileValuesFile) {
@@ -183,6 +186,7 @@ export class NetworkCommand extends BaseCommand {
       flags.bootstrapProperties,
       flags.cacheDir,
       flags.chainId,
+      flags.debugNodeId,
       flags.deployHederaExplorer,
       flags.deployMirrorNode,
       flags.hederaExplorerTlsLoadBalancerIp,
