@@ -78,7 +78,6 @@ export class Templates {
    * @returns {string}
    */
   static renderGossipPemPublicKeyFile (prefix, nodeId) {
-    // s-node1-cert.pem
     return `${prefix}-public-${nodeId}.pem`
   }
 
