@@ -372,7 +372,7 @@ export function addDebugOptions (valuesArg, debugNodeId) {
   if (debugNodeId) {
     const nodeId = Templates.nodeNumberFromNodeId(debugNodeId) - 1
     valuesArg += ` --set "hedera.nodes[${nodeId}].root.extraEnv[0].name=JAVA_OPTS"`
-    valuesArg += ` --set "hedera.nodes[${nodeId}].root.extraEnv[0].value=-agentlib:jdwp=transport=dt_socket\\,server=y\\,suspend=n\\,address=*:5005"`
+    valuesArg += ` --set "hedera.nodes[${nodeId}].root.extraEnv[0].value=-agentlib:jdwp=transport=dt_socket\\,server=y\\,suspend=n\\,address=*:${constants.JVM_DEBUG_PORT}"`
   }
   return valuesArg
 }
