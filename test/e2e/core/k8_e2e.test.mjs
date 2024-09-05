@@ -187,7 +187,7 @@ describe('K8', () => {
   }, defaultTimeout)
 
   it('should be able to port forward gossip port', (done) => {
-    const podName = Templates.renderNetworkPodName('node0')
+    const podName = Templates.renderNetworkPodName('node1')
     const localPort = constants.HEDERA_NODE_INTERNAL_GOSSIP_PORT
     try {
       k8.portForward(podName, localPort, constants.HEDERA_NODE_INTERNAL_GOSSIP_PORT).then((server) => {

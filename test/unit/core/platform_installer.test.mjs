@@ -99,7 +99,7 @@ describe('PackageInstaller', () => {
     })
     it('should fail for missing tag', async () => {
       expect.assertions(1)
-      await expect(installer.fetchPlatform('network-node0-0', '')).rejects.toThrow(MissingArgumentError)
+      await expect(installer.fetchPlatform('network-node1-0', '')).rejects.toThrow(MissingArgumentError)
     })
   })
 
@@ -109,7 +109,7 @@ describe('PackageInstaller', () => {
     })
 
     it('should fail for missing stagingDir path', async () => {
-      await expect(installer.copyGossipKeys('node0', '')).rejects.toThrow(MissingArgumentError)
+      await expect(installer.copyGossipKeys('node1', '')).rejects.toThrow(MissingArgumentError)
     })
   })
 })
