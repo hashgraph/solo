@@ -112,7 +112,7 @@ You may now view pods in your cluster using `k9s -A` as below:
 * Initialize `solo` with tag `v0.42.5` and list of node names `node0,node1,node2`:
 
 ```
-$ solo init -t v0.42.5 -i node0,node1,node2 -n "${SOLO_NAMESPACE}" -s "${SOLO_CLUSTER_SETUP_NAMESPACE}" --key-format pem 
+$ solo init -t v0.42.5 -i node0,node1,node2 -n "${SOLO_NAMESPACE}" -s "${SOLO_CLUSTER_SETUP_NAMESPACE}"
 ```
 
 Example output
