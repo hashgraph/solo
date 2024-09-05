@@ -303,7 +303,7 @@ export class NodeCommand extends BaseCommand {
     const podName = Templates.renderNetworkPodName(nodeId)
 
     try {
-      await this.k8.waitForPods([constants.POD_PHASE_RUNNING], [
+      await this.k8.waitForPodReady([
         'fullstack.hedera.com/type=network-node',
         `fullstack.hedera.com/node-name=${nodeId}`
       ], 1, maxAttempts, delay)
@@ -416,6 +416,11 @@ export class NodeCommand extends BaseCommand {
     })
   }
 
+  /**
+   * @param {Object} config
+   * @param {K8} k8
+   * @returns {Promise<void>}
+   */
   async initializeSetup (config, k8) {
     // compute other config parameters
     config.keysDir = path.join(validatePath(config.cacheDir), 'keys')
@@ -544,6 +549,10 @@ export class NodeCommand extends BaseCommand {
     })
   }
 
+  /**
+   * @param {string} certFullPath
+   * @returns {Promise<Uint8Array>}
+   */
   async loadPermCertificate (certFullPath) {
     const certPem = fs.readFileSync(certFullPath).toString()
     const decodedDers = x509.PemConverter.decode(certPem)
@@ -553,6 +562,10 @@ export class NodeCommand extends BaseCommand {
     return (new Uint8Array(decodedDers[0]))
   }
 
+  /**
+   * @param {string} stagingDir
+   * @returns {Promise<string>}
+   */
   async prepareUpgradeZip (stagingDir) {
     // we build a mock upgrade.zip file as we really don't need to upgrade the network
     // also the platform zip file is ~80Mb in size requiring a lot of transactions since the max

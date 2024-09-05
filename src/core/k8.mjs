@@ -810,7 +810,7 @@ export class K8 {
    * @param {number} [podCount] - number of pod expected
    * @param {number} [maxAttempts] - maximum attempts to check
    * @param {number} [delay] - delay between checks in milliseconds
-   * @param {Function} podItemPredicate - a predicate function to check the pod item
+   * @param {Function} [podItemPredicate] - a predicate function to check the pod item
    * @returns {Promise<Object[]>} a Promise that checks the status of an array of pods
    */
   async waitForPods (phases = [constants.POD_PHASE_RUNNING], labels = [], podCount = 1, maxAttempts = 10, delay = 500, podItemPredicate) {
@@ -892,24 +892,23 @@ export class K8 {
    * @param {number} [delay] - delay between checks in milliseconds
    * @returns {Promise<Object[]>}
    */
-  async waitForPodConditions (
-    conditionsMap,
-    labels = [],
-    podCount = 1, maxAttempts = 10, delay = 500) {
+  async waitForPodConditions (conditionsMap, labels = [], podCount = 1, maxAttempts = 10, delay = 500) {
     if (!conditionsMap || conditionsMap.size === 0) throw new MissingArgumentError('pod conditions are required')
 
     return await this.waitForPods([constants.POD_PHASE_RUNNING], labels, podCount, maxAttempts, delay, (pod) => {
-      if (pod.status?.conditions?.length > 0) {
-        for (const cond of pod.status.conditions) {
-          for (const entry of conditionsMap.entries()) {
-            const condType = entry[0]
-            const condStatus = entry[1]
-            if (cond.type === condType && cond.status === condStatus) {
-              this.logger.debug(`Pod condition met for ${pod.metadata.name} [type: ${cond.type} status: ${cond.status}]`)
-              return true
-            }
-          }
-        }
+      const conditions = pod.status?.conditions
+      if (!conditions?.length) {
+        return false
+      }
+
+      const conditionMet = conditions.some(condition =>
+        conditionsMap.has(condition.type) &&
+        conditionsMap.get(condition.type) === condition.status
+      )
+      if (conditionMet) {
+        this.logger.debug(`Pod condition met for ${pod.metadata.name}`)
+
+        return true
       }
 
       // condition not found
