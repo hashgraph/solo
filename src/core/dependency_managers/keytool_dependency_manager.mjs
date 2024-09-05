@@ -14,6 +14,7 @@
  * limitations under the License.
  *
  */
+'use strict'
 import fs from 'fs'
 import os from 'os'
 import path from 'path'
@@ -31,6 +32,15 @@ import { OS_WIN32, OS_WINDOWS } from '../constants.mjs'
  * Installs or uninstalls JRE client at SOLO_HOME_DIR/bin/jre directory
  */
 export class KeytoolDependencyManager extends ShellRunner {
+  /**
+   * @param {PackageDownloader} downloader
+   * @param {Zippy} zippy
+   * @param {Logger} logger
+   * @param {string} [installationDir]
+   * @param {NodeJS.Platform} [osPlatform]
+   * @param {string} [osArch]
+   * @param {string} [javaVersion]
+   */
   constructor (
     downloader,
     zippy,
@@ -74,6 +84,10 @@ export class KeytoolDependencyManager extends ShellRunner {
     this.keytoolPath = Templates.installationPath(constants.KEYTOOL, this.osPlatform, this.installationDir)
   }
 
+  /**
+   * @returns {Promise<string>}
+   * @private
+   */
   async _fetchKeytoolArtifactUrl () {
     const keytoolRelease = `jdk-${this.javaVersion.major}.${this.javaVersion.minor}.${this.javaVersion.patch}%2B${this.javaVersion.build}`
     const adoptiumURL = `https://api.adoptium.net/v3/assets/release_name/eclipse/${keytoolRelease}?architecture=${this.osArch}&heap_size=normal&image_type=jre&os=${this.osPlatform}&project=jdk`
@@ -81,17 +95,23 @@ export class KeytoolDependencyManager extends ShellRunner {
     return data.binaries[0].package
   }
 
+  /**
+   * @returns {string}
+   */
   getKeytoolPath () {
     return this.keytoolPath
   }
 
+  /**
+   * @returns {boolean}
+   */
   isInstalled () {
     return fs.existsSync(this.keytoolPath)
   }
 
   /**
    * Uninstall keytool from solo bin folder
-   * @return {Promise<void>}
+   * @returns {Promise<void>}
    */
   async uninstall () {
     if (fs.existsSync(this.jreDir)) {
@@ -99,6 +119,10 @@ export class KeytoolDependencyManager extends ShellRunner {
     }
   }
 
+  /**
+   * @param {string} [tmpDir]
+   * @returns {Promise<boolean>}
+   */
   async install (tmpDir = helpers.getTmpDir()) {
     const extractedDir = path.join(tmpDir, 'extracted-keytool')
     if (!this.keytoolPackage) {
@@ -143,6 +167,10 @@ export class KeytoolDependencyManager extends ShellRunner {
     return this.isInstalled()
   }
 
+  /**
+   * @param {boolean} [shouldInstall]
+   * @returns {Promise<boolean>}
+   */
   async checkVersion (shouldInstall = true) {
     if (!this.isInstalled()) {
       if (shouldInstall) {
@@ -158,6 +186,9 @@ export class KeytoolDependencyManager extends ShellRunner {
     return semver.gte(parts[1], version.JAVA_VERSION)
   }
 
+  /**
+   * @returns {Keytool}
+   */
   getKeytool () {
     if (this.keytool) {
       return this.keytool
@@ -167,6 +198,9 @@ export class KeytoolDependencyManager extends ShellRunner {
     return this.keytool
   }
 
+  /**
+   * @returns {string}
+   */
   getKeytoolVersion () {
     return version.JAVA_VERSION
   }

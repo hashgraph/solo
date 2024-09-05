@@ -85,6 +85,16 @@ on:
         type: string
         required: false
         default: "e2e-node-add"
+      e2e-node-update-test-subdir:
+        description: "E2E Node Update Test Subdirectory:"
+        type: string
+        required: false
+        default: "e2e-node-update"
+      e2e-node-delete-test-subdir:
+        description: "E2E Node Delete Test Subdirectory:"
+        type: string
+        required: false
+        default: "e2e-node-delete"
       e2e-relay-test-subdir:
         description: "E2E Relay Test Subdirectory:"
         type: string
@@ -120,6 +130,16 @@ on:
         type: string
         required: false
         default: "E2E Node Add Tests Coverage Report"
+      e2e-node-update-coverage-report:
+        description: "E2E Node Update Coverage Report:"
+        type: string
+        required: false
+        default: "E2E Node Update Tests Coverage Report"
+      e2e-node-delete-coverage-report:
+        description: "E2E Node Delete Coverage Report:"
+        type: string
+        required: false
+        default: "E2E Node Delete Tests Coverage Report"
       e2e-relay-coverage-report:
         description: "E2E Relay Coverage Report:"
         type: string
@@ -224,6 +244,20 @@ jobs:
           name: ${{ inputs.e2e-node-add-coverage-report }}
           path: 'coverage/${{ inputs.e2e-node-add-test-subdir }}'
 
+      - name: Download E2E Update Coverage Report
+        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
+        if: ${{ (inputs.enable-codecov-analysis || inputs.enable-codacy-coverage) && inputs.enable-e2e-coverage-report && !cancelled() && !failure() }}
+        with:
+          name: ${{ inputs.e2e-node-udpate-coverage-report }}
+          path: 'coverage/${{ inputs.e2e-udpate-add-test-subdir }}'
+
+      - name: Download E2E Delete Coverage Report
+        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
+        if: ${{ (inputs.enable-codecov-analysis || inputs.enable-codacy-coverage) && inputs.enable-e2e-coverage-report && !cancelled() && !failure() }}
+        with:
+          name: ${{ inputs.e2e-node-delete-coverage-report }}
+          path: 'coverage/${{ inputs.e2e-node-delete-test-subdir }}'
+
       - name: Publish To Codecov
         uses: codecov/codecov-action@e28ff129e5465c2c0dcc6f003fc735cb6ae0c673 # v4.5.0
         if: ${{ inputs.enable-codecov-analysis && !cancelled() && !failure() }}
@@ -291,7 +325,7 @@ jobs:
           echo "::endgroup::"
 
       - name: Publish Snyk Reports
-        uses: actions/upload-artifact@834a144ee995460fba8ed112a2fc961b36a5ec5a # v4.3.6
+        uses: actions/upload-artifact@50769540e7f4bd5e21e526ee35c689e35e0d6874 # v4.4.0
         if: ${{ inputs.enable-snyk-scan && !cancelled() && !failure() }}
         with:
           name: Snyk Reports

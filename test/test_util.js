@@ -54,7 +54,7 @@ import { AccountCommand } from '../src/commands/account.mjs'
 
 export const testLogger = logging.NewLogger('debug', true)
 export const TEST_CLUSTER = 'solo-e2e'
-export const HEDERA_PLATFORM_VERSION_TAG = 'v0.53.0-release-0.53.xff7c43d'
+export const HEDERA_PLATFORM_VERSION_TAG = 'v0.53.2'
 
 export function getTestCacheDir (testName) {
   const baseDir = 'test/data/tmp'
@@ -220,6 +220,14 @@ export function bootstrapNetwork (testName, argv,
       }
     }, 120000)
 
+    it('generate key files', async () => {
+      await expect(nodeCmd.keys(argv)).resolves.toBeTruthy()
+      expect(nodeCmd.getUnusedConfigs(NodeCommand.KEYS_CONFIGS_NAME)).toEqual([
+        flags.cacheDir.constName,
+        flags.devMode.constName
+      ])
+    }, 120000)
+
     it('should succeed with network deploy', async () => {
       expect.assertions(1)
       await networkCmd.deploy(argv)
@@ -247,16 +255,12 @@ export function bootstrapNetwork (testName, argv,
       it('should succeed with node setup command', async () => {
         expect.assertions(2)
         // cache this, because `solo node setup.finalize()` will reset it to false
-        const generateGossipKeys = bootstrapResp.opts.configManager.getFlag(flags.generateGossipKeys)
         try {
           await expect(nodeCmd.setup(argv)).resolves.toBeTruthy()
-          const expectedUnusedConfigs = []
-          expectedUnusedConfigs.push(flags.appConfig.constName)
-          expectedUnusedConfigs.push(flags.devMode.constName)
-          if (!generateGossipKeys) {
-            expectedUnusedConfigs.push('curDate')
-          }
-          expect(nodeCmd.getUnusedConfigs(NodeCommand.SETUP_CONFIGS_NAME)).toEqual(expectedUnusedConfigs)
+          expect(nodeCmd.getUnusedConfigs(NodeCommand.SETUP_CONFIGS_NAME)).toEqual([
+            flags.appConfig.constName,
+            flags.devMode.constName
+          ])
         } catch (e) {
           nodeCmd.logger.showUserError(e)
           expect(e).toBeNull()

@@ -14,6 +14,7 @@
  * limitations under the License.
  *
  */
+'use strict'
 import fs from 'fs'
 import path from 'path'
 import { FullstackTestingError, IllegalArgumentError, MissingArgumentError } from './errors.mjs'
@@ -30,10 +31,9 @@ const consensusSidecars = [
 
 export class ProfileManager {
   /**
-   * Constructor
-   * @param logger an instance of core/Logger
-   * @param configManager an instance of core/ConfigManager
-   * @param cacheDir cache directory where the values file will be written. A yaml file named <profileName>.yaml is created.
+   * @param {Logger} logger - an instance of core/Logger
+   * @param {ConfigManager} configManager - an instance of core/ConfigManager
+   * @param {string} cacheDir - cache directory where the values file will be written. A yaml file named <profileName>.yaml is created.
    */
   constructor (logger, configManager, cacheDir = constants.SOLO_VALUES_DIR) {
     if (!logger) throw new MissingArgumentError('An instance of core/Logger is required')
@@ -41,12 +41,18 @@ export class ProfileManager {
 
     this.logger = logger
     this.configManager = configManager
+
+    /** @type {Map<string, Object>} */
     this.profiles = new Map()
 
     cacheDir = path.resolve(cacheDir)
     this.cacheDir = cacheDir
   }
 
+  /**
+   * @param {boolean} [forceReload]
+   * @returns {Map<string, Object>}
+   */
   loadProfiles (forceReload = false) {
     const profileFile = this.configManager.getFlag(flags.profileFile)
     if (!profileFile) throw new MissingArgumentError('profileFile is required')
@@ -74,6 +80,10 @@ export class ProfileManager {
     return this.profiles
   }
 
+  /**
+   * @param {string} profileName
+   * @returns {Object}
+   */
   getProfile (profileName) {
     if (!profileName) throw new MissingArgumentError('profileName is required')
     if (!this.profiles || this.profiles.size <= 0) {
@@ -86,10 +96,10 @@ export class ProfileManager {
 
   /**
    * Set value in the yaml object
-   * @param itemPath item path in the yaml
-   * @param value value to be set
-   * @param yamlRoot root of the yaml object
-   * @return {*}
+   * @param {string} itemPath - item path in the yaml
+   * @param {*} value - value to be set
+   * @param {Object} yamlRoot - root of the yaml object
+   * @returns {Object}
    * @private
    */
   _setValue (itemPath, value, yamlRoot) {
@@ -129,9 +139,9 @@ export class ProfileManager {
 
   /**
    * Set items for the chart
-   * @param itemPath item path in the yaml, if empty then root of the yaml object will be used
-   * @param items the element object
-   * @param yamlRoot root of the yaml object to update
+   * @param {string} itemPath - item path in the yaml, if empty then root of the yaml object will be used
+   * @param {*} items - the element object
+   * @param {Object} yamlRoot - root of the yaml object to update
    * @private
    */
   _setChartItems (itemPath, items, yamlRoot) {
@@ -148,6 +158,12 @@ export class ProfileManager {
     }
   }
 
+  /**
+   * @param {Object} profile
+   * @param {string[]} nodeIds
+   * @param {Object} yamlRoot
+   * @returns {Object}
+   */
   resourcesForConsensusPod (profile, nodeIds, yamlRoot) {
     if (!profile) throw new MissingArgumentError('profile is required')
 
@@ -213,6 +229,11 @@ export class ProfileManager {
     return yamlRoot
   }
 
+  /**
+   * @param {Object} profile
+   * @param {Object} yamlRoot
+   * @returns {void}
+   */
   resourcesForHaProxyPod (profile, yamlRoot) {
     if (!profile) throw new MissingArgumentError('profile is required')
     if (!profile.haproxy) return // use chart defaults
@@ -220,18 +241,33 @@ export class ProfileManager {
     return this._setChartItems('defaults.haproxy', profile.haproxy, yamlRoot)
   }
 
+  /**
+   * @param {Object} profile
+   * @param {Object} yamlRoot
+   * @returns {void}
+   */
   resourcesForEnvoyProxyPod (profile, yamlRoot) {
     if (!profile) throw new MissingArgumentError('profile is required')
     if (!profile.envoyProxy) return // use chart defaults
     return this._setChartItems('defaults.envoyProxy', profile.envoyProxy, yamlRoot)
   }
 
+  /**
+   * @param {Object} profile
+   * @param {Object} yamlRoot
+   * @returns {void}
+   */
   resourcesForHederaExplorerPod (profile, yamlRoot) {
     if (!profile) throw new MissingArgumentError('profile is required')
     if (!profile.explorer) return
     return this._setChartItems('hedera-explorer', profile.explorer, yamlRoot)
   }
 
+  /**
+   * @param {Object} profile
+   * @param {Object} yamlRoot
+   * @returns {Object}
+   */
   resourcesForMinioTenantPod (profile, yamlRoot) {
     if (!profile) throw new MissingArgumentError('profile is required')
     if (!profile.minio || !profile.minio.tenant) return // use chart defaults
@@ -253,7 +289,7 @@ export class ProfileManager {
   /**
    * Prepare a values file for FST Helm chart
    * @param {string} profileName resource profile name
-   * @return {Promise<string>} return the full path to the values file
+   * @returns {Promise<string>} return the full path to the values file
    */
   prepareValuesForFstChart (profileName) {
     if (!profileName) throw new MissingArgumentError('profileName is required')
@@ -282,6 +318,10 @@ export class ProfileManager {
     })
   }
 
+  /**
+   * @param {PathLike|FileHandle} applicationPropertiesPath
+   * @returns {Promise<void>}
+   */
   async bumpHederaConfigVersion (applicationPropertiesPath) {
     const lines = (await readFile(applicationPropertiesPath, 'utf-8')).split('\n')
 
@@ -296,6 +336,11 @@ export class ProfileManager {
     await writeFile(applicationPropertiesPath, lines.join('\n'))
   }
 
+  /**
+   * @param {string} configTxtPath
+   * @param {string} applicationPropertiesPath
+   * @returns {Promise<string>}
+   */
   async prepareValuesForNodeAdd (configTxtPath, applicationPropertiesPath) {
     const yamlRoot = {}
     this._setFileContentsAsValue('hedera.configMaps.configTxt', configTxtPath, yamlRoot)
@@ -317,8 +362,8 @@ export class ProfileManager {
 
   /**
    * Prepare a values file for rpc-relay Helm chart
-   * @param profileName resource profile name
-   * @return {Promise<string>} return the full path to the values file
+   * @param {string} profileName - resource profile name
+   * @returns {Promise<string>} return the full path to the values file
    */
   prepareValuesForRpcRelayChart (profileName) {
     if (!profileName) throw new MissingArgumentError('profileName is required')
@@ -344,8 +389,8 @@ export class ProfileManager {
 
   /**
    * Prepare a values file for mirror-node Helm chart
-   * @param profileName resource profile name
-   * @return {Promise<string>} return the full path to the values file
+   * @param {string} profileName - resource profile name
+   * @returns {Promise<string>} return the full path to the values file
    */
   prepareValuesForMirrorNodeChart (profileName) {
     if (!profileName) throw new MissingArgumentError('profileName is required')
@@ -384,9 +429,9 @@ export class ProfileManager {
 
   /**
    * Writes the contents of a file as a value for the given nested item path in the yaml object
-   * @param {string} itemPath nested item path in the yaml object to store the file contents
-   * @param {string} valueFilePath path to the file whose contents will be stored in the yaml object
-   * @param {Object} yamlRoot root of the yaml object
+   * @param {string} itemPath - nested item path in the yaml object to store the file contents
+   * @param {string} valueFilePath - path to the file whose contents will be stored in the yaml object
+   * @param {Object} yamlRoot - root of the yaml object
    * @private
    */
   _setFileContentsAsValue (itemPath, valueFilePath, yamlRoot) {
@@ -396,13 +441,13 @@ export class ProfileManager {
 
   /**
    * Prepares config.txt file for the node
-   * @param {string} namespace namespace where the network is deployed
-   * @param {Map<string, string>} nodeAccountMap the map of node IDs to account IDs
-   * @param {string} destPath path to the destination directory to write the config.txt file
-   * @param {string} releaseTag release tag e.g. v0.42.0
-   * @param {string} appName the app name (default: HederaNode.jar)
-   * @param {string} chainId chain ID (298 for local network)
-   * @param {string} template path to the config.template file
+   * @param {string} namespace - namespace where the network is deployed
+   * @param {Map<string, string>} nodeAccountMap - the map of node IDs to account IDs
+   * @param {string} destPath - path to the destination directory to write the config.txt file
+   * @param {string} releaseTag - release tag e.g. v0.42.0
+   * @param {string} [appName] - the app name (default: HederaNode.jar)
+   * @param {string} [chainId] - chain ID (298 for local network)
+   * @param {string} [template] - path to the config.template file
    * @returns {string} the config.txt file path
    */
   prepareConfigTxt (namespace, nodeAccountMap, destPath, releaseTag, appName = constants.HEDERA_APP_NAME, chainId = constants.HEDERA_CHAIN_ID, template = path.join(constants.RESOURCES_DIR, 'templates', 'config.template')) {
@@ -435,7 +480,7 @@ export class ProfileManager {
 
         const account = nodeAccountMap.get(nodeID)
         if (releaseVersion.minor >= 40) {
-          configLines.push(`address, ${nodeSeq}, ${nodeName}, ${nodeName}, ${nodeStakeAmount}, ${internalIP}, ${internalPort}, ${externalIP}, ${externalPort}, ${account}`)
+          configLines.push(`address, ${nodeSeq}, ${nodeSeq}, ${nodeName}, ${nodeStakeAmount}, ${internalIP}, ${internalPort}, ${externalIP}, ${externalPort}, ${account}`)
         } else {
           configLines.push(`address, ${nodeSeq}, ${nodeName}, ${nodeStakeAmount}, ${internalIP}, ${internalPort}, ${externalIP}, ${externalPort}, ${account}`)
         }

@@ -14,11 +14,16 @@
  * limitations under the License.
  *
  */
+'use strict'
 import { constants } from './index.mjs'
 import chalk from 'chalk'
 import { FullstackTestingError } from './errors.mjs'
 
 export class ChartManager {
+  /**
+   * @param {Helm} helm
+   * @param {Logger} logger
+   */
   constructor (helm, logger) {
     if (!logger) throw new Error('An instance of core/Logger is required')
     if (!helm) throw new Error('An instance of core/Helm is required')
@@ -32,8 +37,8 @@ export class ChartManager {
    *
    * This must be invoked before calling other methods
    *
-   * @param repoURLs a map of name and chart repository URLs
-   * @param force whether or not to update the repo
+   * @param {Map<string, string>} repoURLs - a map of name and chart repository URLs
+   * @param {boolean} force - whether or not to update the repo
    * @returns {Promise<string[]>}
    */
   async setup (repoURLs = constants.DEFAULT_CHART_REPO, force = true) {
@@ -58,6 +63,7 @@ export class ChartManager {
 
   /**
    * List available clusters
+   * @param {string} namespaceName
    * @returns {Promise<string[]>}
    */
   async getInstalledCharts (namespaceName) {
@@ -70,6 +76,14 @@ export class ChartManager {
     return []
   }
 
+  /**
+   * @param {string} namespaceName
+   * @param {string} chartReleaseName
+   * @param {string} chartPath
+   * @param {string} version
+   * @param {string} valuesArg
+   * @returns {Promise<boolean>}
+   */
   async install (namespaceName, chartReleaseName, chartPath, version, valuesArg = '') {
     try {
       const isInstalled = await this.isChartInstalled(namespaceName, chartReleaseName)
@@ -97,6 +111,11 @@ export class ChartManager {
     return true
   }
 
+  /**
+   * @param {string} namespaceName
+   * @param {string} chartReleaseName
+   * @returns {Promise<boolean>}
+   */
   async isChartInstalled (namespaceName, chartReleaseName) {
     this.logger.debug(`> checking if chart is installed [ chart: ${chartReleaseName}, namespace: ${namespaceName} ]`)
     const charts = await this.getInstalledCharts(namespaceName)
@@ -109,6 +128,11 @@ export class ChartManager {
     return false
   }
 
+  /**
+   * @param {string} namespaceName
+   * @param {string} chartReleaseName
+   * @returns {Promise<boolean>}
+   */
   async uninstall (namespaceName, chartReleaseName) {
     try {
       const isInstalled = await this.isChartInstalled(namespaceName, chartReleaseName)
@@ -126,6 +150,14 @@ export class ChartManager {
     return true
   }
 
+  /**
+   * @param {string} namespaceName
+   * @param {string} chartReleaseName
+   * @param {string} chartPath
+   * @param {string} valuesArg
+   * @param {string} version
+   * @returns {Promise<boolean>}
+   */
   async upgrade (namespaceName, chartReleaseName, chartPath, valuesArg = '', version = '') {
     let versionArg = ''
     if (version) {

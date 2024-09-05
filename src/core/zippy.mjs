@@ -14,6 +14,7 @@
  * limitations under the License.
  *
  */
+'use strict'
 import { FullstackTestingError, IllegalArgumentError, MissingArgumentError } from './errors.mjs'
 import fs from 'fs'
 import AdmZip from 'adm-zip'
@@ -22,6 +23,9 @@ import chalk from 'chalk'
 import path from 'path'
 
 export class Zippy {
+  /**
+   * @param {Logger} logger
+   */
   constructor (logger) {
     if (!logger) throw new Error('An instance of core/Logger is required')
     this.logger = logger
@@ -29,9 +33,9 @@ export class Zippy {
 
   /**
    * Zip a file or directory
-   * @param {string} srcPath path to a file or directory
-   * @param {string} destPath path to the output zip file
-   * @param {boolean} verbose if true, log the progress
+   * @param {string} srcPath - path to a file or directory
+   * @param {string} destPath - path to the output zip file
+   * @param {boolean} [verbose] - if true, log the progress
    * @returns {Promise<string>} path to the output zip file
    */
   async zip (srcPath, destPath, verbose = false) {
@@ -57,6 +61,12 @@ export class Zippy {
     }
   }
 
+  /**
+   * @param {string} srcPath
+   * @param {string} destPath
+   * @param {boolean} [verbose]
+   * @returns {Promise<string>}
+   */
   async unzip (srcPath, destPath, verbose = false) {
     const self = this
 
@@ -88,6 +98,11 @@ export class Zippy {
     }
   }
 
+  /**
+   * @param {string} srcPath
+   * @param {string} destPath
+   * @returns {Promise<string>}
+   */
   async tar (srcPath, destPath) {
     if (!srcPath) throw new MissingArgumentError('srcPath is required')
     if (!destPath) throw new MissingArgumentError('destPath is required')
@@ -107,6 +122,11 @@ export class Zippy {
     }
   }
 
+  /**
+   * @param {string} srcPath
+   * @param {string} destPath
+   * @returns {Promise<string>}
+   */
   async untar (srcPath, destPath) {
     if (!srcPath) throw new MissingArgumentError('srcPath is required')
     if (!destPath) throw new MissingArgumentError('destPath is required')

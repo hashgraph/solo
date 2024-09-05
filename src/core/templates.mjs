@@ -14,6 +14,7 @@
  * limitations under the License.
  *
  */
+'use strict'
 import * as x509 from '@peculiar/x509'
 import os from 'os'
 import path from 'path'
@@ -21,62 +22,110 @@ import { DataValidationError, FullstackTestingError, IllegalArgumentError, Missi
 import { constants } from './index.mjs'
 
 export class Templates {
+  /**
+   * @param {string} nodeId
+   * @returns {string}
+   */
   static renderNetworkPodName (nodeId) {
     return `network-${nodeId}-0`
   }
 
+  /**
+   * @param {string} nodeId
+   * @returns {string}
+   */
   static renderNetworkSvcName (nodeId) {
     return `network-${nodeId}-svc`
   }
 
+  /**
+   * @param {string} svcName
+   * @returns {string}
+   */
   static nodeIdFromNetworkSvcName (svcName) {
     return svcName.split('-').slice(1, -1).join('-')
   }
 
+  /**
+   * @param {string} nodeId
+   * @returns {string}
+   */
   static renderNetworkHeadlessSvcName (nodeId) {
     return `network-${nodeId}`
   }
 
   /**
    * Generate pfx node private key file name
-   * @param nodeId node ID
+   * @param {string} nodeId
    * @returns {string}
    */
   static renderGossipPfxPrivateKeyFile (nodeId) {
     return `private-${nodeId}.pfx`
   }
 
+  /**
+   * @param {string} prefix
+   * @param {string} nodeId
+   * @returns {string}
+   */
   static renderGossipPemPrivateKeyFile (prefix, nodeId) {
     // s-node0-key.pem
     return `${prefix}-private-${nodeId}.pem`
   }
 
+  /**
+   * @param {string} prefix
+   * @param {string} nodeId
+   * @returns {string}
+   */
   static renderGossipPemPublicKeyFile (prefix, nodeId) {
     // s-node0-cert.pem
     return `${prefix}-public-${nodeId}.pem`
   }
 
+  /**
+   * @param {string} nodeId
+   * @returns {string}
+   */
   static renderTLSPemPrivateKeyFile (nodeId) {
     return `hedera-${nodeId}.key`
   }
 
+  /**
+   * @param {string} nodeId
+   * @returns {string}
+   */
   static renderTLSPemPublicKeyFile (nodeId) {
     // s-node0-cert.pem
     return `hedera-${nodeId}.crt`
   }
 
+  /**
+   * @param {string} prefix
+   * @param {string} nodeId
+   * @param {string} [suffix]
+   * @returns {string}
+   */
   static renderNodeFriendlyName (prefix, nodeId, suffix = '') {
     const parts = [prefix, nodeId]
     if (suffix) parts.push(suffix)
     return parts.join('-')
   }
 
+  /**
+   * @param {string} podName
+   * @returns {string}
+   */
   static extractNodeIdFromPodName (podName) {
     const parts = podName.split('-')
     if (parts.length !== 3) throw new DataValidationError(`pod name is malformed : ${podName}`, 3, parts.length)
     return parts[1].trim()
   }
 
+  /**
+   * @param {string} tag
+   * @returns {string}
+   */
   static prepareReleasePrefix (tag) {
     if (!tag) throw new MissingArgumentError('tag cannot be empty')
 
@@ -87,7 +136,7 @@ export class Templates {
 
   /**
    * renders the name to be used to store the new account key as a Kubernetes secret
-   * @param accountId the account ID, string or AccountId type
+   * @param {AccountId|string} accountId
    * @returns {string} the name of the Kubernetes secret to store the account key
    */
   static renderAccountKeySecretName (accountId) {
@@ -96,7 +145,7 @@ export class Templates {
 
   /**
    * renders the label selector to be used to fetch the new account key from the Kubernetes secret
-   * @param accountId the account ID, string or AccountId type
+   * @param {AccountId|string} accountId
    * @returns {string} the label selector of the Kubernetes secret to retrieve the account key   */
   static renderAccountKeySecretLabelSelector (accountId) {
     return `fullstack.hedera.com/account-id=${accountId.toString()}`
@@ -104,7 +153,7 @@ export class Templates {
 
   /**
    * renders the label object to be used to store the new account key in the Kubernetes secret
-   * @param accountId the account ID, string or AccountId type
+   * @param {AccountId|string} accountId
    * @returns {{'fullstack.hedera.com/account-id': string}} the label object to be used to
    * store the new account key in the Kubernetes secret
    */
@@ -114,6 +163,15 @@ export class Templates {
     }
   }
 
+  /**
+   * @param {string} nodeId
+   * @param {string} [state]
+   * @param {string} [locality]
+   * @param {string} [org]
+   * @param {string} [orgUnit]
+   * @param {string} [country]
+   * @returns {x509.Name}
+   */
   static renderDistinguishedName (nodeId,
     state = 'TX',
     locality = 'Richardson',
@@ -124,6 +182,11 @@ export class Templates {
     return new x509.Name(`CN=${nodeId},ST=${state},L=${locality},O=${org},OU=${orgUnit},C=${country}`)
   }
 
+  /**
+   * @param {string} cacheDir
+   * @param {string} releaseTag
+   * @returns {string}
+   */
   static renderStagingDir (cacheDir, releaseTag) {
     if (!cacheDir) {
       throw new IllegalArgumentError('cacheDir cannot be empty')
@@ -141,6 +204,12 @@ export class Templates {
     return path.resolve(path.join(cacheDir, releasePrefix, 'staging', releaseTag))
   }
 
+  /**
+   * @param {string} dep
+   * @param {NodeJS.Platform} [osPlatform]
+   * @param {string} [installationDir]
+   * @returns {string}
+   */
   static installationPath (
     dep,
     osPlatform = os.platform(),
@@ -165,24 +234,52 @@ export class Templates {
     }
   }
 
+  /**
+   * @param {string} namespace
+   * @param {string} nodeId
+   * @returns {string}
+   */
   static renderFullyQualifiedNetworkPodName (namespace, nodeId) {
     return `${Templates.renderNetworkPodName(nodeId)}.${Templates.renderNetworkHeadlessSvcName(nodeId)}.${namespace}.svc.cluster.local`
   }
 
+  /**
+   * @param {string} namespace
+   * @param {string} nodeId
+   * @returns {string}
+   */
   static renderFullyQualifiedNetworkSvcName (namespace, nodeId) {
     return `${Templates.renderNetworkSvcName(nodeId)}.${namespace}.svc.cluster.local`
   }
 
+  /**
+   * @param {string} svcName
+   * @returns {string}
+   */
   static nodeIdFromFullyQualifiedNetworkSvcName (svcName) {
     const parts = svcName.split('.')
     return this.nodeIdFromNetworkSvcName(parts[0])
   }
 
+  /**
+   * @param {string} nodeId
+   * @returns {number}
+   */
   static nodeNumberFromNodeId (nodeId) {
     for (let i = nodeId.length - 1; i > 0; i--) {
       if (isNaN(nodeId[i])) {
         return parseInt(nodeId.substring(i + 1, nodeId.length))
       }
+    }
+  }
+
+  static renderGossipKeySecretName (nodeId) {
+    return `network-${nodeId}-keys-secrets`
+  }
+
+  static renderGossipKeySecretLabelObject (nodeId) {
+    return {
+      'fullstack.hedera.com/node-name': nodeId
     }
   }
 }
