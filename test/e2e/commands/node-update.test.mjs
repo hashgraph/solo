@@ -61,7 +61,7 @@ describe('Node update', () => {
   afterAll(async () => {
     await getNodeLogs(k8, namespace)
     await nodeCmd.stop(argv)
-    // await k8.deleteNamespace(namespace)
+    await k8.deleteNamespace(namespace)
   }, 600000)
 
   it('cache current version of private keys', async () => {
@@ -75,8 +75,6 @@ describe('Node update', () => {
   }, 450000)
 
   it('should update a new node property successfully', async () => {
-
-
     // generate gossip and tls keys for the updated node
     const tmpDir = getTmpDir()
 
