@@ -2729,7 +2729,6 @@ export class NodeCommand extends BaseCommand {
             valuesArg += this.prepareValuesFiles(this.profileValuesFile)
           }
 
-          this.logger.info(`config.debugNodeId = ${config.debugNodeId}`)
           valuesArg += addDebugOptions(valuesArg, config.debugNodeId)
 
           await self.chartManager.upgrade(
@@ -3336,14 +3335,27 @@ export class NodeCommand extends BaseCommand {
         }
       },
       {
+        title: 'Enable port forwarding JVM',
+        task: async (ctx, _) => {
+          const podName = `network-${ctx.config.debugNodeId}-0`
+          this.logger.debug(`Enable port forwarding for JVM debugger on node ${podName}`)
+          await this.k8.portForward(podName, constants.JVM_DEBUG_PORT, constants.JVM_DEBUG_PORT)
+        },
+        skip: (ctx, _) => !ctx.config.debugNodeId
+      },
+      {
         title: 'Check all nodes are ACTIVE',
         task: async (ctx, task) => {
           const subTasks = []
           // sleep for 30 seconds to give time for the logs to roll over to prevent capturing an invalid "ACTIVE" string
           await sleep(30000)
           for (const nodeId of ctx.config.allNodeIds) {
+            let reminder = ''
+            if (ctx.config.debugNodeId === nodeId) {
+              reminder = ' Please attach JVM debugger now.'
+            }
             subTasks.push({
-              title: `Check node: ${chalk.yellow(nodeId)}`,
+              title: `Check node: ${chalk.yellow(nodeId)}, ${chalk.red(reminder)}`,
               task: () => self.checkNetworkNodeState(nodeId, 200)
             })
           }
