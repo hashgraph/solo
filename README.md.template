@@ -378,6 +378,55 @@ You can find log for running solo command under the directory `~/.solo/logs/`
 The file `solo.log` contains the logs for the solo command. 
 The file `hashgraph-sdk.log` contains the logs from solo client when sending transactions to network nodes.
 
+## Using Intellj remote debug with solo
+
+Example 1: attach jvm debugger to a hedera node
+```bash
+./test/e2e/setup-e2e.sh
+solo network deploy -i node1,node2,node3 --debug-nodeid node2
+solo node keys --gossip-keys --tls-keys
+solo node setup -i node1,node2,node3 --local-build-path ../hedera-services/hedera-node/data
+solo node start -i node1,node2,node3 --debug-nodeid node2
+```
+
+Once you see the following message, you can launch jvm debugger from Intellij
+```
+❯ Check all nodes are ACTIVE
+  Check node: node1,
+  Check node: node3,  Please attach JVM debugger now.
+  Check node: node4,
+```
+
+Example 2: attach jvm debugger with node add operation
+
+```bash
+./test/e2e/setup-e2e.sh
+solo network deploy -i node1,node2,node3 --pvcs
+solo node keys --gossip-keys --tls-keys 
+solo node setup -i node1,node2,node3 --local-build-path ../hedera-services/hedera-node/data
+solo node start -i node1,node2,node3
+solo node add --gossip-keys --tls-keys --node-id node4 --debug-nodeid node4 --local-build-path ../hedera-services/hedera-node/data
+```
+
+Example 3: attach jvm debugger with node update operation
+```bash
+./test/e2e/setup-e2e.sh
+solo network deploy -i node1,node2,node3
+solo node keys --gossip-keys --tls-keys 
+solo node setup -i node1,node2,node3 --local-build-path ../hedera-services/hedera-node/data
+solo node start -i node1,node2,node3
+solo node update --node-id node2  --debug-nodeid node2 --local-build-path ../hedera-services/hedera-node/data --new-account-number 0.0.7 --gossip-public-key ./s-public-node2.pem --gossip-private-key ./s-private-node2.pem --agreement-public-key ./a-public-node2.pem --agreement-private-key ./a-private-node2.pem
+```
+
+Example 4: attach jvm debugger with node delete operation
+```bash
+./test/e2e/setup-e2e.sh
+solo network deploy -i node1,node2,node3,node4
+solo node keys --gossip-keys --tls-keys 
+solo node setup -i node1,node2,node3,node4 --local-build-path ../hedera-services/hedera-node/data
+solo node start -i node1,node2,node3,node4
+solo node delete --node-id node2  --debug-nodeid node3
+```
 
 ## Support
 

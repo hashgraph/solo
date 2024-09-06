@@ -4,7 +4,7 @@
 
 solo network deploy -i node1,node2,node3
 
-solo node keys --gossip-keys --tls-keys --key-format pem
+solo node keys --gossip-keys --tls-keys
 
 solo node setup -i node1,node2,node3 --local-build-path ../hedera-services/hedera-node/data
 

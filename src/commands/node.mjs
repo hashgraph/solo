@@ -342,7 +342,6 @@ export class NodeCommand extends BaseCommand {
           break
         }
       } catch (e) {
-        this.logger.warn(`error in checking if log file is accessible: ${e.message}`) // ignore errors
       } // ignore errors
 
       await sleep(1000)
