@@ -1,7 +1,7 @@
 #!/bin/bash
 
 keysDir="${HOME}/.solo/cache/keys"
-ids="node0,node1,node2"
+ids="node1,node2,node3"
 validity=36524 # number of days
 generate_pfx=false
 
@@ -162,7 +162,7 @@ function generate_pfx_files() {
     echo "------------------------------------------------------------------------------------"
     echo "Generated: ${cert_pfx}"
     echo "------------------------------------------------------------------------------------"
-    #openssl pkcs12 -info -in a-public-node0.pfx -passin pass:password -passout pass:password -nokeys
+    #openssl pkcs12 -info -in a-public-node1.pfx -passin pass:password -passout pass:password -nokeys
     openssl pkcs12 -info -in "${cert_pfx}" -passin pass:"${dummy_password}" -passout pass:"${dummy_password}" -nokeys
 }
 

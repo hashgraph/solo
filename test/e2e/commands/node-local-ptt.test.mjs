@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
+ * @jest-environment steps
  */
 import {
   afterAll,
@@ -30,28 +31,30 @@ import {
 import { getNodeLogs } from '../../../src/core/helpers.mjs'
 
 describe('Node local build', () => {
-  const LOCAL_HEDERA = 'local-hedera-app'
+  const LOCAL_PTT = 'local-ptt-app'
   const argv = getDefaultArgv()
   argv[flags.keyFormat.name] = constants.KEY_FORMAT_PFX
   argv[flags.nodeIDs.name] = 'node1,node2,node3'
   argv[flags.generateGossipKeys.name] = true
   argv[flags.generateTlsKeys.name] = true
   argv[flags.clusterName.name] = TEST_CLUSTER
-  argv[flags.debugNodeId.name] = 'node1'
   // set the env variable SOLO_FST_CHARTS_DIR if developer wants to use local FST charts
   argv[flags.chartDirectory.name] = process.env.SOLO_FST_CHARTS_DIR ? process.env.SOLO_FST_CHARTS_DIR : undefined
+  argv[flags.valuesFile.name] = `test/data/${LOCAL_PTT}-values.yaml`
 
-  let hederaK8
+  let pttK8
   afterAll(async () => {
-    await getNodeLogs(hederaK8, LOCAL_HEDERA)
-    // await hederaK8.deleteNamespace(LOCAL_HEDERA)
-  }, 600000)
+    await getNodeLogs(pttK8, LOCAL_PTT)
+    await pttK8.deleteNamespace(LOCAL_PTT)
+  }, 120000)
 
-  describe('Node for hedera app should start successfully', () => {
-    console.log('Starting local build for Hedera app')
-    argv[flags.localBuildPath.name] = 'node1=../hedera-services/hedera-node/data/,../hedera-services/hedera-node/data,node3=../hedera-services/hedera-node/data'
-    argv[flags.namespace.name] = LOCAL_HEDERA
-    const bootstrapResp = bootstrapNetwork(LOCAL_HEDERA, argv)
-    hederaK8 = bootstrapResp.opts.k8
+  describe('Node for platform app should start successfully', () => {
+    console.log('Starting local build for Platform app')
+    argv[flags.localBuildPath.name] = '../hedera-services/platform-sdk/sdk/data,node1=../hedera-services/platform-sdk/sdk/data,node2=../hedera-services/platform-sdk/sdk/data'
+    argv[flags.app.name] = 'PlatformTestingTool.jar'
+    argv[flags.appConfig.name] = '../hedera-services/platform-sdk/platform-apps/tests/PlatformTestingTool/src/main/resources/FCMFCQ-Basic-2.5k-5m.json'
+    argv[flags.namespace.name] = LOCAL_PTT
+    const bootstrapResp = bootstrapNetwork(LOCAL_PTT, argv)
+    pttK8 = bootstrapResp.opts.k8
   })
 })

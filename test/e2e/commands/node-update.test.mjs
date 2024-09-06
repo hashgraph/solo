@@ -75,9 +75,8 @@ describe('Node update', () => {
   }, 450000)
 
   it('should update a new node property successfully', async () => {
-    argv[flags.localBuildPath.name] = 'node0=../hedera-services/hedera-node/data/,../hedera-services/hedera-node/data,node2=../hedera-services/hedera-node/data'
 
-    
+
     // generate gossip and tls keys for the updated node
     const tmpDir = getTmpDir()
 

@@ -31,7 +31,7 @@ const tmpDir = getTmpDir()
 const configFile = path.join(tmpDir, 'resource-manager.config')
 const configManager = new ConfigManager(testLogger, configFile)
 const profileManager = new ProfileManager(testLogger, configManager, tmpDir)
-configManager.setFlag(flags.nodeIDs, 'node0,node1,node3')
+configManager.setFlag(flags.nodeIDs, 'node1,node2,node4')
 const testProfileFile = path.join('test', 'data', 'test-profiles.yaml')
 configManager.setFlag(flags.cacheDir, getTestCacheDir('ProfileManager'))
 configManager.setFlag(flags.releaseTag, version.HEDERA_PLATFORM_VERSION)
@@ -169,9 +169,9 @@ describe('ProfileManager', () => {
   describe('prepareConfigText', () => {
     it('should write and return the path to the config.txt file', () => {
       const nodeAccountMap = /** @type {Map<string, string>} */ new Map()
-      nodeAccountMap.set('node0', '0.0.3')
-      nodeAccountMap.set('node1', '0.0.4')
-      nodeAccountMap.set('node2', '0.0.5')
+      nodeAccountMap.set('node1', '0.0.3')
+      nodeAccountMap.set('node2', '0.0.4')
+      nodeAccountMap.set('node3', '0.0.5')
       const destPath = path.join(tmpDir, 'staging')
       fs.mkdirSync(destPath, { recursive: true })
       const namespace = 'test-namespace'
@@ -190,9 +190,9 @@ describe('ProfileManager', () => {
       expect(configText.includes('0.0.4')).toBeTruthy()
       expect(configText.includes('0.0.5')).toBeTruthy()
       // expect the config.txt file to contain the node IDs
-      expect(configText.includes('node0')).toBeTruthy()
       expect(configText.includes('node1')).toBeTruthy()
       expect(configText.includes('node2')).toBeTruthy()
+      expect(configText.includes('node3')).toBeTruthy()
     })
 
     it('should fail when no nodeIDs', () => {
@@ -202,20 +202,20 @@ describe('ProfileManager', () => {
 
     it('should fail when an invalid template path is provided', () => {
       const nodeAccountMap = /** @type {Map<string, string>} */ new Map()
-      nodeAccountMap.set('node0', '0.0.3')
+      nodeAccountMap.set('node1', '0.0.3')
       expect(() => profileManager.prepareConfigTxt('', nodeAccountMap, '', version.HEDERA_PLATFORM_VERSION, constants.HEDERA_APP_NAME, constants.HEDERA_CHAIN_ID, '')).toThrow('config templatePath is required')
     })
 
     it('should fail when no releaseTag is provided', () => {
       const nodeAccountMap = /** @type {Map<string, string>} */ new Map()
-      nodeAccountMap.set('node0', '0.0.3')
+      nodeAccountMap.set('node1', '0.0.3')
       expect(() => profileManager.prepareConfigTxt('', nodeAccountMap, '', undefined)).toThrow('release tag is required')
     })
 
     it('should fail when destPath does not exist', () => {
       expect.assertions(2)
       const nodeAccountMap = /** @type {Map<string, string>} */ new Map()
-      nodeAccountMap.set('node0', '0.0.3')
+      nodeAccountMap.set('node1', '0.0.3')
       const destPath = path.join(tmpDir, 'missing-directory')
       try {
         profileManager.prepareConfigTxt('', nodeAccountMap, destPath, version.HEDERA_PLATFORM_VERSION)
@@ -228,7 +228,7 @@ describe('ProfileManager', () => {
     it('should fail when template path does not exist', () => {
       expect.assertions(2)
       const nodeAccountMap = /** @type {Map<string, string>} */ new Map()
-      nodeAccountMap.set('node0', '0.0.3')
+      nodeAccountMap.set('node1', '0.0.3')
       const destPath = path.join(tmpDir, 'staging')
       try {
         profileManager.prepareConfigTxt('', nodeAccountMap, destPath, version.HEDERA_PLATFORM_VERSION, constants.HEDERA_APP_NAME, constants.HEDERA_CHAIN_ID, 'INVALID')
