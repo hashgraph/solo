@@ -797,7 +797,7 @@ export class NodeCommand extends BaseCommand {
           ctx.config = {
             app: self.configManager.getFlag(flags.app),
             cacheDir: self.configManager.getFlag(flags.cacheDir),
-            debugNodeId : self.configManager.getFlag(flags.debugNodeId),
+            debugNodeId: self.configManager.getFlag(flags.debugNodeId),
             namespace: self.configManager.getFlag(flags.namespace),
             nodeIds: helpers.parseNodeIds(self.configManager.getFlag(flags.nodeIDs))
           }
@@ -920,11 +920,10 @@ export class NodeCommand extends BaseCommand {
               }
             })
           }
-        },
-      }
-      ], {
-        concurrent: false,
-        rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
+        }
+      }], {
+      concurrent: false,
+      rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
     })
 
     try {
