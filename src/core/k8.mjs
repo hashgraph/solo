@@ -441,7 +441,7 @@ export class K8 {
     return await this.execContainer(
       podName,
       containerName,
-      ['sh', '-c', '[[ -d "' + destPath + '" ]] && echo -n "true" || echo -n "false"']
+      ['bash', '-c', '[[ -d "' + destPath + '" ]] && echo -n "true" || echo -n "false"']
     ) === 'true'
   }
 
@@ -455,7 +455,7 @@ export class K8 {
     return this.execContainer(
       podName,
       containerName,
-      ['sh', '-c', 'mkdir -p "' + destPath + '"']
+      ['bash', '-c', 'mkdir -p "' + destPath + '"']
     )
   }
 

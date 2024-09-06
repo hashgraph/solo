@@ -290,8 +290,8 @@ export class PlatformInstaller {
     return new Listr([
       {
         title: 'Set file permissions',
-        task: (_, task) =>
-          self.setPlatformDirPermissions(podName)
+        task: async (_, task) =>
+          await self.setPlatformDirPermissions(podName)
       }
     ],
     {
@@ -323,8 +323,8 @@ export class PlatformInstaller {
     const subTasks = []
     subTasks.push({
       title: 'Copy TLS keys',
-      task: (_, task) =>
-        self.copyTLSKeys(nodeIds, stagingDir, keyFormat)
+      task: async (_, task) =>
+        await self.copyTLSKeys(nodeIds, stagingDir, keyFormat)
     })
 
     for (const nodeId of nodeIds) {
@@ -332,8 +332,8 @@ export class PlatformInstaller {
         title: `Node: ${chalk.yellow(nodeId)}`,
         task: () => new Listr([{
           title: 'Copy Gossip keys',
-          task: (_, task) =>
-            self.copyGossipKeys(nodeId, stagingDir, nodeIds, keyFormat)
+          task: async (_, task) =>
+            await self.copyGossipKeys(nodeId, stagingDir, nodeIds, keyFormat)
         }
         ],
         {

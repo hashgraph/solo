@@ -52,7 +52,7 @@ describe('Node delete', () => {
 
   afterAll(async () => {
     await getNodeLogs(k8, namespace)
-    // await k8.deleteNamespace(namespace)
+    await k8.deleteNamespace(namespace)
   }, 600000)
 
   it('should succeed with init command', async () => {
