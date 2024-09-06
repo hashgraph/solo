@@ -14,7 +14,6 @@
  * limitations under the License.
  *
  */
-import { describe, expect, it } from '@jest/globals'
 import { ChartManager, Helm, constants } from '../../../src/core/index.mjs'
 import { testLogger } from '../../test_util.js'
 
@@ -24,15 +23,15 @@ describe('ChartManager', () => {
 
   it('should be able to list installed charts', async () => {
     const ns = constants.FULLSTACK_SETUP_NAMESPACE
-    expect(ns).not.toBeNull()
+    expect(ns, 'namespace should not be null').not.toBeNull()
     const list = await chartManager.getInstalledCharts(ns)
-    expect(list.length).not.toBe(0)
+    expect(list.length, 'should have at least one installed chart').not.toBe(0)
   })
 
   it('should be able to check if a chart is installed', async () => {
     const ns = constants.FULLSTACK_SETUP_NAMESPACE
-    expect(ns).not.toBeNull()
+    expect(ns, 'namespace should not be null').not.toBeNull()
     const isInstalled = await chartManager.isChartInstalled(ns, constants.FULLSTACK_CLUSTER_SETUP_CHART)
-    expect(isInstalled).toBeTruthy()
+    expect(isInstalled, `${constants.FULLSTACK_CLUSTER_SETUP_CHART} should be installed`).toBeTruthy()
   })
 })
