@@ -179,35 +179,35 @@ export class MirrorNodeCommand extends BaseCommand {
           const subTasks = [
             {
               title: 'Check Postgres DB',
-              task: async (ctx, _) => self.k8.waitForPodReady([
+              task: async (ctx, _) => await self.k8.waitForPodReady([
                 'app.kubernetes.io/component=postgresql',
                 'app.kubernetes.io/name=postgres'
               ], 1, 300, 2000)
             },
             {
               title: 'Check REST API',
-              task: async (ctx, _) => self.k8.waitForPodReady([
+              task: async (ctx, _) => await self.k8.waitForPodReady([
                 'app.kubernetes.io/component=rest',
                 'app.kubernetes.io/name=rest'
               ], 1, 300, 2000)
             },
             {
               title: 'Check GRPC',
-              task: async (ctx, _) => self.k8.waitForPodReady([
+              task: async (ctx, _) => await self.k8.waitForPodReady([
                 'app.kubernetes.io/component=grpc',
                 'app.kubernetes.io/name=grpc'
               ], 1, 300, 2000)
             },
             {
               title: 'Check Monitor',
-              task: async (ctx, _) => self.k8.waitForPodReady([
+              task: async (ctx, _) => await self.k8.waitForPodReady([
                 'app.kubernetes.io/component=monitor',
                 'app.kubernetes.io/name=monitor'
               ], 1, 300, 2000)
             },
             {
               title: 'Check Importer',
-              task: async (ctx, _) => self.k8.waitForPodReady([
+              task: async (ctx, _) => await self.k8.waitForPodReady([
                 'app.kubernetes.io/component=importer',
                 'app.kubernetes.io/name=importer'
               ], 1, 300, 2000)
@@ -215,7 +215,7 @@ export class MirrorNodeCommand extends BaseCommand {
             {
               title: 'Check Hedera Explorer',
               skip: (ctx, _) => !ctx.config.deployHederaExplorer,
-              task: async (ctx, _) => self.k8.waitForPodReady([
+              task: async (ctx, _) => await self.k8.waitForPodReady([
                 'app.kubernetes.io/component=hedera-explorer',
                 'app.kubernetes.io/name=hedera-explorer'
               ], 1, 300, 2000)

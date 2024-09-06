@@ -363,8 +363,8 @@ export class NetworkCommand extends BaseCommand {
             for (const nodeId of config.nodeIds) {
               subTasks.push({
                 title: `Check Node: ${chalk.yellow(nodeId)}`,
-                task: () =>
-                  self.k8.waitForPods([constants.POD_PHASE_RUNNING], [
+                task: async () =>
+                  await self.k8.waitForPods([constants.POD_PHASE_RUNNING], [
                     'fullstack.hedera.com/type=network-node',
                     `fullstack.hedera.com/node-name=${nodeId}`
                   ], 1, 60 * 15, 1000) // timeout 15 minutes
@@ -391,8 +391,8 @@ export class NetworkCommand extends BaseCommand {
             for (const nodeId of config.nodeIds) {
               subTasks.push({
                 title: `Check HAProxy for: ${chalk.yellow(nodeId)}`,
-                task: () =>
-                  self.k8.waitForPods([constants.POD_PHASE_RUNNING], [
+                task: async () =>
+                  await self.k8.waitForPods([constants.POD_PHASE_RUNNING], [
                     'fullstack.hedera.com/type=haproxy'
                   ], 1, 60 * 15, 1000) // timeout 15 minutes
               })
@@ -402,8 +402,8 @@ export class NetworkCommand extends BaseCommand {
             for (const nodeId of config.nodeIds) {
               subTasks.push({
                 title: `Check Envoy Proxy for: ${chalk.yellow(nodeId)}`,
-                task: () =>
-                  self.k8.waitForPods([constants.POD_PHASE_RUNNING], [
+                task: async () =>
+                  await self.k8.waitForPods([constants.POD_PHASE_RUNNING], [
                     'fullstack.hedera.com/type=envoy-proxy'
                   ], 1, 60 * 15, 1000) // timeout 15 minutes
               })
@@ -427,8 +427,8 @@ export class NetworkCommand extends BaseCommand {
             // minio
             subTasks.push({
               title: 'Check MinIO',
-              task: () =>
-                self.k8.waitForPodReady([
+              task: async () =>
+                await self.k8.waitForPodReady([
                   'v1.min.io/tenant=minio'
                 ], 1, 60 * 5, 1000) // timeout 5 minutes
             })
