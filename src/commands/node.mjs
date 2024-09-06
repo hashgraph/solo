@@ -2670,6 +2670,9 @@ export class NodeCommand extends BaseCommand {
           for (const /** @type {NetworkNodeServices} **/ service of config.serviceMap.values()) {
             await self.k8.kubeClient.deleteNamespacedPod(service.nodePodName, config.namespace, undefined, undefined, 1)
           }
+          self.logger.info('sleep for 15 seconds to give time for pods to finish terminating')
+          await sleep(15000)
+
           // again, the pod names will change after the pods are killed
           config.serviceMap = await self.accountManager.getNodeServiceMap(
             config.namespace)
@@ -2680,7 +2683,7 @@ export class NodeCommand extends BaseCommand {
         }
       },
       {
-        title: 'Check node pods are running',
+        title: 'Check node pods are ready',
         task:
           async (ctx, task) => {
             const subTasks = []
@@ -2691,10 +2694,10 @@ export class NodeCommand extends BaseCommand {
               subTasks.push({
                 title: `Check Node: ${chalk.yellow(nodeId)}`,
                 task: async () =>
-                  await self.k8.waitForPods([constants.POD_PHASE_RUNNING], [
-                    'fullstack.hedera.com/type=network-node',
-                    `fullstack.hedera.com/node-name=${nodeId}`
-                  ], 1, 60 * 15, 1000) // timeout 15 minutes
+                  await self.k8.waitForPodReady(
+                    ['fullstack.hedera.com/type=network-node',
+                    `fullstack.hedera.com/node-name=${nodeId}`],
+                    1, 300, 2000)
               })
             }
 
