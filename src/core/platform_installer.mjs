@@ -312,7 +312,7 @@ export class PlatformInstaller {
     const subTasks = []
     subTasks.push({
       title: 'Copy TLS keys',
-      task: (_, task) =>
+      task: async (_, task) =>
         await self.copyTLSKeys(nodeIds, stagingDir)
     })
 
@@ -321,7 +321,7 @@ export class PlatformInstaller {
         title: `Node: ${chalk.yellow(nodeId)}`,
         task: () => new Listr([{
           title: 'Copy Gossip keys',
-          task: (_, task) =>
+          task: async (_, task) =>
             await self.copyGossipKeys(nodeId, stagingDir, nodeIds)
         }
         ],
