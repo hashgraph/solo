@@ -118,7 +118,6 @@ export const KEY_FORMAT_PEM = 'pem'
 
 export const KEY_FORMAT_PFX = 'pfx'
 export const SIGNING_KEY_PREFIX = 's'
-export const AGREEMENT_KEY_PREFIX = 'a'
 export const ENCRYPTION_KEY_PREFIX = 'e'
 export const CERTIFICATE_VALIDITY_YEARS = 100 // years
 

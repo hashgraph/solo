@@ -84,12 +84,6 @@ describe('Node update', () => {
     argv[flags.gossipPublicKey.name] = signingKeyFiles.certificateFile
     argv[flags.gossipPrivateKey.name] = signingKeyFiles.privateKeyFile
 
-    // should also regenerate agreement keys
-    const agreementKey = await nodeCmd.keyManager.generateAgreementKey(updateNodeId, signingKey)
-    const agreementKeyFiles = await nodeCmd.keyManager.storeAgreementKey(updateNodeId, agreementKey, tmpDir)
-    argv[flags.agreementPublicKey.name] = agreementKeyFiles.certificateFile
-    argv[flags.agreementPrivateKey.name] = agreementKeyFiles.privateKeyFile
-
     const tlsKey = await nodeCmd.keyManager.generateGrpcTLSKey(updateNodeId)
     const tlsKeyFiles = await nodeCmd.keyManager.storeTLSKey(updateNodeId, tlsKey, tmpDir)
     nodeCmd.logger.debug(`generated test TLS keys for node ${updateNodeId} : ${tlsKeyFiles.certificateFile}`)
@@ -116,7 +110,7 @@ describe('Node update', () => {
 
       for (const [keyFileName, existingKeyHash] of existingKeyHashMap.entries()) {
         if (nodeId === updateNodeId &&
-          (keyFileName.startsWith(constants.SIGNING_KEY_PREFIX) || keyFileName.startsWith(constants.AGREEMENT_KEY_PREFIX) || keyFileName.startsWith('hedera'))) {
+          (keyFileName.startsWith(constants.SIGNING_KEY_PREFIX) || keyFileName.startsWith('hedera'))) {
           expect(`${nodeId}:${keyFileName}:${currentNodeKeyHashMap.get(keyFileName)}`).not.toEqual(
             `${nodeId}:${keyFileName}:${existingKeyHash}`)
         } else {

@@ -354,7 +354,6 @@ export async function getNodeIdsPrivateKeysHash (networkNodeServicesMap, namespa
         break
       case constants.KEY_FORMAT_PEM:
         await addKeyHashToMap(k8, nodeId, dataKeysDir, uniqueNodeDestDir, keyHashMap, Templates.renderGossipPemPrivateKeyFile(constants.SIGNING_KEY_PREFIX, nodeId))
-        await addKeyHashToMap(k8, nodeId, dataKeysDir, uniqueNodeDestDir, keyHashMap, Templates.renderGossipPemPrivateKeyFile(constants.AGREEMENT_KEY_PREFIX, nodeId))
         break
       default:
         throw new Error(`invalid keyFormat: ${keyFormat}`)
