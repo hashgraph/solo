@@ -26,11 +26,13 @@ import { K8 } from '../../../src/core/k8.mjs'
 import { flags } from '../../../src/commands/index.mjs'
 import {
   V1Container,
+  V1ExecAction,
   V1ObjectMeta,
   V1PersistentVolumeClaim,
   V1PersistentVolumeClaimSpec,
   V1Pod,
   V1PodSpec,
+  V1Probe,
   V1Service,
   V1ServicePort,
   V1ServiceSpec,
@@ -66,7 +68,12 @@ describe('K8', () => {
       const v1Container = new V1Container()
       v1Container.name = containerName
       v1Container.image = 'alpine:latest'
-      v1Container.command = ['/bin/sh', '-c', 'sleep 7200']
+      v1Container.command = ['/bin/sh', '-c', 'apk update && apk upgrade && apk add --update bash && sleep 7200']
+      const v1Probe = new V1Probe()
+      const v1ExecAction = new V1ExecAction()
+      v1ExecAction.command = ['bash', '-c', 'exit 0']
+      v1Probe.exec = v1ExecAction
+      v1Container.startupProbe = v1Probe
       const v1Spec = new V1PodSpec()
       v1Spec.containers = [v1Container]
       v1Pod.spec = v1Spec
@@ -126,14 +133,14 @@ describe('K8', () => {
   it('should be able to run wait for pod', async () => {
     const labels = [`app=${podLabelValue}`]
 
-    const pods = await k8.waitForPods([constants.POD_PHASE_RUNNING], labels, 1)
+    const pods = await k8.waitForPods([constants.POD_PHASE_RUNNING], labels, 1, 30)
     expect(pods.length).toStrictEqual(1)
   }, defaultTimeout)
 
   it('should be able to run wait for pod ready', async () => {
     const labels = [`app=${podLabelValue}`]
 
-    const pods = await k8.waitForPodReady(labels, 1)
+    const pods = await k8.waitForPodReady(labels, 1, 100)
     expect(pods.length).toStrictEqual(1)
   }, defaultTimeout)
 
@@ -187,7 +194,7 @@ describe('K8', () => {
   }, defaultTimeout)
 
   it('should be able to port forward gossip port', (done) => {
-    const podName = Templates.renderNetworkPodName('node1')
+    const podName = Templates.renderNetworkPodName('node0')
     const localPort = constants.HEDERA_NODE_INTERNAL_GOSSIP_PORT
     try {
       k8.portForward(podName, localPort, constants.HEDERA_NODE_INTERNAL_GOSSIP_PORT).then((server) => {
@@ -224,7 +231,6 @@ describe('K8', () => {
   }, defaultTimeout)
 
   it('should be able to list persistent volume claims', async () => {
-    let response
     const v1Pvc = new V1PersistentVolumeClaim()
     try {
       v1Pvc.name = `test-pvc-${uuid4()}`
@@ -237,8 +243,7 @@ describe('K8', () => {
       const v1Metadata = new V1ObjectMeta()
       v1Metadata.name = v1Pvc.name
       v1Pvc.metadata = v1Metadata
-      response = await k8.kubeClient.createNamespacedPersistentVolumeClaim(testNamespace, v1Pvc)
-      console.log(response)
+      await k8.kubeClient.createNamespacedPersistentVolumeClaim(testNamespace, v1Pvc)
       const pvcs = await k8.listPvcsByNamespace(testNamespace)
       expect(pvcs.length).toBeGreaterThan(0)
     } catch (e) {
