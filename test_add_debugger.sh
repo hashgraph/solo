@@ -2,7 +2,7 @@
 
 ./test/e2e/setup-e2e.sh
 
-solo network deploy -i node1,node2,node3
+solo network deploy -i node1,node2,node3 --pvcs
 
 solo node keys --gossip-keys --tls-keys --key-format pem
 

@@ -845,6 +845,13 @@ export class NodeCommand extends BaseCommand {
         }
       },
       {
+        title: 'Enable port forwarding for JVM debugger',
+        task: async (ctx, _) => {
+          await this.enableJVMPortForwarding(ctx.config.debugNodeId)
+        },
+        skip: (ctx, _) => !ctx.config.debugNodeId
+      },
+      {
         title: 'Check nodes are ACTIVE',
         task: (ctx, task) => {
           const subTasks = []
@@ -1918,11 +1925,9 @@ export class NodeCommand extends BaseCommand {
         }
       },
       {
-        title: 'Enable port forwarding JVM',
+        title: 'Enable port forwarding for JVM debugger',
         task: async (ctx, _) => {
-          const podName = `network-${ctx.config.debugNodeId}-0`
-          this.logger.debug(`Enable port forwarding for JVM debugger on node ${podName}`)
-          await this.k8.portForward(podName, constants.JVM_DEBUG_PORT, constants.JVM_DEBUG_PORT)
+          await this.enableJVMPortForwarding(ctx.config.debugNodeId)
         },
         skip: (ctx, _) => !ctx.config.debugNodeId
       },
@@ -2094,6 +2099,12 @@ export class NodeCommand extends BaseCommand {
       this.logger.error(`Error in freeze upgrade: ${e.message}`, e)
       throw new FullstackTestingError(`Error in freeze upgrade: ${e.message}`, e)
     }
+  }
+
+  async enableJVMPortForwarding (nodeId) {
+    const podName = `network-${nodeId}-0`
+    this.logger.debug(`Enable port forwarding for JVM debugger on pod ${podName}`)
+    await this.k8.portForward(podName, constants.JVM_DEBUG_PORT, constants.JVM_DEBUG_PORT)
   }
 
   /**
@@ -2801,11 +2812,9 @@ export class NodeCommand extends BaseCommand {
         }
       },
       {
-        title: 'Enable port forwarding JVM',
+        title: 'Enable port forwarding for JVM debugger',
         task: async (ctx, _) => {
-          const podName = `network-${ctx.config.debugNodeId}-0`
-          this.logger.debug(`Enable port forwarding for JVM debugger on node ${podName}`)
-          await this.k8.portForward(podName, constants.JVM_DEBUG_PORT, constants.JVM_DEBUG_PORT)
+          await this.enableJVMPortForwarding(ctx.config.debugNodeId)
         },
         skip: (ctx, _) => !ctx.config.debugNodeId
       },
@@ -3295,11 +3304,9 @@ export class NodeCommand extends BaseCommand {
         }
       },
       {
-        title: 'Enable port forwarding JVM',
+        title: 'Enable port forwarding for JVM debugger',
         task: async (ctx, _) => {
-          const podName = `network-${ctx.config.debugNodeId}-0`
-          this.logger.debug(`Enable port forwarding for JVM debugger on node ${podName}`)
-          await this.k8.portForward(podName, constants.JVM_DEBUG_PORT, constants.JVM_DEBUG_PORT)
+          await this.enableJVMPortForwarding(ctx.config.debugNodeId)
         },
         skip: (ctx, _) => !ctx.config.debugNodeId
       },
