@@ -368,11 +368,11 @@ export function renameAndCopyFile (srcFilePath, expectedBaseName, destDir) {
  * @param debugNodeId the node ID to attach the debugger to
  * @returns updated valuesArg
  */
-export function addDebugOptions (valuesArg, debugNodeId) {
+export function addDebugOptions (valuesArg, debugNodeId, index = 0) {
   if (debugNodeId) {
     const nodeId = Templates.nodeNumberFromNodeId(debugNodeId) - 1
-    valuesArg += ` --set "hedera.nodes[${nodeId}].root.extraEnv[0].name=JAVA_OPTS"`
-    valuesArg += ` --set "hedera.nodes[${nodeId}].root.extraEnv[0].value=-agentlib:jdwp=transport=dt_socket\\,server=y\\,suspend=y\\,address=*:${constants.JVM_DEBUG_PORT}"`
+    valuesArg += ` --set "hedera.nodes[${nodeId}].root.extraEnv[${index}].name=JAVA_OPTS"`
+    valuesArg += ` --set "hedera.nodes[${nodeId}].root.extraEnv[${index}].value=-agentlib:jdwp=transport=dt_socket\\,server=y\\,suspend=y\\,address=*:${constants.JVM_DEBUG_PORT}"`
   }
   return valuesArg
 }

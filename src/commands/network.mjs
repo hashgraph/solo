@@ -140,7 +140,17 @@ export class NetworkCommand extends BaseCommand {
       valuesArg += this.prepareValuesFiles(config.valuesFile)
     }
 
-    valuesArg = addDebugOptions(valuesArg, config.debugNodeId)
+
+    if (config.app !== constants.HEDERA_APP_NAME) {
+      const index = config.nodeIds.length
+      for (let i = 0; i < index; i++) {
+        valuesArg += ` --set "hedera.nodes[${i}].root.extraEnv[0].name=JAVA_MAIN_CLASS"`
+        valuesArg += ` --set "hedera.nodes[${i}].root.extraEnv[0].value=com.swirlds.platform.Browser"`
+      }
+      valuesArg = addDebugOptions(valuesArg, config.debugNodeId, 1)
+    } else {
+      valuesArg = addDebugOptions(valuesArg, config.debugNodeId)
+    }
 
     const profileName = this.configManager.getFlag(flags.profileName)
     this.profileValuesFile = await this.profileManager.prepareValuesForFstChart(profileName)

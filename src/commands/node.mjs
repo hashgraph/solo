@@ -98,6 +98,7 @@ export class NodeCommand extends BaseCommand {
    */
   static get SETUP_FLAGS_LIST () {
     return [
+      flags.app,
       flags.appConfig,
       flags.cacheDir,
       flags.devMode,
@@ -684,6 +685,7 @@ export class NodeCommand extends BaseCommand {
 
           // disable the prompts that we don't want to prompt the user for
           prompts.disablePrompts([
+            flags.app,
             flags.appConfig,
             flags.devMode,
             flags.localBuildPath
@@ -1260,7 +1262,7 @@ export class NodeCommand extends BaseCommand {
           const config = /** @type {NodeRefreshConfigClass} **/ ctx.config
           const subTasks = []
           for (const nodeId of ctx.config.nodeIds) {
-            if (config.app !== '' && config.app !== constants.HEDERA_APP_NAME) {
+            if (config.app !== constants.HEDERA_APP_NAME) {
               subTasks.push({
                 title: `Check node: ${chalk.yellow(nodeId)}`,
                 task: () => self.checkNetworkNodeState(nodeId, 100, 'ACTIVE', 'output/swirlds.log')
@@ -1796,7 +1798,7 @@ export class NodeCommand extends BaseCommand {
           if (this.profileValuesFile) {
             valuesArg += this.prepareValuesFiles(this.profileValuesFile)
           }
-          valuesArg += addDebugOptions(valuesArg, config.debugNodeId)
+          valuesArg = addDebugOptions(valuesArg, config.debugNodeId)
 
           await self.chartManager.upgrade(
             config.namespace,
@@ -2699,7 +2701,7 @@ export class NodeCommand extends BaseCommand {
             valuesArg += this.prepareValuesFiles(this.profileValuesFile)
           }
 
-          valuesArg += addDebugOptions(valuesArg, config.debugNodeId)
+          valuesArg = addDebugOptions(valuesArg, config.debugNodeId)
 
           await self.chartManager.upgrade(
             config.namespace,
@@ -3201,7 +3203,7 @@ export class NodeCommand extends BaseCommand {
             valuesArg += this.prepareValuesFiles(this.profileValuesFile)
           }
 
-          valuesArg += addDebugOptions(valuesArg, config.debugNodeId)
+          valuesArg = addDebugOptions(valuesArg, config.debugNodeId)
 
           await self.chartManager.upgrade(
             config.namespace,
