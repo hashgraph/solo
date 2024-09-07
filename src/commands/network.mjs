@@ -139,7 +139,7 @@ export class NetworkCommand extends BaseCommand {
     if (config.valuesFile) {
       valuesArg += this.prepareValuesFiles(config.valuesFile)
     }
-    
+
     if (config.app !== constants.HEDERA_APP_NAME) {
       const index = config.nodeIds.length
       for (let i = 0; i < index; i++) {
