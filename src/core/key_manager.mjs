@@ -758,7 +758,7 @@ export class KeyManager {
 
         subTasks.push({
           title: `Check keytool exists (Version: ${keytoolDepManager.getKeytoolVersion()})`,
-          task: async () => keytoolDepManager.checkVersion(true)
+          task: async () => await keytoolDepManager.checkVersion(true)
 
         })
 

@@ -535,8 +535,8 @@ export class NodeCommand extends BaseCommand {
       const podName = podNames[nodeId]
       subTasks.push({
         title: `Update node: ${chalk.yellow(nodeId)} [ platformVersion = ${releaseTag} ]`,
-        task: () =>
-          platformInstaller.fetchPlatform(podName, releaseTag)
+        task: async () =>
+          await platformInstaller.fetchPlatform(podName, releaseTag)
       })
     }
 
@@ -864,12 +864,12 @@ export class NodeCommand extends BaseCommand {
             if (self.configManager.getFlag(flags.app) !== '' && self.configManager.getFlag(flags.app) !== constants.HEDERA_APP_NAME) {
               subTasks.push({
                 title: `Check node: ${chalk.yellow(nodeId)} ${chalk.red(reminder)}`,
-                task: () => self.checkNetworkNodeState(nodeId, 100, 'ACTIVE', 'output/swirlds.log')
+                task: async () => self.checkNetworkNodeState(nodeId, 100, 'ACTIVE', 'output/swirlds.log')
               })
             } else {
               subTasks.push({
                 title: `Check node: ${chalk.yellow(nodeId)} ${chalk.red(reminder)}`,
-                task: () => self.checkNetworkNodeState(nodeId)
+                task: async () => self.checkNetworkNodeState(nodeId)
               })
             }
           }
@@ -916,7 +916,7 @@ export class NodeCommand extends BaseCommand {
               const accountId = accountMap.get(nodeId)
               subTasks.push({
                 title: `Adding stake for node: ${chalk.yellow(nodeId)}`,
-                task: () => self.addStake(ctx.config.namespace, accountId, nodeId)
+                task: async () => await self.addStake(ctx.config.namespace, accountId, nodeId)
               })
             }
 
@@ -985,7 +985,7 @@ export class NodeCommand extends BaseCommand {
             const podName = ctx.config.podNames[nodeId]
             subTasks.push({
               title: `Stop node: ${chalk.yellow(nodeId)}`,
-              task: () => self.k8.execContainer(podName, constants.ROOT_CONTAINER, 'systemctl stop network-node')
+              task: async () => await self.k8.execContainer(podName, constants.ROOT_CONTAINER, 'systemctl stop network-node')
             })
           }
 
@@ -1265,12 +1265,12 @@ export class NodeCommand extends BaseCommand {
             if (config.app !== constants.HEDERA_APP_NAME) {
               subTasks.push({
                 title: `Check node: ${chalk.yellow(nodeId)}`,
-                task: () => self.checkNetworkNodeState(nodeId, 100, 'ACTIVE', 'output/swirlds.log')
+                task: async () => await self.checkNetworkNodeState(nodeId, 100, 'ACTIVE', 'output/swirlds.log')
               })
             } else {
               subTasks.push({
                 title: `Check node: ${chalk.yellow(nodeId)}`,
-                task: () => self.checkNetworkNodeState(nodeId)
+                task: async () => await self.checkNetworkNodeState(nodeId)
               })
             }
           }
@@ -1647,6 +1647,7 @@ export class NodeCommand extends BaseCommand {
         title: 'Check existing nodes staked amount',
         task: async (ctx, task) => {
           const config = /** @type {NodeAddConfigClass} **/ ctx.config
+          self.logger.info('sleep 60 seconds for the handler to be able to trigger the network node stake weight recalculate')
           await sleep(15000)
           const accountMap = getNodeAccountMap(config.existingNodeIds)
           for (const nodeId of config.existingNodeIds) {
@@ -1761,7 +1762,7 @@ export class NodeCommand extends BaseCommand {
           for (const nodeId of config.existingNodeIds) {
             subTasks.push({
               title: `Check node: ${chalk.yellow(nodeId)}`,
-              task: () => self.checkNetworkNodeState(nodeId, 100, 'FREEZE_COMPLETE')
+              task: async () => await self.checkNetworkNodeState(nodeId, 100, 'FREEZE_COMPLETE')
             })
           }
 
@@ -1829,8 +1830,8 @@ export class NodeCommand extends BaseCommand {
               for (const nodeId of config.allNodeIds) {
                 subTasks.push({
                   title: `Check Node: ${chalk.yellow(nodeId)}`,
-                  task: () =>
-                    self.k8.waitForPods([constants.POD_PHASE_RUNNING], [
+                  task: async () =>
+                    await self.k8.waitForPods([constants.POD_PHASE_RUNNING], [
                       'fullstack.hedera.com/type=network-node',
                         `fullstack.hedera.com/node-name=${nodeId}`
                     ], 1, 60 * 15, 1000) // timeout 15 minutes
@@ -1936,7 +1937,7 @@ export class NodeCommand extends BaseCommand {
         title: 'Check all nodes are ACTIVE',
         task: async (ctx, task) => {
           const subTasks = []
-          // sleep for 30 seconds to give time for the logs to roll over to prevent capturing an invalid "ACTIVE" string
+          self.logger.info('sleep for 30 seconds to give time for the logs to roll over to prevent capturing an invalid "ACTIVE" string')
           await sleep(30000)
           for (const nodeId of ctx.config.allNodeIds) {
             let reminder = ''
@@ -1945,7 +1946,7 @@ export class NodeCommand extends BaseCommand {
             }
             subTasks.push({
               title: `Check node: ${chalk.yellow(nodeId)} ${chalk.red(reminder)}`,
-              task: () => self.checkNetworkNodeState(nodeId, 200)
+              task: async () => self.checkNetworkNodeState(nodeId, 200)
             })
           }
 
@@ -1985,9 +1986,9 @@ export class NodeCommand extends BaseCommand {
       },
       {
         title: 'Stake new node',
-        task: (ctx, _) => {
+        task: async (ctx, _) => {
           const config = /** @type {NodeAddConfigClass} **/ ctx.config
-          self.addStake(config.namespace, ctx.newNode.accountId, config.nodeId)
+          await self.addStake(config.namespace, ctx.newNode.accountId, config.nodeId)
         }
       },
       {
@@ -2659,7 +2660,7 @@ export class NodeCommand extends BaseCommand {
           for (const nodeId of config.existingNodeIds) {
             subTasks.push({
               title: `Check node: ${chalk.yellow(nodeId)}`,
-              task: () => self.checkNetworkNodeState(nodeId, 100, 'FREEZE_COMPLETE')
+              task: async () => await self.checkNetworkNodeState(nodeId, 100, 'FREEZE_COMPLETE')
             })
           }
 
@@ -2724,6 +2725,9 @@ export class NodeCommand extends BaseCommand {
           for (const /** @type {NetworkNodeServices} **/ service of config.serviceMap.values()) {
             await self.k8.kubeClient.deleteNamespacedPod(service.nodePodName, config.namespace, undefined, undefined, 1)
           }
+          self.logger.info('sleep for 15 seconds to give time for pods to finish terminating')
+          await sleep(15000)
+
           // again, the pod names will change after the pods are killed
           config.serviceMap = await self.accountManager.getNodeServiceMap(
             config.namespace)
@@ -2734,7 +2738,7 @@ export class NodeCommand extends BaseCommand {
         }
       },
       {
-        title: 'Check node pods are running',
+        title: 'Check node pods are ready',
         task:
           async (ctx, task) => {
             const subTasks = []
@@ -2744,11 +2748,11 @@ export class NodeCommand extends BaseCommand {
             for (const nodeId of config.allNodeIds) {
               subTasks.push({
                 title: `Check Node: ${chalk.yellow(nodeId)}`,
-                task: () =>
-                  self.k8.waitForPods([constants.POD_PHASE_RUNNING], [
-                    'fullstack.hedera.com/type=network-node',
-                    `fullstack.hedera.com/node-name=${nodeId}`
-                  ], 1, 60 * 15, 1000) // timeout 15 minutes
+                task: async () =>
+                  await self.k8.waitForPodReady(
+                    ['fullstack.hedera.com/type=network-node',
+                    `fullstack.hedera.com/node-name=${nodeId}`],
+                    1, 300, 2000)
               })
             }
 
@@ -2765,9 +2769,6 @@ export class NodeCommand extends BaseCommand {
         title: 'Fetch platform software into network nodes',
         task:
           async (ctx, task) => {
-            // without this sleep, copy software from local build to container sometimes fail
-            await sleep(15000)
-
             const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
             return self.fetchLocalOrReleasedPlatformSoftware(config.allNodeIds, config.podNames, config.releaseTag, task, config.localBuildPath)
           }
@@ -2823,7 +2824,7 @@ export class NodeCommand extends BaseCommand {
         title: 'Check all nodes are ACTIVE',
         task: async (ctx, task) => {
           const subTasks = []
-          // sleep for 30 seconds to give time for the logs to roll over to prevent capturing an invalid "ACTIVE" string
+          self.logger.info('sleep for 30 seconds to give time for the logs to roll over to prevent capturing an invalid "ACTIVE" string')
           await sleep(30000)
           for (const nodeId of ctx.config.allNodeIds) {
             let reminder = ''
@@ -2832,7 +2833,7 @@ export class NodeCommand extends BaseCommand {
             }
             subTasks.push({
               title: `Check node: ${chalk.yellow(nodeId)} ${chalk.red(reminder)}`,
-              task: () => self.checkNetworkNodeState(nodeId, 200)
+              task: async () => self.checkNetworkNodeState(nodeId, 200)
             })
           }
 
@@ -3166,7 +3167,7 @@ export class NodeCommand extends BaseCommand {
           for (const nodeId of config.existingNodeIds) {
             subTasks.push({
               title: `Check node: ${chalk.yellow(nodeId)}`,
-              task: () => self.checkNetworkNodeState(nodeId, 100, 'FREEZE_COMPLETE')
+              task: async () => await self.checkNetworkNodeState(nodeId, 100, 'FREEZE_COMPLETE')
             })
           }
 
@@ -3227,6 +3228,7 @@ export class NodeCommand extends BaseCommand {
         title: 'Check node pods are running',
         task:
           async (ctx, task) => {
+            self.logger.info('sleep 20 seconds to give time for pods to come up after being killed')
             await sleep(20000)
             const subTasks = []
             const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
@@ -3235,8 +3237,8 @@ export class NodeCommand extends BaseCommand {
             for (const nodeId of config.allNodeIds) {
               subTasks.push({
                 title: `Check Node: ${chalk.yellow(nodeId)}`,
-                task: () =>
-                  self.k8.waitForPods([constants.POD_PHASE_RUNNING], [
+                task: async () =>
+                  await self.k8.waitForPods([constants.POD_PHASE_RUNNING], [
                     'fullstack.hedera.com/type=network-node',
                     `fullstack.hedera.com/node-name=${nodeId}`
                   ], 1, 60 * 15, 1000) // timeout 15 minutes
@@ -3315,7 +3317,7 @@ export class NodeCommand extends BaseCommand {
         title: 'Check all nodes are ACTIVE',
         task: async (ctx, task) => {
           const subTasks = []
-          // sleep for 30 seconds to give time for the logs to roll over to prevent capturing an invalid "ACTIVE" string
+          self.logger.info('sleep for 30 seconds to give time for the logs to roll over to prevent capturing an invalid "ACTIVE" string')
           await sleep(30000)
           for (const nodeId of ctx.config.allNodeIds) {
             let reminder = ''
@@ -3324,7 +3326,7 @@ export class NodeCommand extends BaseCommand {
             }
             subTasks.push({
               title: `Check node: ${chalk.yellow(nodeId)}, ${chalk.red(reminder)}`,
-              task: () => self.checkNetworkNodeState(nodeId, 200)
+              task: async () => self.checkNetworkNodeState(nodeId, 200)
             })
           }
 
@@ -3366,7 +3368,7 @@ export class NodeCommand extends BaseCommand {
         title: 'Trigger stake weight calculate',
         task: async (ctx, task) => {
           const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
-          // sleep 60 seconds for the handler to be able to trigger the network node stake weight recalculate
+          self.logger.info('sleep 60 seconds for the handler to be able to trigger the network node stake weight recalculate')
           await sleep(60000)
           const accountMap = getNodeAccountMap(config.allNodeIds)
           // send some write transactions to invoke the handler that will trigger the stake weight recalculate
