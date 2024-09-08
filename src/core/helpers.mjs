@@ -366,6 +366,7 @@ export function renameAndCopyFile (srcFilePath, expectedBaseName, destDir) {
  * Add debug options to valuesArg used by helm chart
  * @param valuesArg the valuesArg to update
  * @param debugNodeId the node ID to attach the debugger to
+ * @param index the index of extraEnv to add the debug options to
  * @returns updated valuesArg
  */
 export function addDebugOptions (valuesArg, debugNodeId, index = 0) {

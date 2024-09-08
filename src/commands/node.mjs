@@ -864,12 +864,12 @@ export class NodeCommand extends BaseCommand {
             if (self.configManager.getFlag(flags.app) !== '' && self.configManager.getFlag(flags.app) !== constants.HEDERA_APP_NAME) {
               subTasks.push({
                 title: `Check node: ${chalk.yellow(nodeId)} ${chalk.red(reminder)}`,
-                task: async () => self.checkNetworkNodeState(nodeId, 100, 'ACTIVE', 'output/swirlds.log')
+                task: async () => await self.checkNetworkNodeState(nodeId, 100, 'ACTIVE', 'output/swirlds.log')
               })
             } else {
               subTasks.push({
                 title: `Check node: ${chalk.yellow(nodeId)} ${chalk.red(reminder)}`,
-                task: async () => self.checkNetworkNodeState(nodeId)
+                task: async () => await self.checkNetworkNodeState(nodeId)
               })
             }
           }
@@ -1946,7 +1946,7 @@ export class NodeCommand extends BaseCommand {
             }
             subTasks.push({
               title: `Check node: ${chalk.yellow(nodeId)} ${chalk.red(reminder)}`,
-              task: async () => self.checkNetworkNodeState(nodeId, 200)
+              task: async () => await self.checkNetworkNodeState(nodeId, 200)
             })
           }
 
@@ -2833,7 +2833,7 @@ export class NodeCommand extends BaseCommand {
             }
             subTasks.push({
               title: `Check node: ${chalk.yellow(nodeId)} ${chalk.red(reminder)}`,
-              task: async () => self.checkNetworkNodeState(nodeId, 200)
+              task: async () => await self.checkNetworkNodeState(nodeId, 200)
             })
           }
 
@@ -3326,7 +3326,7 @@ export class NodeCommand extends BaseCommand {
             }
             subTasks.push({
               title: `Check node: ${chalk.yellow(nodeId)}, ${chalk.red(reminder)}`,
-              task: async () => self.checkNetworkNodeState(nodeId, 200)
+              task: async () => await self.checkNetworkNodeState(nodeId, 200)
             })
           }
 
