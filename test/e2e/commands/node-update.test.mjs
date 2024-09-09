@@ -36,7 +36,6 @@ describe('Node update', () => {
   const updateNodeId = 'node2'
   const newAccountId = '0.0.7'
   const argv = getDefaultArgv()
-  argv[flags.keyFormat.name] = constants.KEY_FORMAT_PEM
   argv[flags.nodeIDs.name] = 'node1,node2,node3'
   argv[flags.nodeID.name] = updateNodeId
 
@@ -45,7 +44,6 @@ describe('Node update', () => {
 
   argv[flags.generateGossipKeys.name] = true
   argv[flags.generateTlsKeys.name] = true
-  argv[flags.keyFormat.name] = constants.KEY_FORMAT_PEM
   // set the env variable SOLO_FST_CHARTS_DIR if developer wants to use local FST charts
   argv[flags.chartDirectory.name] = process.env.SOLO_FST_CHARTS_DIR ? process.env.SOLO_FST_CHARTS_DIR : undefined
   argv[flags.releaseTag.name] = HEDERA_PLATFORM_VERSION_TAG
@@ -66,7 +64,7 @@ describe('Node update', () => {
 
   it('cache current version of private keys', async () => {
     existingServiceMap = await nodeCmd.accountManager.getNodeServiceMap(namespace)
-    existingNodeIdsPrivateKeysHash = await getNodeIdsPrivateKeysHash(existingServiceMap, namespace, constants.KEY_FORMAT_PEM, k8, getTmpDir())
+    existingNodeIdsPrivateKeysHash = await getNodeIdsPrivateKeysHash(existingServiceMap, namespace, k8, getTmpDir())
   }, defaultTimeout)
 
   it('should succeed with init command', async () => {
@@ -109,7 +107,7 @@ describe('Node update', () => {
   accountCreationShouldSucceed(nodeCmd.accountManager, nodeCmd, namespace)
 
   it('signing key and tls key should not match previous one', async () => {
-    const currentNodeIdsPrivateKeysHash = await getNodeIdsPrivateKeysHash(existingServiceMap, namespace, constants.KEY_FORMAT_PEM, k8, getTmpDir())
+    const currentNodeIdsPrivateKeysHash = await getNodeIdsPrivateKeysHash(existingServiceMap, namespace, k8, getTmpDir())
 
     for (const [nodeId, existingKeyHashMap] of existingNodeIdsPrivateKeysHash.entries()) {
       const currentNodeKeyHashMap = currentNodeIdsPrivateKeysHash.get(nodeId)

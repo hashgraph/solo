@@ -16,7 +16,6 @@ An opinionated CLI tool to deploy and manage standalone test networks.
 * [Install Solo](#install-solo)
 * [Setup Kubernetes cluster](#setup-kubernetes-cluster)
 * [Generate Node Keys](#generate-node-keys)
-  * [Legacy keys (.pfx file)](#legacy-keys-pfx-file)
   * [Standard keys (.pem file)](#standard-keys-pem-file)
 * [Examples](#examples)
   * [Example - 1: Deploy a standalone test network (version `0.42.5`)](#example---1-deploy-a-standalone-test-network-version-0425)
@@ -113,7 +112,7 @@ You may now view pods in your cluster using `k9s -A` as below:
 * Initialize `solo` with tag `v0.42.5` and list of node names `node1,node2,node3`:
 
 ```
-$ solo init -t v0.42.5 -i node1,node2,node3 -n "${SOLO_NAMESPACE}" -s "${SOLO_CLUSTER_SETUP_NAMESPACE}" --key-format pfx 
+$ solo init -t v0.42.5 -i node1,node2,node3 -n "${SOLO_NAMESPACE}" -s "${SOLO_CLUSTER_SETUP_NAMESPACE}"
 ```
 
 Example output
@@ -122,12 +121,12 @@ Example output
 $SOLO_INIT_OUTPUT
 ```
 
-* Generate `pfx` formatted node keys
+* Generate `pem` formatted node keys
 
-We need to generate `pfx` keys as `pem` key files are only supported by Hedera platform >=`0.47.0-alpha.0`.
+We need to generate `pem` keys as `pem` key files are only supported by Hedera platform >=`0.47.0-alpha.0`.
 
 ```
-$ solo node keys --gossip-keys --tls-keys --key-format pfx 
+$ solo node keys --gossip-keys --tls-keys
 ```
 
 Example output

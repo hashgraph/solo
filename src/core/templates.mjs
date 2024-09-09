@@ -55,15 +55,6 @@ export class Templates {
   }
 
   /**
-   * Generate pfx node private key file name
-   * @param {string} nodeId
-   * @returns {string}
-   */
-  static renderGossipPfxPrivateKeyFile (nodeId) {
-    return `private-${nodeId}.pfx`
-  }
-
-  /**
    * @param {string} prefix
    * @param {string} nodeId
    * @returns {string}
