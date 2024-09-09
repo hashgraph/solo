@@ -194,7 +194,7 @@ export function bootstrapNetwork (testName, argv,
   const nodeCmd = bootstrapResp.cmd.nodeCmd
   const chartManager = bootstrapResp.opts.chartManager
 
-  describe(`Bootstrap network for test [release ${argv[flags.releaseTag.name]}, keyFormat: ${argv[flags.keyFormat.name]}]`, () => {
+  describe(`Bootstrap network for test [release ${argv[flags.releaseTag.name]}}]`, () => {
     beforeAll(() => {
       bootstrapResp.opts.logger.showUser(`------------------------- START: bootstrap (${testName}) ----------------------------`)
     })
@@ -337,7 +337,7 @@ export function accountCreationShouldSucceed (accountManager, nodeCmd, namespace
   }, 120000)
 }
 
-export async function getNodeIdsPrivateKeysHash (networkNodeServicesMap, namespace, keyFormat, k8, destDir) {
+export async function getNodeIdsPrivateKeysHash (networkNodeServicesMap, namespace, k8, destDir) {
   const dataKeysDir = path.join(constants.HEDERA_HAPI_PATH, 'data', 'keys')
   const tlsKeysDir = constants.HEDERA_HAPI_PATH
   const nodeKeyHashMap = new Map()
@@ -348,17 +348,9 @@ export async function getNodeIdsPrivateKeysHash (networkNodeServicesMap, namespa
     if (!fs.existsSync(uniqueNodeDestDir)) {
       fs.mkdirSync(uniqueNodeDestDir, { recursive: true })
     }
-    switch (keyFormat) {
-      case constants.KEY_FORMAT_PFX:
-        await addKeyHashToMap(k8, nodeId, dataKeysDir, uniqueNodeDestDir, keyHashMap, Templates.renderGossipPfxPrivateKeyFile(nodeId))
-        break
-      case constants.KEY_FORMAT_PEM:
-        await addKeyHashToMap(k8, nodeId, dataKeysDir, uniqueNodeDestDir, keyHashMap, Templates.renderGossipPemPrivateKeyFile(constants.SIGNING_KEY_PREFIX, nodeId))
-        await addKeyHashToMap(k8, nodeId, dataKeysDir, uniqueNodeDestDir, keyHashMap, Templates.renderGossipPemPrivateKeyFile(constants.AGREEMENT_KEY_PREFIX, nodeId))
-        break
-      default:
-        throw new Error(`invalid keyFormat: ${keyFormat}`)
-    }
+    await addKeyHashToMap(k8, nodeId, dataKeysDir, uniqueNodeDestDir, keyHashMap, Templates.renderGossipPemPrivateKeyFile(constants.SIGNING_KEY_PREFIX, nodeId))
+    await addKeyHashToMap(k8, nodeId, dataKeysDir, uniqueNodeDestDir, keyHashMap, Templates.renderGossipPemPrivateKeyFile(constants.AGREEMENT_KEY_PREFIX, nodeId))
+
     await addKeyHashToMap(k8, nodeId, tlsKeysDir, uniqueNodeDestDir, keyHashMap, 'hedera.key')
     nodeKeyHashMap.set(nodeId, keyHashMap)
   }

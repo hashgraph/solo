@@ -20,9 +20,6 @@ import {
 } from '@jest/globals'
 import { flags } from '../../../src/commands/index.mjs'
 import {
-  constants
-} from '../../../src/core/index.mjs'
-import {
   bootstrapNetwork,
   getDefaultArgv,
   TEST_CLUSTER
@@ -32,7 +29,6 @@ import { getNodeLogs } from '../../../src/core/helpers.mjs'
 describe('Node local build', () => {
   const LOCAL_HEDERA = 'local-hedera-app'
   const argv = getDefaultArgv()
-  argv[flags.keyFormat.name] = constants.KEY_FORMAT_PFX
   argv[flags.nodeIDs.name] = 'node1,node2,node3'
   argv[flags.generateGossipKeys.name] = true
   argv[flags.generateTlsKeys.name] = true

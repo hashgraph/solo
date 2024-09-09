@@ -125,7 +125,6 @@ export class NodeCommand extends BaseCommand {
       flags.devMode,
       flags.generateGossipKeys,
       flags.generateTlsKeys,
-      flags.keyFormat,
       flags.nodeIDs
     ]
   }
@@ -176,7 +175,6 @@ export class NodeCommand extends BaseCommand {
       flags.generateTlsKeys,
       flags.gossipEndpoints,
       flags.grpcEndpoints,
-      flags.keyFormat,
       flags.localBuildPath,
       flags.namespace,
       flags.nodeID,
@@ -196,7 +194,6 @@ export class NodeCommand extends BaseCommand {
       flags.devMode,
       flags.debugNodeId,
       flags.endpointType,
-      flags.keyFormat,
       flags.localBuildPath,
       flags.namespace,
       flags.nodeID,
@@ -223,7 +220,6 @@ export class NodeCommand extends BaseCommand {
       flags.gossipPrivateKey,
       flags.gossipPublicKey,
       flags.grpcEndpoints,
-      flags.keyFormat,
       flags.localBuildPath,
       flags.namespace,
       flags.newAccountNumber,
@@ -1039,7 +1035,6 @@ export class NodeCommand extends BaseCommand {
            * @property {boolean} devMode
            * @property {boolean} generateGossipKeys
            * @property {boolean} generateTlsKeys
-           * @property {string} keyFormat
            * @property {string} nodeIDs
            * -- extra args --
            * @property {Date} curDate
@@ -1076,7 +1071,7 @@ export class NodeCommand extends BaseCommand {
         title: 'Generate gossip keys',
         task: async (ctx, parentTask) => {
           const config = ctx.config
-          const subTasks = self.keyManager.taskGenerateGossipKeys(self.keytoolDepManager, config.keyFormat, config.nodeIds, config.keysDir, config.curDate)
+          const subTasks = self.keyManager.taskGenerateGossipKeys(self.keytoolDepManager, config.nodeIds, config.keysDir, config.curDate)
           // set up the sub-tasks
           return parentTask.newListr(subTasks, {
             concurrent: false,
@@ -1410,7 +1405,6 @@ export class NodeCommand extends BaseCommand {
            * @property {boolean} generateTlsKeys
            * @property {string} gossipEndpoints
            * @property {string} grpcEndpoints
-           * @property {string} keyFormat
            * @property {string} localBuildPath
            * @property {string} namespace
            * @property {string} nodeId
@@ -1459,10 +1453,6 @@ export class NodeCommand extends BaseCommand {
 
           config.curDate = new Date()
           config.existingNodeIds = []
-
-          if (config.keyFormat !== constants.KEY_FORMAT_PEM) {
-            throw new FullstackTestingError('key type cannot be PFX')
-          }
 
           await self.initializeSetup(config, self.k8)
 
@@ -1539,7 +1529,7 @@ export class NodeCommand extends BaseCommand {
         title: 'Generate Gossip key',
         task: async (ctx, parentTask) => {
           const config = /** @type {NodeAddConfigClass} **/ ctx.config
-          const subTasks = self.keyManager.taskGenerateGossipKeys(self.keytoolDepManager, config.keyFormat, [config.nodeId], config.keysDir, config.curDate, config.allNodeIds)
+          const subTasks = self.keyManager.taskGenerateGossipKeys(self.keytoolDepManager, [config.nodeId], config.keysDir, config.curDate, config.allNodeIds)
           // set up the sub-tasks
           return parentTask.newListr(subTasks, {
             concurrent: false,
@@ -1719,7 +1709,7 @@ export class NodeCommand extends BaseCommand {
               task: async (ctx, _) => {
                 const config = /** @type {NodeAddConfigClass} **/ ctx.config
 
-                await this.keyManager.copyGossipKeysToStaging(config.keyFormat, config.keysDir, config.stagingKeysDir, config.allNodeIds)
+                await this.keyManager.copyGossipKeysToStaging(config.keysDir, config.stagingKeysDir, config.allNodeIds)
               }
             },
             {
@@ -1745,7 +1735,7 @@ export class NodeCommand extends BaseCommand {
         task: async (ctx, parentTask) => {
           const config = /** @type {NodeAddConfigClass} **/ ctx.config
 
-          const subTasks = self.platformInstaller.copyNodeKeys(config.stagingDir, config.allNodeIds, config.keyFormat)
+          const subTasks = self.platformInstaller.copyNodeKeys(config.stagingDir, config.allNodeIds)
 
           // set up the sub-tasks
           return parentTask.newListr(subTasks, {
@@ -2358,7 +2348,6 @@ export class NodeCommand extends BaseCommand {
            * @property {string} gossipPrivateKey
            * @property {string} gossipPublicKey
            * @property {string} grpcEndpoints
-           * @property {string} keyFormat
            * @property {string} localBuildPath
            * @property {string} namespace
            * @property {string} newAccountNumber
@@ -2617,7 +2606,7 @@ export class NodeCommand extends BaseCommand {
               task: async (ctx, _) => {
                 const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
 
-                await this.keyManager.copyGossipKeysToStaging(config.keyFormat, config.keysDir, config.stagingKeysDir, config.allNodeIds)
+                await this.keyManager.copyGossipKeysToStaging(config.keysDir, config.stagingKeysDir, config.allNodeIds)
               }
             },
             {
@@ -2643,7 +2632,7 @@ export class NodeCommand extends BaseCommand {
         task: async (ctx, parentTask) => {
           const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
 
-          const subTasks = self.platformInstaller.copyNodeKeys(config.stagingDir, config.allNodeIds, config.keyFormat)
+          const subTasks = self.platformInstaller.copyNodeKeys(config.stagingDir, config.allNodeIds)
 
           // set up the sub-tasks
           return parentTask.newListr(subTasks, {
@@ -2954,7 +2943,6 @@ export class NodeCommand extends BaseCommand {
            * @property {string} debugNodeId
            * @property {string} endpointType
            * @property {string} fstChartVersion
-           * @property {string} keyFormat
            * @property {string} localBuildPath
            * @property {string} namespace
            * @property {string} nodeId
@@ -3122,7 +3110,7 @@ export class NodeCommand extends BaseCommand {
               task: async (ctx, _) => {
                 const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
 
-                await this.keyManager.copyGossipKeysToStaging(config.keyFormat, config.keysDir, config.stagingKeysDir, config.existingNodeIds)
+                await this.keyManager.copyGossipKeysToStaging(config.keysDir, config.stagingKeysDir, config.existingNodeIds)
               }
             },
             {
@@ -3150,7 +3138,7 @@ export class NodeCommand extends BaseCommand {
 
           // remove nodeId from existingNodeIds
           config.allNodeIds = config.existingNodeIds.filter(nodeId => nodeId !== ctx.config.nodeId)
-          const subTasks = self.platformInstaller.copyNodeKeys(config.stagingDir, config.allNodeIds, config.keyFormat)
+          const subTasks = self.platformInstaller.copyNodeKeys(config.stagingDir, config.allNodeIds)
 
           // set up the sub-tasks
           return parentTask.newListr(subTasks, {

@@ -17,9 +17,8 @@
  */
 
 import { describe } from '@jest/globals'
-import { constants } from '../../../src/core/index.mjs'
 import { e2eNodeKeyRefreshTest } from '../e2e_node_util.js'
 
 describe('NodeCommand', () => {
-  e2eNodeKeyRefreshTest(constants.KEY_FORMAT_PFX, 'node-cmd-e2e-pfx', 'kill')
+  e2eNodeKeyRefreshTest('node-cmd-e2e-pem-kill', 'kill')
 })

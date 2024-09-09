@@ -75,7 +75,6 @@ export class NetworkCommand extends BaseCommand {
       flags.hederaExplorerTlsHostName,
       flags.hederaExplorerTlsLoadBalancerIp,
       flags.debugNodeId,
-      flags.keyFormat,
       flags.log4j2Xml,
       flags.namespace,
       flags.nodeIDs,
@@ -199,7 +198,6 @@ export class NetworkCommand extends BaseCommand {
       flags.deployHederaExplorer,
       flags.deployMirrorNode,
       flags.hederaExplorerTlsLoadBalancerIp,
-      flags.keyFormat,
       flags.log4j2Xml,
       flags.persistentVolumeClaims,
       flags.profileName,
@@ -222,7 +220,6 @@ export class NetworkCommand extends BaseCommand {
      * @property {string} fstChartVersion
      * @property {string} hederaExplorerTlsHostName
      * @property {string} hederaExplorerTlsLoadBalancerIp
-     * @property {string} keyFormat
      * @property {string} namespace
      * @property {string} nodeIDs
      * @property {string} persistentVolumeClaims
@@ -317,7 +314,7 @@ export class NetworkCommand extends BaseCommand {
               task: async (ctx, _) => {
                 const config = /** @type {NetworkDeployConfigClass} **/ ctx.config
 
-                await this.keyManager.copyGossipKeysToStaging(config.keyFormat, config.keysDir, config.stagingKeysDir, config.nodeIds)
+                await this.keyManager.copyGossipKeysToStaging(config.keysDir, config.stagingKeysDir, config.nodeIds)
               }
             },
             {
@@ -343,7 +340,7 @@ export class NetworkCommand extends BaseCommand {
         task: async (ctx, parentTask) => {
           const config = /** @type {NetworkDeployConfigClass} **/ ctx.config
 
-          const subTasks = self.platformInstaller.copyNodeKeys(config.stagingDir, config.nodeIds, config.keyFormat)
+          const subTasks = self.platformInstaller.copyNodeKeys(config.stagingDir, config.nodeIds)
 
           // set up the sub-tasks
           return parentTask.newListr(subTasks, {

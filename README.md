@@ -16,7 +16,6 @@ An opinionated CLI tool to deploy and manage standalone test networks.
 * [Install Solo](#install-solo)
 * [Setup Kubernetes cluster](#setup-kubernetes-cluster)
 * [Generate Node Keys](#generate-node-keys)
-  * [Legacy keys (.pfx file)](#legacy-keys-pfx-file)
   * [Standard keys (.pem file)](#standard-keys-pem-file)
 * [Examples](#examples)
   * [Example - 1: Deploy a standalone test network (version `0.42.5`)](#example---1-deploy-a-standalone-test-network-version-0425)
@@ -125,7 +124,7 @@ You may now view pods in your cluster using `k9s -A` as below:
 * Initialize `solo` with tag `v0.42.5` and list of node names `node1,node2,node3`:
 
 ```
-$ solo init -t v0.42.5 -i node1,node2,node3 -n "${SOLO_NAMESPACE}" -s "${SOLO_CLUSTER_SETUP_NAMESPACE}" --key-format pfx 
+$ solo init -t v0.42.5 -i node1,node2,node3 -n "${SOLO_NAMESPACE}" -s "${SOLO_CLUSTER_SETUP_NAMESPACE}"
 ```
 
 Example output
@@ -150,12 +149,12 @@ If a full reset is needed, delete the directory or relevant sub-directories befo
 ✔ Copy templates in '/home/runner/.solo/cache'
 ```
 
-* Generate `pfx` formatted node keys
+* Generate `pem` formatted node keys
 
-We need to generate `pfx` keys as `pem` key files are only supported by Hedera platform >=`0.47.0-alpha.0`.
+We need to generate `pem` keys as `pem` key files are only supported by Hedera platform >=`0.47.0-alpha.0`.
 
 ```
-$ solo node keys --gossip-keys --tls-keys --key-format pfx 
+$ solo node keys --gossip-keys --tls-keys
 ```
 
 Example output
@@ -169,13 +168,10 @@ Kubernetes Cluster	: kind-solo
 Kubernetes Namespace	: solo
 **********************************************************************************
 ✔ Initialize
-✔ Check keytool exists (Version: 21.0.1+12)
 ✔ Backup old files
-✔ Generate private-node1.pfx for node: node1
-✔ Generate private-node2.pfx for node: node2
-✔ Generate private-node3.pfx for node: node3
-✔ Generate public.pfx file
-✔ Clean up temp files
+✔ Gossip pem key for node: node1
+✔ Gossip pem key for node: node2
+✔ Gossip pem key for node: node3
 ✔ Generate gossip keys
 ✔ Backup old files
 ✔ TLS key for node: node2
@@ -238,24 +234,24 @@ Kubernetes Namespace	: solo
 ✔ Copy gRPC TLS keys to staging
 ✔ Prepare staging directory
 ✔ Copy Gossip keys
-✔ Node: node3
+✔ Node: node2
 ✔ Copy TLS keys
 ✔ Copy Gossip keys
 ✔ Node: node1
 ✔ Copy Gossip keys
-✔ Node: node2
+✔ Node: node3
 ✔ Copy node keys to secrets
 ✔ Install chart 'fullstack-deployment'
 ✔ Check Node: node1
 ✔ Check Node: node2
 ✔ Check Node: node3
 ✔ Check node pods are running
+✔ Check Envoy Proxy for: node3
 ✔ Check Envoy Proxy for: node2
 ✔ Check Envoy Proxy for: node1
-✔ Check Envoy Proxy for: node3
+✔ Check HAProxy for: node2
 ✔ Check HAProxy for: node1
 ✔ Check HAProxy for: node3
-✔ Check HAProxy for: node2
 ✔ Check proxy pods are running
 ✔ Check MinIO
 ✔ Check auxiliary pods are ready
@@ -279,18 +275,18 @@ Kubernetes Cluster	: kind-solo
 Kubernetes Namespace	: solo
 **********************************************************************************
 ✔ Initialize
-✔ Check network pod: node2
-✔ Check network pod: node1
 ✔ Check network pod: node3
+✔ Check network pod: node1
+✔ Check network pod: node2
 ✔ Identify network pods
-✔ Update node: node3 [ platformVersion = v0.42.5 ]
-✔ Update node: node2 [ platformVersion = v0.42.5 ]
 ✔ Update node: node1 [ platformVersion = v0.42.5 ]
+✔ Update node: node2 [ platformVersion = v0.42.5 ]
+✔ Update node: node3 [ platformVersion = v0.42.5 ]
 ✔ Fetch platform software into network nodes
 ✔ Set file permissions
-✔ Node: node1
-✔ Set file permissions
 ✔ Node: node2
+✔ Set file permissions
+✔ Node: node1
 ✔ Set file permissions
 ✔ Node: node3
 ✔ Setup network nodes
@@ -314,19 +310,15 @@ Kubernetes Namespace	: solo
 **********************************************************************************
 ✔ Initialize
 ✔ Check network pod: node1
-✔ Check network pod: node2
 ✔ Check network pod: node3
+✔ Check network pod: node2
 ✔ Identify network pods
+✔ Start node: node3
 ✔ Start node: node1
 ✔ Start node: node2
-✔ Start node: node3
 ✔ Starting nodes
-✔ Check node: node1
-✔ Check node: node2
-✔ Check node: node3
-✔ Check nodes are ACTIVE
 *********************************** ERROR *****************************************
-Error starting node: Pod not ready [maxAttempts = 300]
+Error starting node: node 'node1' is not ACTIVE [ attempt = 100/100 ]
 ***********************************************************************************
 ```
 * Deploy mirror node
@@ -500,8 +492,8 @@ Kubernetes Namespace	: solo
 ✔ Gossip pem key for node: node3
 ✔ Generate gossip keys
 ✔ Backup old files
-✔ TLS key for node: node1
 ✔ TLS key for node: node2
+✔ TLS key for node: node1
 ✔ TLS key for node: node3
 ✔ Generate gRPC TLS keys
 ✔ Finalize
