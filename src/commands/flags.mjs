@@ -757,11 +757,22 @@ export const persistentVolumeClaims = {
 }
 
 /** @type {CommandFlag} **/
-export const ctxPath = {
-  constName: 'ctxPath',
-  name: 'ctx-path',
+export const outputDir = {
+  constName: 'outputDir',
+  name: 'output-dir',
   definition: {
-    describe: 'Path to the directory where the command context will be saved to and/or loaded from',
+    describe: 'Path to the directory where the command context will be saved to',
+    defaultValue: '',
+    type: 'string'
+  }
+}
+
+/** @type {CommandFlag} **/
+export const inputDir = {
+  constName: 'inputDir',
+  name: 'input-dir',
+  definition: {
+    describe: 'Path to the directory where the command context will be loaded from',
     defaultValue: '',
     type: 'string'
   }

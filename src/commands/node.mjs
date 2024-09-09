@@ -51,6 +51,7 @@ import {
 } from '@hashgraph/sdk'
 import * as crypto from 'crypto'
 import {
+  DEFAULT_NETWORK_NODE_NAME,
   FREEZE_ADMIN_ACCOUNT,
   HEDERA_NODE_DEFAULT_STAKE_AMOUNT,
   TREASURY_ACCOUNT_ID
@@ -160,14 +161,12 @@ export class NodeCommand extends BaseCommand {
   /**
    * @returns {CommandFlag[]}
    */
-  static get ADD_FLAGS_LIST () {
+  static get COMMON_ADD_FLAGS_LIST () {
     return [
-      // flags.adminKey,
       flags.app,
       flags.cacheDir,
       flags.chainId,
       flags.chartDirectory,
-      flags.ctxPath,
       flags.devMode,
       flags.endpointType,
       flags.fstChartVersion,
@@ -178,8 +177,51 @@ export class NodeCommand extends BaseCommand {
       flags.keyFormat,
       flags.localBuildPath,
       flags.namespace,
-      flags.nodeID,
       flags.releaseTag
+    ]
+  }
+
+  /**
+   * @returns {CommandFlag[]}
+   */
+  static get ADD_FLAGS_LIST () {
+    const commonFlags = NodeCommand.COMMON_ADD_FLAGS_LIST
+    return [
+      ...commonFlags
+
+    ]
+  }
+
+  /**
+   * @returns {CommandFlag[]}
+   */
+  static get ADD_PREPARE_FLAGS_LIST () {
+    const commonFlags = NodeCommand.COMMON_ADD_FLAGS_LIST
+    return [
+      ...commonFlags,
+      flags.outputDir
+    ]
+  }
+
+  /**
+   * @returns {CommandFlag[]}
+   */
+  static get ADD_SUBMIT_TRANSACTIONS_FLAGS_LIST () {
+    const commonFlags = NodeCommand.COMMON_ADD_FLAGS_LIST
+    return [
+      ...commonFlags,
+      flags.inputDir
+    ]
+  }
+
+  /**
+   * @returns {CommandFlag[]}
+   */
+  static get ADD_EXECUTE_FLAGS_LIST () {
+    const commonFlags = NodeCommand.COMMON_ADD_FLAGS_LIST
+    return [
+      ...commonFlags,
+      flags.inputDir
     ]
   }
 
@@ -1352,7 +1394,7 @@ export class NodeCommand extends BaseCommand {
           flags.app,
           flags.chainId,
           flags.chartDirectory,
-          flags.ctxPath,
+          flags.outputDir,
           flags.devMode,
           flags.endpointType,
           flags.force,
@@ -1471,7 +1513,10 @@ export class NodeCommand extends BaseCommand {
           config.existingNodeIds.push(networkNodeServices.nodeName)
         }
 
-        config.allNodeIds = [...config.existingNodeIds, config.nodeId]
+        config.allNodeIds = [...config.existingNodeIds]
+        if (ctx.newNode) {
+          config.allNodeIds.push(ctx.newNode.name)
+        }
 
         return self.taskCheckNetworkNodePods(ctx, task, config.existingNodeIds)
       }
@@ -1499,6 +1544,8 @@ export class NodeCommand extends BaseCommand {
           const values = { hedera: { nodes: [] } }
           let maxNum = 0
 
+          let lastNodeName = DEFAULT_NETWORK_NODE_NAME
+
           for (/** @type {NetworkNodeServices} **/ const networkNodeServices of config.serviceMap.values()) {
             values.hedera.nodes.push({
               accountId: networkNodeServices.accountId,
@@ -1507,12 +1554,19 @@ export class NodeCommand extends BaseCommand {
             maxNum = maxNum > AccountId.fromString(networkNodeServices.accountId).num
               ? maxNum
               : AccountId.fromString(networkNodeServices.accountId).num
+            lastNodeName = networkNodeServices.nodeName
+          }
+
+          const lastNodeNumberMatch = lastNodeName.match(/\d+$/)
+          if (lastNodeNumberMatch.length) {
+            const incremented = parseInt(lastNodeNumberMatch[0]) + 1
+            lastNodeName = lastNodeName.replace(/\d+$/, incremented.toString())
           }
 
           ctx.maxNum = maxNum
           ctx.newNode = {
             accountId: `${constants.HEDERA_NODE_ACCOUNT_ID_START.realm}.${constants.HEDERA_NODE_ACCOUNT_ID_START.shard}.${++maxNum}`,
-            name: config.nodeId
+            name: lastNodeName
           }
         }
       },
@@ -1520,7 +1574,7 @@ export class NodeCommand extends BaseCommand {
         title: 'Generate Gossip key',
         task: async (ctx, parentTask) => {
           const config = /** @type {NodeAddConfigClass} **/ ctx.config
-          const subTasks = self.keyManager.taskGenerateGossipKeys(self.keytoolDepManager, config.keyFormat, [config.nodeId], config.keysDir, config.curDate, config.allNodeIds)
+          const subTasks = self.keyManager.taskGenerateGossipKeys(self.keytoolDepManager, config.keyFormat, [ctx.newNode.name], config.keysDir, config.curDate, config.allNodeIds)
           // set up the sub-tasks
           return parentTask.newListr(subTasks, {
             concurrent: false,
@@ -1536,7 +1590,7 @@ export class NodeCommand extends BaseCommand {
         title: 'Generate gRPC TLS key',
         task: async (ctx, parentTask) => {
           const config = /** @type {NodeAddConfigClass} **/ ctx.config
-          const subTasks = self.keyManager.taskGenerateTLSKeys([config.nodeId], config.keysDir, config.curDate)
+          const subTasks = self.keyManager.taskGenerateTLSKeys([ctx.newNode.name], config.keysDir, config.curDate)
           // set up the sub-tasks
           return parentTask.newListr(subTasks, {
             concurrent: false,
@@ -1552,7 +1606,7 @@ export class NodeCommand extends BaseCommand {
         title: 'Load signing key certificate',
         task: async (ctx, task) => {
           const config = /** @type {NodeAddConfigClass} **/ ctx.config
-          const signingCertFile = Templates.renderGossipPemPublicKeyFile(constants.SIGNING_KEY_PREFIX, config.nodeId)
+          const signingCertFile = Templates.renderGossipPemPublicKeyFile(constants.SIGNING_KEY_PREFIX, ctx.newNode.name)
           const signingCertFullPath = path.join(config.keysDir, signingCertFile)
           ctx.signingCertDer = await this.loadPermCertificate(signingCertFullPath)
         }
@@ -1561,7 +1615,7 @@ export class NodeCommand extends BaseCommand {
         title: 'Compute mTLS certificate hash',
         task: async (ctx, task) => {
           const config = /** @type {NodeAddConfigClass} **/ ctx.config
-          const tlsCertFile = Templates.renderTLSPemPublicKeyFile(config.nodeId)
+          const tlsCertFile = Templates.renderTLSPemPublicKeyFile(ctx.newNode.name)
           const tlsCertFullPath = path.join(config.keysDir, tlsCertFile)
           const tlsCertDer = await this.loadPermCertificate(tlsCertFullPath)
           ctx.tlsCertHash = crypto.createHash('sha384').update(tlsCertDer).digest()
@@ -1578,8 +1632,8 @@ export class NodeCommand extends BaseCommand {
             }
 
             endpoints = [
-              `${Templates.renderFullyQualifiedNetworkPodName(config.namespace, config.nodeId)}:${constants.HEDERA_NODE_INTERNAL_GOSSIP_PORT}`,
-              `${Templates.renderFullyQualifiedNetworkSvcName(config.namespace, config.nodeId)}:${constants.HEDERA_NODE_EXTERNAL_GOSSIP_PORT}`
+              `${Templates.renderFullyQualifiedNetworkPodName(config.namespace, ctx.newNode.name)}:${constants.HEDERA_NODE_INTERNAL_GOSSIP_PORT}`,
+              `${Templates.renderFullyQualifiedNetworkSvcName(config.namespace, ctx.newNode.name)}:${constants.HEDERA_NODE_EXTERNAL_GOSSIP_PORT}`
             ]
           } else {
             endpoints = helpers.splitFlagInput(config.gossipEndpoints)
@@ -1600,7 +1654,7 @@ export class NodeCommand extends BaseCommand {
             }
 
             endpoints = [
-              `${Templates.renderFullyQualifiedNetworkSvcName(config.namespace, config.nodeId)}:${constants.HEDERA_NODE_EXTERNAL_GOSSIP_PORT}`
+              `${Templates.renderFullyQualifiedNetworkSvcName(config.namespace, ctx.newNode.name)}:${constants.HEDERA_NODE_EXTERNAL_GOSSIP_PORT}`
             ]
           } else {
             endpoints = helpers.splitFlagInput(config.grpcEndpoints)
@@ -1638,13 +1692,13 @@ export class NodeCommand extends BaseCommand {
       title: 'Save context data',
       task: async (ctx, task) => {
         if (argv.exportCtxData) {
-          const ctxPath = argv[flags.ctxPath.name]
-          if (!ctxPath) {
-            throw new FullstackTestingError(`Path to export context data not specified. Please set a value for --${flags.ctxPath.name}`)
+          const outputDir = argv[flags.outputDir.name]
+          if (!outputDir) {
+            throw new FullstackTestingError(`Path to export context data not specified. Please set a value for --${flags.outputDir.name}`)
           }
 
-          if (!fs.existsSync(ctxPath)) {
-            fs.mkdirSync(ctxPath, { recursive: true })
+          if (!fs.existsSync(outputDir)) {
+            fs.mkdirSync(outputDir, { recursive: true })
           }
           const exportedFields = [
             'tlsCertHash',
@@ -1661,7 +1715,7 @@ export class NodeCommand extends BaseCommand {
             exportedCtx[prop] = ctx[prop]
           }
 
-          fs.writeFileSync(path.join(ctxPath, 'ctx.json'), JSON.stringify(exportedCtx))
+          fs.writeFileSync(path.join(outputDir, 'ctx.json'), JSON.stringify(exportedCtx))
         }
       }
     }
@@ -1672,11 +1726,11 @@ export class NodeCommand extends BaseCommand {
       title: 'Load context data',
       task: async (ctx, task) => {
         if (argv.importCtxData) {
-          const ctxPath = argv[flags.ctxPath.name]
-          if (!ctxPath) {
-            throw new FullstackTestingError(`Path to context data not specified. Please set a value for --${flags.ctxPath.name}`)
+          const inputDir = argv[flags.inputDir.name]
+          if (!inputDir) {
+            throw new FullstackTestingError(`Path to context data not specified. Please set a value for --${flags.inputDir.name}`)
           }
-          const ctxData = JSON.parse(fs.readFileSync(path.join(ctxPath, 'ctx.json')))
+          const ctxData = JSON.parse(fs.readFileSync(path.join(inputDir, 'ctx.json')))
 
           ctx.signingCertDer = new Uint8Array(ctxData.signingCertDer.split(','))
           ctx.gossipEndpoints = this.prepareEndpoints(ctx.config.endpointType, ctxData.gossipEndpoints, constants.HEDERA_NODE_INTERNAL_GOSSIP_PORT)
@@ -1909,8 +1963,7 @@ export class NodeCommand extends BaseCommand {
             const config = /** @type {NodeAddConfigClass} **/ ctx.config
             config.serviceMap = await self.accountManager.getNodeServiceMap(
               config.namespace)
-            config.podNames[config.nodeId] = config.serviceMap.get(
-              config.nodeId).nodePodName
+            config.podNames[ctx.newNode.name] = config.serviceMap.get(ctx.newNode.name).nodePodName
 
             return self.fetchLocalOrReleasedPlatformSoftware(config.allNodeIds, config.podNames, config.releaseTag, task, config.localBuildPath)
           }
@@ -1932,8 +1985,8 @@ export class NodeCommand extends BaseCommand {
         task:
             async (ctx, task) => {
               const config = /** @type {NodeAddConfigClass} **/ ctx.config
-              const newNodeFullyQualifiedPodName = Templates.renderNetworkPodName(config.nodeId)
-              const nodeNumber = Templates.nodeNumberFromNodeId(config.nodeId)
+              const newNodeFullyQualifiedPodName = Templates.renderNetworkPodName(ctx.newNode.name)
+              const nodeNumber = Templates.nodeNumberFromNodeId(ctx.newNode.name)
               const savedStateDir = (config.lastStateZipPath.match(/\/(\d+)\.zip$/))[1]
               const savedStatePath = `${constants.HEDERA_HAPI_PATH}/data/saved/com.hedera.services.ServicesMain/${nodeNumber}/123/${savedStateDir}`
               await self.k8.execContainer(newNodeFullyQualifiedPodName, constants.ROOT_CONTAINER, ['bash', '-c', `mkdir -p ${savedStatePath}`])
@@ -2032,7 +2085,7 @@ export class NodeCommand extends BaseCommand {
         title: 'Stake new node',
         task: (ctx, _) => {
           const config = /** @type {NodeAddConfigClass} **/ ctx.config
-          self.addStake(config.namespace, ctx.newNode.accountId, config.nodeId)
+          self.addStake(config.namespace, ctx.newNode.accountId, config.newNode.name)
         }
       },
       {
@@ -2402,7 +2455,7 @@ export class NodeCommand extends BaseCommand {
           .command({
             command: 'add-prepare',
             desc: 'Prepares the addition of a node with a specific version of Hedera platform',
-            builder: y => flags.setCommandFlags(y, ...NodeCommand.ADD_FLAGS_LIST),
+            builder: y => flags.setCommandFlags(y, ...NodeCommand.ADD_PREPARE_FLAGS_LIST),
             handler: argv => {
               nodeCmd.logger.debug('==== Running \'node add\' ===')
               nodeCmd.logger.debug(argv)
@@ -2419,7 +2472,7 @@ export class NodeCommand extends BaseCommand {
           .command({
             command: 'add-submit-transactions',
             desc: 'Submits NodeCreateTransaction and Upgrade transactions to the network nodes',
-            builder: y => flags.setCommandFlags(y, ...NodeCommand.ADD_FLAGS_LIST),
+            builder: y => flags.setCommandFlags(y, ...NodeCommand.ADD_SUBMIT_TRANSACTIONS_FLAGS_LIST),
             handler: argv => {
               nodeCmd.logger.debug('==== Running \'node add\' ===')
               nodeCmd.logger.debug(argv)
@@ -2436,7 +2489,7 @@ export class NodeCommand extends BaseCommand {
           .command({
             command: 'add-execute',
             desc: 'Executes the addition of a previously prepared node',
-            builder: y => flags.setCommandFlags(y, ...NodeCommand.ADD_FLAGS_LIST),
+            builder: y => flags.setCommandFlags(y, ...NodeCommand.ADD_EXECUTE_FLAGS_LIST),
             handler: argv => {
               nodeCmd.logger.debug('==== Running \'node add\' ===')
               nodeCmd.logger.debug(argv)
