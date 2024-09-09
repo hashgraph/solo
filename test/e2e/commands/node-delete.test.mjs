@@ -17,7 +17,6 @@
  */
 import { afterAll, describe, expect, it } from '@jest/globals'
 import { flags } from '../../../src/commands/index.mjs'
-import { constants } from '../../../src/core/index.mjs'
 import {
   accountCreationShouldSucceed,
   balanceQueryShouldSucceed,
@@ -34,13 +33,11 @@ describe('Node delete', () => {
   const namespace = 'node-delete'
   const nodeId = 'node1'
   const argv = getDefaultArgv()
-  argv[flags.keyFormat.name] = constants.KEY_FORMAT_PEM
   argv[flags.nodeIDs.name] = 'node1,node2,node3,node4'
   argv[flags.nodeID.name] = nodeId
   argv[flags.generateGossipKeys.name] = true
   argv[flags.generateTlsKeys.name] = true
   argv[flags.persistentVolumeClaims.name] = true
-  argv[flags.keyFormat.name] = constants.KEY_FORMAT_PEM
   // set the env variable SOLO_FST_CHARTS_DIR if developer wants to use local FST charts
   argv[flags.chartDirectory.name] = process.env.SOLO_FST_CHARTS_DIR ? process.env.SOLO_FST_CHARTS_DIR : undefined
   argv[flags.releaseTag.name] = HEDERA_PLATFORM_VERSION_TAG
@@ -52,7 +49,7 @@ describe('Node delete', () => {
 
   afterAll(async () => {
     await getNodeLogs(k8, namespace)
-    // await k8.deleteNamespace(namespace)
+    await k8.deleteNamespace(namespace)
   }, 600000)
 
   it('should succeed with init command', async () => {

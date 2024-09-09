@@ -18,9 +18,7 @@ import { describe, expect, it } from '@jest/globals'
 import fs from 'fs'
 import os from 'os'
 import path from 'path'
-import { KeytoolDependencyManager } from '../../../src/core/dependency_managers/index.mjs'
-import { constants, Keytool, logging, PackageDownloader, Zippy, KeyManager } from '../../../src/core/index.mjs'
-import { getTmpDir, testLogger } from '../../test_util.js'
+import { constants, logging, KeyManager } from '../../../src/core/index.mjs'
 
 describe('KeyManager', () => {
   const logger = logging.NewLogger('debug', true)
@@ -82,33 +80,4 @@ describe('KeyManager', () => {
 
     fs.rmSync(tmpDir, { recursive: true })
   }, 20000)
-
-  it('should generate pfx keys', async () => {
-    const keysDir = getTmpDir()
-    const tmpDir = getTmpDir()
-    const nodeIds = ['node1', 'node2', 'node3']
-    const downloader = new PackageDownloader(testLogger)
-    const zippy = new Zippy(testLogger)
-    const keytoolDepManager = new KeytoolDependencyManager(downloader, zippy, testLogger)
-    await keytoolDepManager.checkVersion()
-    const keytool = new Keytool(testLogger)
-    for (const nodeId of nodeIds) {
-      const result = await keyManager.generatePrivatePfxKeys(keytool, nodeId, keysDir, tmpDir)
-      const expectedPrivatePfx = path.join(keysDir, `private-${nodeId}.pfx`)
-      expect(result).toStrictEqual(expectedPrivatePfx)
-      expect(fs.existsSync(expectedPrivatePfx)).toBeTruthy()
-      const output = await keytool.list(`-storetype pkcs12 -storepass password -keystore ${expectedPrivatePfx}`)
-      expect(output.includes('Your keystore contains 3 entries')).toBeTruthy()
-    }
-
-    const result = await keyManager.updatePublicPfxKey(keytool, nodeIds, keysDir, tmpDir)
-    const expectedPublicPfx = path.join(keysDir, constants.PUBLIC_PFX)
-    expect(result).toStrictEqual(expectedPublicPfx)
-    expect(fs.existsSync(expectedPublicPfx)).toBeTruthy()
-
-    const output = await keytool.list(`-storetype pkcs12 -storepass password -keystore ${expectedPublicPfx}`)
-    expect(output.includes('Your keystore contains 9 entries')).toBeTruthy()
-    fs.rmSync(keysDir, { recursive: true })
-    fs.rmSync(tmpDir, { recursive: true })
-  }, 120000)
 })

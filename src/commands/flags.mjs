@@ -364,17 +364,6 @@ export const generateTlsKeys = {
 }
 
 /** @type {CommandFlag} **/
-export const keyFormat = {
-  constName: 'keyFormat',
-  name: 'key-format',
-  definition: {
-    describe: 'Public and Private key file format (pem or pfx)',
-    defaultValue: 'pem',
-    type: 'string'
-  }
-}
-
-/** @type {CommandFlag} **/
 export const tlsClusterIssuerType = {
   constName: 'tlsClusterIssuerType',
   name: 'tls-cluster-issuer-type',
@@ -772,7 +761,6 @@ export const allFlags = [
   grpcEndpoints,
   hederaExplorerTlsHostName,
   hederaExplorerTlsLoadBalancerIp,
-  keyFormat,
   localBuildPath,
   log4j2Xml,
   namespace,

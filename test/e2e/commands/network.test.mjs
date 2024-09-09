@@ -48,7 +48,6 @@ describe('NetworkCommand', () => {
   const argv = getDefaultArgv()
   argv[flags.namespace.name] = namespace
   argv[flags.releaseTag.name] = HEDERA_PLATFORM_VERSION_TAG
-  argv[flags.keyFormat.name] = constants.KEY_FORMAT_PEM
   argv[flags.nodeIDs.name] = 'node1'
   argv[flags.generateGossipKeys.name] = true
   argv[flags.generateTlsKeys.name] = true
@@ -67,6 +66,7 @@ describe('NetworkCommand', () => {
   const networkCmd = bootstrapResp.cmd.networkCmd
   const clusterCmd = bootstrapResp.cmd.clusterCmd
   const initCmd = bootstrapResp.cmd.initCmd
+  const nodeCmd = bootstrapResp.cmd.nodeCmd
 
   afterAll(async () => {
     await getNodeLogs(k8, namespace)
@@ -79,6 +79,10 @@ describe('NetworkCommand', () => {
     await clusterCmd.setup(argv)
     fs.mkdirSync(applicationEnvParentDirectory, { recursive: true })
     fs.writeFileSync(applicationEnvFilePath, applicationEnvFileContents)
+  })
+
+  it('keys should be generated', async () => {
+    await expect(nodeCmd.keys(argv)).resolves.toBeTruthy()
   })
 
   it('network deploy command should succeed', async () => {

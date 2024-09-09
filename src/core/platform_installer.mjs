@@ -152,7 +152,7 @@ export class PlatformInstaller {
     }
   }
 
-  async copyGossipKeys (nodeId, stagingDir, nodeIds, keyFormat = constants.KEY_FORMAT_PEM) {
+  async copyGossipKeys (nodeId, stagingDir, nodeIds) {
     if (!nodeId) throw new MissingArgumentError('nodeId is required')
     if (!stagingDir) throw new MissingArgumentError('stagingDir is required')
     if (!nodeIds || nodeIds.length <= 0) throw new MissingArgumentError('nodeIds cannot be empty')
@@ -160,23 +160,13 @@ export class PlatformInstaller {
     try {
       const srcFiles = []
 
-      switch (keyFormat) {
-        case constants.KEY_FORMAT_PEM:
-          // copy private keys for the node
-          srcFiles.push(path.join(stagingDir, 'keys', Templates.renderGossipPemPrivateKeyFile(constants.SIGNING_KEY_PREFIX, nodeId)))
+      // copy private keys for the node
+      srcFiles.push(path.join(stagingDir, 'keys', Templates.renderGossipPemPrivateKeyFile(constants.SIGNING_KEY_PREFIX, nodeId)))
 
-          // copy all public keys for all nodes
-          nodeIds.forEach(id => {
-            srcFiles.push(path.join(stagingDir, 'keys', Templates.renderGossipPemPublicKeyFile(constants.SIGNING_KEY_PREFIX, id)))
-          })
-          break
-        case constants.KEY_FORMAT_PFX:
-          srcFiles.push(path.join(stagingDir, 'keys', Templates.renderGossipPfxPrivateKeyFile(nodeId)))
-          srcFiles.push(path.join(stagingDir, 'keys', constants.PUBLIC_PFX))
-          break
-        default:
-          throw new FullstackTestingError(`Unsupported key file format ${keyFormat}`)
-      }
+      // copy all public keys for all nodes
+      nodeIds.forEach(id => {
+        srcFiles.push(path.join(stagingDir, 'keys', Templates.renderGossipPemPublicKeyFile(constants.SIGNING_KEY_PREFIX, id)))
+      })
 
       const data = {}
       for (const srcFile of srcFiles) {
@@ -288,8 +278,8 @@ export class PlatformInstaller {
     return new Listr([
       {
         title: 'Set file permissions',
-        task: (_, task) =>
-          self.setPlatformDirPermissions(podName)
+        task: async (_, task) =>
+          await self.setPlatformDirPermissions(podName)
       }
     ],
     {
@@ -313,16 +303,15 @@ export class PlatformInstaller {
    *
    * @param stagingDir staging directory path
    * @param nodeIds list of node ids
-   * @param keyFormat key format (pfx or pem)
    * @returns {Listr<ListrContext, ListrPrimaryRendererValue, ListrSecondaryRendererValue>[]}
    */
-  copyNodeKeys (stagingDir, nodeIds, keyFormat = constants.KEY_FORMAT_PEM) {
+  copyNodeKeys (stagingDir, nodeIds) {
     const self = this
     const subTasks = []
     subTasks.push({
       title: 'Copy TLS keys',
-      task: (_, task) =>
-        self.copyTLSKeys(nodeIds, stagingDir, keyFormat)
+      task: async (_, task) =>
+        await self.copyTLSKeys(nodeIds, stagingDir)
     })
 
     for (const nodeId of nodeIds) {
@@ -330,8 +319,8 @@ export class PlatformInstaller {
         title: `Node: ${chalk.yellow(nodeId)}`,
         task: () => new Listr([{
           title: 'Copy Gossip keys',
-          task: (_, task) =>
-            self.copyGossipKeys(nodeId, stagingDir, nodeIds, keyFormat)
+          task: async (_, task) =>
+            await self.copyGossipKeys(nodeId, stagingDir, nodeIds)
         }
         ],
         {

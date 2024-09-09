@@ -37,17 +37,16 @@ import {
 import { getNodeLogs, sleep } from '../../src/core/helpers.mjs'
 import { NodeCommand } from '../../src/commands/node.mjs'
 
-export function e2eNodeKeyRefreshTest (keyFormat, testName, mode, releaseTag = HEDERA_PLATFORM_VERSION_TAG) {
+export function e2eNodeKeyRefreshTest (testName, mode, releaseTag = HEDERA_PLATFORM_VERSION_TAG) {
   const defaultTimeout = 120000
 
   describe(
-      `NodeCommand [testName ${testName}, mode ${mode}, keyFormat: ${keyFormat}, release ${releaseTag}]`,
+      `NodeCommand [testName ${testName}, mode ${mode}, release ${releaseTag}]`,
       () => {
         const namespace = testName
         const argv = getDefaultArgv()
         argv[flags.namespace.name] = namespace
         argv[flags.releaseTag.name] = releaseTag
-        argv[flags.keyFormat.name] = keyFormat
         argv[flags.nodeIDs.name] = 'node1,node2,node3'
         argv[flags.generateGossipKeys.name] = true
         argv[flags.generateTlsKeys.name] = true
@@ -74,13 +73,13 @@ export function e2eNodeKeyRefreshTest (keyFormat, testName, mode, releaseTag = H
         }, 600000)
 
         describe(
-            `Node should have started successfully [mode ${mode}, release ${releaseTag}, keyFormat: ${keyFormat}]`,
+            `Node should have started successfully [mode ${mode}, release ${releaseTag}]`,
             () => {
               balanceQueryShouldSucceed(accountManager, nodeCmd, namespace)
 
               accountCreationShouldSucceed(accountManager, nodeCmd, namespace)
 
-              it(`Node Proxy should be UP [mode ${mode}, release ${releaseTag}, keyFormat: ${keyFormat}`,
+              it(`Node Proxy should be UP [mode ${mode}, release ${releaseTag}`,
                 async () => {
                   expect.assertions(1)
 
@@ -99,7 +98,7 @@ export function e2eNodeKeyRefreshTest (keyFormat, testName, mode, releaseTag = H
             })
 
         describe(
-            `Node should refresh successfully [mode ${mode}, release ${releaseTag}, keyFormat: ${keyFormat}]`,
+            `Node should refresh successfully [mode ${mode}, release ${releaseTag}]`,
             () => {
               const nodeId = 'node1'
 

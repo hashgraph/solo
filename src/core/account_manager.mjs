@@ -179,6 +179,7 @@ export class AccountManager {
    * @returns {Promise<void>}
    */
   async refreshNodeClient (namespace) {
+    await this.close()
     const treasuryAccountInfo = await this.getTreasuryAccountKeys(namespace)
     const networkNodeServicesMap = await this.getNodeServiceMap(namespace)
 

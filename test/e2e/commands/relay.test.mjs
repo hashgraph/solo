@@ -24,9 +24,6 @@ import {
 } from '@jest/globals'
 import { flags } from '../../../src/commands/index.mjs'
 import {
-  constants
-} from '../../../src/core/index.mjs'
-import {
   bootstrapNetwork,
   getDefaultArgv,
   HEDERA_PLATFORM_VERSION_TAG,
@@ -42,7 +39,6 @@ describe('RelayCommand', () => {
   const argv = getDefaultArgv()
   argv[flags.namespace.name] = namespace
   argv[flags.releaseTag.name] = HEDERA_PLATFORM_VERSION_TAG
-  argv[flags.keyFormat.name] = constants.KEY_FORMAT_PEM
 
   argv[flags.nodeIDs.name] = 'node1,node2'
   argv[flags.generateGossipKeys.name] = true
