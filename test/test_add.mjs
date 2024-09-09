@@ -30,8 +30,10 @@ import { constants } from '../src/core/index.mjs'
 import { getNodeLogs } from '../src/core/helpers.mjs'
 import { NodeCommand } from '../src/commands/node.mjs'
 
-export function testNodeAdd (localBuildPath
+export function testNodeAdd (localBuildPath, tearDown = true
 ) {
+  let bootstrapResp
+
   describe('Node add should success', () => {
     const suffix = localBuildPath.substring(0, 5)
     const defaultTimeout = 120000
@@ -52,7 +54,7 @@ export function testNodeAdd (localBuildPath
     argv[flags.persistentVolumeClaims.name] = true
     argv[flags.localBuildPath.name] = localBuildPath
 
-    const bootstrapResp = bootstrapNetwork(namespace, argv)
+    bootstrapResp = bootstrapNetwork(namespace, argv)
     const nodeCmd = bootstrapResp.cmd.nodeCmd
     const accountCmd = bootstrapResp.cmd.accountCmd
     const networkCmd = bootstrapResp.cmd.networkCmd
@@ -62,10 +64,13 @@ export function testNodeAdd (localBuildPath
 
     afterAll(async () => {
       await getNodeLogs(k8, namespace)
-      await nodeCmd.accountManager.close()
-      await nodeCmd.stop(argv)
-      await networkCmd.destroy(argv)
-      await k8.deleteNamespace(namespace)
+
+      if (tearDown) {
+        await nodeCmd.accountManager.close()
+        await nodeCmd.stop(argv)
+        await networkCmd.destroy(argv)
+        await k8.deleteNamespace(namespace)
+      }
     }, 600000)
 
     it('cache current version of private keys', async () => {
@@ -105,4 +110,6 @@ export function testNodeAdd (localBuildPath
       }
     }, defaultTimeout)
   })
+
+  return bootstrapResp
 }
