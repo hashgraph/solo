@@ -133,7 +133,7 @@ Example output
 ```
 
 ******************************* Solo *********************************************
-Version			: 0.28.1
+Version			: 0.29.0
 Kubernetes Context	: kind-solo
 Kubernetes Cluster	: kind-solo
 Kubernetes Namespace	: solo
@@ -163,7 +163,7 @@ Example output
 ```
 
 ******************************* Solo *********************************************
-Version			: 0.28.1
+Version			: 0.29.0
 Kubernetes Context	: kind-solo
 Kubernetes Cluster	: kind-solo
 Kubernetes Namespace	: solo
@@ -178,9 +178,9 @@ Kubernetes Namespace	: solo
 ✔ Clean up temp files
 ✔ Generate gossip keys
 ✔ Backup old files
-✔ TLS key for node: node3
-✔ TLS key for node: node1
 ✔ TLS key for node: node2
+✔ TLS key for node: node1
+✔ TLS key for node: node3
 ✔ Generate gRPC TLS keys
 ✔ Finalize
 ```
@@ -204,7 +204,7 @@ Example output
 ```
 
 ******************************* Solo *********************************************
-Version			: 0.28.1
+Version			: 0.29.0
 Kubernetes Context	: kind-solo
 Kubernetes Cluster	: kind-solo
 Kubernetes Namespace	: solo
@@ -228,12 +228,23 @@ Example output
 ```
 
 ******************************* Solo *********************************************
-Version			: 0.28.1
+Version			: 0.29.0
 Kubernetes Context	: kind-solo
 Kubernetes Cluster	: kind-solo
 Kubernetes Namespace	: solo
 **********************************************************************************
 ✔ Initialize
+✔ Copy Gossip keys to staging
+✔ Copy gRPC TLS keys to staging
+✔ Prepare staging directory
+✔ Copy Gossip keys
+✔ Node: node3
+✔ Copy TLS keys
+✔ Copy Gossip keys
+✔ Node: node1
+✔ Copy Gossip keys
+✔ Node: node2
+✔ Copy node keys to secrets
 ✔ Install chart 'fullstack-deployment'
 ✔ Check Node: node1
 ✔ Check Node: node2
@@ -243,8 +254,8 @@ Kubernetes Namespace	: solo
 ✔ Check Envoy Proxy for: node1
 ✔ Check Envoy Proxy for: node3
 ✔ Check HAProxy for: node1
-✔ Check HAProxy for: node2
 ✔ Check HAProxy for: node3
+✔ Check HAProxy for: node2
 ✔ Check proxy pods are running
 ✔ Check MinIO
 ✔ Check auxiliary pods are ready
@@ -262,37 +273,27 @@ Example output
 ```
 
 ******************************* Solo *********************************************
-Version			: 0.28.1
+Version			: 0.29.0
 Kubernetes Context	: kind-solo
 Kubernetes Cluster	: kind-solo
 Kubernetes Namespace	: solo
 **********************************************************************************
 ✔ Initialize
-✔ Check network pod: node3
 ✔ Check network pod: node2
 ✔ Check network pod: node1
+✔ Check network pod: node3
 ✔ Identify network pods
-✔ Copy Gossip keys to staging
-✔ Copy gRPC TLS keys to staging
-✔ Prepare staging directory
 ✔ Update node: node3 [ platformVersion = v0.42.5 ]
-✔ Update node: node1 [ platformVersion = v0.42.5 ]
 ✔ Update node: node2 [ platformVersion = v0.42.5 ]
+✔ Update node: node1 [ platformVersion = v0.42.5 ]
 ✔ Fetch platform software into network nodes
-✔ Copy Gossip keys
-✔ Copy Gossip keys
-✔ Copy Gossip keys
-✔ Copy TLS keys
-✔ Copy TLS keys
-✔ Copy TLS keys
-✔ Set file permissions
-✔ Node: node3
 ✔ Set file permissions
 ✔ Node: node1
 ✔ Set file permissions
 ✔ Node: node2
+✔ Set file permissions
+✔ Node: node3
 ✔ Setup network nodes
-✔ Finalize
 ```
 
 * Start the nodes.
@@ -306,19 +307,19 @@ Example output
 ```
 
 ******************************* Solo *********************************************
-Version			: 0.28.1
+Version			: 0.29.0
 Kubernetes Context	: kind-solo
 Kubernetes Cluster	: kind-solo
 Kubernetes Namespace	: solo
 **********************************************************************************
 ✔ Initialize
 ✔ Check network pod: node1
-✔ Check network pod: node3
 ✔ Check network pod: node2
+✔ Check network pod: node3
 ✔ Identify network pods
 ✔ Start node: node1
-✔ Start node: node3
 ✔ Start node: node2
+✔ Start node: node3
 ✔ Starting nodes
 ✔ Check node: node1
 ✔ Check node: node2
@@ -339,7 +340,7 @@ Example output
 ```
 
 ******************************* Solo *********************************************
-Version			: 0.28.1
+Version			: 0.29.0
 Kubernetes Context	: kind-solo
 Kubernetes Cluster	: kind-solo
 Kubernetes Namespace	: solo
@@ -361,7 +362,7 @@ Example output
 ```
 
 ******************************* Solo *********************************************
-Version			: 0.28.1
+Version			: 0.29.0
 Kubernetes Context	: kind-solo
 Kubernetes Cluster	: kind-solo
 Kubernetes Namespace	: solo
@@ -432,7 +433,7 @@ Example output
 ```
 
 ******************************* Solo *********************************************
-Version			: 0.28.1
+Version			: 0.29.0
 Kubernetes Context	: kind-solo
 Kubernetes Cluster	: kind-solo
 Kubernetes Namespace	: solo
@@ -459,7 +460,7 @@ $ solo init -t v0.47.0-alpha.0 -i node1,node2,node3 -n "${SOLO_NAMESPACE}" -s "$
 ```
 
 ******************************* Solo *********************************************
-Version			: 0.28.1
+Version			: 0.29.0
 Kubernetes Context	: kind-solo
 Kubernetes Cluster	: kind-solo
 Kubernetes Namespace	: solo
@@ -487,7 +488,7 @@ $ solo node keys --gossip-keys --tls-keys --key-format pem
 ```
 
 ******************************* Solo *********************************************
-Version			: 0.28.1
+Version			: 0.29.0
 Kubernetes Context	: kind-solo
 Kubernetes Cluster	: kind-solo
 Kubernetes Namespace	: solo
