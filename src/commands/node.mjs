@@ -482,6 +482,76 @@ export class NodeCommand extends BaseCommand {
     })
   }
 
+  async addCheckStakingTask (existingNodeIds) {
+    const accountMap = getNodeAccountMap(existingNodeIds)
+    for (const nodeId of existingNodeIds) {
+      const accountId = accountMap.get(nodeId)
+      await this.accountManager.transferAmount(constants.TREASURY_ACCOUNT_ID, accountId, 1)
+    }
+  }
+
+  addPrepareStagingTask (ctx, task, keysDir, stagingKeysDir, nodeIds) {
+    const subTasks = [
+      {
+        title: 'Copy Gossip keys to staging',
+        task: async (ctx, _) => {
+          // const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
+
+          await this.keyManager.copyGossipKeysToStaging(keysDir, stagingKeysDir, nodeIds)
+        }
+      },
+      {
+        title: 'Copy gRPC TLS keys to staging',
+        task: async (ctx, _) => {
+          // const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
+          for (const nodeId of nodeIds) {
+            const tlsKeyFiles = this.keyManager.prepareTLSKeyFilePaths(nodeId, keysDir)
+            await this.keyManager.copyNodeKeysToStaging(tlsKeyFiles, stagingKeysDir)
+          }
+        }
+      }
+    ]
+    return task.newListr(subTasks, {
+      concurrent: false,
+      rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
+    })
+  }
+
+  async chartUpdateTask (ctx, nodeIds) {
+    const config = ctx.config
+    const index = config.existingNodeIds.length
+    const nodeId = Templates.nodeNumberFromNodeId(config.nodeId) - 1
+
+    let valuesArg = ''
+    for (let i = 0; i < index; i++) {
+      if (config.newAccountNumber && i !== nodeId) {
+        valuesArg += ` --set "hedera.nodes[${i}].accountId=${config.serviceMap.get(config.existingNodeIds[i]).accountId}" --set "hedera.nodes[${i}].name=${config.existingNodeIds[i]}"`
+      } else {
+        // use new account number for this node id
+        valuesArg += ` --set "hedera.nodes[${i}].accountId=${config.newAccountNumber}" --set "hedera.nodes[${i}].name=${config.existingNodeIds[i]}"`
+      }
+    }
+    if (config.newNode.accountId) {
+      valuesArg += ` --set "hedera.nodes[${index}].accountId=${ctx.newNode.accountId}" --set "hedera.nodes[${index}].name=${ctx.newNode.name}"`
+    }
+    this.profileValuesFile = await this.profileManager.prepareValuesForNodeAdd(
+      path.join(config.stagingDir, 'config.txt'),
+      path.join(config.stagingDir, 'templates', 'application.properties'))
+    if (this.profileValuesFile) {
+      valuesArg += this.prepareValuesFiles(this.profileValuesFile)
+    }
+
+    valuesArg = addDebugOptions(valuesArg, config.debugNodeId)
+
+    await this.chartManager.upgrade(
+      config.namespace,
+      constants.FULLSTACK_DEPLOYMENT_CHART,
+      config.chartPath,
+      valuesArg,
+      config.fstChartVersion
+    )
+  }
+
   async initializeSetup (config, k8) {
     // compute other config parameters
     config.keysDir = path.join(validatePath(config.cacheDir), 'keys')
@@ -1670,13 +1740,7 @@ export class NodeCommand extends BaseCommand {
         title: 'Check existing nodes staked amount',
         task: async (ctx, task) => {
           const config = /** @type {NodeAddConfigClass} **/ ctx.config
-          self.logger.info('sleep 60 seconds for the handler to be able to trigger the network node stake weight recalculate')
-          await sleep(15000)
-          const accountMap = getNodeAccountMap(config.existingNodeIds)
-          for (const nodeId of config.existingNodeIds) {
-            const accountId = accountMap.get(nodeId)
-            await this.accountManager.transferAmount(constants.TREASURY_ACCOUNT_ID, accountId, 1)
-          }
+          await this.addCheckStakingTask(config.existingNodeIds)
         }
       },
       {
@@ -1736,31 +1800,8 @@ export class NodeCommand extends BaseCommand {
       {
         title: 'Prepare staging directory',
         task: async (ctx, parentTask) => {
-          const subTasks = [
-            {
-              title: 'Copy Gossip keys to staging',
-              task: async (ctx, _) => {
-                const config = /** @type {NodeAddConfigClass} **/ ctx.config
-
-                await this.keyManager.copyGossipKeysToStaging(config.keysDir, config.stagingKeysDir, config.allNodeIds)
-              }
-            },
-            {
-              title: 'Copy gRPC TLS keys to staging',
-              task: async (ctx, _) => {
-                const config = /** @type {NodeAddConfigClass} **/ ctx.config
-                for (const nodeId of config.allNodeIds) {
-                  const tlsKeyFiles = self.keyManager.prepareTLSKeyFilePaths(nodeId, config.keysDir)
-                  await self.keyManager.copyNodeKeysToStaging(tlsKeyFiles, config.stagingKeysDir)
-                }
-              }
-            }
-          ]
-
-          return parentTask.newListr(subTasks, {
-            concurrent: false,
-            rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
-          })
+          const config = /** @type {NodeAddConfigClass} **/ ctx.config
+          return this.addPrepareStagingTask(ctx, parentTask, config.keysDir, config.stagingKeysDir, config.allNodeIds)
         }
       },
       {
@@ -2475,11 +2516,7 @@ export class NodeCommand extends BaseCommand {
         title: 'Check existing nodes staked amount',
         task: async (ctx, task) => {
           const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
-          const accountMap = getNodeAccountMap(config.existingNodeIds)
-          for (const nodeId of config.existingNodeIds) {
-            const accountId = accountMap.get(nodeId)
-            await this.accountManager.transferAmount(constants.TREASURY_ACCOUNT_ID, accountId, 1)
-          }
+          await this.addCheckStakingTask(config.existingNodeIds)
         }
       },
       {
@@ -2583,31 +2620,8 @@ export class NodeCommand extends BaseCommand {
       {
         title: 'Prepare staging directory',
         task: async (ctx, parentTask) => {
-          const subTasks = [
-            {
-              title: 'Copy Gossip keys to staging',
-              task: async (ctx, _) => {
-                const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
-
-                await this.keyManager.copyGossipKeysToStaging(config.keysDir, config.stagingKeysDir, config.allNodeIds)
-              }
-            },
-            {
-              title: 'Copy gRPC TLS keys to staging',
-              task: async (ctx, _) => {
-                const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
-                for (const nodeId of config.allNodeIds) {
-                  const tlsKeyFiles = self.keyManager.prepareTLSKeyFilePaths(nodeId, config.keysDir)
-                  await self.keyManager.copyNodeKeysToStaging(tlsKeyFiles, config.stagingKeysDir)
-                }
-              }
-            }
-          ]
-
-          return parentTask.newListr(subTasks, {
-            concurrent: false,
-            rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
-          })
+          const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
+          return this.addPrepareStagingTask(ctx, parentTask, config.keysDir, config.stagingKeysDir, config.allNodeIds)
         }
       },
       {
@@ -2992,11 +3006,7 @@ export class NodeCommand extends BaseCommand {
         title: 'Check existing nodes staked amount',
         task: async (ctx, task) => {
           const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
-          const accountMap = getNodeAccountMap(config.existingNodeIds)
-          for (const nodeId of config.existingNodeIds) {
-            const accountId = accountMap.get(nodeId)
-            await this.accountManager.transferAmount(constants.TREASURY_ACCOUNT_ID, accountId, 1)
-          }
+          await this.addCheckStakingTask(config.existingNodeIds)
         }
       },
       {
@@ -3056,31 +3066,8 @@ export class NodeCommand extends BaseCommand {
       {
         title: 'Prepare staging directory',
         task: async (ctx, parentTask) => {
-          const subTasks = [
-            {
-              title: 'Copy Gossip keys to staging',
-              task: async (ctx, _) => {
-                const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
-
-                await this.keyManager.copyGossipKeysToStaging(config.keysDir, config.stagingKeysDir, config.existingNodeIds)
-              }
-            },
-            {
-              title: 'Copy gRPC TLS keys to staging',
-              task: async (ctx, _) => {
-                const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
-                for (const nodeId of config.existingNodeIds) {
-                  const tlsKeyFiles = self.keyManager.prepareTLSKeyFilePaths(nodeId, config.keysDir)
-                  await self.keyManager.copyNodeKeysToStaging(tlsKeyFiles, config.stagingKeysDir)
-                }
-              }
-            }
-          ]
-
-          return parentTask.newListr(subTasks, {
-            concurrent: false,
-            rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
-          })
+          const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
+          return this.addPrepareStagingTask(ctx, parentTask, config.keysDir, config.stagingKeysDir, config.existingNodeIds)
         }
       },
       {
