@@ -293,6 +293,7 @@ export class NodeCommand extends BaseCommand {
   }
 
   /**
+   * Check if the network node pod is running
    * @param {string} namespace
    * @param {string} nodeId
    * @param {number} [maxAttempts]
@@ -415,6 +416,50 @@ export class NodeCommand extends BaseCommand {
         collapseSubtasks: false
       }
     })
+  }
+
+  addCheckPodRunningTask (ctx, task, nodeIds) {
+    const subTasks = []
+    for (const nodeId of nodeIds) {
+      subTasks.push({
+        title: `Check Node: ${chalk.yellow(nodeId)}`,
+        task: async () =>
+          await self.k8.waitForPods([constants.POD_PHASE_RUNNING], [
+            'fullstack.hedera.com/type=network-node',
+            `fullstack.hedera.com/node-name=${nodeId}`
+          ], 1, 60 * 15, 1000) // timeout 15 minutes
+      })
+    }
+
+    // set up the sub-tasks
+    return task.newListr(subTasks, {
+      concurrent: false, // no need to run concurrently since if one node is up, the rest should be up by then
+      rendererOptions: {
+        collapseSubtasks: false
+      }
+    })
+  }
+
+  addCheckNodeFreezeTask (ctx, task, nodeIds) {
+    const subTasks = []
+    for (const nodeId of nodeIds) {
+      subTasks.push({
+        title: `Check node: ${chalk.yellow(nodeId)}`,
+        task: async () => await self.checkNetworkNodeState(nodeId, 100, 'FREEZE_COMPLETE')
+      })
+    }
+
+    // set up the sub-tasks
+    return task.newListr(subTasks, {
+      concurrent: false,
+      rendererOptions: {
+        collapseSubtasks: false
+      }
+    })
+  }
+
+  addSetupNodesTask (ctx, task, nodeIds) {
+
   }
 
   async initializeSetup (config, k8) {
@@ -1748,21 +1793,7 @@ export class NodeCommand extends BaseCommand {
         title: 'Check network nodes are frozen',
         task: (ctx, task) => {
           const config = /** @type {NodeAddConfigClass} **/ ctx.config
-          const subTasks = []
-          for (const nodeId of config.existingNodeIds) {
-            subTasks.push({
-              title: `Check node: ${chalk.yellow(nodeId)}`,
-              task: async () => await self.checkNetworkNodeState(nodeId, 100, 'FREEZE_COMPLETE')
-            })
-          }
-
-          // set up the sub-tasks
-          return task.newListr(subTasks, {
-            concurrent: false,
-            rendererOptions: {
-              collapseSubtasks: false
-            }
-          })
+          return this.addCheckNodeFreezeTask(ctx, task, config.existingNodeIds)
         }
       },
       {
@@ -1813,28 +1844,8 @@ export class NodeCommand extends BaseCommand {
         title: 'Check node pods are running',
         task:
             async (ctx, task) => {
-              const subTasks = []
               const config = /** @type {NodeAddConfigClass} **/ ctx.config
-
-              // nodes
-              for (const nodeId of config.allNodeIds) {
-                subTasks.push({
-                  title: `Check Node: ${chalk.yellow(nodeId)}`,
-                  task: async () =>
-                    await self.k8.waitForPods([constants.POD_PHASE_RUNNING], [
-                      'fullstack.hedera.com/type=network-node',
-                        `fullstack.hedera.com/node-name=${nodeId}`
-                    ], 1, 60 * 15, 1000) // timeout 15 minutes
-                })
-              }
-
-              // set up the sub-tasks
-              return task.newListr(subTasks, {
-                concurrent: false, // no need to run concurrently since if one node is up, the rest should be up by then
-                rendererOptions: {
-                  collapseSubtasks: false
-                }
-              })
+              return this.addCheckPodRunningTask(ctx, task, config.allNodeIds)
             }
       },
       {
@@ -2645,21 +2656,7 @@ export class NodeCommand extends BaseCommand {
         title: 'Check network nodes are frozen',
         task: (ctx, task) => {
           const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
-          const subTasks = []
-          for (const nodeId of config.existingNodeIds) {
-            subTasks.push({
-              title: `Check node: ${chalk.yellow(nodeId)}`,
-              task: async () => await self.checkNetworkNodeState(nodeId, 100, 'FREEZE_COMPLETE')
-            })
-          }
-
-          // set up the sub-tasks
-          return task.newListr(subTasks, {
-            concurrent: false,
-            rendererOptions: {
-              collapseSubtasks: false
-            }
-          })
+          return this.addCheckNodeFreezeTask(ctx, task, config.existingNodeIds)
         }
       },
       {
@@ -3151,21 +3148,7 @@ export class NodeCommand extends BaseCommand {
         title: 'Check network nodes are frozen',
         task: (ctx, task) => {
           const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
-          const subTasks = []
-          for (const nodeId of config.existingNodeIds) {
-            subTasks.push({
-              title: `Check node: ${chalk.yellow(nodeId)}`,
-              task: async () => await self.checkNetworkNodeState(nodeId, 100, 'FREEZE_COMPLETE')
-            })
-          }
-
-          // set up the sub-tasks
-          return task.newListr(subTasks, {
-            concurrent: false,
-            rendererOptions: {
-              collapseSubtasks: false
-            }
-          })
+          return this.addCheckNodeFreezeTask(ctx, task, config.existingNodeIds)
         }
       },
       {
@@ -3218,28 +3201,8 @@ export class NodeCommand extends BaseCommand {
           async (ctx, task) => {
             self.logger.info('sleep 20 seconds to give time for pods to come up after being killed')
             await sleep(20000)
-            const subTasks = []
             const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
-
-            // nodes
-            for (const nodeId of config.allNodeIds) {
-              subTasks.push({
-                title: `Check Node: ${chalk.yellow(nodeId)}`,
-                task: async () =>
-                  await self.k8.waitForPods([constants.POD_PHASE_RUNNING], [
-                    'fullstack.hedera.com/type=network-node',
-                    `fullstack.hedera.com/node-name=${nodeId}`
-                  ], 1, 60 * 15, 1000) // timeout 15 minutes
-              })
-            }
-
-            // set up the sub-tasks
-            return task.newListr(subTasks, {
-              concurrent: false, // no need to run concurrently since if one node is up, the rest should be up by then
-              rendererOptions: {
-                collapseSubtasks: false
-              }
-            })
+            return this.addCheckPodRunningTask(ctx, task, config.allNodeIds)
           }
       },
       {
