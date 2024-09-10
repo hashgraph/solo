@@ -95,7 +95,7 @@ export const POD_CONDITION_STATUS_TRUE = 'True'
 
 /**
  * Listr related
- * @type {LoggerFieldFn<[number]> & {condition: (duration: number) => boolean, format: (duration: number) => Color}}
+ * @return a object that defines the default color options
  */
 export const LISTR_DEFAULT_RENDERER_TIMER_OPTION = {
   ...PRESET_TIMER,
