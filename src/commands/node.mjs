@@ -418,7 +418,14 @@ export class NodeCommand extends BaseCommand {
     })
   }
 
-  addCheckPodRunningTask (ctx, task, nodeIds) {
+  /**
+   * Return task for checking for all network node pods
+   * @param {any} ctx
+   * @param {TaskWrapper} task
+   * @param {string[]} nodeIds
+   * @returns {*}
+   */
+  checkPodRunningTask (ctx, task, nodeIds) {
     const subTasks = []
     for (const nodeId of nodeIds) {
       subTasks.push({
@@ -440,7 +447,14 @@ export class NodeCommand extends BaseCommand {
     })
   }
 
-  addCheckNodeFreezeTask (ctx, task, nodeIds) {
+  /**
+   * Return task for checking for if node is in freeze state
+   * @param {any} ctx
+   * @param {TaskWrapper} task
+   * @param {string[]} nodeIds
+   * @returns {*}
+   */
+  checkNodeFreezeTask (ctx, task, nodeIds) {
     const subTasks = []
     for (const nodeId of nodeIds) {
       subTasks.push({
@@ -458,6 +472,13 @@ export class NodeCommand extends BaseCommand {
     })
   }
 
+  /**
+   * Return task for setup network nodes
+   * @param {any} ctx
+   * @param {TaskWrapper} task
+   * @param {string[]} nodeIds
+   * @returns {*}
+   */
   setupNodesTask (ctx, task, nodeIds) {
     const subTasks = []
     for (const nodeId of nodeIds) {
@@ -476,6 +497,13 @@ export class NodeCommand extends BaseCommand {
     })
   }
 
+  /**
+   * Return task for start network node hedera service
+   * @param {TaskWrapper} task
+   * @param {string[]} podNames
+   * @param {string[]} nodeIds
+   * @returns {*}
+   */
   startNetworkNodesTask (task, podNames, nodeIds) {
     const subTasks = []
     // ctx.config.allNodeIds = ctx.config.existingNodeIds
@@ -491,7 +519,14 @@ export class NodeCommand extends BaseCommand {
     })
   }
 
-  addCheckNodesProxiesTask (ctx, task, nodeIds) {
+  /**
+   * Return task for check if node proxies are ready
+   * @param {any} ctx
+   * @param {TaskWrapper} task
+   * @param {string[]} nodeIds
+   * @returns {*}
+   */
+  checkNodesProxiesTask (ctx, task, nodeIds) {
     const subTasks = []
     for (const nodeId of nodeIds) {
       subTasks.push({
@@ -511,7 +546,7 @@ export class NodeCommand extends BaseCommand {
     })
   }
 
-  async addCheckStakingTask (existingNodeIds) {
+  async checkStakingTask (existingNodeIds) {
     const accountMap = getNodeAccountMap(existingNodeIds)
     for (const nodeId of existingNodeIds) {
       const accountId = accountMap.get(nodeId)
@@ -519,7 +554,16 @@ export class NodeCommand extends BaseCommand {
     }
   }
 
-  addPrepareStagingTask (ctx, task, keysDir, stagingKeysDir, nodeIds) {
+  /**
+   * Task for repairing staging directory
+   * @param ctx
+   * @param task
+   * @param keysDir
+   * @param stagingKeysDir
+   * @param nodeIds
+   * @return return task for reparing staging directory
+   */
+  prepareStagingTask (ctx, task, keysDir, stagingKeysDir, nodeIds) {
     const subTasks = [
       {
         title: 'Copy Gossip keys to staging',
@@ -546,6 +590,10 @@ export class NodeCommand extends BaseCommand {
     })
   }
 
+  /**
+   * Prepare parameter and update the network node chart
+   * @param ctx
+   */
   async chartUpdateTask (ctx) {
     const config = ctx.config
     const index = config.existingNodeIds.length
@@ -581,6 +629,10 @@ export class NodeCommand extends BaseCommand {
     )
   }
 
+  /**
+   * Update account manager and transfer hbar for staking purpose
+   * @param config
+   */
   async triggerStakeCalculation (config) {
     const accountMap = getNodeAccountMap(config.allNodeIds)
 
@@ -597,6 +649,44 @@ export class NodeCommand extends BaseCommand {
       const accountId = accountMap.get(nodeId)
       config.nodeClient.setOperator(TREASURY_ACCOUNT_ID, config.treasuryKey)
       await this.accountManager.transferAmount(constants.TREASURY_ACCOUNT_ID, accountId, 1)
+    }
+  }
+
+  /**
+   * Identify existing network nodes and check if they are running
+   * @param {any} ctx
+   * @param {TaskWrapper} task
+   * @param config
+   */
+  async identifyExistingNetworkNodes (ctx, task, config) {
+    config.existingNodeIds = []
+    config.serviceMap = await this.accountManager.getNodeServiceMap(
+      config.namespace)
+    for (/** @type {NetworkNodeServices} **/ const networkNodeServices of config.serviceMap.values()) {
+      config.existingNodeIds.push(networkNodeServices.nodeName)
+    }
+    if (config.nodeId) { // case of adding new node
+      config.allNodeIds = [...config.existingNodeIds, config.nodeId]
+    } else {
+      config.allNodeIds = [...config.existingNodeIds]
+    }
+    return this.taskCheckNetworkNodePods(ctx, task, config.existingNodeIds)
+  }
+
+  /**
+   * Download generated config files and key files from the network node
+   * @param config
+   */
+  async downloadNodeGeneratedFiles (config) {
+    const node1FullyQualifiedPodName = Templates.renderNetworkPodName(config.existingNodeIds[0])
+
+    // copy the config.txt file from the node1 upgrade directory
+    await this.k8.copyFrom(node1FullyQualifiedPodName, constants.ROOT_CONTAINER, `${constants.HEDERA_HAPI_PATH}/data/upgrade/current/config.txt`, config.stagingDir)
+
+    const signedKeyFiles = (await this.k8.listDir(node1FullyQualifiedPodName, constants.ROOT_CONTAINER, `${constants.HEDERA_HAPI_PATH}/data/upgrade/current`)).filter(file => file.name.startsWith(constants.SIGNING_KEY_PREFIX))
+    await this.k8.execContainer(node1FullyQualifiedPodName, constants.ROOT_CONTAINER, ['bash', '-c', `mkdir -p ${constants.HEDERA_HAPI_PATH}/data/keys_backup && cp ${constants.HEDERA_HAPI_PATH}/data/keys/..data/* ${constants.HEDERA_HAPI_PATH}/data/keys_backup/`])
+    for (const signedKeyFile of signedKeyFiles) {
+      await this.k8.copyFrom(node1FullyQualifiedPodName, constants.ROOT_CONTAINER, `${constants.HEDERA_HAPI_PATH}/data/upgrade/current/${signedKeyFile.name}`, `${config.keysDir}`)
     }
   }
 
@@ -982,16 +1072,7 @@ export class NodeCommand extends BaseCommand {
         title: 'Identify existing network nodes',
         task: async (ctx, task) => {
           const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
-          config.existingNodeIds = []
-          config.serviceMap = await self.accountManager.getNodeServiceMap(
-            config.namespace)
-          for (/** @type {NetworkNodeServices} **/ const networkNodeServices of config.serviceMap.values()) {
-            config.existingNodeIds.push(networkNodeServices.nodeName)
-          }
-
-          config.allNodeIds = [...config.existingNodeIds]
-
-          return self.taskCheckNetworkNodePods(ctx, task, config.existingNodeIds)
+          return this.identifyExistingNetworkNodes(ctx, task, config)
         }
       },
       {
@@ -1041,7 +1122,7 @@ export class NodeCommand extends BaseCommand {
       {
         title: 'Check node proxies are ACTIVE',
         task: async (ctx, parentTask) => {
-          return self.addCheckNodesProxiesTask(ctx, parentTask, ctx.config.nodeIds)
+          return self.checkNodesProxiesTask(ctx, parentTask, ctx.config.nodeIds)
         },
         skip: (ctx, _) => self.configManager.getFlag(flags.app) !== '' && self.configManager.getFlag(flags.app) !== constants.HEDERA_APP_NAME
       },
@@ -1399,7 +1480,7 @@ export class NodeCommand extends BaseCommand {
         // this is more reliable than checking the nodes logs for ACTIVE, as the
         // logs will have a lot of white noise from being behind
         task: async (ctx, task) => {
-          return this.addCheckNodesProxiesTask(ctx, task, ctx.config.nodeIds)
+          return this.checkNodesProxiesTask(ctx, task, ctx.config.nodeIds)
         },
         skip: (ctx, _) => ctx.config.app !== ''
       }], {
@@ -1589,15 +1670,7 @@ export class NodeCommand extends BaseCommand {
         title: 'Identify existing network nodes',
         task: async (ctx, task) => {
           const config = /** @type {NodeAddConfigClass} **/ ctx.config
-          config.serviceMap = await self.accountManager.getNodeServiceMap(
-            config.namespace)
-          for (/** @type {NetworkNodeServices} **/ const networkNodeServices of config.serviceMap.values()) {
-            config.existingNodeIds.push(networkNodeServices.nodeName)
-          }
-
-          config.allNodeIds = [...config.existingNodeIds, config.nodeId]
-
-          return self.taskCheckNetworkNodePods(ctx, task, config.existingNodeIds)
+          return this.identifyExistingNetworkNodes(ctx, task, config)
         }
       },
       {
@@ -1736,7 +1809,7 @@ export class NodeCommand extends BaseCommand {
         title: 'Check existing nodes staked amount',
         task: async (ctx, task) => {
           const config = /** @type {NodeAddConfigClass} **/ ctx.config
-          await this.addCheckStakingTask(config.existingNodeIds)
+          await this.checkStakingTask(config.existingNodeIds)
         }
       },
       {
@@ -1774,16 +1847,7 @@ export class NodeCommand extends BaseCommand {
         title: 'Download generated files from an existing node',
         task: async (ctx, task) => {
           const config = /** @type {NodeAddConfigClass} **/ ctx.config
-          const node1FullyQualifiedPodName = Templates.renderNetworkPodName(config.existingNodeIds[0])
-
-          // copy the config.txt file from the node1 upgrade directory
-          await self.k8.copyFrom(node1FullyQualifiedPodName, constants.ROOT_CONTAINER, `${constants.HEDERA_HAPI_PATH}/data/upgrade/current/config.txt`, config.stagingDir)
-
-          const signedKeyFiles = (await self.k8.listDir(node1FullyQualifiedPodName, constants.ROOT_CONTAINER, `${constants.HEDERA_HAPI_PATH}/data/upgrade/current`)).filter(file => file.name.startsWith(constants.SIGNING_KEY_PREFIX))
-          await self.k8.execContainer(node1FullyQualifiedPodName, constants.ROOT_CONTAINER, ['bash', '-c', `mkdir -p ${constants.HEDERA_HAPI_PATH}/data/keys_backup && cp ${constants.HEDERA_HAPI_PATH}/data/keys/..data/* ${constants.HEDERA_HAPI_PATH}/data/keys_backup/`])
-          for (const signedKeyFile of signedKeyFiles) {
-            await self.k8.copyFrom(node1FullyQualifiedPodName, constants.ROOT_CONTAINER, `${constants.HEDERA_HAPI_PATH}/data/upgrade/current/${signedKeyFile.name}`, `${config.keysDir}`)
-          }
+          await this.downloadNodeGeneratedFiles(config)
         }
       },
       {
@@ -1797,7 +1861,7 @@ export class NodeCommand extends BaseCommand {
         title: 'Prepare staging directory',
         task: async (ctx, parentTask) => {
           const config = /** @type {NodeAddConfigClass} **/ ctx.config
-          return this.addPrepareStagingTask(ctx, parentTask, config.keysDir, config.stagingKeysDir, config.allNodeIds)
+          return this.prepareStagingTask(ctx, parentTask, config.keysDir, config.stagingKeysDir, config.allNodeIds)
         }
       },
       {
@@ -1818,7 +1882,7 @@ export class NodeCommand extends BaseCommand {
         title: 'Check network nodes are frozen',
         task: (ctx, task) => {
           const config = /** @type {NodeAddConfigClass} **/ ctx.config
-          return this.addCheckNodeFreezeTask(ctx, task, config.existingNodeIds)
+          return this.checkNodeFreezeTask(ctx, task, config.existingNodeIds)
         }
       },
       {
@@ -1847,7 +1911,7 @@ export class NodeCommand extends BaseCommand {
         title: 'Check node pods are running',
         task: async (ctx, task) => {
           const config = /** @type {NodeAddConfigClass} **/ ctx.config
-          return this.addCheckPodRunningTask(ctx, task, config.allNodeIds)
+          return this.checkPodRunningTask(ctx, task, config.allNodeIds)
         }
       },
       {
@@ -1941,7 +2005,7 @@ export class NodeCommand extends BaseCommand {
         // this is more reliable than checking the nodes logs for ACTIVE, as the
         // logs will have a lot of white noise from being behind
         task: async (ctx, task) => {
-          return this.addCheckNodesProxiesTask(ctx, task, ctx.config.allNodeIds)
+          return this.checkNodesProxiesTask(ctx, task, ctx.config.allNodeIds)
         }
       },
       {
@@ -2382,15 +2446,7 @@ export class NodeCommand extends BaseCommand {
         title: 'Identify existing network nodes',
         task: async (ctx, task) => {
           const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
-          config.serviceMap = await self.accountManager.getNodeServiceMap(
-            config.namespace)
-          for (/** @type {NetworkNodeServices} **/ const networkNodeServices of config.serviceMap.values()) {
-            config.existingNodeIds.push(networkNodeServices.nodeName)
-          }
-
-          config.allNodeIds = [...config.existingNodeIds]
-
-          return self.taskCheckNetworkNodePods(ctx, task, config.existingNodeIds)
+          return this.identifyExistingNetworkNodes(ctx, task, config)
         }
       },
       {
@@ -2454,7 +2510,7 @@ export class NodeCommand extends BaseCommand {
         title: 'Check existing nodes staked amount',
         task: async (ctx, task) => {
           const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
-          await this.addCheckStakingTask(config.existingNodeIds)
+          await this.checkStakingTask(config.existingNodeIds)
         }
       },
       {
@@ -2536,16 +2592,7 @@ export class NodeCommand extends BaseCommand {
         title: 'Download generated files from an existing node',
         task: async (ctx, task) => {
           const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
-          const node1FullyQualifiedPodName = Templates.renderNetworkPodName(config.existingNodeIds[0])
-
-          // copy the config.txt file from the node1 upgrade directory
-          await self.k8.copyFrom(node1FullyQualifiedPodName, constants.ROOT_CONTAINER, `${constants.HEDERA_HAPI_PATH}/data/upgrade/current/config.txt`, config.stagingDir)
-
-          const signedKeyFiles = (await self.k8.listDir(node1FullyQualifiedPodName, constants.ROOT_CONTAINER, `${constants.HEDERA_HAPI_PATH}/data/upgrade/current`)).filter(file => file.name.startsWith(constants.SIGNING_KEY_PREFIX))
-          await self.k8.execContainer(node1FullyQualifiedPodName, constants.ROOT_CONTAINER, ['bash', '-c', `mkdir -p ${constants.HEDERA_HAPI_PATH}/data/keys_backup && cp ${constants.HEDERA_HAPI_PATH}/data/keys/..data/* ${constants.HEDERA_HAPI_PATH}/data/keys_backup/`])
-          for (const signedKeyFile of signedKeyFiles) {
-            await self.k8.copyFrom(node1FullyQualifiedPodName, constants.ROOT_CONTAINER, `${constants.HEDERA_HAPI_PATH}/data/upgrade/current/${signedKeyFile.name}`, `${config.keysDir}`)
-          }
+          await this.downloadNodeGeneratedFiles(config)
         }
       },
       {
@@ -2559,7 +2606,7 @@ export class NodeCommand extends BaseCommand {
         title: 'Prepare staging directory',
         task: async (ctx, parentTask) => {
           const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
-          return this.addPrepareStagingTask(ctx, parentTask, config.keysDir, config.stagingKeysDir, config.allNodeIds)
+          return this.prepareStagingTask(ctx, parentTask, config.keysDir, config.stagingKeysDir, config.allNodeIds)
         }
       },
       {
@@ -2580,7 +2627,7 @@ export class NodeCommand extends BaseCommand {
         title: 'Check network nodes are frozen',
         task: (ctx, task) => {
           const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
-          return this.addCheckNodeFreezeTask(ctx, task, config.existingNodeIds)
+          return this.checkNodeFreezeTask(ctx, task, config.existingNodeIds)
         }
       },
       {
@@ -2624,7 +2671,7 @@ export class NodeCommand extends BaseCommand {
         title: 'Check node pods are running',
         task: async (ctx, task) => {
           const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
-          return this.addCheckPodRunningTask(ctx, task, config.allNodeIds)
+          return this.checkPodRunningTask(ctx, task, config.allNodeIds)
         }
       },
       {
@@ -2686,7 +2733,7 @@ export class NodeCommand extends BaseCommand {
         // this is more reliable than checking the nodes logs for ACTIVE, as the
         // logs will have a lot of white noise from being behind
         task: async (ctx, task) => {
-          return this.addCheckNodesProxiesTask(ctx, task, ctx.config.allNodeIds)
+          return this.checkNodesProxiesTask(ctx, task, ctx.config.allNodeIds)
         }
       },
       {
@@ -2826,13 +2873,7 @@ export class NodeCommand extends BaseCommand {
         title: 'Identify existing network nodes',
         task: async (ctx, task) => {
           const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
-          config.serviceMap = await self.accountManager.getNodeServiceMap(
-            config.namespace)
-          for (/** @type {NetworkNodeServices} **/ const networkNodeServices of config.serviceMap.values()) {
-            config.existingNodeIds.push(networkNodeServices.nodeName)
-          }
-
-          return self.taskCheckNetworkNodePods(ctx, task, config.existingNodeIds)
+          return this.identifyExistingNetworkNodes(ctx, task, config)
         }
       },
       {
@@ -2854,7 +2895,7 @@ export class NodeCommand extends BaseCommand {
         title: 'Check existing nodes staked amount',
         task: async (ctx, task) => {
           const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
-          await this.addCheckStakingTask(config.existingNodeIds)
+          await this.checkStakingTask(config.existingNodeIds)
         }
       },
       {
@@ -2892,16 +2933,7 @@ export class NodeCommand extends BaseCommand {
         title: 'Download generated files from an existing node',
         task: async (ctx, task) => {
           const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
-          const node1FullyQualifiedPodName = Templates.renderNetworkPodName(config.existingNodeIds[0])
-
-          // copy the config.txt file from the node1 upgrade directory
-          await self.k8.copyFrom(node1FullyQualifiedPodName, constants.ROOT_CONTAINER, `${constants.HEDERA_HAPI_PATH}/data/upgrade/current/config.txt`, config.stagingDir)
-
-          const signedKeyFiles = (await self.k8.listDir(node1FullyQualifiedPodName, constants.ROOT_CONTAINER, `${constants.HEDERA_HAPI_PATH}/data/upgrade/current`)).filter(file => file.name.startsWith(constants.SIGNING_KEY_PREFIX))
-          await self.k8.execContainer(node1FullyQualifiedPodName, constants.ROOT_CONTAINER, ['bash', '-c', `mkdir -p ${constants.HEDERA_HAPI_PATH}/data/keys_backup && cp ${constants.HEDERA_HAPI_PATH}/data/keys/..data/* ${constants.HEDERA_HAPI_PATH}/data/keys_backup/`])
-          for (const signedKeyFile of signedKeyFiles) {
-            await self.k8.copyFrom(node1FullyQualifiedPodName, constants.ROOT_CONTAINER, `${constants.HEDERA_HAPI_PATH}/data/upgrade/current/${signedKeyFile.name}`, `${config.keysDir}`)
-          }
+          await this.downloadNodeGeneratedFiles(config)
         }
       },
       {
@@ -2915,7 +2947,7 @@ export class NodeCommand extends BaseCommand {
         title: 'Prepare staging directory',
         task: async (ctx, parentTask) => {
           const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
-          return this.addPrepareStagingTask(ctx, parentTask, config.keysDir, config.stagingKeysDir, config.existingNodeIds)
+          return this.prepareStagingTask(ctx, parentTask, config.keysDir, config.stagingKeysDir, config.existingNodeIds)
         }
       },
       {
@@ -2938,7 +2970,7 @@ export class NodeCommand extends BaseCommand {
         title: 'Check network nodes are frozen',
         task: (ctx, task) => {
           const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
-          return this.addCheckNodeFreezeTask(ctx, task, config.existingNodeIds)
+          return this.checkNodeFreezeTask(ctx, task, config.existingNodeIds)
         }
       },
       {
@@ -2970,7 +3002,7 @@ export class NodeCommand extends BaseCommand {
             self.logger.info('sleep 20 seconds to give time for pods to come up after being killed')
             await sleep(20000)
             const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
-            return this.addCheckPodRunningTask(ctx, task, config.allNodeIds)
+            return this.checkPodRunningTask(ctx, task, config.allNodeIds)
           }
       },
       {
@@ -3036,7 +3068,7 @@ export class NodeCommand extends BaseCommand {
         // this is more reliable than checking the nodes logs for ACTIVE, as the
         // logs will have a lot of white noise from being behind
         task: async (ctx, task) => {
-          return this.addCheckNodesProxiesTask(ctx, task, ctx.config.allNodeIds)
+          return this.checkNodesProxiesTask(ctx, task, ctx.config.allNodeIds)
         }
       },
       {
