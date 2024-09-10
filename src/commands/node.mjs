@@ -892,7 +892,7 @@ export class NodeCommand extends BaseCommand {
       {
         title: 'Setup network nodes',
         task: async (ctx, parentTask) => {
-          return this.setupNodesTask(ctx, parentTask, ctx.configs.nodeIds)
+          return this.setupNodesTask(ctx, parentTask, ctx.config.nodeIds)
         }
       }
     ], {
@@ -1333,7 +1333,7 @@ export class NodeCommand extends BaseCommand {
       {
         title: 'Setup network nodes',
         task: async (ctx, parentTask) => {
-          return this.setupNodesTask(ctx, parentTask, ctx.configs.nodeIds)
+          return this.setupNodesTask(ctx, parentTask, ctx.config.nodeIds)
         }
       },
       {
@@ -1881,7 +1881,7 @@ export class NodeCommand extends BaseCommand {
       {
         title: 'Setup new network node',
         task: async (ctx, parentTask) => {
-          return this.setupNodesTask(ctx, parentTask, ctx.configs.allNodeIds)
+          return this.setupNodesTask(ctx, parentTask, ctx.config.allNodeIds)
         }
       },
       {
@@ -2665,7 +2665,7 @@ export class NodeCommand extends BaseCommand {
       {
         title: 'Setup network nodes',
         task: async (ctx, parentTask) => {
-          return this.setupNodesTask(ctx, parentTask, ctx.configs.allNodeIds)
+          return this.setupNodesTask(ctx, parentTask, ctx.config.allNodeIds)
         }
       },
       {
@@ -3041,23 +3041,7 @@ export class NodeCommand extends BaseCommand {
       {
         title: 'Setup network nodes',
         task: async (ctx, parentTask) => {
-          const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
-
-          const subTasks = []
-          for (const nodeId of config.allNodeIds) {
-            const podName = config.podNames[nodeId]
-            subTasks.push({
-              title: `Node: ${chalk.yellow(nodeId)}`,
-              task: () =>
-                self.platformInstaller.taskSetup(podName)
-            })
-          }
-
-          // set up the sub-tasks
-          return parentTask.newListr(subTasks, {
-            concurrent: true,
-            rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
-          })
+          return this.setupNodesTask(ctx, parentTask, ctx.config.allNodeIds)
         }
       },
       {
