@@ -424,7 +424,7 @@ export class NodeCommand extends BaseCommand {
       subTasks.push({
         title: `Check Node: ${chalk.yellow(nodeId)}`,
         task: async () =>
-          await self.k8.waitForPods([constants.POD_PHASE_RUNNING], [
+          await this.k8.waitForPods([constants.POD_PHASE_RUNNING], [
             'fullstack.hedera.com/type=network-node',
             `fullstack.hedera.com/node-name=${nodeId}`
           ], 1, 60 * 15, 1000) // timeout 15 minutes
@@ -445,7 +445,7 @@ export class NodeCommand extends BaseCommand {
     for (const nodeId of nodeIds) {
       subTasks.push({
         title: `Check node: ${chalk.yellow(nodeId)}`,
-        task: async () => await self.checkNetworkNodeState(nodeId, 100, 'FREEZE_COMPLETE')
+        task: async () => await this.checkNetworkNodeState(nodeId, 100, 'FREEZE_COMPLETE')
       })
     }
 
@@ -460,6 +460,26 @@ export class NodeCommand extends BaseCommand {
 
   addSetupNodesTask (ctx, task, nodeIds) {
 
+  }
+
+  addCheckNodesProxiesTask (ctx, task, nodeIds) {
+    const subTasks = []
+    for (const nodeId of nodeIds) {
+      subTasks.push({
+        title: `Check proxy for node: ${chalk.yellow(nodeId)}`,
+        task: async () => await this.k8.waitForPodReady(
+          [`app=haproxy-${nodeId}`, 'fullstack.hedera.com/type=haproxy'],
+          1, 300, 2000)
+      })
+    }
+
+    // set up the sub-tasks
+    return task.newListr(subTasks, {
+      concurrent: false,
+      rendererOptions: {
+        collapseSubtasks: false
+      }
+    })
   }
 
   async initializeSetup (config, k8) {
@@ -927,23 +947,7 @@ export class NodeCommand extends BaseCommand {
       {
         title: 'Check node proxies are ACTIVE',
         task: async (ctx, parentTask) => {
-          const subTasks = []
-          for (const nodeId of ctx.config.nodeIds) {
-            subTasks.push({
-              title: `Check proxy for node: ${chalk.yellow(nodeId)}`,
-              task: async () => await self.k8.waitForPodReady(
-                [`app=haproxy-${nodeId}`, 'fullstack.hedera.com/type=haproxy'],
-                1, 300, 2000)
-            })
-          }
-
-          // set up the sub-tasks
-          return parentTask.newListr(subTasks, {
-            concurrent: true,
-            rendererOptions: {
-              collapseSubtasks: false
-            }
-          })
+          return self.addCheckNodesProxiesTask(ctx, parentTask, ctx.config.nodeIds)
         },
         skip: (ctx, _) => self.configManager.getFlag(flags.app) !== '' && self.configManager.getFlag(flags.app) !== constants.HEDERA_APP_NAME
       },
@@ -1329,23 +1333,7 @@ export class NodeCommand extends BaseCommand {
         // this is more reliable than checking the nodes logs for ACTIVE, as the
         // logs will have a lot of white noise from being behind
         task: async (ctx, task) => {
-          const subTasks = []
-          for (const nodeId of ctx.config.nodeIds) {
-            subTasks.push({
-              title: `Check proxy for node: ${chalk.yellow(nodeId)}`,
-              task: async () => await self.k8.waitForPodReady(
-                [`app=haproxy-${nodeId}`, 'fullstack.hedera.com/type=haproxy'],
-                1, 300, 2000)
-            })
-          }
-
-          // set up the sub-tasks
-          return task.newListr(subTasks, {
-            concurrent: false,
-            rendererOptions: {
-              collapseSubtasks: false
-            }
-          })
+          return this.addCheckNodesProxiesTask(ctx, task, ctx.config.nodeIds)
         },
         skip: (ctx, _) => ctx.config.app !== ''
       }], {
@@ -1965,24 +1953,8 @@ export class NodeCommand extends BaseCommand {
         // this is more reliable than checking the nodes logs for ACTIVE, as the
         // logs will have a lot of white noise from being behind
         task: async (ctx, task) => {
+          return this.addCheckNodesProxiesTask(ctx, task, ctx.config.allNodeIds)
           const config = /** @type {NodeAddConfigClass} **/ ctx.config
-          const subTasks = []
-          for (const nodeId of config.allNodeIds) {
-            subTasks.push({
-              title: `Check proxy for node: ${chalk.yellow(nodeId)}`,
-              task: async () => await self.k8.waitForPodReady(
-                [`app=haproxy-${nodeId}`, 'fullstack.hedera.com/type=haproxy'],
-                1, 300, 2000)
-            })
-          }
-
-          // set up the sub-tasks
-          return task.newListr(subTasks, {
-            concurrent: false,
-            rendererOptions: {
-              collapseSubtasks: false
-            }
-          })
         }
       },
       {
@@ -2837,24 +2809,7 @@ export class NodeCommand extends BaseCommand {
         // this is more reliable than checking the nodes logs for ACTIVE, as the
         // logs will have a lot of white noise from being behind
         task: async (ctx, task) => {
-          const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
-          const subTasks = []
-          for (const nodeId of config.allNodeIds) {
-            subTasks.push({
-              title: `Check proxy for node: ${chalk.yellow(nodeId)}`,
-              task: async () => await self.k8.waitForPodReady(
-                [`app=haproxy-${nodeId}`, 'fullstack.hedera.com/type=haproxy'],
-                1, 300, 2000)
-            })
-          }
-
-          // set up the sub-tasks
-          return task.newListr(subTasks, {
-            concurrent: false,
-            rendererOptions: {
-              collapseSubtasks: false
-            }
-          })
+          return this.addCheckNodesProxiesTask(ctx, tas, config.allNodeIds)
         }
       },
       {
@@ -3295,24 +3250,7 @@ export class NodeCommand extends BaseCommand {
         // this is more reliable than checking the nodes logs for ACTIVE, as the
         // logs will have a lot of white noise from being behind
         task: async (ctx, task) => {
-          const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
-          const subTasks = []
-          for (const nodeId of config.allNodeIds) {
-            subTasks.push({
-              title: `Check proxy for node: ${chalk.yellow(nodeId)}`,
-              task: async () => await self.k8.waitForPodReady(
-                [`app=haproxy-${nodeId}`, 'fullstack.hedera.com/type=haproxy'],
-                1, 300, 2000)
-            })
-          }
-
-          // set up the sub-tasks
-          return task.newListr(subTasks, {
-            concurrent: false,
-            rendererOptions: {
-              collapseSubtasks: false
-            }
-          })
+          return this.addCheckNodesProxiesTask(ctx, task, ctx.config.allNodeIds)
         }
       },
       {
