@@ -458,8 +458,22 @@ export class NodeCommand extends BaseCommand {
     })
   }
 
-  addSetupNodesTask (ctx, task, nodeIds) {
+  setupNodesTask (ctx, task, nodeIds) {
+    const subTasks = []
+    for (const nodeId of nodeIds) {
+      const podName = ctx.config.podNames[nodeId]
+      subTasks.push({
+        title: `Node: ${chalk.yellow(nodeId)}`,
+        task: () =>
+          this.platformInstaller.taskSetup(podName)
+      })
+    }
 
+    // set up the sub-tasks
+    return task.newListr(subTasks, {
+      concurrent: true,
+      rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
+    })
   }
 
   addCheckNodesProxiesTask (ctx, task, nodeIds) {
@@ -517,7 +531,7 @@ export class NodeCommand extends BaseCommand {
     })
   }
 
-  async chartUpdateTask (ctx, nodeIds) {
+  async chartUpdateTask (ctx) {
     const config = ctx.config
     const index = config.existingNodeIds.length
     const nodeId = Templates.nodeNumberFromNodeId(config.nodeId) - 1
@@ -878,21 +892,7 @@ export class NodeCommand extends BaseCommand {
       {
         title: 'Setup network nodes',
         task: async (ctx, parentTask) => {
-          const subTasks = []
-          for (const nodeId of ctx.config.nodeIds) {
-            const podName = ctx.config.podNames[nodeId]
-            subTasks.push({
-              title: `Node: ${chalk.yellow(nodeId)}`,
-              task: () =>
-                self.platformInstaller.taskSetup(podName)
-            })
-          }
-
-          // set up the sub-tasks
-          return parentTask.newListr(subTasks, {
-            concurrent: true,
-            rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
-          })
+          return this.setupNodesTask(ctx, parentTask, ctx.configs.nodeIds)
         }
       }
     ], {
@@ -1333,24 +1333,7 @@ export class NodeCommand extends BaseCommand {
       {
         title: 'Setup network nodes',
         task: async (ctx, parentTask) => {
-          const config = /** @type {NodeRefreshConfigClass} **/ ctx.config
-
-          const subTasks = []
-
-          for (const nodeId of config.nodeIds) {
-            const podName = config.podNames[nodeId]
-            subTasks.push({
-              title: `Node: ${chalk.yellow(nodeId)}`,
-              task: () =>
-                self.platformInstaller.taskSetup(podName)
-            })
-          }
-
-          // set up the sub-tasks
-          return parentTask.newListr(subTasks, {
-            concurrent: true,
-            rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
-          })
+          return this.setupNodesTask(ctx, parentTask, ctx.configs.nodeIds)
         }
       },
       {
@@ -1835,29 +1818,7 @@ export class NodeCommand extends BaseCommand {
       {
         title: 'Deploy new network node',
         task: async (ctx, task) => {
-          const config = /** @type {NodeAddConfigClass} **/ ctx.config
-          const index = config.existingNodeIds.length
-          let valuesArg = ''
-          for (let i = 0; i < index; i++) {
-            valuesArg += ` --set "hedera.nodes[${i}].accountId=${config.serviceMap.get(config.existingNodeIds[i]).accountId}" --set "hedera.nodes[${i}].name=${config.existingNodeIds[i]}"`
-          }
-          valuesArg += ` --set "hedera.nodes[${index}].accountId=${ctx.newNode.accountId}" --set "hedera.nodes[${index}].name=${ctx.newNode.name}"`
-
-          this.profileValuesFile = await self.profileManager.prepareValuesForNodeAdd(
-            path.join(config.stagingDir, 'config.txt'),
-            path.join(config.stagingDir, 'templates', 'application.properties'))
-          if (this.profileValuesFile) {
-            valuesArg += this.prepareValuesFiles(this.profileValuesFile)
-          }
-          valuesArg = addDebugOptions(valuesArg, config.debugNodeId)
-
-          await self.chartManager.upgrade(
-            config.namespace,
-            constants.FULLSTACK_DEPLOYMENT_CHART,
-            config.chartPath,
-            valuesArg,
-            config.fstChartVersion
-          )
+          await this.chartUpdateTask(ctx)
         }
       },
       {
@@ -1920,23 +1881,7 @@ export class NodeCommand extends BaseCommand {
       {
         title: 'Setup new network node',
         task: async (ctx, parentTask) => {
-          const config = /** @type {NodeAddConfigClass} **/ ctx.config
-
-          const subTasks = []
-          for (const nodeId of config.allNodeIds) {
-            const podName = config.podNames[nodeId]
-            subTasks.push({
-              title: `Node: ${chalk.yellow(nodeId)}`,
-              task: () =>
-                self.platformInstaller.taskSetup(podName)
-            })
-          }
-
-          // set up the sub-tasks
-          return parentTask.newListr(subTasks, {
-            concurrent: true,
-            rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
-          })
+          return this.setupNodesTask(ctx, parentTask, ctx.configs.allNodeIds)
         }
       },
       {
@@ -2655,34 +2600,7 @@ export class NodeCommand extends BaseCommand {
       {
         title: 'Update chart to use new configMap due to account number change',
         task: async (ctx, task) => {
-          const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
-          const index = config.existingNodeIds.length
-          const nodeId = Templates.nodeNumberFromNodeId(config.nodeId) - 1
-          let valuesArg = ''
-          for (let i = 0; i < index; i++) {
-            if (i !== nodeId && config.newAccountNumber) {
-              valuesArg += ` --set "hedera.nodes[${i}].accountId=${config.serviceMap.get(config.existingNodeIds[i]).accountId}" --set "hedera.nodes[${i}].name=${config.existingNodeIds[i]}"`
-            } else {
-              // use new account number for this node id
-              valuesArg += ` --set "hedera.nodes[${i}].accountId=${config.newAccountNumber}" --set "hedera.nodes[${i}].name=${config.existingNodeIds[i]}"`
-            }
-          }
-          this.profileValuesFile = await self.profileManager.prepareValuesForNodeAdd(
-            path.join(config.stagingDir, 'config.txt'),
-            path.join(config.stagingDir, 'templates', 'application.properties'))
-          if (this.profileValuesFile) {
-            valuesArg += this.prepareValuesFiles(this.profileValuesFile)
-          }
-
-          valuesArg = addDebugOptions(valuesArg, config.debugNodeId)
-
-          await self.chartManager.upgrade(
-            config.namespace,
-            constants.FULLSTACK_DEPLOYMENT_CHART,
-            config.chartPath,
-            valuesArg,
-            config.fstChartVersion
-          )
+          await this.chartUpdateTask(ctx)
         },
         // no need to run this step if the account number is not changed, since config.txt will be the same
         skip: (ctx, _) => !ctx.config.newAccountNumber && !ctx.config.debugNodeId
@@ -2748,23 +2666,7 @@ export class NodeCommand extends BaseCommand {
       {
         title: 'Setup network nodes',
         task: async (ctx, parentTask) => {
-          const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
-
-          const subTasks = []
-          for (const nodeId of config.allNodeIds) {
-            const podName = config.podNames[nodeId]
-            subTasks.push({
-              title: `Node: ${chalk.yellow(nodeId)}`,
-              task: () =>
-                self.platformInstaller.taskSetup(podName)
-            })
-          }
-
-          // set up the sub-tasks
-          return parentTask.newListr(subTasks, {
-            concurrent: true,
-            rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
-          })
+          return this.setupNodesTask(ctx, parentTask, ctx.configs.allNodeIds)
         }
       },
       {
@@ -2823,7 +2725,7 @@ export class NodeCommand extends BaseCommand {
         // this is more reliable than checking the nodes logs for ACTIVE, as the
         // logs will have a lot of white noise from being behind
         task: async (ctx, task) => {
-          return this.addCheckNodesProxiesTask(ctx, tas, config.allNodeIds)
+          return this.addCheckNodesProxiesTask(ctx, task, config.allNodeIds)
         }
       },
       {
@@ -3103,29 +3005,7 @@ export class NodeCommand extends BaseCommand {
       {
         title: 'Update chart to use new configMap',
         task: async (ctx, task) => {
-          const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
-          const index = config.existingNodeIds.length
-          let valuesArg = ''
-          for (let i = 0; i < index; i++) {
-            valuesArg += ` --set "hedera.nodes[${i}].accountId=${config.serviceMap.get(config.existingNodeIds[i]).accountId}" --set "hedera.nodes[${i}].name=${config.existingNodeIds[i]}"`
-          }
-
-          this.profileValuesFile = await self.profileManager.prepareValuesForNodeAdd(
-            path.join(config.stagingDir, 'config.txt'),
-            path.join(config.stagingDir, 'templates', 'application.properties'))
-          if (this.profileValuesFile) {
-            valuesArg += this.prepareValuesFiles(this.profileValuesFile)
-          }
-
-          valuesArg = addDebugOptions(valuesArg, config.debugNodeId)
-
-          await self.chartManager.upgrade(
-            config.namespace,
-            constants.FULLSTACK_DEPLOYMENT_CHART,
-            config.chartPath,
-            valuesArg,
-            config.fstChartVersion
-          )
+          await this.chartUpdateTask(ctx)
         }
       },
       {
