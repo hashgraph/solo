@@ -379,6 +379,8 @@ The file `hashgraph-sdk.log` contains the logs from solo client when sending tra
 
 ## Using Intellj remote debug with solo
 
+NOTE: the hedera-services path referenced '../hedera-services/hedera-node/data' may need to be updated based on what directory you are currently in.  This also assumes that you have done an assemble/build and the directory contents are up-to-date.
+
 Example 1: attach jvm debugger to a hedera node
 ```bash
 ./test/e2e/setup-e2e.sh
