@@ -34,7 +34,7 @@ import {
   logging
 } from '../../../src/core/index.mjs'
 import { flags } from '../../../src/commands/index.mjs'
-import { getNodeLogs, sleep } from '../../../src/core/helpers.mjs'
+import { sleep } from '../../../src/core/helpers.mjs'
 import * as version from '../../../version.mjs'
 
 describe('ClusterCommand', () => {
