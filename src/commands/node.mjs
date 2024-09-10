@@ -476,6 +476,21 @@ export class NodeCommand extends BaseCommand {
     })
   }
 
+  startNetworkNodesTask (task, podNames, nodeIds) {
+    const subTasks = []
+    // ctx.config.allNodeIds = ctx.config.existingNodeIds
+    this.startNodes(podNames, nodeIds, subTasks)
+
+    // set up the sub-tasks
+    return task.newListr(subTasks, {
+      concurrent: true,
+      rendererOptions: {
+        collapseSubtasks: false,
+        timer: constants.LISTR_DEFAULT_RENDERER_TIMER_OPTION
+      }
+    })
+  }
+
   addCheckNodesProxiesTask (ctx, task, nodeIds) {
     const subTasks = []
     for (const nodeId of nodeIds) {
@@ -545,7 +560,7 @@ export class NodeCommand extends BaseCommand {
         valuesArg += ` --set "hedera.nodes[${i}].accountId=${config.newAccountNumber}" --set "hedera.nodes[${i}].name=${config.existingNodeIds[i]}"`
       }
     }
-    if (config.newNode.accountId) {
+    if (config.newNode && config.newNode.accountId) {
       valuesArg += ` --set "hedera.nodes[${index}].accountId=${ctx.newNode.accountId}" --set "hedera.nodes[${index}].name=${ctx.newNode.name}"`
     }
     this.profileValuesFile = await this.profileManager.prepareValuesForNodeAdd(
@@ -564,6 +579,25 @@ export class NodeCommand extends BaseCommand {
       valuesArg,
       config.fstChartVersion
     )
+  }
+
+  async triggerStakeCalculation (config) {
+    const accountMap = getNodeAccountMap(config.allNodeIds)
+
+    if (config.newAccountNumber) {
+      // update map with current account ids
+      accountMap.set(config.nodeId, config.newAccountNumber)
+
+      // update _nodeClient with the new service map since one of the account number has changed
+      await this.accountManager.refreshNodeClient(config.namespace)
+    }
+
+    // send some write transactions to invoke the handler that will trigger the stake weight recalculate
+    for (const nodeId of config.allNodeIds) {
+      const accountId = accountMap.get(nodeId)
+      config.nodeClient.setOperator(TREASURY_ACCOUNT_ID, config.treasuryKey)
+      await this.accountManager.transferAmount(constants.TREASURY_ACCOUNT_ID, accountId, 1)
+    }
   }
 
   async initializeSetup (config, k8) {
@@ -963,17 +997,7 @@ export class NodeCommand extends BaseCommand {
       {
         title: 'Starting nodes',
         task: (ctx, task) => {
-          const subTasks = []
-          self.startNodes(ctx.config.podNames, ctx.config.nodeIds, subTasks)
-
-          // set up the sub-tasks
-          return task.newListr(subTasks, {
-            concurrent: true,
-            rendererOptions: {
-              collapseSubtasks: false,
-              timer: constants.LISTR_DEFAULT_RENDERER_TIMER_OPTION
-            }
-          })
+          return this.startNetworkNodesTask(task, ctx.config.podNames, ctx.config.nodeIds)
         }
       },
       {
@@ -1339,18 +1363,7 @@ export class NodeCommand extends BaseCommand {
       {
         title: 'Starting nodes',
         task: (ctx, task) => {
-          const config = /** @type {NodeRefreshConfigClass} **/ ctx.config
-          const subTasks = []
-          self.startNodes(config.podNames, config.nodeIds, subTasks)
-
-          // set up the sub-tasks
-          return task.newListr(subTasks, {
-            concurrent: true,
-            rendererOptions: {
-              collapseSubtasks: false,
-              timer: constants.LISTR_DEFAULT_RENDERER_TIMER_OPTION
-            }
-          })
+          return this.startNetworkNodesTask(task, ctx.config.podNames, ctx.config.nodeIds)
         }
       },
       {
@@ -1832,11 +1845,10 @@ export class NodeCommand extends BaseCommand {
       },
       {
         title: 'Check node pods are running',
-        task:
-            async (ctx, task) => {
-              const config = /** @type {NodeAddConfigClass} **/ ctx.config
-              return this.addCheckPodRunningTask(ctx, task, config.allNodeIds)
-            }
+        task: async (ctx, task) => {
+          const config = /** @type {NodeAddConfigClass} **/ ctx.config
+          return this.addCheckPodRunningTask(ctx, task, config.allNodeIds)
+        }
       },
       {
         title: 'Fetch platform software into all network nodes',
@@ -1888,17 +1900,7 @@ export class NodeCommand extends BaseCommand {
         title: 'Start network nodes',
         task: async (ctx, task) => {
           const config = /** @type {NodeAddConfigClass} **/ ctx.config
-          const subTasks = []
-          self.startNodes(config.podNames, config.allNodeIds, subTasks)
-
-          // set up the sub-tasks
-          return task.newListr(subTasks, {
-            concurrent: true,
-            rendererOptions: {
-              collapseSubtasks: false,
-              timer: constants.LISTR_DEFAULT_RENDERER_TIMER_OPTION
-            }
-          })
+          return this.startNetworkNodesTask(task, config.podNames, config.allNodeIds)
         }
       },
       {
@@ -1953,15 +1955,7 @@ export class NodeCommand extends BaseCommand {
         title: 'Trigger stake weight calculate',
         task: async (ctx, task) => {
           const config = /** @type {NodeAddConfigClass} **/ ctx.config
-          self.logger.info('sleep 60 seconds for the handler to be able to trigger the network node stake weight recalculate')
-          await sleep(60000)
-          const accountMap = getNodeAccountMap(config.allNodeIds)
-          // send some write transactions to invoke the handler that will trigger the stake weight recalculate
-          for (const nodeId of config.allNodeIds) {
-            const accountId = accountMap.get(nodeId)
-            config.nodeClient.setOperator(TREASURY_ACCOUNT_ID, config.treasuryKey)
-            await this.accountManager.transferAmount(constants.TREASURY_ACCOUNT_ID, accountId, 1)
-          }
+          await this.triggerStakeCalculation(config)
         }
       },
       {
@@ -2627,32 +2621,11 @@ export class NodeCommand extends BaseCommand {
         }
       },
       {
-        title: 'Check node pods are ready',
-        task:
-          async (ctx, task) => {
-            const subTasks = []
-            const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
-
-            // nodes
-            for (const nodeId of config.allNodeIds) {
-              subTasks.push({
-                title: `Check Node: ${chalk.yellow(nodeId)}`,
-                task: async () =>
-                  await self.k8.waitForPodReady(
-                    ['fullstack.hedera.com/type=network-node',
-                    `fullstack.hedera.com/node-name=${nodeId}`],
-                    1, 300, 2000)
-              })
-            }
-
-            // set up the sub-tasks
-            return task.newListr(subTasks, {
-              concurrent: false, // no need to run concurrently since if one node is up, the rest should be up by then
-              rendererOptions: {
-                collapseSubtasks: false
-              }
-            })
-          }
+        title: 'Check node pods are running',
+        task: async (ctx, task) => {
+          const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
+          return this.addCheckPodRunningTask(ctx, task, config.allNodeIds)
+        }
       },
       {
         title: 'Fetch platform software into network nodes',
@@ -2672,18 +2645,7 @@ export class NodeCommand extends BaseCommand {
         title: 'Start network nodes',
         task: async (ctx, task) => {
           const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
-          const subTasks = []
-          // ctx.config.allNodeIds = ctx.config.existingNodeIds
-          self.startNodes(config.podNames, config.allNodeIds, subTasks)
-
-          // set up the sub-tasks
-          return task.newListr(subTasks, {
-            concurrent: true,
-            rendererOptions: {
-              collapseSubtasks: false,
-              timer: constants.LISTR_DEFAULT_RENDERER_TIMER_OPTION
-            }
-          })
+          return this.startNetworkNodesTask(task, config.podNames, config.allNodeIds)
         }
       },
       {
@@ -2731,22 +2693,7 @@ export class NodeCommand extends BaseCommand {
         title: 'Trigger stake weight calculate',
         task: async (ctx, task) => {
           const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
-          self.logger.info('sleep 60 seconds for the handler to be able to trigger the network node stake weight recalculate')
-          await sleep(60000)
-          const accountMap = getNodeAccountMap(config.allNodeIds)
-          // update map with current account ids
-          accountMap.set(config.nodeId, config.newAccountNumber)
-
-          // update _nodeClient with the new service map since one of the account number has changed
-          await this.accountManager.refreshNodeClient(config.namespace)
-
-          // send some write transactions to invoke the handler that will trigger the stake weight recalculate
-          for (const nodeId of config.allNodeIds) {
-            const accountId = accountMap.get(nodeId)
-            config.nodeClient.setOperator(TREASURY_ACCOUNT_ID, config.treasuryKey)
-            self.logger.info(`Sending 1 HBAR to account: ${accountId}`)
-            await this.accountManager.transferAmount(constants.TREASURY_ACCOUNT_ID, accountId, 1)
-          }
+          await this.triggerStakeCalculation(config)
         }
       },
       {
@@ -3048,18 +2995,7 @@ export class NodeCommand extends BaseCommand {
         title: 'Start network nodes',
         task: async (ctx, task) => {
           const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
-          const subTasks = []
-
-          self.startNodes(config.podNames, config.allNodeIds, subTasks)
-
-          // set up the sub-tasks
-          return task.newListr(subTasks, {
-            concurrent: true,
-            rendererOptions: {
-              collapseSubtasks: false,
-              timer: constants.LISTR_DEFAULT_RENDERER_TIMER_OPTION
-            }
-          })
+          return this.startNetworkNodesTask(task, config.podNames, config.allNodeIds)
         }
       },
       {
@@ -3107,15 +3043,7 @@ export class NodeCommand extends BaseCommand {
         title: 'Trigger stake weight calculate',
         task: async (ctx, task) => {
           const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
-          self.logger.info('sleep 60 seconds for the handler to be able to trigger the network node stake weight recalculate')
-          await sleep(60000)
-          const accountMap = getNodeAccountMap(config.allNodeIds)
-          // send some write transactions to invoke the handler that will trigger the stake weight recalculate
-          for (const nodeId of config.allNodeIds) {
-            const accountId = accountMap.get(nodeId)
-            config.nodeClient.setOperator(TREASURY_ACCOUNT_ID, config.treasuryKey)
-            await this.accountManager.transferAmount(constants.TREASURY_ACCOUNT_ID, accountId, 1)
-          }
+          await this.triggerStakeCalculation(config)
         }
       },
       {
