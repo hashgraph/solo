@@ -36,7 +36,7 @@ describe('PackageInstallerE2E', () => {
   const testCacheDir = getTestCacheDir()
   argv[flags.cacheDir.name] = testCacheDir
   argv[flags.namespace.name] = namespace
-  argv[flags.nodeIDs.name] = 'node0'
+  argv[flags.nodeIDs.name] = 'node1'
   argv[flags.clusterName.name] = TEST_CLUSTER
   argv[flags.fstChartVersion.name] = version.FST_CHART_VERSION
   argv[flags.generateGossipKeys.name] = true
@@ -48,7 +48,7 @@ describe('PackageInstallerE2E', () => {
   const accountManager = bootstrapResp.opts.accountManager
   const configManager = bootstrapResp.opts.configManager
   const installer = bootstrapResp.opts.platformInstaller
-  const podName = 'network-node0-0'
+  const podName = 'network-node1-0'
   const packageVersion = 'v0.42.5'
 
   afterAll(async () => {

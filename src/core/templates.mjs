@@ -55,21 +55,11 @@ export class Templates {
   }
 
   /**
-   * Generate pfx node private key file name
-   * @param {string} nodeId
-   * @returns {string}
-   */
-  static renderGossipPfxPrivateKeyFile (nodeId) {
-    return `private-${nodeId}.pfx`
-  }
-
-  /**
    * @param {string} prefix
    * @param {string} nodeId
    * @returns {string}
    */
   static renderGossipPemPrivateKeyFile (prefix, nodeId) {
-    // s-node0-key.pem
     return `${prefix}-private-${nodeId}.pem`
   }
 
@@ -79,7 +69,6 @@ export class Templates {
    * @returns {string}
    */
   static renderGossipPemPublicKeyFile (prefix, nodeId) {
-    // s-node0-cert.pem
     return `${prefix}-public-${nodeId}.pem`
   }
 
@@ -96,7 +85,6 @@ export class Templates {
    * @returns {string}
    */
   static renderTLSPemPublicKeyFile (nodeId) {
-    // s-node0-cert.pem
     return `hedera-${nodeId}.crt`
   }
 

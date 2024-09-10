@@ -37,18 +37,17 @@ import {
 import { getNodeLogs, sleep } from '../../src/core/helpers.mjs'
 import { NodeCommand } from '../../src/commands/node.mjs'
 
-export function e2eNodeKeyRefreshTest (keyFormat, testName, mode, releaseTag = HEDERA_PLATFORM_VERSION_TAG) {
+export function e2eNodeKeyRefreshTest (testName, mode, releaseTag = HEDERA_PLATFORM_VERSION_TAG) {
   const defaultTimeout = 120000
 
   describe(
-      `NodeCommand [testName ${testName}, mode ${mode}, keyFormat: ${keyFormat}, release ${releaseTag}]`,
+      `NodeCommand [testName ${testName}, mode ${mode}, release ${releaseTag}]`,
       () => {
         const namespace = testName
         const argv = getDefaultArgv()
         argv[flags.namespace.name] = namespace
         argv[flags.releaseTag.name] = releaseTag
-        argv[flags.keyFormat.name] = keyFormat
-        argv[flags.nodeIDs.name] = 'node0,node1,node2'
+        argv[flags.nodeIDs.name] = 'node1,node2,node3'
         argv[flags.generateGossipKeys.name] = true
         argv[flags.generateTlsKeys.name] = true
         argv[flags.clusterName.name] = TEST_CLUSTER
@@ -74,19 +73,19 @@ export function e2eNodeKeyRefreshTest (keyFormat, testName, mode, releaseTag = H
         }, 600000)
 
         describe(
-            `Node should have started successfully [mode ${mode}, release ${releaseTag}, keyFormat: ${keyFormat}]`,
+            `Node should have started successfully [mode ${mode}, release ${releaseTag}]`,
             () => {
               balanceQueryShouldSucceed(accountManager, nodeCmd, namespace)
 
               accountCreationShouldSucceed(accountManager, nodeCmd, namespace)
 
-              it(`Node Proxy should be UP [mode ${mode}, release ${releaseTag}, keyFormat: ${keyFormat}`,
+              it(`Node Proxy should be UP [mode ${mode}, release ${releaseTag}`,
                 async () => {
                   expect.assertions(1)
 
                   try {
                     await expect(k8.waitForPodReady(
-                      ['app=haproxy-node0',
+                      ['app=haproxy-node1',
                         'fullstack.hedera.com/type=haproxy'],
                       1, 300, 1000)).resolves.toBeTruthy()
                   } catch (e) {
@@ -99,9 +98,9 @@ export function e2eNodeKeyRefreshTest (keyFormat, testName, mode, releaseTag = H
             })
 
         describe(
-            `Node should refresh successfully [mode ${mode}, release ${releaseTag}, keyFormat: ${keyFormat}]`,
+            `Node should refresh successfully [mode ${mode}, release ${releaseTag}]`,
             () => {
-              const nodeId = 'node0'
+              const nodeId = 'node1'
 
               beforeAll(async () => {
                 const podName = await nodeRefreshTestSetup(argv, testName, k8,

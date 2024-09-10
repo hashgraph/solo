@@ -74,7 +74,6 @@ export class NetworkCommand extends BaseCommand {
       flags.fstChartVersion,
       flags.hederaExplorerTlsHostName,
       flags.hederaExplorerTlsLoadBalancerIp,
-      flags.keyFormat,
       flags.log4j2Xml,
       flags.namespace,
       flags.nodeIDs,
@@ -186,7 +185,6 @@ export class NetworkCommand extends BaseCommand {
       flags.deployHederaExplorer,
       flags.deployMirrorNode,
       flags.hederaExplorerTlsLoadBalancerIp,
-      flags.keyFormat,
       flags.log4j2Xml,
       flags.persistentVolumeClaims,
       flags.profileName,
@@ -209,7 +207,6 @@ export class NetworkCommand extends BaseCommand {
      * @property {string} fstChartVersion
      * @property {string} hederaExplorerTlsHostName
      * @property {string} hederaExplorerTlsLoadBalancerIp
-     * @property {string} keyFormat
      * @property {string} namespace
      * @property {string} nodeIDs
      * @property {string} persistentVolumeClaims
@@ -304,7 +301,7 @@ export class NetworkCommand extends BaseCommand {
               task: async (ctx, _) => {
                 const config = /** @type {NetworkDeployConfigClass} **/ ctx.config
 
-                await this.keyManager.copyGossipKeysToStaging(config.keyFormat, config.keysDir, config.stagingKeysDir, config.nodeIds)
+                await this.keyManager.copyGossipKeysToStaging(config.keysDir, config.stagingKeysDir, config.nodeIds)
               }
             },
             {
@@ -330,7 +327,7 @@ export class NetworkCommand extends BaseCommand {
         task: async (ctx, parentTask) => {
           const config = /** @type {NetworkDeployConfigClass} **/ ctx.config
 
-          const subTasks = self.platformInstaller.copyNodeKeys(config.stagingDir, config.nodeIds, config.keyFormat)
+          const subTasks = self.platformInstaller.copyNodeKeys(config.stagingDir, config.nodeIds)
 
           // set up the sub-tasks
           return parentTask.newListr(subTasks, {
@@ -366,8 +363,8 @@ export class NetworkCommand extends BaseCommand {
             for (const nodeId of config.nodeIds) {
               subTasks.push({
                 title: `Check Node: ${chalk.yellow(nodeId)}`,
-                task: () =>
-                  self.k8.waitForPods([constants.POD_PHASE_RUNNING], [
+                task: async () =>
+                  await self.k8.waitForPods([constants.POD_PHASE_RUNNING], [
                     'fullstack.hedera.com/type=network-node',
                     `fullstack.hedera.com/node-name=${nodeId}`
                   ], 1, 60 * 15, 1000) // timeout 15 minutes
@@ -394,8 +391,8 @@ export class NetworkCommand extends BaseCommand {
             for (const nodeId of config.nodeIds) {
               subTasks.push({
                 title: `Check HAProxy for: ${chalk.yellow(nodeId)}`,
-                task: () =>
-                  self.k8.waitForPods([constants.POD_PHASE_RUNNING], [
+                task: async () =>
+                  await self.k8.waitForPods([constants.POD_PHASE_RUNNING], [
                     'fullstack.hedera.com/type=haproxy'
                   ], 1, 60 * 15, 1000) // timeout 15 minutes
               })
@@ -405,8 +402,8 @@ export class NetworkCommand extends BaseCommand {
             for (const nodeId of config.nodeIds) {
               subTasks.push({
                 title: `Check Envoy Proxy for: ${chalk.yellow(nodeId)}`,
-                task: () =>
-                  self.k8.waitForPods([constants.POD_PHASE_RUNNING], [
+                task: async () =>
+                  await self.k8.waitForPods([constants.POD_PHASE_RUNNING], [
                     'fullstack.hedera.com/type=envoy-proxy'
                   ], 1, 60 * 15, 1000) // timeout 15 minutes
               })
@@ -430,8 +427,8 @@ export class NetworkCommand extends BaseCommand {
             // minio
             subTasks.push({
               title: 'Check MinIO',
-              task: () =>
-                self.k8.waitForPodReady([
+              task: async () =>
+                await self.k8.waitForPodReady([
                   'v1.min.io/tenant=minio'
                 ], 1, 60 * 5, 1000) // timeout 5 minutes
             })

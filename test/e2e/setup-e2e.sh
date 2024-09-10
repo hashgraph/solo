@@ -18,6 +18,6 @@ kind create cluster -n "${SOLO_CLUSTER_NAME}" --image "${KIND_IMAGE}" || exit 1
 # Init and deploy a network for e2e tests in (test/e2e/core)
 # -d ${SOLO_CHARTS_DIR} is optional, if you want to use a local chart, it will be ignored if not set
 # **********************************************************************************************************************
-solo init --namespace "${SOLO_NAMESPACE}" -i node0 -s "${SOLO_CLUSTER_SETUP_NAMESPACE}" -d "${SOLO_FST_CHARTS_DIR}" --dev || exit 1 # cache args for subsequent commands
+solo init --namespace "${SOLO_NAMESPACE}" -i node1 -s "${SOLO_CLUSTER_SETUP_NAMESPACE}" -d "${SOLO_FST_CHARTS_DIR}" --dev || exit 1 # cache args for subsequent commands
 solo cluster setup  || exit 1
 helm list --all-namespaces
