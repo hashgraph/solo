@@ -25,7 +25,7 @@ import { constants, Templates } from '../core/index.mjs'
 import * as prompts from './prompts.mjs'
 import * as helpers from '../core/helpers.mjs'
 import path from 'path'
-import { validatePath } from '../core/helpers.mjs'
+import { addDebugOptions, validatePath } from '../core/helpers.mjs'
 import fs from 'fs'
 
 export class NetworkCommand extends BaseCommand {
@@ -74,6 +74,7 @@ export class NetworkCommand extends BaseCommand {
       flags.fstChartVersion,
       flags.hederaExplorerTlsHostName,
       flags.hederaExplorerTlsLoadBalancerIp,
+      flags.debugNodeId,
       flags.log4j2Xml,
       flags.namespace,
       flags.nodeIDs,
@@ -138,6 +139,17 @@ export class NetworkCommand extends BaseCommand {
       valuesArg += this.prepareValuesFiles(config.valuesFile)
     }
 
+    if (config.app !== constants.HEDERA_APP_NAME) {
+      const index = config.nodeIds.length
+      for (let i = 0; i < index; i++) {
+        valuesArg += ` --set "hedera.nodes[${i}].root.extraEnv[0].name=JAVA_MAIN_CLASS"`
+        valuesArg += ` --set "hedera.nodes[${i}].root.extraEnv[0].value=com.swirlds.platform.Browser"`
+      }
+      valuesArg = addDebugOptions(valuesArg, config.debugNodeId, 1)
+    } else {
+      valuesArg = addDebugOptions(valuesArg, config.debugNodeId)
+    }
+
     const profileName = this.configManager.getFlag(flags.profileName)
     this.profileValuesFile = await this.profileManager.prepareValuesForFstChart(profileName)
     if (this.profileValuesFile) {
@@ -182,6 +194,7 @@ export class NetworkCommand extends BaseCommand {
       flags.bootstrapProperties,
       flags.cacheDir,
       flags.chainId,
+      flags.debugNodeId,
       flags.deployHederaExplorer,
       flags.deployMirrorNode,
       flags.hederaExplorerTlsLoadBalancerIp,

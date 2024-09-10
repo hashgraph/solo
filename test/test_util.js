@@ -234,7 +234,6 @@ export function bootstrapNetwork (testName, argv,
 
       expect(networkCmd.getUnusedConfigs(NetworkCommand.DEPLOY_CONFIGS_NAME)).toEqual([
         flags.apiPermissionProperties.constName,
-        flags.app.constName,
         flags.applicationEnv.constName,
         flags.applicationProperties.constName,
         flags.bootstrapProperties.constName,
@@ -258,6 +257,7 @@ export function bootstrapNetwork (testName, argv,
         try {
           await expect(nodeCmd.setup(argv)).resolves.toBeTruthy()
           expect(nodeCmd.getUnusedConfigs(NodeCommand.SETUP_CONFIGS_NAME)).toEqual([
+            flags.app.constName,
             flags.appConfig.constName,
             flags.devMode.constName
           ])
