@@ -45,6 +45,9 @@ describe('Node delete', () => {
   argv[flags.chartDirectory.name] = process.env.SOLO_FST_CHARTS_DIR ? process.env.SOLO_FST_CHARTS_DIR : undefined
   argv[flags.releaseTag.name] = HEDERA_PLATFORM_VERSION_TAG
   argv[flags.namespace.name] = namespace
+
+  argv[flags.localBuildPath.name] = 'node1=../hedera-services/hedera-node/data/,../hedera-services/hedera-node/data,node3=../hedera-services/hedera-node/data'
+
   const bootstrapResp = bootstrapNetwork(namespace, argv)
   const nodeCmd = bootstrapResp.cmd.nodeCmd
   const accountCmd = bootstrapResp.cmd.accountCmd
@@ -86,16 +89,15 @@ describe('Node delete', () => {
     expect(configTxt).not.toContain(nodeId)
   }, 600000)
 
-  // it('should add a new node to the network successfully', async () => {
-  //   argv[flags.nodeID.name] = 'node5'
-  //   await nodeCmd.add(argv)
-  //   expect(nodeCmd.getUnusedConfigs(NodeCommand.ADD_CONFIGS_NAME)).toEqual([
-  //     flags.app.constName,
-  //     flags.chainId.constName,
-  //     flags.devMode.constName
-  //   ])
-  //   await nodeCmd.accountManager.close()
-  // }, 800000)
-
-
+  it('should add a new node to the network successfully', async () => {
+    argv[flags.nodeIDs.name] = 'node1,node2,node3'
+    argv[flags.nodeID.name] = 'node5'
+    await nodeCmd.add(argv)
+    expect(nodeCmd.getUnusedConfigs(NodeCommand.ADD_CONFIGS_NAME)).toEqual([
+      flags.app.constName,
+      flags.chainId.constName,
+      flags.devMode.constName
+    ])
+    await nodeCmd.accountManager.close()
+  }, 800000)
 })
