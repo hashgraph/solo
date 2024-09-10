@@ -387,7 +387,7 @@ export class NodeCommand extends BaseCommand {
   /**
    * Return task for checking for all network node pods
    * @param {any} ctx
-   * @param {typeof import('listr2').TaskWrapper} task
+   * @param {TaskWrapper} task
    * @param {string[]} nodeIds
    * @returns {*}
    */
@@ -444,7 +444,7 @@ export class NodeCommand extends BaseCommand {
   /**
    * @param {string[]} nodeIds
    * @param {Object} podNames
-   * @param {typeof import('listr2').TaskWrapper} task
+   * @param {TaskWrapper} task
    * @param {string} localBuildPath
    * @returns {Listr<*, *, *>}
    */
@@ -504,7 +504,7 @@ export class NodeCommand extends BaseCommand {
    * @param {string[]} nodeIds
    * @param {Object} podNames
    * @param {string} releaseTag
-   * @param {typeof import('listr2').TaskWrapper} task
+   * @param {TaskWrapper} task
    * @param {string} localBuildPath
    * @returns {Listr<*, *, *>}
    */
@@ -521,7 +521,7 @@ export class NodeCommand extends BaseCommand {
    * @param {string[]} nodeIds
    * @param {Object} podNames
    * @param {string} releaseTag
-   * @param {typeof import('listr2').TaskWrapper} task
+   * @param {TaskWrapper} task
    * @param {PlatformInstaller} platformInstaller
    * @returns {Listr<any, any, any>}
    */
@@ -2025,7 +2025,7 @@ export class NodeCommand extends BaseCommand {
   /**
    * @param {PrivateKey|string} freezeAdminPrivateKey
    * @param {Uint8Array|string} upgradeZipHash
-   * @param {Client<import('../channel/Channel.js').default,import('../channel/MirrorChannel.js').default>} client
+   * @param {NodeClient} client
    * @returns {Promise<void>}
    */
   async prepareUpgradeNetworkNodes (freezeAdminPrivateKey, upgradeZipHash, client) {
@@ -2064,7 +2064,7 @@ export class NodeCommand extends BaseCommand {
   /**
    * @param {PrivateKey|string} freezeAdminPrivateKey
    * @param {Uint8Array|string} upgradeZipHash
-   * @param {Client<import('../channel/Channel.js').default,import('../channel/MirrorChannel.js').default>} client
+   * @param {NodeClient} client
    * @returns {Promise<void>}
    */
   async freezeUpgradeNetworkNodes (freezeAdminPrivateKey, upgradeZipHash, client) {
@@ -2102,7 +2102,7 @@ export class NodeCommand extends BaseCommand {
   /**
    * @param {Object} podNames
    * @param {string} nodeIds
-   * @param {{title: string, task: () => Promise<void>}[]} subTasks
+   * @param {Object[]} subTasks
    */
   startNodes (podNames, nodeIds, subTasks) {
     for (const nodeId of nodeIds) {

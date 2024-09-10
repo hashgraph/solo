@@ -145,7 +145,7 @@ export class InitCommand extends BaseCommand {
   /**
    * Return Yargs command definition for 'init' command
    * @param {InitCommand} initCmd - an instance of InitCommand
-   * @returns {{command: string, desc: string, builder: Function, handler: (argv: Object) => void}}
+   * @returns A object representing the Yargs command definition
    */
   static getCommandDefinition (initCmd) {
     if (!initCmd || !(initCmd instanceof InitCommand)) {
