@@ -187,8 +187,8 @@ export class NodeCommand extends BaseCommand {
   static get ADD_FLAGS_LIST () {
     const commonFlags = NodeCommand.COMMON_ADD_FLAGS_LIST
     return [
-      ...commonFlags
-
+      ...commonFlags,
+      flags.adminKey
     ]
   }
 
@@ -199,6 +199,7 @@ export class NodeCommand extends BaseCommand {
     const commonFlags = NodeCommand.COMMON_ADD_FLAGS_LIST
     return [
       ...commonFlags,
+      flags.adminKey,
       flags.outputDir
     ]
   }
@@ -1390,7 +1391,7 @@ export class NodeCommand extends BaseCommand {
 
         // disable the prompts that we don't want to prompt the user for
         prompts.disablePrompts([
-          // flags.adminKey,
+          flags.adminKey,
           flags.app,
           flags.chainId,
           flags.chartDirectory,
@@ -1466,7 +1467,7 @@ export class NodeCommand extends BaseCommand {
             'treasuryKey'
           ])
 
-        config.adminKey = PrivateKey.fromStringED25519(constants.GENESIS_KEY)
+        ctx.adminKey = argv[flags.adminKey.name] ? PrivateKey.fromStringED25519(argv[flags.adminKey.name]) : PrivateKey.fromStringED25519(constants.GENESIS_KEY)
         config.curDate = new Date()
         config.existingNodeIds = []
 
@@ -1710,6 +1711,7 @@ export class NodeCommand extends BaseCommand {
           exportedCtx.signingCertDer = ctx.signingCertDer.toString()
           exportedCtx.gossipEndpoints = ctx.gossipEndpoints.map(ep => `${ep.getDomainName}:${ep.getPort}`)
           exportedCtx.grpcServiceEndpoints = ctx.grpcServiceEndpoints.map(ep => `${ep.getDomainName}:${ep.getPort}`)
+          exportedCtx.adminKey = ctx.adminKey.toString()
 
           for (const prop of exportedFields) {
             exportedCtx[prop] = ctx[prop]
@@ -1735,6 +1737,7 @@ export class NodeCommand extends BaseCommand {
           ctx.signingCertDer = new Uint8Array(ctxData.signingCertDer.split(','))
           ctx.gossipEndpoints = this.prepareEndpoints(ctx.config.endpointType, ctxData.gossipEndpoints, constants.HEDERA_NODE_INTERNAL_GOSSIP_PORT)
           ctx.grpcServiceEndpoints = this.prepareEndpoints(ctx.config.endpointType, ctxData.grpcServiceEndpoints, constants.HEDERA_NODE_EXTERNAL_GOSSIP_PORT)
+          ctx.adminKey = PrivateKey.fromStringED25519(ctxData.adminKey)
 
           const fieldsToImport = [
             'tlsCertHash',
@@ -1764,9 +1767,9 @@ export class NodeCommand extends BaseCommand {
               .setServiceEndpoints(ctx.grpcServiceEndpoints)
               .setGossipCaCertificate(ctx.signingCertDer)
               .setCertificateHash(ctx.tlsCertHash)
-              .setAdminKey(config.adminKey.publicKey)
+              .setAdminKey(ctx.adminKey.publicKey)
               .freezeWith(config.nodeClient)
-            const signedTx = await nodeCreateTx.sign(config.adminKey)
+            const signedTx = await nodeCreateTx.sign(ctx.adminKey)
             const txResp = await signedTx.execute(config.nodeClient)
             const nodeCreateReceipt = await txResp.getReceipt(config.nodeClient)
             this.logger.debug(`NodeCreateReceipt: ${nodeCreateReceipt.toString()}`)
