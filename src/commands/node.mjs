@@ -1940,7 +1940,6 @@ export class NodeCommand extends BaseCommand {
         // logs will have a lot of white noise from being behind
         task: async (ctx, task) => {
           return this.addCheckNodesProxiesTask(ctx, task, ctx.config.allNodeIds)
-          const config = /** @type {NodeAddConfigClass} **/ ctx.config
         }
       },
       {
@@ -2725,7 +2724,7 @@ export class NodeCommand extends BaseCommand {
         // this is more reliable than checking the nodes logs for ACTIVE, as the
         // logs will have a lot of white noise from being behind
         task: async (ctx, task) => {
-          return this.addCheckNodesProxiesTask(ctx, task, config.allNodeIds)
+          return this.addCheckNodesProxiesTask(ctx, task, ctx.config.allNodeIds)
         }
       },
       {
