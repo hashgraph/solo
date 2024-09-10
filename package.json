@@ -27,7 +27,7 @@
     "merge-unit": "nyc merge ./coverage/unit/ .nyc_output/coverage.json",
     "report-coverage": "npm run merge-clean && npm run merge-unit && npm run merge-e2e && nyc report --reporter=json --reporter=html --reporter=lcov",
     "solo": "NODE_OPTIONS=--experimental-vm-modules node --no-deprecation solo.mjs",
-    "check": "remark . --quiet --frail && eslint .",
+    "check": "remark . --quiet --frail && eslint .; cd docs; jsdoc -c jsdoc.conf.json; cd ..",
     "format": "remark . --quiet --frail --output && eslint --fix .",
     "test-setup": "./test/e2e/setup-e2e.sh",
     "test-coverage": "npm run test && npm run test-setup && npm run test-e2e-all && npm run report-coverage"
@@ -54,6 +54,7 @@
     "got": "^14.4.2",
     "inquirer": "^10.2.0",
     "ip": "^2.0.1",
+    "jsdoc": "^4.0.3",
     "js-base64": "^3.7.7",
     "js-yaml": "^4.1.0",
     "listr2": "^8.2.4",
