@@ -178,6 +178,9 @@ jobs:
         run: |
           ${{ env.CG_EXEC }} npm run ${{ inputs.npm-test-script }}
 
+      - name: Setup tmate session
+        uses: mxschmitt/action-tmate@v3
+
       - name: RPC relay smoke test
         if: ${{ runner.os == 'linux' && inputs.npm-test-script == 'test-e2e-relay' && !cancelled() && !failure() }}
         run: |
