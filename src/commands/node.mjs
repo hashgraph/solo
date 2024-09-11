@@ -546,6 +546,11 @@ export class NodeCommand extends BaseCommand {
     })
   }
 
+  /**
+   * Transfer some hbar to the node for staking purpose
+   * @param existingNodeIds
+   * @return {Promise<void>}
+   */
   async checkStakingTask (existingNodeIds) {
     const accountMap = getNodeAccountMap(existingNodeIds)
     for (const nodeId of existingNodeIds) {
@@ -601,13 +606,15 @@ export class NodeCommand extends BaseCommand {
 
     let valuesArg = ''
     for (let i = 0; i < index; i++) {
-      if ((config.newAccountNumber && i !== nodeId) || !config.newAccountNumber) {
+      if ((config.newAccountNumber && i !== nodeId) || !config.newAccountNumber) { // for the case of updating node
         valuesArg += ` --set "hedera.nodes[${i}].accountId=${config.serviceMap.get(config.existingNodeIds[i]).accountId}" --set "hedera.nodes[${i}].name=${config.existingNodeIds[i]}"`
       } else {
         // use new account number for this node id
         valuesArg += ` --set "hedera.nodes[${i}].accountId=${config.newAccountNumber}" --set "hedera.nodes[${i}].name=${config.existingNodeIds[i]}"`
       }
     }
+
+    // for the case of adding new node
     if (ctx.newNode && ctx.newNode.accountId) {
       valuesArg += ` --set "hedera.nodes[${index}].accountId=${ctx.newNode.accountId}" --set "hedera.nodes[${index}].name=${ctx.newNode.name}"`
     }
@@ -659,7 +666,7 @@ export class NodeCommand extends BaseCommand {
    * @param config
    * @param isAddNode if this is an operation of adding a new node
    */
-  async identifyExistingNetworkNodes (ctx, task, config, isAddNode= false) {
+  async identifyExistingNetworkNodes (ctx, task, config, isAddNode = false) {
     config.existingNodeIds = []
     config.serviceMap = await this.accountManager.getNodeServiceMap(
       config.namespace)
