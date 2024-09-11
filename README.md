@@ -90,7 +90,7 @@ You can now use your cluster with:
 
 kubectl cluster-info --context kind-solo
 
-Have a nice day! 👋
+Not sure what to do next? 😅  Check out https://kind.sigs.k8s.io/docs/user/quick-start/
 ```
 
 You may now view pods in your cluster using `k9s -A` as below:
@@ -176,8 +176,8 @@ Kubernetes Namespace	: solo
 ✔ Generate gossip keys
 ✔ Backup old files
 ✔ TLS key for node: node2
-✔ TLS key for node: node1
 ✔ TLS key for node: node3
+✔ TLS key for node: node1
 ✔ Generate gRPC TLS keys
 ✔ Finalize
 ```
@@ -235,9 +235,9 @@ Kubernetes Namespace	: solo
 ✔ Copy Gossip keys to staging
 ✔ Copy gRPC TLS keys to staging
 ✔ Prepare staging directory
+✔ Copy TLS keys
 ✔ Copy Gossip keys
 ✔ Node: node2
-✔ Copy TLS keys
 ✔ Copy Gossip keys
 ✔ Node: node1
 ✔ Copy Gossip keys
@@ -248,12 +248,12 @@ Kubernetes Namespace	: solo
 ✔ Check Node: node2
 ✔ Check Node: node3
 ✔ Check node pods are running
-✔ Check Envoy Proxy for: node3
-✔ Check Envoy Proxy for: node2
 ✔ Check Envoy Proxy for: node1
+✔ Check Envoy Proxy for: node2
 ✔ Check HAProxy for: node2
-✔ Check HAProxy for: node1
 ✔ Check HAProxy for: node3
+✔ Check Envoy Proxy for: node3
+✔ Check HAProxy for: node1
 ✔ Check proxy pods are running
 ✔ Check MinIO
 ✔ Check auxiliary pods are ready
@@ -278,19 +278,19 @@ Kubernetes Namespace	: solo
 **********************************************************************************
 ✔ Initialize
 ✔ Check network pod: node3
-✔ Check network pod: node1
 ✔ Check network pod: node2
+✔ Check network pod: node1
 ✔ Identify network pods
-✔ Update node: node1 [ platformVersion = v0.42.5 ]
-✔ Update node: node2 [ platformVersion = v0.42.5 ]
 ✔ Update node: node3 [ platformVersion = v0.42.5 ]
+✔ Update node: node2 [ platformVersion = v0.42.5 ]
+✔ Update node: node1 [ platformVersion = v0.42.5 ]
 ✔ Fetch platform software into network nodes
-✔ Set file permissions
-✔ Node: node2
 ✔ Set file permissions
 ✔ Node: node1
 ✔ Set file permissions
 ✔ Node: node3
+✔ Set file permissions
+✔ Node: node2
 ✔ Setup network nodes
 ```
 
@@ -311,13 +311,13 @@ Kubernetes Cluster	: kind-solo
 Kubernetes Namespace	: solo
 **********************************************************************************
 ✔ Initialize
+✔ Check network pod: node2
 ✔ Check network pod: node1
 ✔ Check network pod: node3
-✔ Check network pod: node2
 ✔ Identify network pods
 ✔ Start node: node3
-✔ Start node: node1
 ✔ Start node: node2
+✔ Start node: node1
 ✔ Starting nodes
 *********************************** ERROR *****************************************
 Error starting node: node 'node1' is not ACTIVE [ attempt = 100/100 ]
@@ -495,9 +495,9 @@ Kubernetes Namespace	: solo
 ✔ Gossip pem key for node: node3
 ✔ Generate gossip keys
 ✔ Backup old files
-✔ TLS key for node: node2
-✔ TLS key for node: node1
 ✔ TLS key for node: node3
+✔ TLS key for node: node1
+✔ TLS key for node: node2
 ✔ Generate gRPC TLS keys
 ✔ Finalize
 ```
@@ -578,6 +578,57 @@ solo node setup --local-build-path <default path to hedera repo>,node1=<custom b
 You can find log for running solo command under the directory `~/.solo/logs/`
 The file `solo.log` contains the logs for the solo command.
 The file `hashgraph-sdk.log` contains the logs from solo client when sending transactions to network nodes.
+
+## Using Intellj remote debug with solo
+
+NOTE: the hedera-services path referenced '../hedera-services/hedera-node/data' may need to be updated based on what directory you are currently in.  This also assumes that you have done an assemble/build and the directory contents are up-to-date.
+
+Example 1: attach jvm debugger to a hedera node
+```bash
+./test/e2e/setup-e2e.sh
+solo node keys --gossip-keys --tls-keys
+solo network deploy -i node1,node2,node3 --debug-nodeid node2
+solo node setup -i node1,node2,node3 --local-build-path ../hedera-services/hedera-node/data
+solo node start -i node1,node2,node3 --debug-nodeid node2
+```
+
+Once you see the following message, you can launch jvm debugger from Intellij
+```
+  Check node: node1,
+  Check node: node3,  Please attach JVM debugger now.
+  Check node: node4,
+```
+
+Example 2: attach jvm debugger with node add operation
+
+```bash
+./test/e2e/setup-e2e.sh
+solo node keys --gossip-keys --tls-keys 
+solo network deploy -i node1,node2,node3 --pvcs
+solo node setup -i node1,node2,node3 --local-build-path ../hedera-services/hedera-node/data
+solo node start -i node1,node2,node3
+solo node add --gossip-keys --tls-keys --node-id node4 --debug-nodeid node4 --local-build-path ../hedera-services/hedera-node/data
+```
+
+Example 3: attach jvm debugger with node update operation
+```bash
+./test/e2e/setup-e2e.sh
+solo node keys --gossip-keys --tls-keys 
+solo network deploy -i node1,node2,node3
+solo node setup -i node1,node2,node3 --local-build-path ../hedera-services/hedera-node/data
+solo node start -i node1,node2,node3
+solo node update --node-id node2  --debug-nodeid node2 --local-build-path ../hedera-services/hedera-node/data --new-account-number 0.0.7 --gossip-public-key ./s-public-node2.pem --gossip-private-key ./s-private-node2.pem --agreement-public-key ./a-public-node2.pem --agreement-private-key ./a-private-node2.pem
+```
+
+Example 4: attach jvm debugger with node delete operation
+```bash
+./test/e2e/setup-e2e.sh
+solo node keys --gossip-keys --tls-keys 
+solo network deploy -i node1,node2,node3,node4
+solo node setup -i node1,node2,node3,node4 --local-build-path ../hedera-services/hedera-node/data
+solo node start -i node1,node2,node3,node4
+solo node delete --node-id node2  --debug-nodeid node3
+```
 
 ## Support
 

@@ -99,7 +99,6 @@ describe('NetworkCommand', () => {
 
       expect(networkCmd.getUnusedConfigs(NetworkCommand.DEPLOY_CONFIGS_NAME)).toEqual([
         flags.apiPermissionProperties.constName,
-        flags.app.constName,
         flags.applicationEnv.constName,
         flags.applicationProperties.constName,
         flags.bootstrapProperties.constName,

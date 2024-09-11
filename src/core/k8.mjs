@@ -212,7 +212,7 @@ export class K8 {
   /**
    * Get pods by labels
    * @param {string[]} labels - list of labels
-   * @returns {Promise<Array<import('@kubernetes/client-node').V1Pod>>}
+   * @returns {Promise<Array<V1Pod>>}
    */
   async getPodsByLabel (labels = []) {
     const ns = this._getNamespace()
@@ -342,7 +342,7 @@ export class K8 {
    * @param {string} containerName
    * @param {string} destPath - path inside the container
    * @param {number} [timeout] - timeout in ms
-   * @returns {Promise<{owner: string, size: number, modifiedAt: string, name: string, directory: boolean, group: string}[]>}
+   * @returns {Promise<{owner: string, size: number, modifiedAt: string, name: string, directory: boolean, group: string}>}
    * array of directory entries, custom object
    */
   async listDir (podName, containerName, destPath, timeout = 5000) {
@@ -571,7 +571,7 @@ export class K8 {
       const self = this
       return new Promise((resolve, reject) => {
         const execInstance = new k8s.Exec(this.kubeConfig)
-        const command = ['tar', 'zcf', '-', '-C', srcDir, srcFile]
+        const command = ['tar', 'cf', '-', '-C', srcDir, srcFile]
         const writerStream = fs.createWriteStream(tmpFile)
         const errStream = new sb.WritableStreamBuffer()
 
