@@ -163,7 +163,7 @@ jobs:
         if: ${{ runner.os == 'linux' && (inputs.npm-test-script == 'test-e2e-node-local-build' || inputs.npm-test-script == 'test-e2e-node-add') && !cancelled() && !failure() }}
         run: |
           cd ..
-          git clone https://github.com/hashgraph/hedera-services.git  --branch v0.54.0-alpha.3-124eaf46
+          git clone https://github.com/hashgraph/hedera-services.git  --branch v0.54.0-alpha.3
           cd hedera-services
           ls -ltr
           ${{ env.CG_EXEC }} ./gradlew assemble --stacktrace --info
