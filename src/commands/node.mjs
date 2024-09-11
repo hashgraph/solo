@@ -601,7 +601,7 @@ export class NodeCommand extends BaseCommand {
 
     let valuesArg = ''
     for (let i = 0; i < index; i++) {
-      if (config.newAccountNumber && i !== nodeId) {
+      if ((config.newAccountNumber && i !== nodeId) || !config.newAccountNumber) {
         valuesArg += ` --set "hedera.nodes[${i}].accountId=${config.serviceMap.get(config.existingNodeIds[i]).accountId}" --set "hedera.nodes[${i}].name=${config.existingNodeIds[i]}"`
       } else {
         // use new account number for this node id
