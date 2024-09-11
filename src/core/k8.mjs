@@ -654,7 +654,6 @@ export class K8 {
       const errStream = new sb.WritableStreamBuffer()
 
       self.logger.debug(`Running exec ${podName} -c ${containerName} -- ${command.join(' ')}`)
-      console.log(`Running exec ${podName} -c ${containerName} -- ${command.join(' ')}`)
       execInstance.exec(
         ns,
         podName,
@@ -666,11 +665,6 @@ export class K8 {
         false,
         ({ status }) => {
           if (status === 'Failure' || errStream.size()) {
-            console.log(`ERROR: Finished exec ${podName} -c ${containerName} -- ${command.join(' ')}`)
-            console.log('errStream:')
-            console.log(errStream.getContentsAsString())
-            console.log('outStream:')
-            console.log(outStream.getContentsAsString())
             reject(new FullstackTestingError(`Exec error:
               [exec ${podName} -c ${containerName} -- ${command.join(' ')}'] - error details:
               ${errStream.getContentsAsString()}`))

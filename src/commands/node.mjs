@@ -1542,7 +1542,7 @@ export class NodeCommand extends BaseCommand {
 
         config.allNodeIds = [...config.existingNodeIds]
         if (ctx.newNode) {
-          config.allNodeIds.push(ctx.newNode.name)
+          config.allNodeIds.push(config.nodeId)
         }
 
         return self.taskCheckNetworkNodePods(ctx, task, config.existingNodeIds)
@@ -1595,13 +1595,14 @@ export class NodeCommand extends BaseCommand {
             accountId: `${constants.HEDERA_NODE_ACCOUNT_ID_START.realm}.${constants.HEDERA_NODE_ACCOUNT_ID_START.shard}.${++maxNum}`,
             name: lastNodeName
           }
+          config.nodeId = lastNodeName
         }
       },
       {
         title: 'Generate Gossip key',
         task: async (ctx, parentTask) => {
           const config = /** @type {NodeAddConfigClass} **/ ctx.config
-          const subTasks = self.keyManager.taskGenerateGossipKeys(self.keytoolDepManager, [ctx.newNode.name], config.keysDir, config.curDate, config.allNodeIds)
+          const subTasks = self.keyManager.taskGenerateGossipKeys(self.keytoolDepManager, [config.nodeId], config.keysDir, config.curDate, config.allNodeIds)
           // set up the sub-tasks
           return parentTask.newListr(subTasks, {
             concurrent: false,
@@ -1617,7 +1618,7 @@ export class NodeCommand extends BaseCommand {
         title: 'Generate gRPC TLS key',
         task: async (ctx, parentTask) => {
           const config = /** @type {NodeAddConfigClass} **/ ctx.config
-          const subTasks = self.keyManager.taskGenerateTLSKeys([ctx.newNode.name], config.keysDir, config.curDate)
+          const subTasks = self.keyManager.taskGenerateTLSKeys([config.nodeId], config.keysDir, config.curDate)
           // set up the sub-tasks
           return parentTask.newListr(subTasks, {
             concurrent: false,
@@ -1633,7 +1634,7 @@ export class NodeCommand extends BaseCommand {
         title: 'Load signing key certificate',
         task: async (ctx, task) => {
           const config = /** @type {NodeAddConfigClass} **/ ctx.config
-          const signingCertFile = Templates.renderGossipPemPublicKeyFile(constants.SIGNING_KEY_PREFIX, ctx.newNode.name)
+          const signingCertFile = Templates.renderGossipPemPublicKeyFile(constants.SIGNING_KEY_PREFIX, config.nodeId)
           const signingCertFullPath = path.join(config.keysDir, signingCertFile)
           ctx.signingCertDer = await this.loadPermCertificate(signingCertFullPath)
         }
@@ -1642,7 +1643,7 @@ export class NodeCommand extends BaseCommand {
         title: 'Compute mTLS certificate hash',
         task: async (ctx, task) => {
           const config = /** @type {NodeAddConfigClass} **/ ctx.config
-          const tlsCertFile = Templates.renderTLSPemPublicKeyFile(ctx.newNode.name)
+          const tlsCertFile = Templates.renderTLSPemPublicKeyFile(config.nodeId)
           const tlsCertFullPath = path.join(config.keysDir, tlsCertFile)
           const tlsCertDer = await this.loadPermCertificate(tlsCertFullPath)
           ctx.tlsCertHash = crypto.createHash('sha384').update(tlsCertDer).digest()
@@ -1659,8 +1660,8 @@ export class NodeCommand extends BaseCommand {
             }
 
             endpoints = [
-              `${Templates.renderFullyQualifiedNetworkPodName(config.namespace, ctx.newNode.name)}:${constants.HEDERA_NODE_INTERNAL_GOSSIP_PORT}`,
-              `${Templates.renderFullyQualifiedNetworkSvcName(config.namespace, ctx.newNode.name)}:${constants.HEDERA_NODE_EXTERNAL_GOSSIP_PORT}`
+              `${Templates.renderFullyQualifiedNetworkPodName(config.namespace, config.nodeId)}:${constants.HEDERA_NODE_INTERNAL_GOSSIP_PORT}`,
+              `${Templates.renderFullyQualifiedNetworkSvcName(config.namespace, config.nodeId)}:${constants.HEDERA_NODE_EXTERNAL_GOSSIP_PORT}`
             ]
           } else {
             endpoints = helpers.splitFlagInput(config.gossipEndpoints)
@@ -1681,7 +1682,7 @@ export class NodeCommand extends BaseCommand {
             }
 
             endpoints = [
-              `${Templates.renderFullyQualifiedNetworkSvcName(config.namespace, ctx.newNode.name)}:${constants.HEDERA_NODE_EXTERNAL_GOSSIP_PORT}`
+              `${Templates.renderFullyQualifiedNetworkSvcName(config.namespace, config.nodeId)}:${constants.HEDERA_NODE_EXTERNAL_GOSSIP_PORT}`
             ]
           } else {
             endpoints = helpers.splitFlagInput(config.grpcEndpoints)
@@ -1720,6 +1721,7 @@ export class NodeCommand extends BaseCommand {
       title: 'Save context data',
       task: async (ctx, task) => {
         if (argv.exportCtxData) {
+          const config = /** @type {NodeAddConfigClass} **/ ctx.config
           const outputDir = argv[flags.outputDir.name]
           if (!outputDir) {
             throw new FullstackTestingError(`Path to export context data not specified. Please set a value for --${flags.outputDir.name}`)
@@ -1755,6 +1757,7 @@ export class NodeCommand extends BaseCommand {
       title: 'Load context data',
       task: async (ctx, task) => {
         if (argv.importCtxData) {
+          const config = /** @type {NodeAddConfigClass} **/ ctx.config
           const inputDir = argv[flags.inputDir.name]
           if (!inputDir) {
             throw new FullstackTestingError(`Path to context data not specified. Please set a value for --${flags.inputDir.name}`)
@@ -1765,6 +1768,7 @@ export class NodeCommand extends BaseCommand {
           ctx.gossipEndpoints = this.prepareEndpoints(ctx.config.endpointType, ctxData.gossipEndpoints, constants.HEDERA_NODE_INTERNAL_GOSSIP_PORT)
           ctx.grpcServiceEndpoints = this.prepareEndpoints(ctx.config.endpointType, ctxData.grpcServiceEndpoints, constants.HEDERA_NODE_EXTERNAL_GOSSIP_PORT)
           ctx.adminKey = PrivateKey.fromStringED25519(ctxData.adminKey)
+          config.nodeId = ctxData.newNode.name
 
           const fieldsToImport = [
             'tlsCertHash',
@@ -1931,7 +1935,7 @@ export class NodeCommand extends BaseCommand {
           for (let i = 0; i < index; i++) {
             valuesArg += ` --set "hedera.nodes[${i}].accountId=${config.serviceMap.get(config.existingNodeIds[i]).accountId}" --set "hedera.nodes[${i}].name=${config.existingNodeIds[i]}"`
           }
-          valuesArg += ` --set "hedera.nodes[${index}].accountId=${ctx.newNode.accountId}" --set "hedera.nodes[${index}].name=${ctx.newNode.name}"`
+          valuesArg += ` --set "hedera.nodes[${index}].accountId=${ctx.newNode.accountId}" --set "hedera.nodes[${index}].name=${config.nodeId}"`
 
           this.profileValuesFile = await self.profileManager.prepareValuesForNodeAdd(
             path.join(config.stagingDir, 'config.txt'),
@@ -1994,7 +1998,7 @@ export class NodeCommand extends BaseCommand {
             const config = /** @type {NodeAddConfigClass} **/ ctx.config
             config.serviceMap = await self.accountManager.getNodeServiceMap(
               config.namespace)
-            config.podNames[ctx.newNode.name] = config.serviceMap.get(ctx.newNode.name).nodePodName
+            config.podNames[config.nodeId] = config.serviceMap.get(config.nodeId).nodePodName
 
             return self.fetchLocalOrReleasedPlatformSoftware(config.allNodeIds, config.podNames, config.releaseTag, task, config.localBuildPath)
           }
@@ -2016,8 +2020,8 @@ export class NodeCommand extends BaseCommand {
         task:
             async (ctx, task) => {
               const config = /** @type {NodeAddConfigClass} **/ ctx.config
-              const newNodeFullyQualifiedPodName = Templates.renderNetworkPodName(ctx.newNode.name)
-              const nodeNumber = Templates.nodeNumberFromNodeId(ctx.newNode.name)
+              const newNodeFullyQualifiedPodName = Templates.renderNetworkPodName(config.nodeId)
+              const nodeNumber = Templates.nodeNumberFromNodeId(config.nodeId)
               const savedStateDir = (config.lastStateZipPath.match(/\/(\d+)\.zip$/))[1]
               const savedStatePath = `${constants.HEDERA_HAPI_PATH}/data/saved/com.hedera.services.ServicesMain/${nodeNumber}/123/${savedStateDir}`
               await self.k8.execContainer(newNodeFullyQualifiedPodName, constants.ROOT_CONTAINER, ['bash', '-c', `mkdir -p ${savedStatePath}`])
