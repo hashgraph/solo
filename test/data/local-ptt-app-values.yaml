@@ -1,5 +1,0 @@
-defaults:
-  root:
-    extraEnv:
-      - name: JAVA_MAIN_CLASS
-        value: com.swirlds.platform.Browser

@@ -23,6 +23,7 @@ import path from 'path'
 import { FullstackTestingError, IllegalArgumentError } from '../core/errors.mjs'
 import * as helpers from '../core/helpers.mjs'
 import {
+  addDebugOptions,
   getNodeAccountMap,
   getNodeLogs,
   renameAndCopyFile,
@@ -97,6 +98,7 @@ export class NodeCommand extends BaseCommand {
    */
   static get SETUP_FLAGS_LIST () {
     return [
+      flags.app,
       flags.appConfig,
       flags.cacheDir,
       flags.devMode,
@@ -166,6 +168,7 @@ export class NodeCommand extends BaseCommand {
       flags.chainId,
       flags.chartDirectory,
       flags.devMode,
+      flags.debugNodeId,
       flags.endpointType,
       flags.fstChartVersion,
       flags.generateGossipKeys,
@@ -189,6 +192,7 @@ export class NodeCommand extends BaseCommand {
       flags.cacheDir,
       flags.chartDirectory,
       flags.devMode,
+      flags.debugNodeId,
       flags.endpointType,
       flags.localBuildPath,
       flags.namespace,
@@ -209,6 +213,7 @@ export class NodeCommand extends BaseCommand {
       flags.cacheDir,
       flags.chartDirectory,
       flags.devMode,
+      flags.debugNodeId,
       flags.endpointType,
       flags.fstChartVersion,
       flags.gossipEndpoints,
@@ -676,6 +681,7 @@ export class NodeCommand extends BaseCommand {
 
           // disable the prompts that we don't want to prompt the user for
           prompts.disablePrompts([
+            flags.app,
             flags.appConfig,
             flags.devMode,
             flags.localBuildPath
@@ -788,6 +794,7 @@ export class NodeCommand extends BaseCommand {
           ctx.config = {
             app: self.configManager.getFlag(flags.app),
             cacheDir: self.configManager.getFlag(flags.cacheDir),
+            debugNodeId: self.configManager.getFlag(flags.debugNodeId),
             namespace: self.configManager.getFlag(flags.namespace),
             nodeIds: helpers.parseNodeIds(self.configManager.getFlag(flags.nodeIDs))
           }
@@ -803,8 +810,20 @@ export class NodeCommand extends BaseCommand {
         }
       },
       {
-        title: 'Identify network pods',
-        task: (ctx, task) => self.taskCheckNetworkNodePods(ctx, task, ctx.config.nodeIds)
+        title: 'Identify existing network nodes',
+        task: async (ctx, task) => {
+          const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
+          config.existingNodeIds = []
+          config.serviceMap = await self.accountManager.getNodeServiceMap(
+            config.namespace)
+          for (/** @type {NetworkNodeServices} **/ const networkNodeServices of config.serviceMap.values()) {
+            config.existingNodeIds.push(networkNodeServices.nodeName)
+          }
+
+          config.allNodeIds = [...config.existingNodeIds]
+
+          return self.taskCheckNetworkNodePods(ctx, task, config.existingNodeIds)
+        }
       },
       {
         title: 'Starting nodes',
@@ -823,18 +842,29 @@ export class NodeCommand extends BaseCommand {
         }
       },
       {
+        title: 'Enable port forwarding for JVM debugger',
+        task: async (ctx, _) => {
+          await this.enableJVMPortForwarding(ctx.config.debugNodeId)
+        },
+        skip: (ctx, _) => !ctx.config.debugNodeId
+      },
+      {
         title: 'Check nodes are ACTIVE',
         task: (ctx, task) => {
           const subTasks = []
           for (const nodeId of ctx.config.nodeIds) {
+            let reminder = ''
+            if (ctx.config.debugNodeId === nodeId) {
+              reminder = ' Please attach JVM debugger now.'
+            }
             if (self.configManager.getFlag(flags.app) !== '' && self.configManager.getFlag(flags.app) !== constants.HEDERA_APP_NAME) {
               subTasks.push({
-                title: `Check node: ${chalk.yellow(nodeId)}`,
+                title: `Check node: ${chalk.yellow(nodeId)} ${chalk.red(reminder)}`,
                 task: async () => await self.checkNetworkNodeState(nodeId, 100, 'ACTIVE', 'output/swirlds.log')
               })
             } else {
               subTasks.push({
-                title: `Check node: ${chalk.yellow(nodeId)}`,
+                title: `Check node: ${chalk.yellow(nodeId)} ${chalk.red(reminder)}`,
                 task: async () => await self.checkNetworkNodeState(nodeId)
               })
             }
@@ -842,7 +872,7 @@ export class NodeCommand extends BaseCommand {
 
           // set up the sub-tasks
           return task.newListr(subTasks, {
-            concurrent: false,
+            concurrent: true,
             rendererOptions: {
               collapseSubtasks: false
             }
@@ -1227,7 +1257,7 @@ export class NodeCommand extends BaseCommand {
           const config = /** @type {NodeRefreshConfigClass} **/ ctx.config
           const subTasks = []
           for (const nodeId of ctx.config.nodeIds) {
-            if (config.app !== '' && config.app !== constants.HEDERA_APP_NAME) {
+            if (config.app !== constants.HEDERA_APP_NAME) {
               subTasks.push({
                 title: `Check node: ${chalk.yellow(nodeId)}`,
                 task: async () => await self.checkNetworkNodeState(nodeId, 100, 'ACTIVE', 'output/swirlds.log')
@@ -1350,6 +1380,7 @@ export class NodeCommand extends BaseCommand {
             flags.chainId,
             flags.chartDirectory,
             flags.devMode,
+            flags.debugNodeId,
             flags.endpointType,
             flags.fstChartVersion,
             flags.localBuildPath,
@@ -1367,6 +1398,7 @@ export class NodeCommand extends BaseCommand {
            * @property {string} chainId
            * @property {string} chartDirectory
            * @property {boolean} devMode
+           * @property {string} debugNodeId
            * @property {string} endpointType
            * @property {string} fstChartVersion
            * @property {boolean} generateGossipKeys
@@ -1606,7 +1638,7 @@ export class NodeCommand extends BaseCommand {
         task: async (ctx, task) => {
           const config = /** @type {NodeAddConfigClass} **/ ctx.config
           self.logger.info('sleep 60 seconds for the handler to be able to trigger the network node stake weight recalculate')
-          await sleep(60000)
+          await sleep(15000)
           const accountMap = getNodeAccountMap(config.existingNodeIds)
           for (const nodeId of config.existingNodeIds) {
             const accountId = accountMap.get(nodeId)
@@ -1757,6 +1789,7 @@ export class NodeCommand extends BaseCommand {
           if (this.profileValuesFile) {
             valuesArg += this.prepareValuesFiles(this.profileValuesFile)
           }
+          valuesArg = addDebugOptions(valuesArg, config.debugNodeId)
 
           await self.chartManager.upgrade(
             config.namespace,
@@ -1884,14 +1917,25 @@ export class NodeCommand extends BaseCommand {
         }
       },
       {
+        title: 'Enable port forwarding for JVM debugger',
+        task: async (ctx, _) => {
+          await this.enableJVMPortForwarding(ctx.config.debugNodeId)
+        },
+        skip: (ctx, _) => !ctx.config.debugNodeId
+      },
+      {
         title: 'Check all nodes are ACTIVE',
         task: async (ctx, task) => {
           const subTasks = []
           self.logger.info('sleep for 30 seconds to give time for the logs to roll over to prevent capturing an invalid "ACTIVE" string')
           await sleep(30000)
           for (const nodeId of ctx.config.allNodeIds) {
+            let reminder = ''
+            if (ctx.config.debugNodeId === nodeId) {
+              reminder = ' Please attach JVM debugger now.'
+            }
             subTasks.push({
-              title: `Check node: ${chalk.yellow(nodeId)}`,
+              title: `Check node: ${chalk.yellow(nodeId)} ${chalk.red(reminder)}`,
               task: async () => await self.checkNetworkNodeState(nodeId, 200)
             })
           }
@@ -2049,6 +2093,12 @@ export class NodeCommand extends BaseCommand {
     }
   }
 
+  async enableJVMPortForwarding (nodeId) {
+    const podName = `network-${nodeId}-0`
+    this.logger.debug(`Enable port forwarding for JVM debugger on pod ${podName}`)
+    await this.k8.portForward(podName, constants.JVM_DEBUG_PORT, constants.JVM_DEBUG_PORT)
+  }
+
   /**
    * @param {Object} podNames
    * @param {string} nodeIds
@@ -2103,6 +2153,7 @@ export class NodeCommand extends BaseCommand {
             desc: 'Start a node',
             builder: y => flags.setCommandFlags(y,
               flags.app,
+              flags.debugNodeId,
               flags.namespace,
               flags.nodeIDs
             ),
@@ -2264,6 +2315,7 @@ export class NodeCommand extends BaseCommand {
             flags.app,
             flags.chartDirectory,
             flags.devMode,
+            flags.debugNodeId,
             flags.endpointType,
             flags.force,
             flags.fstChartVersion,
@@ -2289,6 +2341,7 @@ export class NodeCommand extends BaseCommand {
            * @property {string} cacheDir
            * @property {string} chartDirectory
            * @property {boolean} devMode
+           * @property {string} debugNodeId
            * @property {string} endpointType
            * @property {string} fstChartVersion
            * @property {string} gossipEndpoints
@@ -2638,6 +2691,8 @@ export class NodeCommand extends BaseCommand {
             valuesArg += this.prepareValuesFiles(this.profileValuesFile)
           }
 
+          valuesArg = addDebugOptions(valuesArg, config.debugNodeId)
+
           await self.chartManager.upgrade(
             config.namespace,
             constants.FULLSTACK_DEPLOYMENT_CHART,
@@ -2647,7 +2702,7 @@ export class NodeCommand extends BaseCommand {
           )
         },
         // no need to run this step if the account number is not changed, since config.txt will be the same
-        skip: (ctx, _) => !ctx.config.newAccountNumber
+        skip: (ctx, _) => !ctx.config.newAccountNumber && !ctx.config.debugNodeId
       },
       {
         title: 'Kill nodes to pick up updated configMaps',
@@ -2748,14 +2803,25 @@ export class NodeCommand extends BaseCommand {
         }
       },
       {
+        title: 'Enable port forwarding for JVM debugger',
+        task: async (ctx, _) => {
+          await this.enableJVMPortForwarding(ctx.config.debugNodeId)
+        },
+        skip: (ctx, _) => !ctx.config.debugNodeId
+      },
+      {
         title: 'Check all nodes are ACTIVE',
         task: async (ctx, task) => {
           const subTasks = []
           self.logger.info('sleep for 30 seconds to give time for the logs to roll over to prevent capturing an invalid "ACTIVE" string')
           await sleep(30000)
           for (const nodeId of ctx.config.allNodeIds) {
+            let reminder = ''
+            if (ctx.config.debugNodeId === nodeId) {
+              reminder = ' Please attach JVM debugger now.'
+            }
             subTasks.push({
-              title: `Check node: ${chalk.yellow(nodeId)}`,
+              title: `Check node: ${chalk.yellow(nodeId)} ${chalk.red(reminder)}`,
               task: async () => await self.checkNetworkNodeState(nodeId, 200)
             })
           }
@@ -2858,6 +2924,7 @@ export class NodeCommand extends BaseCommand {
             flags.chainId,
             flags.chartDirectory,
             flags.devMode,
+            flags.debugNodeId,
             flags.endpointType,
             flags.force,
             flags.fstChartVersion,
@@ -2873,6 +2940,7 @@ export class NodeCommand extends BaseCommand {
            * @property {string} cacheDir
            * @property {string} chartDirectory
            * @property {boolean} devMode
+           * @property {string} debugNodeId
            * @property {string} endpointType
            * @property {string} fstChartVersion
            * @property {string} localBuildPath
@@ -3124,6 +3192,8 @@ export class NodeCommand extends BaseCommand {
             valuesArg += this.prepareValuesFiles(this.profileValuesFile)
           }
 
+          valuesArg = addDebugOptions(valuesArg, config.debugNodeId)
+
           await self.chartManager.upgrade(
             config.namespace,
             constants.FULLSTACK_DEPLOYMENT_CHART,
@@ -3225,14 +3295,25 @@ export class NodeCommand extends BaseCommand {
         }
       },
       {
+        title: 'Enable port forwarding for JVM debugger',
+        task: async (ctx, _) => {
+          await this.enableJVMPortForwarding(ctx.config.debugNodeId)
+        },
+        skip: (ctx, _) => !ctx.config.debugNodeId
+      },
+      {
         title: 'Check all nodes are ACTIVE',
         task: async (ctx, task) => {
           const subTasks = []
           self.logger.info('sleep for 30 seconds to give time for the logs to roll over to prevent capturing an invalid "ACTIVE" string')
           await sleep(30000)
           for (const nodeId of ctx.config.allNodeIds) {
+            let reminder = ''
+            if (ctx.config.debugNodeId === nodeId) {
+              reminder = ' Please attach JVM debugger now.'
+            }
             subTasks.push({
-              title: `Check node: ${chalk.yellow(nodeId)}`,
+              title: `Check node: ${chalk.yellow(nodeId)}, ${chalk.red(reminder)}`,
               task: async () => await self.checkNetworkNodeState(nodeId, 200)
             })
           }
