@@ -448,6 +448,42 @@ export class NodeCommand extends BaseCommand {
   }
 
   /**
+   *
+   * @param {string} debugNodeId
+   * @param {TaskWrapper} task
+   * @param {string[]} nodeIds
+   * @return {Listr<any, any, any>}
+   */
+  checkNodeActiveTask (debugNodeId, task, nodeIds) {
+    const subTasks = []
+    for (const nodeId of nodeIds) {
+      let reminder = ''
+      if (debugNodeId === nodeId) {
+        reminder = ' Please attach JVM debugger now.'
+      }
+      if (this.configManager.getFlag(flags.app) !== '' && this.configManager.getFlag(flags.app) !== constants.HEDERA_APP_NAME) {
+        subTasks.push({
+          title: `Check node: ${chalk.yellow(nodeId)} ${chalk.red(reminder)}`,
+          task: async () => await this.checkNetworkNodeState(nodeId, 100, 'ACTIVE', 'output/swirlds.log')
+        })
+      } else {
+        subTasks.push({
+          title: `Check node: ${chalk.yellow(nodeId)} ${chalk.red(reminder)}`,
+          task: async () => await this.checkNetworkNodeState(nodeId)
+        })
+      }
+    }
+
+    // set up the sub-tasks
+    return task.newListr(subTasks, {
+      concurrent: true,
+      rendererOptions: {
+        collapseSubtasks: false
+      }
+    })
+  }
+
+  /**
    * Return task for checking for if node is in freeze state
    * @param {any} ctx
    * @param {TaskWrapper} task
@@ -1099,32 +1135,7 @@ export class NodeCommand extends BaseCommand {
       {
         title: 'Check nodes are ACTIVE',
         task: (ctx, task) => {
-          const subTasks = []
-          for (const nodeId of ctx.config.nodeIds) {
-            let reminder = ''
-            if (ctx.config.debugNodeId === nodeId) {
-              reminder = ' Please attach JVM debugger now.'
-            }
-            if (self.configManager.getFlag(flags.app) !== '' && self.configManager.getFlag(flags.app) !== constants.HEDERA_APP_NAME) {
-              subTasks.push({
-                title: `Check node: ${chalk.yellow(nodeId)} ${chalk.red(reminder)}`,
-                task: async () => await self.checkNetworkNodeState(nodeId, 100, 'ACTIVE', 'output/swirlds.log')
-              })
-            } else {
-              subTasks.push({
-                title: `Check node: ${chalk.yellow(nodeId)} ${chalk.red(reminder)}`,
-                task: async () => await self.checkNetworkNodeState(nodeId)
-              })
-            }
-          }
-
-          // set up the sub-tasks
-          return task.newListr(subTasks, {
-            concurrent: true,
-            rendererOptions: {
-              collapseSubtasks: false
-            }
-          })
+          return this.checkNodeActiveTask(ctx.config.debugNodeId, task, ctx.config.nodeIds)
         }
       },
       {
@@ -1458,29 +1469,7 @@ export class NodeCommand extends BaseCommand {
       {
         title: 'Check nodes are ACTIVE',
         task: (ctx, task) => {
-          const config = /** @type {NodeRefreshConfigClass} **/ ctx.config
-          const subTasks = []
-          for (const nodeId of ctx.config.nodeIds) {
-            if (config.app !== constants.HEDERA_APP_NAME) {
-              subTasks.push({
-                title: `Check node: ${chalk.yellow(nodeId)}`,
-                task: async () => await self.checkNetworkNodeState(nodeId, 100, 'ACTIVE', 'output/swirlds.log')
-              })
-            } else {
-              subTasks.push({
-                title: `Check node: ${chalk.yellow(nodeId)}`,
-                task: async () => await self.checkNetworkNodeState(nodeId)
-              })
-            }
-          }
-
-          // set up the sub-tasks
-          return task.newListr(subTasks, {
-            concurrent: false,
-            rendererOptions: {
-              collapseSubtasks: false
-            }
-          })
+          return this.checkNodeActiveTask(ctx.config.debugNodeId, task, ctx.config.nodeIds)
         }
       },
       {
@@ -1985,27 +1974,7 @@ export class NodeCommand extends BaseCommand {
       {
         title: 'Check all nodes are ACTIVE',
         task: async (ctx, task) => {
-          const subTasks = []
-          self.logger.info('sleep for 30 seconds to give time for the logs to roll over to prevent capturing an invalid "ACTIVE" string')
-          await sleep(30000)
-          for (const nodeId of ctx.config.allNodeIds) {
-            let reminder = ''
-            if (ctx.config.debugNodeId === nodeId) {
-              reminder = ' Please attach JVM debugger now.'
-            }
-            subTasks.push({
-              title: `Check node: ${chalk.yellow(nodeId)} ${chalk.red(reminder)}`,
-              task: async () => await self.checkNetworkNodeState(nodeId, 200)
-            })
-          }
-
-          // set up the sub-tasks
-          return task.newListr(subTasks, {
-            concurrent: false,
-            rendererOptions: {
-              collapseSubtasks: false
-            }
-          })
+          return this.checkNodeActiveTask(ctx.config.debugNodeId, task, ctx.config.allNodeIds)
         }
       },
       {
@@ -2713,27 +2682,7 @@ export class NodeCommand extends BaseCommand {
       {
         title: 'Check all nodes are ACTIVE',
         task: async (ctx, task) => {
-          const subTasks = []
-          self.logger.info('sleep for 30 seconds to give time for the logs to roll over to prevent capturing an invalid "ACTIVE" string')
-          await sleep(30000)
-          for (const nodeId of ctx.config.allNodeIds) {
-            let reminder = ''
-            if (ctx.config.debugNodeId === nodeId) {
-              reminder = ' Please attach JVM debugger now.'
-            }
-            subTasks.push({
-              title: `Check node: ${chalk.yellow(nodeId)} ${chalk.red(reminder)}`,
-              task: async () => await self.checkNetworkNodeState(nodeId, 200)
-            })
-          }
-
-          // set up the sub-tasks
-          return task.newListr(subTasks, {
-            concurrent: false,
-            rendererOptions: {
-              collapseSubtasks: false
-            }
-          })
+          return this.checkNodeActiveTask(ctx.config.debugNodeId, task, ctx.config.allNodeIds)
         }
       },
       {
@@ -3048,27 +2997,7 @@ export class NodeCommand extends BaseCommand {
       {
         title: 'Check all nodes are ACTIVE',
         task: async (ctx, task) => {
-          const subTasks = []
-          self.logger.info('sleep for 30 seconds to give time for the logs to roll over to prevent capturing an invalid "ACTIVE" string')
-          await sleep(30000)
-          for (const nodeId of ctx.config.allNodeIds) {
-            let reminder = ''
-            if (ctx.config.debugNodeId === nodeId) {
-              reminder = ' Please attach JVM debugger now.'
-            }
-            subTasks.push({
-              title: `Check node: ${chalk.yellow(nodeId)}, ${chalk.red(reminder)}`,
-              task: async () => await self.checkNetworkNodeState(nodeId, 200)
-            })
-          }
-
-          // set up the sub-tasks
-          return task.newListr(subTasks, {
-            concurrent: false,
-            rendererOptions: {
-              collapseSubtasks: false
-            }
-          })
+          return this.checkNodeActiveTask(ctx.config.debugNodeId, task, ctx.config.allNodeIds)
         }
       },
       {
