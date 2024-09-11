@@ -91,18 +91,6 @@ export function testNodeAdd (localBuildPath
       await nodeCmd.accountManager.close()
     }, 800000)
 
-    // it('should add a new node to the network via the segregated commands successfully', async () => {
-    //   await nodeCmd.addPrepare(argvPrepare)
-    //   await nodeCmd.addSubmitTransactions(argvExecute)
-    //   await nodeCmd.addExecute(argvExecute)
-    //   expect(nodeCmd.getUnusedConfigs(NodeCommand.ADD_CONFIGS_NAME)).toEqual([
-    //     flags.app.constName,
-    //     flags.chainId.constName,
-    //     flags.devMode.constName
-    //   ])
-    //   await nodeCmd.accountManager.close()
-    // }, 800000)
-
     balanceQueryShouldSucceed(nodeCmd.accountManager, nodeCmd, namespace)
 
     accountCreationShouldSucceed(nodeCmd.accountManager, nodeCmd, namespace)

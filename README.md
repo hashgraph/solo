@@ -584,6 +584,7 @@ The file `hashgraph-sdk.log` contains the logs from solo client when sending tra
 NOTE: the hedera-services path referenced '../hedera-services/hedera-node/data' may need to be updated based on what directory you are currently in.  This also assumes that you have done an assemble/build and the directory contents are up-to-date.
 
 Example 1: attach jvm debugger to a hedera node
+
 ```bash
 ./test/e2e/setup-e2e.sh
 solo node keys --gossip-keys --tls-keys
@@ -593,6 +594,7 @@ solo node start -i node1,node2,node3 --debug-nodeid node2
 ```
 
 Once you see the following message, you can launch jvm debugger from Intellij
+
 ```
   Check node: node1,
   Check node: node3,  Please attach JVM debugger now.
@@ -611,6 +613,7 @@ solo node add --gossip-keys --tls-keys --node-id node4 --debug-nodeid node4 --lo
 ```
 
 Example 3: attach jvm debugger with node update operation
+
 ```bash
 ./test/e2e/setup-e2e.sh
 solo node keys --gossip-keys --tls-keys 
@@ -621,6 +624,7 @@ solo node update --node-id node2  --debug-nodeid node2 --local-build-path ../hed
 ```
 
 Example 4: attach jvm debugger with node delete operation
+
 ```bash
 ./test/e2e/setup-e2e.sh
 solo node keys --gossip-keys --tls-keys 
