@@ -596,8 +596,7 @@ export class K8 {
                 return reject(new FullstackTestingError(`failed to copy because of error (${code}): ${reason}`))
               }
 
-              // try 5 times
-              for (let i = 0; i < 5; i++) {
+              for (let i = 0; i < constants.K8_COPY_FROM_RETRY_TIMES; i++) {
                 try {
                   // extract the downloaded file
                   await tar.x({
@@ -612,7 +611,7 @@ export class K8 {
                     return resolve(true)
                   }
                 } catch (e) {
-                  if (i === 4) {
+                  if (i === (constants.K8_COPY_FROM_RETRY_TIMES - 1)) {
                     self._deleteTempFile(tmpFile)
                     return reject(new FullstackTestingError(`failed to extract file: ${destPath}`, e))
                   } else {
