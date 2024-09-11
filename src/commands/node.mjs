@@ -632,6 +632,21 @@ export class NodeCommand extends BaseCommand {
   }
 
   /**
+   * Return task for copy node key to staging directory
+   * @param ctx
+   * @param task
+   */
+  copyNodeKeyTask (ctx, task) {
+    const subTasks = this.platformInstaller.copyNodeKeys(ctx.config.stagingDir, ctx.config.allNodeIds)
+
+    // set up the sub-tasks
+    return task.newListr(subTasks, {
+      concurrent: true,
+      rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
+    })
+  }
+
+  /**
    * Prepare parameter and update the network node chart
    * @param ctx
    */
@@ -677,6 +692,8 @@ export class NodeCommand extends BaseCommand {
    * @param config
    */
   async triggerStakeCalculation (config) {
+    this.logger.info('sleep 60 seconds for the handler to be able to trigger the network node stake weight recalculate')
+    await sleep(60000)
     const accountMap = getNodeAccountMap(config.allNodeIds)
 
     if (config.newAccountNumber) {
@@ -1864,15 +1881,7 @@ export class NodeCommand extends BaseCommand {
       {
         title: 'Copy node keys to secrets',
         task: async (ctx, parentTask) => {
-          const config = /** @type {NodeAddConfigClass} **/ ctx.config
-
-          const subTasks = self.platformInstaller.copyNodeKeys(config.stagingDir, config.allNodeIds)
-
-          // set up the sub-tasks
-          return parentTask.newListr(subTasks, {
-            concurrent: true,
-            rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
-          })
+          return this.copyNodeKeyTask(ctx, parentTask)
         }
       },
       {
@@ -2589,15 +2598,7 @@ export class NodeCommand extends BaseCommand {
       {
         title: 'Copy node keys to secrets',
         task: async (ctx, parentTask) => {
-          const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
-
-          const subTasks = self.platformInstaller.copyNodeKeys(config.stagingDir, config.allNodeIds)
-
-          // set up the sub-tasks
-          return parentTask.newListr(subTasks, {
-            concurrent: true,
-            rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
-          })
+          return this.copyNodeKeyTask(ctx, parentTask)
         }
       },
       {
@@ -2910,17 +2911,9 @@ export class NodeCommand extends BaseCommand {
       {
         title: 'Copy node keys to secrets',
         task: async (ctx, parentTask) => {
-          const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
-
           // remove nodeId from existingNodeIds
-          config.allNodeIds = config.existingNodeIds.filter(nodeId => nodeId !== ctx.config.nodeId)
-          const subTasks = self.platformInstaller.copyNodeKeys(config.stagingDir, config.allNodeIds)
-
-          // set up the sub-tasks
-          return parentTask.newListr(subTasks, {
-            concurrent: true,
-            rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
-          })
+          ctx.config.allNodeIds = ctx.config.existingNodeIds.filter(nodeId => nodeId !== ctx.config.nodeId)
+          return this.copyNodeKeyTask(ctx, parentTask)
         }
       },
       {
