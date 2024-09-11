@@ -596,23 +596,30 @@ export class K8 {
                 return reject(new FullstackTestingError(`failed to copy because of error (${code}): ${reason}`))
               }
 
-              try {
-                // extract the downloaded file
-                await tar.x({
-                  file: tmpFile,
-                  cwd: destDir
-                })
+              // try 5 times
+              for (let i = 0; i < 5; i++) {
+                try {
+                  // extract the downloaded file
+                  await tar.x({
+                    file: tmpFile,
+                    cwd: destDir
+                  })
 
-                self._deleteTempFile(tmpFile)
+                  self._deleteTempFile(tmpFile)
 
-                const stat = fs.statSync(destPath)
-                if (stat && stat.size === srcFileSize) {
-                  return resolve(true)
+                  const stat = fs.statSync(destPath)
+                  if (stat && stat.size === srcFileSize) {
+                    return resolve(true)
+                  }
+                } catch (e) {
+                  if (i === 4) {
+                    self._deleteTempFile(tmpFile)
+                    return reject(new FullstackTestingError(`failed to extract file: ${destPath}`, e))
+                  } else {
+                    await sleep(1000)
+                  }
                 }
-              } catch (e) {
-                return reject(new FullstackTestingError(`failed to extract file: ${destPath}`, e))
               }
-
               return reject(new FullstackTestingError(`failed to download file completely: ${destPath}`))
             })
 
