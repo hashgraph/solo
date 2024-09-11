@@ -608,7 +608,7 @@ export class NodeCommand extends BaseCommand {
         valuesArg += ` --set "hedera.nodes[${i}].accountId=${config.newAccountNumber}" --set "hedera.nodes[${i}].name=${config.existingNodeIds[i]}"`
       }
     }
-    if (config.newNode && config.newNode.accountId) {
+    if (ctx.newNode && ctx.newNode.accountId) {
       valuesArg += ` --set "hedera.nodes[${index}].accountId=${ctx.newNode.accountId}" --set "hedera.nodes[${index}].name=${ctx.newNode.name}"`
     }
     this.profileValuesFile = await this.profileManager.prepareValuesForNodeAdd(
@@ -657,15 +657,16 @@ export class NodeCommand extends BaseCommand {
    * @param {any} ctx
    * @param {TaskWrapper} task
    * @param config
+   * @param isAddNode if this is an operation of adding a new node
    */
-  async identifyExistingNetworkNodes (ctx, task, config) {
+  async identifyExistingNetworkNodes (ctx, task, config, isAddNode= false) {
     config.existingNodeIds = []
     config.serviceMap = await this.accountManager.getNodeServiceMap(
       config.namespace)
     for (/** @type {NetworkNodeServices} **/ const networkNodeServices of config.serviceMap.values()) {
       config.existingNodeIds.push(networkNodeServices.nodeName)
     }
-    if (config.nodeId) { // case of adding new node
+    if (isAddNode) { // case of adding new node
       config.allNodeIds = [...config.existingNodeIds, config.nodeId]
     } else {
       config.allNodeIds = [...config.existingNodeIds]
@@ -1670,7 +1671,7 @@ export class NodeCommand extends BaseCommand {
         title: 'Identify existing network nodes',
         task: async (ctx, task) => {
           const config = /** @type {NodeAddConfigClass} **/ ctx.config
-          return this.identifyExistingNetworkNodes(ctx, task, config)
+          return this.identifyExistingNetworkNodes(ctx, task, config, true)
         }
       },
       {
