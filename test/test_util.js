@@ -54,7 +54,7 @@ import { AccountCommand } from '../src/commands/account.mjs'
 
 export const testLogger = logging.NewLogger('debug', true)
 export const TEST_CLUSTER = 'solo-e2e'
-export const HEDERA_PLATFORM_VERSION_TAG = 'v0.53.2'
+export const HEDERA_PLATFORM_VERSION_TAG = 'v0.54.0-alpha.3'
 
 export function getTestCacheDir (testName) {
   const baseDir = 'test/data/tmp'
@@ -234,7 +234,6 @@ export function bootstrapNetwork (testName, argv,
 
       expect(networkCmd.getUnusedConfigs(NetworkCommand.DEPLOY_CONFIGS_NAME)).toEqual([
         flags.apiPermissionProperties.constName,
-        flags.app.constName,
         flags.applicationEnv.constName,
         flags.applicationProperties.constName,
         flags.bootstrapProperties.constName,
@@ -258,6 +257,7 @@ export function bootstrapNetwork (testName, argv,
         try {
           await expect(nodeCmd.setup(argv)).resolves.toBeTruthy()
           expect(nodeCmd.getUnusedConfigs(NodeCommand.SETUP_CONFIGS_NAME)).toEqual([
+            flags.app.constName,
             flags.appConfig.constName,
             flags.devMode.constName
           ])

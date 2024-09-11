@@ -95,7 +95,7 @@ export const POD_CONDITION_STATUS_TRUE = 'True'
 
 /**
  * Listr related
- * @type {LoggerFieldFn<[number]> & {condition: (duration: number) => boolean, format: (duration: number) => Color}}
+ * @return a object that defines the default color options
  */
 export const LISTR_DEFAULT_RENDERER_TIMER_OPTION = {
   ...PRESET_TIMER,
@@ -149,3 +149,5 @@ export const ENDPOINT_TYPE_FQDN = 'FQDN'
 // file must be uploaded using FileUpdateTransaction in maximum of 5Kb chunks
 export const UPGRADE_FILE_ID = FileId.fromString('0.0.150')
 export const UPGRADE_FILE_CHUNK_SIZE = 1024 * 5 // 5Kb
+
+export const JVM_DEBUG_PORT = 5005

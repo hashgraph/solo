@@ -303,7 +303,7 @@ export class PlatformInstaller {
    *
    * @param stagingDir staging directory path
    * @param nodeIds list of node ids
-   * @returns {Listr<ListrContext, ListrPrimaryRendererValue, ListrSecondaryRendererValue>[]}
+   * @returns {Listr<ListrContext, ListrPrimaryRendererValue, ListrSecondaryRendererValue>}
    */
   copyNodeKeys (stagingDir, nodeIds) {
     const self = this

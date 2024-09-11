@@ -26,7 +26,7 @@ import { getNodeAccountMap } from '../core/helpers.mjs'
 
 export class RelayCommand extends BaseCommand {
   /**
-   * @param {{profileManager: ProfileManager, accountManager?: AccountManager, logger: Logger, helm: Helm, k8: K8,
+   * @param {{profileManager: ProfileManager, accountManager: AccountManager, logger: Logger, helm: Helm, k8: K8,
    * chartManager: ChartManager, configManager: ConfigManager, depManager: DependencyManager,
    * downloader: PackageDownloader}} opts
    */

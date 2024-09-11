@@ -148,7 +148,7 @@ jobs:
 
       - name: Setup Java
         if: ${{ runner.os == 'linux' && (inputs.npm-test-script == 'test-e2e-node-local-build' || inputs.npm-test-script == 'test-e2e-node-add') && !cancelled() && !failure() }}
-        uses: actions/setup-java@6a0805fcefea3d4657a47ac4c165951e33482018 # v4.2.2
+        uses: actions/setup-java@2dfa2011c5b2a0f1489bf9e433881c92c1631f88 # v4.3.0
         with:
           distribution: temurin
           java-version: 21.0.1
@@ -163,7 +163,7 @@ jobs:
         if: ${{ runner.os == 'linux' && (inputs.npm-test-script == 'test-e2e-node-local-build' || inputs.npm-test-script == 'test-e2e-node-add') && !cancelled() && !failure() }}
         run: |
           cd ..
-          git clone https://github.com/hashgraph/hedera-services.git  --branch v0.53.2
+          git clone https://github.com/hashgraph/hedera-services.git  --branch release/0.54
           cd hedera-services
           ls -ltr
           ${{ env.CG_EXEC }} ./gradlew assemble --stacktrace --info
@@ -194,7 +194,7 @@ jobs:
           if-no-files-found: error
 
       - name: Publish E2E Test Report
-        uses: EnricoMi/publish-unit-test-result-action@567cc7f8dcea3eba5da355f6ebc95663310d8a07 # v2.17.0
+        uses: EnricoMi/publish-unit-test-result-action@82082dac68ad6a19d980f8ce817e108b9f496c2a # v2.17.1
         if: ${{ steps.npm-deps.conclusion == 'success' && !cancelled() }}
         with:
           check_name: ${{ inputs.coverage-report-name }}
