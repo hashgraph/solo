@@ -100,11 +100,11 @@ export function testNodeAdd (localBuildPath
         flags.app.constName,
         flags.chainId.constName,
         flags.devMode.constName,
-        flags.adminKey.constName,
         flags.generateGossipKeys.constName,
         flags.generateTlsKeys.constName,
         flags.gossipEndpoints.constName,
         flags.grpcEndpoints.constName,
+        flags.adminKey.constName,
         'curDate',
         'freezeAdminPrivateKey'
       ])
