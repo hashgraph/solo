@@ -52,6 +52,12 @@ jobs:
     with:
       custom-job-label: Standard
 
+  update-readme:
+    name: "Update README.md"
+    uses: ./.github/workflows/flow-update-readme.yaml
+    with:
+      commit-changes: false
+
   e2e-standard-tests:
     name: E2E Tests
     if: ${{ !cancelled() && always() }}

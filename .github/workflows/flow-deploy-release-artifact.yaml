@@ -38,9 +38,16 @@ permissions:
   id-token: write
 
 jobs:
+  update-readme:
+    name: "Update README.md"
+    uses: ./.github/workflows/flow-update-readme.yaml
+    with:
+      commit-changes: true
+
   prepare-release:
     name: Release / Prepare
     runs-on: solo-linux-medium
+    needs: update-readme
     outputs:
       version: ${{ steps.tag.outputs.version }}
     steps:
