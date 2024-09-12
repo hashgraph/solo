@@ -571,7 +571,7 @@ export class K8 {
       const self = this
       return new Promise((resolve, reject) => {
         const execInstance = new k8s.Exec(this.kubeConfig)
-        const command = ['tar', 'cf', '-', '-C', srcDir, srcFile]
+        const command = ['tar', 'zcf', '-', '-C', srcDir, srcFile]
         const writerStream = fs.createWriteStream(tmpFile)
         const errStream = new sb.WritableStreamBuffer()
 
