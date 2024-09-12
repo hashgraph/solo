@@ -27,9 +27,7 @@ An opinionated CLI tool to deploy and manage standalone test networks.
 
 ## Requirements
 
-| Solo Version | Node.js                   | Kind       | FST Chart | Hedera   | Kubernetes | Kubectl    | Helm    | k9s        | Docker Resources        | Java         |
-|--------------|---------------------------|------------|-----------|----------|------------|------------|---------|------------|-------------------------|--------------|
-| 0.29.0       | >= 20.14.0 (lts/hydrogen) | >= v1.29.1 | v0.30.0   | v0.53.0+ | >= v1.27.3 | >= v1.27.3 | v3.14.2 | >= v0.27.4 | Memory >= 8GB, CPU >= 4 | >= 21.0.1+12 |
+* Node(>=20.14.0) (*lts/hydrogen*)
 
 ## Setup
 
@@ -91,7 +89,7 @@ You can now use your cluster with:
 
 kubectl cluster-info --context kind-solo
 
-Thanks for using kind! 😊
+Have a nice day! 👋
 ```
 
 You may now view pods in your cluster using `k9s -A` as below:
@@ -235,11 +233,11 @@ Kubernetes Namespace	: solo
 ✔ Copy Gossip keys to staging
 ✔ Copy gRPC TLS keys to staging
 ✔ Prepare staging directory
-✔ Copy Gossip keys
-✔ Node: node2
 ✔ Copy TLS keys
 ✔ Copy Gossip keys
 ✔ Node: node3
+✔ Copy Gossip keys
+✔ Node: node2
 ✔ Copy Gossip keys
 ✔ Node: node1
 ✔ Copy node keys to secrets
@@ -249,11 +247,11 @@ Kubernetes Namespace	: solo
 ✔ Check Node: node3
 ✔ Check node pods are running
 ✔ Check Envoy Proxy for: node1
-✔ Check Envoy Proxy for: node2
-✔ Check HAProxy for: node1
 ✔ Check Envoy Proxy for: node3
-✔ Check HAProxy for: node2
+✔ Check HAProxy for: node1
 ✔ Check HAProxy for: node3
+✔ Check Envoy Proxy for: node2
+✔ Check HAProxy for: node2
 ✔ Check proxy pods are running
 ✔ Check MinIO
 ✔ Check auxiliary pods are ready
@@ -277,20 +275,20 @@ Kubernetes Cluster	: kind-solo
 Kubernetes Namespace	: solo
 **********************************************************************************
 ✔ Initialize
-✔ Check network pod: node1
 ✔ Check network pod: node3
+✔ Check network pod: node1
 ✔ Check network pod: node2
 ✔ Identify network pods
-✔ Update node: node3 [ platformVersion = v0.42.5 ]
 ✔ Update node: node1 [ platformVersion = v0.42.5 ]
+✔ Update node: node3 [ platformVersion = v0.42.5 ]
 ✔ Update node: node2 [ platformVersion = v0.42.5 ]
 ✔ Fetch platform software into network nodes
 ✔ Set file permissions
 ✔ Node: node2
 ✔ Set file permissions
-✔ Node: node1
-✔ Set file permissions
 ✔ Node: node3
+✔ Set file permissions
+✔ Node: node1
 ✔ Setup network nodes
 ```
 
@@ -312,8 +310,8 @@ Kubernetes Namespace	: solo
 **********************************************************************************
 ✔ Initialize
 ✔ Check network pod: node1
-✔ Check network pod: node3
 ✔ Check network pod: node2
+✔ Check network pod: node3
 ✔ Identify network pods
 ✔ Start node: node1
 ✔ Start node: node3
@@ -494,9 +492,9 @@ Kubernetes Namespace	: solo
 ✔ Gossip pem key for node: node3
 ✔ Generate gossip keys
 ✔ Backup old files
+✔ TLS key for node: node2
 ✔ TLS key for node: node3
 ✔ TLS key for node: node1
-✔ TLS key for node: node2
 ✔ Generate gRPC TLS keys
 ✔ Finalize
 ```
