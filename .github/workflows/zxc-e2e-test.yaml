@@ -37,7 +37,7 @@ on:
         description: "NPM Test Run Script:"
         type: string
         required: false
-        default: "test-e2e"
+        default: "test-e2e-standard"
       coverage-subdirectory:
         description: "Coverage Report Subdirectory:"
         type: string
