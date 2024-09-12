@@ -1855,6 +1855,8 @@ export class NodeCommand extends BaseCommand {
               task: async (ctx, _) => {
                 const config = /** @type {NodeAddConfigClass} **/ ctx.config
 
+                // The problem is probably in the values of allNodeIds
+                // debug by comparing regular and segregated versions
                 await this.keyManager.copyGossipKeysToStaging(config.keysDir, config.stagingKeysDir, config.allNodeIds)
               }
             },
@@ -2216,7 +2218,7 @@ export class NodeCommand extends BaseCommand {
     const tasks = new Listr([
       self.addInitializeTask(argv),
       self.loadContextDataTask(argv),
-      self.getIdentifyExistingNetworkNodesTask(argv),
+      // self.getIdentifyExistingNetworkNodesTask(argv),
       ...executeTasks
     ], {
       concurrent: false,
