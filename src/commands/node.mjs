@@ -1541,9 +1541,6 @@ export class NodeCommand extends BaseCommand {
         }
 
         config.allNodeIds = [...config.existingNodeIds]
-        if (ctx.newNode) {
-          config.allNodeIds.push(config.nodeId)
-        }
 
         return self.taskCheckNetworkNodePods(ctx, task, config.existingNodeIds)
       }
@@ -1596,6 +1593,7 @@ export class NodeCommand extends BaseCommand {
             name: lastNodeName
           }
           config.nodeId = lastNodeName
+          config.allNodeIds.push(lastNodeName)
         }
       },
       {
@@ -1711,8 +1709,7 @@ export class NodeCommand extends BaseCommand {
             await this.accountManager.transferAmount(constants.TREASURY_ACCOUNT_ID, accountId, 1)
           }
         }
-      },
-      self.saveContextDataTask(argv)
+      }
     ]
   }
 
@@ -1720,34 +1717,32 @@ export class NodeCommand extends BaseCommand {
     return {
       title: 'Save context data',
       task: async (ctx, task) => {
-        if (argv.exportCtxData) {
-          const config = /** @type {NodeAddConfigClass} **/ ctx.config
-          const outputDir = argv[flags.outputDir.name]
-          if (!outputDir) {
-            throw new FullstackTestingError(`Path to export context data not specified. Please set a value for --${flags.outputDir.name}`)
-          }
-
-          if (!fs.existsSync(outputDir)) {
-            fs.mkdirSync(outputDir, { recursive: true })
-          }
-          const exportedFields = [
-            'tlsCertHash',
-            'upgradeZipHash',
-            'newNode'
-          ]
-          const exportedCtx = {}
-
-          exportedCtx.signingCertDer = ctx.signingCertDer.toString()
-          exportedCtx.gossipEndpoints = ctx.gossipEndpoints.map(ep => `${ep.getDomainName}:${ep.getPort}`)
-          exportedCtx.grpcServiceEndpoints = ctx.grpcServiceEndpoints.map(ep => `${ep.getDomainName}:${ep.getPort}`)
-          exportedCtx.adminKey = ctx.adminKey.toString()
-
-          for (const prop of exportedFields) {
-            exportedCtx[prop] = ctx[prop]
-          }
-
-          fs.writeFileSync(path.join(outputDir, 'ctx.json'), JSON.stringify(exportedCtx))
+        const config = /** @type {NodeAddConfigClass} **/ ctx.config
+        const outputDir = argv[flags.outputDir.name]
+        if (!outputDir) {
+          throw new FullstackTestingError(`Path to export context data not specified. Please set a value for --${flags.outputDir.name}`)
         }
+
+        if (!fs.existsSync(outputDir)) {
+          fs.mkdirSync(outputDir, { recursive: true })
+        }
+        const exportedFields = [
+          'tlsCertHash',
+          'upgradeZipHash',
+          'newNode'
+        ]
+        const exportedCtx = {}
+
+        exportedCtx.signingCertDer = ctx.signingCertDer.toString()
+        exportedCtx.gossipEndpoints = ctx.gossipEndpoints.map(ep => `${ep.getDomainName}:${ep.getPort}`)
+        exportedCtx.grpcServiceEndpoints = ctx.grpcServiceEndpoints.map(ep => `${ep.getDomainName}:${ep.getPort}`)
+        exportedCtx.adminKey = ctx.adminKey.toString()
+
+        for (const prop of exportedFields) {
+          exportedCtx[prop] = ctx[prop]
+        }
+
+        fs.writeFileSync(path.join(outputDir, 'ctx.json'), JSON.stringify(exportedCtx))
       }
     }
   }
@@ -1769,6 +1764,7 @@ export class NodeCommand extends BaseCommand {
           ctx.grpcServiceEndpoints = this.prepareEndpoints(ctx.config.endpointType, ctxData.grpcServiceEndpoints, constants.HEDERA_NODE_EXTERNAL_GOSSIP_PORT)
           ctx.adminKey = PrivateKey.fromStringED25519(ctxData.adminKey)
           config.nodeId = ctxData.newNode.name
+          config.allNodeIds.push(ctxData.newNode.name)
 
           const fieldsToImport = [
             'tlsCertHash',
@@ -2163,10 +2159,11 @@ export class NodeCommand extends BaseCommand {
 
   async addPrepare (argv) {
     const self = this
-
-    argv.exportCtxData = true
     const prepareTasks = this.getAddPrepareTasks(argv)
-    const tasks = new Listr(prepareTasks, {
+    const tasks = new Listr([
+        ...prepareTasks,
+        self.saveContextDataTask(argv)
+    ], {
       concurrent: false,
       rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
     })
