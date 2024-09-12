@@ -1737,6 +1737,7 @@ export class NodeCommand extends BaseCommand {
         exportedCtx.gossipEndpoints = ctx.gossipEndpoints.map(ep => `${ep.getDomainName}:${ep.getPort}`)
         exportedCtx.grpcServiceEndpoints = ctx.grpcServiceEndpoints.map(ep => `${ep.getDomainName}:${ep.getPort}`)
         exportedCtx.adminKey = ctx.adminKey.toString()
+        exportedCtx.existingNodeIds = config.existingNodeIds
 
         for (const prop of exportedFields) {
           exportedCtx[prop] = ctx[prop]
@@ -1764,7 +1765,8 @@ export class NodeCommand extends BaseCommand {
           ctx.grpcServiceEndpoints = this.prepareEndpoints(ctx.config.endpointType, ctxData.grpcServiceEndpoints, constants.HEDERA_NODE_EXTERNAL_GOSSIP_PORT)
           ctx.adminKey = PrivateKey.fromStringED25519(ctxData.adminKey)
           config.nodeId = ctxData.newNode.name
-          config.allNodeIds.push(ctxData.newNode.name)
+          config.existingNodeIds = ctxData.existingNodeIds
+          config.allNodeIds = [...config.existingNodeIds, ctxData.newNode.name]
 
           const fieldsToImport = [
             'tlsCertHash',
