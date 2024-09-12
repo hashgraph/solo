@@ -24,13 +24,17 @@ on:
         type: boolean
         required: false
         default: false
+      token:
+        description: "GitHub Access Token"
+        type: string
+        required: true
 
 defaults:
   run:
     shell: bash
+
 permissions:
   contents: read
-  id-token: write
 
 jobs:
   update:
