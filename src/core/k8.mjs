@@ -1017,7 +1017,7 @@ export class K8 {
    * @returns {Promise<boolean>} whether the secret was created successfully
    */
   async createSecret (name, namespace, secretType, data, labels, recreate) {
-    // if (recreate) {
+    if (recreate) {
       try {
         await this.kubeClient.deleteNamespacedSecret(name, namespace)
         await new Promise((res) => setTimeout(res, 5000));
@@ -1025,7 +1025,7 @@ export class K8 {
         // do nothing
         console.error(JSON.stringify(e.body))
       }
-    // }
+    }
 
     const v1Secret = new V1Secret()
     v1Secret.apiVersion = 'v1'
