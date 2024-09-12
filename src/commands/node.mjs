@@ -2127,7 +2127,7 @@ export class NodeCommand extends BaseCommand {
         title: 'Stake new node',
         task: async (ctx, _) => {
           const config = /** @type {NodeAddConfigClass} **/ ctx.config
-          await self.addStake(config.namespace, ctx.newNode.accountId, config.newNode.name)
+          await self.addStake(config.namespace, ctx.newNode.accountId, config.nodeId)
         }
       },
       {
