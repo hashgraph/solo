@@ -14,7 +14,6 @@
  * limitations under the License.
  *
  */
-import { afterAll, beforeAll, describe, expect, it } from '@jest/globals'
 import fs from 'fs'
 import net from 'net'
 import os from 'os'
@@ -38,6 +37,7 @@ import {
   V1ServiceSpec,
   V1VolumeResourceRequirements
 } from '@kubernetes/client-node'
+import crypto from 'crypto'
 
 const defaultTimeout = 120000
 
@@ -173,25 +173,40 @@ describe('K8', () => {
     await expect(k8.hasDir(podName, containerName, '/tmp')).resolves.toBeTruthy()
   }, defaultTimeout)
 
-  it('should be able to copy a file to and from a container', async () => {
-    const pods = await k8.waitForPodReady([`app=${podLabelValue}`], 1, 20)
-    expect(pods.length).toStrictEqual(1)
-    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'k8-'))
-    const destDir = '/tmp'
-    const srcPath = 'test/data/pem/keys/a-private-node0.pem'
-    const destPath = `${destDir}/a-private-node0.pem`
+  describe.each([
+    { localFilePath: 'test/data/pem/keys/a-private-node0.pem' },
+    { localFilePath: 'test/data/build-v0.54.0-alpha.4.zip' }
+  ])('test copyTo and copyFrom', (input) => {
+    it('should be able to copy a file to and from a container', async () => {
+      const pods = await k8.waitForPodReady([`app=${podLabelValue}`], 1, 20)
+      expect(pods.length).toStrictEqual(1)
+      const localTmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'k8-test'))
+      const remoteTmpDir = '/tmp'
+      const localFilePath = input.localFilePath
+      const fileName = path.basename(localFilePath)
+      const remoteFilePath = `${remoteTmpDir}/${fileName}`
+      const originalFileData = fs.readFileSync(localFilePath)
+      const originalFileHash = crypto.createHash('sha384').update(originalFileData).digest('hex')
+      const originalStat = fs.statSync(localFilePath)
 
-    // upload the file
-    await expect(k8.copyTo(podName, containerName, srcPath, destDir)).resolves.toBeTruthy()
+      // upload the file
+      await expect(k8.copyTo(podName, containerName, localFilePath, remoteTmpDir)).resolves.toBeTruthy()
 
-    // download the same file
-    await expect(k8.copyFrom(podName, containerName, destPath, tmpDir)).resolves.toBeTruthy()
+      // download the same file
+      await expect(k8.copyFrom(podName, containerName, remoteFilePath, localTmpDir)).resolves.toBeTruthy()
+      const downloadedFilePath = path.join(localTmpDir, fileName)
+      const downloadedFileData = fs.readFileSync(downloadedFilePath)
+      const downloadedFileHash = crypto.createHash('sha384').update(downloadedFileData).digest('hex')
+      const downloadedStat = fs.statSync(downloadedFilePath)
 
-    // rm file inside the container
-    await expect(k8.execContainer(podName, containerName, ['rm', '-f', destPath])).resolves
+      expect(downloadedStat.size, 'downloaded file size should match original file size').toEqual(originalStat.size)
+      expect(downloadedFileHash, 'downloaded file hash should match original file hash').toEqual(originalFileHash)
+      // rm file inside the container
+      await expect(k8.execContainer(podName, containerName, ['rm', '-f', remoteFilePath])).resolves
 
-    fs.rmdirSync(tmpDir, { recursive: true })
-  }, defaultTimeout)
+      fs.rmdirSync(localTmpDir, { recursive: true })
+    }, defaultTimeout)
+  })
 
   it('should be able to port forward gossip port', (done) => {
     const podName = Templates.renderNetworkPodName('node1')

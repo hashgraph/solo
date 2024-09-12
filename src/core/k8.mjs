@@ -28,6 +28,7 @@ import { v4 as uuid4 } from 'uuid'
 import { V1ObjectMeta, V1Secret } from '@kubernetes/client-node'
 import { sleep } from './helpers.mjs'
 import { constants } from './index.mjs'
+import * as stream from 'node:stream'
 
 /**
  * A kubernetes API wrapper class providing custom functionalities required by solo
@@ -342,7 +343,7 @@ export class K8 {
    * @param {string} containerName
    * @param {string} destPath - path inside the container
    * @param {number} [timeout] - timeout in ms
-   * @returns {Promise<{owner: string, size: number, modifiedAt: string, name: string, directory: boolean, group: string}>}
+   * @returns {Promise<{owner: string, size: number, modifiedAt: string, name: string, directory: boolean, group: string}[]>}
    * array of directory entries, custom object
    */
   async listDir (podName, containerName, destPath, timeout = 5000) {
@@ -571,67 +572,137 @@ export class K8 {
       const self = this
       return new Promise((resolve, reject) => {
         const execInstance = new k8s.Exec(this.kubeConfig)
-        const command = ['tar', 'cf', '-', '-C', srcDir, srcFile]
-        const writerStream = fs.createWriteStream(tmpFile)
-        const errStream = new sb.WritableStreamBuffer()
+        const command = ['cat', `${srcDir}/${srcFile}`]
+        const outputFileStream = fs.createWriteStream(tmpFile)
+        const outputPassthroughStream = new stream.PassThrough({ highWaterMark: 10 * 1024 * 1024 })
+        const errStream = new stream.PassThrough()
+        let additionalErrorMessageDetail = ''
+
+        // Use pipe() to automatically handle backpressure between streams
+        outputPassthroughStream.pipe(outputFileStream)
+
+        outputPassthroughStream.on('data', (chunk) => {
+          this.logger.debug(`received chunk size=${chunk.length}`)
+          const canWrite = outputFileStream.write(chunk) // Write chunk to file and check if buffer is full
+
+          if (!canWrite) {
+            console.log(`Buffer is full, pausing data stream... for copying from ${podName}:${srcDir}/${srcFile} to ${destPath}`)
+            outputPassthroughStream.pause() // Pause the data stream if buffer is full
+          }
+        })
+
+        outputFileStream.on('drain', () => {
+          outputPassthroughStream.resume()
+          this.logger.debug(`stream drained, resume write for copying from ${podName}:${srcDir}/${srcFile} to ${destPath}`)
+        })
 
         execInstance.exec(
           namespace,
           podName,
           containerName,
           command,
-          writerStream,
+          outputFileStream,
           errStream,
           null,
           false,
-          async ({ status }) => {
-            writerStream.close()
-            if (status === 'Failure' || errStream.size()) {
+          ({ status }) => {
+            if (status === 'Failure') {
               self._deleteTempFile(tmpFile)
+              const errorMessage = `tar command failed with status Failure while copying from ${podName}:${srcDir}/${srcFile} to ${destPath}`
+              this.logger.error(errorMessage)
+              return reject(new FullstackTestingError(errorMessage))
             }
+            this.logger.debug(`copyFrom.callback(status)=${status}`)
           })
           .then(conn => {
-            conn.on('close', async (code, reason) => {
+            conn.on('error', (e) => {
+              self._deleteTempFile(tmpFile)
+              return reject(new FullstackTestingError(
+                  `failed copying from ${podName}:${srcDir}/${srcFile} to ${destPath} because of connection error: ${e.message}`, e))
+            })
+
+            conn.on('close', (code, reason) => {
+              this.logger.debug(`connection closed copying from ${podName}:${srcDir}/${srcFile} to ${destPath}`)
               if (code !== 1000) { // code 1000 is the success code
-                return reject(new FullstackTestingError(`failed to copy because of error (${code}): ${reason}`))
+                const errorMessage = `failed copying from ${podName}:${srcDir}/${srcFile} to ${destPath} because of error (${code}): ${reason}`
+                this.logger.error(errorMessage)
+                return reject(new FullstackTestingError(errorMessage))
               }
 
-              for (let i = 0; i < constants.K8_COPY_FROM_RETRY_TIMES; i++) {
+              outputFileStream.end()
+              outputFileStream.close(() => {
+                this.logger.debug(`finished closing writerStream copying from ${podName}:${srcDir}/${srcFile} to ${destPath}`)
+
                 try {
-                  // extract the downloaded file
-                  await tar.x({
-                    file: tmpFile,
-                    cwd: destDir
-                  })
+                  fs.copyFileSync(tmpFile, destPath)
 
                   self._deleteTempFile(tmpFile)
 
                   const stat = fs.statSync(destPath)
+                  let rejection
                   if (stat && stat.size === srcFileSize) {
+                    this.logger.info(`Finished successfully copying from ${podName}:${srcDir}/${srcFile} to ${destPath}`)
+                  } else {
+                    rejection = true
+                    if (!stat) {
+                      additionalErrorMessageDetail = ', statSync returned no file status for the destination file'
+                    } else {
+                      additionalErrorMessageDetail = `, stat.size=${stat.size} != srcFileSize=${srcFileSize}`
+                    }
+                  }
+
+                  if (rejection) {
+                    const errorMessage = `failed copying from ${podName}:${srcDir}/${srcFile} to ${destPath} to download file completely: ${destPath}${additionalErrorMessageDetail}`
+                    this.logger.error(errorMessage)
+                    return reject(new FullstackTestingError(errorMessage))
+                  } else {
                     return resolve(true)
                   }
                 } catch (e) {
-                  if (i === (constants.K8_COPY_FROM_RETRY_TIMES - 1)) {
-                    self._deleteTempFile(tmpFile)
-                    return reject(new FullstackTestingError(`failed to extract file: ${destPath}`, e))
-                  } else {
-                    await sleep(1000)
-                  }
+                  const errorMessage = `failed to complete copying from ${podName}:${srcDir}/${srcFile} to ${destPath} to extract file: ${destPath}`
+                  this.logger.error(errorMessage, e)
+                  return reject(new FullstackTestingError(errorMessage, e))
                 }
-              }
-              return reject(new FullstackTestingError(`failed to download file completely: ${destPath}`))
-            })
-
-            conn.on('error', (e) => {
-              self._deleteTempFile(tmpFile)
-              return reject(new FullstackTestingError(
-                `failed to copy file ${destPath} because of connection error: ${e.message}`, e))
+              })
             })
           })
+
+        errStream.on('data', (data) => {
+          const errorMessage = `error encountered copying from ${podName}:${srcDir}/${srcFile} to ${destPath}, error: ${data.toString()}`
+          this.logger.error(errorMessage)
+          return reject(new FullstackTestingError(errorMessage))
+        })
+
+        outputFileStream.on('close', () => {
+          this.logger.debug(`finished copying from ${podName}:${srcDir}/${srcFile} to ${destPath}`)
+        })
+
+        outputFileStream.on('error', (err) => {
+          const errorMessage = `writerStream error encountered copying from ${podName}:${srcDir}/${srcFile} to ${destPath}, err: ${err.toString()}`
+          this.logger.error(errorMessage, err)
+          return reject(new FullstackTestingError(errorMessage, err))
+        })
+
+        outputFileStream.on('end', () => {
+          this.logger.debug(`writerStream has ended for copying from ${podName}:${srcDir}/${srcFile} to ${destPath}`)
+        })
+
+        outputPassthroughStream.on('end', () => {
+          this.logger.debug(`writerPassthroughStream has ended for copying from ${podName}:${srcDir}/${srcFile} to ${destPath}`)
+        })
+
+        outputFileStream.on('finish', () => {
+          this.logger.debug(`stopping copy, writerStream has finished for copying from ${podName}:${srcDir}/${srcFile} to ${destPath}`)
+        })
+
+        outputPassthroughStream.on('finish', () => {
+          this.logger.debug(`stopping copy, writerPassthroughStream has finished for copying from ${podName}:${srcDir}/${srcFile} to ${destPath}`)
+        })
       })
     } catch (e) {
-      throw new FullstackTestingError(
-        `failed to download file from ${podName}:${containerName} [${srcPath} -> ${destDir}]: ${e.message}`, e)
+      const errorMessage = `failed to download file from ${podName}:${containerName} [${srcPath} -> ${destDir}]: ${e.message}`
+      this.logger.error(errorMessage, e)
+      throw new FullstackTestingError(errorMessage, e)
     }
   }
 
