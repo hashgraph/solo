@@ -54,8 +54,10 @@ import * as crypto from 'crypto'
 import {
   FREEZE_ADMIN_ACCOUNT,
   HEDERA_NODE_DEFAULT_STAKE_AMOUNT,
-  TREASURY_ACCOUNT_ID
+  TREASURY_ACCOUNT_ID,
+  LOCAL_HOST
 } from '../core/constants.mjs'
+import { NodeStatusCodes, NodeStatusEnums } from '../core/enumerations.mjs'
 
 /**
  * Defines the core functionalities of 'node' command
@@ -382,6 +384,77 @@ export class NodeCommand extends BaseCommand {
     }
 
     return true
+  }
+
+  /**
+   * @param {string} namespace
+   * @param {string} nodeId
+   * @param {TaskWrapper} task
+   * @param {string} title
+   * @param {number} maxAttempts
+   * @param {number} status
+   * @param {number} delay
+   * @returns {Promise<string>}
+   */
+  async checkNetworkNodeHealth (namespace, nodeId, task, title, status = NodeStatusCodes.ACTIVE, maxAttempts = 120, delay = 1_000) {
+    nodeId = nodeId.trim()
+    const podName = Templates.renderNetworkPodName(nodeId)
+    const podPort = 9999
+    task.title = `${title} - status ${chalk.yellow('STARTING')}, attempt ${chalk.blueBright(`0/${maxAttempts}`)}`
+
+    const srv = await this.k8.portForward(podName, podPort, podPort)
+
+    let attempt = 0
+    let success = false
+    while (attempt < maxAttempts) {
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), delay)
+
+      try {
+        const response = await fetch(`http://${LOCAL_HOST}:${podPort}/metrics`, { signal: controller.signal })
+
+        if (!response.ok) {
+          task.title = `${title} - status ${chalk.yellow('UNKNOWN')}, attempt ${chalk.blueBright(`${attempt}/${maxAttempts}`)}`
+          throw new Error()
+        }
+
+        const text = await response.text()
+        const statusLine = text
+          .split('\n')
+          .find(line => line.startsWith('platform_PlatformStatus'))
+
+        if (!statusLine) {
+          task.title = `${title} - status ${chalk.yellow('STARTING')}, attempt: ${chalk.blueBright(`${attempt}/${maxAttempts}`)}`
+          throw new Error()
+        }
+
+        const statusNumber = parseInt(statusLine.split(' ').pop())
+
+        if (statusNumber === status) {
+          task.title = `${title} - status ${chalk.green(NodeStatusEnums[status])}, attempt: ${chalk.blueBright(`${attempt}/${maxAttempts}`)}`
+          success = true
+          clearTimeout(timeoutId)
+          break
+        } else if (statusNumber === NodeStatusCodes.CATASTROPHIC_FAILURE) {
+          task.title = `${title} - status ${chalk.red('CATASTROPHIC_FAILURE')}, attempt: ${chalk.blueBright(`${attempt}/${maxAttempts}`)}`
+          break
+        } else if (statusNumber) {
+          task.title = `${title} - status ${chalk.yellow(NodeStatusEnums[statusNumber])}, attempt: ${chalk.blueBright(`${attempt}/${maxAttempts}`)}`
+        }
+      } catch {}
+
+      clearTimeout(timeoutId)
+      await sleep(delay)
+      attempt++
+    }
+
+    if (!success) {
+      throw new FullstackTestingError(`node '${nodeId}' is not ${status} [ attempt = ${chalk.blueBright(`${attempt}/${maxAttempts}`)} ]`)
+    }
+
+    await this.k8.stopPortForward(srv)
+
+    return podName
   }
 
   /**
@@ -851,26 +924,19 @@ export class NodeCommand extends BaseCommand {
       {
         title: 'Check nodes are ACTIVE',
         task: (ctx, task) => {
-          const subTasks = []
-          for (const nodeId of ctx.config.nodeIds) {
-            let reminder = ''
-            if (ctx.config.debugNodeId === nodeId) {
-              reminder = ' Please attach JVM debugger now.'
-            }
-            if (self.configManager.getFlag(flags.app) !== '' && self.configManager.getFlag(flags.app) !== constants.HEDERA_APP_NAME) {
-              subTasks.push({
-                title: `Check node: ${chalk.yellow(nodeId)} ${chalk.red(reminder)}`,
-                task: async () => await self.checkNetworkNodeState(nodeId, 100, 'ACTIVE', 'output/swirlds.log')
-              })
-            } else {
-              subTasks.push({
-                title: `Check node: ${chalk.yellow(nodeId)} ${chalk.red(reminder)}`,
-                task: async () => await self.checkNetworkNodeState(nodeId)
-              })
-            }
-          }
+          const { config: { nodeIds, namespace, debugNodeId } } = ctx
 
-          // set up the sub-tasks
+          const subTasks = nodeIds.map((nodeId) => {
+            const reminder = debugNodeId === nodeId ? 'Please attach JVM debugger now.' : ''
+            const title = `Check network pod: ${chalk.yellow(nodeId)} ${chalk.red(reminder)}`
+
+            const subTask = async (ctx, task) => {
+              ctx.config.podNames[nodeId] = await this.checkNetworkNodeHealth(namespace, nodeId, task, title)
+            }
+
+            return { title, task: subTask }
+          })
+
           return task.newListr(subTasks, {
             concurrent: true,
             rendererOptions: {
@@ -1254,23 +1320,18 @@ export class NodeCommand extends BaseCommand {
       {
         title: 'Check nodes are ACTIVE',
         task: (ctx, task) => {
-          const config = /** @type {NodeRefreshConfigClass} **/ ctx.config
-          const subTasks = []
-          for (const nodeId of ctx.config.nodeIds) {
-            if (config.app !== constants.HEDERA_APP_NAME) {
-              subTasks.push({
-                title: `Check node: ${chalk.yellow(nodeId)}`,
-                task: async () => await self.checkNetworkNodeState(nodeId, 100, 'ACTIVE', 'output/swirlds.log')
-              })
-            } else {
-              subTasks.push({
-                title: `Check node: ${chalk.yellow(nodeId)}`,
-                task: async () => await self.checkNetworkNodeState(nodeId)
-              })
-            }
-          }
+          const { config: { nodeIds, namespace } } = ctx
 
-          // set up the sub-tasks
+          const subTasks = nodeIds.map((nodeId) => {
+            const title = `Check network pod: ${chalk.yellow(nodeId)}`
+
+            const subTask = async (ctx, task) => {
+              ctx.config.podNames[nodeId] = await this.checkNetworkNodeHealth(namespace, nodeId, task, title)
+            }
+
+            return { title, task: subTask }
+          })
+
           return task.newListr(subTasks, {
             concurrent: false,
             rendererOptions: {
@@ -1637,8 +1698,8 @@ export class NodeCommand extends BaseCommand {
         title: 'Check existing nodes staked amount',
         task: async (ctx, task) => {
           const config = /** @type {NodeAddConfigClass} **/ ctx.config
-          self.logger.info('sleep 60 seconds for the handler to be able to trigger the network node stake weight recalculate')
-          await sleep(15000)
+          self.logger.info('sleep 15 seconds for the handler to be able to trigger the network node stake weight recalculate')
+          await sleep(15_000)
           const accountMap = getNodeAccountMap(config.existingNodeIds)
           for (const nodeId of config.existingNodeIds) {
             const accountId = accountMap.get(nodeId)
@@ -1747,16 +1808,19 @@ export class NodeCommand extends BaseCommand {
       {
         title: 'Check network nodes are frozen',
         task: (ctx, task) => {
-          const config = /** @type {NodeAddConfigClass} **/ ctx.config
-          const subTasks = []
-          for (const nodeId of config.existingNodeIds) {
-            subTasks.push({
-              title: `Check node: ${chalk.yellow(nodeId)}`,
-              task: async () => await self.checkNetworkNodeState(nodeId, 100, 'FREEZE_COMPLETE')
-            })
-          }
+          const { config: { existingNodeIds, namespace } } = ctx
 
-          // set up the sub-tasks
+          const subTasks = existingNodeIds.map((nodeId) => {
+            const title = `Check network pod: ${chalk.yellow(nodeId)}`
+            const status = NodeStatusCodes.FREEZE_COMPLETE
+
+            const subTask = async (ctx, task) => {
+              ctx.config.podNames[nodeId] = await this.checkNetworkNodeHealth(namespace, nodeId, task, title, status)
+            }
+
+            return { title, task: subTask }
+          })
+
           return task.newListr(subTasks, {
             concurrent: false,
             rendererOptions: {
@@ -1926,21 +1990,19 @@ export class NodeCommand extends BaseCommand {
       {
         title: 'Check all nodes are ACTIVE',
         task: async (ctx, task) => {
-          const subTasks = []
-          self.logger.info('sleep for 30 seconds to give time for the logs to roll over to prevent capturing an invalid "ACTIVE" string')
-          await sleep(30000)
-          for (const nodeId of ctx.config.allNodeIds) {
-            let reminder = ''
-            if (ctx.config.debugNodeId === nodeId) {
-              reminder = ' Please attach JVM debugger now.'
-            }
-            subTasks.push({
-              title: `Check node: ${chalk.yellow(nodeId)} ${chalk.red(reminder)}`,
-              task: async () => await self.checkNetworkNodeState(nodeId, 200)
-            })
-          }
+          const { config: { allNodeIds, namespace, debugNodeId } } = ctx
 
-          // set up the sub-tasks
+          const subTasks = allNodeIds.map((nodeId) => {
+            const reminder = debugNodeId === nodeId ? 'Please attach JVM debugger now.' : ''
+            const title = `Check network pod: ${chalk.yellow(nodeId)} ${chalk.red(reminder)}`
+
+            const subTask = async (ctx, task) => {
+              ctx.config.podNames[nodeId] = await this.checkNetworkNodeHealth(namespace, nodeId, task, title)
+            }
+
+            return { title, task: subTask }
+          })
+
           return task.newListr(subTasks, {
             concurrent: false,
             rendererOptions: {
@@ -2644,16 +2706,19 @@ export class NodeCommand extends BaseCommand {
       {
         title: 'Check network nodes are frozen',
         task: (ctx, task) => {
-          const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
-          const subTasks = []
-          for (const nodeId of config.existingNodeIds) {
-            subTasks.push({
-              title: `Check node: ${chalk.yellow(nodeId)}`,
-              task: async () => await self.checkNetworkNodeState(nodeId, 100, 'FREEZE_COMPLETE')
-            })
-          }
+          const { config: { existingNodeIds, namespace } } = ctx
 
-          // set up the sub-tasks
+          const subTasks = existingNodeIds.map((nodeId) => {
+            const title = `Check network pod: ${chalk.yellow(nodeId)}`
+            const status = NodeStatusCodes.FREEZE_COMPLETE
+
+            const subTask = async (ctx, task) => {
+              ctx.config.podNames[nodeId] = await this.checkNetworkNodeHealth(namespace, nodeId, task, title, status)
+            }
+
+            return { title, task: subTask }
+          })
+
           return task.newListr(subTasks, {
             concurrent: false,
             rendererOptions: {
@@ -2812,21 +2877,19 @@ export class NodeCommand extends BaseCommand {
       {
         title: 'Check all nodes are ACTIVE',
         task: async (ctx, task) => {
-          const subTasks = []
-          self.logger.info('sleep for 30 seconds to give time for the logs to roll over to prevent capturing an invalid "ACTIVE" string')
-          await sleep(30000)
-          for (const nodeId of ctx.config.allNodeIds) {
-            let reminder = ''
-            if (ctx.config.debugNodeId === nodeId) {
-              reminder = ' Please attach JVM debugger now.'
-            }
-            subTasks.push({
-              title: `Check node: ${chalk.yellow(nodeId)} ${chalk.red(reminder)}`,
-              task: async () => await self.checkNetworkNodeState(nodeId, 200)
-            })
-          }
+          const { config: { allNodeIds, debugNodeId, namespace } } = ctx
 
-          // set up the sub-tasks
+          const subTasks = allNodeIds.map((nodeId) => {
+            const reminder = debugNodeId === nodeId ? 'Please attach JVM debugger now.' : ''
+            const title = `Check network pod: ${chalk.yellow(nodeId)} ${chalk.red(reminder)}`
+
+            const subTask = async (ctx, task) => {
+              ctx.config.podNames[nodeId] = await this.checkNetworkNodeHealth(namespace, nodeId, task, title)
+            }
+
+            return { title, task: subTask }
+          })
+
           return task.newListr(subTasks, {
             concurrent: false,
             rendererOptions: {
@@ -3150,16 +3213,19 @@ export class NodeCommand extends BaseCommand {
       {
         title: 'Check network nodes are frozen',
         task: (ctx, task) => {
-          const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
-          const subTasks = []
-          for (const nodeId of config.existingNodeIds) {
-            subTasks.push({
-              title: `Check node: ${chalk.yellow(nodeId)}`,
-              task: async () => await self.checkNetworkNodeState(nodeId, 100, 'FREEZE_COMPLETE')
-            })
-          }
+          const { config: { existingNodeIds, namespace } } = ctx
 
-          // set up the sub-tasks
+          const subTasks = existingNodeIds.map((nodeId) => {
+            const title = `Check network pod: ${chalk.yellow(nodeId)}`
+            const status = NodeStatusCodes.FREEZE_COMPLETE
+
+            const subTask = async (ctx, task) => {
+              ctx.config.podNames[nodeId] = await this.checkNetworkNodeHealth(namespace, nodeId, task, title, status)
+            }
+
+            return { title, task: subTask }
+          })
+
           return task.newListr(subTasks, {
             concurrent: false,
             rendererOptions: {
@@ -3304,19 +3370,18 @@ export class NodeCommand extends BaseCommand {
       {
         title: 'Check all nodes are ACTIVE',
         task: async (ctx, task) => {
-          const subTasks = []
-          self.logger.info('sleep for 30 seconds to give time for the logs to roll over to prevent capturing an invalid "ACTIVE" string')
-          await sleep(30000)
-          for (const nodeId of ctx.config.allNodeIds) {
-            let reminder = ''
-            if (ctx.config.debugNodeId === nodeId) {
-              reminder = ' Please attach JVM debugger now.'
+          const { config: { allNodeIds, namespace, debugNodeId } } = ctx
+
+          const subTasks = allNodeIds.map((nodeId) => {
+            const reminder = debugNodeId === nodeId ? 'Please attach JVM debugger now.' : ''
+            const title = `Check network pod: ${chalk.yellow(nodeId)} ${chalk.red(reminder)}`
+
+            const subTask = async (ctx, task) => {
+              ctx.config.podNames[nodeId] = await this.checkNetworkNodeHealth(namespace, nodeId, task, title)
             }
-            subTasks.push({
-              title: `Check node: ${chalk.yellow(nodeId)}, ${chalk.red(reminder)}`,
-              task: async () => await self.checkNetworkNodeState(nodeId, 200)
-            })
-          }
+
+            return { title, task: subTask }
+          })
 
           // set up the sub-tasks
           return task.newListr(subTasks, {
