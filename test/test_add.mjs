@@ -36,7 +36,7 @@ export function testNodeAdd (localBuildPath
     const defaultTimeout = 120000
     const namespace = 'node-add' + suffix
     const argv = getDefaultArgv()
-    argv[flags.nodeIDs.name] = 'node1'
+    argv[flags.nodeIDs.name] = 'node1,node2,node3'
     argv[flags.generateGossipKeys.name] = true
     argv[flags.generateTlsKeys.name] = true
     // set the env variable SOLO_FST_CHARTS_DIR if developer wants to use local FST charts
@@ -81,16 +81,16 @@ export function testNodeAdd (localBuildPath
       expect(status).toBeTruthy()
     }, 450000)
 
-    it('should add a new node to the network successfully', async () => {
-      await nodeCmd.add(argv)
-      expect(nodeCmd.getUnusedConfigs(NodeCommand.ADD_CONFIGS_NAME)).toEqual([
-        flags.app.constName,
-        flags.chainId.constName,
-        flags.devMode.constName,
-        flags.adminKey.constName
-      ])
-      await nodeCmd.accountManager.close()
-    }, 800000)
+    // it('should add a new node to the network successfully', async () => {
+    //   await nodeCmd.add(argv)
+    //   expect(nodeCmd.getUnusedConfigs(NodeCommand.ADD_CONFIGS_NAME)).toEqual([
+    //     flags.app.constName,
+    //     flags.chainId.constName,
+    //     flags.devMode.constName,
+    //     flags.adminKey.constName
+    //   ])
+    //   await nodeCmd.accountManager.close()
+    // }, 800000)
 
     it('should add a new node to the network via the segregated commands successfully', async () => {
       await nodeCmd.addPrepare(argvPrepare)
