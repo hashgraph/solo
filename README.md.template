@@ -391,6 +391,7 @@ solo node start -i node1,node2,node3 --debug-nodeid node2
 ```
 
 Once you see the following message, you can launch jvm debugger from Intellij
+
 ```
 ❯ Check all nodes are ACTIVE
   Check node: node1,
@@ -410,6 +411,7 @@ solo node add --gossip-keys --tls-keys --node-id node4 --debug-nodeid node4 --lo
 ```
 
 Example 3: attach jvm debugger with node update operation
+
 ```bash
 ./test/e2e/setup-e2e.sh
 solo node keys --gossip-keys --tls-keys 
@@ -420,6 +422,7 @@ solo node update --node-id node2  --debug-nodeid node2 --local-build-path ../hed
 ```
 
 Example 4: attach jvm debugger with node delete operation
+
 ```bash
 ./test/e2e/setup-e2e.sh
 solo node keys --gossip-keys --tls-keys 

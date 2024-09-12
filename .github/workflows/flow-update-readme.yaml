@@ -28,6 +28,11 @@ on:
         description: "GitHub Access Token"
         type: string
         required: true
+    paths:
+      - '**/*.mjs'
+      - '**/*.js'
+      - '**/package*.json'
+      - '**/README.md.template'
 
 defaults:
   run:
