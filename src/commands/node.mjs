@@ -2162,8 +2162,8 @@ export class NodeCommand extends BaseCommand {
     const self = this
     const prepareTasks = this.getAddPrepareTasks(argv)
     const tasks = new Listr([
-        ...prepareTasks,
-        self.saveContextDataTask(argv)
+      ...prepareTasks,
+      self.saveContextDataTask(argv)
     ], {
       concurrent: false,
       rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION

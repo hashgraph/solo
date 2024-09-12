@@ -105,8 +105,8 @@ export function testNodeAdd (localBuildPath
         flags.generateTlsKeys.constName,
         flags.gossipEndpoints.constName,
         flags.grpcEndpoints.constName,
-        "curDate",
-        "freezeAdminPrivateKey",
+        'curDate',
+        'freezeAdminPrivateKey'
       ])
       await nodeCmd.accountManager.close()
     }, 800000)
