@@ -1,0 +1,89 @@
+##
+# Copyright (C) 2023-2024 Hedera Hashgraph, LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+##
+
+name: "PR Checks"
+on:
+  workflow_dispatch:
+  pull_request:
+    types:
+      - opened
+      - reopened
+      - synchronize
+
+defaults:
+  run:
+    shell: bash
+
+concurrency:
+  group: pr-checks-${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  env-vars:
+    name: Set Environment Variables
+    uses: ./.github/workflows/zxc-env-vars.yaml
+    with:
+      custom-job-label: Set Environment Variables
+
+  code-style:
+    name: Code Style
+    uses: ./.github/workflows/zxc-code-style.yaml
+    with:
+      custom-job-label: Standard
+
+  unit-tests:
+    name: Unit Tests
+    uses: ./.github/workflows/zxc-unit-test.yaml
+    needs:
+      - code-style
+    with:
+      custom-job-label: Standard
+
+  # {AUTOGENERATE-E2E-TEST-JOBS-2}
+
+  codecov:
+    name: CodeCov
+    uses: ./.github/workflows/zxc-code-analysis.yaml
+    needs:
+      - env-vars
+      - unit-tests
+      # {AUTOGENERATE-NEEDS}
+    if: ${{ github.event.pull_request.head.repo.full_name == github.event.pull_request.base.repo.full_name }}
+    with:
+      custom-job-label: Standard
+      enable-codecov-analysis: true
+      enable-e2e-coverage-report: true
+      # {AUTOGENERATE-WITH-SUBDIR}
+      # {AUTOGENERATE-WITH-COVERAGE-REPORT}
+    secrets:
+      codecov-token: ${{ secrets.CODECOV_TOKEN }}
+
+  codacy-coverage:
+    name: Codacy
+    uses: ./.github/workflows/zxc-code-analysis.yaml
+    needs:
+      - env-vars
+      - unit-tests
+      # {AUTOGENERATE-NEEDS}
+    if: ${{ github.event.pull_request.head.repo.full_name == github.event.pull_request.base.repo.full_name }}
+    with:
+      custom-job-label: Coverage
+      enable-codacy-coverage: true
+      enable-e2e-coverage-report: true
+      # {AUTOGENERATE-WITH-SUBDIR}
+      # {AUTOGENERATE-WITH-COVERAGE-REPORT}
+    secrets:
+      codacy-project-token: ${{ secrets.CODACY_PROJECT_TOKEN }}

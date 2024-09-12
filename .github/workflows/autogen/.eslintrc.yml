@@ -1,0 +1,14 @@
+env:
+  browser: true
+  es2021: true
+extends: standard
+parserOptions:
+  ecmaVersion: latest
+  sourceType: module
+overrides:
+  - files: ["*.mjs"]
+    parserOptions:
+      ecmaVersion: latest
+      sourceType: module
+rules:
+  "no-template-curly-in-string": "off"
