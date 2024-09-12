@@ -1020,8 +1020,10 @@ export class K8 {
     if (recreate) {
       try {
         await this.kubeClient.deleteNamespacedSecret(name, namespace)
-      } catch {
+        await new Promise((res) => setTimeout(res, 5000));
+      } catch (e) {
         // do nothing
+        console.error(e)
       }
     }
 
