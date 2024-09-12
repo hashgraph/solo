@@ -81,16 +81,16 @@ export function testNodeAdd (localBuildPath
       expect(status).toBeTruthy()
     }, 450000)
 
-    // it('should add a new node to the network successfully', async () => {
-    //   await nodeCmd.add(argv)
-    //   expect(nodeCmd.getUnusedConfigs(NodeCommand.ADD_CONFIGS_NAME)).toEqual([
-    //     flags.app.constName,
-    //     flags.chainId.constName,
-    //     flags.devMode.constName,
-    //     flags.adminKey.constName
-    //   ])
-    //   await nodeCmd.accountManager.close()
-    // }, 800000)
+    it('should add a new node to the network successfully', async () => {
+      await nodeCmd.add(argv)
+      expect(nodeCmd.getUnusedConfigs(NodeCommand.ADD_CONFIGS_NAME)).toEqual([
+        flags.app.constName,
+        flags.chainId.constName,
+        flags.devMode.constName,
+        flags.adminKey.constName
+      ])
+      await nodeCmd.accountManager.close()
+    }, 800000)
 
     it('should add a new node to the network via the segregated commands successfully', async () => {
       await nodeCmd.addPrepare(argvPrepare)
@@ -100,7 +100,13 @@ export function testNodeAdd (localBuildPath
         flags.app.constName,
         flags.chainId.constName,
         flags.devMode.constName,
-        flags.adminKey.constName
+        flags.adminKey.constName,
+        flags.generateGossipKeys.constName,
+        flags.generateTlsKeys.constName,
+        flags.gossipEndpoints.constName,
+        flags.grpcEndpoints.constName,
+        "curDate",
+        "freezeAdminPrivateKey",
       ])
       await nodeCmd.accountManager.close()
     }, 800000)
