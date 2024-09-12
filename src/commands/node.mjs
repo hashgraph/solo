@@ -697,6 +697,11 @@ export class NodeCommand extends BaseCommand {
    */
   async chartUpdateTask (ctx) {
     const config = ctx.config
+
+    if (!config.serviceMap) {
+      config.serviceMap = await this.accountManager.getNodeServiceMap(config.namespace)
+    }
+
     const index = config.existingNodeIds.length
     const nodeId = Templates.nodeNumberFromNodeId(config.nodeId) - 1
 
@@ -762,20 +767,15 @@ export class NodeCommand extends BaseCommand {
    * @param {any} ctx
    * @param {TaskWrapper} task
    * @param config
-   * @param isAddNode if this is an operation of adding a new node
    */
-  async identifyExistingNetworkNodes (ctx, task, config, isAddNode = false) {
+  async identifyExistingNetworkNodes (ctx, task, config) {
     config.existingNodeIds = []
     config.serviceMap = await this.accountManager.getNodeServiceMap(
       config.namespace)
     for (/** @type {NetworkNodeServices} **/ const networkNodeServices of config.serviceMap.values()) {
       config.existingNodeIds.push(networkNodeServices.nodeName)
     }
-    if (isAddNode) { // case of adding new node
-      config.allNodeIds = [...config.existingNodeIds, config.nodeId]
-    } else {
-      config.allNodeIds = [...config.existingNodeIds]
-    }
+    config.allNodeIds = [...config.existingNodeIds]
     return this.taskCheckNetworkNodePods(ctx, task, config.existingNodeIds)
   }
 
@@ -1722,31 +1722,13 @@ export class NodeCommand extends BaseCommand {
   }
 
   getIdentifyExistingNetworkNodesTask (argv) {
-    const self = this
-
     return {
       title: 'Identify existing network nodes',
       task: async (ctx, task) => {
         const config = /** @type {NodeAddConfigClass} **/ ctx.config
-        config.serviceMap = await self.accountManager.getNodeServiceMap(
-          config.namespace)
-        for (/** @type {NetworkNodeServices} **/ const networkNodeServices of config.serviceMap.values()) {
-          config.existingNodeIds.push(networkNodeServices.nodeName)
-        }
-
-        config.allNodeIds = [...config.existingNodeIds]
-
-        return self.taskCheckNetworkNodePods(ctx, task, config.existingNodeIds)
+        return this.identifyExistingNetworkNodes(ctx, task, config)
       }
     }
-
-      // {
-      //     title: 'Identify existing network nodes',
-      //         task: async (ctx, task) => {
-      //     const config = /** @type {NodeAddConfigClass} **/ ctx.config
-      //     return this.identifyExistingNetworkNodes(ctx, task, config, true)
-      // }
-      //
   }
 
   getAddPrepareTasks (argv) {
@@ -2038,30 +2020,6 @@ export class NodeCommand extends BaseCommand {
         task: async (ctx, parentTask) => {
           const config = /** @type {NodeAddConfigClass} **/ ctx.config
           return this.prepareStagingTask(ctx, parentTask, config.keysDir, config.stagingKeysDir, config.allNodeIds)
-          const subTasks = [
-            {
-              title: 'Copy Gossip keys to staging',
-              task: async (ctx, _) => {
-                const config = /** @type {NodeAddConfigClass} **/ ctx.config
-                await this.keyManager.copyGossipKeysToStaging(config.keysDir, config.stagingKeysDir, config.allNodeIds)
-              }
-            },
-            {
-              title: 'Copy gRPC TLS keys to staging',
-              task: async (ctx, _) => {
-                const config = /** @type {NodeAddConfigClass} **/ ctx.config
-                for (const nodeId of config.allNodeIds) {
-                  const tlsKeyFiles = self.keyManager.prepareTLSKeyFilePaths(nodeId, config.keysDir)
-                  await self.keyManager.copyNodeKeysToStaging(tlsKeyFiles, config.stagingKeysDir)
-                }
-              }
-            }
-          ]
-
-          return parentTask.newListr(subTasks, {
-            concurrent: false,
-            rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
-          })
         }
       },
       {
@@ -2087,11 +2045,6 @@ export class NodeCommand extends BaseCommand {
       {
         title: 'Deploy new network node',
         task: async (ctx, task) => {
-          const config = /** @type {NodeAddConfigClass} **/ ctx.config
-          if (!config.serviceMap) {
-            config.serviceMap = await self.accountManager.getNodeServiceMap(config.namespace)
-          }
-
           await this.chartUpdateTask(ctx)
         }
       },
