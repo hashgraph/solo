@@ -93,7 +93,7 @@ export const POD_CONDITION_READY = 'Ready'
 export const POD_CONDITION_POD_SCHEDULED = 'PodScheduled'
 export const POD_CONDITION_STATUS_TRUE = 'True'
 
-export const K8_COPY_FROM_RETRY_TIMES = 5
+export const K8_COPY_FROM_RETRY_TIMES = process.env.K8_COPY_FROM_RETRY_TIMES || 5
 /**
  * Listr related
  * @return a object that defines the default color options
