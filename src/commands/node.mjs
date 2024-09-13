@@ -357,7 +357,7 @@ export class NodeCommand extends BaseCommand {
         if (!response.ok) {
           task.title = `${title} - status ${chalk.yellow('UNKNOWN')}, attempt ${chalk.blueBright(`${attempt}/${maxAttempts}`)}`
           clearTimeout(timeoutId)
-          throw new Error()
+          throw new Error() // Guard
         }
 
         const text = await response.text()
@@ -368,7 +368,7 @@ export class NodeCommand extends BaseCommand {
         if (!statusLine) {
           task.title = `${title} - status ${chalk.yellow('STARTING')}, attempt: ${chalk.blueBright(`${attempt}/${maxAttempts}`)}`
           clearTimeout(timeoutId)
-          throw new Error()
+          throw new Error() // Guard
         }
 
         const statusNumber = parseInt(statusLine.split(' ').pop())
@@ -385,7 +385,7 @@ export class NodeCommand extends BaseCommand {
           task.title = `${title} - status ${chalk.yellow(NodeStatusEnums[statusNumber])}, attempt: ${chalk.blueBright(`${attempt}/${maxAttempts}`)}`
         }
         clearTimeout(timeoutId)
-      } catch {}
+      } catch {} // Catch all guard and fetch errors
 
       attempt++
       clearTimeout(timeoutId)
@@ -395,7 +395,8 @@ export class NodeCommand extends BaseCommand {
     await this.k8.stopPortForward(srv)
 
     if (!success) {
-      throw new FullstackTestingError(`node '${nodeId}' is not ${status} [ attempt = ${chalk.blueBright(`${attempt}/${maxAttempts}`)} ]`)
+      throw new FullstackTestingError(`node '${nodeId}' is not ${NodeStatusEnums[status]}` +
+        `[ attempt = ${chalk.blueBright(`${attempt}/${maxAttempts}`)} ]`)
     }
 
     return podName
