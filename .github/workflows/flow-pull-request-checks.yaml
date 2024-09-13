@@ -57,8 +57,6 @@ jobs:
     uses: ./.github/workflows/flow-update-readme.yaml
     with:
       commit-changes: false
-    secrets:
-      token: ${{ secrets.GH_ACCESS_TOKEN }}
 
   e2e-standard-tests:
     name: E2E Tests
