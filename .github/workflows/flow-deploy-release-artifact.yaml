@@ -41,6 +41,7 @@ jobs:
   update-readme:
     name: "Update README.md"
     uses: ./.github/workflows/flow-update-readme.yaml
+    secrets: inherit
     with:
       commit-changes: true
 

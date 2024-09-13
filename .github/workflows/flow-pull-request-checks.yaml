@@ -41,6 +41,7 @@ jobs:
   code-style:
     name: Code Style
     uses: ./.github/workflows/zxc-code-style.yaml
+    secrets: inherit
     with:
       custom-job-label: Standard
 
