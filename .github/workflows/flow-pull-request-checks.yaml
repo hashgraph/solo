@@ -31,9 +31,6 @@ concurrency:
   group: pr-checks-${{ github.workflow }}-${{ github.head_ref || github.run_id }}
   cancel-in-progress: true
 
-permissions:
-  id-token: write
-
 jobs:
   env-vars:
     name: Set Environment Variables
