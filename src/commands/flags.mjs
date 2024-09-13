@@ -242,7 +242,7 @@ export const relayReleaseTag = {
   name: 'relay-release',
   definition: {
     describe: 'Relay release tag to be used (e.g. v0.48.0)',
-    defaultValue: 'v0.53.0',
+    defaultValue: version.RELAY_NODE_VERSION,
     type: 'string'
   }
 }
