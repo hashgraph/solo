@@ -35,10 +35,8 @@ export function testNodeAdd (localBuildPath
     const suffix = localBuildPath.substring(0, 5)
     const defaultTimeout = 120000
     const namespace = 'node-add' + suffix
-    const nodeId = 'node4'
     const argv = getDefaultArgv()
     argv[flags.nodeIDs.name] = 'node1,node2,node3'
-    argv[flags.nodeID.name] = nodeId
     argv[flags.generateGossipKeys.name] = true
     argv[flags.generateTlsKeys.name] = true
     // set the env variable SOLO_FST_CHARTS_DIR if developer wants to use local FST charts
@@ -80,7 +78,8 @@ export function testNodeAdd (localBuildPath
       expect(nodeCmd.getUnusedConfigs(NodeCommand.ADD_CONFIGS_NAME)).toEqual([
         flags.app.constName,
         flags.chainId.constName,
-        flags.devMode.constName
+        flags.devMode.constName,
+        flags.adminKey.constName
       ])
       await nodeCmd.accountManager.close()
     }, 800000)

@@ -146,6 +146,7 @@ export const NODE_CLIENT_REQUEST_TIMEOUT = process.env.NODE_CLIENT_REQUEST_TIMEO
 // ---- New Node Related ----
 export const ENDPOINT_TYPE_IP = 'IP'
 export const ENDPOINT_TYPE_FQDN = 'FQDN'
+export const DEFAULT_NETWORK_NODE_NAME = 'node1'
 
 // file-id must be between 0.0.150 and 0.0.159
 // file must be uploaded using FileUpdateTransaction in maximum of 5Kb chunks

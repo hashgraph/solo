@@ -756,6 +756,39 @@ export const debugNodeId = {
   }
 }
 
+/** @type {CommandFlag} **/
+export const outputDir = {
+  constName: 'outputDir',
+  name: 'output-dir',
+  definition: {
+    describe: 'Path to the directory where the command context will be saved to',
+    defaultValue: '',
+    type: 'string'
+  }
+}
+
+/** @type {CommandFlag} **/
+export const inputDir = {
+  constName: 'inputDir',
+  name: 'input-dir',
+  definition: {
+    describe: 'Path to the directory where the command context will be loaded from',
+    defaultValue: '',
+    type: 'string'
+  }
+}
+
+/** @type {CommandFlag} **/
+export const adminKey = {
+  constName: 'adminKey',
+  name: 'admin-key',
+  definition: {
+    describe: 'Admin key',
+    defaultValue: constants.GENESIS_KEY,
+    type: 'string'
+  }
+}
+
 /** @type {CommandFlag[]} **/
 export const allFlags = [
   accountId,
