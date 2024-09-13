@@ -54,6 +54,7 @@ export function testNodeAddSeparated (localBuildPath
 
     const argvExecute = getDefaultArgv()
     argvExecute[flags.inputDir.name] = tempDir
+    argvExecute[flags.localBuildPath.name] = localBuildPath
 
     const bootstrapResp = bootstrapNetwork(namespace, argv)
     const nodeCmd = bootstrapResp.cmd.nodeCmd
