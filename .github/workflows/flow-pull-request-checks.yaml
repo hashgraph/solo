@@ -31,6 +31,9 @@ concurrency:
   group: pr-checks-${{ github.workflow }}-${{ github.head_ref || github.run_id }}
   cancel-in-progress: true
 
+permissions:
+  id-token: write
+
 jobs:
   env-vars:
     name: Set Environment Variables
@@ -43,10 +46,6 @@ jobs:
     uses: ./.github/workflows/zxc-code-style.yaml
     with:
       custom-job-label: Standard
-    secrets:
-      GH_ACCESS_TOKEN: ${{ secrets.GH_ACCESS_TOKEN }}
-      GH_ACCESS_GPG_KEY: ${{ secrets.GH_ACCESS_GPG_KEY }}
-      GH_ACCESS_PASSPHRASE: ${{ secrets.GH_ACCESS_PASSPHRASE }}
 
   unit-tests:
     name: Unit Tests
@@ -61,6 +60,10 @@ jobs:
     uses: ./.github/workflows/flow-update-readme.yaml
     with:
       commit-changes: false
+    secrets:
+      GH_ACCESS_TOKEN: ${{ secrets.GH_ACCESS_TOKEN }}
+      GH_ACCESS_GPG_KEY: ${{ secrets.GH_ACCESS_GPG_KEY }}
+      GH_ACCESS_PASSPHRASE: ${{ secrets.GH_ACCESS_PASSPHRASE }}
 
   e2e-standard-tests:
     name: E2E Tests
