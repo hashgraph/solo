@@ -43,6 +43,7 @@ jobs:
     uses: ./.github/workflows/flow-update-readme.yaml
     with:
       commit-changes: true
+    secrets:
       token: ${{ secrets.GH_ACCESS_TOKEN }}
 
   prepare-release:
