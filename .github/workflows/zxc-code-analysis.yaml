@@ -278,8 +278,8 @@ jobs:
       - name: Download E2E Test Report
         uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
         with:
-          name: e2e_test_report
-          path: 'e2e_test_report'
+          pattern: "e2e_test_report_*"
+          path: "e2e_test_report"
 
       - name: Display structure of downloaded files
         run: ls -R e2e_test_report
