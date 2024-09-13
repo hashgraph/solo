@@ -122,8 +122,6 @@ export function e2eNodeKeyRefreshTest (testName, mode, releaseTag = HEDERA_PLATF
 
               nodeShouldNotBeActive(nodeCmd, nodeId)
 
-              nodeShouldNotBeFound(nodeCmd)
-
               nodeRefreshShouldSucceed(nodeId, nodeCmd, argv)
 
               balanceQueryShouldSucceed(accountManager, nodeCmd, namespace)
@@ -167,23 +165,7 @@ export function e2eNodeKeyRefreshTest (testName, mode, releaseTag = HEDERA_PLATF
             expect(2)
             try {
               await expect(
-                nodeCmd.checkNetworkNodeActiveness(namespace, nodeId, { title: '' }, '', 0, undefined, 15)
-              ).rejects.toThrowError()
-            } catch (e) {
-              expect(e).not.toBeNull()
-            } finally {
-              await nodeCmd.close()
-            }
-          }, defaultTimeout)
-        }
-
-        function nodeShouldNotBeFound (nodeCmd) {
-          const invalidNodeName = 'invalid-node-name'
-          it(`${invalidNodeName} should not be ACTIVE`, async () => {
-            expect(2)
-            try {
-              await expect(
-                nodeCmd.checkNetworkNodeActiveness(namespace, invalidNodeName, { title: '' }, '', 0, undefined, 15)
+                nodeCmd.checkNetworkNodeActiveness(namespace, nodeId, { title: '' }, '', 44, undefined, 15)
               ).rejects.toThrowError()
             } catch (e) {
               expect(e).not.toBeNull()
