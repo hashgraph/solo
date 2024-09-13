@@ -352,7 +352,6 @@ export class NodeCommand extends BaseCommand {
 
       try {
         const url = `http://${LOCAL_HOST}:${localPort}/metrics`
-        console.log(url)
         const response = await fetch(url, { signal: controller.signal })
 
         if (!response.ok) {
