@@ -142,6 +142,19 @@ jobs:
       coverage-subdirectory: ${{ needs.env-vars.outputs.e2e-node-add-test-subdir }}
       coverage-report-name: ${{ needs.env-vars.outputs.e2e-node-add-coverage-report }}
 
+  e2e-node-add-separate-commands-tests:
+    name: E2E Tests
+    if: ${{ github.event_name == 'push' || github.event.inputs.enable-e2e-tests == 'true' }}
+    uses: ./.github/workflows/zxc-e2e-test.yaml
+    needs:
+      - env-vars
+      - code-style
+    with:
+      custom-job-label: Node Add - Separate commands
+      npm-test-script: test-${{ needs.env-vars.outputs.e2e-node-add-separate-commands-test-subdir }}
+      coverage-subdirectory: ${{ needs.env-vars.outputs.e2e-node-add-separate-commands-test-subdir }}
+      coverage-report-name: ${{ needs.env-vars.outputs.e2e-node-add-separate-commands-coverage-report }}
+
   e2e-node-update-tests:
     name: E2E Tests
     if: ${{ github.event_name == 'push' || github.event.inputs.enable-e2e-tests == 'true' }}
@@ -193,6 +206,7 @@ jobs:
       - e2e-node-pem-kill-tests
       - e2e-node-local-build-tests
       - e2e-node-add-tests
+      - e2e-node-add-separate-commands-tests
       - e2e-node-update-tests
       - e2e-node-delete-tests
       - e2e-relay-tests
@@ -209,6 +223,7 @@ jobs:
       e2e-node-pem-kill-test-subdir: ${{ needs.env-vars.outputs.e2e-node-pem-kill-test-subdir }}
       e2e-node-local-build-test-subdir: ${{ needs.env-vars.outputs.e2e-node-local-build-test-subdir }}
       e2e-node-add-test-subdir: ${{ needs.env-vars.outputs.e2e-node-add-test-subdir }}
+      e2e-node-add-separate-commands-test-subdir: ${{ needs.env-vars.outputs.e2e-node-add-separate-commands-test-subdir }}
       e2e-node-update-test-subdir: ${{ needs.env-vars.outputs.e2e-node-update-test-subdir }}
       e2e-node-delete-test-subdir: ${{ needs.env-vars.outputs.e2e-node-delete-test-subdir }}
       e2e-relay-test-subdir: ${{ needs.env-vars.outputs.e2e-relay-test-subdir }}
@@ -218,6 +233,7 @@ jobs:
       e2e-node-pem-kill-coverage-report: ${{ needs.env-vars.outputs.e2e-node-pem-kill-coverage-report }}
       e2e-node-local-build-coverage-report: ${{ needs.env-vars.outputs.e2e-node-local-build-coverage-report }}
       e2e-node-add-coverage-report: ${{ needs.env-vars.outputs.e2e-node-add-coverage-report }}
+      e2e-node-add-separate-commands-coverage-report: ${{ needs.env-vars.outputs.e2e-node-add-separate-commands-coverage-report }}
       e2e-node-update-coverage-report: ${{ needs.env-vars.outputs.e2e-node-update-coverage-report }}
       e2e-node-delete-coverage-report: ${{ needs.env-vars.outputs.e2e-node-delete-coverage-report }}
       e2e-relay-coverage-report: ${{ needs.env-vars.outputs.e2e-relay-coverage-report }}

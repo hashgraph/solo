@@ -29,12 +29,12 @@ import { flags } from '../src/commands/index.mjs'
 import { getNodeLogs } from '../src/core/helpers.mjs'
 import { NodeCommand } from '../src/commands/node.mjs'
 
-export function testNodeAdd (localBuildPath
+export function testNodeAddSeparated (localBuildPath
 ) {
-  describe('Node add should success', () => {
+  describe('Node add via separated commands should success', () => {
     const suffix = localBuildPath.substring(0, 5)
     const defaultTimeout = 120000
-    const namespace = 'node-add' + suffix
+    const namespace = 'node-add-separated' + suffix
     const argv = getDefaultArgv()
     argv[flags.nodeIDs.name] = 'node1,node2,node3'
     argv[flags.generateGossipKeys.name] = true
@@ -46,6 +46,14 @@ export function testNodeAdd (localBuildPath
     argv[flags.force.name] = true
     argv[flags.persistentVolumeClaims.name] = true
     argv[flags.localBuildPath.name] = localBuildPath
+
+    const argvPrepare = Object.assign({}, argv)
+
+    const tempDir = 'contextDir'
+    argvPrepare[flags.outputDir.name] = tempDir
+
+    const argvExecute = getDefaultArgv()
+    argvExecute[flags.inputDir.name] = tempDir
 
     const bootstrapResp = bootstrapNetwork(namespace, argv)
     const nodeCmd = bootstrapResp.cmd.nodeCmd
@@ -73,13 +81,21 @@ export function testNodeAdd (localBuildPath
       expect(status).toBeTruthy()
     }, 450000)
 
-    it('should add a new node to the network successfully', async () => {
-      await nodeCmd.add(argv)
+    it('should add a new node to the network via the segregated commands successfully', async () => {
+      await nodeCmd.addPrepare(argvPrepare)
+      await nodeCmd.addSubmitTransactions(argvExecute)
+      await nodeCmd.addExecute(argvExecute)
       expect(nodeCmd.getUnusedConfigs(NodeCommand.ADD_CONFIGS_NAME)).toEqual([
         flags.app.constName,
         flags.chainId.constName,
         flags.devMode.constName,
-        flags.adminKey.constName
+        flags.generateGossipKeys.constName,
+        flags.generateTlsKeys.constName,
+        flags.gossipEndpoints.constName,
+        flags.grpcEndpoints.constName,
+        flags.adminKey.constName,
+        'curDate',
+        'freezeAdminPrivateKey'
       ])
       await nodeCmd.accountManager.close()
     }, 800000)
