@@ -81,6 +81,7 @@ describe('Node add via separated commands should success', () => {
     await nodeCmd.addSubmitTransactions(argvExecute)
     await nodeCmd.addExecute(argvExecute)
     expect(nodeCmd.getUnusedConfigs(NodeCommand.ADD_CONFIGS_NAME)).toEqual([
+      flags.adminKey.constName,
       flags.app.constName,
       flags.chainId.constName,
       flags.devMode.constName,
@@ -88,7 +89,6 @@ describe('Node add via separated commands should success', () => {
       flags.generateTlsKeys.constName,
       flags.gossipEndpoints.constName,
       flags.grpcEndpoints.constName,
-      flags.adminKey.constName,
       'curDate',
       'freezeAdminPrivateKey'
     ])

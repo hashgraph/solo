@@ -76,10 +76,10 @@ export function testNodeAdd (localBuildPath
     it('should add a new node to the network successfully', async () => {
       await nodeCmd.add(argv)
       expect(nodeCmd.getUnusedConfigs(NodeCommand.ADD_CONFIGS_NAME)).toEqual([
+        flags.adminKey.constName,
         flags.app.constName,
         flags.chainId.constName,
         flags.devMode.constName,
-        flags.adminKey.constName
       ])
       await nodeCmd.accountManager.close()
     }, 800000)
