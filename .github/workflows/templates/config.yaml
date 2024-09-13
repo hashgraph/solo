@@ -16,7 +16,7 @@ tests:
   - name: Node Add
     jestPostfix: --testRegex=\".*\\/e2e\\/commands\\/node_add.*\\.test\\.mjs\"
   - name: Node Add - Separate commands
-    jestPostfix: --testRegex=\".*\\/e2e\\/commands\\/node_add_separate.*\\.test\\.mjs\"
+    jestPostfix: --testRegex=\".*\\/e2e\\/commands\\/separate_node_add.*\\.test\\.mjs\"
   - name: Node Update
     jestPostfix: --testRegex=\".*\\/e2e\\/commands\\/node_update.*\\.test\\.mjs\"
   - name: Node Delete
