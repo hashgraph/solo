@@ -182,7 +182,7 @@ jobs:
         if: ${{ runner.os == 'linux' && inputs.npm-test-script == 'test-e2e-relay' && !cancelled() && !failure() }}
         run: |
           echo "Skipped smoke test for relay"
-          #.github/workflows/script/relay_smoke_test.sh
+          .github/workflows/script/relay_smoke_test.sh
 
       - name: Upload E2E Logs to GitHub
         if: ${{ !cancelled() }}
