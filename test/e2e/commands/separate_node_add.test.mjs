@@ -15,7 +15,6 @@
  *
  * @jest-environment steps
  */
-import {afterAll, describe, expect, it} from '@jest/globals'
 import {
   accountCreationShouldSucceed,
   balanceQueryShouldSucceed,
@@ -23,10 +22,10 @@ import {
   getDefaultArgv,
   getNodeIdsPrivateKeysHash, getTmpDir,
   HEDERA_PLATFORM_VERSION_TAG
-} from "../../test_util.js";
-import {flags} from "../../../src/commands/index.mjs";
-import {getNodeLogs} from "../../../src/core/helpers.mjs";
-import {NodeCommand} from "../../../src/commands/node.mjs";
+} from '../../test_util.js'
+import { flags } from '../../../src/commands/index.mjs'
+import { getNodeLogs } from '../../../src/core/helpers.mjs'
+import { NodeCommand } from '../../../src/commands/node.mjs'
 
 describe('Node add via separated commands should success', () => {
   const defaultTimeout = 120000
