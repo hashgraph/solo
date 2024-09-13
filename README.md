@@ -74,7 +74,6 @@ Then run the following command to set the kubectl context to the new cluster:
 ```bash
 kind create cluster -n "${SOLO_CLUSTER_NAME}"
 ```
-
 Example output
 
 ```
@@ -90,7 +89,7 @@ You can now use your cluster with:
 
 kubectl cluster-info --context kind-solo
 
-Have a nice day! 👋
+Not sure what to do next? 😅  Check out https://kind.sigs.k8s.io/docs/user/quick-start/
 ```
 
 You may now view pods in your cluster using `k9s -A` as below:
@@ -175,13 +174,12 @@ Kubernetes Namespace	: solo
 ✔ Gossip pem key for node: node3
 ✔ Generate gossip keys
 ✔ Backup old files
+✔ TLS key for node: node2
 ✔ TLS key for node: node3
 ✔ TLS key for node: node1
-✔ TLS key for node: node2
 ✔ Generate gRPC TLS keys
 ✔ Finalize
 ```
-
 Key files are generated in `~/.solo/keys` directory.
 
 ```
@@ -190,7 +188,6 @@ $ ls ~/.solo/cache/keys
 hedera-node1.crt  hedera-node2.crt  hedera-node3.crt  private-node1.pfx private-node3.pfx
 hedera-node1.key  hedera-node2.key  hedera-node3.key  private-node2.pfx public.pfx
 ```
-
 * Setup cluster with shared components
   * In a separate terminal, you may run `k9s` to view the pod status.
 
@@ -212,6 +209,7 @@ Kubernetes Namespace	: solo
 ✔ Prepare chart values
 ✔ Install 'fullstack-cluster-setup' chart
 ```
+
 
 * Deploy helm chart with Hedera network components
   * It may take a while (5~15 minutes depending on your internet speed) to download various docker images and get the pods started.
@@ -235,25 +233,25 @@ Kubernetes Namespace	: solo
 ✔ Copy Gossip keys to staging
 ✔ Copy gRPC TLS keys to staging
 ✔ Prepare staging directory
-✔ Copy TLS keys
-✔ Copy Gossip keys
-✔ Node: node3
 ✔ Copy Gossip keys
 ✔ Node: node2
+✔ Copy TLS keys
 ✔ Copy Gossip keys
 ✔ Node: node1
+✔ Copy Gossip keys
+✔ Node: node3
 ✔ Copy node keys to secrets
 ✔ Install chart 'fullstack-deployment'
 ✔ Check Node: node1
 ✔ Check Node: node2
 ✔ Check Node: node3
 ✔ Check node pods are running
-✔ Check Envoy Proxy for: node1
 ✔ Check Envoy Proxy for: node3
-✔ Check HAProxy for: node1
-✔ Check HAProxy for: node3
 ✔ Check Envoy Proxy for: node2
+✔ Check Envoy Proxy for: node1
+✔ Check HAProxy for: node1
 ✔ Check HAProxy for: node2
+✔ Check HAProxy for: node3
 ✔ Check proxy pods are running
 ✔ Check MinIO
 ✔ Check auxiliary pods are ready
@@ -281,17 +279,12 @@ Kubernetes Namespace	: solo
 ✔ Check network pod: node1
 ✔ Check network pod: node2
 ✔ Identify network pods
-✔ Update node: node1 [ platformVersion = v0.42.5 ]
-✔ Update node: node3 [ platformVersion = v0.42.5 ]
-✔ Update node: node2 [ platformVersion = v0.42.5 ]
-✔ Fetch platform software into network nodes
-✔ Set file permissions
-✔ Node: node2
-✔ Set file permissions
-✔ Node: node3
-✔ Set file permissions
-✔ Node: node1
-✔ Setup network nodes
+*********************************** ERROR *****************************************
+Error in setting up nodes: failed to extract platform code in this pod 'network-node1-0': Exec error:
+              [exec network-node1-0 -c root-container -- /home/hedera/extract-platform.sh v0.42.5'] - error details:
+              curl: (56) OpenSSL SSL_read: SSL_ERROR_SYSCALL, errno 104
+
+***********************************************************************************
 ```
 
 * Start the nodes.
@@ -316,14 +309,13 @@ Kubernetes Namespace	: solo
 ✔ Check network pod: node3
 ✔ Identify network pods
 ✔ Start node: node1
-✔ Start node: node3
 ✔ Start node: node2
+✔ Start node: node3
 ✔ Starting nodes
 *********************************** ERROR *****************************************
-Error starting node: node 'node1' is not ACTIVE [ attempt = 100/100 ]
+Error starting node: Logs are not accessible: /opt/hgcapp/services-hedera/HapiApp2.0/output/hgcaa.log
 ***********************************************************************************
 ```
-
 * Deploy mirror node
 
 ```
@@ -495,15 +487,13 @@ Kubernetes Namespace	: solo
 ✔ Gossip pem key for node: node3
 ✔ Generate gossip keys
 ✔ Backup old files
-✔ TLS key for node: node2
-✔ TLS key for node: node3
 ✔ TLS key for node: node1
+✔ TLS key for node: node3
+✔ TLS key for node: node2
 ✔ Generate gRPC TLS keys
 ✔ Finalize
 ```
-
 PEM key files are generated in `~/.solo/keys` directory.
-
 ```
 $ ls ~/.solo/cache/keys  
 a-private-node1.pem  a-private-node3.pem  a-public-node2.pem   hedera-node1.crt     
@@ -512,7 +502,6 @@ s-public-node2.pem   unused-gossip-pem/
 a-private-node2.pem  a-public-node1.pem   a-public-node3.pem   hedera-node1.key     
 hedera-node2.key     hedera-node3.key     s-private-node2.pem  s-public-node1.pem   s-public-node3.pem   unused-tls/
 ```
-
 * Setup cluster with shared components
 
 ```
@@ -548,18 +537,16 @@ $ solo node start
 
 # output is similar to example-1 
 ```
-
 ## For Developers Working on Hedera Service Repo
 
 First, pleaes clone hedera service repo `https://github.com/hashgraph/hedera-services/` and build the code
 with `./gradlew assemble`. If need to running nodes with different versions or releases, please duplicate the repo or build directories in
-multiple directories, checkout to the respective version and build the code.
+multiple directories, checkout to the respective version and build the code. 
 
 To set customized `settings.txt` file, edit the file
 `~/.solo/cache/templates/settings.txt` after `solo init` command.
 
 Then you can start customized built hedera network with the following command:
-
 ```
 solo node setup --local-build-path <default path to hedera repo>,node1=<custom build hedera repo>,node2=<custom build repo>
 ```
@@ -567,16 +554,13 @@ solo node setup --local-build-path <default path to hedera repo>,node1=<custom b
 ## For Developers Working on Platform core
 
 To deploy node with local build PTT jar files, run the following command:
-
 ```
 solo node setup --local-build-path <default path to hedera repo>,node1=<custom build hedera repo>,node2=<custom build repo>
  --app PlatformTestingTool.jar --app-config <path-to-test-json1,path-to-test-json2>
 ```
-
 ## Logs
-
 You can find log for running solo command under the directory `~/.solo/logs/`
-The file `solo.log` contains the logs for the solo command.
+The file `solo.log` contains the logs for the solo command. 
 The file `hashgraph-sdk.log` contains the logs from solo client when sending transactions to network nodes.
 
 ## Using Intellj remote debug with solo
@@ -584,7 +568,6 @@ The file `hashgraph-sdk.log` contains the logs from solo client when sending tra
 NOTE: the hedera-services path referenced '../hedera-services/hedera-node/data' may need to be updated based on what directory you are currently in.  This also assumes that you have done an assemble/build and the directory contents are up-to-date.
 
 Example 1: attach jvm debugger to a hedera node
-
 ```bash
 ./test/e2e/setup-e2e.sh
 solo node keys --gossip-keys --tls-keys
@@ -594,7 +577,6 @@ solo node start -i node1,node2,node3 --debug-nodeid node2
 ```
 
 Once you see the following message, you can launch jvm debugger from Intellij
-
 ```
   Check node: node1,
   Check node: node3,  Please attach JVM debugger now.
@@ -613,7 +595,6 @@ solo node add --gossip-keys --tls-keys --node-id node4 --debug-nodeid node4 --lo
 ```
 
 Example 3: attach jvm debugger with node update operation
-
 ```bash
 ./test/e2e/setup-e2e.sh
 solo node keys --gossip-keys --tls-keys 
@@ -624,7 +605,6 @@ solo node update --node-id node2  --debug-nodeid node2 --local-build-path ../hed
 ```
 
 Example 4: attach jvm debugger with node delete operation
-
 ```bash
 ./test/e2e/setup-e2e.sh
 solo node keys --gossip-keys --tls-keys 
