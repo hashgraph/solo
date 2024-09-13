@@ -25,8 +25,8 @@ on:
         description: "GitHub Access GPG Key"
         required: true
       GH_ACCESS_PASSPHRASE:
-          description: "GitHub Access Passphrase"
-          required: true
+        description: "GitHub Access Passphrase"
+        required: true
     inputs:
       commit-changes:
         description: "Commit updated README.md"
