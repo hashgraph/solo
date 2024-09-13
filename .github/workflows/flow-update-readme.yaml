@@ -17,6 +17,16 @@
 name: Update README.md
 on:
   workflow_call:
+    secrets:
+      GH_ACCESS_TOKEN:
+        description: "GitHub Access Token"
+        required: true
+      GH_ACCESS_GPG_KEY:
+        description: "GitHub Access GPG Key"
+        required: true
+      GH_ACCESS_PASSPHRASE:
+          description: "GitHub Access Passphrase"
+          required: true
     inputs:
       commit-changes:
         description: "Commit updated README.md"

@@ -41,9 +41,12 @@ jobs:
   code-style:
     name: Code Style
     uses: ./.github/workflows/zxc-code-style.yaml
-    secrets: inherit
     with:
       custom-job-label: Standard
+    secrets:
+      GH_ACCESS_TOKEN: ${{ secrets.GH_ACCESS_TOKEN }}
+      GH_ACCESS_GPG_KEY: ${{ secrets.GH_ACCESS_GPG_KEY }}
+      GH_ACCESS_PASSPHRASE: ${{ secrets.GH_ACCESS_PASSPHRASE }}
 
   unit-tests:
     name: Unit Tests
