@@ -391,30 +391,40 @@ export class NodeCommand extends BaseCommand {
    * @param {string} nodeId
    * @param {TaskWrapper} task
    * @param {string} title
-   * @param {number} maxAttempts
-   * @param {number} status
-   * @param {number} delay
+   * @param {number} index
+   * @param {number} [status]
+   * @param {number} [maxAttempts]
+   * @param {number} [delay]
+   * @param {number} [timeout]
    * @returns {Promise<string>}
    */
-  async checkNetworkNodeHealth (namespace, nodeId, task, title, status = NodeStatusCodes.ACTIVE, maxAttempts = 120, delay = 1_000) {
+  async checkNetworkNodeHealth (namespace, nodeId, task, title, index, status = NodeStatusCodes.ACTIVE, maxAttempts = 120, delay = 1_000, timeout = 1_000) {
     nodeId = nodeId.trim()
     const podName = Templates.renderNetworkPodName(nodeId)
-    const podPort = 9999
+    const podPort = 9_999
+    const localPort = 19_000 + index
     task.title = `${title} - status ${chalk.yellow('STARTING')}, attempt ${chalk.blueBright(`0/${maxAttempts}`)}`
 
-    const srv = await this.k8.portForward(podName, podPort, podPort)
+    const srv = await this.k8.portForward(podName, localPort, podPort)
 
     let attempt = 0
     let success = false
     while (attempt < maxAttempts) {
       const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), delay)
+
+      const timeoutId = setTimeout(() => {
+        task.title = `${title} - status ${chalk.yellow('TIMEOUT')}, attempt ${chalk.blueBright(`${attempt}/${maxAttempts}`)}`
+        controller.abort()
+      }, timeout)
 
       try {
-        const response = await fetch(`http://${LOCAL_HOST}:${podPort}/metrics`, { signal: controller.signal })
+        const url = `http://${LOCAL_HOST}:${localPort}/metrics`
+        console.log(url)
+        const response = await fetch(url, { signal: controller.signal })
 
         if (!response.ok) {
           task.title = `${title} - status ${chalk.yellow('UNKNOWN')}, attempt ${chalk.blueBright(`${attempt}/${maxAttempts}`)}`
+          clearTimeout(timeoutId)
           throw new Error()
         }
 
@@ -425,6 +435,7 @@ export class NodeCommand extends BaseCommand {
 
         if (!statusLine) {
           task.title = `${title} - status ${chalk.yellow('STARTING')}, attempt: ${chalk.blueBright(`${attempt}/${maxAttempts}`)}`
+          clearTimeout(timeoutId)
           throw new Error()
         }
 
@@ -441,18 +452,19 @@ export class NodeCommand extends BaseCommand {
         } else if (statusNumber) {
           task.title = `${title} - status ${chalk.yellow(NodeStatusEnums[statusNumber])}, attempt: ${chalk.blueBright(`${attempt}/${maxAttempts}`)}`
         }
+        clearTimeout(timeoutId)
       } catch {}
 
+      attempt++
       clearTimeout(timeoutId)
       await sleep(delay)
-      attempt++
     }
+
+    await this.k8.stopPortForward(srv)
 
     if (!success) {
       throw new FullstackTestingError(`node '${nodeId}' is not ${status} [ attempt = ${chalk.blueBright(`${attempt}/${maxAttempts}`)} ]`)
     }
-
-    await this.k8.stopPortForward(srv)
 
     return podName
   }
@@ -926,12 +938,12 @@ export class NodeCommand extends BaseCommand {
         task: (ctx, task) => {
           const { config: { nodeIds, namespace, debugNodeId } } = ctx
 
-          const subTasks = nodeIds.map((nodeId) => {
+          const subTasks = nodeIds.map((nodeId, i) => {
             const reminder = debugNodeId === nodeId ? 'Please attach JVM debugger now.' : ''
             const title = `Check network pod: ${chalk.yellow(nodeId)} ${chalk.red(reminder)}`
 
             const subTask = async (ctx, task) => {
-              ctx.config.podNames[nodeId] = await this.checkNetworkNodeHealth(namespace, nodeId, task, title)
+              ctx.config.podNames[nodeId] = await this.checkNetworkNodeHealth(namespace, nodeId, task, title, i)
             }
 
             return { title, task: subTask }
@@ -1322,11 +1334,11 @@ export class NodeCommand extends BaseCommand {
         task: (ctx, task) => {
           const { config: { nodeIds, namespace } } = ctx
 
-          const subTasks = nodeIds.map((nodeId) => {
+          const subTasks = nodeIds.map((nodeId, i) => {
             const title = `Check network pod: ${chalk.yellow(nodeId)}`
 
             const subTask = async (ctx, task) => {
-              ctx.config.podNames[nodeId] = await this.checkNetworkNodeHealth(namespace, nodeId, task, title)
+              ctx.config.podNames[nodeId] = await this.checkNetworkNodeHealth(namespace, nodeId, task, title, i)
             }
 
             return { title, task: subTask }
@@ -1810,12 +1822,12 @@ export class NodeCommand extends BaseCommand {
         task: (ctx, task) => {
           const { config: { existingNodeIds, namespace } } = ctx
 
-          const subTasks = existingNodeIds.map((nodeId) => {
+          const subTasks = existingNodeIds.map((nodeId, i) => {
             const title = `Check network pod: ${chalk.yellow(nodeId)}`
             const status = NodeStatusCodes.FREEZE_COMPLETE
 
             const subTask = async (ctx, task) => {
-              ctx.config.podNames[nodeId] = await this.checkNetworkNodeHealth(namespace, nodeId, task, title, status)
+              ctx.config.podNames[nodeId] = await this.checkNetworkNodeHealth(namespace, nodeId, task, title, i, status)
             }
 
             return { title, task: subTask }
@@ -1992,12 +2004,12 @@ export class NodeCommand extends BaseCommand {
         task: async (ctx, task) => {
           const { config: { allNodeIds, namespace, debugNodeId } } = ctx
 
-          const subTasks = allNodeIds.map((nodeId) => {
+          const subTasks = allNodeIds.map((nodeId, i) => {
             const reminder = debugNodeId === nodeId ? 'Please attach JVM debugger now.' : ''
             const title = `Check network pod: ${chalk.yellow(nodeId)} ${chalk.red(reminder)}`
 
             const subTask = async (ctx, task) => {
-              ctx.config.podNames[nodeId] = await this.checkNetworkNodeHealth(namespace, nodeId, task, title)
+              ctx.config.podNames[nodeId] = await this.checkNetworkNodeHealth(namespace, nodeId, task, title, i)
             }
 
             return { title, task: subTask }
@@ -2708,12 +2720,12 @@ export class NodeCommand extends BaseCommand {
         task: (ctx, task) => {
           const { config: { existingNodeIds, namespace } } = ctx
 
-          const subTasks = existingNodeIds.map((nodeId) => {
+          const subTasks = existingNodeIds.map((nodeId, i) => {
             const title = `Check network pod: ${chalk.yellow(nodeId)}`
             const status = NodeStatusCodes.FREEZE_COMPLETE
 
             const subTask = async (ctx, task) => {
-              ctx.config.podNames[nodeId] = await this.checkNetworkNodeHealth(namespace, nodeId, task, title, status)
+              ctx.config.podNames[nodeId] = await this.checkNetworkNodeHealth(namespace, nodeId, task, title, i, status)
             }
 
             return { title, task: subTask }
@@ -2879,12 +2891,12 @@ export class NodeCommand extends BaseCommand {
         task: async (ctx, task) => {
           const { config: { allNodeIds, debugNodeId, namespace } } = ctx
 
-          const subTasks = allNodeIds.map((nodeId) => {
+          const subTasks = allNodeIds.map((nodeId, i) => {
             const reminder = debugNodeId === nodeId ? 'Please attach JVM debugger now.' : ''
             const title = `Check network pod: ${chalk.yellow(nodeId)} ${chalk.red(reminder)}`
 
             const subTask = async (ctx, task) => {
-              ctx.config.podNames[nodeId] = await this.checkNetworkNodeHealth(namespace, nodeId, task, title)
+              ctx.config.podNames[nodeId] = await this.checkNetworkNodeHealth(namespace, nodeId, task, title, i)
             }
 
             return { title, task: subTask }
@@ -3215,12 +3227,12 @@ export class NodeCommand extends BaseCommand {
         task: (ctx, task) => {
           const { config: { existingNodeIds, namespace } } = ctx
 
-          const subTasks = existingNodeIds.map((nodeId) => {
+          const subTasks = existingNodeIds.map((nodeId, i) => {
             const title = `Check network pod: ${chalk.yellow(nodeId)}`
             const status = NodeStatusCodes.FREEZE_COMPLETE
 
             const subTask = async (ctx, task) => {
-              ctx.config.podNames[nodeId] = await this.checkNetworkNodeHealth(namespace, nodeId, task, title, status)
+              ctx.config.podNames[nodeId] = await this.checkNetworkNodeHealth(namespace, nodeId, task, title, i, status)
             }
 
             return { title, task: subTask }
@@ -3372,12 +3384,12 @@ export class NodeCommand extends BaseCommand {
         task: async (ctx, task) => {
           const { config: { allNodeIds, namespace, debugNodeId } } = ctx
 
-          const subTasks = allNodeIds.map((nodeId) => {
+          const subTasks = allNodeIds.map((nodeId, i) => {
             const reminder = debugNodeId === nodeId ? 'Please attach JVM debugger now.' : ''
             const title = `Check network pod: ${chalk.yellow(nodeId)} ${chalk.red(reminder)}`
 
             const subTask = async (ctx, task) => {
-              ctx.config.podNames[nodeId] = await this.checkNetworkNodeHealth(namespace, nodeId, task, title)
+              ctx.config.podNames[nodeId] = await this.checkNetworkNodeHealth(namespace, nodeId, task, title, i)
             }
 
             return { title, task: subTask }
