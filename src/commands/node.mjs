@@ -55,8 +55,10 @@ import {
   DEFAULT_NETWORK_NODE_NAME,
   FREEZE_ADMIN_ACCOUNT,
   HEDERA_NODE_DEFAULT_STAKE_AMOUNT,
-  TREASURY_ACCOUNT_ID
+  TREASURY_ACCOUNT_ID,
+  LOCAL_HOST
 } from '../core/constants.mjs'
+import { NodeStatusCodes, NodeStatusEnums } from '../core/enumerations.mjs'
 
 /**
  * Defines the core functionalities of 'node' command
@@ -360,72 +362,116 @@ export class NodeCommand extends BaseCommand {
   }
 
   /**
+   * @param {string} namespace
    * @param {string} nodeId
-   * @param {number} [maxAttempt]
-   * @param {string} [status]
-   * @param {string} [logfile]
-   * @returns {Promise<boolean>}
+   * @param {TaskWrapper} task
+   * @param {string} title
+   * @param {number} index
+   * @param {number} [status]
+   * @param {number} [maxAttempts]
+   * @param {number} [delay]
+   * @param {number} [timeout]
+   * @returns {Promise<string>}
    */
-  async checkNetworkNodeState (nodeId, maxAttempt = 100, status = 'ACTIVE', logfile = 'output/hgcaa.log') {
+  async checkNetworkNodeActiveness (namespace, nodeId, task, title, index,
+    status = NodeStatusCodes.ACTIVE, maxAttempts = 120, delay = 1_000, timeout = 1_000) {
     nodeId = nodeId.trim()
     const podName = Templates.renderNetworkPodName(nodeId)
-    const logfilePath = `${constants.HEDERA_HAPI_PATH}/${logfile}`
+    const podPort = 9_999
+    const localPort = 19_000 + index
+    task.title = `${title} - status ${chalk.yellow('STARTING')}, attempt ${chalk.blueBright(`0/${maxAttempts}`)}`
+
+    const srv = await this.k8.portForward(podName, localPort, podPort)
+
     let attempt = 0
-    let isActive = false
+    let success = false
+    while (attempt < maxAttempts) {
+      const controller = new AbortController()
 
-    this.logger.debug(`Checking if node ${nodeId} is ${status}...`)
-    // check log file is accessible
-    let logFileAccessible = false
-    while (attempt++ < maxAttempt) {
+      const timeoutId = setTimeout(() => {
+        task.title = `${title} - status ${chalk.yellow('TIMEOUT')}, attempt ${chalk.blueBright(`${attempt}/${maxAttempts}`)}`
+        controller.abort()
+      }, timeout)
+
       try {
-        if (await this.k8.hasFile(podName, constants.ROOT_CONTAINER, logfilePath)) {
-          logFileAccessible = true
-          break
-        }
-      } catch (e) {
-      } // ignore errors
+        const url = `http://${LOCAL_HOST}:${localPort}/metrics`
+        const response = await fetch(url, { signal: controller.signal })
 
-      await sleep(1000)
+        if (!response.ok) {
+          task.title = `${title} - status ${chalk.yellow('UNKNOWN')}, attempt ${chalk.blueBright(`${attempt}/${maxAttempts}`)}`
+          clearTimeout(timeoutId)
+          throw new Error() // Guard
+        }
+
+        const text = await response.text()
+        const statusLine = text
+          .split('\n')
+          .find(line => line.startsWith('platform_PlatformStatus'))
+
+        if (!statusLine) {
+          task.title = `${title} - status ${chalk.yellow('STARTING')}, attempt: ${chalk.blueBright(`${attempt}/${maxAttempts}`)}`
+          clearTimeout(timeoutId)
+          throw new Error() // Guard
+        }
+
+        const statusNumber = parseInt(statusLine.split(' ').pop())
+
+        if (statusNumber === status) {
+          task.title = `${title} - status ${chalk.green(NodeStatusEnums[status])}, attempt: ${chalk.blueBright(`${attempt}/${maxAttempts}`)}`
+          success = true
+          clearTimeout(timeoutId)
+          break
+        } else if (statusNumber === NodeStatusCodes.CATASTROPHIC_FAILURE) {
+          task.title = `${title} - status ${chalk.red('CATASTROPHIC_FAILURE')}, attempt: ${chalk.blueBright(`${attempt}/${maxAttempts}`)}`
+          break
+        } else if (statusNumber) {
+          task.title = `${title} - status ${chalk.yellow(NodeStatusEnums[statusNumber])}, attempt: ${chalk.blueBright(`${attempt}/${maxAttempts}`)}`
+        }
+        clearTimeout(timeoutId)
+      } catch {} // Catch all guard and fetch errors
+
+      attempt++
+      clearTimeout(timeoutId)
+      await sleep(delay)
     }
 
-    if (!logFileAccessible) {
-      throw new FullstackTestingError(`Logs are not accessible: ${logfilePath}`)
+    await this.k8.stopPortForward(srv)
+
+    if (!success) {
+      throw new FullstackTestingError(`node '${nodeId}' is not ${NodeStatusEnums[status]}` +
+        `[ attempt = ${chalk.blueBright(`${attempt}/${maxAttempts}`)} ]`)
     }
 
-    attempt = 0
-    while (attempt < maxAttempt) {
-      try {
-        const output = await this.k8.execContainer(podName, constants.ROOT_CONTAINER, ['tail', '-100', logfilePath])
-        if (output && output.indexOf('Terminating Netty') < 0 && // make sure we are not at the beginning of a restart
-          (output.indexOf(`Now current platform status = ${status}`) > 0 ||
-            output.indexOf(`Platform Status Change ${status}`) > 0 ||
-            output.indexOf(`is ${status}`) > 0 ||
-            output.indexOf(`"newStatus":"${status}"`) > 0)) {
-          this.logger.debug(`Node ${nodeId} is ${status} [ attempt: ${attempt}/${maxAttempt}]`)
-          isActive = true
-          break
-        }
-        this.logger.debug(`Node ${nodeId} is not ${status} yet. Trying again... [ attempt: ${attempt}/${maxAttempt} ]`)
-      } catch (e) {
-        this.logger.warn(`error in checking if node ${nodeId} is ${status}: ${e.message}. Trying again... [ attempt: ${attempt}/${maxAttempt} ]`)
+    return podName
+  }
 
-        // ls the HAPI path for debugging
-        await this.k8.execContainer(podName, constants.ROOT_CONTAINER, `ls -la ${constants.HEDERA_HAPI_PATH}`)
+  /**
+   * @param {Object} ctx
+   * @param {TaskWrapper} task
+   * @param {string[]} nodeIds
+   * @param {number} [status]
+   * @returns {Listr<any, any, any>}
+   */
+  checkNodeActivenessTask (ctx, task, nodeIds, status = NodeStatusCodes.ACTIVE) {
+    const { config: { namespace } } = ctx
 
-        // ls the output directory for debugging
-        await this.k8.execContainer(podName, constants.ROOT_CONTAINER, `ls -la ${constants.HEDERA_HAPI_PATH}/output`)
+    const subTasks = nodeIds.map((nodeId, i) => {
+      const reminder = ('debugNodeId' in ctx.config && ctx.config.debugNodeId === nodeId) ? 'Please attach JVM debugger now.' : ''
+      const title = `Check network pod: ${chalk.yellow(nodeId)} ${chalk.red(reminder)}`
+
+      const subTask = async (ctx, task) => {
+        ctx.config.podNames[nodeId] = await this.checkNetworkNodeActiveness(namespace, nodeId, task, title, i, status)
       }
-      attempt += 1
-      await sleep(1000)
-    }
 
-    this.logger.info(`!> -- Node ${nodeId} is ${status} -- <!`)
+      return { title, task: subTask }
+    })
 
-    if (!isActive) {
-      throw new FullstackTestingError(`node '${nodeId}' is not ${status} [ attempt = ${attempt}/${maxAttempt} ]`)
-    }
-
-    return true
+    return task.newListr(subTasks, {
+      concurrent: true,
+      rendererOptions: {
+        collapseSubtasks: false
+      }
+    })
   }
 
   /**
@@ -484,67 +530,6 @@ export class NodeCommand extends BaseCommand {
     // set up the sub-tasks
     return task.newListr(subTasks, {
       concurrent: false, // no need to run concurrently since if one node is up, the rest should be up by then
-      rendererOptions: {
-        collapseSubtasks: false
-      }
-    })
-  }
-
-  /**
-   *
-   * @param {string} debugNodeId
-   * @param {TaskWrapper} task
-   * @param {string[]} nodeIds
-   * @return {Listr<any, any, any>}
-   */
-  checkNodeActiveTask (debugNodeId, task, nodeIds) {
-    const subTasks = []
-    for (const nodeId of nodeIds) {
-      let reminder = ''
-      if (debugNodeId === nodeId) {
-        reminder = ' Please attach JVM debugger now.'
-      }
-      if (this.configManager.getFlag(flags.app) !== '' && this.configManager.getFlag(flags.app) !== constants.HEDERA_APP_NAME) {
-        subTasks.push({
-          title: `Check node: ${chalk.yellow(nodeId)} ${chalk.red(reminder)}`,
-          task: async () => await this.checkNetworkNodeState(nodeId, 100, 'ACTIVE', 'output/swirlds.log')
-        })
-      } else {
-        subTasks.push({
-          title: `Check node: ${chalk.yellow(nodeId)} ${chalk.red(reminder)}`,
-          task: async () => await this.checkNetworkNodeState(nodeId)
-        })
-      }
-    }
-
-    // set up the sub-tasks
-    return task.newListr(subTasks, {
-      concurrent: true,
-      rendererOptions: {
-        collapseSubtasks: false
-      }
-    })
-  }
-
-  /**
-   * Return task for checking for if node is in freeze state
-   * @param {any} ctx
-   * @param {TaskWrapper} task
-   * @param {string[]} nodeIds
-   * @returns {*}
-   */
-  checkNodeFreezeTask (ctx, task, nodeIds) {
-    const subTasks = []
-    for (const nodeId of nodeIds) {
-      subTasks.push({
-        title: `Check node: ${chalk.yellow(nodeId)}`,
-        task: async () => await this.checkNetworkNodeState(nodeId, 100, 'FREEZE_COMPLETE')
-      })
-    }
-
-    // set up the sub-tasks
-    return task.newListr(subTasks, {
-      concurrent: false,
       rendererOptions: {
         collapseSubtasks: false
       }
@@ -1199,7 +1184,7 @@ export class NodeCommand extends BaseCommand {
       {
         title: 'Check nodes are ACTIVE',
         task: (ctx, task) => {
-          return this.checkNodeActiveTask(ctx.config.debugNodeId, task, ctx.config.nodeIds)
+          return this.checkNodeActivenessTask(ctx, task, ctx.config.nodeIds)
         }
       },
       {
@@ -1533,7 +1518,7 @@ export class NodeCommand extends BaseCommand {
       {
         title: 'Check nodes are ACTIVE',
         task: (ctx, task) => {
-          return this.checkNodeActiveTask(ctx.config.debugNodeId, task, ctx.config.nodeIds)
+          return this.checkNodeActivenessTask(ctx, task, ctx.config.nodeIds)
         }
       },
       {
@@ -2033,8 +2018,7 @@ export class NodeCommand extends BaseCommand {
       {
         title: 'Check network nodes are frozen',
         task: (ctx, task) => {
-          const config = /** @type {NodeAddConfigClass} **/ ctx.config
-          return this.checkNodeFreezeTask(ctx, task, config.existingNodeIds)
+          return this.checkNodeActivenessTask(ctx, task, ctx.config.existingNodeIds, NodeStatusCodes.FREEZE_COMPLETE)
         }
       },
       {
@@ -2128,7 +2112,7 @@ export class NodeCommand extends BaseCommand {
       {
         title: 'Check all nodes are ACTIVE',
         task: async (ctx, task) => {
-          return this.checkNodeActiveTask(ctx.config.debugNodeId, task, ctx.config.allNodeIds)
+          return this.checkNodeActivenessTask(ctx, task, ctx.config.allNodeIds)
         }
       },
       {
@@ -2883,8 +2867,7 @@ export class NodeCommand extends BaseCommand {
       {
         title: 'Check network nodes are frozen',
         task: (ctx, task) => {
-          const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
-          return this.checkNodeFreezeTask(ctx, task, config.existingNodeIds)
+          return this.checkNodeActivenessTask(ctx, task, ctx.config.existingNodeIds, NodeStatusCodes.FREEZE_COMPLETE)
         }
       },
       {
@@ -2962,7 +2945,7 @@ export class NodeCommand extends BaseCommand {
       {
         title: 'Check all nodes are ACTIVE',
         task: async (ctx, task) => {
-          return this.checkNodeActiveTask(ctx.config.debugNodeId, task, ctx.config.allNodeIds)
+          return this.checkNodeActivenessTask(ctx, task, ctx.config.allNodeIds)
         }
       },
       {
@@ -3198,8 +3181,7 @@ export class NodeCommand extends BaseCommand {
       {
         title: 'Check network nodes are frozen',
         task: (ctx, task) => {
-          const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
-          return this.checkNodeFreezeTask(ctx, task, config.existingNodeIds)
+          return this.checkNodeActivenessTask(ctx, task, ctx.config.existingNodeIds, NodeStatusCodes.FREEZE_COMPLETE)
         }
       },
       {
@@ -3269,7 +3251,7 @@ export class NodeCommand extends BaseCommand {
       {
         title: 'Check all nodes are ACTIVE',
         task: async (ctx, task) => {
-          return this.checkNodeActiveTask(ctx.config.debugNodeId, task, ctx.config.allNodeIds)
+          return this.checkNodeActivenessTask(ctx, task, ctx.config.allNodeIds)
         }
       },
       {

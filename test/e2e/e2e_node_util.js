@@ -165,8 +165,8 @@ export function e2eNodeKeyRefreshTest (testName, mode, releaseTag = HEDERA_PLATF
             expect(2)
             try {
               await expect(
-                nodeCmd.checkNetworkNodeState(nodeId,
-                  5)).rejects.toThrowError()
+                nodeCmd.checkNetworkNodeActiveness(namespace, nodeId, { title: '' }, '', 44, undefined, 15)
+              ).rejects.toThrowError()
             } catch (e) {
               expect(e).not.toBeNull()
             } finally {
