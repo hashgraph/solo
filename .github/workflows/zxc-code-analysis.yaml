@@ -288,7 +288,7 @@ jobs:
         uses: EnricoMi/publish-unit-test-result-action@82082dac68ad6a19d980f8ce817e108b9f496c2a # v2.17.1
         with:
           check_name: "E2E Test Report"
-          files: "e2e_test_report/*.xml"
+          files: "e2e_test_report/**/*.xml"
 
       - name: Publish To Codecov
         uses: codecov/codecov-action@e28ff129e5465c2c0dcc6f003fc735cb6ae0c673 # v4.5.0
