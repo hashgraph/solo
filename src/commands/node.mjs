@@ -252,8 +252,6 @@ export class NodeCommand extends BaseCommand {
 
   static get UPDATE_FLAGS_LIST () {
     return [
-      flags.agreementPrivateKey,
-      flags.agreementPublicKey,
       flags.app,
       flags.cacheDir,
       flags.chartDirectory,
@@ -2613,8 +2611,6 @@ export class NodeCommand extends BaseCommand {
 
           // disable the prompts that we don't want to prompt the user for
           prompts.disablePrompts([
-            flags.agreementPrivateKey,
-            flags.agreementPublicKey,
             flags.app,
             flags.chartDirectory,
             flags.devMode,
@@ -2638,8 +2634,6 @@ export class NodeCommand extends BaseCommand {
           /**
            * @typedef {Object} NodeUpdateConfigClass
            * -- flags --
-           * @property {string} agreementPrivateKey
-           * @property {string} agreementPublicKey
            * @property {string} app
            * @property {string} cacheDir
            * @property {string} chartDirectory
@@ -2815,8 +2809,7 @@ export class NodeCommand extends BaseCommand {
               renameAndCopyFile(config.tlsPrivateKey, privateKeyFile, config.keysDir)
             }
 
-            if (config.gossipPublicKey && config.gossipPrivateKey &&
-              config.agreementPrivateKey && config.agreementPublicKey) {
+            if (config.gossipPublicKey && config.gossipPrivateKey) {
               self.logger.info(`config.gossipPublicKey: ${config.gossipPublicKey}`)
               const signingCertDer = await this.loadPermCertificate(config.gossipPublicKey)
               nodeUpdateTx.setGossipCaCertificate(signingCertDer)
@@ -2825,11 +2818,6 @@ export class NodeCommand extends BaseCommand {
               const privateKeyFile = Templates.renderGossipPemPrivateKeyFile(constants.SIGNING_KEY_PREFIX, config.nodeId)
               renameAndCopyFile(config.gossipPublicKey, publicKeyFile, config.keysDir)
               renameAndCopyFile(config.gossipPrivateKey, privateKeyFile, config.keysDir)
-
-              const agreePublicKeyFile = Templates.renderGossipPemPublicKeyFile(constants.AGREEMENT_KEY_PREFIX, config.nodeId)
-              const agreePrivateKeyFile = Templates.renderGossipPemPrivateKeyFile(constants.AGREEMENT_KEY_PREFIX, config.nodeId)
-              renameAndCopyFile(config.agreementPublicKey, agreePublicKeyFile, config.keysDir)
-              renameAndCopyFile(config.agreementPrivateKey, agreePrivateKeyFile, config.keysDir)
             }
 
             if (config.newAccountNumber) {
