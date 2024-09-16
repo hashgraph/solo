@@ -55,10 +55,10 @@ export class DependencyManager extends ShellRunner {
   }
 
   /**
-   * @param {*[]} [deps]
-   * @returns {{title: string, task: () => Promise<void>}[]}
+   * @param {String[]} deps
+   * @param {Object[]} subTasks
    */
-  taskCheckDependencies (deps = []) {
+  taskCheckDependencies (deps) {
     const subTasks = []
     deps.forEach(dep => {
       subTasks.push({

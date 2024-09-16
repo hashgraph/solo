@@ -573,28 +573,6 @@ export const gossipPrivateKey = {
 }
 
 /** @type {CommandFlag} **/
-export const agreementPublicKey = {
-  constName: 'agreementPublicKey',
-  name: 'agreement-public-key',
-  definition: {
-    describe: 'path and file name of the public key for agreement in PEM key format to be used',
-    defaultValue: '',
-    type: 'string'
-  }
-}
-
-/** @type {CommandFlag} **/
-export const agreementPrivateKey = {
-  constName: 'agreementPrivateKey',
-  name: 'agreement-private-key',
-  definition: {
-    describe: 'path and file name of the private key for agreement in PEM key format to be used',
-    defaultValue: '',
-    type: 'string'
-  }
-}
-
-/** @type {CommandFlag} **/
 export const tlsPublicKey = {
   constName: 'tlsPublicKey',
   name: 'tls-public-key',
@@ -745,11 +723,53 @@ export const persistentVolumeClaims = {
   }
 }
 
+/** @type {CommandFlag} **/
+export const debugNodeId = {
+  constName: 'debugNodeId',
+  name: 'debug-nodeid',
+  definition: {
+    describe: 'Enable default jvm debug port (5005) for the given node id',
+    defaultValue: '',
+    type: 'string'
+  }
+}
+
+/** @type {CommandFlag} **/
+export const outputDir = {
+  constName: 'outputDir',
+  name: 'output-dir',
+  definition: {
+    describe: 'Path to the directory where the command context will be saved to',
+    defaultValue: '',
+    type: 'string'
+  }
+}
+
+/** @type {CommandFlag} **/
+export const inputDir = {
+  constName: 'inputDir',
+  name: 'input-dir',
+  definition: {
+    describe: 'Path to the directory where the command context will be loaded from',
+    defaultValue: '',
+    type: 'string'
+  }
+}
+
+/** @type {CommandFlag} **/
+export const adminKey = {
+  constName: 'adminKey',
+  name: 'admin-key',
+  definition: {
+    describe: 'Admin key',
+    defaultValue: constants.GENESIS_KEY,
+    type: 'string'
+  }
+}
+
 /** @type {CommandFlag[]} **/
 export const allFlags = [
   accountId,
-  agreementPrivateKey,
-  agreementPublicKey,
   amount,
   apiPermissionProperties,
   app,
@@ -785,6 +805,7 @@ export const allFlags = [
   grpcEndpoints,
   hederaExplorerTlsHostName,
   hederaExplorerTlsLoadBalancerIp,
+  debugNodeId,
   localBuildPath,
   log4j2Xml,
   namespace,

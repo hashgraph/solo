@@ -162,12 +162,10 @@ export class PlatformInstaller {
 
       // copy private keys for the node
       srcFiles.push(path.join(stagingDir, 'keys', Templates.renderGossipPemPrivateKeyFile(constants.SIGNING_KEY_PREFIX, nodeId)))
-      srcFiles.push(path.join(stagingDir, 'keys', Templates.renderGossipPemPrivateKeyFile(constants.AGREEMENT_KEY_PREFIX, nodeId)))
 
       // copy all public keys for all nodes
       nodeIds.forEach(id => {
         srcFiles.push(path.join(stagingDir, 'keys', Templates.renderGossipPemPublicKeyFile(constants.SIGNING_KEY_PREFIX, id)))
-        srcFiles.push(path.join(stagingDir, 'keys', Templates.renderGossipPemPublicKeyFile(constants.AGREEMENT_KEY_PREFIX, id)))
       })
 
       const data = {}
@@ -305,7 +303,7 @@ export class PlatformInstaller {
    *
    * @param stagingDir staging directory path
    * @param nodeIds list of node ids
-   * @returns {Listr<ListrContext, ListrPrimaryRendererValue, ListrSecondaryRendererValue>[]}
+   * @returns {Listr<ListrContext, ListrPrimaryRendererValue, ListrSecondaryRendererValue>}
    */
   copyNodeKeys (stagingDir, nodeIds) {
     const self = this

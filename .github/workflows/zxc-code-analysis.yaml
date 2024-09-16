@@ -55,11 +55,11 @@ on:
         type: string
         required: false
         default: "Analyze"
-      e2e-test-subdir:
-        description: "E2E Test Subdirectory:"
+      e2e-standard-test-subdir:
+        description: "E2E Standard Test Subdirectory:"
         type: string
         required: false
-        default: "e2e"
+        default: "e2e-standard"
       e2e-mirror-node-test-subdir:
         description: "E2E Mirror Node Test Subdirectory:"
         type: string
@@ -85,6 +85,11 @@ on:
         type: string
         required: false
         default: "e2e-node-add"
+      e2e-node-add-separate-commands-test-subdir:
+        description: "E2E Node Add - Separate commands Test Subdirectory:"
+        type: string
+        required: false
+        default: "e2e-node-add-separate-commands"
       e2e-node-update-test-subdir:
         description: "E2E Node Update Test Subdirectory:"
         type: string
@@ -100,11 +105,11 @@ on:
         type: string
         required: false
         default: "e2e-relay"
-      e2e-coverage-report:
-        description: "E2E Coverage Report:"
+      e2e-standard-coverage-report:
+        description: "E2E Standard Coverage Report:"
         type: string
         required: false
-        default: "E2E Tests Coverage Report"
+        default: "E2E Standard Tests Coverage Report"
       e2e-mirror-node-coverage-report:
         description: "E2E Mirror Node Coverage Report:"
         type: string
@@ -130,6 +135,11 @@ on:
         type: string
         required: false
         default: "E2E Node Add Tests Coverage Report"
+      e2e-node-add-separate-commands-coverage-report:
+        description: "E2E Node Add - Separate commands Coverage Report:"
+        type: string
+        required: false
+        default: "E2E Node Add - Separate commands Tests Coverage Report"
       e2e-node-update-coverage-report:
         description: "E2E Node Update Coverage Report:"
         type: string
@@ -195,12 +205,12 @@ jobs:
           name: Unit Test Coverage Report
           path: 'coverage/unit'
 
-      - name: Download E2E Coverage Report
+      - name: Download E2E Standard Coverage Report
         uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
         if: ${{ (inputs.enable-codecov-analysis || inputs.enable-codacy-coverage) && inputs.enable-e2e-coverage-report && !cancelled() && !failure() }}
         with:
-          name: ${{ inputs.e2e-coverage-report }}
-          path: 'coverage/${{ inputs.e2e-test-subdir }}'
+          name: ${{ inputs.e2e-standard-coverage-report }}
+          path: 'coverage/${{ inputs.e2e-standard-test-subdir }}'
 
       - name: Download E2E Mirror Node Coverage Report
         uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
@@ -223,40 +233,47 @@ jobs:
           name: ${{ inputs.e2e-node-pem-kill-coverage-report }}
           path: 'coverage/${{ inputs.e2e-node-pem-kill-test-subdir }}'
 
-      - name: Download E2E Relay Coverage Report
-        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
-        if: ${{ (inputs.enable-codecov-analysis || inputs.enable-codacy-coverage) && inputs.enable-e2e-coverage-report && !cancelled() && !failure() }}
-        with:
-          name: ${{ inputs.e2e-relay-coverage-report }}
-          path: 'coverage/${{ inputs.e2e-relay-test-subdir }}'
-
-      - name: Download E2E Local Build Coverage Report
+      - name: Download E2E Node Local Build Coverage Report
         uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
         if: ${{ (inputs.enable-codecov-analysis || inputs.enable-codacy-coverage) && inputs.enable-e2e-coverage-report && !cancelled() && !failure() }}
         with:
           name: ${{ inputs.e2e-node-local-build-coverage-report }}
           path: 'coverage/${{ inputs.e2e-node-local-build-test-subdir }}'
 
-      - name: Download E2E Add Coverage Report
+      - name: Download E2E Node Add Coverage Report
         uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
         if: ${{ (inputs.enable-codecov-analysis || inputs.enable-codacy-coverage) && inputs.enable-e2e-coverage-report && !cancelled() && !failure() }}
         with:
           name: ${{ inputs.e2e-node-add-coverage-report }}
           path: 'coverage/${{ inputs.e2e-node-add-test-subdir }}'
 
-      - name: Download E2E Update Coverage Report
+      - name: Download E2E Node Add - Separate commands Coverage Report
         uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
         if: ${{ (inputs.enable-codecov-analysis || inputs.enable-codacy-coverage) && inputs.enable-e2e-coverage-report && !cancelled() && !failure() }}
         with:
-          name: ${{ inputs.e2e-node-udpate-coverage-report }}
-          path: 'coverage/${{ inputs.e2e-udpate-add-test-subdir }}'
+          name: ${{ inputs.e2e-node-add-separate-commands-coverage-report }}
+          path: 'coverage/${{ inputs.e2e-node-add-separate-commands-test-subdir }}'
 
-      - name: Download E2E Delete Coverage Report
+      - name: Download E2E Node Update Coverage Report
+        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
+        if: ${{ (inputs.enable-codecov-analysis || inputs.enable-codacy-coverage) && inputs.enable-e2e-coverage-report && !cancelled() && !failure() }}
+        with:
+          name: ${{ inputs.e2e-node-update-coverage-report }}
+          path: 'coverage/${{ inputs.e2e-node-update-test-subdir }}'
+
+      - name: Download E2E Node Delete Coverage Report
         uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
         if: ${{ (inputs.enable-codecov-analysis || inputs.enable-codacy-coverage) && inputs.enable-e2e-coverage-report && !cancelled() && !failure() }}
         with:
           name: ${{ inputs.e2e-node-delete-coverage-report }}
           path: 'coverage/${{ inputs.e2e-node-delete-test-subdir }}'
+
+      - name: Download E2E Relay Coverage Report
+        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
+        if: ${{ (inputs.enable-codecov-analysis || inputs.enable-codacy-coverage) && inputs.enable-e2e-coverage-report && !cancelled() && !failure() }}
+        with:
+          name: ${{ inputs.e2e-relay-coverage-report }}
+          path: 'coverage/${{ inputs.e2e-relay-test-subdir }}'
 
       - name: Publish To Codecov
         uses: codecov/codecov-action@e28ff129e5465c2c0dcc6f003fc735cb6ae0c673 # v4.5.0

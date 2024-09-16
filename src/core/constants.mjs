@@ -93,9 +93,10 @@ export const POD_CONDITION_READY = 'Ready'
 export const POD_CONDITION_POD_SCHEDULED = 'PodScheduled'
 export const POD_CONDITION_STATUS_TRUE = 'True'
 
+export const K8_COPY_FROM_RETRY_TIMES = process.env.K8_COPY_FROM_RETRY_TIMES || 5
 /**
  * Listr related
- * @type {LoggerFieldFn<[number]> & {condition: (duration: number) => boolean, format: (duration: number) => Color}}
+ * @return a object that defines the default color options
  */
 export const LISTR_DEFAULT_RENDERER_TIMER_OPTION = {
   ...PRESET_TIMER,
@@ -115,7 +116,6 @@ export const LISTR_DEFAULT_RENDERER_OPTION = {
 }
 
 export const SIGNING_KEY_PREFIX = 's'
-export const AGREEMENT_KEY_PREFIX = 'a'
 export const ENCRYPTION_KEY_PREFIX = 'e'
 export const CERTIFICATE_VALIDITY_YEARS = 100 // years
 
@@ -145,8 +145,11 @@ export const NODE_CLIENT_REQUEST_TIMEOUT = process.env.NODE_CLIENT_REQUEST_TIMEO
 // ---- New Node Related ----
 export const ENDPOINT_TYPE_IP = 'IP'
 export const ENDPOINT_TYPE_FQDN = 'FQDN'
+export const DEFAULT_NETWORK_NODE_NAME = 'node1'
 
 // file-id must be between 0.0.150 and 0.0.159
 // file must be uploaded using FileUpdateTransaction in maximum of 5Kb chunks
 export const UPGRADE_FILE_ID = FileId.fromString('0.0.150')
 export const UPGRADE_FILE_CHUNK_SIZE = 1024 * 5 // 5Kb
+
+export const JVM_DEBUG_PORT = 5005
