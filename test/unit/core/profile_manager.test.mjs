@@ -200,12 +200,6 @@ describe('ProfileManager', () => {
       expect(() => profileManager.prepareConfigTxt('', nodeAccountMap, '', version.HEDERA_PLATFORM_VERSION)).toThrow('nodeAccountMap the map of node IDs to account IDs is required')
     })
 
-    it('should fail when an invalid template path is provided', () => {
-      const nodeAccountMap = /** @type {Map<string, string>} */ new Map()
-      nodeAccountMap.set('node1', '0.0.3')
-      expect(() => profileManager.prepareConfigTxt('', nodeAccountMap, '', version.HEDERA_PLATFORM_VERSION, constants.HEDERA_APP_NAME, constants.HEDERA_CHAIN_ID, '')).toThrow('config templatePath is required')
-    })
-
     it('should fail when no releaseTag is provided', () => {
       const nodeAccountMap = /** @type {Map<string, string>} */ new Map()
       nodeAccountMap.set('node1', '0.0.3')
@@ -222,19 +216,6 @@ describe('ProfileManager', () => {
       } catch (e) {
         expect(e.message).toContain('config destPath does not exist')
         expect(e.message).toContain(destPath)
-      }
-    })
-
-    it('should fail when template path does not exist', () => {
-      expect.assertions(2)
-      const nodeAccountMap = /** @type {Map<string, string>} */ new Map()
-      nodeAccountMap.set('node1', '0.0.3')
-      const destPath = path.join(tmpDir, 'staging')
-      try {
-        profileManager.prepareConfigTxt('', nodeAccountMap, destPath, version.HEDERA_PLATFORM_VERSION, constants.HEDERA_APP_NAME, constants.HEDERA_CHAIN_ID, 'INVALID')
-      } catch (e) {
-        expect(e.message).toContain('config templatePath does not exist')
-        expect(e.message).toContain('INVALID')
       }
     })
   })
