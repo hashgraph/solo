@@ -407,39 +407,6 @@ export class KeyManager {
   }
 
   /**
-   * Generate agreement key
-   * @param {string} nodeId
-   * @param {NodeKeyObject} signingKey
-   * @returns {Promise<NodeKeyObject>}
-   */
-  async generateAgreementKey (nodeId, signingKey) {
-    return this.ecKey(nodeId, constants.AGREEMENT_KEY_PREFIX, signingKey)
-  }
-
-  /**
-   * Store agreement key and certificate
-   * @param {string} nodeId
-   * @param {NodeKeyObject} nodeKey
-   * @param {string} keysDir - directory where keys and certs are stored
-   * @returns {Promise<PrivateKeyAndCertificateObject>} returns a Promise that saves the keys and certs as PEM files
-   */
-  async storeAgreementKey (nodeId, nodeKey, keysDir) {
-    const nodeKeyFiles = this.prepareNodeKeyFilePaths(nodeId, keysDir, constants.AGREEMENT_KEY_PREFIX)
-    return this.storeNodeKey(nodeId, nodeKey, keysDir, nodeKeyFiles, 'agreement')
-  }
-
-  /**
-   * Load agreement key and certificate
-   * @param {string} nodeId
-   * @param {string} keysDir - directory path where pem files are stored
-   * @returns {Promise<NodeKeyObject>}
-   */
-  async loadAgreementKey (nodeId, keysDir) {
-    const nodeKeyFiles = this.prepareNodeKeyFilePaths(nodeId, keysDir, constants.AGREEMENT_KEY_PREFIX)
-    return this.loadNodeKey(nodeId, keysDir, KeyManager.ECKeyAlgo, nodeKeyFiles, 'agreement')
-  }
-
-  /**
    * Generate gRPC TLS key
    *
    * It generates TLS keys in PEM format such as below:
@@ -533,10 +500,6 @@ export class KeyManager {
     for (const nodeId of nodeIds) {
       const signingKeyFiles = this.prepareNodeKeyFilePaths(nodeId, keysDir, constants.SIGNING_KEY_PREFIX)
       await this.copyNodeKeysToStaging(signingKeyFiles, stagingKeysDir)
-
-      // generate missing agreement keys
-      const agreementKeyFiles = this.prepareNodeKeyFilePaths(nodeId, keysDir, constants.AGREEMENT_KEY_PREFIX)
-      await this.copyNodeKeysToStaging(agreementKeyFiles, stagingKeysDir)
     }
   }
 
@@ -574,10 +537,6 @@ export class KeyManager {
           const signingKey = await self.generateSigningKey(nodeId)
           const signingKeyFiles = await self.storeSigningKey(nodeId, signingKey, keysDir)
           this.logger.debug(`generated Gossip signing keys for node ${nodeId}`, { keyFiles: signingKeyFiles })
-
-          const agreementKey = await self.generateAgreementKey(nodeId, signingKey)
-          const agreementKeyFiles = await self.storeAgreementKey(nodeId, agreementKey, keysDir)
-          this.logger.debug(`generated Gossip agreement keys for node ${nodeId}`, { keyFiles: agreementKeyFiles })
         }
       })
     }
