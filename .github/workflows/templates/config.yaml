@@ -4,7 +4,7 @@ tests:
   # name: capitalized noun form
   # testFilePrefix: node-update # for node-update.test.mjs
   - name: Standard
-    jestPostfix: --testPathIgnorePatterns=\".*/unit/.*\" --testPathIgnorePatterns=\".*/e2e/commands/mirror_node.*\" --testPathIgnorePatterns=\".*/e2e/commands/node.*\" --testPathIgnorePatterns=\".*/e2e/commands/relay.*\" 
+    jestPostfix: --testPathIgnorePatterns=\".*/unit/.*\" --testPathIgnorePatterns=\".*/e2e/commands/mirror_node.*\" --testPathIgnorePatterns=\".*/e2e/commands/node.*\" --testPathIgnorePatterns=\".*/e2e/commands/separate_node.*\" --testPathIgnorePatterns=\".*/e2e/commands/relay.*\"
   - name: Mirror Node
     jestPostfix: --testRegex=\".*\\/e2e\\/commands\\/mirror_node\\.test\\.mjs\"
   - name: Node PEM Stop
@@ -15,6 +15,8 @@ tests:
     jestPostfix: --testRegex=\".*\\/e2e\\/commands\\/node_local.*\\.test\\.mjs\"
   - name: Node Add
     jestPostfix: --testRegex=\".*\\/e2e\\/commands\\/node_add.*\\.test\\.mjs\"
+  - name: Node Add - Separate commands
+    jestPostfix: --testRegex=\".*\\/e2e\\/commands\\/separate_node_add.*\\.test\\.mjs\"
   - name: Node Update
     jestPostfix: --testRegex=\".*\\/e2e\\/commands\\/node_update.*\\.test\\.mjs\"
   - name: Node Delete

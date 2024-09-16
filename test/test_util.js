@@ -349,8 +349,6 @@ export async function getNodeIdsPrivateKeysHash (networkNodeServicesMap, namespa
       fs.mkdirSync(uniqueNodeDestDir, { recursive: true })
     }
     await addKeyHashToMap(k8, nodeId, dataKeysDir, uniqueNodeDestDir, keyHashMap, Templates.renderGossipPemPrivateKeyFile(constants.SIGNING_KEY_PREFIX, nodeId))
-    await addKeyHashToMap(k8, nodeId, dataKeysDir, uniqueNodeDestDir, keyHashMap, Templates.renderGossipPemPrivateKeyFile(constants.AGREEMENT_KEY_PREFIX, nodeId))
-
     await addKeyHashToMap(k8, nodeId, tlsKeysDir, uniqueNodeDestDir, keyHashMap, 'hedera.key')
     nodeKeyHashMap.set(nodeId, keyHashMap)
   }

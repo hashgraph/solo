@@ -27,7 +27,9 @@ An opinionated CLI tool to deploy and manage standalone test networks.
 
 ## Requirements
 
-* Node(>=20.14.0) (*lts/hydrogen*)
+| Solo Version | Node.js                   | Kind       | FST Chart | Hedera   | Kubernetes | Kubectl    | Helm    | k9s        | Docker Resources        | Java         |
+|--------------|---------------------------|------------|-----------|----------|------------|------------|---------|------------|-------------------------|--------------|
+| 0.29.0       | >= 20.14.0 (lts/hydrogen) | >= v1.29.1 | v0.30.0   | v0.53.0+ | >= v1.27.3 | >= v1.27.3 | v3.14.2 | >= v0.27.4 | Memory >= 8GB, CPU >= 4 | >= 21.0.1+12 |
 
 ## Setup
 

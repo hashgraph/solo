@@ -51,31 +51,6 @@ describe('KeyManager', () => {
     fs.rmSync(tmpDir, { recursive: true })
   })
 
-  it('should generate agreement key', async () => {
-    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'keys-'))
-    const nodeId = 'node0'
-
-    const signingKeyFiles = keyManager.prepareNodeKeyFilePaths(nodeId, 'test/data', constants.SIGNING_KEY_PREFIX)
-    const signignKey = await keyManager.loadNodeKey(nodeId, 'test/data', KeyManager.SigningKeyAlgo, signingKeyFiles)
-    const agreementKey = await keyManager.generateAgreementKey(nodeId, signignKey)
-
-    const files = await keyManager.storeAgreementKey(nodeId, agreementKey, tmpDir)
-    expect(files.privateKeyFile).not.toBeNull()
-    expect(files.certificateFile).not.toBeNull()
-
-    const nodeKey = await keyManager.loadAgreementKey(nodeId, tmpDir)
-    expect(nodeKey.certificate).toStrictEqual(agreementKey.certificate)
-    expect(nodeKey.privateKey.algorithm).toStrictEqual(agreementKey.privateKey.algorithm)
-    expect(nodeKey.privateKey.type).toStrictEqual(agreementKey.privateKey.type)
-
-    await expect(agreementKey.certificate.verify({
-      publicKey: signignKey.certificate.publicKey,
-      signatureOnly: true
-    })).resolves.toBeTruthy()
-
-    fs.rmSync(tmpDir, { recursive: true })
-  })
-
   it('should generate TLS key', async () => {
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'keys-'))
     const nodeId = 'node1'
