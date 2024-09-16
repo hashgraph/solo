@@ -38,9 +38,20 @@ permissions:
   id-token: write
 
 jobs:
+  update-readme:
+    name: "Update README.md"
+    uses: ./.github/workflows/flow-update-readme.yaml
+    with:
+      commit-changes: true
+    secrets:
+      GH_ACCESS_TOKEN: ${{ secrets.GH_ACCESS_TOKEN }}
+      GH_ACCESS_GPG_KEY: ${{ secrets.GH_ACCESS_GPG_KEY }}
+      GH_ACCESS_PASSPHRASE: ${{ secrets.GH_ACCESS_PASSPHRASE }}
+
   prepare-release:
     name: Release / Prepare
     runs-on: solo-linux-medium
+    needs: update-readme
     outputs:
       version: ${{ steps.tag.outputs.version }}
     steps:
