@@ -178,7 +178,7 @@ jobs:
           git_commit_gpgsign: true
 
       - name: Commit README.md Changes
-        if : ${{ inputs.commit-changes == 'true' }}
+        if : ${{ inputs.commit-changes }}
         uses: stefanzweifel/git-auto-commit-action@8621497c8c39c72f3e2a999a26b4ca1b5058a842 # v5.0.1
         with:
           commit_message: "auto update README.md [skip ci]"
