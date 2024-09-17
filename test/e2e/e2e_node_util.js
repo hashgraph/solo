@@ -56,6 +56,7 @@ export function e2eNodeKeyRefreshTest (testName, mode, releaseTag = HEDERA_PLATF
         argv[flags.chartDirectory.name] = process.env.SOLO_FST_CHARTS_DIR
           ? process.env.SOLO_FST_CHARTS_DIR
           : undefined
+        argv[flags.quiet.name] = true
 
         const bootstrapResp = bootstrapNetwork(testName, argv)
         const accountManager = bootstrapResp.opts.accountManager

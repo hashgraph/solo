@@ -46,6 +46,7 @@ export function testNodeAdd (localBuildPath
     argv[flags.force.name] = true
     argv[flags.persistentVolumeClaims.name] = true
     argv[flags.localBuildPath.name] = localBuildPath
+    argv[flags.quiet.name] = true
 
     const bootstrapResp = bootstrapNetwork(namespace, argv)
     const nodeCmd = bootstrapResp.cmd.nodeCmd

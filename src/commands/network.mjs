@@ -81,6 +81,7 @@ export class NetworkCommand extends BaseCommand {
       flags.persistentVolumeClaims,
       flags.profileFile,
       flags.profileName,
+      flags.quiet,
       flags.releaseTag,
       flags.settingTxt,
       flags.tlsClusterIssuerType,
@@ -205,7 +206,9 @@ export class NetworkCommand extends BaseCommand {
       flags.settingTxt
     ])
 
-    await prompts.execute(task, this.configManager, NetworkCommand.DEPLOY_FLAGS_LIST)
+    if (!NetworkCommand.DEPLOY_FLAGS_LIST.includes(flags.quiet)) {
+      await prompts.execute(task, this.configManager, NetworkCommand.DEPLOY_FLAGS_LIST)
+    }
 
     /**
      * @typedef {Object} NetworkDeployConfigClass

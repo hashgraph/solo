@@ -56,6 +56,7 @@ export class MirrorNodeCommand extends BaseCommand {
       flags.namespace,
       flags.profileFile,
       flags.profileName,
+      flags.quiet,
       flags.valuesFile
     ]
   }
@@ -101,7 +102,9 @@ export class MirrorNodeCommand extends BaseCommand {
             flags.valuesFile
           ])
 
-          await prompts.execute(task, self.configManager, MirrorNodeCommand.DEPLOY_FLAGS_LIST)
+          if (!MirrorNodeCommand.DEPLOY_FLAGS_LIST.includes(flags.quiet)) {
+            await prompts.execute(task, self.configManager, MirrorNodeCommand.DEPLOY_FLAGS_LIST)
+          }
 
           /**
            * @typedef {Object} MirrorNodeDeployConfigClass

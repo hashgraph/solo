@@ -47,6 +47,7 @@ describe('RelayCommand', () => {
   argv[flags.fstChartVersion.name] = version.FST_CHART_VERSION
   argv[flags.force.name] = true
   argv[flags.relayReleaseTag.name] = flags.relayReleaseTag.definition.defaultValue
+  argv[flags.quiet.name] = true
 
   const bootstrapResp = bootstrapNetwork(testName, argv)
   const k8 = bootstrapResp.opts.k8
