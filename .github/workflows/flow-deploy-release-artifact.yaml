@@ -38,20 +38,9 @@ permissions:
   id-token: write
 
 jobs:
-  update-readme:
-    name: "Update README.md"
-    uses: ./.github/workflows/flow-update-readme.yaml
-    with:
-      commit-changes: true
-    secrets:
-      GH_ACCESS_TOKEN: ${{ secrets.GH_ACCESS_TOKEN }}
-      GH_ACCESS_GPG_KEY: ${{ secrets.GH_ACCESS_GPG_KEY }}
-      GH_ACCESS_PASSPHRASE: ${{ secrets.GH_ACCESS_PASSPHRASE }}
-
   prepare-release:
     name: Release / Prepare
     runs-on: solo-linux-medium
-    needs: update-readme
     outputs:
       version: ${{ steps.tag.outputs.version }}
     steps:
@@ -92,11 +81,23 @@ jobs:
           [[ "${{ github.event.inputs.dry-run-enabled }}" == true && ! -f VERSION ]] && echo -n "0.0.0-latest" > VERSION
           echo "version=$(cat VERSION | tr -d '[:space:]')" >> ${GITHUB_OUTPUT}
 
+  update-readme:
+    name: "Update README.md"
+    uses: ./.github/workflows/flow-update-readme.yaml
+    needs: prepare-release
+    with:
+      commit-changes: true
+    secrets:
+      GH_ACCESS_TOKEN: ${{ secrets.GH_ACCESS_TOKEN }}
+      GH_ACCESS_GPG_KEY: ${{ secrets.GH_ACCESS_GPG_KEY }}
+      GH_ACCESS_PASSPHRASE: ${{ secrets.GH_ACCESS_PASSPHRASE }}
+
+
   create-github-release:
     name: Github / Release
     runs-on: solo-linux-medium
     needs:
-      - prepare-release
+      - update-readme
     steps:
       - name: Checkout Code
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
