@@ -52,7 +52,6 @@ export class MirrorNodeCommand extends BaseCommand {
     return [
       flags.chartDirectory,
       flags.deployHederaExplorer,
-      flags.deployMirrorNode,
       flags.enableHederaExplorerTls,
       flags.fstChartVersion,
       flags.hederaExplorerTlsHostName,
@@ -143,7 +142,6 @@ export class MirrorNodeCommand extends BaseCommand {
           prompts.disablePrompts([
             flags.chartDirectory,
             flags.deployHederaExplorer,
-            flags.deployMirrorNode,
             flags.enableHederaExplorerTls,
             flags.fstChartVersion,
             flags.hederaExplorerTlsHostName,
@@ -159,7 +157,6 @@ export class MirrorNodeCommand extends BaseCommand {
            * -- flags --
            * @property {string} chartDirectory
            * @property {boolean} deployHederaExplorer
-           * @property {boolean} deployMirrorNode
            * @property {string} enableHederaExplorerTls
            * @property {string} fstChartVersion
            * @property {string} hederaExplorerTlsHostName

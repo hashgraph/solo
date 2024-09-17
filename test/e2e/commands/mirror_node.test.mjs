@@ -95,7 +95,6 @@ describe('MirrorNodeCommand', () => {
     }
 
     expect(mirrorNodeCmd.getUnusedConfigs(MirrorNodeCommand.DEPLOY_CONFIGS_NAME)).toEqual([
-      flags.deployMirrorNode.constName,
       flags.hederaExplorerTlsHostName.constName,
       flags.hederaExplorerTlsLoadBalancerIp.constName,
       flags.profileFile.constName,
