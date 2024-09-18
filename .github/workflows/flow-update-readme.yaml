@@ -115,7 +115,7 @@ jobs:
           npm install -g @hashgraph/solo
           npm link
           
-          [ "${VERSION}" -ne "" ] && npm version ${VERSION} -f --no-git-tag-version
+          [[ -n "${VERSION}" ]] && npm version ${VERSION} -f --no-git-tag-version
           which solo
           
           export SOLO_CLUSTER_NAME=solo
