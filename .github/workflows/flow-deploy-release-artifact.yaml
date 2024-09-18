@@ -88,7 +88,8 @@ jobs:
   verify-version-output:
     name: Verify Version Output
     runs-on: solo-linux-medium
-    needs: prepare-release
+    needs:
+      - prepare-release
     steps:
       - name: Verify version output
         env:
@@ -98,7 +99,8 @@ jobs:
   update-readme:
     name: "Update README.md"
     uses: ./.github/workflows/flow-update-readme.yaml
-    needs: prepare-release
+    needs:
+      - prepare-release
     with:
       commit-changes: true
       version: ${{ needs.prepare-release.outputs.version }}
@@ -114,6 +116,13 @@ jobs:
     needs:
       - update-readme
     steps:
+      - name: verification and testing
+        env:
+          commit: ${{ needs.update-readme.outputs.commit-hash }}
+        run: |
+          echo "commit=${commit}"
+          ecoh "commit hash=${{ needs.update-readme.outputs.commit-hash }}"
+
       - name: Checkout Code
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         with:
