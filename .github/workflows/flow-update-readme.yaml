@@ -33,6 +33,10 @@ on:
         type: boolean
         required: false
         default: false
+      version:
+        description: "The version to set the app to during deploy/release"
+        type: string
+        required: false
     outputs:
       commit-hash:
         description: "The commit hash for the updated README.md commit"
@@ -104,9 +108,14 @@ jobs:
           sudo apt-get install gettext-base
 
       - name: Update README.md
+        env:
+          VERSION: ${{ github.event.inputs.version }}
         run: |
           set -x
           npm install -g @hashgraph/solo
+          npm link
+          
+          [ "${VERSON}" -ne "" ] && npm version ${VERSION}
           which solo
           
           export SOLO_CLUSTER_NAME=solo
