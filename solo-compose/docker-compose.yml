@@ -1,0 +1,54 @@
+services:
+  # Init Containers
+
+  init-dind-externals:
+    image: "ghcr.io/hashgraph/runner-images/scaleset-runner:ubuntu-22.04"
+    platform: linux/amd64
+    command: [ "sudo", "sh", "-c", "chmod -R 777 /home/runner/tmpDir && cp -r /home/runner/externals/. /home/runner/tmpDir/" ]
+    privileged: true
+    volumes:
+      - dind-externals:/home/runner/tmpDir
+    depends_on:
+      - dind
+
+  init-work-directory:
+    image: "ghcr.io/hashgraph/runner-images/scaleset-runner:ubuntu-22.04"
+    command: [ "cp", "-r", "/home/runner/.", "/tmp/work/" ]
+    platform: linux/amd64
+    privileged: true
+    volumes:
+      - work:/tmp/work
+    depends_on:
+      - runner
+
+  # Containers
+
+  runner:
+    image: "ghcr.io/hashgraph/runner-images/scaleset-runner:ubuntu-22.04"
+    command: [ "/usr/bin/env", "bash", "/home/runner/setup-runner.sh" ]
+    platform: linux/amd64
+    environment:
+      - DOCKER_HOST=unix:///var/run/solo-compose.sock
+    privileged: true
+    volumes:
+      - work:/home/runner/_work
+      - dind-sock:/var/run
+      - type: bind
+        source: setup-runner.sh
+        target: /home/runner/setup-runner.sh
+
+  dind:
+    image: "docker:20.10-dind"
+    command: [ "dockerd", "--host=unix:///var/run/solo-compose.sock", "--group=123", "--registry-mirror=https://hub.mirror.solo-compose.lat.ope.eng.hashgraph.io" ]
+    environment:
+      - DOCKER_GROUP_GID=123
+    privileged: true
+    volumes:
+      - work:/home/runner/_work
+      - dind-sock:/var/run
+      - dind-externals:/home/runner/externals
+
+volumes:
+  work:
+  dind-sock:
+  dind-externals:
