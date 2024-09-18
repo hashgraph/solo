@@ -33,6 +33,14 @@ on:
         type: boolean
         required: false
         default: false
+      version:
+        description: "The version to set the app to during deploy/release"
+        type: string
+        required: false
+    outputs:
+      commit-hash:
+        description: "The commit hash for the updated README.md commit"
+        value: ${{ jobs.commit-readme.outputs.commit_hash }}
   push:
     paths:
       - '**/*.mjs'
@@ -100,9 +108,14 @@ jobs:
           sudo apt-get install gettext-base
 
       - name: Update README.md
+        env:
+          VERSION: ${{ github.event.inputs.version }}
         run: |
           set -x
           npm install -g @hashgraph/solo
+          npm link
+          
+          [[ -n "${VERSION}" ]] && npm version ${VERSION} -f --no-git-tag-version
           which solo
           
           export SOLO_CLUSTER_NAME=solo
@@ -178,7 +191,8 @@ jobs:
           git_commit_gpgsign: true
 
       - name: Commit README.md Changes
-        if : ${{ inputs.commit-changes }}
+        id: commit-readme
+        if : ${{ github.event.inputs.dry-run-enabled != 'true' && !cancelled() && !failure() && inputs.commit-changes }}
         uses: stefanzweifel/git-auto-commit-action@8621497c8c39c72f3e2a999a26b4ca1b5058a842 # v5.0.1
         with:
           commit_message: "auto update README.md [skip ci]"

@@ -87,6 +87,7 @@ jobs:
     needs: prepare-release
     with:
       commit-changes: true
+      version: ${{ needs.prepare-release.outputs.version }}
     secrets:
       GH_ACCESS_TOKEN: ${{ secrets.GH_ACCESS_TOKEN }}
       GH_ACCESS_GPG_KEY: ${{ secrets.GH_ACCESS_GPG_KEY }}
@@ -104,6 +105,7 @@ jobs:
         with:
           token: ${{ secrets.GH_ACCESS_TOKEN }}
           fetch-depth: 0
+          ref: ${{ needs.update-readme.outputs.commit-hash }}
 
       - name: Install GnuPG Tools
         run: |
@@ -174,6 +176,7 @@ jobs:
 
       - name: Publish Semantic Release
         env:
+          commit: ${{ needs.update-readme.outputs.commit-hash }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GH_ACCESS_TOKEN }}
           GIT_AUTHOR_NAME: ${{ secrets.GIT_USER_NAME }}
