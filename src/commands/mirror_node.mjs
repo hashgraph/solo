@@ -447,7 +447,7 @@ export class MirrorNodeCommand extends BaseCommand {
     }
     return {
       command: 'mirror-node',
-      desc: 'Manage Hedera Mirror Node in fullstack testing network',
+      desc: 'Manage Hedera Mirror Node in solo network',
       builder: yargs => {
         return yargs
           .command({

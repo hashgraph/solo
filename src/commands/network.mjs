@@ -556,12 +556,12 @@ export class NetworkCommand extends BaseCommand {
     }
     return {
       command: 'network',
-      desc: 'Manage fullstack testing network deployment',
+      desc: 'Manage solo network deployment',
       builder: yargs => {
         return yargs
           .command({
             command: 'deploy',
-            desc: 'Deploy fullstack testing network',
+            desc: 'Deploy solo network',
             builder: y => flags.setCommandFlags(y, ...NetworkCommand.DEPLOY_FLAGS_LIST),
             handler: argv => {
               networkCmd.logger.debug('==== Running \'network deploy\' ===')
@@ -579,7 +579,7 @@ export class NetworkCommand extends BaseCommand {
           })
           .command({
             command: 'destroy',
-            desc: 'Destroy fullstack testing network',
+            desc: 'Destroy solo network',
             builder: y => flags.setCommandFlags(y,
               flags.deletePvcs,
               flags.deleteSecrets,
@@ -602,7 +602,7 @@ export class NetworkCommand extends BaseCommand {
           })
           .command({
             command: 'refresh',
-            desc: 'Refresh fullstack testing network deployment',
+            desc: 'Refresh solo network deployment',
             builder: y => flags.setCommandFlags(y, ...NetworkCommand.DEPLOY_FLAGS_LIST),
             handler: argv => {
               networkCmd.logger.debug('==== Running \'chart upgrade\' ===')
