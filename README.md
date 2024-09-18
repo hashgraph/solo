@@ -91,7 +91,7 @@ You can now use your cluster with:
 
 kubectl cluster-info --context kind-solo
 
-Have a question, bug, or feature request? Let us know! https://kind.sigs.k8s.io/#community 🙂
+Have a nice day! 👋
 ```
 
 You may now view pods in your cluster using `k9s -A` as below:
@@ -147,7 +147,7 @@ Kubernetes Cluster	: kind-solo
 Kubernetes Namespace	: solo
 **********************************************************************************
 ✔ Setup home directory and cache
-✔ Check dependency: helm [OS: linux, Release: 5.15.0-119-generic, Arch: x64]
+✔ Check dependency: helm [OS: linux, Release: 5.15.0-118-generic, Arch: x64]
 ✔ Check dependencies
 ✔ Setup chart manager
 
@@ -240,12 +240,12 @@ Kubernetes Namespace	: solo
 ✔ Copy gRPC TLS keys to staging
 ✔ Prepare staging directory
 ✔ Copy Gossip keys
-✔ Node: node3
+✔ Node: node1
 ✔ Copy TLS keys
 ✔ Copy Gossip keys
 ✔ Node: node2
 ✔ Copy Gossip keys
-✔ Node: node1
+✔ Node: node3
 ✔ Copy node keys to secrets
 ✔ Install chart 'fullstack-deployment'
 ✔ Check Node: node1
@@ -253,8 +253,8 @@ Kubernetes Namespace	: solo
 ✔ Check Node: node3
 ✔ Check node pods are running
 ✔ Check Envoy Proxy for: node1
-✔ Check Envoy Proxy for: node2
 ✔ Check Envoy Proxy for: node3
+✔ Check Envoy Proxy for: node2
 ✔ Check HAProxy for: node1
 ✔ Check HAProxy for: node3
 ✔ Check HAProxy for: node2
@@ -281,20 +281,20 @@ Kubernetes Cluster	: kind-solo
 Kubernetes Namespace	: solo
 **********************************************************************************
 ✔ Initialize
-✔ Check network pod: node3
 ✔ Check network pod: node1
 ✔ Check network pod: node2
+✔ Check network pod: node3
 ✔ Identify network pods
+✔ Update node: node1 [ platformVersion = v0.54.0-alpha.4 ]
 ✔ Update node: node3 [ platformVersion = v0.54.0-alpha.4 ]
 ✔ Update node: node2 [ platformVersion = v0.54.0-alpha.4 ]
-✔ Update node: node1 [ platformVersion = v0.54.0-alpha.4 ]
 ✔ Fetch platform software into network nodes
-✔ Set file permissions
-✔ Node: node2
 ✔ Set file permissions
 ✔ Node: node1
 ✔ Set file permissions
 ✔ Node: node3
+✔ Set file permissions
+✔ Node: node2
 ✔ Setup network nodes
 ```
 
@@ -316,16 +316,16 @@ Kubernetes Namespace	: solo
 **********************************************************************************
 ✔ Initialize
 ✔ Check network pod: node1
-✔ Check network pod: node3
 ✔ Check network pod: node2
+✔ Check network pod: node3
 ✔ Identify existing network nodes
+✔ Start node: node1
 ✔ Start node: node2
 ✔ Start node: node3
-✔ Start node: node1
 ✔ Starting nodes
-✔ Check network pod: node1  - status ACTIVE, attempt: 16/120
 ✔ Check network pod: node2  - status ACTIVE, attempt: 16/120
-✔ Check network pod: node3  - status ACTIVE, attempt: 16/120
+✔ Check network pod: node3  - status ACTIVE, attempt: 17/120
+✔ Check network pod: node1  - status ACTIVE, attempt: 17/120
 ✔ Check nodes are ACTIVE
 ✔ Check proxy for node: node1
 ✔ Check proxy for node: node2
