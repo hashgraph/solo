@@ -16,7 +16,7 @@
  */
 'use strict'
 import os from 'os'
-import { FullstackTestingError, MissingArgumentError } from '../errors.mjs'
+import { SoloError, MissingArgumentError } from '../errors.mjs'
 import { ShellRunner } from '../shell_runner.mjs'
 
 export class DependencyManager extends ShellRunner {
@@ -47,7 +47,7 @@ export class DependencyManager extends ShellRunner {
     }
 
     if (!status) {
-      throw new FullstackTestingError(`Dependency '${dep}' is not found`)
+      throw new SoloError(`Dependency '${dep}' is not found`)
     }
 
     this.logger.debug(`Dependency '${dep}' is found`)

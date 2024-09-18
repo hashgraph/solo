@@ -16,7 +16,7 @@
  */
 'use strict'
 import fs from 'fs'
-import { FullstackTestingError, MissingArgumentError } from './errors.mjs'
+import { SoloError, MissingArgumentError } from './errors.mjs'
 import { constants } from './index.mjs'
 import { Logger } from './logging.mjs'
 import * as flags from '../commands/flags.mjs'
@@ -54,7 +54,7 @@ export class ConfigManager {
         this.config = yamlToObject(this.cachedConfigFile)
       }
     } catch (e) {
-      throw new FullstackTestingError(`failed to initialize config manager: ${e.message}`, e)
+      throw new SoloError(`failed to initialize config manager: ${e.message}`, e)
     }
   }
 
@@ -137,7 +137,7 @@ export class ConfigManager {
                   this.config.flags[flag.name] = Number.parseFloat(val)
                 }
               } catch (e) {
-                throw new FullstackTestingError(`invalid number value '${val}': ${e.message}`, e)
+                throw new SoloError(`invalid number value '${val}': ${e.message}`, e)
               }
               break
 
@@ -147,7 +147,7 @@ export class ConfigManager {
               break
 
             default:
-              throw new FullstackTestingError(`Unsupported field type for flag '${flag.name}': ${flag.definition.type}`)
+              throw new SoloError(`Unsupported field type for flag '${flag.name}': ${flag.definition.type}`)
           }
         }
       }
@@ -176,7 +176,7 @@ export class ConfigManager {
       // refresh config with the file contents
       this.load()
     } catch (e) {
-      throw new FullstackTestingError(`failed to persis config: ${e.message}`, e)
+      throw new SoloError(`failed to persis config: ${e.message}`, e)
     }
   }
 

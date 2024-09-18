@@ -17,7 +17,7 @@
 import { describe, expect, it } from '@jest/globals'
 import { DependencyManager, HelmDependencyManager } from '../../../../src/core/dependency_managers/index.mjs'
 import { logging, constants, PackageDownloader, Zippy } from '../../../../src/core/index.mjs'
-import { FullstackTestingError } from '../../../../src/core/errors.mjs'
+import { SoloError } from '../../../../src/core/errors.mjs'
 
 const testLogger = logging.NewLogger('debug', true)
 describe('DependencyManager', () => {
@@ -31,7 +31,7 @@ describe('DependencyManager', () => {
 
   describe('checkDependency', () => {
     it('should fail during invalid dependency check', async () => {
-      await expect(depManager.checkDependency('INVALID_PROGRAM')).rejects.toThrowError(new FullstackTestingError("Dependency 'INVALID_PROGRAM' is not found"))
+      await expect(depManager.checkDependency('INVALID_PROGRAM')).rejects.toThrowError(new SoloError("Dependency 'INVALID_PROGRAM' is not found"))
     })
 
     it('should succeed during helm dependency check', async () => {

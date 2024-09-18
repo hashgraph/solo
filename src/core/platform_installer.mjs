@@ -18,7 +18,7 @@
 import * as fs from 'fs'
 import { Listr } from 'listr2'
 import * as path from 'path'
-import { FullstackTestingError, IllegalArgumentError, MissingArgumentError } from './errors.mjs'
+import { SoloError, IllegalArgumentError, MissingArgumentError } from './errors.mjs'
 import { constants } from './index.mjs'
 import { Templates } from './templates.mjs'
 import { flags } from '../commands/index.mjs'
@@ -112,7 +112,7 @@ export class PlatformInstaller {
       await this.k8.execContainer(podName, constants.ROOT_CONTAINER, [extractScript, tag])
       return true
     } catch (e) {
-      throw new FullstackTestingError(`failed to extract platform code in this pod '${podName}': ${e.message}`, e)
+      throw new SoloError(`failed to extract platform code in this pod '${podName}': ${e.message}`, e)
     }
   }
 
@@ -132,7 +132,7 @@ export class PlatformInstaller {
       // prepare the file mapping
       for (const srcPath of srcFiles) {
         if (!fs.existsSync(srcPath)) {
-          throw new FullstackTestingError(`file does not exist: ${srcPath}`)
+          throw new SoloError(`file does not exist: ${srcPath}`)
         }
 
         if (!await this.k8.hasDir(podName, container, destDir)) {
@@ -148,7 +148,7 @@ export class PlatformInstaller {
 
       return copiedFiles
     } catch (e) {
-      throw new FullstackTestingError(`failed to copy files to pod '${podName}': ${e.message}`, e)
+      throw new SoloError(`failed to copy files to pod '${podName}': ${e.message}`, e)
     }
   }
 
@@ -179,11 +179,11 @@ export class PlatformInstaller {
         Templates.renderGossipKeySecretName(nodeId),
         this._getNamespace(), 'Opaque', data,
         Templates.renderGossipKeySecretLabelObject(nodeId), true)) {
-        throw new FullstackTestingError(`failed to create secret for gossip keys for node '${nodeId}'`)
+        throw new SoloError(`failed to create secret for gossip keys for node '${nodeId}'`)
       }
     } catch (e) {
       this.logger.error(`failed to copy gossip keys to secret '${Templates.renderGossipKeySecretName(nodeId)}': ${e.message}`, e)
-      throw new FullstackTestingError(`failed to copy gossip keys to secret '${Templates.renderGossipKeySecretName(nodeId)}': ${e.message}`, e)
+      throw new SoloError(`failed to copy gossip keys to secret '${Templates.renderGossipKeySecretName(nodeId)}': ${e.message}`, e)
     }
   }
 
@@ -209,11 +209,11 @@ export class PlatformInstaller {
         'network-node-hapi-app-secrets',
         this._getNamespace(), 'Opaque', data,
         undefined, true)) {
-        throw new FullstackTestingError('failed to create secret for TLS keys')
+        throw new SoloError('failed to create secret for TLS keys')
       }
     } catch (e) {
       this.logger.error('failed to copy TLS keys to secret', e)
-      throw new FullstackTestingError('failed to copy TLS keys to secret', e)
+      throw new SoloError('failed to copy TLS keys to secret', e)
     }
   }
 
@@ -263,7 +263,7 @@ export class PlatformInstaller {
 
       return true
     } catch (e) {
-      throw new FullstackTestingError(`failed to set permission in '${podName}'`, e)
+      throw new SoloError(`failed to set permission in '${podName}'`, e)
     }
   }
 
