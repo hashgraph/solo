@@ -109,7 +109,6 @@ jobs:
       GH_ACCESS_GPG_KEY: ${{ secrets.GH_ACCESS_GPG_KEY }}
       GH_ACCESS_PASSPHRASE: ${{ secrets.GH_ACCESS_PASSPHRASE }}
 
-
   create-github-release:
     name: Github / Release
     runs-on: solo-linux-medium
