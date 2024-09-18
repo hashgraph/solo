@@ -180,11 +180,10 @@ export class ConfigManager {
   persist () {
     try {
       this.config.updatedAt = new Date().toISOString()
-      fs.writeFile(this.cachedConfigFile, yaml.dump(this.config), (err) => {
-        if (err) {
-          reject(err)
-        }
-      })
+      const newYaml = yaml.dump(this.config)
+      fs.writeFileSync(this.cachedConfigFile, newYaml)
+      // refresh config with the file contents
+      this.load()
     } catch (e) {
       throw new FullstackTestingError(`failed to persis config: ${e.message}`, e)
     }
