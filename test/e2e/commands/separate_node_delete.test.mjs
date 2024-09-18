@@ -66,7 +66,7 @@ describe('Node delete via separated commands', () => {
     expect(status).toBeTruthy()
   }, 450000)
 
-  it('should delete a new node to the network successfully', async () => {
+  it('should delete a node from the network successfully', async () => {
     await nodeCmd.deletePrepare(argvPrepare)
     await nodeCmd.deleteSubmitTransactions(argvExecute)
     await nodeCmd.deleteExecute(argvExecute)

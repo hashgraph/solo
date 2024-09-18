@@ -57,7 +57,7 @@ describe('Node delete', () => {
     expect(status).toBeTruthy()
   }, 450000)
 
-  it('should delete a new node to the network successfully', async () => {
+  it('should delete a node from the network successfully', async () => {
     await nodeCmd.delete(argv)
     expect(nodeCmd.getUnusedConfigs(NodeCommand.DELETE_CONFIGS_NAME)).toEqual([
       flags.app.constName,

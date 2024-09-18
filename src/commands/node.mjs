@@ -249,6 +249,36 @@ export class NodeCommand extends BaseCommand {
 
   static get DELETE_FLAGS_LIST () {
     return [
+        ...NodeCommand.COMMON_DELETE_FLAGS_LIST
+    ]
+  }
+
+  static get DELETE_PREPARE_FLAGS_LIST () {
+    return [
+      ...NodeCommand.COMMON_DELETE_FLAGS_LIST,
+      flags.outputDir
+    ]
+  }
+
+  static get DELETE_SUBMIT_TRANSACTIONS_FLAGS_LIST () {
+    return [
+      ...NodeCommand.COMMON_DELETE_FLAGS_LIST,
+      flags.inputDir
+    ]
+  }
+
+  static get DELETE_EXECUTE_FLAGS_LIST () {
+    return [
+      ...NodeCommand.COMMON_DELETE_FLAGS_LIST,
+      flags.inputDir
+    ]
+  }
+
+  /**
+   * @returns {CommandFlag[]}
+   */
+  static get COMMON_DELETE_FLAGS_LIST () {
+    return [
       flags.app,
       flags.cacheDir,
       flags.chartDirectory,
@@ -2558,7 +2588,59 @@ export class NodeCommand extends BaseCommand {
               })
             }
           })
+          .command({
+            command: 'delete-prepare',
+            desc: 'Prepares the deletion of a node with a specific version of Hedera platform',
+            builder: y => flags.setCommandFlags(y, ...NodeCommand.DELETE_PREPARE_FLAGS_LIST),
+            handler: argv => {
+              nodeCmd.logger.debug('==== Running \'node add\' ===')
+              nodeCmd.logger.debug(argv)
+
+              nodeCmd.deletePrepare(argv).then(r => {
+                nodeCmd.logger.debug('==== Finished running `node delete-prepare`====')
+                if (!r) process.exit(1)
+              }).catch(err => {
+                nodeCmd.logger.showUserError(err)
+                process.exit(1)
+              })
+            }
+          })
+          .command({
+            command: 'delete-submit-transactions',
+            desc: 'Submits transactions to the network nodes for deleting a node',
+            builder: y => flags.setCommandFlags(y, ...NodeCommand.DELETE_SUBMIT_TRANSACTIONS_FLAGS_LIST),
+            handler: argv => {
+              nodeCmd.logger.debug('==== Running \'node add\' ===')
+              nodeCmd.logger.debug(argv)
+
+              nodeCmd.deleteSubmitTransactions(argv).then(r => {
+                nodeCmd.logger.debug('==== Finished running `node delete-submit-transactions`====')
+                if (!r) process.exit(1)
+              }).catch(err => {
+                nodeCmd.logger.showUserError(err)
+                process.exit(1)
+              })
+            }
+          })
+          .command({
+            command: 'delete-execute',
+            desc: 'Executes the deletion of a previously prepared node',
+            builder: y => flags.setCommandFlags(y, ...NodeCommand.DELETE_EXECUTE_FLAGS_LIST),
+            handler: argv => {
+              nodeCmd.logger.debug('==== Running \'node add\' ===')
+              nodeCmd.logger.debug(argv)
+
+              nodeCmd.deleteExecute(argv).then(r => {
+                nodeCmd.logger.debug('==== Finished running `node delete-execute`====')
+                if (!r) process.exit(1)
+              }).catch(err => {
+                nodeCmd.logger.showUserError(err)
+                process.exit(1)
+              })
+            }
+          })
           .demandCommand(1, 'Select a node command')
+
       }
     }
   }
