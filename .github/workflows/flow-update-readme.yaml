@@ -16,20 +16,37 @@
 
 name: Update README.md
 on:
-  workflow_dispatch:
+  workflow_call:
+    secrets:
+      GH_ACCESS_TOKEN:
+        description: "GitHub Access Token"
+        required: true
+      GH_ACCESS_GPG_KEY:
+        description: "GitHub Access GPG Key"
+        required: true
+      GH_ACCESS_PASSPHRASE:
+        description: "GitHub Access Passphrase"
+        required: true
+    inputs:
+      commit-changes:
+        description: "Commit updated README.md"
+        type: boolean
+        required: false
+        default: false
   push:
-    branches:
-      - main
     paths:
       - '**/*.mjs'
       - '**/*.js'
       - '**/package*.json'
       - '**/README.md.template'
+
 defaults:
   run:
     shell: bash
+
 permissions:
   contents: read
+
 jobs:
   update:
     runs-on: solo-linux-medium
@@ -38,7 +55,7 @@ jobs:
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         with:
           fetch-depth: 0
-          token: ${{secrets.GH_ACCESS_TOKEN}}
+          token: ${{ secrets.GH_ACCESS_TOKEN }}
 
       - name: Setup Node with Retry
         uses: Wandalen/wretry.action@6feedb7dedadeb826de0f45ff482b53b379a7844 # v3.5.0
@@ -96,10 +113,10 @@ jobs:
           
           export KIND_CREATE_CLUSTER_OUTPUT=$( kind create cluster -n "${SOLO_CLUSTER_NAME}" 2>&1 | tee test.log )
           
-          export SOLO_INIT_OUTPUT=$( solo init -t v0.42.5 -i node1,node2,node3 -n "${SOLO_NAMESPACE}" -s \
+          export SOLO_INIT_OUTPUT=$( solo init -i node1,node2,node3 -n "${SOLO_NAMESPACE}" -s \
           "${SOLO_CLUSTER_SETUP_NAMESPACE}" | tee test.log )
           
-          export SOLO_NODE_KEYS_OUTPUT=$( solo node keys --gossip-keys --tls-keys | tee test.log )
+          export SOLO_NODE_KEY_PEM_OUTPUT=$( solo node keys --gossip-keys --tls-keys | tee test.log )
 
           export SOLO_CLUSTER_SETUP_OUTPUT=$( solo cluster setup | tee test.log )
           
@@ -113,17 +130,12 @@ jobs:
           
           export SOLO_RELAY_DEPLAY_OUTPUT=$( solo relay deploy -i node1,node2 | tee test.log )
           
-          export SOLO_INIT_047_OUTPUT=$( solo init -t v0.48.0-alpha.0 -i node1,node2,node3 -n "${SOLO_NAMESPACE}" \
-          -s "${SOLO_CLUSTER_SETUP_NAMESPACE}" --key-format pem  | tee test.log )
-          
-          export SOLO_NODE_KEY_PEM_OUTPUT=$( solo node keys --gossip-keys --tls-keys --key-format pem | tee test.log )
-
           export SOLO_RELAY_DEPLOY_OUTPUT=$( solo relay deploy | tee test.log )
           echo "Generate README.md"
           
-          envsubst '$KIND_CREATE_CLUSTER_OUTPUT,$SOLO_INIT_OUTPUT,$SOLO_NODE_KEYS_OUTPUT, $SOLO_CLUSTER_SETUP_OUTPUT, \
+          envsubst '$KIND_CREATE_CLUSTER_OUTPUT,$SOLO_INIT_OUTPUT,$SOLO_NODE_KEY_PEM_OUTPUT,$SOLO_CLUSTER_SETUP_OUTPUT, \
           $SOLO_NETWORK_DEPLOY_OUTPUT,$SOLO_NODE_SETUP_OUTPUT,$SOLO_NODE_START_OUTPUT,$SOLO_MIRROR_NODE_DEPLOY_OUTPUT,\
-          $SOLO_RELAY_DEPLAY_OUTPUT,$SOLO_INIT_047_OUTPUT,$SOLO_NODE_KEY_PEM_OUTPUT,$SOLO_RELAY_DEPLOY_OUTPUT'\
+          $SOLO_RELAY_DEPLAY_OUTPUT,$SOLO_RELAY_DEPLOY_OUTPUT'\
           < README.md.template > README.md
 
           echo "Remove color codes and lines showing intermediate progress"
@@ -166,6 +178,7 @@ jobs:
           git_commit_gpgsign: true
 
       - name: Commit README.md Changes
+        if : ${{ inputs.commit-changes }}
         uses: stefanzweifel/git-auto-commit-action@8621497c8c39c72f3e2a999a26b4ca1b5058a842 # v5.0.1
         with:
           commit_message: "auto update README.md [skip ci]"
