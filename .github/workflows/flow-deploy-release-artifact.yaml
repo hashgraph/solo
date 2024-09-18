@@ -22,12 +22,7 @@ on:
         description: "Perform Dry Run"
         type: boolean
         required: false
-        default: true
-  pull_request:
-    types:
-      - opened
-      - reopened
-      - synchronize
+        default: false
 
 env:
   REGISTRY: ghcr.io
