@@ -40,7 +40,7 @@ on:
     outputs:
       commit-hash:
         description: "The commit hash for the updated README.md commit"
-        value: ${{ jobs.commit-readme.outputs.commit_hash }}
+        value: ${{ jobs.commit-hash.outputs.commit_hash }}
   push:
     paths:
       - '**/*.mjs'
@@ -203,3 +203,8 @@ jobs:
           commit_author: Swirlds Automation <swirlds-eng-automation@swirlds.com>
         env:
           GITHUB_TOKEN: ${{secrets.GH_ACCESS_TOKEN}}
+
+      - name: Set commit hash
+        id: commit-hash
+        run: |
+          echo "commit_hash=${{ jobs.commit-readme.outputs.commit_hash }}" | tee -a ${GITHUB_OUTPUT}
