@@ -27,6 +27,7 @@ import { Templates } from './templates.mjs'
 import { HEDERA_HAPI_PATH, ROOT_CONTAINER, SOLO_LOGS_DIR } from './constants.mjs'
 import { constants } from './index.mjs'
 import { FileContentsQuery, FileId } from '@hashgraph/sdk'
+import * as yaml from 'js-yaml'
 
 // cache current directory
 const CUR_FILE_DIR = paths.dirname(fileURLToPath(import.meta.url))
@@ -352,4 +353,26 @@ export function addDebugOptions (valuesArg, debugNodeId, index = 0) {
     valuesArg += ` --set "hedera.nodes[${nodeId}].root.extraEnv[${index}].value=-agentlib:jdwp=transport=dt_socket\\,server=y\\,suspend=y\\,address=*:${constants.JVM_DEBUG_PORT}"`
   }
   return valuesArg
+}
+
+/**
+ * Convert yaml file to object
+ * @param yamlFile
+ */
+export function yamlToObject (yamlFile) {
+  try {
+    if (fs.existsSync(yamlFile)) {
+      const yamlData = fs.readFileSync(yamlFile, 'utf8')
+      const configItems = yaml.load(yamlData)
+      const configMap = {}
+      for (const key in configItems) {
+        let config = configItems[key]
+        config = config || {}
+        configMap[key] = config
+      }
+      return configMap
+    }
+  } catch (e) {
+    throw new FullstackTestingError(`failed to convert yaml file ${yamlFile} to object: ${e.message}`, e)
+  }
 }

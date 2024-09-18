@@ -23,6 +23,7 @@ import * as flags from '../commands/flags.mjs'
 import * as paths from 'path'
 import * as helpers from './helpers.mjs'
 import * as yaml from 'js-yaml'
+import { yamlToObject } from './helpers.mjs'
 
 /**
  * ConfigManager cache command flag values so that user doesn't need to enter the same values repeatedly.
@@ -50,17 +51,7 @@ export class ConfigManager {
   load () {
     try {
       if (fs.existsSync(this.cachedConfigFile)) {
-        const yamlData = fs.readFileSync(this.cachedConfigFile, 'utf8')
-        const configItems = yaml.load(yamlData)
-        let configMap = {}
-        // add profiles
-        for (const key in configItems) {
-          let config = configItems[key]
-          config = config || {}
-          configMap[key] = config
-        }
-        /** @type {Object} */
-        this.config = configMap
+        this.config = yamlToObject(this.cachedConfigFile)
       }
     } catch (e) {
       throw new FullstackTestingError(`failed to initialize config manager: ${e.message}`, e)
