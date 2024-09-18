@@ -108,14 +108,13 @@ jobs:
           sudo apt-get install gettext-base
 
       - name: Update README.md
-        env:
-          VERSION: ${{ github.event.inputs.version }}
         run: |
           set -x
           npm install -g @hashgraph/solo
           npm link
           
-          [[ -n "${VERSION}" ]] && npm version ${VERSION} -f --no-git-tag-version
+          echo "VERSION=${{ inputs.version }}"
+          [[ -n "${{ inputs.version }}" ]] && npm version ${{ inputs.version }} -f --no-git-tag-version
           which solo
           
           export SOLO_CLUSTER_NAME=solo
