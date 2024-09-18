@@ -92,6 +92,20 @@ export class NodeCommand extends BaseCommand {
   /**
    * @returns {string}
    */
+  static get ADD_CONTEXT_FILE () {
+    return 'node-add.json'
+  }
+
+  /**
+   * @returns {string}
+   */
+  static get DELETE_CONTEXT_FILE () {
+    return 'node-delete.json'
+  }
+
+  /**
+   * @returns {string}
+   */
   static get SETUP_CONFIGS_NAME () {
     return 'setupConfigs'
   }
@@ -1878,11 +1892,10 @@ export class NodeCommand extends BaseCommand {
     ]
   }
 
-  saveContextDataTask (argv) {
+  saveContextDataTask (argv, targetFile, parser) {
     return {
       title: 'Save context data',
       task: async (ctx, task) => {
-        const config = /** @type {NodeAddConfigClass} **/ ctx.config
         const outputDir = argv[flags.outputDir.name]
         if (!outputDir) {
           throw new FullstackTestingError(`Path to export context data not specified. Please set a value for --${flags.outputDir.name}`)
@@ -1891,57 +1904,23 @@ export class NodeCommand extends BaseCommand {
         if (!fs.existsSync(outputDir)) {
           fs.mkdirSync(outputDir, { recursive: true })
         }
-        const exportedFields = [
-          'tlsCertHash',
-          'upgradeZipHash',
-          'newNode'
-        ]
-        const exportedCtx = {}
-
-        exportedCtx.signingCertDer = ctx.signingCertDer.toString()
-        exportedCtx.gossipEndpoints = ctx.gossipEndpoints.map(ep => `${ep.getDomainName}:${ep.getPort}`)
-        exportedCtx.grpcServiceEndpoints = ctx.grpcServiceEndpoints.map(ep => `${ep.getDomainName}:${ep.getPort}`)
-        exportedCtx.adminKey = ctx.adminKey.toString()
-        exportedCtx.existingNodeIds = config.existingNodeIds
-
-        for (const prop of exportedFields) {
-          exportedCtx[prop] = ctx[prop]
-        }
-
-        fs.writeFileSync(path.join(outputDir, 'ctx.json'), JSON.stringify(exportedCtx))
+        const exportedCtx = parser(ctx)
+        fs.writeFileSync(path.join(outputDir, targetFile), JSON.stringify(exportedCtx))
       }
     }
   }
 
-  loadContextDataTask (argv) {
+  loadContextDataTask (argv, targetFile, parser) {
     return {
       title: 'Load context data',
       task: async (ctx, task) => {
         if (argv.importCtxData) {
-          const config = /** @type {NodeAddConfigClass} **/ ctx.config
           const inputDir = argv[flags.inputDir.name]
           if (!inputDir) {
             throw new FullstackTestingError(`Path to context data not specified. Please set a value for --${flags.inputDir.name}`)
           }
-          const ctxData = JSON.parse(fs.readFileSync(path.join(inputDir, 'ctx.json')))
-
-          ctx.signingCertDer = new Uint8Array(ctxData.signingCertDer.split(','))
-          ctx.gossipEndpoints = this.prepareEndpoints(ctx.config.endpointType, ctxData.gossipEndpoints, constants.HEDERA_NODE_INTERNAL_GOSSIP_PORT)
-          ctx.grpcServiceEndpoints = this.prepareEndpoints(ctx.config.endpointType, ctxData.grpcServiceEndpoints, constants.HEDERA_NODE_EXTERNAL_GOSSIP_PORT)
-          ctx.adminKey = PrivateKey.fromStringED25519(ctxData.adminKey)
-          config.nodeId = ctxData.newNode.name
-          config.existingNodeIds = ctxData.existingNodeIds
-          config.allNodeIds = [...config.existingNodeIds, ctxData.newNode.name]
-
-          const fieldsToImport = [
-            'tlsCertHash',
-            'upgradeZipHash',
-            'newNode'
-          ]
-
-          for (const prop of fieldsToImport) {
-            ctx[prop] = ctxData[prop]
-          }
+          const ctxData = JSON.parse(fs.readFileSync(path.join(inputDir, targetFile)))
+          parser(ctx, ctxData)
         }
       }
     }
@@ -2154,7 +2133,7 @@ export class NodeCommand extends BaseCommand {
     const prepareTasks = this.getAddPrepareTasks(argv)
     const tasks = new Listr([
       ...prepareTasks,
-      self.saveContextDataTask(argv)
+      self.saveContextDataTask(argv, NodeCommand.ADD_CONTEXT_FILE, helpers.addSaveContextParser)
     ], {
       concurrent: false,
       rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
@@ -2179,7 +2158,7 @@ export class NodeCommand extends BaseCommand {
     const transactionTasks = this.getAddTransactionTasks(argv)
     const tasks = new Listr([
       self.addInitializeTask(argv),
-      self.loadContextDataTask(argv),
+      self.loadContextDataTask(argv, NodeCommand.ADD_CONTEXT_FILE, helpers.addLoadContextParser),
       ...transactionTasks
     ], {
       concurrent: false,
@@ -2206,7 +2185,7 @@ export class NodeCommand extends BaseCommand {
     const tasks = new Listr([
       self.addInitializeTask(argv),
       self.getIdentifyExistingNetworkNodesTask(argv),
-      self.loadContextDataTask(argv),
+      self.loadContextDataTask(argv, NodeCommand.ADD_CONTEXT_FILE, helpers.addLoadContextParser),
       ...executeTasks
     ], {
       concurrent: false,
@@ -2990,105 +2969,110 @@ export class NodeCommand extends BaseCommand {
     return true
   }
 
-  deletePrepareTasks (argv) {
+  deleteInitializeTask (argv) {
     const self = this
 
+    return {
+      title: 'Initialize',
+          task: async (ctx, task) => {
+      self.configManager.update(argv)
+
+      // disable the prompts that we don't want to prompt the user for
+      prompts.disablePrompts([
+        flags.app,
+        flags.chainId,
+        flags.chartDirectory,
+        flags.devMode,
+        flags.debugNodeId,
+        flags.endpointType,
+        flags.force,
+        flags.fstChartVersion,
+        flags.localBuildPath
+      ])
+
+      await prompts.execute(task, self.configManager, NodeCommand.DELETE_FLAGS_LIST)
+
+      /**
+       * @typedef {Object} NodeDeleteConfigClass
+       * -- flags --
+       * @property {string} app
+       * @property {string} cacheDir
+       * @property {string} chartDirectory
+       * @property {boolean} devMode
+       * @property {string} debugNodeId
+       * @property {string} endpointType
+       * @property {string} fstChartVersion
+       * @property {string} localBuildPath
+       * @property {string} namespace
+       * @property {string} nodeId
+       * @property {string} releaseTag
+       * -- extra args --
+       * @property {PrivateKey} adminKey
+       * @property {string[]} allNodeIds
+       * @property {string} chartPath
+       * @property {string[]} existingNodeIds
+       * @property {string} freezeAdminPrivateKey
+       * @property {string} keysDir
+       * @property {Object} nodeClient
+       * @property {Object} podNames
+       * @property {Map<String, NetworkNodeServices>} serviceMap
+       * @property {string} stagingDir
+       * @property {string} stagingKeysDir
+       * @property {PrivateKey} treasuryKey
+       * -- methods --
+       * @property {getUnusedConfigs} getUnusedConfigs
+       */
+      /**
+       * @callback getUnusedConfigs
+       * @returns {string[]}
+       */
+
+          // create a config object for subsequent steps
+      const config = /** @type {NodeDeleteConfigClass} **/ this.getConfig(NodeCommand.DELETE_CONFIGS_NAME, NodeCommand.DELETE_FLAGS_LIST,
+              [
+                'adminKey',
+                'allNodeIds',
+                'existingNodeIds',
+                'freezeAdminPrivateKey',
+                'keysDir',
+                'nodeClient',
+                'podNames',
+                'serviceMap',
+                'stagingDir',
+                'stagingKeysDir',
+                'treasuryKey'
+              ])
+
+      config.curDate = new Date()
+      config.existingNodeIds = []
+
+      await self.initializeSetup(config, self.k8)
+
+      // set config in the context for later tasks to use
+      ctx.config = config
+
+      ctx.config.chartPath = await self.prepareChartPath(ctx.config.chartDirectory,
+          constants.FULLSTACK_TESTING_CHART, constants.FULLSTACK_DEPLOYMENT_CHART)
+
+      // initialize Node Client with existing network nodes prior to adding the new node which isn't functioning, yet
+      ctx.config.nodeClient = await this.accountManager.loadNodeClient(ctx.config.namespace)
+
+      const accountKeys = await this.accountManager.getAccountKeysFromSecret(FREEZE_ADMIN_ACCOUNT, config.namespace)
+      config.freezeAdminPrivateKey = accountKeys.privateKey
+
+      const treasuryAccount = await this.accountManager.getTreasuryAccountKeys(config.namespace)
+      const treasuryAccountPrivateKey = treasuryAccount.privateKey
+      config.treasuryKey = PrivateKey.fromStringED25519(treasuryAccountPrivateKey)
+
+      self.logger.debug('Initialized config', { config })
+    }
+    }
+  }
+
+
+  deletePrepareTasks (argv) {
     return [
-      {
-        title: 'Initialize',
-        task: async (ctx, task) => {
-          self.configManager.update(argv)
-
-          // disable the prompts that we don't want to prompt the user for
-          prompts.disablePrompts([
-            flags.app,
-            flags.chainId,
-            flags.chartDirectory,
-            flags.devMode,
-            flags.debugNodeId,
-            flags.endpointType,
-            flags.force,
-            flags.fstChartVersion,
-            flags.localBuildPath
-          ])
-
-          await prompts.execute(task, self.configManager, NodeCommand.DELETE_FLAGS_LIST)
-
-          /**
-           * @typedef {Object} NodeDeleteConfigClass
-           * -- flags --
-           * @property {string} app
-           * @property {string} cacheDir
-           * @property {string} chartDirectory
-           * @property {boolean} devMode
-           * @property {string} debugNodeId
-           * @property {string} endpointType
-           * @property {string} fstChartVersion
-           * @property {string} localBuildPath
-           * @property {string} namespace
-           * @property {string} nodeId
-           * @property {string} releaseTag
-           * -- extra args --
-           * @property {PrivateKey} adminKey
-           * @property {string[]} allNodeIds
-           * @property {string} chartPath
-           * @property {string[]} existingNodeIds
-           * @property {string} freezeAdminPrivateKey
-           * @property {string} keysDir
-           * @property {Object} nodeClient
-           * @property {Object} podNames
-           * @property {Map<String, NetworkNodeServices>} serviceMap
-           * @property {string} stagingDir
-           * @property {string} stagingKeysDir
-           * @property {PrivateKey} treasuryKey
-           * -- methods --
-           * @property {getUnusedConfigs} getUnusedConfigs
-           */
-          /**
-           * @callback getUnusedConfigs
-           * @returns {string[]}
-           */
-
-              // create a config object for subsequent steps
-          const config = /** @type {NodeDeleteConfigClass} **/ this.getConfig(NodeCommand.DELETE_CONFIGS_NAME, NodeCommand.DELETE_FLAGS_LIST,
-                  [
-                    'adminKey',
-                    'allNodeIds',
-                    'existingNodeIds',
-                    'freezeAdminPrivateKey',
-                    'keysDir',
-                    'nodeClient',
-                    'podNames',
-                    'serviceMap',
-                    'stagingDir',
-                    'stagingKeysDir',
-                    'treasuryKey'
-                  ])
-
-          config.curDate = new Date()
-          config.existingNodeIds = []
-
-          await self.initializeSetup(config, self.k8)
-
-          // set config in the context for later tasks to use
-          ctx.config = config
-
-          ctx.config.chartPath = await self.prepareChartPath(ctx.config.chartDirectory,
-              constants.FULLSTACK_TESTING_CHART, constants.FULLSTACK_DEPLOYMENT_CHART)
-
-          // initialize Node Client with existing network nodes prior to adding the new node which isn't functioning, yet
-          ctx.config.nodeClient = await this.accountManager.loadNodeClient(ctx.config.namespace)
-
-          const accountKeys = await this.accountManager.getAccountKeysFromSecret(FREEZE_ADMIN_ACCOUNT, config.namespace)
-          config.freezeAdminPrivateKey = accountKeys.privateKey
-
-          const treasuryAccount = await this.accountManager.getTreasuryAccountKeys(config.namespace)
-          const treasuryAccountPrivateKey = treasuryAccount.privateKey
-          config.treasuryKey = PrivateKey.fromStringED25519(treasuryAccountPrivateKey)
-
-          self.logger.debug('Initialized config', { config })
-        }
-      },
+      this.deleteInitializeTask(argv),
       {
         title: 'Identify existing network nodes',
         task: async (ctx, task) => {
@@ -3295,11 +3279,11 @@ export class NodeCommand extends BaseCommand {
   }
 
   async deletePrepare (argv) {
-
     const self = this
 
     const tasks = new Listr([
-      ...self.deletePrepareTasks(argv)
+      ...self.deletePrepareTasks(argv),
+      self.saveContextDataTask(argv, NodeCommand.DELETE_CONTEXT_FILE, helpers.deleteSaveContextParser)
     ], {
       concurrent: false,
       rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
@@ -3315,14 +3299,14 @@ export class NodeCommand extends BaseCommand {
     }
 
     return true
-
   }
 
   async deleteExecute (argv) {
-
     const self = this
 
     const tasks = new Listr([
+      self.deleteInitializeTask(argv),
+      self.loadContextDataTask(argv, NodeCommand.DELETE_CONTEXT_FILE, helpers.deleteLoadContextParser),
       ...self.deleteExecuteTasks(argv)
     ], {
       concurrent: false,
@@ -3339,13 +3323,14 @@ export class NodeCommand extends BaseCommand {
     }
 
     return true
-
   }
 
   async deleteSubmitTransactions (argv) {
     const self = this
 
     const tasks = new Listr([
+      self.deleteInitializeTask(argv),
+      self.loadContextDataTask(argv, NodeCommand.DELETE_CONTEXT_FILE, helpers.deleteLoadContextParser),
       ...self.deleteSubmitTransactionsTasks(argv)
     ], {
       concurrent: false,
