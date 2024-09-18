@@ -85,17 +85,6 @@ jobs:
           [[ "${{ github.event.inputs.dry-run-enabled }}" == true && ! -f VERSION ]] && echo -n "0.0.0-latest" > VERSION
           echo "version=$(cat VERSION | tr -d '[:space:]')" | tee -a ${GITHUB_OUTPUT}
 
-  verify-version-output:
-    name: Verify Version Output
-    runs-on: solo-linux-medium
-    needs:
-      - prepare-release
-    steps:
-      - name: Verify version output
-        env:
-          VERSION: ${{ needs.prepare-release.outputs.version }}
-        run: echo "VERSION=${VERSION}"
-
   update-readme:
     name: "Update README.md"
     uses: ./.github/workflows/flow-update-readme.yaml
@@ -115,16 +104,6 @@ jobs:
     needs:
       - update-readme
     steps:
-      - name: verification and testing
-        env:
-          commit: ${{ needs.update-readme.outputs.commit-hash }}
-          commit2: ${{ needs.update-readme.outputs.commit-hash2 }}
-        run: |
-          echo "commit=${commit}"
-          echo "commit hash=${{ needs.update-readme.outputs.commit-hash }}"
-          echo "commit2=${commit2}"
-          echo "commit hash2=${{ needs.update-readme.outputs.commit-hash2 }}"
-
       - name: Checkout Code
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         with:

@@ -41,9 +41,6 @@ on:
       commit-hash:
         description: "The commit hash for the updated README.md commit"
         value: ${{ jobs.update.outputs.commit_hash }}
-      commit-hash2:
-        description: "The commit hash for the updated README.md commit"
-        value: ${{ jobs.update.outputs.commit_hash2 }}
   push:
     paths:
       - '**/*.mjs'
@@ -62,7 +59,6 @@ jobs:
   update:
     outputs:
       commit_hash: ${{ steps.commit-readme.outputs.commit_hash }}
-      commit_hash2: ${{ steps.commit-hash.outputs.commit_hash }}
     runs-on: solo-linux-medium
     steps:
       - name: Checkout Code for Push
@@ -209,8 +205,3 @@ jobs:
           commit_author: Swirlds Automation <swirlds-eng-automation@swirlds.com>
         env:
           GITHUB_TOKEN: ${{secrets.GH_ACCESS_TOKEN}}
-
-      - name: Set commit hash
-        id: commit-hash
-        run: |
-          echo "commit_hash2=${{ steps.commit-readme.outputs.commit_hash }}" | tee -a ${GITHUB_OUTPUT}
