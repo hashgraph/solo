@@ -109,7 +109,7 @@ jobs:
 
       - name: Update README.md
         env:
-          VERSION: v0.32.0
+          VERSION: 0.32.0
         run: |
           set -x
           npm install -g @hashgraph/solo
