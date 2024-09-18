@@ -40,7 +40,10 @@ on:
     outputs:
       commit-hash:
         description: "The commit hash for the updated README.md commit"
-        value: ${{ jobs.commit-hash.outputs.commit_hash }}
+        value: ${{ jobs.update.outputs.commit_hash }}
+      commit-hash2:
+        description: "The commit hash for the updated README.md commit"
+        value: ${{ jobs.update.outputs.commit_hash2 }}
   push:
     paths:
       - '**/*.mjs'
@@ -57,6 +60,9 @@ permissions:
 
 jobs:
   update:
+    outputs:
+      commit_hash: ${{ steps.commit-readme.outputs.commit_hash }}
+      commit_hash2: ${{ steps.commit-hash.outputs.commit_hash }}
     runs-on: solo-linux-medium
     steps:
       - name: Checkout Code for Push
@@ -207,4 +213,4 @@ jobs:
       - name: Set commit hash
         id: commit-hash
         run: |
-          echo "commit_hash=${{ jobs.commit-readme.outputs.commit_hash }}" | tee -a ${GITHUB_OUTPUT}
+          echo "commit_hash2=${{ steps.commit-readme.outputs.commit_hash }}" | tee -a ${GITHUB_OUTPUT}
