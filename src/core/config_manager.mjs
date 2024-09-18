@@ -22,6 +22,7 @@ import { Logger } from './logging.mjs'
 import * as flags from '../commands/flags.mjs'
 import * as paths from 'path'
 import * as helpers from './helpers.mjs'
+import * as yaml from 'js-yaml'
 
 /**
  * ConfigManager cache command flag values so that user doesn't need to enter the same values repeatedly.
@@ -49,10 +50,17 @@ export class ConfigManager {
   load () {
     try {
       if (fs.existsSync(this.cachedConfigFile)) {
-        const configJSON = fs.readFileSync(this.cachedConfigFile)
-
+        const yamlData = fs.readFileSync(this.cachedConfigFile, 'utf8')
+        const configItems = yaml.load(yamlData)
+        let configMap = {}
+        // add profiles
+        for (const key in configItems) {
+          let config = configItems[key]
+          config = config || {}
+          configMap[key] = config
+        }
         /** @type {Object} */
-        this.config = JSON.parse(configJSON.toString())
+        this.config = configMap
       }
     } catch (e) {
       throw new FullstackTestingError(`failed to initialize config manager: ${e.message}`, e)
@@ -172,12 +180,11 @@ export class ConfigManager {
   persist () {
     try {
       this.config.updatedAt = new Date().toISOString()
-      let configJSON = JSON.stringify(this.config, null, 2)
-      fs.writeFileSync(`${this.cachedConfigFile}`, configJSON)
-
-      // refresh config with the file contents
-      configJSON = fs.readFileSync(this.cachedConfigFile)
-      this.config = JSON.parse(configJSON.toString())
+      fs.writeFile(this.cachedConfigFile, yaml.dump(this.config), (err) => {
+        if (err) {
+          reject(err)
+        }
+      })
     } catch (e) {
       throw new FullstackTestingError(`failed to persis config: ${e.message}`, e)
     }
