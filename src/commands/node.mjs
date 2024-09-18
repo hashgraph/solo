@@ -2990,10 +2990,10 @@ export class NodeCommand extends BaseCommand {
     return true
   }
 
-  async delete (argv) {
+  deletePrepareTasks (argv) {
     const self = this
 
-    const tasks = new Listr([
+    return [
       {
         title: 'Initialize',
         task: async (ctx, task) => {
@@ -3049,21 +3049,21 @@ export class NodeCommand extends BaseCommand {
            * @returns {string[]}
            */
 
-          // create a config object for subsequent steps
+              // create a config object for subsequent steps
           const config = /** @type {NodeDeleteConfigClass} **/ this.getConfig(NodeCommand.DELETE_CONFIGS_NAME, NodeCommand.DELETE_FLAGS_LIST,
-            [
-              'adminKey',
-              'allNodeIds',
-              'existingNodeIds',
-              'freezeAdminPrivateKey',
-              'keysDir',
-              'nodeClient',
-              'podNames',
-              'serviceMap',
-              'stagingDir',
-              'stagingKeysDir',
-              'treasuryKey'
-            ])
+                  [
+                    'adminKey',
+                    'allNodeIds',
+                    'existingNodeIds',
+                    'freezeAdminPrivateKey',
+                    'keysDir',
+                    'nodeClient',
+                    'podNames',
+                    'serviceMap',
+                    'stagingDir',
+                    'stagingKeysDir',
+                    'treasuryKey'
+                  ])
 
           config.curDate = new Date()
           config.existingNodeIds = []
@@ -3074,7 +3074,7 @@ export class NodeCommand extends BaseCommand {
           ctx.config = config
 
           ctx.config.chartPath = await self.prepareChartPath(ctx.config.chartDirectory,
-            constants.FULLSTACK_TESTING_CHART, constants.FULLSTACK_DEPLOYMENT_CHART)
+              constants.FULLSTACK_TESTING_CHART, constants.FULLSTACK_DEPLOYMENT_CHART)
 
           // initialize Node Client with existing network nodes prior to adding the new node which isn't functioning, yet
           ctx.config.nodeClient = await this.accountManager.loadNodeClient(ctx.config.namespace)
@@ -3117,52 +3117,15 @@ export class NodeCommand extends BaseCommand {
           const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
           await this.checkStakingTask(config.existingNodeIds)
         }
-      },
-      {
-        title: 'Send node delete transaction',
-        task: async (ctx, task) => {
-          const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
+      }
+    ]
 
-          try {
-            const accountMap = getNodeAccountMap(config.existingNodeIds)
-            const deleteAccountId = accountMap.get(config.nodeId)
-            this.logger.debug(`Deleting node: ${config.nodeId} with account: ${deleteAccountId}`)
-            const nodeId = Templates.nodeNumberFromNodeId(config.nodeId) - 1
-            const nodeDeleteTx = await new NodeDeleteTransaction()
-              .setNodeId(nodeId)
-              .freezeWith(config.nodeClient)
+  }
 
-            const signedTx = await nodeDeleteTx.sign(config.adminKey)
-            const txResp = await signedTx.execute(config.nodeClient)
-            const nodeUpdateReceipt = await txResp.getReceipt(config.nodeClient)
-            this.logger.debug(`NodeUpdateReceipt: ${nodeUpdateReceipt.toString()}`)
-          } catch (e) {
-            this.logger.error(`Error deleting node from network: ${e.message}`, e)
-            throw new FullstackTestingError(`Error deleting node from network: ${e.message}`, e)
-          }
-        }
-      },
-      {
-        title: 'Send prepare upgrade transaction',
-        task: async (ctx, task) => {
-          const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
-          await this.prepareUpgradeNetworkNodes(config.freezeAdminPrivateKey, ctx.upgradeZipHash, config.nodeClient)
-        }
-      },
-      {
-        title: 'Download generated files from an existing node',
-        task: async (ctx, task) => {
-          const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
-          await this.downloadNodeGeneratedFiles(config)
-        }
-      },
-      {
-        title: 'Send freeze upgrade transaction',
-        task: async (ctx, task) => {
-          const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
-          await this.freezeUpgradeNetworkNodes(config.freezeAdminPrivateKey, ctx.upgradeZipHash, config.nodeClient)
-        }
-      },
+  deleteExecuteTasks (argv) {
+    const self = this
+
+    return [
       {
         title: 'Prepare staging directory',
         task: async (ctx, parentTask) => {
@@ -3209,24 +3172,24 @@ export class NodeCommand extends BaseCommand {
       {
         title: 'Check node pods are running',
         task:
-          async (ctx, task) => {
-            self.logger.info('sleep 20 seconds to give time for pods to come up after being killed')
-            await sleep(20000)
-            const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
-            return this.checkPodRunningTask(ctx, task, config.allNodeIds)
-          }
+            async (ctx, task) => {
+              self.logger.info('sleep 20 seconds to give time for pods to come up after being killed')
+              await sleep(20000)
+              const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
+              return this.checkPodRunningTask(ctx, task, config.allNodeIds)
+            }
       },
       {
         title: 'Fetch platform software into all network nodes',
         task:
-          async (ctx, task) => {
-            const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
-            config.serviceMap = await self.accountManager.getNodeServiceMap(
-              config.namespace)
-            config.podNames[config.nodeId] = config.serviceMap.get(
-              config.nodeId).nodePodName
-            return self.fetchLocalOrReleasedPlatformSoftware(config.allNodeIds, config.podNames, config.releaseTag, task, config.localBuildPath)
-          }
+            async (ctx, task) => {
+              const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
+              config.serviceMap = await self.accountManager.getNodeServiceMap(
+                  config.namespace)
+              config.podNames[config.nodeId] = config.serviceMap.get(
+                  config.nodeId).nodePodName
+              return self.fetchLocalOrReleasedPlatformSoftware(config.allNodeIds, config.podNames, config.releaseTag, task, config.localBuildPath)
+            }
       },
       {
         title: 'Setup network nodes',
@@ -3278,6 +3241,137 @@ export class NodeCommand extends BaseCommand {
           self.configManager.persist()
         }
       }
+    ]
+  }
+
+  deleteSubmitTransactionsTasks (argv) {
+    return [
+      {
+        title: 'Send node delete transaction',
+        task: async (ctx, task) => {
+          const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
+
+          try {
+            const accountMap = getNodeAccountMap(config.existingNodeIds)
+            const deleteAccountId = accountMap.get(config.nodeId)
+            this.logger.debug(`Deleting node: ${config.nodeId} with account: ${deleteAccountId}`)
+            const nodeId = Templates.nodeNumberFromNodeId(config.nodeId) - 1
+            const nodeDeleteTx = await new NodeDeleteTransaction()
+                .setNodeId(nodeId)
+                .freezeWith(config.nodeClient)
+
+            const signedTx = await nodeDeleteTx.sign(config.adminKey)
+            const txResp = await signedTx.execute(config.nodeClient)
+            const nodeUpdateReceipt = await txResp.getReceipt(config.nodeClient)
+            this.logger.debug(`NodeUpdateReceipt: ${nodeUpdateReceipt.toString()}`)
+          } catch (e) {
+            this.logger.error(`Error deleting node from network: ${e.message}`, e)
+            throw new FullstackTestingError(`Error deleting node from network: ${e.message}`, e)
+          }
+        }
+      },
+      {
+        title: 'Send prepare upgrade transaction',
+        task: async (ctx, task) => {
+          const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
+          await this.prepareUpgradeNetworkNodes(config.freezeAdminPrivateKey, ctx.upgradeZipHash, config.nodeClient)
+        }
+      },
+      {
+        title: 'Download generated files from an existing node',
+        task: async (ctx, task) => {
+          const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
+          await this.downloadNodeGeneratedFiles(config)
+        }
+      },
+      {
+        title: 'Send freeze upgrade transaction',
+        task: async (ctx, task) => {
+          const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
+          await this.freezeUpgradeNetworkNodes(config.freezeAdminPrivateKey, ctx.upgradeZipHash, config.nodeClient)
+        }
+      },
+    ]
+  }
+
+  async deletePrepare (argv) {
+
+    const self = this
+
+    const tasks = new Listr([
+      ...self.deletePrepareTasks(argv)
+    ], {
+      concurrent: false,
+      rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
+    })
+
+    try {
+      await tasks.run()
+    } catch (e) {
+      self.logger.error(`Error in deleting nodes: ${e.message}`, e)
+      throw new FullstackTestingError(`Error in deleting nodes: ${e.message}`, e)
+    } finally {
+      await self.close()
+    }
+
+    return true
+
+  }
+
+  async deleteExecute (argv) {
+
+    const self = this
+
+    const tasks = new Listr([
+      ...self.deleteExecuteTasks(argv)
+    ], {
+      concurrent: false,
+      rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
+    })
+
+    try {
+      await tasks.run()
+    } catch (e) {
+      self.logger.error(`Error in deleting nodes: ${e.message}`, e)
+      throw new FullstackTestingError(`Error in deleting nodes: ${e.message}`, e)
+    } finally {
+      await self.close()
+    }
+
+    return true
+
+  }
+
+  async deleteSubmitTransactions (argv) {
+    const self = this
+
+    const tasks = new Listr([
+      ...self.deleteSubmitTransactionsTasks(argv)
+    ], {
+      concurrent: false,
+      rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
+    })
+
+    try {
+      await tasks.run()
+    } catch (e) {
+      self.logger.error(`Error in deleting nodes: ${e.message}`, e)
+      throw new FullstackTestingError(`Error in deleting nodes: ${e.message}`, e)
+    } finally {
+      await self.close()
+    }
+
+    return true
+  }
+
+
+  async delete (argv) {
+    const self = this
+
+    const tasks = new Listr([
+        ...self.deletePrepareTasks(argv),
+        ...self.deleteSubmitTransactionsTasks(argv),
+        ...self.deleteExecuteTasks(argv)
     ], {
       concurrent: false,
       rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
