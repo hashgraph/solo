@@ -112,6 +112,7 @@ jobs:
       - name: Update README.md
         run: |
           set -x
+          npm install
           npm install -g @hashgraph/solo
           npm link
           
