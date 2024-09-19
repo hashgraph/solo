@@ -110,7 +110,7 @@ export class PlatformInstaller {
 
       const extractScript = path.join(constants.HEDERA_USER_HOME_DIR, scriptName) // inside the container
       await this.k8.execContainer(podName, constants.ROOT_CONTAINER, `chmod +x ${extractScript}`)
-      await this.k8.execContainer(podName, constants.ROOT_CONTAINER, [extractScript, tag])
+      await this.k8.execContainer(podName, constants.ROOT_CONTAINER, [extractScript, tag], 60_000)
       return true
     } catch (e) {
       throw new FullstackTestingError(`failed to extract platform code in this pod '${podName}': ${e.message}`, e)

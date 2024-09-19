@@ -14,7 +14,6 @@
  * limitations under the License.
  *
  */
-import { afterAll, beforeAll, describe, expect, it } from '@jest/globals'
 import {
   constants
 } from '../../../src/core/index.mjs'
@@ -24,11 +23,13 @@ import {
   bootstrapNetwork,
   getDefaultArgv,
   getTestCacheDir,
+  HEDERA_PLATFORM_VERSION_TAG,
   TEST_CLUSTER,
   testLogger
 } from '../../test_util.js'
 import { flags } from '../../../src/commands/index.mjs'
 import * as version from '../../../version.mjs'
+import { getNodeLogs } from '../../../src/core/helpers.mjs'
 
 const defaultTimeout = 20000
 
@@ -52,9 +53,9 @@ describe('PackageInstallerE2E', () => {
   const configManager = bootstrapResp.opts.configManager
   const installer = bootstrapResp.opts.platformInstaller
   const podName = 'network-node1-0'
-  const packageVersion = 'v0.42.5'
 
   afterAll(async () => {
+    await getNodeLogs(k8, namespace)
     await k8.deleteNamespace(namespace)
     await accountManager.close()
   }, 180000)
@@ -71,13 +72,13 @@ describe('PackageInstallerE2E', () => {
     it('should fail with invalid pod', async () => {
       expect.assertions(2)
       try {
-        await installer.fetchPlatform('', packageVersion)
+        await installer.fetchPlatform('', HEDERA_PLATFORM_VERSION_TAG)
       } catch (e) {
         expect(e.message).toContain('podName is required')
       }
 
       try {
-        await installer.fetchPlatform('INVALID', packageVersion)
+        await installer.fetchPlatform('INVALID', HEDERA_PLATFORM_VERSION_TAG)
       } catch (e) {
         expect(e.message).toContain('failed to extract platform code in this pod')
       }
@@ -93,7 +94,7 @@ describe('PackageInstallerE2E', () => {
     }, defaultTimeout)
 
     it('should succeed with valid tag and pod', async () => {
-      await expect(installer.fetchPlatform(podName, packageVersion)).resolves.toBeTruthy()
+      await expect(installer.fetchPlatform(podName, HEDERA_PLATFORM_VERSION_TAG)).resolves.toBeTruthy()
       const outputs = await k8.execContainer(podName, constants.ROOT_CONTAINER, `ls -la ${constants.HEDERA_HAPI_PATH}`)
       testLogger.showUser(outputs)
     }, 60000)

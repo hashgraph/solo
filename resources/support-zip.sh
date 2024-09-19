@@ -7,7 +7,7 @@ readonly DATA_DIR=data
 readonly RESEARCH_ZIP=${HOSTNAME}.zip
 readonly OUTPUT_DIR=output
 readonly ZIP_FULLPATH=${HAPI_DIR}/${DATA_DIR}/${RESEARCH_ZIP}
-readonly FILE_LIST=${HAPI_DIR}/${OUTPUT_DIR}/support-zip-file-list.txt
+readonly FILE_LIST=${HAPI_DIR}/support-zip-file-list.txt
 readonly CONFIG_TXT=config.txt
 readonly SETTINGS_TXT=settings.txt
 readonly SETTINGS_USED_TXT=settingsUsed.txt
@@ -51,3 +51,5 @@ AddToFileList ${UPGRADE_DIR}
 echo "creating zip file" | tee -a ${LOG_FILE}
 jar cvfM "${ZIP_FULLPATH}" "@${FILE_LIST}"
 echo "...end support-zip.sh" | tee -a ${LOG_FILE}
+jar -u -v --file=${ZIP_FULLPATH} ${OUTPUT_DIR}/support-zip.log
+exit 0

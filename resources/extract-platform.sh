@@ -43,4 +43,6 @@ cd ${HAPI_DIR}
 pwd | tee -a ${LOG_FILE}
 ls -al | tee -a ${LOG_FILE}
 jar xvf "${BUILD_ZIP_FILE}" | tee -a ${LOG_FILE}
-[[ $? -ne 0 ]] && exit 1
+[[ $? -ne 0 ]] && echo "Failure occurred during decompress" && exit 1
+echo "................................end: extract-platform.sh" | tee -a ${LOG_FILE}
+exit 0
