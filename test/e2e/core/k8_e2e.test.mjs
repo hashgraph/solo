@@ -249,6 +249,12 @@ describe('K8', () => {
     expect(output.indexOf(podName)).toEqual(0)
   }, defaultTimeout)
 
+  it('should be able to get an error for cat a file that does not exist', async () => {
+    const pods = await k8.getPodsByLabel([`app=${podLabelValue}`])
+    const podName = pods[0].metadata.name
+    await expect(k8.execContainer(podName, containerName, ['cat', '/z/z_hostname'])).rejects.toThrowError()
+  }, defaultTimeout)
+
   it('should be able to list persistent volume claims', async () => {
     const v1Pvc = new V1PersistentVolumeClaim()
     try {

@@ -473,27 +473,28 @@ export class K8 {
       const errorMessage = `${messagePrefix} timeout exceeded timeout of ${timeoutMs}`
       this.logger.error(errorMessage)
       localContext.connection?.terminate()
-      localContext.reject(new FullstackTestingError(errorMessage))
+      return localContext.reject(new FullstackTestingError(errorMessage))
     }, timeoutMs)
   }
 
-  exitWithError (timeoutId, reject, errorMessage) {
+  exitWithError (localContext, errorMessage) {
+    localContext.errorMessage = localContext.errorMessage ? `${localContext.errorMessage}:${errorMessage}` : errorMessage
     this.logger.error(errorMessage)
-    clearTimeout(timeoutId)
-    reject(new FullstackTestingError(errorMessage))
+    clearTimeout(localContext.timeoutId)
+    return localContext.reject(new FullstackTestingError(localContext.errorMessage))
   }
 
-  handleCallback (status, localContext, reject, messagePrefix) {
+  handleCallback (status, localContext, messagePrefix) {
     if (status === 'Failure') {
-      this.exitWithError(localContext.timeoutId, reject, `${messagePrefix} Failure occurred`)
+      return this.exitWithError(localContext, `${messagePrefix} Failure occurred`)
     } else {
       this.logger.debug(`${messagePrefix} callback(status)=${status}`)
     }
   }
 
-  registerConnectionOnError (localContext, reject, messagePrefix, conn) {
+  registerConnectionOnError (localContext, messagePrefix, conn) {
     conn.on('error', (e) => {
-      this.exitWithError(localContext.timeoutId, reject, `${messagePrefix} failed, connection error: ${e.message}`)
+      return this.exitWithError(localContext, `${messagePrefix} failed, connection error: ${e.message}`)
     })
   }
 
@@ -502,15 +503,15 @@ export class K8 {
     this.resetTimeout(localContext, messagePrefix, timeoutMs)
   }
 
-  registerStreamOnData (localContext, reject, messagePrefix, stream) {
+  registerStreamOnData (localContext, messagePrefix, stream) {
     stream.on('data', (data) => {
-      this.exitWithError(localContext.timeoutId, reject, `${messagePrefix} error encountered, error: ${data.toString()}`)
+      return this.exitWithError(localContext, `${messagePrefix} error encountered, error: ${data.toString()}`)
     })
   }
 
-  registerStreamOnError (localContext, reject, messagePrefix, stream) {
+  registerStreamOnError (localContext, messagePrefix, stream) {
     stream.on('error', (err) => {
-      this.exitWithError(localContext.timeoutId, reject, `${messagePrefix} error encountered, err: ${err.toString()}`)
+      return this.exitWithError(localContext, `${messagePrefix} error encountered, err: ${err.toString()}`)
     })
   }
 
@@ -594,19 +595,19 @@ export class K8 {
         inputStream.pipe(inputPassthroughStream)
 
         execInstance.exec(namespace, podName, containerName, command, null, errStream, inputPassthroughStream, false,
-          ({ status }) => self.handleCallback(status, localContext, reject, messagePrefix))
+          ({ status }) => self.handleCallback(status, localContext, messagePrefix))
           .then(conn => {
             self.logger.info(`${messagePrefix} connection established`)
             localContext.connection = conn
 
-            self.registerConnectionOnError(localContext, reject, messagePrefix, conn)
+            self.registerConnectionOnError(localContext, messagePrefix, conn)
 
             self.registerConnectionOnMessage(localContext, messagePrefix, conn, timeoutMs)
 
             conn.on('close', (code, reason) => {
               self.logger.debug(`${messagePrefix} connection closed`)
               if (code !== 1000) { // code 1000 is the success code
-                self.exitWithError(localContext.timeoutId, reject, `${messagePrefix} failed with code=${code}, reason=${reason}`)
+                return self.exitWithError(localContext, `${messagePrefix} failed with code=${code}, reason=${reason}`)
               }
 
               // Cleanup temp file after successful copy
@@ -618,9 +619,9 @@ export class K8 {
             })
           })
 
-        self.registerStreamOnData(localContext, reject, messagePrefix, errStream)
+        self.registerStreamOnData(localContext, messagePrefix, errStream)
 
-        self.registerStreamOnError(localContext, reject, messagePrefix, inputPassthroughStream)
+        self.registerStreamOnError(localContext, messagePrefix, inputPassthroughStream)
       })
     } catch (e) {
       const errorMessage = `${messagePrefix} failed to upload file: ${e.message}`
@@ -712,7 +713,7 @@ export class K8 {
           ({ status }) => {
             if (status === 'Failure') {
               self._deleteTempFile(tmpFile)
-              self.exitWithError(localContext.timeoutId, reject, `${messagePrefix} Failure occurred`)
+              return self.exitWithError(localContext, `${messagePrefix} Failure occurred`)
             } else {
               self.logger.debug(`${messagePrefix} callback(status)=${status}`)
             }
@@ -723,7 +724,7 @@ export class K8 {
 
             conn.on('error', (e) => {
               self._deleteTempFile(tmpFile)
-              self.exitWithError(localContext.timeoutId, reject, `${messagePrefix} failed, connection error: ${e.message}`)
+              return self.exitWithError(localContext, `${messagePrefix} failed, connection error: ${e.message}`)
             })
 
             self.registerConnectionOnMessage(localContext, messagePrefix, conn, timeoutMs)
@@ -731,7 +732,7 @@ export class K8 {
             conn.on('close', (code, reason) => {
               self.logger.debug(`${messagePrefix} connection closed`)
               if (code !== 1000) { // code 1000 is the success code
-                self.exitWithError(localContext.timeoutId, reject, `${messagePrefix} failed with code=${code}, reason=${reason}`)
+                return self.exitWithError(localContext, `${messagePrefix} failed with code=${code}, reason=${reason}`)
               }
 
               outputFileStream.end()
@@ -745,20 +746,20 @@ export class K8 {
                   if (stat && stat.size === srcFileSize) {
                     self.logger.debug(`${messagePrefix} finished`)
                     clearTimeout(localContext.timeoutId)
-                    resolve(true)
+                    return resolve(true)
                   }
 
-                  self.exitWithError(localContext.timeoutId, reject, `${messagePrefix} files did not match, srcFileSize=${srcFileSize}, stat.size=${stat?.size}`)
+                  return self.exitWithError(localContext, `${messagePrefix} files did not match, srcFileSize=${srcFileSize}, stat.size=${stat?.size}`)
                 } catch (e) {
-                  self.exitWithError(localContext.timeoutId, reject, `${messagePrefix} failed to complete download`)
+                  return self.exitWithError(localContext, `${messagePrefix} failed to complete download`)
                 }
               })
             })
           })
 
-        self.registerStreamOnData(localContext, reject, messagePrefix, errStream)
+        self.registerStreamOnData(localContext, messagePrefix, errStream)
 
-        self.registerStreamOnError(localContext, reject, messagePrefix, outputFileStream)
+        self.registerStreamOnError(localContext, messagePrefix, outputFileStream)
       })
     } catch (e) {
       const errorMessage = `${messagePrefix}failed to download file: ${e.message}`
@@ -820,34 +821,36 @@ export class K8 {
         errPassthroughStream,
         null,
         false,
-        ({ status }) => self.handleCallback(status, localContext, reject, messagePrefix))
+        ({ status }) => self.handleCallback(status, localContext, messagePrefix))
         .then(conn => {
           self.logger.debug(`${messagePrefix} connection established`)
           localContext.connection = conn
 
-          self.registerConnectionOnError(localContext, reject, messagePrefix, conn)
+          self.registerConnectionOnError(localContext, messagePrefix, conn)
 
           self.registerConnectionOnMessage(localContext, messagePrefix, conn, timeoutMs)
 
           conn.on('close', (code, reason) => {
             self.logger.debug(`${messagePrefix} connection closed`)
-            if (code !== 1000) { // code 1000 is the success code
-              self.exitWithError(localContext.timeoutId, reject, `${messagePrefix} failed with code=${code}, reason=${reason}`)
-            }
+            if (!localContext.errorMessage) {
+              if (code !== 1000) { // code 1000 is the success code
+                return self.exitWithError(localContext, `${messagePrefix} failed with code=${code}, reason=${reason}`)
+              }
 
-            outputFileStream.end()
-            outputFileStream.close(() => {
-              self.logger.debug(`${messagePrefix} finished`)
-              const outData = fs.readFileSync(tmpFile)
-              clearTimeout(localContext.timeoutId)
-              resolve(outData.toString())
-            })
+              outputFileStream.end()
+              outputFileStream.close(() => {
+                self.logger.debug(`${messagePrefix} finished`)
+                const outData = fs.readFileSync(tmpFile)
+                clearTimeout(localContext.timeoutId)
+                return resolve(outData.toString())
+              })
+            }
           })
         })
 
-      self.registerStreamOnData(localContext, reject, messagePrefix, errPassthroughStream)
+      self.registerStreamOnData(localContext, messagePrefix, errPassthroughStream)
 
-      self.registerStreamOnError(localContext, reject, messagePrefix, outputFileStream)
+      self.registerStreamOnError(localContext, messagePrefix, outputFileStream)
     })
   }
 
