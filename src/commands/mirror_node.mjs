@@ -52,24 +52,60 @@ export class MirrorNodeCommand extends BaseCommand {
     return [
       flags.chartDirectory,
       flags.deployHederaExplorer,
+      flags.enableHederaExplorerTls,
       flags.fstChartVersion,
+      flags.hederaExplorerTlsHostName,
+      flags.hederaExplorerTlsLoadBalancerIp,
       flags.namespace,
       flags.profileFile,
       flags.profileName,
+      flags.tlsClusterIssuerType,
       flags.valuesFile
     ]
   }
 
   /**
-   * @param {string} valuesFile
-   * @param {boolean} deployHederaExplorer
+   * @param {string} tlsClusterIssuerType
+   * @param {boolean} enableHederaExplorerTls
+   * @param {string} namespace
+   * @param {string} hederaExplorerTlsLoadBalancerIp
+   * @param {string} hederaExplorerTlsHostName
+   * @returns {string}
+   */
+  getTlsValueArguments (tlsClusterIssuerType, enableHederaExplorerTls, namespace, hederaExplorerTlsLoadBalancerIp, hederaExplorerTlsHostName) {
+    let valuesArg = ''
+
+    if (enableHederaExplorerTls) {
+      if (!['acme-staging', 'acme-prod', 'self-signed'].includes(tlsClusterIssuerType)) {
+        throw new Error(`Invalid TLS cluster issuer type: ${tlsClusterIssuerType}, must be one of: "acme-staging", "acme-prod", or "self-signed"`)
+      }
+
+      valuesArg += ' --set hedera-explorer.ingress.enabled=true'
+      valuesArg += ' --set cloud.haproxyIngressController.enabled=true'
+      valuesArg += ` --set global.ingressClassName=${namespace}-hedera-explorer-ingress-class`
+      valuesArg += ` --set-json 'hedera-explorer.ingress.hosts[0]={"host":"${hederaExplorerTlsHostName}","paths":[{"path":"/","pathType":"Prefix"}]}'`
+
+      if (hederaExplorerTlsLoadBalancerIp !== '') {
+        valuesArg += ` --set haproxy-ingress.controller.service.loadBalancerIP=${hederaExplorerTlsLoadBalancerIp}`
+      }
+
+      if (tlsClusterIssuerType === 'self-signed') {
+        valuesArg += ' --set cloud.selfSignedClusterIssuer.enabled=true'
+      } else {
+        valuesArg += ' --set cloud.acmeClusterIssuer.enabled=true'
+        valuesArg += ` --set hedera-explorer.certClusterIssuerType=${tlsClusterIssuerType}`
+      }
+    }
+
+    return valuesArg
+  }
+
+  /**
+   * @param {Object} config
    * @returns {Promise<string>}
    */
-  async prepareValuesArg (valuesFile, deployHederaExplorer) {
+  async prepareValuesArg (config) {
     let valuesArg = ''
-    if (valuesFile) {
-      valuesArg += this.prepareValuesFiles(valuesFile)
-    }
 
     const profileName = this.configManager.getFlag(flags.profileName)
     const profileValuesFile = await this.profileManager.prepareValuesForMirrorNodeChart(profileName)
@@ -77,7 +113,17 @@ export class MirrorNodeCommand extends BaseCommand {
       valuesArg += this.prepareValuesFiles(profileValuesFile)
     }
 
-    valuesArg += ` --set hedera-mirror-node.enabled=true --set hedera-explorer.enabled=${deployHederaExplorer}`
+    if (config.enableHederaExplorerTls) {
+      valuesArg += this.getTlsValueArguments(config.tlsClusterIssuerType, config.enableHederaExplorerTls, config.namespace,
+        config.hederaExplorerTlsLoadBalancerIp, config.hederaExplorerTlsHostName)
+    }
+
+    valuesArg += ` --set hedera-mirror-node.enabled=true --set hedera-explorer.enabled=${config.deployHederaExplorer}`
+
+    if (config.valuesFile) {
+      valuesArg += this.prepareValuesFiles(config.valuesFile)
+    }
+
     return valuesArg
   }
 
@@ -97,7 +143,12 @@ export class MirrorNodeCommand extends BaseCommand {
           // disable the prompts that we don't want to prompt the user for
           prompts.disablePrompts([
             flags.chartDirectory,
+            flags.deployHederaExplorer,
+            flags.enableHederaExplorerTls,
             flags.fstChartVersion,
+            flags.hederaExplorerTlsHostName,
+            flags.hederaExplorerTlsLoadBalancerIp,
+            flags.tlsClusterIssuerType,
             flags.valuesFile
           ])
 
@@ -108,10 +159,14 @@ export class MirrorNodeCommand extends BaseCommand {
            * -- flags --
            * @property {string} chartDirectory
            * @property {boolean} deployHederaExplorer
+           * @property {string} enableHederaExplorerTls
            * @property {string} fstChartVersion
+           * @property {string} hederaExplorerTlsHostName
+           * @property {string} hederaExplorerTlsLoadBalancerIp
            * @property {string} namespace
            * @property {string} profileFile
            * @property {string} profileName
+           * @property {string} tlsClusterIssuerType
            * @property {string} valuesFile
            * -- extra args --
            * @property {string} chartPath
@@ -130,10 +185,7 @@ export class MirrorNodeCommand extends BaseCommand {
           ctx.config.chartPath = await self.prepareChartPath(ctx.config.chartDirectory,
             constants.FULLSTACK_TESTING_CHART, constants.FULLSTACK_DEPLOYMENT_CHART)
 
-          ctx.config.valuesArg = await self.prepareValuesArg(
-            ctx.config.valuesFile,
-            ctx.config.deployHederaExplorer
-          )
+          ctx.config.valuesArg = await self.prepareValuesArg(ctx.config)
 
           if (!await self.k8.hasNamespace(ctx.config.namespace)) {
             throw new FullstackTestingError(`namespace ${ctx.config.namespace} does not exist`)
@@ -397,7 +449,7 @@ export class MirrorNodeCommand extends BaseCommand {
     }
     return {
       command: 'mirror-node',
-      desc: 'Manage Hedera Mirror Node in fullstack testing network',
+      desc: 'Manage Hedera Mirror Node in solo network',
       builder: yargs => {
         return yargs
           .command({
