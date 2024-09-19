@@ -16,7 +16,7 @@
  */
 import { ListrEnquirerPromptAdapter } from '@listr2/prompt-adapter-enquirer'
 import { Listr } from 'listr2'
-import { FullstackTestingError, IllegalArgumentError, MissingArgumentError } from '../core/errors.mjs'
+import { SoloError, IllegalArgumentError, MissingArgumentError } from '../core/errors.mjs'
 import { constants } from '../core/index.mjs'
 import { BaseCommand } from './base.mjs'
 import * as flags from './flags.mjs'
@@ -136,7 +136,7 @@ export class MirrorNodeCommand extends BaseCommand {
           )
 
           if (!await self.k8.hasNamespace(ctx.config.namespace)) {
-            throw new FullstackTestingError(`namespace ${ctx.config.namespace} does not exist`)
+            throw new SoloError(`namespace ${ctx.config.namespace} does not exist`)
           }
 
           await self.accountManager.loadNodeClient(ctx.config.namespace)
@@ -252,7 +252,7 @@ export class MirrorNodeCommand extends BaseCommand {
 
                 const pods = await this.k8.getPodsByLabel(['app.kubernetes.io/name=postgres'])
                 if (pods.length === 0) {
-                  throw new FullstackTestingError('postgres pod not found')
+                  throw new SoloError('postgres pod not found')
                 }
                 const postgresPodName = pods[0].metadata.name
                 const postgresContainerName = 'postgresql'
@@ -287,7 +287,7 @@ export class MirrorNodeCommand extends BaseCommand {
       await tasks.run()
       self.logger.debug('node start has completed')
     } catch (e) {
-      throw new FullstackTestingError(`Error starting node: ${e.message}`, e)
+      throw new SoloError(`Error starting node: ${e.message}`, e)
     } finally {
       await self.accountManager.close()
     }
@@ -335,7 +335,7 @@ export class MirrorNodeCommand extends BaseCommand {
           ctx.config.valuesArg = ' --set hedera-mirror-node.enabled=false --set hedera-explorer.enabled=false'
 
           if (!await self.k8.hasNamespace(ctx.config.namespace)) {
-            throw new FullstackTestingError(`namespace ${ctx.config.namespace} does not exist`)
+            throw new SoloError(`namespace ${ctx.config.namespace} does not exist`)
           }
 
           await self.accountManager.loadNodeClient(ctx.config.namespace)
@@ -378,7 +378,7 @@ export class MirrorNodeCommand extends BaseCommand {
       await tasks.run()
       self.logger.debug('node start has completed')
     } catch (e) {
-      throw new FullstackTestingError(`Error starting node: ${e.message}`, e)
+      throw new SoloError(`Error starting node: ${e.message}`, e)
     } finally {
       await self.accountManager.close()
     }

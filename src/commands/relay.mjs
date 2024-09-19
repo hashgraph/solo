@@ -16,7 +16,7 @@
  */
 'use strict'
 import { Listr } from 'listr2'
-import { FullstackTestingError, MissingArgumentError } from '../core/errors.mjs'
+import { SoloError, MissingArgumentError } from '../core/errors.mjs'
 import * as helpers from '../core/helpers.mjs'
 import { constants } from '../core/index.mjs'
 import { BaseCommand } from './base.mjs'
@@ -266,7 +266,7 @@ export class RelayCommand extends BaseCommand {
               `app.kubernetes.io/instance=${config.releaseName}`
             ], 1, 100, 2000)
           } catch (e) {
-            throw new FullstackTestingError(`Relay ${config.releaseName} is not ready: ${e.message}`, e)
+            throw new SoloError(`Relay ${config.releaseName} is not ready: ${e.message}`, e)
           }
         }
       }
@@ -278,7 +278,7 @@ export class RelayCommand extends BaseCommand {
     try {
       await tasks.run()
     } catch (e) {
-      throw new FullstackTestingError('Error installing relays', e)
+      throw new SoloError('Error installing relays', e)
     }
 
     return true
@@ -341,7 +341,7 @@ export class RelayCommand extends BaseCommand {
     try {
       await tasks.run()
     } catch (e) {
-      throw new FullstackTestingError('Error uninstalling relays', e)
+      throw new SoloError('Error uninstalling relays', e)
     }
 
     return true
