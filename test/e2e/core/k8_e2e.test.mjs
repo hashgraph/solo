@@ -130,6 +130,10 @@ describe('K8', () => {
     await expect(k8.deleteNamespace(name)).resolves.toBeTruthy()
   }, defaultTimeout)
 
+  it('delete namespace should succeed if namespace does not exist', async () => {
+    await expect(k8.deleteNamespace(uuid4())).resolves.toBeTruthy()
+  })
+
   it('should be able to run wait for pod', async () => {
     const labels = [`app=${podLabelValue}`]
 
@@ -243,6 +247,12 @@ describe('K8', () => {
     const podName = pods[0].metadata.name
     const output = await k8.execContainer(podName, containerName, ['cat', '/etc/hostname'])
     expect(output.indexOf(podName)).toEqual(0)
+  }, defaultTimeout)
+
+  it('should be able to get an error for cat a file that does not exist', async () => {
+    const pods = await k8.getPodsByLabel([`app=${podLabelValue}`])
+    const podName = pods[0].metadata.name
+    await expect(k8.execContainer(podName, containerName, ['cat', '/z/z_hostname'])).rejects.toThrowError()
   }, defaultTimeout)
 
   it('should be able to list persistent volume claims', async () => {

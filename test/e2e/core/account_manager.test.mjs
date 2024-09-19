@@ -31,6 +31,7 @@ describe('AccountManager', () => {
   argv[flags.fstChartVersion.name] = version.FST_CHART_VERSION
   argv[flags.generateGossipKeys.name] = true
   argv[flags.generateTlsKeys.name] = true
+  argv[flags.hederaImage.name] = false
   // set the env variable SOLO_FST_CHARTS_DIR if developer wants to use local FST charts
   argv[flags.chartDirectory.name] = process.env.SOLO_FST_CHARTS_DIR ? process.env.SOLO_FST_CHARTS_DIR : undefined
   const bootstrapResp = bootstrapNetwork(namespace, argv, undefined, undefined, undefined, undefined, undefined, undefined, false)

@@ -49,6 +49,8 @@ export const HEDERA_NODE_ACCOUNT_ID_START = AccountId.fromString(process.env.SOL
 export const HEDERA_NODE_INTERNAL_GOSSIP_PORT = process.env.SOLO_NODE_INTERNAL_GOSSIP_PORT || '50111'
 export const HEDERA_NODE_EXTERNAL_GOSSIP_PORT = process.env.SOLO_NODE_EXTERNAL_GOSSIP_PORT || '50111'
 export const HEDERA_NODE_DEFAULT_STAKE_AMOUNT = process.env.SOLO_NODE_DEFAULT_STAKE_AMOUNT || 500
+export const HEDERA_IMAGE_REGISTRY = process.env.HEDERA_IMAGE_REGISTRY || 'gcr.io'
+export const HEDERA_IMAGE_REPOSITORY = process.env.HEDERA_IMAGE_REPOSITORY || 'hedera-registry/consensus-node'
 
 // --------------- Charts related constants ----------------------------------------------------------------------------
 export const FULLSTACK_SETUP_NAMESPACE = 'fullstack-setup'

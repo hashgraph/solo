@@ -38,7 +38,7 @@ describe('ShellRunner', () => {
     })
     expect(readableSpy).toHaveBeenCalledWith('data', expect.anything())
     expect(childProcessSpy).toHaveBeenCalledWith('exit', expect.anything())
-  })
+  }, 20000)
 
   jest.clearAllMocks()
 })

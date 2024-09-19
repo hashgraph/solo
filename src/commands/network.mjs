@@ -31,7 +31,8 @@ import fs from 'fs'
 export class NetworkCommand extends BaseCommand {
   /**
    * @param {{profileManager: ProfileManager, logger: Logger, helm: Helm, k8: K8, chartManager: ChartManager,
-   * configManager: ConfigManager, depManager: DependencyManager, downloader: PackageDownloader}} opts
+   * configManager: ConfigManager, depManager: DependencyManager, downloader: PackageDownloader, keyManager: KeyManager,
+   * platformInstaller: PlatformInstaller}} opts
    */
   constructor (opts) {
     super(opts)
@@ -67,9 +68,10 @@ export class NetworkCommand extends BaseCommand {
       flags.cacheDir,
       flags.chainId,
       flags.chartDirectory,
+      flags.debugNodeId,
       flags.enablePrometheusSvcMonitor,
       flags.fstChartVersion,
-      flags.debugNodeId,
+      flags.hederaImage,
       flags.log4j2Xml,
       flags.namespace,
       flags.nodeIDs,
@@ -114,8 +116,14 @@ export class NetworkCommand extends BaseCommand {
     valuesArg += ` --set "telemetry.prometheus.svcMonitor.enabled=${config.enablePrometheusSvcMonitor}"`
 
     if (config.releaseTag) {
-      const rootImage = helpers.getRootImageRepository(config.releaseTag)
-      valuesArg += ` --set "defaults.root.image.repository=${rootImage}"`
+      if (config.hederaImage) {
+        valuesArg += ` --set "defaults.root.image.registry=${constants.HEDERA_IMAGE_REGISTRY}"`
+        valuesArg += ` --set "defaults.root.image.repository=${constants.HEDERA_IMAGE_REPOSITORY}"`
+        valuesArg += ` --set "defaults.root.image.tag=${helpers.getHederaImageTag(config.releaseTag)}"`
+      } else {
+        const rootImage = helpers.getRootImageRepository(config.releaseTag)
+        valuesArg += ` --set "defaults.root.image.repository=${rootImage}"`
+      }
     }
 
     valuesArg += ` --set "defaults.volumeClaims.enabled=${config.persistentVolumeClaims}"`
@@ -147,6 +155,7 @@ export class NetworkCommand extends BaseCommand {
       flags.cacheDir,
       flags.chainId,
       flags.debugNodeId,
+      flags.hederaImage,
       flags.log4j2Xml,
       flags.persistentVolumeClaims,
       flags.profileName,
@@ -164,6 +173,7 @@ export class NetworkCommand extends BaseCommand {
      * @property {string} chartDirectory
      * @property {boolean} enablePrometheusSvcMonitor
      * @property {string} fstChartVersion
+     * @property {boolean} hederaImage
      * @property {string} namespace
      * @property {string} nodeIDs
      * @property {string} persistentVolumeClaims

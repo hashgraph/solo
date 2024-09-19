@@ -13,11 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
- * @jest-environment steps
  */
-import { testNodeAdd } from '../test_add.mjs'
 
-describe('Node add with hedera local build', () => {
-  const localBuildPath = 'node1=../hedera-services/hedera-node/data/,../hedera-services/hedera-node/data,node3=../hedera-services/hedera-node/data'
-  testNodeAdd(localBuildPath, 'local', false)
+import { testRelay } from '../testRelay.mjs'
+
+describe('test relay for hedera deterministic image', () => {
+  testRelay('image', true)
 })

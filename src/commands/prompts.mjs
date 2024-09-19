@@ -421,6 +421,13 @@ export async function promptPersistentVolumeClaims (task, input) {
     flags.persistentVolumeClaims.name)
 }
 
+export async function promptHederaImage (task, input) {
+  return await promptToggle(task, input,
+    flags.hederaImage.definition.defaultValue,
+    'Would you like to use the published Hedera Docker container image? ',
+    null,
+    flags.hederaImage.name)
+}
 /**
  * @returns {Map<string, Function>}
  */
@@ -446,6 +453,7 @@ export function getPromptMap () {
     .set(flags.generateGossipKeys.name, promptGenerateGossipKeys)
     .set(flags.generateTlsKeys.name, promptGenerateTLSKeys)
     .set(flags.hederaExplorerTlsHostName.name, promptHederaExplorerTlsHostName)
+    .set(flags.hederaImage.name, promptHederaImage)
     .set(flags.namespace.name, promptNamespace)
     .set(flags.nodeIDs.name, promptNodeIds)
     .set(flags.operatorId.name, promptOperatorId)

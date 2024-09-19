@@ -15,9 +15,10 @@
  *
  * @jest-environment steps
  */
-import { testNodeAdd } from '../test_add.mjs'
 
-describe('Node add with hedera local build', () => {
-  const localBuildPath = 'node1=../hedera-services/hedera-node/data/,../hedera-services/hedera-node/data,node3=../hedera-services/hedera-node/data'
-  testNodeAdd(localBuildPath, 'local', false)
+import { describe } from '@jest/globals'
+import { e2eNodeKeyRefreshTest } from '../test_node_pem.js'
+
+describe('NodeCommand', () => {
+  e2eNodeKeyRefreshTest('node-cmd-e2e-pem-build', 'kill', false)
 })

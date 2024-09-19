@@ -15,7 +15,6 @@
  *
  * @jest-environment steps
  */
-import { afterAll, describe, expect, it } from '@jest/globals'
 import {
   accountCreationShouldSucceed,
   balanceQueryShouldSucceed,
@@ -24,18 +23,18 @@ import {
   getNodeIdsPrivateKeysHash,
   getTmpDir,
   HEDERA_PLATFORM_VERSION_TAG
-} from './test_util.js'
-import { flags } from '../src/commands/index.mjs'
-import { getNodeLogs } from '../src/core/helpers.mjs'
-import { NodeCommand } from '../src/commands/node.mjs'
+} from '../test_util.js'
+import { flags } from '../../src/commands/index.mjs'
+import { getNodeLogs } from '../../src/core/helpers.mjs'
+import { NodeCommand } from '../../src/commands/node.mjs'
 
-export function testNodeAdd (localBuildPath
-) {
-  describe('Node add should success', () => {
+export function testNodeAdd (localBuildPath, namespacePostfix = '', hederaImage = false) {
+  describe(`Node add should succeed [namespacePostfix: ${namespacePostfix}, hederaImage: ${hederaImage}]`, () => {
     const suffix = localBuildPath.substring(0, 5)
     const defaultTimeout = 120000
-    const namespace = 'node-add' + suffix
+    const namespace = `node-add${suffix ? '-' : ''}${suffix}${namespacePostfix ? '-' : ''}${namespacePostfix}`
     const argv = getDefaultArgv()
+    argv[flags.hederaImage.name] = hederaImage
     argv[flags.nodeIDs.name] = 'node1,node2,node3'
     argv[flags.generateGossipKeys.name] = true
     argv[flags.generateTlsKeys.name] = true
@@ -75,12 +74,16 @@ export function testNodeAdd (localBuildPath
 
     it('should add a new node to the network successfully', async () => {
       await nodeCmd.add(argv)
-      expect(nodeCmd.getUnusedConfigs(NodeCommand.ADD_CONFIGS_NAME)).toEqual([
+      const expectedUnusedConfigs = [
         flags.app.constName,
         flags.chainId.constName,
-        flags.devMode.constName,
-        flags.adminKey.constName
-      ])
+        flags.devMode.constName
+      ]
+      if (bootstrapResp.opts.configManager.getFlag(flags.hederaImage)) {
+        expectedUnusedConfigs.push(flags.localBuildPath.constName)
+      }
+      expectedUnusedConfigs.push(flags.adminKey.constName)
+      expect(nodeCmd.getUnusedConfigs(NodeCommand.ADD_CONFIGS_NAME)).toEqual(expectedUnusedConfigs)
       await nodeCmd.accountManager.close()
     }, 800000)
 

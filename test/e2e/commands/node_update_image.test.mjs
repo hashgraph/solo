@@ -15,9 +15,8 @@
  *
  * @jest-environment steps
  */
-import { testNodeAdd } from '../test_add.mjs'
+import { testNodeUpdate } from '../test_node_update.mjs'
 
-describe('Node add with hedera local build', () => {
-  const localBuildPath = 'node1=../hedera-services/hedera-node/data/,../hedera-services/hedera-node/data,node3=../hedera-services/hedera-node/data'
-  testNodeAdd(localBuildPath, 'local', false)
+describe('Node update with hedera deterministic image', () => {
+  testNodeUpdate('image', true)
 })
