@@ -462,7 +462,7 @@ export class AccountCommand extends BaseCommand {
     }
     return {
       command: 'account',
-      desc: 'Manage Hedera accounts in fullstack testing network',
+      desc: 'Manage Hedera accounts in solo network',
       builder: yargs => {
         return yargs
           .command({
