@@ -1639,23 +1639,21 @@ export class NodeCommand extends BaseCommand {
         self.configManager.update(argv)
 
         // disable the prompts that we don't want to prompt the user for
-        if (NodeCommand.ADD_FLAGS_LIST.includes(flags.quiet)) {
-          prompts.disablePrompts([
-            flags.adminKey,
-            flags.app,
-            flags.chainId,
-            flags.chartDirectory,
-            flags.outputDir,
-            flags.devMode,
-            flags.debugNodeId,
-            flags.endpointType,
-            flags.force,
-            flags.fstChartVersion,
-            flags.localBuildPath,
-            flags.gossipEndpoints,
-            flags.grpcEndpoints
-          ])
-        }
+        prompts.disablePrompts([
+          flags.adminKey,
+          flags.app,
+          flags.chainId,
+          flags.chartDirectory,
+          flags.outputDir,
+          flags.devMode,
+          flags.debugNodeId,
+          flags.endpointType,
+          flags.force,
+          flags.fstChartVersion,
+          flags.localBuildPath,
+          flags.gossipEndpoints,
+          flags.grpcEndpoints
+        ])
 
         if (!NodeCommand.ADD_FLAGS_LIST.includes(flags.quiet)) {
           await prompts.execute(task, self.configManager, NodeCommand.ADD_FLAGS_LIST)
