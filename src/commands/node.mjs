@@ -877,7 +877,7 @@ export class NodeCommand extends BaseCommand {
               'data/config'))
           }
           await self.k8.copyTo(podName, constants.ROOT_CONTAINER, localDataLibBuildPath,
-              `${constants.HEDERA_HAPI_PATH}`, filterFunction)
+              `${constants.HEDERA_HAPI_PATH}`, filterFunction, 60_000)
           const testJsonFiles = self.configManager.getFlag(flags.appConfig).split(',')
           for (const jsonFile of testJsonFiles) {
             if (fs.existsSync(jsonFile)) {
@@ -2147,7 +2147,7 @@ export class NodeCommand extends BaseCommand {
               const savedStateDir = (config.lastStateZipPath.match(/\/(\d+)\.zip$/))[1]
               const savedStatePath = `${constants.HEDERA_HAPI_PATH}/data/saved/com.hedera.services.ServicesMain/${nodeNumber}/123/${savedStateDir}`
               await self.k8.execContainer(newNodeFullyQualifiedPodName, constants.ROOT_CONTAINER, ['bash', '-c', `mkdir -p ${savedStatePath}`])
-              await self.k8.copyTo(newNodeFullyQualifiedPodName, constants.ROOT_CONTAINER, config.lastStateZipPath, savedStatePath)
+              await self.k8.copyTo(newNodeFullyQualifiedPodName, constants.ROOT_CONTAINER, config.lastStateZipPath, savedStatePath, undefined, 60_000)
               await self.platformInstaller.setPathPermission(newNodeFullyQualifiedPodName, constants.HEDERA_HAPI_PATH)
               await self.k8.execContainer(newNodeFullyQualifiedPodName, constants.ROOT_CONTAINER, ['bash', '-c', `cd ${savedStatePath} && jar xf ${path.basename(config.lastStateZipPath)} && rm -f ${path.basename(config.lastStateZipPath)}`])
             }
