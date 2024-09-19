@@ -421,6 +421,14 @@ export async function promptPersistentVolumeClaims (task, input) {
     flags.persistentVolumeClaims.name)
 }
 
+export async function promptMirrorNodeVersion (task, input) {
+  return await promptToggle(task, input,
+    flags.mirrorNodeVersion.definition.defaultValue,
+    'Would you like to choose mirror node version? ',
+    null,
+    flags.mirrorNodeVersion.name)
+}
+
 /**
  * @returns {Map<string, Function>}
  */
@@ -464,6 +472,7 @@ export function getPromptMap () {
     .set(flags.gossipEndpoints.name, promptGossipEndpoints)
     .set(flags.grpcEndpoints.name, promptGrpcEndpoints)
     .set(flags.endpointType.name, promptEndpointType)
+    .set(flags.mirrorNodeVersion.name, promptMirrorNodeVersion)
 }
 
 // build the prompt registry

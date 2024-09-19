@@ -60,7 +60,8 @@ export class MirrorNodeCommand extends BaseCommand {
       flags.profileFile,
       flags.profileName,
       flags.tlsClusterIssuerType,
-      flags.valuesFile
+      flags.valuesFile,
+      flags.mirrorNodeVersion
     ]
   }
 
@@ -121,6 +122,10 @@ export class MirrorNodeCommand extends BaseCommand {
         config.hederaExplorerTlsLoadBalancerIp, config.hederaExplorerTlsHostName)
     }
 
+    if (config.mirrorNodeVersion) {
+      valuesArg += ` --set global.image.tag=${config.mirrorNodeVersion}`
+    }
+
     valuesArg += ` --set hedera-mirror-node.enabled=true --set hedera-explorer.enabled=${config.deployHederaExplorer}`
     return valuesArg
   }
@@ -147,7 +152,8 @@ export class MirrorNodeCommand extends BaseCommand {
             flags.hederaExplorerTlsHostName,
             flags.hederaExplorerTlsLoadBalancerIp,
             flags.tlsClusterIssuerType,
-            flags.valuesFile
+            flags.valuesFile,
+            flags.mirrorNodeVersion
           ])
 
           await prompts.execute(task, self.configManager, MirrorNodeCommand.DEPLOY_FLAGS_LIST)
@@ -169,6 +175,7 @@ export class MirrorNodeCommand extends BaseCommand {
            * -- extra args --
            * @property {string} chartPath
            * @property {string} valuesArg
+           * @property {string} mirrorNodeVersion
            * -- methods --
            * @property {getUnusedConfigs} getUnusedConfigs
            */

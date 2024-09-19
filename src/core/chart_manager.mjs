@@ -39,26 +39,34 @@ export class ChartManager {
    *
    * @param {Map<string, string>} repoURLs - a map of name and chart repository URLs
    * @param {boolean} force - whether or not to update the repo
-   * @returns {Promise<string[]>}
+   * @returns {Promise<string[]>} - returns the urls
    */
   async setup (repoURLs = constants.DEFAULT_CHART_REPO, force = true) {
     try {
-      let forceUpdateArg = ''
-      if (force) {
-        forceUpdateArg = '--force-update'
-      }
+      const forceUpdateArg = force ? '--force-update' : ''
 
-      const urls = []
+      /** @type {Array<Promise<string>>} */
+      const promises = []
       for (const [name, url] of repoURLs.entries()) {
-        this.logger.debug(`Adding repo ${name} -> ${url}`, { repoName: name, repoURL: url })
-        await this.helm.repo('add', name, url, forceUpdateArg)
-        urls.push(url)
+        promises.push(this.addRepo(name, url, forceUpdateArg))
       }
 
-      return urls
+      return await Promise.all(promises) // urls
     } catch (e) {
       throw new FullstackTestingError(`failed to setup chart repositories: ${e.message}`, e)
     }
+  }
+
+  /**
+   * @param {string} name
+   * @param {string} url
+   * @param {string} forceUpdateArg
+   * @returns {Promise<string>}
+   */
+  async addRepo (name, url, forceUpdateArg) {
+    this.logger.debug(`Adding repo ${name} -> ${url}`, { repoName: name, repoURL: url })
+    await this.helm.repo('add', name, url, forceUpdateArg)
+    return url
   }
 
   /**
