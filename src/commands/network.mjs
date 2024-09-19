@@ -92,10 +92,6 @@ export class NetworkCommand extends BaseCommand {
       valuesArg = `-f ${path.join(config.chartDirectory, 'fullstack-deployment', 'values.yaml')}`
     }
 
-    if (config.valuesFile) {
-      valuesArg += this.prepareValuesFiles(config.valuesFile)
-    }
-
     if (config.app !== constants.HEDERA_APP_NAME) {
       const index = config.nodeIds.length
       for (let i = 0; i < index; i++) {
@@ -123,6 +119,10 @@ export class NetworkCommand extends BaseCommand {
     }
 
     valuesArg += ` --set "defaults.volumeClaims.enabled=${config.persistentVolumeClaims}"`
+
+    if (config.valuesFile) {
+      valuesArg += this.prepareValuesFiles(config.valuesFile)
+    }
 
     this.logger.debug('Prepared helm chart values', { valuesArg })
     return valuesArg
