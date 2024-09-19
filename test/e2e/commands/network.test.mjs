@@ -104,15 +104,10 @@ describe('NetworkCommand', () => {
         flags.applicationProperties.constName,
         flags.bootstrapProperties.constName,
         flags.chainId.constName,
-        flags.deployHederaExplorer.constName,
-        flags.deployMirrorNode.constName,
-        flags.hederaExplorerTlsHostName.constName,
-        flags.hederaExplorerTlsLoadBalancerIp.constName,
         flags.log4j2Xml.constName,
         flags.profileFile.constName,
         flags.profileName.constName,
-        flags.settingTxt.constName,
-        flags.tlsClusterIssuerType.constName
+        flags.settingTxt.constName
       ])
     } catch (e) {
       networkCmd.logger.showUserError(e)

@@ -67,13 +67,8 @@ export class NetworkCommand extends BaseCommand {
       flags.cacheDir,
       flags.chainId,
       flags.chartDirectory,
-      flags.deployHederaExplorer,
-      flags.deployMirrorNode,
-      flags.enableHederaExplorerTls,
       flags.enablePrometheusSvcMonitor,
       flags.fstChartVersion,
-      flags.hederaExplorerTlsHostName,
-      flags.hederaExplorerTlsLoadBalancerIp,
       flags.debugNodeId,
       flags.log4j2Xml,
       flags.namespace,
@@ -84,46 +79,8 @@ export class NetworkCommand extends BaseCommand {
       flags.quiet,
       flags.releaseTag,
       flags.settingTxt,
-      flags.tlsClusterIssuerType,
       flags.valuesFile
     ]
-  }
-
-  /**
-   * @param {string} tlsClusterIssuerType
-   * @param {boolean} enableHederaExplorerTls
-   * @param {string} namespace
-   * @param {string} hederaExplorerTlsLoadBalancerIp
-   * @param {string} hederaExplorerTlsHostName
-   * @returns {string}
-   */
-  getTlsValueArguments (tlsClusterIssuerType, enableHederaExplorerTls, namespace,
-    hederaExplorerTlsLoadBalancerIp, hederaExplorerTlsHostName) {
-    let valuesArg = ''
-
-    if (enableHederaExplorerTls) {
-      if (!['acme-staging', 'acme-prod', 'self-signed'].includes(tlsClusterIssuerType)) {
-        throw new Error(`Invalid TLS cluster issuer type: ${tlsClusterIssuerType}, must be one of: "acme-staging", "acme-prod", or "self-signed"`)
-      }
-
-      valuesArg += ' --set hedera-explorer.ingress.enabled=true'
-      valuesArg += ' --set cloud.haproxyIngressController.enabled=true'
-      valuesArg += ` --set global.ingressClassName=${namespace}-hedera-explorer-ingress-class`
-      valuesArg += ` --set-json 'hedera-explorer.ingress.hosts[0]={"host":"${hederaExplorerTlsHostName}","paths":[{"path":"/","pathType":"Prefix"}]}'`
-
-      if (hederaExplorerTlsLoadBalancerIp !== '') {
-        valuesArg += ` --set haproxy-ingress.controller.service.loadBalancerIP=${hederaExplorerTlsLoadBalancerIp}`
-      }
-
-      if (tlsClusterIssuerType === 'self-signed') {
-        valuesArg += ' --set cloud.selfSignedClusterIssuer.enabled=true'
-      } else {
-        valuesArg += ' --set cloud.acmeClusterIssuer.enabled=true'
-        valuesArg += ` --set hedera-explorer.certClusterIssuerType=${tlsClusterIssuerType}`
-      }
-    }
-
-    return valuesArg
   }
 
   /**
@@ -134,10 +91,6 @@ export class NetworkCommand extends BaseCommand {
     let valuesArg = ''
     if (config.chartDirectory) {
       valuesArg = `-f ${path.join(config.chartDirectory, 'fullstack-deployment', 'values.yaml')}`
-    }
-
-    if (config.valuesFile) {
-      valuesArg += this.prepareValuesFiles(config.valuesFile)
     }
 
     if (config.app !== constants.HEDERA_APP_NAME) {
@@ -161,17 +114,16 @@ export class NetworkCommand extends BaseCommand {
     valuesArg += ' --set "hedera-mirror-node.enabled=false" --set "hedera-explorer.enabled=false"'
     valuesArg += ` --set "telemetry.prometheus.svcMonitor.enabled=${config.enablePrometheusSvcMonitor}"`
 
-    if (config.enableHederaExplorerTls) {
-      valuesArg += this.getTlsValueArguments(config.tlsClusterIssuerType, config.enableHederaExplorerTls, config.namespace,
-        config.hederaExplorerTlsLoadBalancerIp, config.hederaExplorerTlsHostName)
-    }
-
     if (config.releaseTag) {
       const rootImage = helpers.getRootImageRepository(config.releaseTag)
       valuesArg += ` --set "defaults.root.image.repository=${rootImage}"`
     }
 
     valuesArg += ` --set "defaults.volumeClaims.enabled=${config.persistentVolumeClaims}"`
+
+    if (config.valuesFile) {
+      valuesArg += this.prepareValuesFiles(config.valuesFile)
+    }
 
     this.logger.debug('Prepared helm chart values', { valuesArg })
     return valuesArg
@@ -196,9 +148,6 @@ export class NetworkCommand extends BaseCommand {
       flags.cacheDir,
       flags.chainId,
       flags.debugNodeId,
-      flags.deployHederaExplorer,
-      flags.deployMirrorNode,
-      flags.hederaExplorerTlsLoadBalancerIp,
       flags.log4j2Xml,
       flags.persistentVolumeClaims,
       flags.profileName,
@@ -216,20 +165,14 @@ export class NetworkCommand extends BaseCommand {
      * @property {string} applicationEnv
      * @property {string} cacheDir
      * @property {string} chartDirectory
-     * @property {boolean} deployHederaExplorer
-     * @property {boolean} deployMirrorNode
-     * @property {boolean} enableHederaExplorerTls
      * @property {boolean} enablePrometheusSvcMonitor
      * @property {string} fstChartVersion
-     * @property {string} hederaExplorerTlsHostName
-     * @property {string} hederaExplorerTlsLoadBalancerIp
      * @property {string} namespace
      * @property {string} nodeIDs
      * @property {string} persistentVolumeClaims
      * @property {string} profileFile
      * @property {string} profileName
      * @property {string} releaseTag
-     * @property {string} tlsClusterIssuerType
      * -- extra args --
      * @property {string} chartPath
      * @property {string} keysDir
@@ -616,12 +559,12 @@ export class NetworkCommand extends BaseCommand {
     }
     return {
       command: 'network',
-      desc: 'Manage fullstack testing network deployment',
+      desc: 'Manage solo network deployment',
       builder: yargs => {
         return yargs
           .command({
             command: 'deploy',
-            desc: 'Deploy fullstack testing network',
+            desc: 'Deploy solo network',
             builder: y => flags.setCommandFlags(y, ...NetworkCommand.DEPLOY_FLAGS_LIST),
             handler: argv => {
               networkCmd.logger.debug('==== Running \'network deploy\' ===')
@@ -639,7 +582,7 @@ export class NetworkCommand extends BaseCommand {
           })
           .command({
             command: 'destroy',
-            desc: 'Destroy fullstack testing network',
+            desc: 'Destroy solo network',
             builder: y => flags.setCommandFlags(y,
               flags.deletePvcs,
               flags.deleteSecrets,
@@ -662,7 +605,7 @@ export class NetworkCommand extends BaseCommand {
           })
           .command({
             command: 'refresh',
-            desc: 'Refresh fullstack testing network deployment',
+            desc: 'Refresh solo network deployment',
             builder: y => flags.setCommandFlags(y, ...NetworkCommand.DEPLOY_FLAGS_LIST),
             handler: argv => {
               networkCmd.logger.debug('==== Running \'chart upgrade\' ===')

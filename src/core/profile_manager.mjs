@@ -447,16 +447,13 @@ export class ProfileManager {
    * @param {string} releaseTag - release tag e.g. v0.42.0
    * @param {string} [appName] - the app name (default: HederaNode.jar)
    * @param {string} [chainId] - chain ID (298 for local network)
-   * @param {string} [template] - path to the config.template file
    * @returns {string} the config.txt file path
    */
-  prepareConfigTxt (namespace, nodeAccountMap, destPath, releaseTag, appName = constants.HEDERA_APP_NAME, chainId = constants.HEDERA_CHAIN_ID, template = path.join(constants.RESOURCES_DIR, 'templates', 'config.template')) {
+  prepareConfigTxt (namespace, nodeAccountMap, destPath, releaseTag, appName = constants.HEDERA_APP_NAME, chainId = constants.HEDERA_CHAIN_ID) {
     if (!nodeAccountMap || nodeAccountMap.size === 0) throw new MissingArgumentError('nodeAccountMap the map of node IDs to account IDs is required')
-    if (!template) throw new MissingArgumentError('config templatePath is required')
     if (!releaseTag) throw new MissingArgumentError('release tag is required')
 
     if (!fs.existsSync(destPath)) throw new IllegalArgumentError(`config destPath does not exist: ${destPath}`, destPath)
-    if (!fs.existsSync(template)) throw new IllegalArgumentError(`config templatePath does not exist: ${template}`, template)
 
     // init variables
     const internalPort = constants.HEDERA_NODE_INTERNAL_GOSSIP_PORT
@@ -467,7 +464,7 @@ export class ProfileManager {
 
     try {
       /** @type {string[]} */
-      const configLines = fs.readFileSync(template, 'utf-8').split('\n')
+      const configLines = []
       configLines.push(`swirld, ${chainId}`)
       configLines.push(`app, ${appName}`)
 

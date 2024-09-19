@@ -96,18 +96,6 @@ export const namespace = {
 }
 
 /** @type {CommandFlag} **/
-export const deployMirrorNode = {
-  constName: 'deployMirrorNode',
-  name: 'mirror-node',
-  definition: {
-    describe: 'Deploy mirror node',
-    defaultValue: true,
-    alias: 'm',
-    type: 'boolean'
-  }
-}
-
-/** @type {CommandFlag} **/
 export const deployHederaExplorer = {
   constName: 'deployHederaExplorer',
   name: 'hedera-explorer',
@@ -801,7 +789,6 @@ export const allFlags = [
   deployHederaExplorer,
   deployJsonRpcRelay,
   deployMinio,
-  deployMirrorNode,
   deployPrometheusStack,
   devMode,
   ecdsaPrivateKey,
