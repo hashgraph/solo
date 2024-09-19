@@ -60,101 +60,191 @@ on:
         type: string
         required: false
         default: "e2e-standard"
-      e2e-mirror-node-test-subdir:
-        description: "E2E Mirror Node Test Subdirectory:"
+      e2e-mirror-node-build-test-subdir:
+        description: "E2E Mirror Node Build Test Subdirectory:"
         type: string
         required: false
-        default: "e2e-mirror-node"
+        default: "e2e-mirror-node-build"
+      e2e-mirror-node-image-test-subdir:
+        description: "E2E Mirror Node Image Test Subdirectory:"
+        type: string
+        required: false
+        default: "e2e-mirror-node-image"
       e2e-node-pem-stop-test-subdir:
         description: "E2E Node PEM Stop Test Subdirectory:"
         type: string
         required: false
         default: "e2e-node-pem-stop"
-      e2e-node-pem-kill-test-subdir:
-        description: "E2E Node PEM Kill Test Subdirectory:"
+      e2e-node-pem-kill-build-test-subdir:
+        description: "E2E Node PEM Kill Build Test Subdirectory:"
         type: string
         required: false
-        default: "e2e-node-pem-kill"
-      e2e-node-local-build-test-subdir:
-        description: "E2E Node Local Build Test Subdirectory:"
+        default: "e2e-node-pem-kill-build"
+      e2e-node-pem-kill-image-test-subdir:
+        description: "E2E Node PEM Kill Image Test Subdirectory:"
         type: string
         required: false
-        default: "e2e-node-local-build"
-      e2e-node-add-test-subdir:
-        description: "E2E Node Add Test Subdirectory:"
+        default: "e2e-node-pem-kill-image"
+      e2e-node-local-hedera-test-subdir:
+        description: "E2E Node Local Hedera Test Subdirectory:"
         type: string
         required: false
-        default: "e2e-node-add"
-      e2e-node-add-separate-commands-test-subdir:
-        description: "E2E Node Add - Separate commands Test Subdirectory:"
+        default: "e2e-node-local-hedera"
+      e2e-node-local-ptt-test-subdir:
+        description: "E2E Node Local PTT Test Subdirectory:"
         type: string
         required: false
-        default: "e2e-node-add-separate-commands"
-      e2e-node-update-test-subdir:
-        description: "E2E Node Update Test Subdirectory:"
+        default: "e2e-node-local-ptt"
+      e2e-node-add-build-test-subdir:
+        description: "E2E Node Add Build Test Subdirectory:"
         type: string
         required: false
-        default: "e2e-node-update"
-      e2e-node-delete-test-subdir:
-        description: "E2E Node Delete Test Subdirectory:"
+        default: "e2e-node-add-build"
+      e2e-node-add-image-test-subdir:
+        description: "E2E Node Add Image Test Subdirectory:"
         type: string
         required: false
-        default: "e2e-node-delete"
-      e2e-relay-test-subdir:
-        description: "E2E Relay Test Subdirectory:"
+        default: "e2e-node-add-image"
+      e2e-node-add-local-test-subdir:
+        description: "E2E Node Add Local Test Subdirectory:"
         type: string
         required: false
-        default: "e2e-relay"
+        default: "e2e-node-add-local"
+      e2e-node-add-build-separate-commands-test-subdir:
+        description: "E2E Node Add Build - Separate commands Test Subdirectory:"
+        type: string
+        required: false
+        default: "e2e-node-add-build-separate-commands"
+      e2e-node-add-image-separate-commands-test-subdir:
+        description: "E2E Node Add Image - Separate commands Test Subdirectory:"
+        type: string
+        required: false
+        default: "e2e-node-add-image-separate-commands"
+      e2e-node-update-build-test-subdir:
+        description: "E2E Node Update Build Test Subdirectory:"
+        type: string
+        required: false
+        default: "e2e-node-update-build"
+      e2e-node-update-image-test-subdir:
+        description: "E2E Node Update Image Test Subdirectory:"
+        type: string
+        required: false
+        default: "e2e-node-update-image"
+      e2e-node-delete-build-test-subdir:
+        description: "E2E Node Delete Build Test Subdirectory:"
+        type: string
+        required: false
+        default: "e2e-node-delete-build"
+      e2e-node-delete-image-test-subdir:
+        description: "E2E Node Delete Image Test Subdirectory:"
+        type: string
+        required: false
+        default: "e2e-node-delete-image"
+      e2e-relay-build-test-subdir:
+        description: "E2E Relay Build Test Subdirectory:"
+        type: string
+        required: false
+        default: "e2e-relay-build"
+      e2e-relay-image-test-subdir:
+        description: "E2E Relay Image Test Subdirectory:"
+        type: string
+        required: false
+        default: "e2e-relay-image"
       e2e-standard-coverage-report:
         description: "E2E Standard Coverage Report:"
         type: string
         required: false
         default: "E2E Standard Tests Coverage Report"
-      e2e-mirror-node-coverage-report:
-        description: "E2E Mirror Node Coverage Report:"
+      e2e-mirror-node-build-coverage-report:
+        description: "E2E Mirror Node Build Coverage Report:"
         type: string
         required: false
-        default: "E2E Mirror Node Tests Coverage Report"
+        default: "E2E Mirror Node Build Tests Coverage Report"
+      e2e-mirror-node-image-coverage-report:
+        description: "E2E Mirror Node Image Coverage Report:"
+        type: string
+        required: false
+        default: "E2E Mirror Node Image Tests Coverage Report"
       e2e-node-pem-stop-coverage-report:
         description: "E2E Node PEM Stop Coverage Report:"
         type: string
         required: false
         default: "E2E Node PEM Stop Tests Coverage Report"
-      e2e-node-pem-kill-coverage-report:
-        description: "E2E Node PEM Kill Coverage Report:"
+      e2e-node-pem-kill-build-coverage-report:
+        description: "E2E Node PEM Kill Build Coverage Report:"
         type: string
         required: false
-        default: "E2E Node PEM Kill Tests Coverage Report"
-      e2e-node-local-build-coverage-report:
-        description: "E2E Node Local Build Coverage Report:"
+        default: "E2E Node PEM Kill Build Tests Coverage Report"
+      e2e-node-pem-kill-image-coverage-report:
+        description: "E2E Node PEM Kill Image Coverage Report:"
         type: string
         required: false
-        default: "E2E Node Local Build Tests Coverage Report"
-      e2e-node-add-coverage-report:
-        description: "E2E Node Add Coverage Report:"
+        default: "E2E Node PEM Kill Image Tests Coverage Report"
+      e2e-node-local-hedera-coverage-report:
+        description: "E2E Node Local Hedera Coverage Report:"
         type: string
         required: false
-        default: "E2E Node Add Tests Coverage Report"
-      e2e-node-add-separate-commands-coverage-report:
-        description: "E2E Node Add - Separate commands Coverage Report:"
+        default: "E2E Node Local Hedera Tests Coverage Report"
+      e2e-node-local-ptt-coverage-report:
+        description: "E2E Node Local PTT Coverage Report:"
         type: string
         required: false
-        default: "E2E Node Add - Separate commands Tests Coverage Report"
-      e2e-node-update-coverage-report:
-        description: "E2E Node Update Coverage Report:"
+        default: "E2E Node Local PTT Tests Coverage Report"
+      e2e-node-add-build-coverage-report:
+        description: "E2E Node Add Build Coverage Report:"
         type: string
         required: false
-        default: "E2E Node Update Tests Coverage Report"
-      e2e-node-delete-coverage-report:
-        description: "E2E Node Delete Coverage Report:"
+        default: "E2E Node Add Build Tests Coverage Report"
+      e2e-node-add-image-coverage-report:
+        description: "E2E Node Add Image Coverage Report:"
         type: string
         required: false
-        default: "E2E Node Delete Tests Coverage Report"
-      e2e-relay-coverage-report:
-        description: "E2E Relay Coverage Report:"
+        default: "E2E Node Add Image Tests Coverage Report"
+      e2e-node-add-local-coverage-report:
+        description: "E2E Node Add Local Coverage Report:"
         type: string
         required: false
-        default: "E2E Relay Tests Coverage Report"
+        default: "E2E Node Add Local Tests Coverage Report"
+      e2e-node-add-build-separate-commands-coverage-report:
+        description: "E2E Node Add Build - Separate commands Coverage Report:"
+        type: string
+        required: false
+        default: "E2E Node Add Build - Separate commands Tests Coverage Report"
+      e2e-node-add-image-separate-commands-coverage-report:
+        description: "E2E Node Add Image - Separate commands Coverage Report:"
+        type: string
+        required: false
+        default: "E2E Node Add Image - Separate commands Tests Coverage Report"
+      e2e-node-update-build-coverage-report:
+        description: "E2E Node Update Build Coverage Report:"
+        type: string
+        required: false
+        default: "E2E Node Update Build Tests Coverage Report"
+      e2e-node-update-image-coverage-report:
+        description: "E2E Node Update Image Coverage Report:"
+        type: string
+        required: false
+        default: "E2E Node Update Image Tests Coverage Report"
+      e2e-node-delete-build-coverage-report:
+        description: "E2E Node Delete Build Coverage Report:"
+        type: string
+        required: false
+        default: "E2E Node Delete Build Tests Coverage Report"
+      e2e-node-delete-image-coverage-report:
+        description: "E2E Node Delete Image Coverage Report:"
+        type: string
+        required: false
+        default: "E2E Node Delete Image Tests Coverage Report"
+      e2e-relay-build-coverage-report:
+        description: "E2E Relay Build Coverage Report:"
+        type: string
+        required: false
+        default: "E2E Relay Build Tests Coverage Report"
+      e2e-relay-image-coverage-report:
+        description: "E2E Relay Image Coverage Report:"
+        type: string
+        required: false
+        default: "E2E Relay Image Tests Coverage Report"
     secrets:
       snyk-token:
         description: "The Snyk access token is used by Snyk to analyze the code for vulnerabilities "
@@ -212,12 +302,19 @@ jobs:
           name: ${{ inputs.e2e-standard-coverage-report }}
           path: 'coverage/${{ inputs.e2e-standard-test-subdir }}'
 
-      - name: Download E2E Mirror Node Coverage Report
+      - name: Download E2E Mirror Node Build Coverage Report
         uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
         if: ${{ (inputs.enable-codecov-analysis || inputs.enable-codacy-coverage) && inputs.enable-e2e-coverage-report && !cancelled() && !failure() }}
         with:
-          name: ${{ inputs.e2e-mirror-node-coverage-report }}
-          path: 'coverage/${{ inputs.e2e-mirror-node-test-subdir }}'
+          name: ${{ inputs.e2e-mirror-node-build-coverage-report }}
+          path: 'coverage/${{ inputs.e2e-mirror-node-build-test-subdir }}'
+
+      - name: Download E2E Mirror Node Image Coverage Report
+        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
+        if: ${{ (inputs.enable-codecov-analysis || inputs.enable-codacy-coverage) && inputs.enable-e2e-coverage-report && !cancelled() && !failure() }}
+        with:
+          name: ${{ inputs.e2e-mirror-node-image-coverage-report }}
+          path: 'coverage/${{ inputs.e2e-mirror-node-image-test-subdir }}'
 
       - name: Download E2E Node PEM Stop Coverage Report
         uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
@@ -226,54 +323,110 @@ jobs:
           name: ${{ inputs.e2e-node-pem-stop-coverage-report }}
           path: 'coverage/${{ inputs.e2e-node-pem-stop-test-subdir }}'
 
-      - name: Download E2E Node PEM Kill Coverage Report
+      - name: Download E2E Node PEM Kill Build Coverage Report
         uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
         if: ${{ (inputs.enable-codecov-analysis || inputs.enable-codacy-coverage) && inputs.enable-e2e-coverage-report && !cancelled() && !failure() }}
         with:
-          name: ${{ inputs.e2e-node-pem-kill-coverage-report }}
-          path: 'coverage/${{ inputs.e2e-node-pem-kill-test-subdir }}'
+          name: ${{ inputs.e2e-node-pem-kill-build-coverage-report }}
+          path: 'coverage/${{ inputs.e2e-node-pem-kill-build-test-subdir }}'
 
-      - name: Download E2E Node Local Build Coverage Report
+      - name: Download E2E Node PEM Kill Image Coverage Report
         uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
         if: ${{ (inputs.enable-codecov-analysis || inputs.enable-codacy-coverage) && inputs.enable-e2e-coverage-report && !cancelled() && !failure() }}
         with:
-          name: ${{ inputs.e2e-node-local-build-coverage-report }}
-          path: 'coverage/${{ inputs.e2e-node-local-build-test-subdir }}'
+          name: ${{ inputs.e2e-node-pem-kill-image-coverage-report }}
+          path: 'coverage/${{ inputs.e2e-node-pem-kill-image-test-subdir }}'
 
-      - name: Download E2E Node Add Coverage Report
+      - name: Download E2E Node Local Hedera Coverage Report
         uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
         if: ${{ (inputs.enable-codecov-analysis || inputs.enable-codacy-coverage) && inputs.enable-e2e-coverage-report && !cancelled() && !failure() }}
         with:
-          name: ${{ inputs.e2e-node-add-coverage-report }}
-          path: 'coverage/${{ inputs.e2e-node-add-test-subdir }}'
+          name: ${{ inputs.e2e-node-local-hedera-coverage-report }}
+          path: 'coverage/${{ inputs.e2e-node-local-hedera-test-subdir }}'
 
-      - name: Download E2E Node Add - Separate commands Coverage Report
+      - name: Download E2E Node Local PTT Coverage Report
         uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
         if: ${{ (inputs.enable-codecov-analysis || inputs.enable-codacy-coverage) && inputs.enable-e2e-coverage-report && !cancelled() && !failure() }}
         with:
-          name: ${{ inputs.e2e-node-add-separate-commands-coverage-report }}
-          path: 'coverage/${{ inputs.e2e-node-add-separate-commands-test-subdir }}'
+          name: ${{ inputs.e2e-node-local-ptt-coverage-report }}
+          path: 'coverage/${{ inputs.e2e-node-local-ptt-test-subdir }}'
 
-      - name: Download E2E Node Update Coverage Report
+      - name: Download E2E Node Add Build Coverage Report
         uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
         if: ${{ (inputs.enable-codecov-analysis || inputs.enable-codacy-coverage) && inputs.enable-e2e-coverage-report && !cancelled() && !failure() }}
         with:
-          name: ${{ inputs.e2e-node-update-coverage-report }}
-          path: 'coverage/${{ inputs.e2e-node-update-test-subdir }}'
+          name: ${{ inputs.e2e-node-add-build-coverage-report }}
+          path: 'coverage/${{ inputs.e2e-node-add-build-test-subdir }}'
 
-      - name: Download E2E Node Delete Coverage Report
+      - name: Download E2E Node Add Image Coverage Report
         uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
         if: ${{ (inputs.enable-codecov-analysis || inputs.enable-codacy-coverage) && inputs.enable-e2e-coverage-report && !cancelled() && !failure() }}
         with:
-          name: ${{ inputs.e2e-node-delete-coverage-report }}
-          path: 'coverage/${{ inputs.e2e-node-delete-test-subdir }}'
+          name: ${{ inputs.e2e-node-add-image-coverage-report }}
+          path: 'coverage/${{ inputs.e2e-node-add-image-test-subdir }}'
 
-      - name: Download E2E Relay Coverage Report
+      - name: Download E2E Node Add Local Coverage Report
         uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
         if: ${{ (inputs.enable-codecov-analysis || inputs.enable-codacy-coverage) && inputs.enable-e2e-coverage-report && !cancelled() && !failure() }}
         with:
-          name: ${{ inputs.e2e-relay-coverage-report }}
-          path: 'coverage/${{ inputs.e2e-relay-test-subdir }}'
+          name: ${{ inputs.e2e-node-add-local-coverage-report }}
+          path: 'coverage/${{ inputs.e2e-node-add-local-test-subdir }}'
+
+      - name: Download E2E Node Add Build - Separate commands Coverage Report
+        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
+        if: ${{ (inputs.enable-codecov-analysis || inputs.enable-codacy-coverage) && inputs.enable-e2e-coverage-report && !cancelled() && !failure() }}
+        with:
+          name: ${{ inputs.e2e-node-add-build-separate-commands-coverage-report }}
+          path: 'coverage/${{ inputs.e2e-node-add-build-separate-commands-test-subdir }}'
+
+      - name: Download E2E Node Add Image - Separate commands Coverage Report
+        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
+        if: ${{ (inputs.enable-codecov-analysis || inputs.enable-codacy-coverage) && inputs.enable-e2e-coverage-report && !cancelled() && !failure() }}
+        with:
+          name: ${{ inputs.e2e-node-add-image-separate-commands-coverage-report }}
+          path: 'coverage/${{ inputs.e2e-node-add-image-separate-commands-test-subdir }}'
+
+      - name: Download E2E Node Update Build Coverage Report
+        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
+        if: ${{ (inputs.enable-codecov-analysis || inputs.enable-codacy-coverage) && inputs.enable-e2e-coverage-report && !cancelled() && !failure() }}
+        with:
+          name: ${{ inputs.e2e-node-update-build-coverage-report }}
+          path: 'coverage/${{ inputs.e2e-node-update-build-test-subdir }}'
+
+      - name: Download E2E Node Update Image Coverage Report
+        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
+        if: ${{ (inputs.enable-codecov-analysis || inputs.enable-codacy-coverage) && inputs.enable-e2e-coverage-report && !cancelled() && !failure() }}
+        with:
+          name: ${{ inputs.e2e-node-update-image-coverage-report }}
+          path: 'coverage/${{ inputs.e2e-node-update-image-test-subdir }}'
+
+      - name: Download E2E Node Delete Build Coverage Report
+        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
+        if: ${{ (inputs.enable-codecov-analysis || inputs.enable-codacy-coverage) && inputs.enable-e2e-coverage-report && !cancelled() && !failure() }}
+        with:
+          name: ${{ inputs.e2e-node-delete-build-coverage-report }}
+          path: 'coverage/${{ inputs.e2e-node-delete-build-test-subdir }}'
+
+      - name: Download E2E Node Delete Image Coverage Report
+        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
+        if: ${{ (inputs.enable-codecov-analysis || inputs.enable-codacy-coverage) && inputs.enable-e2e-coverage-report && !cancelled() && !failure() }}
+        with:
+          name: ${{ inputs.e2e-node-delete-image-coverage-report }}
+          path: 'coverage/${{ inputs.e2e-node-delete-image-test-subdir }}'
+
+      - name: Download E2E Relay Build Coverage Report
+        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
+        if: ${{ (inputs.enable-codecov-analysis || inputs.enable-codacy-coverage) && inputs.enable-e2e-coverage-report && !cancelled() && !failure() }}
+        with:
+          name: ${{ inputs.e2e-relay-build-coverage-report }}
+          path: 'coverage/${{ inputs.e2e-relay-build-test-subdir }}'
+
+      - name: Download E2E Relay Image Coverage Report
+        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
+        if: ${{ (inputs.enable-codecov-analysis || inputs.enable-codacy-coverage) && inputs.enable-e2e-coverage-report && !cancelled() && !failure() }}
+        with:
+          name: ${{ inputs.e2e-relay-image-coverage-report }}
+          path: 'coverage/${{ inputs.e2e-relay-image-test-subdir }}'
 
       - name: Download E2E Test Report
         uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8

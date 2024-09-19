@@ -96,9 +96,10 @@ export class PlatformInstaller {
    * Fetch and extract platform code into the container
    * @param {string} podName
    * @param {string} tag - platform release tag
+   * @param {number} [retries] - the number of retries allowed for the exec container commands
    * @returns {Promise<boolean>}
    */
-  async fetchPlatform (podName, tag) {
+  async fetchPlatform (podName, tag, retries) {
     if (!podName) throw new MissingArgumentError('podName is required')
     if (!tag) throw new MissingArgumentError('tag is required')
 
@@ -231,12 +232,12 @@ export class PlatformInstaller {
 
     const recursiveFlag = recursive ? '-R' : ''
     try {
-      await this.k8.execContainer(podName, container, `chown ${recursiveFlag} hedera:hedera ${destPath}`)
+      await this.k8.execContainer(podName, container, `chown ${recursiveFlag} -f hedera:hedera ${destPath}`)
     } catch (e) {
       // ignore error, can't change settings on files that come from configMaps or secrets
     }
     try {
-      await this.k8.execContainer(podName, container, `chmod ${recursiveFlag} ${mode} ${destPath}`)
+      await this.k8.execContainer(podName, container, `chmod ${recursiveFlag} -f ${mode} ${destPath}`)
     } catch (e) {
       // ignore error, can't change settings on files that come from configMaps or secrets
     }

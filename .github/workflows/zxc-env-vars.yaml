@@ -29,63 +29,117 @@ on:
       e2e-standard-test-subdir:
         description: "E2E Standard Test Subdirectory"
         value: ${{ jobs.env-vars.outputs.e2e_standard_test_subdir }}
-      e2e-mirror-node-test-subdir:
-        description: "E2E Mirror Node Test Subdirectory"
-        value: ${{ jobs.env-vars.outputs.e2e_mirror_node_test_subdir }}
+      e2e-mirror-node-build-test-subdir:
+        description: "E2E Mirror Node Build Test Subdirectory"
+        value: ${{ jobs.env-vars.outputs.e2e_mirror_node_build_test_subdir }}
+      e2e-mirror-node-image-test-subdir:
+        description: "E2E Mirror Node Image Test Subdirectory"
+        value: ${{ jobs.env-vars.outputs.e2e_mirror_node_image_test_subdir }}
       e2e-node-pem-stop-test-subdir:
         description: "E2E Node PEM Stop Test Subdirectory"
         value: ${{ jobs.env-vars.outputs.e2e_node_pem_stop_test_subdir }}
-      e2e-node-pem-kill-test-subdir:
-        description: "E2E Node PEM Kill Test Subdirectory"
-        value: ${{ jobs.env-vars.outputs.e2e_node_pem_kill_test_subdir }}
-      e2e-node-local-build-test-subdir:
-        description: "E2E Node Local Build Test Subdirectory"
-        value: ${{ jobs.env-vars.outputs.e2e_node_local_build_test_subdir }}
-      e2e-node-add-test-subdir:
-        description: "E2E Node Add Test Subdirectory"
-        value: ${{ jobs.env-vars.outputs.e2e_node_add_test_subdir }}
-      e2e-node-add-separate-commands-test-subdir:
-        description: "E2E Node Add - Separate commands Test Subdirectory"
-        value: ${{ jobs.env-vars.outputs.e2e_node_add_separate_commands_test_subdir }}
-      e2e-node-update-test-subdir:
-        description: "E2E Node Update Test Subdirectory"
-        value: ${{ jobs.env-vars.outputs.e2e_node_update_test_subdir }}
-      e2e-node-delete-test-subdir:
-        description: "E2E Node Delete Test Subdirectory"
-        value: ${{ jobs.env-vars.outputs.e2e_node_delete_test_subdir }}
-      e2e-relay-test-subdir:
-        description: "E2E Relay Test Subdirectory"
-        value: ${{ jobs.env-vars.outputs.e2e_relay_test_subdir }}
+      e2e-node-pem-kill-build-test-subdir:
+        description: "E2E Node PEM Kill Build Test Subdirectory"
+        value: ${{ jobs.env-vars.outputs.e2e_node_pem_kill_build_test_subdir }}
+      e2e-node-pem-kill-image-test-subdir:
+        description: "E2E Node PEM Kill Image Test Subdirectory"
+        value: ${{ jobs.env-vars.outputs.e2e_node_pem_kill_image_test_subdir }}
+      e2e-node-local-hedera-test-subdir:
+        description: "E2E Node Local Hedera Test Subdirectory"
+        value: ${{ jobs.env-vars.outputs.e2e_node_local_hedera_test_subdir }}
+      e2e-node-local-ptt-test-subdir:
+        description: "E2E Node Local PTT Test Subdirectory"
+        value: ${{ jobs.env-vars.outputs.e2e_node_local_ptt_test_subdir }}
+      e2e-node-add-build-test-subdir:
+        description: "E2E Node Add Build Test Subdirectory"
+        value: ${{ jobs.env-vars.outputs.e2e_node_add_build_test_subdir }}
+      e2e-node-add-image-test-subdir:
+        description: "E2E Node Add Image Test Subdirectory"
+        value: ${{ jobs.env-vars.outputs.e2e_node_add_image_test_subdir }}
+      e2e-node-add-local-test-subdir:
+        description: "E2E Node Add Local Test Subdirectory"
+        value: ${{ jobs.env-vars.outputs.e2e_node_add_local_test_subdir }}
+      e2e-node-add-build-separate-commands-test-subdir:
+        description: "E2E Node Add Build - Separate commands Test Subdirectory"
+        value: ${{ jobs.env-vars.outputs.e2e_node_add_build_separate_commands_test_subdir }}
+      e2e-node-add-image-separate-commands-test-subdir:
+        description: "E2E Node Add Image - Separate commands Test Subdirectory"
+        value: ${{ jobs.env-vars.outputs.e2e_node_add_image_separate_commands_test_subdir }}
+      e2e-node-update-build-test-subdir:
+        description: "E2E Node Update Build Test Subdirectory"
+        value: ${{ jobs.env-vars.outputs.e2e_node_update_build_test_subdir }}
+      e2e-node-update-image-test-subdir:
+        description: "E2E Node Update Image Test Subdirectory"
+        value: ${{ jobs.env-vars.outputs.e2e_node_update_image_test_subdir }}
+      e2e-node-delete-build-test-subdir:
+        description: "E2E Node Delete Build Test Subdirectory"
+        value: ${{ jobs.env-vars.outputs.e2e_node_delete_build_test_subdir }}
+      e2e-node-delete-image-test-subdir:
+        description: "E2E Node Delete Image Test Subdirectory"
+        value: ${{ jobs.env-vars.outputs.e2e_node_delete_image_test_subdir }}
+      e2e-relay-build-test-subdir:
+        description: "E2E Relay Build Test Subdirectory"
+        value: ${{ jobs.env-vars.outputs.e2e_relay_build_test_subdir }}
+      e2e-relay-image-test-subdir:
+        description: "E2E Relay Image Test Subdirectory"
+        value: ${{ jobs.env-vars.outputs.e2e_relay_image_test_subdir }}
       e2e-standard-coverage-report:
         description: "E2E Standard Tests Coverage Report"
         value: ${{ jobs.env-vars.outputs.e2e_standard_coverage_report }}
-      e2e-mirror-node-coverage-report:
-        description: "E2E Mirror Node Tests Coverage Report"
-        value: ${{ jobs.env-vars.outputs.e2e_mirror_node_coverage_report }}
+      e2e-mirror-node-build-coverage-report:
+        description: "E2E Mirror Node Build Tests Coverage Report"
+        value: ${{ jobs.env-vars.outputs.e2e_mirror_node_build_coverage_report }}
+      e2e-mirror-node-image-coverage-report:
+        description: "E2E Mirror Node Image Tests Coverage Report"
+        value: ${{ jobs.env-vars.outputs.e2e_mirror_node_image_coverage_report }}
       e2e-node-pem-stop-coverage-report:
         description: "E2E Node PEM Stop Tests Coverage Report"
         value: ${{ jobs.env-vars.outputs.e2e_node_pem_stop_coverage_report }}
-      e2e-node-pem-kill-coverage-report:
-        description: "E2E Node PEM Kill Tests Coverage Report"
-        value: ${{ jobs.env-vars.outputs.e2e_node_pem_kill_coverage_report }}
-      e2e-node-local-build-coverage-report:
-        description: "E2E Node Local Build Tests Coverage Report"
-        value: ${{ jobs.env-vars.outputs.e2e_node_local_build_coverage_report }}
-      e2e-node-add-coverage-report:
-        description: "E2E Node Add Tests Coverage Report"
-        value: ${{ jobs.env-vars.outputs.e2e_node_add_coverage_report }}
-      e2e-node-add-separate-commands-coverage-report:
-        description: "E2E Node Add - Separate commands Tests Coverage Report"
-        value: ${{ jobs.env-vars.outputs.e2e_node_add_separate_commands_coverage_report }}
-      e2e-node-update-coverage-report:
-        description: "E2E Node Update Tests Coverage Report"
-        value: ${{ jobs.env-vars.outputs.e2e_node_update_coverage_report }}
-      e2e-node-delete-coverage-report:
-        description: "E2E Node Delete Tests Coverage Report"
-        value: ${{ jobs.env-vars.outputs.e2e_node_delete_coverage_report }}
-      e2e-relay-coverage-report:
-        description: "E2E Relay Tests Coverage Report"
-        value: ${{ jobs.env-vars.outputs.e2e_relay_coverage_report }}
+      e2e-node-pem-kill-build-coverage-report:
+        description: "E2E Node PEM Kill Build Tests Coverage Report"
+        value: ${{ jobs.env-vars.outputs.e2e_node_pem_kill_build_coverage_report }}
+      e2e-node-pem-kill-image-coverage-report:
+        description: "E2E Node PEM Kill Image Tests Coverage Report"
+        value: ${{ jobs.env-vars.outputs.e2e_node_pem_kill_image_coverage_report }}
+      e2e-node-local-hedera-coverage-report:
+        description: "E2E Node Local Hedera Tests Coverage Report"
+        value: ${{ jobs.env-vars.outputs.e2e_node_local_hedera_coverage_report }}
+      e2e-node-local-ptt-coverage-report:
+        description: "E2E Node Local PTT Tests Coverage Report"
+        value: ${{ jobs.env-vars.outputs.e2e_node_local_ptt_coverage_report }}
+      e2e-node-add-build-coverage-report:
+        description: "E2E Node Add Build Tests Coverage Report"
+        value: ${{ jobs.env-vars.outputs.e2e_node_add_build_coverage_report }}
+      e2e-node-add-image-coverage-report:
+        description: "E2E Node Add Image Tests Coverage Report"
+        value: ${{ jobs.env-vars.outputs.e2e_node_add_image_coverage_report }}
+      e2e-node-add-local-coverage-report:
+        description: "E2E Node Add Local Tests Coverage Report"
+        value: ${{ jobs.env-vars.outputs.e2e_node_add_local_coverage_report }}
+      e2e-node-add-build-separate-commands-coverage-report:
+        description: "E2E Node Add Build - Separate commands Tests Coverage Report"
+        value: ${{ jobs.env-vars.outputs.e2e_node_add_build_separate_commands_coverage_report }}
+      e2e-node-add-image-separate-commands-coverage-report:
+        description: "E2E Node Add Image - Separate commands Tests Coverage Report"
+        value: ${{ jobs.env-vars.outputs.e2e_node_add_image_separate_commands_coverage_report }}
+      e2e-node-update-build-coverage-report:
+        description: "E2E Node Update Build Tests Coverage Report"
+        value: ${{ jobs.env-vars.outputs.e2e_node_update_build_coverage_report }}
+      e2e-node-update-image-coverage-report:
+        description: "E2E Node Update Image Tests Coverage Report"
+        value: ${{ jobs.env-vars.outputs.e2e_node_update_image_coverage_report }}
+      e2e-node-delete-build-coverage-report:
+        description: "E2E Node Delete Build Tests Coverage Report"
+        value: ${{ jobs.env-vars.outputs.e2e_node_delete_build_coverage_report }}
+      e2e-node-delete-image-coverage-report:
+        description: "E2E Node Delete Image Tests Coverage Report"
+        value: ${{ jobs.env-vars.outputs.e2e_node_delete_image_coverage_report }}
+      e2e-relay-build-coverage-report:
+        description: "E2E Relay Build Tests Coverage Report"
+        value: ${{ jobs.env-vars.outputs.e2e_relay_build_coverage_report }}
+      e2e-relay-image-coverage-report:
+        description: "E2E Relay Image Tests Coverage Report"
+        value: ${{ jobs.env-vars.outputs.e2e_relay_image_coverage_report }}
 
 defaults:
   run:
@@ -97,24 +151,42 @@ jobs:
     runs-on: solo-linux-medium
     outputs:
       e2e_standard_test_subdir: e2e-standard
-      e2e_mirror_node_test_subdir: e2e-mirror-node
+      e2e_mirror_node_build_test_subdir: e2e-mirror-node-build
+      e2e_mirror_node_image_test_subdir: e2e-mirror-node-image
       e2e_node_pem_stop_test_subdir: e2e-node-pem-stop
-      e2e_node_pem_kill_test_subdir: e2e-node-pem-kill
-      e2e_node_local_build_test_subdir: e2e-node-local-build
-      e2e_node_add_test_subdir: e2e-node-add
-      e2e_node_add_separate_commands_test_subdir: e2e-node-add-separate-commands
-      e2e_node_update_test_subdir: e2e-node-update
-      e2e_node_delete_test_subdir: e2e-node-delete
-      e2e_relay_test_subdir: e2e-relay
+      e2e_node_pem_kill_build_test_subdir: e2e-node-pem-kill-build
+      e2e_node_pem_kill_image_test_subdir: e2e-node-pem-kill-image
+      e2e_node_local_hedera_test_subdir: e2e-node-local-hedera
+      e2e_node_local_ptt_test_subdir: e2e-node-local-ptt
+      e2e_node_add_build_test_subdir: e2e-node-add-build
+      e2e_node_add_image_test_subdir: e2e-node-add-image
+      e2e_node_add_local_test_subdir: e2e-node-add-local
+      e2e_node_add_build_separate_commands_test_subdir: e2e-node-add-build-separate-commands
+      e2e_node_add_image_separate_commands_test_subdir: e2e-node-add-image-separate-commands
+      e2e_node_update_build_test_subdir: e2e-node-update-build
+      e2e_node_update_image_test_subdir: e2e-node-update-image
+      e2e_node_delete_build_test_subdir: e2e-node-delete-build
+      e2e_node_delete_image_test_subdir: e2e-node-delete-image
+      e2e_relay_build_test_subdir: e2e-relay-build
+      e2e_relay_image_test_subdir: e2e-relay-image
       e2e_standard_coverage_report: "E2E Standard Tests Coverage Report"
-      e2e_mirror_node_coverage_report: "E2E Mirror Node Tests Coverage Report"
+      e2e_mirror_node_build_coverage_report: "E2E Mirror Node Build Tests Coverage Report"
+      e2e_mirror_node_image_coverage_report: "E2E Mirror Node Image Tests Coverage Report"
       e2e_node_pem_stop_coverage_report: "E2E Node PEM Stop Tests Coverage Report"
-      e2e_node_pem_kill_coverage_report: "E2E Node PEM Kill Tests Coverage Report"
-      e2e_node_local_build_coverage_report: "E2E Node Local Build Tests Coverage Report"
-      e2e_node_add_coverage_report: "E2E Node Add Tests Coverage Report"
-      e2e_node_add_separate_commands_coverage_report: "E2E Node Add - Separate commands Tests Coverage Report"
-      e2e_node_update_coverage_report: "E2E Node Update Tests Coverage Report"
-      e2e_node_delete_coverage_report: "E2E Node Delete Tests Coverage Report"
-      e2e_relay_coverage_report: "E2E Relay Tests Coverage Report"
+      e2e_node_pem_kill_build_coverage_report: "E2E Node PEM Kill Build Tests Coverage Report"
+      e2e_node_pem_kill_image_coverage_report: "E2E Node PEM Kill Image Tests Coverage Report"
+      e2e_node_local_hedera_coverage_report: "E2E Node Local Hedera Tests Coverage Report"
+      e2e_node_local_ptt_coverage_report: "E2E Node Local PTT Tests Coverage Report"
+      e2e_node_add_build_coverage_report: "E2E Node Add Build Tests Coverage Report"
+      e2e_node_add_image_coverage_report: "E2E Node Add Image Tests Coverage Report"
+      e2e_node_add_local_coverage_report: "E2E Node Add Local Tests Coverage Report"
+      e2e_node_add_build_separate_commands_coverage_report: "E2E Node Add Build - Separate commands Tests Coverage Report"
+      e2e_node_add_image_separate_commands_coverage_report: "E2E Node Add Image - Separate commands Tests Coverage Report"
+      e2e_node_update_build_coverage_report: "E2E Node Update Build Tests Coverage Report"
+      e2e_node_update_image_coverage_report: "E2E Node Update Image Tests Coverage Report"
+      e2e_node_delete_build_coverage_report: "E2E Node Delete Build Tests Coverage Report"
+      e2e_node_delete_image_coverage_report: "E2E Node Delete Image Tests Coverage Report"
+      e2e_relay_build_coverage_report: "E2E Relay Build Tests Coverage Report"
+      e2e_relay_image_coverage_report: "E2E Relay Image Tests Coverage Report"
     steps:
       - run: echo "Exposing environment variables to reusable workflows"

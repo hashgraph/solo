@@ -130,6 +130,10 @@ describe('K8', () => {
     await expect(k8.deleteNamespace(name)).resolves.toBeTruthy()
   }, defaultTimeout)
 
+  it('delete namespace should succeed if namespace does not exist', async () => {
+    await expect(k8.deleteNamespace(uuid4())).resolves.toBeTruthy()
+  })
+
   it('should be able to run wait for pod', async () => {
     const labels = [`app=${podLabelValue}`]
 

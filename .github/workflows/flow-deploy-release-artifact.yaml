@@ -98,6 +98,18 @@ jobs:
       GH_ACCESS_GPG_KEY: ${{ secrets.GH_ACCESS_GPG_KEY }}
       GH_ACCESS_PASSPHRASE: ${{ secrets.GH_ACCESS_PASSPHRASE }}
 
+  update-readme:
+    name: "Update README.md"
+    uses: ./.github/workflows/flow-update-readme.yaml
+    needs: prepare-release
+    with:
+      commit-changes: true
+    secrets:
+      GH_ACCESS_TOKEN: ${{ secrets.GH_ACCESS_TOKEN }}
+      GH_ACCESS_GPG_KEY: ${{ secrets.GH_ACCESS_GPG_KEY }}
+      GH_ACCESS_PASSPHRASE: ${{ secrets.GH_ACCESS_PASSPHRASE }}
+
+
   create-github-release:
     name: Github / Release
     runs-on: solo-linux-medium

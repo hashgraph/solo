@@ -516,3 +516,4 @@ coverage/
 deleteme.yaml
 /.nyc_output/
 /.nvmrc
+/contextDir/

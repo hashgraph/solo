@@ -15,7 +15,6 @@
  *
  * @jest-environment steps
  */
-import { afterAll, beforeAll, describe, expect, it } from '@jest/globals'
 import fs from 'fs'
 import os from 'os'
 import path from 'path'
@@ -194,7 +193,7 @@ export function bootstrapNetwork (testName, argv,
   const nodeCmd = bootstrapResp.cmd.nodeCmd
   const chartManager = bootstrapResp.opts.chartManager
 
-  describe(`Bootstrap network for test [release ${argv[flags.releaseTag.name]}}]`, () => {
+  describe(`Bootstrap network for test [namespace: ${namespace}, release ${argv[flags.releaseTag.name]}]`, () => {
     beforeAll(() => {
       bootstrapResp.opts.logger.showUser(`------------------------- START: bootstrap (${testName}) ----------------------------`)
     })
@@ -251,11 +250,15 @@ export function bootstrapNetwork (testName, argv,
         // cache this, because `solo node setup.finalize()` will reset it to false
         try {
           await expect(nodeCmd.setup(argv)).resolves.toBeTruthy()
-          expect(nodeCmd.getUnusedConfigs(NodeCommand.SETUP_CONFIGS_NAME)).toEqual([
+          const expectedUnusedConfigs = [
             flags.app.constName,
             flags.appConfig.constName,
             flags.devMode.constName
-          ])
+          ]
+          if (bootstrapResp.opts.configManager.getFlag(flags.hederaImage)) {
+            expectedUnusedConfigs.push(flags.localBuildPath.constName)
+          }
+          expect(nodeCmd.getUnusedConfigs(NodeCommand.SETUP_CONFIGS_NAME)).toEqual(expectedUnusedConfigs)
         } catch (e) {
           nodeCmd.logger.showUserError(e)
           expect(e).toBeNull()

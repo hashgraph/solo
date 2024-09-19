@@ -105,6 +105,7 @@ export class NodeCommand extends BaseCommand {
       flags.appConfig,
       flags.cacheDir,
       flags.devMode,
+      flags.hederaImage,
       flags.localBuildPath,
       flags.namespace,
       flags.nodeIDs,
@@ -147,6 +148,7 @@ export class NodeCommand extends BaseCommand {
       flags.app,
       flags.cacheDir,
       flags.devMode,
+      flags.hederaImage,
       flags.localBuildPath,
       flags.namespace,
       flags.nodeIDs,
@@ -178,6 +180,7 @@ export class NodeCommand extends BaseCommand {
       flags.generateTlsKeys,
       flags.gossipEndpoints,
       flags.grpcEndpoints,
+      flags.hederaImage,
       flags.localBuildPath,
       flags.namespace,
       flags.releaseTag
@@ -241,6 +244,7 @@ export class NodeCommand extends BaseCommand {
       flags.devMode,
       flags.debugNodeId,
       flags.endpointType,
+      flags.hederaImage,
       flags.localBuildPath,
       flags.namespace,
       flags.nodeID,
@@ -265,6 +269,7 @@ export class NodeCommand extends BaseCommand {
       flags.gossipPrivateKey,
       flags.gossipPublicKey,
       flags.grpcEndpoints,
+      flags.hederaImage,
       flags.localBuildPath,
       flags.namespace,
       flags.newAccountNumber,
@@ -374,7 +379,7 @@ export class NodeCommand extends BaseCommand {
    * @returns {Promise<string>}
    */
   async checkNetworkNodeActiveness (namespace, nodeId, task, title, index,
-    status = NodeStatusCodes.ACTIVE, maxAttempts = 120, delay = 1_000, timeout = 1_000) {
+    status = NodeStatusCodes.ACTIVE, maxAttempts = 120, delay = 1_000, timeout = 5_000) {
     nodeId = nodeId.trim()
     const podName = Templates.renderNetworkPodName(nodeId)
     const podPort = 9_999
@@ -386,20 +391,22 @@ export class NodeCommand extends BaseCommand {
     let attempt = 0
     let success = false
     while (attempt < maxAttempts) {
-      const controller = new AbortController()
-
-      const timeoutId = setTimeout(() => {
-        task.title = `${title} - status ${chalk.yellow('TIMEOUT')}, attempt ${chalk.blueBright(`${attempt}/${maxAttempts}`)}`
-        controller.abort()
-      }, timeout)
-
+      let timeoutId
       try {
+        const controller = new AbortController()
+
+        timeoutId = setTimeout(() => {
+          task.title = `${title} - status ${chalk.yellow('TIMEOUT')}, attempt ${chalk.blueBright(`${attempt}/${maxAttempts}`)}`
+          this.logger.debug(`check network nodeId=${nodeId}, status=${status}, timed out, timeout=${timeout}, attempt: ${attempt}/${maxAttempts}`)
+          controller.abort()
+        }, timeout)
+
         const url = `http://${LOCAL_HOST}:${localPort}/metrics`
         const response = await fetch(url, { signal: controller.signal })
 
         if (!response.ok) {
           task.title = `${title} - status ${chalk.yellow('UNKNOWN')}, attempt ${chalk.blueBright(`${attempt}/${maxAttempts}`)}`
-          clearTimeout(timeoutId)
+          this.logger.debug(`check network nodeId=${nodeId}, status=${status}, fetch failed, response=${JSON.stringify(response)}, attempt: ${attempt}/${maxAttempts}`)
           throw new Error() // Guard
         }
 
@@ -410,7 +417,7 @@ export class NodeCommand extends BaseCommand {
 
         if (!statusLine) {
           task.title = `${title} - status ${chalk.yellow('STARTING')}, attempt: ${chalk.blueBright(`${attempt}/${maxAttempts}`)}`
-          clearTimeout(timeoutId)
+          this.logger.debug(`check network nodeId=${nodeId}, status=${status}, status not found, attempt: ${attempt}/${maxAttempts}`)
           throw new Error() // Guard
         }
 
@@ -418,28 +425,35 @@ export class NodeCommand extends BaseCommand {
 
         if (statusNumber === status) {
           task.title = `${title} - status ${chalk.green(NodeStatusEnums[status])}, attempt: ${chalk.blueBright(`${attempt}/${maxAttempts}`)}`
+          this.logger.debug(`check network nodeId=${nodeId}, status=${status}, ACTIVE!, attempt: ${attempt}/${maxAttempts}`)
           success = true
           clearTimeout(timeoutId)
           break
         } else if (statusNumber === NodeStatusCodes.CATASTROPHIC_FAILURE) {
           task.title = `${title} - status ${chalk.red('CATASTROPHIC_FAILURE')}, attempt: ${chalk.blueBright(`${attempt}/${maxAttempts}`)}`
+          this.logger.debug(`check network nodeId=${nodeId}, status=${status}, CATASTROPHIC_FAILURE, attempt: ${attempt}/${maxAttempts}`)
+          clearTimeout(timeoutId)
           break
         } else if (statusNumber) {
           task.title = `${title} - status ${chalk.yellow(NodeStatusEnums[statusNumber])}, attempt: ${chalk.blueBright(`${attempt}/${maxAttempts}`)}`
+          this.logger.debug(`check network nodeId=${nodeId}, status=${status}, status not found, statusLine=${statusLine}, statusNumber=${statusNumber}, attempt: ${attempt}/${maxAttempts}`)
         }
+      } catch {
+        // Catch all guard and fetch errors
+      } finally {
         clearTimeout(timeoutId)
-      } catch {} // Catch all guard and fetch errors
-
-      attempt++
-      clearTimeout(timeoutId)
-      await sleep(delay)
+        await sleep(delay)
+        attempt++
+      }
     }
 
     await this.k8.stopPortForward(srv)
 
     if (!success) {
-      throw new FullstackTestingError(`node '${nodeId}' is not ${NodeStatusEnums[status]}` +
-        `[ attempt = ${chalk.blueBright(`${attempt}/${maxAttempts}`)} ]`)
+      const errorMessage = `node '${nodeId}' is not ${NodeStatusEnums[status]}` +
+          `[ attempt = ${chalk.blueBright(`${attempt}/${maxAttempts}`)} ]`
+      this.logger.error(errorMessage)
+      throw new FullstackTestingError(errorMessage)
     }
 
     return podName
@@ -564,7 +578,7 @@ export class NodeCommand extends BaseCommand {
   /**
    * Return task for start network node hedera service
    * @param {TaskWrapper} task
-   * @param {string[]} podNames
+   * @param {Object} podNames
    * @param {string[]} nodeIds
    * @returns {*}
    */
@@ -595,9 +609,12 @@ export class NodeCommand extends BaseCommand {
     for (const nodeId of nodeIds) {
       subTasks.push({
         title: `Check proxy for node: ${chalk.yellow(nodeId)}`,
-        task: async () => await this.k8.waitForPodReady(
-          [`app=haproxy-${nodeId}`, 'fullstack.hedera.com/type=haproxy'],
-          1, 300, 2000)
+        task: async () => {
+          await this.k8.waitForPodReady(
+            [`app=haproxy-${nodeId}`, 'fullstack.hedera.com/type=haproxy'],
+            1, 300, 2000)
+          await sleep(5000) // sleep for five seconds for proxies to poll and detect node is up
+        }
       })
     }
 
@@ -854,7 +871,13 @@ export class NodeCommand extends BaseCommand {
         title: `Copy local build to Node: ${chalk.yellow(nodeId)} from ${localDataLibBuildPath}`,
         task: async () => {
           this.logger.debug(`Copying build files to pod: ${podName} from ${localDataLibBuildPath}`)
-          await self.k8.copyTo(podName, constants.ROOT_CONTAINER, localDataLibBuildPath, `${constants.HEDERA_HAPI_PATH}`)
+          // filter the data/config and data/keys to avoid failures due to config and secret mounts
+          const filterFunction = (path, stat) => {
+            return !(path.includes('data/keys') || path.includes(
+              'data/config'))
+          }
+          await self.k8.copyTo(podName, constants.ROOT_CONTAINER, localDataLibBuildPath,
+              `${constants.HEDERA_HAPI_PATH}`, filterFunction)
           const testJsonFiles = self.configManager.getFlag(flags.appConfig).split(',')
           for (const jsonFile of testJsonFiles) {
             if (fs.existsSync(jsonFile)) {
@@ -1067,6 +1090,7 @@ export class NodeCommand extends BaseCommand {
            * @property {string} appConfig
            * @property {string} cacheDir
            * @property {boolean} devMode
+           * @property {boolean} hederaImage
            * @property {string} localBuildPath
            * @property {string} namespace
            * @property {string} nodeIDs
@@ -1109,7 +1133,8 @@ export class NodeCommand extends BaseCommand {
           async (ctx, task) => {
             const config = /** @type {NodeSetupConfigClass} **/ ctx.config
             return self.fetchLocalOrReleasedPlatformSoftware(config.nodeIds, config.podNames, config.releaseTag, task, config.localBuildPath)
-          }
+          },
+        skip: (ctx, _) => ctx.config.hederaImage
       },
       {
         title: 'Setup network nodes',
@@ -1152,6 +1177,7 @@ export class NodeCommand extends BaseCommand {
             app: self.configManager.getFlag(flags.app),
             cacheDir: self.configManager.getFlag(flags.cacheDir),
             debugNodeId: self.configManager.getFlag(flags.debugNodeId),
+            hederaImage: self.configManager.getFlag(flags.hederaImage),
             namespace: self.configManager.getFlag(flags.namespace),
             nodeIds: helpers.parseNodeIds(self.configManager.getFlag(flags.nodeIDs))
           }
@@ -1177,7 +1203,8 @@ export class NodeCommand extends BaseCommand {
         title: 'Starting nodes',
         task: (ctx, task) => {
           return this.startNetworkNodesTask(task, ctx.config.podNames, ctx.config.nodeIds)
-        }
+        },
+        skip: (ctx, _) => ctx.config.hederaImage
       },
       {
         title: 'Enable port forwarding for JVM debugger',
@@ -1257,6 +1284,7 @@ export class NodeCommand extends BaseCommand {
           ])
 
           ctx.config = {
+            hederaImage: self.configManager.getFlag(flags.hederaImage),
             namespace: self.configManager.getFlag(flags.namespace),
             nodeIds: helpers.parseNodeIds(self.configManager.getFlag(flags.nodeIDs))
           }
@@ -1268,7 +1296,8 @@ export class NodeCommand extends BaseCommand {
       },
       {
         title: 'Identify network pods',
-        task: (ctx, task) => self.taskCheckNetworkNodePods(ctx, task, ctx.config.nodeIds)
+        task: (ctx, task) => self.taskCheckNetworkNodePods(ctx, task, ctx.config.nodeIds),
+        skip: (ctx, _) => ctx.config.hederaImage
       },
       {
         title: 'Stopping nodes',
@@ -1290,7 +1319,8 @@ export class NodeCommand extends BaseCommand {
               timer: constants.LISTR_DEFAULT_RENDERER_TIMER_OPTION
             }
           })
-        }
+        },
+        skip: (ctx, _) => ctx.config.hederaImage
       }
     ], {
       concurrent: false,
@@ -1443,6 +1473,7 @@ export class NodeCommand extends BaseCommand {
            * @property {string} app
            * @property {string} cacheDir
            * @property {boolean} devMode
+           * @property {boolean} hederaImage
            * @property {string} localBuildPath
            * @property {string} namespace
            * @property {string} nodeIDs
@@ -1501,24 +1532,46 @@ export class NodeCommand extends BaseCommand {
           }
       },
       {
+        title: 'Kill network node',
+        task:
+            async (ctx, task) => {
+              const config = /** @type {NodeRefreshConfigClass} **/ ctx.config
+              for (const nodeId of config.nodeIds) {
+                const podName = config.podNames[nodeId]
+                await self.k8.kubeClient.deleteNamespacedPod(podName, config.namespace, undefined, undefined, 1)
+              }
+              self.logger.info('sleep 15 seconds to give time for pods to be terminated')
+              await sleep(15000)
+            },
+        skip: (ctx, _) => !ctx.config.hederaImage
+      },
+      {
+        title: 'Identify network pods changes after kill',
+        task: (ctx, task) => self.taskCheckNetworkNodePods(ctx, task, ctx.config.nodeIds),
+        skip: (ctx, _) => !ctx.config.hederaImage
+      },
+      {
         title: 'Fetch platform software into network nodes',
         task:
           async (ctx, task) => {
             const config = /** @type {NodeRefreshConfigClass} **/ ctx.config
             return self.fetchLocalOrReleasedPlatformSoftware(config.nodeIds, config.podNames, config.releaseTag, task, config.localBuildPath)
-          }
+          },
+        skip: (ctx, _) => ctx.config.hederaImage
       },
       {
         title: 'Setup network nodes',
         task: async (ctx, parentTask) => {
           return this.setupNodesTask(ctx, parentTask, ctx.config.nodeIds)
-        }
+        },
+        skip: (ctx, _) => ctx.config.hederaImage
       },
       {
         title: 'Starting nodes',
         task: (ctx, task) => {
           return this.startNetworkNodesTask(task, ctx.config.podNames, ctx.config.nodeIds)
-        }
+        },
+        skip: (ctx, _) => ctx.config.hederaImage
       },
       {
         title: 'Check nodes are ACTIVE',
@@ -1634,6 +1687,7 @@ export class NodeCommand extends BaseCommand {
            * @property {boolean} generateTlsKeys
            * @property {string} gossipEndpoints
            * @property {string} grpcEndpoints
+           * @property {boolean} hederaImage
            * @property {string} localBuildPath
            * @property {string} namespace
            * @property {string} nodeId
@@ -1841,7 +1895,7 @@ export class NodeCommand extends BaseCommand {
             endpoints = helpers.splitFlagInput(config.gossipEndpoints)
           }
 
-          ctx.gossipEndpoints = this.prepareEndpoints(config.endpointType, endpoints, constants.HEDERA_NODE_INTERNAL_GOSSIP_PORT)
+          ctx.gossipEndpoints = this.prepareEndpoints(config.endpointType, endpoints, Number.parseInt(constants.HEDERA_NODE_INTERNAL_GOSSIP_PORT))
         }
       },
       {
@@ -1862,7 +1916,7 @@ export class NodeCommand extends BaseCommand {
             endpoints = helpers.splitFlagInput(config.grpcEndpoints)
           }
 
-          ctx.grpcServiceEndpoints = this.prepareEndpoints(config.endpointType, endpoints, constants.HEDERA_NODE_EXTERNAL_GOSSIP_PORT)
+          ctx.grpcServiceEndpoints = this.prepareEndpoints(config.endpointType, endpoints, Number.parseInt(constants.HEDERA_NODE_EXTERNAL_GOSSIP_PORT))
         }
       },
       {
@@ -2027,6 +2081,19 @@ export class NodeCommand extends BaseCommand {
         }
       },
       {
+        title: 'Download last state from an existing node',
+        task: async (ctx, task) => {
+          const config = /** @type {NodeAddConfigClass} **/ ctx.config
+          const node1FullyQualifiedPodName = Templates.renderNetworkPodName(config.existingNodeIds[0])
+          const upgradeDirectory = `${constants.HEDERA_HAPI_PATH}/data/saved/com.hedera.services.ServicesMain/0/123`
+          // zip the contents of the newest folder on node1 within /opt/hgcapp/services-hedera/HapiApp2.0/data/saved/com.hedera.services.ServicesMain/0/123/
+          const zipFileName = await self.k8.execContainer(node1FullyQualifiedPodName, constants.ROOT_CONTAINER,
+            ['bash', '-c', `cd ${upgradeDirectory} && mapfile -t states < <(ls -1t .) && jar cf "\${states[0]}.zip" -C "\${states[0]}" . && echo -n \${states[0]}.zip`])
+          await self.k8.copyFrom(node1FullyQualifiedPodName, constants.ROOT_CONTAINER, `${upgradeDirectory}/${zipFileName}`, config.stagingDir)
+          config.lastStateZipPath = path.join(config.stagingDir, zipFileName)
+        }
+      },
+      {
         title: 'Get node logs and configs',
         task: async (ctx, task) => {
           const config = /** @type {NodeAddConfigClass} **/ ctx.config
@@ -2046,7 +2113,8 @@ export class NodeCommand extends BaseCommand {
           for (const /** @type {NetworkNodeServices} **/ service of config.serviceMap.values()) {
             await self.k8.kubeClient.deleteNamespacedPod(service.nodePodName, config.namespace, undefined, undefined, 1)
           }
-        }
+        },
+        skip: (ctx, _) => ctx.config.hederaImage
       },
       {
         title: 'Check node pods are running',
@@ -2064,20 +2132,10 @@ export class NodeCommand extends BaseCommand {
               config.namespace)
             config.podNames[config.nodeId] = config.serviceMap.get(config.nodeId).nodePodName
 
-            return self.fetchLocalOrReleasedPlatformSoftware(config.allNodeIds, config.podNames, config.releaseTag, task, config.localBuildPath)
+            if (!config.hederaImage) {
+              return self.fetchLocalOrReleasedPlatformSoftware(config.allNodeIds, config.podNames, config.releaseTag, task, config.localBuildPath)
+            }
           }
-      },
-      {
-        title: 'Download last state from an existing node',
-        task: async (ctx, task) => {
-          const config = /** @type {NodeAddConfigClass} **/ ctx.config
-          const node1FullyQualifiedPodName = Templates.renderNetworkPodName(config.existingNodeIds[0])
-          const upgradeDirectory = `${constants.HEDERA_HAPI_PATH}/data/saved/com.hedera.services.ServicesMain/0/123`
-          // zip the contents of the newest folder on node1 within /opt/hgcapp/services-hedera/HapiApp2.0/data/saved/com.hedera.services.ServicesMain/0/123/
-          const zipFileName = await self.k8.execContainer(node1FullyQualifiedPodName, constants.ROOT_CONTAINER, ['bash', '-c', `cd ${upgradeDirectory} && mapfile -t states < <(ls -1t .) && jar cf "\${states[0]}.zip" -C "\${states[0]}" . && echo -n \${states[0]}.zip`])
-          await self.k8.copyFrom(node1FullyQualifiedPodName, constants.ROOT_CONTAINER, `${upgradeDirectory}/${zipFileName}`, config.stagingDir)
-          config.lastStateZipPath = path.join(config.stagingDir, zipFileName)
-        }
       },
       {
         title: 'Upload last saved state to new network node',
@@ -2105,7 +2163,16 @@ export class NodeCommand extends BaseCommand {
         task: async (ctx, task) => {
           const config = /** @type {NodeAddConfigClass} **/ ctx.config
           return this.startNetworkNodesTask(task, config.podNames, config.allNodeIds)
-        }
+        },
+        skip: (ctx, _) => ctx.config.hederaImage
+      },
+      {
+        title: 'Kill new node to pick up updated state',
+        task: async (ctx, task) => {
+          const config = /** @type {NodeAddConfigClass} **/ ctx.config
+          await self.k8.kubeClient.deleteNamespacedPod(Templates.renderNetworkPodName(config.nodeId), config.namespace, undefined, undefined, 1)
+        },
+        skip: (ctx, _) => !ctx.config.hederaImage
       },
       {
         title: 'Enable port forwarding for JVM debugger',
@@ -2340,7 +2407,7 @@ export class NodeCommand extends BaseCommand {
 
   /**
    * @param {Object} podNames
-   * @param {string} nodeIds
+   * @param {string[]} nodeIds
    * @param {Object[]} subTasks
    */
   startNodes (podNames, nodeIds, subTasks) {
@@ -2394,6 +2461,7 @@ export class NodeCommand extends BaseCommand {
               flags.app,
               flags.debugNodeId,
               flags.namespace,
+              flags.hederaImage,
               flags.nodeIDs
             ),
             handler: argv => {
@@ -2413,6 +2481,7 @@ export class NodeCommand extends BaseCommand {
             command: 'stop',
             desc: 'Stop a node',
             builder: y => flags.setCommandFlags(y,
+              flags.hederaImage,
               flags.namespace,
               flags.nodeIDs
             ),
@@ -2611,6 +2680,7 @@ export class NodeCommand extends BaseCommand {
             flags.gossipPrivateKey,
             flags.gossipPublicKey,
             flags.grpcEndpoints,
+            flags.hederaImage,
             flags.localBuildPath,
             flags.newAccountNumber,
             flags.newAdminKey,
@@ -2634,6 +2704,7 @@ export class NodeCommand extends BaseCommand {
            * @property {string} gossipPrivateKey
            * @property {string} gossipPublicKey
            * @property {string} grpcEndpoints
+           * @property {boolean} hederaImage
            * @property {string} localBuildPath
            * @property {string} namespace
            * @property {string} newAccountNumber
@@ -2886,9 +2957,7 @@ export class NodeCommand extends BaseCommand {
         title: 'Update chart to use new configMap due to account number change',
         task: async (ctx, task) => {
           await this.chartUpdateTask(ctx)
-        },
-        // no need to run this step if the account number is not changed, since config.txt will be the same
-        skip: (ctx, _) => !ctx.config.newAccountNumber && !ctx.config.debugNodeId
+        }
       },
       {
         title: 'Kill nodes to pick up updated configMaps',
@@ -2925,20 +2994,23 @@ export class NodeCommand extends BaseCommand {
           async (ctx, task) => {
             const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
             return self.fetchLocalOrReleasedPlatformSoftware(config.allNodeIds, config.podNames, config.releaseTag, task, config.localBuildPath)
-          }
+          },
+        skip: (ctx, _) => ctx.config.hederaImage
       },
       {
         title: 'Setup network nodes',
         task: async (ctx, parentTask) => {
           return this.setupNodesTask(ctx, parentTask, ctx.config.allNodeIds)
-        }
+        },
+        skip: (ctx, _) => ctx.config.hederaImage
       },
       {
         title: 'Start network nodes',
         task: async (ctx, task) => {
           const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
           return this.startNetworkNodesTask(task, config.podNames, config.allNodeIds)
-        }
+        },
+        skip: (ctx, _) => ctx.config.hederaImage
       },
       {
         title: 'Enable port forwarding for JVM debugger',
@@ -3014,6 +3086,7 @@ export class NodeCommand extends BaseCommand {
             flags.endpointType,
             flags.force,
             flags.fstChartVersion,
+            flags.hederaImage,
             flags.localBuildPath
           ])
 
@@ -3029,6 +3102,7 @@ export class NodeCommand extends BaseCommand {
            * @property {string} debugNodeId
            * @property {string} endpointType
            * @property {string} fstChartVersion
+           * @property {boolean} hederaImage
            * @property {string} localBuildPath
            * @property {string} namespace
            * @property {string} nodeId
@@ -3231,20 +3305,23 @@ export class NodeCommand extends BaseCommand {
             config.podNames[config.nodeId] = config.serviceMap.get(
               config.nodeId).nodePodName
             return self.fetchLocalOrReleasedPlatformSoftware(config.allNodeIds, config.podNames, config.releaseTag, task, config.localBuildPath)
-          }
+          },
+        skip: (ctx, _) => ctx.config.hederaImage
       },
       {
         title: 'Setup network nodes',
         task: async (ctx, parentTask) => {
           return this.setupNodesTask(ctx, parentTask, ctx.config.allNodeIds)
-        }
+        },
+        skip: (ctx, _) => ctx.config.hederaImage
       },
       {
         title: 'Start network nodes',
         task: async (ctx, task) => {
           const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
           return this.startNetworkNodesTask(task, config.podNames, config.allNodeIds)
-        }
+        },
+        skip: (ctx, _) => ctx.config.hederaImage
       },
       {
         title: 'Enable port forwarding for JVM debugger',

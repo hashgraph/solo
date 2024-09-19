@@ -15,9 +15,8 @@
  *
  * @jest-environment steps
  */
-import { testNodeAdd } from '../test_add.mjs'
+import { testNodeDelete } from '../test_node_delete.mjs'
 
-describe('Node add with hedera local build', () => {
-  const localBuildPath = 'node1=../hedera-services/hedera-node/data/,../hedera-services/hedera-node/data,node3=../hedera-services/hedera-node/data'
-  testNodeAdd(localBuildPath, 'local', false)
+describe('Node delete hedera deterministic image', () => {
+  testNodeDelete('image', true)
 })

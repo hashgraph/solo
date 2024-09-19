@@ -251,7 +251,7 @@ export async function getNodeLogs (k8, namespace) {
       await k8.copyTo(podName, ROOT_CONTAINER, sourcePath, `${HEDERA_HAPI_PATH}`)
       await k8.execContainer(podName, ROOT_CONTAINER, `chmod 0755 ${HEDERA_HAPI_PATH}/${scriptName}`)
       await k8.execContainer(podName, ROOT_CONTAINER, `${HEDERA_HAPI_PATH}/${scriptName}`)
-      await k8.copyFrom(podName, ROOT_CONTAINER, `${HEDERA_HAPI_PATH}/${podName}.zip`, targetDir)
+      await k8.copyFrom(podName, ROOT_CONTAINER, `${HEDERA_HAPI_PATH}/data/${podName}.zip`, targetDir)
     } catch (e) {
       // not throw error here, so we can continue to finish downloading logs from other pods
       // and also delete namespace in the end
@@ -352,4 +352,13 @@ export function addDebugOptions (valuesArg, debugNodeId, index = 0) {
     valuesArg += ` --set "hedera.nodes[${nodeId}].root.extraEnv[${index}].value=-agentlib:jdwp=transport=dt_socket\\,server=y\\,suspend=y\\,address=*:${constants.JVM_DEBUG_PORT}"`
   }
   return valuesArg
+}
+
+/**
+ * Provides the Hedera deterministic Docker container image tag provided the releaseTag
+ * @param releaseTag {string} the release tag of the Hedera platform
+ * @returns {string} the Hedera image tag
+ */
+export function getHederaImageTag (releaseTag) {
+  return releaseTag.substring(1)
 }

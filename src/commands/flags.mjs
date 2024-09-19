@@ -723,6 +723,17 @@ export const debugNodeId = {
 }
 
 /** @type {CommandFlag} **/
+export const hederaImage = {
+  constName: 'hederaImage',
+  name: 'hedera-image',
+  definition: {
+    describe: 'Enable using the published Hedera deterministic Docker container image',
+    defaultValue: false,
+    type: 'boolean'
+  }
+}
+
+/** @type {CommandFlag} **/
 export const outputDir = {
   constName: 'outputDir',
   name: 'output-dir',
@@ -758,6 +769,7 @@ export const adminKey = {
 /** @type {CommandFlag[]} **/
 export const allFlags = [
   accountId,
+  adminKey,
   amount,
   apiPermissionProperties,
   app,
@@ -770,6 +782,7 @@ export const allFlags = [
   chartDirectory,
   clusterName,
   clusterSetupNamespace,
+  debugNodeId,
   deletePvcs,
   deleteSecrets,
   deployCertManager,
@@ -792,7 +805,8 @@ export const allFlags = [
   grpcEndpoints,
   hederaExplorerTlsHostName,
   hederaExplorerTlsLoadBalancerIp,
-  debugNodeId,
+  hederaImage,
+  inputDir,
   localBuildPath,
   log4j2Xml,
   namespace,
@@ -802,6 +816,7 @@ export const allFlags = [
   nodeIDs,
   operatorId,
   operatorKey,
+  outputDir,
   persistentVolumeClaims,
   privateKey,
   profileFile,

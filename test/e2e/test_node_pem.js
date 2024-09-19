@@ -37,7 +37,7 @@ import {
 import { getNodeLogs, sleep } from '../../src/core/helpers.mjs'
 import { NodeCommand } from '../../src/commands/node.mjs'
 
-export function e2eNodeKeyRefreshTest (testName, mode, releaseTag = HEDERA_PLATFORM_VERSION_TAG) {
+export function e2eNodeKeyRefreshTest (testName, mode, hederaImage = false, releaseTag = HEDERA_PLATFORM_VERSION_TAG) {
   const defaultTimeout = 120000
 
   describe(
@@ -45,6 +45,7 @@ export function e2eNodeKeyRefreshTest (testName, mode, releaseTag = HEDERA_PLATF
       () => {
         const namespace = testName
         const argv = getDefaultArgv()
+        argv[flags.hederaImage.name] = hederaImage
         argv[flags.namespace.name] = namespace
         argv[flags.releaseTag.name] = releaseTag
         argv[flags.nodeIDs.name] = 'node1,node2,node3'
@@ -147,9 +148,14 @@ export function e2eNodeKeyRefreshTest (testName, mode, releaseTag = HEDERA_PLATF
           it(`${nodeId} refresh should succeed`, async () => {
             try {
               await expect(nodeCmd.refresh(argv)).resolves.toBeTruthy()
+              const expectedUnusedConfigs = [
+                flags.devMode.constName
+              ]
+              if (argv[flags.hederaImage.name]) {
+                expectedUnusedConfigs.push(flags.localBuildPath.constName)
+              }
               expect(nodeCmd.getUnusedConfigs(
-                NodeCommand.REFRESH_CONFIGS_NAME)).toEqual(
-                [flags.devMode.constName])
+                NodeCommand.REFRESH_CONFIGS_NAME)).toEqual(expectedUnusedConfigs)
             } catch (e) {
               nodeCmd.logger.showUserError(e)
               expect(e).toBeNull()

@@ -22,7 +22,6 @@ import os from 'os'
 import path from 'path'
 import { flags } from '../commands/index.mjs'
 import { FullstackTestingError, IllegalArgumentError, MissingArgumentError } from './errors.mjs'
-import * as sb from 'stream-buffers'
 import * as tar from 'tar'
 import { v4 as uuid4 } from 'uuid'
 import { V1ObjectMeta, V1Secret } from '@kubernetes/client-node'
@@ -159,8 +158,15 @@ export class K8 {
    * @returns {Promise<boolean>}
    */
   async deleteNamespace (name) {
-    const resp = await this.kubeClient.deleteNamespace(name)
-    return resp.response.statusCode === 200.0
+    try {
+      const resp = await this.kubeClient.deleteNamespace(name)
+      return resp.response.statusCode === 200.0
+    } catch (e) {
+      if (e.statusCode === 404) {
+        return true
+      }
+      this.logger.error(`failed to delete the namespace ${name}, err: ${e.message}`, e)
+    }
   }
 
   /**
@@ -347,7 +353,7 @@ export class K8 {
    */
   async listDir (podName, containerName, destPath, timeout = 5000) {
     try {
-      const output = await this.execContainer(podName, containerName, ['ls', '-la', destPath])
+      const output = await this.execContainer(podName, containerName, ['ls', '-la', destPath], timeout)
       if (!output) return []
 
       // parse the output and return the entries
@@ -435,13 +441,15 @@ export class K8 {
    * @param {string} podName
    * @param {string} containerName
    * @param {string} destPath - path inside the container
+   * @param {number} [timeoutMs]
    * @returns {Promise<boolean>}
    */
-  async hasDir (podName, containerName, destPath) {
+  async hasDir (podName, containerName, destPath, timeoutMs) {
     return await this.execContainer(
       podName,
       containerName,
-      ['bash', '-c', '[[ -d "' + destPath + '" ]] && echo -n "true" || echo -n "false"']
+      ['bash', '-c', '[[ -d "' + destPath + '" ]] && echo -n "true" || echo -n "false"'],
+      timeoutMs
     ) === 'true'
   }
 
@@ -459,6 +467,73 @@ export class K8 {
     )
   }
 
+  resetTimeout (localContext, messagePrefix, timeoutMs) {
+    clearTimeout(localContext.timeoutId)
+    localContext.timeoutId = setTimeout(() => {
+      const errorMessage = `${messagePrefix} timeout exceeded timeout of ${timeoutMs}`
+      this.logger.error(errorMessage)
+      localContext.connection?.terminate()
+      localContext.reject(new FullstackTestingError(errorMessage))
+    }, timeoutMs)
+  }
+
+  exitWithError (timeoutId, reject, errorMessage) {
+    this.logger.error(errorMessage)
+    clearTimeout(timeoutId)
+    reject(new FullstackTestingError(errorMessage))
+  }
+
+  handleCallback (status, localContext, reject, messagePrefix) {
+    if (status === 'Failure') {
+      this.exitWithError(localContext.timeoutId, reject, `${messagePrefix} Failure occurred`)
+    } else {
+      this.logger.debug(`${messagePrefix} callback(status)=${status}`)
+    }
+  }
+
+  registerConnectionOnError (localContext, reject, messagePrefix, conn) {
+    conn.on('error', (e) => {
+      this.exitWithError(localContext.timeoutId, reject, `${messagePrefix} failed, connection error: ${e.message}`)
+    })
+  }
+
+  registerConnectionOnMessage (localContext, messagePrefix, conn, timeoutMs) {
+    this.logger.debug(`${messagePrefix} received message`)
+    this.resetTimeout(localContext, messagePrefix, timeoutMs)
+  }
+
+  registerStreamOnData (localContext, reject, messagePrefix, stream) {
+    stream.on('data', (data) => {
+      this.exitWithError(localContext.timeoutId, reject, `${messagePrefix} error encountered, error: ${data.toString()}`)
+    })
+  }
+
+  registerStreamOnError (localContext, reject, messagePrefix, stream) {
+    stream.on('error', (err) => {
+      this.exitWithError(localContext.timeoutId, reject, `${messagePrefix} error encountered, err: ${err.toString()}`)
+    })
+  }
+
+  registerOutputPassthroughStreamOnData (localContext, messagePrefix, outputPassthroughStream, outputFileStream, timeoutMs) {
+    outputPassthroughStream.on('data', (chunk) => {
+      this.logger.debug(`${messagePrefix} received chunk size=${chunk.length}`)
+      const canWrite = outputFileStream.write(chunk) // Write chunk to file and check if buffer is full
+      if (!canWrite) {
+        this.logger.debug(`${messagePrefix} buffer is full, pausing data stream...`)
+        outputPassthroughStream.pause() // Pause the data stream if buffer is full
+      }
+      this.resetTimeout(localContext, messagePrefix, timeoutMs)
+    })
+  }
+
+  registerOutputFileStreamOnDrain (localContext, messagePrefix, outputPassthroughStream, outputFileStream, timeoutMs) {
+    outputFileStream.on('drain', () => {
+      outputPassthroughStream.resume()
+      this.logger.debug(`${messagePrefix} stream drained, resume write`)
+      this.resetTimeout(localContext, messagePrefix, timeoutMs)
+    })
+  }
+
   /**
    * Copy a file into a container
    *
@@ -468,60 +543,90 @@ export class K8 {
    * @param {string} containerName
    * @param {string} srcPath - source file path in the local
    * @param {string} destDir - destination directory in the container
+   * @param {function} [filter] - the filter to pass to tar to keep or skip files or directories
+   * @param {number} [timeoutMs] - timeout, defaults to 5,500 ms
    * @returns {Promise<boolean>} return a Promise that performs the copy operation
    */
-  async copyTo (podName, containerName, srcPath, destDir) {
+  async copyTo (podName, containerName, srcPath, destDir, filter = undefined, timeoutMs = 5_500) {
+    const self = this
     const namespace = this._getNamespace()
+    const guid = uuid4()
+    const messagePrefix = `copyTo[${podName},${guid}]: `
 
-    if (!await this.hasDir(podName, containerName, destDir)) {
-      throw new FullstackTestingError(`invalid destination path: ${destDir}`)
+    if (timeoutMs < 0 || timeoutMs === 0) throw new MissingArgumentError('timeout cannot be negative or zero')
+    if (!await self.getPodByName(podName)) throw new IllegalArgumentError(`Invalid pod ${podName}`)
+
+    self.logger.info(`${messagePrefix}[srcPath=${srcPath}, destDir=${destDir}]`)
+
+    // Check if the destination directory exists in the pod/container
+    if (!await self.hasDir(podName, containerName, destDir, 5_500)) {
+      throw new FullstackTestingError(`${messagePrefix}invalid destination path: ${destDir}`)
     }
 
+    // Check if the source file exists locally
     if (!fs.existsSync(srcPath)) {
-      throw new FullstackTestingError(`invalid source path: ${srcPath}`)
+      throw new FullstackTestingError(`${messagePrefix}invalid source path: ${srcPath}`)
     }
 
+    const localContext = {}
     try {
       const srcFile = path.basename(srcPath)
       const srcDir = path.dirname(srcPath)
-      const destPath = `${destDir}/${srcFile}`
 
-      // zip the source file
-      const tmpFile = this._tempFileFor(srcFile)
+      // Create a temporary tar file for the source file
+      const tmpFile = self._tempFileFor(srcFile)
       await tar.c({
         file: tmpFile,
-        cwd: srcDir
+        cwd: srcDir,
+        filter
       }, [srcFile])
 
-      const self = this
       return new Promise((resolve, reject) => {
-        const execInstance = new k8s.Exec(this.kubeConfig)
+        localContext.reject = reject
+        self.resetTimeout(localContext, messagePrefix, timeoutMs)
+        const execInstance = new k8s.Exec(self.kubeConfig)
         const command = ['tar', 'xf', '-', '-C', destDir]
-        const readStream = fs.createReadStream(tmpFile)
-        const errStream = new sb.WritableStreamBuffer()
+        const inputStream = fs.createReadStream(tmpFile)
+        const errStream = new stream.PassThrough()
+        const inputPassthroughStream = new stream.PassThrough({ highWaterMark: 10 * 1024 * 1024 }) // Handle backpressure
 
-        execInstance.exec(namespace, podName, containerName, command, null, errStream, readStream, false,
-          async ({ status }) => {
-            if (status === 'Failure' || errStream.size()) {
-              self._deleteTempFile(tmpFile)
-            }
-          }).then(conn => {
-          conn.on('close', async (code, reason) => {
-            if (code !== 1000) { // code 1000 is the success code
-              return reject(new FullstackTestingError(`failed to copy because of error (${code}): ${reason}`))
-            }
+        // Use pipe() to automatically handle backpressure
+        inputStream.pipe(inputPassthroughStream)
 
-            return resolve(true)
+        execInstance.exec(namespace, podName, containerName, command, null, errStream, inputPassthroughStream, false,
+          ({ status }) => self.handleCallback(status, localContext, reject, messagePrefix))
+          .then(conn => {
+            self.logger.info(`${messagePrefix} connection established`)
+            localContext.connection = conn
+
+            self.registerConnectionOnError(localContext, reject, messagePrefix, conn)
+
+            self.registerConnectionOnMessage(localContext, messagePrefix, conn, timeoutMs)
+
+            conn.on('close', (code, reason) => {
+              self.logger.debug(`${messagePrefix} connection closed`)
+              if (code !== 1000) { // code 1000 is the success code
+                self.exitWithError(localContext.timeoutId, reject, `${messagePrefix} failed with code=${code}, reason=${reason}`)
+              }
+
+              // Cleanup temp file after successful copy
+              inputPassthroughStream.end() // End the passthrough stream
+              self._deleteTempFile(tmpFile) // Cleanup temp file
+              self.logger.info(`${messagePrefix} Successfully copied!`)
+              clearTimeout(localContext.timeoutId)
+              return resolve(true)
+            })
           })
 
-          conn.on('error', (e) => {
-            self._deleteTempFile(tmpFile)
-            return reject(new FullstackTestingError(`failed to copy file ${destPath} because of connection error: ${e.message}`, e))
-          })
-        })
+        self.registerStreamOnData(localContext, reject, messagePrefix, errStream)
+
+        self.registerStreamOnError(localContext, reject, messagePrefix, inputPassthroughStream)
       })
     } catch (e) {
-      throw new FullstackTestingError(`failed to copy file to ${podName}:${containerName} [${srcPath} -> ${destDir}]: ${e.message}`, e)
+      const errorMessage = `${messagePrefix} failed to upload file: ${e.message}`
+      self.logger.error(errorMessage, e)
+      clearTimeout(localContext.timeoutId)
+      throw new FullstackTestingError(errorMessage, e)
     }
   }
 
@@ -534,30 +639,40 @@ export class K8 {
    * @param {string} containerName
    * @param {string} srcPath - source file path in the container
    * @param {string} destDir - destination directory in the local
+   * @param {number} [timeoutMs] - copyFrom timeout, defaults to 5,500 ms
    * @returns {Promise<boolean>}
    */
-  async copyFrom (podName, containerName, srcPath, destDir) {
-    const namespace = this._getNamespace()
+  async copyFrom (podName, containerName, srcPath, destDir, timeoutMs = 5_500) {
+    const self = this
+    const namespace = self._getNamespace()
+    const guid = uuid4()
+    const messagePrefix = `copyFrom[${podName},${guid}]: `
+
+    if (timeoutMs < 0 || timeoutMs === 0) throw new MissingArgumentError('timeout cannot be negative or zero')
+    if (!await self.getPodByName(podName)) throw new IllegalArgumentError(`Invalid pod ${podName}`)
+
+    self.logger.info(`${messagePrefix}[srcPath=${srcPath}, destDir=${destDir}]`)
 
     // get stat for source file in the container
-    let entries = await this.listDir(podName, containerName, srcPath)
+    let entries = await self.listDir(podName, containerName, srcPath, timeoutMs)
     if (entries.length !== 1) {
-      throw new FullstackTestingError(`invalid source path: ${srcPath}`)
+      throw new FullstackTestingError(`${messagePrefix}invalid source path: ${srcPath}`)
     }
     // handle symbolic link
     if (entries[0].name.indexOf(' -> ') > -1) {
       const redirectSrcPath = path.join(path.dirname(srcPath), entries[0].name.substring(entries[0].name.indexOf(' -> ') + 4))
-      entries = await this.listDir(podName, containerName, redirectSrcPath)
+      entries = await self.listDir(podName, containerName, redirectSrcPath)
       if (entries.length !== 1) {
-        throw new FullstackTestingError(`invalid source path: ${redirectSrcPath}`)
+        throw new FullstackTestingError(`${messagePrefix}invalid source path: ${redirectSrcPath}`)
       }
     }
     const srcFileDesc = entries[0] // cache for later comparison after copy
 
     if (!fs.existsSync(destDir)) {
-      throw new FullstackTestingError(`invalid destination path: ${destDir}`)
+      throw new FullstackTestingError(`${messagePrefix}invalid destination path: ${destDir}`)
     }
 
+    const localContext = {}
     try {
       const srcFileSize = Number.parseInt(srcFileDesc.size)
 
@@ -566,35 +681,25 @@ export class K8 {
       const destPath = path.join(destDir, srcFile)
 
       // download the tar file to a temp location
-      const tmpFile = this._tempFileFor(srcFile)
+      const tmpFile = self._tempFileFor(srcFile)
 
-      const self = this
       return new Promise((resolve, reject) => {
-        const execInstance = new k8s.Exec(this.kubeConfig)
+        localContext.reject = reject
+        self.resetTimeout(localContext, messagePrefix, timeoutMs)
+        const execInstance = new k8s.Exec(self.kubeConfig)
         const command = ['cat', `${srcDir}/${srcFile}`]
         const outputFileStream = fs.createWriteStream(tmpFile)
         const outputPassthroughStream = new stream.PassThrough({ highWaterMark: 10 * 1024 * 1024 })
         const errStream = new stream.PassThrough()
-        let additionalErrorMessageDetail = ''
 
         // Use pipe() to automatically handle backpressure between streams
         outputPassthroughStream.pipe(outputFileStream)
 
-        outputPassthroughStream.on('data', (chunk) => {
-          this.logger.debug(`received chunk size=${chunk.length}`)
-          const canWrite = outputFileStream.write(chunk) // Write chunk to file and check if buffer is full
+        self.registerOutputPassthroughStreamOnData(localContext, messagePrefix, outputPassthroughStream, outputFileStream, timeoutMs)
 
-          if (!canWrite) {
-            console.log(`Buffer is full, pausing data stream... for copying from ${podName}:${srcDir}/${srcFile} to ${destPath}`)
-            outputPassthroughStream.pause() // Pause the data stream if buffer is full
-          }
-        })
+        self.registerOutputFileStreamOnDrain(localContext, messagePrefix, outputPassthroughStream, outputFileStream, timeoutMs)
 
-        outputFileStream.on('drain', () => {
-          outputPassthroughStream.resume()
-          this.logger.debug(`stream drained, resume write for copying from ${podName}:${srcDir}/${srcFile} to ${destPath}`)
-        })
-
+        self.logger.debug(`${messagePrefix} running...`)
         execInstance.exec(
           namespace,
           podName,
@@ -607,100 +712,58 @@ export class K8 {
           ({ status }) => {
             if (status === 'Failure') {
               self._deleteTempFile(tmpFile)
-              const errorMessage = `tar command failed with status Failure while copying from ${podName}:${srcDir}/${srcFile} to ${destPath}`
-              this.logger.error(errorMessage)
-              return reject(new FullstackTestingError(errorMessage))
+              self.exitWithError(localContext.timeoutId, reject, `${messagePrefix} Failure occurred`)
+            } else {
+              self.logger.debug(`${messagePrefix} callback(status)=${status}`)
             }
-            this.logger.debug(`copyFrom.callback(status)=${status}`)
           })
           .then(conn => {
+            self.logger.debug(`${messagePrefix} connection established`)
+            localContext.connection = conn
+
             conn.on('error', (e) => {
               self._deleteTempFile(tmpFile)
-              return reject(new FullstackTestingError(
-                  `failed copying from ${podName}:${srcDir}/${srcFile} to ${destPath} because of connection error: ${e.message}`, e))
+              self.exitWithError(localContext.timeoutId, reject, `${messagePrefix} failed, connection error: ${e.message}`)
             })
 
+            self.registerConnectionOnMessage(localContext, messagePrefix, conn, timeoutMs)
+
             conn.on('close', (code, reason) => {
-              this.logger.debug(`connection closed copying from ${podName}:${srcDir}/${srcFile} to ${destPath}`)
+              self.logger.debug(`${messagePrefix} connection closed`)
               if (code !== 1000) { // code 1000 is the success code
-                const errorMessage = `failed copying from ${podName}:${srcDir}/${srcFile} to ${destPath} because of error (${code}): ${reason}`
-                this.logger.error(errorMessage)
-                return reject(new FullstackTestingError(errorMessage))
+                self.exitWithError(localContext.timeoutId, reject, `${messagePrefix} failed with code=${code}, reason=${reason}`)
               }
 
               outputFileStream.end()
               outputFileStream.close(() => {
-                this.logger.debug(`finished closing writerStream copying from ${podName}:${srcDir}/${srcFile} to ${destPath}`)
-
                 try {
                   fs.copyFileSync(tmpFile, destPath)
 
                   self._deleteTempFile(tmpFile)
 
                   const stat = fs.statSync(destPath)
-                  let rejection
                   if (stat && stat.size === srcFileSize) {
-                    this.logger.info(`Finished successfully copying from ${podName}:${srcDir}/${srcFile} to ${destPath}`)
-                  } else {
-                    rejection = true
-                    if (!stat) {
-                      additionalErrorMessageDetail = ', statSync returned no file status for the destination file'
-                    } else {
-                      additionalErrorMessageDetail = `, stat.size=${stat.size} != srcFileSize=${srcFileSize}`
-                    }
+                    self.logger.debug(`${messagePrefix} finished`)
+                    clearTimeout(localContext.timeoutId)
+                    resolve(true)
                   }
 
-                  if (rejection) {
-                    const errorMessage = `failed copying from ${podName}:${srcDir}/${srcFile} to ${destPath} to download file completely: ${destPath}${additionalErrorMessageDetail}`
-                    this.logger.error(errorMessage)
-                    return reject(new FullstackTestingError(errorMessage))
-                  } else {
-                    return resolve(true)
-                  }
+                  self.exitWithError(localContext.timeoutId, reject, `${messagePrefix} files did not match, srcFileSize=${srcFileSize}, stat.size=${stat?.size}`)
                 } catch (e) {
-                  const errorMessage = `failed to complete copying from ${podName}:${srcDir}/${srcFile} to ${destPath} to extract file: ${destPath}`
-                  this.logger.error(errorMessage, e)
-                  return reject(new FullstackTestingError(errorMessage, e))
+                  self.exitWithError(localContext.timeoutId, reject, `${messagePrefix} failed to complete download`)
                 }
               })
             })
           })
 
-        errStream.on('data', (data) => {
-          const errorMessage = `error encountered copying from ${podName}:${srcDir}/${srcFile} to ${destPath}, error: ${data.toString()}`
-          this.logger.error(errorMessage)
-          return reject(new FullstackTestingError(errorMessage))
-        })
+        self.registerStreamOnData(localContext, reject, messagePrefix, errStream)
 
-        outputFileStream.on('close', () => {
-          this.logger.debug(`finished copying from ${podName}:${srcDir}/${srcFile} to ${destPath}`)
-        })
-
-        outputFileStream.on('error', (err) => {
-          const errorMessage = `writerStream error encountered copying from ${podName}:${srcDir}/${srcFile} to ${destPath}, err: ${err.toString()}`
-          this.logger.error(errorMessage, err)
-          return reject(new FullstackTestingError(errorMessage, err))
-        })
-
-        outputFileStream.on('end', () => {
-          this.logger.debug(`writerStream has ended for copying from ${podName}:${srcDir}/${srcFile} to ${destPath}`)
-        })
-
-        outputPassthroughStream.on('end', () => {
-          this.logger.debug(`writerPassthroughStream has ended for copying from ${podName}:${srcDir}/${srcFile} to ${destPath}`)
-        })
-
-        outputFileStream.on('finish', () => {
-          this.logger.debug(`stopping copy, writerStream has finished for copying from ${podName}:${srcDir}/${srcFile} to ${destPath}`)
-        })
-
-        outputPassthroughStream.on('finish', () => {
-          this.logger.debug(`stopping copy, writerPassthroughStream has finished for copying from ${podName}:${srcDir}/${srcFile} to ${destPath}`)
-        })
+        self.registerStreamOnError(localContext, reject, messagePrefix, outputFileStream)
       })
     } catch (e) {
-      const errorMessage = `failed to download file from ${podName}:${containerName} [${srcPath} -> ${destDir}]: ${e.message}`
-      this.logger.error(errorMessage, e)
+      const errorMessage = `${messagePrefix}failed to download file: ${e.message}`
+      self.logger.error(errorMessage, e)
+      clearTimeout(localContext.timeoutId)
       throw new FullstackTestingError(errorMessage, e)
     }
   }
@@ -714,45 +777,77 @@ export class K8 {
    * @param {number} [timeoutMs] - timout in milliseconds
    * @returns {Promise<string>} console output as string
    */
-  async execContainer (podName, containerName, command, timeoutMs = 1000) {
-    const ns = this._getNamespace()
+  async execContainer (podName, containerName, command, timeoutMs = 5_500) {
+    const self = this
+    const namespace = self._getNamespace()
+    const guid = uuid4()
+    const messagePrefix = `execContainer[${podName},${guid}]:`
+
     if (timeoutMs < 0 || timeoutMs === 0) throw new MissingArgumentError('timeout cannot be negative or zero')
+    if (!await self.getPodByName(podName)) throw new IllegalArgumentError(`Invalid pod ${podName}`)
+
     if (!command) throw new MissingArgumentError('command cannot be empty')
     if (!Array.isArray(command)) {
       command = command.split(' ')
     }
-    if (!await this.getPodByName(podName)) throw new IllegalArgumentError(`Invalid pod ${podName}`)
 
-    const self = this
+    self.logger.info(`${messagePrefix} begin... command=[${command.join(' ')}]`)
+
     return new Promise((resolve, reject) => {
-      const execInstance = new k8s.Exec(this.kubeConfig)
-      const outStream = new sb.WritableStreamBuffer()
-      const errStream = new sb.WritableStreamBuffer()
+      const localContext = {}
+      localContext.reject = reject
+      self.resetTimeout(localContext, messagePrefix, timeoutMs)
+      const execInstance = new k8s.Exec(self.kubeConfig)
+      const tmpFile = self._tempFileFor(`${podName}-output.txt`)
+      const outputFileStream = fs.createWriteStream(tmpFile)
+      const outputPassthroughStream = new stream.PassThrough({ highWaterMark: 10 * 1024 * 1024 })
+      const errPassthroughStream = new stream.PassThrough()
 
-      self.logger.debug(`Running exec ${podName} -c ${containerName} -- ${command.join(' ')}`)
+      // Use pipe() to automatically handle backpressure between streams
+      outputPassthroughStream.pipe(outputFileStream)
+
+      self.registerOutputPassthroughStreamOnData(localContext, messagePrefix, outputPassthroughStream, outputFileStream, timeoutMs)
+
+      self.registerOutputFileStreamOnDrain(localContext, messagePrefix, outputPassthroughStream, outputFileStream, timeoutMs)
+
+      self.logger.debug(`${messagePrefix} running...`)
       execInstance.exec(
-        ns,
+        namespace,
         podName,
         containerName,
         command,
-        outStream,
-        errStream,
+        outputFileStream,
+        errPassthroughStream,
         null,
         false,
-        ({ status }) => {
-          if (status === 'Failure' || errStream.size()) {
-            reject(new FullstackTestingError(`Exec error:
-              [exec ${podName} -c ${containerName} -- ${command.join(' ')}'] - error details:
-              ${errStream.getContentsAsString()}`))
-            return
-          }
+        ({ status }) => self.handleCallback(status, localContext, reject, messagePrefix))
+        .then(conn => {
+          self.logger.debug(`${messagePrefix} connection established`)
+          localContext.connection = conn
 
-          const output = outStream.getContentsAsString()
-          self.logger.debug(`Finished exec ${podName} -c ${containerName} -- ${command.join(' ')}`, { output })
+          self.registerConnectionOnError(localContext, reject, messagePrefix, conn)
 
-          resolve(output)
-        }
-      )
+          self.registerConnectionOnMessage(localContext, messagePrefix, conn, timeoutMs)
+
+          conn.on('close', (code, reason) => {
+            self.logger.debug(`${messagePrefix} connection closed`)
+            if (code !== 1000) { // code 1000 is the success code
+              self.exitWithError(localContext.timeoutId, reject, `${messagePrefix} failed with code=${code}, reason=${reason}`)
+            }
+
+            outputFileStream.end()
+            outputFileStream.close(() => {
+              self.logger.debug(`${messagePrefix} finished`)
+              const outData = fs.readFileSync(tmpFile)
+              clearTimeout(localContext.timeoutId)
+              resolve(outData.toString())
+            })
+          })
+        })
+
+      self.registerStreamOnData(localContext, reject, messagePrefix, errPassthroughStream)
+
+      self.registerStreamOnError(localContext, reject, messagePrefix, outputFileStream)
     })
   }
 

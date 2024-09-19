@@ -15,10 +15,8 @@
  *
  * @jest-environment steps
  */
-import { describe } from '@jest/globals'
-import { testNodeAdd } from '../../test_add.mjs'
+import { testNodeUpdate } from '../test_node_update.mjs'
 
-describe('Node add with released hedera', () => {
-  const localBuildPath = ''
-  testNodeAdd(localBuildPath)
-}, 180000)
+describe('Node update with hedera build', () => {
+  testNodeUpdate('build', false)
+})

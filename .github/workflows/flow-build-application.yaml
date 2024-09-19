@@ -77,7 +77,7 @@ jobs:
       coverage-subdirectory: ${{ needs.env-vars.outputs.e2e-standard-test-subdir }}
       coverage-report-name: ${{ needs.env-vars.outputs.e2e-standard-coverage-report }}
 
-  e2e-mirror-node-tests:
+  e2e-mirror-node-build-tests:
     name: E2E Tests
     if: ${{ github.event_name == 'push' || github.event.inputs.enable-e2e-tests == 'true' }}
     uses: ./.github/workflows/zxc-e2e-test.yaml
@@ -85,10 +85,23 @@ jobs:
       - env-vars
       - code-style
     with:
-      custom-job-label: Mirror Node
-      npm-test-script: test-${{ needs.env-vars.outputs.e2e-mirror-node-test-subdir }}
-      coverage-subdirectory: ${{ needs.env-vars.outputs.e2e-mirror-node-test-subdir }}
-      coverage-report-name: ${{ needs.env-vars.outputs.e2e-mirror-node-coverage-report }}
+      custom-job-label: Mirror Node Build
+      npm-test-script: test-${{ needs.env-vars.outputs.e2e-mirror-node-build-test-subdir }}
+      coverage-subdirectory: ${{ needs.env-vars.outputs.e2e-mirror-node-build-test-subdir }}
+      coverage-report-name: ${{ needs.env-vars.outputs.e2e-mirror-node-build-coverage-report }}
+
+  e2e-mirror-node-image-tests:
+    name: E2E Tests
+    if: ${{ github.event_name == 'push' || github.event.inputs.enable-e2e-tests == 'true' }}
+    uses: ./.github/workflows/zxc-e2e-test.yaml
+    needs:
+      - env-vars
+      - code-style
+    with:
+      custom-job-label: Mirror Node Image
+      npm-test-script: test-${{ needs.env-vars.outputs.e2e-mirror-node-image-test-subdir }}
+      coverage-subdirectory: ${{ needs.env-vars.outputs.e2e-mirror-node-image-test-subdir }}
+      coverage-report-name: ${{ needs.env-vars.outputs.e2e-mirror-node-image-coverage-report }}
 
   e2e-node-pem-stop-tests:
     name: E2E Tests
@@ -103,7 +116,7 @@ jobs:
       coverage-subdirectory: ${{ needs.env-vars.outputs.e2e-node-pem-stop-test-subdir }}
       coverage-report-name: ${{ needs.env-vars.outputs.e2e-node-pem-stop-coverage-report }}
 
-  e2e-node-pem-kill-tests:
+  e2e-node-pem-kill-build-tests:
     name: E2E Tests
     if: ${{ github.event_name == 'push' || github.event.inputs.enable-e2e-tests == 'true' }}
     uses: ./.github/workflows/zxc-e2e-test.yaml
@@ -111,12 +124,12 @@ jobs:
       - env-vars
       - code-style
     with:
-      custom-job-label: Node PEM Kill
-      npm-test-script: test-${{ needs.env-vars.outputs.e2e-node-pem-kill-test-subdir }}
-      coverage-subdirectory: ${{ needs.env-vars.outputs.e2e-node-pem-kill-test-subdir }}
-      coverage-report-name: ${{ needs.env-vars.outputs.e2e-node-pem-kill-coverage-report }}
+      custom-job-label: Node PEM Kill Build
+      npm-test-script: test-${{ needs.env-vars.outputs.e2e-node-pem-kill-build-test-subdir }}
+      coverage-subdirectory: ${{ needs.env-vars.outputs.e2e-node-pem-kill-build-test-subdir }}
+      coverage-report-name: ${{ needs.env-vars.outputs.e2e-node-pem-kill-build-coverage-report }}
 
-  e2e-node-local-build-tests:
+  e2e-node-pem-kill-image-tests:
     name: E2E Tests
     if: ${{ github.event_name == 'push' || github.event.inputs.enable-e2e-tests == 'true' }}
     uses: ./.github/workflows/zxc-e2e-test.yaml
@@ -124,12 +137,12 @@ jobs:
       - env-vars
       - code-style
     with:
-      custom-job-label: Node Local Build
-      npm-test-script: test-${{ needs.env-vars.outputs.e2e-node-local-build-test-subdir }}
-      coverage-subdirectory: ${{ needs.env-vars.outputs.e2e-node-local-build-test-subdir }}
-      coverage-report-name: ${{ needs.env-vars.outputs.e2e-node-local-build-coverage-report }}
+      custom-job-label: Node PEM Kill Image
+      npm-test-script: test-${{ needs.env-vars.outputs.e2e-node-pem-kill-image-test-subdir }}
+      coverage-subdirectory: ${{ needs.env-vars.outputs.e2e-node-pem-kill-image-test-subdir }}
+      coverage-report-name: ${{ needs.env-vars.outputs.e2e-node-pem-kill-image-coverage-report }}
 
-  e2e-node-add-tests:
+  e2e-node-local-hedera-tests:
     name: E2E Tests
     if: ${{ github.event_name == 'push' || github.event.inputs.enable-e2e-tests == 'true' }}
     uses: ./.github/workflows/zxc-e2e-test.yaml
@@ -137,12 +150,12 @@ jobs:
       - env-vars
       - code-style
     with:
-      custom-job-label: Node Add
-      npm-test-script: test-${{ needs.env-vars.outputs.e2e-node-add-test-subdir }}
-      coverage-subdirectory: ${{ needs.env-vars.outputs.e2e-node-add-test-subdir }}
-      coverage-report-name: ${{ needs.env-vars.outputs.e2e-node-add-coverage-report }}
+      custom-job-label: Node Local Hedera
+      npm-test-script: test-${{ needs.env-vars.outputs.e2e-node-local-hedera-test-subdir }}
+      coverage-subdirectory: ${{ needs.env-vars.outputs.e2e-node-local-hedera-test-subdir }}
+      coverage-report-name: ${{ needs.env-vars.outputs.e2e-node-local-hedera-coverage-report }}
 
-  e2e-node-add-separate-commands-tests:
+  e2e-node-local-ptt-tests:
     name: E2E Tests
     if: ${{ github.event_name == 'push' || github.event.inputs.enable-e2e-tests == 'true' }}
     uses: ./.github/workflows/zxc-e2e-test.yaml
@@ -150,12 +163,12 @@ jobs:
       - env-vars
       - code-style
     with:
-      custom-job-label: Node Add - Separate commands
-      npm-test-script: test-${{ needs.env-vars.outputs.e2e-node-add-separate-commands-test-subdir }}
-      coverage-subdirectory: ${{ needs.env-vars.outputs.e2e-node-add-separate-commands-test-subdir }}
-      coverage-report-name: ${{ needs.env-vars.outputs.e2e-node-add-separate-commands-coverage-report }}
+      custom-job-label: Node Local PTT
+      npm-test-script: test-${{ needs.env-vars.outputs.e2e-node-local-ptt-test-subdir }}
+      coverage-subdirectory: ${{ needs.env-vars.outputs.e2e-node-local-ptt-test-subdir }}
+      coverage-report-name: ${{ needs.env-vars.outputs.e2e-node-local-ptt-coverage-report }}
 
-  e2e-node-update-tests:
+  e2e-node-add-build-tests:
     name: E2E Tests
     if: ${{ github.event_name == 'push' || github.event.inputs.enable-e2e-tests == 'true' }}
     uses: ./.github/workflows/zxc-e2e-test.yaml
@@ -163,12 +176,12 @@ jobs:
       - env-vars
       - code-style
     with:
-      custom-job-label: Node Update
-      npm-test-script: test-${{ needs.env-vars.outputs.e2e-node-update-test-subdir }}
-      coverage-subdirectory: ${{ needs.env-vars.outputs.e2e-node-update-test-subdir }}
-      coverage-report-name: ${{ needs.env-vars.outputs.e2e-node-update-coverage-report }}
+      custom-job-label: Node Add Build
+      npm-test-script: test-${{ needs.env-vars.outputs.e2e-node-add-build-test-subdir }}
+      coverage-subdirectory: ${{ needs.env-vars.outputs.e2e-node-add-build-test-subdir }}
+      coverage-report-name: ${{ needs.env-vars.outputs.e2e-node-add-build-coverage-report }}
 
-  e2e-node-delete-tests:
+  e2e-node-add-image-tests:
     name: E2E Tests
     if: ${{ github.event_name == 'push' || github.event.inputs.enable-e2e-tests == 'true' }}
     uses: ./.github/workflows/zxc-e2e-test.yaml
@@ -176,12 +189,12 @@ jobs:
       - env-vars
       - code-style
     with:
-      custom-job-label: Node Delete
-      npm-test-script: test-${{ needs.env-vars.outputs.e2e-node-delete-test-subdir }}
-      coverage-subdirectory: ${{ needs.env-vars.outputs.e2e-node-delete-test-subdir }}
-      coverage-report-name: ${{ needs.env-vars.outputs.e2e-node-delete-coverage-report }}
+      custom-job-label: Node Add Image
+      npm-test-script: test-${{ needs.env-vars.outputs.e2e-node-add-image-test-subdir }}
+      coverage-subdirectory: ${{ needs.env-vars.outputs.e2e-node-add-image-test-subdir }}
+      coverage-report-name: ${{ needs.env-vars.outputs.e2e-node-add-image-coverage-report }}
 
-  e2e-relay-tests:
+  e2e-node-add-local-tests:
     name: E2E Tests
     if: ${{ github.event_name == 'push' || github.event.inputs.enable-e2e-tests == 'true' }}
     uses: ./.github/workflows/zxc-e2e-test.yaml
@@ -189,10 +202,114 @@ jobs:
       - env-vars
       - code-style
     with:
-      custom-job-label: Relay
-      npm-test-script: test-${{ needs.env-vars.outputs.e2e-relay-test-subdir }}
-      coverage-subdirectory: ${{ needs.env-vars.outputs.e2e-relay-test-subdir }}
-      coverage-report-name: ${{ needs.env-vars.outputs.e2e-relay-coverage-report }}
+      custom-job-label: Node Add Local
+      npm-test-script: test-${{ needs.env-vars.outputs.e2e-node-add-local-test-subdir }}
+      coverage-subdirectory: ${{ needs.env-vars.outputs.e2e-node-add-local-test-subdir }}
+      coverage-report-name: ${{ needs.env-vars.outputs.e2e-node-add-local-coverage-report }}
+
+  e2e-node-add-build-separate-commands-tests:
+    name: E2E Tests
+    if: ${{ github.event_name == 'push' || github.event.inputs.enable-e2e-tests == 'true' }}
+    uses: ./.github/workflows/zxc-e2e-test.yaml
+    needs:
+      - env-vars
+      - code-style
+    with:
+      custom-job-label: Node Add Build - Separate commands
+      npm-test-script: test-${{ needs.env-vars.outputs.e2e-node-add-build-separate-commands-test-subdir }}
+      coverage-subdirectory: ${{ needs.env-vars.outputs.e2e-node-add-build-separate-commands-test-subdir }}
+      coverage-report-name: ${{ needs.env-vars.outputs.e2e-node-add-build-separate-commands-coverage-report }}
+
+  e2e-node-add-image-separate-commands-tests:
+    name: E2E Tests
+    if: ${{ github.event_name == 'push' || github.event.inputs.enable-e2e-tests == 'true' }}
+    uses: ./.github/workflows/zxc-e2e-test.yaml
+    needs:
+      - env-vars
+      - code-style
+    with:
+      custom-job-label: Node Add Image - Separate commands
+      npm-test-script: test-${{ needs.env-vars.outputs.e2e-node-add-image-separate-commands-test-subdir }}
+      coverage-subdirectory: ${{ needs.env-vars.outputs.e2e-node-add-image-separate-commands-test-subdir }}
+      coverage-report-name: ${{ needs.env-vars.outputs.e2e-node-add-image-separate-commands-coverage-report }}
+
+  e2e-node-update-build-tests:
+    name: E2E Tests
+    if: ${{ github.event_name == 'push' || github.event.inputs.enable-e2e-tests == 'true' }}
+    uses: ./.github/workflows/zxc-e2e-test.yaml
+    needs:
+      - env-vars
+      - code-style
+    with:
+      custom-job-label: Node Update Build
+      npm-test-script: test-${{ needs.env-vars.outputs.e2e-node-update-build-test-subdir }}
+      coverage-subdirectory: ${{ needs.env-vars.outputs.e2e-node-update-build-test-subdir }}
+      coverage-report-name: ${{ needs.env-vars.outputs.e2e-node-update-build-coverage-report }}
+
+  e2e-node-update-image-tests:
+    name: E2E Tests
+    if: ${{ github.event_name == 'push' || github.event.inputs.enable-e2e-tests == 'true' }}
+    uses: ./.github/workflows/zxc-e2e-test.yaml
+    needs:
+      - env-vars
+      - code-style
+    with:
+      custom-job-label: Node Update Image
+      npm-test-script: test-${{ needs.env-vars.outputs.e2e-node-update-image-test-subdir }}
+      coverage-subdirectory: ${{ needs.env-vars.outputs.e2e-node-update-image-test-subdir }}
+      coverage-report-name: ${{ needs.env-vars.outputs.e2e-node-update-image-coverage-report }}
+
+  e2e-node-delete-build-tests:
+    name: E2E Tests
+    if: ${{ github.event_name == 'push' || github.event.inputs.enable-e2e-tests == 'true' }}
+    uses: ./.github/workflows/zxc-e2e-test.yaml
+    needs:
+      - env-vars
+      - code-style
+    with:
+      custom-job-label: Node Delete Build
+      npm-test-script: test-${{ needs.env-vars.outputs.e2e-node-delete-build-test-subdir }}
+      coverage-subdirectory: ${{ needs.env-vars.outputs.e2e-node-delete-build-test-subdir }}
+      coverage-report-name: ${{ needs.env-vars.outputs.e2e-node-delete-build-coverage-report }}
+
+  e2e-node-delete-image-tests:
+    name: E2E Tests
+    if: ${{ github.event_name == 'push' || github.event.inputs.enable-e2e-tests == 'true' }}
+    uses: ./.github/workflows/zxc-e2e-test.yaml
+    needs:
+      - env-vars
+      - code-style
+    with:
+      custom-job-label: Node Delete Image
+      npm-test-script: test-${{ needs.env-vars.outputs.e2e-node-delete-image-test-subdir }}
+      coverage-subdirectory: ${{ needs.env-vars.outputs.e2e-node-delete-image-test-subdir }}
+      coverage-report-name: ${{ needs.env-vars.outputs.e2e-node-delete-image-coverage-report }}
+
+  e2e-relay-build-tests:
+    name: E2E Tests
+    if: ${{ github.event_name == 'push' || github.event.inputs.enable-e2e-tests == 'true' }}
+    uses: ./.github/workflows/zxc-e2e-test.yaml
+    needs:
+      - env-vars
+      - code-style
+    with:
+      custom-job-label: Relay Build
+      npm-test-script: test-${{ needs.env-vars.outputs.e2e-relay-build-test-subdir }}
+      coverage-subdirectory: ${{ needs.env-vars.outputs.e2e-relay-build-test-subdir }}
+      coverage-report-name: ${{ needs.env-vars.outputs.e2e-relay-build-coverage-report }}
+
+  e2e-relay-image-tests:
+    name: E2E Tests
+    if: ${{ github.event_name == 'push' || github.event.inputs.enable-e2e-tests == 'true' }}
+    uses: ./.github/workflows/zxc-e2e-test.yaml
+    needs:
+      - env-vars
+      - code-style
+    with:
+      custom-job-label: Relay Image
+      npm-test-script: test-${{ needs.env-vars.outputs.e2e-relay-image-test-subdir }}
+      coverage-subdirectory: ${{ needs.env-vars.outputs.e2e-relay-image-test-subdir }}
+      coverage-report-name: ${{ needs.env-vars.outputs.e2e-relay-image-coverage-report }}
 
   analyze:
     name: Analyze
@@ -201,15 +318,24 @@ jobs:
       - env-vars
       - unit-tests
       - e2e-standard-tests
-      - e2e-mirror-node-tests
+      - e2e-mirror-node-build-tests
+      - e2e-mirror-node-image-tests
       - e2e-node-pem-stop-tests
-      - e2e-node-pem-kill-tests
-      - e2e-node-local-build-tests
-      - e2e-node-add-tests
-      - e2e-node-add-separate-commands-tests
-      - e2e-node-update-tests
-      - e2e-node-delete-tests
-      - e2e-relay-tests
+      - e2e-node-pem-kill-build-tests
+      - e2e-node-pem-kill-image-tests
+      - e2e-node-local-hedera-tests
+      - e2e-node-local-ptt-tests
+      - e2e-node-add-build-tests
+      - e2e-node-add-image-tests
+      - e2e-node-add-local-tests
+      - e2e-node-add-build-separate-commands-tests
+      - e2e-node-add-image-separate-commands-tests
+      - e2e-node-update-build-tests
+      - e2e-node-update-image-tests
+      - e2e-node-delete-build-tests
+      - e2e-node-delete-image-tests
+      - e2e-relay-build-tests
+      - e2e-relay-image-tests
     if: ${{ (github.event_name == 'push' || github.event.inputs.enable-unit-tests == 'true' || github.event.inputs.enable-e2e-tests == 'true') && !failure() && !cancelled() }}
     with:
       custom-job-label: Source Code
@@ -218,25 +344,43 @@ jobs:
       enable-codacy-coverage: true
       enable-e2e-coverage-report: ${{ github.event_name == 'push' || github.event.inputs.enable-e2e-tests == 'true' }}
       e2e-standard-test-subdir: ${{ needs.env-vars.outputs.e2e-standard-test-subdir }}
-      e2e-mirror-node-test-subdir: ${{ needs.env-vars.outputs.e2e-mirror-node-test-subdir }}
+      e2e-mirror-node-build-test-subdir: ${{ needs.env-vars.outputs.e2e-mirror-node-build-test-subdir }}
+      e2e-mirror-node-image-test-subdir: ${{ needs.env-vars.outputs.e2e-mirror-node-image-test-subdir }}
       e2e-node-pem-stop-test-subdir: ${{ needs.env-vars.outputs.e2e-node-pem-stop-test-subdir }}
-      e2e-node-pem-kill-test-subdir: ${{ needs.env-vars.outputs.e2e-node-pem-kill-test-subdir }}
-      e2e-node-local-build-test-subdir: ${{ needs.env-vars.outputs.e2e-node-local-build-test-subdir }}
-      e2e-node-add-test-subdir: ${{ needs.env-vars.outputs.e2e-node-add-test-subdir }}
-      e2e-node-add-separate-commands-test-subdir: ${{ needs.env-vars.outputs.e2e-node-add-separate-commands-test-subdir }}
-      e2e-node-update-test-subdir: ${{ needs.env-vars.outputs.e2e-node-update-test-subdir }}
-      e2e-node-delete-test-subdir: ${{ needs.env-vars.outputs.e2e-node-delete-test-subdir }}
-      e2e-relay-test-subdir: ${{ needs.env-vars.outputs.e2e-relay-test-subdir }}
+      e2e-node-pem-kill-build-test-subdir: ${{ needs.env-vars.outputs.e2e-node-pem-kill-build-test-subdir }}
+      e2e-node-pem-kill-image-test-subdir: ${{ needs.env-vars.outputs.e2e-node-pem-kill-image-test-subdir }}
+      e2e-node-local-hedera-test-subdir: ${{ needs.env-vars.outputs.e2e-node-local-hedera-test-subdir }}
+      e2e-node-local-ptt-test-subdir: ${{ needs.env-vars.outputs.e2e-node-local-ptt-test-subdir }}
+      e2e-node-add-build-test-subdir: ${{ needs.env-vars.outputs.e2e-node-add-build-test-subdir }}
+      e2e-node-add-image-test-subdir: ${{ needs.env-vars.outputs.e2e-node-add-image-test-subdir }}
+      e2e-node-add-local-test-subdir: ${{ needs.env-vars.outputs.e2e-node-add-local-test-subdir }}
+      e2e-node-add-build-separate-commands-test-subdir: ${{ needs.env-vars.outputs.e2e-node-add-build-separate-commands-test-subdir }}
+      e2e-node-add-image-separate-commands-test-subdir: ${{ needs.env-vars.outputs.e2e-node-add-image-separate-commands-test-subdir }}
+      e2e-node-update-build-test-subdir: ${{ needs.env-vars.outputs.e2e-node-update-build-test-subdir }}
+      e2e-node-update-image-test-subdir: ${{ needs.env-vars.outputs.e2e-node-update-image-test-subdir }}
+      e2e-node-delete-build-test-subdir: ${{ needs.env-vars.outputs.e2e-node-delete-build-test-subdir }}
+      e2e-node-delete-image-test-subdir: ${{ needs.env-vars.outputs.e2e-node-delete-image-test-subdir }}
+      e2e-relay-build-test-subdir: ${{ needs.env-vars.outputs.e2e-relay-build-test-subdir }}
+      e2e-relay-image-test-subdir: ${{ needs.env-vars.outputs.e2e-relay-image-test-subdir }}
       e2e-standard-coverage-report: ${{ needs.env-vars.outputs.e2e-standard-coverage-report }}
-      e2e-mirror-node-coverage-report: ${{ needs.env-vars.outputs.e2e-mirror-node-coverage-report }}
+      e2e-mirror-node-build-coverage-report: ${{ needs.env-vars.outputs.e2e-mirror-node-build-coverage-report }}
+      e2e-mirror-node-image-coverage-report: ${{ needs.env-vars.outputs.e2e-mirror-node-image-coverage-report }}
       e2e-node-pem-stop-coverage-report: ${{ needs.env-vars.outputs.e2e-node-pem-stop-coverage-report }}
-      e2e-node-pem-kill-coverage-report: ${{ needs.env-vars.outputs.e2e-node-pem-kill-coverage-report }}
-      e2e-node-local-build-coverage-report: ${{ needs.env-vars.outputs.e2e-node-local-build-coverage-report }}
-      e2e-node-add-coverage-report: ${{ needs.env-vars.outputs.e2e-node-add-coverage-report }}
-      e2e-node-add-separate-commands-coverage-report: ${{ needs.env-vars.outputs.e2e-node-add-separate-commands-coverage-report }}
-      e2e-node-update-coverage-report: ${{ needs.env-vars.outputs.e2e-node-update-coverage-report }}
-      e2e-node-delete-coverage-report: ${{ needs.env-vars.outputs.e2e-node-delete-coverage-report }}
-      e2e-relay-coverage-report: ${{ needs.env-vars.outputs.e2e-relay-coverage-report }}
+      e2e-node-pem-kill-build-coverage-report: ${{ needs.env-vars.outputs.e2e-node-pem-kill-build-coverage-report }}
+      e2e-node-pem-kill-image-coverage-report: ${{ needs.env-vars.outputs.e2e-node-pem-kill-image-coverage-report }}
+      e2e-node-local-hedera-coverage-report: ${{ needs.env-vars.outputs.e2e-node-local-hedera-coverage-report }}
+      e2e-node-local-ptt-coverage-report: ${{ needs.env-vars.outputs.e2e-node-local-ptt-coverage-report }}
+      e2e-node-add-build-coverage-report: ${{ needs.env-vars.outputs.e2e-node-add-build-coverage-report }}
+      e2e-node-add-image-coverage-report: ${{ needs.env-vars.outputs.e2e-node-add-image-coverage-report }}
+      e2e-node-add-local-coverage-report: ${{ needs.env-vars.outputs.e2e-node-add-local-coverage-report }}
+      e2e-node-add-build-separate-commands-coverage-report: ${{ needs.env-vars.outputs.e2e-node-add-build-separate-commands-coverage-report }}
+      e2e-node-add-image-separate-commands-coverage-report: ${{ needs.env-vars.outputs.e2e-node-add-image-separate-commands-coverage-report }}
+      e2e-node-update-build-coverage-report: ${{ needs.env-vars.outputs.e2e-node-update-build-coverage-report }}
+      e2e-node-update-image-coverage-report: ${{ needs.env-vars.outputs.e2e-node-update-image-coverage-report }}
+      e2e-node-delete-build-coverage-report: ${{ needs.env-vars.outputs.e2e-node-delete-build-coverage-report }}
+      e2e-node-delete-image-coverage-report: ${{ needs.env-vars.outputs.e2e-node-delete-image-coverage-report }}
+      e2e-relay-build-coverage-report: ${{ needs.env-vars.outputs.e2e-relay-build-coverage-report }}
+      e2e-relay-image-coverage-report: ${{ needs.env-vars.outputs.e2e-relay-image-coverage-report }}
     secrets:
       snyk-token: ${{ secrets.SNYK_TOKEN }}
       codecov-token: ${{ secrets.CODECOV_TOKEN }}
