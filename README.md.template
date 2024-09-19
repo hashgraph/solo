@@ -281,7 +281,12 @@ Once the nodes are up, you may now expose various services (using `k9s` (shift-f
 * HAProxy: `haproxy-<node ID>-svc`
   ```bash
   # enable portforwarding for haproxy
+  # node1 grpc port accessed by localhost:50211
   kubectl port-forward svc/haproxy-node1-svc -n "${SOLO_NAMESPACE}" 50211:50211 &
+  # node2 grpc port accessed by localhost:51211
+  kubectl port-forward svc/haproxy-node2-svc -n "${SOLO_NAMESPACE}" 51211:50211 &
+  # node3 grpc port accessed by localhost:52211
+  kubectl port-forward svc/haproxy-node3-svc -n "${SOLO_NAMESPACE}" 52211:50211 &
   ```
 * Envoy Proxy: `envoy-proxy-<node ID>-svc`
   ```bash
