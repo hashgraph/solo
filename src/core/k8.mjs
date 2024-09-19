@@ -778,7 +778,7 @@ export class K8 {
    * @param {number} [timeoutMs] - timout in milliseconds
    * @returns {Promise<string>} console output as string
    */
-  async execContainer (podName, containerName, command, timeoutMs = 5_500) {
+  async execContainer (podName, containerName, command, timeoutMs = 10_000) {
     const self = this
     const namespace = self._getNamespace()
     const guid = uuid4()
