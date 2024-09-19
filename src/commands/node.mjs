@@ -2367,7 +2367,7 @@ export class NodeCommand extends BaseCommand {
     }
     return {
       command: 'node',
-      desc: 'Manage Hedera platform node in fullstack testing network',
+      desc: 'Manage Hedera platform node in solo network',
       builder: yargs => {
         return yargs
           .command({
