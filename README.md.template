@@ -286,7 +286,9 @@ Once the nodes are up, you may now expose various services (using `k9s` (shift-f
 * Envoy Proxy: `envoy-proxy-<node ID>-svc`
   ```bash
   # enable portforwarding for haproxy
-  kubectl port-forward svc/envoy-proxy-node1-svc -n "${SOLO_NAMESPACE}" 8081:8080 &
+  kubectl port-forward svc/envoy-proxy-node1-svc -n "${SOLO_NAMESPACE}" 8181:8080 &
+  kubectl port-forward svc/envoy-proxy-node2-svc -n "${SOLO_NAMESPACE}" 8281:8080 &
+  kubectl port-forward svc/envoy-proxy-node3-svc -n "${SOLO_NAMESPACE}" 8381:8080 &
   ```
 * Hedera explorer: `fullstack-deployment-hedera-explorer`
   ```bash
