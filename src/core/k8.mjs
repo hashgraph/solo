@@ -548,7 +548,7 @@ export class K8 {
    * @param {number} [timeoutMs] - timeout, defaults to 5,500 ms
    * @returns {Promise<boolean>} return a Promise that performs the copy operation
    */
-  async copyTo (podName, containerName, srcPath, destDir, filter = undefined, timeoutMs = 10_000) {
+  async copyTo (podName, containerName, srcPath, destDir, filter = undefined, timeoutMs = 30_000) {
     const self = this
     const namespace = this._getNamespace()
     const guid = uuid4()
@@ -643,7 +643,7 @@ export class K8 {
    * @param {number} [timeoutMs] - copyFrom timeout, defaults to 5,500 ms
    * @returns {Promise<boolean>}
    */
-  async copyFrom (podName, containerName, srcPath, destDir, timeoutMs = 5_500) {
+  async copyFrom (podName, containerName, srcPath, destDir, timeoutMs = 30_000) {
     const self = this
     const namespace = self._getNamespace()
     const guid = uuid4()
