@@ -106,9 +106,6 @@ export class MirrorNodeCommand extends BaseCommand {
    */
   async prepareValuesArg (config) {
     let valuesArg = ''
-    if (config.valuesFile) {
-      valuesArg += this.prepareValuesFiles(config.valuesFile)
-    }
 
     const profileName = this.configManager.getFlag(flags.profileName)
     const profileValuesFile = await this.profileManager.prepareValuesForMirrorNodeChart(profileName)
@@ -122,6 +119,11 @@ export class MirrorNodeCommand extends BaseCommand {
     }
 
     valuesArg += ` --set hedera-mirror-node.enabled=true --set hedera-explorer.enabled=${config.deployHederaExplorer}`
+
+    if (config.valuesFile) {
+      valuesArg += this.prepareValuesFiles(config.valuesFile)
+    }
+
     return valuesArg
   }
 
@@ -447,7 +449,7 @@ export class MirrorNodeCommand extends BaseCommand {
     }
     return {
       command: 'mirror-node',
-      desc: 'Manage Hedera Mirror Node in fullstack testing network',
+      desc: 'Manage Hedera Mirror Node in solo network',
       builder: yargs => {
         return yargs
           .command({
