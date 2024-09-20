@@ -31,10 +31,11 @@ import fs from 'fs'
 
 describe('Node delete via separated commands', () => {
   const namespace = 'node-delete-separate'
-  const nodeId = 'node2'
+  const nodeId = 'node1'
   const argv = getDefaultArgv()
   argv[flags.nodeIDs.name] = 'node1,node2,node3,node4'
   argv[flags.nodeID.name] = nodeId
+  argv['nodeId'] = nodeId
   argv[flags.generateGossipKeys.name] = true
   argv[flags.generateTlsKeys.name] = true
   argv[flags.persistentVolumeClaims.name] = true
