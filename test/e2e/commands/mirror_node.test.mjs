@@ -100,6 +100,7 @@ describe('MirrorNodeCommand', () => {
       flags.hederaExplorerTlsLoadBalancerIp.constName,
       flags.profileFile.constName,
       flags.profileName.constName,
+      flags.quiet.constName,
       flags.tlsClusterIssuerType.constName
     ])
   }, 600000)

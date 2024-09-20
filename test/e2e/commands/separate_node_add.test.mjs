@@ -90,7 +90,8 @@ describe('Node add via separated commands should success', () => {
       flags.grpcEndpoints.constName,
       flags.adminKey.constName,
       'curDate',
-      'freezeAdminPrivateKey'
+      'freezeAdminPrivateKey',
+      flags.quiet.constName
     ])
     await nodeCmd.accountManager.close()
   }, 800000)

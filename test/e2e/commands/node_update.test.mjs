@@ -92,7 +92,8 @@ describe('Node update', () => {
     await nodeCmd.update(argv)
     expect(nodeCmd.getUnusedConfigs(NodeCommand.UPDATE_CONFIGS_NAME)).toEqual([
       flags.app.constName,
-      flags.devMode.constName
+      flags.devMode.constName,
+      flags.quiet.constName
     ])
     await nodeCmd.accountManager.close()
   }, 1800000)

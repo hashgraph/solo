@@ -763,7 +763,8 @@ export const quiet = {
     describe: 'Quiet mode, do not prompt for confirmation',
     defaultValue: false,
     alias: 'q',
-    type: 'boolean'
+    type: 'boolean',
+    disablePrompt: true
   }
 }
 

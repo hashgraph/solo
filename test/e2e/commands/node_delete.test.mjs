@@ -63,7 +63,8 @@ describe('Node delete', () => {
     expect(nodeCmd.getUnusedConfigs(NodeCommand.DELETE_CONFIGS_NAME)).toEqual([
       flags.app.constName,
       flags.devMode.constName,
-      flags.endpointType.constName
+      flags.endpointType.constName,
+      flags.quiet.constName
     ])
 
     await nodeCmd.accountManager.close()

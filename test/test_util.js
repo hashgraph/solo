@@ -224,7 +224,8 @@ export function bootstrapNetwork (testName, argv,
       await expect(nodeCmd.keys(argv)).resolves.toBeTruthy()
       expect(nodeCmd.getUnusedConfigs(NodeCommand.KEYS_CONFIGS_NAME)).toEqual([
         flags.cacheDir.constName,
-        flags.devMode.constName
+        flags.devMode.constName,
+        flags.quiet.constName
       ])
     }, 120000)
 
@@ -241,6 +242,7 @@ export function bootstrapNetwork (testName, argv,
         flags.log4j2Xml.constName,
         flags.profileFile.constName,
         flags.profileName.constName,
+        flags.quiet.constName,
         flags.settingTxt.constName
       ])
     }, 180000)
