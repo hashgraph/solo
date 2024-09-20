@@ -80,8 +80,8 @@ export function testNodeAdd (localBuildPath
         flags.app.constName,
         flags.chainId.constName,
         flags.devMode.constName,
-        flags.adminKey.constName,
-        flags.quiet.constName
+        flags.quiet.constName,
+        flags.adminKey.constName
       ])
       await nodeCmd.accountManager.close()
     }, 800000)
