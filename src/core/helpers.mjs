@@ -26,7 +26,7 @@ import * as semver from 'semver'
 import { Templates } from './templates.mjs'
 import { HEDERA_HAPI_PATH, ROOT_CONTAINER, SOLO_LOGS_DIR } from './constants.mjs'
 import { constants } from './index.mjs'
-import {FileContentsQuery, FileId, PrivateKey} from '@hashgraph/sdk'
+import { FileContentsQuery, FileId, PrivateKey } from '@hashgraph/sdk'
 
 // cache current directory
 const CUR_FILE_DIR = paths.dirname(fileURLToPath(import.meta.url))
@@ -443,4 +443,3 @@ export function deleteLoadContextParser (ctx, ctxData) {
   ctx.upgradeZipHash = ctxData.upgradeZipHash
   config.podNames = {}
 }
-

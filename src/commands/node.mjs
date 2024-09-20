@@ -249,7 +249,7 @@ export class NodeCommand extends BaseCommand {
 
   static get DELETE_FLAGS_LIST () {
     return [
-        ...NodeCommand.COMMON_DELETE_FLAGS_LIST
+      ...NodeCommand.COMMON_DELETE_FLAGS_LIST
     ]
   }
 
@@ -2640,7 +2640,6 @@ export class NodeCommand extends BaseCommand {
             }
           })
           .demandCommand(1, 'Select a node command')
-
       }
     }
   }
@@ -3056,25 +3055,25 @@ export class NodeCommand extends BaseCommand {
 
     return {
       title: 'Initialize',
-          task: async (ctx, task) => {
-      self.configManager.update(argv)
+      task: async (ctx, task) => {
+        self.configManager.update(argv)
 
-      // disable the prompts that we don't want to prompt the user for
-      prompts.disablePrompts([
-        flags.app,
-        flags.chainId,
-        flags.chartDirectory,
-        flags.devMode,
-        flags.debugNodeId,
-        flags.endpointType,
-        flags.force,
-        flags.fstChartVersion,
-        flags.localBuildPath
-      ])
+        // disable the prompts that we don't want to prompt the user for
+        prompts.disablePrompts([
+          flags.app,
+          flags.chainId,
+          flags.chartDirectory,
+          flags.devMode,
+          flags.debugNodeId,
+          flags.endpointType,
+          flags.force,
+          flags.fstChartVersion,
+          flags.localBuildPath
+        ])
 
-      await prompts.execute(task, self.configManager, NodeCommand.DELETE_FLAGS_LIST)
+        await prompts.execute(task, self.configManager, NodeCommand.DELETE_FLAGS_LIST)
 
-      /**
+        /**
        * @typedef {Object} NodeDeleteConfigClass
        * -- flags --
        * @property {string} app
@@ -3104,55 +3103,54 @@ export class NodeCommand extends BaseCommand {
        * -- methods --
        * @property {getUnusedConfigs} getUnusedConfigs
        */
-      /**
+        /**
        * @callback getUnusedConfigs
        * @returns {string[]}
        */
 
-          // create a config object for subsequent steps
-      const config = /** @type {NodeDeleteConfigClass} **/ this.getConfig(NodeCommand.DELETE_CONFIGS_NAME, NodeCommand.DELETE_FLAGS_LIST,
-              [
-                'adminKey',
-                'allNodeIds',
-                'existingNodeIds',
-                'freezeAdminPrivateKey',
-                'keysDir',
-                'nodeClient',
-                'nodeId',
-                'podNames',
-                'serviceMap',
-                'stagingDir',
-                'stagingKeysDir',
-                'treasuryKey'
-              ])
+        // create a config object for subsequent steps
+        const config = /** @type {NodeDeleteConfigClass} **/ this.getConfig(NodeCommand.DELETE_CONFIGS_NAME, NodeCommand.DELETE_FLAGS_LIST,
+          [
+            'adminKey',
+            'allNodeIds',
+            'existingNodeIds',
+            'freezeAdminPrivateKey',
+            'keysDir',
+            'nodeClient',
+            'nodeId',
+            'podNames',
+            'serviceMap',
+            'stagingDir',
+            'stagingKeysDir',
+            'treasuryKey'
+          ])
 
-      config.nodeId = argv.nodeId
-      config.curDate = new Date()
-      config.existingNodeIds = []
+        config.nodeId = argv.nodeId
+        config.curDate = new Date()
+        config.existingNodeIds = []
 
-      await self.initializeSetup(config, self.k8)
+        await self.initializeSetup(config, self.k8)
 
-      // set config in the context for later tasks to use
-      ctx.config = config
+        // set config in the context for later tasks to use
+        ctx.config = config
 
-      ctx.config.chartPath = await self.prepareChartPath(ctx.config.chartDirectory,
+        ctx.config.chartPath = await self.prepareChartPath(ctx.config.chartDirectory,
           constants.FULLSTACK_TESTING_CHART, constants.FULLSTACK_DEPLOYMENT_CHART)
 
-      // initialize Node Client with existing network nodes prior to adding the new node which isn't functioning, yet
-      ctx.config.nodeClient = await this.accountManager.loadNodeClient(ctx.config.namespace)
+        // initialize Node Client with existing network nodes prior to adding the new node which isn't functioning, yet
+        ctx.config.nodeClient = await this.accountManager.loadNodeClient(ctx.config.namespace)
 
-      const accountKeys = await this.accountManager.getAccountKeysFromSecret(FREEZE_ADMIN_ACCOUNT, config.namespace)
-      config.freezeAdminPrivateKey = accountKeys.privateKey
+        const accountKeys = await this.accountManager.getAccountKeysFromSecret(FREEZE_ADMIN_ACCOUNT, config.namespace)
+        config.freezeAdminPrivateKey = accountKeys.privateKey
 
-      const treasuryAccount = await this.accountManager.getTreasuryAccountKeys(config.namespace)
-      const treasuryAccountPrivateKey = treasuryAccount.privateKey
-      config.treasuryKey = PrivateKey.fromStringED25519(treasuryAccountPrivateKey)
+        const treasuryAccount = await this.accountManager.getTreasuryAccountKeys(config.namespace)
+        const treasuryAccountPrivateKey = treasuryAccount.privateKey
+        config.treasuryKey = PrivateKey.fromStringED25519(treasuryAccountPrivateKey)
 
-      self.logger.debug('Initialized config', { config })
-    }
+        self.logger.debug('Initialized config', { config })
+      }
     }
   }
-
 
   deletePrepareTasks (argv) {
     return [
@@ -3187,7 +3185,6 @@ export class NodeCommand extends BaseCommand {
         }
       }
     ]
-
   }
 
   deleteExecuteTasks (argv) {
@@ -3260,9 +3257,9 @@ export class NodeCommand extends BaseCommand {
             async (ctx, task) => {
               const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
               config.serviceMap = await self.accountManager.getNodeServiceMap(
-                  config.namespace)
+                config.namespace)
               config.podNames[config.nodeId] = config.serviceMap.get(
-                  config.nodeId).nodePodName
+                config.nodeId).nodePodName
               return self.fetchLocalOrReleasedPlatformSoftware(config.allNodeIds, config.podNames, config.releaseTag, task, config.localBuildPath)
             }
       },
@@ -3332,8 +3329,8 @@ export class NodeCommand extends BaseCommand {
             this.logger.debug(`Deleting node: ${config.nodeId} with account: ${deleteAccountId}`)
             const nodeId = Templates.nodeNumberFromNodeId(config.nodeId) - 1
             const nodeDeleteTx = await new NodeDeleteTransaction()
-                .setNodeId(nodeId)
-                .freezeWith(config.nodeClient)
+              .setNodeId(nodeId)
+              .freezeWith(config.nodeClient)
 
             const signedTx = await nodeDeleteTx.sign(config.adminKey)
             const txResp = await signedTx.execute(config.nodeClient)
@@ -3358,7 +3355,7 @@ export class NodeCommand extends BaseCommand {
           const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
           await this.freezeUpgradeNetworkNodes(config.freezeAdminPrivateKey, ctx.upgradeZipHash, config.nodeClient)
         }
-      },
+      }
     ]
   }
 
@@ -3433,14 +3430,13 @@ export class NodeCommand extends BaseCommand {
     return true
   }
 
-
   async delete (argv) {
     const self = this
 
     const tasks = new Listr([
-        ...self.deletePrepareTasks(argv),
-        ...self.deleteSubmitTransactionsTasks(argv),
-        ...self.deleteExecuteTasks(argv)
+      ...self.deletePrepareTasks(argv),
+      ...self.deleteSubmitTransactionsTasks(argv),
+      ...self.deleteExecuteTasks(argv)
     ], {
       concurrent: false,
       rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
