@@ -359,7 +359,7 @@ export class RelayCommand extends BaseCommand {
     }
     return {
       command: 'relay',
-      desc: 'Manage JSON RPC relays in fullstack testing network',
+      desc: 'Manage JSON RPC relays in solo network',
       builder: yargs => {
         return yargs
           .command({
