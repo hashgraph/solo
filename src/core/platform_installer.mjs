@@ -30,13 +30,13 @@ import chalk from 'chalk'
  */
 export class PlatformInstaller {
   /**
-   * @param {Logger} logger
+   * @param {SoloLogger} logger
    * @param {K8} k8
    * @param {ConfigManager} configManager
    * @param {AccountManager} accountManager
    */
   constructor (logger, k8, configManager, accountManager) {
-    if (!logger) throw new MissingArgumentError('an instance of core/Logger is required')
+    if (!logger) throw new MissingArgumentError('an instance of core/SoloLogger is required')
     if (!k8) throw new MissingArgumentError('an instance of core/K8 is required')
     if (!configManager) throw new MissingArgumentError('an instance of core/ConfigManager is required')
     if (!accountManager) throw new MissingArgumentError('an instance of core/AccountManager is required')
@@ -278,7 +278,7 @@ export class PlatformInstaller {
     return new Listr([
       {
         title: 'Set file permissions',
-        task: async (_, task) =>
+        task: async () =>
           await self.setPlatformDirPermissions(podName)
       }
     ],
@@ -310,7 +310,7 @@ export class PlatformInstaller {
     const subTasks = []
     subTasks.push({
       title: 'Copy TLS keys',
-      task: async (_, task) =>
+      task: async () =>
         await self.copyTLSKeys(nodeIds, stagingDir)
     })
 
@@ -319,7 +319,7 @@ export class PlatformInstaller {
         title: `Node: ${chalk.yellow(nodeId)}`,
         task: () => new Listr([{
           title: 'Copy Gossip keys',
-          task: async (_, task) =>
+          task: async () =>
             await self.copyGossipKeys(nodeId, stagingDir, nodeIds)
         }
         ],

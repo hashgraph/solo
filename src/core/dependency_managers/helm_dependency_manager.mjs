@@ -44,7 +44,7 @@ export class HelmDependencyManager extends ShellRunner {
   /**
    * @param {PackageDownloader} downloader
    * @param {Zippy} zippy
-   * @param {Logger} logger
+   * @param {SoloLogger} logger
    * @param {string} [installationDir]
    * @param {NodeJS.Platform} [osPlatform]
    * @param {string} [osArch]
@@ -63,7 +63,7 @@ export class HelmDependencyManager extends ShellRunner {
 
     if (!downloader) throw new MissingArgumentError('An instance of core/PackageDownloader is required')
     if (!zippy) throw new MissingArgumentError('An instance of core/Zippy is required')
-    if (!logger) throw new IllegalArgumentError('an instance of core/Logger is required', logger)
+    if (!logger) throw new IllegalArgumentError('an instance of core/SoloLogger is required', logger)
     if (!installationDir) throw new MissingArgumentError('installation directory is required')
 
     this.downloader = downloader

@@ -18,7 +18,7 @@
 import { ProcessOutput } from 'listr2'
 
 export class CustomProcessOutput extends ProcessOutput {
-  /** @param {Logger} logger */
+  /** @param {SoloLogger} logger */
   constructor (logger) {
     super()
     /** @private */

@@ -21,7 +21,7 @@ import fs from 'fs'
 import path from 'path'
 import { FullstackTestingError, IllegalArgumentError, MissingArgumentError } from './errors.mjs'
 import { constants } from './index.mjs'
-import { Logger } from './logging.mjs'
+import { SoloLogger } from './logging.mjs'
 import { Templates } from './templates.mjs'
 import * as helpers from './helpers.mjs'
 import chalk from 'chalk'
@@ -49,6 +49,7 @@ export class KeyManager {
     modulusLength: 3072
   }
 
+  /** @type {KeyUsage[]} */
   static SigningKeyUsage = ['sign', 'verify']
 
   static TLSKeyAlgo = {
@@ -58,6 +59,7 @@ export class KeyManager {
     modulusLength: 4096
   }
 
+  /** @type {KeyUsage[]} */
   static TLSKeyUsage = ['sign', 'verify']
   static TLSCertKeyUsages =
     x509.KeyUsageFlags.digitalSignature |
@@ -76,10 +78,10 @@ export class KeyManager {
   }
 
   /**
-   * @param {Logger} logger
+   * @param {SoloLogger} logger
    */
   constructor (logger) {
-    if (!logger || !(logger instanceof Logger)) throw new MissingArgumentError('An instance of core/Logger is required')
+    if (!logger || !(logger instanceof SoloLogger)) throw new MissingArgumentError('An instance of core/SoloLogger is required')
     this.logger = logger
   }
 
@@ -97,7 +99,7 @@ export class KeyManager {
    * Convert PEM private key into CryptoKey
    * @param {string} pemStr - PEM string
    * @param {*} algo - key algorithm
-   * @param {string[]} [keyUsages]
+   * @param {KeyUsage[]} [keyUsages]
    * @returns {Promise<CryptoKey>}
    */
   async convertPemToPrivateKey (pemStr, algo, keyUsages = ['sign']) {
@@ -283,7 +285,7 @@ export class KeyManager {
   /**
    * Generate signing key and certificate
    * @param {string} nodeId
-   * @returns {Promise<{NodeKeyObject>}
+   * @returns {Promise<NodeKeyObject>}
    */
   async generateSigningKey (nodeId) {
     try {
@@ -484,6 +486,11 @@ export class KeyManager {
     return this.loadNodeKey(nodeId, keysDir, KeyManager.TLSKeyAlgo, nodeKeyFiles, 'gRPC TLS')
   }
 
+  /**
+   * @param {PrivateKeyAndCertificateObject} nodeKey
+   * @param {string} destDir
+   * @returns {Promise<void>}
+   */
   async copyNodeKeysToStaging (nodeKey, destDir) {
     for (const keyFile of [nodeKey.privateKeyFile, nodeKey.certificateFile]) {
       if (!fs.existsSync(keyFile)) {
@@ -495,6 +502,12 @@ export class KeyManager {
     }
   }
 
+  /**
+   * @param {string} keysDir
+   * @param {string} stagingKeysDir
+   * @param {string[]} nodeIds
+   * @returns {Promise<void>}
+   */
   async copyGossipKeysToStaging (keysDir, stagingKeysDir, nodeIds) {
     // copy gossip keys to the staging
     for (const nodeId of nodeIds) {
@@ -508,13 +521,13 @@ export class KeyManager {
    *
    * WARNING: These tasks MUST run in sequence.
    *
-   * @param keytoolDepManager an instance of core/KeytoolDepManager
-   * @param nodeIds node ids
-   * @param keysDir keys directory
-   * @param curDate current date
-   * @param allNodeIds includes the nodeIds to get new keys as well as existing nodeIds that will be included in the public.pfx file
-   * @return a list of subtasks
-   * @private
+   * @param {KeytoolDependencyManager} keytoolDepManager - an instance of core/KeytoolDepManager
+   * @param {string[]} nodeIds - node ids
+   * @param {string} keysDir - keys directory
+   * @param {Date} [curDate] - current date
+   * @param {string[]} [allNodeIds] - includes the nodeIds to get new keys as well as existing nodeIds that will be included in the public.pfx file
+   * @returns {Object[]} a list of subtasks
+   * @public
    */
   taskGenerateGossipKeys (keytoolDepManager, nodeIds, keysDir, curDate = new Date(), allNodeIds = null) {
     allNodeIds = allNodeIds || nodeIds
@@ -552,7 +565,7 @@ export class KeyManager {
    * @param keysDir keys directory
    * @param curDate current date
    * @return return a list of subtasks
-   * @private
+   * @public
    */
   taskGenerateTLSKeys (nodeIds, keysDir, curDate = new Date()) {
     // check if nodeIds is an array of strings

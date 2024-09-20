@@ -24,10 +24,10 @@ import path from 'path'
 
 export class Zippy {
   /**
-   * @param {Logger} logger
+   * @param {SoloLogger} logger
    */
   constructor (logger) {
-    if (!logger) throw new Error('An instance of core/Logger is required')
+    if (!logger) throw new Error('An instance of core/SoloLogger is required')
     this.logger = logger
   }
 

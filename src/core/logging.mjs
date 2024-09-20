@@ -47,16 +47,15 @@ const customFormat = winston.format.combine(
   ),
 
   // Ignore log messages if they have { private: true }
-  winston.format((data, opts) =>
+  winston.format((data) =>
     data.private ? false : data
   )()
 )
 
-export class Logger {
+export class SoloLogger {
   /**
-   * Create a new logger
-   * @param {string} level logging level as supported by winston library:
-   * @param {boolean} devMode if true, show full stack traces in error messages
+   * @param {string} [level] - logging level as supported by winston library:
+   * @param {boolean} [devMode] - if true, show full stack traces in error messages
    * @constructor
    */
   constructor (level = 'debug', devMode = false) {
@@ -164,32 +163,36 @@ export class Logger {
   }
 
   /**
-   * @param {string} msg
-   * @param {*} args
+   * @param {*} msg
+   * @param {*} [args]
+   * @public
    */
   error (msg, ...args) {
     this.winstonLogger.error(msg, ...args, this.prepMeta())
   }
 
   /**
-   * @param {string} msg
-   * @param {*} args
+   * @param {*} msg
+   * @param {*} [args]
+   * @public
    */
   warn (msg, ...args) {
     this.winstonLogger.warn(msg, ...args, this.prepMeta())
   }
 
   /**
-   * @param {string} msg
-   * @param {*} args
+   * @param {*} msg
+   * @param {*} [args]
+   * @public
    */
   info (msg, ...args) {
     this.winstonLogger.info(msg, ...args, this.prepMeta())
   }
 
   /**
-   * @param {string} msg
-   * @param {*} args
+   * @param {*} msg
+   * @param {*} [args]
+   * @public
    */
   debug (msg, ...args) {
     this.winstonLogger.debug(msg, ...args, this.prepMeta())
@@ -199,6 +202,7 @@ export class Logger {
    * @param {string} title
    * @param {string[]} items
    * @returns {boolean}
+   * @public
    */
   showList (title, items = []) {
     this.showUser(chalk.green(`\n *** ${title} ***`))
@@ -216,6 +220,7 @@ export class Logger {
   /**
    * @param {string} title
    * @param {Object} obj
+   * @public
    */
   showJSON (title, obj) {
     this.showUser(chalk.green(`\n *** ${title} ***`))
@@ -227,9 +232,9 @@ export class Logger {
 /**
  * @param {string} [level]
  * @param {boolean} [devMode]
- * @returns {Logger}
+ * @returns {SoloLogger}
  * @constructor
  */
 export function NewLogger (level = 'debug', devMode = false) {
-  return new Logger(level, devMode)
+  return new SoloLogger(level, devMode)
 }

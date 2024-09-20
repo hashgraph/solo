@@ -57,10 +57,10 @@ export class BaseCommand extends ShellRunner {
   }
 
   /**
-   * @param {{logger: Logger, helm: Helm, k8: K8, chartManager: ChartManager, configManager: ConfigManager, depManager: DependencyManager}} opts
+   * @param {{logger: SoloLogger, helm: Helm, k8: K8, chartManager: ChartManager, configManager: ConfigManager, depManager: DependencyManager}} opts
    */
   constructor (opts) {
-    if (!opts || !opts.logger) throw new Error('An instance of core/Logger is required')
+    if (!opts || !opts.logger) throw new Error('An instance of core/SoloLogger is required')
     if (!opts || !opts.helm) throw new Error('An instance of core/Helm is required')
     if (!opts || !opts.k8) throw new Error('An instance of core/K8 is required')
     if (!opts || !opts.chartManager) throw new Error('An instance of core/ChartManager is required')

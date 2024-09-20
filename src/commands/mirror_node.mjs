@@ -25,8 +25,8 @@ import { getFileContents, getEnvValue } from '../core/helpers.mjs'
 
 export class MirrorNodeCommand extends BaseCommand {
   /**
-   * @param {{accountManager: AccountManager, profileManager: ProfileManager, logger: Logger, helm: Helm, k8: K8,
-   * hartManager: ChartManager, configManager: ConfigManager, depManager: DependencyManager,
+   * @param {{accountManager: AccountManager, profileManager: ProfileManager, logger: SoloLogger, helm: Helm, k8: K8,
+   * chartManager: ChartManager, configManager: ConfigManager, depManager: DependencyManager,
    * downloader: PackageDownloader}} opts
    */
   constructor (opts) {

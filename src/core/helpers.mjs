@@ -171,6 +171,8 @@ export function makeBackup (fileMap = new Map(), removeOld = true) {
  */
 export function backupOldTlsKeys (nodeIds, keysDir, curDate = new Date(), dirPrefix = 'tls') {
   const backupDir = createBackupDir(keysDir, `unused-${dirPrefix}`, curDate)
+
+  /** @type {Map<string, string>} */
   const fileMap = new Map()
   for (const nodeId of nodeIds) {
     const srcPath = path.join(keysDir, Templates.renderTLSPemPrivateKeyFile(nodeId))
@@ -192,6 +194,8 @@ export function backupOldTlsKeys (nodeIds, keysDir, curDate = new Date(), dirPre
  */
 export function backupOldPemKeys (nodeIds, keysDir, curDate = new Date(), dirPrefix = 'gossip-pem') {
   const backupDir = createBackupDir(keysDir, `unused-${dirPrefix}`, curDate)
+
+  /** @type {Map<string, string>} */
   const fileMap = new Map()
   for (const nodeId of nodeIds) {
     const srcPath = path.join(keysDir, Templates.renderGossipPemPrivateKeyFile(nodeId))

@@ -15,14 +15,14 @@
  *
  */
 import { describe, expect, it, jest } from '@jest/globals'
-import { NewLogger, Logger } from '../../../src/core/logging.mjs'
+import { NewLogger, SoloLogger } from '../../../src/core/logging.mjs'
 import winston from 'winston'
 
 describe('Logging', () => {
   it('should log at correct severity', () => {
     const loggerSpy = jest.spyOn(winston.Logger.prototype, 'log').mockImplementation()
     const logger = NewLogger('debug')
-    expect(logger).toBeInstanceOf(Logger)
+    expect(logger).toBeInstanceOf(SoloLogger)
     expect(logger).toBeDefined()
     const meta = logger.prepMeta()
 

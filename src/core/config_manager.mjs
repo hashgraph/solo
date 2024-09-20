@@ -18,7 +18,7 @@
 import fs from 'fs'
 import { FullstackTestingError, MissingArgumentError } from './errors.mjs'
 import { constants } from './index.mjs'
-import { Logger } from './logging.mjs'
+import { SoloLogger } from './logging.mjs'
 import * as flags from '../commands/flags.mjs'
 import * as paths from 'path'
 import * as helpers from './helpers.mjs'
@@ -31,11 +31,11 @@ import * as helpers from './helpers.mjs'
  */
 export class ConfigManager {
   /**
-   * @param {Logger} logger
+   * @param {SoloLogger} logger
    * @param {PathLike} cachedConfigFile
    */
   constructor (logger, cachedConfigFile = constants.SOLO_CONFIG_FILE) {
-    if (!logger || !(logger instanceof Logger)) throw new MissingArgumentError('An instance of core/Logger is required')
+    if (!logger || !(logger instanceof SoloLogger)) throw new MissingArgumentError('An instance of core/SoloLogger is required')
     if (!cachedConfigFile) throw new MissingArgumentError('cached config file path is required')
 
     this.logger = logger
