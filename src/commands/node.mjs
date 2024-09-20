@@ -287,7 +287,6 @@ export class NodeCommand extends BaseCommand {
       flags.endpointType,
       flags.localBuildPath,
       flags.namespace,
-      flags.nodeID,
       flags.releaseTag
     ]
   }
@@ -1944,14 +1943,12 @@ export class NodeCommand extends BaseCommand {
     return {
       title: 'Load context data',
       task: async (ctx, task) => {
-        if (argv.importCtxData) {
-          const inputDir = argv[flags.inputDir.name]
-          if (!inputDir) {
-            throw new FullstackTestingError(`Path to context data not specified. Please set a value for --${flags.inputDir.name}`)
-          }
-          const ctxData = JSON.parse(fs.readFileSync(path.join(inputDir, targetFile)))
-          parser(ctx, ctxData)
+        const inputDir = argv[flags.inputDir.name]
+        if (!inputDir) {
+          throw new FullstackTestingError(`Path to context data not specified. Please set a value for --${flags.inputDir.name}`)
         }
+        const ctxData = JSON.parse(fs.readFileSync(path.join(inputDir, targetFile)))
+        parser(ctx, ctxData)
       }
     }
   }
@@ -2184,7 +2181,6 @@ export class NodeCommand extends BaseCommand {
   async addSubmitTransactions (argv) {
     const self = this
 
-    argv.importCtxData = true
     const transactionTasks = this.getAddTransactionTasks(argv)
     const tasks = new Listr([
       self.addInitializeTask(argv),
@@ -2210,7 +2206,6 @@ export class NodeCommand extends BaseCommand {
   async addExecute (argv) {
     const self = this
 
-    argv.importCtxData = true
     const executeTasks = this.getAddExecuteTasks(argv)
     const tasks = new Listr([
       self.addInitializeTask(argv),
@@ -2574,7 +2569,7 @@ export class NodeCommand extends BaseCommand {
           .command({
             command: 'delete',
             desc: 'Delete a node with a specific version of Hedera platform',
-            builder: y => flags.setCommandFlags(y, ...NodeCommand.DELETE_FLAGS_LIST),
+            builder: y => flags.setCommandFlags(y, ...NodeCommand.DELETE_FLAGS_LIST.concat(flags.nodeID)),
             handler: argv => {
               nodeCmd.logger.debug('==== Running \'node delete\' ===')
               nodeCmd.logger.debug(argv)
@@ -2591,7 +2586,7 @@ export class NodeCommand extends BaseCommand {
           .command({
             command: 'delete-prepare',
             desc: 'Prepares the deletion of a node with a specific version of Hedera platform',
-            builder: y => flags.setCommandFlags(y, ...NodeCommand.DELETE_PREPARE_FLAGS_LIST),
+            builder: y => flags.setCommandFlags(y, ...NodeCommand.DELETE_PREPARE_FLAGS_LIST.concat(flags.nodeID)),
             handler: argv => {
               nodeCmd.logger.debug('==== Running \'node add\' ===')
               nodeCmd.logger.debug(argv)
@@ -3118,6 +3113,7 @@ export class NodeCommand extends BaseCommand {
                 'freezeAdminPrivateKey',
                 'keysDir',
                 'nodeClient',
+                'nodeId',
                 'podNames',
                 'serviceMap',
                 'stagingDir',
@@ -3125,6 +3121,7 @@ export class NodeCommand extends BaseCommand {
                 'treasuryKey'
               ])
 
+      config.nodeId = argv.nodeId
       config.curDate = new Date()
       config.existingNodeIds = []
 
@@ -3192,6 +3189,13 @@ export class NodeCommand extends BaseCommand {
     const self = this
 
     return [
+      {
+        title: 'Download generated files from an existing node',
+        task: async (ctx, task) => {
+          const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
+          await this.downloadNodeGeneratedFiles(config)
+        }
+      },
       {
         title: 'Prepare staging directory',
         task: async (ctx, parentTask) => {
@@ -3341,13 +3345,6 @@ export class NodeCommand extends BaseCommand {
         task: async (ctx, task) => {
           const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
           await this.prepareUpgradeNetworkNodes(config.freezeAdminPrivateKey, ctx.upgradeZipHash, config.nodeClient)
-        }
-      },
-      {
-        title: 'Download generated files from an existing node',
-        task: async (ctx, task) => {
-          const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
-          await this.downloadNodeGeneratedFiles(config)
         }
       },
       {

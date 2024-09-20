@@ -26,7 +26,7 @@ import * as semver from 'semver'
 import { Templates } from './templates.mjs'
 import { HEDERA_HAPI_PATH, ROOT_CONTAINER, SOLO_LOGS_DIR } from './constants.mjs'
 import { constants } from './index.mjs'
-import { FileContentsQuery, FileId } from '@hashgraph/sdk'
+import {FileContentsQuery, FileId, PrivateKey} from '@hashgraph/sdk'
 
 // cache current directory
 const CUR_FILE_DIR = paths.dirname(fileURLToPath(import.meta.url))
@@ -419,22 +419,11 @@ export function addLoadContextParser (ctx, ctxData) {
 export function deleteSaveContextParser (ctx) {
   const exportedCtx = {}
 
-  const config = /** @type {NodeAddConfigClass} **/ ctx.config
-  const exportedFields = [
-    'tlsCertHash',
-    'upgradeZipHash',
-    'newNode'
-  ]
-
-  exportedCtx.signingCertDer = ctx.signingCertDer.toString()
-  exportedCtx.gossipEndpoints = ctx.gossipEndpoints.map(ep => `${ep.getDomainName}:${ep.getPort}`)
-  exportedCtx.grpcServiceEndpoints = ctx.grpcServiceEndpoints.map(ep => `${ep.getDomainName}:${ep.getPort}`)
-  exportedCtx.adminKey = ctx.adminKey.toString()
+  const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
+  exportedCtx.adminKey = config.adminKey.toString()
   exportedCtx.existingNodeIds = config.existingNodeIds
-
-  for (const prop of exportedFields) {
-    exportedCtx[prop] = ctx[prop]
-  }
+  exportedCtx.upgradeZipHash = ctx.upgradeZipHash
+  exportedCtx.nodeId = config.nodeId
   return exportedCtx
 }
 
@@ -446,23 +435,12 @@ export function deleteSaveContextParser (ctx) {
  * @returns file writable object
  */
 export function deleteLoadContextParser (ctx, ctxData) {
-  const config = /** @type {NodeAddConfigClass} **/ ctx.config
-  ctx.signingCertDer = new Uint8Array(ctxData.signingCertDer.split(','))
-  ctx.gossipEndpoints = this.prepareEndpoints(ctx.config.endpointType, ctxData.gossipEndpoints, constants.HEDERA_NODE_INTERNAL_GOSSIP_PORT)
-  ctx.grpcServiceEndpoints = this.prepareEndpoints(ctx.config.endpointType, ctxData.grpcServiceEndpoints, constants.HEDERA_NODE_EXTERNAL_GOSSIP_PORT)
-  ctx.adminKey = PrivateKey.fromStringED25519(ctxData.adminKey)
-  config.nodeId = ctxData.newNode.name
+  const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
+  config.adminKey = PrivateKey.fromStringED25519(ctxData.adminKey)
+  config.nodeId = ctxData.nodeId
   config.existingNodeIds = ctxData.existingNodeIds
-  config.allNodeIds = [...config.existingNodeIds, ctxData.newNode.name]
-
-  const fieldsToImport = [
-    'tlsCertHash',
-    'upgradeZipHash',
-    'newNode'
-  ]
-
-  for (const prop of fieldsToImport) {
-    ctx[prop] = ctxData[prop]
-  }
+  config.allNodeIds = ctxData.existingNodeIds
+  ctx.upgradeZipHash = ctxData.upgradeZipHash
+  config.podNames = {}
 }
 
