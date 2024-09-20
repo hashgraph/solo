@@ -47,7 +47,6 @@ import {
   NodeCreateTransaction,
   NodeUpdateTransaction,
   NodeDeleteTransaction,
-  ServiceEndpoint,
   Timestamp
 } from '@hashgraph/sdk'
 import * as crypto from 'crypto'
@@ -1040,45 +1039,6 @@ export class NodeCommand extends BaseCommand {
     }
   }
 
-  /**
-   * @param {string} endpointType
-   * @param {string[]} endpoints
-   * @param {number} defaultPort
-   * @returns {ServiceEndpoint[]}
-   */
-  prepareEndpoints (endpointType, endpoints, defaultPort) {
-    const ret = /** @typedef ServiceEndpoint **/[]
-    for (const endpoint of endpoints) {
-      const parts = endpoint.split(':')
-
-      let url = ''
-      let port = defaultPort
-
-      if (parts.length === 2) {
-        url = parts[0].trim()
-        port = parts[1].trim()
-      } else if (parts.length === 1) {
-        url = parts[0]
-      } else {
-        throw new FullstackTestingError(`incorrect endpoint format. expected url:port, found ${endpoint}`)
-      }
-
-      if (endpointType.toUpperCase() === constants.ENDPOINT_TYPE_IP) {
-        ret.push(new ServiceEndpoint({
-          port,
-          ipAddressV4: helpers.parseIpAddressToUint8Array(url)
-        }))
-      } else {
-        ret.push(new ServiceEndpoint({
-          port,
-          domainName: url
-        }))
-      }
-    }
-
-    return ret
-  }
-
   // List of Commands
   /**
    * @param {Object} argv
@@ -1884,7 +1844,7 @@ export class NodeCommand extends BaseCommand {
             endpoints = helpers.splitFlagInput(config.gossipEndpoints)
           }
 
-          ctx.gossipEndpoints = this.prepareEndpoints(config.endpointType, endpoints, constants.HEDERA_NODE_INTERNAL_GOSSIP_PORT)
+          ctx.gossipEndpoints = helpers.prepareEndpoints(config.endpointType, endpoints, constants.HEDERA_NODE_INTERNAL_GOSSIP_PORT)
         }
       },
       {
@@ -1905,7 +1865,7 @@ export class NodeCommand extends BaseCommand {
             endpoints = helpers.splitFlagInput(config.grpcEndpoints)
           }
 
-          ctx.grpcServiceEndpoints = this.prepareEndpoints(config.endpointType, endpoints, constants.HEDERA_NODE_EXTERNAL_GOSSIP_PORT)
+          ctx.grpcServiceEndpoints = helpers.prepareEndpoints(config.endpointType, endpoints, constants.HEDERA_NODE_EXTERNAL_GOSSIP_PORT)
         }
       },
       {
@@ -2782,7 +2742,7 @@ export class NodeCommand extends BaseCommand {
             endpoints = helpers.splitFlagInput(config.gossipEndpoints)
           }
 
-          ctx.gossipEndpoints = this.prepareEndpoints(config.endpointType, endpoints, constants.HEDERA_NODE_INTERNAL_GOSSIP_PORT)
+          ctx.gossipEndpoints = helpers.prepareEndpoints(config.endpointType, endpoints, constants.HEDERA_NODE_INTERNAL_GOSSIP_PORT)
         }
       },
       {
@@ -2803,7 +2763,7 @@ export class NodeCommand extends BaseCommand {
             endpoints = helpers.splitFlagInput(config.grpcEndpoints)
           }
 
-          ctx.grpcServiceEndpoints = this.prepareEndpoints(config.endpointType, endpoints, constants.HEDERA_NODE_EXTERNAL_GOSSIP_PORT)
+          ctx.grpcServiceEndpoints = helpers.prepareEndpoints(config.endpointType, endpoints, constants.HEDERA_NODE_EXTERNAL_GOSSIP_PORT)
         }
       },
       {

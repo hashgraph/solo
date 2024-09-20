@@ -26,7 +26,7 @@ import * as semver from 'semver'
 import { Templates } from './templates.mjs'
 import { HEDERA_HAPI_PATH, ROOT_CONTAINER, SOLO_LOGS_DIR } from './constants.mjs'
 import { constants } from './index.mjs'
-import { FileContentsQuery, FileId, PrivateKey } from '@hashgraph/sdk'
+import { FileContentsQuery, FileId, PrivateKey, ServiceEndpoint } from '@hashgraph/sdk'
 
 // cache current directory
 const CUR_FILE_DIR = paths.dirname(fileURLToPath(import.meta.url))
@@ -442,4 +442,43 @@ export function deleteLoadContextParser (ctx, ctxData) {
   config.allNodeIds = ctxData.existingNodeIds
   ctx.upgradeZipHash = ctxData.upgradeZipHash
   config.podNames = {}
+}
+
+/**
+ * @param {string} endpointType
+ * @param {string[]} endpoints
+ * @param {number} defaultPort
+ * @returns {ServiceEndpoint[]}
+ */
+export function prepareEndpoints (endpointType, endpoints, defaultPort) {
+  const ret = /** @typedef ServiceEndpoint **/[]
+  for (const endpoint of endpoints) {
+    const parts = endpoint.split(':')
+
+    let url = ''
+    let port = defaultPort
+
+    if (parts.length === 2) {
+      url = parts[0].trim()
+      port = parts[1].trim()
+    } else if (parts.length === 1) {
+      url = parts[0]
+    } else {
+      throw new FullstackTestingError(`incorrect endpoint format. expected url:port, found ${endpoint}`)
+    }
+
+    if (endpointType.toUpperCase() === constants.ENDPOINT_TYPE_IP) {
+      ret.push(new ServiceEndpoint({
+        port,
+        ipAddressV4: parseIpAddressToUint8Array(url)
+      }))
+    } else {
+      ret.push(new ServiceEndpoint({
+        port,
+        domainName: url
+      }))
+    }
+  }
+
+  return ret
 }
