@@ -31,7 +31,7 @@ import fs from 'fs'
 
 describe('Node delete via separated commands', () => {
   const namespace = 'node-delete-separate'
-  const nodeId = 'node1'
+  const nodeId = 'node2'
   const argv = getDefaultArgv()
   argv[flags.nodeIDs.name] = 'node1,node2,node3,node4'
   argv[flags.nodeID.name] = nodeId

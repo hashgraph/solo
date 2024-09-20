@@ -392,8 +392,8 @@ export function addSaveContextParser (ctx) {
 export function addLoadContextParser (ctx, ctxData) {
   const config = /** @type {NodeAddConfigClass} **/ ctx.config
   ctx.signingCertDer = new Uint8Array(ctxData.signingCertDer.split(','))
-  ctx.gossipEndpoints = this.prepareEndpoints(ctx.config.endpointType, ctxData.gossipEndpoints, constants.HEDERA_NODE_INTERNAL_GOSSIP_PORT)
-  ctx.grpcServiceEndpoints = this.prepareEndpoints(ctx.config.endpointType, ctxData.grpcServiceEndpoints, constants.HEDERA_NODE_EXTERNAL_GOSSIP_PORT)
+  ctx.gossipEndpoints = prepareEndpoints(ctx.config.endpointType, ctxData.gossipEndpoints, constants.HEDERA_NODE_INTERNAL_GOSSIP_PORT)
+  ctx.grpcServiceEndpoints = prepareEndpoints(ctx.config.endpointType, ctxData.grpcServiceEndpoints, constants.HEDERA_NODE_EXTERNAL_GOSSIP_PORT)
   ctx.adminKey = PrivateKey.fromStringED25519(ctxData.adminKey)
   config.nodeId = ctxData.newNode.name
   config.existingNodeIds = ctxData.existingNodeIds
