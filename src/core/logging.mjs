@@ -42,20 +42,17 @@ const customFormat = winston.format.combine(
   })(),
 
   // use custom format TIMESTAMP [LABEL] LEVEL: MESSAGE
-  winston.format.printf(data => {
-    return `${data.timestamp}|${data.level}| ${data.message}`
-  }),
+  winston.format.printf(data =>
+    `${data.timestamp}|${data.level}| ${data.message}`
+  ),
 
   // Ignore log messages if they have { private: true }
-  winston.format((data, opts) => {
-    if (data.private) {
-      return false
-    }
-    return data
-  })()
+  winston.format((data, opts) =>
+    data.private ? false : data
+  )()
 )
 
-export const Logger = class {
+export class Logger {
   /**
    * Create a new logger
    * @param {string} level logging level as supported by winston library:
@@ -101,12 +98,13 @@ export const Logger = class {
     this.winstonLogger.setLevel(level)
   }
 
+  /** @returns {string} */
   nextTraceId () {
     this.traceId = uuidv4()
   }
 
   /**
-   * @param {Object|undefined} meta
+   * @param {Object} [meta]
    * @returns {Object}
    */
   prepMeta (meta) {
