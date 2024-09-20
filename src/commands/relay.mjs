@@ -67,7 +67,7 @@ export class RelayCommand extends BaseCommand {
 
   /**
    * @param {string} valuesFile
-   * @param {string} nodeIDs
+   * @param {string[]} nodeIDs
    * @param {string} chainID
    * @param {string} relayRelease
    * @param {number} replicaCount
@@ -78,9 +78,6 @@ export class RelayCommand extends BaseCommand {
    */
   async prepareValuesArg (valuesFile, nodeIDs, chainID, relayRelease, replicaCount, operatorID, operatorKey, namespace) {
     let valuesArg = ''
-    if (valuesFile) {
-      valuesArg += this.prepareValuesFiles(valuesFile)
-    }
 
     const profileName = this.configManager.getFlag(flags.profileName)
     const profileValuesFile = await this.profileManager.prepareValuesForRpcRelayChart(profileName)
@@ -120,6 +117,11 @@ export class RelayCommand extends BaseCommand {
 
     const networkJsonString = await this.prepareNetworkJsonString(nodeIDs, namespace)
     valuesArg += ` --set config.HEDERA_NETWORK='${networkJsonString}'`
+
+    if (valuesFile) {
+      valuesArg += this.prepareValuesFiles(valuesFile)
+    }
+
     return valuesArg
   }
 
@@ -357,7 +359,7 @@ export class RelayCommand extends BaseCommand {
     }
     return {
       command: 'relay',
-      desc: 'Manage JSON RPC relays in fullstack testing network',
+      desc: 'Manage JSON RPC relays in solo network',
       builder: yargs => {
         return yargs
           .command({

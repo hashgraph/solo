@@ -141,7 +141,7 @@ solo init -t v0.54.0-alpha.4 -i node1,node2,node3 -n "${SOLO_NAMESPACE}" -s "${S
 ```
 
 ******************************* Solo *********************************************
-Version			: 0.30.0
+Version			: 0.30.1
 Kubernetes Context	: kind-solo
 Kubernetes Cluster	: kind-solo
 Kubernetes Namespace	: solo
@@ -169,7 +169,7 @@ solo node keys --gossip-keys --tls-keys
 ```
 
 ******************************* Solo *********************************************
-Version			: 0.30.0
+Version			: 0.30.1
 Kubernetes Context	: kind-solo
 Kubernetes Cluster	: kind-solo
 Kubernetes Namespace	: solo
@@ -205,7 +205,7 @@ solo cluster setup
 ```
 
 ******************************* Solo *********************************************
-Version			: 0.30.0
+Version			: 0.30.1
 Kubernetes Context	: kind-solo
 Kubernetes Cluster	: kind-solo
 Kubernetes Namespace	: solo
@@ -230,7 +230,7 @@ solo network deploy
 ```
 
 ******************************* Solo *********************************************
-Version			: 0.30.0
+Version			: 0.30.1
 Kubernetes Context	: kind-solo
 Kubernetes Cluster	: kind-solo
 Kubernetes Namespace	: solo
@@ -239,21 +239,21 @@ Kubernetes Namespace	: solo
 ✔ Copy Gossip keys to staging
 ✔ Copy gRPC TLS keys to staging
 ✔ Prepare staging directory
-✔ Copy TLS keys
 ✔ Copy Gossip keys
 ✔ Node: node1
-✔ Copy Gossip keys
-✔ Node: node3
+✔ Copy TLS keys
 ✔ Copy Gossip keys
 ✔ Node: node2
+✔ Copy Gossip keys
+✔ Node: node3
 ✔ Copy node keys to secrets
 ✔ Install chart 'fullstack-deployment'
 ✔ Check Node: node1
 ✔ Check Node: node2
 ✔ Check Node: node3
 ✔ Check node pods are running
-✔ Check Envoy Proxy for: node3
 ✔ Check Envoy Proxy for: node1
+✔ Check Envoy Proxy for: node3
 ✔ Check Envoy Proxy for: node2
 ✔ Check HAProxy for: node1
 ✔ Check HAProxy for: node3
@@ -275,26 +275,26 @@ solo node setup
 ```
 
 ******************************* Solo *********************************************
-Version			: 0.30.0
+Version			: 0.30.1
 Kubernetes Context	: kind-solo
 Kubernetes Cluster	: kind-solo
 Kubernetes Namespace	: solo
 **********************************************************************************
 ✔ Initialize
-✔ Check network pod: node3
 ✔ Check network pod: node1
 ✔ Check network pod: node2
+✔ Check network pod: node3
 ✔ Identify network pods
-✔ Update node: node3 [ platformVersion = v0.54.0-alpha.4 ]
 ✔ Update node: node1 [ platformVersion = v0.54.0-alpha.4 ]
+✔ Update node: node3 [ platformVersion = v0.54.0-alpha.4 ]
 ✔ Update node: node2 [ platformVersion = v0.54.0-alpha.4 ]
 ✔ Fetch platform software into network nodes
 ✔ Set file permissions
 ✔ Node: node1
 ✔ Set file permissions
-✔ Node: node2
-✔ Set file permissions
 ✔ Node: node3
+✔ Set file permissions
+✔ Node: node2
 ✔ Setup network nodes
 ```
 
@@ -309,23 +309,23 @@ solo node start
 ```
 
 ******************************* Solo *********************************************
-Version			: 0.30.0
+Version			: 0.30.1
 Kubernetes Context	: kind-solo
 Kubernetes Cluster	: kind-solo
 Kubernetes Namespace	: solo
 **********************************************************************************
 ✔ Initialize
-✔ Check network pod: node3
 ✔ Check network pod: node1
 ✔ Check network pod: node2
+✔ Check network pod: node3
 ✔ Identify existing network nodes
+✔ Start node: node1
 ✔ Start node: node2
 ✔ Start node: node3
-✔ Start node: node1
 ✔ Starting nodes
-✔ Check network pod: node1  - status ACTIVE, attempt: 16/120
 ✔ Check network pod: node2  - status ACTIVE, attempt: 16/120
 ✔ Check network pod: node3  - status ACTIVE, attempt: 17/120
+✔ Check network pod: node1  - status ACTIVE, attempt: 17/120
 ✔ Check nodes are ACTIVE
 ✔ Check proxy for node: node1
 ✔ Check proxy for node: node2
@@ -348,7 +348,7 @@ solo mirror-node deploy
 ```
 
 ******************************* Solo *********************************************
-Version			: 0.30.0
+Version			: 0.30.1
 Kubernetes Context	: kind-solo
 Kubernetes Cluster	: kind-solo
 Kubernetes Namespace	: solo
@@ -361,8 +361,8 @@ Kubernetes Namespace	: solo
 ✔ Check Postgres DB
 ✔ Check GRPC
 ✔ Check REST API
-✔ Check Monitor
 ✔ Check Importer
+✔ Check Monitor
 ✔ Check pods are ready
 ✔ Insert data in public.file_data
 ✔ Seed DB data
@@ -379,7 +379,7 @@ solo relay deploy
 ```
 
 ******************************* Solo *********************************************
-Version			: 0.30.0
+Version			: 0.30.1
 Kubernetes Context	: kind-solo
 Kubernetes Cluster	: kind-solo
 Kubernetes Namespace	: solo
@@ -454,7 +454,7 @@ Example output
 ```
 
 ******************************* Solo *********************************************
-Version			: 0.30.0
+Version			: 0.30.1
 Kubernetes Context	: kind-solo
 Kubernetes Cluster	: kind-solo
 Kubernetes Namespace	: solo

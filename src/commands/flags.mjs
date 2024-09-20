@@ -96,18 +96,6 @@ export const namespace = {
 }
 
 /** @type {CommandFlag} **/
-export const deployMirrorNode = {
-  constName: 'deployMirrorNode',
-  name: 'mirror-node',
-  definition: {
-    describe: 'Deploy mirror node',
-    defaultValue: true,
-    alias: 'm',
-    type: 'boolean'
-  }
-}
-
-/** @type {CommandFlag} **/
 export const deployHederaExplorer = {
   constName: 'deployHederaExplorer',
   name: 'hedera-explorer',
@@ -767,6 +755,16 @@ export const adminKey = {
   }
 }
 
+/** @type {CommandFlag} **/
+export const mirrorNodeVersion = {
+  constName: 'mirrorNodeVersion',
+  name: 'mirror-node-version',
+  definition: {
+    describe: 'Mirror node chart version',
+    defaultValue: '',
+    type: 'string'
+  }
+}
 /** @type {CommandFlag[]} **/
 export const allFlags = [
   accountId,
@@ -789,7 +787,6 @@ export const allFlags = [
   deployHederaExplorer,
   deployJsonRpcRelay,
   deployMinio,
-  deployMirrorNode,
   deployPrometheusStack,
   devMode,
   ecdsaPrivateKey,
@@ -828,7 +825,8 @@ export const allFlags = [
   tlsPrivateKey,
   tlsPublicKey,
   updateAccountKeys,
-  valuesFile
+  valuesFile,
+  mirrorNodeVersion
 ]
 
 /**

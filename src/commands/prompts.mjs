@@ -241,14 +241,6 @@ export async function promptDeployCertManagerCrds (task, input) {
     flags.deployCertManagerCrds.name)
 }
 
-export async function promptDeployMirrorNode (task, input) {
-  return await promptToggle(task, input,
-    flags.deployMirrorNode.definition.defaultValue,
-    'Would you like to deploy Hedera Mirror Node? ',
-    null,
-    flags.deployMirrorNode.name)
-}
-
 export async function promptDeployHederaExplorer (task, input) {
   return await promptToggle(task, input,
     flags.deployHederaExplorer.definition.defaultValue,
@@ -429,6 +421,14 @@ export async function promptPersistentVolumeClaims (task, input) {
     flags.persistentVolumeClaims.name)
 }
 
+export async function promptMirrorNodeVersion (task, input) {
+  return await promptToggle(task, input,
+    flags.mirrorNodeVersion.definition.defaultValue,
+    'Would you like to choose mirror node version? ',
+    null,
+    flags.mirrorNodeVersion.name)
+}
+
 /**
  * @returns {Map<string, Function>}
  */
@@ -446,7 +446,6 @@ export function getPromptMap () {
     .set(flags.deployCertManagerCrds.name, promptDeployCertManagerCrds)
     .set(flags.deployHederaExplorer.name, promptDeployHederaExplorer)
     .set(flags.deployMinio.name, promptDeployMinio)
-    .set(flags.deployMirrorNode.name, promptDeployMirrorNode)
     .set(flags.deployPrometheusStack.name, promptDeployPrometheusStack)
     .set(flags.enableHederaExplorerTls.name, promptEnableHederaExplorerTls)
     .set(flags.enablePrometheusSvcMonitor.name, promptEnablePrometheusSvcMonitor)
@@ -473,6 +472,7 @@ export function getPromptMap () {
     .set(flags.gossipEndpoints.name, promptGossipEndpoints)
     .set(flags.grpcEndpoints.name, promptGrpcEndpoints)
     .set(flags.endpointType.name, promptEndpointType)
+    .set(flags.mirrorNodeVersion.name, promptMirrorNodeVersion)
 }
 
 // build the prompt registry

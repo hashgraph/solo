@@ -815,10 +815,15 @@ export class NodeCommand extends BaseCommand {
     // copy the config.txt file from the node1 upgrade directory
     await this.k8.copyFrom(node1FullyQualifiedPodName, constants.ROOT_CONTAINER, `${constants.HEDERA_HAPI_PATH}/data/upgrade/current/config.txt`, config.stagingDir)
 
-    const signedKeyFiles = (await this.k8.listDir(node1FullyQualifiedPodName, constants.ROOT_CONTAINER, `${constants.HEDERA_HAPI_PATH}/data/upgrade/current`)).filter(file => file.name.startsWith(constants.SIGNING_KEY_PREFIX))
-    await this.k8.execContainer(node1FullyQualifiedPodName, constants.ROOT_CONTAINER, ['bash', '-c', `mkdir -p ${constants.HEDERA_HAPI_PATH}/data/keys_backup && cp ${constants.HEDERA_HAPI_PATH}/data/keys/..data/* ${constants.HEDERA_HAPI_PATH}/data/keys_backup/`])
+    // if directory data/upgrade/current/data/keys does not exist then use data/upgrade/current
+    let keyDir = `${constants.HEDERA_HAPI_PATH}/data/upgrade/current/data/keys`
+    if (!await this.k8.hasDir(node1FullyQualifiedPodName, constants.ROOT_CONTAINER, keyDir)) {
+      keyDir = `${constants.HEDERA_HAPI_PATH}/data/upgrade/current`
+    }
+    const signedKeyFiles = (await this.k8.listDir(node1FullyQualifiedPodName, constants.ROOT_CONTAINER, keyDir)).filter(file => file.name.startsWith(constants.SIGNING_KEY_PREFIX))
+    await this.k8.execContainer(node1FullyQualifiedPodName, constants.ROOT_CONTAINER, ['bash', '-c', `mkdir -p ${constants.HEDERA_HAPI_PATH}/data/keys_backup && cp -r ${keyDir} ${constants.HEDERA_HAPI_PATH}/data/keys_backup/`])
     for (const signedKeyFile of signedKeyFiles) {
-      await this.k8.copyFrom(node1FullyQualifiedPodName, constants.ROOT_CONTAINER, `${constants.HEDERA_HAPI_PATH}/data/upgrade/current/${signedKeyFile.name}`, `${config.keysDir}`)
+      await this.k8.copyFrom(node1FullyQualifiedPodName, constants.ROOT_CONTAINER, `${keyDir}/${signedKeyFile.name}`, `${config.keysDir}`)
     }
 
     if (await this.k8.hasFile(node1FullyQualifiedPodName, constants.ROOT_CONTAINER, `${constants.HEDERA_HAPI_PATH}/data/upgrade/current/application.properties`)) {
@@ -2366,7 +2371,7 @@ export class NodeCommand extends BaseCommand {
     }
     return {
       command: 'node',
-      desc: 'Manage Hedera platform node in fullstack testing network',
+      desc: 'Manage Hedera platform node in solo network',
       builder: yargs => {
         return yargs
           .command({
