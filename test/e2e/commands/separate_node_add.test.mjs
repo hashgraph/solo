@@ -88,10 +88,10 @@ describe('Node add via separated commands should success', () => {
       flags.generateTlsKeys.constName,
       flags.gossipEndpoints.constName,
       flags.grpcEndpoints.constName,
+      flags.quiet.constName,
       flags.adminKey.constName,
       'curDate',
-      'freezeAdminPrivateKey',
-      flags.quiet.constName
+      'freezeAdminPrivateKey'
     ])
     await nodeCmd.accountManager.close()
   }, 800000)

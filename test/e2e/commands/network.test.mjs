@@ -107,6 +107,7 @@ describe('NetworkCommand', () => {
         flags.log4j2Xml.constName,
         flags.profileFile.constName,
         flags.profileName.constName,
+        flags.quiet.constName,
         flags.settingTxt.constName
       ])
     } catch (e) {
