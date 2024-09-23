@@ -61,7 +61,8 @@ export class MirrorNodeCommand extends BaseCommand {
       flags.profileName,
       flags.quiet,
       flags.tlsClusterIssuerType,
-      flags.valuesFile
+      flags.valuesFile,
+      flags.mirrorNodeVersion
     ]
   }
 
@@ -119,6 +120,10 @@ export class MirrorNodeCommand extends BaseCommand {
         config.hederaExplorerTlsLoadBalancerIp, config.hederaExplorerTlsHostName)
     }
 
+    if (config.mirrorNodeVersion) {
+      valuesArg += ` --set global.image.tag=${config.mirrorNodeVersion}`
+    }
+
     valuesArg += ` --set hedera-mirror-node.enabled=true --set hedera-explorer.enabled=${config.deployHederaExplorer}`
 
     if (config.valuesFile) {
@@ -150,7 +155,8 @@ export class MirrorNodeCommand extends BaseCommand {
             flags.hederaExplorerTlsHostName,
             flags.hederaExplorerTlsLoadBalancerIp,
             flags.tlsClusterIssuerType,
-            flags.valuesFile
+            flags.valuesFile,
+            flags.mirrorNodeVersion
           ])
 
           if (!MirrorNodeCommand.DEPLOY_FLAGS_LIST.includes(flags.quiet)) {
@@ -174,6 +180,7 @@ export class MirrorNodeCommand extends BaseCommand {
            * -- extra args --
            * @property {string} chartPath
            * @property {string} valuesArg
+           * @property {string} mirrorNodeVersion
            * -- methods --
            * @property {getUnusedConfigs} getUnusedConfigs
            */

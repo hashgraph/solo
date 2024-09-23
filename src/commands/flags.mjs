@@ -769,6 +769,17 @@ export const quiet = {
 }
 
 /** @type {CommandFlag[]} **/
+export const mirrorNodeVersion = {
+  constName: 'mirrorNodeVersion',
+  name: 'mirror-node-version',
+  definition: {
+    describe: 'Mirror node chart version',
+    defaultValue: '',
+    type: 'string'
+  }
+}
+
+/** @type {CommandFlag[]} **/
 export const allFlags = [
   accountId,
   amount,
@@ -828,7 +839,8 @@ export const allFlags = [
   tlsPrivateKey,
   tlsPublicKey,
   updateAccountKeys,
-  valuesFile
+  valuesFile,
+  mirrorNodeVersion
 ]
 
 /**
