@@ -442,6 +442,8 @@ export class NodeCommand extends BaseCommand {
         `[ attempt = ${chalk.blueBright(`${attempt}/${maxAttempts}`)} ]`)
     }
 
+    await sleep(1_500) // delaying prevents - gRPC service error
+
     return podName
   }
 
