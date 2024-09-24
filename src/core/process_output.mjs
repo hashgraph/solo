@@ -17,6 +17,11 @@
 'use strict'
 import { ProcessOutput } from 'listr2'
 
+/**
+ * Uses the solo logger to handle process output from Listr2
+ * @class CustomProcessOutput
+ * @augments ProcessOutput
+ */
 export class CustomProcessOutput extends ProcessOutput {
   /** @param {SoloLogger} logger */
   constructor (logger) {
@@ -25,21 +30,15 @@ export class CustomProcessOutput extends ProcessOutput {
     this._logger = logger
   }
 
-  /**
-   * @param {Buffer<string|number>} chunk
-   * @param {string} encoding
-   * @param {process.stdout.fd|process.stderr.fd|unknown} fd
-   */
-  write (chunk, encoding, fd) {
-    const message = chunk.toString()
+  /** @inheritDoc */
+  toStdout (chunk, eol = true) {
+    this._logger.debug(chunk.toString())
+    return super.toStdout(chunk, eol)
+  }
 
-    // Capture stdout as debug, stderr as error
-    if (fd === process.stdout.fd) {
-      this._logger.debug(`Listr Process stdout: ${message}`)
-    } else if (fd === process.stderr.fd) {
-      this._logger.error(`Listr Process stderr: ${message}`)
-    } else {
-      this._logger.info(`Listr Process log: ${message}`)
-    }
+  /** @inheritDoc */
+  toStderr (chunk, eol = true) {
+    this._logger.error(chunk.toString())
+    return super.toStderr(chunk, eol)
   }
 }
