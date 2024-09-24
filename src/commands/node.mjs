@@ -23,7 +23,7 @@ import path from 'path'
 import { FullstackTestingError, IllegalArgumentError } from '../core/errors.mjs'
 import * as helpers from '../core/helpers.mjs'
 import {
-  addDebugOptions,
+  addDebugOptions, commandActionBuilder, commandBuilder,
   getNodeAccountMap,
   getNodeLogs,
   renameAndCopyFile,
@@ -59,6 +59,7 @@ import {
   LOCAL_HOST
 } from '../core/constants.mjs'
 import { NodeStatusCodes, NodeStatusEnums } from '../core/enumerations.mjs'
+import {NodeCommandTasks} from './node/tasks.mjs'
 
 /**
  * Defines the core functionalities of 'node' command
@@ -87,6 +88,11 @@ export class NodeCommand extends BaseCommand {
     this.keytoolDepManager = opts.keytoolDepManager
     this.profileManager = opts.profileManager
     this._portForwards = []
+
+    this.tasks = new NodeCommandTasks({
+      logger: opts.logger,
+      accountManager: opts.accountManager
+    })
   }
 
   /**
@@ -1978,21 +1984,8 @@ export class NodeCommand extends BaseCommand {
           }
         }
       },
-      {
-        title: 'Send prepare upgrade transaction',
-        task: async (ctx, task) => {
-          const config = /** @type {NodeAddConfigClass} **/ ctx.config
-          await this.prepareUpgradeNetworkNodes(config.freezeAdminPrivateKey, ctx.upgradeZipHash, config.nodeClient)
-        }
-      },
-      {
-        title: 'Send freeze upgrade transaction',
-        task: async (ctx, task) => {
-          const config = /** @type {NodeAddConfigClass} **/ ctx.config
-          await this.freezeUpgradeNetworkNodes(config.freezeAdminPrivateKey, ctx.upgradeZipHash, config.nodeClient)
-        }
-      }
-
+      this.tasks.sendPrepareUpgradeTransaction(),
+      this.tasks.sendFreezeUpgradeTransaction()
     ]
   }
 
@@ -2261,75 +2254,16 @@ export class NodeCommand extends BaseCommand {
     return true
   }
 
-  /**
-   * @param {PrivateKey|string} freezeAdminPrivateKey
-   * @param {Uint8Array|string} upgradeZipHash
-   * @param {NodeClient} client
-   * @returns {Promise<void>}
-   */
-  async prepareUpgradeNetworkNodes (freezeAdminPrivateKey, upgradeZipHash, client) {
-    try {
-      // transfer some tiny amount to the freeze admin account
-      await this.accountManager.transferAmount(constants.TREASURY_ACCOUNT_ID, FREEZE_ADMIN_ACCOUNT, 100000)
 
-      // query the balance
-      const balance = await new AccountBalanceQuery()
-        .setAccountId(FREEZE_ADMIN_ACCOUNT)
-        .execute(this.accountManager._nodeClient)
-      this.logger.debug(`Freeze admin account balance: ${balance.hbars}`)
+  async prepareUpgrade(argv) {
+    const action = helpers.commandActionBuilder([
+        this.tasks.sendPrepareUpgradeTransaction()
+    ],  {
+      concurrent: false,
+      rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
+    }, 'preparing node upgrade').bind(this)
 
-      // set operator of freeze transaction as freeze admin account
-      client.setOperator(FREEZE_ADMIN_ACCOUNT, freezeAdminPrivateKey)
-
-      const prepareUpgradeTx = await new FreezeTransaction()
-        .setFreezeType(FreezeType.PrepareUpgrade)
-        .setFileId(constants.UPGRADE_FILE_ID)
-        .setFileHash(upgradeZipHash)
-        .freezeWith(client)
-        .execute(client)
-
-      const prepareUpgradeReceipt = await prepareUpgradeTx.getReceipt(client)
-
-      this.logger.debug(
-          `sent prepare upgrade transaction [id: ${prepareUpgradeTx.transactionId.toString()}]`,
-          prepareUpgradeReceipt.status.toString()
-      )
-    } catch (e) {
-      this.logger.error(`Error in prepare upgrade: ${e.message}`, e)
-      throw new FullstackTestingError(`Error in prepare upgrade: ${e.message}`, e)
-    }
-  }
-
-  /**
-   * @param {PrivateKey|string} freezeAdminPrivateKey
-   * @param {Uint8Array|string} upgradeZipHash
-   * @param {NodeClient} client
-   * @returns {Promise<void>}
-   */
-  async freezeUpgradeNetworkNodes (freezeAdminPrivateKey, upgradeZipHash, client) {
-    try {
-      const futureDate = new Date()
-      this.logger.debug(`Current time: ${futureDate}`)
-
-      futureDate.setTime(futureDate.getTime() + 5000) // 5 seconds in the future
-      this.logger.debug(`Freeze time: ${futureDate}`)
-
-      client.setOperator(FREEZE_ADMIN_ACCOUNT, freezeAdminPrivateKey)
-      const freezeUpgradeTx = await new FreezeTransaction()
-        .setFreezeType(FreezeType.FreezeUpgrade)
-        .setStartTimestamp(Timestamp.fromDate(futureDate))
-        .setFileId(constants.UPGRADE_FILE_ID)
-        .setFileHash(upgradeZipHash)
-        .freezeWith(client)
-        .execute(client)
-
-      const freezeUpgradeReceipt = await freezeUpgradeTx.getReceipt(client)
-      this.logger.debug(`Upgrade frozen with transaction id: ${freezeUpgradeTx.transactionId.toString()}`,
-        freezeUpgradeReceipt.status.toString())
-    } catch (e) {
-      this.logger.error(`Error in freeze upgrade: ${e.message}`, e)
-      throw new FullstackTestingError(`Error in freeze upgrade: ${e.message}`, e)
-    }
+    await action(argv)
   }
 
   async enableJVMPortForwarding (nodeId) {
@@ -2577,6 +2511,23 @@ export class NodeCommand extends BaseCommand {
 
               nodeCmd.delete(argv).then(r => {
                 nodeCmd.logger.debug('==== Finished running `node delete`====')
+                if (!r) process.exit(1)
+              }).catch(err => {
+                nodeCmd.logger.showUserError(err)
+                process.exit(1)
+              })
+            }
+          })
+          .command({
+            command: 'prepare-upgrade',
+            desc: 'TODO',
+            builder: y => flags.setCommandFlags(y, ...NodeCommand.DELETE_FLAGS_LIST),
+            handler: argv => {
+              nodeCmd.logger.debug('==== Running \'node prepare-upgrade\' ===')
+              nodeCmd.logger.debug(argv)
+
+              nodeCmd.prepareUpgrade(argv).then(r => {
+                nodeCmd.logger.debug('==== Finished running `node prepare-upgrade`====')
                 if (!r) process.exit(1)
               }).catch(err => {
                 nodeCmd.logger.showUserError(err)
@@ -2835,13 +2786,7 @@ export class NodeCommand extends BaseCommand {
           }
         }
       },
-      {
-        title: 'Send prepare upgrade transaction',
-        task: async (ctx, task) => {
-          const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
-          await this.prepareUpgradeNetworkNodes(config.freezeAdminPrivateKey, ctx.upgradeZipHash, config.nodeClient)
-        }
-      },
+      this.tasks.sendPrepareUpgradeTransaction(),
       {
         title: 'Download generated files from an existing node',
         task: async (ctx, task) => {
@@ -2849,13 +2794,7 @@ export class NodeCommand extends BaseCommand {
           await this.downloadNodeGeneratedFiles(config)
         }
       },
-      {
-        title: 'Send freeze upgrade transaction',
-        task: async (ctx, task) => {
-          const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
-          await this.freezeUpgradeNetworkNodes(config.freezeAdminPrivateKey, ctx.upgradeZipHash, config.nodeClient)
-        }
-      },
+      this.tasks.sendFreezeUpgradeTransaction(),
       {
         title: 'Prepare staging directory',
         task: async (ctx, parentTask) => {
@@ -3147,13 +3086,7 @@ export class NodeCommand extends BaseCommand {
           }
         }
       },
-      {
-        title: 'Send prepare upgrade transaction',
-        task: async (ctx, task) => {
-          const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
-          await this.prepareUpgradeNetworkNodes(config.freezeAdminPrivateKey, ctx.upgradeZipHash, config.nodeClient)
-        }
-      },
+      this.tasks.sendPrepareUpgradeTransaction(),
       {
         title: 'Download generated files from an existing node',
         task: async (ctx, task) => {
@@ -3161,13 +3094,7 @@ export class NodeCommand extends BaseCommand {
           await this.downloadNodeGeneratedFiles(config)
         }
       },
-      {
-        title: 'Send freeze upgrade transaction',
-        task: async (ctx, task) => {
-          const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
-          await this.freezeUpgradeNetworkNodes(config.freezeAdminPrivateKey, ctx.upgradeZipHash, config.nodeClient)
-        }
-      },
+      this.tasks.sendFreezeUpgradeTransaction(),
       {
         title: 'Prepare staging directory',
         task: async (ctx, parentTask) => {
