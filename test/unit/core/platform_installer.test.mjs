@@ -16,7 +16,7 @@
  */
 import { describe, expect, it } from '@jest/globals'
 import * as core from '../../../src/core/index.mjs'
-import { ConfigManager, K8, PlatformInstaller } from '../../../src/core/index.mjs'
+import { ConfigManager, PlatformInstaller } from '../../../src/core/index.mjs'
 import * as fs from 'fs'
 import * as path from 'path'
 import * as os from 'os'
