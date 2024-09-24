@@ -3085,7 +3085,7 @@ export class NodeCommand extends BaseCommand {
             'treasuryKey'
           ])
 
-        config.nodeId = argv.nodeId
+        config.nodeId = argv[flags.nodeID.name]
         config.curDate = new Date()
         config.existingNodeIds = []
 
