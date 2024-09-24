@@ -59,7 +59,6 @@ describe('Node delete via separated commands', () => {
   afterAll(async () => {
     await getNodeLogs(k8, namespace)
     await k8.deleteNamespace(namespace)
-    await fs.rmdirSync(tempDir)
   }, 600000)
 
   it('should succeed with init command', async () => {
@@ -74,7 +73,9 @@ describe('Node delete via separated commands', () => {
     expect(nodeCmd.getUnusedConfigs(NodeCommand.DELETE_CONFIGS_NAME)).toEqual([
       flags.app.constName,
       flags.devMode.constName,
-      flags.endpointType.constName
+      flags.endpointType.constName,
+      flags.adminKey.constName,
+      "freezeAdminPrivateKey",
     ])
 
     await nodeCmd.accountManager.close()
