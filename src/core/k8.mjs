@@ -757,6 +757,12 @@ export class K8 {
   }
 
   /**
+   * @typedef {net.Server} ExtendedServer
+   * @property {number} localPort
+   * @property {string} info
+   */
+
+  /**
    * Port forward a port from a pod to localhost
    *
    * This simple server just forwards traffic from itself to a service running in kubernetes
@@ -765,7 +771,7 @@ export class K8 {
    * @param {string} podName
    * @param {number} localPort
    * @param {number} podPort
-   * @returns {Promise<net.Server & {localPort: number, info: string}>}
+   * @returns {Promise<ExtendedServer>}
    */
   async portForward (podName, localPort, podPort) {
     const ns = this._getNamespace()
@@ -808,7 +814,7 @@ export class K8 {
   /**
    * Stop the port forwarder server
    *
-   * @param {net.Server & {info: string, localPort: number}} server - an instance of server returned by portForward method
+   * @param {ExtendedServer} server - an instance of server returned by portForward method
    * @param {number} [maxAttempts] - the maximum number of attempts to check if the server is stopped
    * @param {number} [timeout] - the delay between checks in milliseconds
    * @returns {Promise<void>}
