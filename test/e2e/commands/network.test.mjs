@@ -144,7 +144,7 @@ describe('NetworkCommand', () => {
       }
 
       // check if chart is uninstalled
-      await expect(bootstrapResp.opts.chartManager.isChartInstalled(namespace, constants.FULLSTACK_DEPLOYMENT_CHART))
+      await expect(bootstrapResp.opts.chartManager.isChartInstalled(namespace, constants.SOLO_DEPLOYMENT_CHART))
         .resolves.toBeFalsy()
 
       // check if pvc are deleted

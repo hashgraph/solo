@@ -200,7 +200,7 @@ export class NetworkCommand extends BaseCommand {
 
     // compute values
     config.chartPath = await this.prepareChartPath(config.chartDirectory,
-      constants.FULLSTACK_TESTING_CHART, constants.FULLSTACK_DEPLOYMENT_CHART)
+      constants.SOLO_CHART, constants.SOLO_DEPLOYMENT_CHART)
 
     config.valuesArg = await this.prepareValuesArg(config)
 
@@ -293,16 +293,16 @@ export class NetworkCommand extends BaseCommand {
         }
       },
       {
-        title: `Install chart '${constants.FULLSTACK_DEPLOYMENT_CHART}'`,
+        title: `Install chart '${constants.SOLO_DEPLOYMENT_CHART}'`,
         task: async (ctx, _) => {
           const config = /** @type {NetworkDeployConfigClass} **/ ctx.config
-          if (await self.chartManager.isChartInstalled(config.namespace, constants.FULLSTACK_DEPLOYMENT_CHART)) {
-            await self.chartManager.uninstall(config.namespace, constants.FULLSTACK_DEPLOYMENT_CHART)
+          if (await self.chartManager.isChartInstalled(config.namespace, constants.SOLO_DEPLOYMENT_CHART)) {
+            await self.chartManager.uninstall(config.namespace, constants.SOLO_DEPLOYMENT_CHART)
           }
 
           await this.chartManager.install(
             config.namespace,
-            constants.FULLSTACK_DEPLOYMENT_CHART,
+            constants.SOLO_DEPLOYMENT_CHART,
             config.chartPath,
             config.fstChartVersion,
             config.valuesArg)
@@ -406,7 +406,7 @@ export class NetworkCommand extends BaseCommand {
     try {
       await tasks.run()
     } catch (e) {
-      throw new FullstackTestingError(`Error installing chart ${constants.FULLSTACK_DEPLOYMENT_CHART}`, e)
+      throw new FullstackTestingError(`Error installing chart ${constants.SOLO_DEPLOYMENT_CHART}`, e)
     }
 
     return true
@@ -451,9 +451,9 @@ export class NetworkCommand extends BaseCommand {
         }
       },
       {
-        title: `Uninstall chart ${constants.FULLSTACK_DEPLOYMENT_CHART}`,
+        title: `Uninstall chart ${constants.SOLO_DEPLOYMENT_CHART}`,
         task: async (ctx, _) => {
-          await self.chartManager.uninstall(ctx.config.namespace, constants.FULLSTACK_DEPLOYMENT_CHART)
+          await self.chartManager.uninstall(ctx.config.namespace, constants.SOLO_DEPLOYMENT_CHART)
         }
       },
       {
@@ -512,12 +512,12 @@ export class NetworkCommand extends BaseCommand {
         }
       },
       {
-        title: `Upgrade chart '${constants.FULLSTACK_DEPLOYMENT_CHART}'`,
+        title: `Upgrade chart '${constants.SOLO_DEPLOYMENT_CHART}'`,
         task: async (ctx, _) => {
           const config = ctx.config
           await this.chartManager.upgrade(
             config.namespace,
-            constants.FULLSTACK_DEPLOYMENT_CHART,
+            constants.SOLO_DEPLOYMENT_CHART,
             config.chartPath,
             config.valuesArg,
             config.fstChartVersion
@@ -540,7 +540,7 @@ export class NetworkCommand extends BaseCommand {
     try {
       await tasks.run()
     } catch (e) {
-      throw new FullstackTestingError(`Error upgrading chart ${constants.FULLSTACK_DEPLOYMENT_CHART}`, e)
+      throw new FullstackTestingError(`Error upgrading chart ${constants.SOLO_DEPLOYMENT_CHART}`, e)
     }
 
     return true

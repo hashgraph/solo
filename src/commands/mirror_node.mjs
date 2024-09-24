@@ -190,7 +190,7 @@ export class MirrorNodeCommand extends BaseCommand {
             ['chartPath', 'valuesArg'])
 
           ctx.config.chartPath = await self.prepareChartPath(ctx.config.chartDirectory,
-            constants.FULLSTACK_TESTING_CHART, constants.FULLSTACK_DEPLOYMENT_CHART)
+            constants.SOLO_CHART, constants.SOLO_DEPLOYMENT_CHART)
 
           ctx.config.valuesArg = await self.prepareValuesArg(ctx.config)
 
@@ -217,7 +217,7 @@ export class MirrorNodeCommand extends BaseCommand {
               task: async (ctx, _) => {
                 await self.chartManager.upgrade(
                   ctx.config.namespace,
-                  constants.FULLSTACK_DEPLOYMENT_CHART,
+                  constants.SOLO_DEPLOYMENT_CHART,
                   ctx.config.chartPath,
                   ctx.config.valuesArg,
                   ctx.config.fstChartVersion
@@ -389,7 +389,7 @@ export class MirrorNodeCommand extends BaseCommand {
           }
 
           ctx.config.chartPath = await self.prepareChartPath(ctx.config.chartDirectory,
-            constants.FULLSTACK_TESTING_CHART, constants.FULLSTACK_DEPLOYMENT_CHART)
+            constants.SOLO_CHART, constants.SOLO_DEPLOYMENT_CHART)
 
           ctx.config.valuesArg = ' --set hedera-mirror-node.enabled=false --set hedera-explorer.enabled=false'
 
@@ -405,7 +405,7 @@ export class MirrorNodeCommand extends BaseCommand {
         task: async (ctx, _) => {
           await self.chartManager.upgrade(
             ctx.config.namespace,
-            constants.FULLSTACK_DEPLOYMENT_CHART,
+            constants.SOLO_DEPLOYMENT_CHART,
             ctx.config.chartPath,
             ctx.config.valuesArg,
             ctx.config.fstChartVersion

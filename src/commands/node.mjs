@@ -713,7 +713,7 @@ export class NodeCommand extends BaseCommand {
 
     await this.chartManager.upgrade(
       config.namespace,
-      constants.FULLSTACK_DEPLOYMENT_CHART,
+      constants.SOLO_DEPLOYMENT_CHART,
       config.chartPath,
       valuesArg,
       config.fstChartVersion
@@ -1693,7 +1693,7 @@ export class NodeCommand extends BaseCommand {
         ctx.config = config
 
         ctx.config.chartPath = await self.prepareChartPath(ctx.config.chartDirectory,
-          constants.FULLSTACK_TESTING_CHART, constants.FULLSTACK_DEPLOYMENT_CHART)
+          constants.SOLO_CHART, constants.SOLO_DEPLOYMENT_CHART)
 
         // initialize Node Client with existing network nodes prior to adding the new node which isn't functioning, yet
         ctx.config.nodeClient = await this.accountManager.loadNodeClient(ctx.config.namespace)
@@ -2687,7 +2687,7 @@ export class NodeCommand extends BaseCommand {
           ctx.config = config
 
           ctx.config.chartPath = await self.prepareChartPath(ctx.config.chartDirectory,
-            constants.FULLSTACK_TESTING_CHART, constants.FULLSTACK_DEPLOYMENT_CHART)
+            constants.SOLO_CHART, constants.SOLO_DEPLOYMENT_CHART)
 
           // initialize Node Client with existing network nodes prior to adding the new node which isn't functioning, yet
           ctx.config.nodeClient = await this.accountManager.loadNodeClient(ctx.config.namespace)
@@ -3079,7 +3079,7 @@ export class NodeCommand extends BaseCommand {
           ctx.config = config
 
           ctx.config.chartPath = await self.prepareChartPath(ctx.config.chartDirectory,
-            constants.FULLSTACK_TESTING_CHART, constants.FULLSTACK_DEPLOYMENT_CHART)
+            constants.SOLO_CHART, constants.SOLO_DEPLOYMENT_CHART)
 
           // initialize Node Client with existing network nodes prior to adding the new node which isn't functioning, yet
           ctx.config.nodeClient = await this.accountManager.loadNodeClient(ctx.config.namespace)

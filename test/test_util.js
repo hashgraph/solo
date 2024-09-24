@@ -215,7 +215,7 @@ export function bootstrapNetwork (testName, argv,
         }
       }
 
-      if (!await chartManager.isChartInstalled(constants.FULLSTACK_SETUP_NAMESPACE, constants.FULLSTACK_CLUSTER_SETUP_CHART)) {
+      if (!await chartManager.isChartInstalled(constants.SOLO_SETUP_NAMESPACE, constants.SOLO_CLUSTER_SETUP_CHART)) {
         await clusterCmd.setup(argv)
       }
     }, 120000)

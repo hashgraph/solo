@@ -78,7 +78,7 @@ export const clusterSetupNamespace = {
   name: 'cluster-setup-namespace',
   definition: {
     describe: 'Cluster Setup Namespace',
-    defaultValue: constants.FULLSTACK_SETUP_NAMESPACE,
+    defaultValue: constants.SOLO_SETUP_NAMESPACE,
     alias: 's',
     type: 'string'
   }

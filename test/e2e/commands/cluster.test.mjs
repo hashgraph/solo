@@ -65,12 +65,12 @@ describe('ClusterCommand', () => {
 
   afterAll(async () => {
     await k8.deleteNamespace(namespace)
-    argv[flags.clusterSetupNamespace.name] = constants.FULLSTACK_SETUP_NAMESPACE
+    argv[flags.clusterSetupNamespace.name] = constants.SOLO_SETUP_NAMESPACE
     configManager.update(argv, true)
     await clusterCmd.setup(argv) // restore fullstack-cluster-setup for other e2e tests to leverage
     do {
       await sleep(5000)
-    } while (!await chartManager.isChartInstalled(constants.FULLSTACK_SETUP_NAMESPACE, constants.FULLSTACK_CLUSTER_SETUP_CHART))
+    } while (!await chartManager.isChartInstalled(constants.SOLO_SETUP_NAMESPACE, constants.SOLO_CLUSTER_SETUP_CHART))
   }, 180000)
 
   beforeEach(() => {
@@ -82,7 +82,7 @@ describe('ClusterCommand', () => {
   })
 
   it('should cleanup existing deployment', async () => {
-    if (await chartManager.isChartInstalled(constants.FULLSTACK_SETUP_NAMESPACE, constants.FULLSTACK_CLUSTER_SETUP_CHART)) {
+    if (await chartManager.isChartInstalled(constants.SOLO_SETUP_NAMESPACE, constants.SOLO_CLUSTER_SETUP_CHART)) {
       expect.assertions(1)
       try {
         await expect(clusterCmd.reset(argv)).resolves.toBeTruthy()
