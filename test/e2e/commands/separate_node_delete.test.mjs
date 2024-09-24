@@ -35,7 +35,7 @@ describe('Node delete via separated commands', () => {
   const argv = getDefaultArgv()
   argv[flags.nodeIDs.name] = 'node1,node2,node3,node4'
   argv[flags.nodeID.name] = nodeId
-  argv['nodeId'] = nodeId
+  argv.nodeId = nodeId
   argv[flags.generateGossipKeys.name] = true
   argv[flags.generateTlsKeys.name] = true
   argv[flags.persistentVolumeClaims.name] = true
@@ -75,7 +75,7 @@ describe('Node delete via separated commands', () => {
       flags.devMode.constName,
       flags.endpointType.constName,
       flags.adminKey.constName,
-      "freezeAdminPrivateKey",
+      'freezeAdminPrivateKey'
     ])
 
     await nodeCmd.accountManager.close()
