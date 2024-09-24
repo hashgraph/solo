@@ -16,7 +16,7 @@
  */
 import { describe, expect, it } from '@jest/globals'
 import * as core from '../../../src/core/index.mjs'
-import { ConfigManager, PlatformInstaller } from '../../../src/core/index.mjs'
+import { ConfigManager, K8, PlatformInstaller } from '../../../src/core/index.mjs'
 import * as fs from 'fs'
 import * as path from 'path'
 import * as os from 'os'
@@ -25,10 +25,13 @@ import {
   MissingArgumentError
 } from '../../../src/core/errors.mjs'
 import { AccountManager } from '../../../src/core/account_manager.mjs'
+import { getK8Instance } from '../../test_util.js'
 describe('PackageInstaller', () => {
   const testLogger = core.logging.NewLogger('debug', true)
   const configManager = new ConfigManager(testLogger)
-  const k8 = new core.K8(configManager, testLogger)
+
+  const k8 = getK8Instance(configManager)
+
   const accountManager = new AccountManager(testLogger, k8)
   const installer = new PlatformInstaller(testLogger, k8, configManager, accountManager)
 
