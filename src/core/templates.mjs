@@ -136,18 +136,18 @@ export class Templates {
    * @param {AccountId|string} accountId
    * @returns {string} the label selector of the Kubernetes secret to retrieve the account key   */
   static renderAccountKeySecretLabelSelector (accountId) {
-    return `fullstack.hedera.com/account-id=${accountId.toString()}`
+    return `solo.hedera.com/account-id=${accountId.toString()}`
   }
 
   /**
    * renders the label object to be used to store the new account key in the Kubernetes secret
    * @param {AccountId|string} accountId
-   * @returns {{'fullstack.hedera.com/account-id': string}} the label object to be used to
+   * @returns {{'solo.hedera.com/account-id': string}} the label object to be used to
    * store the new account key in the Kubernetes secret
    */
   static renderAccountKeySecretLabelObject (accountId) {
     return {
-      'fullstack.hedera.com/account-id': accountId.toString()
+      'solo.hedera.com/account-id': accountId.toString()
     }
   }
 
@@ -267,7 +267,7 @@ export class Templates {
 
   static renderGossipKeySecretLabelObject (nodeId) {
     return {
-      'fullstack.hedera.com/node-name': nodeId
+      'solo.hedera.com/node-name': nodeId
     }
   }
 }

@@ -89,7 +89,7 @@ export class NetworkCommand extends BaseCommand {
   async prepareValuesArg (config = {}) {
     let valuesArg = ''
     if (config.chartDirectory) {
-      valuesArg = `-f ${path.join(config.chartDirectory, 'fullstack-deployment', 'values.yaml')}`
+      valuesArg = `-f ${path.join(config.chartDirectory, 'solo-deployment', 'values.yaml')}`
     }
 
     if (config.app !== constants.HEDERA_APP_NAME) {
@@ -321,8 +321,8 @@ export class NetworkCommand extends BaseCommand {
                 title: `Check Node: ${chalk.yellow(nodeId)}`,
                 task: async () =>
                   await self.k8.waitForPods([constants.POD_PHASE_RUNNING], [
-                    'fullstack.hedera.com/type=network-node',
-                    `fullstack.hedera.com/node-name=${nodeId}`
+                    'solo.hedera.com/type=network-node',
+                    `solo.hedera.com/node-name=${nodeId}`
                   ], 1, 60 * 15, 1000) // timeout 15 minutes
               })
             }
@@ -349,7 +349,7 @@ export class NetworkCommand extends BaseCommand {
                 title: `Check HAProxy for: ${chalk.yellow(nodeId)}`,
                 task: async () =>
                   await self.k8.waitForPods([constants.POD_PHASE_RUNNING], [
-                    'fullstack.hedera.com/type=haproxy'
+                    'solo.hedera.com/type=haproxy'
                   ], 1, 60 * 15, 1000) // timeout 15 minutes
               })
             }
@@ -360,7 +360,7 @@ export class NetworkCommand extends BaseCommand {
                 title: `Check Envoy Proxy for: ${chalk.yellow(nodeId)}`,
                 task: async () =>
                   await self.k8.waitForPods([constants.POD_PHASE_RUNNING], [
-                    'fullstack.hedera.com/type=envoy-proxy'
+                    'solo.hedera.com/type=envoy-proxy'
                   ], 1, 60 * 15, 1000) // timeout 15 minutes
               })
             }
@@ -528,7 +528,7 @@ export class NetworkCommand extends BaseCommand {
         title: 'Waiting for network pods to be running',
         task: async (ctx, _) => {
           await this.k8.waitForPods([constants.POD_PHASE_RUNNING], [
-            'fullstack.hedera.com/type=network-node'
+            'solo.hedera.com/type=network-node'
           ], 1)
         }
       }

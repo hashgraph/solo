@@ -67,7 +67,7 @@ describe('ClusterCommand', () => {
     await k8.deleteNamespace(namespace)
     argv[flags.clusterSetupNamespace.name] = constants.SOLO_SETUP_NAMESPACE
     configManager.update(argv, true)
-    await clusterCmd.setup(argv) // restore fullstack-cluster-setup for other e2e tests to leverage
+    await clusterCmd.setup(argv) // restore solo-cluster-setup for other e2e tests to leverage
     do {
       await sleep(5000)
     } while (!await chartManager.isChartInstalled(constants.SOLO_SETUP_NAMESPACE, constants.SOLO_CLUSTER_SETUP_CHART))

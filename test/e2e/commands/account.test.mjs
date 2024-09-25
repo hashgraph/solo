@@ -73,7 +73,7 @@ describe('AccountCommand', () => {
     for (const nodeId of argv[flags.nodeIDs.name].split(',')) {
       it(`proxy should be UP: ${nodeId} `, async () => {
         await k8.waitForPodReady(
-          [`app=haproxy-${nodeId}`, 'fullstack.hedera.com/type=haproxy'],
+          [`app=haproxy-${nodeId}`, 'solo.hedera.com/type=haproxy'],
           1, 300, 2000)
       }, 30000)
     }

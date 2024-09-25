@@ -104,7 +104,7 @@ Kubernetes Namespace	: solo
 **********************************************************************************
 ✔ Initialize
 ✔ Prepare chart values
-✔ Install 'fullstack-cluster-setup' chart
+✔ Install 'solo-cluster-setup' chart
 
 ```
 
@@ -128,7 +128,7 @@ Kubernetes Cluster	: kind-solo
 Kubernetes Namespace	: solo
 **********************************************************************************
 ✔ Initialize
-✔ Install chart 'fullstack-deployment'
+✔ Install chart 'solo-deployment'
 ✔ Check Node: node0
 ✔ Check Node: node1
 ✔ Check Node: node2
@@ -301,8 +301,8 @@ You may view the list of pods using `k9s` as below:
  MEM:     n/a
 ┌─────────────────────────────────────────────────── Pods(all)[27] ────────────────────────────────────────────────────┐
 │ NAMESPACE↑          NAME                                                   PF READY RESTARTS STATUS   IP             │
-│ fullstack-setup     console-557956d575-fqctd                               ●  1/1          0 Running  10.244.0.4     │
-│ fullstack-setup     minio-operator-7d575c5f84-j9p6f                        ●  1/1          0 Running  10.244.0.3     │
+│ solo-setup     console-557956d575-fqctd                               ●  1/1          0 Running  10.244.0.4     │
+│ solo-setup     minio-operator-7d575c5f84-j9p6f                        ●  1/1          0 Running  10.244.0.3     │
 │ kube-system         coredns-5d78c9869d-gknqp                               ●  1/1          0 Running  10.244.0.6     │
 │ kube-system         coredns-5d78c9869d-q59pc                               ●  1/1          0 Running  10.244.0.5     │
 │ kube-system         etcd-solo-e2e-control-plane                            ●  1/1          0 Running  172.18.0.2     │
@@ -315,12 +315,12 @@ You may view the list of pods using `k9s` as below:
 │ solo                envoy-proxy-node0-84947f844f-f28tp                     ●  1/1          0 Running  10.244.0.215   │
 │ solo                envoy-proxy-node1-65f8879dcc-j2lrk                     ●  1/1          0 Running  10.244.0.216   │
 │ solo                envoy-proxy-node2-667f848689-dkmf9                     ●  1/1          0 Running  10.244.0.214   │
-│ solo                fullstack-deployment-grpc-69f9cc5666-lf6ql             ●  1/1          0 Running  10.244.0.227   │
-│ solo                fullstack-deployment-hedera-explorer-79f79b7df4-wjdct  ●  1/1          0 Running  10.244.0.226   │
-│ solo                fullstack-deployment-importer-864489ffb8-6v8tk         ●  1/1          0 Running  10.244.0.228   │
-│ solo                fullstack-deployment-postgres-postgresql-0             ●  1/1          0 Running  10.244.0.232   │
-│ solo                fullstack-deployment-rest-584f5cb6bb-q9vnt             ●  1/1          0 Running  10.244.0.230   │
-│ solo                fullstack-deployment-web3-69dcdfc4fb-mm5pk             ●  1/1          0 Running  10.244.0.229   │
+│ solo                solo-deployment-grpc-69f9cc5666-lf6ql             ●  1/1          0 Running  10.244.0.227   │
+│ solo                solo-deployment-hedera-explorer-79f79b7df4-wjdct  ●  1/1          0 Running  10.244.0.226   │
+│ solo                solo-deployment-importer-864489ffb8-6v8tk         ●  1/1          0 Running  10.244.0.228   │
+│ solo                solo-deployment-postgres-postgresql-0             ●  1/1          0 Running  10.244.0.232   │
+│ solo                solo-deployment-rest-584f5cb6bb-q9vnt             ●  1/1          0 Running  10.244.0.230   │
+│ solo                solo-deployment-web3-69dcdfc4fb-mm5pk             ●  1/1          0 Running  10.244.0.229   │
 │ solo                haproxy-node0-6969f76c77-n5cfl                         ●  1/1          1 Running  10.244.0.219   │
 │ solo                haproxy-node1-59f6976d45-x6xmp                         ●  1/1          1 Running  10.244.0.217   │
 │ solo                haproxy-node2-6df64d5457-hf9ps                         ●  1/1          1 Running  10.244.0.218   │
@@ -338,7 +338,7 @@ Once the nodes are up, you may now expose various services (using `k9s` (shift-f
 Node services: `network-<node ID>-svc`\
 HAProxy: `haproxy-<node ID>-svc`\
 Envoy Proxy: `envoy-proxy-<node ID>-svc`\
-Hedera explorer: `fullstack-deployment-hedera-explorer`\
+Hedera explorer: `solo-deployment-hedera-explorer`\
 JSON Rpc Relays\
 You can deploy JSON RPC relays for one or more nodes as below:
 

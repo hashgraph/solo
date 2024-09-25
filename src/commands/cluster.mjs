@@ -173,7 +173,7 @@ export class ClusterCommand extends BaseCommand {
             const confirm = await task.prompt(ListrEnquirerPromptAdapter).run({
               type: 'toggle',
               default: false,
-              message: 'Are you sure you would like to uninstall fullstack-cluster-setup chart?'
+              message: 'Are you sure you would like to uninstall solo-cluster-setup chart?'
             })
 
             if (!confirm) {
@@ -231,7 +231,7 @@ export class ClusterCommand extends BaseCommand {
     }
     return {
       command: 'cluster',
-      desc: 'Manage fullstack testing cluster',
+      desc: 'Manage solo testing cluster',
       builder: yargs => {
         return yargs
           .command({
@@ -335,7 +335,7 @@ export class ClusterCommand extends BaseCommand {
   ) {
     let valuesArg = ''
     if (chartDir) {
-      valuesArg = `-f ${path.join(chartDir, 'fullstack-cluster-setup', 'values.yaml')}`
+      valuesArg = `-f ${path.join(chartDir, 'solo-cluster-setup', 'values.yaml')}`
     }
 
     valuesArg += ` --set cloud.prometheusStack.enabled=${prometheusStackEnabled}`
@@ -357,9 +357,9 @@ export class ClusterCommand extends BaseCommand {
    * @returns {Promise<string>}
    */
   async prepareChartPath (chartDir = flags.chartDirectory.definition.default) {
-    let chartPath = 'full-stack-testing/fullstack-cluster-setup'
+    let chartPath = 'solo-charts/solo-cluster-setup'
     if (chartDir) {
-      chartPath = path.join(chartDir, 'fullstack-cluster-setup')
+      chartPath = path.join(chartDir, 'solo-cluster-setup')
       await this.helm.dependency('update', chartPath)
     }
 

@@ -235,7 +235,7 @@ export function validatePath (input) {
  */
 export async function getNodeLogs (k8, namespace) {
   k8.logger.debug('getNodeLogs: begin...')
-  const pods = await k8.getPodsByLabel(['fullstack.hedera.com/type=network-node'])
+  const pods = await k8.getPodsByLabel(['solo.hedera.com/type=network-node'])
 
   const timeString = new Date().toISOString().replace(/:/g, '-').replace(/\./g, '-')
 

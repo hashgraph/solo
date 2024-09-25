@@ -51,11 +51,11 @@ export const HEDERA_NODE_EXTERNAL_GOSSIP_PORT = process.env.SOLO_NODE_EXTERNAL_G
 export const HEDERA_NODE_DEFAULT_STAKE_AMOUNT = process.env.SOLO_NODE_DEFAULT_STAKE_AMOUNT || 500
 
 // --------------- Charts related constants ----------------------------------------------------------------------------
-export const SOLO_SETUP_NAMESPACE = 'fullstack-setup'
+export const SOLO_SETUP_NAMESPACE = 'solo-setup'
 export const SOLO_CHART_URL = 'https://hashgraph.github.io/solo-charts/charts'
-export const SOLO_CHART = 'full-stack-testing'
-export const SOLO_CLUSTER_SETUP_CHART = 'fullstack-cluster-setup'
-export const SOLO_DEPLOYMENT_CHART = 'fullstack-deployment'
+export const SOLO_CHART = 'solo-charts'
+export const SOLO_CLUSTER_SETUP_CHART = 'solo-cluster-setup'
+export const SOLO_DEPLOYMENT_CHART = 'solo-deployment'
 export const JSON_RPC_RELAY_CHART_URL = 'https://hashgraph.github.io/hedera-json-rpc-relay/charts'
 export const JSON_RPC_RELAY_CHART = 'hedera-json-rpc-relay'
 export const MIRROR_NODE_CHART_URL = 'https://hashgraph.github.io/hedera-mirror-node/charts'

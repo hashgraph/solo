@@ -74,7 +74,7 @@ describe('Node delete', () => {
 
   it('config.txt should no longer contain removed nodeid', async () => {
     // read config.txt file from first node, read config.txt line by line, it should not contain value of nodeId
-    const pods = await k8.getPodsByLabel(['fullstack.hedera.com/type=network-node'])
+    const pods = await k8.getPodsByLabel(['solo.hedera.com/type=network-node'])
     const podName = pods[0].metadata.name
     const tmpDir = getTmpDir()
     await k8.copyFrom(podName, ROOT_CONTAINER, `${HEDERA_HAPI_PATH}/config.txt`, tmpDir)

@@ -86,7 +86,7 @@ export function e2eNodeKeyRefreshTest (testName, mode, releaseTag = HEDERA_PLATF
                   try {
                     await expect(k8.waitForPodReady(
                       ['app=haproxy-node1',
-                        'fullstack.hedera.com/type=haproxy'],
+                        'solo.hedera.com/type=haproxy'],
                       1, 300, 1000)).resolves.toBeTruthy()
                   } catch (e) {
                     nodeCmd.logger.showUserError(e)
@@ -182,7 +182,7 @@ export function e2eNodeKeyRefreshTest (testName, mode, releaseTag = HEDERA_PLATF
 
           const podArray = await k8.getPodsByLabel(
             [`app=network-${nodeId}`,
-              'fullstack.hedera.com/type=network-node'])
+              'solo.hedera.com/type=network-node'])
 
           if (podArray.length > 0) {
             const podName = podArray[0].metadata.name

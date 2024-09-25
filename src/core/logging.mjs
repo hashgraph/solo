@@ -59,7 +59,7 @@ export const Logger = class {
   /**
    * Create a new logger
    * @param {string} level logging level as supported by winston library:
-   * @param {boolean} devMode if true, show full stack traces in error messages
+   * @param {boolean} devMode if true, show solo traces in error messages
    * @constructor
    */
   constructor (level = 'debug', devMode = false) {

@@ -351,8 +351,8 @@ export class NodeCommand extends BaseCommand {
 
     try {
       await this.k8.waitForPods([constants.POD_PHASE_RUNNING], [
-        'fullstack.hedera.com/type=network-node',
-        `fullstack.hedera.com/node-name=${nodeId}`
+        'solo.hedera.com/type=network-node',
+        `solo.hedera.com/node-name=${nodeId}`
       ], 1, maxAttempts, delay)
 
       return podName
@@ -521,8 +521,8 @@ export class NodeCommand extends BaseCommand {
         title: `Check Node: ${chalk.yellow(nodeId)}`,
         task: async () =>
           await this.k8.waitForPods([constants.POD_PHASE_RUNNING], [
-            'fullstack.hedera.com/type=network-node',
-            `fullstack.hedera.com/node-name=${nodeId}`
+            'solo.hedera.com/type=network-node',
+            `solo.hedera.com/node-name=${nodeId}`
           ], 1, 60 * 15, 1000) // timeout 15 minutes
       })
     }
@@ -596,7 +596,7 @@ export class NodeCommand extends BaseCommand {
       subTasks.push({
         title: `Check proxy for node: ${chalk.yellow(nodeId)}`,
         task: async () => await this.k8.waitForPodReady(
-          [`app=haproxy-${nodeId}`, 'fullstack.hedera.com/type=haproxy'],
+          [`app=haproxy-${nodeId}`, 'solo.hedera.com/type=haproxy'],
           1, 300, 2000)
       })
     }

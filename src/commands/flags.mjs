@@ -274,7 +274,7 @@ export const chartDirectory = {
   constName: 'chartDirectory',
   name: 'chart-dir',
   definition: {
-    describe: 'Local chart directory path (e.g. ~/full-stack-testing/charts',
+    describe: 'Local chart directory path (e.g. ~/solo-charts/charts',
     defaultValue: '',
     alias: 'd',
     type: 'string'
