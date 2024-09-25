@@ -47,7 +47,7 @@ export function e2eNodeKeyRefreshTest (testName, mode, releaseTag = HEDERA_PLATF
         const argv = getDefaultArgv()
         argv[flags.namespace.name] = namespace
         argv[flags.releaseTag.name] = releaseTag
-        argv[flags.nodeIDs.name] = 'node1,node2,node3'
+        argv[flags.nodeAliasesUnparsed.name] = 'node1,node2,node3'
         argv[flags.generateGossipKeys.name] = true
         argv[flags.generateTlsKeys.name] = true
         argv[flags.clusterName.name] = TEST_CLUSTER
@@ -176,7 +176,7 @@ export function e2eNodeKeyRefreshTest (testName, mode, releaseTag = HEDERA_PLATF
         }
 
         async function nodeRefreshTestSetup (argv, testName, k8, nodeId) {
-          argv[flags.nodeIDs.name] = nodeId
+          argv[flags.nodeAliasesUnparsed.name] = nodeId
           const configManager = getTestConfigManager(`${testName}-solo.config`)
           configManager.update(argv, true)
 
