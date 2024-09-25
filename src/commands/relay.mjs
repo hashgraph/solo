@@ -54,7 +54,7 @@ export class RelayCommand extends BaseCommand {
       flags.chainId,
       flags.chartDirectory,
       flags.namespace,
-      flags.nodeIDs,
+      flags.nodeAliasesUnparsed,
       flags.operatorId,
       flags.operatorKey,
       flags.profileFile,
@@ -67,7 +67,7 @@ export class RelayCommand extends BaseCommand {
 
   /**
    * @param {string} valuesFile
-   * @param {string[]} nodeIDs
+   * @param {NodeAliases} nodeAliases
    * @param {string} chainID
    * @param {string} relayRelease
    * @param {number} replicaCount
@@ -76,7 +76,7 @@ export class RelayCommand extends BaseCommand {
    * @param {string} namespace
    * @returns {Promise<string>}
    */
-  async prepareValuesArg (valuesFile, nodeIDs, chainID, relayRelease, replicaCount, operatorID, operatorKey, namespace) {
+  async prepareValuesArg (valuesFile, nodeAliases, chainID, relayRelease, replicaCount, operatorID, operatorKey, namespace) {
     let valuesArg = ''
 
     const profileName = this.configManager.getFlag(flags.profileName)
@@ -111,11 +111,11 @@ export class RelayCommand extends BaseCommand {
       valuesArg += ` --set config.OPERATOR_KEY_MAIN=${operatorKey}`
     }
 
-    if (!nodeIDs) {
+    if (!nodeAliases) {
       throw new MissingArgumentError('Node IDs must be specified')
     }
 
-    const networkJsonString = await this.prepareNetworkJsonString(nodeIDs, namespace)
+    const networkJsonString = await this.prepareNetworkJsonString(nodeAliases, namespace)
     valuesArg += ` --set config.HEDERA_NETWORK='${networkJsonString}'`
 
     if (valuesFile) {
@@ -128,41 +128,43 @@ export class RelayCommand extends BaseCommand {
   /**
    * created a json string to represent the map between the node keys and their ids
    * output example '{"node-1": "0.0.3", "node-2": "0.004"}'
-   * @param {string[]} nodeIDs
+   * @param {NodeAliases} nodeAliases
    * @param {string} namespace
    * @returns {Promise<string>}
    */
-  async prepareNetworkJsonString (nodeIDs = [], namespace) {
-    if (!nodeIDs) {
+  async prepareNetworkJsonString (nodeAliases = [], namespace) {
+    if (!nodeAliases) {
       throw new MissingArgumentError('Node IDs must be specified')
     }
 
     const networkIds = {}
-    const accountMap = getNodeAccountMap(nodeIDs)
 
+    const accountMap = getNodeAccountMap(nodeAliases)
+
+    /** @type {Map<NodeAlias, NetworkNodeServices>} */
     const networkNodeServicesMap = await this.accountManager.getNodeServiceMap(namespace)
-    nodeIDs.forEach(nodeID => {
-      const haProxyClusterIp = networkNodeServicesMap.get(nodeID).haProxyClusterIp
-      const haProxyGrpcPort = networkNodeServicesMap.get(nodeID).haProxyGrpcPort
+    nodeAliases.forEach(nodeAlias => {
+      const haProxyClusterIp = networkNodeServicesMap.get(nodeAlias).haProxyClusterIp
+      const haProxyGrpcPort = networkNodeServicesMap.get(nodeAlias).haProxyGrpcPort
       const networkKey = `${haProxyClusterIp}:${haProxyGrpcPort}`
-      networkIds[networkKey] = accountMap.get(nodeID)
+      networkIds[networkKey] = accountMap.get(nodeAlias)
     })
 
     return JSON.stringify(networkIds)
   }
 
   /**
-   * @param {string[]} nodeIDs
+   * @param {NodeAliases} nodeAliases
    * @returns {string}
    */
-  prepareReleaseName (nodeIDs = []) {
-    if (!nodeIDs) {
+  prepareReleaseName (nodeAliases = []) {
+    if (!nodeAliases) {
       throw new MissingArgumentError('Node IDs must be specified')
     }
 
     let releaseName = 'relay'
-    nodeIDs.forEach(nodeID => {
-      releaseName += `-${nodeID}`
+    nodeAliases.forEach(nodeAlias => {
+      releaseName += `-${nodeAlias}`
     })
 
     return releaseName
@@ -178,8 +180,8 @@ export class RelayCommand extends BaseCommand {
       {
         title: 'Initialize',
         task: async (ctx, task) => {
-          // reset nodeID
-          self.configManager.setFlag(flags.nodeIDs, '')
+          // reset nodeAlias
+          self.configManager.setFlag(flags.nodeAliasesUnparsed, '')
 
           self.configManager.update(argv)
 
@@ -191,7 +193,7 @@ export class RelayCommand extends BaseCommand {
            * @property {string} chainId
            * @property {string} chartDirectory
            * @property {string} namespace
-           * @property {string} nodeIDs
+           * @property {string} nodeAliasesUnparsed
            * @property {string} operatorId
            * @property {string} operatorKey
            * @property {string} profileFile
@@ -202,7 +204,7 @@ export class RelayCommand extends BaseCommand {
            * -- extra args --
            * @property {string} chartPath
            * @property {boolean} isChartInstalled
-           * @property {string[]} nodeIds
+           * @property {NodeAliases} nodeAliases
            * @property {string} releaseName
            * @property {string} valuesArg
            * -- methods --
@@ -215,10 +217,10 @@ export class RelayCommand extends BaseCommand {
 
           // prompt if inputs are empty and set it in the context
           ctx.config = /** @type {RelayDeployConfigClass} **/ this.getConfig(RelayCommand.DEPLOY_CONFIGS_NAME, RelayCommand.DEPLOY_FLAGS_LIST,
-            ['nodeIds'])
+            ['nodeAliases'])
 
-          ctx.config.nodeIds = helpers.parseNodeIds(ctx.config.nodeIDs)
-          ctx.config.releaseName = self.prepareReleaseName(ctx.config.nodeIds)
+          ctx.config.nodeAliases = helpers.parseNodeAliases(ctx.config.nodeAliasesUnparsed)
+          ctx.config.releaseName = self.prepareReleaseName(ctx.config.nodeAliases)
           ctx.config.isChartInstalled = await self.chartManager.isChartInstalled(ctx.config.namespace, ctx.releaseName)
 
           self.logger.debug('Initialized config', { config: ctx.config })
@@ -231,7 +233,7 @@ export class RelayCommand extends BaseCommand {
           config.chartPath = await self.prepareChartPath(config.chartDirectory, constants.JSON_RPC_RELAY_CHART, constants.JSON_RPC_RELAY_CHART)
           config.valuesArg = await self.prepareValuesArg(
             config.valuesFile,
-            config.nodeIds,
+            config.nodeAliases,
             config.chainId,
             config.relayReleaseTag,
             config.replicaCount,
@@ -253,8 +255,8 @@ export class RelayCommand extends BaseCommand {
             `app.kubernetes.io/instance=${config.releaseName}`
           ], 1, 900, 1000)
 
-          // reset nodeID
-          self.configManager.setFlag(flags.nodeIDs, '')
+          // reset nodeAlias
+          self.configManager.setFlag(flags.nodeAliasesUnparsed, '')
           self.configManager.persist()
         }
       },
@@ -297,24 +299,24 @@ export class RelayCommand extends BaseCommand {
       {
         title: 'Initialize',
         task: async (ctx, task) => {
-          // reset nodeID
-          self.configManager.setFlag(flags.nodeIDs, '')
+          // reset nodeAlias
+          self.configManager.setFlag(flags.nodeAliasesUnparsed, '')
 
           self.configManager.update(argv)
           await prompts.execute(task, self.configManager, [
             flags.chartDirectory,
             flags.namespace,
-            flags.nodeIDs
+            flags.nodeAliasesUnparsed
           ])
 
           // prompt if inputs are empty and set it in the context
           ctx.config = {
             chartDirectory: self.configManager.getFlag(flags.chartDirectory),
             namespace: self.configManager.getFlag(flags.namespace),
-            nodeIds: helpers.parseNodeIds(self.configManager.getFlag(flags.nodeIDs))
+            nodeAliases: helpers.parseNodeAliases(self.configManager.getFlag(flags.nodeAliasesUnparsed))
           }
 
-          ctx.config.releaseName = this.prepareReleaseName(ctx.config.nodeIds)
+          ctx.config.releaseName = this.prepareReleaseName(ctx.config.nodeAliases)
           ctx.config.isChartInstalled = await this.chartManager.isChartInstalled(ctx.config.namespace, ctx.config.releaseName)
 
           self.logger.debug('Initialized config', { config: ctx.config })
@@ -329,8 +331,8 @@ export class RelayCommand extends BaseCommand {
 
           this.logger.showList('Destroyed Relays', await self.chartManager.getInstalledCharts(config.namespace))
 
-          // reset nodeID
-          self.configManager.setFlag(flags.nodeIDs, '')
+          // reset nodeAliasesUnparsed
+          self.configManager.setFlag(flags.nodeAliasesUnparsed, '')
           self.configManager.persist()
         },
         skip: (ctx, _) => !ctx.isChartInstalled
@@ -387,7 +389,7 @@ export class RelayCommand extends BaseCommand {
             builder: y => flags.setCommandFlags(y,
               flags.chartDirectory,
               flags.namespace,
-              flags.nodeIDs
+              flags.nodeAliasesUnparsed
             ),
             handler: argv => {
               relayCmd.logger.debug("==== Running 'relay uninstall' ===", { argv })

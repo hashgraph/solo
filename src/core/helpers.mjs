@@ -43,9 +43,9 @@ export function sleep (ms) {
 
 /**
  * @param {string} input
- * @returns {string[]}
+ * @returns {NodeAliases}
  */
-export function parseNodeIds (input) {
+export function parseNodeAliases (input) {
   return splitFlagInput(input, ',')
 }
 
@@ -163,18 +163,18 @@ export function makeBackup (fileMap = new Map(), removeOld = true) {
 }
 
 /**
- * @param {string[]} nodeIds
+ * @param {NodeAliases} nodeAliases
  * @param {string} keysDir
  * @param {Date} curDate
  * @param {string} dirPrefix
  * @returns {string}
  */
-export function backupOldTlsKeys (nodeIds, keysDir, curDate = new Date(), dirPrefix = 'tls') {
+export function backupOldTlsKeys (nodeAliases, keysDir, curDate = new Date(), dirPrefix = 'tls') {
   const backupDir = createBackupDir(keysDir, `unused-${dirPrefix}`, curDate)
   const fileMap = new Map()
-  for (const nodeId of nodeIds) {
-    const srcPath = path.join(keysDir, Templates.renderTLSPemPrivateKeyFile(nodeId))
-    const destPath = path.join(backupDir, Templates.renderTLSPemPrivateKeyFile(nodeId))
+  for (const nodeAlias of nodeAliases) {
+    const srcPath = path.join(keysDir, Templates.renderTLSPemPrivateKeyFile(nodeAlias))
+    const destPath = path.join(backupDir, Templates.renderTLSPemPrivateKeyFile(nodeAlias))
     fileMap.set(srcPath, destPath)
   }
 
@@ -184,18 +184,18 @@ export function backupOldTlsKeys (nodeIds, keysDir, curDate = new Date(), dirPre
 }
 
 /**
- * @param {string[]} nodeIds
+ * @param {NodeAliases} nodeAliases
  * @param {string} keysDir
  * @param {Date} curDate
  * @param {string} dirPrefix
  * @returns {string}
  */
-export function backupOldPemKeys (nodeIds, keysDir, curDate = new Date(), dirPrefix = 'gossip-pem') {
+export function backupOldPemKeys (nodeAliases, keysDir, curDate = new Date(), dirPrefix = 'gossip-pem') {
   const backupDir = createBackupDir(keysDir, `unused-${dirPrefix}`, curDate)
   const fileMap = new Map()
-  for (const nodeId of nodeIds) {
-    const srcPath = path.join(keysDir, Templates.renderGossipPemPrivateKeyFile(nodeId))
-    const destPath = path.join(backupDir, Templates.renderGossipPemPrivateKeyFile(nodeId))
+  for (const nodeAlias of nodeAliases) {
+    const srcPath = path.join(keysDir, Templates.renderGossipPemPrivateKeyFile(nodeAlias)) // TODO review
+    const destPath = path.join(backupDir, Templates.renderGossipPemPrivateKeyFile(nodeAlias)) // TODO review
     fileMap.set(srcPath, destPath)
   }
 
@@ -262,19 +262,19 @@ export async function getNodeLogs (k8, namespace) {
 }
 
 /**
- * Create a map of node IDs to account IDs
- * @param {string[]} nodeIDs
- * @returns {Map<string, string>} the map of node IDs to account IDs
+ * Create a map of node aliases to account IDs
+ * @param {NodeAliases} nodeAliases
+ * @returns {Map<NodeAlias, string>} the map of node IDs to account IDs
  */
-export function getNodeAccountMap (nodeIDs) {
+export function getNodeAccountMap (nodeAliases) {
   const accountMap = /** @type {Map<string,string>} **/ new Map()
   const realm = constants.HEDERA_NODE_ACCOUNT_ID_START.realm
   const shard = constants.HEDERA_NODE_ACCOUNT_ID_START.shard
   let accountId = constants.HEDERA_NODE_ACCOUNT_ID_START.num
 
-  nodeIDs.forEach(nodeID => {
+  nodeAliases.forEach(nodeAlias => {
     const nodeAccount = `${realm}.${shard}.${accountId++}`
-    accountMap.set(nodeID, nodeAccount)
+    accountMap.set(nodeAlias, nodeAccount)
   })
   return accountMap
 }
@@ -341,13 +341,13 @@ export function renameAndCopyFile (srcFilePath, expectedBaseName, destDir) {
 /**
  * Add debug options to valuesArg used by helm chart
  * @param valuesArg the valuesArg to update
- * @param debugNodeId the node ID to attach the debugger to
+ * @param {NodeAlias} debugNodeAlias the node ID to attach the debugger to
  * @param index the index of extraEnv to add the debug options to
  * @returns updated valuesArg
  */
-export function addDebugOptions (valuesArg, debugNodeId, index = 0) {
-  if (debugNodeId) {
-    const nodeId = Templates.nodeNumberFromNodeId(debugNodeId) - 1
+export function addDebugOptions (valuesArg, debugNodeAlias, index = 0) {
+  if (debugNodeAlias) {
+    const nodeId = Templates.nodeNumberFromNodeAlias(debugNodeAlias) - 1
     valuesArg += ` --set "hedera.nodes[${nodeId}].root.extraEnv[${index}].name=JAVA_OPTS"`
     valuesArg += ` --set "hedera.nodes[${nodeId}].root.extraEnv[${index}].value=-agentlib:jdwp=transport=dt_socket\\,server=y\\,suspend=y\\,address=*:${constants.JVM_DEBUG_PORT}"`
   }

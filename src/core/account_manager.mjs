@@ -267,7 +267,7 @@ export class AccountManager {
   /**
    * Gets a Map of the Hedera node services and the attributes needed
    * @param {string} namespace - the namespace of the fullstack network deployment
-   * @returns {Promise<Map<string, NetworkNodeServices>>} a map of the network node services
+   * @returns {Promise<Map<NodeAlias, NetworkNodeServices>>} a map of the network node services
    */
   async getNodeServiceMap (namespace) {
     const labelSelector = 'fullstack.hedera.com/node-name'

@@ -32,8 +32,8 @@ describe('Helpers', () => {
       input: 'node1,node3',
       output: ['node1', 'node3']
     }
-  ])('should be able to parse node ID', (t) => {
-    expect(helpers.parseNodeIds(t.input)).toStrictEqual(t.output)
+  ])('should be able to parse node aliases', (t) => {
+    expect(helpers.parseNodeAliases(t.input)).toStrictEqual(t.output)
   })
 
   it.each([

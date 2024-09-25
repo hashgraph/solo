@@ -339,7 +339,7 @@ export class K8 {
    *    name: config.txt
    * }]
    *
-   * @param {string} podName
+   * @param {PodName} podName
    * @param {string} containerName
    * @param {string} destPath - path inside the container
    * @param {number} [timeout] - timeout in ms
@@ -387,7 +387,7 @@ export class K8 {
 
   /**
    * Check if a filepath exists in the container
-   * @param {string} podName
+   * @param {PodName} podName
    * @param {string} containerName
    * @param {string} destPath - path inside the container
    * @param {Object} [filters] - an object with metadata fields and value
@@ -432,7 +432,7 @@ export class K8 {
 
   /**
    * Check if a directory path exists in the container
-   * @param {string} podName
+   * @param {PodName} podName
    * @param {string} containerName
    * @param {string} destPath - path inside the container
    * @returns {Promise<boolean>}
@@ -446,7 +446,7 @@ export class K8 {
   }
 
   /**
-   * @param {string} podName
+   * @param {PodName} podName
    * @param {string} containerName
    * @param {string} destPath
    * @returns {Promise<string>}
@@ -464,7 +464,7 @@ export class K8 {
    *
    * It overwrites any existing file inside the container at the destination directory
    *
-   * @param {string} podName
+   * @param {PodName} podName
    * @param {string} containerName
    * @param {string} srcPath - source file path in the local
    * @param {string} destDir - destination directory in the container
@@ -530,7 +530,7 @@ export class K8 {
    *
    * It overwrites any existing file at the destination directory
    *
-   * @param {string} podName
+   * @param {PodName} podName
    * @param {string} containerName
    * @param {string} srcPath - source file path in the container
    * @param {string} destDir - destination directory in the local
@@ -708,7 +708,7 @@ export class K8 {
   /**
    * Invoke sh command within a container and return the console output as string
    *
-   * @param {string} podName
+   * @param {PodName} podName
    * @param {string} containerName
    * @param {string|string[]} command - sh commands as an array to be run within the containerName (e.g 'ls -la /opt/hgcapp')
    * @param {number} [timeoutMs] - timout in milliseconds
@@ -762,7 +762,7 @@ export class K8 {
    * This simple server just forwards traffic from itself to a service running in kubernetes
    * -> localhost:localPort -> port-forward-tunnel -> kubernetes-pod:targetPort
    *
-   * @param {string} podName
+   * @param {PodName} podName
    * @param {number} localPort
    * @param {number} podPort
    * @returns {Promise<net.Server>}

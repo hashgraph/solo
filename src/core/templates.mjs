@@ -21,90 +21,98 @@ import path from 'path'
 import { DataValidationError, FullstackTestingError, IllegalArgumentError, MissingArgumentError } from './errors.mjs'
 import { constants } from './index.mjs'
 
+/** @typedef {number} NodeId - the number of the node */
+/** @typedef {string} PodName - the full pod name */
+/** @typedef {string} NodeAlias - the alias of the node */
+
+/** @typedef {NodeId[]} NodeIds - list of the number of nodes */
+/** @typedef {PodName[]} PodNames - list of the pod names */
+/** @typedef {NodeAlias[]} NodeAliases - list of the pod aliases */
+
 export class Templates {
   /**
-   * @param {string} nodeId
-   * @returns {string}
+   * @param {NodeAlias} nodeAlias
+   * @returns {PodName}
    */
-  static renderNetworkPodName (nodeId) {
-    return `network-${nodeId}-0`
+  static renderNetworkPodName (nodeAlias) {
+    return `network-${nodeAlias}-0`
   }
 
   /**
-   * @param {string} nodeId
+   * @param {NodeAlias} nodeAlias
    * @returns {string}
    */
-  static renderNetworkSvcName (nodeId) {
-    return `network-${nodeId}-svc`
+  static renderNetworkSvcName (nodeAlias) {
+    return `network-${nodeAlias}-svc`
   }
 
   /**
    * @param {string} svcName
-   * @returns {string}
+   * @returns {NodeAlias}
    */
-  static nodeIdFromNetworkSvcName (svcName) {
+  static nodeAliasFromNetworkSvcName (svcName) {
     return svcName.split('-').slice(1, -1).join('-')
   }
 
   /**
-   * @param {string} nodeId
+   * @param {NodeAlias} nodeAlias
    * @returns {string}
    */
-  static renderNetworkHeadlessSvcName (nodeId) {
-    return `network-${nodeId}`
+  static renderNetworkHeadlessSvcName (nodeAlias) {
+    return `network-${nodeAlias}`
   }
 
   /**
    * @param {string} prefix
-   * @param {string} nodeId
+   * @param {NodeAlias} nodeAlias
    * @returns {string}
    */
-  static renderGossipPemPrivateKeyFile (prefix, nodeId) {
-    return `${prefix}-private-${nodeId}.pem`
+  static renderGossipPemPrivateKeyFile (prefix, nodeAlias) {
+    return `${prefix}-private-${nodeAlias}.pem`
   }
 
   /**
    * @param {string} prefix
-   * @param {string} nodeId
+   * @param {NodeAlias} nodeAlias
    * @returns {string}
    */
-  static renderGossipPemPublicKeyFile (prefix, nodeId) {
-    return `${prefix}-public-${nodeId}.pem`
+  static renderGossipPemPublicKeyFile (prefix, nodeAlias) {
+    return `${prefix}-public-${nodeAlias}.pem`
   }
 
   /**
-   * @param {string} nodeId
+   * @param {NodeAlias} nodeAlias
    * @returns {string}
    */
-  static renderTLSPemPrivateKeyFile (nodeId) {
-    return `hedera-${nodeId}.key`
+  static renderTLSPemPrivateKeyFile (nodeAlias) {
+    return `hedera-${nodeAlias}.key`
   }
 
   /**
-   * @param {string} nodeId
+   * @param {NodeAlias} nodeAlias
    * @returns {string}
    */
-  static renderTLSPemPublicKeyFile (nodeId) {
-    return `hedera-${nodeId}.crt`
+  static renderTLSPemPublicKeyFile (nodeAlias) {
+    return `hedera-${nodeAlias}.crt`
   }
 
   /**
    * @param {string} prefix
-   * @param {string} nodeId
+   * @param {NodeAlias} nodeAlias
    * @param {string} [suffix]
    * @returns {string}
    */
-  static renderNodeFriendlyName (prefix, nodeId, suffix = '') {
-    const parts = [prefix, nodeId]
+  static renderNodeFriendlyName (prefix, nodeAlias, suffix = '') {
+    const parts = [prefix, nodeAlias]
     if (suffix) parts.push(suffix)
     return parts.join('-')
   }
 
   /**
-   * @param {string} podName
-   * @returns {string}
+   * @param {PodName} podName
+   * @returns {NodeAlias}
    */
-  static extractNodeIdFromPodName (podName) {
+  static extractNodeAliasFromPodName (podName) {
     const parts = podName.split('-')
     if (parts.length !== 3) throw new DataValidationError(`pod name is malformed : ${podName}`, 3, parts.length)
     return parts[1].trim()
@@ -152,7 +160,7 @@ export class Templates {
   }
 
   /**
-   * @param {string} nodeId
+   * @param {NodeAlias} nodeAlias
    * @param {string} [state]
    * @param {string} [locality]
    * @param {string} [org]
@@ -160,14 +168,14 @@ export class Templates {
    * @param {string} [country]
    * @returns {x509.Name}
    */
-  static renderDistinguishedName (nodeId,
+  static renderDistinguishedName (nodeAlias,
     state = 'TX',
     locality = 'Richardson',
     org = 'Hedera',
     orgUnit = 'Hedera',
     country = 'US'
   ) {
-    return new x509.Name(`CN=${nodeId},ST=${state},L=${locality},O=${org},OU=${orgUnit},C=${country}`)
+    return new x509.Name(`CN=${nodeAlias},ST=${state},L=${locality},O=${org},OU=${orgUnit},C=${country}`)
   }
 
   /**
@@ -224,50 +232,58 @@ export class Templates {
 
   /**
    * @param {string} namespace
-   * @param {string} nodeId
+   * @param {NodeAlias} nodeAlias
    * @returns {string}
    */
-  static renderFullyQualifiedNetworkPodName (namespace, nodeId) {
-    return `${Templates.renderNetworkPodName(nodeId)}.${Templates.renderNetworkHeadlessSvcName(nodeId)}.${namespace}.svc.cluster.local`
+  static renderFullyQualifiedNetworkPodName (namespace, nodeAlias) {
+    return `${Templates.renderNetworkPodName(nodeAlias)}.${Templates.renderNetworkHeadlessSvcName(nodeAlias)}.${namespace}.svc.cluster.local`
   }
 
   /**
    * @param {string} namespace
-   * @param {string} nodeId
+   * @param {NodeAlias} nodeAlias
    * @returns {string}
    */
-  static renderFullyQualifiedNetworkSvcName (namespace, nodeId) {
-    return `${Templates.renderNetworkSvcName(nodeId)}.${namespace}.svc.cluster.local`
+  static renderFullyQualifiedNetworkSvcName (namespace, nodeAlias) {
+    return `${Templates.renderNetworkSvcName(nodeAlias)}.${namespace}.svc.cluster.local`
   }
 
   /**
    * @param {string} svcName
-   * @returns {string}
+   * @returns {NodeAlias}
    */
   static nodeIdFromFullyQualifiedNetworkSvcName (svcName) {
     const parts = svcName.split('.')
-    return this.nodeIdFromNetworkSvcName(parts[0])
+    return this.nodeAliasFromNetworkSvcName(parts[0])
   }
 
   /**
-   * @param {string} nodeId
-   * @returns {number}
+   * @param {NodeAlias} nodeAlias
+   * @returns {NodeId}
    */
-  static nodeNumberFromNodeId (nodeId) {
-    for (let i = nodeId.length - 1; i > 0; i--) {
-      if (isNaN(nodeId[i])) {
-        return parseInt(nodeId.substring(i + 1, nodeId.length))
+  static nodeNumberFromNodeAlias (nodeAlias) {
+    for (let i = nodeAlias.length - 1; i > 0; i--) {
+      if (isNaN(nodeAlias[i])) {
+        return parseInt(nodeAlias.substring(i + 1, nodeAlias.length))
       }
     }
   }
 
-  static renderGossipKeySecretName (nodeId) {
-    return `network-${nodeId}-keys-secrets`
+  /**
+   * @param {NodeAlias} nodeAlias
+   * @returns {string}
+   */
+  static renderGossipKeySecretName (nodeAlias) {
+    return `network-${nodeAlias}-keys-secrets`
   }
 
-  static renderGossipKeySecretLabelObject (nodeId) {
+  /**
+   * @param {NodeAlias} nodeAlias
+   * @returns {{'fullstack.hedera.com/node-name': string}}
+   */
+  static renderGossipKeySecretLabelObject (nodeAlias) {
     return {
-      'fullstack.hedera.com/node-name': nodeId
+      'fullstack.hedera.com/node-name': nodeAlias
     }
   }
 }

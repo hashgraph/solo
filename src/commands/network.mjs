@@ -72,7 +72,7 @@ export class NetworkCommand extends BaseCommand {
       flags.debugNodeId,
       flags.log4j2Xml,
       flags.namespace,
-      flags.nodeIDs,
+      flags.nodeAliasesUnparsed,
       flags.persistentVolumeClaims,
       flags.profileFile,
       flags.profileName,
@@ -93,7 +93,7 @@ export class NetworkCommand extends BaseCommand {
     }
 
     if (config.app !== constants.HEDERA_APP_NAME) {
-      const index = config.nodeIds.length
+      const index = config.nodeAliases.length
       for (let i = 0; i < index; i++) {
         valuesArg += ` --set "hedera.nodes[${i}].root.extraEnv[0].name=JAVA_MAIN_CLASS"`
         valuesArg += ` --set "hedera.nodes[${i}].root.extraEnv[0].value=com.swirlds.platform.Browser"`
@@ -165,7 +165,7 @@ export class NetworkCommand extends BaseCommand {
      * @property {boolean} enablePrometheusSvcMonitor
      * @property {string} fstChartVersion
      * @property {string} namespace
-     * @property {string} nodeIDs
+     * @property {string} nodeAliasesUnparsed
      * @property {string} persistentVolumeClaims
      * @property {string} profileFile
      * @property {string} profileName
@@ -173,7 +173,7 @@ export class NetworkCommand extends BaseCommand {
      * -- extra args --
      * @property {string} chartPath
      * @property {string} keysDir
-     * @property {string[]} nodeIds
+     * @property {NodeAliases} nodeAliases
      * @property {string} stagingDir
      * @property {string} stagingKeysDir
      * @property {string} valuesArg
@@ -190,13 +190,13 @@ export class NetworkCommand extends BaseCommand {
       [
         'chartPath',
         'keysDir',
-        'nodeIds',
+        'nodeAliases',
         'stagingDir',
         'stagingKeysDir',
         'valuesArg'
       ])
 
-    config.nodeIds = helpers.parseNodeIds(config.nodeIDs)
+    config.nodeAliases = helpers.parseNodeAliases(config.nodeAliasesUnparsed)
 
     // compute values
     config.chartPath = await this.prepareChartPath(config.chartDirectory,
@@ -257,15 +257,15 @@ export class NetworkCommand extends BaseCommand {
               task: async (ctx, _) => {
                 const config = /** @type {NetworkDeployConfigClass} **/ ctx.config
 
-                await this.keyManager.copyGossipKeysToStaging(config.keysDir, config.stagingKeysDir, config.nodeIds)
+                await this.keyManager.copyGossipKeysToStaging(config.keysDir, config.stagingKeysDir, config.nodeAliases)
               }
             },
             {
               title: 'Copy gRPC TLS keys to staging',
               task: async (ctx, _) => {
                 const config = /** @type {NetworkDeployConfigClass} **/ ctx.config
-                for (const nodeId of config.nodeIds) {
-                  const tlsKeyFiles = self.keyManager.prepareTLSKeyFilePaths(nodeId, config.keysDir)
+                for (const nodeAlias of config.nodeAliases) {
+                  const tlsKeyFiles = self.keyManager.prepareTLSKeyFilePaths(nodeAlias, config.keysDir)
                   await self.keyManager.copyNodeKeysToStaging(tlsKeyFiles, config.stagingKeysDir)
                 }
               }
@@ -283,7 +283,7 @@ export class NetworkCommand extends BaseCommand {
         task: async (ctx, parentTask) => {
           const config = /** @type {NetworkDeployConfigClass} **/ ctx.config
 
-          const subTasks = self.platformInstaller.copyNodeKeys(config.stagingDir, config.nodeIds)
+          const subTasks = self.platformInstaller.copyNodeKeys(config.stagingDir, config.nodeAliases)
 
           // set up the sub-tasks
           return parentTask.newListr(subTasks, {
@@ -316,13 +316,13 @@ export class NetworkCommand extends BaseCommand {
             const config = /** @type {NetworkDeployConfigClass} **/ ctx.config
 
             // nodes
-            for (const nodeId of config.nodeIds) {
+            for (const nodeAlias of config.nodeAliases) {
               subTasks.push({
-                title: `Check Node: ${chalk.yellow(nodeId)}`,
+                title: `Check Node: ${chalk.yellow(nodeAlias)}`,
                 task: async () =>
                   await self.k8.waitForPods([constants.POD_PHASE_RUNNING], [
                     'fullstack.hedera.com/type=network-node',
-                    `fullstack.hedera.com/node-name=${nodeId}`
+                    `fullstack.hedera.com/node-name=${nodeAlias}`
                   ], 1, 60 * 15, 1000) // timeout 15 minutes
               })
             }
@@ -344,9 +344,9 @@ export class NetworkCommand extends BaseCommand {
             const config = /** @type {NetworkDeployConfigClass} **/ ctx.config
 
             // HAProxy
-            for (const nodeId of config.nodeIds) {
+            for (const nodeAlias of config.nodeAliases) {
               subTasks.push({
-                title: `Check HAProxy for: ${chalk.yellow(nodeId)}`,
+                title: `Check HAProxy for: ${chalk.yellow(nodeAlias)}`,
                 task: async () =>
                   await self.k8.waitForPods([constants.POD_PHASE_RUNNING], [
                     'fullstack.hedera.com/type=haproxy'
@@ -355,9 +355,9 @@ export class NetworkCommand extends BaseCommand {
             }
 
             // Envoy Proxy
-            for (const nodeId of config.nodeIds) {
+            for (const nodeAlias of config.nodeAliases) {
               subTasks.push({
-                title: `Check Envoy Proxy for: ${chalk.yellow(nodeId)}`,
+                title: `Check Envoy Proxy for: ${chalk.yellow(nodeAlias)}`,
                 task: async () =>
                   await self.k8.waitForPods([constants.POD_PHASE_RUNNING], [
                     'fullstack.hedera.com/type=envoy-proxy'

@@ -247,11 +247,11 @@ export const cacheDir = {
 }
 
 /** @type {CommandFlag} **/
-export const nodeIDs = {
-  constName: 'nodeIDs',
+export const nodeAliasesUnparsed = {
+  constName: 'nodeAliasesUnparsed',
   name: 'node-ids',
   definition: {
-    describe: 'Comma separated node IDs (empty means all nodes)',
+    describe: 'Comma separated node aliases (empty means all nodes)',
     alias: 'i',
     type: 'string'
   }
@@ -660,11 +660,11 @@ export const amount = {
 }
 
 /** @type {CommandFlag} **/
-export const nodeID = {
-  constName: 'nodeId',
+export const nodeAlias = {
+  constName: 'nodeAlias',
   name: 'node-id',
   definition: {
-    describe: 'Node id (e.g. node99)',
+    describe: 'Node alias (e.g. node99)',
     type: 'string'
   }
 }
@@ -808,8 +808,8 @@ export const allFlags = [
   namespace,
   newAccountNumber,
   newAdminKey,
-  nodeID,
-  nodeIDs,
+  nodeAlias,
+  nodeAliasesUnparsed,
   operatorId,
   operatorKey,
   persistentVolumeClaims,

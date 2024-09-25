@@ -36,8 +36,8 @@ describe('Node update', () => {
   const updateNodeId = 'node2'
   const newAccountId = '0.0.7'
   const argv = getDefaultArgv()
-  argv[flags.nodeIDs.name] = 'node1,node2,node3'
-  argv[flags.nodeID.name] = updateNodeId
+  argv[flags.nodeAliasesUnparsed.name] = 'node1,node2,node3'
+  argv[flags.nodeAlias.name] = updateNodeId
 
   argv[flags.newAccountNumber.name] = newAccountId
   argv[flags.newAdminKey.name] = '302e020100300506032b6570042204200cde8d512569610f184b8b399e91e46899805c6171f7c2b8666d2a417bcc66c2'

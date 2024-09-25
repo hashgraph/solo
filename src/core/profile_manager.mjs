@@ -160,19 +160,19 @@ export class ProfileManager {
 
   /**
    * @param {Object} profile
-   * @param {string[]} nodeIds
+   * @param {NodeAliases} nodeAliases
    * @param {Object} yamlRoot
    * @returns {Object}
    */
-  resourcesForConsensusPod (profile, nodeIds, yamlRoot) {
+  resourcesForConsensusPod (profile, nodeAliases, yamlRoot) {
     if (!profile) throw new MissingArgumentError('profile is required')
 
-    const accountMap = getNodeAccountMap(nodeIds)
+    const accountMap = getNodeAccountMap(nodeAliases)
 
     // set consensus pod level resources
-    for (let nodeIndex = 0; nodeIndex < nodeIds.length; nodeIndex++) {
-      this._setValue(`hedera.nodes.${nodeIndex}.name`, nodeIds[nodeIndex], yamlRoot)
-      this._setValue(`hedera.nodes.${nodeIndex}.accountId`, accountMap.get(nodeIds[nodeIndex]), yamlRoot)
+    for (let nodeIndex = 0; nodeIndex < nodeAliases.length; nodeIndex++) {
+      this._setValue(`hedera.nodes.${nodeIndex}.name`, nodeAliases[nodeIndex], yamlRoot)
+      this._setValue(`hedera.nodes.${nodeIndex}.accountId`, accountMap.get(nodeAliases[nodeIndex]), yamlRoot)
       this._setChartItems(`hedera.nodes.${nodeIndex}`, profile.consensus, yamlRoot)
     }
 
@@ -295,12 +295,12 @@ export class ProfileManager {
     if (!profileName) throw new MissingArgumentError('profileName is required')
     const profile = this.getProfile(profileName)
 
-    const nodeIds = helpers.parseNodeIds(this.configManager.getFlag(flags.nodeIDs))
-    if (!nodeIds) throw new FullstackTestingError('Node IDs are not set in the config')
+    const nodeAliases = helpers.parseNodeAliases(this.configManager.getFlag(flags.nodeAliasesUnparsed))
+    if (!nodeAliases) throw new FullstackTestingError('Node IDs are not set in the config')
 
     // generate the yaml
     const yamlRoot = {}
-    this.resourcesForConsensusPod(profile, nodeIds, yamlRoot)
+    this.resourcesForConsensusPod(profile, nodeAliases, yamlRoot)
     this.resourcesForHaProxyPod(profile, yamlRoot)
     this.resourcesForEnvoyProxyPod(profile, yamlRoot)
     this.resourcesForMinioTenantPod(profile, yamlRoot)
@@ -390,7 +390,7 @@ export class ProfileManager {
   /**
    * Prepare a values file for mirror-node Helm chart
    * @param {string} profileName - resource profile name
-   * @returns {Promise<string>} return the full path to the values file
+   * @returns {Promise<string|void>} return the full path to the values file
    */
   prepareValuesForMirrorNodeChart (profileName) {
     if (!profileName) throw new MissingArgumentError('profileName is required')
@@ -442,7 +442,7 @@ export class ProfileManager {
   /**
    * Prepares config.txt file for the node
    * @param {string} namespace - namespace where the network is deployed
-   * @param {Map<string, string>} nodeAccountMap - the map of node IDs to account IDs
+   * @param {Map<NodeAlias, string>} nodeAccountMap - the map of node aliases to account IDs
    * @param {string} destPath - path to the destination directory to write the config.txt file
    * @param {string} releaseTag - release tag e.g. v0.42.0
    * @param {string} [appName] - the app name (default: HederaNode.jar)
@@ -469,13 +469,13 @@ export class ProfileManager {
       configLines.push(`app, ${appName}`)
 
       let nodeSeq = 0
-      for (const nodeID of nodeAccountMap.keys()) {
-        const nodeName = nodeID
+      for (const nodeAlias of nodeAccountMap.keys()) {
+        const nodeName = nodeAlias
 
         const internalIP = Templates.renderFullyQualifiedNetworkPodName(namespace, nodeName)
         const externalIP = Templates.renderFullyQualifiedNetworkSvcName(namespace, nodeName)
 
-        const account = nodeAccountMap.get(nodeID)
+        const account = nodeAccountMap.get(nodeAlias)
         if (releaseVersion.minor >= 40) {
           configLines.push(`address, ${nodeSeq}, ${nodeSeq}, ${nodeName}, ${nodeStakeAmount}, ${internalIP}, ${internalPort}, ${externalIP}, ${externalPort}, ${account}`)
         } else {
