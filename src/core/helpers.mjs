@@ -27,7 +27,7 @@ import { Templates } from './templates.mjs'
 import { HEDERA_HAPI_PATH, ROOT_CONTAINER, SOLO_LOGS_DIR } from './constants.mjs'
 import { constants } from './index.mjs'
 import { FileContentsQuery, FileId } from '@hashgraph/sdk'
-import {Listr} from "listr2";
+import { Listr } from 'listr2'
 
 // cache current directory
 const CUR_FILE_DIR = paths.dirname(fileURLToPath(import.meta.url))
@@ -355,36 +355,26 @@ export function addDebugOptions (valuesArg, debugNodeId, index = 0) {
   return valuesArg
 }
 
-export async function commandActionBuilder (tasks, options, errorString = '') {
-  const errorDescription = errorString.length ? `Error in ${errorString}` : `Error`
+export function commandActionBuilder (actionTasks, options, errorString = '') {
+  const errorDescription = errorString.length ? `Error in ${errorString}` : 'Error'
 
   /**
    * @param {Object} argv
+   * @param {BaseCommand} commandDef
    * @returns {Promise<boolean>}
    */
-  const commandAction = async function(argv) {
-    const self = this
-
-    const prepareTasks = this.getAddPrepareTasks(argv)
-    const transactionTasks = this.getAddTransactionTasks(argv)
-    const executeTasks = this.getAddExecuteTasks(argv)
+  return async function (argv, commandDef) {
     const tasks = new Listr([
-      ...prepareTasks,
-      ...transactionTasks,
-      ...executeTasks
+      ...actionTasks
     ], options)
 
     try {
       await tasks.run()
     } catch (e) {
-      self.logger.error(`${errorDescription}: ${e.message}`, e)
+      commandDef.logger.error(`${errorDescription}: ${e.message}`, e)
       throw new FullstackTestingError(`${errorDescription}: ${e.message}`, e)
     } finally {
-      await self.close()
+      await commandDef.close()
     }
-
-    return true
   }
-
-  return commandAction.bind(this)
 }

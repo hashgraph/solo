@@ -27,6 +27,8 @@ import { ConfigManager } from './config_manager.mjs'
 import { KeyManager } from './key_manager.mjs'
 import { Keytool } from './keytool.mjs'
 import { ProfileManager } from './profile_manager.mjs'
+import { YargsCommand } from './yargsCommand.mjs'
+import { Task } from './task.mjs'
 import * as helpers from './helpers.mjs'
 
 // Expose components from the core module
@@ -44,5 +46,7 @@ export {
   ConfigManager,
   KeyManager,
   Keytool,
-  ProfileManager
+  ProfileManager,
+  YargsCommand,
+  Task
 }

@@ -447,13 +447,10 @@ export class MirrorNodeCommand extends BaseCommand {
 
   /**
    * Return Yargs command definition for 'mirror-mirror-node' command
-   * @param {MirrorNodeCommand} mirrorNodeCmd an instance of MirrorNodeCommand
    * @returns {{command: string, desc: string, builder: Function}}
    */
-  static getCommandDefinition (mirrorNodeCmd) {
-    if (!mirrorNodeCmd || !(mirrorNodeCmd instanceof MirrorNodeCommand)) {
-      throw new IllegalArgumentError('Invalid MirrorNodeCommand instance', mirrorNodeCmd)
-    }
+  getCommandDefinition () {
+    const mirrorNodeCmd = this
     return {
       command: 'mirror-node',
       desc: 'Manage Hedera Mirror Node in solo network',

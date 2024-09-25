@@ -547,13 +547,10 @@ export class NetworkCommand extends BaseCommand {
   }
 
   /**
-   * @param {NetworkCommand} networkCmd
    * @returns {{command: string, desc: string, builder: Function}}
    */
-  static getCommandDefinition (networkCmd) {
-    if (!networkCmd || !(networkCmd instanceof NetworkCommand)) {
-      throw new IllegalArgumentError('An instance of NetworkCommand is required', networkCmd)
-    }
+  getCommandDefinition () {
+    const networkCmd = this
     return {
       command: 'network',
       desc: 'Manage solo network deployment',

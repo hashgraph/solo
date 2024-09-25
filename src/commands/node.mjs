@@ -23,14 +23,14 @@ import path from 'path'
 import { FullstackTestingError, IllegalArgumentError } from '../core/errors.mjs'
 import * as helpers from '../core/helpers.mjs'
 import {
-  addDebugOptions, commandActionBuilder, commandBuilder,
+  addDebugOptions,
   getNodeAccountMap,
   getNodeLogs,
   renameAndCopyFile,
   sleep,
   validatePath
 } from '../core/helpers.mjs'
-import { constants, Templates, Zippy } from '../core/index.mjs'
+import { constants, Templates, Zippy, YargsCommand } from '../core/index.mjs'
 import { BaseCommand } from './base.mjs'
 import * as flags from './flags.mjs'
 import * as prompts from './prompts.mjs'
@@ -59,7 +59,7 @@ import {
   LOCAL_HOST
 } from '../core/constants.mjs'
 import { NodeStatusCodes, NodeStatusEnums } from '../core/enumerations.mjs'
-import {NodeCommandTasks} from './node/tasks.mjs'
+import { NodeCommandTasks } from './node/tasks.mjs'
 
 /**
  * Defines the core functionalities of 'node' command
@@ -90,9 +90,12 @@ export class NodeCommand extends BaseCommand {
     this._portForwards = []
 
     this.tasks = new NodeCommandTasks({
+      accountManager: opts.accountManager,
       logger: opts.logger,
-      accountManager: opts.accountManager
+      k8: opts.k8
     })
+
+    this.commandNamespace = 'node'
   }
 
   /**
@@ -766,32 +769,6 @@ export class NodeCommand extends BaseCommand {
     }
     config.allNodeIds = [...config.existingNodeIds]
     return this.taskCheckNetworkNodePods(ctx, task, config.existingNodeIds)
-  }
-
-  /**
-   * Download generated config files and key files from the network node
-   * @param config
-   */
-  async downloadNodeGeneratedFiles (config) {
-    const node1FullyQualifiedPodName = Templates.renderNetworkPodName(config.existingNodeIds[0])
-
-    // copy the config.txt file from the node1 upgrade directory
-    await this.k8.copyFrom(node1FullyQualifiedPodName, constants.ROOT_CONTAINER, `${constants.HEDERA_HAPI_PATH}/data/upgrade/current/config.txt`, config.stagingDir)
-
-    // if directory data/upgrade/current/data/keys does not exist then use data/upgrade/current
-    let keyDir = `${constants.HEDERA_HAPI_PATH}/data/upgrade/current/data/keys`
-    if (!await this.k8.hasDir(node1FullyQualifiedPodName, constants.ROOT_CONTAINER, keyDir)) {
-      keyDir = `${constants.HEDERA_HAPI_PATH}/data/upgrade/current`
-    }
-    const signedKeyFiles = (await this.k8.listDir(node1FullyQualifiedPodName, constants.ROOT_CONTAINER, keyDir)).filter(file => file.name.startsWith(constants.SIGNING_KEY_PREFIX))
-    await this.k8.execContainer(node1FullyQualifiedPodName, constants.ROOT_CONTAINER, ['bash', '-c', `mkdir -p ${constants.HEDERA_HAPI_PATH}/data/keys_backup && cp -r ${keyDir} ${constants.HEDERA_HAPI_PATH}/data/keys_backup/`])
-    for (const signedKeyFile of signedKeyFiles) {
-      await this.k8.copyFrom(node1FullyQualifiedPodName, constants.ROOT_CONTAINER, `${keyDir}/${signedKeyFile.name}`, `${config.keysDir}`)
-    }
-
-    if (await this.k8.hasFile(node1FullyQualifiedPodName, constants.ROOT_CONTAINER, `${constants.HEDERA_HAPI_PATH}/data/upgrade/current/application.properties`)) {
-      await this.k8.copyFrom(node1FullyQualifiedPodName, constants.ROOT_CONTAINER, `${constants.HEDERA_HAPI_PATH}/data/upgrade/current/application.properties`, `${config.stagingDir}/templates`)
-    }
   }
 
   async initializeSetup (config, k8) {
@@ -1993,13 +1970,7 @@ export class NodeCommand extends BaseCommand {
     const self = this
 
     return [
-      {
-        title: 'Download generated files from an existing node',
-        task: async (ctx, task) => {
-          const config = /** @type {NodeAddConfigClass} **/ ctx.config
-          await this.downloadNodeGeneratedFiles(config)
-        }
-      },
+      this.tasks.downloadNodeGeneratedFiles(),
       {
         title: 'Prepare staging directory',
         task: async (ctx, parentTask) => {
@@ -2254,16 +2225,37 @@ export class NodeCommand extends BaseCommand {
     return true
   }
 
-
-  async prepareUpgrade(argv) {
+  async prepareUpgrade (argv) {
     const action = helpers.commandActionBuilder([
-        this.tasks.sendPrepareUpgradeTransaction()
-    ],  {
+      this.tasks.sendPrepareUpgradeTransaction()
+    ], {
       concurrent: false,
       rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
-    }, 'preparing node upgrade').bind(this)
+    }, 'preparing node upgrade')
 
-    await action(argv)
+    await action(argv, this)
+  }
+
+  async freezeUpgrade (argv) {
+    const action = helpers.commandActionBuilder([
+      this.tasks.sendFreezeUpgradeTransaction()
+    ], {
+      concurrent: false,
+      rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
+    }, 'executing node freeze upgrade')
+
+    await action(argv, this)
+  }
+
+  async downloadGeneratedFiles (argv) {
+    const action = helpers.commandActionBuilder([
+      this.tasks.downloadNodeGeneratedFiles()
+    ], {
+      concurrent: false,
+      rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
+    }, 'downloading generated files')
+
+    await action(argv, this)
   }
 
   async enableJVMPortForwarding (nodeId) {
@@ -2292,13 +2284,10 @@ export class NodeCommand extends BaseCommand {
   // Command Definition
   /**
    * Return Yargs command definition for 'node' command
-   * @param {NodeCommand} nodeCmd - an instance of NodeCommand
    * @returns {{command: string, desc: string, builder: Function}}
    */
-  static getCommandDefinition (nodeCmd) {
-    if (!nodeCmd || !(nodeCmd instanceof NodeCommand)) {
-      throw new IllegalArgumentError('An instance of NodeCommand is required', nodeCmd)
-    }
+  getCommandDefinition () {
+    const nodeCmd = this
     return {
       command: 'node',
       desc: 'Manage Hedera platform node in solo network',
@@ -2518,23 +2507,27 @@ export class NodeCommand extends BaseCommand {
               })
             }
           })
-          .command({
+          .command(new YargsCommand({
             command: 'prepare-upgrade',
-            desc: 'TODO',
-            builder: y => flags.setCommandFlags(y, ...NodeCommand.DELETE_FLAGS_LIST),
-            handler: argv => {
-              nodeCmd.logger.debug('==== Running \'node prepare-upgrade\' ===')
-              nodeCmd.logger.debug(argv)
-
-              nodeCmd.prepareUpgrade(argv).then(r => {
-                nodeCmd.logger.debug('==== Finished running `node prepare-upgrade`====')
-                if (!r) process.exit(1)
-              }).catch(err => {
-                nodeCmd.logger.showUserError(err)
-                process.exit(1)
-              })
-            }
-          })
+            description: 'Prepare the network for a Freeze Upgrade operation',
+            flags: [],
+            commandDef: nodeCmd,
+            handler: 'prepareUpgrade'
+          }))
+          .command(new YargsCommand({
+            command: 'freeze-upgrade',
+            description: 'Performs a Freeze Upgrade operation with on the network after it has been prepared with prepare-upgrade',
+            flags: [],
+            commandDef: nodeCmd,
+            handler: 'freezeUpgrade'
+          }))
+          .command(new YargsCommand({
+            command: 'download-generated-files',
+            description: 'Downloads the generated files from an existing node',
+            flags: [],
+            commandDef: nodeCmd,
+            handler: 'downloadGeneratedFiles'
+          }))
           .demandCommand(1, 'Select a node command')
       }
     }
@@ -2787,13 +2780,7 @@ export class NodeCommand extends BaseCommand {
         }
       },
       this.tasks.sendPrepareUpgradeTransaction(),
-      {
-        title: 'Download generated files from an existing node',
-        task: async (ctx, task) => {
-          const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
-          await this.downloadNodeGeneratedFiles(config)
-        }
-      },
+      this.tasks.downloadNodeGeneratedFiles(),
       this.tasks.sendFreezeUpgradeTransaction(),
       {
         title: 'Prepare staging directory',
@@ -3087,13 +3074,7 @@ export class NodeCommand extends BaseCommand {
         }
       },
       this.tasks.sendPrepareUpgradeTransaction(),
-      {
-        title: 'Download generated files from an existing node',
-        task: async (ctx, task) => {
-          const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
-          await this.downloadNodeGeneratedFiles(config)
-        }
-      },
+      this.tasks.downloadNodeGeneratedFiles(),
       this.tasks.sendFreezeUpgradeTransaction(),
       {
         title: 'Prepare staging directory',

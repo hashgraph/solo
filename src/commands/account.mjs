@@ -453,13 +453,10 @@ export class AccountCommand extends BaseCommand {
 
   /**
    * Return Yargs command definition for 'node' command
-   * @param {AccountCommand} accountCmd an instance of NodeCommand
    * @returns {{command: string, desc: string, builder: Function}}
    */
-  static getCommandDefinition (accountCmd) {
-    if (!accountCmd || !(accountCmd instanceof AccountCommand)) {
-      throw new IllegalArgumentError('An instance of AccountCommand is required', accountCmd)
-    }
+  getCommandDefinition () {
+    const accountCmd = this
     return {
       command: 'account',
       desc: 'Manage Hedera accounts in solo network',
