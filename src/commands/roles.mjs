@@ -160,15 +160,21 @@ export class RolesCommand extends BaseCommand {
       },
       {
         title: 'Ensure ClusterRole',
-        task: () => this.ensureClusterRole('solo-user-role')
+        task: async () => {
+          await this.ensureClusterRole('solo-user-role')
+        }
       },
       {
         title: 'Create User',
-        task: (ctx) => this.createUserSecret('new-user', 'new-password', ctx.config.namespace)
+        task: async (ctx) => {
+          await this.createUserSecret('new-user', 'new-password', ctx.config.namespace)
+        }
       },
       {
         title: 'Bind Role to User',
-        task: () => this.bindRoleToUser('solo-user-role', 'new-user')
+        task: async () => {
+          await this.bindRoleToUser('solo-user-role', 'new-user')
+        }
       }
     ], {
       concurrent: false,

@@ -90,6 +90,7 @@ export class K8 {
 
     this.kubeClient = this.kubeConfig.makeApiClient(k8s.CoreV1Api)
     this.rbacApiClient = this.kubeConfig.makeApiClient(k8s.RbacAuthorizationV1Api)
+    this.coordinationApiClient = this.kubeConfig.makeApiClient(k8s.CoordinationV1Api)
 
     return this // to enable chaining
   }
@@ -1164,8 +1165,52 @@ export class K8 {
     return this.rbacApiClient.createClusterRoleBinding(body)
   }
 
-  getClusterRoleBinding () {
-    return this.rbacApiClient.listClusterRoleBinding()
+  // --------------------------------------- LEASES --------------------------------------- //
+  /**
+   * @param {string} namespace
+   * @param {k8s.V1Lease} body
+   * @returns {Promise<{response: http.IncomingMessage, body: k8s.V1Lease}>}
+   */
+  createNamespacedLease (namespace, body) {
+    return this.coordinationApiClient.createNamespacedLease(namespace, body)
+  }
+
+  /**
+   * @param {string} name
+   * @param {string} namespace
+   * @returns {Promise<{response: http.IncomingMessage, body: k8s.V1Lease}>}
+   */
+  readNamespacedLease (name, namespace) {
+    return this.coordinationApiClient.readNamespacedLease(name, namespace)
+  }
+
+  /**
+   * @param {string} name
+   * @param {string} namespace
+   * @param {k8s.V1Lease} body
+   * @returns {Promise<{response: http.IncomingMessage, body: k8s.V1Lease}>}
+   */
+  replaceNamespacedLease (name, namespace, body) {
+    return this.coordinationApiClient.replaceNamespacedLease(name, namespace, body)
+  }
+
+  /**
+   * @param {string} namespace
+   * @param {string} [fieldSelector]
+   * @param {string} [labelSelector]
+   * @returns {Promise<{response: http.IncomingMessage, body: k8s.V1Lease}>}
+   */
+  listNamespacedLease (namespace, fieldSelector, labelSelector) {
+    return this.coordinationApiClient.listNamespacedLease(namespace, undefined, undefined, undefined, fieldSelector, labelSelector)
+  }
+
+  /**
+   * @param {string} name
+   * @param {string} namespace
+   * @returns {Promise<{response: http.IncomingMessage, body: k8s.V1Lease}>}
+   */
+  deleteNamespacedLease (name, namespace) {
+    return this.coordinationApiClient.deleteNamespacedLease(name, namespace)
   }
 
   /**
