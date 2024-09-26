@@ -60,6 +60,7 @@ import {
 } from '../core/constants.mjs'
 import { NodeStatusCodes, NodeStatusEnums } from '../core/enumerations.mjs'
 import { NodeCommandTasks } from './node/tasks.mjs'
+import {downloadGeneratedFilesConfigBuilder, prepareUpgradeConfigBuilder} from "./node/configs.mjs";
 
 /**
  * Defines the core functionalities of 'node' command
@@ -91,11 +92,10 @@ export class NodeCommand extends BaseCommand {
 
     this.tasks = new NodeCommandTasks({
       accountManager: opts.accountManager,
+      configManager: opts.configManager,
       logger: opts.logger,
       k8: opts.k8
     })
-
-    this.commandNamespace = 'node'
   }
 
   /**
@@ -104,6 +104,8 @@ export class NodeCommand extends BaseCommand {
   static get SETUP_CONFIGS_NAME () {
     return 'setupConfigs'
   }
+
+
 
   /**
    * @returns {CommandFlag[]}
@@ -346,29 +348,7 @@ export class NodeCommand extends BaseCommand {
     }
   }
 
-  /**
-   * Check if the network node pod is running
-   * @param {string} namespace
-   * @param {string} nodeId
-   * @param {number} [maxAttempts]
-   * @param {number} [delay]
-   * @returns {Promise<string>}
-   */
-  async checkNetworkNodePod (namespace, nodeId, maxAttempts = 60, delay = 2000) {
-    nodeId = nodeId.trim()
-    const podName = Templates.renderNetworkPodName(nodeId)
 
-    try {
-      await this.k8.waitForPods([constants.POD_PHASE_RUNNING], [
-        'fullstack.hedera.com/type=network-node',
-        `fullstack.hedera.com/node-name=${nodeId}`
-      ], 1, maxAttempts, delay)
-
-      return podName
-    } catch (e) {
-      throw new FullstackTestingError(`no pod found for nodeId: ${nodeId}`, e)
-    }
-  }
 
   /**
    * @param {string} namespace
@@ -490,39 +470,6 @@ export class NodeCommand extends BaseCommand {
    * @param {string[]} nodeIds
    * @returns {*}
    */
-  taskCheckNetworkNodePods (ctx, task, nodeIds) {
-    if (!ctx.config) {
-      ctx.config = {}
-    }
-
-    ctx.config.podNames = {}
-
-    const subTasks = []
-    for (const nodeId of nodeIds) {
-      subTasks.push({
-        title: `Check network pod: ${chalk.yellow(nodeId)}`,
-        task: async (ctx) => {
-          ctx.config.podNames[nodeId] = await this.checkNetworkNodePod(ctx.config.namespace, nodeId)
-        }
-      })
-    }
-
-    // setup the sub-tasks
-    return task.newListr(subTasks, {
-      concurrent: true,
-      rendererOptions: {
-        collapseSubtasks: false
-      }
-    })
-  }
-
-  /**
-   * Return task for checking for all network node pods
-   * @param {any} ctx
-   * @param {TaskWrapper} task
-   * @param {string[]} nodeIds
-   * @returns {*}
-   */
   checkPodRunningTask (ctx, task, nodeIds) {
     const subTasks = []
     for (const nodeId of nodeIds) {
@@ -617,19 +564,6 @@ export class NodeCommand extends BaseCommand {
         collapseSubtasks: false
       }
     })
-  }
-
-  /**
-   * Transfer some hbar to the node for staking purpose
-   * @param existingNodeIds
-   * @return {Promise<void>}
-   */
-  async checkStakingTask (existingNodeIds) {
-    const accountMap = getNodeAccountMap(existingNodeIds)
-    for (const nodeId of existingNodeIds) {
-      const accountId = accountMap.get(nodeId)
-      await this.accountManager.transferAmount(constants.TREASURY_ACCOUNT_ID, accountId, 1)
-    }
   }
 
   /**
@@ -752,23 +686,6 @@ export class NodeCommand extends BaseCommand {
       config.nodeClient.setOperator(TREASURY_ACCOUNT_ID, config.treasuryKey)
       await this.accountManager.transferAmount(constants.TREASURY_ACCOUNT_ID, accountId, 1)
     }
-  }
-
-  /**
-   * Identify existing network nodes and check if they are running
-   * @param {any} ctx
-   * @param {TaskWrapper} task
-   * @param config
-   */
-  async identifyExistingNetworkNodes (ctx, task, config) {
-    config.existingNodeIds = []
-    config.serviceMap = await this.accountManager.getNodeServiceMap(
-      config.namespace)
-    for (/** @type {NetworkNodeServices} **/ const networkNodeServices of config.serviceMap.values()) {
-      config.existingNodeIds.push(networkNodeServices.nodeName)
-    }
-    config.allNodeIds = [...config.existingNodeIds]
-    return this.taskCheckNetworkNodePods(ctx, task, config.existingNodeIds)
   }
 
   async initializeSetup (config, k8) {
@@ -908,78 +825,6 @@ export class NodeCommand extends BaseCommand {
     return (new Uint8Array(decodedDers[0]))
   }
 
-  async prepareUpgradeZip (stagingDir) {
-    // we build a mock upgrade.zip file as we really don't need to upgrade the network
-    // also the platform zip file is ~80Mb in size requiring a lot of transactions since the max
-    // transaction size is 6Kb and in practice we need to send the file as 4Kb chunks.
-    // Note however that in DAB phase-2, we won't need to trigger this fake upgrade process
-    const zipper = new Zippy(this.logger)
-    const upgradeConfigDir = path.join(stagingDir, 'mock-upgrade', 'data', 'config')
-    if (!fs.existsSync(upgradeConfigDir)) {
-      fs.mkdirSync(upgradeConfigDir, { recursive: true })
-    }
-
-    // bump field hedera.config.version
-    const fileBytes = fs.readFileSync(path.join(stagingDir, 'templates', 'application.properties'))
-    const lines = fileBytes.toString().split('\n')
-    const newLines = []
-    for (let line of lines) {
-      line = line.trim()
-      const parts = line.split('=')
-      if (parts.length === 2) {
-        if (parts[0] === 'hedera.config.version') {
-          let version = parseInt(parts[1])
-          line = `hedera.config.version=${++version}`
-        }
-        newLines.push(line)
-      }
-    }
-    fs.writeFileSync(path.join(upgradeConfigDir, 'application.properties'), newLines.join('\n'))
-
-    return await zipper.zip(path.join(stagingDir, 'mock-upgrade'), path.join(stagingDir, 'mock-upgrade.zip'))
-  }
-
-  /**
-   * @param {string} upgradeZipFile
-   * @param nodeClient
-   * @returns {Promise<string>}
-   */
-  async uploadUpgradeZip (upgradeZipFile, nodeClient) {
-    // get byte value of the zip file
-    const zipBytes = fs.readFileSync(upgradeZipFile)
-    const zipHash = crypto.createHash('sha384').update(zipBytes).digest('hex')
-    this.logger.debug(`loaded upgrade zip file [ zipHash = ${zipHash} zipBytes.length = ${zipBytes.length}, zipPath = ${upgradeZipFile}]`)
-
-    // create a file upload transaction to upload file to the network
-    try {
-      let start = 0
-
-      while (start < zipBytes.length) {
-        const zipBytesChunk = new Uint8Array(zipBytes.subarray(start, constants.UPGRADE_FILE_CHUNK_SIZE))
-        let fileTransaction = null
-
-        if (start === 0) {
-          fileTransaction = new FileUpdateTransaction()
-            .setFileId(constants.UPGRADE_FILE_ID)
-            .setContents(zipBytesChunk)
-        } else {
-          fileTransaction = new FileAppendTransaction()
-            .setFileId(constants.UPGRADE_FILE_ID)
-            .setContents(zipBytesChunk)
-        }
-        const resp = await fileTransaction.execute(nodeClient)
-        const receipt = await resp.getReceipt(nodeClient)
-        this.logger.debug(`updated file ${constants.UPGRADE_FILE_ID} [chunkSize= ${zipBytesChunk.length}, txReceipt = ${receipt.toString()}]`)
-
-        start += constants.UPGRADE_FILE_CHUNK_SIZE
-      }
-
-      return zipHash
-    } catch (e) {
-      throw new FullstackTestingError(`failed to upload build.zip file: ${e.message}`, e)
-    }
-  }
-
   /**
    * @param {string} endpointType
    * @param {string[]} endpoints
@@ -1082,10 +927,7 @@ export class NodeCommand extends BaseCommand {
           self.logger.debug('Initialized config', { config })
         }
       },
-      {
-        title: 'Identify network pods',
-        task: (ctx, task) => self.taskCheckNetworkNodePods(ctx, task, ctx.config.nodeIds)
-      },
+      this.tasks.identifyNetworkPods(),
       {
         title: 'Fetch platform software into network nodes',
         task:
@@ -1149,13 +991,7 @@ export class NodeCommand extends BaseCommand {
           }
         }
       },
-      {
-        title: 'Identify existing network nodes',
-        task: async (ctx, task) => {
-          const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
-          return this.identifyExistingNetworkNodes(ctx, task, config)
-        }
-      },
+      this.tasks.identifyExistingNodes(),
       {
         title: 'Starting nodes',
         task: (ctx, task) => {
@@ -1249,10 +1085,7 @@ export class NodeCommand extends BaseCommand {
           }
         }
       },
-      {
-        title: 'Identify network pods',
-        task: (ctx, task) => self.taskCheckNetworkNodePods(ctx, task, ctx.config.nodeIds)
-      },
+      this.tasks.identifyNetworkPods(),
       {
         title: 'Stopping nodes',
         task: (ctx, task) => {
@@ -1455,10 +1288,7 @@ export class NodeCommand extends BaseCommand {
           self.logger.debug('Initialized config', ctx.config)
         }
       },
-      {
-        title: 'Identify network pods',
-        task: (ctx, task) => self.taskCheckNetworkNodePods(ctx, task, ctx.config.nodeIds)
-      },
+      this.tasks.identifyNetworkPods(),
       {
         title: 'Dump network nodes saved state',
         task:
@@ -1696,16 +1526,6 @@ export class NodeCommand extends BaseCommand {
     }
   }
 
-  getIdentifyExistingNetworkNodesTask (argv) {
-    return {
-      title: 'Identify existing network nodes',
-      task: async (ctx, task) => {
-        const config = /** @type {NodeAddConfigClass} **/ ctx.config
-        return this.identifyExistingNetworkNodes(ctx, task, config)
-      }
-    }
-  }
-
   getAddPrepareTasks (argv) {
     const self = this
 
@@ -1719,7 +1539,7 @@ export class NodeCommand extends BaseCommand {
           }
         }
       },
-      self.getIdentifyExistingNetworkNodesTask(argv),
+      this.tasks.identifyExistingNodes(),
       {
         title: 'Determine new node account number',
         task: (ctx, task) => {
@@ -1848,21 +1668,8 @@ export class NodeCommand extends BaseCommand {
           ctx.grpcServiceEndpoints = this.prepareEndpoints(config.endpointType, endpoints, constants.HEDERA_NODE_EXTERNAL_GOSSIP_PORT)
         }
       },
-      {
-        title: 'Prepare upgrade zip file for node upgrade process',
-        task: async (ctx, task) => {
-          const config = /** @type {NodeAddConfigClass} **/ ctx.config
-          ctx.upgradeZipFile = await this.prepareUpgradeZip(config.stagingDir)
-          ctx.upgradeZipHash = await this.uploadUpgradeZip(ctx.upgradeZipFile, config.nodeClient)
-        }
-      },
-      {
-        title: 'Check existing nodes staked amount',
-        task: async (ctx, task) => {
-          const config = /** @type {NodeAddConfigClass} **/ ctx.config
-          await this.checkStakingTask(config.existingNodeIds)
-        }
-      }
+      this.tasks.prepareUpgradeZip(),
+      this.tasks.checkExistingNodesStakedAmount(),
     ]
   }
 
@@ -2174,7 +1981,7 @@ export class NodeCommand extends BaseCommand {
     const executeTasks = this.getAddExecuteTasks(argv)
     const tasks = new Listr([
       self.addInitializeTask(argv),
-      self.getIdentifyExistingNetworkNodesTask(argv),
+      this.tasks.identifyExistingNodes(),
       self.loadContextDataTask(argv),
       ...executeTasks
     ], {
@@ -2227,11 +2034,16 @@ export class NodeCommand extends BaseCommand {
 
   async prepareUpgrade (argv) {
     const action = helpers.commandActionBuilder([
+      this.tasks.initialize(argv, prepareUpgradeConfigBuilder.bind(this), {
+        promptFlags: [],
+        disabledPrompts: []
+      }),
+      this.tasks.prepareUpgradeZip(),
       this.tasks.sendPrepareUpgradeTransaction()
     ], {
       concurrent: false,
       rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
-    }, 'preparing node upgrade')
+    }, 'Error in preparing node upgrade')
 
     await action(argv, this)
   }
@@ -2242,18 +2054,23 @@ export class NodeCommand extends BaseCommand {
     ], {
       concurrent: false,
       rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
-    }, 'executing node freeze upgrade')
+    }, 'Error in executing node freeze upgrade')
 
     await action(argv, this)
   }
 
   async downloadGeneratedFiles (argv) {
     const action = helpers.commandActionBuilder([
+      this.tasks.initialize(argv, downloadGeneratedFilesConfigBuilder.bind(this), {
+        promptFlags: [],
+        disabledPrompts: []
+      }),
+      this.tasks.identifyExistingNodes(),
       this.tasks.downloadNodeGeneratedFiles()
     ], {
       concurrent: false,
       rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
-    }, 'downloading generated files')
+    }, 'Error in downloading generated files')
 
     await action(argv, this)
   }
@@ -2646,13 +2463,7 @@ export class NodeCommand extends BaseCommand {
           self.logger.debug('Initialized config', { config })
         }
       },
-      {
-        title: 'Identify existing network nodes',
-        task: async (ctx, task) => {
-          const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
-          return this.identifyExistingNetworkNodes(ctx, task, config)
-        }
-      },
+      this.tasks.identifyExistingNodes(),
       {
         title: 'Prepare gossip endpoints',
         task: (ctx, task) => {
@@ -2695,28 +2506,9 @@ export class NodeCommand extends BaseCommand {
           ctx.grpcServiceEndpoints = this.prepareEndpoints(config.endpointType, endpoints, constants.HEDERA_NODE_EXTERNAL_GOSSIP_PORT)
         }
       },
-      {
-        title: 'Load node admin key',
-        task: async (ctx, task) => {
-          const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
-          config.adminKey = PrivateKey.fromStringED25519(constants.GENESIS_KEY)
-        }
-      },
-      {
-        title: 'Prepare upgrade zip file for node upgrade process',
-        task: async (ctx, task) => {
-          const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
-          ctx.upgradeZipFile = await this.prepareUpgradeZip(config.stagingDir)
-          ctx.upgradeZipHash = await this.uploadUpgradeZip(ctx.upgradeZipFile, config.nodeClient)
-        }
-      },
-      {
-        title: 'Check existing nodes staked amount',
-        task: async (ctx, task) => {
-          const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
-          await this.checkStakingTask(config.existingNodeIds)
-        }
-      },
+      this.tasks.loadAdminKey(),
+      this.tasks.prepareUpgradeZip(),
+      this.tasks.checkExistingNodesStakedAmount(),
       {
         title: 'Send node update transaction',
         task: async (ctx, task) => {
@@ -3020,35 +2812,10 @@ export class NodeCommand extends BaseCommand {
           self.logger.debug('Initialized config', { config })
         }
       },
-      {
-        title: 'Identify existing network nodes',
-        task: async (ctx, task) => {
-          const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
-          return this.identifyExistingNetworkNodes(ctx, task, config)
-        }
-      },
-      {
-        title: 'Load node admin key',
-        task: async (ctx, task) => {
-          const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
-          config.adminKey = PrivateKey.fromStringED25519(constants.GENESIS_KEY)
-        }
-      },
-      {
-        title: 'Prepare upgrade zip file for node upgrade process',
-        task: async (ctx, task) => {
-          const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
-          ctx.upgradeZipFile = await this.prepareUpgradeZip(config.stagingDir)
-          ctx.upgradeZipHash = await this.uploadUpgradeZip(ctx.upgradeZipFile, config.nodeClient)
-        }
-      },
-      {
-        title: 'Check existing nodes staked amount',
-        task: async (ctx, task) => {
-          const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
-          await this.checkStakingTask(config.existingNodeIds)
-        }
-      },
+      this.tasks.identifyExistingNodes(),
+      this.tasks.loadAdminKey(),
+      this.tasks.prepareUpgradeZip(),
+      this.tasks.checkExistingNodesStakedAmount(),
       {
         title: 'Send node delete transaction',
         task: async (ctx, task) => {

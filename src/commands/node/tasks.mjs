@@ -16,13 +16,23 @@
  */
 
 'use strict'
-import { constants, Templates, Task } from '../../core/index.mjs'
+import {constants, Templates, Task, Zippy} from '../../core/index.mjs'
 import { FREEZE_ADMIN_ACCOUNT } from '../../core/constants.mjs'
-import { AccountBalanceQuery, FreezeTransaction, FreezeType, Timestamp } from '@hashgraph/sdk'
+import {
+  AccountBalanceQuery,
+  FileAppendTransaction,
+  FileUpdateTransaction,
+  FreezeTransaction,
+  FreezeType, PrivateKey,
+  Timestamp
+} from '@hashgraph/sdk'
 import { FullstackTestingError, IllegalArgumentError } from '../../core/errors.mjs'
 import * as prompts from '../prompts.mjs'
-import * as flags from '../flags.mjs'
-import * as helpers from '../../core/helpers.mjs'
+import path from "path";
+import fs from "fs";
+import crypto from "crypto";
+import {getNodeAccountMap} from "../../core/helpers.mjs";
+import chalk from "chalk";
 
 export class NodeCommandTasks {
   /**
@@ -40,9 +50,114 @@ export class NodeCommandTasks {
     this.k8 = /** @type {K8} **/ opts.k8
   }
 
+
+  async _prepareUpgradeZip (stagingDir) {
+    // we build a mock upgrade.zip file as we really don't need to upgrade the network
+    // also the platform zip file is ~80Mb in size requiring a lot of transactions since the max
+    // transaction size is 6Kb and in practice we need to send the file as 4Kb chunks.
+    // Note however that in DAB phase-2, we won't need to trigger this fake upgrade process
+    const zipper = new Zippy(this.logger)
+    const upgradeConfigDir = path.join(stagingDir, 'mock-upgrade', 'data', 'config')
+    if (!fs.existsSync(upgradeConfigDir)) {
+      fs.mkdirSync(upgradeConfigDir, { recursive: true })
+    }
+
+    // bump field hedera.config.version
+    const fileBytes = fs.readFileSync(path.join(stagingDir, 'templates', 'application.properties'))
+    const lines = fileBytes.toString().split('\n')
+    const newLines = []
+    for (let line of lines) {
+      line = line.trim()
+      const parts = line.split('=')
+      if (parts.length === 2) {
+        if (parts[0] === 'hedera.config.version') {
+          let version = parseInt(parts[1])
+          line = `hedera.config.version=${++version}`
+        }
+        newLines.push(line)
+      }
+    }
+    fs.writeFileSync(path.join(upgradeConfigDir, 'application.properties'), newLines.join('\n'))
+
+    return await zipper.zip(path.join(stagingDir, 'mock-upgrade'), path.join(stagingDir, 'mock-upgrade.zip'))
+  }
+
+  /**
+   * @param {string} upgradeZipFile
+   * @param nodeClient
+   * @returns {Promise<string>}
+   */
+  async _uploadUpgradeZip (upgradeZipFile, nodeClient) {
+    // get byte value of the zip file
+    const zipBytes = fs.readFileSync(upgradeZipFile)
+    const zipHash = crypto.createHash('sha384').update(zipBytes).digest('hex')
+    this.logger.debug(`loaded upgrade zip file [ zipHash = ${zipHash} zipBytes.length = ${zipBytes.length}, zipPath = ${upgradeZipFile}]`)
+
+    // create a file upload transaction to upload file to the network
+    try {
+      let start = 0
+
+      while (start < zipBytes.length) {
+        const zipBytesChunk = new Uint8Array(zipBytes.subarray(start, constants.UPGRADE_FILE_CHUNK_SIZE))
+        let fileTransaction = null
+
+        if (start === 0) {
+          fileTransaction = new FileUpdateTransaction()
+              .setFileId(constants.UPGRADE_FILE_ID)
+              .setContents(zipBytesChunk)
+        } else {
+          fileTransaction = new FileAppendTransaction()
+              .setFileId(constants.UPGRADE_FILE_ID)
+              .setContents(zipBytesChunk)
+        }
+        const resp = await fileTransaction.execute(nodeClient)
+        const receipt = await resp.getReceipt(nodeClient)
+        this.logger.debug(`updated file ${constants.UPGRADE_FILE_ID} [chunkSize= ${zipBytesChunk.length}, txReceipt = ${receipt.toString()}]`)
+
+        start += constants.UPGRADE_FILE_CHUNK_SIZE
+      }
+
+      return zipHash
+    } catch (e) {
+      throw new FullstackTestingError(`failed to upload build.zip file: ${e.message}`, e)
+    }
+  }
+
+  prepareUpgradeZip () {
+    return new Task('Prepare upgrade zip file for node upgrade process', async (ctx, task) => {
+      const config = ctx.config
+      ctx.upgradeZipFile = await this._prepareUpgradeZip(config.stagingDir)
+      ctx.upgradeZipHash = await this._uploadUpgradeZip(ctx.upgradeZipFile, config.nodeClient)
+    })
+  }
+
+  loadAdminKey () {
+    return new Task('Load node admin key', async (ctx, task) => {
+      const config = ctx.config
+      config.adminKey = PrivateKey.fromStringED25519(constants.GENESIS_KEY)
+    })
+  }
+
+  checkExistingNodesStakedAmount () {
+    return new Task('Check existing nodes staked amount', async (ctx, task) => {
+      const config = ctx.config
+
+      // Transfer some hbar to the node for staking purpose
+      const accountMap = getNodeAccountMap(config.existingNodeIds)
+      for (const nodeId of config.existingNodeIds) {
+        const accountId = accountMap.get(nodeId)
+        await this.accountManager.transferAmount(constants.TREASURY_ACCOUNT_ID, accountId, 1)
+      }
+    })
+  }
+
+  /**
+   * @returns {Task}
+   */
   sendPrepareUpgradeTransaction () {
     return new Task('Send prepare upgrade transaction', async (ctx, task) => {
-      const { freezeAdminPrivateKey, upgradeZipHash, client } = ctx.config
+      const { upgradeZipHash } = ctx
+      const { nodeClient, freezeAdminPrivateKey } = ctx.config
       try {
         // transfer some tiny amount to the freeze admin account
         await this.accountManager.transferAmount(constants.TREASURY_ACCOUNT_ID, FREEZE_ADMIN_ACCOUNT, 100000)
@@ -50,20 +165,20 @@ export class NodeCommandTasks {
         // query the balance
         const balance = await new AccountBalanceQuery()
           .setAccountId(FREEZE_ADMIN_ACCOUNT)
-          .execute(this.accountManager._nodeClient)
+          .execute(nodeClient)
         this.logger.debug(`Freeze admin account balance: ${balance.hbars}`)
 
         // set operator of freeze transaction as freeze admin account
-        client.setOperator(FREEZE_ADMIN_ACCOUNT, freezeAdminPrivateKey)
+        nodeClient.setOperator(FREEZE_ADMIN_ACCOUNT, freezeAdminPrivateKey)
 
         const prepareUpgradeTx = await new FreezeTransaction()
           .setFreezeType(FreezeType.PrepareUpgrade)
           .setFileId(constants.UPGRADE_FILE_ID)
           .setFileHash(upgradeZipHash)
-          .freezeWith(client)
-          .execute(client)
+          .freezeWith(nodeClient)
+          .execute(nodeClient)
 
-        const prepareUpgradeReceipt = await prepareUpgradeTx.getReceipt(client)
+        const prepareUpgradeReceipt = await prepareUpgradeTx.getReceipt(nodeClient)
 
         this.logger.debug(
                     `sent prepare upgrade transaction [id: ${prepareUpgradeTx.transactionId.toString()}]`,
@@ -76,6 +191,9 @@ export class NodeCommandTasks {
     })
   }
 
+  /**
+   * @returns {Task}
+   */
   sendFreezeUpgradeTransaction () {
     return new Task('Send freeze upgrade transaction', async (ctx, task) => {
       const { freezeAdminPrivateKey, upgradeZipHash, client } = ctx.config
@@ -106,9 +224,10 @@ export class NodeCommandTasks {
   }
 
   /**
-     * Download generated config files and key files from the network node
-     */
-  async downloadNodeGeneratedFiles () {
+   * Download generated config files and key files from the network node
+   * @returns {Task}
+   */
+  downloadNodeGeneratedFiles () {
     return new Task('Download generated files from an existing node', async (ctx, task) => {
       const config = ctx.config
       const node1FullyQualifiedPodName = Templates.renderNetworkPodName(config.existingNodeIds[0])
@@ -133,57 +252,105 @@ export class NodeCommandTasks {
     })
   }
 
-  async initialize (flagList = []) {
+  /**
+   * Return task for checking for all network node pods
+   * @param {any} ctx
+   * @param {TaskWrapper} task
+   * @param {string[]} nodeIds
+   * @returns {*}
+   */
+  taskCheckNetworkNodePods (ctx, task, nodeIds) {
+    if (!ctx.config) {
+      ctx.config = {}
+    }
+
+    ctx.config.podNames = {}
+
+    const subTasks = []
+    for (const nodeId of nodeIds) {
+      subTasks.push({
+        title: `Check network pod: ${chalk.yellow(nodeId)}`,
+        task: async (ctx) => {
+          ctx.config.podNames[nodeId] = await this.checkNetworkNodePod(ctx.config.namespace, nodeId)
+        }
+      })
+    }
+
+    // setup the sub-tasks
+    return task.newListr(subTasks, {
+      concurrent: true,
+      rendererOptions: {
+        collapseSubtasks: false
+      }
+    })
+  }
+
+  /**
+   * Check if the network node pod is running
+   * @param {string} namespace
+   * @param {string} nodeId
+   * @param {number} [maxAttempts]
+   * @param {number} [delay]
+   * @returns {Promise<string>}
+   */
+  async checkNetworkNodePod (namespace, nodeId, maxAttempts = 60, delay = 2000) {
+    nodeId = nodeId.trim()
+    const podName = Templates.renderNetworkPodName(nodeId)
+
+    try {
+      await this.k8.waitForPods([constants.POD_PHASE_RUNNING], [
+        'fullstack.hedera.com/type=network-node',
+        `fullstack.hedera.com/node-name=${nodeId}`
+      ], 1, maxAttempts, delay)
+
+      return podName
+    } catch (e) {
+      throw new FullstackTestingError(`no pod found for nodeId: ${nodeId}`, e)
+    }
+  }
+
+  identifyExistingNodes () {
+    return new Task('Identify existing network nodes', async (ctx, task) => {
+      const config = ctx.config
+      config.existingNodeIds = []
+      config.serviceMap = await this.accountManager.getNodeServiceMap(config.namespace)
+      for (/** @type {NetworkNodeServices} **/ const networkNodeServices of config.serviceMap.values()) {
+        config.existingNodeIds.push(networkNodeServices.nodeName)
+      }
+      config.allNodeIds = [...config.existingNodeIds]
+      return this.taskCheckNetworkNodePods(ctx, task, config.existingNodeIds)
+    })
+  }
+
+  identifyNetworkPods () {
+    return new Task('Identify network pods', async (ctx, task) => {
+      return this.taskCheckNetworkNodePods(ctx, task, ctx.config.nodeIds)
+    })
+  }
+
+  /**
+   * @param {Object} argv
+   * @param {Function} configInit
+   * @param {{promptFlags: CommandFlag[], disabledPrompts: CommandFlag[]}} opts
+   * @returns {Task}
+   */
+  initialize (argv, configInit, opts = {
+    promptFlags: [],
+    disabledPrompts: [],
+  }) {
+    const {promptFlags, disabledPrompts} = opts
+
     return new Task('Initialize', async (ctx, task) => {
       this.configManager.update(argv)
 
       // disable the prompts that we don't want to prompt the user for
-      prompts.disablePrompts([
-        flags.app,
-        flags.appConfig,
-        flags.devMode,
-        flags.localBuildPath
-      ])
+      prompts.disablePrompts(disabledPrompts)
+      await prompts.execute(task, this.configManager, promptFlags)
 
-      await prompts.execute(task, this.configManager, flagList)
-
-      /**
-             * @typedef {Object} NodeSetupConfigClass
-             * -- flags --
-             * @property {string} app
-             * @property {string} appConfig
-             * @property {string} cacheDir
-             * @property {boolean} devMode
-             * @property {string} localBuildPath
-             * @property {string} namespace
-             * @property {string} nodeIDs
-             * @property {string} releaseTag
-             * -- extra args --
-             * @property {string[]} nodeIds
-             * @property {string[]} podNames
-             * -- methods --
-             * @property {getUnusedConfigs} getUnusedConfigs
-             */
-      /**
-             * @callback getUnusedConfigs
-             * @returns {string[]}
-             */
-
-      // create a config object for subsequent steps
-      const config = /** @type {NodeSetupConfigClass} **/ this.getConfig(NodeCommand.SETUP_CONFIGS_NAME, NodeCommand.SETUP_FLAGS_LIST,
-        [
-          'nodeIds',
-          'podNames'
-        ])
-
-      config.nodeIds = helpers.parseNodeIds(config.nodeIDs)
-
-      await self.initializeSetup(config, self.k8)
-
-      // set config in the context for later tasks to use
+      const config = await configInit(argv, ctx, task)
       ctx.config = config
 
-      this.logger.debug('Initialized config', { config })
+      this.logger.debug('Initialized config', {config})
     })
   }
 }

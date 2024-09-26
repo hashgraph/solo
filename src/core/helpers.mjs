@@ -355,9 +355,7 @@ export function addDebugOptions (valuesArg, debugNodeId, index = 0) {
   return valuesArg
 }
 
-export function commandActionBuilder (actionTasks, options, errorString = '') {
-  const errorDescription = errorString.length ? `Error in ${errorString}` : 'Error'
-
+export function commandActionBuilder (actionTasks, options, errorString = 'Error') {
   /**
    * @param {Object} argv
    * @param {BaseCommand} commandDef
@@ -371,8 +369,8 @@ export function commandActionBuilder (actionTasks, options, errorString = '') {
     try {
       await tasks.run()
     } catch (e) {
-      commandDef.logger.error(`${errorDescription}: ${e.message}`, e)
-      throw new FullstackTestingError(`${errorDescription}: ${e.message}`, e)
+      commandDef.logger.error(`${errorString}: ${e.message}`, e)
+      throw new FullstackTestingError(`${errorString}: ${e.message}`, e)
     } finally {
       await commandDef.close()
     }
