@@ -765,6 +765,27 @@ export const mirrorNodeVersion = {
     type: 'string'
   }
 }
+
+/** @type {CommandFlag} **/
+export const clusterRoleUsername = {
+  constName: 'clusterRoleUsername',
+  name: 'cluster-role-username',
+  definition: {
+    describe: 'The username for the cluster role',
+    type: 'string'
+  }
+}
+
+/** @type {CommandFlag} **/
+export const clusterRolePassword = {
+  constName: 'clusterRolePassword',
+  name: 'cluster-role-password',
+  definition: {
+    describe: 'The password for the cluster role',
+    type: 'string'
+  }
+}
+
 /** @type {CommandFlag[]} **/
 export const allFlags = [
   accountId,
@@ -826,7 +847,9 @@ export const allFlags = [
   tlsPublicKey,
   updateAccountKeys,
   valuesFile,
-  mirrorNodeVersion
+  mirrorNodeVersion,
+  clusterRoleUsername,
+  clusterRolePassword
 ]
 
 /**

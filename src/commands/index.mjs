@@ -22,6 +22,7 @@ import { NetworkCommand } from './network.mjs'
 import { NodeCommand } from './node.mjs'
 import { RelayCommand } from './relay.mjs'
 import { AccountCommand } from './account.mjs'
+import { RolesCommand } from './roles.mjs'
 import * as flags from './flags.mjs'
 
 /**
@@ -37,6 +38,7 @@ function Initialize (opts) {
   const relayCmd = new RelayCommand(opts)
   const accountCmd = new AccountCommand(opts)
   const mirrorNodeCmd = new MirrorNodeCommand(opts)
+  const rolesCmd = new RolesCommand(opts)
 
   return [
     InitCommand.getCommandDefinition(initCmd),
@@ -45,7 +47,8 @@ function Initialize (opts) {
     NodeCommand.getCommandDefinition(nodeCmd),
     RelayCommand.getCommandDefinition(relayCmd),
     AccountCommand.getCommandDefinition(accountCmd),
-    MirrorNodeCommand.getCommandDefinition(mirrorNodeCmd)
+    MirrorNodeCommand.getCommandDefinition(mirrorNodeCmd),
+    RolesCommand.getCommandDefinition(rolesCmd)
   ]
 }
 

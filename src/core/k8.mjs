@@ -16,6 +16,7 @@
  */
 'use strict'
 import * as k8s from '@kubernetes/client-node'
+import { V1ObjectMeta, V1Secret } from '@kubernetes/client-node'
 import fs from 'fs'
 import net from 'net'
 import os from 'os'
@@ -25,7 +26,6 @@ import { FullstackTestingError, IllegalArgumentError, MissingArgumentError } fro
 import * as sb from 'stream-buffers'
 import * as tar from 'tar'
 import { v4 as uuid4 } from 'uuid'
-import { V1ObjectMeta, V1Secret } from '@kubernetes/client-node'
 import { sleep } from './helpers.mjs'
 import { constants } from './index.mjs'
 import * as stream from 'node:stream'
@@ -89,6 +89,7 @@ export class K8 {
     }
 
     this.kubeClient = this.kubeConfig.makeApiClient(k8s.CoreV1Api)
+    this.rbacApiClient = this.kubeConfig.makeApiClient(k8s.RbacAuthorizationV1Api)
 
     return this // to enable chaining
   }
@@ -617,7 +618,7 @@ export class K8 {
             conn.on('error', (e) => {
               self._deleteTempFile(tmpFile)
               return reject(new FullstackTestingError(
-                  `failed copying from ${podName}:${srcDir}/${srcFile} to ${destPath} because of connection error: ${e.message}`, e))
+                `failed copying from ${podName}:${srcDir}/${srcFile} to ${destPath} because of connection error: ${e.message}`, e))
             })
 
             conn.on('close', (code, reason) => {
@@ -1128,6 +1129,43 @@ export class K8 {
   async deleteSecret (name, namespace) {
     const resp = await this.kubeClient.deleteNamespacedSecret(name, namespace)
     return resp.response.statusCode === 200.0
+  }
+
+  /**
+   * @param {string} name
+   * @returns {Promise<k8s.V1ClusterRole|null>}
+   */
+  async getClusterRole (name) {
+    return this.rbacApiClient.listClusterRole(
+      undefined,
+      false,
+      undefined,
+      `metadata.name=${name}`
+    )
+      .then((resp) => resp?.body?.items?.length ? resp.body.items[0] : null)
+      .catch(e => {
+        throw new FullstackTestingError(`Error fetching ClusterRole ${name}: ${e.message}`, e)
+      })
+  }
+
+  /**
+   * @param {k8s.V1ClusterRole} body
+   * @returns {Promise<{response: http.IncomingMessage, body: k8s.V1ClusterRole}>}
+   */
+  createClusterRole (body) {
+    return this.rbacApiClient.createClusterRole(body)
+  }
+
+  /**
+   *  @param {k8s.V1ClusterRoleBinding} body
+   *  @returns {Promise<{response: http.IncomingMessage, body: k8s.V1ClusterRoleBinding}>}
+   */
+  createClusterRoleBinding (body) {
+    return this.rbacApiClient.createClusterRoleBinding(body)
+  }
+
+  getClusterRoleBinding () {
+    return this.rbacApiClient.listClusterRoleBinding()
   }
 
   /**

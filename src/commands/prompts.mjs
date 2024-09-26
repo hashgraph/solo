@@ -20,8 +20,8 @@ import fs from 'fs'
 import { FullstackTestingError, IllegalArgumentError } from '../core/errors.mjs'
 import { ConfigManager, constants } from '../core/index.mjs'
 import * as flags from './flags.mjs'
-import * as helpers from '../core/helpers.mjs'
 import { resetDisabledPrompts } from './flags.mjs'
+import * as helpers from '../core/helpers.mjs'
 
 async function prompt (type, task, input, defaultValue, promptMessage, emptyCheckMessage, flagName) {
   try {
@@ -269,6 +269,44 @@ export async function promptTlsClusterIssuerType (task, input) {
   }
 }
 
+export async function promptClusterRoleUsername (task, input) {
+  if (!input) {
+    input = await task.prompt(ListrEnquirerPromptAdapter).run({
+      type: 'text',
+      message: 'Enter the cluster role username (minimum 3 characters):'
+    })
+  }
+
+  if (!input) {
+    throw new FullstackTestingError('Username cannot be empty.')
+  }
+
+  if (input.length < 3) {
+    throw new FullstackTestingError('Username must be at least 3 characters long.')
+  }
+
+  return input
+}
+
+export async function promptClusterRolePassword (task, input) {
+  if (!input) {
+    input = await task.prompt(ListrEnquirerPromptAdapter).run({
+      type: 'password',
+      message: 'Enter the cluster role password (more than 6 characters):'
+    })
+  }
+
+  if (!input) {
+    throw new FullstackTestingError('Password cannot be empty.')
+  }
+
+  if (input.length < 6) {
+    throw new FullstackTestingError('Password must be more than 6 characters long.')
+  }
+
+  return input
+}
+
 export async function promptEnableHederaExplorerTls (task, input) {
   return await promptToggle(task, input,
     flags.enableHederaExplorerTls.definition.defaultValue,
@@ -473,6 +511,8 @@ export function getPromptMap () {
     .set(flags.grpcEndpoints.name, promptGrpcEndpoints)
     .set(flags.endpointType.name, promptEndpointType)
     .set(flags.mirrorNodeVersion.name, promptMirrorNodeVersion)
+    .set(flags.clusterRoleUsername.name, promptClusterRoleUsername)
+    .set(flags.clusterRolePassword.name, promptClusterRolePassword)
 }
 
 // build the prompt registry
