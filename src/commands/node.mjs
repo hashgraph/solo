@@ -30,7 +30,7 @@ import {
   sleep,
   validatePath
 } from '../core/helpers.mjs'
-import { constants, Templates, Zippy, YargsCommand } from '../core/index.mjs'
+import { constants, Templates, YargsCommand } from '../core/index.mjs'
 import { BaseCommand } from './base.mjs'
 import * as flags from './flags.mjs'
 import * as prompts from './prompts.mjs'
@@ -39,16 +39,11 @@ import {
   AccountBalanceQuery,
   AccountId,
   AccountUpdateTransaction,
-  FileAppendTransaction,
-  FileUpdateTransaction,
-  FreezeTransaction,
-  FreezeType,
   PrivateKey,
   NodeCreateTransaction,
   NodeUpdateTransaction,
   NodeDeleteTransaction,
   ServiceEndpoint,
-  Timestamp
 } from '@hashgraph/sdk'
 import * as crypto from 'crypto'
 import {
@@ -61,6 +56,7 @@ import {
 import { NodeStatusCodes, NodeStatusEnums } from '../core/enumerations.mjs'
 import { NodeCommandTasks } from './node/tasks.mjs'
 import {downloadGeneratedFilesConfigBuilder, prepareUpgradeConfigBuilder} from "./node/configs.mjs";
+import {profileName} from "./flags.mjs";
 
 /**
  * Defines the core functionalities of 'node' command
@@ -2034,10 +2030,7 @@ export class NodeCommand extends BaseCommand {
 
   async prepareUpgrade (argv) {
     const action = helpers.commandActionBuilder([
-      this.tasks.initialize(argv, prepareUpgradeConfigBuilder.bind(this), {
-        promptFlags: [],
-        disabledPrompts: []
-      }),
+      this.tasks.initialize(argv, prepareUpgradeConfigBuilder.bind(this)),
       this.tasks.prepareUpgradeZip(),
       this.tasks.sendPrepareUpgradeTransaction()
     ], {
@@ -2050,6 +2043,8 @@ export class NodeCommand extends BaseCommand {
 
   async freezeUpgrade (argv) {
     const action = helpers.commandActionBuilder([
+      this.tasks.initialize(argv, prepareUpgradeConfigBuilder.bind(this)),
+      this.tasks.prepareUpgradeZip(),
       this.tasks.sendFreezeUpgradeTransaction()
     ], {
       concurrent: false,
@@ -2061,10 +2056,7 @@ export class NodeCommand extends BaseCommand {
 
   async downloadGeneratedFiles (argv) {
     const action = helpers.commandActionBuilder([
-      this.tasks.initialize(argv, downloadGeneratedFilesConfigBuilder.bind(this), {
-        promptFlags: [],
-        disabledPrompts: []
-      }),
+      this.tasks.initialize(argv, downloadGeneratedFilesConfigBuilder.bind(this)),
       this.tasks.identifyExistingNodes(),
       this.tasks.downloadNodeGeneratedFiles()
     ], {
@@ -2327,21 +2319,27 @@ export class NodeCommand extends BaseCommand {
           .command(new YargsCommand({
             command: 'prepare-upgrade',
             description: 'Prepare the network for a Freeze Upgrade operation',
-            flags: [],
+            requiredFlags: [],
+            requiredFlagsWithDisabledPrompt: [flags.namespace, flags.cacheDir, flags.releaseTag],
+            optionalFlags: [flags.devMode],
             commandDef: nodeCmd,
             handler: 'prepareUpgrade'
           }))
           .command(new YargsCommand({
             command: 'freeze-upgrade',
             description: 'Performs a Freeze Upgrade operation with on the network after it has been prepared with prepare-upgrade',
-            flags: [],
+            requiredFlags: [],
+            requiredFlagsWithDisabledPrompt: [flags.namespace, flags.cacheDir, flags.releaseTag],
+            optionalFlags: [flags.devMode],
             commandDef: nodeCmd,
             handler: 'freezeUpgrade'
           }))
           .command(new YargsCommand({
             command: 'download-generated-files',
             description: 'Downloads the generated files from an existing node',
-            flags: [],
+            requiredFlags: [],
+            requiredFlagsWithDisabledPrompt: [flags.namespace, flags.cacheDir, flags.releaseTag],
+            optionalFlags: [flags.devMode],
             commandDef: nodeCmd,
             handler: 'downloadGeneratedFiles'
           }))

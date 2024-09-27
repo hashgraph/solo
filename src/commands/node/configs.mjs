@@ -23,13 +23,7 @@ export const prepareUpgradeConfigBuilder = async function (argv, ctx, task) {
      */
 
     const config = /** @type {NodePrepareUpgradeConfigClass} **/ this.getConfig(
-        PREPARE_UPGRADE_CONFIGS_NAME,
-        [
-            flags.cacheDir,
-            flags.namespace,
-            flags.releaseTag
-        ],
-        [
+        PREPARE_UPGRADE_CONFIGS_NAME, argv.flags, [
             'nodeClient',
             'freezeAdminPrivateKey'
         ])
@@ -62,13 +56,7 @@ export const downloadGeneratedFilesConfigBuilder = async function (argv, ctx, ta
      */
 
     const config = /** @type {NodePrepareUpgradeConfigClass} **/ this.getConfig(
-        DOWNLOAD_GENERATED_FILES_CONFIGS_NAME,
-        [
-            flags.cacheDir,
-            flags.namespace,
-            flags.releaseTag
-        ],
-        [
+        DOWNLOAD_GENERATED_FILES_CONFIGS_NAME, argv.flags, [
             'allNodeIds',
             'existingNodeIds',
             'serviceMap'

@@ -21,14 +21,16 @@ import { IllegalArgumentError } from './errors.mjs'
 
 export class YargsCommand {
   /**
-     * @param {{command: string, description: string, flags: CommandFlag[], commandDef: BaseCommand, handler: string}} opts
+     * @param {{command: string, description: string, requiredFlags: CommandFlag[], requiredFlagsWithDisabledPrompt: CommandFlag[], optionalFlags: CommandFlag[], commandDef: BaseCommand, handler: string}} opts
      */
   constructor (opts = {}) {
-    const { command, description, flags, commandDef, handler } = opts
+    const { command, description, requiredFlags, requiredFlagsWithDisabledPrompt, optionalFlags, commandDef, handler } = opts
 
     if (!command) throw new IllegalArgumentError('A string is required as the \'command\' property', command)
     if (!description) throw new IllegalArgumentError('A string is required as the \'description\' property', description)
-    if (!flags) throw new IllegalArgumentError('An array of CommandFlag is required as the \'flags\' property', flags)
+    if (!requiredFlags) throw new IllegalArgumentError('An array of CommandFlag is required as the \'requiredFlags\' property', requiredFlags)
+    if (!requiredFlagsWithDisabledPrompt) throw new IllegalArgumentError('An array of CommandFlag is required as the \'requiredFlagsWithDisabledPrompt\' property', requiredFlagsWithDisabledPrompt)
+    if (!optionalFlags) throw new IllegalArgumentError('An array of CommandFlag is required as the \'optionalFlags\' property', optionalFlags)
     if (!commandDef) throw new IllegalArgumentError('An instance of BaseCommand is required as the \'commandDef\' property', commandDef)
     if (!handler) throw new IllegalArgumentError('A string is required as the \'handler\' property', handler)
 
@@ -40,13 +42,23 @@ export class YargsCommand {
       }
     }
 
+    const allFlags = [
+      ...requiredFlags,
+      ...requiredFlagsWithDisabledPrompt,
+      ...optionalFlags
+    ]
+
     return {
       command,
       desc: description,
-      builder: y => commandFlags.setCommandFlags(y, ...flags),
+      builder: y => commandFlags.setCommandFlags(y, ...allFlags),
       handler: argv => {
         commandDef.logger.debug(`==== Running '${commandNamespace} ${command}' ===`)
         commandDef.logger.debug(argv)
+
+        argv.requiredFlags = requiredFlags
+        argv.requiredFlagsWithDisabledPrompt = requiredFlagsWithDisabledPrompt
+        argv.optionalFlags = optionalFlags
 
         commandDef[handler](argv).then(r => {
           commandDef.logger.debug(`==== Finished running '${commandNamespace} ${command}' ====`)

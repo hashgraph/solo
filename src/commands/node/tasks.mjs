@@ -26,13 +26,14 @@ import {
   FreezeType, PrivateKey,
   Timestamp
 } from '@hashgraph/sdk'
-import { FullstackTestingError, IllegalArgumentError } from '../../core/errors.mjs'
+import {FullstackTestingError, IllegalArgumentError, MissingArgumentError} from '../../core/errors.mjs'
 import * as prompts from '../prompts.mjs'
 import path from "path";
 import fs from "fs";
 import crypto from "crypto";
 import {getNodeAccountMap} from "../../core/helpers.mjs";
 import chalk from "chalk";
+import * as flags from '../flags.mjs'
 
 export class NodeCommandTasks {
   /**
@@ -196,7 +197,8 @@ export class NodeCommandTasks {
    */
   sendFreezeUpgradeTransaction () {
     return new Task('Send freeze upgrade transaction', async (ctx, task) => {
-      const { freezeAdminPrivateKey, upgradeZipHash, client } = ctx.config
+      const { upgradeZipHash } = ctx
+      const { freezeAdminPrivateKey, nodeClient } = ctx.config
       try {
         const futureDate = new Date()
         this.logger.debug(`Current time: ${futureDate}`)
@@ -204,16 +206,16 @@ export class NodeCommandTasks {
         futureDate.setTime(futureDate.getTime() + 5000) // 5 seconds in the future
         this.logger.debug(`Freeze time: ${futureDate}`)
 
-        client.setOperator(FREEZE_ADMIN_ACCOUNT, freezeAdminPrivateKey)
+        nodeClient.setOperator(FREEZE_ADMIN_ACCOUNT, freezeAdminPrivateKey)
         const freezeUpgradeTx = await new FreezeTransaction()
           .setFreezeType(FreezeType.FreezeUpgrade)
           .setStartTimestamp(Timestamp.fromDate(futureDate))
           .setFileId(constants.UPGRADE_FILE_ID)
           .setFileHash(upgradeZipHash)
-          .freezeWith(client)
-          .execute(client)
+          .freezeWith(nodeClient)
+          .execute(nodeClient)
 
-        const freezeUpgradeReceipt = await freezeUpgradeTx.getReceipt(client)
+        const freezeUpgradeReceipt = await freezeUpgradeTx.getReceipt(nodeClient)
         this.logger.debug(`Upgrade frozen with transaction id: ${freezeUpgradeTx.transactionId.toString()}`,
           freezeUpgradeReceipt.status.toString())
       } catch (e) {
@@ -331,24 +333,40 @@ export class NodeCommandTasks {
   /**
    * @param {Object} argv
    * @param {Function} configInit
-   * @param {{promptFlags: CommandFlag[], disabledPrompts: CommandFlag[]}} opts
    * @returns {Task}
    */
-  initialize (argv, configInit, opts = {
-    promptFlags: [],
-    disabledPrompts: [],
-  }) {
-    const {promptFlags, disabledPrompts} = opts
+  initialize (argv, configInit) {
+    const {requiredFlags, requiredFlagsWithDisabledPrompt, optionalFlags} = argv
+    const allRequiredFlags = [
+      ...requiredFlags,
+      ...requiredFlagsWithDisabledPrompt
+    ]
+
+    argv.flags = [
+      ...requiredFlags,
+      ...requiredFlagsWithDisabledPrompt,
+      ...optionalFlags
+    ]
 
     return new Task('Initialize', async (ctx, task) => {
+      if (argv[flags.devMode.name]) {
+        this.logger.setDevMode(true)
+      }
+
       this.configManager.update(argv)
 
       // disable the prompts that we don't want to prompt the user for
-      prompts.disablePrompts(disabledPrompts)
-      await prompts.execute(task, this.configManager, promptFlags)
+      prompts.disablePrompts(requiredFlagsWithDisabledPrompt)
+      await prompts.execute(task, this.configManager, requiredFlags)
 
       const config = await configInit(argv, ctx, task)
       ctx.config = config
+
+      for (const flag of allRequiredFlags) {
+        if (typeof config[flag.constName] === "undefined") {
+          throw new MissingArgumentError(`No value set for required flag: ${flag.name}`, flag.name)
+        }
+      }
 
       this.logger.debug('Initialized config', {config})
     })
