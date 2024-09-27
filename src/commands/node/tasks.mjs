@@ -16,7 +16,7 @@
  */
 
 'use strict'
-import {constants, Templates, Task, Zippy} from '../../core/index.mjs'
+import { constants, Templates, Task, Zippy } from '../../core/index.mjs'
 import { FREEZE_ADMIN_ACCOUNT } from '../../core/constants.mjs'
 import {
   AccountBalanceQuery,
@@ -26,13 +26,13 @@ import {
   FreezeType, PrivateKey,
   Timestamp
 } from '@hashgraph/sdk'
-import {FullstackTestingError, IllegalArgumentError, MissingArgumentError} from '../../core/errors.mjs'
+import { FullstackTestingError, IllegalArgumentError, MissingArgumentError } from '../../core/errors.mjs'
 import * as prompts from '../prompts.mjs'
-import path from "path";
-import fs from "fs";
-import crypto from "crypto";
-import {getNodeAccountMap} from "../../core/helpers.mjs";
-import chalk from "chalk";
+import path from 'path'
+import fs from 'fs'
+import crypto from 'crypto'
+import { getNodeAccountMap } from '../../core/helpers.mjs'
+import chalk from 'chalk'
 import * as flags from '../flags.mjs'
 
 export class NodeCommandTasks {
@@ -50,7 +50,6 @@ export class NodeCommandTasks {
     this.logger = opts.logger
     this.k8 = /** @type {K8} **/ opts.k8
   }
-
 
   async _prepareUpgradeZip (stagingDir) {
     // we build a mock upgrade.zip file as we really don't need to upgrade the network
@@ -104,12 +103,12 @@ export class NodeCommandTasks {
 
         if (start === 0) {
           fileTransaction = new FileUpdateTransaction()
-              .setFileId(constants.UPGRADE_FILE_ID)
-              .setContents(zipBytesChunk)
+            .setFileId(constants.UPGRADE_FILE_ID)
+            .setContents(zipBytesChunk)
         } else {
           fileTransaction = new FileAppendTransaction()
-              .setFileId(constants.UPGRADE_FILE_ID)
-              .setContents(zipBytesChunk)
+            .setFileId(constants.UPGRADE_FILE_ID)
+            .setContents(zipBytesChunk)
         }
         const resp = await fileTransaction.execute(nodeClient)
         const receipt = await resp.getReceipt(nodeClient)
@@ -336,7 +335,7 @@ export class NodeCommandTasks {
    * @returns {Task}
    */
   initialize (argv, configInit) {
-    const {requiredFlags, requiredFlagsWithDisabledPrompt, optionalFlags} = argv
+    const { requiredFlags, requiredFlagsWithDisabledPrompt, optionalFlags } = argv
     const allRequiredFlags = [
       ...requiredFlags,
       ...requiredFlagsWithDisabledPrompt
@@ -363,12 +362,12 @@ export class NodeCommandTasks {
       ctx.config = config
 
       for (const flag of allRequiredFlags) {
-        if (typeof config[flag.constName] === "undefined") {
+        if (typeof config[flag.constName] === 'undefined') {
           throw new MissingArgumentError(`No value set for required flag: ${flag.name}`, flag.name)
         }
       }
 
-      this.logger.debug('Initialized config', {config})
+      this.logger.debug('Initialized config', { config })
     })
   }
 }

@@ -43,7 +43,7 @@ import {
   NodeCreateTransaction,
   NodeUpdateTransaction,
   NodeDeleteTransaction,
-  ServiceEndpoint,
+  ServiceEndpoint
 } from '@hashgraph/sdk'
 import * as crypto from 'crypto'
 import {
@@ -55,8 +55,8 @@ import {
 } from '../core/constants.mjs'
 import { NodeStatusCodes, NodeStatusEnums } from '../core/enumerations.mjs'
 import { NodeCommandTasks } from './node/tasks.mjs'
-import {downloadGeneratedFilesConfigBuilder, prepareUpgradeConfigBuilder} from "./node/configs.mjs";
-import {profileName} from "./flags.mjs";
+import { downloadGeneratedFilesConfigBuilder, prepareUpgradeConfigBuilder } from './node/configs.mjs'
+import { profileName } from './flags.mjs'
 
 /**
  * Defines the core functionalities of 'node' command
@@ -100,8 +100,6 @@ export class NodeCommand extends BaseCommand {
   static get SETUP_CONFIGS_NAME () {
     return 'setupConfigs'
   }
-
-
 
   /**
    * @returns {CommandFlag[]}
@@ -343,8 +341,6 @@ export class NodeCommand extends BaseCommand {
       throw new FullstackTestingError(`Error in adding stake: ${e.message}`, e)
     }
   }
-
-
 
   /**
    * @param {string} namespace
@@ -1665,7 +1661,7 @@ export class NodeCommand extends BaseCommand {
         }
       },
       this.tasks.prepareUpgradeZip(),
-      this.tasks.checkExistingNodesStakedAmount(),
+      this.tasks.checkExistingNodesStakedAmount()
     ]
   }
 
