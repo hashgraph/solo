@@ -40,6 +40,9 @@ describe('Node upgrade', () => {
   argv[flags.chartDirectory.name] = process.env.SOLO_FST_CHARTS_DIR ? process.env.SOLO_FST_CHARTS_DIR : undefined
   argv[flags.releaseTag.name] = HEDERA_PLATFORM_VERSION_TAG
   argv[flags.namespace.name] = namespace
+
+  const upgradeArgv = getDefaultArgv()
+
   const bootstrapResp = bootstrapNetwork(namespace, argv)
   const nodeCmd = bootstrapResp.cmd.nodeCmd
   const accountCmd = bootstrapResp.cmd.accountCmd
@@ -56,9 +59,9 @@ describe('Node upgrade', () => {
   }, 450000)
 
   it('should upgrade all nodes on the network successfully', async () => {
-    await nodeCmd.prepareUpgrade()
-    await nodeCmd.downloadGeneratedFiles()
-    await nodeCmd.freezeUpgrade()
+    await nodeCmd.prepareUpgrade(upgradeArgv)
+    await nodeCmd.downloadGeneratedFiles(upgradeArgv)
+    await nodeCmd.freezeUpgrade(upgradeArgv)
 
     expect(nodeCmd.getUnusedConfigs(NodeCommand.DELETE_CONFIGS_NAME)).toEqual([
       flags.app.constName,
