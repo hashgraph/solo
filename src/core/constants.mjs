@@ -32,6 +32,7 @@ export const KEYTOOL = 'keytool'
 export const SOLO_CONFIG_FILE = path.join(SOLO_HOME_DIR, 'solo.config')
 export const RESOURCES_DIR = normalize(path.join(CUR_FILE_DIR, '..', '..', 'resources'))
 export const TEMP_DIR = normalize(path.join(CUR_FILE_DIR, '..', '..', 'temp'))
+export const USER_ROLE = 'solo-user-role'
 
 export const ROOT_CONTAINER = 'root-container'
 

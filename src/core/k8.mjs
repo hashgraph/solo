@@ -1150,19 +1150,80 @@ export class K8 {
   }
 
   /**
-   * @param {k8s.V1ClusterRole} body
-   * @returns {Promise<{response: http.IncomingMessage, body: k8s.V1ClusterRole}>}
+   * @param {string} roleName
+   * @returns {Promise<void>}
    */
-  createClusterRole (body) {
-    return this.rbacApiClient.createClusterRole(body)
+  async createClusterRole (roleName) {
+    const clusterRoleBody = new k8s.V1ClusterRole()
+    clusterRoleBody.apiVersion = 'rbac.authorization.k8s.io/v1'
+    clusterRoleBody.kind = 'ClusterRole'
+    clusterRoleBody.metadata = { name: roleName }
+    clusterRoleBody.rules = [{
+      apiGroups: [''],
+      resources: ['pods'],
+      verbs: ['get', 'list', 'watch', 'create', 'delete']
+    }]
+
+    /** @type {{response: http.IncomingMessage, body: k8s.V1ClusterRole}} */
+    const { response, body } = await this.rbacApiClient.createClusterRole(clusterRoleBody).catch(e => e)
+
+    if (response.statusCode !== 201) {
+      this.logger.error('Failed to create cluster role', body)
+
+      throw new FullstackTestingError('Failed to create cluster role' +
+        `role name: ${roleName}, status code: ${response.statusCode}`)
+    }
   }
 
   /**
-   *  @param {k8s.V1ClusterRoleBinding} body
-   *  @returns {Promise<{response: http.IncomingMessage, body: k8s.V1ClusterRoleBinding}>}
+   * @param {string} roleName
+   * @param {string} username
+   * @returns {Promise<void>}
    */
-  createClusterRoleBinding (body) {
-    return this.rbacApiClient.createClusterRoleBinding(body)
+  async createClusterRoleBinding (roleName, username) {
+    const clusterRoleBinding = new k8s.V1ClusterRoleBinding()
+    clusterRoleBinding.apiVersion = 'rbac.authorization.k8s.io/v1'
+    clusterRoleBinding.kind = 'ClusterRoleBinding'
+    clusterRoleBinding.metadata = new k8s.V1ObjectMeta()
+    clusterRoleBinding.metadata.name = `${username.toLocaleLowerCase()}-rolebinding`
+
+    clusterRoleBinding.subjects = [{
+      kind: 'User',
+      name: username,
+      apiGroup: 'rbac.authorization.k8s.io'
+    }]
+
+    clusterRoleBinding.roleRef = {
+      kind: 'ClusterRole',
+      name: roleName,
+      apiGroup: 'rbac.authorization.k8s.io'
+    }
+
+    /** @type {{response: http.IncomingMessage, body: k8s.V1ClusterRole}} */
+    const { response, body } = await this.rbacApiClient.createClusterRoleBinding(clusterRoleBinding).catch(e => e)
+
+    if (response.statusCode !== 201) {
+      this.logger.error('Failed to create cluster role binding', body)
+
+      throw new FullstackTestingError('Failed to create cluster role binding' +
+        `status code: ${response.statusCode}, role name: ${roleName}, username: ${username}`)
+    }
+  }
+
+  /**
+   * @param {string} name
+   * @returns {Promise<void>}
+   */
+  async deleteClusterRoleBinding (name) {
+    /** @type {{response: http.IncomingMessage, body: k8s.V1ClusterRole}} */
+    const { response, body } = await this.rbacApiClient.deleteClusterRoleBinding(name).catch(e => e)
+
+    if (response.statusCode !== 200) {
+      this.logger.error('Failed to delete cluster role binding', body)
+
+      throw new FullstackTestingError('Failed to delete cluster role binding' +
+        `status code: ${response.statusCode}, name: ${name}`)
+    }
   }
 
   // --------------------------------------- LEASES --------------------------------------- //

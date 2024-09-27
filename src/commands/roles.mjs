@@ -21,7 +21,7 @@ import { flags } from './index.mjs'
 import { Listr } from 'listr2'
 import * as prompts from './prompts.mjs'
 import { constants } from '../core/index.mjs'
-import * as k8s from '@kubernetes/client-node'
+import { USER_ROLE } from '../core/constants.mjs'
 
 export class RolesCommand extends BaseCommand {
   /**
@@ -42,96 +42,7 @@ export class RolesCommand extends BaseCommand {
     ]
   }
 
-  /**
-   * Check if ClusterRole exists, and if not, create it
-   * @param {string} roleName - The name of the ClusterRole to create
-   * @returns {Promise<void>}
-   */
-  async ensureClusterRole (roleName) {
-    try {
-      const clusterRoleExists = await this.k8.getClusterRole(roleName)
-
-      if (clusterRoleExists) {
-        return this.logger.info(`ClusterRole ${roleName} already exists.`)
-      }
-
-      const clusterRoleBody = new k8s.V1ClusterRole()
-      clusterRoleBody.apiVersion = 'rbac.authorization.k8s.io/v1'
-      clusterRoleBody.kind = 'ClusterRole'
-      clusterRoleBody.metadata = { name: roleName }
-      clusterRoleBody.rules = [{
-        apiGroups: [''],
-        resources: ['pods'],
-        verbs: ['get', 'list', 'watch', 'create', 'delete']
-      }]
-
-      await this.k8.createClusterRole(clusterRoleBody)
-
-      this.logger.info(`ClusterRole ${roleName} created.`)
-    } catch (e) {
-      throw new FullstackTestingError(`Error ensuring ClusterRole: ${e.message}`, e)
-    }
-  }
-
-  /**
-   * Create a user by adding a secret with username and password
-   * @param {string} username
-   * @param {string} password
-   * @param {string} namespace - The namespace to create the secret in
-   * @returns {Promise<void>}
-   */
-  async createUserSecret (username, password, namespace) {
-    const data = {
-      username: Buffer.from(username).toString('base64'),
-      password: Buffer.from(password).toString('base64')
-    }
-
-    try {
-      await this.k8.createSecret(`${username}-credentials`, namespace, 'Opaque', data, {}, true)
-      this.logger.info(`User ${username} created in namespace ${namespace}`)
-    } catch (e) {
-      throw new FullstackTestingError(`Error creating user: ${e.message}`, e)
-    }
-  }
-
-  /**
-   * Bind a ClusterRole to the user (using RoleBinding)
-   * @param {string} roleName - The ClusterRole name
-   * @param {string} username - The username
-   * @returns {Promise<void>}
-   */
-  async bindRoleToUser (roleName, username) {
-    const clusterRoleBinding = new k8s.V1ClusterRoleBinding()
-    clusterRoleBinding.apiVersion = 'rbac.authorization.k8s.io/v1'
-    clusterRoleBinding.kind = 'ClusterRoleBinding'
-    clusterRoleBinding.metadata = new k8s.V1ObjectMeta()
-    clusterRoleBinding.metadata.name = `${username}-rolebinding`
-
-    clusterRoleBinding.subjects = [{
-      kind: 'User',
-      name: username,
-      apiGroup: 'rbac.authorization.k8s.io'
-    }]
-
-    clusterRoleBinding.roleRef = {
-      kind: 'ClusterRole',
-      name: roleName,
-      apiGroup: 'rbac.authorization.k8s.io'
-    }
-
-    try {
-      await this.k8.createClusterRoleBinding(clusterRoleBinding)
-      this.logger.info(`Bound ClusterRole ${roleName} to user ${username}`)
-    } catch (e) {
-      throw new FullstackTestingError(`Error binding role to user: ${e.message}`, e)
-    }
-  }
-
-  /**
-   * @param {Object} argv
-   * @returns {Promise<boolean>}
-   */
-  async add (argv) {
+  async register (argv) {
     const tasks = new Listr([
       {
         title: 'Initialize',
@@ -145,7 +56,9 @@ export class RolesCommand extends BaseCommand {
           ])
 
           const config = {
-            namespace: this.configManager.getFlag(flags.namespace)
+            namespace: this.configManager.getFlag(flags.namespace),
+            clusterRoleUsername: this.configManager.getFlag(flags.clusterRoleUsername),
+            clusterRolePassword: this.configManager.getFlag(flags.clusterRolePassword)
           }
 
           ctx.config = /** @type {MirrorNodeDeployConfigClass} **/ this.getConfig(
@@ -154,26 +67,39 @@ export class RolesCommand extends BaseCommand {
           if (!(await this.k8.hasNamespace(ctx.config.namespace))) {
             throw new FullstackTestingError(`Namespace ${config.namespace} does not exist`)
           }
-
-          this.logger.debug('Initialized config', { config })
         }
       },
       {
-        title: 'Ensure ClusterRole',
+        title: 'Ensure cluster role exists',
         task: async () => {
-          await this.ensureClusterRole('solo-user-role')
+          const clusterRoleExists = await this.k8.getClusterRole(USER_ROLE)
+          if (clusterRoleExists) {
+            return this.logger.info(`ClusterRole ${USER_ROLE} already exists.`)
+          }
+
+          await this.k8.createClusterRole(USER_ROLE)
         }
       },
       {
         title: 'Create User',
         task: async (ctx) => {
-          await this.createUserSecret('new-user', 'new-password', ctx.config.namespace)
+          const data = {
+            username: Buffer.from(ctx.config.clusterRoleUsername).toString('base64'),
+            password: Buffer.from(ctx.config.clusterRolePassword).toString('base64')
+          }
+
+          const labels = {
+            [`${ctx.config.clusterRoleUsername}-credentials`]: `${ctx.config.clusterRoleUsername}-credentials`
+          }
+
+          await this.k8.createSecret(`${ctx.config.clusterRoleUsername}-credentials`, ctx.config.namespace,
+            'Opaque', data, labels, true)
         }
       },
       {
         title: 'Bind Role to User',
-        task: async () => {
-          await this.bindRoleToUser('solo-user-role', 'new-user')
+        task: async (ctx) => {
+          await this.k8.createClusterRoleBinding(USER_ROLE, ctx.config.clusterRoleUsername)
         }
       }
     ], {
@@ -185,6 +111,127 @@ export class RolesCommand extends BaseCommand {
       await tasks.run()
     } catch (e) {
       throw new FullstackTestingError(`Error in adding role: ${e.message}`, e)
+    }
+
+    return true
+  }
+
+  async login (argv) {
+    const tasks = new Listr([
+      {
+        title: 'Initialize',
+        task: async (ctx, task) => {
+          this.configManager.update(argv)
+
+          await prompts.execute(task, this.configManager, [
+            flags.namespace,
+            flags.clusterRoleUsername,
+            flags.clusterRolePassword
+          ])
+
+          const config = {
+            namespace: this.configManager.getFlag(flags.namespace),
+            clusterRoleUsername: this.configManager.getFlag(flags.clusterRoleUsername),
+            clusterRolePassword: this.configManager.getFlag(flags.clusterRolePassword)
+          }
+
+          ctx.config = /** @type {MirrorNodeDeployConfigClass} **/ this.getConfig(
+            RolesCommand.DEPLOY_CONFIGS_NAME, RolesCommand.DEPLOY_FLAGS_LIST)
+
+          if (!(await this.k8.hasNamespace(ctx.config.namespace))) {
+            throw new FullstackTestingError(`Namespace ${config.namespace} does not exist`)
+          }
+        }
+      },
+      {
+        title: 'Retrieve User Credentials',
+        task: async (ctx) => {
+          console.log(`${ctx.config.clusterRoleUsername}-credentials`)
+
+          const secret = await this.k8.getSecret(ctx.config.namespace, `${ctx.config.clusterRoleUsername}-credentials`)
+
+          if (!secret || !secret.data) {
+            throw new FullstackTestingError(`No credentials found for user ${ctx.config.clusterRoleUsername}.`)
+          }
+
+          ctx.credentials = {
+            username: Buffer.from(secret.data.username, 'base64').toString('utf8'),
+            password: Buffer.from(secret.data.password, 'base64').toString('utf8')
+          }
+        }
+      },
+      {
+        title: 'Validate Login',
+        task: async (ctx) => {
+          if (ctx.credentials.username !== ctx.config.clusterRoleUsername || ctx.credentials.password !== ctx.config.clusterRolePassword) {
+            throw new FullstackTestingError('Invalid username or password.')
+          }
+        }
+      }
+    ], {
+      concurrent: false,
+      rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
+    })
+
+    try {
+      await tasks.run()
+    } catch (e) {
+      throw new FullstackTestingError(`Error during login: ${e.message}`, e)
+    }
+
+    return true
+  }
+
+  async delete (argv) {
+    const tasks = new Listr([
+      {
+        title: 'Initialize',
+        task: async (ctx, task) => {
+          this.configManager.update(argv)
+
+          await prompts.execute(task, this.configManager, [
+            flags.namespace,
+            flags.clusterRoleUsername
+          ])
+
+          const config = {
+            namespace: this.configManager.getFlag(flags.namespace),
+            clusterRoleUsername: this.configManager.getFlag(flags.clusterRoleUsername)
+          }
+
+          ctx.config = /** @type {MirrorNodeDeployConfigClass} **/ this.getConfig(
+            RolesCommand.DEPLOY_CONFIGS_NAME, RolesCommand.DEPLOY_FLAGS_LIST)
+
+          if (!(await this.k8.hasNamespace(ctx.config.namespace))) {
+            throw new FullstackTestingError(`Namespace ${config.namespace} does not exist`)
+          }
+        }
+      },
+      {
+        title: 'Delete User Secret',
+        task: async (ctx) => {
+          try {
+            await this.k8.deleteSecret(`${ctx.config.clusterRoleUsername}-credentials`, ctx.config.namespace)
+          } catch (e) {
+            throw new FullstackTestingError(`Failed to delete secret ${e.message}`, e)
+          }
+        }
+      },
+      {
+        title: 'Remove Cluster Role Binding',
+        task: async (ctx) => {
+          await this.k8.deleteClusterRoleBinding(`${ctx.config.clusterRoleUsername}-rolebinding`)
+        }
+      }
+    ], {
+      concurrent: false,
+      rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
+    })
+
+    try {
+      await tasks.run()
+    } catch (e) {
+      throw new FullstackTestingError(`Error during deletion: ${e.message}`, e)
     }
 
     return true
@@ -204,18 +251,60 @@ export class RolesCommand extends BaseCommand {
       builder: yargs => {
         return yargs
           .command({
-            command: 'add',
-            desc: 'Add new user',
+            command: 'register',
+            desc: 'Register new user',
             builder: y => flags.setCommandFlags(y,
               flags.namespace
             ),
             handler: argv => {
-              accountCmd.logger.debug('==== Running \'role add\' ===')
+              accountCmd.logger.debug('==== Running \'role register\' ===')
               accountCmd.logger.debug(argv)
 
-              accountCmd.add(argv)
+              accountCmd.register(argv)
                 .then(r => {
-                  accountCmd.logger.debug('==== Finished running \'role add\' ===')
+                  accountCmd.logger.debug('==== Finished running \'role register\' ===')
+                  if (!r) process.exit(1)
+                })
+                .catch(err => {
+                  accountCmd.logger.showUserError(err)
+                  process.exit(1)
+                })
+            }
+          })
+          .command({
+            command: 'login',
+            desc: 'Login existing user',
+            builder: y => flags.setCommandFlags(y,
+              flags.namespace
+            ),
+            handler: argv => {
+              accountCmd.logger.debug('==== Running \'role login\' ===')
+              accountCmd.logger.debug(argv)
+
+              accountCmd.login(argv)
+                .then(r => {
+                  accountCmd.logger.debug('==== Finished running \'role login\' ===')
+                  if (!r) process.exit(1)
+                })
+                .catch(err => {
+                  accountCmd.logger.showUserError(err)
+                  process.exit(1)
+                })
+            }
+          })
+          .command({
+            command: 'delete',
+            desc: 'Login existing user',
+            builder: y => flags.setCommandFlags(y,
+              flags.namespace
+            ),
+            handler: argv => {
+              accountCmd.logger.debug('==== Running \'role delete\' ===')
+              accountCmd.logger.debug(argv)
+
+              accountCmd.delete(argv)
+                .then(r => {
+                  accountCmd.logger.debug('==== Finished running \'role delete\' ===')
                   if (!r) process.exit(1)
                 })
                 .catch(err => {
