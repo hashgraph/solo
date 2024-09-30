@@ -159,9 +159,7 @@ export class MirrorNodeCommand extends BaseCommand {
             flags.mirrorNodeVersion
           ])
 
-          if (!MirrorNodeCommand.DEPLOY_FLAGS_LIST.includes(flags.quiet)) {
-            await prompts.execute(task, self.configManager, MirrorNodeCommand.DEPLOY_FLAGS_LIST)
-          }
+          await prompts.execute(task, self.configManager, MirrorNodeCommand.DEPLOY_FLAGS_LIST)
 
           /**
            * @typedef {Object} MirrorNodeDeployConfigClass

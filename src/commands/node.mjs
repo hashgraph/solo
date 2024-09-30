@@ -1087,9 +1087,7 @@ export class NodeCommand extends BaseCommand {
             flags.localBuildPath
           ])
 
-          if (!NodeCommand.SETUP_FLAGS_LIST.includes(flags.quiet)) {
-            await prompts.execute(task, self.configManager, NodeCommand.SETUP_FLAGS_LIST)
-          }
+          await prompts.execute(task, self.configManager, NodeCommand.SETUP_FLAGS_LIST)
 
           /**
            * @typedef {Object} NodeSetupConfigClass
@@ -1175,12 +1173,10 @@ export class NodeCommand extends BaseCommand {
         task: async (ctx, task) => {
           self.configManager.update(argv)
 
-          if (!NodeCommand.START_FLAGS_LIST.includes(flags.quiet)) {
-            await prompts.execute(task, self.configManager, [
-              flags.namespace,
-              flags.nodeIDs
-            ])
-          }
+          await prompts.execute(task, self.configManager, [
+            flags.namespace,
+            flags.nodeIDs
+          ])
 
           ctx.config = {
             app: self.configManager.getFlag(flags.app),
@@ -1357,9 +1353,7 @@ export class NodeCommand extends BaseCommand {
             flags.devMode
           ])
 
-          if (!NodeCommand.KEYS_FLAGS_LIST.includes(flags.quiet)) {
-            await prompts.execute(task, self.configManager, NodeCommand.KEYS_FLAGS_LIST)
-          }
+          await prompts.execute(task, self.configManager, NodeCommand.KEYS_FLAGS_LIST)
 
           /**
            * @typedef {Object} NodeKeysConfigClass
@@ -1471,9 +1465,7 @@ export class NodeCommand extends BaseCommand {
             flags.localBuildPath
           ])
 
-          if (!NodeCommand.REFRESH_FLAGS_LIST.includes(flags.quiet)) {
-            await prompts.execute(task, self.configManager, NodeCommand.REFRESH_FLAGS_LIST)
-          }
+          await prompts.execute(task, self.configManager, NodeCommand.REFRESH_FLAGS_LIST)
 
           /**
            * @typedef {Object} NodeRefreshConfigClass
@@ -1655,9 +1647,7 @@ export class NodeCommand extends BaseCommand {
           flags.grpcEndpoints
         ])
 
-        if (!NodeCommand.ADD_FLAGS_LIST.includes(flags.quiet)) {
-          await prompts.execute(task, self.configManager, NodeCommand.ADD_FLAGS_LIST)
-        }
+        await prompts.execute(task, self.configManager, NodeCommand.ADD_FLAGS_LIST)
 
         /**
            * @typedef {Object} NodeAddConfigClass
@@ -2654,9 +2644,7 @@ export class NodeCommand extends BaseCommand {
             flags.tlsPublicKey
           ])
 
-          if (NodeCommand.UPDATE_FLAGS_LIST.includes(flags.quiet)) {
-            await prompts.execute(task, self.configManager, NodeCommand.UPDATE_FLAGS_LIST)
-          }
+          await prompts.execute(task, self.configManager, NodeCommand.UPDATE_FLAGS_LIST)
 
           /**
            * @typedef {Object} NodeUpdateConfigClass
@@ -3055,9 +3043,7 @@ export class NodeCommand extends BaseCommand {
             flags.localBuildPath
           ])
 
-          if (NodeCommand.DELETE_FLAGS_LIST.includes(flags.quiet)) {
-            await prompts.execute(task, self.configManager, NodeCommand.DELETE_FLAGS_LIST)
-          }
+          await prompts.execute(task, self.configManager, NodeCommand.DELETE_FLAGS_LIST)
 
           /**
            * @typedef {Object} NodeDeleteConfigClass

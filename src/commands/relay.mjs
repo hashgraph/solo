@@ -195,9 +195,7 @@ export class RelayCommand extends BaseCommand {
 
           self.configManager.update(argv)
 
-          if (!RelayCommand.DEPLOY_FLAGS_LIST.includes(flags.quiet)) {
-            await prompts.execute(task, self.configManager, RelayCommand.DEPLOY_FLAGS_LIST)
-          }
+          await prompts.execute(task, self.configManager, RelayCommand.DEPLOY_FLAGS_LIST)
 
           /**
            * @typedef {Object} RelayDeployConfigClass
@@ -315,9 +313,7 @@ export class RelayCommand extends BaseCommand {
           self.configManager.setFlag(flags.nodeIDs, '')
 
           self.configManager.update(argv)
-          if (!RelayCommand.DESTROY_FLAGS_LIST.includes(flags.quiet)) {
-            await prompts.execute(task, self.configManager, RelayCommand.DESTROY_FLAGS_LIST)
-          }
+          await prompts.execute(task, self.configManager, RelayCommand.DESTROY_FLAGS_LIST)
 
           // prompt if inputs are empty and set it in the context
           ctx.config = {

@@ -155,9 +155,7 @@ export class NetworkCommand extends BaseCommand {
       flags.settingTxt
     ])
 
-    if (!NetworkCommand.DEPLOY_FLAGS_LIST.includes(flags.quiet)) {
-      await prompts.execute(task, this.configManager, NetworkCommand.DEPLOY_FLAGS_LIST)
-    }
+    await prompts.execute(task, this.configManager, NetworkCommand.DEPLOY_FLAGS_LIST)
 
     /**
      * @typedef {Object} NetworkDeployConfigClass
