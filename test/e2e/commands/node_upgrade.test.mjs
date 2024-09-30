@@ -26,6 +26,7 @@ import {
 } from '../../test_util.js'
 import { getNodeLogs, getTmpDir } from '../../../src/core/helpers.mjs'
 import { NodeCommand } from '../../../src/commands/node.mjs'
+import { PREPARE_UPGRADE_CONFIGS_NAME, DOWNLOAD_GENERATED_FILES_CONFIGS_NAME } from '../../../src/commands/node/configs.mjs'
 import { HEDERA_HAPI_PATH, ROOT_CONTAINER } from '../../../src/core/constants.mjs'
 import fs from 'fs'
 
@@ -60,25 +61,31 @@ describe('Node upgrade', () => {
 
   it('should prepare network upgrade successfully', async () => {
     await nodeCmd.prepareUpgrade(upgradeArgv)
-  }, 300000)
-
-  it('should download generated files successfully', async () => {
-    await nodeCmd.downloadGeneratedFiles(upgradeArgv)
-  }, 300000)
-
-  it('should upgrade all nodes on the network successfully', async () => {
-    await nodeCmd.freezeUpgrade(upgradeArgv)
-  }, 300000)
-
-
-  it('should have accesses only the expected config properties', async () => {
-    await nodeCmd.accountManager.close()
-    expect(nodeCmd.getUnusedConfigs(NodeCommand.DELETE_CONFIGS_NAME)).toEqual([
+    expect(nodeCmd.getUnusedConfigs(PREPARE_UPGRADE_CONFIGS_NAME)).toEqual([
       flags.app.constName,
       flags.devMode.constName,
       flags.endpointType.constName
     ])
-  })
+  }, 300000)
+
+  it('should download generated files successfully', async () => {
+    await nodeCmd.downloadGeneratedFiles(upgradeArgv)
+    expect(nodeCmd.getUnusedConfigs(DOWNLOAD_GENERATED_FILES_CONFIGS_NAME)).toEqual([
+      flags.app.constName,
+      flags.devMode.constName,
+      flags.endpointType.constName
+    ])
+  }, 300000)
+
+  it('should upgrade all nodes on the network successfully', async () => {
+    await nodeCmd.freezeUpgrade(upgradeArgv)
+    await nodeCmd.accountManager.close()
+    expect(nodeCmd.getUnusedConfigs(PREPARE_UPGRADE_CONFIGS_NAME)).toEqual([
+      flags.app.constName,
+      flags.devMode.constName,
+      flags.endpointType.constName
+    ])
+  }, 300000)
 
   balanceQueryShouldSucceed(nodeCmd.accountManager, nodeCmd, namespace)
 
