@@ -69,7 +69,8 @@ describe('Node upgrade', () => {
   it('should download generated files successfully', async () => {
     await nodeCmd.downloadGeneratedFiles(upgradeArgv)
     expect(nodeCmd.getUnusedConfigs(DOWNLOAD_GENERATED_FILES_CONFIGS_NAME)).toEqual([
-      flags.devMode.constName
+      flags.devMode.constName,
+      'allNodeIds'
     ])
   }, 300000)
 
