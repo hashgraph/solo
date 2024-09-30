@@ -14,6 +14,7 @@
  * limitations under the License.
  *
  */
+'use strict'
 import * as k8s from '@kubernetes/client-node'
 import fs from 'fs'
 import net from 'net'
@@ -27,6 +28,7 @@ import { v4 as uuid4 } from 'uuid'
 import { V1ObjectMeta, V1Secret } from '@kubernetes/client-node'
 import { sleep } from './helpers.mjs'
 import { constants } from './index.mjs'
+import * as stream from 'node:stream'
 
 /**
  * A kubernetes API wrapper class providing custom functionalities required by solo
@@ -37,6 +39,10 @@ import { constants } from './index.mjs'
 export class K8 {
   static PodReadyCondition = new Map().set(constants.POD_CONDITION_READY, constants.POD_CONDITION_STATUS_TRUE)
 
+  /**
+   * @param {ConfigManager} configManager
+   * @param {Logger} logger
+   */
   constructor (configManager, logger) {
     if (!configManager) throw new MissingArgumentError('An instance of core/ConfigManager is required')
     if (!logger) throw new MissingArgumentError('An instance of core/Logger is required')
@@ -51,17 +57,23 @@ export class K8 {
    * Clone a new instance with the same config manager and logger
    * Internally it instantiates a new kube API client
    *
-   * @return {K8}
+   * @returns {K8}
    */
   clone () {
     const c = new K8(this.configManager, this.logger)
     return c.init()
   }
 
+  /**
+   * @returns {k8s.KubeConfig}
+   */
   getKubeConfig () {
     return this.kubeConfig
   }
 
+  /**
+   * @returns {K8}
+   */
   init () {
     this.kubeConfig = new k8s.KubeConfig()
     this.kubeConfig.loadFromDefault()
@@ -83,9 +95,9 @@ export class K8 {
 
   /**
    * Apply filters to metadata
-   * @param items list of items
-   * @param filters an object with metadata fields and value
-   * @return a list of items that match the filters
+   * @param {Object[]} items - list of items
+   * @param {Object} [filters] - an object with metadata fields and value
+   * @returns {Object[]} a list of items that match the filters
    */
   applyMetadataFilter (items, filters = {}) {
     if (!filters) throw new MissingArgumentError('filters are required')
@@ -115,9 +127,9 @@ export class K8 {
 
   /**
    * Filter a single item using metadata filter
-   * @param items list of items
-   * @param filters an object with metadata fields and value
-   * @return {*}
+   * @param {Object[]} items - list of items
+   * @param {Object} [filters] - an object with metadata fields and value
+   * @returns {Object}
    */
   filterItem (items, filters = {}) {
     const filtered = this.applyMetadataFilter(items, filters)
@@ -127,8 +139,8 @@ export class K8 {
 
   /**
    * Create a new namespace
-   * @param name name of the namespace
-   * @return {Promise<boolean>}
+   * @param {string} name - name of the namespace
+   * @returns {Promise<boolean>}
    */
   async createNamespace (name) {
     const payload = {
@@ -143,8 +155,8 @@ export class K8 {
 
   /**
    * Delete a namespace
-   * @param name name of the namespace
-   * @return {Promise<boolean>}
+   * @param {string} name - name of the namespace
+   * @returns {Promise<boolean>}
    */
   async deleteNamespace (name) {
     const resp = await this.kubeClient.deleteNamespace(name)
@@ -153,7 +165,7 @@ export class K8 {
 
   /**
    * Get a list of namespaces
-   * @return list of namespaces
+   * @returns {string[]} list of namespaces
    */
   async getNamespaces () {
     const resp = await this.kubeClient.listNamespace()
@@ -171,8 +183,8 @@ export class K8 {
 
   /**
    * Returns true if a namespace exists with the given name
-   * @param namespace namespace name
-   * @return {Promise<boolean>}
+   * @param {string} namespace namespace name
+   * @returns {Promise<boolean>}
    */
   async hasNamespace (namespace) {
     const namespaces = await this.getNamespaces()
@@ -181,8 +193,8 @@ export class K8 {
 
   /**
    * Get a podName by name
-   * @param name podName name
-   * @return {Promise<{}>} k8s.V1Pod object
+   * @param {string} name - podName name
+   * @returns {Promise<Object>} k8s.V1Pod object
    */
   async getPodByName (name) {
     const ns = this._getNamespace()
@@ -200,8 +212,8 @@ export class K8 {
 
   /**
    * Get pods by labels
-   * @param labels list of labels
-   * @return {Promise<Array<V1Pod>>}
+   * @param {string[]} labels - list of labels
+   * @returns {Promise<Array<V1Pod>>}
    */
   async getPodsByLabel (labels = []) {
     const ns = this._getNamespace()
@@ -220,8 +232,8 @@ export class K8 {
 
   /**
    * Get secrets by labels
-   * @param labels list of labels
-   * @return {Promise<Array<V1Secret>>}
+   * @param {string[]} labels - list of labels
+   * @returns {Promise<Array<V1Secret>>}
    */
   async getSecretsByLabel (labels = []) {
     const ns = this._getNamespace()
@@ -240,7 +252,7 @@ export class K8 {
 
   /**
    * Get host IP of a podName
-   * @param podNameName name of the podName
+   * @param {string} podNameName -  name of the podName
    * @returns {Promise<string>} podName IP
    */
   async getPodIP (podNameName) {
@@ -256,8 +268,8 @@ export class K8 {
 
   /**
    * Get a svc by name
-   * @param name svc name
-   * @return {Promise<{}>} k8s.V1Service object
+   * @param {string} name - svc name
+   * @returns {Promise<Object>} k8s.V1Service object
    */
   async getSvcByName (name) {
     const ns = this._getNamespace()
@@ -275,7 +287,7 @@ export class K8 {
 
   /**
    * Get cluster IP of a service
-   * @param svcName name of the service
+   * @param {string} svcName - name of the service
    * @returns {Promise<string>} cluster IP
    */
   async getClusterIP (svcName) {
@@ -289,7 +301,7 @@ export class K8 {
 
   /**
    * Get a list of clusters
-   * @return a list of cluster names
+   * @returns {string[]} a list of cluster names
    */
   async getClusters () {
     const clusters = []
@@ -302,7 +314,7 @@ export class K8 {
 
   /**
    * Get a list of contexts
-   * @return a list of context names
+   * @returns {string[]} a list of context names
    */
   async getContexts () {
     const contexts = []
@@ -327,11 +339,11 @@ export class K8 {
    *    name: config.txt
    * }]
    *
-   * @param podName pod name
-   * @param containerName container name
-   * @param destPath path inside the container
-   * @param timeout timeout in ms
-   * @return {Promise<{}>}
+   * @param {string} podName
+   * @param {string} containerName
+   * @param {string} destPath - path inside the container
+   * @param {number} [timeout] - timeout in ms
+   * @returns a promise that returns array of directory entries, custom object
    */
   async listDir (podName, containerName, destPath, timeout = 5000) {
     try {
@@ -344,8 +356,13 @@ export class K8 {
       for (let line of lines) {
         line = line.replace(/\s+/g, '|')
         const parts = line.split('|')
-        if (parts.length === 9) {
-          const name = parts[parts.length - 1]
+        if (parts.length >= 9) {
+          let name = parts[parts.length - 1]
+          // handle unique file format (without single quotes): 'usedAddressBook_vHederaSoftwareVersion{hapiVersion=v0.53.0, servicesVersion=v0.53.0}_2024-07-30-20-39-06_node_0.txt.debug'
+          for (let i = parts.length - 1; i > 8; i--) {
+            name = `${parts[i - 1]} ${name}`
+          }
+
           if (name !== '.' && name !== '..') {
             const permission = parts[0]
             const item = {
@@ -370,11 +387,11 @@ export class K8 {
 
   /**
    * Check if a filepath exists in the container
-   * @param podName pod name
-   * @param containerName container name
-   * @param destPath path inside the container
-   * @param filters an object with metadata fields and value
-   * @return {Promise<boolean>}
+   * @param {string} podName
+   * @param {string} containerName
+   * @param {string} destPath - path inside the container
+   * @param {Object} [filters] - an object with metadata fields and value
+   * @returns {Promise<boolean>}
    */
   async hasFile (podName, containerName, destPath, filters = {}) {
     const parentDir = path.dirname(destPath)
@@ -415,10 +432,10 @@ export class K8 {
 
   /**
    * Check if a directory path exists in the container
-   * @param podName pod name
-   * @param containerName container name
-   * @param destPath path inside the container
-   * @return {Promise<boolean>}
+   * @param {string} podName
+   * @param {string} containerName
+   * @param {string} destPath - path inside the container
+   * @returns {Promise<boolean>}
    */
   async hasDir (podName, containerName, destPath) {
     return await this.execContainer(
@@ -428,6 +445,12 @@ export class K8 {
     ) === 'true'
   }
 
+  /**
+   * @param {string} podName
+   * @param {string} containerName
+   * @param {string} destPath
+   * @returns {Promise<string>}
+   */
   async mkdir (podName, containerName, destPath) {
     return this.execContainer(
       podName,
@@ -441,11 +464,11 @@ export class K8 {
    *
    * It overwrites any existing file inside the container at the destination directory
    *
-   * @param podName podName name
-   * @param containerName container name
-   * @param srcPath source file path in the local
-   * @param destDir destination directory in the container
-   * @returns return a Promise that performs the copy operation
+   * @param {string} podName
+   * @param {string} containerName
+   * @param {string} srcPath - source file path in the local
+   * @param {string} destDir - destination directory in the container
+   * @returns {Promise<boolean>} return a Promise that performs the copy operation
    */
   async copyTo (podName, containerName, srcPath, destDir) {
     const namespace = this._getNamespace()
@@ -507,19 +530,27 @@ export class K8 {
    *
    * It overwrites any existing file at the destination directory
    *
-   * @param podName podName name
-   * @param containerName container name
-   * @param srcPath source file path in the container
-   * @param destDir destination directory in the local
+   * @param {string} podName
+   * @param {string} containerName
+   * @param {string} srcPath - source file path in the container
+   * @param {string} destDir - destination directory in the local
    * @returns {Promise<boolean>}
    */
   async copyFrom (podName, containerName, srcPath, destDir) {
     const namespace = this._getNamespace()
 
     // get stat for source file in the container
-    const entries = await this.listDir(podName, containerName, srcPath)
+    let entries = await this.listDir(podName, containerName, srcPath)
     if (entries.length !== 1) {
       throw new FullstackTestingError(`invalid source path: ${srcPath}`)
+    }
+    // handle symbolic link
+    if (entries[0].name.indexOf(' -> ') > -1) {
+      const redirectSrcPath = path.join(path.dirname(srcPath), entries[0].name.substring(entries[0].name.indexOf(' -> ') + 4))
+      entries = await this.listDir(podName, containerName, redirectSrcPath)
+      if (entries.length !== 1) {
+        throw new FullstackTestingError(`invalid source path: ${redirectSrcPath}`)
+      }
     }
     const srcFileDesc = entries[0] // cache for later comparison after copy
 
@@ -530,9 +561,9 @@ export class K8 {
     try {
       const srcFileSize = Number.parseInt(srcFileDesc.size)
 
-      const srcFile = path.basename(srcPath)
-      const srcDir = path.dirname(srcPath)
-      const destPath = `${destDir}/${srcFile}`
+      const srcFile = path.basename(entries[0].name)
+      const srcDir = path.dirname(entries[0].name)
+      const destPath = path.join(destDir, srcFile)
 
       // download the tar file to a temp location
       const tmpFile = this._tempFileFor(srcFile)
@@ -540,67 +571,147 @@ export class K8 {
       const self = this
       return new Promise((resolve, reject) => {
         const execInstance = new k8s.Exec(this.kubeConfig)
-        const command = ['tar', 'zcf', '-', '-C', srcDir, srcFile]
-        const writerStream = fs.createWriteStream(tmpFile)
-        const errStream = new sb.WritableStreamBuffer()
+        const command = ['cat', `${srcDir}/${srcFile}`]
+        const outputFileStream = fs.createWriteStream(tmpFile)
+        const outputPassthroughStream = new stream.PassThrough({ highWaterMark: 10 * 1024 * 1024 })
+        const errStream = new stream.PassThrough()
+        let additionalErrorMessageDetail = ''
+
+        // Use pipe() to automatically handle backpressure between streams
+        outputPassthroughStream.pipe(outputFileStream)
+
+        outputPassthroughStream.on('data', (chunk) => {
+          this.logger.debug(`received chunk size=${chunk.length}`)
+          const canWrite = outputFileStream.write(chunk) // Write chunk to file and check if buffer is full
+
+          if (!canWrite) {
+            console.log(`Buffer is full, pausing data stream... for copying from ${podName}:${srcDir}/${srcFile} to ${destPath}`)
+            outputPassthroughStream.pause() // Pause the data stream if buffer is full
+          }
+        })
+
+        outputFileStream.on('drain', () => {
+          outputPassthroughStream.resume()
+          this.logger.debug(`stream drained, resume write for copying from ${podName}:${srcDir}/${srcFile} to ${destPath}`)
+        })
 
         execInstance.exec(
           namespace,
           podName,
           containerName,
           command,
-          writerStream,
+          outputFileStream,
           errStream,
           null,
           false,
-          async ({ status }) => {
-            writerStream.close()
-            if (status === 'Failure' || errStream.size()) {
+          ({ status }) => {
+            if (status === 'Failure') {
               self._deleteTempFile(tmpFile)
+              const errorMessage = `tar command failed with status Failure while copying from ${podName}:${srcDir}/${srcFile} to ${destPath}`
+              this.logger.error(errorMessage)
+              return reject(new FullstackTestingError(errorMessage))
             }
+            this.logger.debug(`copyFrom.callback(status)=${status}`)
           })
           .then(conn => {
-            conn.on('close', async (code, reason) => {
-              if (code !== 1000) { // code 1000 is the success code
-                return reject(new FullstackTestingError(`failed to copy because of error (${code}): ${reason}`))
-              }
-
-              // extract the downloaded file
-              await tar.x({
-                file: tmpFile,
-                cwd: destDir
-              })
-
-              self._deleteTempFile(tmpFile)
-
-              const stat = fs.statSync(destPath)
-              if (stat && stat.size === srcFileSize) {
-                return resolve(true)
-              }
-
-              return reject(new FullstackTestingError(`failed to download file completely: ${destPath}`))
-            })
-
             conn.on('error', (e) => {
               self._deleteTempFile(tmpFile)
               return reject(new FullstackTestingError(
-                `failed to copy file ${destPath} because of connection error: ${e.message}`, e))
+                  `failed copying from ${podName}:${srcDir}/${srcFile} to ${destPath} because of connection error: ${e.message}`, e))
+            })
+
+            conn.on('close', (code, reason) => {
+              this.logger.debug(`connection closed copying from ${podName}:${srcDir}/${srcFile} to ${destPath}`)
+              if (code !== 1000) { // code 1000 is the success code
+                const errorMessage = `failed copying from ${podName}:${srcDir}/${srcFile} to ${destPath} because of error (${code}): ${reason}`
+                this.logger.error(errorMessage)
+                return reject(new FullstackTestingError(errorMessage))
+              }
+
+              outputFileStream.end()
+              outputFileStream.close(() => {
+                this.logger.debug(`finished closing writerStream copying from ${podName}:${srcDir}/${srcFile} to ${destPath}`)
+
+                try {
+                  fs.copyFileSync(tmpFile, destPath)
+
+                  self._deleteTempFile(tmpFile)
+
+                  const stat = fs.statSync(destPath)
+                  let rejection
+                  if (stat && stat.size === srcFileSize) {
+                    this.logger.info(`Finished successfully copying from ${podName}:${srcDir}/${srcFile} to ${destPath}`)
+                  } else {
+                    rejection = true
+                    if (!stat) {
+                      additionalErrorMessageDetail = ', statSync returned no file status for the destination file'
+                    } else {
+                      additionalErrorMessageDetail = `, stat.size=${stat.size} != srcFileSize=${srcFileSize}`
+                    }
+                  }
+
+                  if (rejection) {
+                    const errorMessage = `failed copying from ${podName}:${srcDir}/${srcFile} to ${destPath} to download file completely: ${destPath}${additionalErrorMessageDetail}`
+                    this.logger.error(errorMessage)
+                    return reject(new FullstackTestingError(errorMessage))
+                  } else {
+                    return resolve(true)
+                  }
+                } catch (e) {
+                  const errorMessage = `failed to complete copying from ${podName}:${srcDir}/${srcFile} to ${destPath} to extract file: ${destPath}`
+                  this.logger.error(errorMessage, e)
+                  return reject(new FullstackTestingError(errorMessage, e))
+                }
+              })
             })
           })
+
+        errStream.on('data', (data) => {
+          const errorMessage = `error encountered copying from ${podName}:${srcDir}/${srcFile} to ${destPath}, error: ${data.toString()}`
+          this.logger.error(errorMessage)
+          return reject(new FullstackTestingError(errorMessage))
+        })
+
+        outputFileStream.on('close', () => {
+          this.logger.debug(`finished copying from ${podName}:${srcDir}/${srcFile} to ${destPath}`)
+        })
+
+        outputFileStream.on('error', (err) => {
+          const errorMessage = `writerStream error encountered copying from ${podName}:${srcDir}/${srcFile} to ${destPath}, err: ${err.toString()}`
+          this.logger.error(errorMessage, err)
+          return reject(new FullstackTestingError(errorMessage, err))
+        })
+
+        outputFileStream.on('end', () => {
+          this.logger.debug(`writerStream has ended for copying from ${podName}:${srcDir}/${srcFile} to ${destPath}`)
+        })
+
+        outputPassthroughStream.on('end', () => {
+          this.logger.debug(`writerPassthroughStream has ended for copying from ${podName}:${srcDir}/${srcFile} to ${destPath}`)
+        })
+
+        outputFileStream.on('finish', () => {
+          this.logger.debug(`stopping copy, writerStream has finished for copying from ${podName}:${srcDir}/${srcFile} to ${destPath}`)
+        })
+
+        outputPassthroughStream.on('finish', () => {
+          this.logger.debug(`stopping copy, writerPassthroughStream has finished for copying from ${podName}:${srcDir}/${srcFile} to ${destPath}`)
+        })
       })
     } catch (e) {
-      throw new FullstackTestingError(
-        `failed to download file from ${podName}:${containerName} [${srcPath} -> ${destDir}]: ${e.message}`, e)
+      const errorMessage = `failed to download file from ${podName}:${containerName} [${srcPath} -> ${destDir}]: ${e.message}`
+      this.logger.error(errorMessage, e)
+      throw new FullstackTestingError(errorMessage, e)
     }
   }
 
   /**
-   * Invoke bash command within a container and return the console output as string
+   * Invoke sh command within a container and return the console output as string
    *
-   * @param podName pod name
-   * @param containerName container name
-   * @param command bash commands as an array to be run within the containerName (e.g 'ls -la /opt/hgcapp')
-   * @param timeoutMs timout in milliseconds
+   * @param {string} podName
+   * @param {string} containerName
+   * @param {string|string[]} command - sh commands as an array to be run within the containerName (e.g 'ls -la /opt/hgcapp')
+   * @param {number} [timeoutMs] - timout in milliseconds
    * @returns {Promise<string>} console output as string
    */
   async execContainer (podName, containerName, command, timeoutMs = 1000) {
@@ -651,9 +762,10 @@ export class K8 {
    * This simple server just forwards traffic from itself to a service running in kubernetes
    * -> localhost:localPort -> port-forward-tunnel -> kubernetes-pod:targetPort
    *
-   * @param podName pod name
-   * @param localPort local port
-   * @param podPort port of the pod
+   * @param {string} podName
+   * @param {number} localPort
+   * @param {number} podPort
+   * @returns {Promise<net.Server>}
    */
   async portForward (podName, localPort, podPort) {
     const ns = this._getNamespace()
@@ -671,8 +783,8 @@ export class K8 {
 
   /**
    * to test the connection to a pod within the network
-   * @param host the host of the target connection
-   * @param port the port of the target connection
+   * @param {string} host - the host of the target connection
+   * @param {number} port - the port of the target connection
    * @returns {Promise<boolean>}
    */
   async testConnection (host, port) {
@@ -696,10 +808,10 @@ export class K8 {
   /**
    * Stop the port forwarder server
    *
-   * @param server an instance of server returned by portForward method
-   * @param maxAttempts the maximum number of attempts to check if the server is stopped
-   * @param timeout the delay between checks in milliseconds
-   * @return {Promise<void>}
+   * @param {net.Server} server - an instance of server returned by portForward method
+   * @param {number} [maxAttempts] - the maximum number of attempts to check if the server is stopped
+   * @param {number} [timeout] - the delay between checks in milliseconds
+   * @returns {Promise<void>}
    */
   async stopPortForward (server, maxAttempts = 20, timeout = 500) {
     if (!server) {
@@ -769,13 +881,13 @@ export class K8 {
 
   /**
    * Wait for pod
-   * @param phases an array of acceptable phases of the pods
-   * @param labels pod labels
-   * @param podCount number of pod expected
-   * @param maxAttempts maximum attempts to check
-   * @param delay delay between checks in milliseconds
-   * @param podItemPredicate a predicate function to check the pod item
-   * @return a Promise that checks the status of an array of pods
+   * @param {string[]} [phases] - an array of acceptable phases of the pods
+   * @param {string[]} [labels] - pod labels
+   * @param {number} [podCount] - number of pod expected
+   * @param {number} [maxAttempts] - maximum attempts to check
+   * @param {number} [delay] - delay between checks in milliseconds
+   * @param {Function} podItemPredicate - a predicate function to check the pod item
+   * @returns {Promise<Object[]>} a Promise that checks the status of an array of pods
    */
   async waitForPods (phases = [constants.POD_PHASE_RUNNING], labels = [], podCount = 1, maxAttempts = 10, delay = 500, podItemPredicate) {
     const ns = this._getNamespace()
@@ -833,11 +945,11 @@ export class K8 {
 
   /**
    * Check if pod is ready
-   * @param labels pod labels
-   * @param podCount number of pod expected
-   * @param maxAttempts maximum attempts to check
-   * @param delay delay between checks in milliseconds
-   * @return {Promise<unknown>}
+   * @param {string[]} [labels] - pod labels
+   * @param {number} [podCount] - number of pod expected
+   * @param {number} [maxAttempts] - maximum attempts to check
+   * @param {number} [delay] - delay between checks in milliseconds
+   * @returns {Promise<unknown>}
    */
   async waitForPodReady (labels = [], podCount = 1, maxAttempts = 10, delay = 500) {
     try {
@@ -849,14 +961,13 @@ export class K8 {
 
   /**
    * Check pods for conditions
-   * @param conditionsMap a map of conditions and values
-   * @param labels pod labels
-   * @param podCount number of pod expected
-   * @param maxAttempts maximum attempts to check
-   * @param delay delay between checks in milliseconds
-   * @return {Promise<unknown>}
+   * @param {Map} conditionsMap - a map of conditions and values
+   * @param {string[]} [labels] - pod labels
+   * @param {number} [podCount] - number of pod expected
+   * @param {number} [maxAttempts] - maximum attempts to check
+   * @param {number} [delay] - delay between checks in milliseconds
+   * @returns {Promise<Object[]>}
    */
-
   async waitForPodConditions (
     conditionsMap,
     labels = [],
@@ -884,9 +995,9 @@ export class K8 {
 
   /**
    * Get a list of persistent volume claim names for the given namespace
-   * @param namespace the namespace of the persistent volume claims to return
-   * @param labels labels
-   * @returns return list of persistent volume claim names
+   * @param {string} namespace - the namespace of the persistent volume claims to return
+   * @param {string[]} [labels] - labels
+   * @returns {Promise<string[]>} return list of persistent volume claim names
    */
   async listPvcsByNamespace (namespace, labels = []) {
     const pvcs = []
@@ -909,9 +1020,9 @@ export class K8 {
 
   /**
    * Get a list of secrets for the given namespace
-   * @param namespace the namespace of the secrets to return
-   * @param labels labels
-   * @returns return list of secret names
+   * @param {string} namespace - the namespace of the secrets to return
+   * @param {string[]} [labels] - labels
+   * @returns {Promise<string[]>} return list of secret names
    */
   async listSecretsByNamespace (namespace, labels = []) {
     const secrets = []
@@ -934,8 +1045,8 @@ export class K8 {
 
   /**
    * Delete a persistent volume claim
-   * @param name the name of the persistent volume claim to delete
-   * @param namespace the namespace of the persistent volume claim to delete
+   * @param {string} name - the name of the persistent volume claim to delete
+   * @param {string} namespace - the namespace of the persistent volume claim to delete
    * @returns {Promise<boolean>} true if the persistent volume claim was deleted
    */
   async deletePvc (name, namespace) {
@@ -949,10 +1060,10 @@ export class K8 {
 
   /**
    * retrieve the secret of the given namespace and label selector, if there is more than one, it returns the first
-   * @param namespace the namespace of the secret to search for
-   * @param labelSelector the label selector used to fetch the Kubernetes secret
-   * @returns a custom secret object with the relevant attributes, the values of the data key:value pair
-   * objects must be base64 decoded
+   * @param {string} namespace - the namespace of the secret to search for
+   * @param {string} labelSelector - the label selector used to fetch the Kubernetes secret
+   * @returns {Promise<{name: string, labels: Object, namespace: string, type: string, data: Object} | null>} a custom
+   * secret object with the relevant attributes, the values of the data key:value pair objects must be base64 decoded
    */
   async getSecret (namespace, labelSelector) {
     const result = await this.kubeClient.listNamespacedSecret(
@@ -973,19 +1084,19 @@ export class K8 {
 
   /**
    * creates a new Kubernetes secret with the provided attributes
-   * @param name the name of the new secret
-   * @param namespace the namespace to store the secret
-   * @param secretType the secret type
-   * @param data the secret, any values of a key:value pair must be base64 encoded
-   * @param labels the label to use for future label selector queries
-   * @param recreate if we should first run delete in the case that there the secret exists from a previous install
+   * @param {string} name - the name of the new secret
+   * @param {string} namespace - the namespace to store the secret
+   * @param {string} secretType - the secret type
+   * @param {Object} data - the secret, any values of a key:value pair must be base64 encoded
+   * @param {*} labels - the label to use for future label selector queries
+   * @param {boolean} recreate - if we should first run delete in the case that there the secret exists from a previous install
    * @returns {Promise<boolean>} whether the secret was created successfully
    */
   async createSecret (name, namespace, secretType, data, labels, recreate) {
     if (recreate) {
       try {
         await this.kubeClient.deleteNamespacedSecret(name, namespace)
-      } catch (e) {
+      } catch {
         // do nothing
       }
     }
@@ -1010,8 +1121,8 @@ export class K8 {
 
   /**
    * delete a secret from the namespace
-   * @param name the name of the new secret
-   * @param namespace the namespace to store the secret
+   * @param {string} name - the name of the new secret
+   * @param {string} namespace - the namespace to store the secret
    * @returns {Promise<boolean>} whether the secret was deleted successfully
    */
   async deleteSecret (name, namespace) {
@@ -1019,17 +1130,30 @@ export class K8 {
     return resp.response.statusCode === 200.0
   }
 
+  /**
+   * @returns {string}
+   * @private
+   */
   _getNamespace () {
     const ns = this.configManager.getFlag(flags.namespace)
     if (!ns) throw new MissingArgumentError('namespace is not set')
     return ns
   }
 
+  /**
+   * @param {string} fileName
+   * @returns {string}
+   * @private
+   */
   _tempFileFor (fileName) {
     const tmpFile = `${fileName}-${uuid4()}`
     return path.join(os.tmpdir(), tmpFile)
   }
 
+  /**
+   * @param {string} tmpFile
+   * @private
+   */
   _deleteTempFile (tmpFile) {
     if (fs.existsSync(tmpFile)) {
       fs.rmSync(tmpFile)

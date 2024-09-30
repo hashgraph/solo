@@ -14,6 +14,7 @@
  * limitations under the License.
  *
  */
+'use strict'
 import chalk from 'chalk'
 import { BaseCommand } from './base.mjs'
 import { FullstackTestingError, IllegalArgumentError } from '../core/errors.mjs'
@@ -22,8 +23,13 @@ import { Listr } from 'listr2'
 import * as prompts from './prompts.mjs'
 import { constants } from '../core/index.mjs'
 import { AccountInfo, HbarUnit, PrivateKey } from '@hashgraph/sdk'
+import { FREEZE_ADMIN_ACCOUNT } from '../core/constants.mjs'
 
 export class AccountCommand extends BaseCommand {
+  /**
+   * @param {{accountManager: AccountManager, logger: Logger, helm: Helm, k8: K8, chartManager: ChartManager, configManager: ConfigManager, depManager: DependencyManager}} opts
+   * @param {number[][]} [systemAccounts]
+   */
   constructor (opts, systemAccounts = constants.SYSTEM_ACCOUNTS) {
     super(opts)
 
@@ -34,10 +40,19 @@ export class AccountCommand extends BaseCommand {
     this.systemAccounts = systemAccounts
   }
 
+  /**
+   * @returns {Promise<void>}
+   */
   async closeConnections () {
     await this.accountManager.close()
   }
 
+  /**
+   * @param {AccountInfo} accountInfo
+   * @param {string} namespace
+   * @param {boolean} shouldRetrievePrivateKey
+   * @returns {Promise<{accountId: string, balance: number, publicKey: string}>}
+   */
   async buildAccountInfo (accountInfo, namespace, shouldRetrievePrivateKey) {
     if (!accountInfo || !(accountInfo instanceof AccountInfo)) throw new IllegalArgumentError('An instance of AccountInfo is required')
 
@@ -55,6 +70,10 @@ export class AccountCommand extends BaseCommand {
     return newAccountInfo
   }
 
+  /**
+   * @param {any} ctx
+   * @returns {Promise<{accountId: AccountId, privateKey: string, publicKey: string, balance: number}>}
+   */
   async createNewAccount (ctx) {
     if (ctx.config.ecdsaPrivateKey) {
       ctx.privateKey = PrivateKey.fromStringECDSA(ctx.config.ecdsaPrivateKey)
@@ -68,10 +87,18 @@ export class AccountCommand extends BaseCommand {
       ctx.privateKey, ctx.config.amount, ctx.config.ecdsaPrivateKey ? ctx.config.setAlias : false)
   }
 
+  /**
+   * @param {any} ctx
+   * @returns {Promise<AccountInfo>}
+   */
   async getAccountInfo (ctx) {
     return this.accountManager.accountInfoQuery(ctx.config.accountId)
   }
 
+  /**
+   * @param {any} ctx
+   * @returns {Promise<boolean>}
+   */
   async updateAccountInfo (ctx) {
     let amount = ctx.config.amount
     if (ctx.config.privateKey) {
@@ -98,10 +125,19 @@ export class AccountCommand extends BaseCommand {
     return true
   }
 
+  /**
+   * @param {AccountId} toAccountId
+   * @param {number} amount
+   * @returns {Promise<boolean>}
+   */
   async transferAmountFromOperator (toAccountId, amount) {
     return await this.accountManager.transferAmount(constants.TREASURY_ACCOUNT_ID, toAccountId, amount)
   }
 
+  /**
+   * @param {Object} argv
+   * @returns {Promise<boolean>}
+   */
   async init (argv) {
     const self = this
 
@@ -147,6 +183,9 @@ export class AccountCommand extends BaseCommand {
                   fulfilledCount: 0,
                   skippedCount: 0
                 }
+
+                // do a write transaction to trigger the handler and generate the system accounts to complete genesis
+                await self.accountManager.transferAmount(constants.TREASURY_ACCOUNT_ID, FREEZE_ADMIN_ACCOUNT, 1)
               }
             },
             {
@@ -216,6 +255,10 @@ export class AccountCommand extends BaseCommand {
     return true
   }
 
+  /**
+   * @param {Object} argv
+   * @returns {Promise<boolean>}
+   */
   async create (argv) {
     const self = this
 
@@ -278,6 +321,10 @@ export class AccountCommand extends BaseCommand {
     return true
   }
 
+  /**
+   * @param {Object} argv
+   * @returns {Promise<boolean>}
+   */
   async update (argv) {
     const self = this
 
@@ -347,6 +394,10 @@ export class AccountCommand extends BaseCommand {
     return true
   }
 
+  /**
+   * @param {Object} argv
+   * @returns {Promise<boolean>}
+   */
   async get (argv) {
     const self = this
 
@@ -402,15 +453,16 @@ export class AccountCommand extends BaseCommand {
 
   /**
    * Return Yargs command definition for 'node' command
-   * @param accountCmd an instance of NodeCommand
+   * @param {AccountCommand} accountCmd an instance of NodeCommand
+   * @returns {{command: string, desc: string, builder: Function}}
    */
   static getCommandDefinition (accountCmd) {
-    if (!accountCmd | !(accountCmd instanceof AccountCommand)) {
+    if (!accountCmd || !(accountCmd instanceof AccountCommand)) {
       throw new IllegalArgumentError('An instance of AccountCommand is required', accountCmd)
     }
     return {
       command: 'account',
-      desc: 'Manage Hedera accounts in fullstack testing network',
+      desc: 'Manage Hedera accounts in solo network',
       builder: yargs => {
         return yargs
           .command({

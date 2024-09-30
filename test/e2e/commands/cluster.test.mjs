@@ -34,7 +34,7 @@ import {
   logging
 } from '../../../src/core/index.mjs'
 import { flags } from '../../../src/commands/index.mjs'
-import { getNodeLogs, sleep } from '../../../src/core/helpers.mjs'
+import { sleep } from '../../../src/core/helpers.mjs'
 import * as version from '../../../version.mjs'
 
 describe('ClusterCommand', () => {
@@ -47,8 +47,7 @@ describe('ClusterCommand', () => {
   const argv = getDefaultArgv()
   argv[flags.namespace.name] = namespace
   argv[flags.releaseTag.name] = HEDERA_PLATFORM_VERSION_TAG
-  argv[flags.keyFormat.name] = constants.KEY_FORMAT_PEM
-  argv[flags.nodeIDs.name] = 'node0'
+  argv[flags.nodeIDs.name] = 'node1'
   argv[flags.generateGossipKeys.name] = true
   argv[flags.generateTlsKeys.name] = true
   argv[flags.clusterName.name] = TEST_CLUSTER
@@ -59,16 +58,19 @@ describe('ClusterCommand', () => {
 
   const bootstrapResp = bootstrapTestVariables(testName, argv)
   const k8 = bootstrapResp.opts.k8
-  const accountManager = bootstrapResp.opts.accountManager
   const configManager = bootstrapResp.opts.configManager
   const chartManager = bootstrapResp.opts.chartManager
 
   const clusterCmd = bootstrapResp.cmd.clusterCmd
 
   afterAll(async () => {
-    await getNodeLogs(k8, namespace)
     await k8.deleteNamespace(namespace)
-    await accountManager.close()
+    argv[flags.clusterSetupNamespace.name] = constants.FULLSTACK_SETUP_NAMESPACE
+    configManager.update(argv, true)
+    await clusterCmd.setup(argv) // restore fullstack-cluster-setup for other e2e tests to leverage
+    do {
+      await sleep(5000)
+    } while (!await chartManager.isChartInstalled(constants.FULLSTACK_SETUP_NAMESPACE, constants.FULLSTACK_CLUSTER_SETUP_CHART))
   }, 180000)
 
   beforeEach(() => {

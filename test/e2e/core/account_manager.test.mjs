@@ -14,21 +14,37 @@
  * limitations under the License.
  *
  */
-import { describe, expect, it } from '@jest/globals'
-import path from 'path'
 import { flags } from '../../../src/commands/index.mjs'
-import { AccountManager } from '../../../src/core/account_manager.mjs'
-import { ConfigManager, constants, K8 } from '../../../src/core/index.mjs'
-import { getTestCacheDir, testLogger } from '../../test_util.js'
+import {
+  bootstrapNetwork,
+  getDefaultArgv,
+  TEST_CLUSTER
+} from '../../test_util.js'
+import * as version from '../../../version.mjs'
 
 describe('AccountManager', () => {
-  const configManager = new ConfigManager(testLogger, path.join(getTestCacheDir('accountCmd'), 'solo.config'))
-  configManager.setFlag(flags.namespace, 'solo-e2e')
+  const namespace = 'account-mngr-e2e'
+  const argv = getDefaultArgv()
+  argv[flags.namespace.name] = namespace
+  argv[flags.nodeIDs.name] = 'node1'
+  argv[flags.clusterName.name] = TEST_CLUSTER
+  argv[flags.fstChartVersion.name] = version.FST_CHART_VERSION
+  argv[flags.generateGossipKeys.name] = true
+  argv[flags.generateTlsKeys.name] = true
+  // set the env variable SOLO_FST_CHARTS_DIR if developer wants to use local FST charts
+  argv[flags.chartDirectory.name] = process.env.SOLO_FST_CHARTS_DIR ? process.env.SOLO_FST_CHARTS_DIR : undefined
+  const bootstrapResp = bootstrapNetwork(namespace, argv, undefined, undefined, undefined, undefined, undefined, undefined, false)
+  const k8 = bootstrapResp.opts.k8
+  const accountManager = bootstrapResp.opts.accountManager
+  const configManager = bootstrapResp.opts.configManager
 
-  const k8 = new K8(configManager, testLogger)
-  const accountManager = new AccountManager(testLogger, k8, constants)
+  afterAll(async () => {
+    await k8.deleteNamespace(namespace)
+    await accountManager.close()
+  }, 180000)
 
   it('should be able to stop port forwards', async () => {
+    await accountManager.close()
     expect.assertions(4)
     const localHost = '127.0.0.1'
 
@@ -36,22 +52,22 @@ describe('AccountManager', () => {
     const podPort = 9090
     const localPort = 19090
 
-    expect(accountManager._portForwards.length).toStrictEqual(0)
+    expect(accountManager._portForwards.length, 'starting accountManager port forwards lengths should be zero').toStrictEqual(0)
 
     // ports should be opened
     accountManager._portForwards.push(await k8.portForward(podName, localPort, podPort))
     const status = await k8.testConnection(localHost, localPort)
-    expect(status).toBeTruthy()
+    expect(status, 'test connection status should be true').toBeTruthy()
 
     // ports should be closed
     await accountManager.close()
     try {
       await k8.testConnection(localHost, localPort)
     } catch (e) {
-      expect(e.message.includes(`failed to connect to '${localHost}:${localPort}'`)).toBeTruthy()
+      expect(e.message.includes(`failed to connect to '${localHost}:${localPort}'`), 'expect failed test connection').toBeTruthy()
     }
 
-    expect(accountManager._portForwards.length).toStrictEqual(0)
+    expect(accountManager._portForwards.length, 'expect that the closed account manager should have no port forwards').toStrictEqual(0)
   })
 
   it('should be able to load a new client', async () => {

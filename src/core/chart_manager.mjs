@@ -14,11 +14,16 @@
  * limitations under the License.
  *
  */
+'use strict'
 import { constants } from './index.mjs'
 import chalk from 'chalk'
 import { FullstackTestingError } from './errors.mjs'
 
 export class ChartManager {
+  /**
+   * @param {Helm} helm
+   * @param {Logger} logger
+   */
   constructor (helm, logger) {
     if (!logger) throw new Error('An instance of core/Logger is required')
     if (!helm) throw new Error('An instance of core/Helm is required')
@@ -32,32 +37,41 @@ export class ChartManager {
    *
    * This must be invoked before calling other methods
    *
-   * @param repoURLs a map of name and chart repository URLs
-   * @param force whether or not to update the repo
-   * @returns {Promise<string[]>}
+   * @param {Map<string, string>} repoURLs - a map of name and chart repository URLs
+   * @param {boolean} force - whether or not to update the repo
+   * @returns {Promise<string[]>} - returns the urls
    */
   async setup (repoURLs = constants.DEFAULT_CHART_REPO, force = true) {
     try {
-      let forceUpdateArg = ''
-      if (force) {
-        forceUpdateArg = '--force-update'
-      }
+      const forceUpdateArg = force ? '--force-update' : ''
 
-      const urls = []
+      /** @type {Array<Promise<string>>} */
+      const promises = []
       for (const [name, url] of repoURLs.entries()) {
-        this.logger.debug(`Adding repo ${name} -> ${url}`, { repoName: name, repoURL: url })
-        await this.helm.repo('add', name, url, forceUpdateArg)
-        urls.push(url)
+        promises.push(this.addRepo(name, url, forceUpdateArg))
       }
 
-      return urls
+      return await Promise.all(promises) // urls
     } catch (e) {
       throw new FullstackTestingError(`failed to setup chart repositories: ${e.message}`, e)
     }
   }
 
   /**
+   * @param {string} name
+   * @param {string} url
+   * @param {string} forceUpdateArg
+   * @returns {Promise<string>}
+   */
+  async addRepo (name, url, forceUpdateArg) {
+    this.logger.debug(`Adding repo ${name} -> ${url}`, { repoName: name, repoURL: url })
+    await this.helm.repo('add', name, url, forceUpdateArg)
+    return url
+  }
+
+  /**
    * List available clusters
+   * @param {string} namespaceName
    * @returns {Promise<string[]>}
    */
   async getInstalledCharts (namespaceName) {
@@ -70,6 +84,14 @@ export class ChartManager {
     return []
   }
 
+  /**
+   * @param {string} namespaceName
+   * @param {string} chartReleaseName
+   * @param {string} chartPath
+   * @param {string} version
+   * @param {string} valuesArg
+   * @returns {Promise<boolean>}
+   */
   async install (namespaceName, chartReleaseName, chartPath, version, valuesArg = '') {
     try {
       const isInstalled = await this.isChartInstalled(namespaceName, chartReleaseName)
@@ -97,6 +119,11 @@ export class ChartManager {
     return true
   }
 
+  /**
+   * @param {string} namespaceName
+   * @param {string} chartReleaseName
+   * @returns {Promise<boolean>}
+   */
   async isChartInstalled (namespaceName, chartReleaseName) {
     this.logger.debug(`> checking if chart is installed [ chart: ${chartReleaseName}, namespace: ${namespaceName} ]`)
     const charts = await this.getInstalledCharts(namespaceName)
@@ -109,6 +136,11 @@ export class ChartManager {
     return false
   }
 
+  /**
+   * @param {string} namespaceName
+   * @param {string} chartReleaseName
+   * @returns {Promise<boolean>}
+   */
   async uninstall (namespaceName, chartReleaseName) {
     try {
       const isInstalled = await this.isChartInstalled(namespaceName, chartReleaseName)
@@ -126,6 +158,14 @@ export class ChartManager {
     return true
   }
 
+  /**
+   * @param {string} namespaceName
+   * @param {string} chartReleaseName
+   * @param {string} chartPath
+   * @param {string} valuesArg
+   * @param {string} version
+   * @returns {Promise<boolean>}
+   */
   async upgrade (namespaceName, chartReleaseName, chartPath, valuesArg = '', version = '') {
     let versionArg = ''
     if (version) {

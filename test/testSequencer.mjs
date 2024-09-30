@@ -18,6 +18,7 @@ import Sequencer from '@jest/test-sequencer'
 import Seedrandom from 'seedrandom'
 import { NewLogger } from '../src/core/logging.mjs'
 import chalk from 'chalk'
+import path from 'path'
 
 export default class testSequencer extends Sequencer.default {
   logger = NewLogger('debug')
@@ -34,9 +35,21 @@ export default class testSequencer extends Sequencer.default {
     }
 
     const randomNumGenerator = new Seedrandom(seed)
-    const copyTests = Array.from(tests)
 
-    // use randomNumGenerator.int32() to generate random even or odd nuber
-    return copyTests.sort((testA, testB) => (randomNumGenerator.int32() % 2 === 0 ? -1 : 1))
+    const copyTests = Array.from(tests)
+    // first sort the tests by path to create consistency, otherwise we can't use the seed to recreate the order
+    copyTests.sort((testA, testB) => {
+      testA.basename = path.basename(testA.path)
+      testB.basename = path.basename(testB.path)
+      return testA.basename.localeCompare(testB.basename)
+    })
+
+    for (const test of copyTests) {
+      // attach a random number to each test to use for sorting
+      test.randomOrderNumber = randomNumGenerator.int32()
+    }
+
+    return copyTests.sort(
+      (testA, testB) => testA.randomOrderNumber - testB.randomOrderNumber)
   }
 }

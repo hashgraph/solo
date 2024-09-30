@@ -14,20 +14,27 @@
  * limitations under the License.
  *
  */
+'use strict'
 import * as fs from 'fs'
-import * as os from 'os'
 import { Listr } from 'listr2'
 import * as path from 'path'
-import * as semver from 'semver'
 import { FullstackTestingError, IllegalArgumentError, MissingArgumentError } from './errors.mjs'
 import { constants } from './index.mjs'
 import { Templates } from './templates.mjs'
 import { flags } from '../commands/index.mjs'
+import * as Base64 from 'js-base64'
+import chalk from 'chalk'
 
 /**
  * PlatformInstaller install platform code in the root-container of a network pod
  */
 export class PlatformInstaller {
+  /**
+   * @param {Logger} logger
+   * @param {K8} k8
+   * @param {ConfigManager} configManager
+   * @param {AccountManager} accountManager
+   */
   constructor (logger, k8, configManager, accountManager) {
     if (!logger) throw new MissingArgumentError('an instance of core/Logger is required')
     if (!k8) throw new MissingArgumentError('an instance of core/K8 is required')
@@ -40,12 +47,20 @@ export class PlatformInstaller {
     this.accountManager = accountManager
   }
 
+  /**
+   * @returns {string}
+   * @private
+   */
   _getNamespace () {
     const ns = this.configManager.getFlag(flags.namespace)
     if (!ns) throw new MissingArgumentError('namespace is not set')
     return ns
   }
 
+  /**
+   * @param {string} releaseDir
+   * @returns {Promise<void>}
+   */
   async validatePlatformReleaseDir (releaseDir) {
     if (!releaseDir) throw new MissingArgumentError('releaseDir is required')
     if (!fs.existsSync(releaseDir)) {
@@ -79,11 +94,10 @@ export class PlatformInstaller {
 
   /**
    * Fetch and extract platform code into the container
-   * @param podName pod name
-   * @param tag platform release tag
-   * @return {Promise<boolean|undefined>}
+   * @param {string} podName
+   * @param {string} tag - platform release tag
+   * @returns {Promise<boolean>}
    */
-
   async fetchPlatform (podName, tag) {
     if (!podName) throw new MissingArgumentError('podName is required')
     if (!tag) throw new MissingArgumentError('tag is required')
@@ -105,12 +119,11 @@ export class PlatformInstaller {
   /**
    * Copy a list of files to a directory in the container
    *
-   * @param podName pod name
-   * @param srcFiles list of source files
-   * @param destDir destination directory
-   * @param container name of the container
-   *
-   * @return {Promise<string[]>} list of pathso of the copied files insider the container
+   * @param {string} podName
+   * @param {string[]} srcFiles - list of source files
+   * @param {string} destDir - destination directory
+   * @param {string} [container] - name of the container
+   * @returns {Promise<string[]>} list of pathso of the copied files insider the container
    */
   async copyFiles (podName, srcFiles, destDir, container = constants.ROOT_CONTAINER) {
     try {
@@ -139,97 +152,79 @@ export class PlatformInstaller {
     }
   }
 
-  async copyGossipKeys (podName, stagingDir, nodeIds, keyFormat = constants.KEY_FORMAT_PEM) {
-    const self = this
-
-    if (!podName) throw new MissingArgumentError('podName is required')
+  async copyGossipKeys (nodeId, stagingDir, nodeIds) {
+    if (!nodeId) throw new MissingArgumentError('nodeId is required')
     if (!stagingDir) throw new MissingArgumentError('stagingDir is required')
     if (!nodeIds || nodeIds.length <= 0) throw new MissingArgumentError('nodeIds cannot be empty')
 
     try {
-      const keysDir = `${constants.HEDERA_HAPI_PATH}/data/keys`
-      const nodeId = Templates.extractNodeIdFromPodName(podName)
       const srcFiles = []
 
-      switch (keyFormat) {
-        case constants.KEY_FORMAT_PEM:
-          // copy private keys for the node
-          srcFiles.push(`${stagingDir}/keys/${Templates.renderGossipPemPrivateKeyFile(constants.SIGNING_KEY_PREFIX, nodeId)}`)
-          srcFiles.push(`${stagingDir}/keys/${Templates.renderGossipPemPrivateKeyFile(constants.AGREEMENT_KEY_PREFIX, nodeId)}`)
+      // copy private keys for the node
+      srcFiles.push(path.join(stagingDir, 'keys', Templates.renderGossipPemPrivateKeyFile(constants.SIGNING_KEY_PREFIX, nodeId)))
 
-          // copy all public keys for all nodes
-          nodeIds.forEach(id => {
-            srcFiles.push(`${stagingDir}/keys/${Templates.renderGossipPemPublicKeyFile(constants.SIGNING_KEY_PREFIX, id)}`)
-            srcFiles.push(`${stagingDir}/keys/${Templates.renderGossipPemPublicKeyFile(constants.AGREEMENT_KEY_PREFIX, id)}`)
-          })
-          break
-        case constants.KEY_FORMAT_PFX:
-          srcFiles.push(`${stagingDir}/keys/${Templates.renderGossipPfxPrivateKeyFile(nodeId)}`)
-          srcFiles.push(`${stagingDir}/keys/${constants.PUBLIC_PFX}`)
-          break
-        default:
-          throw new FullstackTestingError(`Unsupported key file format ${keyFormat}`)
+      // copy all public keys for all nodes
+      nodeIds.forEach(id => {
+        srcFiles.push(path.join(stagingDir, 'keys', Templates.renderGossipPemPublicKeyFile(constants.SIGNING_KEY_PREFIX, id)))
+      })
+
+      const data = {}
+      for (const srcFile of srcFiles) {
+        const fileContents = fs.readFileSync(srcFile)
+        const fileName = path.basename(srcFile)
+        data[fileName] = Base64.encode(fileContents)
       }
 
-      return await self.copyFiles(podName, srcFiles, keysDir)
+      if (!await this.k8.createSecret(
+        Templates.renderGossipKeySecretName(nodeId),
+        this._getNamespace(), 'Opaque', data,
+        Templates.renderGossipKeySecretLabelObject(nodeId), true)) {
+        throw new FullstackTestingError(`failed to create secret for gossip keys for node '${nodeId}'`)
+      }
     } catch (e) {
-      throw new FullstackTestingError(`failed to copy gossip keys to pod '${podName}': ${e.message}`, e)
+      this.logger.error(`failed to copy gossip keys to secret '${Templates.renderGossipKeySecretName(nodeId)}': ${e.message}`, e)
+      throw new FullstackTestingError(`failed to copy gossip keys to secret '${Templates.renderGossipKeySecretName(nodeId)}': ${e.message}`, e)
     }
   }
 
-  async copyPlatformConfigFiles (podName, stagingDir) {
-    const self = this
-
-    if (!podName) throw new MissingArgumentError('podName is required')
+  async copyTLSKeys (nodeIds, stagingDir) {
+    if (!nodeIds) throw new MissingArgumentError('nodeId is required')
     if (!stagingDir) throw new MissingArgumentError('stagingDir is required')
 
     try {
-      const srcFilesSet1 = [
-        `${stagingDir}/config.txt`,
-        `${stagingDir}/templates/log4j2.xml`,
-        `${stagingDir}/templates/settings.txt`
-      ]
+      const data = {}
 
-      const fileList1 = await self.copyFiles(podName, srcFilesSet1, constants.HEDERA_HAPI_PATH)
+      for (const nodeId of nodeIds) {
+        const srcFiles = []
+        srcFiles.push(path.join(stagingDir, 'keys', Templates.renderTLSPemPrivateKeyFile(nodeId)))
+        srcFiles.push(path.join(stagingDir, 'keys', Templates.renderTLSPemPublicKeyFile(nodeId)))
 
-      const srcFilesSet2 = [
-        `${stagingDir}/templates/api-permission.properties`,
-        `${stagingDir}/templates/application.properties`,
-        `${stagingDir}/templates/bootstrap.properties`
-      ]
-
-      const fileList2 = await self.copyFiles(podName, srcFilesSet2, `${constants.HEDERA_HAPI_PATH}/data/config`)
-
-      return fileList1.concat(fileList2)
+        for (const srcFile of srcFiles) {
+          const fileContents = fs.readFileSync(srcFile)
+          const fileName = path.basename(srcFile)
+          data[fileName] = Base64.encode(fileContents)
+        }
+      }
+      if (!await this.k8.createSecret(
+        'network-node-hapi-app-secrets',
+        this._getNamespace(), 'Opaque', data,
+        undefined, true)) {
+        throw new FullstackTestingError('failed to create secret for TLS keys')
+      }
     } catch (e) {
-      throw new FullstackTestingError(`failed to copy config files to pod '${podName}': ${e.message}`, e)
+      this.logger.error('failed to copy TLS keys to secret', e)
+      throw new FullstackTestingError('failed to copy TLS keys to secret', e)
     }
   }
 
-  async copyTLSKeys (podName, stagingDir) {
-    if (!podName) throw new MissingArgumentError('podName is required')
-    if (!stagingDir) throw new MissingArgumentError('stagingDir is required')
-
-    try {
-      const nodeId = Templates.extractNodeIdFromPodName(podName)
-      const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), `${nodeId}-tls-keys-`))
-
-      // rename files appropriately in the tmp directory
-      fs.cpSync(`${stagingDir}/keys/${Templates.renderTLSPemPrivateKeyFile(nodeId)}`,
-        `${tmpDir}/hedera.key`)
-      fs.cpSync(`${stagingDir}/keys/${Templates.renderTLSPemPublicKeyFile(nodeId)}`,
-        `${tmpDir}/hedera.crt`)
-
-      const srcFiles = []
-      srcFiles.push(`${tmpDir}/hedera.key`)
-      srcFiles.push(`${tmpDir}/hedera.crt`)
-
-      return this.copyFiles(podName, srcFiles, constants.HEDERA_HAPI_PATH)
-    } catch (e) {
-      throw new FullstackTestingError(`failed to copy TLS keys to pod '${podName}': ${e.message}`, e)
-    }
-  }
-
+  /**
+   * @param {string} podName
+   * @param {string} destPath
+   * @param {string} [mode]
+   * @param {boolean} [recursive]
+   * @param {string} [container]
+   * @returns {Promise<boolean>}
+   */
   async setPathPermission (podName, destPath, mode = '0755', recursive = true, container = constants.ROOT_CONTAINER) {
     if (!podName) throw new MissingArgumentError('podName is required')
     if (!destPath) throw new MissingArgumentError('destPath is required')
@@ -249,6 +244,10 @@ export class PlatformInstaller {
     return true
   }
 
+  /**
+   * @param {string} podName
+   * @returns {Promise<boolean>}
+   */
   async setPlatformDirPermissions (podName) {
     const self = this
     if (!podName) throw new MissingArgumentError('podName is required')
@@ -269,113 +268,18 @@ export class PlatformInstaller {
   }
 
   /**
-   * Prepares config.txt file for the node
-   * @param nodeIDs node IDs
-   * @param destPath path where config.txt should be written
-   * @param releaseTag release tag e.g. v0.42.0
-   * @param template path to the confit.template file
-   * @param chainId chain ID (298 for local network)
-   * @returns {Promise<string[]>}
-   */
-  async prepareConfigTxt (nodeIDs, destPath, releaseTag, chainId = constants.HEDERA_CHAIN_ID, template = `${constants.RESOURCES_DIR}/templates/config.template`, appName = constants.HEDERA_APP_NAME) {
-    if (!nodeIDs || nodeIDs.length === 0) throw new MissingArgumentError('list of node IDs is required')
-    if (!destPath) throw new MissingArgumentError('destPath is required')
-    if (!template) throw new MissingArgumentError('config templatePath is required')
-    if (!releaseTag) throw new MissingArgumentError('release tag is required')
-
-    if (!fs.existsSync(path.dirname(destPath))) throw new IllegalArgumentError(`destPath does not exist: ${destPath}`, destPath)
-    if (!fs.existsSync(template)) throw new IllegalArgumentError(`config templatePath does not exist: ${template}`, destPath)
-
-    // init variables
-    const internalPort = constants.HEDERA_NODE_INTERNAL_GOSSIP_PORT
-    const externalPort = constants.HEDERA_NODE_EXTERNAL_GOSSIP_PORT
-    const nodeStakeAmount = constants.HEDERA_NODE_DEFAULT_STAKE_AMOUNT
-
-    const releaseVersion = semver.parse(releaseTag, { includePrerelease: true })
-
-    try {
-      const networkNodeServicesMap = await this.accountManager.getNodeServiceMap(this._getNamespace())
-      /** @type {string[]} */
-      const configLines = []
-      configLines.push(`swirld, ${chainId}`)
-      configLines.push(`app, ${appName}`)
-
-      let nodeSeq = 0
-      for (const nodeId of nodeIDs) {
-        const networkNodeServices = networkNodeServicesMap.get(nodeId)
-        const nodeName = nodeId
-        const nodeNickName = nodeId
-
-        const internalIP = Templates.renderFullyQualifiedNetworkPodName(this._getNamespace(), nodeId)
-        const externalIP = Templates.renderFullyQualifiedNetworkSvcName(this._getNamespace(), nodeId)
-
-        const account = networkNodeServices.accountId
-        if (releaseVersion.minor >= 40) {
-          configLines.push(`address, ${nodeSeq}, ${nodeNickName}, ${nodeName}, ${nodeStakeAmount}, ${internalIP}, ${internalPort}, ${externalIP}, ${externalPort}, ${account}`)
-        } else {
-          configLines.push(`address, ${nodeSeq}, ${nodeName}, ${nodeStakeAmount}, ${internalIP}, ${internalPort}, ${externalIP}, ${externalPort}, ${account}`)
-        }
-
-        nodeSeq += 1
-      }
-
-      if (releaseVersion.minor >= 41) {
-        configLines.push(`nextNodeId, ${nodeSeq}`)
-      }
-
-      fs.writeFileSync(destPath, configLines.join('\n'))
-
-      return configLines
-    } catch (e) {
-      throw new FullstackTestingError('failed to generate config.txt', e)
-    }
-  }
-
-  /**
-   * Return a list of task to perform node installation
-   *
-   * It assumes the staging directory has the following files and resources:
-   *   ${staging}/keys/s-<nodeId>.key: signing key for a node
-   *   ${staging}/keys/s-<nodeId>.crt: signing cert for a node
-   *   ${staging}/keys/a-<nodeId>.key: agreement key for a node
-   *   ${staging}/keys/a-<nodeId>.crt: agreement cert for a node
-   *   ${staging}/keys/hedera-<nodeId>.key: gRPC TLS key for a node
-   *   ${staging}/keys/hedera-<nodeId>.crt: gRPC TLS cert for a node
-   *   ${staging}/properties: contains all properties files
-   *   ${staging}/log4j2.xml: LOG4J file
-   *   ${staging}/settings.txt: settings.txt file for the network
-   *   ${staging}/config.txt: config.txt file for the network
+   * Return a list of task to perform node directory setup
    *
    * @param podName name of the pod
-   * @param buildZipFile path to the platform build.zip file
-   * @param stagingDir staging directory path
-   * @param nodeIds list of node ids
-   * @param keyFormat key format (pfx or pem)
-   * @param force force flag
    * @returns {Listr<ListrContext, ListrPrimaryRendererValue, ListrSecondaryRendererValue>}
    */
-  taskInstall (podName, buildZipFile, stagingDir, nodeIds, keyFormat = constants.KEY_FORMAT_PEM, force = false) {
+  taskSetup (podName) {
     const self = this
     return new Listr([
       {
-        title: 'Copy Gossip keys',
-        task: (_, task) =>
-          self.copyGossipKeys(podName, stagingDir, nodeIds, keyFormat)
-      },
-      {
-        title: 'Copy TLS keys',
-        task: (_, task) =>
-          self.copyTLSKeys(podName, stagingDir, keyFormat)
-      },
-      {
-        title: 'Copy configuration files',
-        task: (_, task) =>
-          self.copyPlatformConfigFiles(podName, stagingDir)
-      },
-      {
         title: 'Set file permissions',
-        task: (_, task) =>
-          self.setPlatformDirPermissions(podName)
+        task: async (_, task) =>
+          await self.setPlatformDirPermissions(podName)
       }
     ],
     {
@@ -383,7 +287,50 @@ export class PlatformInstaller {
       rendererOptions: {
         collapseSubtasks: false
       }
+    })
+  }
+
+  /**
+   * Return a list of task to copy the node keys to the staging directory
+   *
+   * It assumes the staging directory has the following files and resources:
+   * <li>${staging}/keys/s-public-<nodeId>.pem: private signing key for a node</li>
+   * <li>${staging}/keys/s-private-<nodeId>.pem: public signing key for a node</li>
+   * <li>${staging}/keys/a-public-<nodeId>.pem: private agreement key for a node</li>
+   * <li>${staging}/keys/a-private-<nodeId>.pem: public agreement key for a node</li>
+   * <li>${staging}/keys/hedera-<nodeId>.key: gRPC TLS key for a node</li>
+   * <li>${staging}/keys/hedera-<nodeId>.crt: gRPC TLS cert for a node</li>
+   *
+   * @param stagingDir staging directory path
+   * @param nodeIds list of node ids
+   * @returns {Listr<ListrContext, ListrPrimaryRendererValue, ListrSecondaryRendererValue>}
+   */
+  copyNodeKeys (stagingDir, nodeIds) {
+    const self = this
+    const subTasks = []
+    subTasks.push({
+      title: 'Copy TLS keys',
+      task: async (_, task) =>
+        await self.copyTLSKeys(nodeIds, stagingDir)
+    })
+
+    for (const nodeId of nodeIds) {
+      subTasks.push({
+        title: `Node: ${chalk.yellow(nodeId)}`,
+        task: () => new Listr([{
+          title: 'Copy Gossip keys',
+          task: async (_, task) =>
+            await self.copyGossipKeys(nodeId, stagingDir, nodeIds)
+        }
+        ],
+        {
+          concurrent: false,
+          rendererOptions: {
+            collapseSubtasks: false
+          }
+        })
+      })
     }
-    )
+    return subTasks
   }
 }

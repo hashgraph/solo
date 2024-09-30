@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
+ * @jest-environment steps
  */
 import { afterAll, beforeAll, describe, expect, it } from '@jest/globals'
 import fs from 'fs'
@@ -39,14 +40,21 @@ import {
   KeyManager,
   logging,
   PackageDownloader,
-  PlatformInstaller, ProfileManager,
+  PlatformInstaller, ProfileManager, Templates,
   Zippy
 } from '../src/core/index.mjs'
-import { AccountBalanceQuery } from '@hashgraph/sdk'
+import {
+  AccountBalanceQuery,
+  AccountCreateTransaction, Hbar, HbarUnit,
+  PrivateKey
+} from '@hashgraph/sdk'
+import { ROOT_CONTAINER } from '../src/core/constants.mjs'
+import crypto from 'crypto'
+import { AccountCommand } from '../src/commands/account.mjs'
 
 export const testLogger = logging.NewLogger('debug', true)
 export const TEST_CLUSTER = 'solo-e2e'
-export const HEDERA_PLATFORM_VERSION_TAG = 'v0.49.0-alpha.2'
+export const HEDERA_PLATFORM_VERSION_TAG = 'v0.54.0-alpha.4'
 
 export function getTestCacheDir (testName) {
   const baseDir = 'test/data/tmp'
@@ -93,13 +101,15 @@ export function getDefaultArgv () {
  * @param clusterCmdArg an instance of command/ClusterCommand
  * @param networkCmdArg an instance of command/NetworkCommand
  * @param nodeCmdArg an instance of command/NodeCommand
+ * @param accountCmdArg an instance of command/AccountCommand
  */
 export function bootstrapTestVariables (testName, argv,
   k8Arg = null,
   initCmdArg = null,
   clusterCmdArg = null,
   networkCmdArg = null,
-  nodeCmdArg = null
+  nodeCmdArg = null,
+  accountCmdArg = null
 ) {
   const namespace = argv[flags.namespace.name] || 'bootstrap-ns'
   const cacheDir = argv[flags.cacheDir.name] || getTestCacheDir(testName)
@@ -139,6 +149,7 @@ export function bootstrapTestVariables (testName, argv,
   const clusterCmd = clusterCmdArg || new ClusterCommand(opts)
   const networkCmd = networkCmdArg || new NetworkCommand(opts)
   const nodeCmd = nodeCmdArg || new NodeCommand(opts)
+  const accountCmd = accountCmdArg || new AccountCommand(opts, constants.SHORTER_SYSTEM_ACCOUNTS)
   return {
     namespace,
     opts,
@@ -146,7 +157,8 @@ export function bootstrapTestVariables (testName, argv,
       initCmd,
       clusterCmd,
       networkCmd,
-      nodeCmd
+      nodeCmd,
+      accountCmd
     }
   }
 }
@@ -161,15 +173,19 @@ export function bootstrapTestVariables (testName, argv,
  * @param clusterCmdArg an instance of command/ClusterCommand
  * @param networkCmdArg an instance of command/NetworkCommand
  * @param nodeCmdArg an instance of command/NodeCommand
+ * @param accountCmdArg an instance of command/AccountCommand
+ * @param startNodes start nodes after deployment, default is true
  */
 export function bootstrapNetwork (testName, argv,
   k8Arg = null,
   initCmdArg = null,
   clusterCmdArg = null,
   networkCmdArg = null,
-  nodeCmdArg = null
+  nodeCmdArg = null,
+  accountCmdArg = null,
+  startNodes = true
 ) {
-  const bootstrapResp = bootstrapTestVariables(testName, argv, k8Arg, initCmdArg, clusterCmdArg, networkCmdArg, nodeCmdArg)
+  const bootstrapResp = bootstrapTestVariables(testName, argv, k8Arg, initCmdArg, clusterCmdArg, networkCmdArg, nodeCmdArg, accountCmdArg)
   const namespace = bootstrapResp.namespace
   const initCmd = bootstrapResp.cmd.initCmd
   const k8 = bootstrapResp.opts.k8
@@ -178,7 +194,7 @@ export function bootstrapNetwork (testName, argv,
   const nodeCmd = bootstrapResp.cmd.nodeCmd
   const chartManager = bootstrapResp.opts.chartManager
 
-  describe(`Bootstrap network for test [release ${argv[flags.releaseTag.name]}, keyFormat: ${argv[flags.keyFormat.name]}]`, () => {
+  describe(`Bootstrap network for test [release ${argv[flags.releaseTag.name]}}]`, () => {
     beforeAll(() => {
       bootstrapResp.opts.logger.showUser(`------------------------- START: bootstrap (${testName}) ----------------------------`)
     })
@@ -204,29 +220,58 @@ export function bootstrapNetwork (testName, argv,
       }
     }, 120000)
 
+    it('generate key files', async () => {
+      await expect(nodeCmd.keys(argv)).resolves.toBeTruthy()
+      expect(nodeCmd.getUnusedConfigs(NodeCommand.KEYS_CONFIGS_NAME)).toEqual([
+        flags.cacheDir.constName,
+        flags.devMode.constName
+      ])
+    }, 120000)
+
     it('should succeed with network deploy', async () => {
+      expect.assertions(1)
       await networkCmd.deploy(argv)
+
+      expect(networkCmd.getUnusedConfigs(NetworkCommand.DEPLOY_CONFIGS_NAME)).toEqual([
+        flags.apiPermissionProperties.constName,
+        flags.applicationEnv.constName,
+        flags.applicationProperties.constName,
+        flags.bootstrapProperties.constName,
+        flags.chainId.constName,
+        flags.log4j2Xml.constName,
+        flags.profileFile.constName,
+        flags.profileName.constName,
+        flags.settingTxt.constName
+      ])
     }, 180000)
 
-    it('should succeed with node setup command', async () => {
-      expect.assertions(1)
-      try {
-        await expect(nodeCmd.setup(argv)).resolves.toBeTruthy()
-      } catch (e) {
-        nodeCmd.logger.showUserError(e)
-        expect(e).toBeNull()
-      }
-    }, 240000)
+    if (startNodes) {
+      it('should succeed with node setup command', async () => {
+        expect.assertions(2)
+        // cache this, because `solo node setup.finalize()` will reset it to false
+        try {
+          await expect(nodeCmd.setup(argv)).resolves.toBeTruthy()
+          expect(nodeCmd.getUnusedConfigs(NodeCommand.SETUP_CONFIGS_NAME)).toEqual([
+            flags.app.constName,
+            flags.appConfig.constName,
+            flags.devMode.constName
+          ])
+        } catch (e) {
+          nodeCmd.logger.showUserError(e)
+          expect(e).toBeNull()
+        }
+      }, 240000)
 
-    it('should succeed with node start command', async () => {
-      expect.assertions(1)
-      try {
-        await expect(nodeCmd.start(argv)).resolves.toBeTruthy()
-      } catch (e) {
-        nodeCmd.logger.showUserError(e)
-        expect(e).toBeNull()
-      }
-    }, 1800000)
+      it('should succeed with node start command', async () => {
+        expect.assertions(1)
+        try {
+          await expect(nodeCmd.start(argv)).resolves.toBeTruthy()
+        } catch (e) {
+          nodeCmd.logger.showUserError(e)
+          expect(e).toBeNull()
+        }
+      }, 1800000)
+    }
   })
 
   return bootstrapResp
@@ -252,4 +297,66 @@ export function balanceQueryShouldSucceed (accountManager, cmd, namespace) {
     }
     await sleep(1000)
   }, 120000)
+}
+
+export function accountCreationShouldSucceed (accountManager, nodeCmd, namespace) {
+  it('Account creation should succeed', async () => {
+    expect.assertions(3)
+
+    try {
+      await accountManager.loadNodeClient(namespace)
+      expect(accountManager._nodeClient).not.toBeNull()
+      const privateKey = PrivateKey.generate()
+      const amount = 100
+
+      const newAccount = await new AccountCreateTransaction()
+        .setKey(privateKey)
+        .setInitialBalance(Hbar.from(amount, HbarUnit.Hbar))
+        .execute(accountManager._nodeClient)
+
+      // Get the new account ID
+      const getReceipt = await newAccount.getReceipt(accountManager._nodeClient)
+      const accountInfo = {
+        accountId: getReceipt.accountId.toString(),
+        privateKey: privateKey.toString(),
+        publicKey: privateKey.publicKey.toString(),
+        balance: amount
+      }
+
+      expect(accountInfo.accountId).not.toBeNull()
+      expect(accountInfo.balance).toEqual(amount)
+    } catch (e) {
+      nodeCmd.logger.showUserError(e)
+      expect(e).toBeNull()
+    }
+  }, 120000)
+}
+
+export async function getNodeIdsPrivateKeysHash (networkNodeServicesMap, namespace, k8, destDir) {
+  const dataKeysDir = path.join(constants.HEDERA_HAPI_PATH, 'data', 'keys')
+  const tlsKeysDir = constants.HEDERA_HAPI_PATH
+  const nodeKeyHashMap = new Map()
+  for (const networkNodeServices of networkNodeServicesMap.values()) {
+    const keyHashMap = new Map()
+    const nodeId = networkNodeServices.nodeName
+    const uniqueNodeDestDir = path.join(destDir, nodeId)
+    if (!fs.existsSync(uniqueNodeDestDir)) {
+      fs.mkdirSync(uniqueNodeDestDir, { recursive: true })
+    }
+    await addKeyHashToMap(k8, nodeId, dataKeysDir, uniqueNodeDestDir, keyHashMap, Templates.renderGossipPemPrivateKeyFile(constants.SIGNING_KEY_PREFIX, nodeId))
+    await addKeyHashToMap(k8, nodeId, tlsKeysDir, uniqueNodeDestDir, keyHashMap, 'hedera.key')
+    nodeKeyHashMap.set(nodeId, keyHashMap)
+  }
+  return nodeKeyHashMap
+}
+
+async function addKeyHashToMap (k8, nodeId, keyDir, uniqueNodeDestDir, keyHashMap, privateKeyFileName) {
+  await k8.copyFrom(
+    Templates.renderNetworkPodName(nodeId),
+    ROOT_CONTAINER,
+    path.join(keyDir, privateKeyFileName),
+    uniqueNodeDestDir)
+  const keyBytes = await fs.readFileSync(path.join(uniqueNodeDestDir, privateKeyFileName))
+  const keyString = keyBytes.toString()
+  keyHashMap.set(privateKeyFileName, crypto.createHash('sha256').update(keyString).digest('base64'))
 }

@@ -14,12 +14,14 @@
  * limitations under the License.
  *
  */
+'use strict'
 import { ListrEnquirerPromptAdapter } from '@listr2/prompt-adapter-enquirer'
 import fs from 'fs'
 import { FullstackTestingError, IllegalArgumentError } from '../core/errors.mjs'
 import { ConfigManager, constants } from '../core/index.mjs'
 import * as flags from './flags.mjs'
 import * as helpers from '../core/helpers.mjs'
+import { resetDisabledPrompts } from './flags.mjs'
 
 async function prompt (type, task, input, defaultValue, promptMessage, emptyCheckMessage, flagName) {
   try {
@@ -70,7 +72,7 @@ export async function promptClusterSetupNamespace (task, input) {
 
 export async function promptNodeIds (task, input) {
   return await prompt('input', task, input,
-    'node0,node1,node2',
+    'node1,node2,node3',
     'Enter list of node IDs (comma separated list): ',
     null,
     flags.nodeIDs.name)
@@ -182,7 +184,6 @@ export async function promptProfile (task, input, choices = constants.ALL_PROFIL
     if (initial < 0) {
       const input = await task.prompt(ListrEnquirerPromptAdapter).run({
         type: 'select',
-        initial: choices.indexOf(flags.keyFormat.definition.defaultValue),
         message: 'Select profile for fullstack network deployment',
         choices: helpers.cloneArray(choices)
       })
@@ -196,7 +197,7 @@ export async function promptProfile (task, input, choices = constants.ALL_PROFIL
 
     return input
   } catch (e) {
-    throw new FullstackTestingError(`input failed: ${flags.keyFormat.name}: ${e.message}`, e)
+    throw new FullstackTestingError(`input failed: ${flags.profileName.name}`, e)
   }
 }
 
@@ -238,14 +239,6 @@ export async function promptDeployCertManagerCrds (task, input) {
     'Would you like to deploy Cert Manager CRDs? ',
     null,
     flags.deployCertManagerCrds.name)
-}
-
-export async function promptDeployMirrorNode (task, input) {
-  return await promptToggle(task, input,
-    flags.deployMirrorNode.definition.defaultValue,
-    'Would you like to deploy Hedera Mirror Node? ',
-    null,
-    flags.deployMirrorNode.name)
 }
 
 export async function promptDeployHederaExplorer (task, input) {
@@ -348,30 +341,6 @@ export async function promptDeleteSecrets (task, input) {
     flags.deleteSecrets.name)
 }
 
-export async function promptKeyFormat (task, input, choices = [constants.KEY_FORMAT_PFX, constants.KEY_FORMAT_PEM]) {
-  try {
-    const initial = choices.indexOf(input)
-    if (initial < 0) {
-      const input = await task.prompt(ListrEnquirerPromptAdapter).run({
-        type: 'select',
-        initial: choices.indexOf(flags.keyFormat.definition.defaultValue),
-        message: 'Select key format',
-        choices: helpers.cloneArray(choices)
-      })
-
-      if (!input) {
-        throw new FullstackTestingError('key-format cannot be empty')
-      }
-
-      return input
-    }
-
-    return input
-  } catch (e) {
-    throw new FullstackTestingError(`input failed: ${flags.keyFormat.name}: ${e.message}`, e)
-  }
-}
-
 export async function promptFstChartVersion (task, input) {
   return await promptText(task, input,
     flags.fstChartVersion.definition.defaultValue,
@@ -412,6 +381,57 @@ export async function promptAmount (task, input) {
     flags.amount.name)
 }
 
+export async function promptNewNodeId (task, input) {
+  return await promptText(task, input,
+    flags.nodeID.definition.defaultValue,
+    'Enter the new node id: ',
+    null,
+    flags.nodeID.name)
+}
+
+export async function promptGossipEndpoints (task, input) {
+  return await promptText(task, input,
+    flags.gossipEndpoints.definition.defaultValue,
+    'Enter the gossip endpoints(comma separated): ',
+    null,
+    flags.gossipEndpoints.name)
+}
+
+export async function promptGrpcEndpoints (task, input) {
+  return await promptText(task, input,
+    flags.grpcEndpoints.definition.defaultValue,
+    'Enter the gRPC endpoints(comma separated): ',
+    null,
+    flags.grpcEndpoints.name)
+}
+
+export async function promptEndpointType (task, input) {
+  return await promptText(task, input,
+    flags.endpointType.definition.defaultValue,
+    'Enter the endpoint type(IP or FQDN): ',
+    null,
+    flags.endpointType.name)
+}
+
+export async function promptPersistentVolumeClaims (task, input) {
+  return await promptToggle(task, input,
+    flags.persistentVolumeClaims.definition.defaultValue,
+    'Would you like to enable persistent volume claims to store data outside the pod? ',
+    null,
+    flags.persistentVolumeClaims.name)
+}
+
+export async function promptMirrorNodeVersion (task, input) {
+  return await promptToggle(task, input,
+    flags.mirrorNodeVersion.definition.defaultValue,
+    'Would you like to choose mirror node version? ',
+    null,
+    flags.mirrorNodeVersion.name)
+}
+
+/**
+ * @returns {Map<string, Function>}
+ */
 export function getPromptMap () {
   return new Map()
     .set(flags.accountId.name, promptAccountId)
@@ -426,7 +446,6 @@ export function getPromptMap () {
     .set(flags.deployCertManagerCrds.name, promptDeployCertManagerCrds)
     .set(flags.deployHederaExplorer.name, promptDeployHederaExplorer)
     .set(flags.deployMinio.name, promptDeployMinio)
-    .set(flags.deployMirrorNode.name, promptDeployMirrorNode)
     .set(flags.deployPrometheusStack.name, promptDeployPrometheusStack)
     .set(flags.enableHederaExplorerTls.name, promptEnableHederaExplorerTls)
     .set(flags.enablePrometheusSvcMonitor.name, promptEnablePrometheusSvcMonitor)
@@ -435,11 +454,11 @@ export function getPromptMap () {
     .set(flags.generateGossipKeys.name, promptGenerateGossipKeys)
     .set(flags.generateTlsKeys.name, promptGenerateTLSKeys)
     .set(flags.hederaExplorerTlsHostName.name, promptHederaExplorerTlsHostName)
-    .set(flags.keyFormat.name, promptKeyFormat)
     .set(flags.namespace.name, promptNamespace)
     .set(flags.nodeIDs.name, promptNodeIds)
     .set(flags.operatorId.name, promptOperatorId)
     .set(flags.operatorKey.name, promptOperatorKey)
+    .set(flags.persistentVolumeClaims.name, promptPersistentVolumeClaims)
     .set(flags.privateKey.name, promptPrivateKey)
     .set(flags.profileFile.name, promptProfileFile)
     .set(flags.profileName.name, promptProfile)
@@ -449,6 +468,11 @@ export function getPromptMap () {
     .set(flags.tlsClusterIssuerType.name, promptTlsClusterIssuerType)
     .set(flags.updateAccountKeys.name, promptUpdateAccountKeys)
     .set(flags.valuesFile.name, promptValuesFile)
+    .set(flags.nodeID.name, promptNewNodeId)
+    .set(flags.gossipEndpoints.name, promptGossipEndpoints)
+    .set(flags.grpcEndpoints.name, promptGrpcEndpoints)
+    .set(flags.endpointType.name, promptEndpointType)
+    .set(flags.mirrorNodeVersion.name, promptMirrorNodeVersion)
 }
 
 // build the prompt registry
@@ -457,7 +481,7 @@ export function getPromptMap () {
  * @param task task object from listr2
  * @param configManager config manager to store flag values
  * @param {CommandFlag[]} flagList list of flag objects
- * @return {Promise<void>}
+ * @returns {Promise<void>}
  */
 export async function execute (task, configManager, flagList = []) {
   if (!configManager || !(configManager instanceof ConfigManager)) {
@@ -486,6 +510,7 @@ export async function execute (task, configManager, flagList = []) {
  * @param {CommandFlag[]} flags list of flags to disable prompts for
  */
 export function disablePrompts (flags) {
+  resetDisabledPrompts()
   for (const flag of flags) {
     if (flag.definition) {
       flag.definition.disablePrompt = true

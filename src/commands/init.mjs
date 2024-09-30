@@ -14,6 +14,7 @@
  * limitations under the License.
  *
  */
+'use strict'
 import { Listr } from 'listr2'
 import path from 'path'
 import { BaseCommand } from './base.mjs'
@@ -30,7 +31,8 @@ import chalk from 'chalk'
 export class InitCommand extends BaseCommand {
   /**
    * Setup home directories
-   * @param dirs a list of directories that need to be created in sequence
+   * @param {string[]} dirs a list of directories that need to be created in sequence
+   * @returns {string[]}
    */
   setupHomeDirectory (dirs = [
     constants.SOLO_HOME_DIR,
@@ -57,6 +59,7 @@ export class InitCommand extends BaseCommand {
 
   /**
    * Executes the init CLI command
+   * @param {Object} argv
    * @returns {Promise<boolean>}
    */
   async init (argv) {
@@ -141,7 +144,8 @@ export class InitCommand extends BaseCommand {
 
   /**
    * Return Yargs command definition for 'init' command
-   * @param initCmd an instance of InitCommand
+   * @param {InitCommand} initCmd - an instance of InitCommand
+   * @returns A object representing the Yargs command definition
    */
   static getCommandDefinition (initCmd) {
     if (!initCmd || !(initCmd instanceof InitCommand)) {
@@ -157,7 +161,6 @@ export class InitCommand extends BaseCommand {
           flags.chartDirectory,
           flags.clusterSetupNamespace,
           flags.fstChartVersion,
-          flags.keyFormat,
           flags.namespace,
           flags.nodeIDs,
           flags.profileFile,

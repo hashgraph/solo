@@ -37,6 +37,7 @@ import * as version from '../../../version.mjs'
 import { getNodeLogs, sleep } from '../../../src/core/helpers.mjs'
 import path from 'path'
 import fs from 'fs'
+import { NetworkCommand } from '../../../src/commands/network.mjs'
 
 describe('NetworkCommand', () => {
   const testName = 'network-cmd-e2e'
@@ -47,8 +48,7 @@ describe('NetworkCommand', () => {
   const argv = getDefaultArgv()
   argv[flags.namespace.name] = namespace
   argv[flags.releaseTag.name] = HEDERA_PLATFORM_VERSION_TAG
-  argv[flags.keyFormat.name] = constants.KEY_FORMAT_PEM
-  argv[flags.nodeIDs.name] = 'node0'
+  argv[flags.nodeIDs.name] = 'node1'
   argv[flags.generateGossipKeys.name] = true
   argv[flags.generateTlsKeys.name] = true
   argv[flags.deployMinio.name] = true
@@ -65,6 +65,8 @@ describe('NetworkCommand', () => {
 
   const networkCmd = bootstrapResp.cmd.networkCmd
   const clusterCmd = bootstrapResp.cmd.clusterCmd
+  const initCmd = bootstrapResp.cmd.initCmd
+  const nodeCmd = bootstrapResp.cmd.nodeCmd
 
   afterAll(async () => {
     await getNodeLogs(k8, namespace)
@@ -73,22 +75,39 @@ describe('NetworkCommand', () => {
   }, 180000)
 
   beforeAll(async () => {
+    await initCmd.init(argv)
     await clusterCmd.setup(argv)
     fs.mkdirSync(applicationEnvParentDirectory, { recursive: true })
     fs.writeFileSync(applicationEnvFilePath, applicationEnvFileContents)
   })
 
+  it('keys should be generated', async () => {
+    await expect(nodeCmd.keys(argv)).resolves.toBeTruthy()
+  })
+
   it('network deploy command should succeed', async () => {
-    expect.assertions(2)
+    expect.assertions(3)
     try {
       await expect(networkCmd.deploy(argv)).resolves.toBeTruthy()
 
       // check pod names should match expected values
-      await expect(k8.getPodByName('network-node0-0'))
-        .resolves.toHaveProperty('metadata.name', 'network-node0-0')
+      await expect(k8.getPodByName('network-node1-0'))
+        .resolves.toHaveProperty('metadata.name', 'network-node1-0')
       // get list of pvc using k8 listPvcsByNamespace function and print to log
       const pvcs = await k8.listPvcsByNamespace(namespace)
       networkCmd.logger.showList('PVCs', pvcs)
+
+      expect(networkCmd.getUnusedConfigs(NetworkCommand.DEPLOY_CONFIGS_NAME)).toEqual([
+        flags.apiPermissionProperties.constName,
+        flags.applicationEnv.constName,
+        flags.applicationProperties.constName,
+        flags.bootstrapProperties.constName,
+        flags.chainId.constName,
+        flags.log4j2Xml.constName,
+        flags.profileFile.constName,
+        flags.profileName.constName,
+        flags.settingTxt.constName
+      ])
     } catch (e) {
       networkCmd.logger.showUserError(e)
       expect(e).toBeNull()
@@ -107,6 +126,7 @@ describe('NetworkCommand', () => {
   it('network destroy should success', async () => {
     argv[flags.deletePvcs.name] = true
     argv[flags.deleteSecrets.name] = true
+    argv[flags.force.name] = true
     configManager.update(argv, true)
 
     expect.assertions(4)

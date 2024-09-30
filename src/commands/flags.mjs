@@ -14,9 +14,11 @@
  * limitations under the License.
  *
  */
+'use strict'
 import { constants } from '../core/index.mjs'
 import * as core from '../core/index.mjs'
 import * as version from '../../version.mjs'
+import path from 'path'
 
 /**
  * @typedef {Object} CommandFlag
@@ -90,18 +92,6 @@ export const namespace = {
     describe: 'Namespace',
     alias: 'n',
     type: 'string'
-  }
-}
-
-/** @type {CommandFlag} **/
-export const deployMirrorNode = {
-  constName: 'deployMirrorNode',
-  name: 'mirror-node',
-  definition: {
-    describe: 'Deploy mirror node',
-    defaultValue: true,
-    alias: 'm',
-    type: 'boolean'
   }
 }
 
@@ -240,7 +230,7 @@ export const relayReleaseTag = {
   name: 'relay-release',
   definition: {
     describe: 'Relay release tag to be used (e.g. v0.48.0)',
-    defaultValue: 'v0.48.1',
+    defaultValue: 'v0.53.0',
     type: 'string'
   }
 }
@@ -309,7 +299,7 @@ export const chainId = {
   name: 'ledger-id',
   definition: {
     describe: 'Ledger ID (a.k.a. Chain ID)',
-    defaultValue: '298', // Ref: https://github.com/hashgraph/hedera-json-rpc-relay#configuration
+    defaultValue: constants.HEDERA_CHAIN_ID, // Ref: https://github.com/hashgraph/hedera-json-rpc-relay#configuration
     alias: 'l',
     type: 'string'
   }
@@ -358,17 +348,6 @@ export const generateTlsKeys = {
     describe: 'Generate gRPC TLS keys for nodes',
     defaultValue: false,
     type: 'boolean'
-  }
-}
-
-/** @type {CommandFlag} **/
-export const keyFormat = {
-  constName: 'keyFormat',
-  name: 'key-format',
-  definition: {
-    describe: 'Public and Private key file format (pem or pfx)',
-    defaultValue: 'pem',
-    type: 'string'
   }
 }
 
@@ -455,7 +434,7 @@ export const applicationProperties = {
   name: 'application-properties',
   definition: {
     describe: 'application.properties file for node',
-    defaultValue: `${constants.SOLO_CACHE_DIR}/templates/application.properties`,
+    defaultValue: path.join(constants.SOLO_CACHE_DIR, 'templates', 'application.properties'),
     type: 'string'
   }
 }
@@ -477,7 +456,7 @@ export const apiPermissionProperties = {
   name: 'api-permission-properties',
   definition: {
     describe: 'api-permission.properties file for node',
-    defaultValue: `${constants.SOLO_CACHE_DIR}/templates/api-permission.properties`,
+    defaultValue: path.join(constants.SOLO_CACHE_DIR, 'templates', 'api-permission.properties'),
     type: 'string'
   }
 }
@@ -488,7 +467,7 @@ export const bootstrapProperties = {
   name: 'bootstrap-properties',
   definition: {
     describe: 'bootstrap.properties file for node',
-    defaultValue: `${constants.SOLO_CACHE_DIR}/templates/bootstrap.properties`,
+    defaultValue: path.join(constants.SOLO_CACHE_DIR, 'templates', 'bootstrap.properties'),
     type: 'string'
   }
 }
@@ -499,7 +478,7 @@ export const settingTxt = {
   name: 'settings-txt',
   definition: {
     describe: 'settings.txt file for node',
-    defaultValue: `${constants.SOLO_CACHE_DIR}/templates/settings.txt`,
+    defaultValue: path.join(constants.SOLO_CACHE_DIR, 'templates', 'settings.txt'),
     type: 'string'
   }
 }
@@ -510,7 +489,7 @@ export const app = {
   name: 'app',
   definition: {
     describe: 'Testing app name',
-    defaultValue: '',
+    defaultValue: constants.HEDERA_APP_NAME,
     type: 'string'
   }
 }
@@ -538,12 +517,78 @@ export const localBuildPath = {
 }
 
 /** @type {CommandFlag} **/
+export const newAccountNumber = {
+  constName: 'newAccountNumber',
+  name: 'new-account-number',
+  definition: {
+    describe: 'new account number for node update transaction',
+    defaultValue: '',
+    type: 'string'
+  }
+}
+
+/** @type {CommandFlag} **/
+export const newAdminKey = {
+  constName: 'newAdminKey',
+  name: 'new-admin-key',
+  definition: {
+    describe: 'new admin key for the Hedera account',
+    defaultValue: '',
+    type: 'string'
+  }
+}
+
+/** @type {CommandFlag} **/
+export const gossipPublicKey = {
+  constName: 'gossipPublicKey',
+  name: 'gossip-public-key',
+  definition: {
+    describe: 'path and file name of the public key for signing gossip in PEM key format to be used',
+    defaultValue: '',
+    type: 'string'
+  }
+}
+
+/** @type {CommandFlag} **/
+export const gossipPrivateKey = {
+  constName: 'gossipPrivateKey',
+  name: 'gossip-private-key',
+  definition: {
+    describe: 'path and file name of the private key for signing gossip in PEM key format to be used',
+    defaultValue: '',
+    type: 'string'
+  }
+}
+
+/** @type {CommandFlag} **/
+export const tlsPublicKey = {
+  constName: 'tlsPublicKey',
+  name: 'tls-public-key',
+  definition: {
+    describe: 'path and file name of the public TLS key to be used',
+    defaultValue: '',
+    type: 'string'
+  }
+}
+
+/** @type {CommandFlag} **/
+export const tlsPrivateKey = {
+  constName: 'tlsPrivateKey',
+  name: 'tls-private-key',
+  definition: {
+    describe: 'path and file name of the private TLS key to be used',
+    defaultValue: '',
+    type: 'string'
+  }
+}
+
+/** @type {CommandFlag} **/
 export const log4j2Xml = {
   constName: 'log4j2Xml',
   name: 'log4j2-xml',
   definition: {
     describe: 'log4j2.xml file for node',
-    defaultValue: `${constants.SOLO_CACHE_DIR}/templates/log4j2.xml`,
+    defaultValue: path.join(constants.SOLO_CACHE_DIR, 'templates', 'log4j2.xml'),
     type: 'string'
   }
 }
@@ -614,6 +659,112 @@ export const amount = {
   }
 }
 
+/** @type {CommandFlag} **/
+export const nodeID = {
+  constName: 'nodeId',
+  name: 'node-id',
+  definition: {
+    describe: 'Node id (e.g. node99)',
+    type: 'string'
+  }
+}
+
+/** @type {CommandFlag} **/
+export const gossipEndpoints = {
+  constName: 'gossipEndpoints',
+  name: 'gossip-endpoints',
+  definition: {
+    describe: 'Comma separated gossip endpoints of the node(e.g. first one is internal, second one is external)',
+    type: 'string'
+  }
+}
+
+/** @type {CommandFlag} **/
+export const grpcEndpoints = {
+  constName: 'grpcEndpoints',
+  name: 'grpc-endpoints',
+  definition: {
+    describe: 'Comma separated gRPC endpoints of the node (at most 8)',
+    type: 'string'
+  }
+}
+
+/** @type {CommandFlag} **/
+export const endpointType = {
+  constName: 'endpointType',
+  name: 'endpoint-type',
+  definition: {
+    describe: 'Endpoint type (IP or FQDN)',
+    defaultValue: constants.ENDPOINT_TYPE_FQDN,
+    type: 'string'
+  }
+}
+
+/** @type {CommandFlag} **/
+export const persistentVolumeClaims = {
+  constName: 'persistentVolumeClaims',
+  name: 'pvcs',
+  definition: {
+    describe: 'Enable persistent volume claims to store data outside the pod, required for node add',
+    defaultValue: false,
+    type: 'boolean'
+  }
+}
+
+/** @type {CommandFlag} **/
+export const debugNodeId = {
+  constName: 'debugNodeId',
+  name: 'debug-nodeid',
+  definition: {
+    describe: 'Enable default jvm debug port (5005) for the given node id',
+    defaultValue: '',
+    type: 'string'
+  }
+}
+
+/** @type {CommandFlag} **/
+export const outputDir = {
+  constName: 'outputDir',
+  name: 'output-dir',
+  definition: {
+    describe: 'Path to the directory where the command context will be saved to',
+    defaultValue: '',
+    type: 'string'
+  }
+}
+
+/** @type {CommandFlag} **/
+export const inputDir = {
+  constName: 'inputDir',
+  name: 'input-dir',
+  definition: {
+    describe: 'Path to the directory where the command context will be loaded from',
+    defaultValue: '',
+    type: 'string'
+  }
+}
+
+/** @type {CommandFlag} **/
+export const adminKey = {
+  constName: 'adminKey',
+  name: 'admin-key',
+  definition: {
+    describe: 'Admin key',
+    defaultValue: constants.GENESIS_KEY,
+    type: 'string'
+  }
+}
+
+/** @type {CommandFlag} **/
+export const mirrorNodeVersion = {
+  constName: 'mirrorNodeVersion',
+  name: 'mirror-node-version',
+  definition: {
+    describe: 'Mirror node chart version',
+    defaultValue: '',
+    type: 'string'
+  }
+}
 /** @type {CommandFlag[]} **/
 export const allFlags = [
   accountId,
@@ -636,24 +787,32 @@ export const allFlags = [
   deployHederaExplorer,
   deployJsonRpcRelay,
   deployMinio,
-  deployMirrorNode,
   deployPrometheusStack,
   devMode,
   ecdsaPrivateKey,
   enableHederaExplorerTls,
   enablePrometheusSvcMonitor,
+  endpointType,
   fstChartVersion,
   generateGossipKeys,
   generateTlsKeys,
+  gossipEndpoints,
+  gossipPrivateKey,
+  gossipPublicKey,
+  grpcEndpoints,
   hederaExplorerTlsHostName,
   hederaExplorerTlsLoadBalancerIp,
-  keyFormat,
+  debugNodeId,
   localBuildPath,
   log4j2Xml,
   namespace,
+  newAccountNumber,
+  newAdminKey,
+  nodeID,
   nodeIDs,
   operatorId,
   operatorKey,
+  persistentVolumeClaims,
   privateKey,
   profileFile,
   profileName,
@@ -663,9 +822,23 @@ export const allFlags = [
   setAlias,
   settingTxt,
   tlsClusterIssuerType,
+  tlsPrivateKey,
+  tlsPublicKey,
   updateAccountKeys,
-  valuesFile
+  valuesFile,
+  mirrorNodeVersion
 ]
+
+/**
+ * Resets the definition.disablePrompt for all flags
+ */
+export function resetDisabledPrompts () {
+  allFlags.forEach(f => {
+    if (f.definition.disablePrompt) {
+      delete f.definition.disablePrompt
+    }
+  })
+}
 
 export const allFlagsMap = new Map(allFlags.map(f => [f.name, f]))
 

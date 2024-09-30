@@ -26,39 +26,63 @@ on:
         required: false
         default: "Set Environment Variables"
     outputs:
-      e2e-test-subdir:
-        description: "E2E Test Subdirectory"
-        value: ${{ jobs.env-vars.outputs.e2e_test_subdir }}
+      e2e-standard-test-subdir:
+        description: "E2E Standard Test Subdirectory"
+        value: ${{ jobs.env-vars.outputs.e2e_standard_test_subdir }}
       e2e-mirror-node-test-subdir:
         description: "E2E Mirror Node Test Subdirectory"
         value: ${{ jobs.env-vars.outputs.e2e_mirror_node_test_subdir }}
-      e2e-node-pem-stop-add-test-subdir:
-        description: "E2E Node PEM Stop Add Test Subdirectory"
-        value: ${{ jobs.env-vars.outputs.e2e_node_pem_stop_add_test_subdir }}
-      e2e-node-pfx-kill-add-test-subdir:
-        description: "E2E Node PFX Kill Add Test Subdirectory"
-        value: ${{ jobs.env-vars.outputs.e2e_node_pfx_kill_add_test_subdir }}
+      e2e-node-pem-stop-test-subdir:
+        description: "E2E Node PEM Stop Test Subdirectory"
+        value: ${{ jobs.env-vars.outputs.e2e_node_pem_stop_test_subdir }}
+      e2e-node-pem-kill-test-subdir:
+        description: "E2E Node PEM Kill Test Subdirectory"
+        value: ${{ jobs.env-vars.outputs.e2e_node_pem_kill_test_subdir }}
       e2e-node-local-build-test-subdir:
         description: "E2E Node Local Build Test Subdirectory"
         value: ${{ jobs.env-vars.outputs.e2e_node_local_build_test_subdir }}
+      e2e-node-add-test-subdir:
+        description: "E2E Node Add Test Subdirectory"
+        value: ${{ jobs.env-vars.outputs.e2e_node_add_test_subdir }}
+      e2e-node-add-separate-commands-test-subdir:
+        description: "E2E Node Add - Separate commands Test Subdirectory"
+        value: ${{ jobs.env-vars.outputs.e2e_node_add_separate_commands_test_subdir }}
+      e2e-node-update-test-subdir:
+        description: "E2E Node Update Test Subdirectory"
+        value: ${{ jobs.env-vars.outputs.e2e_node_update_test_subdir }}
+      e2e-node-delete-test-subdir:
+        description: "E2E Node Delete Test Subdirectory"
+        value: ${{ jobs.env-vars.outputs.e2e_node_delete_test_subdir }}
       e2e-relay-test-subdir:
         description: "E2E Relay Test Subdirectory"
         value: ${{ jobs.env-vars.outputs.e2e_relay_test_subdir }}
-      e2e-coverage-report:
-        description: "E2E Tests Coverage Report"
-        value: ${{ jobs.env-vars.outputs.e2e_coverage_report }}
+      e2e-standard-coverage-report:
+        description: "E2E Standard Tests Coverage Report"
+        value: ${{ jobs.env-vars.outputs.e2e_standard_coverage_report }}
       e2e-mirror-node-coverage-report:
         description: "E2E Mirror Node Tests Coverage Report"
         value: ${{ jobs.env-vars.outputs.e2e_mirror_node_coverage_report }}
-      e2e-node-pem-stop-add-coverage-report:
-        description: "E2E Node PEM Stop Add Tests Coverage Report"
-        value: ${{ jobs.env-vars.outputs.e2e_node_pem_stop_add_coverage_report }}
-      e2e-node-pfx-kill-add-coverage-report:
-        description: "E2E Node PFX Kill Add Tests Coverage Report"
-        value: ${{ jobs.env-vars.outputs.e2e_node_pfx_kill_add_coverage_report }}
+      e2e-node-pem-stop-coverage-report:
+        description: "E2E Node PEM Stop Tests Coverage Report"
+        value: ${{ jobs.env-vars.outputs.e2e_node_pem_stop_coverage_report }}
+      e2e-node-pem-kill-coverage-report:
+        description: "E2E Node PEM Kill Tests Coverage Report"
+        value: ${{ jobs.env-vars.outputs.e2e_node_pem_kill_coverage_report }}
       e2e-node-local-build-coverage-report:
         description: "E2E Node Local Build Tests Coverage Report"
         value: ${{ jobs.env-vars.outputs.e2e_node_local_build_coverage_report }}
+      e2e-node-add-coverage-report:
+        description: "E2E Node Add Tests Coverage Report"
+        value: ${{ jobs.env-vars.outputs.e2e_node_add_coverage_report }}
+      e2e-node-add-separate-commands-coverage-report:
+        description: "E2E Node Add - Separate commands Tests Coverage Report"
+        value: ${{ jobs.env-vars.outputs.e2e_node_add_separate_commands_coverage_report }}
+      e2e-node-update-coverage-report:
+        description: "E2E Node Update Tests Coverage Report"
+        value: ${{ jobs.env-vars.outputs.e2e_node_update_coverage_report }}
+      e2e-node-delete-coverage-report:
+        description: "E2E Node Delete Tests Coverage Report"
+        value: ${{ jobs.env-vars.outputs.e2e_node_delete_coverage_report }}
       e2e-relay-coverage-report:
         description: "E2E Relay Tests Coverage Report"
         value: ${{ jobs.env-vars.outputs.e2e_relay_coverage_report }}
@@ -70,19 +94,27 @@ defaults:
 jobs:
   env-vars:
     name: ${{ inputs.custom-job-label || 'Set Environment Variables' }}
-    runs-on: [self-hosted, Linux, medium, ephemeral]
+    runs-on: solo-linux-medium
     outputs:
-      e2e_test_subdir: e2e
+      e2e_standard_test_subdir: e2e-standard
       e2e_mirror_node_test_subdir: e2e-mirror-node
-      e2e_node_pem_stop_add_test_subdir: e2e-node-pem-stop-add
-      e2e_node_pfx_kill_add_test_subdir: e2e-node-pfx-kill-add
+      e2e_node_pem_stop_test_subdir: e2e-node-pem-stop
+      e2e_node_pem_kill_test_subdir: e2e-node-pem-kill
       e2e_node_local_build_test_subdir: e2e-node-local-build
+      e2e_node_add_test_subdir: e2e-node-add
+      e2e_node_add_separate_commands_test_subdir: e2e-node-add-separate-commands
+      e2e_node_update_test_subdir: e2e-node-update
+      e2e_node_delete_test_subdir: e2e-node-delete
       e2e_relay_test_subdir: e2e-relay
-      e2e_coverage_report: "E2E Tests Coverage Report"
+      e2e_standard_coverage_report: "E2E Standard Tests Coverage Report"
       e2e_mirror_node_coverage_report: "E2E Mirror Node Tests Coverage Report"
-      e2e_node_pem_stop_add_coverage_report: "E2E Node PEM Stop Add Tests Coverage Report"
-      e2e_node_pfx_kill_add_coverage_report: "E2E Node PFX Kill Add Tests Coverage Report"
+      e2e_node_pem_stop_coverage_report: "E2E Node PEM Stop Tests Coverage Report"
+      e2e_node_pem_kill_coverage_report: "E2E Node PEM Kill Tests Coverage Report"
       e2e_node_local_build_coverage_report: "E2E Node Local Build Tests Coverage Report"
+      e2e_node_add_coverage_report: "E2E Node Add Tests Coverage Report"
+      e2e_node_add_separate_commands_coverage_report: "E2E Node Add - Separate commands Tests Coverage Report"
+      e2e_node_update_coverage_report: "E2E Node Update Tests Coverage Report"
+      e2e_node_delete_coverage_report: "E2E Node Delete Tests Coverage Report"
       e2e_relay_coverage_report: "E2E Relay Tests Coverage Report"
     steps:
       - run: echo "Exposing environment variables to reusable workflows"

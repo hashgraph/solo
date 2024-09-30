@@ -17,7 +17,7 @@
 #
 
 keysDir="${HOME}/.solo/cache/keys"
-ids="node0,node1,node2"
+ids="node1,node2,node3"
 validity=36524 # number of days
 keytool_path="${HOME}/.solo/bin/jre/bin/keytool"
 

@@ -25,12 +25,12 @@ describe('Helpers', () => {
       output: []
     },
     {
-      input: 'node0',
-      output: ['node0']
+      input: 'node1',
+      output: ['node1']
     },
     {
-      input: 'node0,node2',
-      output: ['node0', 'node2']
+      input: 'node1,node3',
+      output: ['node1', 'node3']
     }
   ])('should be able to parse node ID', (t) => {
     expect(helpers.parseNodeIds(t.input)).toStrictEqual(t.output)

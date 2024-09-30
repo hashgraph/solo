@@ -14,6 +14,7 @@
  * limitations under the License.
  *
  */
+'use strict'
 import { Listr } from 'listr2'
 import { FullstackTestingError, MissingArgumentError } from '../core/errors.mjs'
 import * as helpers from '../core/helpers.mjs'
@@ -24,6 +25,11 @@ import * as prompts from './prompts.mjs'
 import { getNodeAccountMap } from '../core/helpers.mjs'
 
 export class RelayCommand extends BaseCommand {
+  /**
+   * @param {{profileManager: ProfileManager, accountManager: AccountManager, logger: Logger, helm: Helm, k8: K8,
+   * chartManager: ChartManager, configManager: ConfigManager, depManager: DependencyManager,
+   * downloader: PackageDownloader}} opts
+   */
   constructor (opts) {
     super(opts)
 
@@ -33,11 +39,45 @@ export class RelayCommand extends BaseCommand {
     this.accountManager = opts.accountManager
   }
 
+  /**
+   * @returns {string}
+   */
+  static get DEPLOY_CONFIGS_NAME () {
+    return 'deployConfigs'
+  }
+
+  /**
+   * @returns {CommandFlag[]}
+   */
+  static get DEPLOY_FLAGS_LIST () {
+    return [
+      flags.chainId,
+      flags.chartDirectory,
+      flags.namespace,
+      flags.nodeIDs,
+      flags.operatorId,
+      flags.operatorKey,
+      flags.profileFile,
+      flags.profileName,
+      flags.relayReleaseTag,
+      flags.replicaCount,
+      flags.valuesFile
+    ]
+  }
+
+  /**
+   * @param {string} valuesFile
+   * @param {string[]} nodeIDs
+   * @param {string} chainID
+   * @param {string} relayRelease
+   * @param {number} replicaCount
+   * @param {string} operatorID
+   * @param {string} operatorKey
+   * @param {string} namespace
+   * @returns {Promise<string>}
+   */
   async prepareValuesArg (valuesFile, nodeIDs, chainID, relayRelease, replicaCount, operatorID, operatorKey, namespace) {
     let valuesArg = ''
-    if (valuesFile) {
-      valuesArg += this.prepareValuesFiles(valuesFile)
-    }
 
     const profileName = this.configManager.getFlag(flags.profileName)
     const profileValuesFile = await this.profileManager.prepareValuesForRpcRelayChart(profileName)
@@ -77,11 +117,21 @@ export class RelayCommand extends BaseCommand {
 
     const networkJsonString = await this.prepareNetworkJsonString(nodeIDs, namespace)
     valuesArg += ` --set config.HEDERA_NETWORK='${networkJsonString}'`
+
+    if (valuesFile) {
+      valuesArg += this.prepareValuesFiles(valuesFile)
+    }
+
     return valuesArg
   }
 
-  // created a json string to represent the map between the node keys and their ids
-  // output example '{"node-1": "0.0.3", "node-2": "0.004"}'
+  /**
+   * created a json string to represent the map between the node keys and their ids
+   * output example '{"node-1": "0.0.3", "node-2": "0.004"}'
+   * @param {string[]} nodeIDs
+   * @param {string} namespace
+   * @returns {Promise<string>}
+   */
   async prepareNetworkJsonString (nodeIDs = [], namespace) {
     if (!nodeIDs) {
       throw new MissingArgumentError('Node IDs must be specified')
@@ -92,15 +142,19 @@ export class RelayCommand extends BaseCommand {
 
     const networkNodeServicesMap = await this.accountManager.getNodeServiceMap(namespace)
     nodeIDs.forEach(nodeID => {
-      const nodeName = networkNodeServicesMap.get(nodeID).nodeName
+      const haProxyClusterIp = networkNodeServicesMap.get(nodeID).haProxyClusterIp
       const haProxyGrpcPort = networkNodeServicesMap.get(nodeID).haProxyGrpcPort
-      const networkKey = `network-${nodeName}:${haProxyGrpcPort}`
+      const networkKey = `${haProxyClusterIp}:${haProxyGrpcPort}`
       networkIds[networkKey] = accountMap.get(nodeID)
     })
 
     return JSON.stringify(networkIds)
   }
 
+  /**
+   * @param {string[]} nodeIDs
+   * @returns {string}
+   */
   prepareReleaseName (nodeIDs = []) {
     if (!nodeIDs) {
       throw new MissingArgumentError('Node IDs must be specified')
@@ -114,6 +168,10 @@ export class RelayCommand extends BaseCommand {
     return releaseName
   }
 
+  /**
+   * @param {Object} argv
+   * @returns {Promise<boolean>}
+   */
   async deploy (argv) {
     const self = this
     const tasks = new Listr([
@@ -125,35 +183,43 @@ export class RelayCommand extends BaseCommand {
 
           self.configManager.update(argv)
 
-          await prompts.execute(task, self.configManager, [
-            flags.chainId,
-            flags.chartDirectory,
-            flags.namespace,
-            flags.nodeIDs,
-            flags.operatorId,
-            flags.operatorKey,
-            flags.profileFile,
-            flags.profileName,
-            flags.relayReleaseTag,
-            flags.replicaCount,
-            flags.valuesFile
-          ])
+          await prompts.execute(task, self.configManager, RelayCommand.DEPLOY_FLAGS_LIST)
+
+          /**
+           * @typedef {Object} RelayDeployConfigClass
+           * -- flags --
+           * @property {string} chainId
+           * @property {string} chartDirectory
+           * @property {string} namespace
+           * @property {string} nodeIDs
+           * @property {string} operatorId
+           * @property {string} operatorKey
+           * @property {string} profileFile
+           * @property {string} profileName
+           * @property {string} relayReleaseTag
+           * @property {number} replicaCount
+           * @property {string} valuesFile
+           * -- extra args --
+           * @property {string} chartPath
+           * @property {boolean} isChartInstalled
+           * @property {string[]} nodeIds
+           * @property {string} releaseName
+           * @property {string} valuesArg
+           * -- methods --
+           * @property {getUnusedConfigs} getUnusedConfigs
+           */
+          /**
+           * @callback getUnusedConfigs
+           * @returns {string[]}
+           */
 
           // prompt if inputs are empty and set it in the context
-          ctx.config = {
-            chainId: self.configManager.getFlag(flags.chainId),
-            chartDir: self.configManager.getFlag(flags.chartDirectory),
-            namespace: self.configManager.getFlag(flags.namespace),
-            nodeIds: helpers.parseNodeIds(self.configManager.getFlag(flags.nodeIDs)),
-            operatorId: self.configManager.getFlag(flags.operatorId),
-            operatorKey: self.configManager.getFlag(flags.operatorKey),
-            relayRelease: self.configManager.getFlag(flags.relayReleaseTag),
-            replicaCount: self.configManager.getFlag(flags.replicaCount),
-            valuesFile: self.configManager.getFlag(flags.valuesFile)
-          }
+          ctx.config = /** @type {RelayDeployConfigClass} **/ this.getConfig(RelayCommand.DEPLOY_CONFIGS_NAME, RelayCommand.DEPLOY_FLAGS_LIST,
+            ['nodeIds'])
 
-          ctx.releaseName = self.prepareReleaseName(ctx.config.nodeIds)
-          ctx.isChartInstalled = await self.chartManager.isChartInstalled(ctx.config.namespace, ctx.releaseName)
+          ctx.config.nodeIds = helpers.parseNodeIds(ctx.config.nodeIDs)
+          ctx.config.releaseName = self.prepareReleaseName(ctx.config.nodeIds)
+          ctx.config.isChartInstalled = await self.chartManager.isChartInstalled(ctx.config.namespace, ctx.releaseName)
 
           self.logger.debug('Initialized config', { config: ctx.config })
         }
@@ -161,32 +227,30 @@ export class RelayCommand extends BaseCommand {
       {
         title: 'Prepare chart values',
         task: async (ctx, _) => {
-          ctx.chartPath = await self.prepareChartPath(ctx.config.chartDir, constants.JSON_RPC_RELAY_CHART, constants.JSON_RPC_RELAY_CHART)
-          ctx.valuesArg = await self.prepareValuesArg(
-            ctx.config.valuesFile,
-            ctx.config.nodeIds,
-            ctx.config.chainId,
-            ctx.config.relayRelease,
-            ctx.config.replicaCount,
-            ctx.config.operatorId,
-            ctx.config.operatorKey,
-            ctx.config.namespace
+          const config = /** @type {RelayDeployConfigClass} **/ ctx.config
+          config.chartPath = await self.prepareChartPath(config.chartDirectory, constants.JSON_RPC_RELAY_CHART, constants.JSON_RPC_RELAY_CHART)
+          config.valuesArg = await self.prepareValuesArg(
+            config.valuesFile,
+            config.nodeIds,
+            config.chainId,
+            config.relayReleaseTag,
+            config.replicaCount,
+            config.operatorId,
+            config.operatorKey,
+            config.namespace
           )
         }
       },
       {
         title: 'Deploy JSON RPC Relay',
         task: async (ctx, _) => {
-          const namespace = ctx.config.namespace
-          const releaseName = ctx.releaseName
-          const chartPath = ctx.chartPath
-          const valuesArg = ctx.valuesArg
+          const config = /** @type {RelayDeployConfigClass} **/ ctx.config
 
-          await self.chartManager.install(namespace, releaseName, chartPath, '', valuesArg)
+          await self.chartManager.install(config.namespace, config.releaseName, config.chartPath, '', config.valuesArg)
 
           await self.k8.waitForPods([constants.POD_PHASE_RUNNING], [
             'app=hedera-json-rpc-relay',
-            `app.kubernetes.io/instance=${releaseName}`
+            `app.kubernetes.io/instance=${config.releaseName}`
           ], 1, 900, 1000)
 
           // reset nodeID
@@ -197,14 +261,14 @@ export class RelayCommand extends BaseCommand {
       {
         title: 'Check relay is ready',
         task: async (ctx, _) => {
-          const releaseName = ctx.releaseName
+          const config = /** @type {RelayDeployConfigClass} **/ ctx.config
           try {
             await self.k8.waitForPodReady([
               'app=hedera-json-rpc-relay',
-              `app.kubernetes.io/instance=${releaseName}`
+              `app.kubernetes.io/instance=${config.releaseName}`
             ], 1, 100, 2000)
           } catch (e) {
-            throw new FullstackTestingError(`Relay ${releaseName} is not ready: ${e.message}`, e)
+            throw new FullstackTestingError(`Relay ${config.releaseName} is not ready: ${e.message}`, e)
           }
         }
       }
@@ -222,6 +286,10 @@ export class RelayCommand extends BaseCommand {
     return true
   }
 
+  /**
+   * @param {Object} argv
+   * @returns {Promise<boolean>}
+   */
   async destroy (argv) {
     const self = this
 
@@ -241,13 +309,13 @@ export class RelayCommand extends BaseCommand {
 
           // prompt if inputs are empty and set it in the context
           ctx.config = {
-            chartDir: self.configManager.getFlag(flags.chartDirectory),
+            chartDirectory: self.configManager.getFlag(flags.chartDirectory),
             namespace: self.configManager.getFlag(flags.namespace),
             nodeIds: helpers.parseNodeIds(self.configManager.getFlag(flags.nodeIDs))
           }
 
-          ctx.releaseName = this.prepareReleaseName(ctx.config.nodeIds)
-          ctx.isChartInstalled = await this.chartManager.isChartInstalled(ctx.config.namespace, ctx.releaseName)
+          ctx.config.releaseName = this.prepareReleaseName(ctx.config.nodeIds)
+          ctx.config.isChartInstalled = await this.chartManager.isChartInstalled(ctx.config.namespace, ctx.config.releaseName)
 
           self.logger.debug('Initialized config', { config: ctx.config })
         }
@@ -255,12 +323,11 @@ export class RelayCommand extends BaseCommand {
       {
         title: 'Destroy JSON RPC Relay',
         task: async (ctx, _) => {
-          const namespace = ctx.config.namespace
-          const releaseName = ctx.releaseName
+          const config = ctx.config
 
-          await this.chartManager.uninstall(namespace, releaseName)
+          await this.chartManager.uninstall(config.namespace, config.releaseName)
 
-          this.logger.showList('Destroyed Relays', await self.chartManager.getInstalledCharts(namespace))
+          this.logger.showList('Destroyed Relays', await self.chartManager.getInstalledCharts(config.namespace))
 
           // reset nodeID
           self.configManager.setFlag(flags.nodeIDs, '')
@@ -282,32 +349,24 @@ export class RelayCommand extends BaseCommand {
     return true
   }
 
+  /**
+   * @param {RelayCommand} relayCmd
+   * @returns {{command: string, desc: string, builder: Function}}
+   */
   static getCommandDefinition (relayCmd) {
     if (!relayCmd || !(relayCmd instanceof RelayCommand)) {
       throw new MissingArgumentError('An instance of RelayCommand is required', relayCmd)
     }
     return {
       command: 'relay',
-      desc: 'Manage JSON RPC relays in fullstack testing network',
+      desc: 'Manage JSON RPC relays in solo network',
       builder: yargs => {
         return yargs
           .command({
             command: 'deploy',
             desc: 'Deploy a JSON RPC relay',
             builder: y => {
-              flags.setCommandFlags(y,
-                flags.chainId,
-                flags.chartDirectory,
-                flags.namespace,
-                flags.nodeIDs,
-                flags.operatorId,
-                flags.operatorKey,
-                flags.profileFile,
-                flags.profileName,
-                flags.relayReleaseTag,
-                flags.replicaCount,
-                flags.valuesFile
-              )
+              flags.setCommandFlags(y, ...RelayCommand.DEPLOY_FLAGS_LIST)
             },
             handler: argv => {
               relayCmd.logger.debug("==== Running 'relay install' ===", { argv })
@@ -326,6 +385,7 @@ export class RelayCommand extends BaseCommand {
             command: 'destroy',
             desc: 'Destroy JSON RPC relay',
             builder: y => flags.setCommandFlags(y,
+              flags.chartDirectory,
               flags.namespace,
               flags.nodeIDs
             ),

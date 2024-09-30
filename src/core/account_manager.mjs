@@ -14,7 +14,6 @@
  * limitations under the License.
  *
  */
-import * as HashgraphProto from '@hashgraph/proto'
 import * as Base64 from 'js-base64'
 import os from 'os'
 import * as constants from './constants.mjs'
@@ -39,6 +38,14 @@ import { FullstackTestingError, MissingArgumentError } from './errors.mjs'
 import { Templates } from './templates.mjs'
 import ip from 'ip'
 import { NetworkNodeServicesBuilder } from './network_node_services.mjs'
+import path from 'path'
+
+/**
+ * @typedef {Object} AccountIdWithKeyPairObject
+ * @property {string} accountId
+ * @property {string} privateKey
+ * @property {string} publicKey
+ */
 
 const REASON_FAILED_TO_GET_KEYS = 'failed to get keys for accountId'
 const REASON_SKIPPED = 'skipped since it does not have a genesis key'
@@ -50,8 +57,8 @@ const REJECTED = 'rejected'
 export class AccountManager {
   /**
    * creates a new AccountManager instance
-   * @param logger the logger to use
-   * @param k8 the K8 instance
+   * @param {Logger} logger - the logger to use
+   * @param {K8} k8 - the K8 instance
    */
   constructor (logger, k8) {
     if (!logger) throw new Error('An instance of core/Logger is required')
@@ -60,15 +67,19 @@ export class AccountManager {
     this.logger = logger
     this.k8 = k8
     this._portForwards = []
+
+    /**
+     * @type {NodeClient|null}
+     * @public
+     */
     this._nodeClient = null
   }
 
   /**
    * Gets the account keys from the Kubernetes secret from which it is stored
-   * @param accountId the account ID for which we want its keys
-   * @param namespace the namespace that is storing the secret
-   * @returns {Promise<{accountId: string, privateKey: string, publicKey: string}|null>} a
-   * custom object with the account id, private key, and public key
+   * @param {string} accountId - the account ID for which we want its keys
+   * @param {string} namespace - the namespace that is storing the secret
+   * @returns {Promise<AccountIdWithKeyPairObject>}
    */
   async getAccountKeysFromSecret (accountId, namespace) {
     const secret = await this.k8.getSecret(namespace, Templates.renderAccountKeySecretLabelSelector(accountId))
@@ -79,7 +90,12 @@ export class AccountManager {
         publicKey: Base64.decode(secret.data.publicKey)
       }
     } else {
-      return null
+      // if it isn't in the secrets we can load genesis key
+      return {
+        accountId,
+        privateKey: constants.GENESIS_KEY,
+        publicKey: PrivateKey.fromStringED25519(constants.GENESIS_KEY).publicKey.toString()
+      }
     }
   }
 
@@ -87,31 +103,21 @@ export class AccountManager {
    * Gets the treasury account private key from Kubernetes secret if it exists, else
    * returns the Genesis private key, then will return an AccountInfo object with the
    * accountId, privateKey, publicKey
-   * @param namespace the namespace that the secret is in
-   * @returns {Promise<{accountId: string, privateKey: string, publicKey: string}>}
+   * @param {string} namespace - the namespace that the secret is in
+   * @returns {Promise<AccountIdWithKeyPairObject>}
    */
   async getTreasuryAccountKeys (namespace) {
     // check to see if the treasure account is in the secrets
-    let accountInfo = await this.getAccountKeysFromSecret(constants.TREASURY_ACCOUNT_ID, namespace)
-
-    // if it isn't in the secrets we can load genesis key
-    if (!accountInfo) {
-      accountInfo = {
-        accountId: constants.TREASURY_ACCOUNT_ID,
-        privateKey: constants.GENESIS_KEY,
-        publicKey: PrivateKey.fromStringED25519(constants.GENESIS_KEY).publicKey.toString()
-      }
-    }
-
-    return accountInfo
+    return await this.getAccountKeysFromSecret(constants.TREASURY_ACCOUNT_ID, namespace)
   }
 
   /**
    * batch up the accounts into sets to be processed
-   * @returns an array of arrays of numbers representing the accounts to update
+   * @param {number[][]} [accountRange]
+   * @returns {number[][]} an array of arrays of numbers representing the accounts to update
    */
   batchAccounts (accountRange = constants.SYSTEM_ACCOUNTS) {
-    const batchSize = constants.ACCOUNT_CREATE_BATCH_SIZE
+    const batchSize = constants.ACCOUNT_UPDATE_BATCH_SIZE
     const batchSets = []
 
     let currentBatch = []
@@ -156,17 +162,29 @@ export class AccountManager {
 
   /**
    * loads and initializes the Node Client
-   * @param namespace the namespace of the network
-   * @returns {Promise<void>}
+   * @param {string} namespace - the namespace of the network
+   * @returns {Promise<NodeClient>}
    */
   async loadNodeClient (namespace) {
     if (!this._nodeClient || this._nodeClient.isClientShutDown) {
-      const treasuryAccountInfo = await this.getTreasuryAccountKeys(namespace)
-      const networkNodeServicesMap = await this.getNodeServiceMap(namespace)
-
-      this._nodeClient = await this._getNodeClient(namespace,
-        networkNodeServicesMap, treasuryAccountInfo.accountId, treasuryAccountInfo.privateKey)
+      await this.refreshNodeClient(namespace)
     }
+
+    return this._nodeClient
+  }
+
+  /**
+   * loads and initializes the Node Client
+   * @param namespace the namespace of the network
+   * @returns {Promise<void>}
+   */
+  async refreshNodeClient (namespace) {
+    await this.close()
+    const treasuryAccountInfo = await this.getTreasuryAccountKeys(namespace)
+    const networkNodeServicesMap = await this.getNodeServiceMap(namespace)
+
+    this._nodeClient = await this._getNodeClient(namespace,
+      networkNodeServicesMap, treasuryAccountInfo.accountId, treasuryAccountInfo.privateKey)
   }
 
   /**
@@ -205,10 +223,10 @@ export class AccountManager {
 
   /**
    * Returns a node client that can be used to make calls against
-   * @param namespace the namespace for which the node client resides
-   * @param {Map<string, NetworkNodeServices>}networkNodeServicesMap a map of the service objects that proxy the nodes
-   * @param operatorId the account id of the operator of the transactions
-   * @param operatorKey the private key of the operator of the transactions
+   * @param {string} namespace - the namespace for which the node client resides
+   * @param {Map<string, NetworkNodeServices>} networkNodeServicesMap - a map of the service objects that proxy the nodes
+   * @param {string} operatorId - the account id of the operator of the transactions
+   * @param {string} operatorKey - the private key of the operator of the transactions
    * @returns {Promise<NodeClient>} a node client that can be used to call transactions
    */
   async _getNodeClient (namespace, networkNodeServicesMap, operatorId, operatorKey) {
@@ -222,7 +240,7 @@ export class AccountManager {
         const port = networkNodeService.haProxyGrpcPort
         const targetPort = usePortForward ? localPort : port
 
-        if (usePortForward) {
+        if (usePortForward && this._portForwards.length < networkNodeServicesMap.size) {
           this._portForwards.push(await this.k8.portForward(networkNodeService.haProxyPodName, localPort, port))
         }
 
@@ -232,9 +250,10 @@ export class AccountManager {
       }
 
       this.logger.debug(`creating client from network configuration: ${JSON.stringify(nodes)}`)
-      this._nodeClient = Client.fromConfig({ network: nodes })
+      // scheduleNetworkUpdate is set to false, because the ports 50212/50211 are hardcoded in JS SDK that will not work when running locally or in a pipeline
+      this._nodeClient = Client.fromConfig({ network: nodes, scheduleNetworkUpdate: false })
       this._nodeClient.setOperator(operatorId, operatorKey)
-      this._nodeClient.setLogger(new Logger(LogLevel.Trace, `${constants.SOLO_LOGS_DIR}/hashgraph-sdk.log`))
+      this._nodeClient.setLogger(new Logger(LogLevel.Trace, path.join(constants.SOLO_LOGS_DIR, 'hashgraph-sdk.log')))
       this._nodeClient.setMaxAttempts(constants.NODE_CLIENT_MAX_ATTEMPTS)
       this._nodeClient.setMinBackoff(constants.NODE_CLIENT_MIN_BACKOFF)
       this._nodeClient.setMaxBackoff(constants.NODE_CLIENT_MAX_BACKOFF)
@@ -247,14 +266,13 @@ export class AccountManager {
 
   /**
    * Gets a Map of the Hedera node services and the attributes needed
-   * @param namespace the namespace of the fullstack network deployment
-   * @returns {Promise<Map<String,NetworkNodeServices>>} a map of the network node services
+   * @param {string} namespace - the namespace of the fullstack network deployment
+   * @returns {Promise<Map<string, NetworkNodeServices>>} a map of the network node services
    */
   async getNodeServiceMap (namespace) {
     const labelSelector = 'fullstack.hedera.com/node-name'
 
-    /** @type {Map<String,NetworkNodeServicesBuilder>} **/
-    const serviceBuilderMap = new Map()
+    const serviceBuilderMap = /** @type {Map<String,NetworkNodeServicesBuilder>} **/ new Map()
 
     const serviceList = await this.k8.kubeClient.listNamespacedService(
       namespace, undefined, undefined, undefined, undefined, labelSelector)
@@ -306,6 +324,15 @@ export class AccountManager {
       serviceBuilder.withHaProxyPodName(podList.body.items[0].metadata.name)
     }
 
+    // get the pod name of the network node
+    const pods = await this.k8.getPodsByLabel(['fullstack.hedera.com/type=network-node'])
+    for (const pod of pods) {
+      const podName = pod.metadata.name
+      const nodeName = pod.metadata.labels['fullstack.hedera.com/node-name']
+      const serviceBuilder = /** @type {NetworkNodeServicesBuilder} **/ serviceBuilderMap.get(nodeName)
+      serviceBuilder.withNodePodName(podName)
+    }
+
     /** @type {Map<String,NetworkNodeServices>} **/
     const serviceMap = new Map()
     for (const networkNodeServicesBuilder of serviceBuilderMap.values()) {
@@ -316,12 +343,11 @@ export class AccountManager {
   }
 
   /**
-   * updates a set of special accounts keys with a newly generated key and stores them in a
-   * Kubernetes secret
-   * @param namespace the namespace of the nodes network
-   * @param currentSet the accounts to update
-   * @param updateSecrets whether to delete the secret prior to creating a new secret
-   * @param resultTracker an object to keep track of the results from the accounts that are being updated
+   * updates a set of special accounts keys with a newly generated key and stores them in a Kubernetes secret
+   * @param {string} namespace the namespace of the nodes network
+   * @param {string[]} currentSet - the accounts to update
+   * @param {boolean} updateSecrets - whether to delete the secret prior to creating a new secret
+   * @param {Object} resultTracker - an object to keep track of the results from the accounts that are being updated
    * @returns {Promise<*>} the updated resultTracker object
    */
   async updateSpecialAccountsKeys (namespace, currentSet, updateSecrets, resultTracker) {
@@ -360,12 +386,11 @@ export class AccountManager {
   }
 
   /**
-   * update the account keys for a given account and store its new key in a Kubernetes
-   * secret
-   * @param namespace the namespace of the nodes network
-   * @param accountId the account that will get its keys updated
-   * @param genesisKey the genesis key to compare against
-   * @param updateSecrets whether to delete the secret prior to creating a new secret
+   * update the account keys for a given account and store its new key in a Kubernetes secret
+   * @param {string} namespace - the namespace of the nodes network
+   * @param {AccountId} accountId - the account that will get its keys updated
+   * @param {PrivateKey} genesisKey - the genesis key to compare against
+   * @param {boolean} updateSecrets - whether to delete the secret prior to creating a new secret
    * @returns {Promise<{value: string, status: string}|{reason: string, value: string, status: string}>} the result of the call
    */
   async updateAccountKeys (namespace, accountId, genesisKey, updateSecrets) {
@@ -454,7 +479,7 @@ export class AccountManager {
 
   /**
    * gets the account info from Hedera network
-   * @param accountId the account
+   * @param {AccountId|string} accountId - the account
    * @returns {AccountInfo} the private key of the account
    */
   async accountInfoQuery (accountId) {
@@ -471,17 +496,16 @@ export class AccountManager {
 
   /**
    * gets the account private and public key from the Kubernetes secret from which it is stored
-   * @param accountId the account
+   * @param {AccountId|string} accountId - the account
    * @returns {Promise<Key[]>} the private key of the account
    */
   async getAccountKeys (accountId) {
     const accountInfo = await this.accountInfoQuery(accountId)
 
-    let keys
+    let keys = []
     if (accountInfo.key instanceof KeyList) {
       keys = accountInfo.key.toArray()
     } else {
-      keys = []
       keys.push(accountInfo.key)
     }
 
@@ -490,9 +514,9 @@ export class AccountManager {
 
   /**
    * send an account key update transaction to the network of nodes
-   * @param accountId the account that will get it's keys updated
-   * @param newPrivateKey the new private key
-   * @param oldPrivateKey the genesis key that is the current key
+   * @param {AccountId|string} accountId - the account that will get its keys updated
+   * @param {PrivateKey|string} newPrivateKey - the new private key
+   * @param {PrivateKey|string} oldPrivateKey - the genesis key that is the current key
    * @returns {Promise<boolean>} whether the update was successful
    */
   async sendAccountKeyUpdate (accountId, newPrivateKey, oldPrivateKey) {
@@ -525,13 +549,13 @@ export class AccountManager {
 
   /**
    * creates a new Hedera account
-   * @param namespace the namespace to store the Kubernetes key secret into
-   * @param privateKey the private key of type PrivateKey
-   * @param amount the amount of HBAR to add to the account
-   * @param setAlias whether to set the alias of the account to the public key,
-   * requires the privateKey supplied to be ECDSA
-   * @returns {{accountId: AccountId, privateKey: string, publicKey: string, balance: number}} a
-   * custom object with the account information in it
+   * @param {string} namespace - the namespace to store the Kubernetes key secret into
+   * @param {Key} privateKey - the private key of type PrivateKey
+   * @param {number} amount - the amount of HBAR to add to the account
+   * @param {boolean} [setAlias] - whether to set the alias of the account to the public key, requires
+   * the privateKey supplied to be ECDSA
+   * @returns {Promise<{accountId: AccountId, privateKey: string, publicKey: string, balance: number}>} a custom object with
+   * the account information in it
    */
   async createNewAccount (namespace, privateKey, amount, setAlias = false) {
     const newAccountTransaction = new AccountCreateTransaction()
@@ -588,9 +612,9 @@ export class AccountManager {
 
   /**
    * transfer the specified amount of HBAR from one account to another
-   * @param fromAccountId the account to pull the HBAR from
-   * @param toAccountId the account to put the HBAR
-   * @param hbarAmount the amount of HBAR
+   * @param {AccountId|string} fromAccountId - the account to pull the HBAR from
+   * @param {AccountId|string} toAccountId - the account to put the HBAR
+   * @param {number} hbarAmount - the amount of HBAR
    * @returns {Promise<boolean>} if the transaction was successfully posted
    */
   async transferAmount (fromAccountId, toAccountId, hbarAmount) {
@@ -616,47 +640,12 @@ export class AccountManager {
   /**
    * Fetch and prepare address book as a base64 string
    * @param {string} namespace the namespace of the network
-   * @return {Promise<string>}
+   * @returns {Promise<string>}
    */
   async prepareAddressBookBase64 (namespace) {
     // fetch AddressBook
     const fileQuery = new FileContentsQuery().setFileId(FileId.ADDRESS_BOOK)
-    let addressBookBytes = await fileQuery.execute(this._nodeClient)
-
-    /** @type {Map<string, NetworkNodeServices>} **/
-    const networkNodeServicesMap = await this.getNodeServiceMap(namespace)
-
-    // ensure serviceEndpoint.ipAddressV4 value for all nodes in the addressBook is a 4 bytes array instead of string
-    // See: https://github.com/hashgraph/hedera-protobufs/blob/main/services/basic_types.proto#L1309
-    const addressBook = HashgraphProto.proto.NodeAddressBook.decode(addressBookBytes)
-    const hasAlphaRegEx = /[a-zA-Z]+/
-    let modified = false
-    for (const nodeAddress of addressBook.nodeAddress) {
-      const address = nodeAddress.serviceEndpoint[0].ipAddressV4.toString()
-
-      if (hasAlphaRegEx.test(address)) {
-        const nodeId = Templates.nodeIdFromFullyQualifiedNetworkSvcName(address)
-        nodeAddress.serviceEndpoint[0].ipAddressV4 = Uint8Array.from(ip.toBuffer(networkNodeServicesMap.get(nodeId).nodeServiceClusterIp))
-        nodeAddress.ipAddress = Uint8Array.from(ip.toBuffer(networkNodeServicesMap.get(nodeId).nodeServiceClusterIp))
-        modified = true
-        continue
-      }
-      // overwrite ipAddressV4 as 4 bytes array if required, unless there is alpha, which means it is a domain name
-      if (nodeAddress.serviceEndpoint[0].ipAddressV4.byteLength !== 4) {
-        const parts = address.split('.')
-
-        if (parts.length !== 4) {
-          throw new FullstackTestingError(`expected node IP address to have 4 parts, found ${parts.length}: ${address}`)
-        }
-
-        nodeAddress.serviceEndpoint[0].ipAddressV4 = Uint8Array.from(parts)
-        modified = true
-      }
-    }
-
-    if (modified) {
-      addressBookBytes = HashgraphProto.proto.NodeAddressBook.encode(addressBook).finish()
-    }
+    const addressBookBytes = await fileQuery.execute(this._nodeClient)
 
     // convert addressBook into base64
     return Base64.encode(addressBookBytes)

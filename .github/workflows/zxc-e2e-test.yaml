@@ -37,7 +37,7 @@ on:
         description: "NPM Test Run Script:"
         type: string
         required: false
-        default: "test-e2e"
+        default: "test-e2e-standard"
       coverage-subdirectory:
         description: "Coverage Report Subdirectory:"
         type: string
@@ -62,56 +62,57 @@ permissions:
   statuses: write
 
 env:
-  CG_EXEC: export R_UID=$(id -u); CGROUP_LOGLEVEL=DEBUG cgexec -g cpu,memory:user.slice/user-${R_UID}.slice/user@${R_UID}.service/e2e-${{ github.run_id }} --sticky ionice -c 2 -n 2 nice -n 19
+  #CG_EXEC: export R_UID=$(id -u); CGROUP_LOGLEVEL=DEBUG cgexec -g cpu,memory:user.slice/user-${R_UID}.slice/user@${R_UID}.service/e2e-${{ github.run_id }} --sticky ionice -c 2 -n 2 nice -n 19
+  CG_EXEC: ""
 
 jobs:
   e2e-test:
     name: ${{ inputs.custom-job-label || 'E2E Test' }}
-    runs-on: [self-hosted, Linux, large, ephemeral]
+    runs-on: solo-linux-large
     steps:
       - name: Checkout Code
-        uses: actions/checkout@a5ac7e51b41094c92402da3b24376905380afc29 # v4.1.6
+        uses: actions/checkout@d632683dd7b4114ad314bca15554477dd762a938 # v4.2.0
 
-      - name: Setup Control Groups
-        run: |
-          echo "::group::Get System Configuration"
-            USR_ID="$(id -un)"
-            GRP_ID="$(id -gn)"
-            E2E_MEM_LIMIT="30064771072"
-            AGENT_MEM_LIMIT="2147483648"
-            USER_SLICE="user.slice/user-$(id -u).slice"
-            USER_SERVICE="${USER_SLICE}/user@$(id -u).service" 
-            E2E_GROUP_NAME="${USER_SERVICE}/e2e-${{ github.run_id }}"
-            AGENT_GROUP_NAME="${USER_SERVICE}/agent-${{ github.run_id }}"
-          echo "::endgroup::"
-
-          echo "::group::Install Control Group Tools"
-            if ! command -v cgcreate >/dev/null 2>&1; then
-              sudo apt-get update
-              sudo apt-get install -y cgroup-tools
-            fi
-          echo "::endgroup::"
-
-          echo "::group::Create Control Groups"
-            sudo cgcreate -g cpu,memory:${USER_SLICE} -a ${USR_ID}:${GRP_ID} -t ${USR_ID}:${GRP_ID}
-            sudo cgcreate -g cpu,memory:${USER_SERVICE} -a ${USR_ID}:${GRP_ID} -t ${USR_ID}:${GRP_ID}
-            sudo cgcreate -g cpu,memory:${E2E_GROUP_NAME} -a ${USR_ID}:${GRP_ID} -t ${USR_ID}:${GRP_ID}
-            sudo cgcreate -g cpu,memory:${AGENT_GROUP_NAME} -a ${USR_ID}:${GRP_ID} -t ${USR_ID}:${GRP_ID}
-          echo "::endgroup::"
-
-          echo "::group::Set Control Group Limits"
-            cgset -r cpu.weight=768 ${E2E_GROUP_NAME}
-            cgset -r cpu.weight=500 ${AGENT_GROUP_NAME}
-            cgset -r memory.max=${E2E_MEM_LIMIT} ${E2E_GROUP_NAME}
-            cgset -r memory.max=${AGENT_MEM_LIMIT} ${AGENT_GROUP_NAME}
-            cgset -r memory.swap.max=${E2E_MEM_LIMIT} ${E2E_GROUP_NAME}
-            cgset -r memory.swap.max=${AGENT_MEM_LIMIT} ${AGENT_GROUP_NAME}
-          echo "::endgroup::"
-
-          echo "::group::Move Runner Processes to Control Groups"
-            sudo cgclassify --sticky -g cpu,memory:${AGENT_GROUP_NAME} $(pgrep 'Runner.Listener' | tr '\n' ' ')
-            sudo cgclassify -g cpu,memory:${AGENT_GROUP_NAME} $(pgrep 'Runner.Worker' | tr '\n' ' ')
-          echo "::endgroup::"
+#      - name: Setup Control Groups
+#        run: |
+#          echo "::group::Get System Configuration"
+#            USR_ID="$(id -un)"
+#            GRP_ID="$(id -gn)"
+#            E2E_MEM_LIMIT="30064771072"
+#            AGENT_MEM_LIMIT="2147483648"
+#            USER_SLICE="user.slice/user-$(id -u).slice"
+#            USER_SERVICE="${USER_SLICE}/user@$(id -u).service"
+#            E2E_GROUP_NAME="${USER_SERVICE}/e2e-${{ github.run_id }}"
+#            AGENT_GROUP_NAME="${USER_SERVICE}/agent-${{ github.run_id }}"
+#          echo "::endgroup::"
+#
+#          echo "::group::Install Control Group Tools"
+#            if ! command -v cgcreate >/dev/null 2>&1; then
+#              sudo apt-get update
+#              sudo apt-get install -y cgroup-tools
+#            fi
+#          echo "::endgroup::"
+#
+#          echo "::group::Create Control Groups"
+#            sudo cgcreate -g cpu,memory:${USER_SLICE} -a ${USR_ID}:${GRP_ID} -t ${USR_ID}:${GRP_ID}
+#            sudo cgcreate -g cpu,memory:${USER_SERVICE} -a ${USR_ID}:${GRP_ID} -t ${USR_ID}:${GRP_ID}
+#            sudo cgcreate -g cpu,memory:${E2E_GROUP_NAME} -a ${USR_ID}:${GRP_ID} -t ${USR_ID}:${GRP_ID}
+#            sudo cgcreate -g cpu,memory:${AGENT_GROUP_NAME} -a ${USR_ID}:${GRP_ID} -t ${USR_ID}:${GRP_ID}
+#          echo "::endgroup::"
+#
+#          echo "::group::Set Control Group Limits"
+#            cgset -r cpu.weight=768 ${E2E_GROUP_NAME}
+#            cgset -r cpu.weight=500 ${AGENT_GROUP_NAME}
+#            cgset -r memory.max=${E2E_MEM_LIMIT} ${E2E_GROUP_NAME}
+#            cgset -r memory.max=${AGENT_MEM_LIMIT} ${AGENT_GROUP_NAME}
+#            cgset -r memory.swap.max=${E2E_MEM_LIMIT} ${E2E_GROUP_NAME}
+#            cgset -r memory.swap.max=${AGENT_MEM_LIMIT} ${AGENT_GROUP_NAME}
+#          echo "::endgroup::"
+#
+#          echo "::group::Move Runner Processes to Control Groups"
+#            sudo cgclassify --sticky -g cpu,memory:${AGENT_GROUP_NAME} $(pgrep 'Runner.Listener' | tr '\n' ' ')
+#            sudo cgclassify -g cpu,memory:${AGENT_GROUP_NAME} $(pgrep 'Runner.Worker' | tr '\n' ' ')
+#          echo "::endgroup::"
 
       - name: Setup Node with Retry
         uses: Wandalen/wretry.action@6feedb7dedadeb826de0f45ff482b53b379a7844 # v3.5.0
@@ -146,23 +147,23 @@ jobs:
         run: docker image pull kindest/node:v1.27.3@sha256:3966ac761ae0136263ffdb6cfd4db23ef8a83cba8a463690e98317add2c9ba72
 
       - name: Setup Java
-        if: ${{ runner.os == 'linux' && inputs.npm-test-script == 'test-e2e-node-local-build' && !cancelled() && !failure() }}
-        uses: actions/setup-java@387ac29b308b003ca37ba93a6cab5eb57c8f5f93 # v4.0.0
+        if: ${{ runner.os == 'linux' && (inputs.npm-test-script == 'test-e2e-node-local-build' || inputs.npm-test-script == 'test-e2e-node-add') && !cancelled() && !failure() }}
+        uses: actions/setup-java@b36c23c0d998641eff861008f374ee103c25ac73 # v4.4.0
         with:
           distribution: temurin
           java-version: 21.0.1
 
       - name: Setup Gradle
-        if: ${{ runner.os == 'linux' && inputs.npm-test-script == 'test-e2e-node-local-build' && !cancelled() && !failure() }}
-        uses: gradle/gradle-build-action@4c39dd82cd5e1ec7c6fa0173bb41b4b6bb3b86ff # v3.3.2
+        if: ${{ runner.os == 'linux' && (inputs.npm-test-script == 'test-e2e-node-local-build' || inputs.npm-test-script == 'test-e2e-node-add') && !cancelled() && !failure() }}
+        uses: gradle/gradle-build-action@ac2d340dc04d9e1113182899e983b5400c17cda1 # v3.5.0
         with:
           cache-read-only: false
 
       - name: Build Hedera code locally
-        if: ${{ runner.os == 'linux' && inputs.npm-test-script == 'test-e2e-node-local-build' && !cancelled() && !failure() }}
+        if: ${{ runner.os == 'linux' && (inputs.npm-test-script == 'test-e2e-node-local-build' || inputs.npm-test-script == 'test-e2e-node-add') && !cancelled() && !failure() }}
         run: |
           cd ..
-          git clone https://github.com/hashgraph/hedera-services.git
+          git clone https://github.com/hashgraph/hedera-services.git --depth 1 --branch v0.54.0-alpha.4
           cd hedera-services
           ls -ltr
           ${{ env.CG_EXEC }} ./gradlew assemble --stacktrace --info
@@ -177,25 +178,32 @@ jobs:
         run: |
           ${{ env.CG_EXEC }} npm run ${{ inputs.npm-test-script }}
 
+      - name: RPC relay smoke test
+        if: ${{ runner.os == 'linux' && inputs.npm-test-script == 'test-e2e-relay' && !cancelled() && !failure() }}
+        run: |
+          echo "Skipped smoke test for relay"
+          #.github/workflows/script/relay_smoke_test.sh
+
       - name: Upload E2E Logs to GitHub
         if: ${{ !cancelled() }}
-        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
+        uses: actions/upload-artifact@50769540e7f4bd5e21e526ee35c689e35e0d6874 # v4.4.0
         with:
           name: solo-${{ inputs.npm-test-script }}.log
           path: ~/.solo/logs/*
           overwrite: true
           if-no-files-found: error
 
-      - name: Publish E2E Test Report
-        uses: EnricoMi/publish-unit-test-result-action@30eadd5010312f995f0d3b3cff7fe2984f69409e # v2.16.1
+      - name: Upload E2E Test Report
+        uses: actions/upload-artifact@50769540e7f4bd5e21e526ee35c689e35e0d6874 # v4.4.0
         if: ${{ steps.npm-deps.conclusion == 'success' && !cancelled() }}
         with:
-          check_name: ${{ inputs.coverage-report-name }}
-          # the subdirectory is also used in the junit name to avoid conflicts
-          files: "junit-${{ inputs.coverage-subdirectory }}.xml"
+          name: e2e_test_report_${{ inputs.npm-test-script }}
+          path: "junit-${{ inputs.coverage-subdirectory }}.xml"
+          overwrite: true
+          if-no-files-found: error
 
       - name: Publish E2E Coverage Report
-        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
+        uses: actions/upload-artifact@50769540e7f4bd5e21e526ee35c689e35e0d6874 # v4.4.0
         if: ${{ !cancelled() }}
         with:
           name: ${{ inputs.coverage-report-name }}

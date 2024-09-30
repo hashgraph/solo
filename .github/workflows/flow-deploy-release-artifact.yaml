@@ -40,12 +40,12 @@ permissions:
 jobs:
   prepare-release:
     name: Release / Prepare
-    runs-on: [self-hosted, Linux, medium, ephemeral]
+    runs-on: solo-linux-medium
     outputs:
       version: ${{ steps.tag.outputs.version }}
     steps:
       - name: Checkout Code
-        uses: actions/checkout@a5ac7e51b41094c92402da3b24376905380afc29 # v4.1.6
+        uses: actions/checkout@d632683dd7b4114ad314bca15554477dd762a938 # v4.2.0
         with:
           fetch-depth: 0
 
@@ -73,25 +73,43 @@ jobs:
           GIT_AUTHOR_EMAIL: ${{ secrets.GIT_USER_EMAIL }}
           GIT_COMMITTER_NAME: ${{ secrets.GIT_USER_NAME }}
           GIT_COMMITTER_EMAIL: ${{ secrets.GIT_USER_EMAIL }}
-        run: npx semantic-release --dry-run
+        run: |
+          npx semantic-release --dry-run
+          ls -al
+          cat VERSION
 
       - name: Extract Version
         id: tag
         run: |
+          cat VERSION
           [[ "${{ github.event.inputs.dry-run-enabled }}" == true && ! -f VERSION ]] && echo -n "0.0.0-latest" > VERSION
-          echo "version=$(cat VERSION | tr -d '[:space:]')" >> ${GITHUB_OUTPUT}
+          echo "version=$(cat VERSION | tr -d '[:space:]')" | tee -a ${GITHUB_OUTPUT}
+
+  update-readme:
+    name: "Update README.md"
+    uses: ./.github/workflows/flow-update-readme.yaml
+    needs:
+      - prepare-release
+    with:
+      commit-changes: true
+      version: ${{ needs.prepare-release.outputs.version }}
+    secrets:
+      GH_ACCESS_TOKEN: ${{ secrets.GH_ACCESS_TOKEN }}
+      GH_ACCESS_GPG_KEY: ${{ secrets.GH_ACCESS_GPG_KEY }}
+      GH_ACCESS_PASSPHRASE: ${{ secrets.GH_ACCESS_PASSPHRASE }}
 
   create-github-release:
     name: Github / Release
-    runs-on: [self-hosted, Linux, medium, ephemeral]
+    runs-on: solo-linux-medium
     needs:
-      - prepare-release
+      - update-readme
     steps:
       - name: Checkout Code
-        uses: actions/checkout@a5ac7e51b41094c92402da3b24376905380afc29 # v4.1.6
+        uses: actions/checkout@d632683dd7b4114ad314bca15554477dd762a938 # v4.2.0
         with:
           token: ${{ secrets.GH_ACCESS_TOKEN }}
           fetch-depth: 0
+          ref: ${{ needs.update-readme.outputs.commit-hash }}
 
       - name: Install GnuPG Tools
         run: |
@@ -126,7 +144,7 @@ jobs:
           attempt_delay: 5000
 
       - name: Setup JFrog CLI
-        uses: jfrog/setup-jfrog-cli@7c95feb32008765e1b4e626b078dfd897c4340ad # v4.1.2
+        uses: jfrog/setup-jfrog-cli@9fe0f98bd45b19e6e931d457f4e98f8f84461fb5 # v4.4.1
         env:
           JF_URL: ${{ vars.JF_URL }}
           JF_ACCESS_TOKEN: ${{ secrets.JF_ACCESS_TOKEN }}
@@ -162,6 +180,7 @@ jobs:
 
       - name: Publish Semantic Release
         env:
+          commit: ${{ needs.update-readme.outputs.commit-hash }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GH_ACCESS_TOKEN }}
           GIT_AUTHOR_NAME: ${{ secrets.GIT_USER_NAME }}

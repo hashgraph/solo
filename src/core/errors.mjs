@@ -14,15 +14,17 @@
  * limitations under the License.
  *
  */
+'use strict'
+
 export class FullstackTestingError extends Error {
   /**
      * Create a custom error object
      *
      * error metadata will include the `cause`
      *
-     * @param message error message
-     * @param cause source error (if any)
-     * @param meta additional metadata (if any)
+     * @param {string} message error message
+     * @param {Error | Object} cause source error (if any)
+     * @param {Object} meta additional metadata (if any)
      */
   constructor (message, cause = {}, meta = {}) {
     super(message)
@@ -43,9 +45,9 @@ export class ResourceNotFoundError extends FullstackTestingError {
      *
      * error metadata will include `resource`
      *
-     * @param message error message
-     * @param resource name of the resource
-     * @param cause source error (if any)
+     * @param {string} message - error message
+     * @param {string} resource - name of the resource
+     * @param {Error|Object} cause - source error (if any)
      */
   constructor (message, resource, cause = {}) {
     super(message, cause, { resource })
@@ -56,8 +58,8 @@ export class MissingArgumentError extends FullstackTestingError {
   /**
      * Create a custom error for missing argument scenario
      *
-     * @param message error message
-     * @param cause source error (if any)
+     * @param {string} message - error message
+     * @param {Error|Object} cause - source error (if any)
      */
   constructor (message, cause = {}) {
     super(message, cause)
@@ -70,9 +72,9 @@ export class IllegalArgumentError extends FullstackTestingError {
      *
      * error metadata will include `value`
      *
-     * @param message error message
-     * @param value value of the invalid argument
-     * @param cause source error (if any)
+     * @param {string} message - error message
+     * @param {*} value - value of the invalid argument
+     * @param {Error|Object} cause - source error (if any)
      */
   constructor (message, value = '', cause = {}) {
     super(message, cause, { value })
@@ -85,10 +87,10 @@ export class DataValidationError extends FullstackTestingError {
      *
      * error metadata will include `expected` and `found` values.
      *
-     * @param message error message
-     * @param expected expected value
-     * @param found value found
-     * @param cause source error (if any)
+     * @param {string} message - error message
+     * @param {*} expected - expected value
+     * @param {*} found - value found
+     * @param {Error|Object} [cause] - source error (if any)
      */
   constructor (message, expected, found, cause = {}) {
     super(message, cause, { expected, found })

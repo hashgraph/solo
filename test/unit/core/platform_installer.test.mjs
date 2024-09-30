@@ -99,25 +99,7 @@ describe('PackageInstaller', () => {
     })
     it('should fail for missing tag', async () => {
       expect.assertions(1)
-      await expect(installer.fetchPlatform('network-node0-0', '')).rejects.toThrow(MissingArgumentError)
-    })
-  })
-
-  describe('prepareConfigTxt', () => {
-    it('should fail for missing nodeIDs', async () => {
-      await expect(installer.prepareConfigTxt([], './test', '0.42.0')).rejects.toThrow(MissingArgumentError)
-    })
-
-    it('should fail for missing destPath', async () => {
-      await expect(installer.prepareConfigTxt(['node0'], '', '0.42.0')).rejects.toThrow(MissingArgumentError)
-    })
-
-    it('should fail for missing release tag', async () => {
-      await expect(installer.prepareConfigTxt(['node0'], `${os.tmpdir()}/config.txt`, '')).rejects.toThrow(MissingArgumentError)
-    })
-
-    it('should fail for invalid destPath', async () => {
-      await expect(installer.prepareConfigTxt(['node0'], '/INVALID/config.txt', '0.42.0')).rejects.toThrow(IllegalArgumentError)
+      await expect(installer.fetchPlatform('network-node1-0', '')).rejects.toThrow(MissingArgumentError)
     })
   })
 
@@ -127,7 +109,7 @@ describe('PackageInstaller', () => {
     })
 
     it('should fail for missing stagingDir path', async () => {
-      await expect(installer.copyGossipKeys('network-node0-0', '')).rejects.toThrow(MissingArgumentError)
+      await expect(installer.copyGossipKeys('node1', '')).rejects.toThrow(MissingArgumentError)
     })
   })
 })

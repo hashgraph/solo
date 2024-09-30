@@ -26,9 +26,7 @@ import {
 } from '@jest/globals'
 import { flags } from '../../../src/commands/index.mjs'
 import {
-  constants
-} from '../../../src/core/index.mjs'
-import {
+  accountCreationShouldSucceed,
   balanceQueryShouldSucceed,
   bootstrapNetwork,
   getDefaultArgv,
@@ -48,9 +46,8 @@ describe('MirrorNodeCommand', () => {
   const argv = getDefaultArgv()
   argv[flags.namespace.name] = namespace
   argv[flags.releaseTag.name] = HEDERA_PLATFORM_VERSION_TAG
-  argv[flags.keyFormat.name] = constants.KEY_FORMAT_PEM
 
-  argv[flags.nodeIDs.name] = 'node0' // use a single node to reduce resource during e2e tests
+  argv[flags.nodeIDs.name] = 'node1' // use a single node to reduce resource during e2e tests
   argv[flags.generateGossipKeys.name] = true
   argv[flags.generateTlsKeys.name] = true
   argv[flags.clusterName.name] = TEST_CLUSTER
@@ -80,7 +77,7 @@ describe('MirrorNodeCommand', () => {
     await accountManager.close()
 
     bootstrapResp.opts.logger.showUser(`------------------------- END: ${testName} ----------------------------`)
-  }, 180000)
+  }, 180_000)
 
   afterEach(async () => {
     await sleep(500) // give a few ticks so that connections can close
@@ -89,14 +86,22 @@ describe('MirrorNodeCommand', () => {
   balanceQueryShouldSucceed(accountManager, mirrorNodeCmd, namespace)
 
   it('mirror node deploy should success', async () => {
-    expect.assertions(1)
+    expect.assertions(2)
     try {
       await expect(mirrorNodeCmd.deploy(argv)).resolves.toBeTruthy()
     } catch (e) {
       mirrorNodeCmd.logger.showUserError(e)
       expect(e).toBeNull()
     }
-  }, 600000)
+
+    expect(mirrorNodeCmd.getUnusedConfigs(MirrorNodeCommand.DEPLOY_CONFIGS_NAME)).toEqual([
+      flags.hederaExplorerTlsHostName.constName,
+      flags.hederaExplorerTlsLoadBalancerIp.constName,
+      flags.profileFile.constName,
+      flags.profileName.constName,
+      flags.tlsClusterIssuerType.constName
+    ])
+  }, 600_000)
 
   it('mirror node API should be running', async () => {
     await accountManager.loadNodeClient(namespace)
@@ -106,32 +111,32 @@ describe('MirrorNodeCommand', () => {
       const pods = await k8.getPodsByLabel(['app.kubernetes.io/name=hedera-explorer'])
       const explorerPod = pods[0]
 
-      portForwarder = await k8.portForward(explorerPod.metadata.name, 8080, 8080)
-      await sleep(2000)
+      portForwarder = await k8.portForward(explorerPod.metadata.name, 8_080, 8_080)
+      await sleep(2_000)
 
       // check if mirror node api server is running
       const apiURL = 'http://127.0.0.1:8080/api/v1/transactions'
       await expect(downloader.urlExists(apiURL)).resolves.toBeTruthy()
-      await sleep(2000)
+      await sleep(2_000)
     } catch (e) {
       mirrorNodeCmd.logger.showUserError(e)
       expect(e).toBeNull()
     }
-  }, 60000)
+  }, 60_000)
 
   it('Explorer GUI should be running', async () => {
     expect.assertions(1)
     try {
       const guiURL = 'http://127.0.0.1:8080/localnet/dashboard'
       await expect(downloader.urlExists(guiURL)).resolves.toBeTruthy()
-      await sleep(2000)
+      await sleep(2_000)
 
       mirrorNodeCmd.logger.debug('mirror node API and explorer GUI are running')
     } catch (e) {
       mirrorNodeCmd.logger.showUserError(e)
       expect(e).toBeNull()
     }
-  }, 60000)
+  }, 60_000)
 
   it('Create topic and submit message should success', async () => {
     expect.assertions(1)
@@ -153,7 +158,11 @@ describe('MirrorNodeCommand', () => {
       mirrorNodeCmd.logger.showUserError(e)
       expect(e).toBeNull()
     }
-  }, 60000)
+  }, 60_000)
+
+  // trigger some extra transactions to trigger MirrorNode to fetch the transactions
+  accountCreationShouldSucceed(accountManager, mirrorNodeCmd, namespace)
+  accountCreationShouldSucceed(accountManager, mirrorNodeCmd, namespace)
 
   it('Check submit message result should success', async () => {
     expect.assertions(1)
@@ -187,16 +196,16 @@ describe('MirrorNodeCommand', () => {
           mirrorNodeCmd.logger.debug(`problem with request: ${e.message}`)
         })
         req.end() // make the request
-        await sleep(2000)
+        await sleep(2_000)
       }
-      await sleep(1000)
+      await sleep(1_000)
       expect(receivedMessage).toBe(testMessage)
       await k8.stopPortForward(portForwarder)
     } catch (e) {
       mirrorNodeCmd.logger.showUserError(e)
       expect(e).toBeNull()
     }
-  }, 300000)
+  }, 300_000)
 
   it('mirror node destroy should success', async () => {
     expect.assertions(1)
@@ -206,5 +215,23 @@ describe('MirrorNodeCommand', () => {
       mirrorNodeCmd.logger.showUserError(e)
       expect(e).toBeNull()
     }
-  }, 60000)
+  }, 60_000)
+
+  it('should apply the mirror node version from the --mirror-node-version flag', async () => {
+    const mirrorNodeVersion = '0.111.1'
+    const customArgv = { [flags.mirrorNodeVersion.constName]: mirrorNodeVersion, ...argv }
+
+    const valuesArg = await mirrorNodeCmd.prepareValuesArg(customArgv)
+
+    expect(valuesArg).toContain(`--set global.image.tag=${mirrorNodeVersion}`)
+  }, 5_000)
+
+  it('should not apply the mirror node version from the --mirror-node-version flag if left empty', async () => {
+    const mirrorNodeVersion = ''
+    const customArgv = { [flags.mirrorNodeVersion.constName]: mirrorNodeVersion, ...argv }
+
+    const valuesArg = await mirrorNodeCmd.prepareValuesArg(customArgv)
+
+    expect(valuesArg).not.toContain('--set global.image.tag=')
+  }, 5_000)
 })

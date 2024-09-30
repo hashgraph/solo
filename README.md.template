@@ -16,11 +16,9 @@ An opinionated CLI tool to deploy and manage standalone test networks.
 * [Install Solo](#install-solo)
 * [Setup Kubernetes cluster](#setup-kubernetes-cluster)
 * [Generate Node Keys](#generate-node-keys)
-  * [Legacy keys (.pfx file)](#legacy-keys-pfx-file)
   * [Standard keys (.pem file)](#standard-keys-pem-file)
 * [Examples](#examples)
-  * [Example - 1: Deploy a standalone test network (version `0.42.5`)](#example---1-deploy-a-standalone-test-network-version-0425)
-  * [Example - 2: Deploy a standalone test network (version `0.47.0-alpha.0`)](#example---2-deploy-a-standalone-test-network-version-0470-alpha0)
+  * [Example - 1: Deploy a standalone test network (version `0.54.0-alpha.4`)](#example---1-deploy-a-standalone-test-network-version-0540-alpha4)
 * [Support](#support)
 * [Contributing](#contributing)
 * [Code of Conduct](#code-of-conduct)
@@ -28,7 +26,10 @@ An opinionated CLI tool to deploy and manage standalone test networks.
 
 ## Requirements
 
-* Node(>=20.14.0) (*lts/hydrogen*)
+| Solo Version | Node.js                   | Kind       | FST Chart | Hedera   | Kubernetes | Kubectl    | Helm    | k9s        | Docker Resources        | Java         |
+|--------------|---------------------------|------------|-----------|----------|------------|------------|---------|------------|-------------------------|--------------|
+| 0.29.0       | >= 20.14.0 (lts/hydrogen) | >= v1.29.1 | v0.30.0   | v0.53.0+ | >= v1.27.3 | >= v1.27.3 | v3.14.2 | >= v0.27.4 | Memory >= 8GB, CPU >= 4 | >= 21.0.1+12 |
+| 0.30.0       | >= 20.14.0 (lts/hydrogen) | >= v1.29.1 | v0.30.0   | v0.54.0+ | >= v1.27.3 | >= v1.27.3 | v3.14.2 | >= v0.27.4 | Memory >= 8GB, CPU >= 4 | >= 21.0.1+12 |
 
 ## Setup
 
@@ -36,7 +37,7 @@ An opinionated CLI tool to deploy and manage standalone test networks.
 
 ```
 nvm install lts/hydrogen
-nvm use lts/hydrogen 
+nvm use lts/hydrogen
 ```
 
 * Useful tools:
@@ -83,224 +84,56 @@ $KIND_CREATE_CLUSTER_OUTPUT
 
 You may now view pods in your cluster using `k9s -A` as below:
 
+
 ```
- Context: kind-solo                                <0> all       <a>      Attac… ____  __.________
- Cluster: kind-solo                                <1> default   <ctrl-d> Delete|    |/ _/   __   \______
- User:    kind-solo                                              <d>      Descri|      < \____    /  ___/
- K9s Rev: v0.27.4 ⚡️v0.32.3                                      <e>      Edit  |    |  \   /    /\___ \
- K8s Rev: v1.27.3                                                <?>      Help  |____|__ \ /____//____  >
- CPU:     n/a                                                    <ctrl-k> Kill          \/            \/
+ Context: kind-solo                                <0> all   <a>       Attach       <ctr… ____  __.________
+ Cluster: kind-solo                                          <ctrl-d>  Delete       <l>  |    |/ _/   __   \______
+ User:    kind-solo                                          <d>       Describe     <p>  |      < \____    /  ___/
+ K9s Rev: v0.32.5                                            <e>       Edit         <shif|    |  \   /    /\___ \
+ K8s Rev: v1.27.3                                            <?>       Help         <z>  |____|__ \ /____//____  >
+ CPU:     n/a                                                <shift-j> Jump Owner   <s>          \/            \/
  MEM:     n/a
-┌───────────────────────────────────────────── Pods(all)[9] ─────────────────────────────────────────────┐
-│ NAMESPACE↑          NAME                                        PF READY RESTARTS STATUS   IP          │
-│ kube-system         coredns-5d78c9869d-kc27p                    ●  1/1          0 Running  10.244.0.4  │
-│ kube-system         coredns-5d78c9869d-r8mzz                    ●  1/1          0 Running  10.244.0.3  │
-│ kube-system         etcd-solo-control-plane                     ●  1/1          0 Running  172.18.0.2  │
-│ kube-system         kindnet-gppbk                               ●  1/1          0 Running  172.18.0.2  │
-│ kube-system         kube-apiserver-solo-control-plane           ●  1/1          0 Running  172.18.0.2  │
-│ kube-system         kube-controller-manager-solo-control-plane  ●  1/1          0 Running  172.18.0.2  │
-│ kube-system         kube-proxy-wb9w5                            ●  1/1          0 Running  172.18.0.2  │
-│ kube-system         kube-scheduler-solo-control-plane           ●  1/1          0 Running  172.18.0.2  │
-│ local-path-storage  local-path-provisioner-6bc4bddd6b-5vh5d     ●  1/1          0 Running  10.244.0.2  │
-│                                                                                                        │
-│ 
+┌───────────────────────────────────────────────── Pods(all)[11] ─────────────────────────────────────────────────┐
+│ NAMESPACE↑          NAME                                        PF READY STATUS   RESTARTS IP          NODE     │
+│ fullstack-setup     console-557956d575-4r5xm                    ●  1/1   Running         0 10.244.0.5  solo-con │
+│ fullstack-setup     minio-operator-7d575c5f84-8shc9             ●  1/1   Running         0 10.244.0.6  solo-con │
+│ kube-system         coredns-5d78c9869d-6cfbg                    ●  1/1   Running         0 10.244.0.4  solo-con │
+│ kube-system         coredns-5d78c9869d-gxcjz                    ●  1/1   Running         0 10.244.0.3  solo-con │
+│ kube-system         etcd-solo-control-plane                     ●  1/1   Running         0 172.18.0.2  solo-con │
+│ kube-system         kindnet-k75z6                               ●  1/1   Running         0 172.18.0.2  solo-con │
+│ kube-system         kube-apiserver-solo-control-plane           ●  1/1   Running         0 172.18.0.2  solo-con │
+│ kube-system         kube-controller-manager-solo-control-plane  ●  1/1   Running         0 172.18.0.2  solo-con │
+│ kube-system         kube-proxy-cct7t                            ●  1/1   Running         0 172.18.0.2  solo-con │
+│ kube-system         kube-scheduler-solo-control-plane           ●  1/1   Running         0 172.18.0.2  solo-con │
+│ local-path-storage  local-path-provisioner-6bc4bddd6b-gwdp6     ●  1/1   Running         0 10.244.0.2  solo-con │
+│                                                                                                                 │
+│                                                                                                                 │
+└─────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ## Examples
 
-### Example - 1: Deploy a standalone test network (version `0.42.5`)
+### Example - 1: Deploy a standalone test network (version `0.54.0-alpha.4`)
 
-* Initialize `solo` with tag `v0.42.5` and list of node names `node0,node1,node2`:
-
-```
-$ solo init -t v0.42.5 -i node0,node1,node2 -n "${SOLO_NAMESPACE}" -s "${SOLO_CLUSTER_SETUP_NAMESPACE}" --key-format pfx 
-```
-
-Example output
-
-```
-$SOLO_INIT_OUTPUT
-```
-
-* Generate `pfx` formatted node keys
-
-We need to generate `pfx` keys as `pem` key files are only supported by Hedera platform >=`0.47.0-alpha.0`.
-
-```
-$ solo node keys --gossip-keys --tls-keys --key-format pfx 
-```
-
-Example output
-
-```
-$SOLO_NODE_KEYS_OUTPUT
-```
-Key files are generated in `~/.solo/keys` directory.
-
-```
-$ ls ~/.solo/cache/keys 
-
-hedera-node0.crt  hedera-node1.crt  hedera-node2.crt  private-node0.pfx private-node2.pfx
-hedera-node0.key  hedera-node1.key  hedera-node2.key  private-node1.pfx public.pfx
-```
-* Setup cluster with shared components
-  * In a separate terminal, you may run `k9s` to view the pod status.
-
-```
-$ solo cluster setup
-```
-
-Example output
-
-```
-$SOLO_CLUSTER_SETUP_OUTPUT
-```
-
-
-* Deploy helm chart with Hedera network components
-  * It may take a while (5~15 minutes depending on your internet speed) to download various docker images and get the pods started.
-  * If it fails, ensure you have enough resources allocated for Docker engine and retry the command.
-
-```
-$ solo network deploy
-```
-
-Example output
-
-```
-$SOLO_NETWORK_DEPLOY_OUTPUT
-```
-
-* Setup node with Hedera platform software.
-  * It may take a while as it download the hedera platform code from <https://builds.hedera.com/>
-
-```
-$ solo node setup
-```
-
-Example output
-
-```
-$SOLO_NODE_SETUP_OUTPUT
-```
-
-* Start the nodes.
-
-```
-$ solo node start
-```
-
-Example output
-
-```
-$SOLO_NODE_START_OUTPUT
-```
-* Deploy mirror node
-
-```
-$ solo mirror-node deploy
-```
-
-Example output
-
-```
-$SOLO_MIRROR_NODE_DEPLOY_OUTPUT
-```
-
-* Deploy a JSON RPC relay
-
-```
-$ solo relay deploy
-```
-
-Example output
-
-```
-$SOLO_RELAY_DEPLOY_OUTPUT
-```
-
-You may view the list of pods using `k9s` as below:
-
-```
- Context: kind-solo-e2e                            <0> all       <a>      Attach     <l>     … ____  __.________
- Cluster: kind-solo-e2e                            <1> default   <ctrl-d> Delete     <p>      |    |/ _/   __   \______
- User:    kind-solo-e2e                                          <d>      Describe   <shift-f>|      < \____    /  ___/
- K9s Rev: v0.27.4 ⚡️v0.32.4                                      <e>      Edit       <s>      |    |  \   /    /\___ \
- K8s Rev: v1.27.3                                                <?>      Help       <n>      |____|__ \ /____//____  >
- CPU:     n/a                                                    <ctrl-k> Kill       <f>              \/            \/
- MEM:     n/a
-┌─────────────────────────────────────────────────── Pods(all)[27] ────────────────────────────────────────────────────┐
-│ NAMESPACE↑          NAME                                                   PF READY RESTARTS STATUS   IP             │
-│ fullstack-setup     console-557956d575-fqctd                               ●  1/1          0 Running  10.244.0.4     │
-│ fullstack-setup     minio-operator-7d575c5f84-j9p6f                        ●  1/1          0 Running  10.244.0.3     │
-│ kube-system         coredns-5d78c9869d-gknqp                               ●  1/1          0 Running  10.244.0.6     │
-│ kube-system         coredns-5d78c9869d-q59pc                               ●  1/1          0 Running  10.244.0.5     │
-│ kube-system         etcd-solo-e2e-control-plane                            ●  1/1          0 Running  172.18.0.2     │
-│ kube-system         kindnet-w9ps5                                          ●  1/1          0 Running  172.18.0.2     │
-│ kube-system         kube-apiserver-solo-e2e-control-plane                  ●  1/1          0 Running  172.18.0.2     │
-│ kube-system         kube-controller-manager-solo-e2e-control-plane         ●  1/1          0 Running  172.18.0.2     │
-│ kube-system         kube-proxy-p69z8                                       ●  1/1          0 Running  172.18.0.2     │
-│ kube-system         kube-scheduler-solo-e2e-control-plane                  ●  1/1          0 Running  172.18.0.2     │
-│ local-path-storage  local-path-provisioner-6bc4bddd6b-8pkfk                ●  1/1          0 Running  10.244.0.2     │
-│ solo                envoy-proxy-node0-84947f844f-f28tp                     ●  1/1          0 Running  10.244.0.215   │
-│ solo                envoy-proxy-node1-65f8879dcc-j2lrk                     ●  1/1          0 Running  10.244.0.216   │
-│ solo                envoy-proxy-node2-667f848689-dkmf9                     ●  1/1          0 Running  10.244.0.214   │
-│ solo                fullstack-deployment-grpc-69f9cc5666-lf6ql             ●  1/1          0 Running  10.244.0.227   │
-│ solo                fullstack-deployment-hedera-explorer-79f79b7df4-wjdct  ●  1/1          0 Running  10.244.0.226   │
-│ solo                fullstack-deployment-importer-864489ffb8-6v8tk         ●  1/1          0 Running  10.244.0.228   │
-│ solo                fullstack-deployment-postgres-postgresql-0             ●  1/1          0 Running  10.244.0.232   │
-│ solo                fullstack-deployment-rest-584f5cb6bb-q9vnt             ●  1/1          0 Running  10.244.0.230   │
-│ solo                fullstack-deployment-web3-69dcdfc4fb-mm5pk             ●  1/1          0 Running  10.244.0.229   │
-│ solo                haproxy-node0-6969f76c77-n5cfl                         ●  1/1          1 Running  10.244.0.219   │
-│ solo                haproxy-node1-59f6976d45-x6xmp                         ●  1/1          1 Running  10.244.0.217   │
-│ solo                haproxy-node2-6df64d5457-hf9ps                         ●  1/1          1 Running  10.244.0.218   │
-│ solo                minio-pool-1-0                                         ●  2/2          1 Running  10.244.0.224   │
-│ solo                network-node0-0                                        ●  5/5          0 Running  10.244.0.221   │
-│ solo                network-node1-0                                        ●  5/5          0 Running  10.244.0.222   │
-│ solo                network-node2-0                                        ●  5/5          0 Running  10.244.0.220   │
-```
-
-#### Access Hedera Network services
-
-Once the nodes are up, you may now expose various services (using `k9s` (shift-f) or `kubectl port-forward`) and access. Below are most used services that you may expose.
-
-* Node services: `network-<node ID>-svc`
-* HAProxy: `haproxy-<node ID>-svc`
-* Envoy Proxy: `envoy-proxy-<node ID>-svc`
-* Hedera explorer: `fullstack-deployment-hedera-explorer`
-* JSON Rpc Relays
-  * You can deploy JSON RPC relays for one or more nodes as below:
-  ```
-  $ solo relay deploy -i node0,node1 
-  ```
-
-Example output
-
-```
-$SOLO_RELAY_DEPLAY_OUTPUT
-```
-
-### Example - 2: Deploy a standalone test network (version `0.47.0-alpha.0`)
-
-* Initialize `solo` with tag `v0.47.0-alpha.0` and list of node names `node0,node1,node2`:
+* Initialize `solo` with tag `v0.54.0-alpha.4` and list of node names `node1,node2,node3`:
 
 ```
 # reset .solo directory
-$ rm -rf ~/.solo 
+rm -rf ~/.solo
 
-$ solo init -t v0.47.0-alpha.0 -i node0,node1,node2 -n "${SOLO_NAMESPACE}" -s "${SOLO_CLUSTER_SETUP_NAMESPACE}" --key-format pem 
+solo init -t v0.54.0-alpha.4 -i node1,node2,node3 -n "${SOLO_NAMESPACE}" -s "${SOLO_CLUSTER_SETUP_NAMESPACE}"
 ```
 
 * Example output
 
 ```
-$SOLO_INIT_047_OUTPUT
+$SOLO_INIT_OUTPUT
 ```
 
 * Generate `pem` formatted node keys
 
 ```
-$ solo node keys --gossip-keys --tls-keys --key-format pem
+solo node keys --gossip-keys --tls-keys
 ```
 
 * Example output
@@ -310,52 +143,182 @@ $SOLO_NODE_KEY_PEM_OUTPUT
 ```
 PEM key files are generated in `~/.solo/keys` directory.
 ```
-$ ls ~/.solo/cache/keys  
-a-private-node0.pem a-public-node1.pem  hedera-node1.crt    s-private-node0.pem s-public-node1.pem
-a-private-node1.pem a-public-node2.pem  hedera-node1.key    s-private-node1.pem s-public-node2.pem
-a-private-node2.pem hedera-node0.crt    hedera-node2.crt    s-private-node2.pem
-a-public-node0.pem  hedera-node0.key    hedera-node2.key    s-public-node0.pem
+hedera-node1.crt    hedera-node3.crt    s-private-node1.pem s-public-node1.pem  unused-gossip-pem
+hedera-node1.key    hedera-node3.key    s-private-node2.pem s-public-node2.pem  unused-tls
+hedera-node2.crt    hedera-node4.crt    s-private-node3.pem s-public-node3.pem
+hedera-node2.key    hedera-node4.key    s-private-node4.pem s-public-node4.pem
 ```
 * Setup cluster with shared components
 
 ```
-$ solo cluster setup
+solo cluster setup
+```
 
-# output is similar to example-1 
+* Example output
+
+```
+$SOLO_CLUSTER_SETUP_OUTPUT
 ```
 
 In a separate terminal, you may run `k9s` to view the pod status.
 
 * Deploy helm chart with Hedera network components
+  * It may take a while (5~15 minutes depending on your internet speed) to download various docker images and get the pods started.
+  * If it fails, ensure you have enough resources allocated for Docker engine and retry the command.
 
 ```
-$ solo network deploy
-
-# output is similar to example-1 
+solo network deploy
 ```
 
-* Setup node with Hedera platform.
-  * It may take a while (~10 minutes depending on your internet speed) to download various docker images and get the
-    pods started.
+* Example output
 
 ```
-$ solo node setup
+$SOLO_NETWORK_DEPLOY_OUTPUT
+```
 
-# output is similar to example-1 
+* Setup node with Hedera platform software.
+  * It may take a while as it download the hedera platform code from <https://builds.hedera.com/>
+
+```
+solo node setup
+```
+
+* Example output
+
+```
+$SOLO_NODE_SETUP_OUTPUT
 ```
 
 * Start the nodes
 
 ```
-$ solo node start
-
-# output is similar to example-1 
+solo node start
 ```
+
+* Example output
+
+```
+$SOLO_NODE_START_OUTPUT
+```
+
+* Deploy mirror node
+
+```
+solo mirror-node deploy
+```
+
+* Example output
+
+```
+$SOLO_MIRROR_NODE_DEPLOY_OUTPUT
+```
+
+* Deploy a JSON RPC relay
+
+```
+solo relay deploy
+```
+
+* Example output
+
+```
+$SOLO_RELAY_DEPLOY_OUTPUT
+```
+
+You may view the list of pods using `k9s` as below:
+
+```
+Context: kind-solo                                <0> all   <a>       Attach       <ctr… ____  __.________
+ Cluster: kind-solo                                          <ctrl-d>  Delete       <l>  |    |/ _/   __   \______
+ User:    kind-solo                                          <d>       Describe     <p>  |      < \____    /  ___/
+ K9s Rev: v0.32.5                                            <e>       Edit         <shif|    |  \   /    /\___ \
+ K8s Rev: v1.27.3                                            <?>       Help         <z>  |____|__ \ /____//____  >
+ CPU:     n/a                                                <shift-j> Jump Owner   <s>          \/            \/
+ MEM:     n/a
+┌───────────────────────────────────────────────── Pods(all)[31] ─────────────────────────────────────────────────┐
+│ NAMESPACE↑          NAME                                                           PF READY STATUS   RESTARTS I │
+│ kube-system         coredns-5d78c9869d-994t4                                       ●  1/1   Running         0 1 │
+│ kube-system         coredns-5d78c9869d-vgt4q                                       ●  1/1   Running         0 1 │
+│ kube-system         etcd-solo-control-plane                                        ●  1/1   Running         0 1 │
+│ kube-system         kindnet-q26c9                                                  ●  1/1   Running         0 1 │
+│ kube-system         kube-apiserver-solo-control-plane                              ●  1/1   Running         0 1 │
+│ kube-system         kube-controller-manager-solo-control-plane                     ●  1/1   Running         0 1 │
+│ kube-system         kube-proxy-9b27j                                               ●  1/1   Running         0 1 │
+│ kube-system         kube-scheduler-solo-control-plane                              ●  1/1   Running         0 1 │
+│ local-path-storage  local-path-provisioner-6bc4bddd6b-4mv8c                        ●  1/1   Running         0 1 │
+│ solo                envoy-proxy-node1-65f8879dcc-rwg97                             ●  1/1   Running         0 1 │
+│ solo                envoy-proxy-node2-667f848689-628cx                             ●  1/1   Running         0 1 │
+│ solo                envoy-proxy-node3-6bb4b4cbdf-dmwtr                             ●  1/1   Running         0 1 │
+│ solo                fullstack-deployment-grpc-75bb9c6c55-l7kvt                     ●  1/1   Running         0 1 │
+│ solo                fullstack-deployment-hedera-explorer-6565ccb4cb-9dbw2          ●  1/1   Running         0 1 │
+│ solo                fullstack-deployment-importer-dd74fd466-vs4mb                  ●  1/1   Running         0 1 │
+│ solo                fullstack-deployment-monitor-54b8f57db9-fn5qq                  ●  1/1   Running         0 1 │
+│ solo                fullstack-deployment-postgres-postgresql-0                     ●  1/1   Running         0 1 │
+│ solo                fullstack-deployment-redis-node-0                              ●  2/2   Running         0 1 │
+│ solo                fullstack-deployment-rest-6d48f8dbfc-plbp2                     ●  1/1   Running         0 1 │
+│ solo                fullstack-deployment-restjava-5d6c4cb648-r597f                 ●  1/1   Running         0 1 │
+│ solo                fullstack-deployment-web3-55fdfbc7f7-lzhfl                     ●  1/1   Running         0 1 │
+│ solo                haproxy-node1-785b9b6f9b-676mr                                 ●  1/1   Running         1 1 │
+│ solo                haproxy-node2-644b8c76d-v9mg6                                  ●  1/1   Running         1 1 │
+│ solo                haproxy-node3-fbffdb64-272t2                                   ●  1/1   Running         1 1 │
+│ solo                minio-pool-1-0                                                 ●  2/2   Running         1 1 │
+│ solo                network-node1-0                                                ●  5/5   Running         2 1 │
+│ solo                network-node2-0                                                ●  5/5   Running         2 1 │
+│ solo                network-node3-0                                                ●  5/5   Running         2 1 │
+│ solo                relay-node1-node2-node3-hedera-json-rpc-relay-ddd4c8d8b-hdlpb  ●  1/1   Running         0 1 │
+│ solo-cluster        console-557956d575-c5qp7                                       ●  1/1   Running         0 1 │
+│ solo-cluster        minio-operator-7d575c5f84-xdwwz                                ●  1/1   Running         0 1 │
+│                                                                                                                 │
+└─────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+  <pod>
+```
+
+#### Access Hedera Network services
+
+Once the nodes are up, you may now expose various services (using `k9s` (shift-f) or `kubectl port-forward`) and access. Below are most used services that you may expose.
+
+* Node services: `network-<node ID>-svc`
+* HAProxy: `haproxy-<node ID>-svc`
+  ```bash
+  # enable portforwarding for haproxy
+  # node1 grpc port accessed by localhost:50211
+  kubectl port-forward svc/haproxy-node1-svc -n "${SOLO_NAMESPACE}" 50211:50211 &
+  # node2 grpc port accessed by localhost:51211
+  kubectl port-forward svc/haproxy-node2-svc -n "${SOLO_NAMESPACE}" 51211:50211 &
+  # node3 grpc port accessed by localhost:52211
+  kubectl port-forward svc/haproxy-node3-svc -n "${SOLO_NAMESPACE}" 52211:50211 &
+  ```
+* Envoy Proxy: `envoy-proxy-<node ID>-svc`
+  ```bash
+  # enable portforwarding for envoy proxy
+  kubectl port-forward svc/envoy-proxy-node1-svc -n "${SOLO_NAMESPACE}" 8181:8080 &
+  kubectl port-forward svc/envoy-proxy-node2-svc -n "${SOLO_NAMESPACE}" 8281:8080 &
+  kubectl port-forward svc/envoy-proxy-node3-svc -n "${SOLO_NAMESPACE}" 8381:8080 &
+  ```
+* Hedera explorer: `fullstack-deployment-hedera-explorer`
+  ```bash
+  #enable portforwarding for hedera explorer, can be access at http://localhost:8080/
+  kubectl port-forward svc/fullstack-deployment-hedera-explorer -n "${SOLO_NAMESPACE}" 8080:80 &
+  ```
+* JSON Rpc Relays
+  * You can deploy JSON RPC relays for one or more nodes as below:
+  ```bash
+  solo relay deploy -i node1
+  # enable relay for node1
+  kubectl port-forward svc/relay-node1-hedera-json-rpc-relay -n "${SOLO_NAMESPACE}" 7546:7546 &
+  ```
+
+Example output
+
+```
+$SOLO_RELAY_DEPLAY_OUTPUT
+```
+
 ## For Developers Working on Hedera Service Repo
 
-First, pleaes clone hedera service repo `https://github.com/hashgraph/hedera-services/` and build the code
+First, please clone hedera service repo `https://github.com/hashgraph/hedera-services/` and build the code
 with `./gradlew assemble`. If need to running nodes with different versions or releases, please duplicate the repo or build directories in
-multiple directories, checkout to the respective version and build the code. 
+multiple directories, checkout to the respective version and build the code.
 
 To set customized `settings.txt` file, edit the file
 `~/.solo/cache/templates/settings.txt` after `solo init` command.
@@ -363,20 +326,77 @@ To set customized `settings.txt` file, edit the file
 Then you can start customized built hedera network with the following command:
 ```
 solo node setup --local-build-path <default path to hedera repo>,node1=<custom build hedera repo>,node2=<custom build repo>
+
+# example: solo node setup --local-build-path node1=../hedera-services/hedera-node/data/,../hedera-services/hedera-node/data,node3=../hedera-services/hedera-node/data
 ```
 
 ## For Developers Working on Platform core
 
 To deploy node with local build PTT jar files, run the following command:
 ```
-solo node setup --local-build-path <default path to hedera repo>,node1=<custom build hedera repo>,node2=<custom build repo>
- --app PlatformTestingTool.jar --app-config <path-to-test-json1,path-to-test-json2>
+solo node setup --local-build-path <default path to hedera repo>,node1=<custom build hedera repo>,node2=<custom build repo> --app PlatformTestingTool.jar --app-config <path-to-test-json1,path-to-test-json2>
+
+# example: solo node setup --local-build-path ../hedera-services/platform-sdk/sdk/data,node1=../hedera-services/platform-sdk/sdk/data,node2=../hedera-services/platform-sdk/sdk/data --app PlatformTestingTool.jar --app-config ../hedera-services/platform-sdk/platform-apps/tests/PlatformTestingTool/src/main/resources/FCMFCQ-Basic-2.5k-5m.json
 ```
 ## Logs
 You can find log for running solo command under the directory `~/.solo/logs/`
-The file `solo.log` contains the logs for the solo command. 
-The file `hashgraph-sdk.log` contains the logs from solo client when sending transactions to network nodes.
+The file `solo.log` contains the logs for the solo command.
+The file `hashgraph-sdk.log` contains the logs from Solo client when sending transactions to network nodes.
 
+## Using IntelliJ remote debug with Solo
+
+NOTE: the hedera-services path referenced '../hedera-services/hedera-node/data' may need to be updated based on what directory you are currently in.  This also assumes that you have done an assemble/build and the directory contents are up-to-date.
+
+Example 1: attach jvm debugger to a hedera node
+```bash
+./test/e2e/setup-e2e.sh
+solo node keys --gossip-keys --tls-keys
+solo network deploy -i node1,node2,node3 --debug-nodeid node2
+solo node setup -i node1,node2,node3 --local-build-path ../hedera-services/hedera-node/data
+solo node start -i node1,node2,node3 --debug-nodeid node2
+```
+
+Once you see the following message, you can launch jvm debugger from Intellij
+
+```
+❯ Check all nodes are ACTIVE
+  Check node: node1,
+  Check node: node3,  Please attach JVM debugger now.
+  Check node: node4,
+```
+
+Example 2: attach jvm debugger with node add operation
+
+```bash
+./test/e2e/setup-e2e.sh
+solo node keys --gossip-keys --tls-keys
+solo network deploy -i node1,node2,node3 --pvcs
+solo node setup -i node1,node2,node3 --local-build-path ../hedera-services/hedera-node/data
+solo node start -i node1,node2,node3
+solo node add --gossip-keys --tls-keys --node-id node4 --debug-nodeid node4 --local-build-path ../hedera-services/hedera-node/data
+```
+
+Example 3: attach jvm debugger with node update operation
+
+```bash
+./test/e2e/setup-e2e.sh
+solo node keys --gossip-keys --tls-keys
+solo network deploy -i node1,node2,node3
+solo node setup -i node1,node2,node3 --local-build-path ../hedera-services/hedera-node/data
+solo node start -i node1,node2,node3
+solo node update --node-id node2  --debug-nodeid node2 --local-build-path ../hedera-services/hedera-node/data --new-account-number 0.0.7 --gossip-public-key ./s-public-node2.pem --gossip-private-key ./s-private-node2.pem --agreement-public-key ./a-public-node2.pem --agreement-private-key ./a-private-node2.pem
+```
+
+Example 4: attach jvm debugger with node delete operation
+
+```bash
+./test/e2e/setup-e2e.sh
+solo node keys --gossip-keys --tls-keys
+solo network deploy -i node1,node2,node3,node4
+solo node setup -i node1,node2,node3,node4 --local-build-path ../hedera-services/hedera-node/data
+solo node start -i node1,node2,node3,node4
+solo node delete --node-id node2  --debug-nodeid node3
+```
 
 ## Support
 
