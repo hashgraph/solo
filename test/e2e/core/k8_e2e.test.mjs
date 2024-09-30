@@ -19,7 +19,7 @@ import net from 'net'
 import os from 'os'
 import path from 'path'
 import { v4 as uuid4 } from 'uuid'
-import { FullstackTestingError } from '../../../src/core/errors.mjs'
+import { SoloError } from '../../../src/core/errors.mjs'
 import { ConfigManager, constants, logging, Templates } from '../../../src/core/index.mjs'
 import { K8 } from '../../../src/core/k8.mjs'
 import { flags } from '../../../src/commands/index.mjs'
@@ -159,12 +159,12 @@ describe('K8', () => {
     const pods = await k8.getPodsByLabel([`app=${podLabelValue}`])
     const podName = pods[0].metadata.name
     await expect(k8.getPodIP(podName)).resolves.not.toBeNull()
-    await expect(k8.getPodIP('INVALID')).rejects.toThrow(FullstackTestingError)
+    await expect(k8.getPodIP('INVALID')).rejects.toThrow(SoloError)
   }, defaultTimeout)
 
   it('should be able to detect cluster IP', async () => {
     await expect(k8.getClusterIP(serviceName)).resolves.not.toBeNull()
-    await expect(k8.getClusterIP('INVALID')).rejects.toThrow(FullstackTestingError)
+    await expect(k8.getClusterIP('INVALID')).rejects.toThrow(SoloError)
   }, defaultTimeout)
 
   it('should be able to check if a path is directory inside a container', async () => {
@@ -226,7 +226,7 @@ describe('K8', () => {
         s.on('error', async (e) => {
           s.destroy()
           await k8.stopPortForward(server)
-          done(new FullstackTestingError(`could not connect to local port '${localPort}': ${e.message}`, e))
+          done(new SoloError(`could not connect to local port '${localPort}': ${e.message}`, e))
         })
 
         s.connect(localPort)

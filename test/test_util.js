@@ -113,7 +113,7 @@ export function bootstrapTestVariables (testName, argv,
 ) {
   const namespace = argv[flags.namespace.name] || 'bootstrap-ns'
   const cacheDir = argv[flags.cacheDir.name] || getTestCacheDir(testName)
-  const configManager = getTestConfigManager(`${testName}-solo.config`)
+  const configManager = getTestConfigManager(`${testName}-solo.yaml`)
   configManager.update(argv, true)
 
   const downloader = new PackageDownloader(testLogger)

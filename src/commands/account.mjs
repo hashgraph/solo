@@ -17,7 +17,7 @@
 'use strict'
 import chalk from 'chalk'
 import { BaseCommand } from './base.mjs'
-import { FullstackTestingError, IllegalArgumentError } from '../core/errors.mjs'
+import { SoloError, IllegalArgumentError } from '../core/errors.mjs'
 import { flags } from './index.mjs'
 import { Listr } from 'listr2'
 import * as prompts from './prompts.mjs'
@@ -112,7 +112,7 @@ export class AccountCommand extends BaseCommand {
 
     const hbarAmount = Number.parseFloat(amount)
     if (amount && isNaN(hbarAmount)) {
-      throw new FullstackTestingError(`The HBAR amount was invalid: ${amount}`)
+      throw new SoloError(`The HBAR amount was invalid: ${amount}`)
     }
 
     if (hbarAmount > 0) {
@@ -155,7 +155,7 @@ export class AccountCommand extends BaseCommand {
           }
 
           if (!await this.k8.hasNamespace(config.namespace)) {
-            throw new FullstackTestingError(`namespace ${config.namespace} does not exist`)
+            throw new SoloError(`namespace ${config.namespace} does not exist`)
           }
 
           // set config in the context for later tasks to use
@@ -227,7 +227,7 @@ export class AccountCommand extends BaseCommand {
                 }
                 self.logger.showUser(chalk.gray('Waiting for sockets to be closed....'))
                 if (ctx.resultTracker.rejectedCount > 0) {
-                  throw new FullstackTestingError(`Account keys updates failed for ${ctx.resultTracker.rejectedCount} accounts.`)
+                  throw new SoloError(`Account keys updates failed for ${ctx.resultTracker.rejectedCount} accounts.`)
                 }
               }
             }
@@ -247,7 +247,7 @@ export class AccountCommand extends BaseCommand {
     try {
       await tasks.run()
     } catch (e) {
-      throw new FullstackTestingError(`Error in creating account: ${e.message}`, e)
+      throw new SoloError(`Error in creating account: ${e.message}`, e)
     } finally {
       await this.closeConnections()
     }
@@ -284,7 +284,7 @@ export class AccountCommand extends BaseCommand {
           }
 
           if (!await this.k8.hasNamespace(config.namespace)) {
-            throw new FullstackTestingError(`namespace ${config.namespace} does not exist`)
+            throw new SoloError(`namespace ${config.namespace} does not exist`)
           }
 
           // set config in the context for later tasks to use
@@ -313,7 +313,7 @@ export class AccountCommand extends BaseCommand {
     try {
       await tasks.run()
     } catch (e) {
-      throw new FullstackTestingError(`Error in creating account: ${e.message}`, e)
+      throw new SoloError(`Error in creating account: ${e.message}`, e)
     } finally {
       await this.closeConnections()
     }
@@ -346,7 +346,7 @@ export class AccountCommand extends BaseCommand {
           }
 
           if (!await this.k8.hasNamespace(config.namespace)) {
-            throw new FullstackTestingError(`namespace ${config.namespace} does not exist`)
+            throw new SoloError(`namespace ${config.namespace} does not exist`)
           }
 
           // set config in the context for later tasks to use
@@ -367,7 +367,7 @@ export class AccountCommand extends BaseCommand {
         title: 'update the account',
         task: async (ctx, task) => {
           if (!(await self.updateAccountInfo(ctx))) {
-            throw new FullstackTestingError(`An error occurred updating account ${ctx.accountInfo.accountId}`)
+            throw new SoloError(`An error occurred updating account ${ctx.accountInfo.accountId}`)
           }
         }
       },
@@ -386,7 +386,7 @@ export class AccountCommand extends BaseCommand {
     try {
       await tasks.run()
     } catch (e) {
-      throw new FullstackTestingError(`Error in updating account: ${e.message}`, e)
+      throw new SoloError(`Error in updating account: ${e.message}`, e)
     } finally {
       await this.closeConnections()
     }
@@ -417,7 +417,7 @@ export class AccountCommand extends BaseCommand {
           }
 
           if (!await this.k8.hasNamespace(config.namespace)) {
-            throw new FullstackTestingError(`namespace ${config.namespace} does not exist`)
+            throw new SoloError(`namespace ${config.namespace} does not exist`)
           }
 
           // set config in the context for later tasks to use
@@ -443,7 +443,7 @@ export class AccountCommand extends BaseCommand {
     try {
       await tasks.run()
     } catch (e) {
-      throw new FullstackTestingError(`Error in getting account info: ${e.message}`, e)
+      throw new SoloError(`Error in getting account info: ${e.message}`, e)
     } finally {
       await this.closeConnections()
     }

@@ -16,7 +16,7 @@
  */
 import { describe, expect, it } from '@jest/globals'
 import * as core from '../../../src/core/index.mjs'
-import { FullstackTestingError, IllegalArgumentError, MissingArgumentError } from '../../../src/core/errors.mjs'
+import { SoloError, IllegalArgumentError, MissingArgumentError } from '../../../src/core/errors.mjs'
 import os from 'os'
 import fs from 'fs'
 import path from 'path'
@@ -43,12 +43,12 @@ describe('Zippy', () => {
 
     it('should fail for a directory', async () => {
       expect.assertions(1)
-      await expect(zippy.unzip('test/data', os.tmpdir())).rejects.toThrow(FullstackTestingError)
+      await expect(zippy.unzip('test/data', os.tmpdir())).rejects.toThrow(SoloError)
     })
 
     it('should fail for a non-zip file', async () => {
       expect.assertions(1)
-      await expect(zippy.unzip('test/data/test.txt', os.tmpdir())).rejects.toThrow(FullstackTestingError)
+      await expect(zippy.unzip('test/data/test.txt', os.tmpdir())).rejects.toThrow(SoloError)
     })
 
     it('should succeed for valid inputs', async () => {
@@ -79,12 +79,12 @@ describe('Zippy', () => {
 
     it('should fail for a directory', async () => {
       expect.assertions(1)
-      await expect(zippy.untar('test/data', os.tmpdir())).rejects.toThrow(FullstackTestingError)
+      await expect(zippy.untar('test/data', os.tmpdir())).rejects.toThrow(SoloError)
     })
 
     it('should fail for a non-tar file', async () => {
       expect.assertions(1)
-      await expect(zippy.untar('test/data/test.txt', os.tmpdir())).rejects.toThrow(FullstackTestingError)
+      await expect(zippy.untar('test/data/test.txt', os.tmpdir())).rejects.toThrow(SoloError)
     })
 
     it('should succeed for valid inputs', async () => {

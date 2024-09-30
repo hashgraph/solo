@@ -58,7 +58,7 @@ describe('K8 Unit Tests', () => {
 
   beforeAll(() => {
     argv[flags.namespace.name] = 'namespace'
-    const configManager = getTestConfigManager('k8-solo.config')
+    const configManager = getTestConfigManager('k8-solo.yaml')
     configManager.update(argv, true)
     k8 = new K8(configManager, testLogger)
     k8.kubeClient = {

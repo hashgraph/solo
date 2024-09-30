@@ -17,7 +17,7 @@
 'use strict'
 import { ListrEnquirerPromptAdapter } from '@listr2/prompt-adapter-enquirer'
 import fs from 'fs'
-import { FullstackTestingError, IllegalArgumentError } from '../core/errors.mjs'
+import { SoloError, IllegalArgumentError } from '../core/errors.mjs'
 import { ConfigManager, constants } from '../core/index.mjs'
 import * as flags from './flags.mjs'
 import * as helpers from '../core/helpers.mjs'
@@ -37,12 +37,12 @@ async function prompt (type, task, input, defaultValue, promptMessage, emptyChec
     }
 
     if (emptyCheckMessage && !input) {
-      throw new FullstackTestingError(emptyCheckMessage)
+      throw new SoloError(emptyCheckMessage)
     }
 
     return input
   } catch (e) {
-    throw new FullstackTestingError(`input failed: ${flagName}: ${e.message}`, e)
+    throw new SoloError(`input failed: ${flagName}: ${e.message}`, e)
   }
 }
 
@@ -138,7 +138,7 @@ export async function promptChartDir (task, input) {
 
     return input
   } catch (e) {
-    throw new FullstackTestingError(`input failed: ${flags.chartDirectory.name}`, e)
+    throw new SoloError(`input failed: ${flags.chartDirectory.name}`, e)
   }
 }
 
@@ -158,7 +158,7 @@ export async function promptValuesFile (task, input) {
 
     return input
   } catch (e) {
-    throw new FullstackTestingError(`input failed: ${flags.valuesFile.name}`, e)
+    throw new SoloError(`input failed: ${flags.valuesFile.name}`, e)
   }
 }
 
@@ -189,7 +189,7 @@ export async function promptProfile (task, input, choices = constants.ALL_PROFIL
       })
 
       if (!input) {
-        throw new FullstackTestingError('key-format cannot be empty')
+        throw new SoloError('key-format cannot be empty')
       }
 
       return input
@@ -197,7 +197,7 @@ export async function promptProfile (task, input, choices = constants.ALL_PROFIL
 
     return input
   } catch (e) {
-    throw new FullstackTestingError(`input failed: ${flags.profileName.name}`, e)
+    throw new SoloError(`input failed: ${flags.profileName.name}`, e)
   }
 }
 
@@ -260,12 +260,12 @@ export async function promptTlsClusterIssuerType (task, input) {
     }
 
     if (!input || !['acme-staging', 'acme-prod', 'self-signed'].includes(input)) {
-      throw new FullstackTestingError('must be one of: "acme-staging", "acme-prod", or "self-signed"')
+      throw new SoloError('must be one of: "acme-staging", "acme-prod", or "self-signed"')
     }
 
     return input
   } catch (e) {
-    throw new FullstackTestingError(`input failed: ${flags.tlsClusterIssuerType.name}`, e)
+    throw new SoloError(`input failed: ${flags.tlsClusterIssuerType.name}`, e)
   }
 }
 
@@ -494,7 +494,7 @@ export async function execute (task, configManager, flagList = []) {
     }
 
     if (!prompts.has(flag.name)) {
-      throw new FullstackTestingError(`No prompt available for flag: ${flag.name}`)
+      throw new SoloError(`No prompt available for flag: ${flag.name}`)
     }
 
     const prompt = prompts.get(flag.name)

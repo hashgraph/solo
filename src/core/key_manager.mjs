@@ -19,7 +19,7 @@ import * as x509 from '@peculiar/x509'
 import crypto from 'crypto'
 import fs from 'fs'
 import path from 'path'
-import { FullstackTestingError, IllegalArgumentError, MissingArgumentError } from './errors.mjs'
+import { SoloError, IllegalArgumentError, MissingArgumentError } from './errors.mjs'
 import { constants } from './index.mjs'
 import { Logger } from './logging.mjs'
 import { Templates } from './templates.mjs'
@@ -322,7 +322,7 @@ export class KeyManager {
         certificateChain: certChain
       }
     } catch (e) {
-      throw new FullstackTestingError(`failed to generate signing key: ${e.message}`, e)
+      throw new SoloError(`failed to generate signing key: ${e.message}`, e)
     }
   }
 
@@ -390,7 +390,7 @@ export class KeyManager {
         publicKey: signingKey.certificate.publicKey,
         signatureOnly: true
       })) {
-        throw new FullstackTestingError(`failed to verify generated certificate for '${friendlyName}'`)
+        throw new SoloError(`failed to verify generated certificate for '${friendlyName}'`)
       }
 
       const certChain = await new x509.X509ChainBuilder({ certificates: [signingKey.certificate] }).build(cert)
@@ -402,7 +402,7 @@ export class KeyManager {
         certificateChain: certChain
       }
     } catch (e) {
-      throw new FullstackTestingError(`failed to generate ${keyPrefix}-key: ${e.message}`, e)
+      throw new SoloError(`failed to generate ${keyPrefix}-key: ${e.message}`, e)
     }
   }
 
@@ -457,7 +457,7 @@ export class KeyManager {
         certificateChain: certChain
       }
     } catch (e) {
-      throw new FullstackTestingError(`failed to generate gRPC TLS key: ${e.message}`, e)
+      throw new SoloError(`failed to generate gRPC TLS key: ${e.message}`, e)
     }
   }
 
@@ -487,7 +487,7 @@ export class KeyManager {
   async copyNodeKeysToStaging (nodeKey, destDir) {
     for (const keyFile of [nodeKey.privateKeyFile, nodeKey.certificateFile]) {
       if (!fs.existsSync(keyFile)) {
-        throw new FullstackTestingError(`file (${keyFile}) is missing`)
+        throw new SoloError(`file (${keyFile}) is missing`)
       }
 
       const fileName = path.basename(keyFile)
@@ -557,7 +557,7 @@ export class KeyManager {
   taskGenerateTLSKeys (nodeIds, keysDir, curDate = new Date()) {
     // check if nodeIds is an array of strings
     if (!Array.isArray(nodeIds) || !nodeIds.every((nodeId) => typeof nodeId === 'string')) {
-      throw new FullstackTestingError('nodeIds must be an array of strings')
+      throw new SoloError('nodeIds must be an array of strings')
     }
     const self = this
     const nodeKeyFiles = new Map()
