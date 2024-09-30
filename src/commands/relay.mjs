@@ -59,9 +59,21 @@ export class RelayCommand extends BaseCommand {
       flags.operatorKey,
       flags.profileFile,
       flags.profileName,
+      flags.quiet,
       flags.relayReleaseTag,
       flags.replicaCount,
       flags.valuesFile
+    ]
+  }
+
+  /**
+   * @returns {CommandFlag[]}
+   */
+  static get DESTROY_FLAGS_LIST () {
+    return [
+      flags.chartDirectory,
+      flags.namespace,
+      flags.nodeIDs
     ]
   }
 
@@ -301,11 +313,7 @@ export class RelayCommand extends BaseCommand {
           self.configManager.setFlag(flags.nodeIDs, '')
 
           self.configManager.update(argv)
-          await prompts.execute(task, self.configManager, [
-            flags.chartDirectory,
-            flags.namespace,
-            flags.nodeIDs
-          ])
+          await prompts.execute(task, self.configManager, RelayCommand.DESTROY_FLAGS_LIST)
 
           // prompt if inputs are empty and set it in the context
           ctx.config = {

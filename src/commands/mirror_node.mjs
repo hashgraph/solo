@@ -59,6 +59,7 @@ export class MirrorNodeCommand extends BaseCommand {
       flags.namespace,
       flags.profileFile,
       flags.profileName,
+      flags.quiet,
       flags.tlsClusterIssuerType,
       flags.valuesFile,
       flags.mirrorNodeVersion

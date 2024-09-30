@@ -113,6 +113,30 @@ export class NodeCommand extends BaseCommand {
   }
 
   /**
+   * @returns {CommandFlag[]}
+   */
+  static get START_FLAGS_LIST () {
+    return [
+      flags.app,
+      flags.debugNodeId,
+      flags.namespace,
+      flags.nodeIDs,
+      flags.quiet
+    ]
+  }
+
+  /**
+   * @returns {CommandFlag[]}
+   */
+  static get STOP_FLAGS_LIST () {
+    return [
+      flags.namespace,
+      flags.nodeIDs,
+      flags.quiet
+    ]
+  }
+
+  /**
    * @returns {string}
    */
   static get KEYS_CONFIGS_NAME () {
@@ -128,7 +152,8 @@ export class NodeCommand extends BaseCommand {
       flags.devMode,
       flags.generateGossipKeys,
       flags.generateTlsKeys,
-      flags.nodeIDs
+      flags.nodeIDs,
+      flags.quiet
     ]
   }
 
@@ -150,6 +175,7 @@ export class NodeCommand extends BaseCommand {
       flags.localBuildPath,
       flags.namespace,
       flags.nodeIDs,
+      flags.quiet,
       flags.releaseTag
     ]
   }
@@ -179,6 +205,7 @@ export class NodeCommand extends BaseCommand {
       flags.gossipEndpoints,
       flags.grpcEndpoints,
       flags.localBuildPath,
+      flags.quiet,
       flags.namespace,
       flags.releaseTag
     ]
@@ -244,6 +271,7 @@ export class NodeCommand extends BaseCommand {
       flags.localBuildPath,
       flags.namespace,
       flags.nodeID,
+      flags.quiet,
       flags.releaseTag
     ]
   }
@@ -270,6 +298,7 @@ export class NodeCommand extends BaseCommand {
       flags.newAccountNumber,
       flags.newAdminKey,
       flags.nodeID,
+      flags.quiet,
       flags.releaseTag,
       flags.tlsPrivateKey,
       flags.tlsPublicKey
@@ -1143,6 +1172,7 @@ export class NodeCommand extends BaseCommand {
         title: 'Initialize',
         task: async (ctx, task) => {
           self.configManager.update(argv)
+
           await prompts.execute(task, self.configManager, [
             flags.namespace,
             flags.nodeIDs
@@ -2391,10 +2421,7 @@ export class NodeCommand extends BaseCommand {
             command: 'start',
             desc: 'Start a node',
             builder: y => flags.setCommandFlags(y,
-              flags.app,
-              flags.debugNodeId,
-              flags.namespace,
-              flags.nodeIDs
+              NodeCommand.START_FLAGS_LIST
             ),
             handler: argv => {
               nodeCmd.logger.debug('==== Running \'node start\' ===')
@@ -2413,8 +2440,7 @@ export class NodeCommand extends BaseCommand {
             command: 'stop',
             desc: 'Stop a node',
             builder: y => flags.setCommandFlags(y,
-              flags.namespace,
-              flags.nodeIDs
+              NodeCommand.STOP_FLAGS_LIST
             ),
             handler: argv => {
               nodeCmd.logger.debug('==== Running \'node stop\' ===')

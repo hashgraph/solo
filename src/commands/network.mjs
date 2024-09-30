@@ -76,6 +76,7 @@ export class NetworkCommand extends BaseCommand {
       flags.persistentVolumeClaims,
       flags.profileFile,
       flags.profileName,
+      flags.quiet,
       flags.releaseTag,
       flags.settingTxt,
       flags.valuesFile

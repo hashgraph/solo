@@ -498,6 +498,9 @@ export async function execute (task, configManager, flagList = []) {
     }
 
     const prompt = prompts.get(flag.name)
+    if (configManager.getFlag(flags.quiet)) {
+      return
+    }
     const input = await prompt(task, configManager.getFlag(flag))
     configManager.setFlag(flag, input)
   }
