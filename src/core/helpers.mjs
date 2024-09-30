@@ -376,3 +376,17 @@ export function commandActionBuilder (actionTasks, options, errorString = 'Error
     }
   }
 }
+
+/**
+ * Adds all the types of flags as properties on the provided argv object
+ * @param argv
+ * @param flags
+ * @returns {*}
+ */
+export function addFlagsToArgv (argv, flags) {
+  argv.requiredFlags = flags.requiredFlags
+  argv.requiredFlagsWithDisabledPrompt = flags.requiredFlagsWithDisabledPrompt
+  argv.optionalFlags = flags.optionalFlags
+
+  return argv
+}

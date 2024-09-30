@@ -21,10 +21,12 @@ import { IllegalArgumentError } from './errors.mjs'
 
 export class YargsCommand {
   /**
-     * @param {{command: string, description: string, requiredFlags: CommandFlag[], requiredFlagsWithDisabledPrompt: CommandFlag[], optionalFlags: CommandFlag[], commandDef: BaseCommand, handler: string}} opts
+     * @param {{command: string, description: string, commandDef: BaseCommand, handler: string}} opts
+     * @param {{requiredFlags: CommandFlag[], requiredFlagsWithDisabledPrompt: CommandFlag[], optionalFlags: CommandFlag[]}} flags
      */
-  constructor (opts = {}) {
-    const { command, description, requiredFlags, requiredFlagsWithDisabledPrompt, optionalFlags, commandDef, handler } = opts
+  constructor (opts = {}, flags = {}) {
+    const { command, description, commandDef, handler } = opts
+    const { requiredFlags, requiredFlagsWithDisabledPrompt, optionalFlags } = flags
 
     if (!command) throw new IllegalArgumentError('A string is required as the \'command\' property', command)
     if (!description) throw new IllegalArgumentError('A string is required as the \'description\' property', description)
@@ -48,17 +50,6 @@ export class YargsCommand {
       ...optionalFlags
     ]
 
-    // Override the handler method to be always called with the specified flags as part of argv
-    // This makes sure that even if the method is called directly, the flags will be present
-    const boundHandler = commandDef[handler].bind(commandDef)
-    commandDef[handler] = async (argv) => {
-      argv.requiredFlags = requiredFlags
-      argv.requiredFlagsWithDisabledPrompt = requiredFlagsWithDisabledPrompt
-      argv.optionalFlags = optionalFlags
-
-      return boundHandler(argv)
-    }
-
     return {
       command,
       desc: description,
@@ -66,7 +57,6 @@ export class YargsCommand {
       handler: argv => {
         commandDef.logger.debug(`==== Running '${commandNamespace} ${command}' ===`)
         commandDef.logger.debug(argv)
-
         commandDef[handler](argv).then(r => {
           commandDef.logger.debug(`==== Finished running '${commandNamespace} ${command}' ====`)
           if (!r) process.exit(1)
