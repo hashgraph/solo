@@ -74,6 +74,7 @@ describe('Node delete via separated commands', () => {
       flags.app.constName,
       flags.devMode.constName,
       flags.endpointType.constName,
+      flags.quiet.constName,
       flags.adminKey.constName,
       'freezeAdminPrivateKey'
     ])
