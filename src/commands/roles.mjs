@@ -43,66 +43,61 @@ export class RolesCommand extends BaseCommand {
   }
 
   async register (argv) {
-    const tasks = new Listr([
-      {
-        title: 'Initialize',
-        task: async (ctx, task) => {
-          this.configManager.update(argv)
+    const tasks = new Listr([{
+      title: 'Initialize',
+      task: async (ctx, task) => {
+        this.configManager.update(argv)
 
-          await prompts.execute(task, this.configManager, [
-            flags.namespace,
-            flags.clusterRoleUsername,
-            flags.clusterRolePassword
-          ])
+        await prompts.execute(task, this.configManager, [
+          flags.namespace,
+          flags.clusterRoleUsername,
+          flags.clusterRolePassword
+        ])
 
-          const config = {
-            namespace: this.configManager.getFlag(flags.namespace),
-            clusterRoleUsername: this.configManager.getFlag(flags.clusterRoleUsername),
-            clusterRolePassword: this.configManager.getFlag(flags.clusterRolePassword)
-          }
-
-          ctx.config = /** @type {MirrorNodeDeployConfigClass} **/ this.getConfig(
-            RolesCommand.DEPLOY_CONFIGS_NAME, RolesCommand.DEPLOY_FLAGS_LIST)
-
-          if (!(await this.k8.hasNamespace(ctx.config.namespace))) {
-            throw new FullstackTestingError(`Namespace ${config.namespace} does not exist`)
-          }
+        const config = {
+          namespace: this.configManager.getFlag(flags.namespace),
+          clusterRoleUsername: this.configManager.getFlag(flags.clusterRoleUsername),
+          clusterRolePassword: this.configManager.getFlag(flags.clusterRolePassword)
         }
-      },
-      {
-        title: 'Ensure cluster role exists',
-        task: async () => {
-          const clusterRoleExists = await this.k8.getClusterRole(USER_ROLE)
-          if (clusterRoleExists) {
-            return this.logger.info(`ClusterRole ${USER_ROLE} already exists.`)
-          }
 
-          await this.k8.createClusterRole(USER_ROLE)
-        }
-      },
-      {
-        title: 'Create User',
-        task: async (ctx) => {
-          const data = {
-            username: Buffer.from(ctx.config.clusterRoleUsername).toString('base64'),
-            password: Buffer.from(ctx.config.clusterRolePassword).toString('base64')
-          }
+        ctx.config = /** @type {MirrorNodeDeployConfigClass} **/ this.getConfig(
+          RolesCommand.DEPLOY_CONFIGS_NAME, RolesCommand.DEPLOY_FLAGS_LIST)
 
-          const labels = {
-            [`${ctx.config.clusterRoleUsername}-credentials`]: `${ctx.config.clusterRoleUsername}-credentials`
-          }
-
-          await this.k8.createSecret(`${ctx.config.clusterRoleUsername}-credentials`, ctx.config.namespace,
-            'Opaque', data, labels, true)
-        }
-      },
-      {
-        title: 'Bind Role to User',
-        task: async (ctx) => {
-          await this.k8.createClusterRoleBinding(USER_ROLE, ctx.config.clusterRoleUsername)
+        if (!(await this.k8.hasNamespace(ctx.config.namespace))) {
+          throw new FullstackTestingError(`Namespace ${config.namespace} does not exist`)
         }
       }
-    ], {
+    }, {
+      title: 'Ensure cluster role exists',
+      task: async () => {
+        const clusterRoleExists = await this.k8.getClusterRole(USER_ROLE)
+        if (clusterRoleExists) {
+          return this.logger.info(`ClusterRole ${USER_ROLE} already exists.`)
+        }
+
+        await this.k8.createClusterRole(USER_ROLE)
+      }
+    }, {
+      title: 'Create User',
+      task: async (ctx) => {
+        const data = {
+          username: Buffer.from(ctx.config.clusterRoleUsername).toString('base64'),
+          password: Buffer.from(ctx.config.clusterRolePassword).toString('base64')
+        }
+
+        const labels = {
+          [`${ctx.config.clusterRoleUsername}-credentials`]: `${ctx.config.clusterRoleUsername}-credentials`
+        }
+
+        await this.k8.createSecret(`${ctx.config.clusterRoleUsername}-credentials`, ctx.config.namespace,
+          'Opaque', data, labels, true)
+      }
+    }, {
+      title: 'Bind Role to User',
+      task: async (ctx) => {
+        await this.k8.createClusterRoleBinding(USER_ROLE, ctx.config.clusterRoleUsername)
+      }
+    }], {
       concurrent: false,
       rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
     })
@@ -117,56 +112,52 @@ export class RolesCommand extends BaseCommand {
   }
 
   async login (argv) {
-    const tasks = new Listr([
-      {
-        title: 'Initialize',
-        task: async (ctx, task) => {
-          this.configManager.update(argv)
+    const tasks = new Listr([{
+      title: 'Initialize',
+      task: async (ctx, task) => {
+        this.configManager.update(argv)
 
-          await prompts.execute(task, this.configManager, [
-            flags.namespace,
-            flags.clusterRoleUsername,
-            flags.clusterRolePassword
-          ])
+        await prompts.execute(task, this.configManager, [
+          flags.namespace,
+          flags.clusterRoleUsername,
+          flags.clusterRolePassword
+        ])
 
-          const config = {
-            namespace: this.configManager.getFlag(flags.namespace),
-            clusterRoleUsername: this.configManager.getFlag(flags.clusterRoleUsername),
-            clusterRolePassword: this.configManager.getFlag(flags.clusterRolePassword)
-          }
-
-          ctx.config = /** @type {MirrorNodeDeployConfigClass} **/ this.getConfig(
-            RolesCommand.DEPLOY_CONFIGS_NAME, RolesCommand.DEPLOY_FLAGS_LIST)
-
-          if (!(await this.k8.hasNamespace(ctx.config.namespace))) {
-            throw new FullstackTestingError(`Namespace ${config.namespace} does not exist`)
-          }
+        const config = {
+          namespace: this.configManager.getFlag(flags.namespace),
+          clusterRoleUsername: this.configManager.getFlag(flags.clusterRoleUsername),
+          clusterRolePassword: this.configManager.getFlag(flags.clusterRolePassword)
         }
-      },
-      {
-        title: 'Retrieve User Credentials',
-        task: async (ctx) => {
-          const secret = await this.k8.getSecret(ctx.config.namespace, `${ctx.config.clusterRoleUsername}-credentials`)
 
-          if (!secret || !secret.data) {
-            throw new FullstackTestingError(`No credentials found for user ${ctx.config.clusterRoleUsername}.`)
-          }
+        ctx.config = /** @type {MirrorNodeDeployConfigClass} **/ this.getConfig(
+          RolesCommand.DEPLOY_CONFIGS_NAME, RolesCommand.DEPLOY_FLAGS_LIST)
 
-          ctx.credentials = {
-            username: Buffer.from(secret.data.username, 'base64').toString('utf8'),
-            password: Buffer.from(secret.data.password, 'base64').toString('utf8')
-          }
-        }
-      },
-      {
-        title: 'Validate Login',
-        task: async (ctx) => {
-          if (ctx.credentials.username !== ctx.config.clusterRoleUsername || ctx.credentials.password !== ctx.config.clusterRolePassword) {
-            throw new FullstackTestingError('Invalid username or password.')
-          }
+        if (!(await this.k8.hasNamespace(ctx.config.namespace))) {
+          throw new FullstackTestingError(`Namespace ${config.namespace} does not exist`)
         }
       }
-    ], {
+    }, {
+      title: 'Retrieve User Credentials',
+      task: async (ctx) => {
+        const secret = await this.k8.getSecret(ctx.config.namespace, `${ctx.config.clusterRoleUsername}-credentials`)
+
+        if (!secret || !secret.data) {
+          throw new FullstackTestingError(`No credentials found for user ${ctx.config.clusterRoleUsername}.`)
+        }
+
+        ctx.credentials = {
+          username: Buffer.from(secret.data.username, 'base64').toString('utf8'),
+          password: Buffer.from(secret.data.password, 'base64').toString('utf8')
+        }
+      }
+    }, {
+      title: 'Validate Login',
+      task: async (ctx) => {
+        if (ctx.credentials.username !== ctx.config.clusterRoleUsername || ctx.credentials.password !== ctx.config.clusterRolePassword) {
+          throw new FullstackTestingError('Invalid username or password.')
+        }
+      }
+    }], {
       concurrent: false,
       rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
     })
@@ -181,47 +172,43 @@ export class RolesCommand extends BaseCommand {
   }
 
   async delete (argv) {
-    const tasks = new Listr([
-      {
-        title: 'Initialize',
-        task: async (ctx, task) => {
-          this.configManager.update(argv)
+    const tasks = new Listr([{
+      title: 'Initialize',
+      task: async (ctx, task) => {
+        this.configManager.update(argv)
 
-          await prompts.execute(task, this.configManager, [
-            flags.namespace,
-            flags.clusterRoleUsername
-          ])
+        await prompts.execute(task, this.configManager, [
+          flags.namespace,
+          flags.clusterRoleUsername
+        ])
 
-          const config = {
-            namespace: this.configManager.getFlag(flags.namespace),
-            clusterRoleUsername: this.configManager.getFlag(flags.clusterRoleUsername)
-          }
-
-          ctx.config = /** @type {MirrorNodeDeployConfigClass} **/ this.getConfig(
-            RolesCommand.DEPLOY_CONFIGS_NAME, RolesCommand.DEPLOY_FLAGS_LIST)
-
-          if (!(await this.k8.hasNamespace(ctx.config.namespace))) {
-            throw new FullstackTestingError(`Namespace ${config.namespace} does not exist`)
-          }
+        const config = {
+          namespace: this.configManager.getFlag(flags.namespace),
+          clusterRoleUsername: this.configManager.getFlag(flags.clusterRoleUsername)
         }
-      },
-      {
-        title: 'Delete User Secret',
-        task: async (ctx) => {
-          try {
-            await this.k8.deleteSecret(`${ctx.config.clusterRoleUsername}-credentials`, ctx.config.namespace)
-          } catch (e) {
-            throw new FullstackTestingError(`Failed to delete secret ${e.message}`, e)
-          }
-        }
-      },
-      {
-        title: 'Remove Cluster Role Binding',
-        task: async (ctx) => {
-          await this.k8.deleteClusterRoleBinding(`${ctx.config.clusterRoleUsername}-rolebinding`)
+
+        ctx.config = /** @type {MirrorNodeDeployConfigClass} **/ this.getConfig(
+          RolesCommand.DEPLOY_CONFIGS_NAME, RolesCommand.DEPLOY_FLAGS_LIST)
+
+        if (!(await this.k8.hasNamespace(ctx.config.namespace))) {
+          throw new FullstackTestingError(`Namespace ${config.namespace} does not exist`)
         }
       }
-    ], {
+    }, {
+      title: 'Delete User Secret',
+      task: async (ctx) => {
+        try {
+          await this.k8.deleteSecret(`${ctx.config.clusterRoleUsername}-credentials`, ctx.config.namespace)
+        } catch (e) {
+          throw new FullstackTestingError(`Failed to delete secret ${e.message}`, e)
+        }
+      }
+    }, {
+      title: 'Remove Cluster Role Binding',
+      task: async (ctx) => {
+        await this.k8.deleteClusterRoleBinding(`${ctx.config.clusterRoleUsername}-rolebinding`)
+      }
+    }], {
       concurrent: false,
       rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
     })

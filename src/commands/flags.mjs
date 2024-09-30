@@ -769,7 +769,7 @@ export const mirrorNodeVersion = {
 /** @type {CommandFlag} **/
 export const clusterRoleUsername = {
   constName: 'clusterRoleUsername',
-  name: 'cluster-role-username',
+  name: 'username',
   definition: {
     describe: 'The username for the cluster role',
     type: 'string'
@@ -779,7 +779,7 @@ export const clusterRoleUsername = {
 /** @type {CommandFlag} **/
 export const clusterRolePassword = {
   constName: 'clusterRolePassword',
-  name: 'cluster-role-password',
+  name: 'password',
   definition: {
     describe: 'The password for the cluster role',
     type: 'string'

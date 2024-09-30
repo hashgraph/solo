@@ -27,6 +27,7 @@ import * as helpers from '../core/helpers.mjs'
 import path from 'path'
 import { addDebugOptions, validatePath } from '../core/helpers.mjs'
 import fs from 'fs'
+import { USER_ROLE } from '../core/constants.mjs'
 
 export class NetworkCommand extends BaseCommand {
   /**
@@ -214,6 +215,10 @@ export class NetworkCommand extends BaseCommand {
 
     if (!await this.k8.hasNamespace(config.namespace)) {
       await this.k8.createNamespace(config.namespace)
+    }
+
+    if (!await this.k8.getClusterRole(USER_ROLE)) {
+      await this.k8.createClusterRole(USER_ROLE)
     }
 
     // prepare staging keys directory

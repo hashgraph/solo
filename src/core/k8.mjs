@@ -1150,7 +1150,7 @@ export class K8 {
 
   /**
    * @param {string} roleName
-   * @returns {Promise<void>}
+   * @returns {Promise<k8s.V1ClusterRole>}
    */
   async createClusterRole (roleName) {
     const clusterRoleBody = new k8s.V1ClusterRole()
@@ -1178,7 +1178,7 @@ export class K8 {
   /**
    * @param {string} roleName
    * @param {string} username
-   * @returns {Promise<void>}
+   * @returns {Promise<k8s.V1ClusterRoleBinding>}
    */
   async createClusterRoleBinding (roleName, username) {
     const clusterRoleBinding = new k8s.V1ClusterRoleBinding()
@@ -1213,7 +1213,7 @@ export class K8 {
 
   /**
    * @param {string} name
-   * @returns {Promise<void>}
+   * @returns {Promise<k8s.V1Status>}
    */
   async deleteClusterRoleBinding (name) {
     /** @type {{response: http.IncomingMessage, body: k8s.V1ClusterRole}} */
@@ -1224,6 +1224,23 @@ export class K8 {
       .catch(e => e) // When error occurs the body becomes the error
 
     this._handleKubernetesClientError(response, body, 'Failed to delete cluster role binding')
+
+    return body
+  }
+
+  /**
+   * @param {string} clusterRoleName
+   * @returns {Promise<k8s.V1Status>}
+   */
+  async deleteClusterRole (clusterRoleName) {
+    /** @type {{response: http.IncomingMessage, body: k8s. V1Status}} */
+    const {
+      response,
+      body
+    } = await this.rbacApiClient.deleteClusterRole(clusterRoleName)
+      .catch(e => e) // When error occurs the body becomes the error
+
+    this._handleKubernetesClientError(response, body, 'Failed to delete cluster role')
 
     return body
   }
