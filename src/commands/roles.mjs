@@ -146,8 +146,6 @@ export class RolesCommand extends BaseCommand {
       {
         title: 'Retrieve User Credentials',
         task: async (ctx) => {
-          console.log(`${ctx.config.clusterRoleUsername}-credentials`)
-
           const secret = await this.k8.getSecret(ctx.config.namespace, `${ctx.config.clusterRoleUsername}-credentials`)
 
           if (!secret || !secret.data) {

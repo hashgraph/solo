@@ -59,6 +59,7 @@ import {
   LOCAL_HOST
 } from '../core/constants.mjs'
 import { NodeStatusCodes, NodeStatusEnums } from '../core/enumerations.mjs'
+import { LeaseManager } from '../core/lease_manager.mjs'
 
 /**
  * Defines the core functionalities of 'node' command
@@ -1138,6 +1139,9 @@ export class NodeCommand extends BaseCommand {
   async start (argv) {
     const self = this
 
+    /** @type {function(): Promise<void>} */
+    let releaseLeaseCallback
+
     const tasks = new Listr([
       {
         title: 'Initialize',
@@ -1145,7 +1149,10 @@ export class NodeCommand extends BaseCommand {
           self.configManager.update(argv)
           await prompts.execute(task, self.configManager, [
             flags.namespace,
-            flags.nodeIDs
+            flags.nodeIDs,
+
+            flags.clusterRoleUsername,
+            flags.clusterRolePassword
           ])
 
           ctx.config = {
@@ -1164,6 +1171,10 @@ export class NodeCommand extends BaseCommand {
           if (!await self.k8.hasNamespace(ctx.config.namespace)) {
             throw new FullstackTestingError(`namespace ${ctx.config.namespace} does not exist`)
           }
+
+          const { releaseLease } = await (new LeaseManager(this.logger, this.k8, this.configManager)).acquireLease()
+
+          releaseLeaseCallback = releaseLease
         }
       },
       {
@@ -1199,30 +1210,31 @@ export class NodeCommand extends BaseCommand {
         },
         skip: (ctx, _) => self.configManager.getFlag(flags.app) !== '' && self.configManager.getFlag(flags.app) !== constants.HEDERA_APP_NAME
       },
-      {
-        title: 'Add node stakes',
-        task: (ctx, task) => {
-          if (ctx.config.app === '' || ctx.config.app === constants.HEDERA_APP_NAME) {
-            const subTasks = []
-            const accountMap = getNodeAccountMap(ctx.config.nodeIds)
-            for (const nodeId of ctx.config.nodeIds) {
-              const accountId = accountMap.get(nodeId)
-              subTasks.push({
-                title: `Adding stake for node: ${chalk.yellow(nodeId)}`,
-                task: async () => await self.addStake(ctx.config.namespace, accountId, nodeId)
-              })
-            }
-
-            // set up the sub-tasks
-            return task.newListr(subTasks, {
-              concurrent: false,
-              rendererOptions: {
-                collapseSubtasks: false
-              }
-            })
-          }
-        }
-      }], {
+      // {
+      //   title: 'Add node stakes',
+      //   task: (ctx, task) => {
+      //     if (ctx.config.app === '' || ctx.config.app === constants.HEDERA_APP_NAME) {
+      //       const subTasks = []
+      //       const accountMap = getNodeAccountMap(ctx.config.nodeIds)
+      //       for (const nodeId of ctx.config.nodeIds) {
+      //         const accountId = accountMap.get(nodeId)
+      //         subTasks.push({
+      //           title: `Adding stake for node: ${chalk.yellow(nodeId)}`,
+      //           task: async () => await self.addStake(ctx.config.namespace, accountId, nodeId)
+      //         })
+      //       }
+      //
+      //       // set up the sub-tasks
+      //       return task.newListr(subTasks, {
+      //         concurrent: false,
+      //         rendererOptions: {
+      //           collapseSubtasks: false
+      //         }
+      //       })
+      //     }
+      //   }
+      // }
+      ], {
       concurrent: false,
       rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
     })
@@ -1234,6 +1246,10 @@ export class NodeCommand extends BaseCommand {
       throw new FullstackTestingError(`Error starting node: ${e.message}`, e)
     } finally {
       await self.close()
+
+      if (typeof releaseLeaseCallback === 'function') {
+        await releaseLeaseCallback()
+      }
     }
 
     return true

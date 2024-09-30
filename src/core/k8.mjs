@@ -1132,21 +1132,20 @@ export class K8 {
     return resp.response.statusCode === 200.0
   }
 
+  // --------------------------------------- ROLES --------------------------------------- //
   /**
    * @param {string} name
    * @returns {Promise<k8s.V1ClusterRole|null>}
    */
   async getClusterRole (name) {
-    return this.rbacApiClient.listClusterRole(
-      undefined,
-      false,
-      undefined,
-      `metadata.name=${name}`
+    const { response, body } = await this.rbacApiClient.listClusterRole(
+      null, false, null, `metadata.name=${name}`
     )
-      .then((resp) => resp?.body?.items?.length ? resp.body.items[0] : null)
-      .catch(e => {
-        throw new FullstackTestingError(`Error fetching ClusterRole ${name}: ${e.message}`, e)
-      })
+      .catch(e => e) // When error occurs the body becomes the error
+
+    this._handleKubernetesClientError(response, body, 'Failed to create cluster role')
+
+    return body?.items?.[0] ?? null
   }
 
   /**
@@ -1165,14 +1164,15 @@ export class K8 {
     }]
 
     /** @type {{response: http.IncomingMessage, body: k8s.V1ClusterRole}} */
-    const { response, body } = await this.rbacApiClient.createClusterRole(clusterRoleBody).catch(e => e)
+    const {
+      response,
+      body
+    } = await this.rbacApiClient.createClusterRole(clusterRoleBody)
+      .catch(e => e) // When error occurs the body becomes the error
 
-    if (response.statusCode !== 201) {
-      this.logger.error('Failed to create cluster role', body)
+    this._handleKubernetesClientError(response, body, 'Failed to create cluster role')
 
-      throw new FullstackTestingError('Failed to create cluster role' +
-        `role name: ${roleName}, status code: ${response.statusCode}`)
-    }
+    return body
   }
 
   /**
@@ -1199,15 +1199,16 @@ export class K8 {
       apiGroup: 'rbac.authorization.k8s.io'
     }
 
-    /** @type {{response: http.IncomingMessage, body: k8s.V1ClusterRole}} */
-    const { response, body } = await this.rbacApiClient.createClusterRoleBinding(clusterRoleBinding).catch(e => e)
+    /** @type {{response: http.IncomingMessage, body: k8s.V1ClusterRoleBinding}} */
+    const {
+      response,
+      body
+    } = await this.rbacApiClient.createClusterRoleBinding(clusterRoleBinding)
+      .catch(e => e) // When error occurs the body becomes the error
 
-    if (response.statusCode !== 201) {
-      this.logger.error('Failed to create cluster role binding', body)
+    this._handleKubernetesClientError(response, body, 'Failed to create cluster role binding')
 
-      throw new FullstackTestingError('Failed to create cluster role binding' +
-        `status code: ${response.statusCode}, role name: ${roleName}, username: ${username}`)
-    }
+    return body
   }
 
   /**
@@ -1216,24 +1217,77 @@ export class K8 {
    */
   async deleteClusterRoleBinding (name) {
     /** @type {{response: http.IncomingMessage, body: k8s.V1ClusterRole}} */
-    const { response, body } = await this.rbacApiClient.deleteClusterRoleBinding(name).catch(e => e)
+    const {
+      response,
+      body
+    } = await this.rbacApiClient.deleteClusterRoleBinding(name)
+      .catch(e => e) // When error occurs the body becomes the error
 
-    if (response.statusCode !== 200) {
-      this.logger.error('Failed to delete cluster role binding', body)
+    this._handleKubernetesClientError(response, body, 'Failed to delete cluster role binding')
 
-      throw new FullstackTestingError('Failed to delete cluster role binding' +
-        `status code: ${response.statusCode}, name: ${name}`)
-    }
+    return body
   }
 
   // --------------------------------------- LEASES --------------------------------------- //
   /**
    * @param {string} namespace
-   * @param {k8s.V1Lease} body
-   * @returns {Promise<{response: http.IncomingMessage, body: k8s.V1Lease}>}
+   * @param {string} leaseName
+   * @param {string} holderName
+   * @returns {Promise<k8s.V1Lease>}
    */
-  createNamespacedLease (namespace, body) {
-    return this.coordinationApiClient.createNamespacedLease(namespace, body)
+  async createNamespacedLease (namespace, leaseName, holderName) {
+    const lease = new k8s.V1Lease()
+    lease.apiVersion = 'coordination.k8s.io/v1'
+    lease.kind = 'Lease'
+    lease.metadata = {
+      name: leaseName,
+      namespace
+    }
+    lease.spec = {
+      holderIdentity: holderName,
+      leaseDurationSeconds: 15,
+      acquireTime: new k8s.V1MicroTime()
+    }
+
+    /** @type {{response: http.IncomingMessage, body: k8s.V1Lease}} */
+    const { response, body } = await this.coordinationApiClient.createNamespacedLease(namespace, lease)
+      .catch(e => e) // When error occurs the body becomes the error
+
+    this._handleKubernetesClientError(response, body, 'Failed to create namespaced lease')
+
+    return body
+  }
+
+  /**
+   * @param {string} leaseName
+   * @param {string} namespace
+   * @returns {k8s.V1Lease}
+   */
+  async readNamespacedLease (leaseName, namespace) {
+    /** @type {Promise<{response: http.IncomingMessage, body: k8s.V1Lease}>} */
+    const { response, body } = await this.coordinationApiClient.readNamespacedLease(leaseName, namespace)
+      .catch(e => e) // When error occurs the body becomes the error
+
+    this._handleKubernetesClientError(response, body, 'Failed to read namespaced lease')
+
+    return body
+  }
+
+  /**
+   * @param {string} leaseName
+   * @param {string} namespace
+   * @param {k8s.V1Lease} lease - lease k8s class ( must be in sync with the current one )
+   * @returns {Promise<k8s.V1Lease>} - the lease after the replacement
+   */
+  async renewNamespaceLease (leaseName, namespace, lease) {
+    lease.spec.renewTime = new k8s.V1MicroTime()
+
+    const { response, body } = await this.coordinationApiClient.replaceNamespacedLease(leaseName, namespace, lease)
+      .catch(e => e) // When error occurs the body becomes the error
+
+    this._handleKubernetesClientError(response, body, 'Failed to renew namespaced lease')
+
+    return body
   }
 
   /**
@@ -1241,37 +1295,30 @@ export class K8 {
    * @param {string} namespace
    * @returns {Promise<{response: http.IncomingMessage, body: k8s.V1Lease}>}
    */
-  readNamespacedLease (name, namespace) {
-    return this.coordinationApiClient.readNamespacedLease(name, namespace)
+  async deleteNamespacedLease (name, namespace) {
+    const { response, body } = await this.coordinationApiClient.deleteNamespacedLease(name, namespace)
+      .catch(e => e) // When error occurs the body becomes the error
+
+    this._handleKubernetesClientError(response, body, 'Failed to delete namespaced lease')
+
+    return body
   }
 
   /**
-   * @param {string} name
-   * @param {string} namespace
-   * @param {k8s.V1Lease} body
-   * @returns {Promise<{response: http.IncomingMessage, body: k8s.V1Lease}>}
+   * @param {http.IncomingMessage|*} response
+   * @param {Error|*} error
+   * @param {string} errorMessage
+   * @private
+   * @throws
    */
-  replaceNamespacedLease (name, namespace, body) {
-    return this.coordinationApiClient.replaceNamespacedLease(name, namespace, body)
-  }
+  _handleKubernetesClientError (response, error, errorMessage) {
+    if (response.statusCode > 202) {
+      errorMessage += `, statusCode: ${response.statusCode}`
 
-  /**
-   * @param {string} namespace
-   * @param {string} [fieldSelector]
-   * @param {string} [labelSelector]
-   * @returns {Promise<{response: http.IncomingMessage, body: k8s.V1Lease}>}
-   */
-  listNamespacedLease (namespace, fieldSelector, labelSelector) {
-    return this.coordinationApiClient.listNamespacedLease(namespace, undefined, undefined, undefined, fieldSelector, labelSelector)
-  }
+      this.logger.error(errorMessage, error)
 
-  /**
-   * @param {string} name
-   * @param {string} namespace
-   * @returns {Promise<{response: http.IncomingMessage, body: k8s.V1Lease}>}
-   */
-  deleteNamespacedLease (name, namespace) {
-    return this.coordinationApiClient.deleteNamespacedLease(name, namespace)
+      throw new FullstackTestingError(errorMessage, errorMessage)
+    }
   }
 
   /**
