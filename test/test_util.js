@@ -370,6 +370,7 @@ async function addKeyHashToMap (k8, nodeId, keyDir, uniqueNodeDestDir, keyHashMa
 export function getK8Instance (configManager) {
   try {
     return new K8(configManager, testLogger)
+    // TODO: return a mock without running the init within constructor after we convert to Mocha, Jest ESModule mocks are broke.
   } catch (e) {
     if (!(e instanceof FullstackTestingError)) {
       throw e
