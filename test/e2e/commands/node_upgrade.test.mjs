@@ -58,19 +58,27 @@ describe('Node upgrade', () => {
     expect(status).toBeTruthy()
   }, 450000)
 
-  it('should upgrade all nodes on the network successfully', async () => {
+  it('should prepare network upgrade successfully', async () => {
     await nodeCmd.prepareUpgrade(upgradeArgv)
-    await nodeCmd.downloadGeneratedFiles(upgradeArgv)
-    await nodeCmd.freezeUpgrade(upgradeArgv)
+  }, 300000)
 
+  it('should download generated files successfully', async () => {
+    await nodeCmd.downloadGeneratedFiles(upgradeArgv)
+  }, 300000)
+
+  it('should upgrade all nodes on the network successfully', async () => {
+    await nodeCmd.freezeUpgrade(upgradeArgv)
+  }, 300000)
+
+
+  it('should have accesses only the expected config properties', async () => {
+    await nodeCmd.accountManager.close()
     expect(nodeCmd.getUnusedConfigs(NodeCommand.DELETE_CONFIGS_NAME)).toEqual([
       flags.app.constName,
       flags.devMode.constName,
       flags.endpointType.constName
     ])
-
-    await nodeCmd.accountManager.close()
-  }, 600000)
+  })
 
   balanceQueryShouldSucceed(nodeCmd.accountManager, nodeCmd, namespace)
 
