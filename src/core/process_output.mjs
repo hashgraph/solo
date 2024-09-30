@@ -32,7 +32,9 @@ export class CustomProcessOutput extends ProcessOutput {
 
   /** @inheritDoc */
   toStdout (chunk, eol = true) {
-    this._logger.debug(chunk.toString())
+    chunk.toString().split('\n').forEach(line => {
+      this._logger.debug(line)
+    })
     return super.toStdout(chunk, eol)
   }
 
