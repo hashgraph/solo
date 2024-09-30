@@ -65,9 +65,9 @@ describe('InitCommand', () => {
     }, 20000)
   })
 
-  describe('static', () => {
+  describe('methods', () => {
     it('command definition should return a valid command def', async () => {
-      const def = InitCommand.getCommandDefinition(initCmd)
+      const def = initCmd.getCommandDefinition()
       expect(def.name).not.toBeNull()
       expect(def.desc).not.toBeNull()
       expect(def.handler).not.toBeNull()

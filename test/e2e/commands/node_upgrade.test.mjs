@@ -76,10 +76,10 @@ describe('Node upgrade', () => {
 
   it('should upgrade all nodes on the network successfully', async () => {
     await nodeCmd.freezeUpgrade(upgradeArgv)
-    await nodeCmd.accountManager.close()
     expect(nodeCmd.getUnusedConfigs(PREPARE_UPGRADE_CONFIGS_NAME)).toEqual([
       flags.devMode.constName
     ])
+    await nodeCmd.accountManager.close()
   }, 300000)
 
   balanceQueryShouldSucceed(nodeCmd.accountManager, nodeCmd, namespace)
