@@ -132,7 +132,7 @@ export function e2eNodeKeyRefreshTest (testName, mode, releaseTag = HEDERA_PLATF
         function nodePodShouldBeRunning (nodeCmd, namespace, nodeId) {
           it(`${nodeId} should be running`, async () => {
             try {
-              await expect(nodeCmd.checkNetworkNodePod(namespace,
+              await expect(nodeCmd.tasks.checkNetworkNodePod(namespace,
                 nodeId)).resolves.toBeTruthy()
             } catch (e) {
               nodeCmd.logger.showUserError(e)
