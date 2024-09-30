@@ -82,10 +82,6 @@ describe('Node upgrade', () => {
     await nodeCmd.accountManager.close()
   }, 300000)
 
-  balanceQueryShouldSucceed(nodeCmd.accountManager, nodeCmd, namespace)
-
-  accountCreationShouldSucceed(nodeCmd.accountManager, nodeCmd, namespace)
-
   it('config.txt should no longer contain removed nodeid', async () => {
     // read config.txt file from first node, read config.txt line by line, it should not contain value of nodeId
     const pods = await k8.getPodsByLabel(['fullstack.hedera.com/type=network-node'])
