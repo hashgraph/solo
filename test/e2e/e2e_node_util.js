@@ -177,7 +177,7 @@ export function e2eNodeKeyRefreshTest (testName, mode, releaseTag = HEDERA_PLATF
 
         async function nodeRefreshTestSetup (argv, testName, k8, nodeId) {
           argv[flags.nodeIDs.name] = nodeId
-          const configManager = getTestConfigManager(`${testName}-solo.config`)
+          const configManager = getTestConfigManager(`${testName}-solo.yaml`)
           configManager.update(argv, true)
 
           const podArray = await k8.getPodsByLabel(
