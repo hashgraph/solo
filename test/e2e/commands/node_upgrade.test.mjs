@@ -62,18 +62,14 @@ describe('Node upgrade', () => {
   it('should prepare network upgrade successfully', async () => {
     await nodeCmd.prepareUpgrade(upgradeArgv)
     expect(nodeCmd.getUnusedConfigs(PREPARE_UPGRADE_CONFIGS_NAME)).toEqual([
-      flags.app.constName,
-      flags.devMode.constName,
-      flags.endpointType.constName
+      flags.devMode.constName
     ])
   }, 300000)
 
   it('should download generated files successfully', async () => {
     await nodeCmd.downloadGeneratedFiles(upgradeArgv)
     expect(nodeCmd.getUnusedConfigs(DOWNLOAD_GENERATED_FILES_CONFIGS_NAME)).toEqual([
-      flags.app.constName,
-      flags.devMode.constName,
-      flags.endpointType.constName
+      flags.devMode.constName
     ])
   }, 300000)
 
@@ -81,9 +77,7 @@ describe('Node upgrade', () => {
     await nodeCmd.freezeUpgrade(upgradeArgv)
     await nodeCmd.accountManager.close()
     expect(nodeCmd.getUnusedConfigs(PREPARE_UPGRADE_CONFIGS_NAME)).toEqual([
-      flags.app.constName,
-      flags.devMode.constName,
-      flags.endpointType.constName
+      flags.devMode.constName
     ])
   }, 300000)
 
