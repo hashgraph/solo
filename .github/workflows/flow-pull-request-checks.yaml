@@ -52,6 +52,16 @@ jobs:
     with:
       custom-job-label: Standard
 
+  update-readme:
+    name: "Update README.md"
+    uses: ./.github/workflows/flow-update-readme.yaml
+    with:
+      commit-changes: false
+    secrets:
+      GH_ACCESS_TOKEN: ${{ secrets.GH_ACCESS_TOKEN }}
+      GH_ACCESS_GPG_KEY: ${{ secrets.GH_ACCESS_GPG_KEY }}
+      GH_ACCESS_PASSPHRASE: ${{ secrets.GH_ACCESS_PASSPHRASE }}
+
   e2e-standard-tests:
     name: E2E Tests
     if: ${{ !cancelled() && always() }}

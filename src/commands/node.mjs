@@ -2494,7 +2494,7 @@ export class NodeCommand extends BaseCommand {
             desc: 'Prepares the addition of a node with a specific version of Hedera platform',
             builder: y => flags.setCommandFlags(y, ...NodeCommand.ADD_PREPARE_FLAGS_LIST),
             handler: argv => {
-              nodeCmd.logger.debug('==== Running \'node add\' ===')
+              nodeCmd.logger.debug('==== Running \'node add-prepare\' ===')
               nodeCmd.logger.debug(argv)
 
               nodeCmd.addPrepare(argv).then(r => {
@@ -2511,7 +2511,7 @@ export class NodeCommand extends BaseCommand {
             desc: 'Submits NodeCreateTransaction and Upgrade transactions to the network nodes',
             builder: y => flags.setCommandFlags(y, ...NodeCommand.ADD_SUBMIT_TRANSACTIONS_FLAGS_LIST),
             handler: argv => {
-              nodeCmd.logger.debug('==== Running \'node add\' ===')
+              nodeCmd.logger.debug('==== Running \'node add-submit-transactions\' ===')
               nodeCmd.logger.debug(argv)
 
               nodeCmd.addSubmitTransactions(argv).then(r => {
@@ -2528,7 +2528,7 @@ export class NodeCommand extends BaseCommand {
             desc: 'Executes the addition of a previously prepared node',
             builder: y => flags.setCommandFlags(y, ...NodeCommand.ADD_EXECUTE_FLAGS_LIST),
             handler: argv => {
-              nodeCmd.logger.debug('==== Running \'node add\' ===')
+              nodeCmd.logger.debug('==== Running \'node add-execute\' ===')
               nodeCmd.logger.debug(argv)
 
               nodeCmd.addExecute(argv).then(r => {
@@ -2579,7 +2579,7 @@ export class NodeCommand extends BaseCommand {
             desc: 'Prepares the deletion of a node with a specific version of Hedera platform',
             builder: y => flags.setCommandFlags(y, ...NodeCommand.DELETE_PREPARE_FLAGS_LIST.concat(flags.nodeID)),
             handler: argv => {
-              nodeCmd.logger.debug('==== Running \'node add\' ===')
+              nodeCmd.logger.debug('==== Running \'node delete-prepare\' ===')
               nodeCmd.logger.debug(argv)
 
               nodeCmd.deletePrepare(argv).then(r => {
@@ -2596,7 +2596,7 @@ export class NodeCommand extends BaseCommand {
             desc: 'Submits transactions to the network nodes for deleting a node',
             builder: y => flags.setCommandFlags(y, ...NodeCommand.DELETE_SUBMIT_TRANSACTIONS_FLAGS_LIST),
             handler: argv => {
-              nodeCmd.logger.debug('==== Running \'node add\' ===')
+              nodeCmd.logger.debug('==== Running \'node delete-submit-transactions\' ===')
               nodeCmd.logger.debug(argv)
 
               nodeCmd.deleteSubmitTransactions(argv).then(r => {
@@ -2613,7 +2613,7 @@ export class NodeCommand extends BaseCommand {
             desc: 'Executes the deletion of a previously prepared node',
             builder: y => flags.setCommandFlags(y, ...NodeCommand.DELETE_EXECUTE_FLAGS_LIST),
             handler: argv => {
-              nodeCmd.logger.debug('==== Running \'node add\' ===')
+              nodeCmd.logger.debug('==== Running \'node delete-execute\' ===')
               nodeCmd.logger.debug(argv)
 
               nodeCmd.deleteExecute(argv).then(r => {
