@@ -18,17 +18,12 @@
 import { afterAll, describe, expect, it } from '@jest/globals'
 import { flags } from '../../../src/commands/index.mjs'
 import {
-  accountCreationShouldSucceed,
-  balanceQueryShouldSucceed,
   bootstrapNetwork,
   getDefaultArgv,
   HEDERA_PLATFORM_VERSION_TAG
 } from '../../test_util.js'
-import { getNodeLogs, getTmpDir } from '../../../src/core/helpers.mjs'
-import { NodeCommand } from '../../../src/commands/node.mjs'
+import { getNodeLogs } from '../../../src/core/helpers.mjs'
 import { PREPARE_UPGRADE_CONFIGS_NAME, DOWNLOAD_GENERATED_FILES_CONFIGS_NAME } from '../../../src/commands/node/configs.mjs'
-import { HEDERA_HAPI_PATH, ROOT_CONTAINER } from '../../../src/core/constants.mjs'
-import fs from 'fs'
 
 describe('Node upgrade', () => {
   const namespace = 'node-upgrade'
