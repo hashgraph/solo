@@ -48,6 +48,17 @@ export class YargsCommand {
       ...optionalFlags
     ]
 
+    // Override the handler method to be always called with the specified flags as part of argv
+    // This makes sure that even if the method is called directly, the flags will be present
+    const boundHandler = commandDef[handler].bind(commandDef)
+    commandDef[handler] = async (argv) => {
+      argv.requiredFlags = requiredFlags
+      argv.requiredFlagsWithDisabledPrompt = requiredFlagsWithDisabledPrompt
+      argv.optionalFlags = optionalFlags
+
+      return boundHandler(argv)
+    }
+
     return {
       command,
       desc: description,
@@ -55,10 +66,6 @@ export class YargsCommand {
       handler: argv => {
         commandDef.logger.debug(`==== Running '${commandNamespace} ${command}' ===`)
         commandDef.logger.debug(argv)
-
-        argv.requiredFlags = requiredFlags
-        argv.requiredFlagsWithDisabledPrompt = requiredFlagsWithDisabledPrompt
-        argv.optionalFlags = optionalFlags
 
         commandDef[handler](argv).then(r => {
           commandDef.logger.debug(`==== Finished running '${commandNamespace} ${command}' ====`)
