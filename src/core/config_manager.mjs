@@ -16,12 +16,14 @@
  */
 'use strict'
 import fs from 'fs'
-import { FullstackTestingError, MissingArgumentError } from './errors.mjs'
+import { SoloError, MissingArgumentError } from './errors.mjs'
 import { constants } from './index.mjs'
 import { Logger } from './logging.mjs'
 import * as flags from '../commands/flags.mjs'
 import * as paths from 'path'
 import * as helpers from './helpers.mjs'
+import * as yaml from 'js-yaml'
+import { yamlToObject } from './helpers.mjs'
 
 /**
  * ConfigManager cache command flag values so that user doesn't need to enter the same values repeatedly.
@@ -49,13 +51,10 @@ export class ConfigManager {
   load () {
     try {
       if (fs.existsSync(this.cachedConfigFile)) {
-        const configJSON = fs.readFileSync(this.cachedConfigFile)
-
-        /** @type {Object} */
-        this.config = JSON.parse(configJSON.toString())
+        this.config = yamlToObject(this.cachedConfigFile)
       }
     } catch (e) {
-      throw new FullstackTestingError(`failed to initialize config manager: ${e.message}`, e)
+      throw new SoloError(`failed to initialize config manager: ${e.message}`, e)
     }
   }
 
@@ -138,7 +137,7 @@ export class ConfigManager {
                   this.config.flags[flag.name] = Number.parseFloat(val)
                 }
               } catch (e) {
-                throw new FullstackTestingError(`invalid number value '${val}': ${e.message}`, e)
+                throw new SoloError(`invalid number value '${val}': ${e.message}`, e)
               }
               break
 
@@ -148,7 +147,7 @@ export class ConfigManager {
               break
 
             default:
-              throw new FullstackTestingError(`Unsupported field type for flag '${flag.name}': ${flag.definition.type}`)
+              throw new SoloError(`Unsupported field type for flag '${flag.name}': ${flag.definition.type}`)
           }
         }
       }
@@ -172,14 +171,12 @@ export class ConfigManager {
   persist () {
     try {
       this.config.updatedAt = new Date().toISOString()
-      let configJSON = JSON.stringify(this.config, null, 2)
-      fs.writeFileSync(`${this.cachedConfigFile}`, configJSON)
-
+      const newYaml = yaml.dump(this.config)
+      fs.writeFileSync(this.cachedConfigFile, newYaml)
       // refresh config with the file contents
-      configJSON = fs.readFileSync(this.cachedConfigFile)
-      this.config = JSON.parse(configJSON.toString())
+      this.load()
     } catch (e) {
-      throw new FullstackTestingError(`failed to persis config: ${e.message}`, e)
+      throw new SoloError(`failed to persis config: ${e.message}`, e)
     }
   }
 

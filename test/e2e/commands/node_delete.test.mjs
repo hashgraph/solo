@@ -42,6 +42,7 @@ describe('Node delete', () => {
   argv[flags.chartDirectory.name] = process.env.SOLO_FST_CHARTS_DIR ? process.env.SOLO_FST_CHARTS_DIR : undefined
   argv[flags.releaseTag.name] = HEDERA_PLATFORM_VERSION_TAG
   argv[flags.namespace.name] = namespace
+  argv[flags.quiet.name] = true
   const bootstrapResp = bootstrapNetwork(namespace, argv)
   const nodeCmd = bootstrapResp.cmd.nodeCmd
   const accountCmd = bootstrapResp.cmd.accountCmd
@@ -62,7 +63,8 @@ describe('Node delete', () => {
     expect(nodeCmd.getUnusedConfigs(NodeCommand.DELETE_CONFIGS_NAME)).toEqual([
       flags.app.constName,
       flags.devMode.constName,
-      flags.endpointType.constName
+      flags.endpointType.constName,
+      flags.quiet.constName
     ])
 
     await nodeCmd.accountManager.close()

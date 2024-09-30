@@ -17,7 +17,7 @@
 'use strict'
 import { ListrEnquirerPromptAdapter } from '@listr2/prompt-adapter-enquirer'
 import { Listr } from 'listr2'
-import { FullstackTestingError, IllegalArgumentError } from '../core/errors.mjs'
+import { SoloError, IllegalArgumentError } from '../core/errors.mjs'
 import * as flags from './flags.mjs'
 import { BaseCommand } from './base.mjs'
 import chalk from 'chalk'
@@ -151,7 +151,7 @@ export class ClusterCommand extends BaseCommand {
     try {
       await tasks.run()
     } catch (e) {
-      throw new FullstackTestingError('Error on cluster setup', e)
+      throw new SoloError('Error on cluster setup', e)
     }
 
     return true
@@ -191,7 +191,7 @@ export class ClusterCommand extends BaseCommand {
 
           ctx.isChartInstalled = await this.chartManager.isChartInstalled(ctx.config.clusterSetupNamespace, constants.FULLSTACK_CLUSTER_SETUP_CHART)
           if (!ctx.isChartInstalled) {
-            throw new FullstackTestingError('No chart found for the cluster')
+            throw new SoloError('No chart found for the cluster')
           }
         }
       },
@@ -214,7 +214,7 @@ export class ClusterCommand extends BaseCommand {
     try {
       await tasks.run()
     } catch (e) {
-      throw new FullstackTestingError('Error on cluster reset', e)
+      throw new SoloError('Error on cluster reset', e)
     }
 
     return true

@@ -21,7 +21,7 @@ import { BaseCommand } from './base.mjs'
 import * as core from '../core/index.mjs'
 import { constants } from '../core/index.mjs'
 import * as fs from 'fs'
-import { FullstackTestingError, IllegalArgumentError } from '../core/errors.mjs'
+import { SoloError, IllegalArgumentError } from '../core/errors.mjs'
 import * as flags from './flags.mjs'
 import chalk from 'chalk'
 
@@ -51,7 +51,7 @@ export class InitCommand extends BaseCommand {
       })
     } catch (e) {
       this.logger.error(e)
-      throw new FullstackTestingError(`failed to create directory: ${e.message}`, e)
+      throw new SoloError(`failed to create directory: ${e.message}`, e)
     }
 
     return dirs
@@ -136,7 +136,7 @@ export class InitCommand extends BaseCommand {
     try {
       await tasks.run()
     } catch (e) {
-      throw new FullstackTestingError('Error running init', e)
+      throw new SoloError('Error running init', e)
     }
 
     return true

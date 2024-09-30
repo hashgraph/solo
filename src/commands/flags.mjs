@@ -756,6 +756,19 @@ export const adminKey = {
 }
 
 /** @type {CommandFlag} **/
+export const quiet = {
+  constName: 'quiet',
+  name: 'quiet-mode',
+  definition: {
+    describe: 'Quiet mode, do not prompt for confirmation',
+    defaultValue: false,
+    alias: 'q',
+    type: 'boolean',
+    disablePrompt: true
+  }
+}
+
+/** @type {CommandFlag[]} **/
 export const mirrorNodeVersion = {
   constName: 'mirrorNodeVersion',
   name: 'mirror-node-version',
@@ -765,6 +778,7 @@ export const mirrorNodeVersion = {
     type: 'string'
   }
 }
+
 /** @type {CommandFlag[]} **/
 export const allFlags = [
   accountId,
