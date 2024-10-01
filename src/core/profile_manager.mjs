@@ -150,10 +150,17 @@ export class ProfileManager {
     const dotItems = dot.dot(items)
 
     for (const key in dotItems) {
+      let itemKey = key
+
+      // if it is an array key like extraEnv[0].JAVA_OPTS, convert it into dot separated key as extraEnv.0.JAVA_OPTS
+      if (key.indexOf('[') !== -1) {
+        itemKey = key.replace('[', '.').replace(']', '')
+      }
+
       if (itemPath) {
-        this._setValue(`${itemPath}.${key}`, dotItems[key], yamlRoot)
+        this._setValue(`${itemPath}.${itemKey}`, dotItems[key], yamlRoot)
       } else {
-        this._setValue(key, dotItems[key], yamlRoot)
+        this._setValue(itemKey, dotItems[key], yamlRoot)
       }
     }
   }
@@ -173,7 +180,6 @@ export class ProfileManager {
     for (let nodeIndex = 0; nodeIndex < nodeIds.length; nodeIndex++) {
       this._setValue(`hedera.nodes.${nodeIndex}.name`, nodeIds[nodeIndex], yamlRoot)
       this._setValue(`hedera.nodes.${nodeIndex}.accountId`, accountMap.get(nodeIds[nodeIndex]), yamlRoot)
-      this._setChartItems(`hedera.nodes.${nodeIndex}`, profile.consensus, yamlRoot)
     }
 
     const stagingDir = Templates.renderStagingDir(
