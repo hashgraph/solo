@@ -22,10 +22,10 @@ import { SoloError } from './errors.mjs'
 export class ChartManager {
   /**
    * @param {Helm} helm
-   * @param {Logger} logger
+   * @param {SoloLogger} logger
    */
   constructor (helm, logger) {
-    if (!logger) throw new Error('An instance of core/Logger is required')
+    if (!logger) throw new Error('An instance of core/SoloLogger is required')
     if (!helm) throw new Error('An instance of core/Helm is required')
 
     this.logger = logger

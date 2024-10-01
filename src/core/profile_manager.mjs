@@ -31,12 +31,12 @@ const consensusSidecars = [
 
 export class ProfileManager {
   /**
-   * @param {Logger} logger - an instance of core/Logger
+   * @param {SoloLogger} logger
    * @param {ConfigManager} configManager - an instance of core/ConfigManager
    * @param {string} cacheDir - cache directory where the values file will be written. A yaml file named <profileName>.yaml is created.
    */
   constructor (logger, configManager, cacheDir = constants.SOLO_VALUES_DIR) {
-    if (!logger) throw new MissingArgumentError('An instance of core/Logger is required')
+    if (!logger) throw new MissingArgumentError('An instance of core/SoloLogger is required')
     if (!configManager) throw new MissingArgumentError('An instance of core/ConfigManager is required')
 
     this.logger = logger
@@ -369,7 +369,7 @@ export class ProfileManager {
   /**
    * Prepare a values file for rpc-relay Helm chart
    * @param {string} profileName - resource profile name
-   * @returns {Promise<string>} return the full path to the values file
+   * @returns {Promise<string|void>} return the full path to the values file
    */
   prepareValuesForRpcRelayChart (profileName) {
     if (!profileName) throw new MissingArgumentError('profileName is required')
@@ -396,7 +396,7 @@ export class ProfileManager {
   /**
    * Prepare a values file for mirror-node Helm chart
    * @param {string} profileName - resource profile name
-   * @returns {Promise<string>} return the full path to the values file
+   * @returns {Promise<string|void>} return the full path to the values file
    */
   prepareValuesForMirrorNodeChart (profileName) {
     if (!profileName) throw new MissingArgumentError('profileName is required')

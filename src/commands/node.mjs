@@ -64,7 +64,7 @@ import { NodeStatusCodes, NodeStatusEnums } from '../core/enumerations.mjs'
  */
 export class NodeCommand extends BaseCommand {
   /**
-   * @param {{logger: Logger, helm: Helm, k8: K8, chartManager: ChartManager, configManager: ConfigManager,
+   * @param {{logger: SoloLogger, helm: Helm, k8: K8, chartManager: ChartManager, configManager: ConfigManager,
    * depManager: DependencyManager, keytoolDepManager: KeytoolDependencyManager, downloader: PackageDownloader,
    * platformInstaller: PlatformInstaller, keyManager: KeyManager, accountManager: AccountManager,
    * profileManager: ProfileManager}} opts
@@ -513,6 +513,8 @@ export class NodeCommand extends BaseCommand {
         `[ attempt = ${chalk.blueBright(`${attempt}/${maxAttempts}`)} ]`)
     }
 
+    await sleep(1_500) // delaying prevents - gRPC service error
+
     return podName
   }
 
@@ -701,13 +703,13 @@ export class NodeCommand extends BaseCommand {
    * @param keysDir
    * @param stagingKeysDir
    * @param nodeIds
-   * @return return task for reparing staging directory
+   * @return return task for repairing staging directory
    */
   prepareStagingTask (ctx, task, keysDir, stagingKeysDir, nodeIds) {
     const subTasks = [
       {
         title: 'Copy Gossip keys to staging',
-        task: async (ctx, _) => {
+        task: async () => {
           // const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
 
           await this.keyManager.copyGossipKeysToStaging(keysDir, stagingKeysDir, nodeIds)
@@ -715,7 +717,7 @@ export class NodeCommand extends BaseCommand {
       },
       {
         title: 'Copy gRPC TLS keys to staging',
-        task: async (ctx, _) => {
+        task: async () => {
           // const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
           for (const nodeId of nodeIds) {
             const tlsKeyFiles = this.keyManager.prepareTLSKeyFilePaths(nodeId, keysDir)
@@ -1214,10 +1216,10 @@ export class NodeCommand extends BaseCommand {
       },
       {
         title: 'Enable port forwarding for JVM debugger',
-        task: async (ctx, _) => {
+        task: async (ctx) => {
           await this.enableJVMPortForwarding(ctx.config.debugNodeId)
         },
-        skip: (ctx, _) => !ctx.config.debugNodeId
+        skip: (ctx) => !ctx.config.debugNodeId
       },
       {
         title: 'Check nodes are ACTIVE',
@@ -1230,7 +1232,7 @@ export class NodeCommand extends BaseCommand {
         task: async (ctx, parentTask) => {
           return self.checkNodesProxiesTask(ctx, parentTask, ctx.config.nodeIds)
         },
-        skip: (ctx, _) => self.configManager.getFlag(flags.app) !== '' && self.configManager.getFlag(flags.app) !== constants.HEDERA_APP_NAME
+        skip: () => self.configManager.getFlag(flags.app) !== '' && self.configManager.getFlag(flags.app) !== constants.HEDERA_APP_NAME
       },
       {
         title: 'Add node stakes',
@@ -1411,7 +1413,7 @@ export class NodeCommand extends BaseCommand {
             }
           })
         },
-        skip: (ctx, _) => !ctx.config.generateGossipKeys
+        skip: (ctx) => !ctx.config.generateGossipKeys
       },
       {
         title: 'Generate gRPC TLS keys',
@@ -1427,11 +1429,11 @@ export class NodeCommand extends BaseCommand {
             }
           })
         },
-        skip: (ctx, _) => !ctx.config.generateTlsKeys
+        skip: (ctx) => !ctx.config.generateTlsKeys
       },
       {
         title: 'Finalize',
-        task: (ctx, _) => {
+        task: () => {
           // reset flags so that keys are not regenerated later
           self.configManager.setFlag(flags.generateGossipKeys, false)
           self.configManager.setFlag(flags.generateTlsKeys, false)
@@ -1566,7 +1568,7 @@ export class NodeCommand extends BaseCommand {
         task: async (ctx, task) => {
           return this.checkNodesProxiesTask(ctx, task, ctx.config.nodeIds)
         },
-        skip: (ctx, _) => ctx.config.app !== ''
+        skip: (ctx) => ctx.config.app !== ''
       }], {
       concurrent: false,
       rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
@@ -1605,7 +1607,7 @@ export class NodeCommand extends BaseCommand {
       },
       {
         title: 'Copy logs from all nodes',
-        task: (ctx, _) => {
+        task: (ctx) => {
           getNodeLogs(this.k8, ctx.config.namespace)
         }
       }
@@ -1763,7 +1765,7 @@ export class NodeCommand extends BaseCommand {
       self.addInitializeTask(argv),
       {
         title: 'Check that PVCs are enabled',
-        task: async (ctx, task) => {
+        task: async () => {
           if (!self.configManager.getFlag(flags.persistentVolumeClaims)) {
             throw new SoloError('PVCs are not enabled. Please enable PVCs before adding a node')
           }
@@ -1772,7 +1774,7 @@ export class NodeCommand extends BaseCommand {
       self.getIdentifyExistingNetworkNodesTask(argv),
       {
         title: 'Determine new node account number',
-        task: (ctx, task) => {
+        task: (ctx) => {
           const config = /** @type {NodeAddConfigClass} **/ ctx.config
           const values = { hedera: { nodes: [] } }
           let maxNum = 0
@@ -1819,7 +1821,7 @@ export class NodeCommand extends BaseCommand {
             }
           })
         },
-        skip: (ctx, _) => !ctx.config.generateGossipKeys
+        skip: (ctx) => !ctx.config.generateGossipKeys
       },
       {
         title: 'Generate gRPC TLS key',
@@ -1835,11 +1837,11 @@ export class NodeCommand extends BaseCommand {
             }
           })
         },
-        skip: (ctx, _) => !ctx.config.generateTlsKeys
+        skip: (ctx) => !ctx.config.generateTlsKeys
       },
       {
         title: 'Load signing key certificate',
-        task: async (ctx, task) => {
+        task: async (ctx) => {
           const config = /** @type {NodeAddConfigClass} **/ ctx.config
           const signingCertFile = Templates.renderGossipPemPublicKeyFile(constants.SIGNING_KEY_PREFIX, config.nodeId)
           const signingCertFullPath = path.join(config.keysDir, signingCertFile)
@@ -1848,7 +1850,7 @@ export class NodeCommand extends BaseCommand {
       },
       {
         title: 'Compute mTLS certificate hash',
-        task: async (ctx, task) => {
+        task: async (ctx) => {
           const config = /** @type {NodeAddConfigClass} **/ ctx.config
           const tlsCertFile = Templates.renderTLSPemPublicKeyFile(config.nodeId)
           const tlsCertFullPath = path.join(config.keysDir, tlsCertFile)
@@ -1858,7 +1860,7 @@ export class NodeCommand extends BaseCommand {
       },
       {
         title: 'Prepare gossip endpoints',
-        task: (ctx, task) => {
+        task: (ctx) => {
           const config = /** @type {NodeAddConfigClass} **/ ctx.config
           let endpoints = []
           if (!config.gossipEndpoints) {
@@ -1879,7 +1881,7 @@ export class NodeCommand extends BaseCommand {
       },
       {
         title: 'Prepare grpc service endpoints',
-        task: (ctx, task) => {
+        task: (ctx) => {
           const config = /** @type {NodeAddConfigClass} **/ ctx.config
           let endpoints = []
 
@@ -1900,7 +1902,7 @@ export class NodeCommand extends BaseCommand {
       },
       {
         title: 'Prepare upgrade zip file for node upgrade process',
-        task: async (ctx, task) => {
+        task: async (ctx) => {
           const config = /** @type {NodeAddConfigClass} **/ ctx.config
           ctx.upgradeZipFile = await this.prepareUpgradeZip(config.stagingDir)
           ctx.upgradeZipHash = await this.uploadUpgradeZip(ctx.upgradeZipFile, config.nodeClient)
@@ -1908,7 +1910,7 @@ export class NodeCommand extends BaseCommand {
       },
       {
         title: 'Check existing nodes staked amount',
-        task: async (ctx, task) => {
+        task: async (ctx) => {
           const config = /** @type {NodeAddConfigClass} **/ ctx.config
           await this.checkStakingTask(config.existingNodeIds)
         }
@@ -1952,7 +1954,7 @@ export class NodeCommand extends BaseCommand {
     return [
       {
         title: 'Send node create transaction',
-        task: async (ctx, task) => {
+        task: async (ctx) => {
           const config = /** @type {NodeAddConfigClass} **/ ctx.config
 
           try {
@@ -1976,14 +1978,14 @@ export class NodeCommand extends BaseCommand {
       },
       {
         title: 'Send prepare upgrade transaction',
-        task: async (ctx, task) => {
+        task: async (ctx) => {
           const config = /** @type {NodeAddConfigClass} **/ ctx.config
           await this.prepareUpgradeNetworkNodes(config.freezeAdminPrivateKey, ctx.upgradeZipHash, config.nodeClient)
         }
       },
       {
         title: 'Send freeze upgrade transaction',
-        task: async (ctx, task) => {
+        task: async (ctx) => {
           const config = /** @type {NodeAddConfigClass} **/ ctx.config
           await this.freezeUpgradeNetworkNodes(config.freezeAdminPrivateKey, ctx.upgradeZipHash, config.nodeClient)
         }
@@ -1998,7 +2000,7 @@ export class NodeCommand extends BaseCommand {
     return [
       {
         title: 'Download generated files from an existing node',
-        task: async (ctx, task) => {
+        task: async (ctx) => {
           const config = /** @type {NodeAddConfigClass} **/ ctx.config
           await this.downloadNodeGeneratedFiles(config)
         }
@@ -2024,20 +2026,20 @@ export class NodeCommand extends BaseCommand {
       },
       {
         title: 'Get node logs and configs',
-        task: async (ctx, task) => {
+        task: async (ctx) => {
           const config = /** @type {NodeAddConfigClass} **/ ctx.config
           await helpers.getNodeLogs(self.k8, config.namespace)
         }
       },
       {
         title: 'Deploy new network node',
-        task: async (ctx, task) => {
+        task: async (ctx) => {
           await this.chartUpdateTask(ctx)
         }
       },
       {
         title: 'Kill nodes to pick up updated configMaps',
-        task: async (ctx, task) => {
+        task: async (ctx) => {
           const config = /** @type {NodeAddConfigClass} **/ ctx.config
           for (const /** @type {NetworkNodeServices} **/ service of config.serviceMap.values()) {
             await self.k8.kubeClient.deleteNamespacedPod(service.nodePodName, config.namespace, undefined, undefined, 1)
@@ -2065,7 +2067,7 @@ export class NodeCommand extends BaseCommand {
       },
       {
         title: 'Download last state from an existing node',
-        task: async (ctx, task) => {
+        task: async (ctx) => {
           const config = /** @type {NodeAddConfigClass} **/ ctx.config
           const node1FullyQualifiedPodName = Templates.renderNetworkPodName(config.existingNodeIds[0])
           const upgradeDirectory = `${constants.HEDERA_HAPI_PATH}/data/saved/com.hedera.services.ServicesMain/0/123`
@@ -2078,7 +2080,7 @@ export class NodeCommand extends BaseCommand {
       {
         title: 'Upload last saved state to new network node',
         task:
-            async (ctx, task) => {
+            async (ctx) => {
               const config = /** @type {NodeAddConfigClass} **/ ctx.config
               const newNodeFullyQualifiedPodName = Templates.renderNetworkPodName(config.nodeId)
               const nodeNumber = Templates.nodeNumberFromNodeId(config.nodeId)
@@ -2105,10 +2107,10 @@ export class NodeCommand extends BaseCommand {
       },
       {
         title: 'Enable port forwarding for JVM debugger',
-        task: async (ctx, _) => {
+        task: async (ctx) => {
           await this.enableJVMPortForwarding(ctx.config.debugNodeId)
         },
-        skip: (ctx, _) => !ctx.config.debugNodeId
+        skip: (ctx) => !ctx.config.debugNodeId
       },
       {
         title: 'Check all nodes are ACTIVE',
@@ -2126,21 +2128,21 @@ export class NodeCommand extends BaseCommand {
       },
       {
         title: 'Stake new node',
-        task: async (ctx, _) => {
+        task: async (ctx) => {
           const config = /** @type {NodeAddConfigClass} **/ ctx.config
           await self.addStake(config.namespace, ctx.newNode.accountId, config.nodeId)
         }
       },
       {
         title: 'Trigger stake weight calculate',
-        task: async (ctx, task) => {
+        task: async (ctx) => {
           const config = /** @type {NodeAddConfigClass} **/ ctx.config
           await this.triggerStakeCalculation(config)
         }
       },
       {
         title: 'Finalize',
-        task: (ctx, _) => {
+        task: () => {
           // reset flags so that keys are not regenerated later
           self.configManager.setFlag(flags.generateGossipKeys, false)
           self.configManager.setFlag(flags.generateTlsKeys, false)
@@ -2334,7 +2336,7 @@ export class NodeCommand extends BaseCommand {
 
   /**
    * @param {Object} podNames
-   * @param {string} nodeIds
+   * @param {string[]} nodeIds
    * @param {Object[]} subTasks
    */
   startNodes (podNames, nodeIds, subTasks) {
@@ -2752,7 +2754,7 @@ export class NodeCommand extends BaseCommand {
       },
       {
         title: 'Prepare gossip endpoints',
-        task: (ctx, task) => {
+        task: (ctx) => {
           const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
           let endpoints = []
           if (!config.gossipEndpoints) {
@@ -2773,7 +2775,7 @@ export class NodeCommand extends BaseCommand {
       },
       {
         title: 'Prepare grpc service endpoints',
-        task: (ctx, task) => {
+        task: (ctx) => {
           const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
           let endpoints = []
 
@@ -2794,14 +2796,14 @@ export class NodeCommand extends BaseCommand {
       },
       {
         title: 'Load node admin key',
-        task: async (ctx, task) => {
+        task: async (ctx) => {
           const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
           config.adminKey = PrivateKey.fromStringED25519(constants.GENESIS_KEY)
         }
       },
       {
         title: 'Prepare upgrade zip file for node upgrade process',
-        task: async (ctx, task) => {
+        task: async (ctx) => {
           const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
           ctx.upgradeZipFile = await this.prepareUpgradeZip(config.stagingDir)
           ctx.upgradeZipHash = await this.uploadUpgradeZip(ctx.upgradeZipFile, config.nodeClient)
@@ -2809,14 +2811,14 @@ export class NodeCommand extends BaseCommand {
       },
       {
         title: 'Check existing nodes staked amount',
-        task: async (ctx, task) => {
+        task: async (ctx) => {
           const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
           await this.checkStakingTask(config.existingNodeIds)
         }
       },
       {
         title: 'Send node update transaction',
-        task: async (ctx, task) => {
+        task: async (ctx) => {
           const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
 
           const nodeId = Templates.nodeNumberFromNodeId(config.nodeId) - 1
@@ -2878,21 +2880,21 @@ export class NodeCommand extends BaseCommand {
       },
       {
         title: 'Send prepare upgrade transaction',
-        task: async (ctx, task) => {
+        task: async (ctx) => {
           const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
           await this.prepareUpgradeNetworkNodes(config.freezeAdminPrivateKey, ctx.upgradeZipHash, config.nodeClient)
         }
       },
       {
         title: 'Download generated files from an existing node',
-        task: async (ctx, task) => {
+        task: async (ctx) => {
           const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
           await this.downloadNodeGeneratedFiles(config)
         }
       },
       {
         title: 'Send freeze upgrade transaction',
-        task: async (ctx, task) => {
+        task: async (ctx) => {
           const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
           await this.freezeUpgradeNetworkNodes(config.freezeAdminPrivateKey, ctx.upgradeZipHash, config.nodeClient)
         }
@@ -2918,22 +2920,22 @@ export class NodeCommand extends BaseCommand {
       },
       {
         title: 'Get node logs and configs',
-        task: async (ctx, task) => {
+        task: async (ctx) => {
           const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
           await helpers.getNodeLogs(self.k8, config.namespace)
         }
       },
       {
         title: 'Update chart to use new configMap due to account number change',
-        task: async (ctx, task) => {
+        task: async (ctx) => {
           await this.chartUpdateTask(ctx)
         },
         // no need to run this step if the account number is not changed, since config.txt will be the same
-        skip: (ctx, _) => !ctx.config.newAccountNumber && !ctx.config.debugNodeId
+        skip: (ctx) => !ctx.config.newAccountNumber && !ctx.config.debugNodeId
       },
       {
         title: 'Kill nodes to pick up updated configMaps',
-        task: async (ctx, task) => {
+        task: async (ctx) => {
           const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
           // the updated node will have a new pod ID if its account ID changed which is a label
           config.serviceMap = await self.accountManager.getNodeServiceMap(
@@ -2983,10 +2985,10 @@ export class NodeCommand extends BaseCommand {
       },
       {
         title: 'Enable port forwarding for JVM debugger',
-        task: async (ctx, _) => {
+        task: async (ctx) => {
           await this.enableJVMPortForwarding(ctx.config.debugNodeId)
         },
-        skip: (ctx, _) => !ctx.config.debugNodeId
+        skip: (ctx) => !ctx.config.debugNodeId
       },
       {
         title: 'Check all nodes are ACTIVE',
@@ -3004,14 +3006,14 @@ export class NodeCommand extends BaseCommand {
       },
       {
         title: 'Trigger stake weight calculate',
-        task: async (ctx, task) => {
+        task: async (ctx) => {
           const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
           await this.triggerStakeCalculation(config)
         }
       },
       {
         title: 'Finalize',
-        task: (ctx, _) => {
+        task: () => {
           // reset flags so that keys are not regenerated later
           self.configManager.setFlag(flags.generateGossipKeys, false)
           self.configManager.setFlag(flags.generateTlsKeys, false)
@@ -3150,14 +3152,14 @@ export class NodeCommand extends BaseCommand {
       },
       {
         title: 'Load node admin key',
-        task: async (ctx, task) => {
+        task: async (ctx) => {
           const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
           config.adminKey = PrivateKey.fromStringED25519(constants.GENESIS_KEY)
         }
       },
       {
         title: 'Prepare upgrade zip file for node upgrade process',
-        task: async (ctx, task) => {
+        task: async (ctx) => {
           const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
           ctx.upgradeZipFile = await this.prepareUpgradeZip(config.stagingDir)
           ctx.upgradeZipHash = await this.uploadUpgradeZip(ctx.upgradeZipFile, config.nodeClient)
@@ -3165,7 +3167,7 @@ export class NodeCommand extends BaseCommand {
       },
       {
         title: 'Check existing nodes staked amount',
-        task: async (ctx, task) => {
+        task: async (ctx) => {
           const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
           await this.checkStakingTask(config.existingNodeIds)
         }
@@ -3179,7 +3181,7 @@ export class NodeCommand extends BaseCommand {
     return [
       {
         title: 'Download generated files from an existing node',
-        task: async (ctx, task) => {
+        task: async (ctx) => {
           const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
           await this.downloadNodeGeneratedFiles(config)
         }
@@ -3207,20 +3209,20 @@ export class NodeCommand extends BaseCommand {
       },
       {
         title: 'Get node logs and configs',
-        task: async (ctx, task) => {
+        task: async (ctx) => {
           const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
           await helpers.getNodeLogs(self.k8, config.namespace)
         }
       },
       {
         title: 'Update chart to use new configMap',
-        task: async (ctx, task) => {
+        task: async (ctx) => {
           await this.chartUpdateTask(ctx)
         }
       },
       {
         title: 'Kill nodes to pick up updated configMaps',
-        task: async (ctx, task) => {
+        task: async (ctx) => {
           const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
           for (const /** @type {NetworkNodeServices} **/ service of config.serviceMap.values()) {
             await self.k8.kubeClient.deleteNamespacedPod(service.nodePodName, config.namespace, undefined, undefined, 1)
@@ -3229,25 +3231,23 @@ export class NodeCommand extends BaseCommand {
       },
       {
         title: 'Check node pods are running',
-        task:
-            async (ctx, task) => {
-              self.logger.info('sleep 20 seconds to give time for pods to come up after being killed')
-              await sleep(20000)
-              const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
-              return this.checkPodRunningTask(ctx, task, config.allNodeIds)
-            }
+        task: async (ctx, task) => {
+          self.logger.info('sleep 20 seconds to give time for pods to come up after being killed')
+          await sleep(20000)
+          const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
+          return this.checkPodRunningTask(ctx, task, config.allNodeIds)
+        }
       },
       {
         title: 'Fetch platform software into all network nodes',
-        task:
-            async (ctx, task) => {
-              const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
-              config.serviceMap = await self.accountManager.getNodeServiceMap(
-                config.namespace)
-              config.podNames[config.nodeId] = config.serviceMap.get(
-                config.nodeId).nodePodName
-              return self.fetchLocalOrReleasedPlatformSoftware(config.allNodeIds, config.podNames, config.releaseTag, task, config.localBuildPath)
-            }
+        task: async (ctx, task) => {
+          const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
+          config.serviceMap = await self.accountManager.getNodeServiceMap(
+            config.namespace)
+          config.podNames[config.nodeId] = config.serviceMap.get(
+            config.nodeId).nodePodName
+          return self.fetchLocalOrReleasedPlatformSoftware(config.allNodeIds, config.podNames, config.releaseTag, task, config.localBuildPath)
+        }
       },
       {
         title: 'Setup network nodes',
@@ -3264,10 +3264,10 @@ export class NodeCommand extends BaseCommand {
       },
       {
         title: 'Enable port forwarding for JVM debugger',
-        task: async (ctx, _) => {
+        task: async (ctx) => {
           await this.enableJVMPortForwarding(ctx.config.debugNodeId)
         },
-        skip: (ctx, _) => !ctx.config.debugNodeId
+        skip: (ctx) => !ctx.config.debugNodeId
       },
       {
         title: 'Check all nodes are ACTIVE',
@@ -3285,14 +3285,14 @@ export class NodeCommand extends BaseCommand {
       },
       {
         title: 'Trigger stake weight calculate',
-        task: async (ctx, task) => {
+        task: async (ctx) => {
           const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
           await this.triggerStakeCalculation(config)
         }
       },
       {
         title: 'Finalize',
-        task: (ctx, _) => {
+        task: () => {
           // reset flags so that keys are not regenerated later
           self.configManager.setFlag(flags.generateGossipKeys, false)
           self.configManager.setFlag(flags.generateTlsKeys, false)

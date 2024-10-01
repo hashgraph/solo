@@ -16,14 +16,14 @@
  */
 import { describe, expect, it, jest } from '@jest/globals'
 import { ShellRunner } from '../../../src/core/shell_runner.mjs'
-import { NewLogger, Logger } from '../../../src/core/logging.mjs'
+import { NewLogger, SoloLogger } from '../../../src/core/logging.mjs'
 import { ChildProcess } from 'child_process'
 import { Readable } from 'stream'
 
 describe('ShellRunner', () => {
   const logger = NewLogger('debug')
   const shellRunner = new ShellRunner(logger)
-  const loggerSpy = jest.spyOn(Logger.prototype, 'debug').mockImplementation()
+  const loggerSpy = jest.spyOn(SoloLogger.prototype, 'debug').mockImplementation()
   const childProcessSpy = jest.spyOn(ChildProcess.prototype, 'on')
   const readableSpy = jest.spyOn(Readable.prototype, 'on')
 

@@ -37,15 +37,16 @@ import * as stream from 'node:stream'
  * For parallel execution, create separate instances by invoking clone()
  */
 export class K8 {
+  /** @type {Map<string, string>} */
   static PodReadyCondition = new Map().set(constants.POD_CONDITION_READY, constants.POD_CONDITION_STATUS_TRUE)
 
   /**
    * @param {ConfigManager} configManager
-   * @param {Logger} logger
+   * @param {SoloLogger} logger
    */
   constructor (configManager, logger) {
     if (!configManager) throw new MissingArgumentError('An instance of core/ConfigManager is required')
-    if (!logger) throw new MissingArgumentError('An instance of core/Logger is required')
+    if (!logger) throw new MissingArgumentError('An instance of core/SoloLogger is required')
 
     this.configManager = configManager
     this.logger = logger
@@ -165,7 +166,7 @@ export class K8 {
 
   /**
    * Get a list of namespaces
-   * @returns {string[]} list of namespaces
+   * @returns {Promise<string[]>} list of namespaces
    */
   async getNamespaces () {
     const resp = await this.kubeClient.listNamespace()
@@ -213,7 +214,7 @@ export class K8 {
   /**
    * Get pods by labels
    * @param {string[]} labels - list of labels
-   * @returns {Promise<Array<V1Pod>>}
+   * @returns {Promise<Array<k8s.V1Pod>>}
    */
   async getPodsByLabel (labels = []) {
     const ns = this._getNamespace()
@@ -301,7 +302,7 @@ export class K8 {
 
   /**
    * Get a list of clusters
-   * @returns {string[]} a list of cluster names
+   * @returns {Promise<string[]>} a list of cluster names
    */
   async getClusters () {
     const clusters = []
@@ -342,10 +343,9 @@ export class K8 {
    * @param {string} podName
    * @param {string} containerName
    * @param {string} destPath - path inside the container
-   * @param {number} [timeout] - timeout in ms
    * @returns a promise that returns array of directory entries, custom object
    */
-  async listDir (podName, containerName, destPath, timeout = 5000) {
+  async listDir (podName, containerName, destPath) {
     try {
       const output = await this.execContainer(podName, containerName, ['ls', '-la', destPath])
       if (!output) return []
@@ -757,6 +757,12 @@ export class K8 {
   }
 
   /**
+   * @typedef {net.Server} ExtendedServer
+   * @property {number} localPort
+   * @property {string} info
+   */
+
+  /**
    * Port forward a port from a pod to localhost
    *
    * This simple server just forwards traffic from itself to a service running in kubernetes
@@ -765,7 +771,7 @@ export class K8 {
    * @param {string} podName
    * @param {number} localPort
    * @param {number} podPort
-   * @returns {Promise<net.Server>}
+   * @returns {Promise<ExtendedServer>}
    */
   async portForward (podName, localPort, podPort) {
     const ns = this._getNamespace()
@@ -808,7 +814,7 @@ export class K8 {
   /**
    * Stop the port forwarder server
    *
-   * @param {net.Server} server - an instance of server returned by portForward method
+   * @param {ExtendedServer} server - an instance of server returned by portForward method
    * @param {number} [maxAttempts] - the maximum number of attempts to check if the server is stopped
    * @param {number} [timeout] - the delay between checks in milliseconds
    * @returns {Promise<void>}
@@ -845,7 +851,7 @@ export class K8 {
       attempts++
 
       try {
-        const isPortOpen = await new Promise((resolve, reject) => {
+        const isPortOpen = await new Promise((resolve) => {
           const testServer = net.createServer()
             .once('error', err => {
               if (err) {
@@ -886,7 +892,7 @@ export class K8 {
    * @param {number} [podCount] - number of pod expected
    * @param {number} [maxAttempts] - maximum attempts to check
    * @param {number} [delay] - delay between checks in milliseconds
-   * @param {Function} podItemPredicate - a predicate function to check the pod item
+   * @param {Function} [podItemPredicate] - a predicate function to check the pod item
    * @returns {Promise<Object[]>} a Promise that checks the status of an array of pods
    */
   async waitForPods (phases = [constants.POD_PHASE_RUNNING], labels = [], podCount = 1, maxAttempts = 10, delay = 500, podItemPredicate) {
