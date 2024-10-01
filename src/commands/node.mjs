@@ -929,78 +929,6 @@ export class NodeCommand extends BaseCommand {
     return ret
   }
 
-  async prepareUpgradeZip (stagingDir) {
-    // we build a mock upgrade.zip file as we really don't need to upgrade the network
-    // also the platform zip file is ~80Mb in size requiring a lot of transactions since the max
-    // transaction size is 6Kb and in practice we need to send the file as 4Kb chunks.
-    // Note however that in DAB phase-2, we won't need to trigger this fake upgrade process
-    const zipper = new Zippy(this.logger)
-    const upgradeConfigDir = path.join(stagingDir, 'mock-upgrade', 'data', 'config')
-    if (!fs.existsSync(upgradeConfigDir)) {
-      fs.mkdirSync(upgradeConfigDir, { recursive: true })
-    }
-
-    // bump field hedera.config.version
-    const fileBytes = fs.readFileSync(path.join(stagingDir, 'templates', 'application.properties'))
-    const lines = fileBytes.toString().split('\n')
-    const newLines = []
-    for (let line of lines) {
-      line = line.trim()
-      const parts = line.split('=')
-      if (parts.length === 2) {
-        if (parts[0] === 'hedera.config.version') {
-          let version = parseInt(parts[1])
-          line = `hedera.config.version=${++version}`
-        }
-        newLines.push(line)
-      }
-    }
-    fs.writeFileSync(path.join(upgradeConfigDir, 'application.properties'), newLines.join('\n'))
-
-    return await zipper.zip(path.join(stagingDir, 'mock-upgrade'), path.join(stagingDir, 'mock-upgrade.zip'))
-  }
-
-  /**
-   * @param {string} upgradeZipFile
-   * @param nodeClient
-   * @returns {Promise<string>}
-   */
-  async uploadUpgradeZip (upgradeZipFile, nodeClient) {
-    // get byte value of the zip file
-    const zipBytes = fs.readFileSync(upgradeZipFile)
-    const zipHash = crypto.createHash('sha384').update(zipBytes).digest('hex')
-    this.logger.debug(`loaded upgrade zip file [ zipHash = ${zipHash} zipBytes.length = ${zipBytes.length}, zipPath = ${upgradeZipFile}]`)
-
-    // create a file upload transaction to upload file to the network
-    try {
-      let start = 0
-
-      while (start < zipBytes.length) {
-        const zipBytesChunk = new Uint8Array(zipBytes.subarray(start, constants.UPGRADE_FILE_CHUNK_SIZE))
-        let fileTransaction = null
-
-        if (start === 0) {
-          fileTransaction = new FileUpdateTransaction()
-            .setFileId(constants.UPGRADE_FILE_ID)
-            .setContents(zipBytesChunk)
-        } else {
-          fileTransaction = new FileAppendTransaction()
-            .setFileId(constants.UPGRADE_FILE_ID)
-            .setContents(zipBytesChunk)
-        }
-        const resp = await fileTransaction.execute(nodeClient)
-        const receipt = await resp.getReceipt(nodeClient)
-        this.logger.debug(`updated file ${constants.UPGRADE_FILE_ID} [chunkSize= ${zipBytesChunk.length}, txReceipt = ${receipt.toString()}]`)
-
-        start += constants.UPGRADE_FILE_CHUNK_SIZE
-      }
-
-      return zipHash
-    } catch (e) {
-      throw new SoloError(`failed to upload build.zip file: ${e.message}`, e)
-    }
-  }
-
   // List of Commands
   /**
    * @param {Object} argv
@@ -2952,20 +2880,20 @@ export class NodeCommand extends BaseCommand {
         const treasuryAccountPrivateKey = treasuryAccount.privateKey
         config.treasuryKey = PrivateKey.fromStringED25519(treasuryAccountPrivateKey)
 
-          self.logger.debug('Initialized config', { config })
+        self.logger.debug('Initialized config', { config })
       }
     }
   }
 
-    deletePrepareTasks (argv) {
-      return [
+  deletePrepareTasks (argv) {
+    return [
       this.deleteInitializeTask(argv),
       this.tasks.identifyExistingNodes(),
       this.tasks.loadAdminKey(),
       this.tasks.prepareUpgradeZip(),
-      this.tasks.checkExistingNodesStakedAmount(),
-      ]
-    }
+      this.tasks.checkExistingNodesStakedAmount()
+    ]
+  }
 
   deleteExecuteTasks (argv) {
     const self = this
@@ -3093,7 +3021,6 @@ export class NodeCommand extends BaseCommand {
   deleteSubmitTransactionsTasks (argv) {
     return [
 
-
       {
         title: 'Send node delete transaction',
         task: async (ctx, task) => {
@@ -3118,8 +3045,8 @@ export class NodeCommand extends BaseCommand {
           }
         }
       },
-        this.tasks.sendPrepareUpgradeTransaction(),
-        this.tasks.sendFreezeUpgradeTransaction(),
+      this.tasks.sendPrepareUpgradeTransaction(),
+      this.tasks.sendFreezeUpgradeTransaction()
     ]
   }
 
