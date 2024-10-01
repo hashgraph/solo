@@ -131,7 +131,7 @@ export class NodeCommand extends BaseCommand {
   static get START_FLAGS_LIST () {
     return [
       flags.app,
-      flags.debugNodeId,
+      flags.debugNodeAlias,
       flags.namespace,
       flags.nodeAliasesUnparsed,
       flags.quiet
@@ -210,7 +210,7 @@ export class NodeCommand extends BaseCommand {
       flags.chainId,
       flags.chartDirectory,
       flags.devMode,
-      flags.debugNodeId,
+      flags.debugNodeAlias,
       flags.endpointType,
       flags.fstChartVersion,
       flags.generateGossipKeys,
@@ -309,7 +309,7 @@ export class NodeCommand extends BaseCommand {
       flags.cacheDir,
       flags.chartDirectory,
       flags.devMode,
-      flags.debugNodeId,
+      flags.debugNodeAlias,
       flags.endpointType,
       flags.localBuildPath,
       flags.namespace,
@@ -329,7 +329,7 @@ export class NodeCommand extends BaseCommand {
       flags.cacheDir,
       flags.chartDirectory,
       flags.devMode,
-      flags.debugNodeId,
+      flags.debugNodeAlias,
       flags.endpointType,
       flags.fstChartVersion,
       flags.gossipEndpoints,
@@ -389,7 +389,7 @@ export class NodeCommand extends BaseCommand {
       // Create the transaction
       const transaction = await new AccountUpdateTransaction()
         .setAccountId(accountId)
-        .setStakedNodeId(Templates.nodeNumberFromNodeAlias(nodeAlias) - 1)
+        .setStakedNodeId(Templates.nodeIdFromNodeAlias(nodeAlias) - 1)
         .freezeWith(client)
 
       // Sign the transaction with the account's private key
@@ -530,7 +530,7 @@ export class NodeCommand extends BaseCommand {
     const { config: { namespace } } = ctx
 
     const subTasks = nodeAliases.map((nodeAlias, i) => {
-      const reminder = ('debugNodeId' in ctx.config && ctx.config.debugNodeId === nodeAlias) ? 'Please attach JVM debugger now.' : ''
+      const reminder = ('debugNodeAlias' in ctx.config && ctx.config.debugNodeAlias === nodeAlias) ? 'Please attach JVM debugger now.' : ''
       const title = `Check network pod: ${chalk.yellow(nodeAlias)} ${chalk.red(reminder)}`
 
       const subTask = async (ctx, task) => {
@@ -760,7 +760,7 @@ export class NodeCommand extends BaseCommand {
     }
 
     const index = config.existingNodeAliases.length
-    const nodeId = Templates.nodeNumberFromNodeAlias(config.nodeAlias) - 1
+    const nodeId = Templates.nodeIdFromNodeAlias(config.nodeAlias) - 1
 
     let valuesArg = ''
     for (let i = 0; i < index; i++) {
@@ -783,7 +783,7 @@ export class NodeCommand extends BaseCommand {
       valuesArg += this.prepareValuesFiles(this.profileValuesFile)
     }
 
-    valuesArg = addDebugOptions(valuesArg, config.debugNodeId)
+    valuesArg = addDebugOptions(valuesArg, config.debugNodeAlias)
 
     await this.chartManager.upgrade(
       config.namespace,
@@ -830,7 +830,7 @@ export class NodeCommand extends BaseCommand {
     config.serviceMap = await this.accountManager.getNodeServiceMap(
       config.namespace)
     for (/** @type {NetworkNodeServices} **/ const networkNodeServices of config.serviceMap.values()) {
-      config.existingNodeAliases.push(networkNodeServices.nodeName)
+      config.existingNodeAliases.push(networkNodeServices.nodeAlias)
     }
     config.allNodeAliases = [...config.existingNodeAliases]
     return this.taskCheckNetworkNodePods(ctx, task, config.existingNodeAliases)
@@ -1188,7 +1188,7 @@ export class NodeCommand extends BaseCommand {
           ctx.config = {
             app: self.configManager.getFlag(flags.app),
             cacheDir: self.configManager.getFlag(flags.cacheDir),
-            debugNodeId: self.configManager.getFlag(flags.debugNodeId),
+            debugNodeAlias: self.configManager.getFlag(flags.debugNodeAlias),
             namespace: self.configManager.getFlag(flags.namespace),
             nodeAliases: helpers.parseNodeAliases(self.configManager.getFlag(flags.nodeAliasesUnparsed))
           }
@@ -1219,9 +1219,9 @@ export class NodeCommand extends BaseCommand {
       {
         title: 'Enable port forwarding for JVM debugger',
         task: async (ctx) => {
-          await this.enableJVMPortForwarding(ctx.config.debugNodeId)
+          await this.enableJVMPortForwarding(ctx.config.debugNodeAlias)
         },
-        skip: (ctx) => !ctx.config.debugNodeId
+        skip: (ctx) => !ctx.config.debugNodeAlias
       },
       {
         title: 'Check nodes are ACTIVE',
@@ -1647,7 +1647,7 @@ export class NodeCommand extends BaseCommand {
           flags.chartDirectory,
           flags.outputDir,
           flags.devMode,
-          flags.debugNodeId,
+          flags.debugNodeAlias,
           flags.endpointType,
           flags.force,
           flags.fstChartVersion,
@@ -1666,7 +1666,7 @@ export class NodeCommand extends BaseCommand {
            * @property {string} chainId
            * @property {string} chartDirectory
            * @property {boolean} devMode
-           * @property {string} debugNodeId
+           * @property {string} debugNodeAlias
            * @property {string} endpointType
            * @property {string} fstChartVersion
            * @property {boolean} generateGossipKeys
@@ -1783,32 +1783,32 @@ export class NodeCommand extends BaseCommand {
           const values = { hedera: { nodes: [] } }
           let maxNum = 0
 
-          let lastNodeName = DEFAULT_NETWORK_NODE_NAME
+          let lastNodeAlias = DEFAULT_NETWORK_NODE_NAME
 
           for (/** @type {NetworkNodeServices} **/ const networkNodeServices of config.serviceMap.values()) {
             values.hedera.nodes.push({
               accountId: networkNodeServices.accountId,
-              name: networkNodeServices.nodeName
+              name: networkNodeServices.nodeAlias
             })
             maxNum = maxNum > AccountId.fromString(networkNodeServices.accountId).num
               ? maxNum
               : AccountId.fromString(networkNodeServices.accountId).num
-            lastNodeName = networkNodeServices.nodeName
+            lastNodeAlias = networkNodeServices.nodeAlias
           }
 
-          const lastNodeNumberMatch = lastNodeName.match(/\d+$/)
-          if (lastNodeNumberMatch.length) {
-            const incremented = parseInt(lastNodeNumberMatch[0]) + 1
-            lastNodeName = lastNodeName.replace(/\d+$/, incremented.toString())
+          const lastNodeIdMatch = lastNodeAlias.match(/\d+$/)
+          if (lastNodeIdMatch.length) {
+            const incremented = parseInt(lastNodeIdMatch[0]) + 1
+            lastNodeAlias = lastNodeAlias.replace(/\d+$/, incremented.toString())
           }
 
           ctx.maxNum = maxNum
           ctx.newNode = {
             accountId: `${constants.HEDERA_NODE_ACCOUNT_ID_START.realm}.${constants.HEDERA_NODE_ACCOUNT_ID_START.shard}.${++maxNum}`,
-            name: lastNodeName
+            name: lastNodeAlias
           }
-          config.nodeAlias = lastNodeName
-          config.allNodeAliases.push(lastNodeName)
+          config.nodeAlias = lastNodeAlias
+          config.allNodeAliases.push(lastNodeAlias)
         }
       },
       {
@@ -2087,9 +2087,9 @@ export class NodeCommand extends BaseCommand {
             async (ctx) => {
               const config = /** @type {NodeAddConfigClass} **/ ctx.config
               const newNodeFullyQualifiedPodName = Templates.renderNetworkPodName(config.nodeAlias)
-              const nodeNumber = Templates.nodeNumberFromNodeAlias(config.nodeAlias)
+              const nodeId = Templates.nodeIdFromNodeAlias(config.nodeAlias)
               const savedStateDir = (config.lastStateZipPath.match(/\/(\d+)\.zip$/))[1]
-              const savedStatePath = `${constants.HEDERA_HAPI_PATH}/data/saved/com.hedera.services.ServicesMain/${nodeNumber}/123/${savedStateDir}`
+              const savedStatePath = `${constants.HEDERA_HAPI_PATH}/data/saved/com.hedera.services.ServicesMain/${nodeId}/123/${savedStateDir}`
               await self.k8.execContainer(newNodeFullyQualifiedPodName, constants.ROOT_CONTAINER, ['bash', '-c', `mkdir -p ${savedStatePath}`])
               await self.k8.copyTo(newNodeFullyQualifiedPodName, constants.ROOT_CONTAINER, config.lastStateZipPath, savedStatePath)
               await self.platformInstaller.setPathPermission(newNodeFullyQualifiedPodName, constants.HEDERA_HAPI_PATH)
@@ -2112,9 +2112,9 @@ export class NodeCommand extends BaseCommand {
       {
         title: 'Enable port forwarding for JVM debugger',
         task: async (ctx) => {
-          await this.enableJVMPortForwarding(ctx.config.debugNodeId)
+          await this.enableJVMPortForwarding(ctx.config.debugNodeAlias)
         },
-        skip: (ctx) => !ctx.config.debugNodeId
+        skip: (ctx) => !ctx.config.debugNodeAlias
       },
       {
         title: 'Check all nodes are ACTIVE',
@@ -2654,7 +2654,7 @@ export class NodeCommand extends BaseCommand {
             flags.app,
             flags.chartDirectory,
             flags.devMode,
-            flags.debugNodeId,
+            flags.debugNodeAlias,
             flags.endpointType,
             flags.force,
             flags.fstChartVersion,
@@ -2678,7 +2678,7 @@ export class NodeCommand extends BaseCommand {
            * @property {string} cacheDir
            * @property {string} chartDirectory
            * @property {boolean} devMode
-           * @property {string} debugNodeId
+           * @property {string} debugNodeAlias
            * @property {string} endpointType
            * @property {string} fstChartVersion
            * @property {string} gossipEndpoints
@@ -2829,7 +2829,7 @@ export class NodeCommand extends BaseCommand {
         task: async (ctx) => {
           const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
 
-          const nodeId = Templates.nodeNumberFromNodeAlias(config.nodeAlias) - 1
+          const nodeId = Templates.nodeIdFromNodeAlias(config.nodeAlias) - 1
           self.logger.info(`nodeId: ${nodeId}`)
           self.logger.info(`config.newAccountNumber: ${config.newAccountNumber}`)
 
@@ -2939,7 +2939,7 @@ export class NodeCommand extends BaseCommand {
           await this.chartUpdateTask(ctx)
         },
         // no need to run this step if the account number is not changed, since config.txt will be the same
-        skip: (ctx) => !ctx.config.newAccountNumber && !ctx.config.debugNodeId
+        skip: (ctx) => !ctx.config.newAccountNumber && !ctx.config.debugNodeAlias
       },
       {
         title: 'Kill nodes to pick up updated configMaps',
@@ -2959,7 +2959,7 @@ export class NodeCommand extends BaseCommand {
             config.namespace)
           config.podNames = {}
           for (const service of config.serviceMap.values()) {
-            config.podNames[service.nodeName] = service.nodePodName
+            config.podNames[service.nodeAlias] = service.nodePodName
           }
         }
       },
@@ -2994,9 +2994,9 @@ export class NodeCommand extends BaseCommand {
       {
         title: 'Enable port forwarding for JVM debugger',
         task: async (ctx) => {
-          await this.enableJVMPortForwarding(ctx.config.debugNodeId)
+          await this.enableJVMPortForwarding(ctx.config.debugNodeAlias)
         },
-        skip: (ctx) => !ctx.config.debugNodeId
+        skip: (ctx) => !ctx.config.debugNodeAlias
       },
       {
         title: 'Check all nodes are ACTIVE',
@@ -3060,7 +3060,7 @@ export class NodeCommand extends BaseCommand {
           flags.chainId,
           flags.chartDirectory,
           flags.devMode,
-          flags.debugNodeId,
+          flags.debugNodeAlias,
           flags.endpointType,
           flags.force,
           flags.fstChartVersion,
@@ -3076,7 +3076,7 @@ export class NodeCommand extends BaseCommand {
        * @property {string} cacheDir
        * @property {string} chartDirectory
        * @property {boolean} devMode
-       * @property {string} debugNodeId
+       * @property {string} debugNodeAlias
        * @property {string} endpointType
        * @property {string} fstChartVersion
        * @property {string} localBuildPath
@@ -3271,9 +3271,9 @@ export class NodeCommand extends BaseCommand {
       {
         title: 'Enable port forwarding for JVM debugger',
         task: async (ctx) => {
-          await this.enableJVMPortForwarding(ctx.config.debugNodeId)
+          await this.enableJVMPortForwarding(ctx.config.debugNodeAlias)
         },
-        skip: (ctx) => !ctx.config.debugNodeId
+        skip: (ctx) => !ctx.config.debugNodeAlias
       },
       {
         title: 'Check all nodes are ACTIVE',
@@ -3319,7 +3319,7 @@ export class NodeCommand extends BaseCommand {
             const accountMap = getNodeAccountMap(config.existingNodeAliases)
             const deleteAccountId = accountMap.get(config.nodeAlias)
             this.logger.debug(`Deleting node: ${config.nodeAlias} with account: ${deleteAccountId}`)
-            const nodeId = Templates.nodeNumberFromNodeAlias(config.nodeAlias) - 1
+            const nodeId = Templates.nodeIdFromNodeAlias(config.nodeAlias) - 1
             const nodeDeleteTx = await new NodeDeleteTransaction()
               .setNodeId(nodeId)
               .freezeWith(config.nodeClient)

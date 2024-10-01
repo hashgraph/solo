@@ -252,7 +252,7 @@ export class Templates {
    * @param {string} svcName
    * @returns {NodeAlias}
    */
-  static nodeIdFromFullyQualifiedNetworkSvcName (svcName) {
+  static nodeAliasFromFullyQualifiedNetworkSvcName (svcName) {
     const parts = svcName.split('.')
     return this.nodeAliasFromNetworkSvcName(parts[0])
   }
@@ -261,7 +261,7 @@ export class Templates {
    * @param {NodeAlias} nodeAlias
    * @returns {NodeId}
    */
-  static nodeNumberFromNodeAlias (nodeAlias) {
+  static nodeIdFromNodeAlias (nodeAlias) {
     for (let i = nodeAlias.length - 1; i > 0; i--) {
       if (isNaN(nodeAlias[i])) {
         return parseInt(nodeAlias.substring(i + 1, nodeAlias.length))

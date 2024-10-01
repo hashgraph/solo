@@ -327,8 +327,8 @@ export class AccountManager {
     const pods = await this.k8.getPodsByLabel(['fullstack.hedera.com/type=network-node'])
     for (const pod of pods) {
       const podName = pod.metadata.name
-      const nodeName = pod.metadata.labels['fullstack.hedera.com/node-name']
-      const serviceBuilder = /** @type {NetworkNodeServicesBuilder} **/ serviceBuilderMap.get(nodeName)
+      const nodeAlias = pod.metadata.labels['fullstack.hedera.com/node-name']
+      const serviceBuilder = /** @type {NetworkNodeServicesBuilder} **/ serviceBuilderMap.get(nodeAlias)
       serviceBuilder.withNodePodName(podName)
     }
 

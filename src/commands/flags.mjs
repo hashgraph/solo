@@ -712,9 +712,9 @@ export const persistentVolumeClaims = {
 }
 
 /** @type {CommandFlag} **/
-export const debugNodeId = {
-  constName: 'debugNodeId',
-  name: 'debug-nodeid',
+export const debugNodeAlias = {
+  constName: 'debugNodeAlias',
+  name: 'debug-node-alias',
   definition: {
     describe: 'Enable default jvm debug port (5005) for the given node id',
     defaultValue: '',
@@ -816,7 +816,7 @@ export const allFlags = [
   grpcEndpoints,
   hederaExplorerTlsHostName,
   hederaExplorerTlsLoadBalancerIp,
-  debugNodeId,
+  debugNodeAlias,
   localBuildPath,
   log4j2Xml,
   namespace,

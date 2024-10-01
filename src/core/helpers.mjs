@@ -352,7 +352,7 @@ export function renameAndCopyFile (srcFilePath, expectedBaseName, destDir) {
  */
 export function addDebugOptions (valuesArg, debugNodeAlias, index = 0) {
   if (debugNodeAlias) {
-    const nodeId = Templates.nodeNumberFromNodeAlias(debugNodeAlias) - 1
+    const nodeId = Templates.nodeIdFromNodeAlias(debugNodeAlias) - 1
     valuesArg += ` --set "hedera.nodes[${nodeId}].root.extraEnv[${index}].name=JAVA_OPTS"`
     valuesArg += ` --set "hedera.nodes[${nodeId}].root.extraEnv[${index}].value=-agentlib:jdwp=transport=dt_socket\\,server=y\\,suspend=y\\,address=*:${constants.JVM_DEBUG_PORT}"`
   }

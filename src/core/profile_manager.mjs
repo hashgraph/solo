@@ -476,16 +476,16 @@ export class ProfileManager {
 
       let nodeSeq = 0
       for (const nodeAlias of nodeAccountMap.keys()) {
-        const nodeName = nodeAlias
+        const nodeAlias = nodeAlias
 
-        const internalIP = Templates.renderFullyQualifiedNetworkPodName(namespace, nodeName)
-        const externalIP = Templates.renderFullyQualifiedNetworkSvcName(namespace, nodeName)
+        const internalIP = Templates.renderFullyQualifiedNetworkPodName(namespace, nodeAlias)
+        const externalIP = Templates.renderFullyQualifiedNetworkSvcName(namespace, nodeAlias)
 
         const account = nodeAccountMap.get(nodeAlias)
         if (releaseVersion.minor >= 40) {
-          configLines.push(`address, ${nodeSeq}, ${nodeSeq}, ${nodeName}, ${nodeStakeAmount}, ${internalIP}, ${internalPort}, ${externalIP}, ${externalPort}, ${account}`)
+          configLines.push(`address, ${nodeSeq}, ${nodeSeq}, ${nodeAlias}, ${nodeStakeAmount}, ${internalIP}, ${internalPort}, ${externalIP}, ${externalPort}, ${account}`)
         } else {
-          configLines.push(`address, ${nodeSeq}, ${nodeName}, ${nodeStakeAmount}, ${internalIP}, ${internalPort}, ${externalIP}, ${externalPort}, ${account}`)
+          configLines.push(`address, ${nodeSeq}, ${nodeAlias}, ${nodeStakeAmount}, ${internalIP}, ${internalPort}, ${externalIP}, ${externalPort}, ${account}`)
         }
 
         nodeSeq += 1

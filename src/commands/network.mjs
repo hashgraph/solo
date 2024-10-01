@@ -70,7 +70,7 @@ export class NetworkCommand extends BaseCommand {
       flags.chartDirectory,
       flags.enablePrometheusSvcMonitor,
       flags.fstChartVersion,
-      flags.debugNodeId,
+      flags.debugNodeAlias,
       flags.log4j2Xml,
       flags.namespace,
       flags.nodeAliasesUnparsed,
@@ -100,9 +100,9 @@ export class NetworkCommand extends BaseCommand {
         valuesArg += ` --set "hedera.nodes[${i}].root.extraEnv[0].name=JAVA_MAIN_CLASS"`
         valuesArg += ` --set "hedera.nodes[${i}].root.extraEnv[0].value=com.swirlds.platform.Browser"`
       }
-      valuesArg = addDebugOptions(valuesArg, config.debugNodeId, 1)
+      valuesArg = addDebugOptions(valuesArg, config.debugNodeAlias, 1)
     } else {
-      valuesArg = addDebugOptions(valuesArg, config.debugNodeId)
+      valuesArg = addDebugOptions(valuesArg, config.debugNodeAlias)
     }
 
     const profileName = this.configManager.getFlag(flags.profileName)
@@ -148,7 +148,7 @@ export class NetworkCommand extends BaseCommand {
       flags.bootstrapProperties,
       flags.cacheDir,
       flags.chainId,
-      flags.debugNodeId,
+      flags.debugNodeAlias,
       flags.log4j2Xml,
       flags.persistentVolumeClaims,
       flags.profileName,

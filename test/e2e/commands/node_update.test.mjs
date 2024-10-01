@@ -22,7 +22,7 @@ import {
   accountCreationShouldSucceed,
   balanceQueryShouldSucceed,
   bootstrapNetwork,
-  getDefaultArgv, getNodeIdsPrivateKeysHash, getTmpDir,
+  getDefaultArgv, getNodeAliasesPrivateKeysHash, getTmpDir,
   HEDERA_PLATFORM_VERSION_TAG
 } from '../../test_util.js'
 import { getNodeLogs } from '../../../src/core/helpers.mjs'
@@ -65,7 +65,7 @@ describe('Node update', () => {
 
   it('cache current version of private keys', async () => {
     existingServiceMap = await nodeCmd.accountManager.getNodeServiceMap(namespace)
-    existingNodeIdsPrivateKeysHash = await getNodeIdsPrivateKeysHash(existingServiceMap, namespace, k8, getTmpDir())
+    existingNodeIdsPrivateKeysHash = await getNodeAliasesPrivateKeysHash(existingServiceMap, namespace, k8, getTmpDir())
   }, defaultTimeout)
 
   it('should succeed with init command', async () => {
@@ -103,7 +103,7 @@ describe('Node update', () => {
   accountCreationShouldSucceed(nodeCmd.accountManager, nodeCmd, namespace)
 
   it('signing key and tls key should not match previous one', async () => {
-    const currentNodeIdsPrivateKeysHash = await getNodeIdsPrivateKeysHash(existingServiceMap, namespace, k8, getTmpDir())
+    const currentNodeIdsPrivateKeysHash = await getNodeAliasesPrivateKeysHash(existingServiceMap, namespace, k8, getTmpDir())
 
     for (const [nodeAlias, existingKeyHashMap] of existingNodeIdsPrivateKeysHash.entries()) {
       const currentNodeKeyHashMap = currentNodeIdsPrivateKeysHash.get(nodeAlias)

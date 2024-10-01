@@ -18,7 +18,7 @@
 export class NetworkNodeServices {
   /**
    * @param {Object} builder
-   * @param {string} builder.nodeName
+   * @param {string} builder.nodeAlias
    * @param {string} builder.nodePodName
    * @param {string} builder.haProxyName
    * @param {string} builder.haProxyLoadBalancerIp
@@ -40,7 +40,7 @@ export class NetworkNodeServices {
    * @param {string|number} builder.envoyProxyGrpcWebPort
    */
   constructor (builder) {
-    this.nodeName = builder.nodeName
+    this.nodeAlias = builder.nodeAlias
     this.nodePodName = builder.nodePodName
     this.haProxyName = builder.haProxyName
     this.haProxyLoadBalancerIp = builder.haProxyLoadBalancerIp
@@ -66,16 +66,16 @@ export class NetworkNodeServices {
    * @returns {string}
    */
   key () {
-    return this.nodeName
+    return this.nodeAlias
   }
 }
 
 export class NetworkNodeServicesBuilder {
   /**
-   * @param {string} nodeName
+   * @param {string} nodeAlias
    */
-  constructor (nodeName) {
-    this.nodeName = nodeName
+  constructor (nodeAlias) {
+    this.nodeAlias = nodeAlias
   }
 
   /**
@@ -260,6 +260,6 @@ export class NetworkNodeServicesBuilder {
    * @returns {string}
    */
   key () {
-    return this.nodeName
+    return this.nodeAlias
   }
 }

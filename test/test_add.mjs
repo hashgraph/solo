@@ -21,7 +21,7 @@ import {
   balanceQueryShouldSucceed,
   bootstrapNetwork,
   getDefaultArgv,
-  getNodeIdsPrivateKeysHash,
+  getNodeAliasesPrivateKeysHash,
   getTmpDir,
   HEDERA_PLATFORM_VERSION_TAG
 } from './test_util.js'
@@ -66,7 +66,7 @@ export function testNodeAdd (localBuildPath
 
     it('cache current version of private keys', async () => {
       existingServiceMap = await nodeCmd.accountManager.getNodeServiceMap(namespace)
-      existingNodeIdsPrivateKeysHash = await getNodeIdsPrivateKeysHash(existingServiceMap, namespace, k8, getTmpDir())
+      existingNodeIdsPrivateKeysHash = await getNodeAliasesPrivateKeysHash(existingServiceMap, namespace, k8, getTmpDir())
     }, defaultTimeout)
 
     it('should succeed with init command', async () => {
@@ -91,7 +91,7 @@ export function testNodeAdd (localBuildPath
     accountCreationShouldSucceed(nodeCmd.accountManager, nodeCmd, namespace)
 
     it('existing nodes private keys should not have changed', async () => {
-      const currentNodeIdsPrivateKeysHash = await getNodeIdsPrivateKeysHash(existingServiceMap, namespace, k8, getTmpDir())
+      const currentNodeIdsPrivateKeysHash = await getNodeAliasesPrivateKeysHash(existingServiceMap, namespace, k8, getTmpDir())
 
       for (const [nodeAlias, existingKeyHashMap] of existingNodeIdsPrivateKeysHash.entries()) {
         const currentNodeKeyHashMap = currentNodeIdsPrivateKeysHash.get(nodeAlias)
