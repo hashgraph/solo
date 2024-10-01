@@ -249,7 +249,7 @@ export const cacheDir = {
 /** @type {CommandFlag} **/
 export const nodeAliasesUnparsed = {
   constName: 'nodeAliasesUnparsed',
-  name: 'node-ids',
+  name: 'node-aliases-unparsed',
   definition: {
     describe: 'Comma separated node aliases (empty means all nodes)',
     alias: 'i',
@@ -662,7 +662,7 @@ export const amount = {
 /** @type {CommandFlag} **/
 export const nodeAlias = {
   constName: 'nodeAlias',
-  name: 'node-id',
+  name: 'node-alias',
   definition: {
     describe: 'Node alias (e.g. node99)',
     type: 'string'

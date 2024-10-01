@@ -442,7 +442,6 @@ export function deleteSaveContextParser (ctx) {
 export function deleteLoadContextParser (ctx, ctxData) {
   const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
   config.adminKey = PrivateKey.fromStringED25519(ctxData.adminKey)
-  config.nodeAlias = ctxData.nodeAlias
   config.existingNodeAliases = ctxData.existingNodeAliases
   config.allNodeAliases = ctxData.existingNodeAliases
   ctx.upgradeZipHash = ctxData.upgradeZipHash

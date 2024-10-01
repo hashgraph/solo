@@ -3113,7 +3113,6 @@ export class NodeCommand extends BaseCommand {
             'freezeAdminPrivateKey',
             'keysDir',
             'nodeClient',
-            'nodeId',
             'podNames',
             'serviceMap',
             'stagingDir',
@@ -3121,7 +3120,6 @@ export class NodeCommand extends BaseCommand {
             'treasuryKey'
           ])
 
-        config.nodeAlias = argv[flags.nodeAlias.name]
         config.curDate = new Date()
         config.existingNodeAliases = []
 
