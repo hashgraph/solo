@@ -40,6 +40,7 @@ describe('Node add via separated commands should success', () => {
   argv[flags.namespace.name] = namespace
   argv[flags.force.name] = true
   argv[flags.persistentVolumeClaims.name] = true
+  argv[flags.quiet.name] = true
 
   const argvPrepare = Object.assign({}, argv)
 
@@ -87,6 +88,7 @@ describe('Node add via separated commands should success', () => {
       flags.generateTlsKeys.constName,
       flags.gossipEndpoints.constName,
       flags.grpcEndpoints.constName,
+      flags.quiet.constName,
       flags.adminKey.constName,
       'curDate',
       'freezeAdminPrivateKey'

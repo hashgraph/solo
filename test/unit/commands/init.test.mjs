@@ -28,7 +28,7 @@ import {
   KeyManager,
   logging, PackageDownloader, Zippy
 } from '../../../src/core/index.mjs'
-import { K8 } from '../../../src/core/k8.mjs'
+import { getK8Instance } from '../../test_util.js'
 
 const testLogger = logging.NewLogger('debug', true)
 describe('InitCommand', () => {
@@ -47,7 +47,8 @@ describe('InitCommand', () => {
   const configManager = new ConfigManager(testLogger)
 
   const keyManager = new KeyManager(testLogger)
-  const k8 = new K8(configManager, testLogger)
+
+  const k8 = getK8Instance(configManager)
 
   const initCmd = new InitCommand({
     logger: testLogger,

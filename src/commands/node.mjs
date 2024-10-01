@@ -20,7 +20,7 @@ import chalk from 'chalk'
 import * as fs from 'fs'
 import { Listr } from 'listr2'
 import path from 'path'
-import { FullstackTestingError, IllegalArgumentError } from '../core/errors.mjs'
+import { SoloError, IllegalArgumentError } from '../core/errors.mjs'
 import * as helpers from '../core/helpers.mjs'
 import {
   addDebugOptions,
@@ -118,6 +118,30 @@ export class NodeCommand extends BaseCommand {
   }
 
   /**
+   * @returns {CommandFlag[]}
+   */
+  static get START_FLAGS_LIST () {
+    return [
+      flags.app,
+      flags.debugNodeId,
+      flags.namespace,
+      flags.nodeIDs,
+      flags.quiet
+    ]
+  }
+
+  /**
+   * @returns {CommandFlag[]}
+   */
+  static get STOP_FLAGS_LIST () {
+    return [
+      flags.namespace,
+      flags.nodeIDs,
+      flags.quiet
+    ]
+  }
+
+  /**
    * @returns {string}
    */
   static get KEYS_CONFIGS_NAME () {
@@ -133,7 +157,8 @@ export class NodeCommand extends BaseCommand {
       flags.devMode,
       flags.generateGossipKeys,
       flags.generateTlsKeys,
-      flags.nodeIDs
+      flags.nodeIDs,
+      flags.quiet
     ]
   }
 
@@ -155,6 +180,7 @@ export class NodeCommand extends BaseCommand {
       flags.localBuildPath,
       flags.namespace,
       flags.nodeIDs,
+      flags.quiet,
       flags.releaseTag
     ]
   }
@@ -184,6 +210,7 @@ export class NodeCommand extends BaseCommand {
       flags.gossipEndpoints,
       flags.grpcEndpoints,
       flags.localBuildPath,
+      flags.quiet,
       flags.namespace,
       flags.releaseTag
     ]
@@ -249,6 +276,7 @@ export class NodeCommand extends BaseCommand {
       flags.localBuildPath,
       flags.namespace,
       flags.nodeID,
+      flags.quiet,
       flags.releaseTag
     ]
   }
@@ -275,6 +303,7 @@ export class NodeCommand extends BaseCommand {
       flags.newAccountNumber,
       flags.newAdminKey,
       flags.nodeID,
+      flags.quiet,
       flags.releaseTag,
       flags.tlsPrivateKey,
       flags.tlsPublicKey
@@ -338,7 +367,7 @@ export class NodeCommand extends BaseCommand {
       const transactionStatus = receipt.status
       this.logger.debug(`The transaction consensus status is ${transactionStatus.toString()}`)
     } catch (e) {
-      throw new FullstackTestingError(`Error in adding stake: ${e.message}`, e)
+      throw new SoloError(`Error in adding stake: ${e.message}`, e)
     }
   }
 
@@ -419,7 +448,7 @@ export class NodeCommand extends BaseCommand {
     await this.k8.stopPortForward(srv)
 
     if (!success) {
-      throw new FullstackTestingError(`node '${nodeId}' is not ${NodeStatusEnums[status]}` +
+      throw new SoloError(`node '${nodeId}' is not ${NodeStatusEnums[status]}` +
         `[ attempt = ${chalk.blueBright(`${attempt}/${maxAttempts}`)} ]`)
     }
 
@@ -690,7 +719,7 @@ export class NodeCommand extends BaseCommand {
     config.stagingKeysDir = path.join(validatePath(config.stagingDir), 'keys')
 
     if (!await k8.hasNamespace(config.namespace)) {
-      throw new FullstackTestingError(`namespace ${config.namespace} does not exist`)
+      throw new SoloError(`namespace ${config.namespace} does not exist`)
     }
 
     // prepare staging keys directory
@@ -739,7 +768,7 @@ export class NodeCommand extends BaseCommand {
       }
 
       if (!fs.existsSync(localDataLibBuildPath)) {
-        throw new FullstackTestingError(`local build path does not exist: ${localDataLibBuildPath}`)
+        throw new SoloError(`local build path does not exist: ${localDataLibBuildPath}`)
       }
 
       subTasks.push({
@@ -812,7 +841,7 @@ export class NodeCommand extends BaseCommand {
     const certPem = fs.readFileSync(certFullPath).toString()
     const decodedDers = x509.PemConverter.decode(certPem)
     if (!decodedDers || decodedDers.length === 0) {
-      throw new FullstackTestingError('unable to load perm key: ' + certFullPath)
+      throw new SoloError('unable to load perm key: ' + certFullPath)
     }
     return (new Uint8Array(decodedDers[0]))
   }
@@ -837,7 +866,7 @@ export class NodeCommand extends BaseCommand {
       } else if (parts.length === 1) {
         url = parts[0]
       } else {
-        throw new FullstackTestingError(`incorrect endpoint format. expected url:port, found ${endpoint}`)
+        throw new SoloError(`incorrect endpoint format. expected url:port, found ${endpoint}`)
       }
 
       if (endpointType.toUpperCase() === constants.ENDPOINT_TYPE_IP) {
@@ -942,7 +971,7 @@ export class NodeCommand extends BaseCommand {
     try {
       await tasks.run()
     } catch (e) {
-      throw new FullstackTestingError(`Error in setting up nodes: ${e.message}`, e)
+      throw new SoloError(`Error in setting up nodes: ${e.message}`, e)
     }
 
     return true
@@ -960,6 +989,7 @@ export class NodeCommand extends BaseCommand {
         title: 'Initialize',
         task: async (ctx, task) => {
           self.configManager.update(argv)
+
           await prompts.execute(task, self.configManager, [
             flags.namespace,
             flags.nodeIDs
@@ -979,7 +1009,7 @@ export class NodeCommand extends BaseCommand {
           )
 
           if (!await self.k8.hasNamespace(ctx.config.namespace)) {
-            throw new FullstackTestingError(`namespace ${ctx.config.namespace} does not exist`)
+            throw new SoloError(`namespace ${ctx.config.namespace} does not exist`)
           }
         }
       },
@@ -1042,7 +1072,7 @@ export class NodeCommand extends BaseCommand {
       await tasks.run()
       self.logger.debug('node start has completed')
     } catch (e) {
-      throw new FullstackTestingError(`Error starting node: ${e.message}`, e)
+      throw new SoloError(`Error starting node: ${e.message}`, e)
     } finally {
       await self.close()
     }
@@ -1073,7 +1103,7 @@ export class NodeCommand extends BaseCommand {
           }
 
           if (!await self.k8.hasNamespace(ctx.config.namespace)) {
-            throw new FullstackTestingError(`namespace ${ctx.config.namespace} does not exist`)
+            throw new SoloError(`namespace ${ctx.config.namespace} does not exist`)
           }
         }
       },
@@ -1108,7 +1138,7 @@ export class NodeCommand extends BaseCommand {
     try {
       await tasks.run()
     } catch (e) {
-      throw new FullstackTestingError('Error stopping node', e)
+      throw new SoloError('Error stopping node', e)
     }
 
     return true
@@ -1218,7 +1248,7 @@ export class NodeCommand extends BaseCommand {
     try {
       await tasks.run()
     } catch (e) {
-      throw new FullstackTestingError(`Error generating keys: ${e.message}`, e)
+      throw new SoloError(`Error generating keys: ${e.message}`, e)
     }
 
     return true
@@ -1347,7 +1377,7 @@ export class NodeCommand extends BaseCommand {
     try {
       await tasks.run()
     } catch (e) {
-      throw new FullstackTestingError(`Error in refreshing nodes: ${e.message}`, e)
+      throw new SoloError(`Error in refreshing nodes: ${e.message}`, e)
     }
 
     return true
@@ -1389,7 +1419,7 @@ export class NodeCommand extends BaseCommand {
     try {
       await tasks.run()
     } catch (e) {
-      throw new FullstackTestingError(`Error in downloading log from nodes: ${e.message}`, e)
+      throw new SoloError(`Error in downloading log from nodes: ${e.message}`, e)
     } finally {
       await self.close()
     }
@@ -1489,7 +1519,7 @@ export class NodeCommand extends BaseCommand {
         config.existingNodeIds = []
 
         if (config.keyFormat !== constants.KEY_FORMAT_PEM) {
-          throw new FullstackTestingError('key type cannot be PFX')
+          throw new SoloError('key type cannot be PFX')
         }
 
         await self.initializeSetup(config, self.k8)
@@ -1527,7 +1557,7 @@ export class NodeCommand extends BaseCommand {
         title: 'Check that PVCs are enabled',
         task: async (ctx, task) => {
           if (!self.configManager.getFlag(flags.persistentVolumeClaims)) {
-            throw new FullstackTestingError('PVCs are not enabled. Please enable PVCs before adding a node')
+            throw new SoloError('PVCs are not enabled. Please enable PVCs before adding a node')
           }
         }
       },
@@ -1625,7 +1655,7 @@ export class NodeCommand extends BaseCommand {
           let endpoints = []
           if (!config.gossipEndpoints) {
             if (config.endpointType !== constants.ENDPOINT_TYPE_FQDN) {
-              throw new FullstackTestingError(`--gossip-endpoints must be set if --endpoint-type is: ${constants.ENDPOINT_TYPE_IP}`)
+              throw new SoloError(`--gossip-endpoints must be set if --endpoint-type is: ${constants.ENDPOINT_TYPE_IP}`)
             }
 
             endpoints = [
@@ -1647,7 +1677,7 @@ export class NodeCommand extends BaseCommand {
 
           if (!config.grpcEndpoints) {
             if (config.endpointType !== constants.ENDPOINT_TYPE_FQDN) {
-              throw new FullstackTestingError(`--grpc-endpoints must be set if --endpoint-type is: ${constants.ENDPOINT_TYPE_IP}`)
+              throw new SoloError(`--grpc-endpoints must be set if --endpoint-type is: ${constants.ENDPOINT_TYPE_IP}`)
             }
 
             endpoints = [
@@ -1672,7 +1702,7 @@ export class NodeCommand extends BaseCommand {
         const config = /** @type {NodeAddConfigClass} **/ ctx.config
         const outputDir = argv[flags.outputDir.name]
         if (!outputDir) {
-          throw new FullstackTestingError(`Path to export context data not specified. Please set a value for --${flags.outputDir.name}`)
+          throw new SoloError(`Path to export context data not specified. Please set a value for --${flags.outputDir.name}`)
         }
 
         if (!fs.existsSync(outputDir)) {
@@ -1708,7 +1738,7 @@ export class NodeCommand extends BaseCommand {
           const config = /** @type {NodeAddConfigClass} **/ ctx.config
           const inputDir = argv[flags.inputDir.name]
           if (!inputDir) {
-            throw new FullstackTestingError(`Path to context data not specified. Please set a value for --${flags.inputDir.name}`)
+            throw new SoloError(`Path to context data not specified. Please set a value for --${flags.inputDir.name}`)
           }
           const ctxData = JSON.parse(fs.readFileSync(path.join(inputDir, 'ctx.json')))
 
@@ -1756,7 +1786,7 @@ export class NodeCommand extends BaseCommand {
             this.logger.debug(`NodeCreateReceipt: ${nodeCreateReceipt.toString()}`)
           } catch (e) {
             this.logger.error(`Error adding node to network: ${e.message}`, e)
-            throw new FullstackTestingError(`Error adding node to network: ${e.message}`, e)
+            throw new SoloError(`Error adding node to network: ${e.message}`, e)
           }
         }
       },
@@ -1932,7 +1962,7 @@ export class NodeCommand extends BaseCommand {
       await tasks.run()
     } catch (e) {
       self.logger.error(`Error in setting up nodes: ${e.message}`, e)
-      throw new FullstackTestingError(`Error in setting up nodes: ${e.message}`, e)
+      throw new SoloError(`Error in setting up nodes: ${e.message}`, e)
     } finally {
       await self.close()
     }
@@ -1958,7 +1988,7 @@ export class NodeCommand extends BaseCommand {
       await tasks.run()
     } catch (e) {
       self.logger.error(`Error in submitting transactions to node: ${e.message}`, e)
-      throw new FullstackTestingError(`Error in submitting transactions to up node: ${e.message}`, e)
+      throw new SoloError(`Error in submitting transactions to up node: ${e.message}`, e)
     } finally {
       await self.close()
     }
@@ -1985,7 +2015,7 @@ export class NodeCommand extends BaseCommand {
       await tasks.run()
     } catch (e) {
       self.logger.error(`Error in starting up nodes: ${e.message}`, e)
-      throw new FullstackTestingError(`Error in setting up nodes: ${e.message}`, e)
+      throw new SoloError(`Error in setting up nodes: ${e.message}`, e)
     } finally {
       await self.close()
     }
@@ -2016,7 +2046,7 @@ export class NodeCommand extends BaseCommand {
       await tasks.run()
     } catch (e) {
       self.logger.error(`Error in adding nodes: ${e.message}`, e)
-      throw new FullstackTestingError(`Error in adding nodes: ${e.message}`, e)
+      throw new SoloError(`Error in adding nodes: ${e.message}`, e)
     } finally {
       await self.close()
     }
@@ -2122,10 +2152,7 @@ export class NodeCommand extends BaseCommand {
             command: 'start',
             desc: 'Start a node',
             builder: y => flags.setCommandFlags(y,
-              flags.app,
-              flags.debugNodeId,
-              flags.namespace,
-              flags.nodeIDs
+              NodeCommand.START_FLAGS_LIST
             ),
             handler: argv => {
               nodeCmd.logger.debug('==== Running \'node start\' ===')
@@ -2144,8 +2171,7 @@ export class NodeCommand extends BaseCommand {
             command: 'stop',
             desc: 'Stop a node',
             builder: y => flags.setCommandFlags(y,
-              flags.namespace,
-              flags.nodeIDs
+              NodeCommand.STOP_FLAGS_LIST
             ),
             handler: argv => {
               nodeCmd.logger.debug('==== Running \'node stop\' ===')
@@ -2459,7 +2485,7 @@ export class NodeCommand extends BaseCommand {
           let endpoints = []
           if (!config.gossipEndpoints) {
             if (config.endpointType !== constants.ENDPOINT_TYPE_FQDN) {
-              throw new FullstackTestingError(`--gossip-endpoints must be set if --endpoint-type is: ${constants.ENDPOINT_TYPE_IP}`)
+              throw new SoloError(`--gossip-endpoints must be set if --endpoint-type is: ${constants.ENDPOINT_TYPE_IP}`)
             }
 
             endpoints = [
@@ -2481,7 +2507,7 @@ export class NodeCommand extends BaseCommand {
 
           if (!config.grpcEndpoints) {
             if (config.endpointType !== constants.ENDPOINT_TYPE_FQDN) {
-              throw new FullstackTestingError(`--grpc-endpoints must be set if --endpoint-type is: ${constants.ENDPOINT_TYPE_IP}`)
+              throw new SoloError(`--grpc-endpoints must be set if --endpoint-type is: ${constants.ENDPOINT_TYPE_IP}`)
             }
 
             endpoints = [
@@ -2555,7 +2581,7 @@ export class NodeCommand extends BaseCommand {
           } catch (e) {
             this.logger.error(`Error updating node to network: ${e.message}`, e)
             this.logger.error(e.stack)
-            throw new FullstackTestingError(`Error updating node to network: ${e.message}`, e)
+            throw new SoloError(`Error updating node to network: ${e.message}`, e)
           }
         }
       },
@@ -2693,7 +2719,7 @@ export class NodeCommand extends BaseCommand {
     } catch (e) {
       self.logger.error(`Error in updating nodes: ${e.message}`, e)
       this.logger.error(e.stack)
-      throw new FullstackTestingError(`Error in updating nodes: ${e.message}`, e)
+      throw new SoloError(`Error in updating nodes: ${e.message}`, e)
     } finally {
       await self.close()
     }
@@ -2824,7 +2850,7 @@ export class NodeCommand extends BaseCommand {
             this.logger.debug(`NodeUpdateReceipt: ${nodeUpdateReceipt.toString()}`)
           } catch (e) {
             this.logger.error(`Error deleting node from network: ${e.message}`, e)
-            throw new FullstackTestingError(`Error deleting node from network: ${e.message}`, e)
+            throw new SoloError(`Error deleting node from network: ${e.message}`, e)
           }
         }
       },
@@ -2955,7 +2981,7 @@ export class NodeCommand extends BaseCommand {
       await tasks.run()
     } catch (e) {
       self.logger.error(`Error in deleting nodes: ${e.message}`, e)
-      throw new FullstackTestingError(`Error in deleting nodes: ${e.message}`, e)
+      throw new SoloError(`Error in deleting nodes: ${e.message}`, e)
     } finally {
       await self.close()
     }

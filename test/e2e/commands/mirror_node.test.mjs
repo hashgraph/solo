@@ -56,6 +56,7 @@ describe('MirrorNodeCommand', () => {
   argv[flags.relayReleaseTag.name] = flags.relayReleaseTag.definition.defaultValue
   // set the env variable SOLO_FST_CHARTS_DIR if developer wants to use local FST charts
   argv[flags.chartDirectory.name] = process.env.SOLO_FST_CHARTS_DIR ? process.env.SOLO_FST_CHARTS_DIR : undefined
+  argv[flags.quiet.name] = true
 
   const bootstrapResp = bootstrapNetwork(testName, argv)
   const k8 = bootstrapResp.opts.k8
@@ -99,6 +100,7 @@ describe('MirrorNodeCommand', () => {
       flags.hederaExplorerTlsLoadBalancerIp.constName,
       flags.profileFile.constName,
       flags.profileName.constName,
+      flags.quiet.constName,
       flags.tlsClusterIssuerType.constName
     ])
   }, 600_000)

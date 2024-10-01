@@ -19,7 +19,7 @@ import fs from 'fs'
 import os from 'os'
 import path from 'path'
 import util from 'util'
-import { FullstackTestingError } from './errors.mjs'
+import { SoloError } from './errors.mjs'
 import * as paths from 'path'
 import { fileURLToPath } from 'url'
 import * as semver from 'semver'
@@ -28,6 +28,7 @@ import { HEDERA_HAPI_PATH, ROOT_CONTAINER, SOLO_LOGS_DIR } from './constants.mjs
 import { constants } from './index.mjs'
 import { FileContentsQuery, FileId } from '@hashgraph/sdk'
 import { Listr } from 'listr2'
+import * as yaml from 'js-yaml'
 
 // cache current directory
 const CUR_FILE_DIR = paths.dirname(fileURLToPath(import.meta.url))
@@ -68,7 +69,7 @@ export function splitFlagInput (input, separator = ',') {
     return items
   }
 
-  throw new FullstackTestingError('input is not a comma separated string')
+  throw new SoloError('input is not a comma separated string')
 }
 
 /**
@@ -89,7 +90,7 @@ export function loadPackageJSON () {
     const raw = fs.readFileSync(path.join(CUR_FILE_DIR, '..', '..', 'package.json'))
     return JSON.parse(raw.toString())
   } catch (e) {
-    throw new FullstackTestingError('failed to load package.json', e)
+    throw new SoloError('failed to load package.json', e)
   }
 }
 
@@ -222,7 +223,7 @@ export function isNumeric (str) {
  */
 export function validatePath (input) {
   if (input.indexOf('\0') !== -1) {
-    throw new FullstackTestingError(`access denied for path: ${input}`)
+    throw new SoloError(`access denied for path: ${input}`)
   }
   return input
 }
@@ -334,7 +335,7 @@ export function renameAndCopyFile (srcFilePath, expectedBaseName, destDir) {
   fs.copyFile(path.join(srcDir, expectedBaseName), path.join(destDir, expectedBaseName), (err) => {
     if (err) {
       self.logger.error(`Error copying file: ${err.message}`)
-      throw new FullstackTestingError(`Error copying file: ${err.message}`)
+      throw new SoloError(`Error copying file: ${err.message}`)
     }
   })
 }
@@ -370,7 +371,7 @@ export function commandActionBuilder (actionTasks, options, errorString = 'Error
       await tasks.run()
     } catch (e) {
       commandDef.logger.error(`${errorString}: ${e.message}`, e)
-      throw new FullstackTestingError(`${errorString}: ${e.message}`, e)
+      throw new SoloError(`${errorString}: ${e.message}`, e)
     } finally {
       await commandDef.close()
     }
@@ -389,4 +390,25 @@ export function addFlagsToArgv (argv, flags) {
   argv.optionalFlags = flags.optionalFlags
 
   return argv
+}
+/**
+ * Convert yaml file to object
+ * @param yamlFile
+ */
+export function yamlToObject (yamlFile) {
+  try {
+    if (fs.existsSync(yamlFile)) {
+      const yamlData = fs.readFileSync(yamlFile, 'utf8')
+      const configItems = yaml.load(yamlData)
+      const configMap = {}
+      for (const key in configItems) {
+        let config = configItems[key]
+        config = config || {}
+        configMap[key] = config
+      }
+      return configMap
+    }
+  } catch (e) {
+    throw new SoloError(`failed to convert yaml file ${yamlFile} to object: ${e.message}`, e)
+  }
 }
