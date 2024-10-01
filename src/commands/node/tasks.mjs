@@ -26,7 +26,7 @@ import {
   FreezeType, PrivateKey,
   Timestamp
 } from '@hashgraph/sdk'
-import { FullstackTestingError, IllegalArgumentError, MissingArgumentError } from '../../core/errors.mjs'
+import { SoloError, IllegalArgumentError, MissingArgumentError } from '../../core/errors.mjs'
 import * as prompts from '../prompts.mjs'
 import path from 'path'
 import fs from 'fs'
@@ -119,7 +119,7 @@ export class NodeCommandTasks {
 
       return zipHash
     } catch (e) {
-      throw new FullstackTestingError(`failed to upload build.zip file: ${e.message}`, e)
+      throw new SoloError(`failed to upload build.zip file: ${e.message}`, e)
     }
   }
 
@@ -186,7 +186,7 @@ export class NodeCommandTasks {
         )
       } catch (e) {
         this.logger.error(`Error in prepare upgrade: ${e.message}`, e)
-        throw new FullstackTestingError(`Error in prepare upgrade: ${e.message}`, e)
+        throw new SoloError(`Error in prepare upgrade: ${e.message}`, e)
       }
     })
   }
@@ -219,7 +219,7 @@ export class NodeCommandTasks {
           freezeUpgradeReceipt.status.toString())
       } catch (e) {
         this.logger.error(`Error in freeze upgrade: ${e.message}`, e)
-        throw new FullstackTestingError(`Error in freeze upgrade: ${e.message}`, e)
+        throw new SoloError(`Error in freeze upgrade: ${e.message}`, e)
       }
     })
   }
@@ -306,7 +306,7 @@ export class NodeCommandTasks {
 
       return podName
     } catch (e) {
-      throw new FullstackTestingError(`no pod found for nodeId: ${nodeId}`, e)
+      throw new SoloError(`no pod found for nodeId: ${nodeId}`, e)
     }
   }
 
