@@ -27,7 +27,6 @@ import { Templates } from './templates.mjs'
 import { HEDERA_HAPI_PATH, ROOT_CONTAINER, SOLO_LOGS_DIR } from './constants.mjs'
 import { constants } from './index.mjs'
 import { FileContentsQuery, FileId, PrivateKey, ServiceEndpoint } from '@hashgraph/sdk'
-import { FileContentsQuery, FileId } from '@hashgraph/sdk'
 import { Listr } from 'listr2'
 import * as yaml from 'js-yaml'
 
