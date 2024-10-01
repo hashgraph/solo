@@ -2570,7 +2570,7 @@ export class NodeCommand extends BaseCommand {
           .command({
             command: 'delete',
             desc: 'Delete a node with a specific version of Hedera platform',
-            builder: y => flags.setCommandFlags(y, ...NodeCommand.DELETE_FLAGS_LIST.concat(flags.nodeID)),
+            builder: y => flags.setCommandFlags(y, ...NodeCommand.DELETE_FLAGS_LIST.concat(flags.nodeAlias)),
             handler: argv => {
               nodeCmd.logger.debug('==== Running \'node delete\' ===')
               nodeCmd.logger.debug(argv)
@@ -2587,7 +2587,7 @@ export class NodeCommand extends BaseCommand {
           .command({
             command: 'delete-prepare',
             desc: 'Prepares the deletion of a node with a specific version of Hedera platform',
-            builder: y => flags.setCommandFlags(y, ...NodeCommand.DELETE_PREPARE_FLAGS_LIST.concat(flags.nodeID)),
+            builder: y => flags.setCommandFlags(y, ...NodeCommand.DELETE_PREPARE_FLAGS_LIST.concat(flags.nodeAlias)),
             handler: argv => {
               nodeCmd.logger.debug('==== Running \'node delete-prepare\' ===')
               nodeCmd.logger.debug(argv)
@@ -3121,7 +3121,7 @@ export class NodeCommand extends BaseCommand {
             'treasuryKey'
           ])
 
-        config.nodeId = argv[flags.nodeID.name]
+        config.nodeId = argv[flags.nodeAlias.name]
         config.curDate = new Date()
         config.existingNodeAliases = []
 
@@ -3318,7 +3318,7 @@ export class NodeCommand extends BaseCommand {
           const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
 
           try {
-            const accountMap = getNodeAccountMap(config.existingNodeIds)
+            const accountMap = getNodeAccountMap(config.existingNodeAliases)
             const deleteAccountId = accountMap.get(config.nodeId)
             this.logger.debug(`Deleting node: ${config.nodeId} with account: ${deleteAccountId}`)
             const nodeId = Templates.nodeNumberFromNodeId(config.nodeId) - 1

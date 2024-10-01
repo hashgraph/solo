@@ -379,7 +379,7 @@ export function addSaveContextParser (ctx) {
   exportedCtx.gossipEndpoints = ctx.gossipEndpoints.map(ep => `${ep.getDomainName}:${ep.getPort}`)
   exportedCtx.grpcServiceEndpoints = ctx.grpcServiceEndpoints.map(ep => `${ep.getDomainName}:${ep.getPort}`)
   exportedCtx.adminKey = ctx.adminKey.toString()
-  exportedCtx.existingNodeIds = config.existingNodeIds
+  exportedCtx.existingNodeAliases = config.existingNodeAliases
 
   for (const prop of exportedFields) {
     exportedCtx[prop] = ctx[prop]
@@ -401,8 +401,8 @@ export function addLoadContextParser (ctx, ctxData) {
   ctx.grpcServiceEndpoints = prepareEndpoints(ctx.config.endpointType, ctxData.grpcServiceEndpoints, constants.HEDERA_NODE_EXTERNAL_GOSSIP_PORT)
   ctx.adminKey = PrivateKey.fromStringED25519(ctxData.adminKey)
   config.nodeId = ctxData.newNode.name
-  config.existingNodeIds = ctxData.existingNodeIds
-  config.allNodeIds = [...config.existingNodeIds, ctxData.newNode.name]
+  config.existingNodeAliases = ctxData.existingNodeAliases
+  config.allNodeIds = [...config.existingNodeAliases, ctxData.newNode.name]
 
   const fieldsToImport = [
     'tlsCertHash',
@@ -426,7 +426,7 @@ export function deleteSaveContextParser (ctx) {
 
   const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
   exportedCtx.adminKey = config.adminKey.toString()
-  exportedCtx.existingNodeIds = config.existingNodeIds
+  exportedCtx.existingNodeAliases = config.existingNodeAliases
   exportedCtx.upgradeZipHash = ctx.upgradeZipHash
   exportedCtx.nodeId = config.nodeId
   return exportedCtx
@@ -443,8 +443,8 @@ export function deleteLoadContextParser (ctx, ctxData) {
   const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
   config.adminKey = PrivateKey.fromStringED25519(ctxData.adminKey)
   config.nodeId = ctxData.nodeId
-  config.existingNodeIds = ctxData.existingNodeIds
-  config.allNodeIds = ctxData.existingNodeIds
+  config.existingNodeAliases = ctxData.existingNodeAliases
+  config.allNodeIds = ctxData.existingNodeAliases
   ctx.upgradeZipHash = ctxData.upgradeZipHash
   config.podNames = {}
 }
