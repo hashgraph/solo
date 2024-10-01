@@ -20,7 +20,6 @@ import fs from 'fs'
 import os from 'os'
 import path from 'path'
 import { ClusterCommand } from '../src/commands/cluster.mjs'
-import { flags } from '../src/commands/index.mjs'
 import { InitCommand } from '../src/commands/init.mjs'
 import { NetworkCommand } from '../src/commands/network.mjs'
 import { NodeCommand } from '../src/commands/node.mjs'
@@ -43,6 +42,7 @@ import {
   PlatformInstaller, ProfileManager, Templates,
   Zippy
 } from '../src/core/index.mjs'
+import { flags } from '../src/commands/index.mjs'
 import {
   AccountBalanceQuery,
   AccountCreateTransaction, Hbar, HbarUnit,
