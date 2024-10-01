@@ -400,9 +400,9 @@ export function addLoadContextParser (ctx, ctxData) {
   ctx.gossipEndpoints = prepareEndpoints(ctx.config.endpointType, ctxData.gossipEndpoints, constants.HEDERA_NODE_INTERNAL_GOSSIP_PORT)
   ctx.grpcServiceEndpoints = prepareEndpoints(ctx.config.endpointType, ctxData.grpcServiceEndpoints, constants.HEDERA_NODE_EXTERNAL_GOSSIP_PORT)
   ctx.adminKey = PrivateKey.fromStringED25519(ctxData.adminKey)
-  config.nodeId = ctxData.newNode.name
+  config.nodeAlias = ctxData.newNode.name
   config.existingNodeAliases = ctxData.existingNodeAliases
-  config.allNodeIds = [...config.existingNodeAliases, ctxData.newNode.name]
+  config.allNodeAliases = [...config.existingNodeAliases, ctxData.newNode.name]
 
   const fieldsToImport = [
     'tlsCertHash',
@@ -428,7 +428,7 @@ export function deleteSaveContextParser (ctx) {
   exportedCtx.adminKey = config.adminKey.toString()
   exportedCtx.existingNodeAliases = config.existingNodeAliases
   exportedCtx.upgradeZipHash = ctx.upgradeZipHash
-  exportedCtx.nodeId = config.nodeId
+  exportedCtx.nodeAlias = config.nodeAlias
   return exportedCtx
 }
 
@@ -442,9 +442,9 @@ export function deleteSaveContextParser (ctx) {
 export function deleteLoadContextParser (ctx, ctxData) {
   const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
   config.adminKey = PrivateKey.fromStringED25519(ctxData.adminKey)
-  config.nodeId = ctxData.nodeId
+  config.nodeAlias = ctxData.nodeAlias
   config.existingNodeAliases = ctxData.existingNodeAliases
-  config.allNodeIds = ctxData.existingNodeAliases
+  config.allNodeAliases = ctxData.existingNodeAliases
   ctx.upgradeZipHash = ctxData.upgradeZipHash
   config.podNames = {}
 }

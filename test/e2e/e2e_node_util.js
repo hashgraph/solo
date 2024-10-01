@@ -101,11 +101,11 @@ export function e2eNodeKeyRefreshTest (testName, mode, releaseTag = HEDERA_PLATF
         describe(
             `Node should refresh successfully [mode ${mode}, release ${releaseTag}]`,
             () => {
-              const nodeId = 'node1'
+              const nodeAlias = 'node1'
 
               beforeAll(async () => {
                 const podName = await nodeRefreshTestSetup(argv, testName, k8,
-                  nodeId)
+                  nodeAlias)
                 if (mode === 'kill') {
                   const resp = await k8.kubeClient.deleteNamespacedPod(podName,
                     namespace)
@@ -119,11 +119,11 @@ export function e2eNodeKeyRefreshTest (testName, mode, releaseTag = HEDERA_PLATF
                 }
               }, 120000)
 
-              nodePodShouldBeRunning(nodeCmd, namespace, nodeId)
+              nodePodShouldBeRunning(nodeCmd, namespace, nodeAlias)
 
-              nodeShouldNotBeActive(nodeCmd, nodeId)
+              nodeShouldNotBeActive(nodeCmd, nodeAlias)
 
-              nodeRefreshShouldSucceed(nodeId, nodeCmd, argv)
+              nodeRefreshShouldSucceed(nodeAlias, nodeCmd, argv)
 
               balanceQueryShouldSucceed(accountManager, nodeCmd, namespace)
 

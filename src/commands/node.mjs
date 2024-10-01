@@ -3121,7 +3121,7 @@ export class NodeCommand extends BaseCommand {
             'treasuryKey'
           ])
 
-        config.nodeId = argv[flags.nodeAlias.name]
+        config.nodeAlias = argv[flags.nodeAlias.name]
         config.curDate = new Date()
         config.existingNodeAliases = []
 
@@ -3319,9 +3319,9 @@ export class NodeCommand extends BaseCommand {
 
           try {
             const accountMap = getNodeAccountMap(config.existingNodeAliases)
-            const deleteAccountId = accountMap.get(config.nodeId)
-            this.logger.debug(`Deleting node: ${config.nodeId} with account: ${deleteAccountId}`)
-            const nodeId = Templates.nodeNumberFromNodeId(config.nodeId) - 1
+            const deleteAccountId = accountMap.get(config.nodeAlias)
+            this.logger.debug(`Deleting node: ${config.nodeAlias} with account: ${deleteAccountId}`)
+            const nodeId = Templates.nodeNumberFromNodeAlias(config.nodeAlias) - 1
             const nodeDeleteTx = await new NodeDeleteTransaction()
               .setNodeId(nodeId)
               .freezeWith(config.nodeClient)
