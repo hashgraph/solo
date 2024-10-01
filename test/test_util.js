@@ -51,7 +51,7 @@ import {
 import { ROOT_CONTAINER } from '../src/core/constants.mjs'
 import crypto from 'crypto'
 import { AccountCommand } from '../src/commands/account.mjs'
-import { FullstackTestingError } from '../src/core/errors.mjs'
+import { SoloError } from '../src/core/errors.mjs'
 import { execSync } from 'child_process'
 
 export const testLogger = logging.NewLogger('debug', true)
@@ -374,7 +374,7 @@ export function getK8Instance (configManager) {
     return new K8(configManager, testLogger)
     // TODO: return a mock without running the init within constructor after we convert to Mocha, Jest ESModule mocks are broke.
   } catch (e) {
-    if (!(e instanceof FullstackTestingError)) {
+    if (!(e instanceof SoloError)) {
       throw e
     }
 

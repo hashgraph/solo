@@ -29,12 +29,13 @@ import { NodeCommand } from '../../../src/commands/node.mjs'
 import { HEDERA_HAPI_PATH, ROOT_CONTAINER } from '../../../src/core/constants.mjs'
 import fs from 'fs'
 
-describe('Node delete', () => {
-  const namespace = 'node-delete'
+describe('Node delete via separated commands', () => {
+  const namespace = 'node-delete-separate'
   const nodeId = 'node1'
   const argv = getDefaultArgv()
   argv[flags.nodeIDs.name] = 'node1,node2,node3,node4'
   argv[flags.nodeID.name] = nodeId
+  argv.nodeId = nodeId
   argv[flags.generateGossipKeys.name] = true
   argv[flags.generateTlsKeys.name] = true
   argv[flags.persistentVolumeClaims.name] = true
@@ -42,7 +43,14 @@ describe('Node delete', () => {
   argv[flags.chartDirectory.name] = process.env.SOLO_FST_CHARTS_DIR ? process.env.SOLO_FST_CHARTS_DIR : undefined
   argv[flags.releaseTag.name] = HEDERA_PLATFORM_VERSION_TAG
   argv[flags.namespace.name] = namespace
-  argv[flags.quiet.name] = true
+
+  const tempDir = 'contextDir'
+  const argvPrepare = Object.assign({}, argv)
+  argvPrepare[flags.outputDir.name] = tempDir
+
+  const argvExecute = getDefaultArgv()
+  argvExecute[flags.inputDir.name] = tempDir
+
   const bootstrapResp = bootstrapNetwork(namespace, argv)
   const nodeCmd = bootstrapResp.cmd.nodeCmd
   const accountCmd = bootstrapResp.cmd.accountCmd
@@ -59,12 +67,16 @@ describe('Node delete', () => {
   }, 450000)
 
   it('should delete a node from the network successfully', async () => {
-    await nodeCmd.delete(argv)
+    await nodeCmd.deletePrepare(argvPrepare)
+    await nodeCmd.deleteSubmitTransactions(argvExecute)
+    await nodeCmd.deleteExecute(argvExecute)
     expect(nodeCmd.getUnusedConfigs(NodeCommand.DELETE_CONFIGS_NAME)).toEqual([
       flags.app.constName,
       flags.devMode.constName,
       flags.endpointType.constName,
-      flags.quiet.constName
+      flags.quiet.constName,
+      flags.adminKey.constName,
+      'freezeAdminPrivateKey'
     ])
 
     await nodeCmd.accountManager.close()

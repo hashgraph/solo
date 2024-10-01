@@ -26,7 +26,7 @@ import * as semver from 'semver'
 import { Templates } from './templates.mjs'
 import { HEDERA_HAPI_PATH, ROOT_CONTAINER, SOLO_LOGS_DIR } from './constants.mjs'
 import { constants } from './index.mjs'
-import { FileContentsQuery, FileId } from '@hashgraph/sdk'
+import { FileContentsQuery, FileId, PrivateKey, ServiceEndpoint } from '@hashgraph/sdk'
 import * as yaml from 'js-yaml'
 
 // cache current directory
@@ -353,6 +353,135 @@ export function addDebugOptions (valuesArg, debugNodeId, index = 0) {
     valuesArg += ` --set "hedera.nodes[${nodeId}].root.extraEnv[${index}].value=-agentlib:jdwp=transport=dt_socket\\,server=y\\,suspend=y\\,address=*:${constants.JVM_DEBUG_PORT}"`
   }
   return valuesArg
+}
+
+/**
+ * Returns an object that can be written to a file without data loss.
+ * Contains fields needed for adding a new node through separate commands
+ * @param ctx
+ * @returns file writable object
+ */
+export function addSaveContextParser (ctx) {
+  const exportedCtx = {}
+
+  const config = /** @type {NodeAddConfigClass} **/ ctx.config
+  const exportedFields = [
+    'tlsCertHash',
+    'upgradeZipHash',
+    'newNode'
+  ]
+
+  exportedCtx.signingCertDer = ctx.signingCertDer.toString()
+  exportedCtx.gossipEndpoints = ctx.gossipEndpoints.map(ep => `${ep.getDomainName}:${ep.getPort}`)
+  exportedCtx.grpcServiceEndpoints = ctx.grpcServiceEndpoints.map(ep => `${ep.getDomainName}:${ep.getPort}`)
+  exportedCtx.adminKey = ctx.adminKey.toString()
+  exportedCtx.existingNodeIds = config.existingNodeIds
+
+  for (const prop of exportedFields) {
+    exportedCtx[prop] = ctx[prop]
+  }
+  return exportedCtx
+}
+
+/**
+ * Initializes objects in the context from a provided string
+ * Contains fields needed for adding a new node through separate commands
+ * @param ctx - accumulator object
+ * @param ctxData - data in string format
+ * @returns file writable object
+ */
+export function addLoadContextParser (ctx, ctxData) {
+  const config = /** @type {NodeAddConfigClass} **/ ctx.config
+  ctx.signingCertDer = new Uint8Array(ctxData.signingCertDer.split(','))
+  ctx.gossipEndpoints = prepareEndpoints(ctx.config.endpointType, ctxData.gossipEndpoints, constants.HEDERA_NODE_INTERNAL_GOSSIP_PORT)
+  ctx.grpcServiceEndpoints = prepareEndpoints(ctx.config.endpointType, ctxData.grpcServiceEndpoints, constants.HEDERA_NODE_EXTERNAL_GOSSIP_PORT)
+  ctx.adminKey = PrivateKey.fromStringED25519(ctxData.adminKey)
+  config.nodeId = ctxData.newNode.name
+  config.existingNodeIds = ctxData.existingNodeIds
+  config.allNodeIds = [...config.existingNodeIds, ctxData.newNode.name]
+
+  const fieldsToImport = [
+    'tlsCertHash',
+    'upgradeZipHash',
+    'newNode'
+  ]
+
+  for (const prop of fieldsToImport) {
+    ctx[prop] = ctxData[prop]
+  }
+}
+
+/**
+ * Returns an object that can be written to a file without data loss.
+ * Contains fields needed for deleting a node through separate commands
+ * @param ctx - accumulator object
+ * @returns file writable object
+ */
+export function deleteSaveContextParser (ctx) {
+  const exportedCtx = {}
+
+  const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
+  exportedCtx.adminKey = config.adminKey.toString()
+  exportedCtx.existingNodeIds = config.existingNodeIds
+  exportedCtx.upgradeZipHash = ctx.upgradeZipHash
+  exportedCtx.nodeId = config.nodeId
+  return exportedCtx
+}
+
+/**
+ * Initializes objects in the context from a provided string
+ * Contains fields needed for deleting a node through separate commands
+ * @param ctx - accumulator object
+ * @param ctxData - data in string format
+ * @returns file writable object
+ */
+export function deleteLoadContextParser (ctx, ctxData) {
+  const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
+  config.adminKey = PrivateKey.fromStringED25519(ctxData.adminKey)
+  config.nodeId = ctxData.nodeId
+  config.existingNodeIds = ctxData.existingNodeIds
+  config.allNodeIds = ctxData.existingNodeIds
+  ctx.upgradeZipHash = ctxData.upgradeZipHash
+  config.podNames = {}
+}
+
+/**
+ * @param {string} endpointType
+ * @param {string[]} endpoints
+ * @param {number} defaultPort
+ * @returns {ServiceEndpoint[]}
+ */
+export function prepareEndpoints (endpointType, endpoints, defaultPort) {
+  const ret = /** @typedef ServiceEndpoint **/[]
+  for (const endpoint of endpoints) {
+    const parts = endpoint.split(':')
+
+    let url = ''
+    let port = defaultPort
+
+    if (parts.length === 2) {
+      url = parts[0].trim()
+      port = parts[1].trim()
+    } else if (parts.length === 1) {
+      url = parts[0]
+    } else {
+      throw new SoloError(`incorrect endpoint format. expected url:port, found ${endpoint}`)
+    }
+
+    if (endpointType.toUpperCase() === constants.ENDPOINT_TYPE_IP) {
+      ret.push(new ServiceEndpoint({
+        port,
+        ipAddressV4: parseIpAddressToUint8Array(url)
+      }))
+    } else {
+      ret.push(new ServiceEndpoint({
+        port,
+        domainName: url
+      }))
+    }
+  }
+
+  return ret
 }
 
 /**
