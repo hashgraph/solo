@@ -342,21 +342,21 @@ export async function getNodeIdsPrivateKeysHash (networkNodeServicesMap, namespa
   const nodeKeyHashMap = new Map()
   for (const networkNodeServices of networkNodeServicesMap.values()) {
     const keyHashMap = new Map()
-    const nodeId = networkNodeServices.nodeName
-    const uniqueNodeDestDir = path.join(destDir, nodeId)
+    const nodeAlias = networkNodeServices.nodeName
+    const uniqueNodeDestDir = path.join(destDir, nodeAlias)
     if (!fs.existsSync(uniqueNodeDestDir)) {
       fs.mkdirSync(uniqueNodeDestDir, { recursive: true })
     }
-    await addKeyHashToMap(k8, nodeId, dataKeysDir, uniqueNodeDestDir, keyHashMap, Templates.renderGossipPemPrivateKeyFile(constants.SIGNING_KEY_PREFIX, nodeId))
-    await addKeyHashToMap(k8, nodeId, tlsKeysDir, uniqueNodeDestDir, keyHashMap, 'hedera.key')
-    nodeKeyHashMap.set(nodeId, keyHashMap)
+    await addKeyHashToMap(k8, nodeAlias, dataKeysDir, uniqueNodeDestDir, keyHashMap, Templates.renderGossipPemPrivateKeyFile(constants.SIGNING_KEY_PREFIX, nodeAlias))
+    await addKeyHashToMap(k8, nodeAlias, tlsKeysDir, uniqueNodeDestDir, keyHashMap, 'hedera.key')
+    nodeKeyHashMap.set(nodeAlias, keyHashMap)
   }
   return nodeKeyHashMap
 }
 
-async function addKeyHashToMap (k8, nodeId, keyDir, uniqueNodeDestDir, keyHashMap, privateKeyFileName) {
+async function addKeyHashToMap (k8, nodeAlias, keyDir, uniqueNodeDestDir, keyHashMap, privateKeyFileName) {
   await k8.copyFrom(
-    Templates.renderNetworkPodName(nodeId),
+    Templates.renderNetworkPodName(nodeAlias),
     ROOT_CONTAINER,
     path.join(keyDir, privateKeyFileName),
     uniqueNodeDestDir)

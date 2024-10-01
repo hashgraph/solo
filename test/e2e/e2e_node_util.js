@@ -130,11 +130,11 @@ export function e2eNodeKeyRefreshTest (testName, mode, releaseTag = HEDERA_PLATF
               accountCreationShouldSucceed(accountManager, nodeCmd, namespace)
             })
 
-        function nodePodShouldBeRunning (nodeCmd, namespace, nodeId) {
-          it(`${nodeId} should be running`, async () => {
+        function nodePodShouldBeRunning (nodeCmd, namespace, nodeAlias) {
+          it(`${nodeAlias} should be running`, async () => {
             try {
               await expect(nodeCmd.checkNetworkNodePod(namespace,
-                nodeId)).resolves.toBeTruthy()
+                nodeAlias)).resolves.toBeTruthy()
             } catch (e) {
               nodeCmd.logger.showUserError(e)
               expect(e).toBeNull()
@@ -144,8 +144,8 @@ export function e2eNodeKeyRefreshTest (testName, mode, releaseTag = HEDERA_PLATF
           }, defaultTimeout)
         }
 
-        function nodeRefreshShouldSucceed (nodeId, nodeCmd, argv) {
-          it(`${nodeId} refresh should succeed`, async () => {
+        function nodeRefreshShouldSucceed (nodeAlias, nodeCmd, argv) {
+          it(`${nodeAlias} refresh should succeed`, async () => {
             try {
               await expect(nodeCmd.refresh(argv)).resolves.toBeTruthy()
               expect(nodeCmd.getUnusedConfigs(
@@ -162,12 +162,12 @@ export function e2eNodeKeyRefreshTest (testName, mode, releaseTag = HEDERA_PLATF
           }, 1200000)
         }
 
-        function nodeShouldNotBeActive (nodeCmd, nodeId) {
-          it(`${nodeId} should not be ACTIVE`, async () => {
+        function nodeShouldNotBeActive (nodeCmd, nodeAlias) {
+          it(`${nodeAlias} should not be ACTIVE`, async () => {
             expect(2)
             try {
               await expect(
-                nodeCmd.checkNetworkNodeActiveness(namespace, nodeId, { title: '' }, '', 44, undefined, 15)
+                nodeCmd.checkNetworkNodeActiveness(namespace, nodeAlias, { title: '' }, '', 44, undefined, 15)
               ).rejects.toThrowError()
             } catch (e) {
               expect(e).not.toBeNull()
@@ -177,13 +177,13 @@ export function e2eNodeKeyRefreshTest (testName, mode, releaseTag = HEDERA_PLATF
           }, defaultTimeout)
         }
 
-        async function nodeRefreshTestSetup (argv, testName, k8, nodeId) {
-          argv[flags.nodeAliasesUnparsed.name] = nodeId
+        async function nodeRefreshTestSetup (argv, testName, k8, nodeAliases) {
+          argv[flags.nodeAliasesUnparsed.name] = nodeAliases
           const configManager = getTestConfigManager(`${testName}-solo.yaml`)
           configManager.update(argv, true)
 
           const podArray = await k8.getPodsByLabel(
-            [`app=network-${nodeId}`,
+            [`app=network-${nodeAliases}`,
               'fullstack.hedera.com/type=network-node'])
 
           if (podArray.length > 0) {
@@ -191,7 +191,7 @@ export function e2eNodeKeyRefreshTest (testName, mode, releaseTag = HEDERA_PLATF
             k8.logger.info(`nodeRefreshTestSetup: podName: ${podName}`)
             return podName
           } else {
-            throw new Error(`pod for ${nodeId} not found`)
+            throw new Error(`pod for ${nodeAliases} not found`)
           }
         }
       })

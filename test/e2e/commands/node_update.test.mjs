@@ -105,17 +105,17 @@ describe('Node update', () => {
   it('signing key and tls key should not match previous one', async () => {
     const currentNodeIdsPrivateKeysHash = await getNodeIdsPrivateKeysHash(existingServiceMap, namespace, k8, getTmpDir())
 
-    for (const [nodeId, existingKeyHashMap] of existingNodeIdsPrivateKeysHash.entries()) {
-      const currentNodeKeyHashMap = currentNodeIdsPrivateKeysHash.get(nodeId)
+    for (const [nodeAlias, existingKeyHashMap] of existingNodeIdsPrivateKeysHash.entries()) {
+      const currentNodeKeyHashMap = currentNodeIdsPrivateKeysHash.get(nodeAlias)
 
       for (const [keyFileName, existingKeyHash] of existingKeyHashMap.entries()) {
-        if (nodeId === updateNodeId &&
+        if (nodeAlias === updateNodeId &&
           (keyFileName.startsWith(constants.SIGNING_KEY_PREFIX) || keyFileName.startsWith('hedera'))) {
-          expect(`${nodeId}:${keyFileName}:${currentNodeKeyHashMap.get(keyFileName)}`).not.toEqual(
-            `${nodeId}:${keyFileName}:${existingKeyHash}`)
+          expect(`${nodeAlias}:${keyFileName}:${currentNodeKeyHashMap.get(keyFileName)}`).not.toEqual(
+            `${nodeAlias}:${keyFileName}:${existingKeyHash}`)
         } else {
-          expect(`${nodeId}:${keyFileName}:${currentNodeKeyHashMap.get(keyFileName)}`).toEqual(
-            `${nodeId}:${keyFileName}:${existingKeyHash}`)
+          expect(`${nodeAlias}:${keyFileName}:${currentNodeKeyHashMap.get(keyFileName)}`).toEqual(
+            `${nodeAlias}:${keyFileName}:${existingKeyHash}`)
         }
       }
     }

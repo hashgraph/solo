@@ -74,7 +74,7 @@ describe('Node delete', () => {
 
   accountCreationShouldSucceed(nodeCmd.accountManager, nodeCmd, namespace)
 
-  it('config.txt should no longer contain removed nodeid', async () => {
+  it('config.txt should no longer contain removed node alias name', async () => {
     // read config.txt file from first node, read config.txt line by line, it should not contain value of nodeAlias
     const pods = await k8.getPodsByLabel(['fullstack.hedera.com/type=network-node'])
     const podName = pods[0].metadata.name

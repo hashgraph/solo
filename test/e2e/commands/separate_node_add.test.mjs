@@ -103,12 +103,12 @@ describe('Node add via separated commands should success', () => {
   it('existing nodes private keys should not have changed', async () => {
     const currentNodeIdsPrivateKeysHash = await getNodeIdsPrivateKeysHash(existingServiceMap, namespace, k8, getTmpDir())
 
-    for (const [nodeId, existingKeyHashMap] of existingNodeIdsPrivateKeysHash.entries()) {
-      const currentNodeKeyHashMap = currentNodeIdsPrivateKeysHash.get(nodeId)
+    for (const [nodeAlias, existingKeyHashMap] of existingNodeIdsPrivateKeysHash.entries()) {
+      const currentNodeKeyHashMap = currentNodeIdsPrivateKeysHash.get(nodeAlias)
 
       for (const [keyFileName, existingKeyHash] of existingKeyHashMap.entries()) {
-        expect(`${nodeId}:${keyFileName}:${currentNodeKeyHashMap.get(keyFileName)}`).toEqual(
-            `${nodeId}:${keyFileName}:${existingKeyHash}`)
+        expect(`${nodeAlias}:${keyFileName}:${currentNodeKeyHashMap.get(keyFileName)}`).toEqual(
+            `${nodeAlias}:${keyFileName}:${existingKeyHash}`)
       }
     }
   }, defaultTimeout)
