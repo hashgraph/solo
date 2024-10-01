@@ -2087,7 +2087,7 @@ export class NodeCommand extends BaseCommand {
             async (ctx) => {
               const config = /** @type {NodeAddConfigClass} **/ ctx.config
               const newNodeFullyQualifiedPodName = Templates.renderNetworkPodName(config.nodeAlias)
-              const nodeNumber = Templates.nodeNumberFromNodeAlias(config.nodeAlias)
+              const nodeId = Templates.nodeIdFromNodeAlias(config.nodeAlias)
               const savedStateDir = (config.lastStateZipPath.match(/\/(\d+)\.zip$/))[1]
               const savedStatePath = `${constants.HEDERA_HAPI_PATH}/data/saved/com.hedera.services.ServicesMain/${nodeNumber}/123/${savedStateDir}`
               await self.k8.execContainer(newNodeFullyQualifiedPodName, constants.ROOT_CONTAINER, ['bash', '-c', `mkdir -p ${savedStatePath}`])
