@@ -24,8 +24,8 @@ import {
   constants
 } from '../../../src/core/index.mjs'
 import { BaseCommand } from '../../../src/commands/base.mjs'
-import { K8 } from '../../../src/core/k8.mjs'
 import * as flags from '../../../src/commands/flags.mjs'
+import { getK8Instance } from '../../test_util.js'
 
 const testLogger = logging.NewLogger('debug', true)
 
@@ -40,7 +40,8 @@ describe('BaseCommand', () => {
   const helmDepManager = new HelmDependencyManager(downloader, zippy, testLogger)
   const depManagerMap = new Map().set(constants.HELM, helmDepManager)
   const depManager = new DependencyManager(testLogger, depManagerMap)
-  const k8 = new K8(configManager, testLogger)
+
+  const k8 = getK8Instance(configManager)
 
   const baseCmd = new BaseCommand({
     logger: testLogger,

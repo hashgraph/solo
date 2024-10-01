@@ -22,7 +22,7 @@ import got from 'got'
 import path from 'path'
 import {
   DataValidationError,
-  FullstackTestingError,
+  SoloError,
   IllegalArgumentError,
   MissingArgumentError,
   ResourceNotFoundError
@@ -139,7 +139,7 @@ export class PackageDownloader {
 
       return destPath
     } catch (e) {
-      throw new FullstackTestingError(`Error fetching file ${url}: ${e.message}`, e)
+      throw new SoloError(`Error fetching file ${url}: ${e.message}`, e)
     }
   }
 
@@ -171,7 +171,7 @@ export class PackageDownloader {
           reject(e)
         })
       } catch (e) {
-        reject(new FullstackTestingError('failed to compute checksum', e, { filePath, algo }))
+        reject(new SoloError('failed to compute checksum', e, { filePath, algo }))
       }
     })
   }
@@ -221,7 +221,7 @@ export class PackageDownloader {
 
       await this.fetchFile(checksumURL, checksumFile)
       const checksumData = fs.readFileSync(checksumFile).toString()
-      if (!checksumData) throw new FullstackTestingError(`unable to read checksum file: ${checksumFile}`)
+      if (!checksumData) throw new SoloError(`unable to read checksum file: ${checksumFile}`)
       const checksum = checksumData.split(' ')[0]
       await this.fetchFile(packageURL, packageFile)
       await this.verifyChecksum(packageFile, checksum, algo)
@@ -235,7 +235,7 @@ export class PackageDownloader {
         fs.rmSync(packageFile)
       }
 
-      throw new FullstackTestingError(e.message, e)
+      throw new SoloError(e.message, e)
     }
   }
 

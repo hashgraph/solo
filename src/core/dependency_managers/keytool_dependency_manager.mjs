@@ -20,7 +20,7 @@ import os from 'os'
 import path from 'path'
 import * as semver from 'semver'
 import * as util from 'util'
-import { MissingArgumentError, FullstackTestingError, IllegalArgumentError } from '../errors.mjs'
+import { MissingArgumentError, SoloError, IllegalArgumentError } from '../errors.mjs'
 import * as helpers from '../helpers.mjs'
 import { constants, Keytool, Templates } from '../index.mjs'
 import * as version from '../../../version.mjs'
@@ -77,7 +77,7 @@ export class KeytoolDependencyManager extends ShellRunner {
         this.osArch = 'aarch64'
         break
       default:
-        throw new FullstackTestingError(`unsupported os arch: ${osArch}`)
+        throw new SoloError(`unsupported os arch: ${osArch}`)
     }
 
     this.javaVersion = semver.parse(javaVersion, { includePrerelease: true })

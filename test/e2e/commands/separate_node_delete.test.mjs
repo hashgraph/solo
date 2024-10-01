@@ -15,36 +15,37 @@
  *
  * @jest-environment steps
  */
+import { afterAll, describe, expect, it } from '@jest/globals'
+import { flags } from '../../../src/commands/index.mjs'
 import {
   accountCreationShouldSucceed,
   balanceQueryShouldSucceed,
   bootstrapNetwork,
   getDefaultArgv,
-  getNodeIdsPrivateKeysHash, getTmpDir,
   HEDERA_PLATFORM_VERSION_TAG
 } from '../../test_util.js'
-import { flags } from '../../../src/commands/index.mjs'
-import { getNodeLogs } from '../../../src/core/helpers.mjs'
+import { getNodeLogs, getTmpDir } from '../../../src/core/helpers.mjs'
 import { NodeCommand } from '../../../src/commands/node.mjs'
+import { HEDERA_HAPI_PATH, ROOT_CONTAINER } from '../../../src/core/constants.mjs'
+import fs from 'fs'
 
-describe('Node add via separated commands should success', () => {
-  const defaultTimeout = 120000
-  const namespace = 'node-add-separated'
+describe('Node delete via separated commands', () => {
+  const namespace = 'node-delete-separate'
+  const nodeId = 'node1'
   const argv = getDefaultArgv()
-  argv[flags.nodeIDs.name] = 'node1,node2,node3'
+  argv[flags.nodeIDs.name] = 'node1,node2,node3,node4'
+  argv[flags.nodeID.name] = nodeId
+  argv.nodeId = nodeId
   argv[flags.generateGossipKeys.name] = true
   argv[flags.generateTlsKeys.name] = true
+  argv[flags.persistentVolumeClaims.name] = true
   // set the env variable SOLO_FST_CHARTS_DIR if developer wants to use local FST charts
   argv[flags.chartDirectory.name] = process.env.SOLO_FST_CHARTS_DIR ? process.env.SOLO_FST_CHARTS_DIR : undefined
   argv[flags.releaseTag.name] = HEDERA_PLATFORM_VERSION_TAG
   argv[flags.namespace.name] = namespace
-  argv[flags.force.name] = true
-  argv[flags.persistentVolumeClaims.name] = true
-  argv[flags.quiet.name] = true
-
-  const argvPrepare = Object.assign({}, argv)
 
   const tempDir = 'contextDir'
+  const argvPrepare = Object.assign({}, argv)
   argvPrepare[flags.outputDir.name] = tempDir
 
   const argvExecute = getDefaultArgv()
@@ -53,63 +54,46 @@ describe('Node add via separated commands should success', () => {
   const bootstrapResp = bootstrapNetwork(namespace, argv)
   const nodeCmd = bootstrapResp.cmd.nodeCmd
   const accountCmd = bootstrapResp.cmd.accountCmd
-  const networkCmd = bootstrapResp.cmd.networkCmd
   const k8 = bootstrapResp.opts.k8
-  let existingServiceMap
-  let existingNodeIdsPrivateKeysHash
 
   afterAll(async () => {
     await getNodeLogs(k8, namespace)
-    await nodeCmd.accountManager.close()
-    await nodeCmd.stop(argv)
-    await networkCmd.destroy(argv)
     await k8.deleteNamespace(namespace)
   }, 600000)
-
-  it('cache current version of private keys', async () => {
-    existingServiceMap = await nodeCmd.accountManager.getNodeServiceMap(namespace)
-    existingNodeIdsPrivateKeysHash = await getNodeIdsPrivateKeysHash(existingServiceMap, namespace, k8, getTmpDir())
-  }, defaultTimeout)
 
   it('should succeed with init command', async () => {
     const status = await accountCmd.init(argv)
     expect(status).toBeTruthy()
   }, 450000)
 
-  it('should add a new node to the network via the segregated commands successfully', async () => {
-    await nodeCmd.addPrepare(argvPrepare)
-    await nodeCmd.addSubmitTransactions(argvExecute)
-    await nodeCmd.addExecute(argvExecute)
-    expect(nodeCmd.getUnusedConfigs(NodeCommand.ADD_CONFIGS_NAME)).toEqual([
+  it('should delete a node from the network successfully', async () => {
+    await nodeCmd.deletePrepare(argvPrepare)
+    await nodeCmd.deleteSubmitTransactions(argvExecute)
+    await nodeCmd.deleteExecute(argvExecute)
+    expect(nodeCmd.getUnusedConfigs(NodeCommand.DELETE_CONFIGS_NAME)).toEqual([
       flags.app.constName,
-      flags.chainId.constName,
       flags.devMode.constName,
-      flags.generateGossipKeys.constName,
-      flags.generateTlsKeys.constName,
-      flags.gossipEndpoints.constName,
-      flags.grpcEndpoints.constName,
+      flags.endpointType.constName,
       flags.quiet.constName,
       flags.adminKey.constName,
-      'curDate',
       'freezeAdminPrivateKey'
     ])
+
     await nodeCmd.accountManager.close()
-  }, 800000)
+  }, 600000)
 
   balanceQueryShouldSucceed(nodeCmd.accountManager, nodeCmd, namespace)
 
   accountCreationShouldSucceed(nodeCmd.accountManager, nodeCmd, namespace)
 
-  it('existing nodes private keys should not have changed', async () => {
-    const currentNodeIdsPrivateKeysHash = await getNodeIdsPrivateKeysHash(existingServiceMap, namespace, k8, getTmpDir())
-
-    for (const [nodeId, existingKeyHashMap] of existingNodeIdsPrivateKeysHash.entries()) {
-      const currentNodeKeyHashMap = currentNodeIdsPrivateKeysHash.get(nodeId)
-
-      for (const [keyFileName, existingKeyHash] of existingKeyHashMap.entries()) {
-        expect(`${nodeId}:${keyFileName}:${currentNodeKeyHashMap.get(keyFileName)}`).toEqual(
-            `${nodeId}:${keyFileName}:${existingKeyHash}`)
-      }
-    }
-  }, defaultTimeout)
-}, 180000)
+  it('config.txt should no longer contain removed nodeid', async () => {
+    // read config.txt file from first node, read config.txt line by line, it should not contain value of nodeId
+    const pods = await k8.getPodsByLabel(['fullstack.hedera.com/type=network-node'])
+    const podName = pods[0].metadata.name
+    const tmpDir = getTmpDir()
+    await k8.copyFrom(podName, ROOT_CONTAINER, `${HEDERA_HAPI_PATH}/config.txt`, tmpDir)
+    const configTxt = fs.readFileSync(`${tmpDir}/config.txt`, 'utf8')
+    console.log('config.txt:', configTxt)
+    expect(configTxt).not.toContain(nodeId)
+  }, 600000)
+})

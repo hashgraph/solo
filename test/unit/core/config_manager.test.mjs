@@ -22,19 +22,19 @@ import * as flags from '../../../src/commands/flags.mjs'
 import fs from 'fs'
 import { testLogger } from '../../test_util.js'
 import * as helpers from '../../../src/core/helpers.mjs'
+import { yamlToObject } from '../../../src/core/helpers.mjs'
 
 describe('ConfigManager', () => {
   it('should persist config', () => {
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'config-'))
-    const tmpFile = path.join(tmpDir, 'test.json')
+    const tmpFile = path.join(tmpDir, 'test.yaml')
 
     expect(fs.existsSync(tmpFile)).toBeFalsy()
     const cm = new ConfigManager(testLogger, tmpFile)
     cm.persist()
     expect(fs.existsSync(tmpFile)).toBeTruthy()
 
-    const configJSON = fs.readFileSync(tmpFile)
-    const cachedConfig = JSON.parse(configJSON.toString())
+    const cachedConfig = yamlToObject(tmpFile)
 
     expect(cachedConfig.version).toStrictEqual(helpers.packageVersion())
     expect(cachedConfig.flags).toStrictEqual({})
@@ -49,7 +49,7 @@ describe('ConfigManager', () => {
 
   describe('update values using argv', () => {
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'config-'))
-    const tmpFile = path.join(tmpDir, 'test.json')
+    const tmpFile = path.join(tmpDir, 'test.yaml')
 
     it('should update string flag value', () => {
       const cm = new ConfigManager(testLogger, tmpFile)
@@ -114,7 +114,7 @@ describe('ConfigManager', () => {
 
   describe('should apply precedence', () => {
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'config-'))
-    const tmpFile = path.join(tmpDir, 'test.json')
+    const tmpFile = path.join(tmpDir, 'test.yaml')
     const aliases = {}
     aliases[flags.devMode.name] = [flags.devMode.name, flags.devMode.definition.alias] // mock
 
@@ -221,8 +221,7 @@ describe('ConfigManager', () => {
   describe('handle argv overrides', () => {
     const configFilePath = process.cwd() + '/test/data/solo-test-2.config'
     const cm = new ConfigManager(testLogger, configFilePath)
-    const configJSON = fs.readFileSync(process.cwd() + '/test/data/solo-test-2.config')
-    const cachedConfig = JSON.parse(configJSON.toString())
+    const cachedConfig = yamlToObject(process.cwd() + '/test/data/solo-test-2.config')
 
     it('override config using argv', () => {
       cm.load()

@@ -16,7 +16,7 @@
  */
 'use strict'
 
-export class FullstackTestingError extends Error {
+export class SoloError extends Error {
   /**
      * Create a custom error object
      *
@@ -39,7 +39,7 @@ export class FullstackTestingError extends Error {
   }
 }
 
-export class ResourceNotFoundError extends FullstackTestingError {
+export class ResourceNotFoundError extends SoloError {
   /**
      * Create a custom error for resource not found scenario
      *
@@ -54,7 +54,7 @@ export class ResourceNotFoundError extends FullstackTestingError {
   }
 }
 
-export class MissingArgumentError extends FullstackTestingError {
+export class MissingArgumentError extends SoloError {
   /**
      * Create a custom error for missing argument scenario
      *
@@ -66,7 +66,7 @@ export class MissingArgumentError extends FullstackTestingError {
   }
 }
 
-export class IllegalArgumentError extends FullstackTestingError {
+export class IllegalArgumentError extends SoloError {
   /**
      * Create a custom error for illegal argument scenario
      *
@@ -81,7 +81,7 @@ export class IllegalArgumentError extends FullstackTestingError {
   }
 }
 
-export class DataValidationError extends FullstackTestingError {
+export class DataValidationError extends SoloError {
   /**
      * Create a custom error for data validation error scenario
      *

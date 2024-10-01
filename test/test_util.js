@@ -51,6 +51,8 @@ import {
 import { ROOT_CONTAINER } from '../src/core/constants.mjs'
 import crypto from 'crypto'
 import { AccountCommand } from '../src/commands/account.mjs'
+import { SoloError } from '../src/core/errors.mjs'
+import { execSync } from 'child_process'
 
 export const testLogger = logging.NewLogger('debug', true)
 export const TEST_CLUSTER = 'solo-e2e'
@@ -113,7 +115,7 @@ export function bootstrapTestVariables (testName, argv,
 ) {
   const namespace = argv[flags.namespace.name] || 'bootstrap-ns'
   const cacheDir = argv[flags.cacheDir.name] || getTestCacheDir(testName)
-  const configManager = getTestConfigManager(`${testName}-solo.config`)
+  const configManager = getTestConfigManager(`${testName}-solo.yaml`)
   configManager.update(argv, true)
 
   const downloader = new PackageDownloader(testLogger)
@@ -224,7 +226,8 @@ export function bootstrapNetwork (testName, argv,
       await expect(nodeCmd.keys(argv)).resolves.toBeTruthy()
       expect(nodeCmd.getUnusedConfigs(NodeCommand.KEYS_CONFIGS_NAME)).toEqual([
         flags.cacheDir.constName,
-        flags.devMode.constName
+        flags.devMode.constName,
+        flags.quiet.constName
       ])
     }, 120000)
 
@@ -241,6 +244,7 @@ export function bootstrapNetwork (testName, argv,
         flags.log4j2Xml.constName,
         flags.profileFile.constName,
         flags.profileName.constName,
+        flags.quiet.constName,
         flags.settingTxt.constName
       ])
     }, 180000)
@@ -359,4 +363,28 @@ async function addKeyHashToMap (k8, nodeId, keyDir, uniqueNodeDestDir, keyHashMa
   const keyBytes = await fs.readFileSync(path.join(uniqueNodeDestDir, privateKeyFileName))
   const keyString = keyBytes.toString()
   keyHashMap.set(privateKeyFileName, crypto.createHash('sha256').update(keyString).digest('base64'))
+}
+
+/**
+ * @param {ConfigManager} configManager
+ * @returns {K8}
+ */
+export function getK8Instance (configManager) {
+  try {
+    return new K8(configManager, testLogger)
+    // TODO: return a mock without running the init within constructor after we convert to Mocha, Jest ESModule mocks are broke.
+  } catch (e) {
+    if (!(e instanceof SoloError)) {
+      throw e
+    }
+
+    // Set envs
+    process.env.SOLO_CLUSTER_NAME = 'solo-e2e'
+    process.env.SOLO_NAMESPACE = 'solo-e2e'
+    process.env.SOLO_CLUSTER_SETUP_NAMESPACE = 'fullstack-setup'
+
+    // Create cluster
+    execSync(`kind create cluster --name "${process.env.SOLO_CLUSTER_NAME}"`, { stdio: 'inherit' })
+    return new K8(configManager, testLogger)
+  }
 }
