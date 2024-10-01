@@ -18,7 +18,7 @@
 import { ListrEnquirerPromptAdapter } from '@listr2/prompt-adapter-enquirer'
 import chalk from 'chalk'
 import { Listr } from 'listr2'
-import { FullstackTestingError, IllegalArgumentError, MissingArgumentError } from '../core/errors.mjs'
+import { SoloError, IllegalArgumentError, MissingArgumentError } from '../core/errors.mjs'
 import { BaseCommand } from './base.mjs'
 import * as flags from './flags.mjs'
 import { constants, Templates } from '../core/index.mjs'
@@ -30,8 +30,9 @@ import fs from 'fs'
 
 export class NetworkCommand extends BaseCommand {
   /**
-   * @param {{profileManager: ProfileManager, logger: Logger, helm: Helm, k8: K8, chartManager: ChartManager,
-   * configManager: ConfigManager, depManager: DependencyManager, downloader: PackageDownloader}} opts
+   * @param {{profileManager: ProfileManager, logger: SoloLogger, helm: Helm, k8: K8, chartManager: ChartManager,
+   * configManager: ConfigManager, depManager: DependencyManager, downloader: PackageDownloader, keyManager: KeyManager,
+   * platformInstaller: PlatformInstaller}} opts
    */
   constructor (opts) {
     super(opts)
@@ -76,6 +77,7 @@ export class NetworkCommand extends BaseCommand {
       flags.persistentVolumeClaims,
       flags.profileFile,
       flags.profileName,
+      flags.quiet,
       flags.releaseTag,
       flags.settingTxt,
       flags.valuesFile
@@ -406,7 +408,7 @@ export class NetworkCommand extends BaseCommand {
     try {
       await tasks.run()
     } catch (e) {
-      throw new FullstackTestingError(`Error installing chart ${constants.FULLSTACK_DEPLOYMENT_CHART}`, e)
+      throw new SoloError(`Error installing chart ${constants.FULLSTACK_DEPLOYMENT_CHART}`, e)
     }
 
     return true
@@ -490,7 +492,7 @@ export class NetworkCommand extends BaseCommand {
     try {
       await tasks.run()
     } catch (e) {
-      throw new FullstackTestingError('Error destroying network', e)
+      throw new SoloError('Error destroying network', e)
     }
 
     return true
@@ -540,7 +542,7 @@ export class NetworkCommand extends BaseCommand {
     try {
       await tasks.run()
     } catch (e) {
-      throw new FullstackTestingError(`Error upgrading chart ${constants.FULLSTACK_DEPLOYMENT_CHART}`, e)
+      throw new SoloError(`Error upgrading chart ${constants.FULLSTACK_DEPLOYMENT_CHART}`, e)
     }
 
     return true

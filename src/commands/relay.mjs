@@ -16,7 +16,7 @@
  */
 'use strict'
 import { Listr } from 'listr2'
-import { FullstackTestingError, MissingArgumentError } from '../core/errors.mjs'
+import { SoloError, MissingArgumentError } from '../core/errors.mjs'
 import * as helpers from '../core/helpers.mjs'
 import { constants } from '../core/index.mjs'
 import { BaseCommand } from './base.mjs'
@@ -26,7 +26,7 @@ import { getNodeAccountMap } from '../core/helpers.mjs'
 
 export class RelayCommand extends BaseCommand {
   /**
-   * @param {{profileManager: ProfileManager, accountManager: AccountManager, logger: Logger, helm: Helm, k8: K8,
+   * @param {{profileManager: ProfileManager, accountManager: AccountManager, logger: SoloLogger, helm: Helm, k8: K8,
    * chartManager: ChartManager, configManager: ConfigManager, depManager: DependencyManager,
    * downloader: PackageDownloader}} opts
    */
@@ -59,9 +59,21 @@ export class RelayCommand extends BaseCommand {
       flags.operatorKey,
       flags.profileFile,
       flags.profileName,
+      flags.quiet,
       flags.relayReleaseTag,
       flags.replicaCount,
       flags.valuesFile
+    ]
+  }
+
+  /**
+   * @returns {CommandFlag[]}
+   */
+  static get DESTROY_FLAGS_LIST () {
+    return [
+      flags.chartDirectory,
+      flags.namespace,
+      flags.nodeAliasesUnparsed
     ]
   }
 
@@ -270,7 +282,7 @@ export class RelayCommand extends BaseCommand {
               `app.kubernetes.io/instance=${config.releaseName}`
             ], 1, 100, 2000)
           } catch (e) {
-            throw new FullstackTestingError(`Relay ${config.releaseName} is not ready: ${e.message}`, e)
+            throw new SoloError(`Relay ${config.releaseName} is not ready: ${e.message}`, e)
           }
         }
       }
@@ -282,7 +294,7 @@ export class RelayCommand extends BaseCommand {
     try {
       await tasks.run()
     } catch (e) {
-      throw new FullstackTestingError('Error installing relays', e)
+      throw new SoloError('Error installing relays', e)
     }
 
     return true
@@ -303,11 +315,7 @@ export class RelayCommand extends BaseCommand {
           self.configManager.setFlag(flags.nodeAliasesUnparsed, '')
 
           self.configManager.update(argv)
-          await prompts.execute(task, self.configManager, [
-            flags.chartDirectory,
-            flags.namespace,
-            flags.nodeAliasesUnparsed
-          ])
+          await prompts.execute(task, self.configManager, RelayCommand.DESTROY_FLAGS_LIST)
 
           // prompt if inputs are empty and set it in the context
           ctx.config = {
@@ -345,7 +353,7 @@ export class RelayCommand extends BaseCommand {
     try {
       await tasks.run()
     } catch (e) {
-      throw new FullstackTestingError('Error uninstalling relays', e)
+      throw new SoloError('Error uninstalling relays', e)
     }
 
     return true

@@ -21,7 +21,7 @@ import net from 'net'
 import os from 'os'
 import path from 'path'
 import { flags } from '../commands/index.mjs'
-import { FullstackTestingError, IllegalArgumentError, MissingArgumentError } from './errors.mjs'
+import { SoloError, IllegalArgumentError, MissingArgumentError } from './errors.mjs'
 import * as sb from 'stream-buffers'
 import * as tar from 'tar'
 import { v4 as uuid4 } from 'uuid'
@@ -37,15 +37,16 @@ import * as stream from 'node:stream'
  * For parallel execution, create separate instances by invoking clone()
  */
 export class K8 {
+  /** @type {Map<string, string>} */
   static PodReadyCondition = new Map().set(constants.POD_CONDITION_READY, constants.POD_CONDITION_STATUS_TRUE)
 
   /**
    * @param {ConfigManager} configManager
-   * @param {Logger} logger
+   * @param {SoloLogger} logger
    */
   constructor (configManager, logger) {
     if (!configManager) throw new MissingArgumentError('An instance of core/ConfigManager is required')
-    if (!logger) throw new MissingArgumentError('An instance of core/Logger is required')
+    if (!logger) throw new MissingArgumentError('An instance of core/SoloLogger is required')
 
     this.configManager = configManager
     this.logger = logger
@@ -79,12 +80,12 @@ export class K8 {
     this.kubeConfig.loadFromDefault()
 
     if (!this.kubeConfig.getCurrentCluster()) {
-      throw new FullstackTestingError('No active kubernetes cluster found. ' +
+      throw new SoloError('No active kubernetes cluster found. ' +
         'Please create a cluster and set current context.')
     }
 
     if (!this.kubeConfig.getCurrentContext()) {
-      throw new FullstackTestingError('No active kubernetes context found. ' +
+      throw new SoloError('No active kubernetes context found. ' +
         'Please set current kubernetes context.')
     }
 
@@ -133,7 +134,7 @@ export class K8 {
    */
   filterItem (items, filters = {}) {
     const filtered = this.applyMetadataFilter(items, filters)
-    if (filtered.length > 1) throw new FullstackTestingError('multiple items found with filters', { filters })
+    if (filtered.length > 1) throw new SoloError('multiple items found with filters', { filters })
     return filtered[0]
   }
 
@@ -165,7 +166,7 @@ export class K8 {
 
   /**
    * Get a list of namespaces
-   * @returns {string[]} list of namespaces
+   * @returns {Promise<string[]>} list of namespaces
    */
   async getNamespaces () {
     const resp = await this.kubeClient.listNamespace()
@@ -178,7 +179,7 @@ export class K8 {
       return namespaces
     }
 
-    throw new FullstackTestingError('incorrect response received from kubernetes API. Unable to list namespaces')
+    throw new SoloError('incorrect response received from kubernetes API. Unable to list namespaces')
   }
 
   /**
@@ -213,7 +214,7 @@ export class K8 {
   /**
    * Get pods by labels
    * @param {string[]} labels - list of labels
-   * @returns {Promise<Array<V1Pod>>}
+   * @returns {Promise<Array<k8s.V1Pod>>}
    */
   async getPodsByLabel (labels = []) {
     const ns = this._getNamespace()
@@ -263,7 +264,7 @@ export class K8 {
     }
 
     this.logger.debug(`Unable to find pod IP for ${podNameName}`)
-    throw new FullstackTestingError(`unable to find host IP of podName: ${podNameName}`)
+    throw new SoloError(`unable to find host IP of podName: ${podNameName}`)
   }
 
   /**
@@ -296,12 +297,12 @@ export class K8 {
       return svc.spec.clusterIP
     }
 
-    throw new FullstackTestingError(`unable to find cluster IP for svc: ${svcName}`)
+    throw new SoloError(`unable to find cluster IP for svc: ${svcName}`)
   }
 
   /**
    * Get a list of clusters
-   * @returns {string[]} a list of cluster names
+   * @returns {Promise<string[]>} a list of cluster names
    */
   async getClusters () {
     const clusters = []
@@ -342,10 +343,9 @@ export class K8 {
    * @param {PodName} podName
    * @param {string} containerName
    * @param {string} destPath - path inside the container
-   * @param {number} [timeout] - timeout in ms
    * @returns a promise that returns array of directory entries, custom object
    */
-  async listDir (podName, containerName, destPath, timeout = 5000) {
+  async listDir (podName, containerName, destPath) {
     try {
       const output = await this.execContainer(podName, containerName, ['ls', '-la', destPath])
       if (!output) return []
@@ -381,7 +381,7 @@ export class K8 {
 
       return items
     } catch (e) {
-      throw new FullstackTestingError(`unable to check path in '${podName}':${containerName}' - ${destPath}: ${e.message}`, e)
+      throw new SoloError(`unable to check path in '${podName}':${containerName}' - ${destPath}: ${e.message}`, e)
     }
   }
 
@@ -422,7 +422,7 @@ export class K8 {
         }
       }
     } catch (e) {
-      const error = new FullstackTestingError(`unable to check file in '${podName}':${containerName}' - ${destPath}: ${e.message}`, e)
+      const error = new SoloError(`unable to check file in '${podName}':${containerName}' - ${destPath}: ${e.message}`, e)
       this.logger.error(error.message, error)
       throw error
     }
@@ -474,11 +474,11 @@ export class K8 {
     const namespace = this._getNamespace()
 
     if (!await this.hasDir(podName, containerName, destDir)) {
-      throw new FullstackTestingError(`invalid destination path: ${destDir}`)
+      throw new SoloError(`invalid destination path: ${destDir}`)
     }
 
     if (!fs.existsSync(srcPath)) {
-      throw new FullstackTestingError(`invalid source path: ${srcPath}`)
+      throw new SoloError(`invalid source path: ${srcPath}`)
     }
 
     try {
@@ -508,7 +508,7 @@ export class K8 {
           }).then(conn => {
           conn.on('close', async (code, reason) => {
             if (code !== 1000) { // code 1000 is the success code
-              return reject(new FullstackTestingError(`failed to copy because of error (${code}): ${reason}`))
+              return reject(new SoloError(`failed to copy because of error (${code}): ${reason}`))
             }
 
             return resolve(true)
@@ -516,12 +516,12 @@ export class K8 {
 
           conn.on('error', (e) => {
             self._deleteTempFile(tmpFile)
-            return reject(new FullstackTestingError(`failed to copy file ${destPath} because of connection error: ${e.message}`, e))
+            return reject(new SoloError(`failed to copy file ${destPath} because of connection error: ${e.message}`, e))
           })
         })
       })
     } catch (e) {
-      throw new FullstackTestingError(`failed to copy file to ${podName}:${containerName} [${srcPath} -> ${destDir}]: ${e.message}`, e)
+      throw new SoloError(`failed to copy file to ${podName}:${containerName} [${srcPath} -> ${destDir}]: ${e.message}`, e)
     }
   }
 
@@ -542,20 +542,20 @@ export class K8 {
     // get stat for source file in the container
     let entries = await this.listDir(podName, containerName, srcPath)
     if (entries.length !== 1) {
-      throw new FullstackTestingError(`invalid source path: ${srcPath}`)
+      throw new SoloError(`invalid source path: ${srcPath}`)
     }
     // handle symbolic link
     if (entries[0].name.indexOf(' -> ') > -1) {
       const redirectSrcPath = path.join(path.dirname(srcPath), entries[0].name.substring(entries[0].name.indexOf(' -> ') + 4))
       entries = await this.listDir(podName, containerName, redirectSrcPath)
       if (entries.length !== 1) {
-        throw new FullstackTestingError(`invalid source path: ${redirectSrcPath}`)
+        throw new SoloError(`invalid source path: ${redirectSrcPath}`)
       }
     }
     const srcFileDesc = entries[0] // cache for later comparison after copy
 
     if (!fs.existsSync(destDir)) {
-      throw new FullstackTestingError(`invalid destination path: ${destDir}`)
+      throw new SoloError(`invalid destination path: ${destDir}`)
     }
 
     try {
@@ -609,14 +609,14 @@ export class K8 {
               self._deleteTempFile(tmpFile)
               const errorMessage = `tar command failed with status Failure while copying from ${podName}:${srcDir}/${srcFile} to ${destPath}`
               this.logger.error(errorMessage)
-              return reject(new FullstackTestingError(errorMessage))
+              return reject(new SoloError(errorMessage))
             }
             this.logger.debug(`copyFrom.callback(status)=${status}`)
           })
           .then(conn => {
             conn.on('error', (e) => {
               self._deleteTempFile(tmpFile)
-              return reject(new FullstackTestingError(
+              return reject(new SoloError(
                   `failed copying from ${podName}:${srcDir}/${srcFile} to ${destPath} because of connection error: ${e.message}`, e))
             })
 
@@ -625,7 +625,7 @@ export class K8 {
               if (code !== 1000) { // code 1000 is the success code
                 const errorMessage = `failed copying from ${podName}:${srcDir}/${srcFile} to ${destPath} because of error (${code}): ${reason}`
                 this.logger.error(errorMessage)
-                return reject(new FullstackTestingError(errorMessage))
+                return reject(new SoloError(errorMessage))
               }
 
               outputFileStream.end()
@@ -653,14 +653,14 @@ export class K8 {
                   if (rejection) {
                     const errorMessage = `failed copying from ${podName}:${srcDir}/${srcFile} to ${destPath} to download file completely: ${destPath}${additionalErrorMessageDetail}`
                     this.logger.error(errorMessage)
-                    return reject(new FullstackTestingError(errorMessage))
+                    return reject(new SoloError(errorMessage))
                   } else {
                     return resolve(true)
                   }
                 } catch (e) {
                   const errorMessage = `failed to complete copying from ${podName}:${srcDir}/${srcFile} to ${destPath} to extract file: ${destPath}`
                   this.logger.error(errorMessage, e)
-                  return reject(new FullstackTestingError(errorMessage, e))
+                  return reject(new SoloError(errorMessage, e))
                 }
               })
             })
@@ -669,7 +669,7 @@ export class K8 {
         errStream.on('data', (data) => {
           const errorMessage = `error encountered copying from ${podName}:${srcDir}/${srcFile} to ${destPath}, error: ${data.toString()}`
           this.logger.error(errorMessage)
-          return reject(new FullstackTestingError(errorMessage))
+          return reject(new SoloError(errorMessage))
         })
 
         outputFileStream.on('close', () => {
@@ -679,7 +679,7 @@ export class K8 {
         outputFileStream.on('error', (err) => {
           const errorMessage = `writerStream error encountered copying from ${podName}:${srcDir}/${srcFile} to ${destPath}, err: ${err.toString()}`
           this.logger.error(errorMessage, err)
-          return reject(new FullstackTestingError(errorMessage, err))
+          return reject(new SoloError(errorMessage, err))
         })
 
         outputFileStream.on('end', () => {
@@ -701,7 +701,7 @@ export class K8 {
     } catch (e) {
       const errorMessage = `failed to download file from ${podName}:${containerName} [${srcPath} -> ${destDir}]: ${e.message}`
       this.logger.error(errorMessage, e)
-      throw new FullstackTestingError(errorMessage, e)
+      throw new SoloError(errorMessage, e)
     }
   }
 
@@ -741,7 +741,7 @@ export class K8 {
         false,
         ({ status }) => {
           if (status === 'Failure' || errStream.size()) {
-            reject(new FullstackTestingError(`Exec error:
+            reject(new SoloError(`Exec error:
               [exec ${podName} -c ${containerName} -- ${command.join(' ')}'] - error details:
               ${errStream.getContentsAsString()}`))
             return
@@ -757,6 +757,12 @@ export class K8 {
   }
 
   /**
+   * @typedef {net.Server} ExtendedServer
+   * @property {number} localPort
+   * @property {string} info
+   */
+
+  /**
    * Port forward a port from a pod to localhost
    *
    * This simple server just forwards traffic from itself to a service running in kubernetes
@@ -765,7 +771,7 @@ export class K8 {
    * @param {PodName} podName
    * @param {number} localPort
    * @param {number} podPort
-   * @returns {Promise<net.Server>}
+   * @returns {Promise<ExtendedServer>}
    */
   async portForward (podName, localPort, podPort) {
     const ns = this._getNamespace()
@@ -794,7 +800,7 @@ export class K8 {
       const s = new net.Socket()
       s.on('error', (e) => {
         s.destroy()
-        reject(new FullstackTestingError(`failed to connect to '${host}:${port}': ${e.message}`, e))
+        reject(new SoloError(`failed to connect to '${host}:${port}': ${e.message}`, e))
       })
 
       s.connect(port, host, () => {
@@ -808,7 +814,7 @@ export class K8 {
   /**
    * Stop the port forwarder server
    *
-   * @param {net.Server} server - an instance of server returned by portForward method
+   * @param {ExtendedServer} server - an instance of server returned by portForward method
    * @param {number} [maxAttempts] - the maximum number of attempts to check if the server is stopped
    * @param {number} [timeout] - the delay between checks in milliseconds
    * @returns {Promise<void>}
@@ -845,7 +851,7 @@ export class K8 {
       attempts++
 
       try {
-        const isPortOpen = await new Promise((resolve, reject) => {
+        const isPortOpen = await new Promise((resolve) => {
           const testServer = net.createServer()
             .once('error', err => {
               if (err) {
@@ -875,7 +881,7 @@ export class K8 {
       await sleep(timeout)
     }
     if (attempts >= maxAttempts) {
-      throw new FullstackTestingError(`failed to stop port-forwarder [${server.info}]`)
+      throw new SoloError(`failed to stop port-forwarder [${server.info}]`)
     }
   }
 
@@ -886,7 +892,7 @@ export class K8 {
    * @param {number} [podCount] - number of pod expected
    * @param {number} [maxAttempts] - maximum attempts to check
    * @param {number} [delay] - delay between checks in milliseconds
-   * @param {Function} podItemPredicate - a predicate function to check the pod item
+   * @param {Function} [podItemPredicate] - a predicate function to check the pod item
    * @returns {Promise<Object[]>} a Promise that checks the status of an array of pods
    */
   async waitForPods (phases = [constants.POD_PHASE_RUNNING], labels = [], podCount = 1, maxAttempts = 10, delay = 500, podItemPredicate) {
@@ -935,7 +941,7 @@ export class K8 {
         if (++attempts < maxAttempts) {
           setTimeout(() => check(resolve, reject), delay)
         } else {
-          return reject(new FullstackTestingError(`Expected number of pod (${podCount}) not found for labels: ${labelSelector}, phases: ${phases.join(',')} [attempts = ${attempts}/${maxAttempts}]`))
+          return reject(new SoloError(`Expected number of pod (${podCount}) not found for labels: ${labelSelector}, phases: ${phases.join(',')} [attempts = ${attempts}/${maxAttempts}]`))
         }
       }
 
@@ -955,7 +961,7 @@ export class K8 {
     try {
       return await this.waitForPodConditions(K8.PodReadyCondition, labels, podCount, maxAttempts, delay)
     } catch (e) {
-      throw new FullstackTestingError(`Pod not ready [maxAttempts = ${maxAttempts}]`, e)
+      throw new SoloError(`Pod not ready [maxAttempts = ${maxAttempts}]`, e)
     }
   }
 
@@ -1115,7 +1121,7 @@ export class K8 {
 
       return resp.response.statusCode === 201
     } catch (e) {
-      throw new FullstackTestingError(`failed to create secret ${name} in namespace ${namespace}: ${e.message}, ${e?.body?.message}`, e)
+      throw new SoloError(`failed to create secret ${name} in namespace ${namespace}: ${e.message}, ${e?.body?.message}`, e)
     }
   }
 

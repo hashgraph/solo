@@ -49,6 +49,7 @@ describe('Node update', () => {
   argv[flags.releaseTag.name] = HEDERA_PLATFORM_VERSION_TAG
   argv[flags.namespace.name] = namespace
   argv[flags.persistentVolumeClaims.name] = true
+  argv[flags.quiet.name] = true
   const bootstrapResp = bootstrapNetwork(namespace, argv)
   const nodeCmd = bootstrapResp.cmd.nodeCmd
   const accountCmd = bootstrapResp.cmd.accountCmd
@@ -91,7 +92,8 @@ describe('Node update', () => {
     await nodeCmd.update(argv)
     expect(nodeCmd.getUnusedConfigs(NodeCommand.UPDATE_CONFIGS_NAME)).toEqual([
       flags.app.constName,
-      flags.devMode.constName
+      flags.devMode.constName,
+      flags.quiet.constName
     ])
     await nodeCmd.accountManager.close()
   }, 1800000)

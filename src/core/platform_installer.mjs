@@ -18,7 +18,7 @@
 import * as fs from 'fs'
 import { Listr } from 'listr2'
 import * as path from 'path'
-import { FullstackTestingError, IllegalArgumentError, MissingArgumentError } from './errors.mjs'
+import { SoloError, IllegalArgumentError, MissingArgumentError } from './errors.mjs'
 import { constants } from './index.mjs'
 import { Templates } from './templates.mjs'
 import { flags } from '../commands/index.mjs'
@@ -30,13 +30,13 @@ import chalk from 'chalk'
  */
 export class PlatformInstaller {
   /**
-   * @param {Logger} logger
+   * @param {SoloLogger} logger
    * @param {K8} k8
    * @param {ConfigManager} configManager
    * @param {AccountManager} accountManager
    */
   constructor (logger, k8, configManager, accountManager) {
-    if (!logger) throw new MissingArgumentError('an instance of core/Logger is required')
+    if (!logger) throw new MissingArgumentError('an instance of core/SoloLogger is required')
     if (!k8) throw new MissingArgumentError('an instance of core/K8 is required')
     if (!configManager) throw new MissingArgumentError('an instance of core/ConfigManager is required')
     if (!accountManager) throw new MissingArgumentError('an instance of core/AccountManager is required')
@@ -112,7 +112,7 @@ export class PlatformInstaller {
       await this.k8.execContainer(podName, constants.ROOT_CONTAINER, [extractScript, tag])
       return true
     } catch (e) {
-      throw new FullstackTestingError(`failed to extract platform code in this pod '${podName}': ${e.message}`, e)
+      throw new SoloError(`failed to extract platform code in this pod '${podName}': ${e.message}`, e)
     }
   }
 
@@ -132,7 +132,7 @@ export class PlatformInstaller {
       // prepare the file mapping
       for (const srcPath of srcFiles) {
         if (!fs.existsSync(srcPath)) {
-          throw new FullstackTestingError(`file does not exist: ${srcPath}`)
+          throw new SoloError(`file does not exist: ${srcPath}`)
         }
 
         if (!await this.k8.hasDir(podName, container, destDir)) {
@@ -148,7 +148,7 @@ export class PlatformInstaller {
 
       return copiedFiles
     } catch (e) {
-      throw new FullstackTestingError(`failed to copy files to pod '${podName}': ${e.message}`, e)
+      throw new SoloError(`failed to copy files to pod '${podName}': ${e.message}`, e)
     }
   }
 
@@ -185,11 +185,11 @@ export class PlatformInstaller {
         Templates.renderGossipKeySecretName(nodeAlias),
         this._getNamespace(), 'Opaque', data,
         Templates.renderGossipKeySecretLabelObject(nodeAlias), true)) {
-        throw new FullstackTestingError(`failed to create secret for gossip keys for node '${nodeAlias}'`)
+        throw new SoloError(`failed to create secret for gossip keys for node '${nodeAlias}'`)
       }
     } catch (e) {
       this.logger.error(`failed to copy gossip keys to secret '${Templates.renderGossipKeySecretName(nodeAlias)}': ${e.message}`, e)
-      throw new FullstackTestingError(`failed to copy gossip keys to secret '${Templates.renderGossipKeySecretName(nodeAlias)}': ${e.message}`, e)
+      throw new SoloError(`failed to copy gossip keys to secret '${Templates.renderGossipKeySecretName(nodeAlias)}': ${e.message}`, e)
     }
   }
 
@@ -220,11 +220,11 @@ export class PlatformInstaller {
         'network-node-hapi-app-secrets',
         this._getNamespace(), 'Opaque', data,
         undefined, true)) {
-        throw new FullstackTestingError('failed to create secret for TLS keys')
+        throw new SoloError('failed to create secret for TLS keys')
       }
     } catch (e) {
       this.logger.error('failed to copy TLS keys to secret', e)
-      throw new FullstackTestingError('failed to copy TLS keys to secret', e)
+      throw new SoloError('failed to copy TLS keys to secret', e)
     }
   }
 
@@ -274,7 +274,7 @@ export class PlatformInstaller {
 
       return true
     } catch (e) {
-      throw new FullstackTestingError(`failed to set permission in '${podName}'`, e)
+      throw new SoloError(`failed to set permission in '${podName}'`, e)
     }
   }
 
@@ -289,7 +289,7 @@ export class PlatformInstaller {
     return new Listr([
       {
         title: 'Set file permissions',
-        task: async (_, task) =>
+        task: async () =>
           await self.setPlatformDirPermissions(podName)
       }
     ],
@@ -321,7 +321,7 @@ export class PlatformInstaller {
     const subTasks = []
     subTasks.push({
       title: 'Copy TLS keys',
-      task: async (_, task) =>
+      task: async () =>
         await self.copyTLSKeys(nodeAliases, stagingDir)
     })
 
@@ -330,7 +330,7 @@ export class PlatformInstaller {
         title: `Node: ${chalk.yellow(nodeAlias)}`,
         task: () => new Listr([{
           title: 'Copy Gossip keys',
-          task: async (_, task) =>
+          task: async () =>
             await self.copyGossipKeys(nodeAlias, stagingDir, nodeAliases)
         }
         ],

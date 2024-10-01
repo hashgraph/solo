@@ -17,15 +17,15 @@
 'use strict'
 import { constants } from './index.mjs'
 import chalk from 'chalk'
-import { FullstackTestingError } from './errors.mjs'
+import { SoloError } from './errors.mjs'
 
 export class ChartManager {
   /**
    * @param {Helm} helm
-   * @param {Logger} logger
+   * @param {SoloLogger} logger
    */
   constructor (helm, logger) {
-    if (!logger) throw new Error('An instance of core/Logger is required')
+    if (!logger) throw new Error('An instance of core/SoloLogger is required')
     if (!helm) throw new Error('An instance of core/Helm is required')
 
     this.logger = logger
@@ -53,7 +53,7 @@ export class ChartManager {
 
       return await Promise.all(promises) // urls
     } catch (e) {
-      throw new FullstackTestingError(`failed to setup chart repositories: ${e.message}`, e)
+      throw new SoloError(`failed to setup chart repositories: ${e.message}`, e)
     }
   }
 
@@ -113,7 +113,7 @@ export class ChartManager {
         this.logger.debug(`OK: chart is already installed:${chartReleaseName} (${chartPath})`)
       }
     } catch (e) {
-      throw new FullstackTestingError(`failed to install chart ${chartReleaseName}: ${e.message}`, e)
+      throw new SoloError(`failed to install chart ${chartReleaseName}: ${e.message}`, e)
     }
 
     return true
@@ -152,7 +152,7 @@ export class ChartManager {
         this.logger.debug(`OK: chart release is already uninstalled: ${chartReleaseName}`)
       }
     } catch (e) {
-      throw new FullstackTestingError(`failed to uninstall chart ${chartReleaseName}: ${e.message}`, e)
+      throw new SoloError(`failed to uninstall chart ${chartReleaseName}: ${e.message}`, e)
     }
 
     return true
@@ -177,7 +177,7 @@ export class ChartManager {
       await this.helm.upgrade(`-n ${namespaceName} ${chartReleaseName} ${chartPath} ${versionArg} --reuse-values ${valuesArg}`)
       this.logger.debug(chalk.green('OK'), `chart '${chartReleaseName}' is upgraded`)
     } catch (e) {
-      throw new FullstackTestingError(`failed to upgrade chart ${chartReleaseName}: ${e.message}`, e)
+      throw new SoloError(`failed to upgrade chart ${chartReleaseName}: ${e.message}`, e)
     }
 
     return true

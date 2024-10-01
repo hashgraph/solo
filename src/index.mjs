@@ -32,9 +32,12 @@ import {
 import 'dotenv/config'
 import { K8 } from './core/k8.mjs'
 import { AccountManager } from './core/account_manager.mjs'
+import { ListrLogger } from 'listr2'
+import { CustomProcessOutput } from './core/process_output.mjs'
 
 export function main (argv) {
   const logger = logging.NewLogger('debug')
+  constants.LISTR_DEFAULT_RENDERER_OPTION.logger = new ListrLogger({ processOutput: new CustomProcessOutput(logger) })
 
   try {
     // prepare dependency manger registry

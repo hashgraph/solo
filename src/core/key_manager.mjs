@@ -19,9 +19,9 @@ import * as x509 from '@peculiar/x509'
 import crypto from 'crypto'
 import fs from 'fs'
 import path from 'path'
-import { FullstackTestingError, IllegalArgumentError, MissingArgumentError } from './errors.mjs'
+import { SoloError, IllegalArgumentError, MissingArgumentError } from './errors.mjs'
 import { constants } from './index.mjs'
-import { Logger } from './logging.mjs'
+import { SoloLogger } from './logging.mjs'
 import { Templates } from './templates.mjs'
 import * as helpers from './helpers.mjs'
 import chalk from 'chalk'
@@ -49,6 +49,7 @@ export class KeyManager {
     modulusLength: 3072
   }
 
+  /** @type {KeyUsage[]} */
   static SigningKeyUsage = ['sign', 'verify']
 
   static TLSKeyAlgo = {
@@ -58,6 +59,7 @@ export class KeyManager {
     modulusLength: 4096
   }
 
+  /** @type {KeyUsage[]} */
   static TLSKeyUsage = ['sign', 'verify']
   static TLSCertKeyUsages =
     x509.KeyUsageFlags.digitalSignature |
@@ -76,10 +78,10 @@ export class KeyManager {
   }
 
   /**
-   * @param {Logger} logger
+   * @param {SoloLogger} logger
    */
   constructor (logger) {
-    if (!logger || !(logger instanceof Logger)) throw new MissingArgumentError('An instance of core/Logger is required')
+    if (!logger || !(logger instanceof SoloLogger)) throw new MissingArgumentError('An instance of core/SoloLogger is required')
     this.logger = logger
   }
 
@@ -97,7 +99,7 @@ export class KeyManager {
    * Convert PEM private key into CryptoKey
    * @param {string} pemStr - PEM string
    * @param {*} algo - key algorithm
-   * @param {string[]} [keyUsages]
+   * @param {KeyUsage[]} [keyUsages]
    * @returns {Promise<CryptoKey>}
    */
   async convertPemToPrivateKey (pemStr, algo, keyUsages = ['sign']) {
@@ -283,7 +285,7 @@ export class KeyManager {
   /**
    * Generate signing key and certificate
    * @param {NodeAlias} nodeAlias
-   * @returns {Promise<{NodeKeyObject>}
+   * @returns {Promise<NodeKeyObject>}
    */
   async generateSigningKey (nodeAlias) {
     try {
@@ -322,7 +324,7 @@ export class KeyManager {
         certificateChain: certChain
       }
     } catch (e) {
-      throw new FullstackTestingError(`failed to generate signing key: ${e.message}`, e)
+      throw new SoloError(`failed to generate signing key: ${e.message}`, e)
     }
   }
 
@@ -390,7 +392,7 @@ export class KeyManager {
         publicKey: signingKey.certificate.publicKey,
         signatureOnly: true
       })) {
-        throw new FullstackTestingError(`failed to verify generated certificate for '${friendlyName}'`)
+        throw new SoloError(`failed to verify generated certificate for '${friendlyName}'`)
       }
 
       const certChain = await new x509.X509ChainBuilder({ certificates: [signingKey.certificate] }).build(cert)
@@ -402,7 +404,7 @@ export class KeyManager {
         certificateChain: certChain
       }
     } catch (e) {
-      throw new FullstackTestingError(`failed to generate ${keyPrefix}-key: ${e.message}`, e)
+      throw new SoloError(`failed to generate ${keyPrefix}-key: ${e.message}`, e)
     }
   }
 
@@ -457,7 +459,7 @@ export class KeyManager {
         certificateChain: certChain
       }
     } catch (e) {
-      throw new FullstackTestingError(`failed to generate gRPC TLS key: ${e.message}`, e)
+      throw new SoloError(`failed to generate gRPC TLS key: ${e.message}`, e)
     }
   }
 
@@ -484,10 +486,15 @@ export class KeyManager {
     return this.loadNodeKey(nodeAlias, keysDir, KeyManager.TLSKeyAlgo, nodeKeyFiles, 'gRPC TLS')
   }
 
+  /**
+   * @param {PrivateKeyAndCertificateObject} nodeKey
+   * @param {string} destDir
+   * @returns {Promise<void>}
+   */
   async copyNodeKeysToStaging (nodeKey, destDir) {
     for (const keyFile of [nodeKey.privateKeyFile, nodeKey.certificateFile]) {
       if (!fs.existsSync(keyFile)) {
-        throw new FullstackTestingError(`file (${keyFile}) is missing`)
+        throw new SoloError(`file (${keyFile}) is missing`)
       }
 
       const fileName = path.basename(keyFile)
@@ -514,13 +521,13 @@ export class KeyManager {
    *
    * WARNING: These tasks MUST run in sequence.
    *
-   * @param keytoolDepManager - an instance of core/KeytoolDepManager
+   * @param {KeytoolDependencyManager} keytoolDepManager - an instance of core/KeytoolDepManager
    * @param {NodeAliases} nodeAliases
-   * @param keysDir - keys directory
-   * @param curDate - current date
-   * @param {NodeAliases|null} allNodeAliases - includes the nodeAliases to get new keys as well as existing nodeAliases that will be included in the public.pfx file
-   * @return a list of subtasks
-   * @private
+   * @param {string} keysDir - keys directory
+   * @param {Date} curDate - current date
+   * @param {NodeAliases|null} [allNodeAliases] - includes the nodeAliases to get new keys as well as existing nodeAliases that will be included in the public.pfx file
+   * @return {Object[]} a list of subtasks
+   * @public
    */
   taskGenerateGossipKeys (keytoolDepManager, nodeAliases, keysDir, curDate = new Date(), allNodeAliases = null) {
     allNodeAliases = allNodeAliases || nodeAliases
@@ -558,12 +565,12 @@ export class KeyManager {
    * @param keysDir keys directory
    * @param curDate current date
    * @return return a list of subtasks
-   * @private
+   * @public
    */
   taskGenerateTLSKeys (nodeAliases, keysDir, curDate = new Date()) {
     // check if nodeAliases is an array of strings
     if (!Array.isArray(nodeAliases) || !nodeAliases.every((nodeAlias) => typeof nodeAlias === 'string')) {
-      throw new FullstackTestingError('nodeAliases must be an array of strings')
+      throw new SoloError('nodeAliases must be an array of strings')
     }
     const self = this
     const nodeKeyFiles = new Map()

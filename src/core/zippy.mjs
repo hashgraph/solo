@@ -15,7 +15,7 @@
  *
  */
 'use strict'
-import { FullstackTestingError, IllegalArgumentError, MissingArgumentError } from './errors.mjs'
+import { SoloError, IllegalArgumentError, MissingArgumentError } from './errors.mjs'
 import fs from 'fs'
 import AdmZip from 'adm-zip'
 import * as tar from 'tar'
@@ -24,10 +24,10 @@ import path from 'path'
 
 export class Zippy {
   /**
-   * @param {Logger} logger
+   * @param {SoloLogger} logger
    */
   constructor (logger) {
-    if (!logger) throw new Error('An instance of core/Logger is required')
+    if (!logger) throw new Error('An instance of core/SoloLogger is required')
     this.logger = logger
   }
 
@@ -57,7 +57,7 @@ export class Zippy {
 
       return destPath
     } catch (e) {
-      throw new FullstackTestingError(`failed to unzip ${srcPath}: ${e.message}`, e)
+      throw new SoloError(`failed to unzip ${srcPath}: ${e.message}`, e)
     }
   }
 
@@ -94,7 +94,7 @@ export class Zippy {
 
       return destPath
     } catch (e) {
-      throw new FullstackTestingError(`failed to unzip ${srcPath}: ${e.message}`, e)
+      throw new SoloError(`failed to unzip ${srcPath}: ${e.message}`, e)
     }
   }
 
@@ -118,7 +118,7 @@ export class Zippy {
       }, [srcPath])
       return destPath
     } catch (e) {
-      throw new FullstackTestingError(`failed to tar ${srcPath}: ${e.message}`, e)
+      throw new SoloError(`failed to tar ${srcPath}: ${e.message}`, e)
     }
   }
 
@@ -144,7 +144,7 @@ export class Zippy {
       })
       return destPath
     } catch (e) {
-      throw new FullstackTestingError(`failed to untar ${srcPath}: ${e.message}`, e)
+      throw new SoloError(`failed to untar ${srcPath}: ${e.message}`, e)
     }
   }
 }

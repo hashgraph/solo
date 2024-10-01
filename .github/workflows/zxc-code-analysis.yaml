@@ -100,6 +100,11 @@ on:
         type: string
         required: false
         default: "e2e-node-delete"
+      e2e-node-delete-separate-commands-test-subdir:
+        description: "E2E Node Delete - Separate commands Test Subdirectory:"
+        type: string
+        required: false
+        default: "e2e-node-delete-separate-commands"
       e2e-relay-test-subdir:
         description: "E2E Relay Test Subdirectory:"
         type: string
@@ -150,6 +155,11 @@ on:
         type: string
         required: false
         default: "E2E Node Delete Tests Coverage Report"
+      e2e-node-delete-separate-commands-coverage-report:
+        description: "E2E Node Delete - Separate commands Coverage Report:"
+        type: string
+        required: false
+        default: "E2E Node Delete - Separate commands Tests Coverage Report"
       e2e-relay-coverage-report:
         description: "E2E Relay Coverage Report:"
         type: string
@@ -183,7 +193,7 @@ jobs:
     runs-on: solo-linux-medium
     steps:
       - name: Checkout Code
-        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        uses: actions/checkout@d632683dd7b4114ad314bca15554477dd762a938 # v4.2.0
         with:
           ref: ${{ github.event.workflow_run.head_branch }}
           fetch-depth: ${{ inputs.enable-sonar-analysis && '0' || '' }}
@@ -268,19 +278,19 @@ jobs:
           name: ${{ inputs.e2e-node-delete-coverage-report }}
           path: 'coverage/${{ inputs.e2e-node-delete-test-subdir }}'
 
+      - name: Download E2E Node Delete - Separate commands Coverage Report
+        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
+        if: ${{ (inputs.enable-codecov-analysis || inputs.enable-codacy-coverage) && inputs.enable-e2e-coverage-report && !cancelled() && !failure() }}
+        with:
+          name: ${{ inputs.e2e-node-delete-separate-commands-coverage-report }}
+          path: 'coverage/${{ inputs.e2e-node-delete-separate-commands-test-subdir }}'
+
       - name: Download E2E Relay Coverage Report
         uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
         if: ${{ (inputs.enable-codecov-analysis || inputs.enable-codacy-coverage) && inputs.enable-e2e-coverage-report && !cancelled() && !failure() }}
         with:
           name: ${{ inputs.e2e-relay-coverage-report }}
           path: 'coverage/${{ inputs.e2e-relay-test-subdir }}'
-
-      - name: Download E2E Test Report
-        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
-        if: ${{ (inputs.enable-codecov-analysis || inputs.enable-codacy-coverage) && inputs.enable-e2e-coverage-report && !cancelled() && !failure() }}
-        with:
-          pattern: "e2e_test_report_*"
-          path: "e2e_test_report"
 
       - name: Publish E2E Test Report
         uses: EnricoMi/publish-unit-test-result-action@82082dac68ad6a19d980f8ce817e108b9f496c2a # v2.17.1

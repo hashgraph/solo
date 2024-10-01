@@ -18,7 +18,7 @@
 import * as x509 from '@peculiar/x509'
 import os from 'os'
 import path from 'path'
-import { DataValidationError, FullstackTestingError, IllegalArgumentError, MissingArgumentError } from './errors.mjs'
+import { DataValidationError, SoloError, IllegalArgumentError, MissingArgumentError } from './errors.mjs'
 import { constants } from './index.mjs'
 
 /** @typedef {number} NodeId - the number of the node */
@@ -226,7 +226,7 @@ export class Templates {
         return path.join(installationDir, 'jre', 'bin', dep)
 
       default:
-        throw new FullstackTestingError(`unknown dep: ${dep}`)
+        throw new SoloError(`unknown dep: ${dep}`)
     }
   }
 

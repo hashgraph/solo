@@ -42,24 +42,20 @@ const customFormat = winston.format.combine(
   })(),
 
   // use custom format TIMESTAMP [LABEL] LEVEL: MESSAGE
-  winston.format.printf(data => {
-    return `${data.timestamp}|${data.level}| ${data.message}`
-  }),
+  winston.format.printf(data =>
+    `${data.timestamp}|${data.level}| ${data.message}`
+  ),
 
   // Ignore log messages if they have { private: true }
-  winston.format((data, opts) => {
-    if (data.private) {
-      return false
-    }
-    return data
-  })()
+  winston.format((data) =>
+    data.private ? false : data
+  )()
 )
 
-export const Logger = class {
+export class SoloLogger {
   /**
-   * Create a new logger
-   * @param {string} level logging level as supported by winston library:
-   * @param {boolean} devMode if true, show full stack traces in error messages
+   * @param {string} [level] - logging level as supported by winston library:
+   * @param {boolean} [devMode] - if true, show full stack traces in error messages
    * @constructor
    */
   constructor (level = 'debug', devMode = false) {
@@ -101,12 +97,13 @@ export const Logger = class {
     this.winstonLogger.setLevel(level)
   }
 
+  /** @returns {string} */
   nextTraceId () {
     this.traceId = uuidv4()
   }
 
   /**
-   * @param {Object|undefined} meta
+   * @param {Object} [meta]
    * @returns {Object}
    */
   prepMeta (meta) {
@@ -166,32 +163,36 @@ export const Logger = class {
   }
 
   /**
-   * @param {string} msg
-   * @param {*} args
+   * @param {*} msg
+   * @param {*} [args]
+   * @public
    */
   error (msg, ...args) {
     this.winstonLogger.error(msg, ...args, this.prepMeta())
   }
 
   /**
-   * @param {string} msg
-   * @param {*} args
+   * @param {*} msg
+   * @param {*} [args]
+   * @public
    */
   warn (msg, ...args) {
     this.winstonLogger.warn(msg, ...args, this.prepMeta())
   }
 
   /**
-   * @param {string} msg
-   * @param {*} args
+   * @param {*} msg
+   * @param {*} [args]
+   * @public
    */
   info (msg, ...args) {
     this.winstonLogger.info(msg, ...args, this.prepMeta())
   }
 
   /**
-   * @param {string} msg
-   * @param {*} args
+   * @param {*} msg
+   * @param {*} [args]
+   * @public
    */
   debug (msg, ...args) {
     this.winstonLogger.debug(msg, ...args, this.prepMeta())
@@ -201,6 +202,7 @@ export const Logger = class {
    * @param {string} title
    * @param {string[]} items
    * @returns {boolean}
+   * @public
    */
   showList (title, items = []) {
     this.showUser(chalk.green(`\n *** ${title} ***`))
@@ -218,6 +220,7 @@ export const Logger = class {
   /**
    * @param {string} title
    * @param {Object} obj
+   * @public
    */
   showJSON (title, obj) {
     this.showUser(chalk.green(`\n *** ${title} ***`))
@@ -229,9 +232,9 @@ export const Logger = class {
 /**
  * @param {string} [level]
  * @param {boolean} [devMode]
- * @returns {Logger}
+ * @returns {SoloLogger}
  * @constructor
  */
 export function NewLogger (level = 'debug', devMode = false) {
-  return new Logger(level, devMode)
+  return new SoloLogger(level, devMode)
 }

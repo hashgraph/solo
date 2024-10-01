@@ -57,6 +57,7 @@ describe('NetworkCommand', () => {
   argv[flags.applicationEnv.name] = applicationEnvFilePath
   // set the env variable SOLO_FST_CHARTS_DIR if developer wants to use local FST charts
   argv[flags.chartDirectory.name] = process.env.SOLO_FST_CHARTS_DIR ? process.env.SOLO_FST_CHARTS_DIR : undefined
+  argv[flags.quiet.name] = true
 
   const bootstrapResp = bootstrapTestVariables(testName, argv)
   const k8 = bootstrapResp.opts.k8
@@ -106,6 +107,7 @@ describe('NetworkCommand', () => {
         flags.log4j2Xml.constName,
         flags.profileFile.constName,
         flags.profileName.constName,
+        flags.quiet.constName,
         flags.settingTxt.constName
       ])
     } catch (e) {

@@ -34,7 +34,7 @@ import {
   Status,
   TransferTransaction
 } from '@hashgraph/sdk'
-import { FullstackTestingError, MissingArgumentError } from './errors.mjs'
+import { SoloError, MissingArgumentError } from './errors.mjs'
 import { Templates } from './templates.mjs'
 import ip from 'ip'
 import { NetworkNodeServicesBuilder } from './network_node_services.mjs'
@@ -56,12 +56,11 @@ const REJECTED = 'rejected'
 
 export class AccountManager {
   /**
-   * creates a new AccountManager instance
-   * @param {Logger} logger - the logger to use
-   * @param {K8} k8 - the K8 instance
+   * @param {SoloLogger} logger
+   * @param {K8} k8
    */
   constructor (logger, k8) {
-    if (!logger) throw new Error('An instance of core/Logger is required')
+    if (!logger) throw new Error('An instance of core/SoloLogger is required')
     if (!k8) throw new Error('An instance of core/K8 is required')
 
     this.logger = logger
@@ -260,7 +259,7 @@ export class AccountManager {
       this._nodeClient.setRequestTimeout(constants.NODE_CLIENT_REQUEST_TIMEOUT)
       return this._nodeClient
     } catch (e) {
-      throw new FullstackTestingError(`failed to setup node client: ${e.message}`, e)
+      throw new SoloError(`failed to setup node client: ${e.message}`, e)
     }
   }
 
@@ -598,13 +597,13 @@ export class AccountManager {
       if (!(accountSecretCreated)) {
         this.logger.error(`new account created [accountId=${accountInfo.accountId}, amount=${amount} HBAR, publicKey=${accountInfo.publicKey}, privateKey=${accountInfo.privateKey}] but failed to create secret in Kubernetes`)
 
-        throw new FullstackTestingError(`failed to create secret for accountId ${accountInfo.accountId.toString()}, keys were sent to log file`)
+        throw new SoloError(`failed to create secret for accountId ${accountInfo.accountId.toString()}, keys were sent to log file`)
       }
     } catch (e) {
-      if (e instanceof FullstackTestingError) {
+      if (e instanceof SoloError) {
         throw e
       }
-      throw new FullstackTestingError(`failed to create secret for accountId ${accountInfo.accountId.toString()}, e: ${e.toString()}`, e)
+      throw new SoloError(`failed to create secret for accountId ${accountInfo.accountId.toString()}, e: ${e.toString()}`, e)
     }
 
     return accountInfo
@@ -633,7 +632,7 @@ export class AccountManager {
     } catch (e) {
       const errorMessage = `transfer amount failed with an error: ${e.toString()}`
       this.logger.error(errorMessage)
-      throw new FullstackTestingError(errorMessage, e)
+      throw new SoloError(errorMessage, e)
     }
   }
 
