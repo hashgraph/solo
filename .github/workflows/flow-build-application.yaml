@@ -181,6 +181,19 @@ jobs:
       coverage-subdirectory: ${{ needs.env-vars.outputs.e2e-node-delete-test-subdir }}
       coverage-report-name: ${{ needs.env-vars.outputs.e2e-node-delete-coverage-report }}
 
+  e2e-node-delete-separate-commands-tests:
+    name: E2E Tests
+    if: ${{ github.event_name == 'push' || github.event.inputs.enable-e2e-tests == 'true' }}
+    uses: ./.github/workflows/zxc-e2e-test.yaml
+    needs:
+      - env-vars
+      - code-style
+    with:
+      custom-job-label: Node Delete - Separate commands
+      npm-test-script: test-${{ needs.env-vars.outputs.e2e-node-delete-separate-commands-test-subdir }}
+      coverage-subdirectory: ${{ needs.env-vars.outputs.e2e-node-delete-separate-commands-test-subdir }}
+      coverage-report-name: ${{ needs.env-vars.outputs.e2e-node-delete-separate-commands-coverage-report }}
+
   e2e-node-upgrade-tests:
     name: E2E Tests
     if: ${{ github.event_name == 'push' || github.event.inputs.enable-e2e-tests == 'true' }}
@@ -222,6 +235,7 @@ jobs:
       - e2e-node-add-separate-commands-tests
       - e2e-node-update-tests
       - e2e-node-delete-tests
+      - e2e-node-delete-separate-commands-tests
       - e2e-node-upgrade-tests
       - e2e-relay-tests
     if: ${{ (github.event_name == 'push' || github.event.inputs.enable-unit-tests == 'true' || github.event.inputs.enable-e2e-tests == 'true') && !failure() && !cancelled() }}
@@ -240,6 +254,7 @@ jobs:
       e2e-node-add-separate-commands-test-subdir: ${{ needs.env-vars.outputs.e2e-node-add-separate-commands-test-subdir }}
       e2e-node-update-test-subdir: ${{ needs.env-vars.outputs.e2e-node-update-test-subdir }}
       e2e-node-delete-test-subdir: ${{ needs.env-vars.outputs.e2e-node-delete-test-subdir }}
+      e2e-node-delete-separate-commands-test-subdir: ${{ needs.env-vars.outputs.e2e-node-delete-separate-commands-test-subdir }}
       e2e-node-upgrade-test-subdir: ${{ needs.env-vars.outputs.e2e-node-upgrade-test-subdir }}
       e2e-relay-test-subdir: ${{ needs.env-vars.outputs.e2e-relay-test-subdir }}
       e2e-standard-coverage-report: ${{ needs.env-vars.outputs.e2e-standard-coverage-report }}
@@ -251,6 +266,7 @@ jobs:
       e2e-node-add-separate-commands-coverage-report: ${{ needs.env-vars.outputs.e2e-node-add-separate-commands-coverage-report }}
       e2e-node-update-coverage-report: ${{ needs.env-vars.outputs.e2e-node-update-coverage-report }}
       e2e-node-delete-coverage-report: ${{ needs.env-vars.outputs.e2e-node-delete-coverage-report }}
+      e2e-node-delete-separate-commands-coverage-report: ${{ needs.env-vars.outputs.e2e-node-delete-separate-commands-coverage-report }}
       e2e-node-upgrade-coverage-report: ${{ needs.env-vars.outputs.e2e-node-upgrade-coverage-report }}
       e2e-relay-coverage-report: ${{ needs.env-vars.outputs.e2e-relay-coverage-report }}
     secrets:
