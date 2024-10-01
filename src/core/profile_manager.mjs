@@ -476,8 +476,6 @@ export class ProfileManager {
 
       let nodeSeq = 0
       for (const nodeAlias of nodeAccountMap.keys()) {
-        const nodeAlias = nodeAlias
-
         const internalIP = Templates.renderFullyQualifiedNetworkPodName(namespace, nodeAlias)
         const externalIP = Templates.renderFullyQualifiedNetworkSvcName(namespace, nodeAlias)
 
