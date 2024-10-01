@@ -15,6 +15,7 @@
  *
  * @jest-environment steps
  */
+import { flags } from '../../../src/commands/index.mjs'
 import {
   accountCreationShouldSucceed,
   balanceQueryShouldSucceed,
@@ -23,7 +24,6 @@ import {
   getNodeIdsPrivateKeysHash, getTmpDir,
   HEDERA_PLATFORM_VERSION_TAG
 } from '../../test_util.js'
-import { flags } from '../../../src/commands/index.mjs'
 import { getNodeLogs } from '../../../src/core/helpers.mjs'
 import { NodeCommand } from '../../../src/commands/node.mjs'
 

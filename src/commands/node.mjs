@@ -2055,7 +2055,7 @@ export class NodeCommand extends BaseCommand {
   }
 
   async prepareUpgrade (argv) {
-    argv = helpers.addFlagsToArgv(argv, NodeFlags.UPGRADE_FLAGS)
+    argv = helpers.addFlagsToArgv(argv, NodeFlags.DEFAULT_FLAGS)
     const action = helpers.commandActionBuilder([
       this.tasks.initialize(argv, prepareUpgradeConfigBuilder.bind(this)),
       this.tasks.prepareUpgradeZip(),
@@ -2069,7 +2069,7 @@ export class NodeCommand extends BaseCommand {
   }
 
   async freezeUpgrade (argv) {
-    argv = helpers.addFlagsToArgv(argv, NodeFlags.UPGRADE_FLAGS)
+    argv = helpers.addFlagsToArgv(argv, NodeFlags.DEFAULT_FLAGS)
     const action = helpers.commandActionBuilder([
       this.tasks.initialize(argv, prepareUpgradeConfigBuilder.bind(this)),
       this.tasks.prepareUpgradeZip(),
@@ -2083,7 +2083,7 @@ export class NodeCommand extends BaseCommand {
   }
 
   async downloadGeneratedFiles (argv) {
-    argv = helpers.addFlagsToArgv(argv, NodeFlags.UPGRADE_FLAGS)
+    argv = helpers.addFlagsToArgv(argv, NodeFlags.DEFAULT_FLAGS)
     const action = helpers.commandActionBuilder([
       this.tasks.initialize(argv, downloadGeneratedFilesConfigBuilder.bind(this)),
       this.tasks.identifyExistingNodes(),
@@ -2346,19 +2346,19 @@ export class NodeCommand extends BaseCommand {
             description: 'Prepare the network for a Freeze Upgrade operation',
             commandDef: nodeCmd,
             handler: 'prepareUpgrade'
-          }, NodeFlags.UPGRADE_FLAGS))
+          }, NodeFlags.DEFAULT_FLAGS))
           .command(new YargsCommand({
             command: 'freeze-upgrade',
             description: 'Performs a Freeze Upgrade operation with on the network after it has been prepared with prepare-upgrade',
             commandDef: nodeCmd,
             handler: 'freezeUpgrade'
-          }, NodeFlags.UPGRADE_FLAGS))
+          }, NodeFlags.DEFAULT_FLAGS))
           .command(new YargsCommand({
             command: 'download-generated-files',
             description: 'Downloads the generated files from an existing node',
             commandDef: nodeCmd,
             handler: 'downloadGeneratedFiles'
-          }, NodeFlags.UPGRADE_FLAGS))
+          }, NodeFlags.DEFAULT_FLAGS))
           .demandCommand(1, 'Select a node command')
       }
     }

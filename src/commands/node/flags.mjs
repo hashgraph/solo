@@ -15,10 +15,10 @@
  *
  */
 
-import * as flags from "../flags.mjs";
+import * as flags from '../flags.mjs'
 
-export const UPGRADE_FLAGS = {
-    requiredFlags: [],
-    requiredFlagsWithDisabledPrompt: [flags.namespace, flags.cacheDir, flags.releaseTag],
-    optionalFlags: [flags.devMode],
+export const DEFAULT_FLAGS = {
+  requiredFlags: [],
+  requiredFlagsWithDisabledPrompt: [flags.namespace, flags.cacheDir, flags.releaseTag],
+  optionalFlags: [flags.devMode]
 }
