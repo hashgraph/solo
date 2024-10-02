@@ -47,7 +47,7 @@ describe('AccountCommand', () => {
   const argv = getDefaultArgv()
   argv[flags.namespace.name] = namespace
   argv[flags.releaseTag.name] = HEDERA_PLATFORM_VERSION_TAG
-  argv[flags.nodeIDs.name] = 'node1'
+  argv[flags.nodeAliasesUnparsed.name] = 'node1'
   argv[flags.generateGossipKeys.name] = true
   argv[flags.generateTlsKeys.name] = true
   argv[flags.clusterName.name] = TEST_CLUSTER
@@ -70,10 +70,10 @@ describe('AccountCommand', () => {
   }, 180000)
 
   describe('node proxies should be UP', () => {
-    for (const nodeId of argv[flags.nodeIDs.name].split(',')) {
-      it(`proxy should be UP: ${nodeId} `, async () => {
+    for (const nodeAlias of argv[flags.nodeAliasesUnparsed.name].split(',')) {
+      it(`proxy should be UP: ${nodeAlias} `, async () => {
         await k8.waitForPodReady(
-          [`app=haproxy-${nodeId}`, 'fullstack.hedera.com/type=haproxy'],
+          [`app=haproxy-${nodeAlias}`, 'fullstack.hedera.com/type=haproxy'],
           1, 300, 2000)
       }, 30000)
     }
