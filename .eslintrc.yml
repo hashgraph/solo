@@ -2,6 +2,7 @@ env:
   browser: true
   es2021: true
   jest: true
+  mocha: true
 extends: standard
 parserOptions:
   ecmaVersion: latest
@@ -26,7 +27,8 @@ rules:
         WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
         See the License for the specific language governing permissions and
         limitations under the License.
-plugins: ["headers"]
+  no-unused-expressions: off
+plugins: ["headers", "mocha"]
 overrides:
   - files: ["*.mjs"]
     parserOptions:

@@ -14,8 +14,10 @@
  * limitations under the License.
  *
  */
+import { it, describe } from 'mocha'
+import { expect } from 'chai'
+
 import { InitCommand } from '../../../src/commands/init.mjs'
-import { expect, describe, it } from '@jest/globals'
 import {
   HelmDependencyManager,
   DependencyManager,
@@ -51,27 +53,21 @@ describe('InitCommand', () => {
   const k8 = getK8Instance(configManager)
 
   const initCmd = new InitCommand({
-    logger: testLogger,
-    helm,
-    k8,
-    chartManager,
-    configManager,
-    depManager,
-    keyManager
+    logger: testLogger, helm, k8, chartManager, configManager, depManager, keyManager
   })
 
   describe('commands', () => {
     it('init execution should succeed', async () => {
-      await expect(initCmd.init({})).resolves.toBe(true)
-    }, 20000)
+      await expect(initCmd.init({})).should.eventually.resolve.to.equal(true)
+    }).timeout(20_000)
   })
 
   describe('static', () => {
     it('command definition should return a valid command def', async () => {
       const def = InitCommand.getCommandDefinition(initCmd)
-      expect(def.name).not.toBeNull()
-      expect(def.desc).not.toBeNull()
-      expect(def.handler).not.toBeNull()
+      expect(def.name).not.to.be.null
+      expect(def.desc).not.to.be.null
+      expect(def.handler).not.to.be.null
     })
   })
 })

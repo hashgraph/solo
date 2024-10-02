@@ -14,7 +14,9 @@
  * limitations under the License.
  *
  */
-import { afterAll, describe, expect, it } from '@jest/globals'
+import { it, describe, after } from 'mocha'
+import { expect } from 'chai'
+
 import os from 'os'
 import path from 'path'
 import { ConfigManager } from '../../../src/core/index.mjs'
@@ -29,20 +31,20 @@ describe('ConfigManager', () => {
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'config-'))
     const tmpFile = path.join(tmpDir, 'test.yaml')
 
-    expect(fs.existsSync(tmpFile)).toBeFalsy()
+    expect(fs.existsSync(tmpFile)).to.not.be.ok
     const cm = new ConfigManager(testLogger, tmpFile)
     cm.persist()
-    expect(fs.existsSync(tmpFile)).toBeTruthy()
+    expect(fs.existsSync(tmpFile)).to.be.ok
 
     const cachedConfig = yamlToObject(tmpFile)
 
-    expect(cachedConfig.version).toStrictEqual(helpers.packageVersion())
-    expect(cachedConfig.flags).toStrictEqual({})
-    expect(cachedConfig.updatedAt).not.toStrictEqual('')
+    expect(cachedConfig.version).to.equal(helpers.packageVersion())
+    expect(cachedConfig.flags).to.deep.equal({})
+    expect(cachedConfig.updatedAt).not.to.equal('')
 
-    expect(cachedConfig.updatedAt).toStrictEqual(cm.getUpdatedAt())
-    expect(cachedConfig.version).toStrictEqual(cm.getVersion())
-    expect(cachedConfig.flags).toStrictEqual(cm.config.flags)
+    expect(cachedConfig.updatedAt).to.equal(cm.getUpdatedAt())
+    expect(cachedConfig.version).to.equal(cm.getVersion())
+    expect(cachedConfig.flags).to.deep.equal(cm.config.flags)
 
     fs.rmSync(tmpDir, { recursive: true })
   })
@@ -57,14 +59,14 @@ describe('ConfigManager', () => {
       argv[flags.releaseTag.name] = 'v0.42.5'
 
       cm.update(argv)
-      expect(cm.getFlag(flags.releaseTag)).toStrictEqual(argv[flags.releaseTag.name])
+      expect(cm.getFlag(flags.releaseTag)).to.equal(argv[flags.releaseTag.name])
 
       // ensure non-string values are converted to string
       cm.reset()
       argv[flags.releaseTag.name] = true
       cm.update(argv)
-      expect(cm.getFlag(flags.releaseTag)).not.toStrictEqual(argv[flags.releaseTag.name])
-      expect(cm.getFlag(flags.releaseTag)).toStrictEqual(`${argv[flags.releaseTag.name]}`)
+      expect(cm.getFlag(flags.releaseTag)).not.to.deep.equal(argv[flags.releaseTag.name])
+      expect(cm.getFlag(flags.releaseTag)).to.deep.equal(`${argv[flags.releaseTag.name]}`)
     })
 
     it('should update number flag value', () => {
@@ -73,14 +75,14 @@ describe('ConfigManager', () => {
       argv[flags.replicaCount.name] = 1
 
       cm.update(argv)
-      expect(cm.getFlag(flags.replicaCount)).toStrictEqual(argv[flags.replicaCount.name])
+      expect(cm.getFlag(flags.replicaCount)).to.deep.equal(argv[flags.replicaCount.name])
 
       // ensure string values are converted to integer
       cm.reset()
       argv[flags.replicaCount.name] = '1'
       cm.update(argv)
-      expect(cm.getFlag(flags.replicaCount)).not.toStrictEqual(argv[flags.replicaCount.name])
-      expect(cm.getFlag(flags.replicaCount)).toStrictEqual(Number.parseInt(argv[flags.replicaCount.name]))
+      expect(cm.getFlag(flags.replicaCount)).not.to.deep.equal(argv[flags.replicaCount.name])
+      expect(cm.getFlag(flags.replicaCount)).to.deep.equal(Number.parseInt(argv[flags.replicaCount.name]))
     })
 
     it('should update boolean flag value', () => {
@@ -90,24 +92,24 @@ describe('ConfigManager', () => {
       const argv = {}
       argv[flags.devMode.name] = true
       cm.update(argv)
-      expect(cm.getFlag(flags.devMode)).toStrictEqual(argv[flags.devMode.name])
+      expect(cm.getFlag(flags.devMode)).to.deep.equal(argv[flags.devMode.name])
 
       // ensure string "false" is converted to boolean
       cm.reset()
       argv[flags.devMode.name] = 'false'
       cm.update(argv)
-      expect(cm.getFlag(flags.devMode)).not.toStrictEqual(argv[flags.devMode.name])
-      expect(cm.getFlag(flags.devMode)).toStrictEqual(false)
+      expect(cm.getFlag(flags.devMode)).not.to.deep.equal(argv[flags.devMode.name])
+      expect(cm.getFlag(flags.devMode)).to.equal(false)
 
       // ensure string "true" is converted to boolean
       cm.reset()
       argv[flags.devMode.name] = 'true'
       cm.update(argv)
-      expect(cm.getFlag(flags.devMode)).not.toStrictEqual(argv[flags.devMode.name])
-      expect(cm.getFlag(flags.devMode)).toStrictEqual(true)
+      expect(cm.getFlag(flags.devMode)).not.to.deep.equal(argv[flags.devMode.name])
+      expect(cm.getFlag(flags.devMode)).to.equal(true)
     })
 
-    afterAll(() => {
+    after(() => {
       fs.rmdirSync(tmpDir, { recursive: true })
     })
   })
@@ -123,14 +125,14 @@ describe('ConfigManager', () => {
       // Expected:  argv should retain the value
       const cm = new ConfigManager(testLogger, tmpFile)
       cm.setFlag(flags.devMode, false)
-      expect(cm.getFlag(flags.devMode)).toBeFalsy()
+      expect(cm.getFlag(flags.devMode)).not.to.be.ok
 
       const argv = {}
       argv[flags.devMode.name] = true // devMode flag is set in argv but cached config has it
 
       const argv2 = cm.applyPrecedence(argv, aliases)
-      expect(cm.getFlag(flags.devMode)).toBeFalsy() // shouldn't have changed the config yet
-      expect(argv2[flags.devMode.name]).toBeTruthy() // retain the value
+      expect(cm.getFlag(flags.devMode)).to.not.be.ok // shouldn't have changed the config yet
+      expect(argv2[flags.devMode.name]).to.be.ok // retain the value
     })
 
     it('should take cached config as the second preference', () => {
@@ -139,27 +141,27 @@ describe('ConfigManager', () => {
       const cm = new ConfigManager(testLogger, tmpFile)
 
       cm.setFlag(flags.devMode, false)
-      expect(cm.getFlag(flags.devMode)).toBeFalsy()
+      expect(cm.getFlag(flags.devMode)).to.not.be.ok
 
       const argv = {} // devMode flag is not set in argv
       const argv2 = cm.applyPrecedence(argv, aliases)
-      expect(cm.getFlag(flags.devMode)).toBeFalsy() // shouldn't have changed
-      expect(argv2[flags.devMode.name]).toStrictEqual(cm.getFlag(flags.devMode)) // should inherit from config
+      expect(cm.getFlag(flags.devMode)).to.not.be.ok // shouldn't have changed
+      expect(argv2[flags.devMode.name]).to.deep.equal(cm.getFlag(flags.devMode)) // should inherit from config
     })
 
     it('should take default as the last preference', () => {
       // Given: neither config nor argv has the flag value set
       // Expected:  argv should inherit the default flag value
       const cm = new ConfigManager(testLogger, tmpFile)
-      expect(cm.hasFlag(flags.devMode)).toBeFalsy() // shouldn't have set
+      expect(cm.hasFlag(flags.devMode)).not.to.be.ok // shouldn't have set
 
       const argv = {} // devMode flag is not set in argv and cached config doesn't have it either
       const argv2 = cm.applyPrecedence(argv, aliases)
-      expect(cm.hasFlag(flags.devMode)).toBeFalsy() // shouldn't have set
-      expect(argv2[flags.devMode.name]).toBeFalsy() // should have set from the default
+      expect(cm.hasFlag(flags.devMode)).to.not.be.ok // shouldn't have set
+      expect(argv2[flags.devMode.name]).to.not.be.ok // should have set from the default
     })
 
-    afterAll(() => {
+    after(() => {
       fs.rmdirSync(tmpDir, { recursive: true })
     })
   })
@@ -170,51 +172,51 @@ describe('ConfigManager', () => {
     cm.load()
 
     it('config file match: dev=false', () => {
-      expect(cm.config.flags[flags.devMode.name]).toBeFalsy()
+      expect(cm.config.flags[flags.devMode.name]).to.not.be.ok
     })
 
     it('config file match: namespace=solo-user', () => {
-      expect(cm.config.flags[flags.namespace.name]).toBe('solo-user')
+      expect(cm.config.flags[flags.namespace.name]).to.equal('solo-user')
     })
 
     it('config file match: chartDirectory is empty', () => {
-      expect(cm.config.flags[flags.chartDirectory.name]).toBe('')
+      expect(cm.config.flags[flags.chartDirectory.name]).to.equal('')
     })
 
     it('config file match: clusterName=kind-kind', () => {
-      expect(cm.config.flags[flags.clusterName.name]).toBe('kind-kind')
+      expect(cm.config.flags[flags.clusterName.name]).to.equal('kind-kind')
     })
 
     it('config file match: deployPrometheusStack=false', () => {
-      expect(cm.config.flags[flags.deployPrometheusStack.name]).toBeFalsy()
+      expect(cm.config.flags[flags.deployPrometheusStack.name]).to.not.be.ok
     })
 
     it('config file match: deployMinio=false', () => {
-      expect(cm.config.flags[flags.deployMinio.name]).toBeFalsy()
+      expect(cm.config.flags[flags.deployMinio.name]).to.not.be.ok
     })
 
     it('config file match: deployCertManager=false', () => {
-      expect(cm.config.flags[flags.deployCertManager.name]).toBeFalsy()
+      expect(cm.config.flags[flags.deployCertManager.name]).to.not.be.ok
     })
 
     it('config file match: deployCertManagerCrds=false', () => {
-      expect(cm.config.flags[flags.deployCertManagerCrds.name]).toBeFalsy()
+      expect(cm.config.flags[flags.deployCertManagerCrds.name]).to.not.be.ok
     })
 
     it('not set, it should be undefined', () => {
-      expect(cm.config.flags[flags.enablePrometheusSvcMonitor.name]).toBeUndefined()
+      expect(cm.config.flags[flags.enablePrometheusSvcMonitor.name]).to.be.undefined
     })
 
     it('not set, it should be undefined', () => {
-      expect(cm.config.flags[flags.enableHederaExplorerTls.name]).toBeUndefined()
+      expect(cm.config.flags[flags.enableHederaExplorerTls.name]).to.be.undefined
     })
 
     it('not set, it should be undefined', () => {
-      expect(cm.config.flags[flags.hederaExplorerTlsHostName.name]).toBeUndefined()
+      expect(cm.config.flags[flags.hederaExplorerTlsHostName.name]).to.be.undefined
     })
 
     it('not set, it should be undefined', () => {
-      expect(cm.config.flags[flags.deletePvcs.name]).toBeUndefined()
+      expect(cm.config.flags[flags.deletePvcs.name]).to.be.undefined
     })
   })
 
@@ -225,44 +227,44 @@ describe('ConfigManager', () => {
 
     it('override config using argv', () => {
       cm.load()
-      expect(cm.getFlag(flags.clusterName)).toBe(cachedConfig.flags[flags.clusterName.name])
-      expect(cm.getFlag(flags.namespace)).toBe(cachedConfig.flags[flags.namespace.name])
+      expect(cm.getFlag(flags.clusterName)).to.equal(cachedConfig.flags[flags.clusterName.name])
+      expect(cm.getFlag(flags.namespace)).to.equal(cachedConfig.flags[flags.namespace.name])
 
       const argv = {}
       argv[flags.clusterName.name] = 'new-cluster'
       argv[flags.namespace.name] = 'new-namespace'
       cm.update(argv)
 
-      expect(cm.getFlag(flags.clusterName)).toBe(argv[flags.clusterName.name])
-      expect(cm.getFlag(flags.namespace)).toBe(argv[flags.namespace.name])
+      expect(cm.getFlag(flags.clusterName)).to.equal(argv[flags.clusterName.name])
+      expect(cm.getFlag(flags.namespace)).to.equal(argv[flags.namespace.name])
     })
 
     it('config file takes precedence over empty namespace', () => {
       cm.load()
-      expect(cm.getFlag(flags.clusterName)).toBe(cachedConfig.flags[flags.clusterName.name])
-      expect(cm.getFlag(flags.namespace)).toBe(cachedConfig.flags[flags.namespace.name])
+      expect(cm.getFlag(flags.clusterName)).to.equal(cachedConfig.flags[flags.clusterName.name])
+      expect(cm.getFlag(flags.namespace)).to.equal(cachedConfig.flags[flags.namespace.name])
 
       const argv = {}
       argv[flags.clusterName.name] = 'new-cluster'
       argv[flags.namespace.name] = ''
       cm.update(argv)
-      expect(cm.getFlag(flags.clusterName)).toBe(argv[flags.clusterName.name])
-      expect(cm.getFlag(flags.namespace)).not.toBe(argv[flags.namespace.name])
-      expect(cm.getFlag(flags.namespace)).toBe(cachedConfig.flags[flags.namespace.name])
+      expect(cm.getFlag(flags.clusterName)).to.equal(argv[flags.clusterName.name])
+      expect(cm.getFlag(flags.namespace)).not.to.equal(argv[flags.namespace.name])
+      expect(cm.getFlag(flags.namespace)).to.equal(cachedConfig.flags[flags.namespace.name])
     })
 
     it('config file takes precedence over empty cluster name', () => {
       cm.load()
-      expect(cm.getFlag(flags.clusterName)).toBe(cachedConfig.flags[flags.clusterName.name])
-      expect(cm.getFlag(flags.namespace)).toBe(cachedConfig.flags[flags.namespace.name])
+      expect(cm.getFlag(flags.clusterName)).to.equal(cachedConfig.flags[flags.clusterName.name])
+      expect(cm.getFlag(flags.namespace)).to.equal(cachedConfig.flags[flags.namespace.name])
 
       const argv = {}
       argv[flags.clusterName.name] = ''
       argv[flags.namespace.name] = 'new-namespace'
       cm.update(argv)
-      expect(cm.getFlag(flags.clusterName)).not.toBe(argv[flags.clusterName.name])
-      expect(cm.getFlag(flags.clusterName)).toBe(cachedConfig.flags[flags.clusterName.name])
-      expect(cm.getFlag(flags.namespace)).toBe(argv[flags.namespace.name])
+      expect(cm.getFlag(flags.clusterName)).not.to.equal(argv[flags.clusterName.name])
+      expect(cm.getFlag(flags.clusterName)).to.equal(cachedConfig.flags[flags.clusterName.name])
+      expect(cm.getFlag(flags.namespace)).to.equal(argv[flags.namespace.name])
     })
   })
 })

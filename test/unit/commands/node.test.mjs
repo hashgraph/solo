@@ -14,55 +14,51 @@
  * limitations under the License.
  *
  */
-import {
-  beforeEach,
-  describe,
-  expect,
-  it,
-  jest
-} from '@jest/globals'
+import jest from 'jest-mock'
+import { it, describe, before } from 'mocha'
+import { expect } from 'chai'
 
 import { NodeCommand } from '../../../src/commands/node.mjs'
 
 function getBaseCommandOpts () {
-  const opts = {}
-  opts.logger = jest.fn()
-  opts.helm = jest.fn()
-  opts.k8 = jest.fn()
-  opts.chartManager = jest.fn()
-  opts.configManager = jest.fn()
-  opts.depManager = jest.fn()
-  return opts
+  return {
+    logger: jest.fn(),
+    helm: jest.fn(),
+    k8: jest.fn(),
+    chartManager: jest.fn(),
+    configManager: jest.fn(),
+    depManager: jest.fn()
+  }
 }
 
 describe('NodeCommand unit tests', () => {
   describe('constructor error handling', () => {
     let opts
 
-    beforeEach(() => {
+    before(() => {
       opts = getBaseCommandOpts()
     })
 
     it('should throw an error if downloader is not provided', () => {
-      expect(() => new NodeCommand(opts)).toThrow('An instance of core/PackageDownloader is required')
+      expect(() => new NodeCommand(opts)).to.throw('An instance of core/PackageDownloader is required')
     })
 
     it('should throw an error if platformInstaller is not provided', () => {
       opts.downloader = jest.fn()
-      expect(() => new NodeCommand(opts)).toThrow('An instance of core/PlatformInstaller is required')
+      expect(() => new NodeCommand(opts)).to.throw('An instance of core/PlatformInstaller is required')
     })
 
     it('should throw an error if keyManager is not provided', () => {
       opts.downloader = jest.fn()
       opts.platformInstaller = jest.fn()
-      expect(() => new NodeCommand(opts)).toThrow('An instance of core/KeyManager is required')
+      expect(() => new NodeCommand(opts)).to.throw('An instance of core/KeyManager is required')
     })
 
     it('should throw an error if accountManager is not provided', () => {
       opts.downloader = jest.fn()
       opts.platformInstaller = jest.fn()
       opts.keyManager = jest.fn()
-      expect(() => new NodeCommand(opts)).toThrow('An instance of core/AccountManager is required')
+      expect(() => new NodeCommand(opts)).to.throw('An instance of core/AccountManager is required')
     })
 
     it('should throw an error if keytoolDepManager is not provided', () => {
@@ -70,7 +66,7 @@ describe('NodeCommand unit tests', () => {
       opts.platformInstaller = jest.fn()
       opts.keyManager = jest.fn()
       opts.accountManager = jest.fn()
-      expect(() => new NodeCommand(opts)).toThrow('An instance of KeytoolDependencyManager is required')
+      expect(() => new NodeCommand(opts)).to.throw('An instance of KeytoolDependencyManager is required')
     })
   })
 })

@@ -14,7 +14,9 @@
  * limitations under the License.
  *
  */
-import { expect, it, describe } from '@jest/globals'
+import { it, describe } from 'mocha'
+import { expect } from 'chai'
+
 import { HelmDependencyManager, DependencyManager } from '../../../src/core/dependency_managers/index.mjs'
 import {
   ChartManager,
@@ -54,10 +56,10 @@ describe('BaseCommand', () => {
 
   describe('runShell', () => {
     it('should fail during invalid program check', async () => {
-      await expect(baseCmd.run('INVALID_PROGRAM')).rejects.toThrowError()
+      await baseCmd.run('INVALID_PROGRAM').should.eventually.be.rejected
     })
     it('should succeed during valid program check', async () => {
-      await expect(baseCmd.run('echo')).resolves.not.toBeNull()
+      await baseCmd.run('echo').should.eventually.resolve.not.be.null
     })
     it('getConfig tracks property usage', async () => {
       const flagsList = [
@@ -89,20 +91,20 @@ describe('BaseCommand', () => {
 
       const NEW_CLASS1_NAME = 'newClassInstance1'
       const newClassInstance1 = /** @type {newClassInstance} **/ baseCmd.getConfig(NEW_CLASS1_NAME, flagsList, extraVars)
-      expect(newClassInstance1.releaseTag).toBe('releaseTag1')
-      expect(newClassInstance1.tlsClusterIssuerType).toBe('type2')
-      expect(newClassInstance1.valuesFile).toBe('file3')
-      expect(newClassInstance1.var1).toBe('')
-      expect(newClassInstance1.var2).toBe('')
-      expect(baseCmd.getUnusedConfigs(NEW_CLASS1_NAME)).toEqual([])
+      expect(newClassInstance1.releaseTag).to.equal('releaseTag1')
+      expect(newClassInstance1.tlsClusterIssuerType).to.equal('type2')
+      expect(newClassInstance1.valuesFile).to.equal('file3')
+      expect(newClassInstance1.var1).to.equal('')
+      expect(newClassInstance1.var2).to.equal('')
+      expect(baseCmd.getUnusedConfigs(NEW_CLASS1_NAME)).to.equal([])
 
       const NEW_CLASS2_NAME = 'newClassInstance2'
       const newClassInstance2 = /** @type {newClassInstance} **/ baseCmd.getConfig(NEW_CLASS2_NAME, flagsList, extraVars)
       newClassInstance2.var1 = 'var1'
       newClassInstance2.var2 = 'var2'
-      expect(newClassInstance2.var1).toBe('var1')
-      expect(newClassInstance2.var2).toBe('var2')
-      expect(baseCmd.getUnusedConfigs(NEW_CLASS2_NAME)).toEqual([
+      expect(newClassInstance2.var1).to.equal('var1')
+      expect(newClassInstance2.var2).to.equal('var2')
+      expect(baseCmd.getUnusedConfigs(NEW_CLASS2_NAME)).to.deep.equal([
         flags.releaseTag.constName,
         flags.tlsClusterIssuerType.constName,
         flags.valuesFile.constName
@@ -111,16 +113,16 @@ describe('BaseCommand', () => {
       const NEW_CLASS3_NAME = 'newClassInstance3'
       const newClassInstance3 = /** @type {newClassInstance} **/ baseCmd.getConfig(NEW_CLASS3_NAME, flagsList, extraVars)
       newClassInstance3.var1 = 'var1'
-      expect(newClassInstance3.var1).toBe('var1')
-      expect(newClassInstance3.tlsClusterIssuerType).toBe('type2')
-      expect(baseCmd.getUnusedConfigs(NEW_CLASS3_NAME)).toEqual([
+      expect(newClassInstance3.var1).to.equal('var1')
+      expect(newClassInstance3.tlsClusterIssuerType).to.equal('type2')
+      expect(baseCmd.getUnusedConfigs(NEW_CLASS3_NAME)).to.deep.equal([
         flags.releaseTag.constName,
         flags.valuesFile.constName,
         'var2'
       ])
 
       const newClassInstance4 = baseCmd.getConfig('newClassInstance4', [])
-      expect(newClassInstance4.getUnusedConfigs()).toEqual([])
+      expect(newClassInstance4.getUnusedConfigs()).to.deep.equal([])
     })
   })
 })
