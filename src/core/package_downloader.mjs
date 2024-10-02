@@ -34,11 +34,10 @@ import { constants } from './index.mjs'
 
 export class PackageDownloader {
   /**
-   * Create an instance of Downloader
-   * @param {Logger} logger - an instance of core/Logger
+   * @param {SoloLogger} logger
    */
   constructor (logger) {
-    if (!logger) throw new IllegalArgumentError('an instance of core/Logger is required', logger)
+    if (!logger) throw new IllegalArgumentError('an instance of core/SoloLogger is required', logger)
     this.logger = logger
   }
 

@@ -27,7 +27,7 @@ import { FREEZE_ADMIN_ACCOUNT } from '../core/constants.mjs'
 
 export class AccountCommand extends BaseCommand {
   /**
-   * @param {{accountManager: AccountManager, logger: Logger, helm: Helm, k8: K8, chartManager: ChartManager, configManager: ConfigManager, depManager: DependencyManager}} opts
+   * @param {{accountManager: AccountManager, logger: SoloLogger, helm: Helm, k8: K8, chartManager: ChartManager, configManager: ConfigManager, depManager: DependencyManager}} opts
    * @param {number[][]} [systemAccounts]
    */
   constructor (opts, systemAccounts = constants.SYSTEM_ACCOUNTS) {
@@ -359,13 +359,13 @@ export class AccountCommand extends BaseCommand {
       },
       {
         title: 'get the account info',
-        task: async (ctx, task) => {
+        task: async (ctx) => {
           ctx.accountInfo = await self.buildAccountInfo(await self.getAccountInfo(ctx), ctx.config.namespace, ctx.config.privateKey)
         }
       },
       {
         title: 'update the account',
-        task: async (ctx, task) => {
+        task: async (ctx) => {
           if (!(await self.updateAccountInfo(ctx))) {
             throw new SoloError(`An error occurred updating account ${ctx.accountInfo.accountId}`)
           }
@@ -373,7 +373,7 @@ export class AccountCommand extends BaseCommand {
       },
       {
         title: 'get the updated account info',
-        task: async (ctx, task) => {
+        task: async (ctx) => {
           self.accountInfo = await self.buildAccountInfo(await self.getAccountInfo(ctx), ctx.config.namespace, false)
           this.logger.showJSON('account info', self.accountInfo)
         }
@@ -430,7 +430,7 @@ export class AccountCommand extends BaseCommand {
       },
       {
         title: 'get the account info',
-        task: async (ctx, task) => {
+        task: async (ctx) => {
           self.accountInfo = await self.buildAccountInfo(await self.getAccountInfo(ctx), ctx.config.namespace, false)
           this.logger.showJSON('account info', self.accountInfo)
         }

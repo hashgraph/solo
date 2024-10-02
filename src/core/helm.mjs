@@ -23,11 +23,11 @@ import { IllegalArgumentError } from './errors.mjs'
 
 export class Helm extends ShellRunner {
   /**
-   * @param {Logger} logger
+   * @param {SoloLogger} logger
    * @param {NodeJS.Platform} [osPlatform]
    */
   constructor (logger, osPlatform = os.platform()) {
-    if (!logger) throw new IllegalArgumentError('an instance of core/Logger is required', logger)
+    if (!logger) throw new IllegalArgumentError('an instance of core/SoloLogger is required', logger)
     super(logger)
     this.osPlatform = osPlatform
     this.helmPath = Templates.installationPath(constants.HELM, this.osPlatform)

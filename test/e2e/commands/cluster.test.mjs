@@ -39,8 +39,8 @@ import * as version from '../../../version.mjs'
 
 describe('ClusterCommand', () => {
   // mock showUser and showJSON to silent logging during tests
-  jest.spyOn(logging.Logger.prototype, 'showUser').mockImplementation()
-  jest.spyOn(logging.Logger.prototype, 'showJSON').mockImplementation()
+  jest.spyOn(logging.SoloLogger.prototype, 'showUser').mockImplementation()
+  jest.spyOn(logging.SoloLogger.prototype, 'showJSON').mockImplementation()
 
   const testName = 'cluster-cmd-e2e'
   const namespace = testName

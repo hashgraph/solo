@@ -30,8 +30,9 @@ import fs from 'fs'
 
 export class NetworkCommand extends BaseCommand {
   /**
-   * @param {{profileManager: ProfileManager, logger: Logger, helm: Helm, k8: K8, chartManager: ChartManager,
-   * configManager: ConfigManager, depManager: DependencyManager, downloader: PackageDownloader}} opts
+   * @param {{profileManager: ProfileManager, logger: SoloLogger, helm: Helm, k8: K8, chartManager: ChartManager,
+   * configManager: ConfigManager, depManager: DependencyManager, downloader: PackageDownloader, keyManager: KeyManager,
+   * platformInstaller: PlatformInstaller}} opts
    */
   constructor (opts) {
     super(opts)

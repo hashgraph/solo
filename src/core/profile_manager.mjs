@@ -31,12 +31,12 @@ const consensusSidecars = [
 
 export class ProfileManager {
   /**
-   * @param {Logger} logger - an instance of core/Logger
+   * @param {SoloLogger} logger
    * @param {ConfigManager} configManager - an instance of core/ConfigManager
    * @param {string} cacheDir - cache directory where the values file will be written. A yaml file named <profileName>.yaml is created.
    */
   constructor (logger, configManager, cacheDir = constants.SOLO_VALUES_DIR) {
-    if (!logger) throw new MissingArgumentError('An instance of core/Logger is required')
+    if (!logger) throw new MissingArgumentError('An instance of core/SoloLogger is required')
     if (!configManager) throw new MissingArgumentError('An instance of core/ConfigManager is required')
 
     this.logger = logger
@@ -150,10 +150,17 @@ export class ProfileManager {
     const dotItems = dot.dot(items)
 
     for (const key in dotItems) {
+      let itemKey = key
+
+      // if it is an array key like extraEnv[0].JAVA_OPTS, convert it into dot separated key as extraEnv.0.JAVA_OPTS
+      if (key.indexOf('[') !== -1) {
+        itemKey = key.replace('[', '.').replace(']', '')
+      }
+
       if (itemPath) {
-        this._setValue(`${itemPath}.${key}`, dotItems[key], yamlRoot)
+        this._setValue(`${itemPath}.${itemKey}`, dotItems[key], yamlRoot)
       } else {
-        this._setValue(key, dotItems[key], yamlRoot)
+        this._setValue(itemKey, dotItems[key], yamlRoot)
       }
     }
   }
@@ -173,7 +180,6 @@ export class ProfileManager {
     for (let nodeIndex = 0; nodeIndex < nodeIds.length; nodeIndex++) {
       this._setValue(`hedera.nodes.${nodeIndex}.name`, nodeIds[nodeIndex], yamlRoot)
       this._setValue(`hedera.nodes.${nodeIndex}.accountId`, accountMap.get(nodeIds[nodeIndex]), yamlRoot)
-      this._setChartItems(`hedera.nodes.${nodeIndex}`, profile.consensus, yamlRoot)
     }
 
     const stagingDir = Templates.renderStagingDir(
@@ -363,7 +369,7 @@ export class ProfileManager {
   /**
    * Prepare a values file for rpc-relay Helm chart
    * @param {string} profileName - resource profile name
-   * @returns {Promise<string>} return the full path to the values file
+   * @returns {Promise<string|void>} return the full path to the values file
    */
   prepareValuesForRpcRelayChart (profileName) {
     if (!profileName) throw new MissingArgumentError('profileName is required')
@@ -390,7 +396,7 @@ export class ProfileManager {
   /**
    * Prepare a values file for mirror-node Helm chart
    * @param {string} profileName - resource profile name
-   * @returns {Promise<string>} return the full path to the values file
+   * @returns {Promise<string|void>} return the full path to the values file
    */
   prepareValuesForMirrorNodeChart (profileName) {
     if (!profileName) throw new MissingArgumentError('profileName is required')

@@ -56,12 +56,11 @@ const REJECTED = 'rejected'
 
 export class AccountManager {
   /**
-   * creates a new AccountManager instance
-   * @param {Logger} logger - the logger to use
-   * @param {K8} k8 - the K8 instance
+   * @param {SoloLogger} logger
+   * @param {K8} k8
    */
   constructor (logger, k8) {
-    if (!logger) throw new Error('An instance of core/Logger is required')
+    if (!logger) throw new Error('An instance of core/SoloLogger is required')
     if (!k8) throw new Error('An instance of core/K8 is required')
 
     this.logger = logger
