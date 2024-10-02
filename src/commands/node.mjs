@@ -2386,9 +2386,7 @@ export class NodeCommand extends BaseCommand {
           .command({
             command: 'start',
             desc: 'Start a node',
-            builder: y => flags.setCommandFlags(y,
-              NodeCommand.START_FLAGS_LIST
-            ),
+            builder: y => flags.setCommandFlags(y, ...NodeCommand.START_FLAGS_LIST),
             handler: argv => {
               nodeCmd.logger.debug('==== Running \'node start\' ===')
               nodeCmd.logger.debug(argv)
@@ -2405,9 +2403,7 @@ export class NodeCommand extends BaseCommand {
           .command({
             command: 'stop',
             desc: 'Stop a node',
-            builder: y => flags.setCommandFlags(y,
-              NodeCommand.STOP_FLAGS_LIST
-            ),
+            builder: y => flags.setCommandFlags(y, ...NodeCommand.STOP_FLAGS_LIST),
             handler: argv => {
               nodeCmd.logger.debug('==== Running \'node stop\' ===')
               nodeCmd.logger.debug(argv)
