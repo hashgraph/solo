@@ -73,12 +73,12 @@ export const downloadGeneratedFilesConfigBuilder = async function (argv, ctx, ta
 
   const config = /** @type {NodePrepareUpgradeConfigClass} **/ this.getConfig(
     DOWNLOAD_GENERATED_FILES_CONFIGS_NAME, argv.flags, [
-      'allNodeIds',
-      'existingNodeIds',
+      'allNodeAliases',
+      'existingNodeAliases',
       'serviceMap'
     ])
 
-  config.existingNodeIds = []
+  config.existingNodeAliases = []
   await this.initializeSetup(config, this.k8)
 
   return config

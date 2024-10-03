@@ -318,7 +318,7 @@ export class NodeCommandTasks {
       for (/** @type {NetworkNodeServices} **/ const networkNodeServices of config.serviceMap.values()) {
         config.existingNodeAliases.push(networkNodeServices.nodeName)
       }
-      config.allnodeAliases = [...config.existingNodeAliases]
+      config.allNodeAliases = [...config.existingNodeAliases]
       return this.taskCheckNetworkNodePods(ctx, task, config.existingNodeAliases)
     })
   }
