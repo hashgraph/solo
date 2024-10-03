@@ -28,7 +28,7 @@ import { PREPARE_UPGRADE_CONFIGS_NAME, DOWNLOAD_GENERATED_FILES_CONFIGS_NAME } f
 describe('Node upgrade', () => {
   const namespace = 'node-upgrade'
   const argv = getDefaultArgv()
-  argv[flags.nodeIDs.name] = 'node1,node2,node3'
+  argv[flags.nodeAliasesUnparsed.name] = 'node1,node2,node3'
   argv[flags.generateGossipKeys.name] = true
   argv[flags.generateTlsKeys.name] = true
   argv[flags.persistentVolumeClaims.name] = true
