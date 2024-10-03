@@ -21,7 +21,7 @@ import { BaseCommand } from './base.mjs'
 import * as core from '../core/index.mjs'
 import { constants } from '../core/index.mjs'
 import * as fs from 'fs'
-import { SoloError, IllegalArgumentError } from '../core/errors.mjs'
+import { SoloError } from '../core/errors.mjs'
 import * as flags from './flags.mjs'
 import chalk from 'chalk'
 
