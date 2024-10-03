@@ -317,7 +317,7 @@ export class K8 {
    * Get a list of contexts
    * @returns {string[]} a list of context names
    */
-  async getContexts () {
+  getContexts () {
     const contexts = []
     for (const context of this.kubeConfig.getContexts()) {
       contexts.push(context.name)

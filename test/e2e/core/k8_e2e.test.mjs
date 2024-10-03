@@ -120,7 +120,7 @@ describe('K8', () => {
   }, defaultTimeout)
 
   it('should be able to list contexts', async () => {
-    const contexts = await k8.getContexts()
+    const contexts = k8.getContexts()
     expect(contexts).not.toHaveLength(0)
   }, defaultTimeout)
 
