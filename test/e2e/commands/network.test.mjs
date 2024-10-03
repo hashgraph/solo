@@ -55,7 +55,7 @@ describe('NetworkCommand', () => {
   argv[flags.fstChartVersion.name] = version.FST_CHART_VERSION
   argv[flags.force.name] = true
   argv[flags.applicationEnv.name] = applicationEnvFilePath
-  // set the env variable SOLO_FST_CHARTS_DIR if developer wants to use local FST charts
+  // set the env variable SOLO_FST_CHARTS_DIR if developer wants to use local Solo charts
   argv[flags.chartDirectory.name] = process.env.SOLO_FST_CHARTS_DIR ? process.env.SOLO_FST_CHARTS_DIR : undefined
   argv[flags.quiet.name] = true
 
@@ -135,7 +135,7 @@ describe('NetworkCommand', () => {
     try {
       await expect(networkCmd.destroy(argv)).resolves.toBeTruthy()
 
-      while ((await k8.getPodsByLabel(['fullstack.hedera.com/type=network-node'])).length > 0) {
+      while ((await k8.getPodsByLabel(['solo.hedera.com/type=network-node'])).length > 0) {
         networkCmd.logger.debug('Pods are still running. Waiting...')
         await sleep(3000)
       }
@@ -146,7 +146,7 @@ describe('NetworkCommand', () => {
       }
 
       // check if chart is uninstalled
-      await expect(bootstrapResp.opts.chartManager.isChartInstalled(namespace, constants.FULLSTACK_DEPLOYMENT_CHART))
+      await expect(bootstrapResp.opts.chartManager.isChartInstalled(namespace, constants.SOLO_DEPLOYMENT_CHART))
         .resolves.toBeFalsy()
 
       // check if pvc are deleted

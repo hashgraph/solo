@@ -54,7 +54,7 @@ describe('MirrorNodeCommand', () => {
   argv[flags.fstChartVersion.name] = version.FST_CHART_VERSION
   argv[flags.force.name] = true
   argv[flags.relayReleaseTag.name] = flags.relayReleaseTag.definition.defaultValue
-  // set the env variable SOLO_FST_CHARTS_DIR if developer wants to use local FST charts
+  // set the env variable SOLO_FST_CHARTS_DIR if developer wants to use local Solo charts
   argv[flags.chartDirectory.name] = process.env.SOLO_FST_CHARTS_DIR ? process.env.SOLO_FST_CHARTS_DIR : undefined
   argv[flags.quiet.name] = true
 

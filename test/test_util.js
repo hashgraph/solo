@@ -217,7 +217,7 @@ export function bootstrapNetwork (testName, argv,
         }
       }
 
-      if (!await chartManager.isChartInstalled(constants.FULLSTACK_SETUP_NAMESPACE, constants.FULLSTACK_CLUSTER_SETUP_CHART)) {
+      if (!await chartManager.isChartInstalled(constants.SOLO_SETUP_NAMESPACE, constants.SOLO_CLUSTER_SETUP_CHART)) {
         await clusterCmd.setup(argv)
       }
     }, 120000)
@@ -381,7 +381,7 @@ export function getK8Instance (configManager) {
     // Set envs
     process.env.SOLO_CLUSTER_NAME = 'solo-e2e'
     process.env.SOLO_NAMESPACE = 'solo-e2e'
-    process.env.SOLO_CLUSTER_SETUP_NAMESPACE = 'fullstack-setup'
+    process.env.SOLO_CLUSTER_SETUP_NAMESPACE = 'solo-setup'
 
     // Create cluster
     execSync(`kind create cluster --name "${process.env.SOLO_CLUSTER_NAME}"`, { stdio: 'inherit' })

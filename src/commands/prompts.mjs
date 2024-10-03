@@ -184,7 +184,7 @@ export async function promptProfile (task, input, choices = constants.ALL_PROFIL
     if (initial < 0) {
       const input = await task.prompt(ListrEnquirerPromptAdapter).run({
         type: 'select',
-        message: 'Select profile for fullstack network deployment',
+        message: 'Select profile for solo network deployment',
         choices: helpers.cloneArray(choices)
       })
 
@@ -344,7 +344,7 @@ export async function promptDeleteSecrets (task, input) {
 export async function promptFstChartVersion (task, input) {
   return await promptText(task, input,
     flags.fstChartVersion.definition.defaultValue,
-    'Enter fullstack testing chart version: ',
+    'Enter solo testing chart version: ',
     null,
     flags.fstChartVersion.name)
 }

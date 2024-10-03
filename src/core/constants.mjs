@@ -51,11 +51,11 @@ export const HEDERA_NODE_EXTERNAL_GOSSIP_PORT = process.env.SOLO_NODE_EXTERNAL_G
 export const HEDERA_NODE_DEFAULT_STAKE_AMOUNT = process.env.SOLO_NODE_DEFAULT_STAKE_AMOUNT || 500
 
 // --------------- Charts related constants ----------------------------------------------------------------------------
-export const FULLSTACK_SETUP_NAMESPACE = 'fullstack-setup'
-export const FULLSTACK_TESTING_CHART_URL = 'https://hashgraph.github.io/full-stack-testing/charts'
-export const FULLSTACK_TESTING_CHART = 'full-stack-testing'
-export const FULLSTACK_CLUSTER_SETUP_CHART = 'fullstack-cluster-setup'
-export const FULLSTACK_DEPLOYMENT_CHART = 'fullstack-deployment'
+export const SOLO_SETUP_NAMESPACE = 'solo-setup'
+export const SOLO_TESTING_CHART_URL = 'https://hashgraph.github.io/solo-charts/charts'
+export const SOLO_TESTING_CHART = 'solo-charts'
+export const SOLO_CLUSTER_SETUP_CHART = 'solo-cluster-setup'
+export const SOLO_DEPLOYMENT_CHART = 'solo-deployment'
 export const JSON_RPC_RELAY_CHART_URL = 'https://hashgraph.github.io/hedera-json-rpc-relay/charts'
 export const JSON_RPC_RELAY_CHART = 'hedera-json-rpc-relay'
 export const MIRROR_NODE_CHART_URL = 'https://hashgraph.github.io/hedera-mirror-node/charts'
@@ -63,7 +63,7 @@ export const MIRROR_NODE_CHART = 'hedera-mirror'
 
 /** @type {Map<string, string>} */
 export const DEFAULT_CHART_REPO = new Map()
-  .set(FULLSTACK_TESTING_CHART, FULLSTACK_TESTING_CHART_URL)
+  .set(SOLO_TESTING_CHART, SOLO_TESTING_CHART_URL)
   .set(JSON_RPC_RELAY_CHART, JSON_RPC_RELAY_CHART_URL)
   .set(MIRROR_NODE_CHART, MIRROR_NODE_CHART_URL)
 

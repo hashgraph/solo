@@ -8,7 +8,7 @@ env:
   FST_CHART_VERSION: v0.30.0
   CONSENSUS_NODE_VERSION: v0.54.1
   SOLO_NAMESPACE: solo-{{ env "USER" | replace "." "-" | trunc 63 }}
-  SOLO_CLUSTER_SETUP_NAMESPACE: fullstack-setup
+  SOLO_CLUSTER_SETUP_NAMESPACE: solo-setup
   SOLO_NETWORK_SIZE: 7
 
 vars:
@@ -104,7 +104,7 @@ tasks:
   solo:network:deploy:
     internal: true
     cmds:
-      - solo network deploy --release-tag "${CONSENSUS_NODE_VERSION}" --fst-chart-version "${FST_CHART_VERSION}" --values-file {{ .solo_values_file }} --settings-txt {{ .solo_settings_file }}
+      - solo network deploy --release-tag "${CONSENSUS_NODE_VERSION}" --solo-chart-version "${FST_CHART_VERSION}" --values-file {{ .solo_values_file }} --settings-txt {{ .solo_settings_file }}
       - solo node setup --release-tag "${CONSENSUS_NODE_VERSION}"
 
   solo:network:destroy:
@@ -126,7 +126,7 @@ tasks:
   solo:node:addresses:
     internal: true
     cmds:
-      - kubectl get svc -n "${SOLO_NAMESPACE}" -l "fullstack.hedera.com/type=network-node-svc" --output=go-template-file={{ .ip_list_template_file }}
+      - kubectl get svc -n "${SOLO_NAMESPACE}" -l "solo.hedera.com/type=network-node-svc" --output=go-template-file={{ .ip_list_template_file }}
 
   solo:cache:remove:
     internal: true

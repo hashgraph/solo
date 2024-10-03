@@ -5,7 +5,7 @@ export PATH=${PATH}:~/.solo/bin
 
 SOLO_CLUSTER_NAME=solo-e2e
 SOLO_NAMESPACE=solo-e2e
-SOLO_CLUSTER_SETUP_NAMESPACE=fullstack-setup
+SOLO_CLUSTER_SETUP_NAMESPACE=solo-setup
 kind delete cluster -n "${SOLO_CLUSTER_NAME}" || true
 kind create cluster -n "${SOLO_CLUSTER_NAME}" --image "${KIND_IMAGE}" || exit 1
 
@@ -21,4 +21,4 @@ kind create cluster -n "${SOLO_CLUSTER_NAME}" --image "${KIND_IMAGE}" || exit 1
 solo init --namespace "${SOLO_NAMESPACE}" -i node1 -s "${SOLO_CLUSTER_SETUP_NAMESPACE}" -d "${SOLO_FST_CHARTS_DIR}" --dev || exit 1 # cache args for subsequent commands
 solo cluster setup  || exit 1
 helm list --all-namespaces
-sleep 10 # give time for fullstack-setup to finish deploying
+sleep 10 # give time for solo-setup to finish deploying

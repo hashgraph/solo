@@ -52,7 +52,7 @@ describe('AccountCommand', () => {
   argv[flags.generateTlsKeys.name] = true
   argv[flags.clusterName.name] = TEST_CLUSTER
   argv[flags.fstChartVersion.name] = version.FST_CHART_VERSION
-  // set the env variable SOLO_FST_CHARTS_DIR if developer wants to use local FST charts
+  // set the env variable SOLO_FST_CHARTS_DIR if developer wants to use local Solo charts
   argv[flags.chartDirectory.name] = process.env.SOLO_FST_CHARTS_DIR ? process.env.SOLO_FST_CHARTS_DIR : undefined
   const bootstrapResp = bootstrapNetwork(testName, argv)
   const accountCmd = new AccountCommand(bootstrapResp.opts, testSystemAccounts)
@@ -73,7 +73,7 @@ describe('AccountCommand', () => {
     for (const nodeAlias of argv[flags.nodeAliasesUnparsed.name].split(',')) {
       it(`proxy should be UP: ${nodeAlias} `, async () => {
         await k8.waitForPodReady(
-          [`app=haproxy-${nodeAlias}`, 'fullstack.hedera.com/type=haproxy'],
+          [`app=haproxy-${nodeAlias}`, 'solo.hedera.com/type=haproxy'],
           1, 300, 2000)
       }, 30000)
     }

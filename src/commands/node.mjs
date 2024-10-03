@@ -423,8 +423,8 @@ export class NodeCommand extends BaseCommand {
 
     try {
       await this.k8.waitForPods([constants.POD_PHASE_RUNNING], [
-        'fullstack.hedera.com/type=network-node',
-        `fullstack.hedera.com/node-name=${nodeAlias}`
+        'solo.hedera.com/type=network-node',
+        `solo.hedera.com/node-name=${nodeAlias}`
       ], 1, maxAttempts, delay)
 
       return podName
@@ -595,8 +595,8 @@ export class NodeCommand extends BaseCommand {
         title: `Check Node: ${chalk.yellow(nodeAlias)}`,
         task: async () =>
           await this.k8.waitForPods([constants.POD_PHASE_RUNNING], [
-            'fullstack.hedera.com/type=network-node',
-            `fullstack.hedera.com/node-name=${nodeAlias}`
+            'solo.hedera.com/type=network-node',
+            `solo.hedera.com/node-name=${nodeAlias}`
           ], 1, 60 * 15, 1000) // timeout 15 minutes
       })
     }
@@ -670,7 +670,7 @@ export class NodeCommand extends BaseCommand {
       subTasks.push({
         title: `Check proxy for node: ${chalk.yellow(nodeAlias)}`,
         task: async () => await this.k8.waitForPodReady(
-          [`app=haproxy-${nodeAlias}`, 'fullstack.hedera.com/type=haproxy'],
+          [`app=haproxy-${nodeAlias}`, 'solo.hedera.com/type=haproxy'],
           1, 300, 2000)
       })
     }
@@ -787,7 +787,7 @@ export class NodeCommand extends BaseCommand {
 
     await this.chartManager.upgrade(
       config.namespace,
-      constants.FULLSTACK_DEPLOYMENT_CHART,
+      constants.SOLO_DEPLOYMENT_CHART,
       config.chartPath,
       valuesArg,
       config.fstChartVersion
@@ -1732,7 +1732,7 @@ export class NodeCommand extends BaseCommand {
         ctx.config = config
 
         ctx.config.chartPath = await self.prepareChartPath(ctx.config.chartDirectory,
-          constants.FULLSTACK_TESTING_CHART, constants.FULLSTACK_DEPLOYMENT_CHART)
+          constants.SOLO_TESTING_CHART, constants.SOLO_DEPLOYMENT_CHART)
 
         // initialize Node Client with existing network nodes prior to adding the new node which isn't functioning, yet
         ctx.config.nodeClient = await this.accountManager.loadNodeClient(ctx.config.namespace)
@@ -2734,7 +2734,7 @@ export class NodeCommand extends BaseCommand {
           ctx.config = config
 
           ctx.config.chartPath = await self.prepareChartPath(ctx.config.chartDirectory,
-            constants.FULLSTACK_TESTING_CHART, constants.FULLSTACK_DEPLOYMENT_CHART)
+            constants.SOLO_TESTING_CHART, constants.SOLO_DEPLOYMENT_CHART)
 
           // initialize Node Client with existing network nodes prior to adding the new node which isn't functioning, yet
           ctx.config.nodeClient = await this.accountManager.loadNodeClient(ctx.config.namespace)
@@ -3125,7 +3125,7 @@ export class NodeCommand extends BaseCommand {
         ctx.config = config
 
         ctx.config.chartPath = await self.prepareChartPath(ctx.config.chartDirectory,
-          constants.FULLSTACK_TESTING_CHART, constants.FULLSTACK_DEPLOYMENT_CHART)
+          constants.SOLO_TESTING_CHART, constants.SOLO_DEPLOYMENT_CHART)
 
         // initialize Node Client with existing network nodes prior to adding the new node which isn't functioning, yet
         ctx.config.nodeClient = await this.accountManager.loadNodeClient(ctx.config.namespace)

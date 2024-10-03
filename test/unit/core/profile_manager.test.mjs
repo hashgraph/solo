@@ -73,7 +73,7 @@ describe('ProfileManager', () => {
   describe.each([
     { profileName: 'test', profileFile: testProfileFile }
   ])('determine chart values for a profile', (input) => {
-    it(`should determine FST chart values [profile = ${input.profileName}]`, async () => {
+    it(`should determine Solo chart values [profile = ${input.profileName}]`, async () => {
       configManager.setFlag(flags.profileFile, input.profileFile)
 
       const resources = ['templates', 'profiles']
