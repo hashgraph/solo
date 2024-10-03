@@ -316,7 +316,7 @@ export class NodeCommandTasks {
       config.existingNodeAliases = []
       config.serviceMap = await this.accountManager.getNodeServiceMap(config.namespace)
       for (/** @type {NetworkNodeServices} **/ const networkNodeServices of config.serviceMap.values()) {
-        config.existingNodeAliases.push(networkNodeServices.nodeName)
+        config.existingNodeAliases.push(networkNodeServices.nodeAlias)
       }
       config.allNodeAliases = [...config.existingNodeAliases]
       return this.taskCheckNetworkNodePods(ctx, task, config.existingNodeAliases)
