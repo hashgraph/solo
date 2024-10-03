@@ -20,6 +20,11 @@ tasks:
       - task: "install"
       - task: "build"
 
+  start:
+    cmds:
+      - task: "default"
+      - hugo server
+
   check-doc-dir:
     status:
       - |
