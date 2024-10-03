@@ -304,7 +304,7 @@ export class K8 {
    * Get a list of clusters
    * @returns {Promise<string[]>} a list of cluster names
    */
-  async getClusters () {
+  getClusters () {
     const clusters = []
     for (const cluster of this.kubeConfig.getClusters()) {
       clusters.push(cluster.name)
@@ -451,7 +451,7 @@ export class K8 {
    * @param {string} destPath
    * @returns {Promise<string>}
    */
-  async mkdir (podName, containerName, destPath) {
+  mkdir (podName, containerName, destPath) {
     return this.execContainer(
       podName,
       containerName,
@@ -501,12 +501,12 @@ export class K8 {
         const errStream = new sb.WritableStreamBuffer()
 
         execInstance.exec(namespace, podName, containerName, command, null, errStream, readStream, false,
-          async ({ status }) => {
+          ({ status }) => {
             if (status === 'Failure' || errStream.size()) {
               self._deleteTempFile(tmpFile)
             }
           }).then(conn => {
-          conn.on('close', async (code, reason) => {
+          conn.on('close', (code, reason) => {
             if (code !== 1000) { // code 1000 is the success code
               return reject(new SoloError(`failed to copy because of error (${code}): ${reason}`))
             }
@@ -793,7 +793,7 @@ export class K8 {
    * @param {number} port - the port of the target connection
    * @returns {Promise<boolean>}
    */
-  async testConnection (host, port) {
+  testConnection (host, port) {
     const self = this
 
     return new Promise((resolve, reject) => {
@@ -895,7 +895,7 @@ export class K8 {
    * @param {Function} [podItemPredicate] - a predicate function to check the pod item
    * @returns {Promise<Object[]>} a Promise that checks the status of an array of pods
    */
-  async waitForPods (phases = [constants.POD_PHASE_RUNNING], labels = [], podCount = 1, maxAttempts = 10, delay = 500, podItemPredicate) {
+  waitForPods (phases = [constants.POD_PHASE_RUNNING], labels = [], podCount = 1, maxAttempts = 10, delay = 500, podItemPredicate) {
     const ns = this._getNamespace()
     const labelSelector = labels.join(',')
 

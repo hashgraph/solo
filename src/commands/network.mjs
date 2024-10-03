@@ -252,7 +252,7 @@ export class NetworkCommand extends BaseCommand {
       },
       {
         title: 'Prepare staging directory',
-        task: async (ctx, parentTask) => {
+        task: (ctx, parentTask) => {
           const subTasks = [
             {
               title: 'Copy Gossip keys to staging',
@@ -282,7 +282,7 @@ export class NetworkCommand extends BaseCommand {
       },
       {
         title: 'Copy node keys to secrets',
-        task: async (ctx, parentTask) => {
+        task: (ctx, parentTask) => {
           const config = /** @type {NetworkDeployConfigClass} **/ ctx.config
 
           const subTasks = self.platformInstaller.copyNodeKeys(config.stagingDir, config.nodeAliases)
@@ -313,92 +313,92 @@ export class NetworkCommand extends BaseCommand {
       {
         title: 'Check node pods are running',
         task:
-          async (ctx, task) => {
-            const subTasks = []
-            const config = /** @type {NetworkDeployConfigClass} **/ ctx.config
+           (ctx, task) => {
+             const subTasks = []
+             const config = /** @type {NetworkDeployConfigClass} **/ ctx.config
 
-            // nodes
-            for (const nodeAlias of config.nodeAliases) {
-              subTasks.push({
-                title: `Check Node: ${chalk.yellow(nodeAlias)}`,
-                task: async () =>
-                  await self.k8.waitForPods([constants.POD_PHASE_RUNNING], [
-                    'fullstack.hedera.com/type=network-node',
+             // nodes
+             for (const nodeAlias of config.nodeAliases) {
+               subTasks.push({
+                 title: `Check Node: ${chalk.yellow(nodeAlias)}`,
+                 task: async () =>
+                   await self.k8.waitForPods([constants.POD_PHASE_RUNNING], [
+                     'fullstack.hedera.com/type=network-node',
                     `fullstack.hedera.com/node-name=${nodeAlias}`
-                  ], 1, 60 * 15, 1000) // timeout 15 minutes
-              })
-            }
+                   ], 1, 60 * 15, 1000) // timeout 15 minutes
+               })
+             }
 
-            // set up the sub-tasks
-            return task.newListr(subTasks, {
-              concurrent: false, // no need to run concurrently since if one node is up, the rest should be up by then
-              rendererOptions: {
-                collapseSubtasks: false
-              }
-            })
-          }
+             // set up the sub-tasks
+             return task.newListr(subTasks, {
+               concurrent: false, // no need to run concurrently since if one node is up, the rest should be up by then
+               rendererOptions: {
+                 collapseSubtasks: false
+               }
+             })
+           }
       },
       {
         title: 'Check proxy pods are running',
         task:
-          async (ctx, task) => {
-            const subTasks = []
-            const config = /** @type {NetworkDeployConfigClass} **/ ctx.config
+           (ctx, task) => {
+             const subTasks = []
+             const config = /** @type {NetworkDeployConfigClass} **/ ctx.config
 
-            // HAProxy
-            for (const nodeAlias of config.nodeAliases) {
-              subTasks.push({
-                title: `Check HAProxy for: ${chalk.yellow(nodeAlias)}`,
-                task: async () =>
-                  await self.k8.waitForPods([constants.POD_PHASE_RUNNING], [
-                    'fullstack.hedera.com/type=haproxy'
-                  ], 1, 60 * 15, 1000) // timeout 15 minutes
-              })
-            }
+             // HAProxy
+             for (const nodeAlias of config.nodeAliases) {
+               subTasks.push({
+                 title: `Check HAProxy for: ${chalk.yellow(nodeAlias)}`,
+                 task: async () =>
+                   await self.k8.waitForPods([constants.POD_PHASE_RUNNING], [
+                     'fullstack.hedera.com/type=haproxy'
+                   ], 1, 60 * 15, 1000) // timeout 15 minutes
+               })
+             }
 
-            // Envoy Proxy
-            for (const nodeAlias of config.nodeAliases) {
-              subTasks.push({
-                title: `Check Envoy Proxy for: ${chalk.yellow(nodeAlias)}`,
-                task: async () =>
-                  await self.k8.waitForPods([constants.POD_PHASE_RUNNING], [
-                    'fullstack.hedera.com/type=envoy-proxy'
-                  ], 1, 60 * 15, 1000) // timeout 15 minutes
-              })
-            }
+             // Envoy Proxy
+             for (const nodeAlias of config.nodeAliases) {
+               subTasks.push({
+                 title: `Check Envoy Proxy for: ${chalk.yellow(nodeAlias)}`,
+                 task: async () =>
+                   await self.k8.waitForPods([constants.POD_PHASE_RUNNING], [
+                     'fullstack.hedera.com/type=envoy-proxy'
+                   ], 1, 60 * 15, 1000) // timeout 15 minutes
+               })
+             }
 
-            // set up the sub-tasks
-            return task.newListr(subTasks, {
-              concurrent: true,
-              rendererOptions: {
-                collapseSubtasks: false
-              }
-            })
-          }
+             // set up the sub-tasks
+             return task.newListr(subTasks, {
+               concurrent: true,
+               rendererOptions: {
+                 collapseSubtasks: false
+               }
+             })
+           }
       },
       {
         title: 'Check auxiliary pods are ready',
         task:
-          async (ctx, task) => {
-            const subTasks = []
+           (ctx, task) => {
+             const subTasks = []
 
-            // minio
-            subTasks.push({
-              title: 'Check MinIO',
-              task: async () =>
-                await self.k8.waitForPodReady([
-                  'v1.min.io/tenant=minio'
-                ], 1, 60 * 5, 1000) // timeout 5 minutes
-            })
+             // minio
+             subTasks.push({
+               title: 'Check MinIO',
+               task: async () =>
+                 await self.k8.waitForPodReady([
+                   'v1.min.io/tenant=minio'
+                 ], 1, 60 * 5, 1000) // timeout 5 minutes
+             })
 
-            // set up the sub-tasks
-            return task.newListr(subTasks, {
-              concurrent: false, // no need to run concurrently since if one node is up, the rest should be up by then
-              rendererOptions: {
-                collapseSubtasks: false
-              }
-            })
-          }
+             // set up the sub-tasks
+             return task.newListr(subTasks, {
+               concurrent: false, // no need to run concurrently since if one node is up, the rest should be up by then
+               rendererOptions: {
+                 collapseSubtasks: false
+               }
+             })
+           }
       }
     ], {
       concurrent: false,

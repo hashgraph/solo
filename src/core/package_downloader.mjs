@@ -60,7 +60,7 @@ export class PackageDownloader {
    * @param {string} url
    * @returns {Promise<boolean>}
    */
-  async urlExists (url) {
+  urlExists (url) {
     const self = this
 
     return new Promise((resolve, reject) => {
@@ -147,10 +147,10 @@ export class PackageDownloader {
    * Compute hash of the file contents
    * @param {string} filePath - path of the file
    * @param {string} [algo] - hash algorithm
-   * @returns {Promise<string>} returns hex digest of the computed hash
+   * @returns {Promise<>} returns hex digest of the computed hash
    * @throws Error if the file cannot be read
    */
-  async computeFileHash (filePath, algo = 'sha384') {
+  computeFileHash (filePath, algo = 'sha384') {
     const self = this
 
     return new Promise((resolve, reject) => {
@@ -247,9 +247,9 @@ export class PackageDownloader {
    * @param {string} tag - full semantic version e.g. v0.40.4
    * @param {string} destDir - directory where the artifact needs to be saved
    * @param {boolean} [force] - whether to download even if the file exists
-   * @returns {Promise<string>} full path to the downloaded file
+   * @returns {string} full path to the downloaded file
    */
-  async fetchPlatform (tag, destDir, force = false) {
+  fetchPlatform (tag, destDir, force = false) {
     if (!tag) throw new MissingArgumentError('tag is required')
     if (!destDir) throw new MissingArgumentError('destination directory path is required')
 
