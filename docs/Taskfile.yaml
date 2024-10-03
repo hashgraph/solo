@@ -4,10 +4,70 @@ dotenv:
   - .env
 silent: false
 
+env:
+  HUGO_ENVIRONMENT: production
+  HUGO_ENV: production
+  HUGO_BASE_URL: https://hashgraph.github.io/solo
+  HUGO_ORIGIN: https://hashgraph.github.io
+  HUGO_HOST: hashgraph.github.io
+  HUGO_BASEPATH: /solo
+
 tasks:
   default:
     cmds:
+      - task: "check-doc-dir"
+      - task: "clean"
       - task: "install"
+      - task: "build"
+
+  check-doc-dir:
+    status:
+      - |
+        if [ "$(basename "$PWD")" != "docs" ]; then
+          exit 1
+        fi
+    cmds:
+      - |
+        echo "Error: Must be in the 'docs' directory."
+        exit 1
+
+  clean:
+    cmds:
+      - echo x
+
+  build:
+    cmds:
+      - task: "build:jsdoc"
+      - task: "build:jsdoc-to-markdown"
+      - task: "build:copy"
+      - task: "build:hugo"
+
+  build:hugo:
+    cmds:
+      - echo "base_url  $HUGO_BASE_URL"
+      - echo "origin    $HUGO_ORIGIN"
+      - echo "host      $HUGO_HOST"
+      - echo "base_path $HUGO_BASEPATH"
+      - mkdir -p themes/hugo-geekdoc
+      - curl -L https://github.com/thegeeklab/hugo-geekdoc/releases/latest/download/hugo-geekdoc.tar.gz | tar -xz -C themes/hugo-geekdoc/ --strip-components=1
+      - hugo version
+      - hugo config
+      - hugo --gc --config hugo.toml --minify --baseURL "$HUGO_BASE_URL/"
+
+  build:jsdoc:
+    cmds:
+      - jsdoc -c jsdoc.conf.json
+
+  build:jsdoc-to-markdown:
+   cmds:
+      - ./generate_md.sh
+
+  build:copy:
+    cmds:
+      - mkdir -p content/Developer
+      - cp ../DEV.md content/Developer/DEV.md
+      - mkdir -p content/User
+      - cp ../README.md content/User/README.md
 
   install:
     cmds:
