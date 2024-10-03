@@ -26,14 +26,15 @@ import {
 } from '../../test_util.js'
 import { getNodeLogs } from '../../../src/core/helpers.mjs'
 import { NodeCommand } from '../../../src/commands/node.mjs'
-import { HEDERA_HAPI_PATH, ROOT_CONTAINER } from '../../../src/core/constants.mjs'
+import { HEDERA_HAPI_PATH, MINUTES, ROOT_CONTAINER } from '../../../src/core/constants.mjs'
 import fs from 'fs'
 
 describe('Node update', () => {
-  const defaultTimeout = 120000
+  const defaultTimeout = 2 * MINUTES
   const namespace = 'node-update'
   const updateNodeId = 'node2'
   const newAccountId = '0.0.7'
+
   const argv = getDefaultArgv()
   argv[flags.nodeIDs.name] = 'node1,node2,node3'
   argv[flags.nodeID.name] = updateNodeId
@@ -44,7 +45,7 @@ describe('Node update', () => {
   argv[flags.generateGossipKeys.name] = true
   argv[flags.generateTlsKeys.name] = true
   // set the env variable SOLO_FST_CHARTS_DIR if developer wants to use local FST charts
-  argv[flags.chartDirectory.name] = process.env.SOLO_FST_CHARTS_DIR ? process.env.SOLO_FST_CHARTS_DIR : undefined
+  argv[flags.chartDirectory.name] = process.env.SOLO_FST_CHARTS_DIR ?? undefined
   argv[flags.releaseTag.name] = HEDERA_PLATFORM_VERSION_TAG
   argv[flags.namespace.name] = namespace
   argv[flags.persistentVolumeClaims.name] = true
@@ -57,7 +58,7 @@ describe('Node update', () => {
   let existingNodeIdsPrivateKeysHash
 
   after(async function () {
-    this.timeout(600_000)
+    this.timeout(10 * MINUTES)
 
     await getNodeLogs(k8, namespace)
     await nodeCmd.stop(argv)
@@ -72,7 +73,7 @@ describe('Node update', () => {
   it('should succeed with init command', async () => {
     const status = await accountCmd.init(argv)
     expect(status).to.be.ok
-  }).timeout(450_000)
+  }).timeout(8 * MINUTES)
 
   it('should update a new node property successfully', async () => {
     // generate gossip and tls keys for the updated node
@@ -97,7 +98,7 @@ describe('Node update', () => {
       flags.quiet.constName
     ])
     await nodeCmd.accountManager.close()
-  }).timeout(1_800_000)
+  }).timeout(30 * MINUTES) //! Might be an overkill
 
   balanceQueryShouldSucceed(nodeCmd.accountManager, nodeCmd, namespace)
 
@@ -129,7 +130,9 @@ describe('Node update', () => {
     const tmpDir = getTmpDir()
     await k8.copyFrom(podName, ROOT_CONTAINER, `${HEDERA_HAPI_PATH}/config.txt`, tmpDir)
     const configTxt = fs.readFileSync(`${tmpDir}/config.txt`, 'utf8')
+
     console.log('config.txt:', configTxt)
+
     expect(configTxt).to.contain(newAccountId)
-  }).timeout(600_000)
+  }).timeout(10 * MINUTES)
 })

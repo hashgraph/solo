@@ -20,6 +20,7 @@ import { KeytoolDependencyManager } from '../../../../src/core/dependency_manage
 import { PackageDownloader, Zippy } from '../../../../src/core/index.mjs'
 import { getTestCacheDir, testLogger } from '../../../test_util.js'
 import os from 'os'
+import { MINUTES } from '../../../../src/core/constants.mjs'
 
 describe('KeytoolDependencyManager', () => {
   const downloader = new PackageDownloader(testLogger)
@@ -64,5 +65,5 @@ describe('KeytoolDependencyManager', () => {
     expect(keytoolDependencyManager.isInstalled()).not.to.be.ok
     await expect(keytoolDependencyManager.install(getTestCacheDir())).to.eventually.be.ok
     expect(keytoolDependencyManager.isInstalled()).to.be.ok
-  }).timeout(120_000)
+  }).timeout(2 * MINUTES)
 })

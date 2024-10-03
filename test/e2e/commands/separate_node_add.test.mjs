@@ -26,16 +26,17 @@ import {
 import { flags } from '../../../src/commands/index.mjs'
 import { getNodeLogs } from '../../../src/core/helpers.mjs'
 import { NodeCommand } from '../../../src/commands/node.mjs'
+import { MINUTES } from '../../../src/core/constants.mjs'
 
 describe('Node add via separated commands should success', () => {
-  const defaultTimeout = 120_000
+  const defaultTimeout = 2 * MINUTES
   const namespace = 'node-add-separated'
   const argv = getDefaultArgv()
   argv[flags.nodeIDs.name] = 'node1,node2,node3'
   argv[flags.generateGossipKeys.name] = true
   argv[flags.generateTlsKeys.name] = true
   // set the env variable SOLO_FST_CHARTS_DIR if developer wants to use local FST charts
-  argv[flags.chartDirectory.name] = process.env.SOLO_FST_CHARTS_DIR ? process.env.SOLO_FST_CHARTS_DIR : undefined
+  argv[flags.chartDirectory.name] = process.env.SOLO_FST_CHARTS_DIR ?? undefined
   argv[flags.releaseTag.name] = HEDERA_PLATFORM_VERSION_TAG
   argv[flags.namespace.name] = namespace
   argv[flags.force.name] = true
@@ -59,7 +60,7 @@ describe('Node add via separated commands should success', () => {
   let existingNodeIdsPrivateKeysHash
 
   after(async function () {
-    this.timeout(600_000)
+    this.timeout(10 * MINUTES)
 
     await getNodeLogs(k8, namespace)
     await nodeCmd.accountManager.close()
@@ -76,7 +77,7 @@ describe('Node add via separated commands should success', () => {
   it('should succeed with init command', async () => {
     const status = await accountCmd.init(argv)
     expect(status).to.be.ok
-  }).timeout(450_000)
+  }).timeout(8 * MINUTES)
 
   it('should add a new node to the network via the segregated commands successfully', async () => {
     await nodeCmd.addPrepare(argvPrepare)
@@ -96,7 +97,7 @@ describe('Node add via separated commands should success', () => {
       'freezeAdminPrivateKey'
     ])
     await nodeCmd.accountManager.close()
-  }).timeout(800_000)
+  }).timeout(12 * MINUTES)
 
   balanceQueryShouldSucceed(nodeCmd.accountManager, nodeCmd, namespace)
 
@@ -114,4 +115,4 @@ describe('Node add via separated commands should success', () => {
       }
     }
   }).timeout(defaultTimeout)
-}).timeout(180_000)
+}).timeout(3 * MINUTES)

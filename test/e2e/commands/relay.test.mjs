@@ -24,14 +24,15 @@ import {
 import * as version from '../../../version.mjs'
 import { getNodeLogs, sleep } from '../../../src/core/helpers.mjs'
 import { RelayCommand } from '../../../src/commands/relay.mjs'
+import { MINUTES } from '../../../src/core/constants.mjs'
 
 describe('RelayCommand', () => {
   const testName = 'relay-cmd-e2e'
   const namespace = testName
+
   const argv = getDefaultArgv()
   argv[flags.namespace.name] = namespace
   argv[flags.releaseTag.name] = HEDERA_PLATFORM_VERSION_TAG
-
   argv[flags.nodeIDs.name] = 'node1,node2'
   argv[flags.generateGossipKeys.name] = true
   argv[flags.generateTlsKeys.name] = true
@@ -47,7 +48,7 @@ describe('RelayCommand', () => {
   const relayCmd = new RelayCommand(bootstrapResp.opts)
 
   after(async function () {
-    this.timeout(180000)
+    this.timeout(3 * MINUTES)
 
     await getNodeLogs(k8, namespace)
     await k8.deleteNamespace(namespace)
@@ -83,6 +84,6 @@ describe('RelayCommand', () => {
         relayCmd.logger.showUserError(e)
         expect(e).to.be.null
       }
-    }).timeout(300_000)
+    }).timeout(5 * MINUTES)
   })
 })

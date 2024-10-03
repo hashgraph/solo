@@ -17,6 +17,7 @@
 import { DependencyManager, HelmDependencyManager } from '../../../../src/core/dependency_managers/index.mjs'
 import { logging, constants, PackageDownloader, Zippy } from '../../../../src/core/index.mjs'
 import { SoloError } from '../../../../src/core/errors.mjs'
+import { SECONDS } from '../../../../src/core/constants.mjs'
 
 const testLogger = logging.NewLogger('debug', true)
 describe('DependencyManager', () => {
@@ -35,7 +36,7 @@ describe('DependencyManager', () => {
     })
 
     it('should succeed during helm dependency check', async () => {
-      await expect(depManager.checkDependency(constants.HELM)).should.eventually.equal(true)
-    }).timeout(60_000)
+      await expect(depManager.checkDependency(constants.HELM)).to.eventually.equal(true)
+    }).timeout(60 * SECONDS)
   })
 })

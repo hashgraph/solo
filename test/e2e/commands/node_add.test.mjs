@@ -16,8 +16,9 @@
  * @mocha-environment steps
  */
 import { testNodeAdd } from '../../test_add.mjs'
+import { MINUTES } from '../../../src/core/constants.mjs'
 
 describe('Node add with released hedera', () => {
   const localBuildPath = ''
   testNodeAdd(localBuildPath)
-}).timeout(180_000)
+}).timeout(3 * MINUTES)

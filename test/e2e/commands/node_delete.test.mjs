@@ -25,7 +25,7 @@ import {
 } from '../../test_util.js'
 import { getNodeLogs, getTmpDir } from '../../../src/core/helpers.mjs'
 import { NodeCommand } from '../../../src/commands/node.mjs'
-import { HEDERA_HAPI_PATH, ROOT_CONTAINER } from '../../../src/core/constants.mjs'
+import { HEDERA_HAPI_PATH, MINUTES, ROOT_CONTAINER, SECONDS } from '../../../src/core/constants.mjs'
 import fs from 'fs'
 
 describe('Node delete', () => {
@@ -38,7 +38,7 @@ describe('Node delete', () => {
   argv[flags.generateTlsKeys.name] = true
   argv[flags.persistentVolumeClaims.name] = true
   // set the env variable SOLO_FST_CHARTS_DIR if developer wants to use local FST charts
-  argv[flags.chartDirectory.name] = process.env.SOLO_FST_CHARTS_DIR ? process.env.SOLO_FST_CHARTS_DIR : undefined
+  argv[flags.chartDirectory.name] = process.env.SOLO_FST_CHARTS_DIR ?? undefined
   argv[flags.releaseTag.name] = HEDERA_PLATFORM_VERSION_TAG
   argv[flags.namespace.name] = namespace
   argv[flags.quiet.name] = true
@@ -48,7 +48,7 @@ describe('Node delete', () => {
   const k8 = bootstrapResp.opts.k8
 
   after(async function () {
-    this.timeout(600_000)
+    this.timeout(10 * MINUTES)
     await getNodeLogs(k8, namespace)
     await k8.deleteNamespace(namespace)
   })
@@ -56,7 +56,7 @@ describe('Node delete', () => {
   it('should succeed with init command', async () => {
     const status = await accountCmd.init(argv)
     expect(status).to.be.ok
-  }).timeout(450_000)
+  }).timeout(8 * MINUTES)
 
   it('should delete a node from the network successfully', async () => {
     await nodeCmd.delete(argv)
@@ -68,7 +68,7 @@ describe('Node delete', () => {
     ])
 
     await nodeCmd.accountManager.close()
-  }).timeout(600_000)
+  }).timeout(10 * MINUTES)
 
   balanceQueryShouldSucceed(nodeCmd.accountManager, nodeCmd, namespace)
 
@@ -83,5 +83,5 @@ describe('Node delete', () => {
     const configTxt = fs.readFileSync(`${tmpDir}/config.txt`, 'utf8')
     console.log('config.txt:', configTxt)
     expect(configTxt).not.to.contain(nodeId)
-  }).timeout(600_000)
+  }).timeout(10 * MINUTES)
 })

@@ -28,6 +28,7 @@ import {
   logging, PackageDownloader, Zippy
 } from '../../../src/core/index.mjs'
 import { getK8Instance } from '../../test_util.js'
+import { SECONDS } from '../../../src/core/constants.mjs'
 
 const testLogger = logging.NewLogger('debug', true)
 describe('InitCommand', () => {
@@ -56,7 +57,7 @@ describe('InitCommand', () => {
   describe('commands', () => {
     it('init execution should succeed', async () => {
       await expect(initCmd.init({})).to.eventually.equal(true)
-    }).timeout(20_000)
+    }).timeout(20 * SECONDS)
   })
 
   describe('static', () => {

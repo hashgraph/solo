@@ -19,33 +19,6 @@ import chai from 'chai'
 import chaiAsPromised from 'chai-as-promised'
 
 // eslint-disable-next-line no-unused-vars
-const expect = chai.expect
 chai.use(chaiAsPromised)
 
-global.expect = expect
-
-//* Implement the methods since they are not build into mocha
-
-/**
- * @param {Array} cases - The array of test cases
- * @param {string} name - The description of the test suite
- * @param {Function} callback - The test function
- */
-global.describe.each = (cases, name, callback) => {
-  describe(name, () => {
-    cases.forEach((input) => {
-      describe(`when osPlatform is ${input.osPlatform}`, () => callback(input))
-    })
-  })
-}
-
-/**
- * @param {Array} cases - The array of test cases
- * @param {string} description - The description of the test
- * @param {Function} callback - The test function
- */
-global.it.each = (cases, description, callback) => {
-  cases.forEach((input) => {
-    it(`${description} - ${JSON.stringify(input)}`, () => callback(input))
-  })
-}
+global.expect = chai.expect

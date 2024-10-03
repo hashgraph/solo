@@ -18,6 +18,7 @@
 import { flags } from '../../../src/commands/index.mjs'
 import { bootstrapNetwork, getDefaultArgv, TEST_CLUSTER } from '../../test_util.js'
 import { getNodeLogs } from '../../../src/core/helpers.mjs'
+import { MINUTES } from '../../../src/core/constants.mjs'
 
 describe('Node local build', () => {
   const LOCAL_PTT = 'local-ptt-app'
@@ -27,12 +28,12 @@ describe('Node local build', () => {
   argv[flags.generateTlsKeys.name] = true
   argv[flags.clusterName.name] = TEST_CLUSTER
   // set the env variable SOLO_FST_CHARTS_DIR if developer wants to use local FST charts
-  argv[flags.chartDirectory.name] = process.env.SOLO_FST_CHARTS_DIR ? process.env.SOLO_FST_CHARTS_DIR : undefined
+  argv[flags.chartDirectory.name] = process.env.SOLO_FST_CHARTS_DIR ?? undefined
   argv[flags.quiet.name] = true
 
-  let pttK8
+  /** @type {K8} */ let pttK8
   after(async function () {
-    this.timeout(120_000)
+    this.timeout(2 * MINUTES)
 
     await getNodeLogs(pttK8, LOCAL_PTT)
     await pttK8.deleteNamespace(LOCAL_PTT)

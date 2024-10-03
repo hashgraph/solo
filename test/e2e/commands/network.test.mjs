@@ -29,6 +29,7 @@ import { getNodeLogs, sleep } from '../../../src/core/helpers.mjs'
 import path from 'path'
 import fs from 'fs'
 import { NetworkCommand } from '../../../src/commands/network.mjs'
+import { MINUTES, SECONDS } from "../../../src/core/constants.mjs";
 
 describe('NetworkCommand', () => {
   const testName = 'network-cmd-e2e'
@@ -36,6 +37,7 @@ describe('NetworkCommand', () => {
   const applicationEnvFileContents = '# row 1\n# row 2\n# row 3'
   const applicationEnvParentDirectory = path.join(getTmpDir(), 'network-command-test')
   const applicationEnvFilePath = path.join(applicationEnvParentDirectory, 'application.env')
+
   const argv = getDefaultArgv()
   argv[flags.namespace.name] = namespace
   argv[flags.releaseTag.name] = HEDERA_PLATFORM_VERSION_TAG
@@ -47,7 +49,7 @@ describe('NetworkCommand', () => {
   argv[flags.force.name] = true
   argv[flags.applicationEnv.name] = applicationEnvFilePath
   // set the env variable SOLO_FST_CHARTS_DIR if developer wants to use local FST charts
-  argv[flags.chartDirectory.name] = process.env.SOLO_FST_CHARTS_DIR ? process.env.SOLO_FST_CHARTS_DIR : undefined
+  argv[flags.chartDirectory.name] = process.env.SOLO_FST_CHARTS_DIR ?? undefined
   argv[flags.quiet.name] = true
 
   const bootstrapResp = bootstrapTestVariables(testName, argv)
@@ -61,7 +63,8 @@ describe('NetworkCommand', () => {
   const nodeCmd = bootstrapResp.cmd.nodeCmd
 
   after(async function () {
-    this.timeout(180_000)
+    this.timeout(3 * MINUTES)
+
     await getNodeLogs(k8, namespace)
     await k8.deleteNamespace(namespace)
     await accountManager.close()
@@ -105,7 +108,7 @@ describe('NetworkCommand', () => {
       networkCmd.logger.showUserError(e)
       expect(e).to.be.null
     }
-  }).timeout(240_000)
+  }).timeout(4 * MINUTES)
 
   it('application env file contents should be in cached values file', async () => {
     const valuesYaml = fs.readFileSync(networkCmd.profileValuesFile).toString()
@@ -126,12 +129,12 @@ describe('NetworkCommand', () => {
 
       while ((await k8.getPodsByLabel(['fullstack.hedera.com/type=network-node'])).length > 0) {
         networkCmd.logger.debug('Pods are still running. Waiting...')
-        await sleep(3_000)
+        await sleep(3 * SECONDS)
       }
 
       while ((await k8.getPodsByLabel(['app=minio'])).length > 0) {
         networkCmd.logger.showUser('Waiting for minio container to be deleted...')
-        await sleep(3_000)
+        await sleep(3 * SECONDS)
       }
 
       // check if chart is uninstalled
@@ -147,5 +150,5 @@ describe('NetworkCommand', () => {
       networkCmd.logger.showUserError(e)
       expect(e).to.be.null
     }
-  }).timeout(120_000)
+  }).timeout(2 * MINUTES)
 })

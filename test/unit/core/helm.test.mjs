@@ -14,7 +14,6 @@
  * limitations under the License.
  *
  */
-'use strict'
 import sinon from 'sinon'
 
 import { constants, Helm, logging, Templates } from '../../../src/core/index.mjs'
@@ -37,32 +36,32 @@ import { ShellRunner } from '../../../src/core/shell_runner.mjs'
 
     it('should run helm install', async () => {
       await helm.install('arg')
-      sinon.assert.calledWith(shellStub, `${helmPath} install arg`)
+      expect(shellStub).to.have.been.calledWith(`${helmPath} install arg`)
     })
 
     it('should run helm uninstall', async () => {
       await helm.uninstall('arg')
-      sinon.assert.calledWith(shellStub, `${helmPath} uninstall arg`)
+      expect(shellStub).to.have.been.calledWith(`${helmPath} uninstall arg`)
     })
 
     it('should run helm upgrade', async () => {
       await helm.upgrade('release', 'chart')
-      sinon.assert.calledWith(shellStub, `${helmPath} upgrade release chart`)
+      expect(shellStub).to.have.been.calledWith(`${helmPath} upgrade release chart`)
     })
 
     it('should run helm list', async () => {
       await helm.list()
-      sinon.assert.calledWith(shellStub, `${helmPath} list`)
+      expect(shellStub).to.have.been.calledWith(`${helmPath} list`)
     })
 
     it('should run helm dependency', async () => {
       await helm.dependency('update', 'chart')
-      sinon.assert.calledWith(shellStub, `${helmPath} dependency update chart`)
+      expect(shellStub).to.have.been.calledWith(`${helmPath} dependency update chart`)
     })
 
     it('should run helm repo', async () => {
       await helm.repo('add', 'name', 'url')
-      sinon.assert.calledWith(shellStub, `${helmPath} repo add name url`)
+      expect(shellStub).to.have.been.calledWith(`${helmPath} repo add name url`)
     })
   })
 })

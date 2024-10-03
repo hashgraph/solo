@@ -17,6 +17,7 @@
 import { flags } from '../../../src/commands/index.mjs'
 import { bootstrapNetwork, getDefaultArgv, TEST_CLUSTER } from '../../test_util.js'
 import * as version from '../../../version.mjs'
+import { MINUTES } from '../../../src/core/constants.mjs'
 
 describe('AccountManager', () => {
   const namespace = 'account-mngr-e2e'
@@ -28,14 +29,14 @@ describe('AccountManager', () => {
   argv[flags.generateGossipKeys.name] = true
   argv[flags.generateTlsKeys.name] = true
   // set the env variable SOLO_FST_CHARTS_DIR if developer wants to use local FST charts
-  argv[flags.chartDirectory.name] = process.env.SOLO_FST_CHARTS_DIR ? process.env.SOLO_FST_CHARTS_DIR : undefined
+  argv[flags.chartDirectory.name] = process.env.SOLO_FST_CHARTS_DIR ?? undefined
   const bootstrapResp = bootstrapNetwork(namespace, argv, undefined, undefined, undefined, undefined, undefined, undefined, false)
   const k8 = bootstrapResp.opts.k8
   const accountManager = bootstrapResp.opts.accountManager
   const configManager = bootstrapResp.opts.configManager
 
   after(async function () {
-    this.timeout(180_000)
+    this.timeout(3 * MINUTES)
 
     await k8.deleteNamespace(namespace)
     await accountManager.close()

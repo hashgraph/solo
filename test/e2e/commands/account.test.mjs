@@ -15,7 +15,6 @@
  *
  * @mocha-environment steps
  */
-
 import { AccountId, PrivateKey } from '@hashgraph/sdk'
 import { constants } from '../../../src/core/index.mjs'
 import * as version from '../../../version.mjs'
@@ -29,11 +28,13 @@ import {
 import { AccountCommand } from '../../../src/commands/account.mjs'
 import { flags } from '../../../src/commands/index.mjs'
 import { getNodeLogs } from '../../../src/core/helpers.mjs'
+import { MINUTES, SECONDS } from '../../../src/core/constants.mjs';
+
+const defaultTimeout = 20 * SECONDS
 
 describe('AccountCommand', () => {
   const testName = 'account-cmd-e2e'
   const namespace = testName
-  const defaultTimeout = 20000
   const testSystemAccounts = [[3, 5]]
   const argv = getDefaultArgv()
   argv[flags.namespace.name] = namespace
@@ -44,7 +45,7 @@ describe('AccountCommand', () => {
   argv[flags.clusterName.name] = TEST_CLUSTER
   argv[flags.fstChartVersion.name] = version.FST_CHART_VERSION
   // set the env variable SOLO_FST_CHARTS_DIR if developer wants to use local FST charts
-  argv[flags.chartDirectory.name] = process.env.SOLO_FST_CHARTS_DIR ? process.env.SOLO_FST_CHARTS_DIR : undefined
+  argv[flags.chartDirectory.name] = process.env.SOLO_FST_CHARTS_DIR ?? undefined
   const bootstrapResp = bootstrapNetwork(testName, argv)
   const accountCmd = new AccountCommand(bootstrapResp.opts, testSystemAccounts)
   bootstrapResp.cmd.accountCmd = accountCmd
@@ -54,7 +55,7 @@ describe('AccountCommand', () => {
   const nodeCmd = bootstrapResp.cmd.nodeCmd
 
   after(async function () {
-    this.timeout(180_000)
+    this.timeout(3 * MINUTES)
 
     await getNodeLogs(k8, namespace)
     await k8.deleteNamespace(namespace)
@@ -67,8 +68,8 @@ describe('AccountCommand', () => {
       it(`proxy should be UP: ${nodeId} `, async () => {
         await k8.waitForPodReady(
           [`app=haproxy-${nodeId}`, 'fullstack.hedera.com/type=haproxy'],
-          1, 300, 2000)
-      }).timeout(30_000)
+          1, 300, 2 * SECONDS)
+      }).timeout(30 * SECONDS)
     }
   })
 
@@ -76,7 +77,7 @@ describe('AccountCommand', () => {
     it('should succeed with init command', async () => {
       const status = await accountCmd.init(argv)
       expect(status).to.be.ok
-    }).timeout(180_000)
+    }).timeout(3 * MINUTES)
 
     describe('special accounts should have new keys', () => {
       const genesisKey = PrivateKey.fromStringED25519(constants.GENESIS_KEY)
@@ -84,12 +85,12 @@ describe('AccountCommand', () => {
       const shard = constants.HEDERA_NODE_ACCOUNT_ID_START.shard
 
       before(async function () {
-        this.timeout(20_000)
+        this.timeout(20 * SECONDS)
         await accountManager.loadNodeClient(namespace)
       })
 
       after(async function () {
-        this.timeout(20_000)
+        this.timeout(20 * SECONDS)
         await accountManager.close()
       })
 
@@ -97,13 +98,15 @@ describe('AccountCommand', () => {
         for (let i = start; i <= end; i++) {
           it(`account ${i} should not have genesis key`, async () => {
             expect(accountManager._nodeClient).not.to.be.null
+
             const accountId = `${realm}.${shard}.${i}`
             nodeCmd.logger.info(`Fetching account keys: accountId ${accountId}`)
             const keys = await accountManager.getAccountKeys(accountId)
             nodeCmd.logger.info(`Fetched account keys: accountId ${accountId}`)
+
             expect(keys.length).not.to.equal(0)
             expect(keys[0].toString()).not.to.equal(genesisKey.toString())
-          }).timeout(20_000)
+          }).timeout(20 * SECONDS)
         }
       }
     })
@@ -117,9 +120,12 @@ describe('AccountCommand', () => {
         argv[flags.amount.name] = 200
         await expect(accountCmd.create(argv)).to.eventually.be.ok
         const accountInfo = accountCmd.accountInfo
+
         expect(accountInfo).not.to.be.null
         expect(accountInfo.accountId).not.to.be.null
+
         accountId1 = accountInfo.accountId
+
         expect(accountInfo.privateKey).not.to.be.null
         expect(accountInfo.publicKey).not.to.be.null
         expect(accountInfo.balance).to.equal(configManager.getFlag(flags.amount))
@@ -127,7 +133,7 @@ describe('AccountCommand', () => {
         testLogger.showUserError(e)
         expect(e).to.be.null
       }
-    }).timeout(40_000)
+    }).timeout(40 * SECONDS)
 
     it('should create account with private key and hbar amount options', async () => {
       try {
@@ -139,7 +145,7 @@ describe('AccountCommand', () => {
 
         const accountInfo = accountCmd.accountInfo
         expect(accountInfo).not.to.be.null
-        expect(accountInfo.accountId).not.to.be.null)
+        expect(accountInfo.accountId).not.to.be.null
         accountId2 = accountInfo.accountId
         expect(accountInfo.privateKey.toString()).to.equal(constants.GENESIS_KEY)
         expect(accountInfo.publicKey).not.to.be.null
@@ -184,7 +190,7 @@ describe('AccountCommand', () => {
         expect(accountInfo.accountId).to.equal(argv[flags.accountId.name])
         expect(accountInfo.privateKey).to.be.undefined
         expect(accountInfo.publicKey).not.to.be.null
-        expect(accountInfo.balance).to.equal(1110)
+        expect(accountInfo.balance).to.equal(1_110)
       } catch (e) {
         testLogger.showUserError(e)
         expect(e).to.be.null
@@ -220,7 +226,7 @@ describe('AccountCommand', () => {
         expect(accountInfo.accountId).to.equal(argv[flags.accountId.name])
         expect(accountInfo.privateKey).to.be.undefined
         expect(accountInfo.publicKey).to.be.ok
-        expect(accountInfo.balance).to.equal(1110)
+        expect(accountInfo.balance).to.equal(1_110)
       } catch (e) {
         testLogger.showUserError(e)
         expect(e).to.be.null

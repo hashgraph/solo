@@ -30,10 +30,12 @@ import { MirrorNodeCommand } from '../../../src/commands/mirror_node.mjs'
 import * as core from '../../../src/core/index.mjs'
 import { Status, TopicCreateTransaction, TopicMessageSubmitTransaction } from '@hashgraph/sdk'
 import * as http from 'http'
+import { MINUTES, SECONDS } from '../../../src/core/constants.mjs'
 
 describe('MirrorNodeCommand', () => {
   const testName = 'mirror-cmd-e2e'
   const namespace = testName
+
   const argv = getDefaultArgv()
   argv[flags.namespace.name] = namespace
   argv[flags.releaseTag.name] = HEDERA_PLATFORM_VERSION_TAG
@@ -46,7 +48,7 @@ describe('MirrorNodeCommand', () => {
   argv[flags.force.name] = true
   argv[flags.relayReleaseTag.name] = flags.relayReleaseTag.definition.defaultValue
   // set the env variable SOLO_FST_CHARTS_DIR if developer wants to use local FST charts
-  argv[flags.chartDirectory.name] = process.env.SOLO_FST_CHARTS_DIR ? process.env.SOLO_FST_CHARTS_DIR : undefined
+  argv[flags.chartDirectory.name] = process.env.SOLO_FST_CHARTS_DIR ?? undefined
   argv[flags.quiet.name] = true
 
   const bootstrapResp = bootstrapNetwork(testName, argv)
@@ -64,7 +66,7 @@ describe('MirrorNodeCommand', () => {
   })
 
   after(async function () {
-    this.timeout(180_000)
+    this.timeout(3 * MINUTES)
 
     await getNodeLogs(k8, namespace)
     await k8.deleteNamespace(namespace)
@@ -94,7 +96,7 @@ describe('MirrorNodeCommand', () => {
       flags.quiet.constName,
       flags.tlsClusterIssuerType.constName
     ])
-  }).timeout(600_000)
+  }).timeout(10 * MINUTES)
 
   it('mirror node API should be running', async () => {
     await accountManager.loadNodeClient(namespace)
@@ -104,30 +106,30 @@ describe('MirrorNodeCommand', () => {
       const explorerPod = pods[0]
 
       portForwarder = await k8.portForward(explorerPod.metadata.name, 8_080, 8_080)
-      await sleep(2_000)
+      await sleep(2 * SECONDS)
 
       // check if mirror node api server is running
       const apiURL = 'http://127.0.0.1:8080/api/v1/transactions'
       await expect(downloader.urlExists(apiURL)).to.eventually.be.ok
-      await sleep(2_000)
+      await sleep(2 * SECONDS)
     } catch (e) {
       mirrorNodeCmd.logger.showUserError(e)
       expect(e).to.be.null
     }
-  }).timeout(60_000)
+  }).timeout(1 * MINUTES)
 
   it('Explorer GUI should be running', async () => {
     try {
       const guiURL = 'http://127.0.0.1:8080/localnet/dashboard'
       await expect(downloader.urlExists(guiURL)).to.eventually.be.ok
-      await sleep(2_000)
+      await sleep(2 * SECONDS)
 
       mirrorNodeCmd.logger.debug('mirror node API and explorer GUI are running')
     } catch (e) {
       mirrorNodeCmd.logger.showUserError(e)
       expect(e).to.be.null
     }
-  }).timeout(60_000)
+  }).timeout(1 * MINUTES)
 
   it('Create topic and submit message should success', async () => {
     try {
@@ -148,7 +150,7 @@ describe('MirrorNodeCommand', () => {
       mirrorNodeCmd.logger.showUserError(e)
       expect(e).to.be.null
     }
-  }).timeout(60_000)
+  }).timeout(1 * MINUTES)
 
   // trigger some extra transactions to trigger MirrorNode to fetch the transactions
   accountCreationShouldSucceed(accountManager, mirrorNodeCmd, namespace)
@@ -185,16 +187,16 @@ describe('MirrorNodeCommand', () => {
           mirrorNodeCmd.logger.debug(`problem with request: ${e.message}`)
         })
         req.end() // make the request
-        await sleep(2_000)
+        await sleep(2 * SECONDS)
       }
-      await sleep(1_000)
+      await sleep(SECONDS)
       expect(receivedMessage).to.equal(testMessage)
       await k8.stopPortForward(portForwarder)
     } catch (e) {
       mirrorNodeCmd.logger.showUserError(e)
       expect(e).to.be.null
     }
-  }).timeout(300_000)
+  }).timeout(5 * MINUTES)
 
   it('mirror node destroy should success', async () => {
     try {
@@ -203,7 +205,7 @@ describe('MirrorNodeCommand', () => {
       mirrorNodeCmd.logger.showUserError(e)
       expect(e).to.be.null
     }
-  }).timeout(60_000)
+  }).timeout(1 * MINUTES)
 
   it('should apply the mirror node version from the --mirror-node-version flag', async () => {
     const mirrorNodeVersion = '0.111.1'
@@ -212,7 +214,7 @@ describe('MirrorNodeCommand', () => {
     const valuesArg = await mirrorNodeCmd.prepareValuesArg(customArgv)
 
     expect(valuesArg).to.contain(`--set global.image.tag=${mirrorNodeVersion}`)
-  }).timeout(5_000)
+  }).timeout(5 * SECONDS)
 
   it('should not apply the mirror node version from the --mirror-node-version flag if left empty', async () => {
     const mirrorNodeVersion = ''
@@ -221,5 +223,5 @@ describe('MirrorNodeCommand', () => {
     const valuesArg = await mirrorNodeCmd.prepareValuesArg(customArgv)
 
     expect(valuesArg).not.to.contain('--set global.image.tag=')
-  }).timeout(5_000)
+  }).timeout(5 * SECONDS)
 })
