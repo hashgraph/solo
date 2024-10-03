@@ -41,6 +41,8 @@ export default [...compat.extends('standard'), {
     sourceType: 'module'
   },
   rules: {
+    'no-unused-expressions': 'error',
+    'no-unused-vars': 'error',
     'require-await': 'error',
     'no-template-curly-in-string': 'off',
     'headers/header-format': ['error', {
