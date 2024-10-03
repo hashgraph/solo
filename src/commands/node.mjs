@@ -30,7 +30,7 @@ import {
   sleep,
   validatePath
 } from '../core/helpers.mjs'
-import { constants, Templates, Zippy } from '../core/index.mjs'
+import { constants, Templates, YargsCommand } from '../core/index.mjs'
 import { BaseCommand } from './base.mjs'
 import * as flags from './flags.mjs'
 import * as prompts from './prompts.mjs'
@@ -39,14 +39,11 @@ import {
   AccountBalanceQuery,
   AccountId,
   AccountUpdateTransaction,
-  FileAppendTransaction,
-  FileUpdateTransaction,
-  FreezeTransaction,
-  FreezeType,
   PrivateKey,
   NodeCreateTransaction,
   NodeUpdateTransaction,
   NodeDeleteTransaction,
+  ServiceEndpoint,
   Timestamp
 } from '@hashgraph/sdk'
 import * as crypto from 'crypto'
@@ -58,6 +55,9 @@ import {
   LOCAL_HOST
 } from '../core/constants.mjs'
 import { NodeStatusCodes, NodeStatusEnums } from '../core/enumerations.mjs'
+import { NodeCommandTasks } from './node/tasks.mjs'
+import { downloadGeneratedFilesConfigBuilder, prepareUpgradeConfigBuilder } from './node/configs.mjs'
+import * as NodeFlags from './node/flags.mjs'
 
 /**
  * Defines the core functionalities of 'node' command
@@ -86,6 +86,13 @@ export class NodeCommand extends BaseCommand {
     this.keytoolDepManager = opts.keytoolDepManager
     this.profileManager = opts.profileManager
     this._portForwards = []
+
+    this.tasks = new NodeCommandTasks({
+      accountManager: opts.accountManager,
+      configManager: opts.configManager,
+      logger: opts.logger,
+      k8: opts.k8
+    })
   }
 
   /**
@@ -410,30 +417,6 @@ export class NodeCommand extends BaseCommand {
   }
 
   /**
-   * Check if the network node pod is running
-   * @param {string} namespace
-   * @param {NodeAlias} nodeAlias
-   * @param {number} [maxAttempts]
-   * @param {number} [delay]
-   * @returns {Promise<string>}
-   */
-  async checkNetworkNodePod (namespace, nodeAlias, maxAttempts = 60, delay = 2000) {
-    nodeAlias = nodeAlias.trim()
-    const podName = Templates.renderNetworkPodName(nodeAlias)
-
-    try {
-      await this.k8.waitForPods([constants.POD_PHASE_RUNNING], [
-        'fullstack.hedera.com/type=network-node',
-        `fullstack.hedera.com/node-name=${nodeAlias}`
-      ], 1, maxAttempts, delay)
-
-      return podName
-    } catch (e) {
-      throw new SoloError(`no pod found for nodeAlias: ${nodeAlias}`, e)
-    }
-  }
-
-  /**
    * @param {string} namespace
    * @param {NodeAlias} nodeAlias
    * @param {TaskWrapper} task
@@ -555,39 +538,6 @@ export class NodeCommand extends BaseCommand {
    * @param {NodeAliases} nodeAliases
    * @returns {*}
    */
-  taskCheckNetworkNodePods (ctx, task, nodeAliases) {
-    if (!ctx.config) {
-      ctx.config = {}
-    }
-
-    ctx.config.podNames = {}
-
-    const subTasks = []
-    for (const nodeAlias of nodeAliases) {
-      subTasks.push({
-        title: `Check network pod: ${chalk.yellow(nodeAlias)}`,
-        task: async (ctx) => {
-          ctx.config.podNames[nodeAlias] = await this.checkNetworkNodePod(ctx.config.namespace, nodeAlias)
-        }
-      })
-    }
-
-    // setup the sub-tasks
-    return task.newListr(subTasks, {
-      concurrent: true,
-      rendererOptions: {
-        collapseSubtasks: false
-      }
-    })
-  }
-
-  /**
-   * Return task for checking for all network node pods
-   * @param {any} ctx
-   * @param {TaskWrapper} task
-   * @param {NodeAliases} nodeAliases
-   * @returns {*}
-   */
   checkPodRunningTask (ctx, task, nodeAliases) {
     const subTasks = []
     for (const nodeAlias of nodeAliases) {
@@ -682,19 +632,6 @@ export class NodeCommand extends BaseCommand {
         collapseSubtasks: false
       }
     })
-  }
-
-  /**
-   * Transfer some hbar to the node for staking purpose
-   * @param {NodeAliases} existingNodeAliases
-   * @return {Promise<void>}
-   */
-  async checkStakingTask (existingNodeAliases) {
-    const accountMap = getNodeAccountMap(existingNodeAliases)
-    for (const nodeAlias of existingNodeAliases) {
-      const accountId = accountMap.get(nodeAlias)
-      await this.accountManager.transferAmount(constants.TREASURY_ACCOUNT_ID, accountId, 1)
-    }
   }
 
   /**
@@ -816,49 +753,6 @@ export class NodeCommand extends BaseCommand {
       const accountId = accountMap.get(nodeAlias)
       config.nodeClient.setOperator(TREASURY_ACCOUNT_ID, config.treasuryKey)
       await this.accountManager.transferAmount(constants.TREASURY_ACCOUNT_ID, accountId, 1)
-    }
-  }
-
-  /**
-   * Identify existing network nodes and check if they are running
-   * @param {any} ctx
-   * @param {TaskWrapper} task
-   * @param config
-   */
-  async identifyExistingNetworkNodes (ctx, task, config) {
-    config.existingNodeAliases = []
-    config.serviceMap = await this.accountManager.getNodeServiceMap(
-      config.namespace)
-    for (/** @type {NetworkNodeServices} **/ const networkNodeServices of config.serviceMap.values()) {
-      config.existingNodeAliases.push(networkNodeServices.nodeAlias)
-    }
-    config.allNodeAliases = [...config.existingNodeAliases]
-    return this.taskCheckNetworkNodePods(ctx, task, config.existingNodeAliases)
-  }
-
-  /**
-   * Download generated config files and key files from the network node
-   * @param config
-   */
-  async downloadNodeGeneratedFiles (config) {
-    const node1FullyQualifiedPodName = Templates.renderNetworkPodName(config.existingNodeAliases[0])
-
-    // copy the config.txt file from the node1 upgrade directory
-    await this.k8.copyFrom(node1FullyQualifiedPodName, constants.ROOT_CONTAINER, `${constants.HEDERA_HAPI_PATH}/data/upgrade/current/config.txt`, config.stagingDir)
-
-    // if directory data/upgrade/current/data/keys does not exist then use data/upgrade/current
-    let keyDir = `${constants.HEDERA_HAPI_PATH}/data/upgrade/current/data/keys`
-    if (!await this.k8.hasDir(node1FullyQualifiedPodName, constants.ROOT_CONTAINER, keyDir)) {
-      keyDir = `${constants.HEDERA_HAPI_PATH}/data/upgrade/current`
-    }
-    const signedKeyFiles = (await this.k8.listDir(node1FullyQualifiedPodName, constants.ROOT_CONTAINER, keyDir)).filter(file => file.name.startsWith(constants.SIGNING_KEY_PREFIX))
-    await this.k8.execContainer(node1FullyQualifiedPodName, constants.ROOT_CONTAINER, ['bash', '-c', `mkdir -p ${constants.HEDERA_HAPI_PATH}/data/keys_backup && cp -r ${keyDir} ${constants.HEDERA_HAPI_PATH}/data/keys_backup/`])
-    for (const signedKeyFile of signedKeyFiles) {
-      await this.k8.copyFrom(node1FullyQualifiedPodName, constants.ROOT_CONTAINER, `${keyDir}/${signedKeyFile.name}`, `${config.keysDir}`)
-    }
-
-    if (await this.k8.hasFile(node1FullyQualifiedPodName, constants.ROOT_CONTAINER, `${constants.HEDERA_HAPI_PATH}/data/upgrade/current/application.properties`)) {
-      await this.k8.copyFrom(node1FullyQualifiedPodName, constants.ROOT_CONTAINER, `${constants.HEDERA_HAPI_PATH}/data/upgrade/current/application.properties`, `${config.stagingDir}/templates`)
     }
   }
 
@@ -1000,76 +894,43 @@ export class NodeCommand extends BaseCommand {
     return (new Uint8Array(decodedDers[0]))
   }
 
-  async prepareUpgradeZip (stagingDir) {
-    // we build a mock upgrade.zip file as we really don't need to upgrade the network
-    // also the platform zip file is ~80Mb in size requiring a lot of transactions since the max
-    // transaction size is 6Kb and in practice we need to send the file as 4Kb chunks.
-    // Note however that in DAB phase-2, we won't need to trigger this fake upgrade process
-    const zipper = new Zippy(this.logger)
-    const upgradeConfigDir = path.join(stagingDir, 'mock-upgrade', 'data', 'config')
-    if (!fs.existsSync(upgradeConfigDir)) {
-      fs.mkdirSync(upgradeConfigDir, { recursive: true })
-    }
-
-    // bump field hedera.config.version
-    const fileBytes = fs.readFileSync(path.join(stagingDir, 'templates', 'application.properties'))
-    const lines = fileBytes.toString().split('\n')
-    const newLines = []
-    for (let line of lines) {
-      line = line.trim()
-      const parts = line.split('=')
-      if (parts.length === 2) {
-        if (parts[0] === 'hedera.config.version') {
-          let version = parseInt(parts[1])
-          line = `hedera.config.version=${++version}`
-        }
-        newLines.push(line)
-      }
-    }
-    fs.writeFileSync(path.join(upgradeConfigDir, 'application.properties'), newLines.join('\n'))
-
-    return await zipper.zip(path.join(stagingDir, 'mock-upgrade'), path.join(stagingDir, 'mock-upgrade.zip'))
-  }
-
   /**
-   * @param {string} upgradeZipFile
-   * @param nodeClient
-   * @returns {Promise<string>}
+   * @param {string} endpointType
+   * @param {string[]} endpoints
+   * @param {number} defaultPort
+   * @returns {ServiceEndpoint[]}
    */
-  async uploadUpgradeZip (upgradeZipFile, nodeClient) {
-    // get byte value of the zip file
-    const zipBytes = fs.readFileSync(upgradeZipFile)
-    const zipHash = crypto.createHash('sha384').update(zipBytes).digest('hex')
-    this.logger.debug(`loaded upgrade zip file [ zipHash = ${zipHash} zipBytes.length = ${zipBytes.length}, zipPath = ${upgradeZipFile}]`)
+  prepareEndpoints (endpointType, endpoints, defaultPort) {
+    const ret = /** @typedef ServiceEndpoint **/[]
+    for (const endpoint of endpoints) {
+      const parts = endpoint.split(':')
 
-    // create a file upload transaction to upload file to the network
-    try {
-      let start = 0
+      let url = ''
+      let port = defaultPort
 
-      while (start < zipBytes.length) {
-        const zipBytesChunk = new Uint8Array(zipBytes.subarray(start, constants.UPGRADE_FILE_CHUNK_SIZE))
-        let fileTransaction = null
-
-        if (start === 0) {
-          fileTransaction = new FileUpdateTransaction()
-            .setFileId(constants.UPGRADE_FILE_ID)
-            .setContents(zipBytesChunk)
-        } else {
-          fileTransaction = new FileAppendTransaction()
-            .setFileId(constants.UPGRADE_FILE_ID)
-            .setContents(zipBytesChunk)
-        }
-        const resp = await fileTransaction.execute(nodeClient)
-        const receipt = await resp.getReceipt(nodeClient)
-        this.logger.debug(`updated file ${constants.UPGRADE_FILE_ID} [chunkSize= ${zipBytesChunk.length}, txReceipt = ${receipt.toString()}]`)
-
-        start += constants.UPGRADE_FILE_CHUNK_SIZE
+      if (parts.length === 2) {
+        url = parts[0].trim()
+        port = parts[1].trim()
+      } else if (parts.length === 1) {
+        url = parts[0]
+      } else {
+        throw new SoloError(`incorrect endpoint format. expected url:port, found ${endpoint}`)
       }
 
-      return zipHash
-    } catch (e) {
-      throw new SoloError(`failed to upload build.zip file: ${e.message}`, e)
+      if (endpointType.toUpperCase() === constants.ENDPOINT_TYPE_IP) {
+        ret.push(new ServiceEndpoint({
+          port,
+          ipAddressV4: helpers.parseIpAddressToUint8Array(url)
+        }))
+      } else {
+        ret.push(new ServiceEndpoint({
+          port,
+          domainName: url
+        }))
+      }
     }
+
+    return ret
   }
 
   // List of Commands
@@ -1135,10 +996,7 @@ export class NodeCommand extends BaseCommand {
           self.logger.debug('Initialized config', { config })
         }
       },
-      {
-        title: 'Identify network pods',
-        task: (ctx, task) => self.taskCheckNetworkNodePods(ctx, task, ctx.config.nodeAliases)
-      },
+      this.tasks.identifyNetworkPods(),
       {
         title: 'Fetch platform software into network nodes',
         task:
@@ -1203,13 +1061,7 @@ export class NodeCommand extends BaseCommand {
           }
         }
       },
-      {
-        title: 'Identify existing network nodes',
-        task: async (ctx, task) => {
-          const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
-          return this.identifyExistingNetworkNodes(ctx, task, config)
-        }
-      },
+      this.tasks.identifyExistingNodes(),
       {
         title: 'Starting nodes',
         task: (ctx, task) => {
@@ -1304,10 +1156,7 @@ export class NodeCommand extends BaseCommand {
           }
         }
       },
-      {
-        title: 'Identify network pods',
-        task: (ctx, task) => self.taskCheckNetworkNodePods(ctx, task, ctx.config.nodeAliases)
-      },
+      this.tasks.identifyNetworkPods(),
       {
         title: 'Stopping nodes',
         task: (ctx, task) => {
@@ -1510,10 +1359,7 @@ export class NodeCommand extends BaseCommand {
           self.logger.debug('Initialized config', ctx.config)
         }
       },
-      {
-        title: 'Identify network pods',
-        task: (ctx, task) => self.taskCheckNetworkNodePods(ctx, task, ctx.config.nodeAliases)
-      },
+      this.tasks.identifyNetworkPods(),
       {
         title: 'Dump network nodes saved state',
         task:
@@ -1752,16 +1598,6 @@ export class NodeCommand extends BaseCommand {
     }
   }
 
-  getIdentifyExistingNetworkNodesTask (argv) {
-    return {
-      title: 'Identify existing network nodes',
-      task: async (ctx, task) => {
-        const config = /** @type {NodeAddConfigClass} **/ ctx.config
-        return this.identifyExistingNetworkNodes(ctx, task, config)
-      }
-    }
-  }
-
   getAddPrepareTasks (argv) {
     const self = this
 
@@ -1775,7 +1611,7 @@ export class NodeCommand extends BaseCommand {
           }
         }
       },
-      self.getIdentifyExistingNetworkNodesTask(argv),
+      this.tasks.identifyExistingNodes(),
       {
         title: 'Determine new node account number',
         task: (ctx) => {
@@ -1904,21 +1740,8 @@ export class NodeCommand extends BaseCommand {
           ctx.grpcServiceEndpoints = helpers.prepareEndpoints(config.endpointType, endpoints, constants.HEDERA_NODE_EXTERNAL_GOSSIP_PORT)
         }
       },
-      {
-        title: 'Prepare upgrade zip file for node upgrade process',
-        task: async (ctx) => {
-          const config = /** @type {NodeAddConfigClass} **/ ctx.config
-          ctx.upgradeZipFile = await this.prepareUpgradeZip(config.stagingDir)
-          ctx.upgradeZipHash = await this.uploadUpgradeZip(ctx.upgradeZipFile, config.nodeClient)
-        }
-      },
-      {
-        title: 'Check existing nodes staked amount',
-        task: async (ctx) => {
-          const config = /** @type {NodeAddConfigClass} **/ ctx.config
-          await this.checkStakingTask(config.existingNodeAliases)
-        }
-      }
+      this.tasks.prepareUpgradeZip(),
+      this.tasks.checkExistingNodesStakedAmount()
     ]
   }
 
@@ -1980,21 +1803,8 @@ export class NodeCommand extends BaseCommand {
           }
         }
       },
-      {
-        title: 'Send prepare upgrade transaction',
-        task: async (ctx) => {
-          const config = /** @type {NodeAddConfigClass} **/ ctx.config
-          await this.prepareUpgradeNetworkNodes(config.freezeAdminPrivateKey, ctx.upgradeZipHash, config.nodeClient)
-        }
-      },
-      {
-        title: 'Send freeze upgrade transaction',
-        task: async (ctx) => {
-          const config = /** @type {NodeAddConfigClass} **/ ctx.config
-          await this.freezeUpgradeNetworkNodes(config.freezeAdminPrivateKey, ctx.upgradeZipHash, config.nodeClient)
-        }
-      }
-
+      this.tasks.sendPrepareUpgradeTransaction(),
+      this.tasks.sendFreezeUpgradeTransaction()
     ]
   }
 
@@ -2002,13 +1812,7 @@ export class NodeCommand extends BaseCommand {
     const self = this
 
     return [
-      {
-        title: 'Download generated files from an existing node',
-        task: async (ctx) => {
-          const config = /** @type {NodeAddConfigClass} **/ ctx.config
-          await this.downloadNodeGeneratedFiles(config)
-        }
-      },
+      this.tasks.downloadNodeGeneratedFiles(),
       {
         title: 'Prepare staging directory',
         task: async (ctx, parentTask) => {
@@ -2210,7 +2014,7 @@ export class NodeCommand extends BaseCommand {
     const executeTasks = this.getAddExecuteTasks(argv)
     const tasks = new Listr([
       self.addInitializeTask(argv),
-      self.getIdentifyExistingNetworkNodesTask(argv),
+      this.tasks.identifyExistingNodes(),
       self.loadContextDataTask(argv, NodeCommand.ADD_CONTEXT_FILE, helpers.addLoadContextParser),
       ...executeTasks
     ], {
@@ -2261,75 +2065,46 @@ export class NodeCommand extends BaseCommand {
     return true
   }
 
-  /**
-   * @param {PrivateKey|string} freezeAdminPrivateKey
-   * @param {Uint8Array|string} upgradeZipHash
-   * @param {NodeClient} client
-   * @returns {Promise<void>}
-   */
-  async prepareUpgradeNetworkNodes (freezeAdminPrivateKey, upgradeZipHash, client) {
-    try {
-      // transfer some tiny amount to the freeze admin account
-      await this.accountManager.transferAmount(constants.TREASURY_ACCOUNT_ID, FREEZE_ADMIN_ACCOUNT, 100000)
+  async prepareUpgrade (argv) {
+    argv = helpers.addFlagsToArgv(argv, NodeFlags.DEFAULT_FLAGS)
+    const action = helpers.commandActionBuilder([
+      this.tasks.initialize(argv, prepareUpgradeConfigBuilder.bind(this)),
+      this.tasks.prepareUpgradeZip(),
+      this.tasks.sendPrepareUpgradeTransaction()
+    ], {
+      concurrent: false,
+      rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
+    }, 'Error in preparing node upgrade')
 
-      // query the balance
-      const balance = await new AccountBalanceQuery()
-        .setAccountId(FREEZE_ADMIN_ACCOUNT)
-        .execute(this.accountManager._nodeClient)
-      this.logger.debug(`Freeze admin account balance: ${balance.hbars}`)
-
-      // set operator of freeze transaction as freeze admin account
-      client.setOperator(FREEZE_ADMIN_ACCOUNT, freezeAdminPrivateKey)
-
-      const prepareUpgradeTx = await new FreezeTransaction()
-        .setFreezeType(FreezeType.PrepareUpgrade)
-        .setFileId(constants.UPGRADE_FILE_ID)
-        .setFileHash(upgradeZipHash)
-        .freezeWith(client)
-        .execute(client)
-
-      const prepareUpgradeReceipt = await prepareUpgradeTx.getReceipt(client)
-
-      this.logger.debug(
-          `sent prepare upgrade transaction [id: ${prepareUpgradeTx.transactionId.toString()}]`,
-          prepareUpgradeReceipt.status.toString()
-      )
-    } catch (e) {
-      this.logger.error(`Error in prepare upgrade: ${e.message}`, e)
-      throw new SoloError(`Error in prepare upgrade: ${e.message}`, e)
-    }
+    await action(argv, this)
   }
 
-  /**
-   * @param {PrivateKey|string} freezeAdminPrivateKey
-   * @param {Uint8Array|string} upgradeZipHash
-   * @param {NodeClient} client
-   * @returns {Promise<void>}
-   */
-  async freezeUpgradeNetworkNodes (freezeAdminPrivateKey, upgradeZipHash, client) {
-    try {
-      const futureDate = new Date()
-      this.logger.debug(`Current time: ${futureDate}`)
+  async freezeUpgrade (argv) {
+    argv = helpers.addFlagsToArgv(argv, NodeFlags.DEFAULT_FLAGS)
+    const action = helpers.commandActionBuilder([
+      this.tasks.initialize(argv, prepareUpgradeConfigBuilder.bind(this)),
+      this.tasks.prepareUpgradeZip(),
+      this.tasks.sendFreezeUpgradeTransaction()
+    ], {
+      concurrent: false,
+      rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
+    }, 'Error in executing node freeze upgrade')
 
-      futureDate.setTime(futureDate.getTime() + 5000) // 5 seconds in the future
-      this.logger.debug(`Freeze time: ${futureDate}`)
+    await action(argv, this)
+  }
 
-      client.setOperator(FREEZE_ADMIN_ACCOUNT, freezeAdminPrivateKey)
-      const freezeUpgradeTx = await new FreezeTransaction()
-        .setFreezeType(FreezeType.FreezeUpgrade)
-        .setStartTimestamp(Timestamp.fromDate(futureDate))
-        .setFileId(constants.UPGRADE_FILE_ID)
-        .setFileHash(upgradeZipHash)
-        .freezeWith(client)
-        .execute(client)
+  async downloadGeneratedFiles (argv) {
+    argv = helpers.addFlagsToArgv(argv, NodeFlags.DEFAULT_FLAGS)
+    const action = helpers.commandActionBuilder([
+      this.tasks.initialize(argv, downloadGeneratedFilesConfigBuilder.bind(this)),
+      this.tasks.identifyExistingNodes(),
+      this.tasks.downloadNodeGeneratedFiles()
+    ], {
+      concurrent: false,
+      rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
+    }, 'Error in downloading generated files')
 
-      const freezeUpgradeReceipt = await freezeUpgradeTx.getReceipt(client)
-      this.logger.debug(`Upgrade frozen with transaction id: ${freezeUpgradeTx.transactionId.toString()}`,
-        freezeUpgradeReceipt.status.toString())
-    } catch (e) {
-      this.logger.error(`Error in freeze upgrade: ${e.message}`, e)
-      throw new SoloError(`Error in freeze upgrade: ${e.message}`, e)
-    }
+    await action(argv, this)
   }
 
   /**
@@ -2362,13 +2137,10 @@ export class NodeCommand extends BaseCommand {
   // Command Definition
   /**
    * Return Yargs command definition for 'node' command
-   * @param {NodeCommand} nodeCmd - an instance of NodeCommand
    * @returns {{command: string, desc: string, builder: Function}}
    */
-  static getCommandDefinition (nodeCmd) {
-    if (!nodeCmd || !(nodeCmd instanceof NodeCommand)) {
-      throw new IllegalArgumentError('An instance of NodeCommand is required', nodeCmd)
-    }
+  getCommandDefinition () {
+    const nodeCmd = this
     return {
       command: 'node',
       desc: 'Manage Hedera platform node in solo network',
@@ -2631,6 +2403,24 @@ export class NodeCommand extends BaseCommand {
               })
             }
           })
+          .command(new YargsCommand({
+            command: 'prepare-upgrade',
+            description: 'Prepare the network for a Freeze Upgrade operation',
+            commandDef: nodeCmd,
+            handler: 'prepareUpgrade'
+          }, NodeFlags.DEFAULT_FLAGS))
+          .command(new YargsCommand({
+            command: 'freeze-upgrade',
+            description: 'Performs a Freeze Upgrade operation with on the network after it has been prepared with prepare-upgrade',
+            commandDef: nodeCmd,
+            handler: 'freezeUpgrade'
+          }, NodeFlags.DEFAULT_FLAGS))
+          .command(new YargsCommand({
+            command: 'download-generated-files',
+            description: 'Downloads the generated files from an existing node',
+            commandDef: nodeCmd,
+            handler: 'downloadGeneratedFiles'
+          }, NodeFlags.DEFAULT_FLAGS))
           .demandCommand(1, 'Select a node command')
       }
     }
@@ -2749,13 +2539,7 @@ export class NodeCommand extends BaseCommand {
           self.logger.debug('Initialized config', { config })
         }
       },
-      {
-        title: 'Identify existing network nodes',
-        task: async (ctx, task) => {
-          const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
-          return this.identifyExistingNetworkNodes(ctx, task, config)
-        }
-      },
+      this.tasks.identifyExistingNodes(),
       {
         title: 'Prepare gossip endpoints',
         task: (ctx) => {
@@ -2798,28 +2582,9 @@ export class NodeCommand extends BaseCommand {
           ctx.grpcServiceEndpoints = helpers.prepareEndpoints(config.endpointType, endpoints, constants.HEDERA_NODE_EXTERNAL_GOSSIP_PORT)
         }
       },
-      {
-        title: 'Load node admin key',
-        task: async (ctx) => {
-          const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
-          config.adminKey = PrivateKey.fromStringED25519(constants.GENESIS_KEY)
-        }
-      },
-      {
-        title: 'Prepare upgrade zip file for node upgrade process',
-        task: async (ctx) => {
-          const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
-          ctx.upgradeZipFile = await this.prepareUpgradeZip(config.stagingDir)
-          ctx.upgradeZipHash = await this.uploadUpgradeZip(ctx.upgradeZipFile, config.nodeClient)
-        }
-      },
-      {
-        title: 'Check existing nodes staked amount',
-        task: async (ctx) => {
-          const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
-          await this.checkStakingTask(config.existingNodeAliases)
-        }
-      },
+      this.tasks.loadAdminKey(),
+      this.tasks.prepareUpgradeZip(),
+      this.tasks.checkExistingNodesStakedAmount(),
       {
         title: 'Send node update transaction',
         task: async (ctx) => {
@@ -2882,27 +2647,9 @@ export class NodeCommand extends BaseCommand {
           }
         }
       },
-      {
-        title: 'Send prepare upgrade transaction',
-        task: async (ctx) => {
-          const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
-          await this.prepareUpgradeNetworkNodes(config.freezeAdminPrivateKey, ctx.upgradeZipHash, config.nodeClient)
-        }
-      },
-      {
-        title: 'Download generated files from an existing node',
-        task: async (ctx) => {
-          const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
-          await this.downloadNodeGeneratedFiles(config)
-        }
-      },
-      {
-        title: 'Send freeze upgrade transaction',
-        task: async (ctx) => {
-          const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
-          await this.freezeUpgradeNetworkNodes(config.freezeAdminPrivateKey, ctx.upgradeZipHash, config.nodeClient)
-        }
-      },
+      this.tasks.sendPrepareUpgradeTransaction(),
+      this.tasks.downloadNodeGeneratedFiles(),
+      this.tasks.sendFreezeUpgradeTransaction(),
       {
         title: 'Prepare staging directory',
         task: async (ctx, parentTask) => {
@@ -3145,35 +2892,10 @@ export class NodeCommand extends BaseCommand {
   deletePrepareTasks (argv) {
     return [
       this.deleteInitializeTask(argv),
-      {
-        title: 'Identify existing network nodes',
-        task: async (ctx, task) => {
-          const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
-          return this.identifyExistingNetworkNodes(ctx, task, config)
-        }
-      },
-      {
-        title: 'Load node admin key',
-        task: async (ctx) => {
-          const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
-          config.adminKey = PrivateKey.fromStringED25519(constants.GENESIS_KEY)
-        }
-      },
-      {
-        title: 'Prepare upgrade zip file for node upgrade process',
-        task: async (ctx) => {
-          const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
-          ctx.upgradeZipFile = await this.prepareUpgradeZip(config.stagingDir)
-          ctx.upgradeZipHash = await this.uploadUpgradeZip(ctx.upgradeZipFile, config.nodeClient)
-        }
-      },
-      {
-        title: 'Check existing nodes staked amount',
-        task: async (ctx) => {
-          const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
-          await this.checkStakingTask(config.existingNodeAliases)
-        }
-      }
+      this.tasks.identifyExistingNodes(),
+      this.tasks.loadAdminKey(),
+      this.tasks.prepareUpgradeZip(),
+      this.tasks.checkExistingNodesStakedAmount()
     ]
   }
 
@@ -3181,13 +2903,7 @@ export class NodeCommand extends BaseCommand {
     const self = this
 
     return [
-      {
-        title: 'Download generated files from an existing node',
-        task: async (ctx) => {
-          const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
-          await this.downloadNodeGeneratedFiles(config)
-        }
-      },
+      this.tasks.downloadNodeGeneratedFiles(),
       {
         title: 'Prepare staging directory',
         task: async (ctx, parentTask) => {
@@ -3306,6 +3022,7 @@ export class NodeCommand extends BaseCommand {
 
   deleteSubmitTransactionsTasks (argv) {
     return [
+
       {
         title: 'Send node delete transaction',
         task: async (ctx, task) => {
@@ -3330,20 +3047,8 @@ export class NodeCommand extends BaseCommand {
           }
         }
       },
-      {
-        title: 'Send prepare upgrade transaction',
-        task: async (ctx, task) => {
-          const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
-          await this.prepareUpgradeNetworkNodes(config.freezeAdminPrivateKey, ctx.upgradeZipHash, config.nodeClient)
-        }
-      },
-      {
-        title: 'Send freeze upgrade transaction',
-        task: async (ctx, task) => {
-          const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
-          await this.freezeUpgradeNetworkNodes(config.freezeAdminPrivateKey, ctx.upgradeZipHash, config.nodeClient)
-        }
-      }
+      this.tasks.sendPrepareUpgradeTransaction(),
+      this.tasks.sendFreezeUpgradeTransaction()
     ]
   }
 

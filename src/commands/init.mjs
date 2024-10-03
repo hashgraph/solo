@@ -144,13 +144,10 @@ export class InitCommand extends BaseCommand {
 
   /**
    * Return Yargs command definition for 'init' command
-   * @param {InitCommand} initCmd - an instance of InitCommand
    * @returns A object representing the Yargs command definition
    */
-  static getCommandDefinition (initCmd) {
-    if (!initCmd || !(initCmd instanceof InitCommand)) {
-      throw new IllegalArgumentError('Invalid InitCommand')
-    }
+  getCommandDefinition () {
+    const initCmd = this
     return {
       command: 'init',
       desc: 'Initialize local environment and default flags',
