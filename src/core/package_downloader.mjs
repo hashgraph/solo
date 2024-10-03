@@ -63,7 +63,7 @@ export class PackageDownloader {
   urlExists (url) {
     const self = this
 
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
       try {
         self.logger.debug(`Checking URL: ${url}`)
         let req
@@ -147,7 +147,7 @@ export class PackageDownloader {
    * Compute hash of the file contents
    * @param {string} filePath - path of the file
    * @param {string} [algo] - hash algorithm
-   * @returns {Promise<>} returns hex digest of the computed hash
+   * @returns {Promise<string>} returns hex digest of the computed hash
    * @throws Error if the file cannot be read
    */
   computeFileHash (filePath, algo = 'sha384') {
@@ -249,15 +249,19 @@ export class PackageDownloader {
    * @param {boolean} [force] - whether to download even if the file exists
    * @returns {string} full path to the downloaded file
    */
-  fetchPlatform (tag, destDir, force = false) {
+  async fetchPlatform (tag, destDir, force = false) {
     if (!tag) throw new MissingArgumentError('tag is required')
-    if (!destDir) throw new MissingArgumentError('destination directory path is required')
+    if (!destDir) {
+      throw new MissingArgumentError(
+        'destination directory path is required')
+    }
 
     const releaseDir = Templates.prepareReleasePrefix(tag)
     const downloadDir = `${destDir}/${releaseDir}`
     const packageURL = `${constants.HEDERA_BUILDS_URL}/node/software/${releaseDir}/build-${tag}.zip`
     const checksumURL = `${constants.HEDERA_BUILDS_URL}/node/software/${releaseDir}/build-${tag}.sha384`
 
-    return this.fetchPackage(packageURL, checksumURL, downloadDir, 'sha384', force)
+    return await this.fetchPackage(packageURL, checksumURL, downloadDir,
+      'sha384', force)
   }
 }
