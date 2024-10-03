@@ -39,7 +39,7 @@ export class ClusterCommand extends BaseCommand {
 
   /**
    * Get cluster-info for the given cluster name
-   * @returns {Promise<boolean>}
+   * @returns {boolean}
    */
   getClusterInfo () {
     try {
