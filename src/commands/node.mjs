@@ -357,6 +357,8 @@ export class NodeCommand extends BaseCommand {
 
   /**
    * stops and closes the port forwards
+   * - calls the accountManager.close()
+   * - for all portForwards, calls k8.stopPortForward(srv)
    * @returns {Promise<void>}
    */
   async close () {

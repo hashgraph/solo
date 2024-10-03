@@ -48,7 +48,6 @@ tasks:
   build:
     cmds:
       - task: "build:jsdoc"
-      - task: "build:jsdoc-to-markdown"
       - task: "build:copy"
       - task: "build:hugo"
 
