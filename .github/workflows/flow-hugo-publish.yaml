@@ -100,7 +100,7 @@ jobs:
       # Upload the built site to GitHub Pages
       - name: Upload Pages Artifact
         uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3.0.1
-        if: ${{ contains(github.ref, 'main') }}
+        if: ${{ endsWith(github.ref, 'main') }}
         with:
           path: ./docs/public
 
