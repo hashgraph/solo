@@ -68,10 +68,6 @@ tasks:
     cmds:
       - jsdoc -c jsdoc.conf.json
 
-  build:jsdoc-to-markdown:
-   cmds:
-      - ./generate_md.sh
-
   build:copy:
     cmds:
       - mkdir -p content/Developer
@@ -83,7 +79,6 @@ tasks:
     cmds:
       - task: "install:hugo"
       - task: "install:jsdoc"
-      - task: "install:jsdoc-to-markdown"
 
   install:hugo:
     status:
@@ -97,10 +92,3 @@ tasks:
     cmds:
       - npm i -g jsdoc
       - jsdoc --version
-
-  install:jsdoc-to-markdown:
-    status:
-      - command -v jsdoc2md
-    cmds:
-      - npm i -g jsdoc-to-markdown
-      - jsdoc2md --version
