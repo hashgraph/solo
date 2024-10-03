@@ -15,11 +15,7 @@
  *
  */
 import { flags } from '../../../src/commands/index.mjs'
-import {
-  bootstrapNetwork,
-  getDefaultArgv,
-  TEST_CLUSTER
-} from '../../test_util.js'
+import { bootstrapNetwork, getDefaultArgv, TEST_CLUSTER } from '../../test_util.js'
 import * as version from '../../../version.mjs'
 
 describe('AccountManager', () => {
@@ -38,41 +34,42 @@ describe('AccountManager', () => {
   const accountManager = bootstrapResp.opts.accountManager
   const configManager = bootstrapResp.opts.configManager
 
-  afterAll(async () => {
+  after(async function () {
+    this.timeout(180_000)
+
     await k8.deleteNamespace(namespace)
     await accountManager.close()
-  }, 180000)
+  })
 
   it('should be able to stop port forwards', async () => {
     await accountManager.close()
-    expect.assertions(4)
     const localHost = '127.0.0.1'
 
     const podName = 'minio-console' // use a svc that is less likely to be used by other tests
-    const podPort = 9090
-    const localPort = 19090
+    const podPort = 9_090
+    const localPort = 19_090
 
-    expect(accountManager._portForwards.length, 'starting accountManager port forwards lengths should be zero').toStrictEqual(0)
+    expect(accountManager._portForwards, 'starting accountManager port forwards lengths should be zero').to.have.lengthOf(0)
 
     // ports should be opened
     accountManager._portForwards.push(await k8.portForward(podName, localPort, podPort))
     const status = await k8.testConnection(localHost, localPort)
-    expect(status, 'test connection status should be true').toBeTruthy()
+    expect(status, 'test connection status should be true').to.be.ok
 
     // ports should be closed
     await accountManager.close()
     try {
       await k8.testConnection(localHost, localPort)
     } catch (e) {
-      expect(e.message.includes(`failed to connect to '${localHost}:${localPort}'`), 'expect failed test connection').toBeTruthy()
+      expect(e.message, 'expect failed test connection').to.include(`failed to connect to '${localHost}:${localPort}'`)
     }
 
-    expect(accountManager._portForwards.length, 'expect that the closed account manager should have no port forwards').toStrictEqual(0)
+    expect(accountManager._portForwards, 'expect that the closed account manager should have no port forwards').to.have.lengthOf(0)
   })
 
   it('should be able to load a new client', async () => {
     await accountManager.loadNodeClient(configManager.getFlag(flags.namespace))
-    expect(accountManager._nodeClient).not.toBeNull()
+    expect(accountManager._nodeClient).not.to.be.null
     await accountManager.close()
   })
 })

@@ -15,8 +15,6 @@
  *
  * @mocha-environment steps
  */
-import { describe, it, before, after } from 'mocha'
-import { expect } from 'chai'
 import fs from 'fs'
 import os from 'os'
 import path from 'path'

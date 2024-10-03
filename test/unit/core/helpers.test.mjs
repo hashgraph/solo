@@ -14,61 +14,51 @@
  * limitations under the License.
  *
  */
-import { describe, expect, it } from '@jest/globals'
 import * as helpers from '../../../src/core/helpers.mjs'
 import { HEDERA_PLATFORM_VERSION } from '../../../version.mjs'
 
 describe('Helpers', () => {
-  it.each([
-    {
-      input: '',
-      output: []
-    },
-    {
-      input: 'node1',
-      output: ['node1']
-    },
-    {
-      input: 'node1,node3',
-      output: ['node1', 'node3']
-    }
-  ])('should be able to parse node ID', (t) => {
-    expect(helpers.parseNodeIds(t.input)).toStrictEqual(t.output)
+  const nodeIdTests = [
+    { input: '', output: [] },
+    { input: 'node1', output: ['node1'] },
+    { input: 'node1,node3', output: ['node1', 'node3'] }
+  ]
+  nodeIdTests.forEach(({ input, output }) => {
+    it(`should be able to parse node ID for input: ${input}`, () => {
+      expect(helpers.parseNodeIds(input)).to.deep.equal(output)
+    })
   })
 
-  it.each([
-    {
-      input: [],
-      output: []
-    },
-    {
-      input: [1, 2, 3],
-      output: [1, 2, 3]
-    },
-    {
-      input: ['a', '2', '3'],
-      output: ['a', '2', '3']
-    }
-  ])('should be able to clone array', (t) => {
-    expect(helpers.cloneArray(t.input)).toStrictEqual(t.output)
-    expect(helpers.cloneArray(t.input)).not.toBe(t.input)
+  const cloneArrayTests = [
+    { input: [], output: [] },
+    { input: [1, 2, 3], output: [1, 2, 3] },
+    { input: ['a', '2', '3'], output: ['a', '2', '3'] }
+  ]
+  cloneArrayTests.forEach(({ input, output }) => {
+    it(`should be able to clone array for input: ${JSON.stringify(input)}`, () => {
+      expect(helpers.cloneArray(input)).to.deep.equal(output)
+      expect(helpers.cloneArray(input)).not.to.equal(input) // ensure cloning creates a new array
+    })
   })
 
   it('should be able to load version from package json', async () => {
     const p = helpers.loadPackageJSON()
-    expect(p).not.toBeNull()
-    expect(p.version).not.toBeNull()
-    expect(p.version).toStrictEqual(helpers.packageVersion())
+    expect(p).not.to.be.null
+    expect(p.version).not.to.be.null
+    expect(p.version).to.deep.equal(helpers.packageVersion())
   })
 
-  it.each([
+  const rootImageTests = [
     { input: 'v0.42.5', output: 'hashgraph/full-stack-testing/ubi8-init-java17' },
     { input: 'v0.45.1', output: 'hashgraph/full-stack-testing/ubi8-init-java17' },
     { input: 'v0.46.0', output: 'hashgraph/full-stack-testing/ubi8-init-java21' },
     { input: 'v0.47.1', output: 'hashgraph/full-stack-testing/ubi8-init-java21' },
     { input: 'v0.47.1-alpha.0', output: 'hashgraph/full-stack-testing/ubi8-init-java21' },
     { input: HEDERA_PLATFORM_VERSION, output: 'hashgraph/full-stack-testing/ubi8-init-java21' }
-  ])('should be able to determine root-image based on Hedera platform version', (t) => {
-    expect(helpers.getRootImageRepository(t.input)).toStrictEqual(t.output)
+  ]
+  rootImageTests.forEach(({ input, output }) => {
+    it(`should be able to determine root-image based on Hedera platform version for input: ${input}`, () => {
+      expect(helpers.getRootImageRepository(input)).to.equal(output)
+    })
   })
 })

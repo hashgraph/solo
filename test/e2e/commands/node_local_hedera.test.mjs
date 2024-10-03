@@ -14,10 +14,6 @@
  * limitations under the License.
  *
  */
-import {
-  afterAll,
-  describe
-} from '@jest/globals'
 import { flags } from '../../../src/commands/index.mjs'
 import {
   bootstrapNetwork,
@@ -38,10 +34,11 @@ describe('Node local build', () => {
   argv[flags.quiet.name] = true
 
   let hederaK8
-  afterAll(async () => {
+  after(async function () {
+    this.timeout(600_000)
     await getNodeLogs(hederaK8, LOCAL_HEDERA)
     await hederaK8.deleteNamespace(LOCAL_HEDERA)
-  }, 600000)
+  })
 
   describe('Node for hedera app should start successfully', () => {
     console.log('Starting local build for Hedera app')

@@ -11,6 +11,7 @@
     "access": "public"
   },
   "scripts": {
+    "test:mocha": "cross-env NODE_OPTIONS=--experimental-vm-modules MOCHA_SUITE_NAME=\"Unit Tests\" mocha --recursive --timeout 10000 --exit --reporter spec --check-leaks --coverage --coverage-report=text --exclude 'test/e2e/*'",
     "test": "cross-env NODE_OPTIONS=--experimental-vm-modules JEST_SUITE_NAME=\"Unit Tests\" jest --runInBand --detectOpenHandles --forceExit --coverage --coverageDirectory='coverage/unit' --testPathIgnorePatterns=\".*/e2e/.*\"",
     "test-e2e-all": "NODE_OPTIONS=--experimental-vm-modules JEST_SUITE_NAME='Jest E2E All Tests' JEST_JUNIT_OUTPUT_NAME='junit-e2e.xml' jest --runInBand --detectOpenHandles --forceExit --coverage --coverageDirectory='coverage/e2e' --testPathIgnorePatterns=\".*/unit/.*\"",
     "test-e2e-standard": "NODE_OPTIONS=--experimental-vm-modules JEST_SUITE_NAME='Jest E2E Standard Tests' JEST_JUNIT_OUTPUT_NAME='junit-e2e-standard.xml' jest --runInBand --detectOpenHandles --forceExit --coverage --coverageDirectory='coverage/e2e-standard' --testPathIgnorePatterns=\".*/unit/.*\" --testPathIgnorePatterns=\".*/e2e/commands/mirror_node.*\" --testPathIgnorePatterns=\".*/e2e/commands/node.*\" --testPathIgnorePatterns=\".*/e2e/commands/separate_node.*\" --testPathIgnorePatterns=\".*/e2e/commands/relay.*\"",
@@ -61,6 +62,7 @@
     "jsdoc": "^4.0.3",
     "listr2": "^8.2.4",
     "semver": "^7.6.3",
+    "sinon": "^19.0.2",
     "stream-buffers": "^3.0.3",
     "tar": "^7.4.3",
     "uuid": "^10.0.0",
@@ -71,6 +73,12 @@
   "devDependencies": {
     "@jest/globals": "^29.7.0",
     "@jest/test-sequencer": "^29.7.0",
+    "@types/chai": "^5.0.0",
+    "@types/chai-as-promised": "^8.0.1",
+    "@types/mocha": "^10.0.8",
+    "@types/seedrandom": "^3.0.8",
+    "@types/sinon": "^17.0.3",
+    "@types/sinon-chai": "^4.0.0",
     "chai": "^5.1.1",
     "chai-as-promised": "^8.0.0",
     "cross-env": "^7.0.3",

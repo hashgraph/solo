@@ -14,7 +14,6 @@
  * limitations under the License.
  *
  */
-import { describe, expect, it } from '@jest/globals'
 import {
   SoloError,
   ResourceNotFoundError,
@@ -29,50 +28,50 @@ describe('Errors', () => {
 
   it('should construct correct SoloError', () => {
     const error = new SoloError(message, cause)
-    expect(error).toBeInstanceOf(Error)
-    expect(error.name).toBe('SoloError')
-    expect(error.message).toBe(message)
-    expect(error.cause).toBe(cause)
-    expect(error.meta).toStrictEqual({})
+    expect(error).to.be.instanceof(Error)
+    expect(error.name).to.equal('SoloError')
+    expect(error.message).to.equal(message)
+    expect(error.cause).to.equal(cause)
+    expect(error.meta).to.deep.equal({})
   })
 
   it('should construct correct ResourceNotFoundError', () => {
     const resource = 'resource'
     const error = new ResourceNotFoundError(message, resource)
-    expect(error).toBeInstanceOf(SoloError)
-    expect(error.name).toBe('ResourceNotFoundError')
-    expect(error.message).toBe(message)
-    expect(error.cause).toStrictEqual({})
-    expect(error.meta).toStrictEqual({ resource })
+    expect(error).to.be.instanceof(SoloError)
+    expect(error.name).to.equal('ResourceNotFoundError')
+    expect(error.message).to.equal(message)
+    expect(error.cause).to.deep.equal({})
+    expect(error.meta).to.deep.equal({ resource })
   })
 
   it('should construct correct MissingArgumentError', () => {
     const error = new MissingArgumentError(message)
-    expect(error).toBeInstanceOf(SoloError)
-    expect(error.name).toBe('MissingArgumentError')
-    expect(error.message).toBe(message)
-    expect(error.cause).toStrictEqual({})
-    expect(error.meta).toStrictEqual({})
+    expect(error).to.be.instanceof(SoloError)
+    expect(error.name).to.equal('MissingArgumentError')
+    expect(error.message).to.equal(message)
+    expect(error.cause).to.deep.equal({})
+    expect(error.meta).to.deep.equal({})
   })
 
   it('should construct correct IllegalArgumentError', () => {
     const value = 'invalid argument'
     const error = new IllegalArgumentError(message, value)
-    expect(error).toBeInstanceOf(SoloError)
-    expect(error.name).toBe('IllegalArgumentError')
-    expect(error.message).toBe(message)
-    expect(error.cause).toStrictEqual({})
-    expect(error.meta).toStrictEqual({ value })
+    expect(error).to.be.instanceof(SoloError)
+    expect(error.name).to.equal('IllegalArgumentError')
+    expect(error.message).to.equal(message)
+    expect(error.cause).to.deep.equal({})
+    expect(error.meta).to.deep.equal({ value })
   })
 
   it('should construct correct DataValidationError', () => {
     const expected = 'expected'
     const found = 'found'
     const error = new DataValidationError(message, expected, found)
-    expect(error).toBeInstanceOf(SoloError)
-    expect(error.name).toBe('DataValidationError')
-    expect(error.message).toBe(message)
-    expect(error.cause).toStrictEqual({})
-    expect(error.meta).toStrictEqual({ expected, found })
+    expect(error).to.be.instanceof(SoloError)
+    expect(error.name).to.equal('DataValidationError')
+    expect(error.message).to.equal(message)
+    expect(error.cause).to.deep.equal({})
+    expect(error.meta).to.deep.equal({ expected, found })
   })
 })

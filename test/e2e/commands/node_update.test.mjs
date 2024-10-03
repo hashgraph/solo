@@ -13,9 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
- * @jest-environment steps
+ * @mocha-environment steps
  */
-import { afterAll, describe, expect, it } from '@jest/globals'
 import { flags } from '../../../src/commands/index.mjs'
 import { constants } from '../../../src/core/index.mjs'
 import {
@@ -57,21 +56,23 @@ describe('Node update', () => {
   let existingServiceMap
   let existingNodeIdsPrivateKeysHash
 
-  afterAll(async () => {
+  after(async function () {
+    this.timeout(600_000)
+
     await getNodeLogs(k8, namespace)
     await nodeCmd.stop(argv)
     await k8.deleteNamespace(namespace)
-  }, 600000)
+  })
 
   it('cache current version of private keys', async () => {
     existingServiceMap = await nodeCmd.accountManager.getNodeServiceMap(namespace)
     existingNodeIdsPrivateKeysHash = await getNodeIdsPrivateKeysHash(existingServiceMap, namespace, k8, getTmpDir())
-  }, defaultTimeout)
+  }).timeout(defaultTimeout)
 
   it('should succeed with init command', async () => {
     const status = await accountCmd.init(argv)
-    expect(status).toBeTruthy()
-  }, 450000)
+    expect(status).to.be.ok
+  }).timeout(450_000)
 
   it('should update a new node property successfully', async () => {
     // generate gossip and tls keys for the updated node
@@ -90,13 +91,13 @@ describe('Node update', () => {
     argv[flags.tlsPrivateKey.name] = tlsKeyFiles.privateKeyFile
 
     await nodeCmd.update(argv)
-    expect(nodeCmd.getUnusedConfigs(NodeCommand.UPDATE_CONFIGS_NAME)).toEqual([
+    expect(nodeCmd.getUnusedConfigs(NodeCommand.UPDATE_CONFIGS_NAME)).to.equal([
       flags.app.constName,
       flags.devMode.constName,
       flags.quiet.constName
     ])
     await nodeCmd.accountManager.close()
-  }, 1800000)
+  }).timeout(1_800_000)
 
   balanceQueryShouldSucceed(nodeCmd.accountManager, nodeCmd, namespace)
 
@@ -111,15 +112,15 @@ describe('Node update', () => {
       for (const [keyFileName, existingKeyHash] of existingKeyHashMap.entries()) {
         if (nodeId === updateNodeId &&
           (keyFileName.startsWith(constants.SIGNING_KEY_PREFIX) || keyFileName.startsWith('hedera'))) {
-          expect(`${nodeId}:${keyFileName}:${currentNodeKeyHashMap.get(keyFileName)}`).not.toEqual(
+          expect(`${nodeId}:${keyFileName}:${currentNodeKeyHashMap.get(keyFileName)}`).not.to.equal(
             `${nodeId}:${keyFileName}:${existingKeyHash}`)
         } else {
-          expect(`${nodeId}:${keyFileName}:${currentNodeKeyHashMap.get(keyFileName)}`).toEqual(
+          expect(`${nodeId}:${keyFileName}:${currentNodeKeyHashMap.get(keyFileName)}`).to.equal(
             `${nodeId}:${keyFileName}:${existingKeyHash}`)
         }
       }
     }
-  }, defaultTimeout)
+  }).timeout(defaultTimeout)
 
   it('config.txt should be changed with new account id', async () => {
     // read config.txt file from first node, read config.txt line by line, it should not contain value of newAccountId
@@ -129,6 +130,6 @@ describe('Node update', () => {
     await k8.copyFrom(podName, ROOT_CONTAINER, `${HEDERA_HAPI_PATH}/config.txt`, tmpDir)
     const configTxt = fs.readFileSync(`${tmpDir}/config.txt`, 'utf8')
     console.log('config.txt:', configTxt)
-    expect(configTxt).toContain(newAccountId)
-  }, 600000)
+    expect(configTxt).to.contain(newAccountId)
+  }).timeout(600_000)
 })

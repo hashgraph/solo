@@ -28,6 +28,7 @@ rules:
         See the License for the specific language governing permissions and
         limitations under the License.
   no-unused-expressions: off
+  no-return-assign: off
 plugins: ["headers", "mocha"]
 overrides:
   - files: ["*.mjs"]

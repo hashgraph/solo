@@ -13,12 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
- * @jest-environment steps
+ * @mocha-environment steps
  */
-import { describe } from '@jest/globals'
 import { testNodeAdd } from '../../test_add.mjs'
 
 describe('Node add with hedera local build', () => {
   const localBuildPath = 'node1=../hedera-services/hedera-node/data/,../hedera-services/hedera-node/data,node3=../hedera-services/hedera-node/data'
   testNodeAdd(localBuildPath)
-}, 180000)
+}).timeout(180_000)

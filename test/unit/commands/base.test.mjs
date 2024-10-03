@@ -14,9 +14,6 @@
  * limitations under the License.
  *
  */
-import { it, describe } from 'mocha'
-import { expect } from 'chai'
-
 import { HelmDependencyManager, DependencyManager } from '../../../src/core/dependency_managers/index.mjs'
 import {
   ChartManager,
@@ -56,10 +53,10 @@ describe('BaseCommand', () => {
 
   describe('runShell', () => {
     it('should fail during invalid program check', async () => {
-      await baseCmd.run('INVALID_PROGRAM').should.eventually.be.rejected
+      await expect(baseCmd.run('INVALID_PROGRAM')).to.eventually.be.rejected
     })
     it('should succeed during valid program check', async () => {
-      await baseCmd.run('echo').should.eventually.resolve.not.be.null
+      await expect(baseCmd.run('echo')).to.eventually.not.be.null
     })
     it('getConfig tracks property usage', async () => {
       const flagsList = [

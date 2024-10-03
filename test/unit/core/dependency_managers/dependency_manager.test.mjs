@@ -14,7 +14,6 @@
  * limitations under the License.
  *
  */
-import { describe, expect, it } from '@jest/globals'
 import { DependencyManager, HelmDependencyManager } from '../../../../src/core/dependency_managers/index.mjs'
 import { logging, constants, PackageDownloader, Zippy } from '../../../../src/core/index.mjs'
 import { SoloError } from '../../../../src/core/errors.mjs'
@@ -31,11 +30,12 @@ describe('DependencyManager', () => {
 
   describe('checkDependency', () => {
     it('should fail during invalid dependency check', async () => {
-      await expect(depManager.checkDependency('INVALID_PROGRAM')).rejects.toThrowError(new SoloError("Dependency 'INVALID_PROGRAM' is not found"))
+      await expect(depManager.checkDependency('INVALID_PROGRAM'))
+        .should.eventually.be.rejectedWith(new SoloError("Dependency 'INVALID_PROGRAM' is not found"))
     })
 
     it('should succeed during helm dependency check', async () => {
-      await expect(depManager.checkDependency(constants.HELM)).resolves.toBe(true)
-    }, 60000)
+      await expect(depManager.checkDependency(constants.HELM)).should.eventually.equal(true)
+    }).timeout(60_000)
   })
 })

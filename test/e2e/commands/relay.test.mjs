@@ -14,14 +14,6 @@
  * limitations under the License.
  *
  */
-
-import {
-  afterAll,
-  afterEach,
-  describe,
-  expect,
-  it
-} from '@jest/globals'
 import { flags } from '../../../src/commands/index.mjs'
 import {
   bootstrapNetwork,
@@ -54,43 +46,43 @@ describe('RelayCommand', () => {
   const configManager = bootstrapResp.opts.configManager
   const relayCmd = new RelayCommand(bootstrapResp.opts)
 
-  afterAll(async () => {
+  after(async function () {
+    this.timeout(180000)
+
     await getNodeLogs(k8, namespace)
     await k8.deleteNamespace(namespace)
-  }, 180000)
-
-  afterEach(async () => {
-    await sleep(5) // give a few ticks so that connections can close
   })
 
-  it.each([
-    { relayNodes: 'node1' },
-    { relayNodes: 'node1,node2' }
-  ])('relay deploy and destroy should work with different number of relay nodes', async (input) => {
-    argv[flags.nodeIDs.name] = input.relayNodes
-    configManager.update(argv)
-    expect.assertions(3)
+  afterEach(async () => await sleep(5))
 
-    // test relay deploy
-    try {
-      await expect(relayCmd.deploy(argv)).resolves.toBeTruthy()
-    } catch (e) {
-      relayCmd.logger.showUserError(e)
-      expect(e).toBeNull()
-    }
-    expect(relayCmd.getUnusedConfigs(RelayCommand.DEPLOY_CONFIGS_NAME)).toEqual([
-      flags.profileFile.constName,
-      flags.profileName.constName,
-      flags.quiet.constName
-    ])
-    await sleep(500)
+  const relayNodesTests = ['node1', 'node1,node2']
 
-    // test relay destroy
-    try {
-      await expect(relayCmd.destroy(argv)).resolves.toBeTruthy()
-    } catch (e) {
-      relayCmd.logger.showUserError(e)
-      expect(e).toBeNull()
-    }
-  }, 300000)
+  relayNodesTests.forEach((relayNodes) => {
+    it(`relay deploy and destroy should work with ${relayNodes}`, async () => {
+      argv[flags.nodeIDs.name] = relayNodes
+      configManager.update(argv)
+
+      // test relay deploy
+      try {
+        await expect(relayCmd.deploy(argv)).to.eventually.be.ok
+      } catch (e) {
+        relayCmd.logger.showUserError(e)
+        expect(e).to.be.null
+      }
+      expect(relayCmd.getUnusedConfigs(RelayCommand.DEPLOY_CONFIGS_NAME)).to.deep.equal([
+        flags.profileFile.constName,
+        flags.profileName.constName,
+        flags.quiet.constName
+      ])
+      await sleep(500)
+
+      // test relay destroy
+      try {
+        await expect(relayCmd.destroy(argv)).to.eventually.be.ok
+      } catch (e) {
+        relayCmd.logger.showUserError(e)
+        expect(e).to.be.null
+      }
+    }).timeout(300_000)
+  })
 })

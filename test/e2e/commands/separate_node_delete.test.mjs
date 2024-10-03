@@ -13,9 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
- * @jest-environment steps
+ * @mocha-environment steps
  */
-import { afterAll, describe, expect, it } from '@jest/globals'
 import { flags } from '../../../src/commands/index.mjs'
 import {
   accountCreationShouldSucceed,
@@ -56,21 +55,23 @@ describe('Node delete via separated commands', () => {
   const accountCmd = bootstrapResp.cmd.accountCmd
   const k8 = bootstrapResp.opts.k8
 
-  afterAll(async () => {
+  after(async function () {
+    this.timeout(600_000)
+
     await getNodeLogs(k8, namespace)
     await k8.deleteNamespace(namespace)
-  }, 600000)
+  })
 
   it('should succeed with init command', async () => {
     const status = await accountCmd.init(argv)
-    expect(status).toBeTruthy()
-  }, 450000)
+    expect(status).to.be.ok
+  }).timeout(450_000)
 
   it('should delete a node from the network successfully', async () => {
     await nodeCmd.deletePrepare(argvPrepare)
     await nodeCmd.deleteSubmitTransactions(argvExecute)
     await nodeCmd.deleteExecute(argvExecute)
-    expect(nodeCmd.getUnusedConfigs(NodeCommand.DELETE_CONFIGS_NAME)).toEqual([
+    expect(nodeCmd.getUnusedConfigs(NodeCommand.DELETE_CONFIGS_NAME)).to.deep.equal([
       flags.app.constName,
       flags.devMode.constName,
       flags.endpointType.constName,
@@ -80,7 +81,7 @@ describe('Node delete via separated commands', () => {
     ])
 
     await nodeCmd.accountManager.close()
-  }, 600000)
+  }).timeout(600_000)
 
   balanceQueryShouldSucceed(nodeCmd.accountManager, nodeCmd, namespace)
 
@@ -94,6 +95,6 @@ describe('Node delete via separated commands', () => {
     await k8.copyFrom(podName, ROOT_CONTAINER, `${HEDERA_HAPI_PATH}/config.txt`, tmpDir)
     const configTxt = fs.readFileSync(`${tmpDir}/config.txt`, 'utf8')
     console.log('config.txt:', configTxt)
-    expect(configTxt).not.toContain(nodeId)
-  }, 600000)
+    expect(configTxt).not.to.contain(nodeId)
+  }).timeout(600_000)
 })

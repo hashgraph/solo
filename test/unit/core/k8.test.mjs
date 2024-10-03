@@ -14,80 +14,86 @@
  * limitations under the License.
  *
  */
-import { afterAll, beforeAll, describe, expect, it, jest } from '@jest/globals'
+import { expect } from 'chai'
+import sinon from 'sinon'
+
 import { constants, K8 } from '../../../src/core/index.mjs'
 import { getTestConfigManager, testLogger } from '../../test_util.js'
 import { flags } from '../../../src/commands/index.mjs'
 
+/**
+ * @param {K8} k8
+ * @param {number} numOfFailures
+ * @param {*} result
+ */
 function listNamespacedPodMockSetup (k8, numOfFailures, result) {
+  const stub = sinon.stub(k8.kubeClient, 'listNamespacedPod')
   for (let i = 0; i < numOfFailures - 1; i++) {
-    k8.kubeClient.listNamespacedPod.mockReturnValueOnce(Promise.resolve({
-      body: {
-        items: []
-      }
-    }))
+    stub.onCall(i).resolves({ body: { items: [] } })
   }
-  k8.kubeClient.listNamespacedPod.mockReturnValueOnce(Promise.resolve({
-    body: {
-      items: result
-    }
-  }))
+  stub.onCall(numOfFailures - 1).resolves({ body: { items: result } })
 }
 
-const defaultTimeout = 20000
+const defaultTimeout = 20_000
 
-describe('K8 Unit Tests', () => {
+describe('K8 Unit Tests', function () {
+  this.timeout(defaultTimeout)
+
   const argv = { }
   const expectedResult = [
     {
       metadata: { name: 'pod' },
       status: {
         phase: constants.POD_PHASE_RUNNING,
-        conditions: [
-          {
-            type: constants.POD_CONDITION_READY,
-            status: constants.POD_CONDITION_STATUS_TRUE
-          }
-        ]
+        conditions: [{
+          type: constants.POD_CONDITION_READY,
+          status: constants.POD_CONDITION_STATUS_TRUE
+        }]
       }
     }
   ]
-  const k8InitSpy = jest.spyOn(K8.prototype, 'init').mockImplementation(() => {})
-  const k8GetPodsByLabelSpy = jest.spyOn(K8.prototype, 'getPodsByLabel').mockResolvedValue(expectedResult)
-  let k8
 
-  beforeAll(() => {
+  /** @type {K8} */ let k8
+  /** @type {sinon.SinonStub} */ let k8InitSpy
+  /** @type {sinon.SinonStub} */ let k8GetPodsByLabelSpy
+
+  before(() => {
     argv[flags.namespace.name] = 'namespace'
     const configManager = getTestConfigManager('k8-solo.yaml')
     configManager.update(argv, true)
-    k8 = new K8(configManager, testLogger)
-    k8.kubeClient = {
-      listNamespacedPod: jest.fn(),
-      deleteNamespacedPod: jest.fn()
-    }
-  }, defaultTimeout)
 
-  afterAll(() => {
-    k8InitSpy.mockRestore()
-    k8GetPodsByLabelSpy.mockRestore()
-  }, defaultTimeout)
+    k8 = new K8(configManager, testLogger)
+
+    k8InitSpy = sinon.stub(K8.prototype, 'init').callsFake(() => {})
+    k8GetPodsByLabelSpy = sinon.stub(K8.prototype, 'getPodsByLabel').resolves(expectedResult)
+
+    k8.kubeClient = {
+      listNamespacedPod: sinon.stub(),
+      deleteNamespacedPod: sinon.stub()
+    }
+  })
+
+  after(() => {
+    k8InitSpy.restore()
+    k8GetPodsByLabelSpy.restore()
+  })
 
   it('waitForPods with first time failure, later success', async () => {
     const maxNumOfFailures = 500
     listNamespacedPodMockSetup(k8, maxNumOfFailures, expectedResult)
 
     const result = await k8.waitForPods([constants.POD_PHASE_RUNNING], ['labels'], 1, maxNumOfFailures, 0)
-    expect(result).toBe(expectedResult)
-  }, defaultTimeout)
+    expect(result).to.deep.equal(expectedResult)
+  })
 
   it('waitForPodConditions with first time failure, later success', async () => {
     const maxNumOfFailures = 500
     listNamespacedPodMockSetup(k8, maxNumOfFailures, expectedResult)
 
     const result = await k8.waitForPodConditions(K8.PodReadyCondition, ['labels'], 1, maxNumOfFailures, 0)
-    expect(result).not.toBeNull()
-    expect(result[0]).toBe(expectedResult[0])
-  }, defaultTimeout)
+    expect(result).not.to.be.null
+    expect(result[0]).to.deep.equal(expectedResult[0])
+  })
 
   it('waitForPodConditions with partial pod data', async () => {
     const expectedResult = [
@@ -102,10 +108,10 @@ describe('K8 Unit Tests', () => {
     try {
       await k8.waitForPodConditions(K8.PodReadyCondition, ['labels'], 1, maxNumOfFailures, 0)
     } catch (e) {
-      expect(e).not.toBeNull()
-      expect(e.message).toContain('Expected number of pod (1) not found for labels: labels, phases: Running [attempts = ')
+      expect(e).not.to.be.null
+      expect(e.message).to.contain('Expected number of pod (1) not found for labels: labels, phases: Running [attempts = ')
     }
-  }, defaultTimeout)
+  })
 
   it('waitForPodConditions with no conditions', async () => {
     const expectedResult = [
@@ -123,8 +129,8 @@ describe('K8 Unit Tests', () => {
     try {
       await k8.waitForPodConditions(K8.PodReadyCondition, ['labels'], 1, maxNumOfFailures, 0)
     } catch (e) {
-      expect(e).not.toBeNull()
-      expect(e.message).toContain('Expected number of pod (1) not found for labels: labels, phases: Running [attempts = ')
+      expect(e).not.to.be.null
+      expect(e.message).to.contain('Expected number of pod (1) not found for labels: labels, phases: Running [attempts = ')
     }
   })
 })

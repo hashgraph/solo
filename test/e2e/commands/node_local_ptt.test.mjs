@@ -13,18 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
- * @jest-environment steps
+ * @mocha-environment steps
  */
-import {
-  afterAll,
-  describe
-} from '@jest/globals'
 import { flags } from '../../../src/commands/index.mjs'
-import {
-  bootstrapNetwork,
-  getDefaultArgv,
-  TEST_CLUSTER
-} from '../../test_util.js'
+import { bootstrapNetwork, getDefaultArgv, TEST_CLUSTER } from '../../test_util.js'
 import { getNodeLogs } from '../../../src/core/helpers.mjs'
 
 describe('Node local build', () => {
@@ -39,10 +31,12 @@ describe('Node local build', () => {
   argv[flags.quiet.name] = true
 
   let pttK8
-  afterAll(async () => {
+  after(async function () {
+    this.timeout(120_000)
+
     await getNodeLogs(pttK8, LOCAL_PTT)
     await pttK8.deleteNamespace(LOCAL_PTT)
-  }, 120000)
+  })
 
   describe('Node for platform app should start successfully', () => {
     console.log('Starting local build for Platform app')

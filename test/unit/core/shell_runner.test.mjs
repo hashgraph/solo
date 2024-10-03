@@ -14,7 +14,8 @@
  * limitations under the License.
  *
  */
-import { describe, expect, it, jest } from '@jest/globals'
+import sinon from 'sinon'
+
 import { ShellRunner } from '../../../src/core/shell_runner.mjs'
 import { NewLogger, SoloLogger } from '../../../src/core/logging.mjs'
 import { ChildProcess } from 'child_process'
@@ -23,22 +24,27 @@ import { Readable } from 'stream'
 describe('ShellRunner', () => {
   const logger = NewLogger('debug')
   const shellRunner = new ShellRunner(logger)
-  const loggerSpy = jest.spyOn(SoloLogger.prototype, 'debug').mockImplementation()
-  const childProcessSpy = jest.spyOn(ChildProcess.prototype, 'on')
-  const readableSpy = jest.spyOn(Readable.prototype, 'on')
+  let childProcessSpy, readableSpy, loggerSpy
+
+  beforeEach(() => {
+    childProcessSpy = sinon.spy(ChildProcess.prototype, 'on')
+    readableSpy = sinon.spy(Readable.prototype, 'on')
+    loggerSpy = sinon.spy(SoloLogger.prototype, 'debug')
+  })
+
+  // Restore the spies after each test
+  afterEach(() => sinon.restore())
 
   it('should run command', async () => {
     await shellRunner.run('ls -l')
-    expect(loggerSpy).toHaveBeenNthCalledWith(1, 'Executing command: \'ls -l\'')
-    expect(loggerSpy).toHaveBeenNthCalledWith(2, 'Finished executing: \'ls -l\'', {
-      commandExitCode: expect.any(Number),
+    expect(loggerSpy).to.have.been.calledWith(1, 'Executing command: \'ls -l\'')
+    expect(loggerSpy).to.have.been.calledWith(2, 'Finished executing: \'ls -l\'', {
+      commandExitCode: sinon.match.number,
       commandExitSignal: null,
-      commandOutput: expect.any(Array),
-      errOutput: expect.any(Array)
+      commandOutput: sinon.match.array,
+      errOutput: sinon.match.array
     })
-    expect(readableSpy).toHaveBeenCalledWith('data', expect.anything())
-    expect(childProcessSpy).toHaveBeenCalledWith('exit', expect.anything())
+    expect(readableSpy).to.have.been.calledWith('data', sinon.match.any)
+    expect(childProcessSpy).to.have.been.calledWith('exit', sinon.match.any)
   })
-
-  jest.clearAllMocks()
 })

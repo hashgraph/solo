@@ -14,9 +14,6 @@
  * limitations under the License.
  *
  */
-import { it, describe } from 'mocha'
-import { expect } from 'chai'
-
 import { InitCommand } from '../../../src/commands/init.mjs'
 import {
   HelmDependencyManager,
@@ -58,7 +55,7 @@ describe('InitCommand', () => {
 
   describe('commands', () => {
     it('init execution should succeed', async () => {
-      await expect(initCmd.init({})).should.eventually.resolve.to.equal(true)
+      await expect(initCmd.init({})).to.eventually.equal(true)
     }).timeout(20_000)
   })
 

@@ -14,7 +14,6 @@
  * limitations under the License.
  *
  */
-import { afterAll, beforeAll, describe, expect, it } from '@jest/globals'
 import fs from 'fs'
 import path from 'path'
 import { KeytoolDependencyManager } from '../../../../src/core/dependency_managers/index.mjs'
@@ -27,14 +26,14 @@ describe('KeytoolDependencyManager', () => {
   const tmpDir = path.join(getTestCacheDir(), 'bin', 'jre')
   const zippy = new Zippy(testLogger)
 
-  beforeAll(async () => {
+  before(async () => {
     if (fs.existsSync(tmpDir)) {
       fs.rmSync(tmpDir, { recursive: true })
     }
     fs.mkdirSync(tmpDir, { recursive: true })
   })
 
-  afterAll(() => {
+  after(() => {
     if (fs.existsSync(tmpDir)) {
       fs.rmSync(tmpDir, { recursive: true })
     }
@@ -62,8 +61,8 @@ describe('KeytoolDependencyManager', () => {
     const keytoolDependencyManager = new KeytoolDependencyManager(
       downloader, zippy, testLogger, tmpDir, osPlatform, osArch)
     await keytoolDependencyManager.uninstall()
-    expect(keytoolDependencyManager.isInstalled()).toBeFalsy()
-    await expect(keytoolDependencyManager.install(getTestCacheDir())).resolves.toBeTruthy()
-    expect(keytoolDependencyManager.isInstalled()).toBeTruthy()
-  }, 120000)
+    expect(keytoolDependencyManager.isInstalled()).not.to.be.ok
+    await expect(keytoolDependencyManager.install(getTestCacheDir())).to.eventually.be.ok
+    expect(keytoolDependencyManager.isInstalled()).to.be.ok
+  }).timeout(120_000)
 })

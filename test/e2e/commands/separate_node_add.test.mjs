@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
- * @jest-environment steps
+ * @mocha-environment steps
  */
 import {
   accountCreationShouldSucceed,
@@ -28,7 +28,7 @@ import { getNodeLogs } from '../../../src/core/helpers.mjs'
 import { NodeCommand } from '../../../src/commands/node.mjs'
 
 describe('Node add via separated commands should success', () => {
-  const defaultTimeout = 120000
+  const defaultTimeout = 120_000
   const namespace = 'node-add-separated'
   const argv = getDefaultArgv()
   argv[flags.nodeIDs.name] = 'node1,node2,node3'
@@ -58,29 +58,31 @@ describe('Node add via separated commands should success', () => {
   let existingServiceMap
   let existingNodeIdsPrivateKeysHash
 
-  afterAll(async () => {
+  after(async function () {
+    this.timeout(600_000)
+
     await getNodeLogs(k8, namespace)
     await nodeCmd.accountManager.close()
     await nodeCmd.stop(argv)
     await networkCmd.destroy(argv)
     await k8.deleteNamespace(namespace)
-  }, 600000)
+  })
 
   it('cache current version of private keys', async () => {
     existingServiceMap = await nodeCmd.accountManager.getNodeServiceMap(namespace)
     existingNodeIdsPrivateKeysHash = await getNodeIdsPrivateKeysHash(existingServiceMap, namespace, k8, getTmpDir())
-  }, defaultTimeout)
+  }).timeout(defaultTimeout)
 
   it('should succeed with init command', async () => {
     const status = await accountCmd.init(argv)
-    expect(status).toBeTruthy()
-  }, 450000)
+    expect(status).to.be.ok
+  }).timeout(450_000)
 
   it('should add a new node to the network via the segregated commands successfully', async () => {
     await nodeCmd.addPrepare(argvPrepare)
     await nodeCmd.addSubmitTransactions(argvExecute)
     await nodeCmd.addExecute(argvExecute)
-    expect(nodeCmd.getUnusedConfigs(NodeCommand.ADD_CONFIGS_NAME)).toEqual([
+    expect(nodeCmd.getUnusedConfigs(NodeCommand.ADD_CONFIGS_NAME)).to.deep.equal([
       flags.app.constName,
       flags.chainId.constName,
       flags.devMode.constName,
@@ -94,7 +96,7 @@ describe('Node add via separated commands should success', () => {
       'freezeAdminPrivateKey'
     ])
     await nodeCmd.accountManager.close()
-  }, 800000)
+  }).timeout(800_000)
 
   balanceQueryShouldSucceed(nodeCmd.accountManager, nodeCmd, namespace)
 
@@ -107,9 +109,9 @@ describe('Node add via separated commands should success', () => {
       const currentNodeKeyHashMap = currentNodeIdsPrivateKeysHash.get(nodeId)
 
       for (const [keyFileName, existingKeyHash] of existingKeyHashMap.entries()) {
-        expect(`${nodeId}:${keyFileName}:${currentNodeKeyHashMap.get(keyFileName)}`).toEqual(
+        expect(`${nodeId}:${keyFileName}:${currentNodeKeyHashMap.get(keyFileName)}`).to.equal(
             `${nodeId}:${keyFileName}:${existingKeyHash}`)
       }
     }
-  }, defaultTimeout)
-}, 180000)
+  }).timeout(defaultTimeout)
+}).timeout(180_000)
