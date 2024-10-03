@@ -143,9 +143,9 @@ export class NodeCommandTasks {
       const config = ctx.config
 
       // Transfer some hbar to the node for staking purpose
-      const accountMap = getNodeAccountMap(config.existingNodeIds)
-      for (const nodeId of config.existingNodeIds) {
-        const accountId = accountMap.get(nodeId)
+      const accountMap = getNodeAccountMap(config.existingNodeAliases)
+      for (const nodeAlias of config.existingNodeAliases) {
+        const accountId = accountMap.get(nodeAlias)
         await this.accountManager.transferAmount(constants.TREASURY_ACCOUNT_ID, accountId, 1)
       }
     })
@@ -231,7 +231,7 @@ export class NodeCommandTasks {
   downloadNodeGeneratedFiles () {
     return new Task('Download generated files from an existing node', async (ctx, task) => {
       const config = ctx.config
-      const node1FullyQualifiedPodName = Templates.renderNetworkPodName(config.existingNodeIds[0])
+      const node1FullyQualifiedPodName = Templates.renderNetworkPodName(config.existingNodeAliases[0])
 
       // copy the config.txt file from the node1 upgrade directory
       await this.k8.copyFrom(node1FullyQualifiedPodName, constants.ROOT_CONTAINER, `${constants.HEDERA_HAPI_PATH}/data/upgrade/current/config.txt`, config.stagingDir)
@@ -257,10 +257,10 @@ export class NodeCommandTasks {
    * Return task for checking for all network node pods
    * @param {any} ctx
    * @param {TaskWrapper} task
-   * @param {string[]} nodeIds
+   * @param {string[]} nodeAliases
    * @returns {*}
    */
-  taskCheckNetworkNodePods (ctx, task, nodeIds) {
+  taskCheckNetworkNodePods (ctx, task, nodeAliases) {
     if (!ctx.config) {
       ctx.config = {}
     }
@@ -268,11 +268,11 @@ export class NodeCommandTasks {
     ctx.config.podNames = {}
 
     const subTasks = []
-    for (const nodeId of nodeIds) {
+    for (const nodeAlias of nodeAliases) {
       subTasks.push({
-        title: `Check network pod: ${chalk.yellow(nodeId)}`,
+        title: `Check network pod: ${chalk.yellow(nodeAlias)}`,
         task: async (ctx) => {
-          ctx.config.podNames[nodeId] = await this.checkNetworkNodePod(ctx.config.namespace, nodeId)
+          ctx.config.podNames[nodeAlias] = await this.checkNetworkNodePod(ctx.config.namespace, nodeAlias)
         }
       })
     }
@@ -289,43 +289,43 @@ export class NodeCommandTasks {
   /**
    * Check if the network node pod is running
    * @param {string} namespace
-   * @param {string} nodeId
+   * @param {string} nodeAlias
    * @param {number} [maxAttempts]
    * @param {number} [delay]
    * @returns {Promise<string>}
    */
-  async checkNetworkNodePod (namespace, nodeId, maxAttempts = 60, delay = 2000) {
-    nodeId = nodeId.trim()
-    const podName = Templates.renderNetworkPodName(nodeId)
+  async checkNetworkNodePod (namespace, nodeAlias, maxAttempts = 60, delay = 2000) {
+    nodeAlias = nodeAlias.trim()
+    const podName = Templates.renderNetworkPodName(nodeAlias)
 
     try {
       await this.k8.waitForPods([constants.POD_PHASE_RUNNING], [
         'fullstack.hedera.com/type=network-node',
-        `fullstack.hedera.com/node-name=${nodeId}`
+        `fullstack.hedera.com/node-name=${nodeAlias}`
       ], 1, maxAttempts, delay)
 
       return podName
     } catch (e) {
-      throw new SoloError(`no pod found for nodeId: ${nodeId}`, e)
+      throw new SoloError(`no pod found for nodeAlias: ${nodeAlias}`, e)
     }
   }
 
   identifyExistingNodes () {
     return new Task('Identify existing network nodes', async (ctx, task) => {
       const config = ctx.config
-      config.existingNodeIds = []
+      config.existingNodeAliases = []
       config.serviceMap = await this.accountManager.getNodeServiceMap(config.namespace)
       for (/** @type {NetworkNodeServices} **/ const networkNodeServices of config.serviceMap.values()) {
-        config.existingNodeIds.push(networkNodeServices.nodeName)
+        config.existingNodeAliases.push(networkNodeServices.nodeName)
       }
-      config.allNodeIds = [...config.existingNodeIds]
-      return this.taskCheckNetworkNodePods(ctx, task, config.existingNodeIds)
+      config.allnodeAliases = [...config.existingNodeAliases]
+      return this.taskCheckNetworkNodePods(ctx, task, config.existingNodeAliases)
     })
   }
 
   identifyNetworkPods () {
     return new Task('Identify network pods', async (ctx, task) => {
-      return this.taskCheckNetworkNodePods(ctx, task, ctx.config.nodeIds)
+      return this.taskCheckNetworkNodePods(ctx, task, ctx.config.nodeAliases)
     })
   }
 
