@@ -21,7 +21,7 @@ import {
   balanceQueryShouldSucceed,
   bootstrapNetwork,
   getDefaultArgv,
-  getNodeIdsPrivateKeysHash, getTmpDir,
+  getNodeAliasesPrivateKeysHash, getTmpDir,
   HEDERA_PLATFORM_VERSION_TAG
 } from '../../test_util.js'
 import { getNodeLogs } from '../../../src/core/helpers.mjs'
@@ -31,7 +31,7 @@ describe('Node add via separated commands should success', () => {
   const defaultTimeout = 120000
   const namespace = 'node-add-separated'
   const argv = getDefaultArgv()
-  argv[flags.nodeIDs.name] = 'node1,node2,node3'
+  argv[flags.nodeAliasesUnparsed.name] = 'node1,node2,node3'
   argv[flags.generateGossipKeys.name] = true
   argv[flags.generateTlsKeys.name] = true
   // set the env variable SOLO_FST_CHARTS_DIR if developer wants to use local FST charts
@@ -68,7 +68,7 @@ describe('Node add via separated commands should success', () => {
 
   it('cache current version of private keys', async () => {
     existingServiceMap = await nodeCmd.accountManager.getNodeServiceMap(namespace)
-    existingNodeIdsPrivateKeysHash = await getNodeIdsPrivateKeysHash(existingServiceMap, namespace, k8, getTmpDir())
+    existingNodeIdsPrivateKeysHash = await getNodeAliasesPrivateKeysHash(existingServiceMap, namespace, k8, getTmpDir())
   }, defaultTimeout)
 
   it('should succeed with init command', async () => {
@@ -101,14 +101,14 @@ describe('Node add via separated commands should success', () => {
   accountCreationShouldSucceed(nodeCmd.accountManager, nodeCmd, namespace)
 
   it('existing nodes private keys should not have changed', async () => {
-    const currentNodeIdsPrivateKeysHash = await getNodeIdsPrivateKeysHash(existingServiceMap, namespace, k8, getTmpDir())
+    const currentNodeIdsPrivateKeysHash = await getNodeAliasesPrivateKeysHash(existingServiceMap, namespace, k8, getTmpDir())
 
-    for (const [nodeId, existingKeyHashMap] of existingNodeIdsPrivateKeysHash.entries()) {
-      const currentNodeKeyHashMap = currentNodeIdsPrivateKeysHash.get(nodeId)
+    for (const [nodeAlias, existingKeyHashMap] of existingNodeIdsPrivateKeysHash.entries()) {
+      const currentNodeKeyHashMap = currentNodeIdsPrivateKeysHash.get(nodeAlias)
 
       for (const [keyFileName, existingKeyHash] of existingKeyHashMap.entries()) {
-        expect(`${nodeId}:${keyFileName}:${currentNodeKeyHashMap.get(keyFileName)}`).toEqual(
-            `${nodeId}:${keyFileName}:${existingKeyHash}`)
+        expect(`${nodeAlias}:${keyFileName}:${currentNodeKeyHashMap.get(keyFileName)}`).toEqual(
+            `${nodeAlias}:${keyFileName}:${existingKeyHash}`)
       }
     }
   }, defaultTimeout)

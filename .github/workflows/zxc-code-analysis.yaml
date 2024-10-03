@@ -317,7 +317,7 @@ jobs:
           files: "e2e_test_report/**/*.xml"
 
       - name: Publish To Codecov
-        uses: codecov/codecov-action@e28ff129e5465c2c0dcc6f003fc735cb6ae0c673 # v4.5.0
+        uses: codecov/codecov-action@b9fd7d16f6d7d1b5d2bec1a2887e65ceed900238 # v4.6.0
         if: ${{ inputs.enable-codecov-analysis && !cancelled() && !failure() }}
         env:
           CODECOV_TOKEN: ${{ secrets.codecov-token }}

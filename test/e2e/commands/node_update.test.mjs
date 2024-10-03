@@ -22,7 +22,7 @@ import {
   accountCreationShouldSucceed,
   balanceQueryShouldSucceed,
   bootstrapNetwork,
-  getDefaultArgv, getNodeIdsPrivateKeysHash, getTmpDir,
+  getDefaultArgv, getNodeAliasesPrivateKeysHash, getTmpDir,
   HEDERA_PLATFORM_VERSION_TAG
 } from '../../test_util.js'
 import { getNodeLogs } from '../../../src/core/helpers.mjs'
@@ -36,8 +36,8 @@ describe('Node update', () => {
   const updateNodeId = 'node2'
   const newAccountId = '0.0.7'
   const argv = getDefaultArgv()
-  argv[flags.nodeIDs.name] = 'node1,node2,node3'
-  argv[flags.nodeID.name] = updateNodeId
+  argv[flags.nodeAliasesUnparsed.name] = 'node1,node2,node3'
+  argv[flags.nodeAlias.name] = updateNodeId
 
   argv[flags.newAccountNumber.name] = newAccountId
   argv[flags.newAdminKey.name] = '302e020100300506032b6570042204200cde8d512569610f184b8b399e91e46899805c6171f7c2b8666d2a417bcc66c2'
@@ -65,7 +65,7 @@ describe('Node update', () => {
 
   it('cache current version of private keys', async () => {
     existingServiceMap = await nodeCmd.accountManager.getNodeServiceMap(namespace)
-    existingNodeIdsPrivateKeysHash = await getNodeIdsPrivateKeysHash(existingServiceMap, namespace, k8, getTmpDir())
+    existingNodeIdsPrivateKeysHash = await getNodeAliasesPrivateKeysHash(existingServiceMap, namespace, k8, getTmpDir())
   }, defaultTimeout)
 
   it('should succeed with init command', async () => {
@@ -103,19 +103,19 @@ describe('Node update', () => {
   accountCreationShouldSucceed(nodeCmd.accountManager, nodeCmd, namespace)
 
   it('signing key and tls key should not match previous one', async () => {
-    const currentNodeIdsPrivateKeysHash = await getNodeIdsPrivateKeysHash(existingServiceMap, namespace, k8, getTmpDir())
+    const currentNodeIdsPrivateKeysHash = await getNodeAliasesPrivateKeysHash(existingServiceMap, namespace, k8, getTmpDir())
 
-    for (const [nodeId, existingKeyHashMap] of existingNodeIdsPrivateKeysHash.entries()) {
-      const currentNodeKeyHashMap = currentNodeIdsPrivateKeysHash.get(nodeId)
+    for (const [nodeAlias, existingKeyHashMap] of existingNodeIdsPrivateKeysHash.entries()) {
+      const currentNodeKeyHashMap = currentNodeIdsPrivateKeysHash.get(nodeAlias)
 
       for (const [keyFileName, existingKeyHash] of existingKeyHashMap.entries()) {
-        if (nodeId === updateNodeId &&
+        if (nodeAlias === updateNodeId &&
           (keyFileName.startsWith(constants.SIGNING_KEY_PREFIX) || keyFileName.startsWith('hedera'))) {
-          expect(`${nodeId}:${keyFileName}:${currentNodeKeyHashMap.get(keyFileName)}`).not.toEqual(
-            `${nodeId}:${keyFileName}:${existingKeyHash}`)
+          expect(`${nodeAlias}:${keyFileName}:${currentNodeKeyHashMap.get(keyFileName)}`).not.toEqual(
+            `${nodeAlias}:${keyFileName}:${existingKeyHash}`)
         } else {
-          expect(`${nodeId}:${keyFileName}:${currentNodeKeyHashMap.get(keyFileName)}`).toEqual(
-            `${nodeId}:${keyFileName}:${existingKeyHash}`)
+          expect(`${nodeAlias}:${keyFileName}:${currentNodeKeyHashMap.get(keyFileName)}`).toEqual(
+            `${nodeAlias}:${keyFileName}:${existingKeyHash}`)
         }
       }
     }

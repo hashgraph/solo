@@ -31,7 +31,7 @@ const tmpDir = getTmpDir()
 const configFile = path.join(tmpDir, 'resource-manager.config')
 const configManager = new ConfigManager(testLogger, configFile)
 const profileManager = new ProfileManager(testLogger, configManager, tmpDir)
-configManager.setFlag(flags.nodeIDs, 'node1,node2,node4')
+configManager.setFlag(flags.nodeAliasesUnparsed, 'node1,node2,node4')
 const testProfileFile = path.join('test', 'data', 'test-profiles.yaml')
 configManager.setFlag(flags.cacheDir, getTestCacheDir('ProfileManager'))
 configManager.setFlag(flags.releaseTag, version.HEDERA_PLATFORM_VERSION)
@@ -195,7 +195,7 @@ describe('ProfileManager', () => {
       expect(configText.includes('node3')).toBeTruthy()
     })
 
-    it('should fail when no nodeIDs', () => {
+    it('should fail when no nodeAliases', () => {
       const nodeAccountMap = /** @type {Map<string, string>} */ new Map()
       expect(() => profileManager.prepareConfigTxt('', nodeAccountMap, '', version.HEDERA_PLATFORM_VERSION)).toThrow('nodeAccountMap the map of node IDs to account IDs is required')
     })
