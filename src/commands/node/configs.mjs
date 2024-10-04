@@ -14,7 +14,6 @@
  * limitations under the License.
  *
  */
-import * as flags from '../flags.mjs'
 import { FREEZE_ADMIN_ACCOUNT } from '../../core/constants.mjs'
 
 export const PREPARE_UPGRADE_CONFIGS_NAME = 'prepareUpgradeConfig'
