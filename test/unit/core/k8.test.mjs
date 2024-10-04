@@ -15,6 +15,8 @@
  *
  */
 import sinon from 'sinon'
+import { expect } from 'chai'
+import { describe, it, after, before } from 'mocha'
 
 import { constants, K8 } from '../../../src/core/index.mjs'
 import { getTestConfigManager, testLogger } from '../../test_util.js'

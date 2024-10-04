@@ -14,6 +14,9 @@
  * limitations under the License.
  *
  */
+import { expect } from 'chai'
+import { describe, it } from 'mocha'
+
 import * as core from '../../../src/core/index.mjs'
 import * as fs from 'fs'
 import * as path from 'path'
@@ -37,11 +40,11 @@ describe('PackageDownloader', () => {
 
   describe('fetchFile', () => {
     it('should fail if source URL is missing', async () => {
-      await expect(downloader.fetchFile('', os.tmpdir())).to.eventually.be.rejected('package URL is required')
+      await expect(downloader.fetchFile('', os.tmpdir())).to.eventually.be.rejectedWith('package URL is required')
     })
 
     it('should fail if destination path is missing', async () => {
-      await expect(downloader.fetchFile('https://localhost', '')).to.eventually.be.rejected('destination path is required')
+      await expect(downloader.fetchFile('https://localhost', '')).to.eventually.be.rejectedWith('destination path is required')
     })
 
     it('should fail with a malformed URL', async () => {

@@ -14,6 +14,8 @@
  * limitations under the License.
  *
  */
+import { expect } from 'chai'
+
 import { HelmDependencyManager, DependencyManager } from '../../../src/core/dependency_managers/index.mjs'
 import {
   ChartManager,
@@ -93,7 +95,7 @@ describe('BaseCommand', () => {
       expect(newClassInstance1.valuesFile).to.equal('file3')
       expect(newClassInstance1.var1).to.equal('')
       expect(newClassInstance1.var2).to.equal('')
-      expect(baseCmd.getUnusedConfigs(NEW_CLASS1_NAME)).to.equal([])
+      expect(baseCmd.getUnusedConfigs(NEW_CLASS1_NAME)).to.deep.equal([])
 
       const NEW_CLASS2_NAME = 'newClassInstance2'
       const newClassInstance2 = /** @type {newClassInstance} **/ baseCmd.getConfig(NEW_CLASS2_NAME, flagsList, extraVars)

@@ -15,6 +15,9 @@
  *
  * @mocha-environment steps
  */
+import { expect } from 'chai'
+import { describe, it, after } from 'mocha'
+
 import {
   accountCreationShouldSucceed,
   balanceQueryShouldSucceed,
@@ -56,7 +59,7 @@ export function testNodeAdd (localBuildPath
     let existingServiceMap
     let existingNodeIdsPrivateKeysHash
 
-    after(async () => {
+    after(async function () {
       this.timeout(10 * MINUTES)
 
       await getNodeLogs(k8, namespace)

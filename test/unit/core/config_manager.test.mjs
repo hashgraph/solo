@@ -14,8 +14,8 @@
  * limitations under the License.
  *
  */
-import { it, describe, after } from 'mocha'
 import { expect } from 'chai'
+import { describe, it, after } from 'mocha'
 
 import os from 'os'
 import path from 'path'

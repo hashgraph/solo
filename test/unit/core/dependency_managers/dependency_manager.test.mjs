@@ -14,6 +14,9 @@
  * limitations under the License.
  *
  */
+import { expect } from 'chai'
+import { describe, it } from 'mocha'
+
 import { DependencyManager, HelmDependencyManager } from '../../../../src/core/dependency_managers/index.mjs'
 import { logging, constants, PackageDownloader, Zippy } from '../../../../src/core/index.mjs'
 import { SoloError } from '../../../../src/core/errors.mjs'
@@ -32,7 +35,7 @@ describe('DependencyManager', () => {
   describe('checkDependency', () => {
     it('should fail during invalid dependency check', async () => {
       await expect(depManager.checkDependency('INVALID_PROGRAM'))
-        .to.eventually.be.rejectedWith(new SoloError("Dependency 'INVALID_PROGRAM' is not found"))
+        .to.eventually.be.rejectedWith("Dependency 'INVALID_PROGRAM' is not found")
     })
 
     it('should succeed during helm dependency check', async () => {

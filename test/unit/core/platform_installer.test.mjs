@@ -14,6 +14,9 @@
  * limitations under the License.
  *
  */
+import { expect } from 'chai'
+import { describe, it } from 'mocha'
+
 import * as core from '../../../src/core/index.mjs'
 import { ConfigManager, PlatformInstaller } from '../../../src/core/index.mjs'
 import * as fs from 'fs'

@@ -14,11 +14,9 @@
  * limitations under the License.
  *
  */
-'use strict'
 import * as chai from 'chai'
 import chaiAsPromised from 'chai-as-promised'
+import sinonChai from 'sinon-chai'
 
-// eslint-disable-next-line no-unused-vars
 chai.use(chaiAsPromised)
-
-global.expect = chai.expect
+chai.use(sinonChai)

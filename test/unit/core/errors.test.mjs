@@ -14,6 +14,9 @@
  * limitations under the License.
  *
  */
+import { expect } from 'chai'
+import { describe, it } from 'mocha'
+
 import {
   SoloError,
   ResourceNotFoundError,
@@ -28,55 +31,50 @@ describe('Errors', () => {
 
   it('should construct correct SoloError', () => {
     const error = new SoloError(message, cause)
-    expect(error)
-      .to.be.instanceof(Error)
-      .and.to.have.property('name').that.equals('SoloError')
-      .and.to.have.property('message').that.equals(message)
-      .and.to.have.property('cause').that.equals(cause)
-      .and.to.have.property('meta').that.deep.equals({})
+    expect(error).to.be.instanceof(Error)
+    expect(error.name).to.equal('SoloError')
+    expect(error.message).to.equal(message)
+    expect(error.cause).to.deep.equal(cause)
+    expect(error.meta).to.deep.equal({})
   })
 
   it('should construct correct ResourceNotFoundError', () => {
     const resource = 'resource'
     const error = new ResourceNotFoundError(message, resource)
-    expect(error)
-      .to.be.instanceof(SoloError)
-      .and.to.have.property('name').that.equals('ResourceNotFoundError')
-      .and.to.have.property('message').that.equals(message)
-      .and.to.have.property('cause').that.equals({})
-      .and.to.have.property('meta').that.deep.equals({ resource })
+    expect(error).to.be.instanceof(SoloError)
+    expect(error.name).to.equal('ResourceNotFoundError')
+    expect(error.message).to.equal(message)
+    expect(error.cause).to.deep.equal({})
+    expect(error.meta).to.deep.equal(resource)
   })
 
   it('should construct correct MissingArgumentError', () => {
     const error = new MissingArgumentError(message)
-    expect(error)
-      .to.be.instanceof(SoloError)
-      .and.to.have.property('name').that.equals('MissingArgumentError')
-      .and.to.have.property('message').that.equals(message)
-      .and.to.have.property('cause').that.equals({})
-      .and.to.have.property('meta').that.deep.equals({})
+    expect(error).to.be.instanceof(SoloError)
+    expect(error.name).to.equal('MissingArgumentError')
+    expect(error.message).to.equal(message)
+    expect(error.cause).to.deep.equal({})
+    expect(error.meta).to.deep.equal({})
   })
 
   it('should construct correct IllegalArgumentError', () => {
     const value = 'invalid argument'
     const error = new IllegalArgumentError(message, value)
-    expect(error)
-      .to.be.instanceof(SoloError)
-      .and.to.have.property('name').that.equals('IllegalArgumentError')
-      .and.to.have.property('message').that.equals(message)
-      .and.to.have.property('cause').that.equals({})
-      .and.to.have.property('meta').that.deep.equals({ value })
+    expect(error).to.be.instanceof(SoloError)
+    expect(error.name).to.equal('IllegalArgumentError')
+    expect(error.message).to.equal(message)
+    expect(error.cause).to.deep.equal({})
+    expect(error.meta).to.deep.equal({ value })
   })
 
   it('should construct correct DataValidationError', () => {
     const expected = 'expected'
     const found = 'found'
     const error = new DataValidationError(message, expected, found)
-    expect(error)
-      .to.be.instanceof(SoloError)
-      .and.to.have.property('name').that.equals('DataValidationError')
-      .and.to.have.property('message').that.equals(message)
-      .and.to.have.property('cause').that.equals({})
-      .and.to.have.property('meta').that.deep.equals({ expected, found })
+    expect(error).to.be.instanceof(SoloError)
+    expect(error.name).to.equal('DataValidationError')
+    expect(error.message).to.equal(message)
+    expect(error.cause).to.deep.equal({})
+    expect(error.meta).to.deep.equal({ expected, found })
   })
 })

@@ -14,6 +14,9 @@
  * limitations under the License.
  *
  */
+import { expect } from 'chai'
+import { describe, it, after } from 'mocha'
+
 import fs from 'fs'
 import * as yaml from 'js-yaml'
 import path from 'path'

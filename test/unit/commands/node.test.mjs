@@ -15,6 +15,7 @@
  *
  */
 import sinon from 'sinon'
+import { expect } from 'chai'
 
 import { NodeCommand } from '../../../src/commands/node.mjs'
 

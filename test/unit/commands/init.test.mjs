@@ -14,6 +14,8 @@
  * limitations under the License.
  *
  */
+import { expect } from 'chai'
+
 import { InitCommand } from '../../../src/commands/init.mjs'
 import {
   HelmDependencyManager,

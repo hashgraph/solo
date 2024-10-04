@@ -14,6 +14,9 @@
  * limitations under the License.
  *
  */
+import { expect } from 'chai'
+import { describe, it } from 'mocha'
+
 import * as helpers from '../../../src/core/helpers.mjs'
 import { HEDERA_PLATFORM_VERSION } from '../../../version.mjs'
 

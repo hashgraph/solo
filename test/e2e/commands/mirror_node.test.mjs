@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
- * @jest-environment steps
+ * @mocha-environment steps
  */
 import { flags } from '../../../src/commands/index.mjs'
 import {

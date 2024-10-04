@@ -14,6 +14,9 @@
  * limitations under the License.
  *
  */
+import { expect } from 'chai'
+import { describe, it } from 'mocha'
+
 import * as core from '../../../src/core/index.mjs'
 import { SoloError, IllegalArgumentError, MissingArgumentError } from '../../../src/core/errors.mjs'
 import os from 'os'

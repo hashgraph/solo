@@ -83,7 +83,7 @@ describe('ClusterCommand', () => {
   it('solo cluster setup should fail with invalid cluster name', async () => {
     argv[flags.clusterSetupNamespace.name] = 'INVALID'
     configManager.update(argv, true)
-    await expect(clusterCmd.setup(argv)).to.eventually.be.rejected('Error on cluster setup')
+    await expect(clusterCmd.setup(argv)).to.eventually.be.rejectedWith('Error on cluster setup')
   }).timeout(1 * MINUTES)
 
   it('solo cluster setup should work with valid args', async () => {
@@ -110,7 +110,7 @@ describe('ClusterCommand', () => {
     configManager.update(argv, true)
 
     try {
-      await expect(clusterCmd.reset(argv)).to.eventually.be.rejected('Error on cluster reset')
+      await expect(clusterCmd.reset(argv)).to.eventually.be.rejectedWith('Error on cluster reset')
     } catch (e) {
       clusterCmd.logger.showUserError(e)
       expect(e).to.be.null

@@ -15,6 +15,8 @@
  *
  */
 import sinon from 'sinon'
+import { expect } from 'chai'
+import { describe, it, afterEach, beforeEach } from 'mocha'
 
 import { constants, Keytool, logging, Templates } from '../../../src/core/index.mjs'
 import { ShellRunner } from '../../../src/core/shell_runner.mjs'
