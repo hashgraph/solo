@@ -13,9 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
- * @jest-environment steps
+ * @mocha-environment steps
  */
-import { afterAll, describe, expect, it } from '@jest/globals'
+import { describe, it, after } from 'mocha'
+import { expect } from 'chai'
+
 import { flags } from '../../../src/commands/index.mjs'
 import {
   bootstrapNetwork,
@@ -24,6 +26,7 @@ import {
 } from '../../test_util.js'
 import { getNodeLogs } from '../../../src/core/helpers.mjs'
 import { PREPARE_UPGRADE_CONFIGS_NAME, DOWNLOAD_GENERATED_FILES_CONFIGS_NAME } from '../../../src/commands/node/configs.mjs'
+import { MINUTES } from "../../../src/core/constants.mjs";
 
 describe('Node upgrade', () => {
   const namespace = 'node-upgrade'
@@ -44,36 +47,38 @@ describe('Node upgrade', () => {
   const accountCmd = bootstrapResp.cmd.accountCmd
   const k8 = bootstrapResp.opts.k8
 
-  afterAll(async () => {
+  after(async function () {
+    this.timeout(10 * MINUTES)
+
     await getNodeLogs(k8, namespace)
     await k8.deleteNamespace(namespace)
-  }, 600000)
+  })
 
   it('should succeed with init command', async () => {
     const status = await accountCmd.init(argv)
-    expect(status).toBeTruthy()
-  }, 450000)
+    expect(status).to.be.ok
+  }).timeout(8 * MINUTES)
 
   it('should prepare network upgrade successfully', async () => {
     await nodeCmd.prepareUpgrade(upgradeArgv)
-    expect(nodeCmd.getUnusedConfigs(PREPARE_UPGRADE_CONFIGS_NAME)).toEqual([
+    expect(nodeCmd.getUnusedConfigs(PREPARE_UPGRADE_CONFIGS_NAME)).to.deep.equal([
       flags.devMode.constName
     ])
-  }, 300000)
+  }).timeout(5 * MINUTES)
 
   it('should download generated files successfully', async () => {
     await nodeCmd.downloadGeneratedFiles(upgradeArgv)
-    expect(nodeCmd.getUnusedConfigs(DOWNLOAD_GENERATED_FILES_CONFIGS_NAME)).toEqual([
+    expect(nodeCmd.getUnusedConfigs(DOWNLOAD_GENERATED_FILES_CONFIGS_NAME)).to.deep.equal([
       flags.devMode.constName,
       'allNodeAliases'
     ])
-  }, 300000)
+  }).timeout(5 * MINUTES)
 
   it('should upgrade all nodes on the network successfully', async () => {
     await nodeCmd.freezeUpgrade(upgradeArgv)
-    expect(nodeCmd.getUnusedConfigs(PREPARE_UPGRADE_CONFIGS_NAME)).toEqual([
+    expect(nodeCmd.getUnusedConfigs(PREPARE_UPGRADE_CONFIGS_NAME)).to.deep.equal([
       flags.devMode.constName
     ])
     await nodeCmd.accountManager.close()
-  }, 300000)
+  }).timeout(5 * MINUTES)
 })

@@ -18,7 +18,7 @@ import { expect } from 'chai'
 import { describe, it } from 'mocha'
 
 import * as core from '../../../src/core/index.mjs'
-import { SoloError, IllegalArgumentError, MissingArgumentError } from '../../../src/core/errors.mjs'
+import { IllegalArgumentError, MissingArgumentError, SoloError } from '../../../src/core/errors.mjs'
 import os from 'os'
 import fs from 'fs'
 import path from 'path'
@@ -29,24 +29,24 @@ describe('Zippy', () => {
   const zippy = new Zippy(testLogger)
 
   describe('unzip', () => {
-    it('should fail if source file is missing', async () => {
-      await expect(zippy.unzip('', '')).to.be.rejectedWith(MissingArgumentError)
+    it('should fail if source file is missing', () => {
+      expect(() => zippy.unzip('', '')).to.throw(MissingArgumentError)
     })
 
-    it('should fail if destination file is missing', async () => {
-      await expect(zippy.unzip('', '')).to.be.rejectedWith(MissingArgumentError)
+    it('should fail if destination file is missing', () => {
+      expect(() => zippy.unzip('test/data/test.zip', '')).to.throw(MissingArgumentError)
     })
 
-    it('should fail if source file is invalid', async () => {
-      await expect(zippy.unzip('/INVALID', os.tmpdir())).to.be.rejectedWith(IllegalArgumentError)
+    it('should fail if source file is invalid', () => {
+      expect(() => zippy.unzip('/INVALID', os.tmpdir())).to.throw(IllegalArgumentError)
     })
 
-    it('should fail for a directory', async () => {
-      await expect(zippy.unzip('test/data', os.tmpdir())).to.be.rejectedWith(SoloError)
+    it('should fail for a directory', () => {
+      expect(() => zippy.unzip('test/data', os.tmpdir())).to.throw(SoloError)
     })
 
-    it('should fail for a non-zip file', async () => {
-      await expect(zippy.unzip('test/data/test.txt', os.tmpdir())).to.be.rejectedWith(SoloError)
+    it('should fail for a non-zip file', () => {
+      expect(() => zippy.unzip('test/data/test.txt', os.tmpdir())).to.throw(SoloError)
     })
 
     it('should succeed for valid inputs', async () => {
@@ -54,38 +54,38 @@ describe('Zippy', () => {
       const zipFile = `${tmpDir}/test.zip`
       const unzippedFile = `${tmpDir}/unzipped`
       await expect(zippy.zip('test/data/.empty', zipFile)).to.eventually.equal(zipFile)
-      await expect(zippy.unzip(zipFile, unzippedFile, true)).to.equal(unzippedFile)
-      fs.rmSync(tmpDir, { recursive: true, force: true }) // not very safe!
+      expect(zippy.unzip(zipFile, unzippedFile, true)).to.equal(unzippedFile)
+      fs.rmSync(tmpDir, {recursive: true, force: true})
     })
   })
 
   describe('untar', () => {
-    it('should fail if source file is missing', async () => {
-      expect(zippy.untar('', '')).to.eventually.be.rejectedWith(MissingArgumentError)
+    it('should fail if source file is missing', () => {
+      expect(() => zippy.untar('', '')).to.throw(MissingArgumentError)
     })
 
-    it('should fail if destination file is missing', async () => {
-      expect(zippy.untar('', '')).to.eventually.be.rejectedWith(MissingArgumentError)
+    it('should fail if destination file is missing', () => {
+      expect(() => zippy.untar('test/data/test.tar', '')).to.throw(MissingArgumentError)
     })
 
-    it('should fail if source file is invalid', async () => {
-      expect(zippy.untar('/INVALID', os.tmpdir())).to.eventually.be.rejectedWith(IllegalArgumentError)
+    it('should fail if source file is invalid', () => {
+      expect(() => zippy.untar('/INVALID', os.tmpdir())).to.throw(IllegalArgumentError)
     })
 
-    it('should fail for a directory', async () => {
-      expect(zippy.untar('test/data', os.tmpdir())).to.eventually.be.rejectedWith(SoloError)
+    it('should fail for a directory', () => {
+      expect(() => zippy.untar('test/data', os.tmpdir())).to.throw(SoloError)
     })
 
-    it('should fail for a non-tar file', async () => {
-      expect(zippy.untar('test/data/test.txt', os.tmpdir())).to.eventually.be.rejectedWith(SoloError)
+    it('should fail for a non-tar file', () => {
+      expect(() => zippy.untar('test/data/test.txt', os.tmpdir())).to.throw(SoloError)
     })
 
     it('should succeed for valid inputs', () => {
       const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'installer-'))
       const tarFile = `${tmpDir}/test.tar.gz`
-      await expect(zippy.tar('test/data/.empty', tarFile), 'tar file should match').to.eventually.equal(tarFile)
-      await expect(zippy.untar(tarFile, tmpDir, true), 'tmp dir should match').to.eventually.equal(tmpDir)
-      fs.rmSync(tmpDir, { recursive: true, force: true }) // not very safe!
+      expect(zippy.tar('test/data/.empty', tarFile)).to.equal(tarFile)
+      expect(zippy.untar(tarFile, tmpDir, true)).to.equal(tmpDir)
+      fs.rmSync(tmpDir, {recursive: true, force: true})
     })
   })
 })
