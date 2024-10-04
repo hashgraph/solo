@@ -47,7 +47,7 @@ import {
   AccountCreateTransaction, Hbar, HbarUnit,
   PrivateKey
 } from '@hashgraph/sdk'
-import { ROOT_CONTAINER } from '../src/core/constants.mjs'
+import { MINUTES, ROOT_CONTAINER, SECONDS } from '../src/core/constants.mjs'
 import crypto from 'crypto'
 import { AccountCommand } from '../src/commands/account.mjs'
 import { SoloError } from '../src/core/errors.mjs'
@@ -212,23 +212,23 @@ export function bootstrapNetwork (testName, argv,
 
         while (await k8.hasNamespace(namespace)) {
           testLogger.debug(`Namespace ${namespace} still exist. Waiting...`)
-          await sleep(1_500)
+          await sleep(1.5 * SECONDS)
         }
       }
 
       if (!await chartManager.isChartInstalled(constants.FULLSTACK_SETUP_NAMESPACE, constants.FULLSTACK_CLUSTER_SETUP_CHART)) {
         await clusterCmd.setup(argv)
       }
-    }).timeout(120_000)
+    }).timeout(2 * MINUTES)
 
     it('generate key files', async () => {
-      await expect(nodeCmd.keys(argv)).should.eventually.be.ok
+      await expect(nodeCmd.keys(argv)).to.eventually.be.ok
       expect(nodeCmd.getUnusedConfigs(NodeCommand.KEYS_CONFIGS_NAME)).to.deep.equal([
         flags.cacheDir.constName,
         flags.devMode.constName,
         flags.quiet.constName
       ])
-    }).timeout(120_000)
+    }).timeout(2 * MINUTES)
 
     it('should succeed with network deploy', async () => {
       await networkCmd.deploy(argv)
@@ -245,13 +245,13 @@ export function bootstrapNetwork (testName, argv,
         flags.quiet.constName,
         flags.settingTxt.constName
       ])
-    }).timeout(180_000)
+    }).timeout(2 * MINUTES)
 
     if (startNodes) {
       it('should succeed with node setup command', async () => {
         // cache this, because `solo node setup.finalize()` will reset it to false
         try {
-          await expect(nodeCmd.setup(argv)).should.eventually.be.ok
+          await expect(nodeCmd.setup(argv)).to.eventually.be.ok
           expect(nodeCmd.getUnusedConfigs(NodeCommand.SETUP_CONFIGS_NAME)).to.deep.equal([
             flags.app.constName,
             flags.appConfig.constName,
@@ -261,16 +261,16 @@ export function bootstrapNetwork (testName, argv,
           nodeCmd.logger.showUserError(e)
           expect(e).be.null
         }
-      }).timeout(240_000)
+      }).timeout(4 * MINUTES)
 
       it('should succeed with node start command', async () => {
         try {
-          await expect(nodeCmd.start(argv)).should.eventually.be.ok
+          await expect(nodeCmd.start(argv)).to.eventually.be.ok
         } catch (e) {
           nodeCmd.logger.showUserError(e)
           expect(e).to.be.null
         }
-      }).timeout(1_800_000)
+      }).timeout(30 * MINUTES)
     }
   })
 
@@ -293,8 +293,8 @@ export function balanceQueryShouldSucceed (accountManager, cmd, namespace) {
       cmd.logger.showUserError(e)
       expect(e).to.be.null
     }
-    await sleep(1000)
-  }).timeout(120_000)
+    await sleep(1 * SECONDS)
+  }).timeout(2 * MINUTES)
 }
 
 export function accountCreationShouldSucceed (accountManager, nodeCmd, namespace) {
@@ -325,7 +325,7 @@ export function accountCreationShouldSucceed (accountManager, nodeCmd, namespace
       nodeCmd.logger.showUserError(e)
       expect(e).to.be.null
     }
-  }).timeout(120_000)
+  }).timeout(2 * MINUTES)
 }
 
 export async function getNodeIdsPrivateKeysHash (networkNodeServicesMap, namespace, k8, destDir) {

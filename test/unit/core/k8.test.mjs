@@ -14,7 +14,6 @@
  * limitations under the License.
  *
  */
-import { expect } from 'chai'
 import sinon from 'sinon'
 
 import { constants, K8 } from '../../../src/core/index.mjs'

@@ -15,7 +15,7 @@
  *
  */
 'use strict'
-import chai from 'chai'
+import * as chai from 'chai'
 import chaiAsPromised from 'chai-as-promised'
 
 // eslint-disable-next-line no-unused-vars

@@ -27,12 +27,13 @@ import {
 import { flags } from '../src/commands/index.mjs'
 import { getNodeLogs } from '../src/core/helpers.mjs'
 import { NodeCommand } from '../src/commands/node.mjs'
+import { MINUTES } from '../src/core/constants.mjs'
 
 export function testNodeAdd (localBuildPath
 ) {
   describe('Node add should success', () => {
     const suffix = localBuildPath.substring(0, 5)
-    const defaultTimeout = 120_000
+    const defaultTimeout = 2 * MINUTES
     const namespace = 'node-add' + suffix
     const argv = getDefaultArgv()
     argv[flags.nodeIDs.name] = 'node1,node2,node3'
@@ -56,7 +57,7 @@ export function testNodeAdd (localBuildPath
     let existingNodeIdsPrivateKeysHash
 
     after(async () => {
-      this.timeout(600_000)
+      this.timeout(10 * MINUTES)
 
       await getNodeLogs(k8, namespace)
       await nodeCmd.accountManager.close()
@@ -73,7 +74,7 @@ export function testNodeAdd (localBuildPath
     it('should succeed with init command', async () => {
       const status = await accountCmd.init(argv)
       expect(status).to.be.ok
-    }).timeout(450_000)
+    }).timeout(8 * MINUTES)
 
     it('should add a new node to the network successfully', async () => {
       await nodeCmd.add(argv)
@@ -85,7 +86,7 @@ export function testNodeAdd (localBuildPath
         flags.adminKey.constName
       ])
       await nodeCmd.accountManager.close()
-    }).timeout(800_000)
+    }).timeout(12 * MINUTES)
 
     balanceQueryShouldSucceed(nodeCmd.accountManager, nodeCmd, namespace)
 

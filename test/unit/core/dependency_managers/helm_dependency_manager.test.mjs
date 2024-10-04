@@ -50,20 +50,28 @@ describe('HelmDependencyManager', () => {
     expect(helmDependencyManager.isInstalled()).to.be.ok
   })
 
-  it.each(
-    [{ osPlatform: 'linux', osArch: 'x64' }, { osRelease: 'linux', osArch: 'amd64' }, { osRelease: 'windows', osArch: 'amd64' }],
-    'should be able to install helm base on os and architecture',
-    async (input) => {
-      const helmDependencyManager = new HelmDependencyManager(downloader, zippy, testLogger, tmpDir, input.osPlatform, input.osArch)
-      if (fs.existsSync(tmpDir)) {
-        fs.rmSync(tmpDir, { recursive: true })
-      }
+  const testCases = [
+    { osPlatform: 'linux', osArch: 'x64' },
+    { osRelease: 'linux', osArch: 'amd64' },
+    { osRelease: 'windows', osArch: 'amd64' }
+  ]
+  describe('Helm Installation Tests', () => {
+    testCases.forEach((input) => {
+      it(`should be able to install helm for osPlatform: ${input.osPlatform || input.osRelease}, osArch: ${input.osArch}`, async () => {
+        const helmDependencyManager = new HelmDependencyManager(downloader, zippy, testLogger, tmpDir, input.osPlatform, input.osArch)
 
-      await helmDependencyManager.uninstall()
-      expect(helmDependencyManager.isInstalled()).not.to.be.ok
-      await expect(helmDependencyManager.install(getTestCacheDir())).should.eventually.be.ok
-      expect(helmDependencyManager.isInstalled()).should.eventually.be.ok
-      fs.rmSync(tmpDir, { recursive: true })
-    }
-  )
+        if (fs.existsSync(tmpDir)) {
+          fs.rmSync(tmpDir, { recursive: true })
+        }
+
+        await helmDependencyManager.uninstall()
+        expect(helmDependencyManager.isInstalled()).not.to.be.ok
+
+        await expect(helmDependencyManager.install(getTestCacheDir())).to.eventually.be.ok
+        expect(helmDependencyManager.isInstalled()).to.eventually.be.ok
+
+        fs.rmSync(tmpDir, { recursive: true })
+      })
+    })
+  })
 })

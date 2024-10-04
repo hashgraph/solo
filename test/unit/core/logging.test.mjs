@@ -37,15 +37,15 @@ describe('Logging', () => {
     const meta = logger.prepMeta()
 
     logger.error('Error log')
-    expect(loggerSpy).should.have.been.calledWith('error', 'Error log', meta)
+    expect(loggerSpy).to.have.been.calledWith('error', 'Error log', meta)
 
     logger.warn('Warn log')
-    expect(loggerSpy).should.have.been.calledWith('warn', 'Warn log', meta)
+    expect(loggerSpy).to.have.been.calledWith('warn', 'Warn log', meta)
 
     logger.info('Info log')
-    expect(loggerSpy).should.have.been.calledWith('info', 'Info log', meta)
+    expect(loggerSpy).to.have.been.calledWith('info', 'Info log', meta)
 
     logger.debug('Debug log')
-    expect(loggerSpy).should.have.been.calledWith('debug', 'Debug log', meta)
+    expect(loggerSpy).to.have.been.calledWith('debug', 'Debug log', meta)
   })
 })

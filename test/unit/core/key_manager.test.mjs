@@ -18,6 +18,7 @@ import fs from 'fs'
 import os from 'os'
 import path from 'path'
 import { constants, logging, KeyManager } from '../../../src/core/index.mjs'
+import { SECONDS } from '../../../src/core/constants.mjs'
 
 describe('KeyManager', () => {
   const logger = logging.NewLogger('debug', true)
@@ -78,5 +79,5 @@ describe('KeyManager', () => {
     })).to.eventually.be.ok
 
     fs.rmSync(tmpDir, { recursive: true })
-  }).timeout(20_000)
+  }).timeout(20 * SECONDS)
 })

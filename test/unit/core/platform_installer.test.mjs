@@ -37,24 +37,24 @@ describe('PackageInstaller', () => {
 
   describe('validatePlatformReleaseDir', () => {
     it('should fail for missing path', async () => {
-      await installer.validatePlatformReleaseDir('').should.be.rejectedWith(MissingArgumentError)
+      await expect(installer.validatePlatformReleaseDir('')).to.eventually.be.rejectedWith(MissingArgumentError)
     })
 
     it('should fail for invalid path', async () => {
-      await installer.validatePlatformReleaseDir('/INVALID').should.be.rejectedWith(IllegalArgumentError)
+      await expect(installer.validatePlatformReleaseDir('/INVALID')).to.eventually.be.rejectedWith(IllegalArgumentError)
     })
 
     it('should fail if directory does not have data/apps directory', async () => {
       const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'installer-'))
       fs.mkdirSync(`${tmpDir}/${core.constants.HEDERA_DATA_LIB_DIR}`, { recursive: true })
-      await installer.validatePlatformReleaseDir(tmpDir).should.be.rejectedWith(IllegalArgumentError)
+      await expect(installer.validatePlatformReleaseDir(tmpDir)).to.eventually.be.rejectedWith(IllegalArgumentError)
       fs.rmSync(tmpDir, { recursive: true })
     })
 
     it('should fail if directory does not have data/libs directory', async () => {
       const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'installer-'))
       fs.mkdirSync(`${tmpDir}/${core.constants.HEDERA_DATA_APPS_DIR}`, { recursive: true })
-      await installer.validatePlatformReleaseDir(tmpDir).should.be.rejectedWith(IllegalArgumentError)
+      await expect(installer.validatePlatformReleaseDir(tmpDir)).to.eventually.be.rejectedWith(IllegalArgumentError)
       fs.rmSync(tmpDir, { recursive: true })
     })
 
@@ -63,7 +63,7 @@ describe('PackageInstaller', () => {
       fs.mkdirSync(`${tmpDir}/${core.constants.HEDERA_DATA_APPS_DIR}`, { recursive: true })
       fs.mkdirSync(`${tmpDir}/${core.constants.HEDERA_DATA_LIB_DIR}`, { recursive: true })
       fs.writeFileSync(`${tmpDir}/${core.constants.HEDERA_DATA_LIB_DIR}/test.jar`, '')
-      await installer.validatePlatformReleaseDir().should.be.rejectedWith(MissingArgumentError)
+      await expect(installer.validatePlatformReleaseDir()).to.eventually.be.rejectedWith(MissingArgumentError)
       fs.rmSync(tmpDir, { recursive: true })
     })
 
@@ -72,7 +72,7 @@ describe('PackageInstaller', () => {
       fs.mkdirSync(`${tmpDir}/${core.constants.HEDERA_DATA_APPS_DIR}`, { recursive: true })
       fs.writeFileSync(`${tmpDir}/${core.constants.HEDERA_DATA_APPS_DIR}/app.jar`, '')
       fs.mkdirSync(`${tmpDir}/${core.constants.HEDERA_DATA_LIB_DIR}`, { recursive: true })
-      await installer.validatePlatformReleaseDir().should.be.rejectedWith(MissingArgumentError)
+      await expect(installer.validatePlatformReleaseDir()).to.eventually.be.rejectedWith(MissingArgumentError)
       fs.rmSync(tmpDir, { recursive: true })
     })
 
@@ -82,27 +82,27 @@ describe('PackageInstaller', () => {
       fs.writeFileSync(`${tmpDir}/${core.constants.HEDERA_DATA_APPS_DIR}/app.jar`, '')
       fs.mkdirSync(`${tmpDir}/${core.constants.HEDERA_DATA_LIB_DIR}`, { recursive: true })
       fs.writeFileSync(`${tmpDir}/${core.constants.HEDERA_DATA_LIB_DIR}/lib-1.jar`, '')
-      await installer.validatePlatformReleaseDir().should.be.rejectedWith(MissingArgumentError)
+      await expect(installer.validatePlatformReleaseDir()).to.eventually.be.rejectedWith(MissingArgumentError)
       fs.rmSync(tmpDir, { recursive: true })
     })
   })
 
   describe('extractPlatform', () => {
     it('should fail for missing pod name', async () => {
-      await installer.fetchPlatform('', 'v0.42.5').should.be.rejectedWith(MissingArgumentError)
+      await expect(installer.fetchPlatform('', 'v0.42.5')).to.eventually.be.rejectedWith(MissingArgumentError)
     })
     it('should fail for missing tag', async () => {
-      await installer.fetchPlatform('network-node1-0', '').should.be.rejectedWith(MissingArgumentError)
+      await expect(installer.fetchPlatform('network-node1-0', '')).to.eventually.be.rejectedWith(MissingArgumentError)
     })
   })
 
   describe('copyGossipKeys', () => {
     it('should fail for missing podName', async () => {
-      await installer.copyGossipKeys('', os.tmpdir()).should.be.rejectedWith(MissingArgumentError)
+      await expect(installer.copyGossipKeys('', os.tmpdir())).to.eventually.be.rejectedWith(MissingArgumentError)
     })
 
     it('should fail for missing stagingDir path', async () => {
-      await installer.copyGossipKeys('node1', '').should.be.rejectedWith(MissingArgumentError)
+      await expect(installer.copyGossipKeys('node1', '')).to.eventually.be.rejectedWith(MissingArgumentError)
     })
   })
 })

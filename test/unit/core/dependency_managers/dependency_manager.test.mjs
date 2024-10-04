@@ -32,7 +32,7 @@ describe('DependencyManager', () => {
   describe('checkDependency', () => {
     it('should fail during invalid dependency check', async () => {
       await expect(depManager.checkDependency('INVALID_PROGRAM'))
-        .should.eventually.be.rejectedWith(new SoloError("Dependency 'INVALID_PROGRAM' is not found"))
+        .to.eventually.be.rejectedWith(new SoloError("Dependency 'INVALID_PROGRAM' is not found"))
     })
 
     it('should succeed during helm dependency check', async () => {

@@ -69,86 +69,90 @@ describe('ProfileManager', () => {
     }
   })
 
-  describe.each([
+  const testCases = [
     { profileName: 'test', profileFile: testProfileFile }
-  ])('determine chart values for a profile', (input) => {
-    it(`should determine FST chart values [profile = ${input.profileName}]`, async () => {
-      configManager.setFlag(flags.profileFile, input.profileFile)
+  ]
 
-      const resources = ['templates', 'profiles']
-      for (const dirName of resources) {
-        const srcDir = path.resolve(path.join(constants.RESOURCES_DIR, dirName))
-        if (!fs.existsSync(srcDir)) continue
+  describe('determine chart values for a profile', () => {
+    testCases.forEach((input) => {
+      it(`should determine FST chart values [profile = ${input.profileName}]`, async () => {
+        configManager.setFlag(flags.profileFile, input.profileFile)
 
-        const destDir = path.resolve(path.join(cacheDir, dirName))
-        if (!fs.existsSync(destDir)) {
-          fs.mkdirSync(destDir, { recursive: true })
+        const resources = ['templates', 'profiles']
+        for (const dirName of resources) {
+          const srcDir = path.resolve(path.join(constants.RESOURCES_DIR, dirName))
+          if (!fs.existsSync(srcDir)) continue
+
+          const destDir = path.resolve(path.join(cacheDir, dirName))
+          if (!fs.existsSync(destDir)) {
+            fs.mkdirSync(destDir, { recursive: true })
+          }
+
+          fs.cpSync(srcDir, destDir, { recursive: true })
         }
 
-        fs.cpSync(srcDir, destDir, { recursive: true })
-      }
+        profileManager.loadProfiles(true)
+        const valuesFile = await profileManager.prepareValuesForFstChart(input.profileName)
+        expect(valuesFile).not.to.be.null
+        expect(fs.existsSync(valuesFile)).to.be.ok
 
-      profileManager.loadProfiles(true)
-      const valuesFile = await profileManager.prepareValuesForFstChart(input.profileName)
-      expect(valuesFile).not.to.be.null
-      expect(fs.existsSync(valuesFile)).to.be.ok
+        // validate the yaml
+        const valuesYaml = yaml.load(fs.readFileSync(valuesFile).toString())
+        expect(valuesYaml.hedera.nodes.length).to.equal(3)
+        expect(valuesYaml.defaults.root.resources.limits.cpu).not.to.be.null
+        expect(valuesYaml.defaults.root.resources.limits.memory).not.to.be.null
 
-      // validate the yaml
-      const valuesYaml = yaml.load(fs.readFileSync(valuesFile).toString())
-      expect(valuesYaml.hedera.nodes.length).to.equal(3)
-      expect(valuesYaml.defaults.root.resources.limits.cpu).not.to.be.null
-      expect(valuesYaml.defaults.root.resources.limits.memory).not.to.be.null
+        // check all sidecars have resources
+        for (const component of
+          ['recordStreamUploader', 'eventStreamUploader', 'backupUploader', 'accountBalanceUploader', 'otelCollector']) {
+          expect(valuesYaml.defaults.sidecars[component].resources.limits.cpu).not.to.be.null
+          expect(valuesYaml.defaults.sidecars[component].resources.limits.memory).not.to.be.null
+        }
 
-      // check all sidecars have resources
-      for (const component of
-        ['recordStreamUploader', 'eventStreamUploader', 'backupUploader', 'accountBalanceUploader', 'otelCollector']) {
-        expect(valuesYaml.defaults.sidecars[component].resources.limits.cpu).not.to.be.null
-        expect(valuesYaml.defaults.sidecars[component].resources.limits.memory).not.to.be.null
-      }
+        // check proxies have resources
+        for (const component of ['haproxy', 'envoyProxy']) {
+          expect(valuesYaml.defaults[component].resources.limits.cpu).not.to.be.null
+          expect(valuesYaml.defaults[component].resources.limits.memory).not.to.be.null
+        }
 
-      // check proxies have resources
-      for (const component of ['haproxy', 'envoyProxy']) {
-        expect(valuesYaml.defaults[component].resources.limits.cpu).not.to.be.null
-        expect(valuesYaml.defaults[component].resources.limits.memory).not.to.be.null
-      }
+        // check minio-tenant has resources
+        expect(valuesYaml['minio-server'].tenant.pools[0].resources.limits.cpu).not.to.be.null
+        expect(valuesYaml['minio-server'].tenant.pools[0].resources.limits.memory).not.to.be.null
+      })
 
-      // check minio-tenant has resources
-      expect(valuesYaml['minio-server'].tenant.pools[0].resources.limits.cpu).not.to.be.null
-      expect(valuesYaml['minio-server'].tenant.pools[0].resources.limits.memory).not.to.be.null
-    })
+      it(`should determine mirror-node chart values [profile = ${input.profileName}]`, async () => {
+        configManager.setFlag(flags.profileFile, input.profileFile)
+        configManager.setFlag(flags.cacheDir, getTestCacheDir('ProfileManager'))
+        configManager.setFlag(flags.releaseTag, version.HEDERA_PLATFORM_VERSION)
+        profileManager.loadProfiles(true)
+        const valuesFile = await profileManager.prepareValuesForMirrorNodeChart(input.profileName)
+        expect(fs.existsSync(valuesFile)).to.be.ok
 
-    it(`should determine mirror-node chart values [profile = ${input.profileName}]`, async () => {
-      configManager.setFlag(flags.profileFile, input.profileFile)
-      configManager.setFlag(flags.cacheDir, getTestCacheDir('ProfileManager'))
-      configManager.setFlag(flags.releaseTag, version.HEDERA_PLATFORM_VERSION)
-      profileManager.loadProfiles(true)
-      const valuesFile = await profileManager.prepareValuesForMirrorNodeChart(input.profileName)
-      expect(fs.existsSync(valuesFile)).to.be.ok
+        // validate yaml
+        const valuesYaml = yaml.load(fs.readFileSync(valuesFile).toString())
+        expect(valuesYaml['hedera-mirror-node'].postgresql.persistence.size).not.to.be.null
+        expect(valuesYaml['hedera-mirror-node'].postgresql.postgresql.resources.limits.cpu).not.to.be.null
+        expect(valuesYaml['hedera-mirror-node'].postgresql.postgresql.resources.limits.memory).not.to.be.null
+        for (const component of ['grpc', 'rest', 'web3', 'importer']) {
+          expect(valuesYaml['hedera-mirror-node'][component].resources.limits.cpu).not.to.be.null
+          expect(valuesYaml['hedera-mirror-node'][component].resources.limits.memory).not.to.be.null
+          expect(valuesYaml['hedera-mirror-node'][component].readinessProbe.failureThreshold).to.equal(60)
+          expect(valuesYaml['hedera-mirror-node'][component].livenessProbe.failureThreshold).to.equal(60)
+        }
+        expect(valuesYaml['hedera-explorer'].resources.limits.cpu).not.to.be.null
+        expect(valuesYaml['hedera-explorer'].resources.limits.memory).not.to.be.null
+      })
 
-      // validate yaml
-      const valuesYaml = yaml.load(fs.readFileSync(valuesFile).toString())
-      expect(valuesYaml['hedera-mirror-node'].postgresql.persistence.size).not.to.be.null
-      expect(valuesYaml['hedera-mirror-node'].postgresql.postgresql.resources.limits.cpu).not.to.be.null
-      expect(valuesYaml['hedera-mirror-node'].postgresql.postgresql.resources.limits.memory).not.to.be.null
-      for (const component of ['grpc', 'rest', 'web3', 'importer']) {
-        expect(valuesYaml['hedera-mirror-node'][component].resources.limits.cpu).not.to.be.null
-        expect(valuesYaml['hedera-mirror-node'][component].resources.limits.memory).not.to.be.null
-        expect(valuesYaml['hedera-mirror-node'][component].readinessProbe.failureThreshold).to.equal(60)
-        expect(valuesYaml['hedera-mirror-node'][component].livenessProbe.failureThreshold).to.equal(60)
-      }
-      expect(valuesYaml['hedera-explorer'].resources.limits.cpu).not.to.be.null
-      expect(valuesYaml['hedera-explorer'].resources.limits.memory).not.to.be.null
-    })
-
-    it(`should determine rpc-relay chart values [profile = ${input.profileName}]`, async () => {
-      configManager.setFlag(flags.profileFile, input.profileFile)
-      profileManager.loadProfiles(true)
-      const valuesFile = await profileManager.prepareValuesForRpcRelayChart(input.profileName)
-      expect(fs.existsSync(valuesFile)).to.be.ok
-      // validate yaml
-      const valuesYaml = yaml.load(fs.readFileSync(valuesFile).toString())
-      expect(valuesYaml.resources.limits.cpu).not.to.be.null
-      expect(valuesYaml.resources.limits.memory).not.to.be.null
+      it(`should determine rpc-relay chart values [profile = ${input.profileName}]`, async () => {
+        configManager.setFlag(flags.profileFile, input.profileFile)
+        profileManager.loadProfiles(true)
+        const valuesFile = await profileManager.prepareValuesForRpcRelayChart(input.profileName)
+        expect(fs.existsSync(valuesFile)).to.be.ok
+        // validate yaml
+        const valuesYaml = yaml.load(fs.readFileSync(valuesFile).toString())
+        expect(valuesYaml.resources.limits.cpu).not.to.be.null
+        expect(valuesYaml.resources.limits.memory).not.to.be.null
+      })
     })
   })
 
@@ -183,15 +187,15 @@ describe('ProfileManager', () => {
       const configText = fs.readFileSync(configFile).toString()
 
       // expect that the config.txt file contains the namespace
-      expect(configText.includes(namespace)).to.be.ok
+      expect(configText).to.include(namespace)
       // expect that the config.txt file contains the node account IDs
-      expect(configText.includes('0.0.3')).to.be.ok
-      expect(configText.includes('0.0.4')).to.be.ok
-      expect(configText.includes('0.0.5')).to.be.ok
+      expect(configText).to.include('0.0.3')
+      expect(configText).to.include('0.0.4')
+      expect(configText).to.include('0.0.5')
       // expect the config.txt file to contain the node IDs
-      expect(configText.includes('node1')).to.be.ok
-      expect(configText.includes('node2')).to.be.ok
-      expect(configText.includes('node3')).to.be.ok
+      expect(configText).to.include('node1')
+      expect(configText).to.include('node2')
+      expect(configText).to.include('node3')
     })
 
     it('should fail when no nodeIDs', () => {

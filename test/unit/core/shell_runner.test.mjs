@@ -24,7 +24,9 @@ import { Readable } from 'stream'
 describe('ShellRunner', () => {
   const logger = NewLogger('debug')
   const shellRunner = new ShellRunner(logger)
-  let childProcessSpy, readableSpy, loggerSpy
+  /** @type {sinon.SinonSpy} */ let childProcessSpy
+  /** @type {sinon.SinonSpy} */ let readableSpy
+  /** @type {sinon.SinonSpy} */ let loggerSpy
 
   beforeEach(() => {
     childProcessSpy = sinon.spy(ChildProcess.prototype, 'on')

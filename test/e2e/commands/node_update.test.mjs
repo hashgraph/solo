@@ -98,7 +98,7 @@ describe('Node update', () => {
       flags.quiet.constName
     ])
     await nodeCmd.accountManager.close()
-  }).timeout(30 * MINUTES) //! Might be an overkill
+  }).timeout(30 * MINUTES)
 
   balanceQueryShouldSucceed(nodeCmd.accountManager, nodeCmd, namespace)
 
