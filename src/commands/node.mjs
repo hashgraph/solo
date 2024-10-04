@@ -418,30 +418,6 @@ export class NodeCommand extends BaseCommand {
   }
 
   /**
-   * Check if the network node pod is running
-   * @param {string} namespace
-   * @param {NodeAlias} nodeAlias
-   * @param {number} [maxAttempts]
-   * @param {number} [delay]
-   * @returns {Promise<string>}
-   */
-  async checkNetworkNodePod (namespace, nodeAlias, maxAttempts = 60, delay = 2000) {
-    nodeAlias = nodeAlias.trim()
-    const podName = Templates.renderNetworkPodName(nodeAlias)
-
-    try {
-      await this.k8.waitForPods([constants.POD_PHASE_RUNNING], [
-        'solo.hedera.com/type=network-node',
-        `solo.hedera.com/node-name=${nodeAlias}`
-      ], 1, maxAttempts, delay)
-
-      return podName
-    } catch (e) {
-      throw new SoloError(`no pod found for nodeAlias: ${nodeAlias}`, e)
-    }
-  }
-
-  /**
    * @param {string} namespace
    * @param {NodeAlias} nodeAlias
    * @param {TaskWrapper} task
