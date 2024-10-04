@@ -92,7 +92,7 @@ export class ClusterCommand extends BaseCommand {
             deployCertManagerCrds: self.configManager.getFlag(flags.deployCertManagerCrds),
             deployMinio: self.configManager.getFlag(flags.deployMinio),
             deployPrometheusStack: self.configManager.getFlag(flags.deployPrometheusStack),
-            fstChartVersion: self.configManager.getFlag(flags.fstChartVersion)
+            soloChartVersion: self.configManager.getFlag(flags.soloChartVersion)
           }
 
           self.logger.debug('Prepare ctx.config', { config: ctx.config, argv })
@@ -118,7 +118,7 @@ export class ClusterCommand extends BaseCommand {
         title: `Install '${constants.SOLO_CLUSTER_SETUP_CHART}' chart`,
         task: async (ctx, _) => {
           const clusterSetupNamespace = ctx.config.clusterSetupNamespace
-          const version = ctx.config.fstChartVersion
+          const version = ctx.config.soloChartVersion
 
           const chartPath = ctx.chartPath
           const valuesArg = ctx.valuesArg
@@ -276,7 +276,7 @@ export class ClusterCommand extends BaseCommand {
               flags.deployCertManagerCrds,
               flags.deployMinio,
               flags.deployPrometheusStack,
-              flags.fstChartVersion
+              flags.soloChartVersion
             ),
             handler: argv => {
               clusterCmd.logger.debug("==== Running 'cluster setup' ===", { argv })

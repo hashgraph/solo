@@ -212,7 +212,7 @@ export class NodeCommand extends BaseCommand {
       flags.devMode,
       flags.debugNodeAlias,
       flags.endpointType,
-      flags.fstChartVersion,
+      flags.soloChartVersion,
       flags.generateGossipKeys,
       flags.generateTlsKeys,
       flags.gossipEndpoints,
@@ -331,7 +331,7 @@ export class NodeCommand extends BaseCommand {
       flags.devMode,
       flags.debugNodeAlias,
       flags.endpointType,
-      flags.fstChartVersion,
+      flags.soloChartVersion,
       flags.gossipEndpoints,
       flags.gossipPrivateKey,
       flags.gossipPublicKey,
@@ -790,7 +790,7 @@ export class NodeCommand extends BaseCommand {
       constants.SOLO_DEPLOYMENT_CHART,
       config.chartPath,
       valuesArg,
-      config.fstChartVersion
+      config.soloChartVersion
     )
   }
 
@@ -1650,7 +1650,7 @@ export class NodeCommand extends BaseCommand {
           flags.debugNodeAlias,
           flags.endpointType,
           flags.force,
-          flags.fstChartVersion,
+          flags.soloChartVersion,
           flags.localBuildPath,
           flags.gossipEndpoints,
           flags.grpcEndpoints
@@ -1668,7 +1668,7 @@ export class NodeCommand extends BaseCommand {
            * @property {boolean} devMode
            * @property {string} debugNodeAlias
            * @property {string} endpointType
-           * @property {string} fstChartVersion
+           * @property {string} soloChartVersion
            * @property {boolean} generateGossipKeys
            * @property {boolean} generateTlsKeys
            * @property {string} gossipEndpoints
@@ -2653,7 +2653,7 @@ export class NodeCommand extends BaseCommand {
             flags.debugNodeAlias,
             flags.endpointType,
             flags.force,
-            flags.fstChartVersion,
+            flags.soloChartVersion,
             flags.gossipEndpoints,
             flags.gossipPrivateKey,
             flags.gossipPublicKey,
@@ -2676,7 +2676,7 @@ export class NodeCommand extends BaseCommand {
            * @property {boolean} devMode
            * @property {string} debugNodeAlias
            * @property {string} endpointType
-           * @property {string} fstChartVersion
+           * @property {string} soloChartVersion
            * @property {string} gossipEndpoints
            * @property {string} gossipPrivateKey
            * @property {string} gossipPublicKey
@@ -3059,7 +3059,7 @@ export class NodeCommand extends BaseCommand {
           flags.debugNodeAlias,
           flags.endpointType,
           flags.force,
-          flags.fstChartVersion,
+          flags.soloChartVersion,
           flags.localBuildPath
         ])
 
@@ -3074,7 +3074,7 @@ export class NodeCommand extends BaseCommand {
        * @property {boolean} devMode
        * @property {string} debugNodeAlias
        * @property {string} endpointType
-       * @property {string} fstChartVersion
+       * @property {string} soloChartVersion
        * @property {string} localBuildPath
        * @property {string} namespace
        * @property {NodeAlias} nodeAlias

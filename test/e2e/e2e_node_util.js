@@ -52,9 +52,9 @@ export function e2eNodeKeyRefreshTest (testName, mode, releaseTag = HEDERA_PLATF
         argv[flags.generateTlsKeys.name] = true
         argv[flags.clusterName.name] = TEST_CLUSTER
         argv[flags.devMode.name] = true
-        // set the env variable SOLO_FST_CHARTS_DIR if developer wants to use local Solo charts
-        argv[flags.chartDirectory.name] = process.env.SOLO_FST_CHARTS_DIR
-          ? process.env.SOLO_FST_CHARTS_DIR
+        // set the env variable SOLO_CHARTS_DIR if developer wants to use local Solo charts
+        argv[flags.chartDirectory.name] = process.env.SOLO_CHARTS_DIR
+          ? process.env.SOLO_CHARTS_DIR
           : undefined
         argv[flags.quiet.name] = true
 

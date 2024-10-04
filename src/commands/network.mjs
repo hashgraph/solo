@@ -69,7 +69,7 @@ export class NetworkCommand extends BaseCommand {
       flags.chainId,
       flags.chartDirectory,
       flags.enablePrometheusSvcMonitor,
-      flags.fstChartVersion,
+      flags.soloChartVersion,
       flags.debugNodeAlias,
       flags.log4j2Xml,
       flags.namespace,
@@ -106,7 +106,7 @@ export class NetworkCommand extends BaseCommand {
     }
 
     const profileName = this.configManager.getFlag(flags.profileName)
-    this.profileValuesFile = await this.profileManager.prepareValuesForFstChart(profileName)
+    this.profileValuesFile = await this.profileManager.prepareValuesForSoloChart(profileName)
     if (this.profileValuesFile) {
       valuesArg += this.prepareValuesFiles(this.profileValuesFile)
     }
@@ -165,7 +165,7 @@ export class NetworkCommand extends BaseCommand {
      * @property {string} cacheDir
      * @property {string} chartDirectory
      * @property {boolean} enablePrometheusSvcMonitor
-     * @property {string} fstChartVersion
+     * @property {string} soloChartVersion
      * @property {string} namespace
      * @property {string} nodeAliasesUnparsed
      * @property {string} persistentVolumeClaims
@@ -306,7 +306,7 @@ export class NetworkCommand extends BaseCommand {
             config.namespace,
             constants.SOLO_DEPLOYMENT_CHART,
             config.chartPath,
-            config.fstChartVersion,
+            config.soloChartVersion,
             config.valuesArg)
         }
       },
@@ -522,7 +522,7 @@ export class NetworkCommand extends BaseCommand {
             constants.SOLO_DEPLOYMENT_CHART,
             config.chartPath,
             config.valuesArg,
-            config.fstChartVersion
+            config.soloChartVersion
           )
         }
       },

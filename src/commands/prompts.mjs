@@ -341,12 +341,12 @@ export async function promptDeleteSecrets (task, input) {
     flags.deleteSecrets.name)
 }
 
-export async function promptFstChartVersion (task, input) {
+export async function promptSoloChartVersion (task, input) {
   return await promptText(task, input,
-    flags.fstChartVersion.definition.defaultValue,
+    flags.soloChartVersion.definition.defaultValue,
     'Enter solo testing chart version: ',
     null,
-    flags.fstChartVersion.name)
+    flags.soloChartVersion.name)
 }
 
 export async function promptUpdateAccountKeys (task, input) {
@@ -450,7 +450,7 @@ export function getPromptMap () {
     .set(flags.enableHederaExplorerTls.name, promptEnableHederaExplorerTls)
     .set(flags.enablePrometheusSvcMonitor.name, promptEnablePrometheusSvcMonitor)
     .set(flags.force.name, promptForce)
-    .set(flags.fstChartVersion.name, promptFstChartVersion)
+    .set(flags.soloChartVersion.name, promptSoloChartVersion)
     .set(flags.generateGossipKeys.name, promptGenerateGossipKeys)
     .set(flags.generateTlsKeys.name, promptGenerateTLSKeys)
     .set(flags.hederaExplorerTlsHostName.name, promptHederaExplorerTlsHostName)

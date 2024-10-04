@@ -297,7 +297,7 @@ export class ProfileManager {
    * @param {string} profileName resource profile name
    * @returns {Promise<string>} return the full path to the values file
    */
-  prepareValuesForFstChart (profileName) {
+  prepareValuesForSoloChart (profileName) {
     if (!profileName) throw new MissingArgumentError('profileName is required')
     const profile = this.getProfile(profileName)
 

@@ -109,10 +109,10 @@ export function packageVersion () {
 export function getRootImageRepository (releaseTag) {
   const releaseVersion = semver.parse(releaseTag, { includePrerelease: true })
   if (releaseVersion.minor < 46) {
-    return 'hashgraph/solo-charts/ubi8-init-java17'
+    return 'hashgraph/solo-containers/ubi8-init-java17'
   }
 
-  return 'hashgraph/solo-charts/ubi8-init-java21'
+  return 'hashgraph/solo-containers/ubi8-init-java21'
 }
 
 /**

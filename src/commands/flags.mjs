@@ -418,12 +418,12 @@ export const deleteSecrets = {
 }
 
 /** @type {CommandFlag} **/
-export const fstChartVersion = {
-  constName: 'fstChartVersion',
+export const soloChartVersion = {
+  constName: 'soloChartVersion',
   name: 'solo-chart-version',
   definition: {
     describe: 'Solo testing chart version',
-    defaultValue: version.FST_CHART_VERSION,
+    defaultValue: version.SOLO_CHART_VERSION,
     type: 'string'
   }
 }
@@ -807,7 +807,7 @@ export const allFlags = [
   enableHederaExplorerTls,
   enablePrometheusSvcMonitor,
   endpointType,
-  fstChartVersion,
+  soloChartVersion,
   generateGossipKeys,
   generateTlsKeys,
   gossipEndpoints,

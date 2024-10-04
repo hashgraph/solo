@@ -51,9 +51,9 @@ describe('AccountCommand', () => {
   argv[flags.generateGossipKeys.name] = true
   argv[flags.generateTlsKeys.name] = true
   argv[flags.clusterName.name] = TEST_CLUSTER
-  argv[flags.fstChartVersion.name] = version.FST_CHART_VERSION
-  // set the env variable SOLO_FST_CHARTS_DIR if developer wants to use local Solo charts
-  argv[flags.chartDirectory.name] = process.env.SOLO_FST_CHARTS_DIR ? process.env.SOLO_FST_CHARTS_DIR : undefined
+  argv[flags.soloChartVersion.name] = version.SOLO_CHART_VERSION
+  // set the env variable SOLO_CHARTS_DIR if developer wants to use local Solo charts
+  argv[flags.chartDirectory.name] = process.env.SOLO_CHARTS_DIR ? process.env.SOLO_CHARTS_DIR : undefined
   const bootstrapResp = bootstrapNetwork(testName, argv)
   const accountCmd = new AccountCommand(bootstrapResp.opts, testSystemAccounts)
   bootstrapResp.cmd.accountCmd = accountCmd

@@ -52,11 +52,11 @@ describe('NetworkCommand', () => {
   argv[flags.generateGossipKeys.name] = true
   argv[flags.generateTlsKeys.name] = true
   argv[flags.deployMinio.name] = true
-  argv[flags.fstChartVersion.name] = version.FST_CHART_VERSION
+  argv[flags.soloChartVersion.name] = version.SOLO_CHART_VERSION
   argv[flags.force.name] = true
   argv[flags.applicationEnv.name] = applicationEnvFilePath
-  // set the env variable SOLO_FST_CHARTS_DIR if developer wants to use local Solo charts
-  argv[flags.chartDirectory.name] = process.env.SOLO_FST_CHARTS_DIR ? process.env.SOLO_FST_CHARTS_DIR : undefined
+  // set the env variable SOLO_CHARTS_DIR if developer wants to use local Solo charts
+  argv[flags.chartDirectory.name] = process.env.SOLO_CHARTS_DIR ? process.env.SOLO_CHARTS_DIR : undefined
   argv[flags.quiet.name] = true
 
   const bootstrapResp = bootstrapTestVariables(testName, argv)

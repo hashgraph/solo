@@ -53,7 +53,7 @@ export class MirrorNodeCommand extends BaseCommand {
       flags.chartDirectory,
       flags.deployHederaExplorer,
       flags.enableHederaExplorerTls,
-      flags.fstChartVersion,
+      flags.soloChartVersion,
       flags.hederaExplorerTlsHostName,
       flags.hederaExplorerTlsLoadBalancerIp,
       flags.namespace,
@@ -151,7 +151,7 @@ export class MirrorNodeCommand extends BaseCommand {
             flags.chartDirectory,
             flags.deployHederaExplorer,
             flags.enableHederaExplorerTls,
-            flags.fstChartVersion,
+            flags.soloChartVersion,
             flags.hederaExplorerTlsHostName,
             flags.hederaExplorerTlsLoadBalancerIp,
             flags.tlsClusterIssuerType,
@@ -167,7 +167,7 @@ export class MirrorNodeCommand extends BaseCommand {
            * @property {string} chartDirectory
            * @property {boolean} deployHederaExplorer
            * @property {string} enableHederaExplorerTls
-           * @property {string} fstChartVersion
+           * @property {string} soloChartVersion
            * @property {string} hederaExplorerTlsHostName
            * @property {string} hederaExplorerTlsLoadBalancerIp
            * @property {string} namespace
@@ -221,7 +221,7 @@ export class MirrorNodeCommand extends BaseCommand {
                   constants.SOLO_DEPLOYMENT_CHART,
                   ctx.config.chartPath,
                   ctx.config.valuesArg,
-                  ctx.config.fstChartVersion
+                  ctx.config.soloChartVersion
                 )
               }
             }
@@ -385,7 +385,7 @@ export class MirrorNodeCommand extends BaseCommand {
 
           ctx.config = {
             chartDirectory: self.configManager.getFlag(flags.chartDirectory),
-            fstChartVersion: this.configManager.getFlag(flags.fstChartVersion),
+            soloChartVersion: this.configManager.getFlag(flags.soloChartVersion),
             namespace: self.configManager.getFlag(flags.namespace)
           }
 
@@ -409,7 +409,7 @@ export class MirrorNodeCommand extends BaseCommand {
             constants.SOLO_DEPLOYMENT_CHART,
             ctx.config.chartPath,
             ctx.config.valuesArg,
-            ctx.config.fstChartVersion
+            ctx.config.soloChartVersion
           )
         }
       },
@@ -483,7 +483,7 @@ export class MirrorNodeCommand extends BaseCommand {
             builder: y => flags.setCommandFlags(y,
               flags.chartDirectory,
               flags.force,
-              flags.fstChartVersion,
+              flags.soloChartVersion,
               flags.namespace
             ),
             handler: argv => {
