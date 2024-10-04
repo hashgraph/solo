@@ -72,14 +72,14 @@ export class InitCommand extends BaseCommand {
     const tasks = new Listr([
       {
         title: 'Setup home directory and cache',
-        task: async (ctx, _) => {
+        task: (ctx, _) => {
           self.configManager.update(argv)
           ctx.dirs = this.setupHomeDirectory()
         }
       },
       {
         title: 'Check dependencies',
-        task: async (_, task) => {
+        task: (_, task) => {
           const deps = [
             core.constants.HELM
           ]

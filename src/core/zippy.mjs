@@ -65,9 +65,9 @@ export class Zippy {
    * @param {string} srcPath
    * @param {string} destPath
    * @param {boolean} [verbose]
-   * @returns {Promise<string>}
+   * @returns {string}
    */
-  async unzip (srcPath, destPath, verbose = false) {
+  unzip (srcPath, destPath, verbose = false) {
     const self = this
 
     if (!srcPath) throw new MissingArgumentError('srcPath is required')
@@ -101,9 +101,9 @@ export class Zippy {
   /**
    * @param {string} srcPath
    * @param {string} destPath
-   * @returns {Promise<string>}
+   * @returns {string}
    */
-  async tar (srcPath, destPath) {
+  tar (srcPath, destPath) {
     if (!srcPath) throw new MissingArgumentError('srcPath is required')
     if (!destPath) throw new MissingArgumentError('destPath is required')
     if (!destPath.endsWith('.tar.gz')) throw new MissingArgumentError('destPath must be a path to a tar.gz file')
@@ -125,9 +125,9 @@ export class Zippy {
   /**
    * @param {string} srcPath
    * @param {string} destPath
-   * @returns {Promise<string>}
+   * @returns {string}
    */
-  async untar (srcPath, destPath) {
+  untar (srcPath, destPath) {
     if (!srcPath) throw new MissingArgumentError('srcPath is required')
     if (!destPath) throw new MissingArgumentError('destPath is required')
 

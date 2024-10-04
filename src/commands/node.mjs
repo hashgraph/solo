@@ -361,7 +361,7 @@ export class NodeCommand extends BaseCommand {
    * @returns {Promise<void>}
    */
   async close () {
-    this.accountManager.close()
+    await this.accountManager.close()
     if (this._portForwards) {
       for (const srv of this._portForwards) {
         await this.k8.stopPortForward(srv)
@@ -886,7 +886,7 @@ export class NodeCommand extends BaseCommand {
     })
   }
 
-  async loadPermCertificate (certFullPath) {
+  loadPermCertificate (certFullPath) {
     const certPem = fs.readFileSync(certFullPath).toString()
     const decodedDers = x509.PemConverter.decode(certPem)
     if (!decodedDers || decodedDers.length === 0) {
@@ -1001,14 +1001,14 @@ export class NodeCommand extends BaseCommand {
       {
         title: 'Fetch platform software into network nodes',
         task:
-          async (ctx, task) => {
-            const config = /** @type {NodeSetupConfigClass} **/ ctx.config
-            return self.fetchLocalOrReleasedPlatformSoftware(config.nodeAliases, config.podNames, config.releaseTag, task, config.localBuildPath)
-          }
+           (ctx, task) => {
+             const config = /** @type {NodeSetupConfigClass} **/ ctx.config
+             return self.fetchLocalOrReleasedPlatformSoftware(config.nodeAliases, config.podNames, config.releaseTag, task, config.localBuildPath)
+           }
       },
       {
         title: 'Setup network nodes',
-        task: async (ctx, parentTask) => {
+        task: (ctx, parentTask) => {
           return this.setupNodesTask(ctx, parentTask, ctx.config.nodeAliases)
         }
       }
@@ -1084,7 +1084,7 @@ export class NodeCommand extends BaseCommand {
       },
       {
         title: 'Check node proxies are ACTIVE',
-        task: async (ctx, parentTask) => {
+        task: (ctx, parentTask) => {
           return self.checkNodesProxiesTask(ctx, parentTask, ctx.config.nodeAliases)
         },
         skip: () => self.configManager.getFlag(flags.app) !== '' && self.configManager.getFlag(flags.app) !== constants.HEDERA_APP_NAME
@@ -1254,7 +1254,7 @@ export class NodeCommand extends BaseCommand {
       },
       {
         title: 'Generate gossip keys',
-        task: async (ctx, parentTask) => {
+        task: (ctx, parentTask) => {
           const config = ctx.config
           const subTasks = self.keyManager.taskGenerateGossipKeys(self.keytoolDepManager, config.nodeAliases, config.keysDir, config.curDate)
           // set up the sub-tasks
@@ -1270,7 +1270,7 @@ export class NodeCommand extends BaseCommand {
       },
       {
         title: 'Generate gRPC TLS keys',
-        task: async (ctx, parentTask) => {
+        task: (ctx, parentTask) => {
           const config = ctx.config
           const subTasks = self.keyManager.taskGenerateTLSKeys(config.nodeAliases, config.keysDir, config.curDate)
           // set up the sub-tasks
@@ -1364,38 +1364,38 @@ export class NodeCommand extends BaseCommand {
       {
         title: 'Dump network nodes saved state',
         task:
-          async (ctx, task) => {
-            const config = /** @type {NodeRefreshConfigClass} **/ ctx.config
-            const subTasks = []
-            for (const nodeAlias of config.nodeAliases) {
-              const podName = config.podNames[nodeAlias]
-              subTasks.push({
-                title: `Node: ${chalk.yellow(nodeAlias)}`,
-                task: async () =>
-                  await self.k8.execContainer(podName, constants.ROOT_CONTAINER, ['bash', '-c', `rm -rf ${constants.HEDERA_HAPI_PATH}/data/saved/*`])
-              })
-            }
+           (ctx, task) => {
+             const config = /** @type {NodeRefreshConfigClass} **/ ctx.config
+             const subTasks = []
+             for (const nodeAlias of config.nodeAliases) {
+               const podName = config.podNames[nodeAlias]
+               subTasks.push({
+                 title: `Node: ${chalk.yellow(nodeAlias)}`,
+                 task: async () =>
+                   await self.k8.execContainer(podName, constants.ROOT_CONTAINER, ['bash', '-c', `rm -rf ${constants.HEDERA_HAPI_PATH}/data/saved/*`])
+               })
+             }
 
-            // set up the sub-tasks
-            return task.newListr(subTasks, {
-              concurrent: true,
-              rendererOptions: {
-                collapseSubtasks: false
-              }
-            })
-          }
+             // set up the sub-tasks
+             return task.newListr(subTasks, {
+               concurrent: true,
+               rendererOptions: {
+                 collapseSubtasks: false
+               }
+             })
+           }
       },
       {
         title: 'Fetch platform software into network nodes',
         task:
-          async (ctx, task) => {
-            const config = /** @type {NodeRefreshConfigClass} **/ ctx.config
-            return self.fetchLocalOrReleasedPlatformSoftware(config.nodeAliases, config.podNames, config.releaseTag, task, config.localBuildPath)
-          }
+           (ctx, task) => {
+             const config = /** @type {NodeRefreshConfigClass} **/ ctx.config
+             return self.fetchLocalOrReleasedPlatformSoftware(config.nodeAliases, config.podNames, config.releaseTag, task, config.localBuildPath)
+           }
       },
       {
         title: 'Setup network nodes',
-        task: async (ctx, parentTask) => {
+        task: (ctx, parentTask) => {
           return this.setupNodesTask(ctx, parentTask, ctx.config.nodeAliases)
         }
       },
@@ -1415,7 +1415,7 @@ export class NodeCommand extends BaseCommand {
         title: 'Check node proxies are ACTIVE',
         // this is more reliable than checking the nodes logs for ACTIVE, as the
         // logs will have a lot of white noise from being behind
-        task: async (ctx, task) => {
+        task: (ctx, task) => {
           return this.checkNodesProxiesTask(ctx, task, ctx.config.nodeAliases)
         },
         skip: (ctx) => ctx.config.app !== ''
@@ -1606,7 +1606,7 @@ export class NodeCommand extends BaseCommand {
       self.addInitializeTask(argv),
       {
         title: 'Check that PVCs are enabled',
-        task: async () => {
+        task: () => {
           if (!self.configManager.getFlag(flags.persistentVolumeClaims)) {
             throw new SoloError('PVCs are not enabled. Please enable PVCs before adding a node')
           }
@@ -1650,7 +1650,7 @@ export class NodeCommand extends BaseCommand {
       },
       {
         title: 'Generate Gossip key',
-        task: async (ctx, parentTask) => {
+        task: (ctx, parentTask) => {
           const config = /** @type {NodeAddConfigClass} **/ ctx.config
           const subTasks = self.keyManager.taskGenerateGossipKeys(self.keytoolDepManager, [config.nodeAlias], config.keysDir, config.curDate, config.allNodeAliases) // 666
           // set up the sub-tasks
@@ -1666,7 +1666,7 @@ export class NodeCommand extends BaseCommand {
       },
       {
         title: 'Generate gRPC TLS key',
-        task: async (ctx, parentTask) => {
+        task: (ctx, parentTask) => {
           const config = /** @type {NodeAddConfigClass} **/ ctx.config
           const subTasks = self.keyManager.taskGenerateTLSKeys([config.nodeAlias], config.keysDir, config.curDate)
           // set up the sub-tasks
@@ -1749,7 +1749,7 @@ export class NodeCommand extends BaseCommand {
   saveContextDataTask (argv, targetFile, parser) {
     return {
       title: 'Save context data',
-      task: async (ctx, task) => {
+      task: (ctx, task) => {
         const outputDir = argv[flags.outputDir.name]
         if (!outputDir) {
           throw new SoloError(`Path to export context data not specified. Please set a value for --${flags.outputDir.name}`)
@@ -1767,7 +1767,7 @@ export class NodeCommand extends BaseCommand {
   loadContextDataTask (argv, targetFile, parser) {
     return {
       title: 'Load context data',
-      task: async (ctx, task) => {
+      task: (ctx, task) => {
         const inputDir = argv[flags.inputDir.name]
         if (!inputDir) {
           throw new SoloError(`Path to context data not specified. Please set a value for --${flags.inputDir.name}`)
@@ -1816,14 +1816,14 @@ export class NodeCommand extends BaseCommand {
       this.tasks.downloadNodeGeneratedFiles(),
       {
         title: 'Prepare staging directory',
-        task: async (ctx, parentTask) => {
+        task: (ctx, parentTask) => {
           const config = /** @type {NodeAddConfigClass} **/ ctx.config
           return this.prepareStagingTask(ctx, parentTask, config.keysDir, config.stagingKeysDir, config.allNodeAliases)
         }
       },
       {
         title: 'Copy node keys to secrets',
-        task: async (ctx, parentTask) => {
+        task: (ctx, parentTask) => {
           return this.copyNodeKeyTask(ctx, parentTask)
         }
       },
@@ -1857,7 +1857,7 @@ export class NodeCommand extends BaseCommand {
       },
       {
         title: 'Check node pods are running',
-        task: async (ctx, task) => {
+        task: (ctx, task) => {
           const config = /** @type {NodeAddConfigClass} **/ ctx.config
           return this.checkPodRunningTask(ctx, task, config.allNodeAliases)
         }
@@ -1903,13 +1903,13 @@ export class NodeCommand extends BaseCommand {
       },
       {
         title: 'Setup new network node',
-        task: async (ctx, parentTask) => {
+        task: (ctx, parentTask) => {
           return this.setupNodesTask(ctx, parentTask, ctx.config.allNodeAliases)
         }
       },
       {
         title: 'Start network nodes',
-        task: async (ctx, task) => {
+        task: (ctx, task) => {
           const config = /** @type {NodeAddConfigClass} **/ ctx.config
           return this.startNetworkNodesTask(task, config.podNames, config.allNodeAliases)
         }
@@ -1923,7 +1923,7 @@ export class NodeCommand extends BaseCommand {
       },
       {
         title: 'Check all nodes are ACTIVE',
-        task: async (ctx, task) => {
+        task: (ctx, task) => {
           return this.checkNodeActivenessTask(ctx, task, ctx.config.allNodeAliases)
         }
       },
@@ -1931,7 +1931,7 @@ export class NodeCommand extends BaseCommand {
         title: 'Check all node proxies are ACTIVE',
         // this is more reliable than checking the nodes logs for ACTIVE, as the
         // logs will have a lot of white noise from being behind
-        task: async (ctx, task) => {
+        task: (ctx, task) => {
           return this.checkNodesProxiesTask(ctx, task, ctx.config.allNodeAliases)
         }
       },
@@ -2653,14 +2653,14 @@ export class NodeCommand extends BaseCommand {
       this.tasks.sendFreezeUpgradeTransaction(),
       {
         title: 'Prepare staging directory',
-        task: async (ctx, parentTask) => {
+        task: (ctx, parentTask) => {
           const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
           return this.prepareStagingTask(ctx, parentTask, config.keysDir, config.stagingKeysDir, config.allNodeAliases)
         }
       },
       {
         title: 'Copy node keys to secrets',
-        task: async (ctx, parentTask) => {
+        task: (ctx, parentTask) => {
           return this.copyNodeKeyTask(ctx, parentTask)
         }
       },
@@ -2709,7 +2709,7 @@ export class NodeCommand extends BaseCommand {
       },
       {
         title: 'Check node pods are running',
-        task: async (ctx, task) => {
+        task: (ctx, task) => {
           const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
           return this.checkPodRunningTask(ctx, task, config.allNodeAliases)
         }
@@ -2717,20 +2717,20 @@ export class NodeCommand extends BaseCommand {
       {
         title: 'Fetch platform software into network nodes',
         task:
-          async (ctx, task) => {
-            const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
-            return self.fetchLocalOrReleasedPlatformSoftware(config.allNodeAliases, config.podNames, config.releaseTag, task, config.localBuildPath)
-          }
+           (ctx, task) => {
+             const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
+             return self.fetchLocalOrReleasedPlatformSoftware(config.allNodeAliases, config.podNames, config.releaseTag, task, config.localBuildPath)
+           }
       },
       {
         title: 'Setup network nodes',
-        task: async (ctx, parentTask) => {
+        task: (ctx, parentTask) => {
           return this.setupNodesTask(ctx, parentTask, ctx.config.allNodeAliases)
         }
       },
       {
         title: 'Start network nodes',
-        task: async (ctx, task) => {
+        task: (ctx, task) => {
           const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
           return this.startNetworkNodesTask(task, config.podNames, config.allNodeAliases)
         }
@@ -2744,7 +2744,7 @@ export class NodeCommand extends BaseCommand {
       },
       {
         title: 'Check all nodes are ACTIVE',
-        task: async (ctx, task) => {
+        task: (ctx, task) => {
           return this.checkNodeActivenessTask(ctx, task, ctx.config.allNodeAliases)
         }
       },
@@ -2752,7 +2752,7 @@ export class NodeCommand extends BaseCommand {
         title: 'Check all node proxies are ACTIVE',
         // this is more reliable than checking the nodes logs for ACTIVE, as the
         // logs will have a lot of white noise from being behind
-        task: async (ctx, task) => {
+        task: (ctx, task) => {
           return this.checkNodesProxiesTask(ctx, task, ctx.config.allNodeAliases)
         }
       },
@@ -2907,14 +2907,14 @@ export class NodeCommand extends BaseCommand {
       this.tasks.downloadNodeGeneratedFiles(),
       {
         title: 'Prepare staging directory',
-        task: async (ctx, parentTask) => {
+        task: (ctx, parentTask) => {
           const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
           return this.prepareStagingTask(ctx, parentTask, config.keysDir, config.stagingKeysDir, config.existingNodeAliases)
         }
       },
       {
         title: 'Copy node keys to secrets',
-        task: async (ctx, parentTask) => {
+        task: (ctx, parentTask) => {
           // remove nodeAlias from existingNodeAliases
           ctx.config.allNodeAliases = ctx.config.existingNodeAliases.filter(nodeAlias => nodeAlias !== ctx.config.nodeAlias)
           return this.copyNodeKeyTask(ctx, parentTask)
@@ -2970,13 +2970,13 @@ export class NodeCommand extends BaseCommand {
       },
       {
         title: 'Setup network nodes',
-        task: async (ctx, parentTask) => {
+        task: (ctx, parentTask) => {
           return this.setupNodesTask(ctx, parentTask, ctx.config.allNodeAliases)
         }
       },
       {
         title: 'Start network nodes',
-        task: async (ctx, task) => {
+        task: (ctx, task) => {
           const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
           return this.startNetworkNodesTask(task, config.podNames, config.allNodeAliases)
         }
@@ -2990,7 +2990,7 @@ export class NodeCommand extends BaseCommand {
       },
       {
         title: 'Check all nodes are ACTIVE',
-        task: async (ctx, task) => {
+        task: (ctx, task) => {
           return this.checkNodeActivenessTask(ctx, task, ctx.config.allNodeAliases)
         }
       },
@@ -2998,7 +2998,7 @@ export class NodeCommand extends BaseCommand {
         title: 'Check all node proxies are ACTIVE',
         // this is more reliable than checking the nodes logs for ACTIVE, as the
         // logs will have a lot of white noise from being behind
-        task: async (ctx, task) => {
+        task: (ctx, task) => {
           return this.checkNodesProxiesTask(ctx, task, ctx.config.allNodeAliases)
         }
       },

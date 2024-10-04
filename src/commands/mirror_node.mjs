@@ -204,7 +204,7 @@ export class MirrorNodeCommand extends BaseCommand {
       },
       {
         title: 'Enable mirror-node',
-        task: async (ctx, parentTask) => {
+        task: (ctx, parentTask) => {
           const subTasks = [
             {
               title: 'Prepare address book',
@@ -235,7 +235,7 @@ export class MirrorNodeCommand extends BaseCommand {
       },
       {
         title: 'Check pods are ready',
-        task: async (ctx, parentTask) => {
+        task: (ctx, parentTask) => {
           const subTasks = [
             {
               title: 'Check Postgres DB',
@@ -290,7 +290,7 @@ export class MirrorNodeCommand extends BaseCommand {
       },
       {
         title: 'Seed DB data',
-        task: async (ctx, parentTask) => {
+        task: (ctx, parentTask) => {
           const subTasks = [
             {
               title: 'Insert data in public.file_data',

@@ -132,7 +132,7 @@ export class NodeCommandTasks {
   }
 
   loadAdminKey () {
-    return new Task('Load node admin key', async (ctx, task) => {
+    return new Task('Load node admin key', (ctx, task) => {
       const config = ctx.config
       config.adminKey = PrivateKey.fromStringED25519(constants.GENESIS_KEY)
     })
@@ -324,7 +324,7 @@ export class NodeCommandTasks {
   }
 
   identifyNetworkPods () {
-    return new Task('Identify network pods', async (ctx, task) => {
+    return new Task('Identify network pods', (ctx, task) => {
       return this.taskCheckNetworkNodePods(ctx, task, ctx.config.nodeAliases)
     })
   }

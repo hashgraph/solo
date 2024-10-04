@@ -39,9 +39,9 @@ export class ClusterCommand extends BaseCommand {
 
   /**
    * Get cluster-info for the given cluster name
-   * @returns {Promise<boolean>}
+   * @returns {boolean}
    */
-  async getClusterInfo () {
+  getClusterInfo () {
     try {
       const cluster = this.k8.getKubeConfig().getCurrentCluster()
       this.logger.showJSON(`Cluster Information (${cluster.name})`, cluster)
