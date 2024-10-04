@@ -23,6 +23,7 @@ import {
   expect,
   it
 } from '@jest/globals'
+import { flags } from '../../../src/commands/index.mjs'
 import {
   bootstrapTestVariables,
   getDefaultArgv,
@@ -32,7 +33,6 @@ import {
 import {
   constants
 } from '../../../src/core/index.mjs'
-import { flags } from '../../../src/commands/index.mjs'
 import * as version from '../../../version.mjs'
 import { getNodeLogs, sleep } from '../../../src/core/helpers.mjs'
 import path from 'path'
@@ -116,7 +116,7 @@ describe('NetworkCommand', () => {
     }
   }, 240000)
 
-  it('application env file contents should be in cached values file', async () => {
+  it('application env file contents should be in cached values file', () => {
     expect.assertions(3)
     const valuesYaml = fs.readFileSync(networkCmd.profileValuesFile).toString()
     const fileRows = applicationEnvFileContents.split('\n')

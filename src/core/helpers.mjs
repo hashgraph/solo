@@ -27,6 +27,7 @@ import { Templates } from './templates.mjs'
 import { HEDERA_HAPI_PATH, ROOT_CONTAINER, SOLO_LOGS_DIR } from './constants.mjs'
 import { constants } from './index.mjs'
 import { FileContentsQuery, FileId, PrivateKey, ServiceEndpoint } from '@hashgraph/sdk'
+import { Listr } from 'listr2'
 import * as yaml from 'js-yaml'
 
 // cache current directory
@@ -487,6 +488,41 @@ export function prepareEndpoints (endpointType, endpoints, defaultPort) {
   return ret
 }
 
+export function commandActionBuilder (actionTasks, options, errorString = 'Error') {
+  /**
+   * @param {Object} argv
+   * @param {BaseCommand} commandDef
+   * @returns {Promise<boolean>}
+   */
+  return async function (argv, commandDef) {
+    const tasks = new Listr([
+      ...actionTasks
+    ], options)
+
+    try {
+      await tasks.run()
+    } catch (e) {
+      commandDef.logger.error(`${errorString}: ${e.message}`, e)
+      throw new SoloError(`${errorString}: ${e.message}`, e)
+    } finally {
+      await commandDef.close()
+    }
+  }
+}
+
+/**
+ * Adds all the types of flags as properties on the provided argv object
+ * @param argv
+ * @param flags
+ * @returns {*}
+ */
+export function addFlagsToArgv (argv, flags) {
+  argv.requiredFlags = flags.requiredFlags
+  argv.requiredFlagsWithDisabledPrompt = flags.requiredFlagsWithDisabledPrompt
+  argv.optionalFlags = flags.optionalFlags
+
+  return argv
+}
 /**
  * Convert yaml file to object
  * @param yamlFile

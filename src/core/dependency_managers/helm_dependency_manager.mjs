@@ -103,7 +103,7 @@ export class HelmDependencyManager extends ShellRunner {
    * Uninstall helm from solo bin folder
    * @returns {Promise<void>}
    */
-  async uninstall () {
+  uninstall () {
     if (this.isInstalled()) {
       fs.rmSync(this.helmPath)
     }

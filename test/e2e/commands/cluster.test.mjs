@@ -23,6 +23,7 @@ import {
   it,
   jest
 } from '@jest/globals'
+import { flags } from '../../../src/commands/index.mjs'
 import {
   bootstrapTestVariables,
   getDefaultArgv,
@@ -33,7 +34,6 @@ import {
   constants,
   logging
 } from '../../../src/core/index.mjs'
-import { flags } from '../../../src/commands/index.mjs'
 import { sleep } from '../../../src/core/helpers.mjs'
 import * as version from '../../../version.mjs'
 
@@ -116,9 +116,9 @@ describe('ClusterCommand', () => {
     }
   }, 60000)
 
-  it('function getClusterInfo should return true', async () => {
+  it('function getClusterInfo should return true', () => {
     try {
-      await expect(clusterCmd.getClusterInfo()).resolves.toBeTruthy()
+      expect(clusterCmd.getClusterInfo()).toBeTruthy()
     } catch (e) {
       expect(e).toBeNull()
     }

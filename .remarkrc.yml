@@ -1,4 +1,5 @@
 plugins:
+  - [ 'remark-frontmatter', 'yaml', '-' ]
   # Check that markdown is consistent.
   - remark-preset-lint-consistent
   # Few recommended rules.

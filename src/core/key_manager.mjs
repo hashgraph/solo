@@ -335,7 +335,7 @@ export class KeyManager {
    * @param {string} keysDir - directory where keys and certs are stored
    * @returns {Promise<*>} returns a Promise that saves the keys and certs as PEM files
    */
-  async storeSigningKey (nodeAlias, nodeKey, keysDir) {
+  storeSigningKey (nodeAlias, nodeKey, keysDir) {
     const nodeKeyFiles = this.prepareNodeKeyFilePaths(nodeAlias, keysDir, constants.SIGNING_KEY_PREFIX)
     return this.storeNodeKey(nodeAlias, nodeKey, keysDir, nodeKeyFiles, 'signing')
   }
@@ -346,7 +346,7 @@ export class KeyManager {
    * @param {string} keysDir - directory path where pem files are stored
    * @returns {Promise<NodeKeyObject>}
    */
-  async loadSigningKey (nodeAlias, keysDir) {
+  loadSigningKey (nodeAlias, keysDir) {
     const nodeKeyFiles = this.prepareNodeKeyFilePaths(nodeAlias, keysDir, constants.SIGNING_KEY_PREFIX)
     return this.loadNodeKey(nodeAlias, keysDir, KeyManager.SigningKeyAlgo, nodeKeyFiles, 'signing')
   }
@@ -470,7 +470,7 @@ export class KeyManager {
    * @param {string} keysDir - directory where keys and certs are stored
    * @returns {Promise<PrivateKeyAndCertificateObject>} a Promise that saves the keys and certs as PEM files
    */
-  async storeTLSKey (nodeAlias, nodeKey, keysDir) {
+  storeTLSKey (nodeAlias, nodeKey, keysDir) {
     const nodeKeyFiles = this.prepareTLSKeyFilePaths(nodeAlias, keysDir)
     return this.storeNodeKey(nodeAlias, nodeKey, keysDir, nodeKeyFiles, 'gRPC TLS')
   }
@@ -481,7 +481,7 @@ export class KeyManager {
    * @param {string} keysDir - directory path where pem files are stored
    * @returns {Promise<NodeKeyObject>}
    */
-  async loadTLSKey (nodeAlias, keysDir) {
+  loadTLSKey (nodeAlias, keysDir) {
     const nodeKeyFiles = this.prepareTLSKeyFilePaths(nodeAlias, keysDir)
     return this.loadNodeKey(nodeAlias, keysDir, KeyManager.TLSKeyAlgo, nodeKeyFiles, 'gRPC TLS')
   }
@@ -491,7 +491,7 @@ export class KeyManager {
    * @param {string} destDir
    * @returns {Promise<void>}
    */
-  async copyNodeKeysToStaging (nodeKey, destDir) {
+  copyNodeKeysToStaging (nodeKey, destDir) {
     for (const keyFile of [nodeKey.privateKeyFile, nodeKey.certificateFile]) {
       if (!fs.existsSync(keyFile)) {
         throw new SoloError(`file (${keyFile}) is missing`)

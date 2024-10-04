@@ -54,7 +54,7 @@ describe('Helpers', () => {
     expect(helpers.cloneArray(t.input)).not.toBe(t.input)
   })
 
-  it('should be able to load version from package json', async () => {
+  it('should be able to load version from package json', () => {
     const p = helpers.loadPackageJSON()
     expect(p).not.toBeNull()
     expect(p.version).not.toBeNull()

@@ -252,7 +252,7 @@ export class NetworkCommand extends BaseCommand {
       },
       {
         title: 'Prepare staging directory',
-        task: async (ctx, parentTask) => {
+        task: (ctx, parentTask) => {
           const subTasks = [
             {
               title: 'Copy Gossip keys to staging',
@@ -282,7 +282,7 @@ export class NetworkCommand extends BaseCommand {
       },
       {
         title: 'Copy node keys to secrets',
-        task: async (ctx, parentTask) => {
+        task: (ctx, parentTask) => {
           const config = /** @type {NetworkDeployConfigClass} **/ ctx.config
 
           const subTasks = self.platformInstaller.copyNodeKeys(config.stagingDir, config.nodeAliases)
@@ -313,9 +313,9 @@ export class NetworkCommand extends BaseCommand {
       {
         title: 'Check node pods are running',
         task:
-          async (ctx, task) => {
-            const subTasks = []
-            const config = /** @type {NetworkDeployConfigClass} **/ ctx.config
+           (ctx, task) => {
+             const subTasks = []
+             const config = /** @type {NetworkDeployConfigClass} **/ ctx.config
 
             // nodes
             for (const nodeAlias of config.nodeAliases) {
@@ -329,21 +329,21 @@ export class NetworkCommand extends BaseCommand {
               })
             }
 
-            // set up the sub-tasks
-            return task.newListr(subTasks, {
-              concurrent: false, // no need to run concurrently since if one node is up, the rest should be up by then
-              rendererOptions: {
-                collapseSubtasks: false
-              }
-            })
-          }
+             // set up the sub-tasks
+             return task.newListr(subTasks, {
+               concurrent: false, // no need to run concurrently since if one node is up, the rest should be up by then
+               rendererOptions: {
+                 collapseSubtasks: false
+               }
+             })
+           }
       },
       {
         title: 'Check proxy pods are running',
         task:
-          async (ctx, task) => {
-            const subTasks = []
-            const config = /** @type {NetworkDeployConfigClass} **/ ctx.config
+           (ctx, task) => {
+             const subTasks = []
+             const config = /** @type {NetworkDeployConfigClass} **/ ctx.config
 
             // HAProxy
             for (const nodeAlias of config.nodeAliases) {
@@ -367,38 +367,38 @@ export class NetworkCommand extends BaseCommand {
               })
             }
 
-            // set up the sub-tasks
-            return task.newListr(subTasks, {
-              concurrent: true,
-              rendererOptions: {
-                collapseSubtasks: false
-              }
-            })
-          }
+             // set up the sub-tasks
+             return task.newListr(subTasks, {
+               concurrent: true,
+               rendererOptions: {
+                 collapseSubtasks: false
+               }
+             })
+           }
       },
       {
         title: 'Check auxiliary pods are ready',
         task:
-          async (ctx, task) => {
-            const subTasks = []
+           (ctx, task) => {
+             const subTasks = []
 
-            // minio
-            subTasks.push({
-              title: 'Check MinIO',
-              task: async () =>
-                await self.k8.waitForPodReady([
-                  'v1.min.io/tenant=minio'
-                ], 1, 60 * 5, 1000) // timeout 5 minutes
-            })
+             // minio
+             subTasks.push({
+               title: 'Check MinIO',
+               task: async () =>
+                 await self.k8.waitForPodReady([
+                   'v1.min.io/tenant=minio'
+                 ], 1, 60 * 5, 1000) // timeout 5 minutes
+             })
 
-            // set up the sub-tasks
-            return task.newListr(subTasks, {
-              concurrent: false, // no need to run concurrently since if one node is up, the rest should be up by then
-              rendererOptions: {
-                collapseSubtasks: false
-              }
-            })
-          }
+             // set up the sub-tasks
+             return task.newListr(subTasks, {
+               concurrent: false, // no need to run concurrently since if one node is up, the rest should be up by then
+               rendererOptions: {
+                 collapseSubtasks: false
+               }
+             })
+           }
       }
     ], {
       concurrent: false,
@@ -549,13 +549,10 @@ export class NetworkCommand extends BaseCommand {
   }
 
   /**
-   * @param {NetworkCommand} networkCmd
    * @returns {{command: string, desc: string, builder: Function}}
    */
-  static getCommandDefinition (networkCmd) {
-    if (!networkCmd || !(networkCmd instanceof NetworkCommand)) {
-      throw new IllegalArgumentError('An instance of NetworkCommand is required', networkCmd)
-    }
+  getCommandDefinition () {
+    const networkCmd = this
     return {
       command: 'network',
       desc: 'Manage solo network deployment',

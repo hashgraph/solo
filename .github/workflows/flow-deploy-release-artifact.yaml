@@ -87,7 +87,7 @@ jobs:
 
   update-readme:
     name: "Update README.md"
-    uses: ./.github/workflows/flow-update-readme.yaml
+    uses: ./.github/workflows/zxc-update-readme.yaml
     needs:
       - prepare-release
     with:

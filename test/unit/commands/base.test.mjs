@@ -59,7 +59,7 @@ describe('BaseCommand', () => {
     it('should succeed during valid program check', async () => {
       await expect(baseCmd.run('echo')).resolves.not.toBeNull()
     })
-    it('getConfig tracks property usage', async () => {
+    it('getConfig tracks property usage', () => {
       const flagsList = [
         flags.releaseTag,
         flags.tlsClusterIssuerType,

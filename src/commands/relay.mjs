@@ -360,13 +360,10 @@ export class RelayCommand extends BaseCommand {
   }
 
   /**
-   * @param {RelayCommand} relayCmd
    * @returns {{command: string, desc: string, builder: Function}}
    */
-  static getCommandDefinition (relayCmd) {
-    if (!relayCmd || !(relayCmd instanceof RelayCommand)) {
-      throw new MissingArgumentError('An instance of RelayCommand is required', relayCmd)
-    }
+  getCommandDefinition () {
+    const relayCmd = this
     return {
       command: 'relay',
       desc: 'Manage JSON RPC relays in solo network',

@@ -56,7 +56,7 @@ describe('PackageInstallerE2E', () => {
     await accountManager.close()
   }, 180000)
 
-  beforeAll(async () => {
+  beforeAll(() => {
     if (!fs.existsSync(testCacheDir)) {
       fs.mkdirSync(testCacheDir)
     }
