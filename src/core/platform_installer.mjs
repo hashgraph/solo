@@ -59,9 +59,9 @@ export class PlatformInstaller {
 
   /**
    * @param {string} releaseDir
-   * @returns {Promise<void>}
+   * @returns {void}
    */
-  async validatePlatformReleaseDir (releaseDir) {
+  validatePlatformReleaseDir (releaseDir) {
     if (!releaseDir) throw new MissingArgumentError('releaseDir is required')
     if (!fs.existsSync(releaseDir)) {
       throw new IllegalArgumentError('releaseDir does not exists', releaseDir)
@@ -94,7 +94,7 @@ export class PlatformInstaller {
 
   /**
    * Fetch and extract platform code into the container
-   * @param {string} podName
+   * @param {PodName} podName
    * @param {string} tag - platform release tag
    * @returns {Promise<boolean>}
    */
@@ -119,7 +119,7 @@ export class PlatformInstaller {
   /**
    * Copy a list of files to a directory in the container
    *
-   * @param {string} podName
+   * @param {PodName} podName
    * @param {string[]} srcFiles - list of source files
    * @param {string} destDir - destination directory
    * @param {string} [container] - name of the container
@@ -152,20 +152,26 @@ export class PlatformInstaller {
     }
   }
 
-  async copyGossipKeys (nodeId, stagingDir, nodeIds) {
-    if (!nodeId) throw new MissingArgumentError('nodeId is required')
+  /**
+   * @param {NodeAlias} nodeAlias
+   * @param {string} stagingDir
+   * @param {NodeAliases} nodeAliases
+   * @returns {Promise<void>}
+   */
+  async copyGossipKeys (nodeAlias, stagingDir, nodeAliases) {
+    if (!nodeAlias) throw new MissingArgumentError('nodeAlias is required')
     if (!stagingDir) throw new MissingArgumentError('stagingDir is required')
-    if (!nodeIds || nodeIds.length <= 0) throw new MissingArgumentError('nodeIds cannot be empty')
+    if (!nodeAliases || nodeAliases.length <= 0) throw new MissingArgumentError('nodeAliases cannot be empty')
 
     try {
       const srcFiles = []
 
       // copy private keys for the node
-      srcFiles.push(path.join(stagingDir, 'keys', Templates.renderGossipPemPrivateKeyFile(constants.SIGNING_KEY_PREFIX, nodeId)))
+      srcFiles.push(path.join(stagingDir, 'keys', Templates.renderGossipPemPrivateKeyFile(constants.SIGNING_KEY_PREFIX, nodeAlias)))
 
       // copy all public keys for all nodes
-      nodeIds.forEach(id => {
-        srcFiles.push(path.join(stagingDir, 'keys', Templates.renderGossipPemPublicKeyFile(constants.SIGNING_KEY_PREFIX, id)))
+      nodeAliases.forEach(nodeAlias => {
+        srcFiles.push(path.join(stagingDir, 'keys', Templates.renderGossipPemPublicKeyFile(constants.SIGNING_KEY_PREFIX, nodeAlias)))
       })
 
       const data = {}
@@ -176,28 +182,33 @@ export class PlatformInstaller {
       }
 
       if (!await this.k8.createSecret(
-        Templates.renderGossipKeySecretName(nodeId),
+        Templates.renderGossipKeySecretName(nodeAlias),
         this._getNamespace(), 'Opaque', data,
-        Templates.renderGossipKeySecretLabelObject(nodeId), true)) {
-        throw new SoloError(`failed to create secret for gossip keys for node '${nodeId}'`)
+        Templates.renderGossipKeySecretLabelObject(nodeAlias), true)) {
+        throw new SoloError(`failed to create secret for gossip keys for node '${nodeAlias}'`)
       }
     } catch (e) {
-      this.logger.error(`failed to copy gossip keys to secret '${Templates.renderGossipKeySecretName(nodeId)}': ${e.message}`, e)
-      throw new SoloError(`failed to copy gossip keys to secret '${Templates.renderGossipKeySecretName(nodeId)}': ${e.message}`, e)
+      this.logger.error(`failed to copy gossip keys to secret '${Templates.renderGossipKeySecretName(nodeAlias)}': ${e.message}`, e)
+      throw new SoloError(`failed to copy gossip keys to secret '${Templates.renderGossipKeySecretName(nodeAlias)}': ${e.message}`, e)
     }
   }
 
-  async copyTLSKeys (nodeIds, stagingDir) {
-    if (!nodeIds) throw new MissingArgumentError('nodeId is required')
+  /**
+   * @param {NodeAliases} nodeAliases
+   * @param {string} stagingDir
+   * @returns {Promise<void>}
+   */
+  async copyTLSKeys (nodeAliases, stagingDir) {
+    if (!nodeAliases || nodeAliases.length <= 0) throw new MissingArgumentError('nodeAliases cannot be empty')
     if (!stagingDir) throw new MissingArgumentError('stagingDir is required')
 
     try {
       const data = {}
 
-      for (const nodeId of nodeIds) {
+      for (const nodeAlias of nodeAliases) {
         const srcFiles = []
-        srcFiles.push(path.join(stagingDir, 'keys', Templates.renderTLSPemPrivateKeyFile(nodeId)))
-        srcFiles.push(path.join(stagingDir, 'keys', Templates.renderTLSPemPublicKeyFile(nodeId)))
+        srcFiles.push(path.join(stagingDir, 'keys', Templates.renderTLSPemPrivateKeyFile(nodeAlias)))
+        srcFiles.push(path.join(stagingDir, 'keys', Templates.renderTLSPemPublicKeyFile(nodeAlias)))
 
         for (const srcFile of srcFiles) {
           const fileContents = fs.readFileSync(srcFile)
@@ -218,7 +229,7 @@ export class PlatformInstaller {
   }
 
   /**
-   * @param {string} podName
+   * @param {PodName} podName
    * @param {string} destPath
    * @param {string} [mode]
    * @param {boolean} [recursive]
@@ -245,7 +256,7 @@ export class PlatformInstaller {
   }
 
   /**
-   * @param {string} podName
+   * @param {PodName} podName
    * @returns {Promise<boolean>}
    */
   async setPlatformDirPermissions (podName) {
@@ -270,7 +281,7 @@ export class PlatformInstaller {
   /**
    * Return a list of task to perform node directory setup
    *
-   * @param podName name of the pod
+   * @param {PodName} podName
    * @returns {Listr<ListrContext, ListrPrimaryRendererValue, ListrSecondaryRendererValue>}
    */
   taskSetup (podName) {
@@ -294,33 +305,33 @@ export class PlatformInstaller {
    * Return a list of task to copy the node keys to the staging directory
    *
    * It assumes the staging directory has the following files and resources:
-   * <li>${staging}/keys/s-public-<nodeId>.pem: private signing key for a node</li>
-   * <li>${staging}/keys/s-private-<nodeId>.pem: public signing key for a node</li>
-   * <li>${staging}/keys/a-public-<nodeId>.pem: private agreement key for a node</li>
-   * <li>${staging}/keys/a-private-<nodeId>.pem: public agreement key for a node</li>
-   * <li>${staging}/keys/hedera-<nodeId>.key: gRPC TLS key for a node</li>
-   * <li>${staging}/keys/hedera-<nodeId>.crt: gRPC TLS cert for a node</li>
+   * <li>${staging}/keys/s-public-<nodeAlias>.pem: private signing key for a node</li>
+   * <li>${staging}/keys/s-private-<nodeAlias>.pem: public signing key for a node</li>
+   * <li>${staging}/keys/a-public-<nodeAlias>.pem: private agreement key for a node</li>
+   * <li>${staging}/keys/a-private-<nodeAlias>.pem: public agreement key for a node</li>
+   * <li>${staging}/keys/hedera-<nodeAlias>.key: gRPC TLS key for a node</li>
+   * <li>${staging}/keys/hedera-<nodeAlias>.crt: gRPC TLS cert for a node</li>
    *
    * @param stagingDir staging directory path
-   * @param nodeIds list of node ids
+   * @param {NodeAliases} nodeAliases list of node ids
    * @returns {Listr<ListrContext, ListrPrimaryRendererValue, ListrSecondaryRendererValue>}
    */
-  copyNodeKeys (stagingDir, nodeIds) {
+  copyNodeKeys (stagingDir, nodeAliases) {
     const self = this
     const subTasks = []
     subTasks.push({
       title: 'Copy TLS keys',
       task: async () =>
-        await self.copyTLSKeys(nodeIds, stagingDir)
+        await self.copyTLSKeys(nodeAliases, stagingDir)
     })
 
-    for (const nodeId of nodeIds) {
+    for (const nodeAlias of nodeAliases) {
       subTasks.push({
-        title: `Node: ${chalk.yellow(nodeId)}`,
+        title: `Node: ${chalk.yellow(nodeAlias)}`,
         task: () => new Listr([{
           title: 'Copy Gossip keys',
           task: async () =>
-            await self.copyGossipKeys(nodeId, stagingDir, nodeIds)
+            await self.copyGossipKeys(nodeAlias, stagingDir, nodeAliases)
         }
         ],
         {

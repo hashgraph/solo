@@ -52,7 +52,7 @@ export class Keytool extends ShellRunner {
    * @param {string} args - args of the command
    * @returns {Promise<Array>} console output as an array of strings
    */
-  async genKeyPair (...args) {
+  genKeyPair (...args) {
     return this.run(this.prepareCommand('-genkeypair', ...args), true)
   }
 
@@ -61,7 +61,7 @@ export class Keytool extends ShellRunner {
    * @param {string} args - args of the command
    * @returns {Promise<Array>} console output as an array of strings
    */
-  async certReq (...args) {
+  certReq (...args) {
     return this.run(this.prepareCommand('-certreq', ...args), true)
   }
 
@@ -70,7 +70,7 @@ export class Keytool extends ShellRunner {
    * @param {string} args - args of the command
    * @returns {Promise<Array>} console output as an array of strings
    */
-  async genCert (...args) {
+  genCert (...args) {
     return this.run(this.prepareCommand('-gencert', ...args), true)
   }
 
@@ -79,7 +79,7 @@ export class Keytool extends ShellRunner {
    * @param {string} args - args of the command
    * @returns {Promise<Array>} console output as an array of strings
    */
-  async importCert (...args) {
+  importCert (...args) {
     return this.run(this.prepareCommand('-importcert', ...args), true)
   }
 
@@ -88,7 +88,7 @@ export class Keytool extends ShellRunner {
    * @param {string} args - args of the command
    * @returns {Promise<Array>} console output as an array of strings
    */
-  async exportCert (...args) {
+  exportCert (...args) {
     return this.run(this.prepareCommand('-exportcert', ...args), true)
   }
 
@@ -97,7 +97,7 @@ export class Keytool extends ShellRunner {
    * @param {string} args - args of the command
    * @returns {Promise<Array>} console output as an array of strings
    */
-  async list (...args) {
+  list (...args) {
     return this.run(this.prepareCommand('-list', ...args), true)
   }
 }

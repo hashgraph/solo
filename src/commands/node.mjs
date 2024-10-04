@@ -30,7 +30,7 @@ import {
   sleep,
   validatePath
 } from '../core/helpers.mjs'
-import { constants, Templates, Zippy } from '../core/index.mjs'
+import { constants, Templates, YargsCommand } from '../core/index.mjs'
 import { BaseCommand } from './base.mjs'
 import * as flags from './flags.mjs'
 import * as prompts from './prompts.mjs'
@@ -39,15 +39,11 @@ import {
   AccountBalanceQuery,
   AccountId,
   AccountUpdateTransaction,
-  FileAppendTransaction,
-  FileUpdateTransaction,
-  FreezeTransaction,
-  FreezeType,
   PrivateKey,
   NodeCreateTransaction,
   NodeUpdateTransaction,
   NodeDeleteTransaction,
-  Timestamp
+  ServiceEndpoint
 } from '@hashgraph/sdk'
 import * as crypto from 'crypto'
 import {
@@ -58,6 +54,9 @@ import {
   LOCAL_HOST
 } from '../core/constants.mjs'
 import { NodeStatusCodes, NodeStatusEnums } from '../core/enumerations.mjs'
+import { NodeCommandTasks } from './node/tasks.mjs'
+import { downloadGeneratedFilesConfigBuilder, prepareUpgradeConfigBuilder } from './node/configs.mjs'
+import * as NodeFlags from './node/flags.mjs'
 
 /**
  * Defines the core functionalities of 'node' command
@@ -86,6 +85,13 @@ export class NodeCommand extends BaseCommand {
     this.keytoolDepManager = opts.keytoolDepManager
     this.profileManager = opts.profileManager
     this._portForwards = []
+
+    this.tasks = new NodeCommandTasks({
+      accountManager: opts.accountManager,
+      configManager: opts.configManager,
+      logger: opts.logger,
+      k8: opts.k8
+    })
   }
 
   /**
@@ -120,7 +126,7 @@ export class NodeCommand extends BaseCommand {
       flags.devMode,
       flags.localBuildPath,
       flags.namespace,
-      flags.nodeIDs,
+      flags.nodeAliasesUnparsed,
       flags.releaseTag
     ]
   }
@@ -131,9 +137,9 @@ export class NodeCommand extends BaseCommand {
   static get START_FLAGS_LIST () {
     return [
       flags.app,
-      flags.debugNodeId,
+      flags.debugNodeAlias,
       flags.namespace,
-      flags.nodeIDs,
+      flags.nodeAliasesUnparsed,
       flags.quiet
     ]
   }
@@ -144,7 +150,7 @@ export class NodeCommand extends BaseCommand {
   static get STOP_FLAGS_LIST () {
     return [
       flags.namespace,
-      flags.nodeIDs,
+      flags.nodeAliasesUnparsed,
       flags.quiet
     ]
   }
@@ -165,7 +171,7 @@ export class NodeCommand extends BaseCommand {
       flags.devMode,
       flags.generateGossipKeys,
       flags.generateTlsKeys,
-      flags.nodeIDs,
+      flags.nodeAliasesUnparsed,
       flags.quiet
     ]
   }
@@ -187,7 +193,7 @@ export class NodeCommand extends BaseCommand {
       flags.devMode,
       flags.localBuildPath,
       flags.namespace,
-      flags.nodeIDs,
+      flags.nodeAliasesUnparsed,
       flags.quiet,
       flags.releaseTag
     ]
@@ -210,7 +216,7 @@ export class NodeCommand extends BaseCommand {
       flags.chainId,
       flags.chartDirectory,
       flags.devMode,
-      flags.debugNodeId,
+      flags.debugNodeAlias,
       flags.endpointType,
       flags.fstChartVersion,
       flags.generateGossipKeys,
@@ -309,10 +315,11 @@ export class NodeCommand extends BaseCommand {
       flags.cacheDir,
       flags.chartDirectory,
       flags.devMode,
-      flags.debugNodeId,
+      flags.debugNodeAlias,
       flags.endpointType,
       flags.localBuildPath,
       flags.namespace,
+      flags.nodeAlias,
       flags.quiet,
       flags.releaseTag
     ]
@@ -328,7 +335,7 @@ export class NodeCommand extends BaseCommand {
       flags.cacheDir,
       flags.chartDirectory,
       flags.devMode,
-      flags.debugNodeId,
+      flags.debugNodeAlias,
       flags.endpointType,
       flags.fstChartVersion,
       flags.gossipEndpoints,
@@ -339,7 +346,7 @@ export class NodeCommand extends BaseCommand {
       flags.namespace,
       flags.newAccountNumber,
       flags.newAdminKey,
-      flags.nodeID,
+      flags.nodeAlias,
       flags.quiet,
       flags.releaseTag,
       flags.tlsPrivateKey,
@@ -349,10 +356,12 @@ export class NodeCommand extends BaseCommand {
 
   /**
    * stops and closes the port forwards
+   * - calls the accountManager.close()
+   * - for all portForwards, calls k8.stopPortForward(srv)
    * @returns {Promise<void>}
    */
   async close () {
-    this.accountManager.close()
+    await this.accountManager.close()
     if (this._portForwards) {
       for (const srv of this._portForwards) {
         await this.k8.stopPortForward(srv)
@@ -365,10 +374,10 @@ export class NodeCommand extends BaseCommand {
   /**
    * @param {string} namespace
    * @param {string} accountId
-   * @param {string} nodeId
+   * @param {NodeAlias} nodeAlias
    * @returns {Promise<void>}
    */
-  async addStake (namespace, accountId, nodeId) {
+  async addStake (namespace, accountId, nodeAlias) {
     try {
       await this.accountManager.loadNodeClient(namespace)
       const client = this.accountManager._nodeClient
@@ -388,7 +397,7 @@ export class NodeCommand extends BaseCommand {
       // Create the transaction
       const transaction = await new AccountUpdateTransaction()
         .setAccountId(accountId)
-        .setStakedNodeId(Templates.nodeNumberFromNodeId(nodeId) - 1)
+        .setStakedNodeId(Templates.nodeIdFromNodeAlias(nodeAlias) - 1)
         .freezeWith(client)
 
       // Sign the transaction with the account's private key
@@ -409,32 +418,8 @@ export class NodeCommand extends BaseCommand {
   }
 
   /**
-   * Check if the network node pod is running
    * @param {string} namespace
-   * @param {string} nodeId
-   * @param {number} [maxAttempts]
-   * @param {number} [delay]
-   * @returns {Promise<string>}
-   */
-  async checkNetworkNodePod (namespace, nodeId, maxAttempts = 60, delay = 2000) {
-    nodeId = nodeId.trim()
-    const podName = Templates.renderNetworkPodName(nodeId)
-
-    try {
-      await this.k8.waitForPods([constants.POD_PHASE_RUNNING], [
-        'fullstack.hedera.com/type=network-node',
-        `fullstack.hedera.com/node-name=${nodeId}`
-      ], 1, maxAttempts, delay)
-
-      return podName
-    } catch (e) {
-      throw new SoloError(`no pod found for nodeId: ${nodeId}`, e)
-    }
-  }
-
-  /**
-   * @param {string} namespace
-   * @param {string} nodeId
+   * @param {NodeAlias} nodeAlias
    * @param {TaskWrapper} task
    * @param {string} title
    * @param {number} index
@@ -444,10 +429,10 @@ export class NodeCommand extends BaseCommand {
    * @param {number} [timeout]
    * @returns {Promise<string>}
    */
-  async checkNetworkNodeActiveness (namespace, nodeId, task, title, index,
+  async checkNetworkNodeActiveness (namespace, nodeAlias, task, title, index,
     status = NodeStatusCodes.ACTIVE, maxAttempts = 120, delay = 1_000, timeout = 1_000) {
-    nodeId = nodeId.trim()
-    const podName = Templates.renderNetworkPodName(nodeId)
+    nodeAlias = nodeAlias.trim()
+    const podName = Templates.renderNetworkPodName(nodeAlias)
     const podPort = 9_999
     const localPort = 19_000 + index
     task.title = `${title} - status ${chalk.yellow('STARTING')}, attempt ${chalk.blueBright(`0/${maxAttempts}`)}`
@@ -509,7 +494,7 @@ export class NodeCommand extends BaseCommand {
     await this.k8.stopPortForward(srv)
 
     if (!success) {
-      throw new SoloError(`node '${nodeId}' is not ${NodeStatusEnums[status]}` +
+      throw new SoloError(`node '${nodeAlias}' is not ${NodeStatusEnums[status]}` +
         `[ attempt = ${chalk.blueBright(`${attempt}/${maxAttempts}`)} ]`)
     }
 
@@ -521,19 +506,19 @@ export class NodeCommand extends BaseCommand {
   /**
    * @param {Object} ctx
    * @param {TaskWrapper} task
-   * @param {string[]} nodeIds
+   * @param {NodeAliases} nodeAliases
    * @param {number} [status]
    * @returns {Listr<any, any, any>}
    */
-  checkNodeActivenessTask (ctx, task, nodeIds, status = NodeStatusCodes.ACTIVE) {
+  checkNodeActivenessTask (ctx, task, nodeAliases, status = NodeStatusCodes.ACTIVE) {
     const { config: { namespace } } = ctx
 
-    const subTasks = nodeIds.map((nodeId, i) => {
-      const reminder = ('debugNodeId' in ctx.config && ctx.config.debugNodeId === nodeId) ? 'Please attach JVM debugger now.' : ''
-      const title = `Check network pod: ${chalk.yellow(nodeId)} ${chalk.red(reminder)}`
+    const subTasks = nodeAliases.map((nodeAlias, i) => {
+      const reminder = ('debugNodeAlias' in ctx.config && ctx.config.debugNodeAlias === nodeAlias) ? 'Please attach JVM debugger now.' : ''
+      const title = `Check network pod: ${chalk.yellow(nodeAlias)} ${chalk.red(reminder)}`
 
       const subTask = async (ctx, task) => {
-        ctx.config.podNames[nodeId] = await this.checkNetworkNodeActiveness(namespace, nodeId, task, title, i, status)
+        ctx.config.podNames[nodeAlias] = await this.checkNetworkNodeActiveness(namespace, nodeAlias, task, title, i, status)
       }
 
       return { title, task: subTask }
@@ -551,51 +536,18 @@ export class NodeCommand extends BaseCommand {
    * Return task for checking for all network node pods
    * @param {any} ctx
    * @param {TaskWrapper} task
-   * @param {string[]} nodeIds
+   * @param {NodeAliases} nodeAliases
    * @returns {*}
    */
-  taskCheckNetworkNodePods (ctx, task, nodeIds) {
-    if (!ctx.config) {
-      ctx.config = {}
-    }
-
-    ctx.config.podNames = {}
-
+  checkPodRunningTask (ctx, task, nodeAliases) {
     const subTasks = []
-    for (const nodeId of nodeIds) {
+    for (const nodeAlias of nodeAliases) {
       subTasks.push({
-        title: `Check network pod: ${chalk.yellow(nodeId)}`,
-        task: async (ctx) => {
-          ctx.config.podNames[nodeId] = await this.checkNetworkNodePod(ctx.config.namespace, nodeId)
-        }
-      })
-    }
-
-    // setup the sub-tasks
-    return task.newListr(subTasks, {
-      concurrent: true,
-      rendererOptions: {
-        collapseSubtasks: false
-      }
-    })
-  }
-
-  /**
-   * Return task for checking for all network node pods
-   * @param {any} ctx
-   * @param {TaskWrapper} task
-   * @param {string[]} nodeIds
-   * @returns {*}
-   */
-  checkPodRunningTask (ctx, task, nodeIds) {
-    const subTasks = []
-    for (const nodeId of nodeIds) {
-      subTasks.push({
-        title: `Check Node: ${chalk.yellow(nodeId)}`,
+        title: `Check Node: ${chalk.yellow(nodeAlias)}`,
         task: async () =>
           await this.k8.waitForPods([constants.POD_PHASE_RUNNING], [
             'fullstack.hedera.com/type=network-node',
-            `fullstack.hedera.com/node-name=${nodeId}`
+            `fullstack.hedera.com/node-name=${nodeAlias}`
           ], 1, 60 * 15, 1000) // timeout 15 minutes
       })
     }
@@ -613,15 +565,15 @@ export class NodeCommand extends BaseCommand {
    * Return task for setup network nodes
    * @param {any} ctx
    * @param {TaskWrapper} task
-   * @param {string[]} nodeIds
+   * @param {NodeAliases} nodeAliases
    * @returns {*}
    */
-  setupNodesTask (ctx, task, nodeIds) {
+  setupNodesTask (ctx, task, nodeAliases) {
     const subTasks = []
-    for (const nodeId of nodeIds) {
-      const podName = ctx.config.podNames[nodeId]
+    for (const nodeAlias of nodeAliases) {
+      const podName = ctx.config.podNames[nodeAlias]
       subTasks.push({
-        title: `Node: ${chalk.yellow(nodeId)}`,
+        title: `Node: ${chalk.yellow(nodeAlias)}`,
         task: () =>
           this.platformInstaller.taskSetup(podName)
       })
@@ -638,13 +590,13 @@ export class NodeCommand extends BaseCommand {
    * Return task for start network node hedera service
    * @param {TaskWrapper} task
    * @param {string[]} podNames
-   * @param {string[]} nodeIds
+   * @param {NodeAliases} nodeAliases
    * @returns {*}
    */
-  startNetworkNodesTask (task, podNames, nodeIds) {
+  startNetworkNodesTask (task, podNames, nodeAliases) {
     const subTasks = []
-    // ctx.config.allNodeIds = ctx.config.existingNodeIds
-    this.startNodes(podNames, nodeIds, subTasks)
+    // ctx.config.allNodeAliases = ctx.config.existingNodeAliases
+    this.startNodes(podNames, nodeAliases, subTasks)
 
     // set up the sub-tasks
     return task.newListr(subTasks, {
@@ -660,16 +612,16 @@ export class NodeCommand extends BaseCommand {
    * Return task for check if node proxies are ready
    * @param {any} ctx
    * @param {TaskWrapper} task
-   * @param {string[]} nodeIds
+   * @param {NodeAliases} nodeAliases
    * @returns {*}
    */
-  checkNodesProxiesTask (ctx, task, nodeIds) {
+  checkNodesProxiesTask (ctx, task, nodeAliases) {
     const subTasks = []
-    for (const nodeId of nodeIds) {
+    for (const nodeAlias of nodeAliases) {
       subTasks.push({
-        title: `Check proxy for node: ${chalk.yellow(nodeId)}`,
+        title: `Check proxy for node: ${chalk.yellow(nodeAlias)}`,
         task: async () => await this.k8.waitForPodReady(
-          [`app=haproxy-${nodeId}`, 'fullstack.hedera.com/type=haproxy'],
+          [`app=haproxy-${nodeAlias}`, 'fullstack.hedera.com/type=haproxy'],
           1, 300, 2000)
       })
     }
@@ -684,43 +636,30 @@ export class NodeCommand extends BaseCommand {
   }
 
   /**
-   * Transfer some hbar to the node for staking purpose
-   * @param existingNodeIds
-   * @return {Promise<void>}
-   */
-  async checkStakingTask (existingNodeIds) {
-    const accountMap = getNodeAccountMap(existingNodeIds)
-    for (const nodeId of existingNodeIds) {
-      const accountId = accountMap.get(nodeId)
-      await this.accountManager.transferAmount(constants.TREASURY_ACCOUNT_ID, accountId, 1)
-    }
-  }
-
-  /**
    * Task for repairing staging directory
    * @param ctx
    * @param task
    * @param keysDir
    * @param stagingKeysDir
-   * @param nodeIds
-   * @return return task for repairing staging directory
+   * @param {NodeAliases} nodeAliases
+   * @return return task for reparing staging directory
    */
-  prepareStagingTask (ctx, task, keysDir, stagingKeysDir, nodeIds) {
+  prepareStagingTask (ctx, task, keysDir, stagingKeysDir, nodeAliases) {
     const subTasks = [
       {
         title: 'Copy Gossip keys to staging',
         task: async () => {
           // const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
 
-          await this.keyManager.copyGossipKeysToStaging(keysDir, stagingKeysDir, nodeIds)
+          await this.keyManager.copyGossipKeysToStaging(keysDir, stagingKeysDir, nodeAliases)
         }
       },
       {
         title: 'Copy gRPC TLS keys to staging',
         task: async () => {
           // const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
-          for (const nodeId of nodeIds) {
-            const tlsKeyFiles = this.keyManager.prepareTLSKeyFilePaths(nodeId, keysDir)
+          for (const nodeAlias of nodeAliases) {
+            const tlsKeyFiles = this.keyManager.prepareTLSKeyFilePaths(nodeAlias, keysDir)
             await this.keyManager.copyNodeKeysToStaging(tlsKeyFiles, stagingKeysDir)
           }
         }
@@ -738,7 +677,7 @@ export class NodeCommand extends BaseCommand {
    * @param task
    */
   copyNodeKeyTask (ctx, task) {
-    const subTasks = this.platformInstaller.copyNodeKeys(ctx.config.stagingDir, ctx.config.allNodeIds)
+    const subTasks = this.platformInstaller.copyNodeKeys(ctx.config.stagingDir, ctx.config.allNodeAliases)
 
     // set up the sub-tasks
     return task.newListr(subTasks, {
@@ -758,16 +697,16 @@ export class NodeCommand extends BaseCommand {
       config.serviceMap = await this.accountManager.getNodeServiceMap(config.namespace)
     }
 
-    const index = config.existingNodeIds.length
-    const nodeId = Templates.nodeNumberFromNodeId(config.nodeId) - 1
+    const index = config.existingNodeAliases.length
+    const nodeId = Templates.nodeIdFromNodeAlias(config.nodeAlias) - 1
 
     let valuesArg = ''
     for (let i = 0; i < index; i++) {
       if ((config.newAccountNumber && i !== nodeId) || !config.newAccountNumber) { // for the case of updating node
-        valuesArg += ` --set "hedera.nodes[${i}].accountId=${config.serviceMap.get(config.existingNodeIds[i]).accountId}" --set "hedera.nodes[${i}].name=${config.existingNodeIds[i]}"`
+        valuesArg += ` --set "hedera.nodes[${i}].accountId=${config.serviceMap.get(config.existingNodeAliases[i]).accountId}" --set "hedera.nodes[${i}].name=${config.existingNodeAliases[i]}"`
       } else {
         // use new account number for this node id
-        valuesArg += ` --set "hedera.nodes[${i}].accountId=${config.newAccountNumber}" --set "hedera.nodes[${i}].name=${config.existingNodeIds[i]}"`
+        valuesArg += ` --set "hedera.nodes[${i}].accountId=${config.newAccountNumber}" --set "hedera.nodes[${i}].name=${config.existingNodeAliases[i]}"`
       }
     }
 
@@ -782,7 +721,7 @@ export class NodeCommand extends BaseCommand {
       valuesArg += this.prepareValuesFiles(this.profileValuesFile)
     }
 
-    valuesArg = addDebugOptions(valuesArg, config.debugNodeId)
+    valuesArg = addDebugOptions(valuesArg, config.debugNodeAlias)
 
     await this.chartManager.upgrade(
       config.namespace,
@@ -800,64 +739,21 @@ export class NodeCommand extends BaseCommand {
   async triggerStakeCalculation (config) {
     this.logger.info('sleep 60 seconds for the handler to be able to trigger the network node stake weight recalculate')
     await sleep(60000)
-    const accountMap = getNodeAccountMap(config.allNodeIds)
+    const accountMap = getNodeAccountMap(config.allNodeAliases)
 
     if (config.newAccountNumber) {
       // update map with current account ids
-      accountMap.set(config.nodeId, config.newAccountNumber)
+      accountMap.set(config.nodeAlias, config.newAccountNumber)
 
       // update _nodeClient with the new service map since one of the account number has changed
       await this.accountManager.refreshNodeClient(config.namespace)
     }
 
     // send some write transactions to invoke the handler that will trigger the stake weight recalculate
-    for (const nodeId of config.allNodeIds) {
-      const accountId = accountMap.get(nodeId)
+    for (const nodeAlias of config.allNodeAliases) {
+      const accountId = accountMap.get(nodeAlias)
       config.nodeClient.setOperator(TREASURY_ACCOUNT_ID, config.treasuryKey)
       await this.accountManager.transferAmount(constants.TREASURY_ACCOUNT_ID, accountId, 1)
-    }
-  }
-
-  /**
-   * Identify existing network nodes and check if they are running
-   * @param {any} ctx
-   * @param {TaskWrapper} task
-   * @param config
-   */
-  async identifyExistingNetworkNodes (ctx, task, config) {
-    config.existingNodeIds = []
-    config.serviceMap = await this.accountManager.getNodeServiceMap(
-      config.namespace)
-    for (/** @type {NetworkNodeServices} **/ const networkNodeServices of config.serviceMap.values()) {
-      config.existingNodeIds.push(networkNodeServices.nodeName)
-    }
-    config.allNodeIds = [...config.existingNodeIds]
-    return this.taskCheckNetworkNodePods(ctx, task, config.existingNodeIds)
-  }
-
-  /**
-   * Download generated config files and key files from the network node
-   * @param config
-   */
-  async downloadNodeGeneratedFiles (config) {
-    const node1FullyQualifiedPodName = Templates.renderNetworkPodName(config.existingNodeIds[0])
-
-    // copy the config.txt file from the node1 upgrade directory
-    await this.k8.copyFrom(node1FullyQualifiedPodName, constants.ROOT_CONTAINER, `${constants.HEDERA_HAPI_PATH}/data/upgrade/current/config.txt`, config.stagingDir)
-
-    // if directory data/upgrade/current/data/keys does not exist then use data/upgrade/current
-    let keyDir = `${constants.HEDERA_HAPI_PATH}/data/upgrade/current/data/keys`
-    if (!await this.k8.hasDir(node1FullyQualifiedPodName, constants.ROOT_CONTAINER, keyDir)) {
-      keyDir = `${constants.HEDERA_HAPI_PATH}/data/upgrade/current`
-    }
-    const signedKeyFiles = (await this.k8.listDir(node1FullyQualifiedPodName, constants.ROOT_CONTAINER, keyDir)).filter(file => file.name.startsWith(constants.SIGNING_KEY_PREFIX))
-    await this.k8.execContainer(node1FullyQualifiedPodName, constants.ROOT_CONTAINER, ['bash', '-c', `mkdir -p ${constants.HEDERA_HAPI_PATH}/data/keys_backup && cp -r ${keyDir} ${constants.HEDERA_HAPI_PATH}/data/keys_backup/`])
-    for (const signedKeyFile of signedKeyFiles) {
-      await this.k8.copyFrom(node1FullyQualifiedPodName, constants.ROOT_CONTAINER, `${keyDir}/${signedKeyFile.name}`, `${config.keysDir}`)
-    }
-
-    if (await this.k8.hasFile(node1FullyQualifiedPodName, constants.ROOT_CONTAINER, `${constants.HEDERA_HAPI_PATH}/data/upgrade/current/application.properties`)) {
-      await this.k8.copyFrom(node1FullyQualifiedPodName, constants.ROOT_CONTAINER, `${constants.HEDERA_HAPI_PATH}/data/upgrade/current/application.properties`, `${config.stagingDir}/templates`)
     }
   }
 
@@ -886,35 +782,36 @@ export class NodeCommand extends BaseCommand {
   }
 
   /**
-   * @param {string[]} nodeIds
+   * @param {NodeAliases} nodeAliases
    * @param {Object} podNames
    * @param {TaskWrapper} task
    * @param {string} localBuildPath
    * @returns {Listr<*, *, *>}
    */
-  uploadPlatformSoftware (nodeIds, podNames, task, localBuildPath) {
+  uploadPlatformSoftware (nodeAliases, podNames, task, localBuildPath) {
     const self = this
     const subTasks = []
 
     self.logger.debug('no need to fetch, use local build jar files')
 
+    /** @type {Map<NodeAlias, string>} */
     const buildPathMap = new Map()
     let defaultDataLibBuildPath
     const parameterPairs = localBuildPath.split(',')
     for (const parameterPair of parameterPairs) {
       if (parameterPair.includes('=')) {
-        const [nodeId, localDataLibBuildPath] = parameterPair.split('=')
-        buildPathMap.set(nodeId, localDataLibBuildPath)
+        const [nodeAlias, localDataLibBuildPath] = parameterPair.split('=')
+        buildPathMap.set(nodeAlias, localDataLibBuildPath)
       } else {
         defaultDataLibBuildPath = parameterPair
       }
     }
 
     let localDataLibBuildPath
-    for (const nodeId of nodeIds) {
-      const podName = podNames[nodeId]
-      if (buildPathMap.has(nodeId)) {
-        localDataLibBuildPath = buildPathMap.get(nodeId)
+    for (const nodeAlias of nodeAliases) {
+      const podName = podNames[nodeAlias]
+      if (buildPathMap.has(nodeAlias)) {
+        localDataLibBuildPath = buildPathMap.get(nodeAlias)
       } else {
         localDataLibBuildPath = defaultDataLibBuildPath
       }
@@ -924,7 +821,7 @@ export class NodeCommand extends BaseCommand {
       }
 
       subTasks.push({
-        title: `Copy local build to Node: ${chalk.yellow(nodeId)} from ${localDataLibBuildPath}`,
+        title: `Copy local build to Node: ${chalk.yellow(nodeAlias)} from ${localDataLibBuildPath}`,
         task: async () => {
           this.logger.debug(`Copying build files to pod: ${podName} from ${localDataLibBuildPath}`)
           await self.k8.copyTo(podName, constants.ROOT_CONTAINER, localDataLibBuildPath, `${constants.HEDERA_HAPI_PATH}`)
@@ -945,36 +842,36 @@ export class NodeCommand extends BaseCommand {
   }
 
   /**
-   * @param {string[]} nodeIds
+   * @param {NodeAliases} nodeAliases
    * @param {Object} podNames
    * @param {string} releaseTag
    * @param {TaskWrapper} task
    * @param {string} localBuildPath
    * @returns {Listr<*, *, *>}
    */
-  fetchLocalOrReleasedPlatformSoftware (nodeIds, podNames, releaseTag, task, localBuildPath) {
+  fetchLocalOrReleasedPlatformSoftware (nodeAliases, podNames, releaseTag, task, localBuildPath) {
     const self = this
     if (localBuildPath !== '') {
-      return self.uploadPlatformSoftware(nodeIds, podNames, task, localBuildPath)
+      return self.uploadPlatformSoftware(nodeAliases, podNames, task, localBuildPath)
     } else {
-      return self.fetchPlatformSoftware(nodeIds, podNames, releaseTag, task, self.platformInstaller)
+      return self.fetchPlatformSoftware(nodeAliases, podNames, releaseTag, task, self.platformInstaller)
     }
   }
 
   /**
-   * @param {string[]} nodeIds
+   * @param {NodeAliases} nodeAliases
    * @param {Object} podNames
    * @param {string} releaseTag
    * @param {TaskWrapper} task
    * @param {PlatformInstaller} platformInstaller
    * @returns {Listr<any, any, any>}
    */
-  fetchPlatformSoftware (nodeIds, podNames, releaseTag, task, platformInstaller) {
+  fetchPlatformSoftware (nodeAliases, podNames, releaseTag, task, platformInstaller) {
     const subTasks = []
-    for (const nodeId of nodeIds) {
-      const podName = podNames[nodeId]
+    for (const nodeAlias of nodeAliases) {
+      const podName = podNames[nodeAlias]
       subTasks.push({
-        title: `Update node: ${chalk.yellow(nodeId)} [ platformVersion = ${releaseTag} ]`,
+        title: `Update node: ${chalk.yellow(nodeAlias)} [ platformVersion = ${releaseTag} ]`,
         task: async () =>
           await platformInstaller.fetchPlatform(podName, releaseTag)
       })
@@ -989,7 +886,7 @@ export class NodeCommand extends BaseCommand {
     })
   }
 
-  async loadPermCertificate (certFullPath) {
+  loadPermCertificate (certFullPath) {
     const certPem = fs.readFileSync(certFullPath).toString()
     const decodedDers = x509.PemConverter.decode(certPem)
     if (!decodedDers || decodedDers.length === 0) {
@@ -998,76 +895,43 @@ export class NodeCommand extends BaseCommand {
     return (new Uint8Array(decodedDers[0]))
   }
 
-  async prepareUpgradeZip (stagingDir) {
-    // we build a mock upgrade.zip file as we really don't need to upgrade the network
-    // also the platform zip file is ~80Mb in size requiring a lot of transactions since the max
-    // transaction size is 6Kb and in practice we need to send the file as 4Kb chunks.
-    // Note however that in DAB phase-2, we won't need to trigger this fake upgrade process
-    const zipper = new Zippy(this.logger)
-    const upgradeConfigDir = path.join(stagingDir, 'mock-upgrade', 'data', 'config')
-    if (!fs.existsSync(upgradeConfigDir)) {
-      fs.mkdirSync(upgradeConfigDir, { recursive: true })
-    }
-
-    // bump field hedera.config.version
-    const fileBytes = fs.readFileSync(path.join(stagingDir, 'templates', 'application.properties'))
-    const lines = fileBytes.toString().split('\n')
-    const newLines = []
-    for (let line of lines) {
-      line = line.trim()
-      const parts = line.split('=')
-      if (parts.length === 2) {
-        if (parts[0] === 'hedera.config.version') {
-          let version = parseInt(parts[1])
-          line = `hedera.config.version=${++version}`
-        }
-        newLines.push(line)
-      }
-    }
-    fs.writeFileSync(path.join(upgradeConfigDir, 'application.properties'), newLines.join('\n'))
-
-    return await zipper.zip(path.join(stagingDir, 'mock-upgrade'), path.join(stagingDir, 'mock-upgrade.zip'))
-  }
-
   /**
-   * @param {string} upgradeZipFile
-   * @param nodeClient
-   * @returns {Promise<string>}
+   * @param {string} endpointType
+   * @param {string[]} endpoints
+   * @param {number} defaultPort
+   * @returns {ServiceEndpoint[]}
    */
-  async uploadUpgradeZip (upgradeZipFile, nodeClient) {
-    // get byte value of the zip file
-    const zipBytes = fs.readFileSync(upgradeZipFile)
-    const zipHash = crypto.createHash('sha384').update(zipBytes).digest('hex')
-    this.logger.debug(`loaded upgrade zip file [ zipHash = ${zipHash} zipBytes.length = ${zipBytes.length}, zipPath = ${upgradeZipFile}]`)
+  prepareEndpoints (endpointType, endpoints, defaultPort) {
+    const ret = /** @typedef ServiceEndpoint **/[]
+    for (const endpoint of endpoints) {
+      const parts = endpoint.split(':')
 
-    // create a file upload transaction to upload file to the network
-    try {
-      let start = 0
+      let url = ''
+      let port = defaultPort
 
-      while (start < zipBytes.length) {
-        const zipBytesChunk = new Uint8Array(zipBytes.subarray(start, constants.UPGRADE_FILE_CHUNK_SIZE))
-        let fileTransaction = null
-
-        if (start === 0) {
-          fileTransaction = new FileUpdateTransaction()
-            .setFileId(constants.UPGRADE_FILE_ID)
-            .setContents(zipBytesChunk)
-        } else {
-          fileTransaction = new FileAppendTransaction()
-            .setFileId(constants.UPGRADE_FILE_ID)
-            .setContents(zipBytesChunk)
-        }
-        const resp = await fileTransaction.execute(nodeClient)
-        const receipt = await resp.getReceipt(nodeClient)
-        this.logger.debug(`updated file ${constants.UPGRADE_FILE_ID} [chunkSize= ${zipBytesChunk.length}, txReceipt = ${receipt.toString()}]`)
-
-        start += constants.UPGRADE_FILE_CHUNK_SIZE
+      if (parts.length === 2) {
+        url = parts[0].trim()
+        port = parts[1].trim()
+      } else if (parts.length === 1) {
+        url = parts[0]
+      } else {
+        throw new SoloError(`incorrect endpoint format. expected url:port, found ${endpoint}`)
       }
 
-      return zipHash
-    } catch (e) {
-      throw new SoloError(`failed to upload build.zip file: ${e.message}`, e)
+      if (endpointType.toUpperCase() === constants.ENDPOINT_TYPE_IP) {
+        ret.push(new ServiceEndpoint({
+          port,
+          ipAddressV4: helpers.parseIpAddressToUint8Array(url)
+        }))
+      } else {
+        ret.push(new ServiceEndpoint({
+          port,
+          domainName: url
+        }))
+      }
     }
+
+    return ret
   }
 
   // List of Commands
@@ -1103,11 +967,11 @@ export class NodeCommand extends BaseCommand {
            * @property {boolean} devMode
            * @property {string} localBuildPath
            * @property {string} namespace
-           * @property {string} nodeIDs
+           * @property {string} nodeAliasesUnparsed
            * @property {string} releaseTag
            * -- extra args --
-           * @property {string[]} nodeIds
-           * @property {string[]} podNames
+           * @property {NodeAliases} nodeAliases
+           * @property {Object} podNames
            * -- methods --
            * @property {getUnusedConfigs} getUnusedConfigs
            */
@@ -1119,11 +983,11 @@ export class NodeCommand extends BaseCommand {
           // create a config object for subsequent steps
           const config = /** @type {NodeSetupConfigClass} **/ this.getConfig(NodeCommand.SETUP_CONFIGS_NAME, NodeCommand.SETUP_FLAGS_LIST,
             [
-              'nodeIds',
+              'nodeAliases',
               'podNames'
             ])
 
-          config.nodeIds = helpers.parseNodeIds(config.nodeIDs)
+          config.nodeAliases = helpers.parseNodeAliases(config.nodeAliasesUnparsed)
 
           await self.initializeSetup(config, self.k8)
 
@@ -1133,22 +997,19 @@ export class NodeCommand extends BaseCommand {
           self.logger.debug('Initialized config', { config })
         }
       },
-      {
-        title: 'Identify network pods',
-        task: (ctx, task) => self.taskCheckNetworkNodePods(ctx, task, ctx.config.nodeIds)
-      },
+      this.tasks.identifyNetworkPods(),
       {
         title: 'Fetch platform software into network nodes',
         task:
-          async (ctx, task) => {
-            const config = /** @type {NodeSetupConfigClass} **/ ctx.config
-            return self.fetchLocalOrReleasedPlatformSoftware(config.nodeIds, config.podNames, config.releaseTag, task, config.localBuildPath)
-          }
+           (ctx, task) => {
+             const config = /** @type {NodeSetupConfigClass} **/ ctx.config
+             return self.fetchLocalOrReleasedPlatformSoftware(config.nodeAliases, config.podNames, config.releaseTag, task, config.localBuildPath)
+           }
       },
       {
         title: 'Setup network nodes',
-        task: async (ctx, parentTask) => {
-          return this.setupNodesTask(ctx, parentTask, ctx.config.nodeIds)
+        task: (ctx, parentTask) => {
+          return this.setupNodesTask(ctx, parentTask, ctx.config.nodeAliases)
         }
       }
     ], {
@@ -1180,15 +1041,15 @@ export class NodeCommand extends BaseCommand {
 
           await prompts.execute(task, self.configManager, [
             flags.namespace,
-            flags.nodeIDs
+            flags.nodeAliasesUnparsed
           ])
 
           ctx.config = {
             app: self.configManager.getFlag(flags.app),
             cacheDir: self.configManager.getFlag(flags.cacheDir),
-            debugNodeId: self.configManager.getFlag(flags.debugNodeId),
+            debugNodeAlias: self.configManager.getFlag(flags.debugNodeAlias),
             namespace: self.configManager.getFlag(flags.namespace),
-            nodeIds: helpers.parseNodeIds(self.configManager.getFlag(flags.nodeIDs))
+            nodeAliases: helpers.parseNodeAliases(self.configManager.getFlag(flags.nodeAliasesUnparsed))
           }
 
           ctx.config.stagingDir = Templates.renderStagingDir(
@@ -1201,36 +1062,30 @@ export class NodeCommand extends BaseCommand {
           }
         }
       },
-      {
-        title: 'Identify existing network nodes',
-        task: async (ctx, task) => {
-          const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
-          return this.identifyExistingNetworkNodes(ctx, task, config)
-        }
-      },
+      this.tasks.identifyExistingNodes(),
       {
         title: 'Starting nodes',
         task: (ctx, task) => {
-          return this.startNetworkNodesTask(task, ctx.config.podNames, ctx.config.nodeIds)
+          return this.startNetworkNodesTask(task, ctx.config.podNames, ctx.config.nodeAliases)
         }
       },
       {
         title: 'Enable port forwarding for JVM debugger',
         task: async (ctx) => {
-          await this.enableJVMPortForwarding(ctx.config.debugNodeId)
+          await this.enableJVMPortForwarding(ctx.config.debugNodeAlias)
         },
-        skip: (ctx) => !ctx.config.debugNodeId
+        skip: (ctx) => !ctx.config.debugNodeAlias
       },
       {
         title: 'Check nodes are ACTIVE',
         task: (ctx, task) => {
-          return this.checkNodeActivenessTask(ctx, task, ctx.config.nodeIds)
+          return this.checkNodeActivenessTask(ctx, task, ctx.config.nodeAliases)
         }
       },
       {
         title: 'Check node proxies are ACTIVE',
-        task: async (ctx, parentTask) => {
-          return self.checkNodesProxiesTask(ctx, parentTask, ctx.config.nodeIds)
+        task: (ctx, parentTask) => {
+          return self.checkNodesProxiesTask(ctx, parentTask, ctx.config.nodeAliases)
         },
         skip: () => self.configManager.getFlag(flags.app) !== '' && self.configManager.getFlag(flags.app) !== constants.HEDERA_APP_NAME
       },
@@ -1239,12 +1094,12 @@ export class NodeCommand extends BaseCommand {
         task: (ctx, task) => {
           if (ctx.config.app === '' || ctx.config.app === constants.HEDERA_APP_NAME) {
             const subTasks = []
-            const accountMap = getNodeAccountMap(ctx.config.nodeIds)
-            for (const nodeId of ctx.config.nodeIds) {
-              const accountId = accountMap.get(nodeId)
+            const accountMap = getNodeAccountMap(ctx.config.nodeAliases)
+            for (const nodeAlias of ctx.config.nodeAliases) {
+              const accountId = accountMap.get(nodeAlias)
               subTasks.push({
-                title: `Adding stake for node: ${chalk.yellow(nodeId)}`,
-                task: async () => await self.addStake(ctx.config.namespace, accountId, nodeId)
+                title: `Adding stake for node: ${chalk.yellow(nodeAlias)}`,
+                task: async () => await self.addStake(ctx.config.namespace, accountId, nodeAlias)
               })
             }
 
@@ -1288,12 +1143,13 @@ export class NodeCommand extends BaseCommand {
           self.configManager.update(argv)
           await prompts.execute(task, self.configManager, [
             flags.namespace,
-            flags.nodeIDs
+            flags.nodeAliasesUnparsed
           ])
 
+          /** @type {{namespace: string, nodeAliases: NodeAliases}} */
           ctx.config = {
             namespace: self.configManager.getFlag(flags.namespace),
-            nodeIds: helpers.parseNodeIds(self.configManager.getFlag(flags.nodeIDs))
+            nodeAliases: helpers.parseNodeAliases(self.configManager.getFlag(flags.nodeAliasesUnparsed))
           }
 
           if (!await self.k8.hasNamespace(ctx.config.namespace)) {
@@ -1301,18 +1157,15 @@ export class NodeCommand extends BaseCommand {
           }
         }
       },
-      {
-        title: 'Identify network pods',
-        task: (ctx, task) => self.taskCheckNetworkNodePods(ctx, task, ctx.config.nodeIds)
-      },
+      this.tasks.identifyNetworkPods(),
       {
         title: 'Stopping nodes',
         task: (ctx, task) => {
           const subTasks = []
-          for (const nodeId of ctx.config.nodeIds) {
-            const podName = ctx.config.podNames[nodeId]
+          for (const nodeAlias of ctx.config.nodeAliases) {
+            const podName = ctx.config.podNames[nodeAlias]
             subTasks.push({
-              title: `Stop node: ${chalk.yellow(nodeId)}`,
+              title: `Stop node: ${chalk.yellow(nodeAlias)}`,
               task: async () => await self.k8.execContainer(podName, constants.ROOT_CONTAINER, 'systemctl stop network-node')
             })
           }
@@ -1367,11 +1220,11 @@ export class NodeCommand extends BaseCommand {
            * @property {boolean} devMode
            * @property {boolean} generateGossipKeys
            * @property {boolean} generateTlsKeys
-           * @property {string} nodeIDs
+           * @property {string} nodeAliasesUnparsed
            * -- extra args --
            * @property {Date} curDate
            * @property {string} keysDir
-           * @property {string[]} nodeIds
+           * @property {NodeAliases} nodeAliases
            * -- methods --
            * @property {getUnusedConfigs} getUnusedConfigs
            */
@@ -1385,11 +1238,11 @@ export class NodeCommand extends BaseCommand {
             [
               'curDate',
               'keysDir',
-              'nodeIds'
+              'nodeAliases'
             ])
 
           config.curDate = new Date()
-          config.nodeIds = helpers.parseNodeIds(config.nodeIDs)
+          config.nodeAliases = helpers.parseNodeAliases(config.nodeAliasesUnparsed)
           config.keysDir = path.join(self.configManager.getFlag(flags.cacheDir), 'keys')
 
           if (!fs.existsSync(config.keysDir)) {
@@ -1401,9 +1254,9 @@ export class NodeCommand extends BaseCommand {
       },
       {
         title: 'Generate gossip keys',
-        task: async (ctx, parentTask) => {
+        task: (ctx, parentTask) => {
           const config = ctx.config
-          const subTasks = self.keyManager.taskGenerateGossipKeys(self.keytoolDepManager, config.nodeIds, config.keysDir, config.curDate)
+          const subTasks = self.keyManager.taskGenerateGossipKeys(self.keytoolDepManager, config.nodeAliases, config.keysDir, config.curDate)
           // set up the sub-tasks
           return parentTask.newListr(subTasks, {
             concurrent: false,
@@ -1417,9 +1270,9 @@ export class NodeCommand extends BaseCommand {
       },
       {
         title: 'Generate gRPC TLS keys',
-        task: async (ctx, parentTask) => {
+        task: (ctx, parentTask) => {
           const config = ctx.config
-          const subTasks = self.keyManager.taskGenerateTLSKeys(config.nodeIds, config.keysDir, config.curDate)
+          const subTasks = self.keyManager.taskGenerateTLSKeys(config.nodeAliases, config.keysDir, config.curDate)
           // set up the sub-tasks
           return parentTask.newListr(subTasks, {
             concurrent: true,
@@ -1480,10 +1333,10 @@ export class NodeCommand extends BaseCommand {
            * @property {boolean} devMode
            * @property {string} localBuildPath
            * @property {string} namespace
-           * @property {string} nodeIDs
+           * @property {string} nodeAliasesUnparsed
            * @property {string} releaseTag
            * -- extra args --
-           * @property {string[]} nodeIds
+           * @property {NodeAliases} nodeAliases
            * @property {Object} podNames
            * -- methods --
            * @property {getUnusedConfigs} getUnusedConfigs
@@ -1496,77 +1349,74 @@ export class NodeCommand extends BaseCommand {
           // create a config object for subsequent steps
           ctx.config = /** @type {NodeRefreshConfigClass} **/ this.getConfig(NodeCommand.REFRESH_CONFIGS_NAME, NodeCommand.REFRESH_FLAGS_LIST,
             [
-              'nodeIds',
+              'nodeAliases',
               'podNames'
             ])
 
-          ctx.config.nodeIds = helpers.parseNodeIds(ctx.config.nodeIDs)
+          ctx.config.nodeAliases = helpers.parseNodeAliases(ctx.config.nodeAliasesUnparsed)
 
           await self.initializeSetup(ctx.config, self.k8)
 
           self.logger.debug('Initialized config', ctx.config)
         }
       },
-      {
-        title: 'Identify network pods',
-        task: (ctx, task) => self.taskCheckNetworkNodePods(ctx, task, ctx.config.nodeIds)
-      },
+      this.tasks.identifyNetworkPods(),
       {
         title: 'Dump network nodes saved state',
         task:
-          async (ctx, task) => {
-            const config = /** @type {NodeRefreshConfigClass} **/ ctx.config
-            const subTasks = []
-            for (const nodeId of config.nodeIds) {
-              const podName = config.podNames[nodeId]
-              subTasks.push({
-                title: `Node: ${chalk.yellow(nodeId)}`,
-                task: async () =>
-                  await self.k8.execContainer(podName, constants.ROOT_CONTAINER, ['bash', '-c', `rm -rf ${constants.HEDERA_HAPI_PATH}/data/saved/*`])
-              })
-            }
+           (ctx, task) => {
+             const config = /** @type {NodeRefreshConfigClass} **/ ctx.config
+             const subTasks = []
+             for (const nodeAlias of config.nodeAliases) {
+               const podName = config.podNames[nodeAlias]
+               subTasks.push({
+                 title: `Node: ${chalk.yellow(nodeAlias)}`,
+                 task: async () =>
+                   await self.k8.execContainer(podName, constants.ROOT_CONTAINER, ['bash', '-c', `rm -rf ${constants.HEDERA_HAPI_PATH}/data/saved/*`])
+               })
+             }
 
-            // set up the sub-tasks
-            return task.newListr(subTasks, {
-              concurrent: true,
-              rendererOptions: {
-                collapseSubtasks: false
-              }
-            })
-          }
+             // set up the sub-tasks
+             return task.newListr(subTasks, {
+               concurrent: true,
+               rendererOptions: {
+                 collapseSubtasks: false
+               }
+             })
+           }
       },
       {
         title: 'Fetch platform software into network nodes',
         task:
-          async (ctx, task) => {
-            const config = /** @type {NodeRefreshConfigClass} **/ ctx.config
-            return self.fetchLocalOrReleasedPlatformSoftware(config.nodeIds, config.podNames, config.releaseTag, task, config.localBuildPath)
-          }
+           (ctx, task) => {
+             const config = /** @type {NodeRefreshConfigClass} **/ ctx.config
+             return self.fetchLocalOrReleasedPlatformSoftware(config.nodeAliases, config.podNames, config.releaseTag, task, config.localBuildPath)
+           }
       },
       {
         title: 'Setup network nodes',
-        task: async (ctx, parentTask) => {
-          return this.setupNodesTask(ctx, parentTask, ctx.config.nodeIds)
+        task: (ctx, parentTask) => {
+          return this.setupNodesTask(ctx, parentTask, ctx.config.nodeAliases)
         }
       },
       {
         title: 'Starting nodes',
         task: (ctx, task) => {
-          return this.startNetworkNodesTask(task, ctx.config.podNames, ctx.config.nodeIds)
+          return this.startNetworkNodesTask(task, ctx.config.podNames, ctx.config.nodeAliases)
         }
       },
       {
         title: 'Check nodes are ACTIVE',
         task: (ctx, task) => {
-          return this.checkNodeActivenessTask(ctx, task, ctx.config.nodeIds)
+          return this.checkNodeActivenessTask(ctx, task, ctx.config.nodeAliases)
         }
       },
       {
         title: 'Check node proxies are ACTIVE',
         // this is more reliable than checking the nodes logs for ACTIVE, as the
         // logs will have a lot of white noise from being behind
-        task: async (ctx, task) => {
-          return this.checkNodesProxiesTask(ctx, task, ctx.config.nodeIds)
+        task: (ctx, task) => {
+          return this.checkNodesProxiesTask(ctx, task, ctx.config.nodeAliases)
         },
         skip: (ctx) => ctx.config.app !== ''
       }], {
@@ -1595,12 +1445,13 @@ export class NodeCommand extends BaseCommand {
         title: 'Initialize',
         task: async (ctx, task) => {
           await prompts.execute(task, self.configManager, [
-            flags.nodeIDs
+            flags.nodeAliasesUnparsed
           ])
 
+          /** @type {{namespace: string, nodeAliases: NodeAliases}} */
           ctx.config = {
             namespace: self.configManager.getFlag(flags.namespace),
-            nodeIds: helpers.parseNodeIds(self.configManager.getFlag(flags.nodeIDs))
+            nodeAliases: helpers.parseNodeAliases(self.configManager.getFlag(flags.nodeAliasesUnparsed))
           }
           self.logger.debug('Initialized config', { config: ctx.config })
         }
@@ -1643,7 +1494,7 @@ export class NodeCommand extends BaseCommand {
           flags.chartDirectory,
           flags.outputDir,
           flags.devMode,
-          flags.debugNodeId,
+          flags.debugNodeAlias,
           flags.endpointType,
           flags.force,
           flags.fstChartVersion,
@@ -1662,7 +1513,7 @@ export class NodeCommand extends BaseCommand {
            * @property {string} chainId
            * @property {string} chartDirectory
            * @property {boolean} devMode
-           * @property {string} debugNodeId
+           * @property {string} debugNodeAlias
            * @property {string} endpointType
            * @property {string} fstChartVersion
            * @property {boolean} generateGossipKeys
@@ -1671,14 +1522,14 @@ export class NodeCommand extends BaseCommand {
            * @property {string} grpcEndpoints
            * @property {string} localBuildPath
            * @property {string} namespace
-           * @property {string} nodeId
+           * @property {NodeAlias} nodeAlias
            * @property {string} releaseTag
            * -- extra args --
            * @property {PrivateKey} adminKey
-           * @property {string[]} allNodeIds
+           * @property {NodeAliases} allNodeAliases
            * @property {string} chartPath
            * @property {Date} curDate
-           * @property {string[]} existingNodeIds
+           * @property {NodeAliases} existingNodeAliases
            * @property {string} freezeAdminPrivateKey
            * @property {string} keysDir
            * @property {string} lastStateZipPath
@@ -1699,10 +1550,10 @@ export class NodeCommand extends BaseCommand {
         // create a config object for subsequent steps
         const config = /** @type {NodeAddConfigClass} **/ this.getConfig(NodeCommand.ADD_CONFIGS_NAME, NodeCommand.ADD_FLAGS_LIST,
           [
-            'allNodeIds',
+            'allNodeAliases',
             'chartPath',
             'curDate',
-            'existingNodeIds',
+            'existingNodeAliases',
             'freezeAdminPrivateKey',
             'keysDir',
             'lastStateZipPath',
@@ -1716,7 +1567,7 @@ export class NodeCommand extends BaseCommand {
 
         ctx.adminKey = argv[flags.adminKey.name] ? PrivateKey.fromStringED25519(argv[flags.adminKey.name]) : PrivateKey.fromStringED25519(constants.GENESIS_KEY)
         config.curDate = new Date()
-        config.existingNodeIds = []
+        config.existingNodeAliases = []
 
         if (config.keyFormat !== constants.KEY_FORMAT_PEM) {
           throw new SoloError('key type cannot be PFX')
@@ -1748,16 +1599,6 @@ export class NodeCommand extends BaseCommand {
     }
   }
 
-  getIdentifyExistingNetworkNodesTask (argv) {
-    return {
-      title: 'Identify existing network nodes',
-      task: async (ctx, task) => {
-        const config = /** @type {NodeAddConfigClass} **/ ctx.config
-        return this.identifyExistingNetworkNodes(ctx, task, config)
-      }
-    }
-  }
-
   getAddPrepareTasks (argv) {
     const self = this
 
@@ -1765,13 +1606,13 @@ export class NodeCommand extends BaseCommand {
       self.addInitializeTask(argv),
       {
         title: 'Check that PVCs are enabled',
-        task: async () => {
+        task: () => {
           if (!self.configManager.getFlag(flags.persistentVolumeClaims)) {
             throw new SoloError('PVCs are not enabled. Please enable PVCs before adding a node')
           }
         }
       },
-      self.getIdentifyExistingNetworkNodesTask(argv),
+      this.tasks.identifyExistingNodes(),
       {
         title: 'Determine new node account number',
         task: (ctx) => {
@@ -1779,39 +1620,39 @@ export class NodeCommand extends BaseCommand {
           const values = { hedera: { nodes: [] } }
           let maxNum = 0
 
-          let lastNodeName = DEFAULT_NETWORK_NODE_NAME
+          let lastNodeAlias = DEFAULT_NETWORK_NODE_NAME
 
           for (/** @type {NetworkNodeServices} **/ const networkNodeServices of config.serviceMap.values()) {
             values.hedera.nodes.push({
               accountId: networkNodeServices.accountId,
-              name: networkNodeServices.nodeName
+              name: networkNodeServices.nodeAlias
             })
             maxNum = maxNum > AccountId.fromString(networkNodeServices.accountId).num
               ? maxNum
               : AccountId.fromString(networkNodeServices.accountId).num
-            lastNodeName = networkNodeServices.nodeName
+            lastNodeAlias = networkNodeServices.nodeAlias
           }
 
-          const lastNodeNumberMatch = lastNodeName.match(/\d+$/)
-          if (lastNodeNumberMatch.length) {
-            const incremented = parseInt(lastNodeNumberMatch[0]) + 1
-            lastNodeName = lastNodeName.replace(/\d+$/, incremented.toString())
+          const lastNodeIdMatch = lastNodeAlias.match(/\d+$/)
+          if (lastNodeIdMatch.length) {
+            const incremented = parseInt(lastNodeIdMatch[0]) + 1
+            lastNodeAlias = lastNodeAlias.replace(/\d+$/, incremented.toString())
           }
 
           ctx.maxNum = maxNum
           ctx.newNode = {
             accountId: `${constants.HEDERA_NODE_ACCOUNT_ID_START.realm}.${constants.HEDERA_NODE_ACCOUNT_ID_START.shard}.${++maxNum}`,
-            name: lastNodeName
+            name: lastNodeAlias
           }
-          config.nodeId = lastNodeName
-          config.allNodeIds.push(lastNodeName)
+          config.nodeAlias = lastNodeAlias
+          config.allNodeAliases.push(lastNodeAlias)
         }
       },
       {
         title: 'Generate Gossip key',
-        task: async (ctx, parentTask) => {
+        task: (ctx, parentTask) => {
           const config = /** @type {NodeAddConfigClass} **/ ctx.config
-          const subTasks = self.keyManager.taskGenerateGossipKeys(self.keytoolDepManager, [config.nodeId], config.keysDir, config.curDate, config.allNodeIds)
+          const subTasks = self.keyManager.taskGenerateGossipKeys(self.keytoolDepManager, [config.nodeAlias], config.keysDir, config.curDate, config.allNodeAliases) // 666
           // set up the sub-tasks
           return parentTask.newListr(subTasks, {
             concurrent: false,
@@ -1825,9 +1666,9 @@ export class NodeCommand extends BaseCommand {
       },
       {
         title: 'Generate gRPC TLS key',
-        task: async (ctx, parentTask) => {
+        task: (ctx, parentTask) => {
           const config = /** @type {NodeAddConfigClass} **/ ctx.config
-          const subTasks = self.keyManager.taskGenerateTLSKeys([config.nodeId], config.keysDir, config.curDate)
+          const subTasks = self.keyManager.taskGenerateTLSKeys([config.nodeAlias], config.keysDir, config.curDate)
           // set up the sub-tasks
           return parentTask.newListr(subTasks, {
             concurrent: false,
@@ -1843,7 +1684,7 @@ export class NodeCommand extends BaseCommand {
         title: 'Load signing key certificate',
         task: async (ctx) => {
           const config = /** @type {NodeAddConfigClass} **/ ctx.config
-          const signingCertFile = Templates.renderGossipPemPublicKeyFile(constants.SIGNING_KEY_PREFIX, config.nodeId)
+          const signingCertFile = Templates.renderGossipPemPublicKeyFile(constants.SIGNING_KEY_PREFIX, config.nodeAlias)
           const signingCertFullPath = path.join(config.keysDir, signingCertFile)
           ctx.signingCertDer = await this.loadPermCertificate(signingCertFullPath)
         }
@@ -1852,7 +1693,7 @@ export class NodeCommand extends BaseCommand {
         title: 'Compute mTLS certificate hash',
         task: async (ctx) => {
           const config = /** @type {NodeAddConfigClass} **/ ctx.config
-          const tlsCertFile = Templates.renderTLSPemPublicKeyFile(config.nodeId)
+          const tlsCertFile = Templates.renderTLSPemPublicKeyFile(config.nodeAlias)
           const tlsCertFullPath = path.join(config.keysDir, tlsCertFile)
           const tlsCertDer = await this.loadPermCertificate(tlsCertFullPath)
           ctx.tlsCertHash = crypto.createHash('sha384').update(tlsCertDer).digest()
@@ -1869,8 +1710,8 @@ export class NodeCommand extends BaseCommand {
             }
 
             endpoints = [
-              `${Templates.renderFullyQualifiedNetworkPodName(config.namespace, config.nodeId)}:${constants.HEDERA_NODE_INTERNAL_GOSSIP_PORT}`,
-              `${Templates.renderFullyQualifiedNetworkSvcName(config.namespace, config.nodeId)}:${constants.HEDERA_NODE_EXTERNAL_GOSSIP_PORT}`
+              `${Templates.renderFullyQualifiedNetworkPodName(config.namespace, config.nodeAlias)}:${constants.HEDERA_NODE_INTERNAL_GOSSIP_PORT}`,
+              `${Templates.renderFullyQualifiedNetworkSvcName(config.namespace, config.nodeAlias)}:${constants.HEDERA_NODE_EXTERNAL_GOSSIP_PORT}`
             ]
           } else {
             endpoints = helpers.splitFlagInput(config.gossipEndpoints)
@@ -1891,7 +1732,7 @@ export class NodeCommand extends BaseCommand {
             }
 
             endpoints = [
-              `${Templates.renderFullyQualifiedNetworkSvcName(config.namespace, config.nodeId)}:${constants.HEDERA_NODE_EXTERNAL_GOSSIP_PORT}`
+              `${Templates.renderFullyQualifiedNetworkSvcName(config.namespace, config.nodeAlias)}:${constants.HEDERA_NODE_EXTERNAL_GOSSIP_PORT}`
             ]
           } else {
             endpoints = helpers.splitFlagInput(config.grpcEndpoints)
@@ -1900,28 +1741,15 @@ export class NodeCommand extends BaseCommand {
           ctx.grpcServiceEndpoints = helpers.prepareEndpoints(config.endpointType, endpoints, constants.HEDERA_NODE_EXTERNAL_GOSSIP_PORT)
         }
       },
-      {
-        title: 'Prepare upgrade zip file for node upgrade process',
-        task: async (ctx) => {
-          const config = /** @type {NodeAddConfigClass} **/ ctx.config
-          ctx.upgradeZipFile = await this.prepareUpgradeZip(config.stagingDir)
-          ctx.upgradeZipHash = await this.uploadUpgradeZip(ctx.upgradeZipFile, config.nodeClient)
-        }
-      },
-      {
-        title: 'Check existing nodes staked amount',
-        task: async (ctx) => {
-          const config = /** @type {NodeAddConfigClass} **/ ctx.config
-          await this.checkStakingTask(config.existingNodeIds)
-        }
-      }
+      this.tasks.prepareUpgradeZip(),
+      this.tasks.checkExistingNodesStakedAmount()
     ]
   }
 
   saveContextDataTask (argv, targetFile, parser) {
     return {
       title: 'Save context data',
-      task: async (ctx, task) => {
+      task: (ctx, task) => {
         const outputDir = argv[flags.outputDir.name]
         if (!outputDir) {
           throw new SoloError(`Path to export context data not specified. Please set a value for --${flags.outputDir.name}`)
@@ -1939,7 +1767,7 @@ export class NodeCommand extends BaseCommand {
   loadContextDataTask (argv, targetFile, parser) {
     return {
       title: 'Load context data',
-      task: async (ctx, task) => {
+      task: (ctx, task) => {
         const inputDir = argv[flags.inputDir.name]
         if (!inputDir) {
           throw new SoloError(`Path to context data not specified. Please set a value for --${flags.inputDir.name}`)
@@ -1976,21 +1804,8 @@ export class NodeCommand extends BaseCommand {
           }
         }
       },
-      {
-        title: 'Send prepare upgrade transaction',
-        task: async (ctx) => {
-          const config = /** @type {NodeAddConfigClass} **/ ctx.config
-          await this.prepareUpgradeNetworkNodes(config.freezeAdminPrivateKey, ctx.upgradeZipHash, config.nodeClient)
-        }
-      },
-      {
-        title: 'Send freeze upgrade transaction',
-        task: async (ctx) => {
-          const config = /** @type {NodeAddConfigClass} **/ ctx.config
-          await this.freezeUpgradeNetworkNodes(config.freezeAdminPrivateKey, ctx.upgradeZipHash, config.nodeClient)
-        }
-      }
-
+      this.tasks.sendPrepareUpgradeTransaction(),
+      this.tasks.sendFreezeUpgradeTransaction()
     ]
   }
 
@@ -1998,30 +1813,24 @@ export class NodeCommand extends BaseCommand {
     const self = this
 
     return [
-      {
-        title: 'Download generated files from an existing node',
-        task: async (ctx) => {
-          const config = /** @type {NodeAddConfigClass} **/ ctx.config
-          await this.downloadNodeGeneratedFiles(config)
-        }
-      },
+      this.tasks.downloadNodeGeneratedFiles(),
       {
         title: 'Prepare staging directory',
-        task: async (ctx, parentTask) => {
+        task: (ctx, parentTask) => {
           const config = /** @type {NodeAddConfigClass} **/ ctx.config
-          return this.prepareStagingTask(ctx, parentTask, config.keysDir, config.stagingKeysDir, config.allNodeIds)
+          return this.prepareStagingTask(ctx, parentTask, config.keysDir, config.stagingKeysDir, config.allNodeAliases)
         }
       },
       {
         title: 'Copy node keys to secrets',
-        task: async (ctx, parentTask) => {
+        task: (ctx, parentTask) => {
           return this.copyNodeKeyTask(ctx, parentTask)
         }
       },
       {
         title: 'Check network nodes are frozen',
         task: (ctx, task) => {
-          return this.checkNodeActivenessTask(ctx, task, ctx.config.existingNodeIds, NodeStatusCodes.FREEZE_COMPLETE)
+          return this.checkNodeActivenessTask(ctx, task, ctx.config.existingNodeAliases, NodeStatusCodes.FREEZE_COMPLETE)
         }
       },
       {
@@ -2048,9 +1857,9 @@ export class NodeCommand extends BaseCommand {
       },
       {
         title: 'Check node pods are running',
-        task: async (ctx, task) => {
+        task: (ctx, task) => {
           const config = /** @type {NodeAddConfigClass} **/ ctx.config
-          return this.checkPodRunningTask(ctx, task, config.allNodeIds)
+          return this.checkPodRunningTask(ctx, task, config.allNodeAliases)
         }
       },
       {
@@ -2060,16 +1869,16 @@ export class NodeCommand extends BaseCommand {
             const config = /** @type {NodeAddConfigClass} **/ ctx.config
             config.serviceMap = await self.accountManager.getNodeServiceMap(
               config.namespace)
-            config.podNames[config.nodeId] = config.serviceMap.get(config.nodeId).nodePodName
+            config.podNames[config.nodeAlias] = config.serviceMap.get(config.nodeAlias).nodePodName
 
-            return self.fetchLocalOrReleasedPlatformSoftware(config.allNodeIds, config.podNames, config.releaseTag, task, config.localBuildPath)
+            return self.fetchLocalOrReleasedPlatformSoftware(config.allNodeAliases, config.podNames, config.releaseTag, task, config.localBuildPath)
           }
       },
       {
         title: 'Download last state from an existing node',
         task: async (ctx) => {
           const config = /** @type {NodeAddConfigClass} **/ ctx.config
-          const node1FullyQualifiedPodName = Templates.renderNetworkPodName(config.existingNodeIds[0])
+          const node1FullyQualifiedPodName = Templates.renderNetworkPodName(config.existingNodeAliases[0])
           const upgradeDirectory = `${constants.HEDERA_HAPI_PATH}/data/saved/com.hedera.services.ServicesMain/0/123`
           // zip the contents of the newest folder on node1 within /opt/hgcapp/services-hedera/HapiApp2.0/data/saved/com.hedera.services.ServicesMain/0/123/
           const zipFileName = await self.k8.execContainer(node1FullyQualifiedPodName, constants.ROOT_CONTAINER, ['bash', '-c', `cd ${upgradeDirectory} && mapfile -t states < <(ls -1t .) && jar cf "\${states[0]}.zip" -C "\${states[0]}" . && echo -n \${states[0]}.zip`])
@@ -2082,10 +1891,10 @@ export class NodeCommand extends BaseCommand {
         task:
             async (ctx) => {
               const config = /** @type {NodeAddConfigClass} **/ ctx.config
-              const newNodeFullyQualifiedPodName = Templates.renderNetworkPodName(config.nodeId)
-              const nodeNumber = Templates.nodeNumberFromNodeId(config.nodeId)
+              const newNodeFullyQualifiedPodName = Templates.renderNetworkPodName(config.nodeAlias)
+              const nodeId = Templates.nodeIdFromNodeAlias(config.nodeAlias)
               const savedStateDir = (config.lastStateZipPath.match(/\/(\d+)\.zip$/))[1]
-              const savedStatePath = `${constants.HEDERA_HAPI_PATH}/data/saved/com.hedera.services.ServicesMain/${nodeNumber}/123/${savedStateDir}`
+              const savedStatePath = `${constants.HEDERA_HAPI_PATH}/data/saved/com.hedera.services.ServicesMain/${nodeId}/123/${savedStateDir}`
               await self.k8.execContainer(newNodeFullyQualifiedPodName, constants.ROOT_CONTAINER, ['bash', '-c', `mkdir -p ${savedStatePath}`])
               await self.k8.copyTo(newNodeFullyQualifiedPodName, constants.ROOT_CONTAINER, config.lastStateZipPath, savedStatePath)
               await self.platformInstaller.setPathPermission(newNodeFullyQualifiedPodName, constants.HEDERA_HAPI_PATH)
@@ -2094,43 +1903,43 @@ export class NodeCommand extends BaseCommand {
       },
       {
         title: 'Setup new network node',
-        task: async (ctx, parentTask) => {
-          return this.setupNodesTask(ctx, parentTask, ctx.config.allNodeIds)
+        task: (ctx, parentTask) => {
+          return this.setupNodesTask(ctx, parentTask, ctx.config.allNodeAliases)
         }
       },
       {
         title: 'Start network nodes',
-        task: async (ctx, task) => {
+        task: (ctx, task) => {
           const config = /** @type {NodeAddConfigClass} **/ ctx.config
-          return this.startNetworkNodesTask(task, config.podNames, config.allNodeIds)
+          return this.startNetworkNodesTask(task, config.podNames, config.allNodeAliases)
         }
       },
       {
         title: 'Enable port forwarding for JVM debugger',
         task: async (ctx) => {
-          await this.enableJVMPortForwarding(ctx.config.debugNodeId)
+          await this.enableJVMPortForwarding(ctx.config.debugNodeAlias)
         },
-        skip: (ctx) => !ctx.config.debugNodeId
+        skip: (ctx) => !ctx.config.debugNodeAlias
       },
       {
         title: 'Check all nodes are ACTIVE',
-        task: async (ctx, task) => {
-          return this.checkNodeActivenessTask(ctx, task, ctx.config.allNodeIds)
+        task: (ctx, task) => {
+          return this.checkNodeActivenessTask(ctx, task, ctx.config.allNodeAliases)
         }
       },
       {
         title: 'Check all node proxies are ACTIVE',
         // this is more reliable than checking the nodes logs for ACTIVE, as the
         // logs will have a lot of white noise from being behind
-        task: async (ctx, task) => {
-          return this.checkNodesProxiesTask(ctx, task, ctx.config.allNodeIds)
+        task: (ctx, task) => {
+          return this.checkNodesProxiesTask(ctx, task, ctx.config.allNodeAliases)
         }
       },
       {
         title: 'Stake new node',
         task: async (ctx) => {
           const config = /** @type {NodeAddConfigClass} **/ ctx.config
-          await self.addStake(config.namespace, ctx.newNode.accountId, config.nodeId)
+          await self.addStake(config.namespace, ctx.newNode.accountId, config.nodeAlias)
         }
       },
       {
@@ -2206,7 +2015,7 @@ export class NodeCommand extends BaseCommand {
     const executeTasks = this.getAddExecuteTasks(argv)
     const tasks = new Listr([
       self.addInitializeTask(argv),
-      self.getIdentifyExistingNetworkNodesTask(argv),
+      this.tasks.identifyExistingNodes(),
       self.loadContextDataTask(argv, NodeCommand.ADD_CONTEXT_FILE, helpers.addLoadContextParser),
       ...executeTasks
     ], {
@@ -2257,93 +2066,68 @@ export class NodeCommand extends BaseCommand {
     return true
   }
 
-  /**
-   * @param {PrivateKey|string} freezeAdminPrivateKey
-   * @param {Uint8Array|string} upgradeZipHash
-   * @param {NodeClient} client
-   * @returns {Promise<void>}
-   */
-  async prepareUpgradeNetworkNodes (freezeAdminPrivateKey, upgradeZipHash, client) {
-    try {
-      // transfer some tiny amount to the freeze admin account
-      await this.accountManager.transferAmount(constants.TREASURY_ACCOUNT_ID, FREEZE_ADMIN_ACCOUNT, 100000)
+  async prepareUpgrade (argv) {
+    argv = helpers.addFlagsToArgv(argv, NodeFlags.DEFAULT_FLAGS)
+    const action = helpers.commandActionBuilder([
+      this.tasks.initialize(argv, prepareUpgradeConfigBuilder.bind(this)),
+      this.tasks.prepareUpgradeZip(),
+      this.tasks.sendPrepareUpgradeTransaction()
+    ], {
+      concurrent: false,
+      rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
+    }, 'Error in preparing node upgrade')
 
-      // query the balance
-      const balance = await new AccountBalanceQuery()
-        .setAccountId(FREEZE_ADMIN_ACCOUNT)
-        .execute(this.accountManager._nodeClient)
-      this.logger.debug(`Freeze admin account balance: ${balance.hbars}`)
+    await action(argv, this)
+  }
 
-      // set operator of freeze transaction as freeze admin account
-      client.setOperator(FREEZE_ADMIN_ACCOUNT, freezeAdminPrivateKey)
+  async freezeUpgrade (argv) {
+    argv = helpers.addFlagsToArgv(argv, NodeFlags.DEFAULT_FLAGS)
+    const action = helpers.commandActionBuilder([
+      this.tasks.initialize(argv, prepareUpgradeConfigBuilder.bind(this)),
+      this.tasks.prepareUpgradeZip(),
+      this.tasks.sendFreezeUpgradeTransaction()
+    ], {
+      concurrent: false,
+      rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
+    }, 'Error in executing node freeze upgrade')
 
-      const prepareUpgradeTx = await new FreezeTransaction()
-        .setFreezeType(FreezeType.PrepareUpgrade)
-        .setFileId(constants.UPGRADE_FILE_ID)
-        .setFileHash(upgradeZipHash)
-        .freezeWith(client)
-        .execute(client)
+    await action(argv, this)
+  }
 
-      const prepareUpgradeReceipt = await prepareUpgradeTx.getReceipt(client)
+  async downloadGeneratedFiles (argv) {
+    argv = helpers.addFlagsToArgv(argv, NodeFlags.DEFAULT_FLAGS)
+    const action = helpers.commandActionBuilder([
+      this.tasks.initialize(argv, downloadGeneratedFilesConfigBuilder.bind(this)),
+      this.tasks.identifyExistingNodes(),
+      this.tasks.downloadNodeGeneratedFiles()
+    ], {
+      concurrent: false,
+      rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
+    }, 'Error in downloading generated files')
 
-      this.logger.debug(
-          `sent prepare upgrade transaction [id: ${prepareUpgradeTx.transactionId.toString()}]`,
-          prepareUpgradeReceipt.status.toString()
-      )
-    } catch (e) {
-      this.logger.error(`Error in prepare upgrade: ${e.message}`, e)
-      throw new SoloError(`Error in prepare upgrade: ${e.message}`, e)
-    }
+    await action(argv, this)
   }
 
   /**
-   * @param {PrivateKey|string} freezeAdminPrivateKey
-   * @param {Uint8Array|string} upgradeZipHash
-   * @param {NodeClient} client
+   * @param {NodeAlias} nodeAlias
    * @returns {Promise<void>}
    */
-  async freezeUpgradeNetworkNodes (freezeAdminPrivateKey, upgradeZipHash, client) {
-    try {
-      const futureDate = new Date()
-      this.logger.debug(`Current time: ${futureDate}`)
-
-      futureDate.setTime(futureDate.getTime() + 5000) // 5 seconds in the future
-      this.logger.debug(`Freeze time: ${futureDate}`)
-
-      client.setOperator(FREEZE_ADMIN_ACCOUNT, freezeAdminPrivateKey)
-      const freezeUpgradeTx = await new FreezeTransaction()
-        .setFreezeType(FreezeType.FreezeUpgrade)
-        .setStartTimestamp(Timestamp.fromDate(futureDate))
-        .setFileId(constants.UPGRADE_FILE_ID)
-        .setFileHash(upgradeZipHash)
-        .freezeWith(client)
-        .execute(client)
-
-      const freezeUpgradeReceipt = await freezeUpgradeTx.getReceipt(client)
-      this.logger.debug(`Upgrade frozen with transaction id: ${freezeUpgradeTx.transactionId.toString()}`,
-        freezeUpgradeReceipt.status.toString())
-    } catch (e) {
-      this.logger.error(`Error in freeze upgrade: ${e.message}`, e)
-      throw new SoloError(`Error in freeze upgrade: ${e.message}`, e)
-    }
-  }
-
-  async enableJVMPortForwarding (nodeId) {
-    const podName = `network-${nodeId}-0`
+  async enableJVMPortForwarding (nodeAlias) {
+    const podName = `network-${nodeAlias}-0`
     this.logger.debug(`Enable port forwarding for JVM debugger on pod ${podName}`)
     await this.k8.portForward(podName, constants.JVM_DEBUG_PORT, constants.JVM_DEBUG_PORT)
   }
 
   /**
    * @param {Object} podNames
-   * @param {string[]} nodeIds
+   * @param {NodeAliases} nodeAliases
    * @param {Object[]} subTasks
    */
-  startNodes (podNames, nodeIds, subTasks) {
-    for (const nodeId of nodeIds) {
-      const podName = podNames[nodeId]
+  startNodes (podNames, nodeAliases, subTasks) {
+    for (const nodeAlias of nodeAliases) {
+      const podName = podNames[nodeAlias]
       subTasks.push({
-        title: `Start node: ${chalk.yellow(nodeId)}`,
+        title: `Start node: ${chalk.yellow(nodeAlias)}`,
         task: async () => {
           await this.k8.execContainer(podName, constants.ROOT_CONTAINER, ['systemctl', 'restart', 'network-node'])
         }
@@ -2354,13 +2138,10 @@ export class NodeCommand extends BaseCommand {
   // Command Definition
   /**
    * Return Yargs command definition for 'node' command
-   * @param {NodeCommand} nodeCmd - an instance of NodeCommand
    * @returns {{command: string, desc: string, builder: Function}}
    */
-  static getCommandDefinition (nodeCmd) {
-    if (!nodeCmd || !(nodeCmd instanceof NodeCommand)) {
-      throw new IllegalArgumentError('An instance of NodeCommand is required', nodeCmd)
-    }
+  getCommandDefinition () {
+    const nodeCmd = this
     return {
       command: 'node',
       desc: 'Manage Hedera platform node in solo network',
@@ -2386,9 +2167,7 @@ export class NodeCommand extends BaseCommand {
           .command({
             command: 'start',
             desc: 'Start a node',
-            builder: y => flags.setCommandFlags(y,
-              NodeCommand.START_FLAGS_LIST
-            ),
+            builder: y => flags.setCommandFlags(y, ...NodeCommand.START_FLAGS_LIST),
             handler: argv => {
               nodeCmd.logger.debug('==== Running \'node start\' ===')
               nodeCmd.logger.debug(argv)
@@ -2405,9 +2184,7 @@ export class NodeCommand extends BaseCommand {
           .command({
             command: 'stop',
             desc: 'Stop a node',
-            builder: y => flags.setCommandFlags(y,
-              NodeCommand.STOP_FLAGS_LIST
-            ),
+            builder: y => flags.setCommandFlags(y, ...NodeCommand.STOP_FLAGS_LIST),
             handler: argv => {
               nodeCmd.logger.debug('==== Running \'node stop\' ===')
               nodeCmd.logger.debug(argv)
@@ -2459,7 +2236,7 @@ export class NodeCommand extends BaseCommand {
             command: 'logs',
             desc: 'Download application logs from the network nodes and stores them in <SOLO_LOGS_DIR>/<namespace>/<podName>/ directory',
             builder: y => flags.setCommandFlags(y,
-              flags.nodeIDs
+              flags.nodeAliasesUnparsed
             ),
             handler: argv => {
               nodeCmd.logger.debug('==== Running \'node logs\' ===')
@@ -2562,7 +2339,7 @@ export class NodeCommand extends BaseCommand {
           .command({
             command: 'delete',
             desc: 'Delete a node with a specific version of Hedera platform',
-            builder: y => flags.setCommandFlags(y, ...NodeCommand.DELETE_FLAGS_LIST.concat(flags.nodeID)),
+            builder: y => flags.setCommandFlags(y, ...NodeCommand.DELETE_FLAGS_LIST.concat(flags.nodeAlias)),
             handler: argv => {
               nodeCmd.logger.debug('==== Running \'node delete\' ===')
               nodeCmd.logger.debug(argv)
@@ -2579,7 +2356,7 @@ export class NodeCommand extends BaseCommand {
           .command({
             command: 'delete-prepare',
             desc: 'Prepares the deletion of a node with a specific version of Hedera platform',
-            builder: y => flags.setCommandFlags(y, ...NodeCommand.DELETE_PREPARE_FLAGS_LIST.concat(flags.nodeID)),
+            builder: y => flags.setCommandFlags(y, ...NodeCommand.DELETE_PREPARE_FLAGS_LIST.concat(flags.nodeAlias)),
             handler: argv => {
               nodeCmd.logger.debug('==== Running \'node delete-prepare\' ===')
               nodeCmd.logger.debug(argv)
@@ -2627,6 +2404,24 @@ export class NodeCommand extends BaseCommand {
               })
             }
           })
+          .command(new YargsCommand({
+            command: 'prepare-upgrade',
+            description: 'Prepare the network for a Freeze Upgrade operation',
+            commandDef: nodeCmd,
+            handler: 'prepareUpgrade'
+          }, NodeFlags.DEFAULT_FLAGS))
+          .command(new YargsCommand({
+            command: 'freeze-upgrade',
+            description: 'Performs a Freeze Upgrade operation with on the network after it has been prepared with prepare-upgrade',
+            commandDef: nodeCmd,
+            handler: 'freezeUpgrade'
+          }, NodeFlags.DEFAULT_FLAGS))
+          .command(new YargsCommand({
+            command: 'download-generated-files',
+            description: 'Downloads the generated files from an existing node',
+            commandDef: nodeCmd,
+            handler: 'downloadGeneratedFiles'
+          }, NodeFlags.DEFAULT_FLAGS))
           .demandCommand(1, 'Select a node command')
       }
     }
@@ -2646,7 +2441,7 @@ export class NodeCommand extends BaseCommand {
             flags.app,
             flags.chartDirectory,
             flags.devMode,
-            flags.debugNodeId,
+            flags.debugNodeAlias,
             flags.endpointType,
             flags.force,
             flags.fstChartVersion,
@@ -2670,7 +2465,7 @@ export class NodeCommand extends BaseCommand {
            * @property {string} cacheDir
            * @property {string} chartDirectory
            * @property {boolean} devMode
-           * @property {string} debugNodeId
+           * @property {string} debugNodeAlias
            * @property {string} endpointType
            * @property {string} fstChartVersion
            * @property {string} gossipEndpoints
@@ -2681,15 +2476,15 @@ export class NodeCommand extends BaseCommand {
            * @property {string} namespace
            * @property {string} newAccountNumber
            * @property {string} newAdminKey
-           * @property {string} nodeId
+           * @property {NodeAlias} nodeAlias
            * @property {string} releaseTag
            * @property {string} tlsPrivateKey
            * @property {string} tlsPublicKey
            * -- extra args --
            * @property {PrivateKey} adminKey
-           * @property {string[]} allNodeIds
+           * @property {NodeAliases} allNodeAliases
            * @property {string} chartPath
-           * @property {string[]} existingNodeIds
+           * @property {NodeAliases} existingNodeAliases
            * @property {string} freezeAdminPrivateKey
            * @property {string} keysDir
            * @property {Object} nodeClient
@@ -2709,8 +2504,8 @@ export class NodeCommand extends BaseCommand {
           // create a config object for subsequent steps
           const config = /** @type {NodeUpdateConfigClass} **/ this.getConfig(NodeCommand.UPDATE_CONFIGS_NAME, NodeCommand.UPDATE_FLAGS_LIST,
             [
-              'allNodeIds',
-              'existingNodeIds',
+              'allNodeAliases',
+              'existingNodeAliases',
               'freezeAdminPrivateKey',
               'keysDir',
               'nodeClient',
@@ -2722,7 +2517,7 @@ export class NodeCommand extends BaseCommand {
             ])
 
           config.curDate = new Date()
-          config.existingNodeIds = []
+          config.existingNodeAliases = []
 
           await self.initializeSetup(config, self.k8)
 
@@ -2745,13 +2540,7 @@ export class NodeCommand extends BaseCommand {
           self.logger.debug('Initialized config', { config })
         }
       },
-      {
-        title: 'Identify existing network nodes',
-        task: async (ctx, task) => {
-          const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
-          return this.identifyExistingNetworkNodes(ctx, task, config)
-        }
-      },
+      this.tasks.identifyExistingNodes(),
       {
         title: 'Prepare gossip endpoints',
         task: (ctx) => {
@@ -2763,8 +2552,8 @@ export class NodeCommand extends BaseCommand {
             }
 
             endpoints = [
-              `${Templates.renderFullyQualifiedNetworkPodName(config.namespace, config.nodeId)}:${constants.HEDERA_NODE_INTERNAL_GOSSIP_PORT}`,
-              `${Templates.renderFullyQualifiedNetworkSvcName(config.namespace, config.nodeId)}:${constants.HEDERA_NODE_EXTERNAL_GOSSIP_PORT}`
+              `${Templates.renderFullyQualifiedNetworkPodName(config.namespace, config.nodeAlias)}:${constants.HEDERA_NODE_INTERNAL_GOSSIP_PORT}`,
+              `${Templates.renderFullyQualifiedNetworkSvcName(config.namespace, config.nodeAlias)}:${constants.HEDERA_NODE_EXTERNAL_GOSSIP_PORT}`
             ]
           } else {
             endpoints = helpers.splitFlagInput(config.gossipEndpoints)
@@ -2785,7 +2574,7 @@ export class NodeCommand extends BaseCommand {
             }
 
             endpoints = [
-              `${Templates.renderFullyQualifiedNetworkSvcName(config.namespace, config.nodeId)}:${constants.HEDERA_NODE_EXTERNAL_GOSSIP_PORT}`
+              `${Templates.renderFullyQualifiedNetworkSvcName(config.namespace, config.nodeAlias)}:${constants.HEDERA_NODE_EXTERNAL_GOSSIP_PORT}`
             ]
           } else {
             endpoints = helpers.splitFlagInput(config.grpcEndpoints)
@@ -2794,34 +2583,15 @@ export class NodeCommand extends BaseCommand {
           ctx.grpcServiceEndpoints = helpers.prepareEndpoints(config.endpointType, endpoints, constants.HEDERA_NODE_EXTERNAL_GOSSIP_PORT)
         }
       },
-      {
-        title: 'Load node admin key',
-        task: async (ctx) => {
-          const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
-          config.adminKey = PrivateKey.fromStringED25519(constants.GENESIS_KEY)
-        }
-      },
-      {
-        title: 'Prepare upgrade zip file for node upgrade process',
-        task: async (ctx) => {
-          const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
-          ctx.upgradeZipFile = await this.prepareUpgradeZip(config.stagingDir)
-          ctx.upgradeZipHash = await this.uploadUpgradeZip(ctx.upgradeZipFile, config.nodeClient)
-        }
-      },
-      {
-        title: 'Check existing nodes staked amount',
-        task: async (ctx) => {
-          const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
-          await this.checkStakingTask(config.existingNodeIds)
-        }
-      },
+      this.tasks.loadAdminKey(),
+      this.tasks.prepareUpgradeZip(),
+      this.tasks.checkExistingNodesStakedAmount(),
       {
         title: 'Send node update transaction',
         task: async (ctx) => {
           const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
 
-          const nodeId = Templates.nodeNumberFromNodeId(config.nodeId) - 1
+          const nodeId = Templates.nodeIdFromNodeAlias(config.nodeAlias) - 1
           self.logger.info(`nodeId: ${nodeId}`)
           self.logger.info(`config.newAccountNumber: ${config.newAccountNumber}`)
 
@@ -2835,8 +2605,8 @@ export class NodeCommand extends BaseCommand {
               const tlsCertHash = crypto.createHash('sha384').update(tlsCertDer).digest()
               nodeUpdateTx.setCertificateHash(tlsCertHash)
 
-              const publicKeyFile = Templates.renderTLSPemPublicKeyFile(config.nodeId)
-              const privateKeyFile = Templates.renderTLSPemPrivateKeyFile(config.nodeId)
+              const publicKeyFile = Templates.renderTLSPemPublicKeyFile(config.nodeAlias)
+              const privateKeyFile = Templates.renderTLSPemPrivateKeyFile(config.nodeAlias)
               renameAndCopyFile(config.tlsPublicKey, publicKeyFile, config.keysDir)
               renameAndCopyFile(config.tlsPrivateKey, privateKeyFile, config.keysDir)
             }
@@ -2846,8 +2616,8 @@ export class NodeCommand extends BaseCommand {
               const signingCertDer = await this.loadPermCertificate(config.gossipPublicKey)
               nodeUpdateTx.setGossipCaCertificate(signingCertDer)
 
-              const publicKeyFile = Templates.renderGossipPemPublicKeyFile(constants.SIGNING_KEY_PREFIX, config.nodeId)
-              const privateKeyFile = Templates.renderGossipPemPrivateKeyFile(constants.SIGNING_KEY_PREFIX, config.nodeId)
+              const publicKeyFile = Templates.renderGossipPemPublicKeyFile(constants.SIGNING_KEY_PREFIX, config.nodeAlias)
+              const privateKeyFile = Templates.renderGossipPemPrivateKeyFile(constants.SIGNING_KEY_PREFIX, config.nodeAlias)
               renameAndCopyFile(config.gossipPublicKey, publicKeyFile, config.keysDir)
               renameAndCopyFile(config.gossipPrivateKey, privateKeyFile, config.keysDir)
             }
@@ -2878,44 +2648,26 @@ export class NodeCommand extends BaseCommand {
           }
         }
       },
-      {
-        title: 'Send prepare upgrade transaction',
-        task: async (ctx) => {
-          const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
-          await this.prepareUpgradeNetworkNodes(config.freezeAdminPrivateKey, ctx.upgradeZipHash, config.nodeClient)
-        }
-      },
-      {
-        title: 'Download generated files from an existing node',
-        task: async (ctx) => {
-          const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
-          await this.downloadNodeGeneratedFiles(config)
-        }
-      },
-      {
-        title: 'Send freeze upgrade transaction',
-        task: async (ctx) => {
-          const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
-          await this.freezeUpgradeNetworkNodes(config.freezeAdminPrivateKey, ctx.upgradeZipHash, config.nodeClient)
-        }
-      },
+      this.tasks.sendPrepareUpgradeTransaction(),
+      this.tasks.downloadNodeGeneratedFiles(),
+      this.tasks.sendFreezeUpgradeTransaction(),
       {
         title: 'Prepare staging directory',
-        task: async (ctx, parentTask) => {
+        task: (ctx, parentTask) => {
           const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
-          return this.prepareStagingTask(ctx, parentTask, config.keysDir, config.stagingKeysDir, config.allNodeIds)
+          return this.prepareStagingTask(ctx, parentTask, config.keysDir, config.stagingKeysDir, config.allNodeAliases)
         }
       },
       {
         title: 'Copy node keys to secrets',
-        task: async (ctx, parentTask) => {
+        task: (ctx, parentTask) => {
           return this.copyNodeKeyTask(ctx, parentTask)
         }
       },
       {
         title: 'Check network nodes are frozen',
         task: (ctx, task) => {
-          return this.checkNodeActivenessTask(ctx, task, ctx.config.existingNodeIds, NodeStatusCodes.FREEZE_COMPLETE)
+          return this.checkNodeActivenessTask(ctx, task, ctx.config.existingNodeAliases, NodeStatusCodes.FREEZE_COMPLETE)
         }
       },
       {
@@ -2931,7 +2683,7 @@ export class NodeCommand extends BaseCommand {
           await this.chartUpdateTask(ctx)
         },
         // no need to run this step if the account number is not changed, since config.txt will be the same
-        skip: (ctx) => !ctx.config.newAccountNumber && !ctx.config.debugNodeId
+        skip: (ctx) => !ctx.config.newAccountNumber && !ctx.config.debugNodeAlias
       },
       {
         title: 'Kill nodes to pick up updated configMaps',
@@ -2951,57 +2703,57 @@ export class NodeCommand extends BaseCommand {
             config.namespace)
           config.podNames = {}
           for (const service of config.serviceMap.values()) {
-            config.podNames[service.nodeName] = service.nodePodName
+            config.podNames[service.nodeAlias] = service.nodePodName
           }
         }
       },
       {
         title: 'Check node pods are running',
-        task: async (ctx, task) => {
+        task: (ctx, task) => {
           const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
-          return this.checkPodRunningTask(ctx, task, config.allNodeIds)
+          return this.checkPodRunningTask(ctx, task, config.allNodeAliases)
         }
       },
       {
         title: 'Fetch platform software into network nodes',
         task:
-          async (ctx, task) => {
-            const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
-            return self.fetchLocalOrReleasedPlatformSoftware(config.allNodeIds, config.podNames, config.releaseTag, task, config.localBuildPath)
-          }
+           (ctx, task) => {
+             const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
+             return self.fetchLocalOrReleasedPlatformSoftware(config.allNodeAliases, config.podNames, config.releaseTag, task, config.localBuildPath)
+           }
       },
       {
         title: 'Setup network nodes',
-        task: async (ctx, parentTask) => {
-          return this.setupNodesTask(ctx, parentTask, ctx.config.allNodeIds)
+        task: (ctx, parentTask) => {
+          return this.setupNodesTask(ctx, parentTask, ctx.config.allNodeAliases)
         }
       },
       {
         title: 'Start network nodes',
-        task: async (ctx, task) => {
+        task: (ctx, task) => {
           const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
-          return this.startNetworkNodesTask(task, config.podNames, config.allNodeIds)
+          return this.startNetworkNodesTask(task, config.podNames, config.allNodeAliases)
         }
       },
       {
         title: 'Enable port forwarding for JVM debugger',
         task: async (ctx) => {
-          await this.enableJVMPortForwarding(ctx.config.debugNodeId)
+          await this.enableJVMPortForwarding(ctx.config.debugNodeAlias)
         },
-        skip: (ctx) => !ctx.config.debugNodeId
+        skip: (ctx) => !ctx.config.debugNodeAlias
       },
       {
         title: 'Check all nodes are ACTIVE',
-        task: async (ctx, task) => {
-          return this.checkNodeActivenessTask(ctx, task, ctx.config.allNodeIds)
+        task: (ctx, task) => {
+          return this.checkNodeActivenessTask(ctx, task, ctx.config.allNodeAliases)
         }
       },
       {
         title: 'Check all node proxies are ACTIVE',
         // this is more reliable than checking the nodes logs for ACTIVE, as the
         // logs will have a lot of white noise from being behind
-        task: async (ctx, task) => {
-          return this.checkNodesProxiesTask(ctx, task, ctx.config.allNodeIds)
+        task: (ctx, task) => {
+          return this.checkNodesProxiesTask(ctx, task, ctx.config.allNodeAliases)
         }
       },
       {
@@ -3052,7 +2804,7 @@ export class NodeCommand extends BaseCommand {
           flags.chainId,
           flags.chartDirectory,
           flags.devMode,
-          flags.debugNodeId,
+          flags.debugNodeAlias,
           flags.endpointType,
           flags.force,
           flags.fstChartVersion,
@@ -3068,18 +2820,18 @@ export class NodeCommand extends BaseCommand {
        * @property {string} cacheDir
        * @property {string} chartDirectory
        * @property {boolean} devMode
-       * @property {string} debugNodeId
+       * @property {string} debugNodeAlias
        * @property {string} endpointType
        * @property {string} fstChartVersion
        * @property {string} localBuildPath
        * @property {string} namespace
-       * @property {string} nodeId
+       * @property {NodeAlias} nodeAlias
        * @property {string} releaseTag
        * -- extra args --
        * @property {PrivateKey} adminKey
-       * @property {string[]} allNodeIds
+       * @property {NodeAliases} allNodeAliases
        * @property {string} chartPath
-       * @property {string[]} existingNodeIds
+       * @property {NodeAliases} existingNodeAliases
        * @property {string} freezeAdminPrivateKey
        * @property {string} keysDir
        * @property {Object} nodeClient
@@ -3100,12 +2852,11 @@ export class NodeCommand extends BaseCommand {
         const config = /** @type {NodeDeleteConfigClass} **/ this.getConfig(NodeCommand.DELETE_CONFIGS_NAME, NodeCommand.DELETE_FLAGS_LIST,
           [
             'adminKey',
-            'allNodeIds',
-            'existingNodeIds',
+            'allNodeAliases',
+            'existingNodeAliases',
             'freezeAdminPrivateKey',
             'keysDir',
             'nodeClient',
-            'nodeId',
             'podNames',
             'serviceMap',
             'stagingDir',
@@ -3113,9 +2864,8 @@ export class NodeCommand extends BaseCommand {
             'treasuryKey'
           ])
 
-        config.nodeId = argv[flags.nodeID.name]
         config.curDate = new Date()
-        config.existingNodeIds = []
+        config.existingNodeAliases = []
 
         await self.initializeSetup(config, self.k8)
 
@@ -3143,35 +2893,10 @@ export class NodeCommand extends BaseCommand {
   deletePrepareTasks (argv) {
     return [
       this.deleteInitializeTask(argv),
-      {
-        title: 'Identify existing network nodes',
-        task: async (ctx, task) => {
-          const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
-          return this.identifyExistingNetworkNodes(ctx, task, config)
-        }
-      },
-      {
-        title: 'Load node admin key',
-        task: async (ctx) => {
-          const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
-          config.adminKey = PrivateKey.fromStringED25519(constants.GENESIS_KEY)
-        }
-      },
-      {
-        title: 'Prepare upgrade zip file for node upgrade process',
-        task: async (ctx) => {
-          const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
-          ctx.upgradeZipFile = await this.prepareUpgradeZip(config.stagingDir)
-          ctx.upgradeZipHash = await this.uploadUpgradeZip(ctx.upgradeZipFile, config.nodeClient)
-        }
-      },
-      {
-        title: 'Check existing nodes staked amount',
-        task: async (ctx) => {
-          const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
-          await this.checkStakingTask(config.existingNodeIds)
-        }
-      }
+      this.tasks.identifyExistingNodes(),
+      this.tasks.loadAdminKey(),
+      this.tasks.prepareUpgradeZip(),
+      this.tasks.checkExistingNodesStakedAmount()
     ]
   }
 
@@ -3179,32 +2904,26 @@ export class NodeCommand extends BaseCommand {
     const self = this
 
     return [
-      {
-        title: 'Download generated files from an existing node',
-        task: async (ctx) => {
-          const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
-          await this.downloadNodeGeneratedFiles(config)
-        }
-      },
+      this.tasks.downloadNodeGeneratedFiles(),
       {
         title: 'Prepare staging directory',
-        task: async (ctx, parentTask) => {
+        task: (ctx, parentTask) => {
           const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
-          return this.prepareStagingTask(ctx, parentTask, config.keysDir, config.stagingKeysDir, config.existingNodeIds)
+          return this.prepareStagingTask(ctx, parentTask, config.keysDir, config.stagingKeysDir, config.existingNodeAliases)
         }
       },
       {
         title: 'Copy node keys to secrets',
-        task: async (ctx, parentTask) => {
-          // remove nodeId from existingNodeIds
-          ctx.config.allNodeIds = ctx.config.existingNodeIds.filter(nodeId => nodeId !== ctx.config.nodeId)
+        task: (ctx, parentTask) => {
+          // remove nodeAlias from existingNodeAliases
+          ctx.config.allNodeAliases = ctx.config.existingNodeAliases.filter(nodeAlias => nodeAlias !== ctx.config.nodeAlias)
           return this.copyNodeKeyTask(ctx, parentTask)
         }
       },
       {
         title: 'Check network nodes are frozen',
         task: (ctx, task) => {
-          return this.checkNodeActivenessTask(ctx, task, ctx.config.existingNodeIds, NodeStatusCodes.FREEZE_COMPLETE)
+          return this.checkNodeActivenessTask(ctx, task, ctx.config.existingNodeAliases, NodeStatusCodes.FREEZE_COMPLETE)
         }
       },
       {
@@ -3235,7 +2954,7 @@ export class NodeCommand extends BaseCommand {
           self.logger.info('sleep 20 seconds to give time for pods to come up after being killed')
           await sleep(20000)
           const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
-          return this.checkPodRunningTask(ctx, task, config.allNodeIds)
+          return this.checkPodRunningTask(ctx, task, config.allNodeAliases)
         }
       },
       {
@@ -3244,43 +2963,43 @@ export class NodeCommand extends BaseCommand {
           const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
           config.serviceMap = await self.accountManager.getNodeServiceMap(
             config.namespace)
-          config.podNames[config.nodeId] = config.serviceMap.get(
-            config.nodeId).nodePodName
-          return self.fetchLocalOrReleasedPlatformSoftware(config.allNodeIds, config.podNames, config.releaseTag, task, config.localBuildPath)
+          config.podNames[config.nodeAlias] = config.serviceMap.get(
+            config.nodeAlias).nodePodName
+          return self.fetchLocalOrReleasedPlatformSoftware(config.allNodeAliases, config.podNames, config.releaseTag, task, config.localBuildPath)
         }
       },
       {
         title: 'Setup network nodes',
-        task: async (ctx, parentTask) => {
-          return this.setupNodesTask(ctx, parentTask, ctx.config.allNodeIds)
+        task: (ctx, parentTask) => {
+          return this.setupNodesTask(ctx, parentTask, ctx.config.allNodeAliases)
         }
       },
       {
         title: 'Start network nodes',
-        task: async (ctx, task) => {
+        task: (ctx, task) => {
           const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
-          return this.startNetworkNodesTask(task, config.podNames, config.allNodeIds)
+          return this.startNetworkNodesTask(task, config.podNames, config.allNodeAliases)
         }
       },
       {
         title: 'Enable port forwarding for JVM debugger',
         task: async (ctx) => {
-          await this.enableJVMPortForwarding(ctx.config.debugNodeId)
+          await this.enableJVMPortForwarding(ctx.config.debugNodeAlias)
         },
-        skip: (ctx) => !ctx.config.debugNodeId
+        skip: (ctx) => !ctx.config.debugNodeAlias
       },
       {
         title: 'Check all nodes are ACTIVE',
-        task: async (ctx, task) => {
-          return this.checkNodeActivenessTask(ctx, task, ctx.config.allNodeIds)
+        task: (ctx, task) => {
+          return this.checkNodeActivenessTask(ctx, task, ctx.config.allNodeAliases)
         }
       },
       {
         title: 'Check all node proxies are ACTIVE',
         // this is more reliable than checking the nodes logs for ACTIVE, as the
         // logs will have a lot of white noise from being behind
-        task: async (ctx, task) => {
-          return this.checkNodesProxiesTask(ctx, task, ctx.config.allNodeIds)
+        task: (ctx, task) => {
+          return this.checkNodesProxiesTask(ctx, task, ctx.config.allNodeAliases)
         }
       },
       {
@@ -3304,16 +3023,17 @@ export class NodeCommand extends BaseCommand {
 
   deleteSubmitTransactionsTasks (argv) {
     return [
+
       {
         title: 'Send node delete transaction',
         task: async (ctx, task) => {
           const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
 
           try {
-            const accountMap = getNodeAccountMap(config.existingNodeIds)
-            const deleteAccountId = accountMap.get(config.nodeId)
-            this.logger.debug(`Deleting node: ${config.nodeId} with account: ${deleteAccountId}`)
-            const nodeId = Templates.nodeNumberFromNodeId(config.nodeId) - 1
+            const accountMap = getNodeAccountMap(config.existingNodeAliases)
+            const deleteAccountId = accountMap.get(config.nodeAlias)
+            this.logger.debug(`Deleting node: ${config.nodeAlias} with account: ${deleteAccountId}`)
+            const nodeId = Templates.nodeIdFromNodeAlias(config.nodeAlias) - 1
             const nodeDeleteTx = await new NodeDeleteTransaction()
               .setNodeId(nodeId)
               .freezeWith(config.nodeClient)
@@ -3328,20 +3048,8 @@ export class NodeCommand extends BaseCommand {
           }
         }
       },
-      {
-        title: 'Send prepare upgrade transaction',
-        task: async (ctx, task) => {
-          const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
-          await this.prepareUpgradeNetworkNodes(config.freezeAdminPrivateKey, ctx.upgradeZipHash, config.nodeClient)
-        }
-      },
-      {
-        title: 'Send freeze upgrade transaction',
-        task: async (ctx, task) => {
-          const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
-          await this.freezeUpgradeNetworkNodes(config.freezeAdminPrivateKey, ctx.upgradeZipHash, config.nodeClient)
-        }
-      }
+      this.tasks.sendPrepareUpgradeTransaction(),
+      this.tasks.sendFreezeUpgradeTransaction()
     ]
   }
 

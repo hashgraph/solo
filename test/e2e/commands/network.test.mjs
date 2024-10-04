@@ -23,7 +23,6 @@ import {
   HEDERA_PLATFORM_VERSION_TAG
 } from '../../test_util.js'
 import { constants } from '../../../src/core/index.mjs'
-import { flags } from '../../../src/commands/index.mjs'
 import * as version from '../../../version.mjs'
 import { getNodeLogs, sleep } from '../../../src/core/helpers.mjs'
 import path from 'path'
@@ -41,7 +40,7 @@ describe('NetworkCommand', () => {
   const argv = getDefaultArgv()
   argv[flags.namespace.name] = namespace
   argv[flags.releaseTag.name] = HEDERA_PLATFORM_VERSION_TAG
-  argv[flags.nodeIDs.name] = 'node1'
+  argv[flags.nodeAliasesUnparsed.name] = 'node1'
   argv[flags.generateGossipKeys.name] = true
   argv[flags.generateTlsKeys.name] = true
   argv[flags.deployMinio.name] = true
@@ -110,7 +109,7 @@ describe('NetworkCommand', () => {
     }
   }).timeout(4 * MINUTES)
 
-  it('application env file contents should be in cached values file', async () => {
+  it('application env file contents should be in cached values file', () => {
     const valuesYaml = fs.readFileSync(networkCmd.profileValuesFile).toString()
     const fileRows = applicationEnvFileContents.split('\n')
     for (const fileRow of fileRows) {

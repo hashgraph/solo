@@ -27,8 +27,8 @@ describe('Helpers', () => {
     { input: 'node1,node3', output: ['node1', 'node3'] }
   ]
   nodeIdTests.forEach(({ input, output }) => {
-    it(`should be able to parse node ID for input: ${input}`, () => {
-      expect(helpers.parseNodeIds(input)).to.deep.equal(output)
+    it(`should be able to parse node aliases for input: ${input}`, () => {
+      expect(helpers.parseNodeAliases(input)).to.deep.equal(output)
     })
   })
 
@@ -44,7 +44,7 @@ describe('Helpers', () => {
     })
   })
 
-  it('should be able to load version from package json', async () => {
+  it('should be able to load version from package json', () => {
     const p = helpers.loadPackageJSON()
     expect(p).not.to.be.null
       .and.to.have.property('version').that.not.to.be.null

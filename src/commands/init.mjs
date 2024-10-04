@@ -21,7 +21,7 @@ import { BaseCommand } from './base.mjs'
 import * as core from '../core/index.mjs'
 import { constants } from '../core/index.mjs'
 import * as fs from 'fs'
-import { SoloError, IllegalArgumentError } from '../core/errors.mjs'
+import { SoloError } from '../core/errors.mjs'
 import * as flags from './flags.mjs'
 import chalk from 'chalk'
 
@@ -72,14 +72,14 @@ export class InitCommand extends BaseCommand {
     const tasks = new Listr([
       {
         title: 'Setup home directory and cache',
-        task: async (ctx, _) => {
+        task: (ctx, _) => {
           self.configManager.update(argv)
           ctx.dirs = this.setupHomeDirectory()
         }
       },
       {
         title: 'Check dependencies',
-        task: async (_, task) => {
+        task: (_, task) => {
           const deps = [
             core.constants.HELM
           ]
@@ -144,13 +144,10 @@ export class InitCommand extends BaseCommand {
 
   /**
    * Return Yargs command definition for 'init' command
-   * @param {InitCommand} initCmd - an instance of InitCommand
    * @returns A object representing the Yargs command definition
    */
-  static getCommandDefinition (initCmd) {
-    if (!initCmd || !(initCmd instanceof InitCommand)) {
-      throw new IllegalArgumentError('Invalid InitCommand')
-    }
+  getCommandDefinition () {
+    const initCmd = this
     return {
       command: 'init',
       desc: 'Initialize local environment and default flags',
@@ -162,7 +159,7 @@ export class InitCommand extends BaseCommand {
           flags.clusterSetupNamespace,
           flags.fstChartVersion,
           flags.namespace,
-          flags.nodeIDs,
+          flags.nodeAliasesUnparsed,
           flags.profileFile,
           flags.profileName,
           flags.releaseTag

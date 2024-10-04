@@ -39,13 +39,13 @@ function Initialize (opts) {
   const mirrorNodeCmd = new MirrorNodeCommand(opts)
 
   return [
-    InitCommand.getCommandDefinition(initCmd),
-    ClusterCommand.getCommandDefinition(clusterCmd),
-    NetworkCommand.getCommandDefinition(networkCommand),
-    NodeCommand.getCommandDefinition(nodeCmd),
-    RelayCommand.getCommandDefinition(relayCmd),
-    AccountCommand.getCommandDefinition(accountCmd),
-    MirrorNodeCommand.getCommandDefinition(mirrorNodeCmd)
+    initCmd.getCommandDefinition(),
+    clusterCmd.getCommandDefinition(),
+    networkCommand.getCommandDefinition(),
+    nodeCmd.getCommandDefinition(),
+    relayCmd.getCommandDefinition(),
+    accountCmd.getCommandDefinition(),
+    mirrorNodeCmd.getCommandDefinition()
   ]
 }
 

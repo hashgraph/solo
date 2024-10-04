@@ -304,7 +304,7 @@ export class K8 {
    * Get a list of clusters
    * @returns {Promise<string[]>} a list of cluster names
    */
-  async getClusters () {
+  getClusters () {
     const clusters = []
     for (const cluster of this.kubeConfig.getClusters()) {
       clusters.push(cluster.name)
@@ -317,7 +317,7 @@ export class K8 {
    * Get a list of contexts
    * @returns {string[]} a list of context names
    */
-  async getContexts () {
+  getContexts () {
     const contexts = []
     for (const context of this.kubeConfig.getContexts()) {
       contexts.push(context.name)
@@ -340,7 +340,7 @@ export class K8 {
    *    name: config.txt
    * }]
    *
-   * @param {string} podName
+   * @param {PodName} podName
    * @param {string} containerName
    * @param {string} destPath - path inside the container
    * @returns a promise that returns array of directory entries, custom object
@@ -387,7 +387,7 @@ export class K8 {
 
   /**
    * Check if a filepath exists in the container
-   * @param {string} podName
+   * @param {PodName} podName
    * @param {string} containerName
    * @param {string} destPath - path inside the container
    * @param {Object} [filters] - an object with metadata fields and value
@@ -432,7 +432,7 @@ export class K8 {
 
   /**
    * Check if a directory path exists in the container
-   * @param {string} podName
+   * @param {PodName} podName
    * @param {string} containerName
    * @param {string} destPath - path inside the container
    * @returns {Promise<boolean>}
@@ -446,12 +446,12 @@ export class K8 {
   }
 
   /**
-   * @param {string} podName
+   * @param {PodName} podName
    * @param {string} containerName
    * @param {string} destPath
    * @returns {Promise<string>}
    */
-  async mkdir (podName, containerName, destPath) {
+  mkdir (podName, containerName, destPath) {
     return this.execContainer(
       podName,
       containerName,
@@ -464,7 +464,7 @@ export class K8 {
    *
    * It overwrites any existing file inside the container at the destination directory
    *
-   * @param {string} podName
+   * @param {PodName} podName
    * @param {string} containerName
    * @param {string} srcPath - source file path in the local
    * @param {string} destDir - destination directory in the container
@@ -501,12 +501,12 @@ export class K8 {
         const errStream = new sb.WritableStreamBuffer()
 
         execInstance.exec(namespace, podName, containerName, command, null, errStream, readStream, false,
-          async ({ status }) => {
+          ({ status }) => {
             if (status === 'Failure' || errStream.size()) {
               self._deleteTempFile(tmpFile)
             }
           }).then(conn => {
-          conn.on('close', async (code, reason) => {
+          conn.on('close', (code, reason) => {
             if (code !== 1000) { // code 1000 is the success code
               return reject(new SoloError(`failed to copy because of error (${code}): ${reason}`))
             }
@@ -530,7 +530,7 @@ export class K8 {
    *
    * It overwrites any existing file at the destination directory
    *
-   * @param {string} podName
+   * @param {PodName} podName
    * @param {string} containerName
    * @param {string} srcPath - source file path in the container
    * @param {string} destDir - destination directory in the local
@@ -708,7 +708,7 @@ export class K8 {
   /**
    * Invoke sh command within a container and return the console output as string
    *
-   * @param {string} podName
+   * @param {PodName} podName
    * @param {string} containerName
    * @param {string|string[]} command - sh commands as an array to be run within the containerName (e.g 'ls -la /opt/hgcapp')
    * @param {number} [timeoutMs] - timout in milliseconds
@@ -768,7 +768,7 @@ export class K8 {
    * This simple server just forwards traffic from itself to a service running in kubernetes
    * -> localhost:localPort -> port-forward-tunnel -> kubernetes-pod:targetPort
    *
-   * @param {string} podName
+   * @param {PodName} podName
    * @param {number} localPort
    * @param {number} podPort
    * @returns {Promise<ExtendedServer>}
@@ -793,7 +793,7 @@ export class K8 {
    * @param {number} port - the port of the target connection
    * @returns {Promise<boolean>}
    */
-  async testConnection (host, port) {
+  testConnection (host, port) {
     const self = this
 
     return new Promise((resolve, reject) => {
@@ -895,7 +895,7 @@ export class K8 {
    * @param {Function} [podItemPredicate] - a predicate function to check the pod item
    * @returns {Promise<Object[]>} a Promise that checks the status of an array of pods
    */
-  async waitForPods (phases = [constants.POD_PHASE_RUNNING], labels = [], podCount = 1, maxAttempts = 10, delay = 500, podItemPredicate) {
+  waitForPods (phases = [constants.POD_PHASE_RUNNING], labels = [], podCount = 1, maxAttempts = 10, delay = 500, podItemPredicate) {
     const ns = this._getNamespace()
     const labelSelector = labels.join(',')
 

@@ -27,6 +27,7 @@ import { Templates } from './templates.mjs'
 import { HEDERA_HAPI_PATH, ROOT_CONTAINER, SOLO_LOGS_DIR } from './constants.mjs'
 import { constants } from './index.mjs'
 import { FileContentsQuery, FileId, PrivateKey, ServiceEndpoint } from '@hashgraph/sdk'
+import { Listr } from 'listr2'
 import * as yaml from 'js-yaml'
 
 // cache current directory
@@ -44,9 +45,9 @@ export function sleep (ms) {
 
 /**
  * @param {string} input
- * @returns {string[]}
+ * @returns {NodeAliases}
  */
-export function parseNodeIds (input) {
+export function parseNodeAliases (input) {
   return splitFlagInput(input, ',')
 }
 
@@ -164,20 +165,20 @@ export function makeBackup (fileMap = new Map(), removeOld = true) {
 }
 
 /**
- * @param {string[]} nodeIds
+ * @param {NodeAliases} nodeAliases
  * @param {string} keysDir
  * @param {Date} curDate
  * @param {string} dirPrefix
  * @returns {string}
  */
-export function backupOldTlsKeys (nodeIds, keysDir, curDate = new Date(), dirPrefix = 'tls') {
+export function backupOldTlsKeys (nodeAliases, keysDir, curDate = new Date(), dirPrefix = 'tls') {
   const backupDir = createBackupDir(keysDir, `unused-${dirPrefix}`, curDate)
 
   /** @type {Map<string, string>} */
   const fileMap = new Map()
-  for (const nodeId of nodeIds) {
-    const srcPath = path.join(keysDir, Templates.renderTLSPemPrivateKeyFile(nodeId))
-    const destPath = path.join(backupDir, Templates.renderTLSPemPrivateKeyFile(nodeId))
+  for (const nodeAlias of nodeAliases) {
+    const srcPath = path.join(keysDir, Templates.renderTLSPemPrivateKeyFile(nodeAlias))
+    const destPath = path.join(backupDir, Templates.renderTLSPemPrivateKeyFile(nodeAlias))
     fileMap.set(srcPath, destPath)
   }
 
@@ -187,20 +188,20 @@ export function backupOldTlsKeys (nodeIds, keysDir, curDate = new Date(), dirPre
 }
 
 /**
- * @param {string[]} nodeIds
+ * @param {NodeAliases} nodeAliases
  * @param {string} keysDir
  * @param {Date} curDate
  * @param {string} dirPrefix
  * @returns {string}
  */
-export function backupOldPemKeys (nodeIds, keysDir, curDate = new Date(), dirPrefix = 'gossip-pem') {
+export function backupOldPemKeys (nodeAliases, keysDir, curDate = new Date(), dirPrefix = 'gossip-pem') {
   const backupDir = createBackupDir(keysDir, `unused-${dirPrefix}`, curDate)
 
   /** @type {Map<string, string>} */
   const fileMap = new Map()
-  for (const nodeId of nodeIds) {
-    const srcPath = path.join(keysDir, Templates.renderGossipPemPrivateKeyFile(nodeId))
-    const destPath = path.join(backupDir, Templates.renderGossipPemPrivateKeyFile(nodeId))
+  for (const nodeAlias of nodeAliases) {
+    const srcPath = path.join(keysDir, Templates.renderGossipPemPrivateKeyFile(nodeAlias)) // TODO review
+    const destPath = path.join(backupDir, Templates.renderGossipPemPrivateKeyFile(nodeAlias)) // TODO review
     fileMap.set(srcPath, destPath)
   }
 
@@ -267,19 +268,19 @@ export async function getNodeLogs (k8, namespace) {
 }
 
 /**
- * Create a map of node IDs to account IDs
- * @param {string[]} nodeIDs
- * @returns {Map<string, string>} the map of node IDs to account IDs
+ * Create a map of node aliases to account IDs
+ * @param {NodeAliases} nodeAliases
+ * @returns {Map<NodeAlias, string>} the map of node IDs to account IDs
  */
-export function getNodeAccountMap (nodeIDs) {
+export function getNodeAccountMap (nodeAliases) {
   const accountMap = /** @type {Map<string,string>} **/ new Map()
   const realm = constants.HEDERA_NODE_ACCOUNT_ID_START.realm
   const shard = constants.HEDERA_NODE_ACCOUNT_ID_START.shard
   let accountId = constants.HEDERA_NODE_ACCOUNT_ID_START.num
 
-  nodeIDs.forEach(nodeID => {
+  nodeAliases.forEach(nodeAlias => {
     const nodeAccount = `${realm}.${shard}.${accountId++}`
-    accountMap.set(nodeID, nodeAccount)
+    accountMap.set(nodeAlias, nodeAccount)
   })
   return accountMap
 }
@@ -346,13 +347,13 @@ export function renameAndCopyFile (srcFilePath, expectedBaseName, destDir) {
 /**
  * Add debug options to valuesArg used by helm chart
  * @param valuesArg the valuesArg to update
- * @param debugNodeId the node ID to attach the debugger to
+ * @param {NodeAlias} debugNodeAlias the node ID to attach the debugger to
  * @param index the index of extraEnv to add the debug options to
  * @returns updated valuesArg
  */
-export function addDebugOptions (valuesArg, debugNodeId, index = 0) {
-  if (debugNodeId) {
-    const nodeId = Templates.nodeNumberFromNodeId(debugNodeId) - 1
+export function addDebugOptions (valuesArg, debugNodeAlias, index = 0) {
+  if (debugNodeAlias) {
+    const nodeId = Templates.nodeIdFromNodeAlias(debugNodeAlias) - 1
     valuesArg += ` --set "hedera.nodes[${nodeId}].root.extraEnv[${index}].name=JAVA_OPTS"`
     valuesArg += ` --set "hedera.nodes[${nodeId}].root.extraEnv[${index}].value=-agentlib:jdwp=transport=dt_socket\\,server=y\\,suspend=y\\,address=*:${constants.JVM_DEBUG_PORT}"`
   }
@@ -379,7 +380,7 @@ export function addSaveContextParser (ctx) {
   exportedCtx.gossipEndpoints = ctx.gossipEndpoints.map(ep => `${ep.getDomainName}:${ep.getPort}`)
   exportedCtx.grpcServiceEndpoints = ctx.grpcServiceEndpoints.map(ep => `${ep.getDomainName}:${ep.getPort}`)
   exportedCtx.adminKey = ctx.adminKey.toString()
-  exportedCtx.existingNodeIds = config.existingNodeIds
+  exportedCtx.existingNodeAliases = config.existingNodeAliases
 
   for (const prop of exportedFields) {
     exportedCtx[prop] = ctx[prop]
@@ -400,9 +401,9 @@ export function addLoadContextParser (ctx, ctxData) {
   ctx.gossipEndpoints = prepareEndpoints(ctx.config.endpointType, ctxData.gossipEndpoints, constants.HEDERA_NODE_INTERNAL_GOSSIP_PORT)
   ctx.grpcServiceEndpoints = prepareEndpoints(ctx.config.endpointType, ctxData.grpcServiceEndpoints, constants.HEDERA_NODE_EXTERNAL_GOSSIP_PORT)
   ctx.adminKey = PrivateKey.fromStringED25519(ctxData.adminKey)
-  config.nodeId = ctxData.newNode.name
-  config.existingNodeIds = ctxData.existingNodeIds
-  config.allNodeIds = [...config.existingNodeIds, ctxData.newNode.name]
+  config.nodeAlias = ctxData.newNode.name
+  config.existingNodeAliases = ctxData.existingNodeAliases
+  config.allNodeAliases = [...config.existingNodeAliases, ctxData.newNode.name]
 
   const fieldsToImport = [
     'tlsCertHash',
@@ -426,9 +427,9 @@ export function deleteSaveContextParser (ctx) {
 
   const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
   exportedCtx.adminKey = config.adminKey.toString()
-  exportedCtx.existingNodeIds = config.existingNodeIds
+  exportedCtx.existingNodeAliases = config.existingNodeAliases
   exportedCtx.upgradeZipHash = ctx.upgradeZipHash
-  exportedCtx.nodeId = config.nodeId
+  exportedCtx.nodeAlias = config.nodeAlias
   return exportedCtx
 }
 
@@ -442,9 +443,8 @@ export function deleteSaveContextParser (ctx) {
 export function deleteLoadContextParser (ctx, ctxData) {
   const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
   config.adminKey = PrivateKey.fromStringED25519(ctxData.adminKey)
-  config.nodeId = ctxData.nodeId
-  config.existingNodeIds = ctxData.existingNodeIds
-  config.allNodeIds = ctxData.existingNodeIds
+  config.existingNodeAliases = ctxData.existingNodeAliases
+  config.allNodeAliases = ctxData.existingNodeAliases
   ctx.upgradeZipHash = ctxData.upgradeZipHash
   config.podNames = {}
 }
@@ -488,6 +488,41 @@ export function prepareEndpoints (endpointType, endpoints, defaultPort) {
   return ret
 }
 
+export function commandActionBuilder (actionTasks, options, errorString = 'Error') {
+  /**
+   * @param {Object} argv
+   * @param {BaseCommand} commandDef
+   * @returns {Promise<boolean>}
+   */
+  return async function (argv, commandDef) {
+    const tasks = new Listr([
+      ...actionTasks
+    ], options)
+
+    try {
+      await tasks.run()
+    } catch (e) {
+      commandDef.logger.error(`${errorString}: ${e.message}`, e)
+      throw new SoloError(`${errorString}: ${e.message}`, e)
+    } finally {
+      await commandDef.close()
+    }
+  }
+}
+
+/**
+ * Adds all the types of flags as properties on the provided argv object
+ * @param argv
+ * @param flags
+ * @returns {*}
+ */
+export function addFlagsToArgv (argv, flags) {
+  argv.requiredFlags = flags.requiredFlags
+  argv.requiredFlagsWithDisabledPrompt = flags.requiredFlagsWithDisabledPrompt
+  argv.optionalFlags = flags.optionalFlags
+
+  return argv
+}
 /**
  * Convert yaml file to object
  * @param yamlFile

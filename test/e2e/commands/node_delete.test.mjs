@@ -30,10 +30,10 @@ import fs from 'fs'
 
 describe('Node delete', () => {
   const namespace = 'node-delete'
-  const nodeId = 'node1'
+  const nodeAlias = 'node1'
   const argv = getDefaultArgv()
-  argv[flags.nodeIDs.name] = 'node1,node2,node3,node4'
-  argv[flags.nodeID.name] = nodeId
+  argv[flags.nodeAliasesUnparsed.name] = 'node1,node2,node3,node4'
+  argv[flags.nodeAlias.name] = nodeAlias
   argv[flags.generateGossipKeys.name] = true
   argv[flags.generateTlsKeys.name] = true
   argv[flags.persistentVolumeClaims.name] = true
@@ -74,14 +74,14 @@ describe('Node delete', () => {
 
   accountCreationShouldSucceed(nodeCmd.accountManager, nodeCmd, namespace)
 
-  it('config.txt should no longer contain removed nodeid', async () => {
-    // read config.txt file from first node, read config.txt line by line, it should not contain value of nodeId
+  it('config.txt should no longer contain removed node alias name', async () => {
+    // read config.txt file from first node, read config.txt line by line, it should not contain value of nodeAlias
     const pods = await k8.getPodsByLabel(['fullstack.hedera.com/type=network-node'])
     const podName = pods[0].metadata.name
     const tmpDir = getTmpDir()
     await k8.copyFrom(podName, ROOT_CONTAINER, `${HEDERA_HAPI_PATH}/config.txt`, tmpDir)
     const configTxt = fs.readFileSync(`${tmpDir}/config.txt`, 'utf8')
     console.log('config.txt:', configTxt)
-    expect(configTxt).not.to.contain(nodeId)
+    expect(configTxt).not.to.contain(nodeAlias)
   }).timeout(10 * MINUTES)
 })

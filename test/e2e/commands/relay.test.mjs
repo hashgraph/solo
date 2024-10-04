@@ -33,7 +33,7 @@ describe('RelayCommand', () => {
   const argv = getDefaultArgv()
   argv[flags.namespace.name] = namespace
   argv[flags.releaseTag.name] = HEDERA_PLATFORM_VERSION_TAG
-  argv[flags.nodeIDs.name] = 'node1,node2'
+  argv[flags.nodeAliasesUnparsed.name] = 'node1,node2'
   argv[flags.generateGossipKeys.name] = true
   argv[flags.generateTlsKeys.name] = true
   argv[flags.clusterName.name] = TEST_CLUSTER
@@ -60,7 +60,7 @@ describe('RelayCommand', () => {
 
   relayNodesTests.forEach((relayNodes) => {
     it(`relay deploy and destroy should work with ${relayNodes}`, async () => {
-      argv[flags.nodeIDs.name] = relayNodes
+      argv[flags.nodeAliasesUnparsed.name] = relayNodes
       configManager.update(argv)
 
       // test relay deploy

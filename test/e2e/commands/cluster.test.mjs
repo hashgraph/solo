@@ -16,9 +16,9 @@
  */
 import sinon from 'sinon'
 
+import {flags } from '../../../src/commands/index.mjs'
 import { bootstrapTestVariables, getDefaultArgv, HEDERA_PLATFORM_VERSION_TAG, TEST_CLUSTER } from '../../test_util.js'
 import { constants, logging } from '../../../src/core/index.mjs'
-import { flags } from '../../../src/commands/index.mjs'
 import { sleep } from '../../../src/core/helpers.mjs'
 import * as version from '../../../version.mjs'
 import { MINUTES, SECONDS } from '../../../src/core/constants.mjs';
@@ -41,7 +41,7 @@ describe('ClusterCommand', () => {
   const argv = getDefaultArgv()
   argv[flags.namespace.name] = namespace
   argv[flags.releaseTag.name] = HEDERA_PLATFORM_VERSION_TAG
-  argv[flags.nodeIDs.name] = 'node1'
+  argv[flags.nodeAliasesUnparsed.name] = 'node1'
   argv[flags.generateGossipKeys.name] = true
   argv[flags.generateTlsKeys.name] = true
   argv[flags.clusterName.name] = TEST_CLUSTER

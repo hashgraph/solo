@@ -29,17 +29,17 @@ describe('KeyManager', () => {
 
   it('should generate signing key', async () => {
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'keys-'))
-    const nodeId = 'node1'
+    const nodeAlias = 'node1'
     const keyPrefix = constants.SIGNING_KEY_PREFIX
 
-    const signingKey = await keyManager.generateSigningKey(nodeId)
+    const signingKey = await keyManager.generateSigningKey(nodeAlias)
 
-    const nodeKeyFiles = keyManager.prepareNodeKeyFilePaths(nodeId, tmpDir, constants.SIGNING_KEY_PREFIX)
-    const files = await keyManager.storeNodeKey(nodeId, signingKey, tmpDir, nodeKeyFiles, keyPrefix)
+    const nodeKeyFiles = keyManager.prepareNodeKeyFilePaths(nodeAlias, tmpDir, constants.SIGNING_KEY_PREFIX)
+    const files = await keyManager.storeNodeKey(nodeAlias, signingKey, tmpDir, nodeKeyFiles, keyPrefix)
     expect(files.privateKeyFile).not.to.be.null
     expect(files.certificateFile).not.to.be.null
 
-    const nodeKey = await keyManager.loadSigningKey(nodeId, tmpDir, KeyManager.SigningKeyAlgo, keyPrefix)
+    const nodeKey = await keyManager.loadSigningKey(nodeAlias, tmpDir, KeyManager.SigningKeyAlgo, keyPrefix)
     expect(nodeKey.certificate).to.deep.equal(signingKey.certificate)
     expect(nodeKey.privateKeyPem).to.deep.equal(signingKey.privateKeyPem)
     expect(nodeKey.certificatePem).to.deep.equal(signingKey.certificatePem)
@@ -56,18 +56,18 @@ describe('KeyManager', () => {
 
   it('should generate TLS key', async () => {
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'keys-'))
-    const nodeId = 'node1'
+    const nodeAlias = 'node1'
     const keyName = 'TLS'
 
-    const tlsKey = await keyManager.generateGrpcTLSKey(nodeId)
+    const tlsKey = await keyManager.generateGrpcTLSKey(nodeAlias)
     expect(tlsKey.certificate.subject).not.to.equal('')
     expect(tlsKey.certificate.issuer).not.to.equal('')
 
-    const files = await keyManager.storeTLSKey(nodeId, tlsKey, tmpDir)
+    const files = await keyManager.storeTLSKey(nodeAlias, tlsKey, tmpDir)
     expect(files.privateKeyFile).not.to.be.null
     expect(files.certificateFile).not.to.be.null
 
-    const nodeKey = await keyManager.loadTLSKey(nodeId, tmpDir, KeyManager.TLSKeyAlgo, keyName)
+    const nodeKey = await keyManager.loadTLSKey(nodeAlias, tmpDir, KeyManager.TLSKeyAlgo, keyName)
     expect(nodeKey.certificate.subject).to.deep.equal(tlsKey.certificate.subject)
     expect(nodeKey.certificate.issuer).to.deep.equal(tlsKey.certificate.issuer)
     expect(nodeKey.certificate).to.deep.equal(tlsKey.certificate)

@@ -33,3 +33,14 @@ tag = "tags"
     # (Optional, default false) Render menu from data file in 'data/menu/main.yaml'.
     # See also https://geekdocs.de/usage/menus/#bundle-menu.
     geekdocMenuBundle = true
+    # (Optional, default false) Display search results with the parent folder as prefix. This
+    # option allows you to distinguish between files with the same name in different folders.
+    # NOTE: This parameter only applies when 'geekdocSearch = true'.
+    geekdocSearchShowParent = true
+    # Set to true to make a section foldable in side menu.
+    geekdocCollapseSection = true
+    # Add an anchor link to headlines.
+    geekdocAnchor = true
+
+[minify]
+disableHTML = true

@@ -70,12 +70,12 @@ export async function promptClusterSetupNamespace (task, input) {
     flags.clusterSetupNamespace.name)
 }
 
-export async function promptNodeIds (task, input) {
+export async function promptNodeAliases (task, input) {
   return await prompt('input', task, input,
     'node1,node2,node3',
     'Enter list of node IDs (comma separated list): ',
     null,
-    flags.nodeIDs.name)
+    flags.nodeAliasesUnparsed.name)
 }
 
 export async function promptReleaseTag (task, input) {
@@ -381,12 +381,12 @@ export async function promptAmount (task, input) {
     flags.amount.name)
 }
 
-export async function promptNewNodeId (task, input) {
+export async function promptNewNodeAlias (task, input) {
   return await promptText(task, input,
-    flags.nodeID.definition.defaultValue,
+    flags.nodeAlias.definition.defaultValue,
     'Enter the new node id: ',
     null,
-    flags.nodeID.name)
+    flags.nodeAlias.name)
 }
 
 export async function promptGossipEndpoints (task, input) {
@@ -455,7 +455,7 @@ export function getPromptMap () {
     .set(flags.generateTlsKeys.name, promptGenerateTLSKeys)
     .set(flags.hederaExplorerTlsHostName.name, promptHederaExplorerTlsHostName)
     .set(flags.namespace.name, promptNamespace)
-    .set(flags.nodeIDs.name, promptNodeIds)
+    .set(flags.nodeAliasesUnparsed.name, promptNodeAliases)
     .set(flags.operatorId.name, promptOperatorId)
     .set(flags.operatorKey.name, promptOperatorKey)
     .set(flags.persistentVolumeClaims.name, promptPersistentVolumeClaims)
@@ -468,7 +468,7 @@ export function getPromptMap () {
     .set(flags.tlsClusterIssuerType.name, promptTlsClusterIssuerType)
     .set(flags.updateAccountKeys.name, promptUpdateAccountKeys)
     .set(flags.valuesFile.name, promptValuesFile)
-    .set(flags.nodeID.name, promptNewNodeId)
+    .set(flags.nodeAlias.name, promptNewNodeAlias)
     .set(flags.gossipEndpoints.name, promptGossipEndpoints)
     .set(flags.grpcEndpoints.name, promptGrpcEndpoints)
     .set(flags.endpointType.name, promptEndpointType)

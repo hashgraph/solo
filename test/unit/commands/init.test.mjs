@@ -62,9 +62,9 @@ describe('InitCommand', () => {
     }).timeout(20 * SECONDS)
   })
 
-  describe('static', () => {
-    it('command definition should return a valid command def', async () => {
-      const def = InitCommand.getCommandDefinition(initCmd)
+  describe('methods', () => {
+    it('command definition should return a valid command def', () => {
+      const def = initCmd.getCommandDefinition()
       expect(def.name).not.to.be.null
       expect(def.desc).not.to.be.null
       expect(def.handler).not.to.be.null

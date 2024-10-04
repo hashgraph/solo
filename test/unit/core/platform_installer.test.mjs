@@ -47,21 +47,21 @@ describe('PackageInstaller', () => {
       await expect(installer.validatePlatformReleaseDir('/INVALID')).to.eventually.be.rejectedWith(IllegalArgumentError)
     })
 
-    it('should fail if directory does not have data/apps directory', async () => {
+    it('should fail if directory does not have data/apps directory', () => {
       const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'installer-'))
       fs.mkdirSync(`${tmpDir}/${core.constants.HEDERA_DATA_LIB_DIR}`, { recursive: true })
       await expect(installer.validatePlatformReleaseDir(tmpDir)).to.eventually.be.rejectedWith(IllegalArgumentError)
       fs.rmSync(tmpDir, { recursive: true })
     })
 
-    it('should fail if directory does not have data/libs directory', async () => {
+    it('should fail if directory does not have data/libs directory', () => {
       const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'installer-'))
       fs.mkdirSync(`${tmpDir}/${core.constants.HEDERA_DATA_APPS_DIR}`, { recursive: true })
       await expect(installer.validatePlatformReleaseDir(tmpDir)).to.eventually.be.rejectedWith(IllegalArgumentError)
       fs.rmSync(tmpDir, { recursive: true })
     })
 
-    it('should fail if directory does not have data/app directory is empty', async () => {
+    it('should fail if directory does not have data/app directory is empty', () => {
       const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'installer-'))
       fs.mkdirSync(`${tmpDir}/${core.constants.HEDERA_DATA_APPS_DIR}`, { recursive: true })
       fs.mkdirSync(`${tmpDir}/${core.constants.HEDERA_DATA_LIB_DIR}`, { recursive: true })
@@ -70,7 +70,7 @@ describe('PackageInstaller', () => {
       fs.rmSync(tmpDir, { recursive: true })
     })
 
-    it('should fail if directory does not have data/apps directory is empty', async () => {
+    it('should fail if directory does not have data/apps directory is empty', () => {
       const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'installer-app-'))
       fs.mkdirSync(`${tmpDir}/${core.constants.HEDERA_DATA_APPS_DIR}`, { recursive: true })
       fs.writeFileSync(`${tmpDir}/${core.constants.HEDERA_DATA_APPS_DIR}/app.jar`, '')
@@ -79,7 +79,7 @@ describe('PackageInstaller', () => {
       fs.rmSync(tmpDir, { recursive: true })
     })
 
-    it('should succeed with non-empty data/apps and data/libs directory', async () => {
+    it('should succeed with non-empty data/apps and data/libs directory', () => {
       const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'installer-lib-'))
       fs.mkdirSync(`${tmpDir}/${core.constants.HEDERA_DATA_APPS_DIR}`, { recursive: true })
       fs.writeFileSync(`${tmpDir}/${core.constants.HEDERA_DATA_APPS_DIR}/app.jar`, '')

@@ -29,7 +29,7 @@ describe('HelmDependencyManager', () => {
   const tmpDir = path.join(getTmpDir(), 'bin')
   const zippy = new Zippy(testLogger)
 
-  before(async () => fs.mkdirSync(tmpDir))
+  before(() => fs.mkdirSync(tmpDir))
 
   after(() => {
     if (fs.existsSync(tmpDir)) {

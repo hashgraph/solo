@@ -22,7 +22,6 @@ import fs from 'fs'
 import os from 'os'
 import path from 'path'
 import { ClusterCommand } from '../src/commands/cluster.mjs'
-import { flags } from '../src/commands/index.mjs'
 import { InitCommand } from '../src/commands/init.mjs'
 import { NetworkCommand } from '../src/commands/network.mjs'
 import { NodeCommand } from '../src/commands/node.mjs'
@@ -45,6 +44,7 @@ import {
   PlatformInstaller, ProfileManager, Templates,
   Zippy
 } from '../src/core/index.mjs'
+import { flags } from '../src/commands/index.mjs'
 import {
   AccountBalanceQuery,
   AccountCreateTransaction, Hbar, HbarUnit,
@@ -331,27 +331,27 @@ export function accountCreationShouldSucceed (accountManager, nodeCmd, namespace
   }).timeout(2 * MINUTES)
 }
 
-export async function getNodeIdsPrivateKeysHash (networkNodeServicesMap, namespace, k8, destDir) {
+export async function getNodeAliasesPrivateKeysHash (networkNodeServicesMap, namespace, k8, destDir) {
   const dataKeysDir = path.join(constants.HEDERA_HAPI_PATH, 'data', 'keys')
   const tlsKeysDir = constants.HEDERA_HAPI_PATH
   const nodeKeyHashMap = new Map()
   for (const networkNodeServices of networkNodeServicesMap.values()) {
     const keyHashMap = new Map()
-    const nodeId = networkNodeServices.nodeName
-    const uniqueNodeDestDir = path.join(destDir, nodeId)
+    const nodeAlias = networkNodeServices.nodeAlias
+    const uniqueNodeDestDir = path.join(destDir, nodeAlias)
     if (!fs.existsSync(uniqueNodeDestDir)) {
       fs.mkdirSync(uniqueNodeDestDir, { recursive: true })
     }
-    await addKeyHashToMap(k8, nodeId, dataKeysDir, uniqueNodeDestDir, keyHashMap, Templates.renderGossipPemPrivateKeyFile(constants.SIGNING_KEY_PREFIX, nodeId))
-    await addKeyHashToMap(k8, nodeId, tlsKeysDir, uniqueNodeDestDir, keyHashMap, 'hedera.key')
-    nodeKeyHashMap.set(nodeId, keyHashMap)
+    await addKeyHashToMap(k8, nodeAlias, dataKeysDir, uniqueNodeDestDir, keyHashMap, Templates.renderGossipPemPrivateKeyFile(constants.SIGNING_KEY_PREFIX, nodeAlias))
+    await addKeyHashToMap(k8, nodeAlias, tlsKeysDir, uniqueNodeDestDir, keyHashMap, 'hedera.key')
+    nodeKeyHashMap.set(nodeAlias, keyHashMap)
   }
   return nodeKeyHashMap
 }
 
-async function addKeyHashToMap (k8, nodeId, keyDir, uniqueNodeDestDir, keyHashMap, privateKeyFileName) {
+async function addKeyHashToMap (k8, nodeAlias, keyDir, uniqueNodeDestDir, keyHashMap, privateKeyFileName) {
   await k8.copyFrom(
-    Templates.renderNetworkPodName(nodeId),
+    Templates.renderNetworkPodName(nodeAlias),
     ROOT_CONTAINER,
     path.join(keyDir, privateKeyFileName),
     uniqueNodeDestDir)

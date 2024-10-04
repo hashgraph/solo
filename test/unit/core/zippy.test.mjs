@@ -54,7 +54,7 @@ describe('Zippy', () => {
       const zipFile = `${tmpDir}/test.zip`
       const unzippedFile = `${tmpDir}/unzipped`
       await expect(zippy.zip('test/data/.empty', zipFile)).to.eventually.equal(zipFile)
-      await expect(zippy.unzip(zipFile, unzippedFile, true)).to.eventually.equal(unzippedFile)
+      await expect(zippy.unzip(zipFile, unzippedFile, true)).to.equal(unzippedFile)
       fs.rmSync(tmpDir, { recursive: true, force: true }) // not very safe!
     })
   })
@@ -80,11 +80,11 @@ describe('Zippy', () => {
       expect(zippy.untar('test/data/test.txt', os.tmpdir())).to.eventually.be.rejectedWith(SoloError)
     })
 
-    it('should succeed for valid inputs', async () => {
+    it('should succeed for valid inputs', () => {
       const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'installer-'))
       const tarFile = `${tmpDir}/test.tar.gz`
-      await expect(zippy.tar('test/data/.empty', tarFile)).to.eventually.equal(tarFile)
-      await expect(zippy.untar(tarFile, tmpDir, true)).to.eventually.equal(tmpDir)
+      await expect(zippy.tar('test/data/.empty', tarFile), 'tar file should match').to.eventually.equal(tarFile)
+      await expect(zippy.untar(tarFile, tmpDir, true), 'tmp dir should match').to.eventually.equal(tmpDir)
       fs.rmSync(tmpDir, { recursive: true, force: true }) // not very safe!
     })
   })

@@ -28,7 +28,7 @@ describe('KeytoolDependencyManager', () => {
   const tmpDir = path.join(getTestCacheDir(), 'bin', 'jre')
   const zippy = new Zippy(testLogger)
 
-  before(async () => {
+  before(() => {
     fs.mkdirSync(tmpDir, { recursive: true })
   })
 

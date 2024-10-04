@@ -91,7 +91,7 @@ export class AccountCommand extends BaseCommand {
    * @param {any} ctx
    * @returns {Promise<AccountInfo>}
    */
-  async getAccountInfo (ctx) {
+  getAccountInfo (ctx) {
     return this.accountManager.accountInfoQuery(ctx.config.accountId)
   }
 
@@ -168,7 +168,7 @@ export class AccountCommand extends BaseCommand {
       },
       {
         title: 'Update special account keys',
-        task: async (ctx, task) => {
+        task: (ctx, task) => {
           return new Listr([
             {
               title: 'Prepare for account key updates',
@@ -190,7 +190,7 @@ export class AccountCommand extends BaseCommand {
             },
             {
               title: 'Update special account key sets',
-              task: async (ctx) => {
+              task: (ctx) => {
                 const subTasks = []
                 const realm = constants.HEDERA_NODE_ACCOUNT_ID_START.realm
                 const shard = constants.HEDERA_NODE_ACCOUNT_ID_START.shard
@@ -219,7 +219,7 @@ export class AccountCommand extends BaseCommand {
             },
             {
               title: 'Display results',
-              task: async (ctx) => {
+              task: (ctx) => {
                 self.logger.showUser(chalk.green(`Account keys updated SUCCESSFULLY: ${ctx.resultTracker.fulfilledCount}`))
                 if (ctx.resultTracker.skippedCount > 0) self.logger.showUser(chalk.cyan(`Account keys updates SKIPPED: ${ctx.resultTracker.skippedCount}`))
                 if (ctx.resultTracker.rejectedCount > 0) {
@@ -453,13 +453,10 @@ export class AccountCommand extends BaseCommand {
 
   /**
    * Return Yargs command definition for 'node' command
-   * @param {AccountCommand} accountCmd an instance of NodeCommand
    * @returns {{command: string, desc: string, builder: Function}}
    */
-  static getCommandDefinition (accountCmd) {
-    if (!accountCmd || !(accountCmd instanceof AccountCommand)) {
-      throw new IllegalArgumentError('An instance of AccountCommand is required', accountCmd)
-    }
+  getCommandDefinition () {
+    const accountCmd = this
     return {
       command: 'account',
       desc: 'Manage Hedera accounts in solo network',

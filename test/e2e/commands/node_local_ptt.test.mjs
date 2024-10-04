@@ -23,7 +23,7 @@ import { MINUTES } from '../../../src/core/constants.mjs'
 describe('Node local build', () => {
   const LOCAL_PTT = 'local-ptt-app'
   const argv = getDefaultArgv()
-  argv[flags.nodeIDs.name] = 'node1,node2,node3'
+  argv[flags.nodeAliasesUnparsed.name] = 'node1,node2,node3'
   argv[flags.generateGossipKeys.name] = true
   argv[flags.generateTlsKeys.name] = true
   argv[flags.clusterName.name] = TEST_CLUSTER

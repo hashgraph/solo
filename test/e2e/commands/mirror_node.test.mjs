@@ -40,7 +40,7 @@ describe('MirrorNodeCommand', () => {
   argv[flags.namespace.name] = namespace
   argv[flags.releaseTag.name] = HEDERA_PLATFORM_VERSION_TAG
 
-  argv[flags.nodeIDs.name] = 'node1' // use a single node to reduce resource during e2e tests
+  argv[flags.nodeAliasesUnparsed.name] = 'node1' // use a single node to reduce resource during e2e tests
   argv[flags.generateGossipKeys.name] = true
   argv[flags.generateTlsKeys.name] = true
   argv[flags.clusterName.name] = TEST_CLUSTER

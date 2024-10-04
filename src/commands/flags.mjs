@@ -247,11 +247,11 @@ export const cacheDir = {
 }
 
 /** @type {CommandFlag} **/
-export const nodeIDs = {
-  constName: 'nodeIDs',
-  name: 'node-ids',
+export const nodeAliasesUnparsed = {
+  constName: 'nodeAliasesUnparsed',
+  name: 'node-aliases-unparsed',
   definition: {
-    describe: 'Comma separated node IDs (empty means all nodes)',
+    describe: 'Comma separated node aliases (empty means all nodes)',
     alias: 'i',
     type: 'string'
   }
@@ -660,11 +660,11 @@ export const amount = {
 }
 
 /** @type {CommandFlag} **/
-export const nodeID = {
-  constName: 'nodeId',
-  name: 'node-id',
+export const nodeAlias = {
+  constName: 'nodeAlias',
+  name: 'node-alias',
   definition: {
-    describe: 'Node id (e.g. node99)',
+    describe: 'Node alias (e.g. node99)',
     type: 'string'
   }
 }
@@ -712,9 +712,9 @@ export const persistentVolumeClaims = {
 }
 
 /** @type {CommandFlag} **/
-export const debugNodeId = {
-  constName: 'debugNodeId',
-  name: 'debug-nodeid',
+export const debugNodeAlias = {
+  constName: 'debugNodeAlias',
+  name: 'debug-node-alias',
   definition: {
     describe: 'Enable default jvm debug port (5005) for the given node id',
     defaultValue: '',
@@ -816,14 +816,14 @@ export const allFlags = [
   grpcEndpoints,
   hederaExplorerTlsHostName,
   hederaExplorerTlsLoadBalancerIp,
-  debugNodeId,
+  debugNodeAlias,
   localBuildPath,
   log4j2Xml,
   namespace,
   newAccountNumber,
   newAdminKey,
-  nodeID,
-  nodeIDs,
+  nodeAlias,
+  nodeAliasesUnparsed,
   operatorId,
   operatorKey,
   persistentVolumeClaims,
