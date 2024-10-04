@@ -1,19 +1,9 @@
 ---
 main:
   - name: Getting Started
-    sub:
-      - name: Installation
-        ref: "/getting-started/installation.md"
-      - name: Setup
-        ref: "/getting-started/setup.md"
-      - name: Deploy
-        ref: "/getting-started/deploy.md"
-  - name: Contribution
-    sub:
-      - name: Solo
-        ref: "/contribution/contribution.md"
-      - name: Docs
-        ref: "/contribution/docs.md"
+    ref: "/User/README.md"
+  - name: Development
+    ref: "/Developer/DEV.md"
   - name: Classes
     ref: "/solo/static/Classes/index.html"
     external: true

@@ -6,6 +6,7 @@ There are two scripts to generate node gossip keys and grpc TLS keys as below:
 * `test/scripts/gen-openssl-keys.sh`: It generates keys using `openssl` where each private and public keys are separate `pem` files.
 
 ## Usage
+
 In order to generate keys in PEM format for 3 nodes (`node0,node1,node3`), run as below:
 
 ```
@@ -14,7 +15,8 @@ $ ./gen-openssl-keys.sh node0,node1,node3 ./keys
 ```
 
 View the certificate using command below:
-``` 
+
+```
 $ ls keys 
 a-private-node0.pem a-public-node0.pem  backup              hedera-node0.crt    hedera-node0.key    s-private-node0.pem s-public-node0.pem
 $ openssl x509 -in keys/s-public-node0.pem -noout -text

@@ -30,7 +30,7 @@
     "merge-unit": "nyc merge ./coverage/unit/ .nyc_output/coverage.json",
     "report-coverage": "npm run merge-clean && npm run merge-unit && npm run merge-e2e && nyc report --reporter=json --reporter=html --reporter=lcov",
     "solo": "NODE_OPTIONS=--experimental-vm-modules node --no-deprecation solo.mjs",
-    "check": "rm -rf docs/public/*; remark . --quiet --frail && eslint . --ignore-pattern \"docs/*\"; cd docs; jsdoc -c jsdoc.conf.json",
+    "check": "remark . --quiet --frail && eslint . --ignore-pattern \"docs/*\"; cd docs; jsdoc -c jsdoc.conf.json",
     "format": "remark . --quiet --frail --output && eslint --fix . --ignore-pattern \"docs/*\"",
     "test-setup": "./test/e2e/setup-e2e.sh",
     "test-coverage": "npm run test && npm run test-setup && npm run test-e2e-all && npm run report-coverage"
@@ -83,6 +83,7 @@
     "neostandard": "^0.11.6",
     "nyc": "^17.1.0",
     "remark-cli": "^12.0.1",
+    "remark-frontmatter": "^5.0.0",
     "remark-lint-list-item-indent": "^4.0.0",
     "remark-lint-unordered-list-marker-style": "^4.0.0",
     "remark-preset-lint-consistent": "^6.0.0",

@@ -18,6 +18,8 @@
 name: Deploy Hugo site to Pages
 
 on:
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
   # Runs on pushes targeting the default branch
   push:
     branches:
@@ -28,9 +30,12 @@ on:
       - '**/package*.json'
       - 'DEV.md'
       - 'README.md'
-
-  # Allows you to run this workflow manually from the Actions tab
-  workflow_dispatch:
+  # run in the pull request, but don't publish
+  pull_request:
+    types:
+      - opened
+      - reopened
+      - synchronize
 
 # Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
 permissions:
@@ -81,58 +86,34 @@ jobs:
         with:
           enablement: true
 
-      - name: Install jsdoc
-        run: |
-          cd docs
-          npm i -g jsdoc
-          jsdoc --version
-          jsdoc -c jsdoc.conf.json
-          cd -
-
-      - name: Install jsdoc-to-markdown
-        run: |
-          cd docs
-          npm i -g jsdoc-to-markdown
-          jsdoc2md --version
-          ./generate_md.sh
-          cd -
-
-      - name: Copy existing documentation
-        run: |
-          mkdir -p docs/content/Developer
-          cp DEV.md docs/content/Developer/DEV.md
-          mkdir -p docs/content/User
-          cp README.md docs/content/User/README.md
+      - name: Install Task
+        uses: arduino/setup-task@b91d5d2c96a56797b48ac1e0e89220bf64044611 # v2.0.0
+        with:
+          version: 3.39.2
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build with Hugo
-        env:
-          # For maximum backward compatibility with Hugo modules
-          HUGO_ENVIRONMENT: production
-          HUGO_ENV: production
         run: |
           cd docs
-          echo "base_url ${{ steps.pages.outputs.base_url }}"
-          echo "origin ${{ steps.pages.outputs.origin }}"
-          echo "host ${{ steps.pages.outputs.host }}"
-          echo "base_path ${{ steps.pages.outputs.base_path }}"
-          mkdir -p themes/hugo-geekdoc
-          curl -L https://github.com/thegeeklab/hugo-geekdoc/releases/latest/download/hugo-geekdoc.tar.gz | tar -xz -C themes/hugo-geekdoc/ --strip-components=1
-          ls -ltr
-          hugo version
-          hugo config
-          hugo \
-            --gc \
-            --config hugo.toml \
-            --minify \
-            --baseURL "${{ steps.pages.outputs.base_url }}/"
+          task default
 
-      - name: Upload artifact
+      # Upload the built site to GitHub Pages
+      - name: Upload Pages Artifact
         uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3.0.1
+        if: ${{ endsWith(github.ref, 'main') }}
+        with:
+          path: ./docs/public
+
+      # Upload the built site to artifacts for troubleshooting or verification
+      - name: Upload Artifact
+        uses: actions/upload-artifact@50769540e7f4bd5e21e526ee35c689e35e0d6874 # v4.4.0
+        if: ${{ !endsWith(github.ref, 'main') }}
         with:
           path: ./docs/public
 
   # Deployment job
   deploy:
+    if: ${{ endsWith(github.ref, 'main') }}
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}

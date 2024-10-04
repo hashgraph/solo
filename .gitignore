@@ -516,3 +516,10 @@ coverage/
 deleteme.yaml
 /.nyc_output/
 /.nvmrc
+/docs/public/static/Classes/
+/docs/content/Classes/
+/docs/content/Developer/DEV.md
+/docs/content/User/README.md
+/docs/themes/
+/docs/.hugo_build.lock
+/docs/public/
