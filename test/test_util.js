@@ -22,7 +22,7 @@ import path from 'path'
 import { ClusterCommand } from '../src/commands/cluster.mjs'
 import { InitCommand } from '../src/commands/init.mjs'
 import { NetworkCommand } from '../src/commands/network.mjs'
-import { NodeCommand } from '../src/commands/node.mjs'
+import { NodeCommand } from '../src/commands/node/index.mjs'
 import { AccountManager } from '../src/core/account_manager.mjs'
 import {
   DependencyManager,

@@ -23,67 +23,51 @@ export const DEFAULT_FLAGS = {
     optionalFlags: [flags.devMode]
 }
 
+export const UPDATE_FLAGS = {
+    requiredFlags: [flags.cacheDir, flags.namespace, flags.nodeAlias, flags.releaseTag],
+    requiredFlagsWithDisabledPrompt: [
+        flags.app,
+        flags.chartDirectory,
+        flags.debugNodeAlias,
+        flags.endpointType,
+        flags.force,
+        flags.fstChartVersion,
+        flags.gossipEndpoints,
+        flags.gossipPrivateKey,
+        flags.gossipPublicKey,
+        flags.grpcEndpoints,
+        flags.newAccountNumber,
+        flags.newAdminKey,
+        flags.tlsPrivateKey,
+        flags.tlsPublicKey
+    ],
+    optionalFlags: [flags.devMode, flags.quiet, flags.localBuildPath]
+}
 
-// TODO change structure
-
-export const UPDATE_FLAGS_LIST = [
-    flags.app,
+const COMMON_DELETE_REQUIRED_FLAGS = [
     flags.cacheDir,
-    flags.chartDirectory,
-    flags.devMode,
-    flags.debugNodeAlias,
-    flags.endpointType,
-    flags.fstChartVersion,
-    flags.gossipEndpoints,
-    flags.gossipPrivateKey,
-    flags.gossipPublicKey,
-    flags.grpcEndpoints,
-    flags.localBuildPath,
-    flags.namespace,
-    flags.newAccountNumber,
-    flags.newAdminKey,
-    flags.nodeAlias,
-    flags.quiet,
-    flags.releaseTag,
-    flags.tlsPrivateKey,
-    flags.tlsPublicKey
-]
-
-export const COMMON_DELETE_FLAGS_LIST = [
-    flags.app,
-    flags.cacheDir,
-    flags.chartDirectory,
-    flags.devMode,
-    flags.debugNodeAlias,
-    flags.endpointType,
-    flags.localBuildPath,
     flags.namespace,
     flags.nodeAlias,
     flags.quiet,
     flags.releaseTag
 ]
 
-
-export const DELETE_FLAGS_LIST = [
-    ...COMMON_DELETE_FLAGS_LIST
+const COMMON_DELETE_REQUIRED_NO_PROMPT_FLAGS = [
+    flags.app,
+    flags.chainId,
+    flags.chartDirectory,
+    flags.debugNodeAlias,
+    flags.endpointType,
+    flags.fstChartVersion
 ]
 
-export const DELETE_PREPARE_FLAGS_LIST = [
-    ...COMMON_DELETE_FLAGS_LIST,
-    flags.outputDir
+const COMMON_DELETE_OPTIONAL_FLAGS = [
+    flags.devMode,
+    flags.force,
+    flags.localBuildPath
 ]
 
-export const DELETE_SUBMIT_TRANSACTIONS_FLAGS_LIST = [
-    ...COMMON_DELETE_FLAGS_LIST,
-    flags.inputDir
-]
-
-export const DELETE_EXECUTE_FLAGS_LIST = [
-    ...COMMON_DELETE_FLAGS_LIST,
-    flags.inputDir
-]
-
-export const COMMON_ADD_FLAGS_LIST = [
+const COMMON_ADD_REQUIRED_FLAGS = [
     flags.app,
     flags.cacheDir,
     flags.chainId,
@@ -102,76 +86,144 @@ export const COMMON_ADD_FLAGS_LIST = [
     flags.releaseTag
 ]
 
-export const ADD_EXECUTE_FLAGS_LIST = [
-    ...COMMON_ADD_FLAGS_LIST,
-    flags.inputDir
-]
-
-export const ADD_FLAGS_LIST = [
-    ...COMMON_ADD_FLAGS_LIST,
-    flags.adminKey
-]
-
-
-export const ADD_PREPARE_FLAGS_LIST = [
-    ...COMMON_ADD_FLAGS_LIST,
-    flags.adminKey,
-    flags.outputDir
-]
-
-
-export const ADD_SUBMIT_TRANSACTIONS_FLAGS_LIST = [
-    ...COMMON_ADD_FLAGS_LIST,
-    flags.inputDir
-]
-
-
-export const REFRESH_FLAGS_LIST = [
+const COMMON_ADD_REQUIRED_NO_PROMPT_FLAGS = [
     flags.app,
-    flags.cacheDir,
-    flags.devMode,
-    flags.localBuildPath,
-    flags.namespace,
-    flags.nodeAliasesUnparsed,
-    flags.quiet,
-    flags.releaseTag
-]
-
-
-export const KEYS_FLAGS_LIST = [
-    flags.cacheDir,
-    flags.devMode,
-    flags.generateGossipKeys,
-    flags.generateTlsKeys,
-    flags.nodeAliasesUnparsed,
-    flags.quiet
-]
-
-
-export const STOP_FLAGS_LIST = [
-    flags.namespace,
-    flags.nodeAliasesUnparsed,
-    flags.quiet
-]
-
-
-export const SETUP_FLAGS_LIST = [
-    flags.app,
-    flags.appConfig,
-    flags.cacheDir,
-    flags.devMode,
-    flags.localBuildPath,
-    flags.namespace,
-    flags.nodeAliasesUnparsed,
-    flags.releaseTag
-]
-
-
-export const START_FLAGS_LIST = [
-    flags.app,
+    flags.chainId,
+    flags.chartDirectory,
     flags.debugNodeAlias,
-    flags.namespace,
-    flags.nodeAliasesUnparsed,
-    flags.quiet
+    flags.endpointType,
+    flags.fstChartVersion
 ]
 
+const COMMON_ADD_OPTIONAL_FLAGS = [
+    flags.devMode,
+    flags.force,
+    flags.localBuildPath
+]
+
+export const DELETE_FLAGS = {
+    requiredFlags: [...COMMON_DELETE_REQUIRED_FLAGS],
+    requiredFlagsWithDisabledPrompt: [...COMMON_DELETE_REQUIRED_NO_PROMPT_FLAGS],
+    optionalFlags: [...COMMON_DELETE_OPTIONAL_FLAGS]
+}
+
+export const DELETE_PREPARE_FLAGS = {
+    requiredFlags: [...COMMON_DELETE_REQUIRED_FLAGS, flags.outputDir],
+    requiredFlagsWithDisabledPrompt: [...COMMON_DELETE_REQUIRED_NO_PROMPT_FLAGS],
+    optionalFlags: [...COMMON_DELETE_OPTIONAL_FLAGS]
+}
+
+export const DELETE_SUBMIT_TRANSACTIONS_FLAGS = {
+    requiredFlags: [...COMMON_DELETE_REQUIRED_FLAGS, flags.inputDir],
+    requiredFlagsWithDisabledPrompt: [...COMMON_DELETE_REQUIRED_NO_PROMPT_FLAGS],
+    optionalFlags: [...COMMON_DELETE_OPTIONAL_FLAGS]
+}
+
+export const DELETE_EXECUTE_FLAGS = {
+    requiredFlags: [...COMMON_DELETE_REQUIRED_FLAGS, flags.inputDir],
+    requiredFlagsWithDisabledPrompt: [...COMMON_DELETE_REQUIRED_NO_PROMPT_FLAGS],
+    optionalFlags: [...COMMON_DELETE_OPTIONAL_FLAGS]
+}
+
+export const ADD_FLAGS = {
+    requiredFlags: [...COMMON_ADD_REQUIRED_FLAGS],
+    requiredFlagsWithDisabledPrompt: [...COMMON_ADD_REQUIRED_NO_PROMPT_FLAGS],
+    optionalFlags: [...COMMON_ADD_OPTIONAL_FLAGS, flags.adminKey]
+}
+
+export const ADD_PREPARE_FLAGS = {
+    requiredFlags: [...COMMON_ADD_REQUIRED_FLAGS, flags.outputDir],
+    requiredFlagsWithDisabledPrompt: [...COMMON_ADD_REQUIRED_NO_PROMPT_FLAGS],
+    optionalFlags: [...COMMON_ADD_OPTIONAL_FLAGS, flags.adminKey]
+}
+
+export const ADD_SUBMIT_TRANSACTIONS_FLAGS = {
+    requiredFlags: [...COMMON_ADD_REQUIRED_FLAGS, flags.inputDir],
+    requiredFlagsWithDisabledPrompt: [...COMMON_ADD_REQUIRED_NO_PROMPT_FLAGS],
+    optionalFlags: [...COMMON_ADD_OPTIONAL_FLAGS]
+}
+
+export const ADD_EXECUTE_FLAGS = {
+    requiredFlags: [...COMMON_ADD_REQUIRED_FLAGS, flags.inputDir],
+    requiredFlagsWithDisabledPrompt: [...COMMON_ADD_REQUIRED_NO_PROMPT_FLAGS],
+    optionalFlags: [...COMMON_ADD_OPTIONAL_FLAGS]
+}
+
+export const LOGS_FLAGS = {
+    requiredFlags: [flags.nodeAliasesUnparsed],
+    requiredFlagsWithDisabledPrompt: [],
+    optionalFlags: []
+}
+
+export const REFRESH_FLAGS = {
+    requiredFlags: [
+        flags.cacheDir,
+        flags.namespace,
+        flags.nodeAliasesUnparsed,
+        flags.releaseTag
+    ],
+    requiredFlagsWithDisabledPrompt: [
+        flags.app
+    ],
+    optionalFlags: [
+        flags.localBuildPath,
+        flags.devMode,
+        flags.quiet,
+    ]
+}
+
+export const KEYS_FLAGS = {
+    requiredFlags: [
+        flags.cacheDir,
+        flags.generateGossipKeys,
+        flags.generateTlsKeys,
+        flags.nodeAliasesUnparsed,
+    ],
+    requiredFlagsWithDisabledPrompt: [],
+    optionalFlags: [
+        flags.devMode,
+        flags.quiet
+    ]
+}
+
+export const STOP_FLAGS = {
+    requiredFlags: [
+        flags.namespace,
+        flags.nodeAliasesUnparsed
+    ],
+    requiredFlagsWithDisabledPrompt: [],
+    optionalFlags: [
+        flags.quiet
+    ]
+}
+
+export const START_FLAGS = {
+    requiredFlags: [
+        flags.app,
+        flags.debugNodeAlias,
+        flags.namespace,
+        flags.nodeAliasesUnparsed,
+    ],
+    requiredFlagsWithDisabledPrompt: [],
+    optionalFlags: [
+        flags.quiet
+    ]
+}
+
+export const SETUP_FLAGS = {
+    requiredFlags: [
+
+        flags.cacheDir,
+        flags.namespace,
+        flags.nodeAliasesUnparsed,
+        flags.releaseTag
+    ],
+    requiredFlagsWithDisabledPrompt: [
+        flags.app,
+        flags.appConfig,
+    ],
+    optionalFlags: [
+        flags.devMode,
+        flags.localBuildPath,
+    ]
+}

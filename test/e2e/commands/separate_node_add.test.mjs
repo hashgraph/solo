@@ -25,7 +25,7 @@ import {
   HEDERA_PLATFORM_VERSION_TAG
 } from '../../test_util.js'
 import { getNodeLogs } from '../../../src/core/helpers.mjs'
-import { NodeCommand } from '../../../src/commands/node.mjs'
+import { NodeCommand } from '../../../src/commands/node/index.mjs'
 
 describe('Node add via separated commands should success', () => {
   const defaultTimeout = 120000

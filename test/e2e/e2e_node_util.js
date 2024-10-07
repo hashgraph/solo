@@ -35,7 +35,7 @@ import {
   TEST_CLUSTER
 } from '../test_util.js'
 import { getNodeLogs, sleep } from '../../src/core/helpers.mjs'
-import { NodeCommand } from '../../src/commands/node.mjs'
+import { NodeCommand } from '../../src/commands/node/index.mjs'
 
 export function e2eNodeKeyRefreshTest (testName, mode, releaseTag = HEDERA_PLATFORM_VERSION_TAG) {
   const defaultTimeout = 120000
