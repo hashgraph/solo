@@ -4,26 +4,26 @@ tests:
   # name: capitalized noun form
   # testFilePrefix: node-update # for node-update.test.mjs
   - name: Standard
-    jestPostfix: --testPathIgnorePatterns=\".*/unit/.*\" --testPathIgnorePatterns=\".*/e2e/commands/mirror_node.*\" --testPathIgnorePatterns=\".*/e2e/commands/node.*\" --testPathIgnorePatterns=\".*/e2e/commands/separate_node.*\" --testPathIgnorePatterns=\".*/e2e/commands/relay.*\"
+    mochaPostfix: "--ignore-pattern '.*\\/unit\\/.*' --ignore-pattern '.*\\/e2e\\/commands\\/mirror_node.*' --ignore-pattern '.*\\/e2e\\/commands\\/node.*' --ignore-pattern '.*\\/e2e\\/commands\\/separate_node.*' --ignore-pattern '.*\\/e2e\\/commands\\/relay.*'"
   - name: Mirror Node
-    jestPostfix: --testRegex=\".*\\/e2e\\/commands\\/mirror_node\\.test\\.mjs\"
+    mochaPostfix: "--grep 'mirror_node\\.test\\.mjs'"
   - name: Node PEM Stop
-    jestPostfix: --testRegex=\".*\\/e2e\\/commands\\/node_pem_stop\\.test\\.mjs\" 
+    mochaPostfix: "--grep 'node_pem_stop\\.test\\.mjs'"
   - name: Node PEM Kill
-    jestPostfix: --testRegex=\".*\\/e2e\\/commands\\/node_pem_kill\\.test\\.mjs\"
+    mochaPostfix: "--grep 'node_pem_kill\\.test\\.mjs'"
   - name: Node Local Build
-    jestPostfix: --testRegex=\".*\\/e2e\\/commands\\/node_local.*\\.test\\.mjs\"
+    mochaPostfix: "--grep 'node_local.*\\.test\\.mjs'"
   - name: Node Add
-    jestPostfix: --testRegex=\".*\\/e2e\\/commands\\/node_add.*\\.test\\.mjs\"
+    mochaPostfix: "--grep 'node_add.*\\.test\\.mjs'"
   - name: Node Add - Separate commands
-    jestPostfix: --testRegex=\".*\\/e2e\\/commands\\/separate_node_add.*\\.test\\.mjs\"
+    mochaPostfix: "--grep 'separate_node_add.*\\.test\\.mjs'"
   - name: Node Update
-    jestPostfix: --testRegex=\".*\\/e2e\\/commands\\/node_update.*\\.test\\.mjs\"
+    mochaPostfix: "--grep 'node_update.*\\.test\\.mjs'"
   - name: Node Delete
-    jestPostfix: --testRegex=\".*\\/e2e\\/commands\\/node_delete.*\\.test\\.mjs\"
+    mochaPostfix: "--grep 'node_delete.*\\.test\\.mjs'"
   - name: Node Delete - Separate commands
-    jestPostfix: --testRegex=\".*\\/e2e\\/commands\\/separate_node_delete.*\\.test\\.mjs\"
+    mochaPostfix: "--grep 'separate_node_delete.*\\.test\\.mjs'"
   - name: Node Upgrade
-    jestPostfix: --testRegex=\".*\\/e2e\\/commands\\/node_upgrade.*\\.test\\.mjs\"
+    mochaPostfix: "--grep 'node_upgrade.*\\.test\\.mjs'"
   - name: Relay
-    jestPostfix: --testRegex=\".*\\/e2e\\/commands\\/relay\\.test\\.mjs\"
+    mochaPostfix: "--grep 'relay\\.test\\.mjs'"

@@ -25,7 +25,7 @@ template.zxc-code-analysis.yaml
 template.zxc-env-vars.yaml
 ```
 
-For new e2e test jobs update the `<solo-root>/.github/workflows/templates/config.yaml`, adding a new item to the tests object with a name and jestPostfix attribute.
+For new e2e test jobs update the `<solo-root>/.github/workflows/templates/config.yaml`, adding a new item to the tests object with a name and mochaPostfix attribute.
 
 NOTE: IntelliJ copy/paste will alter the escape sequences, you might have to manually type it in, clone a line, or use an external text editor.
 
@@ -33,7 +33,7 @@ e.g.:
 
 ```yaml
   - name: Mirror Node
-    jestPostfix: --testRegex=\".*\\/e2e\\/commands\\/mirror_node\\.test\\.mjs\"
+    mochaPostfix: "--ignore-pattern '.*\\/unit\\/.*'"
 
 ```
 

@@ -35,7 +35,7 @@ export default [...compat.extends('standard'), {
   languageOptions: {
     globals: {
       ...globals.browser,
-      ...globals.jest
+      ...globals.mocha
     },
     ecmaVersion: 'latest',
     sourceType: 'module'

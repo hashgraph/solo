@@ -37,7 +37,7 @@ export const AUTOGENERATE_DOWNLOAD_JOBS = '# {AUTOGENERATE-DOWNLOAD-JOBS}'
 /**
  * @typedef {Object} Test
  * @property {string} name
- * @property {string} jestPostfix
+ * @property {string} mochaPostfix
  */
 
 /**
@@ -93,7 +93,7 @@ function updatePackageJson (outputDir, config) {
       config.tests.forEach(test => {
         const formalNounName = test.name
         const kebabCase = changeCase.kebabCase(formalNounName)
-        generatedLines.push(`${spacePrefix}"test-e2e-${kebabCase}": "NODE_OPTIONS=--experimental-vm-modules JEST_SUITE_NAME='Jest E2E ${formalNounName} Tests' JEST_JUNIT_OUTPUT_NAME='junit-e2e-${kebabCase}.xml' jest --runInBand --detectOpenHandles --forceExit --coverage --coverageDirectory='coverage/e2e-${kebabCase}' ${test.jestPostfix}",`)
+        generatedLines.push(`${spacePrefix}"test-e2e-${kebabCase}": "NODE_OPTIONS=--experimental-vm-modules MOCHA_GREP='E2E ${formalNounName} Tests' mocha --reporter mocha-junit-reporter --reporter-options mochaFile='junit-e2e-${kebabCase}.xml' --timeout 5000 --require @babel/register ${test.mochaPostfix}",`);
       })
 
       outputLines.push(...generatedLines)
