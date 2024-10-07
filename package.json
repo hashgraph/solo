@@ -11,9 +11,9 @@
     "access": "public"
   },
   "scripts": {
-    "test:mocha": "cross-env NODE_OPTIONS=--experimental-vm-modules MOCHA_SUITE_NAME='Unit Tests' nyc --reporter=text --reporter=html mocha --file 'test/setup.mjs' 'test/unit/**/**.mjs' --recursive --exit --reporter spec --check-leaks",
     "test": "cross-env NODE_OPTIONS=--experimental-vm-modules MOCHA_SUITE_NAME='Unit Tests' nyc --reporter=text --reporter=html mocha --file 'test/setup.mjs' 'test/unit/**/*.mjs' --recursive --exit --reporter spec --check-leaks --timeout 20000",
     "test-e2e-all": "NODE_OPTIONS=--experimental-vm-modules MOCHA_SUITE_NAME='Mocha E2E All Tests' mocha --file 'test/setup.mjs' 'test/e2e/**/*.mjs' --exit --timeout 20000",
+    "test-e2e-standard": "NODE_OPTIONS=--experimental-vm-modules MOCHA_SUITE_NAME='Mocha E2E Standard Tests' nyc --reporter=text --reporter=html mocha --file 'test/setup.mjs' 'test/e2e/**/*.mjs' --ignore 'test/unit/**/*.mjs' --ignore 'test/e2e/commands/mirror_node*.mjs' --ignore 'test/e2e/commands/node*.mjs' --ignore 'test/e2e/commands/separate_node*.mjs' --ignore 'test/e2e/commands/relay*.mjs' --exit --timeout 30000 --recursive",
     "test-e2e-mirror-node": "NODE_OPTIONS=--experimental-vm-modules MOCHA_SUITE_NAME='Mocha E2E Mirror Node Tests' mocha --file 'test/setup.mjs' 'test/e2e/commands/mirror_node.test.mjs' --exit --timeout 20000",
     "test-e2e-node-pem-stop": "NODE_OPTIONS=--experimental-vm-modules MOCHA_SUITE_NAME='Mocha E2E Node PEM Stop Tests' mocha --file 'test/setup.mjs' 'test/e2e/commands/node_pem_stop.test.mjs' --exit --timeout 20000",
     "test-e2e-node-pem-kill": "NODE_OPTIONS=--experimental-vm-modules MOCHA_SUITE_NAME='Mocha E2E Node PEM Kill Tests' mocha --file 'test/setup.mjs' 'test/e2e/commands/node_pem_kill.test.mjs' --exit --timeout 20000",
