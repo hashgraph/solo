@@ -22,10 +22,7 @@ import { ConfigManager, PlatformInstaller } from '../../../src/core/index.mjs'
 import * as fs from 'fs'
 import * as path from 'path'
 import * as os from 'os'
-import {
-  IllegalArgumentError,
-  MissingArgumentError
-} from '../../../src/core/errors.mjs'
+import { IllegalArgumentError, MissingArgumentError } from '../../../src/core/errors.mjs'
 import { AccountManager } from '../../../src/core/account_manager.mjs'
 import { getK8Instance } from '../../test_util.js'
 
@@ -39,63 +36,63 @@ describe('PackageInstaller', () => {
   const installer = new PlatformInstaller(testLogger, k8, configManager, accountManager)
 
   describe('validatePlatformReleaseDir', () => {
-    it('should fail for missing path', async () => {
-      await expect(installer.validatePlatformReleaseDir('')).to.eventually.be.rejectedWith(MissingArgumentError)
+    it('should fail for missing path', () => {
+      expect(() => installer.validatePlatformReleaseDir('')).to.throw(MissingArgumentError)
     })
 
-    it('should fail for invalid path', async () => {
-      await expect(installer.validatePlatformReleaseDir('/INVALID')).to.eventually.be.rejectedWith(IllegalArgumentError)
+    it('should fail for invalid path', () => {
+      expect(() => installer.validatePlatformReleaseDir('/INVALID')).to.throw(IllegalArgumentError)
     })
 
-    it('should fail if directory does not have data/apps directory', async () => {
+    it('should fail if directory does not have data/apps directory', () => {
       const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'installer-'))
-      fs.mkdirSync(`${tmpDir}/${core.constants.HEDERA_DATA_LIB_DIR}`, { recursive: true })
-      await expect(installer.validatePlatformReleaseDir(tmpDir)).to.eventually.be.rejectedWith(IllegalArgumentError)
-      fs.rmSync(tmpDir, { recursive: true })
+      fs.mkdirSync(`${tmpDir}/${core.constants.HEDERA_DATA_LIB_DIR}`, {recursive: true})
+      expect(() => installer.validatePlatformReleaseDir(tmpDir)).to.throw(IllegalArgumentError)
+      fs.rmSync(tmpDir, {recursive: true})
     })
 
-    it('should fail if directory does not have data/libs directory', async () => {
+    it('should fail if directory does not have data/libs directory', () => {
       const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'installer-'))
-      fs.mkdirSync(`${tmpDir}/${core.constants.HEDERA_DATA_APPS_DIR}`, { recursive: true })
-      await expect(installer.validatePlatformReleaseDir(tmpDir)).to.eventually.be.rejectedWith(IllegalArgumentError)
-      fs.rmSync(tmpDir, { recursive: true })
+      fs.mkdirSync(`${tmpDir}/${core.constants.HEDERA_DATA_APPS_DIR}`, {recursive: true})
+      expect(() => installer.validatePlatformReleaseDir(tmpDir)).to.throw(IllegalArgumentError)
+      fs.rmSync(tmpDir, {recursive: true})
     })
 
-    it('should fail if directory does not have data/app directory is empty', async () => {
+    it('should fail if directory does not have data/app directory is empty', () => {
       const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'installer-'))
-      fs.mkdirSync(`${tmpDir}/${core.constants.HEDERA_DATA_APPS_DIR}`, { recursive: true })
-      fs.mkdirSync(`${tmpDir}/${core.constants.HEDERA_DATA_LIB_DIR}`, { recursive: true })
+      fs.mkdirSync(`${tmpDir}/${core.constants.HEDERA_DATA_APPS_DIR}`, {recursive: true})
+      fs.mkdirSync(`${tmpDir}/${core.constants.HEDERA_DATA_LIB_DIR}`, {recursive: true})
       fs.writeFileSync(`${tmpDir}/${core.constants.HEDERA_DATA_LIB_DIR}/test.jar`, '')
-      await expect(installer.validatePlatformReleaseDir()).to.eventually.be.rejectedWith(MissingArgumentError)
-      fs.rmSync(tmpDir, { recursive: true })
+      expect(() => installer.validatePlatformReleaseDir()).to.throw(MissingArgumentError)
+      fs.rmSync(tmpDir, {recursive: true})
     })
 
-    it('should fail if directory does not have data/apps directory is empty', async () => {
+    it('should fail if directory does not have data/apps directory is empty', () => {
       const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'installer-app-'))
-      fs.mkdirSync(`${tmpDir}/${core.constants.HEDERA_DATA_APPS_DIR}`, { recursive: true })
+      fs.mkdirSync(`${tmpDir}/${core.constants.HEDERA_DATA_APPS_DIR}`, {recursive: true})
       fs.writeFileSync(`${tmpDir}/${core.constants.HEDERA_DATA_APPS_DIR}/app.jar`, '')
-      fs.mkdirSync(`${tmpDir}/${core.constants.HEDERA_DATA_LIB_DIR}`, { recursive: true })
-      await expect(installer.validatePlatformReleaseDir()).to.eventually.be.rejectedWith(MissingArgumentError)
-      fs.rmSync(tmpDir, { recursive: true })
+      fs.mkdirSync(`${tmpDir}/${core.constants.HEDERA_DATA_LIB_DIR}`, {recursive: true})
+      expect(() => installer.validatePlatformReleaseDir()).to.throw(MissingArgumentError)
+      fs.rmSync(tmpDir, {recursive: true})
     })
 
-    it('should succeed with non-empty data/apps and data/libs directory', async () => {
+    it('should succeed with non-empty data/apps and data/libs directory', () => {
       const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'installer-lib-'))
-      fs.mkdirSync(`${tmpDir}/${core.constants.HEDERA_DATA_APPS_DIR}`, { recursive: true })
+      fs.mkdirSync(`${tmpDir}/${core.constants.HEDERA_DATA_APPS_DIR}`, {recursive: true})
       fs.writeFileSync(`${tmpDir}/${core.constants.HEDERA_DATA_APPS_DIR}/app.jar`, '')
-      fs.mkdirSync(`${tmpDir}/${core.constants.HEDERA_DATA_LIB_DIR}`, { recursive: true })
+      fs.mkdirSync(`${tmpDir}/${core.constants.HEDERA_DATA_LIB_DIR}`, {recursive: true})
       fs.writeFileSync(`${tmpDir}/${core.constants.HEDERA_DATA_LIB_DIR}/lib-1.jar`, '')
-      await expect(installer.validatePlatformReleaseDir()).to.eventually.be.rejectedWith(MissingArgumentError)
-      fs.rmSync(tmpDir, { recursive: true })
+      expect(() => installer.validatePlatformReleaseDir()).to.throw(MissingArgumentError)
+      fs.rmSync(tmpDir, {recursive: true})
     })
   })
 
   describe('extractPlatform', () => {
     it('should fail for missing pod name', async () => {
-      await expect(installer.fetchPlatform('', 'v0.42.5')).to.eventually.be.rejectedWith(MissingArgumentError)
+      await expect(installer.fetchPlatform('', 'v0.42.5')).to.be.rejectedWith(MissingArgumentError)
     })
     it('should fail for missing tag', async () => {
-      await expect(installer.fetchPlatform('network-node1-0', '')).to.eventually.be.rejectedWith(MissingArgumentError)
+      await expect(installer.fetchPlatform('network-node1-0', '')).to.be.rejectedWith(MissingArgumentError)
     })
   })
 

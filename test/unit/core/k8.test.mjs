@@ -14,25 +14,27 @@
  * limitations under the License.
  *
  */
-import sinon from 'sinon'
 import { expect } from 'chai'
 import { describe, it, after, before } from 'mocha'
+import jest from 'jest-mock'
 
 import { constants, K8 } from '../../../src/core/index.mjs'
 import { getTestConfigManager, testLogger } from '../../test_util.js'
 import { flags } from '../../../src/commands/index.mjs'
 
-/**
- * @param {K8} k8
- * @param {number} numOfFailures
- * @param {*} result
- */
 function listNamespacedPodMockSetup (k8, numOfFailures, result) {
-  const stub = sinon.stub(k8.kubeClient, 'listNamespacedPod')
   for (let i = 0; i < numOfFailures - 1; i++) {
-    stub.onCall(i).resolves({ body: { items: [] } })
+    k8.kubeClient.listNamespacedPod.mockReturnValueOnce(Promise.resolve({
+      body: {
+        items: []
+      }
+    }))
   }
-  stub.onCall(numOfFailures - 1).resolves({ body: { items: result } })
+  k8.kubeClient.listNamespacedPod.mockReturnValueOnce(Promise.resolve({
+    body: {
+      items: result
+    }
+  }))
 }
 
 const defaultTimeout = 20_000
@@ -53,30 +55,24 @@ describe('K8 Unit Tests', function () {
       }
     }
   ]
-
+  const k8InitSpy = jest.spyOn(K8.prototype, 'init').mockImplementation(() => {})
+  const k8GetPodsByLabelSpy = jest.spyOn(K8.prototype, 'getPodsByLabel').mockResolvedValue(expectedResult)
   /** @type {K8} */ let k8
-  /** @type {sinon.SinonStub} */ let k8InitSpy
-  /** @type {sinon.SinonStub} */ let k8GetPodsByLabelSpy
 
   before(() => {
     argv[flags.namespace.name] = 'namespace'
     const configManager = getTestConfigManager('k8-solo.yaml')
     configManager.update(argv, true)
-
     k8 = new K8(configManager, testLogger)
-
-    k8InitSpy = sinon.stub(K8.prototype, 'init').callsFake(() => {})
-    k8GetPodsByLabelSpy = sinon.stub(K8.prototype, 'getPodsByLabel').resolves(expectedResult)
-
     k8.kubeClient = {
-      listNamespacedPod: sinon.stub(),
-      deleteNamespacedPod: sinon.stub()
+      listNamespacedPod: jest.fn(),
+      deleteNamespacedPod: jest.fn()
     }
   })
 
   after(() => {
-    k8InitSpy.restore()
-    k8GetPodsByLabelSpy.restore()
+    k8InitSpy.mockRestore()
+    k8GetPodsByLabelSpy.mockRestore()
   })
 
   it('waitForPods with first time failure, later success', async () => {
@@ -97,11 +93,7 @@ describe('K8 Unit Tests', function () {
   })
 
   it('waitForPodConditions with partial pod data', async () => {
-    const expectedResult = [
-      {
-        metadata: { name: 'pod' }
-      }
-    ]
+    const expectedResult = [ { metadata: { name: 'pod' } } ]
 
     const maxNumOfFailures = 5
     listNamespacedPodMockSetup(k8, maxNumOfFailures, expectedResult)

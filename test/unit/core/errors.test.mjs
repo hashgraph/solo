@@ -45,7 +45,7 @@ describe('Errors', () => {
     expect(error.name).to.equal('ResourceNotFoundError')
     expect(error.message).to.equal(message)
     expect(error.cause).to.deep.equal({})
-    expect(error.meta).to.deep.equal(resource)
+    expect(error.meta).to.deep.equal({ resource })
   })
 
   it('should construct correct MissingArgumentError', () => {

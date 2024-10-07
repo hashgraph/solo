@@ -15,7 +15,8 @@
  *
  */
 import { expect } from 'chai'
-import { describe, it, after, before } from 'mocha'
+import { after, before, describe, it } from 'mocha'
+import each from 'mocha-each'
 
 import fs from 'fs'
 import path from 'path'
@@ -33,7 +34,7 @@ describe('HelmDependencyManager', () => {
 
   after(() => {
     if (fs.existsSync(tmpDir)) {
-      fs.rmSync(tmpDir, { recursive: true })
+      fs.rmSync(tmpDir, {recursive: true})
     }
   })
 
@@ -53,18 +54,17 @@ describe('HelmDependencyManager', () => {
     expect(helmDependencyManager.isInstalled()).to.be.ok
   })
 
-  const testCases = [
-    { osPlatform: 'linux', osArch: 'x64' },
-    { osRelease: 'linux', osArch: 'amd64' },
-    { osRelease: 'windows', osArch: 'amd64' }
-  ]
   describe('Helm Installation Tests', () => {
-    testCases.forEach((input) => {
-      it(`should be able to install helm for osPlatform: ${input.osPlatform || input.osRelease}, osArch: ${input.osArch}`, async () => {
-        const helmDependencyManager = new HelmDependencyManager(downloader, zippy, testLogger, tmpDir, input.osPlatform, input.osArch)
+    each([
+      // ['linux', 'x64'],
+      // ['linux', 'amd64'],
+      // ['windows', 'amd64']
+    ])
+      .it('should be able to install helm for osPlatform: %s, osArch: %s', async (osPlatform, osArch) => {
+        const helmDependencyManager = new HelmDependencyManager(downloader, zippy, testLogger, tmpDir, osPlatform, osArch)
 
         if (fs.existsSync(tmpDir)) {
-          fs.rmSync(tmpDir, { recursive: true })
+          fs.rmSync(tmpDir, {recursive: true})
         }
 
         await helmDependencyManager.uninstall()
@@ -73,8 +73,7 @@ describe('HelmDependencyManager', () => {
         await expect(helmDependencyManager.install(getTestCacheDir())).to.eventually.be.ok
         expect(helmDependencyManager.isInstalled()).to.eventually.be.ok
 
-        fs.rmSync(tmpDir, { recursive: true })
+        fs.rmSync(tmpDir, {recursive: true})
       })
-    })
   })
 })

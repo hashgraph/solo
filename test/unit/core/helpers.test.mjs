@@ -47,8 +47,8 @@ describe('Helpers', () => {
   it('should be able to load version from package json', () => {
     const p = helpers.loadPackageJSON()
     expect(p).not.to.be.null
-      .and.to.have.property('version').that.not.to.be.null
-      .and.to.have.property('version').that.to.deep.equal(helpers.packageVersion())
+    expect(p.version).not.to.be.null
+    expect(p.version).to.deep.equal(helpers.packageVersion())
   })
 
   const rootImageTests = [
