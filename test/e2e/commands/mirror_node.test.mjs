@@ -15,6 +15,9 @@
  *
  * @mocha-environment steps
  */
+import { it, describe, after, before, afterEach } from 'mocha'
+import { expect } from 'chai'
+
 import { flags } from '../../../src/commands/index.mjs'
 import {
   accountCreationShouldSucceed,
@@ -35,7 +38,6 @@ import { MINUTES, SECONDS } from '../../../src/core/constants.mjs'
 describe('MirrorNodeCommand', () => {
   const testName = 'mirror-cmd-e2e'
   const namespace = testName
-
   const argv = getDefaultArgv()
   argv[flags.namespace.name] = namespace
   argv[flags.releaseTag.name] = HEDERA_PLATFORM_VERSION_TAG
@@ -145,7 +147,7 @@ describe('MirrorNodeCommand', () => {
       }).execute(accountManager._nodeClient)
 
       const submitReceipt = await submitResponse.getReceipt(accountManager._nodeClient)
-      expect(submitReceipt.status).to.equal(Status.Success)
+      expect(submitReceipt.status).to.deep.equal(Status.Success)
     } catch (e) {
       mirrorNodeCmd.logger.showUserError(e)
       expect(e).to.be.null

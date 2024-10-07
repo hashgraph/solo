@@ -15,6 +15,9 @@
  *
  * @mocha-environment steps
  */
+import { it, describe, after } from 'mocha'
+import { expect } from 'chai'
+
 import { flags } from '../../../src/commands/index.mjs'
 import {
   accountCreationShouldSucceed,
@@ -25,7 +28,7 @@ import {
 } from '../../test_util.js'
 import { getNodeLogs, getTmpDir } from '../../../src/core/helpers.mjs'
 import { NodeCommand } from '../../../src/commands/node.mjs'
-import { HEDERA_HAPI_PATH, MINUTES, ROOT_CONTAINER, SECONDS } from '../../../src/core/constants.mjs'
+import { HEDERA_HAPI_PATH, MINUTES, ROOT_CONTAINER } from '../../../src/core/constants.mjs'
 import fs from 'fs'
 
 describe('Node delete', () => {

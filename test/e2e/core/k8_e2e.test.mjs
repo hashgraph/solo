@@ -14,6 +14,9 @@
  * limitations under the License.
  *
  */
+import { it, describe, after, before } from 'mocha'
+import { expect } from 'chai'
+
 import fs from 'fs'
 import net from 'net'
 import os from 'os'
@@ -162,12 +165,12 @@ describe('K8', () => {
     const pods = await k8.getPodsByLabel([`app=${podLabelValue}`])
     const podName = pods[0].metadata.name
     await expect(k8.getPodIP(podName)).to.eventually.not.be.null
-    await expect(k8.getPodIP('INVALID')).to.eventually.be.rejectedWith(SoloError)
+    await expect(k8.getPodIP('INVALID')).to.be.rejectedWith(SoloError)
   }).timeout(defaultTimeout)
 
   it('should be able to detect cluster IP', async () => {
     await expect(k8.getClusterIP(serviceName)).to.eventually.not.be.null
-    await expect(k8.getClusterIP('INVALID')).to.eventually.be.rejectedWith(SoloError)
+    await expect(k8.getClusterIP('INVALID')).to.be.rejectedWith(SoloError)
   }).timeout(defaultTimeout)
 
   it('should be able to check if a path is directory inside a container', async () => {

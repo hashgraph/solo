@@ -15,6 +15,9 @@
  *
  * @mocha-environment steps
  */
+import { it, describe, after, before } from 'mocha'
+import { expect } from 'chai'
+
 import { AccountId, PrivateKey } from '@hashgraph/sdk'
 import { constants } from '../../../src/core/index.mjs'
 import * as version from '../../../version.mjs'

@@ -15,7 +15,7 @@
  *
  * @mocha-environment steps
  */
-import { describe, it, after } from 'mocha'
+import { it, describe, after } from 'mocha'
 import { expect } from 'chai'
 
 import { flags } from '../../../src/commands/index.mjs'

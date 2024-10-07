@@ -15,6 +15,8 @@
  *
  */
 import sinon from 'sinon'
+import { it, describe, after, before, afterEach, beforeEach } from 'mocha'
+import { expect } from 'chai'
 
 import {flags } from '../../../src/commands/index.mjs'
 import { bootstrapTestVariables, getDefaultArgv, HEDERA_PLATFORM_VERSION_TAG, TEST_CLUSTER } from '../../test_util.js'
@@ -37,7 +39,6 @@ describe('ClusterCommand', () => {
 
   const testName = 'cluster-cmd-e2e'
   const namespace = testName
-
   const argv = getDefaultArgv()
   argv[flags.namespace.name] = namespace
   argv[flags.releaseTag.name] = HEDERA_PLATFORM_VERSION_TAG
@@ -83,7 +84,7 @@ describe('ClusterCommand', () => {
   it('solo cluster setup should fail with invalid cluster name', async () => {
     argv[flags.clusterSetupNamespace.name] = 'INVALID'
     configManager.update(argv, true)
-    await expect(clusterCmd.setup(argv)).to.eventually.be.rejectedWith('Error on cluster setup')
+    await expect(clusterCmd.setup(argv)).to.be.rejectedWith('Error on cluster setup')
   }).timeout(1 * MINUTES)
 
   it('solo cluster setup should work with valid args', async () => {
@@ -110,7 +111,7 @@ describe('ClusterCommand', () => {
     configManager.update(argv, true)
 
     try {
-      await expect(clusterCmd.reset(argv)).to.eventually.be.rejectedWith('Error on cluster reset')
+      await expect(clusterCmd.reset(argv)).to.be.rejectedWith('Error on cluster reset')
     } catch (e) {
       clusterCmd.logger.showUserError(e)
       expect(e).to.be.null

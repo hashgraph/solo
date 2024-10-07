@@ -40,7 +40,7 @@ describe('HelmDependencyManager', () => {
 
   it('should return helm version', () => {
     const helmDependencyManager = new HelmDependencyManager(downloader, zippy, testLogger, tmpDir)
-    expect(helmDependencyManager.getHelmVersion()).deep.equal(version.HELM_VERSION)
+    expect(helmDependencyManager.getHelmVersion()).to.equal(version.HELM_VERSION)
   })
 
   it('should be able to check when helm not installed', () => {
@@ -71,7 +71,7 @@ describe('HelmDependencyManager', () => {
         expect(helmDependencyManager.isInstalled()).not.to.be.ok
 
         await expect(helmDependencyManager.install(getTestCacheDir())).to.eventually.be.ok
-        expect(helmDependencyManager.isInstalled()).to.eventually.be.ok
+        expect(helmDependencyManager.isInstalled()).to.be.ok
 
         fs.rmSync(tmpDir, {recursive: true})
       })

@@ -65,8 +65,8 @@ describe('ConfigManager', () => {
       cm.reset()
       argv[flags.releaseTag.name] = true
       cm.update(argv)
-      expect(cm.getFlag(flags.releaseTag)).not.to.deep.equal(argv[flags.releaseTag.name])
-      expect(cm.getFlag(flags.releaseTag)).to.deep.equal(`${argv[flags.releaseTag.name]}`)
+      expect(cm.getFlag(flags.releaseTag)).not.to.equal(argv[flags.releaseTag.name])
+      expect(cm.getFlag(flags.releaseTag)).to.equal(`${argv[flags.releaseTag.name]}`)
     })
 
     it('should update number flag value', () => {
@@ -92,20 +92,20 @@ describe('ConfigManager', () => {
       const argv = {}
       argv[flags.devMode.name] = true
       cm.update(argv)
-      expect(cm.getFlag(flags.devMode)).to.deep.equal(argv[flags.devMode.name])
+      expect(cm.getFlag(flags.devMode)).to.equal(argv[flags.devMode.name])
 
       // ensure string "false" is converted to boolean
       cm.reset()
       argv[flags.devMode.name] = 'false'
       cm.update(argv)
-      expect(cm.getFlag(flags.devMode)).not.to.deep.equal(argv[flags.devMode.name])
+      expect(cm.getFlag(flags.devMode)).not.to.equal(argv[flags.devMode.name])
       expect(cm.getFlag(flags.devMode)).to.equal(false)
 
       // ensure string "true" is converted to boolean
       cm.reset()
       argv[flags.devMode.name] = 'true'
       cm.update(argv)
-      expect(cm.getFlag(flags.devMode)).not.to.deep.equal(argv[flags.devMode.name])
+      expect(cm.getFlag(flags.devMode)).not.to.equal(argv[flags.devMode.name])
       expect(cm.getFlag(flags.devMode)).to.equal(true)
     })
 
@@ -146,7 +146,7 @@ describe('ConfigManager', () => {
       const argv = {} // devMode flag is not set in argv
       const argv2 = cm.applyPrecedence(argv, aliases)
       expect(cm.getFlag(flags.devMode)).to.not.be.ok // shouldn't have changed
-      expect(argv2[flags.devMode.name]).to.deep.equal(cm.getFlag(flags.devMode)) // should inherit from config
+      expect(argv2[flags.devMode.name]).to.equal(cm.getFlag(flags.devMode)) // should inherit from config
     })
 
     it('should take default as the last preference', () => {

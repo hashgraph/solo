@@ -15,6 +15,7 @@
  *
  */
 import sinon from 'sinon'
+import { describe, it, beforeEach } from 'mocha'
 import { expect } from 'chai'
 
 import { NodeCommand } from '../../../src/commands/node.mjs'
@@ -32,7 +33,7 @@ describe('NodeCommand unit tests', () => {
   describe('constructor error handling', () => {
     let opts
 
-    before(() => opts = getBaseCommandOpts())
+    beforeEach(() => opts = getBaseCommandOpts())
 
     it('should throw an error if downloader is not provided', () => {
       expect(() => new NodeCommand(opts)).to.throw('An instance of core/PackageDownloader is required')

@@ -16,6 +16,7 @@
  */
 import { expect } from 'chai'
 import { describe, it, after } from 'mocha'
+import each from 'mocha-each'
 
 import fs from 'fs'
 import * as yaml from 'js-yaml'

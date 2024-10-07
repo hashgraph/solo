@@ -15,6 +15,9 @@
  *
  * @mocha-environment steps
  */
+import { it, describe, after } from 'mocha'
+import { expect } from 'chai'
+
 import { flags } from '../../../src/commands/index.mjs'
 import {
   accountCreationShouldSucceed,

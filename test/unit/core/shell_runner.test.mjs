@@ -16,40 +16,41 @@
  */
 import sinon from 'sinon'
 import { expect } from 'chai'
-import { describe, it, afterEach, beforeEach } from 'mocha'
-
+import { describe, it, beforeEach, afterEach } from 'mocha'
 import { ShellRunner } from '../../../src/core/shell_runner.mjs'
 import { NewLogger, SoloLogger } from '../../../src/core/logging.mjs'
 import { ChildProcess } from 'child_process'
 import { Readable } from 'stream'
+import { SECONDS } from '../../../src/core/constants.mjs'
 
 describe('ShellRunner', () => {
-  const logger = NewLogger('debug')
-  const shellRunner = new ShellRunner(logger)
-  /** @type {sinon.SinonSpy} */ let childProcessSpy
-  /** @type {sinon.SinonSpy} */ let readableSpy
-  /** @type {sinon.SinonSpy} */ let loggerSpy
+  let logger, shellRunner, loggerStub, childProcessStub, readableStub
 
   beforeEach(() => {
-    childProcessSpy = sinon.spy(ChildProcess.prototype, 'on')
-    readableSpy = sinon.spy(Readable.prototype, 'on')
-    loggerSpy = sinon.spy(SoloLogger.prototype, 'debug')
+    logger = NewLogger('debug')
+    shellRunner = new ShellRunner(logger)
+
+    // Stubbing methods
+    loggerStub = sinon.stub(SoloLogger.prototype, 'debug')
+    childProcessStub = sinon.stub(ChildProcess.prototype, 'on')
+    readableStub = sinon.stub(Readable.prototype, 'on')
   })
 
-  // Restore the spies after each test
   afterEach(() => sinon.restore())
 
   it('should run command', async () => {
     return
     await shellRunner.run('ls -l')
-    expect(loggerSpy).to.have.been.calledWith(1, 'Executing command: \'ls -l\'')
-    expect(loggerSpy).to.have.been.calledWith(2, 'Finished executing: \'ls -l\'', {
+
+    expect(loggerStub).to.have.been.calledWith(1, 'Executing command: \'ls -l\'')
+    expect(loggerStub).to.have.been.calledWith(2, 'Finished executing: \'ls -l\'', {
       commandExitCode: sinon.match.number,
       commandExitSignal: null,
       commandOutput: sinon.match.array,
       errOutput: sinon.match.array
     })
-    expect(readableSpy).to.have.been.calledWith('data', sinon.match.any)
-    expect(childProcessSpy).to.have.been.calledWith('exit', sinon.match.any)
-  })
+
+    expect(readableStub).to.have.been.calledWith('data', sinon.match.any)
+    expect(childProcessStub).to.have.been.calledWith('exit', sinon.match.any)
+  }).timeout(10 * SECONDS)
 })

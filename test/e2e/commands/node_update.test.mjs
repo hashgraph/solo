@@ -15,6 +15,9 @@
  *
  * @mocha-environment steps
  */
+import { it, describe, after } from 'mocha'
+import { expect } from 'chai'
+
 import { flags } from '../../../src/commands/index.mjs'
 import { constants } from '../../../src/core/index.mjs'
 import {
@@ -34,7 +37,6 @@ describe('Node update', () => {
   const namespace = 'node-update'
   const updateNodeId = 'node2'
   const newAccountId = '0.0.7'
-
   const argv = getDefaultArgv()
   argv[flags.nodeAliasesUnparsed.name] = 'node1,node2,node3'
   argv[flags.nodeAlias.name] = updateNodeId
@@ -92,7 +94,7 @@ describe('Node update', () => {
     argv[flags.tlsPrivateKey.name] = tlsKeyFiles.privateKeyFile
 
     await nodeCmd.update(argv)
-    expect(nodeCmd.getUnusedConfigs(NodeCommand.UPDATE_CONFIGS_NAME)).to.equal([
+    expect(nodeCmd.getUnusedConfigs(NodeCommand.UPDATE_CONFIGS_NAME)).to.deep.equal([
       flags.app.constName,
       flags.devMode.constName,
       flags.quiet.constName
@@ -130,7 +132,6 @@ describe('Node update', () => {
     const tmpDir = getTmpDir()
     await k8.copyFrom(podName, ROOT_CONTAINER, `${HEDERA_HAPI_PATH}/config.txt`, tmpDir)
     const configTxt = fs.readFileSync(`${tmpDir}/config.txt`, 'utf8')
-
     console.log('config.txt:', configTxt)
 
     expect(configTxt).to.contain(newAccountId)

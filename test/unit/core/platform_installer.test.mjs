@@ -98,11 +98,11 @@ describe('PackageInstaller', () => {
 
   describe('copyGossipKeys', () => {
     it('should fail for missing podName', async () => {
-      await expect(installer.copyGossipKeys('', os.tmpdir())).to.eventually.be.rejectedWith(MissingArgumentError)
+      await expect(installer.copyGossipKeys('', os.tmpdir())).to.be.rejectedWith(MissingArgumentError)
     })
 
     it('should fail for missing stagingDir path', async () => {
-      await expect(installer.copyGossipKeys('node1', '')).to.eventually.be.rejectedWith(MissingArgumentError)
+      await expect(installer.copyGossipKeys('node1', '')).to.be.rejectedWith(MissingArgumentError)
     })
   })
 })

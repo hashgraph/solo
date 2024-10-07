@@ -14,6 +14,9 @@
  * limitations under the License.
  *
  */
+import { it, describe, after } from 'mocha'
+import { expect } from 'chai'
+
 import { flags } from '../../../src/commands/index.mjs'
 import { bootstrapNetwork, getDefaultArgv, TEST_CLUSTER } from '../../test_util.js'
 import * as version from '../../../version.mjs'

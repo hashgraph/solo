@@ -15,6 +15,8 @@
  *
  * @mocha-environment steps
  */
+import { it, describe, after, before } from 'mocha'
+import { expect } from 'chai'
 
 import {
   bootstrapTestVariables,
@@ -29,6 +31,7 @@ import path from 'path'
 import fs from 'fs'
 import { NetworkCommand } from '../../../src/commands/network.mjs'
 import { MINUTES, SECONDS } from "../../../src/core/constants.mjs";
+import { flags } from '../../../src/commands/index.mjs'
 
 describe('NetworkCommand', () => {
   const testName = 'network-cmd-e2e'
@@ -36,7 +39,6 @@ describe('NetworkCommand', () => {
   const applicationEnvFileContents = '# row 1\n# row 2\n# row 3'
   const applicationEnvParentDirectory = path.join(getTmpDir(), 'network-command-test')
   const applicationEnvFilePath = path.join(applicationEnvParentDirectory, 'application.env')
-
   const argv = getDefaultArgv()
   argv[flags.namespace.name] = namespace
   argv[flags.releaseTag.name] = HEDERA_PLATFORM_VERSION_TAG
@@ -86,7 +88,7 @@ describe('NetworkCommand', () => {
 
       // check pod names should match expected values
       await expect(k8.getPodByName('network-node1-0'))
-        .eventually.to.haveOwnProperty('metadata.name', 'network-node1-0')
+        .eventually.to.have.ownProperty('metadata.name', 'network-node1-0')
       // get list of pvc using k8 listPvcsByNamespace function and print to log
       const pvcs = await k8.listPvcsByNamespace(namespace)
       networkCmd.logger.showList('PVCs', pvcs)

@@ -14,13 +14,12 @@
  * limitations under the License.
  *
  */
+import { after, afterEach, describe } from 'mocha'
+import { expect } from 'chai'
+import each from 'mocha-each'
+
 import { flags } from '../../../src/commands/index.mjs'
-import {
-  bootstrapNetwork,
-  getDefaultArgv,
-  HEDERA_PLATFORM_VERSION_TAG,
-  TEST_CLUSTER
-} from '../../test_util.js'
+import { bootstrapNetwork, getDefaultArgv, HEDERA_PLATFORM_VERSION_TAG, TEST_CLUSTER } from '../../test_util.js'
 import * as version from '../../../version.mjs'
 import { getNodeLogs, sleep } from '../../../src/core/helpers.mjs'
 import { RelayCommand } from '../../../src/commands/relay.mjs'
@@ -29,7 +28,6 @@ import { MINUTES } from '../../../src/core/constants.mjs'
 describe('RelayCommand', () => {
   const testName = 'relay-cmd-e2e'
   const namespace = testName
-
   const argv = getDefaultArgv()
   argv[flags.namespace.name] = namespace
   argv[flags.releaseTag.name] = HEDERA_PLATFORM_VERSION_TAG
@@ -56,10 +54,8 @@ describe('RelayCommand', () => {
 
   afterEach(async () => await sleep(5))
 
-  const relayNodesTests = ['node1', 'node1,node2']
-
-  relayNodesTests.forEach((relayNodes) => {
-    it(`relay deploy and destroy should work with ${relayNodes}`, async () => {
+  each(['node1', 'node1,node2'])
+    .it('relay deploy and destroy should work with $value', async (relayNodes) => {
       argv[flags.nodeAliasesUnparsed.name] = relayNodes
       configManager.update(argv)
 
@@ -85,5 +81,4 @@ describe('RelayCommand', () => {
         expect(e).to.be.null
       }
     }).timeout(5 * MINUTES)
-  })
 })

@@ -14,6 +14,9 @@
  * limitations under the License.
  *
  */
+import { it, describe } from 'mocha'
+import { expect } from 'chai'
+
 import * as fs from 'fs'
 import { logging, PackageDownloader, Templates } from '../../../src/core/index.mjs'
 import { MINUTES } from '../../../src/core/constants.mjs'
@@ -29,7 +32,7 @@ describe('PackageDownloaderE2E', () => {
     const releasePrefix = Templates.prepareReleasePrefix(tag)
 
     const destPath = `${testCacheDir}/${releasePrefix}/build-${tag}.zip`
-    await expect(downloader.fetchPlatform(tag, testCacheDir)).to.eventually.be(destPath)
+    await expect(downloader.fetchPlatform(tag, testCacheDir)).to.eventually.be.equal(destPath)
     expect(fs.existsSync(destPath)).to.be.ok
     testLogger.showUser(destPath)
   }).timeout(3 * MINUTES)

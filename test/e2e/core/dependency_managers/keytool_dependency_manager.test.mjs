@@ -14,6 +14,9 @@
  * limitations under the License.
  *
  */
+import { it, describe, after, before } from 'mocha'
+import { expect } from 'chai'
+
 import fs from 'fs'
 import path from 'path'
 import { KeytoolDependencyManager } from '../../../../src/core/dependency_managers/index.mjs'

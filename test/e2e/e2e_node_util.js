@@ -15,6 +15,8 @@
  *
  * @mocha-environment steps
  */
+import { it, describe, after, before, afterEach } from 'mocha'
+import { expect } from 'chai'
 
 import { flags } from '../../src/commands/index.mjs'
 import {
@@ -142,9 +144,10 @@ export function e2eNodeKeyRefreshTest (testName, mode, releaseTag = HEDERA_PLATF
         try {
           await expect(nodeCmd.refresh(argv)).to.eventually.be.ok
           expect(nodeCmd.getUnusedConfigs(
-            NodeCommand.REFRESH_CONFIGS_NAME)).to.deep.equal(
-            [flags.devMode.constName,
-              flags.quiet.constName])
+            NodeCommand.REFRESH_CONFIGS_NAME)).to.deep.equal([
+              flags.devMode.constName,
+              flags.quiet.constName
+          ])
         } catch (e) {
           nodeCmd.logger.showUserError(e)
           expect(e).to.be.null
@@ -161,7 +164,7 @@ export function e2eNodeKeyRefreshTest (testName, mode, releaseTag = HEDERA_PLATF
         try {
           await expect(
             nodeCmd.checkNetworkNodeActiveness(namespace, nodeAlias, { title: '' }, '', 44, undefined, 15)
-          ).to.eventually.be.rejected
+          ).to.be.rejected
         } catch (e) {
           expect(e).not.to.be.null
         } finally {

@@ -40,21 +40,21 @@ describe('PackageDownloader', () => {
 
   describe('fetchFile', () => {
     it('should fail if source URL is missing', async () => {
-      await expect(downloader.fetchFile('', os.tmpdir())).to.eventually.be.rejectedWith('package URL is required')
+      await expect(downloader.fetchFile('', os.tmpdir())).to.be.rejectedWith('package URL is required')
     })
 
     it('should fail if destination path is missing', async () => {
-      await expect(downloader.fetchFile('https://localhost', '')).to.eventually.be.rejectedWith('destination path is required')
+      await expect(downloader.fetchFile('https://localhost', '')).to.be.rejectedWith('destination path is required')
     })
 
     it('should fail with a malformed URL', async () => {
       await expect(downloader.fetchFile('INVALID_URL', os.tmpdir()))
-        .to.eventually.be.rejectedWith(IllegalArgumentError, "package URL 'INVALID_URL' is invalid")
+        .to.be.rejectedWith(IllegalArgumentError, "package URL 'INVALID_URL' is invalid")
     })
 
     it('should fail with an invalid URL', async () => {
       await expect(downloader.fetchFile('https://localhost/INVALID_FILE', os.tmpdir()))
-        .to.eventually.be.rejectedWith(ResourceNotFoundError, "package URL 'https://localhost/INVALID_FILE' does not exist")
+        .to.be.rejectedWith(ResourceNotFoundError, "package URL 'https://localhost/INVALID_FILE' does not exist")
     })
 
     it('should succeed with a valid release artifact URL', async () => {

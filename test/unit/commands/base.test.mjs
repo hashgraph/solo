@@ -55,7 +55,7 @@ describe('BaseCommand', () => {
 
   describe('runShell', () => {
     it('should fail during invalid program check', async () => {
-      await expect(baseCmd.run('INVALID_PROGRAM')).to.eventually.be.rejected
+      await expect(baseCmd.run('INVALID_PROGRAM')).to.be.rejected
     })
     it('should succeed during valid program check', async () => {
       await expect(baseCmd.run('echo')).to.eventually.not.be.null
