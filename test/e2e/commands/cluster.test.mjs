@@ -94,7 +94,7 @@ describe('ClusterCommand', () => {
   }).timeout(1 * MINUTES)
 
   it('function getClusterInfo should return true', async () => {
-    await expect(clusterCmd.getClusterInfo()).to.eventually.be.ok
+    expect(clusterCmd.getClusterInfo()).to.be.ok
   }).timeout(1 * MINUTES)
 
   it('function showClusterList should return right true', async () => {

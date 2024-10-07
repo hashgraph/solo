@@ -88,7 +88,7 @@ describe('NetworkCommand', () => {
 
       // check pod names should match expected values
       await expect(k8.getPodByName('network-node1-0'))
-        .eventually.to.have.ownProperty('metadata.name', 'network-node1-0')
+        .eventually.to.have.nested.property('metadata.name', 'network-node1-0')
       // get list of pvc using k8 listPvcsByNamespace function and print to log
       const pvcs = await k8.listPvcsByNamespace(namespace)
       networkCmd.logger.showList('PVCs', pvcs)
