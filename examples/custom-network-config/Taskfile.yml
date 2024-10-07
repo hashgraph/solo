@@ -5,7 +5,7 @@ dotenv:
 silent: false
 
 env:
-  SOLO_CHART_VERSION: v0.30.0
+  SOLO_CHART_VERSION: v0.32.0
   CONSENSUS_NODE_VERSION: v0.54.1
   SOLO_NAMESPACE: solo-{{ env "USER" | replace "." "-" | trunc 63 }}
   SOLO_CLUSTER_SETUP_NAMESPACE: solo-setup
