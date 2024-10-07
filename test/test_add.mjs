@@ -17,17 +17,16 @@
  */
 import { expect } from 'chai'
 import { describe, it, after } from 'mocha'
-import { flags } from '../src/commands/index.mjs'
 
 import {
   accountCreationShouldSucceed,
   balanceQueryShouldSucceed,
   bootstrapNetwork,
   getDefaultArgv,
-  getNodeAliasesPrivateKeysHash,
   getTmpDir,
   HEDERA_PLATFORM_VERSION_TAG
 } from './test_util.js'
+import { flags } from '../src/commands/index.mjs'
 import { getNodeLogs } from '../src/core/helpers.mjs'
 import { NodeCommand } from '../src/commands/node.mjs'
 import { MINUTES } from '../src/core/constants.mjs'
