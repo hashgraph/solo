@@ -53,7 +53,9 @@ describe('RelayCommand', () => {
   afterEach(async () => await sleep(5))
 
   each(['node1', 'node1,node2'])
-    .it('relay deploy and destroy should work with $value', async (relayNodes) => {
+    .it('relay deploy and destroy should work with $value', async function (relayNodes) {
+      this.timeout(5 * MINUTES)
+
       argv[flags.nodeAliasesUnparsed.name] = relayNodes
       configManager.update(argv)
 
@@ -78,5 +80,5 @@ describe('RelayCommand', () => {
         relayCmd.logger.showUserError(e)
         expect(e).to.be.null
       }
-    }).timeout(5 * MINUTES)
+    })
 })

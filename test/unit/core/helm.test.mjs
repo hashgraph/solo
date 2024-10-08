@@ -25,7 +25,7 @@ import { ShellRunner } from '../../../src/core/shell_runner.mjs'
 
 describe('Helm platform specific tests', () => {
   each(['linux', 'windows', 'darwin'])
-    .describe('Helm on %s platform', (osPlatform) => {
+    .describe('Helm on %s platform', function (osPlatform) {
       const logger = logging.NewLogger('debug', true)
       const helm = new Helm(logger, osPlatform)
 
