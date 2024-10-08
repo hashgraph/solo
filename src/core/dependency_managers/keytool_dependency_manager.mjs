@@ -113,7 +113,7 @@ export class KeytoolDependencyManager extends ShellRunner {
    * Uninstall keytool from solo bin folder
    * @returns {Promise<void>}
    */
-  async uninstall () {
+  uninstall () {
     if (fs.existsSync(this.jreDir)) {
       fs.rmSync(this.jreDir, { recursive: true })
     }

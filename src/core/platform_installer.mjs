@@ -59,9 +59,9 @@ export class PlatformInstaller {
 
   /**
    * @param {string} releaseDir
-   * @returns {Promise<void>}
+   * @returns {void}
    */
-  async validatePlatformReleaseDir (releaseDir) {
+  validatePlatformReleaseDir (releaseDir) {
     if (!releaseDir) throw new MissingArgumentError('releaseDir is required')
     if (!fs.existsSync(releaseDir)) {
       throw new IllegalArgumentError('releaseDir does not exists', releaseDir)

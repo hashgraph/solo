@@ -17,7 +17,7 @@
 'use strict'
 import { ListrEnquirerPromptAdapter } from '@listr2/prompt-adapter-enquirer'
 import { Listr } from 'listr2'
-import { SoloError, IllegalArgumentError } from '../core/errors.mjs'
+import { SoloError } from '../core/errors.mjs'
 import * as flags from './flags.mjs'
 import { BaseCommand } from './base.mjs'
 import chalk from 'chalk'
@@ -39,9 +39,9 @@ export class ClusterCommand extends BaseCommand {
 
   /**
    * Get cluster-info for the given cluster name
-   * @returns {Promise<boolean>}
+   * @returns {boolean}
    */
-  async getClusterInfo () {
+  getClusterInfo () {
     try {
       const cluster = this.k8.getKubeConfig().getCurrentCluster()
       this.logger.showJSON(`Cluster Information (${cluster.name})`, cluster)

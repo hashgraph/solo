@@ -14,7 +14,6 @@
  * limitations under the License.
  *
  */
-import * as flags from '../flags.mjs'
 import { FREEZE_ADMIN_ACCOUNT } from '../../core/constants.mjs'
 import {constants, Templates} from "../../core/index.mjs";
 import {PrivateKey} from "@hashgraph/sdk";

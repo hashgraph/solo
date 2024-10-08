@@ -50,7 +50,7 @@ export class Helm extends ShellRunner {
      * @param {string} args - args of the command
      * @returns {Promise<Array>} console output as an array of strings
      */
-  async install (...args) {
+  install (...args) {
     return this.run(this.prepareCommand('install', ...args))
   }
 
@@ -59,7 +59,7 @@ export class Helm extends ShellRunner {
      * @param {string} args - args of the command
      * @returns {Promise<Array>} console output as an array of strings
      */
-  async uninstall (...args) {
+  uninstall (...args) {
     return this.run(this.prepareCommand('uninstall', ...args))
   }
 
@@ -68,7 +68,7 @@ export class Helm extends ShellRunner {
      * @param {string} args - args of the command
      * @returns {Promise<Array>} console output as an array of strings
      */
-  async upgrade (...args) {
+  upgrade (...args) {
     return this.run(this.prepareCommand('upgrade', ...args))
   }
 
@@ -77,7 +77,7 @@ export class Helm extends ShellRunner {
      * @param {string} args - args of the command
      * @returns {Promise<Array>} console output as an array of strings
      */
-  async list (...args) {
+  list (...args) {
     return this.run(this.prepareCommand('list', ...args))
   }
 
@@ -87,7 +87,7 @@ export class Helm extends ShellRunner {
      * @param {string} args - args of the command
      * @returns {Promise<Array>} console output as an array of strings
      */
-  async dependency (subCommand, ...args) {
+  dependency (subCommand, ...args) {
     return this.run(this.prepareCommand('dependency', subCommand, ...args))
   }
 
@@ -97,7 +97,7 @@ export class Helm extends ShellRunner {
      * @param {string} args - args of the command
      * @returns {Promise<Array>} console output as an array of strings
      */
-  async repo (subCommand, ...args) {
+  repo (subCommand, ...args) {
     return this.run(this.prepareCommand('repo', subCommand, ...args))
   }
 
@@ -106,7 +106,7 @@ export class Helm extends ShellRunner {
    * @param {string[]} args
    * @returns {Promise<Array>}
    */
-  async version (args = ['--short']) {
+  version (args = ['--short']) {
     return this.run(this.prepareCommand('version', ...args))
   }
 }

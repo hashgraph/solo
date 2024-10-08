@@ -41,12 +41,6 @@ on:
       commit-hash:
         description: "The commit hash for the updated README.md commit"
         value: ${{ jobs.update.outputs.commit_hash }}
-  push:
-    paths:
-      - '**/*.mjs'
-      - '**/*.js'
-      - '**/package*.json'
-      - '**/README.md.template'
 
 defaults:
   run:

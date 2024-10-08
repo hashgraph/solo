@@ -484,7 +484,7 @@ _fetchPlatformSoftware (nodeAliases, podNames, releaseTag, task, platformInstall
   }
 
   loadAdminKey () {
-    return new Task('Load node admin key', async (ctx, task) => {
+    return new Task('Load node admin key', (ctx, task) => {
       const config = ctx.config
       config.adminKey = PrivateKey.fromStringED25519(constants.GENESIS_KEY)
     })
@@ -676,7 +676,7 @@ _fetchPlatformSoftware (nodeAliases, podNames, releaseTag, task, platformInstall
   }
 
   identifyNetworkPods () {
-    return new Task('Identify network pods', async (ctx, task) => {
+    return new Task('Identify network pods', (ctx, task) => {
       return this.taskCheckNetworkNodePods(ctx, task, ctx.config.nodeAliases)
     })
   }

@@ -1,12 +1,12 @@
 {
+  "plugins": ["plugins/markdown"],
   "source": {
-	"include": [ "../src" ],
-	"includePattern": ".+\\.(js(doc|x)?|mjs)$"
+	  "include": [ "../src" ],
+	  "includePattern": ".+\\.(js(doc|x)?|mjs)$"
   },
   "sourceType": "module",
   "opts": {
-	"recurse": true,
-	"destination": "public/static/Classes"
+	  "recurse": true,
+	  "destination": "public/static/Classes"
   }
 }
-

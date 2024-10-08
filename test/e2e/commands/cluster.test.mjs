@@ -116,9 +116,9 @@ describe('ClusterCommand', () => {
     }
   }, 60000)
 
-  it('function getClusterInfo should return true', async () => {
+  it('function getClusterInfo should return true', () => {
     try {
-      await expect(clusterCmd.getClusterInfo()).resolves.toBeTruthy()
+      expect(clusterCmd.getClusterInfo()).toBeTruthy()
     } catch (e) {
       expect(e).toBeNull()
     }
