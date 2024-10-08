@@ -188,10 +188,11 @@ export const KEYS_FLAGS = {
 
 export const STOP_FLAGS = {
     requiredFlags: [
-        flags.namespace,
+        flags.namespace
+    ],
+    requiredFlagsWithDisabledPrompt: [
         flags.nodeAliasesUnparsed
     ],
-    requiredFlagsWithDisabledPrompt: [],
     optionalFlags: [
         flags.quiet
     ]

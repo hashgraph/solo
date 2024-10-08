@@ -1381,7 +1381,7 @@ _fetchPlatformSoftware (nodeAliases, podNames, releaseTag, task, platformInstall
       this.configManager.update(argv)
 
       // disable the prompts that we don't want to prompt the user for
-      prompts.disablePrompts(requiredFlagsWithDisabledPrompt)
+      prompts.disablePrompts([...requiredFlagsWithDisabledPrompt, ...optionalFlags])
       await prompts.execute(task, this.configManager, requiredFlags)
 
       const config = await configInit(argv, ctx, task)
