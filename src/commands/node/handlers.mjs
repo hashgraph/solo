@@ -199,6 +199,7 @@ export class NodeCommandHandlers {
         }, 'Error in preparing node upgrade')
 
         await action(argv, this)
+        return true
     }
 
     async freezeUpgrade (argv) {
@@ -213,6 +214,7 @@ export class NodeCommandHandlers {
         }, 'Error in executing node freeze upgrade')
 
         await action(argv, this)
+        return true
     }
 
     async downloadGeneratedFiles (argv) {
@@ -227,6 +229,7 @@ export class NodeCommandHandlers {
         }, 'Error in downloading generated files')
 
         await action(argv, this)
+        return true
     }
 
     async update (argv) {
@@ -266,6 +269,7 @@ export class NodeCommandHandlers {
         }, 'Error in updating nodes')
 
         await action(argv, this)
+        return true
     }
     async delete (argv) {
         argv = helpers.addFlagsToArgv(argv, NodeFlags.DELETE_FLAGS)
@@ -279,6 +283,7 @@ export class NodeCommandHandlers {
         }, 'Error in deleting nodes')
 
         await action(argv, this)
+        return true
     }
 
     async deletePrepare (argv) {
@@ -292,6 +297,7 @@ export class NodeCommandHandlers {
         }, 'Error in preparing to delete a node')
 
         await action(argv, this)
+        return true
     }
 
     async deleteSubmitTransactions (argv) {
@@ -306,6 +312,7 @@ export class NodeCommandHandlers {
         }, 'Error in deleting a node')
 
         await action(argv, this)
+        return true
     }
 
     async deleteExecute (argv) {
@@ -320,6 +327,7 @@ export class NodeCommandHandlers {
         }, 'Error in deleting a node')
 
         await action(argv, this)
+        return true
     }
 
     async add (argv) {
@@ -334,6 +342,7 @@ export class NodeCommandHandlers {
         }, 'Error in adding node')
 
         await action(argv, this)
+        return true
     }
 
     async addPrepare (argv) {
@@ -346,6 +355,7 @@ export class NodeCommandHandlers {
         }, 'Error in preparing node')
 
         await action(argv, this)
+        return true
     }
 
     async addSubmitTransactions (argv) {
@@ -360,6 +370,7 @@ export class NodeCommandHandlers {
         }, '`Error in submitting transactions to node')
 
         await action(argv, this)
+        return true
     }
 
     async addExecute (argv) {
@@ -375,6 +386,7 @@ export class NodeCommandHandlers {
         }, 'Error in adding node')
 
         await action(argv, this)
+        return true
     }
 
     async logs (argv) {
@@ -388,6 +400,7 @@ export class NodeCommandHandlers {
         }, 'Error in downloading log from nodes')
 
         await action(argv, this)
+        return true
     }
 
     async refresh (argv) {
@@ -406,6 +419,7 @@ export class NodeCommandHandlers {
         }, 'Error in refreshing nodes')
 
         await action(argv, this)
+        return true
     }
 
     async keys (argv) {
@@ -421,6 +435,7 @@ export class NodeCommandHandlers {
         }, 'Error generating keys')
 
         await action(argv, this)
+        return true
     }
 
     async stop (argv) {
@@ -435,6 +450,7 @@ export class NodeCommandHandlers {
         }, 'Error stopping node')
 
         await action(argv, this)
+        return true
     }
 
     async start (argv) {
@@ -453,6 +469,7 @@ export class NodeCommandHandlers {
         }, 'Error starting node')
 
         await action(argv, this)
+        return true
     }
 
     async setup (argv) {
@@ -468,5 +485,6 @@ export class NodeCommandHandlers {
         }, 'Error in setting up nodes')
 
         await action(argv, this)
+        return true
     }
 }
