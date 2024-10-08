@@ -36,6 +36,7 @@ import {
 } from '../test_util.js'
 import { getNodeLogs, sleep } from '../../src/core/helpers.mjs'
 import { NodeCommand } from '../../src/commands/node/index.mjs'
+import * as NodeCommandConfigs from "../../src/commands/node/configs.mjs";
 
 export function e2eNodeKeyRefreshTest (testName, mode, releaseTag = HEDERA_PLATFORM_VERSION_TAG) {
   const defaultTimeout = 120000
@@ -149,7 +150,7 @@ export function e2eNodeKeyRefreshTest (testName, mode, releaseTag = HEDERA_PLATF
             try {
               await expect(nodeCmd.handlers.refresh(argv)).resolves.toBeTruthy()
               expect(nodeCmd.getUnusedConfigs(
-                NodeCommand.REFRESH_CONFIGS_NAME)).toEqual(
+                  NodeCommandConfigs.REFRESH_CONFIGS_NAME)).toEqual(
                 [flags.devMode.constName,
                   flags.quiet.constName])
             } catch (e) {
@@ -167,7 +168,7 @@ export function e2eNodeKeyRefreshTest (testName, mode, releaseTag = HEDERA_PLATF
             expect(2)
             try {
               await expect(
-                nodeCmd.checkNetworkNodeActiveness(namespace, nodeAlias, { title: '' }, '', 44, undefined, 15)
+                nodeCmd.tasks._checkNetworkNodeActiveness(namespace, nodeAlias, { title: '' }, '', 44, undefined, 15)
               ).rejects.toThrowError()
             } catch (e) {
               expect(e).not.toBeNull()

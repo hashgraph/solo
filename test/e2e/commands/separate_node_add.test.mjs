@@ -26,6 +26,7 @@ import {
 } from '../../test_util.js'
 import { getNodeLogs } from '../../../src/core/helpers.mjs'
 import { NodeCommand } from '../../../src/commands/node/index.mjs'
+import * as NodeCommandConfigs from "../../../src/commands/node/configs.mjs";
 
 describe('Node add via separated commands should success', () => {
   const defaultTimeout = 120000
@@ -80,7 +81,7 @@ describe('Node add via separated commands should success', () => {
     await nodeCmd.handlers.addPrepare(argvPrepare)
     await nodeCmd.handlers.addSubmitTransactions(argvExecute)
     await nodeCmd.handlers.addExecute(argvExecute)
-    expect(nodeCmd.getUnusedConfigs(NodeCommand.ADD_CONFIGS_NAME)).toEqual([
+    expect(nodeCmd.getUnusedConfigs(NodeCommandConfigs.ADD_CONFIGS_NAME)).toEqual([
       flags.app.constName,
       flags.chainId.constName,
       flags.devMode.constName,

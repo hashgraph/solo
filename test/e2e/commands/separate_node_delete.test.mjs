@@ -28,6 +28,7 @@ import { getNodeLogs, getTmpDir } from '../../../src/core/helpers.mjs'
 import { NodeCommand } from '../../../src/commands/node/index.mjs'
 import { HEDERA_HAPI_PATH, ROOT_CONTAINER } from '../../../src/core/constants.mjs'
 import fs from 'fs'
+import * as NodeCommandConfigs from "../../../src/commands/node/configs.mjs";
 
 describe('Node delete via separated commands', () => {
   const namespace = 'node-delete-separate'
@@ -69,7 +70,7 @@ describe('Node delete via separated commands', () => {
     await nodeCmd.handlers.deletePrepare(argvPrepare)
     await nodeCmd.handlers.deleteSubmitTransactions(argvExecute)
     await nodeCmd.handlers.deleteExecute(argvExecute)
-    expect(nodeCmd.getUnusedConfigs(NodeCommand.DELETE_CONFIGS_NAME)).toEqual([
+    expect(nodeCmd.getUnusedConfigs(NodeCommandConfigs.DELETE_CONFIGS_NAME)).toEqual([
       flags.app.constName,
       flags.devMode.constName,
       flags.endpointType.constName,

@@ -29,6 +29,7 @@ import { getNodeLogs } from '../../../src/core/helpers.mjs'
 import { NodeCommand } from '../../../src/commands/node/index.mjs'
 import { HEDERA_HAPI_PATH, ROOT_CONTAINER } from '../../../src/core/constants.mjs'
 import fs from 'fs'
+import * as NodeCommandConfigs from "../../../src/commands/node/configs.mjs";
 
 describe('Node update', () => {
   const defaultTimeout = 120000
@@ -90,7 +91,7 @@ describe('Node update', () => {
     argv[flags.tlsPrivateKey.name] = tlsKeyFiles.privateKeyFile
 
     await nodeCmd.handlers.update(argv)
-    expect(nodeCmd.getUnusedConfigs(NodeCommand.UPDATE_CONFIGS_NAME)).toEqual([
+    expect(nodeCmd.getUnusedConfigs(NodeCommandConfigs.UPDATE_CONFIGS_NAME)).toEqual([
       flags.app.constName,
       flags.devMode.constName,
       flags.quiet.constName

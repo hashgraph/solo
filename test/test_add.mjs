@@ -28,6 +28,7 @@ import {
 } from './test_util.js'
 import { getNodeLogs } from '../src/core/helpers.mjs'
 import { NodeCommand } from '../src/commands/node/index.mjs'
+import * as NodeCommandConfigs from "../src/commands/node/configs.mjs";
 
 export function testNodeAdd (localBuildPath
 ) {
@@ -76,7 +77,7 @@ export function testNodeAdd (localBuildPath
 
     it('should add a new node to the network successfully', async () => {
       await nodeCmd.handlers.add(argv)
-      expect(nodeCmd.getUnusedConfigs(NodeCommand.ADD_CONFIGS_NAME)).toEqual([
+      expect(nodeCmd.getUnusedConfigs(NodeCommandConfigs.ADD_CONFIGS_NAME)).toEqual([
         flags.app.constName,
         flags.chainId.constName,
         flags.devMode.constName,

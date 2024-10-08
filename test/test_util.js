@@ -226,7 +226,6 @@ export function bootstrapNetwork (testName, argv,
     it('generate key files', async () => {
       await expect(nodeCmd.handlers.keys(argv)).resolves.toBeTruthy()
       expect(nodeCmd.getUnusedConfigs(NodeCommandConfigs.KEYS_CONFIGS_NAME)).toEqual([
-        flags.cacheDir.constName,
         flags.devMode.constName,
         flags.quiet.constName
       ])
@@ -256,9 +255,7 @@ export function bootstrapNetwork (testName, argv,
         // cache this, because `solo node setup.finalize()` will reset it to false
         try {
           await expect(nodeCmd.handlers.setup(argv)).resolves.toBeTruthy()
-          expect(nodeCmd.getUnusedConfigs(NodeCommand.SETUP_CONFIGS_NAME)).toEqual([
-            flags.app.constName,
-            flags.appConfig.constName,
+          expect(nodeCmd.getUnusedConfigs(NodeCommandConfigs.SETUP_CONFIGS_NAME)).toEqual([
             flags.devMode.constName
           ])
         } catch (e) {
