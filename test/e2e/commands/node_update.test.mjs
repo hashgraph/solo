@@ -59,7 +59,7 @@ describe('Node update', () => {
 
   afterAll(async () => {
     await getNodeLogs(k8, namespace)
-    await nodeCmd.stop(argv)
+    await nodeCmd.handlers.stop(argv)
     await k8.deleteNamespace(namespace)
   }, 600000)
 
@@ -89,7 +89,7 @@ describe('Node update', () => {
     argv[flags.tlsPublicKey.name] = tlsKeyFiles.certificateFile
     argv[flags.tlsPrivateKey.name] = tlsKeyFiles.privateKeyFile
 
-    await nodeCmd.update(argv)
+    await nodeCmd.handlers.update(argv)
     expect(nodeCmd.getUnusedConfigs(NodeCommand.UPDATE_CONFIGS_NAME)).toEqual([
       flags.app.constName,
       flags.devMode.constName,

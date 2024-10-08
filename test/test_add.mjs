@@ -59,7 +59,7 @@ export function testNodeAdd (localBuildPath
     afterAll(async () => {
       await getNodeLogs(k8, namespace)
       await nodeCmd.accountManager.close()
-      await nodeCmd.stop(argv)
+      await nodeCmd.handlers.stop(argv)
       await networkCmd.destroy(argv)
       await k8.deleteNamespace(namespace)
     }, 600000)
@@ -75,7 +75,7 @@ export function testNodeAdd (localBuildPath
     }, 450000)
 
     it('should add a new node to the network successfully', async () => {
-      await nodeCmd.add(argv)
+      await nodeCmd.handlers.add(argv)
       expect(nodeCmd.getUnusedConfigs(NodeCommand.ADD_CONFIGS_NAME)).toEqual([
         flags.app.constName,
         flags.chainId.constName,

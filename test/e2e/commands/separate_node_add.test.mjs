@@ -61,7 +61,7 @@ describe('Node add via separated commands should success', () => {
   afterAll(async () => {
     await getNodeLogs(k8, namespace)
     await nodeCmd.accountManager.close()
-    await nodeCmd.stop(argv)
+    await nodeCmd.handlers.stop(argv)
     await networkCmd.destroy(argv)
     await k8.deleteNamespace(namespace)
   }, 600000)
@@ -77,9 +77,9 @@ describe('Node add via separated commands should success', () => {
   }, 450000)
 
   it('should add a new node to the network via the segregated commands successfully', async () => {
-    await nodeCmd.addPrepare(argvPrepare)
-    await nodeCmd.addSubmitTransactions(argvExecute)
-    await nodeCmd.addExecute(argvExecute)
+    await nodeCmd.handlers.addPrepare(argvPrepare)
+    await nodeCmd.handlers.addSubmitTransactions(argvExecute)
+    await nodeCmd.handlers.addExecute(argvExecute)
     expect(nodeCmd.getUnusedConfigs(NodeCommand.ADD_CONFIGS_NAME)).toEqual([
       flags.app.constName,
       flags.chainId.constName,

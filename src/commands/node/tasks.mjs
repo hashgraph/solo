@@ -149,10 +149,9 @@ export class NodeCommandTasks {
    * @returns {Listr<*, *, *>}
    */
   _uploadPlatformSoftware (nodeAliases, podNames, task, localBuildPath) {
-    const self = this
     const subTasks = []
 
-    self.logger.debug('no need to fetch, use local build jar files')
+    this.logger.debug('no need to fetch, use local build jar files')
 
     /** @type {Map<NodeAlias, string>} */
     const buildPathMap = new Map()
@@ -184,11 +183,11 @@ export class NodeCommandTasks {
         title: `Copy local build to Node: ${chalk.yellow(nodeAlias)} from ${localDataLibBuildPath}`,
         task: async () => {
           this.logger.debug(`Copying build files to pod: ${podName} from ${localDataLibBuildPath}`)
-          await self.k8.copyTo(podName, constants.ROOT_CONTAINER, localDataLibBuildPath, `${constants.HEDERA_HAPI_PATH}`)
-          const testJsonFiles = self.configManager.getFlag(flags.appConfig).split(',')
+          await this.k8.copyTo(podName, constants.ROOT_CONTAINER, localDataLibBuildPath, `${constants.HEDERA_HAPI_PATH}`)
+          const testJsonFiles = this.configManager.getFlag(flags.appConfig).split(',')
           for (const jsonFile of testJsonFiles) {
             if (fs.existsSync(jsonFile)) {
-              await self.k8.copyTo(podName, constants.ROOT_CONTAINER, jsonFile, `${constants.HEDERA_HAPI_PATH}`)
+              await this.k8.copyTo(podName, constants.ROOT_CONTAINER, jsonFile, `${constants.HEDERA_HAPI_PATH}`)
             }
           }
         }
@@ -385,7 +384,7 @@ _fetchPlatformSoftware (nodeAliases, podNames, releaseTag, task, platformInstall
     return new Task('Generate gossip keys', async (ctx, task) => {
       const config = ctx.config
       const nodeAliases = generateMultiple ? config.nodeAliases : [config.nodeAlias]
-      const subTasks = self.keyManager.taskGenerateGossipKeys(self.keytoolDepManager, nodeAliases, config.keysDir, config.curDate)
+      const subTasks = this.keyManager.taskGenerateGossipKeys(this.keytoolDepManager, nodeAliases, config.keysDir, config.curDate)
       // set up the sub-tasks
       return task.newListr(subTasks, {
         concurrent: false,
@@ -409,7 +408,7 @@ _fetchPlatformSoftware (nodeAliases, podNames, releaseTag, task, platformInstall
     return new Task('Generate gRPC TLS Keys', async (ctx, task) => {
       const config = ctx.config
       const nodeAliases = generateMultiple ? config.nodeAliases : [config.nodeAlias]
-      const subTasks = self.keyManager.taskGenerateTLSKeys(nodeAliases, config.keysDir, config.curDate)
+      const subTasks = this.keyManager.taskGenerateTLSKeys(nodeAliases, config.keysDir, config.curDate)
       // set up the sub-tasks
       return task.newListr(subTasks, {
         concurrent: true,
@@ -810,7 +809,7 @@ _fetchPlatformSoftware (nodeAliases, podNames, releaseTag, task, platformInstall
     return new Task('Check node proxies are ACTIVE', async (ctx, task) => {
       // this is more reliable than checking the nodes logs for ACTIVE, as the
       // logs will have a lot of white noise from being behind
-      return self._checkNodesProxiesTask(ctx, task, ctx.config.nodeAliases)
+      return this._checkNodesProxiesTask(ctx, task, ctx.config.nodeAliases)
     }, skip)
   }
 
@@ -818,7 +817,7 @@ _fetchPlatformSoftware (nodeAliases, podNames, releaseTag, task, platformInstall
     return new Task('Check all node proxies are ACTIVE', async (ctx, task) => {
       // this is more reliable than checking the nodes logs for ACTIVE, as the
       // logs will have a lot of white noise from being behind
-      return self._checkNodesProxiesTask(ctx, task, ctx.config.allNodeAliases)
+      return this._checkNodesProxiesTask(ctx, task, ctx.config.allNodeAliases)
     })
   }
 
@@ -885,7 +884,7 @@ _fetchPlatformSoftware (nodeAliases, podNames, releaseTag, task, platformInstall
         const podName = ctx.config.podNames[nodeAlias]
         subTasks.push({
           title: `Stop node: ${chalk.yellow(nodeAlias)}`,
-          task: async () => await self.k8.execContainer(podName, constants.ROOT_CONTAINER, 'systemctl stop network-node')
+          task: async () => await this.k8.execContainer(podName, constants.ROOT_CONTAINER, 'systemctl stop network-node')
         })
       }
 
@@ -903,9 +902,9 @@ _fetchPlatformSoftware (nodeAliases, podNames, releaseTag, task, platformInstall
   finalize () {
     return new Task('Finalize', async (ctx, task) => {
       // reset flags so that keys are not regenerated later
-      self.configManager.setFlag(flags.generateGossipKeys, false)
-      self.configManager.setFlag(flags.generateTlsKeys, false)
-      self.configManager.persist()
+      this.configManager.setFlag(flags.generateGossipKeys, false)
+      this.configManager.setFlag(flags.generateTlsKeys, false)
+      this.configManager.persist()
     })
   }
 
@@ -918,7 +917,7 @@ _fetchPlatformSoftware (nodeAliases, podNames, releaseTag, task, platformInstall
         subTasks.push({
           title: `Node: ${chalk.yellow(nodeAlias)}`,
           task: async () =>
-              await self.k8.execContainer(podName, constants.ROOT_CONTAINER, ['bash', '-c', `rm -rf ${constants.HEDERA_HAPI_PATH}/data/saved/*`])
+              await this.k8.execContainer(podName, constants.ROOT_CONTAINER, ['bash', '-c', `rm -rf ${constants.HEDERA_HAPI_PATH}/data/saved/*`])
         })
       }
 
@@ -940,7 +939,7 @@ _fetchPlatformSoftware (nodeAliases, podNames, releaseTag, task, platformInstall
 
   checkPVCsEnabled () {
     return new Task('Check that PVCs are enabled', async (ctx, task) => {
-      if (!self.configManager.getFlag(flags.persistentVolumeClaims)) {
+      if (!this.configManager.getFlag(flags.persistentVolumeClaims)) {
         throw new SoloError('PVCs are not enabled. Please enable PVCs before adding a node')
       }
     })
@@ -1065,34 +1064,34 @@ _fetchPlatformSoftware (nodeAliases, podNames, releaseTag, task, platformInstall
       const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
 
       const nodeId = Templates.nodeIdFromNodeAlias(config.nodeAlias) - 1
-      self.logger.info(`nodeId: ${nodeId}`)
-      self.logger.info(`config.newAccountNumber: ${config.newAccountNumber}`)
+      this.logger.info(`nodeId: ${nodeId}`)
+      this.logger.info(`config.newAccountNumber: ${config.newAccountNumber}`)
 
       try {
         const nodeUpdateTx = await new NodeUpdateTransaction()
             .setNodeId(nodeId)
 
         if (config.tlsPublicKey && config.tlsPrivateKey) {
-          self.logger.info(`config.tlsPublicKey: ${config.tlsPublicKey}`)
+          this.logger.info(`config.tlsPublicKey: ${config.tlsPublicKey}`)
           const tlsCertDer = await this._loadPermCertificate(config.tlsPublicKey)
           const tlsCertHash = crypto.createHash('sha384').update(tlsCertDer).digest()
           nodeUpdateTx.setCertificateHash(tlsCertHash)
 
           const publicKeyFile = Templates.renderTLSPemPublicKeyFile(config.nodeAlias)
           const privateKeyFile = Templates.renderTLSPemPrivateKeyFile(config.nodeAlias)
-          renameAndCopyFile(config.tlsPublicKey, publicKeyFile, config.keysDir)
-          renameAndCopyFile(config.tlsPrivateKey, privateKeyFile, config.keysDir)
+          renameAndCopyFile(config.tlsPublicKey, publicKeyFile, config.keysDir, this.logger)
+          renameAndCopyFile(config.tlsPrivateKey, privateKeyFile, config.keysDir, this.logger)
         }
 
         if (config.gossipPublicKey && config.gossipPrivateKey) {
-          self.logger.info(`config.gossipPublicKey: ${config.gossipPublicKey}`)
+          this.logger.info(`config.gossipPublicKey: ${config.gossipPublicKey}`)
           const signingCertDer = await this._loadPermCertificate(config.gossipPublicKey)
           nodeUpdateTx.setGossipCaCertificate(signingCertDer)
 
           const publicKeyFile = Templates.renderGossipPemPublicKeyFile(constants.SIGNING_KEY_PREFIX, config.nodeAlias)
           const privateKeyFile = Templates.renderGossipPemPrivateKeyFile(constants.SIGNING_KEY_PREFIX, config.nodeAlias)
-          renameAndCopyFile(config.gossipPublicKey, publicKeyFile, config.keysDir)
-          renameAndCopyFile(config.gossipPrivateKey, privateKeyFile, config.keysDir)
+          renameAndCopyFile(config.gossipPublicKey, publicKeyFile, config.keysDir, this.logger)
+          renameAndCopyFile(config.gossipPrivateKey, privateKeyFile, config.keysDir, this.logger)
         }
 
         if (config.newAccountNumber) {
@@ -1215,7 +1214,7 @@ _fetchPlatformSoftware (nodeAliases, podNames, releaseTag, task, platformInstall
     return new Task('Kill nodes', async (ctx, task) => {
       const config = ctx.config
       for (const /** @type {NetworkNodeServices} **/ service of config.serviceMap.values()) {
-        await self.k8.kubeClient.deleteNamespacedPod(service.nodePodName, config.namespace, undefined, undefined, 1)
+        await this.k8.kubeClient.deleteNamespacedPod(service.nodePodName, config.namespace, undefined, undefined, 1)
       }
     })
   }
@@ -1224,16 +1223,16 @@ _fetchPlatformSoftware (nodeAliases, podNames, releaseTag, task, platformInstall
     return new Task('Kill nodes to pick up updated configMaps', async (ctx, task) => {
       const config = ctx.config
       // the updated node will have a new pod ID if its account ID changed which is a label
-      config.serviceMap = await self.accountManager.getNodeServiceMap(
+      config.serviceMap = await this.accountManager.getNodeServiceMap(
           config.namespace)
       for (const /** @type {NetworkNodeServices} **/ service of config.serviceMap.values()) {
-        await self.k8.kubeClient.deleteNamespacedPod(service.nodePodName, config.namespace, undefined, undefined, 1)
+        await this.k8.kubeClient.deleteNamespacedPod(service.nodePodName, config.namespace, undefined, undefined, 1)
       }
-      self.logger.info('sleep for 15 seconds to give time for pods to finish terminating')
+      this.logger.info('sleep for 15 seconds to give time for pods to finish terminating')
       await sleep(15000)
 
       // again, the pod names will change after the pods are killed
-      config.serviceMap = await self.accountManager.getNodeServiceMap(
+      config.serviceMap = await this.accountManager.getNodeServiceMap(
           config.namespace)
       config.podNames = {}
       for (const service of config.serviceMap.values()) {
@@ -1281,8 +1280,8 @@ _fetchPlatformSoftware (nodeAliases, podNames, releaseTag, task, platformInstall
       const node1FullyQualifiedPodName = Templates.renderNetworkPodName(config.existingNodeAliases[0])
       const upgradeDirectory = `${constants.HEDERA_HAPI_PATH}/data/saved/com.hedera.services.ServicesMain/0/123`
       // zip the contents of the newest folder on node1 within /opt/hgcapp/services-hedera/HapiApp2.0/data/saved/com.hedera.services.ServicesMain/0/123/
-      const zipFileName = await self.k8.execContainer(node1FullyQualifiedPodName, constants.ROOT_CONTAINER, ['bash', '-c', `cd ${upgradeDirectory} && mapfile -t states < <(ls -1t .) && jar cf "\${states[0]}.zip" -C "\${states[0]}" . && echo -n \${states[0]}.zip`])
-      await self.k8.copyFrom(node1FullyQualifiedPodName, constants.ROOT_CONTAINER, `${upgradeDirectory}/${zipFileName}`, config.stagingDir)
+      const zipFileName = await this.k8.execContainer(node1FullyQualifiedPodName, constants.ROOT_CONTAINER, ['bash', '-c', `cd ${upgradeDirectory} && mapfile -t states < <(ls -1t .) && jar cf "\${states[0]}.zip" -C "\${states[0]}" . && echo -n \${states[0]}.zip`])
+      await this.k8.copyFrom(node1FullyQualifiedPodName, constants.ROOT_CONTAINER, `${upgradeDirectory}/${zipFileName}`, config.stagingDir)
       config.lastStateZipPath = path.join(config.stagingDir, zipFileName)
     })
   }
@@ -1294,10 +1293,10 @@ _fetchPlatformSoftware (nodeAliases, podNames, releaseTag, task, platformInstall
       const nodeId = Templates.nodeIdFromNodeAlias(config.nodeAlias)
       const savedStateDir = (config.lastStateZipPath.match(/\/(\d+)\.zip$/))[1]
       const savedStatePath = `${constants.HEDERA_HAPI_PATH}/data/saved/com.hedera.services.ServicesMain/${nodeId}/123/${savedStateDir}`
-      await self.k8.execContainer(newNodeFullyQualifiedPodName, constants.ROOT_CONTAINER, ['bash', '-c', `mkdir -p ${savedStatePath}`])
-      await self.k8.copyTo(newNodeFullyQualifiedPodName, constants.ROOT_CONTAINER, config.lastStateZipPath, savedStatePath)
-      await self.platformInstaller.setPathPermission(newNodeFullyQualifiedPodName, constants.HEDERA_HAPI_PATH)
-      await self.k8.execContainer(newNodeFullyQualifiedPodName, constants.ROOT_CONTAINER, ['bash', '-c', `cd ${savedStatePath} && jar xf ${path.basename(config.lastStateZipPath)} && rm -f ${path.basename(config.lastStateZipPath)}`])
+      await this.k8.execContainer(newNodeFullyQualifiedPodName, constants.ROOT_CONTAINER, ['bash', '-c', `mkdir -p ${savedStatePath}`])
+      await this.k8.copyTo(newNodeFullyQualifiedPodName, constants.ROOT_CONTAINER, config.lastStateZipPath, savedStatePath)
+      await this.platformInstaller.setPathPermission(newNodeFullyQualifiedPodName, constants.HEDERA_HAPI_PATH)
+      await this.k8.execContainer(newNodeFullyQualifiedPodName, constants.ROOT_CONTAINER, ['bash', '-c', `cd ${savedStatePath} && jar xf ${path.basename(config.lastStateZipPath)} && rm -f ${path.basename(config.lastStateZipPath)}`])
     })
   }
 

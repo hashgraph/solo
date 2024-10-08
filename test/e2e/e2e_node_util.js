@@ -112,7 +112,7 @@ export function e2eNodeKeyRefreshTest (testName, mode, releaseTag = HEDERA_PLATF
                   expect(resp.response.statusCode).toEqual(200)
                   await sleep(20000) // sleep to wait for pod to finish terminating
                 } else if (mode === 'stop') {
-                  await expect(nodeCmd.stop(argv)).resolves.toBeTruthy()
+                  await expect(nodeCmd.handlers.stop(argv)).resolves.toBeTruthy()
                   await sleep(20000) // give time for node to stop and update its logs
                 } else {
                   throw new Error(`invalid mode: ${mode}`)
@@ -147,7 +147,7 @@ export function e2eNodeKeyRefreshTest (testName, mode, releaseTag = HEDERA_PLATF
         function nodeRefreshShouldSucceed (nodeAlias, nodeCmd, argv) {
           it(`${nodeAlias} refresh should succeed`, async () => {
             try {
-              await expect(nodeCmd.refresh(argv)).resolves.toBeTruthy()
+              await expect(nodeCmd.handlers.refresh(argv)).resolves.toBeTruthy()
               expect(nodeCmd.getUnusedConfigs(
                 NodeCommand.REFRESH_CONFIGS_NAME)).toEqual(
                 [flags.devMode.constName,

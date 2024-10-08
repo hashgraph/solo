@@ -67,20 +67,20 @@ export class NodeCommand extends BaseCommand {
         })
     }
 
-    // /**
-    //  * stops and closes the port forwards
-    //  * @returns {Promise<void>}
-    //  */
-    // async close () {
-    //   this.accountManager.close()
-    //   if (this._portForwards) {
-    //     for (const srv of this._portForwards) {
-    //       await this.k8.stopPortForward(srv)
-    //     }
-    //   }
-    //
-    //   this._portForwards = []
-    // }
+    /**
+     * stops and closes the port forwards
+     * @returns {Promise<void>}
+     */
+    async close () {
+      this.accountManager.close()
+      if (this._portForwards) {
+        for (const srv of this._portForwards) {
+          await this.k8.stopPortForward(srv)
+        }
+      }
+
+      this._portForwards = []
+    }
 
     // Command Definition
     /**

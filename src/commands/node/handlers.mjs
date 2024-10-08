@@ -27,7 +27,7 @@ import {
     updateConfigBuilder
 } from "./configs.mjs";
 import {constants} from "../../core/index.mjs";
-import {IllegalArgumentError, SoloError} from "../../core/errors.mjs";
+import {IllegalArgumentError} from "../../core/errors.mjs";
 import * as flags from "../flags.mjs";
 
 export class NodeCommandHandlers {
@@ -42,6 +42,8 @@ export class NodeCommandHandlers {
 
         this.logger = opts.logger
         this.tasks = opts.tasks
+        this.accountManager = opts.accountManager
+        this.configManager = opts.configManager
     }
 
     /**
@@ -56,6 +58,22 @@ export class NodeCommandHandlers {
      */
     static get DELETE_CONTEXT_FILE () {
         return 'node-delete.json'
+    }
+
+
+    /**
+     * stops and closes the port forwards
+     * @returns {Promise<void>}
+     */
+    async close () {
+        this.accountManager.close()
+        if (this._portForwards) {
+            for (const srv of this._portForwards) {
+                await this.k8.stopPortForward(srv)
+            }
+        }
+
+        this._portForwards = []
     }
 
 
@@ -414,14 +432,14 @@ export class NodeCommandHandlers {
     }
 
     async start (argv) {
-        argv = helpers.addFlagsToArgv(argv, NodeFlags.STOP_FLAGS)
+        argv = helpers.addFlagsToArgv(argv, NodeFlags.START_FLAGS)
         const action = helpers.commandActionBuilder([
             this.tasks.initialize(argv, startConfigBuilder.bind(this)),
             this.tasks.identifyExistingNodes(),
             this.tasks.startNodes('nodeAliases'),
             this.tasks.enablePortForwarding(),
             this.tasks.checkAllNodesAreActive('nodeAliases'),
-            this.tasks.checkNodeProxiesAreActive(() => self.configManager.getFlag(flags.app) !== '' && self.configManager.getFlag(flags.app) !== constants.HEDERA_APP_NAME),
+            this.tasks.checkNodeProxiesAreActive(() => this.configManager.getFlag(flags.app) !== '' && this.configManager.getFlag(flags.app) !== constants.HEDERA_APP_NAME),
             this.tasks.addNodeStakes(),
         ], {
             concurrent: false,
@@ -432,7 +450,7 @@ export class NodeCommandHandlers {
     }
 
     async setup (argv) {
-        argv = helpers.addFlagsToArgv(argv, NodeFlags.DEFAULT_FLAGS)
+        argv = helpers.addFlagsToArgv(argv, NodeFlags.SETUP_FLAGS)
         const action = helpers.commandActionBuilder([
             this.tasks.initialize(argv, setupConfigBuilder.bind(this)),
             this.tasks.identifyNetworkPods(),

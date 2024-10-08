@@ -329,8 +329,9 @@ export function parseIpAddressToUint8Array (ipAddress) {
  * @param srcFilePath
  * @param expectedBaseName
  * @param destDir
+ * @param logger
  */
-export function renameAndCopyFile (srcFilePath, expectedBaseName, destDir) {
+export function renameAndCopyFile (srcFilePath, expectedBaseName, destDir, logger) {
   const srcDir = path.dirname(srcFilePath)
   if (path.basename(srcFilePath) !== expectedBaseName) {
     fs.renameSync(srcFilePath, path.join(srcDir, expectedBaseName))
@@ -338,7 +339,7 @@ export function renameAndCopyFile (srcFilePath, expectedBaseName, destDir) {
   // copy public key and private key to key directory
   fs.copyFile(path.join(srcDir, expectedBaseName), path.join(destDir, expectedBaseName), (err) => {
     if (err) {
-      self.logger.error(`Error copying file: ${err.message}`)
+      logger.error(`Error copying file: ${err.message}`)
       throw new SoloError(`Error copying file: ${err.message}`)
     }
   })

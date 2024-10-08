@@ -66,9 +66,9 @@ describe('Node delete via separated commands', () => {
   }, 450000)
 
   it('should delete a node from the network successfully', async () => {
-    await nodeCmd.deletePrepare(argvPrepare)
-    await nodeCmd.deleteSubmitTransactions(argvExecute)
-    await nodeCmd.deleteExecute(argvExecute)
+    await nodeCmd.handlers.deletePrepare(argvPrepare)
+    await nodeCmd.handlers.deleteSubmitTransactions(argvExecute)
+    await nodeCmd.handlers.deleteExecute(argvExecute)
     expect(nodeCmd.getUnusedConfigs(NodeCommand.DELETE_CONFIGS_NAME)).toEqual([
       flags.app.constName,
       flags.devMode.constName,

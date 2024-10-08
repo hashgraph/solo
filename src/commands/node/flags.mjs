@@ -199,28 +199,28 @@ export const STOP_FLAGS = {
 
 export const START_FLAGS = {
     requiredFlags: [
-        flags.app,
-        flags.debugNodeAlias,
         flags.namespace,
+    ],
+    requiredFlagsWithDisabledPrompt: [
+        flags.app,
         flags.nodeAliasesUnparsed,
     ],
-    requiredFlagsWithDisabledPrompt: [],
     optionalFlags: [
-        flags.quiet
+        flags.quiet,
+        flags.debugNodeAlias,
     ]
 }
 
 export const SETUP_FLAGS = {
     requiredFlags: [
-
         flags.cacheDir,
         flags.namespace,
-        flags.nodeAliasesUnparsed,
         flags.releaseTag
     ],
     requiredFlagsWithDisabledPrompt: [
         flags.app,
         flags.appConfig,
+        flags.nodeAliasesUnparsed,
     ],
     optionalFlags: [
         flags.devMode,
