@@ -4,7 +4,7 @@ tests:
   # name: capitalized noun form
   # testFilePrefix: node-update # for node-update.test.mjs
   - name: Standard
-    mochaPostfix: "--ignore-pattern '.*\\/unit\\/.*' --ignore-pattern '.*\\/e2e\\/commands\\/mirror_node.*' --ignore-pattern '.*\\/e2e\\/commands\\/node.*' --ignore-pattern '.*\\/e2e\\/commands\\/separate_node.*' --ignore-pattern '.*\\/e2e\\/commands\\/relay.*'"
+    mochaPostfix: "--ignore '.*\\/unit\\/.*' --ignore '.*\\/e2e\\/commands\\/mirror_node.*' --ignore '.*\\/e2e\\/commands\\/node.*' --ignore '.*\\/e2e\\/commands\\/separate_node.*' --ignore '.*\\/e2e\\/commands\\/relay.*'"
   - name: Mirror Node
     mochaPostfix: "--grep 'mirror_node\\.test\\.mjs'"
   - name: Node PEM Stop
