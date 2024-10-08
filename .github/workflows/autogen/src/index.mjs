@@ -93,7 +93,7 @@ function updatePackageJson (outputDir, config) {
       config.tests.forEach(test => {
         const formalNounName = test.name
         const kebabCase = changeCase.kebabCase(formalNounName)
-        generatedLines.push(`${spacePrefix}"test-e2e-${kebabCase}": "NODE_OPTIONS=--experimental-vm-modules MOCHA_GREP='E2E ${formalNounName} Tests' nyc mocha --reporter mocha-junit-reporter --reporter-options mochaFile='junit-e2e-${kebabCase}.xml' --timeout 5000 --require @babel/register ${test.mochaPostfix} --coverage --report-dir='coverage/e2e-${kebabCase}'"`);
+        generatedLines.push(`${spacePrefix}"test-e2e-${kebabCase}": "NODE_OPTIONS=--experimental-vm-modules MOCHA_GREP='E2E ${formalNounName} Tests' nyc mocha --reporter mocha-junit-reporter --reporter-options mochaFile=./junit-e2e-${kebabCase}.xml --timeout 5000 --require @babel/register ${test.mochaPostfix} --coverage --report-dir='coverage/e2e-${kebabCase}'"`);
       })
 
       outputLines.push(...generatedLines)
