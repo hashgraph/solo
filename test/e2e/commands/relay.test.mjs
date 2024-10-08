@@ -26,8 +26,6 @@ import { RelayCommand } from '../../../src/commands/relay.mjs'
 import { MINUTES } from '../../../src/core/constants.mjs'
 
 describe('RelayCommand', () => {
-  this.timeout(3 * MINUTES)
-
   const testName = 'relay-cmd-e2e'
   const namespace = testName
   const argv = getDefaultArgv()

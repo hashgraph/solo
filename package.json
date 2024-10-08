@@ -88,6 +88,7 @@
     "jest-mock": "^29.7.0",
     "mocha": "^10.7.3",
     "mocha-each": "^2.0.1",
+    "mocha-junit-reporter": "^2.2.1",
     "nyc": "^17.1.0",
     "remark-cli": "^12.0.1",
     "remark-frontmatter": "^5.0.0",
