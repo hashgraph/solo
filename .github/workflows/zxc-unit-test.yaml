@@ -72,6 +72,14 @@ jobs:
       - name: Run Unit Tests
         run: npm test
 
+      - name: List Files Before Artifact Upload
+        run: |
+          if [ "${{ runner.os }}" == "Linux" ]; then
+            ls -laR
+          else
+            dir /s
+          fi
+
       - name: Publish Windows Unit Test Report
         uses: EnricoMi/publish-unit-test-result-action/windows/bash@82082dac68ad6a19d980f8ce817e108b9f496c2a # v2.17.1
         if: ${{ runner.os == 'Windows' && steps.npm-deps.conclusion == 'success' && !cancelled() }}
