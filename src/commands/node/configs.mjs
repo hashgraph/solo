@@ -469,7 +469,8 @@ export const stopConfigBuilder = async function (argv, ctx, task) {
     /** @type {{namespace: string, nodeAliases: NodeAliases}} */
     ctx.config = {
         namespace: this.configManager.getFlag(flags.namespace),
-        nodeAliases: helpers.parseNodeAliases(this.configManager.getFlag(flags.nodeAliasesUnparsed))
+        nodeAliases: helpers.parseNodeAliases(this.configManager.getFlag(flags.nodeAliasesUnparsed)),
+        nodeAliasesUnparsed: this.configManager.getFlag(flags.nodeAliasesUnparsed)
     }
 
     if (!await this.k8.hasNamespace(ctx.config.namespace)) {

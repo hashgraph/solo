@@ -50,6 +50,7 @@ export class NodeCommandHandlers {
         this.platformInstaller = opts.platformInstaller
 
         this.getConfig = opts.parent.getConfig.bind(opts.parent)
+        this.prepareChartPath = opts.parent.prepareChartPath.bind(opts.parent)
     }
 
     /**
