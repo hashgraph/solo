@@ -865,3 +865,9 @@ export const nodeConfigFileFlags = new Map([
 ].map(f => [f.name, f]))
 
 export const integerFlags = new Map([replicaCount].map(f => [f.name, f]))
+
+export const DEFAULT_FLAGS = {
+  requiredFlags: [],
+  requiredFlagsWithDisabledPrompt: [namespace, cacheDir, releaseTag],
+  optionalFlags: [devMode]
+}
