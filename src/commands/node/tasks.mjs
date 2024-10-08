@@ -420,7 +420,7 @@ _fetchPlatformSoftware (nodeAliases, podNames, releaseTag, task, platformInstall
     }, (ctx) => !ctx.config.generateTlsKeys)
   }
 
-  async _loadPermCertificate (certFullPath) {
+  _loadPermCertificate (certFullPath) {
     const certPem = fs.readFileSync(certFullPath).toString()
     const decodedDers = x509.PemConverter.decode(certPem)
     if (!decodedDers || decodedDers.length === 0) {
@@ -1002,7 +1002,7 @@ _fetchPlatformSoftware (nodeAliases, podNames, releaseTag, task, platformInstall
       const config = ctx.config
       const signingCertFile = Templates.renderGossipPemPublicKeyFile(constants.SIGNING_KEY_PREFIX, config.nodeAlias)
       const signingCertFullPath = path.join(config.keysDir, signingCertFile)
-      ctx.signingCertDer = await this._loadPermCertificate(signingCertFullPath)
+      ctx.signingCertDer = this._loadPermCertificate(signingCertFullPath)
     })
   }
 
@@ -1011,7 +1011,7 @@ _fetchPlatformSoftware (nodeAliases, podNames, releaseTag, task, platformInstall
       const config = ctx.config
       const tlsCertFile = Templates.renderTLSPemPublicKeyFile(config.nodeAlias)
       const tlsCertFullPath = path.join(config.keysDir, tlsCertFile)
-      const tlsCertDer = await this._loadPermCertificate(tlsCertFullPath)
+      const tlsCertDer = this._loadPermCertificate(tlsCertFullPath)
       ctx.tlsCertHash = crypto.createHash('sha384').update(tlsCertDer).digest()
     })
   }
@@ -1073,7 +1073,7 @@ _fetchPlatformSoftware (nodeAliases, podNames, releaseTag, task, platformInstall
 
         if (config.tlsPublicKey && config.tlsPrivateKey) {
           this.logger.info(`config.tlsPublicKey: ${config.tlsPublicKey}`)
-          const tlsCertDer = await this._loadPermCertificate(config.tlsPublicKey)
+          const tlsCertDer = this._loadPermCertificate(config.tlsPublicKey)
           const tlsCertHash = crypto.createHash('sha384').update(tlsCertDer).digest()
           nodeUpdateTx.setCertificateHash(tlsCertHash)
 
@@ -1085,7 +1085,7 @@ _fetchPlatformSoftware (nodeAliases, podNames, releaseTag, task, platformInstall
 
         if (config.gossipPublicKey && config.gossipPrivateKey) {
           this.logger.info(`config.gossipPublicKey: ${config.gossipPublicKey}`)
-          const signingCertDer = await this._loadPermCertificate(config.gossipPublicKey)
+          const signingCertDer = this._loadPermCertificate(config.gossipPublicKey)
           nodeUpdateTx.setGossipCaCertificate(signingCertDer)
 
           const publicKeyFile = Templates.renderGossipPemPublicKeyFile(constants.SIGNING_KEY_PREFIX, config.nodeAlias)
