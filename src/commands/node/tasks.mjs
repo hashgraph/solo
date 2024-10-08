@@ -51,7 +51,7 @@ import * as x509 from "@peculiar/x509";
 
 export class NodeCommandTasks {
   /**
-     * @param {{logger: Logger, accountManager: AccountManager, configManager: ConfigManager, platformInstaller: PlatformInstaller}} opts
+     * @param {{logger: Logger, accountManager: AccountManager, configManager: ConfigManager, platformInstaller: PlatformInstaller, k8: K8, keyManager: accountManager}} opts
      */
   constructor (opts) {
     if (!opts || !opts.accountManager) throw new IllegalArgumentError('An instance of core/AccountManager is required', opts.accountManager)

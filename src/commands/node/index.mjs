@@ -62,8 +62,11 @@ export class NodeCommand extends BaseCommand {
         this.handlers = new NodeCommandHandlers({
             accountManager: opts.accountManager,
             configManager: opts.configManager,
+            platformInstaller: opts.platformInstaller,
             logger: opts.logger,
-            tasks: this.tasks
+            k8: opts.k8,
+            tasks: this.tasks,
+            parent: this
         })
     }
 

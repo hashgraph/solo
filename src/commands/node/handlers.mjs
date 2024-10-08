@@ -32,18 +32,24 @@ import * as flags from "../flags.mjs";
 
 export class NodeCommandHandlers {
     /**
-     * @param {{logger: Logger, tasks: NodeCommandTasks, accountManager: AccountManager, configManager: ConfigManager}} opts
+     * @param {{logger: Logger, tasks: NodeCommandTasks, accountManager: AccountManager, configManager: ConfigManager, parent: NodeCommandHandlers, k8: K8, keyManager: accountManager, platformInstaller: PlatformInstaller}} opts
      */
     constructor (opts) {
         if (!opts || !opts.accountManager) throw new IllegalArgumentError('An instance of core/AccountManager is required', opts.accountManager)
         if (!opts || !opts.configManager) throw new Error('An instance of core/ConfigManager is required')
         if (!opts || !opts.logger) throw new Error('An instance of core/Logger is required')
         if (!opts || !opts.tasks) throw new Error('An instance of NodeCommandTasks is required')
+        if (!opts || !opts.k8) throw new Error('An instance of core/K8 is required')
+        if (!opts || !opts.platformInstaller) throw new IllegalArgumentError('An instance of core/PlatformInstaller is required', opts.platformInstaller)
 
         this.logger = opts.logger
         this.tasks = opts.tasks
         this.accountManager = opts.accountManager
         this.configManager = opts.configManager
+        this.k8 = opts.k8
+        this.platformInstaller = opts.platformInstaller
+
+        this.getConfig = opts.parent.getConfig.bind(opts.parent)
     }
 
     /**

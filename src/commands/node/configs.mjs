@@ -22,6 +22,7 @@ import * as helpers from "../../core/helpers.mjs";
 import path from "path";
 import fs from "fs";
 import {validatePath} from "../../core/helpers.mjs";
+import * as flags from "../flags.mjs";
 
 export const PREPARE_UPGRADE_CONFIGS_NAME = 'prepareUpgradeConfig'
 export const DOWNLOAD_GENERATED_FILES_CONFIGS_NAME = 'downloadGeneratedFilesConfig'
