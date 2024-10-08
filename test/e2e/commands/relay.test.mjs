@@ -25,7 +25,7 @@ import { getNodeLogs, sleep } from '../../../src/core/helpers.mjs'
 import { RelayCommand } from '../../../src/commands/relay.mjs'
 import { MINUTES } from '../../../src/core/constants.mjs'
 
-describe('RelayCommand', () => {
+describe('RelayCommand', async () => {
   const testName = 'relay-cmd-e2e'
   const namespace = testName
   const argv = getDefaultArgv()
@@ -40,7 +40,7 @@ describe('RelayCommand', () => {
   argv[flags.relayReleaseTag.name] = flags.relayReleaseTag.definition.defaultValue
   argv[flags.quiet.name] = true
 
-  const bootstrapResp = bootstrapNetwork(testName, argv)
+  const bootstrapResp = await bootstrapNetwork(testName, argv)
   const k8 = bootstrapResp.opts.k8
   const configManager = bootstrapResp.opts.configManager
   const relayCmd = new RelayCommand(bootstrapResp.opts)
@@ -64,7 +64,7 @@ describe('RelayCommand', () => {
         await expect(relayCmd.deploy(argv)).to.eventually.be.ok
       } catch (e) {
         relayCmd.logger.showUserError(e)
-        expect(e).to.be.null
+        expect.fail()
       }
       expect(relayCmd.getUnusedConfigs(RelayCommand.DEPLOY_CONFIGS_NAME)).to.deep.equal([
         flags.profileFile.constName,
@@ -78,7 +78,7 @@ describe('RelayCommand', () => {
         await expect(relayCmd.destroy(argv)).to.eventually.be.ok
       } catch (e) {
         relayCmd.logger.showUserError(e)
-        expect(e).to.be.null
+        expect.fail()
       }
     })
 })

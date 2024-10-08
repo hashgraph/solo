@@ -31,7 +31,7 @@ import { getNodeLogs } from '../../../src/core/helpers.mjs'
 import { NodeCommand } from '../../../src/commands/node.mjs'
 import { MINUTES } from '../../../src/core/constants.mjs'
 
-describe('Node add via separated commands should success', () => {
+describe('Node add via separated commands should success', async () => {
   const defaultTimeout = 2 * MINUTES
   const namespace = 'node-add-separated'
   const argv = getDefaultArgv()
@@ -54,7 +54,7 @@ describe('Node add via separated commands should success', () => {
   const argvExecute = getDefaultArgv()
   argvExecute[flags.inputDir.name] = tempDir
 
-  const bootstrapResp = bootstrapNetwork(namespace, argv)
+  const bootstrapResp = await bootstrapNetwork(namespace, argv)
   const nodeCmd = bootstrapResp.cmd.nodeCmd
   const accountCmd = bootstrapResp.cmd.accountCmd
   const networkCmd = bootstrapResp.cmd.networkCmd

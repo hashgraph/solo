@@ -31,7 +31,7 @@ import { NodeCommand } from '../../../src/commands/node.mjs'
 import { HEDERA_HAPI_PATH, MINUTES, ROOT_CONTAINER } from '../../../src/core/constants.mjs'
 import fs from 'fs'
 
-describe('Node delete', () => {
+describe('Node delete', async () => {
   const namespace = 'node-delete'
   const nodeAlias = 'node1'
   const argv = getDefaultArgv()
@@ -45,7 +45,7 @@ describe('Node delete', () => {
   argv[flags.releaseTag.name] = HEDERA_PLATFORM_VERSION_TAG
   argv[flags.namespace.name] = namespace
   argv[flags.quiet.name] = true
-  const bootstrapResp = bootstrapNetwork(namespace, argv)
+  const bootstrapResp = await bootstrapNetwork(namespace, argv)
   const nodeCmd = bootstrapResp.cmd.nodeCmd
   const accountCmd = bootstrapResp.cmd.accountCmd
   const k8 = bootstrapResp.opts.k8

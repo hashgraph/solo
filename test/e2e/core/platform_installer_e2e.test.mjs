@@ -33,7 +33,7 @@ import { MINUTES, SECONDS } from '../../../src/core/constants.mjs'
 
 const defaultTimeout = 20 * SECONDS
 
-describe('PackageInstallerE2E', () => {
+describe('PackageInstallerE2E', async () => {
   const namespace = 'pkg-installer-e2e'
   const argv = getDefaultArgv()
   const testCacheDir = getTestCacheDir()
@@ -46,7 +46,7 @@ describe('PackageInstallerE2E', () => {
   argv[flags.generateTlsKeys.name] = true
   // set the env variable SOLO_FST_CHARTS_DIR if developer wants to use local FST charts
   argv[flags.chartDirectory.name] = process.env.SOLO_FST_CHARTS_DIR ?? undefined
-  const bootstrapResp = bootstrapNetwork(namespace, argv, undefined, undefined, undefined, undefined, undefined, undefined, false)
+  const bootstrapResp = await bootstrapNetwork(namespace, argv, undefined, undefined, undefined, undefined, undefined, undefined, false)
   const k8 = bootstrapResp.opts.k8
   const accountManager = bootstrapResp.opts.accountManager
   const configManager = bootstrapResp.opts.configManager

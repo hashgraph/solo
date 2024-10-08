@@ -241,7 +241,7 @@ describe('K8', () => {
       })
     } catch (e) {
       testLogger.showUserError(e)
-      expect(e).to.be.null
+      expect.fail()
     }
     // TODO enhance this test to do something with the port, this pod isn't even running, but it is still passing
   }).timeout(defaultTimeout)

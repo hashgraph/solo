@@ -22,7 +22,7 @@ import { bootstrapNetwork, getDefaultArgv, TEST_CLUSTER } from '../../test_util.
 import * as version from '../../../version.mjs'
 import { MINUTES } from '../../../src/core/constants.mjs'
 
-describe('AccountManager', () => {
+describe('AccountManager', async () => {
   const namespace = 'account-mngr-e2e'
   const argv = getDefaultArgv()
   argv[flags.namespace.name] = namespace
@@ -33,7 +33,7 @@ describe('AccountManager', () => {
   argv[flags.generateTlsKeys.name] = true
   // set the env variable SOLO_FST_CHARTS_DIR if developer wants to use local FST charts
   argv[flags.chartDirectory.name] = process.env.SOLO_FST_CHARTS_DIR ?? undefined
-  const bootstrapResp = bootstrapNetwork(namespace, argv, undefined, undefined, undefined, undefined, undefined, undefined, false)
+  const bootstrapResp = await bootstrapNetwork(namespace, argv, undefined, undefined, undefined, undefined, undefined, undefined, false)
   const k8 = bootstrapResp.opts.k8
   const accountManager = bootstrapResp.opts.accountManager
   const configManager = bootstrapResp.opts.configManager

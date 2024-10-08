@@ -35,7 +35,7 @@ import { MINUTES, SECONDS } from '../../../src/core/constants.mjs';
 
 const defaultTimeout = 20 * SECONDS
 
-describe('AccountCommand', () => {
+describe('AccountCommand', async () => {
   const testName = 'account-cmd-e2e'
   const namespace = testName
   const testSystemAccounts = [[3, 5]]
@@ -49,7 +49,7 @@ describe('AccountCommand', () => {
   argv[flags.fstChartVersion.name] = version.FST_CHART_VERSION
   // set the env variable SOLO_FST_CHARTS_DIR if developer wants to use local FST charts
   argv[flags.chartDirectory.name] = process.env.SOLO_FST_CHARTS_DIR ?? undefined
-  const bootstrapResp = bootstrapNetwork(testName, argv)
+  const bootstrapResp = await bootstrapNetwork(testName, argv)
   const accountCmd = new AccountCommand(bootstrapResp.opts, testSystemAccounts)
   bootstrapResp.cmd.accountCmd = accountCmd
   const k8 = bootstrapResp.opts.k8
@@ -134,7 +134,7 @@ describe('AccountCommand', () => {
         expect(accountInfo.balance).to.equal(configManager.getFlag(flags.amount))
       } catch (e) {
         testLogger.showUserError(e)
-        expect(e).to.be.null
+        expect.fail()
       }
     }).timeout(40 * SECONDS)
 
@@ -155,7 +155,7 @@ describe('AccountCommand', () => {
         expect(accountInfo.balance).to.equal(configManager.getFlag(flags.amount))
       } catch (e) {
         testLogger.showUserError(e)
-        expect(e).to.be.null
+        expect.fail()
       }
     }).timeout(defaultTimeout)
 
@@ -175,7 +175,7 @@ describe('AccountCommand', () => {
         expect(accountInfo.balance).to.equal(200)
       } catch (e) {
         testLogger.showUserError(e)
-        expect(e).to.be.null
+        expect.fail()
       }
     }).timeout(defaultTimeout)
 
@@ -196,7 +196,7 @@ describe('AccountCommand', () => {
         expect(accountInfo.balance).to.equal(1_110)
       } catch (e) {
         testLogger.showUserError(e)
-        expect(e).to.be.null
+        expect.fail()
       }
     }).timeout(defaultTimeout)
 
@@ -214,7 +214,7 @@ describe('AccountCommand', () => {
         expect(accountInfo.balance).to.equal(200)
       } catch (e) {
         testLogger.showUserError(e)
-        expect(e).to.be.null
+        expect.fail()
       }
     }).timeout(defaultTimeout)
 
@@ -232,7 +232,7 @@ describe('AccountCommand', () => {
         expect(accountInfo.balance).to.equal(1_110)
       } catch (e) {
         testLogger.showUserError(e)
-        expect(e).to.be.null
+        expect.fail()
       }
     }).timeout(defaultTimeout)
 
@@ -261,7 +261,7 @@ describe('AccountCommand', () => {
         expect(accountAliasInfo).not.to.be.null
       } catch (e) {
         testLogger.showUserError(e)
-        expect(e).to.be.null
+        expect.fail()
       }
     }).timeout(defaultTimeout)
   })

@@ -33,7 +33,7 @@ import { MINUTES } from '../src/core/constants.mjs'
 
 export function testNodeAdd (localBuildPath
 ) {
-  describe('Node add should success', () => {
+  describe('Node add should success', async () => {
     const suffix = localBuildPath.substring(0, 5)
     const defaultTimeout = 2 * MINUTES
     const namespace = 'node-add' + suffix
@@ -50,7 +50,7 @@ export function testNodeAdd (localBuildPath
     argv[flags.localBuildPath.name] = localBuildPath
     argv[flags.quiet.name] = true
 
-    const bootstrapResp = bootstrapNetwork(namespace, argv)
+    const bootstrapResp = await bootstrapNetwork(namespace, argv)
     const nodeCmd = bootstrapResp.cmd.nodeCmd
     const accountCmd = bootstrapResp.cmd.accountCmd
     const networkCmd = bootstrapResp.cmd.networkCmd

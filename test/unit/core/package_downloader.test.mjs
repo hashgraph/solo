@@ -72,7 +72,7 @@ describe('PackageDownloader', () => {
         // remove the file to reduce disk usage
         fs.rmSync(tmpDir, { recursive: true })
       } catch (e) {
-        expect(e).to.be.null
+        expect.fail()
       }
     })
   })

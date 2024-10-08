@@ -41,13 +41,13 @@ describe('Node local build', () => {
     await pttK8.deleteNamespace(LOCAL_PTT)
   })
 
-  describe('Node for platform app should start successfully', () => {
+  describe('Node for platform app should start successfully', async () => {
     console.log('Starting local build for Platform app')
     argv[flags.localBuildPath.name] = '../hedera-services/platform-sdk/sdk/data,node1=../hedera-services/platform-sdk/sdk/data,node2=../hedera-services/platform-sdk/sdk/data'
     argv[flags.app.name] = 'PlatformTestingTool.jar'
     argv[flags.appConfig.name] = '../hedera-services/platform-sdk/platform-apps/tests/PlatformTestingTool/src/main/resources/FCMFCQ-Basic-2.5k-5m.json'
     argv[flags.namespace.name] = LOCAL_PTT
-    const bootstrapResp = bootstrapNetwork(LOCAL_PTT, argv)
+    const bootstrapResp = await bootstrapNetwork(LOCAL_PTT, argv)
     pttK8 = bootstrapResp.opts.k8
   })
 })

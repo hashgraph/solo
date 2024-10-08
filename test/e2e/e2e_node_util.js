@@ -35,7 +35,7 @@ import { MINUTES, SECONDS } from '../../src/core/constants.mjs'
 export function e2eNodeKeyRefreshTest (testName, mode, releaseTag = HEDERA_PLATFORM_VERSION_TAG) {
   const defaultTimeout = 2 * MINUTES
 
-  describe(`NodeCommand [testName ${testName}, mode ${mode}, release ${releaseTag}]`, () => {
+  describe(`NodeCommand [testName ${testName}, mode ${mode}, release ${releaseTag}]`, async () => {
     const namespace = testName
     const argv = getDefaultArgv()
     argv[flags.namespace.name] = namespace
@@ -49,7 +49,7 @@ export function e2eNodeKeyRefreshTest (testName, mode, releaseTag = HEDERA_PLATF
     argv[flags.chartDirectory.name] = process.env.SOLO_FST_CHARTS_DIR ?? undefined
     argv[flags.quiet.name] = true
 
-    const bootstrapResp = bootstrapNetwork(testName, argv)
+    const bootstrapResp = await bootstrapNetwork(testName, argv)
     const accountManager = bootstrapResp.opts.accountManager
     const k8 = bootstrapResp.opts.k8
     const nodeCmd = bootstrapResp.cmd.nodeCmd
@@ -84,7 +84,7 @@ export function e2eNodeKeyRefreshTest (testName, mode, releaseTag = HEDERA_PLATF
                 1, 300, 1000)).to.eventually.be.ok
             } catch (e) {
               nodeCmd.logger.showUserError(e)
-              expect(e).to.be.null
+              expect.fail()
             } finally {
               await nodeCmd.close()
             }
@@ -132,7 +132,7 @@ export function e2eNodeKeyRefreshTest (testName, mode, releaseTag = HEDERA_PLATF
             nodeAlias)).to.eventually.be.ok
         } catch (e) {
           nodeCmd.logger.showUserError(e)
-          expect(e).to.be.null
+          expect.fail()
         } finally {
           await nodeCmd.close()
         }
@@ -150,7 +150,7 @@ export function e2eNodeKeyRefreshTest (testName, mode, releaseTag = HEDERA_PLATF
           ])
         } catch (e) {
           nodeCmd.logger.showUserError(e)
-          expect(e).to.be.null
+          expect.fail()
         } finally {
           await nodeCmd.close()
           await sleep(10 * SECONDS) // sleep to wait for node to finish starting

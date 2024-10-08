@@ -32,7 +32,7 @@ import { NodeCommand } from '../../../src/commands/node.mjs'
 import { HEDERA_HAPI_PATH, MINUTES, ROOT_CONTAINER } from '../../../src/core/constants.mjs'
 import fs from 'fs'
 
-describe('Node update', () => {
+describe('Node update', async () => {
   const defaultTimeout = 2 * MINUTES
   const namespace = 'node-update'
   const updateNodeId = 'node2'
@@ -52,7 +52,7 @@ describe('Node update', () => {
   argv[flags.namespace.name] = namespace
   argv[flags.persistentVolumeClaims.name] = true
   argv[flags.quiet.name] = true
-  const bootstrapResp = bootstrapNetwork(namespace, argv)
+  const bootstrapResp = await bootstrapNetwork(namespace, argv)
   const nodeCmd = bootstrapResp.cmd.nodeCmd
   const accountCmd = bootstrapResp.cmd.accountCmd
   const k8 = bootstrapResp.opts.k8

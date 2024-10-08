@@ -35,7 +35,7 @@ import { Status, TopicCreateTransaction, TopicMessageSubmitTransaction } from '@
 import * as http from 'http'
 import { MINUTES, SECONDS } from '../../../src/core/constants.mjs'
 
-describe('MirrorNodeCommand', () => {
+describe('MirrorNodeCommand', async () => {
   const testName = 'mirror-cmd-e2e'
   const namespace = testName
   const argv = getDefaultArgv()
@@ -53,7 +53,7 @@ describe('MirrorNodeCommand', () => {
   argv[flags.chartDirectory.name] = process.env.SOLO_FST_CHARTS_DIR ?? undefined
   argv[flags.quiet.name] = true
 
-  const bootstrapResp = bootstrapNetwork(testName, argv)
+  const bootstrapResp = await bootstrapNetwork(testName, argv)
   const k8 = bootstrapResp.opts.k8
   const mirrorNodeCmd = new MirrorNodeCommand(bootstrapResp.opts)
   const downloader = new core.PackageDownloader(mirrorNodeCmd.logger)
@@ -87,7 +87,7 @@ describe('MirrorNodeCommand', () => {
       await expect(mirrorNodeCmd.deploy(argv)).to.eventually.be.ok
     } catch (e) {
       mirrorNodeCmd.logger.showUserError(e)
-      expect(e).to.be.null
+      expect.fail()
     }
 
     expect(mirrorNodeCmd.getUnusedConfigs(MirrorNodeCommand.DEPLOY_CONFIGS_NAME)).to.deep.equal([
@@ -116,7 +116,7 @@ describe('MirrorNodeCommand', () => {
       await sleep(2 * SECONDS)
     } catch (e) {
       mirrorNodeCmd.logger.showUserError(e)
-      expect(e).to.be.null
+      expect.fail()
     }
   }).timeout(1 * MINUTES)
 
@@ -129,7 +129,7 @@ describe('MirrorNodeCommand', () => {
       mirrorNodeCmd.logger.debug('mirror node API and explorer GUI are running')
     } catch (e) {
       mirrorNodeCmd.logger.showUserError(e)
-      expect(e).to.be.null
+      expect.fail()
     }
   }).timeout(1 * MINUTES)
 
@@ -150,7 +150,7 @@ describe('MirrorNodeCommand', () => {
       expect(submitReceipt.status).to.deep.equal(Status.Success)
     } catch (e) {
       mirrorNodeCmd.logger.showUserError(e)
-      expect(e).to.be.null
+      expect.fail()
     }
   }).timeout(1 * MINUTES)
 
@@ -196,7 +196,7 @@ describe('MirrorNodeCommand', () => {
       await k8.stopPortForward(portForwarder)
     } catch (e) {
       mirrorNodeCmd.logger.showUserError(e)
-      expect(e).to.be.null
+      expect.fail()
     }
   }).timeout(5 * MINUTES)
 
@@ -205,7 +205,7 @@ describe('MirrorNodeCommand', () => {
       await expect(mirrorNodeCmd.destroy(argv)).to.eventually.be.ok
     } catch (e) {
       mirrorNodeCmd.logger.showUserError(e)
-      expect(e).to.be.null
+      expect.fail()
     }
   }).timeout(1 * MINUTES)
 

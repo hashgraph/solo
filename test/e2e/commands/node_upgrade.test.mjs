@@ -28,7 +28,7 @@ import { getNodeLogs } from '../../../src/core/helpers.mjs'
 import { PREPARE_UPGRADE_CONFIGS_NAME, DOWNLOAD_GENERATED_FILES_CONFIGS_NAME } from '../../../src/commands/node/configs.mjs'
 import { MINUTES } from "../../../src/core/constants.mjs";
 
-describe('Node upgrade', () => {
+describe('Node upgrade', async () => {
   const namespace = 'node-upgrade'
   const argv = getDefaultArgv()
   argv[flags.nodeAliasesUnparsed.name] = 'node1,node2,node3'
@@ -42,7 +42,7 @@ describe('Node upgrade', () => {
 
   const upgradeArgv = getDefaultArgv()
 
-  const bootstrapResp = bootstrapNetwork(namespace, argv)
+  const bootstrapResp = await bootstrapNetwork(namespace, argv)
   const nodeCmd = bootstrapResp.cmd.nodeCmd
   const accountCmd = bootstrapResp.cmd.accountCmd
   const k8 = bootstrapResp.opts.k8

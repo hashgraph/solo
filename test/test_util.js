@@ -179,6 +179,7 @@ export function bootstrapTestVariables (testName, argv,
  * @param {NodeCommand|null} [nodeCmdArg]
  * @param {AccountCommand|null} [accountCmdArg]
  * @param {boolean} [startNodes] - start nodes after deployment, default is true
+ * @returns {Promise<*>}
  */
 export function bootstrapNetwork (testName, argv,
   k8Arg = null,
@@ -198,86 +199,87 @@ export function bootstrapNetwork (testName, argv,
   const nodeCmd = bootstrapResp.cmd.nodeCmd
   const chartManager = bootstrapResp.opts.chartManager
 
-  describe(`Bootstrap network for test [release ${argv[flags.releaseTag.name]}}]`, () => {
-    before(() => {
-      bootstrapResp.opts.logger.showUser(`------------------------- START: bootstrap (${testName}) ----------------------------`)
-    })
+  return new Promise((resolve) => {
+    describe(`Bootstrap network for test [release ${argv[flags.releaseTag.name]}}]`, () => {
+      before(() => {
+        bootstrapResp.opts.logger.showUser(`------------------------- START: bootstrap (${testName}) ----------------------------`)
+      })
 
-    after(() => {
-      bootstrapResp.opts.logger.showUser(`------------------------- END: bootstrap (${testName}) ----------------------------`)
-    })
+      after(() => {
+        bootstrapResp.opts.logger.showUser(`------------------------- END: bootstrap (${testName}) ----------------------------`)
+        resolve(bootstrapResp)
+      })
 
-    it('should cleanup previous deployment', async () => {
-      await initCmd.init(argv)
+      it('should cleanup previous deployment', async () => {
+        await initCmd.init(argv)
 
-      if (await k8.hasNamespace(namespace)) {
-        await k8.deleteNamespace(namespace)
+        if (await k8.hasNamespace(namespace)) {
+          await k8.deleteNamespace(namespace)
 
-        while (await k8.hasNamespace(namespace)) {
-          testLogger.debug(`Namespace ${namespace} still exist. Waiting...`)
-          await sleep(1.5 * SECONDS)
+          while (await k8.hasNamespace(namespace)) {
+            testLogger.debug(`Namespace ${namespace} still exist. Waiting...`)
+            await sleep(1.5 * SECONDS)
+          }
         }
+
+        if (!await chartManager.isChartInstalled(constants.FULLSTACK_SETUP_NAMESPACE, constants.FULLSTACK_CLUSTER_SETUP_CHART)) {
+          await clusterCmd.setup(argv)
+        }
+      }).timeout(2 * MINUTES)
+
+      it('generate key files', async () => {
+        await expect(nodeCmd.keys(argv)).to.eventually.be.ok
+        expect(nodeCmd.getUnusedConfigs(NodeCommand.KEYS_CONFIGS_NAME)).to.deep.equal([
+          flags.cacheDir.constName,
+          flags.devMode.constName,
+          flags.quiet.constName
+        ])
+      }).timeout(2 * MINUTES)
+
+      it('should succeed with network deploy', async () => {
+        await networkCmd.deploy(argv)
+
+        expect(networkCmd.getUnusedConfigs(NetworkCommand.DEPLOY_CONFIGS_NAME)).to.deep.equal([
+          flags.apiPermissionProperties.constName,
+          flags.applicationEnv.constName,
+          flags.applicationProperties.constName,
+          flags.bootstrapProperties.constName,
+          flags.chainId.constName,
+          flags.log4j2Xml.constName,
+          flags.profileFile.constName,
+          flags.profileName.constName,
+          flags.quiet.constName,
+          flags.settingTxt.constName
+        ])
+      }).timeout(2 * MINUTES)
+
+      if (startNodes) {
+        it('should succeed with node setup command', async () => {
+          // cache this, because `solo node setup.finalize()` will reset it to false
+          try {
+            await expect(nodeCmd.setup(argv)).to.eventually.be.ok
+            expect(nodeCmd.getUnusedConfigs(NodeCommand.SETUP_CONFIGS_NAME)).to.deep.equal([
+              flags.app.constName,
+              flags.appConfig.constName,
+              flags.devMode.constName
+            ])
+          } catch (e) {
+            nodeCmd.logger.showUserError(e)
+            expect.fail()
+          }
+        }).timeout(4 * MINUTES)
+
+        it('should succeed with node start command', async () => {
+          try {
+            await expect(nodeCmd.start(argv)).to.eventually.be.ok
+          } catch (e) {
+            nodeCmd.logger.showUserError(e)
+            expect.fail()
+          }
+        }).timeout(30 * MINUTES)
       }
-
-      if (!await chartManager.isChartInstalled(constants.FULLSTACK_SETUP_NAMESPACE, constants.FULLSTACK_CLUSTER_SETUP_CHART)) {
-        await clusterCmd.setup(argv)
-      }
-    }).timeout(2 * MINUTES)
-
-    it('generate key files', async () => {
-      await expect(nodeCmd.keys(argv)).to.eventually.be.ok
-      expect(nodeCmd.getUnusedConfigs(NodeCommand.KEYS_CONFIGS_NAME)).to.deep.equal([
-        flags.cacheDir.constName,
-        flags.devMode.constName,
-        flags.quiet.constName
-      ])
-    }).timeout(2 * MINUTES)
-
-    it('should succeed with network deploy', async () => {
-      await networkCmd.deploy(argv)
-
-      expect(networkCmd.getUnusedConfigs(NetworkCommand.DEPLOY_CONFIGS_NAME)).to.deep.equal([
-        flags.apiPermissionProperties.constName,
-        flags.applicationEnv.constName,
-        flags.applicationProperties.constName,
-        flags.bootstrapProperties.constName,
-        flags.chainId.constName,
-        flags.log4j2Xml.constName,
-        flags.profileFile.constName,
-        flags.profileName.constName,
-        flags.quiet.constName,
-        flags.settingTxt.constName
-      ])
-    }).timeout(2 * MINUTES)
-
-    if (startNodes) {
-      it('should succeed with node setup command', async () => {
-        // cache this, because `solo node setup.finalize()` will reset it to false
-        try {
-          await expect(nodeCmd.setup(argv)).to.eventually.be.ok
-          expect(nodeCmd.getUnusedConfigs(NodeCommand.SETUP_CONFIGS_NAME)).to.deep.equal([
-            flags.app.constName,
-            flags.appConfig.constName,
-            flags.devMode.constName
-          ])
-        } catch (e) {
-          nodeCmd.logger.showUserError(e)
-          expect(e).be.null
-        }
-      }).timeout(4 * MINUTES)
-
-      it('should succeed with node start command', async () => {
-        try {
-          await expect(nodeCmd.start(argv)).to.eventually.be.ok
-        } catch (e) {
-          nodeCmd.logger.showUserError(e)
-          expect(e).to.be.null
-        }
-      }).timeout(30 * MINUTES)
-    }
+    })
   })
-
-  return bootstrapResp
 }
 
 export function balanceQueryShouldSucceed (accountManager, cmd, namespace) {
@@ -294,7 +296,7 @@ export function balanceQueryShouldSucceed (accountManager, cmd, namespace) {
       expect(balance.hbars).not.be.null
     } catch (e) {
       cmd.logger.showUserError(e)
-      expect(e).to.be.null
+      expect.fail()
     }
     await sleep(1 * SECONDS)
   }).timeout(2 * MINUTES)
@@ -326,7 +328,7 @@ export function accountCreationShouldSucceed (accountManager, nodeCmd, namespace
       expect(accountInfo.balance).to.equal(amount)
     } catch (e) {
       nodeCmd.logger.showUserError(e)
-      expect(e).to.be.null
+      expect.fail()
     }
   }).timeout(2 * MINUTES)
 }

@@ -107,7 +107,7 @@ describe('NetworkCommand', () => {
       ])
     } catch (e) {
       networkCmd.logger.showUserError(e)
-      expect(e).to.be.null
+      expect.fail()
     }
   }).timeout(4 * MINUTES)
 
@@ -149,7 +149,7 @@ describe('NetworkCommand', () => {
       await expect(k8.listSecretsByNamespace(namespace)).eventually.to.have.lengthOf(0)
     } catch (e) {
       networkCmd.logger.showUserError(e)
-      expect(e).to.be.null
+      expect.fail()
     }
   }).timeout(2 * MINUTES)
 })

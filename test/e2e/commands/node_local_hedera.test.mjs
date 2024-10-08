@@ -25,7 +25,7 @@ import {
 import { getNodeLogs } from '../../../src/core/helpers.mjs'
 import { MINUTES } from '../../../src/core/constants.mjs'
 
-describe('Node local build', () => {
+describe('Node local build', async () => {
   const LOCAL_HEDERA = 'local-hedera-app'
   const argv = getDefaultArgv()
   argv[flags.nodeAliasesUnparsed.name] = 'node1,node2,node3'
@@ -43,11 +43,11 @@ describe('Node local build', () => {
     await hederaK8.deleteNamespace(LOCAL_HEDERA)
   })
 
-  describe('Node for hedera app should start successfully', () => {
+  describe('Node for hedera app should start successfully', async () => {
     console.log('Starting local build for Hedera app')
     argv[flags.localBuildPath.name] = 'node1=../hedera-services/hedera-node/data/,../hedera-services/hedera-node/data,node3=../hedera-services/hedera-node/data'
     argv[flags.namespace.name] = LOCAL_HEDERA
-    const bootstrapResp = bootstrapNetwork(LOCAL_HEDERA, argv)
+    const bootstrapResp = await bootstrapNetwork(LOCAL_HEDERA, argv)
     hederaK8 = bootstrapResp.opts.k8
   })
 })

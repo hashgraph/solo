@@ -114,7 +114,7 @@ describe('ClusterCommand', () => {
       await expect(clusterCmd.reset(argv)).to.be.rejectedWith('Error on cluster reset')
     } catch (e) {
       clusterCmd.logger.showUserError(e)
-      expect(e).to.be.null
+      expect.fail()
     }
   }).timeout(1 * MINUTES)
 
