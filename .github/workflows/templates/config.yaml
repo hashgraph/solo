@@ -4,7 +4,7 @@ tests:
   # name: capitalized noun form
   # testFilePrefix: node-update # for node-update.test.mjs
   - name: Integration
-    mochaPostfix: "--grep '.*\\.test\\.mjs'"
+    mochaPostfix: "--grep '.*\\/e2e\\/int\\/.*'"
 
   - name: Standard
     mochaPostfix: "'test/e2e/**/*.mjs' --ignore 'test/unit/**/*.mjs' --ignore 'test/e2e/commands/mirror_node*.mjs' --ignore 'test/e2e/commands/node*.mjs' --ignore 'test/e2e/commands/separate_node*.mjs' --ignore 'test/e2e/commands/relay*.mjs'"
