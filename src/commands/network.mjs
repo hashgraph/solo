@@ -69,7 +69,7 @@ export class NetworkCommand extends BaseCommand {
       flags.chainId,
       flags.chartDirectory,
       flags.enablePrometheusSvcMonitor,
-      flags.fstChartVersion,
+      flags.soloChartVersion,
       flags.debugNodeAlias,
       flags.log4j2Xml,
       flags.namespace,
@@ -91,7 +91,7 @@ export class NetworkCommand extends BaseCommand {
   async prepareValuesArg (config = {}) {
     let valuesArg = ''
     if (config.chartDirectory) {
-      valuesArg = `-f ${path.join(config.chartDirectory, 'fullstack-deployment', 'values.yaml')}`
+      valuesArg = `-f ${path.join(config.chartDirectory, 'solo-deployment', 'values.yaml')}`
     }
 
     if (config.app !== constants.HEDERA_APP_NAME) {
@@ -106,7 +106,7 @@ export class NetworkCommand extends BaseCommand {
     }
 
     const profileName = this.configManager.getFlag(flags.profileName)
-    this.profileValuesFile = await this.profileManager.prepareValuesForFstChart(profileName)
+    this.profileValuesFile = await this.profileManager.prepareValuesForSoloChart(profileName)
     if (this.profileValuesFile) {
       valuesArg += this.prepareValuesFiles(this.profileValuesFile)
     }
@@ -165,7 +165,7 @@ export class NetworkCommand extends BaseCommand {
      * @property {string} cacheDir
      * @property {string} chartDirectory
      * @property {boolean} enablePrometheusSvcMonitor
-     * @property {string} fstChartVersion
+     * @property {string} soloChartVersion
      * @property {string} namespace
      * @property {string} nodeAliasesUnparsed
      * @property {string} persistentVolumeClaims
@@ -202,7 +202,7 @@ export class NetworkCommand extends BaseCommand {
 
     // compute values
     config.chartPath = await this.prepareChartPath(config.chartDirectory,
-      constants.FULLSTACK_TESTING_CHART, constants.FULLSTACK_DEPLOYMENT_CHART)
+      constants.SOLO_TESTING_CHART, constants.SOLO_DEPLOYMENT_CHART)
 
     config.valuesArg = await this.prepareValuesArg(config)
 
@@ -295,18 +295,18 @@ export class NetworkCommand extends BaseCommand {
         }
       },
       {
-        title: `Install chart '${constants.FULLSTACK_DEPLOYMENT_CHART}'`,
+        title: `Install chart '${constants.SOLO_DEPLOYMENT_CHART}'`,
         task: async (ctx, _) => {
           const config = /** @type {NetworkDeployConfigClass} **/ ctx.config
-          if (await self.chartManager.isChartInstalled(config.namespace, constants.FULLSTACK_DEPLOYMENT_CHART)) {
-            await self.chartManager.uninstall(config.namespace, constants.FULLSTACK_DEPLOYMENT_CHART)
+          if (await self.chartManager.isChartInstalled(config.namespace, constants.SOLO_DEPLOYMENT_CHART)) {
+            await self.chartManager.uninstall(config.namespace, constants.SOLO_DEPLOYMENT_CHART)
           }
 
           await this.chartManager.install(
             config.namespace,
-            constants.FULLSTACK_DEPLOYMENT_CHART,
+            constants.SOLO_DEPLOYMENT_CHART,
             config.chartPath,
-            config.fstChartVersion,
+            config.soloChartVersion,
             config.valuesArg)
         }
       },
@@ -317,17 +317,17 @@ export class NetworkCommand extends BaseCommand {
              const subTasks = []
              const config = /** @type {NetworkDeployConfigClass} **/ ctx.config
 
-             // nodes
-             for (const nodeAlias of config.nodeAliases) {
-               subTasks.push({
-                 title: `Check Node: ${chalk.yellow(nodeAlias)}`,
-                 task: async () =>
-                   await self.k8.waitForPods([constants.POD_PHASE_RUNNING], [
-                     'fullstack.hedera.com/type=network-node',
-                    `fullstack.hedera.com/node-name=${nodeAlias}`
-                   ], 1, 60 * 15, 1000) // timeout 15 minutes
-               })
-             }
+            // nodes
+            for (const nodeAlias of config.nodeAliases) {
+              subTasks.push({
+                title: `Check Node: ${chalk.yellow(nodeAlias)}`,
+                task: async () =>
+                  await self.k8.waitForPods([constants.POD_PHASE_RUNNING], [
+                    'solo.hedera.com/type=network-node',
+                    `solo.hedera.com/node-name=${nodeAlias}`
+                  ], 1, 60 * 15, 1000) // timeout 15 minutes
+              })
+            }
 
              // set up the sub-tasks
              return task.newListr(subTasks, {
@@ -345,27 +345,27 @@ export class NetworkCommand extends BaseCommand {
              const subTasks = []
              const config = /** @type {NetworkDeployConfigClass} **/ ctx.config
 
-             // HAProxy
-             for (const nodeAlias of config.nodeAliases) {
-               subTasks.push({
-                 title: `Check HAProxy for: ${chalk.yellow(nodeAlias)}`,
-                 task: async () =>
-                   await self.k8.waitForPods([constants.POD_PHASE_RUNNING], [
-                     'fullstack.hedera.com/type=haproxy'
-                   ], 1, 60 * 15, 1000) // timeout 15 minutes
-               })
-             }
+            // HAProxy
+            for (const nodeAlias of config.nodeAliases) {
+              subTasks.push({
+                title: `Check HAProxy for: ${chalk.yellow(nodeAlias)}`,
+                task: async () =>
+                  await self.k8.waitForPods([constants.POD_PHASE_RUNNING], [
+                    'solo.hedera.com/type=haproxy'
+                  ], 1, 60 * 15, 1000) // timeout 15 minutes
+              })
+            }
 
-             // Envoy Proxy
-             for (const nodeAlias of config.nodeAliases) {
-               subTasks.push({
-                 title: `Check Envoy Proxy for: ${chalk.yellow(nodeAlias)}`,
-                 task: async () =>
-                   await self.k8.waitForPods([constants.POD_PHASE_RUNNING], [
-                     'fullstack.hedera.com/type=envoy-proxy'
-                   ], 1, 60 * 15, 1000) // timeout 15 minutes
-               })
-             }
+            // Envoy Proxy
+            for (const nodeAlias of config.nodeAliases) {
+              subTasks.push({
+                title: `Check Envoy Proxy for: ${chalk.yellow(nodeAlias)}`,
+                task: async () =>
+                  await self.k8.waitForPods([constants.POD_PHASE_RUNNING], [
+                    'solo.hedera.com/type=envoy-proxy'
+                  ], 1, 60 * 15, 1000) // timeout 15 minutes
+              })
+            }
 
              // set up the sub-tasks
              return task.newListr(subTasks, {
@@ -408,7 +408,7 @@ export class NetworkCommand extends BaseCommand {
     try {
       await tasks.run()
     } catch (e) {
-      throw new SoloError(`Error installing chart ${constants.FULLSTACK_DEPLOYMENT_CHART}`, e)
+      throw new SoloError(`Error installing chart ${constants.SOLO_DEPLOYMENT_CHART}`, e)
     }
 
     return true
@@ -453,9 +453,9 @@ export class NetworkCommand extends BaseCommand {
         }
       },
       {
-        title: `Uninstall chart ${constants.FULLSTACK_DEPLOYMENT_CHART}`,
+        title: `Uninstall chart ${constants.SOLO_DEPLOYMENT_CHART}`,
         task: async (ctx, _) => {
-          await self.chartManager.uninstall(ctx.config.namespace, constants.FULLSTACK_DEPLOYMENT_CHART)
+          await self.chartManager.uninstall(ctx.config.namespace, constants.SOLO_DEPLOYMENT_CHART)
         }
       },
       {
@@ -514,15 +514,15 @@ export class NetworkCommand extends BaseCommand {
         }
       },
       {
-        title: `Upgrade chart '${constants.FULLSTACK_DEPLOYMENT_CHART}'`,
+        title: `Upgrade chart '${constants.SOLO_DEPLOYMENT_CHART}'`,
         task: async (ctx, _) => {
           const config = ctx.config
           await this.chartManager.upgrade(
             config.namespace,
-            constants.FULLSTACK_DEPLOYMENT_CHART,
+            constants.SOLO_DEPLOYMENT_CHART,
             config.chartPath,
             config.valuesArg,
-            config.fstChartVersion
+            config.soloChartVersion
           )
         }
       },
@@ -530,7 +530,7 @@ export class NetworkCommand extends BaseCommand {
         title: 'Waiting for network pods to be running',
         task: async (ctx, _) => {
           await this.k8.waitForPods([constants.POD_PHASE_RUNNING], [
-            'fullstack.hedera.com/type=network-node'
+            'solo.hedera.com/type=network-node'
           ], 1)
         }
       }
@@ -542,7 +542,7 @@ export class NetworkCommand extends BaseCommand {
     try {
       await tasks.run()
     } catch (e) {
-      throw new SoloError(`Error upgrading chart ${constants.FULLSTACK_DEPLOYMENT_CHART}`, e)
+      throw new SoloError(`Error upgrading chart ${constants.SOLO_DEPLOYMENT_CHART}`, e)
     }
 
     return true

@@ -53,7 +53,7 @@ export class MirrorNodeCommand extends BaseCommand {
       flags.chartDirectory,
       flags.deployHederaExplorer,
       flags.enableHederaExplorerTls,
-      flags.fstChartVersion,
+      flags.soloChartVersion,
       flags.hederaExplorerTlsHostName,
       flags.hederaExplorerTlsLoadBalancerIp,
       flags.namespace,
@@ -151,7 +151,7 @@ export class MirrorNodeCommand extends BaseCommand {
             flags.chartDirectory,
             flags.deployHederaExplorer,
             flags.enableHederaExplorerTls,
-            flags.fstChartVersion,
+            flags.soloChartVersion,
             flags.hederaExplorerTlsHostName,
             flags.hederaExplorerTlsLoadBalancerIp,
             flags.tlsClusterIssuerType,
@@ -167,7 +167,7 @@ export class MirrorNodeCommand extends BaseCommand {
            * @property {string} chartDirectory
            * @property {boolean} deployHederaExplorer
            * @property {string} enableHederaExplorerTls
-           * @property {string} fstChartVersion
+           * @property {string} soloChartVersion
            * @property {string} hederaExplorerTlsHostName
            * @property {string} hederaExplorerTlsLoadBalancerIp
            * @property {string} namespace
@@ -191,7 +191,7 @@ export class MirrorNodeCommand extends BaseCommand {
             ['chartPath', 'valuesArg'])
 
           ctx.config.chartPath = await self.prepareChartPath(ctx.config.chartDirectory,
-            constants.FULLSTACK_TESTING_CHART, constants.FULLSTACK_DEPLOYMENT_CHART)
+            constants.SOLO_TESTING_CHART, constants.SOLO_DEPLOYMENT_CHART)
 
           ctx.config.valuesArg = await self.prepareValuesArg(ctx.config)
 
@@ -218,10 +218,10 @@ export class MirrorNodeCommand extends BaseCommand {
               task: async (ctx, _) => {
                 await self.chartManager.upgrade(
                   ctx.config.namespace,
-                  constants.FULLSTACK_DEPLOYMENT_CHART,
+                  constants.SOLO_DEPLOYMENT_CHART,
                   ctx.config.chartPath,
                   ctx.config.valuesArg,
-                  ctx.config.fstChartVersion
+                  ctx.config.soloChartVersion
                 )
               }
             }
@@ -385,12 +385,12 @@ export class MirrorNodeCommand extends BaseCommand {
 
           ctx.config = {
             chartDirectory: self.configManager.getFlag(flags.chartDirectory),
-            fstChartVersion: this.configManager.getFlag(flags.fstChartVersion),
+            soloChartVersion: this.configManager.getFlag(flags.soloChartVersion),
             namespace: self.configManager.getFlag(flags.namespace)
           }
 
           ctx.config.chartPath = await self.prepareChartPath(ctx.config.chartDirectory,
-            constants.FULLSTACK_TESTING_CHART, constants.FULLSTACK_DEPLOYMENT_CHART)
+            constants.SOLO_TESTING_CHART, constants.SOLO_DEPLOYMENT_CHART)
 
           ctx.config.valuesArg = ' --set hedera-mirror-node.enabled=false --set hedera-explorer.enabled=false'
 
@@ -406,10 +406,10 @@ export class MirrorNodeCommand extends BaseCommand {
         task: async (ctx, _) => {
           await self.chartManager.upgrade(
             ctx.config.namespace,
-            constants.FULLSTACK_DEPLOYMENT_CHART,
+            constants.SOLO_DEPLOYMENT_CHART,
             ctx.config.chartPath,
             ctx.config.valuesArg,
-            ctx.config.fstChartVersion
+            ctx.config.soloChartVersion
           )
         }
       },
@@ -418,7 +418,7 @@ export class MirrorNodeCommand extends BaseCommand {
         task: async (ctx, _) => {
           const pvcs = await self.k8.listPvcsByNamespace(ctx.config.namespace, [
             'app.kubernetes.io/component=postgresql',
-            'app.kubernetes.io/instance=fullstack-deployment',
+            'app.kubernetes.io/instance=solo-deployment',
             'app.kubernetes.io/name=postgres'
           ])
 
@@ -480,7 +480,7 @@ export class MirrorNodeCommand extends BaseCommand {
             builder: y => flags.setCommandFlags(y,
               flags.chartDirectory,
               flags.force,
-              flags.fstChartVersion,
+              flags.soloChartVersion,
               flags.namespace
             ),
             handler: argv => {

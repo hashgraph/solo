@@ -62,12 +62,12 @@ describe('Helpers', () => {
   })
 
   it.each([
-    { input: 'v0.42.5', output: 'hashgraph/full-stack-testing/ubi8-init-java17' },
-    { input: 'v0.45.1', output: 'hashgraph/full-stack-testing/ubi8-init-java17' },
-    { input: 'v0.46.0', output: 'hashgraph/full-stack-testing/ubi8-init-java21' },
-    { input: 'v0.47.1', output: 'hashgraph/full-stack-testing/ubi8-init-java21' },
-    { input: 'v0.47.1-alpha.0', output: 'hashgraph/full-stack-testing/ubi8-init-java21' },
-    { input: HEDERA_PLATFORM_VERSION, output: 'hashgraph/full-stack-testing/ubi8-init-java21' }
+    { input: 'v0.42.5', output: 'hashgraph/solo-containers/ubi8-init-java17' },
+    { input: 'v0.45.1', output: 'hashgraph/solo-containers/ubi8-init-java17' },
+    { input: 'v0.46.0', output: 'hashgraph/solo-containers/ubi8-init-java21' },
+    { input: 'v0.47.1', output: 'hashgraph/solo-containers/ubi8-init-java21' },
+    { input: 'v0.47.1-alpha.0', output: 'hashgraph/solo-containers/ubi8-init-java21' },
+    { input: HEDERA_PLATFORM_VERSION, output: 'hashgraph/solo-containers/ubi8-init-java21' }
   ])('should be able to determine root-image based on Hedera platform version', (t) => {
     expect(helpers.getRootImageRepository(t.input)).toStrictEqual(t.output)
   })
