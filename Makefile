@@ -19,93 +19,92 @@ DEFAULT_TIMEOUT=20000
 # ============================= UNIT TEST COMMANDS =============================
 test:
 	cross-env NODE_OPTIONS=$(NODE_OPTIONS) MOCHA_SUITE_NAME="Unit Tests" \
-	nyc $(NYC_REPORTERS) --report-dir='coverage/unit' $(MOCHA) \
-	'test/unit/**/*.mjs' --reporter spec --check-leaks --timeout $(DEFAULT_TIMEOUT) \
-	&& cross-env MOCHA_FILE=$(MOCHA_FILE) $(MOCHA) 'test/unit/**/*.mjs' $(JUNIT_REPORTER) --timeout $(DEFAULT_TIMEOUT)
+	nyc $(NYC_REPORTERS) --report-dir='coverage/unit' \
+	$(MOCHA) 'test/unit/**/*.mjs' ${JUNIT_REPORTER} \
+	--reporter-options mochaFile=$(MOCHA_FILE) --check-leaks --timeout $(DEFAULT_TIMEOUT)
 
 # ============================ E2E TEST COMMANDS ================================
 test-e2e-all:
-	$(NODE_OPTIONS) MOCHA_SUITE_NAME='Mocha E2E All Tests' \
-	nyc $(NYC_REPORTERS) --report-dir='coverage/e2e' $(MOCHA) \
-	'test/e2e/**/*.mjs' --timeout $(DEFAULT_TIMEOUT) \
-	&& cross-env MOCHA_FILE=$(MOCHA_FILE) $(MOCHA) 'test/e2e/**/*.mjs' $(JUNIT_REPORTER) --timeout $(DEFAULT_TIMEOUT)
+	cross-env NODE_OPTIONS=$(NODE_OPTIONS) MOCHA_SUITE_NAME='Mocha E2E All Tests' \
+	nyc $(NYC_REPORTERS) --report-dir='coverage/e2e' \
+	$(MOCHA) 'test/e2e/**/*.mjs' ${JUNIT_REPORTER} \
+	--reporter-options mochaFile=$(MOCHA_FILE) --timeout $(DEFAULT_TIMEOUT)
 
 test-e2e-standard:
-	$(NODE_OPTIONS) MOCHA_SUITE_NAME='Mocha E2E Standard Tests' \
-	nyc $(NYC_REPORTERS) --report-dir='coverage/e2e-standard' $(MOCHA) \
-	'test/e2e/**/*.mjs' --ignore 'test/unit/**/*.mjs' \
+	cross-env NODE_OPTIONS=$(NODE_OPTIONS) MOCHA_SUITE_NAME='Mocha E2E Standard Tests' \
+	nyc $(NYC_REPORTERS) --report-dir='coverage/e2e-standard' \
+	$(MOCHA) 'test/e2e/**/*.mjs' --ignore 'test/unit/**/*.mjs' \
 	--ignore 'test/e2e/commands/mirror_node*.mjs' \
 	--ignore 'test/e2e/commands/node*.mjs' \
 	--ignore 'test/e2e/commands/separate_node*.mjs' \
-	--ignore 'test/e2e/commands/relay*.mjs' --timeout 30000 \
-	&& cross-env MOCHA_FILE=$(MOCHA_FILE) $(MOCHA) 'test/e2e/**/*.mjs' $(JUNIT_REPORTER) --timeout 30000
+	--ignore 'test/e2e/commands/relay*.mjs' --timeout $(DEFAULT_TIMEOUT) \
+	${JUNIT_REPORTER} --reporter-options mochaFile=$(MOCHA_FILE)
 
 test-e2e-mirror-node:
-	$(NODE_OPTIONS) MOCHA_SUITE_NAME='Mocha E2E Mirror Node Tests' \
+	cross-env NODE_OPTIONS=$(NODE_OPTIONS) MOCHA_SUITE_NAME='Mocha E2E Mirror Node Tests' \
 	nyc $(NYC_REPORTERS) --report-dir='coverage/e2e-mirror-node' \
 	$(MOCHA) 'test/e2e/commands/mirror_node.test.mjs' --timeout $(DEFAULT_TIMEOUT) \
-	&& cross-env MOCHA_FILE=$(MOCHA_FILE) $(MOCHA) 'test/e2e/commands/mirror_node.test.mjs' $(JUNIT_REPORTER) --timeout $(DEFAULT_TIMEOUT)
+	${JUNIT_REPORTER} --reporter-options mochaFile=$(MOCHA_FILE)
 
 test-e2e-node-pem-stop:
-	$(NODE_OPTIONS) MOCHA_SUITE_NAME='Mocha E2E Node PEM Stop Tests' \
+	cross-env NODE_OPTIONS=$(NODE_OPTIONS) MOCHA_SUITE_NAME='Mocha E2E Node PEM Stop Tests' \
 	nyc $(NYC_REPORTERS) --report-dir='coverage/e2e-node-pem-stop' \
 	$(MOCHA) 'test/e2e/commands/node_pem_stop.test.mjs' --timeout $(DEFAULT_TIMEOUT) \
-	&& cross-env MOCHA_FILE=$(MOCHA_FILE) $(MOCHA) 'test/e2e/commands/node_pem_stop.test.mjs' $(JUNIT_REPORTER) --timeout $(DEFAULT_TIMEOUT)
+	${JUNIT_REPORTER} --reporter-options mochaFile=$(MOCHA_FILE)
 
 test-e2e-node-pem-kill:
-	$(NODE_OPTIONS) MOCHA_SUITE_NAME='Mocha E2E Node PEM Kill Tests' \
+	cross-env NODE_OPTIONS=$(NODE_OPTIONS) MOCHA_SUITE_NAME='Mocha E2E Node PEM Kill Tests' \
 	nyc $(NYC_REPORTERS) --report-dir='coverage/e2e-node-pem-kill' \
 	$(MOCHA) 'test/e2e/commands/node_pem_kill.test.mjs' --timeout $(DEFAULT_TIMEOUT) \
-	&& cross-env MOCHA_FILE=$(MOCHA_FILE) $(MOCHA) 'test/e2e/commands/node_pem_kill.test.mjs' $(JUNIT_REPORTER) --timeout $(DEFAULT_TIMEOUT)
+	${JUNIT_REPORTER} --reporter-options mochaFile=$(MOCHA_FILE)
 
 test-e2e-node-local-build:
-	$(NODE_OPTIONS) MOCHA_SUITE_NAME='Mocha E2E Node Local Build Tests' \
+	cross-env NODE_OPTIONS=$(NODE_OPTIONS) MOCHA_SUITE_NAME='Mocha E2E Node Local Build Tests' \
 	nyc $(NYC_REPORTERS) --report-dir='coverage/e2e-node-local-build' \
 	$(MOCHA) 'test/e2e/commands/node_local*.test.mjs' --timeout $(DEFAULT_TIMEOUT) \
-	&& cross-env MOCHA_FILE=$(MOCHA_FILE) $(MOCHA) 'test/e2e/commands/node_local*.test.mjs' $(JUNIT_REPORTER) --timeout $(DEFAULT_TIMEOUT)
+	${JUNIT_REPORTER} --reporter-options mochaFile=$(MOCHA_FILE)
 
 test-e2e-node-add:
-	$(NODE_OPTIONS) MOCHA_SUITE_NAME='Mocha E2E Node Add Tests' \
+	cross-env NODE_OPTIONS=$(NODE_OPTIONS) MOCHA_SUITE_NAME='Mocha E2E Node Add Tests' \
 	nyc $(NYC_REPORTERS) --report-dir='coverage/e2e-node-add' \
 	$(MOCHA) 'test/e2e/commands/node_add*.test.mjs' --timeout $(DEFAULT_TIMEOUT) \
-	&& cross-env MOCHA_FILE=$(MOCHA_FILE) $(MOCHA) 'test/e2e/commands/node_add*.test.mjs' $(JUNIT_REPORTER) --timeout $(DEFAULT_TIMEOUT)
+	${JUNIT_REPORTER} --reporter-options mochaFile=$(MOCHA_FILE)
 
 test-e2e-node-add-separate-commands:
-	$(NODE_OPTIONS) MOCHA_SUITE_NAME='Mocha E2E Node Add - Separate Commands Tests' \
+	cross-env NODE_OPTIONS=$(NODE_OPTIONS) MOCHA_SUITE_NAME='Mocha E2E Node Add - Separate Commands Tests' \
 	nyc $(NYC_REPORTERS) --report-dir='coverage/e2e-node-add-separate-commands' \
 	$(MOCHA) 'test/e2e/commands/separate_node_add*.test.mjs' --timeout $(DEFAULT_TIMEOUT) \
-	&& cross-env MOCHA_FILE=$(MOCHA_FILE) $(MOCHA) 'test/e2e/commands/separate_node_add*.test.mjs' $(JUNIT_REPORTER) --timeout $(DEFAULT_TIMEOUT)
+	${JUNIT_REPORTER} --reporter-options mochaFile=$(MOCHA_FILE)
 
 test-e2e-node-update:
-	$(NODE_OPTIONS) MOCHA_SUITE_NAME='Mocha E2E Node Update Tests' \
+	cross-env NODE_OPTIONS=$(NODE_OPTIONS) MOCHA_SUITE_NAME='Mocha E2E Node Update Tests' \
 	nyc $(NYC_REPORTERS) --report-dir='coverage/e2e-node-update' \
 	$(MOCHA) 'test/e2e/commands/node_update*.test.mjs' --timeout $(DEFAULT_TIMEOUT) \
-	&& cross-env MOCHA_FILE=$(MOCHA_FILE) $(MOCHA) 'test/e2e/commands/node_update*.test.mjs' $(JUNIT_REPORTER) --timeout $(DEFAULT_TIMEOUT)
+	${JUNIT_REPORTER} --reporter-options mochaFile=$(MOCHA_FILE)
 
 test-e2e-node-delete:
-	$(NODE_OPTIONS) MOCHA_SUITE_NAME='Mocha E2E Node Delete Tests' \
+	cross-env NODE_OPTIONS=$(NODE_OPTIONS) MOCHA_SUITE_NAME='Mocha E2E Node Delete Tests' \
 	nyc $(NYC_REPORTERS) --report-dir='coverage/e2e-node-delete' \
 	$(MOCHA) 'test/e2e/commands/node_delete*.test.mjs' --timeout $(DEFAULT_TIMEOUT) \
-	&& cross-env MOCHA_FILE=$(MOCHA_FILE) $(MOCHA) 'test/e2e/commands/node_delete*.test.mjs' $(JUNIT_REPORTER) --timeout $(DEFAULT_TIMEOUT)
+	${JUNIT_REPORTER} --reporter-options mochaFile=$(MOCHA_FILE)
 
 test-e2e-node-delete-separate-commands:
-	$(NODE_OPTIONS) MOCHA_SUITE_NAME='Mocha E2E Node Delete - Separate Commands Tests' \
+	cross-env NODE_OPTIONS=$(NODE_OPTIONS) MOCHA_SUITE_NAME='Mocha E2E Node Delete - Separate Commands Tests' \
 	nyc $(NYC_REPORTERS) --report-dir='coverage/e2e-node-delete-separate-commands' \
 	$(MOCHA) 'test/e2e/commands/separate_node_delete*.test.mjs' --timeout $(DEFAULT_TIMEOUT) \
-	&& cross-env MOCHA_FILE=$(MOCHA_FILE) $(MOCHA) 'test/e2e/commands/separate_node_delete*.test.mjs' $(JUNIT_REPORTER) --timeout $(DEFAULT_TIMEOUT)
+	${JUNIT_REPORTER} --reporter-options mochaFile=$(MOCHA_FILE)
 
 test-e2e-node-upgrade:
-	$(NODE_OPTIONS) MOCHA_SUITE_NAME='Mocha E2E Node Upgrade Tests' \
+	cross-env NODE_OPTIONS=$(NODE_OPTIONS) MOCHA_SUITE_NAME='Mocha E2E Node Upgrade Tests' \
 	nyc $(NYC_REPORTERS) --report-dir='coverage/e2e-node-upgrade' \
 	$(MOCHA) 'test/e2e/commands/node_upgrade*.test.mjs' --timeout $(DEFAULT_TIMEOUT) \
-	&& cross-env MOCHA_FILE=$(MOCHA_FILE) $(MOCHA) 'test/e2e/commands/node_upgrade*.test.mjs' $(JUNIT_REPORTER) --timeout $(DEFAULT_TIMEOUT)
+	${JUNIT_REPORTER} --reporter-options mochaFile=$(MOCHA_FILE)
 
 test-e2e-relay:
-	$(NODE_OPTIONS) MOCHA_SUITE_NAME='Mocha E2E Relay Tests' \
+	cross-env NODE_OPTIONS=$(NODE_OPTIONS) MOCHA_SUITE_NAME='Mocha E2E Relay Tests' \
 	nyc $(NYC_REPORTERS) --report-dir='coverage/e2e-relay' \
 	$(MOCHA) 'test/e2e/commands/relay*.test.mjs' --timeout $(DEFAULT_TIMEOUT) \
-	&& cross-env MOCHA_FILE=$(MOCHA_FILE) $(MOCHA) 'test/e2e/commands/relay*.test.mjs' $(JUNIT_REPORTER) --timeout $(DEFAULT_TIMEOUT)
-
+	${JUNIT_REPORTER} --reporter-options mochaFile=$(MOCHA_FILE)
 # ============================= COVERAGE COMMANDS =============================
 merge-clean: ## Clean and prepare for coverage merging
 	rm -rf .nyc_output && mkdir .nyc_output && rm -rf coverage/lcov-report && \

@@ -93,16 +93,14 @@ function updatePackageJson (outputDir, config) {
       config.tests.forEach(test => {
         const formalNounName = test.name
         const kebabCase = changeCase.kebabCase(formalNounName)
-        
+        generatedLines.push(`${spacePrefix}"test-e2e-${kebabCase}": "NODE_OPTIONS=--experimental-vm-modules MOCHA_GREP='E2E ${formalNounName} Tests' nyc mocha --reporter mocha-junit-reporter --reporter-options mochaFile=./junit-e2e-${kebabCase}.xml --timeout 5000 ${test.mochaPostfix} --coverage --report-dir='coverage/e2e-${kebabCase}'"`);
+
         generatedLines.push(
-          `${spacePrefix}"test-e2e-${kebabCase}": "` +
-          `NODE_OPTIONS=--experimental-vm-modules MOCHA_SUITE_NAME='Mocha E2E ${formalNounName} Tests' ` +
-          `nyc --reporter=text --reporter=html --report-dir='coverage/e2e-${kebabCase}' ` +
-          `mocha --recursive --file 'test/setup.mjs' --exit 'test/e2e/commands/${test.mochaPostfix}' ` +
-          `--timeout 20000 ` +
-          `&& cross-env MOCHA_FILE=test-results/junit-report.xml mocha 'test/e2e/commands/${test.mochaPostfix}' ` +
-          `--reporter mocha-junit-reporter --timeout 20000"`
-        )
+          `${spacePrefix}"test-e2e-${kebabCase}": "NODE_OPTIONS=--experimental-vm-modules ` +
+          `MOCHA_GREP='E2E ${formalNounName} Tests' ` +
+          `nyc mocha --reporter mocha-junit-reporter --reporter-options mochaFile=./junit-e2e-${kebabCase}.xml ` +
+          `--timeout 5000 --coverage --report-dir='coverage/e2e-${kebabCase}' 'test/e2e/**/*.mjs'"`
+        );
       })
 
       outputLines.push(...generatedLines)
