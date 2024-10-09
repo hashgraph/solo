@@ -49,7 +49,7 @@ describe('AccountCommand', async () => {
   argv[flags.soloChartVersion.name] = version.SOLO_CHART_VERSION
   // set the env variable SOLO_CHARTS_DIR if developer wants to use local Solo charts
   argv[flags.chartDirectory.name] = process.env.SOLO_CHARTS_DIR ?? undefined
-  const bootstrapResp = bootstrapNetwork(testName, argv)
+  const bootstrapResp = await bootstrapNetwork(testName, argv)
   const accountCmd = new AccountCommand(bootstrapResp.opts, testSystemAccounts)
   bootstrapResp.cmd.accountCmd = accountCmd
   const k8 = bootstrapResp.opts.k8
