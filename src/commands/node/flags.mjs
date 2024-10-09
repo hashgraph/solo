@@ -30,16 +30,14 @@ export const UPDATE_FLAGS = {
         flags.debugNodeAlias,
         flags.endpointType,
         flags.fstChartVersion,
-        flags.gossipEndpoints,
         flags.gossipPrivateKey,
         flags.gossipPublicKey,
-        flags.grpcEndpoints,
         flags.newAccountNumber,
         flags.newAdminKey,
         flags.tlsPrivateKey,
         flags.tlsPublicKey
     ],
-    optionalFlags: [flags.chartDirectory, flags.devMode, flags.quiet, flags.localBuildPath, flags.force]
+    optionalFlags: [flags.chartDirectory, flags.devMode, flags.quiet, flags.localBuildPath, flags.force, flags.gossipEndpoints, flags.grpcEndpoints]
 }
 
 const COMMON_DELETE_REQUIRED_FLAGS = [
@@ -73,8 +71,6 @@ const COMMON_ADD_REQUIRED_FLAGS = [
     flags.endpointType,
     flags.generateGossipKeys,
     flags.generateTlsKeys,
-    flags.gossipEndpoints,
-    flags.grpcEndpoints,
     flags.namespace,
     flags.releaseTag
 ]
@@ -89,6 +85,8 @@ const COMMON_ADD_REQUIRED_NO_PROMPT_FLAGS = [
 ]
 
 const COMMON_ADD_OPTIONAL_FLAGS = [
+    flags.gossipEndpoints,
+    flags.grpcEndpoints,
     flags.devMode,
     flags.force,
     flags.localBuildPath,

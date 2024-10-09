@@ -55,6 +55,7 @@ export class NodeCommand extends BaseCommand {
             configManager: opts.configManager,
             logger: opts.logger,
             platformInstaller: opts.platformInstaller,
+            profileManager: opts.profileManager,
             k8: opts.k8,
             keyManager: opts.keyManager
         })

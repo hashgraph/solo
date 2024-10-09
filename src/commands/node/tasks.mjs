@@ -51,7 +51,7 @@ import * as x509 from "@peculiar/x509";
 
 export class NodeCommandTasks {
   /**
-     * @param {{logger: Logger, accountManager: AccountManager, configManager: ConfigManager, platformInstaller: PlatformInstaller, k8: K8, keyManager: accountManager}} opts
+     * @param {{logger: Logger, accountManager: AccountManager, configManager: ConfigManager, platformInstaller: PlatformInstaller, k8: K8, keyManager: accountManager, profileManager: ProfileManager}} opts
      */
   constructor (opts) {
     if (!opts || !opts.accountManager) throw new IllegalArgumentError('An instance of core/AccountManager is required', opts.accountManager)
@@ -60,12 +60,14 @@ export class NodeCommandTasks {
     if (!opts || !opts.k8) throw new Error('An instance of core/K8 is required')
     if (!opts || !opts.platformInstaller) throw new IllegalArgumentError('An instance of core/PlatformInstaller is required', opts.platformInstaller)
     if (!opts || !opts.keyManager) throw new IllegalArgumentError('An instance of core/KeyManager is required', opts.keyManager)
+    if (!opts || !opts.profileManager) throw new IllegalArgumentError('An instance of ProfileManager is required', opts.profileManager)
 
     this.accountManager = opts.accountManager
     this.configManager = opts.configManager
     this.logger = opts.logger
     this.k8 = /** @type {K8} **/ opts.k8
     this.platformInstaller = opts.platformInstaller
+    this.profileManager = opts.profileManager
     this.keyManager = opts.keyManager
   }
 
