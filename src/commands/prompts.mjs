@@ -429,6 +429,23 @@ export async function promptMirrorNodeVersion (task, input) {
     flags.mirrorNodeVersion.name)
 }
 
+export async function promptInputDir (task, input) {
+  return await promptToggle(task, input,
+      flags.inputDir.definition.defaultValue,
+      'Enter path to directory containing the temporary context file',
+      null,
+      flags.inputDir.name)
+}
+
+export async function promptOutputDir (task, input) {
+  return await promptToggle(task, input,
+      flags.outputDir.definition.defaultValue,
+      'Enter path to directory to store the temporary context file',
+      null,
+      flags.outputDir.name)
+}
+
+
 /**
  * @returns {Map<string, Function>}
  */
@@ -473,6 +490,8 @@ export function getPromptMap () {
     .set(flags.grpcEndpoints.name, promptGrpcEndpoints)
     .set(flags.endpointType.name, promptEndpointType)
     .set(flags.mirrorNodeVersion.name, promptMirrorNodeVersion)
+    .set(flags.inputDir.name, promptInputDir)
+    .set(flags.outputDir.name, promptOutputDir)
 }
 
 // build the prompt registry

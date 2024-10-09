@@ -37,6 +37,7 @@ import path from 'path'
 import fs from 'fs'
 import crypto from 'crypto'
 import {
+  addDebugOptions,
   getNodeAccountMap,
   getNodeLogs,
   prepareEndpoints,
