@@ -272,6 +272,7 @@ jobs:
       e2e-node-delete-separate-commands-test-subdir: ${{ needs.env-vars.outputs.e2e-node-delete-separate-commands-test-subdir }}
       e2e-node-upgrade-test-subdir: ${{ needs.env-vars.outputs.e2e-node-upgrade-test-subdir }}
       e2e-relay-test-subdir: ${{ needs.env-vars.outputs.e2e-relay-test-subdir }}
+      e2e-integration-coverage-report: ${{ needs.env-vars.outputs.e2e-integration-coverage-report }}
       e2e-standard-coverage-report: ${{ needs.env-vars.outputs.e2e-standard-coverage-report }}
       e2e-mirror-node-coverage-report: ${{ needs.env-vars.outputs.e2e-mirror-node-coverage-report }}
       e2e-node-pem-stop-coverage-report: ${{ needs.env-vars.outputs.e2e-node-pem-stop-coverage-report }}

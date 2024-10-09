@@ -65,6 +65,9 @@ on:
       e2e-relay-test-subdir:
         description: "E2E Relay Test Subdirectory"
         value: ${{ jobs.env-vars.outputs.e2e_relay_test_subdir }}
+      e2e-integration-coverage-report:
+        description: "E2E Integration Tests Coverage Report"
+        value: ${{ jobs.env-vars.outputs.e2e_integration_coverage_report }}
       e2e-standard-coverage-report:
         description: "E2E Standard Tests Coverage Report"
         value: ${{ jobs.env-vars.outputs.e2e_standard_coverage_report }}

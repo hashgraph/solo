@@ -120,6 +120,11 @@ on:
         type: string
         required: false
         default: "e2e-relay"
+      e2e-integration-coverage-report:
+        description: "E2E Integration Coverage Report:"
+        type: string
+        required: false
+        default: "E2E Integration Tests Coverage Report"
       e2e-standard-coverage-report:
         description: "E2E Standard Coverage Report:"
         type: string
