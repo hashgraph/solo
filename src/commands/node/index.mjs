@@ -57,7 +57,9 @@ export class NodeCommand extends BaseCommand {
             platformInstaller: opts.platformInstaller,
             profileManager: opts.profileManager,
             k8: opts.k8,
-            keyManager: opts.keyManager
+            keyManager: opts.keyManager,
+            chartManager: opts.chartManager,
+            parent: this
         })
 
         this.handlers = new NodeCommandHandlers({

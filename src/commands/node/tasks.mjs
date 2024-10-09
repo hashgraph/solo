@@ -51,7 +51,9 @@ import * as x509 from "@peculiar/x509";
 
 export class NodeCommandTasks {
   /**
-     * @param {{logger: Logger, accountManager: AccountManager, configManager: ConfigManager, platformInstaller: PlatformInstaller, k8: K8, keyManager: accountManager, profileManager: ProfileManager}} opts
+     * @param {{logger: Logger, accountManager: AccountManager, configManager: ConfigManager,
+     * platformInstaller: PlatformInstaller, k8: K8, keyManager: accountManager, profileManager: ProfileManager,
+     * parent: NodeCommand, chartManager: ChartManager }} opts
      */
   constructor (opts) {
     if (!opts || !opts.accountManager) throw new IllegalArgumentError('An instance of core/AccountManager is required', opts.accountManager)
@@ -69,6 +71,9 @@ export class NodeCommandTasks {
     this.platformInstaller = opts.platformInstaller
     this.profileManager = opts.profileManager
     this.keyManager = opts.keyManager
+    this.chartManager = opts.chartManager
+
+    this.prepareValuesFiles = opts.parent.prepareValuesFiles.bind(opts.parent)
   }
 
   async _prepareUpgradeZip (stagingDir) {
