@@ -35,8 +35,7 @@ import {
   TEST_CLUSTER
 } from '../test_util.js'
 import { getNodeLogs, sleep } from '../../src/core/helpers.mjs'
-import { NodeCommand } from '../../src/commands/node/index.mjs'
-import * as NodeCommandConfigs from "../../src/commands/node/configs.mjs";
+import * as NodeCommandConfigs from '../../src/commands/node/configs.mjs'
 
 export function e2eNodeKeyRefreshTest (testName, mode, releaseTag = HEDERA_PLATFORM_VERSION_TAG) {
   const defaultTimeout = 120000
@@ -150,7 +149,7 @@ export function e2eNodeKeyRefreshTest (testName, mode, releaseTag = HEDERA_PLATF
             try {
               await expect(nodeCmd.handlers.refresh(argv)).resolves.toBeTruthy()
               expect(nodeCmd.getUnusedConfigs(
-                  NodeCommandConfigs.REFRESH_CONFIGS_NAME)).toEqual(
+                NodeCommandConfigs.REFRESH_CONFIGS_NAME)).toEqual(
                 [flags.devMode.constName,
                   flags.quiet.constName])
             } catch (e) {

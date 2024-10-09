@@ -25,10 +25,9 @@ import {
   HEDERA_PLATFORM_VERSION_TAG
 } from '../../test_util.js'
 import { getNodeLogs, getTmpDir } from '../../../src/core/helpers.mjs'
-import { NodeCommand } from '../../../src/commands/node/index.mjs'
 import { HEDERA_HAPI_PATH, ROOT_CONTAINER } from '../../../src/core/constants.mjs'
 import fs from 'fs'
-import * as NodeCommandConfigs from "../../../src/commands/node/configs.mjs";
+import * as NodeCommandConfigs from '../../../src/commands/node/configs.mjs'
 
 describe('Node delete via separated commands', () => {
   const namespace = 'node-delete-separate'

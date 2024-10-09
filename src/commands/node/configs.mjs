@@ -15,14 +15,14 @@
  *
  */
 import { FREEZE_ADMIN_ACCOUNT } from '../../core/constants.mjs'
-import {constants, Templates} from "../../core/index.mjs";
-import {PrivateKey} from "@hashgraph/sdk";
-import {SoloError} from "../../core/errors.mjs";
-import * as helpers from "../../core/helpers.mjs";
-import path from "path";
-import fs from "fs";
-import {validatePath} from "../../core/helpers.mjs";
-import * as flags from "../flags.mjs";
+import { constants, Templates } from '../../core/index.mjs'
+import { PrivateKey } from '@hashgraph/sdk'
+import { SoloError } from '../../core/errors.mjs'
+import * as helpers from '../../core/helpers.mjs'
+import path from 'path'
+import fs from 'fs'
+import { validatePath } from '../../core/helpers.mjs'
+import * as flags from '../flags.mjs'
 
 export const PREPARE_UPGRADE_CONFIGS_NAME = 'prepareUpgradeConfig'
 export const DOWNLOAD_GENERATED_FILES_CONFIGS_NAME = 'downloadGeneratedFilesConfig'
@@ -34,31 +34,29 @@ export const KEYS_CONFIGS_NAME = 'keyConfigs'
 export const SETUP_CONFIGS_NAME = 'setupConfigs'
 export const START_CONFIGS_NAME = 'startConfigs'
 
-
 const initializeSetup = async (config, k8) => {
-    // compute other config parameters
-    config.keysDir = path.join(validatePath(config.cacheDir), 'keys')
-    config.stagingDir = Templates.renderStagingDir(
-        config.cacheDir,
-        config.releaseTag
-    )
-    config.stagingKeysDir = path.join(validatePath(config.stagingDir), 'keys')
+  // compute other config parameters
+  config.keysDir = path.join(validatePath(config.cacheDir), 'keys')
+  config.stagingDir = Templates.renderStagingDir(
+    config.cacheDir,
+    config.releaseTag
+  )
+  config.stagingKeysDir = path.join(validatePath(config.stagingDir), 'keys')
 
-    if (!await k8.hasNamespace(config.namespace)) {
-        throw new SoloError(`namespace ${config.namespace} does not exist`)
-    }
+  if (!await k8.hasNamespace(config.namespace)) {
+    throw new SoloError(`namespace ${config.namespace} does not exist`)
+  }
 
-    // prepare staging keys directory
-    if (!fs.existsSync(config.stagingKeysDir)) {
-        fs.mkdirSync(config.stagingKeysDir, { recursive: true })
-    }
+  // prepare staging keys directory
+  if (!fs.existsSync(config.stagingKeysDir)) {
+    fs.mkdirSync(config.stagingKeysDir, { recursive: true })
+  }
 
-    // create cached keys dir if it does not exist yet
-    if (!fs.existsSync(config.keysDir)) {
-        fs.mkdirSync(config.keysDir)
-    }
+  // create cached keys dir if it does not exist yet
+  if (!fs.existsSync(config.keysDir)) {
+    fs.mkdirSync(config.keysDir)
+  }
 }
-
 
 export const prepareUpgradeConfigBuilder = async function (argv, ctx, task) {
   /**
@@ -124,9 +122,8 @@ export const downloadGeneratedFilesConfigBuilder = async function (argv, ctx, ta
   return config
 }
 
-
 export const updateConfigBuilder = async function (argv, ctx, task) {
-    /**
+  /**
      * @typedef {Object} NodeUpdateConfigClass
      * -- flags --
      * @property {string} app
@@ -164,53 +161,52 @@ export const updateConfigBuilder = async function (argv, ctx, task) {
      * -- methods --
      * @property {getUnusedConfigs} getUnusedConfigs
      */
-    /**
+  /**
      * @callback getUnusedConfigs
      * @returns {string[]}
      */
 
-        // create a config object for subsequent steps
-    const config = /** @type {NodeUpdateConfigClass} **/ this.getConfig(UPDATE_CONFIGS_NAME, argv.flags,
-            [
-                'allNodeAliases',
-                'existingNodeAliases',
-                'freezeAdminPrivateKey',
-                'keysDir',
-                'nodeClient',
-                'podNames',
-                'serviceMap',
-                'stagingDir',
-                'stagingKeysDir',
-                'treasuryKey'
-            ])
+  // create a config object for subsequent steps
+  const config = /** @type {NodeUpdateConfigClass} **/ this.getConfig(UPDATE_CONFIGS_NAME, argv.flags,
+    [
+      'allNodeAliases',
+      'existingNodeAliases',
+      'freezeAdminPrivateKey',
+      'keysDir',
+      'nodeClient',
+      'podNames',
+      'serviceMap',
+      'stagingDir',
+      'stagingKeysDir',
+      'treasuryKey'
+    ])
 
-    config.curDate = new Date()
-    config.existingNodeAliases = []
+  config.curDate = new Date()
+  config.existingNodeAliases = []
 
-    await initializeSetup(config, this.k8)
+  await initializeSetup(config, this.k8)
 
-    // set config in the context for later tasks to use
-    ctx.config = config
+  // set config in the context for later tasks to use
+  ctx.config = config
 
-    ctx.config.chartPath = await this.prepareChartPath(ctx.config.chartDirectory,
-        constants.SOLO_TESTING_CHART, constants.SOLO_DEPLOYMENT_CHART)
+  ctx.config.chartPath = await this.prepareChartPath(ctx.config.chartDirectory,
+    constants.SOLO_TESTING_CHART, constants.SOLO_DEPLOYMENT_CHART)
 
-    // initialize Node Client with existing network nodes prior to adding the new node which isn't functioning, yet
-    ctx.config.nodeClient = await this.accountManager.loadNodeClient(ctx.config.namespace)
+  // initialize Node Client with existing network nodes prior to adding the new node which isn't functioning, yet
+  ctx.config.nodeClient = await this.accountManager.loadNodeClient(ctx.config.namespace)
 
-    const accountKeys = await this.accountManager.getAccountKeysFromSecret(FREEZE_ADMIN_ACCOUNT, config.namespace)
-    config.freezeAdminPrivateKey = accountKeys.privateKey
+  const accountKeys = await this.accountManager.getAccountKeysFromSecret(FREEZE_ADMIN_ACCOUNT, config.namespace)
+  config.freezeAdminPrivateKey = accountKeys.privateKey
 
-    const treasuryAccount = await this.accountManager.getTreasuryAccountKeys(config.namespace)
-    const treasuryAccountPrivateKey = treasuryAccount.privateKey
-    config.treasuryKey = PrivateKey.fromStringED25519(treasuryAccountPrivateKey)
+  const treasuryAccount = await this.accountManager.getTreasuryAccountKeys(config.namespace)
+  const treasuryAccountPrivateKey = treasuryAccount.privateKey
+  config.treasuryKey = PrivateKey.fromStringED25519(treasuryAccountPrivateKey)
 
-    return config
+  return config
 }
 
-
 export const deleteConfigBuilder = async function (argv, ctx, task) {
-    /**
+  /**
      * @typedef {Object} NodeDeleteConfigClass
      * -- flags --
      * @property {string} app
@@ -240,55 +236,53 @@ export const deleteConfigBuilder = async function (argv, ctx, task) {
      * -- methods --
      * @property {getUnusedConfigs} getUnusedConfigs
      */
-    /**
+  /**
      * @callback getUnusedConfigs
      * @returns {string[]}
      */
 
-        // create a config object for subsequent steps
-    const config = /** @type {NodeDeleteConfigClass} **/ this.getConfig(DELETE_CONFIGS_NAME, argv.flags,
-            [
-                'adminKey',
-                'allNodeAliases',
-                'existingNodeAliases',
-                'freezeAdminPrivateKey',
-                'keysDir',
-                'nodeClient',
-                'podNames',
-                'serviceMap',
-                'stagingDir',
-                'stagingKeysDir',
-                'treasuryKey'
-            ])
+  // create a config object for subsequent steps
+  const config = /** @type {NodeDeleteConfigClass} **/ this.getConfig(DELETE_CONFIGS_NAME, argv.flags,
+    [
+      'adminKey',
+      'allNodeAliases',
+      'existingNodeAliases',
+      'freezeAdminPrivateKey',
+      'keysDir',
+      'nodeClient',
+      'podNames',
+      'serviceMap',
+      'stagingDir',
+      'stagingKeysDir',
+      'treasuryKey'
+    ])
 
-    config.curDate = new Date()
-    config.existingNodeAliases = []
+  config.curDate = new Date()
+  config.existingNodeAliases = []
 
-    await initializeSetup(config, this.k8)
+  await initializeSetup(config, this.k8)
 
-    // set config in the context for later tasks to use
-    ctx.config = config
+  // set config in the context for later tasks to use
+  ctx.config = config
 
-    ctx.config.chartPath = await this.prepareChartPath(ctx.config.chartDirectory,
-        constants.SOLO_TESTING_CHART, constants.SOLO_DEPLOYMENT_CHART)
+  ctx.config.chartPath = await this.prepareChartPath(ctx.config.chartDirectory,
+    constants.SOLO_TESTING_CHART, constants.SOLO_DEPLOYMENT_CHART)
 
-    // initialize Node Client with existing network nodes prior to adding the new node which isn't functioning, yet
-    ctx.config.nodeClient = await this.accountManager.loadNodeClient(ctx.config.namespace)
+  // initialize Node Client with existing network nodes prior to adding the new node which isn't functioning, yet
+  ctx.config.nodeClient = await this.accountManager.loadNodeClient(ctx.config.namespace)
 
-    const accountKeys = await this.accountManager.getAccountKeysFromSecret(FREEZE_ADMIN_ACCOUNT, config.namespace)
-    config.freezeAdminPrivateKey = accountKeys.privateKey
+  const accountKeys = await this.accountManager.getAccountKeysFromSecret(FREEZE_ADMIN_ACCOUNT, config.namespace)
+  config.freezeAdminPrivateKey = accountKeys.privateKey
 
-    const treasuryAccount = await this.accountManager.getTreasuryAccountKeys(config.namespace)
-    const treasuryAccountPrivateKey = treasuryAccount.privateKey
-    config.treasuryKey = PrivateKey.fromStringED25519(treasuryAccountPrivateKey)
+  const treasuryAccount = await this.accountManager.getTreasuryAccountKeys(config.namespace)
+  const treasuryAccountPrivateKey = treasuryAccount.privateKey
+  config.treasuryKey = PrivateKey.fromStringED25519(treasuryAccountPrivateKey)
 
-
-    return config
+  return config
 }
 
-
 export const addConfigBuilder = async function (argv, ctx, task) {
-    /**
+  /**
      * @typedef {Object} NodeAddConfigClass
      * -- flags --
      * @property {string} app
@@ -325,73 +319,73 @@ export const addConfigBuilder = async function (argv, ctx, task) {
      * -- methods --
      * @property {getUnusedConfigs} getUnusedConfigs
      */
-    /**
+  /**
      * @callback getUnusedConfigs
      * @returns {string[]}
      */
 
-        // create a config object for subsequent steps
-    const config = /** @type {NodeAddConfigClass} **/ this.getConfig(ADD_CONFIGS_NAME, argv.flags,
-            [
-                'allNodeAliases',
-                'chartPath',
-                'curDate',
-                'existingNodeAliases',
-                'freezeAdminPrivateKey',
-                'keysDir',
-                'lastStateZipPath',
-                'nodeClient',
-                'podNames',
-                'serviceMap',
-                'stagingDir',
-                'stagingKeysDir',
-                'treasuryKey'
-            ])
+  // create a config object for subsequent steps
+  const config = /** @type {NodeAddConfigClass} **/ this.getConfig(ADD_CONFIGS_NAME, argv.flags,
+    [
+      'allNodeAliases',
+      'chartPath',
+      'curDate',
+      'existingNodeAliases',
+      'freezeAdminPrivateKey',
+      'keysDir',
+      'lastStateZipPath',
+      'nodeClient',
+      'podNames',
+      'serviceMap',
+      'stagingDir',
+      'stagingKeysDir',
+      'treasuryKey'
+    ])
 
-    ctx.adminKey = argv[flags.adminKey.name] ? PrivateKey.fromStringED25519(argv[flags.adminKey.name]) : PrivateKey.fromStringED25519(constants.GENESIS_KEY)
-    config.curDate = new Date()
-    config.existingNodeAliases = []
+  ctx.adminKey = argv[flags.adminKey.name] ? PrivateKey.fromStringED25519(argv[flags.adminKey.name]) : PrivateKey.fromStringED25519(constants.GENESIS_KEY)
+  config.curDate = new Date()
+  config.existingNodeAliases = []
 
-    if (config.keyFormat !== constants.KEY_FORMAT_PEM) {
-        throw new SoloError('key type cannot be PFX')
-    }
+  if (config.keyFormat !== constants.KEY_FORMAT_PEM) {
+    throw new SoloError('key type cannot be PFX')
+  }
 
-    await initializeSetup(config, this.k8)
+  await initializeSetup(config, this.k8)
 
-    // set config in the context for later tasks to use
-    ctx.config = config
+  // set config in the context for later tasks to use
+  ctx.config = config
 
-    ctx.config.chartPath = await this.prepareChartPath(ctx.config.chartDirectory,
-        constants.SOLO_TESTING_CHART, constants.SOLO_DEPLOYMENT_CHART)
+  ctx.config.chartPath = await this.prepareChartPath(ctx.config.chartDirectory,
+    constants.SOLO_TESTING_CHART, constants.SOLO_DEPLOYMENT_CHART)
 
-    // initialize Node Client with existing network nodes prior to adding the new node which isn't functioning, yet
-    ctx.config.nodeClient = await this.accountManager.loadNodeClient(ctx.config.namespace)
+  // initialize Node Client with existing network nodes prior to adding the new node which isn't functioning, yet
+  ctx.config.nodeClient = await this.accountManager.loadNodeClient(ctx.config.namespace)
 
-    const accountKeys = await this.accountManager.getAccountKeysFromSecret(FREEZE_ADMIN_ACCOUNT, config.namespace)
-    config.freezeAdminPrivateKey = accountKeys.privateKey
+  const accountKeys = await this.accountManager.getAccountKeysFromSecret(FREEZE_ADMIN_ACCOUNT, config.namespace)
+  config.freezeAdminPrivateKey = accountKeys.privateKey
 
-    const treasuryAccount = await this.accountManager.getTreasuryAccountKeys(config.namespace)
-    const treasuryAccountPrivateKey = treasuryAccount.privateKey
-    config.treasuryKey = PrivateKey.fromStringED25519(treasuryAccountPrivateKey)
+  const treasuryAccount = await this.accountManager.getTreasuryAccountKeys(config.namespace)
+  const treasuryAccountPrivateKey = treasuryAccount.privateKey
+  config.treasuryKey = PrivateKey.fromStringED25519(treasuryAccountPrivateKey)
 
-    config.serviceMap = await this.accountManager.getNodeServiceMap(
-        config.namespace)
+  config.serviceMap = await this.accountManager.getNodeServiceMap(
+    config.namespace)
 
-    return config
+  return config
 }
 
-export const logsConfigBuilder = async function (argv, ctx, task) {
-    /** @type {{namespace: string, nodeAliases: NodeAliases}} */
-    const config = {
-        namespace: this.configManager.getFlag(flags.namespace),
-        nodeAliases: helpers.parseNodeAliases(this.configManager.getFlag(flags.nodeAliasesUnparsed))
-    }
-    ctx.config = config
-    return config
+export const logsConfigBuilder = function (argv, ctx, task) {
+  /** @type {{namespace: string, nodeAliases: NodeAliases}} */
+  const config = {
+    namespace: this.configManager.getFlag(flags.namespace),
+    nodeAliases: helpers.parseNodeAliases(this.configManager.getFlag(flags.nodeAliasesUnparsed))
+  }
+  ctx.config = config
+  return config
 }
 
 export const refreshConfigBuilder = async function (argv, ctx, task) {
-    /**
+  /**
      * @typedef {Object} NodeRefreshConfigClass
      * -- flags --
      * @property {string} app
@@ -407,27 +401,27 @@ export const refreshConfigBuilder = async function (argv, ctx, task) {
      * -- methods --
      * @property {getUnusedConfigs} getUnusedConfigs
      */
-    /**
+  /**
      * @callback getUnusedConfigs
      * @returns {string[]}
      */
 
-    // create a config object for subsequent steps
-    ctx.config = /** @type {NodeRefreshConfigClass} **/ this.getConfig(REFRESH_CONFIGS_NAME, argv.flags,
-        [
-            'nodeAliases',
-            'podNames'
-        ])
+  // create a config object for subsequent steps
+  ctx.config = /** @type {NodeRefreshConfigClass} **/ this.getConfig(REFRESH_CONFIGS_NAME, argv.flags,
+    [
+      'nodeAliases',
+      'podNames'
+    ])
 
-    ctx.config.nodeAliases = helpers.parseNodeAliases(ctx.config.nodeAliasesUnparsed)
+  ctx.config.nodeAliases = helpers.parseNodeAliases(ctx.config.nodeAliasesUnparsed)
 
-    await initializeSetup(ctx.config, this.k8)
+  await initializeSetup(ctx.config, this.k8)
 
-    return ctx.config
+  return ctx.config
 }
 
-export const keysConfigBuilder = async function (argv, ctx, task) {
-    /**
+export const keysConfigBuilder = function (argv, ctx, task) {
+  /**
      * @typedef {Object} NodeKeysConfigClass
      * -- flags --
      * @property {string} cacheDir
@@ -442,46 +436,46 @@ export const keysConfigBuilder = async function (argv, ctx, task) {
      * -- methods --
      * @property {getUnusedConfigs} getUnusedConfigs
      */
-    /**
+  /**
      * @callback getUnusedConfigs
      * @returns {string[]}
      */
 
-        // create a config object for subsequent steps
-    const config = /** @type {NodeKeysConfigClass} **/ this.getConfig(KEYS_CONFIGS_NAME, argv.flags,
-            [
-                'curDate',
-                'keysDir',
-                'nodeAliases'
-            ])
+  // create a config object for subsequent steps
+  const config = /** @type {NodeKeysConfigClass} **/ this.getConfig(KEYS_CONFIGS_NAME, argv.flags,
+    [
+      'curDate',
+      'keysDir',
+      'nodeAliases'
+    ])
 
-    config.curDate = new Date()
-    config.nodeAliases = helpers.parseNodeAliases(config.nodeAliasesUnparsed)
-    config.keysDir = path.join(this.configManager.getFlag(flags.cacheDir), 'keys')
+  config.curDate = new Date()
+  config.nodeAliases = helpers.parseNodeAliases(config.nodeAliasesUnparsed)
+  config.keysDir = path.join(this.configManager.getFlag(flags.cacheDir), 'keys')
 
-    if (!fs.existsSync(config.keysDir)) {
-        fs.mkdirSync(config.keysDir)
-    }
-    return config
+  if (!fs.existsSync(config.keysDir)) {
+    fs.mkdirSync(config.keysDir)
+  }
+  return config
 }
 
 export const stopConfigBuilder = async function (argv, ctx, task) {
-    /** @type {{namespace: string, nodeAliases: NodeAliases}} */
-    ctx.config = {
-        namespace: this.configManager.getFlag(flags.namespace),
-        nodeAliases: helpers.parseNodeAliases(this.configManager.getFlag(flags.nodeAliasesUnparsed)),
-        nodeAliasesUnparsed: this.configManager.getFlag(flags.nodeAliasesUnparsed)
-    }
+  /** @type {{namespace: string, nodeAliases: NodeAliases}} */
+  ctx.config = {
+    namespace: this.configManager.getFlag(flags.namespace),
+    nodeAliases: helpers.parseNodeAliases(this.configManager.getFlag(flags.nodeAliasesUnparsed)),
+    nodeAliasesUnparsed: this.configManager.getFlag(flags.nodeAliasesUnparsed)
+  }
 
-    if (!await this.k8.hasNamespace(ctx.config.namespace)) {
-        throw new SoloError(`namespace ${ctx.config.namespace} does not exist`)
-    }
+  if (!await this.k8.hasNamespace(ctx.config.namespace)) {
+    throw new SoloError(`namespace ${ctx.config.namespace} does not exist`)
+  }
 
-    return ctx.config
+  return ctx.config
 }
 
 export const startConfigBuilder = async function (argv, ctx, task) {
-    /**
+  /**
      * @typedef {Object} NodeStartConfigClass
      * -- flags --
      * @property {string} app
@@ -496,29 +490,28 @@ export const startConfigBuilder = async function (argv, ctx, task) {
      * -- methods --
      * @property {NodeAliases} nodeAliases
      */
-    /**
+  /**
      * @callback getUnusedConfigs
      * @returns {string[]}
      */
 
-    // create a config object for subsequent steps
-    const config = /** @type {NodeStartConfigClass} **/ this.getConfig(START_CONFIGS_NAME, argv.flags,
-        [
-            'nodeAliases'
-        ])
+  // create a config object for subsequent steps
+  const config = /** @type {NodeStartConfigClass} **/ this.getConfig(START_CONFIGS_NAME, argv.flags,
+    [
+      'nodeAliases'
+    ])
 
+  if (!await this.k8.hasNamespace(config.namespace)) {
+    throw new SoloError(`namespace ${config.namespace} does not exist`)
+  }
 
-    if (!await this.k8.hasNamespace(config.namespace)) {
-        throw new SoloError(`namespace ${config.namespace} does not exist`)
-    }
+  config.nodeAliases = helpers.parseNodeAliases(config.nodeAliasesUnparsed)
 
-    config.nodeAliases = helpers.parseNodeAliases(config.nodeAliasesUnparsed)
-
-    return config
+  return config
 }
 
 export const setupConfigBuilder = async function (argv, ctx, task) {
-    /**
+  /**
      * @typedef {Object} NodeSetupConfigClass
      * -- flags --
      * @property {string} app
@@ -535,24 +528,24 @@ export const setupConfigBuilder = async function (argv, ctx, task) {
      * -- methods --
      * @property {getUnusedConfigs} getUnusedConfigs
      */
-    /**
+  /**
      * @callback getUnusedConfigs
      * @returns {string[]}
      */
 
-        // create a config object for subsequent steps
-    const config = /** @type {NodeSetupConfigClass} **/ this.getConfig(SETUP_CONFIGS_NAME, argv.flags,
-            [
-                'nodeAliases',
-                'podNames'
-            ])
+  // create a config object for subsequent steps
+  const config = /** @type {NodeSetupConfigClass} **/ this.getConfig(SETUP_CONFIGS_NAME, argv.flags,
+    [
+      'nodeAliases',
+      'podNames'
+    ])
 
-    config.nodeAliases = helpers.parseNodeAliases(config.nodeAliasesUnparsed)
+  config.nodeAliases = helpers.parseNodeAliases(config.nodeAliasesUnparsed)
 
-    await initializeSetup(config, this.k8)
+  await initializeSetup(config, this.k8)
 
-    // set config in the context for later tasks to use
-    ctx.config = config
+  // set config in the context for later tasks to use
+  ctx.config = config
 
-    return ctx.config
+  return ctx.config
 }

@@ -431,20 +431,19 @@ export async function promptMirrorNodeVersion (task, input) {
 
 export async function promptInputDir (task, input) {
   return await promptToggle(task, input,
-      flags.inputDir.definition.defaultValue,
-      'Enter path to directory containing the temporary context file',
-      null,
-      flags.inputDir.name)
+    flags.inputDir.definition.defaultValue,
+    'Enter path to directory containing the temporary context file',
+    null,
+    flags.inputDir.name)
 }
 
 export async function promptOutputDir (task, input) {
   return await promptToggle(task, input,
-      flags.outputDir.definition.defaultValue,
-      'Enter path to directory to store the temporary context file',
-      null,
-      flags.outputDir.name)
+    flags.outputDir.definition.defaultValue,
+    'Enter path to directory to store the temporary context file',
+    null,
+    flags.outputDir.name)
 }
-
 
 /**
  * @returns {Map<string, Function>}

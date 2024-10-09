@@ -27,8 +27,7 @@ import {
   HEDERA_PLATFORM_VERSION_TAG
 } from './test_util.js'
 import { getNodeLogs } from '../src/core/helpers.mjs'
-import { NodeCommand } from '../src/commands/node/index.mjs'
-import * as NodeCommandConfigs from "../src/commands/node/configs.mjs";
+import * as NodeCommandConfigs from '../src/commands/node/configs.mjs'
 
 export function testNodeAdd (localBuildPath
 ) {

@@ -53,7 +53,7 @@ import crypto from 'crypto'
 import { AccountCommand } from '../src/commands/account.mjs'
 import { SoloError } from '../src/core/errors.mjs'
 import { execSync } from 'child_process'
-import * as NodeCommandConfigs from "../src/commands/node/configs.mjs";
+import * as NodeCommandConfigs from '../src/commands/node/configs.mjs'
 
 export const testLogger = logging.NewLogger('debug', true)
 export const TEST_CLUSTER = 'solo-e2e'

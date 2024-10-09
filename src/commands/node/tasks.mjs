@@ -47,8 +47,8 @@ import {
 } from '../../core/helpers.mjs'
 import chalk from 'chalk'
 import * as flags from '../flags.mjs'
-import {NodeStatusCodes, NodeStatusEnums} from "../../core/enumerations.mjs";
-import * as x509 from "@peculiar/x509";
+import { NodeStatusCodes, NodeStatusEnums } from '../../core/enumerations.mjs'
+import * as x509 from '@peculiar/x509'
 
 export class NodeCommandTasks {
   /**
@@ -216,14 +216,14 @@ export class NodeCommandTasks {
    * @param {PlatformInstaller} platformInstaller
    * @returns {Listr<any, any, any>}
    */
-_fetchPlatformSoftware (nodeAliases, podNames, releaseTag, task, platformInstaller) {
+  _fetchPlatformSoftware (nodeAliases, podNames, releaseTag, task, platformInstaller) {
     const subTasks = []
     for (const nodeAlias of nodeAliases) {
       const podName = podNames[nodeAlias]
       subTasks.push({
         title: `Update node: ${chalk.yellow(nodeAlias)} [ platformVersion = ${releaseTag} ]`,
         task: async () =>
-            await platformInstaller.fetchPlatform(podName, releaseTag)
+          await platformInstaller.fetchPlatform(podName, releaseTag)
       })
     }
 
@@ -265,7 +265,6 @@ _fetchPlatformSoftware (nodeAliases, podNames, releaseTag, task, platformInstall
     })
   }
 
-
   /**
    * @param {string} namespace
    * @param {NodeAlias} nodeAlias
@@ -279,7 +278,7 @@ _fetchPlatformSoftware (nodeAliases, podNames, releaseTag, task, platformInstall
    * @returns {Promise<string>}
    */
   async _checkNetworkNodeActiveness (namespace, nodeAlias, task, title, index,
-                                    status = NodeStatusCodes.ACTIVE, maxAttempts = 120, delay = 1_000, timeout = 1_000) {
+    status = NodeStatusCodes.ACTIVE, maxAttempts = 120, delay = 1_000, timeout = 1_000) {
     nodeAlias = nodeAlias.trim()
     const podName = Templates.renderNetworkPodName(nodeAlias)
     const podPort = 9_999
@@ -310,8 +309,8 @@ _fetchPlatformSoftware (nodeAliases, podNames, releaseTag, task, platformInstall
 
         const text = await response.text()
         const statusLine = text
-            .split('\n')
-            .find(line => line.startsWith('platform_PlatformStatus'))
+          .split('\n')
+          .find(line => line.startsWith('platform_PlatformStatus'))
 
         if (!statusLine) {
           task.title = `${title} - status ${chalk.yellow('STARTING')}, attempt: ${chalk.blueBright(`${attempt}/${maxAttempts}`)}`
@@ -352,7 +351,6 @@ _fetchPlatformSoftware (nodeAliases, podNames, releaseTag, task, platformInstall
     return podName
   }
 
-
   /**
    * Return task for check if node proxies are ready
    * @param {any} ctx
@@ -366,8 +364,8 @@ _fetchPlatformSoftware (nodeAliases, podNames, releaseTag, task, platformInstall
       subTasks.push({
         title: `Check proxy for node: ${chalk.yellow(nodeAlias)}`,
         task: async () => await this.k8.waitForPodReady(
-            [`app=haproxy-${nodeAlias}`, 'fullstack.hedera.com/type=haproxy'],
-            1, 300, 2000)
+          [`app=haproxy-${nodeAlias}`, 'fullstack.hedera.com/type=haproxy'],
+          1, 300, 2000)
       })
     }
 
@@ -388,8 +386,8 @@ _fetchPlatformSoftware (nodeAliases, podNames, releaseTag, task, platformInstall
    * @returns {Task}
    * @private
    */
-  _generateGossipKeys(generateMultiple) {
-    return new Task('Generate gossip keys', async (ctx, task) => {
+  _generateGossipKeys (generateMultiple) {
+    return new Task('Generate gossip keys', (ctx, task) => {
       const config = ctx.config
       const nodeAliases = generateMultiple ? config.nodeAliases : [config.nodeAlias]
       const subTasks = this.keyManager.taskGenerateGossipKeys(this.keytoolDepManager, nodeAliases, config.keysDir, config.curDate)
@@ -412,8 +410,8 @@ _fetchPlatformSoftware (nodeAliases, podNames, releaseTag, task, platformInstall
    * @returns {Task}
    * @private
    */
-  _generateGrpcTlsKeys(generateMultiple) {
-    return new Task('Generate gRPC TLS Keys', async (ctx, task) => {
+  _generateGrpcTlsKeys (generateMultiple) {
+    return new Task('Generate gRPC TLS Keys', (ctx, task) => {
       const config = ctx.config
       const nodeAliases = generateMultiple ? config.nodeAliases : [config.nodeAlias]
       const subTasks = this.keyManager.taskGenerateTLSKeys(nodeAliases, config.keysDir, config.curDate)
@@ -456,15 +454,15 @@ _fetchPlatformSoftware (nodeAliases, podNames, releaseTag, task, platformInstall
 
       // check balance
       const balance = await new AccountBalanceQuery()
-          .setAccountId(accountId)
-          .execute(client)
+        .setAccountId(accountId)
+        .execute(client)
       this.logger.debug(`Account ${accountId} balance: ${balance.hbars}`)
 
       // Create the transaction
       const transaction = await new AccountUpdateTransaction()
-          .setAccountId(accountId)
-          .setStakedNodeId(Templates.nodeIdFromNodeAlias(nodeAlias) - 1)
-          .freezeWith(client)
+        .setAccountId(accountId)
+        .setStakedNodeId(Templates.nodeIdFromNodeAlias(nodeAlias) - 1)
+        .freezeWith(client)
 
       // Sign the transaction with the account's private key
       const signTx = await transaction.sign(treasuryPrivateKey)
@@ -690,8 +688,8 @@ _fetchPlatformSoftware (nodeAliases, podNames, releaseTag, task, platformInstall
   }
 
   fetchPlatformSoftware () {
-    return new Task('Fetch platform software into network nodes', async (ctx, task) => {
-      const {nodeAliases, podNames, releaseTag, localBuildPath} = ctx.config
+    return new Task('Fetch platform software into network nodes', (ctx, task) => {
+      const { nodeAliases, podNames, releaseTag, localBuildPath } = ctx.config
 
       if (localBuildPath !== '') {
         return this._uploadPlatformSoftware(nodeAliases, podNames, task, localBuildPath)
@@ -704,7 +702,7 @@ _fetchPlatformSoftware (nodeAliases, podNames, releaseTag, task, platformInstall
   populateServiceMap () {
     return new Task('Populate serviceMap', async (ctx, task) => {
       ctx.config.serviceMap = await this.accountManager.getNodeServiceMap(
-          ctx.config.namespace)
+        ctx.config.namespace)
       ctx.config.podNames[ctx.config.nodeAlias] = ctx.config.serviceMap.get(ctx.config.nodeAlias).nodePodName
     })
   }
@@ -715,14 +713,14 @@ _fetchPlatformSoftware (nodeAliases, podNames, releaseTag, task, platformInstall
    * @returns {Task}
    */
   setupNetworkNodes (nodeAliasesProperty) {
-    return new Task('Setup network nodes', async (ctx, task) => {
+    return new Task('Setup network nodes', (ctx, task) => {
       const subTasks = []
       for (const nodeAlias of ctx.config[nodeAliasesProperty]) {
         const podName = ctx.config.podNames[nodeAlias]
         subTasks.push({
           title: `Node: ${chalk.yellow(nodeAlias)}`,
           task: () =>
-              this.platformInstaller.taskSetup(podName)
+            this.platformInstaller.taskSetup(podName)
         })
       }
 
@@ -735,7 +733,7 @@ _fetchPlatformSoftware (nodeAliases, podNames, releaseTag, task, platformInstall
   }
 
   prepareStagingDirectory (nodeAliasesProperty) {
-    return new Task('Prepare staging directory', async (ctx, task) => {
+    return new Task('Prepare staging directory', (ctx, task) => {
       const config = ctx.config
       const nodeAliases = config[nodeAliasesProperty]
       const subTasks = [
@@ -759,12 +757,11 @@ _fetchPlatformSoftware (nodeAliases, podNames, releaseTag, task, platformInstall
         concurrent: false,
         rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
       })
-
     })
   }
 
   startNodes (nodeAliasesProperty) {
-    return new Task('Starting nodes', async (ctx, task) => {
+    return new Task('Starting nodes', (ctx, task) => {
       const config = ctx.config
       const nodeAliases = config[nodeAliasesProperty]
 
@@ -780,7 +777,6 @@ _fetchPlatformSoftware (nodeAliases, podNames, releaseTag, task, platformInstall
           }
         })
       }
-
 
       // set up the sub-tasks
       return task.newListr(subTasks, {
@@ -802,19 +798,19 @@ _fetchPlatformSoftware (nodeAliases, podNames, releaseTag, task, platformInstall
   }
 
   checkAllNodesAreActive (nodeAliasesProperty) {
-    return new Task('Check all nodes are ACTIVE', async (ctx, task) => {
+    return new Task('Check all nodes are ACTIVE', (ctx, task) => {
       return this._checkNodeActivenessTask(ctx, task, ctx.config[nodeAliasesProperty])
     })
   }
 
   checkAllNodesAreFrozen (nodeAliasesProperty) {
-    return new Task('Check all nodes are ACTIVE', async (ctx, task) => {
+    return new Task('Check all nodes are ACTIVE', (ctx, task) => {
       return this._checkNodeActivenessTask(ctx, task, ctx.config[nodeAliasesProperty], NodeStatusCodes.FREEZE_COMPLETE)
     })
   }
 
   checkNodeProxiesAreActive (skip) {
-    return new Task('Check node proxies are ACTIVE', async (ctx, task) => {
+    return new Task('Check node proxies are ACTIVE', (ctx, task) => {
       // this is more reliable than checking the nodes logs for ACTIVE, as the
       // logs will have a lot of white noise from being behind
       return this._checkNodesProxiesTask(ctx, task, ctx.config.nodeAliases)
@@ -822,7 +818,7 @@ _fetchPlatformSoftware (nodeAliases, podNames, releaseTag, task, platformInstall
   }
 
   checkAllNodeProxiesAreActive () {
-    return new Task('Check all node proxies are ACTIVE', async (ctx, task) => {
+    return new Task('Check all node proxies are ACTIVE', (ctx, task) => {
       // this is more reliable than checking the nodes logs for ACTIVE, as the
       // logs will have a lot of white noise from being behind
       return this._checkNodesProxiesTask(ctx, task, ctx.config.allNodeAliases)
@@ -851,12 +847,11 @@ _fetchPlatformSoftware (nodeAliases, podNames, releaseTag, task, platformInstall
         config.nodeClient.setOperator(TREASURY_ACCOUNT_ID, config.treasuryKey)
         await this.accountManager.transferAmount(constants.TREASURY_ACCOUNT_ID, accountId, 1)
       }
-
     })
   }
 
   addNodeStakes () {
-    return new Task('Add node stakes', async (ctx, task) => {
+    return new Task('Add node stakes', (ctx, task) => {
       if (ctx.config.app === '' || ctx.config.app === constants.HEDERA_APP_NAME) {
         const subTasks = []
         const accountMap = getNodeAccountMap(ctx.config.nodeAliases)
@@ -886,7 +881,7 @@ _fetchPlatformSoftware (nodeAliases, podNames, releaseTag, task, platformInstall
   }
 
   stopNodes () {
-    return new Task('Stopping nodes', async (ctx, task) => {
+    return new Task('Stopping nodes', (ctx, task) => {
       const subTasks = []
       for (const nodeAlias of ctx.config.nodeAliases) {
         const podName = ctx.config.podNames[nodeAlias]
@@ -908,7 +903,7 @@ _fetchPlatformSoftware (nodeAliases, podNames, releaseTag, task, platformInstall
   }
 
   finalize () {
-    return new Task('Finalize', async (ctx, task) => {
+    return new Task('Finalize', (ctx, task) => {
       // reset flags so that keys are not regenerated later
       this.configManager.setFlag(flags.generateGossipKeys, false)
       this.configManager.setFlag(flags.generateTlsKeys, false)
@@ -917,7 +912,7 @@ _fetchPlatformSoftware (nodeAliases, podNames, releaseTag, task, platformInstall
   }
 
   dumpNetworkNodesSaveState () {
-    return new Task('Dump network nodes saved state', async (ctx, task) => {
+    return new Task('Dump network nodes saved state', (ctx, task) => {
       const config = /** @type {NodeRefreshConfigClass} **/ ctx.config
       const subTasks = []
       for (const nodeAlias of config.nodeAliases) {
@@ -925,7 +920,7 @@ _fetchPlatformSoftware (nodeAliases, podNames, releaseTag, task, platformInstall
         subTasks.push({
           title: `Node: ${chalk.yellow(nodeAlias)}`,
           task: async () =>
-              await this.k8.execContainer(podName, constants.ROOT_CONTAINER, ['bash', '-c', `rm -rf ${constants.HEDERA_HAPI_PATH}/data/saved/*`])
+            await this.k8.execContainer(podName, constants.ROOT_CONTAINER, ['bash', '-c', `rm -rf ${constants.HEDERA_HAPI_PATH}/data/saved/*`])
         })
       }
 
@@ -946,7 +941,7 @@ _fetchPlatformSoftware (nodeAliases, podNames, releaseTag, task, platformInstall
   }
 
   checkPVCsEnabled () {
-    return new Task('Check that PVCs are enabled', async (ctx, task) => {
+    return new Task('Check that PVCs are enabled', (ctx, task) => {
       if (!this.configManager.getFlag(flags.persistentVolumeClaims)) {
         throw new SoloError('PVCs are not enabled. Please enable PVCs before adding a node')
       }
@@ -954,7 +949,7 @@ _fetchPlatformSoftware (nodeAliases, podNames, releaseTag, task, platformInstall
   }
 
   determineNewNodeAccountNumber () {
-    return new Task('Determine new node account number', async (ctx, task) => {
+    return new Task('Determine new node account number', (ctx, task) => {
       const config = /** @type {NodeAddConfigClass} **/ ctx.config
       const values = { hedera: { nodes: [] } }
       let maxNum = 0
@@ -967,8 +962,8 @@ _fetchPlatformSoftware (nodeAliases, podNames, releaseTag, task, platformInstall
           name: networkNodeServices.nodeAlias
         })
         maxNum = maxNum > AccountId.fromString(networkNodeServices.accountId).num
-            ? maxNum
-            : AccountId.fromString(networkNodeServices.accountId).num
+          ? maxNum
+          : AccountId.fromString(networkNodeServices.accountId).num
         lastNodeAlias = networkNodeServices.nodeAlias
       }
 
@@ -988,7 +983,6 @@ _fetchPlatformSoftware (nodeAliases, podNames, releaseTag, task, platformInstall
     })
   }
 
-
   generateGossipKeys () {
     return this._generateGossipKeys(true)
   }
@@ -1006,7 +1000,7 @@ _fetchPlatformSoftware (nodeAliases, podNames, releaseTag, task, platformInstall
   }
 
   loadSigningKeyCertificate () {
-    return new Task('Load signing key certificate', async (ctx, task) => {
+    return new Task('Load signing key certificate', (ctx, task) => {
       const config = ctx.config
       const signingCertFile = Templates.renderGossipPemPublicKeyFile(constants.SIGNING_KEY_PREFIX, config.nodeAlias)
       const signingCertFullPath = path.join(config.keysDir, signingCertFile)
@@ -1015,7 +1009,7 @@ _fetchPlatformSoftware (nodeAliases, podNames, releaseTag, task, platformInstall
   }
 
   computeMTLSCertificateHash () {
-    return new Task('Compute mTLS certificate hash', async (ctx, task) => {
+    return new Task('Compute mTLS certificate hash', (ctx, task) => {
       const config = ctx.config
       const tlsCertFile = Templates.renderTLSPemPublicKeyFile(config.nodeAlias)
       const tlsCertFullPath = path.join(config.keysDir, tlsCertFile)
@@ -1025,7 +1019,7 @@ _fetchPlatformSoftware (nodeAliases, podNames, releaseTag, task, platformInstall
   }
 
   prepareGossipEndpoints () {
-    return new Task('Prepare gossip endpoints', async (ctx, task) => {
+    return new Task('Prepare gossip endpoints', (ctx, task) => {
       const config = ctx.config
       let endpoints = []
       if (!config.gossipEndpoints) {
@@ -1046,7 +1040,7 @@ _fetchPlatformSoftware (nodeAliases, podNames, releaseTag, task, platformInstall
   }
 
   prepareGrpcServiceEndpoints () {
-    return new Task('Prepare grpc service endpoints', async (ctx, task) => {
+    return new Task('Prepare grpc service endpoints', (ctx, task) => {
       const config = ctx.config
       let endpoints = []
 
@@ -1066,7 +1060,6 @@ _fetchPlatformSoftware (nodeAliases, podNames, releaseTag, task, platformInstall
     })
   }
 
-
   sendNodeUpdateTransaction () {
     return new Task('Send node update transaction', async (ctx, task) => {
       const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
@@ -1077,7 +1070,7 @@ _fetchPlatformSoftware (nodeAliases, podNames, releaseTag, task, platformInstall
 
       try {
         const nodeUpdateTx = await new NodeUpdateTransaction()
-            .setNodeId(nodeId)
+          .setNodeId(nodeId)
 
         if (config.tlsPublicKey && config.tlsPrivateKey) {
           this.logger.info(`config.tlsPublicKey: ${config.tlsPublicKey}`)
@@ -1130,7 +1123,7 @@ _fetchPlatformSoftware (nodeAliases, podNames, releaseTag, task, platformInstall
   }
 
   copyNodeKeysToSecrets () {
-    return new Task('Copy node keys to secrets', async (ctx, task) => {
+    return new Task('Copy node keys to secrets', (ctx, task) => {
       const subTasks = this.platformInstaller.copyNodeKeys(ctx.config.stagingDir, ctx.config.allNodeAliases)
 
       // set up the sub-tasks for copying node keys to staging directory
@@ -1147,7 +1140,7 @@ _fetchPlatformSoftware (nodeAliases, podNames, releaseTag, task, platformInstall
    * @param skip {boolean || function}
    * @returns {Task}
    */
-  updateChartWithConfigMap (title, skip= false) {
+  updateChartWithConfigMap (title, skip = false) {
     return new Task(title, async (ctx, task) => {
       // Prepare parameter and update the network node chart
       const config = ctx.config
@@ -1174,8 +1167,8 @@ _fetchPlatformSoftware (nodeAliases, podNames, releaseTag, task, platformInstall
         valuesArg += ` --set "hedera.nodes[${index}].accountId=${ctx.newNode.accountId}" --set "hedera.nodes[${index}].name=${ctx.newNode.name}"`
       }
       this.profileValuesFile = await this.profileManager.prepareValuesForNodeAdd(
-          path.join(config.stagingDir, 'config.txt'),
-          path.join(config.stagingDir, 'templates', 'application.properties'))
+        path.join(config.stagingDir, 'config.txt'),
+        path.join(config.stagingDir, 'templates', 'application.properties'))
       if (this.profileValuesFile) {
         valuesArg += this.prepareValuesFiles(this.profileValuesFile)
       }
@@ -1183,17 +1176,17 @@ _fetchPlatformSoftware (nodeAliases, podNames, releaseTag, task, platformInstall
       valuesArg = addDebugOptions(valuesArg, config.debugNodeAlias)
 
       await this.chartManager.upgrade(
-          config.namespace,
-          constants.SOLO_DEPLOYMENT_CHART,
-          config.chartPath,
-          valuesArg,
-          config.soloChartVersion
+        config.namespace,
+        constants.SOLO_DEPLOYMENT_CHART,
+        config.chartPath,
+        valuesArg,
+        config.soloChartVersion
       )
     }, skip)
   }
 
   saveContextData (argv, targetFile, parser) {
-    return new Task('Save context data', async (ctx, task) => {
+    return new Task('Save context data', (ctx, task) => {
       const outputDir = argv[flags.outputDir.name]
       if (!outputDir) {
         throw new SoloError(`Path to export context data not specified. Please set a value for --${flags.outputDir.name}`)
@@ -1208,7 +1201,7 @@ _fetchPlatformSoftware (nodeAliases, podNames, releaseTag, task, platformInstall
   }
 
   loadContextData (argv, targetFile, parser) {
-    return new Task('Load context data', async (ctx, task) => {
+    return new Task('Load context data', (ctx, task) => {
       const inputDir = argv[flags.inputDir.name]
       if (!inputDir) {
         throw new SoloError(`Path to context data not specified. Please set a value for --${flags.inputDir.name}`)
@@ -1232,7 +1225,7 @@ _fetchPlatformSoftware (nodeAliases, podNames, releaseTag, task, platformInstall
       const config = ctx.config
       // the updated node will have a new pod ID if its account ID changed which is a label
       config.serviceMap = await this.accountManager.getNodeServiceMap(
-          config.namespace)
+        config.namespace)
       for (const /** @type {NetworkNodeServices} **/ service of config.serviceMap.values()) {
         await this.k8.kubeClient.deleteNamespacedPod(service.nodePodName, config.namespace, undefined, undefined, 1)
       }
@@ -1241,7 +1234,7 @@ _fetchPlatformSoftware (nodeAliases, podNames, releaseTag, task, platformInstall
 
       // again, the pod names will change after the pods are killed
       config.serviceMap = await this.accountManager.getNodeServiceMap(
-          config.namespace)
+        config.namespace)
       config.podNames = {}
       for (const service of config.serviceMap.values()) {
         config.podNames[service.nodeAlias] = service.nodePodName
@@ -1249,19 +1242,18 @@ _fetchPlatformSoftware (nodeAliases, podNames, releaseTag, task, platformInstall
     })
   }
 
-
   checkNodePodsAreRunning () {
-    return new Task('Check node pods are running', async (ctx, task) => {
+    return new Task('Check node pods are running', (ctx, task) => {
       const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
       const subTasks = []
       for (const nodeAlias of config.allNodeAliases) {
         subTasks.push({
           title: `Check Node: ${chalk.yellow(nodeAlias)}`,
           task: async () =>
-              await this.k8.waitForPods([constants.POD_PHASE_RUNNING], [
-                'fullstack.hedera.com/type=network-node',
+            await this.k8.waitForPods([constants.POD_PHASE_RUNNING], [
+              'fullstack.hedera.com/type=network-node',
                 `fullstack.hedera.com/node-name=${nodeAlias}`
-              ], 1, 60 * 15, 1000) // timeout 15 minutes
+            ], 1, 60 * 15, 1000) // timeout 15 minutes
         })
       }
 
@@ -1274,7 +1266,6 @@ _fetchPlatformSoftware (nodeAliases, podNames, releaseTag, task, platformInstall
       })
     })
   }
-
 
   sleep (title, milliseconds) {
     return new Task(title, async (ctx, task) => {
@@ -1310,25 +1301,25 @@ _fetchPlatformSoftware (nodeAliases, podNames, releaseTag, task, platformInstall
 
   sendNodeDeleteTransaction () {
     return new Task('Send node delete transaction', async (ctx, task) => {
-        const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
+      const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
 
-        try {
-          const accountMap = getNodeAccountMap(config.existingNodeAliases)
-          const deleteAccountId = accountMap.get(config.nodeAlias)
-          this.logger.debug(`Deleting node: ${config.nodeAlias} with account: ${deleteAccountId}`)
-          const nodeId = Templates.nodeIdFromNodeAlias(config.nodeAlias) - 1
-          const nodeDeleteTx = await new NodeDeleteTransaction()
-              .setNodeId(nodeId)
-              .freezeWith(config.nodeClient)
+      try {
+        const accountMap = getNodeAccountMap(config.existingNodeAliases)
+        const deleteAccountId = accountMap.get(config.nodeAlias)
+        this.logger.debug(`Deleting node: ${config.nodeAlias} with account: ${deleteAccountId}`)
+        const nodeId = Templates.nodeIdFromNodeAlias(config.nodeAlias) - 1
+        const nodeDeleteTx = await new NodeDeleteTransaction()
+          .setNodeId(nodeId)
+          .freezeWith(config.nodeClient)
 
-          const signedTx = await nodeDeleteTx.sign(config.adminKey)
-          const txResp = await signedTx.execute(config.nodeClient)
-          const nodeUpdateReceipt = await txResp.getReceipt(config.nodeClient)
-          this.logger.debug(`NodeUpdateReceipt: ${nodeUpdateReceipt.toString()}`)
-        } catch (e) {
-          this.logger.error(`Error deleting node from network: ${e.message}`, e)
-          throw new SoloError(`Error deleting node from network: ${e.message}`, e)
-        }
+        const signedTx = await nodeDeleteTx.sign(config.adminKey)
+        const txResp = await signedTx.execute(config.nodeClient)
+        const nodeUpdateReceipt = await txResp.getReceipt(config.nodeClient)
+        this.logger.debug(`NodeUpdateReceipt: ${nodeUpdateReceipt.toString()}`)
+      } catch (e) {
+        this.logger.error(`Error deleting node from network: ${e.message}`, e)
+        throw new SoloError(`Error deleting node from network: ${e.message}`, e)
+      }
     })
   }
 
@@ -1338,13 +1329,13 @@ _fetchPlatformSoftware (nodeAliases, podNames, releaseTag, task, platformInstall
 
       try {
         const nodeCreateTx = await new NodeCreateTransaction()
-            .setAccountId(ctx.newNode.accountId)
-            .setGossipEndpoints(ctx.gossipEndpoints)
-            .setServiceEndpoints(ctx.grpcServiceEndpoints)
-            .setGossipCaCertificate(ctx.signingCertDer)
-            .setCertificateHash(ctx.tlsCertHash)
-            .setAdminKey(ctx.adminKey.publicKey)
-            .freezeWith(config.nodeClient)
+          .setAccountId(ctx.newNode.accountId)
+          .setGossipEndpoints(ctx.gossipEndpoints)
+          .setServiceEndpoints(ctx.grpcServiceEndpoints)
+          .setGossipCaCertificate(ctx.signingCertDer)
+          .setCertificateHash(ctx.tlsCertHash)
+          .setAdminKey(ctx.adminKey.publicKey)
+          .freezeWith(config.nodeClient)
         const signedTx = await nodeCreateTx.sign(ctx.adminKey)
         const txResp = await signedTx.execute(config.nodeClient)
         const nodeCreateReceipt = await txResp.getReceipt(config.nodeClient)
@@ -1361,7 +1352,6 @@ _fetchPlatformSoftware (nodeAliases, podNames, releaseTag, task, platformInstall
 
     })
   }
-
 
   /**
    * @param {Object} argv
