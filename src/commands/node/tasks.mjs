@@ -1184,10 +1184,10 @@ _fetchPlatformSoftware (nodeAliases, podNames, releaseTag, task, platformInstall
 
       await this.chartManager.upgrade(
           config.namespace,
-          constants.FULLSTACK_DEPLOYMENT_CHART,
+          constants.SOLO_DEPLOYMENT_CHART,
           config.chartPath,
           valuesArg,
-          config.fstChartVersion
+          config.soloChartVersion
       )
     }, skip)
   }

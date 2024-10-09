@@ -135,7 +135,7 @@ export const updateConfigBuilder = async function (argv, ctx, task) {
      * @property {boolean} devMode
      * @property {string} debugNodeAlias
      * @property {string} endpointType
-     * @property {string} fstChartVersion
+     * @property {string} soloChartVersion
      * @property {string} gossipEndpoints
      * @property {string} gossipPrivateKey
      * @property {string} gossipPublicKey
@@ -193,7 +193,7 @@ export const updateConfigBuilder = async function (argv, ctx, task) {
     ctx.config = config
 
     ctx.config.chartPath = await this.prepareChartPath(ctx.config.chartDirectory,
-        constants.FULLSTACK_TESTING_CHART, constants.FULLSTACK_DEPLOYMENT_CHART)
+        constants.SOLO_TESTING_CHART, constants.SOLO_DEPLOYMENT_CHART)
 
     // initialize Node Client with existing network nodes prior to adding the new node which isn't functioning, yet
     ctx.config.nodeClient = await this.accountManager.loadNodeClient(ctx.config.namespace)
@@ -219,7 +219,7 @@ export const deleteConfigBuilder = async function (argv, ctx, task) {
      * @property {boolean} devMode
      * @property {string} debugNodeAlias
      * @property {string} endpointType
-     * @property {string} fstChartVersion
+     * @property {string} soloChartVersion
      * @property {string} localBuildPath
      * @property {string} namespace
      * @property {NodeAlias} nodeAlias
@@ -270,7 +270,7 @@ export const deleteConfigBuilder = async function (argv, ctx, task) {
     ctx.config = config
 
     ctx.config.chartPath = await this.prepareChartPath(ctx.config.chartDirectory,
-        constants.FULLSTACK_TESTING_CHART, constants.FULLSTACK_DEPLOYMENT_CHART)
+        constants.SOLO_TESTING_CHART, constants.SOLO_DEPLOYMENT_CHART)
 
     // initialize Node Client with existing network nodes prior to adding the new node which isn't functioning, yet
     ctx.config.nodeClient = await this.accountManager.loadNodeClient(ctx.config.namespace)
@@ -298,7 +298,7 @@ export const addConfigBuilder = async function (argv, ctx, task) {
      * @property {boolean} devMode
      * @property {string} debugNodeAlias
      * @property {string} endpointType
-     * @property {string} fstChartVersion
+     * @property {string} soloChartVersion
      * @property {boolean} generateGossipKeys
      * @property {boolean} generateTlsKeys
      * @property {string} gossipEndpoints
@@ -362,7 +362,7 @@ export const addConfigBuilder = async function (argv, ctx, task) {
     ctx.config = config
 
     ctx.config.chartPath = await this.prepareChartPath(ctx.config.chartDirectory,
-        constants.FULLSTACK_TESTING_CHART, constants.FULLSTACK_DEPLOYMENT_CHART)
+        constants.SOLO_TESTING_CHART, constants.SOLO_DEPLOYMENT_CHART)
 
     // initialize Node Client with existing network nodes prior to adding the new node which isn't functioning, yet
     ctx.config.nodeClient = await this.accountManager.loadNodeClient(ctx.config.namespace)

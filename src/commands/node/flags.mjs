@@ -29,7 +29,7 @@ export const UPDATE_FLAGS = {
         flags.app,
         flags.debugNodeAlias,
         flags.endpointType,
-        flags.fstChartVersion,
+        flags.soloChartVersion,
         flags.gossipPrivateKey,
         flags.gossipPublicKey,
         flags.newAccountNumber,
@@ -52,7 +52,7 @@ const COMMON_DELETE_REQUIRED_NO_PROMPT_FLAGS = [
     flags.chainId,
     flags.debugNodeAlias,
     flags.endpointType,
-    flags.fstChartVersion
+    flags.soloChartVersion
 ]
 
 const COMMON_DELETE_OPTIONAL_FLAGS = [
@@ -80,7 +80,7 @@ const COMMON_ADD_REQUIRED_NO_PROMPT_FLAGS = [
     flags.chartDirectory,
     flags.debugNodeAlias,
     flags.endpointType,
-    flags.fstChartVersion,
+    flags.soloChartVersion,
 ]
 
 const COMMON_ADD_OPTIONAL_FLAGS = [
