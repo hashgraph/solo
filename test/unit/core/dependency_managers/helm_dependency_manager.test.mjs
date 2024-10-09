@@ -56,15 +56,15 @@ describe('HelmDependencyManager', () => {
 
   describe('Helm Installation Tests', () => {
     each([
-      // ['linux', 'x64'],
-      // ['linux', 'amd64'],
-      // ['windows', 'amd64']
+      // { osPlatform: 'linux',  osArch: 'x64' },
+      // { osRelease: 'linux',  osArch: 'amd64' },
+      // { osRelease: 'windows',  osArch: 'amd64' }
     ])
-      .it('should be able to install helm for osPlatform: %s, osArch: %s', async (osPlatform, osArch) => {
-        const helmDependencyManager = new HelmDependencyManager(downloader, zippy, testLogger, tmpDir, osPlatform, osArch)
+      .it('should be able to install helm base on os and architecture', async (input) => {
+        const helmDependencyManager = new HelmDependencyManager(downloader, zippy, testLogger, tmpDir, input.osPlatform, input.osArch)
 
         if (fs.existsSync(tmpDir)) {
-          fs.rmSync(tmpDir, {recursive: true})
+          fs.rmSync(tmpDir, { recursive: true })
         }
 
         await helmDependencyManager.uninstall()
@@ -73,7 +73,7 @@ describe('HelmDependencyManager', () => {
         await expect(helmDependencyManager.install(getTestCacheDir())).to.eventually.be.ok
         expect(helmDependencyManager.isInstalled()).to.be.ok
 
-        fs.rmSync(tmpDir, {recursive: true})
+        fs.rmSync(tmpDir, { recursive: true })
       })
   })
 })
