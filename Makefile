@@ -5,7 +5,7 @@ NODE_OPTIONS=--experimental-vm-modules
 MOCHA=mocha --recursive --file 'test/setup.mjs' --exit
 NYC_REPORTERS=--reporter=text --reporter=html
 JUNIT_REPORTER=--reporter mocha-junit-reporter
-MOCHA_FILE=test-results/junit-report.xml # Path to save the JUnit report
+MOCHA_FILE=./junit-report.xml # Path to save the JUnit report
 DEFAULT_TIMEOUT=20000
 
 # ================================ PHONY TARGETS ================================
