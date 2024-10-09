@@ -63,14 +63,14 @@ jobs:
       GH_ACCESS_PASSPHRASE: ${{ secrets.GH_ACCESS_PASSPHRASE }}
 
   e2e-integration-tests:
-    name: E2E Integration Tests
+    name: E2E Tests
     if: ${{ !cancelled() && always() }}
     uses: ./.github/workflows/zxc-e2e-test.yaml
     needs:
       - env-vars
       - code-style
     with:
-      custom-job-label: Standard
+      custom-job-label: Integration
       npm-test-script: test-${{ needs.env-vars.outputs.e2e-integration-test-subdir }}
       coverage-subdirectory: ${{ needs.env-vars.outputs.e2e-integration-test-subdir }}
       coverage-report-name: ${{ needs.env-vars.outputs.e2e-integration-coverage-report }}
