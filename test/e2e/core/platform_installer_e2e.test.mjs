@@ -41,11 +41,11 @@ describe('PackageInstallerE2E', async () => {
   argv[flags.namespace.name] = namespace
   argv[flags.nodeAliasesUnparsed.name] = 'node1'
   argv[flags.clusterName.name] = TEST_CLUSTER
-  argv[flags.fstChartVersion.name] = version.FST_CHART_VERSION
+  argv[flags.soloChartVersion.name] = version.SOLO_CHART_VERSION
   argv[flags.generateGossipKeys.name] = true
   argv[flags.generateTlsKeys.name] = true
-  // set the env variable SOLO_FST_CHARTS_DIR if developer wants to use local FST charts
-  argv[flags.chartDirectory.name] = process.env.SOLO_FST_CHARTS_DIR ?? undefined
+  // set the env variable SOLO_CHARTS_DIR if developer wants to use local Solo charts
+  argv[flags.chartDirectory.name] = process.env.SOLO_CHARTS_DIR ?? undefined
   const bootstrapResp = await bootstrapNetwork(namespace, argv, undefined, undefined, undefined, undefined, undefined, undefined, false)
   const k8 = bootstrapResp.opts.k8
   const accountManager = bootstrapResp.opts.accountManager

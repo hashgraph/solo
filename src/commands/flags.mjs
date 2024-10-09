@@ -78,7 +78,7 @@ export const clusterSetupNamespace = {
   name: 'cluster-setup-namespace',
   definition: {
     describe: 'Cluster Setup Namespace',
-    defaultValue: constants.FULLSTACK_SETUP_NAMESPACE,
+    defaultValue: constants.SOLO_SETUP_NAMESPACE,
     alias: 's',
     type: 'string'
   }
@@ -274,7 +274,7 @@ export const chartDirectory = {
   constName: 'chartDirectory',
   name: 'chart-dir',
   definition: {
-    describe: 'Local chart directory path (e.g. ~/full-stack-testing/charts',
+    describe: 'Local chart directory path (e.g. ~/solo-charts/charts',
     defaultValue: '',
     alias: 'd',
     type: 'string'
@@ -389,8 +389,8 @@ export const hederaExplorerTlsHostName = {
   constName: 'hederaExplorerTlsHostName',
   name: 'hedera-explorer-tls-host-name',
   definition: {
-    describe: 'The host name to use for the Hedera Explorer TLS, defaults to "explorer.fst.local"',
-    defaultValue: 'explorer.fst.local',
+    describe: 'The host name to use for the Hedera Explorer TLS, defaults to "explorer.solo.local"',
+    defaultValue: 'explorer.solo.local',
     type: 'string'
   }
 }
@@ -418,12 +418,12 @@ export const deleteSecrets = {
 }
 
 /** @type {CommandFlag} **/
-export const fstChartVersion = {
-  constName: 'fstChartVersion',
-  name: 'fst-chart-version',
+export const soloChartVersion = {
+  constName: 'soloChartVersion',
+  name: 'solo-chart-version',
   definition: {
-    describe: 'Fullstack testing chart version',
-    defaultValue: version.FST_CHART_VERSION,
+    describe: 'Solo testing chart version',
+    defaultValue: version.SOLO_CHART_VERSION,
     type: 'string'
   }
 }
@@ -807,7 +807,7 @@ export const allFlags = [
   enableHederaExplorerTls,
   enablePrometheusSvcMonitor,
   endpointType,
-  fstChartVersion,
+  soloChartVersion,
   generateGossipKeys,
   generateTlsKeys,
   gossipEndpoints,

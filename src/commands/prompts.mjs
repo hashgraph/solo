@@ -184,7 +184,7 @@ export async function promptProfile (task, input, choices = constants.ALL_PROFIL
     if (initial < 0) {
       const input = await task.prompt(ListrEnquirerPromptAdapter).run({
         type: 'select',
-        message: 'Select profile for fullstack network deployment',
+        message: 'Select profile for solo network deployment',
         choices: helpers.cloneArray(choices)
       })
 
@@ -341,12 +341,12 @@ export async function promptDeleteSecrets (task, input) {
     flags.deleteSecrets.name)
 }
 
-export async function promptFstChartVersion (task, input) {
+export async function promptSoloChartVersion (task, input) {
   return await promptText(task, input,
-    flags.fstChartVersion.definition.defaultValue,
-    'Enter fullstack testing chart version: ',
+    flags.soloChartVersion.definition.defaultValue,
+    'Enter solo testing chart version: ',
     null,
-    flags.fstChartVersion.name)
+    flags.soloChartVersion.name)
 }
 
 export async function promptUpdateAccountKeys (task, input) {
@@ -450,7 +450,7 @@ export function getPromptMap () {
     .set(flags.enableHederaExplorerTls.name, promptEnableHederaExplorerTls)
     .set(flags.enablePrometheusSvcMonitor.name, promptEnablePrometheusSvcMonitor)
     .set(flags.force.name, promptForce)
-    .set(flags.fstChartVersion.name, promptFstChartVersion)
+    .set(flags.soloChartVersion.name, promptSoloChartVersion)
     .set(flags.generateGossipKeys.name, promptGenerateGossipKeys)
     .set(flags.generateTlsKeys.name, promptGenerateTLSKeys)
     .set(flags.hederaExplorerTlsHostName.name, promptHederaExplorerTlsHostName)

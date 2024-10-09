@@ -173,7 +173,7 @@ export class AccountCommand extends BaseCommand {
             {
               title: 'Prepare for account key updates',
               task: async (ctx) => {
-                const secrets = await self.k8.getSecretsByLabel(['fullstack.hedera.com/account-id'])
+                const secrets = await self.k8.getSecretsByLabel(['solo.hedera.com/account-id'])
                 ctx.updateSecrets = secrets.length > 0
 
                 ctx.accountsBatchedSet = self.accountManager.batchAccounts(this.systemAccounts)

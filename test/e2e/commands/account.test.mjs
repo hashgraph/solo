@@ -46,10 +46,10 @@ describe('AccountCommand', async () => {
   argv[flags.generateGossipKeys.name] = true
   argv[flags.generateTlsKeys.name] = true
   argv[flags.clusterName.name] = TEST_CLUSTER
-  argv[flags.fstChartVersion.name] = version.FST_CHART_VERSION
-  // set the env variable SOLO_FST_CHARTS_DIR if developer wants to use local FST charts
-  argv[flags.chartDirectory.name] = process.env.SOLO_FST_CHARTS_DIR ?? undefined
-  const bootstrapResp = await bootstrapNetwork(testName, argv)
+  argv[flags.soloChartVersion.name] = version.SOLO_CHART_VERSION
+  // set the env variable SOLO_CHARTS_DIR if developer wants to use local Solo charts
+  argv[flags.chartDirectory.name] = process.env.SOLO_CHARTS_DIR ?? undefined
+  const bootstrapResp = bootstrapNetwork(testName, argv)
   const accountCmd = new AccountCommand(bootstrapResp.opts, testSystemAccounts)
   bootstrapResp.cmd.accountCmd = accountCmd
   const k8 = bootstrapResp.opts.k8
@@ -70,7 +70,7 @@ describe('AccountCommand', async () => {
     for (const nodeAlias of argv[flags.nodeAliasesUnparsed.name].split(',')) {
       it(`proxy should be UP: ${nodeAlias} `, async () => {
         await k8.waitForPodReady(
-          [`app=haproxy-${nodeAlias}`, 'fullstack.hedera.com/type=haproxy'],
+          [`app=haproxy-${nodeAlias}`, 'solo.hedera.com/type=haproxy'],
           1, 300, 2 * SECONDS)
       }).timeout(30 * SECONDS)
     }

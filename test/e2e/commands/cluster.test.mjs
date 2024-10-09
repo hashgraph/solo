@@ -46,10 +46,10 @@ describe('ClusterCommand', () => {
   argv[flags.generateGossipKeys.name] = true
   argv[flags.generateTlsKeys.name] = true
   argv[flags.clusterName.name] = TEST_CLUSTER
-  argv[flags.fstChartVersion.name] = version.FST_CHART_VERSION
+  argv[flags.soloChartVersion.name] = version.SOLO_CHART_VERSION
   argv[flags.force.name] = true
-  // set the env variable SOLO_FST_CHARTS_DIR if developer wants to use local FST charts
-  argv[flags.chartDirectory.name] = process.env.SOLO_FST_CHARTS_DIR ?? undefined
+  // set the env variable SOLO_CHARTS_DIR if developer wants to use local Solo charts
+  argv[flags.chartDirectory.name] = process.env.SOLO_CHARTS_DIR ?? undefined
 
   const bootstrapResp = bootstrapTestVariables(testName, argv)
   const k8 = bootstrapResp.opts.k8
@@ -62,12 +62,12 @@ describe('ClusterCommand', () => {
     this.timeout(3 * MINUTES)
 
     await k8.deleteNamespace(namespace)
-    argv[flags.clusterSetupNamespace.name] = constants.FULLSTACK_SETUP_NAMESPACE
+    argv[flags.clusterSetupNamespace.name] = constants.SOLO_SETUP_NAMESPACE
     configManager.update(argv, true)
-    await clusterCmd.setup(argv) // restore fullstack-cluster-setup for other e2e tests to leverage
+    await clusterCmd.setup(argv) // restore solo-cluster-setup for other e2e tests to leverage
     do {
       await sleep(5 * SECONDS)
-    } while (!await chartManager.isChartInstalled(constants.FULLSTACK_SETUP_NAMESPACE, constants.FULLSTACK_CLUSTER_SETUP_CHART))
+    } while (!await chartManager.isChartInstalled(constants.SOLO_SETUP_NAMESPACE, constants.SOLO_CLUSTER_SETUP_CHART))
   })
 
   beforeEach(() => configManager.reset())
@@ -76,7 +76,7 @@ describe('ClusterCommand', () => {
   afterEach(async () => await sleep(5))
 
   it('should cleanup existing deployment', async () => {
-    if (await chartManager.isChartInstalled(constants.FULLSTACK_SETUP_NAMESPACE, constants.FULLSTACK_CLUSTER_SETUP_CHART)) {
+    if (await chartManager.isChartInstalled(constants.SOLO_SETUP_NAMESPACE, constants.SOLO_CLUSTER_SETUP_CHART)) {
       await expect(clusterCmd.reset(argv)).to.be.ok
     }
   }).timeout(1 * MINUTES)

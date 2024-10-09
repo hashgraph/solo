@@ -45,8 +45,8 @@ export function e2eNodeKeyRefreshTest (testName, mode, releaseTag = HEDERA_PLATF
     argv[flags.generateTlsKeys.name] = true
     argv[flags.clusterName.name] = TEST_CLUSTER
     argv[flags.devMode.name] = true
-    // set the env variable SOLO_FST_CHARTS_DIR if developer wants to use local FST charts
-    argv[flags.chartDirectory.name] = process.env.SOLO_FST_CHARTS_DIR ?? undefined
+    // set the env variable SOLO_CHARTS_DIR if developer wants to use local FST charts
+    argv[flags.chartDirectory.name] = process.env.SOLO_CHARTS_DIR ?? undefined
     argv[flags.quiet.name] = true
 
     const bootstrapResp = await bootstrapNetwork(testName, argv)
@@ -80,7 +80,7 @@ export function e2eNodeKeyRefreshTest (testName, mode, releaseTag = HEDERA_PLATF
             try {
               await expect(k8.waitForPodReady(
                 ['app=haproxy-node1',
-                  'fullstack.hedera.com/type=haproxy'],
+                  'solo.hedera.com/type=haproxy'],
                 1, 300, 1000)).to.eventually.be.ok
             } catch (e) {
               nodeCmd.logger.showUserError(e)
@@ -180,7 +180,7 @@ export function e2eNodeKeyRefreshTest (testName, mode, releaseTag = HEDERA_PLATF
 
       const podArray = await k8.getPodsByLabel(
         [`app=network-${nodeAliases}`,
-          'fullstack.hedera.com/type=network-node'])
+          'solo.hedera.com/type=network-node'])
 
       if (podArray.length > 0) {
         const podName = podArray[0].metadata.name

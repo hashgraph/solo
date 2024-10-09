@@ -25,16 +25,16 @@ describe('ChartManager', () => {
   const chartManager = new ChartManager(helm, testLogger)
 
   it('should be able to list installed charts', async () => {
-    const ns = constants.FULLSTACK_SETUP_NAMESPACE
+    const ns = constants.SOLO_SETUP_NAMESPACE
     expect(ns, 'namespace should not be null').not.to.be.null
     const list = await chartManager.getInstalledCharts(ns)
     expect(list, 'should have at least one installed chart').not.to.have.lengthOf(0)
   })
 
   it('should be able to check if a chart is installed', async () => {
-    const ns = constants.FULLSTACK_SETUP_NAMESPACE
+    const ns = constants.SOLO_SETUP_NAMESPACE
     expect(ns, 'namespace should not be null').not.to.be.null
-    const isInstalled = await chartManager.isChartInstalled(ns, constants.FULLSTACK_CLUSTER_SETUP_CHART)
-    expect(isInstalled, `${constants.FULLSTACK_CLUSTER_SETUP_CHART} should be installed`).to.be.ok
+    const isInstalled = await chartManager.isChartInstalled(ns, constants.SOLO_CLUSTER_SETUP_CHART)
+    expect(isInstalled, `${constants.SOLO_CLUSTER_SETUP_CHART} should be installed`).to.be.ok
   })
 })

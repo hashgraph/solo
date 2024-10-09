@@ -79,7 +79,7 @@ describe('ProfileManager', () => {
 
   describe('determine chart values for a profile', () => {
     testCases.forEach((input) => {
-      it(`should determine FST chart values [profile = ${input.profileName}]`, async () => {
+      it(`should determine Solo chart values [profile = ${input.profileName}]`, async () => {
         configManager.setFlag(flags.profileFile, input.profileFile)
 
         const resources = ['templates', 'profiles']
@@ -96,7 +96,7 @@ describe('ProfileManager', () => {
         }
 
         profileManager.loadProfiles(true)
-        const valuesFile = await profileManager.prepareValuesForFstChart(input.profileName)
+        const valuesFile = await profileManager.prepareValuesForSoloChart(input.profileName)
         expect(valuesFile).not.to.be.null
         expect(fs.existsSync(valuesFile)).to.be.ok
 
@@ -160,7 +160,7 @@ describe('ProfileManager', () => {
     })
   })
 
-  it('prepareValuesForFstChart should set the value of a key to the contents of a file', async () => {
+  it('prepareValuesForSoloChart should set the value of a key to the contents of a file', async () => {
     configManager.setFlag(flags.profileFile, testProfileFile)
 
     return
@@ -169,7 +169,7 @@ describe('ProfileManager', () => {
     const fileContents = '# row 1\n# row 2\n# row 3'
     fs.writeFileSync(file, fileContents)
     configManager.setFlag(flags.applicationEnv, file)
-    const cachedValuesFile = await profileManager.prepareValuesForFstChart('test')
+    const cachedValuesFile = await profileManager.prepareValuesForSoloChart('test')
     const valuesYaml = yaml.load(fs.readFileSync(cachedValuesFile).toString())
     expect(valuesYaml.hedera.configMaps.applicationEnv).to.equal(fileContents)
   })

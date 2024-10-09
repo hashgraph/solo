@@ -110,10 +110,10 @@ export function packageVersion () {
 export function getRootImageRepository (releaseTag) {
   const releaseVersion = semver.parse(releaseTag, { includePrerelease: true })
   if (releaseVersion.minor < 46) {
-    return 'hashgraph/full-stack-testing/ubi8-init-java17'
+    return 'hashgraph/solo-containers/ubi8-init-java17'
   }
 
-  return 'hashgraph/full-stack-testing/ubi8-init-java21'
+  return 'hashgraph/solo-containers/ubi8-init-java21'
 }
 
 /**
@@ -241,7 +241,7 @@ export function validatePath (input) {
  */
 export async function getNodeLogs (k8, namespace) {
   k8.logger.debug('getNodeLogs: begin...')
-  const pods = await k8.getPodsByLabel(['fullstack.hedera.com/type=network-node'])
+  const pods = await k8.getPodsByLabel(['solo.hedera.com/type=network-node'])
 
   const timeString = new Date().toISOString().replace(/:/g, '-').replace(/\./g, '-')
 
