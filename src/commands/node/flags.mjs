@@ -27,7 +27,6 @@ export const UPDATE_FLAGS = {
     requiredFlags: [flags.cacheDir, flags.namespace, flags.nodeAlias, flags.releaseTag],
     requiredFlagsWithDisabledPrompt: [
         flags.app,
-        flags.chartDirectory,
         flags.debugNodeAlias,
         flags.endpointType,
         flags.force,
@@ -41,14 +40,13 @@ export const UPDATE_FLAGS = {
         flags.tlsPrivateKey,
         flags.tlsPublicKey
     ],
-    optionalFlags: [flags.devMode, flags.quiet, flags.localBuildPath]
+    optionalFlags: [flags.chartDirectory, flags.devMode, flags.quiet, flags.localBuildPath]
 }
 
 const COMMON_DELETE_REQUIRED_FLAGS = [
     flags.cacheDir,
     flags.namespace,
     flags.nodeAlias,
-    flags.quiet,
     flags.releaseTag
 ]
 
@@ -64,7 +62,8 @@ const COMMON_DELETE_REQUIRED_NO_PROMPT_FLAGS = [
 const COMMON_DELETE_OPTIONAL_FLAGS = [
     flags.devMode,
     flags.force,
-    flags.localBuildPath
+    flags.localBuildPath,
+    flags.quiet
 ]
 
 const COMMON_ADD_REQUIRED_FLAGS = [
