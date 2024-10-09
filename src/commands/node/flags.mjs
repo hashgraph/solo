@@ -29,7 +29,6 @@ export const UPDATE_FLAGS = {
         flags.app,
         flags.debugNodeAlias,
         flags.endpointType,
-        flags.force,
         flags.fstChartVersion,
         flags.gossipEndpoints,
         flags.gossipPrivateKey,
@@ -40,7 +39,7 @@ export const UPDATE_FLAGS = {
         flags.tlsPrivateKey,
         flags.tlsPublicKey
     ],
-    optionalFlags: [flags.chartDirectory, flags.devMode, flags.quiet, flags.localBuildPath]
+    optionalFlags: [flags.chartDirectory, flags.devMode, flags.quiet, flags.localBuildPath, flags.force]
 }
 
 const COMMON_DELETE_REQUIRED_FLAGS = [
