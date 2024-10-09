@@ -26,7 +26,7 @@ An opinionated CLI tool to deploy and manage standalone test networks.
 
 ## Requirements
 
-| Solo Version | Node.js                   | Kind       | FST Chart | Hedera   | Kubernetes | Kubectl    | Helm    | k9s        | Docker Resources        | Java         |
+| Solo Version | Node.js                   | Kind       | Solo Chart | Hedera   | Kubernetes | Kubectl    | Helm    | k9s        | Docker Resources        | Java         |
 |--------------|---------------------------|------------|-----------|----------|------------|------------|---------|------------|-------------------------|--------------|
 | 0.29.0       | >= 20.14.0 (lts/hydrogen) | >= v1.29.1 | v0.30.0   | v0.53.0+ | >= v1.27.3 | >= v1.27.3 | v3.14.2 | >= v0.27.4 | Memory >= 8GB, CPU >= 4 | >= 21.0.1+12 |
 | 0.30.0       | >= 20.14.0 (lts/hydrogen) | >= v1.29.1 | v0.30.0   | v0.54.0+ | >= v1.27.3 | >= v1.27.3 | v3.14.2 | >= v0.27.4 | Memory >= 8GB, CPU >= 4 | >= 21.0.1+12 |
@@ -107,8 +107,8 @@ You may now view pods in your cluster using `k9s -A` as below:
  MEM:     n/a
 ┌───────────────────────────────────────────────── Pods(all)[11] ─────────────────────────────────────────────────┐
 │ NAMESPACE↑          NAME                                        PF READY STATUS   RESTARTS IP          NODE     │
-│ fullstack-setup     console-557956d575-4r5xm                    ●  1/1   Running         0 10.244.0.5  solo-con │
-│ fullstack-setup     minio-operator-7d575c5f84-8shc9             ●  1/1   Running         0 10.244.0.6  solo-con │
+│ solo-setup     console-557956d575-4r5xm                    ●  1/1   Running         0 10.244.0.5  solo-con │
+│ solo-setup     minio-operator-7d575c5f84-8shc9             ●  1/1   Running         0 10.244.0.6  solo-con │
 │ kube-system         coredns-5d78c9869d-6cfbg                    ●  1/1   Running         0 10.244.0.4  solo-con │
 │ kube-system         coredns-5d78c9869d-gxcjz                    ●  1/1   Running         0 10.244.0.3  solo-con │
 │ kube-system         etcd-solo-control-plane                     ●  1/1   Running         0 172.18.0.2  solo-con │
@@ -212,7 +212,7 @@ Kubernetes Namespace	: solo
 **********************************************************************************
 ✔ Initialize
 ✔ Prepare chart values
-✔ Install 'fullstack-cluster-setup' chart
+✔ Install 'solo-cluster-setup' chart
 ```
 
 In a separate terminal, you may run `k9s` to view the pod status.
@@ -247,7 +247,7 @@ Kubernetes Namespace	: solo
 ✔ Copy Gossip keys
 ✔ Node: node2
 ✔ Copy node keys to secrets
-✔ Install chart 'fullstack-deployment'
+✔ Install chart 'solo-deployment'
 ✔ Check Node: node1
 ✔ Check Node: node2
 ✔ Check Node: node3
@@ -411,15 +411,15 @@ Context: kind-solo                                <0> all   <a>       Attach    
 │ solo                envoy-proxy-node1-65f8879dcc-rwg97                             ●  1/1   Running         0 1 │
 │ solo                envoy-proxy-node2-667f848689-628cx                             ●  1/1   Running         0 1 │
 │ solo                envoy-proxy-node3-6bb4b4cbdf-dmwtr                             ●  1/1   Running         0 1 │
-│ solo                fullstack-deployment-grpc-75bb9c6c55-l7kvt                     ●  1/1   Running         0 1 │
-│ solo                fullstack-deployment-hedera-explorer-6565ccb4cb-9dbw2          ●  1/1   Running         0 1 │
-│ solo                fullstack-deployment-importer-dd74fd466-vs4mb                  ●  1/1   Running         0 1 │
-│ solo                fullstack-deployment-monitor-54b8f57db9-fn5qq                  ●  1/1   Running         0 1 │
-│ solo                fullstack-deployment-postgres-postgresql-0                     ●  1/1   Running         0 1 │
-│ solo                fullstack-deployment-redis-node-0                              ●  2/2   Running         0 1 │
-│ solo                fullstack-deployment-rest-6d48f8dbfc-plbp2                     ●  1/1   Running         0 1 │
-│ solo                fullstack-deployment-restjava-5d6c4cb648-r597f                 ●  1/1   Running         0 1 │
-│ solo                fullstack-deployment-web3-55fdfbc7f7-lzhfl                     ●  1/1   Running         0 1 │
+│ solo                solo-deployment-grpc-75bb9c6c55-l7kvt                     ●  1/1   Running         0 1 │
+│ solo                solo-deployment-hedera-explorer-6565ccb4cb-9dbw2          ●  1/1   Running         0 1 │
+│ solo                solo-deployment-importer-dd74fd466-vs4mb                  ●  1/1   Running         0 1 │
+│ solo                solo-deployment-monitor-54b8f57db9-fn5qq                  ●  1/1   Running         0 1 │
+│ solo                solo-deployment-postgres-postgresql-0                     ●  1/1   Running         0 1 │
+│ solo                solo-deployment-redis-node-0                              ●  2/2   Running         0 1 │
+│ solo                solo-deployment-rest-6d48f8dbfc-plbp2                     ●  1/1   Running         0 1 │
+│ solo                solo-deployment-restjava-5d6c4cb648-r597f                 ●  1/1   Running         0 1 │
+│ solo                solo-deployment-web3-55fdfbc7f7-lzhfl                     ●  1/1   Running         0 1 │
 │ solo                haproxy-node1-785b9b6f9b-676mr                                 ●  1/1   Running         1 1 │
 │ solo                haproxy-node2-644b8c76d-v9mg6                                  ●  1/1   Running         1 1 │
 │ solo                haproxy-node3-fbffdb64-272t2                                   ●  1/1   Running         1 1 │
@@ -451,17 +451,7 @@ Once the nodes are up, you may now expose various services (using `k9s` (shift-f
   kubectl port-forward svc/haproxy-node3-svc -n "${SOLO_NAMESPACE}" 52211:50211 &
   ```
 * Envoy Proxy: `envoy-proxy-<node ID>-svc`
-  ```bash
-  # enable portforwarding for envoy proxy
-  kubectl port-forward svc/envoy-proxy-node1-svc -n "${SOLO_NAMESPACE}" 8181:8080 &
-  kubectl port-forward svc/envoy-proxy-node2-svc -n "${SOLO_NAMESPACE}" 8281:8080 &
-  kubectl port-forward svc/envoy-proxy-node3-svc -n "${SOLO_NAMESPACE}" 8381:8080 &
-  ```
-* Hedera explorer: `fullstack-deployment-hedera-explorer`
-  ```bash
-  #enable portforwarding for hedera explorer, can be access at http://localhost:8080/
-  kubectl port-forward svc/fullstack-deployment-hedera-explorer -n "${SOLO_NAMESPACE}" 8080:80 &
-  ```
+* Hedera explorer: `solo-deployment-hedera-explorer`
 * JSON Rpc Relays
   * You can deploy JSON RPC relays for one or more nodes as below:
   ```bash

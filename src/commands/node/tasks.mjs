@@ -300,8 +300,8 @@ export class NodeCommandTasks {
 
     try {
       await this.k8.waitForPods([constants.POD_PHASE_RUNNING], [
-        'fullstack.hedera.com/type=network-node',
-        `fullstack.hedera.com/node-name=${nodeAlias}`
+        'solo.hedera.com/type=network-node',
+        `solo.hedera.com/node-name=${nodeAlias}`
       ], 1, maxAttempts, delay)
 
       return podName

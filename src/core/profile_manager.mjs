@@ -293,11 +293,11 @@ export class ProfileManager {
   }
 
   /**
-   * Prepare a values file for FST Helm chart
+   * Prepare a values file for Solo Helm chart
    * @param {string} profileName resource profile name
    * @returns {Promise<string>} return the full path to the values file
    */
-  prepareValuesForFstChart (profileName) {
+  prepareValuesForSoloChart (profileName) {
     if (!profileName) throw new MissingArgumentError('profileName is required')
     const profile = this.getProfile(profileName)
 
@@ -312,7 +312,7 @@ export class ProfileManager {
     this.resourcesForMinioTenantPod(profile, yamlRoot)
 
     // write the yaml
-    const cachedValuesFile = path.join(this.cacheDir, `fst-${profileName}.yaml`)
+    const cachedValuesFile = path.join(this.cacheDir, `solo-${profileName}.yaml`)
     return new Promise((resolve, reject) => {
       fs.writeFile(cachedValuesFile, yaml.dump(yamlRoot), (err) => {
         if (err) {
@@ -354,7 +354,7 @@ export class ProfileManager {
     this._setFileContentsAsValue('hedera.configMaps.applicationProperties', applicationPropertiesPath, yamlRoot)
 
     // write the yaml
-    const cachedValuesFile = path.join(this.cacheDir, 'fst-node-add.yaml')
+    const cachedValuesFile = path.join(this.cacheDir, 'solo-node-add.yaml')
     return new Promise((resolve, reject) => {
       fs.writeFile(cachedValuesFile, yaml.dump(yamlRoot), (err) => {
         if (err) {

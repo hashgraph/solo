@@ -92,12 +92,12 @@ export class ClusterCommand extends BaseCommand {
             deployCertManagerCrds: self.configManager.getFlag(flags.deployCertManagerCrds),
             deployMinio: self.configManager.getFlag(flags.deployMinio),
             deployPrometheusStack: self.configManager.getFlag(flags.deployPrometheusStack),
-            fstChartVersion: self.configManager.getFlag(flags.fstChartVersion)
+            soloChartVersion: self.configManager.getFlag(flags.soloChartVersion)
           }
 
           self.logger.debug('Prepare ctx.config', { config: ctx.config, argv })
 
-          ctx.isChartInstalled = await this.chartManager.isChartInstalled(ctx.config.clusterSetupNamespace, constants.FULLSTACK_CLUSTER_SETUP_CHART)
+          ctx.isChartInstalled = await this.chartManager.isChartInstalled(ctx.config.clusterSetupNamespace, constants.SOLO_CLUSTER_SETUP_CHART)
         }
       },
       {
@@ -115,21 +115,21 @@ export class ClusterCommand extends BaseCommand {
         skip: (ctx, _) => ctx.isChartInstalled
       },
       {
-        title: `Install '${constants.FULLSTACK_CLUSTER_SETUP_CHART}' chart`,
+        title: `Install '${constants.SOLO_CLUSTER_SETUP_CHART}' chart`,
         task: async (ctx, _) => {
           const clusterSetupNamespace = ctx.config.clusterSetupNamespace
-          const version = ctx.config.fstChartVersion
+          const version = ctx.config.soloChartVersion
 
           const chartPath = ctx.chartPath
           const valuesArg = ctx.valuesArg
 
           try {
-            await self.chartManager.install(clusterSetupNamespace, constants.FULLSTACK_CLUSTER_SETUP_CHART, chartPath, version, valuesArg)
+            await self.chartManager.install(clusterSetupNamespace, constants.SOLO_CLUSTER_SETUP_CHART, chartPath, version, valuesArg)
           } catch (e) {
             // if error, uninstall the chart and rethrow the error
-            self.logger.debug(`Error on installing ${constants.FULLSTACK_CLUSTER_SETUP_CHART}. attempting to rollback by uninstalling the chart`, e)
+            self.logger.debug(`Error on installing ${constants.SOLO_CLUSTER_SETUP_CHART}. attempting to rollback by uninstalling the chart`, e)
             try {
-              await self.chartManager.uninstall(clusterSetupNamespace, constants.FULLSTACK_CLUSTER_SETUP_CHART)
+              await self.chartManager.uninstall(clusterSetupNamespace, constants.SOLO_CLUSTER_SETUP_CHART)
             } catch (ex) {
               // ignore error during uninstall since we are doing the best-effort uninstall here
             }
@@ -173,7 +173,7 @@ export class ClusterCommand extends BaseCommand {
             const confirm = await task.prompt(ListrEnquirerPromptAdapter).run({
               type: 'toggle',
               default: false,
-              message: 'Are you sure you would like to uninstall fullstack-cluster-setup chart?'
+              message: 'Are you sure you would like to uninstall solo-cluster-setup chart?'
             })
 
             if (!confirm) {
@@ -189,17 +189,17 @@ export class ClusterCommand extends BaseCommand {
             clusterSetupNamespace
           }
 
-          ctx.isChartInstalled = await this.chartManager.isChartInstalled(ctx.config.clusterSetupNamespace, constants.FULLSTACK_CLUSTER_SETUP_CHART)
+          ctx.isChartInstalled = await this.chartManager.isChartInstalled(ctx.config.clusterSetupNamespace, constants.SOLO_CLUSTER_SETUP_CHART)
           if (!ctx.isChartInstalled) {
             throw new SoloError('No chart found for the cluster')
           }
         }
       },
       {
-        title: `Uninstall '${constants.FULLSTACK_CLUSTER_SETUP_CHART}' chart`,
+        title: `Uninstall '${constants.SOLO_CLUSTER_SETUP_CHART}' chart`,
         task: async (ctx, _) => {
           const clusterSetupNamespace = ctx.config.clusterSetupNamespace
-          await self.chartManager.uninstall(clusterSetupNamespace, constants.FULLSTACK_CLUSTER_SETUP_CHART)
+          await self.chartManager.uninstall(clusterSetupNamespace, constants.SOLO_CLUSTER_SETUP_CHART)
           if (argv.dev) {
             await self.showInstalledChartList(clusterSetupNamespace)
           }
@@ -228,7 +228,7 @@ export class ClusterCommand extends BaseCommand {
     const clusterCmd = this
     return {
       command: 'cluster',
-      desc: 'Manage fullstack testing cluster',
+      desc: 'Manage solo testing cluster',
       builder: yargs => {
         return yargs
           .command({
@@ -273,7 +273,7 @@ export class ClusterCommand extends BaseCommand {
               flags.deployCertManagerCrds,
               flags.deployMinio,
               flags.deployPrometheusStack,
-              flags.fstChartVersion
+              flags.soloChartVersion
             ),
             handler: argv => {
               clusterCmd.logger.debug("==== Running 'cluster setup' ===", { argv })
@@ -332,7 +332,7 @@ export class ClusterCommand extends BaseCommand {
   ) {
     let valuesArg = ''
     if (chartDir) {
-      valuesArg = `-f ${path.join(chartDir, 'fullstack-cluster-setup', 'values.yaml')}`
+      valuesArg = `-f ${path.join(chartDir, 'solo-cluster-setup', 'values.yaml')}`
     }
 
     valuesArg += ` --set cloud.prometheusStack.enabled=${prometheusStackEnabled}`
@@ -354,9 +354,9 @@ export class ClusterCommand extends BaseCommand {
    * @returns {Promise<string>}
    */
   async prepareChartPath (chartDir = flags.chartDirectory.definition.default) {
-    let chartPath = 'full-stack-testing/fullstack-cluster-setup'
+    let chartPath = 'solo-charts/solo-cluster-setup'
     if (chartDir) {
-      chartPath = path.join(chartDir, 'fullstack-cluster-setup')
+      chartPath = path.join(chartDir, 'solo-cluster-setup')
       await this.helm.dependency('update', chartPath)
     }
 

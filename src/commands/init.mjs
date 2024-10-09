@@ -157,7 +157,7 @@ export class InitCommand extends BaseCommand {
           flags.cacheDir,
           flags.chartDirectory,
           flags.clusterSetupNamespace,
-          flags.fstChartVersion,
+          flags.soloChartVersion,
           flags.namespace,
           flags.nodeAliasesUnparsed,
           flags.profileFile,

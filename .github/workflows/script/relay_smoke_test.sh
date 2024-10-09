@@ -12,7 +12,7 @@ solo mirror-node deploy
 solo relay deploy -i node1
 kubectl port-forward svc/relay-node1-hedera-json-rpc-relay -n solo-e2e 7546:7546 &
 kubectl port-forward svc/haproxy-node1-svc -n solo-e2e 50211:50211 &
-kubectl port-forward svc/fullstack-deployment-hedera-explorer -n solo-e2e 8080:80 &
+kubectl port-forward svc/solo-deployment-hedera-explorer -n solo-e2e 8080:80 &
 
 echo "Clone hedera local node"
 

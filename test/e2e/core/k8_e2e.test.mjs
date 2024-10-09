@@ -100,7 +100,7 @@ describe('K8', () => {
   afterAll(async () => {
     try {
       await k8.kubeClient.deleteNamespacedPod(podName, testNamespace, undefined, undefined, 1)
-      argv[flags.namespace.name] = constants.FULLSTACK_SETUP_NAMESPACE
+      argv[flags.namespace.name] = constants.SOLO_SETUP_NAMESPACE
       configManager.update(argv)
     } catch (e) {
       console.log(e)

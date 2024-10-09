@@ -84,7 +84,7 @@ export class AccountManager {
     const secret = await this.k8.getSecret(namespace, Templates.renderAccountKeySecretLabelSelector(accountId))
     if (secret) {
       return {
-        accountId: secret.labels['fullstack.hedera.com/account-id'],
+        accountId: secret.labels['solo.hedera.com/account-id'],
         privateKey: Base64.decode(secret.data.privateKey),
         publicKey: Base64.decode(secret.data.publicKey)
       }
@@ -265,11 +265,11 @@ export class AccountManager {
 
   /**
    * Gets a Map of the Hedera node services and the attributes needed
-   * @param {string} namespace - the namespace of the fullstack network deployment
+   * @param {string} namespace - the namespace of the solo network deployment
    * @returns {Promise<Map<NodeAlias, NetworkNodeServices>>} a map of the network node services
    */
   async getNodeServiceMap (namespace) {
-    const labelSelector = 'fullstack.hedera.com/node-name'
+    const labelSelector = 'solo.hedera.com/node-name'
 
     const serviceBuilderMap = /** @type {Map<String,NetworkNodeServicesBuilder>} **/ new Map()
 
@@ -278,24 +278,24 @@ export class AccountManager {
 
     // retrieve the list of services and build custom objects for the attributes we need
     for (const service of serviceList.body.items) {
-      const serviceType = service.metadata.labels['fullstack.hedera.com/type']
-      let serviceBuilder = new NetworkNodeServicesBuilder(service.metadata.labels['fullstack.hedera.com/node-name'])
+      const serviceType = service.metadata.labels['solo.hedera.com/type']
+      let serviceBuilder = new NetworkNodeServicesBuilder(service.metadata.labels['solo.hedera.com/node-name'])
 
       if (serviceBuilderMap.has(serviceBuilder.key())) {
         serviceBuilder = serviceBuilderMap.get(serviceBuilder.key())
       }
 
       switch (serviceType) {
-        // fullstack.hedera.com/type: envoy-proxy-svc
+        // solo.hedera.com/type: envoy-proxy-svc
         case 'envoy-proxy-svc':
           serviceBuilder.withEnvoyProxyName(service.metadata.name)
             .withEnvoyProxyClusterIp(service.spec.clusterIP)
             .withEnvoyProxyLoadBalancerIp(service.status.loadBalancer.ingress ? service.status.loadBalancer.ingress[0].ip : undefined)
             .withEnvoyProxyGrpcWebPort(service.spec.ports.filter(port => port.name === 'hedera-grpc-web')[0].port)
           break
-        // fullstack.hedera.com/type: haproxy-svc
+        // solo.hedera.com/type: haproxy-svc
         case 'haproxy-svc':
-          serviceBuilder.withAccountId(service.metadata.labels['fullstack.hedera.com/account-id'])
+          serviceBuilder.withAccountId(service.metadata.labels['solo.hedera.com/account-id'])
             .withHaProxyAppSelector(service.spec.selector.app)
             .withHaProxyName(service.metadata.name)
             .withHaProxyClusterIp(service.spec.clusterIP)
@@ -303,7 +303,7 @@ export class AccountManager {
             .withHaProxyGrpcPort(service.spec.ports.filter(port => port.name === 'non-tls-grpc-client-port')[0].port)
             .withHaProxyGrpcsPort(service.spec.ports.filter(port => port.name === 'tls-grpc-client-port')[0].port)
           break
-        // fullstack.hedera.com/type: network-node-svc
+        // solo.hedera.com/type: network-node-svc
         case 'network-node-svc':
           serviceBuilder.withNodeServiceName(service.metadata.name)
             .withNodeServiceClusterIp(service.spec.clusterIP)
@@ -324,10 +324,10 @@ export class AccountManager {
     }
 
     // get the pod name of the network node
-    const pods = await this.k8.getPodsByLabel(['fullstack.hedera.com/type=network-node'])
+    const pods = await this.k8.getPodsByLabel(['solo.hedera.com/type=network-node'])
     for (const pod of pods) {
       const podName = pod.metadata.name
-      const nodeAlias = pod.metadata.labels['fullstack.hedera.com/node-name']
+      const nodeAlias = pod.metadata.labels['solo.hedera.com/node-name']
       const serviceBuilder = /** @type {NetworkNodeServicesBuilder} **/ serviceBuilderMap.get(nodeAlias)
       serviceBuilder.withNodePodName(podName)
     }
