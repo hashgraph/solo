@@ -53,7 +53,6 @@ const COMMON_DELETE_REQUIRED_FLAGS = [
 const COMMON_DELETE_REQUIRED_NO_PROMPT_FLAGS = [
     flags.app,
     flags.chainId,
-    flags.chartDirectory,
     flags.debugNodeAlias,
     flags.endpointType,
     flags.fstChartVersion
@@ -63,24 +62,20 @@ const COMMON_DELETE_OPTIONAL_FLAGS = [
     flags.devMode,
     flags.force,
     flags.localBuildPath,
-    flags.quiet
+    flags.quiet,
+    flags.chartDirectory
 ]
 
 const COMMON_ADD_REQUIRED_FLAGS = [
     flags.app,
     flags.cacheDir,
     flags.chainId,
-    flags.chartDirectory,
     flags.devMode,
-    flags.debugNodeAlias,
     flags.endpointType,
-    flags.fstChartVersion,
     flags.generateGossipKeys,
     flags.generateTlsKeys,
     flags.gossipEndpoints,
     flags.grpcEndpoints,
-    flags.localBuildPath,
-    flags.quiet,
     flags.namespace,
     flags.releaseTag
 ]
@@ -91,13 +86,15 @@ const COMMON_ADD_REQUIRED_NO_PROMPT_FLAGS = [
     flags.chartDirectory,
     flags.debugNodeAlias,
     flags.endpointType,
-    flags.fstChartVersion
+    flags.fstChartVersion,
 ]
 
 const COMMON_ADD_OPTIONAL_FLAGS = [
     flags.devMode,
     flags.force,
-    flags.localBuildPath
+    flags.localBuildPath,
+    flags.chartDirectory,
+    flags.quiet,
 ]
 
 export const DELETE_FLAGS = {
