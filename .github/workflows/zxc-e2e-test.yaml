@@ -184,15 +184,6 @@ jobs:
           echo "Skipped smoke test for relay"
           #.github/workflows/script/relay_smoke_test.sh
 
-      - name: List Files Before Artifact Upload
-        run: ls -la
-
-      - name: Print Current Directory Before Artifact Upload
-        run: pwd
-
-      - name: Display Tree Before Artifact Upload
-        run: tree
-
       - name: Upload E2E Logs to GitHub
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@50769540e7f4bd5e21e526ee35c689e35e0d6874 # v4.4.0

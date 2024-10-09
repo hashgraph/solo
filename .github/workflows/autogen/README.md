@@ -33,7 +33,7 @@ e.g.:
 
 ```yaml
   - name: Mirror Node
-    mochaPostfix: "--ignore-pattern '.*\\/unit\\/.*'"
+    mochaPostfix: "--ignore '.*\\/unit\\/.*'"
 
 ```
 
