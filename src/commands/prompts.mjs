@@ -359,10 +359,10 @@ export async function promptUpdateAccountKeys (task, input) {
 
 export async function promptPrivateKey (task, input) {
   return await promptText(task, input,
-    flags.privateKey.definition.defaultValue,
+    flags.ed25519PrivateKey.definition.defaultValue,
     'Enter the private key: ',
     null,
-    flags.privateKey.name)
+    flags.ed25519PrivateKey.name)
 }
 
 export async function promptAccountId (task, input) {
@@ -459,7 +459,7 @@ export function getPromptMap () {
     .set(flags.operatorId.name, promptOperatorId)
     .set(flags.operatorKey.name, promptOperatorKey)
     .set(flags.persistentVolumeClaims.name, promptPersistentVolumeClaims)
-    .set(flags.privateKey.name, promptPrivateKey)
+    .set(flags.ed25519PrivateKey.name, promptPrivateKey)
     .set(flags.profileFile.name, promptProfileFile)
     .set(flags.profileName.name, promptProfile)
     .set(flags.relayReleaseTag.name, promptRelayReleaseTag)

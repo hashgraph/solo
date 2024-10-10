@@ -72,7 +72,7 @@ export class AccountCommand extends BaseCommand {
 
   /**
    * @param {any} ctx
-   * @returns {Promise<{accountId: AccountId, privateKey: string, publicKey: string, balance: number}>}
+   * @returns {Promise<{accountId: AccountId, ed25519PrivateKey: string, publicKey: string, balance: number}>}
    */
   async createNewAccount (ctx) {
     if (ctx.config.ecdsaPrivateKey) {
@@ -275,7 +275,7 @@ export class AccountCommand extends BaseCommand {
             amount: self.configManager.getFlag(flags.amount),
             ecdsaPrivateKey: self.configManager.getFlag(flags.ecdsaPrivateKey),
             namespace: self.configManager.getFlag(flags.namespace),
-            privateKey: self.configManager.getFlag(flags.privateKey),
+            ed25519PrivateKey: self.configManager.getFlag(flags.ed25519PrivateKey),
             setAlias: self.configManager.getFlag(flags.setAlias)
           }
 
@@ -342,7 +342,8 @@ export class AccountCommand extends BaseCommand {
             accountId: self.configManager.getFlag(flags.accountId),
             amount: self.configManager.getFlag(flags.amount),
             namespace: self.configManager.getFlag(flags.namespace),
-            privateKey: self.configManager.getFlag(flags.privateKey)
+            ed25519PrivateKey: self.configManager.getFlag(flags.ed25519PrivateKey),
+            ecdsaPrivateKey: self.configManager.getFlag(flags.ecdsaPrivateKey)
           }
 
           if (!await this.k8.hasNamespace(config.namespace)) {
@@ -360,7 +361,7 @@ export class AccountCommand extends BaseCommand {
       {
         title: 'get the account info',
         task: async (ctx) => {
-          ctx.accountInfo = await self.buildAccountInfo(await self.getAccountInfo(ctx), ctx.config.namespace, ctx.config.privateKey)
+          ctx.accountInfo = await self.buildAccountInfo(await self.getAccountInfo(ctx), ctx.config.namespace, ctx.config.ed25519PrivateKey)
         }
       },
       {
@@ -483,12 +484,12 @@ export class AccountCommand extends BaseCommand {
           })
           .command({
             command: 'create',
-            desc: 'Creates a new account with a new key and stores the key in the Kubernetes secrets',
+            desc: 'Creates a new account with a new key and stores the key in the Kubernetes secrets, if you supply no key one will be generated for you, otherwise you may supply either a ECDSA or ED25519 private key',
             builder: y => flags.setCommandFlags(y,
               flags.amount,
               flags.ecdsaPrivateKey,
               flags.namespace,
-              flags.privateKey,
+              flags.ed25519PrivateKey,
               flags.setAlias
             ),
             handler: argv => {
@@ -506,12 +507,13 @@ export class AccountCommand extends BaseCommand {
           })
           .command({
             command: 'update',
-            desc: 'Updates an existing account with the provided info\n',
+            desc: 'Updates an existing account with the provided info, if you want to update the private key, you can supply either ECDSA or ED25519 but not both\n',
             builder: y => flags.setCommandFlags(y,
               flags.accountId,
               flags.amount,
               flags.namespace,
-              flags.privateKey
+              flags.ecdsaPrivateKey,
+              flags.ed25519PrivateKey,
             ),
             handler: argv => {
               accountCmd.logger.debug("==== Running 'account update' ===")

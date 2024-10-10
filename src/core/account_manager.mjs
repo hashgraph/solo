@@ -101,7 +101,7 @@ export class AccountManager {
   /**
    * Gets the treasury account private key from Kubernetes secret if it exists, else
    * returns the Genesis private key, then will return an AccountInfo object with the
-   * accountId, privateKey, publicKey
+   * accountId, ed25519PrivateKey, publicKey
    * @param {string} namespace - the namespace that the secret is in
    * @returns {Promise<AccountIdWithKeyPairObject>}
    */
@@ -552,8 +552,8 @@ export class AccountManager {
    * @param {Key} privateKey - the private key of type PrivateKey
    * @param {number} amount - the amount of HBAR to add to the account
    * @param {boolean} [setAlias] - whether to set the alias of the account to the public key, requires
-   * the privateKey supplied to be ECDSA
-   * @returns {Promise<{accountId: AccountId, privateKey: string, publicKey: string, balance: number}>} a custom object with
+   * the ed25519PrivateKey supplied to be ECDSA
+   * @returns {Promise<{accountId: AccountId, ed25519PrivateKey: string, publicKey: string, balance: number}>} a custom object with
    * the account information in it
    */
   async createNewAccount (namespace, privateKey, amount, setAlias = false) {
