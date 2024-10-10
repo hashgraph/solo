@@ -517,46 +517,6 @@ export class KeyManager {
   }
 
   /**
-   * Return a list of subtasks to generate gossip keys
-   *
-   * WARNING: These tasks MUST run in sequence.
-   *
-   * @param {KeytoolDependencyManager} keytoolDepManager - an instance of core/KeytoolDepManager
-   * @param {NodeAliases} nodeAliases
-   * @param {string} keysDir - keys directory
-   * @param {Date} curDate - current date
-   * @param {NodeAliases|null} [allNodeAliases] - includes the nodeAliases to get new keys as well as existing nodeAliases that will be included in the public.pfx file
-   * @return {Object[]} a list of subtasks
-   * @public
-   */
-  taskGenerateGossipKeys (keytoolDepManager, nodeAliases, keysDir, curDate = new Date(), allNodeAliases = null) {
-    allNodeAliases = allNodeAliases || nodeAliases
-    if (!Array.isArray(nodeAliases) || !nodeAliases.every((nodeAlias) => typeof nodeAlias === 'string')) {
-      throw new IllegalArgumentError('nodeAliases must be an array of strings, nodeAliases = ' + JSON.stringify(nodeAliases))
-    }
-    const self = this
-    const subTasks = []
-
-    subTasks.push({
-      title: 'Backup old files',
-      task: () => helpers.backupOldPemKeys(nodeAliases, keysDir, curDate)
-    }
-    )
-
-    for (const nodeAlias of nodeAliases) {
-      subTasks.push({
-        title: `Gossip key for node: ${chalk.yellow(nodeAlias)}`,
-        task: async () => {
-          const signingKey = await self.generateSigningKey(nodeAlias)
-          const signingKeyFiles = await self.storeSigningKey(nodeAlias, signingKey, keysDir)
-          this.logger.debug(`generated Gossip signing keys for node ${nodeAlias}`, { keyFiles: signingKeyFiles })
-        }
-      })
-    }
-    return subTasks
-  }
-
-  /**
    *  Return a list of subtasks to generate gRPC TLS keys
    *
    * WARNING: These tasks should run in sequence

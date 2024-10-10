@@ -25,7 +25,6 @@ import { Templates } from './templates.mjs'
 import { ChartManager } from './chart_manager.mjs'
 import { ConfigManager } from './config_manager.mjs'
 import { KeyManager } from './key_manager.mjs'
-import { Keytool } from './keytool.mjs'
 import { ProfileManager } from './profile_manager.mjs'
 import { YargsCommand } from './yargs_command.mjs'
 import { Task } from './task.mjs'
@@ -45,7 +44,6 @@ export {
   ChartManager,
   ConfigManager,
   KeyManager,
-  Keytool,
   ProfileManager,
   YargsCommand,
   Task

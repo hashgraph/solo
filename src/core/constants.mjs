@@ -28,7 +28,6 @@ export const SOLO_CACHE_DIR = path.join(SOLO_HOME_DIR, 'cache')
 export const SOLO_VALUES_DIR = path.join(SOLO_CACHE_DIR, 'values-files')
 export const DEFAULT_NAMESPACE = 'default'
 export const HELM = 'helm'
-export const KEYTOOL = 'keytool'
 export const SOLO_CONFIG_FILE = path.join(SOLO_HOME_DIR, 'solo.yaml')
 export const RESOURCES_DIR = normalize(path.join(CUR_FILE_DIR, '..', '..', 'resources'))
 export const TEMP_DIR = normalize(path.join(CUR_FILE_DIR, '..', '..', 'temp'))

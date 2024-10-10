@@ -218,12 +218,6 @@ export class Templates {
         }
 
         return path.join(installationDir, dep)
-      case constants.KEYTOOL:
-        if (osPlatform === constants.OS_WINDOWS) {
-          return path.join(installationDir, 'jre', 'bin', `${dep}.exe`)
-        }
-
-        return path.join(installationDir, 'jre', 'bin', dep)
 
       default:
         throw new SoloError(`unknown dep: ${dep}`)
