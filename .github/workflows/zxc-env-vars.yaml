@@ -127,6 +127,7 @@ jobs:
       e2e_node_delete_separate_commands_test_subdir: e2e-node-delete-separate-commands
       e2e_node_upgrade_test_subdir: e2e-node-upgrade
       e2e_relay_test_subdir: e2e-relay
+      e2e_integration_coverage_report: "E2E Integration Tests Coverage Report"
       e2e_standard_coverage_report: "E2E Standard Tests Coverage Report"
       e2e_mirror_node_coverage_report: "E2E Mirror Node Tests Coverage Report"
       e2e_node_pem_stop_coverage_report: "E2E Node PEM Stop Tests Coverage Report"

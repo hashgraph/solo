@@ -65,7 +65,7 @@ jobs:
       custom-job-label: Standard
 
   e2e-integration-tests:
-    name: E2E Integration Tests
+    name: E2E Tests
     if: ${{ github.event_name == 'push' || github.event.inputs.enable-e2e-tests == 'true' }}
     uses: ./.github/workflows/zxc-e2e-test.yaml
     needs:
