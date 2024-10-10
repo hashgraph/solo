@@ -62,6 +62,19 @@ jobs:
       GH_ACCESS_GPG_KEY: ${{ secrets.GH_ACCESS_GPG_KEY }}
       GH_ACCESS_PASSPHRASE: ${{ secrets.GH_ACCESS_PASSPHRASE }}
 
+  e2e-integration-tests:
+    name: E2E Tests
+    if: ${{ !cancelled() && always() }}
+    uses: ./.github/workflows/zxc-e2e-test.yaml
+    needs:
+      - env-vars
+      - code-style
+    with:
+      custom-job-label: Integration
+      npm-test-script: test-${{ needs.env-vars.outputs.e2e-integration-test-subdir }}
+      coverage-subdirectory: ${{ needs.env-vars.outputs.e2e-integration-test-subdir }}
+      coverage-report-name: ${{ needs.env-vars.outputs.e2e-integration-coverage-report }}
+
   e2e-standard-tests:
     name: E2E Tests
     if: ${{ !cancelled() && always() }}
@@ -224,6 +237,7 @@ jobs:
     needs:
       - env-vars
       - unit-tests
+      - e2e-integration-tests
       - e2e-standard-tests
       - e2e-mirror-node-tests
       - e2e-node-pem-stop-tests
@@ -241,6 +255,7 @@ jobs:
       custom-job-label: Standard
       enable-codecov-analysis: true
       enable-e2e-coverage-report: true
+      e2e-integration-test-subdir: ${{ needs.env-vars.outputs.e2e-integration-test-subdir }}
       e2e-standard-test-subdir: ${{ needs.env-vars.outputs.e2e-standard-test-subdir }}
       e2e-mirror-node-test-subdir: ${{ needs.env-vars.outputs.e2e-mirror-node-test-subdir }}
       e2e-node-pem-stop-test-subdir: ${{ needs.env-vars.outputs.e2e-node-pem-stop-test-subdir }}
@@ -253,6 +268,7 @@ jobs:
       e2e-node-delete-separate-commands-test-subdir: ${{ needs.env-vars.outputs.e2e-node-delete-separate-commands-test-subdir }}
       e2e-node-upgrade-test-subdir: ${{ needs.env-vars.outputs.e2e-node-upgrade-test-subdir }}
       e2e-relay-test-subdir: ${{ needs.env-vars.outputs.e2e-relay-test-subdir }}
+      e2e-integration-coverage-report: ${{ needs.env-vars.outputs.e2e-integration-coverage-report }}
       e2e-standard-coverage-report: ${{ needs.env-vars.outputs.e2e-standard-coverage-report }}
       e2e-mirror-node-coverage-report: ${{ needs.env-vars.outputs.e2e-mirror-node-coverage-report }}
       e2e-node-pem-stop-coverage-report: ${{ needs.env-vars.outputs.e2e-node-pem-stop-coverage-report }}
@@ -274,6 +290,7 @@ jobs:
     needs:
       - env-vars
       - unit-tests
+      - e2e-integration-tests
       - e2e-standard-tests
       - e2e-mirror-node-tests
       - e2e-node-pem-stop-tests
@@ -291,6 +308,7 @@ jobs:
       custom-job-label: Coverage
       enable-codacy-coverage: true
       enable-e2e-coverage-report: true
+      e2e-integration-test-subdir: ${{ needs.env-vars.outputs.e2e-integration-test-subdir }}
       e2e-standard-test-subdir: ${{ needs.env-vars.outputs.e2e-standard-test-subdir }}
       e2e-mirror-node-test-subdir: ${{ needs.env-vars.outputs.e2e-mirror-node-test-subdir }}
       e2e-node-pem-stop-test-subdir: ${{ needs.env-vars.outputs.e2e-node-pem-stop-test-subdir }}
@@ -303,6 +321,7 @@ jobs:
       e2e-node-delete-separate-commands-test-subdir: ${{ needs.env-vars.outputs.e2e-node-delete-separate-commands-test-subdir }}
       e2e-node-upgrade-test-subdir: ${{ needs.env-vars.outputs.e2e-node-upgrade-test-subdir }}
       e2e-relay-test-subdir: ${{ needs.env-vars.outputs.e2e-relay-test-subdir }}
+      e2e-integration-coverage-report: ${{ needs.env-vars.outputs.e2e-integration-coverage-report }}
       e2e-standard-coverage-report: ${{ needs.env-vars.outputs.e2e-standard-coverage-report }}
       e2e-mirror-node-coverage-report: ${{ needs.env-vars.outputs.e2e-mirror-node-coverage-report }}
       e2e-node-pem-stop-coverage-report: ${{ needs.env-vars.outputs.e2e-node-pem-stop-coverage-report }}
