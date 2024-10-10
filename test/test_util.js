@@ -28,8 +28,7 @@ import { NodeCommand } from '../src/commands/node.mjs'
 import { AccountManager } from '../src/core/account_manager.mjs'
 import {
   DependencyManager,
-  HelmDependencyManager,
-  KeytoolDependencyManager
+  HelmDependencyManager
 } from '../src/core/dependency_managers/index.mjs'
 import { sleep } from '../src/core/helpers.mjs'
 import {
@@ -123,7 +122,6 @@ export function bootstrapTestVariables (testName, argv,
   const downloader = new PackageDownloader(testLogger)
   const zippy = new Zippy(testLogger)
   const helmDepManager = new HelmDependencyManager(downloader, zippy, testLogger)
-  const keytoolDepManager = new KeytoolDependencyManager(downloader, zippy, testLogger)
   const depManagerMap = new Map().set(constants.HELM, helmDepManager)
   const depManager = new DependencyManager(testLogger, depManagerMap)
   const keyManager = new KeyManager(testLogger)
@@ -145,7 +143,6 @@ export function bootstrapTestVariables (testName, argv,
     keyManager,
     accountManager,
     cacheDir,
-    keytoolDepManager,
     profileManager
   }
 

@@ -57,12 +57,5 @@ describe('NodeCommand unit tests', () => {
       expect(() => new NodeCommand(opts)).to.throw('An instance of core/AccountManager is required')
     })
 
-    it('should throw an error if keytoolDepManager is not provided', () => {
-      opts.downloader = sinon.stub()
-      opts.platformInstaller = sinon.stub()
-      opts.keyManager = sinon.stub()
-      opts.accountManager = sinon.stub()
-      expect(() => new NodeCommand(opts)).to.throw('An instance of KeytoolDependencyManager is required')
-    })
   })
 })
