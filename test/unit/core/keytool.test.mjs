@@ -14,42 +14,52 @@
  * limitations under the License.
  *
  */
-import { describe, expect, it, jest } from '@jest/globals'
+import sinon from 'sinon'
+import { expect } from 'chai'
+import { afterEach, beforeEach, describe, it } from 'mocha'
+import each from 'mocha-each'
+
 import { constants, Keytool, logging, Templates } from '../../../src/core/index.mjs'
 import { ShellRunner } from '../../../src/core/shell_runner.mjs'
 
-describe.each([
-  { osPlatform: 'linux' },
-  { osPlatform: 'windows' },
-  { osPlatform: 'darwin' }
-])('Keytool', (input) => {
-  const logger = logging.NewLogger('debug', true)
-  const keytool = new Keytool(logger, input.osPlatform)
-  const shellSpy = jest.spyOn(ShellRunner.prototype, 'run').mockImplementation()
-  const keytoolPath = Templates.installationPath(constants.KEYTOOL, input.osPlatform)
+describe('Keytool', () => {
+  each(['linux', 'windows', 'darwin'])
+    .describe('Keytool tests on %s', (osPlatform) => {
+      /** @type {sinon.SinonStub} */
+      let shellStub
+      const logger = logging.NewLogger('debug', true)
+      const keytool = new Keytool(logger, osPlatform)
+      const keytoolPath = Templates.installationPath(constants.KEYTOOL, osPlatform)
 
-  it(`should run keytool -genkeypair [${input.osPlatform}]`, async () => {
-    await keytool.genKeyPair('-alias s-node1')
-    expect(shellSpy).toHaveBeenCalledWith(`${keytoolPath} -genkeypair -alias s-node1`, true)
-  })
+      beforeEach(() => {
+        shellStub = sinon.stub(ShellRunner.prototype, 'run').resolves()
+      })
 
-  it(`should run keytool -certreq [${input.osPlatform}]`, async () => {
-    await keytool.certReq('-alias s-node1')
-    expect(shellSpy).toHaveBeenCalledWith(`${keytoolPath} -certreq -alias s-node1`, true)
-  })
+      afterEach(() => sinon.restore())
 
-  it(`should run keytool -gencert [${input.osPlatform}]`, async () => {
-    await keytool.genCert('-alias s-node1')
-    expect(shellSpy).toHaveBeenCalledWith(`${keytoolPath} -gencert -alias s-node1`, true)
-  })
+      it('should run keytool -genkeypair', async () => {
+        await keytool.genKeyPair('-alias s-node1')
+        expect(shellStub).to.have.been.calledWith(`${keytoolPath} -genkeypair -alias s-node1`, true)
+      })
 
-  it(`should run keytool -importcert [${input.osPlatform}]`, async () => {
-    await keytool.importCert('-alias s-node1')
-    expect(shellSpy).toHaveBeenCalledWith(`${keytoolPath} -importcert -alias s-node1`, true)
-  })
+      it('should run keytool -certreq', async () => {
+        await keytool.certReq('-alias s-node1')
+        expect(shellStub).to.have.been.calledWith(`${keytoolPath} -certreq -alias s-node1`, true)
+      })
 
-  it(`should run keytool -exportcert [${input.osPlatform}]`, async () => {
-    await keytool.exportCert('-alias s-node1')
-    expect(shellSpy).toHaveBeenCalledWith(`${keytoolPath} -exportcert -alias s-node1`, true)
-  })
+      it('should run keytool -gencert', async () => {
+        await keytool.genCert('-alias s-node1')
+        expect(shellStub).to.have.been.calledWith(`${keytoolPath} -gencert -alias s-node1`, true)
+      })
+
+      it('should run keytool -importcert', async () => {
+        await keytool.importCert('-alias s-node1')
+        expect(shellStub).to.have.been.calledWith(`${keytoolPath} -importcert -alias s-node1`, true)
+      })
+
+      it('should run keytool -exportcert', async () => {
+        await keytool.exportCert('-alias s-node1')
+        expect(shellStub).to.have.been.calledWith(`${keytoolPath} -exportcert -alias s-node1`, true)
+      })
+    })
 })

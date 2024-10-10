@@ -13,19 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
- * @jest-environment steps
+ * @mocha-environment steps
  */
-import {
-  afterAll,
-  describe
-} from '@jest/globals'
+import { describe, after } from 'mocha'
+
 import { flags } from '../../../src/commands/index.mjs'
-import {
-  bootstrapNetwork,
-  getDefaultArgv,
-  TEST_CLUSTER
-} from '../../test_util.js'
+import { bootstrapNetwork, getDefaultArgv, TEST_CLUSTER } from '../../test_util.js'
 import { getNodeLogs } from '../../../src/core/helpers.mjs'
+import { MINUTES } from '../../../src/core/constants.mjs'
 
 describe('Node local build', () => {
   const LOCAL_PTT = 'local-ptt-app'
@@ -35,22 +30,24 @@ describe('Node local build', () => {
   argv[flags.generateTlsKeys.name] = true
   argv[flags.clusterName.name] = TEST_CLUSTER
   // set the env variable SOLO_CHARTS_DIR if developer wants to use local Solo charts
-  argv[flags.chartDirectory.name] = process.env.SOLO_CHARTS_DIR ? process.env.SOLO_CHARTS_DIR : undefined
+  argv[flags.chartDirectory.name] = process.env.SOLO_CHARTS_DIR ?? undefined
   argv[flags.quiet.name] = true
 
-  let pttK8
-  afterAll(async () => {
+  /** @type {K8} */ let pttK8
+  after(async function () {
+    this.timeout(2 * MINUTES)
+
     await getNodeLogs(pttK8, LOCAL_PTT)
     await pttK8.deleteNamespace(LOCAL_PTT)
-  }, 120000)
+  })
 
-  describe('Node for platform app should start successfully', () => {
+  describe('Node for platform app should start successfully', async () => {
     console.log('Starting local build for Platform app')
     argv[flags.localBuildPath.name] = '../hedera-services/platform-sdk/sdk/data,node1=../hedera-services/platform-sdk/sdk/data,node2=../hedera-services/platform-sdk/sdk/data'
     argv[flags.app.name] = 'PlatformTestingTool.jar'
     argv[flags.appConfig.name] = '../hedera-services/platform-sdk/platform-apps/tests/PlatformTestingTool/src/main/resources/FCMFCQ-Basic-2.5k-5m.json'
     argv[flags.namespace.name] = LOCAL_PTT
-    const bootstrapResp = bootstrapNetwork(LOCAL_PTT, argv)
+    const bootstrapResp = await bootstrapNetwork(LOCAL_PTT, argv)
     pttK8 = bootstrapResp.opts.k8
   })
 })

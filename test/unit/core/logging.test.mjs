@@ -14,30 +14,40 @@
  * limitations under the License.
  *
  */
-import { describe, expect, it, jest } from '@jest/globals'
+import sinon from 'sinon'
+import { expect } from 'chai'
+import { describe, it, afterEach, beforeEach } from 'mocha'
+
 import { NewLogger, SoloLogger } from '../../../src/core/logging.mjs'
 import winston from 'winston'
 
 describe('Logging', () => {
+  /** @type {SoloLogger} */ let logger
+  /** @type {sinon.SinonStub} */ let loggerSpy
+
+  beforeEach(() => {
+    logger = NewLogger('debug')
+    loggerSpy = sinon.spy(winston.Logger.prototype, 'log')
+  })
+
+  // Cleanup after each test
+  afterEach(() => sinon.restore())
+
   it('should log at correct severity', () => {
-    const loggerSpy = jest.spyOn(winston.Logger.prototype, 'log').mockImplementation()
-    const logger = NewLogger('debug')
-    expect(logger).toBeInstanceOf(SoloLogger)
-    expect(logger).toBeDefined()
+    expect(logger).to.be.instanceof(SoloLogger)
+    expect(logger).to.be.not.undefined
     const meta = logger.prepMeta()
 
     logger.error('Error log')
-    expect(loggerSpy).toHaveBeenCalledWith('error', 'Error log', meta)
+    expect(loggerSpy).to.have.been.calledWith('error', 'Error log', meta)
 
     logger.warn('Warn log')
-    expect(loggerSpy).toHaveBeenCalledWith('warn', 'Warn log', meta)
+    expect(loggerSpy).to.have.been.calledWith('warn', 'Warn log', meta)
 
     logger.info('Info log')
-    expect(loggerSpy).toHaveBeenCalledWith('info', 'Info log', meta)
+    expect(loggerSpy).to.have.been.calledWith('info', 'Info log', meta)
 
     logger.debug('Debug log')
-    expect(loggerSpy).toHaveBeenCalledWith('debug', 'Debug log', meta)
-
-    jest.clearAllMocks()
+    expect(loggerSpy).to.have.been.calledWith('debug', 'Debug log', meta)
   })
 })

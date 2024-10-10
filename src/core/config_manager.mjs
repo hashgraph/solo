@@ -34,7 +34,7 @@ import { yamlToObject } from './helpers.mjs'
 export class ConfigManager {
   /**
    * @param {SoloLogger} logger
-   * @param {PathLike} cachedConfigFile
+   * @param {string} cachedConfigFile
    */
   constructor (logger, cachedConfigFile = constants.SOLO_CONFIG_FILE) {
     if (!logger || !(logger instanceof SoloLogger)) throw new MissingArgumentError('An instance of core/SoloLogger is required')

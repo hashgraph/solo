@@ -14,63 +14,55 @@
  * limitations under the License.
  *
  */
-import {
-  beforeEach,
-  describe,
-  expect,
-  it,
-  jest
-} from '@jest/globals'
+import sinon from 'sinon'
+import { describe, it, beforeEach } from 'mocha'
+import { expect } from 'chai'
 
 import { NodeCommand } from '../../../src/commands/node.mjs'
 
-function getBaseCommandOpts () {
-  const opts = {}
-  opts.logger = jest.fn()
-  opts.helm = jest.fn()
-  opts.k8 = jest.fn()
-  opts.chartManager = jest.fn()
-  opts.configManager = jest.fn()
-  opts.depManager = jest.fn()
-  return opts
-}
+const getBaseCommandOpts = () => ({
+  logger: sinon.stub(),
+  helm: sinon.stub(),
+  k8: sinon.stub(),
+  chartManager: sinon.stub(),
+  configManager: sinon.stub(),
+  depManager: sinon.stub()
+})
 
 describe('NodeCommand unit tests', () => {
   describe('constructor error handling', () => {
     let opts
 
-    beforeEach(() => {
-      opts = getBaseCommandOpts()
-    })
+    beforeEach(() => { opts = getBaseCommandOpts() })
 
     it('should throw an error if downloader is not provided', () => {
-      expect(() => new NodeCommand(opts)).toThrow('An instance of core/PackageDownloader is required')
+      expect(() => new NodeCommand(opts)).to.throw('An instance of core/PackageDownloader is required')
     })
 
     it('should throw an error if platformInstaller is not provided', () => {
-      opts.downloader = jest.fn()
-      expect(() => new NodeCommand(opts)).toThrow('An instance of core/PlatformInstaller is required')
+      opts.downloader = sinon.stub()
+      expect(() => new NodeCommand(opts)).to.throw('An instance of core/PlatformInstaller is required')
     })
 
     it('should throw an error if keyManager is not provided', () => {
-      opts.downloader = jest.fn()
-      opts.platformInstaller = jest.fn()
-      expect(() => new NodeCommand(opts)).toThrow('An instance of core/KeyManager is required')
+      opts.downloader = sinon.stub()
+      opts.platformInstaller = sinon.stub()
+      expect(() => new NodeCommand(opts)).to.throw('An instance of core/KeyManager is required')
     })
 
     it('should throw an error if accountManager is not provided', () => {
-      opts.downloader = jest.fn()
-      opts.platformInstaller = jest.fn()
-      opts.keyManager = jest.fn()
-      expect(() => new NodeCommand(opts)).toThrow('An instance of core/AccountManager is required')
+      opts.downloader = sinon.stub()
+      opts.platformInstaller = sinon.stub()
+      opts.keyManager = sinon.stub()
+      expect(() => new NodeCommand(opts)).to.throw('An instance of core/AccountManager is required')
     })
 
     it('should throw an error if keytoolDepManager is not provided', () => {
-      opts.downloader = jest.fn()
-      opts.platformInstaller = jest.fn()
-      opts.keyManager = jest.fn()
-      opts.accountManager = jest.fn()
-      expect(() => new NodeCommand(opts)).toThrow('An instance of KeytoolDependencyManager is required')
+      opts.downloader = sinon.stub()
+      opts.platformInstaller = sinon.stub()
+      opts.keyManager = sinon.stub()
+      opts.accountManager = sinon.stub()
+      expect(() => new NodeCommand(opts)).to.throw('An instance of KeytoolDependencyManager is required')
     })
   })
 })

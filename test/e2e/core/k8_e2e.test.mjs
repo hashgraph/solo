@@ -14,6 +14,9 @@
  * limitations under the License.
  *
  */
+import { it, describe, after, before } from 'mocha'
+import { expect } from 'chai'
+
 import fs from 'fs'
 import net from 'net'
 import os from 'os'
@@ -38,8 +41,9 @@ import {
   V1VolumeResourceRequirements
 } from '@kubernetes/client-node'
 import crypto from 'crypto'
+import { MINUTES } from '../../../src/core/constants.mjs'
 
-const defaultTimeout = 120000
+const defaultTimeout = 2 * MINUTES
 
 describe('K8', () => {
   const testLogger = logging.NewLogger('debug', true)
@@ -52,7 +56,8 @@ describe('K8', () => {
   const podLabelValue = `test-${uuid4()}`
   const serviceName = `test-service-${uuid4()}`
 
-  beforeAll(async () => {
+  before(async function () {
+    this.timeout(defaultTimeout)
     try {
       argv[flags.namespace.name] = testNamespace
       configManager.update(argv)
@@ -95,9 +100,10 @@ describe('K8', () => {
       console.log(`${e}, ${e.stack}`)
       throw e
     }
-  }, defaultTimeout)
+  })
 
-  afterAll(async () => {
+  after(async function () {
+    this.timeout(defaultTimeout)
     try {
       await k8.kubeClient.deleteNamespacedPod(podName, testNamespace, undefined, undefined, 1)
       argv[flags.namespace.name] = constants.SOLO_SETUP_NAMESPACE
@@ -106,43 +112,43 @@ describe('K8', () => {
       console.log(e)
       throw e
     }
-  }, defaultTimeout)
+  })
 
   it('should be able to list clusters', async () => {
     const clusters = await k8.getClusters()
-    expect(clusters).not.toHaveLength(0)
-  }, defaultTimeout)
+    expect(clusters).not.to.have.lengthOf(0)
+  }).timeout(defaultTimeout)
 
   it('should be able to list namespaces', async () => {
     const namespaces = await k8.getNamespaces()
-    expect(namespaces).not.toHaveLength(0)
-    expect(namespaces).toContain(constants.DEFAULT_NAMESPACE)
-  }, defaultTimeout)
+    expect(namespaces).not.to.have.lengthOf(0)
+    expect(namespaces).to.contain(constants.DEFAULT_NAMESPACE)
+  }).timeout(defaultTimeout)
 
   it('should be able to list contexts', () => {
     const contexts = k8.getContexts()
-    expect(contexts).not.toHaveLength(0)
-  }, defaultTimeout)
+    expect(contexts).not.to.have.lengthOf(0)
+  }).timeout(defaultTimeout)
 
   it('should be able to create and delete a namespaces', async () => {
     const name = uuid4()
-    await expect(k8.createNamespace(name)).resolves.toBeTruthy()
-    await expect(k8.deleteNamespace(name)).resolves.toBeTruthy()
-  }, defaultTimeout)
+    await expect(k8.createNamespace(name)).to.eventually.be.ok
+    await expect(k8.deleteNamespace(name)).to.eventually.be.ok
+  }).timeout(defaultTimeout)
 
   it('should be able to run wait for pod', async () => {
     const labels = [`app=${podLabelValue}`]
 
     const pods = await k8.waitForPods([constants.POD_PHASE_RUNNING], labels, 1, 30)
-    expect(pods.length).toStrictEqual(1)
-  }, defaultTimeout)
+    expect(pods).to.have.lengthOf(1)
+  }).timeout(defaultTimeout)
 
   it('should be able to run wait for pod ready', async () => {
     const labels = [`app=${podLabelValue}`]
 
     const pods = await k8.waitForPodReady(labels, 1, 100)
-    expect(pods.length).toStrictEqual(1)
-  }, defaultTimeout)
+    expect(pods).to.have.lengthOf(1)
+  }).timeout(defaultTimeout)
 
   it('should be able to run wait for pod conditions', async () => {
     const labels = [`app=${podLabelValue}`]
@@ -152,60 +158,62 @@ describe('K8', () => {
       .set(constants.POD_CONDITION_POD_SCHEDULED, constants.POD_CONDITION_STATUS_TRUE)
       .set(constants.POD_CONDITION_READY, constants.POD_CONDITION_STATUS_TRUE)
     const pods = await k8.waitForPodConditions(conditions, labels, 1)
-    expect(pods.length).toStrictEqual(1)
-  }, defaultTimeout)
+    expect(pods).to.have.lengthOf(1)
+  }).timeout(defaultTimeout)
 
   it('should be able to detect pod IP of a pod', async () => {
     const pods = await k8.getPodsByLabel([`app=${podLabelValue}`])
     const podName = pods[0].metadata.name
-    await expect(k8.getPodIP(podName)).resolves.not.toBeNull()
-    await expect(k8.getPodIP('INVALID')).rejects.toThrow(SoloError)
-  }, defaultTimeout)
+    await expect(k8.getPodIP(podName)).to.eventually.not.be.null
+    await expect(k8.getPodIP('INVALID')).to.be.rejectedWith(SoloError)
+  }).timeout(defaultTimeout)
 
   it('should be able to detect cluster IP', async () => {
-    await expect(k8.getClusterIP(serviceName)).resolves.not.toBeNull()
-    await expect(k8.getClusterIP('INVALID')).rejects.toThrow(SoloError)
-  }, defaultTimeout)
+    await expect(k8.getClusterIP(serviceName)).to.eventually.not.be.null
+    await expect(k8.getClusterIP('INVALID')).to.be.rejectedWith(SoloError)
+  }).timeout(defaultTimeout)
 
   it('should be able to check if a path is directory inside a container', async () => {
     const pods = await k8.getPodsByLabel([`app=${podLabelValue}`])
     const podName = pods[0].metadata.name
-    await expect(k8.hasDir(podName, containerName, '/tmp')).resolves.toBeTruthy()
-  }, defaultTimeout)
+    await expect(k8.hasDir(podName, containerName, '/tmp')).to.eventually.be.ok
+  }).timeout(defaultTimeout)
 
-  describe.each([
-    { localFilePath: 'test/data/pem/keys/a-private-node0.pem' },
-    { localFilePath: 'test/data/build-v0.54.0-alpha.4.zip' }
-  ])('test copyTo and copyFrom', (input) => {
-    it('should be able to copy a file to and from a container', async () => {
-      const pods = await k8.waitForPodReady([`app=${podLabelValue}`], 1, 20)
-      expect(pods.length).toStrictEqual(1)
-      const localTmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'k8-test'))
-      const remoteTmpDir = '/tmp'
-      const localFilePath = input.localFilePath
-      const fileName = path.basename(localFilePath)
-      const remoteFilePath = `${remoteTmpDir}/${fileName}`
-      const originalFileData = fs.readFileSync(localFilePath)
-      const originalFileHash = crypto.createHash('sha384').update(originalFileData).digest('hex')
-      const originalStat = fs.statSync(localFilePath)
+  const testCases = ['test/data/pem/keys/a-private-node0.pem', 'test/data/build-v0.54.0-alpha.4.zip']
 
-      // upload the file
-      await expect(k8.copyTo(podName, containerName, localFilePath, remoteTmpDir)).resolves.toBeTruthy()
+  testCases.forEach((localFilePath) => {
+    describe('test copyTo and copyFrom', () => {
+      it('should be able to copy a file to and from a container', async () => {
+        const pods = await k8.waitForPodReady([`app=${podLabelValue}`], 1, 20)
+        expect(pods).to.have.lengthOf(1)
 
-      // download the same file
-      await expect(k8.copyFrom(podName, containerName, remoteFilePath, localTmpDir)).resolves.toBeTruthy()
-      const downloadedFilePath = path.join(localTmpDir, fileName)
-      const downloadedFileData = fs.readFileSync(downloadedFilePath)
-      const downloadedFileHash = crypto.createHash('sha384').update(downloadedFileData).digest('hex')
-      const downloadedStat = fs.statSync(downloadedFilePath)
+        const localTmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'k8-test'))
+        const remoteTmpDir = '/tmp'
+        const fileName = path.basename(localFilePath)
+        const remoteFilePath = `${remoteTmpDir}/${fileName}`
+        const originalFileData = fs.readFileSync(localFilePath)
+        const originalFileHash = crypto.createHash('sha384').update(originalFileData).digest('hex')
+        const originalStat = fs.statSync(localFilePath)
 
-      expect(downloadedStat.size, 'downloaded file size should match original file size').toEqual(originalStat.size)
-      expect(downloadedFileHash, 'downloaded file hash should match original file hash').toEqual(originalFileHash)
-      // rm file inside the container
-      await expect(k8.execContainer(podName, containerName, ['rm', '-f', remoteFilePath])).resolves
+        // upload the file
+        await expect(k8.copyTo(podName, containerName, localFilePath, remoteTmpDir)).to.eventually.be.ok
 
-      fs.rmdirSync(localTmpDir, { recursive: true })
-    }, defaultTimeout)
+        // download the same file
+        await expect(k8.copyFrom(podName, containerName, remoteFilePath, localTmpDir)).to.eventually.be.ok
+        const downloadedFilePath = path.join(localTmpDir, fileName)
+        const downloadedFileData = fs.readFileSync(downloadedFilePath)
+        const downloadedFileHash = crypto.createHash('sha384').update(downloadedFileData).digest('hex')
+        const downloadedStat = fs.statSync(downloadedFilePath)
+
+        expect(downloadedStat.size, 'downloaded file size should match original file size').to.equal(originalStat.size)
+        expect(downloadedFileHash, 'downloaded file hash should match original file hash').to.equal(originalFileHash)
+
+        // rm file inside the container
+        await k8.execContainer(podName, containerName, ['rm', '-f', remoteFilePath])
+
+        fs.rmdirSync(localTmpDir, { recursive: true })
+      }).timeout(defaultTimeout)
+    })
   })
 
   it('should be able to port forward gossip port', (done) => {
@@ -213,7 +221,7 @@ describe('K8', () => {
     const localPort = constants.HEDERA_NODE_INTERNAL_GOSSIP_PORT
     try {
       k8.portForward(podName, localPort, constants.HEDERA_NODE_INTERNAL_GOSSIP_PORT).then((server) => {
-        expect(server).not.toBeNull()
+        expect(server).not.to.be.null
 
         // client
         const s = new net.Socket()
@@ -233,17 +241,17 @@ describe('K8', () => {
       })
     } catch (e) {
       testLogger.showUserError(e)
-      expect(e).toBeNull()
+      expect.fail()
     }
     // TODO enhance this test to do something with the port, this pod isn't even running, but it is still passing
-  }, defaultTimeout)
+  }).timeout(defaultTimeout)
 
   it('should be able to cat a file inside the container', async () => {
     const pods = await k8.getPodsByLabel([`app=${podLabelValue}`])
     const podName = pods[0].metadata.name
     const output = await k8.execContainer(podName, containerName, ['cat', '/etc/hostname'])
-    expect(output.indexOf(podName)).toEqual(0)
-  }, defaultTimeout)
+    expect(output.indexOf(podName)).to.equal(0)
+  }).timeout(defaultTimeout)
 
   it('should be able to list persistent volume claims', async () => {
     const v1Pvc = new V1PersistentVolumeClaim()
@@ -260,12 +268,12 @@ describe('K8', () => {
       v1Pvc.metadata = v1Metadata
       await k8.kubeClient.createNamespacedPersistentVolumeClaim(testNamespace, v1Pvc)
       const pvcs = await k8.listPvcsByNamespace(testNamespace)
-      expect(pvcs.length).toBeGreaterThan(0)
+      expect(pvcs).to.have.length.greaterThan(0)
     } catch (e) {
       console.error(e)
       throw e
     } finally {
       await k8.deletePvc(v1Pvc.name, testNamespace)
     }
-  }, defaultTimeout)
+  }).timeout(defaultTimeout)
 })

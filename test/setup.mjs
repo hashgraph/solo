@@ -14,11 +14,9 @@
  * limitations under the License.
  *
  */
+import * as chai from 'chai'
+import chaiAsPromised from 'chai-as-promised'
+import sinonChai from 'sinon-chai'
 
-import * as flags from '../flags.mjs'
-
-export const DEFAULT_FLAGS = {
-  requiredFlags: [],
-  requiredFlagsWithDisabledPrompt: [flags.namespace, flags.cacheDir, flags.releaseTag],
-  optionalFlags: [flags.devMode]
-}
+chai.use(chaiAsPromised)
+chai.use(sinonChai)
