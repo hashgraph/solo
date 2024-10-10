@@ -93,7 +93,7 @@ describe('K8 Unit Tests', function () {
   })
 
   it('waitForPodConditions with partial pod data', async () => {
-    const expectedResult = [ { metadata: { name: 'pod' } } ]
+    const expectedResult = [{ metadata: { name: 'pod' } }]
 
     const maxNumOfFailures = 5
     listNamespacedPodMockSetup(k8, maxNumOfFailures, expectedResult)

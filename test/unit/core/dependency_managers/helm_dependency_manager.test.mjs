@@ -34,7 +34,7 @@ describe('HelmDependencyManager', () => {
 
   after(() => {
     if (fs.existsSync(tmpDir)) {
-      fs.rmSync(tmpDir, {recursive: true})
+      fs.rmSync(tmpDir, { recursive: true })
     }
   })
 

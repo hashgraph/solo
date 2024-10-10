@@ -30,7 +30,7 @@ import { getNodeLogs, sleep } from '../../../src/core/helpers.mjs'
 import path from 'path'
 import fs from 'fs'
 import { NetworkCommand } from '../../../src/commands/network.mjs'
-import { MINUTES, SECONDS } from "../../../src/core/constants.mjs";
+import { MINUTES, SECONDS } from '../../../src/core/constants.mjs'
 import { flags } from '../../../src/commands/index.mjs'
 
 describe('NetworkCommand', () => {

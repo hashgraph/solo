@@ -33,7 +33,7 @@ describe('NodeCommand unit tests', () => {
   describe('constructor error handling', () => {
     let opts
 
-    beforeEach(() => opts = getBaseCommandOpts())
+    beforeEach(() => { opts = getBaseCommandOpts() })
 
     it('should throw an error if downloader is not provided', () => {
       expect(() => new NodeCommand(opts)).to.throw('An instance of core/PackageDownloader is required')

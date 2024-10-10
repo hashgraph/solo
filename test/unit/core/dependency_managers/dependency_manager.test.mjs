@@ -19,7 +19,6 @@ import { describe, it } from 'mocha'
 
 import { DependencyManager, HelmDependencyManager } from '../../../../src/core/dependency_managers/index.mjs'
 import { logging, constants, PackageDownloader, Zippy } from '../../../../src/core/index.mjs'
-import { SoloError } from '../../../../src/core/errors.mjs'
 import { SECONDS } from '../../../../src/core/constants.mjs'
 
 const testLogger = logging.NewLogger('debug', true)

@@ -31,7 +31,7 @@ import {
 import { AccountCommand } from '../../../src/commands/account.mjs'
 import { flags } from '../../../src/commands/index.mjs'
 import { getNodeLogs } from '../../../src/core/helpers.mjs'
-import { MINUTES, SECONDS } from '../../../src/core/constants.mjs';
+import { MINUTES, SECONDS } from '../../../src/core/constants.mjs'
 
 const defaultTimeout = 20 * SECONDS
 

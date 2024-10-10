@@ -145,8 +145,8 @@ export function e2eNodeKeyRefreshTest (testName, mode, releaseTag = HEDERA_PLATF
           await expect(nodeCmd.refresh(argv)).to.eventually.be.ok
           expect(nodeCmd.getUnusedConfigs(
             NodeCommand.REFRESH_CONFIGS_NAME)).to.deep.equal([
-              flags.devMode.constName,
-              flags.quiet.constName
+            flags.devMode.constName,
+            flags.quiet.constName
           ])
         } catch (e) {
           nodeCmd.logger.showUserError(e)

@@ -15,7 +15,7 @@
  *
  * @mocha-environment steps
  */
-import { describe } from 'mocha';
+import { describe } from 'mocha'
 
 import { e2eNodeKeyRefreshTest } from '../e2e_node_util.js'
 

@@ -22,7 +22,6 @@ import each from 'mocha-each'
 import { constants, Helm, logging, Templates } from '../../../src/core/index.mjs'
 import { ShellRunner } from '../../../src/core/shell_runner.mjs'
 
-
 describe('Helm platform specific tests', () => {
   each(['linux', 'windows', 'darwin'])
     .describe('Helm on %s platform', function (osPlatform) {
@@ -34,7 +33,9 @@ describe('Helm platform specific tests', () => {
       const helmPath = Templates.installationPath(constants.HELM, osPlatform)
 
       // Stub the ShellRunner.prototype.run method for all tests
-      beforeEach(() => shellStub = sinon.stub(ShellRunner.prototype, 'run').resolves())
+      beforeEach(() => {
+        shellStub = sinon.stub(ShellRunner.prototype, 'run').resolves()
+      })
 
       // Restore stubbed methods after each test
       afterEach(() => sinon.restore())

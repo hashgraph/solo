@@ -25,7 +25,7 @@ import {
 import { getNodeLogs } from '../../../src/core/helpers.mjs'
 import { MINUTES } from '../../../src/core/constants.mjs'
 
-describe('Node local build', async () => {
+describe('Node local build', () => {
   const LOCAL_HEDERA = 'local-hedera-app'
   const argv = getDefaultArgv()
   argv[flags.nodeAliasesUnparsed.name] = 'node1,node2,node3'

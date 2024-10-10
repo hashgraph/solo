@@ -45,7 +45,7 @@ describe('RelayCommand', async () => {
   const configManager = bootstrapResp.opts.configManager
   const relayCmd = new RelayCommand(bootstrapResp.opts)
 
-  after(async ()=> {
+  after(async () => {
     await getNodeLogs(k8, namespace)
     await k8.deleteNamespace(namespace)
   })

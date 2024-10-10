@@ -16,7 +16,6 @@
  */
 import { expect } from 'chai'
 import { describe, it, after } from 'mocha'
-import each from 'mocha-each'
 
 import fs from 'fs'
 import * as yaml from 'js-yaml'
@@ -163,7 +162,6 @@ describe('ProfileManager', () => {
   it('prepareValuesForSoloChart should set the value of a key to the contents of a file', async () => {
     configManager.setFlag(flags.profileFile, testProfileFile)
 
-    return
     // profileManager.loadProfiles(true)
     const file = path.join(tmpDir, '_setFileContentsAsValue.txt')
     const fileContents = '# row 1\n# row 2\n# row 3'

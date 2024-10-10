@@ -55,7 +55,7 @@ describe('Zippy', () => {
       const unzippedFile = `${tmpDir}/unzipped`
       await expect(zippy.zip('test/data/.empty', zipFile)).to.eventually.equal(zipFile)
       expect(zippy.unzip(zipFile, unzippedFile, true)).to.equal(unzippedFile)
-      fs.rmSync(tmpDir, {recursive: true, force: true})
+      fs.rmSync(tmpDir, { recursive: true, force: true })
     })
   })
 
@@ -85,7 +85,7 @@ describe('Zippy', () => {
       const tarFile = `${tmpDir}/test.tar.gz`
       expect(zippy.tar('test/data/.empty', tarFile)).to.equal(tarFile)
       expect(zippy.untar(tarFile, tmpDir, true)).to.equal(tmpDir)
-      fs.rmSync(tmpDir, {recursive: true, force: true})
+      fs.rmSync(tmpDir, { recursive: true, force: true })
     })
   })
 })
