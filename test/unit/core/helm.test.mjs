@@ -14,49 +14,60 @@
  * limitations under the License.
  *
  */
-import { describe, expect, it, jest } from '@jest/globals'
-import { Helm, logging, Templates, constants } from '../../../src/core/index.mjs'
+import sinon from 'sinon'
+import { expect } from 'chai'
+import { afterEach, beforeEach, describe, it } from 'mocha'
+import each from 'mocha-each'
+
+import { constants, Helm, logging, Templates } from '../../../src/core/index.mjs'
 import { ShellRunner } from '../../../src/core/shell_runner.mjs'
 
-describe.each([
-  { osPlatform: 'linux' },
-  { osPlatform: 'windows' },
-  { osPlatform: 'darwin' }
-])('Helm', (input) => {
-  const logger = logging.NewLogger('debug', true)
-  const helm = new Helm(logger, input.osPlatform)
-  const shellSpy = jest.spyOn(ShellRunner.prototype, 'run').mockImplementation()
-  const helmPath = Templates.installationPath(constants.HELM, input.osPlatform)
+describe('Helm platform specific tests', () => {
+  each(['linux', 'windows', 'darwin'])
+    .describe('Helm on %s platform', function (osPlatform) {
+      const logger = logging.NewLogger('debug', true)
+      const helm = new Helm(logger, osPlatform)
 
-  it('should run helm install', async () => {
-    await helm.install('arg')
-    expect(shellSpy).toHaveBeenCalledWith(`${helmPath} install arg`)
-  })
+      /** @type {sinon.SinonStub} */let shellStub
 
-  it('should run helm uninstall', async () => {
-    await helm.uninstall('arg')
-    expect(shellSpy).toHaveBeenCalledWith(`${helmPath} uninstall arg`)
-  })
+      const helmPath = Templates.installationPath(constants.HELM, osPlatform)
 
-  it('should run helm upgrade', async () => {
-    await helm.upgrade('release', 'chart')
-    expect(shellSpy).toHaveBeenCalledWith(`${helmPath} upgrade release chart`)
-  })
+      // Stub the ShellRunner.prototype.run method for all tests
+      beforeEach(() => {
+        shellStub = sinon.stub(ShellRunner.prototype, 'run').resolves()
+      })
 
-  it('should run helm list', async () => {
-    await helm.list()
-    expect(shellSpy).toHaveBeenCalledWith(`${helmPath} list`)
-  })
+      // Restore stubbed methods after each test
+      afterEach(() => sinon.restore())
 
-  it('should run helm dependency', async () => {
-    await helm.dependency('update', 'chart')
-    expect(shellSpy).toHaveBeenCalledWith(`${helmPath} dependency update chart`)
-  })
+      it('should run helm install', async () => {
+        await helm.install('arg')
+        expect(shellStub).to.have.been.calledWith(`${helmPath} install arg`)
+      })
 
-  it('should run helm repo', async () => {
-    await helm.repo('add', 'name', 'url')
-    expect(shellSpy).toHaveBeenCalledWith(`${helmPath} repo add name url`)
-  })
+      it('should run helm uninstall', async () => {
+        await helm.uninstall('arg')
+        expect(shellStub).to.have.been.calledWith(`${helmPath} uninstall arg`)
+      })
 
-  shellSpy.mockClear()
+      it('should run helm upgrade', async () => {
+        await helm.upgrade('release', 'chart')
+        expect(shellStub).to.have.been.calledWith(`${helmPath} upgrade release chart`)
+      })
+
+      it('should run helm list', async () => {
+        await helm.list()
+        expect(shellStub).to.have.been.calledWith(`${helmPath} list`)
+      })
+
+      it('should run helm dependency', async () => {
+        await helm.dependency('update', 'chart')
+        expect(shellStub).to.have.been.calledWith(`${helmPath} dependency update chart`)
+      })
+
+      it('should run helm repo', async () => {
+        await helm.repo('add', 'name', 'url')
+        expect(shellStub).to.have.been.calledWith(`${helmPath} repo add name url`)
+      })
+    })
 })

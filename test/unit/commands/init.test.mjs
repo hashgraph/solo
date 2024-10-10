@@ -14,8 +14,10 @@
  * limitations under the License.
  *
  */
+import { describe, it } from 'mocha'
+import { expect } from 'chai'
+
 import { InitCommand } from '../../../src/commands/init.mjs'
-import { expect, describe, it } from '@jest/globals'
 import {
   HelmDependencyManager,
   DependencyManager
@@ -28,6 +30,7 @@ import {
   logging, PackageDownloader, Zippy
 } from '../../../src/core/index.mjs'
 import { getK8Instance } from '../../test_util.js'
+import { SECONDS } from '../../../src/core/constants.mjs'
 
 const testLogger = logging.NewLogger('debug', true)
 describe('InitCommand', () => {
@@ -48,27 +51,21 @@ describe('InitCommand', () => {
   const k8 = getK8Instance(configManager)
 
   const initCmd = new InitCommand({
-    logger: testLogger,
-    helm,
-    k8,
-    chartManager,
-    configManager,
-    depManager,
-    keyManager
+    logger: testLogger, helm, k8, chartManager, configManager, depManager, keyManager
   })
 
   describe('commands', () => {
     it('init execution should succeed', async () => {
-      await expect(initCmd.init({})).resolves.toBe(true)
-    }, 20000)
+      await expect(initCmd.init({})).to.eventually.equal(true)
+    }).timeout(20 * SECONDS)
   })
 
   describe('methods', () => {
     it('command definition should return a valid command def', () => {
       const def = initCmd.getCommandDefinition()
-      expect(def.name).not.toBeNull()
-      expect(def.desc).not.toBeNull()
-      expect(def.handler).not.toBeNull()
+      expect(def.name).not.to.be.null
+      expect(def.desc).not.to.be.null
+      expect(def.handler).not.to.be.null
     })
   })
 })

@@ -14,33 +14,28 @@
  * limitations under the License.
  *
  */
-import {
-  afterAll,
-  afterEach,
-  beforeEach,
-  describe,
-  expect,
-  it,
-  jest
-} from '@jest/globals'
+import sinon from 'sinon'
+import { it, describe, after, before, afterEach, beforeEach } from 'mocha'
+import { expect } from 'chai'
+
 import { flags } from '../../../src/commands/index.mjs'
-import {
-  bootstrapTestVariables,
-  getDefaultArgv,
-  HEDERA_PLATFORM_VERSION_TAG,
-  TEST_CLUSTER
-} from '../../test_util.js'
-import {
-  constants,
-  logging
-} from '../../../src/core/index.mjs'
+import { bootstrapTestVariables, getDefaultArgv, HEDERA_PLATFORM_VERSION_TAG, TEST_CLUSTER } from '../../test_util.js'
+import { constants, logging } from '../../../src/core/index.mjs'
 import { sleep } from '../../../src/core/helpers.mjs'
 import * as version from '../../../version.mjs'
+import { MINUTES, SECONDS } from '../../../src/core/constants.mjs'
 
 describe('ClusterCommand', () => {
   // mock showUser and showJSON to silent logging during tests
-  jest.spyOn(logging.SoloLogger.prototype, 'showUser').mockImplementation()
-  jest.spyOn(logging.SoloLogger.prototype, 'showJSON').mockImplementation()
+  before(() => {
+    sinon.stub(logging.SoloLogger.prototype, 'showUser')
+    sinon.stub(logging.SoloLogger.prototype, 'showJSON')
+  })
+
+  after(() => {
+    logging.SoloLogger.prototype.showUser.restore()
+    logging.SoloLogger.prototype.showJSON.restore()
+  })
 
   const testName = 'cluster-cmd-e2e'
   const namespace = testName
@@ -54,7 +49,7 @@ describe('ClusterCommand', () => {
   argv[flags.soloChartVersion.name] = version.SOLO_CHART_VERSION
   argv[flags.force.name] = true
   // set the env variable SOLO_CHARTS_DIR if developer wants to use local Solo charts
-  argv[flags.chartDirectory.name] = process.env.SOLO_CHARTS_DIR ? process.env.SOLO_CHARTS_DIR : undefined
+  argv[flags.chartDirectory.name] = process.env.SOLO_CHARTS_DIR ?? undefined
 
   const bootstrapResp = bootstrapTestVariables(testName, argv)
   const k8 = bootstrapResp.opts.k8
@@ -63,106 +58,69 @@ describe('ClusterCommand', () => {
 
   const clusterCmd = bootstrapResp.cmd.clusterCmd
 
-  afterAll(async () => {
+  after(async function () {
+    this.timeout(3 * MINUTES)
+
     await k8.deleteNamespace(namespace)
     argv[flags.clusterSetupNamespace.name] = constants.SOLO_SETUP_NAMESPACE
     configManager.update(argv, true)
     await clusterCmd.setup(argv) // restore solo-cluster-setup for other e2e tests to leverage
     do {
-      await sleep(5000)
+      await sleep(5 * SECONDS)
     } while (!await chartManager.isChartInstalled(constants.SOLO_SETUP_NAMESPACE, constants.SOLO_CLUSTER_SETUP_CHART))
-  }, 180000)
-
-  beforeEach(() => {
-    configManager.reset()
   })
 
-  afterEach(async () => {
-    await sleep(5) // give a few ticks so that connections can close
-  })
+  beforeEach(() => configManager.reset())
+
+  // give a few ticks so that connections can close
+  afterEach(async () => await sleep(5))
 
   it('should cleanup existing deployment', async () => {
     if (await chartManager.isChartInstalled(constants.SOLO_SETUP_NAMESPACE, constants.SOLO_CLUSTER_SETUP_CHART)) {
-      expect.assertions(1)
-      try {
-        await expect(clusterCmd.reset(argv)).resolves.toBeTruthy()
-      } catch (e) {
-        expect(e).toBeNull()
-      }
+      await expect(clusterCmd.reset(argv)).to.be.ok
     }
-  }, 60000)
+  }).timeout(1 * MINUTES)
 
   it('solo cluster setup should fail with invalid cluster name', async () => {
     argv[flags.clusterSetupNamespace.name] = 'INVALID'
     configManager.update(argv, true)
-
-    expect.assertions(1)
-    try {
-      await expect(clusterCmd.setup(argv)).rejects.toThrowError('Error on cluster setup')
-    } catch (e) {
-      expect(e).toBeNull()
-    }
-  }, 60000)
+    await expect(clusterCmd.setup(argv)).to.be.rejectedWith('Error on cluster setup')
+  }).timeout(1 * MINUTES)
 
   it('solo cluster setup should work with valid args', async () => {
     argv[flags.clusterSetupNamespace.name] = namespace
     configManager.update(argv, true)
-
-    expect.assertions(1)
-    try {
-      await expect(clusterCmd.setup(argv)).resolves.toBeTruthy()
-    } catch (e) {
-      expect(e).toBeNull()
-    }
-  }, 60000)
+    await expect(clusterCmd.setup(argv)).to.eventually.be.ok
+  }).timeout(1 * MINUTES)
 
   it('function getClusterInfo should return true', () => {
-    try {
-      expect(clusterCmd.getClusterInfo()).toBeTruthy()
-    } catch (e) {
-      expect(e).toBeNull()
-    }
-  }, 60000)
+    expect(clusterCmd.getClusterInfo()).to.be.ok
+  }).timeout(1 * MINUTES)
 
   it('function showClusterList should return right true', async () => {
-    try {
-      await expect(clusterCmd.showClusterList()).resolves.toBeTruthy()
-    } catch (e) {
-      expect(e).toBeNull()
-    }
-  }, 60000)
+    await expect(clusterCmd.showClusterList()).to.eventually.be.ok
+  }).timeout(1 * MINUTES)
 
   it('function showInstalledChartList should return right true', async () => {
-    try {
-      await expect(clusterCmd.showInstalledChartList()).resolves.toBeUndefined()
-    } catch (e) {
-      expect(e).toBeNull()
-    }
-  }, 60000)
+    await expect(clusterCmd.showInstalledChartList()).to.eventually.be.undefined
+  }).timeout(1 * MINUTES)
 
   // helm list would return an empty list if given invalid namespace
   it('solo cluster reset should fail with invalid cluster name', async () => {
     argv[flags.clusterSetupNamespace.name] = 'INVALID'
     configManager.update(argv, true)
 
-    expect.assertions(1)
     try {
-      await expect(clusterCmd.reset(argv)).rejects.toThrowError('Error on cluster reset')
+      await expect(clusterCmd.reset(argv)).to.be.rejectedWith('Error on cluster reset')
     } catch (e) {
       clusterCmd.logger.showUserError(e)
-      expect(e).toBeNull()
+      expect.fail()
     }
-  }, 60000)
+  }).timeout(1 * MINUTES)
 
   it('solo cluster reset should work with valid args', async () => {
     argv[flags.clusterSetupNamespace.name] = namespace
     configManager.update(argv, true)
-
-    expect.assertions(1)
-    try {
-      await expect(clusterCmd.reset(argv)).resolves.toBeTruthy()
-    } catch (e) {
-      expect(e).toBeNull()
-    }
-  }, 60000)
+    await expect(clusterCmd.reset(argv)).to.eventually.be.ok
+  }).timeout(1 * MINUTES)
 })

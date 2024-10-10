@@ -14,10 +14,8 @@
  * limitations under the License.
  *
  */
-import {
-  afterAll,
-  describe
-} from '@jest/globals'
+import { describe, after } from 'mocha'
+
 import { flags } from '../../../src/commands/index.mjs'
 import {
   bootstrapNetwork,
@@ -25,6 +23,7 @@ import {
   TEST_CLUSTER
 } from '../../test_util.js'
 import { getNodeLogs } from '../../../src/core/helpers.mjs'
+import { MINUTES } from '../../../src/core/constants.mjs'
 
 describe('Node local build', () => {
   const LOCAL_HEDERA = 'local-hedera-app'
@@ -34,20 +33,21 @@ describe('Node local build', () => {
   argv[flags.generateTlsKeys.name] = true
   argv[flags.clusterName.name] = TEST_CLUSTER
   // set the env variable SOLO_CHARTS_DIR if developer wants to use local Solo charts
-  argv[flags.chartDirectory.name] = process.env.SOLO_CHARTS_DIR ? process.env.SOLO_CHARTS_DIR : undefined
+  argv[flags.chartDirectory.name] = process.env.SOLO_CHARTS_DIR ?? undefined
   argv[flags.quiet.name] = true
 
   let hederaK8
-  afterAll(async () => {
+  after(async function () {
+    this.timeout(10 * MINUTES)
     await getNodeLogs(hederaK8, LOCAL_HEDERA)
     await hederaK8.deleteNamespace(LOCAL_HEDERA)
-  }, 600000)
+  })
 
-  describe('Node for hedera app should start successfully', () => {
+  describe('Node for hedera app should start successfully', async () => {
     console.log('Starting local build for Hedera app')
     argv[flags.localBuildPath.name] = 'node1=../hedera-services/hedera-node/data/,../hedera-services/hedera-node/data,node3=../hedera-services/hedera-node/data'
     argv[flags.namespace.name] = LOCAL_HEDERA
-    const bootstrapResp = bootstrapNetwork(LOCAL_HEDERA, argv)
+    const bootstrapResp = await bootstrapNetwork(LOCAL_HEDERA, argv)
     hederaK8 = bootstrapResp.opts.k8
   })
 })

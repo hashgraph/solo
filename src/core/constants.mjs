@@ -152,3 +152,6 @@ export const UPGRADE_FILE_ID = FileId.fromString('0.0.150')
 export const UPGRADE_FILE_CHUNK_SIZE = 1024 * 5 // 5Kb
 
 export const JVM_DEBUG_PORT = 5005
+
+export const SECONDS = 1000
+export const MINUTES = 60 * SECONDS
