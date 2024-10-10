@@ -123,6 +123,19 @@ describe('ProfileManager', () => {
         expect(valuesYaml['minio-server'].tenant.pools[0].resources.limits.memory).not.to.be.null
       })
 
+      it('prepareValuesForSoloChart should set the value of a key to the contents of a file', async () => {
+        configManager.setFlag(flags.profileFile, testProfileFile)
+
+        // profileManager.loadProfiles(true)
+        const file = path.join(tmpDir, '_setFileContentsAsValue.txt')
+        const fileContents = '# row 1\n# row 2\n# row 3'
+        fs.writeFileSync(file, fileContents)
+        configManager.setFlag(flags.applicationEnv, file)
+        const cachedValuesFile = await profileManager.prepareValuesForSoloChart('test')
+        const valuesYaml = yaml.load(fs.readFileSync(cachedValuesFile).toString())
+        expect(valuesYaml.hedera.configMaps.applicationEnv).to.equal(fileContents)
+      })
+
       it(`should determine mirror-node chart values [profile = ${input.profileName}]`, async () => {
         configManager.setFlag(flags.profileFile, input.profileFile)
         configManager.setFlag(flags.cacheDir, getTestCacheDir('ProfileManager'))
@@ -157,19 +170,6 @@ describe('ProfileManager', () => {
         expect(valuesYaml.resources.limits.memory).not.to.be.null
       })
     })
-  })
-
-  it('prepareValuesForSoloChart should set the value of a key to the contents of a file', async () => {
-    configManager.setFlag(flags.profileFile, testProfileFile)
-
-    // profileManager.loadProfiles(true)
-    const file = path.join(tmpDir, '_setFileContentsAsValue.txt')
-    const fileContents = '# row 1\n# row 2\n# row 3'
-    fs.writeFileSync(file, fileContents)
-    configManager.setFlag(flags.applicationEnv, file)
-    const cachedValuesFile = await profileManager.prepareValuesForSoloChart('test')
-    const valuesYaml = yaml.load(fs.readFileSync(cachedValuesFile).toString())
-    expect(valuesYaml.hedera.configMaps.applicationEnv).to.equal(fileContents)
   })
 
   describe('prepareConfigText', () => {

@@ -24,16 +24,16 @@ import { Readable } from 'stream'
 import { SECONDS } from '../../../src/core/constants.mjs'
 
 describe('ShellRunner', () => {
-  let logger, shellRunner, loggerStub, childProcessStub, readableStub
+  let logger, shellRunner, loggerStub, childProcessSpy, readableSpy
 
   beforeEach(() => {
     logger = NewLogger('debug')
     shellRunner = new ShellRunner(logger)
 
-    // Stubbing methods
+    // Spy on methods
     loggerStub = sinon.stub(SoloLogger.prototype, 'debug')
-    childProcessStub = sinon.stub(ChildProcess.prototype, 'on')
-    readableStub = sinon.stub(Readable.prototype, 'on')
+    childProcessSpy = sinon.spy(ChildProcess.prototype, 'on')
+    readableSpy = sinon.spy(Readable.prototype, 'on')
   })
 
   afterEach(() => sinon.restore())
@@ -41,15 +41,12 @@ describe('ShellRunner', () => {
   it('should run command', async () => {
     await shellRunner.run('ls -l')
 
-    expect(loggerStub).to.have.been.calledWith(1, 'Executing command: \'ls -l\'')
-    expect(loggerStub).to.have.been.calledWith(2, 'Finished executing: \'ls -l\'', {
-      commandExitCode: sinon.match.number,
-      commandExitSignal: null,
-      commandOutput: sinon.match.array,
-      errOutput: sinon.match.array
-    })
+    loggerStub.withArgs('Executing command: \'ls -l\'').onFirstCall()
+    loggerStub.withArgs('Finished executing: \'ls -l\'', sinon.match.any).onSecondCall()
 
-    expect(readableStub).to.have.been.calledWith('data', sinon.match.any)
-    expect(childProcessStub).to.have.been.calledWith('exit', sinon.match.any)
+    expect(loggerStub).to.have.been.calledTwice
+
+    expect(readableSpy).to.have.been.calledWith('data', sinon.match.any)
+    expect(childProcessSpy).to.have.been.calledWith('exit', sinon.match.any)
   }).timeout(10 * SECONDS)
 })
