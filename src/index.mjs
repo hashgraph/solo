@@ -74,7 +74,6 @@ export function main (argv) {
       depManager,
       keyManager,
       accountManager,
-      keytoolDepManager,
       profileManager
     }
 

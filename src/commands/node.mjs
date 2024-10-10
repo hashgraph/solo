@@ -64,7 +64,7 @@ import * as NodeFlags from './node/flags.mjs'
 export class NodeCommand extends BaseCommand {
   /**
    * @param {{logger: SoloLogger, helm: Helm, k8: K8, chartManager: ChartManager, configManager: ConfigManager,
-   * depManager: DependencyManager, keytoolDepManager: downloader: PackageDownloader,
+   * depManager: DependencyManager, downloader: PackageDownloader,
    * platformInstaller: PlatformInstaller, keyManager: KeyManager, accountManager: AccountManager,
    * profileManager: ProfileManager}} opts
    */
@@ -81,7 +81,6 @@ export class NodeCommand extends BaseCommand {
     this.platformInstaller = opts.platformInstaller
     this.keyManager = opts.keyManager
     this.accountManager = opts.accountManager
-    this.keytoolDepManager = opts.keytoolDepManager
     this.profileManager = opts.profileManager
     this._portForwards = []
 
@@ -1255,7 +1254,7 @@ export class NodeCommand extends BaseCommand {
         title: 'Generate gossip keys',
         task: (ctx, parentTask) => {
           const config = ctx.config
-          const subTasks = self.keyManager.taskGenerateGossipKeys(self.keytoolDepManager, config.nodeAliases, config.keysDir, config.curDate)
+          const subTasks = self.keyManager.taskGenerateGossipKeys(config.nodeAliases, config.keysDir, config.curDate)
           // set up the sub-tasks
           return parentTask.newListr(subTasks, {
             concurrent: false,
@@ -1651,7 +1650,7 @@ export class NodeCommand extends BaseCommand {
         title: 'Generate Gossip key',
         task: (ctx, parentTask) => {
           const config = /** @type {NodeAddConfigClass} **/ ctx.config
-          const subTasks = self.keyManager.taskGenerateGossipKeys(self.keytoolDepManager, [config.nodeAlias], config.keysDir, config.curDate, config.allNodeAliases) // 666
+          const subTasks = self.keyManager.taskGenerateGossipKeys([config.nodeAlias], config.keysDir, config.curDate, config.allNodeAliases) // 666
           // set up the sub-tasks
           return parentTask.newListr(subTasks, {
             concurrent: false,
