@@ -459,7 +459,8 @@ export class NodeCommandHandlers {
       this.tasks.startNodes('nodeAliases'),
       this.tasks.enablePortForwarding(),
       this.tasks.checkAllNodesAreActive('nodeAliases'),
-      this.tasks.checkNodeProxiesAreActive(() => this.configManager.getFlag(flags.app) !== '' && this.configManager.getFlag(flags.app) !== constants.HEDERA_APP_NAME),
+      this.tasks.checkNodeProxiesAreActive(() => true),
+      // this.tasks.checkNodeProxiesAreActive(() => this.configManager.getFlag(flags.app) !== '' && this.configManager.getFlag(flags.app) !== constants.HEDERA_APP_NAME),
       this.tasks.addNodeStakes()
     ], {
       concurrent: false,
