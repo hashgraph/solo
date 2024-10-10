@@ -387,7 +387,7 @@ export class NodeCommandTasks {
    * @private
    */
   _generateGossipKeys (generateMultiple) {
-    return new Task('Generate gossip keys', (ctx, task) => {
+    return new Task('Generate gossip keys', async (ctx, task) => {
       const config = ctx.config
       const nodeAliases = generateMultiple ? config.nodeAliases : [config.nodeAlias]
       const subTasks = this.keyManager.taskGenerateGossipKeys(this.keytoolDepManager, nodeAliases, config.keysDir, config.curDate)
@@ -411,7 +411,7 @@ export class NodeCommandTasks {
    * @private
    */
   _generateGrpcTlsKeys (generateMultiple) {
-    return new Task('Generate gRPC TLS Keys', (ctx, task) => {
+    return new Task('Generate gRPC TLS Keys', async (ctx, task) => {
       const config = ctx.config
       const nodeAliases = generateMultiple ? config.nodeAliases : [config.nodeAlias]
       const subTasks = this.keyManager.taskGenerateTLSKeys(nodeAliases, config.keysDir, config.curDate)
@@ -490,7 +490,7 @@ export class NodeCommandTasks {
   }
 
   loadAdminKey () {
-    return new Task('Load node admin key', (ctx, task) => {
+    return new Task('Load node admin key', async (ctx, task) => {
       const config = ctx.config
       config.adminKey = PrivateKey.fromStringED25519(constants.GENESIS_KEY)
     })
@@ -682,13 +682,13 @@ export class NodeCommandTasks {
   }
 
   identifyNetworkPods () {
-    return new Task('Identify network pods', (ctx, task) => {
+    return new Task('Identify network pods', async (ctx, task) => {
       return this.taskCheckNetworkNodePods(ctx, task, ctx.config.nodeAliases)
     })
   }
 
   fetchPlatformSoftware () {
-    return new Task('Fetch platform software into network nodes', (ctx, task) => {
+    return new Task('Fetch platform software into network nodes', async (ctx, task) => {
       const { nodeAliases, podNames, releaseTag, localBuildPath } = ctx.config
 
       if (localBuildPath !== '') {
@@ -713,7 +713,7 @@ export class NodeCommandTasks {
    * @returns {Task}
    */
   setupNetworkNodes (nodeAliasesProperty) {
-    return new Task('Setup network nodes', (ctx, task) => {
+    return new Task('Setup network nodes', async (ctx, task) => {
       const subTasks = []
       for (const nodeAlias of ctx.config[nodeAliasesProperty]) {
         const podName = ctx.config.podNames[nodeAlias]
@@ -733,7 +733,7 @@ export class NodeCommandTasks {
   }
 
   prepareStagingDirectory (nodeAliasesProperty) {
-    return new Task('Prepare staging directory', (ctx, task) => {
+    return new Task('Prepare staging directory', async (ctx, task) => {
       const config = ctx.config
       const nodeAliases = config[nodeAliasesProperty]
       const subTasks = [
@@ -761,7 +761,7 @@ export class NodeCommandTasks {
   }
 
   startNodes (nodeAliasesProperty) {
-    return new Task('Starting nodes', (ctx, task) => {
+    return new Task('Starting nodes', async (ctx, task) => {
       const config = ctx.config
       const nodeAliases = config[nodeAliasesProperty]
 
@@ -798,19 +798,19 @@ export class NodeCommandTasks {
   }
 
   checkAllNodesAreActive (nodeAliasesProperty) {
-    return new Task('Check all nodes are ACTIVE', (ctx, task) => {
+    return new Task('Check all nodes are ACTIVE', async (ctx, task) => {
       return this._checkNodeActivenessTask(ctx, task, ctx.config[nodeAliasesProperty])
     })
   }
 
   checkAllNodesAreFrozen (nodeAliasesProperty) {
-    return new Task('Check all nodes are ACTIVE', (ctx, task) => {
+    return new Task('Check all nodes are ACTIVE', async (ctx, task) => {
       return this._checkNodeActivenessTask(ctx, task, ctx.config[nodeAliasesProperty], NodeStatusCodes.FREEZE_COMPLETE)
     })
   }
 
   checkNodeProxiesAreActive (skip) {
-    return new Task('Check node proxies are ACTIVE', (ctx, task) => {
+    return new Task('Check node proxies are ACTIVE', async (ctx, task) => {
       // this is more reliable than checking the nodes logs for ACTIVE, as the
       // logs will have a lot of white noise from being behind
       return this._checkNodesProxiesTask(ctx, task, ctx.config.nodeAliases)
@@ -818,7 +818,7 @@ export class NodeCommandTasks {
   }
 
   checkAllNodeProxiesAreActive () {
-    return new Task('Check all node proxies are ACTIVE', (ctx, task) => {
+    return new Task('Check all node proxies are ACTIVE', async (ctx, task) => {
       // this is more reliable than checking the nodes logs for ACTIVE, as the
       // logs will have a lot of white noise from being behind
       return this._checkNodesProxiesTask(ctx, task, ctx.config.allNodeAliases)
@@ -851,7 +851,7 @@ export class NodeCommandTasks {
   }
 
   addNodeStakes () {
-    return new Task('Add node stakes', (ctx, task) => {
+    return new Task('Add node stakes', async (ctx, task) => {
       if (ctx.config.app === '' || ctx.config.app === constants.HEDERA_APP_NAME) {
         const subTasks = []
         const accountMap = getNodeAccountMap(ctx.config.nodeAliases)
@@ -881,7 +881,7 @@ export class NodeCommandTasks {
   }
 
   stopNodes () {
-    return new Task('Stopping nodes', (ctx, task) => {
+    return new Task('Stopping nodes', async (ctx, task) => {
       const subTasks = []
       for (const nodeAlias of ctx.config.nodeAliases) {
         const podName = ctx.config.podNames[nodeAlias]
@@ -903,7 +903,7 @@ export class NodeCommandTasks {
   }
 
   finalize () {
-    return new Task('Finalize', (ctx, task) => {
+    return new Task('Finalize', async (ctx, task) => {
       // reset flags so that keys are not regenerated later
       this.configManager.setFlag(flags.generateGossipKeys, false)
       this.configManager.setFlag(flags.generateTlsKeys, false)
@@ -912,7 +912,7 @@ export class NodeCommandTasks {
   }
 
   dumpNetworkNodesSaveState () {
-    return new Task('Dump network nodes saved state', (ctx, task) => {
+    return new Task('Dump network nodes saved state', async (ctx, task) => {
       const config = /** @type {NodeRefreshConfigClass} **/ ctx.config
       const subTasks = []
       for (const nodeAlias of config.nodeAliases) {
@@ -941,7 +941,7 @@ export class NodeCommandTasks {
   }
 
   checkPVCsEnabled () {
-    return new Task('Check that PVCs are enabled', (ctx, task) => {
+    return new Task('Check that PVCs are enabled', async (ctx, task) => {
       if (!this.configManager.getFlag(flags.persistentVolumeClaims)) {
         throw new SoloError('PVCs are not enabled. Please enable PVCs before adding a node')
       }
@@ -949,7 +949,7 @@ export class NodeCommandTasks {
   }
 
   determineNewNodeAccountNumber () {
-    return new Task('Determine new node account number', (ctx, task) => {
+    return new Task('Determine new node account number', async (ctx, task) => {
       const config = /** @type {NodeAddConfigClass} **/ ctx.config
       const values = { hedera: { nodes: [] } }
       let maxNum = 0
@@ -1000,7 +1000,7 @@ export class NodeCommandTasks {
   }
 
   loadSigningKeyCertificate () {
-    return new Task('Load signing key certificate', (ctx, task) => {
+    return new Task('Load signing key certificate', async (ctx, task) => {
       const config = ctx.config
       const signingCertFile = Templates.renderGossipPemPublicKeyFile(constants.SIGNING_KEY_PREFIX, config.nodeAlias)
       const signingCertFullPath = path.join(config.keysDir, signingCertFile)
@@ -1009,7 +1009,7 @@ export class NodeCommandTasks {
   }
 
   computeMTLSCertificateHash () {
-    return new Task('Compute mTLS certificate hash', (ctx, task) => {
+    return new Task('Compute mTLS certificate hash', async (ctx, task) => {
       const config = ctx.config
       const tlsCertFile = Templates.renderTLSPemPublicKeyFile(config.nodeAlias)
       const tlsCertFullPath = path.join(config.keysDir, tlsCertFile)
@@ -1019,7 +1019,7 @@ export class NodeCommandTasks {
   }
 
   prepareGossipEndpoints () {
-    return new Task('Prepare gossip endpoints', (ctx, task) => {
+    return new Task('Prepare gossip endpoints', async (ctx, task) => {
       const config = ctx.config
       let endpoints = []
       if (!config.gossipEndpoints) {
@@ -1040,7 +1040,7 @@ export class NodeCommandTasks {
   }
 
   prepareGrpcServiceEndpoints () {
-    return new Task('Prepare grpc service endpoints', (ctx, task) => {
+    return new Task('Prepare grpc service endpoints', async (ctx, task) => {
       const config = ctx.config
       let endpoints = []
 
@@ -1123,7 +1123,7 @@ export class NodeCommandTasks {
   }
 
   copyNodeKeysToSecrets () {
-    return new Task('Copy node keys to secrets', (ctx, task) => {
+    return new Task('Copy node keys to secrets', async (ctx, task) => {
       const subTasks = this.platformInstaller.copyNodeKeys(ctx.config.stagingDir, ctx.config.allNodeAliases)
 
       // set up the sub-tasks for copying node keys to staging directory
@@ -1186,7 +1186,7 @@ export class NodeCommandTasks {
   }
 
   saveContextData (argv, targetFile, parser) {
-    return new Task('Save context data', (ctx, task) => {
+    return new Task('Save context data', async (ctx, task) => {
       const outputDir = argv[flags.outputDir.name]
       if (!outputDir) {
         throw new SoloError(`Path to export context data not specified. Please set a value for --${flags.outputDir.name}`)
@@ -1201,7 +1201,7 @@ export class NodeCommandTasks {
   }
 
   loadContextData (argv, targetFile, parser) {
-    return new Task('Load context data', (ctx, task) => {
+    return new Task('Load context data', async (ctx, task) => {
       const inputDir = argv[flags.inputDir.name]
       if (!inputDir) {
         throw new SoloError(`Path to context data not specified. Please set a value for --${flags.inputDir.name}`)
@@ -1243,7 +1243,7 @@ export class NodeCommandTasks {
   }
 
   checkNodePodsAreRunning () {
-    return new Task('Check node pods are running', (ctx, task) => {
+    return new Task('Check node pods are running', async (ctx, task) => {
       const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
       const subTasks = []
       for (const nodeAlias of config.allNodeAliases) {
