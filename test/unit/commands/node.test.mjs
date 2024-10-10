@@ -22,7 +22,7 @@ import {
   jest
 } from '@jest/globals'
 
-import { NodeCommand } from '../../../src/commands/node.mjs'
+import { NodeCommand } from '../../../src/commands/node/index.mjs'
 
 function getBaseCommandOpts () {
   const opts = {}

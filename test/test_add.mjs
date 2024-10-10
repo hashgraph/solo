@@ -27,7 +27,7 @@ import {
   HEDERA_PLATFORM_VERSION_TAG
 } from './test_util.js'
 import { getNodeLogs } from '../src/core/helpers.mjs'
-import { NodeCommand } from '../src/commands/node.mjs'
+import * as NodeCommandConfigs from '../src/commands/node/configs.mjs'
 
 export function testNodeAdd (localBuildPath
 ) {
@@ -59,7 +59,7 @@ export function testNodeAdd (localBuildPath
     afterAll(async () => {
       await getNodeLogs(k8, namespace)
       await nodeCmd.accountManager.close()
-      await nodeCmd.stop(argv)
+      await nodeCmd.handlers.stop(argv)
       await networkCmd.destroy(argv)
       await k8.deleteNamespace(namespace)
     }, 600000)
@@ -75,8 +75,8 @@ export function testNodeAdd (localBuildPath
     }, 450000)
 
     it('should add a new node to the network successfully', async () => {
-      await nodeCmd.add(argv)
-      expect(nodeCmd.getUnusedConfigs(NodeCommand.ADD_CONFIGS_NAME)).toEqual([
+      await nodeCmd.handlers.add(argv)
+      expect(nodeCmd.getUnusedConfigs(NodeCommandConfigs.ADD_CONFIGS_NAME)).toEqual([
         flags.app.constName,
         flags.chainId.constName,
         flags.devMode.constName,

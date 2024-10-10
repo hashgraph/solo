@@ -18,10 +18,18 @@
 'use strict'
 
 export class Task {
-  constructor (title, taskFunc) {
+  /**
+   *
+   * @param title
+   * @param taskFunc
+   * @param skip {boolean || function}
+   * @returns {{title, task, skip: boolean || function}}
+   */
+  constructor (title, taskFunc, skip = false) {
     return {
       title,
-      task: taskFunc
+      task: taskFunc,
+      skip
     }
   }
 }

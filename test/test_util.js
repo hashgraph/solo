@@ -22,7 +22,7 @@ import path from 'path'
 import { ClusterCommand } from '../src/commands/cluster.mjs'
 import { InitCommand } from '../src/commands/init.mjs'
 import { NetworkCommand } from '../src/commands/network.mjs'
-import { NodeCommand } from '../src/commands/node.mjs'
+import { NodeCommand } from '../src/commands/node/index.mjs'
 import { AccountManager } from '../src/core/account_manager.mjs'
 import {
   DependencyManager,
@@ -53,6 +53,7 @@ import crypto from 'crypto'
 import { AccountCommand } from '../src/commands/account.mjs'
 import { SoloError } from '../src/core/errors.mjs'
 import { execSync } from 'child_process'
+import * as NodeCommandConfigs from '../src/commands/node/configs.mjs'
 
 export const testLogger = logging.NewLogger('debug', true)
 export const TEST_CLUSTER = 'solo-e2e'
@@ -223,9 +224,8 @@ export function bootstrapNetwork (testName, argv,
     }, 120000)
 
     it('generate key files', async () => {
-      await expect(nodeCmd.keys(argv)).resolves.toBeTruthy()
-      expect(nodeCmd.getUnusedConfigs(NodeCommand.KEYS_CONFIGS_NAME)).toEqual([
-        flags.cacheDir.constName,
+      await expect(nodeCmd.handlers.keys(argv)).resolves.toBeTruthy()
+      expect(nodeCmd.getUnusedConfigs(NodeCommandConfigs.KEYS_CONFIGS_NAME)).toEqual([
         flags.devMode.constName,
         flags.quiet.constName
       ])
@@ -254,10 +254,8 @@ export function bootstrapNetwork (testName, argv,
         expect.assertions(2)
         // cache this, because `solo node setup.finalize()` will reset it to false
         try {
-          await expect(nodeCmd.setup(argv)).resolves.toBeTruthy()
-          expect(nodeCmd.getUnusedConfigs(NodeCommand.SETUP_CONFIGS_NAME)).toEqual([
-            flags.app.constName,
-            flags.appConfig.constName,
+          await expect(nodeCmd.handlers.setup(argv)).resolves.toBeTruthy()
+          expect(nodeCmd.getUnusedConfigs(NodeCommandConfigs.SETUP_CONFIGS_NAME)).toEqual([
             flags.devMode.constName
           ])
         } catch (e) {
@@ -269,7 +267,7 @@ export function bootstrapNetwork (testName, argv,
       it('should succeed with node start command', async () => {
         expect.assertions(1)
         try {
-          await expect(nodeCmd.start(argv)).resolves.toBeTruthy()
+          await expect(nodeCmd.handlers.start(argv)).resolves.toBeTruthy()
         } catch (e) {
           nodeCmd.logger.showUserError(e)
           expect(e).toBeNull()

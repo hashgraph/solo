@@ -25,9 +25,9 @@ import {
   HEDERA_PLATFORM_VERSION_TAG
 } from '../../test_util.js'
 import { getNodeLogs, getTmpDir } from '../../../src/core/helpers.mjs'
-import { NodeCommand } from '../../../src/commands/node.mjs'
 import { HEDERA_HAPI_PATH, ROOT_CONTAINER } from '../../../src/core/constants.mjs'
 import fs from 'fs'
+import * as NodeCommandConfigs from '../../../src/commands/node/configs.mjs'
 
 describe('Node delete', () => {
   const namespace = 'node-delete'
@@ -59,8 +59,8 @@ describe('Node delete', () => {
   }, 450000)
 
   it('should delete a node from the network successfully', async () => {
-    await nodeCmd.delete(argv)
-    expect(nodeCmd.getUnusedConfigs(NodeCommand.DELETE_CONFIGS_NAME)).toEqual([
+    await nodeCmd.handlers.delete(argv)
+    expect(nodeCmd.getUnusedConfigs(NodeCommandConfigs.DELETE_CONFIGS_NAME)).toEqual([
       flags.app.constName,
       flags.devMode.constName,
       flags.endpointType.constName,
