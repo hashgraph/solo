@@ -19,7 +19,7 @@ import yargs from 'yargs'
 import { hideBin } from 'yargs/helpers'
 import { flags } from './commands/index.mjs'
 import * as commands from './commands/index.mjs'
-import { HelmDependencyManager, DependencyManager, KeytoolDependencyManager } from './core/dependency_managers/index.mjs'
+import { HelmDependencyManager, DependencyManager } from './core/dependency_managers/index.mjs'
 import {
   ChartManager,
   ConfigManager,
@@ -44,10 +44,8 @@ export function main (argv) {
     const downloader = new PackageDownloader(logger)
     const zippy = new Zippy(logger)
     const helmDepManager = new HelmDependencyManager(downloader, zippy, logger)
-    const keytoolDepManager = new KeytoolDependencyManager(downloader, zippy, logger)
     const depManagerMap = new Map()
       .set(constants.HELM, helmDepManager)
-      .set(constants.KEYTOOL, keytoolDepManager)
     const depManager = new DependencyManager(logger, depManagerMap)
 
     const helm = new Helm(logger)

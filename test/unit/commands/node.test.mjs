@@ -65,12 +65,5 @@ describe('NodeCommand unit tests', () => {
       expect(() => new NodeCommand(opts)).toThrow('An instance of core/AccountManager is required')
     })
 
-    it('should throw an error if keytoolDepManager is not provided', () => {
-      opts.downloader = jest.fn()
-      opts.platformInstaller = jest.fn()
-      opts.keyManager = jest.fn()
-      opts.accountManager = jest.fn()
-      expect(() => new NodeCommand(opts)).toThrow('An instance of KeytoolDependencyManager is required')
-    })
   })
 })

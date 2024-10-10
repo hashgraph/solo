@@ -64,7 +64,7 @@ import * as NodeFlags from './node/flags.mjs'
 export class NodeCommand extends BaseCommand {
   /**
    * @param {{logger: SoloLogger, helm: Helm, k8: K8, chartManager: ChartManager, configManager: ConfigManager,
-   * depManager: DependencyManager, keytoolDepManager: KeytoolDependencyManager, downloader: PackageDownloader,
+   * depManager: DependencyManager, keytoolDepManager: downloader: PackageDownloader,
    * platformInstaller: PlatformInstaller, keyManager: KeyManager, accountManager: AccountManager,
    * profileManager: ProfileManager}} opts
    */
@@ -75,7 +75,6 @@ export class NodeCommand extends BaseCommand {
     if (!opts || !opts.platformInstaller) throw new IllegalArgumentError('An instance of core/PlatformInstaller is required', opts.platformInstaller)
     if (!opts || !opts.keyManager) throw new IllegalArgumentError('An instance of core/KeyManager is required', opts.keyManager)
     if (!opts || !opts.accountManager) throw new IllegalArgumentError('An instance of core/AccountManager is required', opts.accountManager)
-    if (!opts || !opts.keytoolDepManager) throw new IllegalArgumentError('An instance of KeytoolDependencyManager is required', opts.keytoolDepManager)
     if (!opts || !opts.profileManager) throw new IllegalArgumentError('An instance of ProfileManager is required', opts.profileManager)
 
     this.downloader = opts.downloader

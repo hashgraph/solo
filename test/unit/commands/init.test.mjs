@@ -18,8 +18,7 @@ import { InitCommand } from '../../../src/commands/init.mjs'
 import { expect, describe, it } from '@jest/globals'
 import {
   HelmDependencyManager,
-  DependencyManager,
-  KeytoolDependencyManager
+  DependencyManager
 } from '../../../src/core/dependency_managers/index.mjs'
 import {
   ChartManager,
@@ -36,10 +35,8 @@ describe('InitCommand', () => {
   const downloader = new PackageDownloader(testLogger)
   const zippy = new Zippy(testLogger)
   const helmDepManager = new HelmDependencyManager(downloader, zippy, testLogger)
-  const keytoolDepManager = new KeytoolDependencyManager(downloader, zippy, testLogger)
   const depManagerMap = new Map()
     .set(constants.HELM, helmDepManager)
-    .set(constants.KEYTOOL, keytoolDepManager)
   const depManager = new DependencyManager(testLogger, depManagerMap)
 
   const helm = new Helm(testLogger)
