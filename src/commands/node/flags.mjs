@@ -65,7 +65,6 @@ const COMMON_DELETE_OPTIONAL_FLAGS = [
 
 const COMMON_ADD_REQUIRED_FLAGS = [
   flags.cacheDir,
-  flags.chainId,
   flags.devMode,
   flags.endpointType,
   flags.generateGossipKeys,

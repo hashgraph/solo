@@ -402,7 +402,7 @@ export class NodeCommandHandlers {
   }
 
   async refresh (argv) {
-    argv = helpers.addFlagsToArgv(argv, NodeFlags.LOGS_FLAGS)
+    argv = helpers.addFlagsToArgv(argv, NodeFlags.REFRESH_FLAGS)
     const action = helpers.commandActionBuilder([
       this.tasks.initialize(argv, refreshConfigBuilder.bind(this)),
       this.tasks.identifyNetworkPods(),
@@ -459,7 +459,7 @@ export class NodeCommandHandlers {
       this.tasks.startNodes('nodeAliases'),
       this.tasks.enablePortForwarding(),
       this.tasks.checkAllNodesAreActive('nodeAliases'),
-      this.tasks.checkNodeProxiesAreActive(() => true),
+      this.tasks.checkNodeProxiesAreActive(() => true),   // Temporarily skip this step
       // this.tasks.checkNodeProxiesAreActive(() => this.configManager.getFlag(flags.app) !== '' && this.configManager.getFlag(flags.app) !== constants.HEDERA_APP_NAME),
       this.tasks.addNodeStakes()
     ], {

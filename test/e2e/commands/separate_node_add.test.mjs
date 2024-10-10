@@ -46,9 +46,11 @@ describe('Node add via separated commands should success', () => {
 
   const tempDir = 'contextDir'
   argvPrepare[flags.outputDir.name] = tempDir
+  argvPrepare[flags.outputDir.constName] = tempDir
 
   const argvExecute = getDefaultArgv()
   argvExecute[flags.inputDir.name] = tempDir
+  argvExecute[flags.inputDir.constName] = tempDir
 
   const bootstrapResp = bootstrapNetwork(namespace, argv)
   const nodeCmd = bootstrapResp.cmd.nodeCmd
