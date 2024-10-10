@@ -23,6 +23,7 @@ import {
   balanceQueryShouldSucceed,
   bootstrapNetwork,
   getDefaultArgv,
+  getNodeAliasesPrivateKeysHash,
   getTmpDir,
   HEDERA_PLATFORM_VERSION_TAG
 } from './test_util.js'
@@ -74,8 +75,7 @@ export function testNodeAdd (localBuildPath
     }).timeout(defaultTimeout)
 
     it('should succeed with init command', async () => {
-      const status = await accountCmd.init(argv)
-      expect(status).to.be.ok
+      await expect(accountCmd.init(argv)).to.eventually.be.ok
     }).timeout(8 * MINUTES)
 
     it('should add a new node to the network successfully', async () => {

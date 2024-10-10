@@ -20,7 +20,7 @@ tests:
     mochaPostfix: "'test/e2e/commands/node_local*.test.mjs'"
 
   - name: Node Add
-    mochaPostfix: "-'test/e2e/commands/node_add*.test.mjs'"
+    mochaPostfix: "'test/e2e/commands/node_add*.test.mjs'"
 
   - name: Node Add - Separate commands
     mochaPostfix: "'test/e2e/commands/separate_node_add*.test.mjs'"
