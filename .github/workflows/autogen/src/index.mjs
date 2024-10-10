@@ -81,7 +81,7 @@ function updatePackageJson (outputDir, config) {
   const outputLines = []
   const generatedLines = []
   const firstMarker = '"test-e2e-all":'
-  const secondMarker = '"merge-clean":'
+  const secondMarker = '"solo":'
   let skipNext = false
 
   inputLines.forEach(line => {
@@ -95,14 +95,12 @@ function updatePackageJson (outputDir, config) {
         const kebabCase = changeCase.kebabCase(formalNounName)
 
         generatedLines.push(
-          `${spacePrefix}"test-e2e-${kebabCase}": "
-          cross-env NODE_OPTIONS=--experimental-vm-modules ` +
-          `MOCHA_GREP='E2E ${formalNounName} Tests' ` +
-          `nyc --reporter=text --reporter=html --report-dir='coverage/e2e-${kebabCase}' ` +
-          `mocha --recursive --file 'test/setup.mjs' 'test/e2e/**/*.mjs' --exit ` +
+          `${spacePrefix}"test-e2e-${kebabCase}": "cross-env NODE_OPTIONS=--experimental-vm-modules ` +
+          `MOCHA_SUITE_NAME=\\"Mocha E2E ${formalNounName} Tests\\" ` +
+          `c8 --reporter=clover --reporter=lcov --reporter=text --report-dir='coverage/e2e-${kebabCase}' ` +
+          `mocha --verbose --recursive --file 'test/setup.mjs' ${test.mochaPostfix} --exit ` +
           `--reporter mocha-junit-reporter --reporter-options mochaFile=junit-e2e-${kebabCase}.xml ` +
-          `--check-leaks --timeout 5000 `
-        )
+          `--check-leaks --timeout ${test.timeout ?? 20000}",`)
       })
 
       outputLines.push(...generatedLines)
