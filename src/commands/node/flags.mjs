@@ -64,7 +64,6 @@ const COMMON_DELETE_OPTIONAL_FLAGS = [
 ]
 
 const COMMON_ADD_REQUIRED_FLAGS = [
-  flags.app,
   flags.cacheDir,
   flags.chainId,
   flags.devMode,
@@ -193,11 +192,13 @@ export const STOP_FLAGS = {
 
 export const START_FLAGS = {
   requiredFlags: [
-    flags.namespace
+    flags.namespace,
+    flags.nodeAliasesUnparsed
+
   ],
   requiredFlagsWithDisabledPrompt: [
     flags.app,
-    flags.nodeAliasesUnparsed
+    flags.cacheDir,
   ],
   optionalFlags: [
     flags.quiet,
