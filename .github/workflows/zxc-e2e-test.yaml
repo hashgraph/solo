@@ -186,7 +186,7 @@ jobs:
 
       - name: Upload E2E Logs to GitHub
         if: ${{ !cancelled() }}
-        uses: actions/upload-artifact@84480863f228bb9747b473957fcc9e309aa96097 # v4.4.2
+        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
         with:
           name: solo-${{ inputs.npm-test-script }}.log
           path: ~/.solo/logs/*
@@ -194,7 +194,7 @@ jobs:
           if-no-files-found: error
 
       - name: Upload E2E Test Report
-        uses: actions/upload-artifact@84480863f228bb9747b473957fcc9e309aa96097 # v4.4.2
+        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
         if: ${{ steps.npm-deps.conclusion == 'success' && !cancelled() }}
         with:
           name: e2e_test_report_${{ inputs.npm-test-script }}
@@ -203,7 +203,7 @@ jobs:
           if-no-files-found: error
 
       - name: Publish E2E Coverage Report
-        uses: actions/upload-artifact@84480863f228bb9747b473957fcc9e309aa96097 # v4.4.2
+        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
         if: ${{ !cancelled() }}
         with:
           name: ${{ inputs.coverage-report-name }}
