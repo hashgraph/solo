@@ -475,59 +475,39 @@ export const stopConfigBuilder = async function (argv, ctx, task) {
 }
 
 export const startConfigBuilder = async function (argv, ctx, task) {
-  // /**
-  //    * @typedef {Object} NodeStartConfigClass
-  //    * -- flags --
-  //    * @property {string} app
-  //    * @property {string} appConfig
-  //    * @property {string} cacheDir
-  //    * @property {boolean} devMode
-  //    * @property {string} namespace
-  //    * @property {string} nodeAliasesUnparsed
-  //    * @property {string} debugNodeAlias
-  //    * -- extra args --
-  //    * @property {NodeAliases} nodeAliases
-  //    * -- methods --
-  //    * @property {getUnusedConfigs} getUnusedConfigs
-  //    */
-  // /**
-  //    * @callback getUnusedConfigs
-  //    * @returns {string[]}
-  //    */
-  //
-  // // create a config object for subsequent steps
-  // const config = /** @type {NodeStartConfigClass} **/ this.getConfig(START_CONFIGS_NAME, argv.flags,
-  //   [
-  //     'nodeAliases'
-  //   ])
-  //
-  // if (!await this.k8.hasNamespace(config.namespace)) {
-  //   throw new SoloError(`namespace ${config.namespace} does not exist`)
-  // }
-  //
-  // config.nodeAliases = helpers.parseNodeAliases(config.nodeAliasesUnparsed)
-  //
-  // return config
+  /**
+     * @typedef {Object} NodeStartConfigClass
+     * -- flags --
+     * @property {string} app
+     * @property {string} appConfig
+     * @property {string} cacheDir
+     * @property {boolean} devMode
+     * @property {string} namespace
+     * @property {string} nodeAliasesUnparsed
+     * @property {string} debugNodeAlias
+     * -- extra args --
+     * @property {NodeAliases} nodeAliases
+     * -- methods --
+     * @property {getUnusedConfigs} getUnusedConfigs
+     */
+  /**
+     * @callback getUnusedConfigs
+     * @returns {string[]}
+     */
 
+  // create a config object for subsequent steps
+  const config = /** @type {NodeStartConfigClass} **/ this.getConfig(START_CONFIGS_NAME, argv.flags,
+    [
+      'nodeAliases'
+    ])
 
-    ctx.config = {
-        app: this.configManager.getFlag(flags.app),
-        cacheDir: this.configManager.getFlag(flags.cacheDir),
-        debugNodeAlias: this.configManager.getFlag(flags.debugNodeAlias),
-        namespace: this.configManager.getFlag(flags.namespace),
-        nodeAliases: helpers.parseNodeAliases(this.configManager.getFlag(flags.nodeAliasesUnparsed))
-    }
+  if (!await this.k8.hasNamespace(config.namespace)) {
+    throw new SoloError(`namespace ${config.namespace} does not exist`)
+  }
 
-    ctx.config.stagingDir = Templates.renderStagingDir(
-        this.configManager.getFlag(flags.cacheDir),
-        this.configManager.getFlag(flags.releaseTag)
-    )
+  config.nodeAliases = helpers.parseNodeAliases(config.nodeAliasesUnparsed)
 
-    if (!await this.k8.hasNamespace(ctx.config.namespace)) {
-        throw new SoloError(`namespace ${ctx.config.namespace} does not exist`)
-    }
-
-    return ctx.config
+  return config
 }
 
 export const setupConfigBuilder = async function (argv, ctx, task) {
