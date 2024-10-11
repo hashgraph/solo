@@ -152,9 +152,9 @@ function buildWorkflows (outputDir, templateDir, config) {
         case AUTOGENERATE_WITH_COVERAGE_REPORT:
         case AUTOGENERATE_JOB_OUTPUTS_SUB_DIRS:
         case AUTOGENERATE_JOB_OUTPUTS_COVERAGE_REPORTS:
+        case AUTOGENERATE_E2E_TEST_JOBS:
           autogenerateLine(line, config, outputLines, trimmedLine)
           break
-        case AUTOGENERATE_E2E_TEST_JOBS:
         case AUTOGENERATE_DOWNLOAD_JOBS:
           autogenerateLine(line, config, outputLines, trimmedLine)
           outputLines.pop() // remove the extra new line character
