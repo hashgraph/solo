@@ -815,8 +815,11 @@ export class NodeCommandTasks {
       // logs will have a lot of white noise from being behind
       return this._checkNodesProxiesTask(ctx, task, ctx.config.nodeAliases)
     }, async (ctx) => {
-      await sleep(30 * 1000)
-      return ctx.config.app !== '' && ctx.config.app !== constants.HEDERA_APP_NAME
+      if (ctx.config.app !== '' && ctx.config.app !== constants.HEDERA_APP_NAME) {
+        await sleep(30 * 1000)
+        return true
+      }
+      return false
     })
   }
 
