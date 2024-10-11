@@ -29,7 +29,6 @@ import {
   TEST_CLUSTER
 } from '../test_util.js'
 import { getNodeLogs, sleep } from '../../src/core/helpers.mjs'
-import { NodeCommand } from '../../src/commands/node.mjs'
 import { MINUTES, SECONDS } from '../../src/core/constants.mjs'
 import * as NodeCommandConfigs from '../../src/commands/node/configs.mjs'
 
