@@ -72,7 +72,7 @@ jobs:
     strategy:
       matrix:
         e2e-test-type:
-          # {AUTOGENERATE-E2E-TEST-JOBS-2}
+          # {AUTOGENERATE-E2E-TEST-JOBS}
       max-parallel: 5
     with:
       custom-job-label: ${{ matrix.e2e-test-type.name }}
