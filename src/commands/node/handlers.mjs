@@ -409,6 +409,7 @@ export class NodeCommandHandlers {
       this.tasks.dumpNetworkNodesSaveState(),
       this.tasks.fetchPlatformSoftware(),
       this.tasks.setupNetworkNodes('nodeAliases'),
+      this.tasks.startNodes('nodeAliases'),
       this.tasks.checkAllNodesAreActive('nodeAliases'),
       this.tasks.checkNodeProxiesAreActive((ctx) => ctx.config.app !== '')
     ], {
