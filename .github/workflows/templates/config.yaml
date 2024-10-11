@@ -19,11 +19,17 @@ tests:
   - name: Node PEM Kill
     mochaPostfix: "'test/e2e/commands/node_pem_kill.test.mjs'"
 
-  - name: Node Local Build
-    mochaPostfix: "'test/e2e/commands/node_local*.test.mjs'"
+  - name: Node Local Hedera
+    mochaPostfix: "'test/e2e/commands/node_local_hedera.test.mjs'"
+
+  - name: Node Local PTT
+    mochaPostfix: "'test/e2e/commands/node_local_ptt.test.mjs'"
 
   - name: Node Add
-    mochaPostfix: "'test/e2e/commands/node_add*.test.mjs'"
+    mochaPostfix: "'test/e2e/commands/node_add.test.mjs'"
+
+  - name: Node Add Local
+    mochaPostfix: "'test/e2e/commands/node_add_local.test.mjs'"
 
   - name: Node Add - Separate commands
     mochaPostfix: "'test/e2e/commands/separate_node_add*.test.mjs'"
