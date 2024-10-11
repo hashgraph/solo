@@ -85,7 +85,7 @@
     "eslint-plugin-headers": "^1.2.0",
     "eslint-plugin-import": "^2.30.0",
     "eslint-plugin-mocha": "^10.5.0",
-    "eslint-plugin-n": "^16.6.2",
+    "eslint-plugin-n": "^17.11.1",
     "eslint-plugin-promise": "^7.1.0",
     "jest-mock": "^29.7.0",
     "mocha": "^10.7.3",
