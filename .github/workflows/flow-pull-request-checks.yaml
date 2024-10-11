@@ -64,7 +64,7 @@ jobs:
 
   e2e-tests:
     name: E2E Tests Matrix
-    if: ${{ github.event_name == 'push' || github.event.inputs.enable-e2e-tests == 'true' }}
+    if: ${{ !cancelled() && always() }}
     needs:
       - env-vars
       - code-style
