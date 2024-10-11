@@ -23,7 +23,6 @@ import * as changeCase from 'change-case'
 
 export const AUTOGENERATE_E2E_TEST_JOBS = '# {AUTOGENERATE-E2E-TEST-JOBS}'
 export const AUTOGENERATE_E2E_TEST_JOBS_2 = '# {AUTOGENERATE-E2E-TEST-JOBS-2}'
-export const AUTOGENERATE_NEEDS = '# {AUTOGENERATE-NEEDS}' // REMOVE?
 export const AUTOGENERATE_WITH_SUBDIR = '# {AUTOGENERATE-WITH-SUBDIR}'
 export const AUTOGENERATE_WITH_COVERAGE_REPORT = '# {AUTOGENERATE-WITH-COVERAGE-REPORT}'
 export const AUTOGENERATE_JOB_OUTPUTS_SUB_DIRS = '# {AUTOGENERATE-JOB-OUTPUTS-SUB-DIRS}'
@@ -117,8 +116,6 @@ function updatePackageJson (outputDir, config) {
   fs.writeFileSync(packageJsonFile, outputLines.join('\n'))
 }
 
-// TODO
-
 /**
  * Autogenerate the GitHub workflows files with the entries needed to add the
  * E2E test jobs
@@ -154,7 +151,6 @@ function buildWorkflows (outputDir, templateDir, config) {
         case AUTOGENERATE_INPUTS_COVERAGE_REPORTS:
           autogenerateYaml(line, config, outputLines, trimmedLine)
           break
-        case AUTOGENERATE_NEEDS:
         case AUTOGENERATE_WITH_SUBDIR:
         case AUTOGENERATE_WITH_COVERAGE_REPORT:
         case AUTOGENERATE_JOB_OUTPUTS_SUB_DIRS:
@@ -321,10 +317,6 @@ export function autogenerateLine (line, config, outputLines, templateKey) {
       case AUTOGENERATE_WITH_COVERAGE_REPORT:
         namePart = `e2e-${kebabCase}`
         outputLines.push(spacePrefix + namePart + '-coverage-report: ${{ needs.env-vars.outputs.' + namePart + '-coverage-report }}')
-        break
-      case AUTOGENERATE_NEEDS:
-        namePart = `e2e-${kebabCase}-tests`
-        outputLines.push(`${spacePrefix}- ${namePart}`)
         break
       case AUTOGENERATE_JOB_OUTPUTS_SUB_DIRS:
         namePart = `e2e_${snakeCase}_test_subdir`
