@@ -305,36 +305,3 @@ export function autogenerateLine (line, config, outputLines, templateKey) {
     }
   })
 }
-/// **
-//  * Generates the test jobs for the provided templateKey
-//  * @param {Test} test
-//  * @param {string} templateKey
-//  * @param {Object} outputYaml
-//  */
-// export function generateTestJobs (test, templateKey, outputYaml) {
-//   const formalNounName = test.name
-//   const kebabCase = changeCase.kebabCase(formalNounName)
-//   const testJobKey = `e2e-${kebabCase}-tests`
-//   const testJobValue = {}
-//   testJobValue.name = 'E2E Tests'
-//
-//   if (templateKey === AUTOGENERATE_E2E_TEST_JOBS) {
-//     testJobValue.if = '${{ github.event_name == \'push\' || github.event.inputs.enable-e2e-tests == \'true\' }}'
-//   } else {
-//     testJobValue.if = '${{ !cancelled() && always() }}'
-//   }
-//
-//   testJobValue.uses = './.github/workflows/zxc-e2e-test.yaml'
-//   testJobValue.needs = ['env-vars', 'code-style']
-//   testJobValue.with = {
-//     'custom-job-label': formalNounName,
-//     'npm-test-script': 'test-${{ needs.env-vars.outputs.e2e-' +
-//         kebabCase + '-test-subdir }}',
-//     'coverage-subdirectory': '${{ needs.env-vars.outputs.e2e-' +
-//         kebabCase + '-test-subdir }}',
-//     'coverage-report-name': '${{ needs.env-vars.outputs.e2e-' +
-//         kebabCase + '-coverage-report }}'
-//   }
-//
-//   outputYaml[testJobKey] = testJobValue
-// }
