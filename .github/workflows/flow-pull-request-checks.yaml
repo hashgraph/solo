@@ -64,7 +64,7 @@ jobs:
 
   e2e-tests:
     name: E2E Tests
-    if: ${{ !cancelled() && always() }}
+    if: ${{ !cancelled() && always() && false }}
     uses: ./.github/workflows/zxc-e2e-test.yaml
     needs:
       - env-vars

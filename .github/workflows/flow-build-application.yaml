@@ -37,6 +37,7 @@ on:
     branches:
       - main
       - 'release/*'
+      - '00339-e2e-jobs-parallel-restriction' # TODO REMOVE
 
 defaults:
   run:
@@ -64,175 +65,35 @@ jobs:
     with:
       custom-job-label: Standard
 
-  # TODO
-  e2e-integration-tests:
+  e2e-tests:
     name: E2E Tests
     if: ${{ github.event_name == 'push' || github.event.inputs.enable-e2e-tests == 'true' }}
     uses: ./.github/workflows/zxc-e2e-test.yaml
     needs:
       - env-vars
       - code-style
+    strategy:
+      matrix:
+        e2e-test-type:
+          - { name: "Integration", npm-test-script: "test-${{ needs.env-vars.outputs.e2e-integration-test-subdir }}", coverage-subdirectory: "${{ needs.env-vars.outputs.e2e-integration-test-subdir }}", coverage-report-name: "${{ needs.env-vars.outputs.e2e-integration-coverage-report }}" }
+          - { name: "Standard", npm-test-script: "test-${{ needs.env-vars.outputs.e2e-standard-test-subdir }}", coverage-subdirectory: "${{ needs.env-vars.outputs.e2e-standard-test-subdir }}", coverage-report-name: "${{ needs.env-vars.outputs.e2e-standard-coverage-report }}" }
+          - { name: "Mirror Node", npm-test-script: "test-${{ needs.env-vars.outputs.e2e-mirror-node-test-subdir }}", coverage-subdirectory: "${{ needs.env-vars.outputs.e2e-mirror-node-test-subdir }}", coverage-report-name: "${{ needs.env-vars.outputs.e2e-mirror-node-coverage-report }}" }
+          - { name: "Node PEM Stop", npm-test-script: "test-${{ needs.env-vars.outputs.e2e-node-pem-stop-test-subdir }}", coverage-subdirectory: "${{ needs.env-vars.outputs.e2e-node-pem-stop-test-subdir }}", coverage-report-name: "${{ needs.env-vars.outputs.e2e-node-pem-stop-coverage-report }}" }
+          - { name: "Node PEM Kill", npm-test-script: "test-${{ needs.env-vars.outputs.e2e-node-pem-kill-test-subdir }}", coverage-subdirectory: "${{ needs.env-vars.outputs.e2e-node-pem-kill-test-subdir }}", coverage-report-name: "${{ needs.env-vars.outputs.e2e-node-pem-kill-coverage-report }}" }
+          - { name: "Node Local Build", npm-test-script: "test-${{ needs.env-vars.outputs.e2e-node-local-build-test-subdir }}", coverage-subdirectory: "${{ needs.env-vars.outputs.e2e-node-local-build-test-subdir }}", coverage-report-name: "${{ needs.env-vars.outputs.e2e-node-local-build-coverage-report }}" }
+          - { name: "Node Add", npm-test-script: "test-${{ needs.env-vars.outputs.e2e-node-add-test-subdir }}", coverage-subdirectory: "${{ needs.env-vars.outputs.e2e-node-add-test-subdir }}", coverage-report-name: "${{ needs.env-vars.outputs.e2e-node-add-coverage-report }}" }
+          - { name: "Node Add - Separate commands", npm-test-script: "test-${{ needs.env-vars.outputs.e2e-node-add-separate-commands-test-subdir }}", coverage-subdirectory: "${{ needs.env-vars.outputs.e2e-node-add-separate-commands-test-subdir }}", coverage-report-name: "${{ needs.env-vars.outputs.e2e-node-add-separate-commands-coverage-report }}" }
+          - { name: "Node Update", npm-test-script: "test-${{ needs.env-vars.outputs.e2e-node-update-test-subdir }}", coverage-subdirectory: "${{ needs.env-vars.outputs.e2e-node-update-test-subdir }}", coverage-report-name: "${{ needs.env-vars.outputs.e2e-node-update-coverage-report }}" }
+          - { name: "Node Delete", npm-test-script: "test-${{ needs.env-vars.outputs.e2e-node-delete-test-subdir }}", coverage-subdirectory: "${{ needs.env-vars.outputs.e2e-node-delete-test-subdir }}", coverage-report-name: "${{ needs.env-vars.outputs.e2e-node-delete-coverage-report }}" }
+          - { name: "Node Delete - Separate commands", npm-test-script: "test-${{ needs.env-vars.outputs.e2e-node-delete-separate-commands-test-subdir }}", coverage-subdirectory: "${{ needs.env-vars.outputs.e2e-node-delete-separate-commands-test-subdir }}", coverage-report-name: "${{ needs.env-vars.outputs.e2e-node-delete-separate-commands-coverage-report }}" }
+          - { name: "Node Upgrade", npm-test-script: "test-${{ needs.env-vars.outputs.e2e-node-upgrade-test-subdir }}", coverage-subdirectory: "${{ needs.env-vars.outputs.e2e-node-upgrade-test-subdir }}", coverage-report-name: "${{ needs.env-vars.outputs.e2e-node-upgrade-coverage-report }}" }
+          - { name: "Relay", npm-test-script: "test-${{ needs.env-vars.outputs.e2e-relay-test-subdir }}", coverage-subdirectory: "${{ needs.env-vars.outputs.e2e-relay-test-subdir }}", coverage-report-name: "${{ needs.env-vars.outputs.e2e-relay-coverage-report }}" }
+      max-parallel: 5
     with:
-      custom-job-label: Integration
-      npm-test-script: test-${{ needs.env-vars.outputs.e2e-integration-test-subdir }}
-      coverage-subdirectory: ${{ needs.env-vars.outputs.e2e-integration-test-subdir }}
-      coverage-report-name: ${{ needs.env-vars.outputs.e2e-integration-coverage-report }}
-
-  e2e-standard-tests:
-    name: E2E Tests
-    if: ${{ github.event_name == 'push' || github.event.inputs.enable-e2e-tests == 'true' }}
-    uses: ./.github/workflows/zxc-e2e-test.yaml
-    needs:
-      - env-vars
-      - code-style
-    with:
-      custom-job-label: Standard
-      npm-test-script: test-${{ needs.env-vars.outputs.e2e-standard-test-subdir }}
-      coverage-subdirectory: ${{ needs.env-vars.outputs.e2e-standard-test-subdir }}
-      coverage-report-name: ${{ needs.env-vars.outputs.e2e-standard-coverage-report }}
-
-  e2e-mirror-node-tests:
-    name: E2E Tests
-    if: ${{ github.event_name == 'push' || github.event.inputs.enable-e2e-tests == 'true' }}
-    uses: ./.github/workflows/zxc-e2e-test.yaml
-    needs:
-      - env-vars
-      - code-style
-    with:
-      custom-job-label: Mirror Node
-      npm-test-script: test-${{ needs.env-vars.outputs.e2e-mirror-node-test-subdir }}
-      coverage-subdirectory: ${{ needs.env-vars.outputs.e2e-mirror-node-test-subdir }}
-      coverage-report-name: ${{ needs.env-vars.outputs.e2e-mirror-node-coverage-report }}
-
-  e2e-node-pem-stop-tests:
-    name: E2E Tests
-    if: ${{ github.event_name == 'push' || github.event.inputs.enable-e2e-tests == 'true' }}
-    uses: ./.github/workflows/zxc-e2e-test.yaml
-    needs:
-      - env-vars
-      - code-style
-    with:
-      custom-job-label: Node PEM Stop
-      npm-test-script: test-${{ needs.env-vars.outputs.e2e-node-pem-stop-test-subdir }}
-      coverage-subdirectory: ${{ needs.env-vars.outputs.e2e-node-pem-stop-test-subdir }}
-      coverage-report-name: ${{ needs.env-vars.outputs.e2e-node-pem-stop-coverage-report }}
-
-  e2e-node-pem-kill-tests:
-    name: E2E Tests
-    if: ${{ github.event_name == 'push' || github.event.inputs.enable-e2e-tests == 'true' }}
-    uses: ./.github/workflows/zxc-e2e-test.yaml
-    needs:
-      - env-vars
-      - code-style
-    with:
-      custom-job-label: Node PEM Kill
-      npm-test-script: test-${{ needs.env-vars.outputs.e2e-node-pem-kill-test-subdir }}
-      coverage-subdirectory: ${{ needs.env-vars.outputs.e2e-node-pem-kill-test-subdir }}
-      coverage-report-name: ${{ needs.env-vars.outputs.e2e-node-pem-kill-coverage-report }}
-
-  e2e-node-local-build-tests:
-    name: E2E Tests
-    if: ${{ github.event_name == 'push' || github.event.inputs.enable-e2e-tests == 'true' }}
-    uses: ./.github/workflows/zxc-e2e-test.yaml
-    needs:
-      - env-vars
-      - code-style
-    with:
-      custom-job-label: Node Local Build
-      npm-test-script: test-${{ needs.env-vars.outputs.e2e-node-local-build-test-subdir }}
-      coverage-subdirectory: ${{ needs.env-vars.outputs.e2e-node-local-build-test-subdir }}
-      coverage-report-name: ${{ needs.env-vars.outputs.e2e-node-local-build-coverage-report }}
-
-  e2e-node-add-tests:
-    name: E2E Tests
-    if: ${{ github.event_name == 'push' || github.event.inputs.enable-e2e-tests == 'true' }}
-    uses: ./.github/workflows/zxc-e2e-test.yaml
-    needs:
-      - env-vars
-      - code-style
-    with:
-      custom-job-label: Node Add
-      npm-test-script: test-${{ needs.env-vars.outputs.e2e-node-add-test-subdir }}
-      coverage-subdirectory: ${{ needs.env-vars.outputs.e2e-node-add-test-subdir }}
-      coverage-report-name: ${{ needs.env-vars.outputs.e2e-node-add-coverage-report }}
-
-  e2e-node-add-separate-commands-tests:
-    name: E2E Tests
-    if: ${{ github.event_name == 'push' || github.event.inputs.enable-e2e-tests == 'true' }}
-    uses: ./.github/workflows/zxc-e2e-test.yaml
-    needs:
-      - env-vars
-      - code-style
-    with:
-      custom-job-label: Node Add - Separate commands
-      npm-test-script: test-${{ needs.env-vars.outputs.e2e-node-add-separate-commands-test-subdir }}
-      coverage-subdirectory: ${{ needs.env-vars.outputs.e2e-node-add-separate-commands-test-subdir }}
-      coverage-report-name: ${{ needs.env-vars.outputs.e2e-node-add-separate-commands-coverage-report }}
-
-  e2e-node-update-tests:
-    name: E2E Tests
-    if: ${{ github.event_name == 'push' || github.event.inputs.enable-e2e-tests == 'true' }}
-    uses: ./.github/workflows/zxc-e2e-test.yaml
-    needs:
-      - env-vars
-      - code-style
-    with:
-      custom-job-label: Node Update
-      npm-test-script: test-${{ needs.env-vars.outputs.e2e-node-update-test-subdir }}
-      coverage-subdirectory: ${{ needs.env-vars.outputs.e2e-node-update-test-subdir }}
-      coverage-report-name: ${{ needs.env-vars.outputs.e2e-node-update-coverage-report }}
-
-  e2e-node-delete-tests:
-    name: E2E Tests
-    if: ${{ github.event_name == 'push' || github.event.inputs.enable-e2e-tests == 'true' }}
-    uses: ./.github/workflows/zxc-e2e-test.yaml
-    needs:
-      - env-vars
-      - code-style
-    with:
-      custom-job-label: Node Delete
-      npm-test-script: test-${{ needs.env-vars.outputs.e2e-node-delete-test-subdir }}
-      coverage-subdirectory: ${{ needs.env-vars.outputs.e2e-node-delete-test-subdir }}
-      coverage-report-name: ${{ needs.env-vars.outputs.e2e-node-delete-coverage-report }}
-
-  e2e-node-delete-separate-commands-tests:
-    name: E2E Tests
-    if: ${{ github.event_name == 'push' || github.event.inputs.enable-e2e-tests == 'true' }}
-    uses: ./.github/workflows/zxc-e2e-test.yaml
-    needs:
-      - env-vars
-      - code-style
-    with:
-      custom-job-label: Node Delete - Separate commands
-      npm-test-script: test-${{ needs.env-vars.outputs.e2e-node-delete-separate-commands-test-subdir }}
-      coverage-subdirectory: ${{ needs.env-vars.outputs.e2e-node-delete-separate-commands-test-subdir }}
-      coverage-report-name: ${{ needs.env-vars.outputs.e2e-node-delete-separate-commands-coverage-report }}
-
-  e2e-node-upgrade-tests:
-    name: E2E Tests
-    if: ${{ github.event_name == 'push' || github.event.inputs.enable-e2e-tests == 'true' }}
-    uses: ./.github/workflows/zxc-e2e-test.yaml
-    needs:
-      - env-vars
-      - code-style
-    with:
-      custom-job-label: Node Upgrade
-      npm-test-script: test-${{ needs.env-vars.outputs.e2e-node-upgrade-test-subdir }}
-      coverage-subdirectory: ${{ needs.env-vars.outputs.e2e-node-upgrade-test-subdir }}
-      coverage-report-name: ${{ needs.env-vars.outputs.e2e-node-upgrade-coverage-report }}
-
-  e2e-relay-tests:
-    name: E2E Tests
-    if: ${{ github.event_name == 'push' || github.event.inputs.enable-e2e-tests == 'true' }}
-    uses: ./.github/workflows/zxc-e2e-test.yaml
-    needs:
-      - env-vars
-      - code-style
-    with:
-      custom-job-label: Relay
-      npm-test-script: test-${{ needs.env-vars.outputs.e2e-relay-test-subdir }}
-      coverage-subdirectory: ${{ needs.env-vars.outputs.e2e-relay-test-subdir }}
-      coverage-report-name: ${{ needs.env-vars.outputs.e2e-relay-coverage-report }}
+      custom-job-label: ${{ matrix.e2e-test-type.name }}
+      npm-test-script: ${{ matrix.e2e-test-type.npm-test-script }}
+      coverage-subdirectory: ${{ matrix.e2e-test-type.coverage-subdirectory }}
+      coverage-report-name: ${{ matrix.e2e-test-type.coverage-report-name }}
 
   analyze:
     name: Analyze
@@ -240,19 +101,7 @@ jobs:
     needs:
       - env-vars
       - unit-tests
-      - e2e-integration-tests
-      - e2e-standard-tests
-      - e2e-mirror-node-tests
-      - e2e-node-pem-stop-tests
-      - e2e-node-pem-kill-tests
-      - e2e-node-local-build-tests
-      - e2e-node-add-tests
-      - e2e-node-add-separate-commands-tests
-      - e2e-node-update-tests
-      - e2e-node-delete-tests
-      - e2e-node-delete-separate-commands-tests
-      - e2e-node-upgrade-tests
-      - e2e-relay-tests
+      - e2e-tests
     if: ${{ (github.event_name == 'push' || github.event.inputs.enable-unit-tests == 'true' || github.event.inputs.enable-e2e-tests == 'true') && !failure() && !cancelled() }}
     with:
       custom-job-label: Source Code
