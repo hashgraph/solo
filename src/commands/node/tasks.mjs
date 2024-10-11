@@ -814,7 +814,7 @@ export class NodeCommandTasks {
       // this is more reliable than checking the nodes logs for ACTIVE, as the
       // logs will have a lot of white noise from being behind
       return this._checkNodesProxiesTask(ctx, task, ctx.config.nodeAliases)
-    }, skip)
+    }, (ctx) => ctx.config.app !== '' && ctx.config.app !== constants.HEDERA_APP_NAME)
   }
 
   checkAllNodeProxiesAreActive () {
