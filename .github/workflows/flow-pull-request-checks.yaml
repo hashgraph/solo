@@ -77,8 +77,10 @@ jobs:
           - { name: "Mirror Node", npm-test-script: "test-${{ needs.env-vars.outputs.e2e-mirror-node-test-subdir }}", coverage-subdirectory: "${{ needs.env-vars.outputs.e2e-mirror-node-test-subdir }}", coverage-report-name: "${{ needs.env-vars.outputs.e2e-mirror-node-coverage-report }}" }
           - { name: "Node PEM Stop", npm-test-script: "test-${{ needs.env-vars.outputs.e2e-node-pem-stop-test-subdir }}", coverage-subdirectory: "${{ needs.env-vars.outputs.e2e-node-pem-stop-test-subdir }}", coverage-report-name: "${{ needs.env-vars.outputs.e2e-node-pem-stop-coverage-report }}" }
           - { name: "Node PEM Kill", npm-test-script: "test-${{ needs.env-vars.outputs.e2e-node-pem-kill-test-subdir }}", coverage-subdirectory: "${{ needs.env-vars.outputs.e2e-node-pem-kill-test-subdir }}", coverage-report-name: "${{ needs.env-vars.outputs.e2e-node-pem-kill-coverage-report }}" }
-          - { name: "Node Local Build", npm-test-script: "test-${{ needs.env-vars.outputs.e2e-node-local-build-test-subdir }}", coverage-subdirectory: "${{ needs.env-vars.outputs.e2e-node-local-build-test-subdir }}", coverage-report-name: "${{ needs.env-vars.outputs.e2e-node-local-build-coverage-report }}" }
+          - { name: "Node Local Hedera", npm-test-script: "test-${{ needs.env-vars.outputs.e2e-node-local-hedera-test-subdir }}", coverage-subdirectory: "${{ needs.env-vars.outputs.e2e-node-local-hedera-test-subdir }}", coverage-report-name: "${{ needs.env-vars.outputs.e2e-node-local-hedera-coverage-report }}" }
+          - { name: "Node Local PTT", npm-test-script: "test-${{ needs.env-vars.outputs.e2e-node-local-ptt-test-subdir }}", coverage-subdirectory: "${{ needs.env-vars.outputs.e2e-node-local-ptt-test-subdir }}", coverage-report-name: "${{ needs.env-vars.outputs.e2e-node-local-ptt-coverage-report }}" }
           - { name: "Node Add", npm-test-script: "test-${{ needs.env-vars.outputs.e2e-node-add-test-subdir }}", coverage-subdirectory: "${{ needs.env-vars.outputs.e2e-node-add-test-subdir }}", coverage-report-name: "${{ needs.env-vars.outputs.e2e-node-add-coverage-report }}" }
+          - { name: "Node Add Local", npm-test-script: "test-${{ needs.env-vars.outputs.e2e-node-add-local-test-subdir }}", coverage-subdirectory: "${{ needs.env-vars.outputs.e2e-node-add-local-test-subdir }}", coverage-report-name: "${{ needs.env-vars.outputs.e2e-node-add-local-coverage-report }}" }
           - { name: "Node Add - Separate commands", npm-test-script: "test-${{ needs.env-vars.outputs.e2e-node-add-separate-commands-test-subdir }}", coverage-subdirectory: "${{ needs.env-vars.outputs.e2e-node-add-separate-commands-test-subdir }}", coverage-report-name: "${{ needs.env-vars.outputs.e2e-node-add-separate-commands-coverage-report }}" }
           - { name: "Node Update", npm-test-script: "test-${{ needs.env-vars.outputs.e2e-node-update-test-subdir }}", coverage-subdirectory: "${{ needs.env-vars.outputs.e2e-node-update-test-subdir }}", coverage-report-name: "${{ needs.env-vars.outputs.e2e-node-update-coverage-report }}" }
           - { name: "Node Delete", npm-test-script: "test-${{ needs.env-vars.outputs.e2e-node-delete-test-subdir }}", coverage-subdirectory: "${{ needs.env-vars.outputs.e2e-node-delete-test-subdir }}", coverage-report-name: "${{ needs.env-vars.outputs.e2e-node-delete-coverage-report }}" }
@@ -109,8 +111,10 @@ jobs:
       e2e-mirror-node-test-subdir: ${{ needs.env-vars.outputs.e2e-mirror-node-test-subdir }}
       e2e-node-pem-stop-test-subdir: ${{ needs.env-vars.outputs.e2e-node-pem-stop-test-subdir }}
       e2e-node-pem-kill-test-subdir: ${{ needs.env-vars.outputs.e2e-node-pem-kill-test-subdir }}
-      e2e-node-local-build-test-subdir: ${{ needs.env-vars.outputs.e2e-node-local-build-test-subdir }}
+      e2e-node-local-hedera-test-subdir: ${{ needs.env-vars.outputs.e2e-node-local-hedera-test-subdir }}
+      e2e-node-local-ptt-test-subdir: ${{ needs.env-vars.outputs.e2e-node-local-ptt-test-subdir }}
       e2e-node-add-test-subdir: ${{ needs.env-vars.outputs.e2e-node-add-test-subdir }}
+      e2e-node-add-local-test-subdir: ${{ needs.env-vars.outputs.e2e-node-add-local-test-subdir }}
       e2e-node-add-separate-commands-test-subdir: ${{ needs.env-vars.outputs.e2e-node-add-separate-commands-test-subdir }}
       e2e-node-update-test-subdir: ${{ needs.env-vars.outputs.e2e-node-update-test-subdir }}
       e2e-node-delete-test-subdir: ${{ needs.env-vars.outputs.e2e-node-delete-test-subdir }}
@@ -122,8 +126,10 @@ jobs:
       e2e-mirror-node-coverage-report: ${{ needs.env-vars.outputs.e2e-mirror-node-coverage-report }}
       e2e-node-pem-stop-coverage-report: ${{ needs.env-vars.outputs.e2e-node-pem-stop-coverage-report }}
       e2e-node-pem-kill-coverage-report: ${{ needs.env-vars.outputs.e2e-node-pem-kill-coverage-report }}
-      e2e-node-local-build-coverage-report: ${{ needs.env-vars.outputs.e2e-node-local-build-coverage-report }}
+      e2e-node-local-hedera-coverage-report: ${{ needs.env-vars.outputs.e2e-node-local-hedera-coverage-report }}
+      e2e-node-local-ptt-coverage-report: ${{ needs.env-vars.outputs.e2e-node-local-ptt-coverage-report }}
       e2e-node-add-coverage-report: ${{ needs.env-vars.outputs.e2e-node-add-coverage-report }}
+      e2e-node-add-local-coverage-report: ${{ needs.env-vars.outputs.e2e-node-add-local-coverage-report }}
       e2e-node-add-separate-commands-coverage-report: ${{ needs.env-vars.outputs.e2e-node-add-separate-commands-coverage-report }}
       e2e-node-update-coverage-report: ${{ needs.env-vars.outputs.e2e-node-update-coverage-report }}
       e2e-node-delete-coverage-report: ${{ needs.env-vars.outputs.e2e-node-delete-coverage-report }}
@@ -150,8 +156,10 @@ jobs:
       e2e-mirror-node-test-subdir: ${{ needs.env-vars.outputs.e2e-mirror-node-test-subdir }}
       e2e-node-pem-stop-test-subdir: ${{ needs.env-vars.outputs.e2e-node-pem-stop-test-subdir }}
       e2e-node-pem-kill-test-subdir: ${{ needs.env-vars.outputs.e2e-node-pem-kill-test-subdir }}
-      e2e-node-local-build-test-subdir: ${{ needs.env-vars.outputs.e2e-node-local-build-test-subdir }}
+      e2e-node-local-hedera-test-subdir: ${{ needs.env-vars.outputs.e2e-node-local-hedera-test-subdir }}
+      e2e-node-local-ptt-test-subdir: ${{ needs.env-vars.outputs.e2e-node-local-ptt-test-subdir }}
       e2e-node-add-test-subdir: ${{ needs.env-vars.outputs.e2e-node-add-test-subdir }}
+      e2e-node-add-local-test-subdir: ${{ needs.env-vars.outputs.e2e-node-add-local-test-subdir }}
       e2e-node-add-separate-commands-test-subdir: ${{ needs.env-vars.outputs.e2e-node-add-separate-commands-test-subdir }}
       e2e-node-update-test-subdir: ${{ needs.env-vars.outputs.e2e-node-update-test-subdir }}
       e2e-node-delete-test-subdir: ${{ needs.env-vars.outputs.e2e-node-delete-test-subdir }}
@@ -163,8 +171,10 @@ jobs:
       e2e-mirror-node-coverage-report: ${{ needs.env-vars.outputs.e2e-mirror-node-coverage-report }}
       e2e-node-pem-stop-coverage-report: ${{ needs.env-vars.outputs.e2e-node-pem-stop-coverage-report }}
       e2e-node-pem-kill-coverage-report: ${{ needs.env-vars.outputs.e2e-node-pem-kill-coverage-report }}
-      e2e-node-local-build-coverage-report: ${{ needs.env-vars.outputs.e2e-node-local-build-coverage-report }}
+      e2e-node-local-hedera-coverage-report: ${{ needs.env-vars.outputs.e2e-node-local-hedera-coverage-report }}
+      e2e-node-local-ptt-coverage-report: ${{ needs.env-vars.outputs.e2e-node-local-ptt-coverage-report }}
       e2e-node-add-coverage-report: ${{ needs.env-vars.outputs.e2e-node-add-coverage-report }}
+      e2e-node-add-local-coverage-report: ${{ needs.env-vars.outputs.e2e-node-add-local-coverage-report }}
       e2e-node-add-separate-commands-coverage-report: ${{ needs.env-vars.outputs.e2e-node-add-separate-commands-coverage-report }}
       e2e-node-update-coverage-report: ${{ needs.env-vars.outputs.e2e-node-update-coverage-report }}
       e2e-node-delete-coverage-report: ${{ needs.env-vars.outputs.e2e-node-delete-coverage-report }}
