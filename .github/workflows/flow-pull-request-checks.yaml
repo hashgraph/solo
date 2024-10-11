@@ -63,7 +63,7 @@ jobs:
       GH_ACCESS_PASSPHRASE: ${{ secrets.GH_ACCESS_PASSPHRASE }}
 
   e2e-tests:
-    name: E2E Tests Matrix
+    name: E2E Tests
     if: ${{ !cancelled() && always() }}
     needs:
       - env-vars
@@ -85,7 +85,7 @@ jobs:
           - { name: "Node Upgrade", npm-test-script: "test-${{ needs.env-vars.outputs.e2e-node-upgrade-test-subdir }}", coverage-subdirectory: "${{ needs.env-vars.outputs.e2e-node-upgrade-test-subdir }}", coverage-report-name: "${{ needs.env-vars.outputs.e2e-node-upgrade-coverage-report }}" }
           - { name: "Relay", npm-test-script: "test-${{ needs.env-vars.outputs.e2e-relay-test-subdir }}", coverage-subdirectory: "${{ needs.env-vars.outputs.e2e-relay-test-subdir }}", coverage-report-name: "${{ needs.env-vars.outputs.e2e-relay-coverage-report }}" }
       max-parallel: 5
-    runs-on: ubuntu-latest
+    runs-on: solo-linux-large
     steps:
       - name: Run E2E Tests ${{ matrix.e2e-test-type.name }}
         uses: ./.github/workflows/zxc-e2e-test.yaml
