@@ -62,7 +62,23 @@ jobs:
       GH_ACCESS_GPG_KEY: ${{ secrets.GH_ACCESS_GPG_KEY }}
       GH_ACCESS_PASSPHRASE: ${{ secrets.GH_ACCESS_PASSPHRASE }}
 
-  # {AUTOGENERATE-E2E-TEST-JOBS-2}
+  e2e-tests:
+    name: E2E Tests
+    if: ${{ !cancelled() && always() }}
+    uses: ./.github/workflows/zxc-e2e-test.yaml
+    needs:
+      - env-vars
+      - code-style
+    strategy:
+      matrix:
+        e2e-test-type:
+          # {AUTOGENERATE-E2E-TEST-JOBS-2}
+      max-parallel: 5
+    with:
+      custom-job-label: ${{ matrix.e2e-test-type.name }}
+      npm-test-script: ${{ matrix.e2e-test-type.npm-test-script }}
+      coverage-subdirectory: ${{ matrix.e2e-test-type.coverage-subdirectory }}
+      coverage-report-name: ${{ matrix.e2e-test-type.coverage-report-name }}
 
   codecov:
     name: CodeCov
@@ -70,7 +86,7 @@ jobs:
     needs:
       - env-vars
       - unit-tests
-      # {AUTOGENERATE-NEEDS}
+      - e2e-tests
     if: ${{ github.event.pull_request.head.repo.full_name == github.event.pull_request.base.repo.full_name }}
     with:
       custom-job-label: Standard
@@ -87,7 +103,7 @@ jobs:
     needs:
       - env-vars
       - unit-tests
-      # {AUTOGENERATE-NEEDS}
+      - e2e-tests
     if: ${{ github.event.pull_request.head.repo.full_name == github.event.pull_request.base.repo.full_name }}
     with:
       custom-job-label: Coverage
