@@ -18,6 +18,7 @@
 import { expect } from 'chai'
 import { describe, it, after } from 'mocha'
 
+import { flags } from '../src/commands/index.mjs'
 import {
   accountCreationShouldSucceed,
   balanceQueryShouldSucceed,
@@ -30,7 +31,6 @@ import {
 import { getNodeLogs } from '../src/core/helpers.mjs'
 import { MINUTES } from '../src/core/constants.mjs'
 import * as NodeCommandConfigs from '../src/commands/node/configs.mjs'
-import { flags } from '../src/commands/index.mjs'
 
 export function testNodeAdd (localBuildPath
 ) {
