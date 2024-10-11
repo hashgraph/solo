@@ -19,11 +19,11 @@ import { expect } from 'chai'
 
 import fs from 'fs'
 import path from 'path'
-import { KeytoolDependencyManager } from '../../../../../src/core/dependency_managers/index.mjs'
-import { PackageDownloader, Zippy } from '../../../../../src/core/index.mjs'
+import { KeytoolDependencyManager } from '../../../../../src/core/dependency_managers/index.ts'
+import { PackageDownloader, Zippy } from '../../../../../src/core/index.ts'
 import { getTestCacheDir, testLogger } from '../../../../test_util.js'
 import os from 'os'
-import { MINUTES } from '../../../../../src/core/constants.mjs'
+import { MINUTES } from '../../../../../src/core/constants.ts'
 
 describe('KeytoolDependencyManager', () => {
   const downloader = new PackageDownloader(testLogger)

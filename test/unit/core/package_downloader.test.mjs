@@ -17,11 +17,11 @@
 import { expect } from 'chai'
 import { describe, it } from 'mocha'
 
-import * as core from '../../../src/core/index.mjs'
+import * as core from '../../../src/core/index.ts'
 import * as fs from 'fs'
 import * as path from 'path'
 import * as os from 'os'
-import { IllegalArgumentError, MissingArgumentError, ResourceNotFoundError } from '../../../src/core/errors.mjs'
+import { IllegalArgumentError, MissingArgumentError, ResourceNotFoundError } from '../../../src/core/errors.ts'
 
 describe('PackageDownloader', () => {
   const testLogger = core.logging.NewLogger('debug', true)

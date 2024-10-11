@@ -17,7 +17,7 @@
 import { it, describe, after, before } from 'mocha'
 import { expect } from 'chai'
 
-import { constants } from '../../../../src/core/index.mjs'
+import { constants } from '../../../../src/core/index.ts'
 import * as fs from 'fs'
 
 import {
@@ -27,9 +27,9 @@ import {
   TEST_CLUSTER,
   testLogger
 } from '../../../test_util.js'
-import { flags } from '../../../../src/commands/index.mjs'
-import * as version from '../../../../version.mjs'
-import { MINUTES, SECONDS } from '../../../../src/core/constants.mjs'
+import { flags } from '../../../../src/commands/index.ts'
+import * as version from '../../../../version.ts'
+import { MINUTES, SECONDS } from '../../../../src/core/constants.ts'
 
 const defaultTimeout = 20 * SECONDS
 

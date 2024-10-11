@@ -19,12 +19,12 @@ import { describe, it, after } from 'mocha'
 
 import os from 'os'
 import path from 'path'
-import { ConfigManager } from '../../../src/core/index.mjs'
-import * as flags from '../../../src/commands/flags.mjs'
+import { ConfigManager } from '../../../src/core/index.ts'
+import * as flags from '../../../src/commands/flags.ts'
 import fs from 'fs'
 import { testLogger } from '../../test_util.js'
-import * as helpers from '../../../src/core/helpers.mjs'
-import { yamlToObject } from '../../../src/core/helpers.mjs'
+import * as helpers from '../../../src/core/helpers.ts'
+import { yamlToObject } from '../../../src/core/helpers.ts'
 
 describe('ConfigManager', () => {
   it('should persist config', () => {

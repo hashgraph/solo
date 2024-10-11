@@ -17,10 +17,10 @@
  */
 import { describe, after } from 'mocha'
 
-import { flags } from '../../../src/commands/index.mjs'
+import { flags } from '../../../src/commands/index.ts'
 import { bootstrapNetwork, getDefaultArgv, TEST_CLUSTER } from '../../test_util.js'
-import { getNodeLogs } from '../../../src/core/helpers.mjs'
-import { MINUTES } from '../../../src/core/constants.mjs'
+import { getNodeLogs } from '../../../src/core/helpers.ts'
+import { MINUTES } from '../../../src/core/constants.ts'
 
 describe('Node local build', () => {
   const LOCAL_PTT = 'local-ptt-app'

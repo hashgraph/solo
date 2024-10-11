@@ -21,16 +21,16 @@ import { describe, it, after, before } from 'mocha'
 import fs from 'fs'
 import os from 'os'
 import path from 'path'
-import { ClusterCommand } from '../src/commands/cluster.mjs'
-import { InitCommand } from '../src/commands/init.mjs'
-import { NetworkCommand } from '../src/commands/network.mjs'
-import { NodeCommand } from '../src/commands/node.mjs'
-import { AccountManager } from '../src/core/account_manager.mjs'
+import { ClusterCommand } from '../src/commands/cluster.ts'
+import { InitCommand } from '../src/commands/init.ts'
+import { NetworkCommand } from '../src/commands/network.ts'
+import { NodeCommand } from '../src/commands/node.ts'
+import { AccountManager } from '../src/core/account_manager.ts'
 import {
   DependencyManager,
   HelmDependencyManager
-} from '../src/core/dependency_managers/index.mjs'
-import { sleep } from '../src/core/helpers.mjs'
+} from '../src/core/dependency_managers/index.ts'
+import { sleep } from '../src/core/helpers.ts'
 import {
   ChartManager,
   ConfigManager,
@@ -42,17 +42,17 @@ import {
   PackageDownloader,
   PlatformInstaller, ProfileManager, Templates,
   Zippy
-} from '../src/core/index.mjs'
-import { flags } from '../src/commands/index.mjs'
+} from '../src/core/index.ts'
+import { flags } from '../src/commands/index.ts'
 import {
   AccountBalanceQuery,
   AccountCreateTransaction, Hbar, HbarUnit,
   PrivateKey
 } from '@hashgraph/sdk'
-import { MINUTES, ROOT_CONTAINER, SECONDS } from '../src/core/constants.mjs'
+import { MINUTES, ROOT_CONTAINER, SECONDS } from '../src/core/constants.ts'
 import crypto from 'crypto'
-import { AccountCommand } from '../src/commands/account.mjs'
-import { SoloError } from '../src/core/errors.mjs'
+import { AccountCommand } from '../src/commands/account.ts'
+import { SoloError } from '../src/core/errors.ts'
 import { execSync } from 'child_process'
 
 export const testLogger = logging.NewLogger('debug', true)

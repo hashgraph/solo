@@ -18,12 +18,12 @@ import sinon from 'sinon'
 import { it, describe, after, before, afterEach, beforeEach } from 'mocha'
 import { expect } from 'chai'
 
-import { flags } from '../../../src/commands/index.mjs'
+import { flags } from '../../../src/commands/index.ts'
 import { bootstrapTestVariables, getDefaultArgv, HEDERA_PLATFORM_VERSION_TAG, TEST_CLUSTER } from '../../test_util.js'
-import { constants, logging } from '../../../src/core/index.mjs'
-import { sleep } from '../../../src/core/helpers.mjs'
-import * as version from '../../../version.mjs'
-import { MINUTES, SECONDS } from '../../../src/core/constants.mjs'
+import { constants, logging } from '../../../src/core/index.ts'
+import { sleep } from '../../../src/core/helpers.ts'
+import * as version from '../../../version.ts'
+import { MINUTES, SECONDS } from '../../../src/core/constants.ts'
 
 describe('ClusterCommand', () => {
   // mock showUser and showJSON to silent logging during tests

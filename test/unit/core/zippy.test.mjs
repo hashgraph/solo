@@ -17,12 +17,12 @@
 import { expect } from 'chai'
 import { describe, it } from 'mocha'
 
-import * as core from '../../../src/core/index.mjs'
-import { IllegalArgumentError, MissingArgumentError, SoloError } from '../../../src/core/errors.mjs'
+import * as core from '../../../src/core/index.ts'
+import { IllegalArgumentError, MissingArgumentError, SoloError } from '../../../src/core/errors.ts'
 import os from 'os'
 import fs from 'fs'
 import path from 'path'
-import { Zippy } from '../../../src/core/zippy.mjs'
+import { Zippy } from '../../../src/core/zippy.ts'
 
 describe('Zippy', () => {
   const testLogger = core.logging.NewLogger('debug', true)

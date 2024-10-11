@@ -24,14 +24,14 @@ import {
   getTmpDir,
   HEDERA_PLATFORM_VERSION_TAG
 } from '../../test_util.js'
-import { constants } from '../../../src/core/index.mjs'
-import * as version from '../../../version.mjs'
-import { getNodeLogs, sleep } from '../../../src/core/helpers.mjs'
+import { constants } from '../../../src/core/index.ts'
+import * as version from '../../../version.ts'
+import { getNodeLogs, sleep } from '../../../src/core/helpers.ts'
 import path from 'path'
 import fs from 'fs'
-import { NetworkCommand } from '../../../src/commands/network.mjs'
-import { MINUTES, SECONDS } from '../../../src/core/constants.mjs'
-import { flags } from '../../../src/commands/index.mjs'
+import { NetworkCommand } from '../../../src/commands/network.ts'
+import { MINUTES, SECONDS } from '../../../src/core/constants.ts'
+import { flags } from '../../../src/commands/index.ts'
 
 describe('NetworkCommand', () => {
   const testName = 'network-cmd-e2e'

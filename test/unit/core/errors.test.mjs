@@ -23,7 +23,7 @@ import {
   MissingArgumentError,
   IllegalArgumentError,
   DataValidationError
-} from '../../../src/core/errors.mjs'
+} from '../../../src/core/errors.ts'
 
 describe('Errors', () => {
   const message = 'errorMessage'

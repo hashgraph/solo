@@ -18,7 +18,7 @@
 import { describe } from 'mocha'
 
 import { testNodeAdd } from '../../test_add.mjs'
-import { MINUTES } from '../../../src/core/constants.mjs'
+import { MINUTES } from '../../../src/core/constants.ts'
 
 describe('Node add with hedera local build', () => {
   const localBuildPath = 'node1=../hedera-services/hedera-node/data/,../hedera-services/hedera-node/data,node3=../hedera-services/hedera-node/data'

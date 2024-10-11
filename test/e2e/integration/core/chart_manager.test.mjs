@@ -17,7 +17,7 @@
 import { it, describe } from 'mocha'
 import { expect } from 'chai'
 
-import { ChartManager, Helm, constants } from '../../../../src/core/index.mjs'
+import { ChartManager, Helm, constants } from '../../../../src/core/index.ts'
 import { testLogger } from '../../../test_util.js'
 
 describe('ChartManager', () => {
