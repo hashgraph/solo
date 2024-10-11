@@ -816,9 +816,10 @@ export class NodeCommandTasks {
       return this._checkNodesProxiesTask(ctx, task, ctx.config.nodeAliases)
     }, async (ctx) => {
       if (ctx.config.app !== '' && ctx.config.app !== constants.HEDERA_APP_NAME) {
-        await sleep(30 * 1000)
         return true
       }
+
+      await sleep(30 * 1000)
       return false
     })
   }
