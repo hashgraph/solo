@@ -390,7 +390,7 @@ export class NodeCommandTasks {
     return new Task('Generate gossip keys', (ctx, task) => {
       const config = ctx.config
       const nodeAliases = generateMultiple ? config.nodeAliases : [config.nodeAlias]
-      const subTasks = this.keyManager.taskGenerateGossipKeys(this.keytoolDepManager, nodeAliases, config.keysDir, config.curDate)
+      const subTasks = this.keyManager.taskGenerateGossipKeys(nodeAliases, config.keysDir, config.curDate)
       // set up the sub-tasks
       return task.newListr(subTasks, {
         concurrent: false,
