@@ -511,11 +511,11 @@ export const startConfigBuilder = async function (argv, ctx, task) {
 
 
     ctx.config = {
-        app: self.configManager.getFlag(flags.app),
-        cacheDir: self.configManager.getFlag(flags.cacheDir),
-        debugNodeAlias: self.configManager.getFlag(flags.debugNodeAlias),
-        namespace: self.configManager.getFlag(flags.namespace),
-        nodeAliases: helpers.parseNodeAliases(self.configManager.getFlag(flags.nodeAliasesUnparsed))
+        app: this.configManager.getFlag(flags.app),
+        cacheDir: this.configManager.getFlag(flags.cacheDir),
+        debugNodeAlias: this.configManager.getFlag(flags.debugNodeAlias),
+        namespace: this.configManager.getFlag(flags.namespace),
+        nodeAliases: helpers.parseNodeAliases(this.configManager.getFlag(flags.nodeAliasesUnparsed))
     }
 
     ctx.config.stagingDir = Templates.renderStagingDir(
