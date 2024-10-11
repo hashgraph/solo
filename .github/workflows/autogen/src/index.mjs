@@ -117,6 +117,8 @@ function updatePackageJson (outputDir, config) {
   fs.writeFileSync(packageJsonFile, outputLines.join('\n'))
 }
 
+// TODO
+
 /**
  * Autogenerate the GitHub workflows files with the entries needed to add the
  * E2E test jobs
