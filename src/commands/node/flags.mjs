@@ -192,8 +192,6 @@ export const STOP_FLAGS = {
 export const START_FLAGS = {
     requiredFlags: [
         flags.namespace,
-        flags.nodeAliasesUnparsed
-
     ],
     requiredFlagsWithDisabledPrompt: [
         flags.app,
@@ -201,6 +199,7 @@ export const START_FLAGS = {
     ],
     optionalFlags: [
         flags.quiet,
+        flags.nodeAliasesUnparsed,
         flags.debugNodeAlias
     ]
 }
