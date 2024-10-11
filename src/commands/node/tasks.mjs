@@ -1135,9 +1135,8 @@ export class NodeCommandTasks {
   }
 
   /**
-   *
    * @param title {string}
-   * @param skip {boolean || function}
+   * @param skip {(boolean|function)}
    * @returns {Task}
    */
   updateChartWithConfigMap (title, skip = false) {

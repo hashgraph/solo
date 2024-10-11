@@ -22,8 +22,8 @@ export class Task {
    *
    * @param title
    * @param taskFunc
-   * @param skip {boolean || function}
-   * @returns {{title, task, skip: boolean || function}}
+   * @param skip {(boolean|function)}
+   * @returns {{title, task, skip: (boolean|function)}}
    */
   constructor (title, taskFunc, skip = false) {
     return {
