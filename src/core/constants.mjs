@@ -28,7 +28,6 @@ export const SOLO_CACHE_DIR = path.join(SOLO_HOME_DIR, 'cache')
 export const SOLO_VALUES_DIR = path.join(SOLO_CACHE_DIR, 'values-files')
 export const DEFAULT_NAMESPACE = 'default'
 export const HELM = 'helm'
-export const KEYTOOL = 'keytool'
 export const SOLO_CONFIG_FILE = path.join(SOLO_HOME_DIR, 'solo.yaml')
 export const RESOURCES_DIR = normalize(path.join(CUR_FILE_DIR, '..', '..', 'resources'))
 export const TEMP_DIR = normalize(path.join(CUR_FILE_DIR, '..', '..', 'temp'))
@@ -153,3 +152,6 @@ export const UPGRADE_FILE_ID = FileId.fromString('0.0.150')
 export const UPGRADE_FILE_CHUNK_SIZE = 1024 * 5 // 5Kb
 
 export const JVM_DEBUG_PORT = 5005
+
+export const SECONDS = 1000
+export const MINUTES = 60 * SECONDS

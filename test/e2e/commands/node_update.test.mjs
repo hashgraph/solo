@@ -13,9 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
- * @jest-environment steps
+ * @mocha-environment steps
  */
-import { afterAll, describe, expect, it } from '@jest/globals'
+import { it, describe, after } from 'mocha'
+import { expect } from 'chai'
+
 import { flags } from '../../../src/commands/index.mjs'
 import { constants } from '../../../src/core/index.mjs'
 import {
@@ -26,12 +28,12 @@ import {
   HEDERA_PLATFORM_VERSION_TAG
 } from '../../test_util.js'
 import { getNodeLogs } from '../../../src/core/helpers.mjs'
-import { HEDERA_HAPI_PATH, ROOT_CONTAINER } from '../../../src/core/constants.mjs'
+import { HEDERA_HAPI_PATH, MINUTES, ROOT_CONTAINER } from '../../../src/core/constants.mjs'
 import fs from 'fs'
 import * as NodeCommandConfigs from '../../../src/commands/node/configs.mjs'
 
-describe('Node update', () => {
-  const defaultTimeout = 120000
+describe('Node update', async () => {
+  const defaultTimeout = 2 * MINUTES
   const namespace = 'node-update'
   const updateNodeId = 'node2'
   const newAccountId = '0.0.7'
@@ -45,33 +47,35 @@ describe('Node update', () => {
   argv[flags.generateGossipKeys.name] = true
   argv[flags.generateTlsKeys.name] = true
   // set the env variable SOLO_CHARTS_DIR if developer wants to use local Solo charts
-  argv[flags.chartDirectory.name] = process.env.SOLO_CHARTS_DIR ? process.env.SOLO_CHARTS_DIR : undefined
+  argv[flags.chartDirectory.name] = process.env.SOLO_CHARTS_DIR ?? undefined
   argv[flags.releaseTag.name] = HEDERA_PLATFORM_VERSION_TAG
   argv[flags.namespace.name] = namespace
   argv[flags.persistentVolumeClaims.name] = true
   argv[flags.quiet.name] = true
-  const bootstrapResp = bootstrapNetwork(namespace, argv)
+  const bootstrapResp = await bootstrapNetwork(namespace, argv)
   const nodeCmd = bootstrapResp.cmd.nodeCmd
   const accountCmd = bootstrapResp.cmd.accountCmd
   const k8 = bootstrapResp.opts.k8
   let existingServiceMap
   let existingNodeIdsPrivateKeysHash
 
-  afterAll(async () => {
+  after(async function () {
+    this.timeout(10 * MINUTES)
+
     await getNodeLogs(k8, namespace)
     await nodeCmd.handlers.stop(argv)
     await k8.deleteNamespace(namespace)
-  }, 600000)
+  })
 
   it('cache current version of private keys', async () => {
     existingServiceMap = await nodeCmd.accountManager.getNodeServiceMap(namespace)
     existingNodeIdsPrivateKeysHash = await getNodeAliasesPrivateKeysHash(existingServiceMap, namespace, k8, getTmpDir())
-  }, defaultTimeout)
+  }).timeout(defaultTimeout)
 
   it('should succeed with init command', async () => {
     const status = await accountCmd.init(argv)
-    expect(status).toBeTruthy()
-  }, 450000)
+    expect(status).to.be.ok
+  }).timeout(8 * MINUTES)
 
   it('should update a new node property successfully', async () => {
     // generate gossip and tls keys for the updated node
@@ -90,13 +94,13 @@ describe('Node update', () => {
     argv[flags.tlsPrivateKey.name] = tlsKeyFiles.privateKeyFile
 
     await nodeCmd.handlers.update(argv)
-    expect(nodeCmd.getUnusedConfigs(NodeCommandConfigs.UPDATE_CONFIGS_NAME)).toEqual([
+    expect(nodeCmd.getUnusedConfigs(NodeCommandConfigs.UPDATE_CONFIGS_NAME)).to.deep.equal([
       flags.app.constName,
       flags.devMode.constName,
       flags.quiet.constName
     ])
     await nodeCmd.accountManager.close()
-  }, 1800000)
+  }).timeout(30 * MINUTES)
 
   balanceQueryShouldSucceed(nodeCmd.accountManager, nodeCmd, namespace)
 
@@ -111,15 +115,15 @@ describe('Node update', () => {
       for (const [keyFileName, existingKeyHash] of existingKeyHashMap.entries()) {
         if (nodeAlias === updateNodeId &&
           (keyFileName.startsWith(constants.SIGNING_KEY_PREFIX) || keyFileName.startsWith('hedera'))) {
-          expect(`${nodeAlias}:${keyFileName}:${currentNodeKeyHashMap.get(keyFileName)}`).not.toEqual(
+          expect(`${nodeAlias}:${keyFileName}:${currentNodeKeyHashMap.get(keyFileName)}`).not.to.equal(
             `${nodeAlias}:${keyFileName}:${existingKeyHash}`)
         } else {
-          expect(`${nodeAlias}:${keyFileName}:${currentNodeKeyHashMap.get(keyFileName)}`).toEqual(
+          expect(`${nodeAlias}:${keyFileName}:${currentNodeKeyHashMap.get(keyFileName)}`).to.equal(
             `${nodeAlias}:${keyFileName}:${existingKeyHash}`)
         }
       }
     }
-  }, defaultTimeout)
+  }).timeout(defaultTimeout)
 
   it('config.txt should be changed with new account id', async () => {
     // read config.txt file from first node, read config.txt line by line, it should not contain value of newAccountId
@@ -129,6 +133,7 @@ describe('Node update', () => {
     await k8.copyFrom(podName, ROOT_CONTAINER, `${HEDERA_HAPI_PATH}/config.txt`, tmpDir)
     const configTxt = fs.readFileSync(`${tmpDir}/config.txt`, 'utf8')
     console.log('config.txt:', configTxt)
-    expect(configTxt).toContain(newAccountId)
-  }, 600000)
+
+    expect(configTxt).to.contain(newAccountId)
+  }).timeout(10 * MINUTES)
 })

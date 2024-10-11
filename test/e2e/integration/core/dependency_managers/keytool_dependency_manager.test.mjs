@@ -14,27 +14,30 @@
  * limitations under the License.
  *
  */
-import { afterAll, beforeAll, describe, expect, it } from '@jest/globals'
+import { it, describe, after, before } from 'mocha'
+import { expect } from 'chai'
+
 import fs from 'fs'
 import path from 'path'
-import { KeytoolDependencyManager } from '../../../../src/core/dependency_managers/index.mjs'
-import { PackageDownloader, Zippy } from '../../../../src/core/index.mjs'
-import { getTestCacheDir, testLogger } from '../../../test_util.js'
+import { KeytoolDependencyManager } from '../../../../../src/core/dependency_managers/index.mjs'
+import { PackageDownloader, Zippy } from '../../../../../src/core/index.mjs'
+import { getTestCacheDir, testLogger } from '../../../../test_util.js'
 import os from 'os'
+import { MINUTES } from '../../../../../src/core/constants.mjs'
 
 describe('KeytoolDependencyManager', () => {
   const downloader = new PackageDownloader(testLogger)
   const tmpDir = path.join(getTestCacheDir(), 'bin', 'jre')
   const zippy = new Zippy(testLogger)
 
-  beforeAll(() => {
+  before(() => {
     if (fs.existsSync(tmpDir)) {
       fs.rmSync(tmpDir, { recursive: true })
     }
     fs.mkdirSync(tmpDir, { recursive: true })
   })
 
-  afterAll(() => {
+  after(() => {
     if (fs.existsSync(tmpDir)) {
       fs.rmSync(tmpDir, { recursive: true })
     }
@@ -62,8 +65,8 @@ describe('KeytoolDependencyManager', () => {
     const keytoolDependencyManager = new KeytoolDependencyManager(
       downloader, zippy, testLogger, tmpDir, osPlatform, osArch)
     await keytoolDependencyManager.uninstall()
-    expect(keytoolDependencyManager.isInstalled()).toBeFalsy()
-    await expect(keytoolDependencyManager.install(getTestCacheDir())).resolves.toBeTruthy()
-    expect(keytoolDependencyManager.isInstalled()).toBeTruthy()
-  }, 120000)
+    expect(keytoolDependencyManager.isInstalled()).not.to.be.ok
+    await expect(keytoolDependencyManager.install(getTestCacheDir())).to.eventually.be.ok
+    expect(keytoolDependencyManager.isInstalled()).to.be.ok
+  }).timeout(2 * MINUTES)
 })

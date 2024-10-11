@@ -14,13 +14,9 @@
  * limitations under the License.
  *
  */
-const config = {
-  testRegex: '(/__tests__/.*|(\\.|/)(test|spec))\\.(mjs?)$',
-  moduleFileExtensions: ['js', 'mjs'],
-  verbose: true,
-  reporters: [['default', { summaryThreshold: 1 }], 'jest-junit'],
-  testSequencer: './test/testSequencer.mjs',
-  setupFilesAfterEnv: ['jest-expect-message']
-}
+import * as chai from 'chai'
+import chaiAsPromised from 'chai-as-promised'
+import sinonChai from 'sinon-chai'
 
-export default config
+chai.use(chaiAsPromised)
+chai.use(sinonChai)

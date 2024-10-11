@@ -1,29 +1,44 @@
-downloadArtifactAction: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 
+downloadArtifactAction: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16
 downloadArtifactActionComment: v4.1.8
 tests:
   # name: capitalized noun form
   # testFilePrefix: node-update # for node-update.test.mjs
+  - name: Integration
+    mochaPostfix: "--grep '.*\\/e2e\\/integration\\/.*'"
+
   - name: Standard
-    jestPostfix: --testPathIgnorePatterns=\".*/unit/.*\" --testPathIgnorePatterns=\".*/e2e/commands/mirror_node.*\" --testPathIgnorePatterns=\".*/e2e/commands/node.*\" --testPathIgnorePatterns=\".*/e2e/commands/separate_node.*\" --testPathIgnorePatterns=\".*/e2e/commands/relay.*\"
+    mochaPostfix: "'test/e2e/**/*.mjs' --ignore 'test/unit/**/*.mjs' --ignore 'test/e2e/commands/mirror_node*.mjs' --ignore 'test/e2e/commands/node*.mjs' --ignore 'test/e2e/commands/separate_node*.mjs' --ignore 'test/e2e/commands/relay*.mjs'"
+    timeout: 30000
+
   - name: Mirror Node
-    jestPostfix: --testRegex=\".*\\/e2e\\/commands\\/mirror_node\\.test\\.mjs\"
+    mochaPostfix: "'test/e2e/commands/mirror_node.test.mjs'"
+
   - name: Node PEM Stop
-    jestPostfix: --testRegex=\".*\\/e2e\\/commands\\/node_pem_stop\\.test\\.mjs\" 
+    mochaPostfix: "'test/e2e/commands/node_pem_stop.test.mjs'"
+
   - name: Node PEM Kill
-    jestPostfix: --testRegex=\".*\\/e2e\\/commands\\/node_pem_kill\\.test\\.mjs\"
+    mochaPostfix: "'test/e2e/commands/node_pem_kill.test.mjs'"
+
   - name: Node Local Build
-    jestPostfix: --testRegex=\".*\\/e2e\\/commands\\/node_local.*\\.test\\.mjs\"
+    mochaPostfix: "'test/e2e/commands/node_local*.test.mjs'"
+
   - name: Node Add
-    jestPostfix: --testRegex=\".*\\/e2e\\/commands\\/node_add.*\\.test\\.mjs\"
+    mochaPostfix: "'test/e2e/commands/node_add*.test.mjs'"
+
   - name: Node Add - Separate commands
-    jestPostfix: --testRegex=\".*\\/e2e\\/commands\\/separate_node_add.*\\.test\\.mjs\"
+    mochaPostfix: "'test/e2e/commands/separate_node_add*.test.mjs'"
+
   - name: Node Update
-    jestPostfix: --testRegex=\".*\\/e2e\\/commands\\/node_update.*\\.test\\.mjs\"
+    mochaPostfix: "'test/e2e/commands/node_update*.test.mjs'"
+
   - name: Node Delete
-    jestPostfix: --testRegex=\".*\\/e2e\\/commands\\/node_delete.*\\.test\\.mjs\"
+    mochaPostfix: "'test/e2e/commands/node_delete*.test.mjs'"
+
   - name: Node Delete - Separate commands
-    jestPostfix: --testRegex=\".*\\/e2e\\/commands\\/separate_node_delete.*\\.test\\.mjs\"
+    mochaPostfix: "'test/e2e/commands/separate_node_delete*.test.mjs'"
+
   - name: Node Upgrade
-    jestPostfix: --testRegex=\".*\\/e2e\\/commands\\/node_upgrade.*\\.test\\.mjs\"
+    mochaPostfix: "'test/e2e/commands/node_upgrade*.test.mjs'"
+
   - name: Relay
-    jestPostfix: --testRegex=\".*\\/e2e\\/commands\\/relay\\.test\\.mjs\"
+    mochaPostfix: "'test/e2e/commands/relay.test.mjs'"

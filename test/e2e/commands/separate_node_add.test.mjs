@@ -13,8 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
- * @jest-environment steps
+ * @mocha-environment steps
  */
+import { it, describe, after } from 'mocha'
+import { expect } from 'chai'
+
 import { flags } from '../../../src/commands/index.mjs'
 import {
   accountCreationShouldSucceed,
@@ -26,16 +29,17 @@ import {
 } from '../../test_util.js'
 import { getNodeLogs } from '../../../src/core/helpers.mjs'
 import * as NodeCommandConfigs from '../../../src/commands/node/configs.mjs'
+import { MINUTES } from '../../../src/core/constants.mjs'
 
-describe('Node add via separated commands should success', () => {
-  const defaultTimeout = 120000
+describe('Node add via separated commands should success', async () => {
+  const defaultTimeout = 2 * MINUTES
   const namespace = 'node-add-separated'
   const argv = getDefaultArgv()
   argv[flags.nodeAliasesUnparsed.name] = 'node1,node2,node3'
   argv[flags.generateGossipKeys.name] = true
   argv[flags.generateTlsKeys.name] = true
   // set the env variable SOLO_CHARTS_DIR if developer wants to use local Solo charts
-  argv[flags.chartDirectory.name] = process.env.SOLO_CHARTS_DIR ? process.env.SOLO_CHARTS_DIR : undefined
+  argv[flags.chartDirectory.name] = process.env.SOLO_CHARTS_DIR ?? undefined
   argv[flags.releaseTag.name] = HEDERA_PLATFORM_VERSION_TAG
   argv[flags.namespace.name] = namespace
   argv[flags.force.name] = true
@@ -52,7 +56,7 @@ describe('Node add via separated commands should success', () => {
   argvExecute[flags.inputDir.name] = tempDir
   argvExecute[flags.inputDir.constName] = tempDir
 
-  const bootstrapResp = bootstrapNetwork(namespace, argv)
+  const bootstrapResp = await bootstrapNetwork(namespace, argv)
   const nodeCmd = bootstrapResp.cmd.nodeCmd
   const accountCmd = bootstrapResp.cmd.accountCmd
   const networkCmd = bootstrapResp.cmd.networkCmd
@@ -60,29 +64,31 @@ describe('Node add via separated commands should success', () => {
   let existingServiceMap
   let existingNodeIdsPrivateKeysHash
 
-  afterAll(async () => {
+  after(async function () {
+    this.timeout(10 * MINUTES)
+
     await getNodeLogs(k8, namespace)
     await nodeCmd.accountManager.close()
     await nodeCmd.handlers.stop(argv)
     await networkCmd.destroy(argv)
     await k8.deleteNamespace(namespace)
-  }, 600000)
+  })
 
   it('cache current version of private keys', async () => {
     existingServiceMap = await nodeCmd.accountManager.getNodeServiceMap(namespace)
     existingNodeIdsPrivateKeysHash = await getNodeAliasesPrivateKeysHash(existingServiceMap, namespace, k8, getTmpDir())
-  }, defaultTimeout)
+  }).timeout(defaultTimeout)
 
   it('should succeed with init command', async () => {
     const status = await accountCmd.init(argv)
-    expect(status).toBeTruthy()
-  }, 450000)
+    expect(status).to.be.ok
+  }).timeout(8 * MINUTES)
 
   it('should add a new node to the network via the segregated commands successfully', async () => {
     await nodeCmd.handlers.addPrepare(argvPrepare)
     await nodeCmd.handlers.addSubmitTransactions(argvExecute)
     await nodeCmd.handlers.addExecute(argvExecute)
-    expect(nodeCmd.getUnusedConfigs(NodeCommandConfigs.ADD_CONFIGS_NAME)).toEqual([
+    expect(nodeCmd.getUnusedConfigs(NodeCommandConfigs.ADD_CONFIGS_NAME)).to.deep.equal([
       flags.app.constName,
       flags.chainId.constName,
       flags.devMode.constName,
@@ -96,7 +102,7 @@ describe('Node add via separated commands should success', () => {
       'freezeAdminPrivateKey'
     ])
     await nodeCmd.accountManager.close()
-  }, 800000)
+  }).timeout(12 * MINUTES)
 
   balanceQueryShouldSucceed(nodeCmd.accountManager, nodeCmd, namespace)
 
@@ -109,9 +115,9 @@ describe('Node add via separated commands should success', () => {
       const currentNodeKeyHashMap = currentNodeIdsPrivateKeysHash.get(nodeAlias)
 
       for (const [keyFileName, existingKeyHash] of existingKeyHashMap.entries()) {
-        expect(`${nodeAlias}:${keyFileName}:${currentNodeKeyHashMap.get(keyFileName)}`).toEqual(
+        expect(`${nodeAlias}:${keyFileName}:${currentNodeKeyHashMap.get(keyFileName)}`).to.equal(
             `${nodeAlias}:${keyFileName}:${existingKeyHash}`)
       }
     }
-  }, defaultTimeout)
-}, 180000)
+  }).timeout(defaultTimeout)
+}).timeout(3 * MINUTES)

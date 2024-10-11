@@ -26,6 +26,9 @@ on:
         required: false
         default: "Set Environment Variables"
     outputs:
+      e2e-integration-test-subdir:
+        description: "E2E Integration Test Subdirectory"
+        value: ${{ jobs.env-vars.outputs.e2e_integration_test_subdir }}
       e2e-standard-test-subdir:
         description: "E2E Standard Test Subdirectory"
         value: ${{ jobs.env-vars.outputs.e2e_standard_test_subdir }}
@@ -62,6 +65,9 @@ on:
       e2e-relay-test-subdir:
         description: "E2E Relay Test Subdirectory"
         value: ${{ jobs.env-vars.outputs.e2e_relay_test_subdir }}
+      e2e-integration-coverage-report:
+        description: "E2E Integration Tests Coverage Report"
+        value: ${{ jobs.env-vars.outputs.e2e_integration_coverage_report }}
       e2e-standard-coverage-report:
         description: "E2E Standard Tests Coverage Report"
         value: ${{ jobs.env-vars.outputs.e2e_standard_coverage_report }}
@@ -108,6 +114,7 @@ jobs:
     name: ${{ inputs.custom-job-label || 'Set Environment Variables' }}
     runs-on: solo-linux-medium
     outputs:
+      e2e_integration_test_subdir: e2e-integration
       e2e_standard_test_subdir: e2e-standard
       e2e_mirror_node_test_subdir: e2e-mirror-node
       e2e_node_pem_stop_test_subdir: e2e-node-pem-stop
@@ -120,6 +127,7 @@ jobs:
       e2e_node_delete_separate_commands_test_subdir: e2e-node-delete-separate-commands
       e2e_node_upgrade_test_subdir: e2e-node-upgrade
       e2e_relay_test_subdir: e2e-relay
+      e2e_integration_coverage_report: "E2E Integration Tests Coverage Report"
       e2e_standard_coverage_report: "E2E Standard Tests Coverage Report"
       e2e_mirror_node_coverage_report: "E2E Mirror Node Tests Coverage Report"
       e2e_node_pem_stop_coverage_report: "E2E Node PEM Stop Tests Coverage Report"

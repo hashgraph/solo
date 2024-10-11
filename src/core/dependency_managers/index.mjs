@@ -16,6 +16,5 @@
  */
 import { DependencyManager } from './dependency_manager.mjs'
 import { HelmDependencyManager } from './helm_dependency_manager.mjs'
-import { KeytoolDependencyManager } from './keytool_dependency_manager.mjs'
 
-export { HelmDependencyManager, KeytoolDependencyManager, DependencyManager }
+export { HelmDependencyManager, DependencyManager }

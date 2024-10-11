@@ -521,7 +521,6 @@ export class KeyManager {
    *
    * WARNING: These tasks MUST run in sequence.
    *
-   * @param {KeytoolDependencyManager} keytoolDepManager - an instance of core/KeytoolDepManager
    * @param {NodeAliases} nodeAliases
    * @param {string} keysDir - keys directory
    * @param {Date} curDate - current date
@@ -529,7 +528,7 @@ export class KeyManager {
    * @return {Object[]} a list of subtasks
    * @public
    */
-  taskGenerateGossipKeys (keytoolDepManager, nodeAliases, keysDir, curDate = new Date(), allNodeAliases = null) {
+  taskGenerateGossipKeys (nodeAliases, keysDir, curDate = new Date(), allNodeAliases = null) {
     allNodeAliases = allNodeAliases || nodeAliases
     if (!Array.isArray(nodeAliases) || !nodeAliases.every((nodeAlias) => typeof nodeAlias === 'string')) {
       throw new IllegalArgumentError('nodeAliases must be an array of strings, nodeAliases = ' + JSON.stringify(nodeAliases))

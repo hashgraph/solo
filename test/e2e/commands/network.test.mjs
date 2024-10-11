@@ -13,31 +13,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
- * @jest-environment steps
+ * @mocha-environment steps
  */
+import { it, describe, after, before } from 'mocha'
+import { expect } from 'chai'
 
-import {
-  afterAll,
-  beforeAll,
-  describe,
-  expect,
-  it
-} from '@jest/globals'
-import { flags } from '../../../src/commands/index.mjs'
 import {
   bootstrapTestVariables,
   getDefaultArgv,
   getTmpDir,
   HEDERA_PLATFORM_VERSION_TAG
 } from '../../test_util.js'
-import {
-  constants
-} from '../../../src/core/index.mjs'
+import { constants } from '../../../src/core/index.mjs'
 import * as version from '../../../version.mjs'
 import { getNodeLogs, sleep } from '../../../src/core/helpers.mjs'
 import path from 'path'
 import fs from 'fs'
 import { NetworkCommand } from '../../../src/commands/network.mjs'
+import { MINUTES, SECONDS } from '../../../src/core/constants.mjs'
+import { flags } from '../../../src/commands/index.mjs'
 
 describe('NetworkCommand', () => {
   const testName = 'network-cmd-e2e'
@@ -56,7 +50,7 @@ describe('NetworkCommand', () => {
   argv[flags.force.name] = true
   argv[flags.applicationEnv.name] = applicationEnvFilePath
   // set the env variable SOLO_CHARTS_DIR if developer wants to use local Solo charts
-  argv[flags.chartDirectory.name] = process.env.SOLO_CHARTS_DIR ? process.env.SOLO_CHARTS_DIR : undefined
+  argv[flags.chartDirectory.name] = process.env.SOLO_CHARTS_DIR ?? undefined
   argv[flags.quiet.name] = true
 
   const bootstrapResp = bootstrapTestVariables(testName, argv)
@@ -69,13 +63,15 @@ describe('NetworkCommand', () => {
   const initCmd = bootstrapResp.cmd.initCmd
   const nodeCmd = bootstrapResp.cmd.nodeCmd
 
-  afterAll(async () => {
+  after(async function () {
+    this.timeout(3 * MINUTES)
+
     await getNodeLogs(k8, namespace)
     await k8.deleteNamespace(namespace)
     await accountManager.close()
-  }, 180000)
+  })
 
-  beforeAll(async () => {
+  before(async () => {
     await initCmd.init(argv)
     await clusterCmd.setup(argv)
     fs.mkdirSync(applicationEnvParentDirectory, { recursive: true })
@@ -83,22 +79,21 @@ describe('NetworkCommand', () => {
   })
 
   it('keys should be generated', async () => {
-    await expect(nodeCmd.handlers.keys(argv)).resolves.toBeTruthy()
+    await expect(nodeCmd.handlers.keys(argv)).to.eventually.be.ok
   })
 
   it('network deploy command should succeed', async () => {
-    expect.assertions(3)
     try {
-      await expect(networkCmd.deploy(argv)).resolves.toBeTruthy()
+      await expect(networkCmd.deploy(argv)).to.eventually.be.ok
 
       // check pod names should match expected values
       await expect(k8.getPodByName('network-node1-0'))
-        .resolves.toHaveProperty('metadata.name', 'network-node1-0')
+        .eventually.to.have.nested.property('metadata.name', 'network-node1-0')
       // get list of pvc using k8 listPvcsByNamespace function and print to log
       const pvcs = await k8.listPvcsByNamespace(namespace)
       networkCmd.logger.showList('PVCs', pvcs)
 
-      expect(networkCmd.getUnusedConfigs(NetworkCommand.DEPLOY_CONFIGS_NAME)).toEqual([
+      expect(networkCmd.getUnusedConfigs(NetworkCommand.DEPLOY_CONFIGS_NAME)).to.deep.equal([
         flags.apiPermissionProperties.constName,
         flags.applicationEnv.constName,
         flags.applicationProperties.constName,
@@ -112,16 +107,15 @@ describe('NetworkCommand', () => {
       ])
     } catch (e) {
       networkCmd.logger.showUserError(e)
-      expect(e).toBeNull()
+      expect.fail()
     }
-  }, 240000)
+  }).timeout(4 * MINUTES)
 
   it('application env file contents should be in cached values file', () => {
-    expect.assertions(3)
     const valuesYaml = fs.readFileSync(networkCmd.profileValuesFile).toString()
     const fileRows = applicationEnvFileContents.split('\n')
     for (const fileRow of fileRows) {
-      expect(valuesYaml).toContain(fileRow)
+      expect(valuesYaml).to.contain(fileRow)
     }
   })
 
@@ -131,32 +125,31 @@ describe('NetworkCommand', () => {
     argv[flags.force.name] = true
     configManager.update(argv, true)
 
-    expect.assertions(4)
     try {
-      await expect(networkCmd.destroy(argv)).resolves.toBeTruthy()
+      await expect(networkCmd.destroy(argv)).to.eventually.be.ok
 
       while ((await k8.getPodsByLabel(['solo.hedera.com/type=network-node'])).length > 0) {
         networkCmd.logger.debug('Pods are still running. Waiting...')
-        await sleep(3000)
+        await sleep(3 * SECONDS)
       }
 
       while ((await k8.getPodsByLabel(['app=minio'])).length > 0) {
         networkCmd.logger.showUser('Waiting for minio container to be deleted...')
-        await sleep(3000)
+        await sleep(3 * SECONDS)
       }
 
       // check if chart is uninstalled
       await expect(bootstrapResp.opts.chartManager.isChartInstalled(namespace, constants.SOLO_DEPLOYMENT_CHART))
-        .resolves.toBeFalsy()
+        .to.eventually.not.be.ok
 
       // check if pvc are deleted
-      await expect(k8.listPvcsByNamespace(namespace)).resolves.toHaveLength(0)
+      await expect(k8.listPvcsByNamespace(namespace)).eventually.to.have.lengthOf(0)
 
       // check if secrets are deleted
-      await expect(k8.listSecretsByNamespace(namespace)).resolves.toHaveLength(0)
+      await expect(k8.listSecretsByNamespace(namespace)).eventually.to.have.lengthOf(0)
     } catch (e) {
       networkCmd.logger.showUserError(e)
-      expect(e).toBeNull()
+      expect.fail()
     }
-  }, 120000)
+  }).timeout(2 * MINUTES)
 })

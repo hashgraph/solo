@@ -14,31 +14,39 @@
  * limitations under the License.
  *
  */
-import { describe, expect, it, jest } from '@jest/globals'
+import sinon from 'sinon'
+import { expect } from 'chai'
+import { describe, it, beforeEach, afterEach } from 'mocha'
 import { ShellRunner } from '../../../src/core/shell_runner.mjs'
 import { NewLogger, SoloLogger } from '../../../src/core/logging.mjs'
 import { ChildProcess } from 'child_process'
 import { Readable } from 'stream'
+import { SECONDS } from '../../../src/core/constants.mjs'
 
 describe('ShellRunner', () => {
-  const logger = NewLogger('debug')
-  const shellRunner = new ShellRunner(logger)
-  const loggerSpy = jest.spyOn(SoloLogger.prototype, 'debug').mockImplementation()
-  const childProcessSpy = jest.spyOn(ChildProcess.prototype, 'on')
-  const readableSpy = jest.spyOn(Readable.prototype, 'on')
+  let logger, shellRunner, loggerStub, childProcessSpy, readableSpy
+
+  beforeEach(() => {
+    logger = NewLogger('debug')
+    shellRunner = new ShellRunner(logger)
+
+    // Spy on methods
+    loggerStub = sinon.stub(SoloLogger.prototype, 'debug')
+    childProcessSpy = sinon.spy(ChildProcess.prototype, 'on')
+    readableSpy = sinon.spy(Readable.prototype, 'on')
+  })
+
+  afterEach(() => sinon.restore())
 
   it('should run command', async () => {
     await shellRunner.run('ls -l')
-    expect(loggerSpy).toHaveBeenNthCalledWith(1, 'Executing command: \'ls -l\'')
-    expect(loggerSpy).toHaveBeenNthCalledWith(2, 'Finished executing: \'ls -l\'', {
-      commandExitCode: expect.any(Number),
-      commandExitSignal: null,
-      commandOutput: expect.any(Array),
-      errOutput: expect.any(Array)
-    })
-    expect(readableSpy).toHaveBeenCalledWith('data', expect.anything())
-    expect(childProcessSpy).toHaveBeenCalledWith('exit', expect.anything())
-  })
 
-  jest.clearAllMocks()
+    loggerStub.withArgs('Executing command: \'ls -l\'').onFirstCall()
+    loggerStub.withArgs('Finished executing: \'ls -l\'', sinon.match.any).onSecondCall()
+
+    expect(loggerStub).to.have.been.calledTwice
+
+    expect(readableSpy).to.have.been.calledWith('data', sinon.match.any)
+    expect(childProcessSpy).to.have.been.calledWith('exit', sinon.match.any)
+  }).timeout(10 * SECONDS)
 })

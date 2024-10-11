@@ -14,8 +14,10 @@
  * limitations under the License.
  *
  */
-import { afterAll, beforeAll, describe, expect, it } from '@jest/globals'
-import { constants } from '../../../src/core/index.mjs'
+import { it, describe, after, before } from 'mocha'
+import { expect } from 'chai'
+
+import { constants } from '../../../../src/core/index.mjs'
 import * as fs from 'fs'
 
 import {
@@ -24,13 +26,14 @@ import {
   getTestCacheDir,
   TEST_CLUSTER,
   testLogger
-} from '../../test_util.js'
-import { flags } from '../../../src/commands/index.mjs'
-import * as version from '../../../version.mjs'
+} from '../../../test_util.js'
+import { flags } from '../../../../src/commands/index.mjs'
+import * as version from '../../../../version.mjs'
+import { MINUTES, SECONDS } from '../../../../src/core/constants.mjs'
 
-const defaultTimeout = 20000
+const defaultTimeout = 20 * SECONDS
 
-describe('PackageInstallerE2E', () => {
+describe('PackageInstallerE2E', async () => {
   const namespace = 'pkg-installer-e2e'
   const argv = getDefaultArgv()
   const testCacheDir = getTestCacheDir()
@@ -42,8 +45,8 @@ describe('PackageInstallerE2E', () => {
   argv[flags.generateGossipKeys.name] = true
   argv[flags.generateTlsKeys.name] = true
   // set the env variable SOLO_CHARTS_DIR if developer wants to use local Solo charts
-  argv[flags.chartDirectory.name] = process.env.SOLO_CHARTS_DIR ? process.env.SOLO_CHARTS_DIR : undefined
-  const bootstrapResp = bootstrapNetwork(namespace, argv, undefined, undefined, undefined, undefined, undefined, undefined, false)
+  argv[flags.chartDirectory.name] = process.env.SOLO_CHARTS_DIR ?? undefined
+  const bootstrapResp = await bootstrapNetwork(namespace, argv, undefined, undefined, undefined, undefined, undefined, undefined, false)
   const k8 = bootstrapResp.opts.k8
   const accountManager = bootstrapResp.opts.accountManager
   const configManager = bootstrapResp.opts.configManager
@@ -51,50 +54,51 @@ describe('PackageInstallerE2E', () => {
   const podName = 'network-node1-0'
   const packageVersion = 'v0.42.5'
 
-  afterAll(async () => {
+  after(async function () {
+    this.timeout(3 * MINUTES)
+
     await k8.deleteNamespace(namespace)
     await accountManager.close()
-  }, 180000)
+  })
 
-  beforeAll(() => {
+  before(function () {
+    this.timeout(defaultTimeout)
+
     if (!fs.existsSync(testCacheDir)) {
       fs.mkdirSync(testCacheDir)
     }
-
     configManager.load()
-  }, defaultTimeout)
+  })
 
   describe('fetchPlatform', () => {
     it('should fail with invalid pod', async () => {
-      expect.assertions(2)
       try {
         await installer.fetchPlatform('', packageVersion)
+        throw new Error()
       } catch (e) {
-        expect(e.message.includes('podName is required')).toBeTruthy()
+        expect(e.message).to.include('podName is required')
       }
 
       try {
         await installer.fetchPlatform('INVALID', packageVersion)
       } catch (e) {
-        expect(e.message
-          .includes('failed to extract platform code in this pod'))
-          .toBeTruthy()
+        expect(e.message).to.include('failed to extract platform code in this pod')
       }
-    }, defaultTimeout)
+    }).timeout(defaultTimeout)
 
     it('should fail with invalid tag', async () => {
-      expect.assertions(1)
       try {
         await installer.fetchPlatform(podName, 'INVALID')
+        throw new Error()
       } catch (e) {
-        expect(e.message.includes('curl: (22) The requested URL returned error: 404')).toBeTruthy()
+        expect(e.message).to.include('curl: (22) The requested URL returned error: 404')
       }
-    }, defaultTimeout)
+    }).timeout(defaultTimeout)
 
     it('should succeed with valid tag and pod', async () => {
-      await expect(installer.fetchPlatform(podName, packageVersion)).resolves.toBeTruthy()
+      await expect(installer.fetchPlatform(podName, packageVersion)).to.eventually.be.ok
       const outputs = await k8.execContainer(podName, constants.ROOT_CONTAINER, `ls -la ${constants.HEDERA_HAPI_PATH}`)
       testLogger.showUser(outputs)
-    }, 60000)
+    }).timeout(1 * MINUTES)
   })
 })

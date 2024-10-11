@@ -14,32 +14,23 @@
  * limitations under the License.
  *
  */
+import { after, afterEach, describe } from 'mocha'
+import { expect } from 'chai'
+import each from 'mocha-each'
 
-import {
-  afterAll,
-  afterEach,
-  describe,
-  expect,
-  it
-} from '@jest/globals'
 import { flags } from '../../../src/commands/index.mjs'
-import {
-  bootstrapNetwork,
-  getDefaultArgv,
-  HEDERA_PLATFORM_VERSION_TAG,
-  TEST_CLUSTER
-} from '../../test_util.js'
+import { bootstrapNetwork, getDefaultArgv, HEDERA_PLATFORM_VERSION_TAG, TEST_CLUSTER } from '../../test_util.js'
 import * as version from '../../../version.mjs'
 import { getNodeLogs, sleep } from '../../../src/core/helpers.mjs'
 import { RelayCommand } from '../../../src/commands/relay.mjs'
+import { MINUTES } from '../../../src/core/constants.mjs'
 
-describe('RelayCommand', () => {
+describe('RelayCommand', async () => {
   const testName = 'relay-cmd-e2e'
   const namespace = testName
   const argv = getDefaultArgv()
   argv[flags.namespace.name] = namespace
   argv[flags.releaseTag.name] = HEDERA_PLATFORM_VERSION_TAG
-
   argv[flags.nodeAliasesUnparsed.name] = 'node1,node2'
   argv[flags.generateGossipKeys.name] = true
   argv[flags.generateTlsKeys.name] = true
@@ -49,48 +40,45 @@ describe('RelayCommand', () => {
   argv[flags.relayReleaseTag.name] = flags.relayReleaseTag.definition.defaultValue
   argv[flags.quiet.name] = true
 
-  const bootstrapResp = bootstrapNetwork(testName, argv)
+  const bootstrapResp = await bootstrapNetwork(testName, argv)
   const k8 = bootstrapResp.opts.k8
   const configManager = bootstrapResp.opts.configManager
   const relayCmd = new RelayCommand(bootstrapResp.opts)
 
-  afterAll(async () => {
+  after(async () => {
     await getNodeLogs(k8, namespace)
     await k8.deleteNamespace(namespace)
-  }, 180000)
-
-  afterEach(async () => {
-    await sleep(5) // give a few ticks so that connections can close
   })
 
-  it.each([
-    { relayNodes: 'node1' },
-    { relayNodes: 'node1,node2' }
-  ])('relay deploy and destroy should work with different number of relay nodes', async (input) => {
-    argv[flags.nodeAliasesUnparsed.name] = input.relayNodes
-    configManager.update(argv)
-    expect.assertions(3)
+  afterEach(async () => await sleep(5))
 
-    // test relay deploy
-    try {
-      await expect(relayCmd.deploy(argv)).resolves.toBeTruthy()
-    } catch (e) {
-      relayCmd.logger.showUserError(e)
-      expect(e).toBeNull()
-    }
-    expect(relayCmd.getUnusedConfigs(RelayCommand.DEPLOY_CONFIGS_NAME)).toEqual([
-      flags.profileFile.constName,
-      flags.profileName.constName,
-      flags.quiet.constName
-    ])
-    await sleep(500)
+  each(['node1', 'node1,node2'])
+    .it('relay deploy and destroy should work with $value', async function (relayNodes) {
+      this.timeout(5 * MINUTES)
 
-    // test relay destroy
-    try {
-      await expect(relayCmd.destroy(argv)).resolves.toBeTruthy()
-    } catch (e) {
-      relayCmd.logger.showUserError(e)
-      expect(e).toBeNull()
-    }
-  }, 300000)
+      argv[flags.nodeAliasesUnparsed.name] = relayNodes
+      configManager.update(argv)
+
+      // test relay deploy
+      try {
+        await expect(relayCmd.deploy(argv)).to.eventually.be.ok
+      } catch (e) {
+        relayCmd.logger.showUserError(e)
+        expect.fail()
+      }
+      expect(relayCmd.getUnusedConfigs(RelayCommand.DEPLOY_CONFIGS_NAME)).to.deep.equal([
+        flags.profileFile.constName,
+        flags.profileName.constName,
+        flags.quiet.constName
+      ])
+      await sleep(500)
+
+      // test relay destroy
+      try {
+        await expect(relayCmd.destroy(argv)).to.eventually.be.ok
+      } catch (e) {
+        relayCmd.logger.showUserError(e)
+        expect.fail()
+      }
+    })
 })

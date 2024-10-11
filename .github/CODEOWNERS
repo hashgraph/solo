@@ -24,7 +24,6 @@
 # NodeJS project files
 package.json                                    @hashgraph/release-engineering-managers
 package-lock.json                               @hashgraph/release-engineering-managers
-jest.config.mjs                                 @hashgraph/release-engineering-managers
 
 # Codacy Tool Configurations
 /config/                                        @hashgraph/release-engineering-managers

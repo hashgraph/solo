@@ -13,10 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
- * @jest-environment steps
+ * @mocha-environment steps
  */
+import { describe } from 'mocha'
 
-import { describe } from '@jest/globals'
 import { e2eNodeKeyRefreshTest } from '../e2e_node_util.js'
 
 describe('NodeCommand', () => {

@@ -13,9 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
- * @jest-environment steps
+ * @mocha-environment steps
  */
-import { afterAll, describe, expect, it } from '@jest/globals'
+import { it, describe, after } from 'mocha'
+import { expect } from 'chai'
+
 import { flags } from '../../../src/commands/index.mjs'
 import {
   accountCreationShouldSucceed,
@@ -25,11 +27,11 @@ import {
   HEDERA_PLATFORM_VERSION_TAG
 } from '../../test_util.js'
 import { getNodeLogs, getTmpDir } from '../../../src/core/helpers.mjs'
-import { HEDERA_HAPI_PATH, ROOT_CONTAINER } from '../../../src/core/constants.mjs'
+import { HEDERA_HAPI_PATH, MINUTES, ROOT_CONTAINER } from '../../../src/core/constants.mjs'
 import fs from 'fs'
 import * as NodeCommandConfigs from '../../../src/commands/node/configs.mjs'
 
-describe('Node delete via separated commands', () => {
+describe('Node delete via separated commands', async () => {
   const namespace = 'node-delete-separate'
   const nodeAlias = 'node1'
   const argv = getDefaultArgv()
@@ -39,7 +41,7 @@ describe('Node delete via separated commands', () => {
   argv[flags.generateTlsKeys.name] = true
   argv[flags.persistentVolumeClaims.name] = true
   // set the env variable SOLO_CHARTS_DIR if developer wants to use local Solo charts
-  argv[flags.chartDirectory.name] = process.env.SOLO_CHARTS_DIR ? process.env.SOLO_CHARTS_DIR : undefined
+  argv[flags.chartDirectory.name] = process.env.SOLO_CHARTS_DIR ?? undefined
   argv[flags.releaseTag.name] = HEDERA_PLATFORM_VERSION_TAG
   argv[flags.namespace.name] = namespace
 
@@ -50,26 +52,28 @@ describe('Node delete via separated commands', () => {
   const argvExecute = getDefaultArgv()
   argvExecute[flags.inputDir.name] = tempDir
 
-  const bootstrapResp = bootstrapNetwork(namespace, argv)
+  const bootstrapResp = await bootstrapNetwork(namespace, argv)
   const nodeCmd = bootstrapResp.cmd.nodeCmd
   const accountCmd = bootstrapResp.cmd.accountCmd
   const k8 = bootstrapResp.opts.k8
 
-  afterAll(async () => {
+  after(async function () {
+    this.timeout(10 * MINUTES)
+
     await getNodeLogs(k8, namespace)
     await k8.deleteNamespace(namespace)
-  }, 600000)
+  })
 
   it('should succeed with init command', async () => {
     const status = await accountCmd.init(argv)
-    expect(status).toBeTruthy()
-  }, 450000)
+    expect(status).to.be.ok
+  }).timeout(8 * MINUTES)
 
   it('should delete a node from the network successfully', async () => {
     await nodeCmd.handlers.deletePrepare(argvPrepare)
     await nodeCmd.handlers.deleteSubmitTransactions(argvExecute)
     await nodeCmd.handlers.deleteExecute(argvExecute)
-    expect(nodeCmd.getUnusedConfigs(NodeCommandConfigs.DELETE_CONFIGS_NAME)).toEqual([
+    expect(nodeCmd.getUnusedConfigs(NodeCommandConfigs.DELETE_CONFIGS_NAME)).to.deep.equal([
       flags.app.constName,
       flags.devMode.constName,
       flags.endpointType.constName,
@@ -79,7 +83,7 @@ describe('Node delete via separated commands', () => {
     ])
 
     await nodeCmd.accountManager.close()
-  }, 600000)
+  }).timeout(10 * MINUTES)
 
   balanceQueryShouldSucceed(nodeCmd.accountManager, nodeCmd, namespace)
 
@@ -93,6 +97,6 @@ describe('Node delete via separated commands', () => {
     await k8.copyFrom(podName, ROOT_CONTAINER, `${HEDERA_HAPI_PATH}/config.txt`, tmpDir)
     const configTxt = fs.readFileSync(`${tmpDir}/config.txt`, 'utf8')
     console.log('config.txt:', configTxt)
-    expect(configTxt).not.toContain(nodeAlias)
-  }, 600000)
+    expect(configTxt).not.to.contain(nodeAlias)
+  }).timeout(10 * MINUTES)
 })
