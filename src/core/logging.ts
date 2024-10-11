@@ -14,7 +14,7 @@
  * limitations under the License.
  *
  */
-'use strict'
+
 import * as winston from 'winston'
 import { constants } from './index'
 import { v4 as uuidv4 } from 'uuid'
@@ -53,12 +53,14 @@ const customFormat = winston.format.combine(
 )
 
 export class SoloLogger {
+  private winstonLogger: winston.Logger;
+  private traceId?: string;
+
   /**
-   * @param {string} [level] - logging level as supported by winston library:
-   * @param {boolean} [devMode] - if true, show full stack traces in error messages
-   * @constructor
+   * @param [level] - logging level as supported by winston library:
+   * @param [devMode] - if true, show full stack traces in error messages
    */
-  constructor (level = 'debug', devMode = false) {
+  constructor (level = 'debug', private devMode = false) {
     this.nextTraceId()
     this.devMode = devMode
 
@@ -82,51 +84,29 @@ export class SoloLogger {
     })
   }
 
-  /**
-   * @param {boolean} devMode
-   */
-  setDevMode (devMode) {
+  setDevMode (devMode: boolean) {
     this.debug(`dev mode logging: ${devMode}`)
     this.devMode = devMode
   }
 
-  /**
-   * @param {string} level
-   */
-  setLevel (level) {
+  setLevel (level: string) {
     this.winstonLogger.setLevel(level)
   }
 
-  /** @returns {string} */
   nextTraceId () {
     this.traceId = uuidv4()
   }
 
-  /**
-   * @param {Object} [meta]
-   * @returns {Object}
-   */
-  prepMeta (meta) {
-    if (meta === undefined) {
-      meta = {}
-    }
-
+  prepMeta (meta: object | any = {}): object | any {
     meta.traceId = this.traceId
     return meta
   }
 
-  /**
-   * @param msg
-   * @param args
-   */
-  showUser (msg, ...args) {
+  showUser (msg: any, ...args: any) {
     console.log(util.format(msg, ...args))
   }
 
-  /**
-   * @param {Error} err
-   */
-  showUserError (err) {
+  showUserError (err: Error | any) {
     const stack = [{ message: err.message, stacktrace: err.stack }]
     if (err.cause) {
       let depth = 0
@@ -152,7 +132,7 @@ export class SoloLogger {
         prefix += 'Caused by: '
       })
     } else {
-      const lines = err.message.split('\n')
+      const lines: string[] = err.message.split('\n')
       lines.forEach(line => {
         console.log(chalk.yellow(line))
       })
@@ -162,49 +142,23 @@ export class SoloLogger {
     this.debug(err.message, { error: err.message, stacktrace: stack })
   }
 
-  /**
-   * @param {*} msg
-   * @param {*} [args]
-   * @public
-   */
-  error (msg, ...args) {
+  error (msg: any, ...args: any) {
     this.winstonLogger.error(msg, ...args, this.prepMeta())
   }
 
-  /**
-   * @param {*} msg
-   * @param {*} [args]
-   * @public
-   */
-  warn (msg, ...args) {
+  warn (msg: any, ...args: any) {
     this.winstonLogger.warn(msg, ...args, this.prepMeta())
   }
 
-  /**
-   * @param {*} msg
-   * @param {*} [args]
-   * @public
-   */
-  info (msg, ...args) {
+  info (msg: any, ...args: any) {
     this.winstonLogger.info(msg, ...args, this.prepMeta())
   }
 
-  /**
-   * @param {*} msg
-   * @param {*} [args]
-   * @public
-   */
-  debug (msg, ...args) {
+  debug (msg: any, ...args: any) {
     this.winstonLogger.debug(msg, ...args, this.prepMeta())
   }
 
-  /**
-   * @param {string} title
-   * @param {string[]} items
-   * @returns {boolean}
-   * @public
-   */
-  showList (title, items = []) {
+  showList (title: string, items: string[] = []) {
     this.showUser(chalk.green(`\n *** ${title} ***`))
     this.showUser(chalk.green('-------------------------------------------------------------------------------'))
     if (items.length > 0) {
@@ -217,24 +171,13 @@ export class SoloLogger {
     return true
   }
 
-  /**
-   * @param {string} title
-   * @param {Object} obj
-   * @public
-   */
-  showJSON (title, obj) {
+  showJSON (title: string, obj: object) {
     this.showUser(chalk.green(`\n *** ${title} ***`))
     this.showUser(chalk.green('-------------------------------------------------------------------------------'))
     console.log(JSON.stringify(obj, null, ' '))
   }
 }
 
-/**
- * @param {string} [level]
- * @param {boolean} [devMode]
- * @returns {SoloLogger}
- * @constructor
- */
 export function NewLogger (level = 'debug', devMode = false) {
   return new SoloLogger(level, devMode)
 }

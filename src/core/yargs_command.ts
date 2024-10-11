@@ -15,16 +15,16 @@
  *
  */
 
-'use strict'
 import * as commandFlags from '../commands/flags'
 import { IllegalArgumentError } from './errors'
+import {type BaseCommand} from "../commands/base";
+import {type CommandFlag} from "../commands/flags";
 
 export class YargsCommand {
-  /**
-     * @param {{command: string, description: string, commandDef: BaseCommand, handler: string}} opts
-     * @param {{requiredFlags: CommandFlag[], requiredFlagsWithDisabledPrompt: CommandFlag[], optionalFlags: CommandFlag[]}} flags
-     */
-  constructor (opts = {}, flags = {}) {
+  constructor (
+    opts: {command: string, description: string, commandDef: BaseCommand | any, handler: string},
+    flags: {requiredFlags: CommandFlag[], requiredFlagsWithDisabledPrompt: CommandFlag[], optionalFlags: CommandFlag[]}
+  ) {
     const { command, description, commandDef, handler } = opts
     const { requiredFlags, requiredFlagsWithDisabledPrompt, optionalFlags } = flags
 
@@ -53,14 +53,15 @@ export class YargsCommand {
     return {
       command,
       desc: description,
-      builder: y => commandFlags.setCommandFlags(y, ...allFlags),
-      handler: argv => {
+      builder: (y: any) => commandFlags.setCommandFlags(y, ...allFlags),
+      handler: (argv: any) => {
         commandDef.logger.debug(`==== Running '${commandNamespace} ${command}' ===`)
         commandDef.logger.debug(argv)
+        // @ts-ignore
         commandDef[handler](argv).then(r => {
           commandDef.logger.debug(`==== Finished running '${commandNamespace} ${command}' ====`)
           if (!r) process.exit(1)
-        }).catch(err => {
+        }).catch((err: Error | any) => {
           commandDef.logger.showUserError(err)
           process.exit(1)
         })

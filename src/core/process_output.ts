@@ -14,33 +14,24 @@
  * limitations under the License.
  *
  */
-'use strict'
 import { ProcessOutput } from 'listr2'
+import {SoloLogger} from "./logging";
 
-/**
- * Uses the solo logger to handle process output from Listr2
- * @class CustomProcessOutput
- * @augments ProcessOutput
- */
+/** Uses the solo logger to handle process output from Listr2 */
 export class CustomProcessOutput extends ProcessOutput {
-  /** @param {SoloLogger} logger */
-  constructor (logger) {
+  constructor (private readonly logger: SoloLogger) {
     super()
-    /** @private */
-    this._logger = logger
   }
 
-  /** @inheritDoc */
-  toStdout (chunk, eol = true) {
+  toStdout (chunk: string, eol = true) {
     chunk.toString().split('\n').forEach(line => {
-      this._logger.debug(line)
+      this.logger.debug(line)
     })
     return super.toStdout(chunk, eol)
   }
 
-  /** @inheritDoc */
-  toStderr (chunk, eol = true) {
-    this._logger.error(chunk.toString())
+  toStderr (chunk: string, eol = true) {
+    this.logger.error(chunk.toString())
     return super.toStderr(chunk, eol)
   }
 }

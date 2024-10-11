@@ -14,7 +14,7 @@
  * limitations under the License.
  *
  */
-'use strict'
+
 import { ClusterCommand } from './cluster'
 import { InitCommand } from './init'
 import { MirrorNodeCommand } from './mirror_node'

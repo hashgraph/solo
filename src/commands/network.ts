@@ -14,7 +14,7 @@
  * limitations under the License.
  *
  */
-'use strict'
+
 import { ListrEnquirerPromptAdapter } from '@listr2/prompt-adapter-enquirer'
 import chalk from 'chalk'
 import { Listr } from 'listr2'

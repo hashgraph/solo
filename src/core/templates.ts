@@ -14,115 +14,67 @@
  * limitations under the License.
  *
  */
-'use strict'
 import * as x509 from '@peculiar/x509'
 import os from 'os'
 import path from 'path'
 import { DataValidationError, SoloError, IllegalArgumentError, MissingArgumentError } from './errors'
 import { constants } from './index'
+import {type AccountId} from "@hashgraph/sdk";
 
-/** @typedef {number} NodeId - the number of the node */
-/** @typedef {string} PodName - the full pod name */
-/** @typedef {string} NodeAlias - the alias of the node */
+/** the number of the node */ export type NodeId = number
+/** the full pod name */ export type PodName = string
+/** the alias of the node */ export type NodeAlias = string
 
-/** @typedef {NodeId[]} NodeIds - list of the number of nodes */
-/** @typedef {PodName[]} PodNames - list of the pod names */
-/** @typedef {NodeAlias[]} NodeAliases - list of the pod aliases */
+/** list of the number of nodes */ export type NodeIds = NodeId[]
+/** list of the pod names */ export type PodNames = PodName[]
+/** list of the pod aliases */ export type NodeAliases = NodeAlias[]
 
 export class Templates {
-  /**
-   * @param {NodeAlias} nodeAlias
-   * @returns {PodName}
-   */
-  static renderNetworkPodName (nodeAlias) {
+  public static renderNetworkPodName (nodeAlias: NodeAlias): PodName {
     return `network-${nodeAlias}-0`
   }
 
-  /**
-   * @param {NodeAlias} nodeAlias
-   * @returns {string}
-   */
-  static renderNetworkSvcName (nodeAlias) {
+  private static renderNetworkSvcName (nodeAlias: NodeAlias): string {
     return `network-${nodeAlias}-svc`
   }
 
-  /**
-   * @param {string} svcName
-   * @returns {NodeAlias}
-   */
-  static nodeAliasFromNetworkSvcName (svcName) {
+  private static nodeAliasFromNetworkSvcName (svcName: string): NodeAlias {
     return svcName.split('-').slice(1, -1).join('-')
   }
 
-  /**
-   * @param {NodeAlias} nodeAlias
-   * @returns {string}
-   */
-  static renderNetworkHeadlessSvcName (nodeAlias) {
+  private static renderNetworkHeadlessSvcName (nodeAlias: NodeAlias): string {
     return `network-${nodeAlias}`
   }
 
-  /**
-   * @param {string} prefix
-   * @param {NodeAlias} nodeAlias
-   * @returns {string}
-   */
-  static renderGossipPemPrivateKeyFile (prefix, nodeAlias) {
+  public static renderGossipPemPrivateKeyFile (prefix: string, nodeAlias: NodeAlias): string {
     return `${prefix}-private-${nodeAlias}.pem`
   }
 
-  /**
-   * @param {string} prefix
-   * @param {NodeAlias} nodeAlias
-   * @returns {string}
-   */
-  static renderGossipPemPublicKeyFile (prefix, nodeAlias) {
+  public static renderGossipPemPublicKeyFile (prefix: string, nodeAlias: NodeAlias): string {
     return `${prefix}-public-${nodeAlias}.pem`
   }
 
-  /**
-   * @param {NodeAlias} nodeAlias
-   * @returns {string}
-   */
-  static renderTLSPemPrivateKeyFile (nodeAlias) {
+  public static renderTLSPemPrivateKeyFile (nodeAlias: NodeAlias): string {
     return `hedera-${nodeAlias}.key`
   }
 
-  /**
-   * @param {NodeAlias} nodeAlias
-   * @returns {string}
-   */
-  static renderTLSPemPublicKeyFile (nodeAlias) {
+  public static renderTLSPemPublicKeyFile (nodeAlias: NodeAlias): string {
     return `hedera-${nodeAlias}.crt`
   }
 
-  /**
-   * @param {string} prefix
-   * @param {NodeAlias} nodeAlias
-   * @param {string} [suffix]
-   * @returns {string}
-   */
-  static renderNodeFriendlyName (prefix, nodeAlias, suffix = '') {
+  public static renderNodeFriendlyName (prefix: string, nodeAlias: NodeAlias, suffix: string = ''): string {
     const parts = [prefix, nodeAlias]
     if (suffix) parts.push(suffix)
     return parts.join('-')
   }
 
-  /**
-   * @param {PodName} podName
-   * @returns {NodeAlias}
-   */
-  static extractNodeAliasFromPodName (podName) {
+  private static extractNodeAliasFromPodName (podName: PodName): NodeAlias {
     const parts = podName.split('-')
     if (parts.length !== 3) throw new DataValidationError(`pod name is malformed : ${podName}`, 3, parts.length)
     return parts[1].trim()
   }
 
-  /**
-   * @param {string} tag
-   * @returns {string}
-   */
-  static prepareReleasePrefix (tag) {
+  static prepareReleasePrefix (tag: string): string {
     if (!tag) throw new MissingArgumentError('tag cannot be empty')
 
     const parsed = tag.split('.')
@@ -132,58 +84,44 @@ export class Templates {
 
   /**
    * renders the name to be used to store the new account key as a Kubernetes secret
-   * @param {AccountId|string} accountId
-   * @returns {string} the name of the Kubernetes secret to store the account key
+   * @param accountId
+   * @returns the name of the Kubernetes secret to store the account key
    */
-  static renderAccountKeySecretName (accountId) {
+  public static renderAccountKeySecretName (accountId: AccountId | string): string {
     return `account-key-${accountId.toString()}`
   }
 
   /**
    * renders the label selector to be used to fetch the new account key from the Kubernetes secret
-   * @param {AccountId|string} accountId
-   * @returns {string} the label selector of the Kubernetes secret to retrieve the account key   */
-  static renderAccountKeySecretLabelSelector (accountId) {
+   * @param accountId
+   * @returns the label selector of the Kubernetes secret to retrieve the account key   */
+  public static renderAccountKeySecretLabelSelector (accountId: AccountId | string): string {
     return `solo.hedera.com/account-id=${accountId.toString()}`
   }
 
   /**
    * renders the label object to be used to store the new account key in the Kubernetes secret
-   * @param {AccountId|string} accountId
-   * @returns {{'solo.hedera.com/account-id': string}} the label object to be used to
-   * store the new account key in the Kubernetes secret
+   * @param accountId
+   * @returns the label object to be used to store the new account key in the Kubernetes secret
    */
-  static renderAccountKeySecretLabelObject (accountId) {
+  public static renderAccountKeySecretLabelObject (accountId: AccountId | string): { 'solo.hedera.com/account-id': string } {
     return {
       'solo.hedera.com/account-id': accountId.toString()
     }
   }
 
-  /**
-   * @param {NodeAlias} nodeAlias
-   * @param {string} [state]
-   * @param {string} [locality]
-   * @param {string} [org]
-   * @param {string} [orgUnit]
-   * @param {string} [country]
-   * @returns {x509.Name}
-   */
-  static renderDistinguishedName (nodeAlias,
-    state = 'TX',
-    locality = 'Richardson',
-    org = 'Hedera',
-    orgUnit = 'Hedera',
-    country = 'US'
+  static renderDistinguishedName (
+    nodeAlias: NodeAlias,
+    state: string = 'TX',
+    locality: string = 'Richardson',
+    org: string = 'Hedera',
+    orgUnit: string = 'Hedera',
+    country: string = 'US'
   ) {
     return new x509.Name(`CN=${nodeAlias},ST=${state},L=${locality},O=${org},OU=${orgUnit},C=${country}`)
   }
 
-  /**
-   * @param {string} cacheDir
-   * @param {string} releaseTag
-   * @returns {string}
-   */
-  static renderStagingDir (cacheDir, releaseTag) {
+  public static renderStagingDir (cacheDir: string, releaseTag: string): string {
     if (!cacheDir) {
       throw new IllegalArgumentError('cacheDir cannot be empty')
     }
@@ -200,16 +138,10 @@ export class Templates {
     return path.resolve(path.join(cacheDir, releasePrefix, 'staging', releaseTag))
   }
 
-  /**
-   * @param {string} dep
-   * @param {NodeJS.Platform} [osPlatform]
-   * @param {string} [installationDir]
-   * @returns {string}
-   */
-  static installationPath (
-    dep,
-    osPlatform = os.platform(),
-    installationDir = path.join(constants.SOLO_HOME_DIR, 'bin')
+  public static installationPath (
+    dep: string,
+    osPlatform: NodeJS.Platform | string = os.platform(),
+    installationDir: string = path.join(constants.SOLO_HOME_DIR, 'bin')
   ) {
     switch (dep) {
       case constants.HELM:
@@ -218,66 +150,46 @@ export class Templates {
         }
 
         return path.join(installationDir, dep)
+      case constants.KEYTOOL:
+        if (osPlatform === constants.OS_WINDOWS) {
+          return path.join(installationDir, 'jre', 'bin', `${dep}.exe`)
+        }
+
+        return path.join(installationDir, 'jre', 'bin', dep)
 
       default:
         throw new SoloError(`unknown dep: ${dep}`)
     }
   }
 
-  /**
-   * @param {string} namespace
-   * @param {NodeAlias} nodeAlias
-   * @returns {string}
-   */
-  static renderFullyQualifiedNetworkPodName (namespace, nodeAlias) {
+  public static renderFullyQualifiedNetworkPodName (namespace: string, nodeAlias: NodeAlias): string {
     return `${Templates.renderNetworkPodName(nodeAlias)}.${Templates.renderNetworkHeadlessSvcName(nodeAlias)}.${namespace}.svc.cluster.local`
   }
 
-  /**
-   * @param {string} namespace
-   * @param {NodeAlias} nodeAlias
-   * @returns {string}
-   */
-  static renderFullyQualifiedNetworkSvcName (namespace, nodeAlias) {
+  public static renderFullyQualifiedNetworkSvcName (namespace: string, nodeAlias: NodeAlias): string {
     return `${Templates.renderNetworkSvcName(nodeAlias)}.${namespace}.svc.cluster.local`
   }
 
-  /**
-   * @param {string} svcName
-   * @returns {NodeAlias}
-   */
-  static nodeAliasFromFullyQualifiedNetworkSvcName (svcName) {
+  private static nodeAliasFromFullyQualifiedNetworkSvcName (svcName: string): NodeAlias {
     const parts = svcName.split('.')
     return this.nodeAliasFromNetworkSvcName(parts[0])
   }
 
-  /**
-   * @param {NodeAlias} nodeAlias
-   * @returns {NodeId}
-   */
-  static nodeIdFromNodeAlias (nodeAlias) {
+  // @ts-ignore
+  public static nodeIdFromNodeAlias (nodeAlias: NodeAlias): NodeId {
     for (let i = nodeAlias.length - 1; i > 0; i--) {
+      // @ts-ignore
       if (isNaN(nodeAlias[i])) {
         return parseInt(nodeAlias.substring(i + 1, nodeAlias.length))
       }
     }
   }
 
-  /**
-   * @param {NodeAlias} nodeAlias
-   * @returns {string}
-   */
-  static renderGossipKeySecretName (nodeAlias) {
+  public static renderGossipKeySecretName (nodeAlias: NodeAlias): string {
     return `network-${nodeAlias}-keys-secrets`
   }
 
-  /**
-   * @param {NodeAlias} nodeAlias
-   * @returns {{'solo.hedera.com/node-name': string}}
-   */
-  static renderGossipKeySecretLabelObject (nodeAlias) {
-    return {
-      'solo.hedera.com/node-name': nodeAlias
-    }
+  public static renderGossipKeySecretLabelObject (nodeAlias: NodeAlias): { 'solo.hedera.com/node-name': string } {
+    return { 'solo.hedera.com/node-name': nodeAlias }
   }
 }

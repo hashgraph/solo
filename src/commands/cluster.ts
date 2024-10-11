@@ -14,7 +14,7 @@
  * limitations under the License.
  *
  */
-'use strict'
+
 import { ListrEnquirerPromptAdapter } from '@listr2/prompt-adapter-enquirer'
 import { Listr } from 'listr2'
 import { SoloError } from '../core/errors'

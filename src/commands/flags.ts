@@ -14,42 +14,40 @@
  * limitations under the License.
  *
  */
-'use strict'
+
 import { constants } from '../core'
 import * as core from '../core'
-import * as version from '../../version'
+// @ts-ignore
+import * as version from '../../version.mjs'
 import path from 'path'
 
-/**
- * @typedef {Object} CommandFlag
- * @property {string} constName - the name of this constant
- * @property {string} name - flag name to use on the command line
- * @property {Definition} definition - flag definition
- */
+export interface CommandFlag {
+  constName: string
+  name: string
+  definition: Definition
+}
 
-/**
- * @typedef {Object} Definition
- * @property {string} describe - description of the flag
- * @property {(boolean | string | number)} [defaultValue] - default value of the flag
- * @property {string} [alias] - alias of the flag
- * @property {string} [type] - type of the flag
- * @property {boolean} [disablePrompt] - disable prompt for the flag
- */
+export interface Definition {
+  describe: string
+  defaultValue?: (boolean | string | number)
+  alias?: string
+  type?: string
+  disablePrompt?: boolean
+}
 
 /**
  * Set flag from the flag option
- * @param y an instance of yargs
+ * @param y instance of yargs
  * @param commandFlags a set of command flags
  *
  */
-export function setCommandFlags (y, ...commandFlags) {
+export function setCommandFlags (y: any, ...commandFlags: CommandFlag[]) {
   commandFlags.forEach(flag => {
     y.option(flag.name, flag.definition)
   })
 }
 
-/** @type {CommandFlag} **/
-export const devMode = {
+export const devMode: CommandFlag = {
   constName: 'devMode',
   name: 'dev',
   definition: {
@@ -60,8 +58,7 @@ export const devMode = {
 }
 
 // list of common flags across commands. command specific flags are defined in the command's module.
-/** @type {CommandFlag} **/
-export const clusterName = {
+export const clusterName: CommandFlag = {
   constName: 'clusterName',
   name: 'cluster-name',
   definition: {
@@ -72,8 +69,7 @@ export const clusterName = {
   }
 }
 
-/** @type {CommandFlag} **/
-export const clusterSetupNamespace = {
+export const clusterSetupNamespace: CommandFlag = {
   constName: 'clusterSetupNamespace',
   name: 'cluster-setup-namespace',
   definition: {
@@ -84,8 +80,7 @@ export const clusterSetupNamespace = {
   }
 }
 
-/** @type {CommandFlag} **/
-export const namespace = {
+export const namespace: CommandFlag = {
   constName: 'namespace',
   name: 'namespace',
   definition: {
@@ -95,8 +90,7 @@ export const namespace = {
   }
 }
 
-/** @type {CommandFlag} **/
-export const deployHederaExplorer = {
+export const deployHederaExplorer: CommandFlag = {
   constName: 'deployHederaExplorer',
   name: 'hedera-explorer',
   definition: {
@@ -107,8 +101,7 @@ export const deployHederaExplorer = {
   }
 }
 
-/** @type {CommandFlag} **/
-export const valuesFile = {
+export const valuesFile: CommandFlag = {
   constName: 'valuesFile',
   name: 'values-file',
   definition: {
@@ -119,8 +112,7 @@ export const valuesFile = {
   }
 }
 
-/** @type {CommandFlag} **/
-export const profileFile = {
+export const profileFile: CommandFlag = {
   constName: 'profileFile',
   name: 'profile-file',
   definition: {
@@ -130,8 +122,7 @@ export const profileFile = {
   }
 }
 
-/** @type {CommandFlag} **/
-export const profileName = {
+export const profileName: CommandFlag = {
   constName: 'profileName',
   name: 'profile',
   definition: {
@@ -141,8 +132,7 @@ export const profileName = {
   }
 }
 
-/** @type {CommandFlag} **/
-export const deployPrometheusStack = {
+export const deployPrometheusStack: CommandFlag = {
   constName: 'deployPrometheusStack',
   name: 'prometheus-stack',
   definition: {
@@ -152,8 +142,7 @@ export const deployPrometheusStack = {
   }
 }
 
-/** @type {CommandFlag} **/
-export const enablePrometheusSvcMonitor = {
+export const enablePrometheusSvcMonitor: CommandFlag = {
   constName: 'enablePrometheusSvcMonitor',
   name: 'prometheus-svc-monitor',
   definition: {
@@ -163,8 +152,7 @@ export const enablePrometheusSvcMonitor = {
   }
 }
 
-/** @type {CommandFlag} **/
-export const deployMinio = {
+export const deployMinio: CommandFlag = {
   constName: 'deployMinio',
   name: 'minio',
   definition: {
@@ -174,8 +162,7 @@ export const deployMinio = {
   }
 }
 
-/** @type {CommandFlag} **/
-export const deployCertManager = {
+export const deployCertManager: CommandFlag = {
   constName: 'deployCertManager',
   name: 'cert-manager',
   definition: {
@@ -189,8 +176,7 @@ export const deployCertManager = {
     Deploy cert manager CRDs separately from cert manager itself.  Cert manager
     CRDs are required for cert manager to deploy successfully.
  */
-/** @type {CommandFlag} **/
-export const deployCertManagerCrds = {
+export const deployCertManagerCrds: CommandFlag = {
   constName: 'deployCertManagerCrds',
   name: 'cert-manager-crds',
   definition: {
@@ -200,8 +186,7 @@ export const deployCertManagerCrds = {
   }
 }
 
-/** @type {CommandFlag} **/
-export const deployJsonRpcRelay = {
+export const deployJsonRpcRelay: CommandFlag = {
   constName: 'deployJsonRpcRelay',
   name: 'json-rpc-relay',
   definition: {
@@ -212,8 +197,7 @@ export const deployJsonRpcRelay = {
   }
 }
 
-/** @type {CommandFlag} **/
-export const releaseTag = {
+export const releaseTag: CommandFlag = {
   constName: 'releaseTag',
   name: 'release-tag',
   definition: {
@@ -224,8 +208,7 @@ export const releaseTag = {
   }
 }
 
-/** @type {CommandFlag} **/
-export const relayReleaseTag = {
+export const relayReleaseTag: CommandFlag = {
   constName: 'relayReleaseTag',
   name: 'relay-release',
   definition: {
@@ -235,8 +218,7 @@ export const relayReleaseTag = {
   }
 }
 
-/** @type {CommandFlag} **/
-export const cacheDir = {
+export const cacheDir: CommandFlag = {
   constName: 'cacheDir',
   name: 'cache-dir',
   definition: {
@@ -246,8 +228,7 @@ export const cacheDir = {
   }
 }
 
-/** @type {CommandFlag} **/
-export const nodeAliasesUnparsed = {
+export const nodeAliasesUnparsed: CommandFlag = {
   constName: 'nodeAliasesUnparsed',
   name: 'node-aliases-unparsed',
   definition: {
@@ -257,8 +238,7 @@ export const nodeAliasesUnparsed = {
   }
 }
 
-/** @type {CommandFlag} **/
-export const force = {
+export const force: CommandFlag = {
   constName: 'force',
   name: 'force',
   definition: {
@@ -269,8 +249,7 @@ export const force = {
   }
 }
 
-/** @type {CommandFlag} **/
-export const chartDirectory = {
+export const chartDirectory: CommandFlag = {
   constName: 'chartDirectory',
   name: 'chart-dir',
   definition: {
@@ -281,8 +260,7 @@ export const chartDirectory = {
   }
 }
 
-/** @type {CommandFlag} **/
-export const replicaCount = {
+export const replicaCount: CommandFlag = {
   constName: 'replicaCount',
   name: 'replica-count',
   definition: {
@@ -293,8 +271,7 @@ export const replicaCount = {
   }
 }
 
-/** @type {CommandFlag} **/
-export const chainId = {
+export const chainId: CommandFlag = {
   constName: 'chainId',
   name: 'ledger-id',
   definition: {
@@ -306,8 +283,7 @@ export const chainId = {
 }
 
 // Ref: https://github.com/hashgraph/hedera-json-rpc-relay/blob/main/docs/configuration.md
-/** @type {CommandFlag} **/
-export const operatorId = {
+export const operatorId: CommandFlag = {
   constName: 'operatorId',
   name: 'operator-id',
   definition: {
@@ -318,8 +294,7 @@ export const operatorId = {
 }
 
 // Ref: https://github.com/hashgraph/hedera-json-rpc-relay/blob/main/docs/configuration.md
-/** @type {CommandFlag} **/
-export const operatorKey = {
+export const operatorKey: CommandFlag = {
   constName: 'operatorKey',
   name: 'operator-key',
   definition: {
@@ -329,8 +304,7 @@ export const operatorKey = {
   }
 }
 
-/** @type {CommandFlag} **/
-export const generateGossipKeys = {
+export const generateGossipKeys: CommandFlag = {
   constName: 'generateGossipKeys',
   name: 'gossip-keys',
   definition: {
@@ -340,8 +314,7 @@ export const generateGossipKeys = {
   }
 }
 
-/** @type {CommandFlag} **/
-export const generateTlsKeys = {
+export const generateTlsKeys: CommandFlag = {
   constName: 'generateTlsKeys',
   name: 'tls-keys',
   definition: {
@@ -351,8 +324,7 @@ export const generateTlsKeys = {
   }
 }
 
-/** @type {CommandFlag} **/
-export const tlsClusterIssuerType = {
+export const tlsClusterIssuerType: CommandFlag = {
   constName: 'tlsClusterIssuerType',
   name: 'tls-cluster-issuer-type',
   definition: {
@@ -362,8 +334,7 @@ export const tlsClusterIssuerType = {
   }
 }
 
-/** @type {CommandFlag} **/
-export const enableHederaExplorerTls = {
+export const enableHederaExplorerTls: CommandFlag = {
   constName: 'enableHederaExplorerTls',
   name: 'enable-hedera-explorer-tls',
   definition: {
@@ -373,8 +344,7 @@ export const enableHederaExplorerTls = {
   }
 }
 
-/** @type {CommandFlag} **/
-export const hederaExplorerTlsLoadBalancerIp = {
+export const hederaExplorerTlsLoadBalancerIp: CommandFlag = {
   constName: 'hederaExplorerTlsLoadBalancerIp',
   name: 'hedera-explorer-tls-load-balancer-ip',
   definition: {
@@ -384,8 +354,7 @@ export const hederaExplorerTlsLoadBalancerIp = {
   }
 }
 
-/** @type {CommandFlag} **/
-export const hederaExplorerTlsHostName = {
+export const hederaExplorerTlsHostName: CommandFlag = {
   constName: 'hederaExplorerTlsHostName',
   name: 'hedera-explorer-tls-host-name',
   definition: {
@@ -395,8 +364,7 @@ export const hederaExplorerTlsHostName = {
   }
 }
 
-/** @type {CommandFlag} **/
-export const deletePvcs = {
+export const deletePvcs: CommandFlag = {
   constName: 'deletePvcs',
   name: 'delete-pvcs',
   definition: {
@@ -406,8 +374,7 @@ export const deletePvcs = {
   }
 }
 
-/** @type {CommandFlag} **/
-export const deleteSecrets = {
+export const deleteSecrets: CommandFlag = {
   constName: 'deleteSecrets',
   name: 'delete-secrets',
   definition: {
@@ -417,8 +384,7 @@ export const deleteSecrets = {
   }
 }
 
-/** @type {CommandFlag} **/
-export const soloChartVersion = {
+export const soloChartVersion: CommandFlag = {
   constName: 'soloChartVersion',
   name: 'solo-chart-version',
   definition: {
@@ -428,8 +394,7 @@ export const soloChartVersion = {
   }
 }
 
-/** @type {CommandFlag} **/
-export const applicationProperties = {
+export const applicationProperties: CommandFlag = {
   constName: 'applicationProperties',
   name: 'application-properties',
   definition: {
@@ -439,8 +404,7 @@ export const applicationProperties = {
   }
 }
 
-/** @type {CommandFlag} **/
-export const applicationEnv = {
+export const applicationEnv: CommandFlag = {
   constName: 'applicationEnv',
   name: 'application-env',
   definition: {
@@ -450,8 +414,7 @@ export const applicationEnv = {
   }
 }
 
-/** @type {CommandFlag} **/
-export const apiPermissionProperties = {
+export const apiPermissionProperties: CommandFlag = {
   constName: 'apiPermissionProperties',
   name: 'api-permission-properties',
   definition: {
@@ -461,8 +424,7 @@ export const apiPermissionProperties = {
   }
 }
 
-/** @type {CommandFlag} **/
-export const bootstrapProperties = {
+export const bootstrapProperties: CommandFlag = {
   constName: 'bootstrapProperties',
   name: 'bootstrap-properties',
   definition: {
@@ -472,8 +434,7 @@ export const bootstrapProperties = {
   }
 }
 
-/** @type {CommandFlag} **/
-export const settingTxt = {
+export const settingTxt: CommandFlag = {
   constName: 'settingTxt',
   name: 'settings-txt',
   definition: {
@@ -483,8 +444,7 @@ export const settingTxt = {
   }
 }
 
-/** @type {CommandFlag} **/
-export const app = {
+export const app: CommandFlag = {
   constName: 'app',
   name: 'app',
   definition: {
@@ -494,8 +454,7 @@ export const app = {
   }
 }
 
-/** @type {CommandFlag} **/
-export const appConfig = {
+export const appConfig: CommandFlag = {
   constName: 'appConfig',
   name: 'app-config',
   definition: {
@@ -505,8 +464,7 @@ export const appConfig = {
   }
 }
 
-/** @type {CommandFlag} **/
-export const localBuildPath = {
+export const localBuildPath: CommandFlag = {
   constName: 'localBuildPath',
   name: 'local-build-path',
   definition: {
@@ -516,8 +474,7 @@ export const localBuildPath = {
   }
 }
 
-/** @type {CommandFlag} **/
-export const newAccountNumber = {
+export const newAccountNumber: CommandFlag = {
   constName: 'newAccountNumber',
   name: 'new-account-number',
   definition: {
@@ -527,8 +484,7 @@ export const newAccountNumber = {
   }
 }
 
-/** @type {CommandFlag} **/
-export const newAdminKey = {
+export const newAdminKey: CommandFlag = {
   constName: 'newAdminKey',
   name: 'new-admin-key',
   definition: {
@@ -538,8 +494,7 @@ export const newAdminKey = {
   }
 }
 
-/** @type {CommandFlag} **/
-export const gossipPublicKey = {
+export const gossipPublicKey: CommandFlag = {
   constName: 'gossipPublicKey',
   name: 'gossip-public-key',
   definition: {
@@ -549,8 +504,7 @@ export const gossipPublicKey = {
   }
 }
 
-/** @type {CommandFlag} **/
-export const gossipPrivateKey = {
+export const gossipPrivateKey: CommandFlag = {
   constName: 'gossipPrivateKey',
   name: 'gossip-private-key',
   definition: {
@@ -560,8 +514,7 @@ export const gossipPrivateKey = {
   }
 }
 
-/** @type {CommandFlag} **/
-export const tlsPublicKey = {
+export const tlsPublicKey: CommandFlag = {
   constName: 'tlsPublicKey',
   name: 'tls-public-key',
   definition: {
@@ -571,8 +524,7 @@ export const tlsPublicKey = {
   }
 }
 
-/** @type {CommandFlag} **/
-export const tlsPrivateKey = {
+export const tlsPrivateKey: CommandFlag = {
   constName: 'tlsPrivateKey',
   name: 'tls-private-key',
   definition: {
@@ -582,8 +534,7 @@ export const tlsPrivateKey = {
   }
 }
 
-/** @type {CommandFlag} **/
-export const log4j2Xml = {
+export const log4j2Xml: CommandFlag = {
   constName: 'log4j2Xml',
   name: 'log4j2-xml',
   definition: {
@@ -593,8 +544,7 @@ export const log4j2Xml = {
   }
 }
 
-/** @type {CommandFlag} **/
-export const updateAccountKeys = {
+export const updateAccountKeys: CommandFlag = {
   constName: 'updateAccountKeys',
   name: 'update-account-keys',
   definition: {
@@ -604,8 +554,7 @@ export const updateAccountKeys = {
   }
 }
 
-/** @type {CommandFlag} **/
-export const privateKey = {
+export const privateKey: CommandFlag = {
   constName: 'privateKey',
   name: 'private-key',
   definition: {
@@ -615,8 +564,7 @@ export const privateKey = {
   }
 }
 
-/** @type {CommandFlag} **/
-export const ecdsaPrivateKey = {
+export const ecdsaPrivateKey: CommandFlag = {
   constName: 'ecdsaPrivateKey',
   name: 'ecdsa-private-key',
   definition: {
@@ -626,8 +574,7 @@ export const ecdsaPrivateKey = {
   }
 }
 
-/** @type {CommandFlag} **/
-export const setAlias = {
+export const setAlias: CommandFlag = {
   constName: 'setAlias',
   name: 'set-alias',
   definition: {
@@ -637,8 +584,7 @@ export const setAlias = {
   }
 }
 
-/** @type {CommandFlag} **/
-export const accountId = {
+export const accountId: CommandFlag = {
   constName: 'accountId',
   name: 'account-id',
   definition: {
@@ -648,8 +594,7 @@ export const accountId = {
   }
 }
 
-/** @type {CommandFlag} **/
-export const amount = {
+export const amount: CommandFlag = {
   constName: 'amount',
   name: 'hbar-amount',
   definition: {
@@ -659,8 +604,7 @@ export const amount = {
   }
 }
 
-/** @type {CommandFlag} **/
-export const nodeAlias = {
+export const nodeAlias: CommandFlag = {
   constName: 'nodeAlias',
   name: 'node-alias',
   definition: {
@@ -669,8 +613,7 @@ export const nodeAlias = {
   }
 }
 
-/** @type {CommandFlag} **/
-export const gossipEndpoints = {
+export const gossipEndpoints: CommandFlag = {
   constName: 'gossipEndpoints',
   name: 'gossip-endpoints',
   definition: {
@@ -679,8 +622,7 @@ export const gossipEndpoints = {
   }
 }
 
-/** @type {CommandFlag} **/
-export const grpcEndpoints = {
+export const grpcEndpoints: CommandFlag = {
   constName: 'grpcEndpoints',
   name: 'grpc-endpoints',
   definition: {
@@ -689,8 +631,7 @@ export const grpcEndpoints = {
   }
 }
 
-/** @type {CommandFlag} **/
-export const endpointType = {
+export const endpointType: CommandFlag = {
   constName: 'endpointType',
   name: 'endpoint-type',
   definition: {
@@ -700,8 +641,7 @@ export const endpointType = {
   }
 }
 
-/** @type {CommandFlag} **/
-export const persistentVolumeClaims = {
+export const persistentVolumeClaims: CommandFlag = {
   constName: 'persistentVolumeClaims',
   name: 'pvcs',
   definition: {
@@ -711,8 +651,7 @@ export const persistentVolumeClaims = {
   }
 }
 
-/** @type {CommandFlag} **/
-export const debugNodeAlias = {
+export const debugNodeAlias: CommandFlag = {
   constName: 'debugNodeAlias',
   name: 'debug-node-alias',
   definition: {
@@ -722,8 +661,7 @@ export const debugNodeAlias = {
   }
 }
 
-/** @type {CommandFlag} **/
-export const outputDir = {
+export const outputDir: CommandFlag = {
   constName: 'outputDir',
   name: 'output-dir',
   definition: {
@@ -733,8 +671,7 @@ export const outputDir = {
   }
 }
 
-/** @type {CommandFlag} **/
-export const inputDir = {
+export const inputDir: CommandFlag = {
   constName: 'inputDir',
   name: 'input-dir',
   definition: {
@@ -744,8 +681,7 @@ export const inputDir = {
   }
 }
 
-/** @type {CommandFlag} **/
-export const adminKey = {
+export const adminKey: CommandFlag = {
   constName: 'adminKey',
   name: 'admin-key',
   definition: {
@@ -755,8 +691,7 @@ export const adminKey = {
   }
 }
 
-/** @type {CommandFlag} **/
-export const quiet = {
+export const quiet: CommandFlag = {
   constName: 'quiet',
   name: 'quiet-mode',
   definition: {
@@ -768,8 +703,7 @@ export const quiet = {
   }
 }
 
-/** @type {CommandFlag[]} **/
-export const mirrorNodeVersion = {
+export const mirrorNodeVersion: CommandFlag = {
   constName: 'mirrorNodeVersion',
   name: 'mirror-node-version',
   definition: {
@@ -779,8 +713,7 @@ export const mirrorNodeVersion = {
   }
 }
 
-/** @type {CommandFlag[]} **/
-export const allFlags = [
+export const allFlags: CommandFlag[] = [
   accountId,
   amount,
   apiPermissionProperties,
@@ -843,9 +776,7 @@ export const allFlags = [
   mirrorNodeVersion
 ]
 
-/**
- * Resets the definition.disablePrompt for all flags
- */
+/** Resets the definition.disablePrompt for all flags */
 export function resetDisabledPrompts () {
   allFlags.forEach(f => {
     if (f.definition.disablePrompt) {

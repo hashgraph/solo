@@ -14,49 +14,43 @@
  * limitations under the License.
  *
  */
-'use strict'
+
 import chalk from 'chalk'
 import { BaseCommand } from './base'
 import { SoloError, IllegalArgumentError } from '../core/errors'
 import { flags } from './index'
-import { Listr } from 'listr2'
+import { Listr, ListrTaskWrapper } from 'listr2'
 import * as prompts from './prompts'
-import { constants } from '../core'
-import { AccountInfo, HbarUnit, PrivateKey } from '@hashgraph/sdk'
+import {ChartManager, type ConfigManager, constants, type Helm, type K8} from '../core'
+import {type AccountId, AccountInfo, HbarUnit, PrivateKey} from '@hashgraph/sdk'
 import { FREEZE_ADMIN_ACCOUNT } from '../core/constants'
+import {type AccountManager} from "../core/account_manager";
+import {type SoloLogger} from "../core/logging";
+import {type DependencyManager} from "../core/dependency_managers";
 
 export class AccountCommand extends BaseCommand {
-  /**
-   * @param {{accountManager: AccountManager, logger: SoloLogger, helm: Helm, k8: K8, chartManager: ChartManager, configManager: ConfigManager, depManager: DependencyManager}} opts
-   * @param {number[][]} [systemAccounts]
-   */
-  constructor (opts, systemAccounts = constants.SYSTEM_ACCOUNTS) {
+  private readonly accountManager: AccountManager;
+  private accountInfo: {accountId: string, balance: number, publicKey: string, privateKey?: string} | null;
+  private readonly systemAccounts: number[][];
+
+  constructor (opts: {accountManager: AccountManager, logger: SoloLogger, helm: Helm, k8: K8, chartManager: ChartManager, configManager: ConfigManager, depManager: DependencyManager}, systemAccounts: number[][] = constants.SYSTEM_ACCOUNTS) {
     super(opts)
 
-    if (!opts || !opts.accountManager) throw new IllegalArgumentError('An instance of core/AccountManager is required', opts.accountManager)
+    if (!opts || !opts.accountManager) throw new IllegalArgumentError('An instance of core/AccountManager is required', opts.accountManager as any)
 
     this.accountManager = opts.accountManager
     this.accountInfo = null
     this.systemAccounts = systemAccounts
   }
 
-  /**
-   * @returns {Promise<void>}
-   */
   async closeConnections () {
     await this.accountManager.close()
   }
 
-  /**
-   * @param {AccountInfo} accountInfo
-   * @param {string} namespace
-   * @param {boolean} shouldRetrievePrivateKey
-   * @returns {Promise<{accountId: string, balance: number, publicKey: string}>}
-   */
-  async buildAccountInfo (accountInfo, namespace, shouldRetrievePrivateKey) {
+  async buildAccountInfo (accountInfo: AccountInfo, namespace: string, shouldRetrievePrivateKey: boolean) {
     if (!accountInfo || !(accountInfo instanceof AccountInfo)) throw new IllegalArgumentError('An instance of AccountInfo is required')
 
-    const newAccountInfo = {
+    const newAccountInfo: { accountId: string; balance: number; publicKey: string, privateKey?: string} = {
       accountId: accountInfo.accountId.toString(),
       publicKey: accountInfo.key.toString(),
       balance: accountInfo.balance.to(HbarUnit.Hbar).toNumber()
@@ -70,11 +64,8 @@ export class AccountCommand extends BaseCommand {
     return newAccountInfo
   }
 
-  /**
-   * @param {any} ctx
-   * @returns {Promise<{accountId: AccountId, privateKey: string, publicKey: string, balance: number}>}
-   */
-  async createNewAccount (ctx) {
+  async createNewAccount (ctx: { config: { ecdsaPrivateKey?: string; privateKey?: string; namespace: string;
+    setAlias: boolean; amount: number}; privateKey: PrivateKey; }) {
     if (ctx.config.ecdsaPrivateKey) {
       ctx.privateKey = PrivateKey.fromStringECDSA(ctx.config.ecdsaPrivateKey)
     } else if (ctx.config.privateKey) {
@@ -87,19 +78,11 @@ export class AccountCommand extends BaseCommand {
       ctx.privateKey, ctx.config.amount, ctx.config.ecdsaPrivateKey ? ctx.config.setAlias : false)
   }
 
-  /**
-   * @param {any} ctx
-   * @returns {Promise<AccountInfo>}
-   */
-  getAccountInfo (ctx) {
+  getAccountInfo (ctx: any) {
     return this.accountManager.accountInfoQuery(ctx.config.accountId)
   }
 
-  /**
-   * @param {any} ctx
-   * @returns {Promise<boolean>}
-   */
-  async updateAccountInfo (ctx) {
+  async updateAccountInfo (ctx: any) {
     let amount = ctx.config.amount
     if (ctx.config.privateKey) {
       if (!(await this.accountManager.sendAccountKeyUpdate(ctx.accountInfo.accountId, ctx.config.privateKey, ctx.accountInfo.privateKey))) {
@@ -125,20 +108,11 @@ export class AccountCommand extends BaseCommand {
     return true
   }
 
-  /**
-   * @param {AccountId} toAccountId
-   * @param {number} amount
-   * @returns {Promise<boolean>}
-   */
-  async transferAmountFromOperator (toAccountId, amount) {
+  async transferAmountFromOperator (toAccountId: AccountId, amount: number) {
     return await this.accountManager.transferAmount(constants.TREASURY_ACCOUNT_ID, toAccountId, amount)
   }
 
-  /**
-   * @param {Object} argv
-   * @returns {Promise<boolean>}
-   */
-  async init (argv) {
+  async init (argv: any) {
     const self = this
 
     const tasks = new Listr([
@@ -321,28 +295,32 @@ export class AccountCommand extends BaseCommand {
     return true
   }
 
-  /**
-   * @param {Object} argv
-   * @returns {Promise<boolean>}
-   */
-  async update (argv) {
-    const self = this
+  async update (argv: any) {
+    interface Context {
+      config: {
+        accountId: string;
+        amount: number;
+        namespace: string;
+        privateKey: string;
+      },
+      accountInfo:
+    }
 
-    const tasks = new Listr([
+    const tasks = new Listr<Context>([
       {
         title: 'Initialize',
         task: async (ctx, task) => {
-          self.configManager.update(argv)
-          await prompts.execute(task, self.configManager, [
+          this.configManager.update(argv)
+          await prompts.execute(task, this.configManager, [
             flags.accountId,
             flags.namespace
           ])
 
           const config = {
-            accountId: self.configManager.getFlag(flags.accountId),
-            amount: self.configManager.getFlag(flags.amount),
-            namespace: self.configManager.getFlag(flags.namespace),
-            privateKey: self.configManager.getFlag(flags.privateKey)
+            accountId: <string>this.configManager.getFlag<string>(flags.accountId),
+            amount: <number>this.configManager.getFlag<number>(flags.amount),
+            namespace: <string>this.configManager.getFlag<string>(flags.namespace),
+            privateKey: <string>this.configManager.getFlag<string>(flags.privateKey)
           }
 
           if (!await this.k8.hasNamespace(config.namespace)) {
@@ -352,21 +330,21 @@ export class AccountCommand extends BaseCommand {
           // set config in the context for later tasks to use
           ctx.config = config
 
-          await self.accountManager.loadNodeClient(config.namespace)
+          await this.accountManager.loadNodeClient(config.namespace)
 
-          self.logger.debug('Initialized config', { config })
+          this.logger.debug('Initialized config', { config })
         }
       },
       {
         title: 'get the account info',
         task: async (ctx) => {
-          ctx.accountInfo = await self.buildAccountInfo(await self.getAccountInfo(ctx), ctx.config.namespace, ctx.config.privateKey)
+          ctx.accountInfo = await this.buildAccountInfo(await this.getAccountInfo(ctx), ctx.config.namespace, ctx.config.privateKey)
         }
       },
       {
         title: 'update the account',
         task: async (ctx) => {
-          if (!(await self.updateAccountInfo(ctx))) {
+          if (!(await this.updateAccountInfo(ctx))) {
             throw new SoloError(`An error occurred updating account ${ctx.accountInfo.accountId}`)
           }
         }
@@ -374,8 +352,8 @@ export class AccountCommand extends BaseCommand {
       {
         title: 'get the updated account info',
         task: async (ctx) => {
-          self.accountInfo = await self.buildAccountInfo(await self.getAccountInfo(ctx), ctx.config.namespace, false)
-          this.logger.showJSON('account info', self.accountInfo)
+          this.accountInfo = await this.buildAccountInfo(await this.getAccountInfo(ctx), ctx.config.namespace, false)
+          this.logger.showJSON('account info', this.accountInfo)
         }
       }
     ], {
@@ -394,26 +372,28 @@ export class AccountCommand extends BaseCommand {
     return true
   }
 
-  /**
-   * @param {Object} argv
-   * @returns {Promise<boolean>}
-   */
-  async get (argv) {
-    const self = this
+  async get (argv: any) {
+    interface Context {
+      config: {
+        accountId: string;
+        namespace: string;
+      }
+    }
 
-    const tasks = new Listr([
+    // @ts-ignore
+    const tasks = new Listr<Context>([
       {
         title: 'Initialize',
         task: async (ctx, task) => {
-          self.configManager.update(argv)
-          await prompts.execute(task, self.configManager, [
+          this.configManager.update(argv)
+          await prompts.execute(task, this.configManager, [
             flags.accountId,
             flags.namespace
           ])
 
           const config = {
-            accountId: self.configManager.getFlag(flags.accountId),
-            namespace: self.configManager.getFlag(flags.namespace)
+            accountId: <string>this.configManager.getFlag<string>(flags.accountId),
+            namespace: <string>this.configManager.getFlag<string>(flags.namespace)
           }
 
           if (!await this.k8.hasNamespace(config.namespace)) {
@@ -423,20 +403,21 @@ export class AccountCommand extends BaseCommand {
           // set config in the context for later tasks to use
           ctx.config = config
 
-          await self.accountManager.loadNodeClient(config.namespace)
+          await this.accountManager.loadNodeClient(config.namespace)
 
-          self.logger.debug('Initialized config', { config })
+          this.logger.debug('Initialized config', { config })
         }
       },
       {
         title: 'get the account info',
         task: async (ctx) => {
-          self.accountInfo = await self.buildAccountInfo(await self.getAccountInfo(ctx), ctx.config.namespace, false)
-          this.logger.showJSON('account info', self.accountInfo)
+          this.accountInfo = await this.buildAccountInfo(await this.getAccountInfo(ctx), ctx.config.namespace, false)
+          this.logger.showJSON('account info', this.accountInfo)
         }
       }
     ], {
       concurrent: false,
+      // @ts-ignore
       rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
     })
 
@@ -451,32 +432,28 @@ export class AccountCommand extends BaseCommand {
     return true
   }
 
-  /**
-   * Return Yargs command definition for 'node' command
-   * @returns {{command: string, desc: string, builder: Function}}
-   */
-  getCommandDefinition () {
-    const accountCmd = this
+  /** Return Yargs command definition for 'node' command */
+  getCommandDefinition (): { command: string; desc: string; builder: Function } {
     return {
       command: 'account',
       desc: 'Manage Hedera accounts in solo network',
-      builder: yargs => {
+      builder: (yargs: any) => {
         return yargs
           .command({
             command: 'init',
             desc: 'Initialize system accounts with new keys',
-            builder: y => flags.setCommandFlags(y,
+            builder: (y: any) => flags.setCommandFlags(y,
               flags.namespace
             ),
-            handler: argv => {
-              accountCmd.logger.debug('==== Running \'account init\' ===')
-              accountCmd.logger.debug(argv)
+            handler: (argv: any) => {
+              this.logger.debug('==== Running \'account init\' ===')
+              this.logger.debug(argv)
 
-              accountCmd.init(argv).then(r => {
-                accountCmd.logger.debug('==== Finished running \'account init\' ===')
+              this.init(argv).then(r => {
+                this.logger.debug('==== Finished running \'account init\' ===')
                 if (!r) process.exit(1)
               }).catch(err => {
-                accountCmd.logger.showUserError(err)
+                this.logger.showUserError(err)
                 process.exit(1)
               })
             }
@@ -484,22 +461,22 @@ export class AccountCommand extends BaseCommand {
           .command({
             command: 'create',
             desc: 'Creates a new account with a new key and stores the key in the Kubernetes secrets',
-            builder: y => flags.setCommandFlags(y,
+            builder: (y: any) => flags.setCommandFlags(y,
               flags.amount,
               flags.ecdsaPrivateKey,
               flags.namespace,
               flags.privateKey,
               flags.setAlias
             ),
-            handler: argv => {
-              accountCmd.logger.debug("==== Running 'account create' ===")
-              accountCmd.logger.debug(argv)
+            handler: (argv: any) => {
+              this.logger.debug("==== Running 'account create' ===")
+              this.logger.debug(argv)
 
-              accountCmd.create(argv).then(r => {
-                accountCmd.logger.debug("==== Finished running 'account create' ===")
+              this.create(argv).then(r => {
+                this.logger.debug("==== Finished running 'account create' ===")
                 if (!r) process.exit(1)
               }).catch(err => {
-                accountCmd.logger.showUserError(err)
+                this.logger.showUserError(err)
                 process.exit(1)
               })
             }
@@ -507,21 +484,21 @@ export class AccountCommand extends BaseCommand {
           .command({
             command: 'update',
             desc: 'Updates an existing account with the provided info\n',
-            builder: y => flags.setCommandFlags(y,
+            builder: (y: any) => flags.setCommandFlags(y,
               flags.accountId,
               flags.amount,
               flags.namespace,
               flags.privateKey
             ),
-            handler: argv => {
-              accountCmd.logger.debug("==== Running 'account update' ===")
-              accountCmd.logger.debug(argv)
+            handler: (argv: any) => {
+              this.logger.debug("==== Running 'account update' ===")
+              this.logger.debug(argv)
 
-              accountCmd.update(argv).then(r => {
-                accountCmd.logger.debug("==== Finished running 'account update' ===")
+              this.update(argv).then(r => {
+                this.logger.debug("==== Finished running 'account update' ===")
                 if (!r) process.exit(1)
               }).catch(err => {
-                accountCmd.logger.showUserError(err)
+                this.logger.showUserError(err)
                 process.exit(1)
               })
             }
@@ -529,19 +506,19 @@ export class AccountCommand extends BaseCommand {
           .command({
             command: 'get',
             desc: 'Gets the account info including the current amount of HBAR',
-            builder: y => flags.setCommandFlags(y,
+            builder: (y: any) => flags.setCommandFlags(y,
               flags.accountId,
               flags.namespace
             ),
-            handler: argv => {
-              accountCmd.logger.debug("==== Running 'account get' ===")
-              accountCmd.logger.debug(argv)
+            handler: (argv: any) => {
+              this.logger.debug("==== Running 'account get' ===")
+              this.logger.debug(argv)
 
-              accountCmd.get(argv).then(r => {
-                accountCmd.logger.debug("==== Finished running 'account get' ===")
+              this.get(argv).then(r => {
+                this.logger.debug("==== Finished running 'account get' ===")
                 if (!r) process.exit(1)
               }).catch(err => {
-                accountCmd.logger.showUserError(err)
+                this.logger.showUserError(err)
                 process.exit(1)
               })
             }

@@ -14,20 +14,19 @@
  * limitations under the License.
  *
  */
-'use strict'
 
-export const NodeStatusCodes = {
-  NO_VALUE: 0,
-  STARTING_UP: 1,
-  ACTIVE: 2,
-  BEHIND: 4,
-  FREEZING: 5,
-  FREEZE_COMPLETE: 6,
-  REPLAYING_EVENTS: 7,
-  OBSERVING: 8,
-  CHECKING: 9,
-  RECONNECT_COMPLETE: 10,
-  CATASTROPHIC_FAILURE: 11
+export enum NodeStatusCodes {
+  NO_VALUE = 0,
+  STARTING_UP = 1,
+  ACTIVE = 2,
+  BEHIND = 4,
+  FREEZING = 5,
+  FREEZE_COMPLETE = 6,
+  REPLAYING_EVENTS = 7,
+  OBSERVING = 8,
+  CHECKING = 9,
+  RECONNECT_COMPLETE = 10,
+  CATASTROPHIC_FAILURE = 11
 }
 
 export const NodeStatusEnums = {

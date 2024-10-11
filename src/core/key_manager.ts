@@ -14,7 +14,6 @@
  * limitations under the License.
  *
  */
-'use strict'
 import * as x509 from '@peculiar/x509'
 import crypto from 'crypto'
 import fs from 'fs'
@@ -22,24 +21,24 @@ import path from 'path'
 import { SoloError, IllegalArgumentError, MissingArgumentError } from './errors'
 import { constants } from './index'
 import { SoloLogger } from './logging'
-import { Templates } from './templates'
+import {type NodeAlias, type NodeAliases, Templates} from './templates'
 import * as helpers from './helpers'
 import chalk from 'chalk'
 
+// @ts-ignore
 x509.cryptoProvider.set(crypto)
 
-/**
- * @typedef {Object} NodeKeyObject
- * @property {CryptoKey} privateKey
- * @property {x509.X509Certificate} certificate
- * @property {x509.X509Certificates} certificateChain
- */
+export interface NodeKeyObject {
+  privateKey: CryptoKey
+  certificate: x509.X509Certificate
+  certificateChain: x509.X509Certificates
+}
 
-/**
- * @typedef {Object} PrivateKeyAndCertificateObject
- * @property {string} privateKeyFile
- * @property {string} certificateFile
- */
+export interface PrivateKeyAndCertificateObject {
+  privateKeyFile: string
+  certificateFile: string
+}
+
 
 export class KeyManager {
   static SigningKeyAlgo = {
@@ -49,8 +48,7 @@ export class KeyManager {
     modulusLength: 3072
   }
 
-  /** @type {KeyUsage[]} */
-  static SigningKeyUsage = ['sign', 'verify']
+  static SigningKeyUsage: KeyUsage[] = ['sign', 'verify']
 
   static TLSKeyAlgo = {
     name: 'RSASSA-PKCS1-v1_5',
@@ -59,8 +57,7 @@ export class KeyManager {
     modulusLength: 4096
   }
 
-  /** @type {KeyUsage[]} */
-  static TLSKeyUsage = ['sign', 'verify']
+  static TLSKeyUsage: KeyUsage[] = ['sign', 'verify']
   static TLSCertKeyUsages =
     x509.KeyUsageFlags.digitalSignature |
     x509.KeyUsageFlags.keyEncipherment |
@@ -77,32 +74,24 @@ export class KeyManager {
     hash: 'SHA-384'
   }
 
-  /**
-   * @param {SoloLogger} logger
-   */
-  constructor (logger) {
+  constructor (private readonly logger: SoloLogger) {
     if (!logger || !(logger instanceof SoloLogger)) throw new MissingArgumentError('An instance of core/SoloLogger is required')
     this.logger = logger
   }
 
-  /**
-   * Convert CryptoKey into PEM string
-   * @param {CryptoKey} privateKey
-   * @returns {Promise<string>}
-   */
-  async convertPrivateKeyToPem (privateKey) {
+  /** Convert CryptoKey into PEM string */
+  async convertPrivateKeyToPem (privateKey: CryptoKey) {
     const ab = await crypto.subtle.exportKey('pkcs8', privateKey)
     return x509.PemConverter.encode(ab, 'PRIVATE KEY')
   }
 
   /**
    * Convert PEM private key into CryptoKey
-   * @param {string} pemStr - PEM string
-   * @param {*} algo - key algorithm
-   * @param {KeyUsage[]} [keyUsages]
-   * @returns {Promise<CryptoKey>}
+   * @param pemStr - PEM string
+   * @param algo - key algorithm
+   * @param [keyUsages]
    */
-  async convertPemToPrivateKey (pemStr, algo, keyUsages = ['sign']) {
+  async convertPemToPrivateKey (pemStr: string, algo: any, keyUsages: KeyUsage[] = ['sign']) {
     if (!algo) throw new MissingArgumentError('algo is required')
 
     const items = x509.PemConverter.decode(pemStr)
@@ -118,12 +107,11 @@ export class KeyManager {
 
   /**
    * Return file names for node key
-   * @param {NodeAlias} nodeAlias
-   * @param {string} keysDir - directory where keys and certs are stored
-   * @param {string} [keyPrefix] - key prefix such as constants.SIGNING_KEY_PREFIX
-   * @returns {PrivateKeyAndCertificateObject}
+   * @param nodeAlias
+   * @param keysDir - directory where keys and certs are stored
+   * @param [keyPrefix] - key prefix such as constants.SIGNING_KEY_PREFIX
    */
-  prepareNodeKeyFilePaths (nodeAlias, keysDir, keyPrefix = constants.SIGNING_KEY_PREFIX) {
+  prepareNodeKeyFilePaths (nodeAlias: NodeAlias, keysDir: string, keyPrefix: string = constants.SIGNING_KEY_PREFIX): PrivateKeyAndCertificateObject {
     if (!nodeAlias) throw new MissingArgumentError('nodeAlias is required')
     if (!keysDir) throw new MissingArgumentError('keysDir is required')
     if (!keyPrefix) throw new MissingArgumentError('keyPrefix is required')
@@ -139,11 +127,10 @@ export class KeyManager {
 
   /**
    * Return file names for TLS key
-   * @param {NodeAlias} nodeAlias
-   * @param {string} keysDir - directory where keys and certs are stored
-   * @returns {PrivateKeyAndCertificateObject}
+   * @param nodeAlias
+   * @param keysDir - directory where keys and certs are stored
    */
-  prepareTLSKeyFilePaths (nodeAlias, keysDir) {
+  prepareTLSKeyFilePaths (nodeAlias: NodeAlias, keysDir: string): PrivateKeyAndCertificateObject {
     if (!nodeAlias) throw new MissingArgumentError('nodeAlias is required')
     if (!keysDir) throw new MissingArgumentError('keysDir is required')
 
@@ -158,14 +145,15 @@ export class KeyManager {
 
   /**
    * Store node keys and certs as PEM files
-   * @param {NodeAlias} nodeAlias
-   * @param {NodeKeyObject} nodeKey
-   * @param {string} keysDir - directory where keys and certs are stored
-   * @param {PrivateKeyAndCertificateObject} nodeKeyFiles
-   * @param {string} [keyName] - optional key type name for logging
-   * @returns {Promise<PrivateKeyAndCertificateObject>} a Promise that saves the keys and certs as PEM files
+   * @param nodeAlias
+   * @param nodeKey
+   * @param keysDir - directory where keys and certs are stored
+   * @param nodeKeyFiles
+   * @param [keyName] - optional key type name for logging
+   * @returns a Promise that saves the keys and certs as PEM files
    */
-  async storeNodeKey (nodeAlias, nodeKey, keysDir, nodeKeyFiles, keyName = '') {
+  async storeNodeKey (nodeAlias: NodeAlias, nodeKey: NodeKeyObject, keysDir: string,
+    nodeKeyFiles: PrivateKeyAndCertificateObject, keyName = ''): Promise<PrivateKeyAndCertificateObject> {
     if (!nodeAlias) {
       throw new MissingArgumentError('nodeAlias is required')
     }
@@ -191,7 +179,7 @@ export class KeyManager {
     }
 
     const keyPem = await this.convertPrivateKeyToPem(nodeKey.privateKey)
-    const certPems = []
+    const certPems: string[] = []
     nodeKey.certificateChain.forEach(cert => {
       certPems.push(cert.toString('pem'))
     })
@@ -217,7 +205,7 @@ export class KeyManager {
         })
 
         resolve(nodeKeyFiles)
-      } catch (e) {
+      } catch (e: Error | any) {
         reject(e)
       }
     })
@@ -225,14 +213,15 @@ export class KeyManager {
 
   /**
    * Load node keys and certs from PEM files
-   * @param {NodeAlias} nodeAlias
-   * @param {string} keysDir - directory where keys and certs are stored
-   * @param {*} algo - algorithm used for key
-   * @param {{privateKeyFile: string, certificateFile: string}} nodeKeyFiles an object stores privateKeyFile and certificateFile
-   * @param {string} [keyName] - optional key type name for logging
-   * @returns {Promise<NodeKeyObject>}
+   * @param nodeAlias
+   * @param keysDir - directory where keys and certs are stored
+   * @param algo - algorithm used for key
+   * @param nodeKeyFiles an object stores privateKeyFile and certificateFile
+   * @param [keyName] - optional key type name for logging
+   * @returns
    */
-  async loadNodeKey (nodeAlias, keysDir, algo, nodeKeyFiles, keyName = '') {
+  async loadNodeKey (nodeAlias: NodeAlias, keysDir: string, algo: any, nodeKeyFiles: PrivateKeyAndCertificateObject,
+    keyName: string = ''): Promise<NodeKeyObject> {
     if (!nodeAlias) {
       throw new MissingArgumentError('nodeAlias is required')
     }
@@ -255,15 +244,14 @@ export class KeyManager {
 
     this.logger.debug(`Loading ${keyName}-keys for node: ${nodeAlias}`, { nodeKeyFiles })
 
-    const keyBytes = await fs.readFileSync(nodeKeyFiles.privateKeyFile)
+    const keyBytes = fs.readFileSync(nodeKeyFiles.privateKeyFile)
     const keyPem = keyBytes.toString()
     const key = await this.convertPemToPrivateKey(keyPem, algo)
 
-    const certBytes = await fs.readFileSync(nodeKeyFiles.certificateFile)
+    const certBytes = fs.readFileSync(nodeKeyFiles.certificateFile)
     const certPems = x509.PemConverter.decode(certBytes.toString())
 
-    /** @type {x509.X509Certificate[]} */
-    const certs = []
+    const certs: x509.X509Certificate[] = []
     certPems.forEach(certPem => {
       const cert = new x509.X509Certificate(certPem)
       certs.push(cert)
@@ -282,12 +270,8 @@ export class KeyManager {
     }
   }
 
-  /**
-   * Generate signing key and certificate
-   * @param {NodeAlias} nodeAlias
-   * @returns {Promise<NodeKeyObject>}
-   */
-  async generateSigningKey (nodeAlias) {
+  /** Generate signing key and certificate */
+  async generateSigningKey (nodeAlias: NodeAlias): Promise<NodeKeyObject> {
     try {
       const keyPrefix = constants.SIGNING_KEY_PREFIX
       const curDate = new Date()
@@ -304,6 +288,7 @@ export class KeyManager {
         serialNumber: '01',
         name: `CN=${friendlyName}`,
         notBefore: curDate,
+        // @ts-ignore
         notAfter: new Date().setFullYear(curDate.getFullYear() + constants.CERTIFICATE_VALIDITY_YEARS),
         keys: keypair,
         extensions: [
@@ -323,43 +308,41 @@ export class KeyManager {
         certificate: cert,
         certificateChain: certChain
       }
-    } catch (e) {
+    } catch (e: Error | any) {
       throw new SoloError(`failed to generate signing key: ${e.message}`, e)
     }
   }
 
   /**
    * Store signing key and certificate
-   * @param {NodeAlias} nodeAlias
-   * @param {NodeKeyObject} nodeKey - an object containing privateKeyPem, certificatePem data
-   * @param {string} keysDir - directory where keys and certs are stored
-   * @returns {Promise<*>} returns a Promise that saves the keys and certs as PEM files
+   * @param nodeAlias
+   * @param nodeKey - an object containing privateKeyPem, certificatePem data
+   * @param keysDir - directory where keys and certs are stored
+   * @returns returns a Promise that saves the keys and certs as PEM files
    */
-  storeSigningKey (nodeAlias, nodeKey, keysDir) {
+  storeSigningKey (nodeAlias: NodeAlias, nodeKey: NodeKeyObject, keysDir: string) {
     const nodeKeyFiles = this.prepareNodeKeyFilePaths(nodeAlias, keysDir, constants.SIGNING_KEY_PREFIX)
     return this.storeNodeKey(nodeAlias, nodeKey, keysDir, nodeKeyFiles, 'signing')
   }
 
   /**
    * Load signing key and certificate
-   * @param {NodeAlias} nodeAlias
-   * @param {string} keysDir - directory path where pem files are stored
-   * @returns {Promise<NodeKeyObject>}
+   * @param nodeAlias
+   * @param keysDir - directory path where pem files are stored
    */
-  loadSigningKey (nodeAlias, keysDir) {
+  loadSigningKey (nodeAlias: NodeAlias, keysDir: string) {
     const nodeKeyFiles = this.prepareNodeKeyFilePaths(nodeAlias, keysDir, constants.SIGNING_KEY_PREFIX)
     return this.loadNodeKey(nodeAlias, keysDir, KeyManager.SigningKeyAlgo, nodeKeyFiles, 'signing')
   }
 
   /**
    * Generate EC key and cert
-   *
-   * @param {NodeAlias} nodeAlias
-   * @param {string} keyPrefix - key prefix such as constants.SIGNING_KEY_PREFIX
-   * @param {NodeKeyObject} signingKey
-   * @returns {Promise<NodeKeyObject>} a dictionary object stores privateKey, certificate, certificateChain
+   * @param nodeAlias
+   * @param keyPrefix - key prefix such as constants.SIGNING_KEY_PREFIX
+   * @param signingKey
+   * @returns a dictionary object stores privateKey, certificate, certificateChain
    */
-  async ecKey (nodeAlias, keyPrefix, signingKey) {
+  async ecKey (nodeAlias: NodeAlias, keyPrefix: string, signingKey: NodeKeyObject): Promise<NodeKeyObject> {
     if (!nodeAlias) throw new MissingArgumentError('nodeAlias is required')
     if (!keyPrefix) throw new MissingArgumentError('keyPrefix is required')
     if (!signingKey) throw new MissingArgumentError('no signing key found')
@@ -380,6 +363,7 @@ export class KeyManager {
         issuer: signingKey.certificate.subject,
         serialNumber: '01',
         notBefore: curDate,
+        // @ts-ignore
         notAfter,
         extensions: [
           new x509.KeyUsagesExtension(
@@ -403,7 +387,7 @@ export class KeyManager {
         certificate: cert,
         certificateChain: certChain
       }
-    } catch (e) {
+    } catch (e: Error | any) {
       throw new SoloError(`failed to generate ${keyPrefix}-key: ${e.message}`, e)
     }
   }
@@ -415,11 +399,10 @@ export class KeyManager {
    *  hedera-<nodeAlias>.key
    *  hedera-<nodeAlias>.crt
    *
-   * @param {NodeAlias} nodeAlias
-   * @param {x509.Name} distinguishedName distinguished name as: new x509.Name(`CN=${nodeAlias},ST=${state},L=${locality},O=${org},OU=${orgUnit},C=${country}`)
-   * @returns {Promise<NodeKeyObject>}
+   * @param nodeAlias
+   * @param distinguishedName distinguished name as: new x509.Name(`CN=${nodeAlias},ST=${state},L=${locality},O=${org},OU=${orgUnit},C=${country}`)
    */
-  async generateGrpcTLSKey (nodeAlias, distinguishedName = new x509.Name(`CN=${nodeAlias}`)) {
+  async generateGrpcTLSKey (nodeAlias: NodeAlias, distinguishedName: x509.Name = new x509.Name(`CN=${nodeAlias}`)): Promise<NodeKeyObject> {
     if (!nodeAlias) throw new MissingArgumentError('nodeAlias is required')
     if (!distinguishedName) throw new MissingArgumentError('distinguishedName is required')
 
@@ -437,6 +420,7 @@ export class KeyManager {
         serialNumber: '01',
         name: distinguishedName,
         notBefore: curDate,
+        // @ts-ignore
         notAfter: new Date().setFullYear(curDate.getFullYear() + constants.CERTIFICATE_VALIDITY_YEARS),
         keys: keypair,
         extensions:
@@ -465,33 +449,27 @@ export class KeyManager {
 
   /**
    * Store TLS key and certificate
-   * @param {NodeAlias} nodeAlias
-   * @param {NodeKeyObject} nodeKey
-   * @param {string} keysDir - directory where keys and certs are stored
-   * @returns {Promise<PrivateKeyAndCertificateObject>} a Promise that saves the keys and certs as PEM files
+   * @param nodeAlias
+   * @param nodeKey
+   * @param keysDir - directory where keys and certs are stored
+   * @returns a Promise that saves the keys and certs as PEM files
    */
-  storeTLSKey (nodeAlias, nodeKey, keysDir) {
+  storeTLSKey (nodeAlias: NodeAlias, nodeKey: NodeKeyObject, keysDir: string) {
     const nodeKeyFiles = this.prepareTLSKeyFilePaths(nodeAlias, keysDir)
     return this.storeNodeKey(nodeAlias, nodeKey, keysDir, nodeKeyFiles, 'gRPC TLS')
   }
 
   /**
    * Load TLS key and certificate
-   * @param {NodeAlias} nodeAlias
-   * @param {string} keysDir - directory path where pem files are stored
-   * @returns {Promise<NodeKeyObject>}
+   * @param nodeAlias
+   * @param keysDir - directory path where pem files are stored
    */
-  loadTLSKey (nodeAlias, keysDir) {
+  loadTLSKey (nodeAlias: NodeAlias, keysDir: string) {
     const nodeKeyFiles = this.prepareTLSKeyFilePaths(nodeAlias, keysDir)
     return this.loadNodeKey(nodeAlias, keysDir, KeyManager.TLSKeyAlgo, nodeKeyFiles, 'gRPC TLS')
   }
 
-  /**
-   * @param {PrivateKeyAndCertificateObject} nodeKey
-   * @param {string} destDir
-   * @returns {Promise<void>}
-   */
-  copyNodeKeysToStaging (nodeKey, destDir) {
+  copyNodeKeysToStaging (nodeKey: PrivateKeyAndCertificateObject, destDir: string) {
     for (const keyFile of [nodeKey.privateKeyFile, nodeKey.certificateFile]) {
       if (!fs.existsSync(keyFile)) {
         throw new SoloError(`file (${keyFile}) is missing`)
@@ -502,13 +480,7 @@ export class KeyManager {
     }
   }
 
-  /**
-   * @param {string} keysDir
-   * @param {string} stagingKeysDir
-   * @param {NodeAliases} nodeAliases
-   * @returns {Promise<void>}
-   */
-  async copyGossipKeysToStaging (keysDir, stagingKeysDir, nodeAliases) {
+  async copyGossipKeysToStaging (keysDir: string, stagingKeysDir: string, nodeAliases: NodeAliases) {
     // copy gossip keys to the staging
     for (const nodeAlias of nodeAliases) {
       const signingKeyFiles = this.prepareNodeKeyFilePaths(nodeAlias, keysDir, constants.SIGNING_KEY_PREFIX)
@@ -521,14 +493,15 @@ export class KeyManager {
    *
    * WARNING: These tasks MUST run in sequence.
    *
-   * @param {NodeAliases} nodeAliases
-   * @param {string} keysDir - keys directory
-   * @param {Date} curDate - current date
-   * @param {NodeAliases|null} [allNodeAliases] - includes the nodeAliases to get new keys as well as existing nodeAliases that will be included in the public.pfx file
-   * @return {Object[]} a list of subtasks
-   * @public
+   * @param keytoolDepManager
+   * @param nodeAliases
+   * @param keysDir - keys directory
+   * @param curDate - current date
+   * @param [allNodeAliases] - includes the nodeAliases to get new keys as well as existing nodeAliases that will be included in the public.pfx file
+   * @return a list of subtasks
    */
-  taskGenerateGossipKeys (nodeAliases, keysDir, curDate = new Date(), allNodeAliases = null) {
+  taskGenerateGossipKeys (keytoolDepManager: KeytoolDependencyManager, nodeAliases: NodeAliases, keysDir: string,
+    curDate = new Date(), allNodeAliases: NodeAliases | null = null) {
     allNodeAliases = allNodeAliases || nodeAliases
     if (!Array.isArray(nodeAliases) || !nodeAliases.every((nodeAlias) => typeof nodeAlias === 'string')) {
       throw new IllegalArgumentError('nodeAliases must be an array of strings, nodeAliases = ' + JSON.stringify(nodeAliases))
@@ -560,13 +533,12 @@ export class KeyManager {
    *
    * WARNING: These tasks should run in sequence
    *
-   * @param {NodeAliases} nodeAliases
+   * @param nodeAliases
    * @param keysDir keys directory
    * @param curDate current date
    * @return return a list of subtasks
-   * @public
    */
-  taskGenerateTLSKeys (nodeAliases, keysDir, curDate = new Date()) {
+  taskGenerateTLSKeys (nodeAliases: NodeAliases, keysDir: string, curDate = new Date()) {
     // check if nodeAliases is an array of strings
     if (!Array.isArray(nodeAliases) || !nodeAliases.every((nodeAlias) => typeof nodeAlias === 'string')) {
       throw new SoloError('nodeAliases must be an array of strings')

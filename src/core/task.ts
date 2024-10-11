@@ -14,11 +14,8 @@
  * limitations under the License.
  *
  */
-
-'use strict'
-
 export class Task {
-  constructor (title, taskFunc) {
+  constructor (title: string, taskFunc: Function) {
     return {
       title,
       task: taskFunc

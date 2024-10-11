@@ -14,22 +14,16 @@
  * limitations under the License.
  *
  */
-'use strict'
-import { constants } from './index'
+
+import {constants, type Helm} from './index'
 import chalk from 'chalk'
 import { SoloError } from './errors'
+import { type SoloLogger} from "./logging";
 
 export class ChartManager {
-  /**
-   * @param {Helm} helm
-   * @param {SoloLogger} logger
-   */
-  constructor (helm, logger) {
+  constructor (private readonly helm: Helm, private readonly logger: SoloLogger) {
     if (!logger) throw new Error('An instance of core/SoloLogger is required')
     if (!helm) throw new Error('An instance of core/Helm is required')
-
-    this.logger = logger
-    this.helm = helm
   }
 
   /**
@@ -37,44 +31,33 @@ export class ChartManager {
    *
    * This must be invoked before calling other methods
    *
-   * @param {Map<string, string>} repoURLs - a map of name and chart repository URLs
-   * @param {boolean} force - whether or not to update the repo
-   * @returns {Promise<string[]>} - returns the urls
+   * @param repoURLs - a map of name and chart repository URLs
+   * @param force - whether or not to update the repo
+   * @returns the urls
    */
-  async setup (repoURLs = constants.DEFAULT_CHART_REPO, force = true) {
+  async setup (repoURLs: Map<string, string> = constants.DEFAULT_CHART_REPO, force = true) {
     try {
       const forceUpdateArg = force ? '--force-update' : ''
 
-      /** @type {Array<Promise<string>>} */
-      const promises = []
+      const promises: Promise<string>[] = []
       for (const [name, url] of repoURLs.entries()) {
         promises.push(this.addRepo(name, url, forceUpdateArg))
       }
 
       return await Promise.all(promises) // urls
-    } catch (e) {
+    } catch (e: Error | any) {
       throw new SoloError(`failed to setup chart repositories: ${e.message}`, e)
     }
   }
 
-  /**
-   * @param {string} name
-   * @param {string} url
-   * @param {string} forceUpdateArg
-   * @returns {Promise<string>}
-   */
-  async addRepo (name, url, forceUpdateArg) {
+  async addRepo (name: string, url: string, forceUpdateArg: string) {
     this.logger.debug(`Adding repo ${name} -> ${url}`, { repoName: name, repoURL: url })
     await this.helm.repo('add', name, url, forceUpdateArg)
     return url
   }
 
-  /**
-   * List available clusters
-   * @param {string} namespaceName
-   * @returns {Promise<string[]>}
-   */
-  async getInstalledCharts (namespaceName) {
+  /** List available clusters */
+  async getInstalledCharts (namespaceName: string) {
     try {
       return await this.helm.list(`-n ${namespaceName}`, '--no-headers | awk \'{print $1 " [" $9"]"}\'')
     } catch (e) {
@@ -84,15 +67,7 @@ export class ChartManager {
     return []
   }
 
-  /**
-   * @param {string} namespaceName
-   * @param {string} chartReleaseName
-   * @param {string} chartPath
-   * @param {string} version
-   * @param {string} valuesArg
-   * @returns {Promise<boolean>}
-   */
-  async install (namespaceName, chartReleaseName, chartPath, version, valuesArg = '') {
+  async install (namespaceName: string, chartReleaseName: string, chartPath: string, version: string, valuesArg = '') {
     try {
       const isInstalled = await this.isChartInstalled(namespaceName, chartReleaseName)
       if (!isInstalled) {
@@ -112,19 +87,14 @@ export class ChartManager {
       } else {
         this.logger.debug(`OK: chart is already installed:${chartReleaseName} (${chartPath})`)
       }
-    } catch (e) {
+    } catch (e: Error | any) {
       throw new SoloError(`failed to install chart ${chartReleaseName}: ${e.message}`, e)
     }
 
     return true
   }
 
-  /**
-   * @param {string} namespaceName
-   * @param {string} chartReleaseName
-   * @returns {Promise<boolean>}
-   */
-  async isChartInstalled (namespaceName, chartReleaseName) {
+  async isChartInstalled (namespaceName: string, chartReleaseName: string) {
     this.logger.debug(`> checking if chart is installed [ chart: ${chartReleaseName}, namespace: ${namespaceName} ]`)
     const charts = await this.getInstalledCharts(namespaceName)
     for (const item of charts) {
@@ -136,12 +106,7 @@ export class ChartManager {
     return false
   }
 
-  /**
-   * @param {string} namespaceName
-   * @param {string} chartReleaseName
-   * @returns {Promise<boolean>}
-   */
-  async uninstall (namespaceName, chartReleaseName) {
+  async uninstall (namespaceName: string, chartReleaseName: string) {
     try {
       const isInstalled = await this.isChartInstalled(namespaceName, chartReleaseName)
       if (isInstalled) {
@@ -151,32 +116,21 @@ export class ChartManager {
       } else {
         this.logger.debug(`OK: chart release is already uninstalled: ${chartReleaseName}`)
       }
-    } catch (e) {
+    } catch (e: Error | any) {
       throw new SoloError(`failed to uninstall chart ${chartReleaseName}: ${e.message}`, e)
     }
 
     return true
   }
 
-  /**
-   * @param {string} namespaceName
-   * @param {string} chartReleaseName
-   * @param {string} chartPath
-   * @param {string} valuesArg
-   * @param {string} version
-   * @returns {Promise<boolean>}
-   */
-  async upgrade (namespaceName, chartReleaseName, chartPath, valuesArg = '', version = '') {
-    let versionArg = ''
-    if (version) {
-      versionArg = `--version ${version}`
-    }
+  async upgrade (namespaceName: string, chartReleaseName: string, chartPath: string, valuesArg ='', version = '') {
+    let versionArg = version ? `--version ${version}` : ''
 
     try {
       this.logger.debug(chalk.cyan('> upgrading chart:'), chalk.yellow(`${chartReleaseName}`))
       await this.helm.upgrade(`-n ${namespaceName} ${chartReleaseName} ${chartPath} ${versionArg} --reuse-values ${valuesArg}`)
       this.logger.debug(chalk.green('OK'), `chart '${chartReleaseName}' is upgraded`)
-    } catch (e) {
+    } catch (e: Error | any) {
       throw new SoloError(`failed to upgrade chart ${chartReleaseName}: ${e.message}`, e)
     }
 

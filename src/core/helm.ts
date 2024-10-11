@@ -14,98 +14,90 @@
  * limitations under the License.
  *
  */
-'use strict'
 import os from 'os'
 import { constants } from './index'
 import { ShellRunner } from './shell_runner'
 import { Templates } from './templates'
 import { IllegalArgumentError } from './errors'
+import {SoloLogger} from "./logging";
 
 export class Helm extends ShellRunner {
-  /**
-   * @param {SoloLogger} logger
-   * @param {NodeJS.Platform} [osPlatform]
-   */
-  constructor (logger, osPlatform = os.platform()) {
+  private readonly helmPath: string;
+
+  constructor (logger: SoloLogger, private readonly osPlatform: NodeJS.Platform = os.platform()) {
     if (!logger) throw new IllegalArgumentError('an instance of core/SoloLogger is required', logger)
     super(logger)
-    this.osPlatform = osPlatform
     this.helmPath = Templates.installationPath(constants.HELM, this.osPlatform)
   }
 
   /**
-     * Prepare a `helm` shell command string
-     * @param {string} action - represents a helm command (e.g. create | install | get )
-     * @param {string} args - args of the command
-     * @returns {string}
-     */
-  prepareCommand (action, ...args) {
+  * Prepare a `helm` shell command string
+  * @param action - represents a helm command (e.g. create | install | get )
+  * @param args - args of the command
+  */
+  prepareCommand (action: string, ...args: string[]) {
     let cmd = `${this.helmPath} ${action}`
     args.forEach(arg => { cmd += ` ${arg}` })
     return cmd
   }
 
   /**
-     * Invoke `helm install` command
-     * @param {string} args - args of the command
-     * @returns {Promise<Array>} console output as an array of strings
-     */
-  install (...args) {
+  * Invoke `helm install` command
+  * @param args - args of the command
+  * @returns console output as an array of strings
+  */
+  install (...args: string[]) {
     return this.run(this.prepareCommand('install', ...args))
   }
 
   /**
-     * Invoke `helm uninstall` command
-     * @param {string} args - args of the command
-     * @returns {Promise<Array>} console output as an array of strings
-     */
-  uninstall (...args) {
+  * Invoke `helm uninstall` command
+  * @param args - args of the command
+  * @returns console output as an array of strings
+  */
+  uninstall (...args: string[]) {
     return this.run(this.prepareCommand('uninstall', ...args))
   }
 
   /**
-     * Invoke `helm upgrade` command
-     * @param {string} args - args of the command
-     * @returns {Promise<Array>} console output as an array of strings
-     */
-  upgrade (...args) {
+  * Invoke `helm upgrade` command
+  * @param args - args of the command
+  * @returns console output as an array of strings
+  */
+  upgrade (...args: string[]) {
     return this.run(this.prepareCommand('upgrade', ...args))
   }
 
   /**
-     * Invoke `helm list` command
-     * @param {string} args - args of the command
-     * @returns {Promise<Array>} console output as an array of strings
-     */
-  list (...args) {
+  * Invoke `helm list` command
+  * @param args - args of the command
+  * @returns console output as an array of strings
+  */
+  list (...args: string[]) {
     return this.run(this.prepareCommand('list', ...args))
   }
 
   /**
      * Invoke `helm dependency` command
-     * @param {string} subCommand - sub-command
-     * @param {string} args - args of the command
-     * @returns {Promise<Array>} console output as an array of strings
+     * @param subCommand - sub-command
+     * @param args - args of the command
+     * @returns console output as an array of strings
      */
-  dependency (subCommand, ...args) {
+  dependency (subCommand: string, ...args: string[]) {
     return this.run(this.prepareCommand('dependency', subCommand, ...args))
   }
 
   /**
      * Invoke `helm repo` command
-     * @param {string} subCommand - sub-command
-     * @param {string} args - args of the command
-     * @returns {Promise<Array>} console output as an array of strings
+     * @param subCommand - sub-command
+     * @param args - args of the command
+     * @returns console output as an array of strings
      */
-  repo (subCommand, ...args) {
+  repo (subCommand: string, ...args: string[]) {
     return this.run(this.prepareCommand('repo', subCommand, ...args))
   }
 
-  /**
-   * Get helm version
-   * @param {string[]} args
-   * @returns {Promise<Array>}
-   */
+  /** Get helm version */
   version (args = ['--short']) {
     return this.run(this.prepareCommand('version', ...args))
   }

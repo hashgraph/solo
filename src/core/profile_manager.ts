@@ -14,46 +14,45 @@
  * limitations under the License.
  *
  */
-'use strict'
 import fs from 'fs'
 import path from 'path'
 import { SoloError, IllegalArgumentError, MissingArgumentError } from './errors'
 import * as yaml from 'js-yaml'
 import { flags } from '../commands/index'
-import { constants, helpers, Templates } from './index'
+import {type ConfigManager, constants, helpers, Templates} from './index'
 import dot from 'dot-object'
 import { getNodeAccountMap } from './helpers'
 import * as semver from 'semver'
 import { readFile, writeFile } from 'fs/promises'
+import {type SoloLogger} from "./logging";
+import {NodeAlias, type NodeAliases} from "./templates";
+import {type SemVer} from 'semver'
 
 const consensusSidecars = [
   'recordStreamUploader', 'eventStreamUploader', 'backupUploader', 'accountBalanceUploader', 'otelCollector']
 
 export class ProfileManager {
-  /**
-   * @param {SoloLogger} logger
-   * @param {ConfigManager} configManager - an instance of core/ConfigManager
-   * @param {string} cacheDir - cache directory where the values file will be written. A yaml file named <profileName>.yaml is created.
-   */
-  constructor (logger, configManager, cacheDir = constants.SOLO_VALUES_DIR) {
+  private readonly logger: SoloLogger;
+  private readonly configManager: ConfigManager;
+  private readonly cacheDir: string;
+
+  private profiles: Map<string, Object>;
+  private profileFile: Record<string, Object> | undefined;
+
+  constructor (logger: SoloLogger, configManager: ConfigManager, cacheDir: string = constants.SOLO_VALUES_DIR) {
     if (!logger) throw new MissingArgumentError('An instance of core/SoloLogger is required')
     if (!configManager) throw new MissingArgumentError('An instance of core/ConfigManager is required')
 
     this.logger = logger
     this.configManager = configManager
 
-    /** @type {Map<string, Object>} */
     this.profiles = new Map()
 
     cacheDir = path.resolve(cacheDir)
     this.cacheDir = cacheDir
   }
 
-  /**
-   * @param {boolean} [forceReload]
-   * @returns {Map<string, Object>}
-   */
-  loadProfiles (forceReload = false) {
+  loadProfiles (forceReload: boolean = false): Map<string, Object> {
     const profileFile = this.configManager.getFlag(flags.profileFile)
     if (!profileFile) throw new MissingArgumentError('profileFile is required')
 
@@ -67,7 +66,7 @@ export class ProfileManager {
     // load profile file
     this.profiles = new Map()
     const yamlData = fs.readFileSync(profileFile, 'utf8')
-    const profileItems = yaml.load(yamlData)
+    const profileItems = yaml.load(yamlData) as Record<string, Object>
 
     // add profiles
     for (const key in profileItems) {
@@ -80,29 +79,24 @@ export class ProfileManager {
     return this.profiles
   }
 
-  /**
-   * @param {string} profileName
-   * @returns {Object}
-   */
-  getProfile (profileName) {
+  getProfile (profileName: string): Object {
     if (!profileName) throw new MissingArgumentError('profileName is required')
     if (!this.profiles || this.profiles.size <= 0) {
       this.loadProfiles()
     }
 
     if (!this.profiles || !this.profiles.has(profileName)) throw new IllegalArgumentError(`Profile does not exists with name: ${profileName}`)
-    return this.profiles.get(profileName)
+    return this.profiles.get(profileName) as Object
   }
 
   /**
    * Set value in the yaml object
-   * @param {string} itemPath - item path in the yaml
-   * @param {*} value - value to be set
-   * @param {Object} yamlRoot - root of the yaml object
-   * @returns {Object}
-   * @private
+   * @param itemPath - item path in the yaml
+   * @param value - value to be set
+   * @param yamlRoot - root of the yaml object
+   * @returns
    */
-  _setValue (itemPath, value, yamlRoot) {
+  _setValue (itemPath: string, value: any, yamlRoot: object): object {
     // find the location where to set the value in the yaml
     const itemPathParts = itemPath.split('.')
     let parent = yamlRoot
@@ -139,12 +133,12 @@ export class ProfileManager {
 
   /**
    * Set items for the chart
-   * @param {string} itemPath - item path in the yaml, if empty then root of the yaml object will be used
-   * @param {*} items - the element object
-   * @param {Object} yamlRoot - root of the yaml object to update
+   * @param itemPath - item path in the yaml, if empty then root of the yaml object will be used
+   * @param items - the element object
+   * @param yamlRoot - root of the yaml object to update
    * @private
    */
-  _setChartItems (itemPath, items, yamlRoot) {
+  _setChartItems (itemPath: string, items: any, yamlRoot: Object) {
     if (!items) return
 
     const dotItems = dot.dot(items)
@@ -165,13 +159,7 @@ export class ProfileManager {
     }
   }
 
-  /**
-   * @param {Object} profile
-   * @param {NodeAliases} nodeAliases
-   * @param {Object} yamlRoot
-   * @returns {Object}
-   */
-  resourcesForConsensusPod (profile, nodeAliases, yamlRoot) {
+  resourcesForConsensusPod (profile: any, nodeAliases: NodeAliases, yamlRoot: Object): Object {
     if (!profile) throw new MissingArgumentError('profile is required')
 
     const accountMap = getNodeAccountMap(nodeAliases)
@@ -235,46 +223,26 @@ export class ProfileManager {
     return yamlRoot
   }
 
-  /**
-   * @param {Object} profile
-   * @param {Object} yamlRoot
-   * @returns {void}
-   */
-  resourcesForHaProxyPod (profile, yamlRoot) {
+  resourcesForHaProxyPod (profile: any, yamlRoot: Object) {
     if (!profile) throw new MissingArgumentError('profile is required')
     if (!profile.haproxy) return // use chart defaults
 
     return this._setChartItems('defaults.haproxy', profile.haproxy, yamlRoot)
   }
 
-  /**
-   * @param {Object} profile
-   * @param {Object} yamlRoot
-   * @returns {void}
-   */
-  resourcesForEnvoyProxyPod (profile, yamlRoot) {
+  resourcesForEnvoyProxyPod (profile: any, yamlRoot: Object) {
     if (!profile) throw new MissingArgumentError('profile is required')
     if (!profile.envoyProxy) return // use chart defaults
     return this._setChartItems('defaults.envoyProxy', profile.envoyProxy, yamlRoot)
   }
 
-  /**
-   * @param {Object} profile
-   * @param {Object} yamlRoot
-   * @returns {void}
-   */
-  resourcesForHederaExplorerPod (profile, yamlRoot) {
+  resourcesForHederaExplorerPod (profile: any, yamlRoot: Object) {
     if (!profile) throw new MissingArgumentError('profile is required')
     if (!profile.explorer) return
     return this._setChartItems('hedera-explorer', profile.explorer, yamlRoot)
   }
 
-  /**
-   * @param {Object} profile
-   * @param {Object} yamlRoot
-   * @returns {Object}
-   */
-  resourcesForMinioTenantPod (profile, yamlRoot) {
+  resourcesForMinioTenantPod (profile: any, yamlRoot: Object) {
     if (!profile) throw new MissingArgumentError('profile is required')
     if (!profile.minio || !profile.minio.tenant) return // use chart defaults
 
@@ -294,10 +262,10 @@ export class ProfileManager {
 
   /**
    * Prepare a values file for Solo Helm chart
-   * @param {string} profileName resource profile name
-   * @returns {Promise<string>} return the full path to the values file
+   * @param profileName resource profile name
+   * @returns return the full path to the values file
    */
-  prepareValuesForSoloChart (profileName) {
+  prepareValuesForSoloChart (profileName: string) {
     if (!profileName) throw new MissingArgumentError('profileName is required')
     const profile = this.getProfile(profileName)
 
@@ -313,7 +281,7 @@ export class ProfileManager {
 
     // write the yaml
     const cachedValuesFile = path.join(this.cacheDir, `solo-${profileName}.yaml`)
-    return new Promise((resolve, reject) => {
+    return new Promise<string>((resolve, reject) => {
       fs.writeFile(cachedValuesFile, yaml.dump(yamlRoot), (err) => {
         if (err) {
           reject(err)
@@ -324,11 +292,7 @@ export class ProfileManager {
     })
   }
 
-  /**
-   * @param {PathLike|FileHandle} applicationPropertiesPath
-   * @returns {Promise<void>}
-   */
-  async bumpHederaConfigVersion (applicationPropertiesPath) {
+  async bumpHederaConfigVersion (applicationPropertiesPath: string) {
     const lines = (await readFile(applicationPropertiesPath, 'utf-8')).split('\n')
 
     for (const line of lines) {
@@ -342,12 +306,7 @@ export class ProfileManager {
     await writeFile(applicationPropertiesPath, lines.join('\n'))
   }
 
-  /**
-   * @param {string} configTxtPath
-   * @param {string} applicationPropertiesPath
-   * @returns {Promise<string>}
-   */
-  async prepareValuesForNodeAdd (configTxtPath, applicationPropertiesPath) {
+  async prepareValuesForNodeAdd (configTxtPath: string, applicationPropertiesPath: string) {
     const yamlRoot = {}
     this._setFileContentsAsValue('hedera.configMaps.configTxt', configTxtPath, yamlRoot)
     await this.bumpHederaConfigVersion(applicationPropertiesPath)
@@ -355,7 +314,7 @@ export class ProfileManager {
 
     // write the yaml
     const cachedValuesFile = path.join(this.cacheDir, 'solo-node-add.yaml')
-    return new Promise((resolve, reject) => {
+    return new Promise<string>((resolve, reject) => {
       fs.writeFile(cachedValuesFile, yaml.dump(yamlRoot), (err) => {
         if (err) {
           reject(err)
@@ -368,12 +327,12 @@ export class ProfileManager {
 
   /**
    * Prepare a values file for rpc-relay Helm chart
-   * @param {string} profileName - resource profile name
-   * @returns {Promise<string|void>} return the full path to the values file
+   * @param profileName - resource profile name
+   * @returns return the full path to the values file
    */
-  prepareValuesForRpcRelayChart (profileName) {
+  prepareValuesForRpcRelayChart (profileName: string) {
     if (!profileName) throw new MissingArgumentError('profileName is required')
-    const profile = this.getProfile(profileName)
+    const profile = this.getProfile(profileName) as any
     if (!profile.rpcRelay) return Promise.resolve()// use chart defaults
 
     // generate the yaml
@@ -382,7 +341,7 @@ export class ProfileManager {
 
     // write the yaml
     const cachedValuesFile = path.join(this.cacheDir, `rpcRelay-${profileName}.yaml`)
-    return new Promise((resolve, reject) => {
+    return new Promise<string>((resolve, reject) => {
       fs.writeFile(cachedValuesFile, yaml.dump(yamlRoot), (err) => {
         if (err) {
           reject(err)
@@ -395,12 +354,12 @@ export class ProfileManager {
 
   /**
    * Prepare a values file for mirror-node Helm chart
-   * @param {string} profileName - resource profile name
-   * @returns {Promise<string|void>} return the full path to the values file
+   * @param profileName - resource profile name
+   * @returns return the full path to the values file
    */
-  prepareValuesForMirrorNodeChart (profileName) {
+  prepareValuesForMirrorNodeChart (profileName: string): Promise<string | void> {
     if (!profileName) throw new MissingArgumentError('profileName is required')
-    const profile = this.getProfile(profileName)
+    const profile = this.getProfile(profileName) as any
     if (!profile.mirror) return Promise.resolve() // use chart defaults
 
     // generate the yaml
@@ -422,7 +381,7 @@ export class ProfileManager {
 
     // write the yaml
     const cachedValuesFile = path.join(this.cacheDir, `mirror-${profileName}.yaml`)
-    return new Promise((resolve, reject) => {
+    return new Promise<string>((resolve, reject) => {
       fs.writeFile(cachedValuesFile, yaml.dump(yamlRoot), (err) => {
         if (err) {
           reject(err)
@@ -435,27 +394,26 @@ export class ProfileManager {
 
   /**
    * Writes the contents of a file as a value for the given nested item path in the yaml object
-   * @param {string} itemPath - nested item path in the yaml object to store the file contents
-   * @param {string} valueFilePath - path to the file whose contents will be stored in the yaml object
-   * @param {Object} yamlRoot - root of the yaml object
-   * @private
+   * @param itemPath - nested item path in the yaml object to store the file contents
+   * @param valueFilePath - path to the file whose contents will be stored in the yaml object
+   * @param yamlRoot - root of the yaml object
    */
-  _setFileContentsAsValue (itemPath, valueFilePath, yamlRoot) {
+  private _setFileContentsAsValue (itemPath: string, valueFilePath: string, yamlRoot: object) {
     const fileContents = fs.readFileSync(valueFilePath, 'utf8')
     this._setValue(itemPath, fileContents, yamlRoot)
   }
 
   /**
    * Prepares config.txt file for the node
-   * @param {string} namespace - namespace where the network is deployed
-   * @param {Map<NodeAlias, string>} nodeAccountMap - the map of node aliases to account IDs
-   * @param {string} destPath - path to the destination directory to write the config.txt file
-   * @param {string} releaseTag - release tag e.g. v0.42.0
-   * @param {string} [appName] - the app name (default: HederaNode.jar)
-   * @param {string} [chainId] - chain ID (298 for local network)
-   * @returns {string} the config.txt file path
+   * @param namespace - namespace where the network is deployed
+   * @param nodeAccountMap - the map of node aliases to account IDs
+   * @param destPath - path to the destination directory to write the config.txt file
+   * @param releaseTag - release tag e.g. v0.42.0
+   * @param [appName] - the app name (default: HederaNode.jar)
+   * @param [chainId] - chain ID (298 for local network)
+   * @returns the config.txt file path
    */
-  prepareConfigTxt (namespace, nodeAccountMap, destPath, releaseTag, appName = constants.HEDERA_APP_NAME, chainId = constants.HEDERA_CHAIN_ID) {
+  prepareConfigTxt (namespace: string, nodeAccountMap: Map<NodeAlias, string>, destPath: string, releaseTag: string, appName = constants.HEDERA_APP_NAME, chainId = constants.HEDERA_CHAIN_ID) {
     if (!nodeAccountMap || nodeAccountMap.size === 0) throw new MissingArgumentError('nodeAccountMap the map of node IDs to account IDs is required')
     if (!releaseTag) throw new MissingArgumentError('release tag is required')
 
@@ -466,11 +424,11 @@ export class ProfileManager {
     const externalPort = constants.HEDERA_NODE_EXTERNAL_GOSSIP_PORT
     const nodeStakeAmount = constants.HEDERA_NODE_DEFAULT_STAKE_AMOUNT
 
-    const releaseVersion = semver.parse(releaseTag, { includePrerelease: true })
+    // @ts-ignore
+    const releaseVersion = semver.parse(releaseTag, { includePrerelease: true }) as SemVer
 
     try {
-      /** @type {string[]} */
-      const configLines = []
+      const configLines: string[] = []
       configLines.push(`swirld, ${chainId}`)
       configLines.push(`app, ${appName}`)
 

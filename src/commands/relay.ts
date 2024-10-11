@@ -14,7 +14,7 @@
  * limitations under the License.
  *
  */
-'use strict'
+
 import { Listr } from 'listr2'
 import { SoloError, MissingArgumentError } from '../core/errors'
 import * as helpers from '../core/helpers'

@@ -14,101 +14,76 @@
  * limitations under the License.
  *
  */
-'use strict'
 import fs from 'fs'
 import os from 'os'
-import path from 'path'
+import path, * as paths from 'path'
 import util from 'util'
-import { SoloError } from './errors'
-import * as paths from 'path'
-import { fileURLToPath } from 'url'
+import {SoloError} from './errors'
+import {fileURLToPath} from 'url'
 import * as semver from 'semver'
-import { Templates } from './templates'
-import { HEDERA_HAPI_PATH, ROOT_CONTAINER, SOLO_LOGS_DIR } from './constants'
-import { constants } from './index'
-import { FileContentsQuery, FileId, PrivateKey, ServiceEndpoint } from '@hashgraph/sdk'
-import { Listr } from 'listr2'
+import {NodeAlias, NodeAliases, Templates} from './templates'
+import {HEDERA_HAPI_PATH, ROOT_CONTAINER, SOLO_LOGS_DIR} from './constants'
+import {constants, type K8} from './index'
+import {FileContentsQuery, FileId, PrivateKey, ServiceEndpoint} from '@hashgraph/sdk'
+import {Listr} from 'listr2'
 import * as yaml from 'js-yaml'
+import {type AccountManager} from "./account_manager";
+import {type BaseCommand} from "../commands/base";
+import {CommandFlag} from "../commands/flags";
 
 // cache current directory
 const CUR_FILE_DIR = paths.dirname(fileURLToPath(import.meta.url))
 
-/**
- * @param {number} ms
- * @returns {Promise<void>}
- */
-export function sleep (ms) {
-  return new Promise((resolve) => {
-    setTimeout(resolve, ms)
-  })
+export function sleep (ms: number) {
+  return new Promise<void>((resolve) => setTimeout(resolve, ms))
 }
 
-/**
- * @param {string} input
- * @returns {NodeAliases}
- */
-export function parseNodeAliases (input) {
+export function parseNodeAliases (input: string): NodeAliases {
   return splitFlagInput(input, ',')
 }
 
-/**
- * @param {string} input
- * @param {string} separator
- * @returns {string[]}
- */
-export function splitFlagInput (input, separator = ',') {
-  if (typeof input === 'string') {
-    const items = []
-    input.split(separator).forEach(s => {
-      const item = s.trim()
-      if (s) {
-        items.push(item)
-      }
-    })
-
-    return items
+export function splitFlagInput (input: string, separator: string = ',') {
+  if (typeof input !== 'string') {
+    throw new SoloError('input is not a comma separated string')
   }
 
-  throw new SoloError('input is not a comma separated string')
+  return input
+    .split(separator)
+    .map(s => s.trim())
+    .filter(Boolean)
 }
 
 /**
  * @template T
- * @param {T[]} arr - The array to be cloned
- * @returns {T[]} A new array with the same elements as the input array
+ * @param arr - The array to be cloned
+ * @returns a new array with the same elements as the input array
  */
-export function cloneArray (arr) {
+export function cloneArray <T>(arr: T[]): T[] {
   return JSON.parse(JSON.stringify(arr))
 }
 
-/**
- * load package.json
- * @returns {*}
- */
-export function loadPackageJSON () {
+/** load package.json */
+export function loadPackageJSON (): any {
   try {
     const raw = fs.readFileSync(path.join(CUR_FILE_DIR, '..', '..', 'package.json'))
     return JSON.parse(raw.toString())
-  } catch (e) {
+  } catch (e: Error | any) {
     throw new SoloError('failed to load package.json', e)
   }
 }
 
-/**
- * @returns {string}
- */
-export function packageVersion () {
+export function packageVersion (): string {
   const packageJson = loadPackageJSON()
   return packageJson.version
 }
 
 /**
  * Return the required root image for a platform version
- * @param {string} releaseTag - platform version
- * @returns {string}
+ * @param releaseTag - platform version
  */
-export function getRootImageRepository (releaseTag) {
-  const releaseVersion = semver.parse(releaseTag, { includePrerelease: true })
+export function getRootImageRepository (releaseTag: string): string {
+  // @ts-ignore
+  const releaseVersion = semver.parse(releaseTag, { includePrerelease: true }) as Semver
   if (releaseVersion.minor < 46) {
     return 'hashgraph/solo-containers/ubi8-init-java17'
   }
@@ -116,20 +91,11 @@ export function getRootImageRepository (releaseTag) {
   return 'hashgraph/solo-containers/ubi8-init-java21'
 }
 
-/**
- * @returns {string}
- */
 export function getTmpDir () {
   return fs.mkdtempSync(path.join(os.tmpdir(), 'solo-'))
 }
 
-/**
- * @param {string} destDir
- * @param {string} prefix
- * @param {Date} curDate
- * @returns {string}
- */
-export function createBackupDir (destDir, prefix = 'backup', curDate = new Date()) {
+export function createBackupDir (destDir: string, prefix = 'backup', curDate = new Date()) {
   const dateDir = util.format('%s%s%s_%s%s%s',
     curDate.getFullYear(),
     curDate.getMonth().toString().padStart(2, '0'),
@@ -147,11 +113,7 @@ export function createBackupDir (destDir, prefix = 'backup', curDate = new Date(
   return backupDir
 }
 
-/**
- * @param {Map<string, string>} [fileMap]
- * @param {boolean} removeOld
- */
-export function makeBackup (fileMap = new Map(), removeOld = true) {
+export function makeBackup (fileMap: Map<string, string> = new Map(), removeOld = true) {
   for (const entry of fileMap) {
     const srcPath = entry[0]
     const destPath = entry[1]
@@ -164,18 +126,10 @@ export function makeBackup (fileMap = new Map(), removeOld = true) {
   }
 }
 
-/**
- * @param {NodeAliases} nodeAliases
- * @param {string} keysDir
- * @param {Date} curDate
- * @param {string} dirPrefix
- * @returns {string}
- */
-export function backupOldTlsKeys (nodeAliases, keysDir, curDate = new Date(), dirPrefix = 'tls') {
+export function backupOldTlsKeys (nodeAliases: NodeAliases, keysDir: string, curDate = new Date(), dirPrefix = 'tls') {
   const backupDir = createBackupDir(keysDir, `unused-${dirPrefix}`, curDate)
 
-  /** @type {Map<string, string>} */
-  const fileMap = new Map()
+  const fileMap: Map<string, string> = new Map()
   for (const nodeAlias of nodeAliases) {
     const srcPath = path.join(keysDir, Templates.renderTLSPemPrivateKeyFile(nodeAlias))
     const destPath = path.join(backupDir, Templates.renderTLSPemPrivateKeyFile(nodeAlias))
@@ -187,20 +141,14 @@ export function backupOldTlsKeys (nodeAliases, keysDir, curDate = new Date(), di
   return backupDir
 }
 
-/**
- * @param {NodeAliases} nodeAliases
- * @param {string} keysDir
- * @param {Date} curDate
- * @param {string} dirPrefix
- * @returns {string}
- */
-export function backupOldPemKeys (nodeAliases, keysDir, curDate = new Date(), dirPrefix = 'gossip-pem') {
+export function backupOldPemKeys (nodeAliases: NodeAliases, keysDir: string, curDate = new Date(), dirPrefix = 'gossip-pem') {
   const backupDir = createBackupDir(keysDir, `unused-${dirPrefix}`, curDate)
 
-  /** @type {Map<string, string>} */
-  const fileMap = new Map()
+  const fileMap: Map<string, string> = new Map()
   for (const nodeAlias of nodeAliases) {
+    // @ts-ignore
     const srcPath = path.join(keysDir, Templates.renderGossipPemPrivateKeyFile(nodeAlias)) // TODO review
+    // @ts-ignore
     const destPath = path.join(backupDir, Templates.renderGossipPemPrivateKeyFile(nodeAlias)) // TODO review
     fileMap.set(srcPath, destPath)
   }
@@ -210,22 +158,18 @@ export function backupOldPemKeys (nodeAliases, keysDir, curDate = new Date(), di
   return backupDir
 }
 
-/**
- * @param {string} str
- * @returns {boolean}
- */
-export function isNumeric (str) {
+export function isNumeric (str: string) {
   if (typeof str !== 'string') return false // we only process strings!
-  return !isNaN(str) && // use type coercion to parse the _entirety_ of the string (`parseFloat` alone does not do this)...
+  return !isNaN(str as any) && // use type coercion to parse the _entirety_ of the string (`parseFloat` alone does not do this)...
     !isNaN(parseFloat(str)) // ...and ensure strings of whitespace fail
 }
 
 /**
  * Validate a path provided by the user to prevent path traversal attacks
- * @param {string} input - the input provided by the user
- * @returns {string} a validated path
+ * @param input - the input provided by the user
+ * @returns a validated path
  */
-export function validatePath (input) {
+export function validatePath (input: string) {
   if (input.indexOf('\0') !== -1) {
     throw new SoloError(`access denied for path: ${input}`)
   }
@@ -234,19 +178,18 @@ export function validatePath (input) {
 
 /**
  * Download logs files from all network pods and save to local solo log directory
- *    an instance of core/K8
- * @param {K8} k8 - an instance of core/K8
- * @param {string} namespace - the namespace of the network
- * @returns {Promise<void>} A promise that resolves when the logs are downloaded
+ * @param k8 - an instance of core/K8
+ * @param namespace - the namespace of the network
+ * @returns a promise that resolves when the logs are downloaded
  */
-export async function getNodeLogs (k8, namespace) {
+export async function getNodeLogs (k8: K8, namespace: string) {
   k8.logger.debug('getNodeLogs: begin...')
   const pods = await k8.getPodsByLabel(['solo.hedera.com/type=network-node'])
 
   const timeString = new Date().toISOString().replace(/:/g, '-').replace(/\./g, '-')
 
   for (const pod of pods) {
-    const podName = pod.metadata.name
+    const podName = pod.metadata!.name as string
     const targetDir = path.join(SOLO_LOGS_DIR, namespace, timeString)
     try {
       if (!fs.existsSync(targetDir)) {
@@ -269,11 +212,11 @@ export async function getNodeLogs (k8, namespace) {
 
 /**
  * Create a map of node aliases to account IDs
- * @param {NodeAliases} nodeAliases
- * @returns {Map<NodeAlias, string>} the map of node IDs to account IDs
+ * @param nodeAliases
+ * @returns the map of node IDs to account IDs
  */
-export function getNodeAccountMap (nodeAliases) {
-  const accountMap = /** @type {Map<string,string>} **/ new Map()
+export function getNodeAccountMap (nodeAliases: NodeAliases) {
+  const accountMap: Map<NodeAlias, string> = new Map()
   const realm = constants.HEDERA_NODE_ACCOUNT_ID_START.realm
   const shard = constants.HEDERA_NODE_ACCOUNT_ID_START.shard
   let accountId = constants.HEDERA_NODE_ACCOUNT_ID_START.num
@@ -285,13 +228,7 @@ export function getNodeAccountMap (nodeAliases) {
   return accountMap
 }
 
-/**
- * @param {AccountManager} accountManager
- * @param {string} namespace
- * @param {number} fileNum
- * @returns {Promise<string>}
- */
-export async function getFileContents (accountManager, namespace, fileNum) {
+export async function getFileContents (accountManager: AccountManager, namespace: string, fileNum: number) {
   await accountManager.loadNodeClient(namespace)
   const client = accountManager._nodeClient
   const fileId = FileId.fromString(`0.0.${fileNum}`)
@@ -299,21 +236,12 @@ export async function getFileContents (accountManager, namespace, fileNum) {
   return Buffer.from(await queryFees.execute(client)).toString('hex')
 }
 
-/**
- * @param {Array} envVarArray
- * @param {string} name
- * @returns {string|null}
- */
-export function getEnvValue (envVarArray, name) {
+export function getEnvValue (envVarArray: Array<string>, name: string) {
   const kvPair = envVarArray.find(v => v.startsWith(`${name}=`))
   return kvPair ? kvPair.split('=')[1] : null
 }
 
-/**
- * @param {string} ipAddress
- * @returns {Uint8Array}
- */
-export function parseIpAddressToUint8Array (ipAddress) {
+export function parseIpAddressToUint8Array (ipAddress: string) {
   const parts = ipAddress.split('.')
   const uint8Array = new Uint8Array(4)
 
@@ -324,13 +252,8 @@ export function parseIpAddressToUint8Array (ipAddress) {
   return uint8Array
 }
 
-/**
- * If the basename of the src did not match expected basename, rename it first, then copy to destination
- * @param srcFilePath
- * @param expectedBaseName
- * @param destDir
- */
-export function renameAndCopyFile (srcFilePath, expectedBaseName, destDir) {
+/** If the basename of the src did not match expected basename, rename it first, then copy to destination */
+export function renameAndCopyFile (this: any, srcFilePath: string, expectedBaseName: string, destDir: string) {
   const srcDir = path.dirname(srcFilePath)
   if (path.basename(srcFilePath) !== expectedBaseName) {
     fs.renameSync(srcFilePath, path.join(srcDir, expectedBaseName))
@@ -338,7 +261,7 @@ export function renameAndCopyFile (srcFilePath, expectedBaseName, destDir) {
   // copy public key and private key to key directory
   fs.copyFile(path.join(srcDir, expectedBaseName), path.join(destDir, expectedBaseName), (err) => {
     if (err) {
-      self.logger.error(`Error copying file: ${err.message}`)
+      this.logger.error(`Error copying file: ${err.message}`)
       throw new SoloError(`Error copying file: ${err.message}`)
     }
   })
@@ -347,11 +270,11 @@ export function renameAndCopyFile (srcFilePath, expectedBaseName, destDir) {
 /**
  * Add debug options to valuesArg used by helm chart
  * @param valuesArg the valuesArg to update
- * @param {NodeAlias} debugNodeAlias the node ID to attach the debugger to
+ * @param debugNodeAlias the node ID to attach the debugger to
  * @param index the index of extraEnv to add the debug options to
  * @returns updated valuesArg
  */
-export function addDebugOptions (valuesArg, debugNodeAlias, index = 0) {
+export function addDebugOptions (valuesArg: string, debugNodeAlias: NodeAlias, index = 0) {
   if (debugNodeAlias) {
     const nodeId = Templates.nodeIdFromNodeAlias(debugNodeAlias) - 1
     valuesArg += ` --set "hedera.nodes[${nodeId}].root.extraEnv[${index}].name=JAVA_OPTS"`
@@ -366,8 +289,8 @@ export function addDebugOptions (valuesArg, debugNodeAlias, index = 0) {
  * @param ctx
  * @returns file writable object
  */
-export function addSaveContextParser (ctx) {
-  const exportedCtx = {}
+export function addSaveContextParser (ctx: any) {
+  const exportedCtx = {} as Record<string, string>
 
   const config = /** @type {NodeAddConfigClass} **/ ctx.config
   const exportedFields = [
@@ -377,8 +300,8 @@ export function addSaveContextParser (ctx) {
   ]
 
   exportedCtx.signingCertDer = ctx.signingCertDer.toString()
-  exportedCtx.gossipEndpoints = ctx.gossipEndpoints.map(ep => `${ep.getDomainName}:${ep.getPort}`)
-  exportedCtx.grpcServiceEndpoints = ctx.grpcServiceEndpoints.map(ep => `${ep.getDomainName}:${ep.getPort}`)
+  exportedCtx.gossipEndpoints = ctx.gossipEndpoints.map((ep: any) => `${ep.getDomainName}:${ep.getPort}`)
+  exportedCtx.grpcServiceEndpoints = ctx.grpcServiceEndpoints.map((ep: any) => `${ep.getDomainName}:${ep.getPort}`)
   exportedCtx.adminKey = ctx.adminKey.toString()
   exportedCtx.existingNodeAliases = config.existingNodeAliases
 
@@ -395,8 +318,8 @@ export function addSaveContextParser (ctx) {
  * @param ctxData - data in string format
  * @returns file writable object
  */
-export function addLoadContextParser (ctx, ctxData) {
-  const config = /** @type {NodeAddConfigClass} **/ ctx.config
+export function addLoadContextParser (ctx: any, ctxData: any) {
+  const config: NodeAddConfigClass =  ctx.config
   ctx.signingCertDer = new Uint8Array(ctxData.signingCertDer.split(','))
   ctx.gossipEndpoints = prepareEndpoints(ctx.config.endpointType, ctxData.gossipEndpoints, constants.HEDERA_NODE_INTERNAL_GOSSIP_PORT)
   ctx.grpcServiceEndpoints = prepareEndpoints(ctx.config.endpointType, ctxData.grpcServiceEndpoints, constants.HEDERA_NODE_EXTERNAL_GOSSIP_PORT)
@@ -422,8 +345,8 @@ export function addLoadContextParser (ctx, ctxData) {
  * @param ctx - accumulator object
  * @returns file writable object
  */
-export function deleteSaveContextParser (ctx) {
-  const exportedCtx = {}
+export function deleteSaveContextParser (ctx: any) {
+  const exportedCtx = {} as Record<string, string>
 
   const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
   exportedCtx.adminKey = config.adminKey.toString()
@@ -440,7 +363,7 @@ export function deleteSaveContextParser (ctx) {
  * @param ctxData - data in string format
  * @returns file writable object
  */
-export function deleteLoadContextParser (ctx, ctxData) {
+export function deleteLoadContextParser (ctx: any, ctxData: any) {
   const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
   config.adminKey = PrivateKey.fromStringED25519(ctxData.adminKey)
   config.existingNodeAliases = ctxData.existingNodeAliases
@@ -449,14 +372,8 @@ export function deleteLoadContextParser (ctx, ctxData) {
   config.podNames = {}
 }
 
-/**
- * @param {string} endpointType
- * @param {string[]} endpoints
- * @param {number} defaultPort
- * @returns {ServiceEndpoint[]}
- */
-export function prepareEndpoints (endpointType, endpoints, defaultPort) {
-  const ret = /** @typedef ServiceEndpoint **/[]
+export function prepareEndpoints (endpointType: string, endpoints: string[], defaultPort: number | string) {
+  const ret: ServiceEndpoint[] = []
   for (const endpoint of endpoints) {
     const parts = endpoint.split(':')
 
@@ -465,7 +382,7 @@ export function prepareEndpoints (endpointType, endpoints, defaultPort) {
 
     if (parts.length === 2) {
       url = parts[0].trim()
-      port = parts[1].trim()
+      port = +parts[1].trim()
     } else if (parts.length === 1) {
       url = parts[0]
     } else {
@@ -474,11 +391,13 @@ export function prepareEndpoints (endpointType, endpoints, defaultPort) {
 
     if (endpointType.toUpperCase() === constants.ENDPOINT_TYPE_IP) {
       ret.push(new ServiceEndpoint({
+        // @ts-ignore
         port,
         ipAddressV4: parseIpAddressToUint8Array(url)
       }))
     } else {
       ret.push(new ServiceEndpoint({
+        // @ts-ignore
         port,
         domainName: url
       }))
@@ -488,20 +407,15 @@ export function prepareEndpoints (endpointType, endpoints, defaultPort) {
   return ret
 }
 
-export function commandActionBuilder (actionTasks, options, errorString = 'Error') {
-  /**
-   * @param {Object} argv
-   * @param {BaseCommand} commandDef
-   * @returns {Promise<boolean>}
-   */
-  return async function (argv, commandDef) {
+export function commandActionBuilder (actionTasks: any, options: any, errorString = 'Error') {
+  return async function (argv: object, commandDef: BaseCommand) {
     const tasks = new Listr([
       ...actionTasks
     ], options)
 
     try {
       await tasks.run()
-    } catch (e) {
+    } catch (e: Error | any) {
       commandDef.logger.error(`${errorString}: ${e.message}`, e)
       throw new SoloError(`${errorString}: ${e.message}`, e)
     } finally {
@@ -510,37 +424,29 @@ export function commandActionBuilder (actionTasks, options, errorString = 'Error
   }
 }
 
-/**
- * Adds all the types of flags as properties on the provided argv object
- * @param argv
- * @param flags
- * @returns {*}
- */
-export function addFlagsToArgv (argv, flags) {
+/** Adds all the types of flags as properties on the provided argv object */
+export function addFlagsToArgv (argv: any, flags: {
+  requiredFlags: CommandFlag[], requiredFlagsWithDisabledPrompt: CommandFlag[], optionalFlags: CommandFlag[]
+}) {
   argv.requiredFlags = flags.requiredFlags
   argv.requiredFlagsWithDisabledPrompt = flags.requiredFlagsWithDisabledPrompt
   argv.optionalFlags = flags.optionalFlags
 
   return argv
 }
-/**
- * Convert yaml file to object
- * @param yamlFile
- */
-export function yamlToObject (yamlFile) {
+/** Convert yaml file to object */
+export function yamlToObject (yamlFile: any) {
   try {
     if (fs.existsSync(yamlFile)) {
       const yamlData = fs.readFileSync(yamlFile, 'utf8')
-      const configItems = yaml.load(yamlData)
-      const configMap = {}
+      const configItems = yaml.load(yamlData) as Record<string, any>
+      const configMap: Record<string, any> = {}
       for (const key in configItems) {
-        let config = configItems[key]
-        config = config || {}
-        configMap[key] = config
+        configMap[key] = configItems[key] || {}
       }
       return configMap
     }
-  } catch (e) {
+  } catch (e: Error | any) {
     throw new SoloError(`failed to convert yaml file ${yamlFile} to object: ${e.message}`, e)
   }
 }

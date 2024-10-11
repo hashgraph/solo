@@ -14,19 +14,42 @@
  * limitations under the License.
  *
  */
-'use strict'
+
 import paths from 'path'
 import { MissingArgumentError } from '../core/errors'
 import { ShellRunner } from '../core/shell_runner'
+import {type SoloLogger} from "../core/logging";
+import {type ChartManager, type ConfigManager, type Helm, type K8} from "../core";
+import {type DependencyManager} from "../core/dependency_managers";
+import {type CommandFlag} from "./flags";
 
 export class BaseCommand extends ShellRunner {
-  /**
-   * @param {string} chartDir
-   * @param {string} chartRepo
-   * @param {string} chartReleaseName
-   * @returns {Promise<string>}
-   */
-  async prepareChartPath (chartDir, chartRepo, chartReleaseName) {
+  protected readonly helm: Helm
+  protected readonly k8: K8
+  protected readonly chartManager: ChartManager
+  protected readonly configManager: ConfigManager
+  protected readonly depManager: DependencyManager
+  protected readonly _configMaps: Map<string, any>
+
+  constructor (opts: {logger: SoloLogger, helm: Helm, k8: K8, chartManager: ChartManager, configManager: ConfigManager, depManager: DependencyManager}) {
+    if (!opts || !opts.logger) throw new Error('An instance of core/SoloLogger is required')
+    if (!opts || !opts.helm) throw new Error('An instance of core/Helm is required')
+    if (!opts || !opts.k8) throw new Error('An instance of core/K8 is required')
+    if (!opts || !opts.chartManager) throw new Error('An instance of core/ChartManager is required')
+    if (!opts || !opts.configManager) throw new Error('An instance of core/ConfigManager is required')
+    if (!opts || !opts.depManager) throw new Error('An instance of core/DependencyManager is required')
+
+    super(opts.logger)
+
+    this.helm = opts.helm
+    this.k8 = opts.k8
+    this.chartManager = opts.chartManager
+    this.configManager = opts.configManager
+    this.depManager = opts.depManager
+    this._configMaps = new Map()
+  }
+
+  async prepareChartPath (chartDir: string, chartRepo: string, chartReleaseName: string) {
     if (!chartRepo) throw new MissingArgumentError('chart repo name is required')
     if (!chartReleaseName) throw new MissingArgumentError('chart release name is required')
 
@@ -39,11 +62,7 @@ export class BaseCommand extends ShellRunner {
     return `${chartRepo}/${chartReleaseName}`
   }
 
-  /**
-   * @param {string} valuesFile
-   * @returns {string}
-   */
-  prepareValuesFiles (valuesFile) {
+  prepareValuesFiles (valuesFile: string): string {
     let valuesArg = ''
     if (valuesFile) {
       const valuesFiles = valuesFile.split(',')
@@ -56,48 +75,25 @@ export class BaseCommand extends ShellRunner {
     return valuesArg
   }
 
-  /**
-   * @param {{logger: SoloLogger, helm: Helm, k8: K8, chartManager: ChartManager, configManager: ConfigManager, depManager: DependencyManager}} opts
-   */
-  constructor (opts) {
-    if (!opts || !opts.logger) throw new Error('An instance of core/SoloLogger is required')
-    if (!opts || !opts.helm) throw new Error('An instance of core/Helm is required')
-    if (!opts || !opts.k8) throw new Error('An instance of core/K8 is required')
-    if (!opts || !opts.chartManager) throw new Error('An instance of core/ChartManager is required')
-    if (!opts || !opts.configManager) throw new Error('An instance of core/ConfigManager is required')
-    if (!opts || !opts.depManager) throw new Error('An instance of core/DependencyManager is required')
-
-    super(opts.logger)
-
-    this.helm = opts.helm
-    this.k8 = /** @type {K8} **/ opts.k8
-    this.chartManager = opts.chartManager
-    this.configManager = opts.configManager
-    this.depManager = opts.depManager
-    this._configMaps = new Map()
-  }
 
   /**
    * Dynamically builds a class with properties from the provided list of flags
    * and extra properties, will keep track of which properties are used.  Call
    * getUnusedConfigs() to get an array of unused properties.
-   *
-   * @param {string} configName the name of the configuration
-   * @param {CommandFlag[]} flags an array of flags
-   * @param {string[]} [extraProperties] an array of extra properties
-   * @returns {Object} the instance of the new class
    */
-  getConfig (configName, flags, extraProperties = []) {
+  getConfig (configName: string, flags: CommandFlag[], extraProperties: string[] = []): object {
     const configManager = this.configManager
 
     // build the dynamic class that will keep track of which properties are used
     const NewConfigClass = class {
+      private usedConfigs: Map<string, number>;
       constructor () {
         // the map to keep track of which properties are used
         this.usedConfigs = new Map()
 
         // add the flags as properties to this class
         flags?.forEach(flag => {
+          // @ts-ignore
           this[`_${flag.constName}`] = configManager.getFlag(flag)
           Object.defineProperty(this, flag.constName, {
             get () {
@@ -109,6 +105,7 @@ export class BaseCommand extends ShellRunner {
 
         // add the extra properties as properties to this class
         extraProperties?.forEach(name => {
+          // @ts-ignore
           this[`_${name}`] = ''
           Object.defineProperty(this, name, {
             get () {
@@ -122,12 +119,9 @@ export class BaseCommand extends ShellRunner {
         })
       }
 
-      /**
-       * Get the list of unused configurations that were not accessed
-       * @returns {string[]} an array of unused configurations
-       */
+      /** Get the list of unused configurations that were not accessed */
       getUnusedConfigs () {
-        const unusedConfigs = []
+        const unusedConfigs: string[] = []
 
         // add the flag constName to the unusedConfigs array if it was not accessed
         flags?.forEach(flag => {
@@ -157,10 +151,9 @@ export class BaseCommand extends ShellRunner {
 
   /**
    * Get the list of unused configurations that were not accessed
-   * @param {string} configName
-   * @returns {string[]} an array of unused configurations
+   * @returns an array of unused configurations
    */
-  getUnusedConfigs (configName) {
+  getUnusedConfigs (configName: string): string[] {
     return this._configMaps.get(configName).getUnusedConfigs()
   }
 }

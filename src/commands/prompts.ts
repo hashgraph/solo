@@ -14,16 +14,17 @@
  * limitations under the License.
  *
  */
-'use strict'
+
 import { ListrEnquirerPromptAdapter } from '@listr2/prompt-adapter-enquirer'
 import fs from 'fs'
 import { SoloError, IllegalArgumentError } from '../core/errors'
 import { ConfigManager, constants } from '../core'
 import * as flags from './flags'
 import * as helpers from '../core/helpers'
-import { resetDisabledPrompts } from './flags'
+import {CommandFlag, resetDisabledPrompts} from './flags'
+import {ListrTaskWrapper} from "listr2";
 
-async function prompt (type, task, input, defaultValue, promptMessage, emptyCheckMessage, flagName) {
+async function prompt (type: string, task: ListrTaskWrapper<any, any, any>, input: any, defaultValue: any, promptMessage: string, emptyCheckMessage: string | null, flagName: string) {
   try {
     let needsPrompt = type === 'toggle' ? (input === undefined || typeof input !== 'boolean') : !input
     needsPrompt = type === 'number' ? typeof input !== 'number' : needsPrompt
@@ -41,20 +42,22 @@ async function prompt (type, task, input, defaultValue, promptMessage, emptyChec
     }
 
     return input
-  } catch (e) {
+  } catch (e: Error | any) {
     throw new SoloError(`input failed: ${flagName}: ${e.message}`, e)
   }
 }
 
-async function promptText (task, input, defaultValue, promptMessage, emptyCheckMessage, flagName) {
+async function promptText (task: ListrTaskWrapper<any, any, any>, input: any, defaultValue: any, promptMessage: string,
+    emptyCheckMessage: string | null, flagName: string) {
   return await prompt('text', task, input, defaultValue, promptMessage, emptyCheckMessage, flagName)
 }
 
-async function promptToggle (task, input, defaultValue, promptMessage, emptyCheckMessage, flagName) {
+async function promptToggle (task: ListrTaskWrapper<any, any, any>, input: any, defaultValue: any, promptMessage: string,
+    emptyCheckMessage: string| null, flagName: string) {
   return await prompt('toggle', task, input, defaultValue, promptMessage, emptyCheckMessage, flagName)
 }
 
-export async function promptNamespace (task, input) {
+export async function promptNamespace (task: ListrTaskWrapper<any, any, any>, input: any) {
   return await promptText(task, input,
     'solo',
     'Enter namespace name: ',
@@ -62,7 +65,7 @@ export async function promptNamespace (task, input) {
     flags.namespace.name)
 }
 
-export async function promptClusterSetupNamespace (task, input) {
+export async function promptClusterSetupNamespace (task: ListrTaskWrapper<any, any, any>, input: any) {
   return await promptText(task, input,
     'solo-cluster',
     'Enter cluster setup namespace name: ',
@@ -70,7 +73,7 @@ export async function promptClusterSetupNamespace (task, input) {
     flags.clusterSetupNamespace.name)
 }
 
-export async function promptNodeAliases (task, input) {
+export async function promptNodeAliases (task: ListrTaskWrapper<any, any, any>, input: any) {
   return await prompt('input', task, input,
     'node1,node2,node3',
     'Enter list of node IDs (comma separated list): ',
@@ -78,7 +81,7 @@ export async function promptNodeAliases (task, input) {
     flags.nodeAliasesUnparsed.name)
 }
 
-export async function promptReleaseTag (task, input) {
+export async function promptReleaseTag (task: ListrTaskWrapper<any, any, any>, input: any) {
   return await promptText(task, input,
     'v0.42.5',
     'Enter release version: ',
@@ -86,7 +89,7 @@ export async function promptReleaseTag (task, input) {
     flags.releaseTag.name)
 }
 
-export async function promptRelayReleaseTag (task, input) {
+export async function promptRelayReleaseTag (task: ListrTaskWrapper<any, any, any>, input: any) {
   return await promptText(task, input,
     flags.relayReleaseTag.definition.defaultValue,
     'Enter relay release version: ',
@@ -94,7 +97,7 @@ export async function promptRelayReleaseTag (task, input) {
     flags.relayReleaseTag.name)
 }
 
-export async function promptCacheDir (task, input) {
+export async function promptCacheDir (task: ListrTaskWrapper<any, any, any>, input: any) {
   return await promptText(task, input,
     constants.SOLO_CACHE_DIR,
     'Enter local cache directory path: ',
@@ -102,7 +105,7 @@ export async function promptCacheDir (task, input) {
     flags.cacheDir.name)
 }
 
-export async function promptForce (task, input) {
+export async function promptForce (task: ListrTaskWrapper<any, any, any>, input: any) {
   return await promptToggle(task, input,
     flags.force.definition.defaultValue,
     'Would you like to force changes? ',
@@ -110,7 +113,7 @@ export async function promptForce (task, input) {
     flags.force.name)
 }
 
-export async function promptChainId (task, input) {
+export async function promptChainId (task: ListrTaskWrapper<any, any, any>, input: any) {
   return await promptText(task, input,
     flags.chainId.definition.defaultValue,
     'Enter chain ID: ',
@@ -118,7 +121,7 @@ export async function promptChainId (task, input) {
     flags.chainId.name)
 }
 
-export async function promptChartDir (task, input) {
+export async function promptChartDir (task: ListrTaskWrapper<any, any, any>, input: any) {
   try {
     if (input === 'false') {
       return ''
@@ -137,12 +140,12 @@ export async function promptChartDir (task, input) {
     }
 
     return input
-  } catch (e) {
+  } catch (e: Error | any) {
     throw new SoloError(`input failed: ${flags.chartDirectory.name}`, e)
   }
 }
 
-export async function promptValuesFile (task, input) {
+export async function promptValuesFile (task: ListrTaskWrapper<any, any, any>, input: any) {
   try {
     if (input && !fs.existsSync(input)) {
       input = await task.prompt(ListrEnquirerPromptAdapter).run({
@@ -157,12 +160,12 @@ export async function promptValuesFile (task, input) {
     }
 
     return input
-  } catch (e) {
+  } catch (e: Error | any) {
     throw new SoloError(`input failed: ${flags.valuesFile.name}`, e)
   }
 }
 
-export async function promptProfileFile (task, input) {
+export async function promptProfileFile (task: ListrTaskWrapper<any, any, any>, input: any) {
   if (input && !fs.existsSync(input)) {
     input = await task.prompt(ListrEnquirerPromptAdapter).run({
       type: 'text',
@@ -178,7 +181,7 @@ export async function promptProfileFile (task, input) {
   return input
 }
 
-export async function promptProfile (task, input, choices = constants.ALL_PROFILES) {
+export async function promptProfile (task: ListrTaskWrapper<any, any, any>, input: any, choices = constants.ALL_PROFILES) {
   try {
     const initial = choices.indexOf(input)
     if (initial < 0) {
@@ -196,12 +199,12 @@ export async function promptProfile (task, input, choices = constants.ALL_PROFIL
     }
 
     return input
-  } catch (e) {
+  } catch (e: Error | any) {
     throw new SoloError(`input failed: ${flags.profileName.name}`, e)
   }
 }
 
-export async function promptDeployPrometheusStack (task, input) {
+export async function promptDeployPrometheusStack (task: ListrTaskWrapper<any, any, any>, input: any) {
   return await promptToggle(task, input,
     flags.deployPrometheusStack.definition.defaultValue,
     'Would you like to deploy prometheus stack? ',
@@ -209,7 +212,7 @@ export async function promptDeployPrometheusStack (task, input) {
     flags.deployPrometheusStack.name)
 }
 
-export async function promptEnablePrometheusSvcMonitor (task, input) {
+export async function promptEnablePrometheusSvcMonitor (task: ListrTaskWrapper<any, any, any>, input: any) {
   return await promptToggle(task, input,
     flags.enablePrometheusSvcMonitor.definition.defaultValue,
     'Would you like to enable the Prometheus service monitor for the network nodes? ',
@@ -217,7 +220,7 @@ export async function promptEnablePrometheusSvcMonitor (task, input) {
     flags.enablePrometheusSvcMonitor.name)
 }
 
-export async function promptDeployMinio (task, input) {
+export async function promptDeployMinio (task: ListrTaskWrapper<any, any, any>, input: any) {
   return await promptToggle(task, input,
     flags.deployMinio.definition.defaultValue,
     'Would you like to deploy MinIO? ',
@@ -225,7 +228,7 @@ export async function promptDeployMinio (task, input) {
     flags.deployMinio.name)
 }
 
-export async function promptDeployCertManager (task, input) {
+export async function promptDeployCertManager (task: ListrTaskWrapper<any, any, any>, input: any) {
   return await promptToggle(task, input,
     flags.deployCertManager.definition.defaultValue,
     'Would you like to deploy Cert Manager? ',
@@ -233,7 +236,7 @@ export async function promptDeployCertManager (task, input) {
     flags.deployCertManager.name)
 }
 
-export async function promptDeployCertManagerCrds (task, input) {
+export async function promptDeployCertManagerCrds (task: ListrTaskWrapper<any, any, any>, input: any) {
   return await promptToggle(task, input,
     flags.deployCertManagerCrds.definition.defaultValue,
     'Would you like to deploy Cert Manager CRDs? ',
@@ -241,7 +244,7 @@ export async function promptDeployCertManagerCrds (task, input) {
     flags.deployCertManagerCrds.name)
 }
 
-export async function promptDeployHederaExplorer (task, input) {
+export async function promptDeployHederaExplorer (task: ListrTaskWrapper<any, any, any>, input: any) {
   return await promptToggle(task, input,
     flags.deployHederaExplorer.definition.defaultValue,
     'Would you like to deploy Hedera Explorer? ',
@@ -249,7 +252,7 @@ export async function promptDeployHederaExplorer (task, input) {
     flags.deployHederaExplorer.name)
 }
 
-export async function promptTlsClusterIssuerType (task, input) {
+export async function promptTlsClusterIssuerType (task: ListrTaskWrapper<any, any, any>, input: any) {
   try {
     if (!input) {
       input = await task.prompt(ListrEnquirerPromptAdapter).run({
@@ -264,12 +267,12 @@ export async function promptTlsClusterIssuerType (task, input) {
     }
 
     return input
-  } catch (e) {
+  } catch (e: Error | any) {
     throw new SoloError(`input failed: ${flags.tlsClusterIssuerType.name}`, e)
   }
 }
 
-export async function promptEnableHederaExplorerTls (task, input) {
+export async function promptEnableHederaExplorerTls (task: ListrTaskWrapper<any, any, any>, input: any) {
   return await promptToggle(task, input,
     flags.enableHederaExplorerTls.definition.defaultValue,
     'Would you like to enable the Hedera Explorer TLS? ',
@@ -277,7 +280,7 @@ export async function promptEnableHederaExplorerTls (task, input) {
     flags.enableHederaExplorerTls.name)
 }
 
-export async function promptHederaExplorerTlsHostName (task, input) {
+export async function promptHederaExplorerTlsHostName (task: ListrTaskWrapper<any, any, any>, input: any) {
   return await promptText(task, input,
     flags.hederaExplorerTlsHostName.definition.defaultValue,
     'Enter the host name to use for the Hedera Explorer TLS: ',
@@ -285,7 +288,7 @@ export async function promptHederaExplorerTlsHostName (task, input) {
     flags.hederaExplorerTlsHostName.name)
 }
 
-export async function promptOperatorId (task, input) {
+export async function promptOperatorId (task: ListrTaskWrapper<any, any, any>, input: any) {
   return await promptText(task, input,
     flags.operatorId.definition.defaultValue,
     'Enter operator ID: ',
@@ -293,7 +296,7 @@ export async function promptOperatorId (task, input) {
     flags.operatorId.name)
 }
 
-export async function promptOperatorKey (task, input) {
+export async function promptOperatorKey (task: ListrTaskWrapper<any, any, any>, input: any) {
   return await promptText(task, input,
     flags.operatorKey.definition.defaultValue,
     'Enter operator private key: ',
@@ -301,7 +304,7 @@ export async function promptOperatorKey (task, input) {
     flags.operatorKey.name)
 }
 
-export async function promptReplicaCount (task, input) {
+export async function promptReplicaCount (task: ListrTaskWrapper<any, any, any>, input: any) {
   return await prompt('number', task, input,
     flags.replicaCount.definition.defaultValue,
     'How many replica do you want? ',
@@ -309,7 +312,7 @@ export async function promptReplicaCount (task, input) {
     flags.replicaCount.name)
 }
 
-export async function promptGenerateGossipKeys (task, input) {
+export async function promptGenerateGossipKeys (task: ListrTaskWrapper<any, any, any>, input: any) {
   return await promptToggle(task, input,
     flags.generateGossipKeys.definition.defaultValue,
     `Would you like to generate Gossip keys? ${typeof input} ${input} `,
@@ -317,7 +320,7 @@ export async function promptGenerateGossipKeys (task, input) {
     flags.generateGossipKeys.name)
 }
 
-export async function promptGenerateTLSKeys (task, input) {
+export async function promptGenerateTLSKeys (task: ListrTaskWrapper<any, any, any>, input: any) {
   return await promptToggle(task, input,
     flags.generateTlsKeys.definition.defaultValue,
     'Would you like to generate TLS keys? ',
@@ -325,7 +328,7 @@ export async function promptGenerateTLSKeys (task, input) {
     flags.generateTlsKeys.name)
 }
 
-export async function promptDeletePvcs (task, input) {
+export async function promptDeletePvcs (task: ListrTaskWrapper<any, any, any>, input: any) {
   return await promptToggle(task, input,
     flags.deletePvcs.definition.defaultValue,
     'Would you like to delete persistent volume claims upon uninstall? ',
@@ -333,7 +336,7 @@ export async function promptDeletePvcs (task, input) {
     flags.deletePvcs.name)
 }
 
-export async function promptDeleteSecrets (task, input) {
+export async function promptDeleteSecrets (task: ListrTaskWrapper<any, any, any>, input: any) {
   return await promptToggle(task, input,
     flags.deleteSecrets.definition.defaultValue,
     'Would you like to delete secrets upon uninstall? ',
@@ -341,7 +344,7 @@ export async function promptDeleteSecrets (task, input) {
     flags.deleteSecrets.name)
 }
 
-export async function promptSoloChartVersion (task, input) {
+export async function promptSoloChartVersion (task: ListrTaskWrapper<any, any, any>, input: any) {
   return await promptText(task, input,
     flags.soloChartVersion.definition.defaultValue,
     'Enter solo testing chart version: ',
@@ -349,7 +352,7 @@ export async function promptSoloChartVersion (task, input) {
     flags.soloChartVersion.name)
 }
 
-export async function promptUpdateAccountKeys (task, input) {
+export async function promptUpdateAccountKeys (task: ListrTaskWrapper<any, any, any>, input: any) {
   return await promptToggle(task, input,
     flags.updateAccountKeys.definition.defaultValue,
     'Would you like to updates the special account keys to new keys and stores their keys in a corresponding Kubernetes secret? ',
@@ -357,7 +360,7 @@ export async function promptUpdateAccountKeys (task, input) {
     flags.updateAccountKeys.name)
 }
 
-export async function promptPrivateKey (task, input) {
+export async function promptPrivateKey (task: ListrTaskWrapper<any, any, any>, input: any) {
   return await promptText(task, input,
     flags.privateKey.definition.defaultValue,
     'Enter the private key: ',
@@ -365,7 +368,7 @@ export async function promptPrivateKey (task, input) {
     flags.privateKey.name)
 }
 
-export async function promptAccountId (task, input) {
+export async function promptAccountId (task: ListrTaskWrapper<any, any, any>, input: any) {
   return await promptText(task, input,
     flags.accountId.definition.defaultValue,
     'Enter the account id: ',
@@ -373,7 +376,7 @@ export async function promptAccountId (task, input) {
     flags.accountId.name)
 }
 
-export async function promptAmount (task, input) {
+export async function promptAmount (task: ListrTaskWrapper<any, any, any>, input: any) {
   return await prompt('number', task, input,
     flags.amount.definition.defaultValue,
     'How much HBAR do you want to add? ',
@@ -381,7 +384,7 @@ export async function promptAmount (task, input) {
     flags.amount.name)
 }
 
-export async function promptNewNodeAlias (task, input) {
+export async function promptNewNodeAlias (task: ListrTaskWrapper<any, any, any>, input: any) {
   return await promptText(task, input,
     flags.nodeAlias.definition.defaultValue,
     'Enter the new node id: ',
@@ -389,7 +392,7 @@ export async function promptNewNodeAlias (task, input) {
     flags.nodeAlias.name)
 }
 
-export async function promptGossipEndpoints (task, input) {
+export async function promptGossipEndpoints (task: ListrTaskWrapper<any, any, any>, input: any) {
   return await promptText(task, input,
     flags.gossipEndpoints.definition.defaultValue,
     'Enter the gossip endpoints(comma separated): ',
@@ -397,7 +400,7 @@ export async function promptGossipEndpoints (task, input) {
     flags.gossipEndpoints.name)
 }
 
-export async function promptGrpcEndpoints (task, input) {
+export async function promptGrpcEndpoints (task: ListrTaskWrapper<any, any, any>, input: any) {
   return await promptText(task, input,
     flags.grpcEndpoints.definition.defaultValue,
     'Enter the gRPC endpoints(comma separated): ',
@@ -405,7 +408,7 @@ export async function promptGrpcEndpoints (task, input) {
     flags.grpcEndpoints.name)
 }
 
-export async function promptEndpointType (task, input) {
+export async function promptEndpointType (task: ListrTaskWrapper<any, any, any>, input: any) {
   return await promptText(task, input,
     flags.endpointType.definition.defaultValue,
     'Enter the endpoint type(IP or FQDN): ',
@@ -413,7 +416,7 @@ export async function promptEndpointType (task, input) {
     flags.endpointType.name)
 }
 
-export async function promptPersistentVolumeClaims (task, input) {
+export async function promptPersistentVolumeClaims (task: ListrTaskWrapper<any, any, any>, input: any) {
   return await promptToggle(task, input,
     flags.persistentVolumeClaims.definition.defaultValue,
     'Would you like to enable persistent volume claims to store data outside the pod? ',
@@ -421,7 +424,7 @@ export async function promptPersistentVolumeClaims (task, input) {
     flags.persistentVolumeClaims.name)
 }
 
-export async function promptMirrorNodeVersion (task, input) {
+export async function promptMirrorNodeVersion (task: ListrTaskWrapper<any, any, any>, input: any) {
   return await promptToggle(task, input,
     flags.mirrorNodeVersion.definition.defaultValue,
     'Would you like to choose mirror node version? ',
@@ -429,10 +432,7 @@ export async function promptMirrorNodeVersion (task, input) {
     flags.mirrorNodeVersion.name)
 }
 
-/**
- * @returns {Map<string, Function>}
- */
-export function getPromptMap () {
+export function getPromptMap (): Map<string, Function> {
   return new Map()
     .set(flags.accountId.name, promptAccountId)
     .set(flags.amount.name, promptAmount)
@@ -480,10 +480,10 @@ export function getPromptMap () {
  * Run prompts for the given set of flags
  * @param task task object from listr2
  * @param configManager config manager to store flag values
- * @param {CommandFlag[]} flagList list of flag objects
+ * @param flagList list of flag objects
  * @returns {Promise<void>}
  */
-export async function execute (task, configManager, flagList = []) {
+export async function execute (task: ListrTaskWrapper<any, any, any>, configManager: ConfigManager, flagList: CommandFlag[] = []): Promise<void> {
   if (!configManager || !(configManager instanceof ConfigManager)) {
     throw new IllegalArgumentError('an instance of ConfigManager is required')
   }
@@ -497,7 +497,7 @@ export async function execute (task, configManager, flagList = []) {
       throw new SoloError(`No prompt available for flag: ${flag.name}`)
     }
 
-    const prompt = prompts.get(flag.name)
+    const prompt = prompts.get(flag.name) as Function
     if (configManager.getFlag(flags.quiet)) {
       return
     }
@@ -510,9 +510,9 @@ export async function execute (task, configManager, flagList = []) {
 
 /**
  * Disable prompts for the given set of flags
- * @param {CommandFlag[]} flags list of flags to disable prompts for
+ * @param flags list of flags to disable prompts for
  */
-export function disablePrompts (flags) {
+export function disablePrompts (flags: flags.CommandFlag[]) {
   resetDisabledPrompts()
   for (const flag of flags) {
     if (flag.definition) {

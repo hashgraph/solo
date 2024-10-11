@@ -14,7 +14,7 @@
  * limitations under the License.
  *
  */
-'use strict'
+
 import * as x509 from '@peculiar/x509'
 import chalk from 'chalk'
 import * as fs from 'fs'
@@ -56,6 +56,7 @@ import {
 import { NodeStatusCodes, NodeStatusEnums } from '../core/enumerations'
 import { NodeCommandTasks } from './node/tasks'
 import { downloadGeneratedFilesConfigBuilder, prepareUpgradeConfigBuilder } from './node/configs'
+import * as NodeFlags from './node/flags'
 
 /**
  * Defines the core functionalities of 'node' command

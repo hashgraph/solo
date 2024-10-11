@@ -14,60 +14,51 @@
  * limitations under the License.
  *
  */
-'use strict'
 import { SoloError, IllegalArgumentError, MissingArgumentError } from './errors'
 import fs from 'fs'
 import AdmZip from 'adm-zip'
 import * as tar from 'tar'
 import chalk from 'chalk'
 import path from 'path'
+import {SoloLogger} from "./logging";
 
 export class Zippy {
-  /**
-   * @param {SoloLogger} logger
-   */
-  constructor (logger) {
+  constructor (private readonly logger: SoloLogger) {
     if (!logger) throw new Error('An instance of core/SoloLogger is required')
     this.logger = logger
   }
 
   /**
    * Zip a file or directory
-   * @param {string} srcPath - path to a file or directory
-   * @param {string} destPath - path to the output zip file
-   * @param {boolean} [verbose] - if true, log the progress
-   * @returns {Promise<string>} path to the output zip file
+   * @param srcPath - path to a file or directory
+   * @param destPath - path to the output zip file
+   * @param [verbose] - if true, log the progress
+   * @returns path to the output zip file
    */
-  async zip (srcPath, destPath, verbose = false) {
+  async zip (srcPath: string, destPath: string, verbose: boolean = false) {
     if (!srcPath) throw new MissingArgumentError('srcPath is required')
     if (!destPath) throw new MissingArgumentError('destPath is required')
     if (!destPath.endsWith('.zip')) throw new MissingArgumentError('destPath must be a path to a zip file')
 
     try {
-      const zip = AdmZip('', {})
+      const zip = new AdmZip('', {})
 
       const stat = fs.statSync(srcPath)
       if (stat.isDirectory()) {
         zip.addLocalFolder(srcPath, '')
       } else {
-        zip.addFile(path.basename(srcPath), fs.readFileSync(srcPath), '', stat)
+        zip.addFile(path.basename(srcPath), fs.readFileSync(srcPath), '', stat as any)
       }
 
       await zip.writeZipPromise(destPath, { overwrite: true })
 
       return destPath
-    } catch (e) {
+    } catch (e: Error | any) {
       throw new SoloError(`failed to unzip ${srcPath}: ${e.message}`, e)
     }
   }
 
-  /**
-   * @param {string} srcPath
-   * @param {string} destPath
-   * @param {boolean} [verbose]
-   * @returns {string}
-   */
-  unzip (srcPath, destPath, verbose = false) {
+  unzip (srcPath: string, destPath: string, verbose: boolean = false) {
     const self = this
 
     if (!srcPath) throw new MissingArgumentError('srcPath is required')
@@ -76,7 +67,7 @@ export class Zippy {
     if (!fs.existsSync(srcPath)) throw new IllegalArgumentError('srcPath does not exists', srcPath)
 
     try {
-      const zip = AdmZip(srcPath, { readEntries: true })
+      const zip = new AdmZip(srcPath, {readEntries: true})
 
       zip.getEntries().forEach(function (zipEntry) {
         if (verbose) {
@@ -93,17 +84,12 @@ export class Zippy {
       })
 
       return destPath
-    } catch (e) {
+    } catch (e: Error | any) {
       throw new SoloError(`failed to unzip ${srcPath}: ${e.message}`, e)
     }
   }
 
-  /**
-   * @param {string} srcPath
-   * @param {string} destPath
-   * @returns {string}
-   */
-  tar (srcPath, destPath) {
+  tar (srcPath: string, destPath: string) {
     if (!srcPath) throw new MissingArgumentError('srcPath is required')
     if (!destPath) throw new MissingArgumentError('destPath is required')
     if (!destPath.endsWith('.tar.gz')) throw new MissingArgumentError('destPath must be a path to a tar.gz file')
@@ -117,17 +103,12 @@ export class Zippy {
         sync: true
       }, [srcPath])
       return destPath
-    } catch (e) {
+    } catch (e: Error | any) {
       throw new SoloError(`failed to tar ${srcPath}: ${e.message}`, e)
     }
   }
 
-  /**
-   * @param {string} srcPath
-   * @param {string} destPath
-   * @returns {string}
-   */
-  untar (srcPath, destPath) {
+  untar (srcPath: string, destPath: string) {
     if (!srcPath) throw new MissingArgumentError('srcPath is required')
     if (!destPath) throw new MissingArgumentError('destPath is required')
 
@@ -143,7 +124,7 @@ export class Zippy {
         sync: true
       })
       return destPath
-    } catch (e) {
+    } catch (e: Error | any) {
       throw new SoloError(`failed to untar ${srcPath}: ${e.message}`, e)
     }
   }

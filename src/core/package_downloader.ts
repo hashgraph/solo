@@ -14,7 +14,7 @@
  * limitations under the License.
  *
  */
-'use strict'
+
 import * as crypto from 'crypto'
 import * as fs from 'fs'
 import { pipeline as streamPipeline } from 'node:stream/promises'
@@ -31,21 +31,17 @@ import * as https from 'https'
 import * as http from 'http'
 import { Templates } from './templates'
 import { constants } from './index'
+import {type SoloLogger} from "./logging";
 
 export class PackageDownloader {
-  /**
-   * @param {SoloLogger} logger
-   */
-  constructor (logger) {
+  private logger: SoloLogger;
+
+  constructor (logger: SoloLogger) {
     if (!logger) throw new IllegalArgumentError('an instance of core/SoloLogger is required', logger)
     this.logger = logger
   }
 
-  /**
-   * @param {string} url
-   * @returns {boolean}
-   */
-  isValidURL (url) {
+  isValidURL (url: string) {
     try {
       // attempt to parse to check URL format
       const out = new URL(url)
@@ -56,14 +52,10 @@ export class PackageDownloader {
     return false
   }
 
-  /**
-   * @param {string} url
-   * @returns {Promise<boolean>}
-   */
-  urlExists (url) {
+  urlExists (url: string) {
     const self = this
 
-    return new Promise((resolve) => {
+    return new Promise<boolean>((resolve) => {
       try {
         self.logger.debug(`Checking URL: ${url}`)
         let req
@@ -76,8 +68,9 @@ export class PackageDownloader {
 
         req.on('response', r => {
           const statusCode = r.statusCode
+
           self.logger.debug({
-            response: {
+            response: { // @ts-ignore
               connectOptions: r['connect-options'],
               statusCode: r.statusCode,
               headers: r.headers
@@ -85,9 +78,8 @@ export class PackageDownloader {
 
           })
           req.destroy()
-          if ([200, 302].includes(statusCode)) {
+          if ([200, 302].includes(<number>statusCode)) {
             resolve(true)
-            return
           }
 
           resolve(false)
@@ -110,11 +102,10 @@ export class PackageDownloader {
   /**
    * Fetch data from a URL and save the output to a file
    *
-   * @param {string} url - source file URL
-   * @param {string} destPath - destination path for the downloaded file
-   * @returns {Promise<string>}
+   * @param url - source file URL
+   * @param destPath - destination path for the downloaded file
    */
-  async fetchFile (url, destPath) {
+  async fetchFile (url: string, destPath: string) {
     if (!url) {
       throw new IllegalArgumentError('package URL is required', url)
     }
@@ -138,28 +129,28 @@ export class PackageDownloader {
       )
 
       return destPath
-    } catch (e) {
+    } catch (e: Error | any) {
       throw new SoloError(`Error fetching file ${url}: ${e.message}`, e)
     }
   }
 
   /**
    * Compute hash of the file contents
-   * @param {string} filePath - path of the file
-   * @param {string} [algo] - hash algorithm
-   * @returns {Promise<string>} returns hex digest of the computed hash
-   * @throws Error if the file cannot be read
+   * @param filePath - path of the file
+   * @param [algo] - hash algorithm
+   * @returns hex digest of the computed hash
+   * @throws {Error} - if the file cannot be read
    */
-  computeFileHash (filePath, algo = 'sha384') {
+  computeFileHash (filePath: string, algo: string = 'sha384') {
     const self = this
 
-    return new Promise((resolve, reject) => {
+    return new Promise<string>((resolve, reject) => {
       try {
         self.logger.debug(`Computing checksum for '${filePath}' using algo '${algo}'`)
         const checksum = crypto.createHash(algo)
         const s = fs.createReadStream(filePath)
         s.on('data', function (d) {
-          checksum.update(d)
+          checksum.update(<crypto.BinaryLike>d)
         })
         s.on('end', function () {
           const d = checksum.digest('hex')
@@ -170,7 +161,7 @@ export class PackageDownloader {
         s.on('error', (e) => {
           reject(e)
         })
-      } catch (e) {
+      } catch (e: Error | any) {
         reject(new SoloError('failed to compute checksum', e, { filePath, algo }))
       }
     })
@@ -181,27 +172,26 @@ export class PackageDownloader {
    *
    * It throws error if the checksum doesn't match.
    *
-   * @param {string} sourceFile - path to the file for which checksum to be computed
+   * @param sourceFile - path to the file for which checksum to be computed
    * @param checksum - expected checksum
-   * @param {string} [algo] - hash algorithm to be used to compute checksum
-   * @returns {Promise<void>}
-   * @throws DataValidationError if the checksum doesn't match
+   * @param [algo] - hash algorithm to be used to compute checksum
+   * @returns
+   * @throws {DataValidationError} - if the checksum doesn't match
    */
-  async verifyChecksum (sourceFile, checksum, algo = 'sha256') {
+  async verifyChecksum (sourceFile: string, checksum: string, algo: string = 'sha256') {
     const computed = await this.computeFileHash(sourceFile, algo)
     if (checksum !== computed) throw new DataValidationError('checksum', checksum, computed)
   }
 
   /**
    * Fetch a remote package
-   * @param {string} packageURL
-   * @param {string} checksumURL - package checksum URL
-   * @param {string} destDir - a directory where the files should be downloaded to
-   * @param {string} [algo] - checksum algo
-   * @param {boolean} [force] - force download even if the file exists in the destDir
-   * @returns {Promise<string>}
+   * @param packageURL
+   * @param checksumURL - package checksum URL
+   * @param destDir - a directory where the files should be downloaded to
+   * @param [algo] - checksum algo
+   * @param [force] - force download even if the file exists in the destDir
    */
-  async fetchPackage (packageURL, checksumURL, destDir, algo = 'sha256', force = false) {
+  async fetchPackage (packageURL: string, checksumURL: string, destDir: string, algo = 'sha256', force = false) {
     if (!packageURL) throw new Error('package URL is required')
     if (!checksumURL) throw new Error('checksum URL is required')
     if (!destDir) throw new Error('destination directory path is required')
@@ -226,7 +216,7 @@ export class PackageDownloader {
       await this.fetchFile(packageURL, packageFile)
       await this.verifyChecksum(packageFile, checksum, algo)
       return packageFile
-    } catch (e) {
+    } catch (e: Error | any) {
       if (fs.existsSync(checksumFile)) {
         fs.rmSync(checksumFile)
       }
@@ -244,12 +234,12 @@ export class PackageDownloader {
    *
    * It fetches the build.zip file containing the release from a URL like: https://builds.hedera.com/node/software/v0.40/build-v0.40.4.zip
    *
-   * @param {string} tag - full semantic version e.g. v0.40.4
-   * @param {string} destDir - directory where the artifact needs to be saved
-   * @param {boolean} [force] - whether to download even if the file exists
-   * @returns {string} full path to the downloaded file
+   * @param tag - full semantic version e.g. v0.40.4
+   * @param destDir - directory where the artifact needs to be saved
+   * @param [force] - whether to download even if the file exists
+   * @returns full path to the downloaded file
    */
-  async fetchPlatform (tag, destDir, force = false) {
+  async fetchPlatform (tag: string, destDir: string, force = false) {
     if (!tag) throw new MissingArgumentError('tag is required')
     if (!destDir) {
       throw new MissingArgumentError(
@@ -261,7 +251,6 @@ export class PackageDownloader {
     const packageURL = `${constants.HEDERA_BUILDS_URL}/node/software/${releaseDir}/build-${tag}.zip`
     const checksumURL = `${constants.HEDERA_BUILDS_URL}/node/software/${releaseDir}/build-${tag}.sha384`
 
-    return await this.fetchPackage(packageURL, checksumURL, downloadDir,
-      'sha384', force)
+    return await this.fetchPackage(packageURL, checksumURL, downloadDir, 'sha384', force)
   }
 }

@@ -14,7 +14,7 @@
  * limitations under the License.
  *
  */
-'use strict'
+
 import { AccountId, FileId } from '@hashgraph/sdk'
 import { color, PRESET_TIMER } from 'listr2'
 import path, { dirname, normalize } from 'path'
@@ -22,12 +22,13 @@ import { fileURLToPath } from 'url'
 
 // -------------------- solo related constants ---------------------------------------------------------------------
 export const CUR_FILE_DIR = dirname(fileURLToPath(import.meta.url))
-export const SOLO_HOME_DIR = process.env.SOLO_HOME || path.join(process.env.HOME, '.solo')
+export const SOLO_HOME_DIR = process.env.SOLO_HOME || path.join(process.env.HOME as string, '.solo')
 export const SOLO_LOGS_DIR = path.join(SOLO_HOME_DIR, 'logs')
 export const SOLO_CACHE_DIR = path.join(SOLO_HOME_DIR, 'cache')
 export const SOLO_VALUES_DIR = path.join(SOLO_CACHE_DIR, 'values-files')
 export const DEFAULT_NAMESPACE = 'default'
 export const HELM = 'helm'
+export const KEYTOOL = 'keytool'
 export const SOLO_CONFIG_FILE = path.join(SOLO_HOME_DIR, 'solo.yaml')
 export const RESOURCES_DIR = normalize(path.join(CUR_FILE_DIR, '..', '..', 'resources'))
 export const TEMP_DIR = normalize(path.join(CUR_FILE_DIR, '..', '..', 'temp'))
@@ -60,8 +61,7 @@ export const JSON_RPC_RELAY_CHART = 'hedera-json-rpc-relay'
 export const MIRROR_NODE_CHART_URL = 'https://hashgraph.github.io/hedera-mirror-node/charts'
 export const MIRROR_NODE_CHART = 'hedera-mirror'
 
-/** @type {Map<string, string>} */
-export const DEFAULT_CHART_REPO = new Map()
+export const DEFAULT_CHART_REPO: Map<string, string> = new Map()
   .set(SOLO_TESTING_CHART, SOLO_TESTING_CHART_URL)
   .set(JSON_RPC_RELAY_CHART, JSON_RPC_RELAY_CHART_URL)
   .set(MIRROR_NODE_CHART, MIRROR_NODE_CHART_URL)
@@ -99,8 +99,8 @@ export const K8_COPY_FROM_RETRY_TIMES = process.env.K8_COPY_FROM_RETRY_TIMES || 
  */
 export const LISTR_DEFAULT_RENDERER_TIMER_OPTION = {
   ...PRESET_TIMER,
-  condition: (duration) => duration > 100,
-  format: (duration) => {
+  condition: (duration: number) => duration > 100,
+  format: (duration: number) => {
     if (duration > 30000) {
       return color.red
     }

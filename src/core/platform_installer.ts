@@ -14,28 +14,27 @@
  * limitations under the License.
  *
  */
-'use strict'
+
 import * as fs from 'fs'
 import { Listr } from 'listr2'
 import * as path from 'path'
 import { SoloError, IllegalArgumentError, MissingArgumentError } from './errors'
-import { constants } from './index'
+import {type ConfigManager, constants, type K8} from './index'
 import { Templates } from './templates'
 import { flags } from '../commands/index'
 import * as Base64 from 'js-base64'
 import chalk from 'chalk'
+import {type SoloLogger} from "./logging";
+import {type AccountManager} from "./account_manager";
 
-/**
- * PlatformInstaller install platform code in the root-container of a network pod
- */
+/** PlatformInstaller install platform code in the root-container of a network pod */
 export class PlatformInstaller {
-  /**
-   * @param {SoloLogger} logger
-   * @param {K8} k8
-   * @param {ConfigManager} configManager
-   * @param {AccountManager} accountManager
-   */
-  constructor (logger, k8, configManager, accountManager) {
+  private logger: SoloLogger;
+  private k8: K8;
+  private configManager: ConfigManager;
+  private accountManager: AccountManager;
+
+  constructor (logger: SoloLogger, k8: K8, configManager: ConfigManager, accountManager: AccountManager) {
     if (!logger) throw new MissingArgumentError('an instance of core/SoloLogger is required')
     if (!k8) throw new MissingArgumentError('an instance of core/K8 is required')
     if (!configManager) throw new MissingArgumentError('an instance of core/ConfigManager is required')
@@ -47,11 +46,7 @@ export class PlatformInstaller {
     this.accountManager = accountManager
   }
 
-  /**
-   * @returns {string}
-   * @private
-   */
-  _getNamespace () {
+  private _getNamespace (): string {
     const ns = this.configManager.getFlag(flags.namespace)
     if (!ns) throw new MissingArgumentError('namespace is not set')
     return ns

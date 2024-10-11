@@ -26,7 +26,7 @@ import {
   FileContentsQuery,
   FileId,
   Hbar,
-  HbarUnit,
+  HbarUnit, Key,
   KeyList,
   Logger,
   LogLevel,
@@ -35,17 +35,18 @@ import {
   TransferTransaction
 } from '@hashgraph/sdk'
 import { SoloError, MissingArgumentError } from './errors'
-import { Templates } from './templates'
+import {NodeAlias, Templates} from './templates'
 import ip from 'ip'
-import { NetworkNodeServicesBuilder } from './network_node_services'
+import { NetworkNodeServices, NetworkNodeServicesBuilder } from './network_node_services'
 import path from 'path'
+import { type SoloLogger } from "./logging";
+import { type ExtendedNetServer, type K8} from "./k8";
 
-/**
- * @typedef {Object} AccountIdWithKeyPairObject
- * @property {string} accountId
- * @property {string} privateKey
- * @property {string} publicKey
- */
+interface AccountIdWithKeyPairObject {
+  accountId: string
+  privateKey: string
+  publicKey: string
+}
 
 const REASON_FAILED_TO_GET_KEYS = 'failed to get keys for accountId'
 const REASON_SKIPPED = 'skipped since it does not have a genesis key'
@@ -55,32 +56,23 @@ const FULFILLED = 'fulfilled'
 const REJECTED = 'rejected'
 
 export class AccountManager {
-  /**
-   * @param {SoloLogger} logger
-   * @param {K8} k8
-   */
-  constructor (logger, k8) {
+  private _portForwards: ExtendedNetServer[];
+  public _nodeClient: Client | null;
+
+  constructor (private readonly logger: SoloLogger, private readonly k8: K8) {
     if (!logger) throw new Error('An instance of core/SoloLogger is required')
     if (!k8) throw new Error('An instance of core/K8 is required')
 
-    this.logger = logger
-    this.k8 = k8
     this._portForwards = []
-
-    /**
-     * @type {NodeClient|null}
-     * @public
-     */
     this._nodeClient = null
   }
 
   /**
    * Gets the account keys from the Kubernetes secret from which it is stored
-   * @param {string} accountId - the account ID for which we want its keys
-   * @param {string} namespace - the namespace that is storing the secret
-   * @returns {Promise<AccountIdWithKeyPairObject>}
+   * @param accountId - the account ID for which we want its keys
+   * @param namespace - the namespace that is storing the secret
    */
-  async getAccountKeysFromSecret (accountId, namespace) {
+  async getAccountKeysFromSecret (accountId: string, namespace: string): Promise<AccountIdWithKeyPairObject> {
     const secret = await this.k8.getSecret(namespace, Templates.renderAccountKeySecretLabelSelector(accountId))
     if (secret) {
       return {
@@ -102,22 +94,21 @@ export class AccountManager {
    * Gets the treasury account private key from Kubernetes secret if it exists, else
    * returns the Genesis private key, then will return an AccountInfo object with the
    * accountId, privateKey, publicKey
-   * @param {string} namespace - the namespace that the secret is in
-   * @returns {Promise<AccountIdWithKeyPairObject>}
+   * @param namespace - the namespace that the secret is in
    */
-  async getTreasuryAccountKeys (namespace) {
+  async getTreasuryAccountKeys (namespace: string) {
     // check to see if the treasure account is in the secrets
     return await this.getAccountKeysFromSecret(constants.TREASURY_ACCOUNT_ID, namespace)
   }
 
   /**
    * batch up the accounts into sets to be processed
-   * @param {number[][]} [accountRange]
-   * @returns {number[][]} an array of arrays of numbers representing the accounts to update
+   * @param [accountRange]
+   * @returns an array of arrays of numbers representing the accounts to update
    */
-  batchAccounts (accountRange = constants.SYSTEM_ACCOUNTS) {
-    const batchSize = constants.ACCOUNT_UPDATE_BATCH_SIZE
-    const batchSets = []
+  batchAccounts (accountRange: number[][] = constants.SYSTEM_ACCOUNTS) {
+    const batchSize = constants.ACCOUNT_UPDATE_BATCH_SIZE as number
+    const batchSets: number[][] = []
 
     let currentBatch = []
     for (const [start, end] of accountRange) {
@@ -145,7 +136,6 @@ export class AccountManager {
 
   /**
    * stops and closes the port forwards and the _nodeClient
-   * @returns {Promise<void>}
    */
   async close () {
     this._nodeClient?.close()
@@ -161,23 +151,21 @@ export class AccountManager {
 
   /**
    * loads and initializes the Node Client
-   * @param {string} namespace - the namespace of the network
-   * @returns {Promise<NodeClient>}
+   * @param namespace - the namespace of the network
    */
-  async loadNodeClient (namespace) {
+  async loadNodeClient (namespace: string) {
     if (!this._nodeClient || this._nodeClient.isClientShutDown) {
       await this.refreshNodeClient(namespace)
     }
 
-    return this._nodeClient
+    return this._nodeClient!
   }
 
   /**
    * loads and initializes the Node Client
    * @param namespace the namespace of the network
-   * @returns {Promise<void>}
    */
-  async refreshNodeClient (namespace) {
+  async refreshNodeClient (namespace: string) {
     await this.close()
     const treasuryAccountInfo = await this.getTreasuryAccountKeys(namespace)
     const networkNodeServicesMap = await this.getNodeServiceMap(namespace)
@@ -188,10 +176,10 @@ export class AccountManager {
 
   /**
    * if the load balancer IP is not set, then we should use the local host port forward
-   * @param {NetworkNodeServices} networkNodeServices
-   * @returns {boolean} whether to use the local host port forward
+   * @param networkNodeServices
+   * @returns whether to use the local host port forward
    */
-  shouldUseLocalHostPortForward (networkNodeServices) {
+  shouldUseLocalHostPortForward (networkNodeServices: NetworkNodeServices) {
     if (!networkNodeServices.haProxyLoadBalancerIp) return true
 
     const loadBalancerIp = networkNodeServices.haProxyLoadBalancerIp
@@ -201,7 +189,7 @@ export class AccountManager {
 
     // check if serviceIP falls into any subnet of the network interfaces
     for (const nic of Object.keys(interfaces)) {
-      const inf = interfaces[nic]
+      const inf = interfaces[nic] as os.NetworkInterfaceInfo[]
       for (const item of inf) {
         if (item.family.toLowerCase() === loadBalancerIpFormat &&
           ip.cidrSubnet(item.cidr).contains(loadBalancerIp)) {
@@ -222,28 +210,30 @@ export class AccountManager {
 
   /**
    * Returns a node client that can be used to make calls against
-   * @param {string} namespace - the namespace for which the node client resides
-   * @param {Map<string, NetworkNodeServices>} networkNodeServicesMap - a map of the service objects that proxy the nodes
-   * @param {string} operatorId - the account id of the operator of the transactions
-   * @param {string} operatorKey - the private key of the operator of the transactions
-   * @returns {Promise<NodeClient>} a node client that can be used to call transactions
+   * @param namespace - the namespace for which the node client resides
+   * @param networkNodeServicesMap - a map of the service objects that proxy the nodes
+   * @param operatorId - the account id of the operator of the transactions
+   * @param operatorKey - the private key of the operator of the transactions
+   * @returns a node client that can be used to call transactions
    */
-  async _getNodeClient (namespace, networkNodeServicesMap, operatorId, operatorKey) {
+  async _getNodeClient (namespace: string, networkNodeServicesMap: Map<string, NetworkNodeServices>, operatorId: string,
+    operatorKey: string) {
     const nodes = {}
     try {
-      let localPort = constants.LOCAL_NODE_START_PORT
+      let localPort = constants.LOCAL_NODE_START_PORT as number
 
       for (const networkNodeService of networkNodeServicesMap.values()) {
         const usePortForward = this.shouldUseLocalHostPortForward(networkNodeService)
-        const host = usePortForward ? '127.0.0.1' : networkNodeService.haProxyLoadBalancerIp
-        const port = networkNodeService.haProxyGrpcPort
+        const host = usePortForward ? '127.0.0.1' : networkNodeService.haProxyLoadBalancerIp as string
+        const port = networkNodeService.haProxyGrpcPort as number
         const targetPort = usePortForward ? localPort : port
 
         if (usePortForward && this._portForwards.length < networkNodeServicesMap.size) {
           this._portForwards.push(await this.k8.portForward(networkNodeService.haProxyPodName, localPort, port))
         }
 
-        nodes[`${host}:${targetPort}`] = AccountId.fromString(networkNodeService.accountId)
+        // @ts-ignore
+        nodes[`${host}:${targetPort}`] = AccountId.fromString(<string>networkNodeService.accountId)
         await this.k8.testConnection(host, targetPort)
         localPort++
       }
@@ -253,64 +243,65 @@ export class AccountManager {
       this._nodeClient = Client.fromConfig({ network: nodes, scheduleNetworkUpdate: false })
       this._nodeClient.setOperator(operatorId, operatorKey)
       this._nodeClient.setLogger(new Logger(LogLevel.Trace, path.join(constants.SOLO_LOGS_DIR, 'hashgraph-sdk.log')))
-      this._nodeClient.setMaxAttempts(constants.NODE_CLIENT_MAX_ATTEMPTS)
-      this._nodeClient.setMinBackoff(constants.NODE_CLIENT_MIN_BACKOFF)
-      this._nodeClient.setMaxBackoff(constants.NODE_CLIENT_MAX_BACKOFF)
-      this._nodeClient.setRequestTimeout(constants.NODE_CLIENT_REQUEST_TIMEOUT)
+      this._nodeClient.setMaxAttempts(<number>constants.NODE_CLIENT_MAX_ATTEMPTS)
+      this._nodeClient.setMinBackoff(<number>constants.NODE_CLIENT_MIN_BACKOFF)
+      this._nodeClient.setMaxBackoff(<number>constants.NODE_CLIENT_MAX_BACKOFF)
+      this._nodeClient.setRequestTimeout(<number>constants.NODE_CLIENT_REQUEST_TIMEOUT)
       return this._nodeClient
-    } catch (e) {
+    } catch (e: Error | any) {
       throw new SoloError(`failed to setup node client: ${e.message}`, e)
     }
   }
 
   /**
    * Gets a Map of the Hedera node services and the attributes needed
-   * @param {string} namespace - the namespace of the solo network deployment
-   * @returns {Promise<Map<NodeAlias, NetworkNodeServices>>} a map of the network node services
+   * @param namespace - the namespace of the solo network deployment
+   * @returns a map of the network node services
    */
-  async getNodeServiceMap (namespace) {
+  async getNodeServiceMap (namespace: string): Promise<Map<NodeAlias, NetworkNodeServices>> {
     const labelSelector = 'solo.hedera.com/node-name'
 
-    const serviceBuilderMap = /** @type {Map<String,NetworkNodeServicesBuilder>} **/ new Map()
+    const serviceBuilderMap: Map<string, NetworkNodeServicesBuilder> = new Map()
 
-    const serviceList = await this.k8.kubeClient.listNamespacedService(
-      namespace, undefined, undefined, undefined, undefined, labelSelector)
+    const serviceList = await this.k8.kubeClient.listNamespacedService(namespace,
+      undefined, undefined, undefined, undefined, labelSelector)
 
     // retrieve the list of services and build custom objects for the attributes we need
     for (const service of serviceList.body.items) {
-      const serviceType = service.metadata.labels['solo.hedera.com/type']
-      let serviceBuilder = new NetworkNodeServicesBuilder(service.metadata.labels['solo.hedera.com/node-name'])
+      const serviceType = service.metadata!.labels!['solo.hedera.com/type']
+      let serviceBuilder = new NetworkNodeServicesBuilder(service.metadata!.labels!['solo.hedera.com/node-name'])
 
       if (serviceBuilderMap.has(serviceBuilder.key())) {
-        serviceBuilder = serviceBuilderMap.get(serviceBuilder.key())
+        serviceBuilder = <NetworkNodeServicesBuilder>serviceBuilderMap.get(serviceBuilder.key())
       }
 
       switch (serviceType) {
         // solo.hedera.com/type: envoy-proxy-svc
         case 'envoy-proxy-svc':
-          serviceBuilder.withEnvoyProxyName(service.metadata.name)
-            .withEnvoyProxyClusterIp(service.spec.clusterIP)
-            .withEnvoyProxyLoadBalancerIp(service.status.loadBalancer.ingress ? service.status.loadBalancer.ingress[0].ip : undefined)
-            .withEnvoyProxyGrpcWebPort(service.spec.ports.filter(port => port.name === 'hedera-grpc-web')[0].port)
+          serviceBuilder.withEnvoyProxyName(<string>service.metadata!.name)
+            .withEnvoyProxyClusterIp(<string>service.spec!.clusterIP)
+            .withEnvoyProxyLoadBalancerIp(service.status?.loadBalancer?.ingress?.[0].ip)
+            .withEnvoyProxyGrpcWebPort(service.spec!.ports!.filter(port => port.name === 'hedera-grpc-web')[0].port)
           break
         // solo.hedera.com/type: haproxy-svc
         case 'haproxy-svc':
-          serviceBuilder.withAccountId(service.metadata.labels['solo.hedera.com/account-id'])
-            .withHaProxyAppSelector(service.spec.selector.app)
-            .withHaProxyName(service.metadata.name)
-            .withHaProxyClusterIp(service.spec.clusterIP)
-            .withHaProxyLoadBalancerIp(service.status.loadBalancer.ingress ? service.status.loadBalancer.ingress[0].ip : undefined)
-            .withHaProxyGrpcPort(service.spec.ports.filter(port => port.name === 'non-tls-grpc-client-port')[0].port)
-            .withHaProxyGrpcsPort(service.spec.ports.filter(port => port.name === 'tls-grpc-client-port')[0].port)
+          serviceBuilder.withAccountId(service.metadata!.labels!['solo.hedera.com/account-id'])
+            .withHaProxyAppSelector(service.spec!.selector!.app)
+            .withHaProxyName(<string>service.metadata!.name)
+            .withHaProxyClusterIp(<string>service.spec!.clusterIP)
+            // @ts-ignore
+            .withHaProxyLoadBalancerIp(service.status?.loadBalancer?.ingress?.[0]?.ip)
+            .withHaProxyGrpcPort(service.spec!.ports!.filter(port => port.name === 'non-tls-grpc-client-port')[0].port)
+            .withHaProxyGrpcsPort(service.spec!.ports!.filter(port => port.name === 'tls-grpc-client-port')[0].port)
           break
         // solo.hedera.com/type: network-node-svc
         case 'network-node-svc':
-          serviceBuilder.withNodeServiceName(service.metadata.name)
-            .withNodeServiceClusterIp(service.spec.clusterIP)
-            .withNodeServiceLoadBalancerIp(service.status.loadBalancer.ingress ? service.status.loadBalancer.ingress[0].ip : undefined)
-            .withNodeServiceGossipPort(service.spec.ports.filter(port => port.name === 'gossip')[0].port)
-            .withNodeServiceGrpcPort(service.spec.ports.filter(port => port.name === 'grpc-non-tls')[0].port)
-            .withNodeServiceGrpcsPort(service.spec.ports.filter(port => port.name === 'grpc-tls')[0].port)
+          serviceBuilder.withNodeServiceName(<string>service.metadata!.name)
+            .withNodeServiceClusterIp(<string>service.spec!.clusterIP)
+            .withNodeServiceLoadBalancerIp(<string>service.status?.loadBalancer?.ingress?.[0]?.ip)
+            .withNodeServiceGossipPort(service.spec!.ports!.filter(port => port.name === 'gossip')[0].port)
+            .withNodeServiceGrpcPort(service.spec!.ports!.filter(port => port.name === 'grpc-non-tls')[0].port)
+            .withNodeServiceGrpcsPort(service.spec!.ports!.filter(port => port.name === 'grpc-tls')[0].port)
           break
       }
       serviceBuilderMap.set(serviceBuilder.key(), serviceBuilder)
@@ -319,21 +310,22 @@ export class AccountManager {
     // get the pod name for the service to use with portForward if needed
     for (const serviceBuilder of serviceBuilderMap.values()) {
       const podList = await this.k8.kubeClient.listNamespacedPod(
-        namespace, null, null, null, null, `app=${serviceBuilder.haProxyAppSelector}`)
-      serviceBuilder.withHaProxyPodName(podList.body.items[0].metadata.name)
+        namespace, undefined, undefined, undefined, undefined, `app=${serviceBuilder.haProxyAppSelector}`)
+      // @ts-ignore
+      serviceBuilder.withHaProxyPodName(podList.body!.items[0].metadata.name)
     }
 
     // get the pod name of the network node
     const pods = await this.k8.getPodsByLabel(['solo.hedera.com/type=network-node'])
     for (const pod of pods) {
-      const podName = pod.metadata.name
-      const nodeAlias = pod.metadata.labels['solo.hedera.com/node-name']
-      const serviceBuilder = /** @type {NetworkNodeServicesBuilder} **/ serviceBuilderMap.get(nodeAlias)
-      serviceBuilder.withNodePodName(podName)
+      const podName = pod.metadata!.name
+      const nodeAlias = pod.metadata!.labels!['solo.hedera.com/node-name']
+      const serviceBuilder = serviceBuilderMap.get(nodeAlias) as NetworkNodeServicesBuilder
+      // @ts-ignore
+      serviceBuilder.withNodePodName(podName) // TODO: MISSING METHOD ???
     }
 
-    /** @type {Map<String,NetworkNodeServices>} **/
-    const serviceMap = new Map()
+    const serviceMap: Map<string, NetworkNodeServices> = new Map()
     for (const networkNodeServicesBuilder of serviceBuilderMap.values()) {
       serviceMap.set(networkNodeServicesBuilder.key(), networkNodeServicesBuilder.build())
     }
@@ -343,13 +335,17 @@ export class AccountManager {
 
   /**
    * updates a set of special accounts keys with a newly generated key and stores them in a Kubernetes secret
-   * @param {string} namespace the namespace of the nodes network
-   * @param {string[]} currentSet - the accounts to update
-   * @param {boolean} updateSecrets - whether to delete the secret prior to creating a new secret
-   * @param {Object} resultTracker - an object to keep track of the results from the accounts that are being updated
-   * @returns {Promise<*>} the updated resultTracker object
+   * @param namespace the namespace of the nodes network
+   * @param currentSet - the accounts to update
+   * @param updateSecrets - whether to delete the secret prior to creating a new secret
+   * @param resultTracker - an object to keep track of the results from the accounts that are being updated
+   * @returns the updated resultTracker object
    */
-  async updateSpecialAccountsKeys (namespace, currentSet, updateSecrets, resultTracker) {
+  async updateSpecialAccountsKeys (namespace: string, currentSet: string[], updateSecrets: boolean, resultTracker: {
+    skippedCount: number;
+    rejectedCount: number;
+    fulfilledCount: number;
+  }): Promise<any> {
     const genesisKey = PrivateKey.fromStringED25519(constants.OPERATOR_KEY)
     const realm = constants.HEDERA_NODE_ACCOUNT_ID_START.realm
     const shard = constants.HEDERA_NODE_ACCOUNT_ID_START.shard
@@ -363,11 +359,14 @@ export class AccountManager {
 
     await Promise.allSettled(accountUpdatePromiseArray).then((results) => {
       for (const result of results) {
+        // @ts-ignore
         switch (result.value.status) {
           case REJECTED:
+            // @ts-ignore
             if (result.value.reason === REASON_SKIPPED) {
               resultTracker.skippedCount++
             } else {
+              // @ts-ignore
               this.logger.error(`REJECT: ${result.value.reason}: ${result.value.value}`)
               resultTracker.rejectedCount++
             }
@@ -379,24 +378,29 @@ export class AccountManager {
       }
     })
 
-    this.logger.debug(`Current counts: [fulfilled: ${resultTracker.fulfilledCount}, skipped: ${resultTracker.skippedCount}, rejected: ${resultTracker.rejectedCount}]`)
+    this.logger.debug(
+      `Current counts: [fulfilled: ${resultTracker.fulfilledCount}, ` +
+      `skipped: ${resultTracker.skippedCount}, ` +
+      `rejected: ${resultTracker.rejectedCount}]`
+    )
 
     return resultTracker
   }
 
   /**
    * update the account keys for a given account and store its new key in a Kubernetes secret
-   * @param {string} namespace - the namespace of the nodes network
-   * @param {AccountId} accountId - the account that will get its keys updated
-   * @param {PrivateKey} genesisKey - the genesis key to compare against
-   * @param {boolean} updateSecrets - whether to delete the secret prior to creating a new secret
-   * @returns {Promise<{value: string, status: string}|{reason: string, value: string, status: string}>} the result of the call
+   * @param namespace - the namespace of the nodes network
+   * @param accountId - the account that will get its keys updated
+   * @param genesisKey - the genesis key to compare against
+   * @param updateSecrets - whether to delete the secret prior to creating a new secret
+   * @returns the result of the call
    */
-  async updateAccountKeys (namespace, accountId, genesisKey, updateSecrets) {
+  async updateAccountKeys (namespace: string, accountId: AccountId, genesisKey: PrivateKey, updateSecrets: boolean
+      ): Promise<{ value: string; status: string } | { reason: string; value: string; status: string }> {
     let keys
     try {
       keys = await this.getAccountKeys(accountId)
-    } catch (e) {
+    } catch (e: Error | any) {
       this.logger.error(`failed to get keys for accountId ${accountId.toString()}, e: ${e.toString()}\n  ${e.stack}`)
       return {
         status: REJECTED,
@@ -443,7 +447,7 @@ export class AccountManager {
           value: accountId.toString()
         }
       }
-    } catch (e) {
+    } catch (e: Error | any) {
       this.logger.error(`failed to create secret for accountId ${accountId.toString()}, e: ${e.toString()}`)
       return {
         status: REJECTED,
@@ -461,7 +465,7 @@ export class AccountManager {
           value: accountId.toString()
         }
       }
-    } catch (e) {
+    } catch (e: Error | any) {
       this.logger.error(`failed to update account keys for accountId ${accountId.toString()}, e: ${e.toString()}`)
       return {
         status: REJECTED,
@@ -478,10 +482,10 @@ export class AccountManager {
 
   /**
    * gets the account info from Hedera network
-   * @param {AccountId|string} accountId - the account
-   * @returns {AccountInfo} the private key of the account
+   * @param accountId - the account
+   * @returns the private key of the account
    */
-  async accountInfoQuery (accountId) {
+  async accountInfoQuery (accountId: AccountId | string) {
     if (!this._nodeClient) {
       throw new MissingArgumentError('node client is not initialized')
     }
@@ -495,10 +499,10 @@ export class AccountManager {
 
   /**
    * gets the account private and public key from the Kubernetes secret from which it is stored
-   * @param {AccountId|string} accountId - the account
-   * @returns {Promise<Key[]>} the private key of the account
+   * @param accountId - the account
+   * @returns the private key of the account
    */
-  async getAccountKeys (accountId) {
+  async getAccountKeys (accountId: AccountId | string): Promise<Key[]> {
     const accountInfo = await this.accountInfoQuery(accountId)
 
     let keys = []
@@ -513,12 +517,16 @@ export class AccountManager {
 
   /**
    * send an account key update transaction to the network of nodes
-   * @param {AccountId|string} accountId - the account that will get its keys updated
-   * @param {PrivateKey|string} newPrivateKey - the new private key
-   * @param {PrivateKey|string} oldPrivateKey - the genesis key that is the current key
-   * @returns {Promise<boolean>} whether the update was successful
+   * @param accountId - the account that will get its keys updated
+   * @param newPrivateKey - the new private key
+   * @param oldPrivateKey - the genesis key that is the current key
+   * @returns whether the update was successful
    */
-  async sendAccountKeyUpdate (accountId, newPrivateKey, oldPrivateKey) {
+  async sendAccountKeyUpdate (
+    accountId: AccountId | string,
+    newPrivateKey: PrivateKey | string,
+    oldPrivateKey: PrivateKey | string
+  ): Promise<boolean> {
     if (typeof newPrivateKey === 'string') {
       newPrivateKey = PrivateKey.fromStringED25519(newPrivateKey)
     }
@@ -528,19 +536,20 @@ export class AccountManager {
     }
 
     // Create the transaction to update the key on the account
-    const transaction = await new AccountUpdateTransaction()
+    const transaction = new AccountUpdateTransaction()
       .setAccountId(accountId)
       .setKey(newPrivateKey.publicKey)
       .freezeWith(this._nodeClient)
 
     // Sign the transaction with the old key and new key
-    const signTx = await (await transaction.sign(oldPrivateKey)).sign(
-      newPrivateKey)
+    const signTx = await (await transaction.sign(oldPrivateKey)).sign(newPrivateKey)
 
     // SIgn the transaction with the client operator private key and submit to a Hedera network
+    // @ts-ignore
     const txResponse = await signTx.execute(this._nodeClient)
 
     // Request the receipt of the transaction
+    // @ts-ignore
     const receipt = await txResponse.getReceipt(this._nodeClient)
 
     return receipt.status === Status.Success
@@ -548,15 +557,14 @@ export class AccountManager {
 
   /**
    * creates a new Hedera account
-   * @param {string} namespace - the namespace to store the Kubernetes key secret into
-   * @param {Key} privateKey - the private key of type PrivateKey
-   * @param {number} amount - the amount of HBAR to add to the account
-   * @param {boolean} [setAlias] - whether to set the alias of the account to the public key, requires
-   * the privateKey supplied to be ECDSA
-   * @returns {Promise<{accountId: AccountId, privateKey: string, publicKey: string, balance: number}>} a custom object with
-   * the account information in it
+   * @param namespace - the namespace to store the Kubernetes key secret into
+   * @param privateKey - the private key of type PrivateKey
+   * @param amount - the amount of HBAR to add to the account
+   * @param [setAlias] - whether to set the alias of the account to the public key, requires the privateKey supplied to be ECDSA
+   * @returns a custom object with the account information in it
    */
-  async createNewAccount (namespace, privateKey, amount, setAlias = false) {
+  async createNewAccount (namespace: string, privateKey: PrivateKey, amount: number, setAlias = false
+      ): Promise<{ accountId: string; privateKey: string; publicKey: string; balance: number }> {
     const newAccountTransaction = new AccountCreateTransaction()
       .setKey(privateKey)
       .setInitialBalance(Hbar.from(amount, HbarUnit.Hbar))
@@ -565,12 +573,14 @@ export class AccountManager {
       newAccountTransaction.setAlias(privateKey.publicKey.toEvmAddress())
     }
 
+    // @ts-ignore
     const newAccountResponse = await newAccountTransaction.execute(this._nodeClient)
 
     // Get the new account ID
+    // @ts-ignore
     const transactionReceipt = await newAccountResponse.getReceipt(this._nodeClient)
-    const accountInfo = {
-      accountId: transactionReceipt.accountId.toString(),
+    const accountInfo: {accountId: string; privateKey: string; publicKey: any; balance: number; accountAlias?: string} = {
+      accountId: transactionReceipt.accountId!.toString(),
       privateKey: privateKey.toString(),
       publicKey: privateKey.publicKey.toString(),
       balance: amount
@@ -579,8 +589,8 @@ export class AccountManager {
     // add the account alias if setAlias is true
     if (setAlias) {
       const accountId = accountInfo.accountId
-      const realm = transactionReceipt.accountId.realm
-      const shard = transactionReceipt.accountId.shard
+      const realm = transactionReceipt.accountId!.realm
+      const shard = transactionReceipt.accountId!.shard
       const accountInfoQueryResult = await this.accountInfoQuery(accountId)
       accountInfo.accountAlias = `${realm}.${shard}.${accountInfoQueryResult.contractAccountId}`
     }
@@ -599,7 +609,7 @@ export class AccountManager {
 
         throw new SoloError(`failed to create secret for accountId ${accountInfo.accountId.toString()}, keys were sent to log file`)
       }
-    } catch (e) {
+    } catch (e: Error | any) {
       if (e instanceof SoloError) {
         throw e
       }
@@ -611,25 +621,27 @@ export class AccountManager {
 
   /**
    * transfer the specified amount of HBAR from one account to another
-   * @param {AccountId|string} fromAccountId - the account to pull the HBAR from
-   * @param {AccountId|string} toAccountId - the account to put the HBAR
-   * @param {number} hbarAmount - the amount of HBAR
-   * @returns {Promise<boolean>} if the transaction was successfully posted
+   * @param fromAccountId - the account to pull the HBAR from
+   * @param toAccountId - the account to put the HBAR
+   * @param hbarAmount - the amount of HBAR
+   * @returns if the transaction was successfully posted
    */
-  async transferAmount (fromAccountId, toAccountId, hbarAmount) {
+  async transferAmount (fromAccountId: AccountId | string, toAccountId: AccountId | string, hbarAmount: number) {
     try {
       const transaction = new TransferTransaction()
         .addHbarTransfer(fromAccountId, new Hbar(-1 * hbarAmount))
         .addHbarTransfer(toAccountId, new Hbar(hbarAmount))
 
+      // @ts-ignore
       const txResponse = await transaction.execute(this._nodeClient)
 
+      // @ts-ignore
       const receipt = await txResponse.getReceipt(this._nodeClient)
 
       this.logger.debug(`The transfer from account ${fromAccountId} to account ${toAccountId} for amount ${hbarAmount} was ${receipt.status.toString()} `)
 
       return receipt.status === Status.Success
-    } catch (e) {
+    } catch (e: Error | any) {
       const errorMessage = `transfer amount failed with an error: ${e.toString()}`
       this.logger.error(errorMessage)
       throw new SoloError(errorMessage, e)
@@ -638,15 +650,16 @@ export class AccountManager {
 
   /**
    * Fetch and prepare address book as a base64 string
-   * @param {string} namespace the namespace of the network
-   * @returns {Promise<string>}
+   * @param namespace the namespace of the network
    */
-  async prepareAddressBookBase64 (namespace) {
+  async prepareAddressBookBase64 (namespace: string) {
     // fetch AddressBook
     const fileQuery = new FileContentsQuery().setFileId(FileId.ADDRESS_BOOK)
+    // @ts-ignore
     const addressBookBytes = await fileQuery.execute(this._nodeClient)
 
     // convert addressBook into base64
+    // @ts-ignore
     return Base64.encode(addressBookBytes)
   }
 }

@@ -14,26 +14,19 @@
  * limitations under the License.
  *
  */
-'use strict'
+
 import { spawn } from 'child_process'
 import chalk from 'chalk'
+import {type SoloLogger} from "./logging";
 
 export class ShellRunner {
-  /**
-   * @param {SoloLogger} logger
-   */
-  constructor (logger) {
+  constructor (public logger: SoloLogger) {
     if (!logger) throw new Error('An instance of core/SoloLogger is required')
     this.logger = logger
   }
 
-  /**
-   * Returns a promise that invokes the shell command
-   * @param {string} cmd - shell command string
-   * @param {boolean} verbose - if true, the output will be shown in the console
-   * @returns {string[]} console output as an array of strings
-   */
-  run (cmd, verbose = false) {
+  /** Returns a promise that invokes the shell command */
+  run (cmd: string, verbose = false): Promise<string[]> {
     const self = this
     const callStack = new Error().stack // capture the callstack to be included in error
     self.logger.debug(`Executing command: '${cmd}'`)
@@ -43,9 +36,9 @@ export class ShellRunner {
         shell: true
       })
 
-      const output = []
+      const output: string[] = []
       child.stdout.on('data', d => {
-        const items = d.toString().split(/\r?\n/)
+        const items: string[] = d.toString().split(/\r?\n/)
         items.forEach(item => {
           if (item) {
             output.push(item)
@@ -53,9 +46,9 @@ export class ShellRunner {
         })
       })
 
-      const errOutput = []
+      const errOutput: string[] = []
       child.stderr.on('data', d => {
-        const items = d.toString().split(/\r?\n/)
+        const items: string[] = d.toString().split(/\r?\n/)
         items.forEach(item => {
           if (item) {
             errOutput.push(item.trim())

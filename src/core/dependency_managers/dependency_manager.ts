@@ -14,35 +14,34 @@
  * limitations under the License.
  *
  */
-'use strict'
+
 import os from 'os'
 import { SoloError, MissingArgumentError } from '../errors'
 import { ShellRunner } from '../shell_runner'
+import { type SoloLogger} from "../logging";
+import {HelmDependencyManager} from "./helm_dependency_manager";
+import {ListrTaskWrapper} from "listr2";
 
 export class DependencyManager extends ShellRunner {
-  /**
-   * @param {SoloLogger} logger
-   * @param {Map<string, *>} depManagerMap
-   */
-  constructor (logger, depManagerMap) {
+  constructor (logger: SoloLogger,
+    private readonly depManagerMap: Map<string, DependencyManager | HelmDependencyManager>) {
     if (!logger) throw new MissingArgumentError('an instance of core/SoloLogger is required', logger)
     super(logger)
     if (!depManagerMap) throw new MissingArgumentError('A map of dependency managers are required')
-    this.depManagerMap = depManagerMap
   }
 
   /**
    * Check if the required dependency is installed or not
-   * @param {string} dep - is the name of the program
-   * @param {boolean} [shouldInstall] - Whether or not install the dependency if not installed
-   * @returns {Promise<boolean>}
+   * @param dep - is the name of the program
+   * @param [shouldInstall] - Whether or not install the dependency if not installed
    */
-  async checkDependency (dep, shouldInstall = true) {
+  async checkDependency (dep: string, shouldInstall: boolean = true) {
     this.logger.debug(`Checking for dependency: ${dep}`)
 
     let status = false
     const manager = this.depManagerMap.get(dep)
     if (manager) {
+      // @ts-ignore
       status = await manager.checkVersion(shouldInstall)
     }
 
@@ -54,11 +53,8 @@ export class DependencyManager extends ShellRunner {
     return true
   }
 
-  /**
-   * @param {String[]} deps
-   */
-  taskCheckDependencies (deps) {
-    const subTasks = []
+  taskCheckDependencies (deps: string[]) {
+    const subTasks: any[] = []
     deps.forEach(dep => {
       subTasks.push({
         title: `Check dependency: ${dep} [OS: ${os.platform()}, Release: ${os.release()}, Arch: ${os.arch()}]`,

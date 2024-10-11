@@ -15,32 +15,38 @@
  *
  */
 
-'use strict'
-import { constants, Templates, Task, Zippy } from '../../core'
-import { FREEZE_ADMIN_ACCOUNT } from '../../core/constants'
+
+import {type ConfigManager, constants, type K8, Task, Templates, Zippy} from '../../core'
+import {FREEZE_ADMIN_ACCOUNT} from '../../core/constants'
 import {
   AccountBalanceQuery,
   FileAppendTransaction,
   FileUpdateTransaction,
   FreezeTransaction,
-  FreezeType, PrivateKey,
+  FreezeType,
+  PrivateKey,
   Timestamp
 } from '@hashgraph/sdk'
-import { SoloError, IllegalArgumentError, MissingArgumentError } from '../../core/errors'
+import {IllegalArgumentError, MissingArgumentError, SoloError} from '../../core/errors'
 import * as prompts from '../prompts'
 import path from 'path'
 import fs from 'fs'
 import crypto from 'crypto'
-import { getNodeAccountMap } from '../../core/helpers'
+import {getNodeAccountMap} from '../../core/helpers'
 import chalk from 'chalk'
 import * as flags from '../flags'
+import {type SoloLogger} from "../../core/logging";
+import {type AccountManager} from "../../core/account_manager";
+import {Listr, ListrTaskWrapper} from "listr2";
 
 export class NodeCommandTasks {
-  /**
-     * @param {{logger: Logger, accountManager: AccountManager, configManager: ConfigManager}} opts
-     */
-  constructor (opts) {
-    if (!opts || !opts.accountManager) throw new IllegalArgumentError('An instance of core/AccountManager is required', opts.accountManager)
+  private readonly accountManager: AccountManager;
+  private readonly configManager: ConfigManager;
+  private readonly logger: SoloLogger;
+  private readonly k8: K8;
+
+  constructor(opts: { logger: SoloLogger; accountManager: AccountManager; configManager: ConfigManager, k8: K8 }) {
+    if (!opts || !opts.accountManager) throw new IllegalArgumentError('An instance of core/AccountManager is required', opts.accountManager as any)
     if (!opts || !opts.configManager) throw new Error('An instance of core/ConfigManager is required')
     if (!opts || !opts.logger) throw new Error('An instance of core/Logger is required')
     if (!opts || !opts.k8) throw new Error('An instance of core/K8 is required')
@@ -48,10 +54,10 @@ export class NodeCommandTasks {
     this.accountManager = opts.accountManager
     this.configManager = opts.configManager
     this.logger = opts.logger
-    this.k8 = /** @type {K8} **/ opts.k8
+    this.k8 = opts.k8
   }
 
-  async _prepareUpgradeZip (stagingDir) {
+  async _prepareUpgradeZip(stagingDir: string) {
     // we build a mock upgrade.zip file as we really don't need to upgrade the network
     // also the platform zip file is ~80Mb in size requiring a lot of transactions since the max
     // transaction size is 6Kb and in practice we need to send the file as 4Kb chunks.
@@ -59,7 +65,7 @@ export class NodeCommandTasks {
     const zipper = new Zippy(this.logger)
     const upgradeConfigDir = path.join(stagingDir, 'mock-upgrade', 'data', 'config')
     if (!fs.existsSync(upgradeConfigDir)) {
-      fs.mkdirSync(upgradeConfigDir, { recursive: true })
+      fs.mkdirSync(upgradeConfigDir, {recursive: true})
     }
 
     // bump field hedera.config.version
@@ -82,14 +88,10 @@ export class NodeCommandTasks {
     return await zipper.zip(path.join(stagingDir, 'mock-upgrade'), path.join(stagingDir, 'mock-upgrade.zip'))
   }
 
-  /**
-   * @param {string} upgradeZipFile
-   * @param nodeClient
-   * @returns {Promise<string>}
-   */
-  async _uploadUpgradeZip (upgradeZipFile, nodeClient) {
+  async _uploadUpgradeZip(upgradeZipFile: string, nodeClient: any) {
     // get byte value of the zip file
     const zipBytes = fs.readFileSync(upgradeZipFile)
+    // @ts-ignore
     const zipHash = crypto.createHash('sha384').update(zipBytes).digest('hex')
     this.logger.debug(`loaded upgrade zip file [ zipHash = ${zipHash} zipBytes.length = ${zipBytes.length}, zipPath = ${upgradeZipFile}]`)
 
@@ -118,28 +120,28 @@ export class NodeCommandTasks {
       }
 
       return zipHash
-    } catch (e) {
+    } catch (e: Error | any) {
       throw new SoloError(`failed to upload build.zip file: ${e.message}`, e)
     }
   }
 
-  prepareUpgradeZip () {
-    return new Task('Prepare upgrade zip file for node upgrade process', async (ctx, task) => {
+  prepareUpgradeZip() {
+    return new Task('Prepare upgrade zip file for node upgrade process', async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
       const config = ctx.config
       ctx.upgradeZipFile = await this._prepareUpgradeZip(config.stagingDir)
       ctx.upgradeZipHash = await this._uploadUpgradeZip(ctx.upgradeZipFile, config.nodeClient)
     })
   }
 
-  loadAdminKey () {
-    return new Task('Load node admin key', (ctx, task) => {
+  loadAdminKey() {
+    return new Task('Load node admin key', (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
       const config = ctx.config
       config.adminKey = PrivateKey.fromStringED25519(constants.GENESIS_KEY)
     })
   }
 
-  checkExistingNodesStakedAmount () {
-    return new Task('Check existing nodes staked amount', async (ctx, task) => {
+  checkExistingNodesStakedAmount() {
+    return new Task('Check existing nodes staked amount', async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
       const config = ctx.config
 
       // Transfer some hbar to the node for staking purpose
@@ -151,13 +153,10 @@ export class NodeCommandTasks {
     })
   }
 
-  /**
-   * @returns {Task}
-   */
-  sendPrepareUpgradeTransaction () {
-    return new Task('Send prepare upgrade transaction', async (ctx, task) => {
-      const { upgradeZipHash } = ctx
-      const { nodeClient, freezeAdminPrivateKey } = ctx.config
+  sendPrepareUpgradeTransaction(): Task {
+    return new Task('Send prepare upgrade transaction', async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
+      const {upgradeZipHash} = ctx
+      const {nodeClient, freezeAdminPrivateKey} = ctx.config
       try {
         // transfer some tiny amount to the freeze admin account
         await this.accountManager.transferAmount(constants.TREASURY_ACCOUNT_ID, FREEZE_ADMIN_ACCOUNT, 100000)
@@ -181,23 +180,20 @@ export class NodeCommandTasks {
         const prepareUpgradeReceipt = await prepareUpgradeTx.getReceipt(nodeClient)
 
         this.logger.debug(
-                    `sent prepare upgrade transaction [id: ${prepareUpgradeTx.transactionId.toString()}]`,
-                    prepareUpgradeReceipt.status.toString()
+          `sent prepare upgrade transaction [id: ${prepareUpgradeTx.transactionId.toString()}]`,
+          prepareUpgradeReceipt.status.toString()
         )
-      } catch (e) {
+      } catch (e: Error | any) {
         this.logger.error(`Error in prepare upgrade: ${e.message}`, e)
         throw new SoloError(`Error in prepare upgrade: ${e.message}`, e)
       }
     })
   }
 
-  /**
-   * @returns {Task}
-   */
-  sendFreezeUpgradeTransaction () {
-    return new Task('Send freeze upgrade transaction', async (ctx, task) => {
-      const { upgradeZipHash } = ctx
-      const { freezeAdminPrivateKey, nodeClient } = ctx.config
+  sendFreezeUpgradeTransaction(): Task {
+    return new Task('Send freeze upgrade transaction', async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
+      const {upgradeZipHash} = ctx
+      const {freezeAdminPrivateKey, nodeClient} = ctx.config
       try {
         const futureDate = new Date()
         this.logger.debug(`Current time: ${futureDate}`)
@@ -217,19 +213,16 @@ export class NodeCommandTasks {
         const freezeUpgradeReceipt = await freezeUpgradeTx.getReceipt(nodeClient)
         this.logger.debug(`Upgrade frozen with transaction id: ${freezeUpgradeTx.transactionId.toString()}`,
           freezeUpgradeReceipt.status.toString())
-      } catch (e) {
+      } catch (e: Error | any) {
         this.logger.error(`Error in freeze upgrade: ${e.message}`, e)
         throw new SoloError(`Error in freeze upgrade: ${e.message}`, e)
       }
     })
   }
 
-  /**
-   * Download generated config files and key files from the network node
-   * @returns {Task}
-   */
-  downloadNodeGeneratedFiles () {
-    return new Task('Download generated files from an existing node', async (ctx, task) => {
+  /** Download generated config files and key files from the network node */
+  downloadNodeGeneratedFiles(): Task {
+    return new Task('Download generated files from an existing node', async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
       const config = ctx.config
       const node1FullyQualifiedPodName = Templates.renderNetworkPodName(config.existingNodeAliases[0])
 
@@ -253,14 +246,7 @@ export class NodeCommandTasks {
     })
   }
 
-  /**
-   * Return task for checking for all network node pods
-   * @param {any} ctx
-   * @param {TaskWrapper} task
-   * @param {string[]} nodeAliases
-   * @returns {*}
-   */
-  taskCheckNetworkNodePods (ctx, task, nodeAliases) {
+  taskCheckNetworkNodePods(ctx: any, task: ListrTaskWrapper<any, any, any>, nodeAliases: string[]): Listr {
     if (!ctx.config) {
       ctx.config = {}
     }
@@ -271,7 +257,7 @@ export class NodeCommandTasks {
     for (const nodeAlias of nodeAliases) {
       subTasks.push({
         title: `Check network pod: ${chalk.yellow(nodeAlias)}`,
-        task: async (ctx) => {
+        task: async (ctx: any) => {
           ctx.config.podNames[nodeAlias] = await this.checkNetworkNodePod(ctx.config.namespace, nodeAlias)
         }
       })
@@ -286,15 +272,8 @@ export class NodeCommandTasks {
     })
   }
 
-  /**
-   * Check if the network node pod is running
-   * @param {string} namespace
-   * @param {string} nodeAlias
-   * @param {number} [maxAttempts]
-   * @param {number} [delay]
-   * @returns {Promise<string>}
-   */
-  async checkNetworkNodePod (namespace, nodeAlias, maxAttempts = 60, delay = 2000) {
+  /** Check if the network node pod is running */
+  async checkNetworkNodePod(namespace: string, nodeAlias: string, maxAttempts: number = 60, delay: number = 2000): Promise<string> {
     nodeAlias = nodeAlias.trim()
     const podName = Templates.renderNetworkPodName(nodeAlias)
 
@@ -305,13 +284,13 @@ export class NodeCommandTasks {
       ], 1, maxAttempts, delay)
 
       return podName
-    } catch (e) {
+    } catch (e: Error | any) {
       throw new SoloError(`no pod found for nodeAlias: ${nodeAlias}`, e)
     }
   }
 
-  identifyExistingNodes () {
-    return new Task('Identify existing network nodes', async (ctx, task) => {
+  identifyExistingNodes() {
+    return new Task('Identify existing network nodes', async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
       const config = ctx.config
       config.existingNodeAliases = []
       config.serviceMap = await this.accountManager.getNodeServiceMap(config.namespace)
@@ -323,19 +302,14 @@ export class NodeCommandTasks {
     })
   }
 
-  identifyNetworkPods () {
-    return new Task('Identify network pods', (ctx, task) => {
+  identifyNetworkPods() {
+    return new Task('Identify network pods', (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
       return this.taskCheckNetworkNodePods(ctx, task, ctx.config.nodeAliases)
     })
   }
 
-  /**
-   * @param {Object} argv
-   * @param {Function} configInit
-   * @returns {Task}
-   */
-  initialize (argv, configInit) {
-    const { requiredFlags, requiredFlagsWithDisabledPrompt, optionalFlags } = argv
+  initialize(argv: any, configInit: Function) {
+    const {requiredFlags, requiredFlagsWithDisabledPrompt, optionalFlags} = argv
     const allRequiredFlags = [
       ...requiredFlags,
       ...requiredFlagsWithDisabledPrompt
@@ -347,7 +321,7 @@ export class NodeCommandTasks {
       ...optionalFlags
     ]
 
-    return new Task('Initialize', async (ctx, task) => {
+    return new Task('Initialize', async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
       if (argv[flags.devMode.name]) {
         this.logger.setDevMode(true)
       }
@@ -367,7 +341,7 @@ export class NodeCommandTasks {
         }
       }
 
-      this.logger.debug('Initialized config', { config })
+      this.logger.debug('Initialized config', {config})
     })
   }
 }

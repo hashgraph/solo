@@ -14,7 +14,7 @@
  * limitations under the License.
  *
  */
-'use strict'
+
 import fs from 'fs'
 import { SoloError, MissingArgumentError } from './errors'
 import { constants } from './index'
@@ -24,6 +24,8 @@ import * as paths from 'path'
 import * as helpers from './helpers'
 import * as yaml from 'js-yaml'
 import { yamlToObject } from './helpers'
+import { CommandFlag } from "../commands/flags"
+import * as yargs from 'yargs'
 
 /**
  * ConfigManager cache command flag values so that user doesn't need to enter the same values repeatedly.
@@ -32,16 +34,12 @@ import { yamlToObject } from './helpers'
  * doesn't need to enter it repeatedly. However, user should still be able to specify the flag explicitly for any command.
  */
 export class ConfigManager {
-  /**
-   * @param {SoloLogger} logger
-   * @param {string} cachedConfigFile
-   */
-  constructor (logger, cachedConfigFile = constants.SOLO_CONFIG_FILE) {
+  private config!: Record<string, any>
+
+  constructor (private readonly logger: SoloLogger, private readonly cachedConfigFile: string = constants.SOLO_CONFIG_FILE) {
     if (!logger || !(logger instanceof SoloLogger)) throw new MissingArgumentError('An instance of core/SoloLogger is required')
     if (!cachedConfigFile) throw new MissingArgumentError('cached config file path is required')
 
-    this.logger = logger
-    this.cachedConfigFile = cachedConfigFile
     this.reset()
   }
 
@@ -51,16 +49,14 @@ export class ConfigManager {
   load () {
     try {
       if (fs.existsSync(this.cachedConfigFile)) {
-        this.config = yamlToObject(this.cachedConfigFile)
+        this.config = yamlToObject(this.cachedConfigFile) as Record<string, any>
       }
-    } catch (e) {
+    } catch (e: Error | any) {
       throw new SoloError(`failed to initialize config manager: ${e.message}`, e)
     }
   }
 
-  /**
-   * Reset config
-   */
+  /** Reset config */
   reset () {
     this.config = {
       flags: {},
@@ -76,20 +72,19 @@ export class ConfigManager {
    *  1. User input of the command flag
    *  2. Cached config value of the command flag.
    *  3. Default value of the command flag if the command is not 'init'.
-   *
-   * @param {yargs.argv} argv
-   * @param {yargv.parsed.aliases} aliases
-   * @returns {Object} updated argv
    */
-  applyPrecedence (argv, aliases) {
+  applyPrecedence (argv: yargs.Argv<any>, aliases: any): yargs.Argv<any> {
     for (const key of Object.keys(aliases)) {
       const flag = flags.allFlagsMap.get(key)
       if (flag) {
+        // @ts-ignore
         if (argv[key] !== undefined) {
           // argv takes precedence, nothing to do
         } else if (this.hasFlag(flag)) {
+          // @ts-ignore
           argv[key] = this.getFlag(flag)
         } else {
+          // @ts-ignore
           argv[key] = flag.definition.defaultValue
         }
       }
@@ -98,13 +93,8 @@ export class ConfigManager {
     return argv
   }
 
-  /**
-   * Update the config using the argv
-   *
-   * @param {Object} [argv] - list of yargs argv
-   * @param {boolean} persist
-   */
-  update (argv = {}, persist = false) {
+  /** Update the config using the argv */
+  update (argv: object | any = {}, persist: boolean = false) {
     if (argv && Object.keys(argv).length > 0) {
       for (const flag of flags.allFlags) {
         if (flag.name === flags.force.name) {
@@ -136,7 +126,7 @@ export class ConfigManager {
                 } else {
                   this.config.flags[flag.name] = Number.parseFloat(val)
                 }
-              } catch (e) {
+              } catch (e: Error | any) {
                 throw new SoloError(`invalid number value '${val}': ${e.message}`, e)
               }
               break
@@ -165,9 +155,7 @@ export class ConfigManager {
     }
   }
 
-  /**
-   * Persist the config in the cached config file
-   */
+  /** Persist the config in the cached config file */
   persist () {
     try {
       this.config.updatedAt = new Date().toISOString()
@@ -175,27 +163,21 @@ export class ConfigManager {
       fs.writeFileSync(this.cachedConfigFile, newYaml)
       // refresh config with the file contents
       this.load()
-    } catch (e) {
+    } catch (e: Error | any) {
       throw new SoloError(`failed to persis config: ${e.message}`, e)
     }
   }
 
-  /**
-   * Check if a flag value is set
-   * @param {{name: string}} flag flag object
-   * @returns {boolean}
-   */
-  hasFlag (flag) {
+  /** Check if a flag value is set */
+  hasFlag (flag: CommandFlag) {
     return this.config.flags[flag.name] !== undefined
   }
 
   /**
    * Return the value of the given flag
-   *
-   * @param {{name: string}} flag flag object
-   * @returns {undefined|string} value of the flag or undefined if flag value is not available
+   * @returns value of the flag or undefined if flag value is not available
    */
-  getFlag (flag) {
+  getFlag<T>(flag: CommandFlag): undefined | T {
     if (this.config.flags[flag.name] !== undefined) {
       return this.config.flags[flag.name]
     }
@@ -203,30 +185,19 @@ export class ConfigManager {
     return undefined
   }
 
-  /**
-   * Set value for the flag
-   * @param {{name: string}} flag - flag object
-   * @param value - value of the flag
-   */
-
-  setFlag (flag, value) {
+  /** Set value for the flag */
+  setFlag<T>(flag: CommandFlag, value: T) {
     if (!flag || !flag.name) throw new MissingArgumentError('flag must have a name')
     this.config.flags[flag.name] = value
   }
 
-  /**
-   * Get package version
-   * @returns {*}
-   */
-  getVersion () {
+  /** Get package version */
+  getVersion (): string {
     return this.config.version
   }
 
-  /**
-   * Get last updated at timestamp
-   * @returns {string}
-   */
-  getUpdatedAt () {
+  /** Get last updated at timestamp */
+  getUpdatedAt (): string {
     return this.config.updatedAt
   }
 }

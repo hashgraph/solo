@@ -14,7 +14,7 @@
  * limitations under the License.
  *
  */
-'use strict'
+
 import { Listr } from 'listr2'
 import path from 'path'
 import { BaseCommand } from './base'
