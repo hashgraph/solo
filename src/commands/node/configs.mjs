@@ -519,11 +519,11 @@ export const startConfigBuilder = async function (argv, ctx, task) {
     }
 
     ctx.config.stagingDir = Templates.renderStagingDir(
-        self.configManager.getFlag(flags.cacheDir),
-        self.configManager.getFlag(flags.releaseTag)
+        this.configManager.getFlag(flags.cacheDir),
+        this.configManager.getFlag(flags.releaseTag)
     )
 
-    if (!await self.k8.hasNamespace(ctx.config.namespace)) {
+    if (!await this.k8.hasNamespace(ctx.config.namespace)) {
         throw new SoloError(`namespace ${ctx.config.namespace} does not exist`)
     }
 
