@@ -820,8 +820,13 @@ export class NodeCommand extends BaseCommand {
       subTasks.push({
         title: `Copy local build to Node: ${chalk.yellow(nodeAlias)} from ${localDataLibBuildPath}`,
         task: async () => {
-          this.logger.debug(`Copying build files to pod: ${podName} from ${localDataLibBuildPath}`)
-          await self.k8.copyTo(podName, constants.ROOT_CONTAINER, localDataLibBuildPath, `${constants.HEDERA_HAPI_PATH}`)
+          // filter the data/config and data/keys to avoid failures due to config and secret mounts
+          const filterFunction = (path, stat) => {
+            return !(path.includes('data/keys') || path.includes(
+              'data/config'))
+          }
+          await self.k8.copyTo(podName, constants.ROOT_CONTAINER, localDataLibBuildPath,
+              `${constants.HEDERA_HAPI_PATH}`, filterFunction)
           const testJsonFiles = self.configManager.getFlag(flags.appConfig).split(',')
           for (const jsonFile of testJsonFiles) {
             if (fs.existsSync(jsonFile)) {
