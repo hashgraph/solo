@@ -79,7 +79,7 @@ export function testNodeAdd (localBuildPath
     }).timeout(8 * MINUTES)
 
     it('should add a new node to the network successfully', async () => {
-      await nodeCmd.add(argv)
+      await nodeCmd.handlers.add(argv)
       expect(nodeCmd.getUnusedConfigs(NodeCommandConfigs.ADD_CONFIGS_NAME)).to.deep.equal([
         flags.app.constName,
         flags.chainId.constName,

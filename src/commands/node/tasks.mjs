@@ -809,7 +809,7 @@ export class NodeCommandTasks {
     })
   }
 
-  checkNodeProxiesAreActive (skip) {
+  checkNodeProxiesAreActive () {
     return new Task('Check node proxies are ACTIVE', (ctx, task) => {
       // this is more reliable than checking the nodes logs for ACTIVE, as the
       // logs will have a lot of white noise from being behind

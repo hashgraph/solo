@@ -411,7 +411,7 @@ export class NodeCommandHandlers {
       this.tasks.setupNetworkNodes('nodeAliases'),
       this.tasks.startNodes('nodeAliases'),
       this.tasks.checkAllNodesAreActive('nodeAliases'),
-      this.tasks.checkNodeProxiesAreActive((ctx) => ctx.config.app !== '')
+      this.tasks.checkNodeProxiesAreActive()
     ], {
       concurrent: false,
       rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
@@ -460,7 +460,7 @@ export class NodeCommandHandlers {
       this.tasks.startNodes('nodeAliases'),
       this.tasks.enablePortForwarding(),
       this.tasks.checkAllNodesAreActive('nodeAliases'),
-      this.tasks.checkNodeProxiesAreActive(false),
+      this.tasks.checkNodeProxiesAreActive(),
       this.tasks.addNodeStakes()
     ], {
       concurrent: false,
