@@ -58,8 +58,6 @@ export class Zippy {
   }
 
   unzip (srcPath: string, destPath: string, verbose = false) {
-    const self = this
-
     if (!srcPath) throw new MissingArgumentError('srcPath is required')
     if (!destPath) throw new MissingArgumentError('destPath is required')
 
@@ -70,7 +68,7 @@ export class Zippy {
 
       zip.getEntries().forEach(function (zipEntry) {
         if (verbose) {
-          self.logger.debug(`Extracting file: ${zipEntry.entryName} -> ${destPath}/${zipEntry.entryName} ...`, {
+          this.logger.debug(`Extracting file: ${zipEntry.entryName} -> ${destPath}/${zipEntry.entryName} ...`, {
             src: zipEntry.entryName,
             dst: `${destPath}/${zipEntry.entryName}`
           })
@@ -78,7 +76,7 @@ export class Zippy {
 
         zip.extractEntryTo(zipEntry, destPath, true, true, true, zipEntry.entryName)
         if (verbose) {
-          self.logger.showUser(chalk.green('OK'), `Extracted: ${zipEntry.entryName} -> ${destPath}/${zipEntry.entryName}`)
+          this.logger.showUser(chalk.green('OK'), `Extracted: ${zipEntry.entryName} -> ${destPath}/${zipEntry.entryName}`)
         }
       })
 

@@ -114,7 +114,7 @@ export class ChartManager {
   }
 
   async upgrade (namespaceName: string, chartReleaseName: string, chartPath: string, valuesArg ='', version = '') {
-    let versionArg = version ? `--version ${version}` : ''
+    const versionArg = version ? `--version ${version}` : ''
 
     try {
       this.logger.debug(chalk.cyan('> upgrading chart:'), chalk.yellow(`${chartReleaseName}`))

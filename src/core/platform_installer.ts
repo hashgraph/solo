@@ -223,7 +223,6 @@ export class PlatformInstaller {
   }
 
   async setPlatformDirPermissions (podName: PodName) {
-    const self = this
     if (!podName) throw new MissingArgumentError('podName is required')
 
     try {
@@ -232,7 +231,7 @@ export class PlatformInstaller {
       ]
 
       for (const destPath of destPaths) {
-        await self.setPathPermission(podName, destPath)
+        await this.setPathPermission(podName, destPath)
       }
 
       return true
@@ -243,12 +242,11 @@ export class PlatformInstaller {
 
   /** Return a list of task to perform node directory setup */
   taskSetup (podName: PodName) {
-    const self = this
     return new Listr([
       {
         title: 'Set file permissions',
         task: async () =>
-          await self.setPlatformDirPermissions(podName)
+          await this.setPlatformDirPermissions(podName)
       }
     ],
     {

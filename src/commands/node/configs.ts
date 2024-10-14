@@ -25,7 +25,7 @@ export async function prepareUpgradeConfigBuilder(this: any, argv: any, ctx: any
         namespace: string
         releaseTag: string
         freezeAdminPrivateKey: string
-        nodeClient: Object
+        nodeClient: object
     }
 
     const config: NodePrepareUpgradeConfigClass = this.getConfig(
@@ -49,7 +49,7 @@ export async function downloadGeneratedFilesConfigBuilder(this: any, argv: any, 
         namespace: string
         releaseTag: string
         freezeAdminPrivateKey: string
-        nodeClient: Object,
+        nodeClient: object,
         existingNodeAliases: string[]
     }
 

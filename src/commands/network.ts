@@ -231,7 +231,7 @@ export class NetworkCommand extends BaseCommand {
           return parentTask.newListr([
             {
               title: 'Copy Gossip keys to staging',
-              task: async (ctx) => {
+              task: (ctx) => {
                 const config = ctx.config
 
                 this.keyManager.copyGossipKeysToStaging(config.keysDir, config.stagingKeysDir, config.nodeAliases)
@@ -239,7 +239,7 @@ export class NetworkCommand extends BaseCommand {
             },
             {
               title: 'Copy gRPC TLS keys to staging',
-              task: async (ctx) => {
+              task: (ctx) => {
                 const config = ctx.config
                 for (const nodeAlias of config.nodeAliases) {
                   const tlsKeyFiles = this.keyManager.prepareTLSKeyFilePaths(nodeAlias, config.keysDir)

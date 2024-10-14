@@ -97,7 +97,7 @@ export interface NodeAddConfigClass {
   lastStateZipPath: string
   nodeClient: any
   podNames: Record<NodeAlias, PodName>
-  serviceMap: Map<String, NetworkNodeServices>
+  serviceMap: Map<string, NetworkNodeServices>
   treasuryKey: PrivateKey
   stagingDir: string
   stagingKeysDir: string
@@ -124,7 +124,7 @@ export interface NodeDeleteConfigClass {
   keysDir: string
   nodeClient: any
   podNames: Record<NodeAlias, PodName>
-  serviceMap: Map<String, NetworkNodeServices>
+  serviceMap: Map<string, NetworkNodeServices>
   stagingDir: string
   stagingKeysDir: string
   treasuryKey: PrivateKey
@@ -615,13 +615,13 @@ export class NodeCommand extends BaseCommand {
     const subTasks = [
       {
         title: 'Copy Gossip keys to staging',
-        task: async () => {
+        task: () => {
           this.keyManager.copyGossipKeysToStaging(keysDir, stagingKeysDir, nodeAliases)
         }
       },
       {
         title: 'Copy gRPC TLS keys to staging',
-        task: async () => {
+        task: () => {
           for (const nodeAlias of nodeAliases) {
             const tlsKeyFiles = this.keyManager.prepareTLSKeyFilePaths(nodeAlias, keysDir)
             this.keyManager.copyNodeKeysToStaging(tlsKeyFiles, stagingKeysDir)
@@ -880,7 +880,7 @@ export class NodeCommand extends BaseCommand {
       nodeAliasesUnparsed: string
       releaseTag: string
       nodeAliases: NodeAliases
-      podNames: Object
+      podNames: object
       getUnusedConfigs: () => string[]
     }
 
@@ -1559,7 +1559,7 @@ export class NodeCommand extends BaseCommand {
       },
       {
         title: 'Load signing key certificate',
-        task: async (ctx: Context) => {
+        task: (ctx: Context) => {
           const config = ctx.config
           const signingCertFile = Templates.renderGossipPemPublicKeyFile(constants.SIGNING_KEY_PREFIX, config.nodeAlias)
           const signingCertFullPath = path.join(config.keysDir, signingCertFile)
@@ -1568,7 +1568,7 @@ export class NodeCommand extends BaseCommand {
       },
       {
         title: 'Compute mTLS certificate hash',
-        task: async (ctx: Context) => {
+        task: (ctx: Context) => {
           const config = ctx.config
           const tlsCertFile = Templates.renderTLSPemPublicKeyFile(config.nodeAlias)
           const tlsCertFullPath = path.join(config.keysDir, tlsCertFile)

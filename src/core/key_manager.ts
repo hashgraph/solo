@@ -175,7 +175,6 @@ export class KeyManager {
       certPems.push(cert.toString('pem'))
     })
 
-    const self = this
     return new Promise((resolve, reject) => {
       try {
         this.logger.debug(`Storing ${keyName} key for node: ${nodeAlias}`, { nodeKeyFiles })
@@ -191,7 +190,7 @@ export class KeyManager {
           fs.writeFileSync(nodeKeyFiles.certificateFile, certPem + '\n', { flag: 'a' })
         })
 
-        self.logger.debug(`Stored ${keyName} key for node: ${nodeAlias}`, {
+        this.logger.debug(`Stored ${keyName} key for node: ${nodeAlias}`, {
           nodeKeyFiles
         })
 

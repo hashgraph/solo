@@ -37,7 +37,7 @@ export class ProfileManager {
   private readonly configManager: ConfigManager;
   private readonly cacheDir: string;
 
-  private profiles: Map<string, Object>;
+  private profiles: Map<string, object>;
   private profileFile: string | undefined;
 
   constructor (logger: SoloLogger, configManager: ConfigManager, cacheDir: string = constants.SOLO_VALUES_DIR) {
@@ -53,7 +53,7 @@ export class ProfileManager {
     this.cacheDir = cacheDir
   }
 
-  loadProfiles (forceReload: boolean = false): Map<string, Object> {
+  loadProfiles (forceReload: boolean = false): Map<string, object> {
     const profileFile = this.configManager.getFlag<string>(flags.profileFile)
     if (!profileFile) throw new MissingArgumentError('profileFile is required')
 
@@ -67,7 +67,7 @@ export class ProfileManager {
     // load profile file
     this.profiles = new Map()
     const yamlData = fs.readFileSync(profileFile, 'utf8')
-    const profileItems = yaml.load(yamlData) as Record<string, Object>
+    const profileItems = yaml.load(yamlData) as Record<string, object>
 
     // add profiles
     for (const key in profileItems) {
@@ -80,14 +80,14 @@ export class ProfileManager {
     return this.profiles
   }
 
-  getProfile (profileName: string): Object {
+  getProfile (profileName: string): object {
     if (!profileName) throw new MissingArgumentError('profileName is required')
     if (!this.profiles || this.profiles.size <= 0) {
       this.loadProfiles()
     }
 
     if (!this.profiles || !this.profiles.has(profileName)) throw new IllegalArgumentError(`Profile does not exists with name: ${profileName}`)
-    return this.profiles.get(profileName) as Object
+    return this.profiles.get(profileName) as object
   }
 
   /**
@@ -140,7 +140,7 @@ export class ProfileManager {
    * @param yamlRoot - root of the yaml object to update
    * @private
    */
-  _setChartItems (itemPath: string, items: any, yamlRoot: Object) {
+  _setChartItems (itemPath: string, items: any, yamlRoot: object) {
     if (!items) return
 
     const dotItems = dot.dot(items)
@@ -161,7 +161,7 @@ export class ProfileManager {
     }
   }
 
-  resourcesForConsensusPod (profile: any, nodeAliases: NodeAliases, yamlRoot: Object): Object {
+  resourcesForConsensusPod (profile: any, nodeAliases: NodeAliases, yamlRoot: object): object {
     if (!profile) throw new MissingArgumentError('profile is required')
 
     const accountMap = getNodeAccountMap(nodeAliases)
@@ -225,26 +225,26 @@ export class ProfileManager {
     return yamlRoot
   }
 
-  resourcesForHaProxyPod (profile: any, yamlRoot: Object) {
+  resourcesForHaProxyPod (profile: any, yamlRoot: object) {
     if (!profile) throw new MissingArgumentError('profile is required')
     if (!profile.haproxy) return // use chart defaults
 
     return this._setChartItems('defaults.haproxy', profile.haproxy, yamlRoot)
   }
 
-  resourcesForEnvoyProxyPod (profile: any, yamlRoot: Object) {
+  resourcesForEnvoyProxyPod (profile: any, yamlRoot: object) {
     if (!profile) throw new MissingArgumentError('profile is required')
     if (!profile.envoyProxy) return // use chart defaults
     return this._setChartItems('defaults.envoyProxy', profile.envoyProxy, yamlRoot)
   }
 
-  resourcesForHederaExplorerPod (profile: any, yamlRoot: Object) {
+  resourcesForHederaExplorerPod (profile: any, yamlRoot: object) {
     if (!profile) throw new MissingArgumentError('profile is required')
     if (!profile.explorer) return
     return this._setChartItems('hedera-explorer', profile.explorer, yamlRoot)
   }
 
-  resourcesForMinioTenantPod (profile: any, yamlRoot: Object) {
+  resourcesForMinioTenantPod (profile: any, yamlRoot: object) {
     if (!profile) throw new MissingArgumentError('profile is required')
     if (!profile.minio || !profile.minio.tenant) return // use chart defaults
 

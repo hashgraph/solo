@@ -29,13 +29,13 @@ import path from 'path'
  * Define the core functionalities of 'cluster' command
  */
 export class ClusterCommand extends BaseCommand {
-  async showClusterList () {
+  showClusterList () {
     this.logger.showList('Clusters', this.k8.getClusters())
     return true
   }
 
   /** Get cluster-info for the given cluster name */
-  async getClusterInfo () {
+  getClusterInfo () {
     try {
       const cluster = this.k8.getKubeConfig().getCurrentCluster()
       this.logger.showJSON(`Cluster Information (${cluster.name})`, cluster)
