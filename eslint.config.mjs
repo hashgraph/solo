@@ -21,7 +21,7 @@ import headers from 'eslint-plugin-headers'
 
 export default [
   pluginJs.configs.recommended,
-  ...tseslint.configs.recommended,
+  ...tseslint.configs.strict,
   {
     files: ['test/**/*.*js', 'src/**/*.ts'],
     ignores: ['docs/**/*', 'dist/*'],
@@ -37,14 +37,6 @@ export default [
       sourceType: 'module'
     },
     rules: {
-      '@typescript-eslint/no-unused-expressions': 'off',
-      '@typescript-eslint/ban-ts-comment': 'off',
-      '@typescript-eslint/no-explicit-any': 'off',
-      '@typescript-eslint/no-this-alias': 'off',
-      '@typescript-eslint/no-unsafe-function-type': 'off',
-      '@typescript-eslint/no-unused-vars': 'off',
-      'no-unused-vars': 'off',
-      'require-await': 'error',
       'no-template-curly-in-string': 'off',
       'headers/header-format': ['error', {
         source: 'string',
@@ -75,6 +67,8 @@ export default [
       '@typescript-eslint/no-unused-vars': 'off',
       'no-unused-vars': 'off',
       'no-empty': 'off',
+      '@typescript-eslint/no-extraneous-class': 'off',
+      '@typescript-eslint/no-non-null-assertion': 'off',
     },
   },
 ]
