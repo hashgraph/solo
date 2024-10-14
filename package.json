@@ -69,12 +69,12 @@
     "yargs": "^17.7.2"
   },
   "devDependencies": {
-    "@eslint/eslintrc": "^3.1.0",
     "@eslint/js": "^9.12.0",
     "@types/adm-zip": "^0.5.5",
     "@types/chai": "^5.0.0",
     "@types/chai-as-promised": "^8.0.1",
     "@types/dot-object": "^2.1.6",
+    "@types/eslint__js": "^8.42.3",
     "@types/esm": "^3.2.2",
     "@types/figlet": "^1.7.0",
     "@types/got": "^9.6.12",
@@ -112,7 +112,8 @@
     "sinon": "^19.0.2",
     "sinon-chai": "^4.0.0",
     "ts-node": "^10.9.2",
-    "typescript": "^5.6.3"
+    "typescript": "^5.6.3",
+    "typescript-eslint": "^8.8.1"
   },
   "repository": {
     "type": "git",

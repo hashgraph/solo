@@ -16,7 +16,7 @@
  */
 import globals from 'globals'
 import path from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { fileURLToPath } from 'node:url' // TODO
 import js from '@eslint/js'
 import { FlatCompat } from '@eslint/eslintrc'
 
