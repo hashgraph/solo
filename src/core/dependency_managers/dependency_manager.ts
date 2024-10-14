@@ -14,13 +14,11 @@
  * limitations under the License.
  *
  */
-
 import os from 'os'
 import { SoloError, MissingArgumentError } from '../errors'
 import { ShellRunner } from '../shell_runner'
 import { type SoloLogger} from "../logging";
 import {HelmDependencyManager} from "./helm_dependency_manager";
-import {ListrTaskWrapper} from "listr2";
 
 export class DependencyManager extends ShellRunner {
   constructor (logger: SoloLogger,

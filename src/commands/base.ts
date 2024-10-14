@@ -18,10 +18,10 @@
 import paths from 'path'
 import { MissingArgumentError } from '../core/errors'
 import { ShellRunner } from '../core/shell_runner'
-import {type SoloLogger} from "../core/logging";
 import {type ChartManager, type ConfigManager, type Helm, type K8} from "../core";
 import {type DependencyManager} from "../core/dependency_managers";
 import {type CommandFlag} from "./flags";
+import { Opts } from '../index'
 
 export class BaseCommand extends ShellRunner {
   protected readonly helm: Helm
@@ -31,7 +31,7 @@ export class BaseCommand extends ShellRunner {
   protected readonly depManager: DependencyManager
   protected readonly _configMaps: Map<string, any>
 
-  constructor (opts: {logger: SoloLogger, helm: Helm, k8: K8, chartManager: ChartManager, configManager: ConfigManager, depManager: DependencyManager}) {
+  constructor (opts: Opts) {
     if (!opts || !opts.logger) throw new Error('An instance of core/SoloLogger is required')
     if (!opts || !opts.helm) throw new Error('An instance of core/Helm is required')
     if (!opts || !opts.k8) throw new Error('An instance of core/K8 is required')

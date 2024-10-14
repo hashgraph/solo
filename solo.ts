@@ -15,6 +15,6 @@
  * limitations under the License.
  *
  */
-import * as fnm from './src'
+import * as fnm from './src/index'
 
 fnm.main(process.argv)

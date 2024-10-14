@@ -18,7 +18,7 @@ import sinon from 'sinon'
 import { describe, it, beforeEach } from 'mocha'
 import { expect } from 'chai'
 
-import { NodeCommand } from '../../../src/commands/node.ts'
+import { NodeCommand } from '../../../src/commands/node.mjs'
 
 const getBaseCommandOpts = () => ({
   logger: sinon.stub(),
@@ -56,6 +56,5 @@ describe('NodeCommand unit tests', () => {
       opts.keyManager = sinon.stub()
       expect(() => new NodeCommand(opts)).to.throw('An instance of core/AccountManager is required')
     })
-
   })
 })

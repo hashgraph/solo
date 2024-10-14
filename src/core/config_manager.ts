@@ -34,7 +34,7 @@ import * as yargs from 'yargs'
  * doesn't need to enter it repeatedly. However, user should still be able to specify the flag explicitly for any command.
  */
 export class ConfigManager {
-  private config!: Record<string, any>
+  config!: Record<string, any>
 
   constructor (private readonly logger: SoloLogger, private readonly cachedConfigFile: string = constants.SOLO_CONFIG_FILE) {
     if (!logger || !(logger instanceof SoloLogger)) throw new MissingArgumentError('An instance of core/SoloLogger is required')

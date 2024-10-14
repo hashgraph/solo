@@ -18,7 +18,7 @@
 import { it, describe, after } from 'mocha'
 import { expect } from 'chai'
 
-import { flags } from '../../../src/commands/index.ts'
+import { flags } from '../../../src/commands/index.mjs'
 import {
   accountCreationShouldSucceed,
   balanceQueryShouldSucceed,
@@ -26,9 +26,9 @@ import {
   getDefaultArgv,
   HEDERA_PLATFORM_VERSION_TAG
 } from '../../test_util.js'
-import { getNodeLogs, getTmpDir } from '../../../src/core/helpers.ts'
-import { NodeCommand } from '../../../src/commands/node.ts'
-import { HEDERA_HAPI_PATH, MINUTES, ROOT_CONTAINER } from '../../../src/core/constants.ts'
+import { getNodeLogs, getTmpDir } from '../../../src/core/helpers.mjs'
+import { NodeCommand } from '../../../src/commands/node.mjs'
+import { HEDERA_HAPI_PATH, MINUTES, ROOT_CONTAINER } from '../../../src/core/constants.mjs'
 import fs from 'fs'
 
 describe('Node delete via separated commands', async () => {

@@ -17,8 +17,7 @@
 
 import { constants } from '../core'
 import * as core from '../core'
-// @ts-ignore
-import * as version from '../../version.mjs'
+import * as version from '../../version'
 import path from 'path'
 
 export interface CommandFlag {

@@ -16,14 +16,14 @@
  */
 import { describe, after } from 'mocha'
 
-import { flags } from '../../../src/commands/index.ts'
+import { flags } from '../../../src/commands/index.mjs'
 import {
   bootstrapNetwork,
   getDefaultArgv,
   TEST_CLUSTER
 } from '../../test_util.js'
-import { getNodeLogs } from '../../../src/core/helpers.ts'
-import { MINUTES } from '../../../src/core/constants.ts'
+import { getNodeLogs } from '../../../src/core/helpers.mjs'
+import { MINUTES } from '../../../src/core/constants.mjs'
 
 describe('Node local build', () => {
   const LOCAL_HEDERA = 'local-hedera-app'

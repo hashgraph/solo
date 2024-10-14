@@ -27,10 +27,10 @@ import {
   getTmpDir,
   HEDERA_PLATFORM_VERSION_TAG
 } from './test_util.js'
-import { flags } from '../src/commands/index.ts'
-import { getNodeLogs } from '../src/core/helpers.ts'
-import { NodeCommand } from '../src/commands/node.ts'
-import { MINUTES } from '../src/core/constants.ts'
+import { flags } from '../src/commands/index.mjs'
+import { getNodeLogs } from '../src/core/helpers.mjs'
+import { NodeCommand } from '../src/commands/node.mjs'
+import { MINUTES } from '../src/core/constants.mjs'
 
 export function testNodeAdd (localBuildPath
 ) {

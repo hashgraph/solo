@@ -22,10 +22,10 @@ import net from 'net'
 import os from 'os'
 import path from 'path'
 import { v4 as uuid4 } from 'uuid'
-import { SoloError } from '../../../../src/core/errors.ts'
-import { ConfigManager, constants, logging, Templates } from '../../../../src/core/index.ts'
-import { K8 } from '../../../../src/core/k8.ts'
-import { flags } from '../../../../src/commands/index.ts'
+import { SoloError } from '../../../../src/core/errors.mjs'
+import { ConfigManager, constants, logging, Templates } from '../../../../src/core/index.mjs'
+import { K8 } from '../../../../src/core/k8.mjs'
+import { flags } from '../../../../src/commands/index.mjs'
 import {
   V1Container,
   V1ExecAction,
@@ -41,7 +41,7 @@ import {
   V1VolumeResourceRequirements
 } from '@kubernetes/client-node'
 import crypto from 'crypto'
-import { MINUTES } from '../../../../src/core/constants.ts'
+import { MINUTES } from '../../../../src/core/constants.mjs'
 
 const defaultTimeout = 2 * MINUTES
 

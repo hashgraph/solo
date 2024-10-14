@@ -19,8 +19,8 @@ import { it, describe, after, before } from 'mocha'
 import { expect } from 'chai'
 
 import { AccountId, PrivateKey } from '@hashgraph/sdk'
-import { constants } from '../../../src/core/index.ts'
-import * as version from '../../../version.ts'
+import { constants } from '../../../src/core/index.mjs'
+import * as version from '../../../version.mjs'
 import {
   bootstrapNetwork,
   getDefaultArgv,
@@ -28,10 +28,10 @@ import {
   TEST_CLUSTER,
   testLogger
 } from '../../test_util.js'
-import { AccountCommand } from '../../../src/commands/account.ts'
-import { flags } from '../../../src/commands/index.ts'
-import { getNodeLogs } from '../../../src/core/helpers.ts'
-import { MINUTES, SECONDS } from '../../../src/core/constants.ts'
+import { AccountCommand } from '../../../src/commands/account.mjs'
+import { flags } from '../../../src/commands/index.mjs'
+import { getNodeLogs } from '../../../src/core/helpers.mjs'
+import { MINUTES, SECONDS } from '../../../src/core/constants.mjs'
 
 const defaultTimeout = 20 * SECONDS
 

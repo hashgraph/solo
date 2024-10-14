@@ -18,8 +18,8 @@ import { it, describe } from 'mocha'
 import { expect } from 'chai'
 
 import * as fs from 'fs'
-import { logging, PackageDownloader, Templates } from '../../../../src/core/index.ts'
-import { MINUTES } from '../../../../src/core/constants.ts'
+import { logging, PackageDownloader, Templates } from '../../../../src/core/index.mjs'
+import { MINUTES } from '../../../../src/core/constants.mjs'
 
 describe('PackageDownloaderE2E', () => {
   const testLogger = logging.NewLogger('debug', true)

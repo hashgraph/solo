@@ -480,11 +480,11 @@ export class KeyManager {
     }
   }
 
-  async copyGossipKeysToStaging (keysDir: string, stagingKeysDir: string, nodeAliases: NodeAliases) {
+  copyGossipKeysToStaging (keysDir: string, stagingKeysDir: string, nodeAliases: NodeAliases) {
     // copy gossip keys to the staging
     for (const nodeAlias of nodeAliases) {
       const signingKeyFiles = this.prepareNodeKeyFilePaths(nodeAlias, keysDir, constants.SIGNING_KEY_PREFIX)
-      await this.copyNodeKeysToStaging(signingKeyFiles, stagingKeysDir)
+      this.copyNodeKeysToStaging(signingKeyFiles, stagingKeysDir)
     }
   }
 
@@ -493,20 +493,17 @@ export class KeyManager {
    *
    * WARNING: These tasks MUST run in sequence.
    *
-   * @param keytoolDepManager
    * @param nodeAliases
    * @param keysDir - keys directory
    * @param curDate - current date
    * @param [allNodeAliases] - includes the nodeAliases to get new keys as well as existing nodeAliases that will be included in the public.pfx file
    * @return a list of subtasks
    */
-  taskGenerateGossipKeys (keytoolDepManager: KeytoolDependencyManager, nodeAliases: NodeAliases, keysDir: string,
-    curDate = new Date(), allNodeAliases: NodeAliases | null = null) {
+  taskGenerateGossipKeys (nodeAliases: NodeAliases, keysDir: string, curDate = new Date(), allNodeAliases: NodeAliases | null = null){
     allNodeAliases = allNodeAliases || nodeAliases
     if (!Array.isArray(nodeAliases) || !nodeAliases.every((nodeAlias) => typeof nodeAlias === 'string')) {
       throw new IllegalArgumentError('nodeAliases must be an array of strings, nodeAliases = ' + JSON.stringify(nodeAliases))
     }
-    const self = this
     const subTasks = []
 
     subTasks.push({
@@ -519,8 +516,8 @@ export class KeyManager {
       subTasks.push({
         title: `Gossip key for node: ${chalk.yellow(nodeAlias)}`,
         task: async () => {
-          const signingKey = await self.generateSigningKey(nodeAlias)
-          const signingKeyFiles = await self.storeSigningKey(nodeAlias, signingKey, keysDir)
+          const signingKey = await this.generateSigningKey(nodeAlias)
+          const signingKeyFiles = await this.storeSigningKey(nodeAlias, signingKey, keysDir)
           this.logger.debug(`generated Gossip signing keys for node ${nodeAlias}`, { keyFiles: signingKeyFiles })
         }
       })
@@ -543,7 +540,6 @@ export class KeyManager {
     if (!Array.isArray(nodeAliases) || !nodeAliases.every((nodeAlias) => typeof nodeAlias === 'string')) {
       throw new SoloError('nodeAliases must be an array of strings')
     }
-    const self = this
     const nodeKeyFiles = new Map()
     const subTasks = []
 
@@ -557,8 +553,8 @@ export class KeyManager {
       subTasks.push({
         title: `TLS key for node: ${chalk.yellow(nodeAlias)}`,
         task: async () => {
-          const tlsKey = await self.generateGrpcTLSKey(nodeAlias)
-          const tlsKeyFiles = await self.storeTLSKey(nodeAlias, tlsKey, keysDir)
+          const tlsKey = await this.generateGrpcTLSKey(nodeAlias)
+          const tlsKeyFiles = await this.storeTLSKey(nodeAlias, tlsKey, keysDir)
           nodeKeyFiles.set(nodeAlias, {
             tlsKeyFiles
           })

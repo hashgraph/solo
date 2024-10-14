@@ -294,7 +294,7 @@ export class NodeCommandTasks {
       const config = ctx.config
       config.existingNodeAliases = []
       config.serviceMap = await this.accountManager.getNodeServiceMap(config.namespace)
-      for (/** @type {NetworkNodeServices} **/ const networkNodeServices of config.serviceMap.values()) {
+      for (const networkNodeServices of config.serviceMap.values()) {
         config.existingNodeAliases.push(networkNodeServices.nodeAlias)
       }
       config.allNodeAliases = [...config.existingNodeAliases]

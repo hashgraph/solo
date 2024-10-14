@@ -14,7 +14,6 @@
  * limitations under the License.
  *
  */
-
 import { Listr } from 'listr2'
 import path from 'path'
 import { BaseCommand } from './base'
@@ -31,25 +30,22 @@ import chalk from 'chalk'
 export class InitCommand extends BaseCommand {
   /**
    * Setup home directories
-   * @param {string[]} dirs a list of directories that need to be created in sequence
-   * @returns {string[]}
+   * @param dirs a list of directories that need to be created in sequence
    */
-  setupHomeDirectory (dirs = [
+  setupHomeDirectory (dirs: string[] = [
     constants.SOLO_HOME_DIR,
     constants.SOLO_LOGS_DIR,
     constants.SOLO_CACHE_DIR,
     constants.SOLO_VALUES_DIR
   ]) {
-    const self = this
-
     try {
       dirs.forEach(dirPath => {
         if (!fs.existsSync(dirPath)) {
           fs.mkdirSync(dirPath, { recursive: true })
         }
-        self.logger.debug(`OK: setup directory: ${dirPath}`)
+        this.logger.debug(`OK: setup directory: ${dirPath}`)
       })
-    } catch (e) {
+    } catch (e: Error | any) {
       this.logger.error(e)
       throw new SoloError(`failed to create directory: ${e.message}`, e)
     }
@@ -57,23 +53,26 @@ export class InitCommand extends BaseCommand {
     return dirs
   }
 
-  /**
-   * Executes the init CLI command
-   * @param {Object} argv
-   * @returns {Promise<boolean>}
-   */
-  async init (argv) {
-    const self = this
-    let cacheDir = this.configManager.getFlag(flags.cacheDir)
+  /** Executes the init CLI command */
+  async init (argv: any) {
+    let cacheDir: string = <string>this.configManager.getFlag<string>(flags.cacheDir)
     if (!cacheDir) {
-      cacheDir = constants.SOLO_CACHE_DIR
+      cacheDir = constants.SOLO_CACHE_DIR as string
     }
 
-    const tasks = new Listr([
+    interface Context { // TODO FINISH
+      config: {
+
+      };
+      repoURLs: string[]
+      dirs: string[]
+    }
+
+    const tasks = new Listr<Context>([
       {
         title: 'Setup home directory and cache',
-        task: (ctx, _) => {
-          self.configManager.update(argv)
+        task: (ctx) => {
+          this.configManager.update(argv)
           ctx.dirs = this.setupHomeDirectory()
         }
       },
@@ -84,7 +83,7 @@ export class InitCommand extends BaseCommand {
             core.constants.HELM
           ]
 
-          const subTasks = self.depManager.taskCheckDependencies(deps)
+          const subTasks = this.depManager.taskCheckDependencies(deps)
 
           // set up the sub-tasks
           return task.newListr(subTasks, {
@@ -118,14 +117,14 @@ export class InitCommand extends BaseCommand {
           }
 
           if (argv.dev) {
-            self.logger.showList('Home Directories', ctx.dirs)
-            self.logger.showList('Chart Repository', ctx.repoURLs)
+            this.logger.showList('Home Directories', ctx.dirs)
+            this.logger.showList('Chart Repository', ctx.repoURLs)
           }
 
-          self.logger.showUser(chalk.grey('\n***************************************************************************************'))
-          self.logger.showUser(chalk.grey(`Note: solo stores various artifacts (config, logs, keys etc.) in its home directory: ${constants.SOLO_HOME_DIR}\n` +
+          this.logger.showUser(chalk.grey('\n***************************************************************************************'))
+          this.logger.showUser(chalk.grey(`Note: solo stores various artifacts (config, logs, keys etc.) in its home directory: ${constants.SOLO_HOME_DIR}\n` +
             'If a full reset is needed, delete the directory or relevant sub-directories before running \'solo init\'.'))
-          self.logger.showUser(chalk.grey('***************************************************************************************'))
+          this.logger.showUser(chalk.grey('***************************************************************************************'))
         }
       }
     ], {
@@ -151,7 +150,7 @@ export class InitCommand extends BaseCommand {
     return {
       command: 'init',
       desc: 'Initialize local environment and default flags',
-      builder: y => {
+      builder: (y: any) => {
         flags.setCommandFlags(y,
           flags.applicationEnv,
           flags.cacheDir,
@@ -165,7 +164,7 @@ export class InitCommand extends BaseCommand {
           flags.releaseTag
         )
       },
-      handler: (argv) => {
+      handler: (argv: any) => {
         initCmd.init(argv).then(r => {
           if (!r) process.exit(1)
         }).catch(err => {

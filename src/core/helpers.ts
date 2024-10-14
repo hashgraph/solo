@@ -319,7 +319,7 @@ export function addSaveContextParser (ctx: any) {
  * @returns file writable object
  */
 export function addLoadContextParser (ctx: any, ctxData: any) {
-  const config: NodeAddConfigClass =  ctx.config
+  const config: any =  ctx.config
   ctx.signingCertDer = new Uint8Array(ctxData.signingCertDer.split(','))
   ctx.gossipEndpoints = prepareEndpoints(ctx.config.endpointType, ctxData.gossipEndpoints, constants.HEDERA_NODE_INTERNAL_GOSSIP_PORT)
   ctx.grpcServiceEndpoints = prepareEndpoints(ctx.config.endpointType, ctxData.grpcServiceEndpoints, constants.HEDERA_NODE_EXTERNAL_GOSSIP_PORT)
@@ -419,6 +419,7 @@ export function commandActionBuilder (actionTasks: any, options: any, errorStrin
       commandDef.logger.error(`${errorString}: ${e.message}`, e)
       throw new SoloError(`${errorString}: ${e.message}`, e)
     } finally {
+      // @ts-ignore
       await commandDef.close()
     }
   }

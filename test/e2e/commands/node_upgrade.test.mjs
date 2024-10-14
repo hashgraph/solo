@@ -18,15 +18,15 @@
 import { it, describe, after } from 'mocha'
 import { expect } from 'chai'
 
-import { flags } from '../../../src/commands/index.ts'
+import { flags } from '../../../src/commands/index.mjs'
 import {
   bootstrapNetwork,
   getDefaultArgv,
   HEDERA_PLATFORM_VERSION_TAG
 } from '../../test_util.js'
-import { getNodeLogs } from '../../../src/core/helpers.ts'
-import { PREPARE_UPGRADE_CONFIGS_NAME, DOWNLOAD_GENERATED_FILES_CONFIGS_NAME } from '../../../src/commands/node/configs.ts'
-import { MINUTES } from '../../../src/core/constants.ts'
+import { getNodeLogs } from '../../../src/core/helpers.mjs'
+import { PREPARE_UPGRADE_CONFIGS_NAME, DOWNLOAD_GENERATED_FILES_CONFIGS_NAME } from '../../../src/commands/node/configs.mjs'
+import { MINUTES } from '../../../src/core/constants.mjs'
 
 describe('Node upgrade', async () => {
   const namespace = 'node-upgrade'

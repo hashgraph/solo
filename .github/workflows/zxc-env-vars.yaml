@@ -41,12 +41,18 @@ on:
       e2e-node-pem-kill-test-subdir:
         description: "E2E Node PEM Kill Test Subdirectory"
         value: ${{ jobs.env-vars.outputs.e2e_node_pem_kill_test_subdir }}
-      e2e-node-local-build-test-subdir:
-        description: "E2E Node Local Build Test Subdirectory"
-        value: ${{ jobs.env-vars.outputs.e2e_node_local_build_test_subdir }}
+      e2e-node-local-hedera-test-subdir:
+        description: "E2E Node Local Hedera Test Subdirectory"
+        value: ${{ jobs.env-vars.outputs.e2e_node_local_hedera_test_subdir }}
+      e2e-node-local-ptt-test-subdir:
+        description: "E2E Node Local PTT Test Subdirectory"
+        value: ${{ jobs.env-vars.outputs.e2e_node_local_ptt_test_subdir }}
       e2e-node-add-test-subdir:
         description: "E2E Node Add Test Subdirectory"
         value: ${{ jobs.env-vars.outputs.e2e_node_add_test_subdir }}
+      e2e-node-add-local-test-subdir:
+        description: "E2E Node Add Local Test Subdirectory"
+        value: ${{ jobs.env-vars.outputs.e2e_node_add_local_test_subdir }}
       e2e-node-add-separate-commands-test-subdir:
         description: "E2E Node Add - Separate commands Test Subdirectory"
         value: ${{ jobs.env-vars.outputs.e2e_node_add_separate_commands_test_subdir }}
@@ -80,12 +86,18 @@ on:
       e2e-node-pem-kill-coverage-report:
         description: "E2E Node PEM Kill Tests Coverage Report"
         value: ${{ jobs.env-vars.outputs.e2e_node_pem_kill_coverage_report }}
-      e2e-node-local-build-coverage-report:
-        description: "E2E Node Local Build Tests Coverage Report"
-        value: ${{ jobs.env-vars.outputs.e2e_node_local_build_coverage_report }}
+      e2e-node-local-hedera-coverage-report:
+        description: "E2E Node Local Hedera Tests Coverage Report"
+        value: ${{ jobs.env-vars.outputs.e2e_node_local_hedera_coverage_report }}
+      e2e-node-local-ptt-coverage-report:
+        description: "E2E Node Local PTT Tests Coverage Report"
+        value: ${{ jobs.env-vars.outputs.e2e_node_local_ptt_coverage_report }}
       e2e-node-add-coverage-report:
         description: "E2E Node Add Tests Coverage Report"
         value: ${{ jobs.env-vars.outputs.e2e_node_add_coverage_report }}
+      e2e-node-add-local-coverage-report:
+        description: "E2E Node Add Local Tests Coverage Report"
+        value: ${{ jobs.env-vars.outputs.e2e_node_add_local_coverage_report }}
       e2e-node-add-separate-commands-coverage-report:
         description: "E2E Node Add - Separate commands Tests Coverage Report"
         value: ${{ jobs.env-vars.outputs.e2e_node_add_separate_commands_coverage_report }}
@@ -119,8 +131,10 @@ jobs:
       e2e_mirror_node_test_subdir: e2e-mirror-node
       e2e_node_pem_stop_test_subdir: e2e-node-pem-stop
       e2e_node_pem_kill_test_subdir: e2e-node-pem-kill
-      e2e_node_local_build_test_subdir: e2e-node-local-build
+      e2e_node_local_hedera_test_subdir: e2e-node-local-hedera
+      e2e_node_local_ptt_test_subdir: e2e-node-local-ptt
       e2e_node_add_test_subdir: e2e-node-add
+      e2e_node_add_local_test_subdir: e2e-node-add-local
       e2e_node_add_separate_commands_test_subdir: e2e-node-add-separate-commands
       e2e_node_update_test_subdir: e2e-node-update
       e2e_node_delete_test_subdir: e2e-node-delete
@@ -132,8 +146,10 @@ jobs:
       e2e_mirror_node_coverage_report: "E2E Mirror Node Tests Coverage Report"
       e2e_node_pem_stop_coverage_report: "E2E Node PEM Stop Tests Coverage Report"
       e2e_node_pem_kill_coverage_report: "E2E Node PEM Kill Tests Coverage Report"
-      e2e_node_local_build_coverage_report: "E2E Node Local Build Tests Coverage Report"
+      e2e_node_local_hedera_coverage_report: "E2E Node Local Hedera Tests Coverage Report"
+      e2e_node_local_ptt_coverage_report: "E2E Node Local PTT Tests Coverage Report"
       e2e_node_add_coverage_report: "E2E Node Add Tests Coverage Report"
+      e2e_node_add_local_coverage_report: "E2E Node Add Local Tests Coverage Report"
       e2e_node_add_separate_commands_coverage_report: "E2E Node Add - Separate commands Tests Coverage Report"
       e2e_node_update_coverage_report: "E2E Node Update Tests Coverage Report"
       e2e_node_delete_coverage_report: "E2E Node Delete Tests Coverage Report"

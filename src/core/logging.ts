@@ -64,7 +64,7 @@ export class SoloLogger {
     this.nextTraceId()
     this.devMode = devMode
 
-    this.winstonLogger = /** @type {winston.Logger} **/ winston.createLogger({
+    this.winstonLogger = winston.createLogger({
       level,
       format: winston.format.combine(
         customFormat,
@@ -90,6 +90,7 @@ export class SoloLogger {
   }
 
   setLevel (level: string) {
+    // @ts-ignore
     this.winstonLogger.setLevel(level)
   }
 

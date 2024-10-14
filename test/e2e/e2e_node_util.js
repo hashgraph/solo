@@ -18,7 +18,7 @@
 import { it, describe, after, before, afterEach } from 'mocha'
 import { expect } from 'chai'
 
-import { flags } from '../../src/commands/index.ts'
+import { flags } from '../../src/commands/index.mjs'
 import {
   accountCreationShouldSucceed,
   balanceQueryShouldSucceed,
@@ -28,9 +28,9 @@ import {
   HEDERA_PLATFORM_VERSION_TAG,
   TEST_CLUSTER
 } from '../test_util.js'
-import { getNodeLogs, sleep } from '../../src/core/helpers.ts'
-import { NodeCommand } from '../../src/commands/node.ts'
-import { MINUTES, SECONDS } from '../../src/core/constants.ts'
+import { getNodeLogs, sleep } from '../../src/core/helpers.mjs'
+import { NodeCommand } from '../../src/commands/node.mjs'
+import { MINUTES, SECONDS } from '../../src/core/constants.mjs'
 
 export function e2eNodeKeyRefreshTest (testName, mode, releaseTag = HEDERA_PLATFORM_VERSION_TAG) {
   const defaultTimeout = 2 * MINUTES

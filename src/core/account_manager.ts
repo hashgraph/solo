@@ -341,7 +341,7 @@ export class AccountManager {
    * @param resultTracker - an object to keep track of the results from the accounts that are being updated
    * @returns the updated resultTracker object
    */
-  async updateSpecialAccountsKeys (namespace: string, currentSet: string[], updateSecrets: boolean, resultTracker: {
+  async updateSpecialAccountsKeys (namespace: string, currentSet: number[], updateSecrets: boolean, resultTracker: {
     skippedCount: number;
     rejectedCount: number;
     fulfilledCount: number;

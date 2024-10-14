@@ -16,11 +16,11 @@
  */
 
 import * as fs from 'fs'
-import { Listr } from 'listr2'
+import {Listr, ListrTaskWrapper} from 'listr2'
 import * as path from 'path'
 import { SoloError, IllegalArgumentError, MissingArgumentError } from './errors'
 import {type ConfigManager, constants, type K8} from './index'
-import { Templates } from './templates'
+import {NodeAlias, NodeAliases, PodName, Templates} from './templates'
 import { flags } from '../commands/index'
 import * as Base64 from 'js-base64'
 import chalk from 'chalk'
@@ -47,16 +47,12 @@ export class PlatformInstaller {
   }
 
   private _getNamespace (): string {
-    const ns = this.configManager.getFlag(flags.namespace)
+    const ns = <string>this.configManager.getFlag<string>(flags.namespace)
     if (!ns) throw new MissingArgumentError('namespace is not set')
     return ns
   }
 
-  /**
-   * @param {string} releaseDir
-   * @returns {void}
-   */
-  validatePlatformReleaseDir (releaseDir) {
+  validatePlatformReleaseDir (releaseDir: string) {
     if (!releaseDir) throw new MissingArgumentError('releaseDir is required')
     if (!fs.existsSync(releaseDir)) {
       throw new IllegalArgumentError('releaseDir does not exists', releaseDir)
@@ -78,22 +74,19 @@ export class PlatformInstaller {
       throw new IllegalArgumentError(`'${constants.HEDERA_DATA_LIB_DIR}' missing in '${releaseDir}'`, releaseDir)
     }
 
+    // @ts-ignore
     if (!fs.statSync(appsDir).isEmpty()) {
       throw new IllegalArgumentError(`'${constants.HEDERA_DATA_APPS_DIR}' is empty in releaseDir: ${releaseDir}`, releaseDir)
     }
 
+    // @ts-ignore
     if (!fs.statSync(libDir).isEmpty()) {
       throw new IllegalArgumentError(`'${constants.HEDERA_DATA_LIB_DIR}' is empty in releaseDir: ${releaseDir}`, releaseDir)
     }
   }
 
-  /**
-   * Fetch and extract platform code into the container
-   * @param {PodName} podName
-   * @param {string} tag - platform release tag
-   * @returns {Promise<boolean>}
-   */
-  async fetchPlatform (podName, tag) {
+  /** Fetch and extract platform code into the container */
+  async fetchPlatform (podName: PodName, tag: string) {
     if (!podName) throw new MissingArgumentError('podName is required')
     if (!tag) throw new MissingArgumentError('tag is required')
 
@@ -106,23 +99,22 @@ export class PlatformInstaller {
       await this.k8.execContainer(podName, constants.ROOT_CONTAINER, `chmod +x ${extractScript}`)
       await this.k8.execContainer(podName, constants.ROOT_CONTAINER, [extractScript, tag])
       return true
-    } catch (e) {
+    } catch (e: Error | any) {
       throw new SoloError(`failed to extract platform code in this pod '${podName}': ${e.message}`, e)
     }
   }
 
   /**
    * Copy a list of files to a directory in the container
-   *
-   * @param {PodName} podName
-   * @param {string[]} srcFiles - list of source files
-   * @param {string} destDir - destination directory
-   * @param {string} [container] - name of the container
-   * @returns {Promise<string[]>} list of pathso of the copied files insider the container
+   * @param podName
+   * @param srcFiles - list of source files
+   * @param destDir - destination directory
+   * @param [container] - name of the container
+   * @returns a list of pathso of the copied files insider the container
    */
-  async copyFiles (podName, srcFiles, destDir, container = constants.ROOT_CONTAINER) {
+  async copyFiles (podName: PodName, srcFiles: string[], destDir: string, container = constants.ROOT_CONTAINER) {
     try {
-      const copiedFiles = []
+      const copiedFiles: string[] = []
 
       // prepare the file mapping
       for (const srcPath of srcFiles) {
@@ -142,18 +134,12 @@ export class PlatformInstaller {
       }
 
       return copiedFiles
-    } catch (e) {
+    } catch (e: Error | any) {
       throw new SoloError(`failed to copy files to pod '${podName}': ${e.message}`, e)
     }
   }
 
-  /**
-   * @param {NodeAlias} nodeAlias
-   * @param {string} stagingDir
-   * @param {NodeAliases} nodeAliases
-   * @returns {Promise<void>}
-   */
-  async copyGossipKeys (nodeAlias, stagingDir, nodeAliases) {
+  async copyGossipKeys (nodeAlias: NodeAlias, stagingDir: string, nodeAliases: NodeAliases) {
     if (!nodeAlias) throw new MissingArgumentError('nodeAlias is required')
     if (!stagingDir) throw new MissingArgumentError('stagingDir is required')
     if (!nodeAliases || nodeAliases.length <= 0) throw new MissingArgumentError('nodeAliases cannot be empty')
@@ -173,6 +159,7 @@ export class PlatformInstaller {
       for (const srcFile of srcFiles) {
         const fileContents = fs.readFileSync(srcFile)
         const fileName = path.basename(srcFile)
+        // @ts-ignore
         data[fileName] = Base64.encode(fileContents)
       }
 
@@ -188,12 +175,7 @@ export class PlatformInstaller {
     }
   }
 
-  /**
-   * @param {NodeAliases} nodeAliases
-   * @param {string} stagingDir
-   * @returns {Promise<void>}
-   */
-  async copyTLSKeys (nodeAliases, stagingDir) {
+  async copyTLSKeys (nodeAliases: NodeAliases, stagingDir: string) {
     if (!nodeAliases || nodeAliases.length <= 0) throw new MissingArgumentError('nodeAliases cannot be empty')
     if (!stagingDir) throw new MissingArgumentError('stagingDir is required')
 
@@ -208,6 +190,7 @@ export class PlatformInstaller {
         for (const srcFile of srcFiles) {
           const fileContents = fs.readFileSync(srcFile)
           const fileName = path.basename(srcFile)
+          // @ts-ignore
           data[fileName] = Base64.encode(fileContents)
         }
       }
@@ -223,15 +206,7 @@ export class PlatformInstaller {
     }
   }
 
-  /**
-   * @param {PodName} podName
-   * @param {string} destPath
-   * @param {string} [mode]
-   * @param {boolean} [recursive]
-   * @param {string} [container]
-   * @returns {Promise<boolean>}
-   */
-  async setPathPermission (podName, destPath, mode = '0755', recursive = true, container = constants.ROOT_CONTAINER) {
+  async setPathPermission (podName: PodName, destPath: string, mode = '0755', recursive = true, container = constants.ROOT_CONTAINER) {
     if (!podName) throw new MissingArgumentError('podName is required')
     if (!destPath) throw new MissingArgumentError('destPath is required')
 
@@ -250,11 +225,7 @@ export class PlatformInstaller {
     return true
   }
 
-  /**
-   * @param {PodName} podName
-   * @returns {Promise<boolean>}
-   */
-  async setPlatformDirPermissions (podName) {
+  async setPlatformDirPermissions (podName: PodName) {
     const self = this
     if (!podName) throw new MissingArgumentError('podName is required')
 
@@ -273,13 +244,8 @@ export class PlatformInstaller {
     }
   }
 
-  /**
-   * Return a list of task to perform node directory setup
-   *
-   * @param {PodName} podName
-   * @returns {Listr<ListrContext, ListrPrimaryRendererValue, ListrSecondaryRendererValue>}
-   */
-  taskSetup (podName) {
+  /** Return a list of task to perform node directory setup */
+  taskSetup (podName: PodName) {
     const self = this
     return new Listr([
       {
@@ -308,16 +274,15 @@ export class PlatformInstaller {
    * <li>${staging}/keys/hedera-<nodeAlias>.crt: gRPC TLS cert for a node</li>
    *
    * @param stagingDir staging directory path
-   * @param {NodeAliases} nodeAliases list of node ids
-   * @returns {Listr<ListrContext, ListrPrimaryRendererValue, ListrSecondaryRendererValue>}
+   * @param nodeAliases list of node ids
    */
-  copyNodeKeys (stagingDir, nodeAliases) {
-    const self = this
+  copyNodeKeys (stagingDir: string, nodeAliases: NodeAliases) {
     const subTasks = []
+    
     subTasks.push({
       title: 'Copy TLS keys',
       task: async () =>
-        await self.copyTLSKeys(nodeAliases, stagingDir)
+        await this.copyTLSKeys(nodeAliases, stagingDir)
     })
 
     for (const nodeAlias of nodeAliases) {
@@ -326,7 +291,7 @@ export class PlatformInstaller {
         task: () => new Listr([{
           title: 'Copy Gossip keys',
           task: async () =>
-            await self.copyGossipKeys(nodeAlias, stagingDir, nodeAliases)
+            await this.copyGossipKeys(nodeAlias, stagingDir, nodeAliases)
         }
         ],
         {

@@ -147,20 +147,20 @@ jobs:
         run: docker image pull kindest/node:v1.27.3@sha256:3966ac761ae0136263ffdb6cfd4db23ef8a83cba8a463690e98317add2c9ba72
 
       - name: Setup Java
-        if: ${{ runner.os == 'linux' && (inputs.npm-test-script == 'test-e2e-node-local-build' || inputs.npm-test-script == 'test-e2e-node-add') && !cancelled() && !failure() }}
+        if: ${{ runner.os == 'linux' && (inputs.npm-test-script == 'test-e2e-node-local-hedera' || inputs.npm-test-script == 'test-e2e-node-local-ptt' || inputs.npm-test-script == 'test-e2e-node-add-local') && !cancelled() && !failure() }}
         uses: actions/setup-java@b36c23c0d998641eff861008f374ee103c25ac73 # v4.4.0
         with:
           distribution: temurin
           java-version: 21.0.1
 
       - name: Setup Gradle
-        if: ${{ runner.os == 'linux' && (inputs.npm-test-script == 'test-e2e-node-local-build' || inputs.npm-test-script == 'test-e2e-node-add') && !cancelled() && !failure() }}
+        if: ${{ runner.os == 'linux' && (inputs.npm-test-script == 'test-e2e-node-local-hedera' || inputs.npm-test-script == 'test-e2e-node-local-ptt' || inputs.npm-test-script == 'test-e2e-node-add-local') && !cancelled() && !failure() }}
         uses: gradle/gradle-build-action@ac2d340dc04d9e1113182899e983b5400c17cda1 # v3.5.0
         with:
           cache-read-only: false
 
       - name: Build Hedera code locally
-        if: ${{ runner.os == 'linux' && (inputs.npm-test-script == 'test-e2e-node-local-build' || inputs.npm-test-script == 'test-e2e-node-add') && !cancelled() && !failure() }}
+        if: ${{ runner.os == 'linux' && (inputs.npm-test-script == 'test-e2e-node-local-hedera' || inputs.npm-test-script == 'test-e2e-node-local-ptt' || inputs.npm-test-script == 'test-e2e-node-add-local') && !cancelled() && !failure() }}
         run: |
           cd ..
           git clone https://github.com/hashgraph/hedera-services.git --depth 1 --branch v0.54.0-alpha.4

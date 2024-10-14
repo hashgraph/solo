@@ -20,10 +20,10 @@ import each from 'mocha-each'
 
 import fs from 'fs'
 import path from 'path'
-import { HelmDependencyManager } from '../../../../src/core/dependency_managers/index.ts'
-import { PackageDownloader, Zippy } from '../../../../src/core/index.ts'
+import { HelmDependencyManager } from '../../../../src/core/dependency_managers/index.mjs'
+import { PackageDownloader, Zippy } from '../../../../src/core/index.mjs'
 import { getTestCacheDir, getTmpDir, testLogger } from '../../../test_util.js'
-import * as version from '../../../../version.ts'
+import * as version from '../../../../version.mjs'
 
 describe('HelmDependencyManager', () => {
   const downloader = new PackageDownloader(testLogger)

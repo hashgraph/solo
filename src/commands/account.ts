@@ -19,21 +19,20 @@ import chalk from 'chalk'
 import { BaseCommand } from './base'
 import { SoloError, IllegalArgumentError } from '../core/errors'
 import { flags } from './index'
-import { Listr, ListrTaskWrapper } from 'listr2'
+import { Listr } from 'listr2'
 import * as prompts from './prompts'
-import {ChartManager, type ConfigManager, constants, type Helm, type K8} from '../core'
+import { constants} from '../core'
 import {type AccountId, AccountInfo, HbarUnit, PrivateKey} from '@hashgraph/sdk'
 import { FREEZE_ADMIN_ACCOUNT } from '../core/constants'
 import {type AccountManager} from "../core/account_manager";
-import {type SoloLogger} from "../core/logging";
-import {type DependencyManager} from "../core/dependency_managers";
+import { Opts } from '../index'
 
 export class AccountCommand extends BaseCommand {
   private readonly accountManager: AccountManager;
   private accountInfo: {accountId: string, balance: number, publicKey: string, privateKey?: string} | null;
   private readonly systemAccounts: number[][];
 
-  constructor (opts: {accountManager: AccountManager, logger: SoloLogger, helm: Helm, k8: K8, chartManager: ChartManager, configManager: ConfigManager, depManager: DependencyManager}, systemAccounts: number[][] = constants.SYSTEM_ACCOUNTS) {
+  constructor (opts: Opts, systemAccounts = constants.SYSTEM_ACCOUNTS) {
     super(opts)
 
     if (!opts || !opts.accountManager) throw new IllegalArgumentError('An instance of core/AccountManager is required', opts.accountManager as any)
@@ -78,7 +77,7 @@ export class AccountCommand extends BaseCommand {
       ctx.privateKey, ctx.config.amount, ctx.config.ecdsaPrivateKey ? ctx.config.setAlias : false)
   }
 
-  getAccountInfo (ctx: any) {
+  getAccountInfo (ctx: { config: { accountId: string } }) {
     return this.accountManager.accountInfoQuery(ctx.config.accountId)
   }
 
@@ -113,19 +112,30 @@ export class AccountCommand extends BaseCommand {
   }
 
   async init (argv: any) {
-    const self = this
+    interface Context {
+      config: {
+        namespace: string
+      };
+      updateSecrets: boolean
+      accountsBatchedSet: number[][]
+      resultTracker: {
+        rejectedCount: number;
+        fulfilledCount: number;
+        skippedCount: number;
+      }
+    }
 
-    const tasks = new Listr([
+    const tasks = new Listr<Context>([
       {
         title: 'Initialize',
         task: async (ctx, task) => {
-          self.configManager.update(argv)
-          await prompts.execute(task, self.configManager, [
+          this.configManager.update(argv)
+          await prompts.execute(task, this.configManager, [
             flags.namespace
           ])
 
           const config = {
-            namespace: self.configManager.getFlag(flags.namespace)
+            namespace: <string>this.configManager.getFlag<string>(flags.namespace)
           }
 
           if (!await this.k8.hasNamespace(config.namespace)) {
@@ -135,22 +145,22 @@ export class AccountCommand extends BaseCommand {
           // set config in the context for later tasks to use
           ctx.config = config
 
-          self.logger.debug('Initialized config', { config })
+          this.logger.debug('Initialized config', { config })
 
-          await self.accountManager.loadNodeClient(ctx.config.namespace)
+          await this.accountManager.loadNodeClient(ctx.config.namespace)
         }
       },
       {
         title: 'Update special account keys',
-        task: (ctx, task) => {
+        task: (_, task) => {
           return new Listr([
             {
               title: 'Prepare for account key updates',
               task: async (ctx) => {
-                const secrets = await self.k8.getSecretsByLabel(['solo.hedera.com/account-id'])
+                const secrets = await this.k8.getSecretsByLabel(['solo.hedera.com/account-id'])
                 ctx.updateSecrets = secrets.length > 0
 
-                ctx.accountsBatchedSet = self.accountManager.batchAccounts(this.systemAccounts)
+                ctx.accountsBatchedSet = this.accountManager.batchAccounts(this.systemAccounts)
 
                 ctx.resultTracker = {
                   rejectedCount: 0,
@@ -159,13 +169,13 @@ export class AccountCommand extends BaseCommand {
                 }
 
                 // do a write transaction to trigger the handler and generate the system accounts to complete genesis
-                await self.accountManager.transferAmount(constants.TREASURY_ACCOUNT_ID, FREEZE_ADMIN_ACCOUNT, 1)
+                await this.accountManager.transferAmount(constants.TREASURY_ACCOUNT_ID, FREEZE_ADMIN_ACCOUNT, 1)
               }
             },
             {
               title: 'Update special account key sets',
               task: (ctx) => {
-                const subTasks = []
+                const subTasks: any[] = []
                 const realm = constants.HEDERA_NODE_ACCOUNT_ID_START.realm
                 const shard = constants.HEDERA_NODE_ACCOUNT_ID_START.shard
                 for (const currentSet of ctx.accountsBatchedSet) {
@@ -174,8 +184,8 @@ export class AccountCommand extends BaseCommand {
                   const rangeStr = accStart !== accEnd ? `${chalk.yellow(accStart)} to ${chalk.yellow(accEnd)}` : `${chalk.yellow(accStart)}`
                   subTasks.push({
                     title: `Updating accounts [${rangeStr}]`,
-                    task: async (ctx) => {
-                      ctx.resultTracker = await self.accountManager.updateSpecialAccountsKeys(
+                    task: async (ctx: Context) => {
+                      ctx.resultTracker = await this.accountManager.updateSpecialAccountsKeys(
                         ctx.config.namespace, currentSet,
                         ctx.updateSecrets, ctx.resultTracker)
                     }
@@ -194,12 +204,12 @@ export class AccountCommand extends BaseCommand {
             {
               title: 'Display results',
               task: (ctx) => {
-                self.logger.showUser(chalk.green(`Account keys updated SUCCESSFULLY: ${ctx.resultTracker.fulfilledCount}`))
-                if (ctx.resultTracker.skippedCount > 0) self.logger.showUser(chalk.cyan(`Account keys updates SKIPPED: ${ctx.resultTracker.skippedCount}`))
+                this.logger.showUser(chalk.green(`Account keys updated SUCCESSFULLY: ${ctx.resultTracker.fulfilledCount}`))
+                if (ctx.resultTracker.skippedCount > 0) this.logger.showUser(chalk.cyan(`Account keys updates SKIPPED: ${ctx.resultTracker.skippedCount}`))
                 if (ctx.resultTracker.rejectedCount > 0) {
-                  self.logger.showUser(chalk.yellowBright(`Account keys updates with ERROR: ${ctx.resultTracker.rejectedCount}`))
+                  this.logger.showUser(chalk.yellowBright(`Account keys updates with ERROR: ${ctx.resultTracker.rejectedCount}`))
                 }
-                self.logger.showUser(chalk.gray('Waiting for sockets to be closed....'))
+                this.logger.showUser(chalk.gray('Waiting for sockets to be closed....'))
                 if (ctx.resultTracker.rejectedCount > 0) {
                   throw new SoloError(`Account keys updates failed for ${ctx.resultTracker.rejectedCount} accounts.`)
                 }
@@ -229,32 +239,37 @@ export class AccountCommand extends BaseCommand {
     return true
   }
 
-  /**
-   * @param {Object} argv
-   * @returns {Promise<boolean>}
-   */
-  async create (argv) {
-    const self = this
+  async create (argv: any) {
+    interface Context {
+      config: {
+        amount: number
+        ecdsaPrivateKey: string
+        namespace: string
+        privateKey: string
+        setAlias: boolean
+      };
+      privateKey: PrivateKey
+    }
 
-    const tasks = new Listr([
+    const tasks = new Listr<Context>([
       {
         title: 'Initialize',
         task: async (ctx, task) => {
-          self.configManager.update(argv)
-          await prompts.execute(task, self.configManager, [
+          this.configManager.update(argv)
+          await prompts.execute(task, this.configManager, [
             flags.namespace
           ])
 
           const config = {
-            amount: self.configManager.getFlag(flags.amount),
-            ecdsaPrivateKey: self.configManager.getFlag(flags.ecdsaPrivateKey),
-            namespace: self.configManager.getFlag(flags.namespace),
-            privateKey: self.configManager.getFlag(flags.privateKey),
-            setAlias: self.configManager.getFlag(flags.setAlias)
+            amount: <number>this.configManager.getFlag<number>(flags.amount),
+            ecdsaPrivateKey: <string>this.configManager.getFlag<string>(flags.ecdsaPrivateKey),
+            namespace: <string>this.configManager.getFlag<string>(flags.namespace),
+            privateKey: <string>this.configManager.getFlag<string>(flags.privateKey),
+            setAlias: <boolean>this.configManager.getFlag<boolean>(flags.setAlias)
           }
 
           if (!config.amount) {
-            config.amount = flags.amount.definition.defaultValue
+            config.amount = flags.amount.definition.defaultValue as number
           }
 
           if (!await this.k8.hasNamespace(config.namespace)) {
@@ -264,16 +279,16 @@ export class AccountCommand extends BaseCommand {
           // set config in the context for later tasks to use
           ctx.config = config
 
-          self.logger.debug('Initialized config', { config })
+          this.logger.debug('Initialized config', { config })
 
-          await self.accountManager.loadNodeClient(ctx.config.namespace)
+          await this.accountManager.loadNodeClient(ctx.config.namespace)
         }
       },
       {
         title: 'create the new account',
-        task: async (ctx, task) => {
-          self.accountInfo = await self.createNewAccount(ctx)
-          const accountInfoCopy = { ...self.accountInfo }
+        task: async (ctx) => {
+          this.accountInfo = await this.createNewAccount(ctx)
+          const accountInfoCopy = { ...this.accountInfo }
           delete accountInfoCopy.privateKey
 
           this.logger.showJSON('new account created', accountInfoCopy)
@@ -303,7 +318,7 @@ export class AccountCommand extends BaseCommand {
         namespace: string;
         privateKey: string;
       },
-      accountInfo:
+      accountInfo: { accountId: string; balance: number; publicKey: string; privateKey?: string }
     }
 
     const tasks = new Listr<Context>([
@@ -338,7 +353,7 @@ export class AccountCommand extends BaseCommand {
       {
         title: 'get the account info',
         task: async (ctx) => {
-          ctx.accountInfo = await this.buildAccountInfo(await this.getAccountInfo(ctx), ctx.config.namespace, ctx.config.privateKey)
+          ctx.accountInfo = await this.buildAccountInfo(await this.getAccountInfo(ctx), ctx.config.namespace, !!ctx.config.privateKey) // TODO REVIEW
         }
       },
       {

@@ -34,8 +34,23 @@ import { K8 } from './core/k8'
 import { AccountManager } from './core/account_manager'
 import { ListrLogger } from 'listr2'
 import { CustomProcessOutput } from './core/process_output'
+import { type SoloLogger } from './core/logging'
 
-export function main (argv) {
+export interface Opts {
+  logger: SoloLogger
+  helm: Helm
+  k8: K8
+  downloader: PackageDownloader
+  platformInstaller: PlatformInstaller
+  chartManager: ChartManager
+  configManager: ConfigManager
+  depManager: DependencyManager
+  keyManager: KeyManager
+  accountManager: AccountManager
+  profileManager: ProfileManager
+}
+
+export function main (argv: any) {
   const logger = logging.NewLogger('debug')
   constants.LISTR_DEFAULT_RENDERER_OPTION.logger = new ListrLogger({ processOutput: new CustomProcessOutput(logger) })
 
@@ -63,7 +78,7 @@ export function main (argv) {
     const context = kubeConfig.getContextObject(kubeConfig.getCurrentContext())
     const cluster = kubeConfig.getCurrentCluster()
 
-    const opts = {
+    const opts: Opts = {
       logger,
       helm,
       k8,
@@ -77,12 +92,8 @@ export function main (argv) {
       profileManager
     }
 
-    const processArguments = (argv, yargs) => {
-      if (argv._[0] === 'init') {
-        configManager.reset()
-      } else {
-        configManager.load()
-      }
+    const processArguments = (argv: any, yargs: any) => {
+      argv._[0] === 'init' ? configManager.reset() : configManager.load()
 
       // Set default cluster name and namespace from kubernetes context
       // these will be overwritten if user has entered the flag values explicitly
@@ -111,11 +122,14 @@ export function main (argv) {
       .usage('Usage:\n  $0 <command> [options]')
       .alias('h', 'help')
       .alias('v', 'version')
+      // @ts-ignore
       .command(commands.Initialize(opts))
       .strict()
+      // @ts-ignore
       .option(flags.devMode.name, flags.devMode.definition)
       .wrap(120)
       .demand(1, 'Select a command')
+      // @ts-ignore
       .middleware(processArguments, false) // applyBeforeValidate = false as otherwise middleware is called twice
       .parse()
   } catch (e) {

@@ -14,7 +14,6 @@
  * limitations under the License.
  *
  */
-
 import { ClusterCommand } from './cluster'
 import { InitCommand } from './init'
 import { MirrorNodeCommand } from './mirror_node'
@@ -23,13 +22,14 @@ import { NodeCommand } from './node'
 import { RelayCommand } from './relay'
 import { AccountCommand } from './account'
 import * as flags from './flags'
+import { type Opts } from '../index'
 
 /**
  * Return a list of Yargs command builder to be exposed through CLI
- * @param {Object} opts it is an Options object containing logger
- * @returns {Array} an array of Yargs command builder
+ * @param opts it is an Options object containing logger
+ * @returns an array of Yargs command builder
  */
-function Initialize (opts) {
+function Initialize (opts: Opts) {
   const initCmd = new InitCommand(opts)
   const clusterCmd = new ClusterCommand(opts)
   const networkCommand = new NetworkCommand(opts)

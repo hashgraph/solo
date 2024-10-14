@@ -37,7 +37,7 @@ export class ProfileManager {
   private readonly cacheDir: string;
 
   private profiles: Map<string, Object>;
-  private profileFile: Record<string, Object> | undefined;
+  private profileFile: string | undefined;
 
   constructor (logger: SoloLogger, configManager: ConfigManager, cacheDir: string = constants.SOLO_VALUES_DIR) {
     if (!logger) throw new MissingArgumentError('An instance of core/SoloLogger is required')
@@ -53,7 +53,7 @@ export class ProfileManager {
   }
 
   loadProfiles (forceReload: boolean = false): Map<string, Object> {
-    const profileFile = this.configManager.getFlag(flags.profileFile)
+    const profileFile = this.configManager.getFlag<string>(flags.profileFile)
     if (!profileFile) throw new MissingArgumentError('profileFile is required')
 
     // return the cached value as quickly as possible
@@ -98,12 +98,13 @@ export class ProfileManager {
    */
   _setValue (itemPath: string, value: any, yamlRoot: object): object {
     // find the location where to set the value in the yaml
-    const itemPathParts = itemPath.split('.')
+    const itemPathParts: string[] = itemPath.split('.')
     let parent = yamlRoot
     let current = parent
     let prevItemPath = ''
     for (let itemPathPart of itemPathParts) {
       if (helpers.isNumeric(itemPathPart)) {
+        // @ts-ignore
         itemPathPart = Number.parseInt(itemPathPart) // numeric path part can only be array index i.e. an integer
         if (!Array.isArray(parent[prevItemPath])) {
           parent[prevItemPath] = []
@@ -188,7 +189,7 @@ export class ProfileManager {
       this.configManager.getFlag(flags.chainId))
 
     for (const flag of flags.nodeConfigFileFlags.values()) {
-      const filePath = this.configManager.getFlag(flag)
+      const filePath = this.configManager.getFlag<string>(flag)
       if (!filePath) {
         throw new SoloError(`Configuration file path is missing for: ${flag.name}`)
       }

@@ -19,8 +19,8 @@ import { expect } from 'chai'
 import { afterEach, beforeEach, describe, it } from 'mocha'
 import each from 'mocha-each'
 
-import { constants, Helm, logging, Templates } from '../../../src/core/index.ts'
-import { ShellRunner } from '../../../src/core/shell_runner.ts'
+import { constants, Helm, logging, Templates } from '../../../src/core/index.mjs'
+import { ShellRunner } from '../../../src/core/shell_runner.mjs'
 
 describe('Helm platform specific tests', () => {
   each(['linux', 'windows', 'darwin'])

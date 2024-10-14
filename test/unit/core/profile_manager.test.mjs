@@ -20,14 +20,14 @@ import { describe, it, after } from 'mocha'
 import fs from 'fs'
 import * as yaml from 'js-yaml'
 import path from 'path'
-import { flags } from '../../../src/commands/index.ts'
+import { flags } from '../../../src/commands/index.mjs'
 import {
   ConfigManager,
   constants,
   ProfileManager
-} from '../../../src/core/index.ts'
+} from '../../../src/core/index.mjs'
 import { getTestCacheDir, getTmpDir, testLogger } from '../../test_util.js'
-import * as version from '../../../version.ts'
+import * as version from '../../../version.mjs'
 
 const tmpDir = getTmpDir()
 const configFile = path.join(tmpDir, 'resource-manager.config')
