@@ -369,7 +369,7 @@ export class NodeCommandTasks {
       subTasks.push({
         title: `Check proxy for node: ${chalk.yellow(nodeAlias)}`,
         task: async () => await this.k8.waitForPodReady(
-          [`app=haproxy-${nodeAlias}`, 'fullstack.hedera.com/type=haproxy'],
+          [`app=haproxy-${nodeAlias}`, 'solo.hedera.com/type=haproxy'],
           1, 300, 2000)
       })
     }
@@ -819,14 +819,7 @@ export class NodeCommandTasks {
       // this is more reliable than checking the nodes logs for ACTIVE, as the
       // logs will have a lot of white noise from being behind
       return this._checkNodesProxiesTask(ctx, task, ctx.config.nodeAliases)
-    }, async (ctx) => {
-      if (ctx.config.app !== '' && ctx.config.app !== constants.HEDERA_APP_NAME) {
-        await sleep(30 * 1000)
-        return false
-      }
-
-      return false
-    })
+    }, async (ctx) => ctx.config.app !== '' && ctx.config.app !== constants.HEDERA_APP_NAME)
   }
 
   checkAllNodeProxiesAreActive () {
@@ -1262,8 +1255,8 @@ export class NodeCommandTasks {
           title: `Check Node: ${chalk.yellow(nodeAlias)}`,
           task: async () =>
             await this.k8.waitForPods([constants.POD_PHASE_RUNNING], [
-              'fullstack.hedera.com/type=network-node',
-                `fullstack.hedera.com/node-name=${nodeAlias}`
+              'solo.hedera.com/type=network-node',
+                `solo.hedera.com/node-name=${nodeAlias}`
             ], 1, 60 * 15, 1000) // timeout 15 minutes
         })
       }
