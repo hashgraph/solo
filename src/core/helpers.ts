@@ -31,7 +31,7 @@ import {type AccountManager} from "./account_manager";
 import {type BaseCommand} from "../commands/base";
 import {CommandFlag} from "../commands/flags";
 import { type NodeAlias, type NodeAliases, type PodName } from '../types/aliases'
-import { type NodeDeleteConfigClass } from '../commands/node.js'
+import { type NodeDeleteConfigClass } from '../commands/node'
 
 // cache current directory
 const CUR_FILE_DIR = paths.dirname(fileURLToPath(import.meta.url))
@@ -339,7 +339,12 @@ export function addLoadContextParser (ctx: any, ctxData: any) {
  * @returns file writable object
  */
 export function deleteSaveContextParser (ctx: { config: NodeDeleteConfigClass, upgradeZipHash: any } ) {
-  const exportedCtx = {} as Record<string, string>
+  const exportedCtx = {} as {
+    adminKey: string
+    existingNodeAliases: NodeAliases
+    upgradeZipHash: string
+    nodeAlias: NodeAlias
+  }
 
   const config = ctx.config
   exportedCtx.adminKey = config.adminKey.toString()

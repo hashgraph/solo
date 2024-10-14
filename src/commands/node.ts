@@ -67,7 +67,7 @@ import { downloadGeneratedFilesConfigBuilder, prepareUpgradeConfigBuilder } from
 import { type NetworkNodeServices } from "../core/network_node_services";
 import { type AccountManager } from "../core/account_manager";
 import { type Opts } from '../index'
-import { type NodeAlias, type NodeAliases, type PodName } from '../types/aliases.js'
+import { type NodeAlias, type NodeAliases, type PodName } from '../types/aliases'
 import { type ExtendedNetServer } from '../types'
 
 export interface NodeAddConfigClass {
@@ -2466,7 +2466,7 @@ export class NodeCommand extends BaseCommand {
 
             if (config.tlsPublicKey && config.tlsPrivateKey) {
               this.logger.info(`config.tlsPublicKey: ${config.tlsPublicKey}`)
-              const tlsCertDer = await this.loadPermCertificate(config.tlsPublicKey)
+              const tlsCertDer = this.loadPermCertificate(config.tlsPublicKey)
               const tlsCertHash = crypto.createHash('sha384').update(tlsCertDer).digest()
               nodeUpdateTx.setCertificateHash(tlsCertHash)
 
@@ -2790,10 +2790,9 @@ export class NodeCommand extends BaseCommand {
         title: 'Fetch platform software into all network nodes',
         task: async (ctx: Context, task: ListrTaskWrapper<any, any, any>) => {
           const config = ctx.config
-          config.serviceMap = await this.accountManager.getNodeServiceMap(
-            config.namespace)
-          config.podNames[config.nodeAlias] = config.serviceMap.get(
-            config.nodeAlias).nodePodName
+          config.serviceMap = await this.accountManager.getNodeServiceMap(config.namespace)
+          config.podNames[config.nodeAlias] = config.serviceMap.get(config.nodeAlias).nodePodName as PodName
+
           return this.fetchLocalOrReleasedPlatformSoftware(config.allNodeAliases, config.podNames, config.releaseTag, task, config.localBuildPath)
         }
       },

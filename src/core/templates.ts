@@ -20,7 +20,7 @@ import path from 'path'
 import { DataValidationError, SoloError, IllegalArgumentError, MissingArgumentError } from './errors'
 import { constants } from './index'
 import {type AccountId} from "@hashgraph/sdk";
-import { NodeAlias, PodName } from '../types/aliases
+import { NodeAlias, PodName } from '../types/aliases'
 
 export class Templates {
   public static renderNetworkPodName (nodeAlias: NodeAlias): PodName {

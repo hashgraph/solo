@@ -27,10 +27,10 @@ import * as helpers from '../core/helpers'
 import path from 'path'
 import { addDebugOptions, validatePath } from '../core/helpers'
 import fs from 'fs'
-import {NodeAlias, NodeAliases} from "../core/templates";
 import { type Opts } from '../index'
+import { type NodeAlias, type NodeAliases } from '../types/aliases'
 
-interface NetworkDeployConfigClass {
+export interface NetworkDeployConfigClass {
   applicationEnv: string
   cacheDir: string
   chartDirectory: string
@@ -164,8 +164,6 @@ export class NetworkCommand extends BaseCommand {
 
     await prompts.execute(task, this.configManager, NetworkCommand.DEPLOY_FLAGS_LIST)
 
-
-
     // create a config object for subsequent steps
     const config = this.getConfig(NetworkCommand.DEPLOY_CONFIGS_NAME, NetworkCommand.DEPLOY_FLAGS_LIST,
       [
@@ -234,7 +232,7 @@ export class NetworkCommand extends BaseCommand {
             {
               title: 'Copy Gossip keys to staging',
               task: async (ctx) => {
-                const config = /** @type {NetworkDeployConfigClass} **/ ctx.config
+                const config = ctx.config
 
                 this.keyManager.copyGossipKeysToStaging(config.keysDir, config.stagingKeysDir, config.nodeAliases)
               }
@@ -242,7 +240,7 @@ export class NetworkCommand extends BaseCommand {
             {
               title: 'Copy gRPC TLS keys to staging',
               task: async (ctx) => {
-                const config = /** @type {NetworkDeployConfigClass} **/ ctx.config
+                const config = ctx.config
                 for (const nodeAlias of config.nodeAliases) {
                   const tlsKeyFiles = this.keyManager.prepareTLSKeyFilePaths(nodeAlias, config.keysDir)
                   this.keyManager.copyNodeKeysToStaging(tlsKeyFiles, config.stagingKeysDir)
@@ -316,7 +314,7 @@ export class NetworkCommand extends BaseCommand {
         task:
            (ctx, task) => {
              const subTasks: any[] = []
-             const config = /** @type {NetworkDeployConfigClass} **/ ctx.config
+             const config = ctx.config
 
              // HAProxy
              for (const nodeAlias of config.nodeAliases) {

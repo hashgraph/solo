@@ -38,6 +38,7 @@ import * as flags from '../flags'
 import {type SoloLogger} from "../../core/logging";
 import {type AccountManager} from "../../core/account_manager";
 import {Listr, ListrTaskWrapper} from "listr2";
+import { type NodeAlias, type NodeAliases } from '../../types/aliases.js'
 
 export class NodeCommandTasks {
   private readonly accountManager: AccountManager;
@@ -246,7 +247,7 @@ export class NodeCommandTasks {
     })
   }
 
-  taskCheckNetworkNodePods(ctx: any, task: ListrTaskWrapper<any, any, any>, nodeAliases: string[]): Listr {
+  taskCheckNetworkNodePods(ctx: any, task: ListrTaskWrapper<any, any, any>, nodeAliases: NodeAliases): Listr {
     if (!ctx.config) {
       ctx.config = {}
     }
@@ -273,8 +274,8 @@ export class NodeCommandTasks {
   }
 
   /** Check if the network node pod is running */
-  async checkNetworkNodePod(namespace: string, nodeAlias: string, maxAttempts: number = 60, delay: number = 2000): Promise<string> {
-    nodeAlias = nodeAlias.trim()
+  async checkNetworkNodePod(namespace: string, nodeAlias: NodeAlias, maxAttempts: number = 60, delay: number = 2000): Promise<string> {
+    nodeAlias = nodeAlias.trim() as NodeAlias
     const podName = Templates.renderNetworkPodName(nodeAlias)
 
     try {

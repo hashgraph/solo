@@ -60,10 +60,7 @@ export class InitCommand extends BaseCommand {
       cacheDir = constants.SOLO_CACHE_DIR as string
     }
 
-    interface Context { // TODO FINISH
-      config: {
-
-      };
+    interface Context {
       repoURLs: string[]
       dirs: string[]
     }

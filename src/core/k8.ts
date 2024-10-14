@@ -31,7 +31,7 @@ import * as stream from 'node:stream'
 import { type SoloLogger } from "./logging";
 import type * as WebSocket from 'ws'
 import { type PodName } from '../types/aliases'
-import { type ExtendedNetServer, type LocalContextObject } from '../types/index.js'
+import { type ExtendedNetServer, type LocalContextObject } from '../types/index'
 
 type TDirectoryData = {directory: boolean; owner: string; group: string; size: string; modifiedAt: string; name: string}
 

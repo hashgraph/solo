@@ -43,7 +43,7 @@ import path from 'path'
 import { type SoloLogger } from "./logging";
 import { type K8} from "./k8";
 import { type AccountIdWithKeyPairObject, type ExtendedNetServer } from '../types'
-import { type NodeAlias, type PodName } from '../types/aliases.js'
+import { type NodeAlias, type PodName } from '../types/aliases'
 
 const REASON_FAILED_TO_GET_KEYS = 'failed to get keys for accountId'
 const REASON_SKIPPED = 'skipped since it does not have a genesis key'

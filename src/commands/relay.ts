@@ -24,7 +24,7 @@ import * as prompts from './prompts'
 import { getNodeAccountMap } from '../core/helpers'
 import {AccountManager} from "../core/account_manager";
 import { type Opts } from '../index'
-import { type NodeAliases } from '../types/aliases.js'
+import { type NodeAliases } from '../types/aliases'
 
 export class RelayCommand extends BaseCommand {
   private readonly profileManager: ProfileManager

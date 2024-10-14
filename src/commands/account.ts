@@ -24,7 +24,7 @@ import * as prompts from './prompts'
 import { constants} from '../core'
 import {type AccountId, AccountInfo, HbarUnit, PrivateKey} from '@hashgraph/sdk'
 import { FREEZE_ADMIN_ACCOUNT } from '../core/constants'
-import {type AccountManager} from "../core/account_manager";
+import { type AccountManager } from "../core/account_manager";
 import { type Opts } from '../index'
 
 export class AccountCommand extends BaseCommand {

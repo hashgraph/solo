@@ -17,13 +17,14 @@
 import { ListrEnquirerPromptAdapter } from '@listr2/prompt-adapter-enquirer'
 import {Listr} from 'listr2'
 import { SoloError, IllegalArgumentError, MissingArgumentError } from '../core/errors'
-import {constants, ProfileManager} from '../core'
+import {constants, type ProfileManager} from '../core'
 import { BaseCommand } from './base'
 import * as flags from './flags'
 import * as prompts from './prompts'
 import { getFileContents, getEnvValue } from '../core/helpers'
-import {AccountManager} from "../core/account_manager";
+import { type AccountManager } from "../core/account_manager";
 import { type Opts } from '../index'
+import { type PodName } from '../types/aliases'
 
 export class MirrorNodeCommand extends BaseCommand {
   private readonly accountManager: AccountManager;
@@ -298,7 +299,7 @@ export class MirrorNodeCommand extends BaseCommand {
                 if (pods.length === 0) {
                   throw new SoloError('postgres pod not found')
                 }
-                const postgresPodName = pods[0].metadata.name
+                const postgresPodName = pods[0].metadata.name as PodName
                 const postgresContainerName = 'postgresql'
                 const mirrorEnvVars = await this.k8.execContainer(postgresPodName, postgresContainerName, '/bin/bash -c printenv')
                 const mirrorEnvVarsArray = mirrorEnvVars.split('\n')
