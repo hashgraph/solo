@@ -22,7 +22,6 @@ import os from 'os'
 import path from 'path'
 import { flags } from '../commands/index.mjs'
 import { SoloError, IllegalArgumentError, MissingArgumentError } from './errors.mjs'
-import * as sb from 'stream-buffers'
 import * as tar from 'tar'
 import { v4 as uuid4 } from 'uuid'
 import { V1ObjectMeta, V1Secret } from '@kubernetes/client-node'
@@ -459,6 +458,60 @@ export class K8 {
     )
   }
 
+  exitWithError (localContext, errorMessage) {
+    localContext.errorMessage = localContext.errorMessage ? `${localContext.errorMessage}:${errorMessage}` : errorMessage
+    this.logger.error(errorMessage)
+    return localContext.reject(new SoloError(localContext.errorMessage))
+  }
+
+  handleCallback (status, localContext, messagePrefix) {
+    if (status === 'Failure') {
+      return this.exitWithError(localContext, `${messagePrefix} Failure occurred`)
+    } else {
+      this.logger.debug(`${messagePrefix} callback(status)=${status}`)
+    }
+  }
+
+  registerConnectionOnError (localContext, messagePrefix, conn) {
+    conn.on('error', (e) => {
+      return this.exitWithError(localContext, `${messagePrefix} failed, connection error: ${e.message}`)
+    })
+  }
+
+  registerConnectionOnMessage (localContext, messagePrefix) {
+    this.logger.debug(`${messagePrefix} received message`)
+  }
+
+  registerStreamOnData (localContext, messagePrefix, stream) {
+    stream.on('data', (data) => {
+      return this.exitWithError(localContext, `${messagePrefix} error encountered, error: ${data.toString()}`)
+    })
+  }
+
+  registerStreamOnError (localContext, messagePrefix, stream) {
+    stream.on('error', (err) => {
+      return this.exitWithError(localContext, `${messagePrefix} error encountered, err: ${err.toString()}`)
+    })
+  }
+
+  registerOutputPassthroughStreamOnData (localContext, messagePrefix, outputPassthroughStream, outputFileStream) {
+    outputPassthroughStream.on('data', (chunk) => {
+      this.logger.debug(`${messagePrefix} received chunk size=${chunk.length}`)
+      const canWrite = outputFileStream.write(chunk) // Write chunk to file and check if buffer is full
+      if (!canWrite) {
+        this.logger.debug(`${messagePrefix} buffer is full, pausing data stream...`)
+        outputPassthroughStream.pause() // Pause the data stream if buffer is full
+      }
+    })
+  }
+
+  registerOutputFileStreamOnDrain (localContext, messagePrefix, outputPassthroughStream, outputFileStream) {
+    outputFileStream.on('drain', () => {
+      outputPassthroughStream.resume()
+      this.logger.debug(`${messagePrefix} stream drained, resume write`)
+    })
+  }
+
   /**
    * Copy a file into a container
    *
@@ -468,10 +521,18 @@ export class K8 {
    * @param {string} containerName
    * @param {string} srcPath - source file path in the local
    * @param {string} destDir - destination directory in the container
+   * @param {function} [filter] - the filter to pass to tar to keep or skip files or directories
    * @returns {Promise<boolean>} return a Promise that performs the copy operation
    */
-  async copyTo (podName, containerName, srcPath, destDir) {
+  async copyTo (podName, containerName, srcPath, destDir, filter = undefined) {
+    const self = this
     const namespace = this._getNamespace()
+    const guid = uuid4()
+    const messagePrefix = `copyTo[${podName},${guid}]: `
+
+    if (!await self.getPodByName(podName)) throw new IllegalArgumentError(`Invalid pod ${podName}`)
+
+    self.logger.info(`${messagePrefix}[srcPath=${srcPath}, destDir=${destDir}]`)
 
     if (!await this.hasDir(podName, containerName, destDir)) {
       throw new SoloError(`invalid destination path: ${destDir}`)
@@ -481,47 +542,62 @@ export class K8 {
       throw new SoloError(`invalid source path: ${srcPath}`)
     }
 
+    const localContext = {}
     try {
       const srcFile = path.basename(srcPath)
       const srcDir = path.dirname(srcPath)
-      const destPath = `${destDir}/${srcFile}`
 
-      // zip the source file
-      const tmpFile = this._tempFileFor(srcFile)
+      // Create a temporary tar file for the source file
+      const tmpFile = self._tempFileFor(srcFile)
       await tar.c({
         file: tmpFile,
-        cwd: srcDir
+        cwd: srcDir,
+        filter
       }, [srcFile])
 
-      const self = this
       return new Promise((resolve, reject) => {
-        const execInstance = new k8s.Exec(this.kubeConfig)
+        localContext.reject = reject
+        const execInstance = new k8s.Exec(self.kubeConfig)
         const command = ['tar', 'xf', '-', '-C', destDir]
-        const readStream = fs.createReadStream(tmpFile)
-        const errStream = new sb.WritableStreamBuffer()
+        const inputStream = fs.createReadStream(tmpFile)
+        const errStream = new stream.PassThrough()
+        const inputPassthroughStream = new stream.PassThrough({ highWaterMark: 10 * 1024 * 1024 }) // Handle backpressure
 
-        execInstance.exec(namespace, podName, containerName, command, null, errStream, readStream, false,
-          ({ status }) => {
-            if (status === 'Failure' || errStream.size()) {
-              self._deleteTempFile(tmpFile)
-            }
-          }).then(conn => {
-          conn.on('close', (code, reason) => {
-            if (code !== 1000) { // code 1000 is the success code
-              return reject(new SoloError(`failed to copy because of error (${code}): ${reason}`))
-            }
+        // Use pipe() to automatically handle backpressure
+        inputStream.pipe(inputPassthroughStream)
 
-            return resolve(true)
+        execInstance.exec(namespace, podName, containerName, command, null, errStream, inputPassthroughStream, false,
+          ({ status }) => self.handleCallback(status, localContext, messagePrefix))
+          .then(conn => {
+            self.logger.info(`${messagePrefix} connection established`)
+            localContext.connection = conn
+
+            self.registerConnectionOnError(localContext, messagePrefix, conn)
+
+            self.registerConnectionOnMessage(localContext, messagePrefix, conn)
+
+            conn.on('close', (code, reason) => {
+              self.logger.debug(`${messagePrefix} connection closed`)
+              if (code !== 1000) { // code 1000 is the success code
+                return self.exitWithError(localContext, `${messagePrefix} failed with code=${code}, reason=${reason}`)
+              }
+
+              // Cleanup temp file after successful copy
+              inputPassthroughStream.end() // End the passthrough stream
+              self._deleteTempFile(tmpFile) // Cleanup temp file
+              self.logger.info(`${messagePrefix} Successfully copied!`)
+              return resolve(true)
+            })
           })
 
-          conn.on('error', (e) => {
-            self._deleteTempFile(tmpFile)
-            return reject(new SoloError(`failed to copy file ${destPath} because of connection error: ${e.message}`, e))
-          })
-        })
+        self.registerStreamOnData(localContext, messagePrefix, errStream)
+
+        self.registerStreamOnError(localContext, messagePrefix, inputPassthroughStream)
       })
     } catch (e) {
-      throw new SoloError(`failed to copy file to ${podName}:${containerName} [${srcPath} -> ${destDir}]: ${e.message}`, e)
+      const errorMessage = `${messagePrefix} failed to upload file: ${e.message}`
+      self.logger.error(errorMessage, e)
+      throw new SoloError(errorMessage, e)
     }
   }
 
@@ -537,27 +613,35 @@ export class K8 {
    * @returns {Promise<boolean>}
    */
   async copyFrom (podName, containerName, srcPath, destDir) {
-    const namespace = this._getNamespace()
+    const self = this
+    const namespace = self._getNamespace()
+    const guid = uuid4()
+    const messagePrefix = `copyFrom[${podName},${guid}]: `
+
+    if (!await self.getPodByName(podName)) throw new IllegalArgumentError(`Invalid pod ${podName}`)
+
+    self.logger.info(`${messagePrefix}[srcPath=${srcPath}, destDir=${destDir}]`)
 
     // get stat for source file in the container
-    let entries = await this.listDir(podName, containerName, srcPath)
+    let entries = await self.listDir(podName, containerName, srcPath)
     if (entries.length !== 1) {
-      throw new SoloError(`invalid source path: ${srcPath}`)
+      throw new SoloError(`${messagePrefix}invalid source path: ${srcPath}`)
     }
     // handle symbolic link
     if (entries[0].name.indexOf(' -> ') > -1) {
       const redirectSrcPath = path.join(path.dirname(srcPath), entries[0].name.substring(entries[0].name.indexOf(' -> ') + 4))
-      entries = await this.listDir(podName, containerName, redirectSrcPath)
+      entries = await self.listDir(podName, containerName, redirectSrcPath)
       if (entries.length !== 1) {
-        throw new SoloError(`invalid source path: ${redirectSrcPath}`)
+        throw new SoloError(`${messagePrefix}invalid source path: ${redirectSrcPath}`)
       }
     }
     const srcFileDesc = entries[0] // cache for later comparison after copy
 
     if (!fs.existsSync(destDir)) {
-      throw new SoloError(`invalid destination path: ${destDir}`)
+      throw new SoloError(`${messagePrefix}invalid destination path: ${destDir}`)
     }
 
+    const localContext = {}
     try {
       const srcFileSize = Number.parseInt(srcFileDesc.size)
 
@@ -566,35 +650,24 @@ export class K8 {
       const destPath = path.join(destDir, srcFile)
 
       // download the tar file to a temp location
-      const tmpFile = this._tempFileFor(srcFile)
+      const tmpFile = self._tempFileFor(srcFile)
 
-      const self = this
       return new Promise((resolve, reject) => {
-        const execInstance = new k8s.Exec(this.kubeConfig)
+        localContext.reject = reject
+        const execInstance = new k8s.Exec(self.kubeConfig)
         const command = ['cat', `${srcDir}/${srcFile}`]
         const outputFileStream = fs.createWriteStream(tmpFile)
         const outputPassthroughStream = new stream.PassThrough({ highWaterMark: 10 * 1024 * 1024 })
         const errStream = new stream.PassThrough()
-        let additionalErrorMessageDetail = ''
 
         // Use pipe() to automatically handle backpressure between streams
         outputPassthroughStream.pipe(outputFileStream)
 
-        outputPassthroughStream.on('data', (chunk) => {
-          this.logger.debug(`received chunk size=${chunk.length}`)
-          const canWrite = outputFileStream.write(chunk) // Write chunk to file and check if buffer is full
+        self.registerOutputPassthroughStreamOnData(localContext, messagePrefix, outputPassthroughStream, outputFileStream)
 
-          if (!canWrite) {
-            console.log(`Buffer is full, pausing data stream... for copying from ${podName}:${srcDir}/${srcFile} to ${destPath}`)
-            outputPassthroughStream.pause() // Pause the data stream if buffer is full
-          }
-        })
+        self.registerOutputFileStreamOnDrain(localContext, messagePrefix, outputPassthroughStream, outputFileStream)
 
-        outputFileStream.on('drain', () => {
-          outputPassthroughStream.resume()
-          this.logger.debug(`stream drained, resume write for copying from ${podName}:${srcDir}/${srcFile} to ${destPath}`)
-        })
-
+        self.logger.debug(`${messagePrefix} running...`)
         execInstance.exec(
           namespace,
           podName,
@@ -607,100 +680,56 @@ export class K8 {
           ({ status }) => {
             if (status === 'Failure') {
               self._deleteTempFile(tmpFile)
-              const errorMessage = `tar command failed with status Failure while copying from ${podName}:${srcDir}/${srcFile} to ${destPath}`
-              this.logger.error(errorMessage)
-              return reject(new SoloError(errorMessage))
+              return self.exitWithError(localContext, `${messagePrefix} Failure occurred`)
+            } else {
+              self.logger.debug(`${messagePrefix} callback(status)=${status}`)
             }
-            this.logger.debug(`copyFrom.callback(status)=${status}`)
           })
           .then(conn => {
+            self.logger.debug(`${messagePrefix} connection established`)
+            localContext.connection = conn
+
             conn.on('error', (e) => {
               self._deleteTempFile(tmpFile)
-              return reject(new SoloError(
-                  `failed copying from ${podName}:${srcDir}/${srcFile} to ${destPath} because of connection error: ${e.message}`, e))
+              return self.exitWithError(localContext, `${messagePrefix} failed, connection error: ${e.message}`)
             })
 
+            self.registerConnectionOnMessage(localContext, messagePrefix, conn)
+
             conn.on('close', (code, reason) => {
-              this.logger.debug(`connection closed copying from ${podName}:${srcDir}/${srcFile} to ${destPath}`)
+              self.logger.debug(`${messagePrefix} connection closed`)
               if (code !== 1000) { // code 1000 is the success code
-                const errorMessage = `failed copying from ${podName}:${srcDir}/${srcFile} to ${destPath} because of error (${code}): ${reason}`
-                this.logger.error(errorMessage)
-                return reject(new SoloError(errorMessage))
+                return self.exitWithError(localContext, `${messagePrefix} failed with code=${code}, reason=${reason}`)
               }
 
               outputFileStream.end()
               outputFileStream.close(() => {
-                this.logger.debug(`finished closing writerStream copying from ${podName}:${srcDir}/${srcFile} to ${destPath}`)
-
                 try {
                   fs.copyFileSync(tmpFile, destPath)
 
                   self._deleteTempFile(tmpFile)
 
                   const stat = fs.statSync(destPath)
-                  let rejection
                   if (stat && stat.size === srcFileSize) {
-                    this.logger.info(`Finished successfully copying from ${podName}:${srcDir}/${srcFile} to ${destPath}`)
-                  } else {
-                    rejection = true
-                    if (!stat) {
-                      additionalErrorMessageDetail = ', statSync returned no file status for the destination file'
-                    } else {
-                      additionalErrorMessageDetail = `, stat.size=${stat.size} != srcFileSize=${srcFileSize}`
-                    }
-                  }
-
-                  if (rejection) {
-                    const errorMessage = `failed copying from ${podName}:${srcDir}/${srcFile} to ${destPath} to download file completely: ${destPath}${additionalErrorMessageDetail}`
-                    this.logger.error(errorMessage)
-                    return reject(new SoloError(errorMessage))
-                  } else {
+                    self.logger.debug(`${messagePrefix} finished`)
                     return resolve(true)
                   }
+
+                  return self.exitWithError(localContext, `${messagePrefix} files did not match, srcFileSize=${srcFileSize}, stat.size=${stat?.size}`)
                 } catch (e) {
-                  const errorMessage = `failed to complete copying from ${podName}:${srcDir}/${srcFile} to ${destPath} to extract file: ${destPath}`
-                  this.logger.error(errorMessage, e)
-                  return reject(new SoloError(errorMessage, e))
+                  return self.exitWithError(localContext, `${messagePrefix} failed to complete download`)
                 }
               })
             })
           })
 
-        errStream.on('data', (data) => {
-          const errorMessage = `error encountered copying from ${podName}:${srcDir}/${srcFile} to ${destPath}, error: ${data.toString()}`
-          this.logger.error(errorMessage)
-          return reject(new SoloError(errorMessage))
-        })
+        self.registerStreamOnData(localContext, messagePrefix, errStream)
 
-        outputFileStream.on('close', () => {
-          this.logger.debug(`finished copying from ${podName}:${srcDir}/${srcFile} to ${destPath}`)
-        })
-
-        outputFileStream.on('error', (err) => {
-          const errorMessage = `writerStream error encountered copying from ${podName}:${srcDir}/${srcFile} to ${destPath}, err: ${err.toString()}`
-          this.logger.error(errorMessage, err)
-          return reject(new SoloError(errorMessage, err))
-        })
-
-        outputFileStream.on('end', () => {
-          this.logger.debug(`writerStream has ended for copying from ${podName}:${srcDir}/${srcFile} to ${destPath}`)
-        })
-
-        outputPassthroughStream.on('end', () => {
-          this.logger.debug(`writerPassthroughStream has ended for copying from ${podName}:${srcDir}/${srcFile} to ${destPath}`)
-        })
-
-        outputFileStream.on('finish', () => {
-          this.logger.debug(`stopping copy, writerStream has finished for copying from ${podName}:${srcDir}/${srcFile} to ${destPath}`)
-        })
-
-        outputPassthroughStream.on('finish', () => {
-          this.logger.debug(`stopping copy, writerPassthroughStream has finished for copying from ${podName}:${srcDir}/${srcFile} to ${destPath}`)
-        })
+        self.registerStreamOnError(localContext, messagePrefix, outputFileStream)
       })
     } catch (e) {
-      const errorMessage = `failed to download file from ${podName}:${containerName} [${srcPath} -> ${destDir}]: ${e.message}`
-      this.logger.error(errorMessage, e)
+      const errorMessage = `${messagePrefix}failed to download file: ${e.message}`
+      self.logger.error(errorMessage, e)
       throw new SoloError(errorMessage, e)
     }
   }
@@ -711,48 +740,78 @@ export class K8 {
    * @param {PodName} podName
    * @param {string} containerName
    * @param {string|string[]} command - sh commands as an array to be run within the containerName (e.g 'ls -la /opt/hgcapp')
-   * @param {number} [timeoutMs] - timout in milliseconds
    * @returns {Promise<string>} console output as string
    */
-  async execContainer (podName, containerName, command, timeoutMs = 1000) {
-    const ns = this._getNamespace()
-    if (timeoutMs < 0 || timeoutMs === 0) throw new MissingArgumentError('timeout cannot be negative or zero')
+  async execContainer (podName, containerName, command) {
+    const self = this
+    const namespace = self._getNamespace()
+    const guid = uuid4()
+    const messagePrefix = `execContainer[${podName},${guid}]:`
+
+    if (!await self.getPodByName(podName)) throw new IllegalArgumentError(`Invalid pod ${podName}`)
+
     if (!command) throw new MissingArgumentError('command cannot be empty')
     if (!Array.isArray(command)) {
       command = command.split(' ')
     }
-    if (!await this.getPodByName(podName)) throw new IllegalArgumentError(`Invalid pod ${podName}`)
 
-    const self = this
+    self.logger.info(`${messagePrefix} begin... command=[${command.join(' ')}]`)
+
     return new Promise((resolve, reject) => {
-      const execInstance = new k8s.Exec(this.kubeConfig)
-      const outStream = new sb.WritableStreamBuffer()
-      const errStream = new sb.WritableStreamBuffer()
+      const localContext = {}
+      localContext.reject = reject
+      const execInstance = new k8s.Exec(self.kubeConfig)
+      const tmpFile = self._tempFileFor(`${podName}-output.txt`)
+      const outputFileStream = fs.createWriteStream(tmpFile)
+      const outputPassthroughStream = new stream.PassThrough({ highWaterMark: 10 * 1024 * 1024 })
+      const errPassthroughStream = new stream.PassThrough()
 
-      self.logger.debug(`Running exec ${podName} -c ${containerName} -- ${command.join(' ')}`)
+      // Use pipe() to automatically handle backpressure between streams
+      outputPassthroughStream.pipe(outputFileStream)
+
+      self.registerOutputPassthroughStreamOnData(localContext, messagePrefix, outputPassthroughStream, outputFileStream)
+
+      self.registerOutputFileStreamOnDrain(localContext, messagePrefix, outputPassthroughStream, outputFileStream)
+
+      self.logger.debug(`${messagePrefix} running...`)
       execInstance.exec(
-        ns,
+        namespace,
         podName,
         containerName,
         command,
-        outStream,
-        errStream,
+        outputFileStream,
+        errPassthroughStream,
         null,
         false,
-        ({ status }) => {
-          if (status === 'Failure' || errStream.size()) {
-            reject(new SoloError(`Exec error:
-              [exec ${podName} -c ${containerName} -- ${command.join(' ')}'] - error details:
-              ${errStream.getContentsAsString()}`))
-            return
-          }
+        ({ status }) => self.handleCallback(status, localContext, messagePrefix))
+        .then(conn => {
+          self.logger.debug(`${messagePrefix} connection established`)
+          localContext.connection = conn
 
-          const output = outStream.getContentsAsString()
-          self.logger.debug(`Finished exec ${podName} -c ${containerName} -- ${command.join(' ')}`, { output })
+          self.registerConnectionOnError(localContext, messagePrefix, conn)
 
-          resolve(output)
-        }
-      )
+          self.registerConnectionOnMessage(localContext, messagePrefix, conn)
+
+          conn.on('close', (code, reason) => {
+            self.logger.debug(`${messagePrefix} connection closed`)
+            if (!localContext.errorMessage) {
+              if (code !== 1000) { // code 1000 is the success code
+                return self.exitWithError(localContext, `${messagePrefix} failed with code=${code}, reason=${reason}`)
+              }
+
+              outputFileStream.end()
+              outputFileStream.close(() => {
+                self.logger.debug(`${messagePrefix} finished`)
+                const outData = fs.readFileSync(tmpFile)
+                return resolve(outData.toString())
+              })
+            }
+          })
+        })
+
+      self.registerStreamOnData(localContext, messagePrefix, errPassthroughStream)
+
+      self.registerStreamOnError(localContext, messagePrefix, outputFileStream)
     })
   }
 

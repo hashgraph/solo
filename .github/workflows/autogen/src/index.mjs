@@ -22,8 +22,6 @@ import { fileURLToPath } from 'url'
 import * as changeCase from 'change-case'
 
 export const AUTOGENERATE_E2E_TEST_JOBS = '# {AUTOGENERATE-E2E-TEST-JOBS}'
-export const AUTOGENERATE_E2E_TEST_JOBS_2 = '# {AUTOGENERATE-E2E-TEST-JOBS-2}'
-export const AUTOGENERATE_NEEDS = '# {AUTOGENERATE-NEEDS}'
 export const AUTOGENERATE_WITH_SUBDIR = '# {AUTOGENERATE-WITH-SUBDIR}'
 export const AUTOGENERATE_WITH_COVERAGE_REPORT = '# {AUTOGENERATE-WITH-COVERAGE-REPORT}'
 export const AUTOGENERATE_JOB_OUTPUTS_SUB_DIRS = '# {AUTOGENERATE-JOB-OUTPUTS-SUB-DIRS}'
@@ -144,19 +142,17 @@ function buildWorkflows (outputDir, templateDir, config) {
       const trimmedLine = line.trim()
 
       switch (trimmedLine) {
-        case AUTOGENERATE_E2E_TEST_JOBS:
-        case AUTOGENERATE_E2E_TEST_JOBS_2:
         case AUTOGENERATE_WORKFLOW_OUTPUTS_SUB_DIRS:
         case AUTOGENERATE_WORKFLOW_OUTPUTS_COVERAGE_REPORTS:
         case AUTOGENERATE_INPUTS_SUB_DIRS:
         case AUTOGENERATE_INPUTS_COVERAGE_REPORTS:
           autogenerateYaml(line, config, outputLines, trimmedLine)
           break
-        case AUTOGENERATE_NEEDS:
         case AUTOGENERATE_WITH_SUBDIR:
         case AUTOGENERATE_WITH_COVERAGE_REPORT:
         case AUTOGENERATE_JOB_OUTPUTS_SUB_DIRS:
         case AUTOGENERATE_JOB_OUTPUTS_COVERAGE_REPORTS:
+        case AUTOGENERATE_E2E_TEST_JOBS:
           autogenerateLine(line, config, outputLines, trimmedLine)
           break
         case AUTOGENERATE_DOWNLOAD_JOBS:
@@ -188,10 +184,6 @@ export function autogenerateYaml (line, config, outputLines, templateKey) {
     const outputYaml = {}
 
     switch (templateKey) {
-      case AUTOGENERATE_E2E_TEST_JOBS:
-      case AUTOGENERATE_E2E_TEST_JOBS_2:
-        generateTestJobs(test, templateKey, outputYaml)
-        break
       default:
         generateOutputs(test, templateKey, outputYaml)
         suppressEmptyLines = true
@@ -260,40 +252,6 @@ export function generateOutputs (test, templateKey, outputYaml) {
 }
 
 /**
- * Generates the test jobs for the provided templateKey
- * @param {Test} test
- * @param {string} templateKey
- * @param {Object} outputYaml
- */
-export function generateTestJobs (test, templateKey, outputYaml) {
-  const formalNounName = test.name
-  const kebabCase = changeCase.kebabCase(formalNounName)
-  const testJobKey = `e2e-${kebabCase}-tests`
-  const testJobValue = {}
-  testJobValue.name = 'E2E Tests'
-
-  if (templateKey === AUTOGENERATE_E2E_TEST_JOBS) {
-    testJobValue.if = '${{ github.event_name == \'push\' || github.event.inputs.enable-e2e-tests == \'true\' }}'
-  } else {
-    testJobValue.if = '${{ !cancelled() && always() }}'
-  }
-
-  testJobValue.uses = './.github/workflows/zxc-e2e-test.yaml'
-  testJobValue.needs = ['env-vars', 'code-style']
-  testJobValue.with = {
-    'custom-job-label': formalNounName,
-    'npm-test-script': 'test-${{ needs.env-vars.outputs.e2e-' +
-        kebabCase + '-test-subdir }}',
-    'coverage-subdirectory': '${{ needs.env-vars.outputs.e2e-' +
-        kebabCase + '-test-subdir }}',
-    'coverage-report-name': '${{ needs.env-vars.outputs.e2e-' +
-        kebabCase + '-coverage-report }}'
-  }
-
-  outputYaml[testJobKey] = testJobValue
-}
-
-/**
  * Generates the output line for the provided templateKey
  * @param {string} line
  * @param {Config} config
@@ -320,10 +278,6 @@ export function autogenerateLine (line, config, outputLines, templateKey) {
         namePart = `e2e-${kebabCase}`
         outputLines.push(spacePrefix + namePart + '-coverage-report: ${{ needs.env-vars.outputs.' + namePart + '-coverage-report }}')
         break
-      case AUTOGENERATE_NEEDS:
-        namePart = `e2e-${kebabCase}-tests`
-        outputLines.push(`${spacePrefix}- ${namePart}`)
-        break
       case AUTOGENERATE_JOB_OUTPUTS_SUB_DIRS:
         namePart = `e2e_${snakeCase}_test_subdir`
         namePart2 = `e2e-${kebabCase}`
@@ -341,6 +295,13 @@ export function autogenerateLine (line, config, outputLines, templateKey) {
         outputLines.push(spacePrefix + '    name: ${{ inputs.e2e-' + kebabCase + '-coverage-report }}')
         outputLines.push(spacePrefix + '    path: \'coverage/${{ inputs.e2e-' + kebabCase + '-test-subdir }}\'')
         outputLines.push('')
+        break
+      case AUTOGENERATE_E2E_TEST_JOBS:
+        outputLines.push(spacePrefix + '- { name: "' + formalNounName +
+            '", npm-test-script: "test-${{ needs.env-vars.outputs.e2e-' + kebabCase +
+            '-test-subdir }}", coverage-subdirectory: "${{ needs.env-vars.outputs.e2e-' + kebabCase +
+            '-test-subdir }}", coverage-report-name: "${{ needs.env-vars.outputs.e2e-' + kebabCase +
+            '-coverage-report }}" }')
     }
   })
 }

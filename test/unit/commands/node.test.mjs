@@ -56,6 +56,5 @@ describe('NodeCommand unit tests', () => {
       opts.keyManager = sinon.stub()
       expect(() => new NodeCommand(opts)).to.throw('An instance of core/AccountManager is required')
     })
-
   })
 })
