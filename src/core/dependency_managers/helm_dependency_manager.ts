@@ -104,11 +104,11 @@ export class HelmDependencyManager extends ShellRunner {
 
     const packageFile = await this.downloader.fetchPackage(this.helmURL, this.checksumURL, tmpDir)
     if (this.osPlatform === constants.OS_WINDOWS) {
-      await this.zippy.unzip(packageFile, extractedDir)
+      this.zippy.unzip(packageFile, extractedDir)
       // append .exe for windows
       helmSrc = path.join(extractedDir, `${this.osPlatform}-${this.osArch}`, `${constants.HELM}.exe`)
     } else {
-      await this.zippy.untar(packageFile, extractedDir)
+      this.zippy.untar(packageFile, extractedDir)
     }
 
     if (!fs.existsSync(this.installationDir)) {

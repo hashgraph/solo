@@ -21,24 +21,15 @@ import path from 'path'
 import { SoloError, IllegalArgumentError, MissingArgumentError } from './errors'
 import { constants } from './index'
 import { SoloLogger } from './logging'
-import {type NodeAlias, type NodeAliases, Templates} from './templates'
+import {Templates} from './templates'
 import * as helpers from './helpers'
 import chalk from 'chalk'
+import { type NodeAlias, type NodeAliases } from '../types/aliases'
+import { type NodeKeyObject, type PrivateKeyAndCertificateObject } from '../types/index'
+
 
 // @ts-ignore
 x509.cryptoProvider.set(crypto)
-
-export interface NodeKeyObject {
-  privateKey: CryptoKey
-  certificate: x509.X509Certificate
-  certificateChain: x509.X509Certificates
-}
-
-export interface PrivateKeyAndCertificateObject {
-  privateKeyFile: string
-  certificateFile: string
-}
-
 
 export class KeyManager {
   static SigningKeyAlgo = {
@@ -111,7 +102,7 @@ export class KeyManager {
    * @param keysDir - directory where keys and certs are stored
    * @param [keyPrefix] - key prefix such as constants.SIGNING_KEY_PREFIX
    */
-  prepareNodeKeyFilePaths (nodeAlias: NodeAlias, keysDir: string, keyPrefix: string = constants.SIGNING_KEY_PREFIX): PrivateKeyAndCertificateObject {
+  prepareNodeKeyFilePaths (nodeAlias: NodeAlias, keysDir: string, keyPrefix = constants.SIGNING_KEY_PREFIX): PrivateKeyAndCertificateObject {
     if (!nodeAlias) throw new MissingArgumentError('nodeAlias is required')
     if (!keysDir) throw new MissingArgumentError('keysDir is required')
     if (!keyPrefix) throw new MissingArgumentError('keyPrefix is required')
@@ -442,7 +433,7 @@ export class KeyManager {
         certificate: cert,
         certificateChain: certChain
       }
-    } catch (e) {
+    } catch (e: Error | any) {
       throw new SoloError(`failed to generate gRPC TLS key: ${e.message}`, e)
     }
   }
@@ -546,8 +537,7 @@ export class KeyManager {
     subTasks.push({
       title: 'Backup old files',
       task: () => helpers.backupOldTlsKeys(nodeAliases, keysDir, curDate)
-    }
-    )
+    })
 
     for (const nodeAlias of nodeAliases) {
       subTasks.push({

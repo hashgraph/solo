@@ -134,7 +134,7 @@ export class InitCommand extends BaseCommand {
 
     try {
       await tasks.run()
-    } catch (e) {
+    } catch (e: Error | any) {
       throw new SoloError('Error running init', e)
     }
 

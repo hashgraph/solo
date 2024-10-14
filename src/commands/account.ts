@@ -25,7 +25,7 @@ import { constants} from '../core'
 import {type AccountId, AccountInfo, HbarUnit, PrivateKey} from '@hashgraph/sdk'
 import { FREEZE_ADMIN_ACCOUNT } from '../core/constants'
 import {type AccountManager} from "../core/account_manager";
-import { Opts } from '../index'
+import { type Opts } from '../index'
 
 export class AccountCommand extends BaseCommand {
   private readonly accountManager: AccountManager;
@@ -230,7 +230,7 @@ export class AccountCommand extends BaseCommand {
 
     try {
       await tasks.run()
-    } catch (e) {
+    } catch (e: Error | any) {
       throw new SoloError(`Error in creating account: ${e.message}`, e)
     } finally {
       await this.closeConnections()
@@ -301,7 +301,7 @@ export class AccountCommand extends BaseCommand {
 
     try {
       await tasks.run()
-    } catch (e) {
+    } catch (e: Error | any) {
       throw new SoloError(`Error in creating account: ${e.message}`, e)
     } finally {
       await this.closeConnections()
@@ -378,7 +378,7 @@ export class AccountCommand extends BaseCommand {
 
     try {
       await tasks.run()
-    } catch (e) {
+    } catch (e: Error | any) {
       throw new SoloError(`Error in updating account: ${e.message}`, e)
     } finally {
       await this.closeConnections()
@@ -438,7 +438,7 @@ export class AccountCommand extends BaseCommand {
 
     try {
       await tasks.run()
-    } catch (e) {
+    } catch (e: Error | any) {
       throw new SoloError(`Error in getting account info: ${e.message}`, e)
     } finally {
       await this.closeConnections()

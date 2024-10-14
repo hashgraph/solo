@@ -14,7 +14,6 @@
  * limitations under the License.
  *
  */
-
 import { spawn } from 'child_process'
 import chalk from 'chalk'
 import {type SoloLogger} from "./logging";
@@ -22,16 +21,14 @@ import {type SoloLogger} from "./logging";
 export class ShellRunner {
   constructor (public logger: SoloLogger) {
     if (!logger) throw new Error('An instance of core/SoloLogger is required')
-    this.logger = logger
   }
 
   /** Returns a promise that invokes the shell command */
-  run (cmd: string, verbose = false): Promise<string[]> {
-    const self = this
+  run (cmd: string, verbose = false) {
     const callStack = new Error().stack // capture the callstack to be included in error
-    self.logger.debug(`Executing command: '${cmd}'`)
+    this.logger.debug(`Executing command: '${cmd}'`)
 
-    return new Promise((resolve, reject) => {
+    return new Promise<string[]>((resolve, reject) => {
       const child = spawn(cmd, {
         shell: true
       })
@@ -65,10 +62,10 @@ export class ShellRunner {
           err.stack = callStack
 
           if (verbose) {
-            errOutput.forEach(m => self.logger.showUser(chalk.red(m)))
+            errOutput.forEach(m => this.logger.showUser(chalk.red(m)))
           }
 
-          self.logger.error(`Error executing: '${cmd}'`, {
+          this.logger.error(`Error executing: '${cmd}'`, {
             commandExitCode: code,
             commandExitSignal: signal,
             commandOutput: output,
@@ -79,7 +76,7 @@ export class ShellRunner {
           reject(err)
         }
 
-        self.logger.debug(`Finished executing: '${cmd}'`, {
+        this.logger.debug(`Finished executing: '${cmd}'`, {
           commandExitCode: code,
           commandExitSignal: signal,
           commandOutput: output,

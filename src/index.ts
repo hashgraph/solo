@@ -68,7 +68,7 @@ export function main (argv: any) {
     const configManager = new ConfigManager(logger)
     const k8 = new K8(configManager, logger)
     const accountManager = new AccountManager(logger, k8)
-    const platformInstaller = new PlatformInstaller(logger, k8, configManager, accountManager)
+    const platformInstaller = new PlatformInstaller(logger, k8, configManager)
     const keyManager = new KeyManager(logger)
     const profileManager = new ProfileManager(logger, configManager)
 
@@ -132,7 +132,7 @@ export function main (argv: any) {
       // @ts-ignore
       .middleware(processArguments, false) // applyBeforeValidate = false as otherwise middleware is called twice
       .parse()
-  } catch (e) {
+  } catch (e: Error | any) {
     logger.showUserError(e)
   }
 }

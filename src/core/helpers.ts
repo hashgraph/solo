@@ -21,7 +21,7 @@ import util from 'util'
 import {SoloError} from './errors'
 import {fileURLToPath} from 'url'
 import * as semver from 'semver'
-import {NodeAlias, NodeAliases, Templates} from './templates'
+import {Templates} from './templates'
 import {HEDERA_HAPI_PATH, ROOT_CONTAINER, SOLO_LOGS_DIR} from './constants'
 import {constants, type K8} from './index'
 import {FileContentsQuery, FileId, PrivateKey, ServiceEndpoint} from '@hashgraph/sdk'
@@ -30,6 +30,8 @@ import * as yaml from 'js-yaml'
 import {type AccountManager} from "./account_manager";
 import {type BaseCommand} from "../commands/base";
 import {CommandFlag} from "../commands/flags";
+import { type NodeAlias, type NodeAliases, type PodName } from '../types/aliases'
+import { type NodeDeleteConfigClass } from '../commands/node.js'
 
 // cache current directory
 const CUR_FILE_DIR = paths.dirname(fileURLToPath(import.meta.url))
@@ -39,10 +41,10 @@ export function sleep (ms: number) {
 }
 
 export function parseNodeAliases (input: string): NodeAliases {
-  return splitFlagInput(input, ',')
+  return splitFlagInput(input, ',') as NodeAliases
 }
 
-export function splitFlagInput (input: string, separator: string = ',') {
+export function splitFlagInput (input: string, separator = ',') {
   if (typeof input !== 'string') {
     throw new SoloError('input is not a comma separated string')
   }
@@ -54,7 +56,6 @@ export function splitFlagInput (input: string, separator: string = ',') {
 }
 
 /**
- * @template T
  * @param arr - The array to be cloned
  * @returns a new array with the same elements as the input array
  */
@@ -81,7 +82,7 @@ export function packageVersion (): string {
  * Return the required root image for a platform version
  * @param releaseTag - platform version
  */
-export function getRootImageRepository (releaseTag: string): string {
+export function getRootImageRepository (releaseTag: string) {
   // @ts-ignore
   const releaseVersion = semver.parse(releaseTag, { includePrerelease: true }) as Semver
   if (releaseVersion.minor < 46) {
@@ -189,7 +190,7 @@ export async function getNodeLogs (k8: K8, namespace: string) {
   const timeString = new Date().toISOString().replace(/:/g, '-').replace(/\./g, '-')
 
   for (const pod of pods) {
-    const podName = pod.metadata!.name as string
+    const podName = pod.metadata!.name as PodName
     const targetDir = path.join(SOLO_LOGS_DIR, namespace, timeString)
     try {
       if (!fs.existsSync(targetDir)) {
@@ -201,7 +202,7 @@ export async function getNodeLogs (k8: K8, namespace: string) {
       await k8.execContainer(podName, ROOT_CONTAINER, `chmod 0755 ${HEDERA_HAPI_PATH}/${scriptName}`)
       await k8.execContainer(podName, ROOT_CONTAINER, `${HEDERA_HAPI_PATH}/${scriptName}`)
       await k8.copyFrom(podName, ROOT_CONTAINER, `${HEDERA_HAPI_PATH}/${podName}.zip`, targetDir)
-    } catch (e) {
+    } catch (e: Error | any) {
       // not throw error here, so we can continue to finish downloading logs from other pods
       // and also delete namespace in the end
       k8.logger.error(`failed to download logs from pod ${podName}`, e)
@@ -293,11 +294,7 @@ export function addSaveContextParser (ctx: any) {
   const exportedCtx = {} as Record<string, string>
 
   const config = /** @type {NodeAddConfigClass} **/ ctx.config
-  const exportedFields = [
-    'tlsCertHash',
-    'upgradeZipHash',
-    'newNode'
-  ]
+  const exportedFields = [ 'tlsCertHash', 'upgradeZipHash', 'newNode' ]
 
   exportedCtx.signingCertDer = ctx.signingCertDer.toString()
   exportedCtx.gossipEndpoints = ctx.gossipEndpoints.map((ep: any) => `${ep.getDomainName}:${ep.getPort}`)
@@ -328,11 +325,7 @@ export function addLoadContextParser (ctx: any, ctxData: any) {
   config.existingNodeAliases = ctxData.existingNodeAliases
   config.allNodeAliases = [...config.existingNodeAliases, ctxData.newNode.name]
 
-  const fieldsToImport = [
-    'tlsCertHash',
-    'upgradeZipHash',
-    'newNode'
-  ]
+  const fieldsToImport = [ 'tlsCertHash', 'upgradeZipHash', 'newNode' ]
 
   for (const prop of fieldsToImport) {
     ctx[prop] = ctxData[prop]
@@ -345,10 +338,10 @@ export function addLoadContextParser (ctx: any, ctxData: any) {
  * @param ctx - accumulator object
  * @returns file writable object
  */
-export function deleteSaveContextParser (ctx: any) {
+export function deleteSaveContextParser (ctx: { config: NodeDeleteConfigClass, upgradeZipHash: any } ) {
   const exportedCtx = {} as Record<string, string>
 
-  const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
+  const config = ctx.config
   exportedCtx.adminKey = config.adminKey.toString()
   exportedCtx.existingNodeAliases = config.existingNodeAliases
   exportedCtx.upgradeZipHash = ctx.upgradeZipHash
@@ -363,8 +356,8 @@ export function deleteSaveContextParser (ctx: any) {
  * @param ctxData - data in string format
  * @returns file writable object
  */
-export function deleteLoadContextParser (ctx: any, ctxData: any) {
-  const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
+export function deleteLoadContextParser (ctx: { config: NodeDeleteConfigClass, upgradeZipHash: any }, ctxData: any) {
+  const config = ctx.config
   config.adminKey = PrivateKey.fromStringED25519(ctxData.adminKey)
   config.existingNodeAliases = ctxData.existingNodeAliases
   config.allNodeAliases = ctxData.existingNodeAliases
@@ -408,7 +401,7 @@ export function prepareEndpoints (endpointType: string, endpoints: string[], def
 }
 
 export function commandActionBuilder (actionTasks: any, options: any, errorString = 'Error') {
-  return async function (argv: object, commandDef: BaseCommand) {
+  return async function (argv: any, commandDef: BaseCommand) {
     const tasks = new Listr([
       ...actionTasks
     ], options)
@@ -435,6 +428,7 @@ export function addFlagsToArgv (argv: any, flags: {
 
   return argv
 }
+
 /** Convert yaml file to object */
 export function yamlToObject (yamlFile: any) {
   try {

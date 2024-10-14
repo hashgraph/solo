@@ -14,7 +14,6 @@
  * limitations under the License.
  *
  */
-
 import * as commandFlags from '../commands/flags'
 import { IllegalArgumentError } from './errors'
 import {type BaseCommand} from "../commands/base";
@@ -57,8 +56,7 @@ export class YargsCommand {
       handler: (argv: any) => {
         commandDef.logger.debug(`==== Running '${commandNamespace} ${command}' ===`)
         commandDef.logger.debug(argv)
-        // @ts-ignore
-        commandDef[handler](argv).then(r => {
+        commandDef[handler](argv).then((r: any) => {
           commandDef.logger.debug(`==== Finished running '${commandNamespace} ${command}' ====`)
           if (!r) process.exit(1)
         }).catch((err: Error | any) => {

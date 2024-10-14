@@ -14,7 +14,6 @@
  * limitations under the License.
  *
  */
-
 import * as crypto from 'crypto'
 import * as fs from 'fs'
 import { pipeline as streamPipeline } from 'node:stream/promises'
@@ -46,30 +45,26 @@ export class PackageDownloader {
       // attempt to parse to check URL format
       const out = new URL(url)
       return out.href !== undefined
-    } catch (e) {
+    } catch (e: Error | any) {
     }
 
     return false
   }
 
   urlExists (url: string) {
-    const self = this
-
     return new Promise<boolean>((resolve) => {
       try {
-        self.logger.debug(`Checking URL: ${url}`)
-        let req
+        this.logger.debug(`Checking URL: ${url}`)
         // attempt to send a HEAD request to check URL exists
-        if (url.startsWith('http://')) {
-          req = http.request(url, { method: 'HEAD', timeout: 100, headers: { Connection: 'close' } })
-        } else {
-          req = https.request(url, { method: 'HEAD', timeout: 100, headers: { Connection: 'close' } })
-        }
+
+        const req= url.startsWith('http://')
+          ? http.request(url, { method: 'HEAD', timeout: 100, headers: { Connection: 'close' } })
+          : https.request(url, { method: 'HEAD', timeout: 100, headers: { Connection: 'close' } })
 
         req.on('response', r => {
           const statusCode = r.statusCode
 
-          self.logger.debug({
+          this.logger.debug({
             response: { // @ts-ignore
               connectOptions: r['connect-options'],
               statusCode: r.statusCode,
@@ -78,7 +73,7 @@ export class PackageDownloader {
 
           })
           req.destroy()
-          if ([200, 302].includes(<number>statusCode)) {
+          if ([200, 302].includes(+statusCode)) {
             resolve(true)
           }
 
@@ -86,14 +81,14 @@ export class PackageDownloader {
         })
 
         req.on('error', err => {
-          self.logger.error(err)
+          this.logger.error(err)
           resolve(false)
           req.destroy()
         })
 
         req.end() // make the request
-      } catch (e) {
-        self.logger.error(e)
+      } catch (e: Error | any) {
+        this.logger.error(e)
         resolve(false)
       }
     })
@@ -141,12 +136,10 @@ export class PackageDownloader {
    * @returns hex digest of the computed hash
    * @throws {Error} - if the file cannot be read
    */
-  computeFileHash (filePath: string, algo: string = 'sha384') {
-    const self = this
-
+  computeFileHash (this: any, filePath: string, algo: string = 'sha384') {
     return new Promise<string>((resolve, reject) => {
       try {
-        self.logger.debug(`Computing checksum for '${filePath}' using algo '${algo}'`)
+        this.logger.debug(`Computing checksum for '${filePath}' using algo '${algo}'`)
         const checksum = crypto.createHash(algo)
         const s = fs.createReadStream(filePath)
         s.on('data', function (d) {
@@ -154,7 +147,7 @@ export class PackageDownloader {
         })
         s.on('end', function () {
           const d = checksum.digest('hex')
-          self.logger.debug(`Computed checksum '${d}' for '${filePath}' using algo '${algo}'`)
+          this.logger.debug(`Computed checksum '${d}' for '${filePath}' using algo '${algo}'`)
           resolve(d)
         })
 
@@ -178,7 +171,7 @@ export class PackageDownloader {
    * @returns
    * @throws {DataValidationError} - if the checksum doesn't match
    */
-  async verifyChecksum (sourceFile: string, checksum: string, algo: string = 'sha256') {
+  async verifyChecksum (sourceFile: string, checksum: string, algo = 'sha256') {
     const computed = await this.computeFileHash(sourceFile, algo)
     if (checksum !== computed) throw new DataValidationError('checksum', checksum, computed)
   }

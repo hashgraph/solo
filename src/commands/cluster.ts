@@ -41,7 +41,7 @@ export class ClusterCommand extends BaseCommand {
       this.logger.showJSON(`Cluster Information (${cluster.name})`, cluster)
       this.logger.showUser('\n')
       return true
-    } catch (e) {
+    } catch (e: Error | any) {
       this.logger.showUserError(e)
     }
 
@@ -125,7 +125,7 @@ export class ClusterCommand extends BaseCommand {
 
           try {
             await this.chartManager.install(clusterSetupNamespace, constants.SOLO_CLUSTER_SETUP_CHART, chartPath, version, valuesArg)
-          } catch (e) {
+          } catch (e: Error | any) {
             // if error, uninstall the chart and rethrow the error
             this.logger.debug(`Error on installing ${constants.SOLO_CLUSTER_SETUP_CHART}. attempting to rollback by uninstalling the chart`, e)
             try {
@@ -150,7 +150,7 @@ export class ClusterCommand extends BaseCommand {
 
     try {
       await tasks.run()
-    } catch (e) {
+    } catch (e: Error | any) {
       throw new SoloError('Error on cluster setup', e)
     }
 

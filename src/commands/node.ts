@@ -33,7 +33,6 @@ import {
   constants,
   K8,
   KeyManager,
-  PackageDownloader,
   PlatformInstaller,
   ProfileManager,
   Templates,
@@ -64,11 +63,12 @@ import {
 import { NodeStatusCodes, NodeStatusEnums } from '../core/enumerations'
 import { NodeCommandTasks } from './node/tasks'
 import { downloadGeneratedFilesConfigBuilder, prepareUpgradeConfigBuilder } from './node/configs'
-import {NetworkNodeServices} from "../core/network_node_services";
-import {NodeAlias, NodeAliases, PodName} from "../core/templates";
-import {AccountManager} from "../core/account_manager";
-import {ExtendedNetServer} from "../core/k8";
-import { Opts } from '../index'
+
+import { type NetworkNodeServices } from "../core/network_node_services";
+import { type AccountManager } from "../core/account_manager";
+import { type Opts } from '../index'
+import { type NodeAlias, type NodeAliases, type PodName } from '../types/aliases.js'
+import { type ExtendedNetServer } from '../types'
 
 export interface NodeAddConfigClass {
   app: string
@@ -76,7 +76,7 @@ export interface NodeAddConfigClass {
   chainId: string
   chartDirectory: string
   devMode: boolean
-  debugNodeAlias: string
+  debugNodeAlias: NodeAlias
   endpointType: string
   soloChartVersion: string
   generateGossipKeys: boolean
@@ -104,12 +104,12 @@ export interface NodeAddConfigClass {
   getUnusedConfigs: () => string[]
 }
 
-interface NodeDeleteConfigClass {
+export interface NodeDeleteConfigClass {
   app: string
   cacheDir: string
   chartDirectory: string
   devMode: boolean
-  debugNodeAlias: string
+  debugNodeAlias: NodeAlias
   endpointType: string
   soloChartVersion: string
   localBuildPath: string
@@ -136,7 +136,6 @@ interface NodeDeleteConfigClass {
  * Defines the core functionalities of 'node' command
  */
 export class NodeCommand extends BaseCommand {
-  private readonly downloader: PackageDownloader;
   private readonly platformInstaller: PlatformInstaller;
   private readonly keyManager: KeyManager;
   private readonly accountManager: AccountManager;
@@ -148,13 +147,11 @@ export class NodeCommand extends BaseCommand {
   constructor (opts: Opts) {
     super(opts)
 
-    if (!opts || !opts.downloader) throw new IllegalArgumentError('An instance of core/PackageDownloader is required', opts.downloader)
     if (!opts || !opts.platformInstaller) throw new IllegalArgumentError('An instance of core/PlatformInstaller is required', opts.platformInstaller)
     if (!opts || !opts.keyManager) throw new IllegalArgumentError('An instance of core/KeyManager is required', opts.keyManager)
     if (!opts || !opts.accountManager) throw new IllegalArgumentError('An instance of core/AccountManager is required', opts.accountManager)
     if (!opts || !opts.profileManager) throw new IllegalArgumentError('An instance of ProfileManager is required', opts.profileManager)
 
-    this.downloader = opts.downloader
     this.platformInstaller = opts.platformInstaller
     this.keyManager = opts.keyManager
     this.accountManager = opts.accountManager
@@ -429,7 +426,7 @@ export class NodeCommand extends BaseCommand {
       // Get the transaction status
       const transactionStatus = receipt.status
       this.logger.debug(`The transaction consensus status is ${transactionStatus.toString()}`)
-    } catch (e) {
+    } catch (e: Error | any) {
       throw new SoloError(`Error in adding stake: ${e.message}`, e)
     }
   }
@@ -437,7 +434,7 @@ export class NodeCommand extends BaseCommand {
   async checkNetworkNodeActiveness (namespace: string, nodeAlias: NodeAlias, task: ListrTaskWrapper<any, any, any>,
     title: string, index: number, status = NodeStatusCodes.ACTIVE,
     maxAttempts = 120, delay = 1_000, timeout = 1_000) {
-    nodeAlias = nodeAlias.trim()
+    nodeAlias = nodeAlias.trim() as NodeAlias
     const podName = Templates.renderNetworkPodName(nodeAlias)
     const podPort = 9_999
     const localPort = 19_000 + index
@@ -752,7 +749,7 @@ export class NodeCommand extends BaseCommand {
     for (const parameterPair of parameterPairs) {
       if (parameterPair.includes('=')) {
         const [nodeAlias, localDataLibBuildPath] = parameterPair.split('=')
-        buildPathMap.set(nodeAlias, localDataLibBuildPath)
+        buildPathMap.set(nodeAlias as NodeAlias, localDataLibBuildPath)
       } else {
         defaultDataLibBuildPath = parameterPair
       }
@@ -1339,7 +1336,7 @@ export class NodeCommand extends BaseCommand {
 
     try {
       await tasks.run()
-    } catch (e) {
+    } catch (e: Error | any) {
       throw new SoloError(`Error in refreshing nodes: ${e.message}`, e)
     }
 
@@ -1382,7 +1379,7 @@ export class NodeCommand extends BaseCommand {
 
     try {
       await tasks.run()
-    } catch (e) {
+    } catch (e: Error | any) {
       throw new SoloError(`Error in downloading log from nodes: ${e.message}`, e)
     } finally {
       await this.close()
@@ -1498,7 +1495,7 @@ export class NodeCommand extends BaseCommand {
           const values = { hedera: { nodes: [] } }
           let maxNum = 0
 
-          let lastNodeAlias = DEFAULT_NETWORK_NODE_NAME
+          let lastNodeAlias = DEFAULT_NETWORK_NODE_NAME as NodeAlias
 
           for (const networkNodeServices of config.serviceMap.values()) {
             values.hedera.nodes.push({
@@ -1508,13 +1505,13 @@ export class NodeCommand extends BaseCommand {
             maxNum = maxNum > AccountId.fromString(networkNodeServices.accountId).num
               ? maxNum
               : AccountId.fromString(networkNodeServices.accountId).num
-            lastNodeAlias = networkNodeServices.nodeAlias
+            lastNodeAlias = networkNodeServices.nodeAlias as NodeAlias
           }
 
           const lastNodeIdMatch = lastNodeAlias.match(/\d+$/)
           if (lastNodeIdMatch.length) {
             const incremented = parseInt(lastNodeIdMatch[0]) + 1
-            lastNodeAlias = lastNodeAlias.replace(/\d+$/, incremented.toString())
+            lastNodeAlias = lastNodeAlias.replace(/\d+$/, incremented.toString()) as NodeAlias
           }
 
           ctx.maxNum = maxNum
@@ -1629,7 +1626,7 @@ export class NodeCommand extends BaseCommand {
   saveContextDataTask (argv: any, targetFile: string, parser: (ctx: any) => string) {
     return {
       title: 'Save context data',
-      task: (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
+      task: (ctx: any) => {
         const outputDir = argv[flags.outputDir.name]
         if (!outputDir) {
           throw new SoloError(`Path to export context data not specified. Please set a value for --${flags.outputDir.name}`)
@@ -1647,7 +1644,7 @@ export class NodeCommand extends BaseCommand {
   loadContextDataTask (argv: any, targetFile: string, parser: (ctx: any, ctxData: any) => any) {
     return {
       title: 'Load context data',
-      task: (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
+      task: (ctx: any) => {
         const inputDir = argv[flags.inputDir.name]
         if (!inputDir) {
           throw new SoloError(`Path to context data not specified. Please set a value for --${flags.inputDir.name}`)
@@ -1750,7 +1747,7 @@ export class NodeCommand extends BaseCommand {
 
             config.serviceMap = await this.accountManager.getNodeServiceMap(
               config.namespace)
-            config.podNames[config.nodeAlias] = config.serviceMap.get(config.nodeAlias).nodePodName
+            config.podNames[config.nodeAlias] = config.serviceMap.get(config.nodeAlias).nodePodName as PodName
 
             return this.fetchLocalOrReleasedPlatformSoftware(config.allNodeAliases, config.podNames, config.releaseTag, task, config.localBuildPath)
           }
@@ -1859,7 +1856,7 @@ export class NodeCommand extends BaseCommand {
 
     try {
       await tasks.run()
-    } catch (e) {
+    } catch (e: Error | any) {
       this.logger.error(`Error in setting up nodes: ${e.message}`, e)
       throw new SoloError(`Error in setting up nodes: ${e.message}`, e)
     } finally {
@@ -1883,7 +1880,7 @@ export class NodeCommand extends BaseCommand {
 
     try {
       await tasks.run()
-    } catch (e) {
+    } catch (e: Error | any) {
       this.logger.error(`Error in submitting transactions to node: ${e.message}`, e)
       throw new SoloError(`Error in submitting transactions to up node: ${e.message}`, e)
     } finally {
@@ -1910,7 +1907,7 @@ export class NodeCommand extends BaseCommand {
 
     try {
       await tasks.run()
-    } catch (e) {
+    } catch (e: Error | any) {
       this.logger.error(`Error in starting up nodes: ${e.message}`, e)
       throw new SoloError(`Error in setting up nodes: ${e.message}`, e)
     } finally {
@@ -1937,7 +1934,7 @@ export class NodeCommand extends BaseCommand {
 
     try {
       await tasks.run()
-    } catch (e) {
+    } catch (e: Error | any) {
       this.logger.error(`Error in adding nodes: ${e.message}`, e)
       throw new SoloError(`Error in adding nodes: ${e.message}`, e)
     } finally {
@@ -1990,7 +1987,7 @@ export class NodeCommand extends BaseCommand {
   }
 
   async enableJVMPortForwarding (nodeAlias: NodeAlias) {
-    const podName = `network-${nodeAlias}-0`
+    const podName = `network-${nodeAlias}-0` as PodName
     this.logger.debug(`Enable port forwarding for JVM debugger on pod ${podName}`)
     await this.k8.portForward(podName, constants.JVM_DEBUG_PORT, constants.JVM_DEBUG_PORT)
   }
@@ -2295,13 +2292,13 @@ export class NodeCommand extends BaseCommand {
     }
   }
 
-  async update (argv) {
+  async update (argv: any) {
     interface NodeUpdateConfigClass {
       app: string
       cacheDir: string
       chartDirectory: string
       devMode: boolean
-      debugNodeAlias: string
+      debugNodeAlias: NodeAlias
       endpointType: string
       soloChartVersion: string
       gossipEndpoints: string
@@ -2324,7 +2321,7 @@ export class NodeCommand extends BaseCommand {
       keysDir: string
       nodeClient: any
       podNames: Record<NodeAlias, PodName>
-      serviceMap: Map<String, NetworkNodeServices>
+      serviceMap: Map<string, NetworkNodeServices>
       stagingDir: string
       stagingKeysDir: string
       treasuryKey: PrivateKey
@@ -2509,7 +2506,7 @@ export class NodeCommand extends BaseCommand {
             const txResp = await signedTx.execute(config.nodeClient)
             const nodeUpdateReceipt = await txResp.getReceipt(config.nodeClient)
             this.logger.debug(`NodeUpdateReceipt: ${nodeUpdateReceipt.toString()}`)
-          } catch (e) {
+          } catch (e: Error | any) {
             this.logger.error(`Error updating node to network: ${e.message}`, e)
             this.logger.error(e.stack)
             throw new SoloError(`Error updating node to network: ${e.message}`, e)
@@ -2875,7 +2872,7 @@ export class NodeCommand extends BaseCommand {
             const txResp = await signedTx.execute(config.nodeClient)
             const nodeUpdateReceipt = await txResp.getReceipt(config.nodeClient)
             this.logger.debug(`NodeUpdateReceipt: ${nodeUpdateReceipt.toString()}`)
-          } catch (e) {
+          } catch (e: Error | any) {
             this.logger.error(`Error deleting node from network: ${e.message}`, e)
             throw new SoloError(`Error deleting node from network: ${e.message}`, e)
           }
@@ -2922,7 +2919,7 @@ export class NodeCommand extends BaseCommand {
 
     try {
       await tasks.run()
-    } catch (e) {
+    } catch (e: Error | any) {
       this.logger.error(`Error in deleting nodes: ${e.message}`, e)
       throw new SoloError(`Error in deleting nodes: ${e.message}`, e)
     } finally {
@@ -2945,7 +2942,7 @@ export class NodeCommand extends BaseCommand {
 
     try {
       await tasks.run()
-    } catch (e) {
+    } catch (e: Error | any) {
       this.logger.error(`Error in deleting nodes: ${e.message}`, e)
       throw new SoloError(`Error in deleting nodes: ${e.message}`, e)
     } finally {
@@ -2968,7 +2965,7 @@ export class NodeCommand extends BaseCommand {
 
     try {
       await tasks.run()
-    } catch (e) {
+    } catch (e: Error | any) {
       this.logger.error(`Error in deleting nodes: ${e.message}`, e)
       throw new SoloError(`Error in deleting nodes: ${e.message}`, e)
     } finally {

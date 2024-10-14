@@ -14,20 +14,17 @@
  * limitations under the License.
  *
  */
-
 import { Listr } from 'listr2'
 import { SoloError, MissingArgumentError } from '../core/errors'
 import * as helpers from '../core/helpers'
-import {ChartManager, ConfigManager, constants, Helm, K8, PackageDownloader, ProfileManager} from '../core'
+import { constants, ProfileManager} from '../core'
 import { BaseCommand } from './base'
 import * as flags from './flags'
 import * as prompts from './prompts'
 import { getNodeAccountMap } from '../core/helpers'
 import {AccountManager} from "../core/account_manager";
-import {SoloLogger} from "../core/logging";
-import {DependencyManager} from "../core/dependency_managers/index";
-import {NodeAliases} from "../core/templates";
-import { Opts } from '../index'
+import { type Opts } from '../index'
+import { type NodeAliases } from '../types/aliases.js'
 
 export class RelayCommand extends BaseCommand {
   private readonly profileManager: ProfileManager

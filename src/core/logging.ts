@@ -14,7 +14,6 @@
  * limitations under the License.
  *
  */
-
 import * as winston from 'winston'
 import { constants } from './index'
 import { v4 as uuidv4 } from 'uuid'

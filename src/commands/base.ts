@@ -21,7 +21,7 @@ import { ShellRunner } from '../core/shell_runner'
 import {type ChartManager, type ConfigManager, type Helm, type K8} from "../core";
 import {type DependencyManager} from "../core/dependency_managers";
 import {type CommandFlag} from "./flags";
-import { Opts } from '../index'
+import { type Opts } from '../index'
 
 export class BaseCommand extends ShellRunner {
   protected readonly helm: Helm

@@ -47,7 +47,7 @@ export const HEDERA_BUILDS_URL = 'https://builds.hedera.com'
 export const HEDERA_NODE_ACCOUNT_ID_START = AccountId.fromString(process.env.SOLO_NODE_ACCOUNT_ID_START || '0.0.3')
 export const HEDERA_NODE_INTERNAL_GOSSIP_PORT = process.env.SOLO_NODE_INTERNAL_GOSSIP_PORT || '50111'
 export const HEDERA_NODE_EXTERNAL_GOSSIP_PORT = process.env.SOLO_NODE_EXTERNAL_GOSSIP_PORT || '50111'
-export const HEDERA_NODE_DEFAULT_STAKE_AMOUNT = process.env.SOLO_NODE_DEFAULT_STAKE_AMOUNT || 500
+export const HEDERA_NODE_DEFAULT_STAKE_AMOUNT = +process.env.SOLO_NODE_DEFAULT_STAKE_AMOUNT || 500
 
 // --------------- Charts related constants ----------------------------------------------------------------------------
 export const SOLO_SETUP_NAMESPACE = 'solo-setup'
@@ -76,9 +76,9 @@ export const GENESIS_KEY = process.env.GENESIS_KEY || '302e020100300506032b65700
 export const SYSTEM_ACCOUNTS = [[3, 100], [200, 349], [400, 750], [900, 1000]] // do account 0.0.2 last and outside the loop
 export const SHORTER_SYSTEM_ACCOUNTS = [[3, 60]]
 export const TREASURY_ACCOUNT = 2
-export const LOCAL_NODE_START_PORT = process.env.LOCAL_NODE_START_PORT || 30212
-export const LOCAL_NODE_PROXY_START_PORT = process.env.LOCAL_NODE_PROXY_START_PORT || 30313
-export const ACCOUNT_UPDATE_BATCH_SIZE = process.env.ACCOUNT_UPDATE_BATCH_SIZE || 10
+export const LOCAL_NODE_START_PORT = +process.env.LOCAL_NODE_START_PORT || 30212
+export const LOCAL_NODE_PROXY_START_PORT = +process.env.LOCAL_NODE_PROXY_START_PORT || 30313
+export const ACCOUNT_UPDATE_BATCH_SIZE = +process.env.ACCOUNT_UPDATE_BATCH_SIZE || 10
 
 export const NODE_PROXY_USER_ID = process.env.NODE_PROXY_USER_ID || 'admin'
 export const NODE_PROXY_PASSWORD = process.env.NODE_PROXY_PASSWORD || 'adminpwd'
@@ -91,7 +91,7 @@ export const POD_CONDITION_READY = 'Ready'
 export const POD_CONDITION_POD_SCHEDULED = 'PodScheduled'
 export const POD_CONDITION_STATUS_TRUE = 'True'
 
-export const K8_COPY_FROM_RETRY_TIMES = process.env.K8_COPY_FROM_RETRY_TIMES || 5
+export const K8_COPY_FROM_RETRY_TIMES = +process.env.K8_COPY_FROM_RETRY_TIMES || 5
 /**
  * Listr related
  * @return a object that defines the default color options
@@ -143,10 +143,10 @@ export const ALL_PROFILES = [PROFILE_LOCAL, PROFILE_TINY, PROFILE_SMALL, PROFILE
 export const DEFAULT_PROFILE_FILE = path.join(SOLO_CACHE_DIR, 'profiles', 'custom-spec.yaml')
 
 // ------ Hedera SDK Related ------
-export const NODE_CLIENT_MAX_ATTEMPTS = process.env.NODE_CLIENT_MAX_ATTEMPTS || 60
-export const NODE_CLIENT_MIN_BACKOFF = process.env.NODE_CLIENT_MIN_BACKOFF || 1000
-export const NODE_CLIENT_MAX_BACKOFF = process.env.NODE_CLIENT_MAX_BACKOFF || 1000
-export const NODE_CLIENT_REQUEST_TIMEOUT = process.env.NODE_CLIENT_REQUEST_TIMEOUT || 120000
+export const NODE_CLIENT_MAX_ATTEMPTS = +process.env.NODE_CLIENT_MAX_ATTEMPTS || 60
+export const NODE_CLIENT_MIN_BACKOFF = +process.env.NODE_CLIENT_MIN_BACKOFF || 1000
+export const NODE_CLIENT_MAX_BACKOFF = +process.env.NODE_CLIENT_MAX_BACKOFF || 1000
+export const NODE_CLIENT_REQUEST_TIMEOUT = +process.env.NODE_CLIENT_REQUEST_TIMEOUT || 120000
 
 // ---- New Node Related ----
 export const ENDPOINT_TYPE_IP = 'IP'

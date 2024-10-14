@@ -18,7 +18,7 @@ import os from 'os'
 import { SoloError, MissingArgumentError } from '../errors'
 import { ShellRunner } from '../shell_runner'
 import { type SoloLogger} from "../logging";
-import {HelmDependencyManager} from "./helm_dependency_manager";
+import { type HelmDependencyManager } from "./helm_dependency_manager";
 
 export class DependencyManager extends ShellRunner {
   constructor (logger: SoloLogger,

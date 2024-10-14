@@ -23,7 +23,7 @@ import * as flags from './flags'
 import * as prompts from './prompts'
 import { getFileContents, getEnvValue } from '../core/helpers'
 import {AccountManager} from "../core/account_manager";
-import { Opts } from '../index'
+import { type Opts } from '../index'
 
 export class MirrorNodeCommand extends BaseCommand {
   private readonly accountManager: AccountManager;
@@ -328,7 +328,7 @@ export class MirrorNodeCommand extends BaseCommand {
     try {
       await tasks.run()
       this.logger.debug('node start has completed')
-    } catch (e) {
+    } catch (e: Error | any) {
       throw new SoloError(`Error starting node: ${e.message}`, e)
     } finally {
       await this.accountManager.close()
@@ -424,7 +424,7 @@ export class MirrorNodeCommand extends BaseCommand {
     try {
       await tasks.run()
       this.logger.debug('node start has completed')
-    } catch (e) {
+    } catch (e: Error | any) {
       throw new SoloError(`Error starting node: ${e.message}`, e)
     } finally {
       await this.accountManager.close()

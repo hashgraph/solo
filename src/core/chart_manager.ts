@@ -59,7 +59,7 @@ export class ChartManager {
   async getInstalledCharts (namespaceName: string) {
     try {
       return await this.helm.list(`-n ${namespaceName}`, '--no-headers | awk \'{print $1 " [" $9"]"}\'')
-    } catch (e) {
+    } catch (e: Error | any) {
       this.logger.showUserError(e)
     }
 
@@ -70,15 +70,8 @@ export class ChartManager {
     try {
       const isInstalled = await this.isChartInstalled(namespaceName, chartReleaseName)
       if (!isInstalled) {
-        let versionArg = ''
-        if (version) {
-          versionArg = `--version ${version}`
-        }
-
-        let namespaceArg = ''
-        if (namespaceName) {
-          namespaceArg = `-n ${namespaceName} --create-namespace`
-        }
+        const versionArg = version  ? `--version ${version}` : ''
+        const namespaceArg = namespaceName ? `-n ${namespaceName} --create-namespace` : ''
 
         this.logger.debug(`> installing chart:${chartPath}`)
         await this.helm.install(`${chartReleaseName} ${chartPath} ${versionArg} ${namespaceArg} ${valuesArg}`)
@@ -95,14 +88,10 @@ export class ChartManager {
 
   async isChartInstalled (namespaceName: string, chartReleaseName: string) {
     this.logger.debug(`> checking if chart is installed [ chart: ${chartReleaseName}, namespace: ${namespaceName} ]`)
-    const charts = await this.getInstalledCharts(namespaceName)
-    for (const item of charts) {
-      if (item.startsWith(chartReleaseName)) {
-        return true
-      }
-    }
 
-    return false
+    const charts = await this.getInstalledCharts(namespaceName)
+
+    return charts.some(item => item.startsWith(chartReleaseName))
   }
 
   async uninstall (namespaceName: string, chartReleaseName: string) {
@@ -110,7 +99,9 @@ export class ChartManager {
       const isInstalled = await this.isChartInstalled(namespaceName, chartReleaseName)
       if (isInstalled) {
         this.logger.debug(`uninstalling chart release: ${chartReleaseName}`)
+
         await this.helm.uninstall(`-n ${namespaceName} ${chartReleaseName}`)
+
         this.logger.debug(`OK: chart release is uninstalled: ${chartReleaseName}`)
       } else {
         this.logger.debug(`OK: chart release is already uninstalled: ${chartReleaseName}`)
@@ -127,7 +118,9 @@ export class ChartManager {
 
     try {
       this.logger.debug(chalk.cyan('> upgrading chart:'), chalk.yellow(`${chartReleaseName}`))
+
       await this.helm.upgrade(`-n ${namespaceName} ${chartReleaseName} ${chartPath} ${versionArg} --reuse-values ${valuesArg}`)
+
       this.logger.debug(chalk.green('OK'), `chart '${chartReleaseName}' is upgraded`)
     } catch (e: Error | any) {
       throw new SoloError(`failed to upgrade chart ${chartReleaseName}: ${e.message}`, e)

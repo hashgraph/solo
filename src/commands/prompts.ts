@@ -14,7 +14,6 @@
  * limitations under the License.
  *
  */
-
 import { ListrEnquirerPromptAdapter } from '@listr2/prompt-adapter-enquirer'
 import fs from 'fs'
 import { SoloError, IllegalArgumentError } from '../core/errors'

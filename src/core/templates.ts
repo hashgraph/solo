@@ -20,14 +20,7 @@ import path from 'path'
 import { DataValidationError, SoloError, IllegalArgumentError, MissingArgumentError } from './errors'
 import { constants } from './index'
 import {type AccountId} from "@hashgraph/sdk";
-
-/** the number of the node */ export type NodeId = number
-/** the full pod name */ export type PodName = string
-/** the alias of the node */ export type NodeAlias = string
-
-/** list of the number of nodes */ export type NodeIds = NodeId[]
-/** list of the pod names */ export type PodNames = PodName[]
-/** list of the pod aliases */ export type NodeAliases = NodeAlias[]
+import { NodeAlias, PodName } from '../types/aliases
 
 export class Templates {
   public static renderNetworkPodName (nodeAlias: NodeAlias): PodName {
@@ -39,7 +32,7 @@ export class Templates {
   }
 
   private static nodeAliasFromNetworkSvcName (svcName: string): NodeAlias {
-    return svcName.split('-').slice(1, -1).join('-')
+    return svcName.split('-').slice(1, -1).join('-') as NodeAlias
   }
 
   private static renderNetworkHeadlessSvcName (nodeAlias: NodeAlias): string {
@@ -71,7 +64,7 @@ export class Templates {
   private static extractNodeAliasFromPodName (podName: PodName): NodeAlias {
     const parts = podName.split('-')
     if (parts.length !== 3) throw new DataValidationError(`pod name is malformed : ${podName}`, 3, parts.length)
-    return parts[1].trim()
+    return parts[1].trim() as NodeAlias
   }
 
   static prepareReleasePrefix (tag: string): string {
@@ -150,12 +143,6 @@ export class Templates {
         }
 
         return path.join(installationDir, dep)
-      case constants.KEYTOOL:
-        if (osPlatform === constants.OS_WINDOWS) {
-          return path.join(installationDir, 'jre', 'bin', `${dep}.exe`)
-        }
-
-        return path.join(installationDir, 'jre', 'bin', dep)
 
       default:
         throw new SoloError(`unknown dep: ${dep}`)

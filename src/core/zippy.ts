@@ -25,7 +25,6 @@ import {SoloLogger} from "./logging";
 export class Zippy {
   constructor (private readonly logger: SoloLogger) {
     if (!logger) throw new Error('An instance of core/SoloLogger is required')
-    this.logger = logger
   }
 
   /**
@@ -58,7 +57,7 @@ export class Zippy {
     }
   }
 
-  unzip (srcPath: string, destPath: string, verbose: boolean = false) {
+  unzip (srcPath: string, destPath: string, verbose = false) {
     const self = this
 
     if (!srcPath) throw new MissingArgumentError('srcPath is required')

@@ -14,36 +14,33 @@
  * limitations under the License.
  *
  */
-
 import * as fs from 'fs'
-import {Listr, ListrTaskWrapper} from 'listr2'
+import {Listr} from 'listr2'
 import * as path from 'path'
 import { SoloError, IllegalArgumentError, MissingArgumentError } from './errors'
 import {type ConfigManager, constants, type K8} from './index'
-import {NodeAlias, NodeAliases, PodName, Templates} from './templates'
+import {Templates} from './templates'
 import { flags } from '../commands/index'
 import * as Base64 from 'js-base64'
 import chalk from 'chalk'
+
 import {type SoloLogger} from "./logging";
-import {type AccountManager} from "./account_manager";
+import {NodeAlias, NodeAliases, PodName} from '../types/aliases'
 
 /** PlatformInstaller install platform code in the root-container of a network pod */
 export class PlatformInstaller {
   private logger: SoloLogger;
   private k8: K8;
   private configManager: ConfigManager;
-  private accountManager: AccountManager;
 
-  constructor (logger: SoloLogger, k8: K8, configManager: ConfigManager, accountManager: AccountManager) {
+  constructor (logger: SoloLogger, k8: K8, configManager: ConfigManager) {
     if (!logger) throw new MissingArgumentError('an instance of core/SoloLogger is required')
     if (!k8) throw new MissingArgumentError('an instance of core/K8 is required')
     if (!configManager) throw new MissingArgumentError('an instance of core/ConfigManager is required')
-    if (!accountManager) throw new MissingArgumentError('an instance of core/AccountManager is required')
 
     this.logger = logger
     this.k8 = k8
     this.configManager = configManager
-    this.accountManager = accountManager
   }
 
   private _getNamespace (): string {
@@ -169,7 +166,7 @@ export class PlatformInstaller {
         Templates.renderGossipKeySecretLabelObject(nodeAlias), true)) {
         throw new SoloError(`failed to create secret for gossip keys for node '${nodeAlias}'`)
       }
-    } catch (e) {
+    } catch (e: Error | any) {
       this.logger.error(`failed to copy gossip keys to secret '${Templates.renderGossipKeySecretName(nodeAlias)}': ${e.message}`, e)
       throw new SoloError(`failed to copy gossip keys to secret '${Templates.renderGossipKeySecretName(nodeAlias)}': ${e.message}`, e)
     }
@@ -200,7 +197,7 @@ export class PlatformInstaller {
         undefined, true)) {
         throw new SoloError('failed to create secret for TLS keys')
       }
-    } catch (e) {
+    } catch (e: Error | any) {
       this.logger.error('failed to copy TLS keys to secret', e)
       throw new SoloError('failed to copy TLS keys to secret', e)
     }
@@ -213,12 +210,12 @@ export class PlatformInstaller {
     const recursiveFlag = recursive ? '-R' : ''
     try {
       await this.k8.execContainer(podName, container, `chown ${recursiveFlag} hedera:hedera ${destPath}`)
-    } catch (e) {
+    } catch (e: Error | any) {
       // ignore error, can't change settings on files that come from configMaps or secrets
     }
     try {
       await this.k8.execContainer(podName, container, `chmod ${recursiveFlag} ${mode} ${destPath}`)
-    } catch (e) {
+    } catch (e: Error | any) {
       // ignore error, can't change settings on files that come from configMaps or secrets
     }
 
@@ -239,7 +236,7 @@ export class PlatformInstaller {
       }
 
       return true
-    } catch (e) {
+    } catch (e: Error | any) {
       throw new SoloError(`failed to set permission in '${podName}'`, e)
     }
   }

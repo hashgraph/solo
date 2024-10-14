@@ -24,9 +24,10 @@ import dot from 'dot-object'
 import { getNodeAccountMap } from './helpers'
 import * as semver from 'semver'
 import { readFile, writeFile } from 'fs/promises'
+
 import {type SoloLogger} from "./logging";
-import {NodeAlias, type NodeAliases} from "./templates";
 import {type SemVer} from 'semver'
+import {type NodeAlias, type NodeAliases} from "../types/aliases";
 
 const consensusSidecars = [
   'recordStreamUploader', 'eventStreamUploader', 'backupUploader', 'accountBalanceUploader', 'otelCollector']
@@ -456,7 +457,7 @@ export class ProfileManager {
       fs.writeFileSync(configFilePath, configLines.join('\n'))
 
       return configFilePath
-    } catch (e) {
+    } catch (e: Error | any) {
       throw new SoloError('failed to generate config.txt', e)
     }
   }

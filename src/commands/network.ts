@@ -28,7 +28,7 @@ import path from 'path'
 import { addDebugOptions, validatePath } from '../core/helpers'
 import fs from 'fs'
 import {NodeAlias, NodeAliases} from "../core/templates";
-import { Opts } from '../index'
+import { type Opts } from '../index'
 
 interface NetworkDeployConfigClass {
   applicationEnv: string

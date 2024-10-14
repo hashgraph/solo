@@ -35,18 +35,15 @@ import {
   TransferTransaction
 } from '@hashgraph/sdk'
 import { SoloError, MissingArgumentError } from './errors'
-import {NodeAlias, Templates} from './templates'
+import { Templates} from './templates'
 import ip from 'ip'
 import { NetworkNodeServices, NetworkNodeServicesBuilder } from './network_node_services'
 import path from 'path'
-import { type SoloLogger } from "./logging";
-import { type ExtendedNetServer, type K8} from "./k8";
 
-interface AccountIdWithKeyPairObject {
-  accountId: string
-  privateKey: string
-  publicKey: string
-}
+import { type SoloLogger } from "./logging";
+import { type K8} from "./k8";
+import { type AccountIdWithKeyPairObject, type ExtendedNetServer } from '../types'
+import { type NodeAlias, type PodName } from '../types/aliases.js'
 
 const REASON_FAILED_TO_GET_KEYS = 'failed to get keys for accountId'
 const REASON_SKIPPED = 'skipped since it does not have a genesis key'
@@ -261,7 +258,7 @@ export class AccountManager {
   async getNodeServiceMap (namespace: string): Promise<Map<NodeAlias, NetworkNodeServices>> {
     const labelSelector = 'solo.hedera.com/node-name'
 
-    const serviceBuilderMap: Map<string, NetworkNodeServicesBuilder> = new Map()
+    const serviceBuilderMap: Map<NodeAlias, NetworkNodeServicesBuilder> = new Map()
 
     const serviceList = await this.k8.kubeClient.listNamespacedService(namespace,
       undefined, undefined, undefined, undefined, labelSelector)
@@ -269,7 +266,7 @@ export class AccountManager {
     // retrieve the list of services and build custom objects for the attributes we need
     for (const service of serviceList.body.items) {
       const serviceType = service.metadata!.labels!['solo.hedera.com/type']
-      let serviceBuilder = new NetworkNodeServicesBuilder(service.metadata!.labels!['solo.hedera.com/node-name'])
+      let serviceBuilder = new NetworkNodeServicesBuilder(service.metadata!.labels!['solo.hedera.com/node-name'] as any)
 
       if (serviceBuilderMap.has(serviceBuilder.key())) {
         serviceBuilder = <NetworkNodeServicesBuilder>serviceBuilderMap.get(serviceBuilder.key())
@@ -312,20 +309,20 @@ export class AccountManager {
       const podList = await this.k8.kubeClient.listNamespacedPod(
         namespace, undefined, undefined, undefined, undefined, `app=${serviceBuilder.haProxyAppSelector}`)
       // @ts-ignore
-      serviceBuilder.withHaProxyPodName(podList.body!.items[0].metadata.name)
+      serviceBuilder.withHaProxyPodName(podList.body!.items[0].metadata.name as PodName)
     }
 
     // get the pod name of the network node
     const pods = await this.k8.getPodsByLabel(['solo.hedera.com/type=network-node'])
     for (const pod of pods) {
       const podName = pod.metadata!.name
-      const nodeAlias = pod.metadata!.labels!['solo.hedera.com/node-name']
+      const nodeAlias = pod.metadata!.labels!['solo.hedera.com/node-name'] as NodeAlias
       const serviceBuilder = serviceBuilderMap.get(nodeAlias) as NetworkNodeServicesBuilder
       // @ts-ignore
       serviceBuilder.withNodePodName(podName) // TODO: MISSING METHOD ???
     }
 
-    const serviceMap: Map<string, NetworkNodeServices> = new Map()
+    const serviceMap: Map<NodeAlias, NetworkNodeServices> = new Map()
     for (const networkNodeServicesBuilder of serviceBuilderMap.values()) {
       serviceMap.set(networkNodeServicesBuilder.key(), networkNodeServicesBuilder.build())
     }
@@ -397,7 +394,7 @@ export class AccountManager {
    */
   async updateAccountKeys (namespace: string, accountId: AccountId, genesisKey: PrivateKey, updateSecrets: boolean
       ): Promise<{ value: string; status: string } | { reason: string; value: string; status: string }> {
-    let keys
+    let keys: Key[]
     try {
       keys = await this.getAccountKeys(accountId)
     } catch (e: Error | any) {
@@ -655,7 +652,6 @@ export class AccountManager {
   async prepareAddressBookBase64 (namespace: string) {
     // fetch AddressBook
     const fileQuery = new FileContentsQuery().setFileId(FileId.ADDRESS_BOOK)
-    // @ts-ignore
     const addressBookBytes = await fileQuery.execute(this._nodeClient)
 
     // convert addressBook into base64

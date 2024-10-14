@@ -27,22 +27,13 @@ import { V1ObjectMeta, V1Secret } from '@kubernetes/client-node'
 import { sleep } from './helpers'
 import { type ConfigManager, constants} from './index'
 import * as stream from 'node:stream'
+
 import { type SoloLogger } from "./logging";
-import {PodName} from "./templates";
-import * as WebSocket from 'ws'
+import type * as WebSocket from 'ws'
+import { type PodName } from '../types/aliases'
+import { type ExtendedNetServer, type LocalContextObject } from '../types/index.js'
 
 type TDirectoryData = {directory: boolean; owner: string; group: string; size: string; modifiedAt: string; name: string}
-
-export interface ExtendedNetServer extends net.Server {
-  localPort: number
-  info: string
-}
-
-interface LocalContextObject {
-  reject: (reason?: any) => void
-  connection: WebSocket.WebSocket
-  errorMessage: string
-}
 
 /**
  * A kubernetes API wrapper class providing custom functionalities required by solo
@@ -701,7 +692,7 @@ export class K8 {
                   }
 
                   return this.exitWithError(localContext, `${messagePrefix} files did not match, srcFileSize=${srcFileSize}, stat.size=${stat?.size}`)
-                } catch (e) {
+                } catch (e: Error | any) {
                   return this.exitWithError(localContext, `${messagePrefix} failed to complete download`)
                 }
               })
@@ -903,7 +894,7 @@ export class K8 {
         if (isPortOpen) {
           return
         }
-      } catch (e) {
+      } catch (e: Error | any) {
         return
       }
       await sleep(timeout)
