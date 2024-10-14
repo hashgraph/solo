@@ -232,14 +232,14 @@ export class ClusterCommand extends BaseCommand {
             handler: (argv: any) => {
               this.logger.debug("==== Running 'cluster list' ===", { argv })
 
-              this.showClusterList().then(r => {
+              try {
+                const r = this.showClusterList()
                 this.logger.debug('==== Finished running `cluster list`====')
-
                 if (!r) process.exit(1)
-              }).catch(err => {
+              } catch (err) {
                 this.logger.showUserError(err)
                 process.exit(1)
-              })
+              }
             }
           })
           .command({
@@ -247,14 +247,14 @@ export class ClusterCommand extends BaseCommand {
             desc: 'Get cluster info',
             handler: (argv: any) => {
               this.logger.debug("==== Running 'cluster info' ===", { argv })
-              this.getClusterInfo().then((r: any) => { // TODO Review?
+              try {
+                const r = this.getClusterInfo()
                 this.logger.debug('==== Finished running `cluster info`====')
-
                 if (!r) process.exit(1)
-              }).catch(err => {
+              } catch (err: Error | any) {
                 this.logger.showUserError(err)
                 process.exit(1)
-              })
+              }
             }
           })
           .command({
