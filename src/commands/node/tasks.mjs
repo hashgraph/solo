@@ -197,10 +197,10 @@ export class NodeCommandTasks {
           }
           await this.k8.copyTo(podName, constants.ROOT_CONTAINER, localDataLibBuildPath,
               `${constants.HEDERA_HAPI_PATH}`, filterFunction)
-          const testJsonFiles = self.configManager.getFlag(flags.appConfig).split(',')
+          const testJsonFiles = this.configManager.getFlag(flags.appConfig).split(',')
           for (const jsonFile of testJsonFiles) {
             if (fs.existsSync(jsonFile)) {
-              await self.k8.copyTo(podName, constants.ROOT_CONTAINER, jsonFile, `${constants.HEDERA_HAPI_PATH}`)
+              await this.k8.copyTo(podName, constants.ROOT_CONTAINER, jsonFile, `${constants.HEDERA_HAPI_PATH}`)
             }
           }
         }
@@ -821,10 +821,10 @@ export class NodeCommandTasks {
       return this._checkNodesProxiesTask(ctx, task, ctx.config.nodeAliases)
     }, async (ctx) => {
       if (ctx.config.app !== '' && ctx.config.app !== constants.HEDERA_APP_NAME) {
-        return true
+        await sleep(30 * 1000)
+        return false
       }
 
-      await sleep(30 * 1000)
       return false
     })
   }
