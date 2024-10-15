@@ -21,7 +21,7 @@ import { flags } from '../../../../src/commands/index.ts'
 import { bootstrapNetwork, getDefaultArgv, TEST_CLUSTER } from '../../../test_util.ts'
 import * as version from '../../../../version.ts'
 import { MINUTES } from '../../../../src/core/constants.ts'
-import { PodName } from '../../../../src/types/aliases.js'
+import { PodName } from '../../../../src/types/aliases.ts'
 
 describe('AccountManager', async () => {
   const namespace = 'account-mngr-e2e'

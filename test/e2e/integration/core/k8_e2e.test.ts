@@ -42,7 +42,7 @@ import {
 } from '@kubernetes/client-node'
 import crypto from 'crypto'
 import { MINUTES } from '../../../../src/core/constants.ts'
-import { PodName } from '../../../../src/types/aliases.js'
+import { PodName } from '../../../../src/types/aliases.ts'
 
 const defaultTimeout = 2 * MINUTES
 

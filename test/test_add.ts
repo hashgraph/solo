@@ -31,8 +31,8 @@ import { flags } from '../src/commands/index.ts'
 import { getNodeLogs } from '../src/core/helpers.ts'
 import { NodeCommand } from '../src/commands/node.ts'
 import { MINUTES } from '../src/core/constants.ts'
-import { NodeAlias } from '../src/types/aliases.js'
-import { NetworkNodeServices } from '../src/core/network_node_services.js'
+import { NodeAlias } from '../src/types/aliases.ts'
+import { NetworkNodeServices } from '../src/core/network_node_services.ts'
 
 export function testNodeAdd (localBuildPath: string) {
   describe('Node add should success', async () => {

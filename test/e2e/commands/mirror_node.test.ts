@@ -34,7 +34,7 @@ import * as core from '../../../src/core/index.ts'
 import { Status, TopicCreateTransaction, TopicMessageSubmitTransaction } from '@hashgraph/sdk'
 import * as http from 'http'
 import { MINUTES, SECONDS } from '../../../src/core/constants.ts'
-import { PodName } from '../../../src/types/aliases.js'
+import { PodName } from '../../../src/types/aliases.ts'
 
 describe('MirrorNodeCommand', async () => {
   const testName = 'mirror-cmd-e2e'

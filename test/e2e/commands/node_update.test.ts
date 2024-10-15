@@ -31,7 +31,7 @@ import { getNodeLogs } from '../../../src/core/helpers.ts'
 import { NodeCommand } from '../../../src/commands/node.ts'
 import { HEDERA_HAPI_PATH, MINUTES, ROOT_CONTAINER } from '../../../src/core/constants.ts'
 import fs from 'fs'
-import { PodName } from '../../../src/types/aliases.js'
+import { PodName } from '../../../src/types/aliases.ts'
 
 describe('Node update', async () => {
   const defaultTimeout = 2 * MINUTES

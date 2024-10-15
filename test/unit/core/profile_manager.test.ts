@@ -28,7 +28,7 @@ import {
 } from '../../../src/core/index.ts'
 import { getTestCacheDir, getTmpDir, testLogger } from '../../test_util.ts'
 import * as version from '../../../version.ts'
-import { NodeAlias } from '../../../src/types/aliases.js'
+import { NodeAlias } from '../../../src/types/aliases.ts'
 
 const tmpDir = getTmpDir()
 const configFile = path.join(tmpDir, 'resource-manager.config')

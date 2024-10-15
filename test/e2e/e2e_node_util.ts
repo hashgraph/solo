@@ -31,9 +31,9 @@ import {
 import { getNodeLogs, sleep } from '../../src/core/helpers.ts'
 import { NodeCommand } from '../../src/commands/node.ts'
 import { MINUTES, SECONDS } from '../../src/core/constants.ts'
-import { NodeAlias, NodeAliases } from '../../src/types/aliases.js'
+import { NodeAlias, NodeAliases } from '../../src/types/aliases.ts'
 import { ListrTaskWrapper } from 'listr2'
-import { K8 } from '../../src/core/index.js'
+import { K8 } from '../../src/core/index.ts'
 
 export function e2eNodeKeyRefreshTest (testName: string, mode: string, releaseTag = HEDERA_PLATFORM_VERSION_TAG) {
   const defaultTimeout = 2 * MINUTES

@@ -25,7 +25,7 @@ import * as os from 'os'
 import { IllegalArgumentError, MissingArgumentError } from '../../../src/core/errors.ts'
 import { AccountManager } from '../../../src/core/account_manager.ts'
 import { getK8Instance } from '../../test_util.ts'
-import { PodName } from '../../../src/types/aliases.js'
+import { PodName } from '../../../src/types/aliases.ts'
 
 describe('PackageInstaller', () => {
   const testLogger = core.logging.NewLogger('debug', true)
