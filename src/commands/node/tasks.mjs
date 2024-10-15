@@ -1044,6 +1044,12 @@ export class NodeCommandTasks {
     })
   }
 
+  refreshNodeList () {
+    return new Task('Refresh node alias list', (ctx, task) => {
+      ctx.config.allNodeAliases = ctx.config.existingNodeAliases.filter(nodeAlias => nodeAlias !== ctx.config.nodeAlias)
+    })
+  }
+
   prepareGrpcServiceEndpoints () {
     return new Task('Prepare grpc service endpoints', (ctx, task) => {
       const config = ctx.config

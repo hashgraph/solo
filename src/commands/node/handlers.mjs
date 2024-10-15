@@ -107,13 +107,7 @@ export class NodeCommandHandlers {
       this.tasks.downloadNodeGeneratedFiles(),
       this.tasks.prepareStagingDirectory('existingNodeAliases'),
       this.tasks.copyNodeKeysToSecrets(),
-      {
-        title: 'TODO find a place for this',
-        task: (ctx, parentTask) => {
-          // remove nodeAlias from existingNodeAliases
-          ctx.config.allNodeAliases = ctx.config.existingNodeAliases.filter(nodeAlias => nodeAlias !== ctx.config.nodeAlias)
-        }
-      },
+      this.tasks.refreshNodeList(),
       this.tasks.copyNodeKeysToSecrets(),
       this.tasks.checkAllNodesAreFrozen('existingNodeAliases'),
       this.tasks.getNodeLogsAndConfigs(),
