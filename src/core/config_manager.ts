@@ -24,7 +24,7 @@ import * as paths from 'path'
 import * as helpers from './helpers.ts'
 import * as yaml from 'js-yaml'
 import { yamlToObject } from './helpers.ts'
-import { CommandFlag } from "../commands/flags.ts"
+import { CommandFlag } from '../commands/flags.ts'
 import * as yargs from 'yargs'
 
 /**

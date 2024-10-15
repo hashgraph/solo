@@ -17,12 +17,12 @@
 import { Listr } from 'listr2'
 import { SoloError, MissingArgumentError } from '../core/errors.ts'
 import * as helpers from '../core/helpers.ts'
-import { constants, ProfileManager} from '../core/index.ts'
+import { constants, ProfileManager } from '../core/index.ts'
 import { BaseCommand } from './base.ts'
 import * as flags from './flags.ts'
 import * as prompts from './prompts.ts'
 import { getNodeAccountMap } from '../core/helpers.ts'
-import {AccountManager} from "../core/account_manager.ts"
+import { AccountManager } from '../core/account_manager.ts'
 import { type Opts } from '../index.ts'
 import { type NodeAliases } from '../types/aliases.ts'
 

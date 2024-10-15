@@ -20,12 +20,12 @@ import path from 'path'
 import * as util from 'util'
 import { IllegalArgumentError, MissingArgumentError } from '../errors.ts'
 import * as helpers from '../helpers.ts'
-import {constants, type PackageDownloader, Templates, type Zippy} from '../index.ts'
+import { constants, type PackageDownloader, Templates, type Zippy } from '../index.ts'
 import * as version from '../../../version.ts'
 import { ShellRunner } from '../shell_runner.ts'
 import * as semver from 'semver'
 import { OS_WIN32, OS_WINDOWS } from '../constants.ts'
-import { type SoloLogger} from "../logging.ts"
+import { type SoloLogger } from '../logging.ts'
 
 // constants required by HelmDependencyManager
 const HELM_RELEASE_BASE_URL = 'https://get.helm.sh'
@@ -40,12 +40,12 @@ const HELM_ARTIFACT_EXT: Map<string, string> = new Map()
  * Helm dependency manager installs or uninstalls helm client at SOLO_HOME_DIR/bin directory
  */
 export class HelmDependencyManager extends ShellRunner {
-  private readonly osPlatform: string;
-  private readonly osArch: string;
-  private helmPath: string;
-  private readonly artifactName: string;
-  private readonly helmURL: string;
-  private readonly checksumURL: string;
+  private readonly osPlatform: string
+  private readonly osArch: string
+  private helmPath: string
+  private readonly artifactName: string
+  private readonly helmURL: string
+  private readonly checksumURL: string
 
   constructor (
     private readonly downloader: PackageDownloader,

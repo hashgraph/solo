@@ -19,26 +19,26 @@ import path from 'path'
 import { SoloError, IllegalArgumentError, MissingArgumentError } from './errors.ts'
 import * as yaml from 'js-yaml'
 import { flags } from '../commands/index.ts'
-import {type ConfigManager, constants, helpers, Templates} from './index.ts'
+import { type ConfigManager, constants, helpers, Templates } from './index.ts'
 import dot from 'dot-object'
 import { getNodeAccountMap } from './helpers.ts'
 import * as semver from 'semver'
 import { readFile, writeFile } from 'fs/promises'
 
-import {type SoloLogger} from "./logging.ts";
-import {type SemVer} from 'semver'
-import {type NodeAlias, type NodeAliases} from "../types/aliases.ts";
+import { type SoloLogger } from './logging.ts'
+import { type SemVer } from 'semver'
+import { type NodeAlias, type NodeAliases } from '../types/aliases.ts'
 
 const consensusSidecars = [
   'recordStreamUploader', 'eventStreamUploader', 'backupUploader', 'accountBalanceUploader', 'otelCollector']
 
 export class ProfileManager {
-  private readonly logger: SoloLogger;
-  private readonly configManager: ConfigManager;
-  private readonly cacheDir: string;
+  private readonly logger: SoloLogger
+  private readonly configManager: ConfigManager
+  private readonly cacheDir: string
 
-  private profiles: Map<string, object>;
-  private profileFile: string | undefined;
+  private profiles: Map<string, object>
+  private profileFile: string | undefined
 
   constructor (logger: SoloLogger, configManager: ConfigManager, cacheDir: string = constants.SOLO_VALUES_DIR) {
     if (!logger) throw new MissingArgumentError('An instance of core/SoloLogger is required')

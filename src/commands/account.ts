@@ -21,22 +21,22 @@ import { SoloError, IllegalArgumentError } from '../core/errors.ts'
 import { flags } from './index.ts'
 import { Listr } from 'listr2'
 import * as prompts from './prompts.ts'
-import { constants} from '../core/index.ts'
-import {type AccountId, AccountInfo, HbarUnit, PrivateKey} from '@hashgraph/sdk'
+import { constants } from '../core/index.ts'
+import { type AccountId, AccountInfo, HbarUnit, PrivateKey } from '@hashgraph/sdk'
 import { FREEZE_ADMIN_ACCOUNT } from '../core/constants.ts'
-import { type AccountManager } from "../core/account_manager.ts"
+import { type AccountManager } from '../core/account_manager.ts'
 import { type Opts } from '../index.ts'
 
 export class AccountCommand extends BaseCommand {
-  private readonly accountManager: AccountManager;
+  private readonly accountManager: AccountManager
   private accountInfo: {
     accountId: string,
     balance: number,
     publicKey: string,
     privateKey?: string
     accountAlias?: string
-  } | null;
-  private readonly systemAccounts: number[][];
+  } | null
+  private readonly systemAccounts: number[][]
 
   constructor (opts: Opts, systemAccounts = constants.SYSTEM_ACCOUNTS) {
     super(opts)

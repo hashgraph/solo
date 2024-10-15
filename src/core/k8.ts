@@ -25,10 +25,10 @@ import * as tar from 'tar'
 import { v4 as uuid4 } from 'uuid'
 import { V1ObjectMeta, V1Secret } from '@kubernetes/client-node'
 import { sleep } from './helpers.ts'
-import { type ConfigManager, constants} from './index.ts'
+import { type ConfigManager, constants } from './index.ts'
 import * as stream from 'node:stream'
 
-import { type SoloLogger } from "./logging.ts"
+import { type SoloLogger } from './logging.ts'
 import type * as WebSocket from 'ws'
 import { type PodName } from '../types/aliases.ts'
 import { type ExtendedNetServer, type LocalContextObject } from '../types/index.ts'
@@ -43,8 +43,8 @@ type TDirectoryData = {directory: boolean; owner: string; group: string; size: s
  */
 export class K8 {
   static PodReadyCondition: Map<string, string> = new Map().set(constants.POD_CONDITION_READY, constants.POD_CONDITION_STATUS_TRUE)
-  private kubeConfig!: k8s.KubeConfig;
-  kubeClient!: k8s.CoreV1Api;
+  private kubeConfig!: k8s.KubeConfig
+  kubeClient!: k8s.CoreV1Api
 
   constructor (private readonly configManager: ConfigManager, public readonly logger: SoloLogger) {
     if (!configManager) throw new MissingArgumentError('An instance of core/ConfigManager is required')
@@ -529,7 +529,7 @@ export class K8 {
       const tmpFile = this._tempFileFor(srcFile)
 
       // @ts-ignore
-      await tar.c({file: tmpFile, cwd: srcDir, filter}, [srcFile])
+      await tar.c({ file: tmpFile, cwd: srcDir, filter }, [srcFile])
 
       return new Promise<boolean>((resolve, reject) => {
         localContext.reject = reject

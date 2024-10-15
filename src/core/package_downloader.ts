@@ -30,10 +30,10 @@ import * as https from 'https'
 import * as http from 'http'
 import { Templates } from './templates.ts'
 import { constants } from './index.ts'
-import {type SoloLogger} from "./logging.ts"
+import { type SoloLogger } from './logging.ts'
 
 export class PackageDownloader {
-  private logger: SoloLogger;
+  private logger: SoloLogger
 
   constructor (logger: SoloLogger) {
     if (!logger) throw new IllegalArgumentError('an instance of core/SoloLogger is required', logger)

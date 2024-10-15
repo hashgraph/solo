@@ -52,10 +52,10 @@ export interface NetworkDeployConfigClass {
 }
 
 export class NetworkCommand extends BaseCommand {
-  private readonly keyManager: KeyManager;
-  private readonly platformInstaller: PlatformInstaller;
-  private readonly profileManager: ProfileManager;
-  private profileValuesFile?: string;
+  private readonly keyManager: KeyManager
+  private readonly platformInstaller: PlatformInstaller
+  private readonly profileManager: ProfileManager
+  private profileValuesFile?: string
 
   constructor (opts: Opts) {
     super(opts)

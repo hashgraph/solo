@@ -15,23 +15,23 @@
  *
  */
 import * as fs from 'fs'
-import {Listr} from 'listr2'
+import { Listr } from 'listr2'
 import * as path from 'path'
 import { SoloError, IllegalArgumentError, MissingArgumentError } from './errors.ts'
-import {type ConfigManager, constants, type K8} from './index.ts'
-import {Templates} from './templates.ts'
+import { type ConfigManager, constants, type K8 } from './index.ts'
+import { Templates } from './templates.ts'
 import { flags } from '../commands/index.ts'
 import * as Base64 from 'js-base64'
 import chalk from 'chalk'
 
-import {type SoloLogger} from "./logging.ts"
-import {NodeAlias, NodeAliases, PodName} from '../types/aliases.ts'
+import { type SoloLogger } from './logging.ts'
+import { NodeAlias, NodeAliases, PodName } from '../types/aliases.ts'
 
 /** PlatformInstaller install platform code in the root-container of a network pod */
 export class PlatformInstaller {
-  private logger: SoloLogger;
-  private k8: K8;
-  private configManager: ConfigManager;
+  private logger: SoloLogger
+  private k8: K8
+  private configManager: ConfigManager
 
   constructor (logger: SoloLogger, k8: K8, configManager: ConfigManager) {
     if (!logger) throw new MissingArgumentError('an instance of core/SoloLogger is required')

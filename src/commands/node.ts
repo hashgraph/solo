@@ -17,7 +17,7 @@
 import * as x509 from '@peculiar/x509'
 import chalk from 'chalk'
 import * as fs from 'fs'
-import {Listr, ListrTaskWrapper} from 'listr2'
+import { Listr, ListrTaskWrapper } from 'listr2'
 import path from 'path'
 import { SoloError, IllegalArgumentError } from '../core/errors.ts'
 import * as helpers from '../core/helpers.ts'
@@ -64,8 +64,8 @@ import { NodeStatusCodes, NodeStatusEnums } from '../core/enumerations.ts'
 import { NodeCommandTasks } from './node/tasks.ts'
 import { downloadGeneratedFilesConfigBuilder, prepareUpgradeConfigBuilder } from './node/configs.ts'
 
-import { type NetworkNodeServices } from "../core/network_node_services.ts"
-import { type AccountManager } from "../core/account_manager.ts"
+import { type NetworkNodeServices } from '../core/network_node_services.ts'
+import { type AccountManager } from '../core/account_manager.ts'
 import { type Opts } from '../index.ts'
 import { type NodeAlias, type NodeAliases, type PodName } from '../types/aliases.ts'
 import { type ExtendedNetServer } from '../types/index.ts'
@@ -136,13 +136,13 @@ export interface NodeDeleteConfigClass {
  * Defines the core functionalities of 'node' command
  */
 export class NodeCommand extends BaseCommand {
-  private readonly platformInstaller: PlatformInstaller;
-  private readonly keyManager: KeyManager;
-  private readonly accountManager: AccountManager;
-  private readonly profileManager: ProfileManager;
-  private _portForwards: ExtendedNetServer[];
-  private readonly tasks: NodeCommandTasks;
-  private profileValuesFile?: string;
+  private readonly platformInstaller: PlatformInstaller
+  private readonly keyManager: KeyManager
+  private readonly accountManager: AccountManager
+  private readonly profileManager: ProfileManager
+  private _portForwards: ExtendedNetServer[]
+  private readonly tasks: NodeCommandTasks
+  private profileValuesFile?: string
 
   constructor (opts: Opts) {
     super(opts)
@@ -2583,7 +2583,7 @@ export class NodeCommand extends BaseCommand {
       {
         title: 'Fetch platform software into network nodes',
         task: (ctx, task) => {
-          const { config: { allNodeAliases, podNames, releaseTag, localBuildPath} } = ctx
+          const { config: { allNodeAliases, podNames, releaseTag, localBuildPath } } = ctx
           return this.fetchLocalOrReleasedPlatformSoftware(allNodeAliases, podNames, releaseTag, task, localBuildPath)
         }
       },

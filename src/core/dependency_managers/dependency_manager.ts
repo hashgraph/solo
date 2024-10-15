@@ -17,8 +17,8 @@
 import os from 'os'
 import { SoloError, MissingArgumentError } from '../errors.ts'
 import { ShellRunner } from '../shell_runner.ts'
-import { type SoloLogger} from "../logging.ts"
-import { type HelmDependencyManager } from "./helm_dependency_manager.ts"
+import { type SoloLogger } from '../logging.ts'
+import { type HelmDependencyManager } from './helm_dependency_manager.ts'
 
 export class DependencyManager extends ShellRunner {
   constructor (logger: SoloLogger,

@@ -18,9 +18,9 @@
 import paths from 'path'
 import { MissingArgumentError } from '../core/errors.ts'
 import { ShellRunner } from '../core/shell_runner.ts'
-import {type ChartManager, type ConfigManager, type Helm, type K8} from "../core/index.ts"
-import {type DependencyManager} from "../core/dependency_managers/index.ts"
-import {type CommandFlag} from "./flags.ts"
+import { type ChartManager, type ConfigManager, type Helm, type K8 } from '../core/index.ts'
+import { type DependencyManager } from '../core/dependency_managers/index.ts'
+import { type CommandFlag } from './flags.ts'
 import { type Opts } from '../index.ts'
 
 export class BaseCommand extends ShellRunner {
@@ -86,7 +86,7 @@ export class BaseCommand extends ShellRunner {
 
     // build the dynamic class that will keep track of which properties are used
     const NewConfigClass = class {
-      private usedConfigs: Map<string, number>;
+      private usedConfigs: Map<string, number>
       constructor () {
         // the map to keep track of which properties are used
         this.usedConfigs = new Map()

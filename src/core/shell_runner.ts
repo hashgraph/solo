@@ -16,7 +16,7 @@
  */
 import { spawn } from 'child_process'
 import chalk from 'chalk'
-import {type SoloLogger} from "./logging.ts";
+import { type SoloLogger } from './logging.ts'
 
 export class ShellRunner {
   constructor (public logger: SoloLogger) {

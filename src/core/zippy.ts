@@ -20,7 +20,7 @@ import AdmZip from 'adm-zip'
 import * as tar from 'tar'
 import chalk from 'chalk'
 import path from 'path'
-import {SoloLogger} from "./logging.ts";
+import { SoloLogger } from './logging.ts'
 
 export class Zippy {
   constructor (private readonly logger: SoloLogger) {
@@ -64,7 +64,7 @@ export class Zippy {
     if (!fs.existsSync(srcPath)) throw new IllegalArgumentError('srcPath does not exists', srcPath)
 
     try {
-      const zip = new AdmZip(srcPath, {readEntries: true})
+      const zip = new AdmZip(srcPath, { readEntries: true })
 
       zip.getEntries().forEach(function (zipEntry) {
         if (verbose) {

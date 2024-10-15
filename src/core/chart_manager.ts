@@ -14,10 +14,10 @@
  * limitations under the License.
  *
  */
-import {constants, type Helm} from './index.ts'
+import { constants, type Helm } from './index.ts'
 import chalk from 'chalk'
 import { SoloError } from './errors.ts'
-import { type SoloLogger} from "./logging.ts"
+import { type SoloLogger } from './logging.ts'
 
 export class ChartManager {
   constructor (private readonly helm: Helm, private readonly logger: SoloLogger) {

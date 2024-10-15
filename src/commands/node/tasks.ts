@@ -16,8 +16,8 @@
  */
 
 
-import {type ConfigManager, constants, type K8, Task, Templates, Zippy} from '../../core/index.ts'
-import {FREEZE_ADMIN_ACCOUNT} from '../../core/constants.ts'
+import { type ConfigManager, constants, type K8, Task, Templates, Zippy } from '../../core/index.ts'
+import { FREEZE_ADMIN_ACCOUNT } from '../../core/constants.ts'
 import {
   AccountBalanceQuery,
   FileAppendTransaction,
@@ -27,24 +27,24 @@ import {
   PrivateKey,
   Timestamp
 } from '@hashgraph/sdk'
-import {IllegalArgumentError, MissingArgumentError, SoloError} from '../../core/errors.ts'
+import { IllegalArgumentError, MissingArgumentError, SoloError } from '../../core/errors.ts'
 import * as prompts from '../prompts.ts'
 import path from 'path'
 import fs from 'fs'
 import crypto from 'crypto'
-import {getNodeAccountMap} from '../../core/helpers.ts'
+import { getNodeAccountMap } from '../../core/helpers.ts'
 import chalk from 'chalk'
 import * as flags from '../flags.ts'
-import {type SoloLogger} from "../../core/logging.ts"
-import {type AccountManager} from "../../core/account_manager.ts"
-import {Listr, ListrTaskWrapper} from "listr2";
+import { type SoloLogger } from '../../core/logging.ts'
+import { type AccountManager } from '../../core/account_manager.ts'
+import { Listr, ListrTaskWrapper } from 'listr2'
 import { type NodeAlias, type NodeAliases } from '../../types/aliases.ts'
 
 export class NodeCommandTasks {
-  private readonly accountManager: AccountManager;
-  private readonly configManager: ConfigManager;
-  private readonly logger: SoloLogger;
-  private readonly k8: K8;
+  private readonly accountManager: AccountManager
+  private readonly configManager: ConfigManager
+  private readonly logger: SoloLogger
+  private readonly k8: K8
 
   constructor(opts: { logger: SoloLogger; accountManager: AccountManager; configManager: ConfigManager, k8: K8 }) {
     if (!opts || !opts.accountManager) throw new IllegalArgumentError('An instance of core/AccountManager is required', opts.accountManager as any)
@@ -66,7 +66,7 @@ export class NodeCommandTasks {
     const zipper = new Zippy(this.logger)
     const upgradeConfigDir = path.join(stagingDir, 'mock-upgrade', 'data', 'config')
     if (!fs.existsSync(upgradeConfigDir)) {
-      fs.mkdirSync(upgradeConfigDir, {recursive: true})
+      fs.mkdirSync(upgradeConfigDir, { recursive: true })
     }
 
     // bump field hedera.config.version
@@ -156,8 +156,8 @@ export class NodeCommandTasks {
 
   sendPrepareUpgradeTransaction(): Task {
     return new Task('Send prepare upgrade transaction', async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
-      const {upgradeZipHash} = ctx
-      const {nodeClient, freezeAdminPrivateKey} = ctx.config
+      const { upgradeZipHash } = ctx
+      const { nodeClient, freezeAdminPrivateKey } = ctx.config
       try {
         // transfer some tiny amount to the freeze admin account
         await this.accountManager.transferAmount(constants.TREASURY_ACCOUNT_ID, FREEZE_ADMIN_ACCOUNT, 100000)
@@ -193,8 +193,8 @@ export class NodeCommandTasks {
 
   sendFreezeUpgradeTransaction(): Task {
     return new Task('Send freeze upgrade transaction', async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
-      const {upgradeZipHash} = ctx
-      const {freezeAdminPrivateKey, nodeClient} = ctx.config
+      const { upgradeZipHash } = ctx
+      const { freezeAdminPrivateKey, nodeClient } = ctx.config
       try {
         const futureDate = new Date()
         this.logger.debug(`Current time: ${futureDate}`)
@@ -310,7 +310,7 @@ export class NodeCommandTasks {
   }
 
   initialize(argv: any, configInit: Function) {
-    const {requiredFlags, requiredFlagsWithDisabledPrompt, optionalFlags} = argv
+    const { requiredFlags, requiredFlagsWithDisabledPrompt, optionalFlags } = argv
     const allRequiredFlags = [
       ...requiredFlags,
       ...requiredFlagsWithDisabledPrompt
@@ -342,7 +342,7 @@ export class NodeCommandTasks {
         }
       }
 
-      this.logger.debug('Initialized config', {config})
+      this.logger.debug('Initialized config', { config })
     })
   }
 }

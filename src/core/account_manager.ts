@@ -35,13 +35,13 @@ import {
   TransferTransaction
 } from '@hashgraph/sdk'
 import { SoloError, MissingArgumentError } from './errors.ts'
-import { Templates} from './templates.ts'
+import { Templates } from './templates.ts'
 import ip from 'ip'
 import { NetworkNodeServices, NetworkNodeServicesBuilder } from './network_node_services.ts'
 import path from 'path'
 
-import { type SoloLogger } from "./logging.ts";
-import { type K8} from "./k8.ts";
+import { type SoloLogger } from './logging.ts'
+import { type K8 } from './k8.ts'
 import { type AccountIdWithKeyPairObject, type ExtendedNetServer } from '../types/index.ts'
 import { type NodeAlias, type PodName } from '../types/aliases.ts'
 
@@ -53,8 +53,8 @@ const FULFILLED = 'fulfilled'
 const REJECTED = 'rejected'
 
 export class AccountManager {
-  private _portForwards: ExtendedNetServer[];
-  public _nodeClient: Client | null;
+  private _portForwards: ExtendedNetServer[]
+  public _nodeClient: Client | null
 
   constructor (private readonly logger: SoloLogger, private readonly k8: K8) {
     if (!logger) throw new Error('An instance of core/SoloLogger is required')

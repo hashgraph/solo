@@ -20,8 +20,8 @@ import { SoloError, IllegalArgumentError } from '../core/errors.ts'
 import { ConfigManager, constants } from '../core/index.ts'
 import * as flags from './flags.ts'
 import * as helpers from '../core/helpers.ts'
-import {CommandFlag, resetDisabledPrompts} from './flags.ts'
-import {ListrTaskWrapper} from "listr2";
+import { CommandFlag, resetDisabledPrompts } from './flags.ts'
+import { ListrTaskWrapper } from 'listr2'
 
 async function prompt (type: string, task: ListrTaskWrapper<any, any, any>, input: any, defaultValue: any, promptMessage: string, emptyCheckMessage: string | null, flagName: string) {
   try {

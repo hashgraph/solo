@@ -52,8 +52,8 @@ const customFormat = winston.format.combine(
 )
 
 export class SoloLogger {
-  private winstonLogger: winston.Logger;
-  private traceId?: string;
+  private winstonLogger: winston.Logger
+  private traceId?: string
 
   /**
    * @param [level] - logging level as supported by winston library:

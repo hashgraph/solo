@@ -19,10 +19,10 @@ import { constants } from './index.ts'
 import { ShellRunner } from './shell_runner.ts'
 import { Templates } from './templates.ts'
 import { IllegalArgumentError } from './errors.ts'
-import {SoloLogger} from "./logging.ts"
+import { SoloLogger } from './logging.ts'
 
 export class Helm extends ShellRunner {
-  private readonly helmPath: string;
+  private readonly helmPath: string
 
   constructor (logger: SoloLogger, private readonly osPlatform: NodeJS.Platform = os.platform()) {
     if (!logger) throw new IllegalArgumentError('an instance of core/SoloLogger is required', logger)
