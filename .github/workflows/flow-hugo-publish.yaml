@@ -27,6 +27,7 @@ on:
     paths:
       - '**/*.mjs'
       - '**/*.js'
+      - '**/*.ts'
       - '**/package*.json'
       - 'DEV.md'
       - 'README.md'
