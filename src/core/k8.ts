@@ -796,7 +796,7 @@ export class K8 {
    * This simple server just forwards traffic from itself to a service running in kubernetes
    * -> localhost:localPort -> port-forward-tunnel -> kubernetes-pod:targetPort
    */
-   
+
   async portForward (podName: PodName, localPort: number, podPort: number) {
     const ns = this._getNamespace()
     const forwarder = new k8s.PortForward(this.kubeConfig, false)
