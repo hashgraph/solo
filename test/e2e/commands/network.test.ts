@@ -31,7 +31,7 @@ import path from 'path'
 import fs from 'fs'
 import { NetworkCommand } from '../../../src/commands/network'
 import { MINUTES, SECONDS } from '../../../src/core/constants'
-import { flags } from '../../../src/commands/index.mjs'
+import { flags } from '../../../src/commands/index'
 
 describe('NetworkCommand', () => {
   const testName = 'network-cmd-e2e'

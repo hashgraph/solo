@@ -20,7 +20,7 @@ import { afterEach, beforeEach, describe, it } from 'mocha'
 import each from 'mocha-each'
 
 import { constants, Helm, logging, Templates } from '../../../src/core/index'
-import { ShellRunner } from '../../../src/core/shell_runner.mjs'
+import { ShellRunner } from '../../../src/core/shell_runner'
 
 describe('Helm platform specific tests', () => {
   each(['linux', 'windows', 'darwin'])

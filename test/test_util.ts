@@ -40,7 +40,9 @@ import {
   KeyManager,
   logging,
   PackageDownloader,
-  PlatformInstaller, ProfileManager, Templates,
+  PlatformInstaller,
+  ProfileManager,
+  Templates,
   Zippy
 } from '../src/core/index'
 import { flags } from '../src/commands/index'
@@ -54,12 +56,16 @@ import crypto from 'crypto'
 import { AccountCommand } from '../src/commands/account'
 import { SoloError } from '../src/core/errors'
 import { execSync } from 'child_process'
+import { SoloLogger } from '../src/core/logging.js'
+import { BaseCommand } from '../src/commands/base.js'
+import { NodeAlias } from '../src/types/aliases.js'
+import { NetworkNodeServices } from '../src/core/network_node_services.js'
 
 export const testLogger = logging.NewLogger('debug', true)
 export const TEST_CLUSTER = 'solo-e2e'
 export const HEDERA_PLATFORM_VERSION_TAG = 'v0.54.0-alpha.4'
 
-export function getTestCacheDir (testName) {
+export function getTestCacheDir (testName?: string) {
   const baseDir = 'test/data/tmp'
   const d = testName ? path.join(baseDir, testName) : baseDir
 
@@ -76,17 +82,14 @@ export function getTmpDir () {
 /**
  * Return a config manager with the specified config file name
  * @param fileName solo config file name
- * @return {ConfigManager}
  */
 export function getTestConfigManager (fileName = 'solo-test.config') {
   return new ConfigManager(testLogger, path.join(getTestCacheDir(), fileName))
 }
 
-/**
- * Get argv with defaults
- */
+/** Get argv with defaults */
 export function getDefaultArgv () {
-  const argv = {}
+  const argv: Record<string, any> = {}
   for (const f of flags.allFlags) {
     argv[f.name] = f.definition.defaultValue
   }
@@ -94,27 +97,63 @@ export function getDefaultArgv () {
   return argv
 }
 
+interface TestOpts {
+  logger: SoloLogger
+  helm: Helm
+  k8: K8
+  chartManager: ChartManager
+  configManager: ConfigManager
+  downloader: PackageDownloader
+  platformInstaller: PlatformInstaller
+  depManager: DependencyManager
+  keyManager: KeyManager
+  accountManager: AccountManager
+  cacheDir: string
+  profileManager: ProfileManager
+}
+
+interface BootstrapResponse {
+  namespace: string,
+  opts: TestOpts,
+  cmd: {
+    initCmd: InitCommand,
+    clusterCmd: ClusterCommand,
+    networkCmd: NetworkCommand,
+    nodeCmd: NodeCommand,
+    accountCmd: AccountCommand,
+  }
+}
+
 /** Initialize common test variables */
-export function bootstrapTestVariables (testName: string, argv: object, k8Arg: K8 | null = null, initCmdArg: InitCommand | null = null, clusterCmdArg: ClusterCommand | null = null, networkCmdArg: NetworkCommand | null = null, nodeCmdArg: NodeCommand | null = null, accountCmdArg: AccountCommand | null = null
-) {
-  const namespace = argv[flags.namespace.name] || 'bootstrap-ns'
-  const cacheDir = argv[flags.cacheDir.name] || getTestCacheDir(testName)
+export function bootstrapTestVariables (
+  testName: string,
+  argv: any,
+  k8Arg: K8 | null = null,
+  initCmdArg: InitCommand | null = null,
+  clusterCmdArg: ClusterCommand | null = null,
+  networkCmdArg: NetworkCommand | null = null,
+  nodeCmdArg: NodeCommand | null = null,
+  accountCmdArg: AccountCommand | null = null
+): BootstrapResponse {
+  const namespace: string = argv[flags.namespace.name] || 'bootstrap-ns'
+  const cacheDir: string = argv[flags.cacheDir.name] || getTestCacheDir(testName)
   const configManager = getTestConfigManager(`${testName}-solo.yaml`)
   configManager.update(argv, true)
 
   const downloader = new PackageDownloader(testLogger)
   const zippy = new Zippy(testLogger)
   const helmDepManager = new HelmDependencyManager(downloader, zippy, testLogger)
-  const depManagerMap = new Map().set(constants.HELM, helmDepManager)
+  const depManagerMap: Map<string, HelmDependencyManager> = new Map().set(constants.HELM, helmDepManager)
   const depManager = new DependencyManager(testLogger, depManagerMap)
   const keyManager = new KeyManager(testLogger)
   const helm = new Helm(testLogger)
   const chartManager = new ChartManager(helm, testLogger)
   const k8 = k8Arg || new K8(configManager, testLogger)
-  const accountManager = new AccountManager(testLogger, k8, constants)
-  const platformInstaller = new PlatformInstaller(testLogger, k8, configManager, accountManager)
+  const accountManager = new AccountManager(testLogger, k8)
+  const platformInstaller = new PlatformInstaller(testLogger, k8, configManager)
   const profileManager = new ProfileManager(testLogger, configManager)
-  const opts = {
+
+    const opts: TestOpts = {
     logger: testLogger,
     helm,
     k8,
@@ -147,30 +186,19 @@ export function bootstrapTestVariables (testName: string, argv: object, k8Arg: K
   }
 }
 
-/**
- * Bootstrap network in a given namespace
- *
- * @param {string} testName
- * @param {Object} argv - argv for commands
- * @param {K8|null} [k8Arg]
- * @param {InitCommand|null} [initCmdArg]
- * @param {ClusterCommand|null} [clusterCmdArg]
- * @param {NetworkCommand|null} [networkCmdArg]
- * @param {NodeCommand|null} [nodeCmdArg]
- * @param {AccountCommand|null} [accountCmdArg]
- * @param {boolean} [startNodes] - start nodes after deployment, default is true
- * @returns {Promise<*>}
- */
-export function bootstrapNetwork (testName, argv,
-  k8Arg = null,
-  initCmdArg = null,
-  clusterCmdArg = null,
-  networkCmdArg = null,
-  nodeCmdArg = null,
-  accountCmdArg = null,
+/** Bootstrap network in a given namespace */
+export function bootstrapNetwork (
+  testName: string,
+  argv: Record<any, any>,
+  k8Arg: K8 | null = null,
+  initCmdArg: InitCommand | null = null,
+  clusterCmdArg: ClusterCommand | null = null,
+  networkCmdArg: NetworkCommand | null = null,
+  nodeCmdArg: NodeCommand | null = null,
+  accountCmdArg: AccountCommand | null = null,
   startNodes = true
 ) {
-  const bootstrapResp = bootstrapTestVariables(testName, argv, k8Arg, initCmdArg, clusterCmdArg, networkCmdArg, nodeCmdArg, accountCmdArg)
+  const bootstrapResp: BootstrapResponse = bootstrapTestVariables(testName, argv, k8Arg, initCmdArg, clusterCmdArg, networkCmdArg, nodeCmdArg, accountCmdArg)
   const namespace = bootstrapResp.namespace
   const initCmd = bootstrapResp.cmd.initCmd
   const k8 = bootstrapResp.opts.k8
@@ -179,7 +207,7 @@ export function bootstrapNetwork (testName, argv,
   const nodeCmd = bootstrapResp.cmd.nodeCmd
   const chartManager = bootstrapResp.opts.chartManager
 
-  return new Promise((resolve) => {
+  return new Promise<BootstrapResponse>((resolve) => {
     describe(`Bootstrap network for test [release ${argv[flags.releaseTag.name]}}]`, () => {
       before(() => {
         bootstrapResp.opts.logger.showUser(`------------------------- START: bootstrap (${testName}) ----------------------------`)
@@ -262,7 +290,7 @@ export function bootstrapNetwork (testName, argv,
   })
 }
 
-export function balanceQueryShouldSucceed (accountManager, cmd, namespace) {
+export function balanceQueryShouldSucceed (accountManager: AccountManager, cmd: BaseCommand, namespace: string) {
   it('Balance query should succeed', async () => {
     try {
       expect(accountManager._nodeClient).to.be.null
@@ -278,11 +306,11 @@ export function balanceQueryShouldSucceed (accountManager, cmd, namespace) {
       cmd.logger.showUserError(e)
       expect.fail()
     }
-    await sleep(1 * SECONDS)
+    await sleep(SECONDS)
   }).timeout(2 * MINUTES)
 }
 
-export function accountCreationShouldSucceed (accountManager, nodeCmd, namespace) {
+export function accountCreationShouldSucceed (accountManager: AccountManager, nodeCmd: BaseCommand, namespace: string) {
   it('Account creation should succeed', async () => {
     try {
       await accountManager.loadNodeClient(namespace)
@@ -313,12 +341,12 @@ export function accountCreationShouldSucceed (accountManager, nodeCmd, namespace
   }).timeout(2 * MINUTES)
 }
 
-export async function getNodeAliasesPrivateKeysHash (networkNodeServicesMap, namespace, k8, destDir) {
+export async function getNodeAliasesPrivateKeysHash (networkNodeServicesMap: Map<NodeAlias, NetworkNodeServices>, namespace: string, k8: K8, destDir: string) {
   const dataKeysDir = path.join(constants.HEDERA_HAPI_PATH, 'data', 'keys')
   const tlsKeysDir = constants.HEDERA_HAPI_PATH
-  const nodeKeyHashMap = new Map()
+  const nodeKeyHashMap: Map<NodeAlias, Map<string, string>> = new Map()
   for (const networkNodeServices of networkNodeServicesMap.values()) {
-    const keyHashMap = new Map()
+    const keyHashMap: Map<string, string> = new Map()
     const nodeAlias = networkNodeServices.nodeAlias
     const uniqueNodeDestDir = path.join(destDir, nodeAlias)
     if (!fs.existsSync(uniqueNodeDestDir)) {
@@ -331,22 +359,18 @@ export async function getNodeAliasesPrivateKeysHash (networkNodeServicesMap, nam
   return nodeKeyHashMap
 }
 
-async function addKeyHashToMap (k8, nodeAlias, keyDir, uniqueNodeDestDir, keyHashMap, privateKeyFileName) {
+async function addKeyHashToMap (k8: K8, nodeAlias: NodeAlias, keyDir: string, uniqueNodeDestDir: string, keyHashMap: Map<string, string>, privateKeyFileName: string) {
   await k8.copyFrom(
     Templates.renderNetworkPodName(nodeAlias),
     ROOT_CONTAINER,
     path.join(keyDir, privateKeyFileName),
     uniqueNodeDestDir)
-  const keyBytes = await fs.readFileSync(path.join(uniqueNodeDestDir, privateKeyFileName))
+  const keyBytes = fs.readFileSync(path.join(uniqueNodeDestDir, privateKeyFileName))
   const keyString = keyBytes.toString()
   keyHashMap.set(privateKeyFileName, crypto.createHash('sha256').update(keyString).digest('base64'))
 }
 
-/**
- * @param {ConfigManager} configManager
- * @returns {K8}
- */
-export function getK8Instance (configManager) {
+export function getK8Instance (configManager: ConfigManager) {
   try {
     return new K8(configManager, testLogger)
     // TODO: return a mock without running the init within constructor after we convert to Mocha, Jest ESModule mocks are broke.

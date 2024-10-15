@@ -17,13 +17,13 @@
 import { expect } from 'chai'
 import { describe, it } from 'mocha'
 
-import * as core from '../../../src/core/index.mjs'
-import { ConfigManager, PlatformInstaller } from '../../../src/core/index.mjs'
+import * as core from '../../../src/core/index'
+import { ConfigManager, PlatformInstaller } from '../../../src/core/index'
 import * as fs from 'fs'
 import * as path from 'path'
 import * as os from 'os'
-import { IllegalArgumentError, MissingArgumentError } from '../../../src/core/errors.mjs'
-import { AccountManager } from '../../../src/core/account_manager.mjs'
+import { IllegalArgumentError, MissingArgumentError } from '../../../src/core/errors'
+import { AccountManager } from '../../../src/core/account_manager'
 import { getK8Instance } from '../../test_util'
 
 describe('PackageInstaller', () => {

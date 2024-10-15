@@ -18,10 +18,10 @@ import sinon from 'sinon'
 import { expect } from 'chai'
 import { describe, it, beforeEach, afterEach } from 'mocha'
 import { ShellRunner } from '../../../src/core/shell_runner'
-import { NewLogger, SoloLogger } from '../../../src/core/logging.mjs'
+import { NewLogger, SoloLogger } from '../../../src/core/logging'
 import { ChildProcess } from 'child_process'
 import { Readable } from 'stream'
-import { SECONDS } from '../../../src/core/constants.mjs'
+import { SECONDS } from '../../../src/core/constants'
 
 describe('ShellRunner', () => {
   let logger, shellRunner, loggerStub, childProcessSpy, readableSpy

@@ -17,9 +17,9 @@
 import { expect } from 'chai'
 import { describe, it } from 'mocha'
 
-import { DependencyManager, HelmDependencyManager } from '../../../../src/core/dependency_managers/index.mjs'
-import { logging, constants, PackageDownloader, Zippy } from '../../../../src/core/index.mjs'
-import { SECONDS } from '../../../../src/core/constants.mjs'
+import { DependencyManager, HelmDependencyManager } from '../../../../src/core/dependency_managers/index'
+import { logging, constants, PackageDownloader, Zippy } from '../../../../src/core/index'
+import { SECONDS } from '../../../../src/core/constants'
 
 const testLogger = logging.NewLogger('debug', true)
 describe('DependencyManager', () => {
@@ -27,7 +27,7 @@ describe('DependencyManager', () => {
   const downloader = new PackageDownloader(testLogger)
   const zippy = new Zippy(testLogger)
   const helmDepManager = new HelmDependencyManager(downloader, zippy, testLogger)
-  const depManagerMap = new Map()
+  const depManagerMap: Map<string, HelmDependencyManager> = new Map()
     .set(constants.HELM, helmDepManager)
   const depManager = new DependencyManager(testLogger, depManagerMap)
 

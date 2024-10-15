@@ -18,8 +18,8 @@
 import { type NodeAlias, type PodName } from '../types/aliases'
 
 export class NetworkNodeServices {
-  public readonly nodeAlias: string
-  public readonly nodePodName?: string
+  public readonly nodeAlias: NodeAlias
+  public readonly nodePodName?: PodName
   public readonly haProxyName?: string
   public readonly haProxyLoadBalancerIp?: string
   public readonly haProxyClusterIp: string
@@ -87,7 +87,7 @@ export class NetworkNodeServicesBuilder {
   public nodeServiceGossipPort!: string | number
   public nodeServiceGrpcPort!: string | number
 
-  public nodePodName?: string
+  public nodePodName?: PodName
 
   constructor (public readonly nodeAlias: NodeAlias) {
   }

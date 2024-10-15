@@ -31,9 +31,10 @@ import { flags } from '../src/commands/index'
 import { getNodeLogs } from '../src/core/helpers'
 import { NodeCommand } from '../src/commands/node'
 import { MINUTES } from '../src/core/constants'
+import { NodeAlias } from '../src/types/aliases.js'
+import { NetworkNodeServices } from '../src/core/network_node_services.js'
 
-export function testNodeAdd (localBuildPath
-) {
+export function testNodeAdd (localBuildPath: string) {
   describe('Node add should success', async () => {
     const suffix = localBuildPath.substring(0, 5)
     const defaultTimeout = 2 * MINUTES
@@ -56,21 +57,26 @@ export function testNodeAdd (localBuildPath
     const accountCmd = bootstrapResp.cmd.accountCmd
     const networkCmd = bootstrapResp.cmd.networkCmd
     const k8 = bootstrapResp.opts.k8
-    let existingServiceMap
-    let existingNodeIdsPrivateKeysHash
+    let existingServiceMap: Map<NodeAlias, NetworkNodeServices>
+    let existingNodeIdsPrivateKeysHash: Map<NodeAlias, Map<string, string>>
+
+    // @ts-ignore: Accessing private property for test purposes
+    const accountManager = nodeCmd.accountManager
 
     after(async function () {
       this.timeout(10 * MINUTES)
 
       await getNodeLogs(k8, namespace)
-      await nodeCmd.accountManager.close()
+      // @ts-ignore
+      await accountManager.close()
       await nodeCmd.stop(argv)
       await networkCmd.destroy(argv)
       await k8.deleteNamespace(namespace)
     })
 
     it('cache current version of private keys', async () => {
-      existingServiceMap = await nodeCmd.accountManager.getNodeServiceMap(namespace)
+      // @ts-ignore
+      existingServiceMap = await accountManager.getNodeServiceMap(namespace)
       existingNodeIdsPrivateKeysHash = await getNodeAliasesPrivateKeysHash(existingServiceMap, namespace, k8, getTmpDir())
     }).timeout(defaultTimeout)
 
@@ -87,12 +93,14 @@ export function testNodeAdd (localBuildPath
         flags.quiet.constName,
         flags.adminKey.constName
       ])
-      await nodeCmd.accountManager.close()
+      // @ts-ignore
+      await accountManager.close()
     }).timeout(12 * MINUTES)
 
-    balanceQueryShouldSucceed(nodeCmd.accountManager, nodeCmd, namespace)
+    // @ts-ignore
+    balanceQueryShouldSucceed(accountManager, nodeCmd, namespace)
 
-    accountCreationShouldSucceed(nodeCmd.accountManager, nodeCmd, namespace)
+    accountCreationShouldSucceed(accountManager, nodeCmd, namespace)
 
     it('existing nodes private keys should not have changed', async () => {
       const currentNodeIdsPrivateKeysHash = await getNodeAliasesPrivateKeysHash(existingServiceMap, namespace, k8, getTmpDir())

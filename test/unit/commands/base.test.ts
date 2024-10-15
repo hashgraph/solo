@@ -16,16 +16,16 @@
  */
 import { expect } from 'chai'
 
-import { HelmDependencyManager, DependencyManager } from '../../../src/core/dependency_managers/index.mjs'
+import { HelmDependencyManager, DependencyManager } from '../../../src/core/dependency_managers/index'
 import {
   ChartManager,
   ConfigManager,
   Helm,
   logging, PackageDownloader, Zippy,
   constants
-} from '../../../src/core/index.mjs'
-import { BaseCommand } from '../../../src/commands/base.mjs'
-import * as flags from '../../../src/commands/flags.mjs'
+} from '../../../src/core/index'
+import { BaseCommand } from '../../../src/commands/base'
+import * as flags from '../../../src/commands/flags'
 import { getK8Instance } from '../../test_util'
 
 const testLogger = logging.NewLogger('debug', true)
@@ -44,6 +44,7 @@ describe('BaseCommand', () => {
 
   const k8 = getK8Instance(configManager)
 
+  // @ts-ignore
   const baseCmd = new BaseCommand({
     logger: testLogger,
     helm,
@@ -74,22 +75,17 @@ describe('BaseCommand', () => {
 
       const extraVars = ['var1', 'var2']
 
-      /**
-       * @typedef {Object} newClassInstance
-       * @property {string} releaseTag
-       * @property {string} tlsClusterIssuerType
-       * @property {string} valuesFile
-       * @property {string} var1
-       * @property {string} var2
-       * @property {getUnusedConfigs} getUnusedConfigs
-       */
-      /**
-       * @callback getUnusedConfigs
-       * @returns {string[]}
-       */
+      interface newClassInstance {
+        releaseTag: string
+        tlsClusterIssuerType: string
+        valuesFile: string
+        var1: string
+        var2: string
+        getUnusedConfigs: () => string[]
+      }
 
       const NEW_CLASS1_NAME = 'newClassInstance1'
-      const newClassInstance1 = /** @type {newClassInstance} **/ baseCmd.getConfig(NEW_CLASS1_NAME, flagsList, extraVars)
+      const newClassInstance1 = baseCmd.getConfig(NEW_CLASS1_NAME, flagsList, extraVars) as newClassInstance
       expect(newClassInstance1.releaseTag).to.equal('releaseTag1')
       expect(newClassInstance1.tlsClusterIssuerType).to.equal('type2')
       expect(newClassInstance1.valuesFile).to.equal('file3')
@@ -98,7 +94,7 @@ describe('BaseCommand', () => {
       expect(baseCmd.getUnusedConfigs(NEW_CLASS1_NAME)).to.deep.equal([])
 
       const NEW_CLASS2_NAME = 'newClassInstance2'
-      const newClassInstance2 = /** @type {newClassInstance} **/ baseCmd.getConfig(NEW_CLASS2_NAME, flagsList, extraVars)
+      const newClassInstance2 = baseCmd.getConfig(NEW_CLASS2_NAME, flagsList, extraVars) as newClassInstance
       newClassInstance2.var1 = 'var1'
       newClassInstance2.var2 = 'var2'
       expect(newClassInstance2.var1).to.equal('var1')
@@ -110,7 +106,7 @@ describe('BaseCommand', () => {
       ])
 
       const NEW_CLASS3_NAME = 'newClassInstance3'
-      const newClassInstance3 = /** @type {newClassInstance} **/ baseCmd.getConfig(NEW_CLASS3_NAME, flagsList, extraVars)
+      const newClassInstance3 = baseCmd.getConfig(NEW_CLASS3_NAME, flagsList, extraVars) as newClassInstance
       newClassInstance3.var1 = 'var1'
       expect(newClassInstance3.var1).to.equal('var1')
       expect(newClassInstance3.tlsClusterIssuerType).to.equal('type2')
@@ -120,7 +116,7 @@ describe('BaseCommand', () => {
         'var2'
       ])
 
-      const newClassInstance4 = baseCmd.getConfig('newClassInstance4', [])
+      const newClassInstance4 = baseCmd.getConfig('newClassInstance4', []) as newClassInstance
       expect(newClassInstance4.getUnusedConfigs()).to.deep.equal([])
     })
   })

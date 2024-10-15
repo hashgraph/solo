@@ -17,20 +17,20 @@
 import { describe, it } from 'mocha'
 import { expect } from 'chai'
 
-import { InitCommand } from '../../../src/commands/init.mjs'
+import { InitCommand } from '../../../src/commands/init'
 import {
   HelmDependencyManager,
   DependencyManager
-} from '../../../src/core/dependency_managers/index.mjs'
+} from '../../../src/core/dependency_managers/index'
 import {
   ChartManager,
   ConfigManager, constants,
   Helm,
   KeyManager,
   logging, PackageDownloader, Zippy
-} from '../../../src/core/index.mjs'
+} from '../../../src/core/index'
 import { getK8Instance } from '../../test_util'
-import { SECONDS } from '../../../src/core/constants.mjs'
+import { SECONDS } from '../../../src/core/constants'
 
 const testLogger = logging.NewLogger('debug', true)
 describe('InitCommand', () => {
