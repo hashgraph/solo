@@ -359,7 +359,7 @@ export class ProfileManager {
    * @param profileName - resource profile name
    * @returns return the full path to the values file
    */
-  prepareValuesForMirrorNodeChart (profileName: string): Promise<string | void> {
+  prepareValuesForMirrorNodeChart (profileName: string){
     if (!profileName) throw new MissingArgumentError('profileName is required')
     const profile = this.getProfile(profileName) as any
     if (!profile.mirror) return Promise.resolve() // use chart defaults

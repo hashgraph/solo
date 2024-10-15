@@ -13,12 +13,15 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 ##
-
-timeout: 10000
+timeout: 20000 # 20 Seconds
 reporter: spec
 check-leaks: true
 recursive: true
-exclude:
-  - 'e2e/*'
-require: [ "esm" ]
-extension: [ "mjs", "js" ]
+exit: true
+
+require:
+  - ts-node/register
+
+extension:
+  - ts
+  - tsx
