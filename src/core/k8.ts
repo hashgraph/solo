@@ -550,8 +550,7 @@ export class K8 {
 
             this.registerConnectionOnError(localContext, messagePrefix, conn)
 
-            // @ts-ignore
-            this.registerConnectionOnMessage(localContext, messagePrefix, conn) // TODO: Review
+            this.registerConnectionOnMessage(localContext, messagePrefix)
 
             conn.on('close', (code, reason) => {
               this.logger.debug(`${messagePrefix} connection closed`)

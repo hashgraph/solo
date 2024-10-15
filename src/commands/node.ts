@@ -1179,8 +1179,7 @@ export class NodeCommand extends BaseCommand {
         title: 'Generate gossip keys',
         task: (ctx, parentTask) => {
           const config = ctx.config
-          // @ts-ignore
-          const subTasks = this.keyManager.taskGenerateGossipKeys(config.nodeAliases, config.keysDir, config.curDate) // TODO REVIEW?
+          const subTasks = this.keyManager.taskGenerateGossipKeys(config.nodeAliases, config.keysDir, config.curDate)
           // set up the sub-tasks
           return parentTask.newListr(subTasks, {
             concurrent: false,
@@ -1528,8 +1527,7 @@ export class NodeCommand extends BaseCommand {
         task: (ctx: Context, parentTask: ListrTaskWrapper<any, any, any>) => {
           const config = ctx.config
 
-          // @ts-ignore
-          const subTasks = this.keyManager.taskGenerateGossipKeys([config.nodeAlias], config.keysDir, config.curDate, config.allNodeAliases) // TODO REVIEW?
+          const subTasks = this.keyManager.taskGenerateGossipKeys([config.nodeAlias], config.keysDir, config.curDate, config.allNodeAliases)
           // set up the sub-tasks
           return parentTask.newListr(subTasks, {
             concurrent: false,

@@ -359,7 +359,7 @@ export class AccountCommand extends BaseCommand {
       {
         title: 'get the account info',
         task: async (ctx) => {
-          ctx.accountInfo = await this.buildAccountInfo(await this.getAccountInfo(ctx), ctx.config.namespace, !!ctx.config.privateKey) // TODO REVIEW
+          ctx.accountInfo = await this.buildAccountInfo(await this.getAccountInfo(ctx), ctx.config.namespace, !!ctx.config.privateKey)
         }
       },
       {
