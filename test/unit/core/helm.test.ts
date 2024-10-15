@@ -28,7 +28,7 @@ describe('Helm platform specific tests', () => {
       const logger = logging.NewLogger('debug', true)
       const helm = new Helm(logger, osPlatform)
 
-      /** @type {sinon.SinonStub} */let shellStub
+      let shellStub: sinon.SinonStub<[cmd: string, verbose?: boolean], Promise<string[]>>
 
       const helmPath = Templates.installationPath(constants.HELM, osPlatform)
 

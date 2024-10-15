@@ -21,23 +21,16 @@ import jest from 'jest-mock'
 import { constants, K8 } from '../../../src/core/index'
 import { getTestConfigManager, testLogger } from '../../test_util'
 import { flags } from '../../../src/commands/index'
+import { SECONDS } from '../../../src/core/constants.js'
 
-function listNamespacedPodMockSetup (k8, numOfFailures, result) {
-  for (let i = 0; i < numOfFailures - 1; i++) {
-    k8.kubeClient.listNamespacedPod.mockReturnValueOnce(Promise.resolve({
-      body: {
-        items: []
-      }
-    }))
-  }
-  k8.kubeClient.listNamespacedPod.mockReturnValueOnce(Promise.resolve({
-    body: {
-      items: result
-    }
-  }))
+function listNamespacedPodMockSetup (k8: K8, numOfFailures: number, result: any[]) {
+  for (let i = 0; i < numOfFailures - 1; i++) { // @ts-ignore
+    k8.kubeClient.listNamespacedPod.mockReturnValueOnce(Promise.resolve({ body: { items: [] } }))
+  } // @ts-ignore
+  k8.kubeClient.listNamespacedPod.mockReturnValueOnce(Promise.resolve({ body: { items: result } }))
 }
 
-const defaultTimeout = 20_000
+const defaultTimeout = 20 * SECONDS
 
 describe('K8 Unit Tests', function () {
   this.timeout(defaultTimeout)
@@ -55,9 +48,10 @@ describe('K8 Unit Tests', function () {
       }
     }
   ]
+  // @ts-ignore
   const k8InitSpy = jest.spyOn(K8.prototype, 'init').mockImplementation(() => {})
   const k8GetPodsByLabelSpy = jest.spyOn(K8.prototype, 'getPodsByLabel').mockResolvedValue(expectedResult)
-  /** @type {K8} */ let k8
+  let k8: K8
 
   before(() => {
     argv[flags.namespace.name] = 'namespace'
@@ -65,7 +59,9 @@ describe('K8 Unit Tests', function () {
     configManager.update(argv, true)
     k8 = new K8(configManager, testLogger)
     k8.kubeClient = {
+      // @ts-ignore
       listNamespacedPod: jest.fn(),
+      // @ts-ignore
       deleteNamespacedPod: jest.fn()
     }
   })

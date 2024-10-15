@@ -14,7 +14,7 @@
  * limitations under the License.
  *
  */ export type NodeId = number
-/** the alias of the node */ export type NodeAlias = `node-${number}`
+/** the alias of the node */ export type NodeAlias = `node${number}`
 /** the full pod name */ export type PodName = `network-${NodeAlias}-0`
 
 /** list of the number of nodes */ export type NodeIds = NodeId[]

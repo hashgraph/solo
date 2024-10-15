@@ -27,7 +27,7 @@ describe('Helpers', () => {
     { input: 'node1', output: ['node1'] },
     { input: 'node1,node3', output: ['node1', 'node3'] }
   ])
-    .it('should parse node aliases for input', ({ input, output }) => {
+    .it('should parse node aliases for input', ({ input, output }: {input: string, output: string[]}) => {
       expect(helpers.parseNodeAliases(input)).to.deep.equal(output)
     })
 
@@ -36,7 +36,7 @@ describe('Helpers', () => {
     { input: [1, 2, 3], output: [1, 2, 3] },
     { input: ['a', '2', '3'], output: ['a', '2', '3'] }
   ])
-    .it('should clone array for input', ({ input, output }) => {
+    .it('should clone array for input', ({ input, output }: {input: number[], output: number[]}) => {
       const clonedArray = helpers.cloneArray(input)
       expect(clonedArray).to.deep.equal(output)
       expect(clonedArray).not.to.equal(input) // ensure cloning creates a new array
@@ -57,7 +57,7 @@ describe('Helpers', () => {
     { input: 'v0.47.1-alpha.0', output: 'hashgraph/solo-containers/ubi8-init-java21' },
     { input: HEDERA_PLATFORM_VERSION, output: 'hashgraph/solo-containers/ubi8-init-java21' }
   ])
-    .it('should determine root-image for Hedera platform version', ({ input, output }) => {
+    .it('should determine root-image for Hedera platform version', ({ input, output }: {input: string, output: string}) => {
       expect(helpers.getRootImageRepository(input)).to.equal(output)
     })
 })

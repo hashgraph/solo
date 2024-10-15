@@ -130,7 +130,7 @@ describe('ConfigManager', () => {
       const argv = {}
       argv[flags.devMode.name] = true // devMode flag is set in argv but cached config has it
 
-      const argv2 = cm.applyPrecedence(argv, aliases)
+      const argv2 = cm.applyPrecedence(argv as any, aliases)
       expect(cm.getFlag(flags.devMode)).to.not.be.ok // shouldn't have changed the config yet
       expect(argv2[flags.devMode.name]).to.be.ok // retain the value
     })
@@ -144,7 +144,7 @@ describe('ConfigManager', () => {
       expect(cm.getFlag(flags.devMode)).to.not.be.ok
 
       const argv = {} // devMode flag is not set in argv
-      const argv2 = cm.applyPrecedence(argv, aliases)
+      const argv2 = cm.applyPrecedence(argv as any, aliases)
       expect(cm.getFlag(flags.devMode)).to.not.be.ok // shouldn't have changed
       expect(argv2[flags.devMode.name]).to.equal(cm.getFlag(flags.devMode)) // should inherit from config
     })
@@ -156,7 +156,7 @@ describe('ConfigManager', () => {
       expect(cm.hasFlag(flags.devMode)).not.to.be.ok // shouldn't have set
 
       const argv = {} // devMode flag is not set in argv and cached config doesn't have it either
-      const argv2 = cm.applyPrecedence(argv, aliases)
+      const argv2 = cm.applyPrecedence(argv as any, aliases)
       expect(cm.hasFlag(flags.devMode)).to.not.be.ok // shouldn't have set
       expect(argv2[flags.devMode.name]).to.not.be.ok // should have set from the default
     })

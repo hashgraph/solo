@@ -22,6 +22,7 @@ import os from 'os'
 import path from 'path'
 import { constants, logging, KeyManager } from '../../../src/core/index'
 import { SECONDS } from '../../../src/core/constants'
+import { NodeAlias } from '../../../src/types/aliases.js'
 
 describe('KeyManager', () => {
   const logger = logging.NewLogger('debug', true)
@@ -29,7 +30,7 @@ describe('KeyManager', () => {
 
   it('should generate signing key', async () => {
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'keys-'))
-    const nodeAlias = 'node1'
+    const nodeAlias = 'node1' as NodeAlias
     const keyPrefix = constants.SIGNING_KEY_PREFIX
 
     const signingKey = await keyManager.generateSigningKey(nodeAlias)
@@ -39,10 +40,12 @@ describe('KeyManager', () => {
     expect(files.privateKeyFile).not.to.be.null
     expect(files.certificateFile).not.to.be.null
 
-    const nodeKey = await keyManager.loadSigningKey(nodeAlias, tmpDir, KeyManager.SigningKeyAlgo, keyPrefix)
+    const nodeKey = await keyManager.loadSigningKey(nodeAlias, tmpDir)
     expect(nodeKey.certificate).to.deep.equal(signingKey.certificate)
-    expect(nodeKey.privateKeyPem).to.deep.equal(signingKey.privateKeyPem)
-    expect(nodeKey.certificatePem).to.deep.equal(signingKey.certificatePem)
+    // @ts-ignore
+    expect(nodeKey.privateKeyPem).to.deep.equal(signingKey.privateKeyPem) // TODO: Can't explain this
+    // @ts-ignore
+    expect(nodeKey.certificatePem).to.deep.equal(signingKey.certificatePem) // TODO: Can't explain this
     expect(nodeKey.privateKey.algorithm).to.deep.equal(signingKey.privateKey.algorithm)
     expect(nodeKey.privateKey.type).to.deep.equal(signingKey.privateKey.type)
 
@@ -67,12 +70,14 @@ describe('KeyManager', () => {
     expect(files.privateKeyFile).not.to.be.null
     expect(files.certificateFile).not.to.be.null
 
-    const nodeKey = await keyManager.loadTLSKey(nodeAlias, tmpDir, KeyManager.TLSKeyAlgo, keyName)
+    const nodeKey = await keyManager.loadTLSKey(nodeAlias, tmpDir)
     expect(nodeKey.certificate.subject).to.deep.equal(tlsKey.certificate.subject)
     expect(nodeKey.certificate.issuer).to.deep.equal(tlsKey.certificate.issuer)
     expect(nodeKey.certificate).to.deep.equal(tlsKey.certificate)
-    expect(nodeKey.privateKeyPem).to.deep.equal(tlsKey.privateKeyPem)
-    expect(nodeKey.certificatePem).to.deep.equal(tlsKey.certificatePem)
+    // @ts-ignore
+    expect(nodeKey.privateKeyPem).to.deep.equal(tlsKey.privateKeyPem) // TODO: Can't explain this
+    // @ts-ignore
+    expect(nodeKey.certificatePem).to.deep.equal(tlsKey.certificatePem )// TODO: Can't explain this
     expect(nodeKey.privateKey.algorithm).to.deep.equal(tlsKey.privateKey.algorithm)
     expect(nodeKey.privateKey.type).to.deep.equal(tlsKey.privateKey.type)
 

@@ -68,7 +68,7 @@ describe('HelmDependencyManager', () => {
           fs.rmSync(tmpDir, { recursive: true })
         }
 
-        await helmDependencyManager.uninstall()
+        helmDependencyManager.uninstall()
         expect(helmDependencyManager.isInstalled()).not.to.be.ok
 
         await expect(helmDependencyManager.install(getTestCacheDir())).to.eventually.be.ok
