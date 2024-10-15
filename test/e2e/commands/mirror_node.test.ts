@@ -34,6 +34,7 @@ import * as core from '../../../src/core/index'
 import { Status, TopicCreateTransaction, TopicMessageSubmitTransaction } from '@hashgraph/sdk'
 import * as http from 'http'
 import { MINUTES, SECONDS } from '../../../src/core/constants'
+import { PodName } from '../../../src/types/aliases.js'
 
 describe('MirrorNodeCommand', async () => {
   const testName = 'mirror-cmd-e2e'
@@ -107,7 +108,7 @@ describe('MirrorNodeCommand', async () => {
       const pods = await k8.getPodsByLabel(['app.kubernetes.io/name=hedera-explorer'])
       const explorerPod = pods[0]
 
-      portForwarder = await k8.portForward(explorerPod.metadata.name, 8_080, 8_080)
+      portForwarder = await k8.portForward(explorerPod.metadata.name as PodName, 8_080, 8_080)
       await sleep(2 * SECONDS)
 
       // check if mirror node api server is running
@@ -118,7 +119,7 @@ describe('MirrorNodeCommand', async () => {
       mirrorNodeCmd.logger.showUserError(e)
       expect.fail()
     }
-  }).timeout(1 * MINUTES)
+  }).timeout(MINUTES)
 
   it('Explorer GUI should be running', async () => {
     try {
@@ -131,7 +132,7 @@ describe('MirrorNodeCommand', async () => {
       mirrorNodeCmd.logger.showUserError(e)
       expect.fail()
     }
-  }).timeout(1 * MINUTES)
+  }).timeout(MINUTES)
 
   it('Create topic and submit message should success', async () => {
     try {
@@ -152,7 +153,7 @@ describe('MirrorNodeCommand', async () => {
       mirrorNodeCmd.logger.showUserError(e)
       expect.fail()
     }
-  }).timeout(1 * MINUTES)
+  }).timeout(MINUTES)
 
   // trigger some extra transactions to trigger MirrorNode to fetch the transactions
   accountCreationShouldSucceed(accountManager, mirrorNodeCmd, namespace)
@@ -207,7 +208,7 @@ describe('MirrorNodeCommand', async () => {
       mirrorNodeCmd.logger.showUserError(e)
       expect.fail()
     }
-  }).timeout(1 * MINUTES)
+  }).timeout(MINUTES)
 
   it('should apply the mirror node version from the --mirror-node-version flag', async () => {
     const mirrorNodeVersion = '0.111.1'

@@ -30,6 +30,7 @@ import { getNodeLogs, getTmpDir } from '../../../src/core/helpers'
 import { NodeCommand } from '../../../src/commands/node'
 import { HEDERA_HAPI_PATH, MINUTES, ROOT_CONTAINER } from '../../../src/core/constants'
 import fs from 'fs'
+import { PodName } from '../../../src/types/aliases.js'
 
 describe('Node delete', async () => {
   const namespace = 'node-delete'
@@ -70,17 +71,20 @@ describe('Node delete', async () => {
       flags.quiet.constName
     ])
 
+    // @ts-ignore in order to access the private member
     await nodeCmd.accountManager.close()
   }).timeout(10 * MINUTES)
 
+  // @ts-ignore in order to access the private member
   balanceQueryShouldSucceed(nodeCmd.accountManager, nodeCmd, namespace)
 
+  // @ts-ignore in order to access the private member
   accountCreationShouldSucceed(nodeCmd.accountManager, nodeCmd, namespace)
 
   it('config.txt should no longer contain removed node alias name', async () => {
     // read config.txt file from first node, read config.txt line by line, it should not contain value of nodeAlias
     const pods = await k8.getPodsByLabel(['solo.hedera.com/type=network-node'])
-    const podName = pods[0].metadata.name
+    const podName = pods[0].metadata.name as PodName
     const tmpDir = getTmpDir()
     await k8.copyFrom(podName, ROOT_CONTAINER, `${HEDERA_HAPI_PATH}/config.txt`, tmpDir)
     const configTxt = fs.readFileSync(`${tmpDir}/config.txt`, 'utf8')

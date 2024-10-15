@@ -84,7 +84,7 @@ describe('Zippy', () => {
       const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'installer-'))
       const tarFile = `${tmpDir}/test.tar.gz`
       expect(zippy.tar('test/data/.empty', tarFile)).to.equal(tarFile)
-      expect(zippy.untar(tarFile, tmpDir, true)).to.equal(tmpDir)
+      expect(zippy.untar(tarFile, tmpDir)).to.equal(tmpDir)
       fs.rmSync(tmpDir, { recursive: true, force: true })
     })
   })

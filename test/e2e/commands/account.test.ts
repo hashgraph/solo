@@ -116,12 +116,14 @@ describe('AccountCommand', async () => {
   })
 
   describe('account create/update command', () => {
-    let accountId1, accountId2
+    let accountId1: string, accountId2: string
 
     it('should create account with no options', async () => {
       try {
         argv[flags.amount.name] = 200
         await expect(accountCmd.create(argv)).to.eventually.be.ok
+
+        // @ts-ignore to access the private property
         const accountInfo = accountCmd.accountInfo
 
         expect(accountInfo).not.to.be.null
@@ -146,6 +148,7 @@ describe('AccountCommand', async () => {
 
         await expect(accountCmd.create(argv)).to.eventually.be.ok
 
+        // @ts-ignore to access the private property
         const accountInfo = accountCmd.accountInfo
         expect(accountInfo).not.to.be.null
         expect(accountInfo.accountId).not.to.be.null
@@ -167,6 +170,7 @@ describe('AccountCommand', async () => {
 
         await expect(accountCmd.update(argv)).to.eventually.be.ok
 
+        // @ts-ignore to access the private property
         const accountInfo = accountCmd.accountInfo
         expect(accountInfo).not.to.be.null
         expect(accountInfo.accountId).to.equal(argv[flags.accountId.name])
@@ -188,6 +192,7 @@ describe('AccountCommand', async () => {
 
         await expect(accountCmd.update(argv)).to.eventually.be.ok
 
+        // @ts-ignore to access the private property
         const accountInfo = accountCmd.accountInfo
         expect(accountInfo).not.to.be.null
         expect(accountInfo.accountId).to.equal(argv[flags.accountId.name])
@@ -206,6 +211,7 @@ describe('AccountCommand', async () => {
         configManager.update(argv, true)
 
         await expect(accountCmd.get(argv)).to.eventually.be.ok
+        // @ts-ignore to access the private property
         const accountInfo = accountCmd.accountInfo
         expect(accountInfo).not.to.be.null
         expect(accountInfo.accountId).to.equal(argv[flags.accountId.name])
@@ -224,6 +230,7 @@ describe('AccountCommand', async () => {
         configManager.update(argv, true)
 
         await expect(accountCmd.get(argv)).to.eventually.be.ok
+        // @ts-ignore to access the private property
         const accountInfo = accountCmd.accountInfo
         expect(accountInfo).not.to.be.null
         expect(accountInfo.accountId).to.equal(argv[flags.accountId.name])
@@ -246,6 +253,7 @@ describe('AccountCommand', async () => {
 
         await expect(accountCmd.create(argv)).to.eventually.be.ok
 
+        // @ts-ignore to access the private property
         const newAccountInfo = accountCmd.accountInfo
         expect(newAccountInfo).not.to.be.null
         expect(newAccountInfo.accountId).not.to.be.null

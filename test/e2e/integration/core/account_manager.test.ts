@@ -21,6 +21,7 @@ import { flags } from '../../../../src/commands/index'
 import { bootstrapNetwork, getDefaultArgv, TEST_CLUSTER } from '../../../test_util'
 import * as version from '../../../../version'
 import { MINUTES } from '../../../../src/core/constants'
+import { PodName } from '../../../../src/types/aliases.js'
 
 describe('AccountManager', async () => {
   const namespace = 'account-mngr-e2e'
@@ -49,13 +50,15 @@ describe('AccountManager', async () => {
     await accountManager.close()
     const localHost = '127.0.0.1'
 
-    const podName = 'minio-console' // use a svc that is less likely to be used by other tests
+    const podName = 'minio-console' as PodName // use a svc that is less likely to be used by other tests
     const podPort = 9_090
     const localPort = 19_090
 
+    // @ts-ignore
     expect(accountManager._portForwards, 'starting accountManager port forwards lengths should be zero').to.have.lengthOf(0)
 
     // ports should be opened
+    // @ts-ignore
     accountManager._portForwards.push(await k8.portForward(podName, localPort, podPort))
     const status = await k8.testConnection(localHost, localPort)
     expect(status, 'test connection status should be true').to.be.ok
@@ -67,7 +70,7 @@ describe('AccountManager', async () => {
     } catch (e) {
       expect(e.message, 'expect failed test connection').to.include(`failed to connect to '${localHost}:${localPort}'`)
     }
-
+    // @ts-ignore
     expect(accountManager._portForwards, 'expect that the closed account manager should have no port forwards').to.have.lengthOf(0)
   })
 

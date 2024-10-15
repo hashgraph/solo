@@ -25,6 +25,7 @@ import * as os from 'os'
 import { IllegalArgumentError, MissingArgumentError } from '../../../src/core/errors'
 import { AccountManager } from '../../../src/core/account_manager'
 import { getK8Instance } from '../../test_util'
+import { PodName } from '../../../src/types/aliases.js'
 
 describe('PackageInstaller', () => {
   const testLogger = core.logging.NewLogger('debug', true)
@@ -33,7 +34,7 @@ describe('PackageInstaller', () => {
   const k8 = getK8Instance(configManager)
 
   const accountManager = new AccountManager(testLogger, k8)
-  const installer = new PlatformInstaller(testLogger, k8, configManager, accountManager)
+  const installer = new PlatformInstaller(testLogger, k8, configManager)
 
   describe('validatePlatformReleaseDir', () => {
     it('should fail for missing path', () => {
@@ -63,6 +64,7 @@ describe('PackageInstaller', () => {
       fs.mkdirSync(`${tmpDir}/${core.constants.HEDERA_DATA_APPS_DIR}`, { recursive: true })
       fs.mkdirSync(`${tmpDir}/${core.constants.HEDERA_DATA_LIB_DIR}`, { recursive: true })
       fs.writeFileSync(`${tmpDir}/${core.constants.HEDERA_DATA_LIB_DIR}/test.jar`, '')
+      // @ts-ignore
       expect(() => installer.validatePlatformReleaseDir()).to.throw(MissingArgumentError)
       fs.rmSync(tmpDir, { recursive: true })
     })
@@ -72,6 +74,7 @@ describe('PackageInstaller', () => {
       fs.mkdirSync(`${tmpDir}/${core.constants.HEDERA_DATA_APPS_DIR}`, { recursive: true })
       fs.writeFileSync(`${tmpDir}/${core.constants.HEDERA_DATA_APPS_DIR}/app.jar`, '')
       fs.mkdirSync(`${tmpDir}/${core.constants.HEDERA_DATA_LIB_DIR}`, { recursive: true })
+      // @ts-ignore
       expect(() => installer.validatePlatformReleaseDir()).to.throw(MissingArgumentError)
       fs.rmSync(tmpDir, { recursive: true })
     })
@@ -82,6 +85,7 @@ describe('PackageInstaller', () => {
       fs.writeFileSync(`${tmpDir}/${core.constants.HEDERA_DATA_APPS_DIR}/app.jar`, '')
       fs.mkdirSync(`${tmpDir}/${core.constants.HEDERA_DATA_LIB_DIR}`, { recursive: true })
       fs.writeFileSync(`${tmpDir}/${core.constants.HEDERA_DATA_LIB_DIR}/lib-1.jar`, '')
+      // @ts-ignore
       expect(() => installer.validatePlatformReleaseDir()).to.throw(MissingArgumentError)
       fs.rmSync(tmpDir, { recursive: true })
     })
@@ -89,7 +93,7 @@ describe('PackageInstaller', () => {
 
   describe('extractPlatform', () => {
     it('should fail for missing pod name', async () => {
-      await expect(installer.fetchPlatform('', 'v0.42.5')).to.be.rejectedWith(MissingArgumentError)
+      await expect(installer.fetchPlatform('' as PodName, 'v0.42.5')).to.be.rejectedWith(MissingArgumentError)
     })
     it('should fail for missing tag', async () => {
       await expect(installer.fetchPlatform('network-node1-0', '')).to.be.rejectedWith(MissingArgumentError)
@@ -98,10 +102,12 @@ describe('PackageInstaller', () => {
 
   describe('copyGossipKeys', () => {
     it('should fail for missing podName', async () => {
+      // @ts-ignore
       await expect(installer.copyGossipKeys('', os.tmpdir())).to.be.rejectedWith(MissingArgumentError)
     })
 
     it('should fail for missing stagingDir path', async () => {
+      // @ts-ignore
       await expect(installer.copyGossipKeys('node1', '')).to.be.rejectedWith(MissingArgumentError)
     })
   })

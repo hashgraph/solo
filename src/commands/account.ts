@@ -29,7 +29,13 @@ import { type Opts } from '../index'
 
 export class AccountCommand extends BaseCommand {
   private readonly accountManager: AccountManager;
-  private accountInfo: {accountId: string, balance: number, publicKey: string, privateKey?: string} | null;
+  private accountInfo: {
+    accountId: string,
+    balance: number,
+    publicKey: string,
+    privateKey?: string
+    accountAlias?: string
+  } | null;
   private readonly systemAccounts: number[][];
 
   constructor (opts: Opts, systemAccounts = constants.SYSTEM_ACCOUNTS) {

@@ -24,6 +24,7 @@ import {
 } from '../../test_util'
 import { getNodeLogs } from '../../../src/core/helpers'
 import { MINUTES } from '../../../src/core/constants'
+import { K8 } from '../../../src/core/index.js'
 
 describe('Node local build', () => {
   const LOCAL_HEDERA = 'local-hedera-app'
@@ -36,7 +37,7 @@ describe('Node local build', () => {
   argv[flags.chartDirectory.name] = process.env.SOLO_CHARTS_DIR ?? undefined
   argv[flags.quiet.name] = true
 
-  let hederaK8
+  let hederaK8: K8
   after(async function () {
     this.timeout(10 * MINUTES)
     await getNodeLogs(hederaK8, LOCAL_HEDERA)

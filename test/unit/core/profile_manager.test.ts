@@ -28,6 +28,7 @@ import {
 } from '../../../src/core/index'
 import { getTestCacheDir, getTmpDir, testLogger } from '../../test_util'
 import * as version from '../../../version'
+import { NodeAlias } from '../../../src/types/aliases.js'
 
 const tmpDir = getTmpDir()
 const configFile = path.join(tmpDir, 'resource-manager.config')
@@ -37,7 +38,7 @@ configManager.setFlag(flags.nodeAliasesUnparsed, 'node1,node2,node4')
 const testProfileFile = path.join('test', 'data', 'test-profiles.yaml')
 configManager.setFlag(flags.cacheDir, getTestCacheDir('ProfileManager'))
 configManager.setFlag(flags.releaseTag, version.HEDERA_PLATFORM_VERSION)
-const cacheDir = configManager.getFlag(flags.cacheDir)
+const cacheDir = <string>configManager.getFlag<string>(flags.cacheDir)
 configManager.setFlag(flags.apiPermissionProperties, path.join(cacheDir, 'templates', 'api-permission.properties'))
 configManager.setFlag(flags.applicationProperties, path.join(cacheDir, 'templates', 'application.properties'))
 configManager.setFlag(flags.bootstrapProperties, path.join(cacheDir, 'templates', 'bootstrap.properties'))
@@ -100,7 +101,7 @@ describe('ProfileManager', () => {
         expect(fs.existsSync(valuesFile)).to.be.ok
 
         // validate the yaml
-        const valuesYaml = yaml.load(fs.readFileSync(valuesFile).toString())
+        const valuesYaml: any = yaml.load(fs.readFileSync(valuesFile).toString())
         expect(valuesYaml.hedera.nodes.length).to.equal(3)
         expect(valuesYaml.defaults.root.resources.limits.cpu).not.to.be.null
         expect(valuesYaml.defaults.root.resources.limits.memory).not.to.be.null
@@ -132,7 +133,7 @@ describe('ProfileManager', () => {
         fs.writeFileSync(file, fileContents)
         configManager.setFlag(flags.applicationEnv, file)
         const cachedValuesFile = await profileManager.prepareValuesForSoloChart('test')
-        const valuesYaml = yaml.load(fs.readFileSync(cachedValuesFile).toString())
+        const valuesYaml: any = yaml.load(fs.readFileSync(cachedValuesFile).toString())
         expect(valuesYaml.hedera.configMaps.applicationEnv).to.equal(fileContents)
       })
 
@@ -141,11 +142,11 @@ describe('ProfileManager', () => {
         configManager.setFlag(flags.cacheDir, getTestCacheDir('ProfileManager'))
         configManager.setFlag(flags.releaseTag, version.HEDERA_PLATFORM_VERSION)
         profileManager.loadProfiles(true)
-        const valuesFile = await profileManager.prepareValuesForMirrorNodeChart(input.profileName)
+        const valuesFile = await profileManager.prepareValuesForMirrorNodeChart(input.profileName) as string
         expect(fs.existsSync(valuesFile)).to.be.ok
 
         // validate yaml
-        const valuesYaml = yaml.load(fs.readFileSync(valuesFile).toString())
+        const valuesYaml: any = yaml.load(fs.readFileSync(valuesFile).toString())
         expect(valuesYaml['hedera-mirror-node'].postgresql.persistence.size).not.to.be.null
         expect(valuesYaml['hedera-mirror-node'].postgresql.postgresql.resources.limits.cpu).not.to.be.null
         expect(valuesYaml['hedera-mirror-node'].postgresql.postgresql.resources.limits.memory).not.to.be.null
@@ -162,10 +163,10 @@ describe('ProfileManager', () => {
       it(`should determine rpc-relay chart values [profile = ${input.profileName}]`, async () => {
         configManager.setFlag(flags.profileFile, input.profileFile)
         profileManager.loadProfiles(true)
-        const valuesFile = await profileManager.prepareValuesForRpcRelayChart(input.profileName)
+        const valuesFile = await profileManager.prepareValuesForRpcRelayChart(input.profileName) as string
         expect(fs.existsSync(valuesFile)).to.be.ok
         // validate yaml
-        const valuesYaml = yaml.load(fs.readFileSync(valuesFile).toString())
+        const valuesYaml: any = yaml.load(fs.readFileSync(valuesFile).toString())
         expect(valuesYaml.resources.limits.cpu).not.to.be.null
         expect(valuesYaml.resources.limits.memory).not.to.be.null
       })
@@ -174,7 +175,7 @@ describe('ProfileManager', () => {
 
   describe('prepareConfigText', () => {
     it('should write and return the path to the config.txt file', () => {
-      const nodeAccountMap = /** @type {Map<string, string>} */ new Map()
+      const nodeAccountMap: Map<NodeAlias, string> = new Map()
       nodeAccountMap.set('node1', '0.0.3')
       nodeAccountMap.set('node2', '0.0.4')
       nodeAccountMap.set('node3', '0.0.5')
@@ -202,20 +203,20 @@ describe('ProfileManager', () => {
     })
 
     it('should fail when no nodeAliases', () => {
-      const nodeAccountMap = /** @type {Map<string, string>} */ new Map()
+      const nodeAccountMap: Map<NodeAlias, string> = new Map()
       expect(() => profileManager.prepareConfigTxt('', nodeAccountMap, '', version.HEDERA_PLATFORM_VERSION))
         .to.throw('nodeAccountMap the map of node IDs to account IDs is required')
     })
 
     it('should fail when no releaseTag is provided', () => {
-      const nodeAccountMap = /** @type {Map<string, string>} */ new Map()
+      const nodeAccountMap: Map<NodeAlias, string> = new Map()
       nodeAccountMap.set('node1', '0.0.3')
       expect(() => profileManager.prepareConfigTxt('', nodeAccountMap, '', undefined))
         .to.throw('release tag is required')
     })
 
     it('should fail when destPath does not exist', () => {
-      const nodeAccountMap = /** @type {Map<string, string>} */ new Map()
+      const nodeAccountMap: Map<NodeAlias, string> = new Map()
       nodeAccountMap.set('node1', '0.0.3')
       const destPath = path.join(tmpDir, 'missing-directory')
       try {

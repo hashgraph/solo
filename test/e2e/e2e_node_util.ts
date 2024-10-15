@@ -31,8 +31,11 @@ import {
 import { getNodeLogs, sleep } from '../../src/core/helpers'
 import { NodeCommand } from '../../src/commands/node'
 import { MINUTES, SECONDS } from '../../src/core/constants'
+import { NodeAlias, NodeAliases } from '../../src/types/aliases.js'
+import { ListrTaskWrapper } from 'listr2'
+import { K8 } from '../../src/core/index.js'
 
-export function e2eNodeKeyRefreshTest (testName, mode, releaseTag = HEDERA_PLATFORM_VERSION_TAG) {
+export function e2eNodeKeyRefreshTest (testName: string, mode: string, releaseTag = HEDERA_PLATFORM_VERSION_TAG) {
   const defaultTimeout = 2 * MINUTES
 
   describe(`NodeCommand [testName ${testName}, mode ${mode}, release ${releaseTag}]`, async () => {
@@ -94,13 +97,12 @@ export function e2eNodeKeyRefreshTest (testName, mode, releaseTag = HEDERA_PLATF
     describe(
       `Node should refresh successfully [mode ${mode}, release ${releaseTag}]`,
       () => {
-        const nodeAlias = 'node1'
+        const nodeAlias = 'node1' as string
 
         before(async function () {
           this.timeout(2 * MINUTES)
 
-          const podName = await nodeRefreshTestSetup(argv, testName, k8,
-            nodeAlias)
+          const podName = await nodeRefreshTestSetup(argv, testName, k8, nodeAlias)
           if (mode === 'kill') {
             const resp = await k8.kubeClient.deleteNamespacedPod(podName,
               namespace)
@@ -114,20 +116,21 @@ export function e2eNodeKeyRefreshTest (testName, mode, releaseTag = HEDERA_PLATF
           }
         })
 
-        nodePodShouldBeRunning(nodeCmd, namespace, nodeAlias)
+        nodePodShouldBeRunning(nodeCmd, namespace, nodeAlias as NodeAlias)
 
-        nodeShouldNotBeActive(nodeCmd, nodeAlias)
+        nodeShouldNotBeActive(nodeCmd, nodeAlias as NodeAlias)
 
-        nodeRefreshShouldSucceed(nodeAlias, nodeCmd, argv)
+        nodeRefreshShouldSucceed(nodeAlias as NodeAlias, nodeCmd, argv)
 
         balanceQueryShouldSucceed(accountManager, nodeCmd, namespace)
 
         accountCreationShouldSucceed(accountManager, nodeCmd, namespace)
       })
 
-    function nodePodShouldBeRunning (nodeCmd, namespace, nodeAlias) {
+    function nodePodShouldBeRunning (nodeCmd: NodeCommand, namespace: string, nodeAlias: NodeAlias) {
       it(`${nodeAlias} should be running`, async () => {
         try {
+          // @ts-ignore to access tasks which is a private property
           await expect(nodeCmd.tasks.checkNetworkNodePod(namespace,
             nodeAlias)).to.eventually.be.ok
         } catch (e) {
@@ -139,7 +142,7 @@ export function e2eNodeKeyRefreshTest (testName, mode, releaseTag = HEDERA_PLATF
       }).timeout(defaultTimeout)
     }
 
-    function nodeRefreshShouldSucceed (nodeAlias, nodeCmd, argv) {
+    function nodeRefreshShouldSucceed (nodeAlias: NodeAlias, nodeCmd: NodeCommand, argv: Record<any, any>) {
       it(`${nodeAlias} refresh should succeed`, async () => {
         try {
           await expect(nodeCmd.refresh(argv)).to.eventually.be.ok
@@ -158,12 +161,13 @@ export function e2eNodeKeyRefreshTest (testName, mode, releaseTag = HEDERA_PLATF
       }).timeout(20 * MINUTES)
     }
 
-    function nodeShouldNotBeActive (nodeCmd, nodeAlias) {
+    function nodeShouldNotBeActive (nodeCmd: NodeCommand, nodeAlias: NodeAlias) {
       it(`${nodeAlias} should not be ACTIVE`, async () => {
         expect(2)
         try {
           await expect(
-            nodeCmd.checkNetworkNodeActiveness(namespace, nodeAlias, { title: '' }, '', 44, undefined, 15)
+            nodeCmd.checkNetworkNodeActiveness(namespace, nodeAlias, { title: '' } as ListrTaskWrapper<any, any, any>,
+              '', 44, undefined, 15)
           ).to.be.rejected
         } catch (e) {
           expect(e).not.to.be.null
@@ -173,7 +177,7 @@ export function e2eNodeKeyRefreshTest (testName, mode, releaseTag = HEDERA_PLATF
       }).timeout(defaultTimeout)
     }
 
-    async function nodeRefreshTestSetup (argv, testName, k8, nodeAliases) {
+    async function nodeRefreshTestSetup (argv: Record<any, any>, testName: string, k8: K8, nodeAliases: string) {
       argv[flags.nodeAliasesUnparsed.name] = nodeAliases
       const configManager = getTestConfigManager(`${testName}-solo.yaml`)
       configManager.update(argv, true)

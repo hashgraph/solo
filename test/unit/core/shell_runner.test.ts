@@ -14,7 +14,7 @@
  * limitations under the License.
  *
  */
-import sinon from 'sinon'
+import sinon, { SinonSpy, SinonStub } from 'sinon'
 import { expect } from 'chai'
 import { describe, it, beforeEach, afterEach } from 'mocha'
 import { ShellRunner } from '../../../src/core/shell_runner'
@@ -24,7 +24,11 @@ import { Readable } from 'stream'
 import { SECONDS } from '../../../src/core/constants'
 
 describe('ShellRunner', () => {
-  let logger, shellRunner, loggerStub, childProcessSpy, readableSpy
+  let logger: SoloLogger,
+    shellRunner: ShellRunner,
+    loggerStub: SinonStub,
+    childProcessSpy: SinonSpy,
+    readableSpy: SinonSpy
 
   beforeEach(() => {
     logger = NewLogger('debug')

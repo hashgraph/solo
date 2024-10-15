@@ -73,6 +73,7 @@ describe('PackageInstallerE2E', async () => {
   describe('fetchPlatform', () => {
     it('should fail with invalid pod', async () => {
       try {
+        // @ts-expect-error
         await installer.fetchPlatform('', packageVersion)
         throw new Error()
       } catch (e) {
@@ -80,6 +81,7 @@ describe('PackageInstallerE2E', async () => {
       }
 
       try {
+        // @ts-expect-error
         await installer.fetchPlatform('INVALID', packageVersion)
       } catch (e) {
         expect(e.message).to.include('failed to extract platform code in this pod')

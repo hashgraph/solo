@@ -42,6 +42,7 @@ import {
 } from '@kubernetes/client-node'
 import crypto from 'crypto'
 import { MINUTES } from '../../../../src/core/constants'
+import { PodName } from '../../../../src/types/aliases.js'
 
 const defaultTimeout = 2 * MINUTES
 
@@ -51,7 +52,7 @@ describe('K8', () => {
   const k8 = new K8(configManager, testLogger)
   const testNamespace = 'k8-e2e'
   const argv = []
-  const podName = `test-pod-${uuid4()}`
+  const podName = `test-pod-${uuid4()}` as PodName
   const containerName = 'alpine'
   const podLabelValue = `test-${uuid4()}`
   const serviceName = `test-service-${uuid4()}`
@@ -66,7 +67,7 @@ describe('K8', () => {
       }
       const v1Pod = new V1Pod()
       const v1Metadata = new V1ObjectMeta()
-      v1Metadata.name = podName
+      v1Metadata.name = podName as PodName
       v1Metadata.namespace = testNamespace
       v1Metadata.labels = { app: podLabelValue }
       v1Pod.metadata = v1Metadata
@@ -115,7 +116,7 @@ describe('K8', () => {
   })
 
   it('should be able to list clusters', async () => {
-    const clusters = await k8.getClusters()
+    const clusters = k8.getClusters()
     expect(clusters).not.to.have.lengthOf(0)
   }).timeout(defaultTimeout)
 
@@ -163,7 +164,7 @@ describe('K8', () => {
 
   it('should be able to detect pod IP of a pod', async () => {
     const pods = await k8.getPodsByLabel([`app=${podLabelValue}`])
-    const podName = pods[0].metadata.name
+    const podName = pods[0].metadata.name as PodName
     await expect(k8.getPodIP(podName)).to.eventually.not.be.null
     await expect(k8.getPodIP('INVALID')).to.be.rejectedWith(SoloError)
   }).timeout(defaultTimeout)
@@ -175,7 +176,7 @@ describe('K8', () => {
 
   it('should be able to check if a path is directory inside a container', async () => {
     const pods = await k8.getPodsByLabel([`app=${podLabelValue}`])
-    const podName = pods[0].metadata.name
+    const podName = pods[0].metadata.name as PodName
     await expect(k8.hasDir(podName, containerName, '/tmp')).to.eventually.be.ok
   }).timeout(defaultTimeout)
 
@@ -218,9 +219,9 @@ describe('K8', () => {
 
   it('should be able to port forward gossip port', (done) => {
     const podName = Templates.renderNetworkPodName('node1')
-    const localPort = constants.HEDERA_NODE_INTERNAL_GOSSIP_PORT
+    const localPort = +constants.HEDERA_NODE_INTERNAL_GOSSIP_PORT
     try {
-      k8.portForward(podName, localPort, constants.HEDERA_NODE_INTERNAL_GOSSIP_PORT).then((server) => {
+      k8.portForward(podName, localPort, +constants.HEDERA_NODE_INTERNAL_GOSSIP_PORT).then((server) => {
         expect(server).not.to.be.null
 
         // client
@@ -249,12 +250,12 @@ describe('K8', () => {
   it('should be able to cat a file inside the container', async () => {
     const pods = await k8.getPodsByLabel([`app=${podLabelValue}`])
     const podName = pods[0].metadata.name
-    const output = await k8.execContainer(podName, containerName, ['cat', '/etc/hostname'])
+    const output = await k8.execContainer(podName as PodName, containerName, ['cat', '/etc/hostname'])
     expect(output.indexOf(podName)).to.equal(0)
   }).timeout(defaultTimeout)
 
   it('should be able to list persistent volume claims', async () => {
-    const v1Pvc = new V1PersistentVolumeClaim()
+    const v1Pvc = new V1PersistentVolumeClaim() as V1PersistentVolumeClaim & { name: string }
     try {
       v1Pvc.name = `test-pvc-${uuid4()}`
       const v1Spec = new V1PersistentVolumeClaimSpec()
