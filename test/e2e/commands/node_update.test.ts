@@ -31,6 +31,7 @@ import { getNodeLogs } from '../../../src/core/helpers'
 import { NodeCommand } from '../../../src/commands/node'
 import { HEDERA_HAPI_PATH, MINUTES, ROOT_CONTAINER } from '../../../src/core/constants'
 import fs from 'fs'
+import { PodName } from '../../../src/types/aliases.js'
 
 describe('Node update', async () => {
   const defaultTimeout = 2 * MINUTES
@@ -54,6 +55,12 @@ describe('Node update', async () => {
   argv[flags.quiet.name] = true
   const bootstrapResp = await bootstrapNetwork(namespace, argv)
   const nodeCmd = bootstrapResp.cmd.nodeCmd
+
+  // @ts-ignore in order to access the private member
+  const accountManager = nodeCmd.accountManager
+  // @ts-ignore in order to access the private member
+  const keyManager = nodeCmd.keyManager
+
   const accountCmd = bootstrapResp.cmd.accountCmd
   const k8 = bootstrapResp.opts.k8
   let existingServiceMap
@@ -68,7 +75,7 @@ describe('Node update', async () => {
   })
 
   it('cache current version of private keys', async () => {
-    existingServiceMap = await nodeCmd.accountManager.getNodeServiceMap(namespace)
+    existingServiceMap = await accountManager.getNodeServiceMap(namespace)
     existingNodeIdsPrivateKeysHash = await getNodeAliasesPrivateKeysHash(existingServiceMap, namespace, k8, getTmpDir())
   }).timeout(defaultTimeout)
 
@@ -81,14 +88,14 @@ describe('Node update', async () => {
     // generate gossip and tls keys for the updated node
     const tmpDir = getTmpDir()
 
-    const signingKey = await nodeCmd.keyManager.generateSigningKey(updateNodeId)
-    const signingKeyFiles = await nodeCmd.keyManager.storeSigningKey(updateNodeId, signingKey, tmpDir)
+    const signingKey = await keyManager.generateSigningKey(updateNodeId)
+    const signingKeyFiles = await keyManager.storeSigningKey(updateNodeId, signingKey, tmpDir)
     nodeCmd.logger.debug(`generated test gossip signing keys for node ${updateNodeId} : ${signingKeyFiles.certificateFile}`)
     argv[flags.gossipPublicKey.name] = signingKeyFiles.certificateFile
     argv[flags.gossipPrivateKey.name] = signingKeyFiles.privateKeyFile
 
-    const tlsKey = await nodeCmd.keyManager.generateGrpcTLSKey(updateNodeId)
-    const tlsKeyFiles = await nodeCmd.keyManager.storeTLSKey(updateNodeId, tlsKey, tmpDir)
+    const tlsKey = await keyManager.generateGrpcTLSKey(updateNodeId)
+    const tlsKeyFiles = await keyManager.storeTLSKey(updateNodeId, tlsKey, tmpDir)
     nodeCmd.logger.debug(`generated test TLS keys for node ${updateNodeId} : ${tlsKeyFiles.certificateFile}`)
     argv[flags.tlsPublicKey.name] = tlsKeyFiles.certificateFile
     argv[flags.tlsPrivateKey.name] = tlsKeyFiles.privateKeyFile
@@ -99,12 +106,12 @@ describe('Node update', async () => {
       flags.devMode.constName,
       flags.quiet.constName
     ])
-    await nodeCmd.accountManager.close()
+    await accountManager.close()
   }).timeout(30 * MINUTES)
 
-  balanceQueryShouldSucceed(nodeCmd.accountManager, nodeCmd, namespace)
+  balanceQueryShouldSucceed(accountManager, nodeCmd, namespace)
 
-  accountCreationShouldSucceed(nodeCmd.accountManager, nodeCmd, namespace)
+  accountCreationShouldSucceed(accountManager, nodeCmd, namespace)
 
   it('signing key and tls key should not match previous one', async () => {
     const currentNodeIdsPrivateKeysHash = await getNodeAliasesPrivateKeysHash(existingServiceMap, namespace, k8, getTmpDir())
@@ -128,7 +135,7 @@ describe('Node update', async () => {
   it('config.txt should be changed with new account id', async () => {
     // read config.txt file from first node, read config.txt line by line, it should not contain value of newAccountId
     const pods = await k8.getPodsByLabel(['solo.hedera.com/type=network-node'])
-    const podName = pods[0].metadata.name
+    const podName = pods[0].metadata.name as PodName
     const tmpDir = getTmpDir()
     await k8.copyFrom(podName, ROOT_CONTAINER, `${HEDERA_HAPI_PATH}/config.txt`, tmpDir)
     const configTxt = fs.readFileSync(`${tmpDir}/config.txt`, 'utf8')

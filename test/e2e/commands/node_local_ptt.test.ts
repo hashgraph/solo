@@ -21,6 +21,7 @@ import { flags } from '../../../src/commands/index'
 import { bootstrapNetwork, getDefaultArgv, TEST_CLUSTER } from '../../test_util'
 import { getNodeLogs } from '../../../src/core/helpers'
 import { MINUTES } from '../../../src/core/constants'
+import { K8 } from '../../../src/core'
 
 describe('Node local build', () => {
   const LOCAL_PTT = 'local-ptt-app'
@@ -33,7 +34,7 @@ describe('Node local build', () => {
   argv[flags.chartDirectory.name] = process.env.SOLO_CHARTS_DIR ?? undefined
   argv[flags.quiet.name] = true
 
-  /** @type {K8} */ let pttK8
+  let pttK8: K8
   after(async function () {
     this.timeout(2 * MINUTES)
 

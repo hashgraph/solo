@@ -30,10 +30,11 @@ import { getNodeLogs, getTmpDir } from '../../../src/core/helpers'
 import { NodeCommand } from '../../../src/commands/node'
 import { HEDERA_HAPI_PATH, MINUTES, ROOT_CONTAINER } from '../../../src/core/constants'
 import fs from 'fs'
+import { NodeAlias, PodName } from '../../../src/types/aliases.js'
 
 describe('Node delete via separated commands', async () => {
   const namespace = 'node-delete-separate'
-  const nodeAlias = 'node1'
+  const nodeAlias = 'node1' as NodeAlias
   const argv = getDefaultArgv()
   argv[flags.nodeAliasesUnparsed.name] = 'node1,node2,node3,node4'
   argv[flags.nodeAlias.name] = nodeAlias
@@ -54,6 +55,10 @@ describe('Node delete via separated commands', async () => {
 
   const bootstrapResp = await bootstrapNetwork(namespace, argv)
   const nodeCmd = bootstrapResp.cmd.nodeCmd
+
+  // @ts-ignore in order to access private property
+  const accountManager = nodeCmd.accountManager
+
   const accountCmd = bootstrapResp.cmd.accountCmd
   const k8 = bootstrapResp.opts.k8
 
@@ -82,17 +87,17 @@ describe('Node delete via separated commands', async () => {
       'freezeAdminPrivateKey'
     ])
 
-    await nodeCmd.accountManager.close()
+    await accountManager.close()
   }).timeout(10 * MINUTES)
 
-  balanceQueryShouldSucceed(nodeCmd.accountManager, nodeCmd, namespace)
+  balanceQueryShouldSucceed(accountManager, nodeCmd, namespace)
 
-  accountCreationShouldSucceed(nodeCmd.accountManager, nodeCmd, namespace)
+  accountCreationShouldSucceed(accountManager, nodeCmd, namespace)
 
   it('config.txt should no longer contain removed nodeAlias', async () => {
     // read config.txt file from first node, read config.txt line by line, it should not contain value of nodeAlias
     const pods = await k8.getPodsByLabel(['solo.hedera.com/type=network-node'])
-    const podName = pods[0].metadata.name
+    const podName = pods[0].metadata.name as PodName
     const tmpDir = getTmpDir()
     await k8.copyFrom(podName, ROOT_CONTAINER, `${HEDERA_HAPI_PATH}/config.txt`, tmpDir)
     const configTxt = fs.readFileSync(`${tmpDir}/config.txt`, 'utf8')

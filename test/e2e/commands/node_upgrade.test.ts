@@ -79,6 +79,8 @@ describe('Node upgrade', async () => {
     expect(nodeCmd.getUnusedConfigs(PREPARE_UPGRADE_CONFIGS_NAME)).to.deep.equal([
       flags.devMode.constName
     ])
+
+    // @ts-ignore in order to access the private member
     await nodeCmd.accountManager.close()
   }).timeout(5 * MINUTES)
 })
