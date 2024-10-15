@@ -14,6 +14,8 @@
  * limitations under the License.
  *
  */
+import 'sinon-chai'
+
 import sinon, { SinonSpy, SinonStub } from 'sinon'
 import { expect } from 'chai'
 import { describe, it, beforeEach, afterEach } from 'mocha'

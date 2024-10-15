@@ -14,6 +14,8 @@
  * limitations under the License.
  *
  */
+import 'chai-as-promised'
+
 import { expect } from 'chai'
 import { describe, it } from 'mocha'
 

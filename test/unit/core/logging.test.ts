@@ -14,7 +14,9 @@
  * limitations under the License.
  *
  */
-import sinon from 'sinon'
+import 'sinon-chai'
+
+import sinon, { SinonSpy } from 'sinon'
 import { expect } from 'chai'
 import { describe, it, afterEach, beforeEach } from 'mocha'
 
@@ -22,8 +24,8 @@ import { NewLogger, SoloLogger } from '../../../src/core/logging.ts'
 import winston from 'winston'
 
 describe('Logging', () => {
-  /** @type {SoloLogger} */ let logger
-  /** @type {sinon.SinonStub} */ let loggerSpy
+  let logger: SoloLogger
+  let loggerSpy: SinonSpy
 
   beforeEach(() => {
     logger = NewLogger('debug')

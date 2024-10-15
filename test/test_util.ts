@@ -15,6 +15,8 @@
  *
  * @mocha-environment steps
  */
+import 'chai-as-promised'
+
 import { expect } from 'chai'
 import { describe, it, after, before } from 'mocha'
 
