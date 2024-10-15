@@ -17,9 +17,10 @@
 import type * as x509 from '@peculiar/x509'
 import type net from 'net'
 import type * as WebSocket from 'ws'
+import crypto from 'crypto'
 
 export interface NodeKeyObject {
-  privateKey: CryptoKey
+  privateKey: crypto.webcrypto.CryptoKey
   certificate: x509.X509Certificate
   certificateChain: x509.X509Certificates
 }

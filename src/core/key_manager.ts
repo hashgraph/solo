@@ -27,7 +27,6 @@ import chalk from 'chalk'
 import { type NodeAlias, type NodeAliases } from '../types/aliases.ts'
 import { type NodeKeyObject, type PrivateKeyAndCertificateObject } from '../types/index.ts'
 
-
 // @ts-ignore
 x509.cryptoProvider.set(crypto)
 
