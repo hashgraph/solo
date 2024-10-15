@@ -17,7 +17,7 @@
 import { it, describe, after, before } from 'mocha'
 import { expect } from 'chai'
 
-import { constants } from '../../../../src/core/index'
+import { constants } from '../../../../src/core/index.ts'
 import * as fs from 'fs'
 
 import {
@@ -26,10 +26,10 @@ import {
   getTestCacheDir,
   TEST_CLUSTER,
   testLogger
-} from '../../../test_util'
-import { flags } from '../../../../src/commands/index'
-import * as version from '../../../../version'
-import { MINUTES, SECONDS } from '../../../../src/core/constants'
+} from '../../../test_util.ts'
+import { flags } from '../../../../src/commands/index.ts'
+import * as version from '../../../../version.ts'
+import { MINUTES, SECONDS } from '../../../../src/core/constants.ts'
 
 const defaultTimeout = 20 * SECONDS
 
@@ -73,7 +73,7 @@ describe('PackageInstallerE2E', async () => {
   describe('fetchPlatform', () => {
     it('should fail with invalid pod', async () => {
       try {
-        // @ts-expect-error
+        // @ts-ignore
         await installer.fetchPlatform('', packageVersion)
         throw new Error()
       } catch (e) {
@@ -81,7 +81,7 @@ describe('PackageInstallerE2E', async () => {
       }
 
       try {
-        // @ts-expect-error
+        // @ts-ignore
         await installer.fetchPlatform('INVALID', packageVersion)
       } catch (e) {
         expect(e.message).to.include('failed to extract platform code in this pod')

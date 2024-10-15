@@ -16,12 +16,12 @@
  */
 
 import paths from 'path'
-import { MissingArgumentError } from '../core/errors'
-import { ShellRunner } from '../core/shell_runner'
-import {type ChartManager, type ConfigManager, type Helm, type K8} from "../core";
-import {type DependencyManager} from "../core/dependency_managers";
-import {type CommandFlag} from "./flags";
-import { type Opts } from '../index'
+import { MissingArgumentError } from '../core/errors.ts'
+import { ShellRunner } from '../core/shell_runner.ts'
+import {type ChartManager, type ConfigManager, type Helm, type K8} from "../core/index.ts"
+import {type DependencyManager} from "../core/dependency_managers/index.ts"
+import {type CommandFlag} from "./flags.ts"
+import { type Opts } from '../index.ts'
 
 export class BaseCommand extends ShellRunner {
   protected readonly helm: Helm

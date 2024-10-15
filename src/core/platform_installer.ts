@@ -17,15 +17,15 @@
 import * as fs from 'fs'
 import {Listr} from 'listr2'
 import * as path from 'path'
-import { SoloError, IllegalArgumentError, MissingArgumentError } from './errors'
-import {type ConfigManager, constants, type K8} from './index'
-import {Templates} from './templates'
-import { flags } from '../commands/index'
+import { SoloError, IllegalArgumentError, MissingArgumentError } from './errors.ts'
+import {type ConfigManager, constants, type K8} from './index.ts'
+import {Templates} from './templates.ts'
+import { flags } from '../commands/index.ts'
 import * as Base64 from 'js-base64'
 import chalk from 'chalk'
 
-import {type SoloLogger} from "./logging";
-import {NodeAlias, NodeAliases, PodName} from '../types/aliases'
+import {type SoloLogger} from "./logging.ts"
+import {NodeAlias, NodeAliases, PodName} from '../types/aliases.ts'
 
 /** PlatformInstaller install platform code in the root-container of a network pod */
 export class PlatformInstaller {

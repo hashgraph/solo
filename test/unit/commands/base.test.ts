@@ -16,17 +16,17 @@
  */
 import { expect } from 'chai'
 
-import { HelmDependencyManager, DependencyManager } from '../../../src/core/dependency_managers/index'
+import { HelmDependencyManager, DependencyManager } from '../../../src/core/dependency_managers/index.ts'
 import {
   ChartManager,
   ConfigManager,
   Helm,
   logging, PackageDownloader, Zippy,
   constants
-} from '../../../src/core/index'
-import { BaseCommand } from '../../../src/commands/base'
-import * as flags from '../../../src/commands/flags'
-import { getK8Instance } from '../../test_util'
+} from '../../../src/core/index.ts'
+import { BaseCommand } from '../../../src/commands/base.ts'
+import * as flags from '../../../src/commands/flags.ts'
+import { getK8Instance } from '../../test_util.ts'
 
 const testLogger = logging.NewLogger('debug', true)
 

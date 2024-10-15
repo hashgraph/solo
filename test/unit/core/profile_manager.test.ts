@@ -20,14 +20,14 @@ import { describe, it, after } from 'mocha'
 import fs from 'fs'
 import * as yaml from 'js-yaml'
 import path from 'path'
-import { flags } from '../../../src/commands/index'
+import { flags } from '../../../src/commands/index.ts'
 import {
   ConfigManager,
   constants,
   ProfileManager
-} from '../../../src/core/index'
-import { getTestCacheDir, getTmpDir, testLogger } from '../../test_util'
-import * as version from '../../../version'
+} from '../../../src/core/index.ts'
+import { getTestCacheDir, getTmpDir, testLogger } from '../../test_util.ts'
+import * as version from '../../../version.ts'
 import { NodeAlias } from '../../../src/types/aliases.js'
 
 const tmpDir = getTmpDir()

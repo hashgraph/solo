@@ -18,7 +18,7 @@
 import { it, describe, after, before, afterEach } from 'mocha'
 import { expect } from 'chai'
 
-import { flags } from '../../src/commands/index'
+import { flags } from '../../src/commands/index.ts'
 import {
   accountCreationShouldSucceed,
   balanceQueryShouldSucceed,
@@ -27,10 +27,10 @@ import {
   getTestConfigManager,
   HEDERA_PLATFORM_VERSION_TAG,
   TEST_CLUSTER
-} from '../test_util'
-import { getNodeLogs, sleep } from '../../src/core/helpers'
-import { NodeCommand } from '../../src/commands/node'
-import { MINUTES, SECONDS } from '../../src/core/constants'
+} from '../test_util.ts'
+import { getNodeLogs, sleep } from '../../src/core/helpers.ts'
+import { NodeCommand } from '../../src/commands/node.ts'
+import { MINUTES, SECONDS } from '../../src/core/constants.ts'
 import { NodeAlias, NodeAliases } from '../../src/types/aliases.js'
 import { ListrTaskWrapper } from 'listr2'
 import { K8 } from '../../src/core/index.js'

@@ -20,8 +20,8 @@ import { describe, it } from 'mocha'
 import fs from 'fs'
 import os from 'os'
 import path from 'path'
-import { constants, logging, KeyManager } from '../../../src/core/index'
-import { SECONDS } from '../../../src/core/constants'
+import { constants, logging, KeyManager } from '../../../src/core/index.ts'
+import { SECONDS } from '../../../src/core/constants.ts'
 import { NodeAlias } from '../../../src/types/aliases.js'
 
 describe('KeyManager', () => {

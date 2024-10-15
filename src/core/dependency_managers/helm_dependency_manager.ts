@@ -18,14 +18,14 @@ import fs from 'fs'
 import os from 'os'
 import path from 'path'
 import * as util from 'util'
-import { IllegalArgumentError, MissingArgumentError } from '../errors'
-import * as helpers from '../helpers'
-import {constants, type PackageDownloader, Templates, type Zippy} from '../index'
-import * as version from '../../../version'
-import { ShellRunner } from '../shell_runner'
+import { IllegalArgumentError, MissingArgumentError } from '../errors.ts'
+import * as helpers from '../helpers.ts'
+import {constants, type PackageDownloader, Templates, type Zippy} from '../index.ts'
+import * as version from '../../../version.ts'
+import { ShellRunner } from '../shell_runner.ts'
 import * as semver from 'semver'
-import { OS_WIN32, OS_WINDOWS } from '../constants'
-import { type SoloLogger} from "../logging";
+import { OS_WIN32, OS_WINDOWS } from '../constants.ts'
+import { type SoloLogger} from "../logging.ts"
 
 // constants required by HelmDependencyManager
 const HELM_RELEASE_BASE_URL = 'https://get.helm.sh'

@@ -18,12 +18,12 @@ import { after, afterEach, describe } from 'mocha'
 import { expect } from 'chai'
 import each from 'mocha-each'
 
-import { flags } from '../../../src/commands/index'
-import { bootstrapNetwork, getDefaultArgv, HEDERA_PLATFORM_VERSION_TAG, TEST_CLUSTER } from '../../test_util'
-import * as version from '../../../version'
-import { getNodeLogs, sleep } from '../../../src/core/helpers'
-import { RelayCommand } from '../../../src/commands/relay'
-import { MINUTES } from '../../../src/core/constants'
+import { flags } from '../../../src/commands/index.ts'
+import { bootstrapNetwork, getDefaultArgv, HEDERA_PLATFORM_VERSION_TAG, TEST_CLUSTER } from '../../test_util.ts'
+import * as version from '../../../version.ts'
+import { getNodeLogs, sleep } from '../../../src/core/helpers.ts'
+import { RelayCommand } from '../../../src/commands/relay.ts'
+import { MINUTES } from '../../../src/core/constants.ts'
 
 describe('RelayCommand', async () => {
   const testName = 'relay-cmd-e2e'

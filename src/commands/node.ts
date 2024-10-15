@@ -19,8 +19,8 @@ import chalk from 'chalk'
 import * as fs from 'fs'
 import {Listr, ListrTaskWrapper} from 'listr2'
 import path from 'path'
-import { SoloError, IllegalArgumentError } from '../core/errors'
-import * as helpers from '../core/helpers'
+import { SoloError, IllegalArgumentError } from '../core/errors.ts'
+import * as helpers from '../core/helpers.ts'
 import {
   addDebugOptions,
   getNodeAccountMap,
@@ -28,7 +28,7 @@ import {
   renameAndCopyFile,
   sleep,
   validatePath
-} from '../core/helpers'
+} from '../core/helpers.ts'
 import {
   constants,
   K8,
@@ -37,10 +37,10 @@ import {
   ProfileManager,
   Templates,
   YargsCommand
-} from '../core'
-import { BaseCommand } from './base'
-import * as flags from './flags'
-import * as prompts from './prompts'
+} from '../core/index.ts'
+import { BaseCommand } from './base.ts'
+import * as flags from './flags.ts'
+import * as prompts from './prompts.ts'
 
 import {
   AccountBalanceQuery,
@@ -59,16 +59,16 @@ import {
   HEDERA_NODE_DEFAULT_STAKE_AMOUNT,
   TREASURY_ACCOUNT_ID,
   LOCAL_HOST, SECONDS
-} from '../core/constants'
-import { NodeStatusCodes, NodeStatusEnums } from '../core/enumerations'
-import { NodeCommandTasks } from './node/tasks'
-import { downloadGeneratedFilesConfigBuilder, prepareUpgradeConfigBuilder } from './node/configs'
+} from '../core/constants.ts'
+import { NodeStatusCodes, NodeStatusEnums } from '../core/enumerations.ts'
+import { NodeCommandTasks } from './node/tasks.ts'
+import { downloadGeneratedFilesConfigBuilder, prepareUpgradeConfigBuilder } from './node/configs.ts'
 
-import { type NetworkNodeServices } from "../core/network_node_services";
-import { type AccountManager } from "../core/account_manager";
-import { type Opts } from '../index'
-import { type NodeAlias, type NodeAliases, type PodName } from '../types/aliases'
-import { type ExtendedNetServer } from '../types'
+import { type NetworkNodeServices } from "../core/network_node_services.ts"
+import { type AccountManager } from "../core/account_manager.ts"
+import { type Opts } from '../index.ts'
+import { type NodeAlias, type NodeAliases, type PodName } from '../types/aliases.ts'
+import { type ExtendedNetServer } from '../types/index.ts'
 
 export interface NodeAddConfigClass {
   app: string

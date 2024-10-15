@@ -14,7 +14,7 @@
  * limitations under the License.
  *
  */
-import {FREEZE_ADMIN_ACCOUNT} from '../../core/constants'
+import {FREEZE_ADMIN_ACCOUNT} from '../../core/constants.ts'
 
 export const PREPARE_UPGRADE_CONFIGS_NAME = 'prepareUpgradeConfig'
 export const DOWNLOAD_GENERATED_FILES_CONFIGS_NAME = 'downloadGeneratedFilesConfig'

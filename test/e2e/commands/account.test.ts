@@ -19,19 +19,19 @@ import { it, describe, after, before } from 'mocha'
 import { expect } from 'chai'
 
 import { AccountId, PrivateKey } from '@hashgraph/sdk'
-import { constants } from '../../../src/core/index'
-import * as version from '../../../version'
+import { constants } from '../../../src/core/index.ts'
+import * as version from '../../../version.ts'
 import {
   bootstrapNetwork,
   getDefaultArgv,
   HEDERA_PLATFORM_VERSION_TAG,
   TEST_CLUSTER,
   testLogger
-} from '../../test_util'
-import { AccountCommand } from '../../../src/commands/account'
-import { flags } from '../../../src/commands/index'
-import { getNodeLogs } from '../../../src/core/helpers'
-import { MINUTES, SECONDS } from '../../../src/core/constants'
+} from '../../test_util.ts'
+import { AccountCommand } from '../../../src/commands/account.ts'
+import { flags } from '../../../src/commands/index.ts'
+import { getNodeLogs } from '../../../src/core/helpers.ts'
+import { MINUTES, SECONDS } from '../../../src/core/constants.ts'
 
 const defaultTimeout = 20 * SECONDS
 

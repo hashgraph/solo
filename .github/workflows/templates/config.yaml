@@ -4,10 +4,10 @@ tests:
   # name: capitalized noun form
   # testFilePrefix: node-update # for node-update.test.mjs
   - name: Integration
-    mochaPostfix: "'test/e2e/integration/**/*.mjs'"
+    mochaPostfix: "'test/e2e/integration/**/*.ts'"
 
   - name: Standard
-    mochaPostfix: "'test/e2e/**/*.mjs' --ignore 'test/unit/**/*.mjs' --ignore 'test/e2e/integration/**/*.mjs' --ignore 'test/e2e/commands/mirror_node*.mjs' --ignore 'test/e2e/commands/node*.mjs' --ignore 'test/e2e/commands/separate_node*.mjs' --ignore 'test/e2e/commands/relay*.mjs'"
+    mochaPostfix: "'test/e2e/**/*.mjs' --ignore 'test/unit/**/*.ts' --ignore 'test/e2e/integration/**/*.ts' --ignore 'test/e2e/commands/mirror_node*.ts' --ignore 'test/e2e/commands/node*.ts' --ignore 'test/e2e/commands/separate_node*.ts' --ignore 'test/e2e/commands/relay*.ts'"
     timeout: 30000
 
   - name: Mirror Node
@@ -32,19 +32,19 @@ tests:
     mochaPostfix: "'test/e2e/commands/node_add_local.test.ts'"
 
   - name: Node Add - Separate commands
-    mochaPostfix: "'test/e2e/commands/separate_node_add*.test.mjs'"
+    mochaPostfix: "'test/e2e/commands/separate_node_add*.test.ts'"
 
   - name: Node Update
-    mochaPostfix: "'test/e2e/commands/node_update*.test.mjs'"
+    mochaPostfix: "'test/e2e/commands/node_update*.test.ts'"
 
   - name: Node Delete
-    mochaPostfix: "'test/e2e/commands/node_delete*.test.mjs'"
+    mochaPostfix: "'test/e2e/commands/node_delete*.test.ts'"
 
   - name: Node Delete - Separate commands
-    mochaPostfix: "'test/e2e/commands/separate_node_delete*.test.mjs'"
+    mochaPostfix: "'test/e2e/commands/separate_node_delete*.test.ts'"
 
   - name: Node Upgrade
-    mochaPostfix: "'test/e2e/commands/node_upgrade*.test.mjs'"
+    mochaPostfix: "'test/e2e/commands/node_upgrade*.test.ts'"
 
   - name: Relay
     mochaPostfix: "'test/e2e/commands/relay.test.ts'"

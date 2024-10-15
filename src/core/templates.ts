@@ -17,10 +17,10 @@
 import * as x509 from '@peculiar/x509'
 import os from 'os'
 import path from 'path'
-import { DataValidationError, SoloError, IllegalArgumentError, MissingArgumentError } from './errors'
-import { constants } from './index'
+import { DataValidationError, SoloError, IllegalArgumentError, MissingArgumentError } from './errors.ts'
+import { constants } from './index.ts'
 import {type AccountId} from "@hashgraph/sdk";
-import { NodeAlias, PodName } from '../types/aliases'
+import { NodeAlias, PodName } from '../types/aliases.ts'
 
 export class Templates {
   public static renderNetworkPodName (nodeAlias: NodeAlias): PodName {

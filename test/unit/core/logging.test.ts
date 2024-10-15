@@ -18,7 +18,7 @@ import sinon from 'sinon'
 import { expect } from 'chai'
 import { describe, it, afterEach, beforeEach } from 'mocha'
 
-import { NewLogger, SoloLogger } from '../../../src/core/logging'
+import { NewLogger, SoloLogger } from '../../../src/core/logging.ts'
 import winston from 'winston'
 
 describe('Logging', () => {

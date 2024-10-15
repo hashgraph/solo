@@ -15,7 +15,7 @@
  *
  */
 
-import { type NodeAlias, type PodName } from '../types/aliases'
+import { type NodeAlias, type PodName } from '../types/aliases.ts'
 
 export class NetworkNodeServices {
   public readonly nodeAlias: NodeAlias

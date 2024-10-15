@@ -19,19 +19,19 @@ import fs from 'fs'
 import net from 'net'
 import os from 'os'
 import path from 'path'
-import { flags } from '../commands/index'
-import { SoloError, IllegalArgumentError, MissingArgumentError } from './errors'
+import { flags } from '../commands/index.ts'
+import { SoloError, IllegalArgumentError, MissingArgumentError } from './errors.ts'
 import * as tar from 'tar'
 import { v4 as uuid4 } from 'uuid'
 import { V1ObjectMeta, V1Secret } from '@kubernetes/client-node'
-import { sleep } from './helpers'
-import { type ConfigManager, constants} from './index'
+import { sleep } from './helpers.ts'
+import { type ConfigManager, constants} from './index.ts'
 import * as stream from 'node:stream'
 
-import { type SoloLogger } from "./logging";
+import { type SoloLogger } from "./logging.ts"
 import type * as WebSocket from 'ws'
-import { type PodName } from '../types/aliases'
-import { type ExtendedNetServer, type LocalContextObject } from '../types/index'
+import { type PodName } from '../types/aliases.ts'
+import { type ExtendedNetServer, type LocalContextObject } from '../types/index.ts'
 
 type TDirectoryData = {directory: boolean; owner: string; group: string; size: string; modifiedAt: string; name: string}
 

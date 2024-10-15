@@ -17,10 +17,10 @@
 import { it, describe, after } from 'mocha'
 import { expect } from 'chai'
 
-import { flags } from '../../../../src/commands/index'
-import { bootstrapNetwork, getDefaultArgv, TEST_CLUSTER } from '../../../test_util'
-import * as version from '../../../../version'
-import { MINUTES } from '../../../../src/core/constants'
+import { flags } from '../../../../src/commands/index.ts'
+import { bootstrapNetwork, getDefaultArgv, TEST_CLUSTER } from '../../../test_util.ts'
+import * as version from '../../../../version.ts'
+import { MINUTES } from '../../../../src/core/constants.ts'
 import { PodName } from '../../../../src/types/aliases.js'
 
 describe('AccountManager', async () => {

@@ -17,11 +17,11 @@
 import sinon, { SinonSpy, SinonStub } from 'sinon'
 import { expect } from 'chai'
 import { describe, it, beforeEach, afterEach } from 'mocha'
-import { ShellRunner } from '../../../src/core/shell_runner'
-import { NewLogger, SoloLogger } from '../../../src/core/logging'
+import { ShellRunner } from '../../../src/core/shell_runner.ts'
+import { NewLogger, SoloLogger } from '../../../src/core/logging.ts'
 import { ChildProcess } from 'child_process'
 import { Readable } from 'stream'
-import { SECONDS } from '../../../src/core/constants'
+import { SECONDS } from '../../../src/core/constants.ts'
 
 describe('ShellRunner', () => {
   let logger: SoloLogger,

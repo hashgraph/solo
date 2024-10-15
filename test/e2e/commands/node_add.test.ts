@@ -17,8 +17,8 @@
  */
 import { describe } from 'mocha'
 
-import { testNodeAdd } from '../../test_add'
-import { MINUTES } from '../../../src/core/constants'
+import { testNodeAdd } from '../../test_add.ts'
+import { MINUTES } from '../../../src/core/constants.ts'
 
 describe('Node add with released hedera', () => {
   const localBuildPath = ''

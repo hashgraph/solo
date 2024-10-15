@@ -17,9 +17,9 @@
 import chalk from 'chalk'
 import yargs from 'yargs'
 import { hideBin } from 'yargs/helpers'
-import { flags } from './commands/index'
-import * as commands from './commands/index'
-import { HelmDependencyManager, DependencyManager } from './core/dependency_managers/index'
+import { flags } from './commands/index.ts'
+import * as commands from './commands/index.ts'
+import { HelmDependencyManager, DependencyManager } from './core/dependency_managers/index.ts'
 import {
   ChartManager,
   ConfigManager,
@@ -28,13 +28,13 @@ import {
   Helm,
   logging,
   KeyManager, Zippy, constants, ProfileManager
-} from './core/index'
+} from './core/index.ts'
 import 'dotenv/config'
-import { K8 } from './core/k8'
-import { AccountManager } from './core/account_manager'
+import { K8 } from './core/k8.ts'
+import { AccountManager } from './core/account_manager.ts'
 import { ListrLogger } from 'listr2'
-import { CustomProcessOutput } from './core/process_output'
-import { type SoloLogger } from './core/logging'
+import { CustomProcessOutput } from './core/process_output.ts'
+import { type SoloLogger } from './core/logging.ts'
 
 export interface Opts {
   logger: SoloLogger

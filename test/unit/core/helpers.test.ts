@@ -18,8 +18,8 @@ import { expect } from 'chai'
 import { describe, it } from 'mocha'
 import each from 'mocha-each'
 
-import * as helpers from '../../../src/core/helpers'
-import { HEDERA_PLATFORM_VERSION } from '../../../version'
+import * as helpers from '../../../src/core/helpers.ts'
+import { HEDERA_PLATFORM_VERSION } from '../../../version.ts'
 
 describe('Helpers', () => {
   each([

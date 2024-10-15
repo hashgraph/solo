@@ -18,17 +18,17 @@
 import { it, describe, after } from 'mocha'
 import { expect } from 'chai'
 
-import { flags } from '../../../src/commands/index'
+import { flags } from '../../../src/commands/index.ts'
 import {
   accountCreationShouldSucceed,
   balanceQueryShouldSucceed,
   bootstrapNetwork,
   getDefaultArgv,
   HEDERA_PLATFORM_VERSION_TAG
-} from '../../test_util'
-import { getNodeLogs, getTmpDir } from '../../../src/core/helpers'
-import { NodeCommand } from '../../../src/commands/node'
-import { HEDERA_HAPI_PATH, MINUTES, ROOT_CONTAINER } from '../../../src/core/constants'
+} from '../../test_util.ts'
+import { getNodeLogs, getTmpDir } from '../../../src/core/helpers.ts'
+import { NodeCommand } from '../../../src/commands/node.ts'
+import { HEDERA_HAPI_PATH, MINUTES, ROOT_CONTAINER } from '../../../src/core/constants.ts'
 import fs from 'fs'
 import { PodName } from '../../../src/types/aliases.js'
 

@@ -14,21 +14,21 @@
  * limitations under the License.
  *
  */
-import * as logging from './logging'
-import * as constants from './constants'
-import { Helm } from './helm'
-import { K8 } from './k8'
-import { PackageDownloader } from './package_downloader'
-import { PlatformInstaller } from './platform_installer'
-import { Zippy } from './zippy'
-import { Templates } from './templates'
-import { ChartManager } from './chart_manager'
-import { ConfigManager } from './config_manager'
-import { KeyManager } from './key_manager'
-import { ProfileManager } from './profile_manager'
-import { YargsCommand } from './yargs_command'
-import { Task } from './task'
-import * as helpers from './helpers'
+import * as logging from './logging.ts'
+import * as constants from './constants.ts'
+import { Helm } from './helm.ts'
+import { K8 } from './k8.ts'
+import { PackageDownloader } from './package_downloader.ts'
+import { PlatformInstaller } from './platform_installer.ts'
+import { Zippy } from './zippy.ts'
+import { Templates } from './templates.ts'
+import { ChartManager } from './chart_manager.ts'
+import { ConfigManager } from './config_manager.ts'
+import { KeyManager } from './key_manager.ts'
+import { ProfileManager } from './profile_manager.ts'
+import { YargsCommand } from './yargs_command.ts'
+import { Task } from './task.ts'
+import * as helpers from './helpers.ts'
 
 // Expose components from the core module
 export {

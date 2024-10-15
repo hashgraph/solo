@@ -18,9 +18,9 @@ import { expect } from 'chai'
 import { describe, it, after, before } from 'mocha'
 import jest from 'jest-mock'
 
-import { constants, K8 } from '../../../src/core/index'
-import { getTestConfigManager, testLogger } from '../../test_util'
-import { flags } from '../../../src/commands/index'
+import { constants, K8 } from '../../../src/core/index.ts'
+import { getTestConfigManager, testLogger } from '../../test_util.ts'
+import { flags } from '../../../src/commands/index.ts'
 import { SECONDS } from '../../../src/core/constants.js'
 
 function listNamespacedPodMockSetup (k8: K8, numOfFailures: number, result: any[]) {

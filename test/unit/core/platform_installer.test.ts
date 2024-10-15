@@ -17,14 +17,14 @@
 import { expect } from 'chai'
 import { describe, it } from 'mocha'
 
-import * as core from '../../../src/core/index'
-import { ConfigManager, PlatformInstaller } from '../../../src/core/index'
+import * as core from '../../../src/core/index.ts'
+import { ConfigManager, PlatformInstaller } from '../../../src/core/index.ts'
 import * as fs from 'fs'
 import * as path from 'path'
 import * as os from 'os'
-import { IllegalArgumentError, MissingArgumentError } from '../../../src/core/errors'
-import { AccountManager } from '../../../src/core/account_manager'
-import { getK8Instance } from '../../test_util'
+import { IllegalArgumentError, MissingArgumentError } from '../../../src/core/errors.ts'
+import { AccountManager } from '../../../src/core/account_manager.ts'
+import { getK8Instance } from '../../test_util.ts'
 import { PodName } from '../../../src/types/aliases.js'
 
 describe('PackageInstaller', () => {

@@ -16,15 +16,15 @@
  */
 import { ListrEnquirerPromptAdapter } from '@listr2/prompt-adapter-enquirer'
 import {Listr} from 'listr2'
-import { SoloError, IllegalArgumentError, MissingArgumentError } from '../core/errors'
-import {constants, type ProfileManager} from '../core'
-import { BaseCommand } from './base'
-import * as flags from './flags'
-import * as prompts from './prompts'
-import { getFileContents, getEnvValue } from '../core/helpers'
-import { type AccountManager } from "../core/account_manager";
-import { type Opts } from '../index'
-import { type PodName } from '../types/aliases'
+import { SoloError, IllegalArgumentError, MissingArgumentError } from '../core/errors.ts'
+import {constants, type ProfileManager} from '../core/index.ts'
+import { BaseCommand } from './base.ts'
+import * as flags from './flags.ts'
+import * as prompts from './prompts.ts'
+import { getFileContents, getEnvValue } from '../core/helpers.ts'
+import { type AccountManager } from "../core/account_manager.ts"
+import { type Opts } from '../index.ts'
+import { type PodName } from '../types/aliases.ts'
 
 export class MirrorNodeCommand extends BaseCommand {
   private readonly accountManager: AccountManager;

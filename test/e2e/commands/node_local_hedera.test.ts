@@ -16,14 +16,14 @@
  */
 import { describe, after } from 'mocha'
 
-import { flags } from '../../../src/commands/index'
+import { flags } from '../../../src/commands/index.ts'
 import {
   bootstrapNetwork,
   getDefaultArgv,
   TEST_CLUSTER
-} from '../../test_util'
-import { getNodeLogs } from '../../../src/core/helpers'
-import { MINUTES } from '../../../src/core/constants'
+} from '../../test_util.ts'
+import { getNodeLogs } from '../../../src/core/helpers.ts'
+import { MINUTES } from '../../../src/core/constants.ts'
 import { K8 } from '../../../src/core/index.js'
 
 describe('Node local build', () => {

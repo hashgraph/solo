@@ -18,7 +18,7 @@
 import { it, describe, after } from 'mocha'
 import { expect } from 'chai'
 
-import { flags } from '../../../src/commands/index'
+import { flags } from '../../../src/commands/index.ts'
 import {
   accountCreationShouldSucceed,
   balanceQueryShouldSucceed,
@@ -26,10 +26,10 @@ import {
   getDefaultArgv,
   getNodeAliasesPrivateKeysHash, getTmpDir,
   HEDERA_PLATFORM_VERSION_TAG
-} from '../../test_util'
-import { getNodeLogs } from '../../../src/core/helpers'
-import { NodeCommand } from '../../../src/commands/node'
-import { MINUTES } from '../../../src/core/constants'
+} from '../../test_util.ts'
+import { getNodeLogs } from '../../../src/core/helpers.ts'
+import { NodeCommand } from '../../../src/commands/node.ts'
+import { MINUTES } from '../../../src/core/constants.ts'
 
 describe('Node add via separated commands should success', async () => {
   const defaultTimeout = 2 * MINUTES

@@ -18,12 +18,12 @@ import sinon from 'sinon'
 import { it, describe, after, before, afterEach, beforeEach } from 'mocha'
 import { expect } from 'chai'
 
-import { flags } from '../../../src/commands/index'
-import { bootstrapTestVariables, getDefaultArgv, HEDERA_PLATFORM_VERSION_TAG, TEST_CLUSTER } from '../../test_util'
-import { constants, logging } from '../../../src/core/index'
-import { sleep } from '../../../src/core/helpers'
-import * as version from '../../../version'
-import { MINUTES, SECONDS } from '../../../src/core/constants'
+import { flags } from '../../../src/commands/index.ts'
+import { bootstrapTestVariables, getDefaultArgv, HEDERA_PLATFORM_VERSION_TAG, TEST_CLUSTER } from '../../test_util.ts'
+import { constants, logging } from '../../../src/core/index.ts'
+import { sleep } from '../../../src/core/helpers.ts'
+import * as version from '../../../version.ts'
+import { MINUTES, SECONDS } from '../../../src/core/constants.ts'
 
 describe('ClusterCommand', () => {
   // mock showUser and showJSON to silent logging during tests
@@ -104,7 +104,7 @@ describe('ClusterCommand', () => {
   }).timeout(MINUTES)
 
   it('function showInstalledChartList should return right true', async () => {
-    // @ts-expect-error
+    // @ts-ignore
     await expect(clusterCmd.showInstalledChartList()).to.eventually.be.undefined
   }).timeout(MINUTES)
 

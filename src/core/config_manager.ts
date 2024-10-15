@@ -16,15 +16,15 @@
  */
 
 import fs from 'fs'
-import { SoloError, MissingArgumentError } from './errors'
-import { constants } from './index'
-import { SoloLogger } from './logging'
-import * as flags from '../commands/flags'
+import { SoloError, MissingArgumentError } from './errors.ts'
+import { constants } from './index.ts'
+import { SoloLogger } from './logging.ts'
+import * as flags from '../commands/flags.ts'
 import * as paths from 'path'
-import * as helpers from './helpers'
+import * as helpers from './helpers.ts'
 import * as yaml from 'js-yaml'
-import { yamlToObject } from './helpers'
-import { CommandFlag } from "../commands/flags"
+import { yamlToObject } from './helpers.ts'
+import { CommandFlag } from "../commands/flags.ts"
 import * as yargs from 'yargs'
 
 /**

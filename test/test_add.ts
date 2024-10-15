@@ -26,11 +26,11 @@ import {
   getNodeAliasesPrivateKeysHash,
   getTmpDir,
   HEDERA_PLATFORM_VERSION_TAG
-} from './test_util'
-import { flags } from '../src/commands/index'
-import { getNodeLogs } from '../src/core/helpers'
-import { NodeCommand } from '../src/commands/node'
-import { MINUTES } from '../src/core/constants'
+} from './test_util.ts'
+import { flags } from '../src/commands/index.ts'
+import { getNodeLogs } from '../src/core/helpers.ts'
+import { NodeCommand } from '../src/commands/node.ts'
+import { MINUTES } from '../src/core/constants.ts'
 import { NodeAlias } from '../src/types/aliases.js'
 import { NetworkNodeServices } from '../src/core/network_node_services.js'
 

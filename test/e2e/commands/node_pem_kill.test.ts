@@ -17,7 +17,7 @@
  */
 import { describe } from 'mocha'
 
-import { e2eNodeKeyRefreshTest } from '../e2e_node_util'
+import { e2eNodeKeyRefreshTest } from '../e2e_node_util.ts'
 
 describe('NodeCommand', () => {
   e2eNodeKeyRefreshTest('node-cmd-e2e-pem-kill', 'kill')

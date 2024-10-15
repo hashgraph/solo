@@ -15,7 +15,7 @@
  *
  */
 import * as winston from 'winston'
-import { constants } from './index'
+import { constants } from './index.ts'
 import { v4 as uuidv4 } from 'uuid'
 import * as util from 'util'
 import chalk from 'chalk'

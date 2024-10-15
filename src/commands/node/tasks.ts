@@ -16,8 +16,8 @@
  */
 
 
-import {type ConfigManager, constants, type K8, Task, Templates, Zippy} from '../../core'
-import {FREEZE_ADMIN_ACCOUNT} from '../../core/constants'
+import {type ConfigManager, constants, type K8, Task, Templates, Zippy} from '../../core/index.ts'
+import {FREEZE_ADMIN_ACCOUNT} from '../../core/constants.ts'
 import {
   AccountBalanceQuery,
   FileAppendTransaction,
@@ -27,18 +27,18 @@ import {
   PrivateKey,
   Timestamp
 } from '@hashgraph/sdk'
-import {IllegalArgumentError, MissingArgumentError, SoloError} from '../../core/errors'
-import * as prompts from '../prompts'
+import {IllegalArgumentError, MissingArgumentError, SoloError} from '../../core/errors.ts'
+import * as prompts from '../prompts.ts'
 import path from 'path'
 import fs from 'fs'
 import crypto from 'crypto'
-import {getNodeAccountMap} from '../../core/helpers'
+import {getNodeAccountMap} from '../../core/helpers.ts'
 import chalk from 'chalk'
-import * as flags from '../flags'
-import {type SoloLogger} from "../../core/logging";
-import {type AccountManager} from "../../core/account_manager";
+import * as flags from '../flags.ts'
+import {type SoloLogger} from "../../core/logging.ts"
+import {type AccountManager} from "../../core/account_manager.ts"
 import {Listr, ListrTaskWrapper} from "listr2";
-import { type NodeAlias, type NodeAliases } from '../../types/aliases'
+import { type NodeAlias, type NodeAliases } from '../../types/aliases.ts'
 
 export class NodeCommandTasks {
   private readonly accountManager: AccountManager;

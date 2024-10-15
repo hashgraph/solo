@@ -21,16 +21,16 @@ import { describe, it, after, before } from 'mocha'
 import fs from 'fs'
 import os from 'os'
 import path from 'path'
-import { ClusterCommand } from '../src/commands/cluster'
-import { InitCommand } from '../src/commands/init'
-import { NetworkCommand } from '../src/commands/network'
-import { NodeCommand } from '../src/commands/node'
-import { AccountManager } from '../src/core/account_manager'
+import { ClusterCommand } from '../src/commands/cluster.ts'
+import { InitCommand } from '../src/commands/init.ts'
+import { NetworkCommand } from '../src/commands/network.ts'
+import { NodeCommand } from '../src/commands/node.ts'
+import { AccountManager } from '../src/core/account_manager.ts'
 import {
   DependencyManager,
   HelmDependencyManager
-} from '../src/core/dependency_managers/index'
-import { sleep } from '../src/core/helpers'
+} from '../src/core/dependency_managers/index.ts'
+import { sleep } from '../src/core/helpers.ts'
 import {
   ChartManager,
   ConfigManager,
@@ -44,17 +44,17 @@ import {
   ProfileManager,
   Templates,
   Zippy
-} from '../src/core/index'
-import { flags } from '../src/commands/index'
+} from '../src/core/index.ts'
+import { flags } from '../src/commands/index.ts'
 import {
   AccountBalanceQuery,
   AccountCreateTransaction, Hbar, HbarUnit,
   PrivateKey
 } from '@hashgraph/sdk'
-import { MINUTES, ROOT_CONTAINER, SECONDS } from '../src/core/constants'
+import { MINUTES, ROOT_CONTAINER, SECONDS } from '../src/core/constants.ts'
 import crypto from 'crypto'
-import { AccountCommand } from '../src/commands/account'
-import { SoloError } from '../src/core/errors'
+import { AccountCommand } from '../src/commands/account.ts'
+import { SoloError } from '../src/core/errors.ts'
 import { execSync } from 'child_process'
 import { SoloLogger } from '../src/core/logging.js'
 import { BaseCommand } from '../src/commands/base.js'

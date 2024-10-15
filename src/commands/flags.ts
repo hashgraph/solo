@@ -15,9 +15,9 @@
  *
  */
 
-import { constants } from '../core'
-import * as core from '../core'
-import * as version from '../../version'
+import { constants } from '../core/index.ts'
+import * as core from '../core/index.ts'
+import * as version from '../../version.ts'
 import path from 'path'
 
 export interface CommandFlag {
@@ -487,7 +487,7 @@ export const newAdminKey: CommandFlag = {
   constName: 'newAdminKey',
   name: 'new-admin-key',
   definition: {
-    describe: 'new admin key for the Hedera account',
+    describe: 'new admin key for the Hedera account.ts',
     defaultValue: '',
     type: 'string'
   }
@@ -557,7 +557,7 @@ export const privateKey: CommandFlag = {
   constName: 'privateKey',
   name: 'private-key',
   definition: {
-    describe: 'ED25519 private key for the Hedera account',
+    describe: 'ED25519 private key for the Hedera account.ts',
     defaultValue: '',
     type: 'string'
   }
@@ -567,7 +567,7 @@ export const ecdsaPrivateKey: CommandFlag = {
   constName: 'ecdsaPrivateKey',
   name: 'ecdsa-private-key',
   definition: {
-    describe: 'ECDSA private key for the Hedera account',
+    describe: 'ECDSA private key for the Hedera account.ts',
     defaultValue: '',
     type: 'string'
   }

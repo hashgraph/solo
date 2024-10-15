@@ -16,7 +16,7 @@
  */
 import * as Base64 from 'js-base64'
 import os from 'os'
-import * as constants from './constants'
+import * as constants from './constants.ts'
 import {
   AccountCreateTransaction,
   AccountId,
@@ -34,16 +34,16 @@ import {
   Status,
   TransferTransaction
 } from '@hashgraph/sdk'
-import { SoloError, MissingArgumentError } from './errors'
-import { Templates} from './templates'
+import { SoloError, MissingArgumentError } from './errors.ts'
+import { Templates} from './templates.ts'
 import ip from 'ip'
-import { NetworkNodeServices, NetworkNodeServicesBuilder } from './network_node_services'
+import { NetworkNodeServices, NetworkNodeServicesBuilder } from './network_node_services.ts'
 import path from 'path'
 
-import { type SoloLogger } from "./logging";
-import { type K8} from "./k8";
-import { type AccountIdWithKeyPairObject, type ExtendedNetServer } from '../types'
-import { type NodeAlias, type PodName } from '../types/aliases'
+import { type SoloLogger } from "./logging.ts";
+import { type K8} from "./k8.ts";
+import { type AccountIdWithKeyPairObject, type ExtendedNetServer } from '../types/index.ts'
+import { type NodeAlias, type PodName } from '../types/aliases.ts'
 
 const REASON_FAILED_TO_GET_KEYS = 'failed to get keys for accountId'
 const REASON_SKIPPED = 'skipped since it does not have a genesis key'

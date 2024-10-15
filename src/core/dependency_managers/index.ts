@@ -14,7 +14,7 @@
  * limitations under the License.
  *
  */
-import { DependencyManager } from './dependency_manager'
-import { HelmDependencyManager } from './helm_dependency_manager'
+import { DependencyManager } from './dependency_manager.ts'
+import { HelmDependencyManager } from './helm_dependency_manager.ts'
 
 export { HelmDependencyManager, DependencyManager }

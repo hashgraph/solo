@@ -14,14 +14,20 @@
 #  limitations under the License.
 ##
 timeout: 20000 # 20 Seconds
-reporter: spec
+reporter: mocha-junit-reporter
 check-leaks: true
 recursive: true
 exit: true
-
+color: true
+verbose: true
+file:
+  - test/setup.ts
 require:
   - ts-node/register
-
+  - test/setup.ts
 extension:
   - ts
-  - tsx
+spec:
+  - test/unit/**/*.ts
+
+loader: ts-node/esm

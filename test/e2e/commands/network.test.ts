@@ -23,15 +23,15 @@ import {
   getDefaultArgv,
   getTmpDir,
   HEDERA_PLATFORM_VERSION_TAG
-} from '../../test_util'
-import { constants } from '../../../src/core/index'
-import * as version from '../../../version'
-import { getNodeLogs, sleep } from '../../../src/core/helpers'
+} from '../../test_util.ts'
+import { constants } from '../../../src/core/index.ts'
+import * as version from '../../../version.ts'
+import { getNodeLogs, sleep } from '../../../src/core/helpers.ts'
 import path from 'path'
 import fs from 'fs'
-import { NetworkCommand } from '../../../src/commands/network'
-import { MINUTES, SECONDS } from '../../../src/core/constants'
-import { flags } from '../../../src/commands/index'
+import { NetworkCommand } from '../../../src/commands/network.ts'
+import { MINUTES, SECONDS } from '../../../src/core/constants.ts'
+import { flags } from '../../../src/commands/index.ts'
 
 describe('NetworkCommand', () => {
   const testName = 'network-cmd-e2e'

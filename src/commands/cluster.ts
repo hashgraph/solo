@@ -17,12 +17,12 @@
 
 import { ListrEnquirerPromptAdapter } from '@listr2/prompt-adapter-enquirer'
 import { Listr } from 'listr2'
-import { SoloError } from '../core/errors'
-import * as flags from './flags'
-import { BaseCommand } from './base'
+import { SoloError } from '../core/errors.ts'
+import * as flags from './flags.ts'
+import { BaseCommand } from './base.ts'
 import chalk from 'chalk'
-import { constants } from '../core'
-import * as prompts from './prompts'
+import { constants } from '../core/index.ts'
+import * as prompts from './prompts.ts'
 import path from 'path'
 
 /**

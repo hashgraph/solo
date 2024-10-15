@@ -16,16 +16,16 @@
  */
 
 import chalk from 'chalk'
-import { BaseCommand } from './base'
-import { SoloError, IllegalArgumentError } from '../core/errors'
-import { flags } from './index'
+import { BaseCommand } from './base.ts'
+import { SoloError, IllegalArgumentError } from '../core/errors.ts'
+import { flags } from './index.ts'
 import { Listr } from 'listr2'
-import * as prompts from './prompts'
-import { constants} from '../core'
+import * as prompts from './prompts.ts'
+import { constants} from '../core/index.ts'
 import {type AccountId, AccountInfo, HbarUnit, PrivateKey} from '@hashgraph/sdk'
-import { FREEZE_ADMIN_ACCOUNT } from '../core/constants'
-import { type AccountManager } from "../core/account_manager";
-import { type Opts } from '../index'
+import { FREEZE_ADMIN_ACCOUNT } from '../core/constants.ts'
+import { type AccountManager } from "../core/account_manager.ts"
+import { type Opts } from '../index.ts'
 
 export class AccountCommand extends BaseCommand {
   private readonly accountManager: AccountManager;
@@ -291,7 +291,7 @@ export class AccountCommand extends BaseCommand {
         }
       },
       {
-        title: 'create the new account',
+        title: 'create the new account.ts',
         task: async (ctx) => {
           this.accountInfo = await this.createNewAccount(ctx)
           const accountInfoCopy = { ...this.accountInfo }
@@ -363,7 +363,7 @@ export class AccountCommand extends BaseCommand {
         }
       },
       {
-        title: 'update the account',
+        title: 'update the account.ts',
         task: async (ctx) => {
           if (!(await this.updateAccountInfo(ctx))) {
             throw new SoloError(`An error occurred updating account ${ctx.accountInfo.accountId}`)
@@ -456,7 +456,7 @@ export class AccountCommand extends BaseCommand {
   /** Return Yargs command definition for 'node' command */
   getCommandDefinition (): { command: string; desc: string; builder: Function } {
     return {
-      command: 'account',
+      command: 'account.ts',
       desc: 'Manage Hedera accounts in solo network',
       builder: (yargs: any) => {
         return yargs

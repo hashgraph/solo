@@ -18,7 +18,7 @@
 import { it, describe, after, before, afterEach } from 'mocha'
 import { expect } from 'chai'
 
-import { flags } from '../../../src/commands/index'
+import { flags } from '../../../src/commands/index.ts'
 import {
   accountCreationShouldSucceed,
   balanceQueryShouldSucceed,
@@ -26,14 +26,14 @@ import {
   getDefaultArgv,
   HEDERA_PLATFORM_VERSION_TAG,
   TEST_CLUSTER
-} from '../../test_util'
-import * as version from '../../../version'
-import { getNodeLogs, sleep } from '../../../src/core/helpers'
-import { MirrorNodeCommand } from '../../../src/commands/mirror_node'
-import * as core from '../../../src/core/index'
+} from '../../test_util.ts'
+import * as version from '../../../version.ts'
+import { getNodeLogs, sleep } from '../../../src/core/helpers.ts'
+import { MirrorNodeCommand } from '../../../src/commands/mirror_node.ts'
+import * as core from '../../../src/core/index.ts'
 import { Status, TopicCreateTransaction, TopicMessageSubmitTransaction } from '@hashgraph/sdk'
 import * as http from 'http'
-import { MINUTES, SECONDS } from '../../../src/core/constants'
+import { MINUTES, SECONDS } from '../../../src/core/constants.ts'
 import { PodName } from '../../../src/types/aliases.js'
 
 describe('MirrorNodeCommand', async () => {
