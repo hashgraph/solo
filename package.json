@@ -31,7 +31,8 @@
     "solo": "NODE_OPTIONS=--experimental-vm-modules node --no-deprecation solo.mjs",
     "check": "remark . --quiet --frail && eslint . --ignore-pattern 'docs/*'; cd docs; jsdoc -c jsdoc.conf.json",
     "format": "remark . --quiet --frail --output && eslint --fix . --ignore-pattern 'docs/*'",
-    "test-setup": "./test/e2e/setup-e2e.sh"
+    "test-setup": "./test/e2e/setup-e2e.sh",
+    "build": "npx tsc"
   },
   "keywords": [
     "solo",

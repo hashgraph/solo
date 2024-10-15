@@ -50,6 +50,7 @@ describe('InitCommand', () => {
 
   const k8 = getK8Instance(configManager)
 
+  // @ts-ignore
   const initCmd = new InitCommand({
     logger: testLogger, helm, k8, chartManager, configManager, depManager, keyManager
   })
@@ -63,6 +64,8 @@ describe('InitCommand', () => {
   describe('methods', () => {
     it('command definition should return a valid command def', () => {
       const def = initCmd.getCommandDefinition()
+
+      // @ts-ignore
       expect(def.name).not.to.be.null
       expect(def.desc).not.to.be.null
       expect(def.handler).not.to.be.null
