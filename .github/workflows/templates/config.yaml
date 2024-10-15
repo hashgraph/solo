@@ -11,25 +11,25 @@ tests:
     timeout: 30000
 
   - name: Mirror Node
-    mochaPostfix: "'test/e2e/commands/mirror_node.test.mjs'"
+    mochaPostfix: "'test/e2e/commands/mirror_node.test.ts'"
 
   - name: Node PEM Stop
-    mochaPostfix: "'test/e2e/commands/node_pem_stop.test.mjs'"
+    mochaPostfix: "'test/e2e/commands/node_pem_stop.test.ts'"
 
   - name: Node PEM Kill
-    mochaPostfix: "'test/e2e/commands/node_pem_kill.test.mjs'"
+    mochaPostfix: "'test/e2e/commands/node_pem_kill.test.ts'"
 
   - name: Node Local Hedera
-    mochaPostfix: "'test/e2e/commands/node_local_hedera.test.mjs'"
+    mochaPostfix: "'test/e2e/commands/node_local_hedera.test.ts'"
 
   - name: Node Local PTT
-    mochaPostfix: "'test/e2e/commands/node_local_ptt.test.mjs'"
+    mochaPostfix: "'test/e2e/commands/node_local_ptt.test.ts'"
 
   - name: Node Add
-    mochaPostfix: "'test/e2e/commands/node_add.test.mjs'"
+    mochaPostfix: "'test/e2e/commands/node_add.test.ts'"
 
   - name: Node Add Local
-    mochaPostfix: "'test/e2e/commands/node_add_local.test.mjs'"
+    mochaPostfix: "'test/e2e/commands/node_add_local.test.ts'"
 
   - name: Node Add - Separate commands
     mochaPostfix: "'test/e2e/commands/separate_node_add*.test.mjs'"
@@ -47,4 +47,4 @@ tests:
     mochaPostfix: "'test/e2e/commands/node_upgrade*.test.mjs'"
 
   - name: Relay
-    mochaPostfix: "'test/e2e/commands/relay.test.mjs'"
+    mochaPostfix: "'test/e2e/commands/relay.test.ts'"

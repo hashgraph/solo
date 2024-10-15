@@ -38,7 +38,7 @@ import * as flags from '../flags'
 import {type SoloLogger} from "../../core/logging";
 import {type AccountManager} from "../../core/account_manager";
 import {Listr, ListrTaskWrapper} from "listr2";
-import { type NodeAlias, type NodeAliases } from '../../types/aliases.js'
+import { type NodeAlias, type NodeAliases } from '../../types/aliases'
 
 export class NodeCommandTasks {
   private readonly accountManager: AccountManager;
