@@ -66,7 +66,7 @@ export class Zippy {
     try {
       const zip = new AdmZip(srcPath, { readEntries: true })
 
-      zip.getEntries().forEach(function (zipEntry) {
+      zip.getEntries().forEach((zipEntry)=> {
         if (verbose) {
           this.logger.debug(`Extracting file: ${zipEntry.entryName} -> ${destPath}/${zipEntry.entryName} ...`, {
             src: zipEntry.entryName,
