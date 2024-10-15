@@ -692,14 +692,14 @@ export class NodeCommandTasks {
     })
   }
 
-  fetchPlatformSoftware () {
+  fetchPlatformSoftware (aliasesField) {
     return new Task('Fetch platform software into network nodes', (ctx, task) => {
-      const { nodeAliases, podNames, releaseTag, localBuildPath } = ctx.config
+      const { podNames, releaseTag, localBuildPath } = ctx.config
 
       if (localBuildPath !== '') {
-        return this._uploadPlatformSoftware(nodeAliases, podNames, task, localBuildPath)
+        return this._uploadPlatformSoftware(ctx.config[aliasesField], podNames, task, localBuildPath)
       } else {
-        return this._fetchPlatformSoftware(nodeAliases, podNames, releaseTag, task, this.platformInstaller)
+        return this._fetchPlatformSoftware(ctx.config[aliasesField], podNames, releaseTag, task, this.platformInstaller)
       }
     })
   }
