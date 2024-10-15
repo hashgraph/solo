@@ -65,7 +65,6 @@ const COMMON_DELETE_OPTIONAL_FLAGS = [
 
 const COMMON_ADD_REQUIRED_FLAGS = [
     flags.cacheDir,
-    flags.devMode,
     flags.endpointType,
     flags.generateGossipKeys,
     flags.generateTlsKeys,
@@ -76,10 +75,9 @@ const COMMON_ADD_REQUIRED_FLAGS = [
 const COMMON_ADD_REQUIRED_NO_PROMPT_FLAGS = [
     flags.app,
     flags.chainId,
-    flags.chartDirectory,
     flags.debugNodeAlias,
-    flags.endpointType,
-    flags.soloChartVersion
+    flags.soloChartVersion,
+    flags.persistentVolumeClaims
 ]
 
 const COMMON_ADD_OPTIONAL_FLAGS = [

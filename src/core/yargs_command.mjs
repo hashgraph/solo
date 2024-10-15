@@ -57,7 +57,7 @@ export class YargsCommand {
       handler: argv => {
         commandDef.logger.debug(`==== Running '${commandNamespace} ${command}' ===`)
         commandDef.logger.debug(argv)
-        commandDef.handlers[handler].call(commandDef, argv).then(r => {
+        commandDef.handlers[handler](argv).then(r => {
           commandDef.logger.debug(`==== Finished running '${commandNamespace} ${command}' ====`)
           if (!r) process.exit(1)
         }).catch(err => {
