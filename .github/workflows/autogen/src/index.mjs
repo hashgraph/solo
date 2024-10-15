@@ -93,12 +93,11 @@ function updatePackageJson (outputDir, config) {
         const kebabCase = changeCase.kebabCase(formalNounName)
 
         generatedLines.push(
-          `${spacePrefix}"test-e2e-${kebabCase}": "cross-env NODE_OPTIONS=--experimental-vm-modules ` +
+          `${spacePrefix}"test-e2e-${kebabCase}": ` +
           `MOCHA_SUITE_NAME=\\"Mocha E2E ${formalNounName} Tests\\" ` +
-          `c8 --reporter=clover --reporter=lcov --reporter=text --report-dir='coverage/e2e-${kebabCase}' ` +
-          `mocha --verbose --recursive --file 'test/setup.mjs' ${test.mochaPostfix} --exit ` +
-          `--reporter mocha-junit-reporter --reporter-options mochaFile=junit-e2e-${kebabCase}.xml ` +
-          `--check-leaks --timeout ${test.timeout ?? 20000}",`)
+          `c8 --report-dir='coverage/e2e-${kebabCase}' ` +
+          `mocha ${test.mochaPostfix} --reporter-options mochaFile=junit-e2e-${kebabCase}.xml ` +
+          `--timeout ${test.timeout ?? 20000}",`)
       })
 
       outputLines.push(...generatedLines)

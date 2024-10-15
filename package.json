@@ -12,7 +12,7 @@
   },
   "scripts": {
     "test": "cross-env MOCHA_SUITE_NAME=\"Unit Tests\" c8 --report-dir='coverage/unit' mocha 'test/unit/**/*.ts' --reporter-options mochaFile=junit.xml",
-    "test-e2e-all": "cross-env MOCHA_SUITE_NAME=\"Mocha E2E All Tests\" nyc --report-dir='coverage/e2e-all' mocha 'test/e2e/**/*.ts' --reporter-options mochaFile=junit-e2e-all.xml",
+    "test-e2e-all": "cross-env MOCHA_SUITE_NAME=\"Mocha E2E All Tests\" c8 --report-dir='coverage/e2e-all' mocha 'test/e2e/**/*.ts' --reporter-options mochaFile=junit-e2e-all.xml",
     "test-e2e-integration": "cross-env MOCHA_SUITE_NAME=\"Mocha E2E Integration Tests\" c8 --report-dir='coverage/e2e-integration' mocha 'test/e2e/integration/**/*.ts' --reporter-options mochaFile=junit-e2e-integration.xml",
     "test-e2e-standard": "cross-env MOCHA_SUITE_NAME=\"Mocha E2E Standard Tests\" c8 --report-dir='coverage/e2e-standard' mocha 'test/e2e/**/*.ts' --ignore 'test/unit/**/*.ts' --ignore 'test/e2e/integration/**/*.ts' --ignore 'test/e2e/commands/mirror_node*.ts' --ignore 'test/e2e/commands/node*.ts' --ignore 'test/e2e/commands/separate_node*.ts' --ignore 'test/e2e/commands/relay*.ts' --reporter-options mochaFile=junit-e2e-standard.xml --timeout 30000",
     "test-e2e-mirror-node": "cross-env MOCHA_SUITE_NAME=\"Mocha E2E Mirror Node Tests\" c8 --report-dir='coverage/e2e-mirror-node' mocha 'test/e2e/commands/mirror_node.test.ts' --reporter-options mochaFile=junit-e2e-mirror-node.xml",
@@ -28,7 +28,7 @@
     "test-e2e-node-delete-separate-commands": "cross-env MOCHA_SUITE_NAME=\"Mocha E2E Node Delete - Separate commands Tests\" c8 --report-dir='coverage/e2e-node-delete-separate-commands' mocha 'test/e2e/commands/separate_node_delete*.test.ts' --reporter-options mochaFile=junit-e2e-node-delete-separate-commands.xml",
     "test-e2e-node-upgrade": "cross-env MOCHA_SUITE_NAME=\"Mocha E2E Node Upgrade Tests\" c8 --report-dir='coverage/e2e-node-upgrade' mocha 'test/e2e/commands/node_upgrade*.test.ts' --reporter-options mochaFile=junit-e2e-node-upgrade.xml",
     "test-e2e-relay": "cross-env MOCHA_SUITE_NAME=\"Mocha E2E Relay Tests\" c8 --report-dir='coverage/e2e-relay' mocha 'test/e2e/commands/relay.test.ts' --reporter-options mochaFile=junit-e2e-relay.xml",
-    "solo": "node --loader ts-node/esm solo.ts",
+    "solo": "node --no-deprecation --no-warnings --loader ts-node/esm solo.ts",
     "check": "remark . --quiet --frail && eslint . --ignore-pattern 'docs/*'; cd docs; jsdoc -c jsdoc.conf.json",
     "format": "remark . --quiet --frail --output && eslint --fix . --ignore-pattern 'docs/*'",
     "test-setup": "./test/e2e/setup-e2e.sh",
