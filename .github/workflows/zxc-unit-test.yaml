@@ -49,6 +49,7 @@ permissions:
 jobs:
   unit-test:
     strategy:
+      fail-fast: false
       matrix:
         os:
           - windows-2022
