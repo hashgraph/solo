@@ -54,6 +54,7 @@ jobs:
 
   update-readme:
     name: "Update README.md"
+    if: ${{ github.actor != 'dependabot[bot]' && !cancelled() && always() }}
     uses: ./.github/workflows/zxc-update-readme.yaml
     with:
       commit-changes: false
