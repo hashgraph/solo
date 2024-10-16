@@ -66,7 +66,8 @@ export function cloneArray <T>(arr: T[]): T[] {
 /** load package.json */
 export function loadPackageJSON (): any {
   try {
-    const raw = fs.readFileSync(path.join(CUR_FILE_DIR, '..', '..', 'package.json'))
+    const rootDir = process.cwd()
+    const raw = fs.readFileSync(path.join(rootDir, 'package.json'))
     return JSON.parse(raw.toString())
   } catch (e: Error | any) {
     throw new SoloError('failed to load package.json', e)

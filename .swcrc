@@ -1,0 +1,18 @@
+{
+  "$schema": "https://swc.rs/schema.json",
+  "jsc": {
+    "parser": {
+      "syntax": "typescript",
+      "tsx": false,
+      "decorators": false,
+      "dynamicImport": true
+    },
+    "target": "es2020",
+    "baseUrl": "..",
+    "preserveAllComments": false
+  },
+  "module": {
+    "type": "es6"
+  },
+  "minify": false
+}

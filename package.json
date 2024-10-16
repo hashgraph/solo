@@ -2,10 +2,10 @@
   "name": "@hashgraph/solo",
   "version": "0.31.0",
   "description": "An opinionated CLI tool to deploy and manage private Hedera Networks.",
-  "main": "src/index.ts",
+  "main": "dist/index.js",
   "type": "module",
   "bin": {
-    "solo": "solo.ts"
+    "solo": "dist/solo.js"
   },
   "publishConfig": {
     "access": "public"
@@ -29,10 +29,11 @@
     "test-e2e-node-upgrade": "cross-env MOCHA_SUITE_NAME=\"Mocha E2E Node Upgrade Tests\" c8 --report-dir='coverage/e2e-node-upgrade' mocha 'test/e2e/commands/node_upgrade*.test.ts' --reporter-options mochaFile=junit-e2e-node-upgrade.xml",
     "test-e2e-relay": "cross-env MOCHA_SUITE_NAME=\"Mocha E2E Relay Tests\" c8 --report-dir='coverage/e2e-relay' mocha 'test/e2e/commands/relay.test.ts' --reporter-options mochaFile=junit-e2e-relay.xml",
     "solo": "node --no-deprecation --no-warnings --loader ts-node/esm solo.ts",
+    "sololo": "node dist/solo.js",
     "check": "remark . --quiet --frail && eslint . --ignore-pattern 'docs/*'; cd docs; jsdoc -c jsdoc.conf.json",
     "format": "remark . --quiet --frail --output && eslint --fix . --ignore-pattern 'docs/*'",
     "test-setup": "./test/e2e/setup-e2e.sh",
-    "build": "npx tsc"
+    "build": "swc src version.ts solo.ts -d dist && node resources/post-build-script.js"
   },
   "keywords": [
     "solo",
@@ -72,6 +73,8 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.12.0",
+    "@swc/cli": "^0.4.1-nightly.20240914",
+    "@swc/core": "^1.7.36",
     "@types/adm-zip": "^0.5.5",
     "@types/chai": "^5.0.0",
     "@types/chai-as-promised": "^8.0.1",
