@@ -143,6 +143,9 @@ jobs:
         id: npm-deps
         run: npm ci
 
+      - name: Compile Project
+        run: npm run build
+
       - name: Pull Kind Docker Image
         run: docker image pull kindest/node:v1.27.3@sha256:3966ac761ae0136263ffdb6cfd4db23ef8a83cba8a463690e98317add2c9ba72
 

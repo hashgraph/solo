@@ -107,6 +107,7 @@ jobs:
         run: |
           set -x
           npm install
+          npm run build
           npm install -g @hashgraph/solo
           npm link
           

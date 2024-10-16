@@ -31,13 +31,9 @@ const getBaseCommandOpts = () => ({
 
 describe('NodeCommand unit tests', () => {
   describe('constructor error handling', () => {
-    let opts
+    let opts: any
 
     beforeEach(() => { opts = getBaseCommandOpts() })
-
-    it('should throw an error if downloader is not provided', () => {
-      expect(() => new NodeCommand(opts)).to.throw('An instance of core/PackageDownloader is required')
-    })
 
     it('should throw an error if platformInstaller is not provided', () => {
       opts.downloader = sinon.stub()

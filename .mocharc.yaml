@@ -14,7 +14,7 @@
 #  limitations under the License.
 ##
 timeout: 20000 # 20 Seconds
-reporter: mocha-junit-reporter
+reporter: mocha-junit-reporter # can be commented out for human friendly reporting during testing
 check-leaks: true
 recursive: true
 exit: true
