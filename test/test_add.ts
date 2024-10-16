@@ -60,23 +60,20 @@ export function testNodeAdd (localBuildPath: string) {
     let existingServiceMap: Map<NodeAlias, NetworkNodeServices>
     let existingNodeIdsPrivateKeysHash: Map<NodeAlias, Map<string, string>>
 
-    // @ts-ignore: Accessing private property for test purposes
-    const accountManager = nodeCmd.accountManager
-
     after(async function () {
       this.timeout(10 * MINUTES)
 
       await getNodeLogs(k8, namespace)
-      // @ts-ignore
-      await accountManager.close()
+      // @ts-ignore: Accessing private property for test purposes
+      await nodeCmd.accountManager.close()
       await nodeCmd.stop(argv)
       await networkCmd.destroy(argv)
       await k8.deleteNamespace(namespace)
     })
 
     it('cache current version of private keys', async () => {
-      // @ts-ignore
-      existingServiceMap = await accountManager.getNodeServiceMap(namespace)
+      // @ts-ignore: Accessing private property for test purposes
+      existingServiceMap = await nodeCmd.accountManager.getNodeServiceMap(namespace)
       existingNodeIdsPrivateKeysHash = await getNodeAliasesPrivateKeysHash(existingServiceMap, namespace, k8, getTmpDir())
     }).timeout(defaultTimeout)
 
@@ -93,14 +90,15 @@ export function testNodeAdd (localBuildPath: string) {
         flags.quiet.constName,
         flags.adminKey.constName
       ])
-      // @ts-ignore
-      await accountManager.close()
+      // @ts-ignore: Accessing private property for test purposes
+      await nodeCmd.accountManager.close()
     }).timeout(12 * MINUTES)
 
-    // @ts-ignore
-    balanceQueryShouldSucceed(accountManager, nodeCmd, namespace)
+    // @ts-ignore: Accessing private property for test purposes
+    balanceQueryShouldSucceed(nodeCmd.accountManager, nodeCmd, namespace)
 
-    accountCreationShouldSucceed(accountManager, nodeCmd, namespace)
+    // @ts-ignore: Accessing private property for test purposes
+    accountCreationShouldSucceed(nodeCmd.accountManager, nodeCmd, namespace)
 
     it('existing nodes private keys should not have changed', async () => {
       const currentNodeIdsPrivateKeysHash = await getNodeAliasesPrivateKeysHash(existingServiceMap, namespace, k8, getTmpDir())

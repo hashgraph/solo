@@ -369,7 +369,7 @@ export class AccountCommand extends BaseCommand {
         }
       },
       {
-        title: 'update the account.ts',
+        title: 'update the account',
         task: async (ctx) => {
           if (!(await self.updateAccountInfo(ctx))) {
             throw new SoloError(`An error occurred updating account ${ctx.accountInfo.accountId}`)
@@ -464,7 +464,7 @@ export class AccountCommand extends BaseCommand {
   getCommandDefinition (): { command: string; desc: string; builder: Function } {
     const accountCmd = this
     return {
-      command: 'account.ts',
+      command: 'account',
       desc: 'Manage Hedera accounts in solo network',
       builder: (yargs: any) => {
         return yargs

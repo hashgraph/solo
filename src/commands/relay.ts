@@ -241,13 +241,14 @@ export class RelayCommand extends BaseCommand {
       {
         title: 'Check relay is ready',
         task: async (ctx) => {
+          const config = ctx.config
           try {
             await self.k8.waitForPodReady([
               'app=hedera-json-rpc-relay',
-              `app.kubernetes.io/instance=${ctx.config.releaseName}`
+              `app.kubernetes.io/instance=${config.releaseName}`
             ], 1, 100, 2000)
           } catch (e: Error | any) {
-            throw new SoloError(`Relay ${ctx.config.releaseName} is not ready: ${e.message}`, e)
+            throw new SoloError(`Relay ${config.releaseName} is not ready: ${e.message}`, e)
           }
         }
       }

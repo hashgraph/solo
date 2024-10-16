@@ -70,7 +70,7 @@ export class PackageDownloader {
 
           })
           req.destroy()
-          if ([200, 302].includes(+statusCode)) {
+          if ([200, 302].includes(statusCode)) {
             resolve(true)
           }
 

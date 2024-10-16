@@ -239,6 +239,7 @@ export class ClusterCommand extends BaseCommand {
               try {
                 const r = clusterCmd.showClusterList()
                 clusterCmd.logger.debug('==== Finished running `cluster list`====')
+
                 if (!r) process.exit(1)
               } catch (err) {
                 clusterCmd.logger.showUserError(err)
@@ -254,6 +255,7 @@ export class ClusterCommand extends BaseCommand {
               try {
                 const r = this.getClusterInfo()
                 clusterCmd.logger.debug('==== Finished running `cluster info`====')
+
                 if (!r) process.exit(1)
               } catch (err: Error | any) {
                 clusterCmd.logger.showUserError(err)
@@ -348,7 +350,7 @@ export class ClusterCommand extends BaseCommand {
    * Prepare chart path
    * @param [chartDir] - local charts directory (default is empty)
    */
-  async prepareChartPath (chartDir: string = <string>flags.chartDirectory.definition.defaultValue) {
+  async prepareChartPath (chartDir = <string>flags.chartDirectory.definition.defaultValue) {
     let chartPath = 'solo-charts/solo-cluster-setup'
     if (chartDir) {
       chartPath = path.join(chartDir, 'solo-cluster-setup')

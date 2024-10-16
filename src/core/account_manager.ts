@@ -275,7 +275,7 @@ export class AccountManager {
         case 'envoy-proxy-svc':
           serviceBuilder.withEnvoyProxyName(<string>service.metadata!.name)
             .withEnvoyProxyClusterIp(<string>service.spec!.clusterIP)
-            .withEnvoyProxyLoadBalancerIp(service.status?.loadBalancer?.ingress?.[0].ip)
+            .withEnvoyProxyLoadBalancerIp(service.status.loadBalancer.ingress ? service.status.loadBalancer.ingress[0].ip : undefined)
             .withEnvoyProxyGrpcWebPort(service.spec!.ports!.filter(port => port.name === 'hedera-grpc-web')[0].port)
           break
         // solo.hedera.com/type: haproxy-svc
@@ -285,7 +285,7 @@ export class AccountManager {
             .withHaProxyName(<string>service.metadata!.name)
             .withHaProxyClusterIp(<string>service.spec!.clusterIP)
             // @ts-ignore
-            .withHaProxyLoadBalancerIp(service.status?.loadBalancer?.ingress?.[0]?.ip)
+            .withHaProxyLoadBalancerIp(service.status.loadBalancer.ingress ? service.status.loadBalancer.ingress[0].ip : undefined)
             .withHaProxyGrpcPort(service.spec!.ports!.filter(port => port.name === 'non-tls-grpc-client-port')[0].port)
             .withHaProxyGrpcsPort(service.spec!.ports!.filter(port => port.name === 'tls-grpc-client-port')[0].port)
           break
@@ -293,7 +293,7 @@ export class AccountManager {
         case 'network-node-svc':
           serviceBuilder.withNodeServiceName(<string>service.metadata!.name)
             .withNodeServiceClusterIp(<string>service.spec!.clusterIP)
-            .withNodeServiceLoadBalancerIp(<string>service.status?.loadBalancer?.ingress?.[0]?.ip)
+            .withNodeServiceLoadBalancerIp(service.status.loadBalancer.ingress ? service.status.loadBalancer.ingress[0].ip : undefined)
             .withNodeServiceGossipPort(service.spec!.ports!.filter(port => port.name === 'gossip')[0].port)
             .withNodeServiceGrpcPort(service.spec!.ports!.filter(port => port.name === 'grpc-non-tls')[0].port)
             .withNodeServiceGrpcsPort(service.spec!.ports!.filter(port => port.name === 'grpc-tls')[0].port)
@@ -316,8 +316,7 @@ export class AccountManager {
       const podName = pod.metadata!.name
       const nodeAlias = pod.metadata!.labels!['solo.hedera.com/node-name'] as NodeAlias
       const serviceBuilder = serviceBuilderMap.get(nodeAlias) as NetworkNodeServicesBuilder
-      // @ts-ignore
-      serviceBuilder.withNodePodName(podName) // TODO: MISSING METHOD ???
+      serviceBuilder.withNodePodName(podName as PodName)
     }
 
     const serviceMap: Map<NodeAlias, NetworkNodeServices> = new Map()

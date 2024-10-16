@@ -346,7 +346,6 @@ export class K8 {
 
           if (name !== '.' && name !== '..') {
             const permission = parts[0]
-
             const item: TDirectoryData  = {
               directory: permission[0] === 'd',
               owner: parts[2],
@@ -419,7 +418,7 @@ export class K8 {
    * @param containerName
    * @param destPath - path inside the container
    */
-  async hasDir (podName: PodName, containerName: string, destPath: string) {
+  async hasDir (podName: string, containerName: string, destPath: string) {
     return await this.execContainer(
       podName,
       containerName,
@@ -718,7 +717,7 @@ export class K8 {
    * @param command - sh commands as an array to be run within the containerName (e.g 'ls -la /opt/hgcapp')
    * @returns console output as string
    */
-  async execContainer (podName: PodName, containerName: string, command: string | string[]) {
+  async execContainer (podName: string, containerName: string, command: string | string[]) {
     const self = this
     const namespace = self._getNamespace()
     const guid = uuid4()
@@ -802,7 +801,7 @@ export class K8 {
   async portForward (podName: PodName, localPort: number, podPort: number) {
     const ns = this._getNamespace()
     const forwarder = new k8s.PortForward(this.kubeConfig, false)
-    const server = net.createServer((socket) => {
+    const server = await net.createServer((socket) => {
       forwarder.portForward(ns, podName, [podPort], socket, null, socket, 3)
     }) as ExtendedNetServer
 
@@ -940,7 +939,7 @@ export class K8 {
           let predicateMatchCount = 0
 
           for (const item of resp.body.items) {
-            if (item.status?.phase && phases.includes(item.status?.phase)) {
+            if (phases.includes(item.status?.phase)) {
               phaseMatchCount++
             }
 
@@ -992,7 +991,7 @@ export class K8 {
     if (!conditionsMap || conditionsMap.size === 0) throw new MissingArgumentError('pod conditions are required')
 
     return await this.waitForPods([constants.POD_PHASE_RUNNING], labels, podCount, maxAttempts, delay, (pod) => {
-      if (pod.status?.conditions?.length && pod.status?.conditions?.length > 0) {
+      if (pod.status?.conditions?.length > 0) {
         for (const cond of pod.status.conditions) {
           for (const entry of conditionsMap.entries()) {
             const condType = entry[0]

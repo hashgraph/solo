@@ -97,7 +97,7 @@ export function e2eNodeKeyRefreshTest (testName: string, mode: string, releaseTa
     describe(
       `Node should refresh successfully [mode ${mode}, release ${releaseTag}]`,
       () => {
-        const nodeAlias = 'node1' as string
+        const nodeAlias = 'node1'
 
         before(async function () {
           this.timeout(2 * MINUTES)
@@ -116,11 +116,11 @@ export function e2eNodeKeyRefreshTest (testName: string, mode: string, releaseTa
           }
         })
 
-        nodePodShouldBeRunning(nodeCmd, namespace, nodeAlias as NodeAlias)
+        nodePodShouldBeRunning(nodeCmd, namespace, nodeAlias)
 
-        nodeShouldNotBeActive(nodeCmd, nodeAlias as NodeAlias)
+        nodeShouldNotBeActive(nodeCmd, nodeAlias)
 
-        nodeRefreshShouldSucceed(nodeAlias as NodeAlias, nodeCmd, argv)
+        nodeRefreshShouldSucceed(nodeAlias, nodeCmd, argv)
 
         balanceQueryShouldSucceed(accountManager, nodeCmd, namespace)
 

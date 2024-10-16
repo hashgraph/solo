@@ -56,10 +56,6 @@ describe('Node add via separated commands should success', async () => {
 
   const bootstrapResp = await bootstrapNetwork(namespace, argv)
   const nodeCmd = bootstrapResp.cmd.nodeCmd
-
-  // @ts-ignore in order to access the private member
-  const accountManager = nodeCmd.accountManager
-
   const accountCmd = bootstrapResp.cmd.accountCmd
   const networkCmd = bootstrapResp.cmd.networkCmd
   const k8 = bootstrapResp.opts.k8
@@ -70,14 +66,16 @@ describe('Node add via separated commands should success', async () => {
     this.timeout(10 * MINUTES)
 
     await getNodeLogs(k8, namespace)
-    await accountManager.close()
+    // @ts-ignore
+    await nodeCmd.accountManager.close()
     await nodeCmd.stop(argv)
     await networkCmd.destroy(argv)
     await k8.deleteNamespace(namespace)
   })
 
   it('cache current version of private keys', async () => {
-    existingServiceMap = await accountManager.getNodeServiceMap(namespace)
+    // @ts-ignore
+    existingServiceMap = await nodeCmd.accountManager.getNodeServiceMap(namespace)
     existingNodeIdsPrivateKeysHash = await getNodeAliasesPrivateKeysHash(existingServiceMap, namespace, k8, getTmpDir())
   }).timeout(defaultTimeout)
 
@@ -103,12 +101,15 @@ describe('Node add via separated commands should success', async () => {
       'curDate',
       'freezeAdminPrivateKey'
     ])
-    await accountManager.close()
+    // @ts-ignore
+    await nodeCmd.accountManager.close()
   }).timeout(12 * MINUTES)
 
-  balanceQueryShouldSucceed(accountManager, nodeCmd, namespace)
+  // @ts-ignore
+  balanceQueryShouldSucceed(nodeCmd.accountManager, nodeCmd, namespace)
 
-  accountCreationShouldSucceed(accountManager, nodeCmd, namespace)
+  // @ts-ignore
+  accountCreationShouldSucceed(nodeCmd.accountManager, nodeCmd, namespace)
 
   it('existing nodes private keys should not have changed', async () => {
     const currentNodeIdsPrivateKeysHash = await getNodeAliasesPrivateKeysHash(existingServiceMap, namespace, k8, getTmpDir())

@@ -802,7 +802,7 @@ export class NodeCommand extends BaseCommand {
     }
   }
 
-  fetchPlatformSoftware (nodeAliases: NodeAliases, podNames: object, releaseTag: string,
+  fetchPlatformSoftware (nodeAliases: NodeAliases, podNames: Record<NodeAlias, PodName>, releaseTag: string,
     task: ListrTaskWrapper<any, any, any>, platformInstaller: PlatformInstaller) {
     const subTasks = []
     for (const nodeAlias of nodeAliases) {
@@ -842,7 +842,7 @@ export class NodeCommand extends BaseCommand {
 
       if (parts.length === 2) {
         url = parts[0].trim()
-        port = +parts[1].trim()
+        port = +(parts[1].trim())
       } else if (parts.length === 1) {
         url = parts[0]
       } else {
@@ -904,8 +904,8 @@ export class NodeCommand extends BaseCommand {
           await prompts.execute(task, self.configManager, NodeCommand.SETUP_FLAGS_LIST)
 
           // create a config object for subsequent steps
-          const config = <NodeSetupConfigClass>this.getConfig(NodeCommand.SETUP_CONFIGS_NAME, NodeCommand.SETUP_FLAGS_LIST,
-            ['nodeAliases', 'podNames'])
+          const config = this.getConfig(NodeCommand.SETUP_CONFIGS_NAME, NodeCommand.SETUP_FLAGS_LIST,
+            ['nodeAliases', 'podNames']) as NodeSetupConfigClass
 
           config.nodeAliases = helpers.parseNodeAliases(config.nodeAliasesUnparsed)
 
@@ -1163,11 +1163,7 @@ export class NodeCommand extends BaseCommand {
 
           // create a config object for subsequent steps
           const config = this.getConfig(NodeCommand.KEYS_CONFIGS_NAME, NodeCommand.KEYS_FLAGS_LIST,
-            [
-              'curDate',
-              'keysDir',
-              'nodeAliases'
-            ]) as NodeKeysConfigClass
+            [ 'curDate', 'keysDir', 'nodeAliases' ]) as NodeKeysConfigClass
 
           config.curDate = new Date()
           config.nodeAliases = helpers.parseNodeAliases(config.nodeAliasesUnparsed)
@@ -1539,7 +1535,6 @@ export class NodeCommand extends BaseCommand {
         title: 'Generate Gossip key',
         task: (ctx: Context, parentTask: ListrTaskWrapper<any, any, any>) => {
           const config = ctx.config
-
           const subTasks = self.keyManager.taskGenerateGossipKeys([config.nodeAlias], config.keysDir, config.curDate, config.allNodeAliases)
           // set up the sub-tasks
           return parentTask.newListr(subTasks, {
@@ -1711,7 +1706,8 @@ export class NodeCommand extends BaseCommand {
       {
         title: 'Prepare staging directory',
         task: (ctx: Context, parentTask: ListrTaskWrapper<any, any, any>) => {
-          return this.prepareStagingTask(ctx, parentTask, ctx.config.keysDir, ctx.config.stagingKeysDir, ctx.config.allNodeAliases)
+          const config = ctx.config
+          return this.prepareStagingTask(ctx, parentTask, config.keysDir, config.stagingKeysDir, config.allNodeAliases)
         }
       },
       {
@@ -1729,7 +1725,8 @@ export class NodeCommand extends BaseCommand {
       {
         title: 'Get node logs and configs',
         task: async (ctx: Context) => {
-          await helpers.getNodeLogs(self.k8, ctx.config.namespace)
+          const config = ctx.config
+          await helpers.getNodeLogs(self.k8, config.namespace)
         }
       },
       {
@@ -1741,15 +1738,17 @@ export class NodeCommand extends BaseCommand {
       {
         title: 'Kill nodes to pick up updated configMaps',
         task: async (ctx: Context) => {
-          for (const service of ctx.config.serviceMap.values()) {
-            await self.k8.kubeClient.deleteNamespacedPod(service.nodePodName, ctx.config.namespace, undefined, undefined, 1)
+          const config = ctx.config
+          for (const service of config.serviceMap.values()) {
+            await self.k8.kubeClient.deleteNamespacedPod(service.nodePodName, config.namespace, undefined, undefined, 1)
           }
         }
       },
       {
         title: 'Check node pods are running',
         task: (ctx: Context, task: ListrTaskWrapper<any, any, any>) => {
-          return this.checkPodRunningTask(ctx, task, ctx.config.allNodeAliases)
+          const config = ctx.config
+          return this.checkPodRunningTask(ctx, task, config.allNodeAliases)
         }
       },
       {
@@ -1771,8 +1770,7 @@ export class NodeCommand extends BaseCommand {
           const node1FullyQualifiedPodName = Templates.renderNetworkPodName(config.existingNodeAliases[0])
           const upgradeDirectory = `${constants.HEDERA_HAPI_PATH}/data/saved/com.hedera.services.ServicesMain/0/123`
           // zip the contents of the newest folder on node1 within /opt/hgcapp/services-hedera/HapiApp2.0/data/saved/com.hedera.services.ServicesMain/0/123/
-          const zipFileName = await self.k8.execContainer(node1FullyQualifiedPodName, constants.ROOT_CONTAINER,
-            ['bash', '-c', `cd ${upgradeDirectory} && mapfile -t states < <(ls -1t .) && jar cf "\${states[0]}.zip" -C "\${states[0]}" . && echo -n \${states[0]}.zip`])
+          const zipFileName = await self.k8.execContainer(node1FullyQualifiedPodName, constants.ROOT_CONTAINER, ['bash', '-c', `cd ${upgradeDirectory} && mapfile -t states < <(ls -1t .) && jar cf "\${states[0]}.zip" -C "\${states[0]}" . && echo -n \${states[0]}.zip`])
           await self.k8.copyFrom(node1FullyQualifiedPodName, constants.ROOT_CONTAINER, `${upgradeDirectory}/${zipFileName}`, config.stagingDir)
           config.lastStateZipPath = path.join(config.stagingDir, zipFileName)
         }
@@ -1789,8 +1787,7 @@ export class NodeCommand extends BaseCommand {
               await self.k8.execContainer(newNodeFullyQualifiedPodName, constants.ROOT_CONTAINER, ['bash', '-c', `mkdir -p ${savedStatePath}`])
               await self.k8.copyTo(newNodeFullyQualifiedPodName, constants.ROOT_CONTAINER, config.lastStateZipPath, savedStatePath)
               await self.platformInstaller.setPathPermission(newNodeFullyQualifiedPodName, constants.HEDERA_HAPI_PATH)
-              await self.k8.execContainer(newNodeFullyQualifiedPodName, constants.ROOT_CONTAINER,
-                ['bash', '-c', `cd ${savedStatePath} && jar xf ${path.basename(config.lastStateZipPath)} && rm -f ${path.basename(config.lastStateZipPath)}`])
+              await self.k8.execContainer(newNodeFullyQualifiedPodName, constants.ROOT_CONTAINER, ['bash', '-c', `cd ${savedStatePath} && jar xf ${path.basename(config.lastStateZipPath)} && rm -f ${path.basename(config.lastStateZipPath)}`])
             }
       },
       {
@@ -2512,7 +2509,7 @@ export class NodeCommand extends BaseCommand {
               nodeUpdateTx.setAccountId(config.newAccountNumber)
             }
 
-            let parsedNewKey
+            let parsedNewKey: PrivateKey
             if (config.newAdminKey) {
               parsedNewKey = PrivateKey.fromStringED25519(config.newAdminKey)
               nodeUpdateTx.setAdminKey(parsedNewKey.publicKey)
@@ -2617,7 +2614,8 @@ export class NodeCommand extends BaseCommand {
       {
         title: 'Start network nodes',
         task: (ctx, task) => {
-          return this.startNetworkNodesTask(task, ctx.config.podNames, ctx.config.allNodeAliases)
+          const config = ctx.config
+          return this.startNetworkNodesTask(task, config.podNames, config.allNodeAliases)
         }
       },
       {
@@ -2644,7 +2642,8 @@ export class NodeCommand extends BaseCommand {
       {
         title: 'Trigger stake weight calculate',
         task: async (ctx) => {
-          await this.triggerStakeCalculation(ctx.config)
+          const config = ctx.config
+          await this.triggerStakeCalculation(config)
         }
       },
       {
@@ -2786,7 +2785,8 @@ export class NodeCommand extends BaseCommand {
       {
         title: 'Get node logs and configs',
         task: async (ctx: Context) => {
-          await helpers.getNodeLogs(self.k8, ctx.config.namespace)
+          const config = ctx.config
+          await helpers.getNodeLogs(self.k8, config.namespace)
         }
       },
       {
@@ -2798,8 +2798,9 @@ export class NodeCommand extends BaseCommand {
       {
         title: 'Kill nodes to pick up updated configMaps',
         task: async (ctx: Context) => {
-          for (const service of ctx.config.serviceMap.values()) {
-            await self.k8.kubeClient.deleteNamespacedPod(service.nodePodName, ctx.config.namespace, undefined, undefined, 1)
+          const config = ctx.config
+          for (const service of config.serviceMap.values()) {
+            await self.k8.kubeClient.deleteNamespacedPod(service.nodePodName, config.namespace, undefined, undefined, 1)
           }
         }
       },
@@ -2808,6 +2809,7 @@ export class NodeCommand extends BaseCommand {
         task: async (ctx: Context, task: ListrTaskWrapper<any, any, any>) => {
           self.logger.info('sleep 20 seconds to give time for pods to come up after being killed')
           await sleep(20 * SECONDS)
+          const config = ctx.config
           return this.checkPodRunningTask(ctx, task, ctx.config.allNodeAliases)
         }
       },
@@ -2829,7 +2831,8 @@ export class NodeCommand extends BaseCommand {
       {
         title: 'Start network nodes',
         task: (ctx: Context, task:ListrTaskWrapper<any, any, any>) => {
-          return this.startNetworkNodesTask(task, ctx.config.podNames, ctx.config.allNodeAliases)
+          const config = ctx.config
+          return this.startNetworkNodesTask(task, config.podNames, config.allNodeAliases)
         }
       },
       {
@@ -2856,7 +2859,8 @@ export class NodeCommand extends BaseCommand {
       {
         title: 'Trigger stake weight calculate',
         task: async (ctx: Context) => {
-          await this.triggerStakeCalculation(ctx.config)
+          const config = ctx.config
+          await this.triggerStakeCalculation(config)
         }
       },
       {

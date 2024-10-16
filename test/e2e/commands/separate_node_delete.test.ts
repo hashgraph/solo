@@ -55,10 +55,6 @@ describe('Node delete via separated commands', async () => {
 
   const bootstrapResp = await bootstrapNetwork(namespace, argv)
   const nodeCmd = bootstrapResp.cmd.nodeCmd
-
-  // @ts-ignore in order to access private property
-  const accountManager = nodeCmd.accountManager
-
   const accountCmd = bootstrapResp.cmd.accountCmd
   const k8 = bootstrapResp.opts.k8
 
@@ -87,12 +83,15 @@ describe('Node delete via separated commands', async () => {
       'freezeAdminPrivateKey'
     ])
 
-    await accountManager.close()
+    // @ts-ignore
+    await nodeCmd.accountManager.close()
   }).timeout(10 * MINUTES)
 
-  balanceQueryShouldSucceed(accountManager, nodeCmd, namespace)
+  // @ts-ignore
+  balanceQueryShouldSucceed(nodeCmd.accountManager, nodeCmd, namespace)
 
-  accountCreationShouldSucceed(accountManager, nodeCmd, namespace)
+  // @ts-ignore
+  accountCreationShouldSucceed(nodeCmd.accountManager, nodeCmd, namespace)
 
   it('config.txt should no longer contain removed nodeAlias', async () => {
     // read config.txt file from first node, read config.txt line by line, it should not contain value of nodeAlias

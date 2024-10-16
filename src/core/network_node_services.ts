@@ -132,6 +132,11 @@ export class NetworkNodeServicesBuilder {
     return this
   }
 
+  withNodePodName (nodePodName: PodName) {
+    this.nodePodName = nodePodName
+    return this
+  }
+
   withNodeServiceName (nodeServiceName: string) {
     this.nodeServiceName = nodeServiceName
     return this

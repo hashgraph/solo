@@ -16,6 +16,7 @@
  */
 import { it, describe, after, before } from 'mocha'
 import { expect } from 'chai'
+import each from 'mocha-each'
 
 import fs from 'fs'
 import net from 'net'
@@ -164,7 +165,7 @@ describe('K8', () => {
 
   it('should be able to detect pod IP of a pod', async () => {
     const pods = await k8.getPodsByLabel([`app=${podLabelValue}`])
-    const podName = pods[0].metadata.name as PodName
+    const podName = pods[0].metadata.name
     await expect(k8.getPodIP(podName)).to.eventually.not.be.null
     await expect(k8.getPodIP('INVALID')).to.be.rejectedWith(SoloError)
   }).timeout(defaultTimeout)
@@ -176,45 +177,43 @@ describe('K8', () => {
 
   it('should be able to check if a path is directory inside a container', async () => {
     const pods = await k8.getPodsByLabel([`app=${podLabelValue}`])
-    const podName = pods[0].metadata.name as PodName
+    const podName = pods[0].metadata.name
     await expect(k8.hasDir(podName, containerName, '/tmp')).to.eventually.be.ok
   }).timeout(defaultTimeout)
 
-  const testCases = ['test/data/pem/keys/a-private-node0.pem', 'test/data/build-v0.54.0-alpha.4.zip']
+  const testCases = [ 'test/data/pem/keys/a-private-node0.pem', 'test/data/build-v0.54.0-alpha.4.zip' ]
 
-  testCases.forEach((localFilePath) => {
-    describe('test copyTo and copyFrom', () => {
-      it('should be able to copy a file to and from a container', async () => {
-        const pods = await k8.waitForPodReady([`app=${podLabelValue}`], 1, 20)
-        expect(pods).to.have.lengthOf(1)
+  each(testCases).describe('test copyTo and copyFrom', (localFilePath) => {
+    it('should be able to copy a file to and from a container', async () => {
+      const pods = await k8.waitForPodReady([ `app=${podLabelValue}` ], 1, 20)
+      expect(pods).to.have.lengthOf(1)
 
-        const localTmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'k8-test'))
-        const remoteTmpDir = '/tmp'
-        const fileName = path.basename(localFilePath)
-        const remoteFilePath = `${remoteTmpDir}/${fileName}`
-        const originalFileData = fs.readFileSync(localFilePath)
-        const originalFileHash = crypto.createHash('sha384').update(originalFileData).digest('hex')
-        const originalStat = fs.statSync(localFilePath)
+      const localTmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'k8-test'))
+      const remoteTmpDir = '/tmp'
+      const fileName = path.basename(localFilePath)
+      const remoteFilePath = `${remoteTmpDir}/${fileName}`
+      const originalFileData = fs.readFileSync(localFilePath)
+      const originalFileHash = crypto.createHash('sha384').update(originalFileData).digest('hex')
+      const originalStat = fs.statSync(localFilePath)
 
-        // upload the file
-        await expect(k8.copyTo(podName, containerName, localFilePath, remoteTmpDir)).to.eventually.be.ok
+      // upload the file
+      await expect(k8.copyTo(podName, containerName, localFilePath, remoteTmpDir)).to.eventually.be.ok
 
-        // download the same file
-        await expect(k8.copyFrom(podName, containerName, remoteFilePath, localTmpDir)).to.eventually.be.ok
-        const downloadedFilePath = path.join(localTmpDir, fileName)
-        const downloadedFileData = fs.readFileSync(downloadedFilePath)
-        const downloadedFileHash = crypto.createHash('sha384').update(downloadedFileData).digest('hex')
-        const downloadedStat = fs.statSync(downloadedFilePath)
+      // download the same file
+      await expect(k8.copyFrom(podName, containerName, remoteFilePath, localTmpDir)).to.eventually.be.ok
+      const downloadedFilePath = path.join(localTmpDir, fileName)
+      const downloadedFileData = fs.readFileSync(downloadedFilePath)
+      const downloadedFileHash = crypto.createHash('sha384').update(downloadedFileData).digest('hex')
+      const downloadedStat = fs.statSync(downloadedFilePath)
 
-        expect(downloadedStat.size, 'downloaded file size should match original file size').to.equal(originalStat.size)
-        expect(downloadedFileHash, 'downloaded file hash should match original file hash').to.equal(originalFileHash)
+      expect(downloadedStat.size, 'downloaded file size should match original file size').to.equal(originalStat.size)
+      expect(downloadedFileHash, 'downloaded file hash should match original file hash').to.equal(originalFileHash)
 
-        // rm file inside the container
-        await k8.execContainer(podName, containerName, ['rm', '-f', remoteFilePath])
+      // rm file inside the container
+      await k8.execContainer(podName, containerName, [ 'rm', '-f', remoteFilePath ])
 
-        fs.rmdirSync(localTmpDir, { recursive: true })
-      }).timeout(defaultTimeout)
-    })
+      fs.rmdirSync(localTmpDir, { recursive: true })
+    }).timeout(defaultTimeout)
   })
 
   it('should be able to port forward gossip port', (done) => {
@@ -250,7 +249,7 @@ describe('K8', () => {
   it('should be able to cat a file inside the container', async () => {
     const pods = await k8.getPodsByLabel([`app=${podLabelValue}`])
     const podName = pods[0].metadata.name
-    const output = await k8.execContainer(podName as PodName, containerName, ['cat', '/etc/hostname'])
+    const output = await k8.execContainer(podName, containerName, ['cat', '/etc/hostname'])
     expect(output.indexOf(podName)).to.equal(0)
   }).timeout(defaultTimeout)
 

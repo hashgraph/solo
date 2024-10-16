@@ -126,7 +126,7 @@ export class NodeCommandTasks {
     }
   }
 
-  prepareUpgradeZip() {
+  prepareUpgradeZip () {
     return new Task('Prepare upgrade zip file for node upgrade process', async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
       const config = ctx.config
       ctx.upgradeZipFile = await this._prepareUpgradeZip(config.stagingDir)
@@ -134,14 +134,14 @@ export class NodeCommandTasks {
     })
   }
 
-  loadAdminKey() {
+  loadAdminKey () {
     return new Task('Load node admin key', (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
       const config = ctx.config
       config.adminKey = PrivateKey.fromStringED25519(constants.GENESIS_KEY)
     })
   }
 
-  checkExistingNodesStakedAmount() {
+  checkExistingNodesStakedAmount () {
     return new Task('Check existing nodes staked amount', async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
       const config = ctx.config
 
@@ -154,7 +154,7 @@ export class NodeCommandTasks {
     })
   }
 
-  sendPrepareUpgradeTransaction(): Task {
+  sendPrepareUpgradeTransaction (): Task {
     return new Task('Send prepare upgrade transaction', async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
       const { upgradeZipHash } = ctx
       const { nodeClient, freezeAdminPrivateKey } = ctx.config
@@ -191,7 +191,7 @@ export class NodeCommandTasks {
     })
   }
 
-  sendFreezeUpgradeTransaction(): Task {
+  sendFreezeUpgradeTransaction (): Task {
     return new Task('Send freeze upgrade transaction', async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
       const { upgradeZipHash } = ctx
       const { freezeAdminPrivateKey, nodeClient } = ctx.config
@@ -274,7 +274,7 @@ export class NodeCommandTasks {
   }
 
   /** Check if the network node pod is running */
-  async checkNetworkNodePod(namespace: string, nodeAlias: NodeAlias, maxAttempts: number = 60, delay: number = 2000): Promise<string> {
+  async checkNetworkNodePod(namespace: string, nodeAlias: NodeAlias, maxAttempts = 60, delay = 2000) {
     nodeAlias = nodeAlias.trim() as NodeAlias
     const podName = Templates.renderNetworkPodName(nodeAlias)
 

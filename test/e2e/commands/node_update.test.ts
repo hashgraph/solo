@@ -55,12 +55,6 @@ describe('Node update', async () => {
   argv[flags.quiet.name] = true
   const bootstrapResp = await bootstrapNetwork(namespace, argv)
   const nodeCmd = bootstrapResp.cmd.nodeCmd
-
-  // @ts-ignore in order to access the private member
-  const accountManager = nodeCmd.accountManager
-  // @ts-ignore in order to access the private member
-  const keyManager = nodeCmd.keyManager
-
   const accountCmd = bootstrapResp.cmd.accountCmd
   const k8 = bootstrapResp.opts.k8
   let existingServiceMap
@@ -75,7 +69,8 @@ describe('Node update', async () => {
   })
 
   it('cache current version of private keys', async () => {
-    existingServiceMap = await accountManager.getNodeServiceMap(namespace)
+    // @ts-ignore
+    existingServiceMap = await nodeCmd.accountManager.getNodeServiceMap(namespace)
     existingNodeIdsPrivateKeysHash = await getNodeAliasesPrivateKeysHash(existingServiceMap, namespace, k8, getTmpDir())
   }).timeout(defaultTimeout)
 
@@ -88,14 +83,18 @@ describe('Node update', async () => {
     // generate gossip and tls keys for the updated node
     const tmpDir = getTmpDir()
 
-    const signingKey = await keyManager.generateSigningKey(updateNodeId)
-    const signingKeyFiles = await keyManager.storeSigningKey(updateNodeId, signingKey, tmpDir)
+    // @ts-ignore
+    const signingKey = await nodeCmd.keyManager.generateSigningKey(updateNodeId)
+    // @ts-ignore
+    const signingKeyFiles = await nodeCmd.keyManager.storeSigningKey(updateNodeId, signingKey, tmpDir)
     nodeCmd.logger.debug(`generated test gossip signing keys for node ${updateNodeId} : ${signingKeyFiles.certificateFile}`)
     argv[flags.gossipPublicKey.name] = signingKeyFiles.certificateFile
     argv[flags.gossipPrivateKey.name] = signingKeyFiles.privateKeyFile
 
-    const tlsKey = await keyManager.generateGrpcTLSKey(updateNodeId)
-    const tlsKeyFiles = await keyManager.storeTLSKey(updateNodeId, tlsKey, tmpDir)
+    // @ts-ignore
+    const tlsKey = await nodeCmd.keyManager.generateGrpcTLSKey(updateNodeId)
+    // @ts-ignore
+    const tlsKeyFiles = await nodeCmd.keyManager.storeTLSKey(updateNodeId, tlsKey, tmpDir)
     nodeCmd.logger.debug(`generated test TLS keys for node ${updateNodeId} : ${tlsKeyFiles.certificateFile}`)
     argv[flags.tlsPublicKey.name] = tlsKeyFiles.certificateFile
     argv[flags.tlsPrivateKey.name] = tlsKeyFiles.privateKeyFile
@@ -106,12 +105,15 @@ describe('Node update', async () => {
       flags.devMode.constName,
       flags.quiet.constName
     ])
-    await accountManager.close()
+    // @ts-ignore
+    await nodeCmd.accountManager.close()
   }).timeout(30 * MINUTES)
 
-  balanceQueryShouldSucceed(accountManager, nodeCmd, namespace)
+  // @ts-ignore
+  balanceQueryShouldSucceed(nodeCmd.accountManager, nodeCmd, namespace)
 
-  accountCreationShouldSucceed(accountManager, nodeCmd, namespace)
+  // @ts-ignore
+  accountCreationShouldSucceed(nodeCmd.accountManager, nodeCmd, namespace)
 
   it('signing key and tls key should not match previous one', async () => {
     const currentNodeIdsPrivateKeysHash = await getNodeAliasesPrivateKeysHash(existingServiceMap, namespace, k8, getTmpDir())
