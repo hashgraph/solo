@@ -72,6 +72,7 @@ jobs:
       - env-vars
       - code-style
     strategy:
+      fail-fast: false
       matrix:
         e2e-test-type:
           # {AUTOGENERATE-E2E-TEST-JOBS}
