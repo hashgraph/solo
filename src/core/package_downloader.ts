@@ -145,7 +145,7 @@ export class PackageDownloader {
         s.on('data', function (d) {
           checksum.update(<crypto.BinaryLike>d)
         })
-        s.on('end', function () {
+        s.on('end', () => {
           const d = checksum.digest('hex')
           this.logger.debug(`Computed checksum '${d}' for '${filePath}' using algo '${algo}'`)
           resolve(d)
