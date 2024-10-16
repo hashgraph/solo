@@ -33,11 +33,8 @@ import { constants } from './index.ts'
 import { type SoloLogger } from './logging.ts'
 
 export class PackageDownloader {
-  private logger: SoloLogger
-
-  constructor (logger: SoloLogger) {
+  constructor (public readonly logger: SoloLogger) {
     if (!logger) throw new IllegalArgumentError('an instance of core/SoloLogger is required', logger)
-    this.logger = logger
   }
 
   isValidURL (url: string) {
