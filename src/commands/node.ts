@@ -552,7 +552,7 @@ export class NodeCommand extends BaseCommand {
   }
 
   /** Return task for setup network nodes */
-  setupNodesTask (ctx: any, task: ListrTaskWrapper<any, any, any>, nodeAliases: NodeAliases): any {
+  setupNodesTask (ctx: any, task: ListrTaskWrapper<any, any, any>, nodeAliases: NodeAliases) {
     const subTasks = []
     for (const nodeAlias of nodeAliases) {
       const podName = ctx.config.podNames[nodeAlias]
@@ -737,14 +737,13 @@ export class NodeCommand extends BaseCommand {
 
   uploadPlatformSoftware (nodeAliases: NodeAliases, podNames: any, task: ListrTaskWrapper<any, any, any>,
     localBuildPath: string) {
+    const self = this
     const subTasks = []
 
-    this.logger.debug('no need to fetch, use local build jar files')
+    self.logger.debug('no need to fetch, use local build jar files')
 
     const buildPathMap: Map<NodeAlias, string> = new Map()
-
     let defaultDataLibBuildPath: string
-
     const parameterPairs = localBuildPath.split(',')
     for (const parameterPair of parameterPairs) {
       if (parameterPair.includes('=')) {
@@ -756,7 +755,6 @@ export class NodeCommand extends BaseCommand {
     }
 
     let localDataLibBuildPath: string
-
     for (const nodeAlias of nodeAliases) {
       const podName = podNames[nodeAlias]
       if (buildPathMap.has(nodeAlias)) {
@@ -773,17 +771,15 @@ export class NodeCommand extends BaseCommand {
         title: `Copy local build to Node: ${chalk.yellow(nodeAlias)} from ${localDataLibBuildPath}`,
         task: async () => {
           // filter the data/config and data/keys to avoid failures due to config and secret mounts
-          const filterFunction = (path: string, stat: any) =>
-            !(path.includes('data/keys') || path.includes('data/config'))
-
-          await this.k8.copyTo(podName, constants.ROOT_CONTAINER, localDataLibBuildPath,
+          const filterFunction = (path: string, stat: any) => {
+            return !(path.includes('data/keys') || path.includes('data/config'))
+          }
+          await self.k8.copyTo(podName, constants.ROOT_CONTAINER, localDataLibBuildPath,
               `${constants.HEDERA_HAPI_PATH}`, filterFunction)
-
-          const testJsonFiles: string[] = this.configManager.getFlag<string>(flags.appConfig)!.split(',')
-
+          const testJsonFiles: string[] = self.configManager.getFlag<string>(flags.appConfig)!.split(',')
           for (const jsonFile of testJsonFiles) {
             if (fs.existsSync(jsonFile)) {
-              await this.k8.copyTo(podName, constants.ROOT_CONTAINER, jsonFile, `${constants.HEDERA_HAPI_PATH}`)
+              await self.k8.copyTo(podName, constants.ROOT_CONTAINER, jsonFile, `${constants.HEDERA_HAPI_PATH}`)
             }
           }
         }
@@ -798,10 +794,11 @@ export class NodeCommand extends BaseCommand {
 
   fetchLocalOrReleasedPlatformSoftware (nodeAliases: NodeAliases, podNames: any, releaseTag: string,
     task: ListrTaskWrapper<any, any, any>, localBuildPath: string) {
+    const self = this
     if (localBuildPath !== '') {
-      return this.uploadPlatformSoftware(nodeAliases, podNames, task, localBuildPath)
+      return self.uploadPlatformSoftware(nodeAliases, podNames, task, localBuildPath)
     } else {
-      return this.fetchPlatformSoftware(nodeAliases, podNames, releaseTag, task, this.platformInstaller)
+      return self.fetchPlatformSoftware(nodeAliases, podNames, releaseTag, task, self.platformInstaller)
     }
   }
 
@@ -870,6 +867,8 @@ export class NodeCommand extends BaseCommand {
 
   // List of Commands
   async setup (argv: any) {
+    const self = this
+
     interface NodeSetupConfigClass {
       app: string
       appConfig: string
@@ -892,7 +891,7 @@ export class NodeCommand extends BaseCommand {
       {
         title: 'Initialize',
         task: async (ctx, task) => {
-          this.configManager.update(argv)
+          self.configManager.update(argv)
 
           // disable the prompts that we don't want to prompt the user for
           prompts.disablePrompts([
@@ -902,7 +901,7 @@ export class NodeCommand extends BaseCommand {
             flags.localBuildPath
           ])
 
-          await prompts.execute(task, this.configManager, NodeCommand.SETUP_FLAGS_LIST)
+          await prompts.execute(task, self.configManager, NodeCommand.SETUP_FLAGS_LIST)
 
           // create a config object for subsequent steps
           const config = <NodeSetupConfigClass>this.getConfig(NodeCommand.SETUP_CONFIGS_NAME, NodeCommand.SETUP_FLAGS_LIST,
@@ -910,12 +909,12 @@ export class NodeCommand extends BaseCommand {
 
           config.nodeAliases = helpers.parseNodeAliases(config.nodeAliasesUnparsed)
 
-          await this.initializeSetup(config, this.k8)
+          await self.initializeSetup(config, self.k8)
 
           // set config in the context for later tasks to use
           ctx.config = config
 
-          this.logger.debug('Initialized config', { config })
+          self.logger.debug('Initialized config', { config })
         }
       },
       // @ts-ignore
@@ -924,7 +923,7 @@ export class NodeCommand extends BaseCommand {
         title: 'Fetch platform software into network nodes',
         task: (ctx, task) => {
           const config = ctx.config
-          return this.fetchLocalOrReleasedPlatformSoftware(config.nodeAliases, config.podNames, config.releaseTag, task, config.localBuildPath)
+          return self.fetchLocalOrReleasedPlatformSoftware(config.nodeAliases, config.podNames, config.releaseTag, task, config.localBuildPath)
         }
       },
       {
@@ -948,6 +947,8 @@ export class NodeCommand extends BaseCommand {
   }
 
   async start (argv: any) {
+    const self = this
+
     interface Context {
       config: {
         app: string
@@ -964,28 +965,28 @@ export class NodeCommand extends BaseCommand {
       {
         title: 'Initialize',
         task: async (ctx, task) => {
-          this.configManager.update(argv)
+          self.configManager.update(argv)
 
-          await prompts.execute(task, this.configManager, [
+          await prompts.execute(task, self.configManager, [
             flags.namespace,
             flags.nodeAliasesUnparsed
           ])
 
           // @ts-ignore
           ctx.config = {
-            app: <string>this.configManager.getFlag<string>(flags.app),
-            cacheDir: <string>this.configManager.getFlag<string>(flags.cacheDir),
-            debugNodeAlias: <NodeAlias>this.configManager.getFlag<NodeAlias>(flags.debugNodeAlias),
-            namespace: <string>this.configManager.getFlag<string>(flags.namespace),
-            nodeAliases: helpers.parseNodeAliases(<string>this.configManager.getFlag<string>(flags.nodeAliasesUnparsed))
+            app: <string>self.configManager.getFlag<string>(flags.app),
+            cacheDir: <string>self.configManager.getFlag<string>(flags.cacheDir),
+            debugNodeAlias: <NodeAlias>self.configManager.getFlag<NodeAlias>(flags.debugNodeAlias),
+            namespace: <string>self.configManager.getFlag<string>(flags.namespace),
+            nodeAliases: helpers.parseNodeAliases(<string>self.configManager.getFlag<string>(flags.nodeAliasesUnparsed))
           }
 
           ctx.config.stagingDir = Templates.renderStagingDir(
-            this.configManager.getFlag(flags.cacheDir),
-            this.configManager.getFlag(flags.releaseTag)
+            self.configManager.getFlag(flags.cacheDir),
+            self.configManager.getFlag(flags.releaseTag)
           )
 
-          if (!await this.k8.hasNamespace(ctx.config.namespace)) {
+          if (!await self.k8.hasNamespace(ctx.config.namespace)) {
             throw new SoloError(`namespace ${ctx.config.namespace} does not exist`)
           }
         }
@@ -1014,9 +1015,9 @@ export class NodeCommand extends BaseCommand {
       {
         title: 'Check node proxies are ACTIVE',
         task: (ctx, parentTask) => {
-          return this.checkNodesProxiesTask(ctx, parentTask, ctx.config.nodeAliases)
+          return self.checkNodesProxiesTask(ctx, parentTask, ctx.config.nodeAliases)
         },
-        skip: () => this.configManager.getFlag(flags.app) !== '' && this.configManager.getFlag(flags.app) !== constants.HEDERA_APP_NAME
+        skip: () => self.configManager.getFlag(flags.app) !== '' && self.configManager.getFlag(flags.app) !== constants.HEDERA_APP_NAME
       },
       {
         title: 'Add node stakes',
@@ -1028,7 +1029,7 @@ export class NodeCommand extends BaseCommand {
               const accountId = accountMap.get(nodeAlias)
               subTasks.push({
                 title: `Adding stake for node: ${chalk.yellow(nodeAlias)}`,
-                task: async () => await this.addStake(ctx.config.namespace, accountId, nodeAlias)
+                task: async () => await self.addStake(ctx.config.namespace, accountId, nodeAlias)
               })
             }
 
@@ -1048,17 +1049,19 @@ export class NodeCommand extends BaseCommand {
 
     try {
       await tasks.run()
-      this.logger.debug('node start has completed')
+      self.logger.debug('node start has completed')
     } catch (e: Error | any) {
       throw new SoloError(`Error starting node: ${e.message}`, e)
     } finally {
-      await this.close()
+      await self.close()
     }
 
     return true
   }
 
   async stop (argv: any) {
+    const self = this
+
     interface Context {
       config : {
         namespace: string
@@ -1071,19 +1074,19 @@ export class NodeCommand extends BaseCommand {
       {
         title: 'Initialize',
         task: async (ctx, task) => {
-          this.configManager.update(argv)
-          await prompts.execute(task, this.configManager, [
+          self.configManager.update(argv)
+          await prompts.execute(task, self.configManager, [
             flags.namespace,
             flags.nodeAliasesUnparsed
           ])
 
           // @ts-ignore
           ctx.config = {
-            namespace: this.configManager.getFlag(flags.namespace),
-            nodeAliases: helpers.parseNodeAliases(this.configManager.getFlag(flags.nodeAliasesUnparsed))
+            namespace: self.configManager.getFlag(flags.namespace),
+            nodeAliases: helpers.parseNodeAliases(self.configManager.getFlag(flags.nodeAliasesUnparsed))
           }
 
-          if (!await this.k8.hasNamespace(ctx.config.namespace)) {
+          if (!await self.k8.hasNamespace(ctx.config.namespace)) {
             throw new SoloError(`namespace ${ctx.config.namespace} does not exist`)
           }
         }
@@ -1098,7 +1101,7 @@ export class NodeCommand extends BaseCommand {
             const podName = ctx.config.podNames[nodeAlias]
             subTasks.push({
               title: `Stop node: ${chalk.yellow(nodeAlias)}`,
-              task: async () => await this.k8.execContainer(podName, constants.ROOT_CONTAINER, 'systemctl stop network-node')
+              task: async () => await self.k8.execContainer(podName, constants.ROOT_CONTAINER, 'systemctl stop network-node')
             })
           }
 
@@ -1127,6 +1130,8 @@ export class NodeCommand extends BaseCommand {
   }
 
   async keys (argv: any) {
+    const self = this
+
     interface NodeKeysConfigClass {
       cacheDir: string
       devMode: boolean
@@ -1147,26 +1152,26 @@ export class NodeCommand extends BaseCommand {
       {
         title: 'Initialize',
         task: async (ctx, task) => {
-          this.configManager.update(argv)
+          self.configManager.update(argv)
 
           // disable the prompts that we don't want to prompt the user for
           prompts.disablePrompts([
             flags.devMode
           ])
 
-          await prompts.execute(task, this.configManager, NodeCommand.KEYS_FLAGS_LIST)
+          await prompts.execute(task, self.configManager, NodeCommand.KEYS_FLAGS_LIST)
 
           // create a config object for subsequent steps
-          const config = <NodeKeysConfigClass>this.getConfig(NodeCommand.KEYS_CONFIGS_NAME, NodeCommand.KEYS_FLAGS_LIST,
+          const config = this.getConfig(NodeCommand.KEYS_CONFIGS_NAME, NodeCommand.KEYS_FLAGS_LIST,
             [
               'curDate',
               'keysDir',
               'nodeAliases'
-            ])
+            ]) as NodeKeysConfigClass
 
           config.curDate = new Date()
           config.nodeAliases = helpers.parseNodeAliases(config.nodeAliasesUnparsed)
-          config.keysDir = path.join(this.configManager.getFlag(flags.cacheDir), 'keys')
+          config.keysDir = path.join(self.configManager.getFlag(flags.cacheDir), 'keys')
 
           if (!fs.existsSync(config.keysDir)) {
             fs.mkdirSync(config.keysDir)
@@ -1179,7 +1184,7 @@ export class NodeCommand extends BaseCommand {
         title: 'Generate gossip keys',
         task: (ctx, parentTask) => {
           const config = ctx.config
-          const subTasks = this.keyManager.taskGenerateGossipKeys(config.nodeAliases, config.keysDir, config.curDate)
+          const subTasks = self.keyManager.taskGenerateGossipKeys(config.nodeAliases, config.keysDir, config.curDate)
           // set up the sub-tasks
           return parentTask.newListr(subTasks, {
             concurrent: false,
@@ -1195,7 +1200,7 @@ export class NodeCommand extends BaseCommand {
         title: 'Generate gRPC TLS keys',
         task: (ctx, parentTask) => {
           const config = ctx.config
-          const subTasks = this.keyManager.taskGenerateTLSKeys(config.nodeAliases, config.keysDir, config.curDate)
+          const subTasks = self.keyManager.taskGenerateTLSKeys(config.nodeAliases, config.keysDir, config.curDate)
           // set up the sub-tasks
           return parentTask.newListr(subTasks, {
             concurrent: true,
@@ -1211,9 +1216,9 @@ export class NodeCommand extends BaseCommand {
         title: 'Finalize',
         task: () => {
           // reset flags so that keys are not regenerated later
-          this.configManager.setFlag(flags.generateGossipKeys, false)
-          this.configManager.setFlag(flags.generateTlsKeys, false)
-          this.configManager.persist()
+          self.configManager.setFlag(flags.generateGossipKeys, false)
+          self.configManager.setFlag(flags.generateTlsKeys, false)
+          self.configManager.persist()
         }
       }
     ])
@@ -1228,6 +1233,8 @@ export class NodeCommand extends BaseCommand {
   }
 
   async refresh (argv: any) {
+    const self = this
+
     interface NodeRefreshConfigClass {
       app: string
       cacheDir: string
@@ -1249,7 +1256,7 @@ export class NodeCommand extends BaseCommand {
       {
         title: 'Initialize',
         task: async (ctx, task) => {
-          this.configManager.update(argv)
+          self.configManager.update(argv)
           // disable the prompts that we don't want to prompt the user for
           prompts.disablePrompts([
             flags.app,
@@ -1257,17 +1264,17 @@ export class NodeCommand extends BaseCommand {
             flags.localBuildPath
           ])
 
-          await prompts.execute(task, this.configManager, NodeCommand.REFRESH_FLAGS_LIST)
+          await prompts.execute(task, self.configManager, NodeCommand.REFRESH_FLAGS_LIST)
 
           // create a config object for subsequent steps
-          ctx.config = <NodeRefreshConfigClass>this.getConfig(NodeCommand.REFRESH_CONFIGS_NAME, NodeCommand.REFRESH_FLAGS_LIST,
-            ['nodeAliases', 'podNames'])
+          ctx.config = this.getConfig(NodeCommand.REFRESH_CONFIGS_NAME, NodeCommand.REFRESH_FLAGS_LIST,
+            ['nodeAliases', 'podNames']) as NodeRefreshConfigClass
 
           ctx.config.nodeAliases = helpers.parseNodeAliases(ctx.config.nodeAliasesUnparsed)
 
-          await this.initializeSetup(ctx.config, this.k8)
+          await self.initializeSetup(ctx.config, self.k8)
 
-          this.logger.debug('Initialized config', ctx.config)
+          self.logger.debug('Initialized config', ctx.config)
         }
       },
       // @ts-ignore
@@ -1282,7 +1289,7 @@ export class NodeCommand extends BaseCommand {
             subTasks.push({
               title: `Node: ${chalk.yellow(nodeAlias)}`,
               task: async () =>
-                await this.k8.execContainer(podName, constants.ROOT_CONTAINER, ['bash', '-c', `rm -rf ${constants.HEDERA_HAPI_PATH}/data/saved/*`])
+                await self.k8.execContainer(podName, constants.ROOT_CONTAINER, ['bash', '-c', `rm -rf ${constants.HEDERA_HAPI_PATH}/data/saved/*`])
             })
           }
 
@@ -1299,7 +1306,7 @@ export class NodeCommand extends BaseCommand {
         title: 'Fetch platform software into network nodes',
         task: (ctx, task) => {
           const config = ctx.config
-          return this.fetchLocalOrReleasedPlatformSoftware(config.nodeAliases, config.podNames, config.releaseTag, task, config.localBuildPath)
+          return self.fetchLocalOrReleasedPlatformSoftware(config.nodeAliases, config.podNames, config.releaseTag, task, config.localBuildPath)
         }
       },
       {
@@ -1343,6 +1350,8 @@ export class NodeCommand extends BaseCommand {
   }
 
   async logs (argv: any) {
+    const self = this
+
     interface Context {
       config: {
         namespace: string
@@ -1354,15 +1363,15 @@ export class NodeCommand extends BaseCommand {
       {
         title: 'Initialize',
         task: async (ctx, task) => {
-          await prompts.execute(task, this.configManager, [
+          await prompts.execute(task, self.configManager, [
             flags.nodeAliasesUnparsed
           ])
 
           ctx.config = {
-            namespace: <string>this.configManager.getFlag<string>(flags.namespace),
-            nodeAliases: helpers.parseNodeAliases(<string>this.configManager.getFlag<string>(flags.nodeAliasesUnparsed))
+            namespace: <string>self.configManager.getFlag<string>(flags.namespace),
+            nodeAliases: helpers.parseNodeAliases(<string>self.configManager.getFlag<string>(flags.nodeAliasesUnparsed))
           }
-          this.logger.debug('Initialized config', { config: ctx.config })
+          self.logger.debug('Initialized config', { config: ctx.config })
         }
       },
       {
@@ -1381,13 +1390,15 @@ export class NodeCommand extends BaseCommand {
     } catch (e: Error | any) {
       throw new SoloError(`Error in downloading log from nodes: ${e.message}`, e)
     } finally {
-      await this.close()
+      await self.close()
     }
 
     return true
   }
 
   addInitializeTask (argv: any) {
+    const self = this
+
     interface Context {
       config: NodeAddConfigClass
       adminKey: PrivateKey
@@ -1396,7 +1407,7 @@ export class NodeCommand extends BaseCommand {
     return {
       title: 'Initialize',
       task: async (ctx: Context, task: ListrTaskWrapper<any, any, any>) => {
-        this.configManager.update(argv)
+        self.configManager.update(argv)
 
         // disable the prompts that we don't want to prompt the user for
         prompts.disablePrompts([
@@ -1415,7 +1426,7 @@ export class NodeCommand extends BaseCommand {
           flags.grpcEndpoints
         ])
 
-        await prompts.execute(task, this.configManager, NodeCommand.ADD_FLAGS_LIST)
+        await prompts.execute(task, self.configManager, NodeCommand.ADD_FLAGS_LIST)
 
         // create a config object for subsequent steps
         const config = this.getConfig(NodeCommand.ADD_CONFIGS_NAME, NodeCommand.ADD_FLAGS_LIST,
@@ -1439,12 +1450,12 @@ export class NodeCommand extends BaseCommand {
         config.curDate = new Date()
         config.existingNodeAliases = []
 
-        await this.initializeSetup(config, this.k8)
+        await self.initializeSetup(config, self.k8)
 
         // set config in the context for later tasks to use
         ctx.config = config
 
-        ctx.config.chartPath = await this.prepareChartPath(ctx.config.chartDirectory,
+        ctx.config.chartPath = await self.prepareChartPath(ctx.config.chartDirectory,
           constants.SOLO_TESTING_CHART, constants.SOLO_DEPLOYMENT_CHART)
 
         // initialize Node Client with existing network nodes prior to adding the new node which isn't functioning, yet
@@ -1457,15 +1468,17 @@ export class NodeCommand extends BaseCommand {
         const treasuryAccountPrivateKey = treasuryAccount.privateKey
         config.treasuryKey = PrivateKey.fromStringED25519(treasuryAccountPrivateKey)
 
-        config.serviceMap = await this.accountManager.getNodeServiceMap(
+        config.serviceMap = await self.accountManager.getNodeServiceMap(
           config.namespace)
 
-        this.logger.debug('Initialized config', { config })
+        self.logger.debug('Initialized config', { config })
       }
     }
   }
 
   getAddPrepareTasks (argv: any) {
+    const self = this
+
     interface Context {
       config: NodeAddConfigClass
       maxNum: number
@@ -1477,11 +1490,11 @@ export class NodeCommand extends BaseCommand {
     }
 
     return [
-      this.addInitializeTask(argv),
+      self.addInitializeTask(argv),
       {
         title: 'Check that PVCs are enabled',
         task: () => {
-          if (!this.configManager.getFlag(flags.persistentVolumeClaims)) {
+          if (!self.configManager.getFlag(flags.persistentVolumeClaims)) {
             throw new SoloError('PVCs are not enabled. Please enable PVCs before adding a node')
           }
         }
@@ -1527,7 +1540,7 @@ export class NodeCommand extends BaseCommand {
         task: (ctx: Context, parentTask: ListrTaskWrapper<any, any, any>) => {
           const config = ctx.config
 
-          const subTasks = this.keyManager.taskGenerateGossipKeys([config.nodeAlias], config.keysDir, config.curDate, config.allNodeAliases)
+          const subTasks = self.keyManager.taskGenerateGossipKeys([config.nodeAlias], config.keysDir, config.curDate, config.allNodeAliases)
           // set up the sub-tasks
           return parentTask.newListr(subTasks, {
             concurrent: false,
@@ -1543,7 +1556,7 @@ export class NodeCommand extends BaseCommand {
         title: 'Generate gRPC TLS key',
         task: (ctx: Context, parentTask: ListrTaskWrapper<any, any, any>) => {
           const config = ctx.config
-          const subTasks = this.keyManager.taskGenerateTLSKeys([config.nodeAlias], config.keysDir, config.curDate)
+          const subTasks = self.keyManager.taskGenerateTLSKeys([config.nodeAlias], config.keysDir, config.curDate)
           // set up the sub-tasks
           return parentTask.newListr(subTasks, {
             concurrent: false,
@@ -1686,6 +1699,8 @@ export class NodeCommand extends BaseCommand {
   }
 
   getAddExecuteTasks (argv: any) {
+    const self = this
+
     interface Context {
       config: NodeAddConfigClass
       newNode: { accountId: string }
@@ -1714,7 +1729,7 @@ export class NodeCommand extends BaseCommand {
       {
         title: 'Get node logs and configs',
         task: async (ctx: Context) => {
-          await helpers.getNodeLogs(this.k8, ctx.config.namespace)
+          await helpers.getNodeLogs(self.k8, ctx.config.namespace)
         }
       },
       {
@@ -1727,7 +1742,7 @@ export class NodeCommand extends BaseCommand {
         title: 'Kill nodes to pick up updated configMaps',
         task: async (ctx: Context) => {
           for (const service of ctx.config.serviceMap.values()) {
-            await this.k8.kubeClient.deleteNamespacedPod(service.nodePodName, ctx.config.namespace, undefined, undefined, 1)
+            await self.k8.kubeClient.deleteNamespacedPod(service.nodePodName, ctx.config.namespace, undefined, undefined, 1)
           }
         }
       },
@@ -1742,12 +1757,11 @@ export class NodeCommand extends BaseCommand {
         task:
           async (ctx: Context, task: ListrTaskWrapper<any, any, any>) => {
             const config = ctx.config
-
-            config.serviceMap = await this.accountManager.getNodeServiceMap(
+            config.serviceMap = await self.accountManager.getNodeServiceMap(
               config.namespace)
             config.podNames[config.nodeAlias] = config.serviceMap.get(config.nodeAlias).nodePodName as PodName
 
-            return this.fetchLocalOrReleasedPlatformSoftware(config.allNodeAliases, config.podNames, config.releaseTag, task, config.localBuildPath)
+            return self.fetchLocalOrReleasedPlatformSoftware(config.allNodeAliases, config.podNames, config.releaseTag, task, config.localBuildPath)
           }
       },
       {
@@ -1757,10 +1771,9 @@ export class NodeCommand extends BaseCommand {
           const node1FullyQualifiedPodName = Templates.renderNetworkPodName(config.existingNodeAliases[0])
           const upgradeDirectory = `${constants.HEDERA_HAPI_PATH}/data/saved/com.hedera.services.ServicesMain/0/123`
           // zip the contents of the newest folder on node1 within /opt/hgcapp/services-hedera/HapiApp2.0/data/saved/com.hedera.services.ServicesMain/0/123/
-          const zipFileName = await this.k8.execContainer(node1FullyQualifiedPodName, constants.ROOT_CONTAINER,
+          const zipFileName = await self.k8.execContainer(node1FullyQualifiedPodName, constants.ROOT_CONTAINER,
             ['bash', '-c', `cd ${upgradeDirectory} && mapfile -t states < <(ls -1t .) && jar cf "\${states[0]}.zip" -C "\${states[0]}" . && echo -n \${states[0]}.zip`])
-
-          await this.k8.copyFrom(node1FullyQualifiedPodName, constants.ROOT_CONTAINER, `${upgradeDirectory}/${zipFileName}`, config.stagingDir)
+          await self.k8.copyFrom(node1FullyQualifiedPodName, constants.ROOT_CONTAINER, `${upgradeDirectory}/${zipFileName}`, config.stagingDir)
           config.lastStateZipPath = path.join(config.stagingDir, zipFileName)
         }
       },
@@ -1769,15 +1782,15 @@ export class NodeCommand extends BaseCommand {
         task:
             async (ctx: Context) => {
               const config = ctx.config
-
               const newNodeFullyQualifiedPodName = Templates.renderNetworkPodName(config.nodeAlias)
               const nodeId = Templates.nodeIdFromNodeAlias(config.nodeAlias)
               const savedStateDir = (config.lastStateZipPath.match(/\/(\d+)\.zip$/))[1]
               const savedStatePath = `${constants.HEDERA_HAPI_PATH}/data/saved/com.hedera.services.ServicesMain/${nodeId}/123/${savedStateDir}`
-              await this.k8.execContainer(newNodeFullyQualifiedPodName, constants.ROOT_CONTAINER, ['bash', '-c', `mkdir -p ${savedStatePath}`])
-              await this.k8.copyTo(newNodeFullyQualifiedPodName, constants.ROOT_CONTAINER, config.lastStateZipPath, savedStatePath)
-              await this.platformInstaller.setPathPermission(newNodeFullyQualifiedPodName, constants.HEDERA_HAPI_PATH)
-              await this.k8.execContainer(newNodeFullyQualifiedPodName, constants.ROOT_CONTAINER, ['bash', '-c', `cd ${savedStatePath} && jar xf ${path.basename(config.lastStateZipPath)} && rm -f ${path.basename(config.lastStateZipPath)}`])
+              await self.k8.execContainer(newNodeFullyQualifiedPodName, constants.ROOT_CONTAINER, ['bash', '-c', `mkdir -p ${savedStatePath}`])
+              await self.k8.copyTo(newNodeFullyQualifiedPodName, constants.ROOT_CONTAINER, config.lastStateZipPath, savedStatePath)
+              await self.platformInstaller.setPathPermission(newNodeFullyQualifiedPodName, constants.HEDERA_HAPI_PATH)
+              await self.k8.execContainer(newNodeFullyQualifiedPodName, constants.ROOT_CONTAINER,
+                ['bash', '-c', `cd ${savedStatePath} && jar xf ${path.basename(config.lastStateZipPath)} && rm -f ${path.basename(config.lastStateZipPath)}`])
             }
       },
       {
@@ -1818,7 +1831,7 @@ export class NodeCommand extends BaseCommand {
         title: 'Stake new node',
         task: async (ctx: Context) => {
           const config = ctx.config
-          await this.addStake(config.namespace, ctx.newNode.accountId, config.nodeAlias)
+          await self.addStake(config.namespace, ctx.newNode.accountId, config.nodeAlias)
         }
       },
       {
@@ -1832,21 +1845,22 @@ export class NodeCommand extends BaseCommand {
         title: 'Finalize',
         task: () => {
           // reset flags so that keys are not regenerated later
-          this.configManager.setFlag(flags.generateGossipKeys, false)
-          this.configManager.setFlag(flags.generateTlsKeys, false)
-          this.configManager.persist()
+          self.configManager.setFlag(flags.generateGossipKeys, false)
+          self.configManager.setFlag(flags.generateTlsKeys, false)
+          self.configManager.persist()
         }
       }
     ]
   }
 
   async addPrepare (argv: any) {
+    const self = this
     const prepareTasks = this.getAddPrepareTasks(argv)
     const tasks = new Listr([
       // @ts-ignore
       ...prepareTasks,
       // @ts-ignore
-      this.saveContextDataTask(argv, NodeCommand.ADD_CONTEXT_FILE, helpers.addSaveContextParser)
+      self.saveContextDataTask(argv, NodeCommand.ADD_CONTEXT_FILE, helpers.addSaveContextParser)
     ], {
       concurrent: false,
       rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
@@ -1855,20 +1869,22 @@ export class NodeCommand extends BaseCommand {
     try {
       await tasks.run()
     } catch (e: Error | any) {
-      this.logger.error(`Error in setting up nodes: ${e.message}`, e)
+      self.logger.error(`Error in setting up nodes: ${e.message}`, e)
       throw new SoloError(`Error in setting up nodes: ${e.message}`, e)
     } finally {
-      await this.close()
+      await self.close()
     }
 
     return true
   }
 
   async addSubmitTransactions (argv: any) {
+    const self = this
+
     const transactionTasks = this.getAddTransactionTasks(argv)
     const tasks = new Listr([
-      this.addInitializeTask(argv),
-      this.loadContextDataTask(argv, NodeCommand.ADD_CONTEXT_FILE, helpers.addLoadContextParser),
+      self.addInitializeTask(argv),
+      self.loadContextDataTask(argv, NodeCommand.ADD_CONTEXT_FILE, helpers.addLoadContextParser),
       // @ts-ignore
       ...transactionTasks
     ], {
@@ -1879,23 +1895,25 @@ export class NodeCommand extends BaseCommand {
     try {
       await tasks.run()
     } catch (e: Error | any) {
-      this.logger.error(`Error in submitting transactions to node: ${e.message}`, e)
+      self.logger.error(`Error in submitting transactions to node: ${e.message}`, e)
       throw new SoloError(`Error in submitting transactions to up node: ${e.message}`, e)
     } finally {
-      await this.close()
+      await self.close()
     }
 
     return true
   }
 
   async addExecute (argv: any) {
+    const self = this
+
     const executeTasks = this.getAddExecuteTasks(argv)
     // @ts-ignore
     const tasks = new Listr([
-      this.addInitializeTask(argv),
+      self.addInitializeTask(argv),
       // @ts-ignore
       this.tasks.identifyExistingNodes(),
-      this.loadContextDataTask(argv, NodeCommand.ADD_CONTEXT_FILE, helpers.addLoadContextParser),
+      self.loadContextDataTask(argv, NodeCommand.ADD_CONTEXT_FILE, helpers.addLoadContextParser),
       // @ts-ignore
       ...executeTasks
     ], {
@@ -1906,16 +1924,18 @@ export class NodeCommand extends BaseCommand {
     try {
       await tasks.run()
     } catch (e: Error | any) {
-      this.logger.error(`Error in starting up nodes: ${e.message}`, e)
+      self.logger.error(`Error in starting up nodes: ${e.message}`, e)
       throw new SoloError(`Error in setting up nodes: ${e.message}`, e)
     } finally {
-      await this.close()
+      await self.close()
     }
 
     return true
   }
 
   async add (argv: any) {
+    const self = this
+
     const prepareTasks = this.getAddPrepareTasks(argv)
     const transactionTasks = this.getAddTransactionTasks(argv)
     const executeTasks = this.getAddExecuteTasks(argv)
@@ -1933,10 +1953,10 @@ export class NodeCommand extends BaseCommand {
     try {
       await tasks.run()
     } catch (e: Error | any) {
-      this.logger.error(`Error in adding nodes: ${e.message}`, e)
+      self.logger.error(`Error in adding nodes: ${e.message}`, e)
       throw new SoloError(`Error in adding nodes: ${e.message}`, e)
     } finally {
-      await this.close()
+      await self.close()
     }
 
     return true
@@ -2005,6 +2025,7 @@ export class NodeCommand extends BaseCommand {
   // Command Definition
   /** Return Yargs command definition for 'node' command */
   getCommandDefinition (): { command: string; desc: string; builder: Function } {
+    const nodeCmd = this
     return {
       command: 'node',
       desc: 'Manage Hedera platform node in solo network',
@@ -2015,14 +2036,14 @@ export class NodeCommand extends BaseCommand {
             desc: 'Setup node with a specific version of Hedera platform',
             builder: (y: any) => flags.setCommandFlags(y, ...NodeCommand.SETUP_FLAGS_LIST),
             handler: (argv: any) => {
-              this.logger.debug('==== Running \'node setup\' ===')
-              this.logger.debug(argv)
+              nodeCmd.logger.debug('==== Running \'node setup\' ===')
+              nodeCmd.logger.debug(argv)
 
-              this.setup(argv).then(r => {
-                this.logger.debug('==== Finished running `node setup`====')
+              nodeCmd.setup(argv).then(r => {
+                nodeCmd.logger.debug('==== Finished running `node setup`====')
                 if (!r) process.exit(1)
               }).catch(err => {
-                this.logger.showUserError(err)
+                nodeCmd.logger.showUserError(err)
                 process.exit(1)
               })
             }
@@ -2032,14 +2053,14 @@ export class NodeCommand extends BaseCommand {
             desc: 'Start a node',
             builder: (y: any) => flags.setCommandFlags(y, ...NodeCommand.START_FLAGS_LIST),
             handler: (argv: any) => {
-              this.logger.debug('==== Running \'node start\' ===')
-              this.logger.debug(argv)
+              nodeCmd.logger.debug('==== Running \'node start\' ===')
+              nodeCmd.logger.debug(argv)
 
-              this.start(argv).then(r => {
-                this.logger.debug('==== Finished running `node start`====')
+              nodeCmd.start(argv).then(r => {
+                nodeCmd.logger.debug('==== Finished running `node start`====')
                 if (!r) process.exit(1)
               }).catch(err => {
-                this.logger.showUserError(err)
+                nodeCmd.logger.showUserError(err)
                 process.exit(1)
               })
             }
@@ -2049,14 +2070,14 @@ export class NodeCommand extends BaseCommand {
             desc: 'Stop a node',
             builder: (y: any) => flags.setCommandFlags(y, ...NodeCommand.STOP_FLAGS_LIST),
             handler: (argv: any) => {
-              this.logger.debug('==== Running \'node stop\' ===')
-              this.logger.debug(argv)
+              nodeCmd.logger.debug('==== Running \'node stop\' ===')
+              nodeCmd.logger.debug(argv)
 
-              this.stop(argv).then(r => {
-                this.logger.debug('==== Finished running `node stop`====')
+              nodeCmd.stop(argv).then(r => {
+                nodeCmd.logger.debug('==== Finished running `node stop`====')
                 if (!r) process.exit(1)
               }).catch(err => {
-                this.logger.showUserError(err)
+                nodeCmd.logger.showUserError(err)
                 process.exit(1)
               })
             }
@@ -2066,14 +2087,14 @@ export class NodeCommand extends BaseCommand {
             desc: 'Generate node keys',
             builder: (y: any) => flags.setCommandFlags(y, ...NodeCommand.KEYS_FLAGS_LIST),
             handler: (argv: any) => {
-              this.logger.debug('==== Running \'node keys\' ===')
-              this.logger.debug(argv)
+              nodeCmd.logger.debug('==== Running \'node keys\' ===')
+              nodeCmd.logger.debug(argv)
 
-              this.keys(argv).then(r => {
-                this.logger.debug('==== Finished running `node keys`====')
+              nodeCmd.keys(argv).then(r => {
+                nodeCmd.logger.debug('==== Finished running `node keys`====')
                 if (!r) process.exit(1)
               }).catch(err => {
-                this.logger.showUserError(err)
+                nodeCmd.logger.showUserError(err)
                 process.exit(1)
               })
             }
@@ -2083,14 +2104,14 @@ export class NodeCommand extends BaseCommand {
             desc: 'Reset and restart a node',
             builder: (y: any) => flags.setCommandFlags(y, ...NodeCommand.REFRESH_FLAGS_LIST),
             handler: (argv: any) => {
-              this.logger.debug('==== Running \'node refresh\' ===')
-              this.logger.debug(argv)
+              nodeCmd.logger.debug('==== Running \'node refresh\' ===')
+              nodeCmd.logger.debug(argv)
 
-              this.refresh(argv).then(r => {
-                this.logger.debug('==== Finished running `node refresh`====')
+              nodeCmd.refresh(argv).then(r => {
+                nodeCmd.logger.debug('==== Finished running `node refresh`====')
                 if (!r) process.exit(1)
               }).catch(err => {
-                this.logger.showUserError(err)
+                nodeCmd.logger.showUserError(err)
                 process.exit(1)
               })
             }
@@ -2102,14 +2123,14 @@ export class NodeCommand extends BaseCommand {
               flags.nodeAliasesUnparsed
             ),
             handler: (argv: any) => {
-              this.logger.debug('==== Running \'node logs\' ===')
-              this.logger.debug(argv)
+              nodeCmd.logger.debug('==== Running \'node logs\' ===')
+              nodeCmd.logger.debug(argv)
 
-              this.logs(argv).then(r => {
-                this.logger.debug('==== Finished running `node logs`====')
+              nodeCmd.logs(argv).then(r => {
+                nodeCmd.logger.debug('==== Finished running `node logs`====')
                 if (!r) process.exit(1)
               }).catch(err => {
-                this.logger.showUserError(err)
+                nodeCmd.logger.showUserError(err)
                 process.exit(1)
               })
             }
@@ -2119,14 +2140,14 @@ export class NodeCommand extends BaseCommand {
             desc: 'Adds a node with a specific version of Hedera platform',
             builder: (y: any) => flags.setCommandFlags(y, ...NodeCommand.ADD_FLAGS_LIST),
             handler: (argv: any) => {
-              this.logger.debug('==== Running \'node add\' ===')
-              this.logger.debug(argv)
+              nodeCmd.logger.debug('==== Running \'node add\' ===')
+              nodeCmd.logger.debug(argv)
 
-              this.add(argv).then(r => {
-                this.logger.debug('==== Finished running `node add`====')
+              nodeCmd.add(argv).then(r => {
+                nodeCmd.logger.debug('==== Finished running `node add`====')
                 if (!r) process.exit(1)
               }).catch(err => {
-                this.logger.showUserError(err)
+                nodeCmd.logger.showUserError(err)
                 process.exit(1)
               })
             }
@@ -2136,14 +2157,14 @@ export class NodeCommand extends BaseCommand {
             desc: 'Prepares the addition of a node with a specific version of Hedera platform',
             builder: (y: any) => flags.setCommandFlags(y, ...NodeCommand.ADD_PREPARE_FLAGS_LIST),
             handler: (argv: any) => {
-              this.logger.debug('==== Running \'node add-prepare\' ===')
-              this.logger.debug(argv)
+              nodeCmd.logger.debug('==== Running \'node add-prepare\' ===')
+              nodeCmd.logger.debug(argv)
 
-              this.addPrepare(argv).then(r => {
-                this.logger.debug('==== Finished running `node add`====')
+              nodeCmd.addPrepare(argv).then(r => {
+                nodeCmd.logger.debug('==== Finished running `node add`====')
                 if (!r) process.exit(1)
               }).catch(err => {
-                this.logger.showUserError(err)
+                nodeCmd.logger.showUserError(err)
                 process.exit(1)
               })
             }
@@ -2153,14 +2174,14 @@ export class NodeCommand extends BaseCommand {
             desc: 'Submits NodeCreateTransaction and Upgrade transactions to the network nodes',
             builder: (y: any) => flags.setCommandFlags(y, ...NodeCommand.ADD_SUBMIT_TRANSACTIONS_FLAGS_LIST),
             handler: (argv: any) => {
-              this.logger.debug('==== Running \'node add-submit-transactions\' ===')
-              this.logger.debug(argv)
+              nodeCmd.logger.debug('==== Running \'node add-submit-transactions\' ===')
+              nodeCmd.logger.debug(argv)
 
-              this.addSubmitTransactions(argv).then(r => {
-                this.logger.debug('==== Finished running `node add`====')
+              nodeCmd.addSubmitTransactions(argv).then(r => {
+                nodeCmd.logger.debug('==== Finished running `node add`====')
                 if (!r) process.exit(1)
               }).catch(err => {
-                this.logger.showUserError(err)
+                nodeCmd.logger.showUserError(err)
                 process.exit(1)
               })
             }
@@ -2170,14 +2191,14 @@ export class NodeCommand extends BaseCommand {
             desc: 'Executes the addition of a previously prepared node',
             builder: (y: any) => flags.setCommandFlags(y, ...NodeCommand.ADD_EXECUTE_FLAGS_LIST),
             handler: (argv: any) => {
-              this.logger.debug('==== Running \'node add-execute\' ===')
-              this.logger.debug(argv)
+              nodeCmd.logger.debug('==== Running \'node add-execute\' ===')
+              nodeCmd.logger.debug(argv)
 
-              this.addExecute(argv).then(r => {
-                this.logger.debug('==== Finished running `node add`====')
+              nodeCmd.addExecute(argv).then(r => {
+                nodeCmd.logger.debug('==== Finished running `node add`====')
                 if (!r) process.exit(1)
               }).catch(err => {
-                this.logger.showUserError(err)
+                nodeCmd.logger.showUserError(err)
                 process.exit(1)
               })
             }
@@ -2187,14 +2208,14 @@ export class NodeCommand extends BaseCommand {
             desc: 'Update a node with a specific version of Hedera platform',
             builder: (y: any) => flags.setCommandFlags(y, ...NodeCommand.UPDATE_FLAGS_LIST),
             handler: (argv: any) => {
-              this.logger.debug('==== Running \'node update\' ===')
-              this.logger.debug(argv)
+              nodeCmd.logger.debug('==== Running \'node update\' ===')
+              nodeCmd.logger.debug(argv)
 
-              this.update(argv).then(r => {
-                this.logger.debug('==== Finished running `node update`====')
+              nodeCmd.update(argv).then(r => {
+                nodeCmd.logger.debug('==== Finished running `node update`====')
                 if (!r) process.exit(1)
               }).catch(err => {
-                this.logger.showUserError(err)
+                nodeCmd.logger.showUserError(err)
                 process.exit(1)
               })
             }
@@ -2204,14 +2225,14 @@ export class NodeCommand extends BaseCommand {
             desc: 'Delete a node with a specific version of Hedera platform',
             builder: (y: any) => flags.setCommandFlags(y, ...NodeCommand.DELETE_FLAGS_LIST.concat(flags.nodeAlias)),
             handler: (argv: any) => {
-              this.logger.debug('==== Running \'node delete\' ===')
-              this.logger.debug(argv)
+              nodeCmd.logger.debug('==== Running \'node delete\' ===')
+              nodeCmd.logger.debug(argv)
 
-              this.delete(argv).then(r => {
-                this.logger.debug('==== Finished running `node delete`====')
+              nodeCmd.delete(argv).then(r => {
+                nodeCmd.logger.debug('==== Finished running `node delete`====')
                 if (!r) process.exit(1)
               }).catch(err => {
-                this.logger.showUserError(err)
+                nodeCmd.logger.showUserError(err)
                 process.exit(1)
               })
             }
@@ -2221,14 +2242,14 @@ export class NodeCommand extends BaseCommand {
             desc: 'Prepares the deletion of a node with a specific version of Hedera platform',
             builder: (y: any) => flags.setCommandFlags(y, ...NodeCommand.DELETE_PREPARE_FLAGS_LIST.concat(flags.nodeAlias)),
             handler: (argv: any) => {
-              this.logger.debug('==== Running \'node delete-prepare\' ===')
-              this.logger.debug(argv)
+              nodeCmd.logger.debug('==== Running \'node delete-prepare\' ===')
+              nodeCmd.logger.debug(argv)
 
-              this.deletePrepare(argv).then(r => {
-                this.logger.debug('==== Finished running `node delete-prepare`====')
+              nodeCmd.deletePrepare(argv).then(r => {
+                nodeCmd.logger.debug('==== Finished running `node delete-prepare`====')
                 if (!r) process.exit(1)
               }).catch(err => {
-                this.logger.showUserError(err)
+                nodeCmd.logger.showUserError(err)
                 process.exit(1)
               })
             }
@@ -2238,14 +2259,14 @@ export class NodeCommand extends BaseCommand {
             desc: 'Submits transactions to the network nodes for deleting a node',
             builder: (y: any) => flags.setCommandFlags(y, ...NodeCommand.DELETE_SUBMIT_TRANSACTIONS_FLAGS_LIST),
             handler: (argv: any) => {
-              this.logger.debug('==== Running \'node delete-submit-transactions\' ===')
-              this.logger.debug(argv)
+              nodeCmd.logger.debug('==== Running \'node delete-submit-transactions\' ===')
+              nodeCmd.logger.debug(argv)
 
-              this.deleteSubmitTransactions(argv).then(r => {
-                this.logger.debug('==== Finished running `node delete-submit-transactions`====')
+              nodeCmd.deleteSubmitTransactions(argv).then(r => {
+                nodeCmd.logger.debug('==== Finished running `node delete-submit-transactions`====')
                 if (!r) process.exit(1)
               }).catch(err => {
-                this.logger.showUserError(err)
+                nodeCmd.logger.showUserError(err)
                 process.exit(1)
               })
             }
@@ -2255,14 +2276,14 @@ export class NodeCommand extends BaseCommand {
             desc: 'Executes the deletion of a previously prepared node',
             builder: (y: any) => flags.setCommandFlags(y, ...NodeCommand.DELETE_EXECUTE_FLAGS_LIST),
             handler: (argv: any) => {
-              this.logger.debug('==== Running \'node delete-execute\' ===')
-              this.logger.debug(argv)
+              nodeCmd.logger.debug('==== Running \'node delete-execute\' ===')
+              nodeCmd.logger.debug(argv)
 
-              this.deleteExecute(argv).then(r => {
-                this.logger.debug('==== Finished running `node delete-execute`====')
+              nodeCmd.deleteExecute(argv).then(r => {
+                nodeCmd.logger.debug('==== Finished running `node delete-execute`====')
                 if (!r) process.exit(1)
               }).catch(err => {
-                this.logger.showUserError(err)
+                nodeCmd.logger.showUserError(err)
                 process.exit(1)
               })
             }
@@ -2270,19 +2291,19 @@ export class NodeCommand extends BaseCommand {
           .command(new YargsCommand({
             command: 'prepare-upgrade',
             description: 'Prepare the network for a Freeze Upgrade operation',
-            commandDef: this,
+            commandDef: nodeCmd,
             handler: 'prepareUpgrade'
           }, flags.DEFAULT_FLAGS))
           .command(new YargsCommand({
             command: 'freeze-upgrade',
             description: 'Performs a Freeze Upgrade operation with on the network after it has been prepared with prepare-upgrade',
-            commandDef: this,
+            commandDef: nodeCmd,
             handler: 'freezeUpgrade'
           }, flags.DEFAULT_FLAGS))
           .command(new YargsCommand({
             command: 'download-generated-files',
             description: 'Downloads the generated files from an existing node',
-            commandDef: this,
+            commandDef: nodeCmd,
             handler: 'downloadGeneratedFiles'
           }, flags.DEFAULT_FLAGS))
           .demandCommand(1, 'Select a node command')
@@ -2291,6 +2312,8 @@ export class NodeCommand extends BaseCommand {
   }
 
   async update (argv: any) {
+    const self = this
+
     interface NodeUpdateConfigClass {
       app: string
       cacheDir: string
@@ -2337,7 +2360,7 @@ export class NodeCommand extends BaseCommand {
       {
         title: 'Initialize',
         task: async (ctx, task) => {
-          this.configManager.update(argv)
+          self.configManager.update(argv)
 
           // disable the prompts that we don't want to prompt the user for
           prompts.disablePrompts([
@@ -2359,7 +2382,7 @@ export class NodeCommand extends BaseCommand {
             flags.tlsPublicKey
           ])
 
-          await prompts.execute(task, this.configManager, NodeCommand.UPDATE_FLAGS_LIST)
+          await prompts.execute(task, self.configManager, NodeCommand.UPDATE_FLAGS_LIST)
 
           // create a config object for subsequent steps
           const config = this.getConfig(NodeCommand.UPDATE_CONFIGS_NAME, NodeCommand.UPDATE_FLAGS_LIST,
@@ -2379,12 +2402,12 @@ export class NodeCommand extends BaseCommand {
           config.curDate = new Date()
           config.existingNodeAliases = []
 
-          await this.initializeSetup(config, this.k8)
+          await self.initializeSetup(config, self.k8)
 
           // set config in the context for later tasks to use
           ctx.config = config
 
-          ctx.config.chartPath = await this.prepareChartPath(ctx.config.chartDirectory,
+          ctx.config.chartPath = await self.prepareChartPath(ctx.config.chartDirectory,
             constants.SOLO_TESTING_CHART, constants.SOLO_DEPLOYMENT_CHART)
 
           // initialize Node Client with existing network nodes prior to adding the new node which isn't functioning, yet
@@ -2397,7 +2420,7 @@ export class NodeCommand extends BaseCommand {
           const treasuryAccountPrivateKey = treasuryAccount.privateKey
           config.treasuryKey = PrivateKey.fromStringED25519(treasuryAccountPrivateKey)
 
-          this.logger.debug('Initialized config', { config })
+          self.logger.debug('Initialized config', { config })
         }
       },
       // @ts-ignore
@@ -2456,14 +2479,14 @@ export class NodeCommand extends BaseCommand {
           const config = ctx.config
 
           const nodeId = Templates.nodeIdFromNodeAlias(config.nodeAlias) - 1
-          this.logger.info(`nodeId: ${nodeId}`)
-          this.logger.info(`config.newAccountNumber: ${config.newAccountNumber}`)
+          self.logger.info(`nodeId: ${nodeId}`)
+          self.logger.info(`config.newAccountNumber: ${config.newAccountNumber}`)
 
           try {
             const nodeUpdateTx = new NodeUpdateTransaction().setNodeId(nodeId)
 
             if (config.tlsPublicKey && config.tlsPrivateKey) {
-              this.logger.info(`config.tlsPublicKey: ${config.tlsPublicKey}`)
+              self.logger.info(`config.tlsPublicKey: ${config.tlsPublicKey}`)
               const tlsCertDer = this.loadPermCertificate(config.tlsPublicKey)
               const tlsCertHash = crypto.createHash('sha384').update(tlsCertDer).digest()
               nodeUpdateTx.setCertificateHash(tlsCertHash)
@@ -2475,7 +2498,7 @@ export class NodeCommand extends BaseCommand {
             }
 
             if (config.gossipPublicKey && config.gossipPrivateKey) {
-              this.logger.info(`config.gossipPublicKey: ${config.gossipPublicKey}`)
+              self.logger.info(`config.gossipPublicKey: ${config.gossipPublicKey}`)
               const signingCertDer = this.loadPermCertificate(config.gossipPublicKey)
               nodeUpdateTx.setGossipCaCertificate(signingCertDer)
 
@@ -2540,7 +2563,7 @@ export class NodeCommand extends BaseCommand {
         title: 'Get node logs and configs',
         task: async (ctx) => {
           const config = ctx.config
-          await helpers.getNodeLogs(this.k8, config.namespace)
+          await helpers.getNodeLogs(self.k8, config.namespace)
         }
       },
       {
@@ -2556,16 +2579,16 @@ export class NodeCommand extends BaseCommand {
         task: async (ctx) => {
           const config = ctx.config
           // the updated node will have a new pod ID if its account ID changed which is a label
-          config.serviceMap = await this.accountManager.getNodeServiceMap(
+          config.serviceMap = await self.accountManager.getNodeServiceMap(
             config.namespace)
           for (const service of config.serviceMap.values()) {
-            await this.k8.kubeClient.deleteNamespacedPod(service.nodePodName, config.namespace, undefined, undefined, 1)
+            await self.k8.kubeClient.deleteNamespacedPod(service.nodePodName, config.namespace, undefined, undefined, 1)
           }
-          this.logger.info('sleep for 15 seconds to give time for pods to finish terminating')
+          self.logger.info('sleep for 15 seconds to give time for pods to finish terminating')
           await sleep(15 * SECONDS)
 
           // again, the pod names will change after the pods are killed
-          config.serviceMap = await this.accountManager.getNodeServiceMap(config.namespace)
+          config.serviceMap = await self.accountManager.getNodeServiceMap(config.namespace)
           config.podNames = {}
           for (const service of config.serviceMap.values()) {
             config.podNames[service.nodeAlias] = service.nodePodName
@@ -2581,8 +2604,8 @@ export class NodeCommand extends BaseCommand {
       {
         title: 'Fetch platform software into network nodes',
         task: (ctx, task) => {
-          const { config: { allNodeAliases, podNames, releaseTag, localBuildPath } } = ctx
-          return this.fetchLocalOrReleasedPlatformSoftware(allNodeAliases, podNames, releaseTag, task, localBuildPath)
+          const config = ctx.config
+          return self.fetchLocalOrReleasedPlatformSoftware(config.allNodeAliases, config.podNames, config.releaseTag, task, config.localBuildPath)
         }
       },
       {
@@ -2628,9 +2651,9 @@ export class NodeCommand extends BaseCommand {
         title: 'Finalize',
         task: () => {
           // reset flags so that keys are not regenerated later
-          this.configManager.setFlag(flags.generateGossipKeys, false)
-          this.configManager.setFlag(flags.generateTlsKeys, false)
-          this.configManager.persist()
+          self.configManager.setFlag(flags.generateGossipKeys, false)
+          self.configManager.setFlag(flags.generateTlsKeys, false)
+          self.configManager.persist()
         }
       }
     ], {
@@ -2641,17 +2664,19 @@ export class NodeCommand extends BaseCommand {
     try {
       await tasks.run()
     } catch (e: Error | any) {
-      this.logger.error(`Error in updating nodes: ${e.message}`, e)
+      self.logger.error(`Error in updating nodes: ${e.message}`, e)
       this.logger.error(e.stack)
       throw new SoloError(`Error in updating nodes: ${e.message}`, e)
     } finally {
-      await this.close()
+      await self.close()
     }
 
     return true
   }
 
   deleteInitializeTask (argv: any) {
+    const self = this
+
     interface Context {
       config: NodeDeleteConfigClass
     }
@@ -2659,7 +2684,7 @@ export class NodeCommand extends BaseCommand {
     return {
       title: 'Initialize',
       task: async (ctx: Context, task: ListrTaskWrapper<any, any, any>) => {
-        this.configManager.update(argv)
+        self.configManager.update(argv)
 
         // disable the prompts that we don't want to prompt the user for
         prompts.disablePrompts([
@@ -2674,7 +2699,7 @@ export class NodeCommand extends BaseCommand {
           flags.localBuildPath
         ])
 
-        await prompts.execute(task, this.configManager, NodeCommand.DELETE_FLAGS_LIST)
+        await prompts.execute(task, self.configManager, NodeCommand.DELETE_FLAGS_LIST)
 
         // create a config object for subsequent steps
         const config = this.getConfig(NodeCommand.DELETE_CONFIGS_NAME, NodeCommand.DELETE_FLAGS_LIST,
@@ -2695,12 +2720,12 @@ export class NodeCommand extends BaseCommand {
         config.curDate = new Date()
         config.existingNodeAliases = []
 
-        await this.initializeSetup(config, this.k8)
+        await self.initializeSetup(config, self.k8)
 
         // set config in the context for later tasks to use
         ctx.config = config
 
-        ctx.config.chartPath = await this.prepareChartPath(ctx.config.chartDirectory,
+        ctx.config.chartPath = await self.prepareChartPath(ctx.config.chartDirectory,
           constants.SOLO_TESTING_CHART, constants.SOLO_DEPLOYMENT_CHART)
 
         // initialize Node Client with existing network nodes prior to adding the new node which isn't functioning, yet
@@ -2713,7 +2738,7 @@ export class NodeCommand extends BaseCommand {
         const treasuryAccountPrivateKey = treasuryAccount.privateKey
         config.treasuryKey = PrivateKey.fromStringED25519(treasuryAccountPrivateKey)
 
-        this.logger.debug('Initialized config', { config })
+        self.logger.debug('Initialized config', { config })
       }
     }
   }
@@ -2729,6 +2754,8 @@ export class NodeCommand extends BaseCommand {
   }
 
   deleteExecuteTasks (argv: any) {
+    const self = this
+
     interface Context {
       config: NodeDeleteConfigClass
     }
@@ -2738,8 +2765,8 @@ export class NodeCommand extends BaseCommand {
       {
         title: 'Prepare staging directory',
         task: (ctx: Context, parentTask: ListrTaskWrapper<any, any, any>) => {
-          const { config: { keysDir, stagingKeysDir, existingNodeAliases } } = ctx
-          return this.prepareStagingTask(ctx, parentTask, keysDir, stagingKeysDir, existingNodeAliases)
+          const config = ctx.config
+          return this.prepareStagingTask(ctx, parentTask, config.keysDir, config.stagingKeysDir, config.existingNodeAliases)
         }
       },
       {
@@ -2759,7 +2786,7 @@ export class NodeCommand extends BaseCommand {
       {
         title: 'Get node logs and configs',
         task: async (ctx: Context) => {
-          await helpers.getNodeLogs(this.k8, ctx.config.namespace)
+          await helpers.getNodeLogs(self.k8, ctx.config.namespace)
         }
       },
       {
@@ -2772,14 +2799,14 @@ export class NodeCommand extends BaseCommand {
         title: 'Kill nodes to pick up updated configMaps',
         task: async (ctx: Context) => {
           for (const service of ctx.config.serviceMap.values()) {
-            await this.k8.kubeClient.deleteNamespacedPod(service.nodePodName, ctx.config.namespace, undefined, undefined, 1)
+            await self.k8.kubeClient.deleteNamespacedPod(service.nodePodName, ctx.config.namespace, undefined, undefined, 1)
           }
         }
       },
       {
         title: 'Check node pods are running',
         task: async (ctx: Context, task: ListrTaskWrapper<any, any, any>) => {
-          this.logger.info('sleep 20 seconds to give time for pods to come up after being killed')
+          self.logger.info('sleep 20 seconds to give time for pods to come up after being killed')
           await sleep(20 * SECONDS)
           return this.checkPodRunningTask(ctx, task, ctx.config.allNodeAliases)
         }
@@ -2788,10 +2815,9 @@ export class NodeCommand extends BaseCommand {
         title: 'Fetch platform software into all network nodes',
         task: async (ctx: Context, task: ListrTaskWrapper<any, any, any>) => {
           const config = ctx.config
-          config.serviceMap = await this.accountManager.getNodeServiceMap(config.namespace)
+          config.serviceMap = await self.accountManager.getNodeServiceMap(config.namespace)
           config.podNames[config.nodeAlias] = config.serviceMap.get(config.nodeAlias).nodePodName as PodName
-
-          return this.fetchLocalOrReleasedPlatformSoftware(config.allNodeAliases, config.podNames, config.releaseTag, task, config.localBuildPath)
+          return self.fetchLocalOrReleasedPlatformSoftware(config.allNodeAliases, config.podNames, config.releaseTag, task, config.localBuildPath)
         }
       },
       {
@@ -2837,9 +2863,9 @@ export class NodeCommand extends BaseCommand {
         title: 'Finalize',
         task: () => {
           // reset flags so that keys are not regenerated later
-          this.configManager.setFlag(flags.generateGossipKeys, false)
-          this.configManager.setFlag(flags.generateTlsKeys, false)
-          this.configManager.persist()
+          self.configManager.setFlag(flags.generateGossipKeys, false)
+          self.configManager.setFlag(flags.generateTlsKeys, false)
+          self.configManager.persist()
         }
       }
     ]
@@ -2881,11 +2907,13 @@ export class NodeCommand extends BaseCommand {
   }
 
   async deletePrepare (argv: any) {
+    const self = this
+
     const tasks = new Listr([
       // @ts-ignore
-      ...this.deletePrepareTasks(argv),
+      ...self.deletePrepareTasks(argv),
       // @ts-ignore
-      this.saveContextDataTask(argv, NodeCommand.DELETE_CONTEXT_FILE, helpers.deleteSaveContextParser)
+      self.saveContextDataTask(argv, NodeCommand.DELETE_CONTEXT_FILE, helpers.deleteSaveContextParser)
     ], {
       concurrent: false,
       rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
@@ -2894,21 +2922,23 @@ export class NodeCommand extends BaseCommand {
     try {
       await tasks.run()
     } catch (e: Error | any) {
-      this.logger.error(`Error in deleting nodes: ${e.message}`, e)
+      self.logger.error(`Error in deleting nodes: ${e.message}`, e)
       throw new SoloError(`Error in deleting nodes: ${e.message}`, e)
     } finally {
-      await this.close()
+      await self.close()
     }
 
     return true
   }
 
   async deleteExecute (argv: any) {
+    const self = this
+
     const tasks = new Listr([
-      this.deleteInitializeTask(argv),
-      this.loadContextDataTask(argv, NodeCommand.DELETE_CONTEXT_FILE, helpers.deleteLoadContextParser),
+      self.deleteInitializeTask(argv),
+      self.loadContextDataTask(argv, NodeCommand.DELETE_CONTEXT_FILE, helpers.deleteLoadContextParser),
       // @ts-ignore
-      ...this.deleteExecuteTasks(argv)
+      ...self.deleteExecuteTasks(argv)
     ], {
       concurrent: false,
       rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
@@ -2917,21 +2947,23 @@ export class NodeCommand extends BaseCommand {
     try {
       await tasks.run()
     } catch (e: Error | any) {
-      this.logger.error(`Error in deleting nodes: ${e.message}`, e)
+      self.logger.error(`Error in deleting nodes: ${e.message}`, e)
       throw new SoloError(`Error in deleting nodes: ${e.message}`, e)
     } finally {
-      await this.close()
+      await self.close()
     }
 
     return true
   }
 
   async deleteSubmitTransactions (argv: any) {
+    const self = this
+
     const tasks = new Listr([
-      this.deleteInitializeTask(argv),
-      this.loadContextDataTask(argv, NodeCommand.DELETE_CONTEXT_FILE, helpers.deleteLoadContextParser),
+      self.deleteInitializeTask(argv),
+      self.loadContextDataTask(argv, NodeCommand.DELETE_CONTEXT_FILE, helpers.deleteLoadContextParser),
       // @ts-ignore
-      ...this.deleteSubmitTransactionsTasks(argv)
+      ...self.deleteSubmitTransactionsTasks(argv)
     ], {
       concurrent: false,
       rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
@@ -2940,21 +2972,23 @@ export class NodeCommand extends BaseCommand {
     try {
       await tasks.run()
     } catch (e: Error | any) {
-      this.logger.error(`Error in deleting nodes: ${e.message}`, e)
+      self.logger.error(`Error in deleting nodes: ${e.message}`, e)
       throw new SoloError(`Error in deleting nodes: ${e.message}`, e)
     } finally {
-      await this.close()
+      await self.close()
     }
 
     return true
   }
 
   async delete (argv: any) {
+    const self = this
+
     // @ts-ignore
     const tasks = new Listr([
-      ...this.deletePrepareTasks(argv),
-      ...this.deleteSubmitTransactionsTasks(argv),
-      ...this.deleteExecuteTasks(argv)
+      ...self.deletePrepareTasks(argv),
+      ...self.deleteSubmitTransactionsTasks(argv),
+      ...self.deleteExecuteTasks(argv)
     ], {
       concurrent: false,
       rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
@@ -2963,10 +2997,10 @@ export class NodeCommand extends BaseCommand {
     try {
       await tasks.run()
     } catch (e: Error | any) {
-      this.logger.error(`Error in deleting nodes: ${e.message}`, e)
+      self.logger.error(`Error in deleting nodes: ${e.message}`, e)
       throw new SoloError(`Error in deleting nodes: ${e.message}`, e)
     } finally {
-      await this.close()
+      await self.close()
     }
 
     return true

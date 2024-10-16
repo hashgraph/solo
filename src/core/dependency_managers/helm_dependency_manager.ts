@@ -51,10 +51,10 @@ export class HelmDependencyManager extends ShellRunner {
     private readonly downloader: PackageDownloader,
     private readonly zippy: Zippy,
     logger: SoloLogger,
-    private readonly installationDir: string = path.join(constants.SOLO_HOME_DIR, 'bin'),
-    osPlatform: NodeJS.Platform = os.platform(),
+    private readonly installationDir = path.join(constants.SOLO_HOME_DIR, 'bin'),
+    osPlatform = os.platform(),
     osArch = os.arch(),
-    private readonly helmVersion: string = version.HELM_VERSION
+    private readonly helmVersion = version.HELM_VERSION
   ) {
     super(logger)
 

@@ -480,9 +480,8 @@ export function getPromptMap (): Map<string, Function> {
  * @param task task object from listr2
  * @param configManager config manager to store flag values
  * @param flagList list of flag objects
- * @returns {Promise<void>}
  */
-export async function execute (task: ListrTaskWrapper<any, any, any>, configManager: ConfigManager, flagList: CommandFlag[] = []): Promise<void> {
+export async function execute (task: ListrTaskWrapper<any, any, any>, configManager: ConfigManager, flagList: CommandFlag[] = []) {
   if (!configManager || !(configManager instanceof ConfigManager)) {
     throw new IllegalArgumentError('an instance of ConfigManager is required')
   }

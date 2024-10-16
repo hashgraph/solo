@@ -122,7 +122,7 @@ export class RelayCommand extends BaseCommand {
    * created a json string to represent the map between the node keys and their ids
    * output example '{"node-1": "0.0.3", "node-2": "0.004"}'
    */
-  async prepareNetworkJsonString (nodeAliases: NodeAliases = [], namespace: string){
+  async prepareNetworkJsonString (nodeAliases: NodeAliases = [], namespace: string) {
     if (!nodeAliases) {
       throw new MissingArgumentError('Node IDs must be specified')
     }
@@ -156,6 +156,8 @@ export class RelayCommand extends BaseCommand {
   }
 
   async deploy (argv: any) {
+    const self = this
+
     interface RelayDeployConfigClass {
       chainId: string
       chartDirectory: string
@@ -185,38 +187,37 @@ export class RelayCommand extends BaseCommand {
         title: 'Initialize',
         task: async (ctx, task) => {
           // reset nodeAlias
-          this.configManager.setFlag(flags.nodeAliasesUnparsed, '')
+          self.configManager.setFlag(flags.nodeAliasesUnparsed, '')
 
-          this.configManager.update(argv)
+          self.configManager.update(argv)
 
-          await prompts.execute(task, this.configManager, RelayCommand.DEPLOY_FLAGS_LIST)
+          await prompts.execute(task, self.configManager, RelayCommand.DEPLOY_FLAGS_LIST)
 
           // prompt if inputs are empty and set it in the context
           ctx.config = this.getConfig(RelayCommand.DEPLOY_CONFIGS_NAME, RelayCommand.DEPLOY_FLAGS_LIST,
             ['nodeAliases']) as RelayDeployConfigClass
 
           ctx.config.nodeAliases = helpers.parseNodeAliases(ctx.config.nodeAliasesUnparsed)
-          ctx.config.releaseName = this.prepareReleaseName(ctx.config.nodeAliases)
-          ctx.config.isChartInstalled = await this.chartManager.isChartInstalled(ctx.config.namespace, ctx.config.releaseName)
+          ctx.config.releaseName = self.prepareReleaseName(ctx.config.nodeAliases)
+          ctx.config.isChartInstalled = await self.chartManager.isChartInstalled(ctx.config.namespace, ctx.config.releaseName)
 
-          this.logger.debug('Initialized config', { config: ctx.config })
+          self.logger.debug('Initialized config', { config: ctx.config })
         }
       },
       {
         title: 'Prepare chart values',
         task: async (ctx) => {
-          ctx.config.chartPath = await this.prepareChartPath(ctx.config.chartDirectory,
-            constants.JSON_RPC_RELAY_CHART, constants.JSON_RPC_RELAY_CHART)
-
-          ctx.config.valuesArg = await this.prepareValuesArg(
-            ctx.config.valuesFile,
-            ctx.config.nodeAliases,
-            ctx.config.chainId,
-            ctx.config.relayReleaseTag,
-            ctx.config.replicaCount,
-            ctx.config.operatorId,
-            ctx.config.operatorKey,
-            ctx.config.namespace
+          const config = ctx.config
+          config.chartPath = await self.prepareChartPath(config.chartDirectory, constants.JSON_RPC_RELAY_CHART, constants.JSON_RPC_RELAY_CHART)
+          config.valuesArg = await self.prepareValuesArg(
+            config.valuesFile,
+            config.nodeAliases,
+            config.chainId,
+            config.relayReleaseTag,
+            config.replicaCount,
+            config.operatorId,
+            config.operatorKey,
+            config.namespace
           )
         }
       },
@@ -225,23 +226,23 @@ export class RelayCommand extends BaseCommand {
         task: async (ctx) => {
           const config = ctx.config
 
-          await this.chartManager.install(config.namespace, config.releaseName, config.chartPath, '', config.valuesArg)
+          await self.chartManager.install(config.namespace, config.releaseName, config.chartPath, '', config.valuesArg)
 
-          await this.k8.waitForPods([constants.POD_PHASE_RUNNING], [
+          await self.k8.waitForPods([constants.POD_PHASE_RUNNING], [
             'app=hedera-json-rpc-relay',
             `app.kubernetes.io/instance=${config.releaseName}`
           ], 1, 900, 1000)
 
           // reset nodeAlias
-          this.configManager.setFlag(flags.nodeAliasesUnparsed, '')
-          this.configManager.persist()
+          self.configManager.setFlag(flags.nodeAliasesUnparsed, '')
+          self.configManager.persist()
         }
       },
       {
         title: 'Check relay is ready',
         task: async (ctx) => {
           try {
-            await this.k8.waitForPodReady([
+            await self.k8.waitForPodReady([
               'app=hedera-json-rpc-relay',
               `app.kubernetes.io/instance=${ctx.config.releaseName}`
             ], 1, 100, 2000)
@@ -265,6 +266,8 @@ export class RelayCommand extends BaseCommand {
   }
 
   async destroy (argv: any) {
+    const self = this
+
     interface RelayDestroyConfigClass {
       chartDirectory: string
       namespace: string
@@ -282,22 +285,22 @@ export class RelayCommand extends BaseCommand {
         title: 'Initialize',
         task: async (ctx, task) => {
           // reset nodeAlias
-          this.configManager.setFlag(flags.nodeAliasesUnparsed, '')
+          self.configManager.setFlag(flags.nodeAliasesUnparsed, '')
 
-          this.configManager.update(argv)
-          await prompts.execute(task, this.configManager, RelayCommand.DESTROY_FLAGS_LIST)
+          self.configManager.update(argv)
+          await prompts.execute(task, self.configManager, RelayCommand.DESTROY_FLAGS_LIST)
 
           // prompt if inputs are empty and set it in the context
           ctx.config = {
-            chartDirectory: <string>this.configManager.getFlag<string>(flags.chartDirectory),
-            namespace: <string>this.configManager.getFlag<string>(flags.namespace),
-            nodeAliases: helpers.parseNodeAliases(<string>this.configManager.getFlag<string>(flags.nodeAliasesUnparsed))
+            chartDirectory: <string>self.configManager.getFlag<string>(flags.chartDirectory),
+            namespace: <string>self.configManager.getFlag<string>(flags.namespace),
+            nodeAliases: helpers.parseNodeAliases(<string>self.configManager.getFlag<string>(flags.nodeAliasesUnparsed))
           } as RelayDestroyConfigClass
 
           ctx.config.releaseName = this.prepareReleaseName(ctx.config.nodeAliases)
           ctx.config.isChartInstalled = await this.chartManager.isChartInstalled(ctx.config.namespace, ctx.config.releaseName)
 
-          this.logger.debug('Initialized config', { config: ctx.config })
+          self.logger.debug('Initialized config', { config: ctx.config })
         }
       },
       {
@@ -307,11 +310,11 @@ export class RelayCommand extends BaseCommand {
 
           await this.chartManager.uninstall(config.namespace, config.releaseName)
 
-          this.logger.showList('Destroyed Relays', await this.chartManager.getInstalledCharts(config.namespace))
+          this.logger.showList('Destroyed Relays', await self.chartManager.getInstalledCharts(config.namespace))
 
           // reset nodeAliasesUnparsed
-          this.configManager.setFlag(flags.nodeAliasesUnparsed, '')
-          this.configManager.persist()
+          self.configManager.setFlag(flags.nodeAliasesUnparsed, '')
+          self.configManager.persist()
         },
         skip: (ctx) => !ctx.config.isChartInstalled
       }
@@ -330,6 +333,7 @@ export class RelayCommand extends BaseCommand {
   }
 
   getCommandDefinition (): { command: string; desc: string; builder: Function } {
+    const relayCmd = this
     return {
       command: 'relay',
       desc: 'Manage JSON RPC relays in solo network',
@@ -342,14 +346,14 @@ export class RelayCommand extends BaseCommand {
               flags.setCommandFlags(y, ...RelayCommand.DEPLOY_FLAGS_LIST)
             },
             handler: (argv: any) => {
-              this.logger.debug("==== Running 'relay install' ===", { argv })
+              relayCmd.logger.debug("==== Running 'relay install' ===", { argv })
 
-              this.deploy(argv).then(r => {
-                this.logger.debug('==== Finished running `relay install`====')
+              relayCmd.deploy(argv).then(r => {
+                relayCmd.logger.debug('==== Finished running `relay install`====')
 
                 if (!r) process.exit(1)
               }).catch(err => {
-                this.logger.showUserError(err)
+                relayCmd.logger.showUserError(err)
                 process.exit(1)
               })
             }
@@ -363,11 +367,11 @@ export class RelayCommand extends BaseCommand {
               flags.nodeAliasesUnparsed
             ),
             handler: (argv: any) => {
-              this.logger.debug("==== Running 'relay uninstall' ===", { argv })
-              this.logger.debug(argv)
+              relayCmd.logger.debug("==== Running 'relay uninstall' ===", { argv })
+              relayCmd.logger.debug(argv)
 
-              this.destroy(argv).then(r => {
-                this.logger.debug('==== Finished running `relay uninstall`====')
+              relayCmd.destroy(argv).then(r => {
+                relayCmd.logger.debug('==== Finished running `relay uninstall`====')
 
                 if (!r) process.exit(1)
               })

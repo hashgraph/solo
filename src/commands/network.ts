@@ -214,6 +214,8 @@ export class NetworkCommand extends BaseCommand {
 
   /** Run helm install and deploy network components */
   async deploy (argv: any) {
+    const self = this
+
     interface Context {
       config: NetworkDeployConfigClass
     }
@@ -222,7 +224,7 @@ export class NetworkCommand extends BaseCommand {
       {
         title: 'Initialize',
         task: async (ctx, task) => {
-          ctx.config = await this.prepareConfig(task, argv)
+          ctx.config = await self.prepareConfig(task, argv)
         }
       },
       {
@@ -242,8 +244,8 @@ export class NetworkCommand extends BaseCommand {
               task: (ctx) => {
                 const config = ctx.config
                 for (const nodeAlias of config.nodeAliases) {
-                  const tlsKeyFiles = this.keyManager.prepareTLSKeyFilePaths(nodeAlias, config.keysDir)
-                  this.keyManager.copyNodeKeysToStaging(tlsKeyFiles, config.stagingKeysDir)
+                  const tlsKeyFiles = self.keyManager.prepareTLSKeyFilePaths(nodeAlias, config.keysDir)
+                  self.keyManager.copyNodeKeysToStaging(tlsKeyFiles, config.stagingKeysDir)
                 }
               }
             }
@@ -259,7 +261,7 @@ export class NetworkCommand extends BaseCommand {
           const config = ctx.config
 
           // set up the sub-tasks
-          return parentTask.newListr(this.platformInstaller.copyNodeKeys(config.stagingDir, config.nodeAliases), {
+          return parentTask.newListr(self.platformInstaller.copyNodeKeys(config.stagingDir, config.nodeAliases), {
             concurrent: true,
             rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
           })
@@ -269,8 +271,8 @@ export class NetworkCommand extends BaseCommand {
         title: `Install chart '${constants.SOLO_DEPLOYMENT_CHART}'`,
         task: async (ctx) => {
           const config = ctx.config
-          if (await this.chartManager.isChartInstalled(config.namespace, constants.SOLO_DEPLOYMENT_CHART)) {
-            await this.chartManager.uninstall(config.namespace, constants.SOLO_DEPLOYMENT_CHART)
+          if (await self.chartManager.isChartInstalled(config.namespace, constants.SOLO_DEPLOYMENT_CHART)) {
+            await self.chartManager.uninstall(config.namespace, constants.SOLO_DEPLOYMENT_CHART)
           }
 
           await this.chartManager.install(
@@ -293,7 +295,7 @@ export class NetworkCommand extends BaseCommand {
                subTasks.push({
                  title: `Check Node: ${chalk.yellow(nodeAlias)}`,
                  task: async () =>
-                   await this.k8.waitForPods([constants.POD_PHASE_RUNNING], [
+                   await self.k8.waitForPods([constants.POD_PHASE_RUNNING], [
                      'solo.hedera.com/type=network-node',
                     `solo.hedera.com/node-name=${nodeAlias}`
                    ], 1, 60 * 15, 1000) // timeout 15 minutes
@@ -321,7 +323,7 @@ export class NetworkCommand extends BaseCommand {
                subTasks.push({
                  title: `Check HAProxy for: ${chalk.yellow(nodeAlias)}`,
                  task: async () =>
-                   await this.k8.waitForPods([constants.POD_PHASE_RUNNING], [
+                   await self.k8.waitForPods([constants.POD_PHASE_RUNNING], [
                      'solo.hedera.com/type=haproxy'
                    ], 1, 60 * 15, 1000) // timeout 15 minutes
                })
@@ -332,7 +334,7 @@ export class NetworkCommand extends BaseCommand {
                subTasks.push({
                  title: `Check Envoy Proxy for: ${chalk.yellow(nodeAlias)}`,
                  task: async () =>
-                   await this.k8.waitForPods([constants.POD_PHASE_RUNNING], [
+                   await self.k8.waitForPods([constants.POD_PHASE_RUNNING], [
                      'solo.hedera.com/type=envoy-proxy'
                    ], 1, 60 * 15, 1000) // timeout 15 minutes
                })
@@ -357,7 +359,7 @@ export class NetworkCommand extends BaseCommand {
              subTasks.push({
                title: 'Check MinIO',
                task: async () =>
-                 await this.k8.waitForPodReady([
+                 await self.k8.waitForPodReady([
                    'v1.min.io/tenant=minio'
                  ], 1, 60 * 5, 1000) // timeout 5 minutes
              })
@@ -386,6 +388,7 @@ export class NetworkCommand extends BaseCommand {
   }
 
   async destroy (argv: any) {
+    const self = this
 
     interface Context {
       config: {
@@ -406,37 +409,39 @@ export class NetworkCommand extends BaseCommand {
               message: 'Are you sure you would like to destroy the network components?'
             })
 
-            if (!confirm) process.exit(0)
+            if (!confirm) {
+              process.exit(0)
+            }
           }
 
-          this.configManager.update(argv)
-          await prompts.execute(task, this.configManager, [
+          self.configManager.update(argv)
+          await prompts.execute(task, self.configManager, [
             flags.deletePvcs,
             flags.deleteSecrets,
             flags.namespace
           ])
 
           ctx.config = {
-            deletePvcs: <boolean>this.configManager.getFlag<boolean>(flags.deletePvcs),
-            deleteSecrets: <boolean>this.configManager.getFlag<boolean>(flags.deleteSecrets),
-            namespace: <string>this.configManager.getFlag<string>(flags.namespace)
+            deletePvcs: <boolean>self.configManager.getFlag<boolean>(flags.deletePvcs),
+            deleteSecrets: <boolean>self.configManager.getFlag<boolean>(flags.deleteSecrets),
+            namespace: <string>self.configManager.getFlag<string>(flags.namespace)
           }
         }
       },
       {
         title: `Uninstall chart ${constants.SOLO_DEPLOYMENT_CHART}`,
         task: async (ctx) => {
-          await this.chartManager.uninstall(ctx.config.namespace, constants.SOLO_DEPLOYMENT_CHART)
+          await self.chartManager.uninstall(ctx.config.namespace, constants.SOLO_DEPLOYMENT_CHART)
         }
       },
       {
         title: 'Delete PVCs',
         task: async (ctx) => {
-          const pvcs = await this.k8.listPvcsByNamespace(ctx.config.namespace)
+          const pvcs = await self.k8.listPvcsByNamespace(ctx.config.namespace)
 
           if (pvcs) {
             for (const pvc of pvcs) {
-              await this.k8.deletePvc(pvc, ctx.config.namespace)
+              await self.k8.deletePvc(pvc, ctx.config.namespace)
             }
           }
         },
@@ -445,11 +450,11 @@ export class NetworkCommand extends BaseCommand {
       {
         title: 'Delete Secrets',
         task: async (ctx) => {
-          const secrets = await this.k8.listSecretsByNamespace(ctx.config.namespace)
+          const secrets = await self.k8.listSecretsByNamespace(ctx.config.namespace)
 
           if (secrets) {
             for (const secret of secrets) {
-              await this.k8.deleteSecret(secret, ctx.config.namespace)
+              await self.k8.deleteSecret(secret, ctx.config.namespace)
             }
           }
         },
@@ -471,6 +476,8 @@ export class NetworkCommand extends BaseCommand {
 
   /** Run helm upgrade to refresh network components with new settings */
   async refresh (argv: any) {
+    const self = this
+
     interface Context {
       config: NetworkDeployConfigClass
     }
@@ -479,7 +486,7 @@ export class NetworkCommand extends BaseCommand {
       {
         title: 'Initialize',
         task: async (ctx, task) => {
-          ctx.config = await this.prepareConfig(task, argv)
+          ctx.config = await self.prepareConfig(task, argv)
         }
       },
       {

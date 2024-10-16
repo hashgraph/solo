@@ -38,12 +38,14 @@ export class InitCommand extends BaseCommand {
     constants.SOLO_CACHE_DIR,
     constants.SOLO_VALUES_DIR
   ]) {
+    const self = this
+
     try {
       dirs.forEach(dirPath => {
         if (!fs.existsSync(dirPath)) {
           fs.mkdirSync(dirPath, { recursive: true })
         }
-        this.logger.debug(`OK: setup directory: ${dirPath}`)
+        self.logger.debug(`OK: setup directory: ${dirPath}`)
       })
     } catch (e: Error | any) {
       this.logger.error(e)
@@ -55,6 +57,7 @@ export class InitCommand extends BaseCommand {
 
   /** Executes the init CLI command */
   async init (argv: any) {
+    const self = this
     let cacheDir: string = <string>this.configManager.getFlag<string>(flags.cacheDir)
     if (!cacheDir) {
       cacheDir = constants.SOLO_CACHE_DIR as string
@@ -69,7 +72,7 @@ export class InitCommand extends BaseCommand {
       {
         title: 'Setup home directory and cache',
         task: (ctx) => {
-          this.configManager.update(argv)
+          self.configManager.update(argv)
           ctx.dirs = this.setupHomeDirectory()
         }
       },
@@ -80,7 +83,7 @@ export class InitCommand extends BaseCommand {
             core.constants.HELM
           ]
 
-          const subTasks = this.depManager.taskCheckDependencies(deps)
+          const subTasks = self.depManager.taskCheckDependencies(deps)
 
           // set up the sub-tasks
           return task.newListr(subTasks, {
@@ -114,14 +117,14 @@ export class InitCommand extends BaseCommand {
           }
 
           if (argv.dev) {
-            this.logger.showList('Home Directories', ctx.dirs)
-            this.logger.showList('Chart Repository', ctx.repoURLs)
+            self.logger.showList('Home Directories', ctx.dirs)
+            self.logger.showList('Chart Repository', ctx.repoURLs)
           }
 
-          this.logger.showUser(chalk.grey('\n***************************************************************************************'))
-          this.logger.showUser(chalk.grey(`Note: solo stores various artifacts (config, logs, keys etc.) in its home directory: ${constants.SOLO_HOME_DIR}\n` +
+          self.logger.showUser(chalk.grey('\n***************************************************************************************'))
+          self.logger.showUser(chalk.grey(`Note: solo stores various artifacts (config, logs, keys etc.) in its home directory: ${constants.SOLO_HOME_DIR}\n` +
             'If a full reset is needed, delete the directory or relevant sub-directories before running \'solo init\'.'))
-          this.logger.showUser(chalk.grey('***************************************************************************************'))
+          self.logger.showUser(chalk.grey('***************************************************************************************'))
         }
       }
     ], {

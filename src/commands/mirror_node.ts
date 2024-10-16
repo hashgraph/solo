@@ -125,6 +125,8 @@ export class MirrorNodeCommand extends BaseCommand {
   }
 
   async deploy (argv: any) {
+    const self = this
+
     interface MirrorNodeDeployConfigClass {
       chartDirectory: string
       deployHederaExplorer: boolean
@@ -152,7 +154,7 @@ export class MirrorNodeCommand extends BaseCommand {
       {
         title: 'Initialize',
         task: async (ctx, task) => {
-          this.configManager.update(argv)
+          self.configManager.update(argv)
 
           // disable the prompts that we don't want to prompt the user for
           prompts.disablePrompts([
@@ -167,39 +169,38 @@ export class MirrorNodeCommand extends BaseCommand {
             flags.mirrorNodeVersion
           ])
 
-          await prompts.execute(task, this.configManager, MirrorNodeCommand.DEPLOY_FLAGS_LIST)
+          await prompts.execute(task, self.configManager, MirrorNodeCommand.DEPLOY_FLAGS_LIST)
 
-          ctx.config = <MirrorNodeDeployConfigClass>this.getConfig(MirrorNodeCommand.DEPLOY_CONFIGS_NAME, MirrorNodeCommand.DEPLOY_FLAGS_LIST,
-            ['chartPath', 'valuesArg'])
+          ctx.config = this.getConfig(MirrorNodeCommand.DEPLOY_CONFIGS_NAME, MirrorNodeCommand.DEPLOY_FLAGS_LIST,
+            ['chartPath', 'valuesArg']) as MirrorNodeDeployConfigClass
 
-          ctx.config.chartPath = await this.prepareChartPath(ctx.config.chartDirectory,
+          ctx.config.chartPath = await self.prepareChartPath(ctx.config.chartDirectory,
             constants.SOLO_TESTING_CHART, constants.SOLO_DEPLOYMENT_CHART)
 
-          ctx.config.valuesArg = await this.prepareValuesArg(ctx.config)
+          ctx.config.valuesArg = await self.prepareValuesArg(ctx.config)
 
-          if (!await this.k8.hasNamespace(ctx.config.namespace)) {
+          if (!await self.k8.hasNamespace(ctx.config.namespace)) {
             throw new SoloError(`namespace ${ctx.config.namespace} does not exist`)
           }
 
-          await this.accountManager.loadNodeClient(ctx.config.namespace)
+          await self.accountManager.loadNodeClient(ctx.config.namespace)
         }
       },
       {
         title: 'Enable mirror-node',
         task: (_, parentTask) => {
-
           return parentTask.newListr<Context>([
             {
               title: 'Prepare address book',
               task: async (ctx) => {
-                ctx.addressBook = await this.accountManager.prepareAddressBookBase64(ctx.config.namespace)
+                ctx.addressBook = await self.accountManager.prepareAddressBookBase64(ctx.config.namespace)
                 ctx.config.valuesArg += ` --set "hedera-mirror-node.importer.addressBook=${ctx.addressBook}"`
               }
             },
             {
               title: 'Deploy mirror-node',
               task: async (ctx) => {
-                await this.chartManager.upgrade(
+                await self.chartManager.upgrade(
                   ctx.config.namespace,
                   constants.SOLO_DEPLOYMENT_CHART,
                   ctx.config.chartPath,
@@ -220,40 +221,35 @@ export class MirrorNodeCommand extends BaseCommand {
           return parentTask.newListr([
             {
               title: 'Check Postgres DB',
-              task: async () =>
-                await this.k8.waitForPodReady([
+              task: async () => await self.k8.waitForPodReady([
                   'app.kubernetes.io/component=postgresql',
                   'app.kubernetes.io/name=postgres'
                 ], 1, 300, 2000)
             },
             {
               title: 'Check REST API',
-              task: async () =>
-                await this.k8.waitForPodReady([
+              task: async () => await self.k8.waitForPodReady([
                   'app.kubernetes.io/component=rest',
                   'app.kubernetes.io/name=rest'
                 ], 1, 300, 2000)
             },
             {
               title: 'Check GRPC',
-              task: async () =>
-                await this.k8.waitForPodReady([
+              task: async () => await self.k8.waitForPodReady([
                   'app.kubernetes.io/component=grpc',
                   'app.kubernetes.io/name=grpc'
                 ], 1, 300, 2000)
             },
             {
               title: 'Check Monitor',
-              task: async () =>
-                await this.k8.waitForPodReady([
+              task: async () => await self.k8.waitForPodReady([
                   'app.kubernetes.io/component=monitor',
                   'app.kubernetes.io/name=monitor'
                 ], 1, 300, 2000)
             },
             {
               title: 'Check Importer',
-              task: async () =>
-                await this.k8.waitForPodReady([
+              task: async () => await self.k8.waitForPodReady([
                   'app.kubernetes.io/component=importer',
                   'app.kubernetes.io/name=importer'
                 ], 1, 300, 2000)
@@ -261,8 +257,7 @@ export class MirrorNodeCommand extends BaseCommand {
             {
               title: 'Check Hedera Explorer',
               skip: (ctx) => !ctx.config.deployHederaExplorer,
-              task: async () =>
-                await this.k8.waitForPodReady([
+              task: async () => await self.k8.waitForPodReady([
                   'app.kubernetes.io/component=hedera-explorer',
                   'app.kubernetes.io/name=hedera-explorer'
                 ], 1, 300, 2000)
@@ -280,7 +275,7 @@ export class MirrorNodeCommand extends BaseCommand {
             {
               title: 'Insert data in public.file_data',
               task: async () => {
-                const namespace = <string>this.configManager.getFlag<string>(flags.namespace)
+                const namespace = <string>self.configManager.getFlag<string>(flags.namespace)
 
                 const feesFileIdNum = 111
                 const exchangeRatesFileIdNum = 112
@@ -301,13 +296,13 @@ export class MirrorNodeCommand extends BaseCommand {
                 }
                 const postgresPodName = pods[0].metadata.name as PodName
                 const postgresContainerName = 'postgresql'
-                const mirrorEnvVars = await this.k8.execContainer(postgresPodName, postgresContainerName, '/bin/bash -c printenv')
+                const mirrorEnvVars = await self.k8.execContainer(postgresPodName, postgresContainerName, '/bin/bash -c printenv')
                 const mirrorEnvVarsArray = mirrorEnvVars.split('\n')
                 const HEDERA_MIRROR_IMPORTER_DB_OWNER = getEnvValue(mirrorEnvVarsArray, 'HEDERA_MIRROR_IMPORTER_DB_OWNER')
                 const HEDERA_MIRROR_IMPORTER_DB_OWNERPASSWORD = getEnvValue(mirrorEnvVarsArray, 'HEDERA_MIRROR_IMPORTER_DB_OWNERPASSWORD')
                 const HEDERA_MIRROR_IMPORTER_DB_NAME = getEnvValue(mirrorEnvVarsArray, 'HEDERA_MIRROR_IMPORTER_DB_NAME')
 
-                await this.k8.execContainer(postgresPodName, postgresContainerName, [
+                await self.k8.execContainer(postgresPodName, postgresContainerName, [
                   'psql',
                   `postgresql://${HEDERA_MIRROR_IMPORTER_DB_OWNER}:${HEDERA_MIRROR_IMPORTER_DB_OWNERPASSWORD}@localhost:5432/${HEDERA_MIRROR_IMPORTER_DB_NAME}`,
                   '-c',
@@ -328,17 +323,19 @@ export class MirrorNodeCommand extends BaseCommand {
 
     try {
       await tasks.run()
-      this.logger.debug('node start has completed')
+      self.logger.debug('node start has completed')
     } catch (e: Error | any) {
       throw new SoloError(`Error starting node: ${e.message}`, e)
     } finally {
-      await this.accountManager.close()
+      await self.accountManager.close()
     }
 
     return true
   }
 
   async destroy (argv: any) {
+    const self = this
+
     interface Context {
       config: {
         chartDirectory: string
@@ -365,34 +362,34 @@ export class MirrorNodeCommand extends BaseCommand {
             }
           }
 
-          this.configManager.update(argv)
-          await prompts.execute(task, this.configManager, [
+          self.configManager.update(argv)
+          await prompts.execute(task, self.configManager, [
             flags.namespace
           ])
 
           // @ts-ignore
           ctx.config = {
-            chartDirectory: <string>this.configManager.getFlag<string>(flags.chartDirectory),
-            soloChartVersion: <string>this.configManager.getFlag<string>(flags.soloChartVersion),
-            namespace: <string>this.configManager.getFlag<string>(flags.namespace)
+            chartDirectory: <string>self.configManager.getFlag<string>(flags.chartDirectory),
+            soloChartVersion: <string>self.configManager.getFlag<string>(flags.soloChartVersion),
+            namespace: <string>self.configManager.getFlag<string>(flags.namespace)
           }
 
-          ctx.config.chartPath = await this.prepareChartPath(ctx.config.chartDirectory,
+          ctx.config.chartPath = await self.prepareChartPath(ctx.config.chartDirectory,
             constants.SOLO_TESTING_CHART, constants.SOLO_DEPLOYMENT_CHART)
 
           ctx.config.valuesArg = ' --set hedera-mirror-node.enabled=false --set hedera-explorer.enabled=false'
 
-          if (!await this.k8.hasNamespace(ctx.config.namespace)) {
+          if (!await self.k8.hasNamespace(ctx.config.namespace)) {
             throw new SoloError(`namespace ${ctx.config.namespace} does not exist`)
           }
 
-          await this.accountManager.loadNodeClient(ctx.config.namespace)
+          await self.accountManager.loadNodeClient(ctx.config.namespace)
         }
       },
       {
         title: 'Destroy mirror-node',
         task: async (ctx) => {
-          await this.chartManager.upgrade(
+          await self.chartManager.upgrade(
             ctx.config.namespace,
             constants.SOLO_DEPLOYMENT_CHART,
             ctx.config.chartPath,
@@ -404,7 +401,7 @@ export class MirrorNodeCommand extends BaseCommand {
       {
         title: 'Delete PVCs',
         task: async (ctx) => {
-          const pvcs = await this.k8.listPvcsByNamespace(ctx.config.namespace, [
+          const pvcs = await self.k8.listPvcsByNamespace(ctx.config.namespace, [
             'app.kubernetes.io/component=postgresql',
             'app.kubernetes.io/instance=solo-deployment',
             'app.kubernetes.io/name=postgres'
@@ -412,7 +409,7 @@ export class MirrorNodeCommand extends BaseCommand {
 
           if (pvcs) {
             for (const pvc of pvcs) {
-              await this.k8.deletePvc(pvc, ctx.config.namespace)
+              await self.k8.deletePvc(pvc, ctx.config.namespace)
             }
           }
         }
@@ -424,11 +421,11 @@ export class MirrorNodeCommand extends BaseCommand {
 
     try {
       await tasks.run()
-      this.logger.debug('node start has completed')
+      self.logger.debug('node start has completed')
     } catch (e: Error | any) {
       throw new SoloError(`Error starting node: ${e.message}`, e)
     } finally {
-      await this.accountManager.close()
+      await self.accountManager.close()
     }
 
     return true

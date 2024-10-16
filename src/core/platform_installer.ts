@@ -223,6 +223,7 @@ export class PlatformInstaller {
   }
 
   async setPlatformDirPermissions (podName: PodName) {
+    const self = this
     if (!podName) throw new MissingArgumentError('podName is required')
 
     try {
@@ -231,7 +232,7 @@ export class PlatformInstaller {
       ]
 
       for (const destPath of destPaths) {
-        await this.setPathPermission(podName, destPath)
+        await self.setPathPermission(podName, destPath)
       }
 
       return true
@@ -242,11 +243,12 @@ export class PlatformInstaller {
 
   /** Return a list of task to perform node directory setup */
   taskSetup (podName: PodName) {
+    const self = this
     return new Listr([
       {
         title: 'Set file permissions',
         task: async () =>
-          await this.setPlatformDirPermissions(podName)
+          await self.setPlatformDirPermissions(podName)
       }
     ],
     {
@@ -272,12 +274,12 @@ export class PlatformInstaller {
    * @param nodeAliases list of node ids
    */
   copyNodeKeys (stagingDir: string, nodeAliases: NodeAliases) {
+    const self = this
     const subTasks = []
-    
     subTasks.push({
       title: 'Copy TLS keys',
       task: async () =>
-        await this.copyTLSKeys(nodeAliases, stagingDir)
+        await self.copyTLSKeys(nodeAliases, stagingDir)
     })
 
     for (const nodeAlias of nodeAliases) {
@@ -286,7 +288,7 @@ export class PlatformInstaller {
         task: () => new Listr([{
           title: 'Copy Gossip keys',
           task: async () =>
-            await this.copyGossipKeys(nodeAlias, stagingDir, nodeAliases)
+            await self.copyGossipKeys(nodeAlias, stagingDir, nodeAliases)
         }
         ],
         {

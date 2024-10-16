@@ -118,6 +118,8 @@ export class AccountCommand extends BaseCommand {
   }
 
   async init (argv: any) {
+    const self = this
+
     interface Context {
       config: {
         namespace: string
@@ -135,13 +137,13 @@ export class AccountCommand extends BaseCommand {
       {
         title: 'Initialize',
         task: async (ctx, task) => {
-          this.configManager.update(argv)
-          await prompts.execute(task, this.configManager, [
+          self.configManager.update(argv)
+          await prompts.execute(task, self.configManager, [
             flags.namespace
           ])
 
           const config = {
-            namespace: <string>this.configManager.getFlag<string>(flags.namespace)
+            namespace: <string>self.configManager.getFlag<string>(flags.namespace)
           }
 
           if (!await this.k8.hasNamespace(config.namespace)) {
@@ -151,9 +153,9 @@ export class AccountCommand extends BaseCommand {
           // set config in the context for later tasks to use
           ctx.config = config
 
-          this.logger.debug('Initialized config', { config })
+          self.logger.debug('Initialized config', { config })
 
-          await this.accountManager.loadNodeClient(ctx.config.namespace)
+          await self.accountManager.loadNodeClient(ctx.config.namespace)
         }
       },
       {
@@ -163,10 +165,10 @@ export class AccountCommand extends BaseCommand {
             {
               title: 'Prepare for account key updates',
               task: async (ctx) => {
-                const secrets = await this.k8.getSecretsByLabel(['solo.hedera.com/account-id'])
+                const secrets = await self.k8.getSecretsByLabel(['solo.hedera.com/account-id'])
                 ctx.updateSecrets = secrets.length > 0
 
-                ctx.accountsBatchedSet = this.accountManager.batchAccounts(this.systemAccounts)
+                ctx.accountsBatchedSet = self.accountManager.batchAccounts(this.systemAccounts)
 
                 ctx.resultTracker = {
                   rejectedCount: 0,
@@ -175,7 +177,7 @@ export class AccountCommand extends BaseCommand {
                 }
 
                 // do a write transaction to trigger the handler and generate the system accounts to complete genesis
-                await this.accountManager.transferAmount(constants.TREASURY_ACCOUNT_ID, FREEZE_ADMIN_ACCOUNT, 1)
+                await self.accountManager.transferAmount(constants.TREASURY_ACCOUNT_ID, FREEZE_ADMIN_ACCOUNT, 1)
               }
             },
             {
@@ -191,7 +193,7 @@ export class AccountCommand extends BaseCommand {
                   subTasks.push({
                     title: `Updating accounts [${rangeStr}]`,
                     task: async (ctx: Context) => {
-                      ctx.resultTracker = await this.accountManager.updateSpecialAccountsKeys(
+                      ctx.resultTracker = await self.accountManager.updateSpecialAccountsKeys(
                         ctx.config.namespace, currentSet,
                         ctx.updateSecrets, ctx.resultTracker)
                     }
@@ -210,12 +212,12 @@ export class AccountCommand extends BaseCommand {
             {
               title: 'Display results',
               task: (ctx) => {
-                this.logger.showUser(chalk.green(`Account keys updated SUCCESSFULLY: ${ctx.resultTracker.fulfilledCount}`))
-                if (ctx.resultTracker.skippedCount > 0) this.logger.showUser(chalk.cyan(`Account keys updates SKIPPED: ${ctx.resultTracker.skippedCount}`))
+                self.logger.showUser(chalk.green(`Account keys updated SUCCESSFULLY: ${ctx.resultTracker.fulfilledCount}`))
+                if (ctx.resultTracker.skippedCount > 0) self.logger.showUser(chalk.cyan(`Account keys updates SKIPPED: ${ctx.resultTracker.skippedCount}`))
                 if (ctx.resultTracker.rejectedCount > 0) {
-                  this.logger.showUser(chalk.yellowBright(`Account keys updates with ERROR: ${ctx.resultTracker.rejectedCount}`))
+                  self.logger.showUser(chalk.yellowBright(`Account keys updates with ERROR: ${ctx.resultTracker.rejectedCount}`))
                 }
-                this.logger.showUser(chalk.gray('Waiting for sockets to be closed....'))
+                self.logger.showUser(chalk.gray('Waiting for sockets to be closed....'))
                 if (ctx.resultTracker.rejectedCount > 0) {
                   throw new SoloError(`Account keys updates failed for ${ctx.resultTracker.rejectedCount} accounts.`)
                 }
@@ -246,6 +248,8 @@ export class AccountCommand extends BaseCommand {
   }
 
   async create (argv: any) {
+    const self = this
+
     interface Context {
       config: {
         amount: number
@@ -261,17 +265,17 @@ export class AccountCommand extends BaseCommand {
       {
         title: 'Initialize',
         task: async (ctx, task) => {
-          this.configManager.update(argv)
-          await prompts.execute(task, this.configManager, [
+          self.configManager.update(argv)
+          await prompts.execute(task, self.configManager, [
             flags.namespace
           ])
 
           const config = {
-            amount: <number>this.configManager.getFlag<number>(flags.amount),
-            ecdsaPrivateKey: <string>this.configManager.getFlag<string>(flags.ecdsaPrivateKey),
-            namespace: <string>this.configManager.getFlag<string>(flags.namespace),
-            privateKey: <string>this.configManager.getFlag<string>(flags.privateKey),
-            setAlias: <boolean>this.configManager.getFlag<boolean>(flags.setAlias)
+            amount: <number>self.configManager.getFlag<number>(flags.amount),
+            ecdsaPrivateKey: <string>self.configManager.getFlag<string>(flags.ecdsaPrivateKey),
+            namespace: <string>self.configManager.getFlag<string>(flags.namespace),
+            privateKey: <string>self.configManager.getFlag<string>(flags.privateKey),
+            setAlias: <boolean>self.configManager.getFlag<boolean>(flags.setAlias)
           }
 
           if (!config.amount) {
@@ -285,16 +289,16 @@ export class AccountCommand extends BaseCommand {
           // set config in the context for later tasks to use
           ctx.config = config
 
-          this.logger.debug('Initialized config', { config })
+          self.logger.debug('Initialized config', { config })
 
-          await this.accountManager.loadNodeClient(ctx.config.namespace)
+          await self.accountManager.loadNodeClient(ctx.config.namespace)
         }
       },
       {
         title: 'create the new account.ts',
         task: async (ctx) => {
-          this.accountInfo = await this.createNewAccount(ctx)
-          const accountInfoCopy = { ...this.accountInfo }
+          self.accountInfo = await self.createNewAccount(ctx)
+          const accountInfoCopy = { ...self.accountInfo }
           delete accountInfoCopy.privateKey
 
           this.logger.showJSON('new account created', accountInfoCopy)
@@ -317,6 +321,8 @@ export class AccountCommand extends BaseCommand {
   }
 
   async update (argv: any) {
+    const self = this
+
     interface Context {
       config: {
         accountId: string;
@@ -331,17 +337,17 @@ export class AccountCommand extends BaseCommand {
       {
         title: 'Initialize',
         task: async (ctx, task) => {
-          this.configManager.update(argv)
-          await prompts.execute(task, this.configManager, [
+          self.configManager.update(argv)
+          await prompts.execute(task, self.configManager, [
             flags.accountId,
             flags.namespace
           ])
 
           const config = {
-            accountId: <string>this.configManager.getFlag<string>(flags.accountId),
-            amount: <number>this.configManager.getFlag<number>(flags.amount),
-            namespace: <string>this.configManager.getFlag<string>(flags.namespace),
-            privateKey: <string>this.configManager.getFlag<string>(flags.privateKey)
+            accountId: <string>self.configManager.getFlag<string>(flags.accountId),
+            amount: <number>self.configManager.getFlag<number>(flags.amount),
+            namespace: <string>self.configManager.getFlag<string>(flags.namespace),
+            privateKey: <string>self.configManager.getFlag<string>(flags.privateKey)
           }
 
           if (!await this.k8.hasNamespace(config.namespace)) {
@@ -351,21 +357,21 @@ export class AccountCommand extends BaseCommand {
           // set config in the context for later tasks to use
           ctx.config = config
 
-          await this.accountManager.loadNodeClient(config.namespace)
+          await self.accountManager.loadNodeClient(config.namespace)
 
-          this.logger.debug('Initialized config', { config })
+          self.logger.debug('Initialized config', { config })
         }
       },
       {
         title: 'get the account info',
         task: async (ctx) => {
-          ctx.accountInfo = await this.buildAccountInfo(await this.getAccountInfo(ctx), ctx.config.namespace, !!ctx.config.privateKey)
+          ctx.accountInfo = await self.buildAccountInfo(await self.getAccountInfo(ctx), ctx.config.namespace, !!ctx.config.privateKey)
         }
       },
       {
         title: 'update the account.ts',
         task: async (ctx) => {
-          if (!(await this.updateAccountInfo(ctx))) {
+          if (!(await self.updateAccountInfo(ctx))) {
             throw new SoloError(`An error occurred updating account ${ctx.accountInfo.accountId}`)
           }
         }
@@ -373,8 +379,8 @@ export class AccountCommand extends BaseCommand {
       {
         title: 'get the updated account info',
         task: async (ctx) => {
-          this.accountInfo = await this.buildAccountInfo(await this.getAccountInfo(ctx), ctx.config.namespace, false)
-          this.logger.showJSON('account info', this.accountInfo)
+          self.accountInfo = await self.buildAccountInfo(await self.getAccountInfo(ctx), ctx.config.namespace, false)
+          this.logger.showJSON('account info', self.accountInfo)
         }
       }
     ], {
@@ -394,6 +400,8 @@ export class AccountCommand extends BaseCommand {
   }
 
   async get (argv: any) {
+    const self = this
+
     interface Context {
       config: {
         accountId: string;
@@ -406,15 +414,15 @@ export class AccountCommand extends BaseCommand {
       {
         title: 'Initialize',
         task: async (ctx, task) => {
-          this.configManager.update(argv)
-          await prompts.execute(task, this.configManager, [
+          self.configManager.update(argv)
+          await prompts.execute(task, self.configManager, [
             flags.accountId,
             flags.namespace
           ])
 
           const config = {
-            accountId: <string>this.configManager.getFlag<string>(flags.accountId),
-            namespace: <string>this.configManager.getFlag<string>(flags.namespace)
+            accountId: <string>self.configManager.getFlag<string>(flags.accountId),
+            namespace: <string>self.configManager.getFlag<string>(flags.namespace)
           }
 
           if (!await this.k8.hasNamespace(config.namespace)) {
@@ -424,21 +432,20 @@ export class AccountCommand extends BaseCommand {
           // set config in the context for later tasks to use
           ctx.config = config
 
-          await this.accountManager.loadNodeClient(config.namespace)
+          await self.accountManager.loadNodeClient(config.namespace)
 
-          this.logger.debug('Initialized config', { config })
+          self.logger.debug('Initialized config', { config })
         }
       },
       {
         title: 'get the account info',
         task: async (ctx) => {
-          this.accountInfo = await this.buildAccountInfo(await this.getAccountInfo(ctx), ctx.config.namespace, false)
-          this.logger.showJSON('account info', this.accountInfo)
+          self.accountInfo = await self.buildAccountInfo(await self.getAccountInfo(ctx), ctx.config.namespace, false)
+          this.logger.showJSON('account info', self.accountInfo)
         }
       }
     ], {
       concurrent: false,
-      // @ts-ignore
       rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
     })
 
@@ -455,6 +462,7 @@ export class AccountCommand extends BaseCommand {
 
   /** Return Yargs command definition for 'node' command */
   getCommandDefinition (): { command: string; desc: string; builder: Function } {
+    const accountCmd = this
     return {
       command: 'account.ts',
       desc: 'Manage Hedera accounts in solo network',
@@ -467,14 +475,14 @@ export class AccountCommand extends BaseCommand {
               flags.namespace
             ),
             handler: (argv: any) => {
-              this.logger.debug('==== Running \'account init\' ===')
-              this.logger.debug(argv)
+              accountCmd.logger.debug('==== Running \'account init\' ===')
+              accountCmd.logger.debug(argv)
 
-              this.init(argv).then(r => {
-                this.logger.debug('==== Finished running \'account init\' ===')
+              accountCmd.init(argv).then(r => {
+                accountCmd.logger.debug('==== Finished running \'account init\' ===')
                 if (!r) process.exit(1)
               }).catch(err => {
-                this.logger.showUserError(err)
+                accountCmd.logger.showUserError(err)
                 process.exit(1)
               })
             }
@@ -490,14 +498,14 @@ export class AccountCommand extends BaseCommand {
               flags.setAlias
             ),
             handler: (argv: any) => {
-              this.logger.debug("==== Running 'account create' ===")
-              this.logger.debug(argv)
+              accountCmd.logger.debug("==== Running 'account create' ===")
+              accountCmd.logger.debug(argv)
 
-              this.create(argv).then(r => {
-                this.logger.debug("==== Finished running 'account create' ===")
+              accountCmd.create(argv).then(r => {
+                accountCmd.logger.debug("==== Finished running 'account create' ===")
                 if (!r) process.exit(1)
               }).catch(err => {
-                this.logger.showUserError(err)
+                accountCmd.logger.showUserError(err)
                 process.exit(1)
               })
             }
@@ -512,14 +520,14 @@ export class AccountCommand extends BaseCommand {
               flags.privateKey
             ),
             handler: (argv: any) => {
-              this.logger.debug("==== Running 'account update' ===")
-              this.logger.debug(argv)
+              accountCmd.logger.debug("==== Running 'account update' ===")
+              accountCmd.logger.debug(argv)
 
-              this.update(argv).then(r => {
-                this.logger.debug("==== Finished running 'account update' ===")
+              accountCmd.update(argv).then(r => {
+                accountCmd.logger.debug("==== Finished running 'account update' ===")
                 if (!r) process.exit(1)
               }).catch(err => {
-                this.logger.showUserError(err)
+                accountCmd.logger.showUserError(err)
                 process.exit(1)
               })
             }
@@ -532,14 +540,14 @@ export class AccountCommand extends BaseCommand {
               flags.namespace
             ),
             handler: (argv: any) => {
-              this.logger.debug("==== Running 'account get' ===")
-              this.logger.debug(argv)
+              accountCmd.logger.debug("==== Running 'account get' ===")
+              accountCmd.logger.debug(argv)
 
-              this.get(argv).then(r => {
-                this.logger.debug("==== Finished running 'account get' ===")
+              accountCmd.get(argv).then(r => {
+                accountCmd.logger.debug("==== Finished running 'account get' ===")
                 if (!r) process.exit(1)
               }).catch(err => {
-                this.logger.showUserError(err)
+                accountCmd.logger.showUserError(err)
                 process.exit(1)
               })
             }

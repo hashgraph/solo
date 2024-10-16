@@ -103,7 +103,7 @@ export class AccountManager {
    * @param [accountRange]
    * @returns an array of arrays of numbers representing the accounts to update
    */
-  batchAccounts (accountRange: number[][] = constants.SYSTEM_ACCOUNTS) {
+  batchAccounts (accountRange = constants.SYSTEM_ACCOUNTS) {
     const batchSize = constants.ACCOUNT_UPDATE_BATCH_SIZE as number
     const batchSets: number[][] = []
 
@@ -131,9 +131,7 @@ export class AccountManager {
     return batchSets
   }
 
-  /**
-   * stops and closes the port forwards and the _nodeClient
-   */
+  /** stops and closes the port forwards and the _nodeClient */
   async close () {
     this._nodeClient?.close()
     if (this._portForwards) {
@@ -217,12 +215,12 @@ export class AccountManager {
     operatorKey: string) {
     const nodes = {}
     try {
-      let localPort = constants.LOCAL_NODE_START_PORT as number
+      let localPort = constants.LOCAL_NODE_START_PORT
 
       for (const networkNodeService of networkNodeServicesMap.values()) {
         const usePortForward = this.shouldUseLocalHostPortForward(networkNodeService)
         const host = usePortForward ? '127.0.0.1' : networkNodeService.haProxyLoadBalancerIp as string
-        const port = networkNodeService.haProxyGrpcPort as number
+        const port = +networkNodeService.haProxyGrpcPort
         const targetPort = usePortForward ? localPort : port
 
         if (usePortForward && this._portForwards.length < networkNodeServicesMap.size) {
@@ -342,7 +340,7 @@ export class AccountManager {
     skippedCount: number;
     rejectedCount: number;
     fulfilledCount: number;
-  }): Promise<any> {
+  }) {
     const genesisKey = PrivateKey.fromStringED25519(constants.OPERATOR_KEY)
     const realm = constants.HEDERA_NODE_ACCOUNT_ID_START.realm
     const shard = constants.HEDERA_NODE_ACCOUNT_ID_START.shard
@@ -499,10 +497,10 @@ export class AccountManager {
    * @param accountId - the account
    * @returns the private key of the account
    */
-  async getAccountKeys (accountId: AccountId | string): Promise<Key[]> {
+  async getAccountKeys (accountId: AccountId | string) {
     const accountInfo = await this.accountInfoQuery(accountId)
 
-    let keys = []
+    let keys: Key[] = []
     if (accountInfo.key instanceof KeyList) {
       keys = accountInfo.key.toArray()
     } else {
@@ -519,11 +517,7 @@ export class AccountManager {
    * @param oldPrivateKey - the genesis key that is the current key
    * @returns whether the update was successful
    */
-  async sendAccountKeyUpdate (
-    accountId: AccountId | string,
-    newPrivateKey: PrivateKey | string,
-    oldPrivateKey: PrivateKey | string
-  ): Promise<boolean> {
+  async sendAccountKeyUpdate (accountId: AccountId | string, newPrivateKey: PrivateKey | string, oldPrivateKey: PrivateKey | string) {
     if (typeof newPrivateKey === 'string') {
       newPrivateKey = PrivateKey.fromStringED25519(newPrivateKey)
     }
@@ -561,7 +555,7 @@ export class AccountManager {
    * @returns a custom object with the account information in it
    */
   async createNewAccount (namespace: string, privateKey: PrivateKey, amount: number, setAlias = false
-      ): Promise<{ accountId: string; privateKey: string; publicKey: string; balance: number }> {
+      ) {
     const newAccountTransaction = new AccountCreateTransaction()
       .setKey(privateKey)
       .setInitialBalance(Hbar.from(amount, HbarUnit.Hbar))
@@ -576,7 +570,7 @@ export class AccountManager {
     // Get the new account ID
     // @ts-ignore
     const transactionReceipt = await newAccountResponse.getReceipt(this._nodeClient)
-    const accountInfo: {accountId: string; privateKey: string; publicKey: any; balance: number; accountAlias?: string} = {
+    const accountInfo: {accountId: string; privateKey: string; publicKey: string; balance: number; accountAlias?: string} = {
       accountId: transactionReceipt.accountId!.toString(),
       privateKey: privateKey.toString(),
       publicKey: privateKey.publicKey.toString(),

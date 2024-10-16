@@ -14,7 +14,6 @@
  * limitations under the License.
  *
  */
-
 import { ListrEnquirerPromptAdapter } from '@listr2/prompt-adapter-enquirer'
 import { Listr } from 'listr2'
 import { SoloError } from '../core/errors.ts'
@@ -55,6 +54,8 @@ export class ClusterCommand extends BaseCommand {
 
   /** Setup cluster with shared components */
   async setup (argv: any) {
+    const self = this
+
     interface Context {
       config: {
         chartDir: string
@@ -74,8 +75,8 @@ export class ClusterCommand extends BaseCommand {
       {
         title: 'Initialize',
         task: async (ctx, task) => {
-          this.configManager.update(argv)
-          await prompts.execute(task, this.configManager, [
+          self.configManager.update(argv)
+          await prompts.execute(task, self.configManager, [
             flags.chartDirectory,
             flags.clusterSetupNamespace,
             flags.deployCertManager,
@@ -86,16 +87,16 @@ export class ClusterCommand extends BaseCommand {
 
           // prepare config
           ctx.config = {
-            chartDir: <string>this.configManager.getFlag<string>(flags.chartDirectory),
-            clusterSetupNamespace: <string>this.configManager.getFlag<string>(flags.clusterSetupNamespace),
-            deployCertManager: <boolean>this.configManager.getFlag<boolean>(flags.deployCertManager),
-            deployCertManagerCrds: <boolean>this.configManager.getFlag<boolean>(flags.deployCertManagerCrds),
-            deployMinio: <boolean>this.configManager.getFlag<boolean>(flags.deployMinio),
-            deployPrometheusStack: <boolean>this.configManager.getFlag<boolean>(flags.deployPrometheusStack),
-            soloChartVersion: <string>this.configManager.getFlag<string>(flags.soloChartVersion)
+            chartDir: <string>self.configManager.getFlag<string>(flags.chartDirectory),
+            clusterSetupNamespace: <string>self.configManager.getFlag<string>(flags.clusterSetupNamespace),
+            deployCertManager: <boolean>self.configManager.getFlag<boolean>(flags.deployCertManager),
+            deployCertManagerCrds: <boolean>self.configManager.getFlag<boolean>(flags.deployCertManagerCrds),
+            deployMinio: <boolean>self.configManager.getFlag<boolean>(flags.deployMinio),
+            deployPrometheusStack: <boolean>self.configManager.getFlag<boolean>(flags.deployPrometheusStack),
+            soloChartVersion: <string>self.configManager.getFlag<string>(flags.soloChartVersion)
           }
 
-          this.logger.debug('Prepare ctx.config', { config: ctx.config, argv })
+          self.logger.debug('Prepare ctx.config', { config: ctx.config, argv })
 
           ctx.isChartInstalled = await this.chartManager.isChartInstalled(ctx.config.clusterSetupNamespace, constants.SOLO_CLUSTER_SETUP_CHART)
         }
@@ -124,12 +125,12 @@ export class ClusterCommand extends BaseCommand {
           const valuesArg = ctx.valuesArg
 
           try {
-            await this.chartManager.install(clusterSetupNamespace, constants.SOLO_CLUSTER_SETUP_CHART, chartPath, version, valuesArg)
+            await self.chartManager.install(clusterSetupNamespace, constants.SOLO_CLUSTER_SETUP_CHART, chartPath, version, valuesArg)
           } catch (e: Error | any) {
             // if error, uninstall the chart and rethrow the error
-            this.logger.debug(`Error on installing ${constants.SOLO_CLUSTER_SETUP_CHART}. attempting to rollback by uninstalling the chart`, e)
+            self.logger.debug(`Error on installing ${constants.SOLO_CLUSTER_SETUP_CHART}. attempting to rollback by uninstalling the chart`, e)
             try {
-              await this.chartManager.uninstall(clusterSetupNamespace, constants.SOLO_CLUSTER_SETUP_CHART)
+              await self.chartManager.uninstall(clusterSetupNamespace, constants.SOLO_CLUSTER_SETUP_CHART)
             } catch (ex) {
               // ignore error during uninstall since we are doing the best-effort uninstall here
             }
@@ -138,7 +139,7 @@ export class ClusterCommand extends BaseCommand {
           }
 
           if (argv.dev) {
-            await this.showInstalledChartList(clusterSetupNamespace)
+            await self.showInstalledChartList(clusterSetupNamespace)
           }
         },
         skip: (ctx) => ctx.isChartInstalled
@@ -158,6 +159,8 @@ export class ClusterCommand extends BaseCommand {
   }
 
   async reset (argv: any) {
+    const self = this
+
     interface Context {
       config: {
         clusterName: string
@@ -182,10 +185,10 @@ export class ClusterCommand extends BaseCommand {
             }
           }
 
-          this.configManager.update(argv)
+          self.configManager.update(argv)
           ctx.config = {
-            clusterName: <string>this.configManager.getFlag<string>(flags.clusterName),
-            clusterSetupNamespace: <string>this.configManager.getFlag<string>(flags.clusterSetupNamespace)
+            clusterName: <string>self.configManager.getFlag<string>(flags.clusterName),
+            clusterSetupNamespace: <string>self.configManager.getFlag<string>(flags.clusterSetupNamespace)
           }
 
           ctx.isChartInstalled = await this.chartManager.isChartInstalled(ctx.config.clusterSetupNamespace, constants.SOLO_CLUSTER_SETUP_CHART)
@@ -198,9 +201,9 @@ export class ClusterCommand extends BaseCommand {
         title: `Uninstall '${constants.SOLO_CLUSTER_SETUP_CHART}' chart`,
         task: async (ctx, _) => {
           const clusterSetupNamespace = ctx.config.clusterSetupNamespace
-          await this.chartManager.uninstall(clusterSetupNamespace, constants.SOLO_CLUSTER_SETUP_CHART)
+          await self.chartManager.uninstall(clusterSetupNamespace, constants.SOLO_CLUSTER_SETUP_CHART)
           if (argv.dev) {
-            await this.showInstalledChartList(clusterSetupNamespace)
+            await self.showInstalledChartList(clusterSetupNamespace)
           }
         },
         skip: (ctx) => !ctx.isChartInstalled
@@ -221,6 +224,7 @@ export class ClusterCommand extends BaseCommand {
 
   /** Return Yargs command definition for 'cluster' command */
   getCommandDefinition (): { command: string; desc: string; builder: Function } {
+    const clusterCmd = this
     return {
       command: 'cluster',
       desc: 'Manage solo testing cluster',
@@ -230,14 +234,14 @@ export class ClusterCommand extends BaseCommand {
             command: 'list',
             desc: 'List all available clusters',
             handler: (argv: any) => {
-              this.logger.debug("==== Running 'cluster list' ===", { argv })
+              clusterCmd.logger.debug("==== Running 'cluster list' ===", { argv })
 
               try {
-                const r = this.showClusterList()
-                this.logger.debug('==== Finished running `cluster list`====')
+                const r = clusterCmd.showClusterList()
+                clusterCmd.logger.debug('==== Finished running `cluster list`====')
                 if (!r) process.exit(1)
               } catch (err) {
-                this.logger.showUserError(err)
+                clusterCmd.logger.showUserError(err)
                 process.exit(1)
               }
             }
@@ -246,13 +250,13 @@ export class ClusterCommand extends BaseCommand {
             command: 'info',
             desc: 'Get cluster info',
             handler: (argv: any) => {
-              this.logger.debug("==== Running 'cluster info' ===", { argv })
+              clusterCmd.logger.debug("==== Running 'cluster info' ===", { argv })
               try {
                 const r = this.getClusterInfo()
-                this.logger.debug('==== Finished running `cluster info`====')
+                clusterCmd.logger.debug('==== Finished running `cluster info`====')
                 if (!r) process.exit(1)
               } catch (err: Error | any) {
-                this.logger.showUserError(err)
+                clusterCmd.logger.showUserError(err)
                 process.exit(1)
               }
             }
@@ -271,14 +275,14 @@ export class ClusterCommand extends BaseCommand {
               flags.soloChartVersion
             ),
             handler: (argv: any) => {
-              this.logger.debug("==== Running 'cluster setup' ===", { argv })
+              clusterCmd.logger.debug("==== Running 'cluster setup' ===", { argv })
 
-              this.setup(argv).then(r => {
-                this.logger.debug('==== Finished running `cluster setup`====')
+              clusterCmd.setup(argv).then(r => {
+                clusterCmd.logger.debug('==== Finished running `cluster setup`====')
 
                 if (!r) process.exit(1)
               }).catch(err => {
-                this.logger.showUserError(err)
+                clusterCmd.logger.showUserError(err)
                 process.exit(1)
               })
             }
@@ -292,14 +296,14 @@ export class ClusterCommand extends BaseCommand {
               flags.force
             ),
             handler: (argv: any) => {
-              this.logger.debug("==== Running 'cluster reset' ===", { argv })
+              clusterCmd.logger.debug("==== Running 'cluster reset' ===", { argv })
 
-              this.reset(argv).then(r => {
-                this.logger.debug('==== Finished running `cluster reset`====')
+              clusterCmd.reset(argv).then(r => {
+                clusterCmd.logger.debug('==== Finished running `cluster reset`====')
 
                 if (!r) process.exit(1)
               }).catch(err => {
-                this.logger.showUserError(err)
+                clusterCmd.logger.showUserError(err)
                 process.exit(1)
               })
             }
@@ -319,16 +323,13 @@ export class ClusterCommand extends BaseCommand {
    * @param [certManagerCrdsEnabled] - a bool to denote whether to install cert manager CRDs
    */
   prepareValuesArg (
-    chartDir: string = <string>flags.chartDirectory.definition.defaultValue,
-    prometheusStackEnabled: boolean = <boolean>flags.deployPrometheusStack.definition.defaultValue,
-    minioEnabled: boolean = <boolean>flags.deployMinio.definition.defaultValue,
-    certManagerEnabled: boolean = <boolean>flags.deployCertManager.definition.defaultValue,
-    certManagerCrdsEnabled: boolean = <boolean>flags.deployCertManagerCrds.definition.defaultValue
+    chartDir = <string>flags.chartDirectory.definition.defaultValue,
+    prometheusStackEnabled = <boolean>flags.deployPrometheusStack.definition.defaultValue,
+    minioEnabled = <boolean>flags.deployMinio.definition.defaultValue,
+    certManagerEnabled = <boolean>flags.deployCertManager.definition.defaultValue,
+    certManagerCrdsEnabled = <boolean>flags.deployCertManagerCrds.definition.defaultValue
   ) {
-    let valuesArg = ''
-    if (chartDir) {
-      valuesArg = `-f ${path.join(chartDir, 'solo-cluster-setup', 'values.yaml')}`
-    }
+    let valuesArg = chartDir ? `-f ${path.join(chartDir, 'solo-cluster-setup', 'values.yaml')}` : ''
 
     valuesArg += ` --set cloud.prometheusStack.enabled=${prometheusStackEnabled}`
     valuesArg += ` --set cloud.minio.enabled=${minioEnabled}`

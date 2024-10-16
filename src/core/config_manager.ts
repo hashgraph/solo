@@ -14,7 +14,6 @@
  * limitations under the License.
  *
  */
-
 import fs from 'fs'
 import { SoloError, MissingArgumentError } from './errors.ts'
 import { constants } from './index.ts'
@@ -36,7 +35,7 @@ import * as yargs from 'yargs'
 export class ConfigManager {
   config!: Record<string, any>
 
-  constructor (private readonly logger: SoloLogger, private readonly cachedConfigFile: string = constants.SOLO_CONFIG_FILE) {
+  constructor (private readonly logger: SoloLogger, private readonly cachedConfigFile = constants.SOLO_CONFIG_FILE) {
     if (!logger || !(logger instanceof SoloLogger)) throw new MissingArgumentError('An instance of core/SoloLogger is required')
     if (!cachedConfigFile) throw new MissingArgumentError('cached config file path is required')
 

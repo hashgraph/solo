@@ -25,8 +25,9 @@ export class ShellRunner {
 
   /** Returns a promise that invokes the shell command */
   run (cmd: string, verbose = false) {
+    const self = this
     const callStack = new Error().stack // capture the callstack to be included in error
-    this.logger.debug(`Executing command: '${cmd}'`)
+    self.logger.debug(`Executing command: '${cmd}'`)
 
     return new Promise<string[]>((resolve, reject) => {
       const child = spawn(cmd, {
@@ -62,10 +63,10 @@ export class ShellRunner {
           err.stack = callStack
 
           if (verbose) {
-            errOutput.forEach(m => this.logger.showUser(chalk.red(m)))
+            errOutput.forEach(m => self.logger.showUser(chalk.red(m)))
           }
 
-          this.logger.error(`Error executing: '${cmd}'`, {
+          self.logger.error(`Error executing: '${cmd}'`, {
             commandExitCode: code,
             commandExitSignal: signal,
             commandOutput: output,
@@ -76,7 +77,7 @@ export class ShellRunner {
           reject(err)
         }
 
-        this.logger.debug(`Finished executing: '${cmd}'`, {
+        self.logger.debug(`Finished executing: '${cmd}'`, {
           commandExitCode: code,
           commandExitSignal: signal,
           commandOutput: output,

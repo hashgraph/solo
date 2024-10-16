@@ -42,16 +42,17 @@ export class PackageDownloader {
       // attempt to parse to check URL format
       const out = new URL(url)
       return out.href !== undefined
-    } catch (e: Error | any) {
-    }
+    } catch {}
 
     return false
   }
 
   urlExists (url: string) {
+    const self = this
+
     return new Promise<boolean>((resolve) => {
       try {
-        this.logger.debug(`Checking URL: ${url}`)
+        self.logger.debug(`Checking URL: ${url}`)
         // attempt to send a HEAD request to check URL exists
 
         const req= url.startsWith('http://')
@@ -60,8 +61,7 @@ export class PackageDownloader {
 
         req.on('response', r => {
           const statusCode = r.statusCode
-
-          this.logger.debug({
+          self.logger.debug({
             response: { // @ts-ignore
               connectOptions: r['connect-options'],
               statusCode: r.statusCode,
@@ -78,14 +78,14 @@ export class PackageDownloader {
         })
 
         req.on('error', err => {
-          this.logger.error(err)
+          self.logger.error(err)
           resolve(false)
           req.destroy()
         })
 
         req.end() // make the request
       } catch (e: Error | any) {
-        this.logger.error(e)
+        self.logger.error(e)
         resolve(false)
       }
     })
@@ -134,17 +134,19 @@ export class PackageDownloader {
    * @throws {Error} - if the file cannot be read
    */
   computeFileHash (this: any, filePath: string, algo: string = 'sha384') {
+    const self = this
+
     return new Promise<string>((resolve, reject) => {
       try {
-        this.logger.debug(`Computing checksum for '${filePath}' using algo '${algo}'`)
+        self.logger.debug(`Computing checksum for '${filePath}' using algo '${algo}'`)
         const checksum = crypto.createHash(algo)
         const s = fs.createReadStream(filePath)
         s.on('data', function (d) {
           checksum.update(<crypto.BinaryLike>d)
         })
-        s.on('end', () => {
+        s.on('end', function () {
           const d = checksum.digest('hex')
-          this.logger.debug(`Computed checksum '${d}' for '${filePath}' using algo '${algo}'`)
+          self.logger.debug(`Computed checksum '${d}' for '${filePath}' using algo '${algo}'`)
           resolve(d)
         })
 

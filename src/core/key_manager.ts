@@ -174,6 +174,7 @@ export class KeyManager {
       certPems.push(cert.toString('pem'))
     })
 
+    const self = this
     return new Promise((resolve, reject) => {
       try {
         this.logger.debug(`Storing ${keyName} key for node: ${nodeAlias}`, { nodeKeyFiles })
@@ -189,7 +190,7 @@ export class KeyManager {
           fs.writeFileSync(nodeKeyFiles.certificateFile, certPem + '\n', { flag: 'a' })
         })
 
-        this.logger.debug(`Stored ${keyName} key for node: ${nodeAlias}`, {
+        self.logger.debug(`Stored ${keyName} key for node: ${nodeAlias}`, {
           nodeKeyFiles
         })
 
@@ -493,6 +494,7 @@ export class KeyManager {
     if (!Array.isArray(nodeAliases) || !nodeAliases.every((nodeAlias) => typeof nodeAlias === 'string')) {
       throw new IllegalArgumentError('nodeAliases must be an array of strings, nodeAliases = ' + JSON.stringify(nodeAliases))
     }
+    const self = this
     const subTasks = []
 
     subTasks.push({
@@ -505,8 +507,8 @@ export class KeyManager {
       subTasks.push({
         title: `Gossip key for node: ${chalk.yellow(nodeAlias)}`,
         task: async () => {
-          const signingKey = await this.generateSigningKey(nodeAlias)
-          const signingKeyFiles = await this.storeSigningKey(nodeAlias, signingKey, keysDir)
+          const signingKey = await self.generateSigningKey(nodeAlias)
+          const signingKeyFiles = await self.storeSigningKey(nodeAlias, signingKey, keysDir)
           this.logger.debug(`generated Gossip signing keys for node ${nodeAlias}`, { keyFiles: signingKeyFiles })
         }
       })
@@ -529,6 +531,7 @@ export class KeyManager {
     if (!Array.isArray(nodeAliases) || !nodeAliases.every((nodeAlias) => typeof nodeAlias === 'string')) {
       throw new SoloError('nodeAliases must be an array of strings')
     }
+    const self = this
     const nodeKeyFiles = new Map()
     const subTasks = []
 
@@ -541,8 +544,8 @@ export class KeyManager {
       subTasks.push({
         title: `TLS key for node: ${chalk.yellow(nodeAlias)}`,
         task: async () => {
-          const tlsKey = await this.generateGrpcTLSKey(nodeAlias)
-          const tlsKeyFiles = await this.storeTLSKey(nodeAlias, tlsKey, keysDir)
+          const tlsKey = await self.generateGrpcTLSKey(nodeAlias)
+          const tlsKeyFiles = await self.storeTLSKey(nodeAlias, tlsKey, keysDir)
           nodeKeyFiles.set(nodeAlias, {
             tlsKeyFiles
           })

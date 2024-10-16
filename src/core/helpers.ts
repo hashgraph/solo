@@ -255,15 +255,15 @@ export function parseIpAddressToUint8Array (ipAddress: string) {
 }
 
 /** If the basename of the src did not match expected basename, rename it first, then copy to destination */
-export function renameAndCopyFile (this: any, srcFilePath: string, expectedBaseName: string, destDir: string) {
+export function renameAndCopyFile (srcFilePath: string, expectedBaseName: string, destDir: string) {
   const srcDir = path.dirname(srcFilePath)
   if (path.basename(srcFilePath) !== expectedBaseName) {
     fs.renameSync(srcFilePath, path.join(srcDir, expectedBaseName))
   }
   // copy public key and private key to key directory
   fs.copyFile(path.join(srcDir, expectedBaseName), path.join(destDir, expectedBaseName), (err) => {
-    if (err) {
-      this.logger.error(`Error copying file: ${err.message}`)
+    if (err) { // @ts-ignore
+      self.logger.error(`Error copying file: ${err.message}`)
       throw new SoloError(`Error copying file: ${err.message}`)
     }
   })

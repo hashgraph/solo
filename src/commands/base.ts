@@ -62,7 +62,7 @@ export class BaseCommand extends ShellRunner {
     return `${chartRepo}/${chartReleaseName}`
   }
 
-  prepareValuesFiles (valuesFile: string): string {
+  prepareValuesFiles (valuesFile: string) {
     let valuesArg = ''
     if (valuesFile) {
       const valuesFiles = valuesFile.split(',')

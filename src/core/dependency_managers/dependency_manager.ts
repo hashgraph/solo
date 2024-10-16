@@ -33,7 +33,7 @@ export class DependencyManager extends ShellRunner {
    * @param dep - is the name of the program
    * @param [shouldInstall] - Whether or not install the dependency if not installed
    */
-  async checkDependency (dep: string, shouldInstall: boolean = true) {
+  async checkDependency (dep: string, shouldInstall = true) {
     this.logger.debug(`Checking for dependency: ${dep}`)
 
     let status = false
