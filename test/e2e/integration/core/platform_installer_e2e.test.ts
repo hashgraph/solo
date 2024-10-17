@@ -101,6 +101,6 @@ describe('PackageInstallerE2E', async () => {
       await expect(installer.fetchPlatform(podName, packageVersion)).to.eventually.be.ok
       const outputs = await k8.execContainer(podName, constants.ROOT_CONTAINER, `ls -la ${constants.HEDERA_HAPI_PATH}`)
       testLogger.showUser(outputs)
-    }).timeout(1 * MINUTES)
+    }).timeout(MINUTES)
   })
 })

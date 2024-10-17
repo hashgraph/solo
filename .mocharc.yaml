@@ -27,7 +27,5 @@ require:
   - test/setup.ts
 extension:
   - ts
-spec:
-  - test/unit/**/*.ts
 
 loader: ts-node/esm
