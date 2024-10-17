@@ -79,11 +79,9 @@ export class InitCommand extends BaseCommand {
       {
         title: 'Check dependencies',
         task: (_, task) => {
-          const deps = [
-            core.constants.HELM
-          ]
+          const deps = [ core.constants.HELM ]
 
-          const subTasks = self.depManager.taskCheckDependencies(deps)
+          const subTasks = self.depManager.taskCheckDependencies<Context>(deps)
 
           // set up the sub-tasks
           return task.newListr(subTasks, {
@@ -96,13 +94,13 @@ export class InitCommand extends BaseCommand {
       },
       {
         title: 'Setup chart manager',
-        task: async (ctx, _) => {
+        task: async (ctx) => {
           ctx.repoURLs = await this.chartManager.setup()
         }
       },
       {
         title: `Copy templates in '${cacheDir}'`,
-        task: (ctx, _) => {
+        task: (ctx) => {
           const resources = ['templates', 'profiles']
           for (const dirName of resources) {
             const srcDir = path.resolve(path.join(constants.RESOURCES_DIR, dirName))

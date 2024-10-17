@@ -19,6 +19,7 @@ import { SoloError, MissingArgumentError } from '../errors.ts'
 import { ShellRunner } from '../shell_runner.ts'
 import { type SoloLogger } from '../logging.ts'
 import { type HelmDependencyManager } from './helm_dependency_manager.ts'
+import { type ListrTask } from 'listr2'
 
 export class DependencyManager extends ShellRunner {
   constructor (logger: SoloLogger,
@@ -51,15 +52,12 @@ export class DependencyManager extends ShellRunner {
     return true
   }
 
-  taskCheckDependencies (deps: string[]) {
-    const subTasks: any[] = []
-    deps.forEach(dep => {
-      subTasks.push({
+  taskCheckDependencies<T>(deps: string[]) {
+    return deps.map(dep => {
+      return {
         title: `Check dependency: ${dep} [OS: ${os.platform()}, Release: ${os.release()}, Arch: ${os.arch()}]`,
         task: () => this.checkDependency(dep)
-      })
+      } as ListrTask<T, any, any>
     })
-
-    return subTasks
   }
 }

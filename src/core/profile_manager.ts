@@ -53,7 +53,7 @@ export class ProfileManager {
     this.cacheDir = cacheDir
   }
 
-  loadProfiles (forceReload: boolean = false): Map<string, object> {
+  loadProfiles (forceReload = false): Map<string, object> {
     const profileFile = this.configManager.getFlag<string>(flags.profileFile)
     if (!profileFile) throw new MissingArgumentError('profileFile is required')
 
@@ -416,7 +416,8 @@ export class ProfileManager {
    * @param [chainId] - chain ID (298 for local network)
    * @returns the config.txt file path
    */
-  prepareConfigTxt (namespace: string, nodeAccountMap: Map<NodeAlias, string>, destPath: string, releaseTag: string, appName = constants.HEDERA_APP_NAME, chainId = constants.HEDERA_CHAIN_ID) {
+  prepareConfigTxt (namespace: string, nodeAccountMap: Map<NodeAlias, string>, destPath: string, releaseTag: string,
+    appName = constants.HEDERA_APP_NAME, chainId = constants.HEDERA_CHAIN_ID) {
     if (!nodeAccountMap || nodeAccountMap.size === 0) throw new MissingArgumentError('nodeAccountMap the map of node IDs to account IDs is required')
     if (!releaseTag) throw new MissingArgumentError('release tag is required')
 

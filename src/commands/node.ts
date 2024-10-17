@@ -1022,7 +1022,7 @@ export class NodeCommand extends BaseCommand {
       },
       {
         title: 'Add node stakes', // @ts-ignore
-        skip: () => ctx.config.app !== '' && ctx.config.app !== constants.HEDERA_APP_NAME,
+        skip: (ctx) => ctx.config.app !== '' && ctx.config.app !== constants.HEDERA_APP_NAME,
         task: (ctx, task) => {
           const subTasks: ListrTask<Context, any, any>[] = []
 

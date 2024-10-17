@@ -20,6 +20,8 @@ import { color, type ListrLogger, PRESET_TIMER } from 'listr2'
 import path, { dirname, normalize } from 'path'
 import { fileURLToPath } from 'url'
 
+export const ROOT_DIR = process.cwd()
+
 // -------------------- solo related constants ---------------------------------------------------------------------
 export const CUR_FILE_DIR = dirname(fileURLToPath(import.meta.url))
 export const SOLO_HOME_DIR = process.env.SOLO_HOME || path.join(process.env.HOME as string, '.solo')
@@ -29,8 +31,8 @@ export const SOLO_VALUES_DIR = path.join(SOLO_CACHE_DIR, 'values-files')
 export const DEFAULT_NAMESPACE = 'default'
 export const HELM = 'helm'
 export const SOLO_CONFIG_FILE = path.join(SOLO_HOME_DIR, 'solo.yaml')
-export const RESOURCES_DIR = normalize(path.join(CUR_FILE_DIR, '..', '..', 'resources'))
-export const TEMP_DIR = normalize(path.join(CUR_FILE_DIR, '..', '..', 'temp'))
+export const RESOURCES_DIR = normalize(path.join(ROOT_DIR, 'resources'))
+export const TEMP_DIR = normalize(path.join(ROOT_DIR, 'temp'))
 
 export const ROOT_CONTAINER = 'root-container'
 
