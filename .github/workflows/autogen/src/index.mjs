@@ -79,7 +79,7 @@ function updatePackageJson (outputDir, config) {
   const outputLines = []
   const generatedLines = []
   const firstMarker = '"test-e2e-all":'
-  const secondMarker = '"solo":'
+  const secondMarker = '"solo-test":'
   let skipNext = false
 
   inputLines.forEach(line => {
