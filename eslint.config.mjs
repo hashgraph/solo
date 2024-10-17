@@ -56,7 +56,9 @@ export default [
       'no-shadow-restricted-names': 'error',
       'no-else-return': 'error',
       '@typescript-eslint/array-type': [ 'error', { default: 'array' } ],
-      "@typescript-eslint/consistent-generic-constructors": "error"
+      '@typescript-eslint/consistent-generic-constructors': 'error',
+      '@typescript-eslint/consistent-indexed-object-style': [ 'error', 'record' ]
+
     }
   },
   {

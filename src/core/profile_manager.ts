@@ -246,6 +246,7 @@ export class ProfileManager {
 
   resourcesForMinioTenantPod (profile: any, yamlRoot: object) {
     if (!profile) throw new MissingArgumentError('profile is required')
+    // @ts-ignore
     if (!profile.minio || !profile.minio.tenant) return // use chart defaults
 
     for (const poolIndex in profile.minio.tenant.pools) {

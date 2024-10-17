@@ -437,7 +437,7 @@ export function addFlagsToArgv (argv: any, flags: {
   return argv
 }
 
-/** Convert yaml file to object */
+/** Convert yaml file to object */ // @ts-ignore
 export function yamlToObject (yamlFile: any) {
   try {
     if (fs.existsSync(yamlFile)) {

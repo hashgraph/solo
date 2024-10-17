@@ -17,7 +17,7 @@
 import * as x509 from '@peculiar/x509'
 import chalk from 'chalk'
 import * as fs from 'fs'
-import { Listr, ListrTaskWrapper } from 'listr2'
+import { Listr, ListrTask, ListrTaskWrapper } from 'listr2'
 import path from 'path'
 import { SoloError, IllegalArgumentError } from '../core/errors.ts'
 import * as helpers from '../core/helpers.ts'
@@ -509,7 +509,7 @@ export class NodeCommand extends BaseCommand {
   checkNodeActivenessTask (ctx: any, task: ListrTaskWrapper<any, any, any>, nodeAliases: NodeAliases, status = NodeStatusCodes.ACTIVE) {
     const { config: { namespace } } = ctx
 
-    const subTasks = nodeAliases.map((nodeAlias, i) => {
+    const subTasks: ListrTask<any, any, any>[] = nodeAliases.map((nodeAlias, i) => {
       const reminder = ('debugNodeAlias' in ctx.config && ctx.config.debugNodeAlias === nodeAlias) ? 'Please attach JVM debugger now.' : ''
       const title = `Check network pod: ${chalk.yellow(nodeAlias)} ${chalk.red(reminder)}`
 
@@ -530,7 +530,7 @@ export class NodeCommand extends BaseCommand {
 
   /** Return task for checking for all network node pods */
   checkPodRunningTask (ctx: any, task: ListrTaskWrapper<any, any, any>, nodeAliases: NodeAliases) {
-    const subTasks = []
+    const subTasks: ListrTask<any, any, any>[] = []
     for (const nodeAlias of nodeAliases) {
       subTasks.push({
         title: `Check Node: ${chalk.yellow(nodeAlias)}`,
@@ -553,7 +553,7 @@ export class NodeCommand extends BaseCommand {
 
   /** Return task for setup network nodes */
   setupNodesTask (ctx: any, task: ListrTaskWrapper<any, any, any>, nodeAliases: NodeAliases) {
-    const subTasks = []
+    const subTasks: ListrTask<any, any, any>[] = []
     for (const nodeAlias of nodeAliases) {
       const podName = ctx.config.podNames[nodeAlias]
       subTasks.push({
@@ -572,7 +572,7 @@ export class NodeCommand extends BaseCommand {
 
   /** Return task for start network node hedera service */
   startNetworkNodesTask (task: ListrTaskWrapper<any, any, any>, podNames: Record<NodeAlias, PodName>, nodeAliases: NodeAliases) {
-    const subTasks: any[] = []
+    const subTasks: ListrTask<any, any, any>[] = []
     // ctx.config.allNodeAliases = ctx.config.existingNodeAliases
     this.startNodes(podNames, nodeAliases, subTasks)
 
@@ -588,7 +588,7 @@ export class NodeCommand extends BaseCommand {
 
   /** Return task for check if node proxies are ready */
   checkNodesProxiesTask (ctx: any, task: ListrTaskWrapper<any, any, any>, nodeAliases: NodeAliases) {
-    const subTasks = []
+    const subTasks: ListrTask<any, any, any>[] = []
     for (const nodeAlias of nodeAliases) {
       subTasks.push({
         title: `Check proxy for node: ${chalk.yellow(nodeAlias)}`,
@@ -612,7 +612,7 @@ export class NodeCommand extends BaseCommand {
    * @returns return task for repairing staging directory
    */
   prepareStagingTask (ctx: any, task: ListrTaskWrapper<any, any, any>, keysDir: string, stagingKeysDir: string, nodeAliases: NodeAliases) {
-    const subTasks = [
+    const subTasks: ListrTask<any, any, any>[] = [
       {
         title: 'Copy Gossip keys to staging',
         task: () => {
@@ -637,7 +637,7 @@ export class NodeCommand extends BaseCommand {
 
   /** Return task for copy node key to staging directory */
   copyNodeKeyTask (ctx: any, task: ListrTaskWrapper<any, any, any>) {
-    const subTasks = this.platformInstaller.copyNodeKeys(ctx.config.stagingDir, ctx.config.allNodeAliases)
+    const subTasks: ListrTask<any, any, any>[] = this.platformInstaller.copyNodeKeys(ctx.config.stagingDir, ctx.config.allNodeAliases)
 
     // set up the sub-tasks
     return task.newListr(subTasks, {
@@ -738,7 +738,7 @@ export class NodeCommand extends BaseCommand {
   uploadPlatformSoftware (nodeAliases: NodeAliases, podNames: any, task: ListrTaskWrapper<any, any, any>,
     localBuildPath: string) {
     const self = this
-    const subTasks = []
+    const subTasks: ListrTask<any, any, any>[] = []
 
     self.logger.debug('no need to fetch, use local build jar files')
 
@@ -804,7 +804,7 @@ export class NodeCommand extends BaseCommand {
 
   fetchPlatformSoftware (nodeAliases: NodeAliases, podNames: Record<NodeAlias, PodName>, releaseTag: string,
     task: ListrTaskWrapper<any, any, any>, platformInstaller: PlatformInstaller) {
-    const subTasks = []
+    const subTasks: ListrTask<any, any, any>[] = []
     for (const nodeAlias of nodeAliases) {
       const podName = podNames[nodeAlias]
       subTasks.push({
@@ -1020,27 +1020,26 @@ export class NodeCommand extends BaseCommand {
         skip: () => self.configManager.getFlag(flags.app) !== '' && self.configManager.getFlag(flags.app) !== constants.HEDERA_APP_NAME
       },
       {
-        title: 'Add node stakes',
+        title: 'Add node stakes', // @ts-ignore
+        skip: () => ctx.config.app !== '' && ctx.config.app !== constants.HEDERA_APP_NAME,
         task: (ctx, task) => {
-          if (ctx.config.app === '' || ctx.config.app === constants.HEDERA_APP_NAME) {
-            const subTasks = []
-            const accountMap = getNodeAccountMap(ctx.config.nodeAliases)
-            for (const nodeAlias of ctx.config.nodeAliases) {
-              const accountId = accountMap.get(nodeAlias)
-              subTasks.push({
-                title: `Adding stake for node: ${chalk.yellow(nodeAlias)}`,
-                task: async () => await self.addStake(ctx.config.namespace, accountId, nodeAlias)
-              })
-            }
+          const subTasks: ListrTask<Context, any, any>[] = []
 
-            // set up the sub-tasks
-            return task.newListr(subTasks, {
-              concurrent: false,
-              rendererOptions: {
-                collapseSubtasks: false
-              }
+          const accountMap = getNodeAccountMap(ctx.config.nodeAliases)
+          for (const nodeAlias of ctx.config.nodeAliases) {
+            const accountId = accountMap.get(nodeAlias)
+            subTasks.push({
+              title: `Adding stake for node: ${chalk.yellow(nodeAlias)}`,
+              task: async () => await self.addStake(ctx.config.namespace, accountId, nodeAlias)
             })
           }
+
+          return task.newListr(subTasks, {
+            concurrent: false,
+            rendererOptions: {
+              collapseSubtasks: false
+            }
+          })
         }
       }], {
       concurrent: false,

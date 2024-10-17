@@ -26,6 +26,7 @@ import * as helpers from './helpers.ts'
 import chalk from 'chalk'
 import { type NodeAlias, type NodeAliases } from '../types/aliases.ts'
 import { type NodeKeyObject, type PrivateKeyAndCertificateObject } from '../types/index.ts'
+import { ListrTask } from 'listr2'
 
 // @ts-ignore
 x509.cryptoProvider.set(crypto)
@@ -495,7 +496,7 @@ export class KeyManager {
       throw new IllegalArgumentError('nodeAliases must be an array of strings, nodeAliases = ' + JSON.stringify(nodeAliases))
     }
     const self = this
-    const subTasks = []
+    const subTasks: ListrTask<any, any, any>[] = []
 
     subTasks.push({
       title: 'Backup old files',
@@ -533,7 +534,7 @@ export class KeyManager {
     }
     const self = this
     const nodeKeyFiles = new Map()
-    const subTasks = []
+    const subTasks: ListrTask<any, any, any>[] = []
 
     subTasks.push({
       title: 'Backup old files',

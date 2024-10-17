@@ -134,5 +134,6 @@ export function main (argv: any) {
       .parse()
   } catch (e: Error | any) {
     logger.showUserError(e)
+    process.exit(1)
   }
 }
