@@ -13,12 +13,19 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 ##
-
-timeout: 10000
-reporter: spec
+timeout: 20000 # 20 Seconds
+reporter: mocha-junit-reporter # can be commented out for human friendly reporting during testing
 check-leaks: true
 recursive: true
-exclude:
-  - 'e2e/*'
-require: [ "esm" ]
-extension: [ "mjs", "js" ]
+exit: true
+color: true
+verbose: true
+file:
+  - test/setup.ts
+require:
+  - ts-node/register
+  - test/setup.ts
+extension:
+  - ts
+
+loader: ts-node/esm

@@ -85,6 +85,12 @@ jobs:
           [[ "${{ github.event.inputs.dry-run-enabled }}" == true && ! -f VERSION ]] && echo -n "0.0.0-latest" > VERSION
           echo "version=$(cat VERSION | tr -d '[:space:]')" | tee -a ${GITHUB_OUTPUT}
 
+      - name: Build Production Distribution
+        run: |
+          set -x
+          npm install
+          npm run build
+
   update-readme:
     name: "Update README.md"
     uses: ./.github/workflows/zxc-update-readme.yaml

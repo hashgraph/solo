@@ -1,0 +1,340 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites name="Mocha Tests" time="5.777" tests="124" failures="1">
+  <testsuite name="Root Suite" timestamp="2024-10-16T08:34:07" tests="0" time="0.000" failures="0">
+  </testsuite>
+  <testsuite name="BaseCommand" timestamp="2024-10-16T08:34:07" tests="0" file="/Users/zhanmilenkov/projects/solo/test/unit/commands/base.test.ts" time="0.000" failures="0">
+  </testsuite>
+  <testsuite name="runShell" timestamp="2024-10-16T08:34:07" tests="3" file="/Users/zhanmilenkov/projects/solo/test/unit/commands/base.test.ts" time="0.010" failures="0">
+    <testcase name="BaseCommand runShell should fail during invalid program check" time="0.007" classname="should fail during invalid program check">
+    </testcase>
+    <testcase name="BaseCommand runShell should succeed during valid program check" time="0.002" classname="should succeed during valid program check">
+    </testcase>
+    <testcase name="BaseCommand runShell getConfig tracks property usage" time="0.001" classname="getConfig tracks property usage">
+    </testcase>
+  </testsuite>
+  <testsuite name="InitCommand" timestamp="2024-10-16T08:34:07" tests="0" file="/Users/zhanmilenkov/projects/solo/test/unit/commands/init.test.ts" time="0.000" failures="0">
+  </testsuite>
+  <testsuite name="commands" timestamp="2024-10-16T08:34:07" tests="1" file="/Users/zhanmilenkov/projects/solo/test/unit/commands/init.test.ts" time="2.795" failures="0">
+    <testcase name="InitCommand commands init execution should succeed" time="2.794" classname="init execution should succeed">
+    </testcase>
+  </testsuite>
+  <testsuite name="methods" timestamp="2024-10-16T08:34:10" tests="1" file="/Users/zhanmilenkov/projects/solo/test/unit/commands/init.test.ts" time="0.000" failures="0">
+    <testcase name="InitCommand methods command definition should return a valid command def" time="0.000" classname="command definition should return a valid command def">
+    </testcase>
+  </testsuite>
+  <testsuite name="NodeCommand unit tests" timestamp="2024-10-16T08:34:10" tests="0" file="/Users/zhanmilenkov/projects/solo/test/unit/commands/node.test.ts" time="0.000" failures="0">
+  </testsuite>
+  <testsuite name="constructor error handling" timestamp="2024-10-16T08:34:10" tests="4" file="/Users/zhanmilenkov/projects/solo/test/unit/commands/node.test.ts" time="0.006" failures="1">
+    <testcase name="NodeCommand unit tests constructor error handling should throw an error if downloader is not provided" time="0.000" classname="should throw an error if downloader is not provided">
+      <failure message="expected [Function] to throw error including &apos;An instance of core/PackageDownloader…&apos; but got &apos;An instance of core/PlatformInstaller…&apos;" type="AssertionError"><![CDATA[AssertionError: expected [Function] to throw error including 'An instance of core/PackageDownloader…' but got 'An instance of core/PlatformInstaller…'
+    at Context.<anonymous> (file:///Users/zhanmilenkov/projects/solo/test/unit/commands/node.test.ts:18:57)
+    at processImmediate (node:internal/timers:483:21)
+
+      + expected - actual
+
+      -An instance of core/PlatformInstaller is required
+      +An instance of core/PackageDownloader is required
+      ]]></failure>
+    </testcase>
+    <testcase name="NodeCommand unit tests constructor error handling should throw an error if platformInstaller is not provided" time="0.000" classname="should throw an error if platformInstaller is not provided">
+    </testcase>
+    <testcase name="NodeCommand unit tests constructor error handling should throw an error if keyManager is not provided" time="0.000" classname="should throw an error if keyManager is not provided">
+    </testcase>
+    <testcase name="NodeCommand unit tests constructor error handling should throw an error if accountManager is not provided" time="0.000" classname="should throw an error if accountManager is not provided">
+    </testcase>
+  </testsuite>
+  <testsuite name="ConfigManager" timestamp="2024-10-16T08:34:10" tests="1" file="/Users/zhanmilenkov/projects/solo/test/unit/core/config_manager.test.ts" time="0.000" failures="0">
+    <testcase name="ConfigManager should persist config" time="0.002" classname="should persist config">
+    </testcase>
+  </testsuite>
+  <testsuite name="update values using argv" timestamp="2024-10-16T08:34:10" tests="3" file="/Users/zhanmilenkov/projects/solo/test/unit/core/config_manager.test.ts" time="0.002" failures="0">
+    <testcase name="ConfigManager update values using argv should update string flag value" time="0.000" classname="should update string flag value">
+    </testcase>
+    <testcase name="ConfigManager update values using argv should update number flag value" time="0.000" classname="should update number flag value">
+    </testcase>
+    <testcase name="ConfigManager update values using argv should update boolean flag value" time="0.001" classname="should update boolean flag value">
+    </testcase>
+  </testsuite>
+  <testsuite name="should apply precedence" timestamp="2024-10-16T08:34:10" tests="3" file="/Users/zhanmilenkov/projects/solo/test/unit/core/config_manager.test.ts" time="0.001" failures="0">
+    <testcase name="ConfigManager should apply precedence should take user input as the first preference" time="0.000" classname="should take user input as the first preference">
+    </testcase>
+    <testcase name="ConfigManager should apply precedence should take cached config as the second preference" time="0.000" classname="should take cached config as the second preference">
+    </testcase>
+    <testcase name="ConfigManager should apply precedence should take default as the last preference" time="0.000" classname="should take default as the last preference">
+    </testcase>
+  </testsuite>
+  <testsuite name="load a cached config file" timestamp="2024-10-16T08:34:10" tests="12" file="/Users/zhanmilenkov/projects/solo/test/unit/core/config_manager.test.ts" time="0.001" failures="0">
+    <testcase name="ConfigManager load a cached config file config file match: dev=false" time="0.000" classname="config file match: dev=false">
+    </testcase>
+    <testcase name="ConfigManager load a cached config file config file match: namespace=solo-user" time="0.000" classname="config file match: namespace=solo-user">
+    </testcase>
+    <testcase name="ConfigManager load a cached config file config file match: chartDirectory is empty" time="0.000" classname="config file match: chartDirectory is empty">
+    </testcase>
+    <testcase name="ConfigManager load a cached config file config file match: clusterName=kind-kind" time="0.001" classname="config file match: clusterName=kind-kind">
+    </testcase>
+    <testcase name="ConfigManager load a cached config file config file match: deployPrometheusStack=false" time="0.000" classname="config file match: deployPrometheusStack=false">
+    </testcase>
+    <testcase name="ConfigManager load a cached config file config file match: deployMinio=false" time="0.000" classname="config file match: deployMinio=false">
+    </testcase>
+    <testcase name="ConfigManager load a cached config file config file match: deployCertManager=false" time="0.000" classname="config file match: deployCertManager=false">
+    </testcase>
+    <testcase name="ConfigManager load a cached config file config file match: deployCertManagerCrds=false" time="0.000" classname="config file match: deployCertManagerCrds=false">
+    </testcase>
+    <testcase name="ConfigManager load a cached config file not set, it should be undefined" time="0.000" classname="not set, it should be undefined">
+    </testcase>
+    <testcase name="ConfigManager load a cached config file not set, it should be undefined" time="0.000" classname="not set, it should be undefined">
+    </testcase>
+    <testcase name="ConfigManager load a cached config file not set, it should be undefined" time="0.000" classname="not set, it should be undefined">
+    </testcase>
+    <testcase name="ConfigManager load a cached config file not set, it should be undefined" time="0.000" classname="not set, it should be undefined">
+    </testcase>
+  </testsuite>
+  <testsuite name="handle argv overrides" timestamp="2024-10-16T08:34:10" tests="3" file="/Users/zhanmilenkov/projects/solo/test/unit/core/config_manager.test.ts" time="0.002" failures="0">
+    <testcase name="ConfigManager handle argv overrides override config using argv" time="0.001" classname="override config using argv">
+    </testcase>
+    <testcase name="ConfigManager handle argv overrides config file takes precedence over empty namespace" time="0.000" classname="config file takes precedence over empty namespace">
+    </testcase>
+    <testcase name="ConfigManager handle argv overrides config file takes precedence over empty cluster name" time="0.000" classname="config file takes precedence over empty cluster name">
+    </testcase>
+  </testsuite>
+  <testsuite name="DependencyManager" timestamp="2024-10-16T08:34:10" tests="0" file="/Users/zhanmilenkov/projects/solo/test/unit/core/dependency_managers/dependency_manager.test.ts" time="0.000" failures="0">
+  </testsuite>
+  <testsuite name="checkDependency" timestamp="2024-10-16T08:34:10" tests="2" file="/Users/zhanmilenkov/projects/solo/test/unit/core/dependency_managers/dependency_manager.test.ts" time="0.027" failures="0">
+    <testcase name="DependencyManager checkDependency should fail during invalid dependency check" time="0.000" classname="should fail during invalid dependency check">
+    </testcase>
+    <testcase name="DependencyManager checkDependency should succeed during helm dependency check" time="0.027" classname="should succeed during helm dependency check">
+    </testcase>
+  </testsuite>
+  <testsuite name="HelmDependencyManager" timestamp="2024-10-16T08:34:10" tests="3" file="/Users/zhanmilenkov/projects/solo/test/unit/core/dependency_managers/helm_dependency_manager.test.ts" time="0.001" failures="0">
+    <testcase name="HelmDependencyManager should return helm version" time="0.000" classname="should return helm version">
+    </testcase>
+    <testcase name="HelmDependencyManager should be able to check when helm not installed" time="0.000" classname="should be able to check when helm not installed">
+    </testcase>
+    <testcase name="HelmDependencyManager should be able to check when helm is installed" time="0.000" classname="should be able to check when helm is installed">
+    </testcase>
+  </testsuite>
+  <testsuite name="Errors" timestamp="2024-10-16T08:34:10" tests="5" file="/Users/zhanmilenkov/projects/solo/test/unit/core/errors.test.ts" time="0.001" failures="0">
+    <testcase name="Errors should construct correct SoloError" time="0.000" classname="should construct correct SoloError">
+    </testcase>
+    <testcase name="Errors should construct correct ResourceNotFoundError" time="0.000" classname="should construct correct ResourceNotFoundError">
+    </testcase>
+    <testcase name="Errors should construct correct MissingArgumentError" time="0.000" classname="should construct correct MissingArgumentError">
+    </testcase>
+    <testcase name="Errors should construct correct IllegalArgumentError" time="0.001" classname="should construct correct IllegalArgumentError">
+    </testcase>
+    <testcase name="Errors should construct correct DataValidationError" time="0.000" classname="should construct correct DataValidationError">
+    </testcase>
+  </testsuite>
+  <testsuite name="Helm platform specific tests" timestamp="2024-10-16T08:34:10" tests="0" file="/Users/zhanmilenkov/projects/solo/test/unit/core/helm.test.ts" time="0.000" failures="0">
+  </testsuite>
+  <testsuite name="Helm on linux platform" timestamp="2024-10-16T08:34:10" tests="6" file="/Users/zhanmilenkov/projects/solo/test/unit/core/helm.test.ts" time="0.002" failures="0">
+    <testcase name="Helm platform specific tests Helm on linux platform should run helm install" time="0.000" classname="should run helm install">
+    </testcase>
+    <testcase name="Helm platform specific tests Helm on linux platform should run helm uninstall" time="0.000" classname="should run helm uninstall">
+    </testcase>
+    <testcase name="Helm platform specific tests Helm on linux platform should run helm upgrade" time="0.000" classname="should run helm upgrade">
+    </testcase>
+    <testcase name="Helm platform specific tests Helm on linux platform should run helm list" time="0.000" classname="should run helm list">
+    </testcase>
+    <testcase name="Helm platform specific tests Helm on linux platform should run helm dependency" time="0.000" classname="should run helm dependency">
+    </testcase>
+    <testcase name="Helm platform specific tests Helm on linux platform should run helm repo" time="0.000" classname="should run helm repo">
+    </testcase>
+  </testsuite>
+  <testsuite name="Helm on windows platform" timestamp="2024-10-16T08:34:10" tests="6" file="/Users/zhanmilenkov/projects/solo/test/unit/core/helm.test.ts" time="0.001" failures="0">
+    <testcase name="Helm platform specific tests Helm on windows platform should run helm install" time="0.000" classname="should run helm install">
+    </testcase>
+    <testcase name="Helm platform specific tests Helm on windows platform should run helm uninstall" time="0.000" classname="should run helm uninstall">
+    </testcase>
+    <testcase name="Helm platform specific tests Helm on windows platform should run helm upgrade" time="0.000" classname="should run helm upgrade">
+    </testcase>
+    <testcase name="Helm platform specific tests Helm on windows platform should run helm list" time="0.000" classname="should run helm list">
+    </testcase>
+    <testcase name="Helm platform specific tests Helm on windows platform should run helm dependency" time="0.000" classname="should run helm dependency">
+    </testcase>
+    <testcase name="Helm platform specific tests Helm on windows platform should run helm repo" time="0.000" classname="should run helm repo">
+    </testcase>
+  </testsuite>
+  <testsuite name="Helm on darwin platform" timestamp="2024-10-16T08:34:10" tests="6" file="/Users/zhanmilenkov/projects/solo/test/unit/core/helm.test.ts" time="0.001" failures="0">
+    <testcase name="Helm platform specific tests Helm on darwin platform should run helm install" time="0.000" classname="should run helm install">
+    </testcase>
+    <testcase name="Helm platform specific tests Helm on darwin platform should run helm uninstall" time="0.000" classname="should run helm uninstall">
+    </testcase>
+    <testcase name="Helm platform specific tests Helm on darwin platform should run helm upgrade" time="0.000" classname="should run helm upgrade">
+    </testcase>
+    <testcase name="Helm platform specific tests Helm on darwin platform should run helm list" time="0.000" classname="should run helm list">
+    </testcase>
+    <testcase name="Helm platform specific tests Helm on darwin platform should run helm dependency" time="0.000" classname="should run helm dependency">
+    </testcase>
+    <testcase name="Helm platform specific tests Helm on darwin platform should run helm repo" time="0.000" classname="should run helm repo">
+    </testcase>
+  </testsuite>
+  <testsuite name="Helpers" timestamp="2024-10-16T08:34:10" tests="13" file="/Users/zhanmilenkov/projects/solo/test/unit/core/helpers.test.ts" time="0.001" failures="0">
+    <testcase name="Helpers should parse node aliases for input" time="0.000" classname="should parse node aliases for input">
+    </testcase>
+    <testcase name="Helpers should parse node aliases for input" time="0.000" classname="should parse node aliases for input">
+    </testcase>
+    <testcase name="Helpers should parse node aliases for input" time="0.000" classname="should parse node aliases for input">
+    </testcase>
+    <testcase name="Helpers should clone array for input" time="0.000" classname="should clone array for input">
+    </testcase>
+    <testcase name="Helpers should clone array for input" time="0.000" classname="should clone array for input">
+    </testcase>
+    <testcase name="Helpers should clone array for input" time="0.000" classname="should clone array for input">
+    </testcase>
+    <testcase name="Helpers should be able to load version from package json" time="0.000" classname="should be able to load version from package json">
+    </testcase>
+    <testcase name="Helpers should determine root-image for Hedera platform version" time="0.000" classname="should determine root-image for Hedera platform version">
+    </testcase>
+    <testcase name="Helpers should determine root-image for Hedera platform version" time="0.000" classname="should determine root-image for Hedera platform version">
+    </testcase>
+    <testcase name="Helpers should determine root-image for Hedera platform version" time="0.000" classname="should determine root-image for Hedera platform version">
+    </testcase>
+    <testcase name="Helpers should determine root-image for Hedera platform version" time="0.000" classname="should determine root-image for Hedera platform version">
+    </testcase>
+    <testcase name="Helpers should determine root-image for Hedera platform version" time="0.000" classname="should determine root-image for Hedera platform version">
+    </testcase>
+    <testcase name="Helpers should determine root-image for Hedera platform version" time="0.000" classname="should determine root-image for Hedera platform version">
+    </testcase>
+  </testsuite>
+  <testsuite name="K8 Unit Tests" timestamp="2024-10-16T08:34:10" tests="4" file="/Users/zhanmilenkov/projects/solo/test/unit/core/k8.test.ts" time="1.242" failures="0">
+    <testcase name="K8 Unit Tests waitForPods with first time failure, later success" time="0.602" classname="waitForPods with first time failure, later success">
+    </testcase>
+    <testcase name="K8 Unit Tests waitForPodConditions with first time failure, later success" time="0.625" classname="waitForPodConditions with first time failure, later success">
+    </testcase>
+    <testcase name="K8 Unit Tests waitForPodConditions with partial pod data" time="0.007" classname="waitForPodConditions with partial pod data">
+    </testcase>
+    <testcase name="K8 Unit Tests waitForPodConditions with no conditions" time="0.005" classname="waitForPodConditions with no conditions">
+    </testcase>
+  </testsuite>
+  <testsuite name="KeyManager" timestamp="2024-10-16T08:34:11" tests="2" file="/Users/zhanmilenkov/projects/solo/test/unit/core/key_manager.test.ts" time="1.091" failures="0">
+    <testcase name="KeyManager should generate signing key" time="0.507" classname="should generate signing key">
+    </testcase>
+    <testcase name="KeyManager should generate TLS key" time="0.584" classname="should generate TLS key">
+    </testcase>
+  </testsuite>
+  <testsuite name="Logging" timestamp="2024-10-16T08:34:12" tests="1" file="/Users/zhanmilenkov/projects/solo/test/unit/core/logging.test.ts" time="0.001" failures="0">
+    <testcase name="Logging should log at correct severity" time="0.000" classname="should log at correct severity">
+    </testcase>
+  </testsuite>
+  <testsuite name="PackageDownloader" timestamp="2024-10-16T08:34:12" tests="0" file="/Users/zhanmilenkov/projects/solo/test/unit/core/package_downloader.test.ts" time="0.000" failures="0">
+  </testsuite>
+  <testsuite name="urlExists" timestamp="2024-10-16T08:34:12" tests="2" file="/Users/zhanmilenkov/projects/solo/test/unit/core/package_downloader.test.ts" time="0.254" failures="0">
+    <testcase name="PackageDownloader urlExists should return true if source URL is valid" time="0.038" classname="should return true if source URL is valid">
+    </testcase>
+    <testcase name="PackageDownloader urlExists should return false if source URL is invalid" time="0.215" classname="should return false if source URL is invalid">
+    </testcase>
+  </testsuite>
+  <testsuite name="fetchFile" timestamp="2024-10-16T08:34:13" tests="5" file="/Users/zhanmilenkov/projects/solo/test/unit/core/package_downloader.test.ts" time="0.072" failures="0">
+    <testcase name="PackageDownloader fetchFile should fail if source URL is missing" time="0.000" classname="should fail if source URL is missing">
+    </testcase>
+    <testcase name="PackageDownloader fetchFile should fail if destination path is missing" time="0.000" classname="should fail if destination path is missing">
+    </testcase>
+    <testcase name="PackageDownloader fetchFile should fail with a malformed URL" time="0.000" classname="should fail with a malformed URL">
+    </testcase>
+    <testcase name="PackageDownloader fetchFile should fail with an invalid URL" time="0.001" classname="should fail with an invalid URL">
+    </testcase>
+    <testcase name="PackageDownloader fetchFile should succeed with a valid release artifact URL" time="0.069" classname="should succeed with a valid release artifact URL">
+    </testcase>
+  </testsuite>
+  <testsuite name="fetchPlatform" timestamp="2024-10-16T08:34:13" tests="4" file="/Users/zhanmilenkov/projects/solo/test/unit/core/package_downloader.test.ts" time="0.199" failures="0">
+    <testcase name="PackageDownloader fetchPlatform should fail if platform release tag is missing" time="0.001" classname="should fail if platform release tag is missing">
+    </testcase>
+    <testcase name="PackageDownloader fetchPlatform should fail if platform release artifact is not found" time="0.195" classname="should fail if platform release artifact is not found">
+    </testcase>
+    <testcase name="PackageDownloader fetchPlatform should fail if platform release tag is invalid" time="0.001" classname="should fail if platform release tag is invalid">
+    </testcase>
+    <testcase name="PackageDownloader fetchPlatform should fail if destination directory is null" time="0.000" classname="should fail if destination directory is null">
+    </testcase>
+  </testsuite>
+  <testsuite name="PackageInstaller" timestamp="2024-10-16T08:34:13" tests="0" file="/Users/zhanmilenkov/projects/solo/test/unit/core/platform_installer.test.ts" time="0.000" failures="0">
+  </testsuite>
+  <testsuite name="validatePlatformReleaseDir" timestamp="2024-10-16T08:34:13" tests="7" file="/Users/zhanmilenkov/projects/solo/test/unit/core/platform_installer.test.ts" time="0.013" failures="0">
+    <testcase name="PackageInstaller validatePlatformReleaseDir should fail for missing path" time="0.000" classname="should fail for missing path">
+    </testcase>
+    <testcase name="PackageInstaller validatePlatformReleaseDir should fail for invalid path" time="0.000" classname="should fail for invalid path">
+    </testcase>
+    <testcase name="PackageInstaller validatePlatformReleaseDir should fail if directory does not have data/apps directory" time="0.004" classname="should fail if directory does not have data/apps directory">
+    </testcase>
+    <testcase name="PackageInstaller validatePlatformReleaseDir should fail if directory does not have data/libs directory" time="0.001" classname="should fail if directory does not have data/libs directory">
+    </testcase>
+    <testcase name="PackageInstaller validatePlatformReleaseDir should fail if directory does not have data/app directory is empty" time="0.002" classname="should fail if directory does not have data/app directory is empty">
+    </testcase>
+    <testcase name="PackageInstaller validatePlatformReleaseDir should fail if directory does not have data/apps directory is empty" time="0.001" classname="should fail if directory does not have data/apps directory is empty">
+    </testcase>
+    <testcase name="PackageInstaller validatePlatformReleaseDir should succeed with non-empty data/apps and data/libs directory" time="0.002" classname="should succeed with non-empty data/apps and data/libs directory">
+    </testcase>
+  </testsuite>
+  <testsuite name="extractPlatform" timestamp="2024-10-16T08:34:13" tests="2" file="/Users/zhanmilenkov/projects/solo/test/unit/core/platform_installer.test.ts" time="0.001" failures="0">
+    <testcase name="PackageInstaller extractPlatform should fail for missing pod name" time="0.000" classname="should fail for missing pod name">
+    </testcase>
+    <testcase name="PackageInstaller extractPlatform should fail for missing tag" time="0.001" classname="should fail for missing tag">
+    </testcase>
+  </testsuite>
+  <testsuite name="copyGossipKeys" timestamp="2024-10-16T08:34:13" tests="2" file="/Users/zhanmilenkov/projects/solo/test/unit/core/platform_installer.test.ts" time="0.000" failures="0">
+    <testcase name="PackageInstaller copyGossipKeys should fail for missing podName" time="0.000" classname="should fail for missing podName">
+    </testcase>
+    <testcase name="PackageInstaller copyGossipKeys should fail for missing stagingDir path" time="0.000" classname="should fail for missing stagingDir path">
+    </testcase>
+  </testsuite>
+  <testsuite name="ProfileManager" timestamp="2024-10-16T08:34:13" tests="2" file="/Users/zhanmilenkov/projects/solo/test/unit/core/profile_manager.test.ts" time="0.000" failures="0">
+    <testcase name="ProfileManager should throw error for missing profile file" time="0.001" classname="should throw error for missing profile file">
+    </testcase>
+    <testcase name="ProfileManager should be able to load a profile file" time="0.002" classname="should be able to load a profile file">
+    </testcase>
+  </testsuite>
+  <testsuite name="determine chart values for a profile" timestamp="2024-10-16T08:34:13" tests="4" file="/Users/zhanmilenkov/projects/solo/test/unit/core/profile_manager.test.ts" time="0.026" failures="0">
+    <testcase name="ProfileManager determine chart values for a profile should determine Solo chart values [profile = test]" time="0.018" classname="should determine Solo chart values [profile = test]">
+    </testcase>
+    <testcase name="ProfileManager determine chart values for a profile prepareValuesForSoloChart should set the value of a key to the contents of a file" time="0.005" classname="prepareValuesForSoloChart should set the value of a key to the contents of a file">
+    </testcase>
+    <testcase name="ProfileManager determine chart values for a profile should determine mirror-node chart values [profile = test]" time="0.002" classname="should determine mirror-node chart values [profile = test]">
+    </testcase>
+    <testcase name="ProfileManager determine chart values for a profile should determine rpc-relay chart values [profile = test]" time="0.001" classname="should determine rpc-relay chart values [profile = test]">
+    </testcase>
+  </testsuite>
+  <testsuite name="prepareConfigText" timestamp="2024-10-16T08:34:13" tests="4" file="/Users/zhanmilenkov/projects/solo/test/unit/core/profile_manager.test.ts" time="0.002" failures="0">
+    <testcase name="ProfileManager prepareConfigText should write and return the path to the config.txt file" time="0.001" classname="should write and return the path to the config.txt file">
+    </testcase>
+    <testcase name="ProfileManager prepareConfigText should fail when no nodeAliases" time="0.000" classname="should fail when no nodeAliases">
+    </testcase>
+    <testcase name="ProfileManager prepareConfigText should fail when no releaseTag is provided" time="0.000" classname="should fail when no releaseTag is provided">
+    </testcase>
+    <testcase name="ProfileManager prepareConfigText should fail when destPath does not exist" time="0.000" classname="should fail when destPath does not exist">
+    </testcase>
+  </testsuite>
+  <testsuite name="ShellRunner" timestamp="2024-10-16T08:34:13" tests="1" file="/Users/zhanmilenkov/projects/solo/test/unit/core/shell_runner.test.ts" time="0.008" failures="0">
+    <testcase name="ShellRunner should run command" time="0.008" classname="should run command">
+    </testcase>
+  </testsuite>
+  <testsuite name="Zippy" timestamp="2024-10-16T08:34:13" tests="0" file="/Users/zhanmilenkov/projects/solo/test/unit/core/zippy.test.ts" time="0.000" failures="0">
+  </testsuite>
+  <testsuite name="unzip" timestamp="2024-10-16T08:34:13" tests="6" file="/Users/zhanmilenkov/projects/solo/test/unit/core/zippy.test.ts" time="0.004" failures="0">
+    <testcase name="Zippy unzip should fail if source file is missing" time="0.000" classname="should fail if source file is missing">
+    </testcase>
+    <testcase name="Zippy unzip should fail if destination file is missing" time="0.001" classname="should fail if destination file is missing">
+    </testcase>
+    <testcase name="Zippy unzip should fail if source file is invalid" time="0.000" classname="should fail if source file is invalid">
+    </testcase>
+    <testcase name="Zippy unzip should fail for a directory" time="0.000" classname="should fail for a directory">
+    </testcase>
+    <testcase name="Zippy unzip should fail for a non-zip file" time="0.000" classname="should fail for a non-zip file">
+    </testcase>
+    <testcase name="Zippy unzip should succeed for valid inputs" time="0.003" classname="should succeed for valid inputs">
+    </testcase>
+  </testsuite>
+  <testsuite name="untar" timestamp="2024-10-16T08:34:13" tests="6" file="/Users/zhanmilenkov/projects/solo/test/unit/core/zippy.test.ts" time="0.006" failures="0">
+    <testcase name="Zippy untar should fail if source file is missing" time="0.000" classname="should fail if source file is missing">
+    </testcase>
+    <testcase name="Zippy untar should fail if destination file is missing" time="0.000" classname="should fail if destination file is missing">
+    </testcase>
+    <testcase name="Zippy untar should fail if source file is invalid" time="0.000" classname="should fail if source file is invalid">
+    </testcase>
+    <testcase name="Zippy untar should fail for a directory" time="0.000" classname="should fail for a directory">
+    </testcase>
+    <testcase name="Zippy untar should fail for a non-tar file" time="0.000" classname="should fail for a non-tar file">
+    </testcase>
+    <testcase name="Zippy untar should succeed for valid inputs" time="0.004" classname="should succeed for valid inputs">
+    </testcase>
+  </testsuite>
+</testsuites>
