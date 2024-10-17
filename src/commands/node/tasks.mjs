@@ -1390,7 +1390,15 @@ export class NodeCommandTasks {
 
       // disable the prompts that we don't want to prompt the user for
       prompts.disablePrompts([...requiredFlagsWithDisabledPrompt, ...optionalFlags])
-      await prompts.execute(task, this.configManager, requiredFlags)
+
+      let flagsToPrompt = []
+      for (let pFlag in requiredFlags) {
+        if (typeof argv[pFlag.name] === undefined) {
+          flagsToPrompt.push(pFlag)
+        }
+      }
+
+      await prompts.execute(task, this.configManager, flagsToPrompt)
 
       const config = await configInit(argv, ctx, task)
       ctx.config = config
