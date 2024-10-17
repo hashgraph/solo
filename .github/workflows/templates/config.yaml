@@ -7,7 +7,7 @@ tests:
     mochaPostfix: "'test/e2e/integration/**/*.ts'"
 
   - name: Standard
-    mochaPostfix: "'test/e2e/**/*.mjs' --ignore 'test/unit/**/*.ts' --ignore 'test/e2e/integration/**/*.ts' --ignore 'test/e2e/commands/mirror_node*.ts' --ignore 'test/e2e/commands/node*.ts' --ignore 'test/e2e/commands/separate_node*.ts' --ignore 'test/e2e/commands/relay*.ts'"
+    mochaPostfix: "'test/e2e/**/*.ts' --ignore 'test/unit/**/*.ts' --ignore 'test/e2e/integration/**/*.ts' --ignore 'test/e2e/commands/mirror_node*.ts' --ignore 'test/e2e/commands/node*.ts' --ignore 'test/e2e/commands/separate_node*.ts' --ignore 'test/e2e/commands/relay*.ts'"
     timeout: 30000
 
   - name: Mirror Node
