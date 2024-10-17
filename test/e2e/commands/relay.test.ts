@@ -19,7 +19,7 @@ import { expect } from 'chai'
 import each from 'mocha-each'
 
 import { flags } from '../../../src/commands/index.ts'
-import { bootstrapNetwork, getDefaultArgv, HEDERA_PLATFORM_VERSION_TAG, TEST_CLUSTER } from '../../test_util.ts'
+import { e2eTestSuite, getDefaultArgv, HEDERA_PLATFORM_VERSION_TAG, TEST_CLUSTER } from '../../test_util.ts'
 import * as version from '../../../version.ts'
 import { getNodeLogs, sleep } from '../../../src/core/helpers.ts'
 import { RelayCommand } from '../../../src/commands/relay.ts'
@@ -40,7 +40,7 @@ describe('RelayCommand', async () => {
   argv[flags.relayReleaseTag.name] = flags.relayReleaseTag.definition.defaultValue
   argv[flags.quiet.name] = true
 
-  const bootstrapResp = await bootstrapNetwork(testName, argv)
+  const bootstrapResp = await e2eTestSuite(testName, argv)
   const k8 = bootstrapResp.opts.k8
   const configManager = bootstrapResp.opts.configManager
   const relayCmd = new RelayCommand(bootstrapResp.opts)

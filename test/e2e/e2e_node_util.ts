@@ -22,7 +22,7 @@ import { flags } from '../../src/commands/index.ts'
 import {
   accountCreationShouldSucceed,
   balanceQueryShouldSucceed,
-  bootstrapNetwork,
+  e2eTestSuite,
   getDefaultArgv,
   getTestConfigManager,
   HEDERA_PLATFORM_VERSION_TAG,
@@ -53,7 +53,7 @@ export function e2eNodeKeyRefreshTest (testName: string, mode: string, releaseTa
     argv[flags.chartDirectory.name] = process.env.SOLO_CHARTS_DIR ?? undefined
     argv[flags.quiet.name] = true
 
-    const bootstrapResp = await bootstrapNetwork(testName, argv)
+    const bootstrapResp = await e2eTestSuite(testName, argv)
     const accountManager = bootstrapResp.opts.accountManager
     const k8 = bootstrapResp.opts.k8
     const nodeCmd = bootstrapResp.cmd.nodeCmd
@@ -191,9 +191,9 @@ export function e2eNodeKeyRefreshTest (testName: string, mode: string, releaseTa
         const podName = podArray[0].metadata.name
         k8.logger.info(`nodeRefreshTestSetup: podName: ${podName}`)
         return podName
-      } 
+      }
         throw new Error(`pod for ${nodeAliases} not found`)
-      
+
     }
   })
 }

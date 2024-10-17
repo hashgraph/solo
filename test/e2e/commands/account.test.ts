@@ -22,7 +22,7 @@ import { AccountId, PrivateKey } from '@hashgraph/sdk'
 import { constants } from '../../../src/core/index.ts'
 import * as version from '../../../version.ts'
 import {
-  bootstrapNetwork,
+  e2eTestSuite,
   getDefaultArgv,
   HEDERA_PLATFORM_VERSION_TAG,
   TEST_CLUSTER,
@@ -49,7 +49,7 @@ describe('AccountCommand', async () => {
   argv[flags.soloChartVersion.name] = version.SOLO_CHART_VERSION
   // set the env variable SOLO_CHARTS_DIR if developer wants to use local Solo charts
   argv[flags.chartDirectory.name] = process.env.SOLO_CHARTS_DIR ?? undefined
-  const bootstrapResp = await bootstrapNetwork(testName, argv)
+  const bootstrapResp = await e2eTestSuite(testName, argv)
   const accountCmd = new AccountCommand(bootstrapResp.opts, testSystemAccounts)
   bootstrapResp.cmd.accountCmd = accountCmd
   const k8 = bootstrapResp.opts.k8

@@ -23,7 +23,7 @@ import { constants } from '../../../src/core/index.ts'
 import {
   accountCreationShouldSucceed,
   balanceQueryShouldSucceed,
-  bootstrapNetwork,
+  e2eTestSuite,
   getDefaultArgv, getNodeAliasesPrivateKeysHash, getTmpDir,
   HEDERA_PLATFORM_VERSION_TAG
 } from '../../test_util.ts'
@@ -53,7 +53,7 @@ describe('Node update', async () => {
   argv[flags.namespace.name] = namespace
   argv[flags.persistentVolumeClaims.name] = true
   argv[flags.quiet.name] = true
-  const bootstrapResp = await bootstrapNetwork(namespace, argv)
+  const bootstrapResp = await e2eTestSuite(namespace, argv)
   const nodeCmd = bootstrapResp.cmd.nodeCmd
   const accountCmd = bootstrapResp.cmd.accountCmd
   const k8 = bootstrapResp.opts.k8

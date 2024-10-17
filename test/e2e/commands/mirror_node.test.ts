@@ -22,7 +22,7 @@ import { flags } from '../../../src/commands/index.ts'
 import {
   accountCreationShouldSucceed,
   balanceQueryShouldSucceed,
-  bootstrapNetwork,
+  e2eTestSuite,
   getDefaultArgv,
   HEDERA_PLATFORM_VERSION_TAG,
   TEST_CLUSTER
@@ -54,7 +54,7 @@ describe('MirrorNodeCommand', async () => {
   argv[flags.chartDirectory.name] = process.env.SOLO_CHARTS_DIR ?? undefined
   argv[flags.quiet.name] = true
 
-  const bootstrapResp = await bootstrapNetwork(testName, argv)
+  const bootstrapResp = await e2eTestSuite(testName, argv)
   const k8 = bootstrapResp.opts.k8
   const mirrorNodeCmd = new MirrorNodeCommand(bootstrapResp.opts)
   const downloader = new core.PackageDownloader(mirrorNodeCmd.logger)

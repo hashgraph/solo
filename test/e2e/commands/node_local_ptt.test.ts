@@ -18,7 +18,7 @@
 import { describe, after } from 'mocha'
 
 import { flags } from '../../../src/commands/index.ts'
-import { bootstrapNetwork, getDefaultArgv, TEST_CLUSTER } from '../../test_util.ts'
+import { e2eTestSuite, getDefaultArgv, TEST_CLUSTER } from '../../test_util.ts'
 import { getNodeLogs } from '../../../src/core/helpers.ts'
 import { MINUTES } from '../../../src/core/constants.ts'
 import type { K8 } from '../../../src/core/index.ts'
@@ -48,7 +48,7 @@ describe('Node local build', () => {
     argv[flags.app.name] = 'PlatformTestingTool.jar'
     argv[flags.appConfig.name] = '../hedera-services/platform-sdk/platform-apps/tests/PlatformTestingTool/src/main/resources/FCMFCQ-Basic-2.5k-5m.json'
     argv[flags.namespace.name] = LOCAL_PTT
-    const bootstrapResp = await bootstrapNetwork(LOCAL_PTT, argv)
+    const bootstrapResp = await e2eTestSuite(LOCAL_PTT, argv)
     pttK8 = bootstrapResp.opts.k8
   })
 })

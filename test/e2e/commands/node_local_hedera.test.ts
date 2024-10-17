@@ -18,7 +18,7 @@ import { describe, after } from 'mocha'
 
 import { flags } from '../../../src/commands/index.ts'
 import {
-  bootstrapNetwork,
+  e2eTestSuite,
   getDefaultArgv,
   TEST_CLUSTER
 } from '../../test_util.ts'
@@ -48,7 +48,7 @@ describe('Node local build', () => {
     console.log('Starting local build for Hedera app')
     argv[flags.localBuildPath.name] = 'node1=../hedera-services/hedera-node/data/,../hedera-services/hedera-node/data,node3=../hedera-services/hedera-node/data'
     argv[flags.namespace.name] = LOCAL_HEDERA
-    const bootstrapResp = await bootstrapNetwork(LOCAL_HEDERA, argv)
+    const bootstrapResp = await e2eTestSuite(LOCAL_HEDERA, argv)
     hederaK8 = bootstrapResp.opts.k8
   })
 })

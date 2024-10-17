@@ -22,7 +22,7 @@ import { flags } from '../../../src/commands/index.ts'
 import {
   accountCreationShouldSucceed,
   balanceQueryShouldSucceed,
-  bootstrapNetwork,
+  e2eTestSuite,
   getDefaultArgv,
   HEDERA_PLATFORM_VERSION_TAG
 } from '../../test_util.ts'
@@ -53,7 +53,7 @@ describe('Node delete via separated commands', async () => {
   const argvExecute = getDefaultArgv()
   argvExecute[flags.inputDir.name] = tempDir
 
-  const bootstrapResp = await bootstrapNetwork(namespace, argv)
+  const bootstrapResp = await e2eTestSuite(namespace, argv)
   const nodeCmd = bootstrapResp.cmd.nodeCmd
   const accountCmd = bootstrapResp.cmd.accountCmd
   const k8 = bootstrapResp.opts.k8

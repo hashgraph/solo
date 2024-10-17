@@ -22,7 +22,7 @@ import { flags } from '../../../src/commands/index.ts'
 import {
   accountCreationShouldSucceed,
   balanceQueryShouldSucceed,
-  bootstrapNetwork,
+  e2eTestSuite,
   getDefaultArgv,
   getNodeAliasesPrivateKeysHash, getTmpDir,
   HEDERA_PLATFORM_VERSION_TAG
@@ -54,7 +54,7 @@ describe('Node add via separated commands should success', async () => {
   const argvExecute = getDefaultArgv()
   argvExecute[flags.inputDir.name] = tempDir
 
-  const bootstrapResp = await bootstrapNetwork(namespace, argv)
+  const bootstrapResp = await e2eTestSuite(namespace, argv)
   const nodeCmd = bootstrapResp.cmd.nodeCmd
   const accountCmd = bootstrapResp.cmd.accountCmd
   const networkCmd = bootstrapResp.cmd.networkCmd

@@ -128,14 +128,14 @@ interface BootstrapResponse {
 
 /** Initialize common test variables */
 export function bootstrapTestVariables (
-  testName: string,
-  argv: any,
-  k8Arg: K8 | null = null,
-  initCmdArg: InitCommand | null = null,
-  clusterCmdArg: ClusterCommand | null = null,
-  networkCmdArg: NetworkCommand | null = null,
-  nodeCmdArg: NodeCommand | null = null,
-  accountCmdArg: AccountCommand | null = null
+    testName: string,
+    argv: any,
+    k8Arg: K8 | null = null,
+    initCmdArg: InitCommand | null = null,
+    clusterCmdArg: ClusterCommand | null = null,
+    networkCmdArg: NetworkCommand | null = null,
+    nodeCmdArg: NodeCommand | null = null,
+    accountCmdArg: AccountCommand | null = null
 ): BootstrapResponse {
   const namespace: string = argv[flags.namespace.name] || 'bootstrap-ns'
   const cacheDir: string = argv[flags.cacheDir.name] || getTestCacheDir(testName)
@@ -187,17 +187,19 @@ export function bootstrapTestVariables (
   }
 }
 
-/** Bootstrap network in a given namespace */
-export function bootstrapNetwork (
-  testName: string,
-  argv: Record<any, any>,
-  k8Arg: K8 | null = null,
-  initCmdArg: InitCommand | null = null,
-  clusterCmdArg: ClusterCommand | null = null,
-  networkCmdArg: NetworkCommand | null = null,
-  nodeCmdArg: NodeCommand | null = null,
-  accountCmdArg: AccountCommand | null = null,
-  startNodes = true
+/** Bootstrap network in a given namespace, then run the test call back providing the bootstrap response */
+export function e2eTestSuite (
+    testName: string,
+    argv: Record<any, any>,
+    k8Arg: K8 | null = null,
+    initCmdArg: InitCommand | null = null,
+    clusterCmdArg: ClusterCommand | null = null,
+    networkCmdArg: NetworkCommand | null = null,
+    nodeCmdArg: NodeCommand | null = null,
+    accountCmdArg: AccountCommand | null = null,
+    startNodes = true,
+    testsCallBack: (bootstrapResp: BootstrapResponse) => void = () => {
+    }
 ) {
   const bootstrapResp = bootstrapTestVariables(testName, argv, k8Arg, initCmdArg, clusterCmdArg, networkCmdArg, nodeCmdArg, accountCmdArg)
   const namespace = bootstrapResp.namespace
@@ -208,86 +210,84 @@ export function bootstrapNetwork (
   const nodeCmd = bootstrapResp.cmd.nodeCmd
   const chartManager = bootstrapResp.opts.chartManager
 
-  return new Promise<BootstrapResponse>((resolve) => {
-    describe(`Bootstrap network for test [release ${argv[flags.releaseTag.name]}}]`, () => {
-      before(() => {
-        bootstrapResp.opts.logger.showUser(`------------------------- START: bootstrap (${testName}) ----------------------------`)
-      })
-
-      after(() => {
-        bootstrapResp.opts.logger.showUser(`------------------------- END: bootstrap (${testName}) ----------------------------`)
-        resolve(bootstrapResp)
-      })
-
-      it('should cleanup previous deployment', async () => {
-        await initCmd.init(argv)
-
-        if (await k8.hasNamespace(namespace)) {
-          await k8.deleteNamespace(namespace)
-
-          while (await k8.hasNamespace(namespace)) {
-            testLogger.debug(`Namespace ${namespace} still exist. Waiting...`)
-            await sleep(1.5 * SECONDS)
-          }
-        }
-
-        if (!await chartManager.isChartInstalled(constants.SOLO_SETUP_NAMESPACE, constants.SOLO_CLUSTER_SETUP_CHART)) {
-          await clusterCmd.setup(argv)
-        }
-      }).timeout(2 * MINUTES)
-
-      it('generate key files', async () => {
-        await expect(nodeCmd.keys(argv)).to.eventually.be.ok
-        expect(nodeCmd.getUnusedConfigs(NodeCommand.KEYS_CONFIGS_NAME)).to.deep.equal([
-          flags.cacheDir.constName,
-          flags.devMode.constName,
-          flags.quiet.constName
-        ])
-      }).timeout(2 * MINUTES)
-
-      it('should succeed with network deploy', async () => {
-        await networkCmd.deploy(argv)
-
-        expect(networkCmd.getUnusedConfigs(NetworkCommand.DEPLOY_CONFIGS_NAME)).to.deep.equal([
-          flags.apiPermissionProperties.constName,
-          flags.applicationEnv.constName,
-          flags.applicationProperties.constName,
-          flags.bootstrapProperties.constName,
-          flags.chainId.constName,
-          flags.log4j2Xml.constName,
-          flags.profileFile.constName,
-          flags.profileName.constName,
-          flags.quiet.constName,
-          flags.settingTxt.constName
-        ])
-      }).timeout(2 * MINUTES)
-
-      if (startNodes) {
-        it('should succeed with node setup command', async () => {
-          // cache this, because `solo node setup.finalize()` will reset it to false
-          try {
-            await expect(nodeCmd.setup(argv)).to.eventually.be.ok
-            expect(nodeCmd.getUnusedConfigs(NodeCommand.SETUP_CONFIGS_NAME)).to.deep.equal([
-              flags.app.constName,
-              flags.appConfig.constName,
-              flags.devMode.constName
-            ])
-          } catch (e) {
-            nodeCmd.logger.showUserError(e)
-            expect.fail()
-          }
-        }).timeout(4 * MINUTES)
-
-        it('should succeed with node start command', async () => {
-          try {
-            await expect(nodeCmd.start(argv)).to.eventually.be.ok
-          } catch (e) {
-            nodeCmd.logger.showUserError(e)
-            expect.fail()
-          }
-        }).timeout(30 * MINUTES)
-      }
+  describe(`Bootstrap network for test [release ${argv[flags.releaseTag.name]}}]`, () => {
+    before(() => {
+      bootstrapResp.opts.logger.showUser(`------------------------- START: bootstrap (${testName}) ----------------------------`)
     })
+
+    after(() => {
+      bootstrapResp.opts.logger.showUser(`------------------------- END: bootstrap (${testName}) ----------------------------`)
+      testsCallBack(bootstrapResp)
+    })
+
+    it('should cleanup previous deployment', async () => {
+      await initCmd.init(argv)
+
+      if (await k8.hasNamespace(namespace)) {
+        await k8.deleteNamespace(namespace)
+
+        while (await k8.hasNamespace(namespace)) {
+          testLogger.debug(`Namespace ${namespace} still exist. Waiting...`)
+          await sleep(1.5 * SECONDS)
+        }
+      }
+
+      if (!await chartManager.isChartInstalled(constants.SOLO_SETUP_NAMESPACE, constants.SOLO_CLUSTER_SETUP_CHART)) {
+        await clusterCmd.setup(argv)
+      }
+    }).timeout(2 * MINUTES)
+
+    it('generate key files', async () => {
+      await expect(nodeCmd.keys(argv)).to.eventually.be.ok
+      expect(nodeCmd.getUnusedConfigs(NodeCommand.KEYS_CONFIGS_NAME)).to.deep.equal([
+        flags.cacheDir.constName,
+        flags.devMode.constName,
+        flags.quiet.constName
+      ])
+    }).timeout(2 * MINUTES)
+
+    it('should succeed with network deploy', async () => {
+      await networkCmd.deploy(argv)
+
+      expect(networkCmd.getUnusedConfigs(NetworkCommand.DEPLOY_CONFIGS_NAME)).to.deep.equal([
+        flags.apiPermissionProperties.constName,
+        flags.applicationEnv.constName,
+        flags.applicationProperties.constName,
+        flags.bootstrapProperties.constName,
+        flags.chainId.constName,
+        flags.log4j2Xml.constName,
+        flags.profileFile.constName,
+        flags.profileName.constName,
+        flags.quiet.constName,
+        flags.settingTxt.constName
+      ])
+    }).timeout(2 * MINUTES)
+
+    if (startNodes) {
+      it('should succeed with node setup command', async () => {
+        // cache this, because `solo node setup.finalize()` will reset it to false
+        try {
+          await expect(nodeCmd.setup(argv)).to.eventually.be.ok
+          expect(nodeCmd.getUnusedConfigs(NodeCommand.SETUP_CONFIGS_NAME)).to.deep.equal([
+            flags.app.constName,
+            flags.appConfig.constName,
+            flags.devMode.constName
+          ])
+        } catch (e) {
+          nodeCmd.logger.showUserError(e)
+          expect.fail()
+        }
+      }).timeout(4 * MINUTES)
+
+      it('should succeed with node start command', async () => {
+        try {
+          await expect(nodeCmd.start(argv)).to.eventually.be.ok
+        } catch (e) {
+          nodeCmd.logger.showUserError(e)
+          expect.fail()
+        }
+      }).timeout(30 * MINUTES)
+    }
   })
 }
 
@@ -299,8 +299,8 @@ export function balanceQueryShouldSucceed (accountManager: AccountManager, cmd: 
       expect(accountManager._nodeClient).not.to.be.null
 
       const balance = await new AccountBalanceQuery()
-        .setAccountId(accountManager._nodeClient.getOperator().accountId)
-        .execute(accountManager._nodeClient)
+      .setAccountId(accountManager._nodeClient.getOperator().accountId)
+      .execute(accountManager._nodeClient)
 
       expect(balance.hbars).not.be.null
     } catch (e) {
@@ -320,9 +320,9 @@ export function accountCreationShouldSucceed (accountManager: AccountManager, no
       const amount = 100
 
       const newAccount = await new AccountCreateTransaction()
-        .setKey(privateKey)
-        .setInitialBalance(Hbar.from(amount, HbarUnit.Hbar))
-        .execute(accountManager._nodeClient)
+      .setKey(privateKey)
+      .setInitialBalance(Hbar.from(amount, HbarUnit.Hbar))
+      .execute(accountManager._nodeClient)
 
       // Get the new account ID
       const getReceipt = await newAccount.getReceipt(accountManager._nodeClient)
@@ -362,10 +362,10 @@ export async function getNodeAliasesPrivateKeysHash (networkNodeServicesMap: Map
 
 async function addKeyHashToMap (k8: K8, nodeAlias: NodeAlias, keyDir: string, uniqueNodeDestDir: string, keyHashMap: Map<string, string>, privateKeyFileName: string) {
   await k8.copyFrom(
-    Templates.renderNetworkPodName(nodeAlias),
-    ROOT_CONTAINER,
-    path.join(keyDir, privateKeyFileName),
-    uniqueNodeDestDir)
+      Templates.renderNetworkPodName(nodeAlias),
+      ROOT_CONTAINER,
+      path.join(keyDir, privateKeyFileName),
+      uniqueNodeDestDir)
   const keyBytes = fs.readFileSync(path.join(uniqueNodeDestDir, privateKeyFileName))
   const keyString = keyBytes.toString()
   keyHashMap.set(privateKeyFileName, crypto.createHash('sha256').update(keyString).digest('base64'))
