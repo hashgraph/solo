@@ -176,7 +176,7 @@ export class ConfigManager {
    * Return the value of the given flag
    * @returns value of the flag or undefined if flag value is not available
    */
-  getFlag<T>(flag: CommandFlag): undefined | T {
+  getFlag<T> (flag: CommandFlag): undefined | T {
     if (this.config.flags[flag.name] !== undefined) {
       return this.config.flags[flag.name]
     }
@@ -185,7 +185,7 @@ export class ConfigManager {
   }
 
   /** Set value for the flag */
-  setFlag<T>(flag: CommandFlag, value: T) {
+  setFlag<T> (flag: CommandFlag, value: T) {
     if (!flag || !flag.name) throw new MissingArgumentError('flag must have a name')
     this.config.flags[flag.name] = value
   }

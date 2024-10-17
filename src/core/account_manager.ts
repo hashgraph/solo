@@ -255,7 +255,7 @@ export class AccountManager {
    * @param namespace - the namespace of the solo network deployment
    * @returns a map of the network node services
    */
-  async getNodeServiceMap (namespace: string): Promise<Map<NodeAlias, NetworkNodeServices>> {
+  async getNodeServiceMap (namespace: string) {
     const labelSelector = 'solo.hedera.com/node-name'
 
     const serviceBuilderMap = new Map<NodeAlias, NetworkNodeServicesBuilder>()
@@ -265,11 +265,11 @@ export class AccountManager {
 
     // retrieve the list of services and build custom objects for the attributes we need
     for (const service of serviceList.body.items) {
-      const serviceType = service.metadata!.labels!['solo.hedera.com/type']
-      let serviceBuilder = new NetworkNodeServicesBuilder(service.metadata!.labels!['solo.hedera.com/node-name'] as any)
+      const serviceType = service.metadata.labels['solo.hedera.com/type']
+      let serviceBuilder = new NetworkNodeServicesBuilder(service.metadata.labels['solo.hedera.com/node-name'] as NodeAlias)
 
       if (serviceBuilderMap.has(serviceBuilder.key())) {
-        serviceBuilder = <NetworkNodeServicesBuilder>serviceBuilderMap.get(serviceBuilder.key())
+        serviceBuilder = serviceBuilderMap.get(serviceBuilder.key()) as NetworkNodeServicesBuilder
       }
 
       switch (serviceType) {
@@ -308,13 +308,16 @@ export class AccountManager {
     for (const serviceBuilder of serviceBuilderMap.values()) {
       const podList = await this.k8.kubeClient.listNamespacedPod(
         namespace, undefined, undefined, undefined, undefined, `app=${serviceBuilder.haProxyAppSelector}`)
-      // @ts-ignore
       serviceBuilder.withHaProxyPodName(podList.body!.items[0].metadata.name as PodName)
     }
 
     // get the pod name of the network node
     const pods = await this.k8.getPodsByLabel(['solo.hedera.com/type=network-node'])
     for (const pod of pods) {
+      // eslint-disable-next-line no-prototype-builtins
+      if (!pod.metadata?.labels?.hasOwnProperty('solo.hedera.com/node-name')) { // TODO Review why this fixes issue
+        continue
+      }
       const podName = pod.metadata!.name
       const nodeAlias = pod.metadata!.labels!['solo.hedera.com/node-name'] as NodeAlias
       const serviceBuilder = serviceBuilderMap.get(nodeAlias) as NetworkNodeServicesBuilder

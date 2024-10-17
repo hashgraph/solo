@@ -52,7 +52,7 @@ export class DependencyManager extends ShellRunner {
     return true
   }
 
-  taskCheckDependencies<T>(deps: string[]) {
+  taskCheckDependencies<T> (deps: string[]) {
     return deps.map(dep => {
       return {
         title: `Check dependency: ${dep} [OS: ${os.platform()}, Release: ${os.release()}, Arch: ${os.arch()}]`,

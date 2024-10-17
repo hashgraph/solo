@@ -19,7 +19,7 @@ import { FREEZE_ADMIN_ACCOUNT } from '../../core/constants.ts'
 export const PREPARE_UPGRADE_CONFIGS_NAME = 'prepareUpgradeConfig'
 export const DOWNLOAD_GENERATED_FILES_CONFIGS_NAME = 'downloadGeneratedFilesConfig'
 
-export async function prepareUpgradeConfigBuilder(this: any, argv: any, ctx: any, task: any) {
+export async function prepareUpgradeConfigBuilder (this: any, argv: any, ctx: any, task: any) {
     interface NodePrepareUpgradeConfigClass {
         cacheDir: string
         namespace: string
@@ -43,7 +43,7 @@ export async function prepareUpgradeConfigBuilder(this: any, argv: any, ctx: any
     return config
 }
 
-export async function downloadGeneratedFilesConfigBuilder(this: any, argv: any, ctx: any, task: any) {
+export async function downloadGeneratedFilesConfigBuilder (this: any, argv: any, ctx: any, task: any) {
     interface NodeDownloadGeneratedFilesConfigClass {
         cacheDir: string
         namespace: string

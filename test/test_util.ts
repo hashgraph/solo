@@ -145,7 +145,7 @@ export function bootstrapTestVariables (
   const downloader = new PackageDownloader(testLogger)
   const zippy = new Zippy(testLogger)
   const helmDepManager = new HelmDependencyManager(downloader, zippy, testLogger)
-  const depManagerMap: Map<string, HelmDependencyManager> = new Map().set(constants.HELM, helmDepManager)
+  const depManagerMap = new Map<string, HelmDependencyManager>().set(constants.HELM, helmDepManager)
   const depManager = new DependencyManager(testLogger, depManagerMap)
   const keyManager = new KeyManager(testLogger)
   const helm = new Helm(testLogger)
@@ -154,8 +154,7 @@ export function bootstrapTestVariables (
   const accountManager = new AccountManager(testLogger, k8)
   const platformInstaller = new PlatformInstaller(testLogger, k8, configManager)
   const profileManager = new ProfileManager(testLogger, configManager)
-
-    const opts: TestOpts = {
+  const opts: TestOpts = {
     logger: testLogger,
     helm,
     k8,
@@ -200,7 +199,7 @@ export function bootstrapNetwork (
   accountCmdArg: AccountCommand | null = null,
   startNodes = true
 ) {
-  const bootstrapResp: BootstrapResponse = bootstrapTestVariables(testName, argv, k8Arg, initCmdArg, clusterCmdArg, networkCmdArg, nodeCmdArg, accountCmdArg)
+  const bootstrapResp = bootstrapTestVariables(testName, argv, k8Arg, initCmdArg, clusterCmdArg, networkCmdArg, nodeCmdArg, accountCmdArg)
   const namespace = bootstrapResp.namespace
   const initCmd = bootstrapResp.cmd.initCmd
   const k8 = bootstrapResp.opts.k8

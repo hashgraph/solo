@@ -58,7 +58,8 @@ export default [
       '@typescript-eslint/array-type': [ 'error', { default: 'array' } ],
       '@typescript-eslint/consistent-generic-constructors': 'error',
       '@typescript-eslint/consistent-indexed-object-style': [ 'error', 'record' ],
-      "@typescript-eslint/consistent-type-imports": ["error", { fixStyle: 'inline-type-imports'}]
+      "@typescript-eslint/consistent-type-imports": ["error", { fixStyle: 'inline-type-imports'}],
+      'space-before-function-paren': 'error'
     }
   },
   {

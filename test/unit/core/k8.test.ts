@@ -23,11 +23,19 @@ import { getTestConfigManager, testLogger } from '../../test_util.ts'
 import { flags } from '../../../src/commands/index.ts'
 import { SECONDS } from '../../../src/core/constants.ts'
 
-function listNamespacedPodMockSetup (k8: K8, numOfFailures: number, result: any[]) {
+function listNamespacedPodMockSetup (k8: K8, numOfFailures: number, result: any) {
   for (let i = 0; i < numOfFailures - 1; i++) { // @ts-ignore
-    k8.kubeClient.listNamespacedPod.mockReturnValueOnce(Promise.resolve({ body: { items: [] } }))
+    k8.kubeClient.listNamespacedPod.mockReturnValueOnce(Promise.resolve({
+      body: {
+        items: []
+      }
+    }))
   } // @ts-ignore
-  k8.kubeClient.listNamespacedPod.mockReturnValueOnce(Promise.resolve({ body: { items: result } }))
+  k8.kubeClient.listNamespacedPod.mockReturnValueOnce(Promise.resolve({
+    body: {
+      items: result
+    }
+  }))
 }
 
 const defaultTimeout = 20 * SECONDS

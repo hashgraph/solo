@@ -61,7 +61,7 @@ export function splitFlagInput (input: string, separator = ',') {
  * @param arr - The array to be cloned
  * @returns a new array with the same elements as the input array
  */
-export function cloneArray <T>(arr: T[]): T[] {
+export function cloneArray <T> (arr: T[]): T[] {
   return JSON.parse(JSON.stringify(arr))
 }
 

@@ -100,7 +100,7 @@ describe('ClusterCommand', () => {
   }).timeout(MINUTES)
 
   it('function showClusterList should return right true', async () => {
-    await expect(clusterCmd.showClusterList()).to.eventually.be.ok
+    expect(clusterCmd.showClusterList()).to.be.ok
   }).timeout(MINUTES)
 
   it('function showInstalledChartList should return right true', async () => {

@@ -46,7 +46,7 @@ export class NodeCommandTasks {
   private readonly logger: SoloLogger
   private readonly k8: K8
 
-  constructor(opts: { logger: SoloLogger; accountManager: AccountManager; configManager: ConfigManager, k8: K8 }) {
+  constructor (opts: { logger: SoloLogger; accountManager: AccountManager; configManager: ConfigManager, k8: K8 }) {
     if (!opts || !opts.accountManager) throw new IllegalArgumentError('An instance of core/AccountManager is required', opts.accountManager as any)
     if (!opts || !opts.configManager) throw new Error('An instance of core/ConfigManager is required')
     if (!opts || !opts.logger) throw new Error('An instance of core/Logger is required')
@@ -58,7 +58,7 @@ export class NodeCommandTasks {
     this.k8 = opts.k8
   }
 
-  private async _prepareUpgradeZip(stagingDir: string) {
+  private async _prepareUpgradeZip (stagingDir: string) {
     // we build a mock upgrade.zip file as we really don't need to upgrade the network
     // also the platform zip file is ~80Mb in size requiring a lot of transactions since the max
     // transaction size is 6Kb and in practice we need to send the file as 4Kb chunks.
@@ -89,7 +89,7 @@ export class NodeCommandTasks {
     return await zipper.zip(path.join(stagingDir, 'mock-upgrade'), path.join(stagingDir, 'mock-upgrade.zip'))
   }
 
-  private async _uploadUpgradeZip(upgradeZipFile: string, nodeClient: any) {
+  private async _uploadUpgradeZip (upgradeZipFile: string, nodeClient: any) {
     // get byte value of the zip file
     const zipBytes = fs.readFileSync(upgradeZipFile)
     // @ts-ignore
@@ -222,7 +222,7 @@ export class NodeCommandTasks {
   }
 
   /** Download generated config files and key files from the network node */
-  downloadNodeGeneratedFiles(): Task {
+  downloadNodeGeneratedFiles (): Task {
     return new Task('Download generated files from an existing node', async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
       const config = ctx.config
       const node1FullyQualifiedPodName = Templates.renderNetworkPodName(config.existingNodeAliases[0])
@@ -247,7 +247,7 @@ export class NodeCommandTasks {
     })
   }
 
-  taskCheckNetworkNodePods(ctx: any, task: ListrTaskWrapper<any, any, any>, nodeAliases: NodeAliases): Listr {
+  taskCheckNetworkNodePods (ctx: any, task: ListrTaskWrapper<any, any, any>, nodeAliases: NodeAliases): Listr {
     if (!ctx.config) {
       ctx.config = {}
     }
@@ -274,7 +274,7 @@ export class NodeCommandTasks {
   }
 
   /** Check if the network node pod is running */
-  async checkNetworkNodePod(namespace: string, nodeAlias: NodeAlias, maxAttempts = 60, delay = 2000) {
+  async checkNetworkNodePod (namespace: string, nodeAlias: NodeAlias, maxAttempts = 60, delay = 2000) {
     nodeAlias = nodeAlias.trim() as NodeAlias
     const podName = Templates.renderNetworkPodName(nodeAlias)
 
@@ -290,7 +290,7 @@ export class NodeCommandTasks {
     }
   }
 
-  identifyExistingNodes() {
+  identifyExistingNodes () {
     return new Task('Identify existing network nodes', async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
       const config = ctx.config
       config.existingNodeAliases = []
@@ -303,13 +303,13 @@ export class NodeCommandTasks {
     })
   }
 
-  identifyNetworkPods() {
+  identifyNetworkPods () {
     return new Task('Identify network pods', (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
       return this.taskCheckNetworkNodePods(ctx, task, ctx.config.nodeAliases)
     })
   }
 
-  initialize(argv: any, configInit: Function) {
+  initialize (argv: any, configInit: Function) {
     const { requiredFlags, requiredFlagsWithDisabledPrompt, optionalFlags } = argv
     const allRequiredFlags = [
       ...requiredFlags,
