@@ -175,7 +175,7 @@ describe('ProfileManager', () => {
 
   describe('prepareConfigText', () => {
     it('should write and return the path to the config.txt file', () => {
-      const nodeAccountMap: Map<NodeAlias, string> = new Map()
+      const nodeAccountMap = new Map<NodeAlias, string>()
       nodeAccountMap.set('node1', '0.0.3')
       nodeAccountMap.set('node2', '0.0.4')
       nodeAccountMap.set('node3', '0.0.5')
@@ -203,20 +203,20 @@ describe('ProfileManager', () => {
     })
 
     it('should fail when no nodeAliases', () => {
-      const nodeAccountMap: Map<NodeAlias, string> = new Map()
+      const nodeAccountMap = new Map<NodeAlias, string>()
       expect(() => profileManager.prepareConfigTxt('', nodeAccountMap, '', version.HEDERA_PLATFORM_VERSION))
         .to.throw('nodeAccountMap the map of node IDs to account IDs is required')
     })
 
     it('should fail when no releaseTag is provided', () => {
-      const nodeAccountMap: Map<NodeAlias, string> = new Map()
+      const nodeAccountMap = new Map<NodeAlias, string>()
       nodeAccountMap.set('node1', '0.0.3')
       expect(() => profileManager.prepareConfigTxt('', nodeAccountMap, '', undefined))
         .to.throw('release tag is required')
     })
 
     it('should fail when destPath does not exist', () => {
-      const nodeAccountMap: Map<NodeAlias, string> = new Map()
+      const nodeAccountMap = new Map<NodeAlias, string>()
       nodeAccountMap.set('node1', '0.0.3')
       const destPath = path.join(tmpDir, 'missing-directory')
       try {

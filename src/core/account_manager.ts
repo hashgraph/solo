@@ -77,14 +77,14 @@ export class AccountManager {
         privateKey: Base64.decode(secret.data.privateKey),
         publicKey: Base64.decode(secret.data.publicKey)
       }
-    } else {
+    } 
       // if it isn't in the secrets we can load genesis key
       return {
         accountId,
         privateKey: constants.GENESIS_KEY,
         publicKey: PrivateKey.fromStringED25519(constants.GENESIS_KEY).publicKey.toString()
       }
-    }
+    
   }
 
   /**
@@ -256,7 +256,7 @@ export class AccountManager {
   async getNodeServiceMap (namespace: string): Promise<Map<NodeAlias, NetworkNodeServices>> {
     const labelSelector = 'solo.hedera.com/node-name'
 
-    const serviceBuilderMap: Map<NodeAlias, NetworkNodeServicesBuilder> = new Map()
+    const serviceBuilderMap = new Map<NodeAlias, NetworkNodeServicesBuilder>()
 
     const serviceList = await this.k8.kubeClient.listNamespacedService(namespace,
       undefined, undefined, undefined, undefined, labelSelector)
@@ -319,7 +319,7 @@ export class AccountManager {
       serviceBuilder.withNodePodName(podName as PodName)
     }
 
-    const serviceMap: Map<NodeAlias, NetworkNodeServices> = new Map()
+    const serviceMap = new Map<NodeAlias, NetworkNodeServices>()
     for (const networkNodeServicesBuilder of serviceBuilderMap.values()) {
       serviceMap.set(networkNodeServicesBuilder.key(), networkNodeServicesBuilder.build())
     }

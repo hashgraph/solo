@@ -190,9 +190,9 @@ export function e2eNodeKeyRefreshTest (testName: string, mode: string, releaseTa
         const podName = podArray[0].metadata.name
         k8.logger.info(`nodeRefreshTestSetup: podName: ${podName}`)
         return podName
-      } else {
+      } 
         throw new Error(`pod for ${nodeAliases} not found`)
-      }
+      
     }
   })
 }

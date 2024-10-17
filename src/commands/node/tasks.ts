@@ -58,7 +58,7 @@ export class NodeCommandTasks {
     this.k8 = opts.k8
   }
 
-  async _prepareUpgradeZip(stagingDir: string) {
+  private async _prepareUpgradeZip(stagingDir: string) {
     // we build a mock upgrade.zip file as we really don't need to upgrade the network
     // also the platform zip file is ~80Mb in size requiring a lot of transactions since the max
     // transaction size is 6Kb and in practice we need to send the file as 4Kb chunks.
@@ -89,7 +89,7 @@ export class NodeCommandTasks {
     return await zipper.zip(path.join(stagingDir, 'mock-upgrade'), path.join(stagingDir, 'mock-upgrade.zip'))
   }
 
-  async _uploadUpgradeZip(upgradeZipFile: string, nodeClient: any) {
+  private async _uploadUpgradeZip(upgradeZipFile: string, nodeClient: any) {
     // get byte value of the zip file
     const zipBytes = fs.readFileSync(upgradeZipFile)
     // @ts-ignore

@@ -37,7 +37,9 @@ import { type NodeDeleteConfigClass } from '../commands/node.ts'
 const CUR_FILE_DIR = paths.dirname(fileURLToPath(import.meta.url))
 
 export function sleep (ms: number) {
-  return new Promise<void>((resolve) => setTimeout(resolve, ms))
+  return new Promise<void>((resolve) => {
+    setTimeout(resolve, ms)
+  })
 }
 
 export function parseNodeAliases (input: string): NodeAliases {
@@ -115,7 +117,7 @@ export function createBackupDir (destDir: string, prefix = 'backup', curDate = n
   return backupDir
 }
 
-export function makeBackup (fileMap: Map<string, string> = new Map(), removeOld = true) {
+export function makeBackup (fileMap = new Map<string, string>(), removeOld = true) {
   for (const entry of fileMap) {
     const srcPath = entry[0]
     const destPath = entry[1]
@@ -131,7 +133,7 @@ export function makeBackup (fileMap: Map<string, string> = new Map(), removeOld 
 export function backupOldTlsKeys (nodeAliases: NodeAliases, keysDir: string, curDate = new Date(), dirPrefix = 'tls') {
   const backupDir = createBackupDir(keysDir, `unused-${dirPrefix}`, curDate)
 
-  const fileMap: Map<string, string> = new Map()
+  const fileMap = new Map<string, string>()
   for (const nodeAlias of nodeAliases) {
     const srcPath = path.join(keysDir, Templates.renderTLSPemPrivateKeyFile(nodeAlias))
     const destPath = path.join(backupDir, Templates.renderTLSPemPrivateKeyFile(nodeAlias))
@@ -146,7 +148,7 @@ export function backupOldTlsKeys (nodeAliases: NodeAliases, keysDir: string, cur
 export function backupOldPemKeys (nodeAliases: NodeAliases, keysDir: string, curDate = new Date(), dirPrefix = 'gossip-pem') {
   const backupDir = createBackupDir(keysDir, `unused-${dirPrefix}`, curDate)
 
-  const fileMap: Map<string, string> = new Map()
+  const fileMap = new Map<string, string>()
   for (const nodeAlias of nodeAliases) {
     // @ts-ignore
     const srcPath = path.join(keysDir, Templates.renderGossipPemPrivateKeyFile(nodeAlias)) // TODO review
@@ -218,7 +220,7 @@ export async function getNodeLogs (k8: K8, namespace: string) {
  * @returns the map of node IDs to account IDs
  */
 export function getNodeAccountMap (nodeAliases: NodeAliases) {
-  const accountMap: Map<NodeAlias, string> = new Map()
+  const accountMap = new Map<NodeAlias, string>()
   const realm = constants.HEDERA_NODE_ACCOUNT_ID_START.realm
   const shard = constants.HEDERA_NODE_ACCOUNT_ID_START.shard
   let accountId = constants.HEDERA_NODE_ACCOUNT_ID_START.num
@@ -238,7 +240,7 @@ export async function getFileContents (accountManager: AccountManager, namespace
   return Buffer.from(await queryFees.execute(client)).toString('hex')
 }
 
-export function getEnvValue (envVarArray: Array<string>, name: string) {
+export function getEnvValue (envVarArray: string[], name: string) {
   const kvPair = envVarArray.find(v => v.startsWith(`${name}=`))
   return kvPair ? kvPair.split('=')[1] : null
 }

@@ -742,7 +742,7 @@ export class NodeCommand extends BaseCommand {
 
     self.logger.debug('no need to fetch, use local build jar files')
 
-    const buildPathMap: Map<NodeAlias, string> = new Map()
+    const buildPathMap = new Map<NodeAlias, string>()
     let defaultDataLibBuildPath: string
     const parameterPairs = localBuildPath.split(',')
     for (const parameterPair of parameterPairs) {
@@ -797,9 +797,9 @@ export class NodeCommand extends BaseCommand {
     const self = this
     if (localBuildPath !== '') {
       return self.uploadPlatformSoftware(nodeAliases, podNames, task, localBuildPath)
-    } else {
+    } 
       return self.fetchPlatformSoftware(nodeAliases, podNames, releaseTag, task, self.platformInstaller)
-    }
+    
   }
 
   fetchPlatformSoftware (nodeAliases: NodeAliases, podNames: Record<NodeAlias, PodName>, releaseTag: string,

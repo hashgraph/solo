@@ -443,9 +443,9 @@ export class K8 {
   handleCallback (status: string, localContext: LocalContextObject, messagePrefix: string) {
     if (status === 'Failure') {
       return this.exitWithError(localContext, `${messagePrefix} Failure occurred`)
-    } else {
+    } 
       this.logger.debug(`${messagePrefix} callback(status)=${status}`)
-    }
+    
   }
 
   registerConnectionOnError (localContext: LocalContextObject, messagePrefix: string, conn: WebSocket.WebSocket) {
@@ -656,9 +656,9 @@ export class K8 {
             if (status === 'Failure') {
               self._deleteTempFile(tmpFile)
               return self.exitWithError(localContext, `${messagePrefix} Failure occurred`)
-            } else {
+            } 
               self.logger.debug(`${messagePrefix} callback(status)=${status}`)
-            }
+            
           })
           .then(conn => {
             self.logger.debug(`${messagePrefix} connection established`)
@@ -1094,9 +1094,9 @@ export class K8 {
         type: secretObject.type as string,
         data: secretObject.data as Record<string, string>
       }
-    } else {
+    } 
       return null
-    }
+    
   }
 
   /**

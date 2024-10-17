@@ -346,9 +346,9 @@ export function accountCreationShouldSucceed (accountManager: AccountManager, no
 export async function getNodeAliasesPrivateKeysHash (networkNodeServicesMap: Map<NodeAlias, NetworkNodeServices>, namespace: string, k8: K8, destDir: string) {
   const dataKeysDir = path.join(constants.HEDERA_HAPI_PATH, 'data', 'keys')
   const tlsKeysDir = constants.HEDERA_HAPI_PATH
-  const nodeKeyHashMap: Map<NodeAlias, Map<string, string>> = new Map()
+  const nodeKeyHashMap = new Map<NodeAlias, Map<string, string>>()
   for (const networkNodeServices of networkNodeServicesMap.values()) {
-    const keyHashMap: Map<string, string> = new Map()
+    const keyHashMap = new Map<string, string>()
     const nodeAlias = networkNodeServices.nodeAlias
     const uniqueNodeDestDir = path.join(destDir, nodeAlias)
     if (!fs.existsSync(uniqueNodeDestDir)) {

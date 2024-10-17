@@ -23,7 +23,7 @@ export default [
   pluginJs.configs.recommended,
   ...tseslint.configs.strict,
   {
-    files: ['test/**/*.*js', 'src/**/*.ts'],
+    files: ['test/**/*.ts', 'src/**/*.ts'],
     ignores: ['docs/**/*', 'dist/*'],
     plugins: {
       headers: headers
@@ -48,7 +48,15 @@ export default [
       'quotes': ['error', 'single', { 'avoidEscape': true }],
       'semi': ['error', 'never'],
       'no-duplicate-imports': ['error'],
-      'object-curly-spacing': ["error", "always"]
+      'object-curly-spacing': ["error", "always"],
+      eqeqeq: "error",
+      'dot-notation': 'error',
+      'no-promise-executor-return': 'error',
+      'no-unneeded-ternary': 'error',
+      'no-shadow-restricted-names': 'error',
+      'no-else-return': 'error',
+      '@typescript-eslint/array-type': [ 'error', { default: 'array' } ],
+      "@typescript-eslint/consistent-generic-constructors": "error"
     }
   },
   {
