@@ -93,7 +93,7 @@ function updatePackageJson (outputDir, config) {
         const kebabCase = changeCase.kebabCase(formalNounName)
 
         generatedLines.push(
-          `${spacePrefix}"test-e2e-${kebabCase}": ` +
+          `${spacePrefix}"test-e2e-${kebabCase}": "cross-env ` +
           `MOCHA_SUITE_NAME=\\"Mocha E2E ${formalNounName} Tests\\" ` +
           `c8 --report-dir='coverage/e2e-${kebabCase}' ` +
           `mocha ${test.mochaPostfix} --reporter-options mochaFile=junit-e2e-${kebabCase}.xml ` +
