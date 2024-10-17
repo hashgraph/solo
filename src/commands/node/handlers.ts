@@ -15,20 +15,17 @@
  *
  */
 
-'use strict'
-
-import * as helpers from '../../core/helpers.mjs'
-import * as NodeFlags from './flags.mjs'
+import * as helpers from '../../core/helpers.ts'
+import * as NodeFlags from './flags.ts'
 import {
   addConfigBuilder,
   deleteConfigBuilder,
   downloadGeneratedFilesConfigBuilder, keysConfigBuilder, logsConfigBuilder,
   prepareUpgradeConfigBuilder, refreshConfigBuilder, setupConfigBuilder, startConfigBuilder, stopConfigBuilder,
   updateConfigBuilder
-} from './configs.mjs'
-import { constants } from '../../core/index.mjs'
-import { IllegalArgumentError } from '../../core/errors.mjs'
-import * as flags from '../flags.mjs'
+} from './configs.ts'
+import { constants } from '../../core/index.ts'
+import { IllegalArgumentError } from '../../core/errors.ts'
 
 export class NodeCommandHandlers {
   /**

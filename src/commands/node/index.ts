@@ -14,24 +14,46 @@
  * limitations under the License.
  *
  */
-'use strict'
-import { IllegalArgumentError } from '../../core/errors.mjs'
-import { YargsCommand } from '../../core/index.mjs'
-import { BaseCommand } from './../base.mjs'
-import { NodeCommandTasks } from './tasks.mjs'
-import * as NodeFlags from './flags.mjs'
-import { NodeCommandHandlers } from './handlers.mjs'
+
+import { IllegalArgumentError } from '../../core/errors.ts'
+import {
+  ChartManager,
+  ConfigManager,
+  Helm,
+  K8, KeyManager,
+  PackageDownloader,
+  PlatformInstaller, ProfileManager,
+  YargsCommand
+} from '../../core/index.ts'
+import { BaseCommand } from './../base.ts'
+import { NodeCommandTasks } from './tasks.ts'
+import * as NodeFlags from './flags.ts'
+import { NodeCommandHandlers } from './handlers.ts'
+import type {AccountManager} from "../../core/account_manager.ts";
+import {SoloLogger} from "../../core/logging.js";
+import {DependencyManager} from "../../core/dependency_managers/index.js";
 
 /**
  * Defines the core functionalities of 'node' command
  */
 export class NodeCommand extends BaseCommand {
-  /**
-     * @param {{logger: SoloLogger, helm: Helm, k8: K8, chartManager: ChartManager, configManager: ConfigManager,
-     * depManager: DependencyManager, downloader: PackageDownloader,
-     * platformInstaller: PlatformInstaller, keyManager: KeyManager, accountManager: AccountManager,
-     * profileManager: ProfileManager}} opts
-     */
+
+  private readonly logger: SoloLogger
+  private readonly helm: Helm
+  private readonly k8: K8
+  private readonly chartManager: ChartManager
+  private readonly configManager: ConfigManager
+  private readonly depManager: DependencyManager
+  private readonly downloader: PackageDownloader
+  private readonly platformInstaller: PlatformInstaller
+  private readonly keyManager: KeyManager
+  private readonly accountManager: AccountManager
+  private readonly profileManager: ProfileManager
+
+  private readonly tasks: NodeCommandTasks
+  private readonly handlers: NodeCommandHandlers
+  private _portForwards: any
+
   constructor (opts) {
     super(opts)
 

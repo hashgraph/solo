@@ -16,7 +16,17 @@
  */
 
 
-import { type ConfigManager, constants, type K8, Task, Templates, Zippy } from '../../core/index.ts'
+import {
+  ChartManager,
+  type ConfigManager,
+  constants,
+  type K8,
+  PlatformInstaller,
+  ProfileManager,
+  Task,
+  Templates,
+  Zippy
+} from '../../core/index.ts'
 import {
   DEFAULT_NETWORK_NODE_NAME,
   FREEZE_ADMIN_ACCOUNT, HEDERA_NODE_DEFAULT_STAKE_AMOUNT,
@@ -57,19 +67,24 @@ import type { Listr, ListrTaskWrapper } from 'listr2'
 import { type NodeAlias, type NodeAliases } from '../../types/aliases.ts'
 import { NodeStatusCodes, NodeStatusEnums } from '../../core/enumerations.ts'
 import * as x509 from '@peculiar/x509'
+import {NodeCommand} from "./index.js";
 
 export class NodeCommandTasks {
   private readonly accountManager: AccountManager
   private readonly configManager: ConfigManager
-  private readonly keyManager: accountManager
-  private readonly profileManager: profileManager
+  private readonly keyManager: AccountManager
+  private readonly profileManager: ProfileManager
   private readonly platformInstaller: PlatformInstaller
   private readonly logger: SoloLogger
   private readonly k8: K8
   private readonly parent: NodeCommand
   private readonly chartManager: ChartManager
 
-  constructor (opts: { logger: SoloLogger; accountManager: AccountManager; configManager: ConfigManager, k8: K8 }) {
+  private readonly prepareValuesFiles: any
+
+  constructor (opts: { logger: SoloLogger; accountManager: AccountManager; configManager: ConfigManager,
+    k8: K8, platformInstaller: PlatformInstaller, keyManager: AccountManager, profileManager: ProfileManager,
+  chartManager: ChartManager, parent: NodeCommand}) {
     if (!opts || !opts.accountManager) throw new IllegalArgumentError('An instance of core/AccountManager is required', opts.accountManager as any)
     if (!opts || !opts.configManager) throw new Error('An instance of core/ConfigManager is required')
     if (!opts || !opts.logger) throw new Error('An instance of core/Logger is required')
