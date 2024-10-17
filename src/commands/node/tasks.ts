@@ -37,7 +37,7 @@ import chalk from 'chalk'
 import * as flags from '../flags.ts'
 import { type SoloLogger } from '../../core/logging.ts'
 import { type AccountManager } from '../../core/account_manager.ts'
-import { Listr, ListrTaskWrapper } from 'listr2'
+import type { Listr, ListrTaskWrapper } from 'listr2'
 import { type NodeAlias, type NodeAliases } from '../../types/aliases.ts'
 
 export class NodeCommandTasks {

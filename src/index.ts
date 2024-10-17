@@ -34,21 +34,7 @@ import { K8 } from './core/k8.ts'
 import { AccountManager } from './core/account_manager.ts'
 import { ListrLogger } from 'listr2'
 import { CustomProcessOutput } from './core/process_output.ts'
-import { type SoloLogger } from './core/logging.ts'
-
-export interface Opts {
-  logger: SoloLogger
-  helm: Helm
-  k8: K8
-  downloader: PackageDownloader
-  platformInstaller: PlatformInstaller
-  chartManager: ChartManager
-  configManager: ConfigManager
-  depManager: DependencyManager
-  keyManager: KeyManager
-  accountManager: AccountManager
-  profileManager: ProfileManager
-}
+import { type Opts } from './types/index.js'
 
 export function main (argv: any) {
   const logger = logging.NewLogger('debug')

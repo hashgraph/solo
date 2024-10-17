@@ -20,8 +20,9 @@ import { SoloError, IllegalArgumentError } from '../core/errors.ts'
 import { ConfigManager, constants } from '../core/index.ts'
 import * as flags from './flags.ts'
 import * as helpers from '../core/helpers.ts'
-import { CommandFlag, resetDisabledPrompts } from './flags.ts'
-import { ListrTaskWrapper } from 'listr2'
+import { resetDisabledPrompts } from './flags.ts'
+import type { ListrTaskWrapper } from 'listr2'
+import { type CommandFlag } from '../types/index.js'
 
 async function prompt (type: string, task: ListrTaskWrapper<any, any, any>, input: any, defaultValue: any, promptMessage: string, emptyCheckMessage: string | null, flagName: string) {
   try {
@@ -510,7 +511,7 @@ export async function execute (task: ListrTaskWrapper<any, any, any>, configMana
  * Disable prompts for the given set of flags
  * @param flags list of flags to disable prompts for
  */
-export function disablePrompts (flags: flags.CommandFlag[]) {
+export function disablePrompts (flags: CommandFlag[]) {
   resetDisabledPrompts()
   for (const flag of flags) {
     if (flag.definition) {

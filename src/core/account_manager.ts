@@ -17,6 +17,7 @@
 import * as Base64 from 'js-base64'
 import os from 'os'
 import * as constants from './constants.ts'
+import type { Key } from '@hashgraph/sdk'
 import {
   AccountCreateTransaction,
   AccountId,
@@ -26,7 +27,7 @@ import {
   FileContentsQuery,
   FileId,
   Hbar,
-  HbarUnit, Key,
+  HbarUnit,
   KeyList,
   Logger,
   LogLevel,
@@ -37,7 +38,8 @@ import {
 import { SoloError, MissingArgumentError } from './errors.ts'
 import { Templates } from './templates.ts'
 import ip from 'ip'
-import { NetworkNodeServices, NetworkNodeServicesBuilder } from './network_node_services.ts'
+import type { NetworkNodeServices } from './network_node_services.ts'
+import { NetworkNodeServicesBuilder } from './network_node_services.ts'
 import path from 'path'
 
 import { type SoloLogger } from './logging.ts'

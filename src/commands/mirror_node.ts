@@ -23,8 +23,8 @@ import * as flags from './flags.ts'
 import * as prompts from './prompts.ts'
 import { getFileContents, getEnvValue } from '../core/helpers.ts'
 import { type AccountManager } from '../core/account_manager.ts'
-import { type Opts } from '../index.ts'
 import { type PodName } from '../types/aliases.ts'
+import { type Opts } from '../types/index.js'
 
 export class MirrorNodeCommand extends BaseCommand {
   private readonly accountManager: AccountManager

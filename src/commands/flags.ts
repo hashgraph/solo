@@ -18,20 +18,7 @@ import { constants } from '../core/index.ts'
 import * as core from '../core/index.ts'
 import * as version from '../../version.ts'
 import path from 'path'
-
-export interface CommandFlag {
-  constName: string
-  name: string
-  definition: Definition
-}
-
-export interface Definition {
-  describe: string
-  defaultValue?: (boolean | string | number)
-  alias?: string
-  type?: string
-  disablePrompt?: boolean
-}
+import { type CommandFlag } from '../types/index.js'
 
 /**
  * Set flag from the flag option

@@ -25,7 +25,7 @@ import * as Base64 from 'js-base64'
 import chalk from 'chalk'
 
 import { type SoloLogger } from './logging.ts'
-import { NodeAlias, NodeAliases, PodName } from '../types/aliases.ts'
+import type { NodeAlias, NodeAliases, PodName } from '../types/aliases.ts'
 
 /** PlatformInstaller install platform code in the root-container of a network pod */
 export class PlatformInstaller {

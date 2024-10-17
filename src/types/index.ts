@@ -17,15 +17,21 @@
 import type * as x509 from '@peculiar/x509'
 import type net from 'net'
 import type * as WebSocket from 'ws'
-import crypto from 'crypto'
+import type crypto from 'crypto'
+import type { SoloLogger } from '../core/logging.js'
+import type {
+  ChartManager, ConfigManager, Helm, K8, KeyManager, PackageDownloader, PlatformInstaller, ProfileManager
+} from '../core/index.js'
+import type { DependencyManager } from '../core/dependency_managers/index.js'
+import type { AccountManager } from '../core/account_manager.js'
 
-export interface NodeKeyObject {
+export type NodeKeyObject = {
   privateKey: crypto.webcrypto.CryptoKey
   certificate: x509.X509Certificate
   certificateChain: x509.X509Certificates
 }
 
-export interface PrivateKeyAndCertificateObject {
+export type PrivateKeyAndCertificateObject = {
   privateKeyFile: string
   certificateFile: string
 }
@@ -35,14 +41,42 @@ export interface ExtendedNetServer extends net.Server {
   info: string
 }
 
-export interface LocalContextObject {
+export type LocalContextObject = {
   reject: (reason?: any) => void
   connection: WebSocket.WebSocket
   errorMessage: string
 }
 
-export interface AccountIdWithKeyPairObject {
+export type AccountIdWithKeyPairObject = {
   accountId: string
   privateKey: string
   publicKey: string
+}
+
+export type CommandFlag = {
+  constName: string
+  name: string
+  definition: Definition
+}
+
+export type Definition = {
+  describe: string
+  defaultValue?: (boolean | string | number)
+  alias?: string
+  type?: string
+  disablePrompt?: boolean
+}
+
+export interface Opts {
+  logger: SoloLogger
+  helm: Helm
+  k8: K8
+  downloader: PackageDownloader
+  platformInstaller: PlatformInstaller
+  chartManager: ChartManager
+  configManager: ConfigManager
+  depManager: DependencyManager
+  keyManager: KeyManager
+  accountManager: AccountManager
+  profileManager: ProfileManager
 }

@@ -29,9 +29,9 @@ import { Listr } from 'listr2'
 import * as yaml from 'js-yaml'
 import { type AccountManager } from './account_manager.ts'
 import { type BaseCommand } from '../commands/base.ts'
-import { CommandFlag } from '../commands/flags.ts'
 import { type NodeAlias, type NodeAliases, type PodName } from '../types/aliases.ts'
 import { type NodeDeleteConfigClass } from '../commands/node.ts'
+import { type CommandFlag } from '../types/index.js'
 
 // cache current directory
 const CUR_FILE_DIR = paths.dirname(fileURLToPath(import.meta.url))

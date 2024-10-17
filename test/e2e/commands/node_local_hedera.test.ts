@@ -24,7 +24,7 @@ import {
 } from '../../test_util.ts'
 import { getNodeLogs } from '../../../src/core/helpers.ts'
 import { MINUTES } from '../../../src/core/constants.ts'
-import { K8 } from '../../../src/core/index.ts'
+import type { K8 } from '../../../src/core/index.ts'
 
 describe('Node local build', () => {
   const LOCAL_HEDERA = 'local-hedera-app'

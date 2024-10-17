@@ -17,7 +17,8 @@
 import * as x509 from '@peculiar/x509'
 import chalk from 'chalk'
 import * as fs from 'fs'
-import { Listr, ListrTask, ListrTaskWrapper } from 'listr2'
+import type { ListrTask, ListrTaskWrapper } from 'listr2'
+import { Listr } from 'listr2'
 import path from 'path'
 import { SoloError, IllegalArgumentError } from '../core/errors.ts'
 import * as helpers from '../core/helpers.ts'
@@ -29,12 +30,13 @@ import {
   sleep,
   validatePath
 } from '../core/helpers.ts'
-import {
-  constants,
+import type {
   K8,
   KeyManager,
   PlatformInstaller,
-  ProfileManager,
+  ProfileManager } from '../core/index.ts'
+import {
+  constants,
   Templates,
   YargsCommand
 } from '../core/index.ts'
@@ -66,9 +68,8 @@ import { downloadGeneratedFilesConfigBuilder, prepareUpgradeConfigBuilder } from
 
 import { type NetworkNodeServices } from '../core/network_node_services.ts'
 import { type AccountManager } from '../core/account_manager.ts'
-import { type Opts } from '../index.ts'
 import { type NodeAlias, type NodeAliases, type PodName } from '../types/aliases.ts'
-import { type ExtendedNetServer } from '../types/index.ts'
+import { type ExtendedNetServer, type Opts } from '../types/index.ts'
 
 export interface NodeAddConfigClass {
   app: string

@@ -20,7 +20,7 @@ import AdmZip from 'adm-zip'
 import * as tar from 'tar'
 import chalk from 'chalk'
 import path from 'path'
-import { SoloLogger } from './logging.ts'
+import type { SoloLogger } from './logging.ts'
 
 export class Zippy {
   constructor (private readonly logger: SoloLogger) {

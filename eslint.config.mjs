@@ -57,8 +57,8 @@ export default [
       'no-else-return': 'error',
       '@typescript-eslint/array-type': [ 'error', { default: 'array' } ],
       '@typescript-eslint/consistent-generic-constructors': 'error',
-      '@typescript-eslint/consistent-indexed-object-style': [ 'error', 'record' ]
-
+      '@typescript-eslint/consistent-indexed-object-style': [ 'error', 'record' ],
+      "@typescript-eslint/consistent-type-imports": ["error", { fixStyle: 'inline-type-imports'}]
     }
   },
   {
@@ -83,6 +83,7 @@ export default [
       'no-empty': 'off',
       '@typescript-eslint/no-extraneous-class': 'off',
       '@typescript-eslint/no-non-null-assertion': 'off',
+      'no-duplicate-imports': 'off'
     },
   },
 ]

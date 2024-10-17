@@ -16,7 +16,8 @@
  */
 import 'sinon-chai'
 
-import sinon, { SinonSpy, SinonStub } from 'sinon'
+import type { SinonSpy, SinonStub } from 'sinon'
+import sinon from 'sinon'
 import { expect } from 'chai'
 import { describe, it, beforeEach, afterEach } from 'mocha'
 import { ShellRunner } from '../../../src/core/shell_runner.ts'

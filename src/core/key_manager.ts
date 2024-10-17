@@ -26,7 +26,7 @@ import * as helpers from './helpers.ts'
 import chalk from 'chalk'
 import { type NodeAlias, type NodeAliases } from '../types/aliases.ts'
 import { type NodeKeyObject, type PrivateKeyAndCertificateObject } from '../types/index.ts'
-import { ListrTask } from 'listr2'
+import type { ListrTask } from 'listr2'
 
 // @ts-ignore
 x509.cryptoProvider.set(crypto)

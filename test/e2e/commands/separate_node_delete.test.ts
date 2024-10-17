@@ -30,7 +30,7 @@ import { getNodeLogs, getTmpDir } from '../../../src/core/helpers.ts'
 import { NodeCommand } from '../../../src/commands/node.ts'
 import { HEDERA_HAPI_PATH, MINUTES, ROOT_CONTAINER } from '../../../src/core/constants.ts'
 import fs from 'fs'
-import { NodeAlias, PodName } from '../../../src/types/aliases.ts'
+import type { NodeAlias, PodName } from '../../../src/types/aliases.ts'
 
 describe('Node delete via separated commands', async () => {
   const namespace = 'node-delete-separate'

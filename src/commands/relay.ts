@@ -17,14 +17,15 @@
 import { Listr } from 'listr2'
 import { SoloError, MissingArgumentError } from '../core/errors.ts'
 import * as helpers from '../core/helpers.ts'
-import { constants, ProfileManager } from '../core/index.ts'
+import type { ProfileManager } from '../core/index.ts'
+import { constants } from '../core/index.ts'
 import { BaseCommand } from './base.ts'
 import * as flags from './flags.ts'
 import * as prompts from './prompts.ts'
 import { getNodeAccountMap } from '../core/helpers.ts'
-import { AccountManager } from '../core/account_manager.ts'
-import { type Opts } from '../index.ts'
+import type { AccountManager } from '../core/account_manager.ts'
 import { type NodeAliases } from '../types/aliases.ts'
+import { type Opts } from '../types/index.js'
 
 export class RelayCommand extends BaseCommand {
   private readonly profileManager: ProfileManager

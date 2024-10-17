@@ -19,7 +19,7 @@ import { constants } from './index.ts'
 import { ShellRunner } from './shell_runner.ts'
 import { Templates } from './templates.ts'
 import { IllegalArgumentError } from './errors.ts'
-import { SoloLogger } from './logging.ts'
+import type { SoloLogger } from './logging.ts'
 
 export class Helm extends ShellRunner {
   private readonly helmPath: string

@@ -13,10 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
- */ export type NodeId = number
-/** the alias of the node */ export type NodeAlias = `node${number}`
-/** the full pod name */ export type PodName = `network-${NodeAlias}-0`
+ */
+export type NodeId = number
+export type NodeAlias = `node${number}`
+export type PodName = `network-${NodeAlias}-0`
 
-/** list of the number of nodes */ export type NodeIds = NodeId[]
-/** list of the pod aliases */ export type NodeAliases = NodeAlias[]
-/** list of the pod names */ export type PodNames = PodName[]
+export type NodeIds = NodeId[]
+export type NodeAliases = NodeAlias[]
+export type PodNames = PodName[]
+
