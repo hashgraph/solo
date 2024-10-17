@@ -60,14 +60,14 @@ describe('Node upgrade', async () => {
   }).timeout(8 * MINUTES)
 
   it('should prepare network upgrade successfully', async () => {
-    await nodeCmd.prepareUpgrade(upgradeArgv)
+    await nodeCmd.handlers.prepareUpgrade(upgradeArgv)
     expect(nodeCmd.getUnusedConfigs(PREPARE_UPGRADE_CONFIGS_NAME)).to.deep.equal([
       flags.devMode.constName
     ])
   }).timeout(5 * MINUTES)
 
   it('should download generated files successfully', async () => {
-    await nodeCmd.downloadGeneratedFiles(upgradeArgv)
+    await nodeCmd.handlers.downloadGeneratedFiles(upgradeArgv)
     expect(nodeCmd.getUnusedConfigs(DOWNLOAD_GENERATED_FILES_CONFIGS_NAME)).to.deep.equal([
       flags.devMode.constName,
       'allNodeAliases'
@@ -75,7 +75,7 @@ describe('Node upgrade', async () => {
   }).timeout(5 * MINUTES)
 
   it('should upgrade all nodes on the network successfully', async () => {
-    await nodeCmd.freezeUpgrade(upgradeArgv)
+    await nodeCmd.handlers.freezeUpgrade(upgradeArgv)
     expect(nodeCmd.getUnusedConfigs(PREPARE_UPGRADE_CONFIGS_NAME)).to.deep.equal([
       flags.devMode.constName
     ])

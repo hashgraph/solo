@@ -18,6 +18,7 @@
 import { expect } from 'chai'
 import { describe, it, after } from 'mocha'
 
+import { flags } from '../src/commands/index.ts'
 import {
   accountCreationShouldSucceed,
   balanceQueryShouldSucceed,
@@ -29,7 +30,7 @@ import {
 } from './test_util.ts'
 import { flags } from '../src/commands/index.ts'
 import { getNodeLogs } from '../src/core/helpers.ts'
-import { NodeCommand } from '../src/commands/node.ts'
+import * as NodeCommandConfigs from '../src/commands/node/configs.ts'
 import { MINUTES } from '../src/core/constants.ts'
 import type { NodeAlias } from '../src/types/aliases.ts'
 import type { NetworkNodeServices } from '../src/core/network_node_services.ts'
@@ -66,7 +67,7 @@ export function testNodeAdd (localBuildPath: string) {
       await getNodeLogs(k8, namespace)
       // @ts-ignore: Accessing private property for test purposes
       await nodeCmd.accountManager.close()
-      await nodeCmd.stop(argv)
+      await nodeCmd.handlers.stop(argv)
       await networkCmd.destroy(argv)
       await k8.deleteNamespace(namespace)
     })
@@ -82,8 +83,8 @@ export function testNodeAdd (localBuildPath: string) {
     }).timeout(8 * MINUTES)
 
     it('should add a new node to the network successfully', async () => {
-      await nodeCmd.add(argv)
-      expect(nodeCmd.getUnusedConfigs(NodeCommand.ADD_CONFIGS_NAME)).to.deep.equal([
+      await nodeCmd.handlers.add(argv)
+      expect(nodeCmd.getUnusedConfigs(NodeCommandConfigs.ADD_CONFIGS_NAME)).to.deep.equal([
         flags.app.constName,
         flags.chainId.constName,
         flags.devMode.constName,

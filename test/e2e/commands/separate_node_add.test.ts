@@ -28,7 +28,7 @@ import {
   HEDERA_PLATFORM_VERSION_TAG
 } from '../../test_util.ts'
 import { getNodeLogs } from '../../../src/core/helpers.ts'
-import { NodeCommand } from '../../../src/commands/node.ts'
+import * as NodeCommandConfigs from '../../../src/commands/node/configs.ts'
 import { MINUTES } from '../../../src/core/constants.ts'
 
 describe('Node add via separated commands should success', async () => {
@@ -50,9 +50,11 @@ describe('Node add via separated commands should success', async () => {
 
   const tempDir = 'contextDir'
   argvPrepare[flags.outputDir.name] = tempDir
+  argvPrepare[flags.outputDir.constName] = tempDir
 
   const argvExecute = getDefaultArgv()
   argvExecute[flags.inputDir.name] = tempDir
+  argvExecute[flags.inputDir.constName] = tempDir
 
   const bootstrapResp = await bootstrapNetwork(namespace, argv)
   const nodeCmd = bootstrapResp.cmd.nodeCmd
@@ -68,7 +70,7 @@ describe('Node add via separated commands should success', async () => {
     await getNodeLogs(k8, namespace)
     // @ts-ignore
     await nodeCmd.accountManager.close()
-    await nodeCmd.stop(argv)
+    await nodeCmd.handlers.stop(argv)
     await networkCmd.destroy(argv)
     await k8.deleteNamespace(namespace)
   })
@@ -85,10 +87,10 @@ describe('Node add via separated commands should success', async () => {
   }).timeout(8 * MINUTES)
 
   it('should add a new node to the network via the segregated commands successfully', async () => {
-    await nodeCmd.addPrepare(argvPrepare)
-    await nodeCmd.addSubmitTransactions(argvExecute)
-    await nodeCmd.addExecute(argvExecute)
-    expect(nodeCmd.getUnusedConfigs(NodeCommand.ADD_CONFIGS_NAME)).to.deep.equal([
+    await nodeCmd.handlers.addPrepare(argvPrepare)
+    await nodeCmd.handlers.addSubmitTransactions(argvExecute)
+    await nodeCmd.handlers.addExecute(argvExecute)
+    expect(nodeCmd.getUnusedConfigs(NodeCommandConfigs.ADD_CONFIGS_NAME)).to.deep.equal([
       flags.app.constName,
       flags.chainId.constName,
       flags.devMode.constName,

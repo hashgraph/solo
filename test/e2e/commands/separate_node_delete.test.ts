@@ -27,10 +27,10 @@ import {
   HEDERA_PLATFORM_VERSION_TAG
 } from '../../test_util.ts'
 import { getNodeLogs, getTmpDir } from '../../../src/core/helpers.ts'
-import { NodeCommand } from '../../../src/commands/node.ts'
 import { HEDERA_HAPI_PATH, MINUTES, ROOT_CONTAINER } from '../../../src/core/constants.ts'
 import fs from 'fs'
 import type { NodeAlias, PodName } from '../../../src/types/aliases.ts'
+import * as NodeCommandConfigs from '../../../src/commands/node/configs.ts'
 
 describe('Node delete via separated commands', async () => {
   const namespace = 'node-delete-separate'
@@ -71,10 +71,10 @@ describe('Node delete via separated commands', async () => {
   }).timeout(8 * MINUTES)
 
   it('should delete a node from the network successfully', async () => {
-    await nodeCmd.deletePrepare(argvPrepare)
-    await nodeCmd.deleteSubmitTransactions(argvExecute)
-    await nodeCmd.deleteExecute(argvExecute)
-    expect(nodeCmd.getUnusedConfigs(NodeCommand.DELETE_CONFIGS_NAME)).to.deep.equal([
+    await nodeCmd.handlers.deletePrepare(argvPrepare)
+    await nodeCmd.handlers.deleteSubmitTransactions(argvExecute)
+    await nodeCmd.handlers.deleteExecute(argvExecute)
+    expect(nodeCmd.getUnusedConfigs(NodeCommandConfigs.DELETE_CONFIGS_NAME)).to.deep.equal([
       flags.app.constName,
       flags.devMode.constName,
       flags.endpointType.constName,
