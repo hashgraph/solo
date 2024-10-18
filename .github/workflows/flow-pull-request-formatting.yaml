@@ -41,6 +41,11 @@ jobs:
     name: Title Check
     runs-on: solo-linux-medium
     steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@91182cccc01eb5e619899d80e4e971d6181294a7 # v2.10.1
+        with:
+          egress-policy: audit
+
       - name: Check PR Title
         uses: step-security/conventional-pr-title-action@19fb561b33015fd2184055a05ce5a3bcf2ba3f54 # v3.2.0
         env:
