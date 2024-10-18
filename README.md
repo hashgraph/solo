@@ -76,7 +76,6 @@ Then run the following command to set the kubectl context to the new cluster:
 ```bash
 kind create cluster -n "${SOLO_CLUSTER_NAME}"
 ```
-
 Example output
 
 ```
@@ -92,10 +91,11 @@ You can now use your cluster with:
 
 kubectl cluster-info --context kind-solo
 
-Have a nice day! 👋
+Have a question, bug, or feature request? Let us know! https://kind.sigs.k8s.io/#community 🙂
 ```
 
 You may now view pods in your cluster using `k9s -A` as below:
+
 
 ```
  Context: kind-solo                                <0> all   <a>       Attach       <ctr… ____  __.________
@@ -141,13 +141,13 @@ solo init -t v0.54.0-alpha.4 -i node1,node2,node3 -n "${SOLO_NAMESPACE}" -s "${S
 ```
 
 ******************************* Solo *********************************************
-Version			: 0.31.0
+Version			: 0.31.1
 Kubernetes Context	: kind-solo
 Kubernetes Cluster	: kind-solo
 Kubernetes Namespace	: solo
 **********************************************************************************
 ✔ Setup home directory and cache
-✔ Check dependency: helm [OS: linux, Release: 5.15.0-119-generic, Arch: x64]
+✔ Check dependency: helm [OS: linux, Release: 5.15.0-118-generic, Arch: x64]
 ✔ Check dependencies
 ✔ Setup chart manager
 
@@ -169,7 +169,7 @@ solo node keys --gossip-keys --tls-keys
 ```
 
 ******************************* Solo *********************************************
-Version			: 0.31.0
+Version			: 0.31.1
 Kubernetes Context	: kind-solo
 Kubernetes Cluster	: kind-solo
 Kubernetes Namespace	: solo
@@ -187,16 +187,13 @@ Kubernetes Namespace	: solo
 ✔ Generate gRPC TLS keys
 ✔ Finalize
 ```
-
 PEM key files are generated in `~/.solo/keys` directory.
-
 ```
 hedera-node1.crt    hedera-node3.crt    s-private-node1.pem s-public-node1.pem  unused-gossip-pem
 hedera-node1.key    hedera-node3.key    s-private-node2.pem s-public-node2.pem  unused-tls
 hedera-node2.crt    hedera-node4.crt    s-private-node3.pem s-public-node3.pem
 hedera-node2.key    hedera-node4.key    s-private-node4.pem s-public-node4.pem
 ```
-
 * Setup cluster with shared components
 
 ```
@@ -208,7 +205,7 @@ solo cluster setup
 ```
 
 ******************************* Solo *********************************************
-Version			: 0.31.0
+Version			: 0.31.1
 Kubernetes Context	: kind-solo
 Kubernetes Cluster	: kind-solo
 Kubernetes Namespace	: solo
@@ -233,7 +230,7 @@ solo network deploy
 ```
 
 ******************************* Solo *********************************************
-Version			: 0.31.0
+Version			: 0.31.1
 Kubernetes Context	: kind-solo
 Kubernetes Cluster	: kind-solo
 Kubernetes Namespace	: solo
@@ -243,24 +240,24 @@ Kubernetes Namespace	: solo
 ✔ Copy gRPC TLS keys to staging
 ✔ Prepare staging directory
 ✔ Copy Gossip keys
-✔ Node: node1
-✔ Copy Gossip keys
-✔ Node: node3
+✔ Node: node2
 ✔ Copy TLS keys
 ✔ Copy Gossip keys
-✔ Node: node2
+✔ Node: node3
+✔ Copy Gossip keys
+✔ Node: node1
 ✔ Copy node keys to secrets
 ✔ Install chart 'solo-deployment'
 ✔ Check Node: node1
 ✔ Check Node: node2
 ✔ Check Node: node3
 ✔ Check node pods are running
+✔ Check Envoy Proxy for: node3
 ✔ Check Envoy Proxy for: node2
 ✔ Check Envoy Proxy for: node1
-✔ Check Envoy Proxy for: node3
+✔ Check HAProxy for: node2
 ✔ Check HAProxy for: node1
 ✔ Check HAProxy for: node3
-✔ Check HAProxy for: node2
 ✔ Check proxy pods are running
 ✔ Check MinIO
 ✔ Check auxiliary pods are ready
@@ -278,26 +275,26 @@ solo node setup
 ```
 
 ******************************* Solo *********************************************
-Version			: 0.31.0
+Version			: 0.31.1
 Kubernetes Context	: kind-solo
 Kubernetes Cluster	: kind-solo
 Kubernetes Namespace	: solo
 **********************************************************************************
 ✔ Initialize
 ✔ Check network pod: node1
-✔ Check network pod: node3
 ✔ Check network pod: node2
+✔ Check network pod: node3
 ✔ Identify network pods
-✔ Update node: node3 [ platformVersion = v0.54.0-alpha.4 ]
 ✔ Update node: node2 [ platformVersion = v0.54.0-alpha.4 ]
 ✔ Update node: node1 [ platformVersion = v0.54.0-alpha.4 ]
+✔ Update node: node3 [ platformVersion = v0.54.0-alpha.4 ]
 ✔ Fetch platform software into network nodes
 ✔ Set file permissions
 ✔ Node: node1
 ✔ Set file permissions
-✔ Node: node3
-✔ Set file permissions
 ✔ Node: node2
+✔ Set file permissions
+✔ Node: node3
 ✔ Setup network nodes
 ```
 
@@ -312,23 +309,23 @@ solo node start
 ```
 
 ******************************* Solo *********************************************
-Version			: 0.31.0
+Version			: 0.31.1
 Kubernetes Context	: kind-solo
 Kubernetes Cluster	: kind-solo
 Kubernetes Namespace	: solo
 **********************************************************************************
 ✔ Initialize
-✔ Check network pod: node3
 ✔ Check network pod: node1
+✔ Check network pod: node3
 ✔ Check network pod: node2
 ✔ Identify existing network nodes
 ✔ Start node: node1
 ✔ Start node: node3
 ✔ Start node: node2
 ✔ Starting nodes
-✔ Check network pod: node1  - status ACTIVE, attempt: 16/120
-✔ Check network pod: node2  - status ACTIVE, attempt: 17/120
+✔ Check network pod: node2  - status ACTIVE, attempt: 16/120
 ✔ Check network pod: node3  - status ACTIVE, attempt: 17/120
+✔ Check network pod: node1  - status ACTIVE, attempt: 17/120
 ✔ Check nodes are ACTIVE
 ✔ Check proxy for node: node1
 ✔ Check proxy for node: node2
@@ -351,7 +348,7 @@ solo mirror-node deploy
 ```
 
 ******************************* Solo *********************************************
-Version			: 0.31.0
+Version			: 0.31.1
 Kubernetes Context	: kind-solo
 Kubernetes Cluster	: kind-solo
 Kubernetes Namespace	: solo
@@ -363,9 +360,9 @@ Kubernetes Namespace	: solo
 ✔ Check Hedera Explorer
 ✔ Check Postgres DB
 ✔ Check GRPC
+✔ Check REST API
 ✔ Check Monitor
 ✔ Check Importer
-✔ Check REST API
 ✔ Check pods are ready
 ✔ Insert data in public.file_data
 ✔ Seed DB data
@@ -382,7 +379,7 @@ solo relay deploy
 ```
 
 ******************************* Solo *********************************************
-Version			: 0.31.0
+Version			: 0.31.1
 Kubernetes Context	: kind-solo
 Kubernetes Cluster	: kind-solo
 Kubernetes Namespace	: solo
@@ -454,7 +451,17 @@ Once the nodes are up, you may now expose various services (using `k9s` (shift-f
   kubectl port-forward svc/haproxy-node3-svc -n "${SOLO_NAMESPACE}" 52211:50211 &
   ```
 * Envoy Proxy: `envoy-proxy-<node ID>-svc`
+  ```bash
+  # enable portforwarding for envoy proxy
+  kubectl port-forward svc/envoy-proxy-node1-svc -n "${SOLO_NAMESPACE}" 8181:8080 &
+  kubectl port-forward svc/envoy-proxy-node2-svc -n "${SOLO_NAMESPACE}" 8281:8080 &
+  kubectl port-forward svc/envoy-proxy-node3-svc -n "${SOLO_NAMESPACE}" 8381:8080 &
+  ```
 * Hedera explorer: `solo-deployment-hedera-explorer`
+  ```bash
+  #enable portforwarding for hedera explorer, can be access at http://localhost:8080/
+  kubectl port-forward svc/solo-deployment-hedera-explorer -n "${SOLO_NAMESPACE}" 8080:80 &
+  ```
 * JSON Rpc Relays
   * You can deploy JSON RPC relays for one or more nodes as below:
   ```bash
@@ -468,7 +475,7 @@ Example output
 ```
 
 ******************************* Solo *********************************************
-Version			: 0.31.0
+Version			: 0.31.1
 Kubernetes Context	: kind-solo
 Kubernetes Cluster	: kind-solo
 Kubernetes Namespace	: solo
@@ -489,7 +496,6 @@ To set customized `settings.txt` file, edit the file
 `~/.solo/cache/templates/settings.txt` after `solo init` command.
 
 Then you can start customized built hedera network with the following command:
-
 ```
 solo node setup --local-build-path <default path to hedera repo>,node1=<custom build hedera repo>,node2=<custom build repo>
 
@@ -499,15 +505,12 @@ solo node setup --local-build-path <default path to hedera repo>,node1=<custom b
 ## For Developers Working on Platform core
 
 To deploy node with local build PTT jar files, run the following command:
-
 ```
 solo node setup --local-build-path <default path to hedera repo>,node1=<custom build hedera repo>,node2=<custom build repo> --app PlatformTestingTool.jar --app-config <path-to-test-json1,path-to-test-json2>
 
 # example: solo node setup --local-build-path ../hedera-services/platform-sdk/sdk/data,node1=../hedera-services/platform-sdk/sdk/data,node2=../hedera-services/platform-sdk/sdk/data --app PlatformTestingTool.jar --app-config ../hedera-services/platform-sdk/platform-apps/tests/PlatformTestingTool/src/main/resources/FCMFCQ-Basic-2.5k-5m.json
 ```
-
 ## Logs
-
 You can find log for running solo command under the directory `~/.solo/logs/`
 The file `solo.log` contains the logs for the solo command.
 The file `hashgraph-sdk.log` contains the logs from Solo client when sending transactions to network nodes.
@@ -517,7 +520,6 @@ The file `hashgraph-sdk.log` contains the logs from Solo client when sending tra
 NOTE: the hedera-services path referenced '../hedera-services/hedera-node/data' may need to be updated based on what directory you are currently in.  This also assumes that you have done an assemble/build and the directory contents are up-to-date.
 
 Example 1: attach jvm debugger to a hedera node
-
 ```bash
 ./test/e2e/setup-e2e.sh
 solo node keys --gossip-keys --tls-keys
