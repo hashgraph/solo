@@ -31,7 +31,7 @@ import {
   DependencyManager,
   HelmDependencyManager
 } from '../src/core/dependency_managers/index.ts'
-import { sleep } from '../src/core/helpers.ts'
+import { getNodeLogs, sleep } from '../src/core/helpers.ts'
 import {
   ChartManager,
   ConfigManager,
@@ -217,7 +217,9 @@ export function e2eTestSuite (
         bootstrapResp.opts.logger.showUser(`------------------------- START: bootstrap (${testName}) ----------------------------`)
       })
 
-      after(() => {
+      after(async function () {
+        this.timeout(3 * MINUTES)
+        await getNodeLogs(k8, namespace)
         bootstrapResp.opts.logger.showUser(`------------------------- END: bootstrap (${testName}) ----------------------------`)
       })
 
