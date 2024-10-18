@@ -209,7 +209,7 @@ export function e2eTestSuite (
   const nodeCmd = bootstrapResp.cmd.nodeCmd
   const chartManager = bootstrapResp.opts.chartManager
 
-  describe(`E2E Test Suite for '${testName}'`, () => {
+  describe(`E2E Test Suite for '${testName}'`, function () {
     this.bail(true) // stop on first failure, nothing else will matter if network doesn't come up correctly
 
     describe(`Bootstrap network for test [release ${argv[flags.releaseTag.name]}}]`, () => {
@@ -217,7 +217,7 @@ export function e2eTestSuite (
         bootstrapResp.opts.logger.showUser(`------------------------- START: bootstrap (${testName}) ----------------------------`)
       })
 
-      after(()=>{
+      after(() => {
         bootstrapResp.opts.logger.showUser(`------------------------- END: bootstrap (${testName}) ----------------------------`)
       })
 
