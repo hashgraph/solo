@@ -1,9 +1,5 @@
 #!/bin/bash
 set -eo pipefail
-echo "VERSION=${{ inputs.version }}"
-[[ -n "${{ inputs.version }}" ]] && npm version ${{ inputs.version }} -f --no-git-tag-version
-which solo
-
 export SOLO_CLUSTER_NAME=solo
 export SOLO_NAMESPACE=solo
 export SOLO_CLUSTER_SETUP_NAMESPACE=solo-cluster

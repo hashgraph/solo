@@ -115,6 +115,9 @@ jobs:
           npm run build
           npm install -g @hashgraph/solo
           npm link
+          echo "VERSION=${{ inputs.version }}"
+          [[ -n "${{ inputs.version }}" ]] && npm version ${{ inputs.version }} -f --no-git-tag-version
+          which solo
           chmod 755 ./.github/workflows/script/update_md.sh
           ./.github/workflows/script/update_md.sh
 
