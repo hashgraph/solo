@@ -17,8 +17,6 @@
 import { expect } from 'chai'
 import { describe, it, after, before } from 'mocha'
 import jest from 'jest-mock'
-import * as k8s from '@kubernetes/client-node'
-import { flags } from '../../../src/commands/index.mjs'
 
 import { constants, K8 } from '../../../src/core/index.ts'
 import { getTestConfigManager, testLogger } from '../../test_util.ts'
@@ -58,7 +56,8 @@ describe('K8 Unit Tests', function () {
       }
     }
   ]
-  // const k8InitSpy = jest.spyOn(K8.prototype, 'init').mockImplementation(() => {})
+  // @ts-ignore
+  const k8InitSpy = jest.spyOn(K8.prototype, 'init').mockImplementation(() => {})
   const k8GetPodsByLabelSpy = jest.spyOn(K8.prototype, 'getPodsByLabel').mockResolvedValue(expectedResult)
   let k8: K8
 
@@ -76,7 +75,7 @@ describe('K8 Unit Tests', function () {
   })
 
   after(() => {
-    // k8InitSpy.mockRestore()
+    k8InitSpy.mockRestore()
     k8GetPodsByLabelSpy.mockRestore()
   })
 
@@ -131,51 +130,4 @@ describe('K8 Unit Tests', function () {
       expect(e.message).to.contain('Expected number of pod (1) not found for labels: labels, phases: Running [attempts = ')
     }
   })
-  
-
-
-  it('createClusterRole should be able to create new cluster role', async () => {
-    const roleName = 'non-conflicting-cluster-role'
-    try {
-      const clusterRole = await k8.createClusterRole(roleName)
-
-      expect(clusterRole).toBeInstanceOf(k8s.V1ClusterRole)
-    } finally {
-      await k8.deleteClusterRole(roleName).catch()
-    }
-  }, defaultTimeout)
-
-  it('createClusterRole should not be able to create duplicates', async () => {
-    const roleName = 'conflicting-cluster-role'
-    try {
-      await k8.createClusterRole(roleName)
-      await k8.createClusterRole(roleName)
-
-      throw new Error('Expected method to throw an error, but it did not')
-    } catch (e) {
-      expect(e).not.toBeNull()
-      expect(e).toBeInstanceOf(FullstackTestingError)
-    } finally {
-      await k8.deleteClusterRole(roleName).catch()
-    }
-  }, defaultTimeout)
-
-  it('getClusterRole should throw error if no cluster role is found', async () => {
-    const roleName = 'not-found-cluster-role'
-    const role = await k8.getClusterRole(roleName)
-
-    expect(role).toBeNull()
-  }, defaultTimeout)
-
-  it('getClusterRole should get cluster role if it exists', async () => {
-    const roleName = 'found-cluster-name'
-    try {
-      await k8.createClusterRole(roleName)
-      const clusterRole = await k8.getClusterRole(roleName)
-
-      expect(clusterRole).toBeInstanceOf(k8s.V1ClusterRole)
-    } finally {
-      await k8.deleteClusterRole(roleName).catch()
-    }
-  }, defaultTimeout)
 })

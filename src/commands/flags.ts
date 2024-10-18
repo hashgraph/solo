@@ -18,7 +18,7 @@ import { constants } from '../core/index.ts'
 import * as core from '../core/index.ts'
 import * as version from '../../version.ts'
 import path from 'path'
-import { type CommandFlag } from '../types/index.js'
+import { type CommandFlag } from '../types/index.ts'
 
 /**
  * Set flag from the flag option
@@ -698,24 +698,6 @@ export const mirrorNodeVersion: CommandFlag = {
   }
 }
 
-export const clusterRoleUsername: CommandFlag = {
-  constName: 'clusterRoleUsername',
-  name: 'username',
-  definition: {
-    describe: 'The username for the cluster role',
-    type: 'string'
-  }
-}
-
-export const clusterRolePassword: CommandFlag = {
-  constName: 'clusterRolePassword',
-  name: 'password',
-  definition: {
-    describe: 'The password for the cluster role',
-    type: 'string'
-  }
-}
-
 export const allFlags: CommandFlag[] = [
   accountId,
   amount,
@@ -776,9 +758,7 @@ export const allFlags: CommandFlag[] = [
   tlsPublicKey,
   updateAccountKeys,
   valuesFile,
-  mirrorNodeVersion,
-  clusterRoleUsername,
-  clusterRolePassword
+  mirrorNodeVersion
 ]
 
 /** Resets the definition.disablePrompt for all flags */

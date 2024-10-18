@@ -22,7 +22,7 @@ import * as flags from './flags.ts'
 import * as helpers from '../core/helpers.ts'
 import { resetDisabledPrompts } from './flags.ts'
 import type { ListrTaskWrapper } from 'listr2'
-import { type CommandFlag } from '../types/index.js'
+import { type CommandFlag } from '../types/index.ts'
 
 async function prompt (type: string, task: ListrTaskWrapper<any, any, any>, input: any, defaultValue: any, promptMessage: string, emptyCheckMessage: string | null, flagName: string) {
   try {
@@ -272,44 +272,6 @@ export async function promptTlsClusterIssuerType (task: ListrTaskWrapper<any, an
   }
 }
 
-export async function promptClusterRoleUsername (task, input) {
-  if (!input) {
-    input = await task.prompt(ListrEnquirerPromptAdapter).run({
-      type: 'text',
-      message: 'Enter the cluster role username (minimum 3 characters):'
-    })
-  }
-
-  if (!input) {
-    throw new FullstackTestingError('Username cannot be empty.')
-  }
-
-  if (input.length < 3) {
-    throw new FullstackTestingError('Username must be at least 3 characters long.')
-  }
-
-  return input
-}
-
-export async function promptClusterRolePassword (task, input) {
-  if (!input) {
-    input = await task.prompt(ListrEnquirerPromptAdapter).run({
-      type: 'password',
-      message: 'Enter the cluster role password (more than 6 characters):'
-    })
-  }
-
-  if (!input) {
-    throw new FullstackTestingError('Password cannot be empty.')
-  }
-
-  if (input.length < 6) {
-    throw new FullstackTestingError('Password must be more than 6 characters long.')
-  }
-
-  return input
-}
-
 export async function promptEnableHederaExplorerTls (task: ListrTaskWrapper<any, any, any>, input: any) {
   return await promptToggle(task, input,
     flags.enableHederaExplorerTls.definition.defaultValue,
@@ -511,8 +473,6 @@ export function getPromptMap (): Map<string, Function> {
     .set(flags.grpcEndpoints.name, promptGrpcEndpoints)
     .set(flags.endpointType.name, promptEndpointType)
     .set(flags.mirrorNodeVersion.name, promptMirrorNodeVersion)
-    .set(flags.clusterRoleUsername.name, promptClusterRoleUsername)
-    .set(flags.clusterRolePassword.name, promptClusterRolePassword)
 }
 
 // build the prompt registry

@@ -31,7 +31,7 @@ import { type AccountManager } from './account_manager.ts'
 import { type BaseCommand } from '../commands/base.ts'
 import { type NodeAlias, type NodeAliases, type PodName } from '../types/aliases.ts'
 import { type NodeDeleteConfigClass } from '../commands/node.ts'
-import { type CommandFlag } from '../types/index.js'
+import { type CommandFlag } from '../types/index.ts'
 
 // cache current directory
 const CUR_FILE_DIR = paths.dirname(fileURLToPath(import.meta.url))

@@ -22,8 +22,7 @@ import { NodeCommand } from './node.ts'
 import { RelayCommand } from './relay.ts'
 import { AccountCommand } from './account.ts'
 import * as flags from './flags.ts'
-import { type Opts } from '../types/index.js'
-import { RolesCommand } from './roles.mjs'
+import { type Opts } from '../types/index.ts'
 
 /**
  * Return a list of Yargs command builder to be exposed through CLI
@@ -38,7 +37,6 @@ function Initialize (opts: Opts) {
   const relayCmd = new RelayCommand(opts)
   const accountCmd = new AccountCommand(opts)
   const mirrorNodeCmd = new MirrorNodeCommand(opts)
-  const rolesCmd = new RolesCommand(opts)
 
   return [
     initCmd.getCommandDefinition(),
@@ -47,8 +45,7 @@ function Initialize (opts: Opts) {
     nodeCmd.getCommandDefinition(),
     relayCmd.getCommandDefinition(),
     accountCmd.getCommandDefinition(),
-    mirrorNodeCmd.getCommandDefinition(),
-    rolesCmd.getCommandDefinition(),
+    mirrorNodeCmd.getCommandDefinition()
   ]
 }
 

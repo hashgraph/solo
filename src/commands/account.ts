@@ -14,18 +14,16 @@
  * limitations under the License.
  *
  */
-
 import chalk from 'chalk'
 import { BaseCommand } from './base.ts'
 import { SoloError, IllegalArgumentError } from '../core/errors.ts'
 import { flags } from './index.ts'
 import { Listr } from 'listr2'
 import * as prompts from './prompts.ts'
-import { constants } from '../core/index.ts'
+import { constants, type AccountManager } from '../core/index.ts'
 import { type AccountId, AccountInfo, HbarUnit, PrivateKey } from '@hashgraph/sdk'
 import { FREEZE_ADMIN_ACCOUNT } from '../core/constants.ts'
-import { type AccountManager } from '../core/account_manager.ts'
-import { type Opts } from '../types/index.js'
+import type { Opts } from '../types/index.js'
 
 export class AccountCommand extends BaseCommand {
   private readonly accountManager: AccountManager
@@ -119,6 +117,7 @@ export class AccountCommand extends BaseCommand {
 
   async init (argv: any) {
     const self = this
+    const { releaseLease } = await self.leaseManager.acquireLease()
 
     interface Context {
       config: {
@@ -241,6 +240,7 @@ export class AccountCommand extends BaseCommand {
     } catch (e: Error | any) {
       throw new SoloError(`Error in creating account: ${e.message}`, e)
     } finally {
+      if (typeof releaseLease === 'function') await releaseLease()
       await this.closeConnections()
     }
 
@@ -249,6 +249,7 @@ export class AccountCommand extends BaseCommand {
 
   async create (argv: any) {
     const self = this
+    const { releaseLease } = await self.leaseManager.acquireLease()
 
     interface Context {
       config: {
@@ -314,6 +315,7 @@ export class AccountCommand extends BaseCommand {
     } catch (e: Error | any) {
       throw new SoloError(`Error in creating account: ${e.message}`, e)
     } finally {
+      if (typeof releaseLease === 'function') await releaseLease()
       await this.closeConnections()
     }
 
@@ -322,6 +324,7 @@ export class AccountCommand extends BaseCommand {
 
   async update (argv: any) {
     const self = this
+    const { releaseLease } = await self.leaseManager.acquireLease()
 
     interface Context {
       config: {
@@ -393,6 +396,7 @@ export class AccountCommand extends BaseCommand {
     } catch (e: Error | any) {
       throw new SoloError(`Error in updating account: ${e.message}`, e)
     } finally {
+      if (typeof releaseLease === 'function') await releaseLease()
       await this.closeConnections()
     }
 

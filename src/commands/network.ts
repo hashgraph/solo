@@ -14,6 +14,7 @@
  * limitations under the License.
  *
  */
+
 import { ListrEnquirerPromptAdapter } from '@listr2/prompt-adapter-enquirer'
 import chalk from 'chalk'
 import { Listr } from 'listr2'
@@ -27,9 +28,8 @@ import * as helpers from '../core/helpers.ts'
 import path from 'path'
 import { addDebugOptions, validatePath } from '../core/helpers.ts'
 import fs from 'fs'
-import { USER_ROLE } from '../core/constants.mjs'
 import { type NodeAlias, type NodeAliases } from '../types/aliases.ts'
-import { type Opts } from '../types/index.js'
+import { type Opts } from '../types/index.ts'
 
 export type NetworkDeployConfigClass = {
   applicationEnv: string
@@ -194,10 +194,6 @@ export class NetworkCommand extends BaseCommand {
 
     if (!await this.k8.hasNamespace(config.namespace)) {
       await this.k8.createNamespace(config.namespace)
-    }
-
-    if (!await this.k8.getClusterRole(USER_ROLE)) {
-      await this.k8.createClusterRole(USER_ROLE)
     }
 
     // prepare staging keys directory

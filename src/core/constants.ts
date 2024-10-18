@@ -19,8 +19,10 @@ import { AccountId, FileId } from '@hashgraph/sdk'
 import { color, type ListrLogger, PRESET_TIMER } from 'listr2'
 import path, { dirname, normalize } from 'path'
 import { fileURLToPath } from 'url'
+import os from 'node:os'
 
 export const ROOT_DIR = process.cwd()
+export const OS_USERNAME = os.userInfo().username
 
 // -------------------- solo related constants ---------------------------------------------------------------------
 export const CUR_FILE_DIR = dirname(fileURLToPath(import.meta.url))
@@ -33,7 +35,6 @@ export const HELM = 'helm'
 export const SOLO_CONFIG_FILE = path.join(SOLO_HOME_DIR, 'solo.yaml')
 export const RESOURCES_DIR = normalize(path.join(ROOT_DIR, 'resources'))
 export const TEMP_DIR = normalize(path.join(ROOT_DIR, 'temp'))
-export const USER_ROLE = 'solo-user-role'
 
 export const ROOT_CONTAINER = 'root-container'
 
