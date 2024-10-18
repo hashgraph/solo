@@ -45,7 +45,7 @@ jobs:
       version: ${{ steps.tag.outputs.version }}
     steps:
       - name: Checkout Code
-        uses: actions/checkout@d632683dd7b4114ad314bca15554477dd762a938 # v4.2.0
+        uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # v4.2.1
         with:
           fetch-depth: 0
 
@@ -85,9 +85,15 @@ jobs:
           [[ "${{ github.event.inputs.dry-run-enabled }}" == true && ! -f VERSION ]] && echo -n "0.0.0-latest" > VERSION
           echo "version=$(cat VERSION | tr -d '[:space:]')" | tee -a ${GITHUB_OUTPUT}
 
+      - name: Build Production Distribution
+        run: |
+          set -x
+          npm install
+          npm run build
+
   update-readme:
     name: "Update README.md"
-    uses: ./.github/workflows/flow-update-readme.yaml
+    uses: ./.github/workflows/zxc-update-readme.yaml
     needs:
       - prepare-release
     with:
@@ -105,7 +111,7 @@ jobs:
       - update-readme
     steps:
       - name: Checkout Code
-        uses: actions/checkout@d632683dd7b4114ad314bca15554477dd762a938 # v4.2.0
+        uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # v4.2.1
         with:
           token: ${{ secrets.GH_ACCESS_TOKEN }}
           fetch-depth: 0

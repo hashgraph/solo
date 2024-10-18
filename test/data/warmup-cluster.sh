@@ -17,7 +17,7 @@ gcr.io/mirrornode/hedera-mirror-monitor:0.103.0 \
 gcr.io/mirrornode/hedera-mirror-rest:0.103.0 \
 quay.io/prometheus/alertmanager:v0.26.0 \
 gcr.io/mirrornode/hedera-mirror-web3:0.103.0 \
-ghcr.io/hashgraph/full-stack-testing/ubi8-init-java21:0.24.5 \
+ghcr.io/hashgraph/solo-charts/ubi8-init-java21:0.24.5 \
 quay.io/prometheus/node-exporter:v1.6.1 \
 ghcr.io/hashgraph/hedera-json-rpc-relay:0.46.0 \
 quay.io/kiwigrid/k8s-sidecar:1.25.1 \

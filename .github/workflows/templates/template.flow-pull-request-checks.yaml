@@ -52,7 +52,35 @@ jobs:
     with:
       custom-job-label: Standard
 
-  # {AUTOGENERATE-E2E-TEST-JOBS-2}
+  update-readme:
+    name: "Update README.md"
+    if: ${{ github.actor != 'dependabot[bot]' && !cancelled() && always() }}
+    uses: ./.github/workflows/zxc-update-readme.yaml
+    with:
+      commit-changes: false
+    secrets:
+      GH_ACCESS_TOKEN: ${{ secrets.GH_ACCESS_TOKEN }}
+      GH_ACCESS_GPG_KEY: ${{ secrets.GH_ACCESS_GPG_KEY }}
+      GH_ACCESS_PASSPHRASE: ${{ secrets.GH_ACCESS_PASSPHRASE }}
+
+  e2e-tests:
+    name: E2E Tests
+    if: ${{ !cancelled() && always() }}
+    uses: ./.github/workflows/zxc-e2e-test.yaml
+    needs:
+      - env-vars
+      - code-style
+    strategy:
+      fail-fast: false
+      matrix:
+        e2e-test-type:
+          # {AUTOGENERATE-E2E-TEST-JOBS}
+      max-parallel: 5
+    with:
+      custom-job-label: ${{ matrix.e2e-test-type.name }}
+      npm-test-script: ${{ matrix.e2e-test-type.npm-test-script }}
+      coverage-subdirectory: ${{ matrix.e2e-test-type.coverage-subdirectory }}
+      coverage-report-name: ${{ matrix.e2e-test-type.coverage-report-name }}
 
   codecov:
     name: CodeCov
@@ -60,7 +88,7 @@ jobs:
     needs:
       - env-vars
       - unit-tests
-      # {AUTOGENERATE-NEEDS}
+      - e2e-tests
     if: ${{ github.event.pull_request.head.repo.full_name == github.event.pull_request.base.repo.full_name }}
     with:
       custom-job-label: Standard
@@ -77,7 +105,7 @@ jobs:
     needs:
       - env-vars
       - unit-tests
-      # {AUTOGENERATE-NEEDS}
+      - e2e-tests
     if: ${{ github.event.pull_request.head.repo.full_name == github.event.pull_request.base.repo.full_name }}
     with:
       custom-job-label: Coverage
