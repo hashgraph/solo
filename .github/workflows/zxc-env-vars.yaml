@@ -121,6 +121,9 @@ defaults:
   run:
     shell: bash
 
+permissions:
+  contents: read
+
 jobs:
   env-vars:
     name: ${{ inputs.custom-job-label || 'Set Environment Variables' }}
@@ -157,4 +160,9 @@ jobs:
       e2e_node_upgrade_coverage_report: "E2E Node Upgrade Tests Coverage Report"
       e2e_relay_coverage_report: "E2E Relay Tests Coverage Report"
     steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@91182cccc01eb5e619899d80e4e971d6181294a7 # v2.10.1
+        with:
+          egress-policy: audit
+
       - run: echo "Exposing environment variables to reusable workflows"
