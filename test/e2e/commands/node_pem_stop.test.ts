@@ -13,12 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
- * @mocha-environment steps
  */
-import { describe } from 'mocha'
-
 import { e2eNodeKeyRefreshTest } from '../e2e_node_util.ts'
 
-describe('NodeCommand', () => {
-  e2eNodeKeyRefreshTest('node-cmd-e2e-pem-stop', 'stop')
-})
+e2eNodeKeyRefreshTest('node-cmd-e2e-pem-stop', 'stop')

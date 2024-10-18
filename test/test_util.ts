@@ -13,7 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
- * @mocha-environment steps
  */
 import 'chai-as-promised'
 
@@ -32,7 +31,7 @@ import {
   DependencyManager,
   HelmDependencyManager
 } from '../src/core/dependency_managers/index.ts'
-import { sleep } from '../src/core/helpers.ts'
+import { getNodeLogs, sleep } from '../src/core/helpers.ts'
 import {
   ChartManager,
   ConfigManager,
@@ -128,14 +127,14 @@ interface BootstrapResponse {
 
 /** Initialize common test variables */
 export function bootstrapTestVariables (
-  testName: string,
-  argv: any,
-  k8Arg: K8 | null = null,
-  initCmdArg: InitCommand | null = null,
-  clusterCmdArg: ClusterCommand | null = null,
-  networkCmdArg: NetworkCommand | null = null,
-  nodeCmdArg: NodeCommand | null = null,
-  accountCmdArg: AccountCommand | null = null
+    testName: string,
+    argv: any,
+    k8Arg: K8 | null = null,
+    initCmdArg: InitCommand | null = null,
+    clusterCmdArg: ClusterCommand | null = null,
+    networkCmdArg: NetworkCommand | null = null,
+    nodeCmdArg: NodeCommand | null = null,
+    accountCmdArg: AccountCommand | null = null
 ): BootstrapResponse {
   const namespace: string = argv[flags.namespace.name] || 'bootstrap-ns'
   const cacheDir: string = argv[flags.cacheDir.name] || getTestCacheDir(testName)
@@ -187,17 +186,19 @@ export function bootstrapTestVariables (
   }
 }
 
-/** Bootstrap network in a given namespace */
-export function bootstrapNetwork (
-  testName: string,
-  argv: Record<any, any>,
-  k8Arg: K8 | null = null,
-  initCmdArg: InitCommand | null = null,
-  clusterCmdArg: ClusterCommand | null = null,
-  networkCmdArg: NetworkCommand | null = null,
-  nodeCmdArg: NodeCommand | null = null,
-  accountCmdArg: AccountCommand | null = null,
-  startNodes = true
+/** Bootstrap network in a given namespace, then run the test call back providing the bootstrap response */
+export function e2eTestSuite (
+    testName: string,
+    argv: Record<any, any>,
+    k8Arg: K8 | null = null,
+    initCmdArg: InitCommand | null = null,
+    clusterCmdArg: ClusterCommand | null = null,
+    networkCmdArg: NetworkCommand | null = null,
+    nodeCmdArg: NodeCommand | null = null,
+    accountCmdArg: AccountCommand | null = null,
+    startNodes = true,
+    testsCallBack: (bootstrapResp: BootstrapResponse) => void = () => {
+    }
 ) {
   const bootstrapResp = bootstrapTestVariables(testName, argv, k8Arg, initCmdArg, clusterCmdArg, networkCmdArg, nodeCmdArg, accountCmdArg)
   const namespace = bootstrapResp.namespace
@@ -208,15 +209,18 @@ export function bootstrapNetwork (
   const nodeCmd = bootstrapResp.cmd.nodeCmd
   const chartManager = bootstrapResp.opts.chartManager
 
-  return new Promise<BootstrapResponse>((resolve) => {
+  describe(`E2E Test Suite for '${testName}'`, function () {
+    this.bail(true) // stop on first failure, nothing else will matter if network doesn't come up correctly
+
     describe(`Bootstrap network for test [release ${argv[flags.releaseTag.name]}}]`, () => {
       before(() => {
         bootstrapResp.opts.logger.showUser(`------------------------- START: bootstrap (${testName}) ----------------------------`)
       })
 
-      after(() => {
+      after(async function () {
+        this.timeout(3 * MINUTES)
+        await getNodeLogs(k8, namespace)
         bootstrapResp.opts.logger.showUser(`------------------------- END: bootstrap (${testName}) ----------------------------`)
-        resolve(bootstrapResp)
       })
 
       it('should cleanup previous deployment', async () => {
@@ -288,6 +292,10 @@ export function bootstrapNetwork (
         }).timeout(30 * MINUTES)
       }
     })
+
+    describe(testName, () => {
+      testsCallBack(bootstrapResp)
+    })
   })
 }
 
@@ -299,8 +307,8 @@ export function balanceQueryShouldSucceed (accountManager: AccountManager, cmd: 
       expect(accountManager._nodeClient).not.to.be.null
 
       const balance = await new AccountBalanceQuery()
-        .setAccountId(accountManager._nodeClient.getOperator().accountId)
-        .execute(accountManager._nodeClient)
+      .setAccountId(accountManager._nodeClient.getOperator().accountId)
+      .execute(accountManager._nodeClient)
 
       expect(balance.hbars).not.be.null
     } catch (e) {
@@ -320,9 +328,9 @@ export function accountCreationShouldSucceed (accountManager: AccountManager, no
       const amount = 100
 
       const newAccount = await new AccountCreateTransaction()
-        .setKey(privateKey)
-        .setInitialBalance(Hbar.from(amount, HbarUnit.Hbar))
-        .execute(accountManager._nodeClient)
+      .setKey(privateKey)
+      .setInitialBalance(Hbar.from(amount, HbarUnit.Hbar))
+      .execute(accountManager._nodeClient)
 
       // Get the new account ID
       const getReceipt = await newAccount.getReceipt(accountManager._nodeClient)
@@ -362,10 +370,10 @@ export async function getNodeAliasesPrivateKeysHash (networkNodeServicesMap: Map
 
 async function addKeyHashToMap (k8: K8, nodeAlias: NodeAlias, keyDir: string, uniqueNodeDestDir: string, keyHashMap: Map<string, string>, privateKeyFileName: string) {
   await k8.copyFrom(
-    Templates.renderNetworkPodName(nodeAlias),
-    ROOT_CONTAINER,
-    path.join(keyDir, privateKeyFileName),
-    uniqueNodeDestDir)
+      Templates.renderNetworkPodName(nodeAlias),
+      ROOT_CONTAINER,
+      path.join(keyDir, privateKeyFileName),
+      uniqueNodeDestDir)
   const keyBytes = fs.readFileSync(path.join(uniqueNodeDestDir, privateKeyFileName))
   const keyString = keyBytes.toString()
   keyHashMap.set(privateKeyFileName, crypto.createHash('sha256').update(keyString).digest('base64'))
