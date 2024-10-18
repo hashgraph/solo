@@ -55,6 +55,7 @@ export class ClusterCommand extends BaseCommand {
   /** Setup cluster with shared components */
   async setup (argv: any) {
     const self = this
+    const { releaseLease } = await self.leaseManager.acquireLease()
 
     interface Context {
       config: {
@@ -85,15 +86,14 @@ export class ClusterCommand extends BaseCommand {
             flags.deployPrometheusStack
           ])
 
-          // prepare config
           ctx.config = {
-            chartDir: <string>self.configManager.getFlag<string>(flags.chartDirectory),
-            clusterSetupNamespace: <string>self.configManager.getFlag<string>(flags.clusterSetupNamespace),
-            deployCertManager: <boolean>self.configManager.getFlag<boolean>(flags.deployCertManager),
-            deployCertManagerCrds: <boolean>self.configManager.getFlag<boolean>(flags.deployCertManagerCrds),
-            deployMinio: <boolean>self.configManager.getFlag<boolean>(flags.deployMinio),
-            deployPrometheusStack: <boolean>self.configManager.getFlag<boolean>(flags.deployPrometheusStack),
-            soloChartVersion: <string>self.configManager.getFlag<string>(flags.soloChartVersion)
+            chartDir: self.configManager.getFlag<string>(flags.chartDirectory)!,
+            clusterSetupNamespace: self.configManager.getFlag<string>(flags.clusterSetupNamespace)!,
+            deployCertManager: self.configManager.getFlag<boolean>(flags.deployCertManager)!,
+            deployCertManagerCrds: self.configManager.getFlag<boolean>(flags.deployCertManagerCrds)!,
+            deployMinio: self.configManager.getFlag<boolean>(flags.deployMinio)!,
+            deployPrometheusStack: self.configManager.getFlag<boolean>(flags.deployPrometheusStack)!,
+            soloChartVersion: self.configManager.getFlag<string>(flags.soloChartVersion)!,
           }
 
           self.logger.debug('Prepare ctx.config', { config: ctx.config, argv })
@@ -153,6 +153,8 @@ export class ClusterCommand extends BaseCommand {
       await tasks.run()
     } catch (e: Error | any) {
       throw new SoloError('Error on cluster setup', e)
+    } finally {
+      if (typeof releaseLease === 'function') await releaseLease()
     }
 
     return true
@@ -160,6 +162,7 @@ export class ClusterCommand extends BaseCommand {
 
   async reset (argv: any) {
     const self = this
+    const { releaseLease } = await self.leaseManager.acquireLease()
 
     interface Context {
       config: {
@@ -217,6 +220,8 @@ export class ClusterCommand extends BaseCommand {
       await tasks.run()
     } catch (e: Error | any) {
       throw new SoloError('Error on cluster reset', e)
+    } finally {
+      if (typeof releaseLease === 'function') await releaseLease()
     }
 
     return true
@@ -350,7 +355,7 @@ export class ClusterCommand extends BaseCommand {
    * Prepare chart path
    * @param [chartDir] - local charts directory (default is empty)
    */
-  async prepareChartPath (chartDir = <string>flags.chartDirectory.definition.defaultValue) {
+  async prepareChartPath (chartDir = flags.chartDirectory.definition.defaultValue as string) {
     let chartPath = 'solo-charts/solo-cluster-setup'
     if (chartDir) {
       chartPath = path.join(chartDir, 'solo-cluster-setup')

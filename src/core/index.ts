@@ -29,6 +29,9 @@ import { ProfileManager } from './profile_manager.ts'
 import { YargsCommand } from './yargs_command.ts'
 import { Task } from './task.ts'
 import * as helpers from './helpers.ts'
+import { DependencyManager } from './dependency_managers/index.ts'
+import { AccountManager } from './account_manager.ts'
+import { LeaseManager } from './lease_manager.ts'
 
 // Expose components from the core module
 export {
@@ -46,5 +49,8 @@ export {
   KeyManager,
   ProfileManager,
   YargsCommand,
-  Task
+  Task,
+  DependencyManager,
+  AccountManager,
+  LeaseManager,
 }

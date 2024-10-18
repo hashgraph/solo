@@ -19,8 +19,10 @@ import { AccountId, FileId } from '@hashgraph/sdk'
 import { color, type ListrLogger, PRESET_TIMER } from 'listr2'
 import path, { dirname, normalize } from 'path'
 import { fileURLToPath } from 'url'
+import os from 'node:os'
 
 export const ROOT_DIR = process.cwd()
+export const OS_USERNAME = os.userInfo().username
 
 // -------------------- solo related constants ---------------------------------------------------------------------
 export const CUR_FILE_DIR = dirname(fileURLToPath(import.meta.url))
@@ -164,3 +166,7 @@ export const JVM_DEBUG_PORT = 5005
 
 export const SECONDS = 1000
 export const MINUTES = 60 * SECONDS
+
+export const LEASE_TAKEN_TIMEOUT = 20 * SECONDS
+export const MAX_LEASE_ACQUIRE_RETRIES = 10
+export const LEASE_RENEW_TIMEOUT = 10 * SECONDS

@@ -869,6 +869,7 @@ export class NodeCommand extends BaseCommand {
   // List of Commands
   async setup (argv: any) {
     const self = this
+    const { releaseLease } = await self.leaseManager.acquireLease()
 
     interface NodeSetupConfigClass {
       app: string
@@ -942,6 +943,8 @@ export class NodeCommand extends BaseCommand {
       await tasks.run()
     } catch (e: Error | any) {
       throw new SoloError(`Error in setting up nodes: ${e.message}`, e)
+    } finally {
+      if (typeof releaseLease === 'function') await releaseLease()
     }
 
     return true
@@ -949,6 +952,7 @@ export class NodeCommand extends BaseCommand {
 
   async start (argv: any) {
     const self = this
+    const { releaseLease } = await self.leaseManager.acquireLease()
 
     interface Context {
       config: {
@@ -1053,6 +1057,7 @@ export class NodeCommand extends BaseCommand {
     } catch (e: Error | any) {
       throw new SoloError(`Error starting node: ${e.message}`, e)
     } finally {
+      if (typeof releaseLease === 'function') await releaseLease()
       await self.close()
     }
 
@@ -1061,6 +1066,7 @@ export class NodeCommand extends BaseCommand {
 
   async stop (argv: any) {
     const self = this
+    const { releaseLease } = await self.leaseManager.acquireLease()
 
     interface Context {
       config : {
@@ -1124,6 +1130,8 @@ export class NodeCommand extends BaseCommand {
       await tasks.run()
     } catch (e: Error | any) {
       throw new SoloError('Error stopping node', e)
+    } finally {
+      if (typeof releaseLease === 'function') await releaseLease()
     }
 
     return true
@@ -1131,6 +1139,7 @@ export class NodeCommand extends BaseCommand {
 
   async keys (argv: any) {
     const self = this
+    const { releaseLease } = await self.leaseManager.acquireLease()
 
     interface NodeKeysConfigClass {
       cacheDir: string
@@ -1223,6 +1232,8 @@ export class NodeCommand extends BaseCommand {
       await tasks.run()
     } catch (e: Error | any) {
       throw new SoloError(`Error generating keys: ${e.message}`, e)
+    } finally {
+      if (typeof releaseLease === 'function') await releaseLease()
     }
 
     return true
@@ -1230,6 +1241,7 @@ export class NodeCommand extends BaseCommand {
 
   async refresh (argv: any) {
     const self = this
+    const { releaseLease } = await self.leaseManager.acquireLease()
 
     interface NodeRefreshConfigClass {
       app: string
@@ -1340,6 +1352,8 @@ export class NodeCommand extends BaseCommand {
       await tasks.run()
     } catch (e: Error | any) {
       throw new SoloError(`Error in refreshing nodes: ${e.message}`, e)
+    } finally {
+      if (typeof releaseLease === 'function') await releaseLease()
     }
 
     return true
@@ -1852,6 +1866,8 @@ export class NodeCommand extends BaseCommand {
 
   async addPrepare (argv: any) {
     const self = this
+    const { releaseLease } = await self.leaseManager.acquireLease()
+
     const prepareTasks = this.getAddPrepareTasks(argv)
     const tasks = new Listr([
       // @ts-ignore
@@ -1869,6 +1885,7 @@ export class NodeCommand extends BaseCommand {
       self.logger.error(`Error in setting up nodes: ${e.message}`, e)
       throw new SoloError(`Error in setting up nodes: ${e.message}`, e)
     } finally {
+      if (typeof releaseLease === 'function') await releaseLease()
       await self.close()
     }
 
@@ -1877,6 +1894,7 @@ export class NodeCommand extends BaseCommand {
 
   async addSubmitTransactions (argv: any) {
     const self = this
+    const { releaseLease } = await self.leaseManager.acquireLease()
 
     const transactionTasks = this.getAddTransactionTasks(argv)
     const tasks = new Listr([
@@ -1895,6 +1913,7 @@ export class NodeCommand extends BaseCommand {
       self.logger.error(`Error in submitting transactions to node: ${e.message}`, e)
       throw new SoloError(`Error in submitting transactions to up node: ${e.message}`, e)
     } finally {
+      if (typeof releaseLease === 'function') await releaseLease()
       await self.close()
     }
 
@@ -1903,6 +1922,7 @@ export class NodeCommand extends BaseCommand {
 
   async addExecute (argv: any) {
     const self = this
+    const { releaseLease } = await self.leaseManager.acquireLease()
 
     const executeTasks = this.getAddExecuteTasks(argv)
     // @ts-ignore
@@ -1924,6 +1944,7 @@ export class NodeCommand extends BaseCommand {
       self.logger.error(`Error in starting up nodes: ${e.message}`, e)
       throw new SoloError(`Error in setting up nodes: ${e.message}`, e)
     } finally {
+      if (typeof releaseLease === 'function') await releaseLease()
       await self.close()
     }
 
@@ -1932,6 +1953,7 @@ export class NodeCommand extends BaseCommand {
 
   async add (argv: any) {
     const self = this
+    const { releaseLease } = await self.leaseManager.acquireLease()
 
     const prepareTasks = this.getAddPrepareTasks(argv)
     const transactionTasks = this.getAddTransactionTasks(argv)
@@ -1953,6 +1975,7 @@ export class NodeCommand extends BaseCommand {
       self.logger.error(`Error in adding nodes: ${e.message}`, e)
       throw new SoloError(`Error in adding nodes: ${e.message}`, e)
     } finally {
+      if (typeof releaseLease === 'function') await releaseLease()
       await self.close()
     }
 
@@ -2310,6 +2333,7 @@ export class NodeCommand extends BaseCommand {
 
   async update (argv: any) {
     const self = this
+    const { releaseLease } = await self.leaseManager.acquireLease()
 
     interface NodeUpdateConfigClass {
       app: string
@@ -2667,6 +2691,7 @@ export class NodeCommand extends BaseCommand {
       this.logger.error(e.stack)
       throw new SoloError(`Error in updating nodes: ${e.message}`, e)
     } finally {
+      if (typeof releaseLease === 'function') await releaseLease()
       await self.close()
     }
 
@@ -2912,6 +2937,7 @@ export class NodeCommand extends BaseCommand {
 
   async deletePrepare (argv: any) {
     const self = this
+    const { releaseLease } = await self.leaseManager.acquireLease()
 
     const tasks = new Listr([
       // @ts-ignore
@@ -2929,6 +2955,7 @@ export class NodeCommand extends BaseCommand {
       self.logger.error(`Error in deleting nodes: ${e.message}`, e)
       throw new SoloError(`Error in deleting nodes: ${e.message}`, e)
     } finally {
+      if (typeof releaseLease === 'function') await releaseLease()
       await self.close()
     }
 
@@ -2937,6 +2964,7 @@ export class NodeCommand extends BaseCommand {
 
   async deleteExecute (argv: any) {
     const self = this
+    const { releaseLease } = await self.leaseManager.acquireLease()
 
     const tasks = new Listr([
       self.deleteInitializeTask(argv),
@@ -2954,6 +2982,7 @@ export class NodeCommand extends BaseCommand {
       self.logger.error(`Error in deleting nodes: ${e.message}`, e)
       throw new SoloError(`Error in deleting nodes: ${e.message}`, e)
     } finally {
+      if (typeof releaseLease === 'function') await releaseLease()
       await self.close()
     }
 
@@ -2962,6 +2991,7 @@ export class NodeCommand extends BaseCommand {
 
   async deleteSubmitTransactions (argv: any) {
     const self = this
+    const { releaseLease } = await self.leaseManager.acquireLease()
 
     const tasks = new Listr([
       self.deleteInitializeTask(argv),
@@ -2979,6 +3009,7 @@ export class NodeCommand extends BaseCommand {
       self.logger.error(`Error in deleting nodes: ${e.message}`, e)
       throw new SoloError(`Error in deleting nodes: ${e.message}`, e)
     } finally {
+      if (typeof releaseLease === 'function') await releaseLease()
       await self.close()
     }
 
@@ -2987,6 +3018,7 @@ export class NodeCommand extends BaseCommand {
 
   async delete (argv: any) {
     const self = this
+    const { releaseLease } = await self.leaseManager.acquireLease()
 
     // @ts-ignore
     const tasks = new Listr([
@@ -3004,6 +3036,7 @@ export class NodeCommand extends BaseCommand {
       self.logger.error(`Error in deleting nodes: ${e.message}`, e)
       throw new SoloError(`Error in deleting nodes: ${e.message}`, e)
     } finally {
+      if (typeof releaseLease === 'function') await releaseLease()
       await self.close()
     }
 
