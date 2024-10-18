@@ -110,7 +110,7 @@ jobs:
 
       - name: Update README.md
         run: |
-          set -o pipefail
+          set -xeo pipefail
           npm install
           npm run build
           npm install -g @hashgraph/solo
@@ -118,8 +118,10 @@ jobs:
           echo "VERSION=${{ inputs.version }}"
           [[ -n "${{ inputs.version }}" ]] && npm version ${{ inputs.version }} -f --no-git-tag-version
           which solo
+          node -p -e "Boolean(process.stdout.isTTY)"
           chmod 755 ./.github/workflows/script/update_md.sh
           ./.github/workflows/script/update_md.sh </dev/null | cat
+          set +x
 
       - name: Check README.md Changes
         id: check-readme-changes

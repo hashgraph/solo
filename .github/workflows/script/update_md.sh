@@ -1,5 +1,5 @@
 #!/bin/bash
-set -eo pipefail
+set -xeo pipefail
 export SOLO_CLUSTER_NAME=solo
 export SOLO_NAMESPACE=solo
 export SOLO_CLUSTER_SETUP_NAMESPACE=solo-cluster
@@ -12,7 +12,13 @@ export KIND_CREATE_CLUSTER_OUTPUT=$( cat create-cluster.log | tee test.log )
 solo init -i node1,node2,node3 -n "${SOLO_NAMESPACE}" -s "${SOLO_CLUSTER_SETUP_NAMESPACE}" | tee init.log
 export SOLO_INIT_OUTPUT=$( cat init.log | tee test.log )
 
+node -p -e "Boolean(process.stdout.isTTY)"
+
+solo node keys --gossip-keys --tls-keys </dev/null | cat
+
 solo node keys --gossip-keys --tls-keys
+
+( npm run solo node keys --gossip-keys --tls-keys )
 
 solo node keys --gossip-keys --tls-keys | tee keys.log
 export SOLO_NODE_KEY_PEM_OUTPUT=$( cat keys.log | tee test.log )
@@ -50,3 +56,4 @@ sed -i 's/\[32m//g' README.md
 sed -i 's/\[33m//g' README.md
 sed -i 's/\[39m//g' README.md
 egrep -v '↓|❯|•' README.md > README.md.tmp && mv README.md.tmp README.md
+set +x
