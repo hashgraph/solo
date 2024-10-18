@@ -115,6 +115,7 @@ jobs:
           npm run build
           npm install -g @hashgraph/solo
           npm link
+          chmod 755 ./.github/workflows/script/update_md.sh
           ./.github/workflows/script/update_md.sh
 
       - name: Check README.md Changes
