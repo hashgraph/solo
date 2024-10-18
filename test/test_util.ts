@@ -215,11 +215,6 @@ export function e2eTestSuite (
       bootstrapResp.opts.logger.showUser(`------------------------- START: bootstrap (${testName}) ----------------------------`)
     })
 
-    after(() => {
-      bootstrapResp.opts.logger.showUser(`------------------------- END: bootstrap (${testName}) ----------------------------`)
-      testsCallBack(bootstrapResp)
-    })
-
     it('should cleanup previous deployment', async () => {
       await initCmd.init(argv)
 
@@ -288,6 +283,11 @@ export function e2eTestSuite (
         }
       }).timeout(30 * MINUTES)
     }
+
+    describe(testName, () => {
+      bootstrapResp.opts.logger.showUser(`------------------------- END: bootstrap (${testName}) ----------------------------`)
+      testsCallBack(bootstrapResp)
+    })
   })
 }
 
