@@ -40,7 +40,7 @@ e2eTestSuite(LOCAL_PTT, argv, undefined, undefined, undefined, undefined, undefi
   describe('Node for platform app should start successfully', () => {
     const pttK8 = bootstrapResp.opts.k8
 
-    it(async function () {
+    it('get the logs and delete the namespace',async function () {
       await getNodeLogs(pttK8, LOCAL_PTT)
       await pttK8.deleteNamespace(LOCAL_PTT)
     }).timeout(2 * MINUTES)

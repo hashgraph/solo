@@ -45,7 +45,7 @@ e2eTestSuite(LOCAL_HEDERA, argv, undefined, undefined, undefined, undefined, und
   describe('Node for hedera app should have started successfully', () => {
     hederaK8 = bootstrapResp.opts.k8
 
-    it(async function () {
+    it('get the logs and delete the namespace', async function () {
       await getNodeLogs(hederaK8, LOCAL_HEDERA)
       await hederaK8.deleteNamespace(LOCAL_HEDERA)
     }).timeout(10 * MINUTES)
