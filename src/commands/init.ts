@@ -58,6 +58,8 @@ export class InitCommand extends BaseCommand {
   /** Executes the init CLI command */
   async init (argv: any) {
     const self = this
+    const { releaseLease } = await self.leaseManager.acquireLease()
+
     let cacheDir: string = <string>this.configManager.getFlag<string>(flags.cacheDir)
     if (!cacheDir) {
       cacheDir = constants.SOLO_CACHE_DIR as string
@@ -134,6 +136,8 @@ export class InitCommand extends BaseCommand {
       await tasks.run()
     } catch (e: Error | any) {
       throw new SoloError('Error running init', e)
+    } finally {
+      if (typeof releaseLease === 'function') await releaseLease()
     }
 
     return true

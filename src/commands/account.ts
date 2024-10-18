@@ -77,8 +77,9 @@ export class AccountCommand extends BaseCommand {
       ctx.privateKey = PrivateKey.generateED25519()
     }
 
-    return await this.accountManager.createNewAccount(ctx.config.namespace,
-      ctx.privateKey, ctx.config.amount, ctx.config.ecdsaPrivateKey ? ctx.config.setAlias : false)
+    const { config: { amount, ecdsaPrivateKey, setAlias }, privateKey } = ctx
+
+    return this.accountManager.createNewAccount(ctx.config.namespace, privateKey, amount, ecdsaPrivateKey ? setAlias : false)
   }
 
   getAccountInfo (ctx: { config: { accountId: string } }) {

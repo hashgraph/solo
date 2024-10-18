@@ -216,6 +216,7 @@ export class NetworkCommand extends BaseCommand {
   /** Run helm install and deploy network components */
   async deploy (argv: any) {
     const self = this
+    const { releaseLease } = await self.leaseManager.acquireLease()
 
     interface Context {
       config: NetworkDeployConfigClass
@@ -383,6 +384,8 @@ export class NetworkCommand extends BaseCommand {
       await tasks.run()
     } catch (e: Error | any) {
       throw new SoloError(`Error installing chart ${constants.SOLO_DEPLOYMENT_CHART}`, e)
+    } finally {
+      if (typeof releaseLease === 'function') await releaseLease()
     }
 
     return true
@@ -390,6 +393,7 @@ export class NetworkCommand extends BaseCommand {
 
   async destroy (argv: any) {
     const self = this
+    const { releaseLease } = await self.leaseManager.acquireLease()
 
     interface Context {
       config: {
@@ -470,6 +474,8 @@ export class NetworkCommand extends BaseCommand {
       await tasks.run()
     } catch (e: Error | any) {
       throw new SoloError('Error destroying network', e)
+    } finally {
+      if (typeof releaseLease === 'function') await releaseLease()
     }
 
     return true
@@ -478,6 +484,7 @@ export class NetworkCommand extends BaseCommand {
   /** Run helm upgrade to refresh network components with new settings */
   async refresh (argv: any) {
     const self = this
+    const { releaseLease } = await self.leaseManager.acquireLease()
 
     interface Context {
       config: NetworkDeployConfigClass
@@ -520,6 +527,8 @@ export class NetworkCommand extends BaseCommand {
       await tasks.run()
     } catch (e: Error | any) {
       throw new SoloError(`Error upgrading chart ${constants.SOLO_DEPLOYMENT_CHART}`, e)
+    } finally {
+      if (typeof releaseLease === 'function') await releaseLease()
     }
 
     return true

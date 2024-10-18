@@ -17,12 +17,11 @@
 import { ListrEnquirerPromptAdapter } from '@listr2/prompt-adapter-enquirer'
 import { Listr } from 'listr2'
 import { SoloError, IllegalArgumentError, MissingArgumentError } from '../core/errors.ts'
-import { constants, type ProfileManager } from '../core/index.ts'
+import { constants, type ProfileManager, type AccountManager } from '../core/index.ts'
 import { BaseCommand } from './base.ts'
 import * as flags from './flags.ts'
 import * as prompts from './prompts.ts'
 import { getFileContents, getEnvValue } from '../core/helpers.ts'
-import { type AccountManager } from '../core/account_manager.ts'
 import { type PodName } from '../types/aliases.ts'
 import { type Opts } from '../types/index.ts'
 
@@ -61,13 +60,6 @@ export class MirrorNodeCommand extends BaseCommand {
     ]
   }
 
-  /**
-   * @param tlsClusterIssuerType
-   * @param enableHederaExplorerTls
-   * @param namespace
-   * @param hederaExplorerTlsLoadBalancerIp
-   * @param hederaExplorerTlsHostName
-   */
   getTlsValueArguments (tlsClusterIssuerType: string, enableHederaExplorerTls: boolean, namespace: string,
     hederaExplorerTlsLoadBalancerIp: string, hederaExplorerTlsHostName: string) {
     let valuesArg = ''
@@ -126,6 +118,7 @@ export class MirrorNodeCommand extends BaseCommand {
 
   async deploy (argv: any) {
     const self = this
+    const { releaseLease } = await self.leaseManager.acquireLease()
 
     interface MirrorNodeDeployConfigClass {
       chartDirectory: string
@@ -327,6 +320,7 @@ export class MirrorNodeCommand extends BaseCommand {
     } catch (e: Error | any) {
       throw new SoloError(`Error starting node: ${e.message}`, e)
     } finally {
+      if (typeof releaseLease === 'function') await releaseLease()
       await self.accountManager.close()
     }
 
@@ -335,6 +329,7 @@ export class MirrorNodeCommand extends BaseCommand {
 
   async destroy (argv: any) {
     const self = this
+    const { releaseLease } = await self.leaseManager.acquireLease()
 
     interface Context {
       config: {
@@ -425,6 +420,7 @@ export class MirrorNodeCommand extends BaseCommand {
     } catch (e: Error | any) {
       throw new SoloError(`Error starting node: ${e.message}`, e)
     } finally {
+      if (typeof releaseLease === 'function') await releaseLease()
       await self.accountManager.close()
     }
 
