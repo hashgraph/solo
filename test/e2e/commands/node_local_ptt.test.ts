@@ -13,15 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
- * @mocha-environment steps
  */
-import { describe, after } from 'mocha'
+import { describe, } from 'mocha'
 
 import { flags } from '../../../src/commands/index.ts'
 import { e2eTestSuite, getDefaultArgv, TEST_CLUSTER } from '../../test_util.ts'
 import { getNodeLogs } from '../../../src/core/helpers.ts'
 import { MINUTES } from '../../../src/core/constants.ts'
-import type { K8 } from '../../../src/core/index.ts'
 
 const LOCAL_PTT = 'local-ptt-app'
 const argv = getDefaultArgv()

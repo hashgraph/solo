@@ -13,7 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
- * @mocha-environment steps
  */
 import { testNodeAdd } from '../../test_add.ts'
 import { MINUTES } from '../../../src/core/constants.ts'

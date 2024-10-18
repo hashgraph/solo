@@ -13,7 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
- * @mocha-environment steps
  */
 import 'chai-as-promised'
 
@@ -211,6 +210,8 @@ export function e2eTestSuite (
   const chartManager = bootstrapResp.opts.chartManager
 
   describe(`E2E Test Suite for '${testName}'`, () => {
+    this.bail(true) // stop on first failure, nothing else will matter if network doesn't come up correctly
+
     describe(`Bootstrap network for test [release ${argv[flags.releaseTag.name]}}]`, () => {
       before(() => {
         bootstrapResp.opts.logger.showUser(`------------------------- START: bootstrap (${testName}) ----------------------------`)

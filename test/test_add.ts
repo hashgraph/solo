@@ -13,7 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
- * @mocha-environment steps
  */
 import { expect } from 'chai'
 import { describe, it, after } from 'mocha'
