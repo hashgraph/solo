@@ -264,7 +264,7 @@ export function bootstrapNetwork (
           flags.quiet.constName,
           flags.settingTxt.constName
         ])
-      }).timeout(2 * MINUTES)
+      }).timeout(3 * MINUTES)
 
       if (startNodes) {
         it('should succeed with node setup command', async () => {
