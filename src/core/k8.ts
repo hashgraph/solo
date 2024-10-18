@@ -1152,25 +1152,25 @@ export class K8 {
   // --------------------------------------- LEASES --------------------------------------- //
   async createNamespacedLease (namespace: string, leaseName: string, holderName: string) {
     const lease = new k8s.V1Lease()
-    lease.apiVersion = 'coordination.k8s.io/v1'
-    lease.kind = 'Lease'
-    lease.metadata = {
-      name: leaseName,
-      namespace
-    }
-    lease.spec = {
-      holderIdentity: holderName,
-      leaseDurationSeconds: 15,
-      acquireTime: new k8s.V1MicroTime()
-    }
 
-    const { response, body } = await this.coordinationApiClient.createNamespacedLease(namespace, lease).catch()
+    const metadata = new k8s.V1ObjectMeta()
+    metadata.name = leaseName
+    metadata.namespace = namespace
+    lease.metadata = metadata
+
+    const spec = new k8s.V1LeaseSpec()
+    spec.holderIdentity = holderName
+    spec.leaseDurationSeconds = 15
+    spec.acquireTime = new k8s.V1MicroTime()
+    lease.spec = spec
+
+    const { response, body } = await this.coordinationApiClient.createNamespacedLease(namespace, lease).catch(e => e)
     this._handleKubernetesClientError(response, body, 'Failed to create namespaced lease')
     return body
   }
 
   async readNamespacedLease (leaseName: string, namespace: string) {
-    const { response, body } = await this.coordinationApiClient.readNamespacedLease(leaseName, namespace).catch()
+    const { response, body } = await this.coordinationApiClient.readNamespacedLease(leaseName, namespace).catch(e => e)
     this._handleKubernetesClientError(response, body, 'Failed to read namespaced lease')
     return body
   }
@@ -1178,13 +1178,13 @@ export class K8 {
   async renewNamespaceLease (leaseName: string, namespace: string, lease: k8s.V1Lease) {
     lease.spec.renewTime = new k8s.V1MicroTime()
 
-    const { response, body } = await this.coordinationApiClient.replaceNamespacedLease(leaseName, namespace, lease).catch()
+    const { response, body } = await this.coordinationApiClient.replaceNamespacedLease(leaseName, namespace, lease).catch(e => e)
     this._handleKubernetesClientError(response, body, 'Failed to renew namespaced lease')
     return body
   }
 
   async deleteNamespacedLease (name: string, namespace: string) {
-    const { response, body } = await this.coordinationApiClient.deleteNamespacedLease(name, namespace).catch()
+    const { response, body } = await this.coordinationApiClient.deleteNamespacedLease(name, namespace).catch(e => e)
     this._handleKubernetesClientError(response, body, 'Failed to delete namespaced lease')
     return body
   }

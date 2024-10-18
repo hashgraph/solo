@@ -41,8 +41,8 @@ export class LeaseManager {
   async acquireLease () {
     const self = this
 
-    const namespace = self._getNamespace()
-    if (!namespace) return {}
+    const namespace = await self._getNamespace()
+    if (!namespace) return { }
 
     const username = constants.OS_USERNAME
     const leaseName = `${username}-lease`
@@ -71,14 +71,21 @@ export class LeaseManager {
     return {
       releaseLease: async () => {
         clearInterval(intervalId)
-        self.k8.deleteNamespacedLease(leaseName, namespace)
-          .then(() => self.logger.info(`Lease released by ${username}`))
-          .catch(e => self.logger.error(`Failed to release lease: ${e.message}`))
+        try {
+          await self.k8.deleteNamespacedLease(leaseName, namespace)
+          self.logger.info(`Lease released by ${username}`)
+        } catch (e: Error | any) {
+          self.logger.error(`Failed to release lease: ${e.message}`)
+        }
       }
     }
   }
 
-  private _getNamespace () {
-    return this.configManager.getFlag<string>(flags.namespace)
+  private async _getNamespace () {
+    const namespace = this.configManager.getFlag<string>(flags.namespace)
+    if (!namespace) return null
+
+    if (!await this.k8.hasNamespace(namespace)) return null
+    return namespace
   }
 }
