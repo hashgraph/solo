@@ -111,6 +111,7 @@ jobs:
       - name: Update README.md
         run: |
           set -x -o pipefail
+          node -p -e "Boolean(process.stdout.isTTY)"
           npm install
           npm run build
           npm install -g @hashgraph/solo
