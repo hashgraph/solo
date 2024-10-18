@@ -23,6 +23,7 @@ import * as helpers from '../core/helpers.ts'
 import { resetDisabledPrompts } from './flags.ts'
 import type { ListrTaskWrapper } from 'listr2'
 import { type CommandFlag } from '../types/index.js'
+import tty from 'node:tty'
 
 async function prompt (type: string, task: ListrTaskWrapper<any, any, any>, input: any, defaultValue: any, promptMessage: string, emptyCheckMessage: string | null, flagName: string) {
   try {
@@ -30,6 +31,11 @@ async function prompt (type: string, task: ListrTaskWrapper<any, any, any>, inpu
     needsPrompt = type === 'number' ? typeof input !== 'number' : needsPrompt
 
     if (needsPrompt) {
+      const readStream = new tty.ReadStream(0)
+      console.log(`readStream.isRaw: ${readStream.isRaw}`)
+      console.log(`readStream.isTTY: ${readStream.isTTY}`)
+      const writeStream = new tty.WriteStream(0)
+      console.log(`writeStream.isTTY: ${writeStream.isTTY}`)
       if (process.stdout.isTTY) {
         // this is to help find issues with prompts running in non-interactive mode, user should supply quite mode,
         // or provide all flags required for command
