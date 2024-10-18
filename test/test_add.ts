@@ -35,6 +35,7 @@ import type { NodeAlias } from '../src/types/aliases.ts'
 import type { NetworkNodeServices } from '../src/core/network_node_services.ts'
 
 const defaultTimeout = 2 * MINUTES
+
 export function testNodeAdd (localBuildPath: string, testDescription: string = 'Node add should success', timeout: number = defaultTimeout): void {
   const suffix = localBuildPath.substring(0, 5)
   const namespace = 'node-add' + suffix
@@ -64,16 +65,14 @@ export function testNodeAdd (localBuildPath: string, testDescription: string = '
         this.timeout(10 * MINUTES)
 
         await getNodeLogs(k8, namespace)
-        // @ts-ignore: Accessing private property for test purposes
-        await nodeCmd.accountManager.close()
+        await bootstrapResp.opts.accountManager.close()
         await nodeCmd.stop(argv)
         await networkCmd.destroy(argv)
         await k8.deleteNamespace(namespace)
       })
 
       it('cache current version of private keys', async () => {
-        // @ts-ignore: Accessing private property for test purposes
-        existingServiceMap = await nodeCmd.accountManager.getNodeServiceMap(namespace)
+        existingServiceMap = await bootstrapResp.opts.accountManager.getNodeServiceMap(namespace)
         existingNodeIdsPrivateKeysHash = await getNodeAliasesPrivateKeysHash(existingServiceMap, namespace, k8, getTmpDir())
       }).timeout(defaultTimeout)
 
@@ -90,15 +89,12 @@ export function testNodeAdd (localBuildPath: string, testDescription: string = '
           flags.quiet.constName,
           flags.adminKey.constName
         ])
-        // @ts-ignore: Accessing private property for test purposes
-        await nodeCmd.accountManager.close()
+        await bootstrapResp.opts.accountManager.close()
       }).timeout(12 * MINUTES)
 
-      // @ts-ignore: Accessing private property for test purposes
-      balanceQueryShouldSucceed(nodeCmd.accountManager, nodeCmd, namespace)
+      balanceQueryShouldSucceed(bootstrapResp.opts.accountManager, nodeCmd, namespace)
 
-      // @ts-ignore: Accessing private property for test purposes
-      accountCreationShouldSucceed(nodeCmd.accountManager, nodeCmd, namespace)
+      accountCreationShouldSucceed(bootstrapResp.opts.accountManager, nodeCmd, namespace)
 
       it('existing nodes private keys should not have changed', async () => {
         const currentNodeIdsPrivateKeysHash = await getNodeAliasesPrivateKeysHash(existingServiceMap, namespace, k8, getTmpDir())

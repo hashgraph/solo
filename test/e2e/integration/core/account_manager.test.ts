@@ -23,60 +23,62 @@ import * as version from '../../../../version.ts'
 import { MINUTES } from '../../../../src/core/constants.ts'
 import type { PodName } from '../../../../src/types/aliases.ts'
 
-describe('AccountManager', async () => {
-  const namespace = 'account-mngr-e2e'
-  const argv = getDefaultArgv()
-  argv[flags.namespace.name] = namespace
-  argv[flags.nodeAliasesUnparsed.name] = 'node1'
-  argv[flags.clusterName.name] = TEST_CLUSTER
-  argv[flags.soloChartVersion.name] = version.SOLO_CHART_VERSION
-  argv[flags.generateGossipKeys.name] = true
-  argv[flags.generateTlsKeys.name] = true
-  // set the env variable SOLO_CHARTS_DIR if developer wants to use local Solo charts
-  argv[flags.chartDirectory.name] = process.env.SOLO_CHARTS_DIR ?? undefined
-  const bootstrapResp = await e2eTestSuite(namespace, argv, undefined, undefined, undefined, undefined, undefined, undefined, false)
-  const k8 = bootstrapResp.opts.k8
-  const accountManager = bootstrapResp.opts.accountManager
-  const configManager = bootstrapResp.opts.configManager
+const namespace = 'account-mngr-e2e'
+const argv = getDefaultArgv()
+argv[flags.namespace.name] = namespace
+argv[flags.nodeAliasesUnparsed.name] = 'node1'
+argv[flags.clusterName.name] = TEST_CLUSTER
+argv[flags.soloChartVersion.name] = version.SOLO_CHART_VERSION
+argv[flags.generateGossipKeys.name] = true
+argv[flags.generateTlsKeys.name] = true
+// set the env variable SOLO_CHARTS_DIR if developer wants to use local Solo charts
+argv[flags.chartDirectory.name] = process.env.SOLO_CHARTS_DIR ?? undefined
 
-  after(async function () {
-    this.timeout(3 * MINUTES)
+e2eTestSuite(namespace, argv, undefined, undefined, undefined, undefined, undefined, undefined, false, (bootstrapResp) => {
+  describe('AccountManager', async () => {
+    const k8 = bootstrapResp.opts.k8
+    const accountManager = bootstrapResp.opts.accountManager
+    const configManager = bootstrapResp.opts.configManager
 
-    await k8.deleteNamespace(namespace)
-    await accountManager.close()
-  })
+    after(async function () {
+      this.timeout(3 * MINUTES)
 
-  it('should be able to stop port forwards', async () => {
-    await accountManager.close()
-    const localHost = '127.0.0.1'
+      await k8.deleteNamespace(namespace)
+      await accountManager.close()
+    })
 
-    const podName = 'minio-console' as PodName // use a svc that is less likely to be used by other tests
-    const podPort = 9_090
-    const localPort = 19_090
+    it('should be able to stop port forwards', async () => {
+      await accountManager.close()
+      const localHost = '127.0.0.1'
 
-    // @ts-ignore
-    expect(accountManager._portForwards, 'starting accountManager port forwards lengths should be zero').to.have.lengthOf(0)
+      const podName = 'minio-console' as PodName // use a svc that is less likely to be used by other tests
+      const podPort = 9_090
+      const localPort = 19_090
 
-    // ports should be opened
-    // @ts-ignore
-    accountManager._portForwards.push(await k8.portForward(podName, localPort, podPort))
-    const status = await k8.testConnection(localHost, localPort)
-    expect(status, 'test connection status should be true').to.be.ok
+      // @ts-ignore
+      expect(accountManager._portForwards, 'starting accountManager port forwards lengths should be zero').to.have.lengthOf(0)
 
-    // ports should be closed
-    await accountManager.close()
-    try {
-      await k8.testConnection(localHost, localPort)
-    } catch (e) {
-      expect(e.message, 'expect failed test connection').to.include(`failed to connect to '${localHost}:${localPort}'`)
-    }
-    // @ts-ignore
-    expect(accountManager._portForwards, 'expect that the closed account manager should have no port forwards').to.have.lengthOf(0)
-  })
+      // ports should be opened
+      // @ts-ignore
+      accountManager._portForwards.push(await k8.portForward(podName, localPort, podPort))
+      const status = await k8.testConnection(localHost, localPort)
+      expect(status, 'test connection status should be true').to.be.ok
 
-  it('should be able to load a new client', async () => {
-    await accountManager.loadNodeClient(configManager.getFlag(flags.namespace))
-    expect(accountManager._nodeClient).not.to.be.null
-    await accountManager.close()
+      // ports should be closed
+      await accountManager.close()
+      try {
+        await k8.testConnection(localHost, localPort)
+      } catch (e) {
+        expect(e.message, 'expect failed test connection').to.include(`failed to connect to '${localHost}:${localPort}'`)
+      }
+      // @ts-ignore
+      expect(accountManager._portForwards, 'expect that the closed account manager should have no port forwards').to.have.lengthOf(0)
+    })
+
+    it('should be able to load a new client', async () => {
+      await accountManager.loadNodeClient(configManager.getFlag(flags.namespace))
+      expect(accountManager._nodeClient).not.to.be.null
+      await accountManager.close()
+    })
   })
 })
