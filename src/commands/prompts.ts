@@ -34,6 +34,7 @@ async function prompt (type: string, task: ListrTaskWrapper<any, any, any>, inpu
       try {
         console.log(`tty.isatty(0): ${tty.isatty(0)}`)
         console.log(`tty.isatty(1): ${tty.isatty(1)}`)
+        console.log(`tty.isatty(2): ${tty.isatty(2)}`)
       }catch (e) {
         console.log(`tty.isatty error: ${e.message}, ${e.stack}`)
       }
@@ -50,7 +51,7 @@ async function prompt (type: string, task: ListrTaskWrapper<any, any, any>, inpu
       }catch (e) {
         console.log(`writeStream error: ${e.message}, ${e.stack}`)
       }
-      if (process.stdout.isTTY) {
+      if (!process.stdout.isTTY || !process.stdin.isTTY) {
         // this is to help find issues with prompts running in non-interactive mode, user should supply quite mode,
         // or provide all flags required for command
         throw new SoloError('Cannot prompt for input in non-interactive mode')
