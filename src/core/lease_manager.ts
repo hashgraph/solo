@@ -14,7 +14,7 @@
  * limitations under the License.
  *
  */
-import { SoloError, MissingArgumentError } from './errors.ts'
+import { MissingArgumentError, SoloError } from './errors.ts'
 import { flags } from '../commands/index.ts'
 import type { ConfigManager } from './config_manager.ts'
 import type { K8 } from './k8.ts'
@@ -42,6 +42,8 @@ export class LeaseManager {
     const self = this
 
     const namespace = self._getNamespace()
+    if (!namespace) return {}
+
     const username = constants.OS_USERNAME
     const leaseName = `${username}-lease`
 
@@ -77,8 +79,6 @@ export class LeaseManager {
   }
 
   private _getNamespace () {
-    const ns = this.configManager.getFlag<string>(flags.namespace)
-    if (!ns) throw new MissingArgumentError('namespace is not set')
-    return ns
+    return this.configManager.getFlag<string>(flags.namespace)
   }
 }
