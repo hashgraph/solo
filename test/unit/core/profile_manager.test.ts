@@ -31,8 +31,7 @@ import * as version from '../../../version.ts'
 import type { NodeAlias } from '../../../src/types/aliases.ts'
 
 const tmpDir = getTmpDir()
-const configFile = path.join(tmpDir, 'resource-manager.config')
-const configManager = new ConfigManager(testLogger, configFile)
+const configManager = new ConfigManager(testLogger)
 const profileManager = new ProfileManager(testLogger, configManager, tmpDir)
 configManager.setFlag(flags.nodeAliasesUnparsed, 'node1,node2,node4')
 const testProfileFile = path.join('test', 'data', 'test-profiles.yaml')

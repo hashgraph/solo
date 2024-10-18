@@ -110,55 +110,17 @@ jobs:
 
       - name: Update README.md
         run: |
-          set -x
+          set -xeo pipefail
           npm install
           npm run build
           npm install -g @hashgraph/solo
           npm link
-          
           echo "VERSION=${{ inputs.version }}"
           [[ -n "${{ inputs.version }}" ]] && npm version ${{ inputs.version }} -f --no-git-tag-version
           which solo
-          
-          export SOLO_CLUSTER_NAME=solo
-          export SOLO_NAMESPACE=solo
-          export SOLO_CLUSTER_SETUP_NAMESPACE=solo-cluster
-          
-          echo "Perform the following kind and solo commands and save output to environment variables"
-          
-          export KIND_CREATE_CLUSTER_OUTPUT=$( kind create cluster -n "${SOLO_CLUSTER_NAME}" 2>&1 | tee test.log )
-          
-          export SOLO_INIT_OUTPUT=$( solo init -i node1,node2,node3 -n "${SOLO_NAMESPACE}" -s \
-          "${SOLO_CLUSTER_SETUP_NAMESPACE}" | tee test.log )
-          
-          export SOLO_NODE_KEY_PEM_OUTPUT=$( solo node keys --gossip-keys --tls-keys | tee test.log )
-
-          export SOLO_CLUSTER_SETUP_OUTPUT=$( solo cluster setup | tee test.log )
-          
-          export SOLO_NETWORK_DEPLOY_OUTPUT=$( solo network deploy | tee test.log )
-          
-          export SOLO_NODE_SETUP_OUTPUT=$( solo node setup | tee test.log )
-          
-          export SOLO_NODE_START_OUTPUT=$( solo node start | tee test.log )
-          
-          export SOLO_MIRROR_NODE_DEPLOY_OUTPUT=$( solo mirror-node deploy | tee test.log )
-          
-          export SOLO_RELAY_DEPLAY_OUTPUT=$( solo relay deploy -i node1,node2 | tee test.log )
-          
-          export SOLO_RELAY_DEPLOY_OUTPUT=$( solo relay deploy | tee test.log )
-          echo "Generate README.md"
-          
-          envsubst '$KIND_CREATE_CLUSTER_OUTPUT,$SOLO_INIT_OUTPUT,$SOLO_NODE_KEY_PEM_OUTPUT,$SOLO_CLUSTER_SETUP_OUTPUT, \
-          $SOLO_NETWORK_DEPLOY_OUTPUT,$SOLO_NODE_SETUP_OUTPUT,$SOLO_NODE_START_OUTPUT,$SOLO_MIRROR_NODE_DEPLOY_OUTPUT,\
-          $SOLO_RELAY_DEPLAY_OUTPUT,$SOLO_RELAY_DEPLOY_OUTPUT'\
-          < README.md.template > README.md
-
-          echo "Remove color codes and lines showing intermediate progress"
-          
-          sed -i 's/\[32m//g' README.md
-          sed -i 's/\[33m//g' README.md
-          sed -i 's/\[39m//g' README.md
-          egrep -v '↓|❯|•' README.md > README.md.tmp && mv README.md.tmp README.md
+          node -p -e "Boolean(process.stdout.isTTY)"
+          chmod 755 ./.github/workflows/script/update_md.sh
+          ./.github/workflows/script/update_md.sh </dev/null | cat
           set +x
 
       - name: Check README.md Changes

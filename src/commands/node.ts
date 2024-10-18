@@ -798,9 +798,9 @@ export class NodeCommand extends BaseCommand {
     const self = this
     if (localBuildPath !== '') {
       return self.uploadPlatformSoftware(nodeAliases, podNames, task, localBuildPath)
-    } 
+    }
       return self.fetchPlatformSoftware(nodeAliases, podNames, releaseTag, task, self.platformInstaller)
-    
+
   }
 
   fetchPlatformSoftware (nodeAliases: NodeAliases, podNames: Record<NodeAlias, PodName>, releaseTag: string,
@@ -1214,7 +1214,6 @@ export class NodeCommand extends BaseCommand {
           // reset flags so that keys are not regenerated later
           self.configManager.setFlag(flags.generateGossipKeys, false)
           self.configManager.setFlag(flags.generateTlsKeys, false)
-          self.configManager.persist()
         }
       }
     ])
@@ -1844,7 +1843,6 @@ export class NodeCommand extends BaseCommand {
           // reset flags so that keys are not regenerated later
           self.configManager.setFlag(flags.generateGossipKeys, false)
           self.configManager.setFlag(flags.generateTlsKeys, false)
-          self.configManager.persist()
         }
       }
     ]
@@ -2652,7 +2650,6 @@ export class NodeCommand extends BaseCommand {
           // reset flags so that keys are not regenerated later
           self.configManager.setFlag(flags.generateGossipKeys, false)
           self.configManager.setFlag(flags.generateTlsKeys, false)
-          self.configManager.persist()
         }
       }
     ], {
@@ -2869,7 +2866,6 @@ export class NodeCommand extends BaseCommand {
           // reset flags so that keys are not regenerated later
           self.configManager.setFlag(flags.generateGossipKeys, false)
           self.configManager.setFlag(flags.generateTlsKeys, false)
-          self.configManager.persist()
         }
       }
     ]

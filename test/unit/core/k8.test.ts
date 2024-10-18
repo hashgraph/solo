@@ -18,8 +18,8 @@ import { expect } from 'chai'
 import { describe, it, after, before } from 'mocha'
 import jest from 'jest-mock'
 
-import { constants, K8 } from '../../../src/core/index.ts'
-import { getTestConfigManager, testLogger } from '../../test_util.ts'
+import { ConfigManager, constants, K8 } from '../../../src/core/index.ts'
+import { testLogger } from '../../test_util.ts'
 import { flags } from '../../../src/commands/index.ts'
 import { SECONDS } from '../../../src/core/constants.ts'
 
@@ -43,7 +43,7 @@ const defaultTimeout = 20 * SECONDS
 describe('K8 Unit Tests', function () {
   this.timeout(defaultTimeout)
 
-  const argv = { }
+  const argv = {}
   const expectedResult = [
     {
       metadata: { name: 'pod' },
@@ -57,14 +57,15 @@ describe('K8 Unit Tests', function () {
     }
   ]
   // @ts-ignore
-  const k8InitSpy = jest.spyOn(K8.prototype, 'init').mockImplementation(() => {})
+  const k8InitSpy = jest.spyOn(K8.prototype, 'init').mockImplementation(() => {
+  })
   const k8GetPodsByLabelSpy = jest.spyOn(K8.prototype, 'getPodsByLabel').mockResolvedValue(expectedResult)
   let k8: K8
 
   before(() => {
     argv[flags.namespace.name] = 'namespace'
-    const configManager = getTestConfigManager('k8-solo.yaml')
-    configManager.update(argv, true)
+    const configManager = new ConfigManager(testLogger)
+    configManager.update(argv)
     k8 = new K8(configManager, testLogger)
     k8.kubeClient = {
       // @ts-ignore

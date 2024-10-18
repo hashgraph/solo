@@ -65,7 +65,7 @@ describe('ClusterCommand', () => {
 
     await k8.deleteNamespace(namespace)
     argv[flags.clusterSetupNamespace.name] = constants.SOLO_SETUP_NAMESPACE
-    configManager.update(argv, true)
+    configManager.update(argv)
     await clusterCmd.setup(argv) // restore solo-cluster-setup for other e2e tests to leverage
     do {
       await sleep(5 * SECONDS)
@@ -85,13 +85,13 @@ describe('ClusterCommand', () => {
 
   it('solo cluster setup should fail with invalid cluster name', async () => {
     argv[flags.clusterSetupNamespace.name] = 'INVALID'
-    configManager.update(argv, true)
+    configManager.update(argv)
     await expect(clusterCmd.setup(argv)).to.be.rejectedWith('Error on cluster setup')
   }).timeout(MINUTES)
 
   it('solo cluster setup should work with valid args', async () => {
     argv[flags.clusterSetupNamespace.name] = namespace
-    configManager.update(argv, true)
+    configManager.update(argv)
     await expect(clusterCmd.setup(argv)).to.eventually.be.ok
   }).timeout(MINUTES)
 
@@ -111,7 +111,7 @@ describe('ClusterCommand', () => {
   // helm list would return an empty list if given invalid namespace
   it('solo cluster reset should fail with invalid cluster name', async () => {
     argv[flags.clusterSetupNamespace.name] = 'INVALID'
-    configManager.update(argv, true)
+    configManager.update(argv)
 
     try {
       await expect(clusterCmd.reset(argv)).to.be.rejectedWith('Error on cluster reset')
@@ -123,7 +123,7 @@ describe('ClusterCommand', () => {
 
   it('solo cluster reset should work with valid args', async () => {
     argv[flags.clusterSetupNamespace.name] = namespace
-    configManager.update(argv, true)
+    configManager.update(argv)
     await expect(clusterCmd.reset(argv)).to.eventually.be.ok
   }).timeout(MINUTES)
 })

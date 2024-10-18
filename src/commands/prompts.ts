@@ -23,6 +23,7 @@ import * as helpers from '../core/helpers.ts'
 import { resetDisabledPrompts } from './flags.ts'
 import type { ListrTaskWrapper } from 'listr2'
 import { type CommandFlag } from '../types/index.js'
+import tty from 'node:tty'
 
 async function prompt (type: string, task: ListrTaskWrapper<any, any, any>, input: any, defaultValue: any, promptMessage: string, emptyCheckMessage: string | null, flagName: string) {
   try {
@@ -30,6 +31,12 @@ async function prompt (type: string, task: ListrTaskWrapper<any, any, any>, inpu
     needsPrompt = type === 'number' ? typeof input !== 'number' : needsPrompt
 
     if (needsPrompt) {
+      if (!process.stdout.isTTY || !process.stdin.isTTY) {
+        // this is to help find issues with prompts running in non-interactive mode, user should supply quite mode,
+        // or provide all flags required for command
+        throw new SoloError('Cannot prompt for input in non-interactive mode')
+      }
+
       input = await task.prompt(ListrEnquirerPromptAdapter).run({
         type,
         default: defaultValue,
@@ -503,8 +510,6 @@ export async function execute (task: ListrTaskWrapper<any, any, any>, configMana
     const input = await prompt(task, configManager.getFlag(flag))
     configManager.setFlag(flag, input)
   }
-
-  configManager.persist()
 }
 
 /**
