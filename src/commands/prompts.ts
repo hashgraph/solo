@@ -503,8 +503,6 @@ export async function execute (task: ListrTaskWrapper<any, any, any>, configMana
     const input = await prompt(task, configManager.getFlag(flag))
     configManager.setFlag(flag, input)
   }
-
-  configManager.persist()
 }
 
 /**

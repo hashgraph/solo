@@ -236,7 +236,6 @@ export class RelayCommand extends BaseCommand {
 
           // reset nodeAlias
           self.configManager.setFlag(flags.nodeAliasesUnparsed, '')
-          self.configManager.persist()
         }
       },
       {
@@ -316,7 +315,6 @@ export class RelayCommand extends BaseCommand {
 
           // reset nodeAliasesUnparsed
           self.configManager.setFlag(flags.nodeAliasesUnparsed, '')
-          self.configManager.persist()
         },
         skip: (ctx) => !ctx.config.isChartInstalled
       }
