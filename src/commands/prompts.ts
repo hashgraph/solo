@@ -31,26 +31,6 @@ async function prompt (type: string, task: ListrTaskWrapper<any, any, any>, inpu
     needsPrompt = type === 'number' ? typeof input !== 'number' : needsPrompt
 
     if (needsPrompt) {
-      try {
-        console.log(`tty.isatty(0): ${tty.isatty(0)}`)
-        console.log(`tty.isatty(1): ${tty.isatty(1)}`)
-        console.log(`tty.isatty(2): ${tty.isatty(2)}`)
-      }catch (e) {
-        console.log(`tty.isatty error: ${e.message}, ${e.stack}`)
-      }
-      try {
-        const readStream = new tty.ReadStream(0)
-        console.log(`readStream.isRaw: ${readStream.isRaw}`)
-        console.log(`readStream.isTTY: ${readStream.isTTY}`)
-      }catch (e) {
-        console.log(`readStream error: ${e.message}, ${e.stack}`)
-      }
-      try {
-        const writeStream = new tty.WriteStream(1)
-        console.log(`writeStream.isTTY: ${writeStream.isTTY}`)
-      }catch (e) {
-        console.log(`writeStream error: ${e.message}, ${e.stack}`)
-      }
       if (!process.stdout.isTTY || !process.stdin.isTTY) {
         // this is to help find issues with prompts running in non-interactive mode, user should supply quite mode,
         // or provide all flags required for command
