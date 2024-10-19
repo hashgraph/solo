@@ -57,13 +57,14 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
     const configManager = bootstrapResp.opts.configManager
     const nodeCmd = bootstrapResp.cmd.nodeCmd
 
-    after(async function () {
+    after(async function (done) {
       this.timeout(3 * MINUTES)
 
       await getNodeLogs(k8, namespace)
       await k8.deleteNamespace(namespace)
       await accountManager.close()
       await nodeCmd.close()
+      done()
     })
 
     describe('node proxies should be UP', () => {
@@ -92,9 +93,10 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
           await accountManager.loadNodeClient(namespace)
         })
 
-        after(async function () {
+        after(async function (done) {
           this.timeout(20 * SECONDS)
           await accountManager.close()
+          done()
         })
 
         for (const [start, end] of testSystemAccounts) {

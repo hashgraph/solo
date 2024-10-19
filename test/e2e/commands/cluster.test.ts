@@ -60,7 +60,7 @@ describe('ClusterCommand', () => {
 
   const clusterCmd = bootstrapResp.cmd.clusterCmd
 
-  after(async function () {
+  after(async function (done) {
     this.timeout(3 * MINUTES)
 
     await k8.deleteNamespace(namespace)
@@ -70,6 +70,7 @@ describe('ClusterCommand', () => {
     do {
       await sleep(5 * SECONDS)
     } while (!await chartManager.isChartInstalled(constants.SOLO_SETUP_NAMESPACE, constants.SOLO_CLUSTER_SETUP_CHART))
+    done()
   })
 
   beforeEach(() => configManager.reset())

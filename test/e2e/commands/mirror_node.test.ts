@@ -67,7 +67,7 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
       bootstrapResp.opts.logger.showUser(`------------------------- START: ${testName} ----------------------------`)
     })
 
-    after(async function () {
+    after(async function (done) {
       this.timeout(3 * MINUTES)
 
       await getNodeLogs(k8, namespace)
@@ -75,6 +75,7 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
       await accountManager.close()
 
       bootstrapResp.opts.logger.showUser(`------------------------- END: ${testName} ----------------------------`)
+      done()
     })
 
     // give a few ticks so that connections can close

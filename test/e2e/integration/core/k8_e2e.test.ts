@@ -44,7 +44,6 @@ import {
 import crypto from 'crypto'
 import { MINUTES } from '../../../../src/core/constants.ts'
 import type { PodName } from '../../../../src/types/aliases.ts'
-import { ExtendedNetServer } from '../../../../src/types/index.js'
 
 const defaultTimeout = 2 * MINUTES
 
@@ -105,7 +104,7 @@ describe('K8', () => {
     }
   })
 
-  after(async function () {
+  after(async function (done) {
     this.timeout(defaultTimeout)
     try {
       await k8.kubeClient.deleteNamespacedPod(podName, testNamespace, undefined, undefined, 1)
@@ -114,6 +113,8 @@ describe('K8', () => {
     } catch (e) {
       console.log(e)
       throw e
+    } finally {
+      done()
     }
   })
 

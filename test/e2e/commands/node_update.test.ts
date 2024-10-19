@@ -60,12 +60,13 @@ e2eTestSuite(namespace, argv, undefined, undefined, undefined, undefined, undefi
     let existingServiceMap
     let existingNodeIdsPrivateKeysHash
 
-    after(async function () {
+    after(async function (done) {
       this.timeout(10 * MINUTES)
 
       await getNodeLogs(k8, namespace)
       await nodeCmd.stop(argv)
       await k8.deleteNamespace(namespace)
+      done()
     })
 
     it('cache current version of private keys', async () => {

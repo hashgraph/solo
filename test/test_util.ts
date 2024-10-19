@@ -209,10 +209,11 @@ export function e2eTestSuite (
         bootstrapResp.opts.logger.showUser(`------------------------- START: bootstrap (${testName}) ----------------------------`)
       })
 
-      after(async function () {
+      after(async function (done) {
         this.timeout(3 * MINUTES)
         await getNodeLogs(k8, namespace)
         bootstrapResp.opts.logger.showUser(`------------------------- END: bootstrap (${testName}) ----------------------------`)
+        done()
       })
 
       it('should cleanup previous deployment', async () => {
@@ -353,7 +354,7 @@ export async function getNodeAliasesPrivateKeysHash (networkNodeServicesMap: Map
     if (!fs.existsSync(uniqueNodeDestDir)) {
       fs.mkdirSync(uniqueNodeDestDir, { recursive: true })
     }
-    await addKeyHashToMap(k8, nodeAlias, dataKeysDir, uniqueNodeDestDir, keyHashMap, Templates.renderGossipPemPrivateKeyFile(constants.SIGNING_KEY_PREFIX, nodeAlias))
+    await addKeyHashToMap(k8, nodeAlias, dataKeysDir, uniqueNodeDestDir, keyHashMap, Templates.renderGossipPemPrivateKeyFile(nodeAlias))
     await addKeyHashToMap(k8, nodeAlias, tlsKeysDir, uniqueNodeDestDir, keyHashMap, 'hedera.key')
     nodeKeyHashMap.set(nodeAlias, keyHashMap)
   }

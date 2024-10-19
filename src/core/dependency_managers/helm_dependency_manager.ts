@@ -23,7 +23,6 @@ import * as helpers from '../helpers.ts'
 import { constants, type PackageDownloader, Templates, type Zippy } from '../index.ts'
 import * as version from '../../../version.ts'
 import { ShellRunner } from '../shell_runner.ts'
-import * as semver from 'semver'
 import { OS_WIN32, OS_WINDOWS } from '../constants.ts'
 import { type SoloLogger } from '../logging.ts'
 
@@ -125,21 +124,6 @@ export class HelmDependencyManager extends ShellRunner {
     }
 
     return this.isInstalled()
-  }
-
-  async checkVersion (shouldInstall = true) {
-    if (!this.isInstalled()) {
-      if (shouldInstall) {
-        await this.install()
-      } else {
-        return false
-      }
-    }
-
-    const output = await this.run(`${this.helmPath} version --short`)
-    const parts = output[0].split('+')
-    this.logger.debug(`Found ${constants.HELM}:${parts[0]}`)
-    return semver.gte(parts[0], version.HELM_VERSION)
   }
 
   getHelmVersion () {

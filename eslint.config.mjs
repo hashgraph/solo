@@ -22,9 +22,13 @@ import headers from 'eslint-plugin-headers'
 export default [
   pluginJs.configs.recommended,
   ...tseslint.configs.strict,
+  ...tseslint.configs.recommended,
+  // ...tseslint.configs.stylistic, // TODO: enable in a different PR
+  {
+    ignores: ['docs/**/*', 'dist/*'],
+  },
   {
     files: ['test/**/*.ts', 'src/**/*.ts'],
-    ignores: ['docs/**/*', 'dist/*'],
     plugins: {
       headers: headers
     },
@@ -64,7 +68,6 @@ export default [
   },
   {
     files: ['**/*'],
-    ignores: ['dist/*'],
     languageOptions: {
       globals: {
         ...globals.mocha,

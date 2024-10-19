@@ -50,10 +50,11 @@ e2eTestSuite(namespace, argv, undefined, undefined, undefined, undefined, undefi
     const accountCmd = bootstrapResp.cmd.accountCmd
     const k8 = bootstrapResp.opts.k8
 
-    after(async function () {
+    after(async function (done) {
       this.timeout(10 * MINUTES)
       await getNodeLogs(k8, namespace)
       await k8.deleteNamespace(namespace)
+      done()
     })
 
     it('should succeed with init command', async () => {
