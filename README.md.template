@@ -216,7 +216,7 @@ $SOLO_MIRROR_NODE_DEPLOY_OUTPUT
 * Deploy a JSON RPC relay
 
 ```
-solo relay deploy -i node1,node2 -n "${SOLO_NAMESPACE}"
+solo relay deploy -i node1 -n "${SOLO_NAMESPACE}"
 ```
 
 * Example output
@@ -311,7 +311,7 @@ Once the nodes are up, you may now expose various services (using `k9s` (shift-f
 Example output
 
 ```
-$SOLO_RELAY_DEPLAY_OUTPUT
+$SOLO_RELAY_DEPLOY_OUTPUT
 ```
 
 ## For Developers Working on Hedera Service Repo

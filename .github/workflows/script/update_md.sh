@@ -30,16 +30,14 @@ export SOLO_NODE_START_OUTPUT=$( cat node-start.log | tee test.log )
 solo mirror-node deploy -n "${SOLO_NAMESPACE}" | tee mirror-node-deploy.log
 export SOLO_MIRROR_NODE_DEPLOY_OUTPUT=$( cat mirror-node-deploy.log | tee test.log )
 
-solo relay deploy -i node1,node2 -n "${SOLO_NAMESPACE}" | tee relay-deploy.log
+solo relay deploy -i node1 -n "${SOLO_NAMESPACE}" | tee relay-deploy.log
 export SOLO_RELAY_DEPLOY_OUTPUT=$( cat relay-deploy.log | tee test.log )
 
-solo relay deploy -i node1 -n "${SOLO_NAMESPACE}" | tee relay-deploy.log
-export SOLO_RELAY_DEPLAY_OUTPUT=$( cat relay-deploy.log | tee test.log )
 echo "Generate README.md"
 
 envsubst '$KIND_CREATE_CLUSTER_OUTPUT,$SOLO_INIT_OUTPUT,$SOLO_NODE_KEY_PEM_OUTPUT,$SOLO_CLUSTER_SETUP_OUTPUT, \
 $SOLO_NETWORK_DEPLOY_OUTPUT,$SOLO_NODE_SETUP_OUTPUT,$SOLO_NODE_START_OUTPUT,$SOLO_MIRROR_NODE_DEPLOY_OUTPUT,\
-$SOLO_RELAY_DEPLAY_OUTPUT,$SOLO_RELAY_DEPLOY_OUTPUT'\
+$SOLO_RELAY_DEPLOY_OUTPUT'\
 < README.md.template > README.md
 
 echo "Remove color codes and lines showing intermediate progress"
