@@ -195,10 +195,12 @@ export class NodeCommand extends BaseCommand {
   static get START_FLAGS_LIST () {
     return [
       flags.app,
+      flags.cacheDir,
       flags.debugNodeAlias,
       flags.namespace,
       flags.nodeAliasesUnparsed,
-      flags.quiet
+      flags.quiet,
+      flags.releaseTag
     ]
   }
 

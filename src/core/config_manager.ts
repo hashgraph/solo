@@ -77,15 +77,6 @@ export class ConfigManager {
   update (argv: object | any = {}) {
     if (argv && Object.keys(argv).length > 0) {
       for (const flag of flags.allFlags) {
-        if (flag.name === flags.force.name) {
-          continue // we don't want to cache force flag
-        }
-
-        if (argv[flag.name] === '' &&
-          [flags.namespace.name, flags.clusterName.name, flags.chartDirectory.name].includes(flag.name)) {
-          continue // don't cache empty namespace, clusterName, or chartDirectory
-        }
-
         if (argv[flag.name] !== undefined) {
           let val = argv[flag.name]
           switch (flag.definition.type) {

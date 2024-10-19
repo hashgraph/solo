@@ -93,7 +93,7 @@ export function main (argv: any) {
       // apply precedence for flags
       argv = configManager.applyPrecedence(argv, yargs.parsed.aliases)
 
-      // update and persist config
+      // update
       configManager.update(argv)
 
       logger.showUser(chalk.cyan('\n******************************* Solo *********************************************'))
