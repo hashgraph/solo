@@ -62,12 +62,11 @@ export function e2eNodeKeyRefreshTest (testName: string, mode: string, releaseTa
         await accountManager.close()
       })
 
-      after(async function (done) {
+      after(async function () {
         this.timeout(10 * MINUTES)
 
         await getNodeLogs(k8, namespace)
         await k8.deleteNamespace(namespace)
-        done()
       })
 
       describe(`Node should have started successfully [mode ${mode}, release ${releaseTag}]`, () => {

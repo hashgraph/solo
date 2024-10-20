@@ -40,12 +40,11 @@ e2eTestSuite(namespace, argv, undefined, undefined, undefined, undefined, undefi
     const accountManager = bootstrapResp.opts.accountManager
     const configManager = bootstrapResp.opts.configManager
 
-    after(async function (done) {
+    after(async function () {
       this.timeout(3 * MINUTES)
 
       await k8.deleteNamespace(namespace)
       await accountManager.close()
-      done()
     })
 
     it('should be able to stop port forwards', async () => {

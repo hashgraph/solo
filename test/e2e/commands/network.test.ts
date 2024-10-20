@@ -62,13 +62,12 @@ describe('NetworkCommand', () => {
   const initCmd = bootstrapResp.cmd.initCmd
   const nodeCmd = bootstrapResp.cmd.nodeCmd
 
-  after(async function (done) {
+  after(async function () {
     this.timeout(3 * MINUTES)
 
     await getNodeLogs(k8, namespace)
     await k8.deleteNamespace(namespace)
     await accountManager.close()
-    done()
   })
 
   before(async () => {

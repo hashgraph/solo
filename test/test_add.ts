@@ -60,7 +60,7 @@ export function testNodeAdd (localBuildPath: string, testDescription: string = '
       let existingServiceMap: Map<NodeAlias, NetworkNodeServices>
       let existingNodeIdsPrivateKeysHash: Map<NodeAlias, Map<string, string>>
 
-      after(async function (done) {
+      after(async function () {
         this.timeout(10 * MINUTES)
 
         await getNodeLogs(k8, namespace)
@@ -68,7 +68,6 @@ export function testNodeAdd (localBuildPath: string, testDescription: string = '
         await nodeCmd.stop(argv)
         await networkCmd.destroy(argv)
         await k8.deleteNamespace(namespace)
-        done()
       })
 
       it('cache current version of private keys', async () => {

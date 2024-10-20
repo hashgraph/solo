@@ -54,12 +54,11 @@ e2eTestSuite(namespace, argv, undefined, undefined, undefined, undefined, undefi
     const podName = 'network-node1-0'
     const packageVersion = 'v0.42.5'
 
-    after(async function (done) {
+    after(async function () {
       this.timeout(3 * MINUTES)
 
       await k8.deleteNamespace(namespace)
       await accountManager.close()
-      done()
     })
 
     before(function () {

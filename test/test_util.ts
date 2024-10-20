@@ -209,11 +209,10 @@ export function e2eTestSuite (
         bootstrapResp.opts.logger.showUser(`------------------------- START: bootstrap (${testName}) ----------------------------`)
       })
 
-      after(async function (done) {
+      after(async function () {
         this.timeout(3 * MINUTES)
         await getNodeLogs(k8, namespace)
         bootstrapResp.opts.logger.showUser(`------------------------- END: bootstrap (${testName}) ----------------------------`)
-        done()
       })
 
       it('should cleanup previous deployment', async () => {

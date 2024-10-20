@@ -104,7 +104,7 @@ describe('K8', () => {
     }
   })
 
-  after(async function (done) {
+  after(async function () {
     this.timeout(defaultTimeout)
     try {
       await k8.kubeClient.deleteNamespacedPod(podName, testNamespace, undefined, undefined, 1)
@@ -113,8 +113,6 @@ describe('K8', () => {
     } catch (e) {
       console.log(e)
       throw e
-    } finally {
-      done()
     }
   })
 
