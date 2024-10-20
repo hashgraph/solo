@@ -59,7 +59,7 @@ describe('KeyManager', () => {
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'keys-'))
     const nodeAlias = 'node1'
 
-    const tlsKey = await keyManager.generateGrpcTLSKey(nodeAlias)
+    const tlsKey = await keyManager.generateGrpcTlsKey(nodeAlias)
     expect(tlsKey.certificate.subject).not.to.equal('')
     expect(tlsKey.certificate.issuer).not.to.equal('')
 

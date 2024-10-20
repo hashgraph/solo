@@ -334,7 +334,7 @@ export class KeyManager {
    * @param nodeAlias
    * @param distinguishedName distinguished name as: new x509.Name(`CN=${nodeAlias},ST=${state},L=${locality},O=${org},OU=${orgUnit},C=${country}`)
    */
-  async generateGrpcTLSKey (nodeAlias: NodeAlias, distinguishedName: x509.Name = new x509.Name(`CN=${nodeAlias}`)): Promise<NodeKeyObject> {
+  async generateGrpcTlsKey (nodeAlias: NodeAlias, distinguishedName: x509.Name = new x509.Name(`CN=${nodeAlias}`)): Promise<NodeKeyObject> {
     if (!nodeAlias) throw new MissingArgumentError('nodeAlias is required')
     if (!distinguishedName) throw new MissingArgumentError('distinguishedName is required')
 
@@ -486,7 +486,7 @@ export class KeyManager {
       subTasks.push({
         title: `TLS key for node: ${chalk.yellow(nodeAlias)}`,
         task: async () => {
-          const tlsKey = await self.generateGrpcTLSKey(nodeAlias)
+          const tlsKey = await self.generateGrpcTlsKey(nodeAlias)
           const tlsKeyFiles = await self.storeTLSKey(nodeAlias, tlsKey, keysDir)
           nodeKeyFiles.set(nodeAlias, {
             tlsKeyFiles
