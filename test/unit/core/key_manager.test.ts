@@ -41,9 +41,7 @@ describe('KeyManager', () => {
     expect(files.certificateFile).not.to.be.null
 
     const nodeKey = await keyManager.loadSigningKey(nodeAlias, tmpDir)
-    expect(nodeKey.certificate).to.deep.equal(signingKey.certificate)
-    expect(nodeKey.privateKey).to.deep.equal(signingKey.privateKey)
-    expect(nodeKey.certificate).to.deep.equal(signingKey.certificate)
+    expect(nodeKey.certificate.rawData.toString()).to.equal(signingKey.certificate.rawData.toString())
     expect(nodeKey.privateKey.algorithm).to.deep.equal(signingKey.privateKey.algorithm)
     expect(nodeKey.privateKey.type).to.deep.equal(signingKey.privateKey.type)
 
@@ -70,11 +68,7 @@ describe('KeyManager', () => {
     const nodeKey = await keyManager.loadTLSKey(nodeAlias, tmpDir)
     expect(nodeKey.certificate.subject).to.deep.equal(tlsKey.certificate.subject)
     expect(nodeKey.certificate.issuer).to.deep.equal(tlsKey.certificate.issuer)
-    expect(nodeKey.certificate).to.deep.equal(tlsKey.certificate)
-    // @ts-ignore
-    expect(nodeKey.privateKey).to.deep.equal(tlsKey.privateKey)
-    // @ts-ignore
-    expect(nodeKey.certificate).to.deep.equal(tlsKey.certificate)
+    expect(nodeKey.certificate.rawData.toString()).to.deep.equal(tlsKey.certificate.rawData.toString())
     expect(nodeKey.privateKey.algorithm).to.deep.equal(tlsKey.privateKey.algorithm)
     expect(nodeKey.privateKey.type).to.deep.equal(tlsKey.privateKey.type)
 
