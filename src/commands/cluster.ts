@@ -87,13 +87,13 @@ export class ClusterCommand extends BaseCommand {
 
           // prepare config
           ctx.config = {
-            chartDir: <string>self.configManager.getFlag<string>(flags.chartDirectory),
-            clusterSetupNamespace: <string>self.configManager.getFlag<string>(flags.clusterSetupNamespace),
-            deployCertManager: <boolean>self.configManager.getFlag<boolean>(flags.deployCertManager),
-            deployCertManagerCrds: <boolean>self.configManager.getFlag<boolean>(flags.deployCertManagerCrds),
-            deployMinio: <boolean>self.configManager.getFlag<boolean>(flags.deployMinio),
-            deployPrometheusStack: <boolean>self.configManager.getFlag<boolean>(flags.deployPrometheusStack),
-            soloChartVersion: <string>self.configManager.getFlag<string>(flags.soloChartVersion)
+            chartDir: self.configManager.getFlag<string>(flags.chartDirectory) as string,
+            clusterSetupNamespace: self.configManager.getFlag<string>(flags.clusterSetupNamespace) as string,
+            deployCertManager: self.configManager.getFlag<boolean>(flags.deployCertManager) as boolean,
+            deployCertManagerCrds: self.configManager.getFlag<boolean>(flags.deployCertManagerCrds) as boolean,
+            deployMinio: self.configManager.getFlag<boolean>(flags.deployMinio) as boolean,
+            deployPrometheusStack: self.configManager.getFlag<boolean>(flags.deployPrometheusStack) as boolean,
+            soloChartVersion: self.configManager.getFlag<string>(flags.soloChartVersion) as string
           }
 
           self.logger.debug('Prepare ctx.config', { config: ctx.config, argv })
@@ -187,8 +187,8 @@ export class ClusterCommand extends BaseCommand {
 
           self.configManager.update(argv)
           ctx.config = {
-            clusterName: <string>self.configManager.getFlag<string>(flags.clusterName),
-            clusterSetupNamespace: <string>self.configManager.getFlag<string>(flags.clusterSetupNamespace)
+            clusterName: self.configManager.getFlag<string>(flags.clusterName) as string,
+            clusterSetupNamespace: self.configManager.getFlag<string>(flags.clusterSetupNamespace) as string
           }
 
           ctx.isChartInstalled = await this.chartManager.isChartInstalled(ctx.config.clusterSetupNamespace, constants.SOLO_CLUSTER_SETUP_CHART)
@@ -325,11 +325,11 @@ export class ClusterCommand extends BaseCommand {
    * @param [certManagerCrdsEnabled] - a bool to denote whether to install cert manager CRDs
    */
   prepareValuesArg (
-    chartDir = <string>flags.chartDirectory.definition.defaultValue,
-    prometheusStackEnabled = <boolean>flags.deployPrometheusStack.definition.defaultValue,
-    minioEnabled = <boolean>flags.deployMinio.definition.defaultValue,
-    certManagerEnabled = <boolean>flags.deployCertManager.definition.defaultValue,
-    certManagerCrdsEnabled = <boolean>flags.deployCertManagerCrds.definition.defaultValue
+    chartDir = flags.chartDirectory.definition.defaultValue as string,
+    prometheusStackEnabled = flags.deployPrometheusStack.definition.defaultValue as boolean,
+    minioEnabled = flags.deployMinio.definition.defaultValue as boolean,
+    certManagerEnabled = flags.deployCertManager.definition.defaultValue as boolean,
+    certManagerCrdsEnabled = flags.deployCertManagerCrds.definition.defaultValue as boolean
   ) {
     let valuesArg = chartDir ? `-f ${path.join(chartDir, 'solo-cluster-setup', 'values.yaml')}` : ''
 
@@ -350,7 +350,7 @@ export class ClusterCommand extends BaseCommand {
    * Prepare chart path
    * @param [chartDir] - local charts directory (default is empty)
    */
-  async prepareChartPath (chartDir = <string>flags.chartDirectory.definition.defaultValue) {
+  async prepareChartPath (chartDir = flags.chartDirectory.definition.defaultValue as string) {
     let chartPath = 'solo-charts/solo-cluster-setup'
     if (chartDir) {
       chartPath = path.join(chartDir, 'solo-cluster-setup')
