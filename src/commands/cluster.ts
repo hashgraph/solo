@@ -56,7 +56,6 @@ export class ClusterCommand extends BaseCommand {
   /** Setup cluster with shared components */
   async setup (argv: any) {
     const self = this
-    const lease = new LeaseWrapper(self.leaseManager)
 
     interface Context {
       config: {
@@ -100,8 +99,6 @@ export class ClusterCommand extends BaseCommand {
           self.logger.debug('Prepare ctx.config', { config: ctx.config, argv })
 
           ctx.isChartInstalled = await this.chartManager.isChartInstalled(ctx.config.clusterSetupNamespace, constants.SOLO_CLUSTER_SETUP_CHART)
-
-          return lease.buildAcquireTask(task)
         }
       },
       {
@@ -156,8 +153,6 @@ export class ClusterCommand extends BaseCommand {
       await tasks.run()
     } catch (e: Error | any) {
       throw new SoloError('Error on cluster setup', e)
-    } finally {
-      await lease.release()
     }
 
     return true

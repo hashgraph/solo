@@ -1144,7 +1144,6 @@ export class NodeCommand extends BaseCommand {
 
   async keys (argv: any) {
     const self = this
-    const lease = new LeaseWrapper(self.leaseManager)
 
     interface NodeKeysConfigClass {
       cacheDir: string
@@ -1188,8 +1187,6 @@ export class NodeCommand extends BaseCommand {
           }
 
           ctx.config = config
-
-          return lease.buildAcquireTask(task)
         }
       },
       {
@@ -1239,8 +1236,6 @@ export class NodeCommand extends BaseCommand {
       await tasks.run()
     } catch (e: Error | any) {
       throw new SoloError(`Error generating keys: ${e.message}`, e)
-    } finally {
-      await lease.release()
     }
 
     return true

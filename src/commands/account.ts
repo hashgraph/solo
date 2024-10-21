@@ -119,8 +119,6 @@ export class AccountCommand extends BaseCommand {
   async init (argv: any) {
     const self = this
 
-    const lease = new LeaseWrapper(self.leaseManager)
-
     interface Context {
       config: {
         namespace: string
@@ -157,8 +155,6 @@ export class AccountCommand extends BaseCommand {
           self.logger.debug('Initialized config', { config })
 
           await self.accountManager.loadNodeClient(ctx.config.namespace)
-
-          return lease.buildAcquireTask(task)
         }
       },
       {
@@ -244,7 +240,6 @@ export class AccountCommand extends BaseCommand {
     } catch (e: Error | any) {
       throw new SoloError(`Error in creating account: ${e.message}`, e)
     } finally {
-      await lease.release()
       await this.closeConnections()
     }
 
@@ -330,7 +325,6 @@ export class AccountCommand extends BaseCommand {
 
   async update (argv: any) {
     const self = this
-    const lease = new LeaseWrapper(self.leaseManager)
 
     interface Context {
       config: {
@@ -369,8 +363,6 @@ export class AccountCommand extends BaseCommand {
           await self.accountManager.loadNodeClient(config.namespace)
 
           self.logger.debug('Initialized config', { config })
-
-          return lease.buildAcquireTask(task)
         }
       },
       {
@@ -404,7 +396,6 @@ export class AccountCommand extends BaseCommand {
     } catch (e: Error | any) {
       throw new SoloError(`Error in updating account: ${e.message}`, e)
     } finally {
-      await lease.release()
       await this.closeConnections()
     }
 
