@@ -82,9 +82,8 @@ export function testNodeAdd (localBuildPath: string, testDescription: string = '
       it('should add a new node to the network successfully', async () => {
         await nodeCmd.handlers.add(argv)
         expect(nodeCmd.getUnusedConfigs(NodeCommandConfigs.ADD_CONFIGS_NAME)).to.deep.equal([
-          flags.app.constName,
-          flags.chainId.constName,
           flags.devMode.constName,
+          flags.force.constName,
           flags.quiet.constName,
           flags.adminKey.constName
         ])
