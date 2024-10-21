@@ -14,7 +14,7 @@
 #  limitations under the License.
 ##
 timeout: 20000 # 20 Seconds
-reporter: mocha-junit-reporter # can be commented out for human friendly reporting during testing
+reporter: mocha-multi-reporters
 check-leaks: true
 recursive: true
 exit: true
@@ -27,5 +27,4 @@ require:
   - test/setup.ts
 extension:
   - ts
-
 loader: ts-node/esm

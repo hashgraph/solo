@@ -13,7 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
- * @mocha-environment steps
  */
 import { expect } from 'chai'
 import { describe, it, after } from 'mocha'
@@ -22,7 +21,7 @@ import { flags } from '../src/commands/index.ts'
 import {
   accountCreationShouldSucceed,
   balanceQueryShouldSucceed,
-  bootstrapNetwork,
+  e2eTestSuite,
   getDefaultArgv,
   getNodeAliasesPrivateKeysHash,
   getTmpDir,
@@ -35,83 +34,80 @@ import { MINUTES } from '../src/core/constants.ts'
 import type { NodeAlias } from '../src/types/aliases.ts'
 import type { NetworkNodeServices } from '../src/core/network_node_services.ts'
 
-export function testNodeAdd (localBuildPath: string) {
-  describe('Node add should success', async () => {
-    const suffix = localBuildPath.substring(0, 5)
-    const defaultTimeout = 2 * MINUTES
-    const namespace = 'node-add' + suffix
-    const argv = getDefaultArgv()
-    argv[flags.nodeAliasesUnparsed.name] = 'node1,node2,node3'
-    argv[flags.generateGossipKeys.name] = true
-    argv[flags.generateTlsKeys.name] = true
-    // set the env variable SOLO_CHARTS_DIR if developer wants to use local Solo charts
-    argv[flags.chartDirectory.name] = process.env.SOLO_CHARTS_DIR ?? undefined
-    argv[flags.releaseTag.name] = HEDERA_PLATFORM_VERSION_TAG
-    argv[flags.namespace.name] = namespace
-    argv[flags.force.name] = true
-    argv[flags.persistentVolumeClaims.name] = true
-    argv[flags.localBuildPath.name] = localBuildPath
-    argv[flags.quiet.name] = true
+const defaultTimeout = 2 * MINUTES
 
-    const bootstrapResp = await bootstrapNetwork(namespace, argv)
-    const nodeCmd = bootstrapResp.cmd.nodeCmd
-    const accountCmd = bootstrapResp.cmd.accountCmd
-    const networkCmd = bootstrapResp.cmd.networkCmd
-    const k8 = bootstrapResp.opts.k8
-    let existingServiceMap: Map<NodeAlias, NetworkNodeServices>
-    let existingNodeIdsPrivateKeysHash: Map<NodeAlias, Map<string, string>>
+export function testNodeAdd (localBuildPath: string, testDescription: string = 'Node add should success', timeout: number = defaultTimeout): void {
+  const suffix = localBuildPath.substring(0, 5)
+  const namespace = 'node-add' + suffix
+  const argv = getDefaultArgv()
+  argv[flags.nodeAliasesUnparsed.name] = 'node1,node2,node3'
+  argv[flags.generateGossipKeys.name] = true
+  argv[flags.generateTlsKeys.name] = true
+  // set the env variable SOLO_CHARTS_DIR if developer wants to use local Solo charts
+  argv[flags.chartDirectory.name] = process.env.SOLO_CHARTS_DIR ?? undefined
+  argv[flags.releaseTag.name] = HEDERA_PLATFORM_VERSION_TAG
+  argv[flags.namespace.name] = namespace
+  argv[flags.force.name] = true
+  argv[flags.persistentVolumeClaims.name] = true
+  argv[flags.localBuildPath.name] = localBuildPath
+  argv[flags.quiet.name] = true
 
-    after(async function () {
-      this.timeout(10 * MINUTES)
+  e2eTestSuite(namespace, argv, undefined, undefined, undefined, undefined, undefined, undefined, true, (bootstrapResp) => {
+    describe(testDescription, async () => {
+      const nodeCmd = bootstrapResp.cmd.nodeCmd
+      const accountCmd = bootstrapResp.cmd.accountCmd
+      const networkCmd = bootstrapResp.cmd.networkCmd
+      const k8 = bootstrapResp.opts.k8
+      let existingServiceMap: Map<NodeAlias, NetworkNodeServices>
+      let existingNodeIdsPrivateKeysHash: Map<NodeAlias, Map<string, string>>
 
-      await getNodeLogs(k8, namespace)
-      // @ts-ignore: Accessing private property for test purposes
-      await nodeCmd.accountManager.close()
-      await nodeCmd.handlers.stop(argv)
-      await networkCmd.destroy(argv)
-      await k8.deleteNamespace(namespace)
-    })
+      after(async function () {
+        this.timeout(10 * MINUTES)
 
-    it('cache current version of private keys', async () => {
-      // @ts-ignore: Accessing private property for test purposes
-      existingServiceMap = await nodeCmd.accountManager.getNodeServiceMap(namespace)
-      existingNodeIdsPrivateKeysHash = await getNodeAliasesPrivateKeysHash(existingServiceMap, namespace, k8, getTmpDir())
-    }).timeout(defaultTimeout)
+        await getNodeLogs(k8, namespace)
+        await bootstrapResp.opts.accountManager.close()
+        await nodeCmd.handlers.stop(argv)
+        await networkCmd.destroy(argv)
+        await k8.deleteNamespace(namespace)
+      })
 
-    it('should succeed with init command', async () => {
-      await expect(accountCmd.init(argv)).to.eventually.be.ok
-    }).timeout(8 * MINUTES)
+      it('cache current version of private keys', async () => {
+        existingServiceMap = await bootstrapResp.opts.accountManager.getNodeServiceMap(namespace)
+        existingNodeIdsPrivateKeysHash = await getNodeAliasesPrivateKeysHash(existingServiceMap, namespace, k8, getTmpDir())
+      }).timeout(defaultTimeout)
 
-    it('should add a new node to the network successfully', async () => {
-      await nodeCmd.handlers.add(argv)
-      expect(nodeCmd.getUnusedConfigs(NodeCommandConfigs.ADD_CONFIGS_NAME)).to.deep.equal([
-        flags.app.constName,
-        flags.chainId.constName,
-        flags.devMode.constName,
-        flags.quiet.constName,
-        flags.adminKey.constName
-      ])
-      // @ts-ignore: Accessing private property for test purposes
-      await nodeCmd.accountManager.close()
-    }).timeout(12 * MINUTES)
+      it('should succeed with init command', async () => {
+        await expect(accountCmd.init(argv)).to.eventually.be.ok
+      }).timeout(8 * MINUTES)
 
-    // @ts-ignore: Accessing private property for test purposes
-    balanceQueryShouldSucceed(nodeCmd.accountManager, nodeCmd, namespace)
+      it('should add a new node to the network successfully', async () => {
+        await nodeCmd.handlers.add(argv)
+        expect(nodeCmd.getUnusedConfigs(NodeCommandConfigs.ADD_CONFIGS_NAME)).to.deep.equal([
+          flags.app.constName,
+          flags.chainId.constName,
+          flags.devMode.constName,
+          flags.quiet.constName,
+          flags.adminKey.constName
+        ])
+        await bootstrapResp.opts.accountManager.close()
+      }).timeout(12 * MINUTES)
 
-    // @ts-ignore: Accessing private property for test purposes
-    accountCreationShouldSucceed(nodeCmd.accountManager, nodeCmd, namespace)
+      balanceQueryShouldSucceed(bootstrapResp.opts.accountManager, nodeCmd, namespace)
 
-    it('existing nodes private keys should not have changed', async () => {
-      const currentNodeIdsPrivateKeysHash = await getNodeAliasesPrivateKeysHash(existingServiceMap, namespace, k8, getTmpDir())
+      accountCreationShouldSucceed(bootstrapResp.opts.accountManager, nodeCmd, namespace)
 
-      for (const [nodeAlias, existingKeyHashMap] of existingNodeIdsPrivateKeysHash.entries()) {
-        const currentNodeKeyHashMap = currentNodeIdsPrivateKeysHash.get(nodeAlias)
+      it('existing nodes private keys should not have changed', async () => {
+        const currentNodeIdsPrivateKeysHash = await getNodeAliasesPrivateKeysHash(existingServiceMap, namespace, k8, getTmpDir())
 
-        for (const [keyFileName, existingKeyHash] of existingKeyHashMap.entries()) {
-          expect(`${nodeAlias}:${keyFileName}:${currentNodeKeyHashMap.get(keyFileName)}`).to.deep.equal(
-            `${nodeAlias}:${keyFileName}:${existingKeyHash}`)
+        for (const [nodeAlias, existingKeyHashMap] of existingNodeIdsPrivateKeysHash.entries()) {
+          const currentNodeKeyHashMap = currentNodeIdsPrivateKeysHash.get(nodeAlias)
+
+          for (const [keyFileName, existingKeyHash] of existingKeyHashMap.entries()) {
+            expect(`${nodeAlias}:${keyFileName}:${currentNodeKeyHashMap.get(keyFileName)}`).to.deep.equal(
+                `${nodeAlias}:${keyFileName}:${existingKeyHash}`)
+          }
         }
-      }
-    }).timeout(defaultTimeout)
+      }).timeout(timeout)
+    })
   })
 }

@@ -13,14 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
- * @mocha-environment steps
  */
-import { describe } from 'mocha'
-
 import { testNodeAdd } from '../../test_add.ts'
 import { MINUTES } from '../../../src/core/constants.ts'
 
-describe('Node add with released hedera', () => {
-  const localBuildPath = ''
-  testNodeAdd(localBuildPath)
-}).timeout(3 * MINUTES)
+const localBuildPath = ''
+testNodeAdd(localBuildPath, 'Node add with released hedera', 3 * MINUTES)

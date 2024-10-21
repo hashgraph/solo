@@ -443,9 +443,9 @@ export class K8 {
   handleCallback (status: string, localContext: LocalContextObject, messagePrefix: string) {
     if (status === 'Failure') {
       return this.exitWithError(localContext, `${messagePrefix} Failure occurred`)
-    } 
+    }
       this.logger.debug(`${messagePrefix} callback(status)=${status}`)
-    
+
   }
 
   registerConnectionOnError (localContext: LocalContextObject, messagePrefix: string, conn: WebSocket.WebSocket) {
@@ -454,17 +454,17 @@ export class K8 {
     })
   }
 
-  registerConnectionOnMessage (localContext: LocalContextObject, messagePrefix: string) {
+  registerConnectionOnMessage (messagePrefix: string) {
     this.logger.debug(`${messagePrefix} received message`)
   }
 
-  registerStreamOnData (localContext: LocalContextObject, messagePrefix: string, stream: stream.PassThrough) {
+  registerErrorStreamOnData (localContext: LocalContextObject, stream: stream.PassThrough) {
     stream.on('data', (data) => {
-      return this.exitWithError(localContext, `${messagePrefix} error encountered, error: ${data.toString()}`)
+      localContext.errorMessage = localContext.errorMessage ? `${localContext.errorMessage}${data.toString()}` : data.toString()
     })
   }
 
-  registerStreamOnError (localContext: LocalContextObject, messagePrefix: string, stream: stream.PassThrough | fs.WriteStream) {
+  registerErrorStreamOnError (localContext: LocalContextObject, messagePrefix: string, stream: stream.PassThrough | fs.WriteStream) {
     stream.on('error', (err) => {
       return this.exitWithError(localContext, `${messagePrefix} error encountered, err: ${err.toString()}`)
     })
@@ -536,13 +536,13 @@ export class K8 {
         const execInstance = new k8s.Exec(self.kubeConfig)
         const command = ['tar', 'xf', '-', '-C', destDir]
         const inputStream = fs.createReadStream(tmpFile)
-        const errStream = new stream.PassThrough()
+        const errPassthroughStream = new stream.PassThrough()
         const inputPassthroughStream = new stream.PassThrough({ highWaterMark: 10 * 1024 * 1024 }) // Handle backpressure
 
         // Use pipe() to automatically handle backpressure
         inputStream.pipe(inputPassthroughStream)
 
-        execInstance.exec(namespace, podName, containerName, command, null, errStream, inputPassthroughStream, false,
+        execInstance.exec(namespace, podName, containerName, command, null, errPassthroughStream, inputPassthroughStream, false,
           ({ status }) => self.handleCallback(status, localContext, messagePrefix))
           .then(conn => {
             self.logger.info(`${messagePrefix} connection established`)
@@ -550,7 +550,7 @@ export class K8 {
 
             self.registerConnectionOnError(localContext, messagePrefix, conn)
 
-            self.registerConnectionOnMessage(localContext, messagePrefix)
+            self.registerConnectionOnMessage(messagePrefix)
 
             conn.on('close', (code, reason) => {
               self.logger.debug(`${messagePrefix} connection closed`)
@@ -566,9 +566,9 @@ export class K8 {
             })
           })
 
-        self.registerStreamOnData(localContext, messagePrefix, errStream)
+        self.registerErrorStreamOnData(localContext, errPassthroughStream)
 
-        self.registerStreamOnError(localContext, messagePrefix, inputPassthroughStream)
+        self.registerErrorStreamOnError(localContext, messagePrefix, inputPassthroughStream)
       })
     } catch (e: Error | any) {
       const errorMessage = `${messagePrefix} failed to upload file: ${e.message}`
@@ -633,7 +633,7 @@ export class K8 {
         const command = ['cat', `${srcDir}/${srcFile}`]
         const outputFileStream = fs.createWriteStream(tmpFile)
         const outputPassthroughStream = new stream.PassThrough({ highWaterMark: 10 * 1024 * 1024 })
-        const errStream = new stream.PassThrough()
+        const errPassthroughStream = new stream.PassThrough()
 
         // Use pipe() to automatically handle backpressure between streams
         outputPassthroughStream.pipe(outputFileStream)
@@ -649,16 +649,16 @@ export class K8 {
           containerName,
           command,
           outputFileStream,
-          errStream,
+          errPassthroughStream,
           null,
           false,
           ({ status }) => {
             if (status === 'Failure') {
               self._deleteTempFile(tmpFile)
               return self.exitWithError(localContext, `${messagePrefix} Failure occurred`)
-            } 
+            }
               self.logger.debug(`${messagePrefix} callback(status)=${status}`)
-            
+
           })
           .then(conn => {
             self.logger.debug(`${messagePrefix} connection established`)
@@ -669,8 +669,7 @@ export class K8 {
               return self.exitWithError(localContext, `${messagePrefix} failed, connection error: ${e.message}`)
             })
 
-            // @ts-ignore
-            self.registerConnectionOnMessage(localContext, messagePrefix, conn)
+            self.registerConnectionOnMessage(messagePrefix)
 
             conn.on('close', (code, reason) => {
               self.logger.debug(`${messagePrefix} connection closed`)
@@ -699,9 +698,9 @@ export class K8 {
             })
           })
 
-        self.registerStreamOnData(localContext, messagePrefix, errStream)
+        self.registerErrorStreamOnData(localContext, errPassthroughStream)
 
-        self.registerStreamOnError(localContext, messagePrefix, outputFileStream)
+        self.registerErrorStreamOnError(localContext, messagePrefix, outputFileStream)
       })
     } catch (e: Error | any) {
       const errorMessage = `${messagePrefix}failed to download file: ${e.message}`
@@ -765,8 +764,7 @@ export class K8 {
 
           self.registerConnectionOnError(localContext, messagePrefix, conn)
 
-          // @ts-ignore
-          self.registerConnectionOnMessage(localContext, messagePrefix, conn)
+          self.registerConnectionOnMessage(messagePrefix)
 
           conn.on('close', (code, reason) => {
             self.logger.debug(`${messagePrefix} connection closed`)
@@ -785,9 +783,9 @@ export class K8 {
           })
         })
 
-      self.registerStreamOnData(localContext, messagePrefix, errPassthroughStream)
+      self.registerErrorStreamOnData(localContext, errPassthroughStream)
 
-      self.registerStreamOnError(localContext, messagePrefix, outputFileStream)
+      self.registerErrorStreamOnError(localContext, messagePrefix, outputFileStream)
     })
   }
 
@@ -1094,9 +1092,9 @@ export class K8 {
         type: secretObject.type as string,
         data: secretObject.data as Record<string, string>
       }
-    } 
+    }
       return null
-    
+
   }
 
   /**

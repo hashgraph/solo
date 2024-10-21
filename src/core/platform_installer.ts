@@ -97,7 +97,9 @@ export class PlatformInstaller {
       await this.k8.execContainer(podName, constants.ROOT_CONTAINER, [extractScript, tag])
       return true
     } catch (e: Error | any) {
-      throw new SoloError(`failed to extract platform code in this pod '${podName}': ${e.message}`, e)
+      const message = `failed to extract platform code in this pod '${podName}': ${e.message}`
+      this.logger.error(message, e)
+      throw new SoloError(message, e)
     }
   }
 
