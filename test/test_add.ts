@@ -17,7 +17,6 @@
 import { expect } from 'chai'
 import { describe, it, after } from 'mocha'
 
-import { flags } from '../src/commands/index.ts'
 import {
   accountCreationShouldSucceed,
   balanceQueryShouldSucceed,
