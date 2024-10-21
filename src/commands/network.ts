@@ -30,6 +30,7 @@ import { addDebugOptions, validatePath } from '../core/helpers.ts'
 import fs from 'fs'
 import { type NodeAlias, type NodeAliases } from '../types/aliases.ts'
 import { type Opts } from '../types/index.ts'
+import { LeaseWrapper } from '../core/lease_wrapper.js'
 
 export type NetworkDeployConfigClass = {
   applicationEnv: string
@@ -103,7 +104,8 @@ export class NetworkCommand extends BaseCommand {
 
   async prepareValuesArg (config: {chartDirectory?: string; app?: string; nodeAliases?: string[]; debugNodeAlias?: NodeAlias;
     enablePrometheusSvcMonitor?: boolean; releaseTag?: string; persistentVolumeClaims?: string;
-    valuesFile?: string; } = {}) {
+    valuesFile?: string; } = {}
+  ) {
     let valuesArg = config.chartDirectory ? `-f ${path.join(config.chartDirectory, 'solo-deployment', 'values.yaml')}` : ''
 
     if (config.app !== constants.HEDERA_APP_NAME) {
@@ -216,7 +218,7 @@ export class NetworkCommand extends BaseCommand {
   /** Run helm install and deploy network components */
   async deploy (argv: any) {
     const self = this
-    const { releaseLease } = await self.leaseManager.acquireLease()
+    const lease = new LeaseWrapper(self.leaseManager)
 
     interface Context {
       config: NetworkDeployConfigClass
@@ -227,6 +229,7 @@ export class NetworkCommand extends BaseCommand {
         title: 'Initialize',
         task: async (ctx, task) => {
           ctx.config = await self.prepareConfig(task, argv)
+          return lease.buildAcquireTask(task)
         }
       },
       {
@@ -385,7 +388,7 @@ export class NetworkCommand extends BaseCommand {
     } catch (e: Error | any) {
       throw new SoloError(`Error installing chart ${constants.SOLO_DEPLOYMENT_CHART}`, e)
     } finally {
-      if (typeof releaseLease === 'function') await releaseLease()
+      await lease.release()
     }
 
     return true
@@ -393,7 +396,7 @@ export class NetworkCommand extends BaseCommand {
 
   async destroy (argv: any) {
     const self = this
-    const { releaseLease } = await self.leaseManager.acquireLease()
+    const lease = new LeaseWrapper(self.leaseManager)
 
     interface Context {
       config: {
@@ -431,6 +434,8 @@ export class NetworkCommand extends BaseCommand {
             deleteSecrets: <boolean>self.configManager.getFlag<boolean>(flags.deleteSecrets),
             namespace: <string>self.configManager.getFlag<string>(flags.namespace)
           }
+
+          return lease.buildAcquireTask(task)
         }
       },
       {
@@ -475,7 +480,7 @@ export class NetworkCommand extends BaseCommand {
     } catch (e: Error | any) {
       throw new SoloError('Error destroying network', e)
     } finally {
-      if (typeof releaseLease === 'function') await releaseLease()
+      await lease.release()
     }
 
     return true
@@ -484,7 +489,7 @@ export class NetworkCommand extends BaseCommand {
   /** Run helm upgrade to refresh network components with new settings */
   async refresh (argv: any) {
     const self = this
-    const { releaseLease } = await self.leaseManager.acquireLease()
+    const lease = new LeaseWrapper(self.leaseManager)
 
     interface Context {
       config: NetworkDeployConfigClass
@@ -495,6 +500,7 @@ export class NetworkCommand extends BaseCommand {
         title: 'Initialize',
         task: async (ctx, task) => {
           ctx.config = await self.prepareConfig(task, argv)
+          return lease.buildAcquireTask(task)
         }
       },
       {
@@ -528,7 +534,7 @@ export class NetworkCommand extends BaseCommand {
     } catch (e: Error | any) {
       throw new SoloError(`Error upgrading chart ${constants.SOLO_DEPLOYMENT_CHART}`, e)
     } finally {
-      if (typeof releaseLease === 'function') await releaseLease()
+      await lease.release()
     }
 
     return true

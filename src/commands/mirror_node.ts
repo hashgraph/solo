@@ -24,6 +24,7 @@ import * as prompts from './prompts.ts'
 import { getFileContents, getEnvValue } from '../core/helpers.ts'
 import { type PodName } from '../types/aliases.ts'
 import { type Opts } from '../types/index.ts'
+import { LeaseWrapper } from '../core/lease_wrapper.js'
 
 export class MirrorNodeCommand extends BaseCommand {
   private readonly accountManager: AccountManager
@@ -118,7 +119,7 @@ export class MirrorNodeCommand extends BaseCommand {
 
   async deploy (argv: any) {
     const self = this
-    const { releaseLease } = await self.leaseManager.acquireLease()
+    const lease = new LeaseWrapper(self.leaseManager)
 
     interface MirrorNodeDeployConfigClass {
       chartDirectory: string
@@ -177,6 +178,8 @@ export class MirrorNodeCommand extends BaseCommand {
           }
 
           await self.accountManager.loadNodeClient(ctx.config.namespace)
+
+          return lease.buildAcquireTask(task)
         }
       },
       {
@@ -320,7 +323,7 @@ export class MirrorNodeCommand extends BaseCommand {
     } catch (e: Error | any) {
       throw new SoloError(`Error starting node: ${e.message}`, e)
     } finally {
-      if (typeof releaseLease === 'function') await releaseLease()
+      await lease.release()
       await self.accountManager.close()
     }
 
@@ -329,7 +332,7 @@ export class MirrorNodeCommand extends BaseCommand {
 
   async destroy (argv: any) {
     const self = this
-    const { releaseLease } = await self.leaseManager.acquireLease()
+    const lease = new LeaseWrapper(self.leaseManager)
 
     interface Context {
       config: {
@@ -379,6 +382,8 @@ export class MirrorNodeCommand extends BaseCommand {
           }
 
           await self.accountManager.loadNodeClient(ctx.config.namespace)
+
+          return lease.buildAcquireTask(task)
         }
       },
       {
@@ -420,7 +425,7 @@ export class MirrorNodeCommand extends BaseCommand {
     } catch (e: Error | any) {
       throw new SoloError(`Error starting node: ${e.message}`, e)
     } finally {
-      if (typeof releaseLease === 'function') await releaseLease()
+      await lease.release()
       await self.accountManager.close()
     }
 

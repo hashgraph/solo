@@ -23,6 +23,7 @@ import chalk from 'chalk'
 import { constants } from '../core/index.ts'
 import * as prompts from './prompts.ts'
 import path from 'path'
+import { LeaseWrapper } from '../core/lease_wrapper.js'
 
 /**
  * Define the core functionalities of 'cluster' command
@@ -55,7 +56,7 @@ export class ClusterCommand extends BaseCommand {
   /** Setup cluster with shared components */
   async setup (argv: any) {
     const self = this
-    const { releaseLease } = await self.leaseManager.acquireLease()
+    const lease = new LeaseWrapper(self.leaseManager)
 
     interface Context {
       config: {
@@ -99,6 +100,8 @@ export class ClusterCommand extends BaseCommand {
           self.logger.debug('Prepare ctx.config', { config: ctx.config, argv })
 
           ctx.isChartInstalled = await this.chartManager.isChartInstalled(ctx.config.clusterSetupNamespace, constants.SOLO_CLUSTER_SETUP_CHART)
+
+          return lease.buildAcquireTask(task)
         }
       },
       {
@@ -154,7 +157,7 @@ export class ClusterCommand extends BaseCommand {
     } catch (e: Error | any) {
       throw new SoloError('Error on cluster setup', e)
     } finally {
-      if (typeof releaseLease === 'function') await releaseLease()
+      await lease.release()
     }
 
     return true
@@ -162,7 +165,7 @@ export class ClusterCommand extends BaseCommand {
 
   async reset (argv: any) {
     const self = this
-    const { releaseLease } = await self.leaseManager.acquireLease()
+    const lease = new LeaseWrapper(self.leaseManager)
 
     interface Context {
       config: {
@@ -198,6 +201,8 @@ export class ClusterCommand extends BaseCommand {
           if (!ctx.isChartInstalled) {
             throw new SoloError('No chart found for the cluster')
           }
+
+          return lease.buildAcquireTask(task)
         }
       },
       {
@@ -221,7 +226,7 @@ export class ClusterCommand extends BaseCommand {
     } catch (e: Error | any) {
       throw new SoloError('Error on cluster reset', e)
     } finally {
-      if (typeof releaseLease === 'function') await releaseLease()
+      await lease.release()
     }
 
     return true

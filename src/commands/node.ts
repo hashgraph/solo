@@ -30,11 +30,9 @@ import {
   sleep,
   validatePath
 } from '../core/helpers.ts'
-import type {
-  K8,
-  KeyManager,
-  PlatformInstaller,
-  ProfileManager } from '../core/index.ts'
+import {
+  type K8, type KeyManager, type PlatformInstaller, type ProfileManager
+} from '../core/index.ts'
 import {
   constants,
   Templates,
@@ -70,6 +68,7 @@ import { type NetworkNodeServices } from '../core/network_node_services.ts'
 import { type AccountManager } from '../core/account_manager.ts'
 import { type NodeAlias, type NodeAliases, type PodName } from '../types/aliases.ts'
 import { type ExtendedNetServer, type Opts } from '../types/index.ts'
+import { LeaseWrapper } from '../core/lease_wrapper.js'
 
 export interface NodeAddConfigClass {
   app: string
@@ -869,7 +868,7 @@ export class NodeCommand extends BaseCommand {
   // List of Commands
   async setup (argv: any) {
     const self = this
-    const { releaseLease } = await self.leaseManager.acquireLease()
+    const lease = new LeaseWrapper(self.leaseManager)
 
     interface NodeSetupConfigClass {
       app: string
@@ -917,6 +916,8 @@ export class NodeCommand extends BaseCommand {
           ctx.config = config
 
           self.logger.debug('Initialized config', { config })
+
+          return lease.buildAcquireTask(task)
         }
       },
       // @ts-ignore
@@ -944,7 +945,7 @@ export class NodeCommand extends BaseCommand {
     } catch (e: Error | any) {
       throw new SoloError(`Error in setting up nodes: ${e.message}`, e)
     } finally {
-      if (typeof releaseLease === 'function') await releaseLease()
+      await lease.release()
     }
 
     return true
@@ -952,7 +953,7 @@ export class NodeCommand extends BaseCommand {
 
   async start (argv: any) {
     const self = this
-    const { releaseLease } = await self.leaseManager.acquireLease()
+    const lease = new LeaseWrapper(self.leaseManager)
 
     interface Context {
       config: {
@@ -994,6 +995,8 @@ export class NodeCommand extends BaseCommand {
           if (!await self.k8.hasNamespace(ctx.config.namespace)) {
             throw new SoloError(`namespace ${ctx.config.namespace} does not exist`)
           }
+
+          return lease.buildAcquireTask(task)
         }
       },
       // @ts-ignore
@@ -1025,7 +1028,7 @@ export class NodeCommand extends BaseCommand {
         skip: () => self.configManager.getFlag(flags.app) !== '' && self.configManager.getFlag(flags.app) !== constants.HEDERA_APP_NAME
       },
       {
-        title: 'Add node stakes', // @ts-ignore
+        title: 'Add node stakes',
         skip: (ctx) => ctx.config.app !== '' && ctx.config.app !== constants.HEDERA_APP_NAME,
         task: (ctx, task) => {
           const subTasks: ListrTask<Context, any, any>[] = []
@@ -1057,7 +1060,7 @@ export class NodeCommand extends BaseCommand {
     } catch (e: Error | any) {
       throw new SoloError(`Error starting node: ${e.message}`, e)
     } finally {
-      if (typeof releaseLease === 'function') await releaseLease()
+      await lease.release()
       await self.close()
     }
 
@@ -1066,7 +1069,7 @@ export class NodeCommand extends BaseCommand {
 
   async stop (argv: any) {
     const self = this
-    const { releaseLease } = await self.leaseManager.acquireLease()
+    const lease = new LeaseWrapper(self.leaseManager)
 
     interface Context {
       config : {
@@ -1095,6 +1098,8 @@ export class NodeCommand extends BaseCommand {
           if (!await self.k8.hasNamespace(ctx.config.namespace)) {
             throw new SoloError(`namespace ${ctx.config.namespace} does not exist`)
           }
+
+          return lease.buildAcquireTask(task)
         }
       },
       // @ts-ignore
@@ -1131,7 +1136,7 @@ export class NodeCommand extends BaseCommand {
     } catch (e: Error | any) {
       throw new SoloError('Error stopping node', e)
     } finally {
-      if (typeof releaseLease === 'function') await releaseLease()
+      await lease.release()
     }
 
     return true
@@ -1139,7 +1144,7 @@ export class NodeCommand extends BaseCommand {
 
   async keys (argv: any) {
     const self = this
-    const { releaseLease } = await self.leaseManager.acquireLease()
+    const lease = new LeaseWrapper(self.leaseManager)
 
     interface NodeKeysConfigClass {
       cacheDir: string
@@ -1183,6 +1188,8 @@ export class NodeCommand extends BaseCommand {
           }
 
           ctx.config = config
+
+          return lease.buildAcquireTask(task)
         }
       },
       {
@@ -1233,7 +1240,7 @@ export class NodeCommand extends BaseCommand {
     } catch (e: Error | any) {
       throw new SoloError(`Error generating keys: ${e.message}`, e)
     } finally {
-      if (typeof releaseLease === 'function') await releaseLease()
+      await lease.release()
     }
 
     return true
@@ -1241,7 +1248,7 @@ export class NodeCommand extends BaseCommand {
 
   async refresh (argv: any) {
     const self = this
-    const { releaseLease } = await self.leaseManager.acquireLease()
+    const lease = new LeaseWrapper(self.leaseManager)
 
     interface NodeRefreshConfigClass {
       app: string
@@ -1283,6 +1290,8 @@ export class NodeCommand extends BaseCommand {
           await self.initializeSetup(ctx.config, self.k8)
 
           self.logger.debug('Initialized config', ctx.config)
+
+          return lease.buildAcquireTask(task)
         }
       },
       // @ts-ignore
@@ -1353,7 +1362,7 @@ export class NodeCommand extends BaseCommand {
     } catch (e: Error | any) {
       throw new SoloError(`Error in refreshing nodes: ${e.message}`, e)
     } finally {
-      if (typeof releaseLease === 'function') await releaseLease()
+      await lease.release()
     }
 
     return true
@@ -1406,7 +1415,7 @@ export class NodeCommand extends BaseCommand {
     return true
   }
 
-  addInitializeTask (argv: any) {
+  addInitializeTask (argv: any, lease: LeaseWrapper) {
     const self = this
 
     interface Context {
@@ -1482,11 +1491,13 @@ export class NodeCommand extends BaseCommand {
           config.namespace)
 
         self.logger.debug('Initialized config', { config })
+
+        return lease.buildAcquireTask(task)
       }
     }
   }
 
-  getAddPrepareTasks (argv: any) {
+  getAddPrepareTasks (argv: any, lease: LeaseWrapper) {
     const self = this
 
     interface Context {
@@ -1500,7 +1511,7 @@ export class NodeCommand extends BaseCommand {
     }
 
     return [
-      self.addInitializeTask(argv),
+      self.addInitializeTask(argv, lease),
       {
         title: 'Check that PVCs are enabled',
         task: () => {
@@ -1866,9 +1877,9 @@ export class NodeCommand extends BaseCommand {
 
   async addPrepare (argv: any) {
     const self = this
-    const { releaseLease } = await self.leaseManager.acquireLease()
+    const lease = new LeaseWrapper(self.leaseManager)
 
-    const prepareTasks = this.getAddPrepareTasks(argv)
+    const prepareTasks = this.getAddPrepareTasks(argv, lease)
     const tasks = new Listr([
       // @ts-ignore
       ...prepareTasks,
@@ -1885,7 +1896,7 @@ export class NodeCommand extends BaseCommand {
       self.logger.error(`Error in setting up nodes: ${e.message}`, e)
       throw new SoloError(`Error in setting up nodes: ${e.message}`, e)
     } finally {
-      if (typeof releaseLease === 'function') await releaseLease()
+      await lease.release()
       await self.close()
     }
 
@@ -1894,11 +1905,11 @@ export class NodeCommand extends BaseCommand {
 
   async addSubmitTransactions (argv: any) {
     const self = this
-    const { releaseLease } = await self.leaseManager.acquireLease()
+    const lease = new LeaseWrapper(self.leaseManager)
 
     const transactionTasks = this.getAddTransactionTasks(argv)
     const tasks = new Listr([
-      self.addInitializeTask(argv),
+      self.addInitializeTask(argv, lease),
       self.loadContextDataTask(argv, NodeCommand.ADD_CONTEXT_FILE, helpers.addLoadContextParser),
       // @ts-ignore
       ...transactionTasks
@@ -1913,7 +1924,7 @@ export class NodeCommand extends BaseCommand {
       self.logger.error(`Error in submitting transactions to node: ${e.message}`, e)
       throw new SoloError(`Error in submitting transactions to up node: ${e.message}`, e)
     } finally {
-      if (typeof releaseLease === 'function') await releaseLease()
+      await lease.release()
       await self.close()
     }
 
@@ -1922,12 +1933,12 @@ export class NodeCommand extends BaseCommand {
 
   async addExecute (argv: any) {
     const self = this
-    const { releaseLease } = await self.leaseManager.acquireLease()
+    const lease = new LeaseWrapper(self.leaseManager)
 
     const executeTasks = this.getAddExecuteTasks(argv)
     // @ts-ignore
     const tasks = new Listr([
-      self.addInitializeTask(argv),
+      self.addInitializeTask(argv, lease),
       // @ts-ignore
       this.tasks.identifyExistingNodes(),
       self.loadContextDataTask(argv, NodeCommand.ADD_CONTEXT_FILE, helpers.addLoadContextParser),
@@ -1944,7 +1955,7 @@ export class NodeCommand extends BaseCommand {
       self.logger.error(`Error in starting up nodes: ${e.message}`, e)
       throw new SoloError(`Error in setting up nodes: ${e.message}`, e)
     } finally {
-      if (typeof releaseLease === 'function') await releaseLease()
+      await lease.release()
       await self.close()
     }
 
@@ -1953,9 +1964,9 @@ export class NodeCommand extends BaseCommand {
 
   async add (argv: any) {
     const self = this
-    const { releaseLease } = await self.leaseManager.acquireLease()
+    const lease = new LeaseWrapper(self.leaseManager)
 
-    const prepareTasks = this.getAddPrepareTasks(argv)
+    const prepareTasks = this.getAddPrepareTasks(argv, lease)
     const transactionTasks = this.getAddTransactionTasks(argv)
     const executeTasks = this.getAddExecuteTasks(argv)
 
@@ -1975,7 +1986,7 @@ export class NodeCommand extends BaseCommand {
       self.logger.error(`Error in adding nodes: ${e.message}`, e)
       throw new SoloError(`Error in adding nodes: ${e.message}`, e)
     } finally {
-      if (typeof releaseLease === 'function') await releaseLease()
+      await lease.release()
       await self.close()
     }
 
@@ -2333,7 +2344,7 @@ export class NodeCommand extends BaseCommand {
 
   async update (argv: any) {
     const self = this
-    const { releaseLease } = await self.leaseManager.acquireLease()
+    const lease = new LeaseWrapper(self.leaseManager)
 
     interface NodeUpdateConfigClass {
       app: string
@@ -2442,6 +2453,8 @@ export class NodeCommand extends BaseCommand {
           config.treasuryKey = PrivateKey.fromStringED25519(treasuryAccountPrivateKey)
 
           self.logger.debug('Initialized config', { config })
+
+          return lease.buildAcquireTask(task)
         }
       },
       // @ts-ignore
@@ -2691,14 +2704,14 @@ export class NodeCommand extends BaseCommand {
       this.logger.error(e.stack)
       throw new SoloError(`Error in updating nodes: ${e.message}`, e)
     } finally {
-      if (typeof releaseLease === 'function') await releaseLease()
+      await lease.release()
       await self.close()
     }
 
     return true
   }
 
-  deleteInitializeTask (argv: any) {
+  deleteInitializeTask (argv: any, lease: LeaseWrapper) {
     const self = this
 
     interface Context {
@@ -2763,13 +2776,15 @@ export class NodeCommand extends BaseCommand {
         config.treasuryKey = PrivateKey.fromStringED25519(treasuryAccountPrivateKey)
 
         self.logger.debug('Initialized config', { config })
+
+        return lease.buildAcquireTask(task)
       }
     }
   }
 
-  deletePrepareTasks (argv: any) {
+  deletePrepareTasks (argv: any, lease: LeaseWrapper) {
     return [
-      this.deleteInitializeTask(argv),
+      this.deleteInitializeTask(argv, lease),
       this.tasks.identifyExistingNodes(),
       this.tasks.loadAdminKey(),
       this.tasks.prepareUpgradeZip(),
@@ -2937,11 +2952,11 @@ export class NodeCommand extends BaseCommand {
 
   async deletePrepare (argv: any) {
     const self = this
-    const { releaseLease } = await self.leaseManager.acquireLease()
+    const lease = new LeaseWrapper(self.leaseManager)
 
     const tasks = new Listr([
       // @ts-ignore
-      ...self.deletePrepareTasks(argv),
+      ...self.deletePrepareTasks(argv, lease),
       // @ts-ignore
       self.saveContextDataTask(argv, NodeCommand.DELETE_CONTEXT_FILE, helpers.deleteSaveContextParser)
     ], {
@@ -2955,7 +2970,7 @@ export class NodeCommand extends BaseCommand {
       self.logger.error(`Error in deleting nodes: ${e.message}`, e)
       throw new SoloError(`Error in deleting nodes: ${e.message}`, e)
     } finally {
-      if (typeof releaseLease === 'function') await releaseLease()
+      await lease.release()
       await self.close()
     }
 
@@ -2964,10 +2979,10 @@ export class NodeCommand extends BaseCommand {
 
   async deleteExecute (argv: any) {
     const self = this
-    const { releaseLease } = await self.leaseManager.acquireLease()
+    const lease = new LeaseWrapper(self.leaseManager)
 
     const tasks = new Listr([
-      self.deleteInitializeTask(argv),
+      self.deleteInitializeTask(argv, lease),
       self.loadContextDataTask(argv, NodeCommand.DELETE_CONTEXT_FILE, helpers.deleteLoadContextParser),
       // @ts-ignore
       ...self.deleteExecuteTasks(argv)
@@ -2982,7 +2997,7 @@ export class NodeCommand extends BaseCommand {
       self.logger.error(`Error in deleting nodes: ${e.message}`, e)
       throw new SoloError(`Error in deleting nodes: ${e.message}`, e)
     } finally {
-      if (typeof releaseLease === 'function') await releaseLease()
+      await lease.release()
       await self.close()
     }
 
@@ -2991,10 +3006,10 @@ export class NodeCommand extends BaseCommand {
 
   async deleteSubmitTransactions (argv: any) {
     const self = this
-    const { releaseLease } = await self.leaseManager.acquireLease()
+    const lease = new LeaseWrapper(self.leaseManager)
 
     const tasks = new Listr([
-      self.deleteInitializeTask(argv),
+      self.deleteInitializeTask(argv, lease),
       self.loadContextDataTask(argv, NodeCommand.DELETE_CONTEXT_FILE, helpers.deleteLoadContextParser),
       // @ts-ignore
       ...self.deleteSubmitTransactionsTasks(argv)
@@ -3009,7 +3024,7 @@ export class NodeCommand extends BaseCommand {
       self.logger.error(`Error in deleting nodes: ${e.message}`, e)
       throw new SoloError(`Error in deleting nodes: ${e.message}`, e)
     } finally {
-      if (typeof releaseLease === 'function') await releaseLease()
+      await lease.release()
       await self.close()
     }
 
@@ -3018,11 +3033,11 @@ export class NodeCommand extends BaseCommand {
 
   async delete (argv: any) {
     const self = this
-    const { releaseLease } = await self.leaseManager.acquireLease()
+    const lease = new LeaseWrapper(self.leaseManager)
 
     // @ts-ignore
     const tasks = new Listr([
-      ...self.deletePrepareTasks(argv),
+      ...self.deletePrepareTasks(argv, lease),
       ...self.deleteSubmitTransactionsTasks(argv),
       ...self.deleteExecuteTasks(argv)
     ], {
@@ -3036,7 +3051,7 @@ export class NodeCommand extends BaseCommand {
       self.logger.error(`Error in deleting nodes: ${e.message}`, e)
       throw new SoloError(`Error in deleting nodes: ${e.message}`, e)
     } finally {
-      if (typeof releaseLease === 'function') await releaseLease()
+      await lease.release()
       await self.close()
     }
 

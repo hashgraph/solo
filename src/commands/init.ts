@@ -23,6 +23,7 @@ import * as fs from 'fs'
 import { SoloError } from '../core/errors.ts'
 import * as flags from './flags.ts'
 import chalk from 'chalk'
+import { LeaseWrapper } from '../core/lease_wrapper.js'
 
 /**
  * Defines the core functionalities of 'init' command
@@ -58,7 +59,6 @@ export class InitCommand extends BaseCommand {
   /** Executes the init CLI command */
   async init (argv: any) {
     const self = this
-    const { releaseLease } = await self.leaseManager.acquireLease()
 
     let cacheDir: string = <string>this.configManager.getFlag<string>(flags.cacheDir)
     if (!cacheDir) {
@@ -136,8 +136,6 @@ export class InitCommand extends BaseCommand {
       await tasks.run()
     } catch (e: Error | any) {
       throw new SoloError('Error running init', e)
-    } finally {
-      if (typeof releaseLease === 'function') await releaseLease()
     }
 
     return true

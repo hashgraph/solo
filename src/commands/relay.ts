@@ -25,6 +25,7 @@ import * as prompts from './prompts.ts'
 import { getNodeAccountMap } from '../core/helpers.ts'
 import { type NodeAliases } from '../types/aliases.ts'
 import { type Opts } from '../types/index.ts'
+import { LeaseWrapper } from '../core/lease_wrapper.js'
 
 export class RelayCommand extends BaseCommand {
   private readonly profileManager: ProfileManager
@@ -157,7 +158,7 @@ export class RelayCommand extends BaseCommand {
 
   async deploy (argv: any) {
     const self = this
-    const { releaseLease } = await self.leaseManager.acquireLease()
+    const lease = new LeaseWrapper(self.leaseManager)
 
     interface RelayDeployConfigClass {
       chainId: string
@@ -203,6 +204,8 @@ export class RelayCommand extends BaseCommand {
           ctx.config.isChartInstalled = await self.chartManager.isChartInstalled(ctx.config.namespace, ctx.config.releaseName)
 
           self.logger.debug('Initialized config', { config: ctx.config })
+
+          return lease.buildAcquireTask(task)
         }
       },
       {
@@ -263,7 +266,7 @@ export class RelayCommand extends BaseCommand {
     } catch (e: Error | any) {
       throw new SoloError('Error installing relays', e)
     } finally {
-      if (typeof releaseLease === 'function') await releaseLease()
+      await lease.release()
     }
 
     return true
@@ -271,7 +274,7 @@ export class RelayCommand extends BaseCommand {
 
   async destroy (argv: any) {
     const self = this
-    const { releaseLease } = await self.leaseManager.acquireLease()
+    const lease = new LeaseWrapper(self.leaseManager)
 
     interface RelayDestroyConfigClass {
       chartDirectory: string
@@ -306,6 +309,8 @@ export class RelayCommand extends BaseCommand {
           ctx.config.isChartInstalled = await this.chartManager.isChartInstalled(ctx.config.namespace, ctx.config.releaseName)
 
           self.logger.debug('Initialized config', { config: ctx.config })
+
+          return lease.buildAcquireTask(task)
         }
       },
       {
@@ -333,7 +338,7 @@ export class RelayCommand extends BaseCommand {
     } catch (e: Error | any) {
       throw new SoloError('Error uninstalling relays', e)
     } finally {
-      if (typeof releaseLease === 'function') await releaseLease()
+      await lease.release()
     }
 
     return true

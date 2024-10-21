@@ -24,6 +24,7 @@ import { constants, type AccountManager } from '../core/index.ts'
 import { type AccountId, AccountInfo, HbarUnit, PrivateKey } from '@hashgraph/sdk'
 import { FREEZE_ADMIN_ACCOUNT } from '../core/constants.ts'
 import type { Opts } from '../types/index.js'
+import { LeaseWrapper } from '../core/lease_wrapper.js'
 
 export class AccountCommand extends BaseCommand {
   private readonly accountManager: AccountManager
@@ -117,7 +118,8 @@ export class AccountCommand extends BaseCommand {
 
   async init (argv: any) {
     const self = this
-    const { releaseLease } = await self.leaseManager.acquireLease()
+
+    const lease = new LeaseWrapper(self.leaseManager)
 
     interface Context {
       config: {
@@ -155,6 +157,8 @@ export class AccountCommand extends BaseCommand {
           self.logger.debug('Initialized config', { config })
 
           await self.accountManager.loadNodeClient(ctx.config.namespace)
+
+          return lease.buildAcquireTask(task)
         }
       },
       {
@@ -240,7 +244,7 @@ export class AccountCommand extends BaseCommand {
     } catch (e: Error | any) {
       throw new SoloError(`Error in creating account: ${e.message}`, e)
     } finally {
-      if (typeof releaseLease === 'function') await releaseLease()
+      await lease.release()
       await this.closeConnections()
     }
 
@@ -249,7 +253,7 @@ export class AccountCommand extends BaseCommand {
 
   async create (argv: any) {
     const self = this
-    const { releaseLease } = await self.leaseManager.acquireLease()
+    const lease = new LeaseWrapper(self.leaseManager)
 
     interface Context {
       config: {
@@ -293,6 +297,8 @@ export class AccountCommand extends BaseCommand {
           self.logger.debug('Initialized config', { config })
 
           await self.accountManager.loadNodeClient(ctx.config.namespace)
+
+          return lease.buildAcquireTask(task)
         }
       },
       {
@@ -315,7 +321,7 @@ export class AccountCommand extends BaseCommand {
     } catch (e: Error | any) {
       throw new SoloError(`Error in creating account: ${e.message}`, e)
     } finally {
-      if (typeof releaseLease === 'function') await releaseLease()
+      await lease.release()
       await this.closeConnections()
     }
 
@@ -324,7 +330,7 @@ export class AccountCommand extends BaseCommand {
 
   async update (argv: any) {
     const self = this
-    const { releaseLease } = await self.leaseManager.acquireLease()
+    const lease = new LeaseWrapper(self.leaseManager)
 
     interface Context {
       config: {
@@ -363,6 +369,8 @@ export class AccountCommand extends BaseCommand {
           await self.accountManager.loadNodeClient(config.namespace)
 
           self.logger.debug('Initialized config', { config })
+
+          return lease.buildAcquireTask(task)
         }
       },
       {
@@ -396,7 +404,7 @@ export class AccountCommand extends BaseCommand {
     } catch (e: Error | any) {
       throw new SoloError(`Error in updating account: ${e.message}`, e)
     } finally {
-      if (typeof releaseLease === 'function') await releaseLease()
+      await lease.release()
       await this.closeConnections()
     }
 
