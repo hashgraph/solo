@@ -34,7 +34,7 @@ export class Zippy {
    * @param [verbose] - if true, log the progress
    * @returns path to the output zip file
    */
-  async zip (srcPath: string, destPath: string, verbose: boolean = false) {
+  async zip (srcPath: string, destPath: string, verbose = false) {
     if (!srcPath) throw new MissingArgumentError('srcPath is required')
     if (!destPath) throw new MissingArgumentError('destPath is required')
     if (!destPath.endsWith('.zip')) throw new MissingArgumentError('destPath must be a path to a zip file')

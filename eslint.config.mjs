@@ -23,7 +23,7 @@ export default [
   pluginJs.configs.recommended,
   ...tseslint.configs.strict,
   ...tseslint.configs.recommended,
-  // ...tseslint.configs.stylistic, // TODO: enable in a different PR
+  ...tseslint.configs.stylistic,
   {
     ignores: ['docs/**/*', 'dist/*'],
   },
@@ -63,7 +63,8 @@ export default [
       '@typescript-eslint/consistent-generic-constructors': 'error',
       '@typescript-eslint/consistent-indexed-object-style': [ 'error', 'record' ],
       "@typescript-eslint/consistent-type-imports": ["error", { fixStyle: 'inline-type-imports'}],
-      'space-before-function-paren': 'error'
+      'space-before-function-paren': 'error',
+      '@typescript-eslint/no-empty-function': 'off'
     }
   },
   {

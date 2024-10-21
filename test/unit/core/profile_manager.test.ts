@@ -37,7 +37,7 @@ configManager.setFlag(flags.nodeAliasesUnparsed, 'node1,node2,node4')
 const testProfileFile = path.join('test', 'data', 'test-profiles.yaml')
 configManager.setFlag(flags.cacheDir, getTestCacheDir('ProfileManager'))
 configManager.setFlag(flags.releaseTag, version.HEDERA_PLATFORM_VERSION)
-const cacheDir = <string>configManager.getFlag<string>(flags.cacheDir)
+const cacheDir = configManager.getFlag<string>(flags.cacheDir) as string
 configManager.setFlag(flags.apiPermissionProperties, path.join(cacheDir, 'templates', 'api-permission.properties'))
 configManager.setFlag(flags.applicationProperties, path.join(cacheDir, 'templates', 'application.properties'))
 configManager.setFlag(flags.bootstrapProperties, path.join(cacheDir, 'templates', 'bootstrap.properties'))

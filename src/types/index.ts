@@ -25,13 +25,13 @@ import type {
 import type { DependencyManager } from '../core/dependency_managers/index.js'
 import type { AccountManager } from '../core/account_manager.js'
 
-export type NodeKeyObject = {
+export interface NodeKeyObject {
   privateKey: crypto.webcrypto.CryptoKey
   certificate: x509.X509Certificate
   certificateChain: x509.X509Certificates
 }
 
-export type PrivateKeyAndCertificateObject = {
+export interface PrivateKeyAndCertificateObject {
   privateKeyFile: string
   certificateFile: string
 }
@@ -41,25 +41,25 @@ export interface ExtendedNetServer extends net.Server {
   info: string
 }
 
-export type LocalContextObject = {
+export interface LocalContextObject {
   reject: (reason?: any) => void
   connection: WebSocket.WebSocket
   errorMessage: string
 }
 
-export type AccountIdWithKeyPairObject = {
+export interface AccountIdWithKeyPairObject {
   accountId: string
   privateKey: string
   publicKey: string
 }
 
-export type CommandFlag = {
+export interface CommandFlag {
   constName: string
   name: string
   definition: Definition
 }
 
-export type Definition = {
+export interface Definition {
   describe: string
   defaultValue?: (boolean | string | number)
   alias?: string

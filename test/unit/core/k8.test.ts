@@ -57,8 +57,7 @@ describe('K8 Unit Tests', function () {
     }
   ]
   // @ts-ignore
-  const k8InitSpy = jest.spyOn(K8.prototype, 'init').mockImplementation(() => {
-  })
+  const k8InitSpy = jest.spyOn(K8.prototype, 'init').mockImplementation(function () {})
   const k8GetPodsByLabelSpy = jest.spyOn(K8.prototype, 'getPodsByLabel').mockResolvedValue(expectedResult)
   let k8: K8
 

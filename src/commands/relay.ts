@@ -40,40 +40,34 @@ export class RelayCommand extends BaseCommand {
     this.accountManager = opts.accountManager
   }
 
-  static get DEPLOY_CONFIGS_NAME () {
-    return 'deployConfigs'
-  }
+  static readonly DEPLOY_CONFIGS_NAME = 'deployConfigs'
 
-  static get DEPLOY_FLAGS_LIST () {
-    return [
-      flags.chainId,
-      flags.chartDirectory,
-      flags.namespace,
-      flags.nodeAliasesUnparsed,
-      flags.operatorId,
-      flags.operatorKey,
-      flags.profileFile,
-      flags.profileName,
-      flags.quiet,
-      flags.relayReleaseTag,
-      flags.replicaCount,
-      flags.valuesFile
-    ]
-  }
+  static readonly DEPLOY_FLAGS_LIST = [
+    flags.chainId,
+    flags.chartDirectory,
+    flags.namespace,
+    flags.nodeAliasesUnparsed,
+    flags.operatorId,
+    flags.operatorKey,
+    flags.profileFile,
+    flags.profileName,
+    flags.quiet,
+    flags.relayReleaseTag,
+    flags.replicaCount,
+    flags.valuesFile
+  ]
 
-  static get DESTROY_FLAGS_LIST () {
-    return [
-      flags.chartDirectory,
-      flags.namespace,
-      flags.nodeAliasesUnparsed
-    ]
-  }
+  static readonly DESTROY_FLAGS_LIST = [
+    flags.chartDirectory,
+    flags.namespace,
+    flags.nodeAliasesUnparsed
+  ]
 
   async prepareValuesArg (valuesFile: string, nodeAliases: NodeAliases, chainID: string, relayRelease: string,
     replicaCount: number, operatorID: string, operatorKey: string, namespace: string) {
     let valuesArg = ''
 
-    const profileName = <string>this.configManager.getFlag<string>(flags.profileName)
+    const profileName = this.configManager.getFlag<string>(flags.profileName) as string
     const profileValuesFile = await this.profileManager.prepareValuesForRpcRelayChart(profileName)
     if (profileValuesFile) {
       valuesArg += this.prepareValuesFiles(profileValuesFile)
@@ -293,9 +287,9 @@ export class RelayCommand extends BaseCommand {
 
           // prompt if inputs are empty and set it in the context
           ctx.config = {
-            chartDirectory: <string>self.configManager.getFlag<string>(flags.chartDirectory),
-            namespace: <string>self.configManager.getFlag<string>(flags.namespace),
-            nodeAliases: helpers.parseNodeAliases(<string>self.configManager.getFlag<string>(flags.nodeAliasesUnparsed))
+            chartDirectory: self.configManager.getFlag<string>(flags.chartDirectory) as string,
+            namespace: self.configManager.getFlag<string>(flags.namespace) as string,
+            nodeAliases: helpers.parseNodeAliases((self.configManager.getFlag<string>(flags.nodeAliasesUnparsed) as string))
           } as RelayDestroyConfigClass
 
           ctx.config.releaseName = this.prepareReleaseName(ctx.config.nodeAliases)

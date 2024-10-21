@@ -33,7 +33,7 @@ import type * as WebSocket from 'ws'
 import { type PodName } from '../types/aliases.ts'
 import { type ExtendedNetServer, type LocalContextObject } from '../types/index.ts'
 
-type TDirectoryData = {directory: boolean; owner: string; group: string; size: string; modifiedAt: string; name: string}
+interface TDirectoryData {directory: boolean; owner: string; group: string; size: string; modifiedAt: string; name: string}
 
 /**
  * A kubernetes API wrapper class providing custom functionalities required by solo
