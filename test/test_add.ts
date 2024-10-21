@@ -17,6 +17,7 @@
 import { expect } from 'chai'
 import { describe, it, after } from 'mocha'
 
+import { flags } from '../src/commands/index.ts'
 import {
   accountCreationShouldSucceed,
   balanceQueryShouldSucceed,
@@ -26,7 +27,6 @@ import {
   getTmpDir,
   HEDERA_PLATFORM_VERSION_TAG
 } from './test_util.ts'
-import { flags } from '../src/commands/index.ts'
 import { getNodeLogs } from '../src/core/helpers.ts'
 import * as NodeCommandConfigs from '../src/commands/node/configs.ts'
 import { MINUTES } from '../src/core/constants.ts'
