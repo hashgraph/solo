@@ -99,8 +99,13 @@ export class LeaseManager {
       if (error.meta.statusCode !== 404) {
         throw new SoloError(`Failed to acquire lease: ${error.message}`)
       }
+    }
 
+    try {
       await this.k8.createNamespacedLease(namespace, leaseName, username)
+    } catch {
+      retries++
+      return this.acquireLeaseOrRetry(username, leaseName, namespace, retries)
     }
   }
 
