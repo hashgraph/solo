@@ -22,8 +22,8 @@ import type { SoloLogger } from './logging.ts'
 import { LEASE_RENEW_TIMEOUT, LEASE_AQUIRE_RETRY_TIMEOUT, MAX_LEASE_ACQUIRE_ATTEMPTS, OS_USERNAME } from './constants.ts'
 import type { ListrTaskWrapper } from 'listr2'
 import chalk from 'chalk'
-import { sleep } from './helpers.js'
-import { LeaseWrapper } from './lease_wrapper.js'
+import { sleep } from './helpers.ts'
+import { LeaseWrapper } from './lease_wrapper.ts'
 
 export class LeaseManager {
   constructor (

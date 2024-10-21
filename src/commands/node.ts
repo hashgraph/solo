@@ -68,7 +68,7 @@ import { downloadGeneratedFilesConfigBuilder, prepareUpgradeConfigBuilder } from
 import type { NetworkNodeServices } from '../core/network_node_services.ts'
 import type { NodeAlias, NodeAliases, PodName } from '../types/aliases.ts'
 import type { ExtendedNetServer, Opts } from '../types/index.ts'
-import type { LeaseWrapper } from '../core/lease_wrapper.js'
+import type { LeaseWrapper } from '../core/lease_wrapper.ts'
 
 export interface NodeAddConfigClass {
   app: string

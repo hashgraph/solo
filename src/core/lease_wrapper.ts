@@ -15,7 +15,7 @@
  *
  */
 import type { ListrTaskWrapper } from 'listr2'
-import type { LeaseManager } from './lease_manager.js'
+import type { LeaseManager } from './lease_manager.ts'
 
 export class LeaseWrapper {
   private releaseLease: () => Promise<void>
