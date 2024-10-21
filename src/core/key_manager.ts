@@ -323,64 +323,7 @@ export class KeyManager {
     const nodeKeyFiles = this.prepareNodeKeyFilePaths(nodeAlias, keysDir)
     return this.loadNodeKey(nodeAlias, keysDir, KeyManager.SigningKeyAlgo, nodeKeyFiles, 'signing')
   }
-
-  /**
-   * Generate EC key and cert
-   * @param nodeAlias
-   * @param keyPrefix - key prefix such as constants.SIGNING_KEY_PREFIX
-   * @param signingKey
-   * @returns a dictionary object stores ed25519PrivateKey, certificate, certificateChain
-   */
-  async ecKey (nodeAlias: NodeAlias, keyPrefix: string, signingKey: NodeKeyObject): Promise<NodeKeyObject> {
-    if (!nodeAlias) throw new MissingArgumentError('nodeAlias is required')
-    if (!keyPrefix) throw new MissingArgumentError('keyPrefix is required')
-    if (!signingKey) throw new MissingArgumentError('no signing key found')
-
-    try {
-      const curDate = new Date()
-      const notAfter = new Date().setFullYear(curDate.getFullYear() + constants.CERTIFICATE_VALIDITY_YEARS)
-      const friendlyName = Templates.renderNodeFriendlyName(keyPrefix, nodeAlias)
-
-      this.logger.debug(`generating ${keyPrefix}-key for node: ${nodeAlias}`, { friendlyName })
-
-      const keypair = await crypto.subtle.generateKey(KeyManager.ECKeyAlgo, true, ['sign', 'verify'])
-
-      const cert = await x509.X509CertificateGenerator.create({
-        publicKey: keypair.publicKey,
-        signingKey: signingKey.privateKey,
-        subject: `CN=${friendlyName}`,
-        issuer: signingKey.certificate.subject,
-        serialNumber: '01',
-        notBefore: curDate,
-        // @ts-ignore
-        notAfter,
-        extensions: [
-          new x509.KeyUsagesExtension(
-            x509.KeyUsageFlags.digitalSignature | x509.KeyUsageFlags.keyEncipherment)
-        ]
-      })
-
-      if (!await cert.verify({
-        date: new Date(notAfter),
-        publicKey: signingKey.certificate.publicKey,
-        signatureOnly: true
-      })) {
-        throw new SoloError(`failed to verify generated certificate for '${friendlyName}'`)
-      }
-
-      const certChain = await new x509.X509ChainBuilder({ certificates: [signingKey.certificate] }).build(cert)
-
-      this.logger.debug(`generated ${keyPrefix}-key for node: ${nodeAlias}`, { cert: cert.toString('pem') })
-      return {
-        privateKey: keypair.privateKey,
-        certificate: cert,
-        certificateChain: certChain
-      }
-    } catch (e: Error | any) {
-      throw new SoloError(`failed to generate ${keyPrefix}-key: ${e.message}`, e)
-    }
-  }
-
+  
   /**
    * Generate gRPC TLS key
    *
