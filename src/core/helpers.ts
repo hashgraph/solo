@@ -16,25 +16,21 @@
  */
 import fs from 'fs'
 import os from 'os'
-import path, * as paths from 'path'
+import path from 'path'
 import util from 'util'
 import { SoloError } from './errors.ts'
-import { fileURLToPath } from 'url'
 import * as semver from 'semver'
 import { Templates } from './templates.ts'
 import { HEDERA_HAPI_PATH, ROOT_CONTAINER, SOLO_LOGS_DIR } from './constants.ts'
 import { constants, type K8 } from './index.ts'
 import { FileContentsQuery, FileId, PrivateKey, ServiceEndpoint } from '@hashgraph/sdk'
 import { Listr } from 'listr2'
-import * as yaml from 'js-yaml'
 import { type AccountManager } from './account_manager.ts'
 import { type BaseCommand } from '../commands/base.ts'
 import { type NodeAlias, type NodeAliases, type PodName } from '../types/aliases.ts'
 import { type NodeDeleteConfigClass } from '../commands/node.ts'
 import { type CommandFlag } from '../types/index.js'
-
-// cache current directory
-const CUR_FILE_DIR = paths.dirname(fileURLToPath(import.meta.url))
+import { type V1Pod } from '@kubernetes/client-node'
 
 export function sleep (ms: number) {
   return new Promise<void>((resolve) => {
@@ -150,10 +146,8 @@ export function backupOldPemKeys (nodeAliases: NodeAliases, keysDir: string, cur
 
   const fileMap = new Map<string, string>()
   for (const nodeAlias of nodeAliases) {
-    // @ts-ignore
-    const srcPath = path.join(keysDir, Templates.renderGossipPemPrivateKeyFile(nodeAlias)) // TODO review
-    // @ts-ignore
-    const destPath = path.join(backupDir, Templates.renderGossipPemPrivateKeyFile(nodeAlias)) // TODO review
+    const srcPath = path.join(keysDir, Templates.renderGossipPemPrivateKeyFile(nodeAlias))
+    const destPath = path.join(backupDir, Templates.renderGossipPemPrivateKeyFile(nodeAlias))
     fileMap.set(srcPath, destPath)
   }
 
@@ -187,31 +181,37 @@ export function validatePath (input: string) {
  * @returns a promise that resolves when the logs are downloaded
  */
 export async function getNodeLogs (k8: K8, namespace: string) {
-  k8.logger.debug('getNodeLogs: begin...')
   const pods = await k8.getPodsByLabel(['solo.hedera.com/type=network-node'])
 
   const timeString = new Date().toISOString().replace(/:/g, '-').replace(/\./g, '-')
 
+  const promises = []
   for (const pod of pods) {
-    const podName = pod.metadata!.name as PodName
-    const targetDir = path.join(SOLO_LOGS_DIR, namespace, timeString)
-    try {
-      if (!fs.existsSync(targetDir)) {
-        fs.mkdirSync(targetDir, { recursive: true })
-      }
-      const scriptName = 'support-zip.sh'
-      const sourcePath = path.join(constants.RESOURCES_DIR, scriptName) // script source path
-      await k8.copyTo(podName, ROOT_CONTAINER, sourcePath, `${HEDERA_HAPI_PATH}`)
-      await k8.execContainer(podName, ROOT_CONTAINER, `chmod 0755 ${HEDERA_HAPI_PATH}/${scriptName}`)
-      await k8.execContainer(podName, ROOT_CONTAINER, `${HEDERA_HAPI_PATH}/${scriptName}`)
-      await k8.copyFrom(podName, ROOT_CONTAINER, `${HEDERA_HAPI_PATH}/${podName}.zip`, targetDir)
-    } catch (e: Error | any) {
-      // not throw error here, so we can continue to finish downloading logs from other pods
-      // and also delete namespace in the end
-      k8.logger.error(`failed to download logs from pod ${podName}`, e)
-    }
-    k8.logger.debug('getNodeLogs: ...end')
+    promises.push(getNodeLog(pod, namespace, timeString, k8))
   }
+  return await Promise.all(promises)
+}
+
+async function getNodeLog (pod: V1Pod, namespace: string, timeString: string, k8: K8){
+  const podName = pod.metadata!.name as PodName
+  k8.logger.debug(`getNodeLogs(${pod.metadata.name}): begin...`)
+  const targetDir = path.join(SOLO_LOGS_DIR, namespace, timeString)
+  try {
+    if (!fs.existsSync(targetDir)) {
+      fs.mkdirSync(targetDir, { recursive: true })
+    }
+    const scriptName = 'support-zip.sh'
+    const sourcePath = path.join(constants.RESOURCES_DIR, scriptName) // script source path
+    await k8.copyTo(podName, ROOT_CONTAINER, sourcePath, `${HEDERA_HAPI_PATH}`)
+    await k8.execContainer(podName, ROOT_CONTAINER, `chmod 0755 ${HEDERA_HAPI_PATH}/${scriptName}`)
+    await k8.execContainer(podName, ROOT_CONTAINER, `${HEDERA_HAPI_PATH}/${scriptName}`)
+    await k8.copyFrom(podName, ROOT_CONTAINER, `${HEDERA_HAPI_PATH}/${podName}.zip`, targetDir)
+  } catch (e: Error | any) {
+    // not throw error here, so we can continue to finish downloading logs from other pods
+    // and also delete namespace in the end
+    k8.logger.error(`failed to download logs from pod ${podName}`, e)
+  }
+  k8.logger.debug(`getNodeLogs(${pod.metadata.name}): ...end`)
 }
 
 /**
@@ -435,21 +435,4 @@ export function addFlagsToArgv (argv: any, flags: {
   argv.optionalFlags = flags.optionalFlags
 
   return argv
-}
-
-/** Convert yaml file to object */ // @ts-ignore
-export function yamlToObject (yamlFile: any) {
-  try {
-    if (fs.existsSync(yamlFile)) {
-      const yamlData = fs.readFileSync(yamlFile, 'utf8')
-      const configItems = yaml.load(yamlData) as Record<string, any>
-      const configMap: Record<string, any> = {}
-      for (const key in configItems) {
-        configMap[key] = configItems[key] || {}
-      }
-      return configMap
-    }
-  } catch (e: Error | any) {
-    throw new SoloError(`failed to convert yaml file ${yamlFile} to object: ${e.message}`, e)
-  }
 }

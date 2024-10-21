@@ -52,7 +52,7 @@ import {
   NodeCreateTransaction,
   NodeUpdateTransaction,
   NodeDeleteTransaction,
-  ServiceEndpoint
+  type ServiceEndpoint
 } from '@hashgraph/sdk'
 import * as crypto from 'crypto'
 import {
@@ -195,10 +195,12 @@ export class NodeCommand extends BaseCommand {
   static get START_FLAGS_LIST () {
     return [
       flags.app,
+      flags.cacheDir,
       flags.debugNodeAlias,
       flags.namespace,
       flags.nodeAliasesUnparsed,
-      flags.quiet
+      flags.quiet,
+      flags.releaseTag
     ]
   }
 
@@ -798,9 +800,9 @@ export class NodeCommand extends BaseCommand {
     const self = this
     if (localBuildPath !== '') {
       return self.uploadPlatformSoftware(nodeAliases, podNames, task, localBuildPath)
-    } 
+    }
       return self.fetchPlatformSoftware(nodeAliases, podNames, releaseTag, task, self.platformInstaller)
-    
+
   }
 
   fetchPlatformSoftware (nodeAliases: NodeAliases, podNames: Record<NodeAlias, PodName>, releaseTag: string,
@@ -831,39 +833,6 @@ export class NodeCommand extends BaseCommand {
       throw new SoloError('unable to load perm key: ' + certFullPath)
     }
     return (new Uint8Array(decodedDers[0]))
-  }
-
-  prepareEndpoints (endpointType: string, endpoints: string[], defaultPort: number): ServiceEndpoint[] {
-    const ret: ServiceEndpoint[] = []
-    for (const endpoint of endpoints) {
-      const parts = endpoint.split(':')
-
-      let url = ''
-      let port = defaultPort
-
-      if (parts.length === 2) {
-        url = parts[0].trim()
-        port = +(parts[1].trim())
-      } else if (parts.length === 1) {
-        url = parts[0]
-      } else {
-        throw new SoloError(`incorrect endpoint format. expected url:port, found ${endpoint}`)
-      }
-
-      if (endpointType.toUpperCase() === constants.ENDPOINT_TYPE_IP) {
-        ret.push(new ServiceEndpoint({
-          port,
-          ipAddressV4: helpers.parseIpAddressToUint8Array(url)
-        }))
-      } else {
-        ret.push(new ServiceEndpoint({
-          port,
-          domainName: url
-        }))
-      }
-    }
-
-    return ret
   }
 
   // List of Commands
@@ -1214,7 +1183,6 @@ export class NodeCommand extends BaseCommand {
           // reset flags so that keys are not regenerated later
           self.configManager.setFlag(flags.generateGossipKeys, false)
           self.configManager.setFlag(flags.generateTlsKeys, false)
-          self.configManager.persist()
         }
       }
     ])
@@ -1567,7 +1535,7 @@ export class NodeCommand extends BaseCommand {
         title: 'Load signing key certificate',
         task: (ctx: Context) => {
           const config = ctx.config
-          const signingCertFile = Templates.renderGossipPemPublicKeyFile(constants.SIGNING_KEY_PREFIX, config.nodeAlias)
+          const signingCertFile = Templates.renderGossipPemPublicKeyFile(config.nodeAlias)
           const signingCertFullPath = path.join(config.keysDir, signingCertFile)
           ctx.signingCertDer = this.loadPermCertificate(signingCertFullPath)
         }
@@ -1844,7 +1812,6 @@ export class NodeCommand extends BaseCommand {
           // reset flags so that keys are not regenerated later
           self.configManager.setFlag(flags.generateGossipKeys, false)
           self.configManager.setFlag(flags.generateTlsKeys, false)
-          self.configManager.persist()
         }
       }
     ]
@@ -2499,8 +2466,8 @@ export class NodeCommand extends BaseCommand {
               const signingCertDer = this.loadPermCertificate(config.gossipPublicKey)
               nodeUpdateTx.setGossipCaCertificate(signingCertDer)
 
-              const publicKeyFile = Templates.renderGossipPemPublicKeyFile(constants.SIGNING_KEY_PREFIX, config.nodeAlias)
-              const privateKeyFile = Templates.renderGossipPemPrivateKeyFile(constants.SIGNING_KEY_PREFIX, config.nodeAlias)
+              const publicKeyFile = Templates.renderGossipPemPublicKeyFile(config.nodeAlias)
+              const privateKeyFile = Templates.renderGossipPemPrivateKeyFile(config.nodeAlias)
               renameAndCopyFile(config.gossipPublicKey, publicKeyFile, config.keysDir)
               renameAndCopyFile(config.gossipPrivateKey, privateKeyFile, config.keysDir)
             }
@@ -2652,7 +2619,6 @@ export class NodeCommand extends BaseCommand {
           // reset flags so that keys are not regenerated later
           self.configManager.setFlag(flags.generateGossipKeys, false)
           self.configManager.setFlag(flags.generateTlsKeys, false)
-          self.configManager.persist()
         }
       }
     ], {
@@ -2810,7 +2776,7 @@ export class NodeCommand extends BaseCommand {
           self.logger.info('sleep 20 seconds to give time for pods to come up after being killed')
           await sleep(20 * SECONDS)
           const config = ctx.config
-          return this.checkPodRunningTask(ctx, task, ctx.config.allNodeAliases)
+          return this.checkPodRunningTask(ctx, task, config.allNodeAliases)
         }
       },
       {
@@ -2869,7 +2835,6 @@ export class NodeCommand extends BaseCommand {
           // reset flags so that keys are not regenerated later
           self.configManager.setFlag(flags.generateGossipKeys, false)
           self.configManager.setFlag(flags.generateTlsKeys, false)
-          self.configManager.persist()
         }
       }
     ]

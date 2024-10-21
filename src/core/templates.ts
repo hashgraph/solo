@@ -39,12 +39,12 @@ export class Templates {
     return `network-${nodeAlias}`
   }
 
-  public static renderGossipPemPrivateKeyFile (prefix: string, nodeAlias: NodeAlias): string {
-    return `${prefix}-private-${nodeAlias}.pem`
+  public static renderGossipPemPrivateKeyFile (nodeAlias: NodeAlias): string {
+    return `${constants.SIGNING_KEY_PREFIX}-private-${nodeAlias}.pem`
   }
 
-  public static renderGossipPemPublicKeyFile (prefix: string, nodeAlias: NodeAlias): string {
-    return `${prefix}-public-${nodeAlias}.pem`
+  public static renderGossipPemPublicKeyFile (nodeAlias: NodeAlias): string {
+    return `${constants.SIGNING_KEY_PREFIX}-public-${nodeAlias}.pem`
   }
 
   public static renderTLSPemPrivateKeyFile (nodeAlias: NodeAlias): string {

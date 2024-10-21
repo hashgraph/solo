@@ -23,7 +23,7 @@ import { type ListrTask } from 'listr2'
 
 export class DependencyManager extends ShellRunner {
   constructor (logger: SoloLogger,
-    private readonly depManagerMap: Map<string, DependencyManager | HelmDependencyManager>) {
+    private readonly depManagerMap: Map<string, HelmDependencyManager>) {
     if (!logger) throw new MissingArgumentError('an instance of core/SoloLogger is required', logger)
     super(logger)
     if (!depManagerMap) throw new MissingArgumentError('A map of dependency managers are required')

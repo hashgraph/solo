@@ -123,7 +123,7 @@ describe('NetworkCommand', () => {
     argv[flags.deletePvcs.name] = true
     argv[flags.deleteSecrets.name] = true
     argv[flags.force.name] = true
-    configManager.update(argv, true)
+    configManager.update(argv)
 
     try {
       await expect(networkCmd.destroy(argv)).to.eventually.be.ok

@@ -46,7 +46,7 @@ export function main (argv: any) {
     const zippy = new Zippy(logger)
     const helmDepManager = new HelmDependencyManager(downloader, zippy, logger)
     const depManagerMap = new Map()
-      .set(constants.HELM, helmDepManager)
+    .set(constants.HELM, helmDepManager)
     const depManager = new DependencyManager(logger, depManagerMap)
 
     const helm = new Helm(logger)
@@ -79,7 +79,9 @@ export function main (argv: any) {
     }
 
     const processArguments = (argv: any, yargs: any) => {
-      argv._[0] === 'init' ? configManager.reset() : configManager.load()
+      if (argv._[0] === 'init') {
+        configManager.reset()
+      }
 
       // Set default cluster name and namespace from kubernetes context
       // these will be overwritten if user has entered the flag values explicitly
@@ -91,8 +93,8 @@ export function main (argv: any) {
       // apply precedence for flags
       argv = configManager.applyPrecedence(argv, yargs.parsed.aliases)
 
-      // update and persist config
-      configManager.update(argv, true)
+      // update
+      configManager.update(argv)
 
       logger.showUser(chalk.cyan('\n******************************* Solo *********************************************'))
       logger.showUser(chalk.cyan('Version\t\t\t:'), chalk.yellow(configManager.getVersion()))
@@ -105,19 +107,19 @@ export function main (argv: any) {
     }
 
     return yargs(hideBin(argv))
-      .usage('Usage:\n  $0 <command> [options]')
-      .alias('h', 'help')
-      .alias('v', 'version')
-      // @ts-ignore
-      .command(commands.Initialize(opts))
-      .strict()
-      // @ts-ignore
-      .option(flags.devMode.name, flags.devMode.definition)
-      .wrap(120)
-      .demand(1, 'Select a command')
-      // @ts-ignore
-      .middleware(processArguments, false) // applyBeforeValidate = false as otherwise middleware is called twice
-      .parse()
+    .usage('Usage:\n  $0 <command> [options]')
+    .alias('h', 'help')
+    .alias('v', 'version')
+    // @ts-ignore
+    .command(commands.Initialize(opts))
+    .strict()
+    // @ts-ignore
+    .option(flags.devMode.name, flags.devMode.definition)
+    .wrap(120)
+    .demand(1, 'Select a command')
+    // @ts-ignore
+    .middleware(processArguments, false) // applyBeforeValidate = false as otherwise middleware is called twice
+    .parse()
   } catch (e: Error | any) {
     logger.showUserError(e)
     process.exit(1)

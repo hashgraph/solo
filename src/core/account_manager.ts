@@ -79,14 +79,14 @@ export class AccountManager {
         privateKey: Base64.decode(secret.data.privateKey),
         publicKey: Base64.decode(secret.data.publicKey)
       }
-    } 
+    }
       // if it isn't in the secrets we can load genesis key
       return {
         accountId,
         privateKey: constants.GENESIS_KEY,
         publicKey: PrivateKey.fromStringED25519(constants.GENESIS_KEY).publicKey.toString()
       }
-    
+
   }
 
   /**
@@ -645,9 +645,8 @@ export class AccountManager {
 
   /**
    * Fetch and prepare address book as a base64 string
-   * @param namespace the namespace of the network
    */
-  async prepareAddressBookBase64 (namespace: string) {
+  async prepareAddressBookBase64 () {
     // fetch AddressBook
     const fileQuery = new FileContentsQuery().setFileId(FileId.ADDRESS_BOOK)
     const addressBookBytes = await fileQuery.execute(this._nodeClient)

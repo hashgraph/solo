@@ -906,12 +906,12 @@ export class K8 {
     }
   }
 
-  waitForPods (phases = [constants.POD_PHASE_RUNNING], labels: string[] = [], podCount = 1, maxAttempts = 10,
-    delay = 500, podItemPredicate?: (items: k8s.V1Pod) => any) {
+  async waitForPods (phases = [constants.POD_PHASE_RUNNING], labels: string[] = [], podCount = 1, maxAttempts = 10,
+    delay = 500, podItemPredicate?: (items: k8s.V1Pod) => any): Promise<k8s.V1Pod[]> {
     const ns = this._getNamespace()
     const labelSelector = labels.join(',')
 
-    this.logger.debug(`WaitForPod [namespace:${ns}, labelSelector: ${labelSelector}], maxAttempts: ${maxAttempts}`)
+    this.logger.debug(`WaitForPod [namespace:${ns}, labelSelector: ${labelSelector}, maxAttempts: ${maxAttempts}]`)
 
     return new Promise<k8s.V1Pod[]>((resolve, reject) => {
       let attempts = 0

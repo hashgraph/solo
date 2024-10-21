@@ -144,7 +144,7 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
         try {
           argv[flags.ed25519PrivateKey.name] = constants.GENESIS_KEY
           argv[flags.amount.name] = 777
-          configManager.update(argv, true)
+          configManager.update(argv)
 
           await expect(accountCmd.create(argv)).to.eventually.be.ok
 
@@ -166,7 +166,7 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
         try {
           argv[flags.amount.name] = 0
           argv[flags.accountId.name] = accountId1
-          configManager.update(argv, true)
+          configManager.update(argv)
 
           await expect(accountCmd.update(argv)).to.eventually.be.ok
 
@@ -188,7 +188,7 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
           argv[flags.accountId.name] = accountId2
           argv[flags.ed25519PrivateKey.name] = constants.GENESIS_KEY
           argv[flags.amount.name] = 333
-          configManager.update(argv, true)
+          configManager.update(argv)
 
           await expect(accountCmd.update(argv)).to.eventually.be.ok
 
@@ -208,7 +208,7 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
       it('should be able to get account-1', async () => {
         try {
           argv[flags.accountId.name] = accountId1
-          configManager.update(argv, true)
+          configManager.update(argv)
 
           await expect(accountCmd.get(argv)).to.eventually.be.ok
           // @ts-ignore to access the private property
@@ -227,7 +227,7 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
       it('should be able to get account-2', async () => {
         try {
           argv[flags.accountId.name] = accountId2
-          configManager.update(argv, true)
+          configManager.update(argv)
 
           await expect(accountCmd.get(argv)).to.eventually.be.ok
           // @ts-ignore to access the private property
@@ -249,7 +249,7 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
         try {
           argv[flags.ecdsaPrivateKey.name] = ecdsaPrivateKey.toString()
           argv[flags.setAlias.name] = true
-          configManager.update(argv, true)
+          configManager.update(argv)
 
           await expect(accountCmd.create(argv)).to.eventually.be.ok
 
