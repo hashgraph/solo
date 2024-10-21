@@ -28,12 +28,13 @@ import {
   TEST_CLUSTER
 } from '../test_util.ts'
 import { getNodeLogs, sleep } from '../../src/core/helpers.ts'
-import { NodeCommand } from '../../src/commands/node.ts'
+import * as NodeCommandConfigs from '../../src/commands/node/configs.ts'
 import { MINUTES, SECONDS } from '../../src/core/constants.ts'
 import type { NodeAlias } from '../../src/types/aliases.ts'
 import { NodeAliases } from '../../src/types/aliases.ts'
 import type { ListrTaskWrapper } from 'listr2'
 import type { K8 } from '../../src/core/index.ts'
+import { type NodeCommand } from '../../src/commands/node/index.js'
 
 export function e2eNodeKeyRefreshTest (testName: string, mode: string, releaseTag = HEDERA_PLATFORM_VERSION_TAG) {
   const namespace = testName
@@ -104,7 +105,7 @@ export function e2eNodeKeyRefreshTest (testName: string, mode: string, releaseTa
             expect(resp.response.statusCode).to.equal(200)
             await sleep(20 * SECONDS) // sleep to wait for pod to finish terminating
           } else if (mode === 'stop') {
-            await expect(nodeCmd.stop(argv)).to.eventually.be.ok
+            await expect(nodeCmd.handlers.stop(argv)).to.eventually.be.ok
             await sleep(20 * SECONDS) // give time for node to stop and update its logs
           } else {
             throw new Error(`invalid mode: ${mode}`)
@@ -140,9 +141,9 @@ export function e2eNodeKeyRefreshTest (testName: string, mode: string, releaseTa
       function nodeRefreshShouldSucceed (nodeAlias: NodeAlias, nodeCmd: NodeCommand, argv: Record<any, any>) {
         it(`${nodeAlias} refresh should succeed`, async () => {
           try {
-            await expect(nodeCmd.refresh(argv)).to.eventually.be.ok
+            await expect(nodeCmd.handlers.refresh(argv)).to.eventually.be.ok
             expect(nodeCmd.getUnusedConfigs(
-                NodeCommand.REFRESH_CONFIGS_NAME)).to.deep.equal([
+                NodeCommandConfigs.REFRESH_CONFIGS_NAME)).to.deep.equal([
               flags.devMode.constName,
               flags.quiet.constName
             ])
@@ -161,7 +162,7 @@ export function e2eNodeKeyRefreshTest (testName: string, mode: string, releaseTa
           expect(2)
           try {
             await expect(
-                nodeCmd.checkNetworkNodeActiveness(namespace, nodeAlias, { title: '' } as ListrTaskWrapper<any, any, any>,
+                nodeCmd.tasks._checkNetworkNodeActiveness(namespace, nodeAlias, { title: '' } as ListrTaskWrapper<any, any, any>,
                     '', 44, undefined, 15)
             ).to.be.rejected
           } catch (e) {

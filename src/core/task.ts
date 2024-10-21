@@ -15,10 +15,11 @@
  *
  */
 export class Task {
-  constructor (title: string, taskFunc: Function) {
+  constructor (title: string, taskFunc: Function, skip: Function | boolean = false) {
     return {
       title,
-      task: taskFunc
+      task: taskFunc,
+      skip
     }
   }
 }
