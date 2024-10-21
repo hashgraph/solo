@@ -75,7 +75,7 @@ jobs:
       matrix:
         e2e-test-type:
           # {AUTOGENERATE-E2E-TEST-JOBS}
-      max-parallel: 5
+      max-parallel: 4
     with:
       custom-job-label: ${{ matrix.e2e-test-type.name }}
       npm-test-script: ${{ matrix.e2e-test-type.npm-test-script }}
