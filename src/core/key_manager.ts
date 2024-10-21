@@ -150,7 +150,7 @@ export class KeyManager {
     }
 
     if (!nodeKey || !nodeKey.privateKey) {
-      throw new MissingArgumentError('nodeKey.privateKey is required')
+      throw new MissingArgumentError('nodeKey.ed25519PrivateKey is required')
     }
 
     if (!nodeKey || !nodeKey.certificateChain) {
@@ -331,7 +331,7 @@ export class KeyManager {
    * @param nodeAlias
    * @param keyPrefix - key prefix such as constants.SIGNING_KEY_PREFIX
    * @param signingKey
-   * @returns a dictionary object stores privateKey, certificate, certificateChain
+   * @returns a dictionary object stores ed25519PrivateKey, certificate, certificateChain
    */
   async ecKey (nodeAlias: NodeAlias, keyPrefix: string, signingKey: NodeKeyObject): Promise<NodeKeyObject> {
     if (!nodeAlias) throw new MissingArgumentError('nodeAlias is required')

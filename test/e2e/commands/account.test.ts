@@ -142,7 +142,7 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
 
       it('should create account with private key and hbar amount options', async () => {
         try {
-          argv[flags.privateKey.name] = constants.GENESIS_KEY
+          argv[flags.ed25519PrivateKey.name] = constants.GENESIS_KEY
           argv[flags.amount.name] = 777
           configManager.update(argv, true)
 
@@ -186,7 +186,7 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
       it('should update account-2 with accountId, amount, new private key, and standard out options', async () => {
         try {
           argv[flags.accountId.name] = accountId2
-          argv[flags.privateKey.name] = constants.GENESIS_KEY
+          argv[flags.ed25519PrivateKey.name] = constants.GENESIS_KEY
           argv[flags.amount.name] = 333
           configManager.update(argv, true)
 
