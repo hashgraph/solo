@@ -310,10 +310,6 @@ export class NodeCommandTasks {
     status = NodeStatusCodes.ACTIVE, maxAttempts = 120, delay = 1_000, timeout = 1_000) {
     nodeAlias = nodeAlias.trim()
     const podName = Templates.renderNetworkPodName(nodeAlias)
-
-    await sleep(30000)
-    return podName
-
     const podPort = 9_999
     const localPort = 19_000 + index
     task.title = `${title} - status ${chalk.yellow('STARTING')}, attempt ${chalk.blueBright(`0/${maxAttempts}`)}`
