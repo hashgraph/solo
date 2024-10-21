@@ -28,10 +28,11 @@ import { FileContentsQuery, FileId, PrivateKey, ServiceEndpoint } from '@hashgra
 import { Listr } from 'listr2'
 import * as yaml from 'js-yaml'
 import { type AccountManager } from './account_manager.ts'
-import { type BaseCommand } from '../commands/base.ts'
 import { type NodeAlias, type NodeAliases, type PodName } from '../types/aliases.ts'
-import { type NodeDeleteConfigClass } from '../commands/node.ts'
+import { type NodeDeleteConfigClass } from '../commands/node/configs.ts'
 import { type CommandFlag } from '../types/index.js'
+import {SoloLogger} from "./logging.js";
+import {NodeCommandHandlers} from "../commands/node/handlers.js";
 
 // cache current directory
 const CUR_FILE_DIR = paths.dirname(fileURLToPath(import.meta.url))
@@ -257,7 +258,7 @@ export function parseIpAddressToUint8Array (ipAddress: string) {
 }
 
 /** If the basename of the src did not match expected basename, rename it first, then copy to destination */
-export function renameAndCopyFile (srcFilePath: string, expectedBaseName: string, destDir: string) {
+export function renameAndCopyFile (srcFilePath: string, expectedBaseName: string, destDir: string, logger: SoloLogger) {
   const srcDir = path.dirname(srcFilePath)
   if (path.basename(srcFilePath) !== expectedBaseName) {
     fs.renameSync(srcFilePath, path.join(srcDir, expectedBaseName))
@@ -409,7 +410,7 @@ export function prepareEndpoints (endpointType: string, endpoints: string[], def
 }
 
 export function commandActionBuilder (actionTasks: any, options: any, errorString = 'Error') {
-  return async function (argv: any, commandDef: BaseCommand) {
+  return async function (argv: any, commandDef: NodeCommandHandlers) {
     const tasks = new Listr([
       ...actionTasks
     ], options)
@@ -417,7 +418,7 @@ export function commandActionBuilder (actionTasks: any, options: any, errorStrin
     try {
       await tasks.run()
     } catch (e: Error | any) {
-      commandDef.logger.error(`${errorString}: ${e.message}`, e)
+      commandDef.parent.logger.error(`${errorString}: ${e.message}`, e)
       throw new SoloError(`${errorString}: ${e.message}`, e)
     } finally {
       // @ts-ignore

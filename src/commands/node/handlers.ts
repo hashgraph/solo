@@ -24,13 +24,31 @@ import {
   prepareUpgradeConfigBuilder, refreshConfigBuilder, setupConfigBuilder, startConfigBuilder, stopConfigBuilder,
   updateConfigBuilder
 } from './configs.ts'
-import { constants } from '../../core/index.ts'
+import {
+  ConfigManager,
+  constants,
+  K8,
+  PlatformInstaller,
+} from '../../core/index.ts'
 import { IllegalArgumentError } from '../../core/errors.ts'
+import type {AccountManager} from "../../core/account_manager.js";
+import type {SoloLogger} from "../../core/logging.js";
+import {NodeCommand} from "./index.js";
+import {NodeCommandTasks} from "./tasks.js";
 
 export class NodeCommandHandlers {
-  /**
-     * @param {{logger: Logger, tasks: NodeCommandTasks, accountManager: AccountManager, configManager: ConfigManager, parent: NodeCommand, k8: K8, keyManager: accountManager, platformInstaller: PlatformInstaller}} opts
-     */
+  private readonly accountManager: AccountManager
+  private readonly configManager: ConfigManager
+  private readonly platformInstaller: PlatformInstaller
+  private readonly logger: SoloLogger
+  private readonly k8: K8
+  private readonly tasks: NodeCommandTasks
+
+  private getConfig: any;
+  private prepareChartPath: any;
+
+  public readonly parent: NodeCommand
+
   constructor (opts) {
     if (!opts || !opts.accountManager) throw new IllegalArgumentError('An instance of core/AccountManager is required', opts.accountManager)
     if (!opts || !opts.configManager) throw new Error('An instance of core/ConfigManager is required')
@@ -48,6 +66,7 @@ export class NodeCommandHandlers {
 
     this.getConfig = opts.parent.getConfig.bind(opts.parent)
     this.prepareChartPath = opts.parent.prepareChartPath.bind(opts.parent)
+    this.parent = opts.parent
   }
 
   /**
@@ -70,13 +89,13 @@ export class NodeCommandHandlers {
      */
   async close () {
     this.accountManager.close()
-    if (this._portForwards) {
-      for (const srv of this._portForwards) {
+    if (this.parent._portForwards) {
+      for (const srv of this.parent._portForwards) {
         await this.k8.stopPortForward(srv)
       }
     }
 
-    this._portForwards = []
+    this.parent._portForwards = []
   }
 
   /** ******** Task Lists **********/

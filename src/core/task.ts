@@ -15,7 +15,7 @@
  *
  */
 export class Task {
-  constructor (title: string, taskFunc: Function, skip = false) {
+  constructor (title: string, taskFunc: Function, skip: Function | boolean = false) {
     return {
       title,
       task: taskFunc,

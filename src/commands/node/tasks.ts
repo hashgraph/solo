@@ -20,7 +20,7 @@ import {
   ChartManager,
   type ConfigManager,
   constants,
-  type K8,
+  type K8, KeyManager,
   PlatformInstaller,
   ProfileManager,
   Task,
@@ -64,7 +64,7 @@ import * as flags from '../flags.ts'
 import { type SoloLogger } from '../../core/logging.ts'
 import { type AccountManager } from '../../core/account_manager.ts'
 import type { Listr, ListrTaskWrapper } from 'listr2'
-import { type NodeAlias, type NodeAliases } from '../../types/aliases.ts'
+import {type NodeAlias, type NodeAliases, PodName} from '../../types/aliases.ts'
 import { NodeStatusCodes, NodeStatusEnums } from '../../core/enumerations.ts'
 import * as x509 from '@peculiar/x509'
 import {NodeCommand} from "./index.js";
@@ -72,7 +72,7 @@ import {NodeCommand} from "./index.js";
 export class NodeCommandTasks {
   private readonly accountManager: AccountManager
   private readonly configManager: ConfigManager
-  private readonly keyManager: AccountManager
+  private readonly keyManager: KeyManager
   private readonly profileManager: ProfileManager
   private readonly platformInstaller: PlatformInstaller
   private readonly logger: SoloLogger
@@ -83,7 +83,7 @@ export class NodeCommandTasks {
   private readonly prepareValuesFiles: any
 
   constructor (opts: { logger: SoloLogger; accountManager: AccountManager; configManager: ConfigManager,
-    k8: K8, platformInstaller: PlatformInstaller, keyManager: AccountManager, profileManager: ProfileManager,
+    k8: K8, platformInstaller: PlatformInstaller, keyManager: KeyManager, profileManager: ProfileManager,
   chartManager: ChartManager, parent: NodeCommand}) {
     if (!opts || !opts.accountManager) throw new IllegalArgumentError('An instance of core/AccountManager is required', opts.accountManager as any)
     if (!opts || !opts.configManager) throw new Error('An instance of core/ConfigManager is required')
@@ -221,7 +221,7 @@ export class NodeCommandTasks {
           }
           await this.k8.copyTo(podName, constants.ROOT_CONTAINER, localDataLibBuildPath,
               `${constants.HEDERA_HAPI_PATH}`, filterFunction)
-          const testJsonFiles = this.configManager.getFlag(flags.appConfig).split(',')
+          const testJsonFiles: string[] = this.configManager.getFlag<string>(flags.appConfig)!.split(',')
           for (const jsonFile of testJsonFiles) {
             if (fs.existsSync(jsonFile)) {
               await this.k8.copyTo(podName, constants.ROOT_CONTAINER, jsonFile, `${constants.HEDERA_HAPI_PATH}`)
@@ -797,7 +797,7 @@ export class NodeCommandTasks {
 
   enablePortForwarding () {
     return new Task('Enable port forwarding for JVM debugger', async (ctx, task) => {
-      const podName = `network-${ctx.config.debugNodeAlias}-0`
+      const podName = `network-${ctx.config.debugNodeAlias}-0` as PodName
       this.logger.debug(`Enable port forwarding for JVM debugger on pod ${podName}`)
       await this.k8.portForward(podName, constants.JVM_DEBUG_PORT, constants.JVM_DEBUG_PORT)
     }, (ctx) => !ctx.config.debugNodeAlias)
@@ -1151,7 +1151,7 @@ export class NodeCommandTasks {
    * @param skip {(boolean|function)}
    * @returns {Task}
    */
-  updateChartWithConfigMap (title, skip = false) {
+  updateChartWithConfigMap (title, skip: Function | boolean = false) {
     return new Task(title, async (ctx, task) => {
       // Prepare parameter and update the network node chart
       const config = ctx.config
@@ -1177,11 +1177,11 @@ export class NodeCommandTasks {
       if (ctx.newNode && ctx.newNode.accountId) {
         valuesArg += ` --set "hedera.nodes[${index}].accountId=${ctx.newNode.accountId}" --set "hedera.nodes[${index}].name=${ctx.newNode.name}"`
       }
-      this.profileValuesFile = await this.profileManager.prepareValuesForNodeAdd(
+      const profileValuesFile = await this.profileManager.prepareValuesForNodeAdd(
         path.join(config.stagingDir, 'config.txt'),
         path.join(config.stagingDir, 'templates', 'application.properties'))
-      if (this.profileValuesFile) {
-        valuesArg += this.prepareValuesFiles(this.profileValuesFile)
+      if (profileValuesFile) {
+        valuesArg += this.prepareValuesFiles(profileValuesFile)
       }
 
       valuesArg = addDebugOptions(valuesArg, config.debugNodeAlias)
@@ -1217,6 +1217,7 @@ export class NodeCommandTasks {
       if (!inputDir) {
         throw new SoloError(`Path to context data not specified. Please set a value for --${flags.inputDir.name}`)
       }
+      // @ts-ignore
       const ctxData = JSON.parse(fs.readFileSync(path.join(inputDir, targetFile)))
       parser(ctx, ctxData)
     })
@@ -1389,6 +1390,7 @@ export class NodeCommandTasks {
 
       let flagsToPrompt = []
       for (let pFlag in requiredFlags) {
+        // @ts-ignore
         if (typeof argv[pFlag.name] === undefined) {
           flagsToPrompt.push(pFlag)
         }

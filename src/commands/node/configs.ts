@@ -23,6 +23,8 @@ import path from 'path'
 import fs from 'fs'
 import { validatePath } from '../../core/helpers.ts'
 import * as flags from '../flags.ts'
+import {NodeAlias, NodeAliases, PodName} from "../../types/aliases.js";
+import {NetworkNodeServices} from "../../core/network_node_services.js";
 
 export const PREPARE_UPGRADE_CONFIGS_NAME = 'prepareUpgradeConfig'
 export const DOWNLOAD_GENERATED_FILES_CONFIGS_NAME = 'downloadGeneratedFilesConfig'
@@ -206,56 +208,20 @@ export const updateConfigBuilder = async function (argv, ctx, task) {
 }
 
 export const deleteConfigBuilder = async function (argv, ctx, task) {
-    /**
-     * @typedef {Object} NodeDeleteConfigClass
-     * -- flags --
-     * @property {string} app
-     * @property {string} cacheDir
-     * @property {string} chartDirectory
-     * @property {boolean} devMode
-     * @property {string} debugNodeAlias
-     * @property {string} endpointType
-     * @property {string} soloChartVersion
-     * @property {string} localBuildPath
-     * @property {string} namespace
-     * @property {NodeAlias} nodeAlias
-     * @property {string} releaseTag
-     * -- extra args --
-     * @property {PrivateKey} adminKey
-     * @property {NodeAliases} allNodeAliases
-     * @property {string} chartPath
-     * @property {NodeAliases} existingNodeAliases
-     * @property {string} freezeAdminPrivateKey
-     * @property {string} keysDir
-     * @property {Object} nodeClient
-     * @property {Object} podNames
-     * @property {Map<String, NetworkNodeServices>} serviceMap
-     * @property {string} stagingDir
-     * @property {string} stagingKeysDir
-     * @property {PrivateKey} treasuryKey
-     * -- methods --
-     * @property {getUnusedConfigs} getUnusedConfigs
-     */
-    /**
-     * @callback getUnusedConfigs
-     * @returns {string[]}
-     */
-
-        // create a config object for subsequent steps
-    const config = /** @type {NodeDeleteConfigClass} **/ this.getConfig(DELETE_CONFIGS_NAME, argv.flags,
-            [
-                'adminKey',
-                'allNodeAliases',
-                'existingNodeAliases',
-                'freezeAdminPrivateKey',
-                'keysDir',
-                'nodeClient',
-                'podNames',
-                'serviceMap',
-                'stagingDir',
-                'stagingKeysDir',
-                'treasuryKey'
-            ])
+    // create a config object for subsequent steps
+    const config = this.getConfig(DELETE_CONFIGS_NAME, argv.flags, [
+        'adminKey',
+        'allNodeAliases',
+        'existingNodeAliases',
+        'freezeAdminPrivateKey',
+        'keysDir',
+        'nodeClient',
+        'podNames',
+        'serviceMap',
+        'stagingDir',
+        'stagingKeysDir',
+        'treasuryKey'
+    ]) as NodeDeleteConfigClass
 
     config.curDate = new Date()
     config.existingNodeAliases = []
@@ -282,73 +248,26 @@ export const deleteConfigBuilder = async function (argv, ctx, task) {
 }
 
 export const addConfigBuilder = async function (argv, ctx, task) {
-    /**
-     * @typedef {Object} NodeAddConfigClass
-     * -- flags --
-     * @property {string} app
-     * @property {string} cacheDir
-     * @property {string} chainId
-     * @property {string} chartDirectory
-     * @property {boolean} devMode
-     * @property {string} debugNodeAlias
-     * @property {string} endpointType
-     * @property {string} soloChartVersion
-     * @property {boolean} generateGossipKeys
-     * @property {boolean} generateTlsKeys
-     * @property {string} gossipEndpoints
-     * @property {string} grpcEndpoints
-     * @property {string} localBuildPath
-     * @property {string} namespace
-     * @property {NodeAlias} nodeAlias
-     * @property {string} releaseTag
-     * -- extra args --
-     * @property {PrivateKey} adminKey
-     * @property {NodeAliases} allNodeAliases
-     * @property {string} chartPath
-     * @property {Date} curDate
-     * @property {NodeAliases} existingNodeAliases
-     * @property {string} freezeAdminPrivateKey
-     * @property {string} keysDir
-     * @property {string} lastStateZipPath
-     * @property {Object} nodeClient
-     * @property {Object} podNames
-     * @property {Map<String, NetworkNodeServices>} serviceMap
-     * @property {PrivateKey} treasuryKey
-     * @property {string} stagingDir
-     * @property {string} stagingKeysDir
-     * -- methods --
-     * @property {getUnusedConfigs} getUnusedConfigs
-     */
-    /**
-     * @callback getUnusedConfigs
-     * @returns {string[]}
-     */
-
-        // create a config object for subsequent steps
-    const config = /** @type {NodeAddConfigClass} **/ this.getConfig(ADD_CONFIGS_NAME, argv.flags,
-            [
-                'allNodeAliases',
-                'chartPath',
-                'curDate',
-                'existingNodeAliases',
-                'freezeAdminPrivateKey',
-                'keysDir',
-                'lastStateZipPath',
-                'nodeClient',
-                'podNames',
-                'serviceMap',
-                'stagingDir',
-                'stagingKeysDir',
-                'treasuryKey'
-            ])
+    // create a config object for subsequent steps
+    const config = this.getConfig(ADD_CONFIGS_NAME, argv.flags, [
+        'allNodeAliases',
+        'chartPath',
+        'curDate',
+        'existingNodeAliases',
+        'freezeAdminPrivateKey',
+        'keysDir',
+        'lastStateZipPath',
+        'nodeClient',
+        'podNames',
+        'serviceMap',
+        'stagingDir',
+        'stagingKeysDir',
+        'treasuryKey'
+    ]) as NodeAddConfigClass
 
     ctx.adminKey = argv[flags.adminKey.name] ? PrivateKey.fromStringED25519(argv[flags.adminKey.name]) : PrivateKey.fromStringED25519(constants.GENESIS_KEY)
     config.curDate = new Date()
     config.existingNodeAliases = []
-
-    if (config.keyFormat !== constants.KEY_FORMAT_PEM) {
-        throw new SoloError('key type cannot be PFX')
-    }
 
     await initializeSetup(config, this.k8)
 
@@ -548,4 +467,67 @@ export const setupConfigBuilder = async function (argv, ctx, task) {
     ctx.config = config
 
     return ctx.config
+}
+
+
+export interface NodeAddConfigClass {
+    app: string
+    cacheDir: string
+    chainId: string
+    chartDirectory: string
+    devMode: boolean
+    debugNodeAlias: NodeAlias
+    endpointType: string
+    soloChartVersion: string
+    generateGossipKeys: boolean
+    generateTlsKeys: boolean
+    gossipEndpoints: string
+    grpcEndpoints: string
+    localBuildPath: string
+    namespace: string
+    nodeAlias: NodeAlias
+    releaseTag: string
+    adminKey: PrivateKey
+    allNodeAliases: NodeAliases
+    chartPath: string
+    curDate: Date
+    existingNodeAliases: NodeAliases
+    freezeAdminPrivateKey: string
+    keysDir: string
+    lastStateZipPath: string
+    nodeClient: any
+    podNames: Record<NodeAlias, PodName>
+    serviceMap: Map<string, NetworkNodeServices>
+    treasuryKey: PrivateKey
+    stagingDir: string
+    stagingKeysDir: string
+    getUnusedConfigs: () => string[]
+}
+
+export interface NodeDeleteConfigClass {
+    app: string
+    cacheDir: string
+    chartDirectory: string
+    devMode: boolean
+    debugNodeAlias: NodeAlias
+    endpointType: string
+    soloChartVersion: string
+    localBuildPath: string
+    namespace: string
+    nodeAlias: NodeAlias
+    releaseTag: string
+    adminKey: PrivateKey
+    allNodeAliases: NodeAliases
+    chartPath: string
+    existingNodeAliases: NodeAliases
+    freezeAdminPrivateKey: string
+    keysDir: string
+    nodeClient: any
+    podNames: Record<NodeAlias, PodName>
+    serviceMap: Map<string, NetworkNodeServices>
+    stagingDir: string
+    stagingKeysDir: string
+    treasuryKey: PrivateKey
+    getUnusedConfigs: () => string[]
+    curDate: Date
 }

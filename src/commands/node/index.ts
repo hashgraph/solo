@@ -17,10 +17,7 @@
 
 import { IllegalArgumentError } from '../../core/errors.ts'
 import {
-  ChartManager,
-  ConfigManager,
-  Helm,
-  K8, KeyManager,
+  KeyManager,
   PackageDownloader,
   PlatformInstaller, ProfileManager,
   YargsCommand
@@ -30,29 +27,21 @@ import { NodeCommandTasks } from './tasks.ts'
 import * as NodeFlags from './flags.ts'
 import { NodeCommandHandlers } from './handlers.ts'
 import type {AccountManager} from "../../core/account_manager.ts";
-import {SoloLogger} from "../../core/logging.js";
-import {DependencyManager} from "../../core/dependency_managers/index.js";
 
 /**
  * Defines the core functionalities of 'node' command
  */
 export class NodeCommand extends BaseCommand {
 
-  private readonly logger: SoloLogger
-  private readonly helm: Helm
-  private readonly k8: K8
-  private readonly chartManager: ChartManager
-  private readonly configManager: ConfigManager
-  private readonly depManager: DependencyManager
   private readonly downloader: PackageDownloader
   private readonly platformInstaller: PlatformInstaller
   private readonly keyManager: KeyManager
   private readonly accountManager: AccountManager
   private readonly profileManager: ProfileManager
 
-  private readonly tasks: NodeCommandTasks
-  private readonly handlers: NodeCommandHandlers
-  private _portForwards: any
+  public readonly tasks: NodeCommandTasks
+  public readonly handlers: NodeCommandHandlers
+  public _portForwards: any
 
   constructor (opts) {
     super(opts)
