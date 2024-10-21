@@ -17,15 +17,14 @@
 import { Listr } from 'listr2'
 import { SoloError, MissingArgumentError } from '../core/errors.ts'
 import * as helpers from '../core/helpers.ts'
-import type { ProfileManager } from '../core/index.ts'
+import type { ProfileManager, AccountManager } from '../core/index.ts'
 import { constants } from '../core/index.ts'
 import { BaseCommand } from './base.ts'
 import * as flags from './flags.ts'
 import * as prompts from './prompts.ts'
 import { getNodeAccountMap } from '../core/helpers.ts'
-import type { AccountManager } from '../core/account_manager.ts'
 import { type NodeAliases } from '../types/aliases.ts'
-import { type Opts } from '../types/index.js'
+import { type Opts } from '../types/index.ts'
 
 export class RelayCommand extends BaseCommand {
   private readonly profileManager: ProfileManager
@@ -158,6 +157,7 @@ export class RelayCommand extends BaseCommand {
 
   async deploy (argv: any) {
     const self = this
+    const lease = self.leaseManager.instantiateLease()
 
     interface RelayDeployConfigClass {
       chainId: string
@@ -203,6 +203,8 @@ export class RelayCommand extends BaseCommand {
           ctx.config.isChartInstalled = await self.chartManager.isChartInstalled(ctx.config.namespace, ctx.config.releaseName)
 
           self.logger.debug('Initialized config', { config: ctx.config })
+
+          return lease.buildAcquireTask(task)
         }
       },
       {
@@ -262,6 +264,8 @@ export class RelayCommand extends BaseCommand {
       await tasks.run()
     } catch (e: Error | any) {
       throw new SoloError('Error installing relays', e)
+    } finally {
+      await lease.release()
     }
 
     return true
@@ -269,6 +273,7 @@ export class RelayCommand extends BaseCommand {
 
   async destroy (argv: any) {
     const self = this
+    const lease = self.leaseManager.instantiateLease()
 
     interface RelayDestroyConfigClass {
       chartDirectory: string
@@ -303,6 +308,8 @@ export class RelayCommand extends BaseCommand {
           ctx.config.isChartInstalled = await this.chartManager.isChartInstalled(ctx.config.namespace, ctx.config.releaseName)
 
           self.logger.debug('Initialized config', { config: ctx.config })
+
+          return lease.buildAcquireTask(task)
         }
       },
       {
@@ -329,6 +336,8 @@ export class RelayCommand extends BaseCommand {
       await tasks.run()
     } catch (e: Error | any) {
       throw new SoloError('Error uninstalling relays', e)
+    } finally {
+      await lease.release()
     }
 
     return true

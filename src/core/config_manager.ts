@@ -24,7 +24,7 @@ import * as helpers from './helpers.ts'
 import * as yaml from 'js-yaml'
 import { yamlToObject } from './helpers.ts'
 import type * as yargs from 'yargs'
-import { type CommandFlag } from '../types/index.js'
+import { type CommandFlag } from '../types/index.ts'
 
 /**
  * ConfigManager cache command flag values so that user doesn't need to enter the same values repeatedly.

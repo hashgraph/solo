@@ -18,12 +18,11 @@ import type * as x509 from '@peculiar/x509'
 import type net from 'net'
 import type * as WebSocket from 'ws'
 import type crypto from 'crypto'
-import type { SoloLogger } from '../core/logging.js'
+import type { SoloLogger } from '../core/logging.ts'
 import type {
-  ChartManager, ConfigManager, Helm, K8, KeyManager, PackageDownloader, PlatformInstaller, ProfileManager
-} from '../core/index.js'
-import type { DependencyManager } from '../core/dependency_managers/index.js'
-import type { AccountManager } from '../core/account_manager.js'
+  ChartManager, ConfigManager, Helm, K8, KeyManager, PackageDownloader, PlatformInstaller,
+  ProfileManager, DependencyManager, AccountManager, LeaseManager
+} from '../core/index.ts'
 
 export type NodeKeyObject = {
   privateKey: crypto.webcrypto.CryptoKey
@@ -79,4 +78,5 @@ export interface Opts {
   keyManager: KeyManager
   accountManager: AccountManager
   profileManager: ProfileManager
+  leaseManager: LeaseManager
 }

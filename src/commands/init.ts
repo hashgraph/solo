@@ -58,6 +58,7 @@ export class InitCommand extends BaseCommand {
   /** Executes the init CLI command */
   async init (argv: any) {
     const self = this
+
     let cacheDir: string = <string>this.configManager.getFlag<string>(flags.cacheDir)
     if (!cacheDir) {
       cacheDir = constants.SOLO_CACHE_DIR as string

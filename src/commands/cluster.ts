@@ -85,15 +85,14 @@ export class ClusterCommand extends BaseCommand {
             flags.deployPrometheusStack
           ])
 
-          // prepare config
           ctx.config = {
-            chartDir: <string>self.configManager.getFlag<string>(flags.chartDirectory),
-            clusterSetupNamespace: <string>self.configManager.getFlag<string>(flags.clusterSetupNamespace),
-            deployCertManager: <boolean>self.configManager.getFlag<boolean>(flags.deployCertManager),
-            deployCertManagerCrds: <boolean>self.configManager.getFlag<boolean>(flags.deployCertManagerCrds),
-            deployMinio: <boolean>self.configManager.getFlag<boolean>(flags.deployMinio),
-            deployPrometheusStack: <boolean>self.configManager.getFlag<boolean>(flags.deployPrometheusStack),
-            soloChartVersion: <string>self.configManager.getFlag<string>(flags.soloChartVersion)
+            chartDir: self.configManager.getFlag<string>(flags.chartDirectory)!,
+            clusterSetupNamespace: self.configManager.getFlag<string>(flags.clusterSetupNamespace)!,
+            deployCertManager: self.configManager.getFlag<boolean>(flags.deployCertManager)!,
+            deployCertManagerCrds: self.configManager.getFlag<boolean>(flags.deployCertManagerCrds)!,
+            deployMinio: self.configManager.getFlag<boolean>(flags.deployMinio)!,
+            deployPrometheusStack: self.configManager.getFlag<boolean>(flags.deployPrometheusStack)!,
+            soloChartVersion: self.configManager.getFlag<string>(flags.soloChartVersion)!,
           }
 
           self.logger.debug('Prepare ctx.config', { config: ctx.config, argv })
@@ -160,6 +159,7 @@ export class ClusterCommand extends BaseCommand {
 
   async reset (argv: any) {
     const self = this
+    const lease = self.leaseManager.instantiateLease()
 
     interface Context {
       config: {
@@ -195,6 +195,8 @@ export class ClusterCommand extends BaseCommand {
           if (!ctx.isChartInstalled) {
             throw new SoloError('No chart found for the cluster')
           }
+
+          return lease.buildAcquireTask(task)
         }
       },
       {
@@ -217,6 +219,8 @@ export class ClusterCommand extends BaseCommand {
       await tasks.run()
     } catch (e: Error | any) {
       throw new SoloError('Error on cluster reset', e)
+    } finally {
+      await lease.release()
     }
 
     return true
@@ -350,7 +354,7 @@ export class ClusterCommand extends BaseCommand {
    * Prepare chart path
    * @param [chartDir] - local charts directory (default is empty)
    */
-  async prepareChartPath (chartDir = <string>flags.chartDirectory.definition.defaultValue) {
+  async prepareChartPath (chartDir = flags.chartDirectory.definition.defaultValue as string) {
     let chartPath = 'solo-charts/solo-cluster-setup'
     if (chartDir) {
       chartPath = path.join(chartDir, 'solo-cluster-setup')

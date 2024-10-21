@@ -23,11 +23,7 @@ import {
   DependencyManager
 } from '../../../src/core/dependency_managers/index.ts'
 import {
-  ChartManager,
-  ConfigManager, constants,
-  Helm,
-  KeyManager,
-  logging, PackageDownloader, Zippy
+  ChartManager, ConfigManager, constants, Helm, KeyManager, LeaseManager, logging, PackageDownloader, Zippy
 } from '../../../src/core/index.ts'
 import { getK8Instance } from '../../test_util.ts'
 import { SECONDS } from '../../../src/core/constants.ts'
@@ -49,10 +45,11 @@ describe('InitCommand', () => {
   const keyManager = new KeyManager(testLogger)
 
   const k8 = getK8Instance(configManager)
+  const leaseManager = new LeaseManager(k8, testLogger, configManager)
 
   // @ts-ignore
   const initCmd = new InitCommand({
-    logger: testLogger, helm, k8, chartManager, configManager, depManager, keyManager
+    logger: testLogger, helm, k8, chartManager, configManager, depManager, keyManager, leaseManager
   })
 
   describe('commands', () => {

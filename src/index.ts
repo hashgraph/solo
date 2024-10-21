@@ -21,20 +21,14 @@ import { flags } from './commands/index.ts'
 import * as commands from './commands/index.ts'
 import { HelmDependencyManager, DependencyManager } from './core/dependency_managers/index.ts'
 import {
-  ChartManager,
-  ConfigManager,
-  PackageDownloader,
-  PlatformInstaller,
-  Helm,
-  logging,
-  KeyManager, Zippy, constants, ProfileManager
+  ChartManager, ConfigManager, PackageDownloader, PlatformInstaller, Helm, logging,
+  KeyManager, Zippy, constants, ProfileManager, AccountManager, LeaseManager
 } from './core/index.ts'
 import 'dotenv/config'
 import { K8 } from './core/k8.ts'
-import { AccountManager } from './core/account_manager.ts'
 import { ListrLogger } from 'listr2'
 import { CustomProcessOutput } from './core/process_output.ts'
-import { type Opts } from './types/index.js'
+import { type Opts } from './types/index.ts'
 
 export function main (argv: any) {
   const logger = logging.NewLogger('debug')
@@ -57,6 +51,7 @@ export function main (argv: any) {
     const platformInstaller = new PlatformInstaller(logger, k8, configManager)
     const keyManager = new KeyManager(logger)
     const profileManager = new ProfileManager(logger, configManager)
+    const leaseManager = new LeaseManager(k8, logger, configManager)
 
     // set cluster and namespace in the global configManager from kubernetes context
     // so that we don't need to prompt the user
@@ -75,7 +70,8 @@ export function main (argv: any) {
       depManager,
       keyManager,
       accountManager,
-      profileManager
+      profileManager,
+      leaseManager
     }
 
     const processArguments = (argv: any, yargs: any) => {
