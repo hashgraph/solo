@@ -19,7 +19,7 @@ import { flags } from '../commands/index.ts'
 import type { ConfigManager } from './config_manager.ts'
 import type { K8 } from './k8.ts'
 import type { SoloLogger } from './logging.ts'
-import { LEASE_RENEW_TIMEOUT, LEASE_TAKEN_TIMEOUT, MAX_LEASE_ACQUIRE_RETRIES, OS_USERNAME } from './constants.ts'
+import { LEASE_RENEW_TIMEOUT, LEASE_AQUIRE_RETRY_TIMEOUT, MAX_LEASE_ACQUIRE_ATTEMPTS, OS_USERNAME } from './constants.ts'
 import type { ListrTaskWrapper } from 'listr2'
 import chalk from 'chalk'
 import { sleep } from './helpers.js'
@@ -45,12 +45,9 @@ export class LeaseManager {
 
     //? In case namespace isn't yet created return an empty callback function
     if (!namespace) {
-      task.title = `${title} ${chalk.cyan('[ namespace not initialized yet skipping lease acquire ]')}`
+      task.title = `${title} - ${chalk.gray('namespace not created, skipping lease acquire')}`
 
-      return {
-        releaseLease: async () => {
-        }
-      }
+      return { releaseLease: async () => {} }
     }
 
     const username = OS_USERNAME
@@ -94,57 +91,49 @@ export class LeaseManager {
     namespace: string,
     task: ListrTaskWrapper<any, any, any>,
     title: string,
-    retries = 0,
-    maxRetries = MAX_LEASE_ACQUIRE_RETRIES,
+    attempt = 1,
+    maxAttempts = MAX_LEASE_ACQUIRE_ATTEMPTS,
   ): Promise<void> {
     let exists = false
+
     try {
       const lease = await this.k8.readNamespacedLease(leaseName, namespace)
 
       exists = !!lease
     } catch (error) {
-      // TODO
-      //? In case the lease is already acquired retry after cooldown
-      if (error.meta.statusCode === 403) {
-        retries++
-
-        if (retries === maxRetries) {
-          task.title = `${title} - attempt: ${chalk.red(`${maxRetries}/${retries}`)}`
-
-          throw new SoloError(`Failed to acquire lease, max retries reached ${retries}`)
-        }
-
-        this.logger.info(`Lease is already taken retrying in ${LEASE_TAKEN_TIMEOUT}`)
-
-        await sleep(LEASE_TAKEN_TIMEOUT)
-
-        return this.acquireLeaseOrRetry(username, leaseName, namespace, task, title, retries)
-      }
-
       if (error.meta.statusCode !== 404) {
+        task.title = `${title} - ${chalk.red(`failed to acquire lease, unexpected server response ${error.meta.statusCode}!`)}` +
+          `, attempt: ${chalk.cyan(attempt.toString())}/${chalk.cyan(maxAttempts.toString())}`
+
         throw new SoloError(`Failed to acquire lease: ${error.message}`)
       }
     }
 
-    // TODO
     //? In case the lease is already acquired retry after cooldown
     if (exists) {
-      retries++
+      attempt++
 
-      if (retries === maxRetries) {
-        task.title = `${title} - attempt: ${chalk.red(`${maxRetries}/${retries}`)}`
+      if (attempt === maxAttempts) {
+        task.title = `${title} - ${chalk.red('failed to acquire lease, max attempts reached!')}` +
+          `, attempt: ${chalk.cyan(attempt.toString())}/${chalk.cyan(maxAttempts.toString())}`
 
-        throw new SoloError(`Failed to acquire lease, max retries reached ${retries}`)
+        throw new SoloError(`Failed to acquire lease, max attempt reached ${attempt}`)
       }
 
-      this.logger.info(`Lease is already taken retrying in ${LEASE_TAKEN_TIMEOUT}`)
+      this.logger.info(`Lease is already taken retrying in ${LEASE_AQUIRE_RETRY_TIMEOUT}`)
 
-      await sleep(LEASE_TAKEN_TIMEOUT)
+      task.title = `${title} - ${chalk.gray(`lease exists, attempting again in ${LEASE_AQUIRE_RETRY_TIMEOUT} seconds`)}` +
+        `, attempt: ${chalk.cyan(attempt.toString())}/${chalk.cyan(maxAttempts.toString())}`
 
-      return this.acquireLeaseOrRetry(username, leaseName, namespace, task, title, retries)
+      await sleep(LEASE_AQUIRE_RETRY_TIMEOUT)
+
+      return this.acquireLeaseOrRetry(username, leaseName, namespace, task, title, attempt)
     }
 
     await this.k8.createNamespacedLease(namespace, leaseName, username)
+
+    task.title = `${title} - ${chalk.green('lease acquired successfully')}` +
+      `, attempt: ${chalk.cyan(attempt.toString())}/${chalk.cyan(maxAttempts.toString())}`
   }
 
   private async getNamespace () {

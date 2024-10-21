@@ -167,6 +167,6 @@ export const JVM_DEBUG_PORT = 5005
 export const SECONDS = 1000
 export const MINUTES = 60 * SECONDS
 
-export const LEASE_TAKEN_TIMEOUT = 20 * SECONDS
-export const MAX_LEASE_ACQUIRE_RETRIES = 10
+export const LEASE_AQUIRE_RETRY_TIMEOUT = 20 * SECONDS
+export const MAX_LEASE_ACQUIRE_ATTEMPTS = 10
 export const LEASE_RENEW_TIMEOUT = 10 * SECONDS
