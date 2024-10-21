@@ -23,7 +23,6 @@ import * as fs from 'fs'
 import * as path from 'path'
 import * as os from 'os'
 import { IllegalArgumentError, MissingArgumentError } from '../../../src/core/errors.ts'
-import { AccountManager } from '../../../src/core/account_manager.ts'
 import { getK8Instance } from '../../test_util.ts'
 import type { PodName } from '../../../src/types/aliases.ts'
 
@@ -33,7 +32,6 @@ describe('PackageInstaller', () => {
 
   const k8 = getK8Instance(configManager)
 
-  const accountManager = new AccountManager(testLogger, k8)
   const installer = new PlatformInstaller(testLogger, k8, configManager)
 
   describe('validatePlatformReleaseDir', () => {

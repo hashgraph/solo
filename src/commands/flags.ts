@@ -48,7 +48,7 @@ export const clusterName: CommandFlag = {
   name: 'cluster-name',
   definition: {
     describe: 'Cluster name',
-    defaultValue: '',
+    defaultValue: 'solo-cluster-setup',
     alias: 'c',
     type: 'string'
   }

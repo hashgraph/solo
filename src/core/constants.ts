@@ -17,22 +17,18 @@
 
 import { AccountId, FileId } from '@hashgraph/sdk'
 import { color, type ListrLogger, PRESET_TIMER } from 'listr2'
-import path, { dirname, normalize } from 'path'
-import { fileURLToPath } from 'url'
+import path, { normalize } from 'path'
 
 export const ROOT_DIR = process.cwd()
 
 // -------------------- solo related constants ---------------------------------------------------------------------
-export const CUR_FILE_DIR = dirname(fileURLToPath(import.meta.url))
 export const SOLO_HOME_DIR = process.env.SOLO_HOME || path.join(process.env.HOME as string, '.solo')
 export const SOLO_LOGS_DIR = path.join(SOLO_HOME_DIR, 'logs')
 export const SOLO_CACHE_DIR = path.join(SOLO_HOME_DIR, 'cache')
 export const SOLO_VALUES_DIR = path.join(SOLO_CACHE_DIR, 'values-files')
 export const DEFAULT_NAMESPACE = 'default'
 export const HELM = 'helm'
-export const SOLO_CONFIG_FILE = path.join(SOLO_HOME_DIR, 'solo.yaml')
 export const RESOURCES_DIR = normalize(path.join(ROOT_DIR, 'resources'))
-export const TEMP_DIR = normalize(path.join(ROOT_DIR, 'temp'))
 
 export const ROOT_CONTAINER = 'root-container'
 
@@ -73,17 +69,12 @@ export const OPERATOR_KEY = process.env.SOLO_OPERATOR_KEY || '302e02010030050603
 export const OPERATOR_PUBLIC_KEY = process.env.SOLO_OPERATOR_PUBLIC_KEY || '302a300506032b65700321000aa8e21064c61eab86e2a9c164565b4e7a9a4146106e0a6cd03a8c395a110e92'
 export const FREEZE_ADMIN_ACCOUNT = process.env.FREEZE_ADMIN_ACCOUNT || `${HEDERA_NODE_ACCOUNT_ID_START.realm}.${HEDERA_NODE_ACCOUNT_ID_START.shard}.58`
 export const TREASURY_ACCOUNT_ID = `${HEDERA_NODE_ACCOUNT_ID_START.realm}.${HEDERA_NODE_ACCOUNT_ID_START.shard}.2`
-export const COUNCIL_ACCOUNT_ID = `${HEDERA_NODE_ACCOUNT_ID_START.realm}.${HEDERA_NODE_ACCOUNT_ID_START.shard}.55`
 export const GENESIS_KEY = process.env.GENESIS_KEY || '302e020100300506032b65700422042091132178e72057a1d7528025956fe39b0b847f200ab59b2fdd367017f3087137'
 export const SYSTEM_ACCOUNTS = [[3, 100], [200, 349], [400, 750], [900, 1000]] // do account 0.0.2 last and outside the loop
 export const SHORTER_SYSTEM_ACCOUNTS = [[3, 60]]
 export const TREASURY_ACCOUNT = 2
 export const LOCAL_NODE_START_PORT = +process.env.LOCAL_NODE_START_PORT || 30212
-export const LOCAL_NODE_PROXY_START_PORT = +process.env.LOCAL_NODE_PROXY_START_PORT || 30313
 export const ACCOUNT_UPDATE_BATCH_SIZE = +process.env.ACCOUNT_UPDATE_BATCH_SIZE || 10
-
-export const NODE_PROXY_USER_ID = process.env.NODE_PROXY_USER_ID || 'admin'
-export const NODE_PROXY_PASSWORD = process.env.NODE_PROXY_PASSWORD || 'adminpwd'
 
 export const POD_PHASE_RUNNING = 'Running'
 
@@ -93,7 +84,6 @@ export const POD_CONDITION_READY = 'Ready'
 export const POD_CONDITION_POD_SCHEDULED = 'PodScheduled'
 export const POD_CONDITION_STATUS_TRUE = 'True'
 
-export const K8_COPY_FROM_RETRY_TIMES = +process.env.K8_COPY_FROM_RETRY_TIMES || 5
 /**
  * Listr related
  * @return a object that defines the default color options
@@ -124,13 +114,11 @@ export const LISTR_DEFAULT_RENDERER_OPTION = {
 }
 
 export const SIGNING_KEY_PREFIX = 's'
-export const ENCRYPTION_KEY_PREFIX = 'e'
 export const CERTIFICATE_VALIDITY_YEARS = 100 // years
 
 export const OS_WINDOWS = 'windows'
 export const OS_WIN32 = 'win32'
 export const OS_DARWIN = 'darwin'
-export const OS_MAC = 'mac'
 export const OS_LINUX = 'linux'
 
 export const LOCAL_HOST = '127.0.0.1'
