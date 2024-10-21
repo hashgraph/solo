@@ -1164,36 +1164,51 @@ export class K8 {
     spec.acquireTime = new k8s.V1MicroTime()
     lease.spec = spec
 
-    const { response, body } = await this.coordinationApiClient.createNamespacedLease(namespace, lease).catch(e => e)
+    const { response, body } = await this.coordinationApiClient.createNamespacedLease(namespace, lease)
+      .catch(e => e)
+
     this._handleKubernetesClientError(response, body, 'Failed to create namespaced lease')
-    return body
+
+    return body as k8s.V1Lease
   }
 
   async readNamespacedLease (leaseName: string, namespace: string) {
-    const { response, body } = await this.coordinationApiClient.readNamespacedLease(leaseName, namespace).catch(e => e)
+    const { response, body } = await this.coordinationApiClient.readNamespacedLease(leaseName, namespace)
+      .catch(e => e)
+
     this._handleKubernetesClientError(response, body, 'Failed to read namespaced lease')
-    return body
+
+    return body as k8s.V1Lease
   }
 
   async renewNamespaceLease (leaseName: string, namespace: string, lease: k8s.V1Lease) {
     lease.spec.renewTime = new k8s.V1MicroTime()
 
-    const { response, body } = await this.coordinationApiClient.replaceNamespacedLease(leaseName, namespace, lease).catch(e => e)
+    const { response, body } = await this.coordinationApiClient.replaceNamespacedLease(leaseName, namespace, lease)
+      .catch(e => e)
+
     this._handleKubernetesClientError(response, body, 'Failed to renew namespaced lease')
-    return body
+
+    return body as k8s.V1Lease
   }
 
   async deleteNamespacedLease (name: string, namespace: string) {
-    const { response, body } = await this.coordinationApiClient.deleteNamespacedLease(name, namespace).catch(e => e)
+    const { response, body } = await this.coordinationApiClient.deleteNamespacedLease(name, namespace)
+      .catch(e => e)
+
     this._handleKubernetesClientError(response, body, 'Failed to delete namespaced lease')
-    return body
+
+    return body as k8s.V1Status
   }
 
   private _handleKubernetesClientError (response: http.IncomingMessage, error: Error | any, errorMessage: string) {
-    if (response.statusCode <= 202) return
+    const statusCode = +response.statusCode
+
+    if (statusCode <= 202) return
     errorMessage += `, statusCode: ${response.statusCode}`
     this.logger.error(errorMessage, error)
-    throw new SoloError(errorMessage, errorMessage)
+
+    throw new SoloError(errorMessage, errorMessage, { statusCode: statusCode })
   }
 
 

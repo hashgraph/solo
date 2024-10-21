@@ -19,8 +19,7 @@ import { flags } from '../commands/index.ts'
 import type { ConfigManager } from './config_manager.ts'
 import type { K8 } from './k8.ts'
 import type { SoloLogger } from './logging.ts'
-import * as constants from './constants.ts'
-import { LEASE_RENEW_TIMEOUT, MAX_LEASE_ACQUIRE_RETRIES, SECONDS } from './constants.ts'
+import { LEASE_RENEW_TIMEOUT, LEASE_TAKEN_TIMEOUT, MAX_LEASE_ACQUIRE_RETRIES, OS_USERNAME } from './constants.ts'
 
 export class LeaseManager {
   constructor (
@@ -38,7 +37,7 @@ export class LeaseManager {
    *
    * @returns a callback function that releases the lease
    */
-  async acquireLease (retries = 0): Promise<{ releaseLease: () => Promise<void> }> {
+  async acquireLease (): Promise<{ releaseLease: () => Promise<void> }> {
     const namespace = await this.getNamespace()
 
     //? In case namespace isn't yet created return an empty callback function
@@ -46,13 +45,13 @@ export class LeaseManager {
       return { releaseLease: async () => {} }
     }
 
-    const username = constants.OS_USERNAME
+    const username = OS_USERNAME
     const leaseName = `${username}-lease`
 
     await this.acquireLeaseOrRetry(username, leaseName, namespace)
 
     //? Renew lease with the callback
-    const intervalId = setInterval(this.renewLeaseCallback, constants.LEASE_RENEW_TIMEOUT, leaseName, namespace)
+    const intervalId = setInterval(this.renewLeaseCallback, LEASE_RENEW_TIMEOUT, leaseName, namespace)
 
     const releaseLeaseCallback = async () => {
       //? Stop renewing the lease once release callback is called
@@ -72,6 +71,7 @@ export class LeaseManager {
 
   private async renewLeaseCallback (leaseName: string, namespace: string) {
     try {
+      //? Get the latest most up-to-date lease to renew it
       const lease = await this.k8.readNamespacedLease(leaseName, namespace)
 
       await this.k8.renewNamespaceLease(leaseName, namespace, lease)
@@ -85,18 +85,18 @@ export class LeaseManager {
       await this.k8.readNamespacedLease(leaseName, namespace)
     } catch (error) {
       //? In case the lease is already acquired retry after cooldown
-      if (error.message.includes('403')) {
-        this.logger.info(`Lease is already taken retrying in ${constants.LEASE_TAKEN_TIMEOUT}`)
+      if (error.meta.statusCode === 403) {
+        this.logger.info(`Lease is already taken retrying in ${LEASE_TAKEN_TIMEOUT}`)
         retries++
 
         if (retries === MAX_LEASE_ACQUIRE_RETRIES) {
-          throw new SoloError(`Max retries reached ${retries}. Failed to acquire lease`)
+          throw new SoloError(`Failed to acquire lease, max retries reached ${retries}`)
         }
 
         return this.acquireLeaseOrRetry(username, leaseName, namespace, retries)
       }
 
-      if (!error.message.includes('404')) {
+      if (error.meta.statusCode !== 404) {
         throw new SoloError(`Failed to acquire lease: ${error.message}`)
       }
 
