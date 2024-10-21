@@ -1389,7 +1389,7 @@ export class NodeCommandTasks {
       prompts.disablePrompts([...requiredFlagsWithDisabledPrompt, ...optionalFlags])
 
       const flagsToPrompt = []
-      for (const pFlag in requiredFlags) {
+      for (const pFlag of requiredFlags) {
         // @ts-ignore
         if (typeof argv[pFlag.name] === 'undefined') {
           flagsToPrompt.push(pFlag)
