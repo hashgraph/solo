@@ -106,6 +106,7 @@
     "eslint-plugin-mocha": "^10.5.0",
     "eslint-plugin-n": "^17.11.1",
     "eslint-plugin-promise": "^7.1.0",
+    "eslint-plugin-tsdoc": "^0.3.0",
     "globals": "^15.11.0",
     "jest-mock": "^29.7.0",
     "mocha": "^10.7.3",
@@ -120,6 +121,7 @@
     "remark-preset-lint-recommended": "^7.0.0",
     "sinon": "^19.0.2",
     "sinon-chai": "^4.0.0",
+    "typedoc": "^0.26.10",
     "typescript": "^5.6.3",
     "typescript-eslint": "^8.10.0"
   },

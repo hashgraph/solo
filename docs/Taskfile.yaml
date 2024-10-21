@@ -47,7 +47,7 @@ tasks:
 
   build:
     cmds:
-      - task: "build:jsdoc"
+      - task: "build:typedoc"
       - task: "build:copy"
       - task: "build:hugo"
 
@@ -63,9 +63,9 @@ tasks:
       - hugo config
       - hugo --gc --config hugo.toml --minify --baseURL "$HUGO_BASE_URL/"
 
-  build:jsdoc:
+  build:typedoc:
     cmds:
-      - jsdoc -c jsdoc.conf.json
+      - typedoc --out ./content/Classes ../src
 
   build:copy:
     cmds:
@@ -77,7 +77,7 @@ tasks:
   install:
     cmds:
       - task: "install:hugo"
-      - task: "install:jsdoc"
+      - task: "install:typedoc"
 
   install:hugo:
     status:
@@ -85,9 +85,9 @@ tasks:
     cmds:
       - go install github.com/gohugoio/hugo@v0.124.1
 
-  install:jsdoc:
+  install:typedoc:
     status:
-      - command -v jsdoc
+      - command -v typedoc
     cmds:
-      - npm i -g jsdoc
-      - jsdoc --version
+      - npm i -g typedoc
+      - typedoc --version

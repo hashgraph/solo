@@ -18,6 +18,7 @@ import globals from "globals";
 import pluginJs from "@eslint/js";
 import tseslint from "typescript-eslint";
 import headers from 'eslint-plugin-headers'
+import tsdoc from "eslint-plugin-tsdoc"
 
 export default [
   pluginJs.configs.recommended,
@@ -30,7 +31,8 @@ export default [
   {
     files: ['test/**/*.ts', 'src/**/*.ts'],
     plugins: {
-      headers: headers
+      headers: headers,
+      tsdoc: tsdoc,
     },
     languageOptions: {
       globals: {
@@ -41,6 +43,7 @@ export default [
       sourceType: 'module'
     },
     rules: {
+      'tsdoc/syntax':'warn',
       'no-template-curly-in-string': 'off',
       'headers/header-format': ['error', {
         source: 'string',
