@@ -23,7 +23,6 @@ import * as fs from 'fs'
 import { SoloError } from '../core/errors.ts'
 import * as flags from './flags.ts'
 import chalk from 'chalk'
-import { LeaseWrapper } from '../core/lease_wrapper.js'
 
 /**
  * Defines the core functionalities of 'init' command

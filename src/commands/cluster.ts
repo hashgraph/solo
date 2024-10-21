@@ -23,7 +23,6 @@ import chalk from 'chalk'
 import { constants } from '../core/index.ts'
 import * as prompts from './prompts.ts'
 import path from 'path'
-import { LeaseWrapper } from '../core/lease_wrapper.js'
 
 /**
  * Define the core functionalities of 'cluster' command
@@ -160,7 +159,7 @@ export class ClusterCommand extends BaseCommand {
 
   async reset (argv: any) {
     const self = this
-    const lease = new LeaseWrapper(self.leaseManager)
+    const lease = self.leaseManager.instantiateLease()
 
     interface Context {
       config: {

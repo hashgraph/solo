@@ -24,7 +24,6 @@ import * as prompts from './prompts.ts'
 import { getFileContents, getEnvValue } from '../core/helpers.ts'
 import { type PodName } from '../types/aliases.ts'
 import { type Opts } from '../types/index.ts'
-import { LeaseWrapper } from '../core/lease_wrapper.js'
 
 export class MirrorNodeCommand extends BaseCommand {
   private readonly accountManager: AccountManager
@@ -119,7 +118,7 @@ export class MirrorNodeCommand extends BaseCommand {
 
   async deploy (argv: any) {
     const self = this
-    const lease = new LeaseWrapper(self.leaseManager)
+    const lease = self.leaseManager.instantiateLease()
 
     interface MirrorNodeDeployConfigClass {
       chartDirectory: string
@@ -332,7 +331,7 @@ export class MirrorNodeCommand extends BaseCommand {
 
   async destroy (argv: any) {
     const self = this
-    const lease = new LeaseWrapper(self.leaseManager)
+    const lease = self.leaseManager.instantiateLease()
 
     interface Context {
       config: {

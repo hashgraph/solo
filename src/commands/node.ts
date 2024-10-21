@@ -36,7 +36,8 @@ import {
 import {
   constants,
   Templates,
-  YargsCommand
+  YargsCommand,
+  type AccountManager
 } from '../core/index.ts'
 import { BaseCommand } from './base.ts'
 import * as flags from './flags.ts'
@@ -64,11 +65,10 @@ import { NodeStatusCodes, NodeStatusEnums } from '../core/enumerations.ts'
 import { NodeCommandTasks } from './node/tasks.ts'
 import { downloadGeneratedFilesConfigBuilder, prepareUpgradeConfigBuilder } from './node/configs.ts'
 
-import { type NetworkNodeServices } from '../core/network_node_services.ts'
-import { type AccountManager } from '../core/account_manager.ts'
-import { type NodeAlias, type NodeAliases, type PodName } from '../types/aliases.ts'
-import { type ExtendedNetServer, type Opts } from '../types/index.ts'
-import { LeaseWrapper } from '../core/lease_wrapper.js'
+import type { NetworkNodeServices } from '../core/network_node_services.ts'
+import type { NodeAlias, NodeAliases, PodName } from '../types/aliases.ts'
+import type { ExtendedNetServer, Opts } from '../types/index.ts'
+import type { LeaseWrapper } from '../core/lease_wrapper.js'
 
 export interface NodeAddConfigClass {
   app: string
@@ -868,7 +868,7 @@ export class NodeCommand extends BaseCommand {
   // List of Commands
   async setup (argv: any) {
     const self = this
-    const lease = new LeaseWrapper(self.leaseManager)
+    const lease = self.leaseManager.instantiateLease()
 
     interface NodeSetupConfigClass {
       app: string
@@ -953,7 +953,7 @@ export class NodeCommand extends BaseCommand {
 
   async start (argv: any) {
     const self = this
-    const lease = new LeaseWrapper(self.leaseManager)
+    const lease = self.leaseManager.instantiateLease()
 
     interface Context {
       config: {
@@ -1069,7 +1069,7 @@ export class NodeCommand extends BaseCommand {
 
   async stop (argv: any) {
     const self = this
-    const lease = new LeaseWrapper(self.leaseManager)
+    const lease = self.leaseManager.instantiateLease()
 
     interface Context {
       config : {
@@ -1243,7 +1243,7 @@ export class NodeCommand extends BaseCommand {
 
   async refresh (argv: any) {
     const self = this
-    const lease = new LeaseWrapper(self.leaseManager)
+    const lease = self.leaseManager.instantiateLease()
 
     interface NodeRefreshConfigClass {
       app: string
@@ -1872,7 +1872,7 @@ export class NodeCommand extends BaseCommand {
 
   async addPrepare (argv: any) {
     const self = this
-    const lease = new LeaseWrapper(self.leaseManager)
+    const lease = self.leaseManager.instantiateLease()
 
     const prepareTasks = this.getAddPrepareTasks(argv, lease)
     const tasks = new Listr([
@@ -1900,7 +1900,7 @@ export class NodeCommand extends BaseCommand {
 
   async addSubmitTransactions (argv: any) {
     const self = this
-    const lease = new LeaseWrapper(self.leaseManager)
+    const lease = self.leaseManager.instantiateLease()
 
     const transactionTasks = this.getAddTransactionTasks(argv)
     const tasks = new Listr([
@@ -1928,7 +1928,7 @@ export class NodeCommand extends BaseCommand {
 
   async addExecute (argv: any) {
     const self = this
-    const lease = new LeaseWrapper(self.leaseManager)
+    const lease = self.leaseManager.instantiateLease()
 
     const executeTasks = this.getAddExecuteTasks(argv)
     // @ts-ignore
@@ -1959,7 +1959,7 @@ export class NodeCommand extends BaseCommand {
 
   async add (argv: any) {
     const self = this
-    const lease = new LeaseWrapper(self.leaseManager)
+    const lease = self.leaseManager.instantiateLease()
 
     const prepareTasks = this.getAddPrepareTasks(argv, lease)
     const transactionTasks = this.getAddTransactionTasks(argv)
@@ -2339,7 +2339,7 @@ export class NodeCommand extends BaseCommand {
 
   async update (argv: any) {
     const self = this
-    const lease = new LeaseWrapper(self.leaseManager)
+    const lease = self.leaseManager.instantiateLease()
 
     interface NodeUpdateConfigClass {
       app: string
@@ -2947,7 +2947,7 @@ export class NodeCommand extends BaseCommand {
 
   async deletePrepare (argv: any) {
     const self = this
-    const lease = new LeaseWrapper(self.leaseManager)
+    const lease = self.leaseManager.instantiateLease()
 
     const tasks = new Listr([
       // @ts-ignore
@@ -2974,7 +2974,7 @@ export class NodeCommand extends BaseCommand {
 
   async deleteExecute (argv: any) {
     const self = this
-    const lease = new LeaseWrapper(self.leaseManager)
+    const lease = self.leaseManager.instantiateLease()
 
     const tasks = new Listr([
       self.deleteInitializeTask(argv, lease),
@@ -3001,7 +3001,7 @@ export class NodeCommand extends BaseCommand {
 
   async deleteSubmitTransactions (argv: any) {
     const self = this
-    const lease = new LeaseWrapper(self.leaseManager)
+    const lease = self.leaseManager.instantiateLease()
 
     const tasks = new Listr([
       self.deleteInitializeTask(argv, lease),
@@ -3028,7 +3028,7 @@ export class NodeCommand extends BaseCommand {
 
   async delete (argv: any) {
     const self = this
-    const lease = new LeaseWrapper(self.leaseManager)
+    const lease = self.leaseManager.instantiateLease()
 
     // @ts-ignore
     const tasks = new Listr([

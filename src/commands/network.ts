@@ -30,7 +30,6 @@ import { addDebugOptions, validatePath } from '../core/helpers.ts'
 import fs from 'fs'
 import { type NodeAlias, type NodeAliases } from '../types/aliases.ts'
 import { type Opts } from '../types/index.ts'
-import { LeaseWrapper } from '../core/lease_wrapper.js'
 
 export type NetworkDeployConfigClass = {
   applicationEnv: string
@@ -218,7 +217,7 @@ export class NetworkCommand extends BaseCommand {
   /** Run helm install and deploy network components */
   async deploy (argv: any) {
     const self = this
-    const lease = new LeaseWrapper(self.leaseManager)
+    const lease = self.leaseManager.instantiateLease()
 
     interface Context {
       config: NetworkDeployConfigClass
@@ -396,7 +395,7 @@ export class NetworkCommand extends BaseCommand {
 
   async destroy (argv: any) {
     const self = this
-    const lease = new LeaseWrapper(self.leaseManager)
+    const lease = self.leaseManager.instantiateLease()
 
     interface Context {
       config: {
@@ -489,7 +488,7 @@ export class NetworkCommand extends BaseCommand {
   /** Run helm upgrade to refresh network components with new settings */
   async refresh (argv: any) {
     const self = this
-    const lease = new LeaseWrapper(self.leaseManager)
+    const lease = self.leaseManager.instantiateLease()
 
     interface Context {
       config: NetworkDeployConfigClass

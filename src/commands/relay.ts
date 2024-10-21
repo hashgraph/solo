@@ -25,7 +25,6 @@ import * as prompts from './prompts.ts'
 import { getNodeAccountMap } from '../core/helpers.ts'
 import { type NodeAliases } from '../types/aliases.ts'
 import { type Opts } from '../types/index.ts'
-import { LeaseWrapper } from '../core/lease_wrapper.js'
 
 export class RelayCommand extends BaseCommand {
   private readonly profileManager: ProfileManager
@@ -158,7 +157,7 @@ export class RelayCommand extends BaseCommand {
 
   async deploy (argv: any) {
     const self = this
-    const lease = new LeaseWrapper(self.leaseManager)
+    const lease = self.leaseManager.instantiateLease()
 
     interface RelayDeployConfigClass {
       chainId: string
@@ -274,7 +273,7 @@ export class RelayCommand extends BaseCommand {
 
   async destroy (argv: any) {
     const self = this
-    const lease = new LeaseWrapper(self.leaseManager)
+    const lease = self.leaseManager.instantiateLease()
 
     interface RelayDestroyConfigClass {
       chartDirectory: string

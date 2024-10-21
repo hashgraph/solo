@@ -23,6 +23,7 @@ import { LEASE_RENEW_TIMEOUT, LEASE_AQUIRE_RETRY_TIMEOUT, MAX_LEASE_ACQUIRE_ATTE
 import type { ListrTaskWrapper } from 'listr2'
 import chalk from 'chalk'
 import { sleep } from './helpers.js'
+import { LeaseWrapper } from './lease_wrapper.js'
 
 export class LeaseManager {
   constructor (
@@ -33,6 +34,10 @@ export class LeaseManager {
     if (!k8) throw new MissingArgumentError('an instance of core/K8 is required')
     if (!logger) throw new MissingArgumentError('an instance of core/SoloLogger is required')
     if (!configManager) throw new MissingArgumentError('an instance of core/ConfigManager is required')
+  }
+
+  instantiateLease () {
+    return new LeaseWrapper(this)
   }
 
   /**
