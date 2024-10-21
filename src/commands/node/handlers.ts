@@ -25,16 +25,16 @@ import {
   updateConfigBuilder
 } from './configs.ts'
 import {
-  ConfigManager,
+  type ConfigManager,
   constants,
-  K8,
-  PlatformInstaller,
+  type K8,
+  type PlatformInstaller,
 } from '../../core/index.ts'
 import { IllegalArgumentError } from '../../core/errors.ts'
-import type {AccountManager} from "../../core/account_manager.js";
-import type {SoloLogger} from "../../core/logging.js";
-import {NodeCommand} from "./index.js";
-import {NodeCommandTasks} from "./tasks.js";
+import type { AccountManager } from '../../core/account_manager.js'
+import type { SoloLogger } from '../../core/logging.js'
+import { type NodeCommand } from './index.js'
+import { type NodeCommandTasks } from './tasks.js'
 
 export class NodeCommandHandlers {
   private readonly accountManager: AccountManager
@@ -44,8 +44,8 @@ export class NodeCommandHandlers {
   private readonly k8: K8
   private readonly tasks: NodeCommandTasks
 
-  private getConfig: any;
-  private prepareChartPath: any;
+  private getConfig: any
+  private prepareChartPath: any
 
   public readonly parent: NodeCommand
 

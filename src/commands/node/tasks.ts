@@ -17,12 +17,12 @@
 
 
 import {
-  ChartManager,
+  type ChartManager,
   type ConfigManager,
   constants,
-  type K8, KeyManager,
-  PlatformInstaller,
-  ProfileManager,
+  type K8, type KeyManager,
+  type PlatformInstaller,
+  type ProfileManager,
   Task,
   Templates,
   Zippy
@@ -64,10 +64,10 @@ import * as flags from '../flags.ts'
 import { type SoloLogger } from '../../core/logging.ts'
 import { type AccountManager } from '../../core/account_manager.ts'
 import type { Listr, ListrTaskWrapper } from 'listr2'
-import {type NodeAlias, type NodeAliases, PodName} from '../../types/aliases.ts'
+import { type NodeAlias, type NodeAliases, type PodName } from '../../types/aliases.ts'
 import { NodeStatusCodes, NodeStatusEnums } from '../../core/enumerations.ts'
 import * as x509 from '@peculiar/x509'
-import {NodeCommand} from "./index.js";
+import { type NodeCommand } from './index.js'
 
 export class NodeCommandTasks {
   private readonly accountManager: AccountManager
@@ -699,9 +699,9 @@ export class NodeCommandTasks {
 
       if (localBuildPath !== '') {
         return this._uploadPlatformSoftware(ctx.config[aliasesField], podNames, task, localBuildPath)
-      } else {
+      } 
         return this._fetchPlatformSoftware(ctx.config[aliasesField], podNames, releaseTag, task, this.platformInstaller)
-      }
+      
     })
   }
 
@@ -1387,16 +1387,7 @@ export class NodeCommandTasks {
 
       // disable the prompts that we don't want to prompt the user for
       prompts.disablePrompts([...requiredFlagsWithDisabledPrompt, ...optionalFlags])
-
-      let flagsToPrompt = []
-      for (let pFlag in requiredFlags) {
-        // @ts-ignore
-        if (typeof argv[pFlag.name] === undefined) {
-          flagsToPrompt.push(pFlag)
-        }
-      }
-
-      await prompts.execute(task, this.configManager, flagsToPrompt)
+      await prompts.execute(task, this.configManager, requiredFlags)
 
       const config = await configInit(argv, ctx, task)
       ctx.config = config

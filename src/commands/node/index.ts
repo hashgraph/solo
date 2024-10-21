@@ -17,16 +17,16 @@
 
 import { IllegalArgumentError } from '../../core/errors.ts'
 import {
-  KeyManager,
-  PackageDownloader,
-  PlatformInstaller, ProfileManager,
+  type KeyManager,
+  type PackageDownloader,
+  type PlatformInstaller, type ProfileManager,
   YargsCommand
 } from '../../core/index.ts'
 import { BaseCommand } from './../base.ts'
 import { NodeCommandTasks } from './tasks.ts'
 import * as NodeFlags from './flags.ts'
 import { NodeCommandHandlers } from './handlers.ts'
-import type {AccountManager} from "../../core/account_manager.ts";
+import type { AccountManager } from '../../core/account_manager.ts'
 
 /**
  * Defines the core functionalities of 'node' command

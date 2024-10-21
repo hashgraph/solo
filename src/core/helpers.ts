@@ -31,8 +31,8 @@ import { type AccountManager } from './account_manager.ts'
 import { type NodeAlias, type NodeAliases, type PodName } from '../types/aliases.ts'
 import { type NodeDeleteConfigClass } from '../commands/node/configs.ts'
 import { type CommandFlag } from '../types/index.js'
-import {SoloLogger} from "./logging.js";
-import {NodeCommandHandlers} from "../commands/node/handlers.js";
+import { type SoloLogger } from './logging.js'
+import { type NodeCommandHandlers } from '../commands/node/handlers.js'
 
 // cache current directory
 const CUR_FILE_DIR = paths.dirname(fileURLToPath(import.meta.url))
