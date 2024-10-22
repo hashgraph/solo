@@ -29,6 +29,9 @@ import path from 'path'
 import { addDebugOptions, validatePath } from '../core/helpers.ts'
 import fs from 'fs'
 import { type NodeAlias, type NodeAliases } from '../types/aliases.ts'
+import { type AFlags } from '../core/flags/flags.js'
+import { inject } from 'inversify'
+import { TYPES } from '../types/types.js'
 import { type Opts } from '../types/index.ts'
 
 export interface NetworkDeployConfigClass {
@@ -57,6 +60,7 @@ export class NetworkCommand extends BaseCommand {
   private readonly platformInstaller: PlatformInstaller
   private readonly profileManager: ProfileManager
   private profileValuesFile?: string
+  @inject(TYPES.AFlags) readonly networkDestroyFlags : AFlags
 
   constructor (opts: Opts) {
     super(opts)
@@ -391,19 +395,12 @@ export class NetworkCommand extends BaseCommand {
   async destroy (argv: any) {
     const self = this
 
-    interface Context {
-      config: {
-        deletePvcs: boolean
-        deleteSecrets: boolean
-        namespace: string
-      }
-    }
-
-    const tasks = new Listr<Context>([
+    const tasks = new Listr([
       {
         title: 'Initialize',
         task: async (ctx, task) => {
-          if (!argv.force) {
+          this.networkDestroyFlags.update(argv)
+          if (!this.networkDestroyFlags.getFlagValue('force') || !this.networkDestroyFlags.getFlagValue('quiet')) {
             const confirm = await task.prompt(ListrEnquirerPromptAdapter).run({
               type: 'toggle',
               default: false,
@@ -554,10 +551,7 @@ export class NetworkCommand extends BaseCommand {
             command: 'destroy',
             desc: 'Destroy solo network',
             builder: (y: any) => flags.setCommandFlags(y,
-              flags.deletePvcs,
-              flags.deleteSecrets,
-              flags.force,
-              flags.namespace
+              ...Object.values(NetworkDestroyFlags.flags)
             ),
             handler: (argv: any) => {
               networkCmd.logger.debug('==== Running \'network destroy\' ===')
