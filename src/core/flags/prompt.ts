@@ -18,50 +18,48 @@
 import { type ListrTaskWrapper } from 'listr2'
 import { SoloError } from '../errors.js'
 import { ListrEnquirerPromptAdapter } from '@listr2/prompt-adapter-enquirer'
-import { type IFlag } from './flag.js'
+// import { type IFlag } from './flag.js'
 
-export interface PromptFunction {
-  (task: ListrTaskWrapper<any, any, any>, input: any): Promise<any>
-}
-
-export class Prompts {
-  static async prompt (type: string, task: ListrTaskWrapper<any, any, any>, input: any, flag: IFlag, promptMessage: string, emptyCheckMessage: string | null) {
-    const defaultValue = flag.definition.defaultValue
-    const flagName = flag.name
-    try {
-      let needsPrompt = type === 'toggle' ? (input === undefined || typeof input !== 'boolean') : !input
-      needsPrompt = type === 'number' ? typeof input !== 'number' : needsPrompt
-
-      if (needsPrompt) {
-        if (!process.stdout.isTTY || !process.stdin.isTTY) {
-          // this is to help find issues with prompts running in non-interactive mode, user should supply quite mode,
-          // or provide all flags required for command
-          throw new SoloError('Cannot prompt for input in non-interactive mode')
-        }
-
-        input = await task.prompt(ListrEnquirerPromptAdapter).run({
-          type,
-          default: defaultValue,
-          message: promptMessage
-        })
-      }
-
-      if (emptyCheckMessage && !input) {
-        throw new SoloError(emptyCheckMessage)
-      }
-
-      return input
-    } catch (e: Error | any) {
-      throw new SoloError(`input failed: ${flagName}: ${e.message}`, e)
-    }
-  }
-
-  static async promptToggle (task: ListrTaskWrapper<any, any, any>, input: any, promptMessage: string, emptyCheckMessage: string | null, flag: IFlag) {
-    return await Prompts.prompt('toggle', task, input, flag, promptMessage, emptyCheckMessage)
-  }
-
-  static async promptText (task: ListrTaskWrapper<any, any, any>, input: any, promptMessage: string, emptyCheckMessage: string | null, flag: IFlag) {
-    return await Prompts.prompt('text', task, input, flag, promptMessage, emptyCheckMessage)
-  }
-
-}
+// export type PromptFunction = (task: ListrTaskWrapper<any, any, any>, input: any) => Promise<any>
+//
+// export class Prompts {
+//   static async prompt (type: string, task: ListrTaskWrapper<any, any, any>, input: any, flag: IFlag, promptMessage: string, emptyCheckMessage: string | null) {
+//     const defaultValue = flag.definition.defaultValue
+//     const flagName = flag.name
+//     try {
+//       let needsPrompt = type === 'toggle' ? (input === undefined || typeof input !== 'boolean') : !input
+//       needsPrompt = type === 'number' ? typeof input !== 'number' : needsPrompt
+//
+//       if (needsPrompt) {
+//         if (!process.stdout.isTTY || !process.stdin.isTTY) {
+//           // this is to help find issues with prompts running in non-interactive mode, user should supply quite mode,
+//           // or provide all flags required for command
+//           throw new SoloError('Cannot prompt for input in non-interactive mode')
+//         }
+//
+//         input = await task.prompt(ListrEnquirerPromptAdapter).run({
+//           type,
+//           default: defaultValue,
+//           message: promptMessage
+//         })
+//       }
+//
+//       if (emptyCheckMessage && !input) {
+//         throw new SoloError(emptyCheckMessage)
+//       }
+//
+//       return input
+//     } catch (e: Error | any) {
+//       throw new SoloError(`input failed: ${flagName}: ${e.message}`, e)
+//     }
+//   }
+//
+//   static async promptToggle (task: ListrTaskWrapper<any, any, any>, input: any, promptMessage: string, emptyCheckMessage: string | null, flag: IFlag) {
+//     return await Prompts.prompt('toggle', task, input, flag, promptMessage, emptyCheckMessage)
+//   }
+//
+//   static async promptText (task: ListrTaskWrapper<any, any, any>, input: any, promptMessage: string, emptyCheckMessage: string | null, flag: IFlag) {
+//     return await Prompts.prompt('text', task, input, flag, promptMessage, emptyCheckMessage)
+//   }
+//
+// }

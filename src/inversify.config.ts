@@ -16,9 +16,9 @@
  */
 import { Container } from 'inversify'
 import { TYPES } from './types/types.js'
-import { NetworkDestroyFlags, type AFlags } from './core/flags/flags.js'
+// import { NetworkDestroyFlags, type AFlags } from './core/flags/flags.js'
 
 const container = new Container()
-container.bind<AFlags>(TYPES.AFlags).to(NetworkDestroyFlags).inSingletonScope()
+// container.bind<AFlags>(TYPES.AFlags).to(NetworkDestroyFlags).inSingletonScope()
 
 export { container }

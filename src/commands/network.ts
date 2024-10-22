@@ -29,7 +29,7 @@ import path from 'path'
 import { addDebugOptions, validatePath } from '../core/helpers.ts'
 import fs from 'fs'
 import { type NodeAlias, type NodeAliases } from '../types/aliases.ts'
-import { type AFlags } from '../core/flags/flags.js'
+// import { type AFlags } from '../core/flags/flags.js'
 import { inject } from 'inversify'
 import { TYPES } from '../types/types.js'
 import { type Opts } from '../types/index.ts'
@@ -60,7 +60,7 @@ export class NetworkCommand extends BaseCommand {
   private readonly platformInstaller: PlatformInstaller
   private readonly profileManager: ProfileManager
   private profileValuesFile?: string
-  @inject(TYPES.AFlags) readonly networkDestroyFlags : AFlags
+  // @inject(TYPES.AFlags) readonly networkDestroyFlags : AFlags
 
   constructor (opts: Opts) {
     super(opts)
