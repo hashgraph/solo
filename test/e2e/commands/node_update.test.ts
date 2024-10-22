@@ -27,10 +27,10 @@ import {
   HEDERA_PLATFORM_VERSION_TAG
 } from '../../test_util.ts'
 import { getNodeLogs } from '../../../src/core/helpers.ts'
-import { NodeCommand } from '../../../src/commands/node.ts'
 import { HEDERA_HAPI_PATH, MINUTES, ROOT_CONTAINER } from '../../../src/core/constants.ts'
 import fs from 'fs'
 import type { PodName } from '../../../src/types/aliases.ts'
+import * as NodeCommandConfigs from '../../../src/commands/node/configs.ts'
 
 const defaultTimeout = 2 * MINUTES
 const namespace = 'node-update'
@@ -64,7 +64,7 @@ e2eTestSuite(namespace, argv, undefined, undefined, undefined, undefined, undefi
       this.timeout(10 * MINUTES)
 
       await getNodeLogs(k8, namespace)
-      await nodeCmd.stop(argv)
+      await nodeCmd.handlers.stop(argv)
       await k8.deleteNamespace(namespace)
     })
 
@@ -94,11 +94,11 @@ e2eTestSuite(namespace, argv, undefined, undefined, undefined, undefined, undefi
       argv[flags.tlsPublicKey.name] = tlsKeyFiles.certificateFile
       argv[flags.tlsPrivateKey.name] = tlsKeyFiles.privateKeyFile
 
-      await nodeCmd.update(argv)
-      expect(nodeCmd.getUnusedConfigs(NodeCommand.UPDATE_CONFIGS_NAME)).to.deep.equal([
-        flags.app.constName,
+      await nodeCmd.handlers.update(argv)
+      expect(nodeCmd.getUnusedConfigs(NodeCommandConfigs.UPDATE_CONFIGS_NAME)).to.deep.equal([
         flags.devMode.constName,
-        flags.quiet.constName
+        flags.quiet.constName,
+        flags.force.constName
       ])
       await bootstrapResp.opts.accountManager.close()
     }).timeout(30 * MINUTES)

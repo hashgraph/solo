@@ -26,10 +26,10 @@ import {
   HEDERA_PLATFORM_VERSION_TAG
 } from '../../test_util.ts'
 import { getNodeLogs, getTmpDir } from '../../../src/core/helpers.ts'
-import { NodeCommand } from '../../../src/commands/node.ts'
 import { HEDERA_HAPI_PATH, MINUTES, ROOT_CONTAINER } from '../../../src/core/constants.ts'
 import fs from 'fs'
 import type { NodeAlias, PodName } from '../../../src/types/aliases.ts'
+import * as NodeCommandConfigs from '../../../src/commands/node/configs.ts'
 
 const namespace = 'node-delete-separate'
 const nodeAlias = 'node1' as NodeAlias
@@ -70,13 +70,12 @@ e2eTestSuite(namespace, argv, undefined, undefined, undefined, undefined, undefi
     }).timeout(8 * MINUTES)
 
     it('should delete a node from the network successfully', async () => {
-      await nodeCmd.deletePrepare(argvPrepare)
-      await nodeCmd.deleteSubmitTransactions(argvExecute)
-      await nodeCmd.deleteExecute(argvExecute)
-      expect(nodeCmd.getUnusedConfigs(NodeCommand.DELETE_CONFIGS_NAME)).to.deep.equal([
-        flags.app.constName,
+      await nodeCmd.handlers.deletePrepare(argvPrepare)
+      await nodeCmd.handlers.deleteSubmitTransactions(argvExecute)
+      await nodeCmd.handlers.deleteExecute(argvExecute)
+      expect(nodeCmd.getUnusedConfigs(NodeCommandConfigs.DELETE_CONFIGS_NAME)).to.deep.equal([
         flags.devMode.constName,
-        flags.endpointType.constName,
+        flags.force.constName,
         flags.quiet.constName,
         flags.adminKey.constName,
         'freezeAdminPrivateKey'
