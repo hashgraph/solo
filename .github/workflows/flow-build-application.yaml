@@ -90,7 +90,7 @@ jobs:
           - { name: "Node Delete - Separate commands", npm-test-script: "test-${{ needs.env-vars.outputs.e2e-node-delete-separate-commands-test-subdir }}", coverage-subdirectory: "${{ needs.env-vars.outputs.e2e-node-delete-separate-commands-test-subdir }}", coverage-report-name: "${{ needs.env-vars.outputs.e2e-node-delete-separate-commands-coverage-report }}" }
           - { name: "Node Upgrade", npm-test-script: "test-${{ needs.env-vars.outputs.e2e-node-upgrade-test-subdir }}", coverage-subdirectory: "${{ needs.env-vars.outputs.e2e-node-upgrade-test-subdir }}", coverage-report-name: "${{ needs.env-vars.outputs.e2e-node-upgrade-coverage-report }}" }
           - { name: "Relay", npm-test-script: "test-${{ needs.env-vars.outputs.e2e-relay-test-subdir }}", coverage-subdirectory: "${{ needs.env-vars.outputs.e2e-relay-test-subdir }}", coverage-report-name: "${{ needs.env-vars.outputs.e2e-relay-coverage-report }}" }
-      max-parallel: 5
+      max-parallel: 4
     with:
       custom-job-label: ${{ matrix.e2e-test-type.name }}
       npm-test-script: ${{ matrix.e2e-test-type.npm-test-script }}
