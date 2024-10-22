@@ -23,17 +23,15 @@ import {
   balanceQueryShouldSucceed,
   e2eTestSuite,
   getDefaultArgv,
-  getTestConfigManager,
   HEDERA_PLATFORM_VERSION_TAG,
-  TEST_CLUSTER
+  TEST_CLUSTER, testLogger
 } from '../test_util.ts'
 import { getNodeLogs, sleep } from '../../src/core/helpers.ts'
 import * as NodeCommandConfigs from '../../src/commands/node/configs.ts'
 import { MINUTES, SECONDS } from '../../src/core/constants.ts'
 import type { NodeAlias } from '../../src/types/aliases.ts'
-import { NodeAliases } from '../../src/types/aliases.ts'
 import type { ListrTaskWrapper } from 'listr2'
-import type { K8 } from '../../src/core/index.ts'
+import { ConfigManager, type K8 } from '../../src/core/index.ts'
 import { type NodeCommand } from '../../src/commands/node/index.js'
 
 export function e2eNodeKeyRefreshTest (testName: string, mode: string, releaseTag = HEDERA_PLATFORM_VERSION_TAG) {
@@ -175,8 +173,8 @@ export function e2eNodeKeyRefreshTest (testName: string, mode: string, releaseTa
 
       async function nodeRefreshTestSetup (argv: Record<any, any>, testName: string, k8: K8, nodeAliases: string) {
         argv[flags.nodeAliasesUnparsed.name] = nodeAliases
-        const configManager = getTestConfigManager(`${testName}-solo.yaml`)
-        configManager.update(argv, true)
+        const configManager = new ConfigManager(testLogger)
+        configManager.update(argv)
 
         const podArray = await k8.getPodsByLabel(
             [`app=network-${nodeAliases}`,

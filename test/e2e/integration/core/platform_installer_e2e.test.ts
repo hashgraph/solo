@@ -50,7 +50,6 @@ e2eTestSuite(namespace, argv, undefined, undefined, undefined, undefined, undefi
   describe('PackageInstallerE2E', async () => {
     const k8 = bootstrapResp.opts.k8
     const accountManager = bootstrapResp.opts.accountManager
-    const configManager = bootstrapResp.opts.configManager
     const installer = bootstrapResp.opts.platformInstaller
     const podName = 'network-node1-0'
     const packageVersion = 'v0.42.5'
@@ -68,7 +67,6 @@ e2eTestSuite(namespace, argv, undefined, undefined, undefined, undefined, undefi
       if (!fs.existsSync(testCacheDir)) {
         fs.mkdirSync(testCacheDir)
       }
-      configManager.load()
     })
 
     describe('fetchPlatform', () => {

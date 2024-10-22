@@ -88,7 +88,7 @@ e2eTestSuite(namespace, argv, undefined, undefined, undefined, undefined, undefi
       argv[flags.gossipPublicKey.name] = signingKeyFiles.certificateFile
       argv[flags.gossipPrivateKey.name] = signingKeyFiles.privateKeyFile
 
-      const tlsKey = await bootstrapResp.opts.keyManager.generateGrpcTLSKey(updateNodeId)
+      const tlsKey = await bootstrapResp.opts.keyManager.generateGrpcTlsKey(updateNodeId)
       const tlsKeyFiles = await bootstrapResp.opts.keyManager.storeTLSKey(updateNodeId, tlsKey, tmpDir)
       nodeCmd.logger.debug(`generated test TLS keys for node ${updateNodeId} : ${tlsKeyFiles.certificateFile}`)
       argv[flags.tlsPublicKey.name] = tlsKeyFiles.certificateFile

@@ -54,7 +54,7 @@ export function main () {
   const templateDir = path.join(outputDir, 'templates')
   const configFile = path.join(templateDir, 'config.yaml')
   const configData = fs.readFileSync(configFile, 'utf8')
-  const config = /** @type {Config} **/ yaml.load(configData)
+  const config = /** @type {Config} **/ yaml.load(configData, {})
 
   // generate the workflows with changes
   buildWorkflows(outputDir, templateDir, config)

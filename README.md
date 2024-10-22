@@ -81,11 +81,17 @@ Example output
 
 ```
 Creating cluster "solo" ...
- ✓ Ensuring node image (kindest/node:v1.29.1) 🖼
+ • Ensuring node image (kindest/node:v1.27.3) 🖼  ...
+ ✓ Ensuring node image (kindest/node:v1.27.3) 🖼
+ • Preparing nodes 📦   ...
  ✓ Preparing nodes 📦 
+ • Writing configuration 📜  ...
  ✓ Writing configuration 📜
+ • Starting control-plane 🕹️  ...
  ✓ Starting control-plane 🕹️
+ • Installing CNI 🔌  ...
  ✓ Installing CNI 🔌
+ • Installing StorageClass 💾  ...
  ✓ Installing StorageClass 💾
 Set kubectl context to "kind-solo"
 You can now use your cluster with:
@@ -127,13 +133,13 @@ You may now view pods in your cluster using `k9s -A` as below:
 
 ### Example - 1: Deploy a standalone test network (version `0.54.0-alpha.4`)
 
-* Initialize `solo` with tag `v0.54.0-alpha.4` and list of node names `node1,node2,node3`:
+* Initialize `solo` directories:
 
 ```
 # reset .solo directory
 rm -rf ~/.solo
 
-solo init -t v0.54.0-alpha.4 -i node1,node2,node3 -n "${SOLO_NAMESPACE}" -s "${SOLO_CLUSTER_SETUP_NAMESPACE}"
+solo init"
 ```
 
 * Example output
@@ -144,24 +150,29 @@ solo init -t v0.54.0-alpha.4 -i node1,node2,node3 -n "${SOLO_NAMESPACE}" -s "${S
 Version			: 0.31.1
 Kubernetes Context	: kind-solo
 Kubernetes Cluster	: kind-solo
-Kubernetes Namespace	: solo
+Kubernetes Namespace	: undefined
 **********************************************************************************
-✔ Setup home directory and cache
-✔ Check dependency: helm [OS: linux, Release: 5.15.0-118-generic, Arch: x64]
-✔ Check dependencies
-✔ Setup chart manager
+❯ Setup home directory and cache
+✔ Setup home directory and cache
+❯ Check dependencies
+❯ Check dependency: helm [OS: darwin, Release: 23.6.0, Arch: arm64]
+✔ Check dependency: helm [OS: darwin, Release: 23.6.0, Arch: arm64]
+✔ Check dependencies
+❯ Setup chart manager
+✔ Setup chart manager
+❯ Copy templates in '/Users/user/.solo/cache'
 
 ***************************************************************************************
-Note: solo stores various artifacts (config, logs, keys etc.) in its home directory: /home/runner/.solo
+Note: solo stores various artifacts (config, logs, keys etc.) in its home directory: /Users/user/.solo
 If a full reset is needed, delete the directory or relevant sub-directories before running 'solo init'.
 ***************************************************************************************
-✔ Copy templates in '/home/runner/.solo/cache'
+✔ Copy templates in '/Users/user/.solo/cache'
 ```
 
 * Generate `pem` formatted node keys
 
 ```
-solo node keys --gossip-keys --tls-keys
+solo node keys --gossip-keys --tls-keys -i node1,node2,node3
 ```
 
 * Example output
@@ -172,20 +183,32 @@ solo node keys --gossip-keys --tls-keys
 Version			: 0.31.1
 Kubernetes Context	: kind-solo
 Kubernetes Cluster	: kind-solo
-Kubernetes Namespace	: solo
+Kubernetes Namespace	: undefined
 **********************************************************************************
-✔ Initialize
-✔ Backup old files
-✔ Gossip key for node: node1
-✔ Gossip key for node: node2
-✔ Gossip key for node: node3
-✔ Generate gossip keys
-✔ Backup old files
-✔ TLS key for node: node1
-✔ TLS key for node: node2
-✔ TLS key for node: node3
-✔ Generate gRPC TLS keys
-✔ Finalize
+❯ Initialize
+✔ Initialize
+❯ Generate gossip keys
+❯ Backup old files
+✔ Backup old files
+❯ Gossip key for node: node1
+✔ Gossip key for node: node1
+❯ Gossip key for node: node2
+✔ Gossip key for node: node2
+❯ Gossip key for node: node3
+✔ Gossip key for node: node3
+✔ Generate gossip keys
+❯ Generate gRPC TLS keys
+❯ Backup old files
+❯ TLS key for node: node1
+❯ TLS key for node: node2
+❯ TLS key for node: node3
+✔ Backup old files
+✔ TLS key for node: node3
+✔ TLS key for node: node2
+✔ TLS key for node: node1
+✔ Generate gRPC TLS keys
+❯ Finalize
+✔ Finalize
 ```
 
 PEM key files are generated in `~/.solo/keys` directory.
@@ -200,7 +223,7 @@ hedera-node2.key    hedera-node4.key    s-private-node4.pem s-public-node4.pem
 * Setup cluster with shared components
 
 ```
-solo cluster setup
+solo cluster setup -s "${SOLO_CLUSTER_SETUP_NAMESPACE}"
 ```
 
 * Example output
@@ -211,11 +234,14 @@ solo cluster setup
 Version			: 0.31.1
 Kubernetes Context	: kind-solo
 Kubernetes Cluster	: kind-solo
-Kubernetes Namespace	: solo
+Kubernetes Namespace	: undefined
 **********************************************************************************
-✔ Initialize
-✔ Prepare chart values
-✔ Install 'solo-cluster-setup' chart
+❯ Initialize
+✔ Initialize
+❯ Prepare chart values
+✔ Prepare chart values
+❯ Install 'solo-cluster-setup' chart
+✔ Install 'solo-cluster-setup' chart
 ```
 
 In a separate terminal, you may run `k9s` to view the pod status.
@@ -225,7 +251,7 @@ In a separate terminal, you may run `k9s` to view the pod status.
   * If it fails, ensure you have enough resources allocated for Docker engine and retry the command.
 
 ```
-solo network deploy
+solo network deploy -i node1,node2,node3 -n "${SOLO_NAMESPACE}"
 ```
 
 * Example output
@@ -238,39 +264,65 @@ Kubernetes Context	: kind-solo
 Kubernetes Cluster	: kind-solo
 Kubernetes Namespace	: solo
 **********************************************************************************
-✔ Initialize
-✔ Copy Gossip keys to staging
-✔ Copy gRPC TLS keys to staging
-✔ Prepare staging directory
-✔ Copy Gossip keys
-✔ Node: node2
-✔ Copy TLS keys
-✔ Copy Gossip keys
-✔ Node: node3
-✔ Copy Gossip keys
-✔ Node: node1
-✔ Copy node keys to secrets
-✔ Install chart 'solo-deployment'
-✔ Check Node: node1
-✔ Check Node: node2
-✔ Check Node: node3
-✔ Check node pods are running
-✔ Check Envoy Proxy for: node3
-✔ Check Envoy Proxy for: node2
-✔ Check Envoy Proxy for: node1
-✔ Check HAProxy for: node2
-✔ Check HAProxy for: node1
-✔ Check HAProxy for: node3
-✔ Check proxy pods are running
-✔ Check MinIO
-✔ Check auxiliary pods are ready
+❯ Initialize
+✔ Initialize
+❯ Prepare staging directory
+❯ Copy Gossip keys to staging
+✔ Copy Gossip keys to staging
+❯ Copy gRPC TLS keys to staging
+✔ Copy gRPC TLS keys to staging
+✔ Prepare staging directory
+❯ Copy node keys to secrets
+❯ Copy TLS keys
+❯ Node: node1
+❯ Node: node2
+❯ Node: node3
+❯ Copy Gossip keys
+❯ Copy Gossip keys
+❯ Copy Gossip keys
+✔ Copy Gossip keys
+✔ Node: node3
+✔ Copy Gossip keys
+✔ Node: node2
+✔ Copy Gossip keys
+✔ Node: node1
+✔ Copy TLS keys
+✔ Copy node keys to secrets
+❯ Install chart 'solo-deployment'
+✔ Install chart 'solo-deployment'
+❯ Check node pods are running
+❯ Check Node: node1
+✔ Check Node: node1
+❯ Check Node: node2
+✔ Check Node: node2
+❯ Check Node: node3
+✔ Check Node: node3
+✔ Check node pods are running
+❯ Check proxy pods are running
+❯ Check HAProxy for: node1
+❯ Check HAProxy for: node2
+❯ Check HAProxy for: node3
+❯ Check Envoy Proxy for: node1
+❯ Check Envoy Proxy for: node2
+❯ Check Envoy Proxy for: node3
+✔ Check Envoy Proxy for: node2
+✔ Check Envoy Proxy for: node1
+✔ Check Envoy Proxy for: node3
+✔ Check HAProxy for: node1
+✔ Check HAProxy for: node3
+✔ Check HAProxy for: node2
+✔ Check proxy pods are running
+❯ Check auxiliary pods are ready
+❯ Check MinIO
+✔ Check MinIO
+✔ Check auxiliary pods are ready
 ```
 
 * Setup node with Hedera platform software.
   * It may take a while as it download the hedera platform code from <https://builds.hedera.com/>
 
 ```
-solo node setup
+solo node setup -i node1,node2,node3 -n "${SOLO_NAMESPACE}"
 ```
 
 * Example output
@@ -283,28 +335,44 @@ Kubernetes Context	: kind-solo
 Kubernetes Cluster	: kind-solo
 Kubernetes Namespace	: solo
 **********************************************************************************
-✔ Initialize
-✔ Check network pod: node1
-✔ Check network pod: node2
-✔ Check network pod: node3
-✔ Identify network pods
-✔ Update node: node2 [ platformVersion = v0.54.0-alpha.4 ]
-✔ Update node: node1 [ platformVersion = v0.54.0-alpha.4 ]
-✔ Update node: node3 [ platformVersion = v0.54.0-alpha.4 ]
-✔ Fetch platform software into network nodes
-✔ Set file permissions
-✔ Node: node1
-✔ Set file permissions
-✔ Node: node2
-✔ Set file permissions
-✔ Node: node3
-✔ Setup network nodes
+❯ Initialize
+✔ Initialize
+❯ Identify network pods
+❯ Check network pod: node1
+❯ Check network pod: node2
+❯ Check network pod: node3
+✔ Check network pod: node1
+✔ Check network pod: node2
+✔ Check network pod: node3
+✔ Identify network pods
+❯ Fetch platform software into network nodes
+❯ Update node: node1 [ platformVersion = v0.54.0-alpha.4 ]
+❯ Update node: node2 [ platformVersion = v0.54.0-alpha.4 ]
+❯ Update node: node3 [ platformVersion = v0.54.0-alpha.4 ]
+✔ Update node: node3 [ platformVersion = v0.54.0-alpha.4 ]
+✔ Update node: node2 [ platformVersion = v0.54.0-alpha.4 ]
+✔ Update node: node1 [ platformVersion = v0.54.0-alpha.4 ]
+✔ Fetch platform software into network nodes
+❯ Setup network nodes
+❯ Node: node1
+❯ Node: node2
+❯ Node: node3
+❯ Set file permissions
+❯ Set file permissions
+❯ Set file permissions
+✔ Set file permissions
+✔ Node: node3
+✔ Set file permissions
+✔ Node: node1
+✔ Set file permissions
+✔ Node: node2
+✔ Setup network nodes
 ```
 
 * Start the nodes
 
 ```
-solo node start
+solo node start -i node1,node2,node3 -n "${SOLO_NAMESPACE}"
 ```
 
 * Example output
@@ -317,33 +385,56 @@ Kubernetes Context	: kind-solo
 Kubernetes Cluster	: kind-solo
 Kubernetes Namespace	: solo
 **********************************************************************************
-✔ Initialize
-✔ Check network pod: node1
-✔ Check network pod: node3
-✔ Check network pod: node2
-✔ Identify existing network nodes
-✔ Start node: node1
-✔ Start node: node3
-✔ Start node: node2
-✔ Starting nodes
-✔ Check network pod: node2  - status ACTIVE, attempt: 16/120
-✔ Check network pod: node3  - status ACTIVE, attempt: 17/120
-✔ Check network pod: node1  - status ACTIVE, attempt: 17/120
-✔ Check nodes are ACTIVE
-✔ Check proxy for node: node1
-✔ Check proxy for node: node2
-✔ Check proxy for node: node3
-✔ Check node proxies are ACTIVE
-✔ Adding stake for node: node1
-✔ Adding stake for node: node2
-✔ Adding stake for node: node3
-✔ Add node stakes
+❯ Initialize
+✔ Initialize
+❯ Identify existing network nodes
+❯ Check network pod: node1
+❯ Check network pod: node2
+❯ Check network pod: node3
+✔ Check network pod: node1
+✔ Check network pod: node3
+✔ Check network pod: node2
+✔ Identify existing network nodes
+❯ Starting nodes
+❯ Start node: node1
+❯ Start node: node2
+❯ Start node: node3
+✔ Start node: node1
+✔ Start node: node2
+✔ Start node: node3
+✔ Starting nodes
+❯ Enable port forwarding for JVM debugger
+↓ Enable port forwarding for JVM debugger [SKIPPED: Enable port forwarding for JVM debugger]
+❯ Check nodes are ACTIVE
+❯ Check network pod: node1 
+❯ Check network pod: node2 
+❯ Check network pod: node3 
+✔ Check network pod: node1  - status ACTIVE, attempt: 17/120
+✔ Check network pod: node2  - status ACTIVE, attempt: 17/120
+✔ Check network pod: node3  - status ACTIVE, attempt: 17/120
+✔ Check nodes are ACTIVE
+❯ Check node proxies are ACTIVE
+❯ Check proxy for node: node1
+✔ Check proxy for node: node1
+❯ Check proxy for node: node2
+✔ Check proxy for node: node2
+❯ Check proxy for node: node3
+✔ Check proxy for node: node3
+✔ Check node proxies are ACTIVE
+❯ Add node stakes
+❯ Adding stake for node: node1
+✔ Adding stake for node: node1
+❯ Adding stake for node: node2
+✔ Adding stake for node: node2
+❯ Adding stake for node: node3
+✔ Adding stake for node: node3
+✔ Add node stakes
 ```
 
 * Deploy mirror node
 
 ```
-solo mirror-node deploy
+solo mirror-node deploy -n "${SOLO_NAMESPACE}"
 ```
 
 * Example output
@@ -356,25 +447,38 @@ Kubernetes Context	: kind-solo
 Kubernetes Cluster	: kind-solo
 Kubernetes Namespace	: solo
 **********************************************************************************
-✔ Initialize
-✔ Prepare address book
-✔ Deploy mirror-node
-✔ Enable mirror-node
-✔ Check Hedera Explorer
-✔ Check Postgres DB
-✔ Check GRPC
-✔ Check REST API
-✔ Check Monitor
-✔ Check Importer
-✔ Check pods are ready
-✔ Insert data in public.file_data
-✔ Seed DB data
+❯ Initialize
+✔ Initialize
+❯ Enable mirror-node
+❯ Prepare address book
+✔ Prepare address book
+❯ Deploy mirror-node
+✔ Deploy mirror-node
+✔ Enable mirror-node
+❯ Check pods are ready
+❯ Check Postgres DB
+❯ Check REST API
+❯ Check GRPC
+❯ Check Monitor
+❯ Check Importer
+❯ Check Hedera Explorer
+✔ Check Hedera Explorer
+✔ Check Postgres DB
+✔ Check Monitor
+✔ Check GRPC
+✔ Check Importer
+✔ Check REST API
+✔ Check pods are ready
+❯ Seed DB data
+❯ Insert data in public.file_data
+✔ Insert data in public.file_data
+✔ Seed DB data
 ```
 
 * Deploy a JSON RPC relay
 
 ```
-solo relay deploy
+solo relay deploy -i node1 -n "${SOLO_NAMESPACE}"
 ```
 
 * Example output
@@ -387,7 +491,14 @@ Kubernetes Context	: kind-solo
 Kubernetes Cluster	: kind-solo
 Kubernetes Namespace	: solo
 **********************************************************************************
-[?25l
+❯ Initialize
+✔ Initialize
+❯ Prepare chart values
+✔ Prepare chart values
+❯ Deploy JSON RPC Relay
+✔ Deploy JSON RPC Relay
+❯ Check relay is ready
+✔ Check relay is ready
 ```
 
 You may view the list of pods using `k9s` as below:
@@ -483,10 +594,14 @@ Kubernetes Context	: kind-solo
 Kubernetes Cluster	: kind-solo
 Kubernetes Namespace	: solo
 **********************************************************************************
-✔ Initialize
-✔ Prepare chart values
-✔ Deploy JSON RPC Relay
-✔ Check relay is ready
+❯ Initialize
+✔ Initialize
+❯ Prepare chart values
+✔ Prepare chart values
+❯ Deploy JSON RPC Relay
+✔ Deploy JSON RPC Relay
+❯ Check relay is ready
+✔ Check relay is ready
 ```
 
 ## For Developers Working on Hedera Service Repo
@@ -501,9 +616,9 @@ To set customized `settings.txt` file, edit the file
 Then you can start customized built hedera network with the following command:
 
 ```
-solo node setup --local-build-path <default path to hedera repo>,node1=<custom build hedera repo>,node2=<custom build repo>
+solo node setup -i node1,node2,node3 -n "${SOLO_NAMESPACE}" --local-build-path <default path to hedera repo>,node1=<custom build hedera repo>,node2=<custom build repo>
 
-# example: solo node setup --local-build-path node1=../hedera-services/hedera-node/data/,../hedera-services/hedera-node/data,node3=../hedera-services/hedera-node/data
+# example: solo node setup -i node1,node2,node3 -n "${SOLO_NAMESPACE}" --local-build-path node1=../hedera-services/hedera-node/data/,../hedera-services/hedera-node/data,node3=../hedera-services/hedera-node/data
 ```
 
 ## For Developers Working on Platform core
@@ -511,9 +626,9 @@ solo node setup --local-build-path <default path to hedera repo>,node1=<custom b
 To deploy node with local build PTT jar files, run the following command:
 
 ```
-solo node setup --local-build-path <default path to hedera repo>,node1=<custom build hedera repo>,node2=<custom build repo> --app PlatformTestingTool.jar --app-config <path-to-test-json1,path-to-test-json2>
+solo node setup -i node1,node2,node3 -n "${SOLO_NAMESPACE}" --local-build-path <default path to hedera repo>,node1=<custom build hedera repo>,node2=<custom build repo> --app PlatformTestingTool.jar --app-config <path-to-test-json1,path-to-test-json2>
 
-# example: solo node setup --local-build-path ../hedera-services/platform-sdk/sdk/data,node1=../hedera-services/platform-sdk/sdk/data,node2=../hedera-services/platform-sdk/sdk/data --app PlatformTestingTool.jar --app-config ../hedera-services/platform-sdk/platform-apps/tests/PlatformTestingTool/src/main/resources/FCMFCQ-Basic-2.5k-5m.json
+# example: solo node setup -i node1,node2,node3 -n "${SOLO_NAMESPACE}" --local-build-path ../hedera-services/platform-sdk/sdk/data,node1=../hedera-services/platform-sdk/sdk/data,node2=../hedera-services/platform-sdk/sdk/data --app PlatformTestingTool.jar --app-config ../hedera-services/platform-sdk/platform-apps/tests/PlatformTestingTool/src/main/resources/FCMFCQ-Basic-2.5k-5m.json
 ```
 
 ## Logs
@@ -530,15 +645,16 @@ Example 1: attach jvm debugger to a hedera node
 
 ```bash
 ./test/e2e/setup-e2e.sh
-solo node keys --gossip-keys --tls-keys
-solo network deploy -i node1,node2,node3 --debug-nodeid node2
-solo node setup -i node1,node2,node3 --local-build-path ../hedera-services/hedera-node/data
-solo node start -i node1,node2,node3 --debug-nodeid node2
+solo node keys --gossip-keys --tls-keys -i node1,node2,node3
+solo network deploy -i node1,node2,node3 --debug-node-alias node2 -n "${SOLO_NAMESPACE}"
+solo node setup -i node1,node2,node3 --local-build-path ../hedera-services/hedera-node/data -n "${SOLO_NAMESPACE}"
+solo node start -i node1,node2,node3 --debug-node-alias node2 -n "${SOLO_NAMESPACE}"
 ```
 
 Once you see the following message, you can launch jvm debugger from Intellij
 
 ```
+❯ Check all nodes are ACTIVE
   Check node: node1,
   Check node: node3,  Please attach JVM debugger now.
   Check node: node4,
@@ -548,33 +664,33 @@ Example 2: attach jvm debugger with node add operation
 
 ```bash
 ./test/e2e/setup-e2e.sh
-solo node keys --gossip-keys --tls-keys
-solo network deploy -i node1,node2,node3 --pvcs
-solo node setup -i node1,node2,node3 --local-build-path ../hedera-services/hedera-node/data
-solo node start -i node1,node2,node3
-solo node add --gossip-keys --tls-keys --node-id node4 --debug-nodeid node4 --local-build-path ../hedera-services/hedera-node/data
+solo node keys --gossip-keys --tls-keys -i node1,node2,node3
+solo network deploy -i node1,node2,node3 --pvcs -n "${SOLO_NAMESPACE}"
+solo node setup -i node1,node2,node3 --local-build-path ../hedera-services/hedera-node/data -n "${SOLO_NAMESPACE}"
+solo node start -i node1,node2,node3 -n "${SOLO_NAMESPACE}"
+solo node add --gossip-keys --tls-keys --node-alias node4 --debug-node-alias node4 --local-build-path ../hedera-services/hedera-node/data -n "${SOLO_NAMESPACE}"
 ```
 
 Example 3: attach jvm debugger with node update operation
 
 ```bash
 ./test/e2e/setup-e2e.sh
-solo node keys --gossip-keys --tls-keys
-solo network deploy -i node1,node2,node3
-solo node setup -i node1,node2,node3 --local-build-path ../hedera-services/hedera-node/data
-solo node start -i node1,node2,node3
-solo node update --node-id node2  --debug-nodeid node2 --local-build-path ../hedera-services/hedera-node/data --new-account-number 0.0.7 --gossip-public-key ./s-public-node2.pem --gossip-private-key ./s-private-node2.pem --agreement-public-key ./a-public-node2.pem --agreement-private-key ./a-private-node2.pem
+solo node keys --gossip-keys --tls-keys -i node1,node2,node3
+solo network deploy -i node1,node2,node3 -n "${SOLO_NAMESPACE}"
+solo node setup -i node1,node2,node3 --local-build-path ../hedera-services/hedera-node/data -n "${SOLO_NAMESPACE}"
+solo node start -i node1,node2,node3 -n "${SOLO_NAMESPACE}"
+solo node update --node-alias node2  --debug-node-alias node2 --local-build-path ../hedera-services/hedera-node/data --new-account-number 0.0.7 --gossip-public-key ./s-public-node2.pem --gossip-private-key ./s-private-node2.pem --agreement-public-key ./a-public-node2.pem --agreement-private-key ./a-private-node2.pem  -n "${SOLO_NAMESPACE}"
 ```
 
 Example 4: attach jvm debugger with node delete operation
 
 ```bash
 ./test/e2e/setup-e2e.sh
-solo node keys --gossip-keys --tls-keys
-solo network deploy -i node1,node2,node3,node4
-solo node setup -i node1,node2,node3,node4 --local-build-path ../hedera-services/hedera-node/data
-solo node start -i node1,node2,node3,node4
-solo node delete --node-id node2  --debug-nodeid node3
+solo node keys --gossip-keys --tls-keys -i node1,node2,node3
+solo network deploy -i node1,node2,node3,node4 -n "${SOLO_NAMESPACE}"
+solo node setup -i node1,node2,node3,node4 --local-build-path ../hedera-services/hedera-node/data -n "${SOLO_NAMESPACE}"
+solo node start -i node1,node2,node3,node4 -n "${SOLO_NAMESPACE}"
+solo node delete --node-alias node2  --debug-node-alias node3 -n "${SOLO_NAMESPACE}"
 ```
 
 ## Support
