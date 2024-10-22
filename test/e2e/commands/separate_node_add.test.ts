@@ -90,15 +90,11 @@ e2eTestSuite(namespace, argv, undefined, undefined, undefined, undefined, undefi
       await nodeCmd.handlers.addSubmitTransactions(argvExecute)
       await nodeCmd.handlers.addExecute(argvExecute)
       expect(nodeCmd.getUnusedConfigs(NodeCommandConfigs.ADD_CONFIGS_NAME)).to.deep.equal([
-        flags.app.constName,
-        flags.chainId.constName,
-        flags.devMode.constName,
-        flags.generateGossipKeys.constName,
-        flags.generateTlsKeys.constName,
         flags.gossipEndpoints.constName,
         flags.grpcEndpoints.constName,
+        flags.devMode.constName,
+        flags.force.constName,
         flags.quiet.constName,
-        flags.adminKey.constName,
         'curDate',
         'freezeAdminPrivateKey'
       ])
