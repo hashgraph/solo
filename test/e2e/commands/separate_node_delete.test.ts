@@ -74,9 +74,8 @@ e2eTestSuite(namespace, argv, undefined, undefined, undefined, undefined, undefi
       await nodeCmd.handlers.deleteSubmitTransactions(argvExecute)
       await nodeCmd.handlers.deleteExecute(argvExecute)
       expect(nodeCmd.getUnusedConfigs(NodeCommandConfigs.DELETE_CONFIGS_NAME)).to.deep.equal([
-        flags.app.constName,
         flags.devMode.constName,
-        flags.endpointType.constName,
+        flags.force.constName,
         flags.quiet.constName,
         flags.adminKey.constName,
         'freezeAdminPrivateKey'
