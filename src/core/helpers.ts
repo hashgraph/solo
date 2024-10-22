@@ -27,7 +27,7 @@ import { FileContentsQuery, FileId, PrivateKey, ServiceEndpoint } from '@hashgra
 import { Listr } from 'listr2'
 import { type AccountManager } from './account_manager.ts'
 import { type NodeAlias, type NodeAliases, type PodName } from '../types/aliases.ts'
-import { type NodeDeleteConfigClass } from '../commands/node.ts'
+import { type NodeDeleteConfigClass } from '../commands/node/configs.ts'
 import { type CommandFlag } from '../types/index.ts'
 import { type V1Pod } from '@kubernetes/client-node'
 import { type SoloLogger } from './logging.js'
