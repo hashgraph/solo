@@ -92,3 +92,8 @@ tasks:
     cmds:
       - npm i -g typedoc
       - typedoc --version
+
+  install:solo:
+    cmds:
+      - cd ..
+      - npm install
