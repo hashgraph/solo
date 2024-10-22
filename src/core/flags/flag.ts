@@ -18,7 +18,7 @@
 import { type ListrTaskWrapper } from 'listr2'
 import { type PromptFunction, Prompts } from './prompt.js'
 
-type Definition = {
+interface Definition {
   static get describe(): string
 }
 
