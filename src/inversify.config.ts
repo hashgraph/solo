@@ -14,11 +14,11 @@
  * limitations under the License.
  *
  */
-import { Container } from 'inversify'
+// import { Container } from 'inversify'
 import { TYPES } from './types/types.js'
 // import { NetworkDestroyFlags, type AFlags } from './core/flags/flags.js'
 
-const container = new Container()
+// const container = new Container()
 // container.bind<AFlags>(TYPES.AFlags).to(NetworkDestroyFlags).inSingletonScope()
 
-export { container }
+// export { container }
