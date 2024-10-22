@@ -25,6 +25,7 @@ import { getFileContents, getEnvValue } from '../core/helpers.ts'
 import { type AccountManager } from '../core/account_manager.ts'
 import { type PodName } from '../types/aliases.ts'
 import { type Opts } from '../types/index.js'
+import { MIRROR_NODE_CHART_URL } from '../core/constants.js'
 
 export class MirrorNodeCommand extends BaseCommand {
   private readonly accountManager: AccountManager
@@ -48,9 +49,9 @@ export class MirrorNodeCommand extends BaseCommand {
       flags.chartDirectory,
       flags.deployHederaExplorer,
       flags.enableHederaExplorerTls,
-      flags.soloChartVersion,
       flags.hederaExplorerTlsHostName,
       flags.hederaExplorerTlsLoadBalancerIp,
+      flags.hederaExplorerVersion,
       flags.namespace,
       flags.profileFile,
       flags.profileName,
@@ -111,11 +112,11 @@ export class MirrorNodeCommand extends BaseCommand {
         config.hederaExplorerTlsLoadBalancerIp, config.hederaExplorerTlsHostName)
     }
 
-    if (config.mirrorNodeVersion) {
-      valuesArg += ` --set global.image.tag=${config.mirrorNodeVersion}`
-    }
+    // if (config.mirrorNodeVersion) {
+    //   valuesArg += ` --set global.image.tag=${config.mirrorNodeVersion}`
+    // }
 
-    valuesArg += ` --set hedera-mirror-node.enabled=true --set hedera-explorer.enabled=${config.deployHederaExplorer}`
+    // valuesArg += ` --set hedera-mirror-node.enabled=true --set hedera-explorer.enabled=${config.deployHederaExplorer}`
 
     if (config.valuesFile) {
       valuesArg += this.prepareValuesFiles(config.valuesFile)
@@ -134,6 +135,7 @@ export class MirrorNodeCommand extends BaseCommand {
       soloChartVersion: string
       hederaExplorerTlsHostName: string
       hederaExplorerTlsLoadBalancerIp: string
+      hederaExplorerVersion: string
       namespace: string
       profileFile: string
       profileName: string
@@ -161,9 +163,9 @@ export class MirrorNodeCommand extends BaseCommand {
             flags.chartDirectory,
             flags.deployHederaExplorer,
             flags.enableHederaExplorerTls,
-            flags.soloChartVersion,
             flags.hederaExplorerTlsHostName,
             flags.hederaExplorerTlsLoadBalancerIp,
+            flags.hederaExplorerVersion,
             flags.tlsClusterIssuerType,
             flags.valuesFile,
             flags.mirrorNodeVersion
@@ -175,9 +177,11 @@ export class MirrorNodeCommand extends BaseCommand {
             ['chartPath', 'valuesArg']) as MirrorNodeDeployConfigClass
 
           ctx.config.chartPath = await self.prepareChartPath(ctx.config.chartDirectory,
-            constants.SOLO_TESTING_CHART, constants.SOLO_DEPLOYMENT_CHART)
+            constants.MIRROR_NODE_CHART, constants.MIRROR_NODE_CHART)
 
           ctx.config.valuesArg = await self.prepareValuesArg(ctx.config)
+
+          ctx.config.valuesArg += this.prepareValuesFiles('resources/mirror-node-values.yaml')
 
           if (!await self.k8.hasNamespace(ctx.config.namespace)) {
             throw new SoloError(`namespace ${ctx.config.namespace} does not exist`)
@@ -200,7 +204,11 @@ export class MirrorNodeCommand extends BaseCommand {
             {
               title: 'Deploy mirror-node',
               task: async (ctx) => {
-                await self.chartManager.install(ctx.config.namespace, constants.MIRROR_NODE_CHART, ctx.config.chartPath, '', ctx.config.valuesArg)
+                await self.chartManager.install(ctx.config.namespace, constants.MIRROR_NODE_CHART, ctx.config.chartPath, ctx.config.mirrorNodeVersion, ctx.config.valuesArg)
+
+                const explorerValuesArg = this.prepareValuesFiles('resources/head-explorer-values.yaml')
+
+                await self.chartManager.install(ctx.config.namespace, constants.HEDERA_EXPLORER_CHART, constants.HEDERA_EXPLORER_CHART_UTL, ctx.config.hederaExplorerVersion, explorerValuesArg)
 
                 // await self.chartManager.upgrade(
                 //   ctx.config.namespace,

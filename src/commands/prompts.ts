@@ -20,7 +20,7 @@ import { SoloError, IllegalArgumentError } from '../core/errors.ts'
 import { ConfigManager, constants } from '../core/index.ts'
 import * as flags from './flags.ts'
 import * as helpers from '../core/helpers.ts'
-import { resetDisabledPrompts } from './flags.ts'
+import { hederaExplorerVersion, resetDisabledPrompts } from './flags.ts'
 import type { ListrTaskWrapper } from 'listr2'
 import { type CommandFlag } from '../types/index.js'
 
@@ -438,6 +438,14 @@ export async function promptMirrorNodeVersion (task: ListrTaskWrapper<any, any, 
     flags.mirrorNodeVersion.name)
 }
 
+export async function promptHederaExplorerVersion (task: ListrTaskWrapper<any, any, any>, input: any) {
+  return await promptToggle(task, input,
+      flags.hederaExplorerVersion.definition.defaultValue,
+      'Would you like to choose hedera explorer version? ',
+      null,
+      flags.hederaExplorerVersion.name)
+}
+
 export function getPromptMap (): Map<string, Function> {
   return new Map()
     .set(flags.accountId.name, promptAccountId)
@@ -479,6 +487,7 @@ export function getPromptMap (): Map<string, Function> {
     .set(flags.grpcEndpoints.name, promptGrpcEndpoints)
     .set(flags.endpointType.name, promptEndpointType)
     .set(flags.mirrorNodeVersion.name, promptMirrorNodeVersion)
+    .set(flags.hederaExplorerVersion, promptHederaExplorerVersion)
 }
 
 // build the prompt registry

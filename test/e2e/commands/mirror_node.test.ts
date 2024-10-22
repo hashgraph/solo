@@ -40,6 +40,8 @@ const namespace = testName
 const argv = getDefaultArgv()
 argv[flags.namespace.name] = namespace
 argv[flags.releaseTag.name] = HEDERA_PLATFORM_VERSION_TAG
+argv[flags.mirrorNodeVersion.name] = '0.113.0'
+argv[flags.hederaExplorerVersion.name] = '0.2.0'
 
 argv[flags.nodeAliasesUnparsed.name] = 'node1' // use a single node to reduce resource during e2e tests
 argv[flags.generateGossipKeys.name] = true

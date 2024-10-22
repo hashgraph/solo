@@ -698,6 +698,15 @@ export const mirrorNodeVersion: CommandFlag = {
   }
 }
 
+export const hederaExplorerVersion: CommandFlag = {
+  constName: 'hederaExplorerVersion',
+  name: 'hedera-explorer-version',
+  definition: {
+    describe: 'Hedera explorer chart version',
+    defaultValue: '',
+    type: 'string'
+  }
+}
 export const allFlags: CommandFlag[] = [
   accountId,
   amount,
@@ -758,7 +767,8 @@ export const allFlags: CommandFlag[] = [
   tlsPublicKey,
   updateAccountKeys,
   valuesFile,
-  mirrorNodeVersion
+  mirrorNodeVersion,
+  hederaExplorerVersion
 ]
 
 /** Resets the definition.disablePrompt for all flags */

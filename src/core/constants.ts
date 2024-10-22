@@ -57,6 +57,8 @@ export const JSON_RPC_RELAY_CHART_URL = 'https://hashgraph.github.io/hedera-json
 export const JSON_RPC_RELAY_CHART = 'hedera-json-rpc-relay'
 export const MIRROR_NODE_CHART_URL = 'https://hashgraph.github.io/hedera-mirror-node/charts'
 export const MIRROR_NODE_CHART = 'hedera-mirror'
+export const HEDERA_EXPLORER_CHART_UTL = 'oci://ghcr.io/hashgraph/hedera-mirror-node-explorer'
+export const HEDERA_EXPLORER_CHART = 'hedera-explorer'
 
 export const DEFAULT_CHART_REPO: Map<string, string> = new Map()
   .set(SOLO_TESTING_CHART, SOLO_TESTING_CHART_URL)
