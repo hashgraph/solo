@@ -133,7 +133,7 @@ export class PackageDownloader {
    * @returns hex digest of the computed hash
    * @throws {Error} - if the file cannot be read
    */
-  computeFileHash (this: any, filePath: string, algo: string = 'sha384') {
+  computeFileHash (this: any, filePath: string, algo = 'sha384') {
     const self = this
 
     return new Promise<string>((resolve, reject) => {
@@ -142,7 +142,7 @@ export class PackageDownloader {
         const checksum = crypto.createHash(algo)
         const s = fs.createReadStream(filePath)
         s.on('data', function (d) {
-          checksum.update(<crypto.BinaryLike>d)
+          checksum.update((d as crypto.BinaryLike))
         })
         s.on('end', function () {
           const d = checksum.digest('hex')

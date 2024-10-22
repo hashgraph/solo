@@ -141,7 +141,7 @@ export class AccountCommand extends BaseCommand {
           ])
 
           const config = {
-            namespace: <string>self.configManager.getFlag<string>(flags.namespace)
+            namespace: self.configManager.getFlag<string>(flags.namespace) as string
           }
 
           if (!await this.k8.hasNamespace(config.namespace)) {
@@ -270,11 +270,11 @@ export class AccountCommand extends BaseCommand {
           ])
 
           const config = {
-            amount: <number>self.configManager.getFlag<number>(flags.amount),
-            ecdsaPrivateKey: <string>self.configManager.getFlag<string>(flags.ecdsaPrivateKey),
-            namespace: <string>self.configManager.getFlag<string>(flags.namespace),
-            privateKey: <string>self.configManager.getFlag<string>(flags.privateKey),
-            setAlias: <boolean>self.configManager.getFlag<boolean>(flags.setAlias)
+            amount: self.configManager.getFlag<number>(flags.amount) as number,
+            ecdsaPrivateKey: self.configManager.getFlag<string>(flags.ecdsaPrivateKey) as string,
+            namespace: self.configManager.getFlag<string>(flags.namespace) as string,
+            privateKey: self.configManager.getFlag<string>(flags.privateKey) as string,
+            setAlias: self.configManager.getFlag<boolean>(flags.setAlias) as boolean
           }
 
           if (!config.amount) {
@@ -346,10 +346,10 @@ export class AccountCommand extends BaseCommand {
           ])
 
           const config = {
-            accountId: <string>self.configManager.getFlag<string>(flags.accountId),
-            amount: <number>self.configManager.getFlag<number>(flags.amount),
-            namespace: <string>self.configManager.getFlag<string>(flags.namespace),
-            privateKey: <string>self.configManager.getFlag<string>(flags.privateKey)
+            accountId: self.configManager.getFlag<string>(flags.accountId) as string,
+            amount: self.configManager.getFlag<number>(flags.amount) as number,
+            namespace: self.configManager.getFlag<string>(flags.namespace) as string,
+            privateKey: self.configManager.getFlag<string>(flags.privateKey) as string
           }
 
           if (!await this.k8.hasNamespace(config.namespace)) {
@@ -423,8 +423,8 @@ export class AccountCommand extends BaseCommand {
           ])
 
           const config = {
-            accountId: <string>self.configManager.getFlag<string>(flags.accountId),
-            namespace: <string>self.configManager.getFlag<string>(flags.namespace)
+            accountId: self.configManager.getFlag<string>(flags.accountId) as string,
+            namespace: self.configManager.getFlag<string>(flags.namespace) as string
           }
 
           if (!await this.k8.hasNamespace(config.namespace)) {

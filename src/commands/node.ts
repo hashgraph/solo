@@ -949,11 +949,11 @@ export class NodeCommand extends BaseCommand {
 
           // @ts-ignore
           ctx.config = {
-            app: <string>self.configManager.getFlag<string>(flags.app),
-            cacheDir: <string>self.configManager.getFlag<string>(flags.cacheDir),
-            debugNodeAlias: <NodeAlias>self.configManager.getFlag<NodeAlias>(flags.debugNodeAlias),
-            namespace: <string>self.configManager.getFlag<string>(flags.namespace),
-            nodeAliases: helpers.parseNodeAliases(<string>self.configManager.getFlag<string>(flags.nodeAliasesUnparsed))
+            app: self.configManager.getFlag<string>(flags.app) as string,
+            cacheDir: self.configManager.getFlag<string>(flags.cacheDir) as string,
+            debugNodeAlias: self.configManager.getFlag<NodeAlias>(flags.debugNodeAlias) as NodeAlias,
+            namespace: self.configManager.getFlag<string>(flags.namespace) as string,
+            nodeAliases: helpers.parseNodeAliases((self.configManager.getFlag<string>(flags.nodeAliasesUnparsed) as string))
           }
 
           ctx.config.stagingDir = Templates.renderStagingDir(
@@ -1350,8 +1350,8 @@ export class NodeCommand extends BaseCommand {
           ])
 
           ctx.config = {
-            namespace: <string>self.configManager.getFlag<string>(flags.namespace),
-            nodeAliases: helpers.parseNodeAliases(<string>self.configManager.getFlag<string>(flags.nodeAliasesUnparsed))
+            namespace: self.configManager.getFlag<string>(flags.namespace) as string,
+            nodeAliases: helpers.parseNodeAliases((self.configManager.getFlag<string>(flags.nodeAliasesUnparsed) as string))
           }
           self.logger.debug('Initialized config', { config: ctx.config })
         }
