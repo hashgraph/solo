@@ -80,14 +80,6 @@ export function getTmpDir () {
   return fs.mkdtempSync(path.join(os.tmpdir(), 'solo-'))
 }
 
-/**
- * Return a config manager with the specified config file name
- * @param fileName solo config file name
- */
-export function getTestConfigManager (fileName = 'solo-test.config') {
-  return new ConfigManager(testLogger, path.join(getTestCacheDir(), fileName))
-}
-
 /** Get argv with defaults */
 export function getDefaultArgv () {
   const argv: Record<string, any> = {}
@@ -139,8 +131,8 @@ export function bootstrapTestVariables (
 ): BootstrapResponse {
   const namespace: string = argv[flags.namespace.name] || 'bootstrap-ns'
   const cacheDir: string = argv[flags.cacheDir.name] || getTestCacheDir(testName)
-  const configManager = getTestConfigManager(`${testName}-solo.yaml`)
-  configManager.update(argv, true)
+  const configManager = new ConfigManager(testLogger)
+  configManager.update(argv)
 
   const downloader = new PackageDownloader(testLogger)
   const zippy = new Zippy(testLogger)
@@ -365,7 +357,7 @@ export async function getNodeAliasesPrivateKeysHash (networkNodeServicesMap: Map
     if (!fs.existsSync(uniqueNodeDestDir)) {
       fs.mkdirSync(uniqueNodeDestDir, { recursive: true })
     }
-    await addKeyHashToMap(k8, nodeAlias, dataKeysDir, uniqueNodeDestDir, keyHashMap, Templates.renderGossipPemPrivateKeyFile(constants.SIGNING_KEY_PREFIX, nodeAlias))
+    await addKeyHashToMap(k8, nodeAlias, dataKeysDir, uniqueNodeDestDir, keyHashMap, Templates.renderGossipPemPrivateKeyFile(nodeAlias))
     await addKeyHashToMap(k8, nodeAlias, tlsKeysDir, uniqueNodeDestDir, keyHashMap, 'hedera.key')
     nodeKeyHashMap.set(nodeAlias, keyHashMap)
   }

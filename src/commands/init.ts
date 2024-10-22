@@ -148,19 +148,10 @@ export class InitCommand extends BaseCommand {
     const initCmd = this
     return {
       command: 'init',
-      desc: 'Initialize local environment and default flags',
+      desc: 'Initialize local environment',
       builder: (y: any) => {
         flags.setCommandFlags(y,
-          flags.applicationEnv,
-          flags.cacheDir,
-          flags.chartDirectory,
-          flags.clusterSetupNamespace,
-          flags.soloChartVersion,
-          flags.namespace,
-          flags.nodeAliasesUnparsed,
-          flags.profileFile,
-          flags.profileName,
-          flags.releaseTag
+          flags.cacheDir
         )
       },
       handler: (argv: any) => {

@@ -44,7 +44,6 @@ import {
 import crypto from 'crypto'
 import { MINUTES } from '../../../../src/core/constants.ts'
 import type { PodName } from '../../../../src/types/aliases.ts'
-import { ExtendedNetServer } from '../../../../src/types/index.ts'
 
 const defaultTimeout = 2 * MINUTES
 

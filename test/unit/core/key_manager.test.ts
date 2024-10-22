@@ -35,17 +35,13 @@ describe('KeyManager', () => {
 
     const signingKey = await keyManager.generateSigningKey(nodeAlias)
 
-    const nodeKeyFiles = keyManager.prepareNodeKeyFilePaths(nodeAlias, tmpDir, constants.SIGNING_KEY_PREFIX)
+    const nodeKeyFiles = keyManager.prepareNodeKeyFilePaths(nodeAlias, tmpDir)
     const files = await keyManager.storeNodeKey(nodeAlias, signingKey, tmpDir, nodeKeyFiles, keyPrefix)
     expect(files.privateKeyFile).not.to.be.null
     expect(files.certificateFile).not.to.be.null
 
     const nodeKey = await keyManager.loadSigningKey(nodeAlias, tmpDir)
-    expect(nodeKey.certificate).to.deep.equal(signingKey.certificate)
-    // @ts-ignore
-    expect(nodeKey.privateKeyPem).to.deep.equal(signingKey.privateKeyPem) // TODO: Can't explain this
-    // @ts-ignore
-    expect(nodeKey.certificatePem).to.deep.equal(signingKey.certificatePem) // TODO: Can't explain this
+    expect(nodeKey.certificate.rawData.toString()).to.equal(signingKey.certificate.rawData.toString())
     expect(nodeKey.privateKey.algorithm).to.deep.equal(signingKey.privateKey.algorithm)
     expect(nodeKey.privateKey.type).to.deep.equal(signingKey.privateKey.type)
 
@@ -60,9 +56,8 @@ describe('KeyManager', () => {
   it('should generate TLS key', async () => {
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'keys-'))
     const nodeAlias = 'node1'
-    const keyName = 'TLS'
 
-    const tlsKey = await keyManager.generateGrpcTLSKey(nodeAlias)
+    const tlsKey = await keyManager.generateGrpcTlsKey(nodeAlias)
     expect(tlsKey.certificate.subject).not.to.equal('')
     expect(tlsKey.certificate.issuer).not.to.equal('')
 
@@ -73,11 +68,7 @@ describe('KeyManager', () => {
     const nodeKey = await keyManager.loadTLSKey(nodeAlias, tmpDir)
     expect(nodeKey.certificate.subject).to.deep.equal(tlsKey.certificate.subject)
     expect(nodeKey.certificate.issuer).to.deep.equal(tlsKey.certificate.issuer)
-    expect(nodeKey.certificate).to.deep.equal(tlsKey.certificate)
-    // @ts-ignore
-    expect(nodeKey.privateKeyPem).to.deep.equal(tlsKey.privateKeyPem) // TODO: Can't explain this
-    // @ts-ignore
-    expect(nodeKey.certificatePem).to.deep.equal(tlsKey.certificatePem )// TODO: Can't explain this
+    expect(nodeKey.certificate.rawData.toString()).to.deep.equal(tlsKey.certificate.rawData.toString())
     expect(nodeKey.privateKey.algorithm).to.deep.equal(tlsKey.privateKey.algorithm)
     expect(nodeKey.privateKey.type).to.deep.equal(tlsKey.privateKey.type)
 

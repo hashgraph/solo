@@ -30,6 +30,12 @@ async function prompt (type: string, task: ListrTaskWrapper<any, any, any>, inpu
     needsPrompt = type === 'number' ? typeof input !== 'number' : needsPrompt
 
     if (needsPrompt) {
+      if (!process.stdout.isTTY || !process.stdin.isTTY) {
+        // this is to help find issues with prompts running in non-interactive mode, user should supply quite mode,
+        // or provide all flags required for command
+        throw new SoloError('Cannot prompt for input in non-interactive mode')
+      }
+
       input = await task.prompt(ListrEnquirerPromptAdapter).run({
         type,
         default: defaultValue,
@@ -503,8 +509,6 @@ export async function execute (task: ListrTaskWrapper<any, any, any>, configMana
     const input = await prompt(task, configManager.getFlag(flag))
     configManager.setFlag(flag, input)
   }
-
-  configManager.persist()
 }
 
 /**

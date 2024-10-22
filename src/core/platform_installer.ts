@@ -147,11 +147,11 @@ export class PlatformInstaller {
       const srcFiles = []
 
       // copy private keys for the node
-      srcFiles.push(path.join(stagingDir, 'keys', Templates.renderGossipPemPrivateKeyFile(constants.SIGNING_KEY_PREFIX, nodeAlias)))
+      srcFiles.push(path.join(stagingDir, 'keys', Templates.renderGossipPemPrivateKeyFile(nodeAlias)))
 
       // copy all public keys for all nodes
       nodeAliases.forEach(nodeAlias => {
-        srcFiles.push(path.join(stagingDir, 'keys', Templates.renderGossipPemPublicKeyFile(constants.SIGNING_KEY_PREFIX, nodeAlias)))
+        srcFiles.push(path.join(stagingDir, 'keys', Templates.renderGossipPemPublicKeyFile(nodeAlias)))
       })
 
       const data = {}
