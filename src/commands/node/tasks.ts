@@ -275,7 +275,7 @@ export class NodeCommandTasks {
 
   async _checkNetworkNodeActiveness (namespace: string, nodeAlias: NodeAlias, task: ListrTaskWrapper<any, any, any>,
                                      title: string, index: number, status = NodeStatusCodes.ACTIVE,
-                                     maxAttempts = 240, delay = 1_000, timeout = 1_000) {
+                                     maxAttempts = 120, delay = 1_000, timeout = 1_000) {
     nodeAlias = nodeAlias.trim() as NodeAlias
     const podName = Templates.renderNetworkPodName(nodeAlias)
     const podPort = 9_999
