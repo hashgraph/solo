@@ -313,7 +313,7 @@ export class NodeCommandHandlers {
     const action = helpers.commandActionBuilder([
       this.tasks.initialize(argv, updateConfigBuilder.bind(this)),
       this.tasks.loadContextData(argv, NodeCommandHandlers.DELETE_CONTEXT_FILE, helpers.deleteLoadContextParser),
-      this.deleteSubmitTransactionsTaskList(argv)
+      ...this.deleteSubmitTransactionsTaskList(argv)
     ], {
       concurrent: false,
       rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
