@@ -200,13 +200,15 @@ export class MirrorNodeCommand extends BaseCommand {
             {
               title: 'Deploy mirror-node',
               task: async (ctx) => {
-                await self.chartManager.upgrade(
-                  ctx.config.namespace,
-                  constants.SOLO_DEPLOYMENT_CHART,
-                  ctx.config.chartPath,
-                  ctx.config.valuesArg,
-                  ctx.config.soloChartVersion
-                )
+                await self.chartManager.install(ctx.config.namespace, constants.MIRROR_NODE_CHART, ctx.config.chartPath, '', ctx.config.valuesArg)
+
+                // await self.chartManager.upgrade(
+                //   ctx.config.namespace,
+                //   constants.SOLO_DEPLOYMENT_CHART,
+                //   ctx.config.chartPath,
+                //   ctx.config.valuesArg,
+                //   ctx.config.soloChartVersion
+                // )
               }
             }
           ], {
@@ -338,11 +340,12 @@ export class MirrorNodeCommand extends BaseCommand {
 
     interface Context {
       config: {
-        chartDirectory: string
-        soloChartVersion: string
+        // chartDirectory: string
+        // soloChartVersion: string
         namespace: string
-        chartPath: string
-        valuesArg: string
+        // chartPath: string
+        // valuesArg: string
+        isChartInstalled: boolean
       }
     }
 
@@ -369,19 +372,21 @@ export class MirrorNodeCommand extends BaseCommand {
 
           // @ts-ignore
           ctx.config = {
-            chartDirectory: <string>self.configManager.getFlag<string>(flags.chartDirectory),
-            soloChartVersion: <string>self.configManager.getFlag<string>(flags.soloChartVersion),
+            // chartDirectory: <string>self.configManager.getFlag<string>(flags.chartDirectory),
+            // soloChartVersion: <string>self.configManager.getFlag<string>(flags.soloChartVersion),
             namespace: <string>self.configManager.getFlag<string>(flags.namespace)
           }
 
-          ctx.config.chartPath = await self.prepareChartPath(ctx.config.chartDirectory,
-            constants.SOLO_TESTING_CHART, constants.SOLO_DEPLOYMENT_CHART)
-
-          ctx.config.valuesArg = ' --set hedera-mirror-node.enabled=false --set hedera-explorer.enabled=false'
+          // ctx.config.chartPath = await self.prepareChartPath(ctx.config.chartDirectory,
+          //   constants.SOLO_TESTING_CHART, constants.SOLO_DEPLOYMENT_CHART)
+          //
+          // ctx.config.valuesArg = ' --set hedera-mirror-node.enabled=false --set hedera-explorer.enabled=false'
 
           if (!await self.k8.hasNamespace(ctx.config.namespace)) {
             throw new SoloError(`namespace ${ctx.config.namespace} does not exist`)
           }
+
+          ctx.config.isChartInstalled = await this.chartManager.isChartInstalled(ctx.config.namespace, constants.MIRROR_NODE_CHART)
 
           await self.accountManager.loadNodeClient(ctx.config.namespace)
         }
@@ -389,14 +394,17 @@ export class MirrorNodeCommand extends BaseCommand {
       {
         title: 'Destroy mirror-node',
         task: async (ctx) => {
-          await self.chartManager.upgrade(
-            ctx.config.namespace,
-            constants.SOLO_DEPLOYMENT_CHART,
-            ctx.config.chartPath,
-            ctx.config.valuesArg,
-            ctx.config.soloChartVersion
-          )
-        }
+          await this.chartManager.uninstall(ctx.config.namespace, constants.MIRROR_NODE_CHART)
+
+          // await self.chartManager.upgrade(
+          //   ctx.config.namespace,
+          //   constants.SOLO_DEPLOYMENT_CHART,
+          //   ctx.config.chartPath,
+          //   ctx.config.valuesArg,
+          //   ctx.config.soloChartVersion
+          // )
+        },
+        skip: (ctx) => !ctx.config.isChartInstalled
       },
       {
         title: 'Delete PVCs',
@@ -412,8 +420,9 @@ export class MirrorNodeCommand extends BaseCommand {
               await self.k8.deletePvc(pvc, ctx.config.namespace)
             }
           }
-        }
-      }
+        },
+        skip: (ctx) => !ctx.config.isChartInstalled
+      },
     ], {
       concurrent: false,
       rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
