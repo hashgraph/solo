@@ -384,7 +384,7 @@ export function prepareEndpoints (endpointType: string, endpoints: string[], def
 
     if (parts.length === 2) {
       url = parts[0].trim()
-      port = +parts[1].trim()
+      port = +(parts[1].trim())
     } else if (parts.length === 1) {
       url = parts[0]
     } else {

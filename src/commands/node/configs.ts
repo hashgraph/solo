@@ -469,6 +469,51 @@ export const setupConfigBuilder = async function (argv, ctx, task) {
     return ctx.config
 }
 
+export interface NodeLogsConfigClass {
+    namespace: string
+    nodeAliases: string[]
+}
+
+export interface NodeRefreshConfigClass {
+    app: string
+    cacheDir: string
+    devMode: boolean
+    localBuildPath: string
+    namespace: string
+    nodeAliasesUnparsed: string
+    releaseTag: string
+    nodeAliases: NodeAliases
+    podNames: Record<NodeAlias, PodName>
+    getUnusedConfigs: () => string[]
+}
+
+export interface NodeKeysConfigClass {
+    cacheDir: string
+    devMode: boolean
+    generateGossipKeys: boolean
+    generateTlsKeys: boolean
+    nodeAliasesUnparsed: string
+    curDate: Date
+    keysDir: string
+    nodeAliases: NodeAliases
+    getUnusedConfigs: () => string[]
+}
+
+export interface NodeStopConfigClass {
+    namespace: string
+    nodeAliases: NodeAliases
+    podNames: Record<PodName, NodeAlias>
+}
+
+export interface NodeStartConfigClass {
+    app: string
+    cacheDir: string
+    debugNodeAlias: NodeAlias
+    namespace: string
+    nodeAliases: NodeAliases
+    stagingDir: string,
+    podNames: Record<NodeAlias, PodName>
+}
 
 export interface NodeAddConfigClass {
     app: string
@@ -516,6 +561,56 @@ export interface NodeDeleteConfigClass {
     namespace: string
     nodeAlias: NodeAlias
     releaseTag: string
+    adminKey: PrivateKey
+    allNodeAliases: NodeAliases
+    chartPath: string
+    existingNodeAliases: NodeAliases
+    freezeAdminPrivateKey: string
+    keysDir: string
+    nodeClient: any
+    podNames: Record<NodeAlias, PodName>
+    serviceMap: Map<string, NetworkNodeServices>
+    stagingDir: string
+    stagingKeysDir: string
+    treasuryKey: PrivateKey
+    getUnusedConfigs: () => string[]
+    curDate: Date
+}
+
+export interface NodeSetupConfigClass {
+    app: string
+    appConfig: string
+    cacheDir: string
+    devMode: boolean
+    localBuildPath: string
+    namespace: string
+    nodeAliasesUnparsed: string
+    releaseTag: string
+    nodeAliases: NodeAliases
+    podNames: object
+    getUnusedConfigs: () => string[]
+}
+
+export interface NodeUpdateConfigClass {
+    app: string
+    cacheDir: string
+    chartDirectory: string
+    devMode: boolean
+    debugNodeAlias: NodeAlias
+    endpointType: string
+    soloChartVersion: string
+    gossipEndpoints: string
+    gossipPrivateKey: string
+    gossipPublicKey: string
+    grpcEndpoints: string
+    localBuildPath: string
+    namespace: string
+    newAccountNumber: string
+    newAdminKey: string
+    nodeAlias: NodeAlias
+    releaseTag: string
+    tlsPrivateKey: string
+    tlsPublicKey: string
     adminKey: PrivateKey
     allNodeAliases: NodeAliases
     chartPath: string

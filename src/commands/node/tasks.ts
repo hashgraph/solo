@@ -30,7 +30,7 @@ import {
 import {
   DEFAULT_NETWORK_NODE_NAME,
   FREEZE_ADMIN_ACCOUNT, HEDERA_NODE_DEFAULT_STAKE_AMOUNT,
-  LOCAL_HOST,
+  LOCAL_HOST, SECONDS,
   TREASURY_ACCOUNT_ID
 } from '../../core/constants.ts'
 import {
@@ -173,14 +173,7 @@ export class NodeCommandTasks {
     }
   }
 
-  /**
-   * @param {NodeAliases} nodeAliases
-   * @param {Object} podNames
-   * @param {TaskWrapper} task
-   * @param {string} localBuildPath
-   * @returns {Listr<*, *, *>}
-   */
-  _uploadPlatformSoftware (nodeAliases, podNames, task, localBuildPath) {
+  _uploadPlatformSoftware (nodeAliases: NodeAliases, podNames: any, task: ListrTaskWrapper<any, any, any>, localBuildPath: string) {
     const subTasks = []
 
     this.logger.debug('no need to fetch, use local build jar files')
@@ -237,15 +230,8 @@ export class NodeCommandTasks {
     })
   }
 
-  /**
-   * @param {NodeAliases} nodeAliases
-   * @param {Object} podNames
-   * @param {string} releaseTag
-   * @param {TaskWrapper} task
-   * @param {PlatformInstaller} platformInstaller
-   * @returns {Listr<any, any, any>}
-   */
-  _fetchPlatformSoftware (nodeAliases, podNames, releaseTag, task, platformInstaller) {
+  _fetchPlatformSoftware (nodeAliases: NodeAliases, podNames: Record<NodeAlias, PodName>, releaseTag: string,
+                          task: ListrTaskWrapper<any, any, any>, platformInstaller: PlatformInstaller) {
     const subTasks = []
     for (const nodeAlias of nodeAliases) {
       const podName = podNames[nodeAlias]
@@ -265,14 +251,7 @@ export class NodeCommandTasks {
     })
   }
 
-  /**
-   * @param {Object} ctx
-   * @param {TaskWrapper} task
-   * @param {NodeAliases} nodeAliases
-   * @param {number} [status]
-   * @returns {Listr<any, any, any>}
-   */
-  _checkNodeActivenessTask (ctx, task, nodeAliases, status = NodeStatusCodes.ACTIVE) {
+  _checkNodeActivenessTask (ctx: any, task: ListrTaskWrapper<any, any, any>, nodeAliases: NodeAliases, status = NodeStatusCodes.ACTIVE) {
     const { config: { namespace } } = ctx
 
     const subTasks = nodeAliases.map((nodeAlias, i) => {
@@ -294,21 +273,10 @@ export class NodeCommandTasks {
     })
   }
 
-  /**
-   * @param {string} namespace
-   * @param {NodeAlias} nodeAlias
-   * @param {TaskWrapper} task
-   * @param {string} title
-   * @param {number} index
-   * @param {number} [status]
-   * @param {number} [maxAttempts]
-   * @param {number} [delay]
-   * @param {number} [timeout]
-   * @returns {Promise<string>}
-   */
-  async _checkNetworkNodeActiveness (namespace, nodeAlias, task, title, index,
-    status = NodeStatusCodes.ACTIVE, maxAttempts = 120, delay = 1_000, timeout = 1_000) {
-    nodeAlias = nodeAlias.trim()
+  async _checkNetworkNodeActiveness (namespace: string, nodeAlias: NodeAlias, task: ListrTaskWrapper<any, any, any>,
+                                     title: string, index: number, status = NodeStatusCodes.ACTIVE,
+                                     maxAttempts = 120, delay = 1_000, timeout = 1_000) {
+    nodeAlias = nodeAlias.trim() as NodeAlias
     const podName = Templates.renderNetworkPodName(nodeAlias)
     const podPort = 9_999
     const localPort = 19_000 + index
@@ -375,19 +343,15 @@ export class NodeCommandTasks {
           `[ attempt = ${chalk.blueBright(`${attempt}/${maxAttempts}`)} ]`)
     }
 
-    await sleep(1_500) // delaying prevents - gRPC service error
+    await sleep(1.5 * SECONDS) // delaying prevents - gRPC service error
 
     return podName
   }
 
   /**
    * Return task for check if node proxies are ready
-   * @param {any} ctx
-   * @param {TaskWrapper} task
-   * @param {NodeAliases} nodeAliases
-   * @returns {*}
    */
-  _checkNodesProxiesTask (ctx, task, nodeAliases) {
+  _checkNodesProxiesTask (ctx: any, task: ListrTaskWrapper<any, any, any>, nodeAliases: NodeAliases) {
     const subTasks = []
     for (const nodeAlias of nodeAliases) {
       subTasks.push({
@@ -408,14 +372,10 @@ export class NodeCommandTasks {
   }
 
   /**
-   *
    * When generating multiple all aliases are read from config.nodeAliases,
    * When generating a single key the alias in config.nodeAlias is used
-   * @param generateMultiple boolean
-   * @returns {Task}
-   * @private
    */
-  _generateGossipKeys (generateMultiple) {
+  _generateGossipKeys (generateMultiple: boolean) {
     return new Task('Generate gossip keys', (ctx, task) => {
       const config = ctx.config
       const nodeAliases = generateMultiple ? config.nodeAliases : [config.nodeAlias]
@@ -435,11 +395,8 @@ export class NodeCommandTasks {
    *
    * When generating multiple all aliases are read from config.nodeAliases,
    * When generating a single key the alias in config.nodeAlias is used
-   * @param generateMultiple boolean
-   * @returns {Task}
-   * @private
    */
-  _generateGrpcTlsKeys (generateMultiple) {
+  _generateGrpcTlsKeys (generateMultiple: boolean) {
     return new Task('Generate gRPC TLS Keys', (ctx, task) => {
       const config = ctx.config
       const nodeAliases = generateMultiple ? config.nodeAliases : [config.nodeAlias]
@@ -464,13 +421,7 @@ export class NodeCommandTasks {
     return (new Uint8Array(decodedDers[0]))
   }
 
-  /**
-   * @param {string} namespace
-   * @param {string} accountId
-   * @param {NodeAlias} nodeAlias
-   * @returns {Promise<void>}
-   */
-  async _addStake (namespace, accountId, nodeAlias) {
+  async _addStake (namespace: string, accountId: string, nodeAlias: NodeAlias) {
     try {
       await this.accountManager.loadNodeClient(namespace)
       const client = this.accountManager._nodeClient
@@ -713,12 +664,7 @@ export class NodeCommandTasks {
     })
   }
 
-  /**
-   *
-   * @param nodeAliasesProperty : string
-   * @returns {Task}
-   */
-  setupNetworkNodes (nodeAliasesProperty) {
+  setupNetworkNodes (nodeAliasesProperty: string) {
     return new Task('Setup network nodes', (ctx, task) => {
       const subTasks = []
       for (const nodeAlias of ctx.config[nodeAliasesProperty]) {
@@ -913,7 +859,6 @@ export class NodeCommandTasks {
       // reset flags so that keys are not regenerated later
       this.configManager.setFlag(flags.generateGossipKeys, false)
       this.configManager.setFlag(flags.generateTlsKeys, false)
-      this.configManager.persist()
     })
   }
 
@@ -1008,7 +953,7 @@ export class NodeCommandTasks {
   loadSigningKeyCertificate () {
     return new Task('Load signing key certificate', (ctx, task) => {
       const config = ctx.config
-      const signingCertFile = Templates.renderGossipPemPublicKeyFile(constants.SIGNING_KEY_PREFIX, config.nodeAlias)
+      const signingCertFile = Templates.renderGossipPemPublicKeyFile(config.nodeAlias)
       const signingCertFullPath = path.join(config.keysDir, signingCertFile)
       ctx.signingCertDer = this._loadPermCertificate(signingCertFullPath)
     })
@@ -1101,8 +1046,8 @@ export class NodeCommandTasks {
           const signingCertDer = this._loadPermCertificate(config.gossipPublicKey)
           nodeUpdateTx.setGossipCaCertificate(signingCertDer)
 
-          const publicKeyFile = Templates.renderGossipPemPublicKeyFile(constants.SIGNING_KEY_PREFIX, config.nodeAlias)
-          const privateKeyFile = Templates.renderGossipPemPrivateKeyFile(constants.SIGNING_KEY_PREFIX, config.nodeAlias)
+          const publicKeyFile = Templates.renderGossipPemPublicKeyFile(config.nodeAlias)
+          const privateKeyFile = Templates.renderGossipPemPrivateKeyFile(config.nodeAlias)
           renameAndCopyFile(config.gossipPublicKey, publicKeyFile, config.keysDir, this.logger)
           renameAndCopyFile(config.gossipPrivateKey, privateKeyFile, config.keysDir, this.logger)
         }
@@ -1146,12 +1091,7 @@ export class NodeCommandTasks {
     })
   }
 
-  /**
-   * @param title {string}
-   * @param skip {(boolean|function)}
-   * @returns {Task}
-   */
-  updateChartWithConfigMap (title, skip: Function | boolean = false) {
+  updateChartWithConfigMap (title: string, skip: Function | boolean = false) {
     return new Task(title, async (ctx, task) => {
       // Prepare parameter and update the network node chart
       const config = ctx.config

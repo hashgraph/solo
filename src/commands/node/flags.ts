@@ -190,10 +190,10 @@ export const STOP_FLAGS = {
 export const START_FLAGS = {
     requiredFlags: [
         flags.namespace,
+        flags.releaseTag
     ],
     requiredFlagsWithDisabledPrompt: [
         flags.app,
-        flags.cacheDir,
     ],
     optionalFlags: [
         flags.quiet,
