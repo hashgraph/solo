@@ -14,17 +14,13 @@
  * limitations under the License.
  *
  */
-import fs from 'fs'
 import { SoloError, MissingArgumentError } from './errors.ts'
-import { constants } from './index.ts'
 import { SoloLogger } from './logging.ts'
 import * as flags from '../commands/flags.ts'
 import * as paths from 'path'
 import * as helpers from './helpers.ts'
-import * as yaml from 'js-yaml'
-import { yamlToObject } from './helpers.ts'
 import type * as yargs from 'yargs'
-import { type CommandFlag } from '../types/index.js'
+import { type CommandFlag } from '../types/index.ts'
 
 /**
  * ConfigManager cache command flag values so that user doesn't need to enter the same values repeatedly.
@@ -35,24 +31,10 @@ import { type CommandFlag } from '../types/index.js'
 export class ConfigManager {
   config!: Record<string, any>
 
-  constructor (private readonly logger: SoloLogger, private readonly cachedConfigFile = constants.SOLO_CONFIG_FILE) {
+  constructor (private readonly logger: SoloLogger) {
     if (!logger || !(logger instanceof SoloLogger)) throw new MissingArgumentError('An instance of core/SoloLogger is required')
-    if (!cachedConfigFile) throw new MissingArgumentError('cached config file path is required')
 
     this.reset()
-  }
-
-  /**
-   * Load the cached config
-   */
-  load () {
-    try {
-      if (fs.existsSync(this.cachedConfigFile)) {
-        this.config = yamlToObject(this.cachedConfigFile) as Record<string, any>
-      }
-    } catch (e: Error | any) {
-      throw new SoloError(`failed to initialize config manager: ${e.message}`, e)
-    }
   }
 
   /** Reset config */
@@ -69,8 +51,7 @@ export class ConfigManager {
    *
    * It uses the below precedence for command flag values:
    *  1. User input of the command flag
-   *  2. Cached config value of the command flag.
-   *  3. Default value of the command flag if the command is not 'init'.
+   *  2. Default value of the command flag if the command is not 'init'.
    */
   applyPrecedence (argv: yargs.Argv<any>, aliases: any): yargs.Argv<any> {
     for (const key of Object.keys(aliases)) {
@@ -93,18 +74,9 @@ export class ConfigManager {
   }
 
   /** Update the config using the argv */
-  update (argv: object | any = {}, persist: boolean = false) {
+  update (argv: object | any = {}) {
     if (argv && Object.keys(argv).length > 0) {
       for (const flag of flags.allFlags) {
-        if (flag.name === flags.force.name) {
-          continue // we don't want to cache force flag
-        }
-
-        if (argv[flag.name] === '' &&
-          [flags.namespace.name, flags.clusterName.name, flags.chartDirectory.name].includes(flag.name)) {
-          continue // don't cache empty namespace, clusterName, or chartDirectory
-        }
-
         if (argv[flag.name] !== undefined) {
           let val = argv[flag.name]
           switch (flag.definition.type) {
@@ -147,23 +119,6 @@ export class ConfigManager {
       }
 
       this.config.updatedAt = new Date().toISOString()
-
-      if (persist) {
-        this.persist()
-      }
-    }
-  }
-
-  /** Persist the config in the cached config file */
-  persist () {
-    try {
-      this.config.updatedAt = new Date().toISOString()
-      const newYaml = yaml.dump(this.config)
-      fs.writeFileSync(this.cachedConfigFile, newYaml)
-      // refresh config with the file contents
-      this.load()
-    } catch (e: Error | any) {
-      throw new SoloError(`failed to persis config: ${e.message}`, e)
     }
   }
 
@@ -193,10 +148,5 @@ export class ConfigManager {
   /** Get package version */
   getVersion (): string {
     return this.config.version
-  }
-
-  /** Get last updated at timestamp */
-  getUpdatedAt (): string {
-    return this.config.updatedAt
   }
 }

@@ -58,7 +58,7 @@ export class InitCommand extends BaseCommand {
   /** Executes the init CLI command */
   async init (argv: any) {
     const self = this
-    let cacheDir: string = <string>this.configManager.getFlag<string>(flags.cacheDir)
+    let cacheDir: string = this.configManager.getFlag<string>(flags.cacheDir) as string
     if (!cacheDir) {
       cacheDir = constants.SOLO_CACHE_DIR as string
     }
@@ -147,19 +147,10 @@ export class InitCommand extends BaseCommand {
     const initCmd = this
     return {
       command: 'init',
-      desc: 'Initialize local environment and default flags',
+      desc: 'Initialize local environment',
       builder: (y: any) => {
         flags.setCommandFlags(y,
-          flags.applicationEnv,
-          flags.cacheDir,
-          flags.chartDirectory,
-          flags.clusterSetupNamespace,
-          flags.soloChartVersion,
-          flags.namespace,
-          flags.nodeAliasesUnparsed,
-          flags.profileFile,
-          flags.profileName,
-          flags.releaseTag
+          flags.cacheDir
         )
       },
       handler: (argv: any) => {

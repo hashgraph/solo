@@ -22,7 +22,7 @@ import { NodeCommand } from './node.ts'
 import { RelayCommand } from './relay.ts'
 import { AccountCommand } from './account.ts'
 import * as flags from './flags.ts'
-import { type Opts } from '../types/index.js'
+import { type Opts } from '../types/index.ts'
 
 /**
  * Return a list of Yargs command builder to be exposed through CLI

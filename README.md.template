@@ -115,13 +115,13 @@ You may now view pods in your cluster using `k9s -A` as below:
 
 ### Example - 1: Deploy a standalone test network (version `0.54.0-alpha.4`)
 
-* Initialize `solo` with tag `v0.54.0-alpha.4` and list of node names `node1,node2,node3`:
+* Initialize `solo` directories:
 
 ```
 # reset .solo directory
 rm -rf ~/.solo
 
-solo init -t v0.54.0-alpha.4 -i node1,node2,node3 -n "${SOLO_NAMESPACE}" -s "${SOLO_CLUSTER_SETUP_NAMESPACE}"
+solo init"
 ```
 
 * Example output
@@ -133,7 +133,7 @@ $SOLO_INIT_OUTPUT
 * Generate `pem` formatted node keys
 
 ```
-solo node keys --gossip-keys --tls-keys
+solo node keys --gossip-keys --tls-keys -i node1,node2,node3
 ```
 
 * Example output
@@ -151,7 +151,7 @@ hedera-node2.key    hedera-node4.key    s-private-node4.pem s-public-node4.pem
 * Setup cluster with shared components
 
 ```
-solo cluster setup
+solo cluster setup -s "${SOLO_CLUSTER_SETUP_NAMESPACE}"
 ```
 
 * Example output
@@ -167,7 +167,7 @@ In a separate terminal, you may run `k9s` to view the pod status.
   * If it fails, ensure you have enough resources allocated for Docker engine and retry the command.
 
 ```
-solo network deploy
+solo network deploy -i node1,node2,node3 -n "${SOLO_NAMESPACE}"
 ```
 
 * Example output
@@ -180,7 +180,7 @@ $SOLO_NETWORK_DEPLOY_OUTPUT
   * It may take a while as it download the hedera platform code from <https://builds.hedera.com/>
 
 ```
-solo node setup
+solo node setup -i node1,node2,node3 -n "${SOLO_NAMESPACE}"
 ```
 
 * Example output
@@ -192,7 +192,7 @@ $SOLO_NODE_SETUP_OUTPUT
 * Start the nodes
 
 ```
-solo node start
+solo node start -i node1,node2,node3 -n "${SOLO_NAMESPACE}"
 ```
 
 * Example output
@@ -204,7 +204,7 @@ $SOLO_NODE_START_OUTPUT
 * Deploy mirror node
 
 ```
-solo mirror-node deploy
+solo mirror-node deploy -n "${SOLO_NAMESPACE}"
 ```
 
 * Example output
@@ -216,7 +216,7 @@ $SOLO_MIRROR_NODE_DEPLOY_OUTPUT
 * Deploy a JSON RPC relay
 
 ```
-solo relay deploy
+solo relay deploy -i node1 -n "${SOLO_NAMESPACE}"
 ```
 
 * Example output
@@ -311,7 +311,7 @@ Once the nodes are up, you may now expose various services (using `k9s` (shift-f
 Example output
 
 ```
-$SOLO_RELAY_DEPLAY_OUTPUT
+$SOLO_RELAY_DEPLOY_OUTPUT
 ```
 
 ## For Developers Working on Hedera Service Repo
@@ -325,18 +325,18 @@ To set customized `settings.txt` file, edit the file
 
 Then you can start customized built hedera network with the following command:
 ```
-solo node setup --local-build-path <default path to hedera repo>,node1=<custom build hedera repo>,node2=<custom build repo>
+solo node setup -i node1,node2,node3 -n "${SOLO_NAMESPACE}" --local-build-path <default path to hedera repo>,node1=<custom build hedera repo>,node2=<custom build repo>
 
-# example: solo node setup --local-build-path node1=../hedera-services/hedera-node/data/,../hedera-services/hedera-node/data,node3=../hedera-services/hedera-node/data
+# example: solo node setup -i node1,node2,node3 -n "${SOLO_NAMESPACE}" --local-build-path node1=../hedera-services/hedera-node/data/,../hedera-services/hedera-node/data,node3=../hedera-services/hedera-node/data
 ```
 
 ## For Developers Working on Platform core
 
 To deploy node with local build PTT jar files, run the following command:
 ```
-solo node setup --local-build-path <default path to hedera repo>,node1=<custom build hedera repo>,node2=<custom build repo> --app PlatformTestingTool.jar --app-config <path-to-test-json1,path-to-test-json2>
+solo node setup -i node1,node2,node3 -n "${SOLO_NAMESPACE}" --local-build-path <default path to hedera repo>,node1=<custom build hedera repo>,node2=<custom build repo> --app PlatformTestingTool.jar --app-config <path-to-test-json1,path-to-test-json2>
 
-# example: solo node setup --local-build-path ../hedera-services/platform-sdk/sdk/data,node1=../hedera-services/platform-sdk/sdk/data,node2=../hedera-services/platform-sdk/sdk/data --app PlatformTestingTool.jar --app-config ../hedera-services/platform-sdk/platform-apps/tests/PlatformTestingTool/src/main/resources/FCMFCQ-Basic-2.5k-5m.json
+# example: solo node setup -i node1,node2,node3 -n "${SOLO_NAMESPACE}" --local-build-path ../hedera-services/platform-sdk/sdk/data,node1=../hedera-services/platform-sdk/sdk/data,node2=../hedera-services/platform-sdk/sdk/data --app PlatformTestingTool.jar --app-config ../hedera-services/platform-sdk/platform-apps/tests/PlatformTestingTool/src/main/resources/FCMFCQ-Basic-2.5k-5m.json
 ```
 ## Logs
 You can find log for running solo command under the directory `~/.solo/logs/`
@@ -350,10 +350,10 @@ NOTE: the hedera-services path referenced '../hedera-services/hedera-node/data' 
 Example 1: attach jvm debugger to a hedera node
 ```bash
 ./test/e2e/setup-e2e.sh
-solo node keys --gossip-keys --tls-keys
-solo network deploy -i node1,node2,node3 --debug-nodeid node2
-solo node setup -i node1,node2,node3 --local-build-path ../hedera-services/hedera-node/data
-solo node start -i node1,node2,node3 --debug-nodeid node2
+solo node keys --gossip-keys --tls-keys -i node1,node2,node3
+solo network deploy -i node1,node2,node3 --debug-node-alias node2 -n "${SOLO_NAMESPACE}"
+solo node setup -i node1,node2,node3 --local-build-path ../hedera-services/hedera-node/data -n "${SOLO_NAMESPACE}"
+solo node start -i node1,node2,node3 --debug-node-alias node2 -n "${SOLO_NAMESPACE}"
 ```
 
 Once you see the following message, you can launch jvm debugger from Intellij
@@ -369,33 +369,33 @@ Example 2: attach jvm debugger with node add operation
 
 ```bash
 ./test/e2e/setup-e2e.sh
-solo node keys --gossip-keys --tls-keys
-solo network deploy -i node1,node2,node3 --pvcs
-solo node setup -i node1,node2,node3 --local-build-path ../hedera-services/hedera-node/data
-solo node start -i node1,node2,node3
-solo node add --gossip-keys --tls-keys --node-id node4 --debug-nodeid node4 --local-build-path ../hedera-services/hedera-node/data
+solo node keys --gossip-keys --tls-keys -i node1,node2,node3
+solo network deploy -i node1,node2,node3 --pvcs -n "${SOLO_NAMESPACE}"
+solo node setup -i node1,node2,node3 --local-build-path ../hedera-services/hedera-node/data -n "${SOLO_NAMESPACE}"
+solo node start -i node1,node2,node3 -n "${SOLO_NAMESPACE}"
+solo node add --gossip-keys --tls-keys --node-alias node4 --debug-node-alias node4 --local-build-path ../hedera-services/hedera-node/data -n "${SOLO_NAMESPACE}"
 ```
 
 Example 3: attach jvm debugger with node update operation
 
 ```bash
 ./test/e2e/setup-e2e.sh
-solo node keys --gossip-keys --tls-keys
-solo network deploy -i node1,node2,node3
-solo node setup -i node1,node2,node3 --local-build-path ../hedera-services/hedera-node/data
-solo node start -i node1,node2,node3
-solo node update --node-id node2  --debug-nodeid node2 --local-build-path ../hedera-services/hedera-node/data --new-account-number 0.0.7 --gossip-public-key ./s-public-node2.pem --gossip-private-key ./s-private-node2.pem --agreement-public-key ./a-public-node2.pem --agreement-private-key ./a-private-node2.pem
+solo node keys --gossip-keys --tls-keys -i node1,node2,node3
+solo network deploy -i node1,node2,node3 -n "${SOLO_NAMESPACE}"
+solo node setup -i node1,node2,node3 --local-build-path ../hedera-services/hedera-node/data -n "${SOLO_NAMESPACE}"
+solo node start -i node1,node2,node3 -n "${SOLO_NAMESPACE}"
+solo node update --node-alias node2  --debug-node-alias node2 --local-build-path ../hedera-services/hedera-node/data --new-account-number 0.0.7 --gossip-public-key ./s-public-node2.pem --gossip-private-key ./s-private-node2.pem --agreement-public-key ./a-public-node2.pem --agreement-private-key ./a-private-node2.pem  -n "${SOLO_NAMESPACE}"
 ```
 
 Example 4: attach jvm debugger with node delete operation
 
 ```bash
 ./test/e2e/setup-e2e.sh
-solo node keys --gossip-keys --tls-keys
-solo network deploy -i node1,node2,node3,node4
-solo node setup -i node1,node2,node3,node4 --local-build-path ../hedera-services/hedera-node/data
-solo node start -i node1,node2,node3,node4
-solo node delete --node-id node2  --debug-nodeid node3
+solo node keys --gossip-keys --tls-keys -i node1,node2,node3
+solo network deploy -i node1,node2,node3,node4 -n "${SOLO_NAMESPACE}"
+solo node setup -i node1,node2,node3,node4 --local-build-path ../hedera-services/hedera-node/data -n "${SOLO_NAMESPACE}"
+solo node start -i node1,node2,node3,node4 -n "${SOLO_NAMESPACE}"
+solo node delete --node-alias node2  --debug-node-alias node3 -n "${SOLO_NAMESPACE}"
 ```
 
 ## Support

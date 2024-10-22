@@ -18,7 +18,7 @@ import { constants } from '../core/index.ts'
 import * as core from '../core/index.ts'
 import * as version from '../../version.ts'
 import path from 'path'
-import { type CommandFlag } from '../types/index.js'
+import { type CommandFlag } from '../types/index.ts'
 
 /**
  * Set flag from the flag option
@@ -48,7 +48,7 @@ export const clusterName: CommandFlag = {
   name: 'cluster-name',
   definition: {
     describe: 'Cluster name',
-    defaultValue: '',
+    defaultValue: 'solo-cluster-setup',
     alias: 'c',
     type: 'string'
   }

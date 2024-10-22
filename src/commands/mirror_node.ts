@@ -24,7 +24,7 @@ import * as prompts from './prompts.ts'
 import { getFileContents, getEnvValue } from '../core/helpers.ts'
 import { type AccountManager } from '../core/account_manager.ts'
 import { type PodName } from '../types/aliases.ts'
-import { type Opts } from '../types/index.js'
+import { type Opts } from '../types/index.ts'
 
 export class MirrorNodeCommand extends BaseCommand {
   private readonly accountManager: AccountManager
@@ -100,7 +100,7 @@ export class MirrorNodeCommand extends BaseCommand {
   async prepareValuesArg (config: any) {
     let valuesArg = ''
 
-    const profileName = <string>this.configManager.getFlag<string>(flags.profileName)
+    const profileName = this.configManager.getFlag<string>(flags.profileName) as string
     const profileValuesFile = await this.profileManager.prepareValuesForMirrorNodeChart(profileName)
     if (profileValuesFile) {
       valuesArg += this.prepareValuesFiles(profileValuesFile)
@@ -193,7 +193,7 @@ export class MirrorNodeCommand extends BaseCommand {
             {
               title: 'Prepare address book',
               task: async (ctx) => {
-                ctx.addressBook = await self.accountManager.prepareAddressBookBase64(ctx.config.namespace)
+                ctx.addressBook = await self.accountManager.prepareAddressBookBase64()
                 ctx.config.valuesArg += ` --set "hedera-mirror-node.importer.addressBook=${ctx.addressBook}"`
               }
             },
@@ -275,7 +275,7 @@ export class MirrorNodeCommand extends BaseCommand {
             {
               title: 'Insert data in public.file_data',
               task: async () => {
-                const namespace = <string>self.configManager.getFlag<string>(flags.namespace)
+                const namespace = self.configManager.getFlag<string>(flags.namespace) as string
 
                 const feesFileIdNum = 111
                 const exchangeRatesFileIdNum = 112
@@ -369,9 +369,9 @@ export class MirrorNodeCommand extends BaseCommand {
 
           // @ts-ignore
           ctx.config = {
-            chartDirectory: <string>self.configManager.getFlag<string>(flags.chartDirectory),
-            soloChartVersion: <string>self.configManager.getFlag<string>(flags.soloChartVersion),
-            namespace: <string>self.configManager.getFlag<string>(flags.namespace)
+            chartDirectory: self.configManager.getFlag<string>(flags.chartDirectory) as string,
+            soloChartVersion: self.configManager.getFlag<string>(flags.soloChartVersion) as string,
+            namespace: self.configManager.getFlag<string>(flags.namespace) as string
           }
 
           ctx.config.chartPath = await self.prepareChartPath(ctx.config.chartDirectory,

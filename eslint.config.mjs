@@ -23,9 +23,13 @@ import tsdoc from "eslint-plugin-tsdoc"
 export default [
   pluginJs.configs.recommended,
   ...tseslint.configs.strict,
+  ...tseslint.configs.recommended,
+  ...tseslint.configs.stylistic,
+  {
+    ignores: ['docs/**/*', 'dist/*'],
+  },
   {
     files: ['test/**/*.ts', 'src/**/*.ts'],
-    ignores: ['docs/**/*', 'dist/*'],
     plugins: {
       headers: headers,
       tsdoc: tsdoc,
@@ -62,12 +66,13 @@ export default [
       '@typescript-eslint/consistent-generic-constructors': 'error',
       '@typescript-eslint/consistent-indexed-object-style': [ 'error', 'record' ],
       "@typescript-eslint/consistent-type-imports": ["error", { fixStyle: 'inline-type-imports'}],
-      'space-before-function-paren': 'error'
+      'space-before-function-paren': 'error',
+      '@typescript-eslint/no-empty-function': 'off',
+      '@typescript-eslint/class-literal-property-style': 'off'
     }
   },
   {
     files: ['**/*'],
-    ignores: ['dist/*'],
     languageOptions: {
       globals: {
         ...globals.mocha,

@@ -33,7 +33,7 @@ import type * as WebSocket from 'ws'
 import { type PodName } from '../types/aliases.ts'
 import { type ExtendedNetServer, type LocalContextObject } from '../types/index.ts'
 
-type TDirectoryData = {directory: boolean; owner: string; group: string; size: string; modifiedAt: string; name: string}
+interface TDirectoryData {directory: boolean; owner: string; group: string; size: string; modifiedAt: string; name: string}
 
 /**
  * A kubernetes API wrapper class providing custom functionalities required by solo
@@ -906,12 +906,12 @@ export class K8 {
     }
   }
 
-  waitForPods (phases = [constants.POD_PHASE_RUNNING], labels: string[] = [], podCount = 1, maxAttempts = 10,
-    delay = 500, podItemPredicate?: (items: k8s.V1Pod) => any) {
+  async waitForPods (phases = [constants.POD_PHASE_RUNNING], labels: string[] = [], podCount = 1, maxAttempts = 10,
+    delay = 500, podItemPredicate?: (items: k8s.V1Pod) => any): Promise<k8s.V1Pod[]> {
     const ns = this._getNamespace()
     const labelSelector = labels.join(',')
 
-    this.logger.debug(`WaitForPod [namespace:${ns}, labelSelector: ${labelSelector}], maxAttempts: ${maxAttempts}`)
+    this.logger.debug(`WaitForPod [namespace:${ns}, labelSelector: ${labelSelector}, maxAttempts: ${maxAttempts}]`)
 
     return new Promise<k8s.V1Pod[]>((resolve, reject) => {
       let attempts = 0
