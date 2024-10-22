@@ -17,7 +17,7 @@
 import * as commandFlags from '../commands/flags.ts'
 import { IllegalArgumentError } from './errors.ts'
 import { type BaseCommand } from '../commands/base.ts'
-import { type CommandFlag } from '../types/index.js'
+import { type CommandFlag } from '../types/index.ts'
 
 export class YargsCommand {
   constructor (

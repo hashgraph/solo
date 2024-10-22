@@ -35,7 +35,7 @@ import type { NetworkNodeServices } from '../src/core/network_node_services.ts'
 
 const defaultTimeout = 2 * MINUTES
 
-export function testNodeAdd (localBuildPath: string, testDescription: string = 'Node add should success', timeout: number = defaultTimeout): void {
+export function testNodeAdd (localBuildPath: string, testDescription = 'Node add should success', timeout: number = defaultTimeout): void {
   const suffix = localBuildPath.substring(0, 5)
   const namespace = 'node-add' + suffix
   const argv = getDefaultArgv()
