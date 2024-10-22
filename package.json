@@ -74,7 +74,7 @@
   "devDependencies": {
     "@eslint/js": "^9.12.0",
     "@swc/cli": "^0.4.1-nightly.20240914",
-    "@swc/core": "^1.7.36",
+    "@swc/core": "^1.7.39",
     "@types/adm-zip": "^0.5.5",
     "@types/chai": "^5.0.0",
     "@types/chai-as-promised": "^8.0.1",
