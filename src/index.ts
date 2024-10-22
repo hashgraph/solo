@@ -34,7 +34,7 @@ import { K8 } from './core/k8.ts'
 import { AccountManager } from './core/account_manager.ts'
 import { ListrLogger } from 'listr2'
 import { CustomProcessOutput } from './core/process_output.ts'
-import { type Opts } from './types/index.js'
+import { type Opts } from './types/index.ts'
 
 export function main (argv: any) {
   const logger = logging.NewLogger('debug')
