@@ -356,7 +356,8 @@ export class NodeCommandHandlers {
   async addPrepare (argv) {
     argv = helpers.addFlagsToArgv(argv, NodeFlags.ADD_PREPARE_FLAGS)
     const action = helpers.commandActionBuilder([
-      ...this.addPrepareTasks(argv)
+      ...this.addPrepareTasks(argv),
+      this.tasks.saveContextData(argv, NodeCommandHandlers.ADD_CONTEXT_FILE, helpers.addSaveContextParser),
     ], {
       concurrent: false,
       rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
