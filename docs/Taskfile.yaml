@@ -78,6 +78,7 @@ tasks:
     cmds:
       - task: "install:hugo"
       - task: "install:typedoc"
+      - task: "install:solo"
 
   install:hugo:
     status:
