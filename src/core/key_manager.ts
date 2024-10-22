@@ -210,7 +210,7 @@ export class KeyManager {
    * @returns
    */
   async loadNodeKey (nodeAlias: NodeAlias, keysDir: string, algo: any, nodeKeyFiles: PrivateKeyAndCertificateObject,
-    keyName: string = ''): Promise<NodeKeyObject> {
+    keyName = ''): Promise<NodeKeyObject> {
     if (!nodeAlias) {
       throw new MissingArgumentError('nodeAlias is required')
     }

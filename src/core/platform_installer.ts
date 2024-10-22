@@ -44,7 +44,7 @@ export class PlatformInstaller {
   }
 
   private _getNamespace (): string {
-    const ns = <string>this.configManager.getFlag<string>(flags.namespace)
+    const ns = this.configManager.getFlag<string>(flags.namespace) as string
     if (!ns) throw new MissingArgumentError('namespace is not set')
     return ns
   }

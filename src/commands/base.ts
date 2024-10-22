@@ -20,7 +20,7 @@ import { MissingArgumentError } from '../core/errors.ts'
 import { ShellRunner } from '../core/shell_runner.ts'
 import { type ChartManager, type ConfigManager, type Helm, type K8 } from '../core/index.ts'
 import { type DependencyManager } from '../core/dependency_managers/index.ts'
-import { type CommandFlag, type Opts } from '../types/index.js'
+import { type CommandFlag, type Opts } from '../types/index.ts'
 
 export class BaseCommand extends ShellRunner {
   protected readonly helm: Helm

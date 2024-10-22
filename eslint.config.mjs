@@ -18,19 +18,21 @@ import globals from "globals";
 import pluginJs from "@eslint/js";
 import tseslint from "typescript-eslint";
 import headers from 'eslint-plugin-headers'
+import tsdoc from "eslint-plugin-tsdoc"
 
 export default [
   pluginJs.configs.recommended,
   ...tseslint.configs.strict,
   ...tseslint.configs.recommended,
-  // ...tseslint.configs.stylistic, // TODO: enable in a different PR
+  ...tseslint.configs.stylistic,
   {
     ignores: ['docs/**/*', 'dist/*'],
   },
   {
     files: ['test/**/*.ts', 'src/**/*.ts'],
     plugins: {
-      headers: headers
+      headers: headers,
+      tsdoc: tsdoc,
     },
     languageOptions: {
       globals: {
@@ -41,6 +43,7 @@ export default [
       sourceType: 'module'
     },
     rules: {
+      'tsdoc/syntax':'warn',
       'no-template-curly-in-string': 'off',
       'headers/header-format': ['error', {
         source: 'string',
@@ -63,7 +66,9 @@ export default [
       '@typescript-eslint/consistent-generic-constructors': 'error',
       '@typescript-eslint/consistent-indexed-object-style': [ 'error', 'record' ],
       "@typescript-eslint/consistent-type-imports": ["error", { fixStyle: 'inline-type-imports'}],
-      'space-before-function-paren': 'error'
+      'space-before-function-paren': 'error',
+      '@typescript-eslint/no-empty-function': 'off',
+      '@typescript-eslint/class-literal-property-style': 'off'
     }
   },
   {
