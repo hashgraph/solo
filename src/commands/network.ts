@@ -399,7 +399,8 @@ export class NetworkCommand extends BaseCommand {
       }
     }
 
-    const tasks = new Listr<Context>([      {
+    const tasks = new Listr<Context>([
+      {
         title: 'Initialize',
         task: async (ctx, task) => {
           if (!argv.force) {
@@ -556,7 +557,8 @@ export class NetworkCommand extends BaseCommand {
                 flags.deletePvcs,
                 flags.deleteSecrets,
                 flags.force,
-                flags.namespace            ),
+                flags.namespace
+            ),
             handler: (argv: any) => {
               networkCmd.logger.debug('==== Running \'network destroy\' ===')
               networkCmd.logger.debug(argv)
