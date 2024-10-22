@@ -19,7 +19,7 @@ import {
   DeletePvcsFlag,
   DeleteSecretsFlag,
   ForceFlag,
-  type IFlag,
+  type AFlag,
   NamespaceFlag,
   QuietFlag
 } from './flag.js'
@@ -29,7 +29,7 @@ export abstract class AFlags {
 
   static flags: object
 
-  getFlagsArray (): IFlag[] {
+  getFlagsArray (): AFlag[] {
     return Object.values(AFlags.flags)
   }
 

@@ -18,66 +18,17 @@
 import { type ListrTaskWrapper } from 'listr2'
 import { type PromptFunction, Prompts } from './prompt.js'
 
-// export interface IFlag {
-//   get constName(): string
-//
-//   get name(): string
-//
-//   get definition(): IDefinition
-//
-//   get prompt(): Function
-// }
-//
-// export interface IDefinition {
-//   get describe(): string
-//
-//   get defaultValue(): any
-//
-//   get type(): string
-// }
-//
-// export class Definition implements IDefinition {
-//   readonly describe: string
-//   readonly defaultValue: any
-//   readonly type: string
-//   readonly disablePrompt: boolean
-//
-//   constructor (describe: string, defaultValue: any, type: string, disablePrompt: boolean) {
-//     this.describe = describe
-//     this.defaultValue = defaultValue
-//     this.type = type
-//     this.disablePrompt = disablePrompt
-//   }
-// }
-
-export class Definition {
-  static readonly describe: string
-  static readonly defaultValue: any
-  static readonly type: string
-  readonly disablePrompt: boolean
-
-  constructor (describe: string, defaultValue: any, type: string, disablePrompt: boolean) {
-    this.describe = describe
-    this.defaultValue = defaultValue
-    this.type = type
-    this.disablePrompt = disablePrompt
-  }
+type Definition = {
+  static get describe(): string
 }
 
-export abstract class AFlag implements IFlag {
-  readonly constName: string
-  readonly name: string
-  readonly alias: string
-  readonly definition: Definition
-  readonly prompt: PromptFunction
+export abstract class AFlag {
 
-  protected constructor (constName: string, name: string, describe: string, defaultValue: any, type: string, prompt: PromptFunction, alias?: string, disablePrompt: boolean = false) {
-    this.constName = constName
-    this.name = name
-    this.definition = new Definition(describe, defaultValue, type, disablePrompt)
-    this.alias = alias
-    this.prompt = prompt
-  }
+  static get constName(): string
+  static get name(): string
+  static get alias(): string
+  static get definition(): type Definition
+  static get prompt(): PromptFunction
 }
 
 export class DeletePvcsFlag extends AFlag {
