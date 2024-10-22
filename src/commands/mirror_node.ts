@@ -115,7 +115,7 @@ export class MirrorNodeCommand extends BaseCommand {
     //   valuesArg += ` --set global.image.tag=${config.mirrorNodeVersion}`
     // }
 
-    // valuesArg += ` --set hedera-mirror-node.enabled=true --set hedera-explorer.enabled=${config.deployHederaExplorer}`
+    // valuesArg += ` --set --set hedera-explorer.enabled=${config.deployHederaExplorer}`
 
     if (config.valuesFile) {
       valuesArg += this.prepareValuesFiles(config.valuesFile)
@@ -209,13 +209,15 @@ export class MirrorNodeCommand extends BaseCommand {
                 //
                 // await self.chartManager.install(ctx.config.namespace, constants.HEDERA_EXPLORER_CHART, constants.HEDERA_EXPLORER_CHART_UTL, ctx.config.hederaExplorerVersion, explorerValuesArg)
 
-                // await self.chartManager.upgrade(
-                //   ctx.config.namespace,
-                //   constants.SOLO_DEPLOYMENT_CHART,
-                //   ctx.config.chartPath,
-                //   ctx.config.valuesArg,
-                //   ctx.config.soloChartVersion
-                // )
+                // update existing chart to active explorer
+                const updateArg = ` --set hedera-explorer.enabled=${ctx.config.deployHederaExplorer}`
+                await self.chartManager.upgrade(
+                  ctx.config.namespace,
+                  constants.SOLO_DEPLOYMENT_CHART,
+                  '/Users/jeffrey/solo-charts/charts/solo-deployment',
+                  updateArg,
+                  ctx.config.soloChartVersion
+                )
               }
             }
           ], {
