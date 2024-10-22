@@ -24,7 +24,7 @@ import * as prompts from './prompts.ts'
 import { getFileContents, getEnvValue } from '../core/helpers.ts'
 import { type AccountManager } from '../core/account_manager.ts'
 import { type PodName } from '../types/aliases.ts'
-import { type Opts } from '../types/index.js'
+import { type Opts } from '../types/index.ts'
 
 export class MirrorNodeCommand extends BaseCommand {
   private readonly accountManager: AccountManager
@@ -39,23 +39,27 @@ export class MirrorNodeCommand extends BaseCommand {
     this.profileManager = opts.profileManager
   }
 
-  static readonly DEPLOY_CONFIGS_NAME = 'deployConfigs'
+  static get DEPLOY_CONFIGS_NAME () {
+    return 'deployConfigs'
+  }
 
-  static readonly DEPLOY_FLAGS_LIST = [
-    flags.chartDirectory,
-    flags.deployHederaExplorer,
-    flags.enableHederaExplorerTls,
-    flags.soloChartVersion,
-    flags.hederaExplorerTlsHostName,
-    flags.hederaExplorerTlsLoadBalancerIp,
-    flags.namespace,
-    flags.profileFile,
-    flags.profileName,
-    flags.quiet,
-    flags.tlsClusterIssuerType,
-    flags.valuesFile,
-    flags.mirrorNodeVersion
-  ]
+  static get DEPLOY_FLAGS_LIST () {
+    return [
+      flags.chartDirectory,
+      flags.deployHederaExplorer,
+      flags.enableHederaExplorerTls,
+      flags.soloChartVersion,
+      flags.hederaExplorerTlsHostName,
+      flags.hederaExplorerTlsLoadBalancerIp,
+      flags.namespace,
+      flags.profileFile,
+      flags.profileName,
+      flags.quiet,
+      flags.tlsClusterIssuerType,
+      flags.valuesFile,
+      flags.mirrorNodeVersion
+    ]
+  }
 
   /**
    * @param tlsClusterIssuerType

@@ -29,7 +29,7 @@ import path from 'path'
 import { addDebugOptions, validatePath } from '../core/helpers.ts'
 import fs from 'fs'
 import { type NodeAlias, type NodeAliases } from '../types/aliases.ts'
-import { type Opts } from '../types/index.js'
+import { type Opts } from '../types/index.ts'
 
 export interface NetworkDeployConfigClass {
   applicationEnv: string
@@ -71,31 +71,35 @@ export class NetworkCommand extends BaseCommand {
     this.profileManager = opts.profileManager
   }
 
-  static readonly DEPLOY_CONFIGS_NAME = 'deployConfigs'
+  static get DEPLOY_CONFIGS_NAME () {
+    return 'deployConfigs'
+  }
 
-  static readonly DEPLOY_FLAGS_LIST = [
-    flags.apiPermissionProperties,
-    flags.app,
-    flags.applicationEnv,
-    flags.applicationProperties,
-    flags.bootstrapProperties,
-    flags.cacheDir,
-    flags.chainId,
-    flags.chartDirectory,
-    flags.enablePrometheusSvcMonitor,
-    flags.soloChartVersion,
-    flags.debugNodeAlias,
-    flags.log4j2Xml,
-    flags.namespace,
-    flags.nodeAliasesUnparsed,
-    flags.persistentVolumeClaims,
-    flags.profileFile,
-    flags.profileName,
-    flags.quiet,
-    flags.releaseTag,
-    flags.settingTxt,
-    flags.valuesFile
-  ]
+  static get DEPLOY_FLAGS_LIST () {
+    return [
+      flags.apiPermissionProperties,
+      flags.app,
+      flags.applicationEnv,
+      flags.applicationProperties,
+      flags.bootstrapProperties,
+      flags.cacheDir,
+      flags.chainId,
+      flags.chartDirectory,
+      flags.enablePrometheusSvcMonitor,
+      flags.soloChartVersion,
+      flags.debugNodeAlias,
+      flags.log4j2Xml,
+      flags.namespace,
+      flags.nodeAliasesUnparsed,
+      flags.persistentVolumeClaims,
+      flags.profileFile,
+      flags.profileName,
+      flags.quiet,
+      flags.releaseTag,
+      flags.settingTxt,
+      flags.valuesFile
+    ]
+  }
 
   async prepareValuesArg (config: {chartDirectory?: string; app?: string; nodeAliases?: string[]; debugNodeAlias?: NodeAlias;
     enablePrometheusSvcMonitor?: boolean; releaseTag?: string; persistentVolumeClaims?: string;

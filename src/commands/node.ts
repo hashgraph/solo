@@ -167,162 +167,216 @@ export class NodeCommand extends BaseCommand {
     })
   }
 
-  static readonly ADD_CONTEXT_FILE = 'node-add.json'
-  static readonly DELETE_CONTEXT_FILE = 'node-delete.json'
-  static readonly SETUP_CONFIGS_NAME = 'setupConfigs'
+  static get ADD_CONTEXT_FILE () {
+    return 'node-add.json'
+  }
 
-  static readonly SETUP_FLAGS_LIST= [
-    flags.app,
-    flags.appConfig,
-    flags.cacheDir,
-    flags.devMode,
-    flags.localBuildPath,
-    flags.namespace,
-    flags.nodeAliasesUnparsed,
-    flags.releaseTag
-  ]
+  static get DELETE_CONTEXT_FILE () {
+    return 'node-delete.json'
+  }
 
-  static readonly START_FLAGS_LIST = [
-    flags.app,
-    flags.cacheDir,
-    flags.debugNodeAlias,
-    flags.namespace,
-    flags.nodeAliasesUnparsed,
-    flags.quiet,
-    flags.releaseTag
-  ]
+  static get SETUP_CONFIGS_NAME () {
+    return 'setupConfigs'
+  }
 
-  static readonly STOP_FLAGS_LIST = [
-    flags.namespace,
-    flags.nodeAliasesUnparsed,
-    flags.quiet
-  ]
+  static get SETUP_FLAGS_LIST () {
+    return [
+      flags.app,
+      flags.appConfig,
+      flags.cacheDir,
+      flags.devMode,
+      flags.localBuildPath,
+      flags.namespace,
+      flags.nodeAliasesUnparsed,
+      flags.releaseTag
+    ]
+  }
 
-  static readonly KEYS_CONFIGS_NAME = 'keysConfigs'
+  static get START_FLAGS_LIST () {
+    return [
+      flags.app,
+      flags.cacheDir,
+      flags.debugNodeAlias,
+      flags.namespace,
+      flags.nodeAliasesUnparsed,
+      flags.quiet,
+      flags.releaseTag
+    ]
+  }
 
-  static readonly KEYS_FLAGS_LIST = [
-    flags.cacheDir,
-    flags.devMode,
-    flags.generateGossipKeys,
-    flags.generateTlsKeys,
-    flags.nodeAliasesUnparsed,
-    flags.quiet
-  ]
+  static get STOP_FLAGS_LIST () {
+    return [
+      flags.namespace,
+      flags.nodeAliasesUnparsed,
+      flags.quiet
+    ]
+  }
 
-  static readonly REFRESH_CONFIGS_NAME = 'refreshConfigs'
+  static get KEYS_CONFIGS_NAME () {
+    return 'keysConfigs'
+  }
 
-  static readonly REFRESH_FLAGS_LIST = [
-    flags.app,
-    flags.cacheDir,
-    flags.devMode,
-    flags.localBuildPath,
-    flags.namespace,
-    flags.nodeAliasesUnparsed,
-    flags.quiet,
-    flags.releaseTag
-  ]
+  static get KEYS_FLAGS_LIST () {
+    return [
+      flags.cacheDir,
+      flags.devMode,
+      flags.generateGossipKeys,
+      flags.generateTlsKeys,
+      flags.nodeAliasesUnparsed,
+      flags.quiet
+    ]
+  }
 
-  static readonly ADD_CONFIGS_NAME = 'addConfigs'
+  static get REFRESH_CONFIGS_NAME () {
+    return 'refreshConfigs'
+  }
 
-  static readonly COMMON_ADD_FLAGS_LIST = [
-    flags.app,
-    flags.cacheDir,
-    flags.chainId,
-    flags.chartDirectory,
-    flags.devMode,
-    flags.debugNodeAlias,
-    flags.endpointType,
-    flags.soloChartVersion,
-    flags.generateGossipKeys,
-    flags.generateTlsKeys,
-    flags.gossipEndpoints,
-    flags.grpcEndpoints,
-    flags.localBuildPath,
-    flags.quiet,
-    flags.namespace,
-    flags.releaseTag
-  ]
+  static get REFRESH_FLAGS_LIST () {
+    return [
+      flags.app,
+      flags.cacheDir,
+      flags.devMode,
+      flags.localBuildPath,
+      flags.namespace,
+      flags.nodeAliasesUnparsed,
+      flags.quiet,
+      flags.releaseTag
+    ]
+  }
 
-  static readonly ADD_FLAGS_LIST = [
-    ...NodeCommand.COMMON_ADD_FLAGS_LIST,
-    flags.adminKey
-  ]
+  static get ADD_CONFIGS_NAME () {
+    return 'addConfigs'
+  }
 
-  static readonly ADD_PREPARE_FLAGS_LIST = [
-    ...NodeCommand.COMMON_ADD_FLAGS_LIST,
-    flags.adminKey,
-    flags.outputDir
-  ]
+  static get COMMON_ADD_FLAGS_LIST () {
+    return [
+      flags.app,
+      flags.cacheDir,
+      flags.chainId,
+      flags.chartDirectory,
+      flags.devMode,
+      flags.debugNodeAlias,
+      flags.endpointType,
+      flags.soloChartVersion,
+      flags.generateGossipKeys,
+      flags.generateTlsKeys,
+      flags.gossipEndpoints,
+      flags.grpcEndpoints,
+      flags.localBuildPath,
+      flags.quiet,
+      flags.namespace,
+      flags.releaseTag
+    ]
+  }
 
-  static readonly ADD_SUBMIT_TRANSACTIONS_FLAGS_LIST = [
-    ...NodeCommand.COMMON_ADD_FLAGS_LIST,
-    flags.inputDir
-  ]
+  static get ADD_FLAGS_LIST () {
+    const commonFlags = NodeCommand.COMMON_ADD_FLAGS_LIST
+    return [
+      ...commonFlags,
+      flags.adminKey
+    ]
+  }
 
-  static readonly ADD_EXECUTE_FLAGS_LIST = [
-    ...NodeCommand.COMMON_ADD_FLAGS_LIST,
-    flags.inputDir
-  ]
+  static get ADD_PREPARE_FLAGS_LIST () {
+    const commonFlags = NodeCommand.COMMON_ADD_FLAGS_LIST
+    return [
+      ...commonFlags,
+      flags.adminKey,
+      flags.outputDir
+    ]
+  }
 
-  static readonly DELETE_CONFIGS_NAME = 'deleteConfigs'
+  static get ADD_SUBMIT_TRANSACTIONS_FLAGS_LIST () {
+    const commonFlags = NodeCommand.COMMON_ADD_FLAGS_LIST
+    return [
+      ...commonFlags,
+      flags.inputDir
+    ]
+  }
 
-  static readonly COMMON_DELETE_FLAGS_LIST = [
-    flags.app,
-    flags.cacheDir,
-    flags.chartDirectory,
-    flags.devMode,
-    flags.debugNodeAlias,
-    flags.endpointType,
-    flags.localBuildPath,
-    flags.namespace,
-    flags.nodeAlias,
-    flags.quiet,
-    flags.releaseTag
-  ]
+  static get ADD_EXECUTE_FLAGS_LIST () {
+    const commonFlags = NodeCommand.COMMON_ADD_FLAGS_LIST
+    return [
+      ...commonFlags,
+      flags.inputDir
+    ]
+  }
 
-  static readonly DELETE_FLAGS_LIST = [
-    ...NodeCommand.COMMON_DELETE_FLAGS_LIST
-  ]
+  static get DELETE_CONFIGS_NAME () {
+    return 'deleteConfigs'
+  }
 
-  static readonly DELETE_PREPARE_FLAGS_LIST = [
-    ...NodeCommand.COMMON_DELETE_FLAGS_LIST,
-    flags.outputDir
-  ]
+  static get DELETE_FLAGS_LIST () {
+    return [
+      ...NodeCommand.COMMON_DELETE_FLAGS_LIST
+    ]
+  }
 
-  static readonly DELETE_SUBMIT_TRANSACTIONS_FLAGS_LIST = [
-    ...NodeCommand.COMMON_DELETE_FLAGS_LIST,
-    flags.inputDir
-  ]
+  static get DELETE_PREPARE_FLAGS_LIST () {
+    return [
+      ...NodeCommand.COMMON_DELETE_FLAGS_LIST,
+      flags.outputDir
+    ]
+  }
 
-  static readonly DELETE_EXECUTE_FLAGS_LIST = [
-    ...NodeCommand.COMMON_DELETE_FLAGS_LIST,
-    flags.inputDir
-  ]
+  static get DELETE_SUBMIT_TRANSACTIONS_FLAGS_LIST () {
+    return [
+      ...NodeCommand.COMMON_DELETE_FLAGS_LIST,
+      flags.inputDir
+    ]
+  }
 
-  static readonly UPDATE_CONFIGS_NAME = 'updateConfigs'
+  static get DELETE_EXECUTE_FLAGS_LIST () {
+    return [
+      ...NodeCommand.COMMON_DELETE_FLAGS_LIST,
+      flags.inputDir
+    ]
+  }
 
-  static readonly UPDATE_FLAGS_LIST = [
-    flags.app,
-    flags.cacheDir,
-    flags.chartDirectory,
-    flags.devMode,
-    flags.debugNodeAlias,
-    flags.endpointType,
-    flags.soloChartVersion,
-    flags.gossipEndpoints,
-    flags.gossipPrivateKey,
-    flags.gossipPublicKey,
-    flags.grpcEndpoints,
-    flags.localBuildPath,
-    flags.namespace,
-    flags.newAccountNumber,
-    flags.newAdminKey,
-    flags.nodeAlias,
-    flags.quiet,
-    flags.releaseTag,
-    flags.tlsPrivateKey,
-    flags.tlsPublicKey
-  ]
+  static get COMMON_DELETE_FLAGS_LIST () {
+    return [
+      flags.app,
+      flags.cacheDir,
+      flags.chartDirectory,
+      flags.devMode,
+      flags.debugNodeAlias,
+      flags.endpointType,
+      flags.localBuildPath,
+      flags.namespace,
+      flags.nodeAlias,
+      flags.quiet,
+      flags.releaseTag
+    ]
+  }
+
+  static get UPDATE_CONFIGS_NAME () {
+    return 'updateConfigs'
+  }
+
+  static get UPDATE_FLAGS_LIST () {
+    return [
+      flags.app,
+      flags.cacheDir,
+      flags.chartDirectory,
+      flags.devMode,
+      flags.debugNodeAlias,
+      flags.endpointType,
+      flags.soloChartVersion,
+      flags.gossipEndpoints,
+      flags.gossipPrivateKey,
+      flags.gossipPublicKey,
+      flags.grpcEndpoints,
+      flags.localBuildPath,
+      flags.namespace,
+      flags.newAccountNumber,
+      flags.newAdminKey,
+      flags.nodeAlias,
+      flags.quiet,
+      flags.releaseTag,
+      flags.tlsPrivateKey,
+      flags.tlsPublicKey
+    ]
+  }
 
   /**
    * stops and closes the port forwards

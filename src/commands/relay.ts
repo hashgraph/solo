@@ -25,7 +25,7 @@ import * as prompts from './prompts.ts'
 import { getNodeAccountMap } from '../core/helpers.ts'
 import type { AccountManager } from '../core/account_manager.ts'
 import { type NodeAliases } from '../types/aliases.ts'
-import { type Opts } from '../types/index.js'
+import { type Opts } from '../types/index.ts'
 
 export class RelayCommand extends BaseCommand {
   private readonly profileManager: ProfileManager
@@ -40,28 +40,34 @@ export class RelayCommand extends BaseCommand {
     this.accountManager = opts.accountManager
   }
 
-  static readonly DEPLOY_CONFIGS_NAME = 'deployConfigs'
+  static get DEPLOY_CONFIGS_NAME () {
+    return 'deployConfigs'
+  }
 
-  static readonly DEPLOY_FLAGS_LIST = [
-    flags.chainId,
-    flags.chartDirectory,
-    flags.namespace,
-    flags.nodeAliasesUnparsed,
-    flags.operatorId,
-    flags.operatorKey,
-    flags.profileFile,
-    flags.profileName,
-    flags.quiet,
-    flags.relayReleaseTag,
-    flags.replicaCount,
-    flags.valuesFile
-  ]
+  static get DEPLOY_FLAGS_LIST () {
+    return [
+      flags.chainId,
+      flags.chartDirectory,
+      flags.namespace,
+      flags.nodeAliasesUnparsed,
+      flags.operatorId,
+      flags.operatorKey,
+      flags.profileFile,
+      flags.profileName,
+      flags.quiet,
+      flags.relayReleaseTag,
+      flags.replicaCount,
+      flags.valuesFile
+    ]
+  }
 
-  static readonly DESTROY_FLAGS_LIST = [
-    flags.chartDirectory,
-    flags.namespace,
-    flags.nodeAliasesUnparsed
-  ]
+  static get DESTROY_FLAGS_LIST () {
+    return [
+      flags.chartDirectory,
+      flags.namespace,
+      flags.nodeAliasesUnparsed
+    ]
+  }
 
   async prepareValuesArg (valuesFile: string, nodeAliases: NodeAliases, chainID: string, relayRelease: string,
     replicaCount: number, operatorID: string, operatorKey: string, namespace: string) {
