@@ -554,10 +554,10 @@ export class NetworkCommand extends BaseCommand {
             command: 'destroy',
             desc: 'Destroy solo network',
             builder: (y: any) => flags.setCommandFlags(y,
-                flags.deletePvcs,
-                flags.deleteSecrets,
-                flags.force,
-                flags.namespace
+              flags.deletePvcs,
+              flags.deleteSecrets,
+              flags.force,
+              flags.namespace
             ),
             handler: (argv: any) => {
               networkCmd.logger.debug('==== Running \'network destroy\' ===')
