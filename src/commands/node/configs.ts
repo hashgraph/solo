@@ -61,28 +61,20 @@ const initializeSetup = async (config, k8) => {
 }
 
 export const prepareUpgradeConfigBuilder = async function (argv, ctx, task) {
-    /**
-     * @typedef {Object} NodePrepareUpgradeConfigClass
-     * -- flags --
-     * @property {string} cacheDir
-     * @property {string} namespace
-     * @property {string} releaseTag
-     * -- extra args --
-     * @property {string} freezeAdminPrivateKey
-     * @property {Object} nodeClient
-     * -- methods --
-     * @property {getUnusedConfigs} getUnusedConfigs
-     */
-    /**
-     * @callback getUnusedConfigs
-     * @returns {string[]}
-     */
+    interface NodePrepareUpgradeConfigClass {
+        cacheDir: string
+        namespace: string
+        releaseTag: string
+        freezeAdminPrivateKey: string
+        nodeClient: any
+        getUnusedConfigs: () => string[]
+    }
 
-    const config = /** @type {NodePrepareUpgradeConfigClass} **/ this.getConfig(
+    const config = this.getConfig(
         PREPARE_UPGRADE_CONFIGS_NAME, argv.flags, [
             'nodeClient',
             'freezeAdminPrivateKey'
-        ])
+        ]) as NodePrepareUpgradeConfigClass
 
     await initializeSetup(config, this.k8)
     config.nodeClient = await this.accountManager.loadNodeClient(config.namespace)
@@ -94,29 +86,24 @@ export const prepareUpgradeConfigBuilder = async function (argv, ctx, task) {
 }
 
 export const downloadGeneratedFilesConfigBuilder = async function (argv, ctx, task) {
-    /**
-     * @typedef {Object} NodeDownloadGeneratedFilesConfigClass
-     * -- flags --
-     * @property {string} cacheDir
-     * @property {string} namespace
-     * @property {string} releaseTag
-     * -- extra args --
-     * @property {string} freezeAdminPrivateKey
-     * @property {Object} nodeClient
-     * -- methods --
-     * @property {getUnusedConfigs} getUnusedConfigs
-     */
-    /**
-     * @callback getUnusedConfigs
-     * @returns {string[]}
-     */
+    interface NodeDownloadGeneratedFilesConfigClass {
+        cacheDir: string
+        namespace: string
+        releaseTag: string
+        freezeAdminPrivateKey: string
+        nodeClient: any
+        getUnusedConfigs: () => string[]
+        existingNodeAliases: NodeAliases[]
+        allNodeAliases: NodeAliases[]
+        serviceMap: Map<string, NetworkNodeServices>
+    }
 
-    const config = /** @type {NodePrepareUpgradeConfigClass} **/ this.getConfig(
+    const config = this.getConfig(
         DOWNLOAD_GENERATED_FILES_CONFIGS_NAME, argv.flags, [
             'allNodeAliases',
             'existingNodeAliases',
             'serviceMap'
-        ])
+        ]) as NodeDownloadGeneratedFilesConfigClass
 
     config.existingNodeAliases = []
     await initializeSetup(config, this.k8)
@@ -125,51 +112,7 @@ export const downloadGeneratedFilesConfigBuilder = async function (argv, ctx, ta
 }
 
 export const updateConfigBuilder = async function (argv, ctx, task) {
-    /**
-     * @typedef {Object} NodeUpdateConfigClass
-     * -- flags --
-     * @property {string} app
-     * @property {string} cacheDir
-     * @property {string} chartDirectory
-     * @property {boolean} devMode
-     * @property {string} debugNodeAlias
-     * @property {string} endpointType
-     * @property {string} soloChartVersion
-     * @property {string} gossipEndpoints
-     * @property {string} gossipPrivateKey
-     * @property {string} gossipPublicKey
-     * @property {string} grpcEndpoints
-     * @property {string} localBuildPath
-     * @property {string} namespace
-     * @property {string} newAccountNumber
-     * @property {string} newAdminKey
-     * @property {NodeAlias} nodeAlias
-     * @property {string} releaseTag
-     * @property {string} tlsPrivateKey
-     * @property {string} tlsPublicKey
-     * -- extra args --
-     * @property {PrivateKey} adminKey
-     * @property {NodeAliases} allNodeAliases
-     * @property {string} chartPath
-     * @property {NodeAliases} existingNodeAliases
-     * @property {string} freezeAdminPrivateKey
-     * @property {string} keysDir
-     * @property {Object} nodeClient
-     * @property {Object} podNames
-     * @property {Map<String, NetworkNodeServices>} serviceMap
-     * @property {string} stagingDir
-     * @property {string} stagingKeysDir
-     * @property {PrivateKey} treasuryKey
-     * -- methods --
-     * @property {getUnusedConfigs} getUnusedConfigs
-     */
-    /**
-     * @callback getUnusedConfigs
-     * @returns {string[]}
-     */
-
-        // create a config object for subsequent steps
-    const config = /** @type {NodeUpdateConfigClass} **/ this.getConfig(UPDATE_CONFIGS_NAME, argv.flags,
+    const config = this.getConfig(UPDATE_CONFIGS_NAME, argv.flags,
             [
                 'allNodeAliases',
                 'existingNodeAliases',
@@ -181,7 +124,7 @@ export const updateConfigBuilder = async function (argv, ctx, task) {
                 'stagingDir',
                 'stagingKeysDir',
                 'treasuryKey'
-            ])
+            ]) as NodeUpdateConfigClass
 
     config.curDate = new Date()
     config.existingNodeAliases = []
@@ -208,7 +151,6 @@ export const updateConfigBuilder = async function (argv, ctx, task) {
 }
 
 export const deleteConfigBuilder = async function (argv, ctx, task) {
-    // create a config object for subsequent steps
     const config = this.getConfig(DELETE_CONFIGS_NAME, argv.flags, [
         'adminKey',
         'allNodeAliases',
@@ -248,7 +190,6 @@ export const deleteConfigBuilder = async function (argv, ctx, task) {
 }
 
 export const addConfigBuilder = async function (argv, ctx, task) {
-    // create a config object for subsequent steps
     const config = this.getConfig(ADD_CONFIGS_NAME, argv.flags, [
         'allNodeAliases',
         'chartPath',
@@ -304,33 +245,11 @@ export const logsConfigBuilder = function (argv, ctx, task) {
 }
 
 export const refreshConfigBuilder = async function (argv, ctx, task) {
-    /**
-     * @typedef {Object} NodeRefreshConfigClass
-     * -- flags --
-     * @property {string} app
-     * @property {string} cacheDir
-     * @property {boolean} devMode
-     * @property {string} localBuildPath
-     * @property {string} namespace
-     * @property {string} nodeAliasesUnparsed
-     * @property {string} releaseTag
-     * -- extra args --
-     * @property {NodeAliases} nodeAliases
-     * @property {Object} podNames
-     * -- methods --
-     * @property {getUnusedConfigs} getUnusedConfigs
-     */
-    /**
-     * @callback getUnusedConfigs
-     * @returns {string[]}
-     */
-
-    // create a config object for subsequent steps
-    ctx.config = /** @type {NodeRefreshConfigClass} **/ this.getConfig(REFRESH_CONFIGS_NAME, argv.flags,
+    ctx.config = this.getConfig(REFRESH_CONFIGS_NAME, argv.flags,
         [
             'nodeAliases',
             'podNames'
-        ])
+        ]) as NodeRefreshConfigClass
 
     ctx.config.nodeAliases = helpers.parseNodeAliases(ctx.config.nodeAliasesUnparsed)
 
@@ -340,33 +259,12 @@ export const refreshConfigBuilder = async function (argv, ctx, task) {
 }
 
 export const keysConfigBuilder = function (argv, ctx, task) {
-    /**
-     * @typedef {Object} NodeKeysConfigClass
-     * -- flags --
-     * @property {string} cacheDir
-     * @property {boolean} devMode
-     * @property {boolean} generateGossipKeys
-     * @property {boolean} generateTlsKeys
-     * @property {string} nodeAliasesUnparsed
-     * -- extra args --
-     * @property {Date} curDate
-     * @property {string} keysDir
-     * @property {NodeAliases} nodeAliases
-     * -- methods --
-     * @property {getUnusedConfigs} getUnusedConfigs
-     */
-    /**
-     * @callback getUnusedConfigs
-     * @returns {string[]}
-     */
-
-        // create a config object for subsequent steps
-    const config = /** @type {NodeKeysConfigClass} **/ this.getConfig(KEYS_CONFIGS_NAME, argv.flags,
+    const config = this.getConfig(KEYS_CONFIGS_NAME, argv.flags,
             [
                 'curDate',
                 'keysDir',
                 'nodeAliases'
-            ])
+            ]) as NodeKeysConfigClass
 
     config.curDate = new Date()
     config.nodeAliases = helpers.parseNodeAliases(config.nodeAliasesUnparsed)
@@ -394,31 +292,10 @@ export const stopConfigBuilder = async function (argv, ctx, task) {
 }
 
 export const startConfigBuilder = async function (argv, ctx, task) {
-    /**
-     * @typedef {Object} NodeStartConfigClass
-     * -- flags --
-     * @property {string} app
-     * @property {string} appConfig
-     * @property {string} cacheDir
-     * @property {boolean} devMode
-     * @property {string} namespace
-     * @property {string} nodeAliasesUnparsed
-     * @property {string} debugNodeAlias
-     * -- extra args --
-     * @property {NodeAliases} nodeAliases
-     * -- methods --
-     * @property {getUnusedConfigs} getUnusedConfigs
-     */
-    /**
-     * @callback getUnusedConfigs
-     * @returns {string[]}
-     */
-
-        // create a config object for subsequent steps
-    const config = /** @type {NodeStartConfigClass} **/ this.getConfig(START_CONFIGS_NAME, argv.flags,
+    const config = this.getConfig(START_CONFIGS_NAME, argv.flags,
             [
                 'nodeAliases'
-            ])
+            ]) as NodeStartConfigClass
 
     if (!await this.k8.hasNamespace(config.namespace)) {
         throw new SoloError(`namespace ${config.namespace} does not exist`)
@@ -430,34 +307,11 @@ export const startConfigBuilder = async function (argv, ctx, task) {
 }
 
 export const setupConfigBuilder = async function (argv, ctx, task) {
-    /**
-     * @typedef {Object} NodeSetupConfigClass
-     * -- flags --
-     * @property {string} app
-     * @property {string} appConfig
-     * @property {string} cacheDir
-     * @property {boolean} devMode
-     * @property {string} localBuildPath
-     * @property {string} namespace
-     * @property {string} nodeAliasesUnparsed
-     * @property {string} releaseTag
-     * -- extra args --
-     * @property {NodeAliases} nodeAliases
-     * @property {Object} podNames
-     * -- methods --
-     * @property {getUnusedConfigs} getUnusedConfigs
-     */
-    /**
-     * @callback getUnusedConfigs
-     * @returns {string[]}
-     */
-
-        // create a config object for subsequent steps
-    const config = /** @type {NodeSetupConfigClass} **/ this.getConfig(SETUP_CONFIGS_NAME, argv.flags,
+    const config = this.getConfig(SETUP_CONFIGS_NAME, argv.flags,
             [
                 'nodeAliases',
                 'podNames'
-            ])
+            ]) as NodeSetupConfigClass
 
     config.nodeAliases = helpers.parseNodeAliases(config.nodeAliasesUnparsed)
 
@@ -513,6 +367,7 @@ export interface NodeStartConfigClass {
     nodeAliases: NodeAliases
     stagingDir: string,
     podNames: Record<NodeAlias, PodName>
+    nodeAliasesUnparsed: string
 }
 
 export interface NodeAddConfigClass {
