@@ -25,7 +25,7 @@ import path from 'path'
 import { ClusterCommand } from '../src/commands/cluster.ts'
 import { InitCommand } from '../src/commands/init.ts'
 import { NetworkCommand } from '../src/commands/network.ts'
-import { NodeCommand } from '../src/commands/node.ts'
+import { NodeCommand } from '../src/commands/node/index.ts'
 import {
   DependencyManager,
   HelmDependencyManager
@@ -57,6 +57,7 @@ import crypto from 'crypto'
 import { AccountCommand } from '../src/commands/account.ts'
 import { SoloError } from '../src/core/errors.ts'
 import { execSync } from 'child_process'
+import * as NodeCommandConfigs from '../src/commands/node/configs.ts'
 import type { SoloLogger } from '../src/core/logging.ts'
 import type { BaseCommand } from '../src/commands/base.ts'
 import type { NodeAlias } from '../src/types/aliases.ts'
@@ -237,9 +238,8 @@ export function e2eTestSuite (
       }).timeout(2 * MINUTES)
 
       it('generate key files', async () => {
-        await expect(nodeCmd.keys(argv)).to.eventually.be.ok
-        expect(nodeCmd.getUnusedConfigs(NodeCommand.KEYS_CONFIGS_NAME)).to.deep.equal([
-          flags.cacheDir.constName,
+        await expect(nodeCmd.handlers.keys(argv)).to.eventually.be.ok
+        expect(nodeCmd.getUnusedConfigs(NodeCommandConfigs.KEYS_CONFIGS_NAME)).to.deep.equal([
           flags.devMode.constName,
           flags.quiet.constName
         ])
@@ -266,10 +266,8 @@ export function e2eTestSuite (
         it('should succeed with node setup command', async () => {
           // cache this, because `solo node setup.finalize()` will reset it to false
           try {
-            await expect(nodeCmd.setup(argv)).to.eventually.be.ok
-            expect(nodeCmd.getUnusedConfigs(NodeCommand.SETUP_CONFIGS_NAME)).to.deep.equal([
-              flags.app.constName,
-              flags.appConfig.constName,
+            await expect(nodeCmd.handlers.setup(argv)).to.eventually.be.ok
+            expect(nodeCmd.getUnusedConfigs(NodeCommandConfigs.SETUP_CONFIGS_NAME)).to.deep.equal([
               flags.devMode.constName
             ])
           } catch (e) {
@@ -280,7 +278,7 @@ export function e2eTestSuite (
 
         it('should succeed with node start command', async () => {
           try {
-            await expect(nodeCmd.start(argv)).to.eventually.be.ok
+            await expect(nodeCmd.handlers.start(argv)).to.eventually.be.ok
           } catch (e) {
             nodeCmd.logger.showUserError(e)
             expect.fail()
