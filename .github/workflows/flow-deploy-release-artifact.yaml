@@ -90,12 +90,6 @@ jobs:
           [[ "${{ github.event.inputs.dry-run-enabled }}" == true && ! -f VERSION ]] && echo -n "0.0.0-latest" > VERSION
           echo "version=$(cat VERSION | tr -d '[:space:]')" | tee -a ${GITHUB_OUTPUT}
 
-      - name: Build Production Distribution
-        run: |
-          set -x
-          npm install
-          npm run build
-
   update-readme:
     name: "Update README.md"
     uses: ./.github/workflows/zxc-update-readme.yaml
@@ -158,6 +152,12 @@ jobs:
             cache: npm
           attempt_limit: 3
           attempt_delay: 5000
+
+      - name: Build Production Distribution
+        run: |
+          set -x
+          npm install
+          npm run build
 
       - name: Setup JFrog CLI
         uses: jfrog/setup-jfrog-cli@9fe0f98bd45b19e6e931d457f4e98f8f84461fb5 # v4.4.1
