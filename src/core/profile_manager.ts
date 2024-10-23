@@ -355,6 +355,26 @@ export class ProfileManager {
     })
   }
 
+  prepareValuesHederaExplorerChart (profileName: string) {
+    if (!profileName) throw new MissingArgumentError('profileName is required')
+    const profile = this.getProfile(profileName) as any
+    // generate the yaml
+    const yamlRoot = {}
+    this.resourcesForHederaExplorerPod(profile, yamlRoot)
+
+    // write the yaml
+    const cachedValuesFile = path.join(this.cacheDir, `explorer-${profileName}.yaml`)
+    return new Promise<string>((resolve, reject) => {
+      fs.writeFile(cachedValuesFile, yaml.dump(yamlRoot), (err) => {
+        if (err) {
+          reject(err)
+        }
+
+        resolve(cachedValuesFile)
+      })
+    })
+  }
+
   /**
    * Prepare a values file for mirror-node Helm chart
    * @param profileName - resource profile name
@@ -369,18 +389,18 @@ export class ProfileManager {
     const yamlRoot = {}
     if (profile.mirror.postgresql) {
       if (profile.mirror.postgresql.persistence) {
-        this._setValue('hedera-mirror-node.postgresql.persistence.size', profile.mirror.postgresql.persistence.size, yamlRoot)
+        this._setValue('hedera-mirror.postgresql.persistence.size', profile.mirror.postgresql.persistence.size, yamlRoot)
       }
 
-      this._setChartItems('hedera-mirror-node.postgresql.postgresql', profile.mirror.postgresql.postgresql, yamlRoot)
+      this._setChartItems('hedera-mirror.postgresql.postgresql', profile.mirror.postgresql.postgresql, yamlRoot)
     }
 
-    this._setChartItems('hedera-mirror-node.importer', profile.mirror.importer, yamlRoot)
-    this._setChartItems('hedera-mirror-node.rest', profile.mirror.rest, yamlRoot)
-    this._setChartItems('hedera-mirror-node.web3', profile.mirror.web3, yamlRoot)
-    this._setChartItems('hedera-mirror-node.grpc', profile.mirror.grpc, yamlRoot)
-    this._setChartItems('hedera-mirror-node.monitor', profile.mirror.monitor, yamlRoot)
-    this.resourcesForHederaExplorerPod(profile, yamlRoot)
+    this._setChartItems('hedera-mirror.importer', profile.mirror.importer, yamlRoot)
+    this._setChartItems('hedera-mirror.rest', profile.mirror.rest, yamlRoot)
+    this._setChartItems('hedera-mirror.web3', profile.mirror.web3, yamlRoot)
+    this._setChartItems('hedera-mirror.grpc', profile.mirror.grpc, yamlRoot)
+    this._setChartItems('hedera-mirror.monitor', profile.mirror.monitor, yamlRoot)
+    // this.resourcesForHederaExplorerPod(profile, yamlRoot)
 
     // write the yaml
     const cachedValuesFile = path.join(this.cacheDir, `mirror-${profileName}.yaml`)

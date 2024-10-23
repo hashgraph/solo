@@ -97,6 +97,27 @@ export class MirrorNodeCommand extends BaseCommand {
     return valuesArg
   }
 
+  async prepareHederaExplorerValuesArg (config: any) {
+    let valuesArg = ''
+
+    const profileName = <string>this.configManager.getFlag<string>(flags.profileName)
+    const profileValuesFile = await this.profileManager.prepareValuesHederaExplorerChart(profileName)
+    if (profileValuesFile) {
+      valuesArg += this.prepareValuesFiles(profileValuesFile)
+    }
+
+    if (config.enableHederaExplorerTls) {
+      valuesArg += this.getTlsValueArguments(config.tlsClusterIssuerType, config.enableHederaExplorerTls, config.namespace,
+          config.hederaExplorerTlsLoadBalancerIp, config.hederaExplorerTlsHostName)
+    }
+
+    if (config.valuesFile) {
+      valuesArg += this.prepareValuesFiles(config.valuesFile)
+    }
+
+    return valuesArg
+  }
+
   async prepareValuesArg (config: any) {
     let valuesArg = ''
 
@@ -197,7 +218,7 @@ export class MirrorNodeCommand extends BaseCommand {
               title: 'Prepare address book',
               task: async (ctx) => {
                 ctx.addressBook = await self.accountManager.prepareAddressBookBase64()
-                ctx.config.valuesArg += ` --set "hedera-mirror-node.importer.addressBook=${ctx.addressBook}"`
+                ctx.config.valuesArg += ` --set "hedera-mirror.importer.addressBook=${ctx.addressBook}"`
               }
             },
             {
@@ -210,7 +231,8 @@ export class MirrorNodeCommand extends BaseCommand {
                 // await self.chartManager.install(ctx.config.namespace, constants.HEDERA_EXPLORER_CHART, constants.HEDERA_EXPLORER_CHART_UTL, ctx.config.hederaExplorerVersion, explorerValuesArg)
 
                 // update existing chart to active explorer
-                const updateArg = ` --set hedera-explorer.enabled=${ctx.config.deployHederaExplorer}`
+                let updateArg = await self.prepareHederaExplorerValuesArg(ctx.config)
+                updateArg += ` --set hedera-explorer.enabled=${ctx.config.deployHederaExplorer}`
                 await self.chartManager.upgrade(
                   ctx.config.namespace,
                   constants.SOLO_DEPLOYMENT_CHART,
@@ -313,6 +335,9 @@ export class MirrorNodeCommand extends BaseCommand {
                 const HEDERA_MIRROR_IMPORTER_DB_OWNERPASSWORD = getEnvValue(mirrorEnvVarsArray, 'HEDERA_MIRROR_IMPORTER_DB_OWNERPASSWORD')
                 const HEDERA_MIRROR_IMPORTER_DB_NAME = getEnvValue(mirrorEnvVarsArray, 'HEDERA_MIRROR_IMPORTER_DB_NAME')
 
+                this.logger.debug(` postgresPodName = ${postgresPodName}`)
+                this.logger.debug(` postgresContainerName = ${postgresContainerName}`)
+
                 await self.k8.execContainer(postgresPodName, postgresContainerName, [
                   'psql',
                   `postgresql://${HEDERA_MIRROR_IMPORTER_DB_OWNER}:${HEDERA_MIRROR_IMPORTER_DB_OWNERPASSWORD}@localhost:5432/${HEDERA_MIRROR_IMPORTER_DB_NAME}`,
@@ -389,7 +414,7 @@ export class MirrorNodeCommand extends BaseCommand {
           // ctx.config.chartPath = await self.prepareChartPath(ctx.config.chartDirectory,
           //   constants.SOLO_TESTING_CHART, constants.SOLO_DEPLOYMENT_CHART)
           //
-          // ctx.config.valuesArg = ' --set hedera-mirror-node.enabled=false --set hedera-explorer.enabled=false'
+          // ctx.config.valuesArg = ' --set hedera-mirror.enabled=false --set hedera-explorer.enabled=false'
 
           if (!await self.k8.hasNamespace(ctx.config.namespace)) {
             throw new SoloError(`namespace ${ctx.config.namespace} does not exist`)

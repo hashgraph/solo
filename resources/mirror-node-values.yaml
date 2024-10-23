@@ -1,5 +1,5 @@
 # hedera mirror node configuration
-hedera-mirror-node:
+hedera-mirror:
   enabled: true # set to false during first deployment, then do an upgrade with it enabled and supply the base64 encoded addressbook
   labels:
     solo.hedera.com/testSuiteName: ""

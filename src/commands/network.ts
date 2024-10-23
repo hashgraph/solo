@@ -124,7 +124,7 @@ export class NetworkCommand extends BaseCommand {
     }
 
     // do not deploy mirror node until after we have the updated address book
-    valuesArg += ' --set "hedera-mirror-node.enabled=false" --set "hedera-explorer.enabled=false"'
+    // valuesArg += ' --set "hedera-mirror.enabled=false" --set "hedera-explorer.enabled=false"'
     valuesArg += ` --set "telemetry.prometheus.svcMonitor.enabled=${config.enablePrometheusSvcMonitor}"`
 
     if (config.releaseTag) {
