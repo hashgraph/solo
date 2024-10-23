@@ -8,7 +8,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 //! Target directory
 const distDir = path.resolve(__dirname, '../dist')
 const srcPackageJsonFilePath = path.resolve(__dirname, '../package.json')
-const targetPackageJsonFilePath = path.join(distDir, 'src', 'package.json')
+const targetPackageJsonFilePath = path.join(distDir, 'package.json')
 const srcResourcesDir = path.join(__dirname, '../resources')
 const targetResourcesDir = path.join(distDir, 'resources')
 
