@@ -20,10 +20,9 @@ import { color, type ListrLogger, PRESET_TIMER } from 'listr2'
 import path, { dirname, normalize } from 'path'
 import { fileURLToPath } from 'url'
 
-export const ROOT_DIR = process.cwd()
+export const ROOT_DIR = path.join(dirname(fileURLToPath(import.meta.url)), '..', '..')
 
 // -------------------- solo related constants ---------------------------------------------------------------------
-export const CUR_FILE_DIR = dirname(fileURLToPath(import.meta.url))
 export const SOLO_HOME_DIR = process.env.SOLO_HOME || path.join(process.env.HOME as string, '.solo')
 export const SOLO_LOGS_DIR = path.join(SOLO_HOME_DIR, 'logs')
 export const SOLO_CACHE_DIR = path.join(SOLO_HOME_DIR, 'cache')
@@ -63,9 +62,9 @@ export const MIRROR_NODE_CHART_URL = 'https://hashgraph.github.io/hedera-mirror-
 export const MIRROR_NODE_CHART = 'hedera-mirror'
 
 export const DEFAULT_CHART_REPO: Map<string, string> = new Map()
-  .set(SOLO_TESTING_CHART, SOLO_TESTING_CHART_URL)
-  .set(JSON_RPC_RELAY_CHART, JSON_RPC_RELAY_CHART_URL)
-  .set(MIRROR_NODE_CHART, MIRROR_NODE_CHART_URL)
+.set(SOLO_TESTING_CHART, SOLO_TESTING_CHART_URL)
+.set(JSON_RPC_RELAY_CHART, JSON_RPC_RELAY_CHART_URL)
+.set(MIRROR_NODE_CHART, MIRROR_NODE_CHART_URL)
 
 // ------------------- Hedera Account related ---------------------------------------------------------------------------------
 export const OPERATOR_ID = process.env.SOLO_OPERATOR_ID || '0.0.2'
@@ -115,10 +114,11 @@ export const LISTR_DEFAULT_RENDERER_OPTION = {
   timer: LISTR_DEFAULT_RENDERER_TIMER_OPTION
 } as {
   collapseSubtasks: boolean
-  timer: { condition: (duration: number) => boolean
+  timer: {
+    condition: (duration: number) => boolean
     format: (duration: number) => any
     field: string | ((args_0: number) => string)
-    args?: [ number ]
+    args?: [number]
   },
   logger: ListrLogger
 }
