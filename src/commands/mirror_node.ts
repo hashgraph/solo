@@ -61,6 +61,27 @@ export class MirrorNodeCommand extends BaseCommand {
     ]
   }
 
+  async prepareHederaExplorerValuesArg (config: any) {
+    let valuesArg = ''
+
+    const profileName = <string>this.configManager.getFlag<string>(flags.profileName)
+    const profileValuesFile = await this.profileManager.prepareValuesHederaExplorerChart(profileName)
+    if (profileValuesFile) {
+      valuesArg += this.prepareValuesFiles(profileValuesFile)
+    }
+
+    if (config.enableHederaExplorerTls) {
+      valuesArg += this.getTlsValueArguments(config.tlsClusterIssuerType, config.enableHederaExplorerTls, config.namespace,
+          config.hederaExplorerTlsLoadBalancerIp, config.hederaExplorerTlsHostName)
+    }
+
+    if (config.valuesFile) {
+      valuesArg += this.prepareValuesFiles(config.valuesFile)
+    }
+
+    return valuesArg
+  }
+  
   /**
    * @param tlsClusterIssuerType
    * @param enableHederaExplorerTls
@@ -92,27 +113,6 @@ export class MirrorNodeCommand extends BaseCommand {
         valuesArg += ' --set cloud.acmeClusterIssuer.enabled=true'
         valuesArg += ` --set hedera-explorer.certClusterIssuerType=${tlsClusterIssuerType}`
       }
-    }
-
-    return valuesArg
-  }
-
-  async prepareHederaExplorerValuesArg (config: any) {
-    let valuesArg = ''
-
-    const profileName = <string>this.configManager.getFlag<string>(flags.profileName)
-    const profileValuesFile = await this.profileManager.prepareValuesHederaExplorerChart(profileName)
-    if (profileValuesFile) {
-      valuesArg += this.prepareValuesFiles(profileValuesFile)
-    }
-
-    if (config.enableHederaExplorerTls) {
-      valuesArg += this.getTlsValueArguments(config.tlsClusterIssuerType, config.enableHederaExplorerTls, config.namespace,
-          config.hederaExplorerTlsLoadBalancerIp, config.hederaExplorerTlsHostName)
-    }
-
-    if (config.valuesFile) {
-      valuesArg += this.prepareValuesFiles(config.valuesFile)
     }
 
     return valuesArg
