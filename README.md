@@ -182,8 +182,8 @@ Kubernetes Namespace	: solo
 ✔ Generate gossip keys
 ✔ Backup old files
 ✔ TLS key for node: node1
-✔ TLS key for node: node2
 ✔ TLS key for node: node3
+✔ TLS key for node: node2
 ✔ Generate gRPC TLS keys
 ✔ Finalize
 ```
@@ -241,22 +241,22 @@ Kubernetes Namespace	: solo
 ✔ Prepare staging directory
 ✔ Copy TLS keys
 ✔ Copy Gossip keys
+✔ Node: node3
+✔ Copy Gossip keys
 ✔ Node: node2
 ✔ Copy Gossip keys
 ✔ Node: node1
-✔ Copy Gossip keys
-✔ Node: node3
 ✔ Copy node keys to secrets
 ✔ Install chart 'solo-deployment'
 ✔ Check Node: node1
 ✔ Check Node: node2
 ✔ Check Node: node3
 ✔ Check node pods are running
-✔ Check Envoy Proxy for: node1
 ✔ Check Envoy Proxy for: node2
-✔ Check HAProxy for: node2
 ✔ Check Envoy Proxy for: node3
+✔ Check Envoy Proxy for: node1
 ✔ Check HAProxy for: node1
+✔ Check HAProxy for: node2
 ✔ Check HAProxy for: node3
 ✔ Check proxy pods are running
 ✔ Check MinIO
@@ -281,18 +281,18 @@ Kubernetes Cluster	: kind-solo
 Kubernetes Namespace	: solo
 **********************************************************************************
 ✔ Initialize
-✔ Check network pod: node3
-✔ Check network pod: node2
 ✔ Check network pod: node1
+✔ Check network pod: node2
+✔ Check network pod: node3
 ✔ Identify network pods
 ✔ Update node: node3 [ platformVersion = v0.54.0-alpha.4 ]
-✔ Update node: node2 [ platformVersion = v0.54.0-alpha.4 ]
 ✔ Update node: node1 [ platformVersion = v0.54.0-alpha.4 ]
+✔ Update node: node2 [ platformVersion = v0.54.0-alpha.4 ]
 ✔ Fetch platform software into network nodes
 ✔ Set file permissions
-✔ Node: node3
-✔ Set file permissions
 ✔ Node: node1
+✔ Set file permissions
+✔ Node: node3
 ✔ Set file permissions
 ✔ Node: node2
 ✔ Setup network nodes
@@ -315,15 +315,15 @@ Kubernetes Cluster	: kind-solo
 Kubernetes Namespace	: solo
 **********************************************************************************
 ✔ Initialize
-✔ Check network pod: node2
 ✔ Check network pod: node1
+✔ Check network pod: node2
 ✔ Check network pod: node3
 ✔ Identify existing network nodes
-✔ Start node: node1
 ✔ Start node: node2
 ✔ Start node: node3
+✔ Start node: node1
 ✔ Starting nodes
-✔ Check network pod: node3  - status ACTIVE, attempt: 16/120
+✔ Check network pod: node3  - status ACTIVE, attempt: 17/120
 ✔ Check network pod: node1  - status ACTIVE, attempt: 17/120
 ✔ Check network pod: node2  - status ACTIVE, attempt: 17/120
 ✔ Check nodes are ACTIVE
