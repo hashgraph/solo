@@ -71,8 +71,8 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
       this.timeout(3 * MINUTES)
 
       await getNodeLogs(k8, namespace)
-      // await k8.deleteNamespace(namespace)
-      // await accountManager.close()
+      await k8.deleteNamespace(namespace)
+      await accountManager.close()
 
       bootstrapResp.opts.logger.showUser(`------------------------- END: ${testName} ----------------------------`)
     })
@@ -90,14 +90,14 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
         expect.fail()
       }
 
-      // expect(mirrorNodeCmd.getUnusedConfigs(MirrorNodeCommand.DEPLOY_CONFIGS_NAME)).to.deep.equal([
-      //   flags.hederaExplorerTlsHostName.constName,
-      //   flags.hederaExplorerTlsLoadBalancerIp.constName,
-      //   flags.profileFile.constName,
-      //   flags.profileName.constName,
-      //   flags.quiet.constName,
-      //   flags.tlsClusterIssuerType.constName
-      // ])
+      expect(mirrorNodeCmd.getUnusedConfigs(MirrorNodeCommand.DEPLOY_CONFIGS_NAME)).to.deep.equal([
+        flags.hederaExplorerTlsHostName.constName,
+        flags.hederaExplorerTlsLoadBalancerIp.constName,
+        flags.profileFile.constName,
+        flags.profileName.constName,
+        flags.quiet.constName,
+        flags.tlsClusterIssuerType.constName
+      ])
     }).timeout(10 * MINUTES)
 
     it('mirror node API should be running', async () => {
@@ -200,31 +200,31 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
       }
     }).timeout(5 * MINUTES)
 
-    // it('mirror node destroy should success', async () => {
-    //   try {
-    //     await expect(mirrorNodeCmd.destroy(argv)).to.eventually.be.ok
-    //   } catch (e) {
-    //     mirrorNodeCmd.logger.showUserError(e)
-    //     expect.fail()
-    //   }
-    // }).timeout(MINUTES)
-    //
-    // it('should apply the mirror node version from the --mirror-node-version flag', async () => {
-    //   const mirrorNodeVersion = '0.111.1'
-    //   const customArgv = { [flags.mirrorNodeVersion.constName]: mirrorNodeVersion, ...argv }
-    //
-    //   const valuesArg = await mirrorNodeCmd.prepareValuesArg(customArgv)
-    //
-    //   expect(valuesArg).to.contain(`--set global.image.tag=${mirrorNodeVersion}`)
-    // }).timeout(5 * SECONDS)
-    //
-    // it('should not apply the mirror node version from the --mirror-node-version flag if left empty', async () => {
-    //   const mirrorNodeVersion = ''
-    //   const customArgv = { [flags.mirrorNodeVersion.constName]: mirrorNodeVersion, ...argv }
-    //
-    //   const valuesArg = await mirrorNodeCmd.prepareValuesArg(customArgv)
-    //
-    //   expect(valuesArg).not.to.contain('--set global.image.tag=')
-    // }).timeout(5 * SECONDS)
+    it('mirror node destroy should success', async () => {
+      try {
+        await expect(mirrorNodeCmd.destroy(argv)).to.eventually.be.ok
+      } catch (e) {
+        mirrorNodeCmd.logger.showUserError(e)
+        expect.fail()
+      }
+    }).timeout(MINUTES)
+
+    it('should apply the mirror node version from the --mirror-node-version flag', async () => {
+      const mirrorNodeVersion = '0.111.1'
+      const customArgv = { [flags.mirrorNodeVersion.constName]: mirrorNodeVersion, ...argv }
+
+      const valuesArg = await mirrorNodeCmd.prepareValuesArg(customArgv)
+
+      expect(valuesArg).to.contain(`--set global.image.tag=${mirrorNodeVersion}`)
+    }).timeout(5 * SECONDS)
+
+    it('should not apply the mirror node version from the --mirror-node-version flag if left empty', async () => {
+      const mirrorNodeVersion = ''
+      const customArgv = { [flags.mirrorNodeVersion.constName]: mirrorNodeVersion, ...argv }
+
+      const valuesArg = await mirrorNodeCmd.prepareValuesArg(customArgv)
+
+      expect(valuesArg).not.to.contain('--set global.image.tag=')
+    }).timeout(5 * SECONDS)
   })
 })

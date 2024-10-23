@@ -707,6 +707,7 @@ export const hederaExplorerVersion: CommandFlag = {
     type: 'string'
   }
 }
+
 export const allFlags: CommandFlag[] = [
   accountId,
   amount,

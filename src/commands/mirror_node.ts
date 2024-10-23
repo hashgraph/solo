@@ -141,7 +141,6 @@ export class MirrorNodeCommand extends BaseCommand {
       chartDirectory: string
       deployHederaExplorer: boolean
       enableHederaExplorerTls: string
-      soloChartVersion: string
       hederaExplorerTlsHostName: string
       hederaExplorerTlsLoadBalancerIp: string
       hederaExplorerVersion: string
@@ -219,7 +218,6 @@ export class MirrorNodeCommand extends BaseCommand {
             {
               title: 'Deploy hedera-explorer',
               task: async (ctx) => {
-                // update existing chart to active explorer
                 const exploreValuesArg = await self.prepareHederaExplorerValuesArg(ctx.config)
                 await self.chartManager.install(ctx.config.namespace,
                     constants.HEDERA_EXPLORER_CHART, constants.HEDERA_EXPLORER_CHART_UTL, ctx.config.hederaExplorerVersion, exploreValuesArg)
@@ -468,7 +466,6 @@ export class MirrorNodeCommand extends BaseCommand {
             builder: (y: any) => flags.setCommandFlags(y,
               flags.chartDirectory,
               flags.force,
-              flags.soloChartVersion,
               flags.namespace
             ),
             handler: (argv: any) => {
