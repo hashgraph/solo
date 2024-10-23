@@ -20,6 +20,7 @@ import { SoloError } from '../errors.js'
 import { ListrEnquirerPromptAdapter } from '@listr2/prompt-adapter-enquirer'
 // import { type IFlag } from './flag.js'
 
+
 // export type PromptFunction = (task: ListrTaskWrapper<any, any, any>, input: any) => Promise<any>
 //
 // export class Prompts {

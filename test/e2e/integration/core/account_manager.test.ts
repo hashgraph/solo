@@ -22,12 +22,13 @@ import { e2eTestSuite, getDefaultArgv, TEST_CLUSTER } from '../../../test_util.t
 import * as version from '../../../../version.ts'
 import { MINUTES } from '../../../../src/core/constants.ts'
 import type { PodName } from '../../../../src/types/aliases.ts'
+import { Flags } from '../../../../src/commands/flags.js'
 
 const namespace = 'account-mngr-e2e'
 const argv = getDefaultArgv()
 argv[flags.namespace.name] = namespace
 argv[flags.nodeAliasesUnparsed.name] = 'node1'
-argv[flags.clusterName.name] = TEST_CLUSTER
+argv[Flags.clusterName.name] = TEST_CLUSTER
 argv[flags.soloChartVersion.name] = version.SOLO_CHART_VERSION
 argv[flags.generateGossipKeys.name] = true
 argv[flags.generateTlsKeys.name] = true

@@ -24,6 +24,50 @@ import { resetDisabledPrompts } from './flags.ts'
 import type { ListrTaskWrapper } from 'listr2'
 import { type CommandFlag } from '../types/index.ts'
 
+export type PromptFunction = (task: ListrTaskWrapper<any, any, any>, input: any) => Promise<any>
+
+export class Prompts {
+  static async prompt (type: string, task: ListrTaskWrapper<any, any, any>, input: any, defaultValue: any, promptMessage: string, emptyCheckMessage: string | null, flagName: string) {
+    try {
+      let needsPrompt = type === 'toggle' ? (input === undefined || typeof input !== 'boolean') : !input
+      needsPrompt = type === 'number' ? typeof input !== 'number' : needsPrompt
+
+      if (needsPrompt) {
+        if (!process.stdout.isTTY || !process.stdin.isTTY) {
+          // this is to help find issues with prompts running in non-interactive mode, user should supply quite mode,
+          // or provide all flags required for command
+          throw new SoloError('Cannot prompt for input in non-interactive mode')
+        }
+
+        input = await task.prompt(ListrEnquirerPromptAdapter).run({
+          type,
+          default: defaultValue,
+          message: promptMessage
+        })
+      }
+
+      if (emptyCheckMessage && !input) {
+        throw new SoloError(emptyCheckMessage)
+      }
+
+      return input
+    } catch (e: Error | any) {
+      throw new SoloError(`input failed: ${flagName}: ${e.message}`, e)
+    }
+  }
+
+  static async promptToggle (task: ListrTaskWrapper<any, any, any>, input: any, defaultValue: any, promptMessage: string,
+                             emptyCheckMessage: string| null, flagName: string) {
+    return await prompt('toggle', task, input, defaultValue, promptMessage, emptyCheckMessage, flagName)
+  }
+
+  static async promptText (task: ListrTaskWrapper<any, any, any>, input: any, defaultValue: any, promptMessage: string,
+                           emptyCheckMessage: string | null, flagName: string) {
+    return await prompt('text', task, input, defaultValue, promptMessage, emptyCheckMessage, flagName)
+  }
+
+}
+
 async function prompt (type: string, task: ListrTaskWrapper<any, any, any>, input: any, defaultValue: any, promptMessage: string, emptyCheckMessage: string | null, flagName: string) {
   try {
     let needsPrompt = type === 'toggle' ? (input === undefined || typeof input !== 'boolean') : !input
@@ -59,24 +103,8 @@ async function promptText (task: ListrTaskWrapper<any, any, any>, input: any, de
 }
 
 async function promptToggle (task: ListrTaskWrapper<any, any, any>, input: any, defaultValue: any, promptMessage: string,
-    emptyCheckMessage: string| null, flagName: string) {
+                             emptyCheckMessage: string| null, flagName: string) {
   return await prompt('toggle', task, input, defaultValue, promptMessage, emptyCheckMessage, flagName)
-}
-
-export async function promptNamespace (task: ListrTaskWrapper<any, any, any>, input: any) {
-  return await promptText(task, input,
-    'solo',
-    'Enter namespace name: ',
-    'namespace cannot be empty',
-    flags.namespace.name)
-}
-
-export async function promptClusterSetupNamespace (task: ListrTaskWrapper<any, any, any>, input: any) {
-  return await promptText(task, input,
-    'solo-cluster',
-    'Enter cluster setup namespace name: ',
-    'cluster setup namespace cannot be empty',
-    flags.clusterSetupNamespace.name)
 }
 
 export async function promptNodeAliases (task: ListrTaskWrapper<any, any, any>, input: any) {

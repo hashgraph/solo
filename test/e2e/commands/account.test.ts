@@ -31,6 +31,7 @@ import { AccountCommand } from '../../../src/commands/account.ts'
 import { flags } from '../../../src/commands/index.ts'
 import { getNodeLogs } from '../../../src/core/helpers.ts'
 import { MINUTES, SECONDS } from '../../../src/core/constants.ts'
+import { Flags } from '../../../src/commands/flags.js'
 
 const defaultTimeout = 20 * SECONDS
 
@@ -43,7 +44,7 @@ argv[flags.releaseTag.name] = HEDERA_PLATFORM_VERSION_TAG
 argv[flags.nodeAliasesUnparsed.name] = 'node1'
 argv[flags.generateGossipKeys.name] = true
 argv[flags.generateTlsKeys.name] = true
-argv[flags.clusterName.name] = TEST_CLUSTER
+argv[Flags.clusterName.name] = TEST_CLUSTER
 argv[flags.soloChartVersion.name] = version.SOLO_CHART_VERSION
 // set the env variable SOLO_CHARTS_DIR if developer wants to use local Solo charts
 argv[flags.chartDirectory.name] = process.env.SOLO_CHARTS_DIR ?? undefined

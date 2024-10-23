@@ -24,6 +24,7 @@ import type {
 } from '../core/index.ts'
 import type { DependencyManager } from '../core/dependency_managers/index.ts'
 import type { AccountManager } from '../core/account_manager.ts'
+import { type PromptFunction } from '../commands/prompts.js'
 
 export interface NodeKeyObject {
   privateKey: crypto.webcrypto.CryptoKey
@@ -57,6 +58,7 @@ export interface CommandFlag {
   constName: string
   name: string
   definition: Definition
+  prompt: PromptFunction
 }
 
 export interface Definition {
