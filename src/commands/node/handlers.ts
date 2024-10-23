@@ -325,6 +325,7 @@ export class NodeCommandHandlers {
     const action = helpers.commandActionBuilder([
       this.tasks.initialize(argv, updateConfigBuilder.bind(this)),
       this.tasks.loadContextData(argv, NodeCommandHandlers.UPDATE_CONTEXT_FILE, helpers.updateLoadContextParser),
+      this.tasks.loadAdminKey(),
       ...this.updateSubmitTransactionsTasks(argv)
     ], {
       concurrent: false,
