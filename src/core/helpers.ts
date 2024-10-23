@@ -16,10 +16,9 @@
  */
 import fs from 'fs'
 import os from 'os'
-import path, * as paths from 'path'
+import path from 'path'
 import util from 'util'
 import { SoloError } from './errors.ts'
-import { fileURLToPath } from 'url'
 import * as semver from 'semver'
 import { Templates } from './templates.ts'
 import { HEDERA_HAPI_PATH, ROOT_CONTAINER, SOLO_LOGS_DIR } from './constants.ts'
@@ -32,9 +31,6 @@ import { type BaseCommand } from '../commands/base.ts'
 import { type NodeAlias, type NodeAliases, type PodName } from '../types/aliases.ts'
 import { type NodeDeleteConfigClass } from '../commands/node.ts'
 import { type CommandFlag } from '../types/index.js'
-
-// cache current directory
-const CUR_FILE_DIR = paths.dirname(fileURLToPath(import.meta.url))
 
 export function sleep (ms: number) {
   return new Promise<void>((resolve) => {
