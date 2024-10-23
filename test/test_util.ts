@@ -244,19 +244,19 @@ export function e2eTestSuite (
       it('should succeed with network deploy', async () => {
         await networkCmd.deploy(argv)
 
-        // expect(networkCmd.getUnusedConfigs(NetworkCommand.DEPLOY_CONFIGS_NAME)).to.deep.equal([
-        //   flags.apiPermissionProperties.constName,
-        //   flags.applicationEnv.constName,
-        //   flags.applicationProperties.constName,
-        //   flags.bootstrapProperties.constName,
-        //   flags.chainId.constName,
-        //   flags.log4j2Xml.constName,
-        //   flags.profileFile.constName,
-        //   flags.profileName.constName,
-        //   flags.quiet.constName,
-        //   flags.settingTxt.constName,
-        //   'chartPath'
-        // ])
+        expect(networkCmd.getUnusedConfigs(NetworkCommand.DEPLOY_CONFIGS_NAME)).to.deep.equal([
+          flags.apiPermissionProperties.constName,
+          flags.applicationEnv.constName,
+          flags.applicationProperties.constName,
+          flags.bootstrapProperties.constName,
+          flags.chainId.constName,
+          flags.log4j2Xml.constName,
+          flags.profileFile.constName,
+          flags.profileName.constName,
+          flags.quiet.constName,
+          flags.settingTxt.constName,
+          'chartPath'
+        ])
       }).timeout(2 * MINUTES)
 
       if (startNodes) {

@@ -693,7 +693,7 @@ export const mirrorNodeVersion: CommandFlag = {
   name: 'mirror-node-version',
   definition: {
     describe: 'Mirror node chart version',
-    defaultValue: '',
+    defaultValue: version.MIRROR_NODE_VERSION,
     type: 'string'
   }
 }
