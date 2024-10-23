@@ -30,8 +30,8 @@ import { type NodeAlias, type NodeAliases, type PodName } from '../types/aliases
 import { type NodeDeleteConfigClass } from '../commands/node/configs.ts'
 import { type CommandFlag } from '../types/index.ts'
 import { type V1Pod } from '@kubernetes/client-node'
-import { type SoloLogger } from './logging.js'
-import { type NodeCommandHandlers } from '../commands/node/handlers.js'
+import { type SoloLogger } from './logging.ts'
+import { type NodeCommandHandlers } from '../commands/node/handlers.ts'
 
 export function sleep (ms: number) {
   return new Promise<void>((resolve) => {
