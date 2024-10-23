@@ -220,9 +220,9 @@ export class MirrorNodeCommand extends BaseCommand {
               title: 'Deploy hedera-explorer',
               task: async (ctx) => {
                 // update existing chart to active explorer
-                const updateArg = await self.prepareHederaExplorerValuesArg(ctx.config)
+                const exploreValuesArg = await self.prepareHederaExplorerValuesArg(ctx.config)
                 await self.chartManager.install(ctx.config.namespace,
-                    constants.HEDERA_EXPLORER_CHART, constants.HEDERA_EXPLORER_CHART_UTL, ctx.config.hederaExplorerVersion, updateArg)
+                    constants.HEDERA_EXPLORER_CHART, constants.HEDERA_EXPLORER_CHART_UTL, ctx.config.hederaExplorerVersion, exploreValuesArg)
 
               },
               skip: (ctx) => !ctx.config.deployHederaExplorer

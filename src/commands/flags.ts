@@ -80,7 +80,7 @@ export const deployHederaExplorer: CommandFlag = {
   name: 'hedera-explorer',
   definition: {
     describe: 'Deploy hedera explorer',
-    defaultValue: false,
+    defaultValue: true,
     alias: 'x',
     type: 'boolean'
   }
