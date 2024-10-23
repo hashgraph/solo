@@ -1,6 +1,6 @@
 {
   "name": "@hashgraph/solo",
-  "version": "0.31.2",
+  "version": "0.31.3",
   "description": "An opinionated CLI tool to deploy and manage private Hedera Networks.",
   "main": "dist/src/index.js",
   "type": "module",
