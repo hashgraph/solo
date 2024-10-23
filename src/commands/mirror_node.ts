@@ -132,12 +132,6 @@ export class MirrorNodeCommand extends BaseCommand {
         config.hederaExplorerTlsLoadBalancerIp, config.hederaExplorerTlsHostName)
     }
 
-    // if (config.mirrorNodeVersion) {
-    //   valuesArg += ` --set global.image.tag=${config.mirrorNodeVersion}`
-    // }
-
-    // valuesArg += ` --set --set hedera-explorer.enabled=${config.deployHederaExplorer}`
-
     if (config.valuesFile) {
       valuesArg += this.prepareValuesFiles(config.valuesFile)
     }
@@ -225,20 +219,20 @@ export class MirrorNodeCommand extends BaseCommand {
               title: 'Deploy mirror-node',
               task: async (ctx) => {
                 await self.chartManager.install(ctx.config.namespace, constants.MIRROR_NODE_CHART, ctx.config.chartPath, ctx.config.mirrorNodeVersion, ctx.config.valuesArg)
-
-                // const explorerValuesArg = this.prepareValuesFiles('resources/head-explorer-values.yaml')
-                //
-                // await self.chartManager.install(ctx.config.namespace, constants.HEDERA_EXPLORER_CHART, constants.HEDERA_EXPLORER_CHART_UTL, ctx.config.hederaExplorerVersion, explorerValuesArg)
-
+              }
+            },
+            {
+              title: 'Deploy hedera-explorer',
+              task: async (ctx) => {
                 // update existing chart to active explorer
                 let updateArg = await self.prepareHederaExplorerValuesArg(ctx.config)
                 updateArg += ` --set hedera-explorer.enabled=${ctx.config.deployHederaExplorer}`
                 await self.chartManager.upgrade(
-                  ctx.config.namespace,
-                  constants.SOLO_DEPLOYMENT_CHART,
-                  '../solo-charts/charts/solo-deployment',
-                  updateArg,
-                  ctx.config.soloChartVersion
+                    ctx.config.namespace,
+                    constants.SOLO_DEPLOYMENT_CHART,
+                    '../solo-charts/charts/solo-deployment',
+                    updateArg,
+                    ctx.config.soloChartVersion
                 )
               }
             }
@@ -335,9 +329,6 @@ export class MirrorNodeCommand extends BaseCommand {
                 const HEDERA_MIRROR_IMPORTER_DB_OWNERPASSWORD = getEnvValue(mirrorEnvVarsArray, 'HEDERA_MIRROR_IMPORTER_DB_OWNERPASSWORD')
                 const HEDERA_MIRROR_IMPORTER_DB_NAME = getEnvValue(mirrorEnvVarsArray, 'HEDERA_MIRROR_IMPORTER_DB_NAME')
 
-                this.logger.debug(` postgresPodName = ${postgresPodName}`)
-                this.logger.debug(` postgresContainerName = ${postgresContainerName}`)
-
                 await self.k8.execContainer(postgresPodName, postgresContainerName, [
                   'psql',
                   `postgresql://${HEDERA_MIRROR_IMPORTER_DB_OWNER}:${HEDERA_MIRROR_IMPORTER_DB_OWNERPASSWORD}@localhost:5432/${HEDERA_MIRROR_IMPORTER_DB_NAME}`,
@@ -374,11 +365,7 @@ export class MirrorNodeCommand extends BaseCommand {
 
     interface Context {
       config: {
-        // chartDirectory: string
-        // soloChartVersion: string
         namespace: string
-        // chartPath: string
-        // valuesArg: string
         isChartInstalled: boolean
       }
     }
@@ -406,15 +393,8 @@ export class MirrorNodeCommand extends BaseCommand {
 
           // @ts-ignore
           ctx.config = {
-            // chartDirectory: <string>self.configManager.getFlag<string>(flags.chartDirectory),
-            // soloChartVersion: <string>self.configManager.getFlag<string>(flags.soloChartVersion),
             namespace: <string>self.configManager.getFlag<string>(flags.namespace)
           }
-
-          // ctx.config.chartPath = await self.prepareChartPath(ctx.config.chartDirectory,
-          //   constants.SOLO_TESTING_CHART, constants.SOLO_DEPLOYMENT_CHART)
-          //
-          // ctx.config.valuesArg = ' --set hedera-mirror.enabled=false --set hedera-explorer.enabled=false'
 
           if (!await self.k8.hasNamespace(ctx.config.namespace)) {
             throw new SoloError(`namespace ${ctx.config.namespace} does not exist`)
@@ -429,14 +409,6 @@ export class MirrorNodeCommand extends BaseCommand {
         title: 'Destroy mirror-node',
         task: async (ctx) => {
           await this.chartManager.uninstall(ctx.config.namespace, constants.MIRROR_NODE_CHART)
-
-          // await self.chartManager.upgrade(
-          //   ctx.config.namespace,
-          //   constants.SOLO_DEPLOYMENT_CHART,
-          //   ctx.config.chartPath,
-          //   ctx.config.valuesArg,
-          //   ctx.config.soloChartVersion
-          // )
         },
         skip: (ctx) => !ctx.config.isChartInstalled
       },
