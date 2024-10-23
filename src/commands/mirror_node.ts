@@ -224,7 +224,7 @@ export class MirrorNodeCommand extends BaseCommand {
             {
               title: 'Deploy mirror-node',
               task: async (ctx) => {
-                await self.chartManager.install(ctx.config.namespace, constants.SOLO_DEPLOYMENT_CHART, ctx.config.chartPath, ctx.config.mirrorNodeVersion, ctx.config.valuesArg)
+                await self.chartManager.install(ctx.config.namespace, constants.MIRROR_NODE_CHART, ctx.config.chartPath, ctx.config.mirrorNodeVersion, ctx.config.valuesArg)
 
                 // const explorerValuesArg = this.prepareValuesFiles('resources/head-explorer-values.yaml')
                 //
@@ -236,7 +236,7 @@ export class MirrorNodeCommand extends BaseCommand {
                 await self.chartManager.upgrade(
                   ctx.config.namespace,
                   constants.SOLO_DEPLOYMENT_CHART,
-                  '/Users/jeffrey/solo-charts/charts/solo-deployment',
+                  '../solo-charts/charts/solo-deployment',
                   updateArg,
                   ctx.config.soloChartVersion
                 )
