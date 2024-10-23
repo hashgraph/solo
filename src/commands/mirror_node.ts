@@ -150,6 +150,7 @@ export class MirrorNodeCommand extends BaseCommand {
       profileName: string
       tlsClusterIssuerType: string
       valuesFile: string
+      chartPath: string
       valuesArg: string
       mirrorNodeVersion: string
       getUnusedConfigs: () => string[]
@@ -182,7 +183,10 @@ export class MirrorNodeCommand extends BaseCommand {
           await prompts.execute(task, self.configManager, MirrorNodeCommand.DEPLOY_FLAGS_LIST)
 
           ctx.config = this.getConfig(MirrorNodeCommand.DEPLOY_CONFIGS_NAME, MirrorNodeCommand.DEPLOY_FLAGS_LIST,
-            ['valuesArg']) as MirrorNodeDeployConfigClass
+            ['chartPath', 'valuesArg']) as MirrorNodeDeployConfigClass
+
+          ctx.config.chartPath = await self.prepareChartPath('', // don't use chartPath which is for local solo-charts only
+            constants.MIRROR_NODE_CHART, constants.MIRROR_NODE_CHART)
 
           ctx.config.valuesArg = await self.prepareValuesArg(ctx.config)
 
@@ -209,7 +213,7 @@ export class MirrorNodeCommand extends BaseCommand {
             {
               title: 'Deploy mirror-node',
               task: async (ctx) => {
-                await self.chartManager.install(ctx.config.namespace, constants.MIRROR_NODE_CHART, constants.MIRROR_NODE_CHART, ctx.config.mirrorNodeVersion, ctx.config.valuesArg)
+                await self.chartManager.install(ctx.config.namespace, constants.MIRROR_NODE_CHART, ctx.config.chartPath, ctx.config.mirrorNodeVersion, ctx.config.valuesArg)
               }
             },
             {
