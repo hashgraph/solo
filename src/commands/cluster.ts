@@ -125,7 +125,7 @@ export class ClusterCommand extends BaseCommand {
           const valuesArg = ctx.valuesArg
 
           try {
-            await self.chartManager.install(clusterSetupNamespace, constants.SOLO_CLUSTER_SETUP_CHART, '../solo-charts/charts/solo-cluster-setup', '', valuesArg)
+            await self.chartManager.install(clusterSetupNamespace, constants.SOLO_CLUSTER_SETUP_CHART, chartPath, version, valuesArg)
           } catch (e: Error | any) {
             // if error, uninstall the chart and rethrow the error
             self.logger.debug(`Error on installing ${constants.SOLO_CLUSTER_SETUP_CHART}. attempting to rollback by uninstalling the chart`, e)

@@ -81,7 +81,7 @@ export class MirrorNodeCommand extends BaseCommand {
 
     return valuesArg
   }
-  
+
   /**
    * @param tlsClusterIssuerType
    * @param enableHederaExplorerTls
@@ -98,10 +98,10 @@ export class MirrorNodeCommand extends BaseCommand {
         throw new Error(`Invalid TLS cluster issuer type: ${tlsClusterIssuerType}, must be one of: "acme-staging", "acme-prod", or "self-signed"`)
       }
 
-      valuesArg += ' --set hedera-explorer.ingress.enabled=true'
+      valuesArg += ' --set ingress.enabled=true'
       valuesArg += ' --set cloud.haproxyIngressController.enabled=true'
       valuesArg += ` --set global.ingressClassName=${namespace}-hedera-explorer-ingress-class`
-      valuesArg += ` --set-json 'hedera-explorer.ingress.hosts[0]={"host":"${hederaExplorerTlsHostName}","paths":[{"path":"/","pathType":"Prefix"}]}'`
+      valuesArg += ` --set-json 'ingress.hosts[0]={"host":"${hederaExplorerTlsHostName}","paths":[{"path":"/","pathType":"Prefix"}]}'`
 
       if (hederaExplorerTlsLoadBalancerIp !== '') {
         valuesArg += ` --set haproxy-ingress.controller.service.loadBalancerIP=${hederaExplorerTlsLoadBalancerIp}`
@@ -111,7 +111,7 @@ export class MirrorNodeCommand extends BaseCommand {
         valuesArg += ' --set cloud.selfSignedClusterIssuer.enabled=true'
       } else {
         valuesArg += ' --set cloud.acmeClusterIssuer.enabled=true'
-        valuesArg += ` --set hedera-explorer.certClusterIssuerType=${tlsClusterIssuerType}`
+        valuesArg += ` --set certClusterIssuerType=${tlsClusterIssuerType}`
       }
     }
 
@@ -125,11 +125,6 @@ export class MirrorNodeCommand extends BaseCommand {
     const profileValuesFile = await this.profileManager.prepareValuesForMirrorNodeChart(profileName)
     if (profileValuesFile) {
       valuesArg += this.prepareValuesFiles(profileValuesFile)
-    }
-
-    if (config.enableHederaExplorerTls) {
-      valuesArg += this.getTlsValueArguments(config.tlsClusterIssuerType, config.enableHederaExplorerTls, config.namespace,
-        config.hederaExplorerTlsLoadBalancerIp, config.hederaExplorerTlsHostName)
     }
 
     if (config.valuesFile) {
@@ -155,7 +150,6 @@ export class MirrorNodeCommand extends BaseCommand {
       profileName: string
       tlsClusterIssuerType: string
       valuesFile: string
-      chartPath: string
       valuesArg: string
       mirrorNodeVersion: string
       getUnusedConfigs: () => string[]
@@ -188,10 +182,7 @@ export class MirrorNodeCommand extends BaseCommand {
           await prompts.execute(task, self.configManager, MirrorNodeCommand.DEPLOY_FLAGS_LIST)
 
           ctx.config = this.getConfig(MirrorNodeCommand.DEPLOY_CONFIGS_NAME, MirrorNodeCommand.DEPLOY_FLAGS_LIST,
-            ['chartPath', 'valuesArg']) as MirrorNodeDeployConfigClass
-
-          ctx.config.chartPath = await self.prepareChartPath(ctx.config.chartDirectory,
-            constants.MIRROR_NODE_CHART, constants.MIRROR_NODE_CHART)
+            ['valuesArg']) as MirrorNodeDeployConfigClass
 
           ctx.config.valuesArg = await self.prepareValuesArg(ctx.config)
 
@@ -212,29 +203,25 @@ export class MirrorNodeCommand extends BaseCommand {
               title: 'Prepare address book',
               task: async (ctx) => {
                 ctx.addressBook = await self.accountManager.prepareAddressBookBase64()
-                ctx.config.valuesArg += ` --set "hedera-mirror.importer.addressBook=${ctx.addressBook}"`
+                ctx.config.valuesArg += ` --set "importer.addressBook=${ctx.addressBook}"`
               }
             },
             {
               title: 'Deploy mirror-node',
               task: async (ctx) => {
-                await self.chartManager.install(ctx.config.namespace, constants.MIRROR_NODE_CHART, ctx.config.chartPath, ctx.config.mirrorNodeVersion, ctx.config.valuesArg)
+                await self.chartManager.install(ctx.config.namespace, constants.MIRROR_NODE_CHART, constants.MIRROR_NODE_CHART, ctx.config.mirrorNodeVersion, ctx.config.valuesArg)
               }
             },
             {
               title: 'Deploy hedera-explorer',
               task: async (ctx) => {
                 // update existing chart to active explorer
-                let updateArg = await self.prepareHederaExplorerValuesArg(ctx.config)
-                updateArg += ` --set hedera-explorer.enabled=${ctx.config.deployHederaExplorer}`
-                await self.chartManager.upgrade(
-                    ctx.config.namespace,
-                    constants.SOLO_DEPLOYMENT_CHART,
-                    '../solo-charts/charts/solo-deployment',
-                    updateArg,
-                    ctx.config.soloChartVersion
-                )
-              }
+                const updateArg = await self.prepareHederaExplorerValuesArg(ctx.config)
+                await self.chartManager.install(ctx.config.namespace,
+                    constants.HEDERA_EXPLORER_CHART, constants.HEDERA_EXPLORER_CHART_UTL, ctx.config.hederaExplorerVersion, updateArg)
+
+              },
+              skip: (ctx) => !ctx.config.deployHederaExplorer
             }
           ], {
             concurrent: false,

@@ -389,18 +389,17 @@ export class ProfileManager {
     const yamlRoot = {}
     if (profile.mirror.postgresql) {
       if (profile.mirror.postgresql.persistence) {
-        this._setValue('hedera-mirror.postgresql.persistence.size', profile.mirror.postgresql.persistence.size, yamlRoot)
+        this._setValue('postgresql.persistence.size', profile.mirror.postgresql.persistence.size, yamlRoot)
       }
 
-      this._setChartItems('hedera-mirror.postgresql.postgresql', profile.mirror.postgresql.postgresql, yamlRoot)
+      this._setChartItems('postgresql.postgresql', profile.mirror.postgresql.postgresql, yamlRoot)
     }
 
-    this._setChartItems('hedera-mirror.importer', profile.mirror.importer, yamlRoot)
-    this._setChartItems('hedera-mirror.rest', profile.mirror.rest, yamlRoot)
-    this._setChartItems('hedera-mirror.web3', profile.mirror.web3, yamlRoot)
-    this._setChartItems('hedera-mirror.grpc', profile.mirror.grpc, yamlRoot)
-    this._setChartItems('hedera-mirror.monitor', profile.mirror.monitor, yamlRoot)
-    // this.resourcesForHederaExplorerPod(profile, yamlRoot)
+    this._setChartItems('importer', profile.mirror.importer, yamlRoot)
+    this._setChartItems('rest', profile.mirror.rest, yamlRoot)
+    this._setChartItems('web3', profile.mirror.web3, yamlRoot)
+    this._setChartItems('grpc', profile.mirror.grpc, yamlRoot)
+    this._setChartItems('monitor', profile.mirror.monitor, yamlRoot)
 
     // write the yaml
     const cachedValuesFile = path.join(this.cacheDir, `mirror-${profileName}.yaml`)
