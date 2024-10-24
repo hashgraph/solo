@@ -79,6 +79,7 @@ export class MirrorNodeCommand extends BaseCommand {
       valuesArg += this.prepareValuesFiles(config.valuesFile)
     }
 
+    valuesArg += ` --set proxyPass./api="http://${constants.MIRROR_NODE_RELEASE_NAME}-rest" `
     return valuesArg
   }
 
@@ -189,7 +190,7 @@ export class MirrorNodeCommand extends BaseCommand {
 
           ctx.config.valuesArg = await self.prepareValuesArg(ctx.config)
 
-          ctx.config.valuesArg += this.prepareValuesFiles('resources/mirror-node-values.yaml')
+          ctx.config.valuesArg += this.prepareValuesFiles(constants.MIRROR_NODE_VALUES_FILE)
 
           if (!await self.k8.hasNamespace(ctx.config.namespace)) {
             throw new SoloError(`namespace ${ctx.config.namespace} does not exist`)
@@ -218,7 +219,9 @@ export class MirrorNodeCommand extends BaseCommand {
             {
               title: 'Deploy hedera-explorer',
               task: async (ctx) => {
-                const exploreValuesArg = await self.prepareHederaExplorerValuesArg(ctx.config)
+                let exploreValuesArg = await self.prepareHederaExplorerValuesArg(ctx.config)
+                exploreValuesArg += this.prepareValuesFiles(constants.EXPLORER_VALUES_FILE)
+
                 await self.chartManager.install(ctx.config.namespace,
                     constants.HEDERA_EXPLORER_CHART, constants.HEDERA_EXPLORER_CHART_UTL, ctx.config.hederaExplorerVersion, exploreValuesArg)
 

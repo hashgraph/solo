@@ -241,7 +241,7 @@ export class ProfileManager {
   resourcesForHederaExplorerPod (profile: any, yamlRoot: object) {
     if (!profile) throw new MissingArgumentError('profile is required')
     if (!profile.explorer) return
-    return this._setChartItems('hedera-explorer', profile.explorer, yamlRoot)
+    return this._setChartItems('', profile.explorer, yamlRoot)
   }
 
   resourcesForMinioTenantPod (profile: any, yamlRoot: object) {
