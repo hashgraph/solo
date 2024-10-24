@@ -61,9 +61,9 @@ export const MIRROR_NODE_CHART_URL = 'https://hashgraph.github.io/hedera-mirror-
 export const MIRROR_NODE_CHART = 'hedera-mirror'
 
 export const DEFAULT_CHART_REPO: Map<string, string> = new Map()
-  .set(SOLO_TESTING_CHART, SOLO_TESTING_CHART_URL)
-  .set(JSON_RPC_RELAY_CHART, JSON_RPC_RELAY_CHART_URL)
-  .set(MIRROR_NODE_CHART, MIRROR_NODE_CHART_URL)
+.set(SOLO_TESTING_CHART, SOLO_TESTING_CHART_URL)
+.set(JSON_RPC_RELAY_CHART, JSON_RPC_RELAY_CHART_URL)
+.set(MIRROR_NODE_CHART, MIRROR_NODE_CHART_URL)
 
 // ------------------- Hedera Account related ---------------------------------------------------------------------------------
 export const OPERATOR_ID = process.env.SOLO_OPERATOR_ID || '0.0.2'
@@ -107,10 +107,11 @@ export const LISTR_DEFAULT_RENDERER_OPTION = {
   timer: LISTR_DEFAULT_RENDERER_TIMER_OPTION
 } as {
   collapseSubtasks: boolean
-  timer: { condition: (duration: number) => boolean
+  timer: {
+    condition: (duration: number) => boolean
     format: (duration: number) => any
     field: string | ((args_0: number) => string)
-    args?: [ number ]
+    args?: [number]
   },
   logger: ListrLogger
 }
