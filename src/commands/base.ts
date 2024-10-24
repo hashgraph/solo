@@ -18,9 +18,8 @@
 import paths from 'path'
 import { MissingArgumentError } from '../core/errors.ts'
 import { ShellRunner } from '../core/shell_runner.ts'
-import { type ChartManager, type ConfigManager, type Helm, type K8 } from '../core/index.ts'
-import { type DependencyManager } from '../core/dependency_managers/index.ts'
-import { type CommandFlag, type Opts } from '../types/index.ts'
+import type {  ChartManager,  ConfigManager,  Helm,  K8,  DependencyManager, LeaseManager } from '../core/index.ts'
+import type {  CommandFlag,  Opts } from '../types/index.ts'
 
 export class BaseCommand extends ShellRunner {
   protected readonly helm: Helm
@@ -28,7 +27,8 @@ export class BaseCommand extends ShellRunner {
   protected readonly chartManager: ChartManager
   protected readonly configManager: ConfigManager
   protected readonly depManager: DependencyManager
-  protected readonly _configMaps: Map<string, any>
+  protected readonly leaseManager: LeaseManager
+  protected readonly _configMaps = new Map<string, any>()
 
   constructor (opts: Opts) {
     if (!opts || !opts.logger) throw new Error('An instance of core/SoloLogger is required')
@@ -45,7 +45,7 @@ export class BaseCommand extends ShellRunner {
     this.chartManager = opts.chartManager
     this.configManager = opts.configManager
     this.depManager = opts.depManager
-    this._configMaps = new Map()
+    this.leaseManager = opts.leaseManager
   }
 
   async prepareChartPath (chartDir: string, chartRepo: string, chartReleaseName: string) {

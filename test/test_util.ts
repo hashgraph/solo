@@ -26,7 +26,6 @@ import { ClusterCommand } from '../src/commands/cluster.ts'
 import { InitCommand } from '../src/commands/init.ts'
 import { NetworkCommand } from '../src/commands/network.ts'
 import { NodeCommand } from '../src/commands/node/index.ts'
-import { AccountManager } from '../src/core/account_manager.ts'
 import {
   DependencyManager,
   HelmDependencyManager
@@ -38,13 +37,14 @@ import {
   constants,
   Helm,
   K8,
-  KeyManager,
+  KeyManager, LeaseManager,
   logging,
   PackageDownloader,
   PlatformInstaller,
   ProfileManager,
   Templates,
-  Zippy
+  Zippy,
+  AccountManager
 } from '../src/core/index.ts'
 import { flags } from '../src/commands/index.ts'
 import {
@@ -104,6 +104,7 @@ interface TestOpts {
   accountManager: AccountManager
   cacheDir: string
   profileManager: ProfileManager
+  leaseManager: LeaseManager
 }
 
 interface BootstrapResponse {
@@ -146,6 +147,8 @@ export function bootstrapTestVariables (
   const accountManager = new AccountManager(testLogger, k8)
   const platformInstaller = new PlatformInstaller(testLogger, k8, configManager)
   const profileManager = new ProfileManager(testLogger, configManager)
+  const leaseManager = new LeaseManager(k8, testLogger, configManager)
+
   const opts: TestOpts = {
     logger: testLogger,
     helm,
@@ -158,7 +161,8 @@ export function bootstrapTestVariables (
     keyManager,
     accountManager,
     cacheDir,
-    profileManager
+    profileManager,
+    leaseManager,
   }
 
   const initCmd = initCmdArg || new InitCommand(opts)
@@ -256,7 +260,7 @@ export function e2eTestSuite (
           flags.quiet.constName,
           flags.settingTxt.constName
         ])
-      }).timeout(2 * MINUTES)
+      }).timeout(3 * MINUTES)
 
       if (startNodes) {
         it('should succeed with node setup command', async () => {

@@ -14,18 +14,16 @@
  * limitations under the License.
  *
  */
-
 import chalk from 'chalk'
 import { BaseCommand } from './base.ts'
 import { SoloError, IllegalArgumentError } from '../core/errors.ts'
 import { flags } from './index.ts'
 import { Listr } from 'listr2'
 import * as prompts from './prompts.ts'
-import { constants } from '../core/index.ts'
+import { constants, type AccountManager } from '../core/index.ts'
 import { type AccountId, AccountInfo, HbarUnit, PrivateKey } from '@hashgraph/sdk'
 import { FREEZE_ADMIN_ACCOUNT } from '../core/constants.ts'
-import { type AccountManager } from '../core/account_manager.ts'
-import { type Opts } from '../types/index.ts'
+import type { Opts } from '../types/index.ts'
 
 export class AccountCommand extends BaseCommand {
   private readonly accountManager: AccountManager
@@ -249,6 +247,7 @@ export class AccountCommand extends BaseCommand {
 
   async create (argv: any) {
     const self = this
+    const lease = self.leaseManager.instantiateLease()
 
     interface Context {
       config: {
@@ -292,6 +291,8 @@ export class AccountCommand extends BaseCommand {
           self.logger.debug('Initialized config', { config })
 
           await self.accountManager.loadNodeClient(ctx.config.namespace)
+
+          return lease.buildAcquireTask(task)
         }
       },
       {
@@ -314,6 +315,7 @@ export class AccountCommand extends BaseCommand {
     } catch (e: Error | any) {
       throw new SoloError(`Error in creating account: ${e.message}`, e)
     } finally {
+      await lease.release()
       await this.closeConnections()
     }
 
