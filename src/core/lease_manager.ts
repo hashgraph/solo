@@ -45,7 +45,11 @@ export class LeaseManager {
    *
    * @returns a callback function that releases the lease
    */
-  async acquireLease (task: ListrTaskWrapper<any, any, any>, title: string): Promise<{ releaseLease: () => Promise<void> }> {
+  async acquireLease (
+      task: ListrTaskWrapper<any, any, any>,
+      title: string,
+      attempt: number | null = null
+  ): Promise<{ releaseLease: () => Promise<void> }> {
     const namespace = await this.getNamespace()
 
     //? In case namespace isn't yet created return an empty callback function
@@ -58,7 +62,7 @@ export class LeaseManager {
     const username = OS_USERNAME
     const leaseName = `${username}-lease`
 
-    await this.acquireLeaseOrRetry(username, leaseName, namespace, task, title)
+    await this.acquireLeaseOrRetry(username, leaseName, namespace, task, title, attempt)
 
     const renewLeaseCallback = async () => {
       try {

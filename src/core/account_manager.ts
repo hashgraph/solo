@@ -160,7 +160,7 @@ export class AccountManager {
 
   /**
    * loads and initializes the Node Client
-   * @param namespace the namespace of the network
+   * @param namespace - the namespace of the network
    */
   async refreshNodeClient (namespace: string) {
     await this.close()

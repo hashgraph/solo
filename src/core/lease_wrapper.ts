@@ -22,10 +22,10 @@ export class LeaseWrapper {
 
   constructor (private readonly leaseManager: LeaseManager) {}
 
-  private async acquireTask (task: ListrTaskWrapper<any, any, any>, title: string) {
+  private async acquireTask (task: ListrTaskWrapper<any, any, any>, title: string, attempt: number | null = null) {
     const self = this
 
-    const { releaseLease } = await self.leaseManager.acquireLease(task, title)
+    const { releaseLease } = await self.leaseManager.acquireLease(task, title, attempt)
     self.releaseLease = releaseLease
   }
 
