@@ -52,13 +52,6 @@ argv[flags.namespace.name] = namespace
 argv[flags.persistentVolumeClaims.name] = true
 argv[flags.quiet.name] = true
 
-const tempDir = 'contextDir'
-const argvPrepare = Object.assign({}, argv)
-argvPrepare[flags.outputDir.name] = tempDir
-
-const argvExecute = Object.assign({}, argv)
-argvExecute[flags.inputDir.name] = tempDir
-
 e2eTestSuite(namespace, argv, undefined, undefined, undefined, undefined, undefined, undefined, true, (bootstrapResp) => {
   describe('Node update via separated commands', async () => {
     const nodeCmd = bootstrapResp.cmd.nodeCmd
@@ -78,7 +71,7 @@ e2eTestSuite(namespace, argv, undefined, undefined, undefined, undefined, undefi
     it('cache current version of private keys', async () => {
       existingServiceMap = await bootstrapResp.opts.accountManager.getNodeServiceMap(namespace)
       existingNodeIdsPrivateKeysHash = await getNodeAliasesPrivateKeysHash(existingServiceMap, namespace, k8, getTmpDir())
-    }).timeout(defaultTimeout)
+    }).timeout(8 * MINUTES)
 
     it('should succeed with init command', async () => {
       const status = await accountCmd.init(argv)
@@ -101,6 +94,13 @@ e2eTestSuite(namespace, argv, undefined, undefined, undefined, undefined, undefi
       argv[flags.tlsPublicKey.name] = tlsKeyFiles.certificateFile
       argv[flags.tlsPrivateKey.name] = tlsKeyFiles.privateKeyFile
 
+      const tempDir = 'contextDir'
+      const argvPrepare = Object.assign({}, argv)
+      argvPrepare[flags.outputDir.name] = tempDir
+
+      const argvExecute = Object.assign({}, argv)
+      argvExecute[flags.inputDir.name] = tempDir
+      
       await nodeCmd.handlers.updatePrepare(argvPrepare)
       await nodeCmd.handlers.updateSubmitTransactions(argvExecute)
       await nodeCmd.handlers.updateExecute(argvExecute)
