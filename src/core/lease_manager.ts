@@ -103,6 +103,8 @@ export class LeaseManager {
     attempt = 1,
     maxAttempts = MAX_LEASE_ACQUIRE_ATTEMPTS,
   ): Promise<void> {
+    if (!attempt) attempt = 1
+
     let exists = false
 
     try {

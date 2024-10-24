@@ -20,9 +20,8 @@ import { expect } from 'chai'
 import { flags } from '../../../../src/commands/index.ts'
 import { e2eTestSuite, getDefaultArgv, TEST_CLUSTER } from '../../../test_util.ts'
 import * as version from '../../../../version.ts'
-import {LEASE_AQUIRE_RETRY_TIMEOUT, MAX_LEASE_ACQUIRE_ATTEMPTS, MINUTES} from '../../../../src/core/constants.ts'
-import type { PodName } from '../../../../src/types/aliases.ts'
-import {sleep} from "../../../../src/core/helpers.js";
+import { LEASE_AQUIRE_RETRY_TIMEOUT, MAX_LEASE_ACQUIRE_ATTEMPTS, MINUTES } from '../../../../src/core/constants.ts'
+import { sleep } from '../../../../src/core/helpers.js'
 
 const namespace = 'lease-mngr-e2e'
 const argv = getDefaultArgv()
@@ -52,7 +51,7 @@ e2eTestSuite(namespace, argv, undefined, undefined, undefined, undefined, undefi
       // @ts-ignore to access private property
       await lease.acquireTask({ title }, title)
 
-      expect(lease.release).to.be('function')
+      expect(typeof lease.release).to.equal('function')
       await lease.release()
     })
 
@@ -70,8 +69,8 @@ e2eTestSuite(namespace, argv, undefined, undefined, undefined, undefined, undefi
         await blockedLease.acquireTask({ title }, title, MAX_LEASE_ACQUIRE_ATTEMPTS - 1)
 
         await sleep(LEASE_AQUIRE_RETRY_TIMEOUT * 2)
-      } catch (error: Error | any) {
-        console.error(`Message ${error.message}`, error)
+      } catch (e: Error | any) {
+        expect(e.message).to.contain('Failed to acquire lease, max attempt reached')
       }
 
       await initialLease.release()

@@ -1160,7 +1160,7 @@ export class K8 {
 
     const spec = new k8s.V1LeaseSpec()
     spec.holderIdentity = holderName
-    spec.leaseDurationSeconds = 15
+    spec.leaseDurationSeconds = 20
     spec.acquireTime = new k8s.V1MicroTime()
     lease.spec = spec
 
