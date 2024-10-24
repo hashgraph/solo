@@ -111,6 +111,7 @@ e2eTestSuite(namespace, argv, undefined, undefined, undefined, undefined, undefi
         flags.force.constName,
         flags.gossipEndpoints.constName,
         flags.grpcEndpoints.constName,
+        'freezeAdminPrivateKey'
       ])
       await bootstrapResp.opts.accountManager.close()
     }).timeout(30 * MINUTES)
