@@ -98,9 +98,9 @@ e2eTestSuite(namespace, argv, undefined, undefined, undefined, undefined, undefi
       const argvPrepare = Object.assign({}, argv)
       argvPrepare[flags.outputDir.name] = tempDir
 
-      const argvExecute = Object.assign({}, argv)
+      const argvExecute = Object.assign({}, getDefaultArgv())
       argvExecute[flags.inputDir.name] = tempDir
-      
+
       await nodeCmd.handlers.updatePrepare(argvPrepare)
       await nodeCmd.handlers.updateSubmitTransactions(argvExecute)
       await nodeCmd.handlers.updateExecute(argvExecute)
