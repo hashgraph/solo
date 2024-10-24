@@ -98,7 +98,9 @@ e2eTestSuite(namespace, argv, undefined, undefined, undefined, undefined, undefi
       expect(nodeCmd.getUnusedConfigs(NodeCommandConfigs.UPDATE_CONFIGS_NAME)).to.deep.equal([
         flags.devMode.constName,
         flags.quiet.constName,
-        flags.force.constName
+        flags.force.constName,
+        flags.gossipEndpoints.constName,
+        flags.grpcEndpoints.constName,
       ])
       await bootstrapResp.opts.accountManager.close()
     }).timeout(30 * MINUTES)
