@@ -348,6 +348,7 @@ export class AccountCommand extends BaseCommand {
             accountId: self.configManager.getFlag<string>(flags.accountId) as string,
             amount: self.configManager.getFlag<number>(flags.amount) as number,
             namespace: self.configManager.getFlag<string>(flags.namespace) as string,
+            ecdsaPrivateKey: self.configManager.getFlag<string>(flags.ecdsaPrivateKey) as string,
             ed25519PrivateKey: self.configManager.getFlag<string>(flags.ed25519PrivateKey) as string
           }
 
