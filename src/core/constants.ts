@@ -57,13 +57,14 @@ export const JSON_RPC_RELAY_CHART_URL = 'https://hashgraph.github.io/hedera-json
 export const JSON_RPC_RELAY_CHART = 'hedera-json-rpc-relay'
 export const MIRROR_NODE_CHART_URL = 'https://hashgraph.github.io/hedera-mirror-node/charts'
 export const MIRROR_NODE_CHART = 'hedera-mirror'
+export const MIRROR_NODE_RELEASE_NAME = 'mirror'
 export const HEDERA_EXPLORER_CHART_UTL = 'oci://ghcr.io/hashgraph/hedera-mirror-node-explorer/hedera-explorer'
 export const HEDERA_EXPLORER_CHART = 'hedera-explorer'
 
 export const DEFAULT_CHART_REPO: Map<string, string> = new Map()
   .set(SOLO_TESTING_CHART, SOLO_TESTING_CHART_URL)
   .set(JSON_RPC_RELAY_CHART, JSON_RPC_RELAY_CHART_URL)
-  .set(MIRROR_NODE_CHART, MIRROR_NODE_CHART_URL)
+  .set(MIRROR_NODE_RELEASE_NAME, MIRROR_NODE_CHART_URL)
 
 // ------------------- Hedera Account related ---------------------------------------------------------------------------------
 export const OPERATOR_ID = process.env.SOLO_OPERATOR_ID || '0.0.2'

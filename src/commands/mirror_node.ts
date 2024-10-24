@@ -185,7 +185,7 @@ export class MirrorNodeCommand extends BaseCommand {
             ['chartPath', 'valuesArg']) as MirrorNodeDeployConfigClass
 
           ctx.config.chartPath = await self.prepareChartPath('', // don't use chartPath which is for local solo-charts only
-            constants.MIRROR_NODE_CHART, constants.MIRROR_NODE_CHART)
+            constants.MIRROR_NODE_RELEASE_NAME, constants.MIRROR_NODE_CHART)
 
           ctx.config.valuesArg = await self.prepareValuesArg(ctx.config)
 
@@ -212,7 +212,7 @@ export class MirrorNodeCommand extends BaseCommand {
             {
               title: 'Deploy mirror-node',
               task: async (ctx) => {
-                await self.chartManager.install(ctx.config.namespace, constants.MIRROR_NODE_CHART, ctx.config.chartPath, ctx.config.mirrorNodeVersion, ctx.config.valuesArg)
+                await self.chartManager.install(ctx.config.namespace, constants.MIRROR_NODE_RELEASE_NAME, ctx.config.chartPath, ctx.config.mirrorNodeVersion, ctx.config.valuesArg)
               }
             },
             {
@@ -389,7 +389,7 @@ export class MirrorNodeCommand extends BaseCommand {
             throw new SoloError(`namespace ${ctx.config.namespace} does not exist`)
           }
 
-          ctx.config.isChartInstalled = await this.chartManager.isChartInstalled(ctx.config.namespace, constants.MIRROR_NODE_CHART)
+          ctx.config.isChartInstalled = await this.chartManager.isChartInstalled(ctx.config.namespace, constants.MIRROR_NODE_RELEASE_NAME)
 
           await self.accountManager.loadNodeClient(ctx.config.namespace)
         }
@@ -397,7 +397,7 @@ export class MirrorNodeCommand extends BaseCommand {
       {
         title: 'Destroy mirror-node',
         task: async (ctx) => {
-          await this.chartManager.uninstall(ctx.config.namespace, constants.MIRROR_NODE_CHART)
+          await this.chartManager.uninstall(ctx.config.namespace, constants.MIRROR_NODE_RELEASE_NAME)
         },
         skip: (ctx) => !ctx.config.isChartInstalled
       },
