@@ -33,7 +33,7 @@ import type { PodName } from '../../../src/types/aliases.ts'
 import * as NodeCommandConfigs from '../../../src/commands/node/configs.ts'
 
 const defaultTimeout = 2 * MINUTES
-const namespace = 'node-update'
+const namespace = 'node-update-separate'
 const updateNodeId = 'node2'
 const newAccountId = '0.0.7'
 const argv = getDefaultArgv()
@@ -53,7 +53,7 @@ argv[flags.persistentVolumeClaims.name] = true
 argv[flags.quiet.name] = true
 
 e2eTestSuite(namespace, argv, undefined, undefined, undefined, undefined, undefined, undefined, true, (bootstrapResp) => {
-  describe('Node update', async () => {
+  describe('Node update via separated commands', async () => {
     const nodeCmd = bootstrapResp.cmd.nodeCmd
     const accountCmd = bootstrapResp.cmd.accountCmd
     const k8 = bootstrapResp.opts.k8
@@ -71,7 +71,7 @@ e2eTestSuite(namespace, argv, undefined, undefined, undefined, undefined, undefi
     it('cache current version of private keys', async () => {
       existingServiceMap = await bootstrapResp.opts.accountManager.getNodeServiceMap(namespace)
       existingNodeIdsPrivateKeysHash = await getNodeAliasesPrivateKeysHash(existingServiceMap, namespace, k8, getTmpDir())
-    }).timeout(defaultTimeout)
+    }).timeout(8 * MINUTES)
 
     it('should succeed with init command', async () => {
       const status = await accountCmd.init(argv)
@@ -94,13 +94,24 @@ e2eTestSuite(namespace, argv, undefined, undefined, undefined, undefined, undefi
       argv[flags.tlsPublicKey.name] = tlsKeyFiles.certificateFile
       argv[flags.tlsPrivateKey.name] = tlsKeyFiles.privateKeyFile
 
-      await nodeCmd.handlers.update(argv)
+      const tempDir = 'contextDir'
+      const argvPrepare = Object.assign({}, argv)
+      argvPrepare[flags.outputDir.name] = tempDir
+
+      const argvExecute = Object.assign({}, getDefaultArgv())
+      argvExecute[flags.inputDir.name] = tempDir
+
+      await nodeCmd.handlers.updatePrepare(argvPrepare)
+      await nodeCmd.handlers.updateSubmitTransactions(argvExecute)
+      await nodeCmd.handlers.updateExecute(argvExecute)
+
       expect(nodeCmd.getUnusedConfigs(NodeCommandConfigs.UPDATE_CONFIGS_NAME)).to.deep.equal([
         flags.devMode.constName,
         flags.quiet.constName,
         flags.force.constName,
         flags.gossipEndpoints.constName,
         flags.grpcEndpoints.constName,
+        'freezeAdminPrivateKey'
       ])
       await bootstrapResp.opts.accountManager.close()
     }).timeout(30 * MINUTES)

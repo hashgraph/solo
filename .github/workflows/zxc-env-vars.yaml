@@ -59,6 +59,9 @@ on:
       e2e-node-update-test-subdir:
         description: "E2E Node Update Test Subdirectory"
         value: ${{ jobs.env-vars.outputs.e2e_node_update_test_subdir }}
+      e2e-node-update-separate-commands-test-subdir:
+        description: "E2E Node Update - Separate commands Test Subdirectory"
+        value: ${{ jobs.env-vars.outputs.e2e_node_update_separate_commands_test_subdir }}
       e2e-node-delete-test-subdir:
         description: "E2E Node Delete Test Subdirectory"
         value: ${{ jobs.env-vars.outputs.e2e_node_delete_test_subdir }}
@@ -104,6 +107,9 @@ on:
       e2e-node-update-coverage-report:
         description: "E2E Node Update Tests Coverage Report"
         value: ${{ jobs.env-vars.outputs.e2e_node_update_coverage_report }}
+      e2e-node-update-separate-commands-coverage-report:
+        description: "E2E Node Update - Separate commands Tests Coverage Report"
+        value: ${{ jobs.env-vars.outputs.e2e_node_update_separate_commands_coverage_report }}
       e2e-node-delete-coverage-report:
         description: "E2E Node Delete Tests Coverage Report"
         value: ${{ jobs.env-vars.outputs.e2e_node_delete_coverage_report }}
@@ -140,6 +146,7 @@ jobs:
       e2e_node_add_local_test_subdir: e2e-node-add-local
       e2e_node_add_separate_commands_test_subdir: e2e-node-add-separate-commands
       e2e_node_update_test_subdir: e2e-node-update
+      e2e_node_update_separate_commands_test_subdir: e2e-node-update-separate-commands
       e2e_node_delete_test_subdir: e2e-node-delete
       e2e_node_delete_separate_commands_test_subdir: e2e-node-delete-separate-commands
       e2e_node_upgrade_test_subdir: e2e-node-upgrade
@@ -155,6 +162,7 @@ jobs:
       e2e_node_add_local_coverage_report: "E2E Node Add Local Tests Coverage Report"
       e2e_node_add_separate_commands_coverage_report: "E2E Node Add - Separate commands Tests Coverage Report"
       e2e_node_update_coverage_report: "E2E Node Update Tests Coverage Report"
+      e2e_node_update_separate_commands_coverage_report: "E2E Node Update - Separate commands Tests Coverage Report"
       e2e_node_delete_coverage_report: "E2E Node Delete Tests Coverage Report"
       e2e_node_delete_separate_commands_coverage_report: "E2E Node Delete - Separate commands Tests Coverage Report"
       e2e_node_upgrade_coverage_report: "E2E Node Upgrade Tests Coverage Report"

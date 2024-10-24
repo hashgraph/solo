@@ -1058,7 +1058,7 @@ export class NodeCommandTasks {
 
         let parsedNewKey
         if (config.newAdminKey) {
-          parsedNewKey = PrivateKey.fromStringED25519(config.newAdminKey)
+          parsedNewKey = PrivateKey.fromStringED25519(config.newAdminKey.toString())
           nodeUpdateTx.setAdminKey(parsedNewKey.publicKey)
         }
         await nodeUpdateTx.freezeWith(config.nodeClient)
