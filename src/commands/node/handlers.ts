@@ -205,8 +205,6 @@ export class NodeCommandHandlers {
     return [
       this.tasks.initialize(argv, updateConfigBuilder.bind(this)),
       this.tasks.identifyExistingNodes(),
-      this.tasks.prepareGossipEndpoints(),
-      this.tasks.prepareGrpcServiceEndpoints(),
       this.tasks.loadAdminKey(),
       this.tasks.prepareUpgradeZip(),
       this.tasks.checkExistingNodesStakedAmount(),

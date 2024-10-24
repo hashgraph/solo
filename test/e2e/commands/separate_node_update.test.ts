@@ -56,7 +56,7 @@ const tempDir = 'contextDir'
 const argvPrepare = Object.assign({}, argv)
 argvPrepare[flags.outputDir.name] = tempDir
 
-const argvExecute = getDefaultArgv()
+const argvExecute = Object.assign({}, argv)
 argvExecute[flags.inputDir.name] = tempDir
 
 e2eTestSuite(namespace, argv, undefined, undefined, undefined, undefined, undefined, undefined, true, (bootstrapResp) => {
