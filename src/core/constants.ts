@@ -17,10 +17,11 @@
 
 import { AccountId, FileId } from '@hashgraph/sdk'
 import { color, type ListrLogger, PRESET_TIMER } from 'listr2'
-import path, { normalize } from 'path'
+import path, { dirname, normalize } from 'path'
+import { fileURLToPath } from 'url'
 import os from 'node:os'
 
-export const ROOT_DIR = process.cwd()
+export const ROOT_DIR = path.join(dirname(fileURLToPath(import.meta.url)), '..', '..')
 export const OS_USERNAME = os.userInfo().username
 
 // -------------------- solo related constants ---------------------------------------------------------------------
