@@ -148,7 +148,7 @@ export class KeyManager {
     }
 
     if (!nodeKey || !nodeKey.privateKey) {
-      throw new MissingArgumentError('nodeKey.privateKey is required')
+      throw new MissingArgumentError('nodeKey.ed25519PrivateKey is required')
     }
 
     if (!nodeKey || !nodeKey.certificateChain) {
@@ -323,7 +323,7 @@ export class KeyManager {
     const nodeKeyFiles = this.prepareNodeKeyFilePaths(nodeAlias, keysDir)
     return this.loadNodeKey(nodeAlias, keysDir, KeyManager.SigningKeyAlgo, nodeKeyFiles, 'signing')
   }
-
+  
   /**
    * Generate gRPC TLS key
    *
