@@ -21,7 +21,7 @@ import util from 'util'
 import { SoloError } from './errors.ts'
 import * as semver from 'semver'
 import { Templates } from './templates.ts'
-import { HEDERA_HAPI_PATH, ROOT_CONTAINER, SOLO_LOGS_DIR } from './constants.ts'
+import { HEDERA_HAPI_PATH, ROOT_CONTAINER, ROOT_DIR, SOLO_LOGS_DIR } from './constants.ts'
 import { constants, type K8 } from './index.ts'
 import { FileContentsQuery, FileId, PrivateKey, ServiceEndpoint } from '@hashgraph/sdk'
 import { Listr } from 'listr2'
@@ -30,8 +30,8 @@ import { type NodeAlias, type NodeAliases, type PodName } from '../types/aliases
 import { type NodeDeleteConfigClass, type NodeUpdateConfigClass } from '../commands/node/configs.ts'
 import { type CommandFlag } from '../types/index.ts'
 import { type V1Pod } from '@kubernetes/client-node'
-import { type SoloLogger } from './logging.js'
-import { type NodeCommandHandlers } from '../commands/node/handlers.js'
+import { type SoloLogger } from './logging.ts'
+import { type NodeCommandHandlers } from '../commands/node/handlers.ts'
 
 export function sleep (ms: number) {
   return new Promise<void>((resolve) => {
@@ -65,8 +65,7 @@ export function cloneArray <T> (arr: T[]): T[] {
 /** load package.json */
 export function loadPackageJSON (): any {
   try {
-    const rootDir = process.cwd()
-    const raw = fs.readFileSync(path.join(rootDir, 'package.json'))
+    const raw = fs.readFileSync(path.join(ROOT_DIR, 'package.json'))
     return JSON.parse(raw.toString())
   } catch (e: Error | any) {
     throw new SoloError('failed to load package.json', e)
