@@ -461,7 +461,7 @@ export interface NodeUpdateConfigClass {
     localBuildPath: string
     namespace: string
     newAccountNumber: string
-    newAdminKey: string
+    newAdminKey: PrivateKey
     nodeAlias: NodeAlias
     releaseTag: string
     tlsPrivateKey: string
@@ -470,7 +470,7 @@ export interface NodeUpdateConfigClass {
     allNodeAliases: NodeAliases
     chartPath: string
     existingNodeAliases: NodeAliases
-    freezeAdminPrivateKey: string
+    freezeAdminPrivateKey: PrivateKey
     keysDir: string
     nodeClient: any
     podNames: Record<NodeAlias, PodName>

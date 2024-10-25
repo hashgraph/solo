@@ -73,6 +73,7 @@ export class NodeCommandHandlers {
 
   static readonly ADD_CONTEXT_FILE = 'node-add.json'
   static readonly DELETE_CONTEXT_FILE = 'node-delete.json'
+  static readonly UPDATE_CONTEXT_FILE = 'node-update.json'
 
   async close () {
     await this.accountManager.close()
@@ -180,6 +181,48 @@ export class NodeCommandHandlers {
     ]
   }
 
+  updatePrepareTasks (argv, lease: LeaseWrapper) {
+    return [
+      this.tasks.initialize(argv, updateConfigBuilder.bind(this), lease),
+      this.tasks.identifyExistingNodes(),
+      this.tasks.loadAdminKey(),
+      this.tasks.prepareUpgradeZip(),
+      this.tasks.checkExistingNodesStakedAmount(),
+    ]
+  }
+
+  updateSubmitTransactionsTasks (argv) {
+    return [
+      this.tasks.sendNodeUpdateTransaction(),
+      this.tasks.sendPrepareUpgradeTransaction(),
+      this.tasks.downloadNodeGeneratedFiles(),
+      this.tasks.sendFreezeUpgradeTransaction(),
+    ]
+  }
+
+  updateExecuteTasks (argv) {
+    return [
+      this.tasks.prepareStagingDirectory('allNodeAliases'),
+      this.tasks.copyNodeKeysToSecrets(),
+      this.tasks.checkAllNodesAreFrozen('existingNodeAliases'),
+      this.tasks.getNodeLogsAndConfigs(),
+      this.tasks.updateChartWithConfigMap(
+          'Update chart to use new configMap due to account number change',
+          (ctx: any) => !ctx.config.newAccountNumber && !ctx.config.debugNodeAlias
+      ),
+      this.tasks.killNodesAndUpdateConfigMap(),
+      this.tasks.checkNodePodsAreRunning(),
+      this.tasks.fetchPlatformSoftware('allNodeAliases'),
+      this.tasks.setupNetworkNodes('allNodeAliases'),
+      this.tasks.startNodes('allNodeAliases'),
+      this.tasks.enablePortForwarding(),
+      this.tasks.checkAllNodesAreActive('allNodeAliases'),
+      this.tasks.checkAllNodeProxiesAreActive(),
+      this.tasks.triggerStakeWeightCalculate(),
+      this.tasks.finalize()
+    ]
+  }
+
   /** ******** Handlers **********/
 
   async prepareUpgrade (argv: any) {
@@ -241,38 +284,9 @@ export class NodeCommandHandlers {
     const lease = this.leaseManager.instantiateLease()
 
     const action = helpers.commandActionBuilder([
-      this.tasks.initialize(argv, updateConfigBuilder.bind(this), lease),
-      this.tasks.identifyExistingNodes(),
-      this.tasks.prepareGossipEndpoints(),
-      this.tasks.prepareGrpcServiceEndpoints(),
-      this.tasks.loadAdminKey(),
-      this.tasks.prepareUpgradeZip(),
-      this.tasks.checkExistingNodesStakedAmount(),
-      this.tasks.sendNodeUpdateTransaction(),
-      this.tasks.sendPrepareUpgradeTransaction(),
-      this.tasks.downloadNodeGeneratedFiles(),
-      this.tasks.sendFreezeUpgradeTransaction(),
-      this.tasks.prepareStagingDirectory('allNodeAliases'),
-      this.tasks.copyNodeKeysToSecrets(),
-      this.tasks.checkAllNodesAreFrozen('existingNodeAliases'),
-      this.tasks.getNodeLogsAndConfigs(),
-      this.tasks.updateChartWithConfigMap(
-        'Update chart to use new configMap due to account number change',
-        (ctx: any) => !ctx.config.newAccountNumber && !ctx.config.debugNodeAlias
-      ),
-      this.tasks.killNodesAndUpdateConfigMap(),
-      this.tasks.checkNodePodsAreRunning(),
-      this.tasks.fetchPlatformSoftware('allNodeAliases'),
-      this.tasks.setupNetworkNodes('allNodeAliases'),
-
-      // START BE
-      this.tasks.startNodes('allNodeAliases'),
-
-      this.tasks.enablePortForwarding(),
-      this.tasks.checkAllNodesAreActive('allNodeAliases'),
-      this.tasks.checkAllNodeProxiesAreActive(),
-      this.tasks.triggerStakeWeightCalculate(),
-      this.tasks.finalize()
+      ...this.updatePrepareTasks(argv, lease),
+      ...this.updateSubmitTransactionsTasks(argv),
+      ...this.updateExecuteTasks(argv),
     ], {
       concurrent: false,
       rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
@@ -282,11 +296,58 @@ export class NodeCommandHandlers {
     return true
   }
 
-  async delete (argv: any) {
-    argv = helpers.addFlagsToArgv(argv, NodeFlags.DELETE_FLAGS)
-
+  async updatePrepare (argv) {
+    argv = helpers.addFlagsToArgv(argv, NodeFlags.UPDATE_PREPARE_FLAGS)
     const lease = this.leaseManager.instantiateLease()
 
+    const action = helpers.commandActionBuilder([
+      ...this.updatePrepareTasks(argv, lease),
+      this.tasks.saveContextData(argv, NodeCommandHandlers.UPDATE_CONTEXT_FILE, helpers.updateSaveContextParser)
+    ], {
+      concurrent: false,
+      rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
+    }, 'Error in preparing node update', lease)
+
+    await action(argv, this)
+    return true
+  }
+
+  async updateSubmitTransactions (argv) {
+    const lease = this.leaseManager.instantiateLease()
+    argv = helpers.addFlagsToArgv(argv, NodeFlags.UPDATE_SUBMIT_TRANSACTIONS_FLAGS)
+    const action = helpers.commandActionBuilder([
+      this.tasks.initialize(argv, updateConfigBuilder.bind(this), lease),
+      this.tasks.loadContextData(argv, NodeCommandHandlers.UPDATE_CONTEXT_FILE, helpers.updateLoadContextParser),
+      this.tasks.loadAdminKey(),
+        ...this.updateSubmitTransactionsTasks(argv)
+    ], {
+        concurrent: false,
+        rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
+    }, 'Error in submitting transactions for node update', lease)
+
+      await action(argv, this)
+      return true
+  }
+
+  async updateExecute (argv) {
+    const lease = this.leaseManager.instantiateLease()
+    argv = helpers.addFlagsToArgv(argv, NodeFlags.UPDATE_EXECUTE_FLAGS)
+      const action = helpers.commandActionBuilder([
+      this.tasks.initialize(argv, updateConfigBuilder.bind(this), lease),
+      this.tasks.loadContextData(argv, NodeCommandHandlers.UPDATE_CONTEXT_FILE, helpers.updateLoadContextParser),
+      ...this.updateExecuteTasks(argv)
+    ], {
+      concurrent: false,
+      rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
+    }, 'Error in executing node update', lease)
+
+    await action(argv, this)
+    return true
+  }
+
+  async delete (argv: any) {
+    argv = helpers.addFlagsToArgv(argv, NodeFlags.DELETE_FLAGS)
+    const lease = this.leaseManager.instantiateLease()
     const action = helpers.commandActionBuilder([
       ...this.deletePrepareTaskList(argv, lease),
       ...this.deleteSubmitTransactionsTaskList(argv),
@@ -323,7 +384,7 @@ export class NodeCommandHandlers {
     const lease = this.leaseManager.instantiateLease()
 
     const action = helpers.commandActionBuilder([
-      this.tasks.initialize(argv, updateConfigBuilder.bind(this), lease),
+      this.tasks.initialize(argv, deleteConfigBuilder.bind(this), lease),
       this.tasks.loadContextData(argv, NodeCommandHandlers.DELETE_CONTEXT_FILE, helpers.deleteLoadContextParser),
       ...this.deleteSubmitTransactionsTaskList(argv)
     ], {

@@ -760,7 +760,9 @@ export const allFlags: CommandFlag[] = [
   tlsPublicKey,
   updateAccountKeys,
   valuesFile,
-  mirrorNodeVersion
+  mirrorNodeVersion,
+  inputDir,
+  outputDir
 ]
 
 /** Resets the definition.disablePrompt for all flags */
