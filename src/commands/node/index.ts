@@ -171,6 +171,27 @@ export class NodeCommand extends BaseCommand {
           }, NodeFlags.UPDATE_FLAGS))
 
           .command(new YargsCommand({
+            command: 'update-prepare',
+            description: 'Prepare the deployment to update a node with a specific version of Hedera platform',
+            commandDef: nodeCmd,
+            handler: 'updatePrepare'
+          }, NodeFlags.UPDATE_PREPARE_FLAGS))
+
+          .command(new YargsCommand({
+            command: 'update-submit-transactions',
+            description: 'Submit transactions for updating a node with a specific version of Hedera platform',
+            commandDef: nodeCmd,
+            handler: 'updateSubmitTransactions'
+          }, NodeFlags.UPDATE_SUBMIT_TRANSACTIONS_FLAGS))
+
+          .command(new YargsCommand({
+            command: 'update-execute',
+            description: 'Executes the updating of a node with a specific version of Hedera platform',
+            commandDef: nodeCmd,
+            handler: 'updateExecute'
+          }, NodeFlags.UPDATE_SUBMIT_TRANSACTIONS_FLAGS))
+
+          .command(new YargsCommand({
             command: 'delete',
             description: 'Delete a node with a specific version of Hedera platform',
             commandDef: nodeCmd,

@@ -539,9 +539,9 @@ export const updateAccountKeys: CommandFlag = {
   }
 }
 
-export const privateKey: CommandFlag = {
-  constName: 'privateKey',
-  name: 'private-key',
+export const ed25519PrivateKey: CommandFlag = {
+  constName: 'ed25519PrivateKey',
+  name: 'ed25519-private-key',
   definition: {
     describe: 'ED25519 private key for the Hedera account',
     defaultValue: '',
@@ -732,6 +732,7 @@ export const allFlags: CommandFlag[] = [
   deployPrometheusStack,
   devMode,
   ecdsaPrivateKey,
+  ed25519PrivateKey,
   enableHederaExplorerTls,
   enablePrometheusSvcMonitor,
   endpointType,
@@ -757,7 +758,6 @@ export const allFlags: CommandFlag[] = [
   operatorKey,
   outputDir,
   persistentVolumeClaims,
-  privateKey,
   profileFile,
   profileName,
   relayReleaseTag,
@@ -771,7 +771,9 @@ export const allFlags: CommandFlag[] = [
   updateAccountKeys,
   valuesFile,
   mirrorNodeVersion,
-  hederaExplorerVersion
+  hederaExplorerVersion,
+  inputDir,
+  outputDir
 ]
 
 /** Resets the definition.disablePrompt for all flags */

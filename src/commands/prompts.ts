@@ -368,10 +368,10 @@ export async function promptUpdateAccountKeys (task: ListrTaskWrapper<any, any, 
 
 export async function promptPrivateKey (task: ListrTaskWrapper<any, any, any>, input: any) {
   return await promptText(task, input,
-    flags.privateKey.definition.defaultValue,
+    flags.ed25519PrivateKey.definition.defaultValue,
     'Enter the private key: ',
     null,
-    flags.privateKey.name)
+    flags.ed25519PrivateKey.name)
 }
 
 export async function promptAccountId (task: ListrTaskWrapper<any, any, any>, input: any) {
@@ -489,7 +489,7 @@ export function getPromptMap (): Map<string, Function> {
     .set(flags.operatorId.name, promptOperatorId)
     .set(flags.operatorKey.name, promptOperatorKey)
     .set(flags.persistentVolumeClaims.name, promptPersistentVolumeClaims)
-    .set(flags.privateKey.name, promptPrivateKey)
+    .set(flags.ed25519PrivateKey.name, promptPrivateKey)
     .set(flags.profileFile.name, promptProfileFile)
     .set(flags.profileName.name, promptProfile)
     .set(flags.relayReleaseTag.name, promptRelayReleaseTag)

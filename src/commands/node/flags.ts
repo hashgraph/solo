@@ -23,22 +23,58 @@ export const DEFAULT_FLAGS = {
     optionalFlags: [flags.devMode]
 }
 
+const COMMON_UPDATE_FLAGS_REQUIRED_FLAGS = [flags.cacheDir, flags.namespace, flags.releaseTag]
+const COMMON_UPDATE_FLAGS_REQUIRED_NO_PROMPT_FLAGS = [
+    flags.app,
+    flags.debugNodeAlias,
+    flags.endpointType,
+    flags.soloChartVersion,
+
+]
+const COMMON_UPDATE_FLAGS_OPTIONAL_FLAGS = [
+    flags.chartDirectory, flags.devMode, flags.quiet, flags.localBuildPath, flags.force, flags.gossipEndpoints, flags.grpcEndpoints
+]
+
 export const UPDATE_FLAGS = {
-    requiredFlags: [flags.cacheDir, flags.namespace, flags.nodeAlias, flags.releaseTag],
+    requiredFlags: [...COMMON_UPDATE_FLAGS_REQUIRED_FLAGS, flags.nodeAlias],
     requiredFlagsWithDisabledPrompt: [
-        flags.app,
-        flags.debugNodeAlias,
-        flags.endpointType,
-        flags.soloChartVersion,
+        ...COMMON_UPDATE_FLAGS_REQUIRED_NO_PROMPT_FLAGS,
+        flags.newAdminKey,
+        flags.newAccountNumber,
+        flags.tlsPublicKey,
         flags.gossipPrivateKey,
         flags.gossipPublicKey,
-        flags.newAccountNumber,
-        flags.newAdminKey,
-        flags.tlsPrivateKey,
-        flags.tlsPublicKey
+        flags.tlsPrivateKey
     ],
-    optionalFlags: [flags.chartDirectory, flags.devMode, flags.quiet, flags.localBuildPath, flags.force, flags.gossipEndpoints, flags.grpcEndpoints]
+    optionalFlags: COMMON_UPDATE_FLAGS_OPTIONAL_FLAGS
 }
+
+export const UPDATE_PREPARE_FLAGS = {
+    requiredFlags: [...COMMON_UPDATE_FLAGS_REQUIRED_FLAGS, flags.outputDir, flags.nodeAlias],
+    requiredFlagsWithDisabledPrompt: [
+        ...COMMON_UPDATE_FLAGS_REQUIRED_NO_PROMPT_FLAGS,
+        flags.newAdminKey,
+        flags.newAccountNumber,
+        flags.tlsPublicKey,
+        flags.gossipPrivateKey,
+        flags.gossipPublicKey,
+        flags.tlsPrivateKey
+    ],
+    optionalFlags: [...COMMON_UPDATE_FLAGS_OPTIONAL_FLAGS]
+}
+
+export const UPDATE_SUBMIT_TRANSACTIONS_FLAGS = {
+    requiredFlags: [...COMMON_UPDATE_FLAGS_REQUIRED_FLAGS, flags.inputDir],
+    requiredFlagsWithDisabledPrompt: [...COMMON_UPDATE_FLAGS_REQUIRED_NO_PROMPT_FLAGS],
+    optionalFlags: [...COMMON_UPDATE_FLAGS_OPTIONAL_FLAGS]
+}
+
+export const UPDATE_EXECUTE_FLAGS = {
+    requiredFlags: [...COMMON_UPDATE_FLAGS_REQUIRED_FLAGS, flags.inputDir],
+    requiredFlagsWithDisabledPrompt: [...COMMON_UPDATE_FLAGS_REQUIRED_NO_PROMPT_FLAGS],
+    optionalFlags: [...COMMON_UPDATE_FLAGS_OPTIONAL_FLAGS]
+}
+
 
 const COMMON_DELETE_REQUIRED_FLAGS = [
     flags.cacheDir,
