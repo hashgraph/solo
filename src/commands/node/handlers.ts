@@ -281,6 +281,9 @@ export class NodeCommandHandlers {
 
   async update (argv: any) {
     argv = helpers.addFlagsToArgv(argv, NodeFlags.UPDATE_FLAGS)
+
+    const lease = this.leaseManager.instantiateLease()
+
     const action = helpers.commandActionBuilder([
       ...this.updatePrepareTasks(argv),
       ...this.updateSubmitTransactionsTasks(argv),
@@ -288,7 +291,7 @@ export class NodeCommandHandlers {
     ], {
       concurrent: false,
       rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
-    }, 'Error in updating nodes')
+    }, 'Error in updating nodes', lease)
 
     await action(argv, this)
     return true
@@ -296,13 +299,16 @@ export class NodeCommandHandlers {
 
   async updatePrepare (argv) {
     argv = helpers.addFlagsToArgv(argv, NodeFlags.UPDATE_PREPARE_FLAGS)
+    const lease = this.leaseManager.instantiateLease()
+
+
     const action = helpers.commandActionBuilder([
       ...this.updatePrepareTasks(argv),
       this.tasks.saveContextData(argv, NodeCommandHandlers.UPDATE_CONTEXT_FILE, helpers.updateSaveContextParser)
     ], {
       concurrent: false,
       rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
-    }, 'Error in preparing node update')
+    }, 'Error in preparing node update', lease)
 
     await action(argv, this)
     return true
@@ -326,10 +332,10 @@ export class NodeCommandHandlers {
   }
 
   async updateExecute (argv) {
+    const lease = this.leaseManager.instantiateLease()
     argv = helpers.addFlagsToArgv(argv, NodeFlags.UPDATE_EXECUTE_FLAGS)
-      const lease = this.leaseManager.instantiateLease()
       const action = helpers.commandActionBuilder([
-      this.tasks.initialize(argv, updateConfigBuilder.bind(this)),
+      this.tasks.initialize(argv, updateConfigBuilder.bind(this), lease),
       this.tasks.loadContextData(argv, NodeCommandHandlers.UPDATE_CONTEXT_FILE, helpers.updateLoadContextParser),
       ...this.updateExecuteTasks(argv)
     ], {
