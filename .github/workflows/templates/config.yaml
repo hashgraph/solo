@@ -38,7 +38,7 @@ tests:
     mochaPostfix: "'test/e2e/commands/node_update*.test.ts'"
 
   - name: Node Update - Separate commands
-    mochaPostfix: "'test/e2e/commands/separate_node_update*.test.mjs'"
+    mochaPostfix: "'test/e2e/commands/separate_node_update*.test.ts'"
 
   - name: Node Delete
     mochaPostfix: "'test/e2e/commands/node_delete*.test.ts'"
