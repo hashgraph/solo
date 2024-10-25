@@ -116,6 +116,8 @@ jobs:
           npm install -g @hashgraph/solo
           npm link
           
+          cd src/core/dependency_managers
+          
           echo "VERSION=${{ inputs.version }}"
           [[ -n "${{ inputs.version }}" ]] && npm version ${{ inputs.version }} -f --no-git-tag-version
           which solo
