@@ -454,6 +454,24 @@ export async function promptOutputDir (task: ListrTaskWrapper<any, any, any>, in
         flags.outputDir.name)
 }
 
+//! ------------- Node Certificates ------------- !//
+
+export async function promptGrpcTlsCertificatePath (task: ListrTaskWrapper<any, any, any>, input: any) {
+  return await promptToggle(task, input,
+    flags.grpcTlsCertificatePath.definition.defaultValue,
+    'Enter path to TLS certificate for gRPC',
+    null,
+    flags.grpcTlsCertificatePath.name)
+}
+
+export async function promptGrpcWebTlsCertificatePath (task: ListrTaskWrapper<any, any, any>, input: any) {
+  return await promptToggle(task, input,
+    flags.grpcWebTlsCertificatePath.definition.defaultValue,
+    'Enter path to TLS certificate for gGRPC web',
+    null,
+    flags.grpcWebTlsCertificatePath.name)
+}
+
 export function getPromptMap (): Map<string, Function> {
   return new Map()
     .set(flags.accountId.name, promptAccountId)
@@ -497,14 +515,16 @@ export function getPromptMap (): Map<string, Function> {
     .set(flags.mirrorNodeVersion.name, promptMirrorNodeVersion)
     .set(flags.inputDir.name, promptInputDir)
     .set(flags.outputDir.name, promptOutputDir)
+    .set(flags.grpcTlsCertificatePath.name, promptGrpcTlsCertificatePath)
+    .set(flags.grpcWebTlsCertificatePath.name, promptGrpcWebTlsCertificatePath)
 }
 
 // build the prompt registry
 /**
  * Run prompts for the given set of flags
- * @param task task object from listr2
- * @param configManager config manager to store flag values
- * @param flagList list of flag objects
+ * @param task - task object from listr2
+ * @param configManager - config manager to store flag values
+ * @param flagList - list of flag objects
  */
 export async function execute (task: ListrTaskWrapper<any, any, any>, configManager: ConfigManager, flagList: CommandFlag[] = []) {
   if (!configManager || !(configManager instanceof ConfigManager)) {

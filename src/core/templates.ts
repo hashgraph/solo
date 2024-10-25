@@ -179,4 +179,12 @@ export class Templates {
   public static renderGossipKeySecretLabelObject (nodeAlias: NodeAlias): { 'solo.hedera.com/node-name': string } {
     return { 'solo.hedera.com/node-name': nodeAlias }
   }
+
+  static renderGrpcTlsCertificatesSecretName (nodeAlias: NodeAlias) {
+    return `network-${nodeAlias}-grpc-tls-cert-secrets`
+  }
+
+  static renderGrpcTlsCertificatesSecretLabelObject (nodeAlias: NodeAlias) {
+    return { 'solo.hedera.com/grpc-tls-cert-secret': nodeAlias }
+  }
 }

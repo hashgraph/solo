@@ -21,7 +21,7 @@ import type crypto from 'crypto'
 import type { SoloLogger } from '../core/logging.ts'
 import type {
   ChartManager, ConfigManager, Helm, K8, KeyManager, PackageDownloader, PlatformInstaller,
-  ProfileManager, DependencyManager, AccountManager, LeaseManager
+  ProfileManager, DependencyManager, AccountManager, LeaseManager, CertificateManager
 } from '../core/index.ts'
 
 export interface NodeKeyObject {
@@ -79,4 +79,5 @@ export interface Opts {
   accountManager: AccountManager
   profileManager: ProfileManager
   leaseManager: LeaseManager
+  certificateManager: CertificateManager
 }
