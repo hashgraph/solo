@@ -32,7 +32,7 @@ import { MINUTES, SECONDS } from '../../src/core/constants.ts'
 import type { NodeAlias } from '../../src/types/aliases.ts'
 import type { ListrTaskWrapper } from 'listr2'
 import { ConfigManager, type K8 } from '../../src/core/index.ts'
-import { type NodeCommand } from '../../src/commands/node/index.js'
+import { type NodeCommand } from '../../src/commands/node/index.ts'
 
 export function e2eNodeKeyRefreshTest (testName: string, mode: string, releaseTag = HEDERA_PLATFORM_VERSION_TAG) {
   const namespace = testName

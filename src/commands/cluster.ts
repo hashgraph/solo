@@ -85,7 +85,6 @@ export class ClusterCommand extends BaseCommand {
             flags.deployPrometheusStack
           ])
 
-          // prepare config
           ctx.config = {
             chartDir: self.configManager.getFlag<string>(flags.chartDirectory) as string,
             clusterSetupNamespace: self.configManager.getFlag<string>(flags.clusterSetupNamespace) as string,
@@ -160,6 +159,7 @@ export class ClusterCommand extends BaseCommand {
 
   async reset (argv: any) {
     const self = this
+    const lease = self.leaseManager.instantiateLease()
 
     interface Context {
       config: {
@@ -195,6 +195,8 @@ export class ClusterCommand extends BaseCommand {
           if (!ctx.isChartInstalled) {
             throw new SoloError('No chart found for the cluster')
           }
+
+          return lease.buildAcquireTask(task)
         }
       },
       {
@@ -217,6 +219,8 @@ export class ClusterCommand extends BaseCommand {
       await tasks.run()
     } catch (e: Error | any) {
       throw new SoloError('Error on cluster reset', e)
+    } finally {
+      await lease.release()
     }
 
     return true

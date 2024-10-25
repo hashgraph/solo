@@ -16,34 +16,25 @@
  */
 
 import { IllegalArgumentError } from '../../core/errors.ts'
-import {
-  type KeyManager,
-  type PackageDownloader,
-  type PlatformInstaller, type ProfileManager,
-  YargsCommand
-} from '../../core/index.ts'
+import { type AccountManager, YargsCommand } from '../../core/index.ts'
 import { BaseCommand } from './../base.ts'
 import { NodeCommandTasks } from './tasks.ts'
 import * as NodeFlags from './flags.ts'
 import { NodeCommandHandlers } from './handlers.ts'
-import type { AccountManager } from '../../core/account_manager.ts'
+import type { Opts } from '../../types/index.ts'
 
 /**
  * Defines the core functionalities of 'node' command
  */
 export class NodeCommand extends BaseCommand {
 
-  private readonly downloader: PackageDownloader
-  private readonly platformInstaller: PlatformInstaller
-  private readonly keyManager: KeyManager
   private readonly accountManager: AccountManager
-  private readonly profileManager: ProfileManager
 
   public readonly tasks: NodeCommandTasks
   public readonly handlers: NodeCommandHandlers
   public _portForwards: any
 
-  constructor (opts) {
+  constructor (opts: Opts) {
     super(opts)
 
     if (!opts || !opts.downloader) throw new IllegalArgumentError('An instance of core/PackageDownloader is required', opts.downloader)
@@ -52,11 +43,7 @@ export class NodeCommand extends BaseCommand {
     if (!opts || !opts.accountManager) throw new IllegalArgumentError('An instance of core/AccountManager is required', opts.accountManager)
     if (!opts || !opts.profileManager) throw new IllegalArgumentError('An instance of ProfileManager is required', opts.profileManager)
 
-    this.downloader = opts.downloader
-    this.platformInstaller = opts.platformInstaller
-    this.keyManager = opts.keyManager
     this.accountManager = opts.accountManager
-    this.profileManager = opts.profileManager
     this._portForwards = []
 
     this.tasks = new NodeCommandTasks({
@@ -78,7 +65,8 @@ export class NodeCommand extends BaseCommand {
       logger: opts.logger,
       k8: opts.k8,
       tasks: this.tasks,
-      parent: this
+      parent: this,
+      leaseManager: opts.leaseManager
     })
   }
 
@@ -86,7 +74,6 @@ export class NodeCommand extends BaseCommand {
      * stops and closes the port forwards
      * - calls the accountManager.close()
      * - for all portForwards, calls k8.stopPortForward(srv)
-     * @returns {Promise<void>}
      */
   async close () {
     await this.accountManager.close()
@@ -99,17 +86,12 @@ export class NodeCommand extends BaseCommand {
     this._portForwards = []
   }
 
-  // Command Definition
-  /**
-     * Return Yargs command definition for 'node' command
-     * @returns {{command: string, desc: string, builder: Function}}
-     */
   getCommandDefinition () {
     const nodeCmd = this
     return {
       command: 'node',
       desc: 'Manage Hedera platform node in solo network',
-      builder: yargs => {
+      builder: (yargs: any) => {
         return yargs
           .command(new YargsCommand({
             command: 'setup',

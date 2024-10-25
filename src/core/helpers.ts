@@ -32,6 +32,7 @@ import { type CommandFlag } from '../types/index.ts'
 import { type V1Pod } from '@kubernetes/client-node'
 import { type SoloLogger } from './logging.ts'
 import { type NodeCommandHandlers } from '../commands/node/handlers.ts'
+import { type LeaseWrapper } from './lease_wrapper.ts'
 
 export function sleep (ms: number) {
   return new Promise<void>((resolve) => {
@@ -458,7 +459,7 @@ export function prepareEndpoints (endpointType: string, endpoints: string[], def
   return ret
 }
 
-export function commandActionBuilder (actionTasks: any, options: any, errorString = 'Error') {
+export function commandActionBuilder (actionTasks: any, options: any, errorString: string, lease: LeaseWrapper | null) {
   return async function (argv: any, commandDef: NodeCommandHandlers) {
     const tasks = new Listr([
       ...actionTasks
@@ -470,8 +471,9 @@ export function commandActionBuilder (actionTasks: any, options: any, errorStrin
       commandDef.parent.logger.error(`${errorString}: ${e.message}`, e)
       throw new SoloError(`${errorString}: ${e.message}`, e)
     } finally {
-      // @ts-ignore
-      await commandDef.close()
+      const promises = [commandDef.close()]
+      if (lease) promises.push(lease.release())
+      await Promise.all(promises)
     }
   }
 }

@@ -25,7 +25,8 @@ import {
   type ProfileManager,
   Task,
   Templates,
-  Zippy
+  Zippy,
+  type AccountManager
 } from '../../core/index.ts'
 import {
   DEFAULT_NETWORK_NODE_NAME,
@@ -62,12 +63,14 @@ import {
 import chalk from 'chalk'
 import * as flags from '../flags.ts'
 import { type SoloLogger } from '../../core/logging.ts'
-import { type AccountManager } from '../../core/account_manager.ts'
 import type { Listr, ListrTaskWrapper } from 'listr2'
 import { type NodeAlias, type NodeAliases, type PodName } from '../../types/aliases.ts'
 import { NodeStatusCodes, NodeStatusEnums } from '../../core/enumerations.ts'
 import * as x509 from '@peculiar/x509'
-import { type NodeCommand } from './index.js'
+import { type NodeCommand } from './index.ts'
+import type { NodeDeleteConfigClass, NodeRefreshConfigClass, NodeUpdateConfigClass } from './configs.ts'
+import type { NodeAddConfigClass } from './configs.ts'
+import type { LeaseWrapper } from '../../core/lease_wrapper.ts'
 
 export class NodeCommandTasks {
   private readonly accountManager: AccountManager
@@ -84,7 +87,8 @@ export class NodeCommandTasks {
 
   constructor (opts: { logger: SoloLogger; accountManager: AccountManager; configManager: ConfigManager,
     k8: K8, platformInstaller: PlatformInstaller, keyManager: KeyManager, profileManager: ProfileManager,
-  chartManager: ChartManager, parent: NodeCommand}) {
+  chartManager: ChartManager, parent: NodeCommand}
+  ) {
     if (!opts || !opts.accountManager) throw new IllegalArgumentError('An instance of core/AccountManager is required', opts.accountManager as any)
     if (!opts || !opts.configManager) throw new Error('An instance of core/ConfigManager is required')
     if (!opts || !opts.logger) throw new Error('An instance of core/Logger is required')
@@ -178,20 +182,19 @@ export class NodeCommandTasks {
 
     this.logger.debug('no need to fetch, use local build jar files')
 
-    /** @type {Map<NodeAlias, string>} */
-    const buildPathMap = new Map()
-    let defaultDataLibBuildPath
+    const buildPathMap = new Map<NodeAlias, string>()
+    let defaultDataLibBuildPath: string
     const parameterPairs = localBuildPath.split(',')
     for (const parameterPair of parameterPairs) {
       if (parameterPair.includes('=')) {
         const [nodeAlias, localDataLibBuildPath] = parameterPair.split('=')
-        buildPathMap.set(nodeAlias, localDataLibBuildPath)
+        buildPathMap.set(nodeAlias as NodeAlias, localDataLibBuildPath)
       } else {
         defaultDataLibBuildPath = parameterPair
       }
     }
 
-    let localDataLibBuildPath
+    let localDataLibBuildPath: string
     for (const nodeAlias of nodeAliases) {
       const podName = podNames[nodeAlias]
       if (buildPathMap.has(nodeAlias)) {
@@ -231,7 +234,8 @@ export class NodeCommandTasks {
   }
 
   _fetchPlatformSoftware (nodeAliases: NodeAliases, podNames: Record<NodeAlias, PodName>, releaseTag: string,
-                          task: ListrTaskWrapper<any, any, any>, platformInstaller: PlatformInstaller) {
+    task: ListrTaskWrapper<any, any, any>, platformInstaller: PlatformInstaller
+  ) {
     const subTasks = []
     for (const nodeAlias of nodeAliases) {
       const podName = podNames[nodeAlias]
@@ -258,7 +262,7 @@ export class NodeCommandTasks {
       const reminder = ('debugNodeAlias' in ctx.config && ctx.config.debugNodeAlias === nodeAlias) ? 'Please attach JVM debugger now.' : ''
       const title = `Check network pod: ${chalk.yellow(nodeAlias)} ${chalk.red(reminder)}`
 
-      const subTask = async (ctx, task) => {
+      const subTask = async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
         ctx.config.podNames[nodeAlias] = await this._checkNetworkNodeActiveness(namespace, nodeAlias, task, title, i, status)
       }
 
@@ -274,8 +278,9 @@ export class NodeCommandTasks {
   }
 
   async _checkNetworkNodeActiveness (namespace: string, nodeAlias: NodeAlias, task: ListrTaskWrapper<any, any, any>,
-                                     title: string, index: number, status = NodeStatusCodes.ACTIVE,
-                                     maxAttempts = 120, delay = 1_000, timeout = 1_000) {
+    title: string, index: number, status = NodeStatusCodes.ACTIVE,
+    maxAttempts = 120, delay = 1_000, timeout = 1_000
+  ) {
     nodeAlias = nodeAlias.trim() as NodeAlias
     const podName = Templates.renderNetworkPodName(nodeAlias)
     const podPort = 9_999
@@ -348,9 +353,7 @@ export class NodeCommandTasks {
     return podName
   }
 
-  /**
-   * Return task for check if node proxies are ready
-   */
+  /** Return task for check if node proxies are ready */
   _checkNodesProxiesTask (ctx: any, task: ListrTaskWrapper<any, any, any>, nodeAliases: NodeAliases) {
     const subTasks = []
     for (const nodeAlias of nodeAliases) {
@@ -376,7 +379,7 @@ export class NodeCommandTasks {
    * When generating a single key the alias in config.nodeAlias is used
    */
   _generateGossipKeys (generateMultiple: boolean) {
-    return new Task('Generate gossip keys', (ctx, task) => {
+    return new Task('Generate gossip keys', (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
       const config = ctx.config
       const nodeAliases = generateMultiple ? config.nodeAliases : [config.nodeAlias]
       const subTasks = this.keyManager.taskGenerateGossipKeys(nodeAliases, config.keysDir, config.curDate)
@@ -388,16 +391,15 @@ export class NodeCommandTasks {
           timer: constants.LISTR_DEFAULT_RENDERER_TIMER_OPTION
         }
       })
-    }, (ctx) => !ctx.config.generateGossipKeys)
+    }, (ctx: any) => !ctx.config.generateGossipKeys)
   }
 
   /**
-   *
    * When generating multiple all aliases are read from config.nodeAliases,
    * When generating a single key the alias in config.nodeAlias is used
    */
   _generateGrpcTlsKeys (generateMultiple: boolean) {
-    return new Task('Generate gRPC TLS Keys', (ctx, task) => {
+    return new Task('Generate gRPC TLS Keys', (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
       const config = ctx.config
       const nodeAliases = generateMultiple ? config.nodeAliases : [config.nodeAlias]
       const subTasks = this.keyManager.taskGenerateTLSKeys(nodeAliases, config.keysDir, config.curDate)
@@ -409,10 +411,10 @@ export class NodeCommandTasks {
           timer: constants.LISTR_DEFAULT_RENDERER_TIMER_OPTION
         }
       })
-    }, (ctx) => !ctx.config.generateTlsKeys)
+    }, (ctx: any) => !ctx.config.generateTlsKeys)
   }
 
-  _loadPermCertificate (certFullPath) {
+  _loadPermCertificate (certFullPath: string) {
     const certPem = fs.readFileSync(certFullPath).toString()
     const decodedDers = x509.PemConverter.decode(certPem)
     if (!decodedDers || decodedDers.length === 0) {
@@ -439,7 +441,7 @@ export class NodeCommandTasks {
       this.logger.debug(`Account ${accountId} balance: ${balance.hbars}`)
 
       // Create the transaction
-      const transaction = await new AccountUpdateTransaction()
+      const transaction = new AccountUpdateTransaction()
         .setAccountId(accountId)
         .setStakedNodeId(Templates.nodeIdFromNodeAlias(nodeAlias) - 1)
         .freezeWith(client)
@@ -583,9 +585,7 @@ export class NodeCommandTasks {
   }
 
   taskCheckNetworkNodePods (ctx: any, task: ListrTaskWrapper<any, any, any>, nodeAliases: NodeAliases): Listr {
-    if (!ctx.config) {
-      ctx.config = {}
-    }
+    if (!ctx.config) ctx.config = {}
 
     ctx.config.podNames = {}
 
@@ -644,8 +644,8 @@ export class NodeCommandTasks {
     })
   }
 
-  fetchPlatformSoftware (aliasesField) {
-    return new Task('Fetch platform software into network nodes', (ctx, task) => {
+  fetchPlatformSoftware (aliasesField: string) {
+    return new Task('Fetch platform software into network nodes', (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
       const { podNames, releaseTag, localBuildPath } = ctx.config
 
       if (localBuildPath !== '') {
@@ -657,7 +657,7 @@ export class NodeCommandTasks {
   }
 
   populateServiceMap () {
-    return new Task('Populate serviceMap', async (ctx, task) => {
+    return new Task('Populate serviceMap', async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
       ctx.config.serviceMap = await this.accountManager.getNodeServiceMap(
         ctx.config.namespace)
       ctx.config.podNames[ctx.config.nodeAlias] = ctx.config.serviceMap.get(ctx.config.nodeAlias).nodePodName
@@ -665,7 +665,7 @@ export class NodeCommandTasks {
   }
 
   setupNetworkNodes (nodeAliasesProperty: string) {
-    return new Task('Setup network nodes', (ctx, task) => {
+    return new Task('Setup network nodes', (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
       const subTasks = []
       for (const nodeAlias of ctx.config[nodeAliasesProperty]) {
         const podName = ctx.config.podNames[nodeAlias]
@@ -684,15 +684,15 @@ export class NodeCommandTasks {
     })
   }
 
-  prepareStagingDirectory (nodeAliasesProperty) {
-    return new Task('Prepare staging directory', (ctx, task) => {
+  prepareStagingDirectory (nodeAliasesProperty: any) {
+    return new Task('Prepare staging directory', (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
       const config = ctx.config
       const nodeAliases = config[nodeAliasesProperty]
       const subTasks = [
         {
           title: 'Copy Gossip keys to staging',
           task: async () => {
-            await this.keyManager.copyGossipKeysToStaging(config.keysDir, config.stagingKeysDir, nodeAliases)
+            this.keyManager.copyGossipKeysToStaging(config.keysDir, config.stagingKeysDir, nodeAliases)
           }
         },
         {
@@ -700,7 +700,7 @@ export class NodeCommandTasks {
           task: async () => {
             for (const nodeAlias of nodeAliases) {
               const tlsKeyFiles = this.keyManager.prepareTLSKeyFilePaths(nodeAlias, config.keysDir)
-              await this.keyManager.copyNodeKeysToStaging(tlsKeyFiles, config.stagingKeysDir)
+              this.keyManager.copyNodeKeysToStaging(tlsKeyFiles, config.stagingKeysDir)
             }
           }
         }
@@ -712,8 +712,8 @@ export class NodeCommandTasks {
     })
   }
 
-  startNodes (nodeAliasesProperty) {
-    return new Task('Starting nodes', (ctx, task) => {
+  startNodes (nodeAliasesProperty: string) {
+    return new Task('Starting nodes', (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
       const config = ctx.config
       const nodeAliases = config[nodeAliasesProperty]
 
@@ -742,35 +742,35 @@ export class NodeCommandTasks {
   }
 
   enablePortForwarding () {
-    return new Task('Enable port forwarding for JVM debugger', async (ctx, task) => {
+    return new Task('Enable port forwarding for JVM debugger', async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
       const podName = `network-${ctx.config.debugNodeAlias}-0` as PodName
       this.logger.debug(`Enable port forwarding for JVM debugger on pod ${podName}`)
       await this.k8.portForward(podName, constants.JVM_DEBUG_PORT, constants.JVM_DEBUG_PORT)
-    }, (ctx) => !ctx.config.debugNodeAlias)
+    }, (ctx: any) => !ctx.config.debugNodeAlias)
   }
 
-  checkAllNodesAreActive (nodeAliasesProperty) {
-    return new Task('Check all nodes are ACTIVE', (ctx, task) => {
+  checkAllNodesAreActive (nodeAliasesProperty: string) {
+    return new Task('Check all nodes are ACTIVE', (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
       return this._checkNodeActivenessTask(ctx, task, ctx.config[nodeAliasesProperty])
     })
   }
 
-  checkAllNodesAreFrozen (nodeAliasesProperty) {
-    return new Task('Check all nodes are ACTIVE', (ctx, task) => {
+  checkAllNodesAreFrozen (nodeAliasesProperty: string) {
+    return new Task('Check all nodes are ACTIVE', (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
       return this._checkNodeActivenessTask(ctx, task, ctx.config[nodeAliasesProperty], NodeStatusCodes.FREEZE_COMPLETE)
     })
   }
 
   checkNodeProxiesAreActive () {
-    return new Task('Check node proxies are ACTIVE', (ctx, task) => {
+    return new Task('Check node proxies are ACTIVE', (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
       // this is more reliable than checking the nodes logs for ACTIVE, as the
       // logs will have a lot of white noise from being behind
       return this._checkNodesProxiesTask(ctx, task, ctx.config.nodeAliases)
-    }, async (ctx) => ctx.config.app !== '' && ctx.config.app !== constants.HEDERA_APP_NAME)
+    }, async (ctx: any) => ctx.config.app !== '' && ctx.config.app !== constants.HEDERA_APP_NAME)
   }
 
   checkAllNodeProxiesAreActive () {
-    return new Task('Check all node proxies are ACTIVE', (ctx, task) => {
+    return new Task('Check all node proxies are ACTIVE', (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
       // this is more reliable than checking the nodes logs for ACTIVE, as the
       // logs will have a lot of white noise from being behind
       return this._checkNodesProxiesTask(ctx, task, ctx.config.allNodeAliases)
@@ -779,10 +779,10 @@ export class NodeCommandTasks {
 
   // Update account manager and transfer hbar for staking purpose
   triggerStakeWeightCalculate () {
-    return new Task('Trigger stake weight calculate', async (ctx, task) => {
+    return new Task('Trigger stake weight calculate', async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
       const config = ctx.config
       this.logger.info('sleep 60 seconds for the handler to be able to trigger the network node stake weight recalculate')
-      await sleep(60000)
+      await sleep(60 * SECONDS)
       const accountMap = getNodeAccountMap(config.allNodeAliases)
 
       if (config.newAccountNumber) {
@@ -803,7 +803,8 @@ export class NodeCommandTasks {
   }
 
   addNodeStakes () {
-    return new Task('Add node stakes', (ctx, task) => {
+    // @ts-ignore
+    return new Task('Add node stakes', (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
       if (ctx.config.app === '' || ctx.config.app === constants.HEDERA_APP_NAME) {
         const subTasks = []
         const accountMap = getNodeAccountMap(ctx.config.nodeAliases)
@@ -827,13 +828,13 @@ export class NodeCommandTasks {
   }
 
   stakeNewNode () {
-    return new Task('Stake new node', async (ctx, task) => {
+    return new Task('Stake new node', async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
       await this._addStake(ctx.config.namespace, ctx.newNode.accountId, ctx.config.nodeAlias)
     })
   }
 
   stopNodes () {
-    return new Task('Stopping nodes', (ctx, task) => {
+    return new Task('Stopping nodes', (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
       const subTasks = []
       for (const nodeAlias of ctx.config.nodeAliases) {
         const podName = ctx.config.podNames[nodeAlias]
@@ -855,7 +856,7 @@ export class NodeCommandTasks {
   }
 
   finalize () {
-    return new Task('Finalize', (ctx, task) => {
+    return new Task('Finalize', (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
       // reset flags so that keys are not regenerated later
       this.configManager.setFlag(flags.generateGossipKeys, false)
       this.configManager.setFlag(flags.generateTlsKeys, false)
@@ -863,8 +864,8 @@ export class NodeCommandTasks {
   }
 
   dumpNetworkNodesSaveState () {
-    return new Task('Dump network nodes saved state', (ctx, task) => {
-      const config = /** @type {NodeRefreshConfigClass} **/ ctx.config
+    return new Task('Dump network nodes saved state', (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
+      const config: NodeRefreshConfigClass = ctx.config
       const subTasks = []
       for (const nodeAlias of config.nodeAliases) {
         const podName = config.podNames[nodeAlias]
@@ -886,13 +887,13 @@ export class NodeCommandTasks {
   }
 
   getNodeLogsAndConfigs () {
-    return new Task('Get node logs and configs', async (ctx, task) => {
+    return new Task('Get node logs and configs', async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
       await getNodeLogs(this.k8, ctx.config.namespace)
     })
   }
 
   checkPVCsEnabled () {
-    return new Task('Check that PVCs are enabled', (ctx, task) => {
+    return new Task('Check that PVCs are enabled', (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
       if (!this.configManager.getFlag(flags.persistentVolumeClaims)) {
         throw new SoloError('PVCs are not enabled. Please enable PVCs before adding a node')
       }
@@ -900,14 +901,14 @@ export class NodeCommandTasks {
   }
 
   determineNewNodeAccountNumber () {
-    return new Task('Determine new node account number', (ctx, task) => {
-      const config = /** @type {NodeAddConfigClass} **/ ctx.config
+    return new Task('Determine new node account number', (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
+      const config: NodeAddConfigClass = ctx.config
       const values = { hedera: { nodes: [] } }
       let maxNum = 0
 
       let lastNodeAlias = DEFAULT_NETWORK_NODE_NAME
 
-      for (/** @type {NetworkNodeServices} **/ const networkNodeServices of config.serviceMap.values()) {
+      for (const networkNodeServices of config.serviceMap.values()) {
         values.hedera.nodes.push({
           accountId: networkNodeServices.accountId,
           name: networkNodeServices.nodeAlias
@@ -929,8 +930,8 @@ export class NodeCommandTasks {
         accountId: `${constants.HEDERA_NODE_ACCOUNT_ID_START.realm}.${constants.HEDERA_NODE_ACCOUNT_ID_START.shard}.${++maxNum}`,
         name: lastNodeAlias
       }
-      config.nodeAlias = lastNodeAlias
-      config.allNodeAliases.push(lastNodeAlias)
+      config.nodeAlias = lastNodeAlias as NodeAlias
+      config.allNodeAliases.push(lastNodeAlias as NodeAlias)
     })
   }
 
@@ -951,7 +952,7 @@ export class NodeCommandTasks {
   }
 
   loadSigningKeyCertificate () {
-    return new Task('Load signing key certificate', (ctx, task) => {
+    return new Task('Load signing key certificate', (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
       const config = ctx.config
       const signingCertFile = Templates.renderGossipPemPublicKeyFile(config.nodeAlias)
       const signingCertFullPath = path.join(config.keysDir, signingCertFile)
@@ -960,7 +961,7 @@ export class NodeCommandTasks {
   }
 
   computeMTLSCertificateHash () {
-    return new Task('Compute mTLS certificate hash', (ctx, task) => {
+    return new Task('Compute mTLS certificate hash', (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
       const config = ctx.config
       const tlsCertFile = Templates.renderTLSPemPublicKeyFile(config.nodeAlias)
       const tlsCertFullPath = path.join(config.keysDir, tlsCertFile)
@@ -970,7 +971,7 @@ export class NodeCommandTasks {
   }
 
   prepareGossipEndpoints () {
-    return new Task('Prepare gossip endpoints', (ctx, task) => {
+    return new Task('Prepare gossip endpoints', (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
       const config = ctx.config
       let endpoints = []
       if (!config.gossipEndpoints) {
@@ -991,13 +992,13 @@ export class NodeCommandTasks {
   }
 
   refreshNodeList () {
-    return new Task('Refresh node alias list', (ctx, task) => {
-      ctx.config.allNodeAliases = ctx.config.existingNodeAliases.filter(nodeAlias => nodeAlias !== ctx.config.nodeAlias)
+    return new Task('Refresh node alias list', (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
+      ctx.config.allNodeAliases = ctx.config.existingNodeAliases.filter((nodeAlias: NodeAlias) => nodeAlias !== ctx.config.nodeAlias)
     })
   }
 
   prepareGrpcServiceEndpoints () {
-    return new Task('Prepare grpc service endpoints', (ctx, task) => {
+    return new Task('Prepare grpc service endpoints', (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
       const config = ctx.config
       let endpoints = []
 
@@ -1018,16 +1019,15 @@ export class NodeCommandTasks {
   }
 
   sendNodeUpdateTransaction () {
-    return new Task('Send node update transaction', async (ctx, task) => {
-      const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
+    return new Task('Send node update transaction', async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
+      const config: NodeUpdateConfigClass = ctx.config
 
       const nodeId = Templates.nodeIdFromNodeAlias(config.nodeAlias) - 1
       this.logger.info(`nodeId: ${nodeId}`)
       this.logger.info(`config.newAccountNumber: ${config.newAccountNumber}`)
 
       try {
-        const nodeUpdateTx = await new NodeUpdateTransaction()
-          .setNodeId(nodeId)
+        const nodeUpdateTx = new NodeUpdateTransaction().setNodeId(nodeId)
 
         if (config.tlsPublicKey && config.tlsPrivateKey) {
           this.logger.info(`config.tlsPublicKey: ${config.tlsPublicKey}`)
@@ -1080,7 +1080,7 @@ export class NodeCommandTasks {
   }
 
   copyNodeKeysToSecrets () {
-    return new Task('Copy node keys to secrets', (ctx, task) => {
+    return new Task('Copy node keys to secrets', (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
       const subTasks = this.platformInstaller.copyNodeKeys(ctx.config.stagingDir, ctx.config.allNodeAliases)
 
       // set up the sub-tasks for copying node keys to staging directory
@@ -1092,7 +1092,7 @@ export class NodeCommandTasks {
   }
 
   updateChartWithConfigMap (title: string, skip: Function | boolean = false) {
-    return new Task(title, async (ctx, task) => {
+    return new Task(title, async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
       // Prepare parameter and update the network node chart
       const config = ctx.config
 
@@ -1136,8 +1136,8 @@ export class NodeCommandTasks {
     }, skip)
   }
 
-  saveContextData (argv, targetFile, parser) {
-    return new Task('Save context data', (ctx, task) => {
+  saveContextData (argv: any, targetFile: string, parser: any) {
+    return new Task('Save context data', (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
       const outputDir = argv[flags.outputDir.name]
       if (!outputDir) {
         throw new SoloError(`Path to export context data not specified. Please set a value for --${flags.outputDir.name}`)
@@ -1151,8 +1151,8 @@ export class NodeCommandTasks {
     })
   }
 
-  loadContextData (argv, targetFile, parser) {
-    return new Task('Load context data', (ctx, task) => {
+  loadContextData (argv: any, targetFile: string, parser: any) {
+    return new Task('Load context data', (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
       const inputDir = argv[flags.inputDir.name]
       if (!inputDir) {
         throw new SoloError(`Path to context data not specified. Please set a value for --${flags.inputDir.name}`)
@@ -1164,29 +1164,29 @@ export class NodeCommandTasks {
   }
 
   killNodes () {
-    return new Task('Kill nodes', async (ctx, task) => {
+    return new Task('Kill nodes', async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
       const config = ctx.config
-      for (const /** @type {NetworkNodeServices} **/ service of config.serviceMap.values()) {
+      for (const service of config.serviceMap.values()) {
         await this.k8.kubeClient.deleteNamespacedPod(service.nodePodName, config.namespace, undefined, undefined, 1)
       }
     })
   }
 
   killNodesAndUpdateConfigMap () {
-    return new Task('Kill nodes to pick up updated configMaps', async (ctx, task) => {
+    return new Task('Kill nodes to pick up updated configMaps', async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
       const config = ctx.config
       // the updated node will have a new pod ID if its account ID changed which is a label
-      config.serviceMap = await this.accountManager.getNodeServiceMap(
-        config.namespace)
-      for (const /** @type {NetworkNodeServices} **/ service of config.serviceMap.values()) {
+      config.serviceMap = await this.accountManager.getNodeServiceMap(config.namespace)
+
+      for (const service of config.serviceMap.values()) {
         await this.k8.kubeClient.deleteNamespacedPod(service.nodePodName, config.namespace, undefined, undefined, 1)
       }
       this.logger.info('sleep for 15 seconds to give time for pods to finish terminating')
-      await sleep(15000)
+      await sleep(15 * SECONDS)
 
       // again, the pod names will change after the pods are killed
-      config.serviceMap = await this.accountManager.getNodeServiceMap(
-        config.namespace)
+      config.serviceMap = await this.accountManager.getNodeServiceMap(config.namespace)
+
       config.podNames = {}
       for (const service of config.serviceMap.values()) {
         config.podNames[service.nodeAlias] = service.nodePodName
@@ -1195,8 +1195,8 @@ export class NodeCommandTasks {
   }
 
   checkNodePodsAreRunning () {
-    return new Task('Check node pods are running', (ctx, task) => {
-      const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
+    return new Task('Check node pods are running', (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
+      const config: NodeUpdateConfigClass = ctx.config
       const subTasks = []
       for (const nodeAlias of config.allNodeAliases) {
         subTasks.push({
@@ -1219,8 +1219,8 @@ export class NodeCommandTasks {
     })
   }
 
-  sleep (title, milliseconds) {
-    return new Task(title, async (ctx, task) => {
+  sleep (title: string, milliseconds: number) {
+    return new Task(title, async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
       await sleep(milliseconds)
     })
   }
@@ -1238,7 +1238,7 @@ export class NodeCommandTasks {
   }
 
   uploadStateToNewNode () {
-    return new Task('Upload last saved state to new network node', async (ctx, task) => {
+    return new Task('Upload last saved state to new network node', async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
       const config = ctx.config
       const newNodeFullyQualifiedPodName = Templates.renderNetworkPodName(config.nodeAlias)
       const nodeId = Templates.nodeIdFromNodeAlias(config.nodeAlias)
@@ -1252,23 +1252,24 @@ export class NodeCommandTasks {
   }
 
   sendNodeDeleteTransaction () {
-    return new Task('Send node delete transaction', async (ctx, task) => {
-      const config = /** @type {NodeDeleteConfigClass} **/ ctx.config
+    return new Task('Send node delete transaction', async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
+      const config: NodeDeleteConfigClass = ctx.config
 
       try {
         const accountMap = getNodeAccountMap(config.existingNodeAliases)
         const deleteAccountId = accountMap.get(config.nodeAlias)
         this.logger.debug(`Deleting node: ${config.nodeAlias} with account: ${deleteAccountId}`)
         const nodeId = Templates.nodeIdFromNodeAlias(config.nodeAlias) - 1
-        const nodeDeleteTx = await new NodeDeleteTransaction()
+        const nodeDeleteTx = new NodeDeleteTransaction()
           .setNodeId(nodeId)
           .freezeWith(config.nodeClient)
 
         const signedTx = await nodeDeleteTx.sign(config.adminKey)
         const txResp = await signedTx.execute(config.nodeClient)
         const nodeUpdateReceipt = await txResp.getReceipt(config.nodeClient)
+
         this.logger.debug(`NodeUpdateReceipt: ${nodeUpdateReceipt.toString()}`)
-      } catch (e) {
+      } catch (e: Error | any) {
         this.logger.error(`Error deleting node from network: ${e.message}`, e)
         throw new SoloError(`Error deleting node from network: ${e.message}`, e)
       }
@@ -1276,11 +1277,11 @@ export class NodeCommandTasks {
   }
 
   sendNodeCreateTransaction () {
-    return new Task('Send node create transaction', async (ctx, task) => {
-      const config = /** @type {NodeAddConfigClass} **/ ctx.config
+    return new Task('Send node create transaction', async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
+      const config: NodeAddConfigClass =  ctx.config
 
       try {
-        const nodeCreateTx = await new NodeCreateTransaction()
+        const nodeCreateTx = new NodeCreateTransaction()
           .setAccountId(ctx.newNode.accountId)
           .setGossipEndpoints(ctx.gossipEndpoints)
           .setServiceEndpoints(ctx.grpcServiceEndpoints)
@@ -1292,7 +1293,7 @@ export class NodeCommandTasks {
         const txResp = await signedTx.execute(config.nodeClient)
         const nodeCreateReceipt = await txResp.getReceipt(config.nodeClient)
         this.logger.debug(`NodeCreateReceipt: ${nodeCreateReceipt.toString()}`)
-      } catch (e) {
+      } catch (e: Error | any) {
         this.logger.error(`Error adding node to network: ${e.message}`, e)
         throw new SoloError(`Error adding node to network: ${e.message}`, e)
       }
@@ -1300,12 +1301,12 @@ export class NodeCommandTasks {
   }
 
   templateTask () {
-    return new Task('TEMPLATE', async (ctx, task) => {
+    return new Task('TEMPLATE', async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
 
     })
   }
 
-  initialize (argv: any, configInit: Function) {
+  initialize (argv: any, configInit: Function, lease: LeaseWrapper | null) {
     const { requiredFlags, requiredFlagsWithDisabledPrompt, optionalFlags } = argv
     const allRequiredFlags = [
       ...requiredFlags,
@@ -1318,6 +1319,7 @@ export class NodeCommandTasks {
       ...optionalFlags
     ]
 
+    // @ts-ignore
     return new Task('Initialize', async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
       if (argv[flags.devMode.name]) {
         this.logger.setDevMode(true)
@@ -1348,6 +1350,8 @@ export class NodeCommandTasks {
       }
 
       this.logger.debug('Initialized config', { config })
+
+      if (lease) return lease.buildAcquireTask(task)
     })
   }
 }

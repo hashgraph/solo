@@ -18,9 +18,7 @@
 import * as helpers from '../../core/helpers.ts'
 import * as NodeFlags from './flags.ts'
 import {
-  addConfigBuilder,
-  deleteConfigBuilder,
-  downloadGeneratedFilesConfigBuilder, keysConfigBuilder, logsConfigBuilder,
+  addConfigBuilder, deleteConfigBuilder, downloadGeneratedFilesConfigBuilder, keysConfigBuilder, logsConfigBuilder,
   prepareUpgradeConfigBuilder, refreshConfigBuilder, setupConfigBuilder, startConfigBuilder, stopConfigBuilder,
   updateConfigBuilder
 } from './configs.ts'
@@ -29,12 +27,14 @@ import {
   constants,
   type K8,
   type PlatformInstaller,
+  type AccountManager,
+  type LeaseManager
 } from '../../core/index.ts'
 import { IllegalArgumentError } from '../../core/errors.ts'
-import type { AccountManager } from '../../core/account_manager.js'
-import type { SoloLogger } from '../../core/logging.js'
-import { type NodeCommand } from './index.js'
-import { type NodeCommandTasks } from './tasks.js'
+import type { SoloLogger } from '../../core/logging.ts'
+import type { NodeCommand } from './index.ts'
+import type { NodeCommandTasks } from './tasks.ts'
+import type { LeaseWrapper } from '../../core/lease_wrapper.ts'
 
 export class NodeCommandHandlers {
   private readonly accountManager: AccountManager
@@ -43,13 +43,14 @@ export class NodeCommandHandlers {
   private readonly logger: SoloLogger
   private readonly k8: K8
   private readonly tasks: NodeCommandTasks
+  private readonly leaseManager: LeaseManager
 
   private getConfig: any
   private prepareChartPath: any
 
   public readonly parent: NodeCommand
 
-  constructor (opts) {
+  constructor (opts: any) {
     if (!opts || !opts.accountManager) throw new IllegalArgumentError('An instance of core/AccountManager is required', opts.accountManager)
     if (!opts || !opts.configManager) throw new Error('An instance of core/ConfigManager is required')
     if (!opts || !opts.logger) throw new Error('An instance of core/Logger is required')
@@ -63,40 +64,19 @@ export class NodeCommandHandlers {
     this.configManager = opts.configManager
     this.k8 = opts.k8
     this.platformInstaller = opts.platformInstaller
+    this.leaseManager = opts.leaseManager
 
     this.getConfig = opts.parent.getConfig.bind(opts.parent)
     this.prepareChartPath = opts.parent.prepareChartPath.bind(opts.parent)
     this.parent = opts.parent
   }
 
-  /**
-     * @returns {string}
-     */
-  static get ADD_CONTEXT_FILE () {
-    return 'node-add.json'
-  }
+  static readonly ADD_CONTEXT_FILE = 'node-add.json'
+  static readonly DELETE_CONTEXT_FILE = 'node-delete.json'
+  static readonly UPDATE_CONTEXT_FILE = 'node-update.json'
 
-  /**
-     * @returns {string}
-     */
-  static get DELETE_CONTEXT_FILE () {
-    return 'node-delete.json'
-  }
-
-  /**
-   * @returns {string}
-   */
-  static get UPDATE_CONTEXT_FILE () {
-    return 'node-update.json'
-  }
-
-
-  /**
-     * stops and closes the port forwards
-     * @returns {Promise<void>}
-     */
   async close () {
-    this.accountManager.close()
+    await this.accountManager.close()
     if (this.parent._portForwards) {
       for (const srv of this.parent._portForwards) {
         await this.k8.stopPortForward(srv)
@@ -108,9 +88,9 @@ export class NodeCommandHandlers {
 
   /** ******** Task Lists **********/
 
-  deletePrepareTaskList (argv) {
+  deletePrepareTaskList (argv: any, lease: LeaseWrapper) {
     return [
-      this.tasks.initialize(argv, deleteConfigBuilder.bind(this)),
+      this.tasks.initialize(argv, deleteConfigBuilder.bind(this), lease),
       this.tasks.identifyExistingNodes(),
       this.tasks.loadAdminKey(),
       this.tasks.prepareUpgradeZip(),
@@ -118,7 +98,7 @@ export class NodeCommandHandlers {
     ]
   }
 
-  deleteSubmitTransactionsTaskList (argv) {
+  deleteSubmitTransactionsTaskList (argv: any) {
     return [
       this.tasks.sendNodeDeleteTransaction(),
       this.tasks.sendPrepareUpgradeTransaction(),
@@ -126,7 +106,7 @@ export class NodeCommandHandlers {
     ]
   }
 
-  deleteExecuteTaskList (argv) {
+  deleteExecuteTaskList (argv: any) {
     return [
       this.tasks.downloadNodeGeneratedFiles(),
       this.tasks.prepareStagingDirectory('existingNodeAliases'),
@@ -151,9 +131,9 @@ export class NodeCommandHandlers {
     ]
   }
 
-  addPrepareTasks (argv) {
+  addPrepareTasks (argv: any, lease: LeaseWrapper) {
     return [
-      this.tasks.initialize(argv, addConfigBuilder.bind(this)),
+      this.tasks.initialize(argv, addConfigBuilder.bind(this), lease),
       this.tasks.checkPVCsEnabled(),
       this.tasks.identifyExistingNodes(),
       this.tasks.determineNewNodeAccountNumber(),
@@ -168,7 +148,7 @@ export class NodeCommandHandlers {
     ]
   }
 
-  addSubmitTransactionsTasks (argv) {
+  addSubmitTransactionsTasks (argv: any) {
     return [
       this.tasks.sendNodeCreateTransaction(),
       this.tasks.sendPrepareUpgradeTransaction(),
@@ -176,7 +156,7 @@ export class NodeCommandHandlers {
     ]
   }
 
-  addExecuteTasks (argv) {
+  addExecuteTasks (argv: any) {
     return [
       this.tasks.downloadNodeGeneratedFiles(),
       this.tasks.prepareStagingDirectory('allNodeAliases'),
@@ -202,8 +182,9 @@ export class NodeCommandHandlers {
   }
 
   updatePrepareTasks (argv) {
+    const lease = this.leaseManager.instantiateLease()
     return [
-      this.tasks.initialize(argv, updateConfigBuilder.bind(this)),
+      this.tasks.initialize(argv, updateConfigBuilder.bind(this), lease),
       this.tasks.identifyExistingNodes(),
       this.tasks.loadAdminKey(),
       this.tasks.prepareUpgradeZip(),
@@ -228,7 +209,7 @@ export class NodeCommandHandlers {
       this.tasks.getNodeLogsAndConfigs(),
       this.tasks.updateChartWithConfigMap(
           'Update chart to use new configMap due to account number change',
-          (ctx) => !ctx.config.newAccountNumber && !ctx.config.debugNodeAlias
+          (ctx: any) => !ctx.config.newAccountNumber && !ctx.config.debugNodeAlias
       ),
       this.tasks.killNodesAndUpdateConfigMap(),
       this.tasks.checkNodePodsAreRunning(),
@@ -245,52 +226,60 @@ export class NodeCommandHandlers {
 
   /** ******** Handlers **********/
 
-  async prepareUpgrade (argv) {
+  async prepareUpgrade (argv: any) {
     argv = helpers.addFlagsToArgv(argv, NodeFlags.DEFAULT_FLAGS)
+
+    const lease = this.leaseManager.instantiateLease()
+
     const action = helpers.commandActionBuilder([
-      this.tasks.initialize(argv, prepareUpgradeConfigBuilder.bind(this)),
+      this.tasks.initialize(argv, prepareUpgradeConfigBuilder.bind(this), lease),
       this.tasks.prepareUpgradeZip(),
       this.tasks.sendPrepareUpgradeTransaction()
     ], {
       concurrent: false,
       rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
-    }, 'Error in preparing node upgrade')
+    }, 'Error in preparing node upgrade', lease)
 
     await action(argv, this)
     return true
   }
 
-  async freezeUpgrade (argv) {
+  async freezeUpgrade (argv: any) {
     argv = helpers.addFlagsToArgv(argv, NodeFlags.DEFAULT_FLAGS)
+
+
     const action = helpers.commandActionBuilder([
-      this.tasks.initialize(argv, prepareUpgradeConfigBuilder.bind(this)),
+      this.tasks.initialize(argv, prepareUpgradeConfigBuilder.bind(this), null),
       this.tasks.prepareUpgradeZip(),
       this.tasks.sendFreezeUpgradeTransaction()
     ], {
       concurrent: false,
       rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
-    }, 'Error in executing node freeze upgrade')
+    }, 'Error in executing node freeze upgrade', null)
 
     await action(argv, this)
     return true
   }
 
-  async downloadGeneratedFiles (argv) {
+  async downloadGeneratedFiles (argv: any) {
     argv = helpers.addFlagsToArgv(argv, NodeFlags.DEFAULT_FLAGS)
+
+    const lease = this.leaseManager.instantiateLease()
+
     const action = helpers.commandActionBuilder([
-      this.tasks.initialize(argv, downloadGeneratedFilesConfigBuilder.bind(this)),
+      this.tasks.initialize(argv, downloadGeneratedFilesConfigBuilder.bind(this), lease),
       this.tasks.identifyExistingNodes(),
       this.tasks.downloadNodeGeneratedFiles()
     ], {
       concurrent: false,
       rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
-    }, 'Error in downloading generated files')
+    }, 'Error in downloading generated files', lease)
 
     await action(argv, this)
     return true
   }
 
-  async update (argv) {
+  async update (argv: any) {
     argv = helpers.addFlagsToArgv(argv, NodeFlags.UPDATE_FLAGS)
     const action = helpers.commandActionBuilder([
       ...this.updatePrepareTasks(argv),
@@ -320,173 +309,200 @@ export class NodeCommandHandlers {
   }
 
   async updateSubmitTransactions (argv) {
+    const lease = this.leaseManager.instantiateLease()
     argv = helpers.addFlagsToArgv(argv, NodeFlags.UPDATE_SUBMIT_TRANSACTIONS_FLAGS)
     const action = helpers.commandActionBuilder([
-      this.tasks.initialize(argv, updateConfigBuilder.bind(this)),
+      this.tasks.initialize(argv, updateConfigBuilder.bind(this), lease),
       this.tasks.loadContextData(argv, NodeCommandHandlers.UPDATE_CONTEXT_FILE, helpers.updateLoadContextParser),
       this.tasks.loadAdminKey(),
-      ...this.updateSubmitTransactionsTasks(argv)
+        ...this.updateSubmitTransactionsTasks(argv)
     ], {
-      concurrent: false,
-      rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
-    }, 'Error in submitting transactions for node update')
+        concurrent: false,
+        rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
+    }, 'Error in submitting transactions for node update', lease)
 
-    await action(argv, this)
-    return true
+      await action(argv, this)
+      return true
   }
 
   async updateExecute (argv) {
     argv = helpers.addFlagsToArgv(argv, NodeFlags.UPDATE_EXECUTE_FLAGS)
-    const action = helpers.commandActionBuilder([
+      const lease = this.leaseManager.instantiateLease()
+      const action = helpers.commandActionBuilder([
       this.tasks.initialize(argv, updateConfigBuilder.bind(this)),
       this.tasks.loadContextData(argv, NodeCommandHandlers.UPDATE_CONTEXT_FILE, helpers.updateLoadContextParser),
       ...this.updateExecuteTasks(argv)
     ], {
       concurrent: false,
       rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
-    }, 'Error in executing node update')
+    }, 'Error in executing node update', lease)
 
     await action(argv, this)
     return true
   }
 
-  async delete (argv) {
+  async delete (argv: any) {
     argv = helpers.addFlagsToArgv(argv, NodeFlags.DELETE_FLAGS)
+    const lease = this.leaseManager.instantiateLease()
     const action = helpers.commandActionBuilder([
-      ...this.deletePrepareTaskList(argv),
+      ...this.deletePrepareTaskList(argv, lease),
       ...this.deleteSubmitTransactionsTaskList(argv),
       ...this.deleteExecuteTaskList(argv)
     ], {
       concurrent: false,
       rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
-    }, 'Error in deleting nodes')
+    }, 'Error in deleting nodes', lease)
 
     await action(argv, this)
     return true
   }
 
-  async deletePrepare (argv) {
+  async deletePrepare (argv: any) {
     argv = helpers.addFlagsToArgv(argv, NodeFlags.DELETE_PREPARE_FLAGS)
+
+    const lease = this.leaseManager.instantiateLease()
+
     const action = helpers.commandActionBuilder([
-      ...this.deletePrepareTaskList(argv),
+      ...this.deletePrepareTaskList(argv, lease),
       this.tasks.saveContextData(argv, NodeCommandHandlers.DELETE_CONTEXT_FILE, helpers.deleteSaveContextParser)
     ], {
       concurrent: false,
       rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
-    }, 'Error in preparing to delete a node')
+    }, 'Error in preparing to delete a node', lease)
 
     await action(argv, this)
     return true
   }
 
-  async deleteSubmitTransactions (argv) {
+  async deleteSubmitTransactions (argv: any) {
     argv = helpers.addFlagsToArgv(argv, NodeFlags.DELETE_SUBMIT_TRANSACTIONS_FLAGS)
+
+    const lease = this.leaseManager.instantiateLease()
+
     const action = helpers.commandActionBuilder([
-      this.tasks.initialize(argv, deleteConfigBuilder.bind(this)),
+      this.tasks.initialize(argv, deleteConfigBuilder.bind(this), lease),
       this.tasks.loadContextData(argv, NodeCommandHandlers.DELETE_CONTEXT_FILE, helpers.deleteLoadContextParser),
       ...this.deleteSubmitTransactionsTaskList(argv)
     ], {
       concurrent: false,
       rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
-    }, 'Error in deleting a node')
+    }, 'Error in deleting a node', lease)
 
     await action(argv, this)
     return true
   }
 
-  async deleteExecute (argv) {
+  async deleteExecute (argv: any) {
     argv = helpers.addFlagsToArgv(argv, NodeFlags.DELETE_EXECUTE_FLAGS)
+
+    const lease = this.leaseManager.instantiateLease()
+
     const action = helpers.commandActionBuilder([
-      this.tasks.initialize(argv, deleteConfigBuilder.bind(this)),
+      this.tasks.initialize(argv, deleteConfigBuilder.bind(this), lease),
       this.tasks.loadContextData(argv, NodeCommandHandlers.DELETE_CONTEXT_FILE, helpers.deleteLoadContextParser),
       ...this.deleteExecuteTaskList(argv)
     ], {
       concurrent: false,
       rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
-    }, 'Error in deleting a node')
+    }, 'Error in deleting a node', lease)
 
     await action(argv, this)
     return true
   }
 
-  async add (argv) {
+  async add (argv: any) {
     argv = helpers.addFlagsToArgv(argv, NodeFlags.ADD_FLAGS)
+
+    const lease = this.leaseManager.instantiateLease()
+
     const action = helpers.commandActionBuilder([
-      ...this.addPrepareTasks(argv),
+      ...this.addPrepareTasks(argv, lease),
       ...this.addSubmitTransactionsTasks(argv),
       ...this.addExecuteTasks(argv)
     ], {
       concurrent: false,
       rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
-    }, 'Error in adding node')
+    }, 'Error in adding node', lease)
 
     await action(argv, this)
     return true
   }
 
-  async addPrepare (argv) {
+  async addPrepare (argv: any) {
     argv = helpers.addFlagsToArgv(argv, NodeFlags.ADD_PREPARE_FLAGS)
+
+    const lease = this.leaseManager.instantiateLease()
+
     const action = helpers.commandActionBuilder([
-      ...this.addPrepareTasks(argv),
+      ...this.addPrepareTasks(argv, lease),
       this.tasks.saveContextData(argv, NodeCommandHandlers.ADD_CONTEXT_FILE, helpers.addSaveContextParser),
     ], {
       concurrent: false,
       rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
-    }, 'Error in preparing node')
+    }, 'Error in preparing node', lease)
 
     await action(argv, this)
     return true
   }
 
-  async addSubmitTransactions (argv) {
+  async addSubmitTransactions (argv: any) {
     argv = helpers.addFlagsToArgv(argv, NodeFlags.ADD_SUBMIT_TRANSACTIONS_FLAGS)
+
+    const lease = this.leaseManager.instantiateLease()
+
     const action = helpers.commandActionBuilder([
-      this.tasks.initialize(argv, addConfigBuilder.bind(this)),
+      this.tasks.initialize(argv, addConfigBuilder.bind(this), lease),
       this.tasks.loadContextData(argv, NodeCommandHandlers.ADD_CONTEXT_FILE, helpers.addLoadContextParser),
       ...this.addSubmitTransactionsTasks(argv)
     ], {
       concurrent: false,
       rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
-    }, '`Error in submitting transactions to node')
+    }, '`Error in submitting transactions to node', lease)
 
     await action(argv, this)
     return true
   }
 
-  async addExecute (argv) {
+  async addExecute (argv: any) {
     argv = helpers.addFlagsToArgv(argv, NodeFlags.ADD_EXECUTE_FLAGS)
+
+    const lease = this.leaseManager.instantiateLease()
+
     const action = helpers.commandActionBuilder([
-      this.tasks.initialize(argv, addConfigBuilder.bind(this)),
+      this.tasks.initialize(argv, addConfigBuilder.bind(this), lease),
       this.tasks.identifyExistingNodes(),
       this.tasks.loadContextData(argv, NodeCommandHandlers.ADD_CONTEXT_FILE, helpers.addLoadContextParser),
       ...this.addExecuteTasks(argv)
     ], {
       concurrent: false,
       rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
-    }, 'Error in adding node')
+    }, 'Error in adding node', lease)
 
     await action(argv, this)
     return true
   }
 
-  async logs (argv) {
+  async logs (argv: any) {
     argv = helpers.addFlagsToArgv(argv, NodeFlags.LOGS_FLAGS)
     const action = helpers.commandActionBuilder([
-      this.tasks.initialize(argv, logsConfigBuilder.bind(this)),
+      this.tasks.initialize(argv, logsConfigBuilder.bind(this), null),
       this.tasks.getNodeLogsAndConfigs()
     ], {
       concurrent: false,
       rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
-    }, 'Error in downloading log from nodes')
+    }, 'Error in downloading log from nodes', null)
 
     await action(argv, this)
     return true
   }
 
-  async refresh (argv) {
+  async refresh (argv: any) {
     argv = helpers.addFlagsToArgv(argv, NodeFlags.REFRESH_FLAGS)
+
+    const lease = this.leaseManager.instantiateLease()
+
     const action = helpers.commandActionBuilder([
-      this.tasks.initialize(argv, refreshConfigBuilder.bind(this)),
+      this.tasks.initialize(argv, refreshConfigBuilder.bind(this), lease),
       this.tasks.identifyNetworkPods(),
       this.tasks.dumpNetworkNodesSaveState(),
       this.tasks.fetchPlatformSoftware('nodeAliases'),
@@ -497,47 +513,56 @@ export class NodeCommandHandlers {
     ], {
       concurrent: false,
       rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
-    }, 'Error in refreshing nodes')
+    }, 'Error in refreshing nodes', lease)
 
     await action(argv, this)
     return true
   }
 
-  async keys (argv) {
+  async keys (argv: any) {
     argv = helpers.addFlagsToArgv(argv, NodeFlags.KEYS_FLAGS)
+
+    const lease = this.leaseManager.instantiateLease()
+
     const action = helpers.commandActionBuilder([
-      this.tasks.initialize(argv, keysConfigBuilder.bind(this)),
+      this.tasks.initialize(argv, keysConfigBuilder.bind(this), lease),
       this.tasks.generateGossipKeys(),
       this.tasks.generateGrpcTlsKeys(),
       this.tasks.finalize()
     ], {
       concurrent: false,
       rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
-    }, 'Error generating keys')
+    }, 'Error generating keys', lease)
 
     await action(argv, this)
     return true
   }
 
-  async stop (argv) {
+  async stop (argv: any) {
     argv = helpers.addFlagsToArgv(argv, NodeFlags.STOP_FLAGS)
+
+    const lease = this.leaseManager.instantiateLease()
+
     const action = helpers.commandActionBuilder([
-      this.tasks.initialize(argv, stopConfigBuilder.bind(this)),
+      this.tasks.initialize(argv, stopConfigBuilder.bind(this), lease),
       this.tasks.identifyNetworkPods(),
       this.tasks.stopNodes()
     ], {
       concurrent: false,
       rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
-    }, 'Error stopping node')
+    }, 'Error stopping node', lease)
 
     await action(argv, this)
     return true
   }
 
-  async start (argv) {
+  async start (argv: any) {
     argv = helpers.addFlagsToArgv(argv, NodeFlags.START_FLAGS)
+
+    const lease = this.leaseManager.instantiateLease()
+
     const action = helpers.commandActionBuilder([
-      this.tasks.initialize(argv, startConfigBuilder.bind(this)),
+      this.tasks.initialize(argv, startConfigBuilder.bind(this), lease),
       this.tasks.identifyExistingNodes(),
       this.tasks.startNodes('nodeAliases'),
       this.tasks.enablePortForwarding(),
@@ -547,23 +572,26 @@ export class NodeCommandHandlers {
     ], {
       concurrent: false,
       rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
-    }, 'Error starting node')
+    }, 'Error starting node', lease)
 
     await action(argv, this)
     return true
   }
 
-  async setup (argv) {
+  async setup (argv: any) {
     argv = helpers.addFlagsToArgv(argv, NodeFlags.SETUP_FLAGS)
+
+    const lease = this.leaseManager.instantiateLease()
+
     const action = helpers.commandActionBuilder([
-      this.tasks.initialize(argv, setupConfigBuilder.bind(this)),
+      this.tasks.initialize(argv, setupConfigBuilder.bind(this), lease),
       this.tasks.identifyNetworkPods(),
       this.tasks.fetchPlatformSoftware('nodeAliases'),
       this.tasks.setupNetworkNodes('nodeAliases')
     ], {
       concurrent: false,
       rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
-    }, 'Error in setting up nodes')
+    }, 'Error in setting up nodes', lease)
 
     await action(argv, this)
     return true
