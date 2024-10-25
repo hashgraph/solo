@@ -1,6 +1,3 @@
-# leave blank to use default, set if you have multiple deployments in a cluster to make it unique
-#selfSignedCertClusterIssuer: '{{ .Values.global.namespaceOverride | default .Release.Namespace | printf "%s-self-signed-cluster-issuer" }}'
-#certClusterIssuerType: "self-signed" # "acme-staging", "acme-prod", or "self-signed"
 ingress:
   enabled: false
   hosts:
