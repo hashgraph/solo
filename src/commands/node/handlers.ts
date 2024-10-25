@@ -181,8 +181,7 @@ export class NodeCommandHandlers {
     ]
   }
 
-  updatePrepareTasks (argv) {
-    const lease = this.leaseManager.instantiateLease()
+  updatePrepareTasks (argv, lease: LeaseWrapper) {
     return [
       this.tasks.initialize(argv, updateConfigBuilder.bind(this), lease),
       this.tasks.identifyExistingNodes(),
@@ -285,7 +284,7 @@ export class NodeCommandHandlers {
     const lease = this.leaseManager.instantiateLease()
 
     const action = helpers.commandActionBuilder([
-      ...this.updatePrepareTasks(argv),
+      ...this.updatePrepareTasks(argv, lease),
       ...this.updateSubmitTransactionsTasks(argv),
       ...this.updateExecuteTasks(argv),
     ], {
@@ -301,9 +300,8 @@ export class NodeCommandHandlers {
     argv = helpers.addFlagsToArgv(argv, NodeFlags.UPDATE_PREPARE_FLAGS)
     const lease = this.leaseManager.instantiateLease()
 
-
     const action = helpers.commandActionBuilder([
-      ...this.updatePrepareTasks(argv),
+      ...this.updatePrepareTasks(argv, lease),
       this.tasks.saveContextData(argv, NodeCommandHandlers.UPDATE_CONTEXT_FILE, helpers.updateSaveContextParser)
     ], {
       concurrent: false,
