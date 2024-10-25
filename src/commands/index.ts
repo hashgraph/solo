@@ -18,11 +18,11 @@ import { ClusterCommand } from './cluster.ts'
 import { InitCommand } from './init.ts'
 import { MirrorNodeCommand } from './mirror_node.ts'
 import { NetworkCommand } from './network.ts'
-import { NodeCommand } from './node.ts'
+import { NodeCommand } from './node/index.ts'
 import { RelayCommand } from './relay.ts'
 import { AccountCommand } from './account.ts'
 import * as flags from './flags.ts'
-import { type Opts } from '../types/index.js'
+import { type Opts } from '../types/index.ts'
 
 /**
  * Return a list of Yargs command builder to be exposed through CLI

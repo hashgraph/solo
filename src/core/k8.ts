@@ -30,10 +30,11 @@ import * as stream from 'node:stream'
 
 import { type SoloLogger } from './logging.ts'
 import type * as WebSocket from 'ws'
-import { type PodName } from '../types/aliases.ts'
-import { type ExtendedNetServer, type LocalContextObject } from '../types/index.ts'
+import type { PodName } from '../types/aliases.ts'
+import type { ExtendedNetServer, LocalContextObject } from '../types/index.ts'
+import type * as http from 'node:http'
 
-type TDirectoryData = {directory: boolean; owner: string; group: string; size: string; modifiedAt: string; name: string}
+interface TDirectoryData {directory: boolean; owner: string; group: string; size: string; modifiedAt: string; name: string}
 
 /**
  * A kubernetes API wrapper class providing custom functionalities required by solo
@@ -42,9 +43,11 @@ type TDirectoryData = {directory: boolean; owner: string; group: string; size: s
  * For parallel execution, create separate instances by invoking clone()
  */
 export class K8 {
-  static PodReadyCondition: Map<string, string> = new Map().set(constants.POD_CONDITION_READY, constants.POD_CONDITION_STATUS_TRUE)
+  static PodReadyCondition = new Map<string, string>()
+    .set(constants.POD_CONDITION_READY, constants.POD_CONDITION_STATUS_TRUE)
   private kubeConfig!: k8s.KubeConfig
   kubeClient!: k8s.CoreV1Api
+  private coordinationApiClient: k8s.CoordinationV1Api
 
   constructor (private readonly configManager: ConfigManager, public readonly logger: SoloLogger) {
     if (!configManager) throw new MissingArgumentError('An instance of core/ConfigManager is required')
@@ -81,6 +84,7 @@ export class K8 {
     }
 
     this.kubeClient = this.kubeConfig.makeApiClient(k8s.CoreV1Api)
+    this.coordinationApiClient = this.kubeConfig.makeApiClient(k8s.CoordinationV1Api)
 
     return this // to enable chaining
   }
@@ -1144,6 +1148,69 @@ export class K8 {
     const resp = await this.kubeClient.deleteNamespacedSecret(name, namespace)
     return resp.response.statusCode === 200.0
   }
+
+  // --------------------------------------- LEASES --------------------------------------- //
+  async createNamespacedLease (namespace: string, leaseName: string, holderName: string) {
+    const lease = new k8s.V1Lease()
+
+    const metadata = new k8s.V1ObjectMeta()
+    metadata.name = leaseName
+    metadata.namespace = namespace
+    lease.metadata = metadata
+
+    const spec = new k8s.V1LeaseSpec()
+    spec.holderIdentity = holderName
+    spec.leaseDurationSeconds = 20
+    spec.acquireTime = new k8s.V1MicroTime()
+    lease.spec = spec
+
+    const { response, body } = await this.coordinationApiClient.createNamespacedLease(namespace, lease)
+      .catch(e => e)
+
+    this._handleKubernetesClientError(response, body, 'Failed to create namespaced lease')
+
+    return body as k8s.V1Lease
+  }
+
+  async readNamespacedLease (leaseName: string, namespace: string) {
+    const { response, body } = await this.coordinationApiClient.readNamespacedLease(leaseName, namespace)
+      .catch(e => e)
+
+    this._handleKubernetesClientError(response, body, 'Failed to read namespaced lease')
+
+    return body as k8s.V1Lease
+  }
+
+  async renewNamespaceLease (leaseName: string, namespace: string, lease: k8s.V1Lease) {
+    lease.spec.renewTime = new k8s.V1MicroTime()
+
+    const { response, body } = await this.coordinationApiClient.replaceNamespacedLease(leaseName, namespace, lease)
+      .catch(e => e)
+
+    this._handleKubernetesClientError(response, body, 'Failed to renew namespaced lease')
+
+    return body as k8s.V1Lease
+  }
+
+  async deleteNamespacedLease (name: string, namespace: string) {
+    const { response, body } = await this.coordinationApiClient.deleteNamespacedLease(name, namespace)
+      .catch(e => e)
+
+    this._handleKubernetesClientError(response, body, 'Failed to delete namespaced lease')
+
+    return body as k8s.V1Status
+  }
+
+  private _handleKubernetesClientError (response: http.IncomingMessage, error: Error | any, errorMessage: string) {
+    const statusCode = +response.statusCode
+
+    if (statusCode <= 202) return
+    errorMessage += `, statusCode: ${response.statusCode}`
+    this.logger.error(errorMessage, error)
+
+    throw new SoloError(errorMessage, errorMessage, { statusCode: statusCode })
+  }
+
 
   private _getNamespace () {
     const ns = this.configManager.getFlag<string>(flags.namespace)

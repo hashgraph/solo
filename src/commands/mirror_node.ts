@@ -17,14 +17,13 @@
 import { ListrEnquirerPromptAdapter } from '@listr2/prompt-adapter-enquirer'
 import { Listr } from 'listr2'
 import { SoloError, IllegalArgumentError, MissingArgumentError } from '../core/errors.ts'
-import { constants, type ProfileManager } from '../core/index.ts'
+import { constants, type ProfileManager, type AccountManager } from '../core/index.ts'
 import { BaseCommand } from './base.ts'
 import * as flags from './flags.ts'
 import * as prompts from './prompts.ts'
 import { getFileContents, getEnvValue } from '../core/helpers.ts'
-import { type AccountManager } from '../core/account_manager.ts'
 import { type PodName } from '../types/aliases.ts'
-import { type Opts } from '../types/index.js'
+import { type Opts } from '../types/index.ts'
 
 export class MirrorNodeCommand extends BaseCommand {
   private readonly accountManager: AccountManager
@@ -122,7 +121,7 @@ export class MirrorNodeCommand extends BaseCommand {
   async prepareValuesArg (config: any) {
     let valuesArg = ''
 
-    const profileName = <string>this.configManager.getFlag<string>(flags.profileName)
+    const profileName = this.configManager.getFlag<string>(flags.profileName) as string
     const profileValuesFile = await this.profileManager.prepareValuesForMirrorNodeChart(profileName)
     if (profileValuesFile) {
       valuesArg += this.prepareValuesFiles(profileValuesFile)
@@ -137,6 +136,7 @@ export class MirrorNodeCommand extends BaseCommand {
 
   async deploy (argv: any) {
     const self = this
+    const lease = self.leaseManager.instantiateLease()
 
     interface MirrorNodeDeployConfigClass {
       chartDirectory: string
@@ -197,6 +197,8 @@ export class MirrorNodeCommand extends BaseCommand {
           }
 
           await self.accountManager.loadNodeClient(ctx.config.namespace)
+
+          return lease.buildAcquireTask(task)
         }
       },
       {
@@ -294,7 +296,7 @@ export class MirrorNodeCommand extends BaseCommand {
             {
               title: 'Insert data in public.file_data',
               task: async () => {
-                const namespace = <string>self.configManager.getFlag<string>(flags.namespace)
+                const namespace = self.configManager.getFlag<string>(flags.namespace) as string
 
                 const feesFileIdNum = 111
                 const exchangeRatesFileIdNum = 112
@@ -346,6 +348,7 @@ export class MirrorNodeCommand extends BaseCommand {
     } catch (e: Error | any) {
       throw new SoloError(`Error starting node: ${e.message}`, e)
     } finally {
+      await lease.release()
       await self.accountManager.close()
     }
 
@@ -354,6 +357,7 @@ export class MirrorNodeCommand extends BaseCommand {
 
   async destroy (argv: any) {
     const self = this
+    const lease = self.leaseManager.instantiateLease()
 
     interface Context {
       config: {
@@ -385,7 +389,7 @@ export class MirrorNodeCommand extends BaseCommand {
 
           // @ts-ignore
           ctx.config = {
-            namespace: <string>self.configManager.getFlag<string>(flags.namespace)
+            namespace: self.configManager.getFlag<string>(flags.namespace)
           }
 
           if (!await self.k8.hasNamespace(ctx.config.namespace)) {
@@ -395,6 +399,8 @@ export class MirrorNodeCommand extends BaseCommand {
           ctx.config.isChartInstalled = await this.chartManager.isChartInstalled(ctx.config.namespace, constants.MIRROR_NODE_RELEASE_NAME)
 
           await self.accountManager.loadNodeClient(ctx.config.namespace)
+
+          return lease.buildAcquireTask(task)
         }
       },
       {
@@ -433,6 +439,7 @@ export class MirrorNodeCommand extends BaseCommand {
     } catch (e: Error | any) {
       throw new SoloError(`Error starting node: ${e.message}`, e)
     } finally {
+      await lease.release()
       await self.accountManager.close()
     }
 

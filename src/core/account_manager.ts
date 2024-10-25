@@ -160,7 +160,7 @@ export class AccountManager {
 
   /**
    * loads and initializes the Node Client
-   * @param namespace the namespace of the network
+   * @param namespace - the namespace of the network
    */
   async refreshNodeClient (namespace: string) {
     await this.close()
@@ -230,7 +230,7 @@ export class AccountManager {
         }
 
         // @ts-ignore
-        nodes[`${host}:${targetPort}`] = AccountId.fromString(<string>networkNodeService.accountId)
+        nodes[`${host}:${targetPort}`] = AccountId.fromString((networkNodeService.accountId as string))
         await this.k8.testConnection(host, targetPort)
         localPort++
       }
@@ -240,10 +240,10 @@ export class AccountManager {
       this._nodeClient = Client.fromConfig({ network: nodes, scheduleNetworkUpdate: false })
       this._nodeClient.setOperator(operatorId, operatorKey)
       this._nodeClient.setLogger(new Logger(LogLevel.Trace, path.join(constants.SOLO_LOGS_DIR, 'hashgraph-sdk.log')))
-      this._nodeClient.setMaxAttempts(<number>constants.NODE_CLIENT_MAX_ATTEMPTS)
-      this._nodeClient.setMinBackoff(<number>constants.NODE_CLIENT_MIN_BACKOFF)
-      this._nodeClient.setMaxBackoff(<number>constants.NODE_CLIENT_MAX_BACKOFF)
-      this._nodeClient.setRequestTimeout(<number>constants.NODE_CLIENT_REQUEST_TIMEOUT)
+      this._nodeClient.setMaxAttempts((constants.NODE_CLIENT_MAX_ATTEMPTS as number))
+      this._nodeClient.setMinBackoff((constants.NODE_CLIENT_MIN_BACKOFF as number))
+      this._nodeClient.setMaxBackoff((constants.NODE_CLIENT_MAX_BACKOFF as number))
+      this._nodeClient.setRequestTimeout((constants.NODE_CLIENT_REQUEST_TIMEOUT as number))
       return this._nodeClient
     } catch (e: Error | any) {
       throw new SoloError(`failed to setup node client: ${e.message}`, e)
@@ -275,8 +275,8 @@ export class AccountManager {
       switch (serviceType) {
         // solo.hedera.com/type: envoy-proxy-svc
         case 'envoy-proxy-svc':
-          serviceBuilder.withEnvoyProxyName(<string>service.metadata!.name)
-            .withEnvoyProxyClusterIp(<string>service.spec!.clusterIP)
+          serviceBuilder.withEnvoyProxyName((service.metadata!.name as string))
+            .withEnvoyProxyClusterIp((service.spec!.clusterIP as string))
             .withEnvoyProxyLoadBalancerIp(service.status.loadBalancer.ingress ? service.status.loadBalancer.ingress[0].ip : undefined)
             .withEnvoyProxyGrpcWebPort(service.spec!.ports!.filter(port => port.name === 'hedera-grpc-web')[0].port)
           break
@@ -284,8 +284,8 @@ export class AccountManager {
         case 'haproxy-svc':
           serviceBuilder.withAccountId(service.metadata!.labels!['solo.hedera.com/account-id'])
             .withHaProxyAppSelector(service.spec!.selector!.app)
-            .withHaProxyName(<string>service.metadata!.name)
-            .withHaProxyClusterIp(<string>service.spec!.clusterIP)
+            .withHaProxyName((service.metadata!.name as string))
+            .withHaProxyClusterIp((service.spec!.clusterIP as string))
             // @ts-ignore
             .withHaProxyLoadBalancerIp(service.status.loadBalancer.ingress ? service.status.loadBalancer.ingress[0].ip : undefined)
             .withHaProxyGrpcPort(service.spec!.ports!.filter(port => port.name === 'non-tls-grpc-client-port')[0].port)
@@ -293,8 +293,8 @@ export class AccountManager {
           break
         // solo.hedera.com/type: network-node-svc
         case 'network-node-svc':
-          serviceBuilder.withNodeServiceName(<string>service.metadata!.name)
-            .withNodeServiceClusterIp(<string>service.spec!.clusterIP)
+          serviceBuilder.withNodeServiceName((service.metadata!.name as string))
+            .withNodeServiceClusterIp((service.spec!.clusterIP as string))
             .withNodeServiceLoadBalancerIp(service.status.loadBalancer.ingress ? service.status.loadBalancer.ingress[0].ip : undefined)
             .withNodeServiceGossipPort(service.spec!.ports!.filter(port => port.name === 'gossip')[0].port)
             .withNodeServiceGrpcPort(service.spec!.ports!.filter(port => port.name === 'grpc-non-tls')[0].port)

@@ -21,16 +21,18 @@ import util from 'util'
 import { SoloError } from './errors.ts'
 import * as semver from 'semver'
 import { Templates } from './templates.ts'
-import { HEDERA_HAPI_PATH, ROOT_CONTAINER, SOLO_LOGS_DIR } from './constants.ts'
+import { HEDERA_HAPI_PATH, ROOT_CONTAINER, ROOT_DIR, SOLO_LOGS_DIR } from './constants.ts'
 import { constants, type K8 } from './index.ts'
 import { FileContentsQuery, FileId, PrivateKey, ServiceEndpoint } from '@hashgraph/sdk'
 import { Listr } from 'listr2'
 import { type AccountManager } from './account_manager.ts'
-import { type BaseCommand } from '../commands/base.ts'
 import { type NodeAlias, type NodeAliases, type PodName } from '../types/aliases.ts'
-import { type NodeDeleteConfigClass } from '../commands/node.ts'
-import { type CommandFlag } from '../types/index.js'
+import { type NodeDeleteConfigClass } from '../commands/node/configs.ts'
+import { type CommandFlag } from '../types/index.ts'
 import { type V1Pod } from '@kubernetes/client-node'
+import { type SoloLogger } from './logging.ts'
+import { type NodeCommandHandlers } from '../commands/node/handlers.ts'
+import { type LeaseWrapper } from './lease_wrapper.ts'
 
 export function sleep (ms: number) {
   return new Promise<void>((resolve) => {
@@ -64,8 +66,7 @@ export function cloneArray <T> (arr: T[]): T[] {
 /** load package.json */
 export function loadPackageJSON (): any {
   try {
-    const rootDir = process.cwd()
-    const raw = fs.readFileSync(path.join(rootDir, 'package.json'))
+    const raw = fs.readFileSync(path.join(ROOT_DIR, 'package.json'))
     return JSON.parse(raw.toString())
   } catch (e: Error | any) {
     throw new SoloError('failed to load package.json', e)
@@ -257,7 +258,7 @@ export function parseIpAddressToUint8Array (ipAddress: string) {
 }
 
 /** If the basename of the src did not match expected basename, rename it first, then copy to destination */
-export function renameAndCopyFile (srcFilePath: string, expectedBaseName: string, destDir: string) {
+export function renameAndCopyFile (srcFilePath: string, expectedBaseName: string, destDir: string, logger: SoloLogger) {
   const srcDir = path.dirname(srcFilePath)
   if (path.basename(srcFilePath) !== expectedBaseName) {
     fs.renameSync(srcFilePath, path.join(srcDir, expectedBaseName))
@@ -265,7 +266,7 @@ export function renameAndCopyFile (srcFilePath: string, expectedBaseName: string
   // copy public key and private key to key directory
   fs.copyFile(path.join(srcDir, expectedBaseName), path.join(destDir, expectedBaseName), (err) => {
     if (err) { // @ts-ignore
-      self.logger.error(`Error copying file: ${err.message}`)
+      logger.error(`Error copying file: ${err.message}`)
       throw new SoloError(`Error copying file: ${err.message}`)
     }
   })
@@ -383,7 +384,7 @@ export function prepareEndpoints (endpointType: string, endpoints: string[], def
 
     if (parts.length === 2) {
       url = parts[0].trim()
-      port = +parts[1].trim()
+      port = +(parts[1].trim())
     } else if (parts.length === 1) {
       url = parts[0]
     } else {
@@ -408,8 +409,8 @@ export function prepareEndpoints (endpointType: string, endpoints: string[], def
   return ret
 }
 
-export function commandActionBuilder (actionTasks: any, options: any, errorString = 'Error') {
-  return async function (argv: any, commandDef: BaseCommand) {
+export function commandActionBuilder (actionTasks: any, options: any, errorString: string, lease: LeaseWrapper | null) {
+  return async function (argv: any, commandDef: NodeCommandHandlers) {
     const tasks = new Listr([
       ...actionTasks
     ], options)
@@ -417,11 +418,12 @@ export function commandActionBuilder (actionTasks: any, options: any, errorStrin
     try {
       await tasks.run()
     } catch (e: Error | any) {
-      commandDef.logger.error(`${errorString}: ${e.message}`, e)
+      commandDef.parent.logger.error(`${errorString}: ${e.message}`, e)
       throw new SoloError(`${errorString}: ${e.message}`, e)
     } finally {
-      // @ts-ignore
-      await commandDef.close()
+      const promises = [commandDef.close()]
+      if (lease) promises.push(lease.release())
+      await Promise.all(promises)
     }
   }
 }

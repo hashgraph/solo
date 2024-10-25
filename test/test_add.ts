@@ -17,6 +17,7 @@
 import { expect } from 'chai'
 import { describe, it, after } from 'mocha'
 
+import { flags } from '../src/commands/index.ts'
 import {
   accountCreationShouldSucceed,
   balanceQueryShouldSucceed,
@@ -26,16 +27,15 @@ import {
   getTmpDir,
   HEDERA_PLATFORM_VERSION_TAG
 } from './test_util.ts'
-import { flags } from '../src/commands/index.ts'
 import { getNodeLogs } from '../src/core/helpers.ts'
-import { NodeCommand } from '../src/commands/node.ts'
+import * as NodeCommandConfigs from '../src/commands/node/configs.ts'
 import { MINUTES } from '../src/core/constants.ts'
 import type { NodeAlias } from '../src/types/aliases.ts'
 import type { NetworkNodeServices } from '../src/core/network_node_services.ts'
 
 const defaultTimeout = 2 * MINUTES
 
-export function testNodeAdd (localBuildPath: string, testDescription: string = 'Node add should success', timeout: number = defaultTimeout): void {
+export function testNodeAdd (localBuildPath: string, testDescription = 'Node add should success', timeout: number = defaultTimeout): void {
   const suffix = localBuildPath.substring(0, 5)
   const namespace = 'node-add' + suffix
   const argv = getDefaultArgv()
@@ -65,7 +65,7 @@ export function testNodeAdd (localBuildPath: string, testDescription: string = '
 
         await getNodeLogs(k8, namespace)
         await bootstrapResp.opts.accountManager.close()
-        await nodeCmd.stop(argv)
+        await nodeCmd.handlers.stop(argv)
         await networkCmd.destroy(argv)
         await k8.deleteNamespace(namespace)
       })
@@ -80,11 +80,10 @@ export function testNodeAdd (localBuildPath: string, testDescription: string = '
       }).timeout(8 * MINUTES)
 
       it('should add a new node to the network successfully', async () => {
-        await nodeCmd.add(argv)
-        expect(nodeCmd.getUnusedConfigs(NodeCommand.ADD_CONFIGS_NAME)).to.deep.equal([
-          flags.app.constName,
-          flags.chainId.constName,
+        await nodeCmd.handlers.add(argv)
+        expect(nodeCmd.getUnusedConfigs(NodeCommandConfigs.ADD_CONFIGS_NAME)).to.deep.equal([
           flags.devMode.constName,
+          flags.force.constName,
           flags.quiet.constName,
           flags.adminKey.constName
         ])

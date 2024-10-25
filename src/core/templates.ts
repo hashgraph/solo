@@ -55,7 +55,7 @@ export class Templates {
     return `hedera-${nodeAlias}.crt`
   }
 
-  public static renderNodeFriendlyName (prefix: string, nodeAlias: NodeAlias, suffix: string = ''): string {
+  public static renderNodeFriendlyName (prefix: string, nodeAlias: NodeAlias, suffix = ''): string {
     const parts = [prefix, nodeAlias]
     if (suffix) parts.push(suffix)
     return parts.join('-')
@@ -105,11 +105,11 @@ export class Templates {
 
   static renderDistinguishedName (
     nodeAlias: NodeAlias,
-    state: string = 'TX',
-    locality: string = 'Richardson',
-    org: string = 'Hedera',
-    orgUnit: string = 'Hedera',
-    country: string = 'US'
+    state = 'TX',
+    locality = 'Richardson',
+    org = 'Hedera',
+    orgUnit = 'Hedera',
+    country = 'US'
   ) {
     return new x509.Name(`CN=${nodeAlias},ST=${state},L=${locality},O=${org},OU=${orgUnit},C=${country}`)
   }

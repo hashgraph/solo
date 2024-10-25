@@ -17,7 +17,7 @@
 import * as commandFlags from '../commands/flags.ts'
 import { IllegalArgumentError } from './errors.ts'
 import { type BaseCommand } from '../commands/base.ts'
-import { type CommandFlag } from '../types/index.js'
+import { type CommandFlag } from '../types/index.ts'
 
 export class YargsCommand {
   constructor (
@@ -56,7 +56,7 @@ export class YargsCommand {
       handler: (argv: any) => {
         commandDef.logger.debug(`==== Running '${commandNamespace} ${command}' ===`)
         commandDef.logger.debug(argv)
-        commandDef[handler](argv).then((r: any) => {
+        commandDef.handlers[handler](argv).then((r: any) => {
           commandDef.logger.debug(`==== Finished running '${commandNamespace} ${command}' ====`)
           if (!r) process.exit(1)
         }).catch((err: Error | any) => {

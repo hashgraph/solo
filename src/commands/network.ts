@@ -29,9 +29,9 @@ import path from 'path'
 import { addDebugOptions, validatePath } from '../core/helpers.ts'
 import fs from 'fs'
 import { type NodeAlias, type NodeAliases } from '../types/aliases.ts'
-import { type Opts } from '../types/index.js'
+import { type Opts } from '../types/index.ts'
 
-export type NetworkDeployConfigClass = {
+export interface NetworkDeployConfigClass {
   applicationEnv: string
   cacheDir: string
   chartDirectory: string
@@ -103,7 +103,8 @@ export class NetworkCommand extends BaseCommand {
 
   async prepareValuesArg (config: {chartDirectory?: string; app?: string; nodeAliases?: string[]; debugNodeAlias?: NodeAlias;
     enablePrometheusSvcMonitor?: boolean; releaseTag?: string; persistentVolumeClaims?: string;
-    valuesFile?: string; } = {}) {
+    valuesFile?: string; } = {}
+  ) {
     let valuesArg = config.chartDirectory ? `-f ${path.join(config.chartDirectory, 'solo-deployment', 'values.yaml')}` : ''
 
     if (config.app !== constants.HEDERA_APP_NAME) {
@@ -117,7 +118,7 @@ export class NetworkCommand extends BaseCommand {
       valuesArg = addDebugOptions(valuesArg, config.debugNodeAlias)
     }
 
-    const profileName = <string>this.configManager.getFlag<string>(flags.profileName)
+    const profileName = this.configManager.getFlag<string>(flags.profileName) as string
     this.profileValuesFile = await this.profileManager.prepareValuesForSoloChart(profileName)
     if (this.profileValuesFile) {
       valuesArg += this.prepareValuesFiles(this.profileValuesFile)
@@ -215,6 +216,7 @@ export class NetworkCommand extends BaseCommand {
   /** Run helm install and deploy network components */
   async deploy (argv: any) {
     const self = this
+    const lease = self.leaseManager.instantiateLease()
 
     interface Context {
       config: NetworkDeployConfigClass
@@ -225,6 +227,7 @@ export class NetworkCommand extends BaseCommand {
         title: 'Initialize',
         task: async (ctx, task) => {
           ctx.config = await self.prepareConfig(task, argv)
+          return lease.buildAcquireTask(task)
         }
       },
       {
@@ -382,6 +385,8 @@ export class NetworkCommand extends BaseCommand {
       await tasks.run()
     } catch (e: Error | any) {
       throw new SoloError(`Error installing chart ${constants.SOLO_DEPLOYMENT_CHART}`, e)
+    } finally {
+      await lease.release()
     }
 
     return true
@@ -389,6 +394,7 @@ export class NetworkCommand extends BaseCommand {
 
   async destroy (argv: any) {
     const self = this
+    const lease = self.leaseManager.instantiateLease()
 
     interface Context {
       config: {
@@ -422,10 +428,12 @@ export class NetworkCommand extends BaseCommand {
           ])
 
           ctx.config = {
-            deletePvcs: <boolean>self.configManager.getFlag<boolean>(flags.deletePvcs),
-            deleteSecrets: <boolean>self.configManager.getFlag<boolean>(flags.deleteSecrets),
-            namespace: <string>self.configManager.getFlag<string>(flags.namespace)
+            deletePvcs: self.configManager.getFlag<boolean>(flags.deletePvcs) as boolean,
+            deleteSecrets: self.configManager.getFlag<boolean>(flags.deleteSecrets) as boolean,
+            namespace: self.configManager.getFlag<string>(flags.namespace) as string
           }
+
+          return lease.buildAcquireTask(task)
         }
       },
       {
@@ -469,6 +477,8 @@ export class NetworkCommand extends BaseCommand {
       await tasks.run()
     } catch (e: Error | any) {
       throw new SoloError('Error destroying network', e)
+    } finally {
+      await lease.release()
     }
 
     return true
@@ -477,6 +487,7 @@ export class NetworkCommand extends BaseCommand {
   /** Run helm upgrade to refresh network components with new settings */
   async refresh (argv: any) {
     const self = this
+    const lease = self.leaseManager.instantiateLease()
 
     interface Context {
       config: NetworkDeployConfigClass
@@ -487,6 +498,7 @@ export class NetworkCommand extends BaseCommand {
         title: 'Initialize',
         task: async (ctx, task) => {
           ctx.config = await self.prepareConfig(task, argv)
+          return lease.buildAcquireTask(task)
         }
       },
       {
@@ -519,6 +531,8 @@ export class NetworkCommand extends BaseCommand {
       await tasks.run()
     } catch (e: Error | any) {
       throw new SoloError(`Error upgrading chart ${constants.SOLO_DEPLOYMENT_CHART}`, e)
+    } finally {
+      await lease.release()
     }
 
     return true

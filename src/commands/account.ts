@@ -14,18 +14,16 @@
  * limitations under the License.
  *
  */
-
 import chalk from 'chalk'
 import { BaseCommand } from './base.ts'
 import { SoloError, IllegalArgumentError } from '../core/errors.ts'
 import { flags } from './index.ts'
 import { Listr } from 'listr2'
 import * as prompts from './prompts.ts'
-import { constants } from '../core/index.ts'
+import { constants, type AccountManager } from '../core/index.ts'
 import { type AccountId, AccountInfo, HbarUnit, PrivateKey } from '@hashgraph/sdk'
 import { FREEZE_ADMIN_ACCOUNT } from '../core/constants.ts'
-import { type AccountManager } from '../core/account_manager.ts'
-import { type Opts } from '../types/index.js'
+import type { Opts } from '../types/index.ts'
 
 export class AccountCommand extends BaseCommand {
   private readonly accountManager: AccountManager
@@ -143,7 +141,7 @@ export class AccountCommand extends BaseCommand {
           ])
 
           const config = {
-            namespace: <string>self.configManager.getFlag<string>(flags.namespace)
+            namespace: self.configManager.getFlag<string>(flags.namespace) as string
           }
 
           if (!await this.k8.hasNamespace(config.namespace)) {
@@ -249,6 +247,7 @@ export class AccountCommand extends BaseCommand {
 
   async create (argv: any) {
     const self = this
+    const lease = self.leaseManager.instantiateLease()
 
     interface Context {
       config: {
@@ -271,11 +270,11 @@ export class AccountCommand extends BaseCommand {
           ])
 
           const config = {
-            amount: <number>self.configManager.getFlag<number>(flags.amount),
-            ecdsaPrivateKey: <string>self.configManager.getFlag<string>(flags.ecdsaPrivateKey),
-            namespace: <string>self.configManager.getFlag<string>(flags.namespace),
-            privateKey: <string>self.configManager.getFlag<string>(flags.privateKey),
-            setAlias: <boolean>self.configManager.getFlag<boolean>(flags.setAlias)
+            amount: self.configManager.getFlag<number>(flags.amount) as number,
+            ecdsaPrivateKey: self.configManager.getFlag<string>(flags.ecdsaPrivateKey) as string,
+            namespace: self.configManager.getFlag<string>(flags.namespace) as string,
+            privateKey: self.configManager.getFlag<string>(flags.privateKey) as string,
+            setAlias: self.configManager.getFlag<boolean>(flags.setAlias) as boolean
           }
 
           if (!config.amount) {
@@ -292,6 +291,8 @@ export class AccountCommand extends BaseCommand {
           self.logger.debug('Initialized config', { config })
 
           await self.accountManager.loadNodeClient(ctx.config.namespace)
+
+          return lease.buildAcquireTask(task)
         }
       },
       {
@@ -314,6 +315,7 @@ export class AccountCommand extends BaseCommand {
     } catch (e: Error | any) {
       throw new SoloError(`Error in creating account: ${e.message}`, e)
     } finally {
+      await lease.release()
       await this.closeConnections()
     }
 
@@ -344,10 +346,10 @@ export class AccountCommand extends BaseCommand {
           ])
 
           const config = {
-            accountId: <string>self.configManager.getFlag<string>(flags.accountId),
-            amount: <number>self.configManager.getFlag<number>(flags.amount),
-            namespace: <string>self.configManager.getFlag<string>(flags.namespace),
-            privateKey: <string>self.configManager.getFlag<string>(flags.privateKey)
+            accountId: self.configManager.getFlag<string>(flags.accountId) as string,
+            amount: self.configManager.getFlag<number>(flags.amount) as number,
+            namespace: self.configManager.getFlag<string>(flags.namespace) as string,
+            privateKey: self.configManager.getFlag<string>(flags.privateKey) as string
           }
 
           if (!await this.k8.hasNamespace(config.namespace)) {
@@ -421,8 +423,8 @@ export class AccountCommand extends BaseCommand {
           ])
 
           const config = {
-            accountId: <string>self.configManager.getFlag<string>(flags.accountId),
-            namespace: <string>self.configManager.getFlag<string>(flags.namespace)
+            accountId: self.configManager.getFlag<string>(flags.accountId) as string,
+            namespace: self.configManager.getFlag<string>(flags.namespace) as string
           }
 
           if (!await this.k8.hasNamespace(config.namespace)) {

@@ -22,7 +22,7 @@ import * as flags from './flags.ts'
 import * as helpers from '../core/helpers.ts'
 import { hederaExplorerVersion, resetDisabledPrompts } from './flags.ts'
 import type { ListrTaskWrapper } from 'listr2'
-import { type CommandFlag } from '../types/index.js'
+import { type CommandFlag } from '../types/index.ts'
 
 async function prompt (type: string, task: ListrTaskWrapper<any, any, any>, input: any, defaultValue: any, promptMessage: string, emptyCheckMessage: string | null, flagName: string) {
   try {
@@ -446,6 +446,22 @@ export async function promptHederaExplorerVersion (task: ListrTaskWrapper<any, a
       flags.hederaExplorerVersion.name)
 }
 
+export async function promptInputDir (task: ListrTaskWrapper<any, any, any>, input: any) {
+    return await promptToggle(task, input,
+        flags.inputDir.definition.defaultValue,
+        'Enter path to directory containing the temporary context file',
+        null,
+        flags.inputDir.name)
+}
+
+export async function promptOutputDir (task: ListrTaskWrapper<any, any, any>, input: any) {
+    return await promptToggle(task, input,
+        flags.outputDir.definition.defaultValue,
+        'Enter path to directory to store the temporary context file',
+        null,
+        flags.outputDir.name)
+}
+
 export function getPromptMap (): Map<string, Function> {
   return new Map()
     .set(flags.accountId.name, promptAccountId)
@@ -488,6 +504,8 @@ export function getPromptMap (): Map<string, Function> {
     .set(flags.endpointType.name, promptEndpointType)
     .set(flags.mirrorNodeVersion.name, promptMirrorNodeVersion)
     .set(flags.hederaExplorerVersion, promptHederaExplorerVersion)
+    .set(flags.inputDir.name, promptInputDir)
+    .set(flags.outputDir.name, promptOutputDir)
 }
 
 // build the prompt registry

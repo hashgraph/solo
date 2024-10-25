@@ -17,9 +17,12 @@
 
 import { AccountId, FileId } from '@hashgraph/sdk'
 import { color, type ListrLogger, PRESET_TIMER } from 'listr2'
-import path, { normalize } from 'path'
+import path, { dirname, normalize } from 'path'
+import { fileURLToPath } from 'url'
+import os from 'node:os'
 
-export const ROOT_DIR = process.cwd()
+export const ROOT_DIR = path.join(dirname(fileURLToPath(import.meta.url)), '..', '..')
+export const OS_USERNAME = os.userInfo().username
 
 // -------------------- solo related constants ---------------------------------------------------------------------
 export const SOLO_HOME_DIR = process.env.SOLO_HOME || path.join(process.env.HOME as string, '.solo')
@@ -111,10 +114,11 @@ export const LISTR_DEFAULT_RENDERER_OPTION = {
   timer: LISTR_DEFAULT_RENDERER_TIMER_OPTION
 } as {
   collapseSubtasks: boolean
-  timer: { condition: (duration: number) => boolean
+  timer: {
+    condition: (duration: number) => boolean
     format: (duration: number) => any
     field: string | ((args_0: number) => string)
-    args?: [ number ]
+    args?: [number]
   },
   logger: ListrLogger
 }
@@ -158,3 +162,7 @@ export const JVM_DEBUG_PORT = 5005
 
 export const SECONDS = 1000
 export const MINUTES = 60 * SECONDS
+
+export const LEASE_AQUIRE_RETRY_TIMEOUT = 20 * SECONDS
+export const MAX_LEASE_ACQUIRE_ATTEMPTS = 10
+export const LEASE_RENEW_TIMEOUT = 10 * SECONDS

@@ -78,7 +78,7 @@ describe('NetworkCommand', () => {
   })
 
   it('keys should be generated', async () => {
-    await expect(nodeCmd.keys(argv)).to.eventually.be.ok
+    await expect(nodeCmd.handlers.keys(argv)).to.eventually.be.ok
   })
 
   it('network deploy command should succeed', async () => {
