@@ -693,7 +693,17 @@ export const mirrorNodeVersion: CommandFlag = {
   name: 'mirror-node-version',
   definition: {
     describe: 'Mirror node chart version',
-    defaultValue: '',
+    defaultValue: version.MIRROR_NODE_VERSION,
+    type: 'string'
+  }
+}
+
+export const hederaExplorerVersion: CommandFlag = {
+  constName: 'hederaExplorerVersion',
+  name: 'hedera-explorer-version',
+  definition: {
+    describe: 'Hedera explorer chart version',
+    defaultValue: version.HEDERA_EXPLORER_VERSION,
     type: 'string'
   }
 }
@@ -760,7 +770,8 @@ export const allFlags: CommandFlag[] = [
   tlsPublicKey,
   updateAccountKeys,
   valuesFile,
-  mirrorNodeVersion
+  mirrorNodeVersion,
+  hederaExplorerVersion
 ]
 
 /** Resets the definition.disablePrompt for all flags */
