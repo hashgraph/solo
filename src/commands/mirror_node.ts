@@ -99,8 +99,8 @@ export class MirrorNodeCommand extends BaseCommand {
       }
 
       valuesArg += ' --set ingress.enabled=true'
-      valuesArg += ' --set cloud.haproxyIngressController.enabled=true'
-      valuesArg += ` --set global.ingressClassName=${namespace}-hedera-explorer-ingress-class`
+      valuesArg += ' --set haproxyIngressController.enabled=true'
+      valuesArg += ` --set ingressClassName=${namespace}-hedera-explorer-ingress-class`
       valuesArg += ` --set-json 'ingress.hosts[0]={"host":"${hederaExplorerTlsHostName}","paths":[{"path":"/","pathType":"Prefix"}]}'`
 
       if (hederaExplorerTlsLoadBalancerIp !== '') {
@@ -108,9 +108,9 @@ export class MirrorNodeCommand extends BaseCommand {
       }
 
       if (tlsClusterIssuerType === 'self-signed') {
-        valuesArg += ' --set cloud.selfSignedClusterIssuer.enabled=true'
+        valuesArg += ' --set selfSignedClusterIssuer.enabled=true'
       } else {
-        valuesArg += ' --set cloud.acmeClusterIssuer.enabled=true'
+        valuesArg += ' --set acmeClusterIssuer.enabled=true'
         valuesArg += ` --set certClusterIssuerType=${tlsClusterIssuerType}`
       }
     }
