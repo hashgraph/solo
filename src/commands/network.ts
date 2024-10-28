@@ -244,7 +244,8 @@ export class NetworkCommand extends BaseCommand {
           const { grpcTlsCertificatePath, grpcWebTlsCertificatePath } = ctx.config
 
           return self.certificateManager.buildCopyTlsCertificatesTasks(task, grpcTlsCertificatePath, grpcWebTlsCertificatePath)
-        }
+        },
+        skip: (ctx) => !ctx.config.grpcTlsCertificatePath || !ctx.config.grpcWebTlsCertificatePath
       },
       {
         title: 'Prepare staging directory',

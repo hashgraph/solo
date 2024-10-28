@@ -18,13 +18,12 @@ import { MissingArgumentError, SoloError } from './errors.ts'
 import { flags } from '../commands/index.ts'
 import fs from 'fs'
 import path from 'path'
-import * as Base64 from 'js-base64'
-import { Templates } from './templates.js'
+import { Templates } from './templates.ts'
 import type { ConfigManager } from './config_manager.ts'
 import type { K8 } from './k8.ts'
 import type { SoloLogger } from './logging.ts'
 import type { ListrTaskWrapper } from 'listr2'
-import type { NodeAlias } from '../types/aliases.js'
+import type { NodeAlias } from '../types/aliases.ts'
 
 export class CertificateManager {
   constructor (
@@ -37,18 +36,36 @@ export class CertificateManager {
     if (!configManager) throw new MissingArgumentError('an instance of core/ConfigManager is required')
   }
 
-  async copyTlsCertificate (nodeAlias: NodeAlias, grpcTlsCertificatePath: string, grpcWebTlsCertificatePath: string) {
+  // Validates and Copies the certificates into K8s secrets
+  async copyTlsCertificate (nodeAlias: NodeAlias, grpcCert: string, grpcWebCert: string) {
     if (!nodeAlias) throw new MissingArgumentError('nodeAlias is required')
-    if (!grpcTlsCertificatePath) throw new MissingArgumentError('tlsCertificatePath is required')
-    if (!grpcWebTlsCertificatePath) throw new MissingArgumentError('grpcWebTlsCertificatePath is required')
+    if (!grpcCert) throw new MissingArgumentError('tlsCertificatePath is required')
+    if (!grpcWebCert) throw new MissingArgumentError('grpcWebCert is required')
+
+    console.log('-------------- 1 -------------- ')
+
+    // if (!fs.statSync(grpcCert).isFile()) {
+    //   throw new MissingArgumentError(`gRPC certificate path doesn't exists - ${grpcCert}`)
+    // }
+    // if (!fs.statSync(grpcWebCert).isFile()) {
+    //   throw new MissingArgumentError(`gRPC Web certificate path doesn't exists - ${grpcWebCert}`)
+    // }
 
     try {
       const data: Record<string, string> = {}
 
-      for (const srcFile of [ grpcTlsCertificatePath, grpcWebTlsCertificatePath ]) {
-        const fileContents = fs.readFileSync(srcFile)
+      console.log('-------------- 2 -------------- ')
+
+      for (const srcFile of [ grpcCert, grpcWebCert ]) {
+
+        console.log(`-------------- ${srcFile} 1 -------------- `)
+
+        const fileContents = fs.readFileSync(srcFile).toString('base64')
+
+        console.log(`-------------- ${srcFile} 2 -------------- `)
+
         const fileName = path.basename(srcFile) // @ts-ignore
-        data[fileName] = Base64.encode(fileContents)
+        data[fileName] = fileContents
       }
 
       const name = Templates.renderGrpcTlsCertificatesSecretName(nodeAlias)
@@ -57,15 +74,25 @@ export class CertificateManager {
       const secretType = 'Opaque'
       const recreate = true
 
+      console.log(`-------------- 3 -------------- `)
+
       if (!await this.k8.createSecret(name, namespace, secretType, data, labels, recreate)) {
         throw new SoloError(`failed to create secret for tsc certificates for node '${nodeAlias}'`)
       }
+
+      console.log(`-------------- 4 -------------- `)
     } catch (e: Error | any) {
-      this.logger.error(`failed to copy gossip keys to secret '${Templates.renderGrpcTlsCertificatesSecretName(nodeAlias)}': ${e.message}`, e)
-      throw new SoloError(`failed to copy gossip keys to secret '${Templates.renderGrpcTlsCertificatesSecretName(nodeAlias)}': ${e.message}`, e)
+      const errorMessage = 'failed to copy tls certificate to secret ' +
+        `'${Templates.renderGrpcTlsCertificatesSecretName(nodeAlias)}': ${e.message}`
+
+      console.error(errorMessage, e)
+
+      this.logger.error(errorMessage, e)
+      throw new SoloError(errorMessage, e)
     }
   }
 
+  // Creates tasks for copying the certificates into K8s secrets
   buildCopyTlsCertificatesTasks (
     task: ListrTaskWrapper<any, any, any>,
     grpcTlsCertificatePathsUnparsed: string,
@@ -85,13 +112,13 @@ export class CertificateManager {
     const subTasks = []
 
     for (let i = 0; i < grpcTlsCertificatePaths.length; i++) {
-      const [_nodeAlias, grpcTlsCertificatePath] = grpcTlsCertificatePaths[i].split('=')
-      const [nodeAlias, grpcWebTlsCertificatePath] = grpcWebTlsCertificatePaths[i].split('=')
+      const [_nodeAlias, grpcCert] = grpcTlsCertificatePaths[i].split('=')
+      const [nodeAlias, grpcWebCert] = grpcWebTlsCertificatePaths[i].split('=')
 
       subTasks.push({
         title: `Copy TLS Certificate for node ${nodeAlias}`,
         task: async () => {
-          await self.copyTlsCertificate(nodeAlias as NodeAlias, grpcTlsCertificatePath, grpcWebTlsCertificatePath)
+          await self.copyTlsCertificate(nodeAlias as NodeAlias, grpcCert, grpcWebCert)
         }
       })
     }
