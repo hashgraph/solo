@@ -22,8 +22,8 @@ import type { CommandFlag } from '../types/index.ts'
 
 /**
  * Set flag from the flag option
- * @param y - instance of yargs
- * @param commandFlags - a set of command flags
+ * @param y instance of yargs
+ * @param commandFlags a set of command flags
  *
  */
 export function setCommandFlags (y: any, ...commandFlags: CommandFlag[]) {

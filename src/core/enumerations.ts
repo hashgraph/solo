@@ -42,3 +42,8 @@ export const NodeStatusEnums = {
   10: 'RECONNECT_COMPLETE',
   11: 'CATASTROPHIC_FAILURE'
 }
+
+export enum CertificateTypes {
+  GRPC,
+  GRPC_WEB,
+}

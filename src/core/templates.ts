@@ -21,6 +21,7 @@ import { DataValidationError, SoloError, IllegalArgumentError, MissingArgumentEr
 import { constants } from './index.ts'
 import { type AccountId } from '@hashgraph/sdk'
 import type { NodeAlias, PodName } from '../types/aliases.ts'
+import {CertificateTypes} from "./enumerations.js";
 
 export class Templates {
   public static renderNetworkPodName (nodeAlias: NodeAlias): PodName {
@@ -180,11 +181,21 @@ export class Templates {
     return { 'solo.hedera.com/node-name': nodeAlias }
   }
 
-  static renderGrpcTlsCertificatesSecretName (nodeAlias: NodeAlias) {
-    return `network-${nodeAlias}-grpc-tls-cert-secrets`
+  static renderGrpcTlsCertificatesSecretName (nodeAlias: NodeAlias, type: CertificateTypes) {
+    switch (type) {
+      case CertificateTypes.GRPC:
+        return `network-${nodeAlias}-grpc-tls-cert-secrets`
+      case CertificateTypes.GRPC_WEB:
+        return `network-${nodeAlias}-grpc-web-tls-cert-secrets`
+    }
   }
 
-  static renderGrpcTlsCertificatesSecretLabelObject (nodeAlias: NodeAlias) {
-    return { 'solo.hedera.com/grpc-tls-cert-secret': nodeAlias }
+  static renderGrpcTlsCertificatesSecretLabelObject (nodeAlias: NodeAlias, type: CertificateTypes) {
+    switch (type) {
+      case CertificateTypes.GRPC:
+        return { 'grpc-tls-cert-secret': nodeAlias }
+      case CertificateTypes.GRPC_WEB:
+        return { 'grpc-web-tls-cert-secret': nodeAlias }
+    }
   }
 }

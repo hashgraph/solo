@@ -175,14 +175,15 @@ export class NetworkCommand extends BaseCommand {
     await prompts.execute(task, this.configManager, NetworkCommand.DEPLOY_FLAGS_LIST)
 
     // create a config object for subsequent steps
-    const config = this.getConfig(NetworkCommand.DEPLOY_CONFIGS_NAME, NetworkCommand.DEPLOY_FLAGS_LIST, [
-      'chartPath',
-      'keysDir',
-      'nodeAliases',
-      'stagingDir',
-      'stagingKeysDir',
-      'valuesArg'
-    ]) as NetworkDeployConfigClass
+    const config = this.getConfig(NetworkCommand.DEPLOY_CONFIGS_NAME, NetworkCommand.DEPLOY_FLAGS_LIST,
+      [
+        'chartPath',
+        'keysDir',
+        'nodeAliases',
+        'stagingDir',
+        'stagingKeysDir',
+        'valuesArg'
+      ]) as NetworkDeployConfigClass
 
     config.nodeAliases = helpers.parseNodeAliases(config.nodeAliasesUnparsed)
 
@@ -240,12 +241,13 @@ export class NetworkCommand extends BaseCommand {
       },
       {
         title: 'Copy gRPC TLS Certificates',
-        task: async (ctx, task) => {
-          const { grpcTlsCertificatePath, grpcWebTlsCertificatePath } = ctx.config
-
-          return self.certificateManager.buildCopyTlsCertificatesTasks(task, grpcTlsCertificatePath, grpcWebTlsCertificatePath)
-        },
-        skip: (ctx) => !ctx.config.grpcTlsCertificatePath || !ctx.config.grpcWebTlsCertificatePath
+        task: (ctx, parentTask) =>
+          self.certificateManager.buildCopyTlsCertificatesTasks(
+            parentTask,
+            ctx.config.grpcTlsCertificatePath,
+            ctx.config.grpcWebTlsCertificatePath
+          ),
+        skip: (ctx) => !ctx.config.grpcTlsCertificatePath && !ctx.config.grpcWebTlsCertificatePath
       },
       {
         title: 'Prepare staging directory',

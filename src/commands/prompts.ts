@@ -522,9 +522,9 @@ export function getPromptMap (): Map<string, Function> {
 // build the prompt registry
 /**
  * Run prompts for the given set of flags
- * @param task - task object from listr2
- * @param configManager - config manager to store flag values
- * @param flagList - list of flag objects
+ * @param task task object from listr2
+ * @param configManager config manager to store flag values
+ * @param flagList list of flag objects
  */
 export async function execute (task: ListrTaskWrapper<any, any, any>, configManager: ConfigManager, flagList: CommandFlag[] = []) {
   if (!configManager || !(configManager instanceof ConfigManager)) {
