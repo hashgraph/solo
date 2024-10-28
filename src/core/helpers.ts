@@ -27,7 +27,7 @@ import { FileContentsQuery, FileId, PrivateKey, ServiceEndpoint } from '@hashgra
 import { Listr } from 'listr2'
 import { type AccountManager } from './account_manager.ts'
 import { type NodeAlias, type NodeAliases, type PodName } from '../types/aliases.ts'
-import { type NodeDeleteConfigClass } from '../commands/node/configs.ts'
+import { type NodeDeleteConfigClass, type NodeUpdateConfigClass } from '../commands/node/configs.ts'
 import { type CommandFlag } from '../types/index.ts'
 import { type V1Pod } from '@kubernetes/client-node'
 import { type SoloLogger } from './logging.ts'
@@ -370,6 +370,56 @@ export function deleteLoadContextParser (ctx: { config: NodeDeleteConfigClass, u
   config.adminKey = PrivateKey.fromStringED25519(ctxData.adminKey)
   config.existingNodeAliases = ctxData.existingNodeAliases
   config.allNodeAliases = ctxData.existingNodeAliases
+  ctx.upgradeZipHash = ctxData.upgradeZipHash
+  config.podNames = {}
+}
+
+/**
+ * Returns an object that can be written to a file without data loss.
+ * Contains fields needed for updating a node through separate commands
+ * @param ctx - accumulator object
+ * @returns file writable object
+ */
+export function updateSaveContextParser (ctx: { config: NodeUpdateConfigClass, upgradeZipHash: any }) {
+  const exportedCtx: any = {}
+
+  const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
+  exportedCtx.newAdminKey = config.newAdminKey.toString()
+  exportedCtx.freezeAdminPrivateKey = config.freezeAdminPrivateKey.toString()
+  exportedCtx.treasuryKey = config.treasuryKey.toString()
+  exportedCtx.existingNodeAliases = config.existingNodeAliases
+  exportedCtx.upgradeZipHash = ctx.upgradeZipHash
+  exportedCtx.nodeAlias = config.nodeAlias
+  exportedCtx.newAccountNumber = config.newAccountNumber
+  exportedCtx.tlsPublicKey = config.tlsPublicKey
+  exportedCtx.tlsPrivateKey = config.tlsPrivateKey
+  exportedCtx.gossipPublicKey = config.gossipPublicKey
+  exportedCtx.gossipPrivateKey = config.gossipPrivateKey
+  exportedCtx.allNodeAliases = config.allNodeAliases
+
+  return exportedCtx
+}
+
+/**
+ * Initializes objects in the context from a provided string
+ * Contains fields needed for updating a node through separate commands
+ * @param ctx - accumulator object
+ * @param ctxData - data in string format
+ * @returns file writable object
+ */
+export function updateLoadContextParser (ctx: { config: NodeUpdateConfigClass, upgradeZipHash: any }, ctxData: any) {
+  const config = ctx.config
+  config.newAdminKey = PrivateKey.fromStringED25519(ctxData.newAdminKey)
+  config.freezeAdminPrivateKey = PrivateKey.fromStringED25519(ctxData.freezeAdminPrivateKey)
+  config.treasuryKey = PrivateKey.fromStringED25519(ctxData.treasuryKey)
+  config.existingNodeAliases = ctxData.existingNodeAliases
+  config.nodeAlias = ctxData.nodeAlias
+  config.newAccountNumber = ctxData.newAccountNumber
+  config.tlsPublicKey = ctxData.tlsPublicKey
+  config.tlsPrivateKey = ctxData.tlsPrivateKey
+  config.gossipPublicKey = ctxData.gossipPublicKey
+  config.gossipPrivateKey = ctxData.gossipPrivateKey
+  config.allNodeAliases = ctxData.allNodeAliases
   ctx.upgradeZipHash = ctxData.upgradeZipHash
   config.podNames = {}
 }

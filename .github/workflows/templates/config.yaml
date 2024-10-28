@@ -32,19 +32,22 @@ tests:
     mochaPostfix: "'test/e2e/commands/node_add_local.test.ts'"
 
   - name: Node Add - Separate commands
-    mochaPostfix: "'test/e2e/commands/separate_node_add*.test.ts'"
+    mochaPostfix: "'test/e2e/commands/separate_node_add.test.ts'"
 
   - name: Node Update
-    mochaPostfix: "'test/e2e/commands/node_update*.test.ts'"
+    mochaPostfix: "'test/e2e/commands/node_update.test.ts'"
+
+  - name: Node Update - Separate commands
+    mochaPostfix: "'test/e2e/commands/separate_node_update.test.ts'"
 
   - name: Node Delete
-    mochaPostfix: "'test/e2e/commands/node_delete*.test.ts'"
+    mochaPostfix: "'test/e2e/commands/node_delete.test.ts'"
 
   - name: Node Delete - Separate commands
-    mochaPostfix: "'test/e2e/commands/separate_node_delete*.test.ts'"
+    mochaPostfix: "'test/e2e/commands/separate_node_delete.test.ts'"
 
   - name: Node Upgrade
-    mochaPostfix: "'test/e2e/commands/node_upgrade*.test.ts'"
+    mochaPostfix: "'test/e2e/commands/node_upgrade.test.ts'"
 
   - name: Relay
     mochaPostfix: "'test/e2e/commands/relay.test.ts'"

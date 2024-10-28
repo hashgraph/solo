@@ -789,6 +789,8 @@ export const allFlags: CommandFlag[] = [
   updateAccountKeys,
   valuesFile,
   mirrorNodeVersion,
+  inputDir,
+  outputDir,
   grpcTlsCertificatePath,
   grpcWebTlsCertificatePath,
 ]
