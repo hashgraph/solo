@@ -17,7 +17,6 @@
 import { MissingArgumentError, SoloError } from './errors.ts'
 import { flags } from '../commands/index.ts'
 import fs from 'fs'
-import path from 'path'
 import { Templates } from './templates.ts'
 import { CertificateTypes } from './enumerations.ts'
 
@@ -42,7 +41,8 @@ export class CertificateManager {
   async copyTlsCertificate (nodeAlias: NodeAlias, cert: string, type: CertificateTypes) {
     if (!nodeAlias) throw new MissingArgumentError('nodeAlias is required')
     if (!cert) throw new MissingArgumentError('cert is required')
-    if (!fs.statSync(cert).isFile()) throw new MissingArgumentError(`certificate path doesn't exists - ${cert}`)
+    if (!type) throw new MissingArgumentError('type is required')
+    if (!fs.statSync(cert).isFile()) throw new SoloError(`certificate path doesn't exists - ${cert}`)
     try {
       const data = { [nodeAlias]: fs.readFileSync(cert).toString('base64') }
       const name = Templates.renderGrpcTlsCertificatesSecretName(nodeAlias, type)
