@@ -323,7 +323,7 @@ export const enableHederaExplorerTls: CommandFlag = {
   constName: 'enableHederaExplorerTls',
   name: 'enable-hedera-explorer-tls',
   definition: {
-    describe: 'Enable the Hedera Explorer TLS, defaults to false, must also enable deployCertManager and deployCertManagerCrds',
+    describe: 'Enable the Hedera Explorer TLS, defaults to false, requires certManager and certManagerCrds, which can be deployed through solo-cluster-setup chart or standalone',
     defaultValue: false,
     type: 'boolean'
   }
