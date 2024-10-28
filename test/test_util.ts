@@ -258,8 +258,7 @@ export function e2eTestSuite (
           flags.profileFile.constName,
           flags.profileName.constName,
           flags.quiet.constName,
-          flags.settingTxt.constName,
-          'chartPath'
+          flags.settingTxt.constName
         ])
       }).timeout(3 * MINUTES)
 
