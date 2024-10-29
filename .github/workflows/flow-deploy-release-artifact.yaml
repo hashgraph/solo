@@ -60,7 +60,6 @@ jobs:
           action: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4.1.0
           with: |
             node-version: 20.14.0
-            cache: npm
           attempt_limit: 3
           attempt_delay: 5000
           time_out: 600000
@@ -150,7 +149,6 @@ jobs:
           action: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4.1.0
           with: |
             node-version: 20.14.0
-            cache: npm
           attempt_limit: 3
           attempt_delay: 5000
           time_out: 600000
