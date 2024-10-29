@@ -82,13 +82,6 @@ export class MirrorNodeCommand extends BaseCommand {
     return valuesArg
   }
 
-  /**
-   * @param tlsClusterIssuerType
-   * @param enableHederaExplorerTls
-   * @param namespace
-   * @param hederaExplorerTlsLoadBalancerIp
-   * @param hederaExplorerTlsHostName
-   */
   getTlsValueArguments (tlsClusterIssuerType: string, enableHederaExplorerTls: boolean, namespace: string,
     hederaExplorerTlsLoadBalancerIp: string, hederaExplorerTlsHostName: string) {
     let valuesArg = ''
