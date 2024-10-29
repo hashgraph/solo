@@ -14,19 +14,19 @@
  * limitations under the License.
  *
  */
-
-
 import {
   type ChartManager,
   type ConfigManager,
   constants,
-  type K8, type KeyManager,
+  type K8,
+  type KeyManager,
   type PlatformInstaller,
   type ProfileManager,
   Task,
   Templates,
   Zippy,
-  type AccountManager
+  type AccountManager,
+  type CertificateManager
 } from '../../core/index.ts'
 import {
   DEFAULT_NETWORK_NODE_NAME,
@@ -82,12 +82,13 @@ export class NodeCommandTasks {
   private readonly k8: K8
   private readonly parent: NodeCommand
   private readonly chartManager: ChartManager
+  private readonly certificateManager: CertificateManager
 
   private readonly prepareValuesFiles: any
 
   constructor (opts: { logger: SoloLogger; accountManager: AccountManager; configManager: ConfigManager,
     k8: K8, platformInstaller: PlatformInstaller, keyManager: KeyManager, profileManager: ProfileManager,
-  chartManager: ChartManager, parent: NodeCommand}
+  chartManager: ChartManager, certificateManager: CertificateManager, parent: NodeCommand}
   ) {
     if (!opts || !opts.accountManager) throw new IllegalArgumentError('An instance of core/AccountManager is required', opts.accountManager as any)
     if (!opts || !opts.configManager) throw new Error('An instance of core/ConfigManager is required')
@@ -96,6 +97,8 @@ export class NodeCommandTasks {
     if (!opts || !opts.platformInstaller) throw new IllegalArgumentError('An instance of core/PlatformInstaller is required', opts.platformInstaller)
     if (!opts || !opts.keyManager) throw new IllegalArgumentError('An instance of core/KeyManager is required', opts.keyManager)
     if (!opts || !opts.profileManager) throw new IllegalArgumentError('An instance of ProfileManager is required', opts.profileManager)
+    if (!opts || !opts.certificateManager) throw new IllegalArgumentError('An instance of CertificateManager is required', opts.certificateManager)
+
 
     this.accountManager = opts.accountManager
     this.configManager = opts.configManager
@@ -106,6 +109,7 @@ export class NodeCommandTasks {
     this.profileManager = opts.profileManager
     this.keyManager = opts.keyManager
     this.chartManager = opts.chartManager
+    this.certificateManager = opts.certificateManager
     this.prepareValuesFiles = opts.parent.prepareValuesFiles.bind(opts.parent)
   }
 
@@ -412,6 +416,18 @@ export class NodeCommandTasks {
         }
       })
     }, (ctx: any) => !ctx.config.generateTlsKeys)
+  }
+
+  copyGrpcTlsCertificates () {
+    return new Task('Copy gRPC TLS Certificates',
+      (ctx: any, parentTask: ListrTaskWrapper<any, any, any>) =>
+        this.certificateManager.buildCopyTlsCertificatesTasks(
+          parentTask,
+          ctx.config.grpcTlsCertificatePath,
+          ctx.config.grpcWebTlsCertificatePath
+        ),
+      (ctx: any) => !ctx.config.grpcTlsCertificatePath && !ctx.config.grpcWebTlsCertificatePath
+    )
   }
 
   _loadPermCertificate (certFullPath: string) {

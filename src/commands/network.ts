@@ -20,15 +20,15 @@ import { Listr } from 'listr2'
 import { SoloError, IllegalArgumentError, MissingArgumentError } from '../core/errors.ts'
 import { BaseCommand } from './base.ts'
 import * as flags from './flags.ts'
-import { CertificateManager, KeyManager, PlatformInstaller, ProfileManager } from '../core/index.ts'
 import { constants, Templates } from '../core/index.ts'
 import * as prompts from './prompts.ts'
 import * as helpers from '../core/helpers.ts'
 import path from 'path'
 import { addDebugOptions, validatePath } from '../core/helpers.ts'
 import fs from 'fs'
-import { type NodeAlias, type NodeAliases } from '../types/aliases.ts'
-import { type Opts } from '../types/index.ts'
+import type { CertificateManager, KeyManager, PlatformInstaller, ProfileManager } from '../core/index.ts'
+import type { NodeAlias, NodeAliases } from '../types/aliases.ts'
+import type { Opts } from '../types/index.ts'
 
 export interface NetworkDeployConfigClass {
   applicationEnv: string
