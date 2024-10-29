@@ -22,11 +22,12 @@ import {
   ConfigManager,
   Helm,
   logging, PackageDownloader, Zippy,
-  constants
+  constants,
+  K8
 } from '../../../src/core/index.ts'
 import { BaseCommand } from '../../../src/commands/base.ts'
 import * as flags from '../../../src/commands/flags.ts'
-import { getK8Mock } from '../../test_util.ts'
+import sinon from 'sinon'
 
 const testLogger = logging.NewLogger('debug', true)
 
@@ -42,19 +43,31 @@ describe('BaseCommand', () => {
   const depManagerMap = new Map().set(constants.HELM, helmDepManager)
   const depManager = new DependencyManager(testLogger, depManagerMap)
 
-  const k8 = getK8Mock(configManager)
+  let sandbox = sinon.createSandbox()
 
-  // @ts-ignore
-  const baseCmd = new BaseCommand({
-    logger: testLogger,
-    helm,
-    k8,
-    chartManager,
-    configManager,
-    depManager
-  })
+  let baseCmd : BaseCommand
 
   describe('runShell', () => {
+    before(() => {
+      sandbox = sinon.createSandbox()
+      sandbox.stub(K8.prototype, 'init').callsFake(() => this)
+      const k8 = new K8(configManager, testLogger)
+
+      // @ts-ignore
+      baseCmd = new BaseCommand({
+        logger: testLogger,
+        helm,
+        k8,
+        chartManager,
+        configManager,
+        depManager
+      })
+    })
+
+    after(() => {
+     sandbox.restore()
+    })
+
     it('should fail during invalid program check', async () => {
       await expect(baseCmd.run('INVALID_PROGRAM')).to.be.rejected
     })
