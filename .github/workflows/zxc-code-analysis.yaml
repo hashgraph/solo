@@ -49,7 +49,7 @@ on:
         description: "NodeJS Version:"
         type: string
         required: false
-        default: "20.14.0"
+        default: "20.18.0"
       custom-job-label:
         description: "Custom Job Label:"
         type: string
