@@ -62,6 +62,7 @@ import type { SoloLogger } from '../src/core/logging.ts'
 import type { BaseCommand } from '../src/commands/base.ts'
 import type { NodeAlias } from '../src/types/aliases.ts'
 import type { NetworkNodeServices } from '../src/core/network_node_services.ts'
+import sinon from 'sinon'
 
 export const testLogger = logging.NewLogger('debug', true)
 export const TEST_CLUSTER = 'solo-e2e'
@@ -371,6 +372,15 @@ async function addKeyHashToMap (k8: K8, nodeAlias: NodeAlias, keyDir: string, un
   const keyBytes = fs.readFileSync(path.join(uniqueNodeDestDir, privateKeyFileName))
   const keyString = keyBytes.toString()
   keyHashMap.set(privateKeyFileName, crypto.createHash('sha256').update(keyString).digest('base64'))
+}
+
+let k8Mock = null
+export function getK8Mock (configManager: ConfigManager) {
+  if (k8Mock === null) {
+    sinon.stub(K8.prototype, 'init').callsFake(() => this)
+    k8Mock = new K8(configManager, testLogger)
+  }
+  return k8Mock
 }
 
 export function getK8Instance (configManager: ConfigManager) {

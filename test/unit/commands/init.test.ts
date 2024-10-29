@@ -25,7 +25,7 @@ import {
 import {
   ChartManager, ConfigManager, constants, Helm, KeyManager, LeaseManager, logging, PackageDownloader, Zippy
 } from '../../../src/core/index.ts'
-import { getK8Instance } from '../../test_util.ts'
+import { getK8Mock } from '../../test_util.ts'
 import { SECONDS } from '../../../src/core/constants.ts'
 
 const testLogger = logging.NewLogger('debug', true)
@@ -44,7 +44,7 @@ describe('InitCommand', () => {
 
   const keyManager = new KeyManager(testLogger)
 
-  const k8 = getK8Instance(configManager)
+  const k8 = getK8Mock(configManager)
   const leaseManager = new LeaseManager(k8, testLogger, configManager)
 
   // @ts-ignore
