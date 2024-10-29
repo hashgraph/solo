@@ -26,6 +26,9 @@ import type { SoloLogger } from './logging.ts'
 import type { ListrTaskWrapper } from 'listr2'
 import type { NodeAlias } from '../types/aliases.ts'
 
+/**
+ * Used to handle interactions with certificates data and inject it into the K8s cluster secrets
+ */
 export class CertificateManager {
   constructor (
     private readonly k8: K8,
@@ -37,8 +40,17 @@ export class CertificateManager {
     if (!configManager) throw new MissingArgumentError('an instance of core/ConfigManager is required')
   }
 
-  // Validates and Copies the certificates into K8s secret
-  async copyTlsCertificate (nodeAlias: NodeAlias, cert: string, type: CertificateTypes) {
+  /**
+   * Validates the input data and Copies the TLS Certificates into K8s namespaced secret.
+   *
+   * @param nodeAlias - the alias of the node to which the TLS certificate should apply
+   * @param cert - path to the certificate
+   * @param type - the certificate type if it's for gRPC or the gRPC Web
+   *
+   * @throws MissingArgumentError - if input values don't exist
+   * @throws SoloError - if the file is not found on the specified path
+   */
+  private async copyTlsCertificate (nodeAlias: NodeAlias, cert: string, type: CertificateTypes) {
     if (!nodeAlias) throw new MissingArgumentError('nodeAlias is required')
     if (!cert) throw new MissingArgumentError('cert is required')
     if (!type) throw new MissingArgumentError('type is required')
@@ -61,8 +73,16 @@ export class CertificateManager {
     }
   }
 
-  // Creates subtasks for copying the certificates into K8s secrets
-  buildCopyTlsCertificatesTasks (
+  /**
+   * Creates sub-tasks for copying the TLS Certificates into K8s secrets for gRPC and gRPC Web
+   *
+   * @param task - Listr Task to which to attach the sub-tasks
+   * @param grpcTlsCertificatePathsUnparsed - the unparsed (alias=path)[] from the gRPC
+   * @param grpcWebTlsCertificatePathsUnparsed - the unparsed (alias=path)[] for the gRPC Web
+   *
+   * @returns the build sub-tasks for creating the secrets
+   */
+  public buildCopyTlsCertificatesTasks (
     task: ListrTaskWrapper<any, any, any>,
     grpcTlsCertificatePathsUnparsed: string,
     grpcWebTlsCertificatePathsUnparsed: string
@@ -71,18 +91,18 @@ export class CertificateManager {
     const subTasks = []
 
     for (const path of grpcTlsCertificatePathsUnparsed.split(',')) {
-      const [nodeAlias, cert] = path.split('=')
+      const [nodeAlias, cert] = path.split('=') as [NodeAlias, string]
       subTasks.push({
         title: `Copy gRPC Web TLS Certificate for node ${nodeAlias}`,
-        task: () => self.copyTlsCertificate(nodeAlias as NodeAlias, cert, CertificateTypes.GRPC)
+        task: () => self.copyTlsCertificate(nodeAlias, cert, CertificateTypes.GRPC)
       })
     }
 
     for (const path of grpcWebTlsCertificatePathsUnparsed.split(',')) {
-      const [nodeAlias, cert] = path.split('=')
+      const [nodeAlias, cert] = path.split('=') as [NodeAlias, string]
       subTasks.push({
         title: `Copy gRPC Web TLS Certificate for node ${nodeAlias}`,
-        task: () => self.copyTlsCertificate(nodeAlias as NodeAlias, cert, CertificateTypes.GRPC_WEB)
+        task: () => self.copyTlsCertificate(nodeAlias, cert, CertificateTypes.GRPC_WEB)
       })
     }
 

@@ -48,18 +48,20 @@ describe('Certificate Manager', () => {
   })
 
   it ('should throw if and error if nodeAlias is not provided', async () => {
+    // @ts-ignore to access private method
     await expect(certificateManager.copyTlsCertificate('' as NodeAlias, '', CertificateTypes.GRPC))
       .to.be.rejectedWith(MissingArgumentError, 'nodeAlias is required')
   })
 
 
   it ('should throw if and error if cert is not provided', async () => {
+    // @ts-ignore to access private method
     await expect(certificateManager.copyTlsCertificate('node1', '', CertificateTypes.GRPC))
       .to.be.rejectedWith(MissingArgumentError, 'cert is required')
   })
 
   it ('should throw if and error if type is not provided', async () => {
-    //@ts-ignore
+    // @ts-ignore to access private method
     await expect(certificateManager.copyTlsCertificate('node1', '/etc/path', null))
       .to.be.rejectedWith(MissingArgumentError, 'type is required')
   })
@@ -67,6 +69,7 @@ describe('Certificate Manager', () => {
 
   it ('should throw if and error if type is not valid', () => {
     const path = '/invalid/path'
+    // @ts-ignore to access private method
     expect(certificateManager.copyTlsCertificate('node1', path, CertificateTypes.GRPC))
       .to.be.rejectedWith(SoloError, `certificate path doesn't exists - ${path}`)
   })
