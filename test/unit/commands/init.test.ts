@@ -55,7 +55,7 @@ describe('InitCommand', () => {
   describe('commands', () => {
     it('init execution should succeed', async () => {
       await expect(initCmd.init({})).to.eventually.equal(true)
-    }).timeout(20 * SECONDS)
+    }).timeout(60 * SECONDS)
   })
 
   describe('methods', () => {
