@@ -18,7 +18,7 @@ import { MissingArgumentError, SoloError } from './errors.ts'
 import { flags } from '../commands/index.ts'
 import fs from 'fs'
 import { Templates } from './templates.ts'
-import { CertificateTypes } from './enumerations.ts'
+import { GrpcProxyCertificateEnums } from './enumerations.ts'
 
 import type { ConfigManager } from './config_manager.ts'
 import type { K8 } from './k8.ts'
@@ -41,22 +41,15 @@ export class CertificateManager {
   }
 
   /**
-   * Validates the input data and Copies the TLS Certificates into K8s namespaced secret.
+   * Copies the TLS Certificates into K8s namespaced secret.
    *
    * @param nodeAlias - the alias of the node to which the TLS certificate should apply
-   * @param cert - path to the certificate
-   * @param type - the certificate type if it's for gRPC or the gRPC Web
-   *
-   * @throws MissingArgumentError - if input values don't exist
-   * @throws SoloError - if the file is not found on the specified path
+   * @param filePath - file path to the certificate or file
+   * @param type - the certificate type if it's for gRPC or  gRPC Web and certificate or key
    */
-  private async copyTlsCertificate (nodeAlias: NodeAlias, cert: string, type: CertificateTypes) {
-    if (!nodeAlias) throw new MissingArgumentError('nodeAlias is required')
-    if (!cert) throw new MissingArgumentError('cert is required')
-    if (!type) throw new MissingArgumentError('type is required')
-    if (!fs.statSync(cert).isFile()) throw new SoloError(`certificate path doesn't exists - ${cert}`)
+  private async copyTlsCertificate (nodeAlias: NodeAlias, filePath: string, type: GrpcProxyCertificateEnums) {
     try {
-      const data = { [nodeAlias]: fs.readFileSync(cert).toString('base64') }
+      const data = { [nodeAlias]: fs.readFileSync(filePath).toString('base64') }
       const name = Templates.renderGrpcTlsCertificatesSecretName(nodeAlias, type)
       const namespace = this.getNamespace()
       const labels = Templates.renderGrpcTlsCertificatesSecretLabelObject(nodeAlias, type)
@@ -77,38 +70,97 @@ export class CertificateManager {
    * Creates sub-tasks for copying the TLS Certificates into K8s secrets for gRPC and gRPC Web
    *
    * @param task - Listr Task to which to attach the sub-tasks
-   * @param grpcTlsCertificatePathsUnparsed - the unparsed (alias=path)[] from the gRPC
-   * @param grpcWebTlsCertificatePathsUnparsed - the unparsed (alias=path)[] for the gRPC Web
+   * @param grpcTlsCertificatePathsUnparsed - the unparsed (alias=path)[] for the gRPC Certificate
+   * @param grpcWebTlsCertificatePathsUnparsed - the unparsed (alias=path)[] for the gRPC Web Certificate
+   * @param grpcTlsKeyPathsUnparsed - the unparsed (alias=path)[] for the gRPC Certificate Key
+   * @param grpcWebTlsKeyPathsUnparsed - the unparsed (alias=path)[] for the gRPC Web Certificate Key
    *
    * @returns the build sub-tasks for creating the secrets
    */
   public buildCopyTlsCertificatesTasks (
     task: ListrTaskWrapper<any, any, any>,
     grpcTlsCertificatePathsUnparsed: string,
-    grpcWebTlsCertificatePathsUnparsed: string
+    grpcWebTlsCertificatePathsUnparsed: string,
+    grpcTlsKeyPathsUnparsed: string,
+    grpcWebTlsKeyPathsUnparsed: string
   ) {
     const self = this
     const subTasks = []
 
-    for (const path of grpcTlsCertificatePathsUnparsed.split(',')) {
-      const [nodeAlias, cert] = path.split('=') as [NodeAlias, string]
-      subTasks.push({
-        title: `Copy gRPC Web TLS Certificate for node ${nodeAlias}`,
-        task: () => self.copyTlsCertificate(nodeAlias, cert, CertificateTypes.GRPC)
-      })
-    }
+    const parsedPaths = [
+      {
+        paths: self.parseAndValidate(grpcTlsCertificatePathsUnparsed, 'gRPC TLS Certificate paths'),
+        certType: GrpcProxyCertificateEnums.CERTIFICATE,
+        title: 'Copy gRPC TLS Certificate'
+      },
+      {
+        paths: self.parseAndValidate(grpcWebTlsCertificatePathsUnparsed, 'gRPC Web TLS Certificate paths'),
+        certType: GrpcProxyCertificateEnums.WEB_CERTIFICATE,
+        title: 'Copy gRPC Web TLS Certificate'
+      },
+      {
+        paths: self.parseAndValidate(grpcTlsKeyPathsUnparsed, 'gRPC TLS Certificate Key paths'),
+        certType: GrpcProxyCertificateEnums.CERTIFICATE_KEY,
+        title: 'Copy gRPC TLS Certificate Key'
+      },
+      {
+        paths: self.parseAndValidate(grpcWebTlsKeyPathsUnparsed, 'gRPC Web Certificate TLS Key paths'),
+        certType: GrpcProxyCertificateEnums.WEB_CERTIFICATE_KEY,
+        title: 'Copy gRPC Web TLS Certificate Key'
+      }
+    ]
 
-    for (const path of grpcWebTlsCertificatePathsUnparsed.split(',')) {
-      const [nodeAlias, cert] = path.split('=') as [NodeAlias, string]
-      subTasks.push({
-        title: `Copy gRPC Web TLS Certificate for node ${nodeAlias}`,
-        task: () => self.copyTlsCertificate(nodeAlias, cert, CertificateTypes.GRPC_WEB)
-      })
+    for (const { paths, certType, title } of parsedPaths) {
+      for (const { nodeAlias, filePath } of paths) {
+        subTasks.push({
+          title: `${title} for node ${nodeAlias}`,
+          task: () => self.copyTlsCertificate(nodeAlias, filePath, certType)
+        })
+      }
     }
 
     return task.newListr(subTasks, {
       concurrent: true,
       rendererOptions: { collapseSubtasks: false }
+    })
+  }
+
+  /**
+   * Handles parsing the unparsed data validating it follows the structure
+   *
+   * @param input - the unparsed data ( ex. node0=/usr/bob/grpc-web.cert )
+   * @param type - of the data being parsed for the error logging
+   *
+   * @returns an array of parsed data with node alias and the path
+   *
+   * @throws SoloError - if the data doesn't follow the structure
+   */
+  private parseAndValidate (input: string, type: string): {nodeAlias: NodeAlias, filePath: string}[] {
+    return input.split(',').map((line, index) => {
+      if (!line.includes('=')) {
+        throw new SoloError(
+          `Failed to parse input ${input} of type ${type}. Invalid structure on line ${line}, index ${index}`
+        )
+      }
+
+      const [nodeAlias, filePath] = line.split('=') as [NodeAlias, string]
+
+      if (!nodeAlias?.length || !filePath?.length) {
+        throw new SoloError(
+          `Failed to parse input ${input} of type ${type}. Invalid structure on line ${line}, index ${index}`
+        )
+      }
+      let fileExists = false
+
+      try { fileExists = fs.statSync(filePath).isFile() } catch {}
+
+      if (!fileExists) {
+        throw new SoloError(
+          `File doesn't exist on path ${filePath} ${input} input of type ${type} on line ${line}, index ${index}`
+        )
+      }
+
+      return { nodeAlias, filePath }
     })
   }
 

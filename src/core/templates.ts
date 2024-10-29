@@ -21,7 +21,7 @@ import { DataValidationError, SoloError, IllegalArgumentError, MissingArgumentEr
 import { constants } from './index.ts'
 import { type AccountId } from '@hashgraph/sdk'
 import type { NodeAlias, PodName } from '../types/aliases.ts'
-import {CertificateTypes} from "./enumerations.js";
+import { GrpcProxyCertificateEnums } from './enumerations.ts'
 
 export class Templates {
   public static renderNetworkPodName (nodeAlias: NodeAlias): PodName {
@@ -181,21 +181,35 @@ export class Templates {
     return { 'solo.hedera.com/node-name': nodeAlias }
   }
 
-  static renderGrpcTlsCertificatesSecretName (nodeAlias: NodeAlias, type: CertificateTypes) {
+  static renderGrpcTlsCertificatesSecretName (nodeAlias: NodeAlias, type: GrpcProxyCertificateEnums) {
     switch (type) {
-      case CertificateTypes.GRPC:
+      case GrpcProxyCertificateEnums.CERTIFICATE:
         return `network-${nodeAlias}-grpc-tls-cert-secrets`
-      case CertificateTypes.GRPC_WEB:
+
+      case GrpcProxyCertificateEnums.WEB_CERTIFICATE:
         return `network-${nodeAlias}-grpc-web-tls-cert-secrets`
+
+      case GrpcProxyCertificateEnums.CERTIFICATE_KEY:
+        return `network-${nodeAlias}-grpc-tls-cert-key-secrets`
+
+      case GrpcProxyCertificateEnums.WEB_CERTIFICATE_KEY:
+        return `network-${nodeAlias}-grpc-web-tls-cert-key-secrets`
     }
   }
 
-  static renderGrpcTlsCertificatesSecretLabelObject (nodeAlias: NodeAlias, type: CertificateTypes) {
+  static renderGrpcTlsCertificatesSecretLabelObject (nodeAlias: NodeAlias, type: GrpcProxyCertificateEnums) {
     switch (type) {
-      case CertificateTypes.GRPC:
+      case GrpcProxyCertificateEnums.CERTIFICATE:
         return { 'grpc-tls-cert-secret': nodeAlias }
-      case CertificateTypes.GRPC_WEB:
+
+      case GrpcProxyCertificateEnums.WEB_CERTIFICATE:
         return { 'grpc-web-tls-cert-secret': nodeAlias }
+
+      case GrpcProxyCertificateEnums.CERTIFICATE_KEY:
+        return { 'grpc-tls-cert-key-secret': nodeAlias }
+
+      case GrpcProxyCertificateEnums.WEB_CERTIFICATE_KEY:
+        return { 'grpc-web-tls-cert-key-secret': nodeAlias }
     }
   }
 }

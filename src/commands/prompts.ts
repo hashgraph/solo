@@ -20,7 +20,7 @@ import { SoloError, IllegalArgumentError } from '../core/errors.ts'
 import { ConfigManager, constants } from '../core/index.ts'
 import * as flags from './flags.ts'
 import * as helpers from '../core/helpers.ts'
-import { resetDisabledPrompts } from './flags.ts'
+import {grpcWebTlsKeyPath, resetDisabledPrompts} from './flags.ts'
 import type { ListrTaskWrapper } from 'listr2'
 import { type CommandFlag } from '../types/index.ts'
 
@@ -454,7 +454,7 @@ export async function promptOutputDir (task: ListrTaskWrapper<any, any, any>, in
         flags.outputDir.name)
 }
 
-//! ------------- Node Certificates ------------- !//
+//! ------------- Node Proxy Certificates ------------- !//
 
 export async function promptGrpcTlsCertificatePath (task: ListrTaskWrapper<any, any, any>, input: any) {
   return await promptToggle(task, input,
@@ -470,6 +470,22 @@ export async function promptGrpcWebTlsCertificatePath (task: ListrTaskWrapper<an
     'Enter path to TLS certificate for gGRPC web',
     null,
     flags.grpcWebTlsCertificatePath.name)
+}
+
+export async function promptGrpcTlsKeyPath (task: ListrTaskWrapper<any, any, any>, input: any) {
+  return await promptToggle(task, input,
+    flags.grpcTlsKeyPath.definition.defaultValue,
+    'Enter path to TLS certificate key for gRPC',
+    null,
+    flags.grpcTlsKeyPath.name)
+}
+
+export async function promptGrpcWebTlsKeyPath (task: ListrTaskWrapper<any, any, any>, input: any) {
+  return await promptToggle(task, input,
+    flags.grpcWebTlsKeyPath.definition.defaultValue,
+    'Enter path to TLS certificate key for gGRPC web',
+    null,
+    flags.grpcWebTlsKeyPath.name)
 }
 
 export function getPromptMap (): Map<string, Function> {
@@ -515,8 +531,12 @@ export function getPromptMap (): Map<string, Function> {
     .set(flags.mirrorNodeVersion.name, promptMirrorNodeVersion)
     .set(flags.inputDir.name, promptInputDir)
     .set(flags.outputDir.name, promptOutputDir)
+
+    //! Node Proxy Certificates
     .set(flags.grpcTlsCertificatePath.name, promptGrpcTlsCertificatePath)
     .set(flags.grpcWebTlsCertificatePath.name, promptGrpcWebTlsCertificatePath)
+    .set(flags.grpcTlsKeyPath.name, promptGrpcTlsKeyPath)
+    .set(flags.grpcWebTlsKeyPath.name, promptGrpcWebTlsKeyPath)
 }
 
 // build the prompt registry

@@ -15,15 +15,13 @@
  *
  */
 import { expect } from 'chai'
-import { after, afterEach, before, beforeEach, describe, it } from 'mocha'
+import { after, before, describe, it } from 'mocha'
+import jest from 'jest-mock'
 
 import { CertificateManager, ConfigManager, K8 } from '../../../src/core/index.ts'
-import jest from 'jest-mock'
 import { flags } from '../../../src/commands/index.ts'
 import { testLogger } from '../../test_util.ts'
-import {MissingArgumentError, SoloError} from '../../../src/core/errors.ts';
-import { type NodeAlias} from '../../../src/types/aliases.ts'
-import {CertificateTypes} from "../../../src/core/enumerations.js";
+import { SoloError } from '../../../src/core/errors.ts'
 
 describe('Certificate Manager', () => {
 
@@ -48,29 +46,32 @@ describe('Certificate Manager', () => {
   })
 
   it ('should throw if and error if nodeAlias is not provided', async () => {
+    const input = '=/usr/bin/fake.cert'
+
     // @ts-ignore to access private method
-    await expect(certificateManager.copyTlsCertificate('' as NodeAlias, '', CertificateTypes.GRPC))
-      .to.be.rejectedWith(MissingArgumentError, 'nodeAlias is required')
+    expect(() => certificateManager.parseAndValidate(input, 'testing')).to.throw(
+      SoloError,
+      'Failed to parse input =/usr/bin/fake.cert of type testing. Invalid structure on line =/usr/bin/fake.cert, index 0'
+    )
   })
 
+  it ('should throw if and error if path is not provided', async () => {
+    const input = 'node='
 
-  it ('should throw if and error if cert is not provided', async () => {
     // @ts-ignore to access private method
-    await expect(certificateManager.copyTlsCertificate('node1', '', CertificateTypes.GRPC))
-      .to.be.rejectedWith(MissingArgumentError, 'cert is required')
+    expect(() => certificateManager.parseAndValidate(input, 'testing')).to.throw(
+      SoloError,
+      'Failed to parse input node= of type testing. Invalid structure on line node=, index 0'
+    )
   })
-
-  it ('should throw if and error if type is not provided', async () => {
-    // @ts-ignore to access private method
-    await expect(certificateManager.copyTlsCertificate('node1', '/etc/path', null))
-      .to.be.rejectedWith(MissingArgumentError, 'type is required')
-  })
-
 
   it ('should throw if and error if type is not valid', () => {
-    const path = '/invalid/path'
+    const input = 'node=/invalid/path'
+
     // @ts-ignore to access private method
-    expect(certificateManager.copyTlsCertificate('node1', path, CertificateTypes.GRPC))
-      .to.be.rejectedWith(SoloError, `certificate path doesn't exists - ${path}`)
+    expect(() => certificateManager.parseAndValidate(input, 'testing')).to.throw(
+      SoloError,
+      'File doesn\'t exist on path /invalid/path node=/invalid/path input of type testing on line node=/invalid/path, index 0'
+    )
   })
 })

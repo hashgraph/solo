@@ -43,7 +43,9 @@ export const NodeStatusEnums = {
   11: 'CATASTROPHIC_FAILURE'
 }
 
-export enum CertificateTypes {
-  GRPC,
-  GRPC_WEB,
+export enum GrpcProxyCertificateEnums {
+  CERTIFICATE,
+  WEB_CERTIFICATE,
+  CERTIFICATE_KEY,
+  WEB_CERTIFICATE_KEY,
 }

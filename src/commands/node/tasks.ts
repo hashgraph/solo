@@ -420,11 +420,13 @@ export class NodeCommandTasks {
 
   copyGrpcTlsCertificates () {
     return new Task('Copy gRPC TLS Certificates',
-      (ctx: any, parentTask: ListrTaskWrapper<any, any, any>) =>
+      (ctx: { config: NodeAddConfigClass }, parentTask: ListrTaskWrapper<any, any, any>) =>
         this.certificateManager.buildCopyTlsCertificatesTasks(
           parentTask,
           ctx.config.grpcTlsCertificatePath,
-          ctx.config.grpcWebTlsCertificatePath
+          ctx.config.grpcWebTlsCertificatePath,
+          ctx.config.grpcTlsKeyPath,
+          ctx.config.grpcWebTlsKeyPath
         ),
       (ctx: any) => !ctx.config.grpcTlsCertificatePath && !ctx.config.grpcWebTlsCertificatePath
     )

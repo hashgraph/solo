@@ -403,6 +403,8 @@ export interface NodeAddConfigClass {
     stagingKeysDir: string
     grpcTlsCertificatePath: string,
     grpcWebTlsCertificatePath: string,
+    grpcTlsKeyPath: string,
+    grpcWebTlsKeyPath: string,
     getUnusedConfigs: () => string[]
 }
 

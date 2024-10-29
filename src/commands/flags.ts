@@ -698,7 +698,7 @@ export const mirrorNodeVersion: CommandFlag = {
   }
 }
 
-//! ------------- Node Certificates ------------- !//
+//! ------------- Node Proxy Certificates ------------- !//
 
 export const grpcTlsCertificatePath: CommandFlag = {
   constName: 'grpcTlsCertificatePath',
@@ -718,8 +718,34 @@ export const grpcWebTlsCertificatePath: CommandFlag = {
   name: 'grpc-web-tls-cert',
   definition: {
     describe:
-      'TLC Certificate path for gRPC Web ' +
+      'TLS Certificate path for gRPC Web ' +
       '(e.g. "node1=/Users/username/node1-grpc-web.cert" ' +
+      'with multiple nodes comma seperated',
+    defaultValue: '',
+    type: 'string'
+  }
+}
+
+export const grpcTlsKeyPath: CommandFlag = {
+  constName: 'grpcTlsKeyPath',
+  name: 'grpc-tls-key',
+  definition: {
+    describe:
+      'TLS Certificate key path for the gRPC ' +
+      '(e.g. "node1=/Users/username/node1-grpc.key" ' +
+      'with multiple nodes comma seperated',
+    defaultValue: '',
+    type: 'string'
+  }
+}
+
+export const grpcWebTlsKeyPath: CommandFlag = {
+  constName: 'grpcWebTlsKeyPath',
+  name: 'grpc-web-tls-key',
+  definition: {
+    describe:
+      'TLC Certificate key path for gRPC Web ' +
+      '(e.g. "node1=/Users/username/node1-grpc-web.key" ' +
       'with multiple nodes comma seperated',
     defaultValue: '',
     type: 'string'
@@ -793,6 +819,8 @@ export const allFlags: CommandFlag[] = [
   outputDir,
   grpcTlsCertificatePath,
   grpcWebTlsCertificatePath,
+  grpcTlsKeyPath,
+  grpcWebTlsKeyPath,
 ]
 
 /** Resets the definition.disablePrompt for all flags */

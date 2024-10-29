@@ -50,6 +50,8 @@ export interface NetworkDeployConfigClass {
   valuesArg: string,
   grpcTlsCertificatePath: string,
   grpcWebTlsCertificatePath: string,
+  grpcTlsKeyPath: string,
+  grpcWebTlsKeyPath: string,
   getUnusedConfigs: () => string[]
 }
 
@@ -103,7 +105,9 @@ export class NetworkCommand extends BaseCommand {
       flags.settingTxt,
       flags.valuesFile,
       flags.grpcTlsCertificatePath,
-      flags.grpcWebTlsCertificatePath
+      flags.grpcWebTlsCertificatePath,
+      flags.grpcTlsKeyPath,
+      flags.grpcWebTlsKeyPath,
     ]
   }
 
@@ -245,7 +249,9 @@ export class NetworkCommand extends BaseCommand {
           self.certificateManager.buildCopyTlsCertificatesTasks(
             parentTask,
             ctx.config.grpcTlsCertificatePath,
-            ctx.config.grpcWebTlsCertificatePath
+            ctx.config.grpcWebTlsCertificatePath,
+            ctx.config.grpcTlsKeyPath,
+            ctx.config.grpcWebTlsKeyPath
           ),
         skip: (ctx) => !ctx.config.grpcTlsCertificatePath && !ctx.config.grpcWebTlsCertificatePath
       },
