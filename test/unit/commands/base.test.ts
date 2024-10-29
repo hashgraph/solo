@@ -26,7 +26,7 @@ import {
 } from '../../../src/core/index.ts'
 import { BaseCommand } from '../../../src/commands/base.ts'
 import * as flags from '../../../src/commands/flags.ts'
-import { getK8Instance } from '../../test_util.ts'
+import { getK8Mock } from '../../test_util.ts'
 
 const testLogger = logging.NewLogger('debug', true)
 
@@ -42,7 +42,7 @@ describe('BaseCommand', () => {
   const depManagerMap = new Map().set(constants.HELM, helmDepManager)
   const depManager = new DependencyManager(testLogger, depManagerMap)
 
-  const k8 = getK8Instance(configManager)
+  const k8 = getK8Mock(configManager)
 
   // @ts-ignore
   const baseCmd = new BaseCommand({
