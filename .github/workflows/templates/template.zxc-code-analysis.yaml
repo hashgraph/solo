@@ -91,14 +91,15 @@ jobs:
           fetch-depth: ${{ inputs.enable-sonar-analysis && '0' || '' }}
 
       - name: Setup Node with Retry
-        uses: Wandalen/wretry.action@6feedb7dedadeb826de0f45ff482b53b379a7844 # v3.5.0
+        uses: Wandalen/wretry.action@e00d406adeaa3db756566e39b53aec8af8c3ee3b # v3.6.0
         with:
-          action: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4.0.2
+          action: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4.1.0
           with: |
             node-version: ${{ inputs.node-version }}
             cache: npm
           attempt_limit: 3
           attempt_delay: 5000
+          time_out: 600000
 
       - name: Download Unit Test Coverage Report
         uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
