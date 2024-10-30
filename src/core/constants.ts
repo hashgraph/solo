@@ -160,3 +160,5 @@ export const MINUTES = 60 * SECONDS
 export const LEASE_AQUIRE_RETRY_TIMEOUT = 20 * SECONDS
 export const MAX_LEASE_ACQUIRE_ATTEMPTS = 10
 export const LEASE_RENEW_TIMEOUT = 10 * SECONDS
+
+export const DEFAULT_LOCAL_CONFIG_FILE = 'local-config.yaml'
