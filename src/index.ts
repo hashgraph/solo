@@ -22,14 +22,13 @@ import * as commands from './commands/index.ts'
 import { HelmDependencyManager, DependencyManager } from './core/dependency_managers/index.ts'
 import {
   ChartManager, ConfigManager, PackageDownloader, PlatformInstaller, Helm, logging,
-  KeyManager, Zippy, constants, ProfileManager, AccountManager, LeaseManager
+  KeyManager, Zippy, constants, ProfileManager, AccountManager, LeaseManager, CertificateManager
 } from './core/index.ts'
 import 'dotenv/config'
 import { K8 } from './core/k8.ts'
 import { ListrLogger } from 'listr2'
 import { CustomProcessOutput } from './core/process_output.ts'
 import { type Opts } from './types/index.ts'
-import { CertificateManager } from './core/certificate_manager.ts'
 
 export function main (argv: any) {
   const logger = logging.NewLogger('debug')

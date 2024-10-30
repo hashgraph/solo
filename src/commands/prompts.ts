@@ -20,7 +20,7 @@ import { SoloError, IllegalArgumentError } from '../core/errors.ts'
 import { ConfigManager, constants } from '../core/index.ts'
 import * as flags from './flags.ts'
 import * as helpers from '../core/helpers.ts'
-import {grpcWebTlsKeyPath, resetDisabledPrompts} from './flags.ts'
+import { resetDisabledPrompts } from './flags.ts'
 import type { ListrTaskWrapper } from 'listr2'
 import { type CommandFlag } from '../types/index.ts'
 

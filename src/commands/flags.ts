@@ -698,7 +698,7 @@ export const mirrorNodeVersion: CommandFlag = {
   }
 }
 
-//! ------------- Node Proxy Certificates ------------- !//
+//* ------------- Node Proxy Certificates ------------- !//
 
 export const grpcTlsCertificatePath: CommandFlag = {
   constName: 'grpcTlsCertificatePath',
