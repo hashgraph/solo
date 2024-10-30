@@ -21,7 +21,7 @@ import { DataValidationError, SoloError, IllegalArgumentError, MissingArgumentEr
 import { constants } from './index.ts'
 import { type AccountId } from '@hashgraph/sdk'
 import type { NodeAlias, PodName } from '../types/aliases.ts'
-import { GrpcProxyCertificateEnums } from './enumerations.ts'
+import { GrpcProxyTlsEnums} from './enumerations.ts'
 
 export class Templates {
   public static renderNetworkPodName (nodeAlias: NodeAlias): PodName {
@@ -181,35 +181,43 @@ export class Templates {
     return { 'solo.hedera.com/node-name': nodeAlias }
   }
 
-  static renderGrpcTlsCertificatesSecretName (nodeAlias: NodeAlias, type: GrpcProxyCertificateEnums) {
+  /**
+   * Creates the secret name based on the node alias type
+   *
+   * @param nodeAlias - node alias
+   * @param type - whether is for gRPC or gRPC Web ( Haproxy or Envoy )
+   *
+   * @returns the appropriate secret name
+   */
+  static renderGrpcTlsCertificatesSecretName (nodeAlias: NodeAlias, type: GrpcProxyTlsEnums) {
     switch (type) {
-      case GrpcProxyCertificateEnums.CERTIFICATE:
-        return `network-${nodeAlias}-grpc-tls-cert-secrets`
+      //? HAProxy Proxy
+      case GrpcProxyTlsEnums.GRPC:
+        return `haproxy-proxy-secret-${nodeAlias}`
 
-      case GrpcProxyCertificateEnums.WEB_CERTIFICATE:
-        return `network-${nodeAlias}-grpc-web-tls-cert-secrets`
-
-      case GrpcProxyCertificateEnums.CERTIFICATE_KEY:
-        return `network-${nodeAlias}-grpc-tls-cert-key-secrets`
-
-      case GrpcProxyCertificateEnums.WEB_CERTIFICATE_KEY:
-        return `network-${nodeAlias}-grpc-web-tls-cert-key-secrets`
+      //? Envoy Proxy
+      case GrpcProxyTlsEnums.GRPC_WEB:
+        return `envoy-proxy-secret-${nodeAlias}`
     }
   }
 
-  static renderGrpcTlsCertificatesSecretLabelObject (nodeAlias: NodeAlias, type: GrpcProxyCertificateEnums) {
+  /**
+   * Creates the secret labels based on the node alias type
+   *
+   * @param nodeAlias - node alias
+   * @param type - whether is for gRPC or gRPC Web ( Haproxy or Envoy )
+   *
+   * @returns the appropriate secret labels
+   */
+  static renderGrpcTlsCertificatesSecretLabelObject (nodeAlias: NodeAlias, type: GrpcProxyTlsEnums) {
     switch (type) {
-      case GrpcProxyCertificateEnums.CERTIFICATE:
-        return { 'grpc-tls-cert-secret': nodeAlias }
+      //? HAProxy Proxy
+      case GrpcProxyTlsEnums.GRPC:
+        return { 'haproxy-proxy-secret': nodeAlias }
 
-      case GrpcProxyCertificateEnums.WEB_CERTIFICATE:
-        return { 'grpc-web-tls-cert-secret': nodeAlias }
-
-      case GrpcProxyCertificateEnums.CERTIFICATE_KEY:
-        return { 'grpc-tls-cert-key-secret': nodeAlias }
-
-      case GrpcProxyCertificateEnums.WEB_CERTIFICATE_KEY:
-        return { 'grpc-web-tls-cert-key-secret': nodeAlias }
+      //? Envoy Proxy
+      case GrpcProxyTlsEnums.GRPC_WEB:
+        return { 'envoy-proxy-secret': nodeAlias }
     }
   }
 }
