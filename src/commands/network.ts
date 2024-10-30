@@ -174,6 +174,8 @@ export class NetworkCommand extends BaseCommand {
       flags.settingTxt,
       flags.grpcTlsCertificatePath,
       flags.grpcWebTlsCertificatePath,
+      flags.grpcTlsKeyPath,
+      flags.grpcWebTlsKeyPath,
     ])
 
     await prompts.execute(task, this.configManager, NetworkCommand.DEPLOY_FLAGS_LIST)

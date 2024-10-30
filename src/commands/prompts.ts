@@ -457,33 +457,33 @@ export async function promptOutputDir (task: ListrTaskWrapper<any, any, any>, in
 //! ------------- Node Proxy Certificates ------------- !//
 
 export async function promptGrpcTlsCertificatePath (task: ListrTaskWrapper<any, any, any>, input: any) {
-  return await promptToggle(task, input,
+  return await promptText(task, input,
     flags.grpcTlsCertificatePath.definition.defaultValue,
-    'Enter path to TLS certificate for gRPC',
+    'Enter alias and path to TLS certificate for gRPC (ex. alias=path )',
     null,
     flags.grpcTlsCertificatePath.name)
 }
 
 export async function promptGrpcWebTlsCertificatePath (task: ListrTaskWrapper<any, any, any>, input: any) {
-  return await promptToggle(task, input,
+  return await promptText(task, input,
     flags.grpcWebTlsCertificatePath.definition.defaultValue,
-    'Enter path to TLS certificate for gGRPC web',
+    'Enter alias and path to TLS certificate for gGRPC web (ex. alias=path )',
     null,
     flags.grpcWebTlsCertificatePath.name)
 }
 
 export async function promptGrpcTlsKeyPath (task: ListrTaskWrapper<any, any, any>, input: any) {
-  return await promptToggle(task, input,
+  return await promptText(task, input,
     flags.grpcTlsKeyPath.definition.defaultValue,
-    'Enter path to TLS certificate key for gRPC',
+    'Enter alias and path to TLS certificate key for gRPC (ex. alias=path )',
     null,
     flags.grpcTlsKeyPath.name)
 }
 
 export async function promptGrpcWebTlsKeyPath (task: ListrTaskWrapper<any, any, any>, input: any) {
-  return await promptToggle(task, input,
+  return await promptText(task, input,
     flags.grpcWebTlsKeyPath.definition.defaultValue,
-    'Enter path to TLS certificate key for gGRPC web',
+    'Enter alias and path to TLS certificate key for gGRPC Web (ex. alias=path )',
     null,
     flags.grpcWebTlsKeyPath.name)
 }
