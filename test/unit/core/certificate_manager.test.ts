@@ -51,7 +51,7 @@ describe('Certificate Manager', () => {
     // @ts-ignore to access private method
     expect(() => certificateManager.parseAndValidate(input, 'testing')).to.throw(
       SoloError,
-      'Failed to parse input =/usr/bin/fake.cert of type testing. Invalid structure on line =/usr/bin/fake.cert, index 0'
+      'Failed to parse input =/usr/bin/fake.cert of type testing on =/usr/bin/fake.cert, index 0'
     )
   })
 
@@ -61,7 +61,7 @@ describe('Certificate Manager', () => {
     // @ts-ignore to access private method
     expect(() => certificateManager.parseAndValidate(input, 'testing')).to.throw(
       SoloError,
-      'Failed to parse input node= of type testing. Invalid structure on line node=, index 0'
+      'Failed to parse input node= of type testing on node=, index 0'
     )
   })
 
@@ -71,7 +71,7 @@ describe('Certificate Manager', () => {
     // @ts-ignore to access private method
     expect(() => certificateManager.parseAndValidate(input, 'testing')).to.throw(
       SoloError,
-      'File doesn\'t exist on path /invalid/path node=/invalid/path input of type testing on line node=/invalid/path, index 0'
+      'File doesn\'t exist on path node=/invalid/path input of type testing on node=/invalid/path, index 0'
     )
   })
 })
