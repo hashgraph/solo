@@ -29,6 +29,8 @@ import { K8 } from './core/k8.ts'
 import { ListrLogger } from 'listr2'
 import { CustomProcessOutput } from './core/process_output.ts'
 import { type Opts } from './types/index.ts'
+import {LocalConfiguration} from "./core/LocalConfiguration.ts";
+import path from "path";
 
 export function main (argv: any) {
   const logger = logging.NewLogger('debug')
@@ -59,6 +61,7 @@ export function main (argv: any) {
     const profileManager = new ProfileManager(logger, configManager)
     const leaseManager = new LeaseManager(k8, logger, configManager)
     const certificateManager = new CertificateManager(k8, logger, configManager)
+    const localConfig = new LocalConfiguration(path.join(constants.SOLO_CACHE_DIR, constants.DEFAULT_LOCAL_CONFIG_FILE))
 
     // set cluster and namespace in the global configManager from kubernetes context
     // so that we don't need to prompt the user
