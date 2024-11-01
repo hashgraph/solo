@@ -21,7 +21,7 @@
 
 export const JAVA_VERSION = '21.0.1+12'
 export const HELM_VERSION = 'v3.14.2'
-export const SOLO_CHART_VERSION = 'v0.33.0'
+export const SOLO_CHART_VERSION = 'v0.34.0'
 export const HEDERA_PLATFORM_VERSION = 'v0.54.0-alpha.4'
 export const MIRROR_NODE_VERSION = '0.116.0'
 export const HEDERA_EXPLORER_VERSION = '0.2.1'
