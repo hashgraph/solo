@@ -281,7 +281,7 @@ export class NetworkCommand extends BaseCommand {
           await this.chartManager.install(
             config.namespace,
             constants.SOLO_DEPLOYMENT_CHART,
-            config.chartPath,
+            constants.SOLO_TESTING_CHART_URL,
             config.soloChartVersion,
             config.valuesArg)
         }
