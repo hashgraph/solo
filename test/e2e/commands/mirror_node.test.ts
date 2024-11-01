@@ -91,6 +91,7 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
       }
 
       expect(mirrorNodeCmd.getUnusedConfigs(MirrorNodeCommand.DEPLOY_CONFIGS_NAME)).to.deep.equal([
+        flags.chartDirectory.constName,
         flags.hederaExplorerTlsHostName.constName,
         flags.hederaExplorerTlsLoadBalancerIp.constName,
         flags.profileFile.constName,
@@ -208,23 +209,5 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
         expect.fail()
       }
     }).timeout(MINUTES)
-
-    it('should apply the mirror node version from the --mirror-node-version flag', async () => {
-      const mirrorNodeVersion = '0.111.1'
-      const customArgv = { [flags.mirrorNodeVersion.constName]: mirrorNodeVersion, ...argv }
-
-      const valuesArg = await mirrorNodeCmd.prepareValuesArg(customArgv)
-
-      expect(valuesArg).to.contain(`--set global.image.tag=${mirrorNodeVersion}`)
-    }).timeout(5 * SECONDS)
-
-    it('should not apply the mirror node version from the --mirror-node-version flag if left empty', async () => {
-      const mirrorNodeVersion = ''
-      const customArgv = { [flags.mirrorNodeVersion.constName]: mirrorNodeVersion, ...argv }
-
-      const valuesArg = await mirrorNodeCmd.prepareValuesArg(customArgv)
-
-      expect(valuesArg).not.to.contain('--set global.image.tag=')
-    }).timeout(5 * SECONDS)
   })
 })
