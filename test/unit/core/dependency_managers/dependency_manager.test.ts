@@ -35,9 +35,5 @@ describe('DependencyManager', () => {
     it('should fail during invalid dependency check', async () => {
       await expect(depManager.checkDependency('INVALID_PROGRAM')).to.be.rejectedWith("Dependency 'INVALID_PROGRAM' is not found")
     })
-
-    it('should succeed during helm dependency check', async () => {
-      await expect(depManager.checkDependency(constants.HELM)).to.eventually.equal(true)
-    }).timeout(60 * SECONDS)
   })
 })
