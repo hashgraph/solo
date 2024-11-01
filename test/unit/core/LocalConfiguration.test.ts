@@ -4,7 +4,7 @@ import { stringify } from 'yaml';
 import {expect} from "chai";
 import {MissingArgumentError, SoloError} from "../../../src/core/errors.ts";
 
-describe.only('LocalConfiguration', () => {
+describe('LocalConfiguration', () => {
     let localConfig;
     const filePath = 'test-config.yaml';
     const config = {
