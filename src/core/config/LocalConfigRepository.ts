@@ -21,7 +21,7 @@ import * as yaml from 'yaml'
 import {MissingArgumentError, SoloError} from "../errors.ts";
 
 @injectable()
-export class LocalConfiguration {
+export class LocalConfigRepository {
     private config: LocalConfig;
 
     constructor(private readonly filePath: string) {
@@ -34,7 +34,7 @@ export class LocalConfiguration {
         }
 
         if (!this.config) {
-            this.config = await LocalConfiguration.parseFromFile(this.filePath)
+            this.config = await LocalConfigRepository.parseFromFile(this.filePath)
         }
         return this.config;
     }

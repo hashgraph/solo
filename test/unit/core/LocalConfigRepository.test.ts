@@ -1,10 +1,10 @@
-import { LocalConfiguration } from '../../../src/core/config/LocalConfiguration.ts';
+import { LocalConfigRepository } from '../../../src/core/config/LocalConfigRepository.ts';
 import fs from 'fs';
 import { stringify } from 'yaml';
 import {expect} from "chai";
 import {MissingArgumentError, SoloError} from "../../../src/core/errors.ts";
 
-describe('LocalConfiguration', () => {
+describe('LocalConfigRepository', () => {
     let localConfig;
     const filePath = 'test-config.yaml';
     const config = {
@@ -25,7 +25,7 @@ describe('LocalConfiguration', () => {
     };
 
     beforeEach(async () => {
-        localConfig = new LocalConfiguration(filePath);
+        localConfig = new LocalConfigRepository(filePath);
         await fs.promises.writeFile(filePath, stringify(config));
     });
 
@@ -54,7 +54,7 @@ describe('LocalConfiguration', () => {
         };
         await localConfig.setConfig(newConfig);
         await localConfig.saveConfig();
-        const savedConfig = await LocalConfiguration.parseFromFile(filePath)
+        const savedConfig = await LocalConfigRepository.parseFromFile(filePath)
         expect(savedConfig).to.deep.eq(newConfig);
     });
 
@@ -80,7 +80,7 @@ describe('LocalConfiguration', () => {
         expect(updatedEmailAddress).to.eq(newEmailAddress);
 
         await localConfig.saveConfig();
-        const savedConfig = await LocalConfiguration.parseFromFile(filePath)
+        const savedConfig = await LocalConfigRepository.parseFromFile(filePath)
         expect(savedConfig.userEmailAddress).to.eq(newEmailAddress);
     });
 
@@ -108,7 +108,7 @@ describe('LocalConfiguration', () => {
         expect(updatedDeployments).to.deep.eq(newDeployments);
 
         await localConfig.saveConfig();
-        const savedConfig = await LocalConfiguration.parseFromFile(filePath)
+        const savedConfig = await LocalConfigRepository.parseFromFile(filePath)
         expect(savedConfig.deployments).to.deep.eq(newDeployments);
     });
 
@@ -140,7 +140,7 @@ describe('LocalConfiguration', () => {
         expect(updatedClusterMappings).to.eq(newClusterMappings);
 
         await localConfig.saveConfig();
-        const savedConfig = await LocalConfiguration.parseFromFile(filePath)
+        const savedConfig = await LocalConfigRepository.parseFromFile(filePath)
         expect(savedConfig.clusterMappings).to.deep.eq(newClusterMappings);
     });
 
@@ -171,7 +171,7 @@ describe('LocalConfiguration', () => {
         expect(updatedCurrentDeploymentName).to.eq(newCurrentDeployment);
 
         await localConfig.saveConfig();
-        const savedConfig = await LocalConfiguration.parseFromFile(filePath)
+        const savedConfig = await LocalConfigRepository.parseFromFile(filePath)
         expect(savedConfig.currentDeploymentName).to.eq(newCurrentDeployment);
     });
 
@@ -195,7 +195,7 @@ describe('LocalConfiguration', () => {
 
     it('should throw an error if file path is not set', async () => {
         try {
-            new LocalConfiguration('');
+            new LocalConfigRepository('');
             expect.fail('Expected an error to be thrown');
         } catch (error) {
             expect(error).to.be.instanceOf(MissingArgumentError);
@@ -204,7 +204,7 @@ describe('LocalConfiguration', () => {
     });
 
     it('should throw an error if file does not exist', async () => {
-        const localConfig = new LocalConfiguration('non-existent-file.yaml');
+        const localConfig = new LocalConfigRepository('non-existent-file.yaml');
         await expect(localConfig.getConfig()).to.be.rejectedWith('Local config file not found: non-existent-file.yaml');
     });
 
