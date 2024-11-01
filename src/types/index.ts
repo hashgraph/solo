@@ -80,25 +80,3 @@ export interface Opts {
   profileManager: ProfileManager
   leaseManager: LeaseManager
 }
-
-export interface Deployment {
-  clusterAliases : string[] // an alias for the cluster, provided during the configuration of the deployment, must be unique
-}
-
-// The string is the name of the deployment, will be used as the namespace, so it needs to be available in all targeted clusters
-
-export type Deployments = { [deploymentName: string]: Deployment };
-export type ClusterMapping = { [clusterName: string]: string };
-
-type EmailPattern = `^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`
-export type EmailAddress = string & { __brand: EmailPattern }
-
-export interface LocalConfig {
-  userEmailAddress: EmailAddress
-  deployments: Deployments
-  currentDeploymentName : string
-
-  // contextName refers to the "CURRENT NAME", and clusterName refers to the CLUSTER leveraged in kubeConfig.currentContext
-  // { clusterName : string, contextName : string }
-  clusterMappings: ClusterMapping
-}

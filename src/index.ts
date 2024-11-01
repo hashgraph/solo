@@ -29,7 +29,7 @@ import { K8 } from './core/k8.ts'
 import { ListrLogger } from 'listr2'
 import { CustomProcessOutput } from './core/process_output.ts'
 import { type Opts } from './types/index.ts'
-import {LocalConfiguration} from "./core/LocalConfiguration.ts";
+import {LocalConfiguration} from "./core/config/LocalConfiguration.ts";
 import path from "path";
 
 export function main (argv: any) {
