@@ -11,7 +11,7 @@
     "access": "public"
   },
   "scripts": {
-    "task": "npx @go-task/cli"
+    "task": "npx task"
   },
   "keywords": [
     "solo",
