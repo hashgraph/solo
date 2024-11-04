@@ -69,4 +69,4 @@ jobs:
         run: npm ci
 
       - name: Check Code Style
-        run: npm run check
+        run: npm run task check

@@ -52,7 +52,7 @@ echo "Dependencies installed successfully."
 #####################################################
 
 # Example
-npm run test
+npm run task test
 
 #####################################################
 

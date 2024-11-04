@@ -11,30 +11,7 @@
     "access": "public"
   },
   "scripts": {
-    "test": "cross-env MOCHA_SUITE_NAME=\"Unit Tests\" c8 --report-dir='coverage/unit' mocha 'test/unit/**/*.ts' --reporter-options configFile=mocha-multi-reporter.json,cmrOutput=mocha-junit-reporter+mochaFile+junit.xml",
-    "test-e2e-all": "cross-env MOCHA_SUITE_NAME=\"Mocha E2E All Tests\" c8 --report-dir='coverage/e2e-all' mocha 'test/e2e/**/*.ts' --reporter-options configFile=mocha-multi-reporter.json,cmrOutput=mocha-junit-reporter+mochaFile+junit-e2e-all.xml",
-    "test-e2e-integration": "cross-env MOCHA_SUITE_NAME=\"Mocha E2E Integration Tests\" c8 --report-dir='coverage/e2e-integration' mocha 'test/e2e/integration/**/*.ts' --reporter-options configFile=mocha-multi-reporter.json,cmrOutput=mocha-junit-reporter+mochaFile+junit-e2e-integration.xml",
-    "test-e2e-standard": "cross-env MOCHA_SUITE_NAME=\"Mocha E2E Standard Tests\" c8 --report-dir='coverage/e2e-standard' mocha 'test/e2e/**/*.ts' --ignore 'test/unit/**/*.ts' --ignore 'test/e2e/integration/**/*.ts' --ignore 'test/e2e/commands/mirror_node*.ts' --ignore 'test/e2e/commands/node*.ts' --ignore 'test/e2e/commands/separate_node*.ts' --ignore 'test/e2e/commands/relay*.ts' --reporter-options configFile=mocha-multi-reporter.json,cmrOutput=mocha-junit-reporter+mochaFile+junit-e2e-standard.xml --timeout 30000",
-    "test-e2e-mirror-node": "cross-env MOCHA_SUITE_NAME=\"Mocha E2E Mirror Node Tests\" c8 --report-dir='coverage/e2e-mirror-node' mocha 'test/e2e/commands/mirror_node.test.ts' --reporter-options configFile=mocha-multi-reporter.json,cmrOutput=mocha-junit-reporter+mochaFile+junit-e2e-mirror-node.xml",
-    "test-e2e-node-pem-stop": "cross-env MOCHA_SUITE_NAME=\"Mocha E2E Node PEM Stop Tests\" c8 --report-dir='coverage/e2e-node-pem-stop' mocha 'test/e2e/commands/node_pem_stop.test.ts' --reporter-options configFile=mocha-multi-reporter.json,cmrOutput=mocha-junit-reporter+mochaFile+junit-e2e-node-pem-stop.xml",
-    "test-e2e-node-pem-kill": "cross-env MOCHA_SUITE_NAME=\"Mocha E2E Node PEM Kill Tests\" c8 --report-dir='coverage/e2e-node-pem-kill' mocha 'test/e2e/commands/node_pem_kill.test.ts' --reporter-options configFile=mocha-multi-reporter.json,cmrOutput=mocha-junit-reporter+mochaFile+junit-e2e-node-pem-kill.xml",
-    "test-e2e-node-local-hedera": "cross-env MOCHA_SUITE_NAME=\"Mocha E2E Node Local Hedera Tests\" c8 --report-dir='coverage/e2e-node-local-hedera' mocha 'test/e2e/commands/node_local_hedera.test.ts' --reporter-options configFile=mocha-multi-reporter.json,cmrOutput=mocha-junit-reporter+mochaFile+junit-e2e-node-local-hedera.xml",
-    "test-e2e-node-local-ptt": "cross-env MOCHA_SUITE_NAME=\"Mocha E2E Node Local PTT Tests\" c8 --report-dir='coverage/e2e-node-local-ptt' mocha 'test/e2e/commands/node_local_ptt.test.ts' --reporter-options configFile=mocha-multi-reporter.json,cmrOutput=mocha-junit-reporter+mochaFile+junit-e2e-node-local-ptt.xml",
-    "test-e2e-node-add": "cross-env MOCHA_SUITE_NAME=\"Mocha E2E Node Add Tests\" c8 --report-dir='coverage/e2e-node-add' mocha 'test/e2e/commands/node_add.test.ts' --reporter-options configFile=mocha-multi-reporter.json,cmrOutput=mocha-junit-reporter+mochaFile+junit-e2e-node-add.xml",
-    "test-e2e-node-add-local": "cross-env MOCHA_SUITE_NAME=\"Mocha E2E Node Add Local Tests\" c8 --report-dir='coverage/e2e-node-add-local' mocha 'test/e2e/commands/node_add_local.test.ts' --reporter-options configFile=mocha-multi-reporter.json,cmrOutput=mocha-junit-reporter+mochaFile+junit-e2e-node-add-local.xml",
-    "test-e2e-node-add-separate-commands": "cross-env MOCHA_SUITE_NAME=\"Mocha E2E Node Add - Separate commands Tests\" c8 --report-dir='coverage/e2e-node-add-separate-commands' mocha 'test/e2e/commands/separate_node_add*.test.ts' --reporter-options configFile=mocha-multi-reporter.json,cmrOutput=mocha-junit-reporter+mochaFile+junit-e2e-node-add-separate-commands.xml",
-    "test-e2e-node-update": "cross-env MOCHA_SUITE_NAME=\"Mocha E2E Node Update Tests\" c8 --report-dir='coverage/e2e-node-update' mocha 'test/e2e/commands/node_update*.test.ts' --reporter-options configFile=mocha-multi-reporter.json,cmrOutput=mocha-junit-reporter+mochaFile+junit-e2e-node-update.xml",
-    "test-e2e-node-update-separate-commands": "cross-env MOCHA_SUITE_NAME=\"Mocha E2E Node Update - Separate commands Tests\" c8 --report-dir='coverage/e2e-node-update-separate-commands' mocha 'test/e2e/commands/separate_node_update.test.ts' --reporter-options configFile=mocha-multi-reporter.json,cmrOutput=mocha-junit-reporter+mochaFile+junit-e2e-node-update-separate-commands.xml",
-    "test-e2e-node-delete": "cross-env MOCHA_SUITE_NAME=\"Mocha E2E Node Delete Tests\" c8 --report-dir='coverage/e2e-node-delete' mocha 'test/e2e/commands/node_delete*.test.ts' --reporter-options configFile=mocha-multi-reporter.json,cmrOutput=mocha-junit-reporter+mochaFile+junit-e2e-node-delete.xml",
-    "test-e2e-node-delete-separate-commands": "cross-env MOCHA_SUITE_NAME=\"Mocha E2E Node Delete - Separate commands Tests\" c8 --report-dir='coverage/e2e-node-delete-separate-commands' mocha 'test/e2e/commands/separate_node_delete*.test.ts' --reporter-options configFile=mocha-multi-reporter.json,cmrOutput=mocha-junit-reporter+mochaFile+junit-e2e-node-delete-separate-commands.xml",
-    "test-e2e-node-upgrade": "cross-env MOCHA_SUITE_NAME=\"Mocha E2E Node Upgrade Tests\" c8 --report-dir='coverage/e2e-node-upgrade' mocha 'test/e2e/commands/node_upgrade*.test.ts' --reporter-options configFile=mocha-multi-reporter.json,cmrOutput=mocha-junit-reporter+mochaFile+junit-e2e-node-upgrade.xml",
-    "test-e2e-relay": "cross-env MOCHA_SUITE_NAME=\"Mocha E2E Relay Tests\" c8 --report-dir='coverage/e2e-relay' mocha 'test/e2e/commands/relay.test.ts' --reporter-options configFile=mocha-multi-reporter.json,cmrOutput=mocha-junit-reporter+mochaFile+junit-e2e-relay.xml",
-    "solo-test": "node --no-deprecation --no-warnings --loader ts-node/esm solo.ts",
-    "solo": "node --no-deprecation --no-warnings dist/solo.js",
-    "check": "remark . --quiet --frail && eslint . --ignore-pattern 'docs/*' --ignore-pattern 'dist/*'; cd docs; jsdoc -c jsdoc.conf.json && tsc",
-    "format": "remark . --quiet --frail --output && eslint --fix . --ignore-pattern 'docs/*' --ignore-pattern 'dist/*'",
-    "test-setup": "./test/e2e/setup-e2e.sh",
-    "build": "swc src version.ts solo.ts -d dist && node resources/post-build-script.js"
+    "task": "npx @go-task/cli"
   },
   "keywords": [
     "solo",
@@ -74,6 +51,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.12.0",
+    "@go-task/cli": "^3.39.2",
     "@swc/cli": "^0.5.0",
     "@swc/core": "^1.7.42",
     "@types/adm-zip": "^0.5.6",
