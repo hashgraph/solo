@@ -323,7 +323,7 @@ export const enableHederaExplorerTls: CommandFlag = {
   constName: 'enableHederaExplorerTls',
   name: 'enable-hedera-explorer-tls',
   definition: {
-    describe: 'Enable the Hedera Explorer TLS, defaults to false',
+    describe: 'Enable the Hedera Explorer TLS, defaults to false, requires certManager and certManagerCrds, which can be deployed through solo-cluster-setup chart or standalone',
     defaultValue: false,
     type: 'boolean'
   }
@@ -693,7 +693,17 @@ export const mirrorNodeVersion: CommandFlag = {
   name: 'mirror-node-version',
   definition: {
     describe: 'Mirror node chart version',
-    defaultValue: '',
+    defaultValue: version.MIRROR_NODE_VERSION,
+    type: 'string'
+  }
+}
+
+export const hederaExplorerVersion: CommandFlag = {
+  constName: 'hederaExplorerVersion',
+  name: 'hedera-explorer-version',
+  definition: {
+    describe: 'Hedera explorer chart version',
+    defaultValue: version.HEDERA_EXPLORER_VERSION,
     type: 'string'
   }
 }
@@ -761,6 +771,7 @@ export const allFlags: CommandFlag[] = [
   updateAccountKeys,
   valuesFile,
   mirrorNodeVersion,
+  hederaExplorerVersion,
   inputDir,
   outputDir
 ]

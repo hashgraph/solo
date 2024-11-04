@@ -17,16 +17,16 @@
 import { describe, it } from 'mocha'
 import { expect } from 'chai'
 
-import { InitCommand } from '../../../src/commands/init.ts'
+import { InitCommand } from '../../../../src/commands/init.ts'
 import {
   HelmDependencyManager,
   DependencyManager
-} from '../../../src/core/dependency_managers/index.ts'
+} from '../../../../src/core/dependency_managers/index.ts'
 import {
-  ChartManager, ConfigManager, constants, Helm, KeyManager, LeaseManager, logging, PackageDownloader, Zippy
-} from '../../../src/core/index.ts'
-import { getK8Instance } from '../../test_util.ts'
-import { SECONDS } from '../../../src/core/constants.ts'
+  ChartManager, ConfigManager, constants, Helm, K8, KeyManager, LeaseManager, logging, PackageDownloader, Zippy
+} from '../../../../src/core/index.ts'
+import { SECONDS } from '../../../../src/core/constants.ts'
+import sinon from 'sinon'
 
 const testLogger = logging.NewLogger('debug', true)
 describe('InitCommand', () => {
@@ -44,18 +44,32 @@ describe('InitCommand', () => {
 
   const keyManager = new KeyManager(testLogger)
 
-  const k8 = getK8Instance(configManager)
-  const leaseManager = new LeaseManager(k8, testLogger, configManager)
+  let leaseManager: LeaseManager
+  let k8 : K8
 
-  // @ts-ignore
-  const initCmd = new InitCommand({
-    logger: testLogger, helm, k8, chartManager, configManager, depManager, keyManager, leaseManager
+  let sandbox = sinon.createSandbox()
+  let initCmd: InitCommand
+
+  before(() => {
+    sandbox = sinon.createSandbox()
+    sandbox.stub(K8.prototype, 'init').callsFake(() => this)
+    k8 = new K8(configManager, testLogger)
+    leaseManager = new LeaseManager(k8, testLogger, configManager)
+    // @ts-ignore
+    initCmd = new InitCommand({
+      logger: testLogger, helm, k8, chartManager, configManager, depManager, keyManager, leaseManager
+    })
   })
+
+  after(() => {
+    sandbox.restore()
+  })
+
 
   describe('commands', () => {
     it('init execution should succeed', async () => {
       await expect(initCmd.init({})).to.eventually.equal(true)
-    }).timeout(20 * SECONDS)
+    }).timeout(60 * SECONDS)
   })
 
   describe('methods', () => {

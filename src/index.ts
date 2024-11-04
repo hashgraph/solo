@@ -111,7 +111,9 @@ export function main (argv: any) {
       logger.showUser(chalk.cyan('Version\t\t\t:'), chalk.yellow(configManager.getVersion()))
       logger.showUser(chalk.cyan('Kubernetes Context\t:'), chalk.yellow(context.name))
       logger.showUser(chalk.cyan('Kubernetes Cluster\t:'), chalk.yellow(configManager.getFlag(flags.clusterName)))
-      logger.showUser(chalk.cyan('Kubernetes Namespace\t:'), chalk.yellow(configManager.getFlag(flags.namespace)))
+      if (configManager.getFlag(flags.namespace) !== undefined) {
+        logger.showUser(chalk.cyan('Kubernetes Namespace\t:'), chalk.yellow(configManager.getFlag(flags.namespace)))
+      }
       logger.showUser(chalk.cyan('**********************************************************************************'))
 
       return argv

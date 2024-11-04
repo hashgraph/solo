@@ -27,7 +27,7 @@ on:
         description: "NodeJS Version:"
         type: string
         required: false
-        default: "20.14.0"
+        default: "20.18.0"
       custom-job-label:
         description: "Custom Job Label:"
         type: string
@@ -119,15 +119,10 @@ jobs:
 #            sudo cgclassify -g cpu,memory:${AGENT_GROUP_NAME} $(pgrep 'Runner.Worker' | tr '\n' ' ')
 #          echo "::endgroup::"
 
-      - name: Setup Node with Retry
-        uses: Wandalen/wretry.action@6feedb7dedadeb826de0f45ff482b53b379a7844 # v3.5.0
+      - name: Setup Node
+        uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4.1.0
         with:
-          action: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4.0.2
-          with: |
-            node-version: ${{ inputs.node-version }}
-            cache: npm
-          attempt_limit: 3
-          attempt_delay: 5000
+          node-version: ${{ inputs.node-version }}
 
       - name: Install wget
         run: |
@@ -156,7 +151,7 @@ jobs:
 
       - name: Setup Java
         if: ${{ runner.os == 'linux' && (inputs.npm-test-script == 'test-e2e-node-local-hedera' || inputs.npm-test-script == 'test-e2e-node-local-ptt' || inputs.npm-test-script == 'test-e2e-node-add-local') && !cancelled() && !failure() }}
-        uses: actions/setup-java@b36c23c0d998641eff861008f374ee103c25ac73 # v4.4.0
+        uses: actions/setup-java@8df1039502a15bceb9433410b1a100fbe190c53b # v4.5.0
         with:
           distribution: temurin
           java-version: 21.0.1

@@ -146,17 +146,29 @@ describe('ProfileManager', () => {
 
         // validate yaml
         const valuesYaml: any = yaml.load(fs.readFileSync(valuesFile).toString())
-        expect(valuesYaml['hedera-mirror-node'].postgresql.persistence.size).not.to.be.null
-        expect(valuesYaml['hedera-mirror-node'].postgresql.postgresql.resources.limits.cpu).not.to.be.null
-        expect(valuesYaml['hedera-mirror-node'].postgresql.postgresql.resources.limits.memory).not.to.be.null
+        expect(valuesYaml.postgresql.persistence.size).not.to.be.null
+        expect(valuesYaml.postgresql.postgresql.resources.limits.cpu).not.to.be.null
+        expect(valuesYaml.postgresql.postgresql.resources.limits.memory).not.to.be.null
         for (const component of ['grpc', 'rest', 'web3', 'importer']) {
-          expect(valuesYaml['hedera-mirror-node'][component].resources.limits.cpu).not.to.be.null
-          expect(valuesYaml['hedera-mirror-node'][component].resources.limits.memory).not.to.be.null
-          expect(valuesYaml['hedera-mirror-node'][component].readinessProbe.failureThreshold).to.equal(60)
-          expect(valuesYaml['hedera-mirror-node'][component].livenessProbe.failureThreshold).to.equal(60)
+          expect(valuesYaml[component].resources.limits.cpu).not.to.be.null
+          expect(valuesYaml[component].resources.limits.memory).not.to.be.null
+          expect(valuesYaml[component].readinessProbe.failureThreshold).to.equal(60)
+          expect(valuesYaml[component].livenessProbe.failureThreshold).to.equal(60)
         }
-        expect(valuesYaml['hedera-explorer'].resources.limits.cpu).not.to.be.null
-        expect(valuesYaml['hedera-explorer'].resources.limits.memory).not.to.be.null
+      })
+
+      it(`should determine hedera-explorer chart values [profile = ${input.profileName}]`, async () => {
+        configManager.setFlag(flags.profileFile, input.profileFile)
+        configManager.setFlag(flags.cacheDir, getTestCacheDir('ProfileManager'))
+        configManager.setFlag(flags.releaseTag, version.HEDERA_PLATFORM_VERSION)
+        profileManager.loadProfiles(true)
+        const valuesFile = await profileManager.prepareValuesHederaExplorerChart(input.profileName) as string
+        expect(fs.existsSync(valuesFile)).to.be.ok
+
+        // validate yaml
+        const valuesYaml: any = yaml.load(fs.readFileSync(valuesFile).toString())
+        expect(valuesYaml.resources.limits.cpu).not.to.be.null
+        expect(valuesYaml.resources.limits.memory).not.to.be.null
       })
 
       it(`should determine rpc-relay chart values [profile = ${input.profileName}]`, async () => {

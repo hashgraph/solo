@@ -47,9 +47,9 @@ export class MirrorNodeCommand extends BaseCommand {
       flags.chartDirectory,
       flags.deployHederaExplorer,
       flags.enableHederaExplorerTls,
-      flags.soloChartVersion,
       flags.hederaExplorerTlsHostName,
       flags.hederaExplorerTlsLoadBalancerIp,
+      flags.hederaExplorerVersion,
       flags.namespace,
       flags.profileFile,
       flags.profileName,
@@ -58,6 +58,28 @@ export class MirrorNodeCommand extends BaseCommand {
       flags.valuesFile,
       flags.mirrorNodeVersion
     ]
+  }
+
+  async prepareHederaExplorerValuesArg (config: any) {
+    let valuesArg = ''
+
+    const profileName = <string>this.configManager.getFlag<string>(flags.profileName)
+    const profileValuesFile = await this.profileManager.prepareValuesHederaExplorerChart(profileName)
+    if (profileValuesFile) {
+      valuesArg += this.prepareValuesFiles(profileValuesFile)
+    }
+
+    if (config.enableHederaExplorerTls) {
+      valuesArg += this.getTlsValueArguments(config.tlsClusterIssuerType, config.enableHederaExplorerTls, config.namespace,
+          config.hederaExplorerTlsLoadBalancerIp, config.hederaExplorerTlsHostName)
+    }
+
+    if (config.valuesFile) {
+      valuesArg += this.prepareValuesFiles(config.valuesFile)
+    }
+
+    valuesArg += ` --set proxyPass./api="http://${constants.MIRROR_NODE_RELEASE_NAME}-rest" `
+    return valuesArg
   }
 
   getTlsValueArguments (tlsClusterIssuerType: string, enableHederaExplorerTls: boolean, namespace: string,
@@ -69,20 +91,20 @@ export class MirrorNodeCommand extends BaseCommand {
         throw new Error(`Invalid TLS cluster issuer type: ${tlsClusterIssuerType}, must be one of: "acme-staging", "acme-prod", or "self-signed"`)
       }
 
-      valuesArg += ' --set hedera-explorer.ingress.enabled=true'
-      valuesArg += ' --set cloud.haproxyIngressController.enabled=true'
-      valuesArg += ` --set global.ingressClassName=${namespace}-hedera-explorer-ingress-class`
-      valuesArg += ` --set-json 'hedera-explorer.ingress.hosts[0]={"host":"${hederaExplorerTlsHostName}","paths":[{"path":"/","pathType":"Prefix"}]}'`
+      valuesArg += ' --set ingress.enabled=true'
+      valuesArg += ' --set haproxyIngressController.enabled=true'
+      valuesArg += ` --set ingressClassName=${namespace}-hedera-explorer-ingress-class`
+      valuesArg += ` --set-json 'ingress.hosts[0]={"host":"${hederaExplorerTlsHostName}","paths":[{"path":"/","pathType":"Prefix"}]}'`
 
       if (hederaExplorerTlsLoadBalancerIp !== '') {
         valuesArg += ` --set haproxy-ingress.controller.service.loadBalancerIP=${hederaExplorerTlsLoadBalancerIp}`
       }
 
       if (tlsClusterIssuerType === 'self-signed') {
-        valuesArg += ' --set cloud.selfSignedClusterIssuer.enabled=true'
+        valuesArg += ' --set selfSignedClusterIssuer.enabled=true'
       } else {
-        valuesArg += ' --set cloud.acmeClusterIssuer.enabled=true'
-        valuesArg += ` --set hedera-explorer.certClusterIssuerType=${tlsClusterIssuerType}`
+        valuesArg += ' --set acmeClusterIssuer.enabled=true'
+        valuesArg += ` --set certClusterIssuerType=${tlsClusterIssuerType}`
       }
     }
 
@@ -97,17 +119,6 @@ export class MirrorNodeCommand extends BaseCommand {
     if (profileValuesFile) {
       valuesArg += this.prepareValuesFiles(profileValuesFile)
     }
-
-    if (config.enableHederaExplorerTls) {
-      valuesArg += this.getTlsValueArguments(config.tlsClusterIssuerType, config.enableHederaExplorerTls, config.namespace,
-        config.hederaExplorerTlsLoadBalancerIp, config.hederaExplorerTlsHostName)
-    }
-
-    if (config.mirrorNodeVersion) {
-      valuesArg += ` --set global.image.tag=${config.mirrorNodeVersion}`
-    }
-
-    valuesArg += ` --set hedera-mirror-node.enabled=true --set hedera-explorer.enabled=${config.deployHederaExplorer}`
 
     if (config.valuesFile) {
       valuesArg += this.prepareValuesFiles(config.valuesFile)
@@ -124,9 +135,9 @@ export class MirrorNodeCommand extends BaseCommand {
       chartDirectory: string
       deployHederaExplorer: boolean
       enableHederaExplorerTls: string
-      soloChartVersion: string
       hederaExplorerTlsHostName: string
       hederaExplorerTlsLoadBalancerIp: string
+      hederaExplorerVersion: string
       namespace: string
       profileFile: string
       profileName: string
@@ -154,9 +165,9 @@ export class MirrorNodeCommand extends BaseCommand {
             flags.chartDirectory,
             flags.deployHederaExplorer,
             flags.enableHederaExplorerTls,
-            flags.soloChartVersion,
             flags.hederaExplorerTlsHostName,
             flags.hederaExplorerTlsLoadBalancerIp,
+            flags.hederaExplorerVersion,
             flags.tlsClusterIssuerType,
             flags.valuesFile,
             flags.mirrorNodeVersion
@@ -167,10 +178,12 @@ export class MirrorNodeCommand extends BaseCommand {
           ctx.config = this.getConfig(MirrorNodeCommand.DEPLOY_CONFIGS_NAME, MirrorNodeCommand.DEPLOY_FLAGS_LIST,
             ['chartPath', 'valuesArg']) as MirrorNodeDeployConfigClass
 
-          ctx.config.chartPath = await self.prepareChartPath(ctx.config.chartDirectory,
-            constants.SOLO_TESTING_CHART, constants.SOLO_DEPLOYMENT_CHART)
+          ctx.config.chartPath = await self.prepareChartPath('', // don't use chartPath which is for local solo-charts only
+            constants.MIRROR_NODE_RELEASE_NAME, constants.MIRROR_NODE_CHART)
 
           ctx.config.valuesArg = await self.prepareValuesArg(ctx.config)
+
+          ctx.config.valuesArg += this.prepareValuesFiles(constants.MIRROR_NODE_VALUES_FILE)
 
           if (!await self.k8.hasNamespace(ctx.config.namespace)) {
             throw new SoloError(`namespace ${ctx.config.namespace} does not exist`)
@@ -189,20 +202,26 @@ export class MirrorNodeCommand extends BaseCommand {
               title: 'Prepare address book',
               task: async (ctx) => {
                 ctx.addressBook = await self.accountManager.prepareAddressBookBase64()
-                ctx.config.valuesArg += ` --set "hedera-mirror-node.importer.addressBook=${ctx.addressBook}"`
+                ctx.config.valuesArg += ` --set "importer.addressBook=${ctx.addressBook}"`
               }
             },
             {
               title: 'Deploy mirror-node',
               task: async (ctx) => {
-                await self.chartManager.upgrade(
-                  ctx.config.namespace,
-                  constants.SOLO_DEPLOYMENT_CHART,
-                  ctx.config.chartPath,
-                  ctx.config.valuesArg,
-                  ctx.config.soloChartVersion
-                )
+                await self.chartManager.install(ctx.config.namespace, constants.MIRROR_NODE_RELEASE_NAME, ctx.config.chartPath, ctx.config.mirrorNodeVersion, ctx.config.valuesArg)
               }
+            },
+            {
+              title: 'Deploy hedera-explorer',
+              task: async (ctx) => {
+                let exploreValuesArg = await self.prepareHederaExplorerValuesArg(ctx.config)
+                exploreValuesArg += this.prepareValuesFiles(constants.EXPLORER_VALUES_FILE)
+
+                await self.chartManager.install(ctx.config.namespace,
+                    constants.HEDERA_EXPLORER_CHART, constants.HEDERA_EXPLORER_CHART_UTL, ctx.config.hederaExplorerVersion, exploreValuesArg)
+
+              },
+              skip: (ctx) => !ctx.config.deployHederaExplorer
             }
           ], {
             concurrent: false,
@@ -335,11 +354,8 @@ export class MirrorNodeCommand extends BaseCommand {
 
     interface Context {
       config: {
-        chartDirectory: string
-        soloChartVersion: string
         namespace: string
-        chartPath: string
-        valuesArg: string
+        isChartInstalled: boolean
       }
     }
 
@@ -366,19 +382,14 @@ export class MirrorNodeCommand extends BaseCommand {
 
           // @ts-ignore
           ctx.config = {
-            chartDirectory: self.configManager.getFlag<string>(flags.chartDirectory) as string,
-            soloChartVersion: self.configManager.getFlag<string>(flags.soloChartVersion) as string,
-            namespace: self.configManager.getFlag<string>(flags.namespace) as string
+            namespace: self.configManager.getFlag<string>(flags.namespace)
           }
-
-          ctx.config.chartPath = await self.prepareChartPath(ctx.config.chartDirectory,
-            constants.SOLO_TESTING_CHART, constants.SOLO_DEPLOYMENT_CHART)
-
-          ctx.config.valuesArg = ' --set hedera-mirror-node.enabled=false --set hedera-explorer.enabled=false'
 
           if (!await self.k8.hasNamespace(ctx.config.namespace)) {
             throw new SoloError(`namespace ${ctx.config.namespace} does not exist`)
           }
+
+          ctx.config.isChartInstalled = await this.chartManager.isChartInstalled(ctx.config.namespace, constants.MIRROR_NODE_RELEASE_NAME)
 
           await self.accountManager.loadNodeClient(ctx.config.namespace)
 
@@ -388,14 +399,10 @@ export class MirrorNodeCommand extends BaseCommand {
       {
         title: 'Destroy mirror-node',
         task: async (ctx) => {
-          await self.chartManager.upgrade(
-            ctx.config.namespace,
-            constants.SOLO_DEPLOYMENT_CHART,
-            ctx.config.chartPath,
-            ctx.config.valuesArg,
-            ctx.config.soloChartVersion
-          )
-        }
+          await this.chartManager.uninstall(ctx.config.namespace, constants.MIRROR_NODE_RELEASE_NAME)
+          await this.chartManager.uninstall(ctx.config.namespace, constants.HEDERA_EXPLORER_CHART)
+        },
+        skip: (ctx) => !ctx.config.isChartInstalled
       },
       {
         title: 'Delete PVCs',
@@ -411,8 +418,9 @@ export class MirrorNodeCommand extends BaseCommand {
               await self.k8.deletePvc(pvc, ctx.config.namespace)
             }
           }
-        }
-      }
+        },
+        skip: (ctx) => !ctx.config.isChartInstalled
+      },
     ], {
       concurrent: false,
       rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
@@ -462,7 +470,6 @@ export class MirrorNodeCommand extends BaseCommand {
             builder: (y: any) => flags.setCommandFlags(y,
               flags.chartDirectory,
               flags.force,
-              flags.soloChartVersion,
               flags.namespace
             ),
             handler: (argv: any) => {
