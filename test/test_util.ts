@@ -62,6 +62,7 @@ import type { SoloLogger } from '../src/core/logging.ts'
 import type { BaseCommand } from '../src/commands/base.ts'
 import type { NodeAlias } from '../src/types/aliases.ts'
 import type { NetworkNodeServices } from '../src/core/network_node_services.ts'
+import {LocalConfigRepository} from "../src/core/config/LocalConfigRepository.js";
 import sinon from 'sinon'
 import { HEDERA_PLATFORM_VERSION } from '../version.js'
 
@@ -108,6 +109,7 @@ interface TestOpts {
   profileManager: ProfileManager
   leaseManager: LeaseManager
   certificateManager: CertificateManager
+  localConfigRepository: LocalConfigRepository
 }
 
 interface BootstrapResponse {
@@ -152,6 +154,7 @@ export function bootstrapTestVariables (
   const profileManager = new ProfileManager(testLogger, configManager)
   const leaseManager = new LeaseManager(k8, testLogger, configManager)
   const certificateManager = new CertificateManager(k8, testLogger, configManager)
+  const localConfigRepository = new LocalConfigRepository(path.join(constants.SOLO_CACHE_DIR, constants.DEFAULT_LOCAL_CONFIG_FILE));
 
   const opts: TestOpts = {
     logger: testLogger,
@@ -167,7 +170,8 @@ export function bootstrapTestVariables (
     cacheDir,
     profileManager,
     leaseManager,
-    certificateManager
+    certificateManager,
+    localConfigRepository
   }
 
   const initCmd = initCmdArg || new InitCommand(opts)

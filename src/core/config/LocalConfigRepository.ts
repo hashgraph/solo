@@ -29,7 +29,8 @@ export class LocalConfigRepository {
     }
 
     public async getConfig(): Promise<LocalConfig> {
-        if (!fs.existsSync(this.filePath)) {
+        if (this.configFileEXists()) {
+            // TODO add a warning or something
             throw new SoloError(`Local config file not found: ${this.filePath}`);
         }
 
@@ -37,6 +38,10 @@ export class LocalConfigRepository {
             this.config = await LocalConfigRepository.parseFromFile(this.filePath)
         }
         return this.config;
+    }
+
+    public configFileEXists(): boolean {
+        return fs.existsSync(this.filePath)
     }
 
     public async saveConfig(): Promise<void> {
