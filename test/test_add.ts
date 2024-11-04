@@ -85,7 +85,8 @@ export function testNodeAdd (localBuildPath: string, testDescription = 'Node add
           flags.devMode.constName,
           flags.force.constName,
           flags.quiet.constName,
-          flags.adminKey.constName
+          flags.adminKey.constName,
+          'chatPath'
         ])
         await bootstrapResp.opts.accountManager.close()
       }).timeout(12 * MINUTES)

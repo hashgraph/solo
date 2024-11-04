@@ -102,7 +102,8 @@ describe('NetworkCommand', () => {
         flags.profileFile.constName,
         flags.profileName.constName,
         flags.quiet.constName,
-        flags.settingTxt.constName
+        flags.settingTxt.constName,
+        'chatPath'
       ])
     } catch (e) {
       networkCmd.logger.showUserError(e)
