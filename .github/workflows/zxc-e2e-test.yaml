@@ -144,7 +144,7 @@ jobs:
         run: npm ci
 
       - name: Compile Project
-        run: npm run build
+        run: npm run task build
 
       - name: Pull Kind Docker Image
         run: docker image pull kindest/node:v1.27.3@sha256:3966ac761ae0136263ffdb6cfd4db23ef8a83cba8a463690e98317add2c9ba72
@@ -179,7 +179,7 @@ jobs:
 
       - name: Run E2E Tests
         run: |
-          ${{ env.CG_EXEC }} npm run ${{ inputs.npm-test-script }}
+          ${{ env.CG_EXEC }} npm run task ${{ inputs.npm-test-script }}
 
       - name: RPC relay smoke test
         if: ${{ runner.os == 'linux' && inputs.npm-test-script == 'test-e2e-relay' && !cancelled() && !failure() }}

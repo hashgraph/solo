@@ -107,7 +107,7 @@ jobs:
         run: |
           set -xeo pipefail
           npm install
-          npm run build
+          npm run task build
           npm install -g @hashgraph/solo
           npm link
           echo "VERSION=${{ inputs.version }}"
