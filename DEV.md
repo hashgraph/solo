@@ -12,7 +12,7 @@ Below we describe how you can set up local environment and contribute to `solo`.
 * Run `npm link` to install `solo` as the CLI
   * Note: you need to do it once. If `solo` already exists in your path, you will need to remove it first.
   * Alternative way would be to run `npm run task solo -- <COMMAND> <ARGS>`
-* Run `npm test` or `npm run task test` to run the unit tests
+* Run `npm run task test` to run the unit tests
 * Run `solo` to access the CLI.
 * Note that debug logs are stored at `$HOME/.solo/logs/solo.log`.
   * So you may use `tail -f $HOME/.solo/logs/solo.log | jq` in a separate terminal to keep an eye on the logs.
