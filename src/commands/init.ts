@@ -69,45 +69,7 @@ export class InitCommand extends BaseCommand {
     }
 
     const tasks = new Listr<Context>([
-
-      {
-        title: 'Load local configuration',
-        task: (ctx)=>{
-
-          let config
-          if (this.localConfigRepository.configFileEXists()) {
-            config = this.localConfigRepository.getConfig()
-          }
-          else {
-
-            const kubeConfig = this.k8.getKubeConfig()
-            const context = kubeConfig.getContextObject(kubeConfig.getCurrentContext())
-            const cluster = kubeConfig.getCurrentCluster()
-
-            let clusterMappings = {}
-            kubeConfig.contexts.forEach(c => {
-              clusterMappings[c.cluster] = c.name
-            })
-
-            this.logger.info(`context: ${context}`)
-            this.logger.info(`cluster: ${cluster}`)
-
-            config = {
-              userEmailAddress: null,
-              deployments: {
-                'deployment-1': ['cluster-1']
-              },
-              currentDeploymentName: 'deployment-1',
-              clusterMappings
-            };
-
-          }
-
-          this.logger.info(`config`)
-          this.logger.info(config)
-        }
-      },
-
+      this.localConfigRepository.loadLocalConfigTask(this.k8, argv),
       {
         title: 'Setup home directory and cache',
         task: (ctx) => {
@@ -189,7 +151,10 @@ export class InitCommand extends BaseCommand {
       desc: 'Initialize local environment',
       builder: (y: any) => {
         flags.setCommandFlags(y,
-          flags.cacheDir
+          flags.cacheDir,
+          flags.userEmailAddress,
+          flags.deploymentClusters,
+          flags.deploymentName
         )
       },
       handler: (argv: any) => {
