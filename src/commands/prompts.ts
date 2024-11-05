@@ -23,6 +23,7 @@ import * as helpers from '../core/helpers.ts'
 import { hederaExplorerVersion, resetDisabledPrompts } from './flags.ts'
 import type { ListrTaskWrapper } from 'listr2'
 import { type CommandFlag } from '../types/index.ts'
+import validator from 'validator'
 
 async function prompt (type: string, task: ListrTaskWrapper<any, any, any>, input: any, defaultValue: any, promptMessage: string, emptyCheckMessage: string | null, flagName: string) {
   try {
@@ -366,6 +367,37 @@ export async function promptUpdateAccountKeys (task: ListrTaskWrapper<any, any, 
     flags.updateAccountKeys.name)
 }
 
+export async function promptUserEmailAddress (task: ListrTaskWrapper<any, any, any>, input: any) {
+  const promptForInput = async () => {
+    return await task.prompt(ListrEnquirerPromptAdapter).run({
+      type: 'text',
+      message: 'Please enter your email address:'
+    })
+  }
+
+  input = await promptForInput()
+  while (!validator.isEmail(input)) {
+    input = await promptForInput()
+  }
+
+  return input
+}
+
+export async function promptDeploymentName (task: ListrTaskWrapper<any, any, any>, input: any) {
+  return await promptText(task, input,
+    flags.deploymentName.definition.defaultValue,
+    'Enter the Solo deployment name: ',
+    null,
+    flags.deploymentName.name)
+}
+export async function promptDeploymentClusters (task: ListrTaskWrapper<any, any, any>, input: any) {
+  return await promptText(task, input,
+    flags.deploymentClusters.definition.defaultValue,
+    'Enter the Solo deployment cluster names (comma separated): ',
+    null,
+    flags.deploymentClusters.name)
+}
+
 export async function promptPrivateKey (task: ListrTaskWrapper<any, any, any>, input: any) {
   return await promptText(task, input,
     flags.ed25519PrivateKey.definition.defaultValue,
@@ -497,6 +529,7 @@ export function getPromptMap (): Map<string, Function> {
     .set(flags.replicaCount.name, promptReplicaCount)
     .set(flags.tlsClusterIssuerType.name, promptTlsClusterIssuerType)
     .set(flags.updateAccountKeys.name, promptUpdateAccountKeys)
+    .set(flags.userEmailAddress.name, promptUserEmailAddress)
     .set(flags.valuesFile.name, promptValuesFile)
     .set(flags.nodeAlias.name, promptNewNodeAlias)
     .set(flags.gossipEndpoints.name, promptGossipEndpoints)

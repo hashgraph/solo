@@ -60,7 +60,7 @@ export function main (argv: any) {
 
     const container = new Container();
 
-    const localConfigRepository = new LocalConfigRepository(path.join(constants.SOLO_CACHE_DIR, constants.DEFAULT_LOCAL_CONFIG_FILE));
+    const localConfigRepository = new LocalConfigRepository(path.join(constants.SOLO_CACHE_DIR, constants.DEFAULT_LOCAL_CONFIG_FILE), logger);
     // container.bind<LocalConfigRepository>("LocalConfigRepository").to(localConfigRepository).inSingletonScope();
     //
     // container.bind<LocalConfigRepository>("LocalConfigRepository").toDynamicValue((context: interfaces.Context) => {

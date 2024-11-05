@@ -708,6 +708,36 @@ export const hederaExplorerVersion: CommandFlag = {
   }
 }
 
+export const userEmailAddress: CommandFlag = {
+  constName: 'userEmailAddress',
+  name: 'email',
+  definition: {
+    describe: 'User email address used for local configuration',
+    defaultValue: '',
+    type: 'string'
+  }
+}
+
+export const deploymentName: CommandFlag = {
+  constName: 'deploymentName',
+  name: 'deployment-name',
+  definition: {
+    describe: 'Solo deployment name',
+    defaultValue: '',
+    type: 'string'
+  }
+}
+
+export const deploymentClusters: CommandFlag = {
+  constName: 'deploymentClusters',
+  name: 'deployment-clusters',
+  definition: {
+    describe: 'Solo deployment cluster list (comma separated)',
+    defaultValue: '',
+    type: 'string'
+  }
+}
+
 export const allFlags: CommandFlag[] = [
   accountId,
   amount,
@@ -728,6 +758,8 @@ export const allFlags: CommandFlag[] = [
   deployCertManagerCrds,
   deployHederaExplorer,
   deployJsonRpcRelay,
+  deploymentClusters,
+  deploymentName,
   deployMinio,
   deployPrometheusStack,
   devMode,
@@ -769,11 +801,10 @@ export const allFlags: CommandFlag[] = [
   tlsPrivateKey,
   tlsPublicKey,
   updateAccountKeys,
+  userEmailAddress,
   valuesFile,
   mirrorNodeVersion,
-  hederaExplorerVersion,
-  inputDir,
-  outputDir
+  hederaExplorerVersion
 ]
 
 /** Resets the definition.disablePrompt for all flags */
