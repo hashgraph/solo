@@ -307,7 +307,7 @@ export class NetworkCommand extends BaseCommand {
           await this.chartManager.install(
             config.namespace,
             constants.SOLO_DEPLOYMENT_CHART,
-            config.chartPath,
+            constants.SOLO_TESTING_CHART_URL + constants.SOLO_DEPLOYMENT_CHART,
             config.soloChartVersion,
             config.valuesArg)
         }
@@ -534,7 +534,7 @@ export class NetworkCommand extends BaseCommand {
           await this.chartManager.upgrade(
             config.namespace,
             constants.SOLO_DEPLOYMENT_CHART,
-            config.chartPath,
+            constants.SOLO_TESTING_CHART_URL + constants.SOLO_DEPLOYMENT_CHART,
             config.valuesArg,
             config.soloChartVersion
           )

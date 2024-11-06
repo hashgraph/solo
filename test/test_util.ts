@@ -265,6 +265,7 @@ export function e2eTestSuite (
           flags.settingTxt.constName,
           flags.grpcTlsKeyPath.constName,
           flags.grpcWebTlsKeyPath.constName,
+          'chartPath'
         ])
       }).timeout(3 * MINUTES)
 
