@@ -22,6 +22,11 @@ name: "Task Test"
 
 on:
   workflow_call:
+  pull_request:
+    types:
+      - opened
+      - reopened
+      - synchronize
 
 defaults:
   run:
