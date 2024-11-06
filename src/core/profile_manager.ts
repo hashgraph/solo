@@ -470,7 +470,7 @@ export class ProfileManager {
         nodeSeq += 1
       }
 
-      if (releaseVersion.minor >= 41) {
+      if (releaseVersion.minor >= 41 && releaseVersion.minor < 56) {
         configLines.push(`nextNodeId, ${nodeSeq}`)
       }
 
