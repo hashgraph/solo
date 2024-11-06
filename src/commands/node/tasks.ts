@@ -1128,8 +1128,7 @@ export class NodeCommandTasks {
 
       await this.chartManager.upgrade(
         config.namespace,
-        constants.SOLO_DEPLOYMENT_CHART,
-        config.chartPath,
+        constants.SOLO_DEPLOYMENT_CHART, constants.SOLO_TESTING_CHART_URL + constants.SOLO_DEPLOYMENT_CHART,
         valuesArg,
         config.soloChartVersion
       )
