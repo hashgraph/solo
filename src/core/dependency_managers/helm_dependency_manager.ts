@@ -66,7 +66,7 @@ export class HelmDependencyManager extends ShellRunner {
     this.downloader = downloader
     this.zippy = zippy
     this.installationDir = installationDir
-    // Node.js uses 'win32' for windows in package.json os field, but helm uses 'windows'
+    // Node.ts uses 'win32' for windows in package.json os field, but helm uses 'windows'
     if (osPlatform === OS_WIN32) {
       this.osPlatform = OS_WINDOWS
     } else {

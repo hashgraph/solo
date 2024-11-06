@@ -34,6 +34,8 @@ export const HELM = 'helm'
 export const RESOURCES_DIR = normalize(path.join(ROOT_DIR, 'resources'))
 
 export const ROOT_CONTAINER = 'root-container'
+export const SOLO_REMOTE_CONFIGMAP_NAME = 'solo-remote-config'
+export const SOLO_REMOTE_CONFIGMAP_LABELS = { 'solo.hedera.com/type': 'remote-config' }
 
 // --------------- Hedera network and node related constants --------------------------------------------------------------------
 export const HEDERA_CHAIN_ID = process.env.SOLO_CHAIN_ID || '298'

@@ -63,7 +63,7 @@ import type { BaseCommand } from '../src/commands/base.ts'
 import type { NodeAlias } from '../src/types/aliases.ts'
 import type { NetworkNodeServices } from '../src/core/network_node_services.ts'
 import sinon from 'sinon'
-import {LocalConfigRepository} from "../src/core/config/LocalConfigRepository.js";
+import {LocalConfigRepository} from "../src/core/config/LocalConfigRepository.ts";
 
 export const testLogger = logging.NewLogger('debug', true)
 export const TEST_CLUSTER = 'solo-e2e'

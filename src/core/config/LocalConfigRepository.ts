@@ -14,97 +14,110 @@
  * limitations under the License.
  *
  */
-import { injectable } from 'inversify';
-import {LocalConfig} from "./LocalConfig.ts";
-import fs from "fs";
+import { injectable } from 'inversify'
+import fs from 'fs'
 import * as yaml from 'yaml'
-import {MissingArgumentError, SoloError} from "../errors.ts";
-import {promptDeploymentClusters, promptDeploymentName, promptUserEmailAddress} from "../../commands/prompts.ts";
-import {flags} from "../../commands/index.ts";
-import {SoloLogger} from "../logging.js";
+import { MissingArgumentError, SoloError } from '../errors.ts'
+import { promptDeploymentClusters, promptDeploymentName, promptUserEmailAddress } from '../../commands/prompts.ts'
+import { flags } from '../../commands/index.ts'
+import { type ClusterMapping, type Deployment, LocalConfig } from './LocalConfig.ts'
+import type { SoloLogger } from '../logging.ts'
+import type { K8 } from '../k8.ts'
+import type { ListrTaskWrapper } from 'listr2'
+import type { EmailAddress } from './remote/types.ts'
+
+export interface LocalConfigStructure {
+    userEmailAddress: EmailAddress
+    deployments: Record<string, Deployment>
+    currentDeploymentName: string
+    clusterMappings: ClusterMapping
+}
 
 @injectable()
 export class LocalConfigRepository {
-    private config: LocalConfig;
+    private config: LocalConfig
 
-    constructor(private readonly filePath: string, private readonly logger: SoloLogger) {
+    constructor (private readonly filePath: string, private readonly logger: SoloLogger) {
         if (!filePath || filePath === '') throw new MissingArgumentError('a valid filePath is required')
         if (!logger) throw new Error('An instance of core/SoloLogger is required')
     }
 
-    public async getConfig(): Promise<LocalConfig> {
-        if (!this.configFileEXists()) {
+    public async getConfig () {
+        if (!this.configFileExists()) {
             // TODO add a warning or something
-            throw new SoloError(`Local config file not found: ${this.filePath}`);
+            throw new SoloError(`Local config file not found: ${this.filePath}`)
         }
 
         if (!this.config) {
             this.config = await LocalConfigRepository.parseFromFile(this.filePath)
         }
-        return this.config;
+        return this.config
     }
 
-    public configFileEXists(): boolean {
+    public configFileExists () {
         return fs.existsSync(this.filePath)
     }
 
-    public async saveConfig(): Promise<void> {
+    public async saveConfig () {
         const config = await this.getConfig()
         await this.writeConfig(config)
     }
 
-    public async writeConfig(config: LocalConfig): Promise<void> {
-        const yamlContent = yaml.stringify(config);
-        await fs.promises.writeFile(this.filePath, yamlContent);
+    public async writeConfig (config: LocalConfig) {
+        const yamlContent = yaml.stringify(config)
+        await fs.promises.writeFile(this.filePath, yamlContent)
         this.logger.info(`Wrote local config to ${this.filePath}`)
     }
 
-    public setConfig(config: LocalConfig): this {
-        this.config = config;
-        return this;
+    public setConfig (config: LocalConfig): this {
+        this.config = config
+        return this
     }
 
-    static async parseFromFile(filePath: string): Promise<LocalConfig> {
-        const fileContent = await fs.promises.readFile(filePath, 'utf8');
-        return new LocalConfig(yaml.parse(fileContent));
+    static async parseFromFile (filePath: string) {
+        const fileContent = await fs.promises.readFile(filePath, 'utf8')
+        return new LocalConfig(yaml.parse(fileContent))
     }
 
-    public loadLocalConfigTask(k8, argv)  {
+    public loadLocalConfigTask (k8: K8, argv: any)  {
         return {
             title: 'Load local configuration',
-                task: async (ctx, task) => {
-                    let config
-                    if (this.configFileEXists()) {
-                        config = this.getConfig()
+                task: async (_: any, task: ListrTaskWrapper<any, any, any>) => {
+                    let config: LocalConfig
+
+                    if (this.configFileExists()) {
+                        config = await this.getConfig()
                     }
                     else {
                         const kubeConfig = k8.getKubeConfig()
 
-                        let clusterMappings = {}
+                        const clusterMappings: any = {}
                         kubeConfig.contexts.forEach(c => {
                             clusterMappings[c.cluster] = c.name
                         })
 
-                        let userEmailAddress = argv[flags.userEmailAddress.name];
+                        let userEmailAddress = argv[flags.userEmailAddress.name]
                         if (!userEmailAddress) userEmailAddress = await promptUserEmailAddress(task, userEmailAddress)
 
-                        let deploymentName = argv[flags.deploymentName.name];
+                        let deploymentName = argv[flags.deploymentName.name]
                         if (!deploymentName) deploymentName = await promptDeploymentName(task, deploymentName)
 
-                        let deploymentClusters = argv[flags.deploymentClusters.name];
+                        let deploymentClusters = argv[flags.deploymentClusters.name]
                         if (!deploymentClusters) deploymentClusters = await promptDeploymentClusters(task, deploymentClusters)
 
                         const deployments = {}
                         deployments[deploymentName] = {
-                            clusterAliases: deploymentClusters.split(',')
+                            clusters: deploymentClusters.split(',')
                         }
 
-                        config = {
+
+
+                        config = new LocalConfig({
                             userEmailAddress,
                             deployments,
                             currentDeploymentName: deploymentName,
                             clusterMappings
-                        } as LocalConfig;
+                        })
 
                         await this.writeConfig(config)
                     }

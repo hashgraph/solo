@@ -21,7 +21,7 @@ import { ShellRunner } from '../core/shell_runner.ts'
 import type {  ChartManager,  ConfigManager,  Helm,  K8,  DependencyManager, LeaseManager } from '../core/index.ts'
 import type {  CommandFlag,  Opts } from '../types/index.ts'
 import {inject, injectable} from 'inversify';
-import { LocalConfigRepository } from './../core/config/LocalConfigRepository.js';
+import { LocalConfigRepository } from './../core/config/LocalConfigRepository.ts';
 
 @injectable()
 export class BaseCommand extends ShellRunner {

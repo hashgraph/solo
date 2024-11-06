@@ -14,29 +14,27 @@
  * limitations under the License.
  *
  */
+import { IsEmail, IsNotEmpty, IsObject, IsString, validateSync } from 'class-validator'
+import { SoloError } from '../errors.ts'
+import type { Cluster, EmailAddress } from './remote/remote_config.ts'
+import type { LocalConfigStructure } from './LocalConfigRepository.ts'
 
-import {IsEmail, IsNotEmpty, IsObject, IsString, validateSync} from "class-validator";
-import {SoloError} from "../errors.js";
+type DeploymentName = string
 
-export type Deployment = {
-    clusterAliases : string[]
+export interface Deployment {
+    clusters : Cluster[]
 }
 
 // an alias for the cluster, provided during the configuration
 // of the deployment, must be unique
-export type Deployments = {
-    [deploymentName: string]:
-        Deployment
-};
+export type Deployments = Record<DeploymentName, Deployment>;
 
-export type ClusterMapping = {
-    [clusterName: string]: string
-};
+export type ClusterMapping = Record<string, string>;
 
 export class LocalConfig {
     @IsNotEmpty()
     @IsEmail()
-    userEmailAddress: string
+    userEmailAddress: EmailAddress
 
     // The string is the name of the deployment, will be used as the namespace,
     // so it needs to be available in all targeted clusters
@@ -54,15 +52,16 @@ export class LocalConfig {
     @IsObject()
     clusterMappings: ClusterMapping
 
-    constructor(config) {
-        for(const [key, value] of Object.entries(config)) {
-            this[key] = value
-        }
+    constructor (config: LocalConfigStructure) {
+        this.userEmailAddress = config.userEmailAddress
+        this.deployments = config.deployments
+        this.currentDeploymentName = config.currentDeploymentName
+        this.clusterMappings = config.clusterMappings
 
         this.validate()
     }
 
-    validate() {
+    validate () {
         const genericMessage = 'Validation of local config failed'
 
         const errors = validateSync(this, { whitelist: true, enableDebugMessages: true, forbidNonWhitelisted: true })
@@ -76,15 +75,15 @@ export class LocalConfig {
             for (const deploymentName in this.deployments) {
                 const deployment = this.deployments[deploymentName]
                 const deploymentIsObject = deployment && typeof deployment === 'object'
-                const deploymentHasClusterAliases = deployment.clusterAliases && Array.isArray(deployment.clusterAliases)
-                let clusterAliasesAreStrings = true
-                for (const clusterAlias of deployment.clusterAliases) {
+                const deploymentHasClusters = deployment.clusters && Array.isArray(deployment.clusters)
+                let clustersAreStrings = true
+                for (const clusterAlias of deployment.clusters) {
                     if (typeof clusterAlias !== 'string') {
-                        clusterAliasesAreStrings = false
+                        clustersAreStrings = false
                     }
                 }
 
-                if (!deploymentIsObject || !deploymentHasClusterAliases || !clusterAliasesAreStrings) {
+                if (!deploymentIsObject || !deploymentHasClusters || !clustersAreStrings) {
                     throw new SoloError(genericMessage)
                 }
             }
@@ -103,31 +102,31 @@ export class LocalConfig {
         catch(e: any) { throw new SoloError(genericMessage) }
     }
 
-    public setUserEmailAddress(emailAddress: string): this {
-        this.userEmailAddress = emailAddress;
+    public setUserEmailAddress (emailAddress: EmailAddress): this {
+        this.userEmailAddress = emailAddress
         this.validate()
-        return this;
+        return this
     }
 
-    public setDeployments(deployments: Deployments): this {
-        this.deployments = deployments;
+    public setDeployments (deployments: Deployments): this {
+        this.deployments = deployments
         this.validate()
-        return this;
+        return this
     }
 
-    public setClusterMappings(clusterMappings: ClusterMapping): this {
-        this.clusterMappings = clusterMappings;
+    public setClusterMappings (clusterMappings: ClusterMapping): this {
+        this.clusterMappings = clusterMappings
         this.validate()
-        return this;
+        return this
     }
 
-    public setCurrentDeployment(deploymentName: string): this {
-        this.currentDeploymentName = deploymentName;
+    public setCurrentDeployment (deploymentName: string): this {
+        this.currentDeploymentName = deploymentName
         this.validate()
-        return this;
+        return this
     }  
     
-    public getCurrentDeployment(): Deployment {
-        return this.deployments[this.currentDeploymentName];
+    public getCurrentDeployment (): Deployment {
+        return this.deployments[this.currentDeploymentName]
     }
 }

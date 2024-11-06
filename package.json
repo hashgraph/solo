@@ -67,6 +67,7 @@
     "jsdoc": "^4.0.4",
     "listr2": "^8.2.5",
     "reflect-metadata": "^0.2.2",
+    "node-semver": "^1.0.0",
     "semver": "^7.6.3",
     "stream-buffers": "^3.0.3",
     "tar": "^7.4.3",

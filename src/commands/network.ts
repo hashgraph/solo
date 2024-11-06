@@ -375,6 +375,12 @@ export class NetworkCommand extends BaseCommand {
                }
              })
            }
+      },
+      {
+        title: '======================================================',
+        task: async () => {
+          console.log((await this.k8.getNamespacedConfigMap('network-node-data-config-cm')).data)
+        }
       }
     ], {
       concurrent: false,
