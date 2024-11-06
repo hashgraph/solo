@@ -24,7 +24,7 @@ export class ShellRunner {
   }
 
   /** Returns a promise that invokes the shell command */
-  run (cmd: string, verbose = false) {
+  run (cmd: string, verbose = true) {
     const self = this
     const callStack = new Error().stack // capture the callstack to be included in error
     self.logger.debug(`Executing command: '${cmd}'`)
