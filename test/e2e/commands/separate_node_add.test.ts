@@ -95,6 +95,7 @@ e2eTestSuite(namespace, argv, undefined, undefined, undefined, undefined, undefi
         flags.devMode.constName,
         flags.force.constName,
         flags.quiet.constName,
+        'chartPath',
         'curDate',
         'freezeAdminPrivateKey'
       ])

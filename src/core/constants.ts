@@ -52,7 +52,7 @@ export const HEDERA_NODE_DEFAULT_STAKE_AMOUNT = +process.env.SOLO_NODE_DEFAULT_S
 
 // --------------- Charts related constants ----------------------------------------------------------------------------
 export const SOLO_SETUP_NAMESPACE = 'solo-setup'
-export const SOLO_TESTING_CHART_URL = 'https://hashgraph.github.io/solo-charts/charts'
+export const SOLO_TESTING_CHART_URL = 'oci://ghcr.io/hashgraph/solo-charts/'
 export const SOLO_TESTING_CHART = 'solo-charts'
 export const SOLO_CLUSTER_SETUP_CHART = 'solo-cluster-setup'
 export const SOLO_DEPLOYMENT_CHART = 'solo-deployment'
@@ -65,7 +65,6 @@ export const HEDERA_EXPLORER_CHART_UTL = 'oci://ghcr.io/hashgraph/hedera-mirror-
 export const HEDERA_EXPLORER_CHART = 'hedera-explorer'
 
 export const DEFAULT_CHART_REPO: Map<string, string> = new Map()
-  .set(SOLO_TESTING_CHART, SOLO_TESTING_CHART_URL)
   .set(JSON_RPC_RELAY_CHART, JSON_RPC_RELAY_CHART_URL)
   .set(MIRROR_NODE_RELEASE_NAME, MIRROR_NODE_CHART_URL)
 
