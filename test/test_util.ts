@@ -70,8 +70,10 @@ export const testLogger = logging.NewLogger('debug', true)
 export const TEST_CLUSTER = 'solo-e2e'
 export const HEDERA_PLATFORM_VERSION_TAG = HEDERA_PLATFORM_VERSION
 
+const TEST_DATA_DIR = 'test/data'
+
 export function getTestCacheDir (testName?: string) {
-  const baseDir = 'test/data/tmp'
+  const baseDir = `${TEST_DATA_DIR}/tmp`
   const d = testName ? path.join(baseDir, testName) : baseDir
 
   if (!fs.existsSync(d)) {
@@ -154,7 +156,7 @@ export function bootstrapTestVariables (
   const profileManager = new ProfileManager(testLogger, configManager)
   const leaseManager = new LeaseManager(k8, testLogger, configManager)
   const certificateManager = new CertificateManager(k8, testLogger, configManager)
-  const localConfigRepository = new LocalConfigRepository(path.join(constants.SOLO_CACHE_DIR, constants.DEFAULT_LOCAL_CONFIG_FILE));
+  const localConfigRepository = new LocalConfigRepository(path.join(TEST_DATA_DIR, constants.DEFAULT_LOCAL_CONFIG_FILE), testLogger);
 
   const opts: TestOpts = {
     logger: testLogger,
