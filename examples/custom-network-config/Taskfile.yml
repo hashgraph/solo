@@ -5,11 +5,13 @@ dotenv:
 silent: false
 
 env:
-  SOLO_CHART_VERSION: v0.32.0
-  CONSENSUS_NODE_VERSION: v0.54.1
+  SOLO_CHART_VERSION: 0.34.0
+  CONSENSUS_NODE_VERSION: v0.56.0
   SOLO_NAMESPACE: solo-{{ env "USER" | replace "." "-" | trunc 63 }}
   SOLO_CLUSTER_SETUP_NAMESPACE: solo-setup
-  SOLO_NETWORK_SIZE: 7
+  SOLO_NETWORK_SIZE: 2
+  SOLO_CLUSTER_NAME: solo-cluster
+  KIND_IMAGE: kindest/node:v1.27.3@sha256:3966ac761ae0136263ffdb6cfd4db23ef8a83cba8a463690e98317add2c9ba72
 
 vars:
   solo_settings_file: "{{.ROOT_DIR}}/settings.txt"
@@ -32,6 +34,9 @@ tasks:
     cmds:
       - task: "install:kubectl:darwin"
       - task: "install:kubectl:linux"
+      - task: "install:kind:darwin"
+      - task: "install:kind:linux:x86_64"
+      - task: "install:kind:linux:aarch64"
       - task: "install:solo"
       - task: "install"
       - task: "start"
@@ -39,8 +44,22 @@ tasks:
   install:
     cmds:
       - task: "solo:init"
+      - task: "cluster:create"
+      - task: "cluster:setup"
       - task: "solo:keys"
       - task: "solo:network:deploy"
+
+  cluster:create:
+    status:
+      - kind get clusters | grep -q "${SOLO_CLUSTER_NAME}"
+    cmds:
+      - kind create cluster -n "${SOLO_CLUSTER_NAME}" --image "${KIND_IMAGE}"
+
+  cluster:setup:
+    status:
+      - helm list -n "${SOLO_CLUSTER_SETUP_NAMESPACE}" | grep -q solo-cluster
+    cmds:
+      - npm run solo-test -- cluster setup --cluster-setup-namespace "${SOLO_CLUSTER_SETUP_NAMESPACE}"
 
   start:
     cmds:
@@ -64,6 +83,7 @@ tasks:
       - task: "destroy"
       - task: "clean:cache"
       - task: "clean:logs"
+      - task: "solo:config:remove"
 
   clean:cache:
     cmds:
@@ -86,7 +106,7 @@ tasks:
       #- test "$(yq -r '.flags."node-ids"' < {{ .solo_user_dir }}/solo.yaml)" == "{{ .node_identifiers }}"
       - test "$(jq -r '.flags."node-ids"' < {{ .solo_user_dir }}/solo.config)" == "{{ .node_identifiers }}"
     cmds:
-      - solo init --namespace "${SOLO_NAMESPACE}" --node-ids {{.node_identifiers}} --release-tag "${CONSENSUS_NODE_VERSION}" --cluster-setup-namespace "${SOLO_CLUSTER_SETUP_NAMESPACE}"
+      - npm run solo-test -- init
 
   solo:keys:
     internal: true
@@ -99,29 +119,29 @@ tasks:
           test -f {{ .solo_keys_dir }}/s-private-node${n}.pem
          done
     cmds:
-      - solo node keys --gossip-keys --tls-keys
+      - npm run solo-test -- node keys --gossip-keys --tls-keys --node-aliases-unparsed {{.node_identifiers}}
 
   solo:network:deploy:
     internal: true
     cmds:
-      - solo network deploy --release-tag "${CONSENSUS_NODE_VERSION}" --solo-chart-version "${SOLO_CHART_VERSION}" --values-file {{ .solo_values_file }} --settings-txt {{ .solo_settings_file }}
-      - solo node setup --release-tag "${CONSENSUS_NODE_VERSION}"
+      - npm run solo-test -- network deploy --namespace "${SOLO_NAMESPACE}" --node-aliases-unparsed {{.node_identifiers}} --release-tag "${CONSENSUS_NODE_VERSION}" --solo-chart-version "${SOLO_CHART_VERSION}" --settings-txt {{ .solo_settings_file }}
+      - npm run solo-test -- node setup --namespace "${SOLO_NAMESPACE}" --node-aliases-unparsed {{.node_identifiers}} --release-tag "${CONSENSUS_NODE_VERSION}"
 
   solo:network:destroy:
     internal: true
     cmds:
-      - solo network destroy --namespace "${SOLO_NAMESPACE}" --delete-pvcs --delete-secrets --force
+      - npm run solo-test -- network destroy --namespace "${SOLO_NAMESPACE}" --delete-pvcs --delete-secrets --force
 
   solo:node:start:
     internal: true
     cmds:
-      - solo node start --namespace "${SOLO_NAMESPACE}" {{ .CLI_ARGS }}
+      - npm run solo-test -- node start --namespace "${SOLO_NAMESPACE}" --node-aliases-unparsed {{.node_identifiers}} {{ .CLI_ARGS }}
 
   solo:node:stop:
     internal: true
     ignore_error: true
     cmds:
-      - solo node stop --namespace "${SOLO_NAMESPACE}" {{ .CLI_ARGS }}
+      - npm run solo-test -- node stop --namespace "${SOLO_NAMESPACE}" --node-aliases-unparsed {{.node_identifiers}} {{ .CLI_ARGS }}
 
   solo:node:addresses:
     internal: true
@@ -177,3 +197,31 @@ tasks:
       - sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
       - rm -rf kubectl
 
+  install:kind:darwin:
+    internal: true
+    platforms:
+      - darwin
+    status:
+      - command -v kind
+    cmds:
+      - brew install kind
+
+  install:kind:linux:x86_64:
+    internal: true
+    platforms:
+      - linux
+    status:
+      - command -v kind
+      - test "$(uname -m)" == "x86_64"
+    cmds:
+      - curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.24.0/kind-linux-amd64
+
+  install:kind:linux:aarch64:
+    internal: true
+    platforms:
+      - linux
+    status:
+      - command -v kind
+      - test "$(uname -m)" == "aarch64"
+    cmds:
+      - curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.24.0/kind-linux-arm64
