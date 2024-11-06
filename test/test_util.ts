@@ -142,8 +142,11 @@ export function bootstrapTestVariables (
   const configManager = new ConfigManager(testLogger)
   configManager.update(argv)
 
-  testLogger.info(`config file: ${path.join(TEST_DATA_DIR, constants.DEFAULT_LOCAL_CONFIG_FILE)}`)
-  testLogger.info(`config file exists: ${fs.existsSync(path.join(TEST_DATA_DIR, constants.DEFAULT_LOCAL_CONFIG_FILE))}`)
+  console.log(`config file: ${path.join(TEST_DATA_DIR, constants.DEFAULT_LOCAL_CONFIG_FILE)}`)
+  console.log(`config file exists: ${fs.existsSync(path.dirname, path.join(TEST_DATA_DIR, constants.DEFAULT_LOCAL_CONFIG_FILE))}`)
+
+  testLogger.warn(`config file: ${path.join(TEST_DATA_DIR, constants.DEFAULT_LOCAL_CONFIG_FILE)}`)
+  testLogger.warn(`config file exists: ${fs.existsSync(path.dirname, path.join(TEST_DATA_DIR, constants.DEFAULT_LOCAL_CONFIG_FILE))}`)
 
   const downloader = new PackageDownloader(testLogger)
   const zippy = new Zippy(testLogger)
