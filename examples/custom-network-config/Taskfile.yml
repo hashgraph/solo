@@ -66,9 +66,9 @@ tasks:
 
   cluster:destroy:
     cmds:
+      # - kubectl delete namespace "${SOLO_NAMESPACE}"
+      # - kubectl delete namespace "${SOLO_CLUSTER_SETUP_NAMESPACE}"
       - kind delete cluster --name "${SOLO_CLUSTER_NAME}"
-      - kubectl delete namespace "${SOLO_NAMESPACE}"
-      - kubectl delete namespace "${SOLO_CLUSTER_SETUP_NAMESPACE}"
 
   start:
     cmds:
