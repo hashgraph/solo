@@ -1,0 +1,307 @@
+version: 3
+output: prefixed
+dotenv:
+  - .env
+silent: false
+
+env:
+  SOLO_CHART_VERSION: 0.34.0
+  CONSENSUS_NODE_VERSION: v0.56.0
+  SOLO_NAMESPACE: solo-{{ env "USER" | replace "." "-" | trunc 63 | default "test" }}
+  SOLO_CLUSTER_SETUP_NAMESPACE: solo-setup
+  SOLO_NETWORK_SIZE: 2
+  SOLO_CLUSTER_NAME: solo-cluster
+  KIND_IMAGE: kindest/node:v1.27.3@sha256:3966ac761ae0136263ffdb6cfd4db23ef8a83cba8a463690e98317add2c9ba72
+
+vars:
+  nodes:
+    ref: until (env "SOLO_NETWORK_SIZE" | default .SOLO_NETWORK_SIZE | int)
+  node_list_internal: "{{range $idx, $n := .nodes }}node{{$n}},{{end}}"
+  node_identifiers: "{{ .node_list_internal | trimSuffix \",\" }}"
+
+  solo_user_dir: "{{ env \"HOME\" }}/.solo"
+  solo_cache_dir: "{{ .solo_user_dir }}/cache"
+  solo_logs_dir: "{{ .solo_user_dir }}/logs"
+  solo_keys_dir: "{{ .solo_cache_dir }}/keys"
+  solo_bin_dir: "{{ .solo_user_dir }}/bin"
+
+tasks:
+  readme:
+    silent: true
+    cmds:
+      - echo "This is a custom network configuration for the Hedera Hashgraph Solo network."
+      - echo "The network is configured to have {{ .SOLO_NETWORK_SIZE }} nodes."
+      - echo "The network is deployed in the namespace {{ .SOLO_NAMESPACE }}."
+      - echo "The cluster is deployed in the namespace {{ .SOLO_CLUSTER_SETUP_NAMESPACE }}."
+      - echo "Use command 'task default' to deploy the network."
+      - echo "Use command 'task destroy' to destroy the network."
+      - echo "Use command 'task clean' to destroy and clean up the network."
+      - echo "Use command 'task show:ips' to show the external IPs of the nodes."
+      - echo "Use command 'task default-with-mirror' to deploy the network with a mirror node."
+
+  default:
+    cmds:
+      - task: "install:node:darwin"
+      - task: "install:node:linux"
+      - task: "install:kubectl:darwin"
+      - task: "install:kubectl:linux"
+      - task: "install:helm:darwin"
+      - task: "install:helm:linux"
+      - task: "install:kind:darwin"
+      - task: "install:kind:linux:x86_64"
+      - task: "install:kind:linux:aarch64"
+      - task: "install:solo"
+      - task: "install"
+      - task: "start"
+
+  default-with-mirror:
+    cmds:
+      - task: "default"
+      - task: "mirror:deploy"
+
+  install:
+    cmds:
+      - task: "cluster:create"
+      - task: "solo:init"
+      - task: "cluster:setup"
+      - task: "solo:keys"
+      - task: "solo:network:deploy"
+
+  cluster:create:
+    status:
+      - kind get clusters | grep -q "${SOLO_CLUSTER_NAME}"
+    cmds:
+      - kind create cluster -n "${SOLO_CLUSTER_NAME}" --image "${KIND_IMAGE}"
+
+  cluster:setup:
+    status:
+      - helm list -n "${SOLO_CLUSTER_SETUP_NAMESPACE}" | grep -q solo-cluster
+    cmds:
+      - npm run solo-test -- cluster setup --cluster-setup-namespace "${SOLO_CLUSTER_SETUP_NAMESPACE}"
+
+  cluster:destroy:
+    cmds:
+      - kind delete cluster --name "${SOLO_CLUSTER_NAME}"
+
+  start:
+    cmds:
+      - task: "solo:node:start"
+
+  stop:
+    cmds:
+      - task: "solo:node:stop"
+
+  mirror:deploy:
+    cmds:
+      - npm run solo-test -- mirror-node deploy --namespace "${SOLO_NAMESPACE}"
+      - echo "Enable port forwarding for Hedera Explorer"
+      - kubectl port-forward -n "${SOLO_NAMESPACE}" svc/hedera-explorer 8080:80 &
+
+  mirror:destroy:
+    cmds:
+      - npm run solo-test -- mirror-node destroy --namespace "${SOLO_NAMESPACE}" --force || true
+
+  show:ips:
+    cmds:
+      - task: "solo:node:addresses"
+
+  destroy:
+    cmds:
+      - task: "solo:node:stop"
+      - task: "solo:network:destroy"
+      - task: "mirror:destroy"
+      - task: "cluster:destroy"
+
+  clean:
+    cmds:
+      - task: "destroy"
+      - task: "clean:cache"
+      - task: "clean:logs"
+      - task: "solo:config:remove"
+
+  clean:cache:
+    cmds:
+      - task: "solo:cache:remove"
+
+  clean:logs:
+    cmds:
+      - task: "solo:logs:remove"
+
+  solo:init:
+    internal: true
+    status:
+      - test -f {{ .solo_bin_dir }}/helm
+      - test -f {{ .solo_cache_dir }}/profiles/custom-spec.yaml
+      - test -f {{ .solo_cache_dir }}/templates/api-permission.properties
+      - test -f {{ .solo_cache_dir }}/templates/application.properties
+      - test -f {{ .solo_cache_dir }}/templates/bootstrap.properties
+      - test -f {{ .solo_cache_dir }}/templates/settings.txt
+      - test -f {{ .solo_cache_dir }}/templates/log4j2.xml
+      #- test "$(yq -r '.flags."node-ids"' < {{ .solo_user_dir }}/solo.yaml)" == "{{ .node_identifiers }}"
+      - test "$(jq -r '.flags."node-ids"' < {{ .solo_user_dir }}/solo.config)" == "{{ .node_identifiers }}"
+    cmds:
+      - npm run solo-test -- init
+
+  solo:keys:
+    internal: true
+    status:
+      - |
+         for n in $(seq 0 {{ sub (env "SOLO_NETWORK_SIZE" | default .SOLO_NETWORK_SIZE | int) 1 }}); do
+          test -f {{ .solo_keys_dir }}/hedera-node${n}.crt
+          test -f {{ .solo_keys_dir }}/hedera-node${n}.key
+          test -f {{ .solo_keys_dir }}/s-public-node${n}.pem
+          test -f {{ .solo_keys_dir }}/s-private-node${n}.pem
+         done
+    cmds:
+      - npm run solo-test -- node keys --gossip-keys --tls-keys --node-aliases-unparsed {{.node_identifiers}}
+
+  solo:network:deploy:
+    internal: true
+    cmds:
+      - npm run solo-test -- network deploy --namespace "${SOLO_NAMESPACE}" --node-aliases-unparsed {{.node_identifiers}} --release-tag "${CONSENSUS_NODE_VERSION}" --solo-chart-version "${SOLO_CHART_VERSION}"
+      - npm run solo-test -- node setup --namespace "${SOLO_NAMESPACE}" --node-aliases-unparsed {{.node_identifiers}} --release-tag "${CONSENSUS_NODE_VERSION}"
+
+  solo:network:destroy:
+    internal: true
+    cmds:
+      - npm run solo-test -- network destroy --namespace "${SOLO_NAMESPACE}" --delete-pvcs --delete-secrets --force
+
+  solo:node:start:
+    internal: true
+    cmds:
+      - npm run solo-test -- node start --namespace "${SOLO_NAMESPACE}" --node-aliases-unparsed {{.node_identifiers}} {{ .CLI_ARGS }}
+
+  solo:node:stop:
+    internal: true
+    ignore_error: true
+    cmds:
+      - npm run solo-test -- node stop --namespace "${SOLO_NAMESPACE}" --node-aliases-unparsed {{.node_identifiers}} {{ .CLI_ARGS }}
+
+  solo:node:addresses:
+    internal: true
+    cmds:
+      - kubectl get svc -n "${SOLO_NAMESPACE}" -l "solo.hedera.com/type=network-node-svc"
+
+  solo:cache:remove:
+    internal: true
+    status:
+      - test [[ ! -d {{ .solo_cache_dir }} ]]
+    cmds:
+      - rm -rf {{ .solo_cache_dir }}
+
+  solo:logs:remove:
+    internal: true
+    status:
+      - test [[ ! -d {{ .solo_logs_dir }} ]]
+    cmds:
+      - rm -rf {{ .solo_logs_dir }}
+
+  solo:config:remove:
+    internal: true
+    status:
+      - test [[ ! -f {{ .solo_user_dir }}/solo.yaml ]]
+    cmds:
+      - rm -rf {{ .solo_user_dir }}/solo.yaml
+
+  install:solo:
+    internal: true
+    status:
+      - command -v solo
+    cmds:
+      - npm install -g @hashgraph/solo
+
+  install:kubectl:darwin:
+    internal: true
+    platforms:
+      - darwin
+    status:
+      - command -v kubectl
+    cmds:
+      - brew update
+      - brew install kubernetes-cli
+
+  install:kubectl:linux:
+    internal: true
+    platforms:
+      - linux
+    status:
+      - command -v kubectl
+    cmds:
+      - curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/{{ ARCH }}/kubectl"
+      - sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
+      - rm -rf kubectl
+
+  install:kind:darwin:
+    internal: true
+    platforms:
+      - darwin
+    status:
+      - command -v kind
+    cmds:
+      - brew install kind
+
+  install:kind:linux:x86_64:
+    internal: true
+    platforms:
+      - linux
+    status:
+      - command -v kind
+      - test ! "$(uname -m)" == "x86_64"
+    cmds:
+      - curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.24.0/kind-linux-amd64
+      - chmod +x ./kind
+      - sudo mv ./kind /usr/local/bin/kind
+
+  install:kind:linux:aarch64:
+    internal: true
+    platforms:
+      - linux
+    status:
+      - command -v kind
+      - test ! "$(uname -m)" == "aarch64"
+    cmds:
+      - curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.24.0/kind-linux-arm64
+      - chmod +x ./kind
+      - sudo mv ./kind /usr/local/bin/kind
+
+  install:node:linux:
+    internal: true
+    platforms:
+        - linux
+    status:
+        - command -v node
+    cmds:
+        - curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.5/install.sh | bash
+        - source ~/.bashrc
+        - nvm install 21
+
+  install:node:darwin:
+    internal: true
+    platforms:
+        - darwin
+    status:
+        - command -v node
+    cmds:
+        - brew install node@21
+
+  install:helm:darwin:
+    internal: true
+    platforms:
+        - darwin
+    status:
+        - command -v helm
+    cmds:
+        - brew install helm
+
+  install:helm:linux:
+    internal: true
+    platforms:
+        - linux
+    status:
+        - command -v helm
+    cmds:
+        - curl https://baltocdn.com/helm/signing.asc | gpg --dearmor | sudo tee /usr/share/keyrings/helm.gpg > /dev/null
+        - sudo apt-get install apt-transport-https --yes
+        - echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/helm.gpg] https://baltocdn.com/helm/stable/debian/ all main" | sudo tee /etc/apt/sources.list.d/helm-stable-debian.list
+        - sudo apt-get update
+        - sudo apt-get install helm

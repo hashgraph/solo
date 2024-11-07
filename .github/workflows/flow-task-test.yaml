@@ -1,0 +1,65 @@
+##
+# Copyright (C) 2023-2024 Hedera Hashgraph, LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+##
+
+name: "Taskfile.yaml Test"
+# The purpose of this reusable workflow is to make sure task files are working as expected.
+
+on:
+  workflow_call:
+  pull_request:
+    types:
+      - opened
+      - reopened
+      - synchronize
+
+defaults:
+  run:
+    shell: bash
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  example-task-file-test:
+    runs-on: solo-linux-large
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@91182cccc01eb5e619899d80e4e971d6181294a7 # v2.10.1
+        with:
+          egress-policy: audit
+
+      - name: Checkout Code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Setup Node
+        uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4.1.0
+        with:
+          node-version: 20.18.0
+          cache: npm
+
+      - name: Install Dependencies
+        id: npm-deps
+        run: npm ci
+
+      - name: Compile Project
+        run: npm run build
+
+      - name: Run Example Task File Test
+        run: |
+          task readme
+          task default-with-mirror
+          task clean
