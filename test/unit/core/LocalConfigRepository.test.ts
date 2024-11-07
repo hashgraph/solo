@@ -21,7 +21,7 @@ import { expect } from 'chai'
 import { MissingArgumentError, SoloError } from '../../../src/core/errors.ts'
 import { testLogger } from '../../test_util.ts'
 import { type ClusterMapping, type Deployments, LocalConfig } from '../../../src/core/config/LocalConfig.ts'
-import type { EmailAddress } from '../../../src/core/config/remote/remote_config.ts'
+import type { EmailAddress } from '../../../src/core/config/remote/types.ts'
 
 describe('LocalConfigRepository', () => {
     let localConfig: LocalConfigRepository

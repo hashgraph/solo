@@ -44,7 +44,7 @@ import {
   ProfileManager,
   Templates,
   Zippy,
-  AccountManager
+  AccountManager, RemoteConfigManager
 } from '../src/core/index.ts'
 import { flags } from '../src/commands/index.ts'
 import {
@@ -62,8 +62,7 @@ import type { SoloLogger } from '../src/core/logging.ts'
 import type { BaseCommand } from '../src/commands/base.ts'
 import type { NodeAlias } from '../src/types/aliases.ts'
 import type { NetworkNodeServices } from '../src/core/network_node_services.ts'
-import sinon from 'sinon'
-import {LocalConfigRepository} from "../src/core/config/LocalConfigRepository.ts";
+import { LocalConfigRepository } from '../src/core/config/LocalConfigRepository.ts'
 import { HEDERA_PLATFORM_VERSION } from '../version.js'
 
 export const testLogger = logging.NewLogger('debug', true)
@@ -111,6 +110,7 @@ interface TestOpts {
   profileManager: ProfileManager
   leaseManager: LeaseManager,
   localConfigRepository: LocalConfigRepository
+  remoteConfigManager: RemoteConfigManager
 }
 
 interface BootstrapResponse {
@@ -142,9 +142,11 @@ export function bootstrapTestVariables (
   configManager.update(argv)
 
   console.log(`config file: ${path.join(TEST_DATA_DIR, constants.DEFAULT_LOCAL_CONFIG_FILE)}`)
+  // @ts-ignore
   console.log(`config file exists: ${fs.existsSync(path.dirname, path.join(TEST_DATA_DIR, constants.DEFAULT_LOCAL_CONFIG_FILE))}`)
 
   testLogger.warn(`config file: ${path.join(TEST_DATA_DIR, constants.DEFAULT_LOCAL_CONFIG_FILE)}`)
+  // @ts-ignore
   testLogger.warn(`config file exists: ${fs.existsSync(path.dirname, path.join(TEST_DATA_DIR, constants.DEFAULT_LOCAL_CONFIG_FILE))}`)
 
   const downloader = new PackageDownloader(testLogger)
@@ -160,7 +162,8 @@ export function bootstrapTestVariables (
   const platformInstaller = new PlatformInstaller(testLogger, k8, configManager)
   const profileManager = new ProfileManager(testLogger, configManager)
   const leaseManager = new LeaseManager(k8, testLogger, configManager)
-  const localConfigRepository = new LocalConfigRepository(path.join(TEST_DATA_DIR, constants.DEFAULT_LOCAL_CONFIG_FILE), testLogger);
+  const localConfigRepository = new LocalConfigRepository(path.join(TEST_DATA_DIR, constants.DEFAULT_LOCAL_CONFIG_FILE), testLogger)
+  const remoteConfigManager = new RemoteConfigManager(k8, testLogger, configManager, localConfigRepository)
 
   const opts: TestOpts = {
     logger: testLogger,
@@ -176,7 +179,8 @@ export function bootstrapTestVariables (
     cacheDir,
     profileManager,
     leaseManager,
-    localConfigRepository
+    localConfigRepository,
+    remoteConfigManager,
   }
 
   const initCmd = initCmdArg || new InitCommand(opts)

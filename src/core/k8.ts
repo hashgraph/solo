@@ -33,7 +33,6 @@ import type * as WebSocket from 'ws'
 import type { PodName } from '../types/aliases.ts'
 import type { ExtendedNetServer, LocalContextObject } from '../types/index.ts'
 import type * as http from 'node:http'
-import { meta } from 'eslint-plugin-n';
 
 interface TDirectoryData {directory: boolean; owner: string; group: string; size: string; modifiedAt: string; name: string}
 
