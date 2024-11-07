@@ -14,63 +14,13 @@
  * limitations under the License.
  *
  */
-import { RemoteConfigMetadata } from './metadata.ts'
-import * as version from '../../../../version.ts'
 import * as constants from '../../constants.ts'
 
 import { LocalConfigRepository, LocalConfigStructure } from '../LocalConfigRepository.ts'
-import type {
-  Version, Cluster, Context, Namespace, Component,
-  RemoteConfigMetadataStructure,
-} from './types.ts'
-import type { ComponentTypeEnum } from './enumerations.ts'
 import type { Opts } from '../../../types/index.ts'
 import type { K8 } from '../../k8.ts'
 import type * as k8s from '@kubernetes/client-node'
 import { SoloError } from '../../errors.ts'
-
-class RemoteCommand {
-  protected version: Version
-  protected metadata: RemoteConfigMetadataStructure
-  protected clusters: Record<Cluster, Namespace>
-  protected components: Record<ComponentTypeEnum, Record<string, Component>>
-
-  constructor (localConfig: LocalConfigStructure, namespace?: Namespace, cluster?: Cluster, context?: Context) {
-    this.metadata = new RemoteConfigMetadata(cluster, new Date(), localConfig.userEmailAddress)
-    this.version = version.HEDERA_PLATFORM_VERSION
-    this.clusters = { cluster, namespace }
-    this.components = {} as any
-  }
-
-  public async read () {}
-
-  public async validate () {}
-
-  public async create (k8: K8) {
-    await k8.createNamespacedConfigMap(
-      constants.SOLO_REMOTE_CONFIGMAP_NAME,
-      constants.SOLO_REMOTE_CONFIGMAP_LABELS,
-      this.toObject() as any
-    )
-  }
-
-  public async write (k8: K8) {
-    await k8.replaceNamespacedConfigMap(
-      constants.SOLO_REMOTE_CONFIGMAP_NAME,
-      constants.SOLO_REMOTE_CONFIGMAP_LABELS,
-      this.toObject() as any
-    )
-  }
-
-  public toObject () {
-    return {
-      metadata: this.metadata.toObject(),
-      version: this.version,
-      clusters: this.clusters,
-      components: this.components,
-    }
-  }
-}
 
 class RemoteConfigManager {
   k8: K8

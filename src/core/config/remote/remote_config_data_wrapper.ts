@@ -19,7 +19,7 @@ import type {
 } from './types.ts'
 import semver from 'semver'
 import { SoloError } from '../../errors.ts'
-import { ComponentTypeEnum } from './enumerations.ts';
+import { ComponentTypeEnum } from './enumerations.ts'
 
 export class RemoteConfigDataWrapper {
   private version: Version
@@ -36,7 +36,7 @@ export class RemoteConfigDataWrapper {
     this.validate()
   }
 
-  public validate () {
+  private validate () {
     if (!semver.valid(this.version)) {
       throw new SoloError(`Invalid remote config version: ${this.version}`)
     }
@@ -86,5 +86,14 @@ export class RemoteConfigDataWrapper {
         }
       })
     })
+  }
+
+  public toObject () {
+    return {
+      metadata: this.metadata.toObject(),
+      version: this.version,
+      clusters: this.clusters,
+      components: this.components,
+    }
   }
 }
