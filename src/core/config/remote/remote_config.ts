@@ -27,6 +27,8 @@ import type { ListrTaskWrapper } from 'listr2'
 import { RemoteConfigMetadata } from './metadata.ts'
 import { flags } from '../../../commands/index.ts'
 import type { ConfigManager } from '../../config_manager.ts'
+import type { Deployment } from '../LocalConfig.ts'
+import yaml from 'js-yaml'
 
 export class RemoteConfigManager {
   private remoteConfig?: RemoteConfigDataWrapper
@@ -56,12 +58,10 @@ export class RemoteConfigManager {
       localConfig.userEmailAddress
     )
 
-    const deployment = localConfig.deployments[namespace]
-
     const clusters: Record<Cluster, Namespace> = {}
 
-    deployment.clusters.forEach((cluster: Cluster) => {
-      clusters[cluster] = namespace
+    Object.entries(localConfig.deployments).forEach(([ns, deployment]: [Namespace, Deployment]) => {
+      deployment.clusters.forEach(cluster => clusters[cluster] = ns)
     })
 
     const data: RemoteConfigData = {
@@ -85,7 +85,7 @@ export class RemoteConfigManager {
     await this.k8.createNamespacedConfigMap(
       constants.SOLO_REMOTE_CONFIGMAP_NAME,
       constants.SOLO_REMOTE_CONFIGMAP_LABELS,
-      this.remoteConfig.toObject() as any
+      { 'remote-config-data': yaml.dump(this.remoteConfig.toObject() as any) }
     )
   }
 
@@ -99,27 +99,23 @@ export class RemoteConfigManager {
     await this.k8.replaceNamespacedConfigMap(
       constants.SOLO_REMOTE_CONFIGMAP_NAME,
       constants.SOLO_REMOTE_CONFIGMAP_LABELS,
-      this.remoteConfig.toObject() as any
+      { 'remote-config-data': yaml.dump(this.remoteConfig.toObject() as any) }
     )
   }
 
   async load () {
-    const data = await this.getFromCluster()
-    if (!data) {
+    const configMap = await this.getFromCluster()
+    if (!configMap) {
       return null
     }
 
-    this.remoteConfig = new RemoteConfigDataWrapper(data)
+    this.remoteConfig = RemoteConfigDataWrapper.fromConfigmap(configMap)
     return this.remoteConfig
   }
 
-  async getFromCluster (): Promise<RemoteConfigData | null> {
-    let data: k8s.V1ConfigMap
-
+  async getFromCluster () {
     try {
-      data = await this.k8.getNamespacedConfigMap(constants.SOLO_REMOTE_CONFIGMAP_NAME)
-
-      return data.data as unknown as RemoteConfigData
+      return await this.k8.getNamespacedConfigMap(constants.SOLO_REMOTE_CONFIGMAP_NAME)
     } catch (error: any) {
       if (error.meta.statusCode !== 404) {
         const errorMessage = 'Failed to read remote config from cluster'

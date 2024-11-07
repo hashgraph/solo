@@ -16,6 +16,7 @@
  */
 import { Migration } from './migration.ts'
 import { SoloError } from '../../errors.ts'
+import * as k8s from '@kubernetes/client-node'
 import type { EmailAddress, Namespace, RemoteConfigMetadataStructure } from './types.ts'
 
 export class RemoteConfigMetadata implements RemoteConfigMetadataStructure {
@@ -49,7 +50,7 @@ export class RemoteConfigMetadata implements RemoteConfigMetadataStructure {
   toObject () {
     const data = {
       name: this.name,
-      lastUpdatedAt: this.lastUpdatedAt,
+      lastUpdatedAt: new k8s.V1MicroTime(this.lastUpdatedAt),
       lastUpdateBy: this.lastUpdateBy,
     } as Omit<RemoteConfigMetadataStructure, 'toObject' | 'validate'>
 

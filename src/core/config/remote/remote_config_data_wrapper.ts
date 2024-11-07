@@ -21,6 +21,9 @@ import * as version from '../../../../version.ts'
 import type {
   Cluster, Version, Namespace, Component, RemoteConfigData, RemoteConfigMetadataStructure
 } from './types.ts'
+import type * as k8s from '@kubernetes/client-node'
+import yaml from 'js-yaml'
+import { RemoteConfigMetadata } from "./metadata.js";
 
 export class RemoteConfigDataWrapper {
   private readonly _version: Version = version.HEDERA_PLATFORM_VERSION
@@ -33,6 +36,23 @@ export class RemoteConfigDataWrapper {
     this._clusters = data.clusters
     this._components = data.components
     this.validate()
+  }
+
+  static fromConfigmap (configMap: k8s.V1ConfigMap) {
+    const yamlData = configMap.data as { 'remote-config-data': any }
+    const unparsed = yaml.load(yamlData['remote-config-data']) as any
+
+    const metadata = new RemoteConfigMetadata(
+      unparsed.metadata.name,
+      new Date(unparsed.metadata.lastUpdatedAt),
+      unparsed.metadata.lastUpdateBy
+    )
+
+    return new RemoteConfigDataWrapper({
+      metadata,
+      clusters: unparsed.clusters,
+      components: unparsed.components,
+    })
   }
 
   get metadata () {

@@ -16,6 +16,7 @@
  */
 import { injectable } from 'inversify'
 import fs from 'fs'
+import path from 'path'
 import * as yaml from 'yaml'
 import { MissingArgumentError, SoloError } from '../errors.ts'
 import { promptDeploymentClusters, promptDeploymentName, promptUserEmailAddress } from '../../commands/prompts.ts'
@@ -65,6 +66,7 @@ export class LocalConfigRepository {
 
     public async writeConfig (config: LocalConfig) {
         const yamlContent = yaml.stringify(config)
+        await fs.promises.mkdir(path.dirname(this.filePath), { recursive: true })
         await fs.promises.writeFile(this.filePath, yamlContent)
         this.logger.info(`Wrote local config to ${this.filePath}`)
     }

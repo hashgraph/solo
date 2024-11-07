@@ -133,7 +133,7 @@ export class LeaseManager {
 
       this.logger.info(`Lease is already taken retrying in ${LEASE_AQUIRE_RETRY_TIMEOUT}`)
 
-      task.title = `${title} - ${chalk.gray(`lease exists, attempting again in ${LEASE_AQUIRE_RETRY_TIMEOUT} seconds`)}` +
+      task.title = `${title} - ${chalk.gray(`lease exists, attempting again in ${LEASE_AQUIRE_RETRY_TIMEOUT / 1_000} seconds`)}` +
         `, attempt: ${chalk.cyan(attempt.toString())}/${chalk.cyan(maxAttempts.toString())}`
 
       await sleep(LEASE_AQUIRE_RETRY_TIMEOUT)
