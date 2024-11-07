@@ -20,8 +20,13 @@ import { MissingArgumentError } from '../core/errors.ts'
 import { ShellRunner } from '../core/shell_runner.ts'
 import type {  ChartManager,  ConfigManager,  Helm,  K8,  DependencyManager, LeaseManager } from '../core/index.ts'
 import type {  CommandFlag,  Opts } from '../types/index.ts'
-import {inject, injectable} from 'inversify';
-import { LocalConfigRepository } from './../core/config/LocalConfigRepository.js';
+import {injectable} from 'inversify';
+import { LocalConfigRepository } from './../core/config/LocalConfigRepository.ts';
+import { TYPES } from './../types/injectables.js';
+
+import {container} from "../inject.config.ts";
+import getDecorators from "inversify-inject-decorators";
+let { lazyInject } = getDecorators.default(container, false);
 
 @injectable()
 export class BaseCommand extends ShellRunner {
@@ -32,7 +37,9 @@ export class BaseCommand extends ShellRunner {
   protected readonly depManager: DependencyManager
   protected readonly leaseManager: LeaseManager
   protected readonly _configMaps = new Map<string, any>()
-  protected readonly localConfigRepository: LocalConfigRepository;
+
+  @lazyInject(TYPES.LocalConfigRepository)
+  private localConfigRepository: LocalConfigRepository
 
   constructor (opts: Opts) {
     if (!opts || !opts.logger) throw new Error('An instance of core/SoloLogger is required')
@@ -41,7 +48,6 @@ export class BaseCommand extends ShellRunner {
     if (!opts || !opts.chartManager) throw new Error('An instance of core/ChartManager is required')
     if (!opts || !opts.configManager) throw new Error('An instance of core/ConfigManager is required')
     if (!opts || !opts.depManager) throw new Error('An instance of core/DependencyManager is required')
-    if (!opts || !opts.localConfigRepository) throw new Error('An instance of core/config/LocalConfigRepository is required')
 
     super(opts.logger)
 
@@ -51,7 +57,10 @@ export class BaseCommand extends ShellRunner {
     this.configManager = opts.configManager
     this.depManager = opts.depManager
     this.leaseManager = opts.leaseManager
-    this.localConfigRepository = opts.localConfigRepository;
+
+    // This is a workaround to get the localConfigRepository injected.
+    // It should be removed once we find a proper solution or when we inject all dependencies
+    this.localConfigRepository = BaseCommand.prototype.localConfigRepository
   }
 
 
