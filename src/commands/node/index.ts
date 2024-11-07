@@ -42,6 +42,7 @@ export class NodeCommand extends BaseCommand {
     if (!opts || !opts.keyManager) throw new IllegalArgumentError('An instance of core/KeyManager is required', opts.keyManager)
     if (!opts || !opts.accountManager) throw new IllegalArgumentError('An instance of core/AccountManager is required', opts.accountManager)
     if (!opts || !opts.profileManager) throw new IllegalArgumentError('An instance of ProfileManager is required', opts.profileManager)
+    if (!opts || !opts.certificateManager) throw new IllegalArgumentError('An instance of CertificateManager is required', opts.certificateManager)
 
     this.accountManager = opts.accountManager
     this._portForwards = []
@@ -55,6 +56,7 @@ export class NodeCommand extends BaseCommand {
       k8: opts.k8,
       keyManager: opts.keyManager,
       chartManager: opts.chartManager,
+      certificateManager: opts.certificateManager,
       parent: this
     })
 
