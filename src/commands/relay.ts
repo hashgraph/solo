@@ -234,7 +234,7 @@ export class RelayCommand extends BaseCommand {
           await self.k8.waitForPods([constants.POD_PHASE_RUNNING], [
             'app=hedera-json-rpc-relay',
             `app.kubernetes.io/instance=${config.releaseName}`
-          ], 1, 900, 1000)
+          ], 1, constants.RELAY_PODS_RUNNING_MAX_ATTEMPTS, constants.RELAY_PODS_RUNNING_DELAY)
 
           // reset nodeAlias
           self.configManager.setFlag(flags.nodeAliasesUnparsed, '')
@@ -248,7 +248,7 @@ export class RelayCommand extends BaseCommand {
             await self.k8.waitForPodReady([
               'app=hedera-json-rpc-relay',
               `app.kubernetes.io/instance=${config.releaseName}`
-            ], 1, 100, 2000)
+            ], 1, constants.RELAY_PODS_READY_MAX_ATTEMPTS, constants.RELAY_PODS_READY_DELAY)
           } catch (e: Error | any) {
             throw new SoloError(`Relay ${config.releaseName} is not ready: ${e.message}`, e)
           }
