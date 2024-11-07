@@ -32,6 +32,8 @@ vars:
 tasks:
   default:
     cmds:
+      - task: "install:node:darwin"
+      - task: "install:node:linux"
       - task: "install:kubectl:darwin"
       - task: "install:kubectl:linux"
       - task: "install:kind:darwin"
@@ -40,11 +42,12 @@ tasks:
       - task: "install:solo"
       - task: "install"
       - task: "start"
+      - task: "mirror:deploy"
 
   install:
     cmds:
-      - task: "solo:init"
       - task: "cluster:create"
+      - task: "solo:init"
       - task: "cluster:setup"
       - task: "solo:keys"
       - task: "solo:network:deploy"
@@ -61,6 +64,12 @@ tasks:
     cmds:
       - npm run solo-test -- cluster setup --cluster-setup-namespace "${SOLO_CLUSTER_SETUP_NAMESPACE}"
 
+  cluster:destroy:
+    cmds:
+      - kind delete cluster --name "${SOLO_CLUSTER_NAME}"
+      - kubectl delete namespace "${SOLO_CLUSTER_SETUP_NAMESPACE}"
+      - kubectl delete namespace "${SOLO_NAMESPACE}"
+
   start:
     cmds:
       - task: "solo:node:start"
@@ -68,6 +77,18 @@ tasks:
   stop:
     cmds:
       - task: "solo:node:stop"
+
+  mirror:deploy:
+    cmds:
+      - npm run solo-test -- mirror-node deploy --namespace "${SOLO_NAMESPACE}"
+      - echo "Enable port forwarding for Hedera Explorer"
+      - kubectl port-forward -n "${SOLO_NAMESPACE}" svc/hedera-explorer 8080:80 &
+
+  mirror:destroy:
+    cmds:
+      - echo "Stop port foward"
+      -
+      - npm run solo-test -- mirror-node destroy --namespace "${SOLO_NAMESPACE}" --force
 
   show:ips:
     cmds:
@@ -77,6 +98,8 @@ tasks:
     cmds:
       - task: "solo:node:stop"
       - task: "solo:network:destroy"
+      - task: "mirror:destroy"
+      - task: "cluster:destroy"
 
   clean:
     cmds:
@@ -215,6 +238,8 @@ tasks:
       - test "$(uname -m)" == "x86_64"
     cmds:
       - curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.24.0/kind-linux-amd64
+      - chmod +x ./kind
+      - sudo mv ./kind /usr/local/bin/kind
 
   install:kind:linux:aarch64:
     internal: true
@@ -228,3 +253,44 @@ tasks:
       - chmod +x ./kind
       - sudo mv ./kind /usr/local/bin/kind
 
+  install:node:linux:
+    internal: true
+    platforms:
+        - linux
+    status:
+        - command -v node
+    cmds:
+        - curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.5/install.sh | bash
+        - source ~/.bashrc
+        - nvm install 21
+
+  install:node:darwin:
+    internal: true
+    platforms:
+        - darwin
+    status:
+        - command -v node
+    cmds:
+        - brew install node@21
+
+  install:helm:darwin:
+    internal: true
+    platforms:
+        - darwin
+    status:
+        - command -v helm
+    cmds:
+        - brew install helm
+
+  install:helm:linux:
+    internal: true
+    platforms:
+        - linux
+    status:
+        - command -v helm
+    cmds:
+        - curl https://baltocdn.com/helm/signing.asc | gpg --dearmor | sudo tee /usr/share/keyrings/helm.gpg > /dev/null
+        - sudo apt-get install apt-transport-https --yes
+        - echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/helm.gpg] https://baltocdn.com/helm/stable/debian/ all main" | sudo tee /etc/apt/sources.list.d/helm-stable-debian.list
+        - sudo apt-get update
+        - sudo apt-get install helm
