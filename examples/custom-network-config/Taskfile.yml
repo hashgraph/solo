@@ -86,7 +86,7 @@ tasks:
 
   mirror:destroy:
     cmds:
-      - npm run solo-test -- mirror-node destroy --namespace "${SOLO_NAMESPACE}" --force
+      - npm run solo-test -- mirror-node destroy --namespace "${SOLO_NAMESPACE}" --force || true
 
   show:ips:
     cmds:
