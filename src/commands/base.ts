@@ -22,7 +22,7 @@ import type {  ChartManager,  ConfigManager,  Helm,  K8,  DependencyManager, Lea
 import type {  CommandFlag,  Opts } from '../types/index.ts'
 import {injectable} from 'inversify';
 import { LocalConfigRepository } from './../core/config/LocalConfigRepository.ts';
-import { TYPES } from './../types/injectables.js';
+import { INJECTABLES } from './../types/injectables.js';
 
 import {container} from "../inject.config.ts";
 import getDecorators from "inversify-inject-decorators";
@@ -38,7 +38,7 @@ export class BaseCommand extends ShellRunner {
   protected readonly leaseManager: LeaseManager
   protected readonly _configMaps = new Map<string, any>()
 
-  @lazyInject(TYPES.LocalConfigRepository)
+  @lazyInject(INJECTABLES.LocalConfigRepository)
   private localConfigRepository: LocalConfigRepository
 
   constructor (opts: Opts) {
