@@ -246,7 +246,7 @@ tasks:
       - linux
     status:
       - command -v kind
-      - test "$(uname -m)" == "x86_64"
+      - test ! "$(uname -m)" == "x86_64"
     cmds:
       - curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.24.0/kind-linux-amd64
       - chmod +x ./kind
@@ -258,7 +258,7 @@ tasks:
       - linux
     status:
       - command -v kind
-      - test "$(uname -m)" == "aarch64"
+      - test ! "$(uname -m)" == "aarch64"
     cmds:
       - curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.24.0/kind-linux-arm64
       - chmod +x ./kind
