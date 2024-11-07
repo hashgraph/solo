@@ -14,7 +14,7 @@
 # limitations under the License.
 ##
 
-name: "Taskfile.yaml Test"
+name: "Test Taskfile Commands"
 # The purpose of this reusable workflow is to make sure task files are working as expected.
 
 on:
