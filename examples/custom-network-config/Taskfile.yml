@@ -30,18 +30,37 @@ vars:
   solo_bin_dir: "{{ .solo_user_dir }}/bin"
 
 tasks:
+  readme:
+    silent: true
+    cmds:
+      - echo "This is a custom network configuration for the Hedera Hashgraph Solo network."
+      - echo "The network is configured to have {{ .SOLO_NETWORK_SIZE }} nodes."
+      - echo "The network is deployed in the namespace {{ .SOLO_NAMESPACE }}."
+      - echo "The cluster is deployed in the namespace {{ .SOLO_CLUSTER_SETUP_NAMESPACE }}."
+      - echo "Use command 'task default' to deploy the network."
+      - echo "Use command 'task destroy' to destroy the network."
+      - echo "Use command 'task clean' to destroy and clean up the network."
+      - echo "Use command 'task show:ips' to show the external IPs of the nodes."
+      - echo "Use command 'task default-with-mirror' to deploy the network with a mirror node."
+
   default:
     cmds:
       - task: "install:node:darwin"
       - task: "install:node:linux"
       - task: "install:kubectl:darwin"
       - task: "install:kubectl:linux"
+      - task: "install:helm:darwin"
+      - task: "install:helm:linux"
       - task: "install:kind:darwin"
       - task: "install:kind:linux:x86_64"
       - task: "install:kind:linux:aarch64"
       - task: "install:solo"
       - task: "install"
       - task: "start"
+
+  default-with-mirror:
+    cmds:
+      - task: "default"
       - task: "mirror:deploy"
 
   install:
@@ -66,8 +85,6 @@ tasks:
 
   cluster:destroy:
     cmds:
-      # - kubectl delete namespace "${SOLO_NAMESPACE}"
-      # - kubectl delete namespace "${SOLO_CLUSTER_SETUP_NAMESPACE}"
       - kind delete cluster --name "${SOLO_CLUSTER_NAME}"
 
   start:
