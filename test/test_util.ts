@@ -139,13 +139,6 @@ export function bootstrapTestVariables (
   const cacheDir: string = argv[flags.cacheDir.name] || getTestCacheDir(testName)
   const configManager = new ConfigManager(testLogger)
   configManager.update(argv)
-
-  console.log(`config file: ${path.join(TEST_DATA_DIR, constants.DEFAULT_LOCAL_CONFIG_FILE)}`)
-  console.log(`config file exists: ${fs.existsSync(path.dirname, path.join(TEST_DATA_DIR, constants.DEFAULT_LOCAL_CONFIG_FILE))}`)
-
-  testLogger.warn(`config file: ${path.join(TEST_DATA_DIR, constants.DEFAULT_LOCAL_CONFIG_FILE)}`)
-  testLogger.warn(`config file exists: ${fs.existsSync(path.dirname, path.join(TEST_DATA_DIR, constants.DEFAULT_LOCAL_CONFIG_FILE))}`)
-
   const downloader = new PackageDownloader(testLogger)
   const zippy = new Zippy(testLogger)
   const helmDepManager = new HelmDependencyManager(downloader, zippy, testLogger)

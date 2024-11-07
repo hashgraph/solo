@@ -21,7 +21,8 @@ import * as yaml from 'yaml'
 import {MissingArgumentError, SoloError} from "../errors.ts";
 import {promptDeploymentClusters, promptDeploymentName, promptUserEmailAddress} from "../../commands/prompts.ts";
 import {flags} from "../../commands/index.ts";
-import {SoloLogger} from "../logging.js";
+import {SoloLogger} from "../logging.ts";
+import {Task} from "../task.ts";
 
 @injectable()
 export class LocalConfigRepository {
@@ -34,7 +35,6 @@ export class LocalConfigRepository {
 
     public async getConfig(): Promise<LocalConfig> {
         if (!this.configFileEXists()) {
-            // TODO add a warning or something
             throw new SoloError(`Local config file not found: ${this.filePath}`);
         }
 
@@ -69,48 +69,45 @@ export class LocalConfigRepository {
         return new LocalConfig(yaml.parse(fileContent));
     }
 
-    public loadLocalConfigTask(k8, argv)  {
-        return {
-            title: 'Load local configuration',
-                task: async (ctx, task) => {
-                    let config
-                    if (this.configFileEXists()) {
-                        config = this.getConfig()
-                    }
-                    else {
-                        const kubeConfig = k8.getKubeConfig()
+    public loadLocalConfigTask(k8, argv): Task  {
+        return new Task('Load local configuration', async (ctx, task) => {
+            let config
+            if (this.configFileEXists()) {
+                config = this.getConfig()
+            }
+            else {
+                const kubeConfig = k8.getKubeConfig()
 
-                        let clusterMappings = {}
-                        kubeConfig.contexts.forEach(c => {
-                            clusterMappings[c.cluster] = c.name
-                        })
+                let clusterMappings = {}
+                kubeConfig.contexts.forEach(c => {
+                    clusterMappings[c.cluster] = c.name
+                })
 
-                        let userEmailAddress = argv[flags.userEmailAddress.name];
-                        if (!userEmailAddress) userEmailAddress = await promptUserEmailAddress(task, userEmailAddress)
+                let userEmailAddress = argv[flags.userEmailAddress.name];
+                if (!userEmailAddress) userEmailAddress = await promptUserEmailAddress(task, userEmailAddress)
 
-                        let deploymentName = argv[flags.deploymentName.name];
-                        if (!deploymentName) deploymentName = await promptDeploymentName(task, deploymentName)
+                let deploymentName = argv[flags.deploymentName.name];
+                if (!deploymentName) deploymentName = await promptDeploymentName(task, deploymentName)
 
-                        let deploymentClusters = argv[flags.deploymentClusters.name];
-                        if (!deploymentClusters) deploymentClusters = await promptDeploymentClusters(task, deploymentClusters)
+                let deploymentClusters = argv[flags.deploymentClusters.name];
+                if (!deploymentClusters) deploymentClusters = await promptDeploymentClusters(task, deploymentClusters)
 
-                        const deployments = {}
-                        deployments[deploymentName] = {
-                            clusterAliases: deploymentClusters.split(',')
-                        }
-
-                        config = {
-                            userEmailAddress,
-                            deployments,
-                            currentDeploymentName: deploymentName,
-                            clusterMappings
-                        } as LocalConfig;
-
-                        await this.writeConfig(config)
-                    }
-
-                    return config
+                const deployments = {}
+                deployments[deploymentName] = {
+                    clusterAliases: deploymentClusters.split(',')
                 }
-        }
+
+                config = {
+                    userEmailAddress,
+                    deployments,
+                    currentDeploymentName: deploymentName,
+                    clusterMappings
+                } as LocalConfig;
+
+                await this.writeConfig(config)
+            }
+
+            return config
+        })
     }
 }

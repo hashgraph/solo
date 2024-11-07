@@ -390,6 +390,7 @@ export async function promptDeploymentName (task: ListrTaskWrapper<any, any, any
     null,
     flags.deploymentName.name)
 }
+
 export async function promptDeploymentClusters (task: ListrTaskWrapper<any, any, any>, input: any) {
   return await promptText(task, input,
     flags.deploymentClusters.definition.defaultValue,

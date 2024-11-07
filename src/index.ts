@@ -29,11 +29,6 @@ import { K8 } from './core/k8.ts'
 import { ListrLogger } from 'listr2'
 import { CustomProcessOutput } from './core/process_output.ts'
 import { type Opts } from './types/index.ts'
-import {LocalConfigRepository} from "./core/config/LocalConfigRepository.ts";
-import {Container, interfaces} from 'inversify';
-
-import path from "path";
-import Context = interfaces.Context;
 
 export function main (argv: any) {
   const logger = logging.NewLogger('debug')
@@ -58,15 +53,6 @@ export function main (argv: any) {
     const profileManager = new ProfileManager(logger, configManager)
     const leaseManager = new LeaseManager(k8, logger, configManager)
 
-    const container = new Container();
-
-    const localConfigRepository = new LocalConfigRepository(path.join(constants.SOLO_CACHE_DIR, constants.DEFAULT_LOCAL_CONFIG_FILE), logger);
-    // container.bind<LocalConfigRepository>("LocalConfigRepository").to(localConfigRepository).inSingletonScope();
-    //
-    // container.bind<LocalConfigRepository>("LocalConfigRepository").toDynamicValue((context: interfaces.Context) => {
-    //   return new LocalConfigRepository(path.join(constants.SOLO_CACHE_DIR, constants.DEFAULT_LOCAL_CONFIG_FILE));
-    // }).inSingletonScope();
-
     // set cluster and namespace in the global configManager from kubernetes context
     // so that we don't need to prompt the user
     const kubeConfig = k8.getKubeConfig()
@@ -85,8 +71,7 @@ export function main (argv: any) {
       keyManager,
       accountManager,
       profileManager,
-      leaseManager,
-      localConfigRepository
+      leaseManager
     }
 
     const processArguments = (argv: any, yargs: any) => {
