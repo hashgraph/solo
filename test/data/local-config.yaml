@@ -1,0 +1,8 @@
+userEmailAddress: joe@doe.com
+deployments:
+  deployment-1:
+    clusterAliases:
+      - cluster-1
+currentDeploymentName: deployment-1
+clusterMappings:
+  kind-node-add: kind-node-add
