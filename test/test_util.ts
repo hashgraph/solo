@@ -64,10 +64,11 @@ import type { NodeAlias } from '../src/types/aliases.ts'
 import type { NetworkNodeServices } from '../src/core/network_node_services.ts'
 import sinon from 'sinon'
 import {LocalConfigRepository} from "../src/core/config/LocalConfigRepository.ts";
+import { HEDERA_PLATFORM_VERSION } from '../version.js'
 
 export const testLogger = logging.NewLogger('debug', true)
 export const TEST_CLUSTER = 'solo-e2e'
-export const HEDERA_PLATFORM_VERSION_TAG = 'v0.54.0-alpha.4'
+export const HEDERA_PLATFORM_VERSION_TAG = HEDERA_PLATFORM_VERSION
 
 export function getTestCacheDir (testName?: string) {
   const baseDir = 'test/data/tmp'
@@ -263,7 +264,8 @@ export function e2eTestSuite (
           flags.profileFile.constName,
           flags.profileName.constName,
           flags.quiet.constName,
-          flags.settingTxt.constName
+          flags.settingTxt.constName,
+          'chartPath'
         ])
       }).timeout(3 * MINUTES)
 

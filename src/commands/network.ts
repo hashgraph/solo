@@ -231,6 +231,15 @@ export class NetworkCommand extends BaseCommand {
         }
       },
       {
+        title: 'Check if cluster setup chart is installed',
+        task: async (ctx, task) => {
+          const isChartInstalled = await this.chartManager.isChartInstalled('', constants.SOLO_CLUSTER_SETUP_CHART)
+          if (!isChartInstalled) {
+            throw new SoloError(`Chart ${constants.SOLO_CLUSTER_SETUP_CHART} is not installed. Run 'solo cluster setup'`)
+          }
+        }
+      },
+      {
         title: 'Prepare staging directory',
         task: (_, parentTask) => {
           return parentTask.newListr([
@@ -281,7 +290,7 @@ export class NetworkCommand extends BaseCommand {
           await this.chartManager.install(
             config.namespace,
             constants.SOLO_DEPLOYMENT_CHART,
-            config.chartPath,
+            constants.SOLO_TESTING_CHART_URL + constants.SOLO_DEPLOYMENT_CHART,
             config.soloChartVersion,
             config.valuesArg)
         }
@@ -514,7 +523,7 @@ export class NetworkCommand extends BaseCommand {
           await this.chartManager.upgrade(
             config.namespace,
             constants.SOLO_DEPLOYMENT_CHART,
-            config.chartPath,
+            constants.SOLO_TESTING_CHART_URL + constants.SOLO_DEPLOYMENT_CHART,
             config.valuesArg,
             config.soloChartVersion
           )
@@ -553,7 +562,7 @@ export class NetworkCommand extends BaseCommand {
         return yargs
           .command({
             command: 'deploy',
-            desc: 'Deploy solo network',
+            desc: "Deploy solo network.  Requires the chart `solo-cluster-setup` to have been installed in the cluster.  If it hasn't the following command can be ran: `solo cluster setup`",
             builder: (y: any) => flags.setCommandFlags(y, ...NetworkCommand.DEPLOY_FLAGS_LIST),
             handler: (argv: any) => {
               networkCmd.logger.debug('==== Running \'network deploy\' ===')
