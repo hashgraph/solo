@@ -18,10 +18,18 @@
 import paths from 'path'
 import { MissingArgumentError } from '../core/errors.ts'
 import { ShellRunner } from '../core/shell_runner.ts'
-import type {  ChartManager,  ConfigManager,  Helm,  K8,  DependencyManager, LeaseManager } from '../core/index.ts'
+import type {
+  ChartManager,
+  ConfigManager,
+  Helm,
+  K8,
+  DependencyManager,
+  LeaseManager,
+  RemoteConfigManager
+} from '../core/index.ts'
 import type {  CommandFlag,  Opts } from '../types/index.ts'
-import {inject, injectable} from 'inversify';
-import { LocalConfigRepository } from './../core/config/LocalConfigRepository.ts';
+import { inject, injectable } from 'inversify'
+import { type LocalConfigRepository } from './../core/config/LocalConfigRepository.ts'
 
 @injectable()
 export class BaseCommand extends ShellRunner {
@@ -32,7 +40,8 @@ export class BaseCommand extends ShellRunner {
   protected readonly depManager: DependencyManager
   protected readonly leaseManager: LeaseManager
   protected readonly _configMaps = new Map<string, any>()
-  protected readonly localConfigRepository: LocalConfigRepository;
+  protected readonly localConfigRepository: LocalConfigRepository
+  protected readonly remoteConfigRepository: RemoteConfigManager
 
   constructor (opts: Opts) {
     if (!opts || !opts.logger) throw new Error('An instance of core/SoloLogger is required')
@@ -42,6 +51,7 @@ export class BaseCommand extends ShellRunner {
     if (!opts || !opts.configManager) throw new Error('An instance of core/ConfigManager is required')
     if (!opts || !opts.depManager) throw new Error('An instance of core/DependencyManager is required')
     if (!opts || !opts.localConfigRepository) throw new Error('An instance of core/config/LocalConfigRepository is required')
+    if (!opts || !opts.remoteConfigManager) throw new Error('An instance of core/config/RemoteConfigManager is required')
 
     super(opts.logger)
 
@@ -51,7 +61,8 @@ export class BaseCommand extends ShellRunner {
     this.configManager = opts.configManager
     this.depManager = opts.depManager
     this.leaseManager = opts.leaseManager
-    this.localConfigRepository = opts.localConfigRepository;
+    this.localConfigRepository = opts.localConfigRepository
+    this.remoteConfigRepository = opts.remoteConfigManager
   }
 
 

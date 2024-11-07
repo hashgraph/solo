@@ -32,6 +32,7 @@ import * as helpers from './helpers.ts'
 import { DependencyManager } from './dependency_managers/index.ts'
 import { AccountManager } from './account_manager.ts'
 import { LeaseManager } from './lease_manager.ts'
+import { RemoteConfigManager } from './config/remote/remote_config.ts'
 
 // Expose components from the core module
 export {
@@ -53,4 +54,5 @@ export {
   DependencyManager,
   AccountManager,
   LeaseManager,
+  RemoteConfigManager,
 }

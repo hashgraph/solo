@@ -385,12 +385,7 @@ export class NetworkCommand extends BaseCommand {
              })
            }
       },
-      {
-        title: '======================================================',
-        task: async () => {
-          console.log((await this.k8.getNamespacedConfigMap('network-node-data-config-cm')).data)
-        }
-      }
+      this.remoteConfigRepository.buildLoadRemoteConfigCommand(true)
     ], {
       concurrent: false,
       rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION

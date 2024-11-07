@@ -22,17 +22,17 @@ import * as commands from './commands/index.ts'
 import { HelmDependencyManager, DependencyManager } from './core/dependency_managers/index.ts'
 import {
   ChartManager, ConfigManager, PackageDownloader, PlatformInstaller, Helm, logging,
-  KeyManager, Zippy, constants, ProfileManager, AccountManager, LeaseManager
+  KeyManager, Zippy, constants, ProfileManager, AccountManager, LeaseManager, RemoteConfigManager
 } from './core/index.ts'
 import 'dotenv/config'
 import { K8 } from './core/k8.ts'
 import { ListrLogger } from 'listr2'
 import { CustomProcessOutput } from './core/process_output.ts'
 import { type Opts } from './types/index.ts'
-import {LocalConfigRepository} from "./core/config/LocalConfigRepository.ts";
-import {Container, interfaces} from 'inversify';
+import { LocalConfigRepository } from './core/config/LocalConfigRepository.ts'
+import { Container, interfaces } from 'inversify'
+import path from 'path'
 
-import path from "path";
 import Context = interfaces.Context;
 
 export function main (argv: any) {
@@ -60,7 +60,8 @@ export function main (argv: any) {
 
     const container = new Container()
 
-    const localConfigRepository = new LocalConfigRepository(path.join(constants.SOLO_CACHE_DIR, constants.DEFAULT_LOCAL_CONFIG_FILE), logger);
+    const localConfigRepository = new LocalConfigRepository(path.join(constants.SOLO_CACHE_DIR, constants.DEFAULT_LOCAL_CONFIG_FILE), logger)
+    const remoteConfigManager = new RemoteConfigManager(k8, logger, configManager, localConfigRepository)
     // container.bind<LocalConfigRepository>("LocalConfigRepository").to(localConfigRepository).inSingletonScope();
     //
     // container.bind<LocalConfigRepository>("LocalConfigRepository").toDynamicValue((context: interfaces.Context) => {
@@ -86,7 +87,8 @@ export function main (argv: any) {
       accountManager,
       profileManager,
       leaseManager,
-      localConfigRepository
+      localConfigRepository,
+      remoteConfigManager,
     }
 
     const processArguments = (argv: any, yargs: any) => {

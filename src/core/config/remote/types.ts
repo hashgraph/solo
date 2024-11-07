@@ -52,7 +52,6 @@ export interface RelayComponent extends Component {
 }
 
 export interface RemoteConfigData {
-  version: Version
   metadata: RemoteConfigMetadataStructure
   clusters: Record<Cluster, Namespace>
   components: Record<ComponentTypeEnum, Record<string, Component>>

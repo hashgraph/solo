@@ -82,48 +82,45 @@ export class LocalConfigRepository {
     public loadLocalConfigTask (k8: K8, argv: any)  {
         return {
             title: 'Load local configuration',
-                task: async (_: any, task: ListrTaskWrapper<any, any, any>) => {
-                    let config: LocalConfig
+            task: async (_: any, task: ListrTaskWrapper<any, any, any>) => {
+                let config: LocalConfig
 
-                    if (this.configFileExists()) {
-                        config = await this.getConfig()
-                    }
-                    else {
-                        const kubeConfig = k8.getKubeConfig()
+                if (this.configFileExists()) {
+                    config = await this.getConfig()
+                } else {
+                    const kubeConfig = k8.getKubeConfig()
 
-                        const clusterMappings: any = {}
-                        kubeConfig.contexts.forEach(c => {
-                            clusterMappings[c.cluster] = c.name
-                        })
+                    const clusterMappings: any = {}
+                    kubeConfig.contexts.forEach(c => {
+                        clusterMappings[c.cluster] = c.name
+                    })
 
-                        let userEmailAddress = argv[flags.userEmailAddress.name]
-                        if (!userEmailAddress) userEmailAddress = await promptUserEmailAddress(task, userEmailAddress)
+                    let userEmailAddress = argv[flags.userEmailAddress.name]
+                    if (!userEmailAddress) userEmailAddress = await promptUserEmailAddress(task, userEmailAddress)
 
-                        let deploymentName = argv[flags.deploymentName.name]
-                        if (!deploymentName) deploymentName = await promptDeploymentName(task, deploymentName)
+                    let deploymentName = argv[flags.deploymentName.name]
+                    if (!deploymentName) deploymentName = await promptDeploymentName(task, deploymentName)
 
-                        let deploymentClusters = argv[flags.deploymentClusters.name]
-                        if (!deploymentClusters) deploymentClusters = await promptDeploymentClusters(task, deploymentClusters)
+                    let deploymentClusters = argv[flags.deploymentClusters.name]
+                    if (!deploymentClusters) deploymentClusters = await promptDeploymentClusters(task, deploymentClusters)
 
-                        const deployments = {}
-                        deployments[deploymentName] = {
-                            clusters: deploymentClusters.split(',')
-                        }
-
-
-
-                        config = new LocalConfig({
-                            userEmailAddress,
-                            deployments,
-                            currentDeploymentName: deploymentName,
-                            clusterMappings
-                        })
-
-                        await this.writeConfig(config)
+                    const deployments = {}
+                    deployments[deploymentName] = {
+                        clusters: deploymentClusters.split(',')
                     }
 
-                    return config
+                    config = new LocalConfig({
+                        userEmailAddress,
+                        deployments,
+                        currentDeploymentName: deploymentName,
+                        clusterMappings
+                    })
+
+                    await this.writeConfig(config)
                 }
+
+                return config
+            }
         }
     }
 }

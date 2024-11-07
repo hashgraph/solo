@@ -21,9 +21,9 @@ import type crypto from 'crypto'
 import type { SoloLogger } from '../core/logging.ts'
 import type {
   ChartManager, ConfigManager, Helm, K8, KeyManager, PackageDownloader, PlatformInstaller,
-  ProfileManager, DependencyManager, AccountManager, LeaseManager
+  ProfileManager, DependencyManager, AccountManager, LeaseManager, RemoteConfigManager
 } from '../core/index.ts'
-import {LocalConfigRepository} from "../core/config/LocalConfigRepository.ts";
+import { type LocalConfigRepository } from '../core/config/LocalConfigRepository.ts'
 
 export interface NodeKeyObject {
   privateKey: crypto.webcrypto.CryptoKey
@@ -79,6 +79,7 @@ export interface Opts {
   keyManager: KeyManager
   accountManager: AccountManager
   profileManager: ProfileManager
-  leaseManager: LeaseManager,
+  leaseManager: LeaseManager
   localConfigRepository: LocalConfigRepository
+  remoteConfigManager: RemoteConfigManager
 }

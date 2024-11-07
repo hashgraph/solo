@@ -16,7 +16,7 @@
  */
 import { IsEmail, IsNotEmpty, IsObject, IsString, validateSync } from 'class-validator'
 import { SoloError } from '../errors.ts'
-import type { Cluster, EmailAddress } from './remote/remote_config.ts'
+import type { Cluster, Context, EmailAddress, Namespace } from './remote/types.ts'
 import type { LocalConfigStructure } from './LocalConfigRepository.ts'
 
 type DeploymentName = string
@@ -27,9 +27,9 @@ export interface Deployment {
 
 // an alias for the cluster, provided during the configuration
 // of the deployment, must be unique
-export type Deployments = Record<DeploymentName, Deployment>;
+export type Deployments = Record<Namespace, Deployment>;
 
-export type ClusterMapping = Record<string, string>;
+export type ClusterMapping = Record<Cluster, Context>;
 
 export class LocalConfig {
     @IsNotEmpty()

@@ -14,38 +14,64 @@
  * limitations under the License.
  *
  */
-import type {
-  Cluster, Version, Namespace, Component, RemoteConfigData, RemoteConfigMetadataStructure,
-} from './types.ts'
 import semver from 'semver'
 import { SoloError } from '../../errors.ts'
 import { ComponentTypeEnum } from './enumerations.ts'
+import * as version from '../../../../version.ts'
+import type {
+  Cluster, Version, Namespace, Component, RemoteConfigData, RemoteConfigMetadataStructure
+} from './types.ts'
 
 export class RemoteConfigDataWrapper {
-  private version: Version
-  private metadata: RemoteConfigMetadataStructure
-  private clusters: Record<Cluster, Namespace>
-  private components: Record<ComponentTypeEnum, Record<string, Component>>
+  private readonly _version: Version = version.HEDERA_PLATFORM_VERSION
+  private _metadata: RemoteConfigMetadataStructure
+  private _clusters: Record<Cluster, Namespace>
+  private _components: Record<ComponentTypeEnum, Record<string, Component>>
 
   constructor (data: RemoteConfigData) {
-    this.version = data.version
-    this.metadata = data.metadata
-    this.clusters = data.clusters
-    this.components = data.components
+    this._metadata = data.metadata
+    this._clusters = data.clusters
+    this._components = data.components
+    this.validate()
+  }
 
+  get metadata () {
+    return this._metadata
+  }
+
+  set metadata (metadata: RemoteConfigMetadataStructure) {
+    this._metadata = metadata
+    this.validate()
+  }
+
+  get clusters () {
+    return this._clusters
+  }
+
+  set clusters (clusters: Record<Cluster, Namespace>) {
+    this._clusters = clusters
+    this.validate()
+  }
+
+  get components () {
+    return this._components
+  }
+
+  set components (components: Record<ComponentTypeEnum, Record<string, Component>>) {
+    this._components = components
     this.validate()
   }
 
   private validate () {
-    if (!semver.valid(this.version)) {
-      throw new SoloError(`Invalid remote config version: ${this.version}`)
+    if (!semver.valid(this._version)) {
+      throw new SoloError(`Invalid remote config version: ${this._version}`)
     }
 
-    if (!this.metadata) {
-      throw new SoloError(`Invalid remote config metadata: ${this.metadata}`)
+    if (!this._metadata) {
+      throw new SoloError(`Invalid remote config metadata: ${this._metadata}`)
     }
 
-    Object.entries(this.clusters).forEach(([cluster, namespace]: [Cluster, Namespace]) => {
+    Object.entries(this._clusters).forEach(([cluster, namespace]: [Cluster, Namespace]) => {
       const clusterDataString = `cluster: { name: ${cluster}, namespace: ${namespace} }`
 
       if (typeof cluster !== 'string') {
@@ -57,7 +83,7 @@ export class RemoteConfigDataWrapper {
       }
     })
 
-    Object.entries(this.components).forEach(([type, data]: [ComponentTypeEnum, Record<string, Component>]) => {
+    Object.entries(this._components).forEach(([type, data]: [ComponentTypeEnum, Record<string, Component>]) => {
       const componentDataString = `component: { type: ${type}, data: ${data} }`
 
       if (!Object.values(ComponentTypeEnum).includes(type)) {
@@ -88,12 +114,12 @@ export class RemoteConfigDataWrapper {
     })
   }
 
-  public toObject () {
+  toObject () {
     return {
-      metadata: this.metadata.toObject(),
-      version: this.version,
-      clusters: this.clusters,
-      components: this.components,
+      metadata: this._metadata.toObject(),
+      version: this._version,
+      clusters: this._clusters,
+      components: this._components,
     }
   }
 }

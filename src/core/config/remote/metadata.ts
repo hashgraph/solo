@@ -14,10 +14,9 @@
  * limitations under the License.
  *
  */
+import { Migration } from './migration.ts'
 import { SoloError } from '../../errors.ts'
-
 import type { EmailAddress, Namespace, RemoteConfigMetadataStructure } from './types.ts'
-import type { Migration } from './migration.ts'
 
 export class RemoteConfigMetadata implements RemoteConfigMetadataStructure {
   constructor (
@@ -40,6 +39,10 @@ export class RemoteConfigMetadata implements RemoteConfigMetadataStructure {
 
     if (typeof this.lastUpdateBy !== 'string') {
       throw new SoloError(`Invalid metadata.lastUpdateBy: ${this.lastUpdateBy}`)
+    }
+
+    if (this.migration && !(this.migration instanceof Migration)) {
+      throw new SoloError(`Invalid metadata.migration: ${this.migration}`)
     }
   }
 
