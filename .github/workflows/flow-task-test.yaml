@@ -14,11 +14,8 @@
 # limitations under the License.
 ##
 
-name: "Task Test"
-# The purpose of this reusable workflow is to run the unit tests on every PR and commit.
-# This reusable component is called by the following workflows:
-# - .github/workflows/flow-pull-request-checks.yaml
-# - .github/workflows/flow-build-application.yaml
+name: "Taskfile.yaml Test"
+# The purpose of this reusable workflow is to make sure task files are working as expected.
 
 on:
   workflow_call:
@@ -63,7 +60,6 @@ jobs:
 
       - name: Run Example Task File Test
         run: |
-          # cd examples/custom-network-config
-          # task default
-          # task clean
-          sleep 7200
+          cd examples/custom-network-config
+          task default
+          task clean

@@ -14,10 +14,6 @@ env:
   KIND_IMAGE: kindest/node:v1.27.3@sha256:3966ac761ae0136263ffdb6cfd4db23ef8a83cba8a463690e98317add2c9ba72
 
 vars:
-  solo_settings_file: "{{.ROOT_DIR}}/settings.txt"
-  solo_values_file: "{{.ROOT_DIR}}/init-containers-values.yaml"
-  ip_list_template_file: "{{.ROOT_DIR}}/list-external-ips.gotemplate"
-
   nodes:
     ref: until (env "SOLO_NETWORK_SIZE" | default .SOLO_NETWORK_SIZE | int)
   node_list_internal: "{{range $idx, $n := .nodes }}node{{$n}},{{end}}"
@@ -184,7 +180,7 @@ tasks:
   solo:node:addresses:
     internal: true
     cmds:
-      - kubectl get svc -n "${SOLO_NAMESPACE}" -l "solo.hedera.com/type=network-node-svc" --output=go-template-file={{ .ip_list_template_file }}
+      - kubectl get svc -n "${SOLO_NAMESPACE}" -l "solo.hedera.com/type=network-node-svc"
 
   solo:cache:remove:
     internal: true
