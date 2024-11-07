@@ -7,7 +7,7 @@ silent: false
 env:
   SOLO_CHART_VERSION: 0.34.0
   CONSENSUS_NODE_VERSION: v0.56.0
-  SOLO_NAMESPACE: solo-{{ env "USER" | replace "." "-" | trunc 63 | default "solo" }}
+  SOLO_NAMESPACE: solo-{{ env "USER" | replace "." "-" | trunc 63 | default "test" }}
   SOLO_CLUSTER_SETUP_NAMESPACE: solo-setup
   SOLO_NETWORK_SIZE: 2
   SOLO_CLUSTER_NAME: solo-cluster
@@ -67,8 +67,8 @@ tasks:
   cluster:destroy:
     cmds:
       - kind delete cluster --name "${SOLO_CLUSTER_NAME}"
-      - kubectl delete namespace "${SOLO_CLUSTER_SETUP_NAMESPACE}"
       - kubectl delete namespace "${SOLO_NAMESPACE}"
+      - kubectl delete namespace "${SOLO_CLUSTER_SETUP_NAMESPACE}"
 
   start:
     cmds:
