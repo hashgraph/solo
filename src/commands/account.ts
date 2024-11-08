@@ -220,7 +220,15 @@ export class AccountCommand extends BaseCommand {
                   throw new SoloError(`Account keys updates failed for ${ctx.resultTracker.rejectedCount} accounts.`)
                 }
               }
-            }
+            },
+            {
+              title: 'Trigger the handler by writing some transactions',
+              task: async (ctx) => {
+                // create two accounts to force the handler to trigger
+                await self.create({})
+                await self.create({})
+              }
+            },
           ], {
             concurrent: false,
             rendererOptions: {
