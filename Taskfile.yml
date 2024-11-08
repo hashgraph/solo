@@ -75,7 +75,7 @@ tasks:
 
   cluster:setup:
     status:
-      - helm list -n "${SOLO_CLUSTER_SETUP_NAMESPACE}" | grep -q solo-cluster
+      - helm list -n "${SOLO_CLUSTER_SETUP_NAMESPACE}" | grep -vqz "${SOLO_CLUSTER_NAME}"
     cmds:
       - npm run solo-test -- cluster setup --cluster-setup-namespace "${SOLO_CLUSTER_SETUP_NAMESPACE}"
 
@@ -98,6 +98,8 @@ tasks:
       - kubectl port-forward -n "${SOLO_NAMESPACE}" svc/hedera-explorer 8080:80 &
 
   mirror:destroy:
+    status:
+      - helm list -n "${SOLO_NAMESPACE}" | grep -vqz mirror
     cmds:
       - npm run solo-test -- mirror-node destroy --namespace "${SOLO_NAMESPACE}" --force || true
 
