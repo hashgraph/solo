@@ -63,11 +63,10 @@ import type { BaseCommand } from '../src/commands/base.ts'
 import type { NodeAlias } from '../src/types/aliases.ts'
 import type { NetworkNodeServices } from '../src/core/network_node_services.ts'
 import { LocalConfigRepository } from '../src/core/config/LocalConfigRepository.ts'
-import { HEDERA_PLATFORM_VERSION } from '../version.js'
 
 export const testLogger = logging.NewLogger('debug', true)
 export const TEST_CLUSTER = 'solo-e2e'
-export const HEDERA_PLATFORM_VERSION_TAG = HEDERA_PLATFORM_VERSION
+export const HEDERA_PLATFORM_VERSION_TAG = 'v0.54.0-alpha.4'
 
 const TEST_DATA_DIR = 'test/data'
 
@@ -140,15 +139,6 @@ export function bootstrapTestVariables (
   const cacheDir: string = argv[flags.cacheDir.name] || getTestCacheDir(testName)
   const configManager = new ConfigManager(testLogger)
   configManager.update(argv)
-
-  console.log(`config file: ${path.join(TEST_DATA_DIR, constants.DEFAULT_LOCAL_CONFIG_FILE)}`)
-  // @ts-ignore
-  console.log(`config file exists: ${fs.existsSync(path.dirname, path.join(TEST_DATA_DIR, constants.DEFAULT_LOCAL_CONFIG_FILE))}`)
-
-  testLogger.warn(`config file: ${path.join(TEST_DATA_DIR, constants.DEFAULT_LOCAL_CONFIG_FILE)}`)
-  // @ts-ignore
-  testLogger.warn(`config file exists: ${fs.existsSync(path.dirname, path.join(TEST_DATA_DIR, constants.DEFAULT_LOCAL_CONFIG_FILE))}`)
-
   const downloader = new PackageDownloader(testLogger)
   const zippy = new Zippy(testLogger)
   const helmDepManager = new HelmDependencyManager(downloader, zippy, testLogger)

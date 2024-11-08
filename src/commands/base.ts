@@ -28,8 +28,13 @@ import type {
   RemoteConfigManager
 } from '../core/index.ts'
 import type {  CommandFlag,  Opts } from '../types/index.ts'
-import { inject, injectable } from 'inversify'
+import { injectable } from 'inversify'
 import { type LocalConfigRepository } from './../core/config/LocalConfigRepository.ts'
+import { TYPES } from './../types/injectables.ts'
+
+import { container } from '../inject.config.ts'
+import getDecorators from 'inversify-inject-decorators'
+const { lazyInject } = getDecorators.default(container, false)
 
 @injectable()
 export class BaseCommand extends ShellRunner {
@@ -40,7 +45,10 @@ export class BaseCommand extends ShellRunner {
   protected readonly depManager: DependencyManager
   protected readonly leaseManager: LeaseManager
   protected readonly _configMaps = new Map<string, any>()
-  protected readonly localConfigRepository: LocalConfigRepository
+
+  @lazyInject(TYPES.LocalConfigRepository)
+  private localConfigRepository: LocalConfigRepository
+  
   protected readonly remoteConfigRepository: RemoteConfigManager
 
   constructor (opts: Opts) {
@@ -51,7 +59,6 @@ export class BaseCommand extends ShellRunner {
     if (!opts || !opts.configManager) throw new Error('An instance of core/ConfigManager is required')
     if (!opts || !opts.depManager) throw new Error('An instance of core/DependencyManager is required')
     if (!opts || !opts.localConfigRepository) throw new Error('An instance of core/config/LocalConfigRepository is required')
-    if (!opts || !opts.remoteConfigManager) throw new Error('An instance of core/config/RemoteConfigManager is required')
 
     super(opts.logger)
 
@@ -62,6 +69,11 @@ export class BaseCommand extends ShellRunner {
     this.depManager = opts.depManager
     this.leaseManager = opts.leaseManager
     this.localConfigRepository = opts.localConfigRepository
+    if (!opts || !opts.remoteConfigManager) throw new Error('An instance of core/config/RemoteConfigManager is required')
+
+    // This is a workaround to get the localConfigRepository injected.
+    // It should be removed once we find a proper solution or when we inject all dependencies
+    this.localConfigRepository = BaseCommand.prototype.localConfigRepository
     this.remoteConfigRepository = opts.remoteConfigManager
   }
 

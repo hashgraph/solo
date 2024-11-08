@@ -61,7 +61,7 @@ export class LocalConfig {
         this.validate()
     }
 
-    validate () {
+    private validate () {
         const genericMessage = 'Validation of local config failed'
 
         const errors = validateSync(this, { whitelist: true, enableDebugMessages: true, forbidNonWhitelisted: true })

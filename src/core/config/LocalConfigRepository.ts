@@ -43,10 +43,9 @@ export class LocalConfigRepository {
         if (!logger) throw new Error('An instance of core/SoloLogger is required')
     }
 
-    public async getConfig () {
+    public async getConfig (): Promise<LocalConfig> {
         if (!this.configFileExists()) {
-            // TODO add a warning or something
-            throw new SoloError(`Local config file not found: ${this.filePath}`)
+            throw new SoloError(`Local config file not found: ${this.filePath}`);
         }
 
         if (!this.config) {
