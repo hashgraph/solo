@@ -20,13 +20,13 @@ import { MissingArgumentError } from '../core/errors.ts'
 import { ShellRunner } from '../core/shell_runner.ts'
 import type {  ChartManager,  ConfigManager,  Helm,  K8,  DependencyManager, LeaseManager } from '../core/index.ts'
 import type {  CommandFlag,  Opts } from '../types/index.ts'
-import {injectable} from 'inversify';
-import { LocalConfig } from './../core/config/LocalConfig.ts';
-import { INJECTABLES } from './../types/injectables.js';
+import { injectable } from 'inversify'
+import { type LocalConfig } from './../core/config/LocalConfig.ts'
+import { INJECTABLES } from './../types/injectables.js'
 
-import {container} from "../inject.config.ts";
-import getDecorators from "inversify-inject-decorators";
-let { lazyInject } = getDecorators.default(container, false);
+import { container } from '../inject.config.ts'
+import getDecorators from 'inversify-inject-decorators'
+const { lazyInject } = getDecorators.default(container, false)
 
 @injectable()
 export class BaseCommand extends ShellRunner {

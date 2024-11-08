@@ -23,7 +23,7 @@ import type {
   ChartManager, ConfigManager, Helm, K8, KeyManager, PackageDownloader, PlatformInstaller,
   ProfileManager, DependencyManager, AccountManager, LeaseManager, CertificateManager
 } from '../core/index.ts'
-import {LocalConfig} from "../core/config/LocalConfig.ts";
+import { type LocalConfig } from '../core/config/LocalConfig.ts'
 
 export interface NodeKeyObject {
   privateKey: crypto.webcrypto.CryptoKey
