@@ -69,7 +69,6 @@ export class InitCommand extends BaseCommand {
     }
 
     const tasks = new Listr<Context>([
-      this.localConfigRepository.loadLocalConfigTask(this.k8, argv),
       {
         title: 'Setup home directory and cache',
         task: (ctx) => {

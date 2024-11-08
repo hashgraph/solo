@@ -14,26 +14,25 @@
  * limitations under the License.
  *
  */
+import { injectable } from 'inversify';
+import {ClusterMapping, Deployment, Deployments, LocalConfigData} from "./LocalConfigData.ts";
+import fs from "fs";
+import * as yaml from 'yaml'
+import {MissingArgumentError, SoloError} from "../errors.ts";
+import {promptDeploymentClusters, promptDeploymentName, promptUserEmailAddress} from "../../commands/prompts.ts";
+import {flags} from "../../commands/index.ts";
+import {SoloLogger} from "../logging.ts";
+import {Task} from "../task.ts";
 
+import {container} from "../../inject.config.ts";
+import getDecorators from "inversify-inject-decorators";
+import {INJECTABLES} from "../../types/injectables.js";
 import {IsEmail, IsNotEmpty, IsObject, IsString, validateSync} from "class-validator";
-import {SoloError} from "../errors.js";
+import {ListrTask} from "listr2";
+let { lazyInject } = getDecorators.default(container, false);
 
-export type Deployment = {
-    clusterAliases : string[]
-}
-
-// an alias for the cluster, provided during the configuration
-// of the deployment, must be unique
-export type Deployments = {
-    [deploymentName: string]:
-        Deployment
-};
-
-export type ClusterMapping = {
-    [clusterName: string]: string
-};
-
-export class LocalConfig {
+@injectable()
+export class LocalConfig implements LocalConfigData {
     @IsNotEmpty()
     @IsEmail()
     userEmailAddress: string
@@ -54,18 +53,41 @@ export class LocalConfig {
     @IsObject()
     clusterMappings: ClusterMapping
 
-    constructor(config) {
-        for(const [key, value] of Object.entries(config)) {
-            this[key] = value
-        }
+    @lazyInject(INJECTABLES.SoloLogger)
+    private logger: SoloLogger
 
-        this.validate()
+    private readonly skipPromptTask: boolean = false
+    private readonly filePath: string
+
+    constructor(filePath: string) {
+        if (!filePath || filePath === '') throw new MissingArgumentError('a valid filePath is required')
+
+        this.filePath = filePath
+
+        // This is a workaround to get the localConfig injected.
+        // It should be removed once we find a proper solution or when we inject all dependencies
+        this.logger = LocalConfig.prototype.logger
+
+        const allowedKeys = ['userEmailAddress', 'deployments', 'currentDeploymentName', 'clusterMappings']
+        if (this.configFileEXists()) {
+            const fileContent = fs.readFileSync(filePath, 'utf8');
+            const parsedConfig = yaml.parse(fileContent)
+
+            for(const key in parsedConfig) {
+                if (!allowedKeys.includes(key)) {
+                    throw new SoloError('Validation of local config failed')
+                }
+                this[key] = parsedConfig[key]
+            }
+
+            this.validate()
+            this.skipPromptTask = true
+        }
     }
 
     private validate() {
         const genericMessage = 'Validation of local config failed'
-
-        const errors = validateSync(this, { whitelist: true, enableDebugMessages: true, forbidNonWhitelisted: true })
+        const errors = validateSync(this, {})
 
         if (errors.length) {
             throw new SoloError(genericMessage)
@@ -125,9 +147,58 @@ export class LocalConfig {
         this.currentDeploymentName = deploymentName;
         this.validate()
         return this;
-    }  
-    
+    }
+
     public getCurrentDeployment(): Deployment {
         return this.deployments[this.currentDeploymentName];
+    }
+
+    private configFileEXists(): boolean {
+        return fs.existsSync(this.filePath)
+    }
+
+    public async write(): Promise<void> {
+        const yamlContent = yaml.stringify({
+            userEmailAddress: this.userEmailAddress,
+            deployments: this.deployments,
+            currentDeploymentName: this.currentDeploymentName,
+            clusterMappings: this.clusterMappings
+        });
+        await fs.promises.writeFile(this.filePath, yamlContent);
+        this.logger.info(`Wrote local config to ${this.filePath}`)
+    }
+
+    public promptLocalConfigTask(k8, argv): ListrTask<any, any, any>[]  {
+        return new Task('Prompt local configuration', async (ctx, task) => {
+            const kubeConfig = k8.getKubeConfig()
+
+            let clusterMappings = {}
+            kubeConfig.contexts.forEach(c => {
+                clusterMappings[c.cluster] = c.name
+            })
+
+            let userEmailAddress = argv[flags.userEmailAddress.name];
+            if (!userEmailAddress) userEmailAddress = await promptUserEmailAddress(task, userEmailAddress)
+
+            let deploymentName = argv[flags.deploymentName.name];
+            if (!deploymentName) deploymentName = await promptDeploymentName(task, deploymentName)
+
+            let deploymentClusters = argv[flags.deploymentClusters.name];
+            if (!deploymentClusters) deploymentClusters = await promptDeploymentClusters(task, deploymentClusters)
+
+            const deployments = {}
+            deployments[deploymentName] = {
+                clusterAliases: deploymentClusters.split(',')
+            }
+
+            this.userEmailAddress = userEmailAddress
+            this.deployments = deployments
+            this.currentDeploymentName = deploymentName
+            this.clusterMappings = clusterMappings
+            this.validate()
+            await this.write()
+
+            return this
+        }, this.skipPromptTask) as ListrTask<any, any, any>[]
     }
 }
