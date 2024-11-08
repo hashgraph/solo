@@ -19,7 +19,7 @@ import { flags } from '../commands/index.ts'
 import type { ConfigManager } from './config_manager.ts'
 import type { K8 } from './k8.ts'
 import type { SoloLogger } from './logging.ts'
-import { LEASE_RENEW_TIMEOUT, LEASE_AQUIRE_RETRY_TIMEOUT, MAX_LEASE_ACQUIRE_ATTEMPTS, OS_USERNAME } from './constants.ts'
+import { LEASE_RENEW_TIMEOUT, LEASE_ACQUIRE_RETRY_TIMEOUT, MAX_LEASE_ACQUIRE_ATTEMPTS, OS_USERNAME } from './constants.ts'
 import type { ListrTaskWrapper } from 'listr2'
 import chalk from 'chalk'
 import { sleep } from './helpers.ts'
@@ -131,12 +131,12 @@ export class LeaseManager {
         throw new SoloError(`Failed to acquire lease, max attempt reached ${attempt}`)
       }
 
-      this.logger.info(`Lease is already taken retrying in ${LEASE_AQUIRE_RETRY_TIMEOUT}`)
+      this.logger.info(`Lease is already taken retrying in ${LEASE_ACQUIRE_RETRY_TIMEOUT}`)
 
-      task.title = `${title} - ${chalk.gray(`lease exists, attempting again in ${LEASE_AQUIRE_RETRY_TIMEOUT} seconds`)}` +
+      task.title = `${title} - ${chalk.gray(`lease exists, attempting again in ${LEASE_ACQUIRE_RETRY_TIMEOUT} seconds`)}` +
         `, attempt: ${chalk.cyan(attempt.toString())}/${chalk.cyan(maxAttempts.toString())}`
 
-      await sleep(LEASE_AQUIRE_RETRY_TIMEOUT)
+      await sleep(LEASE_ACQUIRE_RETRY_TIMEOUT)
 
       return this.acquireLeaseOrRetry(username, leaseName, namespace, task, title, attempt)
     }

@@ -910,8 +910,8 @@ export class K8 {
     }
   }
 
-  async waitForPods (phases = [constants.POD_PHASE_RUNNING], labels: string[] = [], podCount = 1, maxAttempts = 10,
-    delay = 500, podItemPredicate?: (items: k8s.V1Pod) => any): Promise<k8s.V1Pod[]> {
+  async waitForPods (phases = [constants.POD_PHASE_RUNNING], labels: string[] = [], podCount = 1, maxAttempts = constants.PODS_RUNNING_MAX_ATTEMPTS,
+    delay = constants.PODS_RUNNING_DELAY, podItemPredicate?: (items: k8s.V1Pod) => any): Promise<k8s.V1Pod[]> {
     const ns = this._getNamespace()
     const labelSelector = labels.join(',')
 

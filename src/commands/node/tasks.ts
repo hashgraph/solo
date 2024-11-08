@@ -29,8 +29,10 @@ import {
 } from '../../core/index.ts'
 import {
   DEFAULT_NETWORK_NODE_NAME,
-  FREEZE_ADMIN_ACCOUNT, HEDERA_NODE_DEFAULT_STAKE_AMOUNT,
-  LOCAL_HOST, SECONDS,
+  FREEZE_ADMIN_ACCOUNT,
+  HEDERA_NODE_DEFAULT_STAKE_AMOUNT,
+  LOCAL_HOST,
+  SECONDS,
   TREASURY_ACCOUNT_ID
 } from '../../core/constants.ts'
 import {
@@ -282,7 +284,9 @@ export class NodeCommandTasks {
 
   async _checkNetworkNodeActiveness (namespace: string, nodeAlias: NodeAlias, task: ListrTaskWrapper<any, any, any>,
     title: string, index: number, status = NodeStatusCodes.ACTIVE,
-    maxAttempts = 120, delay = 1_000, timeout = 1_000
+    maxAttempts = constants.NETWORK_NODE_ACTIVE_MAX_ATTEMPTS,
+    delay = constants.NETWORK_NODE_ACTIVE_DELAY,
+    timeout = constants.NETWORK_NODE_ACTIVE_TIMEOUT
   ) {
     nodeAlias = nodeAlias.trim() as NodeAlias
     const podName = Templates.renderNetworkPodName(nodeAlias)
@@ -364,7 +368,7 @@ export class NodeCommandTasks {
         title: `Check proxy for node: ${chalk.yellow(nodeAlias)}`,
         task: async () => await this.k8.waitForPodReady(
           [`app=haproxy-${nodeAlias}`, 'solo.hedera.com/type=haproxy'],
-          1, 300, 2000)
+          1, constants.NETWORK_PROXY_MAX_ATTEMPTS, constants.NETWORK_PROXY_DELAY)
       })
     }
 
@@ -626,7 +630,9 @@ export class NodeCommandTasks {
   }
 
   /** Check if the network node pod is running */
-  async checkNetworkNodePod (namespace: string, nodeAlias: NodeAlias, maxAttempts = 60, delay = 2000) {
+  async checkNetworkNodePod (namespace: string, nodeAlias: NodeAlias,
+                             maxAttempts = constants.PODS_RUNNING_MAX_ATTEMPTS,
+                             delay = constants.PODS_RUNNING_DELAY) {
     nodeAlias = nodeAlias.trim() as NodeAlias
     const podName = Templates.renderNetworkPodName(nodeAlias)
 
@@ -1221,7 +1227,7 @@ export class NodeCommandTasks {
             await this.k8.waitForPods([constants.POD_PHASE_RUNNING], [
               'solo.hedera.com/type=network-node',
                 `solo.hedera.com/node-name=${nodeAlias}`
-            ], 1, 60 * 15, 1000) // timeout 15 minutes
+            ], 1, constants.PODS_RUNNING_MAX_ATTEMPTS, constants.PODS_RUNNING_DELAY) // timeout 15 minutes
         })
       }
 
