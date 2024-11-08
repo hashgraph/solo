@@ -16,7 +16,8 @@
  */
 import type { NodeAliases } from '../../../types/aliases.ts'
 import type { Migration } from './migration.ts'
-import type { ComponentTypeEnum } from './enumerations.ts'
+import type { ComponentsDataWrapper } from './components_data_wrapper.ts'
+import { RemoteConfigMetadata } from "./metadata.js";
 
 export type EmailAddress = `${string}@${string}.${string}`
 export type Version = string
@@ -30,8 +31,6 @@ export interface RemoteConfigMetadataStructure {
   lastUpdatedAt: Date
   lastUpdateBy: EmailAddress
   migration?: Migration
-  validate(): void
-  toObject(): any
 }
 
 export interface IMigration {
@@ -57,7 +56,7 @@ export interface IRelayComponent extends Component {
 }
 
 export interface RemoteConfigData {
-  metadata: RemoteConfigMetadataStructure
+  metadata: RemoteConfigMetadata
   clusters: Record<Cluster, Namespace>
-  components: Record<ComponentTypeEnum, Record<ServiceName, Component>>
+  components: ComponentsDataWrapper
 }

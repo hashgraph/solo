@@ -18,19 +18,19 @@ import semver from 'semver'
 import { SoloError } from '../../errors.ts'
 import { ComponentTypeEnum } from './enumerations.ts'
 import * as version from '../../../../version.ts'
-import type {
-  Cluster, Version, Namespace, Component, RemoteConfigData, RemoteConfigMetadataStructure, ServiceName
-} from './types.ts'
-import type * as k8s from '@kubernetes/client-node'
 import yaml from 'js-yaml'
 import { RemoteConfigMetadata } from './metadata.ts'
-
+import { ComponentsDataWrapper } from './components_data_wrapper.ts'
+import type {
+  Cluster, Version, Namespace, Component, RemoteConfigData, EmailAddress
+} from './types.ts'
+import type * as k8s from '@kubernetes/client-node'
 
 export class RemoteConfigDataWrapper {
   private readonly _version: Version = version.HEDERA_PLATFORM_VERSION
-  private _metadata: RemoteConfigMetadataStructure
+  private _metadata: RemoteConfigMetadata
   private _clusters: Record<Cluster, Namespace>
-  private _components: Record<ComponentTypeEnum, Record<ServiceName, Component>>
+  private _components: ComponentsDataWrapper
 
   constructor (data: RemoteConfigData) {
     this._metadata = data.metadata
@@ -40,45 +40,36 @@ export class RemoteConfigDataWrapper {
   }
 
   static fromConfigmap (configMap: k8s.V1ConfigMap) {
-    const yamlData = configMap.data as { 'remote-config-data': any }
-    const unparsed = yaml.load(yamlData['remote-config-data']) as any
-
-    const metadata = new RemoteConfigMetadata(
-      unparsed.metadata.name,
-      new Date(unparsed.metadata.lastUpdatedAt),
-      unparsed.metadata.lastUpdateBy
-    )
+    const unparsed = yaml.load(configMap.data['remote-config-data']) as any
 
     return new RemoteConfigDataWrapper({
-      metadata,
+      metadata: RemoteConfigMetadata.fromObject(unparsed.metadata),
+      components: ComponentsDataWrapper.fromObject(unparsed.components),
       clusters: unparsed.clusters,
-      components: unparsed.components,
     })
   }
 
-  get metadata () {
-    return this._metadata
+  makeMigration (email: EmailAddress, fromVersion: Version) {
+    this.metadata.makeMigration(email, fromVersion)
   }
 
-  set metadata (metadata: RemoteConfigMetadataStructure) {
+  get metadata () { return this._metadata }
+
+  set metadata (metadata: RemoteConfigMetadata) {
     this._metadata = metadata
     this.validate()
   }
 
-  get clusters () {
-    return this._clusters
-  }
+  get clusters () { return this._clusters }
 
   set clusters (clusters: Record<Cluster, Namespace>) {
     this._clusters = clusters
     this.validate()
   }
 
-  get components () {
-    return this._components
-  }
+  get components () { return this._components }
 
-  set components (components: Record<ComponentTypeEnum, Record<ServiceName, Component>>) {
+  set components (components: ComponentsDataWrapper) {
     this._components = components
     this.validate()
   }

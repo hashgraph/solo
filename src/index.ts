@@ -63,6 +63,7 @@ export function main (argv: any) {
     const context = kubeConfig.getContextObject(kubeConfig.getCurrentContext())
     const cluster = kubeConfig.getCurrentCluster()
 
+    // @ts-ignore
     const opts: Opts = {
       logger,
       helm,

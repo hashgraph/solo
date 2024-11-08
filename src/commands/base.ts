@@ -30,6 +30,7 @@ import type {
 import type {  CommandFlag,  Opts } from '../types/index.ts'
 import { injectable } from 'inversify'
 import { type LocalConfigRepository } from './../core/config/LocalConfigRepository.ts'
+// @ts-ignore
 import { TYPES } from './../types/injectables.ts'
 
 import { container } from '../inject.config.ts'
@@ -47,7 +48,7 @@ export class BaseCommand extends ShellRunner {
   protected readonly _configMaps = new Map<string, any>()
 
   @lazyInject(TYPES.LocalConfigRepository)
-  private localConfigRepository: LocalConfigRepository
+  protected localConfigRepository: LocalConfigRepository
   
   protected readonly remoteConfigRepository: RemoteConfigManager
 

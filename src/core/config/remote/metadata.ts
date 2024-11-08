@@ -17,16 +17,38 @@
 import { Migration } from './migration.ts'
 import { SoloError } from '../../errors.ts'
 import * as k8s from '@kubernetes/client-node'
-import type { EmailAddress, Namespace, RemoteConfigMetadataStructure } from './types.ts'
+import type { EmailAddress, Namespace, RemoteConfigMetadataStructure, Version } from './types.ts'
 
 export class RemoteConfigMetadata implements RemoteConfigMetadataStructure {
-  constructor (
-    public readonly name: Namespace,
-    public readonly lastUpdatedAt: Date,
-    public readonly lastUpdateBy: EmailAddress,
-    public readonly migration?: Migration,
-  ) {
+  public readonly _name: Namespace
+  public readonly _lastUpdatedAt: Date
+  public readonly _lastUpdateBy: EmailAddress
+  public _migration?: Migration
+
+  constructor (name: Namespace, lastUpdatedAt: Date, lastUpdateBy: EmailAddress, migration?: Migration) {
+    this._name = name
+    this._lastUpdatedAt = lastUpdatedAt
+    this._lastUpdateBy = lastUpdateBy
+    this._migration = migration
     this.validate()
+  }
+
+  get name () { return this._name }
+  get lastUpdatedAt () { return this._lastUpdatedAt }
+  get lastUpdateBy () { return this._lastUpdateBy }
+  get migration () { return this._migration }
+
+  makeMigration (email: EmailAddress, fromVersion: Version) {
+    this._migration = new Migration(new Date(), email, fromVersion)
+  }
+
+  static fromObject (metadata: RemoteConfigMetadataStructure) {
+    return new RemoteConfigMetadata(
+      metadata.name,
+      new Date(metadata.lastUpdatedAt),
+      metadata.lastUpdateBy,
+      metadata.migration
+    )
   }
 
   validate () {
@@ -52,7 +74,7 @@ export class RemoteConfigMetadata implements RemoteConfigMetadataStructure {
       name: this.name,
       lastUpdatedAt: new k8s.V1MicroTime(this.lastUpdatedAt),
       lastUpdateBy: this.lastUpdateBy,
-    } as Omit<RemoteConfigMetadataStructure, 'toObject' | 'validate'>
+    } as RemoteConfigMetadataStructure
 
     if (this.migration) data.migration = this.migration.toObject() as any
 
