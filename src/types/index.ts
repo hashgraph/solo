@@ -23,7 +23,6 @@ import type {
   ChartManager, ConfigManager, Helm, K8, KeyManager, PackageDownloader, PlatformInstaller,
   ProfileManager, DependencyManager, AccountManager, LeaseManager, CertificateManager
 } from '../core/index.ts'
-import { type LocalConfig } from '../core/config/LocalConfig.ts'
 
 export interface NodeKeyObject {
   privateKey: crypto.webcrypto.CryptoKey
@@ -80,5 +79,5 @@ export interface Opts {
   accountManager: AccountManager
   profileManager: ProfileManager
   leaseManager: LeaseManager,
-  localConfig: LocalConfig
+  certificateManager: CertificateManager
 }

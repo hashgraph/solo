@@ -22,11 +22,12 @@ import type {  ChartManager,  ConfigManager,  Helm,  K8,  DependencyManager, Lea
 import type {  CommandFlag,  Opts } from '../types/index.ts'
 import { injectable } from 'inversify'
 import { type LocalConfig } from './../core/config/LocalConfig.ts'
-import { INJECTABLES } from './../types/injectables.js'
+// import { INJECTABLES } from './../types/injectables.ts'
 
-import { container } from '../inject.config.ts'
-import getDecorators from 'inversify-inject-decorators'
-const { lazyInject } = getDecorators.default(container, false)
+import { getContainer } from '../inject.config.ts'
+import { INJECTABLES } from '../types/injectables.ts'
+import getDecorators from "inversify-inject-decorators";
+const { lazyInject } = getDecorators.default(getContainer(), false)
 
 @injectable()
 export class BaseCommand extends ShellRunner {

@@ -19,10 +19,11 @@ import fs from 'fs'
 import { stringify } from 'yaml'
 import { expect } from 'chai'
 import { MissingArgumentError, SoloError } from '../../../src/core/errors.ts'
+import { getTestCacheDir } from "../../test_util.ts"
 
-describe.only('LocalConfig', () => {
+describe('LocalConfig', () => {
     let localConfig
-    const filePath = 'test/data/tmp/test-config.yaml'
+    const filePath = `${getTestCacheDir('LocalConfig')}/localConfig.yaml`
     const config = {
         userEmailAddress: 'john.doe@example.com',
         deployments: {
