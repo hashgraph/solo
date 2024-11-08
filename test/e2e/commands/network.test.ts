@@ -103,6 +103,8 @@ describe('NetworkCommand', () => {
         flags.profileName.constName,
         flags.quiet.constName,
         flags.settingTxt.constName,
+        flags.grpcTlsKeyPath.constName,
+        flags.grpcWebTlsKeyPath.constName,
         'chartPath'
       ])
     } catch (e) {

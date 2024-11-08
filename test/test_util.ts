@@ -44,7 +44,7 @@ import {
   ProfileManager,
   Templates,
   Zippy,
-  AccountManager
+  AccountManager, CertificateManager
 } from '../src/core/index.ts'
 import { flags } from '../src/commands/index.ts'
 import {
@@ -63,10 +63,11 @@ import type { BaseCommand } from '../src/commands/base.ts'
 import type { NodeAlias } from '../src/types/aliases.ts'
 import type { NetworkNodeServices } from '../src/core/network_node_services.ts'
 import sinon from 'sinon'
+import { HEDERA_PLATFORM_VERSION } from '../version.js'
 
 export const testLogger = logging.NewLogger('debug', true)
 export const TEST_CLUSTER = 'solo-e2e'
-export const HEDERA_PLATFORM_VERSION_TAG = 'v0.54.0-alpha.4'
+export const HEDERA_PLATFORM_VERSION_TAG = HEDERA_PLATFORM_VERSION
 
 const TEST_DATA_DIR = 'test/data'
 
@@ -108,6 +109,7 @@ interface TestOpts {
   cacheDir: string
   profileManager: ProfileManager
   leaseManager: LeaseManager
+  certificateManager: CertificateManager
 }
 
 interface BootstrapResponse {
@@ -137,6 +139,7 @@ export function bootstrapTestVariables (
   const cacheDir: string = argv[flags.cacheDir.name] || getTestCacheDir(testName)
   const configManager = new ConfigManager(testLogger)
   configManager.update(argv)
+
   const downloader = new PackageDownloader(testLogger)
   const zippy = new Zippy(testLogger)
   const helmDepManager = new HelmDependencyManager(downloader, zippy, testLogger)
@@ -150,6 +153,7 @@ export function bootstrapTestVariables (
   const platformInstaller = new PlatformInstaller(testLogger, k8, configManager)
   const profileManager = new ProfileManager(testLogger, configManager)
   const leaseManager = new LeaseManager(k8, testLogger, configManager)
+  const certificateManager = new CertificateManager(k8, testLogger, configManager)
 
   const opts: TestOpts = {
     logger: testLogger,
@@ -164,7 +168,8 @@ export function bootstrapTestVariables (
     accountManager,
     cacheDir,
     profileManager,
-    leaseManager
+    leaseManager,
+    certificateManager
   }
 
   const initCmd = initCmdArg || new InitCommand(opts)
@@ -261,6 +266,8 @@ export function e2eTestSuite (
           flags.profileName.constName,
           flags.quiet.constName,
           flags.settingTxt.constName,
+          flags.grpcTlsKeyPath.constName,
+          flags.grpcWebTlsKeyPath.constName,
           'chartPath'
         ])
       }).timeout(3 * MINUTES)

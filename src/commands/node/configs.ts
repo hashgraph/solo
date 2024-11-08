@@ -401,6 +401,10 @@ export interface NodeAddConfigClass {
     treasuryKey: PrivateKey
     stagingDir: string
     stagingKeysDir: string
+    grpcTlsCertificatePath: string,
+    grpcWebTlsCertificatePath: string,
+    grpcTlsKeyPath: string,
+    grpcWebTlsKeyPath: string,
     getUnusedConfigs: () => string[]
 }
 

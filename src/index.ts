@@ -22,7 +22,7 @@ import * as commands from './commands/index.ts'
 import { HelmDependencyManager, DependencyManager } from './core/dependency_managers/index.ts'
 import {
   ChartManager, ConfigManager, PackageDownloader, PlatformInstaller, Helm, logging,
-  KeyManager, Zippy, constants, ProfileManager, AccountManager, LeaseManager
+  KeyManager, Zippy, constants, ProfileManager, AccountManager, LeaseManager, CertificateManager
 } from './core/index.ts'
 import 'dotenv/config'
 import { K8 } from './core/k8.ts'
@@ -52,6 +52,7 @@ export function main (argv: any) {
     const keyManager = new KeyManager(logger)
     const profileManager = new ProfileManager(logger, configManager)
     const leaseManager = new LeaseManager(k8, logger, configManager)
+    const certificateManager = new CertificateManager(k8, logger, configManager)
 
     // set cluster and namespace in the global configManager from kubernetes context
     // so that we don't need to prompt the user
@@ -71,7 +72,8 @@ export function main (argv: any) {
       keyManager,
       accountManager,
       profileManager,
-      leaseManager
+      leaseManager,
+      certificateManager,
     }
 
     const processArguments = (argv: any, yargs: any) => {

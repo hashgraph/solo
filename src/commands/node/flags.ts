@@ -113,7 +113,11 @@ const COMMON_ADD_REQUIRED_NO_PROMPT_FLAGS = [
     flags.chainId,
     flags.debugNodeAlias,
     flags.soloChartVersion,
-    flags.persistentVolumeClaims
+    flags.persistentVolumeClaims,
+    flags.grpcTlsCertificatePath,
+    flags.grpcWebTlsCertificatePath,
+    flags.grpcTlsKeyPath,
+    flags.grpcWebTlsKeyPath,
 ]
 
 const COMMON_ADD_OPTIONAL_FLAGS = [
