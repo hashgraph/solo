@@ -21,7 +21,7 @@ import { ShellRunner } from '../core/shell_runner.ts'
 import type {  ChartManager,  ConfigManager,  Helm,  K8,  DependencyManager, LeaseManager } from '../core/index.ts'
 import type {  CommandFlag,  Opts } from '../types/index.ts'
 import {injectable} from 'inversify';
-import { LocalConfigRepository } from './../core/config/LocalConfigRepository.ts';
+import { LocalConfig } from './../core/config/LocalConfig.ts';
 import { INJECTABLES } from './../types/injectables.js';
 
 import {container} from "../inject.config.ts";
@@ -38,8 +38,8 @@ export class BaseCommand extends ShellRunner {
   protected readonly leaseManager: LeaseManager
   protected readonly _configMaps = new Map<string, any>()
 
-  @lazyInject(INJECTABLES.LocalConfigRepository)
-  private localConfigRepository: LocalConfigRepository
+  @lazyInject(INJECTABLES.LocalConfig)
+  protected readonly localConfig: LocalConfig
 
   constructor (opts: Opts) {
     if (!opts || !opts.logger) throw new Error('An instance of core/SoloLogger is required')
@@ -58,11 +58,10 @@ export class BaseCommand extends ShellRunner {
     this.depManager = opts.depManager
     this.leaseManager = opts.leaseManager
 
-    // This is a workaround to get the localConfigRepository injected.
+    // This is a workaround to get the localConfig injected.
     // It should be removed once we find a proper solution or when we inject all dependencies
-    this.localConfigRepository = BaseCommand.prototype.localConfigRepository
+    this.localConfig = BaseCommand.prototype.localConfig
   }
-
 
   async prepareChartPath (chartDir: string, chartRepo: string, chartReleaseName: string) {
     if (!chartRepo) throw new MissingArgumentError('chart repo name is required')
