@@ -15,21 +15,21 @@
  *
  */
 import { injectable } from 'inversify'
-import { type ClusterMapping, type Deployment, type Deployments, type LocalConfigData } from './LocalConfigData.ts'
+import { IsEmail, IsNotEmpty, IsObject, IsString, validateSync } from 'class-validator'
+import { type ListrTask } from 'listr2'
 import fs from 'fs'
 import * as yaml from 'yaml'
+import { type ClusterMapping, type Deployment, type Deployments, type LocalConfigData } from './LocalConfigData.ts'
 import { MissingArgumentError, SoloError } from '../errors.ts'
 import { promptDeploymentClusters, promptDeploymentName, promptUserEmailAddress } from '../../commands/prompts.ts'
 import { flags } from '../../commands/index.ts'
 import { type SoloLogger } from '../logging.ts'
 import { Task } from '../task.ts'
+import { getContainer } from '../../inject.config.ts'
+import { INJECTABLES } from '../../types/injectables.ts'
+import getDecorators from "inversify-inject-decorators";
+const { lazyInject } = getDecorators.default(getContainer(), false)
 
-import { container } from '../../inject.config.ts'
-import getDecorators from 'inversify-inject-decorators'
-import { INJECTABLES } from '../../types/injectables.js'
-import { IsEmail, IsNotEmpty, IsObject, IsString, validateSync } from 'class-validator'
-import { type ListrTask } from 'listr2'
-const { lazyInject } = getDecorators.default(container, false)
 
 @injectable()
 export class LocalConfig implements LocalConfigData {
