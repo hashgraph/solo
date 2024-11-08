@@ -23,6 +23,7 @@ export type Version = string
 export type Namespace = string
 export type Cluster = string
 export type Context = string
+export type ServiceName = string
 
 export interface RemoteConfigMetadataStructure {
   name: Namespace
@@ -41,18 +42,22 @@ export interface IMigration {
   toObject(): any
 }
 
+// TODO Keep the state of components
+// make enums for individual component states
+// use them to track component states in the cluster
+
 export interface Component {
-  name: string
+  name: ServiceName
   cluster: Cluster
   namespace: Namespace
 }
 
-export interface RelayComponent extends Component {
+export interface IRelayComponent extends Component {
   consensusNodeAliases: NodeAliases
 }
 
 export interface RemoteConfigData {
   metadata: RemoteConfigMetadataStructure
   clusters: Record<Cluster, Namespace>
-  components: Record<ComponentTypeEnum, Record<string, Component>>
+  components: Record<ComponentTypeEnum, Record<ServiceName, Component>>
 }

@@ -27,7 +27,7 @@ export interface Deployment {
 
 // an alias for the cluster, provided during the configuration
 // of the deployment, must be unique
-export type Deployments = Record<Namespace, Deployment>;
+export type Deployments = Record<DeploymentName, Deployment>;
 
 export type ClusterMapping = Record<Cluster, Context>;
 

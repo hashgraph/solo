@@ -19,17 +19,18 @@ import { SoloError } from '../../errors.ts'
 import { ComponentTypeEnum } from './enumerations.ts'
 import * as version from '../../../../version.ts'
 import type {
-  Cluster, Version, Namespace, Component, RemoteConfigData, RemoteConfigMetadataStructure
+  Cluster, Version, Namespace, Component, RemoteConfigData, RemoteConfigMetadataStructure, ServiceName
 } from './types.ts'
 import type * as k8s from '@kubernetes/client-node'
 import yaml from 'js-yaml'
-import { RemoteConfigMetadata } from "./metadata.js";
+import { RemoteConfigMetadata } from './metadata.ts'
+
 
 export class RemoteConfigDataWrapper {
   private readonly _version: Version = version.HEDERA_PLATFORM_VERSION
   private _metadata: RemoteConfigMetadataStructure
   private _clusters: Record<Cluster, Namespace>
-  private _components: Record<ComponentTypeEnum, Record<string, Component>>
+  private _components: Record<ComponentTypeEnum, Record<ServiceName, Component>>
 
   constructor (data: RemoteConfigData) {
     this._metadata = data.metadata
@@ -77,7 +78,7 @@ export class RemoteConfigDataWrapper {
     return this._components
   }
 
-  set components (components: Record<ComponentTypeEnum, Record<string, Component>>) {
+  set components (components: Record<ComponentTypeEnum, Record<ServiceName, Component>>) {
     this._components = components
     this.validate()
   }

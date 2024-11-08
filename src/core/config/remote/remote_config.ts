@@ -20,7 +20,6 @@ import { RemoteConfigDataWrapper } from './remote_config_data_wrapper.ts'
 import chalk from 'chalk'
 import type { LocalConfigRepository } from '../LocalConfigRepository.ts'
 import type { K8 } from '../../k8.ts'
-import type * as k8s from '@kubernetes/client-node'
 import type { Cluster, Namespace, RemoteConfigData } from './types.ts'
 import type { SoloLogger } from '../../logging.ts'
 import type { ListrTaskWrapper } from 'listr2'
@@ -39,6 +38,8 @@ export class RemoteConfigManager {
     private readonly configManager: ConfigManager,
     private readonly localConfigRepository: LocalConfigRepository,
   ) {}
+
+
 
   private async initializeDefault () {
     const localConfigExists = this.localConfigRepository.configFileExists()
