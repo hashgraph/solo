@@ -15,20 +15,20 @@
  *
  */
 
-import {Container, interfaces} from "inversify";
-import {LocalConfig} from "./core/config/LocalConfig.ts";
-import path from "path";
+import { Container, type interfaces } from 'inversify'
+import { LocalConfig } from './core/config/LocalConfig.ts'
+import path from 'path'
 import { constants } from './core/index.ts'
-import {logging} from "./core/index.ts";
-import {INJECTABLES} from './types/injectables.ts'
-import {SoloLogger} from "./core/logging.js";
+import { logging } from './core/index.ts'
+import { INJECTABLES } from './types/injectables.ts'
+import { type SoloLogger } from './core/logging.js'
 
-export const container = new Container();
+export const container = new Container()
 
 container.bind<LocalConfig>(INJECTABLES.LocalConfig).toDynamicValue((context: interfaces.Context) => {
-    return new LocalConfig(path.join(constants.SOLO_CACHE_DIR, constants.DEFAULT_LOCAL_CONFIG_FILE));
-}).inSingletonScope();
+    return new LocalConfig(path.join(constants.SOLO_CACHE_DIR, constants.DEFAULT_LOCAL_CONFIG_FILE))
+}).inSingletonScope()
 
 container.bind<SoloLogger>(INJECTABLES.SoloLogger).toDynamicValue((context: interfaces.Context) => {
     return logging.NewLogger('debug')
-}).inSingletonScope();
+}).inSingletonScope()
