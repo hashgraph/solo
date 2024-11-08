@@ -23,7 +23,7 @@ import { type SoloLogger } from './core/logging.ts'
 import { LocalConfig } from './core/config/LocalConfig.ts'
 import { INJECTABLES } from './types/injectables.js'
 
-function getContainer() {
+function getContainer () {
     // TODO check if this creates a new container every time
     // If it does find a better solution to the circular dependency problem
     // inject.config.ts -> LocalConfig.ts -> inject.config.ts

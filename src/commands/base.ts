@@ -26,7 +26,7 @@ import { type LocalConfig } from './../core/config/LocalConfig.ts'
 
 import { getContainer } from '../inject.config.ts'
 import { INJECTABLES } from '../types/injectables.ts'
-import getDecorators from "inversify-inject-decorators";
+import getDecorators from 'inversify-inject-decorators'
 const { lazyInject } = getDecorators.default(getContainer(), false)
 
 @injectable()
