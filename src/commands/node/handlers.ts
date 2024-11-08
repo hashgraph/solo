@@ -137,6 +137,7 @@ export class NodeCommandHandlers {
       this.tasks.checkPVCsEnabled(),
       this.tasks.identifyExistingNodes(),
       this.tasks.determineNewNodeAccountNumber(),
+      this.tasks.copyGrpcTlsCertificates(),
       this.tasks.generateGossipKey(),
       this.tasks.generateGrpcTlsKey(),
       this.tasks.loadSigningKeyCertificate(),

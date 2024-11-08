@@ -42,3 +42,12 @@ export const NodeStatusEnums = {
   10: 'RECONNECT_COMPLETE',
   11: 'CATASTROPHIC_FAILURE'
 }
+
+/**
+ * - GRPC - Represents HAProxy Proxy
+ * - GRPC_WEB - Represent Envoy Proxy
+ */
+export enum GrpcProxyTlsEnums {
+  GRPC,
+  GRPC_WEB,
+}

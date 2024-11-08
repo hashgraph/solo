@@ -14,22 +14,21 @@
  * limitations under the License.
  *
  */
-
 import { ListrEnquirerPromptAdapter } from '@listr2/prompt-adapter-enquirer'
 import chalk from 'chalk'
 import { Listr } from 'listr2'
 import { SoloError, IllegalArgumentError, MissingArgumentError } from '../core/errors.ts'
 import { BaseCommand } from './base.ts'
 import * as flags from './flags.ts'
-import type { KeyManager, PlatformInstaller, ProfileManager } from '../core/index.ts'
 import { constants, Templates } from '../core/index.ts'
 import * as prompts from './prompts.ts'
 import * as helpers from '../core/helpers.ts'
 import path from 'path'
 import { addDebugOptions, validatePath } from '../core/helpers.ts'
 import fs from 'fs'
-import { type NodeAlias, type NodeAliases } from '../types/aliases.ts'
-import { type Opts } from '../types/index.ts'
+import type { CertificateManager, KeyManager, PlatformInstaller, ProfileManager } from '../core/index.ts'
+import type { NodeAlias, NodeAliases } from '../types/aliases.ts'
+import type { Opts } from '../types/index.ts'
 
 export interface NetworkDeployConfigClass {
   applicationEnv: string
@@ -48,7 +47,11 @@ export interface NetworkDeployConfigClass {
   nodeAliases: NodeAliases
   stagingDir: string
   stagingKeysDir: string
-  valuesArg: string
+  valuesArg: string,
+  grpcTlsCertificatePath: string,
+  grpcWebTlsCertificatePath: string,
+  grpcTlsKeyPath: string,
+  grpcWebTlsKeyPath: string,
   getUnusedConfigs: () => string[]
 }
 
@@ -56,6 +59,7 @@ export class NetworkCommand extends BaseCommand {
   private readonly keyManager: KeyManager
   private readonly platformInstaller: PlatformInstaller
   private readonly profileManager: ProfileManager
+  private readonly certificateManager: CertificateManager
   private profileValuesFile?: string
 
   constructor (opts: Opts) {
@@ -65,7 +69,9 @@ export class NetworkCommand extends BaseCommand {
     if (!opts || !opts.keyManager) throw new IllegalArgumentError('An instance of core/KeyManager is required', opts.keyManager)
     if (!opts || !opts.platformInstaller) throw new IllegalArgumentError('An instance of core/PlatformInstaller is required', opts.platformInstaller)
     if (!opts || !opts.profileManager) throw new MissingArgumentError('An instance of core/ProfileManager is required', opts.downloader)
+    if (!opts || !opts.certificateManager) throw new MissingArgumentError('An instance of core/CertificateManager is required', opts.certificateManager)
 
+    this.certificateManager = opts.certificateManager
     this.keyManager = opts.keyManager
     this.platformInstaller = opts.platformInstaller
     this.profileManager = opts.profileManager
@@ -97,7 +103,11 @@ export class NetworkCommand extends BaseCommand {
       flags.quiet,
       flags.releaseTag,
       flags.settingTxt,
-      flags.valuesFile
+      flags.valuesFile,
+      flags.grpcTlsCertificatePath,
+      flags.grpcWebTlsCertificatePath,
+      flags.grpcTlsKeyPath,
+      flags.grpcWebTlsKeyPath,
     ]
   }
 
@@ -160,7 +170,11 @@ export class NetworkCommand extends BaseCommand {
       flags.persistentVolumeClaims,
       flags.profileName,
       flags.profileFile,
-      flags.settingTxt
+      flags.settingTxt,
+      flags.grpcTlsCertificatePath,
+      flags.grpcWebTlsCertificatePath,
+      flags.grpcTlsKeyPath,
+      flags.grpcWebTlsKeyPath,
     ])
 
     await prompts.execute(task, this.configManager, NetworkCommand.DEPLOY_FLAGS_LIST)
@@ -229,6 +243,18 @@ export class NetworkCommand extends BaseCommand {
           ctx.config = await self.prepareConfig(task, argv)
           return lease.buildAcquireTask(task)
         }
+      },
+      {
+        title: 'Copy gRPC TLS Certificates',
+        task: (ctx, parentTask) =>
+          self.certificateManager.buildCopyTlsCertificatesTasks(
+            parentTask,
+            ctx.config.grpcTlsCertificatePath,
+            ctx.config.grpcWebTlsCertificatePath,
+            ctx.config.grpcTlsKeyPath,
+            ctx.config.grpcWebTlsKeyPath
+          ),
+        skip: (ctx) => !ctx.config.grpcTlsCertificatePath && !ctx.config.grpcWebTlsCertificatePath
       },
       {
         title: 'Check if cluster setup chart is installed',

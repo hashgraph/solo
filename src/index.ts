@@ -22,7 +22,7 @@ import * as commands from './commands/index.ts'
 import { HelmDependencyManager, DependencyManager } from './core/dependency_managers/index.ts'
 import {
   ChartManager, ConfigManager, PackageDownloader, PlatformInstaller, Helm, logging,
-  KeyManager, Zippy, constants, ProfileManager, AccountManager, LeaseManager, RemoteConfigManager
+  KeyManager, Zippy, constants, ProfileManager, AccountManager, LeaseManager, CertificateManager, RemoteConfigManager
 } from './core/index.ts'
 import 'dotenv/config'
 import { K8 } from './core/k8.ts'
@@ -52,6 +52,8 @@ export function main (argv: any) {
     const keyManager = new KeyManager(logger)
     const profileManager = new ProfileManager(logger, configManager)
     const leaseManager = new LeaseManager(k8, logger, configManager)
+    const certificateManager = new CertificateManager(k8, logger, configManager)
+
     // @ts-ignore todo
     const remoteConfigManager = new RemoteConfigManager(k8, logger, configManager, localConfigRepository)
 
@@ -75,6 +77,7 @@ export function main (argv: any) {
       profileManager,
       leaseManager,
       remoteConfigManager,
+      certificateManager,
     }
 
     const processArguments = (argv: any, yargs: any) => {

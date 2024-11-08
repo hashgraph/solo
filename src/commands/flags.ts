@@ -708,6 +708,61 @@ export const hederaExplorerVersion: CommandFlag = {
   }
 }
 
+//* ------------- Node Proxy Certificates ------------- !//
+
+export const grpcTlsCertificatePath: CommandFlag = {
+  constName: 'grpcTlsCertificatePath',
+  name: 'grpc-tls-cert',
+  definition: {
+    describe:
+      'TLS Certificate path for the gRPC ' +
+      '(e.g. "node1=/Users/username/node1-grpc.cert" ' +
+      'with multiple nodes comma seperated)',
+    defaultValue: '',
+    type: 'string'
+  }
+}
+
+export const grpcWebTlsCertificatePath: CommandFlag = {
+  constName: 'grpcWebTlsCertificatePath',
+  name: 'grpc-web-tls-cert',
+  definition: {
+    describe:
+      'TLS Certificate path for gRPC Web ' +
+      '(e.g. "node1=/Users/username/node1-grpc-web.cert" ' +
+      'with multiple nodes comma seperated)',
+    defaultValue: '',
+    type: 'string'
+  }
+}
+
+export const grpcTlsKeyPath: CommandFlag = {
+  constName: 'grpcTlsKeyPath',
+  name: 'grpc-tls-key',
+  definition: {
+    describe:
+      'TLS Certificate key path for the gRPC ' +
+      '(e.g. "node1=/Users/username/node1-grpc.key" ' +
+      'with multiple nodes comma seperated)',
+    defaultValue: '',
+    type: 'string'
+  }
+}
+
+export const grpcWebTlsKeyPath: CommandFlag = {
+  constName: 'grpcWebTlsKeyPath',
+  name: 'grpc-web-tls-key',
+  definition: {
+    describe:
+      'TLC Certificate key path for gRPC Web ' +
+      '(e.g. "node1=/Users/username/node1-grpc-web.key" ' +
+      'with multiple nodes comma seperated)',
+    defaultValue: '',
+    type: 'string'
+  }
+}
+
+
 export const userEmailAddress: CommandFlag = {
   constName: 'userEmailAddress',
   name: 'email',
@@ -804,7 +859,13 @@ export const allFlags: CommandFlag[] = [
   userEmailAddress,
   valuesFile,
   mirrorNodeVersion,
-  hederaExplorerVersion
+  hederaExplorerVersion,
+  inputDir,
+  outputDir,
+  grpcTlsCertificatePath,
+  grpcWebTlsCertificatePath,
+  grpcTlsKeyPath,
+  grpcWebTlsKeyPath,
 ]
 
 /** Resets the definition.disablePrompt for all flags */

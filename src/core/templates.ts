@@ -21,6 +21,7 @@ import { DataValidationError, SoloError, IllegalArgumentError, MissingArgumentEr
 import { constants } from './index.ts'
 import { type AccountId } from '@hashgraph/sdk'
 import type { NodeAlias, PodName } from '../types/aliases.ts'
+import { GrpcProxyTlsEnums} from './enumerations.ts'
 
 export class Templates {
   public static renderNetworkPodName (nodeAlias: NodeAlias): PodName {
@@ -178,5 +179,45 @@ export class Templates {
 
   public static renderGossipKeySecretLabelObject (nodeAlias: NodeAlias): { 'solo.hedera.com/node-name': string } {
     return { 'solo.hedera.com/node-name': nodeAlias }
+  }
+
+  /**
+   * Creates the secret name based on the node alias type
+   *
+   * @param nodeAlias - node alias
+   * @param type - whether is for gRPC or gRPC Web ( Haproxy or Envoy )
+   *
+   * @returns the appropriate secret name
+   */
+  static renderGrpcTlsCertificatesSecretName (nodeAlias: NodeAlias, type: GrpcProxyTlsEnums) {
+    switch (type) {
+      //? HAProxy Proxy
+      case GrpcProxyTlsEnums.GRPC:
+        return `haproxy-proxy-secret-${nodeAlias}`
+
+      //? Envoy Proxy
+      case GrpcProxyTlsEnums.GRPC_WEB:
+        return `envoy-proxy-secret-${nodeAlias}`
+    }
+  }
+
+  /**
+   * Creates the secret labels based on the node alias type
+   *
+   * @param nodeAlias - node alias
+   * @param type - whether is for gRPC or gRPC Web ( Haproxy or Envoy )
+   *
+   * @returns the appropriate secret labels
+   */
+  static renderGrpcTlsCertificatesSecretLabelObject (nodeAlias: NodeAlias, type: GrpcProxyTlsEnums) {
+    switch (type) {
+      //? HAProxy Proxy
+      case GrpcProxyTlsEnums.GRPC:
+        return { 'haproxy-proxy-secret': nodeAlias }
+
+      //? Envoy Proxy
+      case GrpcProxyTlsEnums.GRPC_WEB:
+        return { 'envoy-proxy-secret': nodeAlias }
+    }
   }
 }
