@@ -22,7 +22,6 @@ import type {  ChartManager,  ConfigManager,  Helm,  K8,  DependencyManager, Lea
 import type {  CommandFlag,  Opts } from '../types/index.ts'
 import { injectable } from 'inversify'
 import { type LocalConfig } from './../core/config/LocalConfig.ts'
-// import { INJECTABLES } from './../types/injectables.ts'
 
 import { getContainer } from '../inject.config.ts'
 import { INJECTABLES } from '../types/injectables.ts'
