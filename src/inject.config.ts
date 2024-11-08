@@ -21,7 +21,7 @@ import { constants } from './core/index.ts'
 import { logging } from './core/index.ts'
 import { type SoloLogger } from './core/logging.ts'
 import { LocalConfig } from './core/config/LocalConfig.ts'
-import { INJECTABLES } from './types/injectables.js'
+import { INJECTABLES } from "./types/injectables.ts";
 
 function getContainer () {
     // TODO check if this creates a new container every time
