@@ -389,27 +389,26 @@ export class NetworkCommand extends BaseCommand {
       },
       {
         title: 'Check auxiliary pods are ready',
-        task:
-           (_, task) => {
-             const subTasks = []
+        task: (_, task) => {
+          const subTasks = []
 
-             // minio
-             subTasks.push({
-               title: 'Check MinIO',
-               task: async () =>
-                 await self.k8.waitForPodReady([
-                   'v1.min.io/tenant=minio'
-                 ], 1, 60 * 5, 1000) // timeout 5 minutes
-             })
+          // minio
+          subTasks.push({
+            title: 'Check MinIO',
+            task: async () =>
+              await self.k8.waitForPodReady([
+                'v1.min.io/tenant=minio'
+              ], 1, 60 * 5, 1000) // timeout 5 minutes
+          })
 
-             // set up the sub-tasks
-             return task.newListr(subTasks, {
-               concurrent: false, // no need to run concurrently since if one node is up, the rest should be up by then
-               rendererOptions: {
-                 collapseSubtasks: false
-               }
-             })
-           }
+          // set up the sub-tasks
+          return task.newListr(subTasks, {
+            concurrent: false, // no need to run concurrently since if one node is up, the rest should be up by then
+            rendererOptions: {
+              collapseSubtasks: false
+            }
+          })
+        }
       },
       this.remoteConfigRepository.buildLoadRemoteConfigCommand(true)
     ], {

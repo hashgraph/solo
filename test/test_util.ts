@@ -44,7 +44,7 @@ import {
   ProfileManager,
   Templates,
   Zippy,
-  AccountManager, RemoteConfigManager, CertificateManager
+  AccountManager, CertificateManager, RemoteConfigManager,
 } from '../src/core/index.ts'
 import { flags } from '../src/commands/index.ts'
 import {
@@ -109,9 +109,9 @@ interface TestOpts {
   cacheDir: string
   profileManager: ProfileManager
   leaseManager: LeaseManager,
+  certificateManager: CertificateManager,
   localConfigRepository: LocalConfigRepository
   remoteConfigManager: RemoteConfigManager,
-  certificateManager: CertificateManager
 }
 
 interface BootstrapResponse {
@@ -172,9 +172,9 @@ export function bootstrapTestVariables (
     cacheDir,
     profileManager,
     leaseManager,
+    certificateManager,
     localConfigRepository,
     remoteConfigManager,
-    certificateManager
   }
 
   const initCmd = initCmdArg || new InitCommand(opts)

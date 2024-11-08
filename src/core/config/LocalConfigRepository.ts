@@ -45,7 +45,7 @@ export class LocalConfigRepository {
 
     public async getConfig (): Promise<LocalConfig> {
         if (!this.configFileExists()) {
-            throw new SoloError(`Local config file not found: ${this.filePath}`);
+            throw new SoloError(`Local config file not found: ${this.filePath}`)
         }
 
         if (!this.config) {
