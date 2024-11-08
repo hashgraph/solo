@@ -22,6 +22,7 @@ import { describe, it, after, before } from 'mocha'
 import fs from 'fs'
 import os from 'os'
 import path from 'path'
+import { BaseCommand } from '../src/commands/base.ts'
 import { ClusterCommand } from '../src/commands/cluster.ts'
 import { InitCommand } from '../src/commands/init.ts'
 import { NetworkCommand } from '../src/commands/network.ts'
@@ -59,7 +60,6 @@ import { SoloError } from '../src/core/errors.ts'
 import { execSync } from 'child_process'
 import * as NodeCommandConfigs from '../src/commands/node/configs.ts'
 import type { SoloLogger } from '../src/core/logging.ts'
-import type { BaseCommand } from '../src/commands/base.ts'
 import type { NodeAlias } from '../src/types/aliases.ts'
 import type { NetworkNodeServices } from '../src/core/network_node_services.ts'
 import sinon from 'sinon'
@@ -69,10 +69,8 @@ export const testLogger = logging.NewLogger('debug', true)
 export const TEST_CLUSTER = 'solo-e2e'
 export const HEDERA_PLATFORM_VERSION_TAG = HEDERA_PLATFORM_VERSION
 
-const TEST_DATA_DIR = 'test/data'
-
 export function getTestCacheDir (testName?: string) {
-  const baseDir = `${TEST_DATA_DIR}/tmp`
+  const baseDir = 'test/data/tmp'
   const d = testName ? path.join(baseDir, testName) : baseDir
 
   if (!fs.existsSync(d)) {

@@ -150,10 +150,7 @@ export class InitCommand extends BaseCommand {
       desc: 'Initialize local environment',
       builder: (y: any) => {
         flags.setCommandFlags(y,
-          flags.cacheDir,
-          flags.userEmailAddress,
-          flags.deploymentClusters,
-          flags.deploymentName
+          flags.cacheDir
         )
       },
       handler: (argv: any) => {
