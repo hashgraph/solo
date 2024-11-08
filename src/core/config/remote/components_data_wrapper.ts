@@ -32,7 +32,7 @@ export class ComponentsDataWrapper {
     private readonly relays: Record<ServiceName, RelayComponent> = {},
   ) {}
 
-  static fromObject (components: Record<ComponentTypeEnum, Record<ServiceName, Component>>) {
+  static fromObject (components: Record<ComponentTypeEnum, Record<ServiceName, Component>>): ComponentsDataWrapper {
 
     const consensusNodes: Record<ServiceName, ConsensusNodeComponent> = {}
     const haProxies: Record<ServiceName, HaProxyComponent> = {}
@@ -41,50 +41,71 @@ export class ComponentsDataWrapper {
     const mirrorNodeExplorers: Record<ServiceName, MirrorNodeExplorerComponent> = {}
     const relays: Record<ServiceName, RelayComponent> = {}
 
-    Object.entries(components)
-      .forEach(([type, components]: [ComponentTypeEnum, Record<ServiceName, Component>]) => {
-        switch (type) {
-          case ComponentTypeEnum.ConsensusNode:
-            Object.entries(components).forEach(([name, component] : [ServiceName, Component]) => {
-              consensusNodes[name] = new ConsensusNodeComponent(component.name, component.cluster, component.namespace)
-            })
+    Object.entries(components).forEach(([type, components]: [ComponentTypeEnum, Record<ServiceName, Component>]) => {
+      type Params = [ServiceName, Component]
 
-            break
-          case ComponentTypeEnum.HaProxy:
+      switch (type) {
+        case ComponentTypeEnum.ConsensusNode:
 
-            Object.entries(components).forEach(([name, component] : [ServiceName, Component]) => {
-              haProxies[name] = new HaProxyComponent(component.name, component.cluster, component.namespace)
-            })
+          Object.entries(components).forEach(([serviceName, component]: Params) => {
+            const { name, cluster, namespace } = component
+            consensusNodes[serviceName] = new ConsensusNodeComponent(name, cluster, namespace)
+          })
 
-            break
-          case ComponentTypeEnum.EnvoyProxy:
-            Object.entries(components).forEach(([name, component] : [ServiceName, Component]) => {
-              envoyProxies[name] = new EnvoyProxyComponent(component.name, component.cluster, component.namespace)
-            })
+          break
+        case ComponentTypeEnum.HaProxy:
 
-            break
-          case ComponentTypeEnum.MirrorNode:
-            Object.entries(components).forEach(([name, component] : [ServiceName, Component]) => {
-              mirrorNodes[name] = new MirrorNodeComponent(component.name, component.cluster, component.namespace)
-            })
+          Object.entries(components).forEach(([serviceName, component]: Params) => {
+            const { name, cluster, namespace } = component
+            haProxies[serviceName] = new HaProxyComponent(name, cluster, namespace)
+          })
 
-            break
-          case ComponentTypeEnum.MirrorNodeExplorer:
-            Object.entries(components).forEach(([name, component] : [ServiceName, Component]) => {
-              mirrorNodeExplorers[name] = new MirrorNodeExplorerComponent(component.name, component.cluster, component.namespace)
-            })
+          break
+        case ComponentTypeEnum.EnvoyProxy:
 
-            break
-          case ComponentTypeEnum.Relay:
-            Object.entries(components).forEach(([name, component] : [ServiceName, IRelayComponent]) => {
-              relays[name] = new RelayComponent(component.name, component.cluster, component.namespace, component.consensusNodeAliases)
-            })
+          Object.entries(components).forEach(([serviceName, component]: Params) => {
+            const { name, cluster, namespace } = component
+            envoyProxies[serviceName] = new EnvoyProxyComponent(name, cluster, namespace)
+          })
 
-            break
-          default:
-            throw new SoloError(`Unknown component type ${type}`)
-        }
-      })
+          break
+        case ComponentTypeEnum.MirrorNode:
+
+          Object.entries(components).forEach(([serviceName, component]: Params) => {
+            const { name, cluster, namespace } = component
+            mirrorNodes[serviceName] = new MirrorNodeComponent(name, cluster, namespace)
+          })
+
+          break
+        case ComponentTypeEnum.MirrorNodeExplorer:
+
+          Object.entries(components).forEach(([serviceName, component]: Params) => {
+            const { name, cluster, namespace } = component
+            mirrorNodeExplorers[serviceName] = new MirrorNodeExplorerComponent(name, cluster, namespace)
+          })
+
+          break
+        case ComponentTypeEnum.Relay:
+
+          Object.entries(components).forEach(([serviceName, component]: [ServiceName, IRelayComponent]) => {
+            const { name, cluster, namespace, consensusNodeAliases } = component
+            relays[serviceName] = new RelayComponent(name, cluster, namespace, consensusNodeAliases)
+          })
+
+          break
+        default:
+          throw new SoloError(`Unknown component type ${type}`)
+      }
+    })
+
+    return new ComponentsDataWrapper(
+      consensusNodes,
+      haProxies,
+      envoyProxies,
+      mirrorNodes,
+      mirrorNodeExplorers,
+      relays
+    )
   }
 
   toObject () {
