@@ -19,7 +19,7 @@ import fs from 'fs'
 import { stringify } from 'yaml'
 import { expect } from 'chai'
 import { MissingArgumentError, SoloError } from '../../../src/core/errors.ts'
-import { getTestCacheDir } from "../../test_util.ts"
+import { getTestCacheDir } from '../../test_util.ts'
 
 describe('LocalConfig', () => {
     let localConfig
