@@ -73,14 +73,14 @@ export class K8 {
     this.kubeConfig = new k8s.KubeConfig()
     this.kubeConfig.loadFromDefault()
 
-    if (!this.kubeConfig.getCurrentCluster()) {
-      throw new SoloError('No active kubernetes cluster found. ' +
-        'Please create a cluster and set current context.')
-    }
-
     if (!this.kubeConfig.getCurrentContext()) {
       throw new SoloError('No active kubernetes context found. ' +
         'Please set current kubernetes context.')
+    }
+
+    if (!this.kubeConfig.getCurrentCluster()) {
+      throw new SoloError('No active kubernetes cluster found. ' +
+          'Please create a cluster and set current context.')
     }
 
     this.kubeClient = this.kubeConfig.makeApiClient(k8s.CoreV1Api)
