@@ -9,9 +9,11 @@ env:
   CONSENSUS_NODE_VERSION: v0.56.0
   SOLO_NAMESPACE: solo-{{ env "USER" | replace "." "-" | trunc 63 | default "test" }}
   SOLO_CLUSTER_SETUP_NAMESPACE: solo-setup
+  SOLO_CLUSTER_RELEASE_NAME: solo-cluster-setup
   SOLO_NETWORK_SIZE: 2
   SOLO_CLUSTER_NAME: solo-cluster
   KIND_IMAGE: kindest/node:v1.27.3@sha256:3966ac761ae0136263ffdb6cfd4db23ef8a83cba8a463690e98317add2c9ba72
+  MIRROR_RELEASE_NAME: mirror
 
 vars:
   nodes:
@@ -75,7 +77,7 @@ tasks:
 
   cluster:setup:
     status:
-      - helm list -n "${SOLO_CLUSTER_SETUP_NAMESPACE}" | grep -vqz "${SOLO_CLUSTER_NAME}"
+      - helm list -n "${SOLO_CLUSTER_SETUP_NAMESPACE}" | grep -vqz "${SOLO_CLUSTER_RELEASE_NAME}"
     cmds:
       - npm run solo-test -- cluster setup --cluster-setup-namespace "${SOLO_CLUSTER_SETUP_NAMESPACE}"
 
@@ -99,7 +101,7 @@ tasks:
 
   mirror:destroy:
     status:
-      - helm list -n "${SOLO_NAMESPACE}" | grep -vqz mirror
+      - helm list -n "${SOLO_NAMESPACE}" | grep -vqz "${MIRROR_RELEASE_NAME}"
     cmds:
       - npm run solo-test -- mirror-node destroy --namespace "${SOLO_NAMESPACE}" --force || true
 
