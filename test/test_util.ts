@@ -45,7 +45,7 @@ import {
   ProfileManager,
   Templates,
   Zippy,
-  AccountManager, CertificateManager
+  AccountManager, CertificateManager, LocalConfig
 } from '../src/core/index.ts'
 import { flags } from '../src/commands/index.ts'
 import {
@@ -69,9 +69,10 @@ export const testLogger = logging.NewLogger('debug', true)
 export const TEST_CLUSTER = 'solo-e2e'
 export const HEDERA_PLATFORM_VERSION_TAG = HEDERA_PLATFORM_VERSION
 
+export const BASE_TEST_DIR = 'test/data/tmp'
+
 export function getTestCacheDir (testName?: string) {
-  const baseDir = 'test/data/tmp'
-  const d = testName ? path.join(baseDir, testName) : baseDir
+  const d = testName ? path.join(BASE_TEST_DIR, testName) : BASE_TEST_DIR
 
   if (!fs.existsSync(d)) {
     fs.mkdirSync(d, { recursive: true })
@@ -108,6 +109,7 @@ interface TestOpts {
   profileManager: ProfileManager
   leaseManager: LeaseManager
   certificateManager: CertificateManager
+  localConfig: LocalConfig
 }
 
 interface BootstrapResponse {
@@ -152,6 +154,7 @@ export function bootstrapTestVariables (
   const profileManager = new ProfileManager(testLogger, configManager)
   const leaseManager = new LeaseManager(k8, testLogger, configManager)
   const certificateManager = new CertificateManager(k8, testLogger, configManager)
+  const localConfig = new LocalConfig(path.join(BASE_TEST_DIR, 'local-config.yaml'), testLogger)
 
   const opts: TestOpts = {
     logger: testLogger,
@@ -167,7 +170,8 @@ export function bootstrapTestVariables (
     cacheDir,
     profileManager,
     leaseManager,
-    certificateManager
+    certificateManager,
+    localConfig
   }
 
   const initCmd = initCmdArg || new InitCommand(opts)

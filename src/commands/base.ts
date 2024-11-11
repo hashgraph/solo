@@ -20,14 +20,8 @@ import { MissingArgumentError } from '../core/errors.ts'
 import { ShellRunner } from '../core/shell_runner.ts'
 import type {  ChartManager,  ConfigManager,  Helm,  K8,  DependencyManager, LeaseManager } from '../core/index.ts'
 import type {  CommandFlag,  Opts } from '../types/index.ts'
-// import { injectable } from 'inversify'
-// import { type LocalConfig } from './../core/config/LocalConfig.ts'
-// import { getContainer } from '../inject.config.ts'
-// import { INJECTABLES } from '../types/injectables.ts'
-// import getDecorators from 'inversify-inject-decorators'
-// const { lazyInject } = getDecorators.default(getContainer(), false)
+import { type LocalConfig } from './../core/config/LocalConfig.ts'
 
-// @injectable()
 export class BaseCommand extends ShellRunner {
   protected readonly helm: Helm
   protected readonly k8: K8
@@ -36,9 +30,7 @@ export class BaseCommand extends ShellRunner {
   protected readonly depManager: DependencyManager
   protected readonly leaseManager: LeaseManager
   protected readonly _configMaps = new Map<string, any>()
-
-  // @lazyInject(INJECTABLES.LocalConfig)
-  // protected readonly localConfig: LocalConfig
+  protected readonly localConfig: LocalConfig
 
   constructor (opts: Opts) {
     if (!opts || !opts.logger) throw new Error('An instance of core/SoloLogger is required')
@@ -47,6 +39,7 @@ export class BaseCommand extends ShellRunner {
     if (!opts || !opts.chartManager) throw new Error('An instance of core/ChartManager is required')
     if (!opts || !opts.configManager) throw new Error('An instance of core/ConfigManager is required')
     if (!opts || !opts.depManager) throw new Error('An instance of core/DependencyManager is required')
+    if (!opts || !opts.localConfig) throw new Error('An instance of core/LocalConfig is required')
 
     super(opts.logger)
 
@@ -56,10 +49,7 @@ export class BaseCommand extends ShellRunner {
     this.configManager = opts.configManager
     this.depManager = opts.depManager
     this.leaseManager = opts.leaseManager
-
-    // This is a workaround to get the localConfig injected.
-    // It should be removed once we find a proper solution or when we inject all dependencies
-    // this.localConfig = BaseCommand.prototype.localConfig
+    this.localConfig = opts.localConfig
   }
 
   async prepareChartPath (chartDir: string, chartRepo: string, chartReleaseName: string) {
