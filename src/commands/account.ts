@@ -23,8 +23,7 @@ import * as prompts from './prompts.ts'
 import { constants, type AccountManager } from '../core/index.ts'
 import { type AccountId, AccountInfo, HbarUnit, PrivateKey } from '@hashgraph/sdk'
 import { FREEZE_ADMIN_ACCOUNT } from '../core/constants.ts'
-import type { Opts } from '../types/index.ts'
-
+import { type Opts } from '../types/index.js'
 export class AccountCommand extends BaseCommand {
   private readonly accountManager: AccountManager
   private accountInfo: {
@@ -68,7 +67,7 @@ export class AccountCommand extends BaseCommand {
   }
 
   async createNewAccount (ctx: { config: { ecdsaPrivateKey?: string; ed25519PrivateKey?: string; namespace: string;
-    setAlias: boolean; amount: number}; privateKey: PrivateKey; }) {
+      setAlias: boolean; amount: number}; privateKey: PrivateKey; }) {
     if (ctx.config.ecdsaPrivateKey) {
       ctx.privateKey = PrivateKey.fromStringECDSA(ctx.config.ecdsaPrivateKey)
     } else if (ctx.config.ed25519PrivateKey) {
@@ -78,7 +77,7 @@ export class AccountCommand extends BaseCommand {
     }
 
     return await this.accountManager.createNewAccount(ctx.config.namespace,
-      ctx.privateKey, ctx.config.amount, ctx.config.ecdsaPrivateKey ? ctx.config.setAlias : false)
+        ctx.privateKey, ctx.config.amount, ctx.config.ecdsaPrivateKey ? ctx.config.setAlias : false)
   }
 
   getAccountInfo (ctx: { config: { accountId: string } }) {
@@ -192,8 +191,8 @@ export class AccountCommand extends BaseCommand {
                     title: `Updating accounts [${rangeStr}]`,
                     task: async (ctx: Context) => {
                       ctx.resultTracker = await self.accountManager.updateSpecialAccountsKeys(
-                        ctx.config.namespace, currentSet,
-                        ctx.updateSecrets, ctx.resultTracker)
+                          ctx.config.namespace, currentSet,
+                          ctx.updateSecrets, ctx.resultTracker)
                     }
                   })
                 }
@@ -220,7 +219,7 @@ export class AccountCommand extends BaseCommand {
                   throw new SoloError(`Account keys updates failed for ${ctx.resultTracker.rejectedCount} accounts.`)
                 }
               }
-            }
+            },
           ], {
             concurrent: false,
             rendererOptions: {
@@ -240,6 +239,9 @@ export class AccountCommand extends BaseCommand {
       throw new SoloError(`Error in creating account: ${e.message}`, e)
     } finally {
       await this.closeConnections()
+      // create two accounts to force the handler to trigger
+      await self.create({})
+      await self.create({})
     }
 
     return true

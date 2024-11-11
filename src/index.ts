@@ -21,7 +21,7 @@ import { flags } from './commands/index.ts'
 import * as commands from './commands/index.ts'
 import { HelmDependencyManager, DependencyManager } from './core/dependency_managers/index.ts'
 import {
-  ChartManager, ConfigManager, PackageDownloader, PlatformInstaller, Helm, logging,
+  ChartManager, ConfigManager, PackageDownloader, PlatformInstaller, Helm, logging, helpers,
   KeyManager, Zippy, constants, ProfileManager, AccountManager, LeaseManager, CertificateManager, RemoteConfigManager
 } from './core/index.ts'
 import 'dotenv/config'
@@ -33,6 +33,12 @@ import { type Opts } from './types/index.ts'
 export function main (argv: any) {
   const logger = logging.NewLogger('debug')
   constants.LISTR_DEFAULT_RENDERER_OPTION.logger = new ListrLogger({ processOutput: new CustomProcessOutput(logger) })
+  if (argv.length >= 3 && ['-version', '--version', '-v', '--v'].includes(argv[2])) {
+    logger.showUser(chalk.cyan('\n******************************* Solo *********************************************'))
+    logger.showUser(chalk.cyan('Version\t\t\t:'), chalk.yellow(helpers.packageVersion()))
+    logger.showUser(chalk.cyan('**********************************************************************************'))
+    process.exit(0)
+  }
 
   try {
     // prepare dependency manger registry

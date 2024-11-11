@@ -336,7 +336,7 @@ export class NetworkCommand extends BaseCommand {
                    await self.k8.waitForPods([constants.POD_PHASE_RUNNING], [
                      'solo.hedera.com/type=network-node',
                     `solo.hedera.com/node-name=${nodeAlias}`
-                   ], 1, 60 * 15, 1000) // timeout 15 minutes
+                   ], 1, constants.PODS_RUNNING_MAX_ATTEMPTS, constants.PODS_RUNNING_DELAY)
                })
              }
 
@@ -363,7 +363,7 @@ export class NetworkCommand extends BaseCommand {
                  task: async () =>
                    await self.k8.waitForPods([constants.POD_PHASE_RUNNING], [
                      'solo.hedera.com/type=haproxy'
-                   ], 1, 60 * 15, 1000) // timeout 15 minutes
+                   ], 1, constants.PODS_RUNNING_MAX_ATTEMPTS, constants.PODS_RUNNING_DELAY)
                })
              }
 
@@ -374,7 +374,7 @@ export class NetworkCommand extends BaseCommand {
                  task: async () =>
                    await self.k8.waitForPods([constants.POD_PHASE_RUNNING], [
                      'solo.hedera.com/type=envoy-proxy'
-                   ], 1, 60 * 15, 1000) // timeout 15 minutes
+                   ], 1, constants.PODS_RUNNING_MAX_ATTEMPTS, constants.PODS_RUNNING_DELAY)
                })
              }
 
@@ -398,7 +398,7 @@ export class NetworkCommand extends BaseCommand {
             task: async () =>
               await self.k8.waitForPodReady([
                 'v1.min.io/tenant=minio'
-              ], 1, 60 * 5, 1000) // timeout 5 minutes
+              ], 1, constants.PODS_RUNNING_MAX_ATTEMPTS, constants.PODS_RUNNING_DELAY)
           })
 
           // set up the sub-tasks

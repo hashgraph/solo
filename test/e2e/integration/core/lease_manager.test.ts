@@ -20,7 +20,7 @@ import { expect } from 'chai'
 import { flags } from '../../../../src/commands/index.ts'
 import { e2eTestSuite, getDefaultArgv, TEST_CLUSTER } from '../../../test_util.ts'
 import * as version from '../../../../version.ts'
-import { LEASE_AQUIRE_RETRY_TIMEOUT, MAX_LEASE_ACQUIRE_ATTEMPTS, MINUTES } from '../../../../src/core/constants.ts'
+import { LEASE_ACQUIRE_RETRY_TIMEOUT, MAX_LEASE_ACQUIRE_ATTEMPTS, MINUTES } from '../../../../src/core/constants.ts'
 import { sleep } from '../../../../src/core/helpers.ts'
 
 const namespace = 'lease-mngr-e2e'
@@ -68,7 +68,7 @@ e2eTestSuite(namespace, argv, undefined, undefined, undefined, undefined, undefi
         // @ts-ignore to access private property
         await blockedLease.acquireTask({ title }, title, MAX_LEASE_ACQUIRE_ATTEMPTS - 1)
 
-        await sleep(LEASE_AQUIRE_RETRY_TIMEOUT * 2)
+        await sleep(LEASE_ACQUIRE_RETRY_TIMEOUT * 2)
       } catch (e: Error | any) {
         expect(e.message).to.contain('Failed to acquire lease, max attempt reached')
       }
