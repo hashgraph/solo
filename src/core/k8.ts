@@ -73,14 +73,14 @@ export class K8 {
     this.kubeConfig = new k8s.KubeConfig()
     this.kubeConfig.loadFromDefault()
 
-    if (!this.kubeConfig.getCurrentCluster()) {
-      throw new SoloError('No active kubernetes cluster found. ' +
-        'Please create a cluster and set current context.')
-    }
-
     if (!this.kubeConfig.getCurrentContext()) {
       throw new SoloError('No active kubernetes context found. ' +
         'Please set current kubernetes context.')
+    }
+
+    if (!this.kubeConfig.getCurrentCluster()) {
+      throw new SoloError('No active kubernetes cluster found. ' +
+          'Please create a cluster and set current context.')
     }
 
     this.kubeClient = this.kubeConfig.makeApiClient(k8s.CoreV1Api)
@@ -910,8 +910,8 @@ export class K8 {
     }
   }
 
-  async waitForPods (phases = [constants.POD_PHASE_RUNNING], labels: string[] = [], podCount = 1, maxAttempts = 10,
-    delay = 500, podItemPredicate?: (items: k8s.V1Pod) => any): Promise<k8s.V1Pod[]> {
+  async waitForPods (phases = [constants.POD_PHASE_RUNNING], labels: string[] = [], podCount = 1, maxAttempts = constants.PODS_RUNNING_MAX_ATTEMPTS,
+    delay = constants.PODS_RUNNING_DELAY, podItemPredicate?: (items: k8s.V1Pod) => any): Promise<k8s.V1Pod[]> {
     const ns = this._getNamespace()
     const labelSelector = labels.join(',')
 
