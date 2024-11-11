@@ -26,7 +26,8 @@ const getBaseCommandOpts = () => ({
   k8: sinon.stub(),
   chartManager: sinon.stub(),
   configManager: sinon.stub(),
-  depManager: sinon.stub()
+  depManager: sinon.stub(),
+  localConfig: sinon.stub()
 })
 
 describe('NodeCommand unit tests', () => {

@@ -33,6 +33,7 @@ import { DependencyManager } from './dependency_managers/index.ts'
 import { AccountManager } from './account_manager.ts'
 import { LeaseManager } from './lease_manager.ts'
 import { CertificateManager } from './certificate_manager.ts'
+import { LocalConfig } from './config/LocalConfig.ts'
 
 // Expose components from the core module
 export {
@@ -54,5 +55,6 @@ export {
   DependencyManager,
   AccountManager,
   LeaseManager,
-  CertificateManager
+  CertificateManager,
+  LocalConfig
 }

@@ -25,11 +25,6 @@ import { promptDeploymentClusters, promptDeploymentName, promptUserEmailAddress 
 import { flags } from '../../commands/index.ts'
 import { type SoloLogger } from '../logging.ts'
 import { Task } from '../task.ts'
-import { getContainer } from '../../inject.config.ts'
-import { INJECTABLES } from '../../types/injectables.ts'
-import getDecorators from 'inversify-inject-decorators'
-const { lazyInject } = getDecorators.default(getContainer(), false)
-
 
 @injectable()
 export class LocalConfig implements LocalConfigData {
@@ -53,20 +48,16 @@ export class LocalConfig implements LocalConfigData {
     @IsObject()
     clusterMappings: ClusterMapping
 
-    @lazyInject(INJECTABLES.SoloLogger)
-    private logger: SoloLogger
-
     private readonly skipPromptTask: boolean = false
     private readonly filePath: string
+    private readonly logger: SoloLogger
 
-    constructor (filePath: string) {
+    constructor (filePath: string, logger: SoloLogger) {
         if (!filePath || filePath === '') throw new MissingArgumentError('a valid filePath is required')
+        if (!logger) throw new Error('An instance of core/SoloLogger is required')
 
         this.filePath = filePath
-
-        // This is a workaround to get the localConfig injected.
-        // It should be removed once we find a proper solution or when we inject all dependencies
-        this.logger = LocalConfig.prototype.logger
+        this.logger = logger
 
         const allowedKeys = ['userEmailAddress', 'deployments', 'currentDeploymentName', 'clusterMappings']
         if (this.configFileEXists()) {
