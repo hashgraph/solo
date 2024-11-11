@@ -22,8 +22,10 @@ import { BaseCommand } from './base.ts'
 import * as flags from './flags.ts'
 import * as prompts from './prompts.ts'
 import { getFileContents, getEnvValue } from '../core/helpers.ts'
-import { type PodName } from '../types/aliases.ts'
-import { type Opts } from '../types/index.ts'
+import { MirrorNodeComponent } from '../core/config/remote/components/index.ts'
+import { ComponentTypeEnum } from '../core/config/remote/enumerations.ts'
+import type { PodName } from '../types/aliases.ts'
+import type { Opts } from '../types/index.ts'
 
 export class MirrorNodeCommand extends BaseCommand {
   private readonly accountManager: AccountManager
@@ -194,6 +196,7 @@ export class MirrorNodeCommand extends BaseCommand {
           return lease.buildAcquireTask(task)
         }
       },
+      this.remoteConfigRepository.buildLoadRemoteConfigCommand(),
       {
         title: 'Enable mirror-node',
         task: (_, parentTask) => {
@@ -279,6 +282,22 @@ export class MirrorNodeCommand extends BaseCommand {
           ], {
             concurrent: true,
             rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
+          })
+        }
+      },
+      {
+        title: 'Add mirror node to metadata',
+        task: async (ctx) => {
+          await self.remoteConfigRepository.modifyComponent(async (remoteConfig) => {
+            const { config: { namespace } } = ctx
+
+            const component = new MirrorNodeComponent(
+              'Mirror node name',
+              'solo-cluster',
+              namespace,
+            )
+
+            remoteConfig.components.add(component, 'Mirror node name')
           })
         }
       },
@@ -396,6 +415,7 @@ export class MirrorNodeCommand extends BaseCommand {
           return lease.buildAcquireTask(task)
         }
       },
+      this.remoteConfigRepository.buildLoadRemoteConfigCommand(),
       {
         title: 'Destroy mirror-node',
         task: async (ctx) => {
@@ -420,6 +440,14 @@ export class MirrorNodeCommand extends BaseCommand {
           }
         },
         skip: (ctx) => !ctx.config.isChartInstalled
+      },
+      {
+        title: 'Remove mirror node from metadata',
+        task: async () => {
+          await self.remoteConfigRepository.modifyComponent(async (remoteConfig) => {
+            remoteConfig.components.remove(ComponentTypeEnum.MirrorNode, 'Mirror node name')
+          })
+        }
       },
     ], {
       concurrent: false,

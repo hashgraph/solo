@@ -14,6 +14,7 @@
  * limitations under the License.
  *
  */
+
 export enum ComponentTypeEnum {
   ConsensusNode = 'CONSENSUS_NODE',
   HaProxy = 'HAPROXY',
@@ -22,3 +23,12 @@ export enum ComponentTypeEnum {
   MirrorNodeExplorer = 'MIRROR_NODE_EXPLORER',
   Relay = 'RELAY',
 }
+
+//! ---------------------- States ---------------------- !//
+
+export enum ConsensusNodeStates {
+  SETUP = 'SETUP',
+  STARTED = 'STARTED',
+  FREEZED = 'FREEZED',
+}
+

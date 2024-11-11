@@ -15,12 +15,12 @@
  *
  */
 import { ComponentTypeEnum } from './enumerations.ts'
-import { SoloError } from '../../errors.js'
-import type { Component, IRelayComponent, ServiceName } from './types.ts'
+import { SoloError } from '../../errors.ts'
 import {
   BaseComponent, ConsensusNodeComponent, HaProxyComponent, EnvoyProxyComponent,
   MirrorNodeComponent, MirrorNodeExplorerComponent, RelayComponent,
-} from './components/index.js'
+} from './components/index.ts'
+import type { Component, IConsesusNodeComponent, IRelayComponent, ServiceName } from './types.ts'
 
 export class ComponentsDataWrapper {
   constructor (
@@ -47,9 +47,17 @@ export class ComponentsDataWrapper {
       switch (type) {
         case ComponentTypeEnum.ConsensusNode:
 
-          Object.entries(components).forEach(([serviceName, component]: Params) => {
-            const { name, cluster, namespace } = component
-            consensusNodes[serviceName] = new ConsensusNodeComponent(name, cluster, namespace)
+          Object.entries(components).forEach(([serviceName, component]: [ServiceName, IConsesusNodeComponent]) => {
+            const { name, cluster, namespace, state } = component
+            consensusNodes[serviceName] = new ConsensusNodeComponent(name, cluster, namespace, state)
+          })
+
+          break
+        case ComponentTypeEnum.Relay:
+
+          Object.entries(components).forEach(([serviceName, component]: [ServiceName, IRelayComponent]) => {
+            const { name, cluster, namespace, consensusNodeAliases } = component
+            relays[serviceName] = new RelayComponent(name, cluster, namespace, consensusNodeAliases)
           })
 
           break
@@ -82,14 +90,6 @@ export class ComponentsDataWrapper {
           Object.entries(components).forEach(([serviceName, component]: Params) => {
             const { name, cluster, namespace } = component
             mirrorNodeExplorers[serviceName] = new MirrorNodeExplorerComponent(name, cluster, namespace)
-          })
-
-          break
-        case ComponentTypeEnum.Relay:
-
-          Object.entries(components).forEach(([serviceName, component]: [ServiceName, IRelayComponent]) => {
-            const { name, cluster, namespace, consensusNodeAliases } = component
-            relays[serviceName] = new RelayComponent(name, cluster, namespace, consensusNodeAliases)
           })
 
           break
@@ -130,6 +130,8 @@ export class ComponentsDataWrapper {
   }
 
   add (component: BaseComponent, serviceName: ServiceName) {
+    const self = this
+
     if (!serviceName || typeof serviceName !== 'string') {
       throw new SoloError(`Service name is required ${serviceName}`)
     }
@@ -138,39 +140,71 @@ export class ComponentsDataWrapper {
       throw new SoloError('Component must be instance of BaseComponent', undefined, BaseComponent)
     }
 
-    const throwIfItExists = (components: Record<ServiceName, BaseComponent>) => {
-      if (this.exists(components, component)) {
+    function addComponent (components: Record<ServiceName, BaseComponent>) {
+      if (self.exists(components, component)) {
         throw new SoloError(`Component exists ${component.toObject()}`)
       }
+
+      components[serviceName] = component
     }
 
     switch (component.type) {
-      case ComponentTypeEnum.ConsensusNode:
-        throwIfItExists(this.consensusNodes)
-        this.consensusNodes[serviceName] = component as ConsensusNodeComponent
-        break
-      case ComponentTypeEnum.HaProxy:
-        throwIfItExists(this.haProxies)
-        this.haProxies[serviceName] = component as HaProxyComponent
-        break
-      case ComponentTypeEnum.EnvoyProxy:
-        throwIfItExists(this.envoyProxies)
-        this.envoyProxies[serviceName] = component as EnvoyProxyComponent
-        break
-      case ComponentTypeEnum.MirrorNode:
-        throwIfItExists(this.mirrorNodes)
-        this.mirrorNodes[serviceName] = component as MirrorNodeComponent
-        break
-      case ComponentTypeEnum.MirrorNodeExplorer:
-        throwIfItExists(this.mirrorNodeExplorers)
-        this.mirrorNodeExplorers[serviceName] = component as MirrorNodeExplorerComponent
-        break
-      case ComponentTypeEnum.Relay:
-        throwIfItExists(this.relays)
-        this.relays[serviceName] = component as RelayComponent
-        break
+      case ComponentTypeEnum.ConsensusNode: {
+        return addComponent(self.consensusNodes)
+      }
+      case ComponentTypeEnum.HaProxy: {
+        return addComponent(self.haProxies)
+      }
+      case ComponentTypeEnum.EnvoyProxy: {
+        return addComponent(self.envoyProxies)
+      }
+      case ComponentTypeEnum.MirrorNode: {
+        return addComponent(self.mirrorNodes)
+      }
+      case ComponentTypeEnum.MirrorNodeExplorer: {
+        return addComponent(self.mirrorNodeExplorers)
+      }
+      case ComponentTypeEnum.Relay: {
+        return addComponent(self.relays)
+      }
       default:
-        throw new SoloError(`Unknown component type ${component.type}`)
+        throw new SoloError(`Unknown component type ${component.type}, service name: ${serviceName}`)
+    }
+  }
+
+  remove (type: ComponentTypeEnum, serviceName: ServiceName) {
+    const self = this
+
+    if (!serviceName || typeof serviceName !== 'string') {
+      throw new SoloError(`Service name is required ${serviceName}`)
+    }
+
+    if (!Object.values(ComponentTypeEnum).includes(type)) {
+      throw new SoloError(`Invalid component type ${type}`)
+    }
+
+    function deleteComponent (components: Record<ServiceName, BaseComponent>) {
+      if (!components.hasOwnProperty(serviceName)) {
+        throw new SoloError(`Component ${serviceName} of type ${type} not found while attempting to remove`)
+      }
+      delete components[serviceName]
+    }
+
+    switch (type) {
+      case ComponentTypeEnum.ConsensusNode:
+        return deleteComponent(self.consensusNodes)
+      case ComponentTypeEnum.HaProxy:
+        return deleteComponent(self.haProxies)
+      case ComponentTypeEnum.EnvoyProxy:
+        return deleteComponent(self.envoyProxies)
+      case ComponentTypeEnum.MirrorNode:
+        return deleteComponent(self.mirrorNodes)
+      case ComponentTypeEnum.MirrorNodeExplorer:
+        return deleteComponent(self.mirrorNodeExplorers)
+      case ComponentTypeEnum.Relay:
+        return deleteComponent(self.relays)
+      default:
+        throw new SoloError(`Unknown component type ${type}, service name: ${serviceName}`)
     }
   }
 

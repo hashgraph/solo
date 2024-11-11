@@ -63,7 +63,7 @@ import type { BaseCommand } from '../src/commands/base.ts'
 import type { NodeAlias } from '../src/types/aliases.ts'
 import type { NetworkNodeServices } from '../src/core/network_node_services.ts'
 import { LocalConfigRepository } from '../src/core/config/LocalConfigRepository.ts'
-import { HEDERA_PLATFORM_VERSION } from '../version.js'
+import { HEDERA_PLATFORM_VERSION } from '../version.ts'
 
 export const testLogger = logging.NewLogger('debug', true)
 export const TEST_CLUSTER = 'solo-e2e'

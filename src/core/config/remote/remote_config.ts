@@ -18,16 +18,16 @@ import * as constants from '../../constants.ts'
 import { MissingArgumentError, SoloError } from '../../errors.ts'
 import { RemoteConfigDataWrapper } from './remote_config_data_wrapper.ts'
 import chalk from 'chalk'
+import { RemoteConfigMetadata } from './metadata.ts'
+import { flags } from '../../../commands/index.ts'
+import yaml from 'js-yaml'
 import type { LocalConfigRepository } from '../LocalConfigRepository.ts'
 import type { K8 } from '../../k8.ts'
 import type { Cluster, Namespace, RemoteConfigData } from './types.ts'
 import type { SoloLogger } from '../../logging.ts'
 import type { ListrTaskWrapper } from 'listr2'
-import { RemoteConfigMetadata } from './metadata.ts'
-import { flags } from '../../../commands/index.ts'
 import type { ConfigManager } from '../../config_manager.ts'
 import type { Deployment } from '../LocalConfig.ts'
-import yaml from 'js-yaml'
 
 export class RemoteConfigManager {
   private remoteConfig?: RemoteConfigDataWrapper
@@ -39,7 +39,15 @@ export class RemoteConfigManager {
     private readonly localConfigRepository: LocalConfigRepository,
   ) {}
 
+  async modifyComponent (callback: (remoteConfig: RemoteConfigDataWrapper) => Promise<void> ) {
+    if (!this.remoteConfig) {
+      throw new SoloError('Attempting to modify remote config without loading it first')
+    }
 
+    await callback(this.remoteConfig)
+
+    await this.write()
+  }
 
   private async initializeDefault () {
     const localConfigExists = this.localConfigRepository.configFileExists()
@@ -90,7 +98,7 @@ export class RemoteConfigManager {
     )
   }
 
-  async write () {
+  private async write () {
     if (!this.remoteConfig) {
       const errorMessage = 'Attempted to write remote config without data'
       this.logger.error(errorMessage, this.remoteConfig)

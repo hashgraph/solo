@@ -14,11 +14,41 @@
  * limitations under the License.
  *
  */
-import { ComponentTypeEnum } from '../enumerations.ts'
+import { ComponentTypeEnum, ConsensusNodeStates } from '../enumerations.ts'
 import { BaseComponent } from './base_component.ts'
+import { SoloError } from '../../../errors.ts'
+import type { IConsesusNodeComponent } from '../types.ts'
 
-export class ConsensusNodeComponent extends BaseComponent {
-  constructor (name: string, cluster: string, namespace: string) {
+export class ConsensusNodeComponent extends BaseComponent implements IConsesusNodeComponent{
+  private _state: ConsensusNodeStates
+
+  constructor (
+    name: string, cluster: string, namespace: string,
+    state: ConsensusNodeStates
+  ) {
     super(ComponentTypeEnum.ConsensusNode, name, cluster, namespace)
+    this._state = state
+  }
+
+  get state () { return this._state }
+
+  set state (state: ConsensusNodeStates) {
+    this._state = state
+    this.validate()
+  }
+
+  protected validate () {
+    super.validate()
+
+    if (!Object.values(ConsensusNodeStates).includes(this.state)) {
+      throw new SoloError(`Invalid ConsensusNodeStates value ${this.state}`)
+    }
+  }
+
+  toObject (): IConsesusNodeComponent {
+    return {
+      state: this.state,
+      ...super.toObject()
+    }
   }
 }

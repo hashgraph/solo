@@ -23,8 +23,10 @@ import { BaseCommand } from './base.ts'
 import * as flags from './flags.ts'
 import * as prompts from './prompts.ts'
 import { getNodeAccountMap } from '../core/helpers.ts'
-import { type NodeAliases } from '../types/aliases.ts'
-import { type Opts } from '../types/index.ts'
+import { RelayComponent } from '../core/config/remote/components/index.ts'
+import { ComponentTypeEnum } from '../core/config/remote/enumerations.ts'
+import type { NodeAliases } from '../types/aliases.ts'
+import type { Opts } from '../types/index.ts'
 
 export class RelayCommand extends BaseCommand {
   private readonly profileManager: ProfileManager
@@ -120,7 +122,7 @@ export class RelayCommand extends BaseCommand {
 
   /**
    * created a json string to represent the map between the node keys and their ids
-   * output example '{"node-1": "0.0.3", "node-2": "0.004"}'
+   * output example '\{"node-1": "0.0.3", "node-2": "0.004"\}'
    */
   async prepareNetworkJsonString (nodeAliases: NodeAliases = [], namespace: string) {
     if (!nodeAliases) {
@@ -207,6 +209,7 @@ export class RelayCommand extends BaseCommand {
           return lease.buildAcquireTask(task)
         }
       },
+      this.remoteConfigRepository.buildLoadRemoteConfigCommand(),
       {
         title: 'Prepare chart values',
         task: async (ctx) => {
@@ -252,6 +255,23 @@ export class RelayCommand extends BaseCommand {
           } catch (e: Error | any) {
             throw new SoloError(`Relay ${config.releaseName} is not ready: ${e.message}`, e)
           }
+        }
+      },
+      {
+        title: 'Add relay to metadata',
+        task: async (ctx) => {
+          await self.remoteConfigRepository.modifyComponent(async (remoteConfig) => {
+            const { config: { namespace, nodeAliases } } = ctx
+
+            const component = new RelayComponent(
+              'Relay name',
+              'solo-cluster',
+              namespace,
+              nodeAliases
+            )
+
+            remoteConfig.components.add(component, 'Relay name')
+          })
         }
       }
     ], {
@@ -311,6 +331,7 @@ export class RelayCommand extends BaseCommand {
           return lease.buildAcquireTask(task)
         }
       },
+      this.remoteConfigRepository.buildLoadRemoteConfigCommand(),
       {
         title: 'Destroy JSON RPC Relay',
         task: async (ctx) => {
@@ -324,6 +345,14 @@ export class RelayCommand extends BaseCommand {
           self.configManager.setFlag(flags.nodeAliasesUnparsed, '')
         },
         skip: (ctx) => !ctx.config.isChartInstalled
+      },
+      {
+        title: 'Remove relay from metadata',
+        task: async () => {
+          await self.remoteConfigRepository.modifyComponent(async (remoteConfig) => {
+            remoteConfig.components.remove(ComponentTypeEnum.Relay, 'Relay name')
+          })
+        }
       }
     ], {
       concurrent: false,

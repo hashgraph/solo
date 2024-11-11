@@ -21,7 +21,7 @@ import { HaProxyComponent } from './ha_proxy_component.ts'
 import { EnvoyProxyComponent } from './envoy_proxy_component.ts'
 import { MirrorNodeComponent } from './mirror_node_component.ts'
 import { MirrorNodeExplorerComponent } from './mirror_node_explorer_component.ts'
-import { RelayComponent } from './replay_component.ts'
+import { RelayComponent } from './relay_component.ts'
 
 export {
   BaseComponent,

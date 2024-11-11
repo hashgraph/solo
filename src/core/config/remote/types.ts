@@ -17,7 +17,8 @@
 import type { NodeAliases } from '../../../types/aliases.ts'
 import type { Migration } from './migration.ts'
 import type { ComponentsDataWrapper } from './components_data_wrapper.ts'
-import { RemoteConfigMetadata } from "./metadata.js";
+import { RemoteConfigMetadata } from './metadata.ts'
+import { ConsensusNodeStates } from './enumerations.ts'
 
 export type EmailAddress = `${string}@${string}.${string}`
 export type Version = string
@@ -53,6 +54,10 @@ export interface Component {
 
 export interface IRelayComponent extends Component {
   consensusNodeAliases: NodeAliases
+}
+
+export interface IConsesusNodeComponent extends Component {
+  state: ConsensusNodeStates
 }
 
 export interface RemoteConfigData {
