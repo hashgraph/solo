@@ -17,10 +17,21 @@
 import { it, describe, after, before } from 'mocha'
 import { expect } from 'chai'
 
-import { AccountId, PrivateKey } from '@hashgraph/sdk'
+import {
+  AccountCreateTransaction,
+  AccountId,
+  Client,
+  Hbar,
+  HbarUnit,
+  Logger,
+  LogLevel,
+  PrivateKey, Status,
+  TopicCreateTransaction, TopicMessageSubmitTransaction
+} from '@hashgraph/sdk'
 import { constants } from '../../../src/core/index.ts'
 import * as version from '../../../version.ts'
 import {
+  bootstrapTestVariables,
   e2eTestSuite,
   getDefaultArgv,
   HEDERA_PLATFORM_VERSION_TAG,
@@ -272,6 +283,82 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
           expect.fail()
         }
       }).timeout(defaultTimeout)
+    })
+
+
+    describe('Test SDK create account and submit transaction', () => {
+      const bootstrapResp = bootstrapTestVariables('Test transaction', argv)
+      const accountManager = bootstrapResp.opts.accountManager
+      const networkCmd = bootstrapResp.cmd.networkCmd
+
+      let accountInfo: {
+        accountId: string,
+        privateKey: string,
+        publicKey: string,
+        balance: number }
+
+      let MY_ACCOUNT_ID: string
+      let MY_PRIVATE_KEY: string
+
+      it('Create new account', async () => {
+        try {
+          await accountManager.loadNodeClient(namespace)
+          const privateKey = PrivateKey.generate()
+          const amount = 100
+
+          const newAccount = await new AccountCreateTransaction()
+          .setKey(privateKey)
+          .setInitialBalance(Hbar.from(amount, HbarUnit.Hbar))
+          .execute(accountManager._nodeClient)
+
+          // Get the new account ID
+          const getReceipt = await newAccount.getReceipt(accountManager._nodeClient)
+          accountInfo = {
+            accountId: getReceipt.accountId.toString(),
+            privateKey: privateKey.toString(),
+            publicKey: privateKey.publicKey.toString(),
+            balance: amount
+          }
+
+          MY_ACCOUNT_ID = accountInfo.accountId
+          MY_PRIVATE_KEY = accountInfo.privateKey
+
+          networkCmd.logger.info(`Account created: ${JSON.stringify(accountInfo)}`)
+          expect(accountInfo.accountId).not.to.be.null
+          expect(accountInfo.balance).to.equal(amount)
+        } catch (e) {
+          networkCmd.logger.showUserError(e)
+        }
+      }).timeout(2 * MINUTES)
+
+
+      it('Create client from network config and submit topic/message should succeed', async () => {
+        try {
+
+          const networkConfig = {}
+          networkConfig['127.0.0.1:30212'] = AccountId.fromString('0.0.3')
+          networkConfig['127.0.0.1:30213'] = AccountId.fromString('0.0.4')
+
+          const sdkClient = Client.fromConfig({ network: networkConfig, scheduleNetworkUpdate: false })
+          sdkClient.setOperator(MY_ACCOUNT_ID, MY_PRIVATE_KEY)
+          sdkClient.setLogger(new Logger(LogLevel.Trace, 'hashgraph-sdk.log'))
+
+          // Create a new public topic and submit a message
+          const txResponse = await new TopicCreateTransaction().execute(sdkClient)
+          const receipt = await txResponse.getReceipt(sdkClient)
+
+          const submitResponse = await new TopicMessageSubmitTransaction({
+            topicId: receipt.topicId,
+            message: 'Hello, Hedera!'
+          }).execute(accountManager._nodeClient)
+
+          const submitReceipt = await submitResponse.getReceipt(accountManager._nodeClient)
+
+          expect(submitReceipt.status).to.deep.equal(Status.Success)
+        } catch (e) {
+          networkCmd.logger.showUserError(e)
+        }
+      }).timeout(2 * MINUTES)
     })
   })
 })
