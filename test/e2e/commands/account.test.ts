@@ -287,7 +287,6 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
 
 
     describe('Test SDK create account and submit transaction', () => {
-      const bootstrapResp = bootstrapTestVariables('Test transaction', argv)
       const accountManager = bootstrapResp.opts.accountManager
       const networkCmd = bootstrapResp.cmd.networkCmd
 
