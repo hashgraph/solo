@@ -20,10 +20,9 @@ import type * as WebSocket from 'ws'
 import type crypto from 'crypto'
 import type { SoloLogger } from '../core/logging.ts'
 import type {
-  ChartManager, ConfigManager, Helm, K8, KeyManager, PackageDownloader, PlatformInstaller,
-  ProfileManager, DependencyManager, AccountManager, LeaseManager, CertificateManager, RemoteConfigManager
+  ChartManager, ConfigManager, Helm, K8, KeyManager, PackageDownloader, PlatformInstaller, LocalConfig,
+  ProfileManager, DependencyManager, AccountManager, LeaseManager, CertificateManager, RemoteConfigManager,
 } from '../core/index.ts'
-import { type LocalConfigRepository } from '../core/config/LocalConfigRepository.ts'
 
 export interface NodeKeyObject {
   privateKey: crypto.webcrypto.CryptoKey
@@ -80,7 +79,7 @@ export interface Opts {
   accountManager: AccountManager
   profileManager: ProfileManager
   leaseManager: LeaseManager
-  localConfigRepository: LocalConfigRepository
+  localConfig: LocalConfig
   remoteConfigManager: RemoteConfigManager
   certificateManager: CertificateManager
 }

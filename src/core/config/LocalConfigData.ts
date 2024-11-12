@@ -15,6 +15,19 @@
  *
  */
 
-export const INJECTABLES = {
-    LocalConfigRepository: Symbol.for('LocalConfigRepository')
+export interface Deployment {
+    clusterAliases : string[]
+}
+
+// an alias for the cluster, provided during the configuration
+// of the deployment, must be unique
+export type Deployments = Record<string, Deployment>;
+
+export type ClusterMapping = Record<string, string>;
+
+export interface LocalConfigData {
+    userEmailAddress: string;
+    deployments: Deployments;
+    currentDeploymentName: string;
+    clusterMappings: ClusterMapping;
 }

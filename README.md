@@ -10,7 +10,6 @@
 > \[!WARNING\]
 > SPECIAL NOTICE: Introducing v1.0.0 comes with BREAKING CHANGES.  We have removed caching of the flags in the solo config file.  All commands will need required flags or user will need to answer the prompts.  See more details in our release notes: [release/tag/v1.0.0](https://github.com/hashgraph/solo/releases/tag/v1.0.0)
 
-
 An opinionated CLI tool to deploy and manage standalone test networks.
 
 ## Table of Contents

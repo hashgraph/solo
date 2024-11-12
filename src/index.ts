@@ -21,7 +21,7 @@ import { flags } from './commands/index.ts'
 import * as commands from './commands/index.ts'
 import { HelmDependencyManager, DependencyManager } from './core/dependency_managers/index.ts'
 import {
-  ChartManager, ConfigManager, PackageDownloader, PlatformInstaller, Helm, logging, helpers,
+  ChartManager, ConfigManager, PackageDownloader, PlatformInstaller, Helm, logging, helpers, LocalConfig,
   KeyManager, Zippy, constants, ProfileManager, AccountManager, LeaseManager, CertificateManager, RemoteConfigManager
 } from './core/index.ts'
 import 'dotenv/config'
@@ -29,6 +29,7 @@ import { K8 } from './core/k8.ts'
 import { ListrLogger } from 'listr2'
 import { CustomProcessOutput } from './core/process_output.ts'
 import { type Opts } from './types/index.ts'
+import path from "path";
 
 export function main (argv: any) {
   const logger = logging.NewLogger('debug')
@@ -59,9 +60,8 @@ export function main (argv: any) {
     const profileManager = new ProfileManager(logger, configManager)
     const leaseManager = new LeaseManager(k8, logger, configManager)
     const certificateManager = new CertificateManager(k8, logger, configManager)
-
-    // @ts-ignore todo
-    const remoteConfigManager = new RemoteConfigManager(k8, logger, configManager, localConfigRepository)
+    const localConfig = new LocalConfig(path.join(constants.SOLO_CACHE_DIR, constants.DEFAULT_LOCAL_CONFIG_FILE), logger)
+    const remoteConfigManager = new RemoteConfigManager(k8, logger, configManager, localConfig)
 
     // set cluster and namespace in the global configManager from kubernetes context
     // so that we don't need to prompt the user
@@ -69,7 +69,6 @@ export function main (argv: any) {
     const context = kubeConfig.getContextObject(kubeConfig.getCurrentContext())
     const cluster = kubeConfig.getCurrentCluster()
 
-    // @ts-ignore
     const opts: Opts = {
       logger,
       helm,
@@ -85,6 +84,7 @@ export function main (argv: any) {
       leaseManager,
       remoteConfigManager,
       certificateManager,
+      localConfig
     }
 
     const processArguments = (argv: any, yargs: any) => {

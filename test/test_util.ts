@@ -22,6 +22,7 @@ import { describe, it, after, before } from 'mocha'
 import fs from 'fs'
 import os from 'os'
 import path from 'path'
+import { BaseCommand } from '../src/commands/base.ts'
 import { ClusterCommand } from '../src/commands/cluster.ts'
 import { InitCommand } from '../src/commands/init.ts'
 import { NetworkCommand } from '../src/commands/network.ts'
@@ -44,7 +45,7 @@ import {
   ProfileManager,
   Templates,
   Zippy,
-  AccountManager, CertificateManager, RemoteConfigManager,
+  AccountManager, CertificateManager, RemoteConfigManager, LocalConfig,
 } from '../src/core/index.ts'
 import { flags } from '../src/commands/index.ts'
 import {
@@ -59,21 +60,19 @@ import { SoloError } from '../src/core/errors.ts'
 import { execSync } from 'child_process'
 import * as NodeCommandConfigs from '../src/commands/node/configs.ts'
 import type { SoloLogger } from '../src/core/logging.ts'
-import type { BaseCommand } from '../src/commands/base.ts'
 import type { NodeAlias } from '../src/types/aliases.ts'
 import type { NetworkNodeServices } from '../src/core/network_node_services.ts'
-import { LocalConfigRepository } from '../src/core/config/LocalConfigRepository.ts'
-import { HEDERA_PLATFORM_VERSION } from '../version.ts'
+import sinon from 'sinon'
+import { HEDERA_PLATFORM_VERSION } from '../version.js'
 
 export const testLogger = logging.NewLogger('debug', true)
 export const TEST_CLUSTER = 'solo-e2e'
 export const HEDERA_PLATFORM_VERSION_TAG = HEDERA_PLATFORM_VERSION
 
-const TEST_DATA_DIR = 'test/data'
+export const BASE_TEST_DIR = 'test/data/tmp'
 
 export function getTestCacheDir (testName?: string) {
-  const baseDir = `${TEST_DATA_DIR}/tmp`
-  const d = testName ? path.join(baseDir, testName) : baseDir
+  const d = testName ? path.join(BASE_TEST_DIR, testName) : BASE_TEST_DIR
 
   if (!fs.existsSync(d)) {
     fs.mkdirSync(d, { recursive: true })
@@ -108,10 +107,10 @@ interface TestOpts {
   accountManager: AccountManager
   cacheDir: string
   profileManager: ProfileManager
-  leaseManager: LeaseManager,
-  certificateManager: CertificateManager,
-  localConfigRepository: LocalConfigRepository
-  remoteConfigManager: RemoteConfigManager,
+  leaseManager: LeaseManager
+  certificateManager: CertificateManager
+  remoteConfigManager: RemoteConfigManager
+  localConfig: LocalConfig
 }
 
 interface BootstrapResponse {
@@ -154,8 +153,8 @@ export function bootstrapTestVariables (
   const platformInstaller = new PlatformInstaller(testLogger, k8, configManager)
   const profileManager = new ProfileManager(testLogger, configManager)
   const leaseManager = new LeaseManager(k8, testLogger, configManager)
-  const localConfigRepository = new LocalConfigRepository(path.join(TEST_DATA_DIR, constants.DEFAULT_LOCAL_CONFIG_FILE), testLogger)
-  const remoteConfigManager = new RemoteConfigManager(k8, testLogger, configManager, localConfigRepository)
+  const localConfig = new LocalConfig(path.join(BASE_TEST_DIR, 'local-config.yaml'), testLogger)
+  const remoteConfigManager = new RemoteConfigManager(k8, testLogger, configManager, localConfig)
   const certificateManager = new CertificateManager(k8, testLogger, configManager)
 
   const opts: TestOpts = {
@@ -173,7 +172,7 @@ export function bootstrapTestVariables (
     profileManager,
     leaseManager,
     certificateManager,
-    localConfigRepository,
+    localConfig,
     remoteConfigManager,
   }
 

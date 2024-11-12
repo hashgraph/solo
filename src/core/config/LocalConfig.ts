@@ -14,15 +14,24 @@
  * limitations under the License.
  *
  */
+import { injectable } from 'inversify'
 import { IsEmail, IsNotEmpty, IsObject, IsString, validateSync } from 'class-validator'
-import { SoloError } from '../errors.ts'
-import type { Cluster, Context, EmailAddress, Namespace } from './remote/types.ts'
-import type { LocalConfigStructure } from './LocalConfigRepository.ts'
+import { type ListrTask } from 'listr2'
+import fs from 'fs'
+import * as yaml from 'yaml'
+import { type ClusterMapping, type Deployment, type Deployments, type LocalConfigData } from './LocalConfigData.ts'
+import { MissingArgumentError, SoloError } from '../errors.ts'
+import { promptDeploymentClusters, promptDeploymentName, promptUserEmailAddress } from '../../commands/prompts.ts'
+import { flags } from '../../commands/index.ts'
+import { type SoloLogger } from '../logging.ts'
+import { Task } from '../task.ts'
+
+/////////////////////////////////////////////////////////
 
 type DeploymentName = string
 
 export interface Deployment {
-    clusters : Cluster[]
+  clusters : Cluster[]
 }
 
 // an alias for the cluster, provided during the configuration
@@ -31,7 +40,10 @@ export type Deployments = Record<DeploymentName, Deployment>;
 
 export type ClusterMapping = Record<Cluster, Context>;
 
-export class LocalConfig {
+/////////////////////////////////////////////////////////
+
+@injectable()
+export class LocalConfig implements LocalConfigData {
     @IsNotEmpty()
     @IsEmail()
     userEmailAddress: EmailAddress
@@ -52,19 +64,37 @@ export class LocalConfig {
     @IsObject()
     clusterMappings: ClusterMapping
 
-    constructor (config: LocalConfigStructure) {
-        this.userEmailAddress = config.userEmailAddress
-        this.deployments = config.deployments
-        this.currentDeploymentName = config.currentDeploymentName
-        this.clusterMappings = config.clusterMappings
+    private readonly skipPromptTask: boolean = false
+    private readonly filePath: string
+    private readonly logger: SoloLogger
 
-        this.validate()
+    constructor (filePath: string, logger: SoloLogger) {
+        if (!filePath || filePath === '') throw new MissingArgumentError('a valid filePath is required')
+        if (!logger) throw new Error('An instance of core/SoloLogger is required')
+
+        this.filePath = filePath
+        this.logger = logger
+
+        const allowedKeys = ['userEmailAddress', 'deployments', 'currentDeploymentName', 'clusterMappings']
+        if (this.configFileEXists()) {
+            const fileContent = fs.readFileSync(filePath, 'utf8')
+            const parsedConfig = yaml.parse(fileContent)
+
+            for(const key in parsedConfig) {
+                if (!allowedKeys.includes(key)) {
+                    throw new SoloError('Validation of local config failed')
+                }
+                this[key] = parsedConfig[key]
+            }
+
+            this.validate()
+            this.skipPromptTask = true
+        }
     }
 
     private validate () {
         const genericMessage = 'Validation of local config failed'
-
-        const errors = validateSync(this, { whitelist: true, enableDebugMessages: true, forbidNonWhitelisted: true })
+        const errors = validateSync(this, {})
 
         if (errors.length) {
             throw new SoloError(genericMessage)
@@ -75,15 +105,15 @@ export class LocalConfig {
             for (const deploymentName in this.deployments) {
                 const deployment = this.deployments[deploymentName]
                 const deploymentIsObject = deployment && typeof deployment === 'object'
-                const deploymentHasClusters = deployment.clusters && Array.isArray(deployment.clusters)
-                let clustersAreStrings = true
-                for (const clusterAlias of deployment.clusters) {
+                const deploymentHasClusterAliases = deployment.clusterAliases && Array.isArray(deployment.clusterAliases)
+                let clusterAliasesAreStrings = true
+                for (const clusterAlias of deployment.clusterAliases) {
                     if (typeof clusterAlias !== 'string') {
-                        clustersAreStrings = false
+                        clusterAliasesAreStrings = false
                     }
                 }
 
-                if (!deploymentIsObject || !deploymentHasClusters || !clustersAreStrings) {
+                if (!deploymentIsObject || !deploymentHasClusterAliases || !clusterAliasesAreStrings) {
                     throw new SoloError(genericMessage)
                 }
             }
@@ -124,9 +154,58 @@ export class LocalConfig {
         this.currentDeploymentName = deploymentName
         this.validate()
         return this
-    }  
-    
+    }
+
     public getCurrentDeployment (): Deployment {
         return this.deployments[this.currentDeploymentName]
+    }
+
+    private configFileEXists (): boolean {
+        return fs.existsSync(this.filePath)
+    }
+
+    public async write (): Promise<void> {
+        const yamlContent = yaml.stringify({
+            userEmailAddress: this.userEmailAddress,
+            deployments: this.deployments,
+            currentDeploymentName: this.currentDeploymentName,
+            clusterMappings: this.clusterMappings
+        })
+        await fs.promises.writeFile(this.filePath, yamlContent)
+        this.logger.info(`Wrote local config to ${this.filePath}`)
+    }
+
+    public promptLocalConfigTask (k8, argv): ListrTask<any, any, any>[]  {
+        return new Task('Prompt local configuration', async (ctx, task) => {
+            const kubeConfig = k8.getKubeConfig()
+
+            const clusterMappings = {}
+            kubeConfig.contexts.forEach(c => {
+                clusterMappings[c.cluster] = c.name
+            })
+
+            let userEmailAddress = argv[flags.userEmailAddress.name]
+            if (!userEmailAddress) userEmailAddress = await promptUserEmailAddress(task, userEmailAddress)
+
+            let deploymentName = argv[flags.deploymentName.name]
+            if (!deploymentName) deploymentName = await promptDeploymentName(task, deploymentName)
+
+            let deploymentClusters = argv[flags.deploymentClusters.name]
+            if (!deploymentClusters) deploymentClusters = await promptDeploymentClusters(task, deploymentClusters)
+
+            const deployments = {}
+            deployments[deploymentName] = {
+                clusterAliases: deploymentClusters.split(',')
+            }
+
+            this.userEmailAddress = userEmailAddress
+            this.deployments = deployments
+            this.currentDeploymentName = deploymentName
+            this.clusterMappings = clusterMappings
+            this.validate()
+            await this.write()
+
+            return this
+        }, this.skipPromptTask) as ListrTask<any, any, any>[]
     }
 }

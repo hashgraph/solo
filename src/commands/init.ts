@@ -81,7 +81,6 @@ export class InitCommand extends BaseCommand {
     }
 
     const tasks = new Listr<Context>([
-      this.localConfigRepository.loadLocalConfigTask(this.k8, argv),
       {
         title: 'Setup home directory and cache',
         task: (ctx) => {
@@ -163,10 +162,7 @@ export class InitCommand extends BaseCommand {
       desc: 'Initialize local environment',
       builder: (y: any) => {
         flags.setCommandFlags(y,
-          flags.cacheDir,
-          flags.userEmailAddress,
-          flags.deploymentClusters,
-          flags.deploymentName
+          flags.cacheDir
         )
       },
       handler: (argv: any) => {

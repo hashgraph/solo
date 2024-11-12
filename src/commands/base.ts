@@ -27,17 +27,9 @@ import type {
   LeaseManager,
   RemoteConfigManager
 } from '../core/index.ts'
-import type {  CommandFlag,  Opts } from '../types/index.ts'
-import { injectable } from 'inversify'
-import { type LocalConfigRepository } from './../core/config/LocalConfigRepository.ts'
-// @ts-ignore
-import { TYPES } from './../types/injectables.ts'
+import type { CommandFlag,  Opts } from '../types/index.ts'
+import type { LocalConfig } from './../core/config/LocalConfig.ts'
 
-import { container } from '../inject.config.ts'
-import getDecorators from 'inversify-inject-decorators'
-const { lazyInject } = getDecorators.default(container, false)
-
-@injectable()
 export class BaseCommand extends ShellRunner {
   protected readonly helm: Helm
   protected readonly k8: K8
@@ -46,10 +38,7 @@ export class BaseCommand extends ShellRunner {
   protected readonly depManager: DependencyManager
   protected readonly leaseManager: LeaseManager
   protected readonly _configMaps = new Map<string, any>()
-
-  @lazyInject(TYPES.LocalConfigRepository)
-  protected localConfigRepository: LocalConfigRepository
-  
+  protected readonly localConfig: LocalConfig
   protected readonly remoteConfigManager: RemoteConfigManager
 
   constructor (opts: Opts) {
@@ -59,7 +48,8 @@ export class BaseCommand extends ShellRunner {
     if (!opts || !opts.chartManager) throw new Error('An instance of core/ChartManager is required')
     if (!opts || !opts.configManager) throw new Error('An instance of core/ConfigManager is required')
     if (!opts || !opts.depManager) throw new Error('An instance of core/DependencyManager is required')
-    if (!opts || !opts.localConfigRepository) throw new Error('An instance of core/config/LocalConfigRepository is required')
+    if (!opts || !opts.localConfig) throw new Error('An instance of core/LocalConfig is required')
+    if (!opts || !opts.remoteConfigManager) throw new Error('An instance of core/config/RemoteConfigManager is required')
 
     super(opts.logger)
 
@@ -69,15 +59,9 @@ export class BaseCommand extends ShellRunner {
     this.configManager = opts.configManager
     this.depManager = opts.depManager
     this.leaseManager = opts.leaseManager
-    this.localConfigRepository = opts.localConfigRepository
-    if (!opts || !opts.remoteConfigManager) throw new Error('An instance of core/config/RemoteConfigManager is required')
-
-    // This is a workaround to get the localConfigRepository injected.
-    // It should be removed once we find a proper solution or when we inject all dependencies
-    this.localConfigRepository = BaseCommand.prototype.localConfigRepository
+    this.localConfig = opts.localConfig
     this.remoteConfigManager = opts.remoteConfigManager
   }
-
 
   async prepareChartPath (chartDir: string, chartRepo: string, chartReleaseName: string) {
     if (!chartRepo) throw new MissingArgumentError('chart repo name is required')

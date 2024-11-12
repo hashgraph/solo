@@ -708,6 +708,36 @@ export const hederaExplorerVersion: CommandFlag = {
   }
 }
 
+export const userEmailAddress: CommandFlag = {
+  constName: 'userEmailAddress',
+  name: 'email',
+  definition: {
+    describe: 'User email address used for local configuration',
+    defaultValue: '',
+    type: 'string'
+  }
+}
+
+export const deploymentName: CommandFlag = {
+  constName: 'deploymentName',
+  name: 'deployment-name',
+  definition: {
+    describe: 'Solo deployment name',
+    defaultValue: '',
+    type: 'string'
+  }
+}
+
+export const deploymentClusters: CommandFlag = {
+  constName: 'deploymentClusters',
+  name: 'deployment-clusters',
+  definition: {
+    describe: 'Solo deployment cluster list (comma separated)',
+    defaultValue: '',
+    type: 'string'
+  }
+}
+
 //* ------------- Node Proxy Certificates ------------- !//
 
 export const grpcTlsCertificatePath: CommandFlag = {
@@ -757,37 +787,6 @@ export const grpcWebTlsKeyPath: CommandFlag = {
       'TLC Certificate key path for gRPC Web ' +
       '(e.g. "node1=/Users/username/node1-grpc-web.key" ' +
       'with multiple nodes comma seperated)',
-    defaultValue: '',
-    type: 'string'
-  }
-}
-
-
-export const userEmailAddress: CommandFlag = {
-  constName: 'userEmailAddress',
-  name: 'email',
-  definition: {
-    describe: 'User email address used for local configuration',
-    defaultValue: '',
-    type: 'string'
-  }
-}
-
-export const deploymentName: CommandFlag = {
-  constName: 'deploymentName',
-  name: 'deployment-name',
-  definition: {
-    describe: 'Solo deployment name',
-    defaultValue: '',
-    type: 'string'
-  }
-}
-
-export const deploymentClusters: CommandFlag = {
-  constName: 'deploymentClusters',
-  name: 'deployment-clusters',
-  definition: {
-    describe: 'Solo deployment cluster list (comma separated)',
     defaultValue: '',
     type: 'string'
   }
@@ -860,8 +859,6 @@ export const allFlags: CommandFlag[] = [
   valuesFile,
   mirrorNodeVersion,
   hederaExplorerVersion,
-  inputDir,
-  outputDir,
   grpcTlsCertificatePath,
   grpcWebTlsCertificatePath,
   grpcTlsKeyPath,
