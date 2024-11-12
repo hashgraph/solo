@@ -14,7 +14,6 @@
  * limitations under the License.
  *
  */
-import { injectable } from 'inversify'
 import { IsEmail, IsNotEmpty, IsObject, IsString, validateSync } from 'class-validator'
 import { type ListrTask } from 'listr2'
 import fs from 'fs'
@@ -26,7 +25,6 @@ import { flags } from '../../commands/index.ts'
 import { type SoloLogger } from '../logging.ts'
 import { Task } from '../task.ts'
 
-@injectable()
 export class LocalConfig implements LocalConfigData {
     @IsNotEmpty()
     @IsEmail()
