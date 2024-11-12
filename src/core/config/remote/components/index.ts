@@ -15,7 +15,6 @@
  *
  */
 import { BaseComponent } from './base_component.ts'
-import { ServiceName } from '../types.ts'
 import { ConsensusNodeComponent } from './consensus_node_component.ts'
 import { HaProxyComponent } from './ha_proxy_component.ts'
 import { EnvoyProxyComponent } from './envoy_proxy_component.ts'
@@ -25,7 +24,6 @@ import { RelayComponent } from './relay_component.ts'
 
 export {
   BaseComponent,
-  ServiceName,
   ConsensusNodeComponent,
   HaProxyComponent,
   EnvoyProxyComponent,

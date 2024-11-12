@@ -196,7 +196,7 @@ export class MirrorNodeCommand extends BaseCommand {
           return lease.buildAcquireTask(task)
         }
       },
-      this.remoteConfigRepository.buildLoadRemoteConfigCommand(),
+      this.remoteConfigManager.buildLoadRemoteConfigCommand(),
       {
         title: 'Enable mirror-node',
         task: (_, parentTask) => {
@@ -288,7 +288,7 @@ export class MirrorNodeCommand extends BaseCommand {
       {
         title: 'Add mirror node to metadata',
         task: async (ctx) => {
-          await self.remoteConfigRepository.modifyComponent(async (remoteConfig) => {
+          await self.remoteConfigManager.modifyComponent(async (remoteConfig) => {
             const { config: { namespace } } = ctx
 
             const component = new MirrorNodeComponent(
@@ -298,6 +298,22 @@ export class MirrorNodeCommand extends BaseCommand {
             )
 
             remoteConfig.components.add(component, 'Mirror node name')
+          })
+        }
+      },
+      {
+        title: 'Add mirror node explorer to metadata',
+        task: async (ctx) => {
+          await self.remoteConfigManager.modifyComponent(async (remoteConfig) => {
+            const { config: { namespace } } = ctx
+
+            const component = new MirrorNodeComponent(
+              'Mirror node explorer name',
+              'solo-cluster',
+              namespace,
+            )
+
+            remoteConfig.components.add(component, 'Mirror node explorer name')
           })
         }
       },
@@ -415,7 +431,7 @@ export class MirrorNodeCommand extends BaseCommand {
           return lease.buildAcquireTask(task)
         }
       },
-      this.remoteConfigRepository.buildLoadRemoteConfigCommand(),
+      this.remoteConfigManager.buildLoadRemoteConfigCommand(),
       {
         title: 'Destroy mirror-node',
         task: async (ctx) => {
@@ -423,6 +439,22 @@ export class MirrorNodeCommand extends BaseCommand {
           await this.chartManager.uninstall(ctx.config.namespace, constants.HEDERA_EXPLORER_CHART)
         },
         skip: (ctx) => !ctx.config.isChartInstalled
+      },
+      {
+        title: 'Remove mirror node from metadata',
+        task: async () => {
+          await self.remoteConfigManager.modifyComponent(async (remoteConfig) => {
+            remoteConfig.components.remove(ComponentTypeEnum.MirrorNode, 'Mirror node name')
+          })
+        }
+      },
+      {
+        title: 'Remove mirror explorer node from metadata',
+        task: async () => {
+          await self.remoteConfigManager.modifyComponent(async (remoteConfig) => {
+            remoteConfig.components.remove(ComponentTypeEnum.MirrorNode, 'Mirror node explorer name')
+          })
+        }
       },
       {
         title: 'Delete PVCs',
@@ -440,14 +472,6 @@ export class MirrorNodeCommand extends BaseCommand {
           }
         },
         skip: (ctx) => !ctx.config.isChartInstalled
-      },
-      {
-        title: 'Remove mirror node from metadata',
-        task: async () => {
-          await self.remoteConfigRepository.modifyComponent(async (remoteConfig) => {
-            remoteConfig.components.remove(ComponentTypeEnum.MirrorNode, 'Mirror node name')
-          })
-        }
       },
     ], {
       concurrent: false,

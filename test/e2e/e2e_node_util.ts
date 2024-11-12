@@ -110,7 +110,7 @@ export function e2eNodeKeyRefreshTest (testName: string, mode: string, releaseTa
           }
         })
 
-        nodePodShouldBeRunning(nodeCmd, namespace, nodeAlias)
+        nodePodShouldBeRunning(nodeCmd, nodeAlias)
 
         nodeShouldNotBeActive(nodeCmd, nodeAlias)
 
@@ -121,12 +121,11 @@ export function e2eNodeKeyRefreshTest (testName: string, mode: string, releaseTa
         accountCreationShouldSucceed(accountManager, nodeCmd, namespace)
       })
 
-      function nodePodShouldBeRunning (nodeCmd: NodeCommand, namespace: string, nodeAlias: NodeAlias) {
+      function nodePodShouldBeRunning (nodeCmd: NodeCommand, nodeAlias: NodeAlias) {
         it(`${nodeAlias} should be running`, async () => {
           try {
             // @ts-ignore to access tasks which is a private property
-            await expect(nodeCmd.tasks.checkNetworkNodePod(namespace,
-                nodeAlias)).to.eventually.be.ok
+            await expect(nodeCmd.tasks.checkNetworkNodePod(nodeAlias)).to.eventually.be.ok
           } catch (e) {
             nodeCmd.logger.showUserError(e)
             expect.fail()

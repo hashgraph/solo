@@ -15,17 +15,19 @@
  *
  */
 import {
+  type AccountManager,
+  type CertificateManager,
   type ChartManager,
   type ConfigManager,
   constants,
-  type K8, type KeyManager,
+  type K8,
+  type KeyManager,
   type PlatformInstaller,
   type ProfileManager,
+  type RemoteConfigManager,
   Task,
   Templates,
-  Zippy,
-  type AccountManager,
-  type CertificateManager
+  Zippy
 } from '../../core/index.ts'
 import {
   DEFAULT_NETWORK_NODE_NAME,
@@ -36,15 +38,17 @@ import {
   TREASURY_ACCOUNT_ID
 } from '../../core/constants.ts'
 import {
-  AccountBalanceQuery, AccountId, AccountUpdateTransaction,
+  AccountBalanceQuery,
+  AccountId,
+  AccountUpdateTransaction,
   FileAppendTransaction,
   FileUpdateTransaction,
   FreezeTransaction,
   FreezeType,
-  PrivateKey,
   NodeCreateTransaction,
   NodeDeleteTransaction,
   NodeUpdateTransaction,
+  PrivateKey,
   Timestamp
 } from '@hashgraph/sdk'
 import { IllegalArgumentError, MissingArgumentError, SoloError } from '../../core/errors.ts'
@@ -69,9 +73,19 @@ import { type NodeAlias, type NodeAliases, type PodName } from '../../types/alia
 import { NodeStatusCodes, NodeStatusEnums } from '../../core/enumerations.ts'
 import * as x509 from '@peculiar/x509'
 import { type NodeCommand } from './index.ts'
-import type { NodeDeleteConfigClass, NodeRefreshConfigClass, NodeUpdateConfigClass } from './configs.ts'
-import type { NodeAddConfigClass } from './configs.ts'
+import type {
+  NodeAddConfigClass,
+  NodeDeleteConfigClass,
+  NodeRefreshConfigClass,
+  NodeUpdateConfigClass
+} from './configs.ts'
 import type { LeaseWrapper } from '../../core/lease_wrapper.ts'
+import { ComponentTypeEnum, ConsensusNodeStates } from '../../core/config/remote/enumerations.ts'
+import {
+  ConsensusNodeComponent,
+  EnvoyProxyComponent,
+  HaProxyComponent
+} from '../../core/config/remote/components/index.ts'
 
 export class NodeCommandTasks {
   private readonly accountManager: AccountManager
@@ -84,13 +98,16 @@ export class NodeCommandTasks {
   private readonly parent: NodeCommand
   private readonly chartManager: ChartManager
   private readonly certificateManager: CertificateManager
+  private readonly remoteConfigManager: RemoteConfigManager
 
   private readonly prepareValuesFiles: any
 
-  constructor (opts: { logger: SoloLogger; accountManager: AccountManager; configManager: ConfigManager,
+  constructor (opts: {
+    logger: SoloLogger; accountManager: AccountManager; configManager: ConfigManager,
     k8: K8, platformInstaller: PlatformInstaller, keyManager: KeyManager, profileManager: ProfileManager,
-  chartManager: ChartManager, certificateManager: CertificateManager, parent: NodeCommand}
-  ) {
+    chartManager: ChartManager, certificateManager: CertificateManager, remoteConfigManager: RemoteConfigManager,
+    parent: NodeCommand
+  }) {
     if (!opts || !opts.accountManager) throw new IllegalArgumentError('An instance of core/AccountManager is required', opts.accountManager as any)
     if (!opts || !opts.configManager) throw new Error('An instance of core/ConfigManager is required')
     if (!opts || !opts.logger) throw new Error('An instance of core/Logger is required')
@@ -99,7 +116,6 @@ export class NodeCommandTasks {
     if (!opts || !opts.keyManager) throw new IllegalArgumentError('An instance of core/KeyManager is required', opts.keyManager)
     if (!opts || !opts.profileManager) throw new IllegalArgumentError('An instance of ProfileManager is required', opts.profileManager)
     if (!opts || !opts.certificateManager) throw new IllegalArgumentError('An instance of CertificateManager is required', opts.certificateManager)
-
 
     this.accountManager = opts.accountManager
     this.configManager = opts.configManager
@@ -111,6 +127,7 @@ export class NodeCommandTasks {
     this.keyManager = opts.keyManager
     this.chartManager = opts.chartManager
     this.certificateManager = opts.certificateManager
+    this.remoteConfigManager = opts.remoteConfigManager
     this.prepareValuesFiles = opts.parent.prepareValuesFiles.bind(opts.parent)
   }
 
@@ -615,7 +632,7 @@ export class NodeCommandTasks {
       subTasks.push({
         title: `Check network pod: ${chalk.yellow(nodeAlias)}`,
         task: async (ctx: any) => {
-          ctx.config.podNames[nodeAlias] = await this.checkNetworkNodePod(ctx.config.namespace, nodeAlias)
+          ctx.config.podNames[nodeAlias] = await this.checkNetworkNodePod(nodeAlias)
         }
       })
     }
@@ -630,9 +647,11 @@ export class NodeCommandTasks {
   }
 
   /** Check if the network node pod is running */
-  async checkNetworkNodePod (namespace: string, nodeAlias: NodeAlias,
-                             maxAttempts = constants.PODS_RUNNING_MAX_ATTEMPTS,
-                             delay = constants.PODS_RUNNING_DELAY) {
+  async checkNetworkNodePod (
+    nodeAlias: NodeAlias,
+    maxAttempts = constants.PODS_RUNNING_MAX_ATTEMPTS,
+    delay = constants.PODS_RUNNING_DELAY
+  ) {
     nodeAlias = nodeAlias.trim() as NodeAlias
     const podName = Templates.renderNetworkPodName(nodeAlias)
 
@@ -1375,5 +1394,96 @@ export class NodeCommandTasks {
 
       if (lease) return lease.buildAcquireTask(task)
     })
+  }
+
+  //* ------------------------------ Remote Config ------------------------------ *//
+
+  removeComponentsFromRemoteConfig () {
+    return new Task('Remove node related components from metadata',
+      async () => {
+        await this.remoteConfigManager.modifyComponent(async (remoteConfig) => {
+          remoteConfig.components.remove(ComponentTypeEnum.ConsensusNode, 'Consensus node name')
+          remoteConfig.components.remove(ComponentTypeEnum.EnvoyProxy, 'Envoy proxy name')
+          remoteConfig.components.remove(ComponentTypeEnum.HaProxy, 'HaProxy name')
+        })
+      }
+    )
+  }
+
+  setupComponentsToRemoteConfig () {
+    return new Task('Setup node related components from metadata',
+      async (ctx: { config: { namespace: string, nodeAliases: NodeAliases } }) => {
+        await this.remoteConfigManager.modifyComponent(async (remoteConfig) => {
+          const { config: { namespace, nodeAliases } } = ctx
+
+          for (const nodeAlias of nodeAliases) {
+            const nodeComponent = new ConsensusNodeComponent(
+              nodeAlias,
+              'solo-cluster',
+              namespace,
+              ConsensusNodeStates.SETUP
+            )
+
+            const haProxyComponent = new HaProxyComponent(
+              `haproxy-${nodeAlias}`,
+              'solo-cluster',
+              namespace,
+            )
+
+            const envoyProxyComponent = new EnvoyProxyComponent(
+              `envoy-${nodeAlias}`,
+              'solo-cluster',
+              namespace,
+            )
+
+            remoteConfig.components.add(nodeComponent, nodeAlias)
+            remoteConfig.components.add(haProxyComponent, `haproxy-${nodeAlias}`)
+            remoteConfig.components.add(envoyProxyComponent, `envoy-${nodeAlias}`)
+          }
+        })
+      }
+    )
+  }
+
+  startComponentsToRemoteConfig () {
+    return new Task('Start node related components from metadata',
+      async (ctx: { config: { namespace: string, nodeAliases: NodeAliases } }) => {
+        await this.remoteConfigManager.modifyComponent(async (remoteConfig) => {
+          const { config: { namespace, nodeAliases } } = ctx
+
+          for (const nodeAlias of nodeAliases) {
+            const nodeComponent = new ConsensusNodeComponent(
+              nodeAlias,
+              'solo-cluster',
+              namespace,
+              ConsensusNodeStates.STARTED
+            )
+
+            remoteConfig.components.edit(nodeComponent, nodeAlias)
+          }
+        })
+      }
+    )
+  }
+
+  freezeComponentsToRemoteConfig () {
+    return new Task('Freeze node related components from metadata',
+      async (ctx: { config: { namespace: string, nodeAliases: NodeAliases } }) => {
+        await this.remoteConfigManager.modifyComponent(async (remoteConfig) => {
+          const { config: { namespace, nodeAliases } } = ctx
+
+          for (const nodeAlias of nodeAliases) {
+            const nodeComponent = new ConsensusNodeComponent(
+              nodeAlias,
+              'solo-cluster',
+              namespace,
+              ConsensusNodeStates.FREEZED
+            )
+
+            remoteConfig.components.edit(nodeComponent, nodeAlias)
+          }
+        })
+      }
+    )
   }
 }

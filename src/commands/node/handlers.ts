@@ -37,16 +37,16 @@ import type { NodeCommandTasks } from './tasks.ts'
 import type { LeaseWrapper } from '../../core/lease_wrapper.ts'
 
 export class NodeCommandHandlers {
-  private readonly accountManager: AccountManager
-  private readonly configManager: ConfigManager
+  readonly accountManager: AccountManager
+  readonly configManager: ConfigManager
   private readonly platformInstaller: PlatformInstaller
   private readonly logger: SoloLogger
-  private readonly k8: K8
+  readonly k8: K8
   private readonly tasks: NodeCommandTasks
   private readonly leaseManager: LeaseManager
 
-  private getConfig: any
-  private prepareChartPath: any
+  getConfig: any
+  prepareChartPath: any
 
   public readonly parent: NodeCommand
 

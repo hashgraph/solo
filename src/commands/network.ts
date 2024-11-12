@@ -410,7 +410,7 @@ export class NetworkCommand extends BaseCommand {
           })
         }
       },
-      this.remoteConfigRepository.buildLoadRemoteConfigCommand(true)
+      this.remoteConfigManager.buildLoadRemoteConfigCommand(true)
     ], {
       concurrent: false,
       rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION

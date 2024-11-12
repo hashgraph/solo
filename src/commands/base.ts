@@ -50,7 +50,7 @@ export class BaseCommand extends ShellRunner {
   @lazyInject(TYPES.LocalConfigRepository)
   protected localConfigRepository: LocalConfigRepository
   
-  protected readonly remoteConfigRepository: RemoteConfigManager
+  protected readonly remoteConfigManager: RemoteConfigManager
 
   constructor (opts: Opts) {
     if (!opts || !opts.logger) throw new Error('An instance of core/SoloLogger is required')
@@ -75,7 +75,7 @@ export class BaseCommand extends ShellRunner {
     // This is a workaround to get the localConfigRepository injected.
     // It should be removed once we find a proper solution or when we inject all dependencies
     this.localConfigRepository = BaseCommand.prototype.localConfigRepository
-    this.remoteConfigRepository = opts.remoteConfigManager
+    this.remoteConfigManager = opts.remoteConfigManager
   }
 
 

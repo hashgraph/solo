@@ -172,6 +172,49 @@ export class ComponentsDataWrapper {
     }
   }
 
+  edit (component: BaseComponent, serviceName: ServiceName) {
+    const self = this
+
+    if (!serviceName || typeof serviceName !== 'string') {
+      throw new SoloError(`Service name is required ${serviceName}`)
+    }
+
+    if (!(component instanceof BaseComponent)) {
+      throw new SoloError('Component must be instance of BaseComponent', undefined, BaseComponent)
+    }
+
+    function editComponent (components: Record<ServiceName, BaseComponent>) {
+      if (!self.exists(components, component)) {
+        throw new SoloError(`Component doesn't exist ${component.toObject()}`)
+      }
+
+      components[serviceName] = component
+    }
+
+    switch (component.type) {
+      case ComponentTypeEnum.ConsensusNode: {
+        return editComponent(self.consensusNodes)
+      }
+      case ComponentTypeEnum.HaProxy: {
+        return editComponent(self.haProxies)
+      }
+      case ComponentTypeEnum.EnvoyProxy: {
+        return editComponent(self.envoyProxies)
+      }
+      case ComponentTypeEnum.MirrorNode: {
+        return editComponent(self.mirrorNodes)
+      }
+      case ComponentTypeEnum.MirrorNodeExplorer: {
+        return editComponent(self.mirrorNodeExplorers)
+      }
+      case ComponentTypeEnum.Relay: {
+        return editComponent(self.relays)
+      }
+      default:
+        throw new SoloError(`Unknown component type ${component.type}, service name: ${serviceName}`)
+    }
+  }
+
   remove (type: ComponentTypeEnum, serviceName: ServiceName) {
     const self = this
 

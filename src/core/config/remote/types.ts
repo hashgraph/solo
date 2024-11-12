@@ -17,8 +17,8 @@
 import type { NodeAliases } from '../../../types/aliases.ts'
 import type { Migration } from './migration.ts'
 import type { ComponentsDataWrapper } from './components_data_wrapper.ts'
-import { RemoteConfigMetadata } from './metadata.ts'
-import { ConsensusNodeStates } from './enumerations.ts'
+import type { RemoteConfigMetadata } from './metadata.ts'
+import type { ConsensusNodeStates } from './enumerations.ts'
 
 export type EmailAddress = `${string}@${string}.${string}`
 export type Version = string
