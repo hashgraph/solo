@@ -75,5 +75,23 @@ e2eTestSuite(namespace, argv, undefined, undefined, undefined, undefined, undefi
 
       await initialLease.release()
     }).timeout(3 * MINUTES)
+
+    it('expired leases should be overwritten', async () => {
+      const initialLease = leaseManager.instantiateLease()
+      const title = 'Initial Lease'
+      // @ts-ignore to access private property
+      await initialLease.acquireTask({ title }, title)
+
+      // Ensure lease expires
+      await sleep(LEASE_ACQUIRE_RETRY_TIMEOUT * 1.5)
+
+      const newLease = leaseManager.instantiateLease()
+      const newTitle = 'New Lease'
+      // @ts-ignore to access private property
+      await newLease.acquireTask({ newTitle }, newTitle, 8)
+
+      await initialLease.release()
+      await newLease.release()
+    }).timeout(3 * MINUTES)
   })
 })

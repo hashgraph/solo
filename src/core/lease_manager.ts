@@ -24,6 +24,7 @@ import type { ListrTaskWrapper } from 'listr2'
 import chalk from 'chalk'
 import { sleep } from './helpers.ts'
 import { LeaseWrapper } from './lease_wrapper.ts'
+import type { V1Lease } from '@kubernetes/client-node'
 
 export class LeaseManager {
   constructor (
@@ -94,6 +95,21 @@ export class LeaseManager {
     return { releaseLease: releaseLeaseCallback }
   }
 
+  private async tryAcquireLease (username: string,
+                                 leaseName: string,
+                                  namespace: string,
+                                 task: ListrTaskWrapper<any, any, any>,
+                                 title: string): Promise<V1Lease> {
+    try {
+       return await this.k8.readNamespacedLease(leaseName, namespace)
+    } catch (error) {
+      if (error.meta.statusCode !== 404) {
+        task.title = `${title} - ${chalk.red(`failed to acquire lease, unexpected server response ${error.meta.statusCode}!`)}`
+      }
+      return Promise.resolve(null)
+    }
+  }
+
   private async acquireLeaseOrRetry (
     username: string,
     leaseName: string,
@@ -105,23 +121,10 @@ export class LeaseManager {
   ): Promise<void> {
     if (!attempt) attempt = 1
 
-    let exists = false
-
-    try {
-      const lease = await this.k8.readNamespacedLease(leaseName, namespace)
-
-      exists = !!lease
-    } catch (error) {
-      if (error.meta.statusCode !== 404) {
-        task.title = `${title} - ${chalk.red(`failed to acquire lease, unexpected server response ${error.meta.statusCode}!`)}` +
-          `, attempt: ${chalk.cyan(attempt.toString())}/${chalk.cyan(maxAttempts.toString())}`
-
-        throw new SoloError(`Failed to acquire lease: ${error.message}`)
-      }
-    }
+    const lease = await this.tryAcquireLease(username, leaseName, namespace, task, title)
 
     //? In case the lease is already acquired retry after cooldown
-    if (exists) {
+    while (!!lease && !this.isLeaseExpired(lease)) {
       attempt++
 
       if (attempt === maxAttempts) {
@@ -137,8 +140,10 @@ export class LeaseManager {
         `, attempt: ${chalk.cyan(attempt.toString())}/${chalk.cyan(maxAttempts.toString())}`
 
       await sleep(LEASE_ACQUIRE_RETRY_TIMEOUT)
+    }
 
-      return this.acquireLeaseOrRetry(username, leaseName, namespace, task, title, attempt)
+    if (lease) {
+      await this.k8.deleteNamespacedLease(leaseName, namespace)
     }
 
     await this.k8.createNamespacedLease(namespace, leaseName, username)
@@ -153,5 +158,19 @@ export class LeaseManager {
 
     if (!await this.k8.hasNamespace(namespace)) return null
     return namespace
+  }
+
+  private isLeaseExpired (lease: V1Lease) : boolean {
+    const now = Date.now()
+    const duration = lease.spec?.leaseDurationSeconds ? lease.spec?.leaseDurationSeconds : 20
+    let acquired = lease.spec?.acquireTime
+
+    if (lease.spec.renewTime) {
+      acquired = lease.spec?.renewTime
+    }
+
+    const deltaSec = (now - new Date(acquired).valueOf()) / 1000
+
+    return deltaSec > duration
   }
 }
