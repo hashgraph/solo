@@ -32,7 +32,7 @@ export class RelayComponent extends BaseComponent implements IRelayComponent {
     super.validate()
 
     this.consensusNodeAliases.forEach(alias => {
-      if (typeof alias === 'string') {
+      if (!alias || typeof alias === 'string') {
         throw new SoloError(`Invalid consensus node alias: ${alias}, aliases ${this.consensusNodeAliases}`)
       }
     })

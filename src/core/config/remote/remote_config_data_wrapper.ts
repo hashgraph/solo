@@ -21,9 +21,8 @@ import * as version from '../../../../version.ts'
 import yaml from 'js-yaml'
 import { RemoteConfigMetadata } from './metadata.ts'
 import { ComponentsDataWrapper } from './components_data_wrapper.ts'
-import type {
-  Cluster, Version, Namespace, Component, RemoteConfigData, EmailAddress
-} from './types.ts'
+import * as constants from '../../constants.ts'
+import type { Cluster, Version, Namespace, Component, RemoteConfigData, EmailAddress } from './types.ts'
 import type * as k8s from '@kubernetes/client-node'
 
 export class RemoteConfigDataWrapper {
@@ -31,11 +30,15 @@ export class RemoteConfigDataWrapper {
   private _metadata: RemoteConfigMetadata
   private _clusters: Record<Cluster, Namespace>
   private _components: ComponentsDataWrapper
+  private _commandHistory: string[]
+  private _lastExecutedCommand: string
 
   constructor (data: RemoteConfigData) {
     this._metadata = data.metadata
     this._clusters = data.clusters
     this._components = data.components
+    this._commandHistory = data.commandHistory
+    this._lastExecutedCommand = data.lastExecutedCommand ?? ''
     this.validate()
   }
 
@@ -46,12 +49,16 @@ export class RemoteConfigDataWrapper {
       metadata: RemoteConfigMetadata.fromObject(unparsed.metadata),
       components: ComponentsDataWrapper.fromObject(unparsed.components),
       clusters: unparsed.clusters,
+      commandHistory: unparsed.commandHistory,
+      lastExecutedCommand: unparsed.lastExecutedCommand,
     })
   }
 
   makeMigration (email: EmailAddress, fromVersion: Version) {
     this.metadata.makeMigration(email, fromVersion)
   }
+
+  private get version () { return this._version }
 
   get metadata () { return this._metadata }
 
@@ -74,16 +81,49 @@ export class RemoteConfigDataWrapper {
     this.validate()
   }
 
+  get lastExecutedCommand () { return this._lastExecutedCommand }
+
+  private set lastExecuteCommand (lastExecutedCommand: string) {
+    this._lastExecutedCommand = lastExecutedCommand
+    this.validate()
+  }
+
+  get commandHistory () { return this._commandHistory }
+
+  private set commandHistory (commandHistory: string[]) {
+    this._commandHistory = commandHistory
+    this.validate()
+  }
+
+  addCommandToHistory (command: string) {
+    this._commandHistory.push(command)
+    this._lastExecutedCommand = command
+
+    if (this._commandHistory.length > constants.SOLO_REMOTE_CONFIG_MAX_COMMAND_IN_HISTORY) {
+      this._commandHistory.shift()
+    }
+
+    this.validate()
+  }
+
   private validate () {
     if (!semver.valid(this._version)) {
       throw new SoloError(`Invalid remote config version: ${this._version}`)
     }
 
-    if (!this._metadata) {
-      throw new SoloError(`Invalid remote config metadata: ${this._metadata}`)
+    if (!this.metadata) {
+      throw new SoloError(`Invalid remote config metadata: ${this.metadata}`)
     }
 
-    Object.entries(this._clusters).forEach(([cluster, namespace]: [Cluster, Namespace]) => {
+    if (typeof this.lastExecutedCommand !== 'string') {
+      throw new SoloError(`Invalid remote config last executed command: ${this.lastExecutedCommand}`)
+    }
+
+    if (!Array.isArray(this.commandHistory) || this.commandHistory.some(c => typeof c !== 'string')) {
+      throw new SoloError(`Invalid remote config command history: ${this.commandHistory}`)
+    }
+
+    Object.entries(this.clusters).forEach(([cluster, namespace]: [Cluster, Namespace]) => {
       const clusterDataString = `cluster: { name: ${cluster}, namespace: ${namespace} }`
 
       if (typeof cluster !== 'string') {
@@ -95,7 +135,7 @@ export class RemoteConfigDataWrapper {
       }
     })
 
-    Object.entries(this._components).forEach(([type, data]: [ComponentTypeEnum, Record<string, Component>]) => {
+    Object.entries(this.components).forEach(([type, data]: [ComponentTypeEnum, Record<string, Component>]) => {
       const componentDataString = `component: { type: ${type}, data: ${data} }`
 
       if (!Object.values(ComponentTypeEnum).includes(type)) {
@@ -128,10 +168,12 @@ export class RemoteConfigDataWrapper {
 
   toObject () {
     return {
-      metadata: this._metadata.toObject(),
-      version: this._version,
-      clusters: this._clusters,
-      components: this._components,
+      metadata: this.metadata.toObject(),
+      version: this.version,
+      clusters: this.clusters,
+      components: this.components,
+      commandHistory: this.commandHistory,
+      lastExecutedCommand: this.lastExecutedCommand,
     }
   }
 }

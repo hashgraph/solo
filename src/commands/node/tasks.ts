@@ -102,12 +102,14 @@ export class NodeCommandTasks {
 
   private readonly prepareValuesFiles: any
 
-  constructor (opts: {
-    logger: SoloLogger; accountManager: AccountManager; configManager: ConfigManager,
-    k8: K8, platformInstaller: PlatformInstaller, keyManager: KeyManager, profileManager: ProfileManager,
-    chartManager: ChartManager, certificateManager: CertificateManager, remoteConfigManager: RemoteConfigManager,
-    parent: NodeCommand
-  }) {
+  constructor (
+    opts: {
+      logger: SoloLogger; accountManager: AccountManager; configManager: ConfigManager,
+      k8: K8, platformInstaller: PlatformInstaller, keyManager: KeyManager, profileManager: ProfileManager,
+      chartManager: ChartManager, certificateManager: CertificateManager, remoteConfigManager: RemoteConfigManager,
+      parent: NodeCommand
+    }
+  ) {
     if (!opts || !opts.accountManager) throw new IllegalArgumentError('An instance of core/AccountManager is required', opts.accountManager as any)
     if (!opts || !opts.configManager) throw new Error('An instance of core/ConfigManager is required')
     if (!opts || !opts.logger) throw new Error('An instance of core/Logger is required')
@@ -278,14 +280,12 @@ export class NodeCommandTasks {
   }
 
   _checkNodeActivenessTask (ctx: any, task: ListrTaskWrapper<any, any, any>, nodeAliases: NodeAliases, status = NodeStatusCodes.ACTIVE) {
-    const { config: { namespace } } = ctx
-
     const subTasks = nodeAliases.map((nodeAlias, i) => {
       const reminder = ('debugNodeAlias' in ctx.config && ctx.config.debugNodeAlias === nodeAlias) ? 'Please attach JVM debugger now.' : ''
       const title = `Check network pod: ${chalk.yellow(nodeAlias)} ${chalk.red(reminder)}`
 
       const subTask = async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
-        ctx.config.podNames[nodeAlias] = await this._checkNetworkNodeActiveness(namespace, nodeAlias, task, title, i, status)
+        ctx.config.podNames[nodeAlias] = await this._checkNetworkNodeActiveness(nodeAlias, task, title, i, status)
       }
 
       return { title, task: subTask }
@@ -299,7 +299,8 @@ export class NodeCommandTasks {
     })
   }
 
-  async _checkNetworkNodeActiveness (namespace: string, nodeAlias: NodeAlias, task: ListrTaskWrapper<any, any, any>,
+  async _checkNetworkNodeActiveness (
+    nodeAlias: NodeAlias, task: ListrTaskWrapper<any, any, any>,
     title: string, index: number, status = NodeStatusCodes.ACTIVE,
     maxAttempts = constants.NETWORK_NODE_ACTIVE_MAX_ATTEMPTS,
     delay = constants.NETWORK_NODE_ACTIVE_DELAY,
@@ -1401,7 +1402,7 @@ export class NodeCommandTasks {
   removeComponentsFromRemoteConfig () {
     return new Task('Remove node related components from metadata',
       async () => {
-        await this.remoteConfigManager.modifyComponent(async (remoteConfig) => {
+        await this.remoteConfigManager.modify(async (remoteConfig) => {
           remoteConfig.components.remove(ComponentTypeEnum.ConsensusNode, 'Consensus node name')
           remoteConfig.components.remove(ComponentTypeEnum.EnvoyProxy, 'Envoy proxy name')
           remoteConfig.components.remove(ComponentTypeEnum.HaProxy, 'HaProxy name')
@@ -1413,7 +1414,7 @@ export class NodeCommandTasks {
   setupComponentsToRemoteConfig () {
     return new Task('Setup node related components from metadata',
       async (ctx: { config: { namespace: string, nodeAliases: NodeAliases } }) => {
-        await this.remoteConfigManager.modifyComponent(async (remoteConfig) => {
+        await this.remoteConfigManager.modify(async (remoteConfig) => {
           const { config: { namespace, nodeAliases } } = ctx
 
           for (const nodeAlias of nodeAliases) {
@@ -1448,7 +1449,7 @@ export class NodeCommandTasks {
   startComponentsToRemoteConfig () {
     return new Task('Start node related components from metadata',
       async (ctx: { config: { namespace: string, nodeAliases: NodeAliases } }) => {
-        await this.remoteConfigManager.modifyComponent(async (remoteConfig) => {
+        await this.remoteConfigManager.modify(async (remoteConfig) => {
           const { config: { namespace, nodeAliases } } = ctx
 
           for (const nodeAlias of nodeAliases) {
@@ -1469,7 +1470,7 @@ export class NodeCommandTasks {
   freezeComponentsToRemoteConfig () {
     return new Task('Freeze node related components from metadata',
       async (ctx: { config: { namespace: string, nodeAliases: NodeAliases } }) => {
-        await this.remoteConfigManager.modifyComponent(async (remoteConfig) => {
+        await this.remoteConfigManager.modify(async (remoteConfig) => {
           const { config: { namespace, nodeAliases } } = ctx
 
           for (const nodeAlias of nodeAliases) {

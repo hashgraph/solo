@@ -75,6 +75,16 @@ export const namespace: CommandFlag = {
   }
 }
 
+export const contextCluster: CommandFlag = {
+  constName: 'contextCluster',
+  name: 'context-cluster',
+  definition: {
+    describe: 'Context cluster mapping where context is key = value is cluster and comma delimited if more than one, ' +
+      '(e.g.: --context-cluster kind-solo=kind-solo,kind-solo-2=kind-solo-2)',
+    type: 'string'
+  }
+}
+
 export const deployHederaExplorer: CommandFlag = {
   constName: 'deployHederaExplorer',
   name: 'hedera-explorer',

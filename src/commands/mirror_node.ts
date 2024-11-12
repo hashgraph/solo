@@ -196,7 +196,7 @@ export class MirrorNodeCommand extends BaseCommand {
           return lease.buildAcquireTask(task)
         }
       },
-      this.remoteConfigManager.buildLoadRemoteConfigCommand(),
+      this.remoteConfigManager.buildLoadRemoteConfigTask(argv),
       {
         title: 'Enable mirror-node',
         task: (_, parentTask) => {
@@ -288,7 +288,7 @@ export class MirrorNodeCommand extends BaseCommand {
       {
         title: 'Add mirror node to metadata',
         task: async (ctx) => {
-          await self.remoteConfigManager.modifyComponent(async (remoteConfig) => {
+          await self.remoteConfigManager.modify(async (remoteConfig) => {
             const { config: { namespace } } = ctx
 
             const component = new MirrorNodeComponent(
@@ -304,7 +304,7 @@ export class MirrorNodeCommand extends BaseCommand {
       {
         title: 'Add mirror node explorer to metadata',
         task: async (ctx) => {
-          await self.remoteConfigManager.modifyComponent(async (remoteConfig) => {
+          await self.remoteConfigManager.modify(async (remoteConfig) => {
             const { config: { namespace } } = ctx
 
             const component = new MirrorNodeComponent(
@@ -431,7 +431,7 @@ export class MirrorNodeCommand extends BaseCommand {
           return lease.buildAcquireTask(task)
         }
       },
-      this.remoteConfigManager.buildLoadRemoteConfigCommand(),
+      this.remoteConfigManager.buildLoadRemoteConfigTask(argv),
       {
         title: 'Destroy mirror-node',
         task: async (ctx) => {
@@ -443,7 +443,7 @@ export class MirrorNodeCommand extends BaseCommand {
       {
         title: 'Remove mirror node from metadata',
         task: async () => {
-          await self.remoteConfigManager.modifyComponent(async (remoteConfig) => {
+          await self.remoteConfigManager.modify(async (remoteConfig) => {
             remoteConfig.components.remove(ComponentTypeEnum.MirrorNode, 'Mirror node name')
           })
         }
@@ -451,7 +451,7 @@ export class MirrorNodeCommand extends BaseCommand {
       {
         title: 'Remove mirror explorer node from metadata',
         task: async () => {
-          await self.remoteConfigManager.modifyComponent(async (remoteConfig) => {
+          await self.remoteConfigManager.modify(async (remoteConfig) => {
             remoteConfig.components.remove(ComponentTypeEnum.MirrorNode, 'Mirror node explorer name')
           })
         }

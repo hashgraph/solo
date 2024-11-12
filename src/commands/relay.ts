@@ -209,7 +209,7 @@ export class RelayCommand extends BaseCommand {
           return lease.buildAcquireTask(task)
         }
       },
-      this.remoteConfigManager.buildLoadRemoteConfigCommand(),
+      this.remoteConfigManager.buildLoadRemoteConfigTask(argv),
       {
         title: 'Prepare chart values',
         task: async (ctx) => {
@@ -260,7 +260,7 @@ export class RelayCommand extends BaseCommand {
       {
         title: 'Add relay to metadata',
         task: async (ctx) => {
-          await self.remoteConfigManager.modifyComponent(async (remoteConfig) => {
+          await self.remoteConfigManager.modify(async (remoteConfig) => {
             const { config: { namespace, nodeAliases } } = ctx
 
             const component = new RelayComponent(
@@ -331,7 +331,7 @@ export class RelayCommand extends BaseCommand {
           return lease.buildAcquireTask(task)
         }
       },
-      this.remoteConfigManager.buildLoadRemoteConfigCommand(),
+      this.remoteConfigManager.buildLoadRemoteConfigTask(argv),
       {
         title: 'Destroy JSON RPC Relay',
         task: async (ctx) => {
@@ -349,7 +349,7 @@ export class RelayCommand extends BaseCommand {
       {
         title: 'Remove relay from metadata',
         task: async () => {
-          await self.remoteConfigManager.modifyComponent(async (remoteConfig) => {
+          await self.remoteConfigManager.modify(async (remoteConfig) => {
             remoteConfig.components.remove(ComponentTypeEnum.Relay, 'Relay name')
           })
         }

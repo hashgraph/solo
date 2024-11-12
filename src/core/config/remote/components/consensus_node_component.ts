@@ -17,9 +17,9 @@
 import { ComponentTypeEnum, ConsensusNodeStates } from '../enumerations.ts'
 import { BaseComponent } from './base_component.ts'
 import { SoloError } from '../../../errors.ts'
-import type { IConsesusNodeComponent } from '../types.ts'
+import type { IConsensusNodeComponent } from '../types.ts'
 
-export class ConsensusNodeComponent extends BaseComponent implements IConsesusNodeComponent{
+export class ConsensusNodeComponent extends BaseComponent implements IConsensusNodeComponent{
   private _state: ConsensusNodeStates
 
   constructor (
@@ -41,11 +41,11 @@ export class ConsensusNodeComponent extends BaseComponent implements IConsesusNo
     super.validate()
 
     if (!Object.values(ConsensusNodeStates).includes(this.state)) {
-      throw new SoloError(`Invalid ConsensusNodeStates value ${this.state}`)
+      throw new SoloError(`Invalid ConsensusNodeStates value: ${this.state}`)
     }
   }
 
-  toObject (): IConsesusNodeComponent {
+  toObject (): IConsensusNodeComponent {
     return {
       state: this.state,
       ...super.toObject()

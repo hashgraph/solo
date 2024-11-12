@@ -16,31 +16,23 @@
  */
 import { injectable } from 'inversify'
 import { IsEmail, IsNotEmpty, IsObject, IsString, validateSync } from 'class-validator'
-import { type ListrTask } from 'listr2'
 import fs from 'fs'
 import * as yaml from 'yaml'
-import { type ClusterMapping, type Deployment, type Deployments, type LocalConfigData } from './LocalConfigData.ts'
 import { MissingArgumentError, SoloError } from '../errors.ts'
 import { promptDeploymentClusters, promptDeploymentName, promptUserEmailAddress } from '../../commands/prompts.ts'
 import { flags } from '../../commands/index.ts'
-import { type SoloLogger } from '../logging.ts'
 import { Task } from '../task.ts'
-
-/////////////////////////////////////////////////////////
-
-type DeploymentName = string
-
-export interface Deployment {
-  clusters : Cluster[]
-}
-
-// an alias for the cluster, provided during the configuration
-// of the deployment, must be unique
-export type Deployments = Record<DeploymentName, Deployment>;
-
-export type ClusterMapping = Record<Cluster, Context>;
-
-/////////////////////////////////////////////////////////
+import type { SoloLogger } from '../logging.ts'
+import type { ListrTask, ListrTaskWrapper } from 'listr2'
+import type {
+    ClusterMapping,
+    DeploymentStructure,
+    Deployments,
+    LocalConfigData,
+    DeploymentName
+} from './LocalConfigData.ts'
+import type { EmailAddress } from './remote/types.ts'
+import type { K8 } from '../k8.ts'
 
 @injectable()
 export class LocalConfig implements LocalConfigData {
@@ -56,7 +48,7 @@ export class LocalConfig implements LocalConfigData {
 
     @IsNotEmpty()
     @IsString()
-    currentDeploymentName : string
+    currentDeploymentName : DeploymentName
 
     // contextName refers to the "CURRENT NAME", and clusterName refers to the CLUSTER leveraged in kubeConfig.currentContext
     // { clusterName : string, contextName : string }
@@ -76,7 +68,7 @@ export class LocalConfig implements LocalConfigData {
         this.logger = logger
 
         const allowedKeys = ['userEmailAddress', 'deployments', 'currentDeploymentName', 'clusterMappings']
-        if (this.configFileEXists()) {
+        if (this.configFileExists()) {
             const fileContent = fs.readFileSync(filePath, 'utf8')
             const parsedConfig = yaml.parse(fileContent)
 
@@ -105,9 +97,9 @@ export class LocalConfig implements LocalConfigData {
             for (const deploymentName in this.deployments) {
                 const deployment = this.deployments[deploymentName]
                 const deploymentIsObject = deployment && typeof deployment === 'object'
-                const deploymentHasClusterAliases = deployment.clusterAliases && Array.isArray(deployment.clusterAliases)
+                const deploymentHasClusterAliases = deployment.clusters && Array.isArray(deployment.clusters)
                 let clusterAliasesAreStrings = true
-                for (const clusterAlias of deployment.clusterAliases) {
+                for (const clusterAlias of deployment.clusters) {
                     if (typeof clusterAlias !== 'string') {
                         clusterAliasesAreStrings = false
                     }
@@ -132,39 +124,39 @@ export class LocalConfig implements LocalConfigData {
         catch(e: any) { throw new SoloError(genericMessage) }
     }
 
-    public setUserEmailAddress (emailAddress: EmailAddress): this {
+    setUserEmailAddress (emailAddress: EmailAddress): this {
         this.userEmailAddress = emailAddress
         this.validate()
         return this
     }
 
-    public setDeployments (deployments: Deployments): this {
+    setDeployments (deployments: Deployments): this {
         this.deployments = deployments
         this.validate()
         return this
     }
 
-    public setClusterMappings (clusterMappings: ClusterMapping): this {
+    setClusterMappings (clusterMappings: ClusterMapping): this {
         this.clusterMappings = clusterMappings
         this.validate()
         return this
     }
 
-    public setCurrentDeployment (deploymentName: string): this {
+    setCurrentDeployment (deploymentName: DeploymentName): this {
         this.currentDeploymentName = deploymentName
         this.validate()
         return this
     }
 
-    public getCurrentDeployment (): Deployment {
+    getCurrentDeployment (): DeploymentStructure {
         return this.deployments[this.currentDeploymentName]
     }
 
-    private configFileEXists (): boolean {
+    configFileExists (): boolean {
         return fs.existsSync(this.filePath)
     }
 
-    public async write (): Promise<void> {
+    async write (): Promise<void> {
         const yamlContent = yaml.stringify({
             userEmailAddress: this.userEmailAddress,
             deployments: this.deployments,
@@ -175,8 +167,8 @@ export class LocalConfig implements LocalConfigData {
         this.logger.info(`Wrote local config to ${this.filePath}`)
     }
 
-    public promptLocalConfigTask (k8, argv): ListrTask<any, any, any>[]  {
-        return new Task('Prompt local configuration', async (ctx, task) => {
+    promptLocalConfigTask (k8: K8, argv: any): ListrTask<any, any, any>[]  {
+        return new Task('Prompt local configuration', async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
             const kubeConfig = k8.getKubeConfig()
 
             const clusterMappings = {}
@@ -195,7 +187,7 @@ export class LocalConfig implements LocalConfigData {
 
             const deployments = {}
             deployments[deploymentName] = {
-                clusterAliases: deploymentClusters.split(',')
+                clusters: deploymentClusters.split(',')
             }
 
             this.userEmailAddress = userEmailAddress

@@ -28,7 +28,7 @@ import type {
   RemoteConfigManager
 } from '../core/index.ts'
 import type { CommandFlag,  Opts } from '../types/index.ts'
-import type { LocalConfig } from './../core/config/LocalConfig.ts'
+import type { LocalConfig } from '../core/index.js'
 
 export class BaseCommand extends ShellRunner {
   protected readonly helm: Helm

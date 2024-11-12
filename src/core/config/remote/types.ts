@@ -56,7 +56,7 @@ export interface IRelayComponent extends Component {
   consensusNodeAliases: NodeAliases
 }
 
-export interface IConsesusNodeComponent extends Component {
+export interface IConsensusNodeComponent extends Component {
   state: ConsensusNodeStates
 }
 
@@ -64,4 +64,6 @@ export interface RemoteConfigData {
   metadata: RemoteConfigMetadata
   clusters: Record<Cluster, Namespace>
   components: ComponentsDataWrapper
+  lastExecutedCommand: string
+  commandHistory: string[]
 }

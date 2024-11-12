@@ -20,7 +20,7 @@ import {
   BaseComponent, ConsensusNodeComponent, HaProxyComponent, EnvoyProxyComponent,
   MirrorNodeComponent, MirrorNodeExplorerComponent, RelayComponent,
 } from './components/index.ts'
-import type { Component, IConsesusNodeComponent, IRelayComponent, ServiceName } from './types.ts'
+import type { Component, IConsensusNodeComponent, IRelayComponent, ServiceName } from './types.ts'
 
 export class ComponentsDataWrapper {
   constructor (
@@ -47,7 +47,7 @@ export class ComponentsDataWrapper {
       switch (type) {
         case ComponentTypeEnum.ConsensusNode:
 
-          Object.entries(components).forEach(([serviceName, component]: [ServiceName, IConsesusNodeComponent]) => {
+          Object.entries(components).forEach(([serviceName, component]: [ServiceName, IConsensusNodeComponent]) => {
             const { name, cluster, namespace, state } = component
             consensusNodes[serviceName] = new ConsensusNodeComponent(name, cluster, namespace, state)
           })

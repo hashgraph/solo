@@ -159,7 +159,7 @@ export function e2eNodeKeyRefreshTest (testName: string, mode: string, releaseTa
           expect(2)
           try {
             await expect(
-                nodeCmd.tasks._checkNetworkNodeActiveness(namespace, nodeAlias, { title: '' } as ListrTaskWrapper<any, any, any>,
+                nodeCmd.tasks._checkNetworkNodeActiveness(nodeAlias, { title: '' } as ListrTaskWrapper<any, any, any>,
                     '', 44, undefined, 15)
             ).to.be.rejected
           } catch (e) {

@@ -39,15 +39,15 @@ export abstract class BaseComponent implements Component {
   get namespace () { return this._namespace }
 
   protected validate () {
-    if (typeof this.name !== 'string') {
+    if (!this.name || typeof this.name !== 'string') {
       throw new SoloError(`Invalid name: ${this.name}`)
     }
 
-    if (typeof this.cluster !== 'string') {
+    if (!this.cluster || typeof this.cluster !== 'string') {
       throw new SoloError(`Invalid cluster: ${this.cluster}`)
     }
 
-    if (typeof this.namespace !== 'string') {
+    if (!this.namespace || typeof this.namespace !== 'string') {
       throw new SoloError(`Invalid namespace: ${this.namespace}`)
     }
 

@@ -14,7 +14,7 @@
  * limitations under the License.
  *
  */
-import { LocalConfig } from '../../../src/core/config/LocalConfig.ts'
+import { LocalConfig } from '../../../src/core/index.js'
 import fs from 'fs'
 import { stringify } from 'yaml'
 import { expect } from 'chai'
@@ -28,10 +28,10 @@ describe('LocalConfig', () => {
         userEmailAddress: 'john.doe@example.com',
         deployments: {
             'my-deployment': {
-                clusterAliases: ['cluster-1', 'context-1'],
+                clusters: ['cluster-1', 'context-1'],
             },
             'my-other-deployment': {
-                clusterAliases: ['cluster-2', 'context-2'],
+                clusters: ['cluster-2', 'context-2'],
             }
         },
         currentDeploymentName: 'my-deployment',
@@ -93,10 +93,10 @@ describe('LocalConfig', () => {
     it('should set deployments', async () => {
         const newDeployments = {
             'my-deployment': {
-                clusterAliases: ['cluster-1', 'context-1'],
+                clusters: ['cluster-1', 'context-1'],
             },
             'my-new-deployment': {
-                clusterAliases: ['cluster-3', 'context-3'],
+                clusters: ['cluster-3', 'context-3'],
             }
         }
 
@@ -111,7 +111,7 @@ describe('LocalConfig', () => {
     it('should not set invalid deployments', async () => {
         const invalidDeployments = {
             'valid-deployment': {
-                clusterAliases: ['cluster-3', 'cluster-4'],
+                clusters: ['cluster-3', 'cluster-4'],
             },
             'invalid-deployment': {
                 foo: ['bar'],

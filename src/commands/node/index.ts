@@ -69,7 +69,8 @@ export class NodeCommand extends BaseCommand {
       k8: opts.k8,
       tasks: this.tasks,
       parent: this,
-      leaseManager: opts.leaseManager
+      leaseManager: opts.leaseManager,
+      remoteConfigManager: opts.remoteConfigManager,
     })
   }
 
