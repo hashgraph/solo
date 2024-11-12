@@ -514,10 +514,10 @@ export class NetworkCommand extends BaseCommand {
               this.logger.showUser(chalk.red(message))
               networkDestroySuccess = false
               self.k8.deleteNamespace(ctx.config.namespace)
-            }, constants.NETWORK_DESTROY_WAIT_TIMEOUT)
+            }, constants.NETWORK_DESTROY_WAIT_TIMEOUT * 1000)
 
             await self.destroyTask(ctx, task)
-
+            
             clearTimeout(timeoutId)
           } else {
             await self.destroyTask(ctx, task)

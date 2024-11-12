@@ -114,7 +114,7 @@ tasks:
   solo:network:destroy:
     internal: true
     cmds:
-      - solo network destroy --namespace "${SOLO_NAMESPACE}" --node-aliases-unparsed {{.node_identifiers}} --delete-pvcs --delete-secrets --force --enable-timeout
+      - solo network destroy --namespace "${SOLO_NAMESPACE}" --delete-pvcs --delete-secrets --force --enable-timeout
 
   solo:node:start:
     internal: true
