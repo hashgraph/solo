@@ -54,6 +54,14 @@ export abstract class BaseComponent implements Component {
     }
   }
 
+  static compare (x: BaseComponent, y: BaseComponent) {
+    return (
+      x.type === y.type &&
+      x.cluster === y.cluster &&
+      x.namespace === y.namespace
+    )
+  }
+
   toObject (): Component {
     return {
       name: this.name,

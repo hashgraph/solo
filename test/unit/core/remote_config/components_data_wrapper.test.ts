@@ -27,8 +27,8 @@ import {
   RelayComponent
 } from '../../../../src/core/config/remote/components/index.ts'
 import { ComponentTypeEnum, ConsensusNodeStates } from '../../../../src/core/config/remote/enumerations.ts'
+import { SoloError } from '../../../../src/core/errors.ts'
 import type { NodeAliases } from '../../../../src/types/aliases.ts'
-import { SoloError } from "../../../../src/core/errors.js";
 
 function createComponentsDataWrapper () {
   const serviceName = 'serviceName'
@@ -75,6 +75,13 @@ function createComponentsDataWrapper () {
 describe('ComponentsDataWrapper', () => {
   it ('should be able to create a instance', () => createComponentsDataWrapper())
 
+  it ('should not be able to create a instance if wrong data is passed to constructor', () => {
+    // @ts-ignore
+    expect(() => new ComponentsDataWrapper({ serviceName: {} }))
+      .to.throw(SoloError, 'Invalid component type')
+  })
+
+
   it ('toObject method should return a object that can be parsed with fromObject', () => {
     const { wrapper: { componentsDataWrapper } } = createComponentsDataWrapper()
 
@@ -120,11 +127,11 @@ describe('ComponentsDataWrapper', () => {
     expect(Object.values(componentDataWrapperObject[ComponentTypeEnum.EnvoyProxy])).to.have.lengthOf(2)
   })
 
-  it ('should not be able to edit component with the .edit()', () => {
+  it ('should be able to edit component with the .edit()', () => {
     const {
       wrapper: { componentsDataWrapper },
       components: { relays },
-      values: { name, cluster, namespace },
+      values: { cluster, namespace },
       serviceName,
     } = createComponentsDataWrapper()
     const relayComponent = relays[serviceName]
@@ -139,4 +146,38 @@ describe('ComponentsDataWrapper', () => {
 
     expect(componentsDataWrapper.toObject()[ComponentTypeEnum.Relay][serviceName].name).to.equal(newName)
   })
+
+  it ('should not be able to edit component with the .edit() if it doesn\'t exist ', () => {
+    const {
+      wrapper: { componentsDataWrapper },
+      components: { relays },
+      serviceName
+    } = createComponentsDataWrapper()
+    const notFoundServiceName = 'not_found'
+    const relay = relays[serviceName]
+
+    expect(() => componentsDataWrapper.edit(notFoundServiceName, relay))
+      .to.throw(SoloError, `Component doesn't exist, name: ${notFoundServiceName}`)
+  })
+
+  it ('should be able to remove component with the .remove()', () => {
+    const { wrapper: { componentsDataWrapper }, serviceName } = createComponentsDataWrapper()
+
+    componentsDataWrapper.remove(serviceName, ComponentTypeEnum.Relay)
+
+    expect(componentsDataWrapper.relays).not.to.have.own.property(serviceName)
+  })
+
+  it ('should not be able to remove component with the .remove() if it doesn\'t exist ', () => {
+    const { wrapper: { componentsDataWrapper } } = createComponentsDataWrapper()
+
+    const notFoundServiceName = 'not_found'
+
+    expect(() => componentsDataWrapper.remove(notFoundServiceName, ComponentTypeEnum.Relay))
+      .to.throw(
+        SoloError,
+      `Component ${notFoundServiceName} of type ${ComponentTypeEnum.Relay} not found while attempting to remove`
+    )
+  })
+
 })

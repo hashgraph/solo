@@ -35,24 +35,24 @@ export class ComponentsDataWrapper {
   }
 
   private validate () {
-    function testComponentsObject (components: Record<ServiceName, BaseComponent>) {
+    function testComponentsObject (components: Record<ServiceName, BaseComponent>, expectedInstance: any) {
       Object.entries(components).forEach(([serviceName, component]: [ServiceName, BaseComponent]) => {
         if (!serviceName || typeof serviceName !== 'string') {
           throw new SoloError(`Invalid component service name ${{ [serviceName]: component }}`)
         }
 
-        if (!component || !(component instanceof BaseComponent)) {
-          throw new SoloError(`Invalid component component ${{ [serviceName]: component }}`)
+        if (!(component instanceof expectedInstance)) {
+          throw new SoloError('Invalid component type', null, { component })
         }
       })
     }
 
-    testComponentsObject(this.consensusNodes)
-    testComponentsObject(this.haProxies)
-    testComponentsObject(this.envoyProxies)
-    testComponentsObject(this.mirrorNodes)
-    testComponentsObject(this.mirrorNodeExplorers)
-    testComponentsObject(this.relays)
+    testComponentsObject(this.consensusNodes, ConsensusNodeComponent)
+    testComponentsObject(this.haProxies, HaProxyComponent)
+    testComponentsObject(this.envoyProxies, EnvoyProxyComponent)
+    testComponentsObject(this.mirrorNodes, MirrorNodeComponent)
+    testComponentsObject(this.mirrorNodeExplorers, MirrorNodeExplorerComponent)
+    testComponentsObject(this.relays, RelayComponent)
   }
 
   static fromObject (components: Record<ComponentTypeEnum, Record<ServiceName, Component>>): ComponentsDataWrapper {
@@ -209,8 +209,8 @@ export class ComponentsDataWrapper {
     }
 
     function editComponent (components: Record<ServiceName, BaseComponent>) {
-      if (!self.exists(components, component)) {
-        throw new SoloError(`Component doesn't exist ${component.toObject()}`)
+      if (!components.hasOwnProperty(serviceName)) {
+        throw new SoloError(`Component doesn't exist, name: ${serviceName}`, null, { component })
       }
 
       components[serviceName] = component
@@ -257,6 +257,7 @@ export class ComponentsDataWrapper {
       if (!components.hasOwnProperty(serviceName)) {
         throw new SoloError(`Component ${serviceName} of type ${type} not found while attempting to remove`)
       }
+
       delete components[serviceName]
     }
 
@@ -287,12 +288,7 @@ export class ComponentsDataWrapper {
   }
 
   private exists (components: Record<ServiceName, BaseComponent>, newComponent: BaseComponent) {
-    const list = Object.values(components)
-
-    return list.some((component: BaseComponent) => (
-      component.type === newComponent.type &&
-      component.cluster === newComponent.cluster &&
-      component.namespace === newComponent.namespace
-    ))
+    return Object.values(components)
+      .some(component => BaseComponent.compare(component, newComponent))
   }
 }
