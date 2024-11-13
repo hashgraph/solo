@@ -93,12 +93,15 @@ cat .env
 
 echo "Start background transaction"
 
-# native watch command is not available on macos
-if [[ "$OSTYPE" == "darwin"* ]]; then
-  brew install watch
-fi
 
-cd ../hedera-local-node;  watch npm run generate-accounts 3 > background.log &  cd -
+# generate accounts every 3 seconds as background traffic for two minutes
+# so record stream files can be kept pushing to mirror node
+cd ../hedera-local-node
+for i in {1..40}; do
+  npm run generate-accounts 3 > background.log 2>&1
+  sleep 3
+done &
+cd -
 
 npm list
 echo "Run contract test"
