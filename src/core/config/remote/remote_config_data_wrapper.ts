@@ -137,7 +137,7 @@ export class RemoteConfigDataWrapper {
       metadata: this.metadata.toObject(),
       version: this.version,
       clusters: this.clusters,
-      components: this.components,
+      components: this.components.toObject(),
       commandHistory: this.commandHistory,
       lastExecutedCommand: this.lastExecutedCommand,
     }
