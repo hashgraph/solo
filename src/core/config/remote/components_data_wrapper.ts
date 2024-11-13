@@ -23,14 +23,37 @@ import {
 import type { Component, IConsensusNodeComponent, IRelayComponent, ServiceName } from './types.ts'
 
 export class ComponentsDataWrapper {
-  constructor (
+  private constructor (
     private readonly consensusNodes: Record<ServiceName, ConsensusNodeComponent> = {},
     private readonly haProxies: Record<ServiceName, HaProxyComponent> = {},
     private readonly envoyProxies: Record<ServiceName, EnvoyProxyComponent> = {},
     private readonly mirrorNodes: Record<ServiceName, MirrorNodeComponent> = {},
     private readonly mirrorNodeExplorers: Record<ServiceName, MirrorNodeExplorerComponent> = {},
     private readonly relays: Record<ServiceName, RelayComponent> = {},
-  ) {}
+  ) {
+    this.validate()
+  }
+
+  private validate () {
+    function testComponentsObject (components: Record<ServiceName, BaseComponent>) {
+      Object.entries(components).forEach(([serviceName, component]: [ServiceName, BaseComponent]) => {
+        if (!serviceName || typeof serviceName !== 'string') {
+          throw new SoloError(`Invalid component service name ${{ [serviceName]: component }}`)
+        }
+
+        if (!component || !(component instanceof BaseComponent)) {
+          throw new SoloError(`Invalid component component ${{ [serviceName]: component }}`)
+        }
+      })
+    }
+
+    testComponentsObject(this.consensusNodes)
+    testComponentsObject(this.haProxies)
+    testComponentsObject(this.envoyProxies)
+    testComponentsObject(this.mirrorNodes)
+    testComponentsObject(this.mirrorNodeExplorers)
+    testComponentsObject(this.relays)
+  }
 
   static fromObject (components: Record<ComponentTypeEnum, Record<ServiceName, Component>>): ComponentsDataWrapper {
 
@@ -129,7 +152,7 @@ export class ComponentsDataWrapper {
     }
   }
 
-  add (component: BaseComponent, serviceName: ServiceName) {
+  add (serviceName: ServiceName, component: BaseComponent) {
     const self = this
 
     if (!serviceName || typeof serviceName !== 'string') {
@@ -142,37 +165,39 @@ export class ComponentsDataWrapper {
 
     function addComponent (components: Record<ServiceName, BaseComponent>) {
       if (self.exists(components, component)) {
-        throw new SoloError(`Component exists ${component.toObject()}`)
+        throw new SoloError('Component exists', null, component.toObject())
       }
 
       components[serviceName] = component
     }
 
     switch (component.type) {
-      case ComponentTypeEnum.ConsensusNode: {
-        return addComponent(self.consensusNodes)
-      }
-      case ComponentTypeEnum.HaProxy: {
-        return addComponent(self.haProxies)
-      }
-      case ComponentTypeEnum.EnvoyProxy: {
-        return addComponent(self.envoyProxies)
-      }
-      case ComponentTypeEnum.MirrorNode: {
-        return addComponent(self.mirrorNodes)
-      }
-      case ComponentTypeEnum.MirrorNodeExplorer: {
-        return addComponent(self.mirrorNodeExplorers)
-      }
-      case ComponentTypeEnum.Relay: {
-        return addComponent(self.relays)
-      }
+      case ComponentTypeEnum.ConsensusNode:
+        addComponent(self.consensusNodes)
+        break
+      case ComponentTypeEnum.HaProxy:
+        addComponent(self.haProxies)
+        break
+      case ComponentTypeEnum.EnvoyProxy:
+        addComponent(self.envoyProxies)
+        break
+      case ComponentTypeEnum.MirrorNode:
+        addComponent(self.mirrorNodes)
+        break
+      case ComponentTypeEnum.MirrorNodeExplorer:
+        addComponent(self.mirrorNodeExplorers)
+        break
+      case ComponentTypeEnum.Relay:
+        addComponent(self.relays)
+        break
       default:
         throw new SoloError(`Unknown component type ${component.type}, service name: ${serviceName}`)
     }
+
+    this.validate()
   }
 
-  edit (component: BaseComponent, serviceName: ServiceName) {
+  edit (serviceName: ServiceName, component: BaseComponent) {
     const self = this
 
     if (!serviceName || typeof serviceName !== 'string') {
@@ -192,30 +217,32 @@ export class ComponentsDataWrapper {
     }
 
     switch (component.type) {
-      case ComponentTypeEnum.ConsensusNode: {
-        return editComponent(self.consensusNodes)
-      }
-      case ComponentTypeEnum.HaProxy: {
-        return editComponent(self.haProxies)
-      }
-      case ComponentTypeEnum.EnvoyProxy: {
-        return editComponent(self.envoyProxies)
-      }
-      case ComponentTypeEnum.MirrorNode: {
-        return editComponent(self.mirrorNodes)
-      }
-      case ComponentTypeEnum.MirrorNodeExplorer: {
-        return editComponent(self.mirrorNodeExplorers)
-      }
-      case ComponentTypeEnum.Relay: {
-        return editComponent(self.relays)
-      }
+      case ComponentTypeEnum.ConsensusNode:
+        editComponent(self.consensusNodes)
+        break
+      case ComponentTypeEnum.HaProxy:
+        editComponent(self.haProxies)
+        break
+      case ComponentTypeEnum.EnvoyProxy:
+        editComponent(self.envoyProxies)
+        break
+      case ComponentTypeEnum.MirrorNode:
+        editComponent(self.mirrorNodes)
+        break
+      case ComponentTypeEnum.MirrorNodeExplorer:
+        editComponent(self.mirrorNodeExplorers)
+        break
+      case ComponentTypeEnum.Relay:
+        editComponent(self.relays)
+        break
       default:
         throw new SoloError(`Unknown component type ${component.type}, service name: ${serviceName}`)
     }
+
+    this.validate()
   }
 
-  remove (type: ComponentTypeEnum, serviceName: ServiceName) {
+  remove (serviceName: ServiceName, type: ComponentTypeEnum) {
     const self = this
 
     if (!serviceName || typeof serviceName !== 'string') {
@@ -235,20 +262,28 @@ export class ComponentsDataWrapper {
 
     switch (type) {
       case ComponentTypeEnum.ConsensusNode:
-        return deleteComponent(self.consensusNodes)
+        deleteComponent(self.consensusNodes)
+        break
       case ComponentTypeEnum.HaProxy:
-        return deleteComponent(self.haProxies)
+        deleteComponent(self.haProxies)
+        break
       case ComponentTypeEnum.EnvoyProxy:
-        return deleteComponent(self.envoyProxies)
+        deleteComponent(self.envoyProxies)
+        break
       case ComponentTypeEnum.MirrorNode:
-        return deleteComponent(self.mirrorNodes)
+        deleteComponent(self.mirrorNodes)
+        break
       case ComponentTypeEnum.MirrorNodeExplorer:
-        return deleteComponent(self.mirrorNodeExplorers)
+        deleteComponent(self.mirrorNodeExplorers)
+        break
       case ComponentTypeEnum.Relay:
-        return deleteComponent(self.relays)
+        deleteComponent(self.relays)
+        break
       default:
         throw new SoloError(`Unknown component type ${type}, service name: ${serviceName}`)
     }
+
+    this.validate()
   }
 
   private exists (components: Record<ServiceName, BaseComponent>, newComponent: BaseComponent) {
@@ -261,10 +296,3 @@ export class ComponentsDataWrapper {
     ))
   }
 }
-
-
-
-
-
-
-

@@ -270,7 +270,7 @@ export class RelayCommand extends BaseCommand {
               nodeAliases
             )
 
-            remoteConfig.components.add(component, 'Relay name')
+            remoteConfig.components.add('Relay name', component)
           })
         }
       }
@@ -350,7 +350,7 @@ export class RelayCommand extends BaseCommand {
         title: 'Remove relay from metadata',
         task: async () => {
           await self.remoteConfigManager.modify(async (remoteConfig) => {
-            remoteConfig.components.remove(ComponentTypeEnum.Relay, 'Relay name')
+            remoteConfig.components.remove('Relay name', ComponentTypeEnum.Relay)
           })
         }
       }

@@ -297,7 +297,7 @@ export class MirrorNodeCommand extends BaseCommand {
               namespace,
             )
 
-            remoteConfig.components.add(component, 'Mirror node name')
+            remoteConfig.components.add('Mirror node name', component)
           })
         }
       },
@@ -313,7 +313,7 @@ export class MirrorNodeCommand extends BaseCommand {
               namespace,
             )
 
-            remoteConfig.components.add(component, 'Mirror node explorer name')
+            remoteConfig.components.add('Mirror node explorer name', component)
           })
         }
       },
@@ -444,7 +444,7 @@ export class MirrorNodeCommand extends BaseCommand {
         title: 'Remove mirror node from metadata',
         task: async () => {
           await self.remoteConfigManager.modify(async (remoteConfig) => {
-            remoteConfig.components.remove(ComponentTypeEnum.MirrorNode, 'Mirror node name')
+            remoteConfig.components.remove('Mirror node name', ComponentTypeEnum.MirrorNode)
           })
         }
       },
@@ -452,7 +452,7 @@ export class MirrorNodeCommand extends BaseCommand {
         title: 'Remove mirror explorer node from metadata',
         task: async () => {
           await self.remoteConfigManager.modify(async (remoteConfig) => {
-            remoteConfig.components.remove(ComponentTypeEnum.MirrorNode, 'Mirror node explorer name')
+            remoteConfig.components.remove('Mirror node explorer name', ComponentTypeEnum.MirrorNode)
           })
         }
       },

@@ -1403,9 +1403,9 @@ export class NodeCommandTasks {
     return new Task('Remove node related components from metadata',
       async () => {
         await this.remoteConfigManager.modify(async (remoteConfig) => {
-          remoteConfig.components.remove(ComponentTypeEnum.ConsensusNode, 'Consensus node name')
-          remoteConfig.components.remove(ComponentTypeEnum.EnvoyProxy, 'Envoy proxy name')
-          remoteConfig.components.remove(ComponentTypeEnum.HaProxy, 'HaProxy name')
+          remoteConfig.components.remove('Consensus node name', ComponentTypeEnum.ConsensusNode)
+          remoteConfig.components.remove('Envoy proxy name', ComponentTypeEnum.EnvoyProxy)
+          remoteConfig.components.remove('HaProxy name', ComponentTypeEnum.HaProxy)
         })
       }
     )
@@ -1437,9 +1437,9 @@ export class NodeCommandTasks {
               namespace,
             )
 
-            remoteConfig.components.add(nodeComponent, nodeAlias)
-            remoteConfig.components.add(haProxyComponent, `haproxy-${nodeAlias}`)
-            remoteConfig.components.add(envoyProxyComponent, `envoy-${nodeAlias}`)
+            remoteConfig.components.add(nodeAlias, nodeComponent)
+            remoteConfig.components.add(`haproxy-${nodeAlias}`, haProxyComponent)
+            remoteConfig.components.add(`envoy-${nodeAlias}`, envoyProxyComponent)
           }
         })
       }
@@ -1460,7 +1460,7 @@ export class NodeCommandTasks {
               ConsensusNodeStates.STARTED
             )
 
-            remoteConfig.components.edit(nodeComponent, nodeAlias)
+            remoteConfig.components.edit(nodeAlias, nodeComponent)
           }
         })
       }
@@ -1481,7 +1481,7 @@ export class NodeCommandTasks {
               ConsensusNodeStates.FREEZED
             )
 
-            remoteConfig.components.edit(nodeComponent, nodeAlias)
+            remoteConfig.components.edit(nodeAlias, nodeComponent)
           }
         })
       }
