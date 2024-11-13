@@ -20,10 +20,10 @@ import * as k8s from '@kubernetes/client-node'
 import type { EmailAddress, Namespace, RemoteConfigMetadataStructure, Version } from './types.ts'
 
 export class RemoteConfigMetadata implements RemoteConfigMetadataStructure {
-  public readonly _name: Namespace
-  public readonly _lastUpdatedAt: Date
-  public readonly _lastUpdateBy: EmailAddress
-  public _migration?: Migration
+  private readonly _name: Namespace
+  private readonly _lastUpdatedAt: Date
+  private readonly _lastUpdateBy: EmailAddress
+  private _migration?: Migration
 
   constructor (name: Namespace, lastUpdatedAt: Date, lastUpdateBy: EmailAddress, migration?: Migration) {
     this._name = name

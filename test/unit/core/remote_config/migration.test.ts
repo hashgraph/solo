@@ -32,7 +32,7 @@ function createMigration () {
 }
 describe('Migration', () => {
    it('should be able to create new instance of the class with valid data', () => {
-     expect(createMigration()).not.to.throw
+     expect(() => createMigration()).not.to.throw()
    })
 
   it('toObject method should return a valid object', () => {
