@@ -24,6 +24,7 @@ import * as prompts from './prompts.ts'
 import { getFileContents, getEnvValue } from '../core/helpers.ts'
 import { type PodName } from '../types/aliases.ts'
 import { type Opts } from '../types/index.ts'
+import { ListrLease } from '../core/listr_lease.js'
 
 export class MirrorNodeCommand extends BaseCommand {
   private readonly accountManager: AccountManager
@@ -129,7 +130,7 @@ export class MirrorNodeCommand extends BaseCommand {
 
   async deploy (argv: any) {
     const self = this
-    const lease = self.leaseManager.instantiateLease()
+    const lease = await self.leaseManager.create()
 
     interface MirrorNodeDeployConfigClass {
       chartDirectory: string
@@ -191,7 +192,7 @@ export class MirrorNodeCommand extends BaseCommand {
 
           await self.accountManager.loadNodeClient(ctx.config.namespace)
 
-          return lease.buildAcquireTask(task)
+          return ListrLease.newAcquireLeaseTask(lease, task)
         }
       },
       {
@@ -350,7 +351,7 @@ export class MirrorNodeCommand extends BaseCommand {
 
   async destroy (argv: any) {
     const self = this
-    const lease = self.leaseManager.instantiateLease()
+    const lease = await self.leaseManager.create()
 
     interface Context {
       config: {
@@ -393,7 +394,7 @@ export class MirrorNodeCommand extends BaseCommand {
 
           await self.accountManager.loadNodeClient(ctx.config.namespace)
 
-          return lease.buildAcquireTask(task)
+          return ListrLease.newAcquireLeaseTask(lease, task)
         }
       },
       {

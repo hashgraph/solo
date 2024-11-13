@@ -25,6 +25,7 @@ import * as prompts from './prompts.ts'
 import { getNodeAccountMap } from '../core/helpers.ts'
 import { type NodeAliases } from '../types/aliases.ts'
 import { type Opts } from '../types/index.ts'
+import { ListrLease } from '../core/listr_lease.js'
 
 export class RelayCommand extends BaseCommand {
   private readonly profileManager: ProfileManager
@@ -157,7 +158,7 @@ export class RelayCommand extends BaseCommand {
 
   async deploy (argv: any) {
     const self = this
-    const lease = self.leaseManager.instantiateLease()
+    const lease = await self.leaseManager.create()
 
     interface RelayDeployConfigClass {
       chainId: string
@@ -204,7 +205,7 @@ export class RelayCommand extends BaseCommand {
 
           self.logger.debug('Initialized config', { config: ctx.config })
 
-          return lease.buildAcquireTask(task)
+          return ListrLease.newAcquireLeaseTask(lease, task)
         }
       },
       {
@@ -272,7 +273,7 @@ export class RelayCommand extends BaseCommand {
 
   async destroy (argv: any) {
     const self = this
-    const lease = self.leaseManager.instantiateLease()
+    const lease = await self.leaseManager.create()
 
     interface RelayDestroyConfigClass {
       chartDirectory: string
@@ -308,7 +309,7 @@ export class RelayCommand extends BaseCommand {
 
           self.logger.debug('Initialized config', { config: ctx.config })
 
-          return lease.buildAcquireTask(task)
+          return ListrLease.newAcquireLeaseTask(lease, task)
         }
       },
       {

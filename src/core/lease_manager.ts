@@ -19,160 +19,40 @@ import { flags } from '../commands/index.ts'
 import type { ConfigManager } from './config_manager.ts'
 import type { K8 } from './k8.ts'
 import type { SoloLogger } from './logging.ts'
-import { DEFAULT_LEASE_RENEW_TIMEOUT, LEASE_ACQUIRE_RETRY_TIMEOUT, MAX_LEASE_ACQUIRE_ATTEMPTS, OS_USERNAME } from './constants.ts'
-import type { ListrTaskWrapper } from 'listr2'
-import chalk from 'chalk'
-import { sleep } from './helpers.ts'
-import { LeaseWrapper } from './lease_wrapper.ts'
-import type { V1Lease } from '@kubernetes/client-node'
+import { type LeaseRenewalService } from './lease_renewal.js'
+import { Lease } from './lease.js'
+import { LeaseHolder } from './lease_holder.js'
 
 export class LeaseManager {
   constructor (
     private readonly k8: K8,
     private readonly logger: SoloLogger,
-    private readonly configManager: ConfigManager
+    private readonly configManager: ConfigManager,
+    private readonly renewalService: LeaseRenewalService
   ) {
     if (!k8) throw new MissingArgumentError('an instance of core/K8 is required')
     if (!logger) throw new MissingArgumentError('an instance of core/SoloLogger is required')
     if (!configManager) throw new MissingArgumentError('an instance of core/ConfigManager is required')
+    if (!renewalService) throw new MissingArgumentError('an instance of core/LeaseRenewalService is required')
   }
 
-  instantiateLease () {
-    return new LeaseWrapper(this)
+  public async create (): Promise<Lease> {
+    return new Lease(this.k8, this.renewalService, LeaseHolder.default(), await this.currentNamespace(), await this.currentNamespace())
   }
 
-  /**
-   * Acquires lease if is not already taken, automatically handles renews.
-   *
-   * @returns a callback function that releases the lease
-   */
-  async acquireLease (
-      task: ListrTaskWrapper<any, any, any>,
-      title: string,
-      attempt: number | null = null
-  ): Promise<{ releaseLease: () => Promise<void> }> {
-    const namespace = await this.getNamespace()
-
-    //? In case namespace isn't yet created return an empty callback function
-    if (!namespace) {
-      task.title = `${title} - ${chalk.gray('namespace not created, skipping lease acquire')}`
-
-      return { releaseLease: async () => {} }
-    }
-
-    const username = OS_USERNAME
-    const leaseName = `${username}-lease`
-
-    await this.acquireLeaseOrRetry(username, leaseName, namespace, task, title, attempt)
-
-    const renewLeaseCallback = async () => {
-      try {
-        //? Get the latest most up-to-date lease to renew it
-        const lease = await this.k8.readNamespacedLease(leaseName, namespace)
-
-        await this.k8.renewNamespaceLease(leaseName, namespace, lease)
-      } catch (error) {
-        throw new SoloError(`Failed to renew lease: ${error.message}`, error)
-      }
-    }
-
-    //? Renew lease with the callback
-    const renewalTimeout = +process.env.LEASE_RENEW_TIMEOUT || DEFAULT_LEASE_RENEW_TIMEOUT
-    const intervalId = setInterval(renewLeaseCallback, renewalTimeout)
-
-    const releaseLeaseCallback = async () => {
-      //? Stop renewing the lease once release callback is called
-      clearInterval(intervalId)
-
-      try {
-        await this.k8.deleteNamespacedLease(leaseName, namespace)
-
-        this.logger.info(`Lease released by ${username}`)
-      } catch (e: Error | any) {
-        this.logger.error(`Failed to release lease: ${e.message}`)
-      }
-    }
-
-    return { releaseLease: releaseLeaseCallback }
+  public get RenewalService (): LeaseRenewalService {
+    return this.renewalService
   }
 
-  private async tryAcquireLease (username: string,
-                                 leaseName: string,
-                                  namespace: string,
-                                 task: ListrTaskWrapper<any, any, any>,
-                                 title: string): Promise<V1Lease> {
-    try {
-       return await this.k8.readNamespacedLease(leaseName, namespace)
-    } catch (error) {
-      if (error.meta.statusCode !== 404) {
-        task.title = `${title} - ${chalk.red(`failed to acquire lease, unexpected server response ${error.meta.statusCode}!`)}`
-      }
-      return Promise.resolve(null)
-    }
+  public get Logger (): SoloLogger {
+    return this.logger
   }
 
-  private async acquireLeaseOrRetry (
-    username: string,
-    leaseName: string,
-    namespace: string,
-    task: ListrTaskWrapper<any, any, any>,
-    title: string,
-    attempt = 1,
-    maxAttempts = MAX_LEASE_ACQUIRE_ATTEMPTS,
-  ): Promise<void> {
-    if (!attempt) attempt = 1
-
-    let lease = await this.tryAcquireLease(username, leaseName, namespace, task, title)
-
-    //? In case the lease is already acquired retry after cooldown
-    while (!!lease && !this.isLeaseExpired(lease)) {
-      attempt++
-
-      if (attempt === maxAttempts) {
-        task.title = `${title} - ${chalk.red('failed to acquire lease, max attempts reached!')}` +
-          `, attempt: ${chalk.cyan(attempt.toString())}/${chalk.cyan(maxAttempts.toString())}`
-
-        throw new SoloError(`Failed to acquire lease, max attempt reached ${attempt}`)
-      }
-
-      this.logger.info(`Lease is already taken retrying in ${LEASE_ACQUIRE_RETRY_TIMEOUT}`)
-
-      task.title = `${title} - ${chalk.gray(`lease exists, attempting again in ${LEASE_ACQUIRE_RETRY_TIMEOUT} seconds`)}` +
-        `, attempt: ${chalk.cyan(attempt.toString())}/${chalk.cyan(maxAttempts.toString())}`
-
-      await sleep(LEASE_ACQUIRE_RETRY_TIMEOUT)
-      lease = await this.tryAcquireLease(username, leaseName, namespace, task, title)
-    }
-
-    if (lease) {
-      await this.k8.deleteNamespacedLease(leaseName, namespace)
-    }
-
-    await this.k8.createNamespacedLease(namespace, leaseName, username)
-
-    task.title = `${title} - ${chalk.green('lease acquired successfully')}` +
-      `, attempt: ${chalk.cyan(attempt.toString())}/${chalk.cyan(maxAttempts.toString())}`
-  }
-
-  private async getNamespace () {
+  private async currentNamespace (): Promise<string> {
     const namespace = this.configManager.getFlag<string>(flags.namespace)
     if (!namespace) return null
 
     if (!await this.k8.hasNamespace(namespace)) return null
     return namespace
-  }
-
-  private isLeaseExpired (lease: V1Lease) : boolean {
-    const now = Date.now()
-    const duration = lease.spec?.leaseDurationSeconds ? lease.spec?.leaseDurationSeconds : 20
-    let acquired = lease.spec?.acquireTime
-
-    if (lease.spec.renewTime) {
-      acquired = lease.spec?.renewTime
-    }
-
-    const deltaSec = (now - new Date(acquired).valueOf()) / 1000
-
-    return deltaSec > duration
   }
 }

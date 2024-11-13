@@ -29,6 +29,7 @@ import { K8 } from './core/k8.ts'
 import { ListrLogger } from 'listr2'
 import { CustomProcessOutput } from './core/process_output.ts'
 import { type Opts } from './types/index.ts'
+import { IntervalLeaseRenewalService, type LeaseRenewalService } from './core/lease_renewal.js'
 
 export function main (argv: any) {
   const logger = logging.NewLogger('debug')
@@ -57,6 +58,7 @@ export function main (argv: any) {
     const platformInstaller = new PlatformInstaller(logger, k8, configManager)
     const keyManager = new KeyManager(logger)
     const profileManager = new ProfileManager(logger, configManager)
+    const leaseRenewalService: LeaseRenewalService = new IntervalLeaseRenewalService(k8)
     const leaseManager = new LeaseManager(k8, logger, configManager)
     const certificateManager = new CertificateManager(k8, logger, configManager)
 

@@ -32,7 +32,7 @@ import { type CommandFlag } from '../types/index.ts'
 import { type V1Pod } from '@kubernetes/client-node'
 import { type SoloLogger } from './logging.ts'
 import { type NodeCommandHandlers } from '../commands/node/handlers.ts'
-import { type LeaseWrapper } from './lease_wrapper.ts'
+import { type Lease } from './lease.js'
 
 export function sleep (ms: number) {
   return new Promise<void>((resolve) => {
@@ -465,7 +465,7 @@ export function prepareEndpoints (endpointType: string, endpoints: string[], def
   return ret
 }
 
-export function commandActionBuilder (actionTasks: any, options: any, errorString: string, lease: LeaseWrapper | null) {
+export function commandActionBuilder (actionTasks: any, options: any, errorString: string, lease: Lease | null) {
   return async function (argv: any, commandDef: NodeCommandHandlers) {
     const tasks = new Listr([
       ...actionTasks

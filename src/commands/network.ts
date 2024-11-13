@@ -29,6 +29,7 @@ import fs from 'fs'
 import type { CertificateManager, KeyManager, PlatformInstaller, ProfileManager } from '../core/index.ts'
 import type { NodeAlias, NodeAliases } from '../types/aliases.ts'
 import type { Opts } from '../types/index.ts'
+import { ListrLease } from '../core/listr_lease.js'
 
 export interface NetworkDeployConfigClass {
   applicationEnv: string
@@ -230,7 +231,7 @@ export class NetworkCommand extends BaseCommand {
   /** Run helm install and deploy network components */
   async deploy (argv: any) {
     const self = this
-    const lease = self.leaseManager.instantiateLease()
+    const lease = await self.leaseManager.create()
 
     interface Context {
       config: NetworkDeployConfigClass
@@ -241,7 +242,7 @@ export class NetworkCommand extends BaseCommand {
         title: 'Initialize',
         task: async (ctx, task) => {
           ctx.config = await self.prepareConfig(task, argv)
-          return lease.buildAcquireTask(task)
+          return ListrLease.newAcquireLeaseTask(lease, task)
         }
       },
       {
@@ -429,7 +430,7 @@ export class NetworkCommand extends BaseCommand {
 
   async destroy (argv: any) {
     const self = this
-    const lease = self.leaseManager.instantiateLease()
+    const lease = await self.leaseManager.create()
 
     interface Context {
       config: {
@@ -468,7 +469,7 @@ export class NetworkCommand extends BaseCommand {
             namespace: self.configManager.getFlag<string>(flags.namespace) as string
           }
 
-          return lease.buildAcquireTask(task)
+          return ListrLease.newAcquireLeaseTask(lease, task)
         }
       },
       {
@@ -522,7 +523,7 @@ export class NetworkCommand extends BaseCommand {
   /** Run helm upgrade to refresh network components with new settings */
   async refresh (argv: any) {
     const self = this
-    const lease = self.leaseManager.instantiateLease()
+    const lease = await self.leaseManager.create()
 
     interface Context {
       config: NetworkDeployConfigClass
@@ -533,7 +534,7 @@ export class NetworkCommand extends BaseCommand {
         title: 'Initialize',
         task: async (ctx, task) => {
           ctx.config = await self.prepareConfig(task, argv)
-          return lease.buildAcquireTask(task)
+          return ListrLease.newAcquireLeaseTask(lease, task)
         }
       },
       {

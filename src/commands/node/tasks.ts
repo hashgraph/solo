@@ -71,7 +71,8 @@ import * as x509 from '@peculiar/x509'
 import { type NodeCommand } from './index.ts'
 import type { NodeDeleteConfigClass, NodeRefreshConfigClass, NodeUpdateConfigClass } from './configs.ts'
 import type { NodeAddConfigClass } from './configs.ts'
-import type { LeaseWrapper } from '../../core/lease_wrapper.ts'
+import { type Lease } from '../../core/lease.js'
+import { ListrLease } from '../../core/listr_lease.js'
 
 export class NodeCommandTasks {
   private readonly accountManager: AccountManager
@@ -673,9 +674,9 @@ export class NodeCommandTasks {
 
       if (localBuildPath !== '') {
         return this._uploadPlatformSoftware(ctx.config[aliasesField], podNames, task, localBuildPath)
-      } 
+      }
         return this._fetchPlatformSoftware(ctx.config[aliasesField], podNames, releaseTag, task, this.platformInstaller)
-      
+
     })
   }
 
@@ -1328,7 +1329,7 @@ export class NodeCommandTasks {
     })
   }
 
-  initialize (argv: any, configInit: Function, lease: LeaseWrapper | null) {
+  initialize (argv: any, configInit: Function, lease: Lease | null) {
     const { requiredFlags, requiredFlagsWithDisabledPrompt, optionalFlags } = argv
     const allRequiredFlags = [
       ...requiredFlags,
@@ -1373,7 +1374,9 @@ export class NodeCommandTasks {
 
       this.logger.debug('Initialized config', { config })
 
-      if (lease) return lease.buildAcquireTask(task)
+      if (lease) {
+        return ListrLease.newAcquireLeaseTask(lease, task)
+      }
     })
   }
 }
