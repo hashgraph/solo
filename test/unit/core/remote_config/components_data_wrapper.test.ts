@@ -17,95 +17,166 @@
 import { expect } from 'chai'
 import { describe, it } from 'mocha'
 
-import { RemoteConfigMetadata } from '../../../../src/core/config/remote/metadata.ts'
-import { Migration } from '../../../../src/core/config/remote/migration.ts'
-import type { EmailAddress, Namespace, Version } from '../../../../src/core/config/remote/types.ts'
-import { SoloError } from "../../../../src/core/errors.js";
+import { ComponentsDataWrapper } from '../../../../src/core/config/remote/components_data_wrapper.ts'
+import {
+  ConsensusNodeComponent,
+  EnvoyProxyComponent,
+  HaProxyComponent,
+  MirrorNodeComponent,
+  MirrorNodeExplorerComponent,
+  RelayComponent
+} from '../../../../src/core/config/remote/components/index.ts'
+import { ComponentTypeEnum, ConsensusNodeStates } from '../../../../src/core/config/remote/enumerations.ts'
+import { SoloError } from '../../../../src/core/errors.ts'
+import type { NodeAliases } from '../../../../src/types/aliases.ts'
 
-function createRemoteConfigMetadata () {
-  const name: Namespace = 'namespace'
-  const lastUpdatedAt: Date = new Date()
-  const lastUpdateBy: EmailAddress = 'test@test.test'
-  const migration: Migration = new Migration(lastUpdatedAt, lastUpdateBy, '0.0.0')
+function createComponentsDataWrapper () {
+  const serviceName = 'serviceName'
 
-  const metadata = new RemoteConfigMetadata(name, lastUpdatedAt, lastUpdateBy, migration)
+  const name = 'name'
+  const cluster  = 'cluster'
+  const namespace = 'namespace'
+  const state = ConsensusNodeStates.STARTED
+  const consensusNodeAliases = ['node1', 'node2'] as NodeAliases
 
+  const consensusNodes = { [serviceName]: new ConsensusNodeComponent(name, cluster, namespace, state) }
+  const haProxies = { [serviceName]: new HaProxyComponent(name, cluster, namespace) }
+  const envoyProxies = { [serviceName]: new EnvoyProxyComponent(name, cluster, namespace) }
+  const mirrorNodes = { [serviceName]: new MirrorNodeComponent(name, cluster, namespace) }
+  const mirrorNodeExplorers = { [serviceName]: new MirrorNodeExplorerComponent(name, cluster, namespace) }
+  const relays = { [serviceName]: new RelayComponent(name, cluster, namespace, consensusNodeAliases) }
+
+  // @ts-ignore
+  const componentsDataWrapper = new ComponentsDataWrapper(
+    consensusNodes,
+    haProxies,
+    envoyProxies,
+    mirrorNodes,
+    mirrorNodeExplorers,
+    relays,
+  )
+  /*
+  ? The class after calling the toObject() method
+  * CONSENSUS_NODE: { serviceName: { state: 'STARTED', name: 'name', cluster: 'cluster', namespace: 'namespace'} },
+  * HAPROXY: { serviceName: { name: 'name', cluster: 'cluster', namespace: 'namespace' } },
+  * ENVOY_PROXY: { serviceName: { name: 'name', cluster: 'cluster', namespace: 'namespace' } },
+  * MIRROR_NODE: { serviceName: { name: 'name', cluster: 'cluster', namespace: 'namespace' } },
+  * MIRROR_NODE_EXPLORER: { serviceName: { name: 'name', cluster: 'cluster', namespace: 'namespace' } },
+  * RELAY: { serviceName: { name: 'name', cluster: 'cluster', namespace: 'namespace' consensusNodeAliases: ['node1', 'node2'] } }
+  */
   return {
-    metadata,
-    values: { name, lastUpdatedAt, lastUpdateBy, migration }
+    values: { name, cluster, namespace, state, consensusNodeAliases },
+    components: { consensusNodes, haProxies, envoyProxies, mirrorNodes, mirrorNodeExplorers, relays },
+    wrapper: { componentsDataWrapper },
+    serviceName,
   }
 }
 
-describe('RemoteConfigMetadata', () => {
-  it('should be able to create instance', () => {
-    expect(() => createRemoteConfigMetadata()).not.to.throw()
+describe('ComponentsDataWrapper', () => {
+  it ('should be able to create a instance', () => createComponentsDataWrapper())
+
+  it ('should not be able to create a instance if wrong data is passed to constructor', () => {
+    // @ts-ignore
+    expect(() => new ComponentsDataWrapper({ serviceName: {} }))
+      .to.throw(SoloError, 'Invalid component type')
   })
 
-  it('should be able to create new migration with makeMigration() method', () => {
-    const { metadata } = createRemoteConfigMetadata()
-    const email: EmailAddress = 'newMigration@test.test'
-    const version: Version = '2.0.0'
+  it ('toObject method should return a object that can be parsed with fromObject', () => {
+    const { wrapper: { componentsDataWrapper } } = createComponentsDataWrapper()
 
-    metadata.makeMigration(email, version)
-    expect(metadata.migration).to.be.ok
-    expect(metadata.migration?.migratedBy).to.equal(email)
-    expect(metadata.migration?.fromVersion).to.equal(version)
-  })
+    const newComponentsDataWrapper = ComponentsDataWrapper.fromObject(componentsDataWrapper.toObject())
+    const componentsDataWrapperObject = componentsDataWrapper.toObject()
 
-  it('should be able to create instance with fromObject() method', () => {
-    const { values } = createRemoteConfigMetadata()
+    expect(componentsDataWrapperObject).to.deep.equal(newComponentsDataWrapper.toObject())
 
-    expect(() => RemoteConfigMetadata.fromObject(values)).not.to.throw()
-  })
-
-  it ('should be able to create feed otput from toObject() and then convert  with fromObject()', () => {
-    const { metadata } = createRemoteConfigMetadata()
-
-    const metadataObject = metadata.toObject()
-
-    expect(() => RemoteConfigMetadata.fromObject(metadataObject)).not.to.throw
-  })
-
-  describe('Values', () => {
-    const name = 'name'
-    const lastUpdatedAt = new Date()
-    const lastUpdateBy = 'test@test.test' as EmailAddress
-
-    it('should not be able to create new instance of the class with invalid migratedAt', () => {
-      // @ts-ignore
-      expect( () => new RemoteConfigMetadata(null, lastUpdatedAt, lastUpdateBy))
-        .to.throw(SoloError, `Invalid name: ${null}`)
-
-      // @ts-ignore
-      expect( () => new RemoteConfigMetadata(1,lastUpdatedAt, lastUpdateBy))
-        .to.throw(SoloError, `Invalid name: ${1}`)
+    Object.values(ComponentTypeEnum).forEach((type) => {
+      expect(componentsDataWrapperObject).to.have.ownProperty(type)
     })
 
-    it('should not be able to create new instance of the class with invalid lastUpdatedAt', () => {
-      // @ts-ignore
-      expect( () => new RemoteConfigMetadata(name, null, lastUpdateBy))
-        .to.throw(SoloError, `Invalid lastUpdatedAt: ${null}`)
-
-      // @ts-ignore
-      expect( () => new RemoteConfigMetadata(name,1, lastUpdateBy))
-        .to.throw(SoloError, `Invalid lastUpdatedAt: ${1}`)
-    })
-
-    it('should not be able to create new instance of the class with invalid lastUpdateBy', () => {
-      // @ts-ignore
-      expect( () => new RemoteConfigMetadata(name, lastUpdatedAt, null))
-        .to.throw(SoloError, `Invalid lastUpdateBy: ${null}`)
-
-      // @ts-ignore
-      expect( () => new RemoteConfigMetadata(name,lastUpdatedAt, 1))
-        .to.throw(SoloError, `Invalid lastUpdateBy: ${1}`)
-    })
-
-    it('should not be able to create new instance of the class with invalid lastUpdateBy', () => {
-      // @ts-ignore
-      expect( () => new RemoteConfigMetadata(name, lastUpdatedAt, lastUpdateBy, {}))
-        .to.throw(SoloError, `Invalid migration: ${{}}`)
-    })
-
+    expect(componentsDataWrapper)
   })
+
+  it ('should not be able to add new component with the .add() method if it already exist', () => {
+    const { wrapper: { componentsDataWrapper } } = createComponentsDataWrapper()
+
+    const newServiceName = 'newServiceName'
+    const { name, cluster, namespace } = { name: 'envoy', cluster: 'cluster', namespace: 'namespace' }
+    const newComponent = new EnvoyProxyComponent(name, cluster, namespace)
+
+    expect(() => componentsDataWrapper.add(newServiceName, newComponent))
+      .to.throw(SoloError, 'Component exists')
+  })
+
+  it ('should be able to add new component with the .add() method', () => {
+    const { wrapper: { componentsDataWrapper } } = createComponentsDataWrapper()
+
+    const newServiceName = 'newServiceName'
+    const { name, cluster, namespace } = { name: 'envoy', cluster: 'cluster', namespace: 'newNamespace' }
+    const newComponent = new EnvoyProxyComponent(name, cluster, namespace)
+
+    componentsDataWrapper.add(newServiceName, newComponent)
+
+    const componentDataWrapperObject = componentsDataWrapper.toObject()
+
+    expect(componentDataWrapperObject[ComponentTypeEnum.EnvoyProxy]).has.own.property(newServiceName)
+
+    expect(componentDataWrapperObject[ComponentTypeEnum.EnvoyProxy][newServiceName])
+      .to.deep.equal({ name, cluster, namespace })
+
+    expect(Object.values(componentDataWrapperObject[ComponentTypeEnum.EnvoyProxy])).to.have.lengthOf(2)
+  })
+
+  it ('should be able to edit component with the .edit()', () => {
+    const {
+      wrapper: { componentsDataWrapper },
+      components: { relays },
+      values: { cluster, namespace },
+      serviceName,
+    } = createComponentsDataWrapper()
+    const relayComponent = relays[serviceName]
+
+    componentsDataWrapper.edit(serviceName, relayComponent)
+
+    const newName = 'newName'
+
+    const newReplayComponent = new RelayComponent(newName, cluster, namespace)
+
+    componentsDataWrapper.edit(serviceName, newReplayComponent)
+
+    expect(componentsDataWrapper.toObject()[ComponentTypeEnum.Relay][serviceName].name).to.equal(newName)
+  })
+
+  it ('should not be able to edit component with the .edit() if it doesn\'t exist ', () => {
+    const {
+      wrapper: { componentsDataWrapper },
+      components: { relays },
+      serviceName
+    } = createComponentsDataWrapper()
+    const notFoundServiceName = 'not_found'
+    const relay = relays[serviceName]
+
+    expect(() => componentsDataWrapper.edit(notFoundServiceName, relay))
+      .to.throw(SoloError, `Component doesn't exist, name: ${notFoundServiceName}`)
+  })
+
+  it ('should be able to remove component with the .remove()', () => {
+    const { wrapper: { componentsDataWrapper }, serviceName } = createComponentsDataWrapper()
+
+    componentsDataWrapper.remove(serviceName, ComponentTypeEnum.Relay)
+
+    expect(componentsDataWrapper.relays).not.to.have.own.property(serviceName)
+  })
+
+  it ('should not be able to remove component with the .remove() if it doesn\'t exist ', () => {
+    const { wrapper: { componentsDataWrapper } } = createComponentsDataWrapper()
+
+    const notFoundServiceName = 'not_found'
+
+    expect(() => componentsDataWrapper.remove(notFoundServiceName, ComponentTypeEnum.Relay))
+      .to.throw(
+      SoloError,
+      `Component ${notFoundServiceName} of type ${ComponentTypeEnum.Relay} not found while attempting to remove`
+    )
+  })
+
 })

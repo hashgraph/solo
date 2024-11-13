@@ -27,8 +27,8 @@ import {
   MirrorNodeExplorerComponent,
 } from '../../../../src/core/config/remote/components/index.ts'
 import { SoloError } from '../../../../src/core/errors.ts'
-import { ConsensusNodeStates } from "../../../../src/core/config/remote/enumerations.js";
-import { NodeAliases } from "../../../../src/types/aliases.js";
+import { ConsensusNodeStates } from '../../../../src/core/config/remote/enumerations.ts'
+import type { NodeAliases } from '../../../../src/types/aliases.ts'
 
 function testBaseComponentData (classComponent: any) {
   it('should fail if name is not provided', () => {
@@ -77,15 +77,18 @@ function testBaseComponentData (classComponent: any) {
   })
 
   it('calling toObject() should return a valid data', () => {
-    const { name, cluster, namespace } = { name: 'name', cluster: 'cluster', namespace: 'namespace'}
+    const { name, cluster, namespace } = { name: 'name', cluster: 'cluster', namespace: 'namespace' }
     const component = new classComponent(name, cluster, namespace)
     expect(component.toObject()).to.deep.equal({ name, cluster, namespace })
   })
 }
 
 describe('HaProxyComponent', () => testBaseComponentData(HaProxyComponent))
+
 describe('EnvoyProxyComponent', () => testBaseComponentData(EnvoyProxyComponent))
+
 describe('MirrorNodeComponent', () => testBaseComponentData(MirrorNodeComponent))
+
 describe('MirrorNodeExplorerComponent', () => testBaseComponentData(MirrorNodeExplorerComponent))
 
 describe ('RelayComponent', () => {
@@ -158,7 +161,6 @@ describe ('RelayComponent', () => {
     expect(component.toObject()).to.deep.equal({ name, cluster, namespace, consensusNodeAliases })
   })
 })
-
 
 describe ('ConsensusNodeComponent', () => {
   it('should fail if name is not provided', () => {
