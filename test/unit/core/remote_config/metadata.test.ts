@@ -21,7 +21,7 @@ import { SoloError } from '../../../../src/core/errors.ts'
 import { RemoteConfigMetadata } from '../../../../src/core/config/remote/metadata.ts'
 import type { EmailAddress, Namespace } from '../../../../src/core/config/remote/types.ts'
 
-function createMetadata () {
+export function createMetadata () {
   const name: Namespace = 'namespace'
   const lastUpdatedAt: Date = new Date()
   const lastUpdateBy: EmailAddress = 'test@test.test'

@@ -43,12 +43,19 @@ export class RemoteConfigMetadata implements RemoteConfigMetadataStructure {
   }
 
   static fromObject (metadata: RemoteConfigMetadataStructure) {
+    let migration: Migration | undefined = undefined
+
+    if (metadata.migration) {
+      const { migration: { migratedAt, migratedBy, fromVersion } } = metadata
+      migration = new Migration(new Date(migratedAt), migratedBy, fromVersion)
+    }
+
     return new RemoteConfigMetadata(
       metadata.name,
       new Date(metadata.lastUpdatedAt),
       metadata.lastUpdateBy,
-      metadata.migration
-    )
+        migration
+      )
   }
 
   validate () {

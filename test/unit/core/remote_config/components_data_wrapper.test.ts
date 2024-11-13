@@ -30,7 +30,7 @@ import { ComponentTypeEnum, ConsensusNodeStates } from '../../../../src/core/con
 import { SoloError } from '../../../../src/core/errors.ts'
 import type { NodeAliases } from '../../../../src/types/aliases.ts'
 
-function createComponentsDataWrapper () {
+export function createComponentsDataWrapper () {
   const serviceName = 'serviceName'
 
   const name = 'name'

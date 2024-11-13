@@ -54,10 +54,6 @@ export class RemoteConfigDataWrapper {
     })
   }
 
-  makeMigration (email: EmailAddress, fromVersion: Version) {
-    this.metadata.makeMigration(email, fromVersion)
-  }
-
   private get version () { return this._version }
 
   get metadata () { return this._metadata }
@@ -107,7 +103,7 @@ export class RemoteConfigDataWrapper {
   }
 
   private validate () {
-    if (!semver.valid(this._version)) {
+    if (!this._version || typeof this._version !== 'string') {
       throw new SoloError(`Invalid remote config version: ${this._version}`)
     }
 
@@ -133,36 +129,6 @@ export class RemoteConfigDataWrapper {
       if (typeof namespace !== 'string') {
         throw new SoloError(`Invalid remote config clusters namespace: ${clusterDataString}`)
       }
-    })
-
-    Object.entries(this.components).forEach(([type, data]: [ComponentTypeEnum, Record<string, Component>]) => {
-      const componentDataString = `component: { type: ${type}, data: ${data} }`
-
-      if (!Object.values(ComponentTypeEnum).includes(type)) {
-        throw new Error(`Invalid component type: ${componentDataString}`)
-      }
-
-      if (typeof data !== 'object') {
-        throw new Error(`Invalid component data: ${componentDataString}`)
-      }
-
-      Object.entries(data).forEach(([name, component] : [string, Component]) => {
-        if (typeof name !== 'string') {
-          throw new Error(`Invalid component data name: ${name}, component: ${component}`)
-        }
-
-        if (typeof component.name !== 'string') {
-          throw new Error(`Invalid component name: ${name}, component: ${component}`)
-        }
-
-        if (typeof component.cluster !== 'string') {
-          throw new Error(`Invalid component cluster: ${name}, component: ${component}`)
-        }
-
-        if (typeof component.namespace !== 'string') {
-          throw new Error(`Invalid component namespace: ${name}, component: ${component}`)
-        }
-      })
     })
   }
 
