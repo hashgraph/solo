@@ -27,7 +27,7 @@ import type { SoloLogger } from '../../logging.ts'
 import type { ListrTaskWrapper } from 'listr2'
 import type { ConfigManager } from '../../config_manager.ts'
 import type { LocalConfig } from '../LocalConfig.ts'
-import type { Deployment } from '../LocalConfigData.ts'
+import type { DeploymentStructure } from '../LocalConfigData.ts'
 
 export class RemoteConfigManager {
   private remoteConfig?: RemoteConfigDataWrapper
@@ -67,7 +67,7 @@ export class RemoteConfigManager {
 
     const clusters: Record<Cluster, Namespace> = {}
 
-    Object.entries(this.localConfig.deployments).forEach(([ns, deployment]: [Namespace, Deployment]) => {
+    Object.entries(this.localConfig.deployments).forEach(([ns, deployment]: [Namespace, DeploymentStructure]) => {
       deployment.clusters.forEach(cluster => clusters[cluster] = ns)
     })
 

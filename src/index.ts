@@ -61,7 +61,7 @@ export function main (argv: any) {
     const leaseManager = new LeaseManager(k8, logger, configManager)
     const certificateManager = new CertificateManager(k8, logger, configManager)
     const localConfig = new LocalConfig(path.join(constants.SOLO_CACHE_DIR, constants.DEFAULT_LOCAL_CONFIG_FILE), logger)
-    const remoteConfigManager = new RemoteConfigManager(k8, logger, configManager, localConfig)
+    const remoteConfigManager = new RemoteConfigManager(k8, logger, localConfig, configManager)
 
     // set cluster and namespace in the global configManager from kubernetes context
     // so that we don't need to prompt the user

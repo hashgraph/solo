@@ -154,7 +154,7 @@ export function bootstrapTestVariables (
   const profileManager = new ProfileManager(testLogger, configManager)
   const leaseManager = new LeaseManager(k8, testLogger, configManager)
   const localConfig = new LocalConfig(path.join(BASE_TEST_DIR, 'local-config.yaml'), testLogger)
-  const remoteConfigManager = new RemoteConfigManager(k8, testLogger, configManager, localConfig)
+  const remoteConfigManager = new RemoteConfigManager(k8, testLogger, localConfig, configManager)
   const certificateManager = new CertificateManager(k8, testLogger, configManager)
 
   const opts: TestOpts = {

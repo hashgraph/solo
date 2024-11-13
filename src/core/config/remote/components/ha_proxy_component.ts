@@ -20,5 +20,6 @@ import { BaseComponent } from './base_component.ts'
 export class HaProxyComponent extends BaseComponent {
   constructor (name: string, cluster: string, namespace: string) {
     super(ComponentTypeEnum.HaProxy, name, cluster, namespace)
+    this.validate()
   }
 }

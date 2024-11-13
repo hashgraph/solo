@@ -23,12 +23,12 @@ import {
   Helm,
   logging, PackageDownloader, Zippy,
   constants,
-  K8, LocalConfig
+  K8, LocalConfig, RemoteConfigManager
 } from '../../../src/core/index.ts'
 import { BaseCommand } from '../../../src/commands/base.ts'
 import * as flags from '../../../src/commands/flags.ts'
 import sinon from 'sinon'
-import path from "path";
+import path from 'path'
 import { BASE_TEST_DIR } from '../../test_util.ts'
 
 const testLogger = logging.NewLogger('debug', true)
@@ -45,6 +45,7 @@ describe('BaseCommand', () => {
   const depManagerMap = new Map().set(constants.HELM, helmDepManager)
   const depManager = new DependencyManager(testLogger, depManagerMap)
   const localConfig = new LocalConfig(path.join(BASE_TEST_DIR, 'local-config.yaml'), testLogger)
+  const remoteConfigManager = new RemoteConfigManager({} as any, testLogger, localConfig, configManager)
 
   let sandbox = sinon.createSandbox()
 
@@ -64,7 +65,8 @@ describe('BaseCommand', () => {
         chartManager,
         configManager,
         depManager,
-        localConfig
+        localConfig,
+        remoteConfigManager
       })
     })
 

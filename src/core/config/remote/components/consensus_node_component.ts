@@ -28,6 +28,8 @@ export class ConsensusNodeComponent extends BaseComponent implements IConsensusN
   ) {
     super(ComponentTypeEnum.ConsensusNode, name, cluster, namespace)
     this._state = state
+
+    this.validate()
   }
 
   get state () { return this._state }

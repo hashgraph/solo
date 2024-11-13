@@ -20,5 +20,6 @@ import { BaseComponent } from './base_component.ts'
 export class MirrorNodeExplorerComponent extends BaseComponent {
   constructor (name: string, cluster: string, namespace: string) {
     super(ComponentTypeEnum.MirrorNodeExplorer, name, cluster, namespace)
+    this.validate()
   }
 }

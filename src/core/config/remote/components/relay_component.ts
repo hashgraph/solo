@@ -26,13 +26,14 @@ export class RelayComponent extends BaseComponent implements IRelayComponent {
     public readonly consensusNodeAliases: NodeAliases = []
   ) {
     super(ComponentTypeEnum.Relay, name, cluster, namespace)
+    this.validate()
   }
 
   protected validate () {
     super.validate()
 
     this.consensusNodeAliases.forEach(alias => {
-      if (!alias || typeof alias === 'string') {
+      if (!alias || typeof alias !== 'string') {
         throw new SoloError(`Invalid consensus node alias: ${alias}, aliases ${this.consensusNodeAliases}`)
       }
     })

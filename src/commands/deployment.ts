@@ -62,7 +62,7 @@ export class DeploymentCommand extends BaseCommand {
           return lease.buildAcquireTask(task)
         }
       },
-      self.remoteConfigManager.buildCreateRemoteConfigTask(argv),
+      self.remoteConfigManager.buildCreateRemoteConfigTask('CONTEXT', ['CLUSTER']), // TODO
     ], {
       concurrent: false,
       rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION

@@ -126,9 +126,9 @@ describe ('RelayComponent', () => {
   })
 
   it('should fail if consensusNodeAliases is not valid', () => {
-    const consensusNodeAliases = ['node1'] as NodeAliases
+    const consensusNodeAliases = [ undefined ] as NodeAliases
     expect(() => new RelayComponent('valid', 'valid', 'valid', consensusNodeAliases))
-      .to.throw(SoloError, `Invalid consensus node alias: , aliases ${consensusNodeAliases}`)
+      .to.throw(SoloError, `Invalid consensus node alias: ${consensusNodeAliases[0]}, aliases ${consensusNodeAliases}`)
   })
 
   it('should fail if consensusNodeAliases is not valid', () => {
@@ -200,13 +200,7 @@ describe ('ConsensusNodeComponent', () => {
   it('should fail if state is not valid', () => {
     const state = 'INVALID' as ConsensusNodeStates.STARTED
     expect(() => new ConsensusNodeComponent('valid', 'valid', 'valid', state))
-      .to.throw(SoloError, `Invalid consensus node alias: , aliases ${state}`)
-  })
-
-  it('should fail if state is not valid', () => {
-    const state = ['node1', 1]
-    expect(() => new ConsensusNodeComponent('valid', 'valid', 'valid', state))
-      .to.throw(SoloError, `Invalid consensus node alias: 1, aliases ${state}`)
+      .to.throw(SoloError, `Invalid ConsensusNodeStates value: ${state}`)
   })
 
   it('should successfully create ', () => {

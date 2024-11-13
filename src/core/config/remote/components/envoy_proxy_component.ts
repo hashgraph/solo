@@ -20,5 +20,6 @@ import { BaseComponent } from './base_component.ts'
 export class EnvoyProxyComponent extends BaseComponent {
   constructor (name: string, cluster: string, namespace: string) {
     super(ComponentTypeEnum.EnvoyProxy, name, cluster, namespace)
+    this.validate()
   }
 }

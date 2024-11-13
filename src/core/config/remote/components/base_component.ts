@@ -29,8 +29,6 @@ export abstract class BaseComponent implements Component {
     this._name = name
     this._cluster = cluster
     this._namespace = namespace
-
-    this.validate()
   }
 
   get type () { return this._type }
