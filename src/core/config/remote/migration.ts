@@ -18,29 +18,36 @@ import { SoloError } from '../../errors.ts'
 import type { EmailAddress, IMigration, Version } from './types.ts'
 
 export class Migration implements IMigration {
-  constructor (
-    public readonly migratedAt: Date,
-    public readonly migratedBy: EmailAddress,
-    public readonly fromVersion: Version,
-  ) {
+  private readonly _migratedAt: Date
+  private readonly _migratedBy: EmailAddress
+  private readonly _fromVersion: Version
+
+  constructor (migratedAt: Date, migratedBy: EmailAddress, fromVersion: Version) {
+    this._migratedAt = migratedAt
+    this._migratedBy = migratedBy
+    this._fromVersion = fromVersion
     this.validate()
   }
 
+  get migratedAt () { return this._migratedAt }
+  get migratedBy () { return this._migratedBy }
+  get fromVersion () { return this._fromVersion }
+
   validate () {
     if (!(this.migratedAt instanceof Date)) {
-      throw new SoloError(`Invalid migration.migratedAt: ${this.migratedAt}`)
+      throw new SoloError(`Invalid migratedAt: ${this.migratedAt}`)
     }
 
-    if (typeof this.migratedBy !== 'string') {
-      throw new SoloError(`Invalid migration.migratedBy: ${this.migratedBy}`)
+    if (!this.migratedBy || typeof this.migratedBy !== 'string') {
+      throw new SoloError(`Invalid migratedBy: ${this.migratedBy}`)
     }
 
-    if (typeof this.fromVersion !== 'string') {
-      throw new SoloError(`Invalid migration.fromVersion: ${this.fromVersion}`)
+    if (!this.fromVersion || typeof this.fromVersion !== 'string') {
+      throw new SoloError(`Invalid fromVersion: ${this.fromVersion}`)
     }
   }
 
-  toObject (): Omit<IMigration, 'toObject' | 'validate'> {
+  toObject (): IMigration {
     return {
       migratedAt: this.migratedAt,
       migratedBy: this.migratedBy,

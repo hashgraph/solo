@@ -81,7 +81,6 @@ describe('ComponentsDataWrapper', () => {
       .to.throw(SoloError, 'Invalid component type')
   })
 
-
   it ('toObject method should return a object that can be parsed with fromObject', () => {
     const { wrapper: { componentsDataWrapper } } = createComponentsDataWrapper()
 

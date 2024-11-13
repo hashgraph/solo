@@ -38,8 +38,6 @@ export interface IMigration {
   migratedAt: Date
   migratedBy: EmailAddress
   fromVersion: Version
-  validate(): void
-  toObject(): any
 }
 
 // TODO Keep the state of components
