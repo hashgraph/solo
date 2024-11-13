@@ -20,7 +20,12 @@ import { expect } from 'chai'
 import { flags } from '../../../../src/commands/index.ts'
 import { e2eTestSuite, getDefaultArgv, TEST_CLUSTER } from '../../../test_util.ts'
 import * as version from '../../../../version.ts'
-import { LEASE_ACQUIRE_RETRY_TIMEOUT, MAX_LEASE_ACQUIRE_ATTEMPTS, MINUTES } from '../../../../src/core/constants.ts'
+import {
+  DEFAULT_LEASE_RENEW_TIMEOUT,
+  LEASE_ACQUIRE_RETRY_TIMEOUT,
+  MAX_LEASE_ACQUIRE_ATTEMPTS,
+  MINUTES
+} from '../../../../src/core/constants.ts'
 import { sleep } from '../../../../src/core/helpers.js'
 
 const namespace = 'lease-mngr-e2e'
@@ -74,6 +79,26 @@ e2eTestSuite(namespace, argv, undefined, undefined, undefined, undefined, undefi
       }
 
       await initialLease.release()
+    }).timeout(3 * MINUTES)
+
+    it('expired leases should be overwritten', async () => {
+      process.env.LEASE_RENEW_TIMEOUT = (DEFAULT_LEASE_RENEW_TIMEOUT * 4).toString()
+      const initialLease = leaseManager.instantiateLease()
+      const title = 'Initial Lease'
+      // @ts-ignore to access private property
+      await initialLease.acquireTask({ title }, title)
+
+      // Ensure lease expires
+      await sleep(LEASE_ACQUIRE_RETRY_TIMEOUT)
+
+      process.env.LEASE_RENEW_TIMEOUT = DEFAULT_LEASE_RENEW_TIMEOUT.toString()
+      const newLease = leaseManager.instantiateLease()
+      const newTitle = 'New Lease'
+      // @ts-ignore to access private property
+      await newLease.acquireTask({ newTitle }, newTitle, 8)
+
+      await initialLease.release()
+      await newLease.release()
     }).timeout(3 * MINUTES)
   })
 })

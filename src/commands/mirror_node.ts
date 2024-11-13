@@ -63,7 +63,7 @@ export class MirrorNodeCommand extends BaseCommand {
   async prepareHederaExplorerValuesArg (config: any) {
     let valuesArg = ''
 
-    const profileName = <string>this.configManager.getFlag<string>(flags.profileName)
+    const profileName = this.configManager.getFlag<string>(flags.profileName) as string
     const profileValuesFile = await this.profileManager.prepareValuesHederaExplorerChart(profileName)
     if (profileValuesFile) {
       valuesArg += this.prepareValuesFiles(profileValuesFile)
