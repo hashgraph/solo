@@ -334,10 +334,12 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
       it('Create client from network config and submit topic/message should succeed', async () => {
         try {
 
+          // Setup network configuration
           const networkConfig = {}
           networkConfig['127.0.0.1:30212'] = AccountId.fromString('0.0.3')
           networkConfig['127.0.0.1:30213'] = AccountId.fromString('0.0.4')
 
+          // Instantiate SDK client
           const sdkClient = Client.fromConfig({ network: networkConfig, scheduleNetworkUpdate: false })
           sdkClient.setOperator(MY_ACCOUNT_ID, MY_PRIVATE_KEY)
           sdkClient.setLogger(new Logger(LogLevel.Trace, 'hashgraph-sdk.log'))
@@ -349,9 +351,9 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
           const submitResponse = await new TopicMessageSubmitTransaction({
             topicId: receipt.topicId,
             message: 'Hello, Hedera!'
-          }).execute(accountManager._nodeClient)
+          }).execute(sdkClient)
 
-          const submitReceipt = await submitResponse.getReceipt(accountManager._nodeClient)
+          const submitReceipt = await submitResponse.getReceipt(sdkClient)
 
           expect(submitReceipt.status).to.deep.equal(Status.Success)
         } catch (e) {
