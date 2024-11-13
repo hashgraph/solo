@@ -52,20 +52,20 @@ export class RemoteConfigMetadata implements RemoteConfigMetadataStructure {
   }
 
   validate () {
-    if (typeof this.name !== 'string') {
-      throw new SoloError(`Invalid metadata.name: ${this.name}`)
+    if (!this.name || typeof this.name !== 'string') {
+      throw new SoloError(`Invalid name: ${this.name}`)
     }
 
     if (!(this.lastUpdatedAt instanceof Date)) {
-      throw new SoloError(`Invalid metadata.lastUpdatedAt: ${this.lastUpdatedAt}`)
+      throw new SoloError(`Invalid lastUpdatedAt: ${this.lastUpdatedAt}`)
     }
 
-    if (typeof this.lastUpdateBy !== 'string') {
-      throw new SoloError(`Invalid metadata.lastUpdateBy: ${this.lastUpdateBy}`)
+    if (!this.lastUpdateBy || typeof this.lastUpdateBy !== 'string') {
+      throw new SoloError(`Invalid lastUpdateBy: ${this.lastUpdateBy}`)
     }
 
     if (this.migration && !(this.migration instanceof Migration)) {
-      throw new SoloError(`Invalid metadata.migration: ${this.migration}`)
+      throw new SoloError(`Invalid migration: ${this.migration}`)
     }
   }
 
