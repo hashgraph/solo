@@ -21,7 +21,7 @@ import { DataValidationError, SoloError, IllegalArgumentError, MissingArgumentEr
 import { constants } from './index.ts'
 import { type AccountId } from '@hashgraph/sdk'
 import type { NodeAlias, PodName } from '../types/aliases.ts'
-import { GrpcProxyTlsEnums} from './enumerations.ts'
+import { GrpcProxyTlsEnums } from './enumerations.ts'
 
 export class Templates {
   public static renderNetworkPodName (nodeAlias: NodeAlias): PodName {

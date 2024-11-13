@@ -19,7 +19,7 @@ import { flags } from '../commands/index.ts'
 import type { ConfigManager } from './config_manager.ts'
 import type { K8 } from './k8.ts'
 import type { SoloLogger } from './logging.ts'
-import { LEASE_RENEW_TIMEOUT, LEASE_ACQUIRE_RETRY_TIMEOUT, MAX_LEASE_ACQUIRE_ATTEMPTS, OS_USERNAME } from './constants.ts'
+import { DEFAULT_LEASE_RENEW_TIMEOUT, LEASE_ACQUIRE_RETRY_TIMEOUT, MAX_LEASE_ACQUIRE_ATTEMPTS, OS_USERNAME } from './constants.ts'
 import type { ListrTaskWrapper } from 'listr2'
 import chalk from 'chalk'
 import { sleep } from './helpers.ts'
@@ -77,7 +77,8 @@ export class LeaseManager {
     }
 
     //? Renew lease with the callback
-    const intervalId = setInterval(renewLeaseCallback, LEASE_RENEW_TIMEOUT)
+    const renewalTimeout = +process.env.LEASE_RENEW_TIMEOUT || DEFAULT_LEASE_RENEW_TIMEOUT
+    const intervalId = setInterval(renewLeaseCallback, renewalTimeout)
 
     const releaseLeaseCallback = async () => {
       //? Stop renewing the lease once release callback is called
@@ -121,7 +122,7 @@ export class LeaseManager {
   ): Promise<void> {
     if (!attempt) attempt = 1
 
-    const lease = await this.tryAcquireLease(username, leaseName, namespace, task, title)
+    let lease = await this.tryAcquireLease(username, leaseName, namespace, task, title)
 
     //? In case the lease is already acquired retry after cooldown
     while (!!lease && !this.isLeaseExpired(lease)) {
@@ -140,6 +141,7 @@ export class LeaseManager {
         `, attempt: ${chalk.cyan(attempt.toString())}/${chalk.cyan(maxAttempts.toString())}`
 
       await sleep(LEASE_ACQUIRE_RETRY_TIMEOUT)
+      lease = await this.tryAcquireLease(username, leaseName, namespace, task, title)
     }
 
     if (lease) {
