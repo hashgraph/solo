@@ -29,7 +29,7 @@ if [ -d "hedera-local-node" ]; then
   echo "Directory hedera-local-node exists."
 else
   echo "Directory hedera-local-node does not exist."
-  git clone https://github.com/hashgraph/hedera-local-node --branch release-2.29.0
+  git clone https://github.com/hashgraph/hedera-local-node --branch release-2.32.1
 fi
 
 cd hedera-local-node
