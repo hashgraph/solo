@@ -3,16 +3,23 @@ set -eo pipefail
 
 echo "Starting test network with a single node"
 
-./test/e2e/setup-e2e.sh
-solo network deploy
-solo node keys --gossip-keys --tls-keys -i node1
-solo node setup -i node1
-solo node start -i node1
-solo mirror-node deploy
-solo relay deploy -i node1
-kubectl port-forward svc/relay-node1-hedera-json-rpc-relay -n solo-e2e 7546:7546 &
-kubectl port-forward svc/haproxy-node1-svc -n solo-e2e 50211:50211 &
-kubectl port-forward svc/solo-deployment-hedera-explorer -n solo-e2e 8080:80 &
+export SOLO_CLUSTER_NAME=solo-e2e
+export SOLO_NAMESPACE=solo-e2e
+export SOLO_CLUSTER_SETUP_NAMESPACE=solo-cluster-setup
+kind delete cluster -n "${SOLO_CLUSTER_NAME}"
+kind create cluster -n "${SOLO_CLUSTER_NAME}"
+npm run solo-test -- init
+npm run solo-test -- node keys --gossip-keys --tls-keys -i node1
+npm run solo-test -- cluster setup --cluster-setup-namespace "${SOLO_CLUSTER_SETUP_NAMESPACE}"
+npm run solo-test -- network deploy -n "${SOLO_NAMESPACE}" -i node1
+npm run solo-test -- node setup     -n "${SOLO_NAMESPACE}" -i node1
+npm run solo-test -- node start     -n "${SOLO_NAMESPACE}" -i node1
+npm run solo-test -- mirror-node deploy -n "${SOLO_NAMESPACE}"
+npm run solo-test -- relay deploy -n "${SOLO_NAMESPACE}" -i node1
+
+kubectl port-forward svc/relay-node1-hedera-json-rpc-relay -n "${SOLO_NAMESPACE}" 7546:7546 &
+kubectl port-forward svc/haproxy-node1-svc -n "${SOLO_NAMESPACE}" 50211:50211 &
+kubectl port-forward svc/hedera-explorer -n "${SOLO_NAMESPACE}" 8080:80 &
 
 echo "Clone hedera local node"
 
@@ -46,8 +53,18 @@ CONTRACT_TEST_KEYS=$(cat private_key_without_quote_final.txt)
 echo "Add new keys to hardhat.config.js"
 git checkout test/smoke/hardhat.config.js
 awk '/accounts: \[/ {print; getline; getline; next} 1' test/smoke/hardhat.config.js > test/smoke/hardhat.config.js.tmp
-awk -v new_keys="$LOCAL_NODE_KEYS" '/\],/ {print new_keys; print; next} 1' test/smoke/hardhat.config.js.tmp > test/smoke/hardhat.config.js || true
+# if os is macos, insert content of LOCAL_NODE_KEYS to test/smoke/hardhat.config.js.tmp after a line contains "accounts: ["
+
+if [[ "$OSTYPE" == "darwin"* ]]; then
+  echo "$LOCAL_NODE_KEYS" > temp.txt
+  sed '/accounts: \[/r temp.txt'  test/smoke/hardhat.config.js.tmp  > test/smoke/hardhat.config.js
+  rm temp.txt
+else
+  awk -v new_keys="$LOCAL_NODE_KEYS" '/accounts: \[/ {print; print new_keys; next} 1' test/smoke/hardhat.config.js.tmp > test/smoke/hardhat.config.js || true
+fi
+echo "Display the new hardhat.config.js"
 cat test/smoke/hardhat.config.js
+
 
 #echo "Run smoke test"
 #cd test/smoke
@@ -75,6 +92,12 @@ echo "MAX_RETRY=5" >> .env
 cat .env
 
 echo "Start background transaction"
+
+# native watch command is not available on macos
+if [[ "$OSTYPE" == "darwin"* ]]; then
+  brew install watch
+fi
+
 cd ../hedera-local-node;  watch npm run generate-accounts 3 > background.log &  cd -
 
 npm list
