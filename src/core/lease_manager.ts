@@ -52,7 +52,15 @@ export class LeaseManager {
     const namespace = this.configManager.getFlag<string>(flags.namespace)
     if (!namespace) return null
 
-    if (!await this.k8.hasNamespace(namespace)) return null
+
+    if (!await this.k8.hasNamespace(namespace)) {
+      await this.k8.createNamespace(namespace)
+
+      if (!await this.k8.hasNamespace(namespace)) {
+        throw new SoloError(`failed to create the '${namespace}' namespace`)
+      }
+    }
+
     return namespace
   }
 }
