@@ -24,31 +24,43 @@ import { type LeaseRenewalService } from './lease_renewal.ts'
 import { sleep } from './helpers.ts'
 
 export class Lease {
+    /** The default duration in seconds for which the lease is to be held before being considered expired. */
     public static readonly DEFAULT_LEASE_DURATION = 20
 
-    private readonly _client: K8
-    private readonly _renewalService: LeaseRenewalService
+    /** The holder of the lease. */
     private readonly _leaseHolder: LeaseHolder
+
+    /** The namespace which contains the lease. */
     private readonly _namespace: string
 
+    /** The name of the lease. */
     private readonly _leaseName: string
+
+    /** The duration in seconds for which the lease is to be held. */
     private readonly _durationSeconds: number
 
+    /** The identifier of the scheduled lease renewal. */
     private _scheduleId: number | null = null
 
-    public constructor (client: K8,
-                        renewalService: LeaseRenewalService,
+    /**
+     * @param client - Injected kubernetes client need by the methods to create, renew, and delete leases.
+     * @param renewalService - Injected lease renewal service need to support automatic (background) lease renewals.
+     * @param leaseHolder - The holder of the lease.
+     * @param namespace - The namespace in which the lease is to be acquired.
+     * @param leaseName - The name of the lease to be acquired.
+     * @param durationSeconds - The duration in seconds for which the lease is to be held.
+     */
+    public constructor (private readonly client: K8,
+                        private readonly renewalService: LeaseRenewalService,
                         leaseHolder: LeaseHolder,
                         namespace: string,
                         leaseName: string | null = null,
                         durationSeconds: number | null = null) {
-        if (!client) throw new MissingArgumentError('_client is required')
-        if (!renewalService) throw new MissingArgumentError('_renewalService is required')
+        if (!client) throw new MissingArgumentError('client is required')
+        if (!renewalService) throw new MissingArgumentError('renewalService is required')
         if (!leaseHolder) throw new MissingArgumentError('_leaseHolder is required')
         if (!namespace) throw new MissingArgumentError('_namespace is required')
 
-        this._client = client
-        this._renewalService = renewalService
         this._leaseHolder = leaseHolder
         this._namespace = namespace
 
@@ -140,10 +152,10 @@ export class Lease {
         const lease = await this.retrieveLease()
 
         if (this.scheduleId) {
-            await this._renewalService.cancel(this.scheduleId)
+            await this.renewalService.cancel(this.scheduleId)
             // Needed to ensure any pending renewals are truly cancelled before proceeding to delete the Lease.
             // This is required because clearInterval() is not guaranteed to abort any pending interval.
-            await sleep(this._renewalService.calculateRenewalDelay(this))
+            await sleep(this.renewalService.calculateRenewalDelay(this))
         }
 
         this.scheduleId = null
@@ -184,7 +196,7 @@ export class Lease {
 
     private async retrieveLease (): Promise<V1Lease> {
         try {
-            return await this._client.readNamespacedLease(this.leaseName, this.namespace)
+            return await this.client.readNamespacedLease(this.leaseName, this.namespace)
         } catch (e: any) {
             if (!(e instanceof SoloError)) {
                 throw new LeaseAcquisitionError(`failed to read the lease named '${this.leaseName}' in the ` +
@@ -203,13 +215,13 @@ export class Lease {
     private async createOrRenewLease (lease: V1Lease): Promise<void> {
         try {
             if (!lease) {
-                await this._client.createNamespacedLease(this.leaseName, this.namespace, this.leaseHolder.toJson(), this.durationSeconds)
+                await this.client.createNamespacedLease(this.leaseName, this.namespace, this.leaseHolder.toJson(), this.durationSeconds)
             } else {
-                await this._client.renewNamespaceLease(this.leaseName, this.namespace, lease)
+                await this.client.renewNamespaceLease(this.leaseName, this.namespace, lease)
             }
 
             if (!this.scheduleId) {
-                this.scheduleId = await this._renewalService.schedule(this)
+                this.scheduleId = await this.renewalService.schedule(this)
             }
         } catch (e: any) {
             throw new LeaseAcquisitionError(`failed to create or renew the lease named '${this.leaseName}' in the ` +
@@ -219,10 +231,10 @@ export class Lease {
 
     private async transferLease (lease: V1Lease): Promise<void> {
         try {
-            await this._client.transferNamespaceLease(lease, this.leaseHolder.toJson())
+            await this.client.transferNamespaceLease(lease, this.leaseHolder.toJson())
 
-            if (!this._scheduleId) {
-                this._scheduleId = await this._renewalService.schedule(this)
+            if (!this.scheduleId) {
+                this.scheduleId = await this.renewalService.schedule(this)
             }
         } catch (e: any) {
             throw new LeaseAcquisitionError(`failed to transfer the lease named '${this.leaseName}' in the ` +
@@ -232,7 +244,7 @@ export class Lease {
 
     private async deleteLease (): Promise<void> {
         try {
-            await this._client.deleteNamespacedLease(this.leaseName, this.namespace)
+            await this.client.deleteNamespacedLease(this.leaseName, this.namespace)
         } catch (e: any) {
             throw new LeaseRelinquishmentError(`failed to delete the lease named '${this.leaseName}' in the ` +
                 `'${this.namespace}' namespace`, e)
