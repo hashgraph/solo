@@ -21,6 +21,7 @@ name: "ZXC: E2E Test"
 # - .github/workflows/flow-build-application.yaml
 
 on:
+  workflow_dispatch:
   workflow_call:
     inputs:
       node-version:

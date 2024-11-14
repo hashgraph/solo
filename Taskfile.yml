@@ -18,7 +18,8 @@ env:
 vars:
   nodes:
     ref: until (env "SOLO_NETWORK_SIZE" | default .SOLO_NETWORK_SIZE | int)
-  node_list_internal: "{{range $idx, $n := .nodes }}node{{$n}},{{end}}"
+  # node name should be node1, node2, node3, etc.
+  node_list_internal: "{{range $idx, $n := .nodes }}node{{add $n 1}},{{end}}"
   node_identifiers: "{{ .node_list_internal | trimSuffix \",\" }}"
 
   solo_user_dir: "{{ env \"HOME\" }}/.solo"
@@ -40,18 +41,10 @@ tasks:
       - echo "Use command 'task clean' to destroy and clean up the network."
       - echo "Use command 'task show:ips' to show the external IPs of the nodes."
       - echo "Use command 'task default-with-mirror' to deploy the network with a mirror node."
+      - echo "Use command 'task default-with-relay' to deploy the network with a relay node."
 
   default:
     cmds:
-      - task: "install:node:darwin"
-      - task: "install:node:linux"
-      - task: "install:kubectl:darwin"
-      - task: "install:kubectl:linux"
-      - task: "install:helm:darwin"
-      - task: "install:helm:linux"
-      - task: "install:kind:darwin"
-      - task: "install:kind:linux:x86_64"
-      - task: "install:kind:linux:aarch64"
       - task: "install:solo"
       - task: "install"
       - task: "start"
@@ -60,6 +53,12 @@ tasks:
     cmds:
       - task: "default"
       - task: "mirror:deploy"
+
+  default-with-relay:
+    cmds:
+      - task: "default"
+      - task: "mirror:deploy"
+      - task: "solo:relay:deploy"
 
   install:
     cmds:
@@ -95,7 +94,8 @@ tasks:
     cmds:
       - npm run solo-test -- mirror-node deploy --namespace "${SOLO_NAMESPACE}"
       - echo "Enable port forwarding for Hedera Explorer"
-      - kubectl port-forward -n "${SOLO_NAMESPACE}" svc/hedera-explorer 8080:80 &
+      - kubectl port-forward svc/hedera-explorer -n "${SOLO_NAMESPACE}" 8080:80 &
+      - task: "sleep_after_port_forward"
 
   mirror:destroy:
     status:
@@ -112,6 +112,7 @@ tasks:
       - task: "solo:node:stop"
       - task: "solo:network:destroy"
       - task: "mirror:destroy"
+      - task: "solo:relay:destroy"
       - task: "cluster:destroy"
 
   clean:
@@ -149,10 +150,10 @@ tasks:
     status:
       - |
          for n in $(seq 0 {{ sub (env "SOLO_NETWORK_SIZE" | default .SOLO_NETWORK_SIZE | int) 1 }}); do
-          test -f {{ .solo_keys_dir }}/hedera-node${n}.crt
-          test -f {{ .solo_keys_dir }}/hedera-node${n}.key
-          test -f {{ .solo_keys_dir }}/s-public-node${n}.pem
-          test -f {{ .solo_keys_dir }}/s-private-node${n}.pem
+          test -f {{ .solo_keys_dir }}/hedera-node${n+1}.crt
+          test -f {{ .solo_keys_dir }}/hedera-node${n+1}.key
+          test -f {{ .solo_keys_dir }}/s-public-node${n+1}.pem
+          test -f {{ .solo_keys_dir }}/s-private-node${n+1}.pem
          done
     cmds:
       - npm run solo-test -- node keys --gossip-keys --tls-keys --node-aliases-unparsed {{.node_identifiers}}
@@ -172,6 +173,8 @@ tasks:
     internal: true
     cmds:
       - npm run solo-test -- node start --namespace "${SOLO_NAMESPACE}" --node-aliases-unparsed {{.node_identifiers}} {{ .CLI_ARGS }}
+      - kubectl port-forward svc/haproxy-node1-svc -n "${SOLO_NAMESPACE}" 50211:50211 &
+      - task: "sleep_after_port_forward"
 
   solo:node:stop:
     internal: true
@@ -183,6 +186,19 @@ tasks:
     internal: true
     cmds:
       - kubectl get svc -n "${SOLO_NAMESPACE}" -l "solo.hedera.com/type=network-node-svc"
+
+  solo:relay:deploy:
+    cmds:
+      - npm run solo-test -- relay deploy -n "${SOLO_NAMESPACE}" -i node1
+      - echo "Enable port forwarding for Hedera JSON RPC Relay"
+      - kubectl port-forward svc/relay-node1-hedera-json-rpc-relay -n "${SOLO_NAMESPACE}" 7546:7546 &
+      - task: "sleep_after_port_forward"
+
+  solo:relay:destroy:
+    status:
+      - helm list -n "${SOLO_NAMESPACE}" | grep -vqz relay-node1
+    cmds:
+      - npm run solo-test -- relay destroy -n "${SOLO_NAMESPACE}" -i node1
 
   solo:cache:remove:
     internal: true
@@ -212,98 +228,8 @@ tasks:
     cmds:
       - npm install -g @hashgraph/solo
 
-  install:kubectl:darwin:
-    internal: true
-    platforms:
-      - darwin
-    status:
-      - command -v kubectl
+  sleep_after_port_forward:
     cmds:
-      - brew update
-      - brew install kubernetes-cli
-
-  install:kubectl:linux:
-    internal: true
-    platforms:
-      - linux
-    status:
-      - command -v kubectl
-    cmds:
-      - curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/{{ ARCH }}/kubectl"
-      - sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
-      - rm -rf kubectl
-
-  install:kind:darwin:
-    internal: true
-    platforms:
-      - darwin
-    status:
-      - command -v kind
-    cmds:
-      - brew install kind
-
-  install:kind:linux:x86_64:
-    internal: true
-    platforms:
-      - linux
-    status:
-      - command -v kind
-      - test ! "$(uname -m)" == "x86_64"
-    cmds:
-      - curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.24.0/kind-linux-amd64
-      - chmod +x ./kind
-      - sudo mv ./kind /usr/local/bin/kind
-
-  install:kind:linux:aarch64:
-    internal: true
-    platforms:
-      - linux
-    status:
-      - command -v kind
-      - test ! "$(uname -m)" == "aarch64"
-    cmds:
-      - curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.24.0/kind-linux-arm64
-      - chmod +x ./kind
-      - sudo mv ./kind /usr/local/bin/kind
-
-  install:node:linux:
-    internal: true
-    platforms:
-        - linux
-    status:
-        - command -v node
-    cmds:
-        - curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.5/install.sh | bash
-        - source ~/.bashrc
-        - nvm install 21
-
-  install:node:darwin:
-    internal: true
-    platforms:
-        - darwin
-    status:
-        - command -v node
-    cmds:
-        - brew install node@21
-
-  install:helm:darwin:
-    internal: true
-    platforms:
-        - darwin
-    status:
-        - command -v helm
-    cmds:
-        - brew install helm
-
-  install:helm:linux:
-    internal: true
-    platforms:
-        - linux
-    status:
-        - command -v helm
-    cmds:
-        - curl https://baltocdn.com/helm/signing.asc | gpg --dearmor | sudo tee /usr/share/keyrings/helm.gpg > /dev/null
-        - sudo apt-get install apt-transport-https --yes
-        - echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/helm.gpg] https://baltocdn.com/helm/stable/debian/ all main" | sudo tee /etc/apt/sources.list.d/helm-stable-debian.list
-        - sudo apt-get update
-        - sudo apt-get install helm
+      # somehow without the sleep, when port-forward is the last command of a series of tasks, port-forward
+      # prematurely killed when task is exiting
+    - sleep 4
