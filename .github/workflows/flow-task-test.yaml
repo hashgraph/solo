@@ -18,6 +18,7 @@ name: "Test Taskfile Commands"
 # The purpose of this reusable workflow is to make sure task files are working as expected.
 
 on:
+  workflow_dispatch:
   workflow_call:
   pull_request:
     types:

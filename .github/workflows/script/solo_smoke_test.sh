@@ -141,11 +141,12 @@ function start_sdk_test ()
 
 echo "Change to parent directory"
 cd ../
-
+ps -ef |grep port-forward
 clone_sdk_repo
 clone_local_node_repo
+ps -ef |grep port-forward
 clone_smart_contract_repo
-
+ps -ef |grep port-forward
 setup_smart_contract_test
 start_background_transactions
 start_contract_test
