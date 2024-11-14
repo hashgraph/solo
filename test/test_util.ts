@@ -64,6 +64,7 @@ import type { NodeAlias } from '../src/types/aliases.ts'
 import type { NetworkNodeServices } from '../src/core/network_node_services.ts'
 import sinon from 'sinon'
 import { HEDERA_PLATFORM_VERSION } from '../version.js'
+import { IntervalLeaseRenewalService } from '../src/core/lease_renewal.js'
 
 export const testLogger = logging.NewLogger('debug', true)
 export const TEST_CLUSTER = 'solo-e2e'
@@ -150,7 +151,7 @@ export function bootstrapTestVariables (
   const accountManager = new AccountManager(testLogger, k8)
   const platformInstaller = new PlatformInstaller(testLogger, k8, configManager)
   const profileManager = new ProfileManager(testLogger, configManager)
-  const leaseManager = new LeaseManager(k8, testLogger, configManager)
+  const leaseManager = new LeaseManager(k8, testLogger, configManager, new IntervalLeaseRenewalService())
   const certificateManager = new CertificateManager(k8, testLogger, configManager)
 
   const opts: TestOpts = {

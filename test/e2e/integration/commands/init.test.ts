@@ -27,6 +27,7 @@ import {
 } from '../../../../src/core/index.ts'
 import { SECONDS } from '../../../../src/core/constants.ts'
 import sinon from 'sinon'
+import { IntervalLeaseRenewalService } from '../../../../src/core/lease_renewal.js'
 
 const testLogger = logging.NewLogger('debug', true)
 describe('InitCommand', () => {
@@ -54,7 +55,7 @@ describe('InitCommand', () => {
     sandbox = sinon.createSandbox()
     sandbox.stub(K8.prototype, 'init').callsFake(() => this)
     k8 = new K8(configManager, testLogger)
-    leaseManager = new LeaseManager(k8, testLogger, configManager)
+    leaseManager = new LeaseManager(k8, testLogger, configManager, new IntervalLeaseRenewalService())
     // @ts-ignore
     initCmd = new InitCommand({
       logger: testLogger, helm, k8, chartManager, configManager, depManager, keyManager, leaseManager
