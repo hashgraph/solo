@@ -22,6 +22,7 @@ import type { SoloLogger } from './logging.ts'
 import { type LeaseRenewalService } from './lease_renewal.js'
 import { Lease } from './lease.js'
 import { LeaseHolder } from './lease_holder.js'
+import { LeaseAcquisitionError } from './lease_errors.js'
 
 export class LeaseManager {
   constructor (
@@ -37,7 +38,7 @@ export class LeaseManager {
   }
 
   public async create (): Promise<Lease> {
-    return new Lease(this.k8, this.renewalService, LeaseHolder.default(), await this.currentNamespace(), await this.currentNamespace())
+    return new Lease(this.k8, this.renewalService, LeaseHolder.default(), await this.currentNamespace())
   }
 
   public get RenewalService (): LeaseRenewalService {
@@ -57,7 +58,7 @@ export class LeaseManager {
       await this.k8.createNamespace(namespace)
 
       if (!await this.k8.hasNamespace(namespace)) {
-        throw new SoloError(`failed to create the '${namespace}' namespace`)
+        throw new LeaseAcquisitionError(`failed to create the '${namespace}' namespace`)
       }
     }
 

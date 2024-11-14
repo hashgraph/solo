@@ -161,6 +161,11 @@ export class Lease {
         try {
             return await this.client.readNamespacedLease(this.LeaseName, this.Namespace)
         } catch (e: any) {
+            if (!(e instanceof SoloError)) {
+                throw new LeaseAcquisitionError(`failed to read the lease named '${this.LeaseName}' in the ` +
+                    `'${this.Namespace}' namespace, caused by: ${e.message}`, e)
+            }
+
             if (e.meta.statusCode !== 404) {
                 throw new LeaseAcquisitionError('failed to read existing leases, unexpected server response of' +
                     `'${e.meta.statusCode}' received`, e)

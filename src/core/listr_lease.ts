@@ -22,6 +22,7 @@ import { LeaseAcquisitionError } from './lease_errors.js'
 
 export class ListrLease {
     public static readonly DEFAULT_LEASE_ACQUIRE_ATTEMPTS = 10
+    public static readonly ACQUIRE_LEASE_TASK_TITLE = 'Acquire lease'
 
     private constructor () {
         throw new Error('This class cannot be instantiated')
@@ -30,7 +31,7 @@ export class ListrLease {
     public static newAcquireLeaseTask (lease: Lease, task: ListrTaskWrapper<any, any, any>) {
         return task.newListr([
             {
-                title: 'Acquire lease',
+                title: ListrLease.ACQUIRE_LEASE_TASK_TITLE,
                 task: async (_, task) => {
                     await ListrLease.acquireWithRetry(lease, task)
                 }
@@ -49,17 +50,17 @@ export class ListrLease {
 
         let attempt: number
         let innerError: Error | null = null
-        for (attempt = 1; attempt <= maxAttempts; attempt++) {
+        for (attempt = 0; attempt < maxAttempts; attempt++) {
             try {
                 await lease.acquire()
                 task.title = `${title} - ${chalk.green('lease acquired successfully')}` +
-                    `, attempt: ${chalk.cyan(attempt.toString())}/${chalk.cyan(maxAttempts.toString())}`
+                    `, attempt: ${chalk.cyan((attempt + 1).toString())}/${chalk.cyan(maxAttempts.toString())}`
                 return
             } catch (e: LeaseAcquisitionError | any) {
                 task.title = `${title} - ${chalk.gray(`lease exists, attempting again in ${lease.DurationSeconds} seconds`)}` +
-                    `, attempt: ${chalk.cyan(attempt.toString())}/${chalk.cyan(maxAttempts.toString())}`
+                    `, attempt: ${chalk.cyan((attempt + 1).toString())}/${chalk.cyan(maxAttempts.toString())}`
 
-                if (attempt === maxAttempts) {
+                if (attempt === maxAttempts - 1) {
                     innerError = e
                 }
             }
