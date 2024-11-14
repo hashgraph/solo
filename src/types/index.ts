@@ -23,6 +23,7 @@ import type {
   ChartManager, ConfigManager, Helm, K8, KeyManager, PackageDownloader, PlatformInstaller, LocalConfig,
   ProfileManager, DependencyManager, AccountManager, LeaseManager, CertificateManager, RemoteConfigManager,
 } from '../core/index.ts'
+import type { Cluster, Context } from '../core/config/remote/types.ts'
 
 export interface NodeKeyObject {
   privateKey: crypto.webcrypto.CryptoKey
@@ -82,4 +83,9 @@ export interface Opts {
   localConfig: LocalConfig
   remoteConfigManager: RemoteConfigManager
   certificateManager: CertificateManager
+}
+
+export interface ContextClusterStructure {
+  context: Context,
+  clusters: Cluster[]
 }

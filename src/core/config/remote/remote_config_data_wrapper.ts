@@ -14,15 +14,13 @@
  * limitations under the License.
  *
  */
-import semver from 'semver'
 import { SoloError } from '../../errors.ts'
-import { ComponentTypeEnum } from './enumerations.ts'
 import * as version from '../../../../version.ts'
 import yaml from 'js-yaml'
 import { RemoteConfigMetadata } from './metadata.ts'
 import { ComponentsDataWrapper } from './components_data_wrapper.ts'
 import * as constants from '../../constants.ts'
-import type { Cluster, Version, Namespace, Component, RemoteConfigData, EmailAddress } from './types.ts'
+import type { Cluster, Version, Namespace, RemoteConfigData } from './types.ts'
 import type * as k8s from '@kubernetes/client-node'
 
 export class RemoteConfigDataWrapper {
@@ -44,6 +42,8 @@ export class RemoteConfigDataWrapper {
 
   static fromConfigmap (configMap: k8s.V1ConfigMap) {
     const unparsed = yaml.load(configMap.data['remote-config-data']) as any
+
+    console.log(unparsed)
 
     return new RemoteConfigDataWrapper({
       metadata: RemoteConfigMetadata.fromObject(unparsed.metadata),
@@ -79,7 +79,7 @@ export class RemoteConfigDataWrapper {
 
   get lastExecutedCommand () { return this._lastExecutedCommand }
 
-  private set lastExecuteCommand (lastExecutedCommand: string) {
+  private set lastExecutedCommand (lastExecutedCommand: string) {
     this._lastExecutedCommand = lastExecutedCommand
     this.validate()
   }
@@ -93,7 +93,7 @@ export class RemoteConfigDataWrapper {
 
   addCommandToHistory (command: string) {
     this._commandHistory.push(command)
-    this._lastExecutedCommand = command
+    this.lastExecutedCommand = command
 
     if (this._commandHistory.length > constants.SOLO_REMOTE_CONFIG_MAX_COMMAND_IN_HISTORY) {
       this._commandHistory.shift()
@@ -107,11 +107,11 @@ export class RemoteConfigDataWrapper {
       throw new SoloError(`Invalid remote config version: ${this._version}`)
     }
 
-    if (!this.metadata) {
+    if (!this.metadata || !(this.metadata instanceof RemoteConfigMetadata)) {
       throw new SoloError(`Invalid remote config metadata: ${this.metadata}`)
     }
 
-    if (typeof this.lastExecutedCommand !== 'string') {
+    if (!this.lastExecutedCommand || typeof this.lastExecutedCommand !== 'string') {
       throw new SoloError(`Invalid remote config last executed command: ${this.lastExecutedCommand}`)
     }
 
@@ -122,11 +122,11 @@ export class RemoteConfigDataWrapper {
     Object.entries(this.clusters).forEach(([cluster, namespace]: [Cluster, Namespace]) => {
       const clusterDataString = `cluster: { name: ${cluster}, namespace: ${namespace} }`
 
-      if (typeof cluster !== 'string') {
+      if (!cluster || typeof cluster !== 'string') {
         throw new SoloError(`Invalid remote config clusters name: ${clusterDataString}`)
       }
 
-      if (typeof namespace !== 'string') {
+      if (!namespace || typeof namespace !== 'string') {
         throw new SoloError(`Invalid remote config clusters namespace: ${clusterDataString}`)
       }
     })

@@ -17,11 +17,13 @@
 import { expect } from 'chai'
 import { describe, it } from 'mocha'
 
+import yaml from 'js-yaml'
 import { RemoteConfigDataWrapper } from '../../../../src/core/config/remote/remote_config_data_wrapper.ts'
 import { createMetadata } from './metadata.test.ts'
 import { createComponentsDataWrapper } from './components_data_wrapper.test.ts'
-import { RemoteConfigMetadata } from "../../../../src/core/config/remote/metadata.js";
-import { ComponentsDataWrapper } from "../../../../src/core/config/remote/components_data_wrapper.js";
+import { SoloError } from '../../../../src/core/errors.ts'
+import * as constants from '../../../../src/core/constants.ts'
+
 
 function createRemoteConfigDataWrapper () {
 
@@ -55,18 +57,46 @@ describe('RemoteConfigDataWrapper', () => {
 
     expect(dataWrapper.lastExecutedCommand).to.equal(command)
     expect(dataWrapper.commandHistory).to.include(command)
+
+    it ('should be able to handle overflow', () => {
+      for (let i = 0; i < constants.SOLO_REMOTE_CONFIG_MAX_COMMAND_IN_HISTORY; i ++) {
+        dataWrapper.addCommandToHistory(command)
+      }
+    })
   })
 
-  it('', () => {
+  it('should successfully be able to parse yaml and create instance with fromConfigmap()', () => {
     const { dataWrapper } = createRemoteConfigDataWrapper()
     const dataWrapperObject = dataWrapper.toObject()
 
-    new RemoteConfigDataWrapper({
-      metadata: RemoteConfigMetadata.fromObject(dataWrapperObject.metadata),
-      components: ComponentsDataWrapper.fromObject(dataWrapperObject.components as any),
+    const yamlData = yaml.dump({
+      metadata: dataWrapperObject.metadata,
+      components: dataWrapperObject.components as any,
       clusters: dataWrapperObject.clusters,
       commandHistory: dataWrapperObject.commandHistory,
       lastExecutedCommand: dataWrapperObject.lastExecutedCommand,
     })
+
+    // @ts-ignore
+    RemoteConfigDataWrapper.fromConfigmap({ data: { 'remote-config-data': yamlData } })
+  })
+
+  it('should fail if invalid data is passed to setters', () => {
+    const { dataWrapper } = createRemoteConfigDataWrapper()
+
+    // @ts-ignore
+    expect(() => dataWrapper.commandHistory = '').to.throw(SoloError) // @ts-ignore
+    expect(() => dataWrapper.lastExecutedCommand = '').to.throw(SoloError) // @ts-ignore
+    expect(() => dataWrapper.lastExecutedCommand = 1).to.throw(SoloError) // @ts-ignore
+    expect(() => dataWrapper.clusters = 1).to.throw(SoloError) // @ts-ignore
+    expect(() => dataWrapper.clusters = '').to.throw(SoloError) // @ts-ignore
+    expect(() => dataWrapper.components = 1).to.throw(SoloError) // @ts-ignore
+    expect(() => dataWrapper.components = '').to.throw(SoloError) // @ts-ignore
+    expect(() => dataWrapper.metadata = null).to.throw(SoloError) // @ts-ignore
+    expect(() => dataWrapper.metadata = {}).to.throw(SoloError) // @ts-ignore
+
+    expect(() => dataWrapper.clusters = { null: null }).to.throw(SoloError)
+    expect(() => dataWrapper.clusters = { 'namespace': null }).to.throw(SoloError)
+    expect(() => dataWrapper.clusters = { null: 'namespace' }).to.throw(SoloError)
   })
 })

@@ -76,7 +76,7 @@ export const namespace: CommandFlag = {
 }
 
 export const contextCluster: CommandFlag = {
-  constName: 'contextCluster',
+  constName: 'contextClusterUnparsed',
   name: 'context-cluster',
   definition: {
     describe: 'Context cluster mapping where context is key = value is cluster and comma delimited if more than one, ' +

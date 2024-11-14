@@ -164,6 +164,7 @@ describe('ComponentsDataWrapper', () => {
 
     componentsDataWrapper.remove(serviceName, ComponentTypeEnum.Relay)
 
+    // @ts-ignore
     expect(componentsDataWrapper.relays).not.to.have.own.property(serviceName)
   })
 

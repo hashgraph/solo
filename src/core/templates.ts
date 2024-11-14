@@ -22,6 +22,7 @@ import { constants } from './index.ts'
 import { type AccountId } from '@hashgraph/sdk'
 import type { NodeAlias, PodName } from '../types/aliases.ts'
 import { GrpcProxyTlsEnums } from './enumerations.ts'
+import type { ContextClusterStructure } from '../types/index.ts'
 
 export class Templates {
   public static renderNetworkPodName (nodeAlias: NodeAlias): PodName {
@@ -219,5 +220,20 @@ export class Templates {
       case GrpcProxyTlsEnums.GRPC_WEB:
         return { 'envoy-proxy-secret': nodeAlias }
     }
+  }
+
+  static parseContextCluster (unparsed: string): ContextClusterStructure {
+    const [context, unparsedClusters] = unparsed.split('=')
+    if (!context || typeof context !== 'string') {
+      throw new SoloError('Invalid context in context-cluster')
+    }
+
+    if (!unparsedClusters || typeof unparsedClusters !== 'string') {
+      throw new SoloError('Invalid context in context-cluster')
+    }
+
+    const clusters = unparsedClusters.split(',')
+
+    return { context, clusters }
   }
 }

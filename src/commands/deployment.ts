@@ -18,9 +18,10 @@ import { Listr } from 'listr2'
 import { SoloError } from '../core/errors.ts'
 import { BaseCommand } from './base.ts'
 import * as flags from './flags.ts'
-import { constants } from '../core/index.ts'
+import { constants, Templates } from '../core/index.ts'
 import * as prompts from './prompts.ts'
 import type { Namespace } from '../core/config/remote/types.ts'
+import { ContextClusterStructure } from "../types/index.js";
 
 export class DeploymentCommand extends BaseCommand {
   static CREATE_DEPLOYMENT_NAME = 'createDeployment'
@@ -33,7 +34,7 @@ export class DeploymentCommand extends BaseCommand {
     const self = this
     const lease = self.leaseManager.instantiateLease()
 
-    interface Config { namespace: Namespace; contextCluster: string }
+    interface Config { namespace: Namespace; contextClusterUnparsed: string, contextCluster: ContextClusterStructure }
     interface Context { config: Config }
 
     const tasks = new Listr<Context>([
@@ -49,6 +50,8 @@ export class DeploymentCommand extends BaseCommand {
 
           ctx.config = self.getConfig(DeploymentCommand.CREATE_DEPLOYMENT_NAME, DeploymentCommand.DEPLOY_FLAGS_LIST) as Config
 
+          ctx.config.contextCluster = Templates.parseContextCluster(ctx.config.contextClusterUnparsed)
+
           const namespace = ctx.config.namespace
 
           if (await self.k8.hasNamespace(namespace)) {
@@ -62,7 +65,7 @@ export class DeploymentCommand extends BaseCommand {
           return lease.buildAcquireTask(task)
         }
       },
-      self.remoteConfigManager.buildCreateRemoteConfigTask('CONTEXT', ['CLUSTER']), // TODO
+      self.remoteConfigManager.buildCreateRemoteConfigTask()
     ], {
       concurrent: false,
       rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION

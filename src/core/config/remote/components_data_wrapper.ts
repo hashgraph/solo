@@ -23,7 +23,7 @@ import {
 import type { Component, IConsensusNodeComponent, IRelayComponent, ServiceName } from './types.ts'
 
 export class ComponentsDataWrapper {
-  private constructor (
+  constructor (
     private readonly consensusNodes: Record<ServiceName, ConsensusNodeComponent> = {},
     private readonly haProxies: Record<ServiceName, HaProxyComponent> = {},
     private readonly envoyProxies: Record<ServiceName, EnvoyProxyComponent> = {},

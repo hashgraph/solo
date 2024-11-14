@@ -21,13 +21,17 @@ import chalk from 'chalk'
 import { RemoteConfigMetadata } from './metadata.ts'
 import { flags } from '../../../commands/index.ts'
 import yaml from 'js-yaml'
+import { ComponentsDataWrapper } from './components_data_wrapper.ts'
 import type { K8 } from '../../k8.ts'
-import type { Cluster, Context, Namespace, RemoteConfigData } from './types.ts'
+import type { Cluster, Namespace, RemoteConfigData } from './types.ts'
 import type { SoloLogger } from '../../logging.ts'
 import type { ListrTaskWrapper } from 'listr2'
 import type { ConfigManager } from '../../config_manager.ts'
 import type { LocalConfig } from '../LocalConfig.ts'
 import type { DeploymentStructure } from '../LocalConfigData.ts'
+import type { ContextClusterStructure } from '../../../types/index.ts'
+
+interface ListrContext { config: { contextCluster: ContextClusterStructure } }
 
 export class RemoteConfigManager {
   private remoteConfig?: RemoteConfigDataWrapper
@@ -49,14 +53,7 @@ export class RemoteConfigManager {
     await this.write()
   }
 
-  private async initializeDefault () {
-    const localConfigExists = this.localConfig.configFileExists()
-    if (!localConfigExists) {
-      const errorMessage = 'Local config doesn\'t exist'
-      this.logger.error(errorMessage)
-      throw new SoloError(errorMessage)
-    }
-
+  async create () {
     const namespace = this.getNamespace()
 
     const metadata = new RemoteConfigMetadata(
@@ -67,29 +64,18 @@ export class RemoteConfigManager {
 
     const clusters: Record<Cluster, Namespace> = {}
 
-    Object.entries(this.localConfig.deployments).forEach(([ns, deployment]: [Namespace, DeploymentStructure]) => {
-      deployment.clusters.forEach(cluster => clusters[cluster] = ns)
-    })
+    Object.entries(this.localConfig.deployments)
+      .forEach(([namespace, deployment]: [Namespace, DeploymentStructure]) => {
+        deployment.clusters.forEach(cluster => clusters[cluster] = namespace)
+      })
 
-    const data: RemoteConfigData = {
+    this.remoteConfig = new RemoteConfigDataWrapper({
       metadata,
       clusters,
-      components: {} as any,
-      lastExecutedCommand: '',
-      commandHistory: []
-    }
-
-    this.remoteConfig = new RemoteConfigDataWrapper(data)
-  }
-
-  async create () {
-    await this.initializeDefault()
-
-    if (!this.remoteConfig) {
-      const errorMessage = 'Attempted to create remote config without data'
-      this.logger.error(errorMessage, this.remoteConfig)
-      throw new SoloError(errorMessage, undefined, this.remoteConfig)
-    }
+      components: new ComponentsDataWrapper(),
+      lastExecutedCommand: 'deployment create',
+      commandHistory: [ 'deployment create' ]
+    })
 
     await this.k8.createNamespacedConfigMap(
       constants.SOLO_REMOTE_CONFIGMAP_NAME,
@@ -160,24 +146,37 @@ export class RemoteConfigManager {
     }
   }
 
-  buildCreateRemoteConfigTask (context: Context, clusters: Cluster[]) {
-    const self = this
+  buildCreateRemoteConfigTask () {
+    const remoteConfigManager = this
 
     return {
-      title: ' Create remote config',
-      task: async (_: any, task: ListrTaskWrapper<any, any, any>) => {
-        const baseTitle = task.title
+        title: 'Create remote config',
+        task: async (ctx: ListrContext, task: ListrTaskWrapper<ListrContext, any, any>) => {
+          const baseTitle = task.title
 
-        const isConfigLoaded = await self.load()
-        if (isConfigLoaded) {
-          task.title = `${baseTitle} - ${chalk.red('Remote config already exists')}}`
+          const localConfigExists = this.localConfig.configFileExists()
+          if (!localConfigExists) {
+            const errorMessage = 'Local config doesn\'t exist'
+            this.logger.error(errorMessage)
+            throw new SoloError(errorMessage)
+          }
 
-          throw new SoloError('Remote config already exists')
+          const { context, clusters } = ctx.config.contextCluster
+
+          clusters.forEach((cluster: Cluster) => {
+            remoteConfigManager.localConfig.clusterMappings[context] = cluster
+          })
+
+          const isConfigLoaded = await remoteConfigManager.load()
+          if (isConfigLoaded) {
+            task.title = `${baseTitle} - ${chalk.red('Remote config already exists')}}`
+
+            throw new SoloError('Remote config already exists')
+          }
+
+          await remoteConfigManager.create()
         }
-
-        await self.create()
       }
-    }
   }
 
   private getNamespace (): string {
