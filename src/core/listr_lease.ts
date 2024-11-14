@@ -15,9 +15,9 @@
  *
  */
 import { type ListrTaskWrapper } from 'listr2'
-import { type Lease } from './lease.js'
 import chalk from 'chalk'
-import { LeaseAcquisitionError } from './lease_errors.js'
+import { type Lease } from './lease.ts'
+import { LeaseAcquisitionError } from './lease_errors.ts'
 
 
 export class ListrLease {
@@ -57,7 +57,7 @@ export class ListrLease {
                     `, attempt: ${chalk.cyan((attempt + 1).toString())}/${chalk.cyan(maxAttempts.toString())}`
                 return
             } catch (e: LeaseAcquisitionError | any) {
-                task.title = `${title} - ${chalk.gray(`lease exists, attempting again in ${lease.DurationSeconds} seconds`)}` +
+                task.title = `${title} - ${chalk.gray(`lease exists, attempting again in ${lease.durationSeconds} seconds`)}` +
                     `, attempt: ${chalk.cyan((attempt + 1).toString())}/${chalk.cyan(maxAttempts.toString())}`
 
                 if (attempt >= maxAttempts) {

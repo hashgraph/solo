@@ -14,50 +14,50 @@
  * limitations under the License.
  *
  */
-import { MissingArgumentError, SoloError } from './errors.ts'
+import { MissingArgumentError } from './errors.ts'
 import { flags } from '../commands/index.ts'
 import type { ConfigManager } from './config_manager.ts'
 import type { K8 } from './k8.ts'
 import type { SoloLogger } from './logging.ts'
-import { type LeaseRenewalService } from './lease_renewal.js'
-import { Lease } from './lease.js'
-import { LeaseHolder } from './lease_holder.js'
-import { LeaseAcquisitionError } from './lease_errors.js'
+import { type LeaseRenewalService } from './lease_renewal.ts'
+import { Lease } from './lease.ts'
+import { LeaseHolder } from './lease_holder.ts'
+import { LeaseAcquisitionError } from './lease_errors.ts'
 
 export class LeaseManager {
   constructor (
-    private readonly k8: K8,
-    private readonly logger: SoloLogger,
-    private readonly configManager: ConfigManager,
-    private readonly renewalService: LeaseRenewalService
+    private readonly _k8: K8,
+    private readonly _logger: SoloLogger,
+    private readonly _configManager: ConfigManager,
+    private readonly _renewalService: LeaseRenewalService
   ) {
-    if (!k8) throw new MissingArgumentError('an instance of core/K8 is required')
-    if (!logger) throw new MissingArgumentError('an instance of core/SoloLogger is required')
-    if (!configManager) throw new MissingArgumentError('an instance of core/ConfigManager is required')
-    if (!renewalService) throw new MissingArgumentError('an instance of core/LeaseRenewalService is required')
+    if (!_k8) throw new MissingArgumentError('an instance of core/K8 is required')
+    if (!_logger) throw new MissingArgumentError('an instance of core/SoloLogger is required')
+    if (!_configManager) throw new MissingArgumentError('an instance of core/ConfigManager is required')
+    if (!_renewalService) throw new MissingArgumentError('an instance of core/LeaseRenewalService is required')
   }
 
   public async create (): Promise<Lease> {
-    return new Lease(this.k8, this.renewalService, LeaseHolder.default(), await this.currentNamespace())
+    return new Lease(this._k8, this._renewalService, LeaseHolder.default(), await this.currentNamespace())
   }
 
-  public get RenewalService (): LeaseRenewalService {
-    return this.renewalService
+  public get renewalService (): LeaseRenewalService {
+    return this._renewalService
   }
 
-  public get Logger (): SoloLogger {
-    return this.logger
+  public get logger (): SoloLogger {
+    return this._logger
   }
 
   private async currentNamespace (): Promise<string> {
-    const namespace = this.configManager.getFlag<string>(flags.namespace)
+    const namespace = this._configManager.getFlag<string>(flags.namespace)
     if (!namespace) return null
 
 
-    if (!await this.k8.hasNamespace(namespace)) {
-      await this.k8.createNamespace(namespace)
+    if (!await this._k8.hasNamespace(namespace)) {
+      await this._k8.createNamespace(namespace)
 
-      if (!await this.k8.hasNamespace(namespace)) {
+      if (!await this._k8.hasNamespace(namespace)) {
         throw new LeaseAcquisitionError(`failed to create the '${namespace}' namespace`)
       }
     }

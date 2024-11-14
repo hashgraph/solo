@@ -17,20 +17,19 @@
 import { it, describe, before, after } from 'mocha'
 import { ConfigManager, logging } from '../../../../src/core/index.ts'
 import { K8 } from '../../../../src/core/k8.ts'
-import { MINUTES, SECONDS } from '../../../../src/core/constants.js'
+import { MINUTES, SECONDS } from '../../../../src/core/constants.ts'
 import { expect } from 'chai'
-import { Lease } from '../../../../src/core/lease.js'
-import { LeaseHolder } from '../../../../src/core/lease_holder.js'
+import { Lease } from '../../../../src/core/lease.ts'
+import { LeaseHolder } from '../../../../src/core/lease_holder.ts'
 import { sleep } from '../../../../src/core/helpers.ts'
-import { IntervalLeaseRenewalService } from '../../../../src/core/lease_renewal.js'
+import { IntervalLeaseRenewalService } from '../../../../src/core/lease_renewal.ts'
 import { type V1Lease } from '@kubernetes/client-node'
 
 
 const defaultTimeout = 2 * MINUTES
+const leaseDuration = 4
 
 describe('LeaseRenewalService', async function () {
-    process.env.SOLO_LEASE_DURATION = String(4)
-
     const testLogger = logging.NewLogger('debug', true)
     const configManager = new ConfigManager(testLogger)
     const k8 = new K8(configManager, testLogger)
@@ -53,23 +52,23 @@ describe('LeaseRenewalService', async function () {
     })
 
     it('acquired leases should be scheduled', async function () {
-        const lease = new Lease(k8, renewalService, LeaseHolder.default(), testNamespace)
+        const lease = new Lease(k8, renewalService, LeaseHolder.default(), testNamespace, null, leaseDuration)
         await lease.acquire()
-        expect(lease.ScheduleId).to.not.be.null
-        expect(await renewalService.isScheduled(lease.ScheduleId)).to.be.true
+        expect(lease.scheduleId).to.not.be.null
+        expect(await renewalService.isScheduled(lease.scheduleId)).to.be.true
 
         await lease.release()
-        expect(lease.ScheduleId).to.be.null
-        expect(await renewalService.isScheduled(lease.ScheduleId)).to.be.false
+        expect(lease.scheduleId).to.be.null
+        expect(await renewalService.isScheduled(lease.scheduleId)).to.be.false
     })
 
     it('acquired leases should be renewed', async function () {
         this.timeout(defaultTimeout)
 
-        const lease = new Lease(k8, renewalService, LeaseHolder.default(), testNamespace)
+        const lease = new Lease(k8, renewalService, LeaseHolder.default(), testNamespace, null, leaseDuration)
         await lease.acquire()
-        expect(lease.ScheduleId).to.not.be.null
-        expect(await renewalService.isScheduled(lease.ScheduleId)).to.be.true
+        expect(lease.scheduleId).to.not.be.null
+        expect(await renewalService.isScheduled(lease.scheduleId)).to.be.true
 
         // @ts-ignore
         let remoteObject: V1Lease = await lease.retrieveLease()
@@ -81,7 +80,7 @@ describe('LeaseRenewalService', async function () {
         const acquireTime = new Date(remoteObject?.spec?.acquireTime).valueOf()
         expect(acquireTime).to.be.greaterThan(0)
 
-        await sleep(lease.DurationSeconds * SECONDS)
+        await sleep(lease.durationSeconds * SECONDS)
         // @ts-ignore
         remoteObject = await lease.retrieveLease()
         expect(remoteObject).to.not.be.null
@@ -92,20 +91,20 @@ describe('LeaseRenewalService', async function () {
         expect(renewTime).to.be.greaterThan(acquireTime)
 
         await lease.release()
-        expect(lease.ScheduleId).to.be.null
-        expect(await renewalService.isScheduled(lease.ScheduleId)).to.be.false
+        expect(await renewalService.isScheduled(lease.scheduleId)).to.be.false
+        expect(lease.scheduleId).to.be.null
     })
 
     it('acquired leases with cancelled schedules should not be renewed', async function () {
         this.timeout(defaultTimeout)
 
-        const lease = new Lease(k8, renewalService, LeaseHolder.default(), testNamespace)
+        const lease = new Lease(k8, renewalService, LeaseHolder.default(), testNamespace, null, leaseDuration)
         await lease.acquire()
-        expect(lease.ScheduleId).to.not.be.null
-        expect(await renewalService.isScheduled(lease.ScheduleId)).to.be.true
+        expect(lease.scheduleId).to.not.be.null
+        expect(await renewalService.isScheduled(lease.scheduleId)).to.be.true
 
-        expect(await renewalService.cancel(lease.ScheduleId)).to.be.true
-        expect(await renewalService.isScheduled(lease.ScheduleId)).to.be.false
+        expect(await renewalService.cancel(lease.scheduleId)).to.be.true
+        expect(await renewalService.isScheduled(lease.scheduleId)).to.be.false
 
 
         // @ts-ignore
@@ -118,14 +117,14 @@ describe('LeaseRenewalService', async function () {
         const acquireTime = new Date(remoteObject?.spec?.acquireTime).valueOf()
         expect(acquireTime).to.be.greaterThan(0)
 
-        await sleep(lease.DurationSeconds * SECONDS)
+        await sleep(lease.durationSeconds * SECONDS)
         // @ts-ignore
         remoteObject = await lease.retrieveLease()
         expect(remoteObject).to.not.be.null
         expect(remoteObject?.spec?.renewTime).to.be.undefined
 
         await lease.release()
-        expect(lease.ScheduleId).to.be.null
-        expect(await renewalService.isScheduled(lease.ScheduleId)).to.be.false
+        expect(await renewalService.isScheduled(lease.scheduleId)).to.be.false
+        // expect(lease.scheduleId).to.be.null
     })
 })

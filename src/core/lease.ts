@@ -14,74 +14,95 @@
  * limitations under the License.
  *
  */
-import { MissingArgumentError, SoloError } from './errors.js'
+import { MissingArgumentError, SoloError } from './errors.ts'
 import { type V1Lease } from '@kubernetes/client-node'
-import { type K8 } from './k8.js'
-import { SECONDS } from './constants.js'
-import { LeaseHolder } from './lease_holder.js'
-import { LeaseAcquisitionError, LeaseRelinquishmentError } from './lease_errors.js'
+import { type K8 } from './k8.ts'
+import { SECONDS } from './constants.ts'
+import { LeaseHolder } from './lease_holder.ts'
+import { LeaseAcquisitionError, LeaseRelinquishmentError } from './lease_errors.ts'
 import { type LeaseRenewalService } from './lease_renewal.ts'
+import { sleep } from './helpers.ts'
 
 export class Lease {
     public static readonly DEFAULT_LEASE_DURATION = 20
 
-    private readonly leaseName: string
-    private readonly durationSeconds: number
+    private readonly _client: K8
+    private readonly _renewalService: LeaseRenewalService
+    private readonly _leaseHolder: LeaseHolder
+    private readonly _namespace: string
 
-    private scheduleId: number | null = null
+    private readonly _leaseName: string
+    private readonly _durationSeconds: number
 
-    public constructor (private readonly client: K8,
-                        private readonly renewalService: LeaseRenewalService,
-                        private readonly leaseHolder: LeaseHolder,
-                        private readonly namespace: string,
-                        leaseName: string = null) {
-        if (!client) throw new MissingArgumentError('client is required')
-        if (!renewalService) throw new MissingArgumentError('renewalService is required')
-        if (!leaseHolder) throw new MissingArgumentError('leaseHolder is required')
-        if (!namespace) throw new MissingArgumentError('namespace is required')
+    private _scheduleId: number | null = null
+
+    public constructor (client: K8,
+                        renewalService: LeaseRenewalService,
+                        leaseHolder: LeaseHolder,
+                        namespace: string,
+                        leaseName: string | null = null,
+                        durationSeconds: number | null = null) {
+        if (!client) throw new MissingArgumentError('_client is required')
+        if (!renewalService) throw new MissingArgumentError('_renewalService is required')
+        if (!leaseHolder) throw new MissingArgumentError('_leaseHolder is required')
+        if (!namespace) throw new MissingArgumentError('_namespace is required')
+
+        this._client = client
+        this._renewalService = renewalService
+        this._leaseHolder = leaseHolder
+        this._namespace = namespace
 
         if (!leaseName) {
-            this.leaseName = this.namespace
+            this._leaseName = this._namespace
         }
 
-        this.durationSeconds = +process.env.SOLO_LEASE_DURATION || Lease.DEFAULT_LEASE_DURATION
+        // In most production cases, the environment variable should be preferred over the constructor argument.
+        if (!durationSeconds) {
+            this._durationSeconds = +process.env.SOLO_LEASE_DURATION || Lease.DEFAULT_LEASE_DURATION
+        } else {
+            this._durationSeconds = durationSeconds
+        }
     }
 
-    public get LeaseName (): string {
-        return this.leaseName
+    public get leaseName (): string {
+        return this._leaseName
     }
 
-    public get LeaseHolder (): LeaseHolder {
-        return this.leaseHolder
+    public get leaseHolder (): LeaseHolder {
+        return this._leaseHolder
     }
 
-    public get Namespace (): string {
-        return this.namespace
+    public get namespace (): string {
+        return this._namespace
     }
 
-    public get DurationSeconds (): number {
-        return this.durationSeconds
+    public get durationSeconds (): number {
+        return this._durationSeconds
     }
 
-    public get ScheduleId (): number | null {
-        return this.scheduleId
+    public get scheduleId (): number | null {
+        return this._scheduleId
+    }
+
+    private set scheduleId (scheduleId: number | null) {
+        this._scheduleId = scheduleId
     }
 
     public async acquire (): Promise<void> {
         const lease = await this.retrieveLease()
 
-        if (!lease || Lease.expired(lease) || this.heldBySameProcess(lease)) {
+        if (!lease || Lease.checkExpiration(lease) || this.heldBySameProcess(lease)) {
             return this.createOrRenewLease(lease)
         }
 
         const otherHolder: LeaseHolder = LeaseHolder.fromJson(lease.spec.holderIdentity)
 
-        if (this.heldBySameIdentity(lease) && !otherHolder.isProcessAlive()) {
+        if (this.heldBySameMachineIdentity(lease) && !otherHolder.isProcessAlive()) {
             return await this.transferLease(lease)
         }
 
-        throw new LeaseAcquisitionError(`lease already acquired by '${otherHolder.Username}' on the ` +
-            `'${otherHolder.Hostname}' machine (PID: '${otherHolder.ProcessId}')`, null,
+        throw new LeaseAcquisitionError(`lease already acquired by '${otherHolder.username}' on the ` +
+            `'${otherHolder.hostname}' machine (PID: '${otherHolder.processId}')`, null,
             { self: this.leaseHolder.toObject(), other: otherHolder.toObject() })
     }
 
@@ -101,9 +122,9 @@ export class Lease {
             return await this.createOrRenewLease(lease)
         }
 
-        throw new LeaseAcquisitionError(`lease already acquired by '${this.leaseHolder.Username}' on the ` +
-            `'${this.leaseHolder.Hostname}' machine (PID: '${this.leaseHolder.ProcessId}')`, null,
-            { self: this.leaseHolder.toObject(), other: this.leaseHolder.toObject() })
+        throw new LeaseAcquisitionError(`lease already acquired by '${this._leaseHolder.username}' on the ` +
+            `'${this._leaseHolder.hostname}' machine (PID: '${this._leaseHolder.processId}')`, null,
+            { self: this._leaseHolder.toObject(), other: this._leaseHolder.toObject() })
     }
 
     public async tryRenew (): Promise<boolean> {
@@ -118,10 +139,14 @@ export class Lease {
     public async release (): Promise<void> {
         const lease = await this.retrieveLease()
 
-        if (this.ScheduleId) {
-            await this.renewalService.cancel(this.ScheduleId)
-            this.scheduleId = null
+        if (this.scheduleId) {
+            await this._renewalService.cancel(this.scheduleId)
+            // Needed to ensure any pending renewals are truly cancelled before proceeding to delete the Lease.
+            // This is required because clearInterval() is not guaranteed to abort any pending interval.
+            await sleep(this._renewalService.calculateRenewalDelay(this))
         }
+
+        this.scheduleId = null
 
         if (!lease) {
             return
@@ -129,13 +154,13 @@ export class Lease {
 
         const otherHolder: LeaseHolder = LeaseHolder.fromJson(lease.spec.holderIdentity)
 
-        if (this.heldBySameProcess(lease) || Lease.expired(lease)) {
+        if (this.heldBySameProcess(lease) || Lease.checkExpiration(lease)) {
             return await this.deleteLease()
         }
 
-        throw new LeaseRelinquishmentError(`lease already acquired by '${otherHolder.Username}' on the ` +
-            `'${otherHolder.Hostname}' machine (PID: '${otherHolder.ProcessId}')`, null,
-            { self: this.leaseHolder.toObject(), other: otherHolder.toObject() })
+        throw new LeaseRelinquishmentError(`lease already acquired by '${otherHolder.username}' on the ` +
+            `'${otherHolder.hostname}' machine (PID: '${otherHolder.processId}')`, null,
+            { self: this._leaseHolder.toObject(), other: otherHolder.toObject() })
     }
 
     public async tryRelease (): Promise<boolean> {
@@ -149,21 +174,21 @@ export class Lease {
 
     public async isAcquired (): Promise<boolean> {
         const lease = await this.retrieveLease()
-        return !!lease && !Lease.expired(lease) && this.heldBySameProcess(lease)
+        return !!lease && !Lease.checkExpiration(lease) && this.heldBySameProcess(lease)
     }
 
     public async isExpired (): Promise<boolean> {
         const lease = await this.retrieveLease()
-        return !!lease && Lease.expired(lease)
+        return !!lease && Lease.checkExpiration(lease)
     }
 
     private async retrieveLease (): Promise<V1Lease> {
         try {
-            return await this.client.readNamespacedLease(this.LeaseName, this.Namespace)
+            return await this._client.readNamespacedLease(this.leaseName, this.namespace)
         } catch (e: any) {
             if (!(e instanceof SoloError)) {
-                throw new LeaseAcquisitionError(`failed to read the lease named '${this.LeaseName}' in the ` +
-                    `'${this.Namespace}' namespace, caused by: ${e.message}`, e)
+                throw new LeaseAcquisitionError(`failed to read the lease named '${this.leaseName}' in the ` +
+                    `'${this.namespace}' namespace, caused by: ${e.message}`, e)
             }
 
             if (e.meta.statusCode !== 404) {
@@ -178,43 +203,43 @@ export class Lease {
     private async createOrRenewLease (lease: V1Lease): Promise<void> {
         try {
             if (!lease) {
-                await this.client.createNamespacedLease(this.LeaseName, this.Namespace, this.LeaseHolder.toJson(), this.DurationSeconds)
+                await this._client.createNamespacedLease(this.leaseName, this.namespace, this.leaseHolder.toJson(), this.durationSeconds)
             } else {
-                await this.client.renewNamespaceLease(this.LeaseName, this.Namespace, lease)
+                await this._client.renewNamespaceLease(this.leaseName, this.namespace, lease)
             }
 
             if (!this.scheduleId) {
-                this.scheduleId = await this.renewalService.schedule(this)
+                this.scheduleId = await this._renewalService.schedule(this)
             }
         } catch (e: any) {
-            throw new LeaseAcquisitionError(`failed to create or renew the lease named '${this.LeaseName}' in the ` +
-                `'${this.Namespace}' namespace`, e)
+            throw new LeaseAcquisitionError(`failed to create or renew the lease named '${this.leaseName}' in the ` +
+                `'${this.namespace}' namespace`, e)
         }
     }
 
     private async transferLease (lease: V1Lease): Promise<void> {
         try {
-            await this.client.transferNamespaceLease(lease, this.LeaseHolder.toJson())
+            await this._client.transferNamespaceLease(lease, this.leaseHolder.toJson())
 
-            if (!this.scheduleId) {
-                this.scheduleId = await this.renewalService.schedule(this)
+            if (!this._scheduleId) {
+                this._scheduleId = await this._renewalService.schedule(this)
             }
         } catch (e: any) {
-            throw new LeaseAcquisitionError(`failed to transfer the lease named '${this.LeaseName}' in the ` +
-                `'${this.Namespace}' namespace`, e)
+            throw new LeaseAcquisitionError(`failed to transfer the lease named '${this.leaseName}' in the ` +
+                `'${this.namespace}' namespace`, e)
         }
     }
 
     private async deleteLease (): Promise<void> {
         try {
-            await this.client.deleteNamespacedLease(this.LeaseName, this.Namespace)
+            await this._client.deleteNamespacedLease(this.leaseName, this.namespace)
         } catch (e: any) {
-            throw new LeaseRelinquishmentError(`failed to delete the lease named '${this.LeaseName}' in the ` +
-                `'${this.Namespace}' namespace`, e)
+            throw new LeaseRelinquishmentError(`failed to delete the lease named '${this.leaseName}' in the ` +
+                `'${this.namespace}' namespace`, e)
         }
     }
 
-    private static expired (lease: V1Lease): boolean {
+    private static checkExpiration (lease: V1Lease): boolean {
         const now = Date.now()
         const durationSec = lease.spec.leaseDurationSeconds || Lease.DEFAULT_LEASE_DURATION
         const lastRenewal = lease.spec?.renewTime || lease.spec?.acquireTime
@@ -224,12 +249,12 @@ export class Lease {
 
     private heldBySameProcess (lease: V1Lease): boolean {
         const holder: LeaseHolder = LeaseHolder.fromJson(lease.spec.holderIdentity)
-        return this.LeaseHolder.equals(holder)
+        return this.leaseHolder.equals(holder)
     }
 
-    private heldBySameIdentity (lease: V1Lease): boolean {
+    private heldBySameMachineIdentity (lease: V1Lease): boolean {
         const holder: LeaseHolder = LeaseHolder.fromJson(lease.spec.holderIdentity)
-        return this.LeaseHolder.isSameIdentity(holder)
+        return this.leaseHolder.isSameMachineIdentity(holder)
     }
 }
 

@@ -14,7 +14,7 @@
  * limitations under the License.
  *
  */
-import { SoloError } from './errors.js'
+import { SoloError } from './errors.ts'
 
 export class LeaseAcquisitionError extends SoloError {
     /**

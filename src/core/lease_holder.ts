@@ -15,15 +15,23 @@
  *
  */
 
-import { MissingArgumentError } from './errors.js'
+import { MissingArgumentError } from './errors.ts'
 import os from 'node:os'
 import process from 'node:process'
 
 export class LeaseHolder {
-    private constructor (private readonly username: string, private readonly hostname: string, private readonly processId: number) {
+    private readonly _username: string
+    private readonly _hostname: string
+    private readonly _processId: number
+
+    private constructor (username: string, hostname: string, processId: number) {
         if (!username) throw new MissingArgumentError('username is required')
         if (!hostname) throw new MissingArgumentError('hostname is required')
         if (!processId) throw new MissingArgumentError('pid is required')
+
+        this._username = username
+        this._hostname = hostname
+        this._processId = processId
     }
 
     public static of (username: string): LeaseHolder {
@@ -34,37 +42,37 @@ export class LeaseHolder {
         return LeaseHolder.of(os.userInfo().username)
     }
 
-    public get Username (): string {
-        return this.username
+    public get username (): string {
+        return this._username
     }
 
-    public get Hostname (): string {
-        return this.hostname
+    public get hostname (): string {
+        return this._hostname
     }
 
-    public get ProcessId (): number {
-        return this.processId
+    public get processId (): number {
+        return this._processId
     }
 
     public toObject (): any {
         return {
-            username: this.username,
-            hostname: this.hostname,
-            pid: this.processId
+            username: this._username,
+            hostname: this._hostname,
+            pid: this._processId
         }
     }
 
     public equals (other: LeaseHolder): boolean {
-        return this.Username === other.Username && this.Hostname === other.Hostname && this.ProcessId === other.ProcessId
+        return this.username === other.username && this.hostname === other.hostname && this.processId === other.processId
     }
 
-    public isSameIdentity (other: LeaseHolder): boolean {
-        return this.Username === other.Username && this.Hostname === other.Hostname
+    public isSameMachineIdentity (other: LeaseHolder): boolean {
+        return this.username === other.username && this.hostname === other.hostname
     }
 
     public isProcessAlive (): boolean {
         try {
-            return process.kill(this.ProcessId, 0)
+            return process.kill(this.processId, 0)
         } catch (e: any) {
             return e.code === 'EPERM'
         }

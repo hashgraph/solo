@@ -14,82 +14,59 @@
  * limitations under the License.
  *
  */
-import { type Lease } from './lease.js'
-import { type K8 } from './k8.js'
-import { SECONDS } from './constants.js'
+import { type Lease } from './lease.ts'
+import { SECONDS } from './constants.ts'
 
 export interface LeaseRenewalService {
     isScheduled (scheduleId: number): Promise<boolean>
     schedule (lease: Lease): Promise<number>
     cancel (scheduleId: number): Promise<boolean>
     cancelAll (): Promise<Map<number, boolean>>
-}
-
-export class NoopLeaseRenewalService implements LeaseRenewalService {
-    private readonly buffer: SharedArrayBuffer
-    private readonly counter: Uint32Array
-
-    public constructor () {
-        this.buffer = new SharedArrayBuffer(Uint32Array.BYTES_PER_ELEMENT)
-        this.counter = new Uint32Array(this.buffer)
-        Atomics.store(this.counter, 0, 1)
-    }
-
-    public async isScheduled (scheduleId: number): Promise<boolean> {
-        return scheduleId > 0
-    }
-
-    public async schedule (lease: Lease): Promise<number> {
-        return Atomics.add(this.counter, 0, 1)
-    }
-
-    public async cancel (scheduleId: number): Promise<boolean> {
-        return true
-    }
-
-    public async cancelAll (): Promise<Map<number, boolean>> {
-        return new Map<number, boolean>()
-    }
+    calculateRenewalDelay (lease: Lease): number
 }
 
 export class IntervalLeaseRenewalService implements LeaseRenewalService {
-    private readonly scheduledLeases: Map<number, Lease>
+    private readonly _scheduledLeases: Map<number, Lease>
 
     constructor () {
-        this.scheduledLeases = new Map<number, Lease>()
+        this._scheduledLeases = new Map<number, Lease>()
     }
 
     public async isScheduled (scheduleId: number): Promise<boolean> {
-        return this.scheduledLeases.has(scheduleId)
+        return this._scheduledLeases.has(scheduleId)
     }
 
     public async schedule (lease: Lease): Promise<number> {
-        const renewalDelay = Math.round(lease.DurationSeconds / 2) * SECONDS
+        const renewalDelay = this.calculateRenewalDelay(lease)
         const timeout = setInterval(() => lease.tryRenew(), renewalDelay)
         const scheduleId = Number(timeout)
 
-        this.scheduledLeases.set(scheduleId, lease)
+        this._scheduledLeases.set(scheduleId, lease)
         return scheduleId
     }
 
     public async cancel (scheduleId: number): Promise<boolean> {
         if (!scheduleId) return false
 
-        if (this.scheduledLeases.has(scheduleId)) {
+        if (this._scheduledLeases.has(scheduleId)) {
             clearInterval(scheduleId)
         }
 
-        return this.scheduledLeases.delete(scheduleId)
+        return this._scheduledLeases.delete(scheduleId)
     }
 
     public async cancelAll (): Promise<Map<number, boolean>> {
         const result = new Map<number, boolean>()
-        const keys = Array.from(this.scheduledLeases.keys())
+        const keys = Array.from(this._scheduledLeases.keys())
 
         for (const k of keys) {
             result.set(k, await this.cancel(k))
         }
 
         return result
+    }
+
+    public calculateRenewalDelay (lease: Lease): number {
+        return Math.round(lease.durationSeconds * 0.5) * SECONDS
     }
 }
