@@ -119,6 +119,24 @@ function start_contract_test ()
   cd -
 }
 
+function start_sdk_test ()
+{
+  echo "Create test account with solo network"
+  cd solo
+  npm run solo-test -- account create -n solo-jeffrey --hbar-amount 100 > test.log
+  export HEDERA_NETWORK="local-node"
+
+  # read test.log and extract the line contains "privateKey" and "accountId" to get the OPERATOR_KEY and OPERATOR_ID
+  export OPERATOR_KEY=$(grep "privateKey" test.log | awk '{print $2}' | sed 's/"//g'| sed 's/,//g')
+  export OPERATOR_ID=$(grep "accountId" test.log | awk '{print $2}' | sed 's/"//g'| sed 's/,//g')
+  rm test.log
+
+  cd ../hedera-sdk-js
+  node examples/create-topic.js
+  cd -
+}
+
+
 echo "Start install solo network with relay"
 task default-with-relay
 
@@ -132,3 +150,4 @@ clone_smart_contract_repo
 setup_smart_contract_test
 start_background_transactions
 start_contract_test
+start_sdk_test
