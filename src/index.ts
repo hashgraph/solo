@@ -58,8 +58,8 @@ export function main (argv: any) {
     const platformInstaller = new PlatformInstaller(logger, k8, configManager)
     const keyManager = new KeyManager(logger)
     const profileManager = new ProfileManager(logger, configManager)
-    const leaseRenewalService: LeaseRenewalService = new IntervalLeaseRenewalService(k8)
-    const leaseManager = new LeaseManager(k8, logger, configManager)
+    const leaseRenewalService: LeaseRenewalService = new IntervalLeaseRenewalService()
+    const leaseManager = new LeaseManager(k8, logger, configManager, leaseRenewalService)
     const certificateManager = new CertificateManager(k8, logger, configManager)
 
     // set cluster and namespace in the global configManager from kubernetes context
