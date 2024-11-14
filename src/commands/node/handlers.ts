@@ -526,17 +526,15 @@ export class NodeCommandHandlers {
   async keys (argv: any) {
     argv = helpers.addFlagsToArgv(argv, NodeFlags.KEYS_FLAGS)
 
-    const lease = await this.leaseManager.create()
-
     const action = helpers.commandActionBuilder([
-      this.tasks.initialize(argv, keysConfigBuilder.bind(this), lease),
+      this.tasks.initialize(argv, keysConfigBuilder.bind(this), null),
       this.tasks.generateGossipKeys(),
       this.tasks.generateGrpcTlsKeys(),
       this.tasks.finalize()
     ], {
       concurrent: false,
       rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
-    }, 'Error generating keys', lease)
+    }, 'Error generating keys', null)
 
     await action(argv, this)
     return true
