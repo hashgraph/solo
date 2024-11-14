@@ -23,10 +23,22 @@ import {
   DependencyManager
 } from '../../../../src/core/dependency_managers/index.ts'
 import {
-  ChartManager, ConfigManager, constants, Helm, K8, KeyManager, LeaseManager, logging, PackageDownloader, Zippy
+  ChartManager,
+  ConfigManager,
+  constants,
+  Helm,
+  K8,
+  KeyManager,
+  LeaseManager,
+  LocalConfig,
+  logging,
+  PackageDownloader,
+  Zippy
 } from '../../../../src/core/index.ts'
 import { SECONDS } from '../../../../src/core/constants.ts'
 import sinon from 'sinon'
+import path from "path";
+import {BASE_TEST_DIR} from "../../../test_util.js";
 
 const testLogger = logging.NewLogger('debug', true)
 describe('InitCommand', () => {
@@ -41,6 +53,7 @@ describe('InitCommand', () => {
   const helm = new Helm(testLogger)
   const chartManager = new ChartManager(helm, testLogger)
   const configManager = new ConfigManager(testLogger)
+  const localConfig = new LocalConfig(path.join(BASE_TEST_DIR, 'local-config.yaml'), testLogger)
 
   const keyManager = new KeyManager(testLogger)
 
@@ -57,7 +70,7 @@ describe('InitCommand', () => {
     leaseManager = new LeaseManager(k8, testLogger, configManager)
     // @ts-ignore
     initCmd = new InitCommand({
-      logger: testLogger, helm, k8, chartManager, configManager, depManager, keyManager, leaseManager
+      logger: testLogger, helm, k8, chartManager, configManager, depManager, keyManager, leaseManager, localConfig
     })
   })
 

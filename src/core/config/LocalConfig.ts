@@ -14,7 +14,6 @@
  * limitations under the License.
  *
  */
-import { injectable } from 'inversify'
 import { IsEmail, IsNotEmpty, IsObject, IsString, validateSync } from 'class-validator'
 import fs from 'fs'
 import * as yaml from 'yaml'
@@ -34,7 +33,6 @@ import type {
 import type { EmailAddress } from './remote/types.ts'
 import type { K8 } from '../k8.ts'
 
-@injectable()
 export class LocalConfig implements LocalConfigData {
     @IsNotEmpty()
     @IsEmail()

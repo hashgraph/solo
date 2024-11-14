@@ -21,15 +21,16 @@ import { flags } from './commands/index.ts'
 import * as commands from './commands/index.ts'
 import { HelmDependencyManager, DependencyManager } from './core/dependency_managers/index.ts'
 import {
-  ChartManager, ConfigManager, PackageDownloader, PlatformInstaller, Helm, logging, helpers, LocalConfig,
-  KeyManager, Zippy, constants, ProfileManager, AccountManager, LeaseManager, CertificateManager, RemoteConfigManager
+  ChartManager, ConfigManager, PackageDownloader, PlatformInstaller, Helm, logging,
+  KeyManager, Zippy, constants, ProfileManager, AccountManager, LeaseManager, CertificateManager, LocalConfig,
+  helpers, RemoteConfigManager
 } from './core/index.ts'
 import 'dotenv/config'
 import { K8 } from './core/k8.ts'
 import { ListrLogger } from 'listr2'
 import { CustomProcessOutput } from './core/process_output.ts'
 import { type Opts } from './types/index.ts'
-import path from "path";
+import path from 'path'
 
 export function main (argv: any) {
   const logger = logging.NewLogger('debug')
