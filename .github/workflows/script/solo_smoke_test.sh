@@ -2,9 +2,11 @@
 set -eo pipefail
 
 #
-# This script would launch a solo network with mirror node and relay node deployed
-# It then use local node account creation function to repeated generate background transactions
-# Then run smart contract test to interact with solo network
+# This script should be called after solo has been deployed with mirror node and relay node deployed,
+# and should be called from the root of the solo repository
+#
+# This uses local node account creation function to repeatedly generate background transactions
+# Then run smart contract test, and also javascript sdk sample test to interact with solo network
 #
 
 function create_account_and_extract_key ()
@@ -136,9 +138,6 @@ function start_sdk_test ()
   cd -
 }
 
-
-echo "Start install solo network with relay"
-task default-with-relay
 
 echo "Change to parent directory"
 cd ../
