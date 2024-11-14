@@ -98,6 +98,7 @@ echo "Start background transaction"
 # so record stream files can be kept pushing to mirror node
 cd ../hedera-local-node
 for i in {1..40}; do
+  echo "Running generate-accounts round $i"
   npm run generate-accounts 3 > background.log 2>&1
   sleep 3
 done &

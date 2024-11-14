@@ -298,12 +298,10 @@ export class AccountCommand extends BaseCommand {
         }
       },
       {
-        title: 'create the new account.ts',
+        title: 'create the new account',
         task: async (ctx) => {
           self.accountInfo = await self.createNewAccount(ctx)
           const accountInfoCopy = { ...self.accountInfo }
-          delete accountInfoCopy.privateKey
-
           this.logger.showJSON('new account created', accountInfoCopy)
         }
       }
