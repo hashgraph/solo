@@ -69,7 +69,7 @@ function clone_local_node_repo ()
     echo "Directory hedera-local-node exists."
   else
     echo "Directory hedera-local-node does not exist."
-    git clone https://github.com/hashgraph/hedera-local-node --branch release-2.32.1
+    git clone https://github.com/hashgraph/hedera-local-node --branch v2.32.0
   fi
   cd hedera-local-node
   npm install

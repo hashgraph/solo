@@ -94,7 +94,7 @@ tasks:
     cmds:
       - npm run solo-test -- mirror-node deploy --namespace "${SOLO_NAMESPACE}"
       - echo "Enable port forwarding for Hedera Explorer"
-      - kubectl port-forward svc/hedera-explorer -n "${SOLO_NAMESPACE}" 8080:80 &
+      - kubectl port-forward -n "${SOLO_NAMESPACE}" svc/hedera-explorer 8080:80 &
       - task: "sleep_after_port_forward"
 
   mirror:destroy:
@@ -121,6 +121,11 @@ tasks:
       - task: "clean:cache"
       - task: "clean:logs"
       - task: "solo:config:remove"
+      - task: "clean:port-forward"
+
+  clean:port-forward:
+    cmds:
+      - pkill -f "kubectl port-forward -n {{ .SOLO_NAMESPACE }}" || true
 
   clean:cache:
     cmds:
@@ -173,7 +178,7 @@ tasks:
     internal: true
     cmds:
       - npm run solo-test -- node start --namespace "${SOLO_NAMESPACE}" --node-aliases-unparsed {{.node_identifiers}} {{ .CLI_ARGS }}
-      - kubectl port-forward svc/haproxy-node1-svc -n "${SOLO_NAMESPACE}" 50211:50211 &
+      - kubectl port-forward -n "${SOLO_NAMESPACE}" svc/haproxy-node1-svc 50211:50211 &
       - task: "sleep_after_port_forward"
 
   solo:node:stop:
@@ -191,7 +196,7 @@ tasks:
     cmds:
       - npm run solo-test -- relay deploy -n "${SOLO_NAMESPACE}" -i node1
       - echo "Enable port forwarding for Hedera JSON RPC Relay"
-      - kubectl port-forward svc/relay-node1-hedera-json-rpc-relay -n "${SOLO_NAMESPACE}" 7546:7546 &
+      - kubectl port-forward -n "${SOLO_NAMESPACE}" svc/relay-node1-hedera-json-rpc-relay 7546:7546 &
       - task: "sleep_after_port_forward"
 
   solo:relay:destroy:
