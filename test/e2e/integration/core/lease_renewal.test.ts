@@ -41,7 +41,7 @@ describe('LeaseRenewalService', async function () {
         this.timeout(defaultTimeout)
         if (await k8.hasNamespace(testNamespace)) {
             await k8.deleteNamespace(testNamespace)
-            await sleep(500)
+            await sleep(5 * SECONDS)
         }
 
         await k8.createNamespace(testNamespace)

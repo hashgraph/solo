@@ -60,7 +60,7 @@ export class ListrLease {
                 task.title = `${title} - ${chalk.gray(`lease exists, attempting again in ${lease.DurationSeconds} seconds`)}` +
                     `, attempt: ${chalk.cyan((attempt + 1).toString())}/${chalk.cyan(maxAttempts.toString())}`
 
-                if (attempt === maxAttempts - 1) {
+                if (attempt >= maxAttempts) {
                     innerError = e
                 }
             }
@@ -69,6 +69,6 @@ export class ListrLease {
         task.title = `${title} - ${chalk.red('failed to acquire lease, max attempts reached!')}` +
             `, attempt: ${chalk.cyan(attempt.toString())}/${chalk.cyan(maxAttempts.toString())}`
 
-        throw new LeaseAcquisitionError(`Failed to acquire lease, max attempts reached (${attempt}/${maxAttempts})`, innerError)
+        throw new LeaseAcquisitionError(`Failed to acquire lease, max attempts reached (${attempt + 1}/${maxAttempts})`, innerError)
     }
 }
