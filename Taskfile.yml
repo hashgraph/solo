@@ -7,7 +7,7 @@ silent: false
 env:
   SOLO_CHART_VERSION: 0.34.0
   CONSENSUS_NODE_VERSION: v0.56.0
-  SOLO_NAMESPACE: solo-{{ env "USER" | replace "." "-" | trunc 63 | default "test" }}
+  SOLO_NAMESPACE: solo-e2e
   SOLO_CLUSTER_SETUP_NAMESPACE: solo-setup
   SOLO_CLUSTER_RELEASE_NAME: solo-cluster-setup
   SOLO_NETWORK_SIZE: 2

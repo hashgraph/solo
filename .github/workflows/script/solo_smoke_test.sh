@@ -125,7 +125,7 @@ function start_sdk_test ()
 {
   echo "Create test account with solo network"
   cd solo
-  npm run solo-test -- account create -n solo-jeffrey --hbar-amount 100 > test.log
+  npm run solo-test -- account create -n solo-e2e --hbar-amount 100 > test.log
   export HEDERA_NETWORK="local-node"
 
   # read test.log and extract the line contains "privateKey" and "accountId" to get the OPERATOR_KEY and OPERATOR_ID
