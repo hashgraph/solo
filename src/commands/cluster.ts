@@ -147,7 +147,6 @@ export class ClusterCommand extends BaseCommand {
         },
         skip: (ctx) => ctx.isChartInstalled
       },
-      this.remoteConfigManager.buildLoadRemoteConfigTask(argv),
     ], {
       concurrent: false,
       rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION

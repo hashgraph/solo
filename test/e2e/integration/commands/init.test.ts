@@ -37,8 +37,8 @@ import {
 } from '../../../../src/core/index.ts'
 import { SECONDS } from '../../../../src/core/constants.ts'
 import sinon from 'sinon'
-import path from "path";
-import {BASE_TEST_DIR} from "../../../test_util.js";
+import path from 'path'
+import { BASE_TEST_DIR } from '../../../test_util.ts'
 
 const testLogger = logging.NewLogger('debug', true)
 describe('InitCommand', () => {
@@ -53,12 +53,12 @@ describe('InitCommand', () => {
   const helm = new Helm(testLogger)
   const chartManager = new ChartManager(helm, testLogger)
   const configManager = new ConfigManager(testLogger)
-  const localConfig = new LocalConfig(path.join(BASE_TEST_DIR, 'local-config.yaml'), testLogger)
+  let k8 : K8
+  let localConfig: LocalConfig
 
   const keyManager = new KeyManager(testLogger)
 
   let leaseManager: LeaseManager
-  let k8 : K8
 
   let sandbox = sinon.createSandbox()
   let initCmd: InitCommand
@@ -67,6 +67,7 @@ describe('InitCommand', () => {
     sandbox = sinon.createSandbox()
     sandbox.stub(K8.prototype, 'init').callsFake(() => this)
     k8 = new K8(configManager, testLogger)
+    localConfig = new LocalConfig(path.join(BASE_TEST_DIR, 'local-config.yaml'), testLogger, k8, configManager)
     leaseManager = new LeaseManager(k8, testLogger, configManager)
     // @ts-ignore
     initCmd = new InitCommand({

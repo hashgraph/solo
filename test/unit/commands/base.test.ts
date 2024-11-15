@@ -44,7 +44,7 @@ describe('BaseCommand', () => {
   const helmDepManager = new HelmDependencyManager(downloader, zippy, testLogger)
   const depManagerMap = new Map().set(constants.HELM, helmDepManager)
   const depManager = new DependencyManager(testLogger, depManagerMap)
-  const localConfig = new LocalConfig(path.join(BASE_TEST_DIR, 'local-config.yaml'), testLogger)
+  const localConfig = new LocalConfig(path.join(BASE_TEST_DIR, 'local-config.yaml'), testLogger, {} as any, configManager)
   const remoteConfigManager = new RemoteConfigManager({} as any, testLogger, localConfig, configManager)
 
   let sandbox = sinon.createSandbox()

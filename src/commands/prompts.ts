@@ -20,7 +20,7 @@ import { SoloError, IllegalArgumentError } from '../core/errors.ts'
 import { ConfigManager, constants } from '../core/index.ts'
 import * as flags from './flags.ts'
 import * as helpers from '../core/helpers.ts'
-import { hederaExplorerVersion, resetDisabledPrompts } from './flags.ts'
+import { contextCluster, hederaExplorerVersion, resetDisabledPrompts } from './flags.ts'
 import type { ListrTaskWrapper } from 'listr2'
 import { type CommandFlag } from '../types/index.ts'
 import validator from 'validator'
@@ -495,6 +495,14 @@ export async function promptOutputDir (task: ListrTaskWrapper<any, any, any>, in
         flags.outputDir.name)
 }
 
+export async function promptContextCluster (task: ListrTaskWrapper<any, any, any>, input: any) {
+  return await promptText(task, input,
+    null,
+    'Enter context cluster mapping: ',
+    'context-cluster cannot be empty',
+    flags.contextCluster.name)
+}
+
 //! ------------- Node Proxy Certificates ------------- !//
 
 export async function promptGrpcTlsCertificatePath (task: ListrTaskWrapper<any, any, any>, input: any) {
@@ -574,6 +582,7 @@ export function getPromptMap (): Map<string, Function> {
     .set(flags.hederaExplorerVersion, promptHederaExplorerVersion)
     .set(flags.inputDir.name, promptInputDir)
     .set(flags.outputDir.name, promptOutputDir)
+    .set(flags.contextCluster.name, promptContextCluster)
 
     //! Node Proxy Certificates
     .set(flags.grpcTlsCertificatePath.name, promptGrpcTlsCertificatePath)

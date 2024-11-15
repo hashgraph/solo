@@ -21,7 +21,7 @@ import * as flags from './flags.ts'
 import { constants, Templates } from '../core/index.ts'
 import * as prompts from './prompts.ts'
 import type { Namespace } from '../core/config/remote/types.ts'
-import { ContextClusterStructure } from "../types/index.js";
+import type { ContextClusterStructure } from '../types/index.ts'
 
 export class DeploymentCommand extends BaseCommand {
   static CREATE_DEPLOYMENT_NAME = 'createDeployment'
@@ -41,8 +41,6 @@ export class DeploymentCommand extends BaseCommand {
       {
         title: 'Initialize',
         task: async (ctx, task) => {
-          await prompts.execute(task, self.configManager, [flags.namespace, flags.contextCluster])
-
           self.configManager.update(argv)
           self.logger.debug('Loaded cached config', { config: self.configManager.config })
 
@@ -65,6 +63,7 @@ export class DeploymentCommand extends BaseCommand {
           return lease.buildAcquireTask(task)
         }
       },
+      self.localConfig.promptLocalConfigTask(),
       self.remoteConfigManager.buildCreateRemoteConfigTask()
     ], {
       concurrent: false,
@@ -74,6 +73,7 @@ export class DeploymentCommand extends BaseCommand {
     try {
       await tasks.run()
     } catch (e: Error | any) {
+      console.error(e)
       throw new SoloError(`Error installing chart ${constants.SOLO_DEPLOYMENT_CHART}`, e)
     } finally {
       await lease.release()

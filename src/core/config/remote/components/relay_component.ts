@@ -21,6 +21,12 @@ import type { IRelayComponent } from '../types.ts'
 import type { NodeAliases } from '../../../../types/aliases.ts'
 
 export class RelayComponent extends BaseComponent implements IRelayComponent {
+  /**
+   * @param name - to distinguish components.
+   * @param cluster - in which the component is deployed.
+   * @param namespace - associated with the component.
+   * @param consensusNodeAliases - list node aliases
+   */
   constructor (
     name: string, cluster: string, namespace: string,
     public readonly consensusNodeAliases: NodeAliases = []

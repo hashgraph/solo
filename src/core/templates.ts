@@ -23,6 +23,7 @@ import { type AccountId } from '@hashgraph/sdk'
 import type { NodeAlias, PodName } from '../types/aliases.ts'
 import { GrpcProxyTlsEnums } from './enumerations.ts'
 import type { ContextClusterStructure } from '../types/index.ts'
+import { Cluster, Context } from "./config/remote/types.js";
 
 export class Templates {
   public static renderNetworkPodName (nodeAlias: NodeAlias): PodName {
@@ -222,18 +223,28 @@ export class Templates {
     }
   }
 
+  /**
+   * Parsed and validates the unparsed value of flag clusterMappings
+   *
+   * @param unparsed - value of flag clusterMappings
+   */
   static parseContextCluster (unparsed: string): ContextClusterStructure {
-    const [context, unparsedClusters] = unparsed.split('=')
-    if (!context || typeof context !== 'string') {
-      throw new SoloError('Invalid context in context-cluster')
-    }
+    const mapping = {}
 
-    if (!unparsedClusters || typeof unparsedClusters !== 'string') {
-      throw new SoloError('Invalid context in context-cluster')
-    }
+    unparsed.split(',').forEach((data) => {
+      const [context, cluster] = data.split('=') as [Context, Cluster]
 
-    const clusters = unparsedClusters.split(',')
+      if (!context || typeof context !== 'string') {
+        throw new SoloError('Invalid context in context-cluster', null, { data })
+      }
 
-    return { context, clusters }
+      if (!cluster || typeof cluster !== 'string') {
+        throw new SoloError('Invalid cluster in context-cluster', null, { data })
+      }
+
+      mapping[context] = cluster
+    })
+
+    return mapping
   }
 }

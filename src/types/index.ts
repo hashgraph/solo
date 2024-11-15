@@ -85,7 +85,4 @@ export interface Opts {
   certificateManager: CertificateManager
 }
 
-export interface ContextClusterStructure {
-  context: Context,
-  clusters: Cluster[]
-}
+export type ContextClusterStructure = Record<Context, Cluster>

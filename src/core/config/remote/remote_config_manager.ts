@@ -23,19 +23,31 @@ import { flags } from '../../../commands/index.ts'
 import yaml from 'js-yaml'
 import { ComponentsDataWrapper } from './components_data_wrapper.ts'
 import type { K8 } from '../../k8.ts'
-import type { Cluster, Namespace, RemoteConfigData } from './types.ts'
+import type { Cluster, Namespace } from './types.ts'
 import type { SoloLogger } from '../../logging.ts'
-import type { ListrTaskWrapper } from 'listr2'
+import type { ListrTask } from 'listr2'
 import type { ConfigManager } from '../../config_manager.ts'
 import type { LocalConfig } from '../LocalConfig.ts'
 import type { DeploymentStructure } from '../LocalConfigData.ts'
 import type { ContextClusterStructure } from '../../../types/index.ts'
+import type * as k8s from '@kubernetes/client-node'
 
 interface ListrContext { config: { contextCluster: ContextClusterStructure } }
 
+/**
+ * Uses Kubernetes ConfigMaps to manage the remote configuration data by creating, loading, modifying,
+ * and saving the configuration data to and from a Kubernetes cluster.
+ */
 export class RemoteConfigManager {
+  /** Stores the loaded remote configuration data. */
   private remoteConfig?: RemoteConfigDataWrapper
 
+  /**
+   * @param k8 - The Kubernetes client used for interacting with ConfigMaps.
+   * @param logger - The logger for recording activity and errors.
+   * @param localConfig - Local configuration for the remote config.
+   * @param configManager - Manager to retrieve application flags and settings.
+   */
   constructor (
     private readonly k8: K8,
     private readonly logger: SoloLogger,
@@ -43,25 +55,28 @@ export class RemoteConfigManager {
     private readonly configManager: ConfigManager,
   ) {}
 
-  async modify (callback: (remoteConfig: RemoteConfigDataWrapper) => Promise<void> ) {
+  /**
+   * Modifies the loaded remote configuration data using a provided callback function.
+   * The callback operates on the configuration data, which is then saved to the cluster.
+   *
+   * @param callback - An async function that modifies the remote configuration data.
+   * @throws {@link SoloError} if the configuration is not loaded before modification.
+   */
+  async modify (callback: (remoteConfig: RemoteConfigDataWrapper) => Promise<void> ): Promise<void> {
     if (!this.remoteConfig) {
       throw new SoloError('Attempting to modify remote config without loading it first')
     }
 
     await callback(this.remoteConfig)
-
-    await this.write()
+    await this.save()
   }
 
-  async create () {
-    const namespace = this.getNamespace()
-
-    const metadata = new RemoteConfigMetadata(
-      namespace,
-      new Date(),
-      this.localConfig.userEmailAddress
-    )
-
+  /**
+   * Creates a new remote configuration in the Kubernetes cluster.
+   * Gathers data from the local configuration and constructs a new ConfigMap
+   * entry in the cluster with initial command history and metadata.
+   */
+  private async create (): Promise<void> {
     const clusters: Record<Cluster, Namespace> = {}
 
     Object.entries(this.localConfig.deployments)
@@ -70,115 +85,164 @@ export class RemoteConfigManager {
       })
 
     this.remoteConfig = new RemoteConfigDataWrapper({
-      metadata,
+      metadata: new RemoteConfigMetadata(
+        this.getNamespace(),
+        new Date(),
+        this.localConfig.userEmailAddress
+      ),
       clusters,
       components: new ComponentsDataWrapper(),
       lastExecutedCommand: 'deployment create',
       commandHistory: [ 'deployment create' ]
     })
 
-    await this.k8.createNamespacedConfigMap(
-      constants.SOLO_REMOTE_CONFIGMAP_NAME,
-      constants.SOLO_REMOTE_CONFIGMAP_LABELS,
-      { 'remote-config-data': yaml.dump(this.remoteConfig.toObject() as any) }
-    )
+    await this.createConfigMap()
   }
 
-  private async write () {
+  /**
+   * Saves the currently loaded remote configuration data to the Kubernetes cluster.
+   *
+   * @throws {@link SoloError} if there is no remote configuration data to save.
+   */
+  private async save (): Promise<void> {
     if (!this.remoteConfig) {
-      const errorMessage = 'Attempted to write remote config without data'
-      this.logger.error(errorMessage, this.remoteConfig)
-      throw new SoloError(errorMessage, undefined, this.remoteConfig)
+      throw new SoloError('Attempted to save remote config without data')
     }
 
-    await this.k8.replaceNamespacedConfigMap(
-      constants.SOLO_REMOTE_CONFIGMAP_NAME,
-      constants.SOLO_REMOTE_CONFIGMAP_LABELS,
-      { 'remote-config-data': yaml.dump(this.remoteConfig.toObject() as any) }
-    )
+    await this.replaceConfigMap()
   }
 
-  async load () {
+  /**
+   * Loads the remote configuration from the Kubernetes cluster if it exists.
+   *
+   * @returns true if the configuration is loaded successfully, otherwise false.
+   */
+  private async load (): Promise<boolean> {
+    if (this.remoteConfig) return true
+
     const configMap = await this.getFromCluster()
-    if (!configMap) {
-      return false
-    }
+    if (!configMap) return false
 
     this.remoteConfig = RemoteConfigDataWrapper.fromConfigmap(configMap)
     return true
   }
 
-  async getFromCluster () {
+  /**
+   * Retrieves the ConfigMap containing the remote configuration from the Kubernetes cluster.
+   *
+   * @returns the remote configuration data.
+   * @throws {@link SoloError} if the ConfigMap could not be read and the error is not a 404 status.
+   */
+  private async getFromCluster (): Promise<k8s.V1ConfigMap> {
     try {
-      return await this.k8.getNamespacedConfigMap(constants.SOLO_REMOTE_CONFIGMAP_NAME)
+      return await this.getConfigMap()
     } catch (error: any) {
       if (error.meta.statusCode !== 404) {
-        const errorMessage = 'Failed to read remote config from cluster'
-        this.logger.error(errorMessage, error)
-        throw new SoloError(errorMessage, error)
+        throw new SoloError('Failed to read remote config from cluster', error)
       }
 
       return null
     }
   }
 
-  buildLoadRemoteConfigTask (argv: { _: string[]}) {
+  /**
+   * Builds a task for loading the remote configuration, intended for use with Listr task management.
+   * Checks if the configuration is already loaded, otherwise loads and adds the command to history.
+   *
+   * @param argv - arguments containing command input for historical reference.
+   * @returns a Listr task to load the remote configuration.
+   */
+  public buildLoadRemoteConfigTask (argv: { _: string[]}): ListrTask {
     const self = this
 
     return {
       title: 'Load remote config',
-      task: async (_: any, task: ListrTaskWrapper<any, any, any>) => {
-        const baseTitle = task.title
-
-        const isConfigLoaded = await self.load()
-        if (!isConfigLoaded) {
-          task.title = `${baseTitle} - ${chalk.red('remote config not found')}`
+      task: async (_, task) => {
+        if (!await self.load()) {
+          task.title = `${task.title} - ${chalk.red('remote config not found')}`
 
           throw new SoloError('Failed to load remote config')
         }
 
         const currentCommand = argv._.join(' ')
-
         self.remoteConfig!.addCommandToHistory(currentCommand)
 
-        await self.write()
+        await self.save()
       }
     }
   }
 
-  buildCreateRemoteConfigTask () {
-    const remoteConfigManager = this
+  /**
+   * Builds a task for creating a new remote configuration, intended for use with Listr task management.
+   * Merges cluster mappings from the provided context into the local configuration, then creates the remote config.
+   *
+   * @returns a Listr task to create the remote configuration.
+   */
+  public buildCreateRemoteConfigTask (): ListrTask<ListrContext> {
+    const self = this
 
     return {
-        title: 'Create remote config',
-        task: async (ctx: ListrContext, task: ListrTaskWrapper<ListrContext, any, any>) => {
-          const baseTitle = task.title
-
-          const localConfigExists = this.localConfig.configFileExists()
-          if (!localConfigExists) {
-            const errorMessage = 'Local config doesn\'t exist'
-            this.logger.error(errorMessage)
-            throw new SoloError(errorMessage)
-          }
-
-          const { context, clusters } = ctx.config.contextCluster
-
-          clusters.forEach((cluster: Cluster) => {
-            remoteConfigManager.localConfig.clusterMappings[context] = cluster
-          })
-
-          const isConfigLoaded = await remoteConfigManager.load()
-          if (isConfigLoaded) {
-            task.title = `${baseTitle} - ${chalk.red('Remote config already exists')}}`
-
-            throw new SoloError('Remote config already exists')
-          }
-
-          await remoteConfigManager.create()
+      title: 'Create remote config',
+      task: async (ctx, task) => {
+        const localConfigExists = this.localConfig.configFileExists()
+        if (!localConfigExists) {
+          throw new SoloError('Local config doesn\'t exist')
         }
+
+        Object.assign(self.localConfig.clusterMappings, ctx.config.contextCluster)
+
+        if (await self.load()) {
+          task.title = `${task.title} - ${chalk.red('Remote config already exists')}}`
+
+          throw new SoloError('Remote config already exists')
+        }
+
+        await self.create()
       }
+    }
   }
 
+  /**
+   * Creates a new ConfigMap entry in the Kubernetes cluster with the remote configuration data.
+   *
+   * @returns true if the ConfigMap was successfully created, false otherwise.
+   */
+  private createConfigMap (): Promise<boolean> {
+    return this.k8.createNamespacedConfigMap(
+      constants.SOLO_REMOTE_CONFIGMAP_NAME,
+      constants.SOLO_REMOTE_CONFIGMAP_LABELS,
+      { 'remote-config-data': yaml.dump(this.remoteConfig.toObject()) }
+    )
+  }
+
+  /**
+   * Replaces an existing ConfigMap in the Kubernetes cluster with the current remote configuration data.
+   *
+   * @returns true if the ConfigMap was successfully replaced.
+   */
+  private replaceConfigMap (): Promise<boolean> {
+    return this.k8.replaceNamespacedConfigMap(
+      constants.SOLO_REMOTE_CONFIGMAP_NAME,
+      constants.SOLO_REMOTE_CONFIGMAP_LABELS,
+      { 'remote-config-data': yaml.dump(this.remoteConfig.toObject() as any) }
+    )
+  }
+
+  /**
+   * Retrieves the existing ConfigMap containing remote configuration data from the Kubernetes cluster.
+   *
+   * @returns the Kubernetes ConfigMap for remote configuration.
+   */
+  private getConfigMap (): Promise<k8s.V1ConfigMap> {
+    return this.k8.getNamespacedConfigMap(constants.SOLO_REMOTE_CONFIGMAP_NAME)
+  }
+
+  /**
+   * Retrieves the namespace value from the configuration manager's flags.
+   *
+   * @returns string - The namespace value if set.
+   * @throws {@link MissingArgumentError} if the namespace is not defined.
+   */
   private getNamespace (): string {
     const ns = this.configManager.getFlag<string>(flags.namespace) as string
     if (!ns) throw new MissingArgumentError('namespace is not set')

@@ -21,12 +21,13 @@ import { NetworkCommand } from './network.ts'
 import { NodeCommand } from './node/index.ts'
 import { RelayCommand } from './relay.ts'
 import { AccountCommand } from './account.ts'
+import { DeploymentCommand } from './deployment.ts'
 import * as flags from './flags.ts'
 import { type Opts } from '../types/index.ts'
 
 /**
  * Return a list of Yargs command builder to be exposed through CLI
- * @param opts it is an Options object containing logger
+ * @param opts - it is an Options object containing logger
  * @returns an array of Yargs command builder
  */
 function Initialize (opts: Opts) {
@@ -37,6 +38,7 @@ function Initialize (opts: Opts) {
   const relayCmd = new RelayCommand(opts)
   const accountCmd = new AccountCommand(opts)
   const mirrorNodeCmd = new MirrorNodeCommand(opts)
+  const deploymentCommand = new DeploymentCommand(opts)
 
   return [
     initCmd.getCommandDefinition(),
@@ -45,7 +47,8 @@ function Initialize (opts: Opts) {
     nodeCmd.getCommandDefinition(),
     relayCmd.getCommandDefinition(),
     accountCmd.getCommandDefinition(),
-    mirrorNodeCmd.getCommandDefinition()
+    mirrorNodeCmd.getCommandDefinition(),
+    deploymentCommand.getCommandDefinition(),
   ]
 }
 

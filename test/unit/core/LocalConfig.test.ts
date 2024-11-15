@@ -14,15 +14,19 @@
  * limitations under the License.
  *
  */
-import { LocalConfig } from '../../../src/core/index.js'
+import { type ConfigManager, type K8, LocalConfig } from '../../../src/core/index.ts'
 import fs from 'fs'
 import { stringify } from 'yaml'
 import { expect } from 'chai'
 import { MissingArgumentError, SoloError } from '../../../src/core/errors.ts'
 import { getTestCacheDir, testLogger } from '../../test_util.ts'
+import { EmailAddress } from "../../../src/core/config/remote/types.js";
 
 describe('LocalConfig', () => {
-    let localConfig
+    let localConfig: LocalConfig
+    const k8 = {} as unknown as K8
+    const configManager = {} as unknown as ConfigManager
+
     const filePath = `${getTestCacheDir('LocalConfig')}/localConfig.yaml`
     const config = {
         userEmailAddress: 'john.doe@example.com',
@@ -44,7 +48,7 @@ describe('LocalConfig', () => {
 
     const expectFailedValidation = () => {
         try {
-            new LocalConfig(filePath, testLogger)
+            new LocalConfig(filePath, testLogger, k8, configManager)
             expect.fail('Expected an error to be thrown')
         }
         catch(error) {
@@ -55,7 +59,7 @@ describe('LocalConfig', () => {
 
     beforeEach(async () => {
         await fs.promises.writeFile(filePath, stringify(config))
-        localConfig = new LocalConfig(filePath, testLogger)
+        localConfig = new LocalConfig(filePath, testLogger, k8, configManager)
     })
 
     afterEach(async () => {
@@ -77,13 +81,13 @@ describe('LocalConfig', () => {
         await localConfig.write()
 
         // reinitialize with updated config file
-        const newConfig = new LocalConfig(filePath, testLogger)
+        const newConfig = new LocalConfig(filePath, testLogger, k8, configManager)
         expect(newConfig.userEmailAddress).to.eq(newEmailAddress)
     })
 
     it('should not set an invalid email as user email address', async () => {
         try {
-            localConfig.setUserEmailAddress('invalidEmail')
+            localConfig.setUserEmailAddress('invalidEmail' as EmailAddress)
             expect.fail('expected an error to be thrown')
         } catch (error) {
             expect(error).to.be.instanceOf(SoloError)
@@ -104,7 +108,7 @@ describe('LocalConfig', () => {
         expect(localConfig.deployments).to.deep.eq(newDeployments)
 
         await localConfig.write()
-        const newConfig = new LocalConfig(filePath, testLogger)
+        const newConfig = new LocalConfig(filePath, testLogger, k8, configManager)
         expect(newConfig.deployments).to.deep.eq(newDeployments)
     })
 
@@ -119,7 +123,7 @@ describe('LocalConfig', () => {
         }
 
         try {
-            localConfig.setDeployments(invalidDeployments)
+            localConfig.setDeployments(invalidDeployments as any)
             expect.fail('expected an error to be thrown')
         } catch (error) {
             expect(error).to.be.instanceOf(SoloError)
@@ -135,7 +139,7 @@ describe('LocalConfig', () => {
         expect(localConfig.clusterMappings).to.eq(newClusterMappings)
 
         await localConfig.write()
-        const newConfig = new LocalConfig(filePath, testLogger)
+        const newConfig = new LocalConfig(filePath, testLogger, k8, configManager)
         expect(newConfig.clusterMappings).to.deep.eq(newClusterMappings)
     })
 
@@ -146,6 +150,7 @@ describe('LocalConfig', () => {
         }
 
         try {
+            // @ts-ignore
             localConfig.setContextMappings(invalidContextMappings)
             expect.fail('expected an error to be thrown')
         } catch (error) {
@@ -164,14 +169,14 @@ describe('LocalConfig', () => {
         expect(localConfig.currentDeploymentName).to.eq(newCurrentDeployment)
 
         await localConfig.write()
-        const newConfig = new LocalConfig(filePath, testLogger)
+        const newConfig = new LocalConfig(filePath, testLogger, k8, configManager)
         expect(newConfig.currentDeploymentName).to.eq(newCurrentDeployment)
     })
 
     it('should not set invalid or non-existent current deployment', async () => {
         const invalidCurrentDeploymentName = 5
         try {
-            localConfig.setCurrentDeployment(invalidCurrentDeploymentName)
+            localConfig.setCurrentDeployment(invalidCurrentDeploymentName as any)
             expect.fail('expected an error to be thrown')
         } catch (error) {
             expect(error).to.be.instanceOf(SoloError)
@@ -188,7 +193,7 @@ describe('LocalConfig', () => {
 
     it('should throw an error if file path is not set', async () => {
         try {
-            new LocalConfig('', testLogger)
+            new LocalConfig('', testLogger, k8, configManager)
             expect.fail('Expected an error to be thrown')
         } catch (error) {
             expect(error).to.be.instanceOf(MissingArgumentError)

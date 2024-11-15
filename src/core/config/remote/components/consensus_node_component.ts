@@ -17,13 +17,28 @@
 import { ComponentTypeEnum, ConsensusNodeStates } from '../enumerations.ts'
 import { BaseComponent } from './base_component.ts'
 import { SoloError } from '../../../errors.ts'
-import type { IConsensusNodeComponent } from '../types.ts'
+import type { Cluster, IConsensusNodeComponent, Namespace, ServiceName } from '../types.ts'
 
+/**
+ * Represents a consensus node component within the system.
+ *
+ * A `ConsensusNodeComponent` extends the functionality of `BaseComponent` and includes additional properties and behaviors
+ * specific to consensus nodes, such as maintaining and validating the node's state.
+ */
 export class ConsensusNodeComponent extends BaseComponent implements IConsensusNodeComponent{
+  /** The state of the node. */
   private _state: ConsensusNodeStates
 
+  /**
+   * @param name - of the consensus node
+   * @param cluster - associated to component
+   * @param namespace - associated to component
+   * @param state - of the consensus node
+   */
   constructor (
-    name: string, cluster: string, namespace: string,
+    name: ServiceName,
+    cluster: Cluster,
+    namespace: Namespace,
     state: ConsensusNodeStates
   ) {
     super(ComponentTypeEnum.ConsensusNode, name, cluster, namespace)
@@ -32,14 +47,16 @@ export class ConsensusNodeComponent extends BaseComponent implements IConsensusN
     this.validate()
   }
 
-  get state () { return this._state }
+  /** Retrieves the state of the consensus node. */
+  public get state (): ConsensusNodeStates { return this._state }
 
-  set state (state: ConsensusNodeStates) {
+  /** Updates the state of the consensus node and validates it. */
+  public set state (state: ConsensusNodeStates) {
     this._state = state
     this.validate()
   }
 
-  protected validate () {
+  protected validate (): void {
     super.validate()
 
     if (!Object.values(ConsensusNodeStates).includes(this.state)) {
@@ -47,7 +64,7 @@ export class ConsensusNodeComponent extends BaseComponent implements IConsensusN
     }
   }
 
-  toObject (): IConsensusNodeComponent {
+  public toObject (): IConsensusNodeComponent {
     return {
       state: this.state,
       ...super.toObject()
