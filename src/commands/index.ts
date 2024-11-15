@@ -15,6 +15,7 @@
  *
  */
 import { ClusterCommand } from './cluster.ts'
+import { ContextCommand } from './context/index.ts'
 import { InitCommand } from './init.ts'
 import { MirrorNodeCommand } from './mirror_node.ts'
 import { NetworkCommand } from './network.ts'
@@ -32,6 +33,7 @@ import { type Opts } from '../types/index.ts'
 function Initialize (opts: Opts) {
   const initCmd = new InitCommand(opts)
   const clusterCmd = new ClusterCommand(opts)
+  const contextCmd = new ContextCommand(opts)
   const networkCommand = new NetworkCommand(opts)
   const nodeCmd = new NodeCommand(opts)
   const relayCmd = new RelayCommand(opts)
@@ -41,6 +43,7 @@ function Initialize (opts: Opts) {
   return [
     initCmd.getCommandDefinition(),
     clusterCmd.getCommandDefinition(),
+    contextCmd.getCommandDefinition(),
     networkCommand.getCommandDefinition(),
     nodeCmd.getCommandDefinition(),
     relayCmd.getCommandDefinition(),

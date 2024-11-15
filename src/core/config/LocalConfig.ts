@@ -20,7 +20,11 @@ import fs from 'fs'
 import * as yaml from 'yaml'
 import { type ClusterMapping, type Deployment, type Deployments, type LocalConfigData } from './LocalConfigData.ts'
 import { MissingArgumentError, SoloError } from '../errors.ts'
-import { promptDeploymentClusters, promptDeploymentName, promptUserEmailAddress } from '../../commands/prompts.ts'
+import {
+    promptDeploymentClusters,
+    promptNamespace,
+    promptUserEmailAddress
+} from '../../commands/prompts.ts'
 import { flags } from '../../commands/index.ts'
 import { type SoloLogger } from '../logging.ts'
 import { Task } from '../task.ts'
@@ -157,7 +161,7 @@ export class LocalConfig implements LocalConfigData {
         this.logger.info(`Wrote local config to ${this.filePath}`)
     }
 
-    public promptLocalConfigTask (k8, argv): ListrTask<any, any, any>[]  {
+    public promptLocalConfigTask (k8, argv): Task  {
         return new Task('Prompt local configuration', async (ctx, task) => {
             const kubeConfig = k8.getKubeConfig()
 
@@ -169,8 +173,8 @@ export class LocalConfig implements LocalConfigData {
             let userEmailAddress = argv[flags.userEmailAddress.name]
             if (!userEmailAddress) userEmailAddress = await promptUserEmailAddress(task, userEmailAddress)
 
-            let deploymentName = argv[flags.deploymentName.name]
-            if (!deploymentName) deploymentName = await promptDeploymentName(task, deploymentName)
+            let deploymentName = argv[flags.namespace.name]
+            if (!deploymentName) deploymentName = await promptNamespace(task, deploymentName)
 
             let deploymentClusters = argv[flags.deploymentClusters.name]
             if (!deploymentClusters) deploymentClusters = await promptDeploymentClusters(task, deploymentClusters)
@@ -188,6 +192,6 @@ export class LocalConfig implements LocalConfigData {
             await this.write()
 
             return this
-        }, this.skipPromptTask) as ListrTask<any, any, any>[]
+        }, this.skipPromptTask) as Task
     }
 }

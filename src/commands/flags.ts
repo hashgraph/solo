@@ -718,11 +718,11 @@ export const userEmailAddress: CommandFlag = {
   }
 }
 
-export const deploymentName: CommandFlag = {
-  constName: 'deploymentName',
-  name: 'deployment-name',
+export const context: CommandFlag = {
+  constName: 'contextName',
+  name: 'context',
   definition: {
-    describe: 'Solo deployment name',
+    describe: 'The kind context name to be used',
     defaultValue: '',
     type: 'string'
   }
@@ -813,7 +813,6 @@ export const allFlags: CommandFlag[] = [
   deployHederaExplorer,
   deployJsonRpcRelay,
   deploymentClusters,
-  deploymentName,
   deployMinio,
   deployPrometheusStack,
   devMode,

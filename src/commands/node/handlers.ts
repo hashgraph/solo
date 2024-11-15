@@ -35,8 +35,9 @@ import type { SoloLogger } from '../../core/logging.ts'
 import type { NodeCommand } from './index.ts'
 import type { NodeCommandTasks } from './tasks.ts'
 import type { LeaseWrapper } from '../../core/lease_wrapper.ts'
+import {CommandHandlers} from "../../types/index.ts";
 
-export class NodeCommandHandlers {
+export class NodeCommandHandlers implements CommandHandlers {
   private readonly accountManager: AccountManager
   private readonly configManager: ConfigManager
   private readonly platformInstaller: PlatformInstaller

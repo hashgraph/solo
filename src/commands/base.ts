@@ -159,4 +159,12 @@ export class BaseCommand extends ShellRunner {
   getUnusedConfigs (configName: string): string[] {
     return this._configMaps.get(configName).getUnusedConfigs()
   }
+
+  getK8 () {
+    return this.k8
+  }
+
+  getLocalConfig () {
+    return this.localConfig
+  }
 }

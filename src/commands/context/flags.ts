@@ -14,10 +14,17 @@
  * limitations under the License.
  *
  */
-export class Task {
-  constructor (public title: string, public task: Function, public skip: Function | boolean = false) {
-    this.title = title
-    this.task = task
-    this.skip = skip
-  }
+
+import * as flags from '../flags.ts'
+
+export const DEFAULT_FLAGS = {
+    requiredFlags: [],
+    requiredFlagsWithDisabledPrompt: [flags.namespace, flags.cacheDir, flags.releaseTag],
+    optionalFlags: [flags.devMode]
+}
+
+export const USE_FLAGS = {
+    requiredFlags: [],
+    requiredFlagsWithDisabledPrompt: [],
+    optionalFlags: [flags.devMode, flags.quiet, flags.clusterName, flags.context, flags.force, flags.namespace]
 }

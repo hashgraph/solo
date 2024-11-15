@@ -28,7 +28,7 @@ import { Listr } from 'listr2'
 import { type AccountManager } from './account_manager.ts'
 import { type NodeAlias, type NodeAliases, type PodName } from '../types/aliases.ts'
 import { type NodeDeleteConfigClass, type NodeUpdateConfigClass } from '../commands/node/configs.ts'
-import { type CommandFlag } from '../types/index.ts'
+import {type CommandFlag, CommandHandlers} from '../types/index.ts'
 import { type V1Pod } from '@kubernetes/client-node'
 import { type SoloLogger } from './logging.ts'
 import { type NodeCommandHandlers } from '../commands/node/handlers.ts'
@@ -460,7 +460,7 @@ export function prepareEndpoints (endpointType: string, endpoints: string[], def
 }
 
 export function commandActionBuilder (actionTasks: any, options: any, errorString: string, lease: LeaseWrapper | null) {
-  return async function (argv: any, commandDef: NodeCommandHandlers) {
+  return async function (argv: any, commandDef: CommandHandlers) {
     const tasks = new Listr([
       ...actionTasks
     ], options)
@@ -471,7 +471,14 @@ export function commandActionBuilder (actionTasks: any, options: any, errorStrin
       commandDef.parent.logger.error(`${errorString}: ${e.message}`, e)
       throw new SoloError(`${errorString}: ${e.message}`, e)
     } finally {
-      const promises = [commandDef.close()]
+      const promises = []
+
+      // @ts-ignore
+      if (commandDef.close) {
+        // @ts-ignore
+        promises.push(commandDef.close())
+      }
+
       if (lease) promises.push(lease.release())
       await Promise.all(promises)
     }

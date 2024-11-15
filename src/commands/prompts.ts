@@ -383,14 +383,6 @@ export async function promptUserEmailAddress (task: ListrTaskWrapper<any, any, a
   return input
 }
 
-export async function promptDeploymentName (task: ListrTaskWrapper<any, any, any>, input: any) {
-  return await promptText(task, input,
-    flags.deploymentName.definition.defaultValue,
-    'Enter the Solo deployment name: ',
-    null,
-    flags.deploymentName.name)
-}
-
 export async function promptDeploymentClusters (task: ListrTaskWrapper<any, any, any>, input: any) {
   return await promptText(task, input,
     flags.deploymentClusters.definition.defaultValue,
@@ -453,6 +445,14 @@ export async function promptEndpointType (task: ListrTaskWrapper<any, any, any>,
     'Enter the endpoint type(IP or FQDN): ',
     null,
     flags.endpointType.name)
+}
+
+export async function promptContext (task: ListrTaskWrapper<any, any, any>, input: any) {
+  return await promptText(task, input,
+    flags.context.definition.defaultValue,
+    'Enter the context name: ',
+    null,
+    flags.context.name)
 }
 
 export async function promptPersistentVolumeClaims (task: ListrTaskWrapper<any, any, any>, input: any) {

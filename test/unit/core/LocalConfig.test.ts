@@ -19,28 +19,12 @@ import fs from 'fs'
 import { stringify } from 'yaml'
 import { expect } from 'chai'
 import { MissingArgumentError, SoloError } from '../../../src/core/errors.ts'
-import { getTestCacheDir, testLogger } from '../../test_util.ts'
+import { getTestCacheDir, testLogger, testLocalConfigData } from '../../test_util.ts'
 
 describe('LocalConfig', () => {
     let localConfig
     const filePath = `${getTestCacheDir('LocalConfig')}/localConfig.yaml`
-    const config = {
-        userEmailAddress: 'john.doe@example.com',
-        deployments: {
-            'my-deployment': {
-                clusterAliases: ['cluster-1', 'context-1'],
-            },
-            'my-other-deployment': {
-                clusterAliases: ['cluster-2', 'context-2'],
-            }
-        },
-        currentDeploymentName: 'my-deployment',
-        clusterMappings: {
-            'cluster-1': 'context-1',
-            'cluster-2': 'context-2',
-        }
-    }
-
+    const config = testLocalConfigData
 
     const expectFailedValidation = () => {
         try {

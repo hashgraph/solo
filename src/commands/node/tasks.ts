@@ -1322,12 +1322,6 @@ export class NodeCommandTasks {
     })
   }
 
-  templateTask () {
-    return new Task('TEMPLATE', async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
-
-    })
-  }
-
   initialize (argv: any, configInit: Function, lease: LeaseWrapper | null) {
     const { requiredFlags, requiredFlagsWithDisabledPrompt, optionalFlags } = argv
     const allRequiredFlags = [
