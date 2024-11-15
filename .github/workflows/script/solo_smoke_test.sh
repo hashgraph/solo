@@ -76,8 +76,10 @@ function clone_local_node_repo ()
     echo "Directory hedera-local-node does not exist."
     git clone https://github.com/hashgraph/hedera-local-node --branch v2.32.0
   fi
+  ps -ef |grep port-forward
   cd hedera-local-node
   npm install
+  ps -ef |grep port-forward
   create_account_and_extract_key
   cd -
 }
@@ -146,6 +148,7 @@ function start_sdk_test ()
 echo "Change to parent directory"
 cd ../
 clone_sdk_repo
+ps -ef |grep port-forward
 clone_local_node_repo
 clone_smart_contract_repo
 setup_smart_contract_test
