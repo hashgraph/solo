@@ -74,4 +74,4 @@ jobs:
           # task default-with-relay
           # .github/workflows/script/solo_smoke_test.sh
           # task clean
-          sleep 3600
+          sleep 36000
