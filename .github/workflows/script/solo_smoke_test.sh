@@ -1,6 +1,14 @@
 #!/bin/bash
-set -eo pipefail
+#set -eo pipefail
 
+trap handle_error ERR
+
+handle_error() {
+  echo "An error occurred"
+  ps -ef |grep port-forward
+  # exit to shell
+  exit 1
+}
 #
 # This script should be called after solo has been deployed with mirror node and relay node deployed,
 # and should be called from the root of the solo repository
