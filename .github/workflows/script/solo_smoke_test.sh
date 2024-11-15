@@ -61,6 +61,9 @@ function clone_sdk_repo ()
   else
     echo "Directory hedera-sdk-js does not exist."
     git clone https://github.com/hashgraph/hedera-sdk-js --branch v2.53.0
+    cd hedera-sdk-js
+    npm install --save @hashgraph/sdk
+    cd -
   fi
 }
 
@@ -105,6 +108,7 @@ function start_background_transactions ()
   cd hedera-local-node
   for i in {1..40}; do
     echo "Running generate-accounts round $i"
+    ps -ef |grep port-forward
     npm run generate-accounts 3 > background.log 2>&1
     sleep 3
   done &
@@ -141,12 +145,9 @@ function start_sdk_test ()
 
 echo "Change to parent directory"
 cd ../
-ps -ef |grep port-forward
 clone_sdk_repo
 clone_local_node_repo
-ps -ef |grep port-forward
 clone_smart_contract_repo
-ps -ef |grep port-forward
 setup_smart_contract_test
 start_background_transactions
 start_contract_test
