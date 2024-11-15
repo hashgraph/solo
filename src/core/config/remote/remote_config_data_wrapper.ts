@@ -20,10 +20,11 @@ import yaml from 'js-yaml'
 import { RemoteConfigMetadata } from './metadata.ts'
 import { ComponentsDataWrapper } from './components_data_wrapper.ts'
 import * as constants from '../../constants.ts'
-import type { Cluster, Version, Namespace, RemoteConfigData } from './types.ts'
+import type { Cluster, Version, Namespace, RemoteConfigData, RemoteConfigDataStructure } from './types.ts'
 import type * as k8s from '@kubernetes/client-node'
+import type { ToObject, Validate } from '../../../types/index.ts'
 
-export class RemoteConfigDataWrapper {
+export class RemoteConfigDataWrapper implements Validate, ToObject<RemoteConfigDataStructure> {
   private readonly _version: Version = version.HEDERA_PLATFORM_VERSION
   private _metadata: RemoteConfigMetadata
   private _clusters: Record<Cluster, Namespace>
@@ -31,7 +32,7 @@ export class RemoteConfigDataWrapper {
   private _commandHistory: string[]
   private _lastExecutedCommand: string
 
-  constructor (data: RemoteConfigData) {
+  public constructor (data: RemoteConfigData) {
     this._metadata = data.metadata
     this._clusters = data.clusters
     this._components = data.components
@@ -40,7 +41,7 @@ export class RemoteConfigDataWrapper {
     this.validate()
   }
 
-  static fromConfigmap (configMap: k8s.V1ConfigMap) {
+  public static fromConfigmap (configMap: k8s.V1ConfigMap): RemoteConfigDataWrapper {
     const unparsed = yaml.load(configMap.data['remote-config-data']) as any
 
     console.log(unparsed)
@@ -54,44 +55,44 @@ export class RemoteConfigDataWrapper {
     })
   }
 
-  private get version () { return this._version }
+  private get version (): Version { return this._version }
 
-  get metadata () { return this._metadata }
+  public get metadata (): RemoteConfigMetadata { return this._metadata }
 
-  set metadata (metadata: RemoteConfigMetadata) {
+  public set metadata (metadata: RemoteConfigMetadata) {
     this._metadata = metadata
     this.validate()
   }
 
-  get clusters () { return this._clusters }
+  public get clusters (): Record<Cluster, Namespace> { return this._clusters }
 
-  set clusters (clusters: Record<Cluster, Namespace>) {
+  public set clusters (clusters: Record<Cluster, Namespace>) {
     this._clusters = clusters
     this.validate()
   }
 
-  get components () { return this._components }
+  public get components (): ComponentsDataWrapper { return this._components }
 
-  set components (components: ComponentsDataWrapper) {
+  public set components (components: ComponentsDataWrapper) {
     this._components = components
     this.validate()
   }
 
-  get lastExecutedCommand () { return this._lastExecutedCommand }
+  public get lastExecutedCommand (): string { return this._lastExecutedCommand }
 
   private set lastExecutedCommand (lastExecutedCommand: string) {
     this._lastExecutedCommand = lastExecutedCommand
     this.validate()
   }
 
-  get commandHistory () { return this._commandHistory }
+  public get commandHistory (): string[] { return this._commandHistory }
 
   private set commandHistory (commandHistory: string[]) {
     this._commandHistory = commandHistory
     this.validate()
   }
 
-  addCommandToHistory (command: string) {
+  public addCommandToHistory (command: string): void {
     this._commandHistory.push(command)
     this.lastExecutedCommand = command
 
@@ -102,7 +103,7 @@ export class RemoteConfigDataWrapper {
     this.validate()
   }
 
-  private validate () {
+  public validate (): void {
     if (!this._version || typeof this._version !== 'string') {
       throw new SoloError(`Invalid remote config version: ${this._version}`)
     }
@@ -115,11 +116,11 @@ export class RemoteConfigDataWrapper {
       throw new SoloError(`Invalid remote config last executed command: ${this.lastExecutedCommand}`)
     }
 
-    if (!Array.isArray(this.commandHistory) || this.commandHistory.some(c => typeof c !== 'string')) {
+    if (!Array.isArray(this.commandHistory) || this.commandHistory.some((c) => typeof c !== 'string')) {
       throw new SoloError(`Invalid remote config command history: ${this.commandHistory}`)
     }
 
-    Object.entries(this.clusters).forEach(([cluster, namespace]: [Cluster, Namespace]) => {
+    Object.entries(this.clusters).forEach(([cluster, namespace]: [Cluster, Namespace]): void => {
       const clusterDataString = `cluster: { name: ${cluster}, namespace: ${namespace} }`
 
       if (!cluster || typeof cluster !== 'string') {
@@ -132,7 +133,7 @@ export class RemoteConfigDataWrapper {
     })
   }
 
-  toObject () {
+  public toObject (): RemoteConfigDataStructure {
     return {
       metadata: this.metadata.toObject(),
       version: this.version,

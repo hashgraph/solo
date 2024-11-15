@@ -15,6 +15,10 @@
  *
  */
 
+/**
+ * Enumerations that represent the component types used in remote config
+ * {@link ComponentsDataWrapper}
+ */
 export enum ComponentTypeEnum {
   ConsensusNode = 'CONSENSUS_NODE',
   HaProxy = 'HAPROXY',
@@ -24,8 +28,10 @@ export enum ComponentTypeEnum {
   Relay = 'RELAY',
 }
 
-//! ---------------------- States ---------------------- !//
-
+/**
+ * Enumerations that represent the state of consensus node in remote config
+ * {@link ConsensusNodeComponent}
+ */
 export enum ConsensusNodeStates {
   SETUP = 'SETUP',
   STARTED = 'STARTED',

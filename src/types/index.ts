@@ -85,4 +85,16 @@ export interface Opts {
   certificateManager: CertificateManager
 }
 
+export type Optional<T> = T | undefined;
+
 export type ContextClusterStructure = Record<Context, Cluster>
+
+export interface Validate {
+  /** Validates all properties of the class and throws if data is invalid */
+  validate(): void
+}
+
+export interface ToObject<T> {
+  /** Converts class to plain object */
+  toObject(): T
+}

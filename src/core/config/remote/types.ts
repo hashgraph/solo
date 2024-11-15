@@ -18,7 +18,7 @@ import type { NodeAliases } from '../../../types/aliases.ts'
 import type { Migration } from './migration.ts'
 import type { ComponentsDataWrapper } from './components_data_wrapper.ts'
 import type { RemoteConfigMetadata } from './metadata.ts'
-import type { ConsensusNodeStates } from './enumerations.ts'
+import { ComponentTypeEnum, ConsensusNodeStates } from './enumerations.ts'
 
 export type EmailAddress = `${string}@${string}.${string}`
 export type Version = string
@@ -64,4 +64,15 @@ export interface RemoteConfigData {
   components: ComponentsDataWrapper
   lastExecutedCommand: string
   commandHistory: string[]
+}
+
+export type ComponentsDataStructure = Record<ComponentTypeEnum, Record<ServiceName, Component>>
+
+export interface RemoteConfigDataStructure {
+  metadata: RemoteConfigMetadataStructure
+  version: Version
+  clusters: Record<Cluster, Namespace>
+  components: ComponentsDataStructure
+  commandHistory: string[]
+  lastExecutedCommand: string
 }

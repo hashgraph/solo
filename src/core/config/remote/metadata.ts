@@ -18,14 +18,24 @@ import { Migration } from './migration.ts'
 import { SoloError } from '../../errors.ts'
 import * as k8s from '@kubernetes/client-node'
 import type { EmailAddress, Namespace, RemoteConfigMetadataStructure, Version } from './types.ts'
+import type { Optional, ToObject, Validate } from '../../../types/index.ts'
 
-export class RemoteConfigMetadata implements RemoteConfigMetadataStructure {
+/**
+ * Represent the remote config metadata object and handles:
+ * - Validation
+ * - Reading
+ * - Making a migration
+ * - Converting from and to plain object
+ */
+export class RemoteConfigMetadata
+  implements RemoteConfigMetadataStructure, Validate, ToObject<RemoteConfigMetadataStructure>
+{
   private readonly _name: Namespace
   private readonly _lastUpdatedAt: Date
   private readonly _lastUpdateBy: EmailAddress
   private _migration?: Migration
 
-  constructor (name: Namespace, lastUpdatedAt: Date, lastUpdateBy: EmailAddress, migration?: Migration) {
+  public constructor (name: Namespace, lastUpdatedAt: Date, lastUpdateBy: EmailAddress, migration?: Migration) {
     this._name = name
     this._lastUpdatedAt = lastUpdatedAt
     this._lastUpdateBy = lastUpdateBy
@@ -33,17 +43,26 @@ export class RemoteConfigMetadata implements RemoteConfigMetadataStructure {
     this.validate()
   }
 
-  get name () { return this._name }
-  get lastUpdatedAt () { return this._lastUpdatedAt }
-  get lastUpdateBy () { return this._lastUpdateBy }
-  get migration () { return this._migration }
+  /** Retrieves the namespace */
+  public get name (): Namespace  { return this._name }
 
-  makeMigration (email: EmailAddress, fromVersion: Version) {
+  /** Retrieves the date when the remote config metadata was last updated */
+  public get lastUpdatedAt (): Date { return this._lastUpdatedAt }
+
+  /** Retrieves the email of the user who last updated the remote config metadata */
+  public get lastUpdateBy (): EmailAddress { return this._lastUpdateBy }
+
+  /** Retrieves the migration if such exists */
+  public get migration (): Optional<Migration> { return this._migration }
+
+  /** Simplifies making a migration */
+  public makeMigration (email: EmailAddress, fromVersion: Version): void {
     this._migration = new Migration(new Date(), email, fromVersion)
   }
 
-  static fromObject (metadata: RemoteConfigMetadataStructure) {
-    let migration: Migration | undefined = undefined
+  /** Handles conversion from plain object to instance */
+  public static fromObject (metadata: RemoteConfigMetadataStructure): RemoteConfigMetadata {
+    let migration: Optional<Migration> = undefined
 
     if (metadata.migration) {
       const { migration: { migratedAt, migratedBy, fromVersion } } = metadata
@@ -58,7 +77,7 @@ export class RemoteConfigMetadata implements RemoteConfigMetadataStructure {
       )
   }
 
-  validate () {
+  public validate (): void {
     if (!this.name || typeof this.name !== 'string') {
       throw new SoloError(`Invalid name: ${this.name}`)
     }
@@ -76,7 +95,8 @@ export class RemoteConfigMetadata implements RemoteConfigMetadataStructure {
     }
   }
 
-  toObject () {
+  /** Converts metadata to plain object */
+  public toObject (): RemoteConfigMetadataStructure {
     const data = {
       name: this.name,
       lastUpdatedAt: new k8s.V1MicroTime(this.lastUpdatedAt),

@@ -25,9 +25,10 @@ import { getNodeAccountMap } from './helpers.ts'
 import * as semver from 'semver'
 import { readFile, writeFile } from 'fs/promises'
 
-import { type SoloLogger } from './logging.ts'
-import { type SemVer } from 'semver'
-import { type NodeAlias, type NodeAliases } from '../types/aliases.ts'
+import type { SoloLogger } from './logging.ts'
+import type { SemVer } from 'semver'
+import type { NodeAlias, NodeAliases } from '../types/aliases.ts'
+import type { Optional } from '../types/index.ts'
 
 const consensusSidecars = [
   'recordStreamUploader', 'eventStreamUploader', 'backupUploader', 'accountBalanceUploader', 'otelCollector']
@@ -38,7 +39,7 @@ export class ProfileManager {
   private readonly cacheDir: string
 
   private profiles: Map<string, object>
-  private profileFile: string | undefined
+  private profileFile: Optional<string>
 
   constructor (logger: SoloLogger, configManager: ConfigManager, cacheDir: string = constants.SOLO_VALUES_DIR) {
     if (!logger) throw new MissingArgumentError('An instance of core/SoloLogger is required')

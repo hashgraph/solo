@@ -52,25 +52,25 @@ export abstract class BaseComponent implements Component {
    * Retrieves the type of the component
    * @readonly
    */
-  get type (): ComponentTypeEnum { return this._type }
+  public get type (): ComponentTypeEnum { return this._type }
 
   /**
    * Retrieves the name of the component.
    * @readonly
    */
-  get name (): ServiceName { return this._name }
+  public get name (): ServiceName { return this._name }
 
   /**
    * Retrieves the cluster associated with the component.
    * @readonly
    */
-  get cluster (): Cluster { return this._cluster }
+  public get cluster (): Cluster { return this._cluster }
 
   /**
    * Retrieves the namespace associated with the component.
    * @readonly
    */
-  get namespace (): Namespace { return this._namespace }
+  public get namespace (): Namespace { return this._namespace }
 
   /**
    * Validates the component's properties to ensure they meet expected criteria.

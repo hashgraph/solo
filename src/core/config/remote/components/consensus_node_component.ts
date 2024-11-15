@@ -35,7 +35,7 @@ export class ConsensusNodeComponent extends BaseComponent implements IConsensusN
    * @param namespace - associated to component
    * @param state - of the consensus node
    */
-  constructor (
+  public constructor (
     name: ServiceName,
     cluster: Cluster,
     namespace: Namespace,

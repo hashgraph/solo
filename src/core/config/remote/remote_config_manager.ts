@@ -91,7 +91,7 @@ export class RemoteConfigManager {
         this.localConfig.userEmailAddress
       ),
       clusters,
-      components: new ComponentsDataWrapper(),
+      components: ComponentsDataWrapper.initializeEmpty(),
       lastExecutedCommand: 'deployment create',
       commandHistory: [ 'deployment create' ]
     })

@@ -27,7 +27,7 @@ export class RelayComponent extends BaseComponent implements IRelayComponent {
    * @param namespace - associated with the component.
    * @param consensusNodeAliases - list node aliases
    */
-  constructor (
+  public constructor (
     name: string, cluster: string, namespace: string,
     public readonly consensusNodeAliases: NodeAliases = []
   ) {
@@ -45,7 +45,7 @@ export class RelayComponent extends BaseComponent implements IRelayComponent {
     })
   }
 
-  toObject (): IRelayComponent {
+  public toObject (): IRelayComponent {
     return {
       consensusNodeAliases: this.consensusNodeAliases,
       ...super.toObject()
