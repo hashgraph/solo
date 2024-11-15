@@ -59,7 +59,7 @@ export class RemoteConfigManager {
    * Modifies the loaded remote configuration data using a provided callback function.
    * The callback operates on the configuration data, which is then saved to the cluster.
    *
-   * @param callback - An async function that modifies the remote configuration data.
+   * @param callback - an async function that modifies the remote configuration data.
    * @throws {@link SoloError} if the configuration is not loaded before modification.
    */
   async modify (callback: (remoteConfig: RemoteConfigDataWrapper) => Promise<void> ): Promise<void> {
@@ -101,7 +101,6 @@ export class RemoteConfigManager {
 
   /**
    * Saves the currently loaded remote configuration data to the Kubernetes cluster.
-   *
    * @throws {@link SoloError} if there is no remote configuration data to save.
    */
   private async save (): Promise<void> {
@@ -114,8 +113,7 @@ export class RemoteConfigManager {
 
   /**
    * Loads the remote configuration from the Kubernetes cluster if it exists.
-   *
-   * @returns true if the configuration is loaded successfully, otherwise false.
+   * @returns true if the configuration is loaded successfully.
    */
   private async load (): Promise<boolean> {
     if (this.remoteConfig) return true
@@ -150,7 +148,7 @@ export class RemoteConfigManager {
    * Checks if the configuration is already loaded, otherwise loads and adds the command to history.
    *
    * @param argv - arguments containing command input for historical reference.
-   * @returns a Listr task to load the remote configuration.
+   * @returns a Listr task which loads the remote configuration.
    */
   public buildLoadRemoteConfigTask (argv: { _: string[]}): ListrTask {
     const self = this
@@ -176,7 +174,7 @@ export class RemoteConfigManager {
    * Builds a task for creating a new remote configuration, intended for use with Listr task management.
    * Merges cluster mappings from the provided context into the local configuration, then creates the remote config.
    *
-   * @returns a Listr task to create the remote configuration.
+   * @returns a Listr task which creates the remote configuration.
    */
   public buildCreateRemoteConfigTask (): ListrTask<ListrContext> {
     const self = this
@@ -204,24 +202,18 @@ export class RemoteConfigManager {
 
   /**
    * Creates a new ConfigMap entry in the Kubernetes cluster with the remote configuration data.
-   *
-   * @returns true if the ConfigMap was successfully created, false otherwise.
    */
-  private createConfigMap (): Promise<boolean> {
-    return this.k8.createNamespacedConfigMap(
+  private async createConfigMap (): Promise<void> {
+    await this.k8.createNamespacedConfigMap(
       constants.SOLO_REMOTE_CONFIGMAP_NAME,
       constants.SOLO_REMOTE_CONFIGMAP_LABELS,
       { 'remote-config-data': yaml.dump(this.remoteConfig.toObject()) }
     )
   }
 
-  /**
-   * Replaces an existing ConfigMap in the Kubernetes cluster with the current remote configuration data.
-   *
-   * @returns true if the ConfigMap was successfully replaced.
-   */
-  private replaceConfigMap (): Promise<boolean> {
-    return this.k8.replaceNamespacedConfigMap(
+  /** Replaces an existing ConfigMap in the Kubernetes cluster with the current remote configuration data. */
+  private async replaceConfigMap (): Promise<void> {
+    await this.k8.replaceNamespacedConfigMap(
       constants.SOLO_REMOTE_CONFIGMAP_NAME,
       constants.SOLO_REMOTE_CONFIGMAP_LABELS,
       { 'remote-config-data': yaml.dump(this.remoteConfig.toObject() as any) }
@@ -230,7 +222,6 @@ export class RemoteConfigManager {
 
   /**
    * Retrieves the existing ConfigMap containing remote configuration data from the Kubernetes cluster.
-   *
    * @returns the Kubernetes ConfigMap for remote configuration.
    */
   private getConfigMap (): Promise<k8s.V1ConfigMap> {
@@ -239,9 +230,7 @@ export class RemoteConfigManager {
 
   /**
    * Retrieves the namespace value from the configuration manager's flags.
-   *
    * @returns string - The namespace value if set.
-   * @throws {@link MissingArgumentError} if the namespace is not defined.
    */
   private getNamespace (): string {
     const ns = this.configManager.getFlag<string>(flags.namespace) as string
