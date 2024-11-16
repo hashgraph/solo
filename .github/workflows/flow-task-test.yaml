@@ -36,6 +36,7 @@ permissions:
 
 jobs:
   example-task-file-test:
+    timeout-minutes: 10
     runs-on: solo-linux-large
     steps:
       - name: Harden Runner

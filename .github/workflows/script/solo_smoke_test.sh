@@ -132,7 +132,7 @@ function setup_smart_contract_test ()
 function background_keep_port_forward ()
 {
   echo "Keep port forward"
-  for i in {1..15}; do
+  for i in {1..25}; do
     enable_port_forward
     sleep 2
   done &
@@ -186,6 +186,7 @@ background_keep_port_forward
 clone_local_node_repo
 ps -ef |grep port-forward
 clone_smart_contract_repo
+ps -ef |grep port-forward
 setup_smart_contract_test
 start_background_transactions
 start_contract_test
