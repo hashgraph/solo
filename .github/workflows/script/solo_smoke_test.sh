@@ -132,7 +132,8 @@ function setup_smart_contract_test ()
 function background_keep_port_forward ()
 {
   echo "Keep port forward"
-  for i in {1..25}; do
+  for i in {1..40}; do
+    echo "Running generate-accounts round $i"
     enable_port_forward
     sleep 2
   done &
