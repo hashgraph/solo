@@ -17,12 +17,12 @@ handle_error() {
 # Then run smart contract test, and also javascript sdk sample test to interact with solo network
 #
 
-function force_port_forward ()
+function enable_port_forward ()
 {
-  echo "Force port forward"
+  echo "Enable port forward"
   kubectl port-forward -n solo-e2e svc/haproxy-node1-svc 50211:50211 &
   kubectl port-forward -n solo-e2e svc/hedera-explorer 8080:80 &
-  kubectl port-forward -n solo-e2e svc/relay-node1-hedera-json-rpc-relay 7546:754 &
+  kubectl port-forward -n solo-e2e svc/relay-node1-hedera-json-rpc-relay 7546:7546 &
 }
 
 
@@ -97,8 +97,17 @@ function clone_local_node_repo ()
   cd hedera-local-node
   npm install
   ps -ef |grep port-forward
-  force_port_forward
-  create_account_and_extract_key
+  # call create_account_and_extract_key 10 times
+  for i in {1..10}; do
+    create_account_and_extract_key
+    ps -ef |grep port-forward
+    # check if the key is generated
+    if [ -s private_key_with_quote_final.txt ]; then
+      echo "Key is generated"
+      break
+    fi
+    enable_port_forward
+    sleep 5
   cd -
 }
 
@@ -167,6 +176,7 @@ cd ../
 clone_sdk_repo
 ps -ef |grep port-forward
 clone_local_node_repo
+ps -ef |grep port-forward
 clone_smart_contract_repo
 setup_smart_contract_test
 start_background_transactions
