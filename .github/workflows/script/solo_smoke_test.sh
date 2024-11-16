@@ -19,7 +19,6 @@ handle_error() {
 
 function enable_port_forward ()
 {
-  echo "Enable port forward"
   kubectl port-forward -n solo-e2e svc/haproxy-node1-svc 50211:50211 > /dev/null 2>&1 &
   kubectl port-forward -n solo-e2e svc/hedera-explorer 8080:80 > /dev/null 2>&1 &
   kubectl port-forward -n solo-e2e svc/relay-node1-hedera-json-rpc-relay 7546:7546 > /dev/null 2>&1 &
@@ -131,11 +130,11 @@ function setup_smart_contract_test ()
 
 function background_keep_port_forward ()
 {
-  echo "Keep port forward"
-  for i in {1..40}; do
-    echo "Running generate-accounts round $i"
+  for i in {1..20}; do
+    echo "Enable port forward round $i"
     enable_port_forward
     sleep 2
+    ps -ef |grep port-forward
   done &
 }
 
@@ -145,10 +144,10 @@ function start_background_transactions ()
   # generate accounts every 3 seconds as background traffic for two minutes
   # so record stream files can be kept pushing to mirror node
   cd hedera-local-node
-  for i in {1..15}; do
+  for i in {1..20}; do
     echo "Running generate-accounts round $i"
     npm run generate-accounts 3 > background.log 2>&1
-    sleep 3
+    sleep 1
   done &
   cd -
 }
