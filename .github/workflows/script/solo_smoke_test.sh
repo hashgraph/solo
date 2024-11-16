@@ -100,7 +100,7 @@ function clone_local_node_repo ()
   # call create_account_and_extract_key 10 times
   for i in {1..10}; do
     create_account_and_extract_key
-    ps -ef |grep port-forward
+    ps -ef | grep port-forward
     # check if the key is generated
     if [ -s private_key_with_quote_final.txt ]; then
       echo "Key is generated"
@@ -108,6 +108,7 @@ function clone_local_node_repo ()
     fi
     enable_port_forward
     sleep 5
+  done
   cd -
 }
 
