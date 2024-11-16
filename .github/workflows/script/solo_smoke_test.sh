@@ -129,6 +129,14 @@ function setup_smart_contract_test ()
   cd -
 }
 
+function background_keep_port_forward ()
+{
+  echo "Keep port forward"
+  while true; do
+    enable_port_forward
+    sleep 3
+  done &
+}
 
 function start_background_transactions ()
 {
@@ -175,7 +183,7 @@ function start_sdk_test ()
 echo "Change to parent directory"
 cd ../
 clone_sdk_repo
-ps -ef |grep port-forward
+background_keep_port_forward
 clone_local_node_repo
 ps -ef |grep port-forward
 clone_smart_contract_repo
