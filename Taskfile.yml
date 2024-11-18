@@ -99,8 +99,3 @@ tasks:
     desc: remove solo logs director
     cmds:
       - task: "helper:solo:logs:remove"
-
-// todo   solo:destroy-relay:
-// todo       - task: "solo:mirror-node"
-// todo       - task: "helper:solo:relay"
-
