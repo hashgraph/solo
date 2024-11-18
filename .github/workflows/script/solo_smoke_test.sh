@@ -1,14 +1,6 @@
 #!/bin/bash
-#set -eo pipefail
+set -eo pipefail
 
-trap handle_error ERR
-
-handle_error() {
-  echo "An error occurred"
-  ps -ef |grep port-forward
-  # exit to shell
-  exit 1
-}
 #
 # This script should be called after solo has been deployed with mirror node and relay node deployed,
 # and should be called from the root of the solo repository
@@ -17,6 +9,8 @@ handle_error() {
 # Then run smart contract test, and also javascript sdk sample test to interact with solo network
 #
 
+function_name=""
+
 function enable_port_forward ()
 {
   kubectl port-forward -n solo-e2e svc/haproxy-node1-svc 50211:50211 > /dev/null 2>&1 &
@@ -24,10 +18,13 @@ function enable_port_forward ()
   kubectl port-forward -n solo-e2e svc/relay-node1-hedera-json-rpc-relay 7546:7546 > /dev/null 2>&1 &
 }
 
-
+# calling local node generate-accounts function and extract private key
+# from the output, after some manipulation, add the private key to hardhat.config.js
 function create_account_and_extract_key ()
 {
   echo "Generate ECDSA keys, extract from output and save to key.txt"
+  # remove previous generate private key files
+  rm -rf "private_key*.txt"
   npm run generate-accounts 3 > key.log
   sed -n 's/.* - \(0x[0-9a-f]*\) - \(0x[0-9a-f]*\) - .*/\1 \2/p' key.log > key.txt
 
@@ -40,7 +37,6 @@ function create_account_and_extract_key ()
   sed '$ s/.$//' private_key_without_quote.txt > private_key_without_quote_final.txt
 
   LOCAL_NODE_KEYS=$(cat private_key_with_quote_final.txt)
-  CONTRACT_TEST_KEYS=$(cat private_key_without_quote_final.txt)
 
   echo "Add new keys to hardhat.config.js"
   git checkout test/smoke/hardhat.config.js
@@ -55,8 +51,8 @@ function create_account_and_extract_key ()
   fi
   echo "Display the new hardhat.config.js"
   cat test/smoke/hardhat.config.js
+  return 0
 }
-
 
 function clone_smart_contract_repo ()
 {
@@ -83,6 +79,8 @@ function clone_sdk_repo ()
   fi
 }
 
+# clone hedera local node repo and call function create_account_and_extract_key
+# to extract private keys
 function clone_local_node_repo ()
 {
   echo "Clone hedera local node"
@@ -94,28 +92,52 @@ function clone_local_node_repo ()
   fi
   cd hedera-local-node
   npm install
-  # call create_account_and_extract_key 10 times
-  for i in {1..10}; do
-    create_account_and_extract_key
-    ps -ef | grep port-forward
-    # check if the key is generated
-    if [ -s private_key_with_quote_final.txt ]; then
-      echo "Key is generated"
-      break
-    fi
-    echo "Wait retry in 5 seconds"
-    sleep 5
-  done
+
+  function_name=create_account_and_extract_key
+  retry_function 5
+
+  if [ -s "private_key_without_quote_final.txt" ]; then
+    echo "File private_key_without_quote_final.txt exists and not empty"
+  else
+    echo "File private_key_without_quote_final.txt does not exist or empty"
+    exit 1
+  fi
+
   cd -
+}
+
+# retry the function saved in function_name for few times
+function retry_function ()
+{
+  local num=$1
+  for ((i=1; i<=$num; i++)); do
+    return_code=$( ( $function_name > retry.log; echo $? ))
+    # Use the return code
+    if [[ $return_code -eq 0 ]]; then
+      echo "Function $function_name is successful"
+      return
+    else
+      echo "Function $function_name failed with return code $return_code"
+    fi
+    echo "Retry $function_name in 2 seconds"
+    sleep 2
+  done
+  echo "Function $function_name failed after 5 retries"
+  exit 1
 }
 
 function setup_smart_contract_test ()
 {
   echo "Setup smart contract test"
+  CONTRACT_TEST_KEYS=$(cat hedera-local-node/private_key_without_quote_final.txt)
+
   cd hedera-smart-contracts
 
   npm install
   npx hardhat compile
+
+  echo "Remove previous .env file"
+  rm -f .env
 
   echo "Build .env file"
 
@@ -157,7 +179,16 @@ function start_contract_test ()
   sleep 5
   echo "Run smart contract test"
   npm run hh:test
+  result=$?
+
   cd -
+  return $result
+}
+
+function retry_contract_test ()
+{
+  function_name="start_contract_test"
+  retry_function 5
 }
 
 function start_sdk_test ()
@@ -185,5 +216,5 @@ clone_local_node_repo
 clone_smart_contract_repo
 setup_smart_contract_test
 start_background_transactions
-start_contract_test
+retry_contract_test
 start_sdk_test
