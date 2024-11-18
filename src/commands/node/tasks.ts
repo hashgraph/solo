@@ -71,8 +71,8 @@ import * as x509 from '@peculiar/x509'
 import { type NodeCommand } from './index.ts'
 import type { NodeDeleteConfigClass, NodeRefreshConfigClass, NodeUpdateConfigClass } from './configs.ts'
 import type { NodeAddConfigClass } from './configs.ts'
-import { type Lease } from '../../core/lease.js'
-import { ListrLease } from '../../core/listr_lease.js'
+import { type Lease } from '../../core/lease/lease.ts'
+import { ListrLease } from '../../core/lease/listr_lease.ts'
 
 export class NodeCommandTasks {
   private readonly accountManager: AccountManager

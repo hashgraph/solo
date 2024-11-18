@@ -27,7 +27,7 @@ import {
 } from '../../../../src/core/index.ts'
 import { SECONDS } from '../../../../src/core/constants.ts'
 import sinon from 'sinon'
-import { IntervalLeaseRenewalService } from '../../../../src/core/lease_renewal.js'
+import { IntervalLeaseRenewalService } from '../../../../src/core/lease/lease_renewal.ts'
 
 const testLogger = logging.NewLogger('debug', true)
 describe('InitCommand', () => {

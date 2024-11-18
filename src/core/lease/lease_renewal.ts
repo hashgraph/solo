@@ -15,7 +15,7 @@
  *
  */
 import { type Lease } from './lease.ts'
-import { SECONDS } from './constants.ts'
+import { SECONDS } from '../constants.ts'
 
 export interface LeaseRenewalService {
     isScheduled (scheduleId: number): Promise<boolean>

@@ -32,7 +32,7 @@ import { type CommandFlag } from '../types/index.ts'
 import { type V1Pod } from '@kubernetes/client-node'
 import { type SoloLogger } from './logging.ts'
 import { type NodeCommandHandlers } from '../commands/node/handlers.ts'
-import { type Lease } from './lease.js'
+import { type Lease } from './lease/lease.ts'
 
 export function sleep (ms: number) {
   return new Promise<void>((resolve) => {

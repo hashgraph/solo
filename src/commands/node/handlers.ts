@@ -34,7 +34,7 @@ import { IllegalArgumentError } from '../../core/errors.ts'
 import type { SoloLogger } from '../../core/logging.ts'
 import type { NodeCommand } from './index.ts'
 import type { NodeCommandTasks } from './tasks.ts'
-import { type Lease } from '../../core/lease.js'
+import { type Lease } from '../../core/lease/lease.ts'
 
 export class NodeCommandHandlers {
   private readonly accountManager: AccountManager

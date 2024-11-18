@@ -14,14 +14,14 @@
  * limitations under the License.
  *
  */
-import { MissingArgumentError, SoloError } from './errors.ts'
+import { MissingArgumentError, SoloError } from '../errors.ts'
 import { type V1Lease } from '@kubernetes/client-node'
-import { type K8 } from './k8.ts'
-import { SECONDS } from './constants.ts'
+import { type K8 } from '../k8.ts'
+import { SECONDS } from '../constants.ts'
 import { LeaseHolder } from './lease_holder.ts'
 import { LeaseAcquisitionError, LeaseRelinquishmentError } from './lease_errors.ts'
 import { type LeaseRenewalService } from './lease_renewal.ts'
-import { sleep } from './helpers.ts'
+import { sleep } from '../helpers.ts'
 
 export class Lease {
     /** The default duration in seconds for which the lease is to be held before being considered expired. */

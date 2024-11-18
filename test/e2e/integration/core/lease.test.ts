@@ -19,10 +19,10 @@ import { ConfigManager, logging } from '../../../../src/core/index.ts'
 import { K8 } from '../../../../src/core/k8.ts'
 import { MINUTES, SECONDS } from '../../../../src/core/constants.ts'
 import { expect } from 'chai'
-import { Lease } from '../../../../src/core/lease.ts'
-import { LeaseHolder } from '../../../../src/core/lease_holder.ts'
+import { Lease } from '../../../../src/core/lease/lease.ts'
+import { LeaseHolder } from '../../../../src/core/lease/lease_holder.ts'
 import { sleep } from '../../../../src/core/helpers.ts'
-import { LeaseRelinquishmentError } from '../../../../src/core/lease_errors.ts'
+import { LeaseRelinquishmentError } from '../../../../src/core/lease/lease_errors.ts'
 import { NoopLeaseRenewalService } from './noop_lease_renewal_service.test.ts'
 
 

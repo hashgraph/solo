@@ -23,7 +23,7 @@ import chalk from 'chalk'
 import { constants } from '../core/index.ts'
 import * as prompts from './prompts.ts'
 import path from 'path'
-import { ListrLease } from '../core/listr_lease.js'
+import { ListrLease } from '../core/lease/listr_lease.ts'
 
 /**
  * Define the core functionalities of 'cluster' command

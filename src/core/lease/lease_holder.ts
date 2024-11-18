@@ -15,7 +15,7 @@
  *
  */
 
-import { MissingArgumentError } from './errors.ts'
+import { MissingArgumentError } from '../errors.ts'
 import os from 'node:os'
 import process from 'node:process'
 

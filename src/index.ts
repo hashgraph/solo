@@ -29,7 +29,7 @@ import { K8 } from './core/k8.ts'
 import { ListrLogger } from 'listr2'
 import { CustomProcessOutput } from './core/process_output.ts'
 import { type Opts } from './types/index.ts'
-import { IntervalLeaseRenewalService, type LeaseRenewalService } from './core/lease_renewal.js'
+import { IntervalLeaseRenewalService, type LeaseRenewalService } from './core/lease/lease_renewal.ts'
 
 export function main (argv: any) {
   const logger = logging.NewLogger('debug')

@@ -23,8 +23,8 @@ import * as prompts from './prompts.ts'
 import { constants, type AccountManager } from '../core/index.ts'
 import { type AccountId, AccountInfo, HbarUnit, PrivateKey } from '@hashgraph/sdk'
 import { FREEZE_ADMIN_ACCOUNT } from '../core/constants.ts'
-import { type Opts } from '../types/index.js'
-import { ListrLease } from '../core/listr_lease.js'
+import { type Opts } from '../types/index.ts'
+import { ListrLease } from '../core/lease/listr_lease.ts'
 
 export class AccountCommand extends BaseCommand {
   private readonly accountManager: AccountManager

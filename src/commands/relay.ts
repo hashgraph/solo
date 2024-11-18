@@ -25,7 +25,7 @@ import * as prompts from './prompts.ts'
 import { getNodeAccountMap } from '../core/helpers.ts'
 import { type NodeAliases } from '../types/aliases.ts'
 import { type Opts } from '../types/index.ts'
-import { ListrLease } from '../core/listr_lease.js'
+import { ListrLease } from '../core/lease/listr_lease.ts'
 
 export class RelayCommand extends BaseCommand {
   private readonly profileManager: ProfileManager

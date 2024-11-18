@@ -24,7 +24,7 @@ import * as prompts from './prompts.ts'
 import { getFileContents, getEnvValue } from '../core/helpers.ts'
 import { type PodName } from '../types/aliases.ts'
 import { type Opts } from '../types/index.ts'
-import { ListrLease } from '../core/listr_lease.js'
+import { ListrLease } from '../core/lease/listr_lease.ts'
 
 export class MirrorNodeCommand extends BaseCommand {
   private readonly accountManager: AccountManager

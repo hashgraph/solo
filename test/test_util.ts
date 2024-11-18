@@ -64,7 +64,7 @@ import type { NodeAlias } from '../src/types/aliases.ts'
 import type { NetworkNodeServices } from '../src/core/network_node_services.ts'
 import sinon from 'sinon'
 import { HEDERA_PLATFORM_VERSION } from '../version.js'
-import { IntervalLeaseRenewalService } from '../src/core/lease_renewal.js'
+import { IntervalLeaseRenewalService } from '../src/core/lease/lease_renewal.ts'
 
 export const testLogger = logging.NewLogger('debug', true)
 export const TEST_CLUSTER = 'solo-e2e'

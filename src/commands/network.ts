@@ -29,7 +29,7 @@ import fs from 'fs'
 import type { CertificateManager, KeyManager, PlatformInstaller, ProfileManager } from '../core/index.ts'
 import type { NodeAlias, NodeAliases } from '../types/aliases.ts'
 import type { Opts } from '../types/index.ts'
-import { ListrLease } from '../core/listr_lease.js'
+import { ListrLease } from '../core/lease/listr_lease.ts'
 
 export interface NetworkDeployConfigClass {
   applicationEnv: string
