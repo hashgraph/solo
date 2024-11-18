@@ -30,7 +30,7 @@ The output would be similar to the following:
 }
 ```
 
-Next step please clone the Hedera Javascript SDK repository https://github.com/hashgraph/hedera-sdk-js
+Next step please clone the Hedera Javascript SDK repository https://github.com/hashgraph/hedera-sdk-js.
 At the root of the project `hedera-sdk-js`,  create a file `.env` and add the following content:
 
 ```bash

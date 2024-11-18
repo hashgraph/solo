@@ -52,13 +52,13 @@ tasks:
   default-with-mirror:
     cmds:
       - task: "default"
-      - task: "mirror:deploy"
+      - task: "solo:mirror-node"
 
   default-with-relay:
     cmds:
       - task: "default"
-      - task: "mirror:deploy"
-      - task: "solo:relay:deploy"
+      - task: "solo:mirror-node"
+      - task: "solo:relay"
 
   install:
     cmds:
@@ -90,14 +90,14 @@ tasks:
     cmds:
       - task: "solo:node:stop"
 
-  mirror:deploy:
+  solo:mirror-node:
     cmds:
       - npm run solo-test -- mirror-node deploy --namespace "${SOLO_NAMESPACE}"
       - echo "Enable port forwarding for Hedera Explorer"
       - kubectl port-forward -n "${SOLO_NAMESPACE}" svc/hedera-explorer 8080:80 &
       - task: "sleep_after_port_forward"
 
-  mirror:destroy:
+  solo:destroy-mirror-node:
     status:
       - helm list -n "${SOLO_NAMESPACE}" | grep -vqz "${MIRROR_RELEASE_NAME}"
     cmds:
@@ -111,8 +111,8 @@ tasks:
     cmds:
       - task: "solo:node:stop"
       - task: "solo:network:destroy"
-      - task: "mirror:destroy"
-      - task: "solo:relay:destroy"
+      - task: "solo:destroy-mirror-node"
+      - task: "solo:destroy-relay"
       - task: "cluster:destroy"
 
   clean:
@@ -192,14 +192,14 @@ tasks:
     cmds:
       - kubectl get svc -n "${SOLO_NAMESPACE}" -l "solo.hedera.com/type=network-node-svc"
 
-  solo:relay:deploy:
+  solo:relay:
     cmds:
       - npm run solo-test -- relay deploy -n "${SOLO_NAMESPACE}" -i node1
       - echo "Enable port forwarding for Hedera JSON RPC Relay"
       - kubectl port-forward -n "${SOLO_NAMESPACE}" svc/relay-node1-hedera-json-rpc-relay 7546:7546 &
       - task: "sleep_after_port_forward"
 
-  solo:relay:destroy:
+  solo:destroy-relay:
     status:
       - helm list -n "${SOLO_NAMESPACE}" | grep -vqz relay-node1
     cmds:
