@@ -14,12 +14,13 @@
  * limitations under the License.
  *
  */
-import { Listr } from 'listr2'
+import { Listr, ListrTaskWrapper } from 'listr2'
 import { SoloError } from '../core/errors.ts'
 import { BaseCommand } from './base.ts'
 import * as flags from './flags.ts'
 import { constants, Templates } from '../core/index.ts'
 import * as prompts from './prompts.ts'
+import chalk from 'chalk'
 import type { Namespace } from '../core/config/remote/types.ts'
 import type { ContextClusterStructure } from '../types/index.ts'
 
@@ -63,6 +64,30 @@ export class DeploymentCommand extends BaseCommand {
           return lease.buildAcquireTask(task)
         }
       },
+      {
+        title: 'Validate cluster connections',
+        task: async (ctx, task) => {
+          const subTasks = []
+
+          for (const cluster of Object.keys(ctx.config.contextCluster)) {
+            subTasks.push({
+              title: `Testing connection to cluster: ${chalk.cyan(cluster)}`,
+              task: async (_: Context, task: ListrTaskWrapper<Context, any, any>) => {
+                if (!await self.k8.testClusterConnection(cluster)) {
+                  task.title = `${task.title} - ${chalk.red('Cluster connection failed')}`
+
+                  throw new SoloError(`Cluster connection failed for: ${cluster}`)
+                }
+              }
+            })
+          }
+
+          return task.newListr(subTasks, {
+            concurrent: true,
+            rendererOptions: { collapseSubtasks: false }
+          })
+        }
+      },
       self.localConfig.promptLocalConfigTask(),
       self.remoteConfigManager.buildCreateTask()
     ], {
@@ -73,7 +98,6 @@ export class DeploymentCommand extends BaseCommand {
     try {
       await tasks.run()
     } catch (e: Error | any) {
-      console.error(e)
       throw new SoloError(`Error installing chart ${constants.SOLO_DEPLOYMENT_CHART}`, e)
     } finally {
       await lease.release()

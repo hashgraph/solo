@@ -33,6 +33,8 @@ import type * as WebSocket from 'ws'
 import type { PodName } from '../types/aliases.ts'
 import type { ExtendedNetServer, LocalContextObject } from '../types/index.ts'
 import type * as http from 'node:http'
+import { Cluster } from "node:cluster";
+import { Context } from "./config/remote/types.js";
 
 interface TDirectoryData {directory: boolean; owner: string; group: string; size: string; modifiedAt: string; name: string}
 
@@ -799,7 +801,6 @@ export class K8 {
    * This simple server just forwards traffic from itself to a service running in kubernetes
    * -> localhost:localPort -> port-forward-tunnel -> kubernetes-pod:targetPort
    */
-
   async portForward (podName: PodName, localPort: number, podPort: number) {
     const ns = this._getNamespace()
     const forwarder = new k8s.PortForward(this.kubeConfig, false)
@@ -1076,6 +1077,20 @@ export class K8 {
     return resp.response.statusCode === 200.0
   }
 
+  // --------------------------------------- Utility Methods --------------------------------------- //
+
+  public async testClusterConnection (context: Context): Promise<boolean> {
+    this.kubeConfig.setCurrentContext(context)
+
+    return await this.kubeConfig
+      .makeApiClient(k8s.CoreV1Api)
+      .listNamespace()
+      .then(() => true)
+      .catch(() => false)
+  }
+
+  // --------------------------------------- Secret --------------------------------------- //
+
   /**
    * retrieve the secret of the given namespace and label selector, if there is more than one, it returns the first
    * @param namespace - the namespace of the secret to search for
@@ -1148,6 +1163,8 @@ export class K8 {
     const resp = await this.kubeClient.deleteNamespacedSecret(name, namespace)
     return resp.response.statusCode === 200.0
   }
+
+  // --------------------------------------- ConfigMap --------------------------------------- //
 
   /**
    * @param name - name of the configmap
@@ -1281,7 +1298,6 @@ export class K8 {
 
     throw new SoloError(errorMessage, errorMessage, { statusCode: statusCode })
   }
-
 
   private _getNamespace () {
     const ns = this.configManager.getFlag<string>(flags.namespace)
