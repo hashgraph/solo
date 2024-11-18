@@ -92,10 +92,8 @@ function clone_local_node_repo ()
     echo "Directory hedera-local-node does not exist."
     git clone https://github.com/hashgraph/hedera-local-node --branch v2.32.0
   fi
-  ps -ef |grep port-forward
   cd hedera-local-node
   npm install
-  ps -ef |grep port-forward
   # call create_account_and_extract_key 10 times
   for i in {1..10}; do
     create_account_and_extract_key
@@ -130,7 +128,7 @@ function setup_smart_contract_test ()
 
 function background_keep_port_forward ()
 {
-  for i in {1..20}; do
+  for i in {1..40}; do
     echo "Enable port forward round $i"
     enable_port_forward
     sleep 2
@@ -145,7 +143,7 @@ function start_background_transactions ()
   # so record stream files can be kept pushing to mirror node
   cd hedera-local-node
   for i in {1..20}; do
-    echo "Running generate-accounts round $i"
+    echo "Running background transactions round $i"
     npm run generate-accounts 3 > background.log 2>&1
     sleep 1
   done &
@@ -184,9 +182,7 @@ cd ../
 clone_sdk_repo
 background_keep_port_forward
 clone_local_node_repo
-ps -ef |grep port-forward
 clone_smart_contract_repo
-ps -ef |grep port-forward
 setup_smart_contract_test
 start_background_transactions
 start_contract_test
