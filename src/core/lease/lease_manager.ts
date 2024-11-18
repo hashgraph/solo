@@ -25,20 +25,27 @@ import { LeaseHolder } from './lease_holder.ts'
 import { LeaseAcquisitionError } from './lease_errors.ts'
 
 export class LeaseManager {
+
+  private readonly _logger: SoloLogger
+  private readonly _renewalService: LeaseRenewalService
+
   constructor (
-    private readonly _k8: K8,
-    private readonly _logger: SoloLogger,
-    private readonly _configManager: ConfigManager,
-    private readonly _renewalService: LeaseRenewalService
+    private readonly k8: K8,
+    logger: SoloLogger,
+    private readonly configManager: ConfigManager,
+    renewalService: LeaseRenewalService
   ) {
-    if (!_k8) throw new MissingArgumentError('an instance of core/K8 is required')
-    if (!_logger) throw new MissingArgumentError('an instance of core/SoloLogger is required')
-    if (!_configManager) throw new MissingArgumentError('an instance of core/ConfigManager is required')
-    if (!_renewalService) throw new MissingArgumentError('an instance of core/LeaseRenewalService is required')
+    if (!k8) throw new MissingArgumentError('an instance of core/K8 is required')
+    if (!logger) throw new MissingArgumentError('an instance of core/SoloLogger is required')
+    if (!configManager) throw new MissingArgumentError('an instance of core/ConfigManager is required')
+    if (!renewalService) throw new MissingArgumentError('an instance of core/LeaseRenewalService is required')
+
+    this._logger = logger
+    this._renewalService = renewalService
   }
 
   public async create (): Promise<Lease> {
-    return new Lease(this._k8, this._renewalService, LeaseHolder.default(), await this.currentNamespace())
+    return new Lease(this.k8, this._renewalService, LeaseHolder.default(), await this.currentNamespace())
   }
 
   public get renewalService (): LeaseRenewalService {
@@ -50,14 +57,13 @@ export class LeaseManager {
   }
 
   private async currentNamespace (): Promise<string> {
-    const namespace = this._configManager.getFlag<string>(flags.namespace)
+    const namespace = this.configManager.getFlag<string>(flags.namespace)
     if (!namespace) return null
 
+    if (!await this.k8.hasNamespace(namespace)) {
+      await this.k8.createNamespace(namespace)
 
-    if (!await this._k8.hasNamespace(namespace)) {
-      await this._k8.createNamespace(namespace)
-
-      if (!await this._k8.hasNamespace(namespace)) {
+      if (!await this.k8.hasNamespace(namespace)) {
         throw new LeaseAcquisitionError(`failed to create the '${namespace}' namespace`)
       }
     }
