@@ -408,16 +408,20 @@ export function getK8Instance (configManager: ConfigManager) {
 export const testLocalConfigData = {
   userEmailAddress: 'john.doe@example.com',
   deployments: {
-    'my-deployment': {
-      clusterAliases: ['cluster-1', 'context-1'],
+    'deployment': {
+      clusterAliases: ['cluster-1'],
     },
-    'my-other-deployment': {
-      clusterAliases: ['cluster-2', 'context-2'],
+    'deployment-2': {
+      clusterAliases: ['cluster-2'],
+    },
+    'deployment-3': {
+      clusterAliases: ['cluster-3'],
     }
   },
-  currentDeploymentName: 'my-deployment',
+  currentDeploymentName: 'deployment',
   clusterMappings: {
     'cluster-1': 'context-1',
     'cluster-2': 'context-2',
+    'cluster-3': 'context-3',
   }
 }

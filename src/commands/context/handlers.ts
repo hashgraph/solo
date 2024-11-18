@@ -19,7 +19,7 @@ import {ContextCommandTasks} from "./tasks.ts";
 import * as helpers from "../../core/helpers.ts";
 import {constants} from "../../core/index.ts";
 import {CommandHandlers} from "../../types/index.ts";
-import * as ContextFlags from "./flags.js";
+import * as ContextFlags from "./flags.ts";
 
 export class ContextCommandHandlers implements CommandHandlers {
   readonly parent: BaseCommand

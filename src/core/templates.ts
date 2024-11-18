@@ -220,4 +220,8 @@ export class Templates {
         return { 'envoy-proxy-secret': nodeAlias }
     }
   }
+
+  static parseClusterAliases (clusterAliases: string) {
+    return clusterAliases ? clusterAliases.split(',') : []
+  }
 }

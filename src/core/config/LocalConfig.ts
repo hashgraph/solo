@@ -28,6 +28,7 @@ import {
 import { flags } from '../../commands/index.ts'
 import { type SoloLogger } from '../logging.ts'
 import { Task } from '../task.ts'
+import {Templates} from "../templates.js";
 
 export class LocalConfig implements LocalConfigData {
     @IsNotEmpty()
@@ -181,7 +182,7 @@ export class LocalConfig implements LocalConfigData {
 
             const deployments = {}
             deployments[deploymentName] = {
-                clusterAliases: deploymentClusters.split(',')
+                clusterAliases: Templates.parseClusterAliases(deploymentClusters)
             }
 
             this.userEmailAddress = userEmailAddress

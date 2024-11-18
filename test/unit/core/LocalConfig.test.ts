@@ -76,7 +76,7 @@ describe('LocalConfig', () => {
 
     it('should set deployments', async () => {
         const newDeployments = {
-            'my-deployment': {
+            'deployment': {
                 clusterAliases: ['cluster-1', 'context-1'],
             },
             'my-new-deployment': {
@@ -142,7 +142,7 @@ describe('LocalConfig', () => {
     })
 
     it('should set current deployment', async () => {
-        const newCurrentDeployment = 'my-other-deployment'
+        const newCurrentDeployment = 'deployment-2'
         localConfig.setCurrentDeployment(newCurrentDeployment)
 
         expect(localConfig.currentDeploymentName).to.eq(newCurrentDeployment)

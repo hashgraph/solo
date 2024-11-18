@@ -21,6 +21,7 @@ import type { Opts } from '../../types/index.ts'
 import {ContextCommandTasks} from "./tasks.ts";
 import {ContextCommandHandlers} from "./handlers.ts";
 import * as ContextFlags from './flags.ts'
+import {getPromptMap} from "../prompts.ts";
 
 /**
  * Defines the core functionalities of 'node' command
@@ -31,7 +32,7 @@ export class ContextCommand extends BaseCommand {
   constructor (opts: Opts) {
     super(opts)
 
-    this.handlers = new ContextCommandHandlers(this, new ContextCommandTasks(this))
+    this.handlers = new ContextCommandHandlers(this, new ContextCommandTasks(this, getPromptMap()))
   }
 
   getCommandDefinition () {

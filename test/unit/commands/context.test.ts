@@ -36,7 +36,8 @@ import Sinon from "sinon";
 import {Opts} from "../../../src/types/index.ts";
 import fs from "fs";
 import {stringify} from "yaml";
-import {KubeConfig} from "@kubernetes/client-node";
+import {Cluster, KubeConfig} from "@kubernetes/client-node";
+
 
 describe.only('ContextCommandTasks unit tests', () => {
     const filePath = `${getTestCacheDir('ContextCommandTasks')}/localConfig.yaml`
@@ -45,6 +46,16 @@ describe.only('ContextCommandTasks unit tests', () => {
         const loggerStub = sinon.createStubInstance(SoloLogger)
         const k8Stub = sinon.createStubInstance(K8);
         const kubeConfigStub = sinon.createStubInstance(KubeConfig)
+        kubeConfigStub.getCurrentContext.returns('context-3')
+        kubeConfigStub.getCurrentCluster.returns({
+            name: 'cluster-3',
+            caData: 'caData',
+            caFile: 'caFile',
+            server: 'server-3',
+            skipTLSVerify: true,
+            tlsServerName: 'tls-3',
+        } as Cluster)
+
         k8Stub.getKubeConfig.returns(kubeConfigStub);
 
         return {
@@ -70,12 +81,31 @@ describe.only('ContextCommandTasks unit tests', () => {
         let command: BaseCommand;
         let loggerStub: Sinon.SinonStubbedInstance<SoloLogger>;
         let localConfig: LocalConfig;
+        let promptMap: Map<string, Function>;
+
 
         async function runUpdateLocalConfigTask(argv) {
             const taskObj = tasks.updateLocalConfig(argv)
-            const taskStub = sinon.stub()
-            await taskObj.task({}, sinon.stub())
-            return taskStub
+            return taskObj.task({}, sinon.stub())
+        }
+
+        function getPromptMap (): Map<string, Function> {
+            return new Map()
+                .set(flags.namespace.name, sinon.stub().callsFake(() => {
+                    return new Promise((resolve) => {
+                        resolve("deployment-3");
+                    })
+                }))
+                .set(flags.clusterName.name, sinon.stub().callsFake(() => {
+                    return new Promise((resolve) => {
+                        resolve("cluster-3");
+                    })
+                }))
+                .set(flags.context.name, sinon.stub().callsFake(() => {
+                    return new Promise((resolve) => {
+                        resolve("context-3");
+                    })
+                }))
         }
 
         afterEach(async () => {
@@ -83,119 +113,142 @@ describe.only('ContextCommandTasks unit tests', () => {
         })
 
         beforeEach( async () => {
+            promptMap = getPromptMap()
             loggerStub = sinon.createStubInstance(SoloLogger)
             await fs.promises.writeFile(filePath, stringify(testLocalConfigData))
             command = new BaseCommand(getBaseCommandOpts())
-            tasks = new ContextCommandTasks(command);
+            tasks = new ContextCommandTasks(command, promptMap);
         });
 
         it('should update local configuration with provided values', async () => {
             const argv = {
-                [flags.namespace.name]: 'my-other-deployment',
-                [flags.clusterName.name]: 'my-cluster',
-                [flags.context.name]: 'my-context',
+                [flags.namespace.name]: 'deployment-2',
+                [flags.clusterName.name]: 'cluster-2',
+                [flags.context.name]: 'context-2',
             };
 
-            const taskStub = await runUpdateLocalConfigTask(argv)
+            await runUpdateLocalConfigTask(argv)
             localConfig = new LocalConfig(filePath, loggerStub);
 
-            expect(localConfig.currentDeploymentName).to.equal('my-other-deployment');
-            expect(localConfig.getCurrentDeployment().clusterAliases).to.deep.equal(['my-cluster']);
-            expect(command.getK8().getKubeConfig().setCurrentContext).to.have.been.calledWith('my-context')
+            expect(localConfig.currentDeploymentName).to.equal('deployment-2');
+            expect(localConfig.getCurrentDeployment().clusterAliases).to.deep.equal(['cluster-2']);
+            expect(command.getK8().getKubeConfig().setCurrentContext).to.have.been.calledWith('context-2')
         });
 
         it('should prompt for namespace if no value is provided', async () => {
             const argv = {
-                [flags.clusterName.name]: 'my-cluster',
-                [flags.context.name]: 'my-context',
+                [flags.clusterName.name]: 'cluster-2',
+                [flags.context.name]: 'context-2',
             };
 
-            runUpdateLocalConfigTask(argv)
+            await runUpdateLocalConfigTask(argv)
             localConfig = new LocalConfig(filePath, loggerStub);
 
-            expect(localConfig.currentDeploymentName).to.equal('my-other-deployment');
-            expect(localConfig.getCurrentDeployment().clusterAliases).to.deep.equal(['my-cluster']);
-            expect(command.getK8().getKubeConfig().setCurrentContext).to.have.been.calledWith('my-context')
+            expect(localConfig.currentDeploymentName).to.equal('deployment-3');
+            expect(localConfig.getCurrentDeployment().clusterAliases).to.deep.equal(['cluster-2']);
+            expect(command.getK8().getKubeConfig().setCurrentContext).to.have.been.calledWith('context-2')
+            expect(promptMap.get(flags.namespace.name)).to.have.been.calledOnce
+            expect(promptMap.get(flags.clusterName.name)).to.not.have.been.called
+            expect(promptMap.get(flags.context.name)).to.not.have.been.called
         });
 
-        it.only('should prompt for cluster if no value is provided', async () => {
+        it('should prompt for cluster if no value is provided', async () => {
             const argv = {
-                [flags.namespace.name]: 'my-other-deployment',
-                [flags.context.name]: 'my-context',
+                [flags.namespace.name]: 'deployment-2',
+                [flags.context.name]: 'context-2',
             };
 
-            const taskStub = await runUpdateLocalConfigTask(argv)
+            await runUpdateLocalConfigTask(argv)
             localConfig = new LocalConfig(filePath, loggerStub);
 
-            expect(localConfig.currentDeploymentName).to.equal('my-other-deployment');
-
-            expect(taskStub).to.have.been.calledWith('my-context')
-
-            expect(localConfig.getCurrentDeployment().clusterAliases).to.deep.equal(['my-cluster']);
-            expect(command.getK8().getKubeConfig().setCurrentContext).to.have.been.calledWith('my-context')
-
+            expect(localConfig.currentDeploymentName).to.equal('deployment-2');
+            expect(localConfig.getCurrentDeployment().clusterAliases).to.deep.equal(['cluster-3']);
+            expect(command.getK8().getKubeConfig().setCurrentContext).to.have.been.calledWith('context-2')
+            expect(promptMap.get(flags.namespace.name)).to.not.have.been.called
+            expect(promptMap.get(flags.clusterName.name)).to.have.been.calledOnce
+            expect(promptMap.get(flags.context.name)).to.not.have.been.called
         });
 
         it('should prompt for context if no value is provided', async () => {
             const argv = {
-                [flags.namespace.name]: 'my-other-deployment',
-                [flags.clusterName.name]: 'my-cluster',
+                [flags.namespace.name]: 'deployment-2',
+                [flags.clusterName.name]: 'cluster-2',
             };
 
-            const taskStub = await runUpdateLocalConfigTask(argv)
+            await runUpdateLocalConfigTask(argv)
             localConfig = new LocalConfig(filePath, loggerStub);
 
-
+            expect(localConfig.currentDeploymentName).to.equal('deployment-2');
+            expect(localConfig.getCurrentDeployment().clusterAliases).to.deep.equal(['cluster-2']);
+            expect(command.getK8().getKubeConfig().setCurrentContext).to.have.been.calledWith('context-3')
+            expect(promptMap.get(flags.namespace.name)).to.not.have.been.called
+            expect(promptMap.get(flags.clusterName.name)).to.not.have.been.called
+            expect(promptMap.get(flags.context.name)).to.have.been.calledOnce
         });
 
-        it('should use context from clusterMappings if no value is provided and quiet=true', async () => {
+        it.only('should use context from clusterMappings if no value is provided and quiet=true', async () => {
             const argv = {
-                [flags.namespace.name]: 'my-other-deployment',
-                [flags.clusterName.name]: 'my-cluster',
+                [flags.namespace.name]: 'deployment-2',
+                [flags.clusterName.name]: 'cluster-2',
                 [flags.quiet.name]: 'true',
             };
 
-            const taskStub = await runUpdateLocalConfigTask(argv)
+            await runUpdateLocalConfigTask(argv)
             localConfig = new LocalConfig(filePath, loggerStub);
 
-
+            expect(localConfig.currentDeploymentName).to.equal('deployment-2');
+            expect(localConfig.getCurrentDeployment().clusterAliases).to.deep.equal(['cluster-2']);
+            expect(command.getK8().getKubeConfig().setCurrentContext).to.have.been.calledWith('context-3')
+            expect(promptMap.get(flags.namespace.name)).to.not.have.been.called
+            expect(promptMap.get(flags.clusterName.name)).to.not.have.been.called
+            expect(promptMap.get(flags.context.name)).to.not.have.been.called
         });
 
         it('should use cluster from kubectl if no value is provided and quiet=true', async () => {
             const argv = {
-                [flags.namespace.name]: 'my-other-deployment',
-                [flags.context.name]: 'my-context',
+                [flags.namespace.name]: 'deployment-2',
+                [flags.context.name]: 'context-2',
                 [flags.quiet.name]: 'true',
             };
 
-            const taskStub = await runUpdateLocalConfigTask(argv)
+            await runUpdateLocalConfigTask(argv)
             localConfig = new LocalConfig(filePath, loggerStub);
 
-
+            expect(localConfig.currentDeploymentName).to.equal('deployment-2');
+            expect(localConfig.getCurrentDeployment().clusterAliases).to.deep.equal(['cluster-3']);
+            expect(command.getK8().getKubeConfig().setCurrentContext).to.have.been.calledWith('context-2')
+            expect(promptMap.get(flags.namespace.name)).to.not.have.been.called
+            expect(promptMap.get(flags.clusterName.name)).to.not.have.been.called
+            expect(promptMap.get(flags.context.name)).to.not.have.been.called
         });
 
         it('should use namespace from kubectl if no value is provided and quiet=true', async () => {
             const argv = {
-                [flags.namespace.name]: 'my-other-deployment',
-                [flags.context.name]: 'my-context',
+                [flags.namespace.name]: 'deployment-2',
+                [flags.context.name]: 'context-2',
                 [flags.quiet.name]: 'true',
             };
 
-            const taskStub = await runUpdateLocalConfigTask(argv)
+            await runUpdateLocalConfigTask(argv)
             localConfig = new LocalConfig(filePath, loggerStub);
 
-
+            expect(localConfig.currentDeploymentName).to.equal('deployment-2');
+            expect(localConfig.getCurrentDeployment().clusterAliases).to.deep.equal(['cluster-2']);
+            expect(command.getK8().getKubeConfig().setCurrentContext).to.have.been.calledWith('context-3')
+            expect(promptMap.get(flags.namespace.name)).to.not.have.been.called
+            expect(promptMap.get(flags.clusterName.name)).to.not.have.been.called
+            expect(promptMap.get(flags.context.name)).to.not.have.been.called
         });
 
         it('should update clusterMappings with provided context if force=true', async () => {
             const argv = {
-                [flags.namespace.name]: 'my-other-deployment',
-                [flags.clusterName.name]: 'my-cluster',
+                [flags.namespace.name]: 'deployment-2',
+                [flags.clusterName.name]: 'cluster-2',
                 [flags.context.name]: 'provided-context',
                 [flags.force.name]: 'true',
             };
 
-            const taskStub = await runUpdateLocalConfigTask(argv)
+            await runUpdateLocalConfigTask(argv)
             localConfig = new LocalConfig(filePath, loggerStub);
 
         });

@@ -15,19 +15,20 @@
  *
  */
 import {
-  Task
+  Task, Templates
 } from '../../core/index.ts'
 import * as flags from '../flags.ts'
 import type { ListrTaskWrapper } from 'listr2'
 import {BaseCommand} from "../base.js";
-import {promptContext, promptDeploymentClusters, promptNamespace} from "../prompts.js";
 
 export class ContextCommandTasks {
 
   private readonly parent: BaseCommand
+  private readonly promptMap: Map<string, Function>
 
-  constructor (parent) {
+  constructor (parent, promptMap) {
     this.parent = parent
+    this.promptMap = promptMap
   }
 
   updateLocalConfig (argv) {
@@ -38,7 +39,7 @@ export class ContextCommandTasks {
       const isForcing = !!argv[flags.force.name]
 
       let currentDeploymentName = argv[flags.namespace.name]
-      let clusterAliases = argv[flags.clusterName.name]?.split(',')
+      let clusterAliases = Templates.parseClusterAliases(argv[flags.clusterName.name])
       let contextName = argv[flags.context.name]
 
       if (isQuiet) {
@@ -50,9 +51,9 @@ export class ContextCommandTasks {
         if (!currentDeploymentName) currentDeploymentName = currentCluster
       }
       else {
-        if (!clusterAliases) clusterAliases = await promptDeploymentClusters(task, clusterAliases)
-        if (!contextName) contextName = await promptContext(task, contextName)
-        if (!currentDeploymentName) currentDeploymentName = await promptNamespace(task, currentDeploymentName)
+        if (!clusterAliases.length) clusterAliases = Templates.parseClusterAliases(await (this.promptMap.get(flags.clusterName.name))(task, clusterAliases))
+        if (!contextName) contextName = await (this.promptMap.get(flags.context.name))(task, contextName)
+        if (!currentDeploymentName) currentDeploymentName = await (this.promptMap.get(flags.namespace.name))(task, currentDeploymentName)
       }
 
       if (isForcing) {

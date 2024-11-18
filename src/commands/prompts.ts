@@ -455,6 +455,14 @@ export async function promptContext (task: ListrTaskWrapper<any, any, any>, inpu
     flags.context.name)
 }
 
+export async function promptClusterName (task: ListrTaskWrapper<any, any, any>, input: any) {
+  return await promptText(task, input,
+    flags.clusterName.definition.defaultValue,
+    'Enter the cluster name: ',
+    null,
+    flags.clusterName.name)
+}
+
 export async function promptPersistentVolumeClaims (task: ListrTaskWrapper<any, any, any>, input: any) {
   return await promptToggle(task, input,
     flags.persistentVolumeClaims.definition.defaultValue,
@@ -536,7 +544,9 @@ export function getPromptMap (): Map<string, Function> {
     .set(flags.cacheDir.name, promptCacheDir)
     .set(flags.chainId.name, promptChainId)
     .set(flags.chartDirectory.name, promptChartDir)
+    .set(flags.clusterName.name, promptClusterName)
     .set(flags.clusterSetupNamespace.name, promptClusterSetupNamespace)
+    .set(flags.context.name, promptContext)
     .set(flags.deletePvcs.name, promptDeletePvcs)
     .set(flags.deleteSecrets.name, promptDeleteSecrets)
     .set(flags.deployCertManager.name, promptDeployCertManager)
