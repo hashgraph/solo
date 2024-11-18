@@ -23,6 +23,14 @@ import { LeaseAcquisitionError, LeaseRelinquishmentError } from './lease_errors.
 import { type LeaseRenewalService } from './lease_renewal.ts'
 import { sleep } from '../helpers.ts'
 
+/**
+ * Concrete implementation of a Kubernetes based time-based mutually exclusive lock via the Coordination API.
+ * Applies a namespace/deployment wide lock to ensure that only one process, machine, and user can hold the lease at a time.
+ * The lease is automatically renewed in the background to prevent expiration and ensure the holder maintains the lease.
+ * If the process die, the lease is automatically released after the lease duration.
+ *
+ * @public
+ */
 export class Lease {
     /** The default duration in seconds for which the lease is to be held before being considered expired. */
     public static readonly DEFAULT_LEASE_DURATION = 20
@@ -47,15 +55,15 @@ export class Lease {
      * @param renewalService - Injected lease renewal service need to support automatic (background) lease renewals.
      * @param leaseHolder - The holder of the lease.
      * @param namespace - The namespace in which the lease is to be acquired.
-     * @param leaseName - The name of the lease to be acquired.
-     * @param durationSeconds - The duration in seconds for which the lease is to be held.
+     * @param leaseName - The name of the lease to be acquired; if not provided, the namespace is used.
+     * @param durationSeconds - The duration in seconds for which the lease is to be held; if not provided, the default value is used.
      */
     public constructor (private readonly client: K8,
-                        private readonly renewalService: LeaseRenewalService,
-                        leaseHolder: LeaseHolder,
-                        namespace: string,
-                        leaseName: string | null = null,
-                        durationSeconds: number | null = null) {
+                       private readonly renewalService: LeaseRenewalService,
+                       leaseHolder: LeaseHolder,
+                       namespace: string,
+                       leaseName: string | null = null,
+                       durationSeconds: number | null = null) {
         if (!client) throw new MissingArgumentError('client is required')
         if (!renewalService) throw new MissingArgumentError('renewalService is required')
         if (!leaseHolder) throw new MissingArgumentError('_leaseHolder is required')
@@ -76,30 +84,59 @@ export class Lease {
         }
     }
 
+    /**
+     * The name of the lease.
+     */
     public get leaseName (): string {
         return this._leaseName
     }
 
+    /**
+     * The holder of the lease.
+     */
     public get leaseHolder (): LeaseHolder {
         return this._leaseHolder
     }
 
+    /**
+     * The namespace in which the lease is to be acquired. By default, the namespace is used as the lease name.
+     * The defaults assume there is only a single deployment in a given namespace.
+     */
     public get namespace (): string {
         return this._namespace
     }
 
+    /**
+     * The duration in seconds for which the lease is held before being considered expired. By default, the duration
+     * is set to 20 seconds. It is recommended to renew the lease at 50% of the duration to prevent unexpected expiration.
+     */
     public get durationSeconds (): number {
         return this._durationSeconds
     }
 
+    /**
+     * The identifier of the scheduled lease renewal task.
+     */
     public get scheduleId (): number | null {
         return this._scheduleId
     }
 
+    /**
+     * Internal setter for the scheduleId property. External callers should not use this method.
+     *
+     * @param scheduleId - The identifier of the scheduled lease renewal task.
+     */
     private set scheduleId (scheduleId: number | null) {
         this._scheduleId = scheduleId
     }
 
+    /**
+     * Acquires the lease. If the lease is already acquired, it checks if the lease is expired or held by the same process.
+     * If the lease is expired, it creates a new lease. If the lease is held by the same process, it renews the lease.
+     * If the lease is held by another process, then an exception is thrown.
+     *
+     * @throws LeaseAcquisitionError - If the lease is already acquired by another process or an error occurs during acquisition.
+     */
     public async acquire (): Promise<void> {
         const lease = await this.retrieveLease()
 
@@ -118,6 +155,12 @@ export class Lease {
             { self: this.leaseHolder.toObject(), other: otherHolder.toObject() })
     }
 
+    /**
+     * Attempts to acquire the lease, by calling the acquire method. If an exception is thrown, it is caught and false is returned.
+     * If the lease is successfully acquired, true is returned; otherwise, false is returned.
+     *
+     * @returns true if the lease is successfully acquired; otherwise, false.
+     */
     public async tryAcquire (): Promise<boolean> {
         try {
             await this.acquire()
@@ -127,6 +170,12 @@ export class Lease {
         }
     }
 
+    /**
+     * Renews the lease. If the lease is expired or held by the same process, it creates or renews the lease.
+     * If the lease is held by another process, then an exception is thrown.
+     *
+     * @throws LeaseAcquisitionError - If the lease is already acquired by another process or an error occurs during renewal.
+     */
     public async renew (): Promise<void> {
         const lease = await this.retrieveLease()
 
@@ -139,6 +188,12 @@ export class Lease {
             { self: this._leaseHolder.toObject(), other: this._leaseHolder.toObject() })
     }
 
+    /**
+     * Attempts to renew the lease, by calling the renew method. If an exception is thrown, it is caught and false is returned.
+     * If the lease is successfully renewed, true is returned; otherwise, false is returned.
+     *
+     * @returns true if the lease is successfully renewed; otherwise, false.
+     */
     public async tryRenew (): Promise<boolean> {
         try {
             await this.renew()
@@ -148,6 +203,12 @@ export class Lease {
         }
     }
 
+    /**
+     * Releases the lease. If the lease is expired or held by the same process, it deletes the lease.
+     * If the lease is held by another process, then an exception is thrown.
+     *
+     * @throws LeaseRelinquishmentError - If the lease is already acquired by another process or an error occurs during relinquishment.
+     */
     public async release (): Promise<void> {
         const lease = await this.retrieveLease()
 
@@ -175,6 +236,12 @@ export class Lease {
             { self: this._leaseHolder.toObject(), other: otherHolder.toObject() })
     }
 
+    /**
+     * Attempts to release the lease, by calling the release method. If an exception is thrown, it is caught and false is returned.
+     * If the lease is successfully released, true is returned; otherwise, false is returned.
+     *
+     * @returns true if the lease is successfully released; otherwise, false.
+     */
     public async tryRelease (): Promise<boolean> {
         try {
             await this.release()
@@ -184,16 +251,34 @@ export class Lease {
         }
     }
 
+
+    /**
+     * Checks if the lease is acquired. If the lease is acquired and not expired, it returns true; otherwise, false.
+     *
+     * @returns true if the lease is acquired and not expired; otherwise, false.
+     */
     public async isAcquired (): Promise<boolean> {
         const lease = await this.retrieveLease()
         return !!lease && !Lease.checkExpiration(lease) && this.heldBySameProcess(lease)
     }
 
+    /**
+     * Checks if the lease is expired. If the lease is expired, it returns true; otherwise, false.
+     * This method does not verify if the lease is acquired by the current process.
+     *
+     * @returns true if the lease is expired; otherwise, false.
+     */
     public async isExpired (): Promise<boolean> {
         const lease = await this.retrieveLease()
         return !!lease && Lease.checkExpiration(lease)
     }
 
+    /**
+     * Retrieves the lease from the Kubernetes API server.
+     *
+     * @returns the Kubernetes lease object if it exists; otherwise, null.
+     * @throws LeaseAcquisitionError - If an error occurs during retrieval.
+     */
     private async retrieveLease (): Promise<V1Lease> {
         try {
             return await this.client.readNamespacedLease(this.leaseName, this.namespace)
@@ -212,6 +297,11 @@ export class Lease {
         return null
     }
 
+    /**
+     * Creates or renews the lease. If the lease does not exist, it creates a new lease. If the lease exists, it renews the lease.
+     *
+     * @param lease - The lease to be created or renewed.
+     */
     private async createOrRenewLease (lease: V1Lease): Promise<void> {
         try {
             if (!lease) {
@@ -229,6 +319,11 @@ export class Lease {
         }
     }
 
+    /**
+     * Transfers an existing (expired) lease to the current process.
+     *
+     * @param lease - The lease to be transferred.
+     */
     private async transferLease (lease: V1Lease): Promise<void> {
         try {
             await this.client.transferNamespaceLease(lease, this.leaseHolder.toJson())
@@ -242,6 +337,9 @@ export class Lease {
         }
     }
 
+    /**
+     * Deletes the lease from the Kubernetes API server.
+     */
     private async deleteLease (): Promise<void> {
         try {
             await this.client.deleteNamespacedLease(this.leaseName, this.namespace)
@@ -251,6 +349,12 @@ export class Lease {
         }
     }
 
+    /**
+     * Determines if the lease has expired by comparing the delta in seconds between the current time and the last renewal time.
+     *
+     * @param lease - The lease to be checked for expiration.
+     * @returns true if the lease has expired; otherwise, false.
+     */
     private static checkExpiration (lease: V1Lease): boolean {
         const now = Date.now()
         const durationSec = lease.spec.leaseDurationSeconds || Lease.DEFAULT_LEASE_DURATION
@@ -259,11 +363,25 @@ export class Lease {
         return deltaSec > durationSec
     }
 
+    /**
+     * Determines if the lease is held by the same process. This comparison is based on the user, machine, and
+     * process identifier of the leaseholder.
+     *
+     * @param lease - The lease to be checked for ownership.
+     * @returns true if the lease is held by the same process; otherwise, false.
+     */
     private heldBySameProcess (lease: V1Lease): boolean {
         const holder: LeaseHolder = LeaseHolder.fromJson(lease.spec.holderIdentity)
         return this.leaseHolder.equals(holder)
     }
 
+    /**
+     * Determines if the lease is held by the same machine identity. This comparison is based on the user and machine only.
+     * The process identifier is not considered in this comparison.
+     *
+     * @param lease - The lease to be checked for ownership.
+     * @returns true if the lease is held by the same user and machine; otherwise, false.
+     */
     private heldBySameMachineIdentity (lease: V1Lease): boolean {
         const holder: LeaseHolder = LeaseHolder.fromJson(lease.spec.holderIdentity)
         return this.leaseHolder.isSameMachineIdentity(holder)
