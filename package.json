@@ -45,7 +45,7 @@
   "author": "Swirlds Labs",
   "license": "Apache2.0",
   "dependencies": {
-    "@eslint/eslintrc": "^3.1.0",
+    "@eslint/eslintrc": "^3.2.0",
     "@hashgraph/sdk": "^2.53.0",
     "@kubernetes/client-node": "^0.22.2",
     "@listr2/prompt-adapter-enquirer": "^2.0.12",
