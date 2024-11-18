@@ -92,11 +92,6 @@ export abstract class BaseComponent implements Component, Validate, ToObject<Com
     )
   }
 
-  /**
-   * Validates the component's properties to ensure they meet expected criteria.
-   *
-   * @throws {@link SoloError} if any property is invalid (e.g., missing or of the wrong type).
-   */
   public validate (): void {
     if (!this.name || typeof this.name !== 'string') {
       throw new SoloError(`Invalid name: ${this.name}`)
@@ -115,11 +110,6 @@ export abstract class BaseComponent implements Component, Validate, ToObject<Com
     }
   }
 
-  /**
-   * Serializes the component into a plain object that conforms to the Component interface.
-   *
-   * @returns a plain object representation of the component
-   */
   public toObject (): Component {
     return {
       name: this.name,

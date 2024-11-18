@@ -37,7 +37,7 @@ export class Migration implements IMigration {
 
   /* -------- Utilities -------- */
 
-  public validate () {
+  public validate (): void {
     if (!(this.migratedAt instanceof Date)) {
       throw new SoloError(`Invalid migratedAt: ${this.migratedAt}`)
     }

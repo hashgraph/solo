@@ -101,7 +101,6 @@ export class RemoteConfigMetadata
     }
   }
 
-  /** Converts metadata to plain object */
   public toObject (): RemoteConfigMetadataStructure {
     const data = {
       name: this.name,
