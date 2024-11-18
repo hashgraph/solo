@@ -410,7 +410,7 @@ export class NetworkCommand extends BaseCommand {
           })
         }
       },
-      this.remoteConfigManager.buildLoadRemoteConfigTask(argv)
+      this.remoteConfigManager.buildLoadTask(argv)
     ], {
       concurrent: false,
       rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION

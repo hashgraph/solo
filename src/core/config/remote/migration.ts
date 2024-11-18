@@ -22,16 +22,20 @@ export class Migration implements IMigration {
   private readonly _migratedBy: EmailAddress
   private readonly _fromVersion: Version
 
-  constructor (migratedAt: Date, migratedBy: EmailAddress, fromVersion: Version) {
+  public constructor (migratedAt: Date, migratedBy: EmailAddress, fromVersion: Version) {
     this._migratedAt = migratedAt
     this._migratedBy = migratedBy
     this._fromVersion = fromVersion
     this.validate()
   }
 
-  get migratedAt () { return this._migratedAt }
-  get migratedBy () { return this._migratedBy }
-  get fromVersion () { return this._fromVersion }
+  //! -------- Getters -------- //
+
+  get migratedAt (): Date { return this._migratedAt }
+  get migratedBy (): EmailAddress { return this._migratedBy }
+  get fromVersion (): Version { return this._fromVersion }
+
+  //! -------- Utilities -------- //
 
   validate () {
     if (!(this.migratedAt instanceof Date)) {

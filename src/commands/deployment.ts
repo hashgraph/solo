@@ -64,7 +64,7 @@ export class DeploymentCommand extends BaseCommand {
         }
       },
       self.localConfig.promptLocalConfigTask(),
-      self.remoteConfigManager.buildCreateRemoteConfigTask()
+      self.remoteConfigManager.buildCreateTask()
     ], {
       concurrent: false,
       rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION

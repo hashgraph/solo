@@ -209,7 +209,7 @@ export class RelayCommand extends BaseCommand {
           return lease.buildAcquireTask(task)
         }
       },
-      this.remoteConfigManager.buildLoadRemoteConfigTask(argv),
+      this.remoteConfigManager.buildLoadTask(argv),
       {
         title: 'Prepare chart values',
         task: async (ctx) => {
@@ -331,7 +331,7 @@ export class RelayCommand extends BaseCommand {
           return lease.buildAcquireTask(task)
         }
       },
-      this.remoteConfigManager.buildLoadRemoteConfigTask(argv),
+      this.remoteConfigManager.buildLoadTask(argv),
       {
         title: 'Destroy JSON RPC Relay',
         task: async (ctx) => {

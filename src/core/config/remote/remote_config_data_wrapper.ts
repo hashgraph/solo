@@ -41,19 +41,20 @@ export class RemoteConfigDataWrapper implements Validate, ToObject<RemoteConfigD
     this.validate()
   }
 
-  public static fromConfigmap (configMap: k8s.V1ConfigMap): RemoteConfigDataWrapper {
-    const unparsed = yaml.load(configMap.data['remote-config-data']) as any
+  //! -------- Modifiers -------- //
 
-    console.log(unparsed)
+  public addCommandToHistory (command: string): void {
+    this._commandHistory.push(command)
+    this.lastExecutedCommand = command
 
-    return new RemoteConfigDataWrapper({
-      metadata: RemoteConfigMetadata.fromObject(unparsed.metadata),
-      components: ComponentsDataWrapper.fromObject(unparsed.components),
-      clusters: unparsed.clusters,
-      commandHistory: unparsed.commandHistory,
-      lastExecutedCommand: unparsed.lastExecutedCommand,
-    })
+    if (this._commandHistory.length > constants.SOLO_REMOTE_CONFIG_MAX_COMMAND_IN_HISTORY) {
+      this._commandHistory.shift()
+    }
+
+    this.validate()
   }
+
+  //! -------- Getters & Setters -------- //
 
   private get version (): Version { return this._version }
 
@@ -92,15 +93,20 @@ export class RemoteConfigDataWrapper implements Validate, ToObject<RemoteConfigD
     this.validate()
   }
 
-  public addCommandToHistory (command: string): void {
-    this._commandHistory.push(command)
-    this.lastExecutedCommand = command
+  //! -------- Utilities -------- //
 
-    if (this._commandHistory.length > constants.SOLO_REMOTE_CONFIG_MAX_COMMAND_IN_HISTORY) {
-      this._commandHistory.shift()
-    }
+  public static fromConfigmap (configMap: k8s.V1ConfigMap): RemoteConfigDataWrapper {
+    const unparsed = yaml.load(configMap.data['remote-config-data']) as any
 
-    this.validate()
+    console.log(unparsed)
+
+    return new RemoteConfigDataWrapper({
+      metadata: RemoteConfigMetadata.fromObject(unparsed.metadata),
+      components: ComponentsDataWrapper.fromObject(unparsed.components),
+      clusters: unparsed.clusters,
+      commandHistory: unparsed.commandHistory,
+      lastExecutedCommand: unparsed.lastExecutedCommand,
+    })
   }
 
   public validate (): void {

@@ -56,25 +56,107 @@ export class ComponentsDataWrapper implements Validate, ToObject<ComponentsDataS
     this.validate()
   }
 
-  public validate (): void {
-    function testComponentsObject (components: Record<ServiceName, BaseComponent>, expectedInstance: any) {
-      Object.entries(components).forEach(([serviceName, component]: [ServiceName, BaseComponent]) => {
-        if (!serviceName || typeof serviceName !== 'string') {
-          throw new SoloError(`Invalid component service name ${{ [serviceName]: component }}`)
-        }
+  //! -------- Modifiers -------- //
 
-        if (!(component instanceof expectedInstance)) {
-          throw new SoloError('Invalid component type', null, { component })
-        }
-      })
+  /** Used to add new component to their respective group. */
+  public add (serviceName: ServiceName, component: BaseComponent): void {
+    const self = this
+
+    if (!serviceName || typeof serviceName !== 'string') {
+      throw new SoloError(`Service name is required ${serviceName}`)
     }
 
-    testComponentsObject(this.consensusNodes, ConsensusNodeComponent)
-    testComponentsObject(this.haProxies, HaProxyComponent)
-    testComponentsObject(this.envoyProxies, EnvoyProxyComponent)
-    testComponentsObject(this.mirrorNodes, MirrorNodeComponent)
-    testComponentsObject(this.mirrorNodeExplorers, MirrorNodeExplorerComponent)
-    testComponentsObject(this.relays, RelayComponent)
+    if (!(component instanceof BaseComponent)) {
+      throw new SoloError('Component must be instance of BaseComponent', undefined, BaseComponent)
+    }
+
+    function addComponentCallback (components: Record<ServiceName, BaseComponent>): void {
+      if (self.exists(components, component)) {
+        throw new SoloError('Component exists', null, component.toObject())
+      }
+      components[serviceName] = component
+    }
+
+    self.applyCallbackToComponentGroup(component.type, serviceName, addComponentCallback)
+  }
+
+  /** Used to edit an existing component from their respective group. */
+  public edit (serviceName: ServiceName, component: BaseComponent): void {
+    const self = this
+
+    if (!serviceName || typeof serviceName !== 'string') {
+      throw new SoloError(`Service name is required ${serviceName}`)
+    }
+    if (!(component instanceof BaseComponent)) {
+      throw new SoloError('Component must be instance of BaseComponent', undefined, BaseComponent)
+    }
+
+    function editComponentCallback (components: Record<ServiceName, BaseComponent>): void {
+      if (!components.hasOwnProperty(serviceName)) {
+        throw new SoloError(`Component doesn't exist, name: ${serviceName}`, null, { component })
+      }
+      components[serviceName] = component
+    }
+
+    self.applyCallbackToComponentGroup(component.type, serviceName, editComponentCallback)
+  }
+
+  /** Used to remove specific component from their respective group. */
+  public remove (serviceName: ServiceName, type: ComponentTypeEnum): void {
+    const self = this
+
+    if (!serviceName || typeof serviceName !== 'string') {
+      throw new SoloError(`Service name is required ${serviceName}`)
+    }
+    if (!Object.values(ComponentTypeEnum).includes(type)) {
+      throw new SoloError(`Invalid component type ${type}`)
+    }
+
+    function deleteComponentCallback (components: Record<ServiceName, BaseComponent>): void {
+      if (!components.hasOwnProperty(serviceName)) {
+        throw new SoloError(`Component ${serviceName} of type ${type} not found while attempting to remove`)
+      }
+      delete components[serviceName]
+    }
+
+    self.applyCallbackToComponentGroup(type, serviceName, deleteComponentCallback)
+  }
+
+  //! -------- Utilities -------- //
+
+  /**
+   * Method used to map the type to the specific component group
+   * and pass it to a callback to apply modifications
+   */
+  private applyCallbackToComponentGroup (
+    type: ComponentTypeEnum,
+    serviceName: ServiceName,
+    callback: (components: Record<ServiceName, BaseComponent>) => void
+  ): void {
+    switch (type) {
+      case ComponentTypeEnum.ConsensusNode:
+        callback(this.consensusNodes)
+        break
+      case ComponentTypeEnum.HaProxy:
+        callback(this.haProxies)
+        break
+      case ComponentTypeEnum.EnvoyProxy:
+        callback(this.envoyProxies)
+        break
+      case ComponentTypeEnum.MirrorNode:
+        callback(this.mirrorNodes)
+        break
+      case ComponentTypeEnum.MirrorNodeExplorer:
+        callback(this.mirrorNodeExplorers)
+        break
+      case ComponentTypeEnum.Relay:
+        callback(this.relays)
+        break
+      default:
+        throw new SoloError(`Unknown component type ${type}, service name: ${serviceName}`)
+    }
+
+    this.validate()
   }
 
   /** @param components - component groups distinguished by their type. */
@@ -156,7 +238,33 @@ export class ComponentsDataWrapper implements Validate, ToObject<ComponentsDataS
   /** Used to create an empty instance used to keep the constructor private */
   public static initializeEmpty (): ComponentsDataWrapper { return new ComponentsDataWrapper() }
 
-  /** Used to convert all component groups to plain object. */
+  /** checks if component exist in the respective group */
+  private exists (components: Record<ServiceName, BaseComponent>, newComponent: BaseComponent): boolean {
+    return Object.values(components)
+      .some(component => BaseComponent.compare(component, newComponent))
+  }
+
+  public validate (): void {
+    function testComponentsObject (components: Record<ServiceName, BaseComponent>, expectedInstance: any) {
+      Object.entries(components).forEach(([serviceName, component]: [ServiceName, BaseComponent]) => {
+        if (!serviceName || typeof serviceName !== 'string') {
+          throw new SoloError(`Invalid component service name ${{ [serviceName]: component }}`)
+        }
+
+        if (!(component instanceof expectedInstance)) {
+          throw new SoloError('Invalid component type', null, { component })
+        }
+      })
+    }
+
+    testComponentsObject(this.consensusNodes, ConsensusNodeComponent)
+    testComponentsObject(this.haProxies, HaProxyComponent)
+    testComponentsObject(this.envoyProxies, EnvoyProxyComponent)
+    testComponentsObject(this.mirrorNodes, MirrorNodeComponent)
+    testComponentsObject(this.mirrorNodeExplorers, MirrorNodeExplorerComponent)
+    testComponentsObject(this.relays, RelayComponent)
+  }
+
   public toObject (): ComponentsDataStructure {
     function transform (components: Record<ServiceName, BaseComponent>): Record<ServiceName, Component> {
       const transformedComponents: Record<ServiceName, Component> = {}
@@ -176,110 +284,5 @@ export class ComponentsDataWrapper implements Validate, ToObject<ComponentsDataS
       [ComponentTypeEnum.MirrorNodeExplorer]: transform(this.mirrorNodeExplorers),
       [ComponentTypeEnum.Relay]: transform(this.relays),
     }
-  }
-
-  /** Used to add new component to their respective group. */
-  public add (serviceName: ServiceName, component: BaseComponent): void {
-    const self = this
-
-    if (!serviceName || typeof serviceName !== 'string') {
-      throw new SoloError(`Service name is required ${serviceName}`)
-    }
-
-    if (!(component instanceof BaseComponent)) {
-      throw new SoloError('Component must be instance of BaseComponent', undefined, BaseComponent)
-    }
-
-    function addComponentCallback (components: Record<ServiceName, BaseComponent>): void {
-      if (self.exists(components, component)) {
-        throw new SoloError('Component exists', null, component.toObject())
-      }
-      components[serviceName] = component
-    }
-
-    self.applyCallbackToComponentGroup(component.type, serviceName, addComponentCallback)
-  }
-
-  /** Used to edit an existing component from their respective group. */
-  public edit (serviceName: ServiceName, component: BaseComponent): void {
-    const self = this
-
-    if (!serviceName || typeof serviceName !== 'string') {
-      throw new SoloError(`Service name is required ${serviceName}`)
-    }
-    if (!(component instanceof BaseComponent)) {
-      throw new SoloError('Component must be instance of BaseComponent', undefined, BaseComponent)
-    }
-
-    function editComponentCallback (components: Record<ServiceName, BaseComponent>): void {
-      if (!components.hasOwnProperty(serviceName)) {
-        throw new SoloError(`Component doesn't exist, name: ${serviceName}`, null, { component })
-      }
-      components[serviceName] = component
-    }
-
-    self.applyCallbackToComponentGroup(component.type, serviceName, editComponentCallback)
-  }
-
-  /** Used to remove specific component from their respective group. */
-  public remove (serviceName: ServiceName, type: ComponentTypeEnum): void {
-    const self = this
-
-    if (!serviceName || typeof serviceName !== 'string') {
-      throw new SoloError(`Service name is required ${serviceName}`)
-    }
-    if (!Object.values(ComponentTypeEnum).includes(type)) {
-      throw new SoloError(`Invalid component type ${type}`)
-    }
-
-    function deleteComponentCallback (components: Record<ServiceName, BaseComponent>): void {
-      if (!components.hasOwnProperty(serviceName)) {
-        throw new SoloError(`Component ${serviceName} of type ${type} not found while attempting to remove`)
-      }
-      delete components[serviceName]
-    }
-
-    self.applyCallbackToComponentGroup(type, serviceName, deleteComponentCallback)
-  }
-
-  /**
-   * Method used to map the type to the specific component group
-   * and pass it to a callback to apply modifications
-   */
-  private applyCallbackToComponentGroup (
-    type: ComponentTypeEnum,
-    serviceName: ServiceName,
-    callback: (components: Record<ServiceName, BaseComponent>) => void
-  ): void {
-    switch (type) {
-      case ComponentTypeEnum.ConsensusNode:
-        callback(this.consensusNodes)
-        break
-      case ComponentTypeEnum.HaProxy:
-        callback(this.haProxies)
-        break
-      case ComponentTypeEnum.EnvoyProxy:
-        callback(this.envoyProxies)
-        break
-      case ComponentTypeEnum.MirrorNode:
-        callback(this.mirrorNodes)
-        break
-      case ComponentTypeEnum.MirrorNodeExplorer:
-        callback(this.mirrorNodeExplorers)
-        break
-      case ComponentTypeEnum.Relay:
-        callback(this.relays)
-        break
-      default:
-        throw new SoloError(`Unknown component type ${type}, service name: ${serviceName}`)
-    }
-
-    this.validate()
-  }
-
-  /** checks if component exist in the respective group */
-  private exists (components: Record<ServiceName, BaseComponent>, newComponent: BaseComponent): boolean {
-    return Object.values(components)
-      .some(component => BaseComponent.compare(component, newComponent))
   }
 }

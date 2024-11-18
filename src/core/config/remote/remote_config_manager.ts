@@ -48,12 +48,14 @@ export class RemoteConfigManager {
    * @param localConfig - Local configuration for the remote config.
    * @param configManager - Manager to retrieve application flags and settings.
    */
-  constructor (
+  public constructor (
     private readonly k8: K8,
     private readonly logger: SoloLogger,
     private readonly localConfig: LocalConfig,
     private readonly configManager: ConfigManager,
   ) {}
+
+  //! ---------- Readers and Modifiers ---------- //
 
   /**
    * Modifies the loaded remote configuration data using a provided callback function.
@@ -62,7 +64,7 @@ export class RemoteConfigManager {
    * @param callback - an async function that modifies the remote configuration data.
    * @throws {@link SoloError} if the configuration is not loaded before modification.
    */
-  async modify (callback: (remoteConfig: RemoteConfigDataWrapper) => Promise<void> ): Promise<void> {
+  public async modify (callback: (remoteConfig: RemoteConfigDataWrapper) => Promise<void> ): Promise<void> {
     if (!this.remoteConfig) {
       throw new SoloError('Attempting to modify remote config without loading it first')
     }
@@ -118,30 +120,14 @@ export class RemoteConfigManager {
   private async load (): Promise<boolean> {
     if (this.remoteConfig) return true
 
-    const configMap = await this.getFromCluster()
+    const configMap = await this.getConfigMap()
     if (!configMap) return false
 
     this.remoteConfig = RemoteConfigDataWrapper.fromConfigmap(configMap)
     return true
   }
 
-  /**
-   * Retrieves the ConfigMap containing the remote configuration from the Kubernetes cluster.
-   *
-   * @returns the remote configuration data.
-   * @throws {@link SoloError} if the ConfigMap could not be read and the error is not a 404 status.
-   */
-  private async getFromCluster (): Promise<k8s.V1ConfigMap> {
-    try {
-      return await this.getConfigMap()
-    } catch (error: any) {
-      if (error.meta.statusCode !== 404) {
-        throw new SoloError('Failed to read remote config from cluster', error)
-      }
-
-      return null
-    }
-  }
+  //! ---------- Listr Task Builders ---------- //
 
   /**
    * Builds a task for loading the remote configuration, intended for use with Listr task management.
@@ -150,7 +136,7 @@ export class RemoteConfigManager {
    * @param argv - arguments containing command input for historical reference.
    * @returns a Listr task which loads the remote configuration.
    */
-  public buildLoadRemoteConfigTask (argv: { _: string[]}): ListrTask {
+  public buildLoadTask (argv: { _: string[]}): ListrTask {
     const self = this
 
     return {
@@ -176,7 +162,7 @@ export class RemoteConfigManager {
    *
    * @returns a Listr task which creates the remote configuration.
    */
-  public buildCreateRemoteConfigTask (): ListrTask<ListrContext> {
+  public buildCreateTask (): ListrTask<ListrContext> {
     const self = this
 
     return {
@@ -200,6 +186,26 @@ export class RemoteConfigManager {
     }
   }
 
+  //! ---------- Utilities ---------- //
+
+  /**
+   * Retrieves the ConfigMap containing the remote configuration from the Kubernetes cluster.
+   *
+   * @returns the remote configuration data.
+   * @throws {@link SoloError} if the ConfigMap could not be read and the error is not a 404 status.
+   */
+  private async getConfigMap (): Promise<k8s.V1ConfigMap> {
+    try {
+      return await this.k8.getNamespacedConfigMap(constants.SOLO_REMOTE_CONFIGMAP_NAME)
+    } catch (error: any) {
+      if (error.meta.statusCode !== 404) {
+        throw new SoloError('Failed to read remote config from cluster', error)
+      }
+
+      return null
+    }
+  }
+
   /**
    * Creates a new ConfigMap entry in the Kubernetes cluster with the remote configuration data.
    */
@@ -218,14 +224,6 @@ export class RemoteConfigManager {
       constants.SOLO_REMOTE_CONFIGMAP_LABELS,
       { 'remote-config-data': yaml.dump(this.remoteConfig.toObject() as any) }
     )
-  }
-
-  /**
-   * Retrieves the existing ConfigMap containing remote configuration data from the Kubernetes cluster.
-   * @returns the Kubernetes ConfigMap for remote configuration.
-   */
-  private getConfigMap (): Promise<k8s.V1ConfigMap> {
-    return this.k8.getNamespacedConfigMap(constants.SOLO_REMOTE_CONFIGMAP_NAME)
   }
 
   /**

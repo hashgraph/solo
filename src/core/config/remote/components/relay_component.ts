@@ -35,7 +35,9 @@ export class RelayComponent extends BaseComponent implements IRelayComponent {
     this.validate()
   }
 
-  protected validate () {
+  //! -------- Utilities -------- //
+
+  protected validate (): void {
     super.validate()
 
     this.consensusNodeAliases.forEach(alias => {

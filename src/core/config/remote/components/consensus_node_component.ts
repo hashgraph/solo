@@ -47,6 +47,8 @@ export class ConsensusNodeComponent extends BaseComponent implements IConsensusN
     this.validate()
   }
 
+  //! -------- Getters & Setters -------- //
+
   /** Retrieves the state of the consensus node. */
   public get state (): ConsensusNodeStates { return this._state }
 
@@ -55,6 +57,8 @@ export class ConsensusNodeComponent extends BaseComponent implements IConsensusN
     this._state = state
     this.validate()
   }
+
+  //! -------- Utilities -------- //
 
   protected validate (): void {
     super.validate()

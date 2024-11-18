@@ -48,6 +48,8 @@ export abstract class BaseComponent implements Component {
     this._namespace = namespace
   }
 
+  //! -------- Getters -------- //
+
   /**
    * Retrieves the type of the component
    * @readonly
@@ -71,6 +73,8 @@ export abstract class BaseComponent implements Component {
    * @readonly
    */
   public get namespace (): Namespace { return this._namespace }
+
+  //! -------- Utilities -------- //
 
   /**
    * Validates the component's properties to ensure they meet expected criteria.
