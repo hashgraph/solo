@@ -18,6 +18,7 @@ import { ComponentTypeEnum, ConsensusNodeStates } from '../enumerations.ts'
 import { BaseComponent } from './base_component.ts'
 import { SoloError } from '../../../errors.ts'
 import type { Cluster, IConsensusNodeComponent, Namespace, ServiceName } from '../types.ts'
+import { ToObject } from "../../../../types/index.js";
 
 /**
  * Represents a consensus node component within the system.
@@ -25,7 +26,9 @@ import type { Cluster, IConsensusNodeComponent, Namespace, ServiceName } from '.
  * A `ConsensusNodeComponent` extends the functionality of `BaseComponent` and includes additional properties and behaviors
  * specific to consensus nodes, such as maintaining and validating the node's state.
  */
-export class ConsensusNodeComponent extends BaseComponent implements IConsensusNodeComponent{
+export class ConsensusNodeComponent extends BaseComponent
+  implements IConsensusNodeComponent, ToObject<IConsensusNodeComponent>
+{
   /** The state of the node. */
   private _state: ConsensusNodeStates
 
@@ -47,7 +50,7 @@ export class ConsensusNodeComponent extends BaseComponent implements IConsensusN
     this.validate()
   }
 
-  //! -------- Getters & Setters -------- //
+  /* -------- Getters & Setters -------- */
 
   /** Retrieves the state of the consensus node. */
   public get state (): ConsensusNodeStates { return this._state }
@@ -58,9 +61,9 @@ export class ConsensusNodeComponent extends BaseComponent implements IConsensusN
     this.validate()
   }
 
-  //! -------- Utilities -------- //
+  /* -------- Utilities -------- */
 
-  protected validate (): void {
+  public validate (): void {
     super.validate()
 
     if (!Object.values(ConsensusNodeStates).includes(this.state)) {

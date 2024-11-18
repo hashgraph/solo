@@ -21,14 +21,9 @@ import {
   MirrorNodeComponent, MirrorNodeExplorerComponent, RelayComponent,
 } from './components/index.ts'
 import type {
-  Component,
-  ComponentsDataStructure,
-  IConsensusNodeComponent,
-  IRelayComponent,
-  ServiceName
+  Component, ComponentsDataStructure, IConsensusNodeComponent, IRelayComponent, ServiceName
 } from './types.ts'
 import type { ToObject, Validate } from '../../../types/index.ts'
-
 
 /**
  * Represent the components in the remote config and handles:
@@ -56,7 +51,7 @@ export class ComponentsDataWrapper implements Validate, ToObject<ComponentsDataS
     this.validate()
   }
 
-  //! -------- Modifiers -------- //
+  /* -------- Modifiers -------- */
 
   /** Used to add new component to their respective group. */
   public add (serviceName: ServiceName, component: BaseComponent): void {
@@ -122,7 +117,7 @@ export class ComponentsDataWrapper implements Validate, ToObject<ComponentsDataS
     self.applyCallbackToComponentGroup(type, serviceName, deleteComponentCallback)
   }
 
-  //! -------- Utilities -------- //
+  /* -------- Utilities -------- */
 
   /**
    * Method used to map the type to the specific component group

@@ -19,8 +19,11 @@ import { SoloError } from '../../../errors.ts'
 import { BaseComponent } from './base_component.ts'
 import type { IRelayComponent } from '../types.ts'
 import type { NodeAliases } from '../../../../types/aliases.ts'
+import type { ToObject } from '../../../../types/index.ts'
 
-export class RelayComponent extends BaseComponent implements IRelayComponent {
+export class RelayComponent extends BaseComponent
+  implements IRelayComponent, ToObject<IRelayComponent>
+{
   /**
    * @param name - to distinguish components.
    * @param cluster - in which the component is deployed.
@@ -35,9 +38,9 @@ export class RelayComponent extends BaseComponent implements IRelayComponent {
     this.validate()
   }
 
-  //! -------- Utilities -------- //
+  /* -------- Utilities -------- */
 
-  protected validate (): void {
+  public validate (): void {
     super.validate()
 
     this.consensusNodeAliases.forEach(alias => {

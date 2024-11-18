@@ -17,12 +17,13 @@
 import { ComponentTypeEnum } from '../enumerations.ts'
 import { SoloError } from '../../../errors.ts'
 import type { Cluster, Component, Namespace, ServiceName } from '../types.ts'
+import type { ToObject, Validate } from '../../../../types/index.ts'
 
 /**
  * Represents the base structure and common functionality for all components within the system.
  * This class provides validation, comparison, and serialization functionality for components.
  */
-export abstract class BaseComponent implements Component {
+export abstract class BaseComponent implements Component, Validate, ToObject<Component> {
   /** The type of the component */
   private readonly _type: ComponentTypeEnum
 
@@ -48,7 +49,7 @@ export abstract class BaseComponent implements Component {
     this._namespace = namespace
   }
 
-  //! -------- Getters -------- //
+  /* -------- Getters -------- */
 
   /**
    * Retrieves the type of the component
@@ -74,14 +75,29 @@ export abstract class BaseComponent implements Component {
    */
   public get namespace (): Namespace { return this._namespace }
 
-  //! -------- Utilities -------- //
+  /* -------- Utilities -------- */
+
+  /**
+   * Compares two BaseComponent instances for equality.
+   *
+   * @param x - The first component to compare
+   * @param y - The second component to compare
+   * @returns boolean - true if the components are equal
+   */
+  public static compare (x: BaseComponent, y: BaseComponent): boolean {
+    return (
+      x.type === y.type &&
+      x.cluster === y.cluster &&
+      x.namespace === y.namespace
+    )
+  }
 
   /**
    * Validates the component's properties to ensure they meet expected criteria.
    *
    * @throws {@link SoloError} if any property is invalid (e.g., missing or of the wrong type).
    */
-  protected validate (): void {
+  public validate (): void {
     if (!this.name || typeof this.name !== 'string') {
       throw new SoloError(`Invalid name: ${this.name}`)
     }
@@ -97,21 +113,6 @@ export abstract class BaseComponent implements Component {
     if (!Object.values(ComponentTypeEnum).includes(this.type)) {
       throw new SoloError('Invalid ComponentTypeEnum value')
     }
-  }
-
-  /**
-   * Compares two BaseComponent instances for equality.
-   *
-   * @param x - The first component to compare
-   * @param y - The second component to compare
-   * @returns boolean - true if the components are equal
-   */
-  public static compare (x: BaseComponent, y: BaseComponent): boolean {
-    return (
-      x.type === y.type &&
-      x.cluster === y.cluster &&
-      x.namespace === y.namespace
-    )
   }
 
   /**

@@ -43,14 +43,14 @@ export class RemoteConfigMetadata
     this.validate()
   }
 
-  //! -------- Modifiers -------- //
+  /* -------- Modifiers -------- */
 
   /** Simplifies making a migration */
   public makeMigration (email: EmailAddress, fromVersion: Version): void {
     this._migration = new Migration(new Date(), email, fromVersion)
   }
 
-  //! -------- Getters -------- //
+  /* -------- Getters -------- */
 
   /** Retrieves the namespace */
   public get name (): Namespace  { return this._name }
@@ -64,7 +64,7 @@ export class RemoteConfigMetadata
   /** Retrieves the migration if such exists */
   public get migration (): Optional<Migration> { return this._migration }
 
-  //! -------- Utilities -------- //
+  /* -------- Utilities -------- */
 
   /** Handles conversion from plain object to instance */
   public static fromObject (metadata: RemoteConfigMetadataStructure): RemoteConfigMetadata {

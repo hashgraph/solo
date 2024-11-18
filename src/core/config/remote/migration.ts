@@ -29,15 +29,15 @@ export class Migration implements IMigration {
     this.validate()
   }
 
-  //! -------- Getters -------- //
+  /* -------- Getters -------- */
 
-  get migratedAt (): Date { return this._migratedAt }
-  get migratedBy (): EmailAddress { return this._migratedBy }
-  get fromVersion (): Version { return this._fromVersion }
+  public get migratedAt (): Date { return this._migratedAt }
+  public get migratedBy (): EmailAddress { return this._migratedBy }
+  public get fromVersion (): Version { return this._fromVersion }
 
-  //! -------- Utilities -------- //
+  /* -------- Utilities -------- */
 
-  validate () {
+  public validate () {
     if (!(this.migratedAt instanceof Date)) {
       throw new SoloError(`Invalid migratedAt: ${this.migratedAt}`)
     }
@@ -51,7 +51,7 @@ export class Migration implements IMigration {
     }
   }
 
-  toObject (): IMigration {
+  public toObject (): IMigration {
     return {
       migratedAt: this.migratedAt,
       migratedBy: this.migratedBy,
