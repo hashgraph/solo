@@ -55,7 +55,7 @@ describe('InitCommand', () => {
     sandbox = sinon.createSandbox()
     sandbox.stub(K8.prototype, 'init').callsFake(() => this)
     k8 = new K8(configManager, testLogger)
-    leaseManager = new LeaseManager(k8, testLogger, configManager, new IntervalLeaseRenewalService())
+    leaseManager = new LeaseManager(k8, configManager, testLogger, new IntervalLeaseRenewalService())
     // @ts-ignore
     initCmd = new InitCommand({
       logger: testLogger, helm, k8, chartManager, configManager, depManager, keyManager, leaseManager

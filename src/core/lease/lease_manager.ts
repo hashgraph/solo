@@ -31,8 +31,8 @@ export class LeaseManager {
 
   constructor (
     private readonly k8: K8,
-    logger: SoloLogger,
     private readonly configManager: ConfigManager,
+    logger: SoloLogger,
     renewalService: LeaseRenewalService
   ) {
     if (!k8) throw new MissingArgumentError('an instance of core/K8 is required')

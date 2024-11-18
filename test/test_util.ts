@@ -62,7 +62,6 @@ import type { SoloLogger } from '../src/core/logging.ts'
 import type { BaseCommand } from '../src/commands/base.ts'
 import type { NodeAlias } from '../src/types/aliases.ts'
 import type { NetworkNodeServices } from '../src/core/network_node_services.ts'
-import sinon from 'sinon'
 import { HEDERA_PLATFORM_VERSION } from '../version.js'
 import { IntervalLeaseRenewalService } from '../src/core/lease/lease_renewal.ts'
 
@@ -151,7 +150,7 @@ export function bootstrapTestVariables (
   const accountManager = new AccountManager(testLogger, k8)
   const platformInstaller = new PlatformInstaller(testLogger, k8, configManager)
   const profileManager = new ProfileManager(testLogger, configManager)
-  const leaseManager = new LeaseManager(k8, testLogger, configManager, new IntervalLeaseRenewalService())
+  const leaseManager = new LeaseManager(k8, configManager, testLogger, new IntervalLeaseRenewalService())
   const certificateManager = new CertificateManager(k8, testLogger, configManager)
 
   const opts: TestOpts = {
