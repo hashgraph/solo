@@ -289,6 +289,16 @@ export const operatorKey: CommandFlag = {
   }
 }
 
+export const privateKey: CommandFlag = {
+  constName: 'privateKey',
+  name: 'private-key',
+  definition: {
+    describe: 'Show private key information',
+    defaultValue: false,
+    type: 'boolean'
+  }
+}
+
 export const generateGossipKeys: CommandFlag = {
   constName: 'generateGossipKeys',
   name: 'gossip-keys',
@@ -812,6 +822,7 @@ export const allFlags: CommandFlag[] = [
   operatorKey,
   outputDir,
   persistentVolumeClaims,
+  privateKey,
   profileFile,
   profileName,
   relayReleaseTag,

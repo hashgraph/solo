@@ -16,12 +16,21 @@ npm run solo-test -- account create -n solo-e2e --hbar-amount 100
 The output would be similar to the following:
 
 ```bash
-✔ Initialize
-  ✔ Acquire lease - lease acquired successfully, attempt: 1/10
-✔ create the new account [2s]
-
  *** new account created ***
 -------------------------------------------------------------------------------
+{
+ "accountId": "0.0.1007",
+ "publicKey": "302a300506032b65700321001d8978e647aca1195c54a4d3d5dc469b95666de14e9b6edde8ed337917b96013",
+ "balance": 100
+}
+```
+
+Then use the following commmand to get private key of the account `0.0.1007`:
+```bash
+ npm run solo-test -- account get --account-id 0.0.1007 -n solo-e2e --private-key
+```
+The output would be similar to the following:
+```bash
 {
  "accountId": "0.0.1007",
  "privateKey": "302e020100300506032b657004220420cfea706dd9ed2d3c1660ba98acf4fdb74d247cce289ef6ef47486e055e0b9508",

@@ -51,7 +51,14 @@ function create_account_and_extract_key ()
   fi
   echo "Display the new hardhat.config.js"
   cat test/smoke/hardhat.config.js
-  return 0
+
+  if [ -s "private_key_without_quote_final.txt" ]; then
+    echo "File private_key_without_quote_final.txt exists and not empty"
+    return 0
+  else
+    echo "File private_key_without_quote_final.txt does not exist or empty"
+    return 1
+  fi
 }
 
 function clone_smart_contract_repo ()
@@ -95,14 +102,6 @@ function clone_local_node_repo ()
 
   function_name=create_account_and_extract_key
   retry_function 5
-
-  if [ -s "private_key_without_quote_final.txt" ]; then
-    echo "File private_key_without_quote_final.txt exists and not empty"
-  else
-    echo "File private_key_without_quote_final.txt does not exist or empty"
-    exit 1
-  fi
-
   cd -
 }
 
