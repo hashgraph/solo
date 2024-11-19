@@ -46,7 +46,7 @@
   "author": "Swirlds Labs",
   "license": "Apache2.0",
   "dependencies": {
-    "@eslint/eslintrc": "^3.1.0",
+    "@eslint/eslintrc": "^3.2.0",
     "@hashgraph/sdk": "^2.53.0",
     "@kubernetes/client-node": "^0.22.2",
     "@listr2/prompt-adapter-enquirer": "^2.0.12",
@@ -61,7 +61,7 @@
     "esm": "^3.2.25",
     "figlet": "^1.8.0",
     "got": "^14.4.4",
-    "inquirer": "^12.0.1",
+    "inquirer": "^12.1.0",
     "ip": "^2.0.1",
     "js-base64": "^3.7.7",
     "js-yaml": "^4.1.0",
@@ -73,13 +73,13 @@
     "stream-buffers": "^3.0.3",
     "tar": "^7.4.3",
     "ts-node": "^10.9.2",
-    "uuid": "^11.0.2",
+    "uuid": "^11.0.3",
     "winston": "^3.17.0",
     "yaml": "^2.6.0",
     "yargs": "^17.7.2"
   },
   "devDependencies": {
-    "@eslint/js": "^9.14.0",
+    "@eslint/js": "^9.15.0",
     "@swc/cli": "^0.5.0",
     "@swc/core": "^1.9.2",
     "@types/adm-zip": "^0.5.6",
@@ -109,11 +109,11 @@
     "chai": "^5.1.2",
     "chai-as-promised": "^8.0.0",
     "cross-env": "^7.0.3",
-    "eslint": "^9.14.0",
+    "eslint": "^9.15.0",
     "eslint-plugin-headers": "^1.2.0",
     "eslint-plugin-import": "^2.30.0",
     "eslint-plugin-mocha": "^10.5.0",
-    "eslint-plugin-n": "^17.13.1",
+    "eslint-plugin-n": "^17.13.2",
     "eslint-plugin-promise": "^7.1.0",
     "eslint-plugin-tsdoc": "^0.3.0",
     "globals": "^15.12.0",
@@ -132,7 +132,7 @@
     "sinon-chai": "^4.0.0",
     "typedoc": "^0.26.11",
     "typescript": "^5.6.3",
-    "typescript-eslint": "^8.13.0"
+    "typescript-eslint": "^8.14.0"
   },
   "repository": {
     "type": "git",
