@@ -85,16 +85,31 @@ export interface Opts {
   certificateManager: CertificateManager
 }
 
+/**
+ * Generic fail for representing optional types
+ */
 export type Optional<T> = T | undefined;
 
 export type ContextClusterStructure = Record<Context, Cluster>
 
+/**
+ * Interface for capsuling validating for class's own properties
+ */
 export interface Validate {
-  /** Validates all properties of the class and throws if data is invalid */
+  /**
+   * Validates all properties of the class and throws if data is invalid
+   */
   validate(): void
 }
 
+/**
+ * Interface for converting a class to a plain object.
+ */
 export interface ToObject<T> {
-  /** Converts class to plain object */
+  /**
+   * Converts the class instance to a plain object.
+   *
+   * @returns the plain object representation of the class.
+   */
   toObject(): T
 }
