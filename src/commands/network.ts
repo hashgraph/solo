@@ -498,7 +498,6 @@ export class NetworkCommand extends BaseCommand {
             enableTimeout: self.configManager.getFlag<boolean>(flags.enableTimeout) as boolean,
           }
 
-          ctx.checkTimeout = ctx.config.deletePvcs && ctx.config.deleteSecrets && ctx.config.namespace && ctx.config.enableTimeout
           this.logger.debug(`===== Loaded cached config === ${JSON.stringify(ctx.config)}`)
 
           return lease.buildAcquireTask(task)
