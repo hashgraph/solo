@@ -157,7 +157,7 @@ export class RelayCommand extends BaseCommand {
     return releaseName
   }
 
-  private async deploy (argv: any): Promise<boolean> {
+  async deploy (argv: any): Promise<boolean> {
     const self = this
     const lease = self.leaseManager.instantiateLease()
 
@@ -287,7 +287,7 @@ export class RelayCommand extends BaseCommand {
     return true
   }
 
-  private async destroy (argv: any): Promise<boolean> {
+  async destroy (argv: any): Promise<boolean> {
     const self = this
     const lease = self.leaseManager.instantiateLease()
 
