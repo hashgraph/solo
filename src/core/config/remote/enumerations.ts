@@ -33,8 +33,9 @@ export enum ComponentTypeEnum {
  * {@link ConsensusNodeComponent}
  */
 export enum ConsensusNodeStates {
-  SETUP = 'SETUP',
-  STARTED = 'STARTED',
-  FREEZED = 'FREEZED',
+  INITIALIZED = 'initialized',
+  SETUP = 'setup',
+  STARTED = 'started',
+  FREEZED = 'freezed',
 }
 

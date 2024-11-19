@@ -16,7 +16,7 @@
  */
 import { ListrEnquirerPromptAdapter } from '@listr2/prompt-adapter-enquirer'
 import chalk from 'chalk'
-import { Listr } from 'listr2'
+import { Listr, ListrTask } from 'listr2'
 import { SoloError, IllegalArgumentError, MissingArgumentError } from '../core/errors.ts'
 import { BaseCommand } from './base.ts'
 import * as flags from './flags.ts'
@@ -29,6 +29,12 @@ import fs from 'fs'
 import type { CertificateManager, KeyManager, PlatformInstaller, ProfileManager } from '../core/index.ts'
 import type { NodeAlias, NodeAliases } from '../types/aliases.ts'
 import type { Opts } from '../types/index.ts'
+import {
+  ConsensusNodeComponent,
+  EnvoyProxyComponent,
+  HaProxyComponent
+} from '../core/config/remote/components/index.ts'
+import { ConsensusNodeStates } from '../core/config/remote/enumerations.ts'
 
 export interface NetworkDeployConfigClass {
   applicationEnv: string
@@ -244,6 +250,7 @@ export class NetworkCommand extends BaseCommand {
           return lease.buildAcquireTask(task)
         }
       },
+      this.remoteConfigManager.buildLoadTask(argv),
       {
         title: 'Copy gRPC TLS Certificates',
         task: (ctx, parentTask) =>
@@ -351,41 +358,40 @@ export class NetworkCommand extends BaseCommand {
       },
       {
         title: 'Check proxy pods are running',
-        task:
-           (ctx, task) => {
-             const subTasks: any[] = []
-             const config = ctx.config
+        task: (ctx, task): Listr<Context, any, any> => {
+          const subTasks: any[] = []
+          const config = ctx.config
 
-             // HAProxy
-             for (const nodeAlias of config.nodeAliases) {
-               subTasks.push({
-                 title: `Check HAProxy for: ${chalk.yellow(nodeAlias)}`,
-                 task: async () =>
-                   await self.k8.waitForPods([constants.POD_PHASE_RUNNING], [
-                     'solo.hedera.com/type=haproxy'
-                   ], 1, constants.PODS_RUNNING_MAX_ATTEMPTS, constants.PODS_RUNNING_DELAY)
-               })
-             }
+          // HAProxy
+          for (const nodeAlias of config.nodeAliases) {
+            subTasks.push({
+              title: `Check HAProxy for: ${chalk.yellow(nodeAlias)}`,
+              task: async () =>
+                await self.k8.waitForPods([constants.POD_PHASE_RUNNING], [
+                  'solo.hedera.com/type=haproxy'
+                ], 1, constants.PODS_RUNNING_MAX_ATTEMPTS, constants.PODS_RUNNING_DELAY)
+            })
+          }
 
-             // Envoy Proxy
-             for (const nodeAlias of config.nodeAliases) {
-               subTasks.push({
-                 title: `Check Envoy Proxy for: ${chalk.yellow(nodeAlias)}`,
-                 task: async () =>
-                   await self.k8.waitForPods([constants.POD_PHASE_RUNNING], [
-                     'solo.hedera.com/type=envoy-proxy'
-                   ], 1, constants.PODS_RUNNING_MAX_ATTEMPTS, constants.PODS_RUNNING_DELAY)
-               })
-             }
+          // Envoy Proxy
+          for (const nodeAlias of config.nodeAliases) {
+            subTasks.push({
+              title: `Check Envoy Proxy for: ${chalk.yellow(nodeAlias)}`,
+              task: async () =>
+                await self.k8.waitForPods([constants.POD_PHASE_RUNNING], [
+                  'solo.hedera.com/type=envoy-proxy'
+                ], 1, constants.PODS_RUNNING_MAX_ATTEMPTS, constants.PODS_RUNNING_DELAY)
+            })
+          }
 
-             // set up the sub-tasks
-             return task.newListr(subTasks, {
-               concurrent: true,
-               rendererOptions: {
-                 collapseSubtasks: false
-               }
-             })
-           }
+          // set up the sub-tasks
+          return task.newListr(subTasks, {
+            concurrent: true,
+            rendererOptions: {
+              collapseSubtasks: false
+            }
+          })
+        }
       },
       {
         title: 'Check auxiliary pods are ready',
@@ -410,7 +416,35 @@ export class NetworkCommand extends BaseCommand {
           })
         }
       },
-      this.remoteConfigManager.buildLoadTask(argv)
+      {
+        title: 'Add components to remote config',
+        task: async (ctx, task): Promise<void> => {
+          const { config: { namespace, nodeAliases } } = ctx
+          const cluster = this.remoteConfigManager.currentCluster
+
+          await this.remoteConfigManager.modify(async (remoteConfig) => {
+            for (const nodeAlias of nodeAliases) {
+              //* Network Node pods
+              remoteConfig.components.add(
+                nodeAlias,
+                new ConsensusNodeComponent(nodeAlias, cluster, namespace, ConsensusNodeStates.INITIALIZED)
+              )
+
+              //* Envoy Proxy pods
+              remoteConfig.components.add(
+                `envoy-${nodeAlias}`,
+                new EnvoyProxyComponent(`envoy-${nodeAlias}`, cluster, namespace)
+              )
+
+              //* HAProxy pods
+              remoteConfig.components.add(
+                `haproxy-${nodeAlias}`,
+                new HaProxyComponent(`haproxy-${nodeAlias}`, cluster, namespace)
+              )
+            }
+          })
+        }
+      }
     ], {
       concurrent: false,
       rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
@@ -419,6 +453,7 @@ export class NetworkCommand extends BaseCommand {
     try {
       await tasks.run()
     } catch (e: Error | any) {
+      console.error(e)
       throw new SoloError(`Error installing chart ${constants.SOLO_DEPLOYMENT_CHART}`, e)
     } finally {
       await lease.release()

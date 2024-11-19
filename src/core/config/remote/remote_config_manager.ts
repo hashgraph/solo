@@ -55,6 +55,12 @@ export class RemoteConfigManager {
     private readonly configManager: ConfigManager,
   ) {}
 
+  /* ---------- Getters ---------- */
+
+  public get currentCluster (): Cluster {
+    return this.localConfig.currentDeploymentName as Cluster
+  }
+
   /* ---------- Readers and Modifiers ---------- */
 
   /**
@@ -219,8 +225,6 @@ export class RemoteConfigManager {
    * Creates a new ConfigMap entry in the Kubernetes cluster with the remote configuration data.
    */
   private async createConfigMap (): Promise<void> {
-    console.dir(this.remoteConfig.toObject(), { depth: null })
-
     await this.k8.createNamespacedConfigMap(
       constants.SOLO_REMOTE_CONFIGMAP_NAME,
       constants.SOLO_REMOTE_CONFIGMAP_LABELS,

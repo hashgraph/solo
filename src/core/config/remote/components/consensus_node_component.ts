@@ -17,7 +17,7 @@
 import { ComponentTypeEnum, ConsensusNodeStates } from '../enumerations.ts'
 import { BaseComponent } from './base_component.ts'
 import { SoloError } from '../../../errors.ts'
-import type { Cluster, IConsensusNodeComponent, Namespace, ServiceName } from '../types.ts'
+import type { Cluster, IConsensusNodeComponent, Namespace, ComponentName } from '../types.ts'
 import type { ToObject } from '../../../../types/index.ts'
 
 /**
@@ -39,7 +39,7 @@ export class ConsensusNodeComponent extends BaseComponent
    * @param state - of the consensus node
    */
   public constructor (
-    name: ServiceName,
+    name: ComponentName,
     cluster: Cluster,
     namespace: Namespace,
     state: ConsensusNodeStates

@@ -21,7 +21,7 @@ import {
   MirrorNodeComponent, MirrorNodeExplorerComponent, RelayComponent,
 } from './components/index.ts'
 import type {
-  Component, ComponentsDataStructure, IConsensusNodeComponent, IRelayComponent, ServiceName
+  Component, ComponentsDataStructure, IConsensusNodeComponent, IRelayComponent, ComponentName
 } from './types.ts'
 import type { ToObject, Validate } from '../../../types/index.ts'
 
@@ -41,12 +41,12 @@ export class ComponentsDataWrapper implements Validate, ToObject<ComponentsDataS
    * @param mirrorNodeExplorers - Mirror Node Explorers record mapping service name to mirror node explorers components
    */
   private constructor (
-    private readonly relays: Record<ServiceName, RelayComponent> = {},
-    private readonly haProxies: Record<ServiceName, HaProxyComponent> = {},
-    private readonly mirrorNodes: Record<ServiceName, MirrorNodeComponent> = {},
-    private readonly envoyProxies: Record<ServiceName, EnvoyProxyComponent> = {},
-    private readonly consensusNodes: Record<ServiceName, ConsensusNodeComponent> = {},
-    private readonly mirrorNodeExplorers: Record<ServiceName, MirrorNodeExplorerComponent> = {},
+    private readonly relays: Record<ComponentName, RelayComponent> = {},
+    private readonly haProxies: Record<ComponentName, HaProxyComponent> = {},
+    private readonly mirrorNodes: Record<ComponentName, MirrorNodeComponent> = {},
+    private readonly envoyProxies: Record<ComponentName, EnvoyProxyComponent> = {},
+    private readonly consensusNodes: Record<ComponentName, ConsensusNodeComponent> = {},
+    private readonly mirrorNodeExplorers: Record<ComponentName, MirrorNodeExplorerComponent> = {},
   ) {
     this.validate()
   }
@@ -54,7 +54,7 @@ export class ComponentsDataWrapper implements Validate, ToObject<ComponentsDataS
   /* -------- Modifiers -------- */
 
   /** Used to add new component to their respective group. */
-  public add (serviceName: ServiceName, component: BaseComponent): void {
+  public add (serviceName: ComponentName, component: BaseComponent): void {
     const self = this
 
     if (!serviceName || typeof serviceName !== 'string') {
@@ -65,7 +65,7 @@ export class ComponentsDataWrapper implements Validate, ToObject<ComponentsDataS
       throw new SoloError('Component must be instance of BaseComponent', undefined, BaseComponent)
     }
 
-    function addComponentCallback (components: Record<ServiceName, BaseComponent>): void {
+    function addComponentCallback (components: Record<ComponentName, BaseComponent>): void {
       if (self.exists(components, component)) {
         throw new SoloError('Component exists', null, component.toObject())
       }
@@ -76,7 +76,7 @@ export class ComponentsDataWrapper implements Validate, ToObject<ComponentsDataS
   }
 
   /** Used to edit an existing component from their respective group. */
-  public edit (serviceName: ServiceName, component: BaseComponent): void {
+  public edit (serviceName: ComponentName, component: BaseComponent): void {
     const self = this
 
     if (!serviceName || typeof serviceName !== 'string') {
@@ -86,7 +86,7 @@ export class ComponentsDataWrapper implements Validate, ToObject<ComponentsDataS
       throw new SoloError('Component must be instance of BaseComponent', undefined, BaseComponent)
     }
 
-    function editComponentCallback (components: Record<ServiceName, BaseComponent>): void {
+    function editComponentCallback (components: Record<ComponentName, BaseComponent>): void {
       if (!components.hasOwnProperty(serviceName)) {
         throw new SoloError(`Component doesn't exist, name: ${serviceName}`, null, { component })
       }
@@ -97,7 +97,7 @@ export class ComponentsDataWrapper implements Validate, ToObject<ComponentsDataS
   }
 
   /** Used to remove specific component from their respective group. */
-  public remove (serviceName: ServiceName, type: ComponentTypeEnum): void {
+  public remove (serviceName: ComponentName, type: ComponentTypeEnum): void {
     const self = this
 
     if (!serviceName || typeof serviceName !== 'string') {
@@ -107,7 +107,7 @@ export class ComponentsDataWrapper implements Validate, ToObject<ComponentsDataS
       throw new SoloError(`Invalid component type ${type}`)
     }
 
-    function deleteComponentCallback (components: Record<ServiceName, BaseComponent>): void {
+    function deleteComponentCallback (components: Record<ComponentName, BaseComponent>): void {
       if (!components.hasOwnProperty(serviceName)) {
         throw new SoloError(`Component ${serviceName} of type ${type} not found while attempting to remove`)
       }
@@ -125,8 +125,8 @@ export class ComponentsDataWrapper implements Validate, ToObject<ComponentsDataS
    */
   private applyCallbackToComponentGroup (
     type: ComponentTypeEnum,
-    serviceName: ServiceName,
-    callback: (components: Record<ServiceName, BaseComponent>) => void
+    serviceName: ComponentName,
+    callback: (components: Record<ComponentName, BaseComponent>) => void
   ): void {
     switch (type) {
       case ComponentTypeEnum.Relay:
@@ -161,47 +161,47 @@ export class ComponentsDataWrapper implements Validate, ToObject<ComponentsDataS
    * @param components - component groups distinguished by their type.
    */
   public static fromObject (components: ComponentsDataStructure): ComponentsDataWrapper {
-    const relays: Record<ServiceName, RelayComponent> = {}
-    const haProxies: Record<ServiceName, HaProxyComponent> = {}
-    const mirrorNodes: Record<ServiceName, MirrorNodeComponent> = {}
-    const envoyProxies: Record<ServiceName, EnvoyProxyComponent> = {}
-    const consensusNodes: Record<ServiceName, ConsensusNodeComponent> = {}
-    const mirrorNodeExplorers: Record<ServiceName, MirrorNodeExplorerComponent> = {}
+    const relays: Record<ComponentName, RelayComponent> = {}
+    const haProxies: Record<ComponentName, HaProxyComponent> = {}
+    const mirrorNodes: Record<ComponentName, MirrorNodeComponent> = {}
+    const envoyProxies: Record<ComponentName, EnvoyProxyComponent> = {}
+    const consensusNodes: Record<ComponentName, ConsensusNodeComponent> = {}
+    const mirrorNodeExplorers: Record<ComponentName, MirrorNodeExplorerComponent> = {}
 
-    Object.entries(components).forEach(([type, components]: [ComponentTypeEnum, Record<ServiceName, Component>]) => {
+    Object.entries(components).forEach(([type, components]: [ComponentTypeEnum, Record<ComponentName, Component>]) => {
       switch (type) {
         case ComponentTypeEnum.Relay:
-          Object.entries(components).forEach(([name, component]: [ServiceName, IRelayComponent]) => {
+          Object.entries(components).forEach(([name, component]: [ComponentName, IRelayComponent]) => {
             relays[name] = RelayComponent.fromObject(component)
           })
           break
 
         case ComponentTypeEnum.HaProxy:
-          Object.entries(components).forEach(([name, component]: [ServiceName, Component]) => {
+          Object.entries(components).forEach(([name, component]: [ComponentName, Component]) => {
             haProxies[name] = HaProxyComponent.fromObject(component)
           })
           break
 
         case ComponentTypeEnum.MirrorNode:
-          Object.entries(components).forEach(([name, component]: [ServiceName, Component]) => {
+          Object.entries(components).forEach(([name, component]: [ComponentName, Component]) => {
             mirrorNodes[name] = MirrorNodeComponent.fromObject(component)
           })
           break
 
         case ComponentTypeEnum.EnvoyProxy:
-          Object.entries(components).forEach(([name, component]: [ServiceName, Component]) => {
+          Object.entries(components).forEach(([name, component]: [ComponentName, Component]) => {
             envoyProxies[name] = EnvoyProxyComponent.fromObject(component)
           })
           break
 
         case ComponentTypeEnum.ConsensusNode:
-          Object.entries(components).forEach(([name, component]: [ServiceName, IConsensusNodeComponent]) => {
+          Object.entries(components).forEach(([name, component]: [ComponentName, IConsensusNodeComponent]) => {
             consensusNodes[name] = ConsensusNodeComponent.fromObject(component)
           })
           break
 
         case ComponentTypeEnum.MirrorNodeExplorer:
-          Object.entries(components).forEach(([name, component]: [ServiceName, Component]) => {
+          Object.entries(components).forEach(([name, component]: [ComponentName, Component]) => {
             mirrorNodeExplorers[name] = MirrorNodeExplorerComponent.fromObject(component)
           })
           break
@@ -225,14 +225,14 @@ export class ComponentsDataWrapper implements Validate, ToObject<ComponentsDataS
   public static initializeEmpty (): ComponentsDataWrapper { return new ComponentsDataWrapper() }
 
   /** checks if component exist in the respective group */
-  private exists (components: Record<ServiceName, BaseComponent>, newComponent: BaseComponent): boolean {
+  private exists (components: Record<ComponentName, BaseComponent>, newComponent: BaseComponent): boolean {
     return Object.values(components)
       .some(component => BaseComponent.compare(component, newComponent))
   }
 
   public validate (): void {
-    function testComponentsObject (components: Record<ServiceName, BaseComponent>, expectedInstance: any): void {
-      Object.entries(components).forEach(([name, component]: [ServiceName, BaseComponent]): void => {
+    function testComponentsObject (components: Record<ComponentName, BaseComponent>, expectedInstance: any): void {
+      Object.entries(components).forEach(([name, component]: [ComponentName, BaseComponent]): void => {
         if (!name || typeof name !== 'string') {
           throw new SoloError(`Invalid component service name ${{ [name]: component }}`)
         }
@@ -252,10 +252,10 @@ export class ComponentsDataWrapper implements Validate, ToObject<ComponentsDataS
   }
 
   public toObject (): ComponentsDataStructure {
-    function transform (components: Record<ServiceName, BaseComponent>): Record<ServiceName, Component> {
-      const transformedComponents: Record<ServiceName, Component> = {}
+    function transform (components: Record<ComponentName, BaseComponent>): Record<ComponentName, Component> {
+      const transformedComponents: Record<ComponentName, Component> = {}
 
-      Object.entries(components).forEach(([name, component]: [ServiceName, BaseComponent]): void => {
+      Object.entries(components).forEach(([name, component]: [ComponentName, BaseComponent]): void => {
         transformedComponents[name] = component.toObject() as Component
       })
 

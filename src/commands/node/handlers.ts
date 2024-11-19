@@ -27,6 +27,7 @@ import {
   type ConfigManager, type K8, type PlatformInstaller, type AccountManager, type LeaseManager, type RemoteConfigManager
 } from '../../core/index.ts'
 import { IllegalArgumentError } from '../../core/errors.ts'
+import { ConsensusNodeStates } from '../../core/config/remote/enumerations.ts'
 import type { SoloLogger } from '../../core/logging.ts'
 import type { NodeCommand } from './index.ts'
 import type { NodeCommandTasks } from './tasks.ts'
@@ -554,7 +555,7 @@ export class NodeCommandHandlers {
     return true
   }
 
-  async stop (argv: any) {
+  public async stop (argv: any): Promise<boolean> {
     argv = helpers.addFlagsToArgv(argv, NodeFlags.STOP_FLAGS)
 
     const lease = this.leaseManager.instantiateLease()
@@ -563,7 +564,9 @@ export class NodeCommandHandlers {
       this.tasks.initialize(argv, stopConfigBuilder.bind(this), lease),
       this.remoteConfigManager.buildLoadTask(argv),
       this.tasks.identifyNetworkPods(),
-      this.tasks.stopNodes()
+      this.tasks.stopNodes(),
+      this.tasks.changeAllNodeStatesInRemoteConfig(ConsensusNodeStates.SETUP),
+
     ], {
       concurrent: false,
       rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
@@ -573,7 +576,7 @@ export class NodeCommandHandlers {
     return true
   }
 
-  async start (argv: any) {
+  public async start (argv: any): Promise<boolean> {
     argv = helpers.addFlagsToArgv(argv, NodeFlags.START_FLAGS)
 
     const lease = this.leaseManager.instantiateLease()
@@ -586,6 +589,7 @@ export class NodeCommandHandlers {
       this.tasks.enablePortForwarding(),
       this.tasks.checkAllNodesAreActive('nodeAliases'),
       this.tasks.checkNodeProxiesAreActive(),
+      this.tasks.changeAllNodeStatesInRemoteConfig(ConsensusNodeStates.STARTED),
       this.tasks.addNodeStakes()
     ], {
       concurrent: false,
@@ -596,7 +600,7 @@ export class NodeCommandHandlers {
     return true
   }
 
-  async setup (argv: any) {
+  public async setup (argv: any): Promise<boolean> {
     argv = helpers.addFlagsToArgv(argv, NodeFlags.SETUP_FLAGS)
 
     const lease = this.leaseManager.instantiateLease()
@@ -606,7 +610,8 @@ export class NodeCommandHandlers {
       this.remoteConfigManager.buildLoadTask(argv),
       this.tasks.identifyNetworkPods(),
       this.tasks.fetchPlatformSoftware('nodeAliases'),
-      this.tasks.setupNetworkNodes('nodeAliases')
+      this.tasks.setupNetworkNodes('nodeAliases'),
+      this.tasks.changeAllNodeStatesInRemoteConfig(ConsensusNodeStates.SETUP)
     ], {
       concurrent: false,
       rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION

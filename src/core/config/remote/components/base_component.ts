@@ -16,7 +16,7 @@
  */
 import { ComponentTypeEnum } from '../enumerations.ts'
 import { SoloError } from '../../../errors.ts'
-import type { Cluster, Component, Namespace, ServiceName } from '../types.ts'
+import type { Cluster, Component, Namespace, ComponentName } from '../types.ts'
 import type { ToObject, Validate } from '../../../../types/index.ts'
 
 /**
@@ -28,7 +28,7 @@ export abstract class BaseComponent implements Component, Validate, ToObject<Com
   private readonly _type: ComponentTypeEnum
 
   /** The name of the component. */
-  private readonly _name: ServiceName
+  private readonly _name: ComponentName
 
   /** The cluster associated with the component. */
   private readonly _cluster: Cluster
@@ -42,7 +42,7 @@ export abstract class BaseComponent implements Component, Validate, ToObject<Com
    * @param cluster - in which the component is deployed.
    * @param namespace - associated with the component.
    */
-  protected constructor (type: ComponentTypeEnum, name: ServiceName, cluster: Cluster, namespace: Namespace) {
+  protected constructor (type: ComponentTypeEnum, name: ComponentName, cluster: Cluster, namespace: Namespace) {
     this._type = type
     this._name = name
     this._cluster = cluster
@@ -61,7 +61,7 @@ export abstract class BaseComponent implements Component, Validate, ToObject<Com
    * Retrieves the name of the component.
    * @readonly
    */
-  public get name (): ServiceName { return this._name }
+  public get name (): ComponentName { return this._name }
 
   /**
    * Retrieves the cluster associated with the component.

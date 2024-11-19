@@ -1399,7 +1399,7 @@ export class NodeCommandTasks {
 
   //* ------------------------------ Remote Config ------------------------------ *//
 
-  removeComponentsFromRemoteConfig () {
+  public removeComponentsFromRemoteConfig (): Task {
     return new Task('Remove node related components from metadata',
       async () => {
         await this.remoteConfigManager.modify(async (remoteConfig) => {
@@ -1411,77 +1411,18 @@ export class NodeCommandTasks {
     )
   }
 
-  setupComponentsToRemoteConfig () {
+  public changeAllNodeStatesInRemoteConfig (state: ConsensusNodeStates): Task {
     return new Task('Setup node related components from metadata',
-      async (ctx: { config: { namespace: string, nodeAliases: NodeAliases } }) => {
+      async (ctx: { config: { namespace: string, nodeAliases: NodeAliases } }): Promise<void> => {
         await this.remoteConfigManager.modify(async (remoteConfig) => {
           const { config: { namespace, nodeAliases } } = ctx
+          const cluster = this.remoteConfigManager.currentCluster
 
           for (const nodeAlias of nodeAliases) {
-            const nodeComponent = new ConsensusNodeComponent(
+            remoteConfig.components.edit(
               nodeAlias,
-              'solo-cluster',
-              namespace,
-              ConsensusNodeStates.SETUP
+              new ConsensusNodeComponent(nodeAlias, cluster, namespace, state)
             )
-
-            const haProxyComponent = new HaProxyComponent(
-              `haproxy-${nodeAlias}`,
-              'solo-cluster',
-              namespace,
-            )
-
-            const envoyProxyComponent = new EnvoyProxyComponent(
-              `envoy-${nodeAlias}`,
-              'solo-cluster',
-              namespace,
-            )
-
-            remoteConfig.components.add(nodeAlias, nodeComponent)
-            remoteConfig.components.add(`haproxy-${nodeAlias}`, haProxyComponent)
-            remoteConfig.components.add(`envoy-${nodeAlias}`, envoyProxyComponent)
-          }
-        })
-      }
-    )
-  }
-
-  startComponentsToRemoteConfig () {
-    return new Task('Start node related components from metadata',
-      async (ctx: { config: { namespace: string, nodeAliases: NodeAliases } }) => {
-        await this.remoteConfigManager.modify(async (remoteConfig) => {
-          const { config: { namespace, nodeAliases } } = ctx
-
-          for (const nodeAlias of nodeAliases) {
-            const nodeComponent = new ConsensusNodeComponent(
-              nodeAlias,
-              'solo-cluster',
-              namespace,
-              ConsensusNodeStates.STARTED
-            )
-
-            remoteConfig.components.edit(nodeAlias, nodeComponent)
-          }
-        })
-      }
-    )
-  }
-
-  freezeComponentsToRemoteConfig () {
-    return new Task('Freeze node related components from metadata',
-      async (ctx: { config: { namespace: string, nodeAliases: NodeAliases } }) => {
-        await this.remoteConfigManager.modify(async (remoteConfig) => {
-          const { config: { namespace, nodeAliases } } = ctx
-
-          for (const nodeAlias of nodeAliases) {
-            const nodeComponent = new ConsensusNodeComponent(
-              nodeAlias,
-              'solo-cluster',
-              namespace,
-              ConsensusNodeStates.FREEZED
-            )
-
-            remoteConfig.components.edit(nodeAlias, nodeComponent)
           }
         })
       }

@@ -25,7 +25,7 @@ export type Version = string
 export type Namespace = string
 export type Cluster = string
 export type Context = string
-export type ServiceName = string
+export type ComponentName = string
 
 export interface RemoteConfigMetadataStructure {
   name: Namespace
@@ -45,7 +45,7 @@ export interface IMigration {
 // use them to track component states in the cluster
 
 export interface Component {
-  name: ServiceName
+  name: ComponentName
   cluster: Cluster
   namespace: Namespace
 }
@@ -66,7 +66,7 @@ export interface RemoteConfigData {
   commandHistory: string[]
 }
 
-export type ComponentsDataStructure = Record<ComponentTypeEnum, Record<ServiceName, Component>>
+export type ComponentsDataStructure = Record<ComponentTypeEnum, Record<ComponentName, Component>>
 
 export interface RemoteConfigDataStructure {
   metadata: RemoteConfigMetadataStructure

@@ -286,34 +286,21 @@ export class MirrorNodeCommand extends BaseCommand {
         }
       },
       {
-        title: 'Add mirror node to metadata',
-        task: async (ctx) => {
+        title: 'Add mirror node and mirror node explorer to remote config',
+        task: async (ctx): Promise<void> => {
           await self.remoteConfigManager.modify(async (remoteConfig) => {
             const { config: { namespace } } = ctx
+            const cluster = this.remoteConfigManager.currentCluster
 
-            const component = new MirrorNodeComponent(
-              'Mirror node name',
-              'solo-cluster',
-              namespace,
+            remoteConfig.components.add(
+              'mirrorNode',
+              new MirrorNodeComponent('mirrorNode', cluster, namespace)
             )
 
-            remoteConfig.components.add('Mirror node name', component)
-          })
-        }
-      },
-      {
-        title: 'Add mirror node explorer to metadata',
-        task: async (ctx) => {
-          await self.remoteConfigManager.modify(async (remoteConfig) => {
-            const { config: { namespace } } = ctx
-
-            const component = new MirrorNodeComponent(
-              'Mirror node explorer name',
-              'solo-cluster',
-              namespace,
+            remoteConfig.components.add(
+              'mirrorNodeExplorer',
+              new MirrorNodeComponent('mirrorNodeExplorer', cluster, namespace)
             )
-
-            remoteConfig.components.add('Mirror node explorer name', component)
           })
         }
       },
