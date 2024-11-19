@@ -464,6 +464,7 @@ export class NetworkCommand extends BaseCommand {
         deleteSecrets: boolean
         namespace: string
         enableTimeout: boolean
+        force: boolean
       }
       checkTimeout: boolean
     }
