@@ -141,7 +141,7 @@ export class RemoteConfigManager {
 
     return {
       title: 'Load remote config',
-      task: async (_, task) => {
+      task: async (_, task): Promise<void> => {
         if (!await self.load()) {
           task.title = `${task.title} - ${chalk.red('remote config not found')}`
 
@@ -167,7 +167,7 @@ export class RemoteConfigManager {
 
     return {
       title: 'Create remote config',
-      task: async (ctx, task) => {
+      task: async (ctx, task): Promise<void> => {
         const localConfigExists = this.localConfig.configFileExists()
         if (!localConfigExists) {
           throw new SoloError('Local config doesn\'t exist')

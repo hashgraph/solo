@@ -14,7 +14,7 @@
  * limitations under the License.
  *
  */
-import { Listr, ListrTaskWrapper } from 'listr2'
+import { Listr, type ListrTaskWrapper } from 'listr2'
 import { SoloError } from '../core/errors.ts'
 import { BaseCommand } from './base.ts'
 import * as flags from './flags.ts'
@@ -22,16 +22,16 @@ import { constants, Templates } from '../core/index.ts'
 import * as prompts from './prompts.ts'
 import chalk from 'chalk'
 import type { Namespace } from '../core/config/remote/types.ts'
-import type { ContextClusterStructure } from '../types/index.ts'
+import type { CommandFlag, ContextClusterStructure } from '../types/index.ts'
 
 export class DeploymentCommand extends BaseCommand {
-  static CREATE_DEPLOYMENT_NAME = 'createDeployment'
+  public static CREATE_DEPLOYMENT_NAME = 'createDeployment'
 
-  static get DEPLOY_FLAGS_LIST () {
+  private static get DEPLOY_FLAGS_LIST (): CommandFlag[] {
     return [ flags.namespace, flags.contextCluster ]
   }
 
-  async create (argv: any) {
+  private async create (argv: any): Promise<boolean> {
     const self = this
     const lease = self.leaseManager.instantiateLease()
 
@@ -41,7 +41,7 @@ export class DeploymentCommand extends BaseCommand {
     const tasks = new Listr<Context>([
       {
         title: 'Initialize',
-        task: async (ctx, task) => {
+        task: async (ctx, task): Promise<Listr<Context, any, any>> => {
           self.configManager.update(argv)
           self.logger.debug('Loaded cached config', { config: self.configManager.config })
 
@@ -66,7 +66,7 @@ export class DeploymentCommand extends BaseCommand {
       },
       {
         title: 'Validate cluster connections',
-        task: async (ctx, task) => {
+        task: async (ctx, task): Promise<Listr<Context, any, any>> => {
           const subTasks = []
 
           for (const cluster of Object.keys(ctx.config.contextCluster)) {
@@ -106,12 +106,12 @@ export class DeploymentCommand extends BaseCommand {
     return true
   }
 
-  getCommandDefinition (): { command: string; desc: string; builder: Function } {
+  public getCommandDefinition (): { command: string; desc: string; builder: Function } {
     const networkCmd = this
     return {
       command: 'deployment',
       desc: 'Manage solo network deployment',
-      builder: (yargs: any) => {
+      builder: (yargs: any): any => {
         return yargs
           .command({
             command: 'create',

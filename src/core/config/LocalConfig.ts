@@ -65,7 +65,7 @@ export class LocalConfig implements LocalConfigData {
     }
   }
 
-  private validate () {
+  private validate (): void {
     const genericMessage = 'Validation of local config failed'
 
     // Validate deployments
@@ -146,7 +146,7 @@ export class LocalConfig implements LocalConfigData {
     return {
       title: 'Prompt local configuration',
       skip: localConfig.skipPromptTask,
-      task: async (_: any, task: ListrTaskWrapper<any, any, any>) => {
+      task: async (_: any, task: ListrTaskWrapper<any, any, any>): Promise<void> => {
         const kubeConfig = localConfig.k8.getKubeConfig()
 
         const clusterMappings = {}

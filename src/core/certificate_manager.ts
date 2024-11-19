@@ -23,14 +23,14 @@ import { GrpcProxyTlsEnums } from './enumerations.ts'
 import type { ConfigManager } from './config_manager.ts'
 import type { K8 } from './k8.ts'
 import type { SoloLogger } from './logging.ts'
-import type { ListrTaskWrapper } from 'listr2'
+import type { Listr, ListrTaskWrapper } from 'listr2'
 import type { NodeAlias } from '../types/aliases.ts'
 
 /**
  * Used to handle interactions with certificates data and inject it into the K8s cluster secrets
  */
 export class CertificateManager {
-  constructor (
+  public constructor (
     private readonly k8: K8,
     private readonly logger: SoloLogger,
     private readonly configManager: ConfigManager
@@ -49,7 +49,10 @@ export class CertificateManager {
    *
    * @returns the secret
    */
-  private buildSecret (cert: string, key: string, type: GrpcProxyTlsEnums) {
+  private buildSecret (cert: string, key: string, type: GrpcProxyTlsEnums)
+    : { 'tls.crt': string, 'tls.key': string }
+    | { 'tls.pem': string }
+  {
     switch (type) {
       //? HAProxy
       case GrpcProxyTlsEnums.GRPC: {
@@ -80,7 +83,7 @@ export class CertificateManager {
    * @param key - file path to the key file
    * @param type - the certificate type if it's for gRPC or gRPC Web
    */
-  private async copyTlsCertificate (nodeAlias: NodeAlias, cert: string, key: string, type: GrpcProxyTlsEnums) {
+  private async copyTlsCertificate (nodeAlias: NodeAlias, cert: string, key: string, type: GrpcProxyTlsEnums): Promise<void> {
     try {
       const data: Record<string, string> = this.buildSecret(cert, key, type)
       const name = Templates.renderGrpcTlsCertificatesSecretName(nodeAlias, type)
@@ -116,7 +119,7 @@ export class CertificateManager {
     grpcWebTlsCertificatePathsUnparsed: string,
     grpcTlsKeyPathsUnparsed: string,
     grpcWebTlsKeyPathsUnparsed: string
-  ) {
+  ): Listr<any, any, any> {
     const self = this
     const subTasks = []
 
@@ -196,7 +199,7 @@ export class CertificateManager {
     })
   }
 
-  private getNamespace () {
+  private getNamespace (): string {
     const ns = this.configManager.getFlag<string>(flags.namespace) as string
     if (!ns) throw new MissingArgumentError('namespace is not set')
     return ns
