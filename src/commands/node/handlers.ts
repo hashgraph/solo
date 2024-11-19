@@ -18,8 +18,17 @@
 import * as helpers from '../../core/helpers.ts'
 import * as NodeFlags from './flags.ts'
 import {
-  addConfigBuilder, deleteConfigBuilder, downloadGeneratedFilesConfigBuilder, keysConfigBuilder, logsConfigBuilder,
-  prepareUpgradeConfigBuilder, refreshConfigBuilder, setupConfigBuilder, startConfigBuilder, stopConfigBuilder,
+  addConfigBuilder,
+  deleteConfigBuilder,
+  downloadGeneratedFilesConfigBuilder,
+  keysConfigBuilder,
+  logsConfigBuilder,
+  prepareUpgradeConfigBuilder,
+  refreshConfigBuilder,
+  setupConfigBuilder,
+  startConfigBuilder,
+  statesConfigBuilder,
+  stopConfigBuilder,
   updateConfigBuilder
 } from './configs.ts'
 import {
@@ -496,6 +505,21 @@ export class NodeCommandHandlers {
       concurrent: false,
       rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
     }, 'Error in downloading log from nodes', null)
+
+    await action(argv, this)
+    return true
+  }
+
+  async states (argv: any) {
+    argv = helpers.addFlagsToArgv(argv, NodeFlags.STATES_FLAGS)
+
+    const action = helpers.commandActionBuilder([
+      this.tasks.initialize(argv, statesConfigBuilder.bind(this), null),
+      this.tasks.getNodeStateFiles()
+    ], {
+      concurrent: false,
+      rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
+    }, 'Error in downloading states from nodes', null)
 
     await action(argv, this)
     return true

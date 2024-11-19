@@ -184,6 +184,12 @@ export const LOGS_FLAGS = {
     optionalFlags: []
 }
 
+export const STATES_FLAGS = {
+    requiredFlags: [flags.namespace, flags.nodeAliasesUnparsed],
+    requiredFlagsWithDisabledPrompt: [],
+    optionalFlags: []
+}
+
 export const REFRESH_FLAGS = {
     requiredFlags: [
         flags.cacheDir,

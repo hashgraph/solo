@@ -55,7 +55,7 @@ import crypto from 'crypto'
 import {
   addDebugOptions,
   getNodeAccountMap,
-  getNodeLogs,
+  getNodeLogs, getNodeStatesFromPod,
   prepareEndpoints,
   renameAndCopyFile,
   sleep,
@@ -912,6 +912,14 @@ export class NodeCommandTasks {
   getNodeLogsAndConfigs () {
     return new Task('Get node logs and configs', async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
       await getNodeLogs(this.k8, ctx.config.namespace)
+    })
+  }
+
+  getNodeStateFiles () {
+    return new Task('Get node states', async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
+      for (const nodeAlias of ctx.config.nodeAliases) {
+        await getNodeStatesFromPod(this.k8, ctx.config.namespace, nodeAlias)
+      }
     })
   }
 

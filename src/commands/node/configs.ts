@@ -245,6 +245,17 @@ export const logsConfigBuilder = function (argv, ctx, task) {
     return config
 }
 
+export const statesConfigBuilder = function (argv, ctx, task) {
+    /** @type {{namespace: string, nodeAliases: NodeAliases}} */
+    const config = {
+        namespace: this.configManager.getFlag(flags.namespace),
+        nodeAliases: helpers.parseNodeAliases(this.configManager.getFlag(flags.nodeAliasesUnparsed)),
+        nodeAliasesUnparsed: this.configManager.getFlag(flags.nodeAliasesUnparsed)
+    }
+    ctx.config = config
+    return config
+}
+
 export const refreshConfigBuilder = async function (argv, ctx, task) {
     ctx.config = this.getConfig(REFRESH_CONFIGS_NAME, argv.flags,
         [

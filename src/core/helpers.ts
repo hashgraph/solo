@@ -215,6 +215,44 @@ async function getNodeLog (pod: V1Pod, namespace: string, timeString: string, k8
   k8.logger.debug(`getNodeLogs(${pod.metadata.name}): ...end`)
 }
 
+
+/**
+ * Download state files from a pod
+ * @param k8 - an instance of core/K8
+ * @param namespace - the namespace of the network
+ * @param nodeAlias - the pod name
+ * @returns a promise that resolves when the state files are downloaded
+ */
+export async function getNodeStatesFromPod (k8: K8, namespace: string, nodeAlias: string) {
+  const pods = await k8.getPodsByLabel([`solo.hedera.com/node-name=${nodeAlias}`])
+  // get length of pods
+  const promises = []
+  for (const pod of pods) {
+    promises.push(getNodeState(pod, namespace, k8))
+  }
+  return await Promise.all(promises)
+}
+
+
+async function getNodeState (pod: V1Pod, namespace: string, k8: K8){
+  const podName = pod.metadata!.name as PodName
+  k8.logger.debug(`getNodeState(${pod.metadata.name}): begin...`)
+  const targetDir = path.join(SOLO_LOGS_DIR, namespace)
+  try {
+    if (!fs.existsSync(targetDir)) {
+      fs.mkdirSync(targetDir, { recursive: true })
+    }
+    const zipCommand = `tar -czf ${HEDERA_HAPI_PATH}/${podName}.zip -C ${HEDERA_HAPI_PATH}/data/saved .`
+    await k8.execContainer(podName, ROOT_CONTAINER, zipCommand)
+    await k8.copyFrom(podName, ROOT_CONTAINER, `${HEDERA_HAPI_PATH}/${podName}.zip`, targetDir)
+  } catch (e: Error | any) {
+    k8.logger.error(`failed to download state from pod ${podName}`, e)
+    k8.logger.showUser(`Failed to download state from pod ${podName}` + e)
+  }
+  k8.logger.debug(`getNodeState(${pod.metadata.name}): ...end`)
+}
+
+
 /**
  * Create a map of node aliases to account IDs
  * @param nodeAliases
