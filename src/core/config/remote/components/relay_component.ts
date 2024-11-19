@@ -40,6 +40,12 @@ export class RelayComponent extends BaseComponent
 
   /* -------- Utilities -------- */
 
+  /** Handles creating instance of the class from plain object. */
+  public static fromObject (component: IRelayComponent): RelayComponent {
+    const { name, cluster, namespace, consensusNodeAliases } = component
+    return new RelayComponent(name, cluster, namespace, consensusNodeAliases)
+  }
+
   public validate (): void {
     super.validate()
 

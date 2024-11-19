@@ -16,10 +16,19 @@
  */
 import { ComponentTypeEnum } from '../enumerations.ts'
 import { BaseComponent } from './base_component.ts'
+import type { Component } from '../types.ts'
 
 export class MirrorNodeComponent extends BaseComponent {
   public constructor (name: string, cluster: string, namespace: string) {
     super(ComponentTypeEnum.MirrorNode, name, cluster, namespace)
     this.validate()
+  }
+
+  /* -------- Utilities -------- */
+
+  /** Handles creating instance of the class from plain object. */
+  public static fromObject (component: Component): MirrorNodeComponent {
+    const { name, cluster, namespace } = component
+    return new MirrorNodeComponent(name, cluster, namespace)
   }
 }

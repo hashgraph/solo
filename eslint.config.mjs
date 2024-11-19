@@ -71,6 +71,15 @@ export default [
       '@typescript-eslint/class-literal-property-style': 'off',
       'no-prototype-builtins': 'off',
       '@typescript-eslint/no-dynamic-delete': 'off',
+
+      // Ensure all class members have explicit access modifiers
+      "@typescript-eslint/explicit-member-accessibility": ["warn", { "accessibility": "explicit" }],
+
+      // Require return types on all functions and methods
+      "@typescript-eslint/explicit-function-return-type": "warn",
+
+      // Require return types on exported functions or methods
+      "@typescript-eslint/explicit-module-boundary-types": "warn"
     }
   },
   {

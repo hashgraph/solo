@@ -18,7 +18,7 @@ import { ComponentTypeEnum, ConsensusNodeStates } from '../enumerations.ts'
 import { BaseComponent } from './base_component.ts'
 import { SoloError } from '../../../errors.ts'
 import type { Cluster, IConsensusNodeComponent, Namespace, ServiceName } from '../types.ts'
-import { ToObject } from "../../../../types/index.js";
+import type { ToObject } from '../../../../types/index.ts'
 
 /**
  * Represents a consensus node component within the system.
@@ -62,6 +62,12 @@ export class ConsensusNodeComponent extends BaseComponent
   }
 
   /* -------- Utilities -------- */
+
+  /** Handles creating instance of the class from plain object. */
+  public static fromObject (component: IConsensusNodeComponent): ConsensusNodeComponent {
+    const { name, cluster, namespace, state } = component
+    return new ConsensusNodeComponent(name, cluster, namespace, state)
+  }
 
   public validate (): void {
     super.validate()

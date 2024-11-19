@@ -33,20 +33,20 @@ import type { ToObject, Validate } from '../../../types/index.ts'
  */
 export class ComponentsDataWrapper implements Validate, ToObject<ComponentsDataStructure> {
   /**
-   * @param consensusNodes - Consensus Nodes record mapping service name to consensus nodes components
-   * @param haProxies - HA Proxies record mapping service name to ha proxies components
-   * @param envoyProxies - Envoy Proxies record mapping service name to envoy proxies components
-   * @param mirrorNodes - Mirror Nodes record mapping service name to mirror nodes components
-   * @param mirrorNodeExplorers - Mirror Node Explorers record mapping service name to mirror node explorers components
    * @param relays - Relay record mapping service name to relay components
+   * @param haProxies - HA Proxies record mapping service name to ha proxies components
+   * @param mirrorNodes - Mirror Nodes record mapping service name to mirror nodes components
+   * @param envoyProxies - Envoy Proxies record mapping service name to envoy proxies components
+   * @param consensusNodes - Consensus Nodes record mapping service name to consensus nodes components
+   * @param mirrorNodeExplorers - Mirror Node Explorers record mapping service name to mirror node explorers components
    */
   private constructor (
-    private readonly consensusNodes: Record<ServiceName, ConsensusNodeComponent> = {},
-    private readonly haProxies: Record<ServiceName, HaProxyComponent> = {},
-    private readonly envoyProxies: Record<ServiceName, EnvoyProxyComponent> = {},
-    private readonly mirrorNodes: Record<ServiceName, MirrorNodeComponent> = {},
-    private readonly mirrorNodeExplorers: Record<ServiceName, MirrorNodeExplorerComponent> = {},
     private readonly relays: Record<ServiceName, RelayComponent> = {},
+    private readonly haProxies: Record<ServiceName, HaProxyComponent> = {},
+    private readonly mirrorNodes: Record<ServiceName, MirrorNodeComponent> = {},
+    private readonly envoyProxies: Record<ServiceName, EnvoyProxyComponent> = {},
+    private readonly consensusNodes: Record<ServiceName, ConsensusNodeComponent> = {},
+    private readonly mirrorNodeExplorers: Record<ServiceName, MirrorNodeExplorerComponent> = {},
   ) {
     this.validate()
   }
@@ -129,23 +129,24 @@ export class ComponentsDataWrapper implements Validate, ToObject<ComponentsDataS
     callback: (components: Record<ServiceName, BaseComponent>) => void
   ): void {
     switch (type) {
-      case ComponentTypeEnum.ConsensusNode:
-        callback(this.consensusNodes)
+      case ComponentTypeEnum.Relay:
+        callback(this.relays)
         break
+
       case ComponentTypeEnum.HaProxy:
         callback(this.haProxies)
-        break
-      case ComponentTypeEnum.EnvoyProxy:
-        callback(this.envoyProxies)
         break
       case ComponentTypeEnum.MirrorNode:
         callback(this.mirrorNodes)
         break
+      case ComponentTypeEnum.EnvoyProxy:
+        callback(this.envoyProxies)
+        break
+      case ComponentTypeEnum.ConsensusNode:
+        callback(this.consensusNodes)
+        break
       case ComponentTypeEnum.MirrorNodeExplorer:
         callback(this.mirrorNodeExplorers)
-        break
-      case ComponentTypeEnum.Relay:
-        callback(this.relays)
         break
       default:
         throw new SoloError(`Unknown component type ${type}, service name: ${serviceName}`)
@@ -154,80 +155,70 @@ export class ComponentsDataWrapper implements Validate, ToObject<ComponentsDataS
     this.validate()
   }
 
-  /** @param components - component groups distinguished by their type. */
+  /**
+   * Handles creating instance of the class from plain object.
+   *
+   * @param components - component groups distinguished by their type.
+   */
   public static fromObject (components: ComponentsDataStructure): ComponentsDataWrapper {
-    const consensusNodes: Record<ServiceName, ConsensusNodeComponent> = {}
-    const haProxies: Record<ServiceName, HaProxyComponent> = {}
-    const envoyProxies: Record<ServiceName, EnvoyProxyComponent> = {}
-    const mirrorNodes: Record<ServiceName, MirrorNodeComponent> = {}
-    const mirrorNodeExplorers: Record<ServiceName, MirrorNodeExplorerComponent> = {}
     const relays: Record<ServiceName, RelayComponent> = {}
+    const haProxies: Record<ServiceName, HaProxyComponent> = {}
+    const mirrorNodes: Record<ServiceName, MirrorNodeComponent> = {}
+    const envoyProxies: Record<ServiceName, EnvoyProxyComponent> = {}
+    const consensusNodes: Record<ServiceName, ConsensusNodeComponent> = {}
+    const mirrorNodeExplorers: Record<ServiceName, MirrorNodeExplorerComponent> = {}
 
     Object.entries(components).forEach(([type, components]: [ComponentTypeEnum, Record<ServiceName, Component>]) => {
-      type Params = [ServiceName, Component]
-
       switch (type) {
-        case ComponentTypeEnum.ConsensusNode:
-
-          Object.entries(components).forEach(([serviceName, component]: [ServiceName, IConsensusNodeComponent]) => {
-            const { name, cluster, namespace, state } = component
-            consensusNodes[serviceName] = new ConsensusNodeComponent(name, cluster, namespace, state)
-          })
-
-          break
         case ComponentTypeEnum.Relay:
-
-          Object.entries(components).forEach(([serviceName, component]: [ServiceName, IRelayComponent]) => {
-            const { name, cluster, namespace, consensusNodeAliases } = component
-            relays[serviceName] = new RelayComponent(name, cluster, namespace, consensusNodeAliases)
+          Object.entries(components).forEach(([name, component]: [ServiceName, IRelayComponent]) => {
+            relays[name] = RelayComponent.fromObject(component)
           })
-
           break
+
         case ComponentTypeEnum.HaProxy:
-
-          Object.entries(components).forEach(([serviceName, component]: Params) => {
-            const { name, cluster, namespace } = component
-            haProxies[serviceName] = new HaProxyComponent(name, cluster, namespace)
+          Object.entries(components).forEach(([name, component]: [ServiceName, Component]) => {
+            haProxies[name] = HaProxyComponent.fromObject(component)
           })
-
           break
-        case ComponentTypeEnum.EnvoyProxy:
 
-          Object.entries(components).forEach(([serviceName, component]: Params) => {
-            const { name, cluster, namespace } = component
-            envoyProxies[serviceName] = new EnvoyProxyComponent(name, cluster, namespace)
-          })
-
-          break
         case ComponentTypeEnum.MirrorNode:
-
-          Object.entries(components).forEach(([serviceName, component]: Params) => {
-            const { name, cluster, namespace } = component
-            mirrorNodes[serviceName] = new MirrorNodeComponent(name, cluster, namespace)
+          Object.entries(components).forEach(([name, component]: [ServiceName, Component]) => {
+            mirrorNodes[name] = MirrorNodeComponent.fromObject(component)
           })
-
           break
+
+        case ComponentTypeEnum.EnvoyProxy:
+          Object.entries(components).forEach(([name, component]: [ServiceName, Component]) => {
+            envoyProxies[name] = EnvoyProxyComponent.fromObject(component)
+          })
+          break
+
+        case ComponentTypeEnum.ConsensusNode:
+          Object.entries(components).forEach(([name, component]: [ServiceName, IConsensusNodeComponent]) => {
+            consensusNodes[name] = ConsensusNodeComponent.fromObject(component)
+          })
+          break
+
         case ComponentTypeEnum.MirrorNodeExplorer:
-
-          Object.entries(components).forEach(([serviceName, component]: Params) => {
-            const { name, cluster, namespace } = component
-            mirrorNodeExplorers[serviceName] = new MirrorNodeExplorerComponent(name, cluster, namespace)
+          Object.entries(components).forEach(([name, component]: [ServiceName, Component]) => {
+            mirrorNodeExplorers[name] = MirrorNodeExplorerComponent.fromObject(component)
           })
-
           break
+
         default:
           throw new SoloError(`Unknown component type ${type}`)
       }
     })
 
     return new ComponentsDataWrapper(
-      consensusNodes,
+      relays,
       haProxies,
-      envoyProxies,
       mirrorNodes,
+      envoyProxies,
+      consensusNodes,
       mirrorNodeExplorers,
-      relays
-    )
+      )
   }
 
   /** Used to create an empty instance used to keep the constructor private */
@@ -240,10 +231,10 @@ export class ComponentsDataWrapper implements Validate, ToObject<ComponentsDataS
   }
 
   public validate (): void {
-    function testComponentsObject (components: Record<ServiceName, BaseComponent>, expectedInstance: any) {
-      Object.entries(components).forEach(([serviceName, component]: [ServiceName, BaseComponent]) => {
-        if (!serviceName || typeof serviceName !== 'string') {
-          throw new SoloError(`Invalid component service name ${{ [serviceName]: component }}`)
+    function testComponentsObject (components: Record<ServiceName, BaseComponent>, expectedInstance: any): void {
+      Object.entries(components).forEach(([name, component]: [ServiceName, BaseComponent]): void => {
+        if (!name || typeof name !== 'string') {
+          throw new SoloError(`Invalid component service name ${{ [name]: component }}`)
         }
 
         if (!(component instanceof expectedInstance)) {
@@ -252,32 +243,32 @@ export class ComponentsDataWrapper implements Validate, ToObject<ComponentsDataS
       })
     }
 
-    testComponentsObject(this.consensusNodes, ConsensusNodeComponent)
-    testComponentsObject(this.haProxies, HaProxyComponent)
-    testComponentsObject(this.envoyProxies, EnvoyProxyComponent)
-    testComponentsObject(this.mirrorNodes, MirrorNodeComponent)
-    testComponentsObject(this.mirrorNodeExplorers, MirrorNodeExplorerComponent)
     testComponentsObject(this.relays, RelayComponent)
+    testComponentsObject(this.haProxies, HaProxyComponent)
+    testComponentsObject(this.mirrorNodes, MirrorNodeComponent)
+    testComponentsObject(this.envoyProxies, EnvoyProxyComponent)
+    testComponentsObject(this.consensusNodes, ConsensusNodeComponent)
+    testComponentsObject(this.mirrorNodeExplorers, MirrorNodeExplorerComponent)
   }
 
   public toObject (): ComponentsDataStructure {
     function transform (components: Record<ServiceName, BaseComponent>): Record<ServiceName, Component> {
       const transformedComponents: Record<ServiceName, Component> = {}
 
-      Object.entries(components).forEach(([serviceName, component]: [ServiceName, BaseComponent]): void => {
-        transformedComponents[serviceName] = component.toObject() as Component
+      Object.entries(components).forEach(([name, component]: [ServiceName, BaseComponent]): void => {
+        transformedComponents[name] = component.toObject() as Component
       })
 
       return transformedComponents
     }
 
     return {
-      [ComponentTypeEnum.ConsensusNode]: transform(this.consensusNodes),
-      [ComponentTypeEnum.HaProxy]: transform(this.haProxies),
-      [ComponentTypeEnum.EnvoyProxy]: transform(this.envoyProxies),
-      [ComponentTypeEnum.MirrorNode]: transform(this.mirrorNodes),
-      [ComponentTypeEnum.MirrorNodeExplorer]: transform(this.mirrorNodeExplorers),
       [ComponentTypeEnum.Relay]: transform(this.relays),
+      [ComponentTypeEnum.HaProxy]: transform(this.haProxies),
+      [ComponentTypeEnum.MirrorNode]: transform(this.mirrorNodes),
+      [ComponentTypeEnum.EnvoyProxy]: transform(this.envoyProxies),
+      [ComponentTypeEnum.ConsensusNode]: transform(this.consensusNodes),
+      [ComponentTypeEnum.MirrorNodeExplorer]: transform(this.mirrorNodeExplorers),
     }
   }
 }
