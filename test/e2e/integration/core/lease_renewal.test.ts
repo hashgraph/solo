@@ -33,7 +33,7 @@ describe('LeaseRenewalService', async function () {
     const testLogger = logging.NewLogger('debug', true)
     const configManager = new ConfigManager(testLogger)
     const k8 = new K8(configManager, testLogger)
-    const testNamespace = 'lease-e2e'
+    const testNamespace = 'lease-renewal-e2e'
     const renewalService = new IntervalLeaseRenewalService()
 
     before(async function () {
