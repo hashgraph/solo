@@ -506,7 +506,7 @@ export class NetworkCommand extends BaseCommand {
       {
         title: 'Running sub-tasks to destroy network',
         task: async (ctx, task) => {
-          if (ctx.checkTimeout) {
+          if (ctx.config.enableTimeout) {
             const timeoutId = setTimeout(() => {
               const message = `\n\nUnable to finish network destroy in ${constants.NETWORK_DESTROY_WAIT_TIMEOUT} seconds\n\n`
               this.logger.error(message)
