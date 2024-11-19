@@ -77,7 +77,7 @@ tasks:
     cmds:
       - task: "helper:solo:node:stop"
       - task: "helper:solo:network:destroy"
-      - task: "helper:solo:destroy-mirror-node"
+      - task: "solo:destroy-mirror-node"
       - task: "helper:solo:destroy-relay"
       - task: "helper:cluster:destroy"
 

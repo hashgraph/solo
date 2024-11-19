@@ -35,6 +35,8 @@ tasks:
       - command -v solo
     cmds:
       - npm install -g @hashgraph/solo
+      - cd ../..
+      - npm link
 
   install:kubectl:darwin:
     internal: true
@@ -70,6 +72,7 @@ tasks:
       #- test "$(yq -r '.flags."node-ids"' < {{ .solo_user_dir }}/solo.yaml)" == "{{ .node_identifiers }}"
       - test "$(jq -r '.flags."node-ids"' < {{ .solo_user_dir }}/solo.config)" == "{{ .node_identifiers }}"
     cmds:
+      - npm run build
       - solo init
 
   solo:keys:
