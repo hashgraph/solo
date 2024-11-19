@@ -210,7 +210,7 @@ async function getNodeLog (pod: V1Pod, namespace: string, timeString: string, k8
   } catch (e: Error | any) {
     // not throw error here, so we can continue to finish downloading logs from other pods
     // and also delete namespace in the end
-    k8.logger.error(`failed to download logs from pod ${podName}`, e)
+    k8.logger.error(`${constants.NODE_LOG_FAILURE_MSG} ${podName}`, e)
   }
   k8.logger.debug(`getNodeLogs(${pod.metadata.name}): ...end`)
 }
