@@ -194,12 +194,21 @@ function start_sdk_test ()
 {
   echo "Create test account with solo network"
   cd solo
+
+  # create new account and extract account id
   npm run solo-test -- account create -n solo-e2e --hbar-amount 100 > test.log
+  export OPERATOR_ID=$(grep "accountId" test.log | awk '{print $2}' | sed 's/"//g'| sed 's/,//g')
+
+  # get private key of the account
+  npm run solo-test -- account get -n solo-e2e --account-id ${OPERATOR_ID} --private-key > test.log
+  export OPERATOR_KEY=$(grep "privateKey" test.log | awk '{print $2}' | sed 's/"//g'| sed 's/,//g')
+
   export HEDERA_NETWORK="local-node"
 
-  # read test.log and extract the line contains "privateKey" and "accountId" to get the OPERATOR_KEY and OPERATOR_ID
-  export OPERATOR_KEY=$(grep "privateKey" test.log | awk '{print $2}' | sed 's/"//g'| sed 's/,//g')
-  export OPERATOR_ID=$(grep "accountId" test.log | awk '{print $2}' | sed 's/"//g'| sed 's/,//g')
+  echo "OPERATOR_ID=${OPERATOR_ID}"
+  echo "OPERATOR_KEY=${OPERATOR_KEY}"
+  echo "HEDERA_NETWORK=${HEDERA_NETWORK}"
+
   rm test.log
 
   cd ../hedera-sdk-js
