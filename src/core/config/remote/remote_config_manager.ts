@@ -55,7 +55,7 @@ export class RemoteConfigManager {
     private readonly configManager: ConfigManager,
   ) {}
 
-  //! ---------- Readers and Modifiers ---------- //
+  /* ---------- Readers and Modifiers ---------- */
 
   /**
    * Modifies the loaded remote configuration data using a provided callback function.
@@ -110,6 +110,9 @@ export class RemoteConfigManager {
       throw new SoloError('Attempted to save remote config without data')
     }
 
+    console.log('------------ Modified ------------')
+    console.dir(this.remoteConfig.toObject(), { depth: null })
+
     await this.replaceConfigMap()
   }
 
@@ -127,7 +130,7 @@ export class RemoteConfigManager {
     return true
   }
 
-  //! ---------- Listr Task Builders ---------- //
+  /* ---------- Listr Task Builders ---------- */
 
   /**
    * Builds a task for loading the remote configuration, intended for use with Listr task management.
@@ -138,6 +141,12 @@ export class RemoteConfigManager {
    */
   public buildLoadTask (argv: { _: string[]}): ListrTask {
     const self = this
+
+    // TODO: Current quick fix for commands where namespace is not passed
+    if (this.localConfig.currentDeploymentName && !this.configManager.hasFlag(flags.namespace)) {
+      const namespace = this.localConfig.currentDeploymentName.replace(/^kind-/, '')
+      this.configManager.setFlag(flags.namespace, namespace)
+    }
 
     return {
       title: 'Load remote config',
@@ -186,7 +195,7 @@ export class RemoteConfigManager {
     }
   }
 
-  //! ---------- Utilities ---------- //
+  /* ---------- Utilities ---------- */
 
   /**
    * Retrieves the ConfigMap containing the remote configuration from the Kubernetes cluster.

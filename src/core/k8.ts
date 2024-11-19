@@ -1164,14 +1164,14 @@ export class K8 {
     return resp.response.statusCode === 200.0
   }
 
-  // --------------------------------------- ConfigMap --------------------------------------- //
+  /* ------------- ConfigMap ------------- */
 
   /**
    * @param name - name of the configmap
    * @returns the configmap if found
    * @throws SoloError - if the response if not found or the response is not OK
    */
-  async getNamespacedConfigMap (name: string) {
+  public async getNamespacedConfigMap (name: string): Promise<k8s.V1ConfigMap> {
     const { response, body }  = await this.kubeClient.readNamespacedConfigMap(name, this._getNamespace())
       .catch(e => e)
 
@@ -1185,7 +1185,7 @@ export class K8 {
    * @param labels - for the config metadata
    * @param data - to contain in the config
    */
-  async createNamespacedConfigMap (name: string, labels: Record<string, string>, data: Record<string, string>) {
+  public async createNamespacedConfigMap (name: string, labels: Record<string, string>, data: Record<string, string>): Promise<boolean> {
     const namespace = this._getNamespace()
 
     const configMap = new k8s.V1ConfigMap()
@@ -1210,7 +1210,7 @@ export class K8 {
    * @param labels - for the config metadata
    * @param data - to contain in the config
    */
-  async replaceNamespacedConfigMap (name: string, labels: Record<string, string>, data: Record<string, string>) {
+  public async replaceNamespacedConfigMap (name: string, labels: Record<string, string>, data: Record<string, string>): Promise<boolean> {
     const namespace = this._getNamespace()
 
     const configMap = new k8s.V1ConfigMap()
@@ -1230,8 +1230,8 @@ export class K8 {
     }
   }
 
-  // --------------------------------------- LEASES --------------------------------------- //
-  async createNamespacedLease (namespace: string, leaseName: string, holderName: string) {
+  /* ------------- Lease ------------- */
+  public async createNamespacedLease (namespace: string, leaseName: string, holderName: string): Promise<k8s.V1Lease> {
     const lease = new k8s.V1Lease()
 
     const metadata = new k8s.V1ObjectMeta()
@@ -1253,7 +1253,7 @@ export class K8 {
     return body as k8s.V1Lease
   }
 
-  async readNamespacedLease (leaseName: string, namespace: string) {
+  public async readNamespacedLease (leaseName: string, namespace: string): Promise<k8s.V1Lease> {
     const { response, body } = await this.coordinationApiClient.readNamespacedLease(leaseName, namespace)
       .catch(e => e)
 
@@ -1262,7 +1262,7 @@ export class K8 {
     return body as k8s.V1Lease
   }
 
-  async renewNamespaceLease (leaseName: string, namespace: string, lease: k8s.V1Lease) {
+  public async renewNamespaceLease (leaseName: string, namespace: string, lease: k8s.V1Lease): Promise<k8s.V1Lease> {
     lease.spec.renewTime = new k8s.V1MicroTime()
 
     const { response, body } = await this.coordinationApiClient.replaceNamespacedLease(leaseName, namespace, lease)
@@ -1273,7 +1273,7 @@ export class K8 {
     return body as k8s.V1Lease
   }
 
-  async deleteNamespacedLease (name: string, namespace: string) {
+  public async deleteNamespacedLease (name: string, namespace: string): Promise<k8s.V1Status> {
     const { response, body } = await this.coordinationApiClient.deleteNamespacedLease(name, namespace)
       .catch(e => e)
 
@@ -1282,6 +1282,8 @@ export class K8 {
     return body as k8s.V1Status
   }
 
+  /* ------------- Utilities ------------- */
+
   /**
    * @param response - response object from the kubeclient call
    * @param error - body of the response becomes the error if the status is not OK
@@ -1289,7 +1291,7 @@ export class K8 {
    *
    * @throws SoloError - if the status code is not OK
    */
-  private _handleKubernetesClientError (response: http.IncomingMessage, error: Error | any, errorMessage: string) {
+  private _handleKubernetesClientError (response: http.IncomingMessage, error: Error | any, errorMessage: string): void {
     const statusCode = +response.statusCode
 
     if (statusCode <= 202) return
@@ -1299,18 +1301,20 @@ export class K8 {
     throw new SoloError(errorMessage, errorMessage, { statusCode: statusCode })
   }
 
-  private _getNamespace () {
+  private _getNamespace (): string {
     const ns = this.configManager.getFlag<string>(flags.namespace)
-    if (!ns) throw new MissingArgumentError('namespace is not set')
+    if (!ns) {
+      throw new MissingArgumentError('namespace is not set')
+    }
     return ns
   }
 
-  private _tempFileFor (fileName: string) {
+  private _tempFileFor (fileName: string): string {
     const tmpFile = `${fileName}-${uuid4()}`
     return path.join(os.tmpdir(), tmpFile)
   }
 
-  private _deleteTempFile (tmpFile: string) {
+  private _deleteTempFile (tmpFile: string): void {
     if (fs.existsSync(tmpFile)) {
       fs.rmSync(tmpFile)
     }
