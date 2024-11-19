@@ -77,10 +77,10 @@ export function e2eNodeKeyRefreshTest (testName: string, mode: string, releaseTa
 
         it(`Node Proxy should be UP [mode ${mode}, release ${releaseTag}`, async () => {
           try {
-            await expect(k8.waitForPodReady(
+            expect(await k8.waitForPodReady(
                 ['app=haproxy-node1',
                   'solo.hedera.com/type=haproxy'],
-                1, 300, 1000)).to.eventually.be.ok
+                1, 300, 1000)).to.be.true
           } catch (e) {
             nodeCmd.logger.showUserError(e)
             expect.fail()
@@ -103,7 +103,7 @@ export function e2eNodeKeyRefreshTest (testName: string, mode: string, releaseTa
             expect(resp.response.statusCode).to.equal(200)
             await sleep(20 * SECONDS) // sleep to wait for pod to finish terminating
           } else if (mode === 'stop') {
-            await expect(nodeCmd.handlers.stop(argv)).to.eventually.be.ok
+            expect(await nodeCmd.handlers.stop(argv)).to.be.true
             await sleep(20 * SECONDS) // give time for node to stop and update its logs
           } else {
             throw new Error(`invalid mode: ${mode}`)
@@ -125,8 +125,8 @@ export function e2eNodeKeyRefreshTest (testName: string, mode: string, releaseTa
         it(`${nodeAlias} should be running`, async () => {
           try {
             // @ts-ignore to access tasks which is a private property
-            await expect(nodeCmd.tasks.checkNetworkNodePod(namespace,
-                nodeAlias)).to.eventually.be.ok
+            expect(await nodeCmd.tasks.checkNetworkNodePod(namespace,
+                nodeAlias)).to.be.true
           } catch (e) {
             nodeCmd.logger.showUserError(e)
             expect.fail()
@@ -139,7 +139,7 @@ export function e2eNodeKeyRefreshTest (testName: string, mode: string, releaseTa
       function nodeRefreshShouldSucceed (nodeAlias: NodeAlias, nodeCmd: NodeCommand, argv: Record<any, any>) {
         it(`${nodeAlias} refresh should succeed`, async () => {
           try {
-            await expect(nodeCmd.handlers.refresh(argv)).to.eventually.be.ok
+            expect(await nodeCmd.handlers.refresh(argv)).to.be.true
             expect(nodeCmd.getUnusedConfigs(
                 NodeCommandConfigs.REFRESH_CONFIGS_NAME)).to.deep.equal([
               flags.devMode.constName,

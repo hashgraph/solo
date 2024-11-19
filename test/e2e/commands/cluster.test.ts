@@ -82,7 +82,7 @@ describe('ClusterCommand', () => {
 
   it('should cleanup existing deployment', async () => {
     if (await chartManager.isChartInstalled(constants.SOLO_SETUP_NAMESPACE, constants.SOLO_CLUSTER_SETUP_CHART)) {
-      await expect(clusterCmd.reset(argv)).to.eventually.be.ok
+      expect(await clusterCmd.reset(argv)).to.be.true
     }
   }).timeout(MINUTES)
 
@@ -95,7 +95,7 @@ describe('ClusterCommand', () => {
   it('solo cluster setup should work with valid args', async () => {
     argv[flags.clusterSetupNamespace.name] = namespace
     configManager.update(argv)
-    await expect(clusterCmd.setup(argv)).to.eventually.be.ok
+    expect(await clusterCmd.setup(argv)).to.be.true
   }).timeout(MINUTES)
 
   it('function getClusterInfo should return true', () => {
@@ -127,6 +127,6 @@ describe('ClusterCommand', () => {
   it('solo cluster reset should work with valid args', async () => {
     argv[flags.clusterSetupNamespace.name] = namespace
     configManager.update(argv)
-    await expect(clusterCmd.reset(argv)).to.eventually.be.ok
+    expect(await clusterCmd.reset(argv)).to.be.true
   }).timeout(MINUTES)
 })

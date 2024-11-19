@@ -98,7 +98,7 @@ e2eTestSuite(namespace, argv, undefined, undefined, undefined, undefined, undefi
       }).timeout(defaultTimeout)
 
       it('should succeed with valid tag and pod', async () => {
-        await expect(installer.fetchPlatform(podName, packageVersion)).to.eventually.be.ok
+        expect(await installer.fetchPlatform(podName, packageVersion)).to.be.true
         const outputs = await k8.execContainer(podName, constants.ROOT_CONTAINER, `ls -la ${constants.HEDERA_HAPI_PATH}`)
         testLogger.showUser(outputs)
       }).timeout(MINUTES)

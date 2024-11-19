@@ -243,7 +243,7 @@ export function e2eTestSuite (
       }).timeout(2 * MINUTES)
 
       it('generate key files', async () => {
-        await expect(nodeCmd.handlers.keys(argv)).to.eventually.be.ok
+        expect(await nodeCmd.handlers.keys(argv)).to.be.true
         expect(nodeCmd.getUnusedConfigs(NodeCommandConfigs.KEYS_CONFIGS_NAME)).to.deep.equal([
           flags.devMode.constName,
           flags.quiet.constName
@@ -274,7 +274,7 @@ export function e2eTestSuite (
         it('should succeed with node setup command', async () => {
           // cache this, because `solo node setup.finalize()` will reset it to false
           try {
-            await expect(nodeCmd.handlers.setup(argv)).to.eventually.be.ok
+            expect(await nodeCmd.handlers.setup(argv)).to.be.true
             expect(nodeCmd.getUnusedConfigs(NodeCommandConfigs.SETUP_CONFIGS_NAME)).to.deep.equal([
               flags.devMode.constName
             ])
@@ -286,7 +286,7 @@ export function e2eTestSuite (
 
         it('should succeed with node start command', async () => {
           try {
-            await expect(nodeCmd.handlers.start(argv)).to.eventually.be.ok
+            expect(await nodeCmd.handlers.start(argv)).to.be.true
           } catch (e) {
             nodeCmd.logger.showUserError(e)
             expect.fail()

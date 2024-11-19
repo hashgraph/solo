@@ -45,10 +45,10 @@ describe('KeyManager', () => {
     expect(nodeKey.privateKey.algorithm).to.deep.equal(signingKey.privateKey.algorithm)
     expect(nodeKey.privateKey.type).to.deep.equal(signingKey.privateKey.type)
 
-    await expect(signingKey.certificate.verify({
+    expect(await signingKey.certificate.verify({
       publicKey: signingKey.certificate.publicKey,
       signatureOnly: true
-    })).to.eventually.be.ok
+    })).to.be.true
 
     fs.rmSync(tmpDir, { recursive: true })
   })
@@ -72,10 +72,10 @@ describe('KeyManager', () => {
     expect(nodeKey.privateKey.algorithm).to.deep.equal(tlsKey.privateKey.algorithm)
     expect(nodeKey.privateKey.type).to.deep.equal(tlsKey.privateKey.type)
 
-    await expect(tlsKey.certificate.verify({
+    expect(await tlsKey.certificate.verify({
       publicKey: tlsKey.certificate.publicKey,
       signatureOnly: true
-    })).to.eventually.be.ok
+    })).to.be.true
 
     fs.rmSync(tmpDir, { recursive: true })
   }).timeout(20 * SECONDS)

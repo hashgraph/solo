@@ -121,7 +121,7 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
       it('should create account with no options', async () => {
         try {
           argv[flags.amount.name] = 200
-          await expect(accountCmd.create(argv)).to.eventually.be.ok
+          expect(await accountCmd.create(argv)).to.be.true
 
           // @ts-ignore to access the private property
           const accountInfo = accountCmd.accountInfo
@@ -146,7 +146,7 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
           argv[flags.amount.name] = 777
           configManager.update(argv)
 
-          await expect(accountCmd.create(argv)).to.eventually.be.ok
+          expect(await accountCmd.create(argv)).to.be.true
 
           // @ts-ignore to access the private property
           const accountInfo = accountCmd.accountInfo
@@ -168,7 +168,7 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
           argv[flags.accountId.name] = accountId1
           configManager.update(argv)
 
-          await expect(accountCmd.update(argv)).to.eventually.be.ok
+          expect(await accountCmd.update(argv)).to.be.true
 
           // @ts-ignore to access the private property
           const accountInfo = accountCmd.accountInfo
@@ -190,7 +190,7 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
           argv[flags.amount.name] = 333
           configManager.update(argv)
 
-          await expect(accountCmd.update(argv)).to.eventually.be.ok
+          expect(await accountCmd.update(argv)).to.be.true
 
           // @ts-ignore to access the private property
           const accountInfo = accountCmd.accountInfo
@@ -210,7 +210,7 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
           argv[flags.accountId.name] = accountId1
           configManager.update(argv)
 
-          await expect(accountCmd.get(argv)).to.eventually.be.ok
+          expect(await accountCmd.get(argv)).to.be.true
           // @ts-ignore to access the private property
           const accountInfo = accountCmd.accountInfo
           expect(accountInfo).not.to.be.null
@@ -229,7 +229,7 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
           argv[flags.accountId.name] = accountId2
           configManager.update(argv)
 
-          await expect(accountCmd.get(argv)).to.eventually.be.ok
+          expect(await accountCmd.get(argv)).to.be.true
           // @ts-ignore to access the private property
           const accountInfo = accountCmd.accountInfo
           expect(accountInfo).not.to.be.null
@@ -251,7 +251,7 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
           argv[flags.setAlias.name] = true
           configManager.update(argv)
 
-          await expect(accountCmd.create(argv)).to.eventually.be.ok
+          expect(await accountCmd.create(argv)).to.be.true
 
           // @ts-ignore to access the private property
           const newAccountInfo = accountCmd.accountInfo

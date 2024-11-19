@@ -76,7 +76,7 @@ export function testNodeAdd (localBuildPath: string, testDescription = 'Node add
       }).timeout(defaultTimeout)
 
       it('should succeed with init command', async () => {
-        await expect(accountCmd.init(argv)).to.eventually.be.ok
+        expect(await accountCmd.init(argv)).to.be.true
       }).timeout(8 * MINUTES)
 
       it('should add a new node to the network successfully', async () => {

@@ -61,7 +61,7 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
 
       // test relay deploy
       try {
-        await expect(relayCmd.deploy(argv)).to.eventually.be.ok
+        expect(await relayCmd.deploy(argv)).to.be.true
       } catch (e) {
         relayCmd.logger.showUserError(e)
         expect.fail()
@@ -75,7 +75,7 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
 
       // test relay destroy
       try {
-        await expect(relayCmd.destroy(argv)).to.eventually.be.ok
+        expect(await relayCmd.destroy(argv)).to.be.true
       } catch (e) {
         relayCmd.logger.showUserError(e)
         expect.fail()
