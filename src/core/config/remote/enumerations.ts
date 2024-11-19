@@ -20,12 +20,12 @@
  * {@link ComponentsDataWrapper}
  */
 export enum ComponentTypeEnum {
-  ConsensusNode = 'CONSENSUS_NODE',
-  HaProxy = 'HAPROXY',
-  EnvoyProxy = 'ENVOY_PROXY',
-  MirrorNode = 'MIRROR_NODE',
-  MirrorNodeExplorer = 'MIRROR_NODE_EXPLORER',
-  Relay = 'RELAY',
+  ConsensusNode = 'consensus nodes',
+  HaProxy = 'ha proxies',
+  EnvoyProxy = 'envoy proxies',
+  MirrorNode = 'mirror nodes',
+  MirrorNodeExplorer = 'mirror node explorers',
+  Relay = 'replays',
 }
 
 /**

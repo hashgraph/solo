@@ -157,7 +157,7 @@ export class RelayCommand extends BaseCommand {
     return releaseName
   }
 
-  async deploy (argv: any) {
+  private async deploy (argv: any): Promise<boolean> {
     const self = this
     const lease = self.leaseManager.instantiateLease()
 
@@ -259,18 +259,15 @@ export class RelayCommand extends BaseCommand {
       },
       {
         title: 'Add relay to metadata',
-        task: async (ctx) => {
+        task: async (ctx): Promise<void> => {
           await self.remoteConfigManager.modify(async (remoteConfig) => {
             const { config: { namespace, nodeAliases } } = ctx
+            const cluster = this.remoteConfigManager.currentCluster
 
-            const component = new RelayComponent(
-              'Relay name',
-              'solo-cluster',
-              namespace,
-              nodeAliases
+            remoteConfig.components.add(
+              'relay',
+              new RelayComponent('relay', cluster, namespace, nodeAliases)
             )
-
-            remoteConfig.components.add('Relay name', component)
           })
         }
       }
@@ -290,7 +287,7 @@ export class RelayCommand extends BaseCommand {
     return true
   }
 
-  async destroy (argv: any) {
+  private async destroy (argv: any): Promise<boolean> {
     const self = this
     const lease = self.leaseManager.instantiateLease()
 
@@ -348,9 +345,9 @@ export class RelayCommand extends BaseCommand {
       },
       {
         title: 'Remove relay from metadata',
-        task: async () => {
+        task: async (): Promise<void> => {
           await self.remoteConfigManager.modify(async (remoteConfig) => {
-            remoteConfig.components.remove('Relay name', ComponentTypeEnum.Relay)
+            remoteConfig.components.remove('relay', ComponentTypeEnum.Relay)
           })
         }
       }
