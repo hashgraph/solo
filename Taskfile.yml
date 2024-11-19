@@ -60,8 +60,9 @@ tasks:
     cmds:
       - npm run build
       - solo mirror-node deploy --namespace "${SOLO_NAMESPACE}"
-      - echo "Enable port forwarding for Hedera Explorer"
+      - echo "Enable port forwarding for Hedera Explorer & Mirror Node Network"
       - kubectl port-forward -n "${SOLO_NAMESPACE}" svc/hedera-explorer 8080:80 &
+      - kubectl port-forward svc/mirror-grpc -n "${SOLO_NAMESPACE}" 5600:5600 &
       - task: "helper:sleep_after_port_forward"
 
   solo:destroy-mirror-node:
