@@ -57,8 +57,13 @@ export class LeaseManager {
   }
 
   private async currentNamespace (): Promise<string> {
-    const namespace = this.configManager.getFlag<string>(flags.namespace)
-    if (!namespace) return null
+    const deploymentNamespace = this.configManager.getFlag<string>(flags.namespace)
+    const clusterSetupNamespace = this.configManager.getFlag<string>(flags.clusterSetupNamespace)
+
+    if (!deploymentNamespace && !clusterSetupNamespace) {
+      return null
+    }
+    const namespace = deploymentNamespace ? deploymentNamespace : clusterSetupNamespace
 
     if (!await this.k8.hasNamespace(namespace)) {
       await this.k8.createNamespace(namespace)
