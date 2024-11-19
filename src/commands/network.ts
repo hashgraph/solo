@@ -496,6 +496,7 @@ export class NetworkCommand extends BaseCommand {
             deleteSecrets: self.configManager.getFlag<boolean>(flags.deleteSecrets) as boolean,
             namespace: self.configManager.getFlag<string>(flags.namespace) as string,
             enableTimeout: self.configManager.getFlag<boolean>(flags.enableTimeout) as boolean,
+            force: self.configManager.getFlag<boolean>(flags.force) as boolean,
           }
 
           this.logger.debug(`===== Loaded cached config === ${JSON.stringify(ctx.config)}`)
