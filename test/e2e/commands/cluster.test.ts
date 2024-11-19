@@ -72,14 +72,17 @@ describe('ClusterCommand', () => {
     } while (!await chartManager.isChartInstalled(constants.SOLO_SETUP_NAMESPACE, constants.SOLO_CLUSTER_SETUP_CHART))
   })
 
-  beforeEach(() => configManager.reset())
+  beforeEach(() => {
+    configManager.reset()
+    configManager.update(argv)
+  })
 
   // give a few ticks so that connections can close
   afterEach(async () => await sleep(5))
 
   it('should cleanup existing deployment', async () => {
     if (await chartManager.isChartInstalled(constants.SOLO_SETUP_NAMESPACE, constants.SOLO_CLUSTER_SETUP_CHART)) {
-      await expect(clusterCmd.reset(argv)).to.be.ok
+      await expect(clusterCmd.reset(argv)).to.eventually.be.ok
     }
   }).timeout(MINUTES)
 
