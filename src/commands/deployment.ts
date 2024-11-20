@@ -21,6 +21,7 @@ import * as flags from './flags.ts'
 import { constants, Templates } from '../core/index.ts'
 import * as prompts from './prompts.ts'
 import chalk from 'chalk'
+import { RemoteConfigTasks } from '../core/config/remote/remote_config_tasks.ts'
 import type { Namespace } from '../core/config/remote/types.ts'
 import type { CommandFlag, ContextClusterStructure } from '../types/index.ts'
 
@@ -88,8 +89,8 @@ export class DeploymentCommand extends BaseCommand {
           })
         }
       },
-      self.localConfig.promptLocalConfigTask(),
-      self.remoteConfigManager.buildCreateTask()
+      this.localConfig.promptLocalConfigTask(),
+      RemoteConfigTasks.createRemoteConfig.bind(this)(),
     ], {
       concurrent: false,
       rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION

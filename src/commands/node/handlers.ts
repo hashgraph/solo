@@ -91,7 +91,7 @@ export class NodeCommandHandlers {
   deletePrepareTaskList (argv: any, lease: LeaseWrapper) {
     return [
       this.tasks.initialize(argv, deleteConfigBuilder.bind(this), lease),
-      this.remoteConfigManager.buildLoadTask(argv),
+      RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
       this.tasks.identifyExistingNodes(),
       this.tasks.loadAdminKey(),
       this.tasks.prepareUpgradeZip(),
@@ -135,7 +135,7 @@ export class NodeCommandHandlers {
   addPrepareTasks (argv: any, lease: LeaseWrapper) {
     return [
       this.tasks.initialize(argv, addConfigBuilder.bind(this), lease),
-      this.remoteConfigManager.buildLoadTask(argv),
+      RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
       this.tasks.checkPVCsEnabled(),
       this.tasks.identifyExistingNodes(),
       this.tasks.determineNewNodeAccountNumber(),
@@ -187,7 +187,7 @@ export class NodeCommandHandlers {
   updatePrepareTasks (argv: any, lease: LeaseWrapper) {
     return [
       this.tasks.initialize(argv, updateConfigBuilder.bind(this), lease),
-      this.remoteConfigManager.buildLoadTask(argv),
+      RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
       this.tasks.identifyExistingNodes(),
       this.tasks.loadAdminKey(),
       this.tasks.prepareUpgradeZip(),
@@ -236,7 +236,7 @@ export class NodeCommandHandlers {
 
     const action = helpers.commandActionBuilder([
       this.tasks.initialize(argv, prepareUpgradeConfigBuilder.bind(this), lease),
-      this.remoteConfigManager.buildLoadTask(argv),
+      RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
       this.tasks.prepareUpgradeZip(),
       this.tasks.sendPrepareUpgradeTransaction()
     ], {
@@ -254,7 +254,7 @@ export class NodeCommandHandlers {
 
     const action = helpers.commandActionBuilder([
       this.tasks.initialize(argv, prepareUpgradeConfigBuilder.bind(this), null),
-      this.remoteConfigManager.buildLoadTask(argv),
+      RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
       this.tasks.prepareUpgradeZip(),
       this.tasks.sendFreezeUpgradeTransaction()
     ], {
@@ -273,7 +273,7 @@ export class NodeCommandHandlers {
 
     const action = helpers.commandActionBuilder([
       this.tasks.initialize(argv, downloadGeneratedFilesConfigBuilder.bind(this), lease),
-      this.remoteConfigManager.buildLoadTask(argv),
+      RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
       this.tasks.identifyExistingNodes(),
       this.tasks.downloadNodeGeneratedFiles()
     ], {
@@ -324,7 +324,7 @@ export class NodeCommandHandlers {
     argv = helpers.addFlagsToArgv(argv, NodeFlags.UPDATE_SUBMIT_TRANSACTIONS_FLAGS)
     const action = helpers.commandActionBuilder([
       this.tasks.initialize(argv, updateConfigBuilder.bind(this), lease),
-      this.remoteConfigManager.buildLoadTask(argv),
+      RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
       this.tasks.loadContextData(argv, NodeCommandHandlers.UPDATE_CONTEXT_FILE, helpers.updateLoadContextParser),
       this.tasks.loadAdminKey(),
         ...this.updateSubmitTransactionsTasks(argv)
@@ -342,7 +342,7 @@ export class NodeCommandHandlers {
     argv = helpers.addFlagsToArgv(argv, NodeFlags.UPDATE_EXECUTE_FLAGS)
       const action = helpers.commandActionBuilder([
         this.tasks.initialize(argv, updateConfigBuilder.bind(this), lease),
-        this.remoteConfigManager.buildLoadTask(argv),
+        RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
         this.tasks.loadContextData(argv, NodeCommandHandlers.UPDATE_CONTEXT_FILE, helpers.updateLoadContextParser),
         ...this.updateExecuteTasks(argv)
     ], {
@@ -465,7 +465,7 @@ export class NodeCommandHandlers {
 
     const action = helpers.commandActionBuilder([
       this.tasks.initialize(argv, addConfigBuilder.bind(this), lease),
-      this.remoteConfigManager.buildLoadTask(argv),
+      RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
       this.tasks.loadContextData(argv, NodeCommandHandlers.ADD_CONTEXT_FILE, helpers.addLoadContextParser),
       ...this.addSubmitTransactionsTasks(argv)
     ], {
@@ -484,7 +484,7 @@ export class NodeCommandHandlers {
 
     const action = helpers.commandActionBuilder([
       this.tasks.initialize(argv, addConfigBuilder.bind(this), lease),
-      this.remoteConfigManager.buildLoadTask(argv),
+      RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
       this.tasks.identifyExistingNodes(),
       this.tasks.loadContextData(argv, NodeCommandHandlers.ADD_CONTEXT_FILE, helpers.addLoadContextParser),
       ...this.addExecuteTasks(argv)
@@ -501,7 +501,7 @@ export class NodeCommandHandlers {
     argv = helpers.addFlagsToArgv(argv, NodeFlags.LOGS_FLAGS)
     const action = helpers.commandActionBuilder([
       this.tasks.initialize(argv, logsConfigBuilder.bind(this), null),
-      this.remoteConfigManager.buildLoadTask(argv),
+      RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
       this.tasks.getNodeLogsAndConfigs()
     ], {
       concurrent: false,
@@ -519,7 +519,7 @@ export class NodeCommandHandlers {
 
     const action = helpers.commandActionBuilder([
       this.tasks.initialize(argv, refreshConfigBuilder.bind(this), lease),
-      this.remoteConfigManager.buildLoadTask(argv),
+      RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
       this.tasks.identifyNetworkPods(),
       this.tasks.dumpNetworkNodesSaveState(),
       this.tasks.fetchPlatformSoftware('nodeAliases'),
@@ -543,7 +543,7 @@ export class NodeCommandHandlers {
 
     const action = helpers.commandActionBuilder([
       this.tasks.initialize(argv, keysConfigBuilder.bind(this), lease),
-      this.remoteConfigManager.buildLoadTask(argv),
+      RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
       this.tasks.generateGossipKeys(),
       this.tasks.generateGrpcTlsKeys(),
       this.tasks.finalize()
@@ -563,7 +563,7 @@ export class NodeCommandHandlers {
 
     const action = helpers.commandActionBuilder([
       this.tasks.initialize(argv, stopConfigBuilder.bind(this), lease),
-      this.remoteConfigManager.buildLoadTask(argv),
+      RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
       this.tasks.identifyNetworkPods(),
       this.tasks.stopNodes(),
       RemoteConfigTasks.changeAllNodeStates.bind(this)(ConsensusNodeStates.SETUP),
@@ -584,7 +584,7 @@ export class NodeCommandHandlers {
 
     const action = helpers.commandActionBuilder([
       this.tasks.initialize(argv, startConfigBuilder.bind(this), lease),
-      this.remoteConfigManager.buildLoadTask(argv),
+      RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
       this.tasks.identifyExistingNodes(),
       this.tasks.startNodes('nodeAliases'),
       this.tasks.enablePortForwarding(),
@@ -608,7 +608,7 @@ export class NodeCommandHandlers {
 
     const action = helpers.commandActionBuilder([
       this.tasks.initialize(argv, setupConfigBuilder.bind(this), lease),
-      this.remoteConfigManager.buildLoadTask(argv),
+      RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
       this.tasks.identifyNetworkPods(),
       this.tasks.fetchPlatformSoftware('nodeAliases'),
       this.tasks.setupNetworkNodes('nodeAliases'),

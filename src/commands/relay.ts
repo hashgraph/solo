@@ -209,7 +209,7 @@
             return lease.buildAcquireTask(task)
           }
         },
-        this.remoteConfigManager.buildLoadTask(argv),
+        RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
         {
           title: 'Prepare chart values',
           task: async (ctx) => {
@@ -315,7 +315,7 @@
             return lease.buildAcquireTask(task)
           }
         },
-        this.remoteConfigManager.buildLoadTask(argv),
+        RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
         {
           title: 'Destroy JSON RPC Relay',
           task: async (ctx) => {

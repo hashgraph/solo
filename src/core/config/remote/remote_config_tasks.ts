@@ -15,11 +15,7 @@
  *
  */
 import {
-  ConsensusNodeComponent,
-  EnvoyProxyComponent,
-  HaProxyComponent,
-  MirrorNodeComponent,
-  RelayComponent
+  ConsensusNodeComponent, EnvoyProxyComponent, HaProxyComponent, MirrorNodeComponent, RelayComponent
 } from './components/index.ts'
 import { ComponentTypeEnum, ConsensusNodeStates } from './enumerations.ts'
 
@@ -29,11 +25,26 @@ import type { MirrorNodeCommand } from '../../../commands/mirror_node.ts'
 import type { NetworkCommand } from '../../../commands/network.ts'
 import type { NodeAliases } from '../../../types/aliases.ts'
 import type { NodeCommandHandlers } from '../../../commands/node/handlers.ts'
+import type { BaseCommand } from '../../../commands/base.ts'
+import type { DeploymentCommand } from '../../../commands/deployment.ts'
 
 /**
  * Static class that handles all tasks used by other commands
  */
 export class RemoteConfigTasks {
+
+  /* ----------- Create and Load ----------- */
+
+  public static loadRemoteConfig (this: BaseCommand, argv: any): ListrTask<any, any, any> {
+    return this.remoteConfigManager.buildLoadTask(argv)
+  }
+
+  public static createRemoteConfig (this: DeploymentCommand): ListrTask<any, any, any> {
+    return this.remoteConfigManager.buildCreateTask()
+  }
+
+  /* ----------- Component Modifying ----------- */
+
   public static addRelayComponent (this: RelayCommand): ListrTask<any, any, any> {
     return {
       title: 'Add relay component in remote config',

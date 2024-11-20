@@ -245,7 +245,7 @@ export class NetworkCommand extends BaseCommand {
           return lease.buildAcquireTask(task)
         }
       },
-      this.remoteConfigManager.buildLoadTask(argv),
+      RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
       {
         title: 'Copy gRPC TLS Certificates',
         task: (ctx, parentTask) =>
