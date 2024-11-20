@@ -44,7 +44,7 @@ export class ContextCommandTasks {
 
       if (isQuiet) {
         const currentCluster = (await this.parent.getK8().getKubeConfig().getCurrentCluster()).name
-        if (!clusterAliases) clusterAliases = [currentCluster]
+        if (!clusterAliases.length) clusterAliases = [currentCluster]
         if (!contextName) contextName = await this.parent.getK8().getKubeConfig().getCurrentContext()
 
         // TODO properly get the active namespace

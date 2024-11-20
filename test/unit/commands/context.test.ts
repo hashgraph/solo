@@ -39,7 +39,7 @@ import {stringify} from "yaml";
 import {Cluster, KubeConfig} from "@kubernetes/client-node";
 
 
-describe.only('ContextCommandTasks unit tests', () => {
+describe('ContextCommandTasks unit tests', () => {
     const filePath = `${getTestCacheDir('ContextCommandTasks')}/localConfig.yaml`
 
     const getBaseCommandOpts = () => {
@@ -135,6 +135,19 @@ describe.only('ContextCommandTasks unit tests', () => {
             expect(command.getK8().getKubeConfig().setCurrentContext).to.have.been.calledWith('context-2')
         });
 
+        it('should prompt for all flags if none are provided', async () => {
+            const argv = {};
+            await runUpdateLocalConfigTask(argv)
+            localConfig = new LocalConfig(filePath, loggerStub);
+
+            expect(localConfig.currentDeploymentName).to.equal('deployment-3');
+            expect(localConfig.getCurrentDeployment().clusterAliases).to.deep.equal(['cluster-3']);
+            expect(command.getK8().getKubeConfig().setCurrentContext).to.have.been.calledWith('context-3')
+            expect(promptMap.get(flags.namespace.name)).to.have.been.calledOnce
+            expect(promptMap.get(flags.clusterName.name)).to.have.been.calledOnce
+            expect(promptMap.get(flags.context.name)).to.have.been.calledOnce
+        });
+
         it('should prompt for namespace if no value is provided', async () => {
             const argv = {
                 [flags.clusterName.name]: 'cluster-2',
@@ -186,7 +199,7 @@ describe.only('ContextCommandTasks unit tests', () => {
             expect(promptMap.get(flags.context.name)).to.have.been.calledOnce
         });
 
-        it.only('should use context from clusterMappings if no value is provided and quiet=true', async () => {
+        it('should use context from clusterMappings if no value is provided and quiet=true', async () => {
             const argv = {
                 [flags.namespace.name]: 'deployment-2',
                 [flags.clusterName.name]: 'cluster-2',
@@ -222,9 +235,10 @@ describe.only('ContextCommandTasks unit tests', () => {
             expect(promptMap.get(flags.context.name)).to.not.have.been.called
         });
 
-        it('should use namespace from kubectl if no value is provided and quiet=true', async () => {
+        // TODO enable when namespace is retrieved from kubectl
+        xit('should use namespace from kubectl if no value is provided and quiet=true', async () => {
             const argv = {
-                [flags.namespace.name]: 'deployment-2',
+                [flags.clusterName.name]: 'cluster-2',
                 [flags.context.name]: 'context-2',
                 [flags.quiet.name]: 'true',
             };
@@ -251,6 +265,13 @@ describe.only('ContextCommandTasks unit tests', () => {
             await runUpdateLocalConfigTask(argv)
             localConfig = new LocalConfig(filePath, loggerStub);
 
+            expect(localConfig.currentDeploymentName).to.equal('deployment-2');
+            expect(localConfig.getCurrentDeployment().clusterAliases).to.deep.equal(['cluster-2']);
+            expect(localConfig.clusterMappings['cluster-2']).to.equal('provided-context');
+            expect(command.getK8().getKubeConfig().setCurrentContext).to.have.been.calledWith('provided-context')
+            expect(promptMap.get(flags.namespace.name)).to.not.have.been.called
+            expect(promptMap.get(flags.clusterName.name)).to.not.have.been.called
+            expect(promptMap.get(flags.context.name)).to.not.have.been.called
         });
     });
 })
