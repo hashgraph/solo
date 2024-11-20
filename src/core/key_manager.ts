@@ -425,14 +425,12 @@ export class KeyManager {
    *
    * WARNING: These tasks MUST run in sequence.
    *
-   * @param nodeAliases
+   * @param nodeAliases - node aliases
    * @param keysDir - keys directory
    * @param curDate - current date
-   * @param [allNodeAliases] - includes the nodeAliases to get new keys as well as existing nodeAliases that will be included in the public.pfx file
-   * @return a list of subtasks
+   * @returns a list of subtasks
    */
-  taskGenerateGossipKeys (nodeAliases: NodeAliases, keysDir: string, curDate = new Date(), allNodeAliases: NodeAliases | null = null){
-    allNodeAliases = allNodeAliases || nodeAliases // TODO: unused variable
+  taskGenerateGossipKeys (nodeAliases: NodeAliases, keysDir: string, curDate = new Date()){
     if (!Array.isArray(nodeAliases) || !nodeAliases.every((nodeAlias) => typeof nodeAlias === 'string')) {
       throw new IllegalArgumentError('nodeAliases must be an array of strings, nodeAliases = ' + JSON.stringify(nodeAliases))
     }

@@ -39,12 +39,12 @@ export function createComponentsDataWrapper () {
   const state = ConsensusNodeStates.STARTED
   const consensusNodeAliases = ['node1', 'node2'] as NodeAliases
 
-  const consensusNodes = { [serviceName]: new ConsensusNodeComponent(name, cluster, namespace, state) }
-  const haProxies = { [serviceName]: new HaProxyComponent(name, cluster, namespace) }
-  const envoyProxies = { [serviceName]: new EnvoyProxyComponent(name, cluster, namespace) }
-  const mirrorNodes = { [serviceName]: new MirrorNodeComponent(name, cluster, namespace) }
-  const mirrorNodeExplorers = { [serviceName]: new MirrorNodeExplorerComponent(name, cluster, namespace) }
   const relays = { [serviceName]: new RelayComponent(name, cluster, namespace, consensusNodeAliases) }
+  const haProxies = { [serviceName]: new HaProxyComponent(name, cluster, namespace) }
+  const mirrorNodes = { [serviceName]: new MirrorNodeComponent(name, cluster, namespace) }
+  const envoyProxies = { [serviceName]: new EnvoyProxyComponent(name, cluster, namespace) }
+  const consensusNodes = { [serviceName]: new ConsensusNodeComponent(name, cluster, namespace, state) }
+  const mirrorNodeExplorers = { [serviceName]: new MirrorNodeExplorerComponent(name, cluster, namespace) }
 
   // @ts-ignore
   const componentsDataWrapper = new ComponentsDataWrapper(
@@ -57,12 +57,12 @@ export function createComponentsDataWrapper () {
   )
   /*
   ? The class after calling the toObject() method
-  * CONSENSUS_NODE: { serviceName: { state: 'STARTED', name: 'name', cluster: 'cluster', namespace: 'namespace'} },
+  * RELAY: { serviceName: { name: 'name', cluster: 'cluster', namespace: 'namespace' consensusNodeAliases: ['node1', 'node2'] } },
   * HAPROXY: { serviceName: { name: 'name', cluster: 'cluster', namespace: 'namespace' } },
-  * ENVOY_PROXY: { serviceName: { name: 'name', cluster: 'cluster', namespace: 'namespace' } },
   * MIRROR_NODE: { serviceName: { name: 'name', cluster: 'cluster', namespace: 'namespace' } },
+  * ENVOY_PROXY: { serviceName: { name: 'name', cluster: 'cluster', namespace: 'namespace' } },
+  * CONSENSUS_NODE: { serviceName: { state: 'started', name: 'name', cluster: 'cluster', namespace: 'namespace'} },
   * MIRROR_NODE_EXPLORER: { serviceName: { name: 'name', cluster: 'cluster', namespace: 'namespace' } },
-  * RELAY: { serviceName: { name: 'name', cluster: 'cluster', namespace: 'namespace' consensusNodeAliases: ['node1', 'node2'] } }
   */
   return {
     values: { name, cluster, namespace, state, consensusNodeAliases },

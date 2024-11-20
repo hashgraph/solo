@@ -40,10 +40,6 @@ export interface IMigration {
   fromVersion: Version
 }
 
-// TODO Keep the state of components
-// make enums for individual component states
-// use them to track component states in the cluster
-
 export interface Component {
   name: ComponentName
   cluster: Cluster
