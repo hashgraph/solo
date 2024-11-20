@@ -26,15 +26,10 @@ import * as helpers from '../core/helpers.ts'
 import path from 'path'
 import { addDebugOptions, validatePath } from '../core/helpers.ts'
 import fs from 'fs'
+import { RemoteConfigTasks } from '../core/config/remote/remote_config_tasks.ts'
 import type { CertificateManager, KeyManager, PlatformInstaller, ProfileManager } from '../core/index.ts'
 import type { NodeAlias, NodeAliases } from '../types/aliases.ts'
 import type { Opts } from '../types/index.ts'
-import {
-  ConsensusNodeComponent,
-  EnvoyProxyComponent,
-  HaProxyComponent
-} from '../core/config/remote/components/index.ts'
-import { ConsensusNodeStates } from '../core/config/remote/enumerations.ts'
 
 export interface NetworkDeployConfigClass {
   applicationEnv: string
@@ -416,35 +411,7 @@ export class NetworkCommand extends BaseCommand {
           })
         }
       },
-      {
-        title: 'Add components to remote config',
-        task: async (ctx, task): Promise<void> => {
-          const { config: { namespace, nodeAliases } } = ctx
-          const cluster = this.remoteConfigManager.currentCluster
-
-          await this.remoteConfigManager.modify(async (remoteConfig) => {
-            for (const nodeAlias of nodeAliases) {
-              //* Network Node pods
-              remoteConfig.components.add(
-                nodeAlias,
-                new ConsensusNodeComponent(nodeAlias, cluster, namespace, ConsensusNodeStates.INITIALIZED)
-              )
-
-              //* Envoy Proxy pods
-              remoteConfig.components.add(
-                `envoy-${nodeAlias}`,
-                new EnvoyProxyComponent(`envoy-${nodeAlias}`, cluster, namespace)
-              )
-
-              //* HAProxy pods
-              remoteConfig.components.add(
-                `haproxy-${nodeAlias}`,
-                new HaProxyComponent(`haproxy-${nodeAlias}`, cluster, namespace)
-              )
-            }
-          })
-        }
-      }
+      RemoteConfigTasks.addNodesAndProxies.bind(this)()
     ], {
       concurrent: false,
       rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION

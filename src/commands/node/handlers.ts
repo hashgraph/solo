@@ -28,6 +28,7 @@ import {
 } from '../../core/index.ts'
 import { IllegalArgumentError } from '../../core/errors.ts'
 import { ConsensusNodeStates } from '../../core/config/remote/enumerations.ts'
+import { RemoteConfigTasks } from '../../core/config/remote/remote_config_tasks.ts'
 import type { SoloLogger } from '../../core/logging.ts'
 import type { NodeCommand } from './index.ts'
 import type { NodeCommandTasks } from './tasks.ts'
@@ -41,7 +42,7 @@ export class NodeCommandHandlers {
   private readonly logger: SoloLogger
   private readonly tasks: NodeCommandTasks
   private readonly leaseManager: LeaseManager
-  private readonly remoteConfigManager: RemoteConfigManager
+  public readonly remoteConfigManager: RemoteConfigManager
 
   getConfig: any
   prepareChartPath: any
@@ -555,7 +556,7 @@ export class NodeCommandHandlers {
     return true
   }
 
-  public async stop (argv: any): Promise<boolean> {
+  async stop (argv: any): Promise<boolean> {
     argv = helpers.addFlagsToArgv(argv, NodeFlags.STOP_FLAGS)
 
     const lease = this.leaseManager.instantiateLease()
@@ -565,7 +566,7 @@ export class NodeCommandHandlers {
       this.remoteConfigManager.buildLoadTask(argv),
       this.tasks.identifyNetworkPods(),
       this.tasks.stopNodes(),
-      this.tasks.changeAllNodeStatesInRemoteConfig(ConsensusNodeStates.SETUP),
+      RemoteConfigTasks.changeAllNodeStates.bind(this)(ConsensusNodeStates.SETUP),
 
     ], {
       concurrent: false,
@@ -576,7 +577,7 @@ export class NodeCommandHandlers {
     return true
   }
 
-  public async start (argv: any): Promise<boolean> {
+  async start (argv: any): Promise<boolean> {
     argv = helpers.addFlagsToArgv(argv, NodeFlags.START_FLAGS)
 
     const lease = this.leaseManager.instantiateLease()
@@ -589,7 +590,7 @@ export class NodeCommandHandlers {
       this.tasks.enablePortForwarding(),
       this.tasks.checkAllNodesAreActive('nodeAliases'),
       this.tasks.checkNodeProxiesAreActive(),
-      this.tasks.changeAllNodeStatesInRemoteConfig(ConsensusNodeStates.STARTED),
+      RemoteConfigTasks.changeAllNodeStates.bind(this)(ConsensusNodeStates.STARTED),
       this.tasks.addNodeStakes()
     ], {
       concurrent: false,
@@ -600,7 +601,7 @@ export class NodeCommandHandlers {
     return true
   }
 
-  public async setup (argv: any): Promise<boolean> {
+  async setup (argv: any): Promise<boolean> {
     argv = helpers.addFlagsToArgv(argv, NodeFlags.SETUP_FLAGS)
 
     const lease = this.leaseManager.instantiateLease()
@@ -611,7 +612,7 @@ export class NodeCommandHandlers {
       this.tasks.identifyNetworkPods(),
       this.tasks.fetchPlatformSoftware('nodeAliases'),
       this.tasks.setupNetworkNodes('nodeAliases'),
-      this.tasks.changeAllNodeStatesInRemoteConfig(ConsensusNodeStates.SETUP)
+      RemoteConfigTasks.changeAllNodeStates.bind(this)(ConsensusNodeStates.SETUP)
     ], {
       concurrent: false,
       rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION

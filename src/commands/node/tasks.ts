@@ -24,7 +24,6 @@ import {
   type KeyManager,
   type PlatformInstaller,
   type ProfileManager,
-  type RemoteConfigManager,
   Task,
   Templates,
   Zippy
@@ -80,12 +79,6 @@ import type {
   NodeUpdateConfigClass
 } from './configs.ts'
 import type { LeaseWrapper } from '../../core/lease_wrapper.ts'
-import { ComponentTypeEnum, ConsensusNodeStates } from '../../core/config/remote/enumerations.ts'
-import {
-  ConsensusNodeComponent,
-  EnvoyProxyComponent,
-  HaProxyComponent
-} from '../../core/config/remote/components/index.ts'
 
 export class NodeCommandTasks {
   private readonly accountManager: AccountManager
@@ -98,7 +91,6 @@ export class NodeCommandTasks {
   private readonly parent: NodeCommand
   private readonly chartManager: ChartManager
   private readonly certificateManager: CertificateManager
-  private readonly remoteConfigManager: RemoteConfigManager
 
   private readonly prepareValuesFiles: any
 
@@ -106,8 +98,7 @@ export class NodeCommandTasks {
     opts: {
       logger: SoloLogger; accountManager: AccountManager; configManager: ConfigManager,
       k8: K8, platformInstaller: PlatformInstaller, keyManager: KeyManager, profileManager: ProfileManager,
-      chartManager: ChartManager, certificateManager: CertificateManager, remoteConfigManager: RemoteConfigManager,
-      parent: NodeCommand
+      chartManager: ChartManager, certificateManager: CertificateManager, parent: NodeCommand
     }
   ) {
     if (!opts || !opts.accountManager) throw new IllegalArgumentError('An instance of core/AccountManager is required', opts.accountManager as any)
@@ -129,7 +120,6 @@ export class NodeCommandTasks {
     this.keyManager = opts.keyManager
     this.chartManager = opts.chartManager
     this.certificateManager = opts.certificateManager
-    this.remoteConfigManager = opts.remoteConfigManager
     this.prepareValuesFiles = opts.parent.prepareValuesFiles.bind(opts.parent)
   }
 
@@ -1395,37 +1385,5 @@ export class NodeCommandTasks {
 
       if (lease) return lease.buildAcquireTask(task)
     })
-  }
-
-  //* ------------------------------ Remote Config ------------------------------ *//
-
-  public removeComponentsFromRemoteConfig (): Task {
-    return new Task('Remove node related components from metadata',
-      async () => {
-        await this.remoteConfigManager.modify(async (remoteConfig) => {
-          remoteConfig.components.remove('Consensus node name', ComponentTypeEnum.ConsensusNode)
-          remoteConfig.components.remove('Envoy proxy name', ComponentTypeEnum.EnvoyProxy)
-          remoteConfig.components.remove('HaProxy name', ComponentTypeEnum.HaProxy)
-        })
-      }
-    )
-  }
-
-  public changeAllNodeStatesInRemoteConfig (state: ConsensusNodeStates): Task {
-    return new Task('Setup node related components from metadata',
-      async (ctx: { config: { namespace: string, nodeAliases: NodeAliases } }): Promise<void> => {
-        await this.remoteConfigManager.modify(async (remoteConfig) => {
-          const { config: { namespace, nodeAliases } } = ctx
-          const cluster = this.remoteConfigManager.currentCluster
-
-          for (const nodeAlias of nodeAliases) {
-            remoteConfig.components.edit(
-              nodeAlias,
-              new ConsensusNodeComponent(nodeAlias, cluster, namespace, state)
-            )
-          }
-        })
-      }
-    )
   }
 }

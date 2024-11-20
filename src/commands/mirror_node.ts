@@ -22,8 +22,7 @@ import { BaseCommand } from './base.ts'
 import * as flags from './flags.ts'
 import * as prompts from './prompts.ts'
 import { getFileContents, getEnvValue } from '../core/helpers.ts'
-import { MirrorNodeComponent } from '../core/config/remote/components/index.ts'
-import { ComponentTypeEnum } from '../core/config/remote/enumerations.ts'
+import { RemoteConfigTasks } from '../core/config/remote/remote_config_tasks.ts'
 import type { PodName } from '../types/aliases.ts'
 import type { Opts } from '../types/index.ts'
 
@@ -286,25 +285,6 @@ export class MirrorNodeCommand extends BaseCommand {
         }
       },
       {
-        title: 'Add mirror node and mirror node explorer to remote config',
-        task: async (ctx): Promise<void> => {
-          await self.remoteConfigManager.modify(async (remoteConfig) => {
-            const { config: { namespace } } = ctx
-            const cluster = this.remoteConfigManager.currentCluster
-
-            remoteConfig.components.add(
-              'mirrorNode',
-              new MirrorNodeComponent('mirrorNode', cluster, namespace)
-            )
-
-            remoteConfig.components.add(
-              'mirrorNodeExplorer',
-              new MirrorNodeComponent('mirrorNodeExplorer', cluster, namespace)
-            )
-          })
-        }
-      },
-      {
         title: 'Seed DB data',
         task: (_, parentTask) => {
           return parentTask.newListr([
@@ -351,7 +331,8 @@ export class MirrorNodeCommand extends BaseCommand {
             rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
           })
         }
-      }
+      },
+      RemoteConfigTasks.addMirrorNodeAndMirrorNodeToExplorer.bind(this)()
     ], {
       concurrent: false,
       rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
@@ -428,22 +409,6 @@ export class MirrorNodeCommand extends BaseCommand {
         skip: (ctx) => !ctx.config.isChartInstalled
       },
       {
-        title: 'Remove mirror node from metadata',
-        task: async () => {
-          await self.remoteConfigManager.modify(async (remoteConfig) => {
-            remoteConfig.components.remove('Mirror node name', ComponentTypeEnum.MirrorNode)
-          })
-        }
-      },
-      {
-        title: 'Remove mirror explorer node from metadata',
-        task: async () => {
-          await self.remoteConfigManager.modify(async (remoteConfig) => {
-            remoteConfig.components.remove('Mirror node explorer name', ComponentTypeEnum.MirrorNode)
-          })
-        }
-      },
-      {
         title: 'Delete PVCs',
         task: async (ctx) => {
           const pvcs = await self.k8.listPvcsByNamespace(ctx.config.namespace, [
@@ -460,6 +425,7 @@ export class MirrorNodeCommand extends BaseCommand {
         },
         skip: (ctx) => !ctx.config.isChartInstalled
       },
+      RemoteConfigTasks.removeMirrorNodeAndMirrorNodeToExplorer.bind(this)(),
     ], {
       concurrent: false,
       rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
