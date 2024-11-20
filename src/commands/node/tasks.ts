@@ -519,7 +519,7 @@ export class NodeCommandTasks {
       const { nodeClient, freezeAdminPrivateKey } = ctx.config
       try {
         // transfer some tiny amount to the freeze admin account
-        await this.accountManager.transferAmount(constants.TREASURY_ACCOUNT_ID, FREEZE_ADMIN_ACCOUNT, 100000)
+        // await this.accountManager.transferAmount(constants.TREASURY_ACCOUNT_ID, FREEZE_ADMIN_ACCOUNT, 100000)
 
         // query the balance
         const balance = await new AccountBalanceQuery()
