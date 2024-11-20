@@ -54,11 +54,9 @@ export class DeploymentCommand extends BaseCommand {
 
           const namespace = ctx.config.namespace
 
-          if (await self.k8.hasNamespace(namespace)) {
-            throw new SoloError(`Namespace already exists: ${namespace}` )
+          if (!await self.k8.hasNamespace(namespace)) {
+            await self.k8.createNamespace(namespace)
           }
-
-          await self.k8.createNamespace(namespace)
 
           self.logger.debug('Prepared config', { config: ctx.config, cachedConfig: self.configManager.config })
 

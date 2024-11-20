@@ -148,15 +148,11 @@ export class RemoteConfigManager {
   public buildLoadTask (argv: { _: string[]}): ListrTask {
     const self = this
 
-    // TODO: Current quick fix for commands where namespace is not passed
-    if (this.localConfig.currentDeploymentName && !this.configManager.hasFlag(flags.namespace)) {
-      const namespace = this.localConfig.currentDeploymentName.replace(/^kind-/, '')
-      this.configManager.setFlag(flags.namespace, namespace)
-    }
-
     return {
       title: 'Load remote config',
       task: async (_, task): Promise<void> => {
+        self.setDefaultNamespace()
+
         if (!await self.load()) {
           task.title = `${task.title} - ${chalk.red('remote config not found')}`
 
@@ -241,6 +237,21 @@ export class RemoteConfigManager {
     )
   }
 
+  private setDefaultNamespace (): void {
+
+    if (this.configManager.hasFlag(flags.namespace)) return
+
+    if (!this.localConfig?.currentDeploymentName) {
+      this.logger.error('Current deployment name is not set in local config', this.localConfig)
+      throw new SoloError('Current deployment name is not set in local config')
+    }
+
+    // TODO: Current quick fix for commands where namespace is not passed
+    const namespace = this.localConfig.currentDeploymentName.replace(/^kind-/, '')
+
+    this.configManager.setFlag(flags.namespace, namespace)
+  }
+
   /**
    * Retrieves the namespace value from the configuration manager's flags.
    * @returns string - The namespace value if set.
@@ -249,5 +260,10 @@ export class RemoteConfigManager {
     const ns = this.configManager.getFlag<string>(flags.namespace) as string
     if (!ns) throw new MissingArgumentError('namespace is not set')
     return ns
+  }
+
+  /* ---------- Validation ---------- */
+  private async validate (): Promise<void> {
+
   }
 }
