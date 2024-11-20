@@ -115,7 +115,8 @@ export function main (argv: any) {
     }
 
     return yargs(hideBin(argv))
-    .usage('Usage:\n  $0 <command> [options]')
+    .scriptName('')
+    .usage('Usage:\n  solo <command> [options]')
     .alias('h', 'help')
     .alias('v', 'version')
     // @ts-ignore
