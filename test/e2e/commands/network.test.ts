@@ -129,7 +129,8 @@ describe('NetworkCommand', () => {
     configManager.update(argv)
 
     try {
-      expect(await networkCmd.destroy(argv)).to.be.true
+      const destroyResult = await networkCmd.destroy(argv)
+      expect(destroyResult).to.be.true
 
       while ((await k8.getPodsByLabel(['solo.hedera.com/type=network-node'])).length > 0) {
         networkCmd.logger.debug('Pods are still running. Waiting...')
@@ -142,8 +143,8 @@ describe('NetworkCommand', () => {
       }
 
       // check if chart is uninstalled
-      expect(await bootstrapResp.opts.chartManager.isChartInstalled(namespace, constants.SOLO_DEPLOYMENT_CHART))
-        .to.be.false
+      const chartInstalledStatus = await bootstrapResp.opts.chartManager.isChartInstalled(namespace, constants.SOLO_DEPLOYMENT_CHART)
+      expect(chartInstalledStatus).to.be.false
 
       // check if pvc are deleted
       await expect(k8.listPvcsByNamespace(namespace)).eventually.to.have.lengthOf(0)
