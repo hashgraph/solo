@@ -294,17 +294,12 @@ export function e2eTestSuite (
         }).timeout(30 * MINUTES)
 
         it('node log command should work', async () => {
-          try {
-            await expect(nodeCmd.handlers.logs(argv)).to.eventually.be.ok
+          await expect(nodeCmd.handlers.logs(argv)).to.eventually.be.ok
 
-            const soloLogPath = path.join(SOLO_LOGS_DIR, 'solo.log')
-            const soloLog = fs.readFileSync(soloLogPath, 'utf8')
+          const soloLogPath = path.join(SOLO_LOGS_DIR, 'solo.log')
+          const soloLog = fs.readFileSync(soloLogPath, 'utf8')
 
-            expect(soloLog).to.not.contain(NODE_LOG_FAILURE_MSG)
-          } catch (e) {
-            nodeCmd.logger.showUserError(e)
-            expect.fail()
-          }
+          expect(soloLog).to.not.have.string(NODE_LOG_FAILURE_MSG)
         }).timeout(30 * MINUTES)
       }
     })
