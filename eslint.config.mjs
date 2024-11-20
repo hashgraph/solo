@@ -26,7 +26,7 @@ export default [
   ...tseslint.configs.recommended,
   ...tseslint.configs.stylistic,
   {
-    ignores: ['docs/**/*', 'dist/*', '.ts-node/*'],
+    ignores: ['docs/**/*', 'dist/*'],
   },
   {
     files: ['test/**/*.ts', 'src/**/*.ts'],
