@@ -77,10 +77,11 @@ export function e2eNodeKeyRefreshTest (testName: string, mode: string, releaseTa
 
         it(`Node Proxy should be UP [mode ${mode}, release ${releaseTag}`, async () => {
           try {
-            expect(await k8.waitForPodReady(
-                ['app=haproxy-node1',
-                  'solo.hedera.com/type=haproxy'],
-                1, 300, 1000)).to.be.true
+            const labels = ['app=haproxy-node1', 'solo.hedera.com/type=haproxy']
+            const readyPods = await k8.waitForPodReady(labels, 1, 300, 1000)
+            expect(readyPods).to.not.be.null
+            expect(readyPods).to.not.be.undefined
+            expect(readyPods.length).to.be.greaterThan(0)
           } catch (e) {
             nodeCmd.logger.showUserError(e)
             expect.fail()
