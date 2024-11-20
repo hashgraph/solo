@@ -64,8 +64,8 @@ e2eTestSuite(LOCAL_HEDERA, argv, undefined, undefined, undefined, undefined, und
     }).timeout(10 * MINUTES)
 
     it('get the logs and delete the namespace', async function () {
-      // await getNodeLogs(hederaK8, LOCAL_HEDERA)
-      // await hederaK8.deleteNamespace(LOCAL_HEDERA)
+      await getNodeLogs(hederaK8, LOCAL_HEDERA)
+      await hederaK8.deleteNamespace(LOCAL_HEDERA)
     }).timeout(10 * MINUTES)
   })
 })
