@@ -92,6 +92,8 @@ export const POD_CONDITION_STATUS_TRUE = 'True'
 export const EXPLORER_VALUES_FILE = path.join('resources', 'hedera-explorer-values.yaml')
 export const MIRROR_NODE_VALUES_FILE = path.join('resources', 'mirror-node-values.yaml')
 
+export const NODE_LOG_FAILURE_MSG = 'failed to download logs from pod'
+
 /**
  * Listr related
  * @return a object that defines the default color options

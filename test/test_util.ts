@@ -52,7 +52,7 @@ import {
   AccountCreateTransaction, Hbar, HbarUnit,
   PrivateKey
 } from '@hashgraph/sdk'
-import { MINUTES, ROOT_CONTAINER, SECONDS } from '../src/core/constants.ts'
+import { MINUTES, NODE_LOG_FAILURE_MSG, ROOT_CONTAINER, SECONDS, SOLO_LOGS_DIR } from '../src/core/constants.ts'
 import crypto from 'crypto'
 import { AccountCommand } from '../src/commands/account.ts'
 import { SoloError } from '../src/core/errors.ts'
@@ -287,6 +287,20 @@ export function e2eTestSuite (
         it('should succeed with node start command', async () => {
           try {
             await expect(nodeCmd.handlers.start(argv)).to.eventually.be.ok
+          } catch (e) {
+            nodeCmd.logger.showUserError(e)
+            expect.fail()
+          }
+        }).timeout(30 * MINUTES)
+
+        it('node log command should work', async () => {
+          try {
+            await expect(nodeCmd.handlers.logs(argv)).to.eventually.be.ok
+
+            const soloLogPath = path.join(SOLO_LOGS_DIR, 'solo.log')
+            const soloLog = fs.readFileSync(soloLogPath, 'utf8')
+
+            expect(soloLog).to.not.contain(NODE_LOG_FAILURE_MSG)
           } catch (e) {
             nodeCmd.logger.showUserError(e)
             expect.fail()

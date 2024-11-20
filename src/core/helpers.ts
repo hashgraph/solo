@@ -206,11 +206,11 @@ async function getNodeLog (pod: V1Pod, namespace: string, timeString: string, k8
     await k8.copyTo(podName, ROOT_CONTAINER, sourcePath, `${HEDERA_HAPI_PATH}`)
     await k8.execContainer(podName, ROOT_CONTAINER, `chmod 0755 ${HEDERA_HAPI_PATH}/${scriptName}`)
     await k8.execContainer(podName, ROOT_CONTAINER, `${HEDERA_HAPI_PATH}/${scriptName}`)
-    await k8.copyFrom(podName, ROOT_CONTAINER, `${HEDERA_HAPI_PATH}/${podName}.zip`, targetDir)
+    await k8.copyFrom(podName, ROOT_CONTAINER, `${HEDERA_HAPI_PATH}/data/${podName}.zip`, targetDir)
   } catch (e: Error | any) {
     // not throw error here, so we can continue to finish downloading logs from other pods
     // and also delete namespace in the end
-    k8.logger.error(`failed to download logs from pod ${podName}`, e)
+    k8.logger.error(`${constants.NODE_LOG_FAILURE_MSG} ${podName}`, e)
   }
   k8.logger.debug(`getNodeLogs(${pod.metadata.name}): ...end`)
 }

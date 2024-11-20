@@ -179,7 +179,7 @@ export const ADD_EXECUTE_FLAGS = {
 }
 
 export const LOGS_FLAGS = {
-    requiredFlags: [flags.nodeAliasesUnparsed],
+    requiredFlags: [flags.namespace, flags.nodeAliasesUnparsed],
     requiredFlagsWithDisabledPrompt: [],
     optionalFlags: []
 }

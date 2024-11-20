@@ -235,10 +235,11 @@ export const addConfigBuilder = async function (argv, ctx, task) {
 }
 
 export const logsConfigBuilder = function (argv, ctx, task) {
-    /** @type {{namespace: string, nodeAliases: NodeAliases}} */
+    /** @type {{namespace: string, nodeAliases: NodeAliases, nodeAliasesUnparsed: string}} */
     const config = {
         namespace: this.configManager.getFlag(flags.namespace),
-        nodeAliases: helpers.parseNodeAliases(this.configManager.getFlag(flags.nodeAliasesUnparsed))
+        nodeAliases: helpers.parseNodeAliases(this.configManager.getFlag(flags.nodeAliasesUnparsed)),
+        nodeAliasesUnparsed: this.configManager.getFlag(flags.nodeAliasesUnparsed)
     }
     ctx.config = config
     return config
