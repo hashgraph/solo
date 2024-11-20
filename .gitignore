@@ -481,4 +481,3 @@ deleteme.yaml
 /docs/.hugo_build.lock
 /docs/public/
 /contextDir/
-.ts-node/
