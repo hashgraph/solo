@@ -234,11 +234,13 @@ export class ComponentsDataWrapper implements Validate, ToObject<ComponentsDataS
     function testComponentsObject (components: Record<ComponentName, BaseComponent>, expectedInstance: any): void {
       Object.entries(components).forEach(([name, component]: [ComponentName, BaseComponent]): void => {
         if (!name || typeof name !== 'string') {
-          throw new SoloError(`Invalid component service name ${{ [name]: component }}`)
+          throw new SoloError(`Invalid component service name ${{ [name]: component?.constructor?.name }}`)
         }
 
         if (!(component instanceof expectedInstance)) {
-          throw new SoloError('Invalid component type', null, { component })
+          throw new SoloError(`Invalid component type, service name: ${name}, ` +
+            `expected ${expectedInstance?.name}, actual: ${component?.constructor?.name}`,
+            null, { component })
         }
       })
     }

@@ -15,36 +15,43 @@
  *
  */
 import {
-  ConsensusNodeComponent, EnvoyProxyComponent, HaProxyComponent, MirrorNodeComponent, RelayComponent
+  RelayComponent, HaProxyComponent, EnvoyProxyComponent, MirrorNodeComponent, ConsensusNodeComponent,
 } from './components/index.ts'
 import { ComponentTypeEnum, ConsensusNodeStates } from './enumerations.ts'
 
-import type { RelayCommand } from '../../../commands/relay.ts'
-import type { ListrTask } from 'listr2'
-import type { MirrorNodeCommand } from '../../../commands/mirror_node.ts'
-import type { NetworkCommand } from '../../../commands/network.ts'
-import type { NodeAliases } from '../../../types/aliases.ts'
-import type { NodeCommandHandlers } from '../../../commands/node/handlers.ts'
 import type { BaseCommand } from '../../../commands/base.ts'
+import type { RelayCommand } from '../../../commands/relay.ts'
+import type { NetworkCommand } from '../../../commands/network.ts'
 import type { DeploymentCommand } from '../../../commands/deployment.ts'
+import type { MirrorNodeCommand } from '../../../commands/mirror_node.ts'
+import type { NodeCommandHandlers } from '../../../commands/node/handlers.ts'
+import type { ListrTask } from 'listr2'
+import type { NodeAliases } from '../../../types/aliases.ts'
 
 /**
- * Static class that handles all tasks used by other commands
+ * Static class that handles all tasks related to remote config used by other commands.
  */
 export class RemoteConfigTasks {
 
   /* ----------- Create and Load ----------- */
 
+  /**
+   * Loads the remote config from the config class
+   *
+   * @param argv - used to update the last executed command and command history
+   */
   public static loadRemoteConfig (this: BaseCommand, argv: any): ListrTask<any, any, any> {
     return this.remoteConfigManager.buildLoadTask(argv)
   }
 
+  /** Creates remote config */
   public static createRemoteConfig (this: DeploymentCommand): ListrTask<any, any, any> {
     return this.remoteConfigManager.buildCreateTask()
   }
 
   /* ----------- Component Modifying ----------- */
 
+  /** Adds the relay component to remote config */
   public static addRelayComponent (this: RelayCommand): ListrTask<any, any, any> {
     return {
       title: 'Add relay component in remote config',
@@ -62,6 +69,7 @@ export class RemoteConfigTasks {
     }
   }
 
+  /** Remove the relay component from remote config */
   public static removeRelayComponent (this: RelayCommand): ListrTask<any, any, any> {
     return {
       title: 'Remove relay component from remote config',
@@ -73,6 +81,7 @@ export class RemoteConfigTasks {
     }
   }
 
+  /** Adds the mirror node and mirror node explorer components to remote config */
   public static addMirrorNodeAndMirrorNodeToExplorer (this: MirrorNodeCommand): ListrTask<any, any, any> {
     return {
       title: 'Add mirror node and mirror node explorer to remote config',
@@ -95,6 +104,7 @@ export class RemoteConfigTasks {
     }
   }
 
+  /** Removes the mirror node and mirror node explorer components from remote config */
   public static removeMirrorNodeAndMirrorNodeToExplorer (this: MirrorNodeCommand): ListrTask<any, any, any> {
     return {
       title: 'Remove mirror node and mirror node explorer from remote config',
@@ -108,6 +118,7 @@ export class RemoteConfigTasks {
     }
   }
 
+  /** Adds the consensus node, envoy and haproxy components to remote config  */
   public static addNodesAndProxies (this: NetworkCommand): ListrTask<any, any, any> {
     return {
       title: 'Add node and proxies to remote config',
@@ -137,6 +148,25 @@ export class RemoteConfigTasks {
     }
   }
 
+  /** Removes the consensus node, envoy and haproxy components from remote config  */
+  public static removeNodeAndProxies (this: NodeCommandHandlers): ListrTask<any, any, any> {
+    return {
+      title: 'Remove node and proxies from remote config',
+      task: async (): Promise<void> => {
+        await this.remoteConfigManager.modify(async (remoteConfig) => {
+          remoteConfig.components.remove('Consensus node name', ComponentTypeEnum.ConsensusNode)
+          remoteConfig.components.remove('Envoy proxy name', ComponentTypeEnum.EnvoyProxy)
+          remoteConfig.components.remove('HaProxy name', ComponentTypeEnum.HaProxy)
+        })
+      }
+    }
+  }
+
+  /**
+   * Changes the state from all consensus nodes components in remote config
+   *
+   * @param state - to which to change the consensus node component
+   */
   public static changeAllNodeStates (this: NodeCommandHandlers, state: ConsensusNodeStates): ListrTask<any, any, any> {
     return {
       title: `Change node state to ${state} in remote config`,
@@ -151,19 +181,6 @@ export class RemoteConfigTasks {
               new ConsensusNodeComponent(nodeAlias, cluster, namespace, state)
             )
           }
-        })
-      }
-    }
-  }
-
-  public static removeNodeAndProxies (this: NodeCommandHandlers): ListrTask<any, any, any> {
-    return {
-      title: 'Remove node and proxies from remote config',
-      task: async (): Promise<void> => {
-        await this.remoteConfigManager.modify(async (remoteConfig) => {
-          remoteConfig.components.remove('Consensus node name', ComponentTypeEnum.ConsensusNode)
-          remoteConfig.components.remove('Envoy proxy name', ComponentTypeEnum.EnvoyProxy)
-          remoteConfig.components.remove('HaProxy name', ComponentTypeEnum.HaProxy)
         })
       }
     }

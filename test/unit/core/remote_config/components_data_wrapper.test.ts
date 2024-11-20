@@ -48,12 +48,12 @@ export function createComponentsDataWrapper () {
 
   // @ts-ignore
   const componentsDataWrapper = new ComponentsDataWrapper(
-    consensusNodes,
-    haProxies,
-    envoyProxies,
-    mirrorNodes,
-    mirrorNodeExplorers,
     relays,
+    haProxies,
+    mirrorNodes,
+    envoyProxies,
+    consensusNodes,
+    mirrorNodeExplorers,
   )
   /*
   ? The class after calling the toObject() method

@@ -57,7 +57,6 @@ export class NodeCommand extends BaseCommand {
       keyManager: opts.keyManager,
       chartManager: opts.chartManager,
       certificateManager: opts.certificateManager,
-      remoteConfigManager: opts.remoteConfigManager,
       parent: this
     })
 
