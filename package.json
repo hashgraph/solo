@@ -34,9 +34,9 @@
     "solo-test": "node --no-deprecation --no-warnings --loader ts-node/esm solo.ts",
     "solo": "node --no-deprecation --no-warnings dist/solo.js",
     "check": "remark . --quiet --frail && eslint . --ignore-pattern 'docs/*' --ignore-pattern 'dist/*'; cd docs; jsdoc -c jsdoc.conf.json && tsc",
-    "format": "remark . --quiet --frail --output && eslint --fix . --ignore-pattern 'docs/*' --ignore-pattern 'dist/*'",
+    "format": "remark . --quiet --frail --output && eslint --fix . --ignore-pattern 'docs/*' --ignore-pattern 'dist/*' && tsc",
     "test-setup": "./test/e2e/setup-e2e.sh",
-    "build": "swc src version.ts solo.ts -d dist && node resources/post-build-script.js"
+    "build": "swc src version.ts solo.ts -d dist && node resources/post-build-script.js && tsc"
   },
   "keywords": [
     "solo",

@@ -14,21 +14,17 @@
  * limitations under the License.
  *
  */
-import type { Cluster, Context, EmailAddress } from './remote/types.ts'
+import type { Cluster, Context, EmailAddress, Namespace } from './remote/types.ts'
 
 export interface DeploymentStructure { clusters : Cluster[] }
 
-// an alias for the cluster, provided during the configuration
-// of the deployment, must be unique
-export type DeploymentName = string
-
-export type Deployments = Record<DeploymentName, DeploymentStructure>
+export type Deployments = Record<Namespace, DeploymentStructure>
 
 export type ClusterMapping = Record<Cluster, Context>
 
 export interface LocalConfigData {
     userEmailAddress: EmailAddress
     deployments: Deployments
-    currentDeploymentName: DeploymentName
+    currentDeploymentName: Namespace
     clusterMappings: ClusterMapping
 }

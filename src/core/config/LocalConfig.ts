@@ -22,16 +22,16 @@ import { flags } from '../../commands/index.ts'
 import type { SoloLogger } from '../logging.ts'
 import type { ListrTask, ListrTaskWrapper } from 'listr2'
 import type {
-  ClusterMapping, Deployments, DeploymentName, LocalConfigData, DeploymentStructure,
+  ClusterMapping, Deployments, LocalConfigData, DeploymentStructure,
 } from './LocalConfigData.ts'
-import type { EmailAddress } from './remote/types.ts'
+import type { EmailAddress, Namespace } from './remote/types.ts'
 import type { K8 } from '../k8.ts'
 import type { ConfigManager } from '../config_manager.ts'
 
 export class LocalConfig implements LocalConfigData {
   public userEmailAddress: EmailAddress
   public deployments: Deployments
-  public currentDeploymentName : DeploymentName
+  public currentDeploymentName : Namespace
   public clusterMappings: ClusterMapping
 
   private readonly allowedKeys = ['userEmailAddress', 'deployments', 'currentDeploymentName', 'clusterMappings']
@@ -110,7 +110,7 @@ export class LocalConfig implements LocalConfigData {
     return this
   }
 
-  public setCurrentDeployment (deploymentName: DeploymentName): this {
+  public setCurrentDeployment (deploymentName: Namespace): this {
     this.currentDeploymentName = deploymentName
     this.validate()
     return this
@@ -141,35 +141,35 @@ export class LocalConfig implements LocalConfigData {
   }
 
   public promptLocalConfigTask (): ListrTask<any, any, any>  {
-    const localConfig = this
+    const self = this
 
     return {
       title: 'Prompt local configuration',
-      skip: localConfig.skipPromptTask,
+      skip: self.skipPromptTask,
       task: async (_: any, task: ListrTaskWrapper<any, any, any>): Promise<void> => {
-        const kubeConfig = localConfig.k8.getKubeConfig()
+        const kubeConfig = self.k8.getKubeConfig()
 
         const clusterMappings = {}
         kubeConfig.contexts.forEach(c => clusterMappings[c.cluster] = c.name)
 
-        let userEmailAddress = localConfig.configManager.getFlag<EmailAddress>(flags.userEmailAddress)
+        let userEmailAddress = self.configManager.getFlag<EmailAddress>(flags.userEmailAddress)
         if (!userEmailAddress) userEmailAddress = await promptUserEmailAddress(task, userEmailAddress)
 
-        let deploymentName = localConfig.configManager.getFlag<DeploymentName>(flags.deploymentName)
+        let deploymentName = self.configManager.getFlag<Namespace>(flags.deploymentName)
         if (!deploymentName) deploymentName = await promptDeploymentName(task, deploymentName)
 
-        let deploymentClusters = localConfig.configManager.getFlag<string>(flags.deploymentClusters)
+        let deploymentClusters = self.configManager.getFlag<string>(flags.deploymentClusters)
         if (!deploymentClusters) deploymentClusters = await promptDeploymentClusters(task, deploymentClusters)
 
         const deployments = { [deploymentName]: { clusters: deploymentClusters.split(',') } }
 
-        localConfig.userEmailAddress = userEmailAddress
-        localConfig.deployments = deployments
-        localConfig.currentDeploymentName = deploymentName
-        localConfig.clusterMappings = clusterMappings
-        localConfig.validate()
+        self.userEmailAddress = userEmailAddress
+        self.deployments = deployments
+        self.currentDeploymentName = deploymentName
+        self.clusterMappings = clusterMappings
+        self.validate()
 
-        await localConfig.write()
+        await self.write()
       }
     }
   }
