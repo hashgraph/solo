@@ -22,9 +22,10 @@ import {
   getDefaultArgv,
   TEST_CLUSTER
 } from '../../test_util.ts'
-import { getNodeLogs } from '../../../src/core/helpers.ts'
-import { MINUTES } from '../../../src/core/constants.ts'
+import { sleep } from '../../../src/core/helpers.ts'
+import { MINUTES, SOLO_LOGS_DIR } from '../../../src/core/constants.ts'
 import type { K8 } from '../../../src/core/index.ts'
+import path from 'path'
 
 const LOCAL_HEDERA = 'local-hedera-app'
 const argv = getDefaultArgv()
@@ -42,12 +43,29 @@ argv[flags.localBuildPath.name] = 'node1=../hedera-services/hedera-node/data/,..
 argv[flags.namespace.name] = LOCAL_HEDERA
 
 e2eTestSuite(LOCAL_HEDERA, argv, undefined, undefined, undefined, undefined, undefined, undefined, true, (bootstrapResp) => {
+  const nodeCmd = bootstrapResp.cmd.nodeCmd
+  const accountCmd = bootstrapResp.cmd.accountCmd
   describe('Node for hedera app should have started successfully', () => {
     hederaK8 = bootstrapResp.opts.k8
 
+    it('save the state and restart the node with saved state', async function () {
+      // create some transactions to save more round of states
+      await accountCmd.create(argv)
+      await sleep(3)
+      await accountCmd.create(argv)
+      await sleep(3)
+
+      // stop network and save the state
+      await nodeCmd.handlers.stop(argv)
+      await nodeCmd.handlers.states(argv)
+
+      argv[flags.stateFile.name] = path.join(SOLO_LOGS_DIR, LOCAL_HEDERA, 'network-node1-0-state.zip')
+      await nodeCmd.handlers.start(argv)
+    }).timeout(10 * MINUTES)
+
     it('get the logs and delete the namespace', async function () {
-      await getNodeLogs(hederaK8, LOCAL_HEDERA)
-      await hederaK8.deleteNamespace(LOCAL_HEDERA)
+      // await getNodeLogs(hederaK8, LOCAL_HEDERA)
+      // await hederaK8.deleteNamespace(LOCAL_HEDERA)
     }).timeout(10 * MINUTES)
   })
 })

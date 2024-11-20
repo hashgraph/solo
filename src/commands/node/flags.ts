@@ -244,7 +244,8 @@ export const START_FLAGS = {
     optionalFlags: [
         flags.quiet,
         flags.nodeAliasesUnparsed,
-        flags.debugNodeAlias
+        flags.debugNodeAlias,
+        flags.stateFile,
     ]
 }
 

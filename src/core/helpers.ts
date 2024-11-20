@@ -242,9 +242,9 @@ async function getNodeState (pod: V1Pod, namespace: string, k8: K8){
     if (!fs.existsSync(targetDir)) {
       fs.mkdirSync(targetDir, { recursive: true })
     }
-    const zipCommand = `tar -czf ${HEDERA_HAPI_PATH}/${podName}.zip -C ${HEDERA_HAPI_PATH}/data/saved .`
+    const zipCommand = `tar -czf ${HEDERA_HAPI_PATH}/${podName}-state.zip -C ${HEDERA_HAPI_PATH}/data/saved .`
     await k8.execContainer(podName, ROOT_CONTAINER, zipCommand)
-    await k8.copyFrom(podName, ROOT_CONTAINER, `${HEDERA_HAPI_PATH}/${podName}.zip`, targetDir)
+    await k8.copyFrom(podName, ROOT_CONTAINER, `${HEDERA_HAPI_PATH}/${podName}-state.zip`, targetDir)
   } catch (e: Error | any) {
     k8.logger.error(`failed to download state from pod ${podName}`, e)
     k8.logger.showUser(`Failed to download state from pod ${podName}` + e)

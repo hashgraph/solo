@@ -593,6 +593,9 @@ export class NodeCommandHandlers {
     const action = helpers.commandActionBuilder([
       this.tasks.initialize(argv, startConfigBuilder.bind(this), lease),
       this.tasks.identifyExistingNodes(),
+      this.tasks.uploadStateFiles(
+          (ctx: any) => ctx.config.stateFile.length === 0
+      ),
       this.tasks.startNodes('nodeAliases'),
       this.tasks.enablePortForwarding(),
       this.tasks.checkAllNodesAreActive('nodeAliases'),

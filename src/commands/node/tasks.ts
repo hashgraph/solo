@@ -661,6 +661,27 @@ export class NodeCommandTasks {
     })
   }
 
+  uploadStateFiles (skip: Function | boolean) {
+    return new Task('Upload state files network nodes', async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
+      const config = ctx.config
+
+      const zipFile = config.stateFile
+      this.logger.debug(`zip file: ${zipFile}`)
+      await sleep(5 * SECONDS)
+      for (const nodeAlias of ctx.config.nodeAliases) {
+        const podName = ctx.config.podNames[nodeAlias]
+        this.logger.debug(`Uploading state files to pod ${podName}`)
+        // use k8 command to upload the zip file to the pod ${constants.HEDERA_HAPI_PATH}/data and use tar to extract the files
+        await this.k8.copyTo(podName, constants.ROOT_CONTAINER, zipFile, `${constants.HEDERA_HAPI_PATH}/data`)
+
+        this.logger.info(`Deleting the previous state files in pod ${podName} directory ${constants.HEDERA_HAPI_PATH}/data/saved`)
+        await this.k8.execContainer(podName, constants.ROOT_CONTAINER, ['rm', '-rf', `${constants.HEDERA_HAPI_PATH}/data/saved/*`])
+        await this.k8.execContainer(podName, constants.ROOT_CONTAINER,
+            ['tar', '-xvf', `${constants.HEDERA_HAPI_PATH}/data/${path.basename(zipFile)}`, '-C', `${constants.HEDERA_HAPI_PATH}/data/saved`])
+      }
+    }, skip)
+  }
+
   identifyNetworkPods () {
     return new Task('Identify network pods', (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
       return this.taskCheckNetworkNodePods(ctx, task, ctx.config.nodeAliases)

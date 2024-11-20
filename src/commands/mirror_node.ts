@@ -337,9 +337,9 @@ export class MirrorNodeCommand extends BaseCommand {
 
     try {
       await tasks.run()
-      self.logger.debug('node start has completed')
+      self.logger.debug('mirror node depolyment has completed')
     } catch (e: Error | any) {
-      throw new SoloError(`Error starting node: ${e.message}`, e)
+      throw new SoloError(`Error deploying node: ${e.message}`, e)
     } finally {
       await lease.release()
       await self.accountManager.close()
@@ -428,9 +428,9 @@ export class MirrorNodeCommand extends BaseCommand {
 
     try {
       await tasks.run()
-      self.logger.debug('node start has completed')
+      self.logger.debug('mirror node destruction has completed')
     } catch (e: Error | any) {
-      throw new SoloError(`Error starting node: ${e.message}`, e)
+      throw new SoloError(`Error destrong mirror node: ${e.message}`, e)
     } finally {
       await lease.release()
       await self.accountManager.close()
