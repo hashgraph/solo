@@ -15,16 +15,16 @@
  *
  */
 import chalk from 'chalk'
-import { BaseCommand } from './base.ts'
-import { SoloError, IllegalArgumentError } from '../core/errors.ts'
-import { flags } from './index.ts'
+import { BaseCommand } from './base.js'
+import { SoloError, IllegalArgumentError } from '../core/errors.js'
+import { flags } from './index.js'
 import { Listr } from 'listr2'
-import * as prompts from './prompts.ts'
-import { constants, type AccountManager } from '../core/index.ts'
+import * as prompts from './prompts.js'
+import { constants, type AccountManager } from '../core/index.js'
 import { type AccountId, AccountInfo, HbarUnit, PrivateKey } from '@hashgraph/sdk'
-import { FREEZE_ADMIN_ACCOUNT } from '../core/constants.ts'
-import { type Opts } from '../types/index.ts'
-import { ListrLease } from '../core/lease/listr_lease.ts'
+import { FREEZE_ADMIN_ACCOUNT } from '../core/constants.js'
+import { type Opts } from '../types/index.js'
+import { ListrLease } from '../core/lease/listr_lease.js'
 
 export class AccountCommand extends BaseCommand {
   private readonly accountManager: AccountManager
@@ -300,7 +300,7 @@ export class AccountCommand extends BaseCommand {
         }
       },
       {
-        title: 'create the new account.ts',
+        title: 'create the new account.js',
         task: async (ctx) => {
           self.accountInfo = await self.createNewAccount(ctx)
           const accountInfoCopy = { ...self.accountInfo }

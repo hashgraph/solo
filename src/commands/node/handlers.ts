@@ -15,13 +15,13 @@
  *
  */
 
-import * as helpers from '../../core/helpers.ts'
-import * as NodeFlags from './flags.ts'
+import * as helpers from '../../core/helpers.js'
+import * as NodeFlags from './flags.js'
 import {
   addConfigBuilder, deleteConfigBuilder, downloadGeneratedFilesConfigBuilder, keysConfigBuilder, logsConfigBuilder,
   prepareUpgradeConfigBuilder, refreshConfigBuilder, setupConfigBuilder, startConfigBuilder, stopConfigBuilder,
   updateConfigBuilder
-} from './configs.ts'
+} from './configs.js'
 import {
   type ConfigManager,
   constants,
@@ -29,12 +29,12 @@ import {
   type PlatformInstaller,
   type AccountManager,
   type LeaseManager
-} from '../../core/index.ts'
-import { IllegalArgumentError } from '../../core/errors.ts'
-import type { SoloLogger } from '../../core/logging.ts'
-import type { NodeCommand } from './index.ts'
-import type { NodeCommandTasks } from './tasks.ts'
-import { type Lease } from '../../core/lease/lease.ts'
+} from '../../core/index.js'
+import { IllegalArgumentError } from '../../core/errors.js'
+import type { SoloLogger } from '../../core/logging.js'
+import type { NodeCommand } from './index.js'
+import type { NodeCommandTasks } from './tasks.js'
+import { type Lease } from '../../core/lease/lease.js'
 
 export class NodeCommandHandlers {
   private readonly accountManager: AccountManager

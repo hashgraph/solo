@@ -14,8 +14,8 @@
  * limitations under the License.
  *
  */
-import { type Lease } from './lease.ts'
-import { SECONDS } from '../constants.ts'
+import { type Lease } from './lease.js'
+import { SECONDS } from '../constants.js'
 
 /**
  * A service for managing cancellable lease renewals.

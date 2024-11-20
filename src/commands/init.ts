@@ -16,12 +16,12 @@
  */
 import { Listr } from 'listr2'
 import path from 'path'
-import { BaseCommand } from './base.ts'
-import * as core from '../core/index.ts'
-import { constants } from '../core/index.ts'
+import { BaseCommand } from './base.js'
+import * as core from '../core/index.js'
+import { constants } from '../core/index.js'
 import * as fs from 'fs'
-import { SoloError } from '../core/errors.ts'
-import * as flags from './flags.ts'
+import { SoloError } from '../core/errors.js'
+import * as flags from './flags.js'
 import chalk from 'chalk'
 
 /**

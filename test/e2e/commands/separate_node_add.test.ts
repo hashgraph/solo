@@ -17,7 +17,7 @@
 import { it, describe, after } from 'mocha'
 import { expect } from 'chai'
 
-import { flags } from '../../../src/commands/index.ts'
+import { flags } from '../../../src/commands/index.js'
 import {
   accountCreationShouldSucceed,
   balanceQueryShouldSucceed,
@@ -25,10 +25,10 @@ import {
   getDefaultArgv,
   getNodeAliasesPrivateKeysHash, getTmpDir,
   HEDERA_PLATFORM_VERSION_TAG
-} from '../../test_util.ts'
-import { getNodeLogs } from '../../../src/core/helpers.ts'
-import * as NodeCommandConfigs from '../../../src/commands/node/configs.ts'
-import { MINUTES } from '../../../src/core/constants.ts'
+} from '../../test_util.js'
+import { getNodeLogs } from '../../../src/core/helpers.js'
+import * as NodeCommandConfigs from '../../../src/commands/node/configs.js'
+import { MINUTES } from '../../../src/core/constants.js'
 
 const defaultTimeout = 2 * MINUTES
 const namespace = 'node-add-separated'

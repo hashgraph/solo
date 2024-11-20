@@ -14,13 +14,13 @@
  * limitations under the License.
  *
  */
-import { SoloError, IllegalArgumentError, MissingArgumentError } from './errors.ts'
+import { SoloError, IllegalArgumentError, MissingArgumentError } from './errors.js'
 import fs from 'fs'
 import AdmZip from 'adm-zip'
 import * as tar from 'tar'
 import chalk from 'chalk'
 import path from 'path'
-import type { SoloLogger } from './logging.ts'
+import type { SoloLogger } from './logging.js'
 
 export class Zippy {
   constructor (private readonly logger: SoloLogger) {

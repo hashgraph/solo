@@ -17,17 +17,17 @@
 import { describe, it } from 'mocha'
 import { expect } from 'chai'
 
-import { InitCommand } from '../../../../src/commands/init.ts'
+import { InitCommand } from '../../../../src/commands/init.js'
 import {
   HelmDependencyManager,
   DependencyManager
-} from '../../../../src/core/dependency_managers/index.ts'
+} from '../../../../src/core/dependency_managers/index.js'
 import {
   ChartManager, ConfigManager, constants, Helm, K8, KeyManager, LeaseManager, logging, PackageDownloader, Zippy
-} from '../../../../src/core/index.ts'
-import { SECONDS } from '../../../../src/core/constants.ts'
+} from '../../../../src/core/index.js'
+import { SECONDS } from '../../../../src/core/constants.js'
 import sinon from 'sinon'
-import { IntervalLeaseRenewalService } from '../../../../src/core/lease/lease_renewal.ts'
+import { IntervalLeaseRenewalService } from '../../../../src/core/lease/lease_renewal.js'
 
 const testLogger = logging.NewLogger('debug', true)
 describe('InitCommand', () => {

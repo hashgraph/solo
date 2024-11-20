@@ -22,15 +22,16 @@ import { describe, it, after, before } from 'mocha'
 import fs from 'fs'
 import os from 'os'
 import path from 'path'
-import { ClusterCommand } from '../src/commands/cluster.ts'
-import { InitCommand } from '../src/commands/init.ts'
-import { NetworkCommand } from '../src/commands/network.ts'
-import { NodeCommand } from '../src/commands/node/index.ts'
+import { flags } from '../src/commands/index.js'
+import { ClusterCommand } from '../src/commands/cluster.js'
+import { InitCommand } from '../src/commands/init.js'
+import { NetworkCommand } from '../src/commands/network.js'
+import { NodeCommand } from '../src/commands/node/index.js'
 import {
   DependencyManager,
   HelmDependencyManager
-} from '../src/core/dependency_managers/index.ts'
-import { getNodeLogs, sleep } from '../src/core/helpers.ts'
+} from '../src/core/dependency_managers/index.js'
+import { getNodeLogs, sleep } from '../src/core/helpers.js'
 import {
   ChartManager,
   ConfigManager,
@@ -45,25 +46,24 @@ import {
   Templates,
   Zippy,
   AccountManager, CertificateManager
-} from '../src/core/index.ts'
-import { flags } from '../src/commands/index.ts'
+} from '../src/core/index.js'
 import {
   AccountBalanceQuery,
   AccountCreateTransaction, Hbar, HbarUnit,
   PrivateKey
 } from '@hashgraph/sdk'
-import { MINUTES, NODE_LOG_FAILURE_MSG, ROOT_CONTAINER, SECONDS, SOLO_LOGS_DIR } from '../src/core/constants.ts'
+import { MINUTES, NODE_LOG_FAILURE_MSG, ROOT_CONTAINER, SECONDS, SOLO_LOGS_DIR } from '../src/core/constants.js'
 import crypto from 'crypto'
-import { AccountCommand } from '../src/commands/account.ts'
-import { SoloError } from '../src/core/errors.ts'
+import { AccountCommand } from '../src/commands/account.js'
+import { SoloError } from '../src/core/errors.js'
 import { execSync } from 'child_process'
-import * as NodeCommandConfigs from '../src/commands/node/configs.ts'
-import type { SoloLogger } from '../src/core/logging.ts'
-import type { BaseCommand } from '../src/commands/base.ts'
-import type { NodeAlias } from '../src/types/aliases.ts'
-import type { NetworkNodeServices } from '../src/core/network_node_services.ts'
+import * as NodeCommandConfigs from '../src/commands/node/configs.js'
+import type { SoloLogger } from '../src/core/logging.js'
+import type { BaseCommand } from '../src/commands/base.js'
+import type { NodeAlias } from '../src/types/aliases.js'
+import type { NetworkNodeServices } from '../src/core/network_node_services.js'
 import { HEDERA_PLATFORM_VERSION } from '../version.js'
-import { IntervalLeaseRenewalService } from '../src/core/lease/lease_renewal.ts'
+import { IntervalLeaseRenewalService } from '../src/core/lease/lease_renewal.js'
 
 export const testLogger = logging.NewLogger('debug', true)
 export const TEST_CLUSTER = 'solo-e2e'

@@ -15,14 +15,14 @@
  *
  */
 import { it, describe, before, after } from 'mocha'
-import { ConfigManager, logging } from '../../../../src/core/index.ts'
-import { K8 } from '../../../../src/core/k8.ts'
-import { MINUTES, SECONDS } from '../../../../src/core/constants.ts'
+import { ConfigManager, logging } from '../../../../src/core/index.js'
+import { K8 } from '../../../../src/core/k8.js'
+import { MINUTES, SECONDS } from '../../../../src/core/constants.js'
 import { expect } from 'chai'
-import { Lease } from '../../../../src/core/lease/lease.ts'
-import { LeaseHolder } from '../../../../src/core/lease/lease_holder.ts'
-import { sleep } from '../../../../src/core/helpers.ts'
-import { IntervalLeaseRenewalService } from '../../../../src/core/lease/lease_renewal.ts'
+import { Lease } from '../../../../src/core/lease/lease.js'
+import { LeaseHolder } from '../../../../src/core/lease/lease_holder.js'
+import { sleep } from '../../../../src/core/helpers.js'
+import { IntervalLeaseRenewalService } from '../../../../src/core/lease/lease_renewal.js'
 import { type V1Lease } from '@kubernetes/client-node'
 
 

@@ -23,8 +23,12 @@ verbose: true
 file:
   - test/setup.ts
 require:
-  - ts-node/register
   - test/setup.ts
 extension:
   - ts
-loader: ts-node/esm
+node-option:
+  - 'enable-source-maps'
+  - 'import=tsx'
+full-trace: true
+enable-source-maps: true
+ui: bdd

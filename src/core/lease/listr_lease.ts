@@ -16,8 +16,8 @@
  */
 import { type ListrTaskWrapper } from 'listr2'
 import chalk from 'chalk'
-import { type Lease } from './lease.ts'
-import { LeaseAcquisitionError } from './lease_errors.ts'
+import { type Lease } from './lease.js'
+import { LeaseAcquisitionError } from './lease_errors.js'
 
 /**
  * A utility class for managing lease acquisition tasks in Listr2 based workflows.

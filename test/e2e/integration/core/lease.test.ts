@@ -15,15 +15,15 @@
  *
  */
 import { it, describe, before, after } from 'mocha'
-import { ConfigManager, logging } from '../../../../src/core/index.ts'
-import { K8 } from '../../../../src/core/k8.ts'
-import { MINUTES, SECONDS } from '../../../../src/core/constants.ts'
+import { ConfigManager, logging } from '../../../../src/core/index.js'
+import { K8 } from '../../../../src/core/k8.js'
+import { MINUTES, SECONDS } from '../../../../src/core/constants.js'
 import { expect } from 'chai'
-import { Lease } from '../../../../src/core/lease/lease.ts'
-import { LeaseHolder } from '../../../../src/core/lease/lease_holder.ts'
-import { sleep } from '../../../../src/core/helpers.ts'
-import { LeaseRelinquishmentError } from '../../../../src/core/lease/lease_errors.ts'
-import { NoopLeaseRenewalService } from './noop_lease_renewal_service.test.ts'
+import { Lease } from '../../../../src/core/lease/lease.js'
+import { LeaseHolder } from '../../../../src/core/lease/lease_holder.js'
+import { sleep } from '../../../../src/core/helpers.js'
+import { LeaseRelinquishmentError } from '../../../../src/core/lease/lease_errors.js'
+import { NoopLeaseRenewalService } from './noop_lease_renewal_service.test.js'
 
 
 const defaultTimeout = 2 * MINUTES

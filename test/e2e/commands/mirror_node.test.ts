@@ -17,7 +17,7 @@
 import { it, describe, after, before, afterEach } from 'mocha'
 import { expect } from 'chai'
 
-import { flags } from '../../../src/commands/index.ts'
+import { flags } from '../../../src/commands/index.js'
 import {
   accountCreationShouldSucceed,
   balanceQueryShouldSucceed,
@@ -25,15 +25,15 @@ import {
   getDefaultArgv,
   HEDERA_PLATFORM_VERSION_TAG,
   TEST_CLUSTER
-} from '../../test_util.ts'
-import * as version from '../../../version.ts'
-import { getNodeLogs, sleep } from '../../../src/core/helpers.ts'
-import { MirrorNodeCommand } from '../../../src/commands/mirror_node.ts'
-import * as core from '../../../src/core/index.ts'
+} from '../../test_util.js'
+import * as version from '../../../version.js'
+import { getNodeLogs, sleep } from '../../../src/core/helpers.js'
+import { MirrorNodeCommand } from '../../../src/commands/mirror_node.js'
+import * as core from '../../../src/core/index.js'
 import { Status, TopicCreateTransaction, TopicMessageSubmitTransaction } from '@hashgraph/sdk'
 import * as http from 'http'
-import { MINUTES, SECONDS } from '../../../src/core/constants.ts'
-import type { PodName } from '../../../src/types/aliases.ts'
+import { MINUTES, SECONDS } from '../../../src/core/constants.js'
+import type { PodName } from '../../../src/types/aliases.js'
 
 const testName = 'mirror-cmd-e2e'
 const namespace = testName

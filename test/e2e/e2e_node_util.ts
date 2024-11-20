@@ -17,7 +17,7 @@
 import { it, describe, after, before, afterEach } from 'mocha'
 import { expect } from 'chai'
 
-import { flags } from '../../src/commands/index.ts'
+import { flags } from '../../src/commands/index.js'
 import {
   accountCreationShouldSucceed,
   balanceQueryShouldSucceed,
@@ -25,14 +25,14 @@ import {
   getDefaultArgv,
   HEDERA_PLATFORM_VERSION_TAG,
   TEST_CLUSTER, testLogger
-} from '../test_util.ts'
-import { getNodeLogs, sleep } from '../../src/core/helpers.ts'
-import * as NodeCommandConfigs from '../../src/commands/node/configs.ts'
-import { MINUTES, SECONDS } from '../../src/core/constants.ts'
-import type { NodeAlias } from '../../src/types/aliases.ts'
+} from '../test_util.js'
+import { getNodeLogs, sleep } from '../../src/core/helpers.js'
+import * as NodeCommandConfigs from '../../src/commands/node/configs.js'
+import { MINUTES, SECONDS } from '../../src/core/constants.js'
+import type { NodeAlias } from '../../src/types/aliases.js'
 import type { ListrTaskWrapper } from 'listr2'
-import { ConfigManager, type K8 } from '../../src/core/index.ts'
-import { type NodeCommand } from '../../src/commands/node/index.ts'
+import { ConfigManager, type K8 } from '../../src/core/index.js'
+import { type NodeCommand } from '../../src/commands/node/index.js'
 
 export function e2eNodeKeyRefreshTest (testName: string, mode: string, releaseTag = HEDERA_PLATFORM_VERSION_TAG) {
   const namespace = testName

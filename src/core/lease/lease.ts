@@ -14,14 +14,14 @@
  * limitations under the License.
  *
  */
-import { MissingArgumentError, SoloError } from '../errors.ts'
+import { MissingArgumentError, SoloError } from '../errors.js'
 import { type V1Lease } from '@kubernetes/client-node'
-import { type K8 } from '../k8.ts'
-import { SECONDS } from '../constants.ts'
-import { LeaseHolder } from './lease_holder.ts'
-import { LeaseAcquisitionError, LeaseRelinquishmentError } from './lease_errors.ts'
-import { type LeaseRenewalService } from './lease_renewal.ts'
-import { sleep } from '../helpers.ts'
+import { type K8 } from '../k8.js'
+import { SECONDS } from '../constants.js'
+import { LeaseHolder } from './lease_holder.js'
+import { LeaseAcquisitionError, LeaseRelinquishmentError } from './lease_errors.js'
+import { type LeaseRenewalService } from './lease_renewal.js'
+import { sleep } from '../helpers.js'
 
 /**
  * Concrete implementation of a Kubernetes based time-based mutually exclusive lock via the Coordination API.
@@ -387,4 +387,3 @@ export class Lease {
         return this.leaseHolder.isSameMachineIdentity(holder)
     }
 }
-

@@ -26,7 +26,7 @@ export default [
   ...tseslint.configs.recommended,
   ...tseslint.configs.stylistic,
   {
-    ignores: ['docs/**/*', 'dist/*'],
+    ignores: ['docs/**/*', 'dist/*', '.ts-node/*'],
   },
   {
     files: ['test/**/*.ts', 'src/**/*.ts'],
@@ -68,7 +68,7 @@ export default [
       "@typescript-eslint/consistent-type-imports": ["error", { fixStyle: 'inline-type-imports'}],
       'space-before-function-paren': 'error',
       '@typescript-eslint/no-empty-function': 'off',
-      '@typescript-eslint/class-literal-property-style': 'off'
+      '@typescript-eslint/class-literal-property-style': 'off',
     }
   },
   {

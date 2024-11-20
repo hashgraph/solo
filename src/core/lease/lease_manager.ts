@@ -14,15 +14,15 @@
  * limitations under the License.
  *
  */
-import { MissingArgumentError } from '../errors.ts'
-import { flags } from '../../commands/index.ts'
-import type { ConfigManager } from '../config_manager.ts'
-import type { K8 } from '../k8.ts'
-import type { SoloLogger } from '../logging.ts'
-import { type LeaseRenewalService } from './lease_renewal.ts'
-import { Lease } from './lease.ts'
-import { LeaseHolder } from './lease_holder.ts'
-import { LeaseAcquisitionError } from './lease_errors.ts'
+import { MissingArgumentError } from '../errors.js'
+import { flags } from '../../commands/index.js'
+import type { ConfigManager } from '../config_manager.js'
+import type { K8 } from '../k8.js'
+import type { SoloLogger } from '../logging.js'
+import { type LeaseRenewalService } from './lease_renewal.js'
+import { Lease } from './lease.js'
+import { LeaseHolder } from './lease_holder.js'
+import { LeaseAcquisitionError } from './lease_errors.js'
 
 /**
  * Manages the acquisition and renewal of leases.
