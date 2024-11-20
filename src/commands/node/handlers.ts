@@ -196,13 +196,13 @@ export class NodeCommandHandlers {
     return [
       this.tasks.sendNodeUpdateTransaction(),
       this.tasks.sendPrepareUpgradeTransaction(),
-      this.tasks.downloadNodeGeneratedFiles(),
       this.tasks.sendFreezeUpgradeTransaction(),
     ]
   }
 
   updateExecuteTasks (argv) {
     return [
+      this.tasks.downloadNodeGeneratedFiles(),
       this.tasks.prepareStagingDirectory('allNodeAliases'),
       this.tasks.copyNodeKeysToSecrets(),
       this.tasks.checkAllNodesAreFrozen('existingNodeAliases'),
@@ -319,7 +319,6 @@ export class NodeCommandHandlers {
     const action = helpers.commandActionBuilder([
       this.tasks.initialize(argv, updateConfigBuilder.bind(this), lease),
       this.tasks.loadContextData(argv, NodeCommandHandlers.UPDATE_CONTEXT_FILE, helpers.updateLoadContextParser),
-      this.tasks.loadAdminKey(),
         ...this.updateSubmitTransactionsTasks(argv)
     ], {
         concurrent: false,

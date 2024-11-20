@@ -384,6 +384,7 @@ export function updateSaveContextParser (ctx: { config: NodeUpdateConfigClass, u
   const exportedCtx: any = {}
 
   const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
+  exportedCtx.adminKey = config.adminKey.toString()
   exportedCtx.newAdminKey = config.newAdminKey.toString()
   exportedCtx.freezeAdminPrivateKey = config.freezeAdminPrivateKey.toString()
   exportedCtx.treasuryKey = config.treasuryKey.toString()
@@ -409,9 +410,14 @@ export function updateSaveContextParser (ctx: { config: NodeUpdateConfigClass, u
  */
 export function updateLoadContextParser (ctx: { config: NodeUpdateConfigClass, upgradeZipHash: any }, ctxData: any) {
   const config = ctx.config
-  config.newAdminKey = PrivateKey.fromStringED25519(ctxData.newAdminKey)
+
+  if (ctxData.newAdminKey && ctxData.newAdminKey.length) {
+    config.newAdminKey = PrivateKey.fromStringED25519(ctxData.newAdminKey)
+  }
+
   config.freezeAdminPrivateKey = PrivateKey.fromStringED25519(ctxData.freezeAdminPrivateKey)
   config.treasuryKey = PrivateKey.fromStringED25519(ctxData.treasuryKey)
+  config.adminKey = PrivateKey.fromStringED25519(ctxData.adminKey)
   config.existingNodeAliases = ctxData.existingNodeAliases
   config.nodeAlias = ctxData.nodeAlias
   config.newAccountNumber = ctxData.newAccountNumber
