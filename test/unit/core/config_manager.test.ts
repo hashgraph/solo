@@ -17,9 +17,9 @@
 import { expect } from 'chai'
 import { describe, it } from 'mocha'
 
-import { ConfigManager } from '../../../src/core/index.ts'
-import * as flags from '../../../src/commands/flags.ts'
-import { testLogger } from '../../test_util.ts'
+import { ConfigManager } from '../../../src/core/index.js'
+import * as flags from '../../../src/commands/flags.js'
+import { testLogger } from '../../test_util.js'
 
 describe('ConfigManager', () => {
   describe('update values using argv', () => {

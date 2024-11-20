@@ -18,21 +18,21 @@ import fs from 'fs'
 import os from 'os'
 import path from 'path'
 import util from 'util'
-import { SoloError } from './errors.ts'
+import { SoloError } from './errors.js'
 import * as semver from 'semver'
-import { Templates } from './templates.ts'
-import { HEDERA_HAPI_PATH, ROOT_CONTAINER, ROOT_DIR, SOLO_LOGS_DIR } from './constants.ts'
-import { constants, type K8 } from './index.ts'
+import { Templates } from './templates.js'
+import { HEDERA_HAPI_PATH, ROOT_CONTAINER, ROOT_DIR, SOLO_LOGS_DIR } from './constants.js'
+import { constants, type K8 } from './index.js'
 import { FileContentsQuery, FileId, PrivateKey, ServiceEndpoint } from '@hashgraph/sdk'
 import { Listr } from 'listr2'
-import { type AccountManager } from './account_manager.ts'
-import { type NodeAlias, type NodeAliases, type PodName } from '../types/aliases.ts'
-import { type NodeDeleteConfigClass, type NodeUpdateConfigClass } from '../commands/node/configs.ts'
-import { type CommandFlag } from '../types/index.ts'
+import { type AccountManager } from './account_manager.js'
+import { type NodeAlias, type NodeAliases, type PodName } from '../types/aliases.js'
+import { type NodeDeleteConfigClass, type NodeUpdateConfigClass } from '../commands/node/configs.js'
+import { type CommandFlag } from '../types/index.js'
 import { type V1Pod } from '@kubernetes/client-node'
-import { type SoloLogger } from './logging.ts'
-import { type NodeCommandHandlers } from '../commands/node/handlers.ts'
-import { type LeaseWrapper } from './lease_wrapper.ts'
+import { type SoloLogger } from './logging.js'
+import { type NodeCommandHandlers } from '../commands/node/handlers.js'
+import { type Lease } from './lease/lease.js'
 
 export function sleep (ms: number) {
   return new Promise<void>((resolve) => {
@@ -465,7 +465,7 @@ export function prepareEndpoints (endpointType: string, endpoints: string[], def
   return ret
 }
 
-export function commandActionBuilder (actionTasks: any, options: any, errorString: string, lease: LeaseWrapper | null) {
+export function commandActionBuilder (actionTasks: any, options: any, errorString: string, lease: Lease | null) {
   return async function (argv: any, commandDef: NodeCommandHandlers) {
     const tasks = new Listr([
       ...actionTasks

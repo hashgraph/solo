@@ -17,9 +17,9 @@
 import { expect } from 'chai'
 import { describe, it } from 'mocha'
 
-import { DependencyManager, HelmDependencyManager } from '../../../../src/core/dependency_managers/index.ts'
-import { logging, constants, PackageDownloader, Zippy } from '../../../../src/core/index.ts'
-import { SECONDS } from '../../../../src/core/constants.ts'
+import { DependencyManager, HelmDependencyManager } from '../../../../src/core/dependency_managers/index.js'
+import { logging, constants, PackageDownloader, Zippy } from '../../../../src/core/index.js'
+import { SECONDS } from '../../../../src/core/constants.js'
 
 const testLogger = logging.NewLogger('debug', true)
 describe('DependencyManager', () => {
