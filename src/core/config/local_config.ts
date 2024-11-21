@@ -21,7 +21,7 @@ import { promptDeploymentClusters, promptDeploymentName, promptUserEmailAddress 
 import { flags } from '../../commands/index.js'
 import type { SoloLogger } from '../logging.js'
 import type { ListrTask, ListrTaskWrapper } from 'listr2'
-import type { ClusterMapping, Deployments, LocalConfigData, DeploymentStructure, } from './LocalConfigData.js'
+import type { ClusterMapping, Deployments, LocalConfigData, DeploymentStructure, } from './local_config_data.js'
 import type { EmailAddress, Namespace } from './remote/types.js'
 import type { K8 } from '../k8.js'
 import type { ConfigManager } from '../config_manager.js'
@@ -118,9 +118,9 @@ export class LocalConfig implements LocalConfigData {
     return this.deployments[this.currentDeploymentName]
   }
 
-    private configFileEXists (): boolean {
-        return fs.existsSync(this.filePath)
-    }
+  public configFileExists (): boolean {
+    return fs.existsSync(this.filePath)
+  }
 
   public async write (): Promise<void> {
     console.dir({
