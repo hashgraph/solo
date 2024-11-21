@@ -22,6 +22,7 @@ import { constants, Templates } from '../core/index.js'
 import * as prompts from './prompts.js'
 import chalk from 'chalk'
 import { RemoteConfigTasks } from '../core/config/remote/remote_config_tasks.js'
+import { ListrLease } from '../core/lease/listr_lease.js'
 import type { Namespace } from '../core/config/remote/types.js'
 import type { CommandFlag, ContextClusterStructure } from '../types/index.js'
 
@@ -34,7 +35,7 @@ export class DeploymentCommand extends BaseCommand {
 
   private async create (argv: any): Promise<boolean> {
     const self = this
-    const lease = self.leaseManager.instantiateLease()
+    const lease = await self.leaseManager.create()
 
     interface Config { namespace: Namespace; contextClusterUnparsed: string, contextCluster: ContextClusterStructure }
     interface Context { config: Config }
@@ -60,7 +61,7 @@ export class DeploymentCommand extends BaseCommand {
 
           self.logger.debug('Prepared config', { config: ctx.config, cachedConfig: self.configManager.config })
 
-          return lease.buildAcquireTask(task)
+          return ListrLease.newAcquireLeaseTask(lease, task)
         }
       },
       {
