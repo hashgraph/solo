@@ -18,7 +18,7 @@ import type { NodeAliases } from '../../../types/aliases.js'
 import type { Migration } from './migration.js'
 import type { ComponentsDataWrapper } from './components_data_wrapper.js'
 import type { RemoteConfigMetadata } from './metadata.js'
-import type { ComponentTypeEnum, ConsensusNodeStates } from './enumerations.js'
+import type { ComponentType, ConsensusNodeStates } from './enumerations.js'
 
 export type EmailAddress = `${string}@${string}.${string}`
 export type Version = string
@@ -62,7 +62,7 @@ export interface RemoteConfigData {
   commandHistory: string[]
 }
 
-export type ComponentsDataStructure = Record<ComponentTypeEnum, Record<ComponentName, Component>>
+export type ComponentsDataStructure = Record<ComponentType, Record<ComponentName, Component>>
 
 export interface RemoteConfigDataStructure {
   metadata: RemoteConfigMetadataStructure

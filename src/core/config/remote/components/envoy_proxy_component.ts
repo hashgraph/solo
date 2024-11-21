@@ -14,13 +14,13 @@
  * limitations under the License.
  *
  */
-import { ComponentTypeEnum } from '../enumerations.js'
+import { ComponentType } from '../enumerations.js'
 import { BaseComponent } from './base_component.js'
 import type { Component } from '../types.js'
 
 export class EnvoyProxyComponent extends BaseComponent {
   public constructor (name: string, cluster: string, namespace: string) {
-    super(ComponentTypeEnum.EnvoyProxy, name, cluster, namespace)
+    super(ComponentType.EnvoyProxy, name, cluster, namespace)
     this.validate()
   }
 

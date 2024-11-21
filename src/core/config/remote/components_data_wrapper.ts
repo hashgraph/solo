@@ -14,7 +14,7 @@
  * limitations under the License.
  *
  */
-import { ComponentTypeEnum } from './enumerations.js'
+import { ComponentType } from './enumerations.js'
 import { SoloError } from '../../errors.js'
 import {
   BaseComponent, ConsensusNodeComponent, HaProxyComponent, EnvoyProxyComponent,
@@ -97,13 +97,13 @@ export class ComponentsDataWrapper implements Validate, ToObject<ComponentsDataS
   }
 
   /** Used to remove specific component from their respective group. */
-  public remove (serviceName: ComponentName, type: ComponentTypeEnum): void {
+  public remove (serviceName: ComponentName, type: ComponentType): void {
     const self = this
 
     if (!serviceName || typeof serviceName !== 'string') {
       throw new SoloError(`Service name is required ${serviceName}`)
     }
-    if (!Object.values(ComponentTypeEnum).includes(type)) {
+    if (!Object.values(ComponentType).includes(type)) {
       throw new SoloError(`Invalid component type ${type}`)
     }
 
@@ -124,28 +124,28 @@ export class ComponentsDataWrapper implements Validate, ToObject<ComponentsDataS
    * and pass it to a callback to apply modifications
    */
   private applyCallbackToComponentGroup (
-    type: ComponentTypeEnum,
+    type: ComponentType,
     serviceName: ComponentName,
     callback: (components: Record<ComponentName, BaseComponent>) => void
   ): void {
     switch (type) {
-      case ComponentTypeEnum.Relay:
+      case ComponentType.Relay:
         callback(this.relays)
         break
 
-      case ComponentTypeEnum.HaProxy:
+      case ComponentType.HaProxy:
         callback(this.haProxies)
         break
-      case ComponentTypeEnum.MirrorNode:
+      case ComponentType.MirrorNode:
         callback(this.mirrorNodes)
         break
-      case ComponentTypeEnum.EnvoyProxy:
+      case ComponentType.EnvoyProxy:
         callback(this.envoyProxies)
         break
-      case ComponentTypeEnum.ConsensusNode:
+      case ComponentType.ConsensusNode:
         callback(this.consensusNodes)
         break
-      case ComponentTypeEnum.MirrorNodeExplorer:
+      case ComponentType.MirrorNodeExplorer:
         callback(this.mirrorNodeExplorers)
         break
       default:
@@ -168,39 +168,39 @@ export class ComponentsDataWrapper implements Validate, ToObject<ComponentsDataS
     const consensusNodes: Record<ComponentName, ConsensusNodeComponent> = {}
     const mirrorNodeExplorers: Record<ComponentName, MirrorNodeExplorerComponent> = {}
 
-    Object.entries(components).forEach(([type, components]: [ComponentTypeEnum, Record<ComponentName, Component>]) => {
+    Object.entries(components).forEach(([type, components]: [ComponentType, Record<ComponentName, Component>]) => {
       switch (type) {
-        case ComponentTypeEnum.Relay:
+        case ComponentType.Relay:
           Object.entries(components).forEach(([name, component]: [ComponentName, IRelayComponent]) => {
             relays[name] = RelayComponent.fromObject(component)
           })
           break
 
-        case ComponentTypeEnum.HaProxy:
+        case ComponentType.HaProxy:
           Object.entries(components).forEach(([name, component]: [ComponentName, Component]) => {
             haProxies[name] = HaProxyComponent.fromObject(component)
           })
           break
 
-        case ComponentTypeEnum.MirrorNode:
+        case ComponentType.MirrorNode:
           Object.entries(components).forEach(([name, component]: [ComponentName, Component]) => {
             mirrorNodes[name] = MirrorNodeComponent.fromObject(component)
           })
           break
 
-        case ComponentTypeEnum.EnvoyProxy:
+        case ComponentType.EnvoyProxy:
           Object.entries(components).forEach(([name, component]: [ComponentName, Component]) => {
             envoyProxies[name] = EnvoyProxyComponent.fromObject(component)
           })
           break
 
-        case ComponentTypeEnum.ConsensusNode:
+        case ComponentType.ConsensusNode:
           Object.entries(components).forEach(([name, component]: [ComponentName, IConsensusNodeComponent]) => {
             consensusNodes[name] = ConsensusNodeComponent.fromObject(component)
           })
           break
 
-        case ComponentTypeEnum.MirrorNodeExplorer:
+        case ComponentType.MirrorNodeExplorer:
           Object.entries(components).forEach(([name, component]: [ComponentName, Component]) => {
             mirrorNodeExplorers[name] = MirrorNodeExplorerComponent.fromObject(component)
           })
@@ -265,12 +265,12 @@ export class ComponentsDataWrapper implements Validate, ToObject<ComponentsDataS
     }
 
     return {
-      [ComponentTypeEnum.Relay]: transform(this.relays),
-      [ComponentTypeEnum.HaProxy]: transform(this.haProxies),
-      [ComponentTypeEnum.MirrorNode]: transform(this.mirrorNodes),
-      [ComponentTypeEnum.EnvoyProxy]: transform(this.envoyProxies),
-      [ComponentTypeEnum.ConsensusNode]: transform(this.consensusNodes),
-      [ComponentTypeEnum.MirrorNodeExplorer]: transform(this.mirrorNodeExplorers),
+      [ComponentType.Relay]: transform(this.relays),
+      [ComponentType.HaProxy]: transform(this.haProxies),
+      [ComponentType.MirrorNode]: transform(this.mirrorNodes),
+      [ComponentType.EnvoyProxy]: transform(this.envoyProxies),
+      [ComponentType.ConsensusNode]: transform(this.consensusNodes),
+      [ComponentType.MirrorNodeExplorer]: transform(this.mirrorNodeExplorers),
     }
   }
 }

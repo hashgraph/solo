@@ -26,7 +26,7 @@ import {
   MirrorNodeExplorerComponent,
   RelayComponent
 } from '../../../../src/core/config/remote/components/index.js'
-import { ComponentTypeEnum, ConsensusNodeStates } from '../../../../src/core/config/remote/enumerations.js'
+import { ComponentType, ConsensusNodeStates } from '../../../../src/core/config/remote/enumerations.js'
 import { SoloError } from '../../../../src/core/errors.js'
 import type { NodeAliases } from '../../../../src/types/aliases.js'
 
@@ -89,7 +89,7 @@ describe('ComponentsDataWrapper', () => {
 
     expect(componentsDataWrapperObject).to.deep.equal(newComponentsDataWrapper.toObject())
 
-    Object.values(ComponentTypeEnum).forEach((type) => {
+    Object.values(ComponentType).forEach((type) => {
       expect(componentsDataWrapperObject).to.have.ownProperty(type)
     })
 
@@ -118,12 +118,12 @@ describe('ComponentsDataWrapper', () => {
 
     const componentDataWrapperObject = componentsDataWrapper.toObject()
 
-    expect(componentDataWrapperObject[ComponentTypeEnum.EnvoyProxy]).has.own.property(newServiceName)
+    expect(componentDataWrapperObject[ComponentType.EnvoyProxy]).has.own.property(newServiceName)
 
-    expect(componentDataWrapperObject[ComponentTypeEnum.EnvoyProxy][newServiceName])
+    expect(componentDataWrapperObject[ComponentType.EnvoyProxy][newServiceName])
       .to.deep.equal({ name, cluster, namespace })
 
-    expect(Object.values(componentDataWrapperObject[ComponentTypeEnum.EnvoyProxy])).to.have.lengthOf(2)
+    expect(Object.values(componentDataWrapperObject[ComponentType.EnvoyProxy])).to.have.lengthOf(2)
   })
 
   it ('should be able to edit component with the .edit()', () => {
@@ -143,7 +143,7 @@ describe('ComponentsDataWrapper', () => {
 
     componentsDataWrapper.edit(serviceName, newReplayComponent)
 
-    expect(componentsDataWrapper.toObject()[ComponentTypeEnum.Relay][serviceName].name).to.equal(newName)
+    expect(componentsDataWrapper.toObject()[ComponentType.Relay][serviceName].name).to.equal(newName)
   })
 
   it ('should not be able to edit component with the .edit() if it doesn\'t exist ', () => {
@@ -162,7 +162,7 @@ describe('ComponentsDataWrapper', () => {
   it ('should be able to remove component with the .remove()', () => {
     const { wrapper: { componentsDataWrapper }, serviceName } = createComponentsDataWrapper()
 
-    componentsDataWrapper.remove(serviceName, ComponentTypeEnum.Relay)
+    componentsDataWrapper.remove(serviceName, ComponentType.Relay)
 
     // @ts-ignore
     expect(componentsDataWrapper.relays).not.to.have.own.property(serviceName)
@@ -173,10 +173,10 @@ describe('ComponentsDataWrapper', () => {
 
     const notFoundServiceName = 'not_found'
 
-    expect(() => componentsDataWrapper.remove(notFoundServiceName, ComponentTypeEnum.Relay))
+    expect(() => componentsDataWrapper.remove(notFoundServiceName, ComponentType.Relay))
       .to.throw(
       SoloError,
-      `Component ${notFoundServiceName} of type ${ComponentTypeEnum.Relay} not found while attempting to remove`
+      `Component ${notFoundServiceName} of type ${ComponentType.Relay} not found while attempting to remove`
     )
   })
 

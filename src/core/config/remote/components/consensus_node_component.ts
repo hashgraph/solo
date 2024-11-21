@@ -14,7 +14,7 @@
  * limitations under the License.
  *
  */
-import { ComponentTypeEnum, ConsensusNodeStates } from '../enumerations.js'
+import { ComponentType, ConsensusNodeStates } from '../enumerations.js'
 import { BaseComponent } from './base_component.js'
 import { SoloError } from '../../../errors.js'
 import type { Cluster, IConsensusNodeComponent, Namespace, ComponentName } from '../types.js'
@@ -44,7 +44,7 @@ export class ConsensusNodeComponent extends BaseComponent
     namespace: Namespace,
     state: ConsensusNodeStates
   ) {
-    super(ComponentTypeEnum.ConsensusNode, name, cluster, namespace)
+    super(ComponentType.ConsensusNode, name, cluster, namespace)
     this._state = state
 
     this.validate()
@@ -73,14 +73,14 @@ export class ConsensusNodeComponent extends BaseComponent
     super.validate()
 
     if (!Object.values(ConsensusNodeStates).includes(this.state)) {
-      throw new SoloError(`Invalid ConsensusNodeStates value: ${this.state}`)
+      throw new SoloError(`Invalid consensus node state: ${this.state}`)
     }
   }
 
   public toObject (): IConsensusNodeComponent {
     return {
+      ...super.toObject(),
       state: this.state,
-      ...super.toObject()
     }
   }
 }

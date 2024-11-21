@@ -17,7 +17,7 @@
 import {
   RelayComponent, HaProxyComponent, EnvoyProxyComponent, MirrorNodeComponent, ConsensusNodeComponent,
 } from './components/index.js'
-import { ComponentTypeEnum, ConsensusNodeStates } from './enumerations.js'
+import { ComponentType, ConsensusNodeStates } from './enumerations.js'
 
 import type { BaseCommand } from '../../../commands/base.js'
 import type { RelayCommand } from '../../../commands/relay.js'
@@ -75,7 +75,7 @@ export class RemoteConfigTasks {
       title: 'Remove relay component from remote config',
       task: async (): Promise<void> => {
         await this.remoteConfigManager.modify(async (remoteConfig) => {
-          remoteConfig.components.remove('relay', ComponentTypeEnum.Relay)
+          remoteConfig.components.remove('relay', ComponentType.Relay)
         })
       }
     }
@@ -110,9 +110,9 @@ export class RemoteConfigTasks {
       title: 'Remove mirror node and mirror node explorer from remote config',
       task: async (): Promise<void> => {
         await this.remoteConfigManager.modify(async (remoteConfig) => {
-          remoteConfig.components.remove('mirrorNode', ComponentTypeEnum.MirrorNode)
+          remoteConfig.components.remove('mirrorNode', ComponentType.MirrorNode)
 
-          remoteConfig.components.remove('mirrorNodeExplorer', ComponentTypeEnum.MirrorNode)
+          remoteConfig.components.remove('mirrorNodeExplorer', ComponentType.MirrorNode)
         })
       }
     }
@@ -154,9 +154,9 @@ export class RemoteConfigTasks {
       title: 'Remove node and proxies from remote config',
       task: async (): Promise<void> => {
         await this.remoteConfigManager.modify(async (remoteConfig) => {
-          remoteConfig.components.remove('Consensus node name', ComponentTypeEnum.ConsensusNode)
-          remoteConfig.components.remove('Envoy proxy name', ComponentTypeEnum.EnvoyProxy)
-          remoteConfig.components.remove('HaProxy name', ComponentTypeEnum.HaProxy)
+          remoteConfig.components.remove('Consensus node name', ComponentType.ConsensusNode)
+          remoteConfig.components.remove('Envoy proxy name', ComponentType.EnvoyProxy)
+          remoteConfig.components.remove('HaProxy name', ComponentType.HaProxy)
         })
       }
     }

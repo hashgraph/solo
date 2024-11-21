@@ -14,7 +14,7 @@
  * limitations under the License.
  *
  */
-import { ComponentTypeEnum } from '../enumerations.js'
+import { ComponentType } from '../enumerations.js'
 import { SoloError } from '../../../errors.js'
 import { BaseComponent } from './base_component.js'
 import type { IRelayComponent } from '../types.js'
@@ -34,7 +34,7 @@ export class RelayComponent extends BaseComponent
     name: string, cluster: string, namespace: string,
     public readonly consensusNodeAliases: NodeAliases = []
   ) {
-    super(ComponentTypeEnum.Relay, name, cluster, namespace)
+    super(ComponentType.Relay, name, cluster, namespace)
     this.validate()
   }
 

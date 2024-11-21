@@ -19,7 +19,7 @@
  * Enumerations that represent the component types used in remote config
  * {@link ComponentsDataWrapper}
  */
-export enum ComponentTypeEnum {
+export enum ComponentType {
   ConsensusNode = 'consensus nodes',
   HaProxy = 'ha proxies',
   EnvoyProxy = 'envoy proxies',

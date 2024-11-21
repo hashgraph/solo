@@ -14,7 +14,7 @@
  * limitations under the License.
  *
  */
-import { ComponentTypeEnum } from '../enumerations.js'
+import { ComponentType } from '../enumerations.js'
 import { SoloError } from '../../../errors.js'
 import type { Cluster, Component, Namespace, ComponentName } from '../types.js'
 import type { ToObject, Validate } from '../../../../types/index.js'
@@ -25,7 +25,7 @@ import type { ToObject, Validate } from '../../../../types/index.js'
  */
 export abstract class BaseComponent implements Component, Validate, ToObject<Component> {
   /** The type of the component */
-  private readonly _type: ComponentTypeEnum
+  private readonly _type: ComponentType
 
   /** The name of the component. */
   private readonly _name: ComponentName
@@ -42,7 +42,7 @@ export abstract class BaseComponent implements Component, Validate, ToObject<Com
    * @param cluster - in which the component is deployed.
    * @param namespace - associated with the component.
    */
-  protected constructor (type: ComponentTypeEnum, name: ComponentName, cluster: Cluster, namespace: Namespace) {
+  protected constructor (type: ComponentType, name: ComponentName, cluster: Cluster, namespace: Namespace) {
     this._type = type
     this._name = name
     this._cluster = cluster
@@ -55,7 +55,7 @@ export abstract class BaseComponent implements Component, Validate, ToObject<Com
    * Retrieves the type of the component
    * @readonly
    */
-  public get type (): ComponentTypeEnum { return this._type }
+  public get type (): ComponentType { return this._type }
 
   /**
    * Retrieves the name of the component.
@@ -105,8 +105,8 @@ export abstract class BaseComponent implements Component, Validate, ToObject<Com
       throw new SoloError(`Invalid namespace: ${this.namespace}`)
     }
 
-    if (!Object.values(ComponentTypeEnum).includes(this.type)) {
-      throw new SoloError('Invalid ComponentTypeEnum value')
+    if (!Object.values(ComponentType).includes(this.type)) {
+      throw new SoloError(`Invalid component type: ${this.type}`)
     }
   }
 
