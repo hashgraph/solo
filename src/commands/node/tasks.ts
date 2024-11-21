@@ -453,6 +453,12 @@ export class NodeCommandTasks {
       const treasuryPrivateKey = PrivateKey.fromStringED25519(treasuryKey.privateKey)
       client.setOperator(TREASURY_ACCOUNT_ID, treasuryPrivateKey)
 
+      // check balance
+      const treasuryBalance = await new AccountBalanceQuery()
+          .setAccountId(TREASURY_ACCOUNT_ID)
+          .execute(client)
+      this.logger.debug(`Account ${TREASURY_ACCOUNT_ID} balance: ${treasuryBalance.hbars}`)
+
       // get some initial balance
       await this.accountManager.transferAmount(constants.TREASURY_ACCOUNT_ID, accountId, HEDERA_NODE_DEFAULT_STAKE_AMOUNT + 1)
 
@@ -560,6 +566,12 @@ export class NodeCommandTasks {
 
         futureDate.setTime(futureDate.getTime() + 5000) // 5 seconds in the future
         this.logger.debug(`Freeze time: ${futureDate}`)
+
+        // query the balance
+        const balance = await new AccountBalanceQuery()
+            .setAccountId(FREEZE_ADMIN_ACCOUNT)
+            .execute(nodeClient)
+        this.logger.debug(`Freeze admin account balance: ${balance.hbars}`)
 
         nodeClient.setOperator(FREEZE_ADMIN_ACCOUNT, freezeAdminPrivateKey)
         const freezeUpgradeTx = await new FreezeTransaction()
