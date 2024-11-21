@@ -1,55 +1,8 @@
 name: Bug Report
 description: File a bug report
-title: "<Please write a short description of what didn't work for you here>"
+#title: "<Please write a short description of what didn't work for you here>"
 labels: ["Bug", "Pending Triage"]
 body:
-  - type: input
-    id: bom-cli-version
-    attributes:
-      label: Bill of Materials or CLI Version
-      description: Which version of the BOM or CLI are you using?
-      placeholder: |
-        ex. 0.18.2 or git commit ID
-        
-        The bill of materials version can be found in your Gradle or Maven 
-        build configuration. The CLI version can be found by using the `--version` switch.
-  - type: dropdown
-    id: execution-environment
-    attributes:
-      label: Execution Environment
-      description: Which front-end execution environment are you using?
-      options:
-        - JUnit Extensions
-        - Performance CLI
-        - Local Node CLI
-        - Other
-    validations:
-      required: true
-  - type: dropdown
-    id: logging-implementation
-    attributes:
-      label: Slf4j Logging Implementation
-      description: Which slf4j compatible logging implementation are you using? **JUnit Users Only**
-      options:
-        - Log4j 1.x
-        - Log4j 2.x
-        - Logback Classic
-        - Other
-    validations:
-      required: false
-  - type: textarea
-    id: reproduction-steps
-    attributes:
-      label: To Reproduce
-      description: Steps to reproduce the behavior
-      render: markdown
-      placeholder: |
-        1. Go to '...'
-        2. Click on '....'
-        3. Scroll down to '....'
-        4. See error
-    validations:
-      required: true
   - type: textarea
     id: actual-behavior
     attributes:
@@ -67,13 +20,15 @@ body:
     validations:
       required: true
   - type: textarea
-    id: test-cli-logs
+    id: reproduction-steps
     attributes:
-      label: Whole JUnit/CLI Logs
-      description: "NEVER EVER OMIT THIS! Include logs from JUnit test output or CLI console/log file output. Don't omit the parts you think irrelevant!"
-      render: shell
+      label: To Reproduce
+      description: Steps to reproduce the behavior
       placeholder: |
-        PROVIDE THE LOGS VIA A GIST LINK (https://gist.github.com/), NOT DIRECTLY IN THIS TEXT AREA
+        1. Go to '...'
+        2. Click on '....'
+        3. Scroll down to '....'
+        4. See error
     validations:
       required: true
   - type: textarea

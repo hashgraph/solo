@@ -17,11 +17,11 @@
 import * as x509 from '@peculiar/x509'
 import os from 'os'
 import path from 'path'
-import { DataValidationError, SoloError, IllegalArgumentError, MissingArgumentError } from './errors.ts'
-import { constants } from './index.ts'
+import { DataValidationError, SoloError, IllegalArgumentError, MissingArgumentError } from './errors.js'
+import { constants } from './index.js'
 import { type AccountId } from '@hashgraph/sdk'
-import type { NodeAlias, PodName } from '../types/aliases.ts'
-import { GrpcProxyTlsEnums } from './enumerations.ts'
+import type { NodeAlias, PodName } from '../types/aliases.js'
+import { GrpcProxyTlsEnums } from './enumerations.js'
 
 export class Templates {
   public static renderNetworkPodName (nodeAlias: NodeAlias): PodName {

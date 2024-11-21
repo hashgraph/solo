@@ -92,6 +92,8 @@ export const POD_CONDITION_STATUS_TRUE = 'True'
 export const EXPLORER_VALUES_FILE = path.join('resources', 'hedera-explorer-values.yaml')
 export const MIRROR_NODE_VALUES_FILE = path.join('resources', 'mirror-node-values.yaml')
 
+export const NODE_LOG_FAILURE_MSG = 'failed to download logs from pod'
+
 /**
  * Listr related
  * @return a object that defines the default color options
@@ -161,10 +163,6 @@ export const JVM_DEBUG_PORT = 5005
 
 export const SECONDS = 1000
 export const MINUTES = 60 * SECONDS
-
-export const LEASE_ACQUIRE_RETRY_TIMEOUT = +process.env.LEASE_ACQUIRE_RETRY_TIMEOUT || 20 * SECONDS
-export const MAX_LEASE_ACQUIRE_ATTEMPTS = +process.env.MAX_LEASE_ACQUIRE_ATTEMPTS || 10
-export const DEFAULT_LEASE_RENEW_TIMEOUT = 10 * SECONDS
 
 export const PODS_RUNNING_MAX_ATTEMPTS = +process.env.PODS_RUNNING_MAX_ATTEMPTS || 60 * 15
 export const PODS_RUNNING_DELAY = +process.env.PODS_RUNNING_DELAY || 1000

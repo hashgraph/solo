@@ -14,8 +14,8 @@
  * limitations under the License.
  *
  */
-import { testNodeAdd } from '../../test_add.ts'
-import { MINUTES } from '../../../src/core/constants.ts'
+import { testNodeAdd } from '../../test_add.js'
+import { MINUTES } from '../../../src/core/constants.js'
 
 const localBuildPath = ''
 testNodeAdd(localBuildPath, 'Node add with released hedera', 3 * MINUTES)

@@ -14,17 +14,17 @@
  * limitations under the License.
  *
  */
-import { FREEZE_ADMIN_ACCOUNT } from '../../core/constants.ts'
-import { constants, Templates } from '../../core/index.ts'
+import { FREEZE_ADMIN_ACCOUNT } from '../../core/constants.js'
+import { constants, Templates } from '../../core/index.js'
 import { PrivateKey } from '@hashgraph/sdk'
-import { SoloError } from '../../core/errors.ts'
-import * as helpers from '../../core/helpers.ts'
+import { SoloError } from '../../core/errors.js'
+import * as helpers from '../../core/helpers.js'
 import path from 'path'
 import fs from 'fs'
-import { validatePath } from '../../core/helpers.ts'
-import * as flags from '../flags.ts'
-import { type NodeAlias, type NodeAliases, type PodName } from '../../types/aliases.ts'
-import { type NetworkNodeServices } from '../../core/network_node_services.ts'
+import { validatePath } from '../../core/helpers.js'
+import * as flags from '../flags.js'
+import { type NodeAlias, type NodeAliases, type PodName } from '../../types/aliases.js'
+import { type NetworkNodeServices } from '../../core/network_node_services.js'
 
 export const PREPARE_UPGRADE_CONFIGS_NAME = 'prepareUpgradeConfig'
 export const DOWNLOAD_GENERATED_FILES_CONFIGS_NAME = 'downloadGeneratedFilesConfig'
@@ -235,7 +235,7 @@ export const addConfigBuilder = async function (argv, ctx, task) {
 }
 
 export const logsConfigBuilder = function (argv, ctx, task) {
-    /** @type {{namespace: string, nodeAliases: NodeAliases}} */
+    /** @type {{namespace: string, nodeAliases: NodeAliases, nodeAliasesUnparsed: string}} */
     const config = {
         namespace: this.configManager.getFlag(flags.namespace),
         nodeAliases: helpers.parseNodeAliases(this.configManager.getFlag(flags.nodeAliasesUnparsed)),

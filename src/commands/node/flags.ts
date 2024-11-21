@@ -14,8 +14,8 @@
  * limitations under the License.
  *
  */
+import { flags } from '../index.js'
 
-import * as flags from '../flags.ts'
 
 export const DEFAULT_FLAGS = {
     requiredFlags: [],
