@@ -21,9 +21,9 @@ import * as flags from './flags.js'
 import { constants, Templates } from '../core/index.js'
 import * as prompts from './prompts.js'
 import chalk from 'chalk'
-import { RemoteConfigTasks } from '../core/config/remote/remote_config_tasks.ts'
-import type { Namespace } from '../core/config/remote/types.ts'
-import type { CommandFlag, ContextClusterStructure } from '../types/index.ts'
+import { RemoteConfigTasks } from '../core/config/remote/remote_config_tasks.js'
+import type { Namespace } from '../core/config/remote/types.js'
+import type { CommandFlag, ContextClusterStructure } from '../types/index.js'
 
 export class DeploymentCommand extends BaseCommand {
   public static CREATE_DEPLOYMENT_NAME = 'createDeployment'

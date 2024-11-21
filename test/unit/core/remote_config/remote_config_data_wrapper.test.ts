@@ -18,11 +18,11 @@ import { expect } from 'chai'
 import { describe, it } from 'mocha'
 
 import yaml from 'js-yaml'
-import { RemoteConfigDataWrapper } from '../../../../src/core/config/remote/remote_config_data_wrapper.ts'
-import { createMetadata } from './metadata.test.ts'
-import { createComponentsDataWrapper } from './components_data_wrapper.test.ts'
-import { SoloError } from '../../../../src/core/errors.ts'
-import * as constants from '../../../../src/core/constants.ts'
+import { RemoteConfigDataWrapper } from '../../../../src/core/config/remote/remote_config_data_wrapper.js'
+import { createMetadata } from './metadata.test.js'
+import { createComponentsDataWrapper } from './components_data_wrapper.test.js'
+import { SoloError } from '../../../../src/core/errors.js'
+import * as constants from '../../../../src/core/constants.js'
 
 
 function createRemoteConfigDataWrapper () {

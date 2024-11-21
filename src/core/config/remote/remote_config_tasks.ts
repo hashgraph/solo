@@ -16,17 +16,17 @@
  */
 import {
   RelayComponent, HaProxyComponent, EnvoyProxyComponent, MirrorNodeComponent, ConsensusNodeComponent,
-} from './components/index.ts'
-import { ComponentTypeEnum, ConsensusNodeStates } from './enumerations.ts'
+} from './components/index.js'
+import { ComponentTypeEnum, ConsensusNodeStates } from './enumerations.js'
 
-import type { BaseCommand } from '../../../commands/base.ts'
-import type { RelayCommand } from '../../../commands/relay.ts'
-import type { NetworkCommand } from '../../../commands/network.ts'
-import type { DeploymentCommand } from '../../../commands/deployment.ts'
-import type { MirrorNodeCommand } from '../../../commands/mirror_node.ts'
-import type { NodeCommandHandlers } from '../../../commands/node/handlers.ts'
+import type { BaseCommand } from '../../../commands/base.js'
+import type { RelayCommand } from '../../../commands/relay.js'
+import type { NetworkCommand } from '../../../commands/network.js'
+import type { DeploymentCommand } from '../../../commands/deployment.js'
+import type { MirrorNodeCommand } from '../../../commands/mirror_node.js'
+import type { NodeCommandHandlers } from '../../../commands/node/handlers.js'
 import type { ListrTask } from 'listr2'
-import type { NodeAliases } from '../../../types/aliases.ts'
+import type { NodeAliases } from '../../../types/aliases.js'
 
 /**
  * Static class that handles all tasks related to remote config used by other commands.

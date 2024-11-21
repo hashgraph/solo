@@ -15,7 +15,7 @@
  *
  */
 import { ComponentTypeEnum } from '../enumerations.js'
-import { BaseComponent } from './base_component.ts'
+import { BaseComponent } from './base_component.js'
 import type { Component } from '../types.js'
 
 export class HaProxyComponent extends BaseComponent {

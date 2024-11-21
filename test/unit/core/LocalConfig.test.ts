@@ -19,7 +19,7 @@ import fs from 'fs'
 import { stringify } from 'yaml'
 import { expect } from 'chai'
 import { MissingArgumentError, SoloError } from '../../../src/core/errors.js'
-import { getTestCacheDir, testLogger } from '../../test_util.ts'
+import { getTestCacheDir, testLogger } from '../../test_util.js'
 import { EmailAddress } from "../../../src/core/config/remote/types.js";
 
 describe('LocalConfig', () => {

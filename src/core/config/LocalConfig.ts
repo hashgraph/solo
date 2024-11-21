@@ -26,7 +26,7 @@ import type {
 } from './LocalConfigData.js'
 import type { EmailAddress, Namespace } from './remote/types.js'
 import type { K8 } from '../k8.js'
-import type { ConfigManager } from '../config_manager.ts'
+import type { ConfigManager } from '../config_manager.js'
 
 export class LocalConfig implements LocalConfigData {
   public userEmailAddress: EmailAddress
