@@ -257,7 +257,8 @@ export class RelayCommand extends BaseCommand {
             throw new SoloError(`Relay ${config.releaseName} is not ready: ${e.message}`, e)
           }
         }
-      }
+      },
+      RemoteConfigTasks.addRelayComponent.bind(this)(),
     ], {
       concurrent: false,
       rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
@@ -329,7 +330,8 @@ export class RelayCommand extends BaseCommand {
           self.configManager.setFlag(flags.nodeAliasesUnparsed, '')
         },
         skip: (ctx) => !ctx.config.isChartInstalled
-      }
+      },
+      RemoteConfigTasks.removeRelayComponent.bind(this)(),
     ], {
       concurrent: false,
       rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION

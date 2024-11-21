@@ -200,9 +200,9 @@ describe ('ConsensusNodeComponent', () => {
   })
 
   it('should fail if state is not valid', () => {
-    const state = 'INVALID' as ConsensusNodeStates.STARTED
+    const state = 'invalid' as ConsensusNodeStates.STARTED
     expect(() => new ConsensusNodeComponent('valid', 'valid', 'valid', state))
-      .to.throw(SoloError, `Invalid ConsensusNodeStates value: ${state}`)
+      .to.throw(SoloError, `Invalid consensus node state: ${state}`)
   })
 
   it('should successfully create ', () => {
