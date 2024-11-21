@@ -152,6 +152,7 @@ export class RemoteConfigManager {
       title: 'Load remote config',
       task: async (_, task): Promise<void> => {
         self.setDefaultNamespace()
+        self.setDefaultContext()
 
         if (!await self.load()) {
           task.title = `${task.title} - ${chalk.red('remote config not found')}`
@@ -238,7 +239,6 @@ export class RemoteConfigManager {
   }
 
   private setDefaultNamespace (): void {
-
     if (this.configManager.hasFlag(flags.namespace)) return
 
     if (!this.localConfig?.currentDeploymentName) {
@@ -251,6 +251,21 @@ export class RemoteConfigManager {
 
     this.configManager.setFlag(flags.namespace, namespace)
   }
+
+  private setDefaultContext (): void {
+    if (this.configManager.hasFlag(flags.context)) return
+
+    const context = this.k8.getKubeConfig().currentContext
+
+    if (!context) {
+      this.logger.error('Context is not passed and default one can\'t be acquired', this.localConfig)
+      throw new SoloError('Context is not passed and default one can\'t be acquired')
+    }
+
+    this.configManager.setFlag(flags.context, context)
+  }
+
+  // cluster will be retrieved from LocalConfig based the context to cluster mapping
 
   /**
    * Retrieves the namespace value from the configuration manager's flags.

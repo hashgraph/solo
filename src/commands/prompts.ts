@@ -495,6 +495,14 @@ export async function promptOutputDir (task: ListrTaskWrapper<any, any, any>, in
         flags.outputDir.name)
 }
 
+export async function promptContext (task: ListrTaskWrapper<any, any, any>, input: any) {
+  return await promptText(task, input,
+    null,
+    'Enter kubernetes context to use for command: ',
+    null,
+    flags.context.name)
+}
+
 export async function promptContextCluster (task: ListrTaskWrapper<any, any, any>, input: any) {
   return await promptText(task, input,
     null,
@@ -583,6 +591,7 @@ export function getPromptMap (): Map<string, Function> {
     .set(flags.inputDir.name, promptInputDir)
     .set(flags.outputDir.name, promptOutputDir)
     .set(flags.contextCluster.name, promptContextCluster)
+    .set(flags.context.name, promptContext)
 
     //! Node Proxy Certificates
     .set(flags.grpcTlsCertificatePath.name, promptGrpcTlsCertificatePath)

@@ -22,11 +22,11 @@ import type { CommandFlag } from '../types/index.ts'
 
 /**
  * Set flag from the flag option
- * @param y instance of yargs
- * @param commandFlags a set of command flags
+ * @param y - instance of yargs
+ * @param commandFlags - a set of command flags
  *
  */
-export function setCommandFlags (y: any, ...commandFlags: CommandFlag[]) {
+export function setCommandFlags (y: any, ...commandFlags: CommandFlag[]): void {
   commandFlags.forEach(flag => {
     y.option(flag.name, flag.definition)
   })
@@ -40,7 +40,7 @@ export const devMode: CommandFlag = {
     defaultValue: false,
     type: 'boolean'
   }
-}
+} as const
 
 // list of common flags across commands. command specific flags are defined in the command's module.
 export const clusterName: CommandFlag = {
@@ -52,7 +52,7 @@ export const clusterName: CommandFlag = {
     alias: 'c',
     type: 'string'
   }
-}
+} as const
 
 export const clusterSetupNamespace: CommandFlag = {
   constName: 'clusterSetupNamespace',
@@ -63,7 +63,7 @@ export const clusterSetupNamespace: CommandFlag = {
     alias: 's',
     type: 'string'
   }
-}
+} as const
 
 export const namespace: CommandFlag = {
   constName: 'namespace',
@@ -73,7 +73,7 @@ export const namespace: CommandFlag = {
     alias: 'n',
     type: 'string'
   }
-}
+} as const
 
 export const contextCluster: CommandFlag = {
   constName: 'contextClusterUnparsed',
@@ -84,7 +84,16 @@ export const contextCluster: CommandFlag = {
       '(e.g.: --context-cluster kind-solo=kind-solo,kind-solo-2=kind-solo-2)',
     type: 'string'
   }
-}
+} as const
+
+export const context: CommandFlag = {
+  constName: 'context',
+  name: 'context',
+  definition: {
+    describe: 'Kubernetes context to use for command',
+    type: 'string'
+  }
+} as const
 
 export const deployHederaExplorer: CommandFlag = {
   constName: 'deployHederaExplorer',
@@ -95,7 +104,7 @@ export const deployHederaExplorer: CommandFlag = {
     alias: 'x',
     type: 'boolean'
   }
-}
+} as const
 
 export const valuesFile: CommandFlag = {
   constName: 'valuesFile',
@@ -106,7 +115,7 @@ export const valuesFile: CommandFlag = {
     alias: 'f',
     type: 'string'
   }
-}
+} as const
 
 export const profileFile: CommandFlag = {
   constName: 'profileFile',
@@ -116,7 +125,7 @@ export const profileFile: CommandFlag = {
     defaultValue: constants.DEFAULT_PROFILE_FILE,
     type: 'string'
   }
-}
+} as const
 
 export const profileName: CommandFlag = {
   constName: 'profileName',
@@ -126,7 +135,7 @@ export const profileName: CommandFlag = {
     defaultValue: constants.PROFILE_LOCAL,
     type: 'string'
   }
-}
+} as const
 
 export const deployPrometheusStack: CommandFlag = {
   constName: 'deployPrometheusStack',
@@ -136,7 +145,7 @@ export const deployPrometheusStack: CommandFlag = {
     defaultValue: false,
     type: 'boolean'
   }
-}
+} as const
 
 export const enablePrometheusSvcMonitor: CommandFlag = {
   constName: 'enablePrometheusSvcMonitor',
@@ -146,7 +155,7 @@ export const enablePrometheusSvcMonitor: CommandFlag = {
     defaultValue: false,
     type: 'boolean'
   }
-}
+} as const
 
 export const deployMinio: CommandFlag = {
   constName: 'deployMinio',
@@ -156,7 +165,7 @@ export const deployMinio: CommandFlag = {
     defaultValue: true,
     type: 'boolean'
   }
-}
+} as const
 
 export const deployCertManager: CommandFlag = {
   constName: 'deployCertManager',
@@ -166,7 +175,7 @@ export const deployCertManager: CommandFlag = {
     defaultValue: false,
     type: 'boolean'
   }
-}
+} as const
 
 /*
     Deploy cert manager CRDs separately from cert manager itself.  Cert manager
@@ -180,7 +189,7 @@ export const deployCertManagerCrds: CommandFlag = {
     defaultValue: false,
     type: 'boolean'
   }
-}
+} as const
 
 export const deployJsonRpcRelay: CommandFlag = {
   constName: 'deployJsonRpcRelay',
@@ -191,7 +200,7 @@ export const deployJsonRpcRelay: CommandFlag = {
     alias: 'j',
     type: 'boolean'
   }
-}
+} as const
 
 export const releaseTag: CommandFlag = {
   constName: 'releaseTag',
@@ -202,7 +211,7 @@ export const releaseTag: CommandFlag = {
     defaultValue: version.HEDERA_PLATFORM_VERSION,
     type: 'string'
   }
-}
+} as const
 
 export const relayReleaseTag: CommandFlag = {
   constName: 'relayReleaseTag',
@@ -212,7 +221,7 @@ export const relayReleaseTag: CommandFlag = {
     defaultValue: 'v0.53.0',
     type: 'string'
   }
-}
+} as const
 
 export const cacheDir: CommandFlag = {
   constName: 'cacheDir',
@@ -222,7 +231,7 @@ export const cacheDir: CommandFlag = {
     defaultValue: core.constants.SOLO_CACHE_DIR,
     type: 'string'
   }
-}
+} as const
 
 export const nodeAliasesUnparsed: CommandFlag = {
   constName: 'nodeAliasesUnparsed',
@@ -232,7 +241,7 @@ export const nodeAliasesUnparsed: CommandFlag = {
     alias: 'i',
     type: 'string'
   }
-}
+} as const
 
 export const force: CommandFlag = {
   constName: 'force',
@@ -243,7 +252,7 @@ export const force: CommandFlag = {
     alias: 'f',
     type: 'boolean'
   }
-}
+} as const
 
 export const chartDirectory: CommandFlag = {
   constName: 'chartDirectory',
@@ -254,7 +263,7 @@ export const chartDirectory: CommandFlag = {
     alias: 'd',
     type: 'string'
   }
-}
+} as const
 
 export const replicaCount: CommandFlag = {
   constName: 'replicaCount',
@@ -265,7 +274,7 @@ export const replicaCount: CommandFlag = {
     alias: '',
     type: 'number'
   }
-}
+} as const
 
 export const chainId: CommandFlag = {
   constName: 'chainId',
@@ -276,7 +285,7 @@ export const chainId: CommandFlag = {
     alias: 'l',
     type: 'string'
   }
-}
+} as const
 
 // Ref: https://github.com/hashgraph/hedera-json-rpc-relay/blob/main/docs/configuration.md
 export const operatorId: CommandFlag = {
@@ -287,7 +296,7 @@ export const operatorId: CommandFlag = {
     defaultValue: constants.OPERATOR_ID,
     type: 'string'
   }
-}
+} as const
 
 // Ref: https://github.com/hashgraph/hedera-json-rpc-relay/blob/main/docs/configuration.md
 export const operatorKey: CommandFlag = {
@@ -298,7 +307,7 @@ export const operatorKey: CommandFlag = {
     defaultValue: constants.OPERATOR_KEY,
     type: 'string'
   }
-}
+} as const
 
 export const generateGossipKeys: CommandFlag = {
   constName: 'generateGossipKeys',
@@ -308,7 +317,7 @@ export const generateGossipKeys: CommandFlag = {
     defaultValue: false,
     type: 'boolean'
   }
-}
+} as const
 
 export const generateTlsKeys: CommandFlag = {
   constName: 'generateTlsKeys',
@@ -318,7 +327,7 @@ export const generateTlsKeys: CommandFlag = {
     defaultValue: false,
     type: 'boolean'
   }
-}
+} as const
 
 export const tlsClusterIssuerType: CommandFlag = {
   constName: 'tlsClusterIssuerType',
@@ -328,7 +337,7 @@ export const tlsClusterIssuerType: CommandFlag = {
     defaultValue: 'self-signed',
     type: 'string'
   }
-}
+} as const
 
 export const enableHederaExplorerTls: CommandFlag = {
   constName: 'enableHederaExplorerTls',
@@ -338,7 +347,7 @@ export const enableHederaExplorerTls: CommandFlag = {
     defaultValue: false,
     type: 'boolean'
   }
-}
+} as const
 
 export const hederaExplorerTlsLoadBalancerIp: CommandFlag = {
   constName: 'hederaExplorerTlsLoadBalancerIp',
@@ -348,7 +357,7 @@ export const hederaExplorerTlsLoadBalancerIp: CommandFlag = {
     defaultValue: '',
     type: 'string'
   }
-}
+} as const
 
 export const hederaExplorerTlsHostName: CommandFlag = {
   constName: 'hederaExplorerTlsHostName',
@@ -358,7 +367,7 @@ export const hederaExplorerTlsHostName: CommandFlag = {
     defaultValue: 'explorer.solo.local',
     type: 'string'
   }
-}
+} as const
 
 export const deletePvcs: CommandFlag = {
   constName: 'deletePvcs',
@@ -368,7 +377,7 @@ export const deletePvcs: CommandFlag = {
     defaultValue: false,
     type: 'boolean'
   }
-}
+} as const
 
 export const deleteSecrets: CommandFlag = {
   constName: 'deleteSecrets',
@@ -378,7 +387,7 @@ export const deleteSecrets: CommandFlag = {
     defaultValue: false,
     type: 'boolean'
   }
-}
+} as const
 
 export const soloChartVersion: CommandFlag = {
   constName: 'soloChartVersion',
@@ -388,7 +397,7 @@ export const soloChartVersion: CommandFlag = {
     defaultValue: version.SOLO_CHART_VERSION,
     type: 'string'
   }
-}
+} as const
 
 export const applicationProperties: CommandFlag = {
   constName: 'applicationProperties',
@@ -398,7 +407,7 @@ export const applicationProperties: CommandFlag = {
     defaultValue: path.join(constants.SOLO_CACHE_DIR, 'templates', 'application.properties'),
     type: 'string'
   }
-}
+} as const
 
 export const applicationEnv: CommandFlag = {
   constName: 'applicationEnv',
@@ -408,7 +417,7 @@ export const applicationEnv: CommandFlag = {
     defaultValue: '',
     type: 'string'
   }
-}
+} as const
 
 export const apiPermissionProperties: CommandFlag = {
   constName: 'apiPermissionProperties',
@@ -418,7 +427,7 @@ export const apiPermissionProperties: CommandFlag = {
     defaultValue: path.join(constants.SOLO_CACHE_DIR, 'templates', 'api-permission.properties'),
     type: 'string'
   }
-}
+} as const
 
 export const bootstrapProperties: CommandFlag = {
   constName: 'bootstrapProperties',
@@ -428,7 +437,7 @@ export const bootstrapProperties: CommandFlag = {
     defaultValue: path.join(constants.SOLO_CACHE_DIR, 'templates', 'bootstrap.properties'),
     type: 'string'
   }
-}
+} as const
 
 export const settingTxt: CommandFlag = {
   constName: 'settingTxt',
@@ -438,7 +447,7 @@ export const settingTxt: CommandFlag = {
     defaultValue: path.join(constants.SOLO_CACHE_DIR, 'templates', 'settings.txt'),
     type: 'string'
   }
-}
+} as const
 
 export const app: CommandFlag = {
   constName: 'app',
@@ -448,7 +457,7 @@ export const app: CommandFlag = {
     defaultValue: constants.HEDERA_APP_NAME,
     type: 'string'
   }
-}
+} as const
 
 export const appConfig: CommandFlag = {
   constName: 'appConfig',
@@ -458,7 +467,7 @@ export const appConfig: CommandFlag = {
     defaultValue: '',
     type: 'string'
   }
-}
+} as const
 
 export const localBuildPath: CommandFlag = {
   constName: 'localBuildPath',
@@ -468,7 +477,7 @@ export const localBuildPath: CommandFlag = {
     defaultValue: '',
     type: 'string'
   }
-}
+} as const
 
 export const newAccountNumber: CommandFlag = {
   constName: 'newAccountNumber',
@@ -478,7 +487,7 @@ export const newAccountNumber: CommandFlag = {
     defaultValue: '',
     type: 'string'
   }
-}
+} as const
 
 export const newAdminKey: CommandFlag = {
   constName: 'newAdminKey',
@@ -488,7 +497,7 @@ export const newAdminKey: CommandFlag = {
     defaultValue: '',
     type: 'string'
   }
-}
+} as const
 
 export const gossipPublicKey: CommandFlag = {
   constName: 'gossipPublicKey',
@@ -498,7 +507,7 @@ export const gossipPublicKey: CommandFlag = {
     defaultValue: '',
     type: 'string'
   }
-}
+} as const
 
 export const gossipPrivateKey: CommandFlag = {
   constName: 'gossipPrivateKey',
@@ -508,7 +517,7 @@ export const gossipPrivateKey: CommandFlag = {
     defaultValue: '',
     type: 'string'
   }
-}
+} as const
 
 export const tlsPublicKey: CommandFlag = {
   constName: 'tlsPublicKey',
@@ -518,7 +527,7 @@ export const tlsPublicKey: CommandFlag = {
     defaultValue: '',
     type: 'string'
   }
-}
+} as const
 
 export const tlsPrivateKey: CommandFlag = {
   constName: 'tlsPrivateKey',
@@ -528,7 +537,7 @@ export const tlsPrivateKey: CommandFlag = {
     defaultValue: '',
     type: 'string'
   }
-}
+} as const
 
 export const log4j2Xml: CommandFlag = {
   constName: 'log4j2Xml',
@@ -538,7 +547,7 @@ export const log4j2Xml: CommandFlag = {
     defaultValue: path.join(constants.SOLO_CACHE_DIR, 'templates', 'log4j2.xml'),
     type: 'string'
   }
-}
+} as const
 
 export const updateAccountKeys: CommandFlag = {
   constName: 'updateAccountKeys',
@@ -548,7 +557,7 @@ export const updateAccountKeys: CommandFlag = {
     defaultValue: true,
     type: 'boolean'
   }
-}
+} as const
 
 export const ed25519PrivateKey: CommandFlag = {
   constName: 'ed25519PrivateKey',
@@ -558,7 +567,7 @@ export const ed25519PrivateKey: CommandFlag = {
     defaultValue: '',
     type: 'string'
   }
-}
+} as const
 
 export const ecdsaPrivateKey: CommandFlag = {
   constName: 'ecdsaPrivateKey',
@@ -568,7 +577,7 @@ export const ecdsaPrivateKey: CommandFlag = {
     defaultValue: '',
     type: 'string'
   }
-}
+} as const
 
 export const setAlias: CommandFlag = {
   constName: 'setAlias',
@@ -578,7 +587,7 @@ export const setAlias: CommandFlag = {
     defaultValue: false,
     type: 'boolean'
   }
-}
+} as const
 
 export const accountId: CommandFlag = {
   constName: 'accountId',
@@ -588,7 +597,7 @@ export const accountId: CommandFlag = {
     defaultValue: '',
     type: 'string'
   }
-}
+} as const
 
 export const amount: CommandFlag = {
   constName: 'amount',
@@ -598,7 +607,7 @@ export const amount: CommandFlag = {
     defaultValue: 100,
     type: 'number'
   }
-}
+} as const
 
 export const nodeAlias: CommandFlag = {
   constName: 'nodeAlias',
@@ -607,7 +616,7 @@ export const nodeAlias: CommandFlag = {
     describe: 'Node alias (e.g. node99)',
     type: 'string'
   }
-}
+} as const
 
 export const gossipEndpoints: CommandFlag = {
   constName: 'gossipEndpoints',
@@ -616,7 +625,7 @@ export const gossipEndpoints: CommandFlag = {
     describe: 'Comma separated gossip endpoints of the node(e.g. first one is internal, second one is external)',
     type: 'string'
   }
-}
+} as const
 
 export const grpcEndpoints: CommandFlag = {
   constName: 'grpcEndpoints',
@@ -625,7 +634,7 @@ export const grpcEndpoints: CommandFlag = {
     describe: 'Comma separated gRPC endpoints of the node (at most 8)',
     type: 'string'
   }
-}
+} as const
 
 export const endpointType: CommandFlag = {
   constName: 'endpointType',
@@ -635,7 +644,7 @@ export const endpointType: CommandFlag = {
     defaultValue: constants.ENDPOINT_TYPE_FQDN,
     type: 'string'
   }
-}
+} as const
 
 export const persistentVolumeClaims: CommandFlag = {
   constName: 'persistentVolumeClaims',
@@ -645,7 +654,7 @@ export const persistentVolumeClaims: CommandFlag = {
     defaultValue: false,
     type: 'boolean'
   }
-}
+} as const
 
 export const debugNodeAlias: CommandFlag = {
   constName: 'debugNodeAlias',
@@ -655,7 +664,7 @@ export const debugNodeAlias: CommandFlag = {
     defaultValue: '',
     type: 'string'
   }
-}
+} as const
 
 export const outputDir: CommandFlag = {
   constName: 'outputDir',
@@ -665,7 +674,7 @@ export const outputDir: CommandFlag = {
     defaultValue: '',
     type: 'string'
   }
-}
+} as const
 
 export const inputDir: CommandFlag = {
   constName: 'inputDir',
@@ -675,7 +684,7 @@ export const inputDir: CommandFlag = {
     defaultValue: '',
     type: 'string'
   }
-}
+} as const
 
 export const adminKey: CommandFlag = {
   constName: 'adminKey',
@@ -685,7 +694,7 @@ export const adminKey: CommandFlag = {
     defaultValue: constants.GENESIS_KEY,
     type: 'string'
   }
-}
+} as const
 
 export const quiet: CommandFlag = {
   constName: 'quiet',
@@ -697,7 +706,7 @@ export const quiet: CommandFlag = {
     type: 'boolean',
     disablePrompt: true
   }
-}
+} as const
 
 export const mirrorNodeVersion: CommandFlag = {
   constName: 'mirrorNodeVersion',
@@ -707,7 +716,7 @@ export const mirrorNodeVersion: CommandFlag = {
     defaultValue: version.MIRROR_NODE_VERSION,
     type: 'string'
   }
-}
+} as const
 
 export const hederaExplorerVersion: CommandFlag = {
   constName: 'hederaExplorerVersion',
@@ -717,7 +726,7 @@ export const hederaExplorerVersion: CommandFlag = {
     defaultValue: version.HEDERA_EXPLORER_VERSION,
     type: 'string'
   }
-}
+} as const
 
 export const userEmailAddress: CommandFlag = {
   constName: 'userEmailAddress',
@@ -727,7 +736,7 @@ export const userEmailAddress: CommandFlag = {
     defaultValue: '',
     type: 'string'
   }
-}
+} as const
 
 export const deploymentName: CommandFlag = {
   constName: 'deploymentName',
@@ -737,7 +746,7 @@ export const deploymentName: CommandFlag = {
     defaultValue: '',
     type: 'string'
   }
-}
+} as const
 
 export const deploymentClusters: CommandFlag = {
   constName: 'deploymentClusters',
@@ -747,7 +756,7 @@ export const deploymentClusters: CommandFlag = {
     defaultValue: '',
     type: 'string'
   }
-}
+} as const
 
 //* ------------- Node Proxy Certificates ------------- !//
 
@@ -762,7 +771,7 @@ export const grpcTlsCertificatePath: CommandFlag = {
     defaultValue: '',
     type: 'string'
   }
-}
+} as const
 
 export const grpcWebTlsCertificatePath: CommandFlag = {
   constName: 'grpcWebTlsCertificatePath',
@@ -775,7 +784,7 @@ export const grpcWebTlsCertificatePath: CommandFlag = {
     defaultValue: '',
     type: 'string'
   }
-}
+} as const
 
 export const grpcTlsKeyPath: CommandFlag = {
   constName: 'grpcTlsKeyPath',
@@ -788,7 +797,7 @@ export const grpcTlsKeyPath: CommandFlag = {
     defaultValue: '',
     type: 'string'
   }
-}
+} as const
 
 export const grpcWebTlsKeyPath: CommandFlag = {
   constName: 'grpcWebTlsKeyPath',
@@ -801,7 +810,7 @@ export const grpcWebTlsKeyPath: CommandFlag = {
     defaultValue: '',
     type: 'string'
   }
-}
+} as const
 
 export const allFlags: CommandFlag[] = [
   accountId,
@@ -817,6 +826,7 @@ export const allFlags: CommandFlag[] = [
   chartDirectory,
   clusterName,
   clusterSetupNamespace,
+  context,
   deletePvcs,
   deleteSecrets,
   deployCertManager,
@@ -874,10 +884,10 @@ export const allFlags: CommandFlag[] = [
   grpcWebTlsCertificatePath,
   grpcTlsKeyPath,
   grpcWebTlsKeyPath,
-]
+] as const
 
 /** Resets the definition.disablePrompt for all flags */
-export function resetDisabledPrompts () {
+export function resetDisabledPrompts (): void {
   allFlags.forEach(f => {
     if (f.definition.disablePrompt) {
       delete f.definition.disablePrompt
@@ -901,4 +911,4 @@ export const DEFAULT_FLAGS = {
   requiredFlags: [],
   requiredFlagsWithDisabledPrompt: [namespace, cacheDir, releaseTag],
   optionalFlags: [devMode]
-}
+} as const
