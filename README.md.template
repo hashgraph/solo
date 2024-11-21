@@ -18,11 +18,16 @@ An opinionated CLI tool to deploy and manage standalone test networks.
 * [Requirements](#requirements)
 * [Setup](#setup)
 * [Install Solo](#install-solo)
-* [Setup Kubernetes cluster](#setup-kubernetes-cluster)
-* [Generate Node Keys](#generate-node-keys)
-  * [Standard keys (.pem file)](#standard-keys-pem-file)
-* [Examples](#examples)
-  * [Example - 1: Deploy a standalone test network (version `0.54.0-alpha.4`)](#example---1-deploy-a-standalone-test-network-version-0540-alpha4)
+* [Quick Start Guide](#quick-start-guide)
+* [Advanced User Guide](#advanced-user-guide)
+  * [Setup Kubernetes cluster](#setup-kubernetes-cluster)
+  * [Step by Step Instructions](#step-by-step-instructions)
+* [For Hashgraph Developers](#for-hashgraph-developers)
+  * [For Developers Working on Hedera Service Repo](#for-developers-working-on-hedera-service-repo)
+  * [For Developers Working on Platform core](#for-developers-working-on-platform-core)
+  * [Using IntelliJ remote debug with Solo](#using-intellij-remote-debug-with-solo)
+  * [Retrieving Logs](#retrieving-logs)
+  * [Save and reuse network state files](#save-and-reuse-network-state-files) 
 * [Support](#support)
 * [Contributing](#contributing)
 * [Code of Conduct](#code-of-conduct)
@@ -53,9 +58,29 @@ nvm use lts/hydrogen
 
 * Run `npm install -g @hashgraph/solo`
 
-## Setup Kubernetes cluster
+## Quick Start Guide
+User can use one of the following three command to quickly deploy a standalone test network.
 
-### Remote cluster
+```bash
+# Option 1) deploy solo network with two nodes
+task default
+
+# Option 2) deploy solo network with two nodes, and mirror node
+task default-with-mirror
+
+# Option 3) deploy solo network with two nodes, mirror node, and JSON RPC relay
+task default-with-relay
+```
+To tear down the solo network
+```bash
+task clean
+```
+
+## Advanced User Guide
+For those who would like to have more control or need some customized setups, here are some step by step instructions of how to setup and deploy a solo network.
+### Setup Kubernetes cluster
+
+#### Remote cluster
 
 * You may use remote kubernetes cluster. In this case, ensure kubernetes context is set up correctly.
 
@@ -63,7 +88,7 @@ nvm use lts/hydrogen
 kubectl config use-context <context-name>
 ```
 
-### Local cluster
+#### Local cluster
 
 * You may use [kind](https://kind.sigs.k8s.io/) or [microk8s](https://microk8s.io/) to create a cluster. In this case,
   ensure your Docker engine has enough resources (e.g. Memory >=8Gb, CPU: >=4). Below we show how you can use `kind` to create a cluster
@@ -116,9 +141,8 @@ You may now view pods in your cluster using `k9s -A` as below:
 └─────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
-## Examples
 
-### Example - 1: Deploy a standalone test network (version `0.54.0-alpha.4`)
+### Step by Step Instructions
 
 * Initialize `solo` directories:
 
@@ -318,8 +342,8 @@ Example output
 ```
 $SOLO_RELAY_DEPLOY_OUTPUT
 ```
-
-## For Developers Working on Hedera Service Repo
+## For Hashgraph Developers
+### For Developers Working on Hedera Service Repo
 
 First, please clone hedera service repo `https://github.com/hashgraph/hedera-services/` and build the code
 with `./gradlew assemble`. If need to running nodes with different versions or releases, please duplicate the repo or build directories in
@@ -335,7 +359,7 @@ solo node setup -i node1,node2,node3 -n "${SOLO_NAMESPACE}" --local-build-path <
 # example: solo node setup -i node1,node2,node3 -n "${SOLO_NAMESPACE}" --local-build-path node1=../hedera-services/hedera-node/data/,../hedera-services/hedera-node/data,node3=../hedera-services/hedera-node/data
 ```
 
-## For Developers Working on Platform core
+### For Developers Working on Platform core
 
 To deploy node with local build PTT jar files, run the following command:
 ```
@@ -343,12 +367,12 @@ solo node setup -i node1,node2,node3 -n "${SOLO_NAMESPACE}" --local-build-path <
 
 # example: solo node setup -i node1,node2,node3 -n "${SOLO_NAMESPACE}" --local-build-path ../hedera-services/platform-sdk/sdk/data,node1=../hedera-services/platform-sdk/sdk/data,node2=../hedera-services/platform-sdk/sdk/data --app PlatformTestingTool.jar --app-config ../hedera-services/platform-sdk/platform-apps/tests/PlatformTestingTool/src/main/resources/FCMFCQ-Basic-2.5k-5m.json
 ```
-## Logs
+### Retrieving Logs
 You can find log for running solo command under the directory `~/.solo/logs/`
 The file `solo.log` contains the logs for the solo command.
 The file `hashgraph-sdk.log` contains the logs from Solo client when sending transactions to network nodes.
 
-## Using IntelliJ remote debug with Solo
+### Using IntelliJ remote debug with Solo
 
 NOTE: the hedera-services path referenced '../hedera-services/hedera-node/data' may need to be updated based on what directory you are currently in.  This also assumes that you have done an assemble/build and the directory contents are up-to-date.
 
@@ -402,7 +426,7 @@ solo node setup -i node1,node2,node3,node4 --local-build-path ../hedera-services
 solo node start -i node1,node2,node3,node4 -n "${SOLO_NAMESPACE}"
 solo node delete --node-alias node2  --debug-node-alias node3 -n "${SOLO_NAMESPACE}"
 ```
-## Save and reuse network state files
+### Save and reuse network state files
 
 With the following command you can save the network state to a file.
 ```bash
