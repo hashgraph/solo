@@ -524,14 +524,14 @@ export class NodeCommandTasks {
       const { upgradeZipHash } = ctx
       const { nodeClient, freezeAdminPrivateKey } = ctx.config
       try {
-        // transfer some tiny amount to the freeze admin account
-        // await this.accountManager.transferAmount(constants.TREASURY_ACCOUNT_ID, FREEZE_ADMIN_ACCOUNT, 100000)
-
         // query the balance
         const balance = await new AccountBalanceQuery()
           .setAccountId(FREEZE_ADMIN_ACCOUNT)
           .execute(nodeClient)
         this.logger.debug(`Freeze admin account balance: ${balance.hbars}`)
+
+        // transfer some tiny amount to the freeze admin account
+        await this.accountManager.transferAmount(constants.TREASURY_ACCOUNT_ID, FREEZE_ADMIN_ACCOUNT, 100000)
 
         // set operator of freeze transaction as freeze admin account
         nodeClient.setOperator(FREEZE_ADMIN_ACCOUNT, freezeAdminPrivateKey)
