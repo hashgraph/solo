@@ -139,7 +139,6 @@ export function bootstrapTestVariables (
   const cacheDir: string = argv[flags.cacheDir.name] || getTestCacheDir(testName)
   const configManager = new ConfigManager(testLogger)
   configManager.update(argv)
-
   const downloader = new PackageDownloader(testLogger)
   const zippy = new Zippy(testLogger)
   const helmDepManager = new HelmDependencyManager(downloader, zippy, testLogger)

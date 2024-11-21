@@ -22,8 +22,7 @@ import * as commands from './commands/index.ts'
 import { HelmDependencyManager, DependencyManager } from './core/dependency_managers/index.ts'
 import {
   ChartManager, ConfigManager, PackageDownloader, PlatformInstaller, Helm, logging,
-  KeyManager, Zippy, constants, ProfileManager, AccountManager, LeaseManager, CertificateManager, LocalConfig,
-  helpers
+  KeyManager, Zippy, constants, ProfileManager, AccountManager, LeaseManager, CertificateManager, helpers, LocalConfig
 } from './core/index.ts'
 import 'dotenv/config'
 import { K8 } from './core/k8.ts'
