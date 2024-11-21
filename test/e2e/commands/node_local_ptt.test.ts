@@ -16,10 +16,10 @@
  */
 import { describe, } from 'mocha'
 
-import { flags } from '../../../src/commands/index.ts'
-import { e2eTestSuite, getDefaultArgv, TEST_CLUSTER } from '../../test_util.ts'
-import { getNodeLogs } from '../../../src/core/helpers.ts'
-import { MINUTES } from '../../../src/core/constants.ts'
+import { flags } from '../../../src/commands/index.js'
+import { e2eTestSuite, getDefaultArgv, TEST_CLUSTER } from '../../test_util.js'
+import { getNodeLogs } from '../../../src/core/helpers.js'
+import { MINUTES } from '../../../src/core/constants.js'
 
 const LOCAL_PTT = 'local-ptt-app'
 const argv = getDefaultArgv()

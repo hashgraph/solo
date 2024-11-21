@@ -19,19 +19,19 @@ import fs from 'fs'
 import net from 'net'
 import os from 'os'
 import path from 'path'
-import { flags } from '../commands/index.ts'
-import { SoloError, IllegalArgumentError, MissingArgumentError } from './errors.ts'
+import { flags } from '../commands/index.js'
+import { SoloError, IllegalArgumentError, MissingArgumentError } from './errors.js'
 import * as tar from 'tar'
 import { v4 as uuid4 } from 'uuid'
-import { V1ObjectMeta, V1Secret, Config } from '@kubernetes/client-node'
-import { sleep } from './helpers.ts'
-import { type ConfigManager, constants } from './index.ts'
+import { type V1Lease, V1ObjectMeta, V1Secret, Config } from '@kubernetes/client-node'
+import { sleep } from './helpers.js'
+import { type ConfigManager, constants } from './index.js'
 import * as stream from 'node:stream'
 
-import { type SoloLogger } from './logging.ts'
+import { type SoloLogger } from './logging.js'
 import type * as WebSocket from 'ws'
-import type { PodName } from '../types/aliases.ts'
-import type { ExtendedNetServer, LocalContextObject } from '../types/index.ts'
+import type { PodName } from '../types/aliases.js'
+import type { ExtendedNetServer, LocalContextObject } from '../types/index.js'
 import type * as http from 'node:http'
 
 interface TDirectoryData {directory: boolean; owner: string; group: string; size: string; modifiedAt: string; name: string}
@@ -1150,7 +1150,7 @@ export class K8 {
   }
 
   // --------------------------------------- LEASES --------------------------------------- //
-  async createNamespacedLease (namespace: string, leaseName: string, holderName: string) {
+  async createNamespacedLease (namespace: string, leaseName: string, holderName: string, durationSeconds = 20) {
     const lease = new k8s.V1Lease()
 
     const metadata = new k8s.V1ObjectMeta()
@@ -1160,7 +1160,7 @@ export class K8 {
 
     const spec = new k8s.V1LeaseSpec()
     spec.holderIdentity = holderName
-    spec.leaseDurationSeconds = 20
+    spec.leaseDurationSeconds = durationSeconds
     spec.acquireTime = new k8s.V1MicroTime()
     lease.spec = spec
 
@@ -1188,6 +1188,20 @@ export class K8 {
       .catch(e => e)
 
     this._handleKubernetesClientError(response, body, 'Failed to renew namespaced lease')
+
+    return body as k8s.V1Lease
+  }
+
+  async transferNamespaceLease (lease: k8s.V1Lease, newHolderName: string): Promise<V1Lease> {
+    lease.spec.leaseTransitions++
+    lease.spec.renewTime = new k8s.V1MicroTime()
+    lease.spec.holderIdentity = newHolderName
+
+    const { response, body } = await this.coordinationApiClient
+        .replaceNamespacedLease(lease.metadata.name, lease.metadata.namespace, lease)
+        .catch(e => e)
+
+    this._handleKubernetesClientError(response, body, 'Failed to transfer namespaced lease')
 
     return body as k8s.V1Lease
   }

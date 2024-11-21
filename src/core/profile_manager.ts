@@ -16,18 +16,18 @@
  */
 import fs from 'fs'
 import path from 'path'
-import { SoloError, IllegalArgumentError, MissingArgumentError } from './errors.ts'
+import { SoloError, IllegalArgumentError, MissingArgumentError } from './errors.js'
 import * as yaml from 'js-yaml'
-import { flags } from '../commands/index.ts'
-import { type ConfigManager, constants, helpers, Templates } from './index.ts'
+import { flags } from '../commands/index.js'
+import { type ConfigManager, constants, helpers, Templates } from './index.js'
 import dot from 'dot-object'
-import { getNodeAccountMap } from './helpers.ts'
+import { getNodeAccountMap } from './helpers.js'
 import * as semver from 'semver'
 import { readFile, writeFile } from 'fs/promises'
 
-import { type SoloLogger } from './logging.ts'
+import { type SoloLogger } from './logging.js'
 import { type SemVer } from 'semver'
-import { type NodeAlias, type NodeAliases } from '../types/aliases.ts'
+import { type NodeAlias, type NodeAliases } from '../types/aliases.js'
 
 const consensusSidecars = [
   'recordStreamUploader', 'eventStreamUploader', 'backupUploader', 'accountBalanceUploader', 'otelCollector']

@@ -14,13 +14,13 @@
  * limitations under the License.
  *
  */
-import { SoloError, MissingArgumentError } from './errors.ts'
-import { SoloLogger } from './logging.ts'
-import * as flags from '../commands/flags.ts'
+import { SoloError, MissingArgumentError } from './errors.js'
+import { SoloLogger } from './logging.js'
+import * as flags from '../commands/flags.js'
 import * as paths from 'path'
-import * as helpers from './helpers.ts'
+import * as helpers from './helpers.js'
 import type * as yargs from 'yargs'
-import { type CommandFlag } from '../types/index.ts'
+import { type CommandFlag } from '../types/index.js'
 
 /**
  * ConfigManager cache command flag values so that user doesn't need to enter the same values repeatedly.

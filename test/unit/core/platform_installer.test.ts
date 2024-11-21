@@ -17,14 +17,14 @@
 import { expect } from 'chai'
 import { describe, it } from 'mocha'
 
-import * as core from '../../../src/core/index.ts'
-import { ConfigManager, PlatformInstaller } from '../../../src/core/index.ts'
+import * as core from '../../../src/core/index.js'
+import { ConfigManager, PlatformInstaller } from '../../../src/core/index.js'
 import * as fs from 'fs'
 import * as path from 'path'
 import * as os from 'os'
-import { IllegalArgumentError, MissingArgumentError } from '../../../src/core/errors.ts'
-import { getK8Instance } from '../../test_util.ts'
-import type { PodName } from '../../../src/types/aliases.ts'
+import { IllegalArgumentError, MissingArgumentError } from '../../../src/core/errors.js'
+import { getK8Instance } from '../../test_util.js'
+import type { PodName } from '../../../src/types/aliases.js'
 
 describe('PackageInstaller', () => {
   const testLogger = core.logging.NewLogger('debug', true)

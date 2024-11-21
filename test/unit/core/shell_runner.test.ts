@@ -20,11 +20,11 @@ import type { SinonSpy, SinonStub } from 'sinon'
 import sinon from 'sinon'
 import { expect } from 'chai'
 import { describe, it, beforeEach, afterEach } from 'mocha'
-import { ShellRunner } from '../../../src/core/shell_runner.ts'
-import { NewLogger, SoloLogger } from '../../../src/core/logging.ts'
+import { ShellRunner } from '../../../src/core/shell_runner.js'
+import { NewLogger, SoloLogger } from '../../../src/core/logging.js'
 import { ChildProcess } from 'child_process'
 import { Readable } from 'stream'
-import { SECONDS } from '../../../src/core/constants.ts'
+import { SECONDS } from '../../../src/core/constants.js'
 
 describe('ShellRunner', () => {
   let logger: SoloLogger,

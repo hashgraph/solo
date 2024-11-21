@@ -18,17 +18,13 @@ import { IsEmail, IsNotEmpty, IsObject, IsString, validateSync } from 'class-val
 import { type ListrTask } from 'listr2'
 import fs from 'fs'
 import * as yaml from 'yaml'
-import { type ClusterMapping, type Deployment, type Deployments, type LocalConfigData } from './LocalConfigData.ts'
-import { MissingArgumentError, SoloError } from '../errors.ts'
-import {
-    promptDeploymentClusters,
-    promptNamespace,
-    promptUserEmailAddress
-} from '../../commands/prompts.ts'
-import { flags } from '../../commands/index.ts'
-import { type SoloLogger } from '../logging.ts'
-import { Task } from '../task.ts'
-import {Templates} from "../templates.js";
+import { type ClusterMapping, type Deployment, type Deployments, type LocalConfigData } from './local_config_data.js'
+import { MissingArgumentError, SoloError } from '../errors.js'
+import { promptDeploymentClusters, promptNamespace, promptUserEmailAddress } from '../../commands/prompts.js'
+import { flags } from '../../commands/index.js'
+import { type SoloLogger } from '../logging.js'
+import { Task } from '../task.js'
+import { Templates } from "../templates.js";
 
 export class LocalConfig implements LocalConfigData {
     @IsNotEmpty()

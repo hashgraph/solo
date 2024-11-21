@@ -14,12 +14,12 @@
  * limitations under the License.
  *
  */
-import { LocalConfig } from '../../../src/core/config/LocalConfig.ts'
+import { LocalConfig } from '../../../src/core/config/local_config.js'
 import fs from 'fs'
 import { stringify } from 'yaml'
 import { expect } from 'chai'
-import { MissingArgumentError, SoloError } from '../../../src/core/errors.ts'
-import { getTestCacheDir, testLogger, testLocalConfigData } from '../../test_util.ts'
+import { MissingArgumentError, SoloError } from '../../../src/core/errors.js'
+import { getTestCacheDir, testLogger, testLocalConfigData } from '../../test_util.js'
 
 describe('LocalConfig', () => {
     let localConfig

@@ -17,19 +17,19 @@
 import chalk from 'chalk'
 import yargs from 'yargs'
 import { hideBin } from 'yargs/helpers'
-import { flags } from './commands/index.ts'
-import * as commands from './commands/index.ts'
-import { HelmDependencyManager, DependencyManager } from './core/dependency_managers/index.ts'
+import { flags } from './commands/index.js'
+import * as commands from './commands/index.js'
+import { HelmDependencyManager, DependencyManager } from './core/dependency_managers/index.js'
 import {
   ChartManager, ConfigManager, PackageDownloader, PlatformInstaller, Helm, logging,
-  KeyManager, Zippy, constants, ProfileManager, AccountManager, LeaseManager, CertificateManager, LocalConfig,
-  helpers
-} from './core/index.ts'
+  KeyManager, Zippy, constants, ProfileManager, AccountManager, LeaseManager, CertificateManager, helpers, LocalConfig
+} from './core/index.js'
 import 'dotenv/config'
-import { K8 } from './core/k8.ts'
+import { K8 } from './core/k8.js'
 import { ListrLogger } from 'listr2'
-import { CustomProcessOutput } from './core/process_output.ts'
-import { type Opts } from './types/index.ts'
+import { CustomProcessOutput } from './core/process_output.js'
+import { type Opts } from './types/index.js'
+import { IntervalLeaseRenewalService, type LeaseRenewalService } from './core/lease/lease_renewal.js'
 import path from 'path'
 
 export function main (argv: any) {
@@ -59,7 +59,8 @@ export function main (argv: any) {
     const platformInstaller = new PlatformInstaller(logger, k8, configManager)
     const keyManager = new KeyManager(logger)
     const profileManager = new ProfileManager(logger, configManager)
-    const leaseManager = new LeaseManager(k8, logger, configManager)
+    const leaseRenewalService: LeaseRenewalService = new IntervalLeaseRenewalService()
+    const leaseManager = new LeaseManager(k8, configManager, logger, leaseRenewalService)
     const certificateManager = new CertificateManager(k8, logger, configManager)
     const localConfig = new LocalConfig(path.join(constants.SOLO_CACHE_DIR, constants.DEFAULT_LOCAL_CONFIG_FILE), logger)
 
@@ -118,7 +119,8 @@ export function main (argv: any) {
     }
 
     return yargs(hideBin(argv))
-    .usage('Usage:\n  $0 <command> [options]')
+    .scriptName('')
+    .usage('Usage:\n  solo <command> [options]')
     .alias('h', 'help')
     .alias('v', 'version')
     // @ts-ignore

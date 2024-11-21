@@ -15,16 +15,17 @@
  *
  */
 import { Listr } from 'listr2'
-import { SoloError, MissingArgumentError } from '../core/errors.ts'
-import * as helpers from '../core/helpers.ts'
-import type { ProfileManager, AccountManager } from '../core/index.ts'
-import { constants } from '../core/index.ts'
-import { BaseCommand } from './base.ts'
-import * as flags from './flags.ts'
-import * as prompts from './prompts.ts'
-import { getNodeAccountMap } from '../core/helpers.ts'
-import { type NodeAliases } from '../types/aliases.ts'
-import { type Opts } from '../types/index.ts'
+import { SoloError, MissingArgumentError } from '../core/errors.js'
+import * as helpers from '../core/helpers.js'
+import type { ProfileManager, AccountManager } from '../core/index.js'
+import { constants } from '../core/index.js'
+import { BaseCommand } from './base.js'
+import * as flags from './flags.js'
+import * as prompts from './prompts.js'
+import { getNodeAccountMap } from '../core/helpers.js'
+import { type NodeAliases } from '../types/aliases.js'
+import { type Opts } from '../types/index.js'
+import { ListrLease } from '../core/lease/listr_lease.js'
 
 export class RelayCommand extends BaseCommand {
   private readonly profileManager: ProfileManager
@@ -157,7 +158,7 @@ export class RelayCommand extends BaseCommand {
 
   async deploy (argv: any) {
     const self = this
-    const lease = self.leaseManager.instantiateLease()
+    const lease = await self.leaseManager.create()
 
     interface RelayDeployConfigClass {
       chainId: string
@@ -204,7 +205,7 @@ export class RelayCommand extends BaseCommand {
 
           self.logger.debug('Initialized config', { config: ctx.config })
 
-          return lease.buildAcquireTask(task)
+          return ListrLease.newAcquireLeaseTask(lease, task)
         }
       },
       {
@@ -272,7 +273,7 @@ export class RelayCommand extends BaseCommand {
 
   async destroy (argv: any) {
     const self = this
-    const lease = self.leaseManager.instantiateLease()
+    const lease = await self.leaseManager.create()
 
     interface RelayDestroyConfigClass {
       chartDirectory: string
@@ -308,7 +309,7 @@ export class RelayCommand extends BaseCommand {
 
           self.logger.debug('Initialized config', { config: ctx.config })
 
-          return lease.buildAcquireTask(task)
+          return ListrLease.newAcquireLeaseTask(lease, task)
         }
       },
       {
