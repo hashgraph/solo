@@ -402,6 +402,31 @@ solo node setup -i node1,node2,node3,node4 --local-build-path ../hedera-services
 solo node start -i node1,node2,node3,node4 -n "${SOLO_NAMESPACE}"
 solo node delete --node-alias node2  --debug-node-alias node3 -n "${SOLO_NAMESPACE}"
 ```
+## Save and reuse network state files
+
+With the following command you can save the network state to a file.
+```bash
+# must stop hedera node operation first
+npm run solo-test -- node stop -i node1,node2 -n solo-e2e
+
+# download state file to default location at ~/.solo/logs/<namespace>
+npm run solo-test -- node states -i node1,node2 -n solo-e2e
+```
+
+By default the state files are saved under `~/solo` directory
+
+```bash
+└── logs
+    ├── solo-e2e
+    │   ├── network-node1-0-state.zip
+    │   └── network-node2-0-state.zip
+    └── solo.log
+```
+
+Later, user can use the following command to upload the state files to the network and restart hedera nodes.
+```bash
+npm run solo-test -- node start -i node1,node2 -n solo-e2e --state-file network-node1-0-state.zip
+```
 
 ## Support
 
