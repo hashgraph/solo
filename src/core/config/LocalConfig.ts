@@ -16,16 +16,16 @@
  */
 import fs from 'fs'
 import * as yaml from 'yaml'
-import { MissingArgumentError, SoloError } from '../errors.ts'
-import { promptDeploymentClusters, promptDeploymentName, promptUserEmailAddress } from '../../commands/prompts.ts'
-import { flags } from '../../commands/index.ts'
-import type { SoloLogger } from '../logging.ts'
+import { MissingArgumentError, SoloError } from '../errors.js'
+import { promptDeploymentClusters, promptDeploymentName, promptUserEmailAddress } from '../../commands/prompts.js'
+import { flags } from '../../commands/index.js'
+import type { SoloLogger } from '../logging.js'
 import type { ListrTask, ListrTaskWrapper } from 'listr2'
 import type {
   ClusterMapping, Deployments, LocalConfigData, DeploymentStructure,
-} from './LocalConfigData.ts'
-import type { EmailAddress, Namespace } from './remote/types.ts'
-import type { K8 } from '../k8.ts'
+} from './LocalConfigData.js'
+import type { EmailAddress, Namespace } from './remote/types.js'
+import type { K8 } from '../k8.js'
 import type { ConfigManager } from '../config_manager.ts'
 
 export class LocalConfig implements LocalConfigData {

@@ -14,8 +14,8 @@
  * limitations under the License.
  *
  */
-import { SoloError } from '../../errors.ts'
-import type { EmailAddress, IMigration, Version } from './types.ts'
+import { SoloError } from '../../errors.js'
+import type { EmailAddress, IMigration, Version } from './types.js'
 
 export class Migration implements IMigration {
   private readonly _migratedAt: Date

@@ -14,10 +14,10 @@
  * limitations under the License.
  *
  */
-import { ComponentTypeEnum } from '../enumerations.ts'
-import { SoloError } from '../../../errors.ts'
-import type { Cluster, Component, Namespace, ComponentName } from '../types.ts'
-import type { ToObject, Validate } from '../../../../types/index.ts'
+import { ComponentTypeEnum } from '../enumerations.js'
+import { SoloError } from '../../../errors.js'
+import type { Cluster, Component, Namespace, ComponentName } from '../types.js'
+import type { ToObject, Validate } from '../../../../types/index.js'
 
 /**
  * Represents the base structure and common functionality for all components within the system.

@@ -16,9 +16,9 @@
  */
 import { expect } from 'chai'
 import { describe, it } from 'mocha'
-import { Migration } from '../../../../src/core/config/remote/migration.ts'
-import type { EmailAddress, Version } from '../../../../src/core/config/remote/types.ts'
-import { SoloError } from '../../../../src/core/errors.ts'
+import { Migration } from '../../../../src/core/config/remote/migration.js'
+import type { EmailAddress, Version } from '../../../../src/core/config/remote/types.js'
+import { SoloError } from '../../../../src/core/errors.js'
 
 function createMigration () {
   const migratedAt = new Date()

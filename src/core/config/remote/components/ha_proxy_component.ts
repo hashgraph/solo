@@ -14,7 +14,7 @@
  * limitations under the License.
  *
  */
-import { ComponentTypeEnum } from '../enumerations.ts'
+import { ComponentTypeEnum } from '../enumerations.js'
 import { BaseComponent } from './base_component.ts'
 import type { Component } from '../types.js'
 

@@ -14,11 +14,11 @@
  * limitations under the License.
  *
  */
-import { ComponentTypeEnum, ConsensusNodeStates } from '../enumerations.ts'
-import { BaseComponent } from './base_component.ts'
-import { SoloError } from '../../../errors.ts'
-import type { Cluster, IConsensusNodeComponent, Namespace, ComponentName } from '../types.ts'
-import type { ToObject } from '../../../../types/index.ts'
+import { ComponentTypeEnum, ConsensusNodeStates } from '../enumerations.js'
+import { BaseComponent } from './base_component.js'
+import { SoloError } from '../../../errors.js'
+import type { Cluster, IConsensusNodeComponent, Namespace, ComponentName } from '../types.js'
+import type { ToObject } from '../../../../types/index.js'
 
 /**
  * Represents a consensus node component within the system.

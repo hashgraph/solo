@@ -14,16 +14,16 @@
  * limitations under the License.
  *
  */
-import { ComponentTypeEnum } from './enumerations.ts'
-import { SoloError } from '../../errors.ts'
+import { ComponentTypeEnum } from './enumerations.js'
+import { SoloError } from '../../errors.js'
 import {
   BaseComponent, ConsensusNodeComponent, HaProxyComponent, EnvoyProxyComponent,
   MirrorNodeComponent, MirrorNodeExplorerComponent, RelayComponent,
-} from './components/index.ts'
+} from './components/index.js'
 import type {
   Component, ComponentsDataStructure, IConsensusNodeComponent, IRelayComponent, ComponentName
-} from './types.ts'
-import type { ToObject, Validate } from '../../../types/index.ts'
+} from './types.js'
+import type { ToObject, Validate } from '../../../types/index.js'
 
 /**
  * Represent the components in the remote config and handles:

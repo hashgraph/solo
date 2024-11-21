@@ -22,7 +22,7 @@ import type { SoloLogger } from '../core/logging.js'
 import type {
   ChartManager, ConfigManager, Helm, K8, KeyManager, PackageDownloader, PlatformInstaller, LocalConfig,
   ProfileManager, DependencyManager, AccountManager, LeaseManager, CertificateManager, RemoteConfigManager,
-} from '../core/index.ts'
+} from '../core/index.js'
 import type { Cluster, Context } from '../core/config/remote/types.js'
 
 export interface NodeKeyObject {

@@ -15,11 +15,11 @@
  *
  */
 import { Listr, type ListrTaskWrapper } from 'listr2'
-import { SoloError } from '../core/errors.ts'
-import { BaseCommand } from './base.ts'
-import * as flags from './flags.ts'
-import { constants, Templates } from '../core/index.ts'
-import * as prompts from './prompts.ts'
+import { SoloError } from '../core/errors.js'
+import { BaseCommand } from './base.js'
+import * as flags from './flags.js'
+import { constants, Templates } from '../core/index.js'
+import * as prompts from './prompts.js'
 import chalk from 'chalk'
 import { RemoteConfigTasks } from '../core/config/remote/remote_config_tasks.ts'
 import type { Namespace } from '../core/config/remote/types.ts'

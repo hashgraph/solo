@@ -25,10 +25,10 @@ import {
   EnvoyProxyComponent,
   ConsensusNodeComponent,
   MirrorNodeExplorerComponent,
-} from '../../../../src/core/config/remote/components/index.ts'
-import { SoloError } from '../../../../src/core/errors.ts'
-import { ConsensusNodeStates } from '../../../../src/core/config/remote/enumerations.ts'
-import type { NodeAliases } from '../../../../src/types/aliases.ts'
+} from '../../../../src/core/config/remote/components/index.js'
+import { SoloError } from '../../../../src/core/errors.js'
+import { ConsensusNodeStates } from '../../../../src/core/config/remote/enumerations.js'
+import type { NodeAliases } from '../../../../src/types/aliases.js'
 
 function testBaseComponentData (classComponent: any) {
   it('should fail if name is not provided', () => {

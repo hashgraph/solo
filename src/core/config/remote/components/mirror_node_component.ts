@@ -14,9 +14,9 @@
  * limitations under the License.
  *
  */
-import { ComponentTypeEnum } from '../enumerations.ts'
-import { BaseComponent } from './base_component.ts'
-import type { Component } from '../types.ts'
+import { ComponentTypeEnum } from '../enumerations.js'
+import { BaseComponent } from './base_component.js'
+import type { Component } from '../types.js'
 
 export class MirrorNodeComponent extends BaseComponent {
   public constructor (name: string, cluster: string, namespace: string) {

@@ -14,11 +14,11 @@
  * limitations under the License.
  *
  */
-import { type ConfigManager, type K8, LocalConfig } from '../../../src/core/index.ts'
+import { type ConfigManager, type K8, LocalConfig } from '../../../src/core/index.js'
 import fs from 'fs'
 import { stringify } from 'yaml'
 import { expect } from 'chai'
-import { MissingArgumentError, SoloError } from '../../../src/core/errors.ts'
+import { MissingArgumentError, SoloError } from '../../../src/core/errors.js'
 import { getTestCacheDir, testLogger } from '../../test_util.ts'
 import { EmailAddress } from "../../../src/core/config/remote/types.js";
 

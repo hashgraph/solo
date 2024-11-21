@@ -14,15 +14,15 @@
  * limitations under the License.
  *
  */
-import { SoloError } from '../../errors.ts'
-import * as version from '../../../../version.ts'
+import { SoloError } from '../../errors.js'
+import * as version from '../../../../version.js'
 import yaml from 'js-yaml'
-import { RemoteConfigMetadata } from './metadata.ts'
-import { ComponentsDataWrapper } from './components_data_wrapper.ts'
-import * as constants from '../../constants.ts'
-import type { Cluster, Version, Namespace, RemoteConfigData, RemoteConfigDataStructure } from './types.ts'
+import { RemoteConfigMetadata } from './metadata.js'
+import { ComponentsDataWrapper } from './components_data_wrapper.js'
+import * as constants from '../../constants.js'
+import type { Cluster, Version, Namespace, RemoteConfigData, RemoteConfigDataStructure } from './types.js'
 import type * as k8s from '@kubernetes/client-node'
-import type { ToObject, Validate } from '../../../types/index.ts'
+import type { ToObject, Validate } from '../../../types/index.js'
 
 export class RemoteConfigDataWrapper implements Validate, ToObject<RemoteConfigDataStructure> {
   private readonly _version: Version = version.HEDERA_PLATFORM_VERSION

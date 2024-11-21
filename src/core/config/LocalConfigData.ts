@@ -14,7 +14,7 @@
  * limitations under the License.
  *
  */
-import type { Cluster, Context, EmailAddress, Namespace } from './remote/types.ts'
+import type { Cluster, Context, EmailAddress, Namespace } from './remote/types.js'
 
 export interface DeploymentStructure { clusters : Cluster[] }
 

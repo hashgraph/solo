@@ -14,11 +14,11 @@
  * limitations under the License.
  *
  */
-import type { NodeAliases } from '../../../types/aliases.ts'
-import type { Migration } from './migration.ts'
-import type { ComponentsDataWrapper } from './components_data_wrapper.ts'
-import type { RemoteConfigMetadata } from './metadata.ts'
-import type { ComponentTypeEnum, ConsensusNodeStates } from './enumerations.ts'
+import type { NodeAliases } from '../../../types/aliases.js'
+import type { Migration } from './migration.js'
+import type { ComponentsDataWrapper } from './components_data_wrapper.js'
+import type { RemoteConfigMetadata } from './metadata.js'
+import type { ComponentTypeEnum, ConsensusNodeStates } from './enumerations.js'
 
 export type EmailAddress = `${string}@${string}.${string}`
 export type Version = string

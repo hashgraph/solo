@@ -14,8 +14,8 @@
  * limitations under the License.
  *
  */
-import { BaseComponent } from './base_component.ts'
-import { ConsensusNodeComponent } from './consensus_node_component.ts'
+import { BaseComponent } from './base_component.js'
+import { ConsensusNodeComponent } from './consensus_node_component.js'
 import { HaProxyComponent } from './ha_proxy_component.ts'
 import { EnvoyProxyComponent } from './envoy_proxy_component.ts'
 import { MirrorNodeComponent } from './mirror_node_component.ts'

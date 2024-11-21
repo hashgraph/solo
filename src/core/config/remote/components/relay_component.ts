@@ -14,12 +14,12 @@
  * limitations under the License.
  *
  */
-import { ComponentTypeEnum } from '../enumerations.ts'
-import { SoloError } from '../../../errors.ts'
-import { BaseComponent } from './base_component.ts'
-import type { IRelayComponent } from '../types.ts'
-import type { NodeAliases } from '../../../../types/aliases.ts'
-import type { ToObject } from '../../../../types/index.ts'
+import { ComponentTypeEnum } from '../enumerations.js'
+import { SoloError } from '../../../errors.js'
+import { BaseComponent } from './base_component.js'
+import type { IRelayComponent } from '../types.js'
+import type { NodeAliases } from '../../../../types/aliases.js'
+import type { ToObject } from '../../../../types/index.js'
 
 export class RelayComponent extends BaseComponent
   implements IRelayComponent, ToObject<IRelayComponent>

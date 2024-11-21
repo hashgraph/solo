@@ -29,7 +29,7 @@ import { BaseCommand } from '../../../src/commands/base.js'
 import * as flags from '../../../src/commands/flags.js'
 import sinon from 'sinon'
 import path from 'path'
-import { BASE_TEST_DIR } from '../../test_util.ts'
+import { BASE_TEST_DIR } from '../../test_util.js'
 
 const testLogger = logging.NewLogger('debug', true)
 

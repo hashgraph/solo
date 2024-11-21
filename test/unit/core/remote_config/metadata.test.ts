@@ -16,10 +16,10 @@
  */
 import { expect } from 'chai'
 import { describe, it } from 'mocha'
-import { Migration } from '../../../../src/core/config/remote/migration.ts'
-import { SoloError } from '../../../../src/core/errors.ts'
-import { RemoteConfigMetadata } from '../../../../src/core/config/remote/metadata.ts'
-import type { EmailAddress, Namespace } from '../../../../src/core/config/remote/types.ts'
+import { Migration } from '../../../../src/core/config/remote/migration.js'
+import { SoloError } from '../../../../src/core/errors.js'
+import { RemoteConfigMetadata } from '../../../../src/core/config/remote/metadata.js'
+import type { EmailAddress, Namespace } from '../../../../src/core/config/remote/types.js'
 
 export function createMetadata () {
   const name: Namespace = 'namespace'

@@ -17,7 +17,7 @@
 import { expect } from 'chai'
 import { describe, it } from 'mocha'
 
-import { ComponentsDataWrapper } from '../../../../src/core/config/remote/components_data_wrapper.ts'
+import { ComponentsDataWrapper } from '../../../../src/core/config/remote/components_data_wrapper.js'
 import {
   ConsensusNodeComponent,
   EnvoyProxyComponent,
@@ -25,10 +25,10 @@ import {
   MirrorNodeComponent,
   MirrorNodeExplorerComponent,
   RelayComponent
-} from '../../../../src/core/config/remote/components/index.ts'
-import { ComponentTypeEnum, ConsensusNodeStates } from '../../../../src/core/config/remote/enumerations.ts'
-import { SoloError } from '../../../../src/core/errors.ts'
-import type { NodeAliases } from '../../../../src/types/aliases.ts'
+} from '../../../../src/core/config/remote/components/index.js'
+import { ComponentTypeEnum, ConsensusNodeStates } from '../../../../src/core/config/remote/enumerations.js'
+import { SoloError } from '../../../../src/core/errors.js'
+import type { NodeAliases } from '../../../../src/types/aliases.js'
 
 export function createComponentsDataWrapper () {
   const serviceName = 'serviceName'
