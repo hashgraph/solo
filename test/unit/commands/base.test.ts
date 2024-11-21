@@ -24,12 +24,12 @@ import {
   logging, PackageDownloader, Zippy,
   constants,
   K8, LocalConfig
-} from '../../../src/core/index.ts'
-import { BaseCommand } from '../../../src/commands/base.ts'
-import * as flags from '../../../src/commands/flags.ts'
+} from '../../../src/core/index.js'
+import { BaseCommand } from '../../../src/commands/base.js'
+import * as flags from '../../../src/commands/flags.js'
 import sinon from 'sinon'
 import path from 'path'
-import { BASE_TEST_DIR } from '../../test_util.ts'
+import { BASE_TEST_DIR } from '../../test_util.js'
 
 const testLogger = logging.NewLogger('debug', true)
 
