@@ -5,9 +5,9 @@ local: # 3 nodes, ~850 TPS (Docker Desktop 8 cores, 16 GB RAM)
         - name: JAVA_HEAP_MIN
           value: 1g
         - name: JAVA_HEAP_MAX
-          value: 3g
+          value: 6g
         - name: JAVA_OPTS
-          value: "-XX:+UnlockExperimentalVMOptions -XX:+UseZGC -XX:ZAllocationSpikeTolerance=2 -XX:ConcGCThreads=2 -XX:ZMarkStackSpaceLimit=1g -XX:MaxDirectMemorySize=1g -XX:MetaspaceSize=100M -Xlog:gc*:gc.log --add-opens java.base/jdk.internal.misc=ALL-UNNAMED --add-opens java.base/java.nio=ALL-UNNAMED -Dio.netty.tryReflectionSetAccessible=true"
+          value: "-XX:+UnlockExperimentalVMOptions -XX:+UseZGC -XX:ZAllocationSpikeTolerance=2 -XX:ConcGCThreads=2 -XX:ZMarkStackSpaceLimit=1g -XX:MaxDirectMemorySize=2g -XX:MetaspaceSize=100M -Xlog:gc*:gc.log --add-opens java.base/jdk.internal.misc=ALL-UNNAMED --add-opens java.base/java.nio=ALL-UNNAMED -Dio.netty.tryReflectionSetAccessible=true"
   haproxy: # use chart defaults
   envoyProxy: # use chart defaults
   rpcRelay:
