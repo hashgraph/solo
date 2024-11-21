@@ -14,10 +14,10 @@
  * limitations under the License.
  *
  */
-import * as commandFlags from '../commands/flags.ts'
-import { IllegalArgumentError } from './errors.ts'
-import { type BaseCommand } from '../commands/base.ts'
-import { type CommandFlag } from '../types/index.ts'
+import * as commandFlags from '../commands/flags.js'
+import { IllegalArgumentError } from './errors.js'
+import { type BaseCommand } from '../commands/base.js'
+import { type CommandFlag } from '../types/index.js'
 
 export class YargsCommand {
   constructor (

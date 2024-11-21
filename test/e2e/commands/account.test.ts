@@ -18,19 +18,19 @@ import { it, describe, after, before } from 'mocha'
 import { expect } from 'chai'
 
 import { AccountId, PrivateKey } from '@hashgraph/sdk'
-import { constants } from '../../../src/core/index.ts'
-import * as version from '../../../version.ts'
+import { constants } from '../../../src/core/index.js'
+import * as version from '../../../version.js'
 import {
   e2eTestSuite,
   getDefaultArgv,
   HEDERA_PLATFORM_VERSION_TAG,
   TEST_CLUSTER,
   testLogger
-} from '../../test_util.ts'
-import { AccountCommand } from '../../../src/commands/account.ts'
-import { flags } from '../../../src/commands/index.ts'
-import { getNodeLogs } from '../../../src/core/helpers.ts'
-import { MINUTES, SECONDS } from '../../../src/core/constants.ts'
+} from '../../test_util.js'
+import { AccountCommand } from '../../../src/commands/account.js'
+import { flags } from '../../../src/commands/index.js'
+import { getNodeLogs } from '../../../src/core/helpers.js'
+import { MINUTES, SECONDS } from '../../../src/core/constants.js'
 
 const defaultTimeout = 20 * SECONDS
 
@@ -121,7 +121,7 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
       it('should create account with no options', async () => {
         try {
           argv[flags.amount.name] = 200
-          await expect(accountCmd.create(argv)).to.eventually.be.ok
+          expect(await accountCmd.create(argv)).to.be.true
 
           // @ts-ignore to access the private property
           const accountInfo = accountCmd.accountInfo
@@ -146,7 +146,7 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
           argv[flags.amount.name] = 777
           configManager.update(argv)
 
-          await expect(accountCmd.create(argv)).to.eventually.be.ok
+          expect(await accountCmd.create(argv)).to.be.true
 
           // @ts-ignore to access the private property
           const accountInfo = accountCmd.accountInfo
@@ -168,7 +168,7 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
           argv[flags.accountId.name] = accountId1
           configManager.update(argv)
 
-          await expect(accountCmd.update(argv)).to.eventually.be.ok
+          expect(await accountCmd.update(argv)).to.be.true
 
           // @ts-ignore to access the private property
           const accountInfo = accountCmd.accountInfo
@@ -190,7 +190,7 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
           argv[flags.amount.name] = 333
           configManager.update(argv)
 
-          await expect(accountCmd.update(argv)).to.eventually.be.ok
+          expect(await accountCmd.update(argv)).to.be.true
 
           // @ts-ignore to access the private property
           const accountInfo = accountCmd.accountInfo
@@ -210,7 +210,7 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
           argv[flags.accountId.name] = accountId1
           configManager.update(argv)
 
-          await expect(accountCmd.get(argv)).to.eventually.be.ok
+          expect(await accountCmd.get(argv)).to.be.true
           // @ts-ignore to access the private property
           const accountInfo = accountCmd.accountInfo
           expect(accountInfo).not.to.be.null
@@ -229,7 +229,7 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
           argv[flags.accountId.name] = accountId2
           configManager.update(argv)
 
-          await expect(accountCmd.get(argv)).to.eventually.be.ok
+          expect(await accountCmd.get(argv)).to.be.true
           // @ts-ignore to access the private property
           const accountInfo = accountCmd.accountInfo
           expect(accountInfo).not.to.be.null
@@ -251,7 +251,7 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
           argv[flags.setAlias.name] = true
           configManager.update(argv)
 
-          await expect(accountCmd.create(argv)).to.eventually.be.ok
+          expect(await accountCmd.create(argv)).to.be.true
 
           // @ts-ignore to access the private property
           const newAccountInfo = accountCmd.accountInfo

@@ -17,7 +17,7 @@
 import { it, describe, after, before, afterEach } from 'mocha'
 import { expect } from 'chai'
 
-import { flags } from '../../../src/commands/index.ts'
+import { flags } from '../../../src/commands/index.js'
 import {
   accountCreationShouldSucceed,
   balanceQueryShouldSucceed,
@@ -25,15 +25,15 @@ import {
   getDefaultArgv,
   HEDERA_PLATFORM_VERSION_TAG,
   TEST_CLUSTER
-} from '../../test_util.ts'
-import * as version from '../../../version.ts'
-import { getNodeLogs, sleep } from '../../../src/core/helpers.ts'
-import { MirrorNodeCommand } from '../../../src/commands/mirror_node.ts'
-import * as core from '../../../src/core/index.ts'
+} from '../../test_util.js'
+import * as version from '../../../version.js'
+import { getNodeLogs, sleep } from '../../../src/core/helpers.js'
+import { MirrorNodeCommand } from '../../../src/commands/mirror_node.js'
+import * as core from '../../../src/core/index.js'
 import { Status, TopicCreateTransaction, TopicMessageSubmitTransaction } from '@hashgraph/sdk'
 import * as http from 'http'
-import { MINUTES, SECONDS } from '../../../src/core/constants.ts'
-import type { PodName } from '../../../src/types/aliases.ts'
+import { MINUTES, SECONDS } from '../../../src/core/constants.js'
+import type { PodName } from '../../../src/types/aliases.js'
 
 const testName = 'mirror-cmd-e2e'
 const namespace = testName
@@ -84,7 +84,7 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
 
     it('mirror node deploy should success', async () => {
       try {
-        await expect(mirrorNodeCmd.deploy(argv)).to.eventually.be.ok
+        expect(await mirrorNodeCmd.deploy(argv)).to.be.true
       } catch (e) {
         mirrorNodeCmd.logger.showUserError(e)
         expect.fail()
@@ -113,7 +113,7 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
 
         // check if mirror node api server is running
         const apiURL = 'http://127.0.0.1:8080/api/v1/transactions'
-        await expect(downloader.urlExists(apiURL)).to.eventually.be.ok
+        expect(await downloader.urlExists(apiURL)).to.be.true
         await sleep(2 * SECONDS)
       } catch (e) {
         mirrorNodeCmd.logger.showUserError(e)
@@ -124,7 +124,7 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
     it('Explorer GUI should be running', async () => {
       try {
         const guiURL = 'http://127.0.0.1:8080/localnet/dashboard'
-        await expect(downloader.urlExists(guiURL)).to.eventually.be.ok
+        expect(await downloader.urlExists(guiURL)).to.be.true
         await sleep(2 * SECONDS)
 
         mirrorNodeCmd.logger.debug('mirror node API and explorer GUI are running')
@@ -203,7 +203,7 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
 
     it('mirror node destroy should success', async () => {
       try {
-        await expect(mirrorNodeCmd.destroy(argv)).to.eventually.be.ok
+        expect(await mirrorNodeCmd.destroy(argv)).to.be.true
       } catch (e) {
         mirrorNodeCmd.logger.showUserError(e)
         expect.fail()

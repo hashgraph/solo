@@ -16,7 +16,7 @@
  */
 import { expect } from 'chai'
 
-import { HelmDependencyManager, DependencyManager } from '../../../src/core/dependency_managers/index.ts'
+import { HelmDependencyManager, DependencyManager } from '../../../src/core/dependency_managers/index.js'
 import {
   ChartManager,
   ConfigManager,
@@ -24,9 +24,9 @@ import {
   logging, PackageDownloader, Zippy,
   constants,
   K8
-} from '../../../src/core/index.ts'
-import { BaseCommand } from '../../../src/commands/base.ts'
-import * as flags from '../../../src/commands/flags.ts'
+} from '../../../src/core/index.js'
+import { BaseCommand } from '../../../src/commands/base.js'
+import * as flags from '../../../src/commands/flags.js'
 import sinon from 'sinon'
 
 const testLogger = logging.NewLogger('debug', true)

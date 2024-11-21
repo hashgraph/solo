@@ -25,12 +25,12 @@ import {
   IllegalArgumentError,
   MissingArgumentError,
   ResourceNotFoundError
-} from './errors.ts'
+} from './errors.js'
 import * as https from 'https'
 import * as http from 'http'
-import { Templates } from './templates.ts'
-import { constants } from './index.ts'
-import { type SoloLogger } from './logging.ts'
+import { Templates } from './templates.js'
+import { constants } from './index.js'
+import { type SoloLogger } from './logging.js'
 
 export class PackageDownloader {
   constructor (public readonly logger: SoloLogger) {

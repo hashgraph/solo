@@ -15,11 +15,11 @@
  *
  */
 import os from 'os'
-import { constants } from './index.ts'
-import { ShellRunner } from './shell_runner.ts'
-import { Templates } from './templates.ts'
-import { IllegalArgumentError } from './errors.ts'
-import type { SoloLogger } from './logging.ts'
+import { constants } from './index.js'
+import { ShellRunner } from './shell_runner.js'
+import { Templates } from './templates.js'
+import { IllegalArgumentError } from './errors.js'
+import type { SoloLogger } from './logging.js'
 
 export class Helm extends ShellRunner {
   private readonly helmPath: string

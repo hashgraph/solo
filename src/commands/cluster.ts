@@ -16,13 +16,14 @@
  */
 import { ListrEnquirerPromptAdapter } from '@listr2/prompt-adapter-enquirer'
 import { Listr } from 'listr2'
-import { SoloError } from '../core/errors.ts'
-import * as flags from './flags.ts'
-import { BaseCommand } from './base.ts'
+import { SoloError } from '../core/errors.js'
+import * as flags from './flags.js'
+import { BaseCommand } from './base.js'
 import chalk from 'chalk'
-import { constants } from '../core/index.ts'
-import * as prompts from './prompts.ts'
+import { constants } from '../core/index.js'
+import * as prompts from './prompts.js'
 import path from 'path'
+import { ListrLease } from '../core/lease/listr_lease.js'
 
 /**
  * Define the core functionalities of 'cluster' command
@@ -163,7 +164,7 @@ export class ClusterCommand extends BaseCommand {
 
   async reset (argv: any) {
     const self = this
-    const lease = self.leaseManager.instantiateLease()
+    const lease = await self.leaseManager.create()
 
     interface Context {
       config: {
@@ -200,7 +201,7 @@ export class ClusterCommand extends BaseCommand {
             throw new SoloError('No chart found for the cluster')
           }
 
-          return lease.buildAcquireTask(task)
+          return ListrLease.newAcquireLeaseTask(lease, task)
         }
       },
       {
