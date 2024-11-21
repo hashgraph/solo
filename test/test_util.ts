@@ -70,7 +70,7 @@ export const testLogger = logging.NewLogger('debug', true)
 export const TEST_CLUSTER = 'solo-e2e'
 export const HEDERA_PLATFORM_VERSION_TAG = HEDERA_PLATFORM_VERSION
 
-export const BASE_TEST_DIR = 'test/data/tmp'
+export const BASE_TEST_DIR = path.join('test', 'data', 'tmp')
 
 export function getTestCacheDir (testName?: string) {
   const d = testName ? path.join(BASE_TEST_DIR, testName) : BASE_TEST_DIR
