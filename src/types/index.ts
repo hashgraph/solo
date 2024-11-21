@@ -18,12 +18,12 @@ import type * as x509 from '@peculiar/x509'
 import type net from 'net'
 import type * as WebSocket from 'ws'
 import type crypto from 'crypto'
-import type { SoloLogger } from '../core/logging.ts'
+import type { SoloLogger } from '../core/logging.js'
 import type {
   ChartManager, ConfigManager, Helm, K8, KeyManager, PackageDownloader, PlatformInstaller, LocalConfig,
   ProfileManager, DependencyManager, AccountManager, LeaseManager, CertificateManager, RemoteConfigManager,
 } from '../core/index.ts'
-import type { Cluster, Context } from '../core/config/remote/types.ts'
+import type { Cluster, Context } from '../core/config/remote/types.js'
 
 export interface NodeKeyObject {
   privateKey: crypto.webcrypto.CryptoKey
@@ -86,7 +86,7 @@ export interface Opts {
 }
 
 /**
- * Generic fail for representing optional types
+ * Generic type for representing optional types
  */
 export type Optional<T> = T | undefined;
 

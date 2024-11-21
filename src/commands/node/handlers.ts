@@ -15,24 +15,29 @@
  *
  */
 
-import * as helpers from '../../core/helpers.ts'
-import * as NodeFlags from './flags.ts'
+import * as helpers from '../../core/helpers.js'
+import * as NodeFlags from './flags.js'
 import {
   addConfigBuilder, deleteConfigBuilder, downloadGeneratedFilesConfigBuilder, keysConfigBuilder, logsConfigBuilder,
   prepareUpgradeConfigBuilder, refreshConfigBuilder, setupConfigBuilder, startConfigBuilder, stopConfigBuilder,
   updateConfigBuilder
-} from './configs.ts'
+} from './configs.js'
 import {
+  type ConfigManager,
   constants,
-  type ConfigManager, type K8, type PlatformInstaller, type AccountManager, type LeaseManager, type RemoteConfigManager
-} from '../../core/index.ts'
-import { IllegalArgumentError } from '../../core/errors.ts'
-import { ConsensusNodeStates } from '../../core/config/remote/enumerations.ts'
-import { RemoteConfigTasks } from '../../core/config/remote/remote_config_tasks.ts'
-import type { SoloLogger } from '../../core/logging.ts'
-import type { NodeCommand } from './index.ts'
-import type { NodeCommandTasks } from './tasks.ts'
-import type { LeaseWrapper } from '../../core/lease_wrapper.ts'
+  type K8,
+  type PlatformInstaller,
+  type AccountManager,
+  type LeaseManager,
+  type RemoteConfigManager
+} from '../../core/index.js'
+import { IllegalArgumentError } from '../../core/errors.js'
+import { ConsensusNodeStates } from '../../core/config/remote/enumerations.js'
+import { RemoteConfigTasks } from '../../core/config/remote/remote_config_tasks.js'
+import type { SoloLogger } from '../../core/logging.js'
+import type { NodeCommand } from './index.js'
+import type { NodeCommandTasks } from './tasks.js'
+import type { Lease } from '../../core/lease/lease.js'
 
 export class NodeCommandHandlers {
   readonly accountManager: AccountManager
@@ -88,7 +93,7 @@ export class NodeCommandHandlers {
 
   /** ******** Task Lists **********/
 
-  deletePrepareTaskList (argv: any, lease: LeaseWrapper) {
+  deletePrepareTaskList (argv: any, lease: Lease) {
     return [
       this.tasks.initialize(argv, deleteConfigBuilder.bind(this), lease),
       RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
@@ -132,7 +137,7 @@ export class NodeCommandHandlers {
     ]
   }
 
-  addPrepareTasks (argv: any, lease: LeaseWrapper) {
+  addPrepareTasks (argv: any, lease: Lease) {
     return [
       this.tasks.initialize(argv, addConfigBuilder.bind(this), lease),
       RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
@@ -184,7 +189,7 @@ export class NodeCommandHandlers {
     ]
   }
 
-  updatePrepareTasks (argv: any, lease: LeaseWrapper) {
+  updatePrepareTasks (argv: any, lease: Lease) {
     return [
       this.tasks.initialize(argv, updateConfigBuilder.bind(this), lease),
       RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
@@ -199,13 +204,13 @@ export class NodeCommandHandlers {
     return [
       this.tasks.sendNodeUpdateTransaction(),
       this.tasks.sendPrepareUpgradeTransaction(),
-      this.tasks.downloadNodeGeneratedFiles(),
       this.tasks.sendFreezeUpgradeTransaction(),
     ]
   }
 
   updateExecuteTasks (argv: any) {
     return [
+      this.tasks.downloadNodeGeneratedFiles(),
       this.tasks.prepareStagingDirectory('allNodeAliases'),
       this.tasks.copyNodeKeysToSecrets(),
       this.tasks.checkAllNodesAreFrozen('existingNodeAliases'),
@@ -232,7 +237,7 @@ export class NodeCommandHandlers {
   async prepareUpgrade (argv: any) {
     argv = helpers.addFlagsToArgv(argv, NodeFlags.DEFAULT_FLAGS)
 
-    const lease = this.leaseManager.instantiateLease()
+    const lease = await this.leaseManager.create()
 
     const action = helpers.commandActionBuilder([
       this.tasks.initialize(argv, prepareUpgradeConfigBuilder.bind(this), lease),
@@ -269,7 +274,7 @@ export class NodeCommandHandlers {
   async downloadGeneratedFiles (argv: any) {
     argv = helpers.addFlagsToArgv(argv, NodeFlags.DEFAULT_FLAGS)
 
-    const lease = this.leaseManager.instantiateLease()
+    const lease = await this.leaseManager.create()
 
     const action = helpers.commandActionBuilder([
       this.tasks.initialize(argv, downloadGeneratedFilesConfigBuilder.bind(this), lease),
@@ -288,7 +293,7 @@ export class NodeCommandHandlers {
   async update (argv: any) {
     argv = helpers.addFlagsToArgv(argv, NodeFlags.UPDATE_FLAGS)
 
-    const lease = this.leaseManager.instantiateLease()
+    const lease = await this.leaseManager.create()
 
     const action = helpers.commandActionBuilder([
       ...this.updatePrepareTasks(argv, lease),
@@ -305,7 +310,7 @@ export class NodeCommandHandlers {
 
   async updatePrepare (argv) {
     argv = helpers.addFlagsToArgv(argv, NodeFlags.UPDATE_PREPARE_FLAGS)
-    const lease = this.leaseManager.instantiateLease()
+    const lease = await this.leaseManager.create()
 
     const action = helpers.commandActionBuilder([
       ...this.updatePrepareTasks(argv, lease),
@@ -320,13 +325,12 @@ export class NodeCommandHandlers {
   }
 
   async updateSubmitTransactions (argv) {
-    const lease = this.leaseManager.instantiateLease()
+    const lease = await this.leaseManager.create()
     argv = helpers.addFlagsToArgv(argv, NodeFlags.UPDATE_SUBMIT_TRANSACTIONS_FLAGS)
     const action = helpers.commandActionBuilder([
       this.tasks.initialize(argv, updateConfigBuilder.bind(this), lease),
       RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
       this.tasks.loadContextData(argv, NodeCommandHandlers.UPDATE_CONTEXT_FILE, helpers.updateLoadContextParser),
-      this.tasks.loadAdminKey(),
         ...this.updateSubmitTransactionsTasks(argv)
     ], {
         concurrent: false,
@@ -338,7 +342,7 @@ export class NodeCommandHandlers {
   }
 
   async updateExecute (argv) {
-    const lease = this.leaseManager.instantiateLease()
+    const lease = await this.leaseManager.create()
     argv = helpers.addFlagsToArgv(argv, NodeFlags.UPDATE_EXECUTE_FLAGS)
       const action = helpers.commandActionBuilder([
         this.tasks.initialize(argv, updateConfigBuilder.bind(this), lease),
@@ -356,7 +360,7 @@ export class NodeCommandHandlers {
 
   async delete (argv: any) {
     argv = helpers.addFlagsToArgv(argv, NodeFlags.DELETE_FLAGS)
-    const lease = this.leaseManager.instantiateLease()
+    const lease = await this.leaseManager.create()
     const action = helpers.commandActionBuilder([
       ...this.deletePrepareTaskList(argv, lease),
       ...this.deleteSubmitTransactionsTaskList(argv),
@@ -373,7 +377,7 @@ export class NodeCommandHandlers {
   async deletePrepare (argv: any) {
     argv = helpers.addFlagsToArgv(argv, NodeFlags.DELETE_PREPARE_FLAGS)
 
-    const lease = this.leaseManager.instantiateLease()
+    const lease = await this.leaseManager.create()
 
     const action = helpers.commandActionBuilder([
       ...this.deletePrepareTaskList(argv, lease),
@@ -390,7 +394,7 @@ export class NodeCommandHandlers {
   async deleteSubmitTransactions (argv: any) {
     argv = helpers.addFlagsToArgv(argv, NodeFlags.DELETE_SUBMIT_TRANSACTIONS_FLAGS)
 
-    const lease = this.leaseManager.instantiateLease()
+    const lease = await this.leaseManager.create()
 
     const action = helpers.commandActionBuilder([
       this.tasks.initialize(argv, deleteConfigBuilder.bind(this), lease),
@@ -408,7 +412,7 @@ export class NodeCommandHandlers {
   async deleteExecute (argv: any) {
     argv = helpers.addFlagsToArgv(argv, NodeFlags.DELETE_EXECUTE_FLAGS)
 
-    const lease = this.leaseManager.instantiateLease()
+    const lease = await this.leaseManager.create()
 
     const action = helpers.commandActionBuilder([
       this.tasks.initialize(argv, deleteConfigBuilder.bind(this), lease),
@@ -426,7 +430,7 @@ export class NodeCommandHandlers {
   async add (argv: any) {
     argv = helpers.addFlagsToArgv(argv, NodeFlags.ADD_FLAGS)
 
-    const lease = this.leaseManager.instantiateLease()
+    const lease = await this.leaseManager.create()
 
     const action = helpers.commandActionBuilder([
       ...this.addPrepareTasks(argv, lease),
@@ -444,7 +448,7 @@ export class NodeCommandHandlers {
   async addPrepare (argv: any) {
     argv = helpers.addFlagsToArgv(argv, NodeFlags.ADD_PREPARE_FLAGS)
 
-    const lease = this.leaseManager.instantiateLease()
+    const lease = await this.leaseManager.create()
 
     const action = helpers.commandActionBuilder([
       ...this.addPrepareTasks(argv, lease),
@@ -461,7 +465,7 @@ export class NodeCommandHandlers {
   async addSubmitTransactions (argv: any) {
     argv = helpers.addFlagsToArgv(argv, NodeFlags.ADD_SUBMIT_TRANSACTIONS_FLAGS)
 
-    const lease = this.leaseManager.instantiateLease()
+    const lease = await this.leaseManager.create()
 
     const action = helpers.commandActionBuilder([
       this.tasks.initialize(argv, addConfigBuilder.bind(this), lease),
@@ -480,7 +484,7 @@ export class NodeCommandHandlers {
   async addExecute (argv: any) {
     argv = helpers.addFlagsToArgv(argv, NodeFlags.ADD_EXECUTE_FLAGS)
 
-    const lease = this.leaseManager.instantiateLease()
+    const lease = await this.leaseManager.create()
 
     const action = helpers.commandActionBuilder([
       this.tasks.initialize(argv, addConfigBuilder.bind(this), lease),
@@ -515,7 +519,7 @@ export class NodeCommandHandlers {
   async refresh (argv: any) {
     argv = helpers.addFlagsToArgv(argv, NodeFlags.REFRESH_FLAGS)
 
-    const lease = this.leaseManager.instantiateLease()
+    const lease = await this.leaseManager.create()
 
     const action = helpers.commandActionBuilder([
       this.tasks.initialize(argv, refreshConfigBuilder.bind(this), lease),
@@ -539,10 +543,8 @@ export class NodeCommandHandlers {
   async keys (argv: any) {
     argv = helpers.addFlagsToArgv(argv, NodeFlags.KEYS_FLAGS)
 
-    const lease = this.leaseManager.instantiateLease()
-
     const action = helpers.commandActionBuilder([
-      this.tasks.initialize(argv, keysConfigBuilder.bind(this), lease),
+      this.tasks.initialize(argv, keysConfigBuilder.bind(this), null),
       RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
       this.tasks.generateGossipKeys(),
       this.tasks.generateGrpcTlsKeys(),
@@ -550,7 +552,7 @@ export class NodeCommandHandlers {
     ], {
       concurrent: false,
       rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
-    }, 'Error generating keys', lease)
+    }, 'Error generating keys', null)
 
     await action(argv, this)
     return true
@@ -559,7 +561,7 @@ export class NodeCommandHandlers {
   async stop (argv: any): Promise<boolean> {
     argv = helpers.addFlagsToArgv(argv, NodeFlags.STOP_FLAGS)
 
-    const lease = this.leaseManager.instantiateLease()
+    const lease = await this.leaseManager.create()
 
     const action = helpers.commandActionBuilder([
       this.tasks.initialize(argv, stopConfigBuilder.bind(this), lease),
@@ -580,7 +582,7 @@ export class NodeCommandHandlers {
   async start (argv: any): Promise<boolean> {
     argv = helpers.addFlagsToArgv(argv, NodeFlags.START_FLAGS)
 
-    const lease = this.leaseManager.instantiateLease()
+    const lease = await this.leaseManager.create()
 
     const action = helpers.commandActionBuilder([
       this.tasks.initialize(argv, startConfigBuilder.bind(this), lease),
@@ -604,7 +606,7 @@ export class NodeCommandHandlers {
   async setup (argv: any): Promise<boolean> {
     argv = helpers.addFlagsToArgv(argv, NodeFlags.SETUP_FLAGS)
 
-    const lease = this.leaseManager.instantiateLease()
+    const lease = await this.leaseManager.create()
 
     const action = helpers.commandActionBuilder([
       this.tasks.initialize(argv, setupConfigBuilder.bind(this), lease),

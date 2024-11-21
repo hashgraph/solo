@@ -17,7 +17,7 @@
 import { it, describe, after, before, afterEach } from 'mocha'
 import { expect } from 'chai'
 
-import { flags } from '../../src/commands/index.ts'
+import { flags } from '../../src/commands/index.js'
 import {
   accountCreationShouldSucceed,
   balanceQueryShouldSucceed,
@@ -25,14 +25,14 @@ import {
   getDefaultArgv,
   HEDERA_PLATFORM_VERSION_TAG,
   TEST_CLUSTER, testLogger
-} from '../test_util.ts'
-import { getNodeLogs, sleep } from '../../src/core/helpers.ts'
-import * as NodeCommandConfigs from '../../src/commands/node/configs.ts'
-import { MINUTES, SECONDS } from '../../src/core/constants.ts'
-import type { NodeAlias } from '../../src/types/aliases.ts'
+} from '../test_util.js'
+import { getNodeLogs, sleep } from '../../src/core/helpers.js'
+import * as NodeCommandConfigs from '../../src/commands/node/configs.js'
+import { MINUTES, SECONDS } from '../../src/core/constants.js'
+import type { NodeAlias } from '../../src/types/aliases.js'
 import type { ListrTaskWrapper } from 'listr2'
-import { ConfigManager, type K8 } from '../../src/core/index.ts'
-import { type NodeCommand } from '../../src/commands/node/index.ts'
+import { ConfigManager, type K8 } from '../../src/core/index.js'
+import type { NodeCommand } from '../../src/commands/node/index.js'
 
 export function e2eNodeKeyRefreshTest (testName: string, mode: string, releaseTag = HEDERA_PLATFORM_VERSION_TAG) {
   const namespace = testName
@@ -77,10 +77,11 @@ export function e2eNodeKeyRefreshTest (testName: string, mode: string, releaseTa
 
         it(`Node Proxy should be UP [mode ${mode}, release ${releaseTag}`, async () => {
           try {
-            await expect(k8.waitForPodReady(
-                ['app=haproxy-node1',
-                  'solo.hedera.com/type=haproxy'],
-                1, 300, 1000)).to.eventually.be.ok
+            const labels = ['app=haproxy-node1', 'solo.hedera.com/type=haproxy']
+            const readyPods = await k8.waitForPodReady(labels, 1, 300, 1000)
+            expect(readyPods).to.not.be.null
+            expect(readyPods).to.not.be.undefined
+            expect(readyPods.length).to.be.greaterThan(0)
           } catch (e) {
             nodeCmd.logger.showUserError(e)
             expect.fail()
@@ -103,7 +104,7 @@ export function e2eNodeKeyRefreshTest (testName: string, mode: string, releaseTa
             expect(resp.response.statusCode).to.equal(200)
             await sleep(20 * SECONDS) // sleep to wait for pod to finish terminating
           } else if (mode === 'stop') {
-            await expect(nodeCmd.handlers.stop(argv)).to.eventually.be.ok
+            expect(await nodeCmd.handlers.stop(argv)).to.be.true
             await sleep(20 * SECONDS) // give time for node to stop and update its logs
           } else {
             throw new Error(`invalid mode: ${mode}`)
@@ -125,7 +126,8 @@ export function e2eNodeKeyRefreshTest (testName: string, mode: string, releaseTa
         it(`${nodeAlias} should be running`, async () => {
           try {
             // @ts-ignore to access tasks which is a private property
-            await expect(nodeCmd.tasks.checkNetworkNodePod(nodeAlias)).to.eventually.be.ok
+            expect(await nodeCmd.tasks.checkNetworkNodePod(namespace,
+                nodeAlias)).to.equal(`network-${nodeAlias}-0`)
           } catch (e) {
             nodeCmd.logger.showUserError(e)
             expect.fail()
@@ -138,7 +140,7 @@ export function e2eNodeKeyRefreshTest (testName: string, mode: string, releaseTa
       function nodeRefreshShouldSucceed (nodeAlias: NodeAlias, nodeCmd: NodeCommand, argv: Record<any, any>) {
         it(`${nodeAlias} refresh should succeed`, async () => {
           try {
-            await expect(nodeCmd.handlers.refresh(argv)).to.eventually.be.ok
+            expect(await nodeCmd.handlers.refresh(argv)).to.be.true
             expect(nodeCmd.getUnusedConfigs(
                 NodeCommandConfigs.REFRESH_CONFIGS_NAME)).to.deep.equal([
               flags.devMode.constName,

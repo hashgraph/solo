@@ -17,28 +17,20 @@
 import { describe, it } from 'mocha'
 import { expect } from 'chai'
 
-import { InitCommand } from '../../../../src/commands/init.ts'
+import { InitCommand } from '../../../../src/commands/init.js'
 import {
   HelmDependencyManager,
   DependencyManager
-} from '../../../../src/core/dependency_managers/index.ts'
+} from '../../../../src/core/dependency_managers/index.js'
 import {
-  ChartManager,
-  ConfigManager,
-  constants,
-  Helm,
-  K8,
-  KeyManager,
-  LeaseManager,
-  LocalConfig,
-  logging,
-  PackageDownloader,
-  Zippy
-} from '../../../../src/core/index.ts'
-import { SECONDS } from '../../../../src/core/constants.ts'
+  ChartManager, ConfigManager, constants, Helm, K8, KeyManager, LeaseManager,
+  LocalConfig, logging, PackageDownloader, Zippy
+} from '../../../../src/core/index.js'
+import { SECONDS } from '../../../../src/core/constants.js'
 import sinon from 'sinon'
+import { IntervalLeaseRenewalService } from '../../../../src/core/lease/lease_renewal.js'
 import path from 'path'
-import { BASE_TEST_DIR } from '../../../test_util.ts'
+import { BASE_TEST_DIR } from '../../../test_util.js'
 
 const testLogger = logging.NewLogger('debug', true)
 describe('InitCommand', () => {
@@ -68,7 +60,7 @@ describe('InitCommand', () => {
     sandbox.stub(K8.prototype, 'init').callsFake(() => this)
     k8 = new K8(configManager, testLogger)
     localConfig = new LocalConfig(path.join(BASE_TEST_DIR, 'local-config.yaml'), testLogger, k8, configManager)
-    leaseManager = new LeaseManager(k8, testLogger, configManager)
+    leaseManager = new LeaseManager(k8, configManager, testLogger, new IntervalLeaseRenewalService())
     // @ts-ignore
     initCmd = new InitCommand({
       logger: testLogger, helm, k8, chartManager, configManager, depManager, keyManager, leaseManager, localConfig

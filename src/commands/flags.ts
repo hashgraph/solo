@@ -14,11 +14,11 @@
  * limitations under the License.
  *
  */
-import { constants } from '../core/index.ts'
-import * as core from '../core/index.ts'
-import * as version from '../../version.ts'
+import { constants } from '../core/index.js'
+import * as core from '../core/index.js'
+import * as version from '../../version.js'
 import path from 'path'
-import type { CommandFlag } from '../types/index.ts'
+import type { CommandFlag } from '../types/index.js'
 
 /**
  * Set flag from the flag option

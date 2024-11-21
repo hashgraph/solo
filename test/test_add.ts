@@ -17,7 +17,7 @@
 import { expect } from 'chai'
 import { describe, it, after } from 'mocha'
 
-import { flags } from '../src/commands/index.ts'
+import { flags } from '../src/commands/index.js'
 import {
   accountCreationShouldSucceed,
   balanceQueryShouldSucceed,
@@ -26,12 +26,12 @@ import {
   getNodeAliasesPrivateKeysHash,
   getTmpDir,
   HEDERA_PLATFORM_VERSION_TAG
-} from './test_util.ts'
-import { getNodeLogs } from '../src/core/helpers.ts'
-import * as NodeCommandConfigs from '../src/commands/node/configs.ts'
-import { MINUTES } from '../src/core/constants.ts'
-import type { NodeAlias } from '../src/types/aliases.ts'
-import type { NetworkNodeServices } from '../src/core/network_node_services.ts'
+} from './test_util.js'
+import { getNodeLogs } from '../src/core/helpers.js'
+import * as NodeCommandConfigs from '../src/commands/node/configs.js'
+import { MINUTES } from '../src/core/constants.js'
+import type { NodeAlias } from '../src/types/aliases.js'
+import type { NetworkNodeServices } from '../src/core/network_node_services.js'
 
 const defaultTimeout = 2 * MINUTES
 
@@ -76,7 +76,7 @@ export function testNodeAdd (localBuildPath: string, testDescription = 'Node add
       }).timeout(defaultTimeout)
 
       it('should succeed with init command', async () => {
-        await expect(accountCmd.init(argv)).to.eventually.be.ok
+        expect(await accountCmd.init(argv)).to.be.true
       }).timeout(8 * MINUTES)
 
       it('should add a new node to the network successfully', async () => {

@@ -18,12 +18,12 @@ import { after, afterEach, describe } from 'mocha'
 import { expect } from 'chai'
 import each from 'mocha-each'
 
-import { flags } from '../../../src/commands/index.ts'
-import { e2eTestSuite, getDefaultArgv, HEDERA_PLATFORM_VERSION_TAG, TEST_CLUSTER } from '../../test_util.ts'
-import * as version from '../../../version.ts'
-import { getNodeLogs, sleep } from '../../../src/core/helpers.ts'
-import { RelayCommand } from '../../../src/commands/relay.ts'
-import { MINUTES } from '../../../src/core/constants.ts'
+import { flags } from '../../../src/commands/index.js'
+import { e2eTestSuite, getDefaultArgv, HEDERA_PLATFORM_VERSION_TAG, TEST_CLUSTER } from '../../test_util.js'
+import * as version from '../../../version.js'
+import { getNodeLogs, sleep } from '../../../src/core/helpers.js'
+import { RelayCommand } from '../../../src/commands/relay.js'
+import { MINUTES } from '../../../src/core/constants.js'
 
 const testName = 'relay-cmd-e2e'
 const namespace = testName
@@ -61,7 +61,7 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
 
       // test relay deploy
       try {
-        await expect(relayCmd.deploy(argv)).to.eventually.be.ok
+        expect(await relayCmd.deploy(argv)).to.be.true
       } catch (e) {
         relayCmd.logger.showUserError(e)
         expect.fail()
@@ -75,7 +75,7 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
 
       // test relay destroy
       try {
-        await expect(relayCmd.destroy(argv)).to.eventually.be.ok
+        expect(await relayCmd.destroy(argv)).to.be.true
       } catch (e) {
         relayCmd.logger.showUserError(e)
         expect.fail()

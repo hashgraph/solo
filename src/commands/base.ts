@@ -16,13 +16,13 @@
  */
 
 import paths from 'path'
-import { MissingArgumentError } from '../core/errors.ts'
-import { ShellRunner } from '../core/shell_runner.ts'
+import { MissingArgumentError } from '../core/errors.js'
+import { ShellRunner } from '../core/shell_runner.js'
 import type {
   ChartManager, ConfigManager, Helm, K8, DependencyManager, LeaseManager, RemoteConfigManager
-} from '../core/index.ts'
-import type { CommandFlag,  Opts } from '../types/index.ts'
-import { type LocalConfig } from './../core/config/LocalConfig.ts'
+} from '../core/index.js'
+import type { CommandFlag,  Opts } from '../types/index.js'
+import { type LocalConfig } from './../core/config/LocalConfig.js'
 
 export class BaseCommand extends ShellRunner {
   protected readonly helm: Helm

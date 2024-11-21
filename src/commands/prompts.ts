@@ -16,13 +16,13 @@
  */
 import { ListrEnquirerPromptAdapter } from '@listr2/prompt-adapter-enquirer'
 import fs from 'fs'
-import { SoloError, IllegalArgumentError } from '../core/errors.ts'
-import { ConfigManager, constants } from '../core/index.ts'
-import * as flags from './flags.ts'
-import * as helpers from '../core/helpers.ts'
-import { contextCluster, hederaExplorerVersion, resetDisabledPrompts } from './flags.ts'
+import { SoloError, IllegalArgumentError } from '../core/errors.js'
+import { ConfigManager, constants } from '../core/index.js'
+import * as flags from './flags.js'
+import * as helpers from '../core/helpers.js'
+import { contextCluster, hederaExplorerVersion, resetDisabledPrompts } from './flags.js'
 import type { ListrTaskWrapper } from 'listr2'
-import { type CommandFlag } from '../types/index.ts'
+import type { CommandFlag } from '../types/index.js'
 import validator from 'validator'
 
 async function prompt (type: string, task: ListrTaskWrapper<any, any, any>, input: any, defaultValue: any, promptMessage: string, emptyCheckMessage: string | null, flagName: string) {

@@ -14,18 +14,18 @@
  * limitations under the License.
  *
  */
-import { FREEZE_ADMIN_ACCOUNT } from '../../core/constants.ts'
-import { constants, type K8, Templates } from '../../core/index.ts'
+import { FREEZE_ADMIN_ACCOUNT } from '../../core/constants.js'
+import { constants, type K8, Templates } from '../../core/index.js'
 import { PrivateKey } from '@hashgraph/sdk'
-import { SoloError } from '../../core/errors.ts'
-import * as helpers from '../../core/helpers.ts'
+import { SoloError } from '../../core/errors.js'
+import * as helpers from '../../core/helpers.js'
 import path from 'path'
 import fs from 'fs'
-import { validatePath } from '../../core/helpers.ts'
-import * as flags from '../flags.ts'
-import type { NodeAlias, NodeAliases, PodName } from '../../types/aliases.ts'
-import type { NetworkNodeServices } from '../../core/network_node_services.ts'
-import type { NodeCommandHandlers } from './handlers.ts'
+import { validatePath } from '../../core/helpers.js'
+import * as flags from '../flags.js'
+import type { NodeAlias, NodeAliases, PodName } from '../../types/aliases.js'
+import type { NetworkNodeServices } from '../../core/network_node_services.js'
+import type { NodeCommandHandlers } from './handlers.js'
 import type { ListrTaskWrapper } from 'listr2'
 
 export const PREPARE_UPGRADE_CONFIGS_NAME = 'prepareUpgradeConfig'
@@ -249,9 +249,10 @@ export const addConfigBuilder = async function (
 export const logsConfigBuilder = function (
   this: NodeCommandHandlers, argv: any, ctx: any, task: ListrTaskWrapper<any, any, any>
 ) {
-    const config: { namespace: string; nodeAliases: NodeAliases } = {
+    const config: { namespace: string; nodeAliases: NodeAliases; nodeAliasesUnparsed: string } = {
         namespace: this.configManager.getFlag(flags.namespace),
-        nodeAliases: helpers.parseNodeAliases(this.configManager.getFlag(flags.nodeAliasesUnparsed))
+        nodeAliases: helpers.parseNodeAliases(this.configManager.getFlag(flags.nodeAliasesUnparsed)),
+        nodeAliasesUnparsed: this.configManager.getFlag(flags.nodeAliasesUnparsed)
     }
     ctx.config = config
     return config

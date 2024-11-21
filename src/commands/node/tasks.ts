@@ -15,19 +15,10 @@
  *
  */
 import {
-  type AccountManager,
-  type CertificateManager,
-  type ChartManager,
-  type ConfigManager,
-  constants,
-  type K8,
-  type KeyManager,
-  type PlatformInstaller,
-  type ProfileManager,
-  Task,
-  Templates,
-  Zippy
-} from '../../core/index.ts'
+  constants, Task, Templates,
+  Zippy, type K8, type ChartManager, type ConfigManager, type KeyManager, type PlatformInstaller,
+  type ProfileManager, type AccountManager, type CertificateManager
+} from '../../core/index.js'
 import {
   DEFAULT_NETWORK_NODE_NAME,
   FREEZE_ADMIN_ACCOUNT,
@@ -35,7 +26,7 @@ import {
   LOCAL_HOST,
   SECONDS,
   TREASURY_ACCOUNT_ID
-} from '../../core/constants.ts'
+} from '../../core/constants.js'
 import {
   AccountBalanceQuery,
   AccountId,
@@ -50,8 +41,8 @@ import {
   PrivateKey,
   Timestamp
 } from '@hashgraph/sdk'
-import { IllegalArgumentError, MissingArgumentError, SoloError } from '../../core/errors.ts'
-import * as prompts from '../prompts.ts'
+import { IllegalArgumentError, MissingArgumentError, SoloError } from '../../core/errors.js'
+import * as prompts from '../prompts.js'
 import path from 'path'
 import fs from 'fs'
 import crypto from 'crypto'
@@ -63,22 +54,23 @@ import {
   renameAndCopyFile,
   sleep,
   splitFlagInput
-} from '../../core/helpers.ts'
+} from '../../core/helpers.js'
 import chalk from 'chalk'
-import * as flags from '../flags.ts'
-import { type SoloLogger } from '../../core/logging.ts'
+import * as flags from '../flags.js'
+import { type SoloLogger } from '../../core/logging.js'
 import type { Listr, ListrTaskWrapper } from 'listr2'
-import { type NodeAlias, type NodeAliases, type PodName } from '../../types/aliases.ts'
-import { NodeStatusCodes, NodeStatusEnums } from '../../core/enumerations.ts'
+import { type NodeAlias, type NodeAliases, type PodName } from '../../types/aliases.js'
+import { NodeStatusCodes, NodeStatusEnums } from '../../core/enumerations.js'
 import * as x509 from '@peculiar/x509'
-import { type NodeCommand } from './index.ts'
+import { type NodeCommand } from './index.js'
 import type {
   NodeAddConfigClass,
   NodeDeleteConfigClass,
   NodeRefreshConfigClass,
   NodeUpdateConfigClass
-} from './configs.ts'
-import type { LeaseWrapper } from '../../core/lease_wrapper.ts'
+} from './configs.js'
+import { type Lease } from '../../core/lease/lease.js'
+import { ListrLease } from '../../core/lease/listr_lease.js'
 
 export class NodeCommandTasks {
   private readonly accountManager: AccountManager
@@ -683,9 +675,9 @@ export class NodeCommandTasks {
 
       if (localBuildPath !== '') {
         return this._uploadPlatformSoftware(ctx.config[aliasesField], podNames, task, localBuildPath)
-      } 
+      }
         return this._fetchPlatformSoftware(ctx.config[aliasesField], podNames, releaseTag, task, this.platformInstaller)
-      
+
     })
   }
 
@@ -1338,7 +1330,7 @@ export class NodeCommandTasks {
     })
   }
 
-  initialize (argv: any, configInit: Function, lease: LeaseWrapper | null) {
+  initialize (argv: any, configInit: Function, lease: Lease | null) {
     const { requiredFlags, requiredFlagsWithDisabledPrompt, optionalFlags } = argv
     const allRequiredFlags = [
       ...requiredFlags,
@@ -1383,7 +1375,9 @@ export class NodeCommandTasks {
 
       this.logger.debug('Initialized config', { config })
 
-      if (lease) return lease.buildAcquireTask(task)
+      if (lease) {
+        return ListrLease.newAcquireLeaseTask(lease, task)
+      }
     })
   }
 }

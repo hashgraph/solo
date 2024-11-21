@@ -17,12 +17,12 @@
 import * as x509 from '@peculiar/x509'
 import os from 'os'
 import path from 'path'
-import { DataValidationError, SoloError, IllegalArgumentError, MissingArgumentError } from './errors.ts'
-import { constants } from './index.ts'
+import { DataValidationError, SoloError, IllegalArgumentError, MissingArgumentError } from './errors.js'
+import { constants } from './index.js'
 import { type AccountId } from '@hashgraph/sdk'
-import type { NodeAlias, PodName } from '../types/aliases.ts'
-import { GrpcProxyTlsEnums } from './enumerations.ts'
-import type { ContextClusterStructure } from '../types/index.ts'
+import type { NodeAlias, PodName } from '../types/aliases.js'
+import { GrpcProxyTlsEnums } from './enumerations.js'
+import type { ContextClusterStructure } from '../types/index.js'
 import { Cluster, Context } from "./config/remote/types.js";
 
 export class Templates {
@@ -228,7 +228,7 @@ export class Templates {
    *
    * @param unparsed - value of flag clusterMappings
    */
-  static parseContextCluster (unparsed: string): ContextClusterStructure {
+  public static parseContextCluster (unparsed: string): ContextClusterStructure {
     const mapping = {}
 
     unparsed.split(',').forEach((data) => {

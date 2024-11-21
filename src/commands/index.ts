@@ -14,16 +14,16 @@
  * limitations under the License.
  *
  */
-import { ClusterCommand } from './cluster.ts'
-import { InitCommand } from './init.ts'
-import { MirrorNodeCommand } from './mirror_node.ts'
-import { NetworkCommand } from './network.ts'
-import { NodeCommand } from './node/index.ts'
-import { RelayCommand } from './relay.ts'
-import { AccountCommand } from './account.ts'
-import { DeploymentCommand } from './deployment.ts'
-import * as flags from './flags.ts'
-import { type Opts } from '../types/index.ts'
+import * as flags from './flags.js'
+import { ClusterCommand } from './cluster.js'
+import { InitCommand } from './init.js'
+import { MirrorNodeCommand } from './mirror_node.js'
+import { NetworkCommand } from './network.js'
+import { NodeCommand } from './node/index.js'
+import { RelayCommand } from './relay.js'
+import { AccountCommand } from './account.js'
+import { DeploymentCommand } from './deployment.js'
+import { type Opts } from '../types/index.js'
 
 /**
  * Return a list of Yargs command builder to be exposed through CLI

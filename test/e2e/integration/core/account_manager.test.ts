@@ -17,11 +17,11 @@
 import { it, describe, after } from 'mocha'
 import { expect } from 'chai'
 
-import { flags } from '../../../../src/commands/index.ts'
-import { e2eTestSuite, getDefaultArgv, TEST_CLUSTER } from '../../../test_util.ts'
-import * as version from '../../../../version.ts'
-import { MINUTES } from '../../../../src/core/constants.ts'
-import type { PodName } from '../../../../src/types/aliases.ts'
+import { flags } from '../../../../src/commands/index.js'
+import { e2eTestSuite, getDefaultArgv, TEST_CLUSTER } from '../../../test_util.js'
+import * as version from '../../../../version.js'
+import { MINUTES } from '../../../../src/core/constants.js'
+import type { PodName } from '../../../../src/types/aliases.js'
 
 const namespace = 'account-mngr-e2e'
 const argv = getDefaultArgv()
