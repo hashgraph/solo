@@ -20,7 +20,7 @@ import { MissingArgumentError } from '../core/errors.ts'
 import { ShellRunner } from '../core/shell_runner.ts'
 import type {  ChartManager,  ConfigManager,  Helm,  K8,  DependencyManager, LeaseManager } from '../core/index.ts'
 import type {  CommandFlag,  Opts } from '../types/index.ts'
-import { type LocalConfig } from './../core/config/LocalConfig.ts'
+import { type LocalConfig } from '../core/config/local_config.ts'
 
 export class BaseCommand extends ShellRunner {
   protected readonly helm: Helm

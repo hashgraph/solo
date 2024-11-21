@@ -18,7 +18,7 @@ import { IsEmail, IsNotEmpty, IsObject, IsString, validateSync } from 'class-val
 import { type ListrTask } from 'listr2'
 import fs from 'fs'
 import * as yaml from 'yaml'
-import { type ClusterMapping, type Deployment, type Deployments, type LocalConfigData } from './LocalConfigData.ts'
+import { type ClusterMapping, type Deployment, type Deployments, type LocalConfigData } from './local_config_data.js'
 import { MissingArgumentError, SoloError } from '../errors.ts'
 import { promptDeploymentClusters, promptDeploymentName, promptUserEmailAddress } from '../../commands/prompts.ts'
 import { flags } from '../../commands/index.ts'

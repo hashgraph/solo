@@ -14,7 +14,7 @@
  * limitations under the License.
  *
  */
-import { LocalConfig } from '../../../src/core/config/LocalConfig.ts'
+import { LocalConfig } from '../../../src/core/config/local_config.ts'
 import fs from 'fs'
 import { stringify } from 'yaml'
 import { expect } from 'chai'
