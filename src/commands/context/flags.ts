@@ -15,7 +15,7 @@
  *
  */
 
-import * as flags from '../flags.ts'
+import * as flags from '../flags.js'
 
 export const DEFAULT_FLAGS = {
     requiredFlags: [],

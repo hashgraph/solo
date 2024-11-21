@@ -50,7 +50,6 @@ describe('LocalConfig', () => {
         expect(localConfig.userEmailAddress).to.eq(config.userEmailAddress)
         expect(localConfig.deployments).to.deep.eq(config.deployments)
         expect(localConfig.currentDeploymentName).to.eq(config.currentDeploymentName)
-        expect(localConfig.clusterMappings).to.deep.eq(config.clusterMappings)
     })
 
     it('should set user email address', async () => {
@@ -107,33 +106,6 @@ describe('LocalConfig', () => {
             expect.fail('expected an error to be thrown')
         } catch (error) {
             expect(error).to.be.instanceOf(SoloError)
-        }
-    })
-
-    it('should set context mappings', async () => {
-        const newClusterMappings = {
-            'cluster-3': 'context-3',
-            'cluster-4': 'context-4',
-        }
-        localConfig.setClusterMappings(newClusterMappings)
-        expect(localConfig.clusterMappings).to.eq(newClusterMappings)
-
-        await localConfig.write()
-        const newConfig = new LocalConfig(filePath, testLogger)
-        expect(newConfig.clusterMappings).to.deep.eq(newClusterMappings)
-    })
-
-    it('should not set invalid context mappings', async () => {
-        const invalidContextMappings = {
-            'cluster-3': 'context-3',
-            'invalid-cluster': 5,
-        }
-
-        try {
-            localConfig.setContextMappings(invalidContextMappings)
-            expect.fail('expected an error to be thrown')
-        } catch (error) {
-            expect(error).to.be.instanceOf(TypeError)
         }
     })
 
@@ -210,14 +182,6 @@ describe('LocalConfig', () => {
                 deployments: [{ 'foo': 'bar' }]
             })
         )
-        expectFailedValidation()
-    })
-
-    it('should throw a validation error if clusterMappings format is not correct', async () => {
-        await fs.promises.writeFile(filePath, stringify({ ...config, clusterMappings: 'foo' }))
-        expectFailedValidation()
-
-        await fs.promises.writeFile(filePath, stringify({ ...config, clusterMappings: ['foo', 'bar'] }))
         expectFailedValidation()
     })
 

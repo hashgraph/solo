@@ -15,13 +15,13 @@
  *
  */
 
-import { YargsCommand } from '../../core/index.ts'
-import { BaseCommand } from './../base.ts'
-import type { Opts } from '../../types/index.ts'
-import {ContextCommandTasks} from "./tasks.ts";
-import {ContextCommandHandlers} from "./handlers.ts";
-import * as ContextFlags from './flags.ts'
-import {getPromptMap} from "../prompts.ts";
+import { YargsCommand } from '../../core/index.js'
+import { BaseCommand } from './../base.js'
+import type { Opts } from '../../types/index.js'
+import {ContextCommandTasks} from "./tasks.js";
+import {ContextCommandHandlers} from "./handlers.js";
+import * as ContextFlags from './flags.js'
+import {getPromptMap} from "../prompts.js";
 
 /**
  * Defines the core functionalities of 'node' command

@@ -14,12 +14,12 @@
  * limitations under the License.
  *
  */
-import {BaseCommand} from "../base.ts";
-import {ContextCommandTasks} from "./tasks.ts";
-import * as helpers from "../../core/helpers.ts";
-import {constants} from "../../core/index.ts";
-import {CommandHandlers} from "../../types/index.ts";
-import * as ContextFlags from "./flags.ts";
+import {BaseCommand} from "../base.js";
+import {ContextCommandTasks} from "./tasks.js";
+import * as helpers from "../../core/helpers.js";
+import {constants} from "../../core/index.js";
+import {CommandHandlers} from "../../types/index.js";
+import * as ContextFlags from "./flags.js";
 
 export class ContextCommandHandlers implements CommandHandlers {
   readonly parent: BaseCommand

@@ -18,7 +18,7 @@ import sinon from 'sinon'
 import { describe, it, beforeEach } from 'mocha'
 import { expect } from 'chai'
 
-import { ContextCommandTasks } from '../../../src/commands/context/tasks.ts'
+import { ContextCommandTasks } from '../../../src/commands/context/tasks.js'
 import {
     AccountManager, CertificateManager,
     ChartManager,
@@ -27,13 +27,13 @@ import {
     Helm, K8, KeyManager, LeaseManager,
     LocalConfig,
     PackageDownloader, PlatformInstaller, ProfileManager
-} from "../../../src/core/index.ts";
-import {getTestCacheDir, testLocalConfigData} from "../../test_util.ts";
-import {BaseCommand} from "../../../src/commands/base.ts";
-import {flags} from "../../../src/commands/index.ts";
-import {SoloLogger} from "../../../src/core/logging.ts";
+} from "../../../src/core/index.js";
+import {getTestCacheDir, testLocalConfigData} from "../../test_util.js";
+import {BaseCommand} from "../../../src/commands/base.js";
+import {flags} from "../../../src/commands/index.js";
+import {SoloLogger} from "../../../src/core/logging.js";
 import Sinon from "sinon";
-import {Opts} from "../../../src/types/index.ts";
+import {Opts} from "../../../src/types/index.js";
 import fs from "fs";
 import {stringify} from "yaml";
 import {Cluster, KubeConfig} from "@kubernetes/client-node";
@@ -199,24 +199,6 @@ describe('ContextCommandTasks unit tests', () => {
             expect(promptMap.get(flags.context.name)).to.have.been.calledOnce
         });
 
-        it('should use context from clusterMappings if no value is provided and quiet=true', async () => {
-            const argv = {
-                [flags.namespace.name]: 'deployment-2',
-                [flags.clusterName.name]: 'cluster-2',
-                [flags.quiet.name]: 'true',
-            };
-
-            await runUpdateLocalConfigTask(argv)
-            localConfig = new LocalConfig(filePath, loggerStub);
-
-            expect(localConfig.currentDeploymentName).to.equal('deployment-2');
-            expect(localConfig.getCurrentDeployment().clusterAliases).to.deep.equal(['cluster-2']);
-            expect(command.getK8().getKubeConfig().setCurrentContext).to.have.been.calledWith('context-3')
-            expect(promptMap.get(flags.namespace.name)).to.not.have.been.called
-            expect(promptMap.get(flags.clusterName.name)).to.not.have.been.called
-            expect(promptMap.get(flags.context.name)).to.not.have.been.called
-        });
-
         it('should use cluster from kubectl if no value is provided and quiet=true', async () => {
             const argv = {
                 [flags.namespace.name]: 'deployment-2',
@@ -249,26 +231,6 @@ describe('ContextCommandTasks unit tests', () => {
             expect(localConfig.currentDeploymentName).to.equal('deployment-2');
             expect(localConfig.getCurrentDeployment().clusterAliases).to.deep.equal(['cluster-2']);
             expect(command.getK8().getKubeConfig().setCurrentContext).to.have.been.calledWith('context-3')
-            expect(promptMap.get(flags.namespace.name)).to.not.have.been.called
-            expect(promptMap.get(flags.clusterName.name)).to.not.have.been.called
-            expect(promptMap.get(flags.context.name)).to.not.have.been.called
-        });
-
-        it('should update clusterMappings with provided context if force=true', async () => {
-            const argv = {
-                [flags.namespace.name]: 'deployment-2',
-                [flags.clusterName.name]: 'cluster-2',
-                [flags.context.name]: 'provided-context',
-                [flags.force.name]: 'true',
-            };
-
-            await runUpdateLocalConfigTask(argv)
-            localConfig = new LocalConfig(filePath, loggerStub);
-
-            expect(localConfig.currentDeploymentName).to.equal('deployment-2');
-            expect(localConfig.getCurrentDeployment().clusterAliases).to.deep.equal(['cluster-2']);
-            expect(localConfig.clusterMappings['cluster-2']).to.equal('provided-context');
-            expect(command.getK8().getKubeConfig().setCurrentContext).to.have.been.calledWith('provided-context')
             expect(promptMap.get(flags.namespace.name)).to.not.have.been.called
             expect(promptMap.get(flags.clusterName.name)).to.not.have.been.called
             expect(promptMap.get(flags.context.name)).to.not.have.been.called

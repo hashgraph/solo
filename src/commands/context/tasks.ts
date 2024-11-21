@@ -16,8 +16,8 @@
  */
 import {
   Task, Templates
-} from '../../core/index.ts'
-import * as flags from '../flags.ts'
+} from '../../core/index.js'
+import * as flags from '../flags.js'
 import type { ListrTaskWrapper } from 'listr2'
 import {BaseCommand} from "../base.js";
 
@@ -54,23 +54,6 @@ export class ContextCommandTasks {
         if (!clusterAliases.length) clusterAliases = Templates.parseClusterAliases(await (this.promptMap.get(flags.clusterName.name))(task, clusterAliases))
         if (!contextName) contextName = await (this.promptMap.get(flags.context.name))(task, contextName)
         if (!currentDeploymentName) currentDeploymentName = await (this.promptMap.get(flags.namespace.name))(task, currentDeploymentName)
-      }
-
-      if (isForcing) {
-        const userClusterName = clusterAliases[0]
-        let savedClusterName
-        for (const [cluster, context] of Object.entries(this.parent.getLocalConfig().clusterMappings)) {
-          if (context === contextName) {
-            savedClusterName = cluster;
-          }
-        }
-
-        if (savedClusterName !== userClusterName) {
-          // Overwrite the key in the clusterMapping object for the
-          // corresponding context with the one specified in the CLI
-          this.parent.getLocalConfig().clusterMappings[userClusterName] = contextName
-          delete this.parent.getLocalConfig().clusterMappings[savedClusterName]
-        }
       }
 
       // Select current deployment
