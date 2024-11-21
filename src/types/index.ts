@@ -79,10 +79,10 @@ export interface Opts {
   keyManager: KeyManager
   accountManager: AccountManager
   profileManager: ProfileManager
+  certificateManager: CertificateManager
   leaseManager: LeaseManager
   localConfig: LocalConfig
   remoteConfigManager: RemoteConfigManager
-  certificateManager: CertificateManager
 }
 
 /**

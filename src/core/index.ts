@@ -34,7 +34,7 @@ import { AccountManager } from './account_manager.js'
 import { LeaseManager } from './lease/lease_manager.js'
 import { CertificateManager } from './certificate_manager.js'
 import { RemoteConfigManager } from './config/remote/remote_config_manager.js'
-import { LocalConfig } from './config/LocalConfig.js'
+import { LocalConfig } from './config/local_config.js'
 
 // Expose components from the core module
 export {

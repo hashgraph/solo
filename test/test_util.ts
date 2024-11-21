@@ -62,6 +62,7 @@ import type { SoloLogger } from '../src/core/logging.js'
 import type { BaseCommand } from '../src/commands/base.js'
 import type { NodeAlias } from '../src/types/aliases.js'
 import type { NetworkNodeServices } from '../src/core/network_node_services.js'
+import sinon from 'sinon'
 import { HEDERA_PLATFORM_VERSION } from '../version.js'
 import { IntervalLeaseRenewalService } from '../src/core/lease/lease_renewal.js'
 
