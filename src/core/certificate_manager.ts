@@ -14,17 +14,17 @@
  * limitations under the License.
  *
  */
-import { MissingArgumentError, SoloError } from './errors.ts'
-import { flags } from '../commands/index.ts'
+import { MissingArgumentError, SoloError } from './errors.js'
+import { flags } from '../commands/index.js'
 import fs from 'fs'
-import { Templates } from './templates.ts'
-import { GrpcProxyTlsEnums } from './enumerations.ts'
+import { Templates } from './templates.js'
+import { GrpcProxyTlsEnums } from './enumerations.js'
 
-import type { ConfigManager } from './config_manager.ts'
-import type { K8 } from './k8.ts'
-import type { SoloLogger } from './logging.ts'
+import type { ConfigManager } from './config_manager.js'
+import type { K8 } from './k8.js'
+import type { SoloLogger } from './logging.js'
 import type { ListrTaskWrapper } from 'listr2'
-import type { NodeAlias } from '../types/aliases.ts'
+import type { NodeAlias } from '../types/aliases.js'
 
 /**
  * Used to handle interactions with certificates data and inject it into the K8s cluster secrets

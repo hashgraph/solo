@@ -17,8 +17,8 @@
 import { it, describe } from 'mocha'
 import { expect } from 'chai'
 
-import { ChartManager, Helm, constants } from '../../../../src/core/index.ts'
-import { testLogger } from '../../../test_util.ts'
+import { ChartManager, Helm, constants } from '../../../../src/core/index.js'
+import { testLogger } from '../../../test_util.js'
 
 describe('ChartManager', () => {
   const helm = new Helm(testLogger)

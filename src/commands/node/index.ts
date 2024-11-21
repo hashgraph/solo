@@ -15,13 +15,13 @@
  *
  */
 
-import { IllegalArgumentError } from '../../core/errors.ts'
-import { type AccountManager, YargsCommand } from '../../core/index.ts'
-import { BaseCommand } from './../base.ts'
-import { NodeCommandTasks } from './tasks.ts'
-import * as NodeFlags from './flags.ts'
-import { NodeCommandHandlers } from './handlers.ts'
-import type { Opts } from '../../types/index.ts'
+import { IllegalArgumentError } from '../../core/errors.js'
+import { type AccountManager, YargsCommand } from '../../core/index.js'
+import { BaseCommand } from './../base.js'
+import { NodeCommandTasks } from './tasks.js'
+import * as NodeFlags from './flags.js'
+import { NodeCommandHandlers } from './handlers.js'
+import type { Opts } from '../../types/index.js'
 
 /**
  * Defines the core functionalities of 'node' command

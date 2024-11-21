@@ -16,7 +16,7 @@
  */
 import { expect } from 'chai'
 
-import { HelmDependencyManager, DependencyManager } from '../../../src/core/dependency_managers/index.ts'
+import { HelmDependencyManager, DependencyManager } from '../../../src/core/dependency_managers/index.js'
 import {
   ChartManager,
   ConfigManager,

@@ -18,10 +18,10 @@ import { expect } from 'chai'
 import { after, before, describe, it } from 'mocha'
 import jest from 'jest-mock'
 
-import { CertificateManager, ConfigManager, K8 } from '../../../src/core/index.ts'
-import { flags } from '../../../src/commands/index.ts'
-import { testLogger } from '../../test_util.ts'
-import { SoloError } from '../../../src/core/errors.ts'
+import { CertificateManager, ConfigManager, K8 } from '../../../src/core/index.js'
+import { flags } from '../../../src/commands/index.js'
+import { testLogger } from '../../test_util.js'
+import { SoloError } from '../../../src/core/errors.js'
 
 describe('Certificate Manager', () => {
 

@@ -22,16 +22,16 @@ import { describe, it, after, before } from 'mocha'
 import fs from 'fs'
 import os from 'os'
 import path from 'path'
-import { type BaseCommand } from '../src/commands/base.ts'
-import { ClusterCommand } from '../src/commands/cluster.ts'
-import { InitCommand } from '../src/commands/init.ts'
-import { NetworkCommand } from '../src/commands/network.ts'
-import { NodeCommand } from '../src/commands/node/index.ts'
+import { flags } from '../src/commands/index.js'
+import { ClusterCommand } from '../src/commands/cluster.js'
+import { InitCommand } from '../src/commands/init.js'
+import { NetworkCommand } from '../src/commands/network.js'
+import { NodeCommand } from '../src/commands/node/index.js'
 import {
   DependencyManager,
   HelmDependencyManager
-} from '../src/core/dependency_managers/index.ts'
-import { getNodeLogs, sleep } from '../src/core/helpers.ts'
+} from '../src/core/dependency_managers/index.js'
+import { getNodeLogs, sleep } from '../src/core/helpers.js'
 import {
   ChartManager,
   ConfigManager,
@@ -46,24 +46,25 @@ import {
   Templates,
   Zippy,
   AccountManager, CertificateManager, LocalConfig
-} from '../src/core/index.ts'
-import { flags } from '../src/commands/index.ts'
+} from '../src/core/index.js'
 import {
   AccountBalanceQuery,
   AccountCreateTransaction, Hbar, HbarUnit,
   PrivateKey
 } from '@hashgraph/sdk'
-import { MINUTES, ROOT_CONTAINER, SECONDS } from '../src/core/constants.ts'
+import { MINUTES, NODE_LOG_FAILURE_MSG, ROOT_CONTAINER, SECONDS, SOLO_LOGS_DIR } from '../src/core/constants.js'
 import crypto from 'crypto'
-import { AccountCommand } from '../src/commands/account.ts'
-import { SoloError } from '../src/core/errors.ts'
+import { AccountCommand } from '../src/commands/account.js'
+import { SoloError } from '../src/core/errors.js'
 import { execSync } from 'child_process'
-import * as NodeCommandConfigs from '../src/commands/node/configs.ts'
-import type { SoloLogger } from '../src/core/logging.ts'
-import type { NodeAlias } from '../src/types/aliases.ts'
-import type { NetworkNodeServices } from '../src/core/network_node_services.ts'
+import * as NodeCommandConfigs from '../src/commands/node/configs.js'
+import type { SoloLogger } from '../src/core/logging.js'
+import type { BaseCommand } from '../src/commands/base.js'
+import type { NodeAlias } from '../src/types/aliases.js'
+import type { NetworkNodeServices } from '../src/core/network_node_services.js'
 import sinon from 'sinon'
 import { HEDERA_PLATFORM_VERSION } from '../version.js'
+import { IntervalLeaseRenewalService } from '../src/core/lease/lease_renewal.js'
 
 export const testLogger = logging.NewLogger('debug', true)
 export const TEST_CLUSTER = 'solo-e2e'
@@ -151,7 +152,7 @@ export function bootstrapTestVariables (
   const accountManager = new AccountManager(testLogger, k8)
   const platformInstaller = new PlatformInstaller(testLogger, k8, configManager)
   const profileManager = new ProfileManager(testLogger, configManager)
-  const leaseManager = new LeaseManager(k8, testLogger, configManager)
+  const leaseManager = new LeaseManager(k8, configManager, testLogger, new IntervalLeaseRenewalService())
   const certificateManager = new CertificateManager(k8, testLogger, configManager)
   const localConfig = new LocalConfig(path.join(BASE_TEST_DIR, 'local-config.yaml'), testLogger)
 
@@ -246,7 +247,7 @@ export function e2eTestSuite (
       }).timeout(2 * MINUTES)
 
       it('generate key files', async () => {
-        await expect(nodeCmd.handlers.keys(argv)).to.eventually.be.ok
+        expect(await nodeCmd.handlers.keys(argv)).to.be.true
         expect(nodeCmd.getUnusedConfigs(NodeCommandConfigs.KEYS_CONFIGS_NAME)).to.deep.equal([
           flags.devMode.constName,
           flags.quiet.constName
@@ -277,7 +278,7 @@ export function e2eTestSuite (
         it('should succeed with node setup command', async () => {
           // cache this, because `solo node setup.finalize()` will reset it to false
           try {
-            await expect(nodeCmd.handlers.setup(argv)).to.eventually.be.ok
+            expect(await nodeCmd.handlers.setup(argv)).to.be.true
             expect(nodeCmd.getUnusedConfigs(NodeCommandConfigs.SETUP_CONFIGS_NAME)).to.deep.equal([
               flags.devMode.constName
             ])
@@ -289,11 +290,20 @@ export function e2eTestSuite (
 
         it('should succeed with node start command', async () => {
           try {
-            await expect(nodeCmd.handlers.start(argv)).to.eventually.be.ok
+            expect(await nodeCmd.handlers.start(argv)).to.be.true
           } catch (e) {
             nodeCmd.logger.showUserError(e)
             expect.fail()
           }
+        }).timeout(30 * MINUTES)
+
+        it('node log command should work', async () => {
+          await expect(nodeCmd.handlers.logs(argv)).to.eventually.be.ok
+
+          const soloLogPath = path.join(SOLO_LOGS_DIR, 'solo.log')
+          const soloLog = fs.readFileSync(soloLogPath, 'utf8')
+
+          expect(soloLog).to.not.have.string(NODE_LOG_FAILURE_MSG)
         }).timeout(30 * MINUTES)
       }
     })
