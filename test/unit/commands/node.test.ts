@@ -18,7 +18,7 @@ import sinon from 'sinon'
 import { describe, it, beforeEach } from 'mocha'
 import { expect } from 'chai'
 
-import { NodeCommand } from '../../../src/commands/node/index.ts'
+import { NodeCommand } from '../../../src/commands/node/index.js'
 
 const getBaseCommandOpts = () => ({
   logger: sinon.stub(),

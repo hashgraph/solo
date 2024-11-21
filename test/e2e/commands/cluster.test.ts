@@ -18,12 +18,12 @@ import sinon from 'sinon'
 import { it, describe, after, before, afterEach, beforeEach } from 'mocha'
 import { expect } from 'chai'
 
-import { flags } from '../../../src/commands/index.ts'
-import { bootstrapTestVariables, getDefaultArgv, HEDERA_PLATFORM_VERSION_TAG, TEST_CLUSTER } from '../../test_util.ts'
-import { constants, logging } from '../../../src/core/index.ts'
-import { sleep } from '../../../src/core/helpers.ts'
-import * as version from '../../../version.ts'
-import { MINUTES, SECONDS } from '../../../src/core/constants.ts'
+import { flags } from '../../../src/commands/index.js'
+import { bootstrapTestVariables, getDefaultArgv, HEDERA_PLATFORM_VERSION_TAG, TEST_CLUSTER } from '../../test_util.js'
+import { constants, logging } from '../../../src/core/index.js'
+import { sleep } from '../../../src/core/helpers.js'
+import * as version from '../../../version.js'
+import { MINUTES, SECONDS } from '../../../src/core/constants.js'
 
 describe('ClusterCommand', () => {
   // mock showUser and showJSON to silent logging during tests
@@ -72,14 +72,17 @@ describe('ClusterCommand', () => {
     } while (!await chartManager.isChartInstalled(constants.SOLO_SETUP_NAMESPACE, constants.SOLO_CLUSTER_SETUP_CHART))
   })
 
-  beforeEach(() => configManager.reset())
+  beforeEach(() => {
+    configManager.reset()
+    configManager.update(argv)
+  })
 
   // give a few ticks so that connections can close
   afterEach(async () => await sleep(5))
 
   it('should cleanup existing deployment', async () => {
     if (await chartManager.isChartInstalled(constants.SOLO_SETUP_NAMESPACE, constants.SOLO_CLUSTER_SETUP_CHART)) {
-      await expect(clusterCmd.reset(argv)).to.be.ok
+      expect(await clusterCmd.reset(argv)).to.be.true
     }
   }).timeout(MINUTES)
 
@@ -92,7 +95,7 @@ describe('ClusterCommand', () => {
   it('solo cluster setup should work with valid args', async () => {
     argv[flags.clusterSetupNamespace.name] = namespace
     configManager.update(argv)
-    await expect(clusterCmd.setup(argv)).to.eventually.be.ok
+    expect(await clusterCmd.setup(argv)).to.be.true
   }).timeout(MINUTES)
 
   it('function getClusterInfo should return true', () => {
@@ -124,6 +127,6 @@ describe('ClusterCommand', () => {
   it('solo cluster reset should work with valid args', async () => {
     argv[flags.clusterSetupNamespace.name] = namespace
     configManager.update(argv)
-    await expect(clusterCmd.reset(argv)).to.eventually.be.ok
+    expect(await clusterCmd.reset(argv)).to.be.true
   }).timeout(MINUTES)
 })

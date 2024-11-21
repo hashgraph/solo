@@ -18,21 +18,21 @@ import fs from 'fs'
 import os from 'os'
 import path from 'path'
 import util from 'util'
-import { SoloError } from './errors.ts'
+import { SoloError } from './errors.js'
 import * as semver from 'semver'
-import { Templates } from './templates.ts'
-import { HEDERA_HAPI_PATH, ROOT_CONTAINER, ROOT_DIR, SOLO_LOGS_DIR } from './constants.ts'
-import { constants, type K8 } from './index.ts'
+import { Templates } from './templates.js'
+import { HEDERA_HAPI_PATH, ROOT_CONTAINER, ROOT_DIR, SOLO_LOGS_DIR } from './constants.js'
+import { constants, type K8 } from './index.js'
 import { FileContentsQuery, FileId, PrivateKey, ServiceEndpoint } from '@hashgraph/sdk'
 import { Listr } from 'listr2'
-import { type AccountManager } from './account_manager.ts'
-import { type NodeAlias, type NodeAliases, type PodName } from '../types/aliases.ts'
-import { type NodeDeleteConfigClass, type NodeUpdateConfigClass } from '../commands/node/configs.ts'
-import { type CommandFlag } from '../types/index.ts'
+import { type AccountManager } from './account_manager.js'
+import { type NodeAlias, type NodeAliases, type PodName } from '../types/aliases.js'
+import { type NodeDeleteConfigClass, type NodeUpdateConfigClass } from '../commands/node/configs.js'
+import { type CommandFlag } from '../types/index.js'
 import { type V1Pod } from '@kubernetes/client-node'
-import { type SoloLogger } from './logging.ts'
-import { type NodeCommandHandlers } from '../commands/node/handlers.ts'
-import { type LeaseWrapper } from './lease_wrapper.ts'
+import { type SoloLogger } from './logging.js'
+import { type NodeCommandHandlers } from '../commands/node/handlers.js'
+import { type Lease } from './lease/lease.js'
 
 export function sleep (ms: number) {
   return new Promise<void>((resolve) => {
@@ -206,11 +206,11 @@ async function getNodeLog (pod: V1Pod, namespace: string, timeString: string, k8
     await k8.copyTo(podName, ROOT_CONTAINER, sourcePath, `${HEDERA_HAPI_PATH}`)
     await k8.execContainer(podName, ROOT_CONTAINER, `chmod 0755 ${HEDERA_HAPI_PATH}/${scriptName}`)
     await k8.execContainer(podName, ROOT_CONTAINER, `${HEDERA_HAPI_PATH}/${scriptName}`)
-    await k8.copyFrom(podName, ROOT_CONTAINER, `${HEDERA_HAPI_PATH}/${podName}.zip`, targetDir)
+    await k8.copyFrom(podName, ROOT_CONTAINER, `${HEDERA_HAPI_PATH}/data/${podName}.zip`, targetDir)
   } catch (e: Error | any) {
     // not throw error here, so we can continue to finish downloading logs from other pods
     // and also delete namespace in the end
-    k8.logger.error(`failed to download logs from pod ${podName}`, e)
+    k8.logger.error(`${constants.NODE_LOG_FAILURE_MSG} ${podName}`, e)
   }
   k8.logger.debug(`getNodeLogs(${pod.metadata.name}): ...end`)
 }
@@ -384,6 +384,7 @@ export function updateSaveContextParser (ctx: { config: NodeUpdateConfigClass, u
   const exportedCtx: any = {}
 
   const config = /** @type {NodeUpdateConfigClass} **/ ctx.config
+  exportedCtx.adminKey = config.adminKey.toString()
   exportedCtx.newAdminKey = config.newAdminKey.toString()
   exportedCtx.freezeAdminPrivateKey = config.freezeAdminPrivateKey.toString()
   exportedCtx.treasuryKey = config.treasuryKey.toString()
@@ -409,9 +410,14 @@ export function updateSaveContextParser (ctx: { config: NodeUpdateConfigClass, u
  */
 export function updateLoadContextParser (ctx: { config: NodeUpdateConfigClass, upgradeZipHash: any }, ctxData: any) {
   const config = ctx.config
-  config.newAdminKey = PrivateKey.fromStringED25519(ctxData.newAdminKey)
+
+  if (ctxData.newAdminKey && ctxData.newAdminKey.length) {
+    config.newAdminKey = PrivateKey.fromStringED25519(ctxData.newAdminKey)
+  }
+
   config.freezeAdminPrivateKey = PrivateKey.fromStringED25519(ctxData.freezeAdminPrivateKey)
   config.treasuryKey = PrivateKey.fromStringED25519(ctxData.treasuryKey)
+  config.adminKey = PrivateKey.fromStringED25519(ctxData.adminKey)
   config.existingNodeAliases = ctxData.existingNodeAliases
   config.nodeAlias = ctxData.nodeAlias
   config.newAccountNumber = ctxData.newAccountNumber
@@ -459,7 +465,7 @@ export function prepareEndpoints (endpointType: string, endpoints: string[], def
   return ret
 }
 
-export function commandActionBuilder (actionTasks: any, options: any, errorString: string, lease: LeaseWrapper | null) {
+export function commandActionBuilder (actionTasks: any, options: any, errorString: string, lease: Lease | null) {
   return async function (argv: any, commandDef: NodeCommandHandlers) {
     const tasks = new Listr([
       ...actionTasks

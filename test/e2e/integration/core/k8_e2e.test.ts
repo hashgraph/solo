@@ -23,10 +23,10 @@ import net from 'net'
 import os from 'os'
 import path from 'path'
 import { v4 as uuid4 } from 'uuid'
-import { SoloError } from '../../../../src/core/errors.ts'
-import { ConfigManager, constants, logging, Templates } from '../../../../src/core/index.ts'
-import { K8 } from '../../../../src/core/k8.ts'
-import { flags } from '../../../../src/commands/index.ts'
+import { SoloError } from '../../../../src/core/errors.js'
+import { ConfigManager, constants, logging, Templates } from '../../../../src/core/index.js'
+import { K8 } from '../../../../src/core/k8.js'
+import { flags } from '../../../../src/commands/index.js'
 import {
   V1Container,
   V1ExecAction,
@@ -42,8 +42,8 @@ import {
   V1VolumeResourceRequirements
 } from '@kubernetes/client-node'
 import crypto from 'crypto'
-import { MINUTES } from '../../../../src/core/constants.ts'
-import type { PodName } from '../../../../src/types/aliases.ts'
+import { MINUTES } from '../../../../src/core/constants.js'
+import type { PodName } from '../../../../src/types/aliases.js'
 
 const defaultTimeout = 2 * MINUTES
 
@@ -134,8 +134,8 @@ describe('K8', () => {
 
   it('should be able to create and delete a namespaces', async () => {
     const name = uuid4()
-    await expect(k8.createNamespace(name)).to.eventually.be.ok
-    await expect(k8.deleteNamespace(name)).to.eventually.be.ok
+    expect(await k8.createNamespace(name)).to.be.true
+    expect(await k8.deleteNamespace(name)).to.be.true
   }).timeout(defaultTimeout)
 
   it('should be able to run wait for pod', async () => {
@@ -178,7 +178,7 @@ describe('K8', () => {
   it('should be able to check if a path is directory inside a container', async () => {
     const pods = await k8.getPodsByLabel([`app=${podLabelValue}`])
     const podName = pods[0].metadata.name
-    await expect(k8.hasDir(podName, containerName, '/tmp')).to.eventually.be.ok
+    expect(await k8.hasDir(podName, containerName, '/tmp')).to.be.true
   }).timeout(defaultTimeout)
 
   const testCases = [ 'test/data/pem/keys/a-private-node0.pem', 'test/data/build-v0.54.0-alpha.4.zip' ]
@@ -197,10 +197,10 @@ describe('K8', () => {
       const originalStat = fs.statSync(localFilePath)
 
       // upload the file
-      await expect(k8.copyTo(podName, containerName, localFilePath, remoteTmpDir)).to.eventually.be.ok
+      expect(await k8.copyTo(podName, containerName, localFilePath, remoteTmpDir)).to.be.true
 
       // download the same file
-      await expect(k8.copyFrom(podName, containerName, remoteFilePath, localTmpDir)).to.eventually.be.ok
+      expect(await k8.copyFrom(podName, containerName, remoteFilePath, localTmpDir)).to.be.true
       const downloadedFilePath = path.join(localTmpDir, fileName)
       const downloadedFileData = fs.readFileSync(downloadedFilePath)
       const downloadedFileHash = crypto.createHash('sha384').update(downloadedFileData).digest('hex')

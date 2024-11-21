@@ -14,8 +14,8 @@
  * limitations under the License.
  *
  */
+import { flags } from '../index.js'
 
-import * as flags from '../flags.ts'
 
 export const DEFAULT_FLAGS = {
     requiredFlags: [],
@@ -179,7 +179,7 @@ export const ADD_EXECUTE_FLAGS = {
 }
 
 export const LOGS_FLAGS = {
-    requiredFlags: [flags.nodeAliasesUnparsed],
+    requiredFlags: [flags.namespace, flags.nodeAliasesUnparsed],
     requiredFlagsWithDisabledPrompt: [],
     optionalFlags: []
 }
