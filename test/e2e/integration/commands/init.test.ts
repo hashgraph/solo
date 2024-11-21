@@ -28,8 +28,8 @@ import {
 import { SECONDS } from '../../../../src/core/constants.js'
 import sinon from 'sinon'
 import { IntervalLeaseRenewalService } from '../../../../src/core/lease/lease_renewal.js'
-import path from "path";
-import {BASE_TEST_DIR} from "../../../test_util.js";
+import path from 'path'
+import { BASE_TEST_DIR } from '../../../test_util.js'
 
 const testLogger = logging.NewLogger('debug', true)
 describe('InitCommand', () => {

@@ -18,10 +18,10 @@ import { IsEmail, IsNotEmpty, IsObject, IsString, validateSync } from 'class-val
 import { type ListrTask } from 'listr2'
 import fs from 'fs'
 import * as yaml from 'yaml'
+import { flags } from '../../commands/index.js'
 import { type ClusterMapping, type Deployment, type Deployments, type LocalConfigData } from './local_config_data.js'
 import { MissingArgumentError, SoloError } from '../errors.js'
 import { promptDeploymentClusters, promptDeploymentName, promptUserEmailAddress } from '../../commands/prompts.js'
-import { flags } from '../../commands/index.js'
 import { type SoloLogger } from '../logging.js'
 import { Task } from '../task.js'
 
@@ -47,18 +47,13 @@ export class LocalConfig implements LocalConfigData {
     clusterMappings: ClusterMapping
 
     private readonly skipPromptTask: boolean = false
-    private readonly filePath: string
-    private readonly logger: SoloLogger
 
-    constructor (filePath: string, logger: SoloLogger) {
+    constructor (private readonly filePath: string, private readonly logger: SoloLogger) {
         if (!filePath || filePath === '') throw new MissingArgumentError('a valid filePath is required')
         if (!logger) throw new Error('An instance of core/SoloLogger is required')
 
-        this.filePath = filePath
-        this.logger = logger
-
         const allowedKeys = ['userEmailAddress', 'deployments', 'currentDeploymentName', 'clusterMappings']
-        if (this.configFileEXists()) {
+        if (this.configFileExists()) {
             const fileContent = fs.readFileSync(filePath, 'utf8')
             const parsedConfig = yaml.parse(fileContent)
 
@@ -142,7 +137,7 @@ export class LocalConfig implements LocalConfigData {
         return this.deployments[this.currentDeploymentName]
     }
 
-    private configFileEXists (): boolean {
+    private configFileExists (): boolean {
         return fs.existsSync(this.filePath)
     }
 
