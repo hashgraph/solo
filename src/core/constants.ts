@@ -22,7 +22,6 @@ import { fileURLToPath } from 'url'
 import os from 'node:os'
 
 export const ROOT_DIR = path.join(dirname(fileURLToPath(import.meta.url)), '..', '..')
-export const OS_USERNAME = os.userInfo().username
 
 // -------------------- solo related constants ---------------------------------------------------------------------
 export const SOLO_HOME_DIR = process.env.SOLO_HOME || path.join(process.env.HOME as string, '.solo')
@@ -78,8 +77,8 @@ export const OPERATOR_PUBLIC_KEY = process.env.SOLO_OPERATOR_PUBLIC_KEY || '302a
 export const FREEZE_ADMIN_ACCOUNT = process.env.FREEZE_ADMIN_ACCOUNT || `${HEDERA_NODE_ACCOUNT_ID_START.realm}.${HEDERA_NODE_ACCOUNT_ID_START.shard}.58`
 export const TREASURY_ACCOUNT_ID = `${HEDERA_NODE_ACCOUNT_ID_START.realm}.${HEDERA_NODE_ACCOUNT_ID_START.shard}.2`
 export const GENESIS_KEY = process.env.GENESIS_KEY || '302e020100300506032b65700422042091132178e72057a1d7528025956fe39b0b847f200ab59b2fdd367017f3087137'
-export const SYSTEM_ACCOUNTS = [[3, 100], [200, 349], [400, 750], [900, 1000]] // do account 0.0.2 last and outside the loop
-export const SHORTER_SYSTEM_ACCOUNTS = [[3, 60]]
+export const SYSTEM_ACCOUNTS = [[3, 100], [200, 349], [400, 750], [900, 1000]] as const // do account 0.0.2 last and outside the loop
+export const SHORTER_SYSTEM_ACCOUNTS = [[3, 60]] as const
 export const TREASURY_ACCOUNT = 2
 export const LOCAL_NODE_START_PORT = +process.env.LOCAL_NODE_START_PORT || 30212
 export const ACCOUNT_UPDATE_BATCH_SIZE = +process.env.ACCOUNT_UPDATE_BATCH_SIZE || 10

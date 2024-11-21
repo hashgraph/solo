@@ -21,19 +21,20 @@ export const DEFAULT_FLAGS = {
     requiredFlags: [],
     requiredFlagsWithDisabledPrompt: [flags.namespace, flags.cacheDir, flags.releaseTag],
     optionalFlags: [flags.devMode]
-}
+} as const
 
-const COMMON_UPDATE_FLAGS_REQUIRED_FLAGS = [flags.cacheDir, flags.namespace, flags.releaseTag]
+const COMMON_UPDATE_FLAGS_REQUIRED_FLAGS = [flags.cacheDir, flags.namespace, flags.releaseTag] as const
+
 const COMMON_UPDATE_FLAGS_REQUIRED_NO_PROMPT_FLAGS = [
     flags.app,
     flags.debugNodeAlias,
     flags.endpointType,
     flags.soloChartVersion,
+] as const
 
-]
 const COMMON_UPDATE_FLAGS_OPTIONAL_FLAGS = [
     flags.chartDirectory, flags.devMode, flags.quiet, flags.localBuildPath, flags.force, flags.gossipEndpoints, flags.grpcEndpoints
-]
+]as const
 
 export const UPDATE_FLAGS = {
     requiredFlags: [...COMMON_UPDATE_FLAGS_REQUIRED_FLAGS, flags.nodeAlias],
@@ -47,7 +48,7 @@ export const UPDATE_FLAGS = {
         flags.tlsPrivateKey
     ],
     optionalFlags: COMMON_UPDATE_FLAGS_OPTIONAL_FLAGS
-}
+} as const
 
 export const UPDATE_PREPARE_FLAGS = {
     requiredFlags: [...COMMON_UPDATE_FLAGS_REQUIRED_FLAGS, flags.outputDir, flags.nodeAlias],
@@ -61,19 +62,19 @@ export const UPDATE_PREPARE_FLAGS = {
         flags.tlsPrivateKey
     ],
     optionalFlags: [...COMMON_UPDATE_FLAGS_OPTIONAL_FLAGS]
-}
+} as const
 
 export const UPDATE_SUBMIT_TRANSACTIONS_FLAGS = {
     requiredFlags: [...COMMON_UPDATE_FLAGS_REQUIRED_FLAGS, flags.inputDir],
     requiredFlagsWithDisabledPrompt: [...COMMON_UPDATE_FLAGS_REQUIRED_NO_PROMPT_FLAGS],
     optionalFlags: [...COMMON_UPDATE_FLAGS_OPTIONAL_FLAGS]
-}
+} as const
 
 export const UPDATE_EXECUTE_FLAGS = {
     requiredFlags: [...COMMON_UPDATE_FLAGS_REQUIRED_FLAGS, flags.inputDir],
     requiredFlagsWithDisabledPrompt: [...COMMON_UPDATE_FLAGS_REQUIRED_NO_PROMPT_FLAGS],
     optionalFlags: [...COMMON_UPDATE_FLAGS_OPTIONAL_FLAGS]
-}
+} as const
 
 
 const COMMON_DELETE_REQUIRED_FLAGS = [
@@ -81,7 +82,7 @@ const COMMON_DELETE_REQUIRED_FLAGS = [
     flags.namespace,
     flags.nodeAlias,
     flags.releaseTag
-]
+] as const
 
 const COMMON_DELETE_REQUIRED_NO_PROMPT_FLAGS = [
     flags.app,
@@ -89,7 +90,7 @@ const COMMON_DELETE_REQUIRED_NO_PROMPT_FLAGS = [
     flags.debugNodeAlias,
     flags.endpointType,
     flags.soloChartVersion
-]
+] as const
 
 const COMMON_DELETE_OPTIONAL_FLAGS = [
     flags.devMode,
@@ -97,7 +98,7 @@ const COMMON_DELETE_OPTIONAL_FLAGS = [
     flags.localBuildPath,
     flags.quiet,
     flags.chartDirectory
-]
+] as const
 
 const COMMON_ADD_REQUIRED_FLAGS = [
     flags.cacheDir,
@@ -106,7 +107,7 @@ const COMMON_ADD_REQUIRED_FLAGS = [
     flags.generateTlsKeys,
     flags.namespace,
     flags.releaseTag
-]
+] as const
 
 const COMMON_ADD_REQUIRED_NO_PROMPT_FLAGS = [
     flags.app,
@@ -118,7 +119,7 @@ const COMMON_ADD_REQUIRED_NO_PROMPT_FLAGS = [
     flags.grpcWebTlsCertificatePath,
     flags.grpcTlsKeyPath,
     flags.grpcWebTlsKeyPath,
-]
+] as const
 
 const COMMON_ADD_OPTIONAL_FLAGS = [
     flags.gossipEndpoints,
@@ -128,61 +129,61 @@ const COMMON_ADD_OPTIONAL_FLAGS = [
     flags.localBuildPath,
     flags.chartDirectory,
     flags.quiet
-]
+] as const
 
 export const DELETE_FLAGS = {
     requiredFlags: [...COMMON_DELETE_REQUIRED_FLAGS],
     requiredFlagsWithDisabledPrompt: [...COMMON_DELETE_REQUIRED_NO_PROMPT_FLAGS],
     optionalFlags: [...COMMON_DELETE_OPTIONAL_FLAGS]
-}
+} as const
 
 export const DELETE_PREPARE_FLAGS = {
     requiredFlags: [...COMMON_DELETE_REQUIRED_FLAGS, flags.outputDir],
     requiredFlagsWithDisabledPrompt: [...COMMON_DELETE_REQUIRED_NO_PROMPT_FLAGS],
     optionalFlags: [...COMMON_DELETE_OPTIONAL_FLAGS]
-}
+} as const
 
 export const DELETE_SUBMIT_TRANSACTIONS_FLAGS = {
     requiredFlags: [...COMMON_DELETE_REQUIRED_FLAGS, flags.inputDir],
     requiredFlagsWithDisabledPrompt: [...COMMON_DELETE_REQUIRED_NO_PROMPT_FLAGS],
     optionalFlags: [...COMMON_DELETE_OPTIONAL_FLAGS]
-}
+} as const
 
 export const DELETE_EXECUTE_FLAGS = {
     requiredFlags: [...COMMON_DELETE_REQUIRED_FLAGS, flags.inputDir],
     requiredFlagsWithDisabledPrompt: [...COMMON_DELETE_REQUIRED_NO_PROMPT_FLAGS],
     optionalFlags: [...COMMON_DELETE_OPTIONAL_FLAGS]
-}
+} as const
 
 export const ADD_FLAGS = {
     requiredFlags: [...COMMON_ADD_REQUIRED_FLAGS],
     requiredFlagsWithDisabledPrompt: [...COMMON_ADD_REQUIRED_NO_PROMPT_FLAGS],
     optionalFlags: [...COMMON_ADD_OPTIONAL_FLAGS, flags.adminKey]
-}
+} as const
 
 export const ADD_PREPARE_FLAGS = {
     requiredFlags: [...COMMON_ADD_REQUIRED_FLAGS, flags.outputDir],
     requiredFlagsWithDisabledPrompt: [...COMMON_ADD_REQUIRED_NO_PROMPT_FLAGS],
     optionalFlags: [...COMMON_ADD_OPTIONAL_FLAGS, flags.adminKey]
-}
+} as const
 
 export const ADD_SUBMIT_TRANSACTIONS_FLAGS = {
     requiredFlags: [...COMMON_ADD_REQUIRED_FLAGS, flags.inputDir],
     requiredFlagsWithDisabledPrompt: [...COMMON_ADD_REQUIRED_NO_PROMPT_FLAGS],
     optionalFlags: [...COMMON_ADD_OPTIONAL_FLAGS]
-}
+} as const
 
 export const ADD_EXECUTE_FLAGS = {
     requiredFlags: [...COMMON_ADD_REQUIRED_FLAGS, flags.inputDir],
     requiredFlagsWithDisabledPrompt: [...COMMON_ADD_REQUIRED_NO_PROMPT_FLAGS],
     optionalFlags: [...COMMON_ADD_OPTIONAL_FLAGS]
-}
+} as const
 
 export const LOGS_FLAGS = {
     requiredFlags: [flags.namespace, flags.nodeAliasesUnparsed],
     requiredFlagsWithDisabledPrompt: [],
     optionalFlags: []
-}
+} as const
 
 export const REFRESH_FLAGS = {
     requiredFlags: [
@@ -199,7 +200,7 @@ export const REFRESH_FLAGS = {
         flags.devMode,
         flags.quiet
     ]
-}
+} as const
 
 export const KEYS_FLAGS = {
     requiredFlags: [
@@ -213,7 +214,7 @@ export const KEYS_FLAGS = {
         flags.devMode,
         flags.quiet
     ]
-}
+} as const
 
 export const STOP_FLAGS = {
     requiredFlags: [
@@ -225,7 +226,7 @@ export const STOP_FLAGS = {
     optionalFlags: [
         flags.quiet
     ]
-}
+} as const
 
 export const START_FLAGS = {
     requiredFlags: [
@@ -240,7 +241,7 @@ export const START_FLAGS = {
         flags.nodeAliasesUnparsed,
         flags.debugNodeAlias
     ]
-}
+} as const
 
 export const SETUP_FLAGS = {
     requiredFlags: [
@@ -257,4 +258,4 @@ export const SETUP_FLAGS = {
         flags.devMode,
         flags.localBuildPath
     ]
-}
+} as const
