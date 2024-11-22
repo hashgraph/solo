@@ -792,6 +792,17 @@ export const grpcWebTlsKeyPath: CommandFlag = {
   }
 }
 
+export const stakeAmounts: CommandFlag = {
+  constName: 'stakeAmounts',
+  name: 'stake-amounts',
+  definition: {
+    describe:
+        'The amount to be staked in the same order you list the node aliases with multiple node staked values comma seperated',
+    defaultValue: '',
+    type: 'string'
+  }
+}
+
 export const allFlags: CommandFlag[] = [
   accountId,
   amount,
@@ -851,6 +862,7 @@ export const allFlags: CommandFlag[] = [
   replicaCount,
   setAlias,
   settingTxt,
+  stakeAmounts,
   tlsClusterIssuerType,
   tlsPrivateKey,
   tlsPublicKey,

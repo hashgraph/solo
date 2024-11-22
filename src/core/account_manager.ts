@@ -151,8 +151,9 @@ export class AccountManager {
    * @param namespace - the namespace of the network
    */
   async loadNodeClient (namespace: string) {
+    this.logger.debug(`loading node client: [!this._nodeClient=${!this._nodeClient}, this._nodeClient.isClientShutDown=${this._nodeClient?.isClientShutDown}]`)
     if (!this._nodeClient || this._nodeClient.isClientShutDown) {
-      this.logger.debug(`loading node client: [!this._nodeClient=${!this._nodeClient}, this._nodeClient.isClientShutDown=${this._nodeClient?.isClientShutDown}]`)
+      this.logger.debug(`refreshing node client: [!this._nodeClient=${!this._nodeClient}, this._nodeClient.isClientShutDown=${this._nodeClient?.isClientShutDown}]`)
       await this.refreshNodeClient(namespace)
     }
 
@@ -215,7 +216,7 @@ export class AccountManager {
    * @returns a node client that can be used to call transactions
    */
   async _getNodeClient (namespace: string, networkNodeServicesMap: Map<string, NetworkNodeServices>, operatorId: string,
-    operatorKey: string, useFirstNodeOnly = true) {
+    operatorKey: string) {
     let nodes = {}
     try {
       let localPort = constants.LOCAL_NODE_START_PORT
@@ -224,10 +225,6 @@ export class AccountManager {
         const addlNode = await this.configureNodeAccess(networkNodeService, localPort, networkNodeServicesMap.size)
         nodes = { ...nodes, ...addlNode }
         localPort++
-
-        if (useFirstNodeOnly) {
-          break
-        }
       }
 
       this.logger.debug(`creating client from network configuration: ${JSON.stringify(nodes)}`)

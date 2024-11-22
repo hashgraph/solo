@@ -34,8 +34,9 @@ import * as NodeCommandConfigs from '../../../src/commands/node/configs.js'
 const namespace = 'node-delete-separate'
 const nodeAlias = 'node1' as NodeAlias
 const argv = getDefaultArgv()
-argv[flags.nodeAliasesUnparsed.name] = 'node1,node2,node3,node4'
+argv[flags.nodeAliasesUnparsed.name] = 'node1,node2'
 argv[flags.nodeAlias.name] = nodeAlias
+argv[flags.stakeAmounts.name] = '1,1000'
 argv[flags.generateGossipKeys.name] = true
 argv[flags.generateTlsKeys.name] = true
 argv[flags.persistentVolumeClaims.name] = true

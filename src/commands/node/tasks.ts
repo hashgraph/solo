@@ -66,7 +66,7 @@ import * as flags from '../flags.js'
 import { type SoloLogger } from '../../core/logging.js'
 import type { Listr, ListrTaskWrapper } from 'listr2'
 import { type NodeAlias, type NodeAliases, type PodName } from '../../types/aliases.js'
-import { NodeStatusCodes, NodeStatusEnums } from '../../core/enumerations.js'
+import { NodeStatusCodes, NodeStatusEnums, NodeSubcommandType } from '../../core/enumerations.js'
 import * as x509 from '@peculiar/x509'
 import { type NodeCommand } from './index.js'
 import type { NodeDeleteConfigClass, NodeRefreshConfigClass, NodeUpdateConfigClass } from './configs.js'
@@ -88,9 +88,11 @@ export class NodeCommandTasks {
 
   private readonly prepareValuesFiles: any
 
-  constructor (opts: { logger: SoloLogger; accountManager: AccountManager; configManager: ConfigManager,
-    k8: K8, platformInstaller: PlatformInstaller, keyManager: KeyManager, profileManager: ProfileManager,
-  chartManager: ChartManager, certificateManager: CertificateManager, parent: NodeCommand}
+  constructor (opts: {
+                logger: SoloLogger; accountManager: AccountManager; configManager: ConfigManager,
+                k8: K8, platformInstaller: PlatformInstaller, keyManager: KeyManager, profileManager: ProfileManager,
+                chartManager: ChartManager, certificateManager: CertificateManager, parent: NodeCommand
+              }
   ) {
     if (!opts || !opts.accountManager) throw new IllegalArgumentError('An instance of core/AccountManager is required', opts.accountManager as any)
     if (!opts || !opts.configManager) throw new Error('An instance of core/ConfigManager is required')
@@ -163,12 +165,12 @@ export class NodeCommandTasks {
 
         if (start === 0) {
           fileTransaction = new FileUpdateTransaction()
-            .setFileId(constants.UPGRADE_FILE_ID)
-            .setContents(zipBytesChunk)
+          .setFileId(constants.UPGRADE_FILE_ID)
+          .setContents(zipBytesChunk)
         } else {
           fileTransaction = new FileAppendTransaction()
-            .setFileId(constants.UPGRADE_FILE_ID)
-            .setContents(zipBytesChunk)
+          .setFileId(constants.UPGRADE_FILE_ID)
+          .setContents(zipBytesChunk)
         }
         const resp = await fileTransaction.execute(nodeClient)
         const receipt = await resp.getReceipt(nodeClient)
@@ -241,7 +243,7 @@ export class NodeCommandTasks {
   }
 
   _fetchPlatformSoftware (nodeAliases: NodeAliases, podNames: Record<NodeAlias, PodName>, releaseTag: string,
-    task: ListrTaskWrapper<any, any, any>, platformInstaller: PlatformInstaller
+                         task: ListrTaskWrapper<any, any, any>, platformInstaller: PlatformInstaller
   ) {
     const subTasks = []
     for (const nodeAlias of nodeAliases) {
@@ -249,7 +251,7 @@ export class NodeCommandTasks {
       subTasks.push({
         title: `Update node: ${chalk.yellow(nodeAlias)} [ platformVersion = ${releaseTag} ]`,
         task: async () =>
-          await platformInstaller.fetchPlatform(podName, releaseTag)
+            await platformInstaller.fetchPlatform(podName, releaseTag)
       })
     }
 
@@ -285,10 +287,10 @@ export class NodeCommandTasks {
   }
 
   async _checkNetworkNodeActiveness (namespace: string, nodeAlias: NodeAlias, task: ListrTaskWrapper<any, any, any>,
-    title: string, index: number, status = NodeStatusCodes.ACTIVE,
-    maxAttempts = constants.NETWORK_NODE_ACTIVE_MAX_ATTEMPTS,
-    delay = constants.NETWORK_NODE_ACTIVE_DELAY,
-    timeout = constants.NETWORK_NODE_ACTIVE_TIMEOUT
+                                    title: string, index: number, status = NodeStatusCodes.ACTIVE,
+                                    maxAttempts = constants.NETWORK_NODE_ACTIVE_MAX_ATTEMPTS,
+                                    delay = constants.NETWORK_NODE_ACTIVE_DELAY,
+                                    timeout = constants.NETWORK_NODE_ACTIVE_TIMEOUT
   ) {
     nodeAlias = nodeAlias.trim() as NodeAlias
     const podName = Templates.renderNetworkPodName(nodeAlias)
@@ -320,8 +322,8 @@ export class NodeCommandTasks {
 
         const text = await response.text()
         const statusLine = text
-          .split('\n')
-          .find(line => line.startsWith('platform_PlatformStatus'))
+        .split('\n')
+        .find(line => line.startsWith('platform_PlatformStatus'))
 
         if (!statusLine) {
           task.title = `${title} - status ${chalk.yellow('STARTING')}, attempt: ${chalk.blueBright(`${attempt}/${maxAttempts}`)}`
@@ -343,7 +345,8 @@ export class NodeCommandTasks {
           task.title = `${title} - status ${chalk.yellow(NodeStatusEnums[statusNumber])}, attempt: ${chalk.blueBright(`${attempt}/${maxAttempts}`)}`
         }
         clearTimeout(timeoutId)
-      } catch {} // Catch all guard and fetch errors
+      } catch {
+      } // Catch all guard and fetch errors
 
       attempt++
       clearTimeout(timeoutId)
@@ -369,8 +372,8 @@ export class NodeCommandTasks {
       subTasks.push({
         title: `Check proxy for node: ${chalk.yellow(nodeAlias)}`,
         task: async () => await this.k8.waitForPodReady(
-          [`app=haproxy-${nodeAlias}`, 'solo.hedera.com/type=haproxy'],
-          1, constants.NETWORK_PROXY_MAX_ATTEMPTS, constants.NETWORK_PROXY_DELAY)
+            [`app=haproxy-${nodeAlias}`, 'solo.hedera.com/type=haproxy'],
+            1, constants.NETWORK_PROXY_MAX_ATTEMPTS, constants.NETWORK_PROXY_DELAY)
       })
     }
 
@@ -428,15 +431,15 @@ export class NodeCommandTasks {
   copyGrpcTlsCertificates () {
     const self = this
     return new Task('Copy gRPC TLS Certificates',
-      (ctx: { config: NodeAddConfigClass }, parentTask: ListrTaskWrapper<any, any, any>) =>
-        self.certificateManager.buildCopyTlsCertificatesTasks(
-          parentTask,
-          ctx.config.grpcTlsCertificatePath,
-          ctx.config.grpcWebTlsCertificatePath,
-          ctx.config.grpcTlsKeyPath,
-          ctx.config.grpcWebTlsKeyPath
-        ),
-      (ctx: any) => !ctx.config.grpcTlsCertificatePath && !ctx.config.grpcWebTlsCertificatePath
+        (ctx: { config: NodeAddConfigClass }, parentTask: ListrTaskWrapper<any, any, any>) =>
+            self.certificateManager.buildCopyTlsCertificatesTasks(
+                parentTask,
+                ctx.config.grpcTlsCertificatePath,
+                ctx.config.grpcWebTlsCertificatePath,
+                ctx.config.grpcTlsKeyPath,
+                ctx.config.grpcWebTlsKeyPath
+            ),
+        (ctx: any) => !ctx.config.grpcTlsCertificatePath && !ctx.config.grpcWebTlsCertificatePath
     )
   }
 
@@ -449,7 +452,7 @@ export class NodeCommandTasks {
     return (new Uint8Array(decodedDers[0]))
   }
 
-  async _addStake (namespace: string, accountId: string, nodeAlias: NodeAlias) {
+  async _addStake (namespace: string, accountId: string, nodeAlias: NodeAlias, stakeAmount: number = HEDERA_NODE_DEFAULT_STAKE_AMOUNT) {
     try {
       await this.accountManager.loadNodeClient(namespace)
       const client = this.accountManager._nodeClient
@@ -459,24 +462,24 @@ export class NodeCommandTasks {
 
       // check balance
       const treasuryBalance = await new AccountBalanceQuery()
-          .setAccountId(TREASURY_ACCOUNT_ID)
-          .execute(client)
+      .setAccountId(TREASURY_ACCOUNT_ID)
+      .execute(client)
       this.logger.debug(`Account ${TREASURY_ACCOUNT_ID} balance: ${treasuryBalance.hbars}`)
 
       // get some initial balance
-      await this.accountManager.transferAmount(constants.TREASURY_ACCOUNT_ID, accountId, HEDERA_NODE_DEFAULT_STAKE_AMOUNT + 1)
+      await this.accountManager.transferAmount(constants.TREASURY_ACCOUNT_ID, accountId, stakeAmount)
 
       // check balance
       const balance = await new AccountBalanceQuery()
-        .setAccountId(accountId)
-        .execute(client)
+      .setAccountId(accountId)
+      .execute(client)
       this.logger.debug(`Account ${accountId} balance: ${balance.hbars}`)
 
       // Create the transaction
       const transaction = new AccountUpdateTransaction()
-        .setAccountId(accountId)
-        .setStakedNodeId(Templates.nodeIdFromNodeAlias(nodeAlias) - 1)
-        .freezeWith(client)
+      .setAccountId(accountId)
+      .setStakedNodeId(Templates.nodeIdFromNodeAlias(nodeAlias) - 1)
+      .freezeWith(client)
 
       // Sign the transaction with the account's private key
       const signTx = await transaction.sign(treasuryPrivateKey)
@@ -533,8 +536,8 @@ export class NodeCommandTasks {
       try {
         // query the balance
         const balance = await new AccountBalanceQuery()
-          .setAccountId(FREEZE_ADMIN_ACCOUNT)
-          .execute(nodeClient)
+        .setAccountId(FREEZE_ADMIN_ACCOUNT)
+        .execute(nodeClient)
         self.logger.debug(`Freeze admin account balance: ${balance.hbars}`)
 
         // transfer some tiny amount to the freeze admin account
@@ -544,17 +547,17 @@ export class NodeCommandTasks {
         nodeClient.setOperator(FREEZE_ADMIN_ACCOUNT, freezeAdminPrivateKey)
 
         const prepareUpgradeTx = await new FreezeTransaction()
-          .setFreezeType(FreezeType.PrepareUpgrade)
-          .setFileId(constants.UPGRADE_FILE_ID)
-          .setFileHash(upgradeZipHash)
-          .freezeWith(nodeClient)
-          .execute(nodeClient)
+        .setFreezeType(FreezeType.PrepareUpgrade)
+        .setFileId(constants.UPGRADE_FILE_ID)
+        .setFileHash(upgradeZipHash)
+        .freezeWith(nodeClient)
+        .execute(nodeClient)
 
         const prepareUpgradeReceipt = await prepareUpgradeTx.getReceipt(nodeClient)
 
         self.logger.debug(
-          `sent prepare upgrade transaction [id: ${prepareUpgradeTx.transactionId.toString()}]`,
-          prepareUpgradeReceipt.status.toString()
+            `sent prepare upgrade transaction [id: ${prepareUpgradeTx.transactionId.toString()}]`,
+            prepareUpgradeReceipt.status.toString()
         )
       } catch (e: Error | any) {
         self.logger.error(`Error in prepare upgrade: ${e.message}`, e)
@@ -577,22 +580,22 @@ export class NodeCommandTasks {
 
         // query the balance
         const balance = await new AccountBalanceQuery()
-            .setAccountId(FREEZE_ADMIN_ACCOUNT)
-            .execute(nodeClient)
+        .setAccountId(FREEZE_ADMIN_ACCOUNT)
+        .execute(nodeClient)
         self.logger.debug(`Freeze admin account balance: ${balance.hbars}`)
 
         nodeClient.setOperator(FREEZE_ADMIN_ACCOUNT, freezeAdminPrivateKey)
         const freezeUpgradeTx = await new FreezeTransaction()
-          .setFreezeType(FreezeType.FreezeUpgrade)
-          .setStartTimestamp(Timestamp.fromDate(futureDate))
-          .setFileId(constants.UPGRADE_FILE_ID)
-          .setFileHash(upgradeZipHash)
-          .freezeWith(nodeClient)
-          .execute(nodeClient)
+        .setFreezeType(FreezeType.FreezeUpgrade)
+        .setStartTimestamp(Timestamp.fromDate(futureDate))
+        .setFileId(constants.UPGRADE_FILE_ID)
+        .setFileHash(upgradeZipHash)
+        .freezeWith(nodeClient)
+        .execute(nodeClient)
 
         const freezeUpgradeReceipt = await freezeUpgradeTx.getReceipt(nodeClient)
         self.logger.debug(`Upgrade frozen with transaction id: ${freezeUpgradeTx.transactionId.toString()}`,
-          freezeUpgradeReceipt.status.toString())
+            freezeUpgradeReceipt.status.toString())
       } catch (e: Error | any) {
         self.logger.error(`Error in freeze upgrade: ${e.message}`, e)
         throw new SoloError(`Error in freeze upgrade: ${e.message}`, e)
@@ -657,8 +660,8 @@ export class NodeCommandTasks {
 
   /** Check if the network node pod is running */
   async checkNetworkNodePod (namespace: string, nodeAlias: NodeAlias,
-                             maxAttempts = constants.PODS_RUNNING_MAX_ATTEMPTS,
-                             delay = constants.PODS_RUNNING_DELAY) {
+                            maxAttempts = constants.PODS_RUNNING_MAX_ATTEMPTS,
+                            delay = constants.PODS_RUNNING_DELAY) {
     nodeAlias = nodeAlias.trim() as NodeAlias
     const podName = Templates.renderNetworkPodName(nodeAlias)
 
@@ -703,7 +706,7 @@ export class NodeCommandTasks {
       if (localBuildPath !== '') {
         return self._uploadPlatformSoftware(ctx.config[aliasesField], podNames, task, localBuildPath)
       }
-        return self._fetchPlatformSoftware(ctx.config[aliasesField], podNames, releaseTag, task, this.platformInstaller)
+      return self._fetchPlatformSoftware(ctx.config[aliasesField], podNames, releaseTag, task, this.platformInstaller)
 
     })
   }
@@ -711,7 +714,7 @@ export class NodeCommandTasks {
   populateServiceMap () {
     return new Task('Populate serviceMap', async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
       ctx.config.serviceMap = await this.accountManager.getNodeServiceMap(
-        ctx.config.namespace)
+          ctx.config.namespace)
       ctx.config.podNames[ctx.config.nodeAlias] = ctx.config.serviceMap.get(ctx.config.nodeAlias).nodePodName
     })
   }
@@ -724,7 +727,7 @@ export class NodeCommandTasks {
         subTasks.push({
           title: `Node: ${chalk.yellow(nodeAlias)}`,
           task: () =>
-            this.platformInstaller.taskSetup(podName)
+              this.platformInstaller.taskSetup(podName)
         })
       }
 
@@ -830,26 +833,37 @@ export class NodeCommandTasks {
   }
 
   // Update account manager and transfer hbar for staking purpose
-  triggerStakeWeightCalculate () {
+  triggerStakeWeightCalculate (transactionType : NodeSubcommandType) {
+    const self = this
     return new Task('Trigger stake weight calculate', async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
       const config = ctx.config
-      this.logger.info('sleep 60 seconds for the handler to be able to trigger the network node stake weight recalculate')
+      self.logger.info('sleep 60 seconds for the handler to be able to trigger the network node stake weight recalculate')
       await sleep(60 * SECONDS)
       const accountMap = getNodeAccountMap(config.allNodeAliases)
 
-      if (config.newAccountNumber) {
-        // update map with current account ids
-        accountMap.set(config.nodeAlias, config.newAccountNumber)
+      switch (transactionType) {
+        case NodeSubcommandType.ADD:
+          break
+        case NodeSubcommandType.UPDATE:
+          if (config.newAccountNumber) {
+            // update map with current account ids
+            accountMap.set(config.nodeAlias, config.newAccountNumber)
 
-        // update _nodeClient with the new service map since one of the account number has changed
-        await this.accountManager.refreshNodeClient(config.namespace)
+            // update _nodeClient with the new service map since one of the account number has changed
+            await self.accountManager.refreshNodeClient(config.namespace)
+          }
+          break
+        case NodeSubcommandType.DELETE:
+          if (config.nodeAlias) {
+            accountMap.delete(config.nodeAlias)
+          }
       }
 
       // send some write transactions to invoke the handler that will trigger the stake weight recalculate
-      for (const nodeAlias of config.allNodeAliases) {
+      for (const nodeAlias of accountMap.keys()) {
         const accountId = accountMap.get(nodeAlias)
         config.nodeClient.setOperator(TREASURY_ACCOUNT_ID, config.treasuryKey)
-        await this.accountManager.transferAmount(constants.TREASURY_ACCOUNT_ID, accountId, 1)
+        await self.accountManager.transferAmount(constants.TREASURY_ACCOUNT_ID, accountId, 1)
       }
     })
   }
@@ -861,12 +875,16 @@ export class NodeCommandTasks {
       if (ctx.config.app === '' || ctx.config.app === constants.HEDERA_APP_NAME) {
         const subTasks = []
         const accountMap = getNodeAccountMap(ctx.config.nodeAliases)
+        const stakeAmountParsed = ctx.config.stakeAmount ? splitFlagInput(ctx.config.stakeAmount) : []
+        let nodeIndex = 0
         for (const nodeAlias of ctx.config.nodeAliases) {
           const accountId = accountMap.get(nodeAlias)
+          const stakeAmount = stakeAmountParsed.length > 0 ? stakeAmountParsed[nodeIndex] : HEDERA_NODE_DEFAULT_STAKE_AMOUNT
           subTasks.push({
             title: `Adding stake for node: ${chalk.yellow(nodeAlias)}`,
-            task: async () => await self._addStake(ctx.config.namespace, accountId, nodeAlias)
+            task: async () => await self._addStake(ctx.config.namespace, accountId, nodeAlias, +stakeAmount)
           })
+          nodeIndex++
         }
 
         // set up the sub-tasks
@@ -1144,42 +1162,46 @@ export class NodeCommandTasks {
     })
   }
 
-  updateChartWithConfigMap (title: string, skip: Function | boolean = false) {
+  updateChartWithConfigMap (title: string, transactionType: NodeSubcommandType, skip: Function | boolean = false) {
+    const self = this
     return new Task(title, async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
       // Prepare parameter and update the network node chart
       const config = ctx.config
 
       if (!config.serviceMap) {
-        config.serviceMap = await this.accountManager.getNodeServiceMap(config.namespace)
+        config.serviceMap = await self.accountManager.getNodeServiceMap(config.namespace)
       }
 
       const index = config.existingNodeAliases.length
       const nodeId = Templates.nodeIdFromNodeAlias(config.nodeAlias) - 1
 
       let valuesArg = ''
+      let nodeIndex = 0
       for (let i = 0; i < index; i++) {
-        if ((config.newAccountNumber && i !== nodeId) || !config.newAccountNumber) { // for the case of updating node
-          valuesArg += ` --set "hedera.nodes[${i}].accountId=${config.serviceMap.get(config.existingNodeAliases[i]).accountId}" --set "hedera.nodes[${i}].name=${config.existingNodeAliases[i]}"`
-        } else {
+        if (transactionType === NodeSubcommandType.UPDATE && config.newAccountNumber && i === nodeId) { // for the case of updating node
           // use new account number for this node id
-          valuesArg += ` --set "hedera.nodes[${i}].accountId=${config.newAccountNumber}" --set "hedera.nodes[${i}].name=${config.existingNodeAliases[i]}"`
+          valuesArg += ` --set "hedera.nodes[${nodeIndex}].accountId=${config.newAccountNumber}" --set "hedera.nodes[${nodeIndex}].name=${config.existingNodeAliases[i]}"`
+          nodeIndex++
+        } else if (transactionType !== NodeSubcommandType.DELETE || i !== nodeId) { // for the case of deleting node
+          valuesArg += ` --set "hedera.nodes[${nodeIndex}].accountId=${config.serviceMap.get(config.existingNodeAliases[i]).accountId}" --set "hedera.nodes[${nodeIndex}].name=${config.existingNodeAliases[i]}"`
+          nodeIndex++
         }
       }
 
       // for the case of adding new node
-      if (ctx.newNode && ctx.newNode.accountId) {
-        valuesArg += ` --set "hedera.nodes[${index}].accountId=${ctx.newNode.accountId}" --set "hedera.nodes[${index}].name=${ctx.newNode.name}"`
+      if (transactionType === NodeSubcommandType.ADD && ctx.newNode && ctx.newNode.accountId) {
+        valuesArg += ` --set "hedera.nodes[${nodeIndex}].accountId=${ctx.newNode.accountId}" --set "hedera.nodes[${nodeIndex}].name=${ctx.newNode.name}"`
       }
-      const profileValuesFile = await this.profileManager.prepareValuesForNodeAdd(
+      const profileValuesFile = await self.profileManager.prepareValuesForNodeAdd(
         path.join(config.stagingDir, 'config.txt'),
         path.join(config.stagingDir, 'templates', 'application.properties'))
       if (profileValuesFile) {
-        valuesArg += this.prepareValuesFiles(profileValuesFile)
+        valuesArg += self.prepareValuesFiles(profileValuesFile)
       }
 
       valuesArg = addDebugOptions(valuesArg, config.debugNodeAlias)
 
-      await this.chartManager.upgrade(
+      await self.chartManager.upgrade(
         config.namespace,
         constants.SOLO_DEPLOYMENT_CHART, constants.SOLO_TESTING_CHART_URL + constants.SOLO_DEPLOYMENT_CHART,
         valuesArg,
