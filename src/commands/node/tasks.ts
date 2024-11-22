@@ -663,6 +663,7 @@ export class NodeCommandTasks {
   }
 
   uploadStateFiles (skip: Function | boolean) {
+    const self = this
     return new Task('Upload state files network nodes', async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
       const config = ctx.config
 
