@@ -676,7 +676,7 @@ export class NodeCommandTasks {
 
         sef.logger.info(`Deleting the previous state files in pod ${podName} directory ${constants.HEDERA_HAPI_PATH}/data/saved`)
         await self.k8.execContainer(podName, constants.ROOT_CONTAINER, ['rm', '-rf', `${constants.HEDERA_HAPI_PATH}/data/saved/*`])
-        await this.k8.execContainer(podName, constants.ROOT_CONTAINER,
+        await self.k8.execContainer(podName, constants.ROOT_CONTAINER,
             ['tar', '-xvf', `${constants.HEDERA_HAPI_PATH}/data/${path.basename(zipFile)}`, '-C', `${constants.HEDERA_HAPI_PATH}/data/saved`])
       }
     }, skip)
