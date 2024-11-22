@@ -1096,6 +1096,8 @@ export class NodeCommandTasks {
 
       const nodeId = Templates.nodeIdFromNodeAlias(config.nodeAlias) - 1
       self.logger.info(`nodeId: ${nodeId}, config.newAccountNumber: ${config.newAccountNumber}`)
+      await self.accountManager.refreshNodeClient(config.namespace, config.nodeAlias)
+      config.nodeClient = await this.accountManager.loadNodeClient(config.namespace)
 
       try {
         const nodeUpdateTx = new NodeUpdateTransaction().setNodeId(nodeId)
@@ -1142,7 +1144,6 @@ export class NodeCommandTasks {
         const txResp = await signedTx.execute(config.nodeClient)
         const nodeUpdateReceipt = await txResp.getReceipt(config.nodeClient)
         self.logger.debug(`NodeUpdateReceipt: ${nodeUpdateReceipt.toString()}`)
-        await self.accountManager.refreshNodeClient(config.namespace, config.nodeAlias)
       } catch (e) {
         self.logger.error(`Error updating node to network: ${e.message}`, e)
         self.logger.error(e.stack)
