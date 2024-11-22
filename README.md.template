@@ -18,7 +18,7 @@ An opinionated CLI tool to deploy and manage standalone test networks.
 * [Requirements](#requirements)
 * [Setup](#setup)
 * [Install Solo](#install-solo)
-* [Quick Start Guide](#quick-start-guide)
+* [Use the Task tool to launch Solo](#use-the-task-tool-to-launch-solo)
 * [Advanced User Guide](#advanced-user-guide)
   * [Setup Kubernetes cluster](#setup-kubernetes-cluster)
   * [Step by Step Instructions](#step-by-step-instructions)
@@ -58,8 +58,15 @@ nvm use lts/hydrogen
 
 * Run `npm install -g @hashgraph/solo`
 
-## Quick Start Guide
-User can use one of the following three command to quickly deploy a standalone test network.
+## Use the Task tool to launch Solo
+
+First, please use the following steps to install dependencies and build solo project.
+
+```bash
+npm ci
+npm run build
+```
+Then user can use one of the following three command to quickly deploy a standalone test network.
 
 ```bash
 # Option 1) deploy solo network with two nodes
