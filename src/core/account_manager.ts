@@ -214,25 +214,19 @@ export class AccountManager {
    * @returns a node client that can be used to call transactions
    */
   async _getNodeClient (namespace: string, networkNodeServicesMap: Map<string, NetworkNodeServices>, operatorId: string,
-    operatorKey: string) {
-    const nodes = {}
+    operatorKey: string, useFirstNodeOnly = true) {
+    let nodes = {}
     try {
       let localPort = constants.LOCAL_NODE_START_PORT
 
       for (const networkNodeService of networkNodeServicesMap.values()) {
-        const usePortForward = this.shouldUseLocalHostPortForward(networkNodeService)
-        const host = usePortForward ? '127.0.0.1' : networkNodeService.haProxyLoadBalancerIp as string
-        const port = +networkNodeService.haProxyGrpcPort
-        const targetPort = usePortForward ? localPort : port
-
-        if (usePortForward && this._portForwards.length < networkNodeServicesMap.size) {
-          this._portForwards.push(await this.k8.portForward(networkNodeService.haProxyPodName, localPort, port))
-        }
-
-        // @ts-ignore
-        nodes[`${host}:${targetPort}`] = AccountId.fromString((networkNodeService.accountId as string))
-        await this.k8.testConnection(host, targetPort)
+        const addlNode = await this.configureNodeAccess(networkNodeService, localPort, networkNodeServicesMap.size)
+        nodes = { ...nodes, ...addlNode }
         localPort++
+
+        if (useFirstNodeOnly) {
+          break
+        }
       }
 
       this.logger.debug(`creating client from network configuration: ${JSON.stringify(nodes)}`)
@@ -248,6 +242,23 @@ export class AccountManager {
     } catch (e: Error | any) {
       throw new SoloError(`failed to setup node client: ${e.message}`, e)
     }
+  }
+
+  private async configureNodeAccess (networkNodeService: NetworkNodeServices, localPort: number, totalNodes: number) {
+    const obj = {}
+    const usePortForward = this.shouldUseLocalHostPortForward(networkNodeService)
+    const host = usePortForward ? '127.0.0.1' : networkNodeService.haProxyLoadBalancerIp as string
+    const port = +networkNodeService.haProxyGrpcPort
+    const targetPort = usePortForward ? localPort : port
+
+    if (usePortForward && this._portForwards.length < totalNodes) {
+      this._portForwards.push(await this.k8.portForward(networkNodeService.haProxyPodName, localPort, port))
+    }
+
+    await this.k8.testConnection(host, targetPort)
+    obj[`${host}:${targetPort}`] = AccountId.fromString((networkNodeService.accountId as string))
+
+    return obj
   }
 
   /**
