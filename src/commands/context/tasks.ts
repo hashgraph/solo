@@ -19,7 +19,7 @@ import {
 } from '../../core/index.js'
 import * as flags from '../flags.js'
 import type { ListrTaskWrapper } from 'listr2'
-import {BaseCommand} from "../base.js";
+import { type BaseCommand } from '../base.js'
 
 export class ContextCommandTasks {
 
@@ -66,7 +66,7 @@ export class ContextCommandTasks {
 
       this.parent.getK8().getKubeConfig().setCurrentContext(contextName)
 
-      this.parent.logger.info(`Save LocalConfig file`)
+      this.parent.logger.info('Save LocalConfig file')
       await this.parent.getLocalConfig().write()
     })
   }

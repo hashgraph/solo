@@ -18,16 +18,16 @@
 import { YargsCommand } from '../../core/index.js'
 import { BaseCommand } from './../base.js'
 import type { Opts } from '../../types/index.js'
-import {ContextCommandTasks} from "./tasks.js";
-import {ContextCommandHandlers} from "./handlers.js";
+import { ContextCommandTasks } from './tasks.js'
+import { ContextCommandHandlers } from './handlers.js'
 import * as ContextFlags from './flags.js'
-import {getPromptMap} from "../prompts.js";
+import { getPromptMap } from '../prompts.js'
 
 /**
  * Defines the core functionalities of 'node' command
  */
 export class ContextCommand extends BaseCommand {
-    private handlers: ContextCommandHandlers;
+    private handlers: ContextCommandHandlers
 
   constructor (opts: Opts) {
     super(opts)

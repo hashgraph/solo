@@ -35,7 +35,7 @@ import type { SoloLogger } from '../../core/logging.js'
 import type { NodeCommand } from './index.js'
 import type { NodeCommandTasks } from './tasks.js'
 import { type Lease } from '../../core/lease/lease.js'
-import { CommandHandlers } from "../../types/index.js";
+import { type CommandHandlers } from '../../types/index.js'
 
 export class NodeCommandHandlers implements CommandHandlers {
   private readonly accountManager: AccountManager

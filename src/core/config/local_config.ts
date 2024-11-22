@@ -25,7 +25,7 @@ import { promptDeploymentClusters, promptNamespace, promptUserEmailAddress } fro
 import { type SoloLogger } from '../logging.js'
 import { Task } from '../task.js'
 import { IsDeployments } from '../validator_decorators.js'
-import { Templates } from "../templates.js";
+import { Templates } from '../templates.js'
 
 export class LocalConfig implements LocalConfigData {
     @IsNotEmpty()
