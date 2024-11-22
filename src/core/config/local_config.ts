@@ -24,6 +24,7 @@ import { MissingArgumentError, SoloError } from '../errors.js'
 import { promptDeploymentClusters, promptNamespace, promptUserEmailAddress } from '../../commands/prompts.js'
 import { type SoloLogger } from '../logging.js'
 import { Task } from '../task.js'
+import { IsDeployments } from '../validator_decorators.js'
 import { Templates } from "../templates.js";
 
 export class LocalConfig implements LocalConfigData {
@@ -35,6 +36,7 @@ export class LocalConfig implements LocalConfigData {
     // so it needs to be available in all targeted clusters
     @IsNotEmpty()
     @IsObject()
+    @IsDeployments()
     deployments: Deployments
 
     @IsNotEmpty()
@@ -47,7 +49,7 @@ export class LocalConfig implements LocalConfigData {
         if (!filePath || filePath === '') throw new MissingArgumentError('a valid filePath is required')
         if (!logger) throw new Error('An instance of core/SoloLogger is required')
 
-        const allowedKeys = ['userEmailAddress', 'deployments', 'currentDeploymentName', 'clusterMappings']
+        const allowedKeys = ['userEmailAddress', 'deployments', 'currentDeploymentName']
         if (this.configFileExists()) {
             const fileContent = fs.readFileSync(filePath, 'utf8')
             const parsedConfig = yaml.parse(fileContent)
@@ -74,22 +76,6 @@ export class LocalConfig implements LocalConfigData {
 
         try {
             // Custom validations:
-            for (const deploymentName in this.deployments) {
-                const deployment = this.deployments[deploymentName]
-                const deploymentIsObject = deployment && typeof deployment === 'object'
-                const deploymentHasClusterAliases = deployment.clusterAliases && Array.isArray(deployment.clusterAliases)
-                let clusterAliasesAreStrings = true
-                for (const clusterAlias of deployment.clusterAliases) {
-                    if (typeof clusterAlias !== 'string') {
-                        clusterAliasesAreStrings = false
-                    }
-                }
-
-                if (!deploymentIsObject || !deploymentHasClusterAliases || !clusterAliasesAreStrings) {
-                    throw new SoloError(genericMessage)
-                }
-            }
-
             if (!this.deployments[this.currentDeploymentName]) {
                 throw new SoloError(genericMessage)
             }

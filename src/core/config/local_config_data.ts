@@ -24,7 +24,7 @@ export interface Deployment {
 export type Deployments = Record<string, Deployment>
 
 export interface LocalConfigData {
-    userEmailAddress: string
-    deployments: Deployments
-    currentDeploymentName: string
+    userEmailAddress: string;
+    deployments: Deployments;
+    currentDeploymentName: string;
 }
