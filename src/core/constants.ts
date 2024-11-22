@@ -180,3 +180,4 @@ export const RELAY_PODS_READY_DELAY = +process.env.RELAY_PODS_READY_DELAY || 1_0
 
 
 export const DEFAULT_LOCAL_CONFIG_FILE = 'local-config.yaml'
+export const IGNORED_NODE_ACCOUNT_ID = '0.0.0'

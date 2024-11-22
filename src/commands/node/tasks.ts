@@ -30,7 +30,7 @@ import {
 import {
   DEFAULT_NETWORK_NODE_NAME,
   FREEZE_ADMIN_ACCOUNT,
-  HEDERA_NODE_DEFAULT_STAKE_AMOUNT,
+  HEDERA_NODE_DEFAULT_STAKE_AMOUNT, IGNORED_NODE_ACCOUNT_ID,
   LOCAL_HOST,
   SECONDS,
   TREASURY_ACCOUNT_ID
@@ -1176,21 +1176,20 @@ export class NodeCommandTasks {
       const nodeId = Templates.nodeIdFromNodeAlias(config.nodeAlias) - 1
 
       let valuesArg = ''
-      let nodeIndex = 0
       for (let i = 0; i < index; i++) {
         if (transactionType === NodeSubcommandType.UPDATE && config.newAccountNumber && i === nodeId) { // for the case of updating node
           // use new account number for this node id
-          valuesArg += ` --set "hedera.nodes[${nodeIndex}].accountId=${config.newAccountNumber}" --set "hedera.nodes[${nodeIndex}].name=${config.existingNodeAliases[i]}"`
-          nodeIndex++
+          valuesArg += ` --set "hedera.nodes[${i}].accountId=${config.newAccountNumber}" --set "hedera.nodes[${i}].name=${config.existingNodeAliases[i]}"`
         } else if (transactionType !== NodeSubcommandType.DELETE || i !== nodeId) { // for the case of deleting node
-          valuesArg += ` --set "hedera.nodes[${nodeIndex}].accountId=${config.serviceMap.get(config.existingNodeAliases[i]).accountId}" --set "hedera.nodes[${nodeIndex}].name=${config.existingNodeAliases[i]}"`
-          nodeIndex++
+          valuesArg += ` --set "hedera.nodes[${i}].accountId=${config.serviceMap.get(config.existingNodeAliases[i]).accountId}" --set "hedera.nodes[${i}].name=${config.existingNodeAliases[i]}"`
+        } else if (transactionType === NodeSubcommandType.DELETE && i === nodeId) {
+          valuesArg += ` --set "hedera.nodes[${i}].accountId=${IGNORED_NODE_ACCOUNT_ID}" --set "hedera.nodes[${i}].name=${config.existingNodeAliases[i]}"`
         }
       }
 
       // for the case of adding new node
       if (transactionType === NodeSubcommandType.ADD && ctx.newNode && ctx.newNode.accountId) {
-        valuesArg += ` --set "hedera.nodes[${nodeIndex}].accountId=${ctx.newNode.accountId}" --set "hedera.nodes[${nodeIndex}].name=${ctx.newNode.name}"`
+        valuesArg += ` --set "hedera.nodes[${index}].accountId=${ctx.newNode.accountId}" --set "hedera.nodes[${index}].name=${ctx.newNode.name}"`
       }
       const profileValuesFile = await self.profileManager.prepareValuesForNodeAdd(
         path.join(config.stagingDir, 'config.txt'),

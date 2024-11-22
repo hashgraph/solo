@@ -46,6 +46,7 @@ import { type SoloLogger } from './logging.js'
 import { type K8 } from './k8.js'
 import { type AccountIdWithKeyPairObject, type ExtendedNetServer } from '../types/index.js'
 import { type NodeAlias, type PodName } from '../types/aliases.js'
+import { IGNORED_NODE_ACCOUNT_ID } from './constants.js'
 
 const REASON_FAILED_TO_GET_KEYS = 'failed to get keys for accountId'
 const REASON_SKIPPED = 'skipped since it does not have a genesis key'
@@ -222,9 +223,11 @@ export class AccountManager {
       let localPort = constants.LOCAL_NODE_START_PORT
 
       for (const networkNodeService of networkNodeServicesMap.values()) {
-        const addlNode = await this.configureNodeAccess(networkNodeService, localPort, networkNodeServicesMap.size)
-        nodes = { ...nodes, ...addlNode }
-        localPort++
+        if (networkNodeService.accountId !== IGNORED_NODE_ACCOUNT_ID) {
+          const addlNode = await this.configureNodeAccess(networkNodeService, localPort, networkNodeServicesMap.size)
+          nodes = { ...nodes, ...addlNode }
+          localPort++
+        }
       }
 
       this.logger.debug(`creating client from network configuration: ${JSON.stringify(nodes)}`)
