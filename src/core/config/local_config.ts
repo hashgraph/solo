@@ -24,6 +24,7 @@ import { MissingArgumentError, SoloError } from '../errors.js'
 import { promptDeploymentClusters, promptDeploymentName, promptUserEmailAddress } from '../../commands/prompts.js'
 import { type SoloLogger } from '../logging.js'
 import { Task } from '../task.js'
+import { IsDeployments } from '../validator_decorators.js'
 
 export class LocalConfig implements LocalConfigData {
     @IsNotEmpty()
@@ -34,6 +35,7 @@ export class LocalConfig implements LocalConfigData {
     // so it needs to be available in all targeted clusters
     @IsNotEmpty()
     @IsObject()
+    @IsDeployments()
     deployments: Deployments
 
     @IsNotEmpty()

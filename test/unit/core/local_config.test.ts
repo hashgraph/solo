@@ -110,12 +110,12 @@ describe('LocalConfig', () => {
             { clusterAliases: [5, 6, 7] },
             { clusterAliases: 'bar' },
             { clusterAliases: 5 },
-            { clusterAliases: { foo: 'bar '} }
+            { clusterAliases: { foo: 'bar ' } }
         ]
 
         for ( const invalidDeployment of invalidDeployments ) {
             const deployments = {
-                'valid-deployment': validDeployment,
+                'my-deployment': validDeployment,
                 'invalid-deployment': invalidDeployment
             }
 
