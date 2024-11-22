@@ -664,8 +664,8 @@ export class NodeCommandTasks {
 
     try {
       await this.k8.waitForPods([constants.POD_PHASE_RUNNING], [
-        'solo.hedera.com/type=network-node',
-        `solo.hedera.com/node-name=${nodeAlias}`
+        `solo.hedera.com/node-name=${nodeAlias}`,
+        'solo.hedera.com/type=network-node'
       ], 1, maxAttempts, delay)
 
       return podName
@@ -1255,8 +1255,8 @@ export class NodeCommandTasks {
           title: `Check Node: ${chalk.yellow(nodeAlias)}`,
           task: async () =>
             await this.k8.waitForPods([constants.POD_PHASE_RUNNING], [
+              `solo.hedera.com/node-name=${nodeAlias}`,
               'solo.hedera.com/type=network-node',
-                `solo.hedera.com/node-name=${nodeAlias}`
             ], 1, constants.PODS_RUNNING_MAX_ATTEMPTS, constants.PODS_RUNNING_DELAY) // timeout 15 minutes
         })
       }

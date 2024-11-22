@@ -152,6 +152,7 @@ export class AccountManager {
    */
   async loadNodeClient (namespace: string) {
     if (!this._nodeClient || this._nodeClient.isClientShutDown) {
+      this.logger.debug(`loading node client: [!this._nodeClient=${!this._nodeClient}, this._nodeClient.isClientShutDown=${this._nodeClient?.isClientShutDown}]`)
       await this.refreshNodeClient(namespace)
     }
 

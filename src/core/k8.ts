@@ -933,14 +933,12 @@ export class K8 {
     const ns = this._getNamespace()
     const labelSelector = labels.join(',')
 
-    this.logger.debug(`WaitForPod [namespace:${ns}, labelSelector: ${labelSelector}, maxAttempts: ${maxAttempts}]`)
+    this.logger.debug(`WaitForPod [labelSelector: ${labelSelector}, namespace:${ns}, maxAttempts: ${maxAttempts}]`)
 
     return new Promise<k8s.V1Pod[]>((resolve, reject) => {
       let attempts = 0
 
       const check = async (resolve: (items: k8s.V1Pod[]) => void, reject: (reason?: any) => void) => {
-        this.logger.debug(`Checking for pod [namespace:${ns}, labelSelector: ${labelSelector}] [attempt: ${attempts}/${maxAttempts}]`)
-
         // wait for the pod to be available with the given status and labels
         const resp = await this.kubeClient.listNamespacedPod(
           ns,
@@ -957,7 +955,7 @@ export class K8 {
           5 * MINUTES
         )
 
-        this.logger.debug(`${resp.body?.items?.length}/${podCount} pod found [namespace:${ns}, labelSelector: ${labelSelector}] [attempt: ${attempts}/${maxAttempts}]`)
+        this.logger.debug(`[attempt: ${attempts}/${maxAttempts}] ${resp.body?.items?.length}/${podCount} pod found [labelSelector: ${labelSelector}, namespace:${ns}]`)
         if (resp.body?.items?.length === podCount) {
           let phaseMatchCount = 0
           let predicateMatchCount = 0
