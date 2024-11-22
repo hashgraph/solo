@@ -1090,37 +1090,37 @@ export class NodeCommandTasks {
   }
 
   sendNodeUpdateTransaction () {
+    const self = this
     return new Task('Send node update transaction', async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
       const config: NodeUpdateConfigClass = ctx.config
 
       const nodeId = Templates.nodeIdFromNodeAlias(config.nodeAlias) - 1
-      this.logger.info(`nodeId: ${nodeId}`)
-      this.logger.info(`config.newAccountNumber: ${config.newAccountNumber}`)
+      self.logger.info(`nodeId: ${nodeId}, config.newAccountNumber: ${config.newAccountNumber}`)
 
       try {
         const nodeUpdateTx = new NodeUpdateTransaction().setNodeId(nodeId)
 
         if (config.tlsPublicKey && config.tlsPrivateKey) {
-          this.logger.info(`config.tlsPublicKey: ${config.tlsPublicKey}`)
-          const tlsCertDer = this._loadPermCertificate(config.tlsPublicKey)
+          self.logger.info(`config.tlsPublicKey: ${config.tlsPublicKey}`)
+          const tlsCertDer = self._loadPermCertificate(config.tlsPublicKey)
           const tlsCertHash = crypto.createHash('sha384').update(tlsCertDer).digest()
           nodeUpdateTx.setCertificateHash(tlsCertHash)
 
           const publicKeyFile = Templates.renderTLSPemPublicKeyFile(config.nodeAlias)
           const privateKeyFile = Templates.renderTLSPemPrivateKeyFile(config.nodeAlias)
-          renameAndCopyFile(config.tlsPublicKey, publicKeyFile, config.keysDir, this.logger)
-          renameAndCopyFile(config.tlsPrivateKey, privateKeyFile, config.keysDir, this.logger)
+          renameAndCopyFile(config.tlsPublicKey, publicKeyFile, config.keysDir, self.logger)
+          renameAndCopyFile(config.tlsPrivateKey, privateKeyFile, config.keysDir, self.logger)
         }
 
         if (config.gossipPublicKey && config.gossipPrivateKey) {
-          this.logger.info(`config.gossipPublicKey: ${config.gossipPublicKey}`)
-          const signingCertDer = this._loadPermCertificate(config.gossipPublicKey)
+          self.logger.info(`config.gossipPublicKey: ${config.gossipPublicKey}`)
+          const signingCertDer = self._loadPermCertificate(config.gossipPublicKey)
           nodeUpdateTx.setGossipCaCertificate(signingCertDer)
 
           const publicKeyFile = Templates.renderGossipPemPublicKeyFile(config.nodeAlias)
           const privateKeyFile = Templates.renderGossipPemPrivateKeyFile(config.nodeAlias)
-          renameAndCopyFile(config.gossipPublicKey, publicKeyFile, config.keysDir, this.logger)
-          renameAndCopyFile(config.gossipPrivateKey, privateKeyFile, config.keysDir, this.logger)
+          renameAndCopyFile(config.gossipPublicKey, publicKeyFile, config.keysDir, self.logger)
+          renameAndCopyFile(config.gossipPrivateKey, privateKeyFile, config.keysDir, self.logger)
         }
 
         if (config.newAccountNumber) {
@@ -1141,10 +1141,11 @@ export class NodeCommandTasks {
         const signedTx = await nodeUpdateTx.sign(config.adminKey)
         const txResp = await signedTx.execute(config.nodeClient)
         const nodeUpdateReceipt = await txResp.getReceipt(config.nodeClient)
-        this.logger.debug(`NodeUpdateReceipt: ${nodeUpdateReceipt.toString()}`)
+        self.logger.debug(`NodeUpdateReceipt: ${nodeUpdateReceipt.toString()}`)
+        await self.accountManager.refreshNodeClient(config.namespace, config.nodeAlias)
       } catch (e) {
-        this.logger.error(`Error updating node to network: ${e.message}`, e)
-        this.logger.error(e.stack)
+        self.logger.error(`Error updating node to network: ${e.message}`, e)
+        self.logger.error(e.stack)
         throw new SoloError(`Error updating node to network: ${e.message}`, e)
       }
     })
