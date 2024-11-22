@@ -2,6 +2,8 @@
 main:
   - name: Getting Started
     ref: "/User/README.md"
+  - name: How to use Hashgraph javascript SDK with Solo
+    ref: "/User/SDK.md"
   - name: Development
     ref: "/Developer/DEV.md"
   - name: Classes
