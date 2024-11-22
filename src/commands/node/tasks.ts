@@ -672,7 +672,7 @@ export class NodeCommandTasks {
       for (const nodeAlias of ctx.config.nodeAliases) {
         const podName = ctx.config.podNames[nodeAlias]
         self.logger.debug(`Uploading state files to pod ${podName}`)
-        await this.k8.copyTo(podName, constants.ROOT_CONTAINER, zipFile, `${constants.HEDERA_HAPI_PATH}/data`)
+        await self.k8.copyTo(podName, constants.ROOT_CONTAINER, zipFile, `${constants.HEDERA_HAPI_PATH}/data`)
 
         this.logger.info(`Deleting the previous state files in pod ${podName} directory ${constants.HEDERA_HAPI_PATH}/data/saved`)
         await this.k8.execContainer(podName, constants.ROOT_CONTAINER, ['rm', '-rf', `${constants.HEDERA_HAPI_PATH}/data/saved/*`])
