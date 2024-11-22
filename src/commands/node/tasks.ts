@@ -668,7 +668,7 @@ export class NodeCommandTasks {
       const config = ctx.config
 
       const zipFile = config.stateFile
-      this.logger.debug(`zip file: ${zipFile}`)
+      self.logger.debug(`zip file: ${zipFile}`)
       for (const nodeAlias of ctx.config.nodeAliases) {
         const podName = ctx.config.podNames[nodeAlias]
         this.logger.debug(`Uploading state files to pod ${podName}`)
