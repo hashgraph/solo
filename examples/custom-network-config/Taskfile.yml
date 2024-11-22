@@ -11,7 +11,6 @@ env:
   SOLO_CLUSTER_SETUP_NAMESPACE: solo-setup
   SOLO_CLUSTER_RELEASE_NAME: solo-cluster-setup
   SOLO_NETWORK_SIZE: 7
-  SOLO_CLUSTER_RELEASE_NAME: solo-cluster-setup
   SOLO_CLUSTER_NAME: solo-cluster
   MIRROR_RELEASE_NAME: mirror
 
