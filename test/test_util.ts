@@ -45,7 +45,7 @@ import {
   ProfileManager,
   Templates,
   Zippy,
-  AccountManager, CertificateManager
+  AccountManager, CertificateManager, LocalConfig
 } from '../src/core/index.js'
 import {
   AccountBalanceQuery,
@@ -62,6 +62,7 @@ import type { SoloLogger } from '../src/core/logging.js'
 import type { BaseCommand } from '../src/commands/base.js'
 import type { NodeAlias } from '../src/types/aliases.js'
 import type { NetworkNodeServices } from '../src/core/network_node_services.js'
+import sinon from 'sinon'
 import { HEDERA_PLATFORM_VERSION } from '../version.js'
 import { IntervalLeaseRenewalService } from '../src/core/lease/lease_renewal.js'
 
@@ -69,9 +70,10 @@ export const testLogger = logging.NewLogger('debug', true)
 export const TEST_CLUSTER = 'solo-e2e'
 export const HEDERA_PLATFORM_VERSION_TAG = HEDERA_PLATFORM_VERSION
 
+export const BASE_TEST_DIR = path.join('test', 'data', 'tmp')
+
 export function getTestCacheDir (testName?: string) {
-  const baseDir = 'test/data/tmp'
-  const d = testName ? path.join(baseDir, testName) : baseDir
+  const d = testName ? path.join(BASE_TEST_DIR, testName) : BASE_TEST_DIR
 
   if (!fs.existsSync(d)) {
     fs.mkdirSync(d, { recursive: true })
@@ -108,6 +110,7 @@ interface TestOpts {
   profileManager: ProfileManager
   leaseManager: LeaseManager
   certificateManager: CertificateManager
+  localConfig: LocalConfig
 }
 
 interface BootstrapResponse {
@@ -137,7 +140,6 @@ export function bootstrapTestVariables (
   const cacheDir: string = argv[flags.cacheDir.name] || getTestCacheDir(testName)
   const configManager = new ConfigManager(testLogger)
   configManager.update(argv)
-
   const downloader = new PackageDownloader(testLogger)
   const zippy = new Zippy(testLogger)
   const helmDepManager = new HelmDependencyManager(downloader, zippy, testLogger)
@@ -152,6 +154,7 @@ export function bootstrapTestVariables (
   const profileManager = new ProfileManager(testLogger, configManager)
   const leaseManager = new LeaseManager(k8, configManager, testLogger, new IntervalLeaseRenewalService())
   const certificateManager = new CertificateManager(k8, testLogger, configManager)
+  const localConfig = new LocalConfig(path.join(BASE_TEST_DIR, 'local-config.yaml'), testLogger)
 
   const opts: TestOpts = {
     logger: testLogger,
@@ -167,7 +170,8 @@ export function bootstrapTestVariables (
     cacheDir,
     profileManager,
     leaseManager,
-    certificateManager
+    certificateManager,
+    localConfig
   }
 
   const initCmd = initCmdArg || new InitCommand(opts)

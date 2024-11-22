@@ -23,11 +23,13 @@ import {
   DependencyManager
 } from '../../../../src/core/dependency_managers/index.js'
 import {
-  ChartManager, ConfigManager, constants, Helm, K8, KeyManager, LeaseManager, logging, PackageDownloader, Zippy
+  ChartManager, ConfigManager, constants, Helm, K8, KeyManager, LeaseManager, logging, PackageDownloader, Zippy, LocalConfig,
 } from '../../../../src/core/index.js'
 import { SECONDS } from '../../../../src/core/constants.js'
 import sinon from 'sinon'
 import { IntervalLeaseRenewalService } from '../../../../src/core/lease/lease_renewal.js'
+import path from 'path'
+import { BASE_TEST_DIR } from '../../../test_util.js'
 
 const testLogger = logging.NewLogger('debug', true)
 describe('InitCommand', () => {
@@ -42,6 +44,7 @@ describe('InitCommand', () => {
   const helm = new Helm(testLogger)
   const chartManager = new ChartManager(helm, testLogger)
   const configManager = new ConfigManager(testLogger)
+  const localConfig = new LocalConfig(path.join(BASE_TEST_DIR, 'local-config.yaml'), testLogger)
 
   const keyManager = new KeyManager(testLogger)
 
@@ -58,7 +61,7 @@ describe('InitCommand', () => {
     leaseManager = new LeaseManager(k8, configManager, testLogger, new IntervalLeaseRenewalService())
     // @ts-ignore
     initCmd = new InitCommand({
-      logger: testLogger, helm, k8, chartManager, configManager, depManager, keyManager, leaseManager
+      logger: testLogger, helm, k8, chartManager, configManager, depManager, keyManager, leaseManager, localConfig
     })
   })
 
