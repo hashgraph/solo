@@ -23,7 +23,7 @@ import { GrpcProxyTlsEnums } from './enumerations.js'
 import type { ConfigManager } from './config_manager.js'
 import type { K8 } from './k8.js'
 import type { SoloLogger } from './logging.js'
-import type { Listr, ListrTaskWrapper } from 'listr2'
+import type { ListrTaskWrapper } from 'listr2'
 import type { NodeAlias } from '../types/aliases.js'
 
 /**

@@ -23,7 +23,7 @@ import { type AccountId } from '@hashgraph/sdk'
 import type { NodeAlias, PodName } from '../types/aliases.js'
 import { GrpcProxyTlsEnums } from './enumerations.js'
 import type { ContextClusterStructure } from '../types/index.js'
-import { Cluster, Context } from "./config/remote/types.js";
+import type { Cluster, Context } from './config/remote/types.js'
 
 export class Templates {
   public static renderNetworkPodName (nodeAlias: NodeAlias): PodName {

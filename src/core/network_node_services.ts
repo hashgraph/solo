@@ -16,7 +16,6 @@
  */
 
 import type { NodeAlias, PodName } from '../types/aliases.js'
-import type { Optional } from '../types/index.js'
 
 export class NetworkNodeServices {
   public readonly nodeAlias: NodeAlias
@@ -108,7 +107,7 @@ export class NetworkNodeServicesBuilder {
     return this
   }
 
-  withHaProxyLoadBalancerIp (haProxyLoadBalancerIp: Optional<string>) {
+  withHaProxyLoadBalancerIp (haProxyLoadBalancerIp: string | undefined) {
     this.haProxyLoadBalancerIp = haProxyLoadBalancerIp
     return this
   }
@@ -173,7 +172,7 @@ export class NetworkNodeServicesBuilder {
     return this
   }
 
-  withEnvoyProxyClusterIp (envoyProxyClusterIp: Optional<string>) {
+  withEnvoyProxyClusterIp (envoyProxyClusterIp: string | undefined) {
     this.envoyProxyClusterIp = envoyProxyClusterIp
     return this
   }

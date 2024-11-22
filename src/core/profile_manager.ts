@@ -28,7 +28,6 @@ import { readFile, writeFile } from 'fs/promises'
 import type { SoloLogger } from './logging.js'
 import type { SemVer } from 'semver'
 import type { NodeAlias, NodeAliases } from '../types/aliases.js'
-import type { Optional } from '../types/index.js'
 
 const consensusSidecars = [
   'recordStreamUploader', 'eventStreamUploader', 'backupUploader', 'accountBalanceUploader', 'otelCollector']
@@ -39,7 +38,7 @@ export class ProfileManager {
   private readonly cacheDir: string
 
   private profiles: Map<string, object>
-  private profileFile: Optional<string>
+  private profileFile: string | undefined
 
   constructor (logger: SoloLogger, configManager: ConfigManager, cacheDir: string = constants.SOLO_VALUES_DIR) {
     if (!logger) throw new MissingArgumentError('An instance of core/SoloLogger is required')

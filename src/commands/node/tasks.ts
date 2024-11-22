@@ -28,17 +28,15 @@ import {
   TREASURY_ACCOUNT_ID
 } from '../../core/constants.js'
 import {
-  AccountBalanceQuery,
-  AccountId,
-  AccountUpdateTransaction,
+  AccountBalanceQuery, AccountId, AccountUpdateTransaction,
   FileAppendTransaction,
   FileUpdateTransaction,
   FreezeTransaction,
   FreezeType,
+  PrivateKey,
   NodeCreateTransaction,
   NodeDeleteTransaction,
   NodeUpdateTransaction,
-  PrivateKey,
   Timestamp
 } from '@hashgraph/sdk'
 import { IllegalArgumentError, MissingArgumentError, SoloError } from '../../core/errors.js'

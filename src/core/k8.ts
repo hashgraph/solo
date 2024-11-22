@@ -33,7 +33,7 @@ import type * as WebSocket from 'ws'
 import type { PodName } from '../types/aliases.js'
 import type { ExtendedNetServer, LocalContextObject } from '../types/index.js'
 import type * as http from 'node:http'
-import type { Context, Cluster } from './config/remote/types.ts'
+import type { Context } from './config/remote/types.ts'
 
 interface TDirectoryData {directory: boolean; owner: string; group: string; size: string; modifiedAt: string; name: string}
 

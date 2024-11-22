@@ -16,7 +16,7 @@
  */
 import { ListrEnquirerPromptAdapter } from '@listr2/prompt-adapter-enquirer'
 import chalk from 'chalk'
-import { Listr, ListrTask } from 'listr2'
+import { Listr } from 'listr2'
 import { SoloError, IllegalArgumentError, MissingArgumentError } from '../core/errors.js'
 import { BaseCommand } from './base.js'
 import * as flags from './flags.js'
