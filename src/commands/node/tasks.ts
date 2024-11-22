@@ -448,6 +448,12 @@ export class NodeCommandTasks {
       const treasuryPrivateKey = PrivateKey.fromStringED25519(treasuryKey.privateKey)
       client.setOperator(TREASURY_ACCOUNT_ID, treasuryPrivateKey)
 
+      // check balance
+      const treasuryBalance = await new AccountBalanceQuery()
+          .setAccountId(TREASURY_ACCOUNT_ID)
+          .execute(client)
+      this.logger.debug(`Account ${TREASURY_ACCOUNT_ID} balance: ${treasuryBalance.hbars}`)
+
       // get some initial balance
       await this.accountManager.transferAmount(constants.TREASURY_ACCOUNT_ID, accountId, HEDERA_NODE_DEFAULT_STAKE_AMOUNT + 1)
 
@@ -513,14 +519,14 @@ export class NodeCommandTasks {
       const { upgradeZipHash } = ctx
       const { nodeClient, freezeAdminPrivateKey } = ctx.config
       try {
-        // transfer some tiny amount to the freeze admin account
-        await this.accountManager.transferAmount(constants.TREASURY_ACCOUNT_ID, FREEZE_ADMIN_ACCOUNT, 100000)
-
         // query the balance
         const balance = await new AccountBalanceQuery()
           .setAccountId(FREEZE_ADMIN_ACCOUNT)
           .execute(nodeClient)
         this.logger.debug(`Freeze admin account balance: ${balance.hbars}`)
+
+        // transfer some tiny amount to the freeze admin account
+        await this.accountManager.transferAmount(constants.TREASURY_ACCOUNT_ID, FREEZE_ADMIN_ACCOUNT, 100000)
 
         // set operator of freeze transaction as freeze admin account
         nodeClient.setOperator(FREEZE_ADMIN_ACCOUNT, freezeAdminPrivateKey)
@@ -555,6 +561,12 @@ export class NodeCommandTasks {
 
         futureDate.setTime(futureDate.getTime() + 5000) // 5 seconds in the future
         this.logger.debug(`Freeze time: ${futureDate}`)
+
+        // query the balance
+        const balance = await new AccountBalanceQuery()
+            .setAccountId(FREEZE_ADMIN_ACCOUNT)
+            .execute(nodeClient)
+        this.logger.debug(`Freeze admin account balance: ${balance.hbars}`)
 
         nodeClient.setOperator(FREEZE_ADMIN_ACCOUNT, freezeAdminPrivateKey)
         const freezeUpgradeTx = await new FreezeTransaction()
