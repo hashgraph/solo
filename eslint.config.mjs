@@ -28,8 +28,8 @@ export default [
   {
     ignores: ['docs/**/*', 'dist/*'],
   },
-  {
-    files: ['test/**/*.ts', 'src/**/*.ts'],
+  { // all ts files
+    files: ['**/*.ts'],
     plugins: {
       headers: headers,
       tsdoc: tsdoc,
@@ -69,6 +69,13 @@ export default [
       'space-before-function-paren': 'error',
       '@typescript-eslint/no-empty-function': 'off',
       '@typescript-eslint/class-literal-property-style': 'off',
+      'no-invalid-this': [ 'error', { capIsConstructor : false } ],
+    }
+  },
+  { // test ts files
+    files: ['test/**/*.ts'],
+    rules: {
+      'no-invalid-this': [ 'off', { } ],
     }
   },
   {

@@ -204,7 +204,7 @@ async function getNodeLog (pod: V1Pod, namespace: string, timeString: string, k8
     const scriptName = 'support-zip.sh'
     const sourcePath = path.join(constants.RESOURCES_DIR, scriptName) // script source path
     await k8.copyTo(podName, ROOT_CONTAINER, sourcePath, `${HEDERA_HAPI_PATH}`)
-    await k8.execContainer(podName, ROOT_CONTAINER, `chmod 0755 ${HEDERA_HAPI_PATH}/${scriptName}`)
+    await k8.execContainer(podName, ROOT_CONTAINER, ['bash', '-c', `sync ${HEDERA_HAPI_PATH} && chmod 0755 ${HEDERA_HAPI_PATH}/${scriptName}`])
     await k8.execContainer(podName, ROOT_CONTAINER, `${HEDERA_HAPI_PATH}/${scriptName}`)
     await k8.copyFrom(podName, ROOT_CONTAINER, `${HEDERA_HAPI_PATH}/data/${podName}.zip`, targetDir)
   } catch (e: Error | any) {

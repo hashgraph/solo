@@ -213,6 +213,7 @@ export class NodeCommandTasks {
         throw new SoloError(`local build path does not exist: ${localDataLibBuildPath}`)
       }
 
+      const self = this
       subTasks.push({
         title: `Copy local build to Node: ${chalk.yellow(nodeAlias)} from ${localDataLibBuildPath}`,
         task: async () => {
@@ -221,12 +222,12 @@ export class NodeCommandTasks {
             return !(path.includes('data/keys') || path.includes(
                 'data/config'))
           }
-          await this.k8.copyTo(podName, constants.ROOT_CONTAINER, localDataLibBuildPath,
+          await self.k8.copyTo(podName, constants.ROOT_CONTAINER, localDataLibBuildPath,
               `${constants.HEDERA_HAPI_PATH}`, filterFunction)
           const testJsonFiles: string[] = this.configManager.getFlag<string>(flags.appConfig)!.split(',')
           for (const jsonFile of testJsonFiles) {
             if (fs.existsSync(jsonFile)) {
-              await this.k8.copyTo(podName, constants.ROOT_CONTAINER, jsonFile, `${constants.HEDERA_HAPI_PATH}`)
+              await self.k8.copyTo(podName, constants.ROOT_CONTAINER, jsonFile, `${constants.HEDERA_HAPI_PATH}`)
             }
           }
         }
@@ -387,10 +388,11 @@ export class NodeCommandTasks {
    * When generating a single key the alias in config.nodeAlias is used
    */
   _generateGossipKeys (generateMultiple: boolean) {
+    const self = this
     return new Task('Generate gossip keys', (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
       const config = ctx.config
       const nodeAliases = generateMultiple ? config.nodeAliases : [config.nodeAlias]
-      const subTasks = this.keyManager.taskGenerateGossipKeys(nodeAliases, config.keysDir, config.curDate)
+      const subTasks = self.keyManager.taskGenerateGossipKeys(nodeAliases, config.keysDir, config.curDate)
       // set up the sub-tasks
       return task.newListr(subTasks, {
         concurrent: false,
@@ -407,10 +409,11 @@ export class NodeCommandTasks {
    * When generating a single key the alias in config.nodeAlias is used
    */
   _generateGrpcTlsKeys (generateMultiple: boolean) {
+    const self = this
     return new Task('Generate gRPC TLS Keys', (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
       const config = ctx.config
       const nodeAliases = generateMultiple ? config.nodeAliases : [config.nodeAlias]
-      const subTasks = this.keyManager.taskGenerateTLSKeys(nodeAliases, config.keysDir, config.curDate)
+      const subTasks = self.keyManager.taskGenerateTLSKeys(nodeAliases, config.keysDir, config.curDate)
       // set up the sub-tasks
       return task.newListr(subTasks, {
         concurrent: true,
@@ -423,9 +426,10 @@ export class NodeCommandTasks {
   }
 
   copyGrpcTlsCertificates () {
+    const self = this
     return new Task('Copy gRPC TLS Certificates',
       (ctx: { config: NodeAddConfigClass }, parentTask: ListrTaskWrapper<any, any, any>) =>
-        this.certificateManager.buildCopyTlsCertificatesTasks(
+        self.certificateManager.buildCopyTlsCertificatesTasks(
           parentTask,
           ctx.config.grpcTlsCertificatePath,
           ctx.config.grpcWebTlsCertificatePath,
@@ -492,10 +496,11 @@ export class NodeCommandTasks {
   }
 
   prepareUpgradeZip () {
+    const self = this
     return new Task('Prepare upgrade zip file for node upgrade process', async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
       const config = ctx.config
-      ctx.upgradeZipFile = await this._prepareUpgradeZip(config.stagingDir)
-      ctx.upgradeZipHash = await this._uploadUpgradeZip(ctx.upgradeZipFile, config.nodeClient)
+      ctx.upgradeZipFile = await self._prepareUpgradeZip(config.stagingDir)
+      ctx.upgradeZipHash = await self._uploadUpgradeZip(ctx.upgradeZipFile, config.nodeClient)
     })
   }
 
@@ -507,6 +512,7 @@ export class NodeCommandTasks {
   }
 
   checkExistingNodesStakedAmount () {
+    const self = this
     return new Task('Check existing nodes staked amount', async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
       const config = ctx.config
 
@@ -514,12 +520,13 @@ export class NodeCommandTasks {
       const accountMap = getNodeAccountMap(config.existingNodeAliases)
       for (const nodeAlias of config.existingNodeAliases) {
         const accountId = accountMap.get(nodeAlias)
-        await this.accountManager.transferAmount(constants.TREASURY_ACCOUNT_ID, accountId, 1)
+        await self.accountManager.transferAmount(constants.TREASURY_ACCOUNT_ID, accountId, 1)
       }
     })
   }
 
   sendPrepareUpgradeTransaction (): Task {
+    const self = this
     return new Task('Send prepare upgrade transaction', async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
       const { upgradeZipHash } = ctx
       const { nodeClient, freezeAdminPrivateKey } = ctx.config
@@ -528,10 +535,10 @@ export class NodeCommandTasks {
         const balance = await new AccountBalanceQuery()
           .setAccountId(FREEZE_ADMIN_ACCOUNT)
           .execute(nodeClient)
-        this.logger.debug(`Freeze admin account balance: ${balance.hbars}`)
+        self.logger.debug(`Freeze admin account balance: ${balance.hbars}`)
 
         // transfer some tiny amount to the freeze admin account
-        await this.accountManager.transferAmount(constants.TREASURY_ACCOUNT_ID, FREEZE_ADMIN_ACCOUNT, 100000)
+        await self.accountManager.transferAmount(constants.TREASURY_ACCOUNT_ID, FREEZE_ADMIN_ACCOUNT, 100000)
 
         // set operator of freeze transaction as freeze admin account
         nodeClient.setOperator(FREEZE_ADMIN_ACCOUNT, freezeAdminPrivateKey)
@@ -545,33 +552,34 @@ export class NodeCommandTasks {
 
         const prepareUpgradeReceipt = await prepareUpgradeTx.getReceipt(nodeClient)
 
-        this.logger.debug(
+        self.logger.debug(
           `sent prepare upgrade transaction [id: ${prepareUpgradeTx.transactionId.toString()}]`,
           prepareUpgradeReceipt.status.toString()
         )
       } catch (e: Error | any) {
-        this.logger.error(`Error in prepare upgrade: ${e.message}`, e)
+        self.logger.error(`Error in prepare upgrade: ${e.message}`, e)
         throw new SoloError(`Error in prepare upgrade: ${e.message}`, e)
       }
     })
   }
 
   sendFreezeUpgradeTransaction (): Task {
+    const self = this
     return new Task('Send freeze upgrade transaction', async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
       const { upgradeZipHash } = ctx
       const { freezeAdminPrivateKey, nodeClient } = ctx.config
       try {
         const futureDate = new Date()
-        this.logger.debug(`Current time: ${futureDate}`)
+        self.logger.debug(`Current time: ${futureDate}`)
 
         futureDate.setTime(futureDate.getTime() + 5000) // 5 seconds in the future
-        this.logger.debug(`Freeze time: ${futureDate}`)
+        self.logger.debug(`Freeze time: ${futureDate}`)
 
         // query the balance
         const balance = await new AccountBalanceQuery()
             .setAccountId(FREEZE_ADMIN_ACCOUNT)
             .execute(nodeClient)
-        this.logger.debug(`Freeze admin account balance: ${balance.hbars}`)
+        self.logger.debug(`Freeze admin account balance: ${balance.hbars}`)
 
         nodeClient.setOperator(FREEZE_ADMIN_ACCOUNT, freezeAdminPrivateKey)
         const freezeUpgradeTx = await new FreezeTransaction()
@@ -583,10 +591,10 @@ export class NodeCommandTasks {
           .execute(nodeClient)
 
         const freezeUpgradeReceipt = await freezeUpgradeTx.getReceipt(nodeClient)
-        this.logger.debug(`Upgrade frozen with transaction id: ${freezeUpgradeTx.transactionId.toString()}`,
+        self.logger.debug(`Upgrade frozen with transaction id: ${freezeUpgradeTx.transactionId.toString()}`,
           freezeUpgradeReceipt.status.toString())
       } catch (e: Error | any) {
-        this.logger.error(`Error in freeze upgrade: ${e.message}`, e)
+        self.logger.error(`Error in freeze upgrade: ${e.message}`, e)
         throw new SoloError(`Error in freeze upgrade: ${e.message}`, e)
       }
     })
@@ -594,26 +602,30 @@ export class NodeCommandTasks {
 
   /** Download generated config files and key files from the network node */
   downloadNodeGeneratedFiles (): Task {
+    const self = this
     return new Task('Download generated files from an existing node', async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
       const config = ctx.config
-      const node1FullyQualifiedPodName = Templates.renderNetworkPodName(config.existingNodeAliases[0])
+      // don't try to download from the same node we are deleting, it won't work
+      const nodeAlias = ctx.config.nodeAlias === config.existingNodeAliases[0] ? config.existingNodeAliases[1] : config.existingNodeAliases[0]
+
+      const nodeFullyQualifiedPodName = Templates.renderNetworkPodName(nodeAlias)
 
       // copy the config.txt file from the node1 upgrade directory
-      await this.k8.copyFrom(node1FullyQualifiedPodName, constants.ROOT_CONTAINER, `${constants.HEDERA_HAPI_PATH}/data/upgrade/current/config.txt`, config.stagingDir)
+      await self.k8.copyFrom(nodeFullyQualifiedPodName, constants.ROOT_CONTAINER, `${constants.HEDERA_HAPI_PATH}/data/upgrade/current/config.txt`, config.stagingDir)
 
       // if directory data/upgrade/current/data/keys does not exist then use data/upgrade/current
       let keyDir = `${constants.HEDERA_HAPI_PATH}/data/upgrade/current/data/keys`
-      if (!await this.k8.hasDir(node1FullyQualifiedPodName, constants.ROOT_CONTAINER, keyDir)) {
+      if (!await self.k8.hasDir(nodeFullyQualifiedPodName, constants.ROOT_CONTAINER, keyDir)) {
         keyDir = `${constants.HEDERA_HAPI_PATH}/data/upgrade/current`
       }
-      const signedKeyFiles = (await this.k8.listDir(node1FullyQualifiedPodName, constants.ROOT_CONTAINER, keyDir)).filter(file => file.name.startsWith(constants.SIGNING_KEY_PREFIX))
-      await this.k8.execContainer(node1FullyQualifiedPodName, constants.ROOT_CONTAINER, ['bash', '-c', `mkdir -p ${constants.HEDERA_HAPI_PATH}/data/keys_backup && cp -r ${keyDir} ${constants.HEDERA_HAPI_PATH}/data/keys_backup/`])
+      const signedKeyFiles = (await self.k8.listDir(nodeFullyQualifiedPodName, constants.ROOT_CONTAINER, keyDir)).filter(file => file.name.startsWith(constants.SIGNING_KEY_PREFIX))
+      await self.k8.execContainer(nodeFullyQualifiedPodName, constants.ROOT_CONTAINER, ['bash', '-c', `mkdir -p ${constants.HEDERA_HAPI_PATH}/data/keys_backup && cp -r ${keyDir} ${constants.HEDERA_HAPI_PATH}/data/keys_backup/`])
       for (const signedKeyFile of signedKeyFiles) {
-        await this.k8.copyFrom(node1FullyQualifiedPodName, constants.ROOT_CONTAINER, `${keyDir}/${signedKeyFile.name}`, `${config.keysDir}`)
+        await self.k8.copyFrom(nodeFullyQualifiedPodName, constants.ROOT_CONTAINER, `${keyDir}/${signedKeyFile.name}`, `${config.keysDir}`)
       }
 
-      if (await this.k8.hasFile(node1FullyQualifiedPodName, constants.ROOT_CONTAINER, `${constants.HEDERA_HAPI_PATH}/data/upgrade/current/application.properties`)) {
-        await this.k8.copyFrom(node1FullyQualifiedPodName, constants.ROOT_CONTAINER, `${constants.HEDERA_HAPI_PATH}/data/upgrade/current/application.properties`, `${config.stagingDir}/templates`)
+      if (await self.k8.hasFile(nodeFullyQualifiedPodName, constants.ROOT_CONTAINER, `${constants.HEDERA_HAPI_PATH}/data/upgrade/current/application.properties`)) {
+        await self.k8.copyFrom(nodeFullyQualifiedPodName, constants.ROOT_CONTAINER, `${constants.HEDERA_HAPI_PATH}/data/upgrade/current/application.properties`, `${config.stagingDir}/templates`)
       }
     })
   }
@@ -624,11 +636,12 @@ export class NodeCommandTasks {
     ctx.config.podNames = {}
 
     const subTasks = []
+    const self = this
     for (const nodeAlias of nodeAliases) {
       subTasks.push({
         title: `Check network pod: ${chalk.yellow(nodeAlias)}`,
         task: async (ctx: any) => {
-          ctx.config.podNames[nodeAlias] = await this.checkNetworkNodePod(ctx.config.namespace, nodeAlias)
+          ctx.config.podNames[nodeAlias] = await self.checkNetworkNodePod(ctx.config.namespace, nodeAlias)
         }
       })
     }
@@ -662,32 +675,35 @@ export class NodeCommandTasks {
   }
 
   identifyExistingNodes () {
+    const self = this
     return new Task('Identify existing network nodes', async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
       const config = ctx.config
       config.existingNodeAliases = []
-      config.serviceMap = await this.accountManager.getNodeServiceMap(config.namespace)
+      config.serviceMap = await self.accountManager.getNodeServiceMap(config.namespace)
       for (const networkNodeServices of config.serviceMap.values()) {
         config.existingNodeAliases.push(networkNodeServices.nodeAlias)
       }
       config.allNodeAliases = [...config.existingNodeAliases]
-      return this.taskCheckNetworkNodePods(ctx, task, config.existingNodeAliases)
+      return self.taskCheckNetworkNodePods(ctx, task, config.existingNodeAliases)
     })
   }
 
   identifyNetworkPods () {
+    const self = this
     return new Task('Identify network pods', (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
-      return this.taskCheckNetworkNodePods(ctx, task, ctx.config.nodeAliases)
+      return self.taskCheckNetworkNodePods(ctx, task, ctx.config.nodeAliases)
     })
   }
 
   fetchPlatformSoftware (aliasesField: string) {
+    const self = this
     return new Task('Fetch platform software into network nodes', (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
       const { podNames, releaseTag, localBuildPath } = ctx.config
 
       if (localBuildPath !== '') {
-        return this._uploadPlatformSoftware(ctx.config[aliasesField], podNames, task, localBuildPath)
+        return self._uploadPlatformSoftware(ctx.config[aliasesField], podNames, task, localBuildPath)
       }
-        return this._fetchPlatformSoftware(ctx.config[aliasesField], podNames, releaseTag, task, this.platformInstaller)
+        return self._fetchPlatformSoftware(ctx.config[aliasesField], podNames, releaseTag, task, this.platformInstaller)
 
     })
   }

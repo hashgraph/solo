@@ -108,12 +108,11 @@ export class NodeCommandHandlers {
 
   deleteExecuteTaskList (argv: any) {
     return [
+      this.tasks.checkAllNodesAreFrozen('existingNodeAliases'),
       this.tasks.downloadNodeGeneratedFiles(),
       this.tasks.prepareStagingDirectory('existingNodeAliases'),
-      this.tasks.copyNodeKeysToSecrets(),
       this.tasks.refreshNodeList(),
       this.tasks.copyNodeKeysToSecrets(),
-      this.tasks.checkAllNodesAreFrozen('existingNodeAliases'),
       this.tasks.getNodeLogsAndConfigs(),
       this.tasks.updateChartWithConfigMap('Update chart to use new configMap'),
       this.tasks.killNodes(),
@@ -159,10 +158,10 @@ export class NodeCommandHandlers {
 
   addExecuteTasks (argv: any) {
     return [
+      this.tasks.checkAllNodesAreFrozen('existingNodeAliases'),
       this.tasks.downloadNodeGeneratedFiles(),
       this.tasks.prepareStagingDirectory('allNodeAliases'),
       this.tasks.copyNodeKeysToSecrets(),
-      this.tasks.checkAllNodesAreFrozen('existingNodeAliases'),
       this.tasks.getNodeLogsAndConfigs(),
       this.tasks.updateChartWithConfigMap('Deploy new network node'),
       this.tasks.killNodes(),
@@ -202,10 +201,10 @@ export class NodeCommandHandlers {
 
   updateExecuteTasks (argv) {
     return [
+      this.tasks.checkAllNodesAreFrozen('existingNodeAliases'),
       this.tasks.downloadNodeGeneratedFiles(),
       this.tasks.prepareStagingDirectory('allNodeAliases'),
       this.tasks.copyNodeKeysToSecrets(),
-      this.tasks.checkAllNodesAreFrozen('existingNodeAliases'),
       this.tasks.getNodeLogsAndConfigs(),
       this.tasks.updateChartWithConfigMap(
           'Update chart to use new configMap due to account number change',

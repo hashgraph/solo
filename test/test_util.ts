@@ -298,7 +298,7 @@ export function e2eTestSuite (
         }).timeout(30 * MINUTES)
 
         it('node log command should work', async () => {
-          await expect(nodeCmd.handlers.logs(argv)).to.eventually.be.ok
+          expect(await nodeCmd.handlers.logs(argv)).to.be.true
 
           const soloLogPath = path.join(SOLO_LOGS_DIR, 'solo.log')
           const soloLog = fs.readFileSync(soloLogPath, 'utf8')
