@@ -21,11 +21,12 @@ import { flags } from '../../commands/index.js'
 import { MissingArgumentError, SoloError } from '../errors.js'
 import { promptDeploymentClusters, promptDeploymentName, promptUserEmailAddress } from '../../commands/prompts.js'
 import type { ListrTask, ListrTaskWrapper } from 'listr2'
-import type { ClusterMapping, DeploymentStructure, Deployments, LocalConfigData } from './local_config_data.js'
+import type { Deployments, LocalConfigData } from './local_config_data.js'
 import type { SoloLogger } from '../logging.js'
 import type { EmailAddress, Namespace } from './remote/types.js'
 import type { K8 } from '../k8.js'
 import type { ConfigManager } from '../config_manager.js'
+import { IsDeployments } from '../validator_decorators.js'
 
 export class LocalConfig implements LocalConfigData {
     @IsNotEmpty()
@@ -36,17 +37,12 @@ export class LocalConfig implements LocalConfigData {
     // so it needs to be available in all targeted clusters
     @IsNotEmpty()
     @IsObject()
+    @IsDeployments()
     public deployments: Deployments
 
     @IsNotEmpty()
     @IsString()
     public currentDeploymentName : Namespace
-
-    // contextName refers to the "CURRENT NAME", and clusterName refers to the CLUSTER leveraged in kubeConfig.currentContext
-    // { clusterName : string, contextName : string }
-    @IsNotEmpty()
-    @IsObject()
-    public clusterMappings: ClusterMapping
 
     private readonly skipPromptTask: boolean = false
 
@@ -86,29 +82,6 @@ export class LocalConfig implements LocalConfigData {
 
         try {
             // Custom validations:
-            for (const deploymentName in this.deployments) {
-                const deployment = this.deployments[deploymentName]
-                const deploymentIsObject = deployment && typeof deployment === 'object'
-                const deploymentHasClusterAliases = deployment.clusters && Array.isArray(deployment.clusters)
-                let clusterAliasesAreStrings = true
-                for (const clusterAlias of deployment.clusters) {
-                    if (typeof clusterAlias !== 'string') {
-                        clusterAliasesAreStrings = false
-                    }
-                }
-
-                if (!deploymentIsObject || !deploymentHasClusterAliases || !clusterAliasesAreStrings) {
-                    throw new SoloError(genericMessage)
-                }
-            }
-
-            for (const clusterName in this.clusterMappings) {
-                const contextName = this.clusterMappings[clusterName]
-                if (typeof clusterName !== 'string' || typeof contextName !== 'string') {
-                    throw new SoloError(genericMessage)
-                }
-            }
-
             if (!this.deployments[this.currentDeploymentName]) {
                 throw new SoloError(genericMessage)
             }
@@ -124,12 +97,6 @@ export class LocalConfig implements LocalConfigData {
 
     public setDeployments (deployments: Deployments): this {
         this.deployments = deployments
-        this.validate()
-        return this
-    }
-
-    public setClusterMappings (clusterMappings: ClusterMapping): this {
-        this.clusterMappings = clusterMappings
         this.validate()
         return this
     }
@@ -152,8 +119,7 @@ export class LocalConfig implements LocalConfigData {
         const yamlContent = yaml.stringify({
             userEmailAddress: this.userEmailAddress,
             deployments: this.deployments,
-            currentDeploymentName: this.currentDeploymentName,
-            clusterMappings: this.clusterMappings
+            currentDeploymentName: this.currentDeploymentName
         })
         await fs.promises.writeFile(this.filePath, yamlContent)
         this.logger.info(`Wrote local config to ${this.filePath}`)
@@ -166,13 +132,6 @@ export class LocalConfig implements LocalConfigData {
             title: 'Prompt local configuration',
             skip: this.skipPromptTask,
             task: async (_: any, task: ListrTaskWrapper<any, any, any>): Promise<void> => {
-                const kubeConfig = self.k8.getKubeConfig()
-
-                const clusterMappings = {}
-                kubeConfig.contexts.forEach(c => {
-                    clusterMappings[c.cluster] = c.name
-                })
-
                 let userEmailAddress = self.configManager.getFlag<EmailAddress>(flags.userEmailAddress)
                 if (!userEmailAddress) userEmailAddress = await promptUserEmailAddress(task, userEmailAddress)
 
@@ -189,8 +148,6 @@ export class LocalConfig implements LocalConfigData {
                 this.userEmailAddress = userEmailAddress
                 this.deployments = deployments
                 this.currentDeploymentName = deploymentName
-                this.clusterMappings = clusterMappings
-
                 this.validate()
                 await this.write()
             }
