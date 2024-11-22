@@ -214,18 +214,20 @@ export class AccountManager {
    * @returns a node client that can be used to call transactions
    */
   async _getNodeClient (namespace: string, networkNodeServicesMap: Map<string, NetworkNodeServices>, operatorId: string,
-    operatorKey: string, useFirstNodeOnly = true) {
+    operatorKey: string, useSecondNodeOnly = true) {
     let nodes = {}
     try {
       let localPort = constants.LOCAL_NODE_START_PORT
 
-      for (const networkNodeService of networkNodeServicesMap.values()) {
+      if (useSecondNodeOnly && networkNodeServicesMap.size > 1) {
+        const networkNodeService = networkNodeServicesMap.get(networkNodeServicesMap.keys()[1]) as NetworkNodeServices
         const addlNode = await this.configureNodeAccess(networkNodeService, localPort, networkNodeServicesMap.size)
         nodes = { ...nodes, ...addlNode }
-        localPort++
-
-        if (useFirstNodeOnly) {
-          break
+      } else {
+        for (const networkNodeService of networkNodeServicesMap.values()) {
+          const addlNode = await this.configureNodeAccess(networkNodeService, localPort, networkNodeServicesMap.size)
+          nodes = { ...nodes, ...addlNode }
+          localPort++
         }
       }
 
