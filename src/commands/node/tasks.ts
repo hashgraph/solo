@@ -937,6 +937,7 @@ export class NodeCommandTasks {
   }
 
   getNodeStateFiles () {
+    const self = this
     return new Task('Get node states', async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
       for (const nodeAlias of ctx.config.nodeAliases) {
         await getNodeStatesFromPod(this.k8, ctx.config.namespace, nodeAlias)
