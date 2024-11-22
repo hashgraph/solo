@@ -104,20 +104,27 @@ describe('LocalConfig', () => {
     })
 
     it('should not set invalid deployments', async () => {
-        const invalidDeployments = {
-            'valid-deployment': {
-                clusterAliases: ['cluster-3', 'cluster-4'],
-            },
-            'invalid-deployment': {
-                foo: ['bar'],
-            },
-        }
+        const validDeployment = { clusterAliases: ['cluster-3', 'cluster-4'] }
+        const invalidDeployments = [
+            { foo: ['bar'] },
+            { clusterAliases: [5, 6, 7] },
+            { clusterAliases: 'bar' },
+            { clusterAliases: 5 },
+            { clusterAliases: { foo: 'bar '} }
+        ]
 
-        try {
-            localConfig.setDeployments(invalidDeployments)
-            expect.fail('expected an error to be thrown')
-        } catch (error) {
-            expect(error).to.be.instanceOf(SoloError)
+        for ( const invalidDeployment of invalidDeployments ) {
+            const deployments = {
+                'valid-deployment': validDeployment,
+                'invalid-deployment': invalidDeployment
+            }
+
+            try {
+                localConfig.setDeployments(deployments)
+                expect.fail('expected an error to be thrown')
+            } catch (error) {
+                expect(error).to.be.instanceOf(SoloError)
+            }
         }
     })
 

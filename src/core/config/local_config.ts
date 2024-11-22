@@ -73,22 +73,6 @@ export class LocalConfig implements LocalConfigData {
 
         try {
             // Custom validations:
-            for (const deploymentName in this.deployments) {
-                const deployment = this.deployments[deploymentName]
-                const deploymentIsObject = deployment && typeof deployment === 'object'
-                const deploymentHasClusterAliases = deployment.clusterAliases && Array.isArray(deployment.clusterAliases)
-                let clusterAliasesAreStrings = true
-                for (const clusterAlias of deployment.clusterAliases) {
-                    if (typeof clusterAlias !== 'string') {
-                        clusterAliasesAreStrings = false
-                    }
-                }
-
-                if (!deploymentIsObject || !deploymentHasClusterAliases || !clusterAliasesAreStrings) {
-                    throw new SoloError(genericMessage)
-                }
-            }
-
             if (!this.deployments[this.currentDeploymentName]) {
                 throw new SoloError(genericMessage)
             }
