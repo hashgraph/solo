@@ -300,12 +300,11 @@ export class AccountCommand extends BaseCommand {
         }
       },
       {
-        title: 'create the new account.js',
+        title: 'create the new account',
         task: async (ctx) => {
           self.accountInfo = await self.createNewAccount(ctx)
           const accountInfoCopy = { ...self.accountInfo }
           delete accountInfoCopy.privateKey
-
           this.logger.showJSON('new account created', accountInfoCopy)
         }
       }
@@ -414,6 +413,7 @@ export class AccountCommand extends BaseCommand {
       config: {
         accountId: string;
         namespace: string;
+        privateKey: boolean;
       }
     }
 
@@ -430,7 +430,8 @@ export class AccountCommand extends BaseCommand {
 
           const config = {
             accountId: self.configManager.getFlag<string>(flags.accountId) as string,
-            namespace: self.configManager.getFlag<string>(flags.namespace) as string
+            namespace: self.configManager.getFlag<string>(flags.namespace) as string,
+            privateKey: self.configManager.getFlag<boolean>(flags.privateKey) as boolean
           }
 
           if (!await this.k8.hasNamespace(config.namespace)) {
@@ -448,7 +449,7 @@ export class AccountCommand extends BaseCommand {
       {
         title: 'get the account info',
         task: async (ctx) => {
-          self.accountInfo = await self.buildAccountInfo(await self.getAccountInfo(ctx), ctx.config.namespace, false)
+          self.accountInfo = await self.buildAccountInfo(await self.getAccountInfo(ctx), ctx.config.namespace, ctx.config.privateKey)
           this.logger.showJSON('account info', self.accountInfo)
         }
       }
@@ -546,6 +547,7 @@ export class AccountCommand extends BaseCommand {
             desc: 'Gets the account info including the current amount of HBAR',
             builder: (y: any) => flags.setCommandFlags(y,
               flags.accountId,
+              flags.privateKey,
               flags.namespace
             ),
             handler: (argv: any) => {

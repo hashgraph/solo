@@ -21,6 +21,7 @@ name: "ZXC: E2E Test"
 # - .github/workflows/flow-build-application.yaml
 
 on:
+  workflow_dispatch:
   workflow_call:
     inputs:
       node-version:
@@ -180,12 +181,6 @@ jobs:
       - name: Run E2E Tests
         run: |
           ${{ env.CG_EXEC }} npm run ${{ inputs.npm-test-script }}
-
-      - name: RPC relay smoke test
-        if: ${{ runner.os == 'linux' && inputs.npm-test-script == 'test-e2e-relay' && !cancelled() && !failure() }}
-        run: |
-          echo "Skipped smoke test for relay"
-          #.github/workflows/script/relay_smoke_test.sh
 
       - name: Upload E2E Logs to GitHub
         if: ${{ !cancelled() }}
