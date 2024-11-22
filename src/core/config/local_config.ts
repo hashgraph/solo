@@ -19,7 +19,7 @@ import { type ListrTask } from 'listr2'
 import fs from 'fs'
 import * as yaml from 'yaml'
 import { flags } from '../../commands/index.js'
-import { type ClusterMapping, type Deployment, type Deployments, type LocalConfigData } from './local_config_data.js'
+import { type Deployment, type Deployments, type LocalConfigData } from './local_config_data.js'
 import { MissingArgumentError, SoloError } from '../errors.js'
 import { promptDeploymentClusters, promptDeploymentName, promptUserEmailAddress } from '../../commands/prompts.js'
 import { type SoloLogger } from '../logging.js'
@@ -40,19 +40,13 @@ export class LocalConfig implements LocalConfigData {
     @IsString()
     currentDeploymentName : string
 
-    // contextName refers to the "CURRENT NAME", and clusterName refers to the CLUSTER leveraged in kubeConfig.currentContext
-    // { clusterName : string, contextName : string }
-    @IsNotEmpty()
-    @IsObject()
-    clusterMappings: ClusterMapping
-
     private readonly skipPromptTask: boolean = false
 
     constructor (private readonly filePath: string, private readonly logger: SoloLogger) {
         if (!filePath || filePath === '') throw new MissingArgumentError('a valid filePath is required')
         if (!logger) throw new Error('An instance of core/SoloLogger is required')
 
-        const allowedKeys = ['userEmailAddress', 'deployments', 'currentDeploymentName', 'clusterMappings']
+        const allowedKeys = ['userEmailAddress', 'deployments', 'currentDeploymentName']
         if (this.configFileExists()) {
             const fileContent = fs.readFileSync(filePath, 'utf8')
             const parsedConfig = yaml.parse(fileContent)
@@ -95,13 +89,6 @@ export class LocalConfig implements LocalConfigData {
                 }
             }
 
-            for (const clusterName in this.clusterMappings) {
-                const contextName = this.clusterMappings[clusterName]
-                if (typeof clusterName !== 'string' || typeof contextName !== 'string') {
-                    throw new SoloError(genericMessage)
-                }
-            }
-
             if (!this.deployments[this.currentDeploymentName]) {
                 throw new SoloError(genericMessage)
             }
@@ -117,12 +104,6 @@ export class LocalConfig implements LocalConfigData {
 
     public setDeployments (deployments: Deployments): this {
         this.deployments = deployments
-        this.validate()
-        return this
-    }
-
-    public setClusterMappings (clusterMappings: ClusterMapping): this {
-        this.clusterMappings = clusterMappings
         this.validate()
         return this
     }
@@ -145,8 +126,7 @@ export class LocalConfig implements LocalConfigData {
         const yamlContent = yaml.stringify({
             userEmailAddress: this.userEmailAddress,
             deployments: this.deployments,
-            currentDeploymentName: this.currentDeploymentName,
-            clusterMappings: this.clusterMappings
+            currentDeploymentName: this.currentDeploymentName
         })
         await fs.promises.writeFile(this.filePath, yamlContent)
         this.logger.info(`Wrote local config to ${this.filePath}`)
@@ -154,13 +134,6 @@ export class LocalConfig implements LocalConfigData {
 
     public promptLocalConfigTask (k8, argv): ListrTask<any, any, any>[]  {
         return new Task('Prompt local configuration', async (ctx, task) => {
-            const kubeConfig = k8.getKubeConfig()
-
-            const clusterMappings = {}
-            kubeConfig.contexts.forEach(c => {
-                clusterMappings[c.cluster] = c.name
-            })
-
             let userEmailAddress = argv[flags.userEmailAddress.name]
             if (!userEmailAddress) userEmailAddress = await promptUserEmailAddress(task, userEmailAddress)
 
@@ -178,7 +151,6 @@ export class LocalConfig implements LocalConfigData {
             this.userEmailAddress = userEmailAddress
             this.deployments = deployments
             this.currentDeploymentName = deploymentName
-            this.clusterMappings = clusterMappings
             this.validate()
             await this.write()
 

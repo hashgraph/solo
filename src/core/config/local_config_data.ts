@@ -23,11 +23,8 @@ export interface Deployment {
 // of the deployment, must be unique
 export type Deployments = Record<string, Deployment>;
 
-export type ClusterMapping = Record<string, string>;
-
 export interface LocalConfigData {
     userEmailAddress: string;
     deployments: Deployments;
     currentDeploymentName: string;
-    clusterMappings: ClusterMapping;
 }
