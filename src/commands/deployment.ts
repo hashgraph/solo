@@ -81,18 +81,6 @@ export class DeploymentCommand extends BaseCommand {
 
           for (const cluster of Object.keys(ctx.config.contextCluster)) {
             subTasks.push({
-              title: 'Cluster exists in cluster mapping',
-              task: async (_: Context, task: ListrTaskWrapper<Context, any, any>): Promise<void> => {
-                if (!self.localConfig.clusterMappings.hasOwnProperty(cluster)) {
-                  task.title = `${task.title} - ${chalk.red('Cluster not found in mapping')}`
-
-                  throw new SoloError(`Cluster not found in cluster mapping: ${cluster} ` +
-                    `${JSON.stringify(self.localConfig.clusterMappings)}`)
-                }
-              }
-            })
-
-            subTasks.push({
               title: `Testing connection to cluster: ${chalk.cyan(cluster)}`,
               task: async (_: Context, task: ListrTaskWrapper<Context, any, any>) => {
                 if (!await self.k8.testClusterConnection(cluster)) {

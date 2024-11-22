@@ -181,13 +181,11 @@ export class RemoteConfigManager {
 
     return {
       title: 'Create remote config',
-      task: async (ctx, task): Promise<void> => {
+      task: async (_, task): Promise<void> => {
         const localConfigExists = this.localConfig.configFileExists()
         if (!localConfigExists) {
           throw new SoloError('Local config doesn\'t exist')
         }
-
-        Object.assign(self.localConfig.clusterMappings, ctx.config.contextCluster)
 
         if (await self.load()) {
           task.title = `${task.title} - ${chalk.red('Remote config already exists')}}`

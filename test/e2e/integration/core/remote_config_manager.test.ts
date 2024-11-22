@@ -55,7 +55,7 @@ e2eTestSuite(namespace, argv, undefined, undefined, undefined, undefined, undefi
     const configManager = bootstrapResp.opts.configManager
     const filePath = path.join(constants.SOLO_CACHE_DIR, constants.DEFAULT_LOCAL_CONFIG_FILE)
 
-    const localConfig = new LocalConfig(filePath, logger, k8, configManager)
+    const localConfig = new LocalConfig(filePath, logger, configManager)
     const remoteConfigManager = new RemoteConfigManager(k8, logger, localConfig, configManager)
 
     after(async function () {

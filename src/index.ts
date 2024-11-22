@@ -65,7 +65,7 @@ export function main (argv: any) {
     const certificateManager = new CertificateManager(k8, logger, configManager)
 
     const localConfigPath = path.join(constants.SOLO_CACHE_DIR, constants.DEFAULT_LOCAL_CONFIG_FILE)
-    const localConfig = new LocalConfig(localConfigPath, logger, k8, configManager)
+    const localConfig = new LocalConfig(localConfigPath, logger,configManager)
     const remoteConfigManager = new RemoteConfigManager(k8, logger, localConfig, configManager)
 
     // set cluster and namespace in the global configManager from kubernetes context
