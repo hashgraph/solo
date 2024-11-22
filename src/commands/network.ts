@@ -421,7 +421,6 @@ export class NetworkCommand extends BaseCommand {
     try {
       await tasks.run()
     } catch (e: Error | any) {
-      console.error(e)
       throw new SoloError(`Error installing chart ${constants.SOLO_DEPLOYMENT_CHART}`, e)
     } finally {
       await lease.release()

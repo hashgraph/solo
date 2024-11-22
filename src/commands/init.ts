@@ -32,12 +32,14 @@ export class InitCommand extends BaseCommand {
    * Setup home directories
    * @param dirs a list of directories that need to be created in sequence
    */
-  setupHomeDirectory (dirs: string[] = [
-    constants.SOLO_HOME_DIR,
-    constants.SOLO_LOGS_DIR,
-    constants.SOLO_CACHE_DIR,
-    constants.SOLO_VALUES_DIR
-  ]) {
+  setupHomeDirectory (
+    dirs: string[] = [
+      constants.SOLO_HOME_DIR,
+      constants.SOLO_LOGS_DIR,
+      constants.SOLO_CACHE_DIR,
+      constants.SOLO_VALUES_DIR
+    ]
+  ) {
     const self = this
 
     try {

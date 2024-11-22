@@ -474,7 +474,6 @@ export function commandActionBuilder (actionTasks: any, options: any, errorStrin
     try {
       await tasks.run()
     } catch (e: Error | any) {
-      console.error(e)
       commandDef.parent.logger.error(`${errorString}: ${e.message}`, e)
       throw new SoloError(`${errorString}: ${e.message}`, e)
     } finally {

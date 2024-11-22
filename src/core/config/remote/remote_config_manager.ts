@@ -116,9 +116,6 @@ export class RemoteConfigManager {
       throw new SoloError('Attempted to save remote config without data')
     }
 
-    console.log('------------ Modified ------------')
-    console.dir(this.remoteConfig.toObject(), { depth: null })
-
     await this.replaceConfigMap()
   }
 
@@ -151,8 +148,8 @@ export class RemoteConfigManager {
     return {
       title: 'Load remote config',
       task: async (_, task): Promise<void> => {
-        self.setDefaultNamespace()
-        self.setDefaultContext()
+        self.setDefaultNamespaceIfNotSet()
+        self.setDefaultContextIfNotSet()
 
         if (!await self.load()) {
           task.title = `${task.title} - ${chalk.red('remote config not found')}`
@@ -238,7 +235,7 @@ export class RemoteConfigManager {
     )
   }
 
-  private setDefaultNamespace (): void {
+  private setDefaultNamespaceIfNotSet (): void {
     if (this.configManager.hasFlag(flags.namespace)) return
 
     if (!this.localConfig?.currentDeploymentName) {
@@ -252,7 +249,7 @@ export class RemoteConfigManager {
     this.configManager.setFlag(flags.namespace, namespace)
   }
 
-  private setDefaultContext (): void {
+  private setDefaultContextIfNotSet (): void {
     if (this.configManager.hasFlag(flags.context)) return
 
     const context = this.k8.getKubeConfig().currentContext
@@ -275,10 +272,5 @@ export class RemoteConfigManager {
     const ns = this.configManager.getFlag<string>(flags.namespace) as string
     if (!ns) throw new MissingArgumentError('namespace is not set')
     return ns
-  }
-
-  /* ---------- Validation ---------- */
-  private async validate (): Promise<void> {
-
   }
 }

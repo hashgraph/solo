@@ -49,7 +49,9 @@ export class DeploymentCommand extends BaseCommand {
 
           await prompts.execute(task, self.configManager, DeploymentCommand.DEPLOY_FLAGS_LIST)
 
-          ctx.config = self.getConfig(DeploymentCommand.CREATE_DEPLOYMENT_NAME, DeploymentCommand.DEPLOY_FLAGS_LIST) as Config
+          ctx.config = self.getConfig(
+            DeploymentCommand.CREATE_DEPLOYMENT_NAME, DeploymentCommand.DEPLOY_FLAGS_LIST
+          ) as Config
 
           ctx.config.contextCluster = Templates.parseContextCluster(ctx.config.contextClusterUnparsed)
 
@@ -60,6 +62,9 @@ export class DeploymentCommand extends BaseCommand {
           }
 
           self.logger.debug('Prepared config', { config: ctx.config, cachedConfig: self.configManager.config })
+
+          console.log('ENDING HEALTHY')
+          process.exit(0)
 
           return ListrLease.newAcquireLeaseTask(lease, task)
         }

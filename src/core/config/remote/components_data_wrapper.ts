@@ -62,7 +62,7 @@ export class ComponentsDataWrapper implements Validate, ToObject<ComponentsDataS
     }
 
     if (!(component instanceof BaseComponent)) {
-      throw new SoloError('Component must be instance of BaseComponent', undefined, BaseComponent)
+      throw new SoloError('Component must be instance of BaseComponent', null, BaseComponent)
     }
 
     function addComponentCallback (components: Record<ComponentName, BaseComponent>): void {
@@ -83,7 +83,7 @@ export class ComponentsDataWrapper implements Validate, ToObject<ComponentsDataS
       throw new SoloError(`Service name is required ${serviceName}`)
     }
     if (!(component instanceof BaseComponent)) {
-      throw new SoloError('Component must be instance of BaseComponent', undefined, BaseComponent)
+      throw new SoloError('Component must be instance of BaseComponent', null, BaseComponent)
     }
 
     function editComponentCallback (components: Record<ComponentName, BaseComponent>): void {
@@ -168,42 +168,48 @@ export class ComponentsDataWrapper implements Validate, ToObject<ComponentsDataS
     const consensusNodes: Record<ComponentName, ConsensusNodeComponent> = {}
     const mirrorNodeExplorers: Record<ComponentName, MirrorNodeExplorerComponent> = {}
 
-    Object.entries(components).forEach(([type, components]: [ComponentType, Record<ComponentName, Component>]) => {
+    Object.entries(components).forEach(([type, components]: [ComponentType, Record<ComponentName, Component>]): void => {
       switch (type) {
         case ComponentType.Relay:
-          Object.entries(components).forEach(([name, component]: [ComponentName, IRelayComponent]) => {
-            relays[name] = RelayComponent.fromObject(component)
-          })
+          Object.entries(components)
+            .forEach(([name, component]: [ComponentName, IRelayComponent]): void => {
+              relays[name] = RelayComponent.fromObject(component)
+            })
           break
 
         case ComponentType.HaProxy:
-          Object.entries(components).forEach(([name, component]: [ComponentName, Component]) => {
-            haProxies[name] = HaProxyComponent.fromObject(component)
-          })
+          Object.entries(components)
+            .forEach(([name, component]: [ComponentName, Component]) : void=> {
+              haProxies[name] = HaProxyComponent.fromObject(component)
+            })
           break
 
         case ComponentType.MirrorNode:
-          Object.entries(components).forEach(([name, component]: [ComponentName, Component]) => {
-            mirrorNodes[name] = MirrorNodeComponent.fromObject(component)
-          })
+          Object.entries(components)
+            .forEach(([name, component]: [ComponentName, Component]): void => {
+              mirrorNodes[name] = MirrorNodeComponent.fromObject(component)
+            })
           break
 
         case ComponentType.EnvoyProxy:
-          Object.entries(components).forEach(([name, component]: [ComponentName, Component]) => {
-            envoyProxies[name] = EnvoyProxyComponent.fromObject(component)
-          })
+          Object.entries(components)
+            .forEach(([name, component]: [ComponentName, Component]): void => {
+              envoyProxies[name] = EnvoyProxyComponent.fromObject(component)
+            })
           break
 
         case ComponentType.ConsensusNode:
-          Object.entries(components).forEach(([name, component]: [ComponentName, IConsensusNodeComponent]) => {
-            consensusNodes[name] = ConsensusNodeComponent.fromObject(component)
-          })
+          Object.entries(components)
+            .forEach(([name, component]: [ComponentName, IConsensusNodeComponent]): void => {
+              consensusNodes[name] = ConsensusNodeComponent.fromObject(component)
+            })
           break
 
         case ComponentType.MirrorNodeExplorer:
-          Object.entries(components).forEach(([name, component]: [ComponentName, Component]) => {
-            mirrorNodeExplorers[name] = MirrorNodeExplorerComponent.fromObject(component)
-          })
+          Object.entries(components)
+            .forEach(([name, component]: [ComponentName, Component]): void => {
+              mirrorNodeExplorers[name] = MirrorNodeExplorerComponent.fromObject(component)
+            })
           break
 
         default:
@@ -226,8 +232,7 @@ export class ComponentsDataWrapper implements Validate, ToObject<ComponentsDataS
 
   /** checks if component exist in the respective group */
   private exists (components: Record<ComponentName, BaseComponent>, newComponent: BaseComponent): boolean {
-    return Object.values(components)
-      .some(component => BaseComponent.compare(component, newComponent))
+    return Object.values(components).some(component => BaseComponent.compare(component, newComponent))
   }
 
   public validate (): void {
@@ -239,8 +244,7 @@ export class ComponentsDataWrapper implements Validate, ToObject<ComponentsDataS
 
         if (!(component instanceof expectedInstance)) {
           throw new SoloError(`Invalid component type, service name: ${name}, ` +
-            `expected ${expectedInstance?.name}, actual: ${component?.constructor?.name}`,
-            null, { component })
+            `expected ${expectedInstance?.name}, actual: ${component?.constructor?.name}`, null, { component })
         }
       })
     }
