@@ -510,8 +510,8 @@ export class NetworkCommand extends BaseCommand {
           if (ctx.config.enableTimeout) {
             const timeoutId = setTimeout(() => {
               const message = `\n\nUnable to finish network destroy in ${constants.NETWORK_DESTROY_WAIT_TIMEOUT} seconds\n\n`
-              this.logger.error(message)
-              this.logger.showUser(chalk.red(message))
+              self.logger.error(message)
+              self.logger.showUser(chalk.red(message))
               networkDestroySuccess = false
               if (ctx.config.deletePvcs && ctx.config.deleteSecrets && ctx.config.force) {
                 self.k8.deleteNamespace(ctx.config.namespace)
