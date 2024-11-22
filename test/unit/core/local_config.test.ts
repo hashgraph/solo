@@ -78,7 +78,7 @@ describe('LocalConfig', () => {
             'deployment': {
                 clusterAliases: ['cluster-1', 'context-1'],
             },
-            'my-new-deployment': {
+            'deployment-2': {
                 clusterAliases: ['cluster-3', 'context-3'],
             }
         }
