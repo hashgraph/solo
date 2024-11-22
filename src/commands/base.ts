@@ -19,10 +19,9 @@ import paths from 'path'
 import { MissingArgumentError } from '../core/errors.js'
 import { ShellRunner } from '../core/shell_runner.js'
 import type {
-  ChartManager, ConfigManager, Helm, K8, DependencyManager, LeaseManager, RemoteConfigManager
+  ChartManager, ConfigManager, Helm, K8, DependencyManager, LeaseManager, RemoteConfigManager, LocalConfig
 } from '../core/index.js'
 import type { CommandFlag,  Opts } from '../types/index.js'
-import { type LocalConfig } from './../core/config/local_config.js'
 
 export class BaseCommand extends ShellRunner {
   protected readonly helm: Helm

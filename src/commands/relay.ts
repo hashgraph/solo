@@ -23,7 +23,6 @@ import { BaseCommand } from './base.js'
 import * as flags from './flags.js'
 import * as prompts from './prompts.js'
 import { getNodeAccountMap } from '../core/helpers.js'
-import { ComponentType } from '../core/config/remote/enumerations.js'
 import { RemoteConfigTasks } from '../core/config/remote/remote_config_tasks.js'
 import { ListrLease } from '../core/lease/listr_lease.js'
 import type { NodeAliases } from '../types/aliases.js'
@@ -158,7 +157,7 @@ export class RelayCommand extends BaseCommand {
     return releaseName
   }
 
-  async deploy (argv: any): Promise<boolean>  {
+  async deploy (argv: any) {
     const self = this
     const lease = await self.leaseManager.create()
 
@@ -275,7 +274,7 @@ export class RelayCommand extends BaseCommand {
     return true
   }
 
-  async destroy (argv: any): Promise<boolean> {
+  async destroy (argv: any) {
     const self = this
     const lease = await self.leaseManager.create()
 

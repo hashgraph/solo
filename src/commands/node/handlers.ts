@@ -37,20 +37,20 @@ import { RemoteConfigTasks } from '../../core/config/remote/remote_config_tasks.
 import type { SoloLogger } from '../../core/logging.js'
 import type { NodeCommand } from './index.js'
 import type { NodeCommandTasks } from './tasks.js'
-import type { Lease } from '../../core/lease/lease.js'
+import { type Lease } from '../../core/lease/lease.js'
 
 export class NodeCommandHandlers {
-  readonly accountManager: AccountManager
-  readonly configManager: ConfigManager
-  readonly k8: K8
+  private readonly accountManager: AccountManager
+  private readonly configManager: ConfigManager
   private readonly platformInstaller: PlatformInstaller
   private readonly logger: SoloLogger
+  private readonly k8: K8
   private readonly tasks: NodeCommandTasks
   private readonly leaseManager: LeaseManager
   public readonly remoteConfigManager: RemoteConfigManager
 
-  getConfig: any
-  prepareChartPath: any
+  private getConfig: any
+  private prepareChartPath: any
 
   public readonly parent: NodeCommand
 
@@ -189,7 +189,7 @@ export class NodeCommandHandlers {
     ]
   }
 
-  updatePrepareTasks (argv: any, lease: Lease) {
+  updatePrepareTasks (argv, lease: Lease) {
     return [
       this.tasks.initialize(argv, updateConfigBuilder.bind(this), lease),
       RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
@@ -200,7 +200,7 @@ export class NodeCommandHandlers {
     ]
   }
 
-  updateSubmitTransactionsTasks (argv: any) {
+  updateSubmitTransactionsTasks (argv) {
     return [
       this.tasks.sendNodeUpdateTransaction(),
       this.tasks.sendPrepareUpgradeTransaction(),
@@ -208,7 +208,7 @@ export class NodeCommandHandlers {
     ]
   }
 
-  updateExecuteTasks (argv: any) {
+  updateExecuteTasks (argv) {
     return [
       this.tasks.downloadNodeGeneratedFiles(),
       this.tasks.prepareStagingDirectory('allNodeAliases'),
@@ -558,7 +558,7 @@ export class NodeCommandHandlers {
     return true
   }
 
-  async stop (argv: any): Promise<boolean> {
+  async stop (argv: any) {
     argv = helpers.addFlagsToArgv(argv, NodeFlags.STOP_FLAGS)
 
     const lease = await this.leaseManager.create()
@@ -579,7 +579,7 @@ export class NodeCommandHandlers {
     return true
   }
 
-  async start (argv: any): Promise<boolean> {
+  async start (argv: any) {
     argv = helpers.addFlagsToArgv(argv, NodeFlags.START_FLAGS)
 
     const lease = await this.leaseManager.create()
@@ -603,7 +603,7 @@ export class NodeCommandHandlers {
     return true
   }
 
-  async setup (argv: any): Promise<boolean> {
+  async setup (argv: any) {
     argv = helpers.addFlagsToArgv(argv, NodeFlags.SETUP_FLAGS)
 
     const lease = await this.leaseManager.create()

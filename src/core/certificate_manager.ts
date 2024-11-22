@@ -30,7 +30,7 @@ import type { NodeAlias } from '../types/aliases.js'
  * Used to handle interactions with certificates data and inject it into the K8s cluster secrets
  */
 export class CertificateManager {
-  public constructor (
+  constructor (
     private readonly k8: K8,
     private readonly logger: SoloLogger,
     private readonly configManager: ConfigManager
@@ -49,10 +49,7 @@ export class CertificateManager {
    *
    * @returns the secret
    */
-  private buildSecret (cert: string, key: string, type: GrpcProxyTlsEnums)
-    : { 'tls.crt': string, 'tls.key': string }
-    | { 'tls.pem': string }
-  {
+  private buildSecret (cert: string, key: string, type: GrpcProxyTlsEnums) {
     switch (type) {
       //? HAProxy
       case GrpcProxyTlsEnums.GRPC: {
@@ -83,7 +80,7 @@ export class CertificateManager {
    * @param key - file path to the key file
    * @param type - the certificate type if it's for gRPC or gRPC Web
    */
-  private async copyTlsCertificate (nodeAlias: NodeAlias, cert: string, key: string, type: GrpcProxyTlsEnums): Promise<void> {
+  private async copyTlsCertificate (nodeAlias: NodeAlias, cert: string, key: string, type: GrpcProxyTlsEnums) {
     try {
       const data: Record<string, string> = this.buildSecret(cert, key, type)
       const name = Templates.renderGrpcTlsCertificatesSecretName(nodeAlias, type)
@@ -119,7 +116,7 @@ export class CertificateManager {
     grpcWebTlsCertificatePathsUnparsed: string,
     grpcTlsKeyPathsUnparsed: string,
     grpcWebTlsKeyPathsUnparsed: string
-  ): Listr<any, any, any> {
+  ) {
     const self = this
     const subTasks = []
 
@@ -199,7 +196,7 @@ export class CertificateManager {
     })
   }
 
-  private getNamespace (): string {
+  private getNamespace () {
     const ns = this.configManager.getFlag<string>(flags.namespace) as string
     if (!ns) throw new MissingArgumentError('namespace is not set')
     return ns

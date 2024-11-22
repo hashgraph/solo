@@ -64,10 +64,7 @@ import { NodeStatusCodes, NodeStatusEnums } from '../../core/enumerations.js'
 import * as x509 from '@peculiar/x509'
 import { type NodeCommand } from './index.js'
 import type {
-  NodeAddConfigClass,
-  NodeDeleteConfigClass,
-  NodeRefreshConfigClass,
-  NodeUpdateConfigClass
+  NodeAddConfigClass, NodeDeleteConfigClass, NodeRefreshConfigClass, NodeUpdateConfigClass
 } from './configs.js'
 import { type Lease } from '../../core/lease/lease.js'
 import { ListrLease } from '../../core/lease/listr_lease.js'
@@ -262,12 +259,14 @@ export class NodeCommandTasks {
   }
 
   _checkNodeActivenessTask (ctx: any, task: ListrTaskWrapper<any, any, any>, nodeAliases: NodeAliases, status = NodeStatusCodes.ACTIVE) {
+    const { config: { namespace } } = ctx
+
     const subTasks = nodeAliases.map((nodeAlias, i) => {
       const reminder = ('debugNodeAlias' in ctx.config && ctx.config.debugNodeAlias === nodeAlias) ? 'Please attach JVM debugger now.' : ''
       const title = `Check network pod: ${chalk.yellow(nodeAlias)} ${chalk.red(reminder)}`
 
       const subTask = async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
-        ctx.config.podNames[nodeAlias] = await this._checkNetworkNodeActiveness(nodeAlias, task, title, i, status)
+        ctx.config.podNames[nodeAlias] = await this._checkNetworkNodeActiveness(namespace, nodeAlias, task, title, i, status)
       }
 
       return { title, task: subTask }
@@ -281,8 +280,7 @@ export class NodeCommandTasks {
     })
   }
 
-  async _checkNetworkNodeActiveness (
-    nodeAlias: NodeAlias, task: ListrTaskWrapper<any, any, any>,
+  async _checkNetworkNodeActiveness (namespace: string, nodeAlias: NodeAlias, task: ListrTaskWrapper<any, any, any>,
     title: string, index: number, status = NodeStatusCodes.ACTIVE,
     maxAttempts = constants.NETWORK_NODE_ACTIVE_MAX_ATTEMPTS,
     delay = constants.NETWORK_NODE_ACTIVE_DELAY,
@@ -615,7 +613,7 @@ export class NodeCommandTasks {
       subTasks.push({
         title: `Check network pod: ${chalk.yellow(nodeAlias)}`,
         task: async (ctx: any) => {
-          ctx.config.podNames[nodeAlias] = await this.checkNetworkNodePod(nodeAlias)
+          ctx.config.podNames[nodeAlias] = await this.checkNetworkNodePod(ctx.config.namespace, nodeAlias)
         }
       })
     }
@@ -630,11 +628,9 @@ export class NodeCommandTasks {
   }
 
   /** Check if the network node pod is running */
-  async checkNetworkNodePod (
-    nodeAlias: NodeAlias,
-    maxAttempts = constants.PODS_RUNNING_MAX_ATTEMPTS,
-    delay = constants.PODS_RUNNING_DELAY
-  ) {
+  async checkNetworkNodePod (namespace: string, nodeAlias: NodeAlias,
+                             maxAttempts = constants.PODS_RUNNING_MAX_ATTEMPTS,
+                             delay = constants.PODS_RUNNING_DELAY) {
     nodeAlias = nodeAlias.trim() as NodeAlias
     const podName = Templates.renderNetworkPodName(nodeAlias)
 

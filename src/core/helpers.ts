@@ -486,9 +486,7 @@ export function commandActionBuilder (actionTasks: any, options: any, errorStrin
 
 /** Adds all the types of flags as properties on the provided argv object */
 export function addFlagsToArgv (argv: any, flags: {
-  readonly requiredFlags: readonly CommandFlag[],
-  readonly requiredFlagsWithDisabledPrompt: readonly CommandFlag[],
-  readonly optionalFlags: readonly CommandFlag[]
+  requiredFlags: CommandFlag[], requiredFlagsWithDisabledPrompt: CommandFlag[], optionalFlags: CommandFlag[]
 }) {
   argv.requiredFlags = flags.requiredFlags
   argv.requiredFlagsWithDisabledPrompt = flags.requiredFlagsWithDisabledPrompt

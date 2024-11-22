@@ -68,7 +68,7 @@ export class IntervalLeaseRenewalService implements LeaseRenewalService {
     /**
      * Constructs a new interval lease renewal service.
      */
-    public constructor () {
+    constructor () {
         this._scheduledLeases = new Map<number, Lease>()
     }
 

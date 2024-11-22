@@ -147,7 +147,7 @@ export class ClusterCommand extends BaseCommand {
           }
         },
         skip: (ctx) => ctx.isChartInstalled
-      },
+      }
     ], {
       concurrent: false,
       rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
@@ -327,11 +327,11 @@ export class ClusterCommand extends BaseCommand {
   /**
    * Prepare values arg for cluster setup command
    *
-   * @param chartDir - local charts directory (default is empty)
-   * @param prometheusStackEnabled - a bool to denote whether to install prometheus stack
-   * @param minioEnabled - a bool to denote whether to install minio
-   * @param certManagerEnabled - a bool to denote whether to install cert manager
-   * @param certManagerCrdsEnabled - a bool to denote whether to install cert manager CRDs
+   * @param [chartDir] - local charts directory (default is empty)
+   * @param [prometheusStackEnabled] - a bool to denote whether to install prometheus stack
+   * @param [minioEnabled] - a bool to denote whether to install minio
+   * @param [certManagerEnabled] - a bool to denote whether to install cert manager
+   * @param [certManagerCrdsEnabled] - a bool to denote whether to install cert manager CRDs
    */
   prepareValuesArg (
     chartDir = flags.chartDirectory.definition.defaultValue as string,
@@ -357,7 +357,7 @@ export class ClusterCommand extends BaseCommand {
 
   /**
    * Prepare chart path
-   * @param chartDir - local charts directory (default is empty)
+   * @param [chartDir] - local charts directory (default is empty)
    */
   async prepareChartPath (chartDir = flags.chartDirectory.definition.defaultValue as string) {
     let chartPath = 'solo-charts/solo-cluster-setup'

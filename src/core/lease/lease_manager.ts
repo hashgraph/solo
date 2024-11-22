@@ -28,6 +28,10 @@ import { LeaseAcquisitionError } from './lease_errors.js'
  * Manages the acquisition and renewal of leases.
  */
 export class LeaseManager {
+
+    /** The injected logger instance. */
+    private readonly _logger: SoloLogger
+
     /** The injected lease renewal service instance. */
     private readonly _renewalService: LeaseRenewalService
 
@@ -39,10 +43,10 @@ export class LeaseManager {
      * @param logger - the logger.
      * @param renewalService - the lease renewal service.
      */
-    public constructor (
+    constructor (
         private readonly k8: K8,
         private readonly configManager: ConfigManager,
-        private readonly logger: SoloLogger,
+        logger: SoloLogger,
         renewalService: LeaseRenewalService
     ) {
         if (!k8) throw new MissingArgumentError('an instance of core/K8 is required')
@@ -50,6 +54,7 @@ export class LeaseManager {
         if (!configManager) throw new MissingArgumentError('an instance of core/ConfigManager is required')
         if (!renewalService) throw new MissingArgumentError('an instance of core/LeaseRenewalService is required')
 
+        this._logger = logger
         this._renewalService = renewalService
     }
 
@@ -69,6 +74,15 @@ export class LeaseManager {
      */
     public get renewalService (): LeaseRenewalService {
         return this._renewalService
+    }
+
+    /**
+     * Retrieves the logger instance.
+     *
+     * @returns the logger.
+     */
+    public get logger (): SoloLogger {
+        return this._logger
     }
 
     /**

@@ -22,11 +22,7 @@ import { type CommandFlag } from '../types/index.js'
 export class YargsCommand {
   constructor (
     opts: {command: string, description: string, commandDef: BaseCommand | any, handler: string},
-    flags: {
-      readonly requiredFlags: readonly CommandFlag[],
-      readonly requiredFlagsWithDisabledPrompt: readonly CommandFlag[],
-      readonly optionalFlags: readonly CommandFlag[]
-    }
+    flags: {requiredFlags: CommandFlag[], requiredFlagsWithDisabledPrompt: CommandFlag[], optionalFlags: CommandFlag[]}
   ) {
     const { command, description, commandDef, handler } = opts
     const { requiredFlags, requiredFlagsWithDisabledPrompt, optionalFlags } = flags

@@ -23,7 +23,7 @@ import * as helpers from '../core/helpers.js'
 import { contextCluster, hederaExplorerVersion, resetDisabledPrompts } from './flags.js'
 import validator from 'validator'
 import type { ListrTaskWrapper } from 'listr2'
-import type { CommandFlag } from '../types/index.js'
+import { type CommandFlag } from '../types/index.js'
 
 async function prompt (type: string, task: ListrTaskWrapper<any, any, any>, input: any, defaultValue: any, promptMessage: string, emptyCheckMessage: string | null, flagName: string) {
   try {

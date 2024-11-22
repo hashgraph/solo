@@ -19,18 +19,18 @@ import { type SoloLogger } from './logging.js'
 
 /** Uses the solo logger to handle process output from Listr2 */
 export class CustomProcessOutput extends ProcessOutput {
-  public constructor (private readonly logger: SoloLogger) {
+  constructor (private readonly logger: SoloLogger) {
     super()
   }
 
-  public toStdout (chunk: string, eol = true): boolean {
+  toStdout (chunk: string, eol = true) {
     chunk.toString().split('\n').forEach(line => {
       this.logger.debug(line)
     })
     return super.toStdout(chunk, eol)
   }
 
-  public toStderr (chunk: string, eol = true): boolean {
+  toStderr (chunk: string, eol = true) {
     this.logger.error(chunk.toString())
     return super.toStderr(chunk, eol)
   }

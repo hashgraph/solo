@@ -354,65 +354,66 @@ export class NetworkCommand extends BaseCommand {
       },
       {
         title: 'Check proxy pods are running',
-        task: (ctx, task): Listr<Context, any, any> => {
-          const subTasks: any[] = []
-          const config = ctx.config
+        task:
+           (ctx, task) => {
+             const subTasks: any[] = []
+             const config = ctx.config
 
-          // HAProxy
-          for (const nodeAlias of config.nodeAliases) {
-            subTasks.push({
-              title: `Check HAProxy for: ${chalk.yellow(nodeAlias)}`,
-              task: async () =>
-                await self.k8.waitForPods([constants.POD_PHASE_RUNNING], [
-                  'solo.hedera.com/type=haproxy'
-                ], 1, constants.PODS_RUNNING_MAX_ATTEMPTS, constants.PODS_RUNNING_DELAY)
-            })
-          }
+             // HAProxy
+             for (const nodeAlias of config.nodeAliases) {
+               subTasks.push({
+                 title: `Check HAProxy for: ${chalk.yellow(nodeAlias)}`,
+                 task: async () =>
+                   await self.k8.waitForPods([constants.POD_PHASE_RUNNING], [
+                     'solo.hedera.com/type=haproxy'
+                   ], 1, constants.PODS_RUNNING_MAX_ATTEMPTS, constants.PODS_RUNNING_DELAY)
+               })
+             }
 
-          // Envoy Proxy
-          for (const nodeAlias of config.nodeAliases) {
-            subTasks.push({
-              title: `Check Envoy Proxy for: ${chalk.yellow(nodeAlias)}`,
-              task: async () =>
-                await self.k8.waitForPods([constants.POD_PHASE_RUNNING], [
-                  'solo.hedera.com/type=envoy-proxy'
-                ], 1, constants.PODS_RUNNING_MAX_ATTEMPTS, constants.PODS_RUNNING_DELAY)
-            })
-          }
+             // Envoy Proxy
+             for (const nodeAlias of config.nodeAliases) {
+               subTasks.push({
+                 title: `Check Envoy Proxy for: ${chalk.yellow(nodeAlias)}`,
+                 task: async () =>
+                   await self.k8.waitForPods([constants.POD_PHASE_RUNNING], [
+                     'solo.hedera.com/type=envoy-proxy'
+                   ], 1, constants.PODS_RUNNING_MAX_ATTEMPTS, constants.PODS_RUNNING_DELAY)
+               })
+             }
 
-          // set up the sub-tasks
-          return task.newListr(subTasks, {
-            concurrent: true,
-            rendererOptions: {
-              collapseSubtasks: false
-            }
-          })
-        }
+             // set up the sub-tasks
+             return task.newListr(subTasks, {
+               concurrent: true,
+               rendererOptions: {
+                 collapseSubtasks: false
+               }
+             })
+           }
       },
       {
         title: 'Check auxiliary pods are ready',
-        task: (_, task) => {
-          const subTasks = []
+        task:
+           (_, task) => {
+             const subTasks = []
 
-          // minio
-          subTasks.push({
-            title: 'Check MinIO',
-            task: async () =>
-              await self.k8.waitForPodReady([
-                'v1.min.io/tenant=minio'
-              ], 1, constants.PODS_RUNNING_MAX_ATTEMPTS, constants.PODS_RUNNING_DELAY)
-          })
+             // minio
+             subTasks.push({
+               title: 'Check MinIO',
+               task: async () =>
+                 await self.k8.waitForPodReady([
+                   'v1.min.io/tenant=minio'
+                 ], 1, constants.PODS_RUNNING_MAX_ATTEMPTS, constants.PODS_RUNNING_DELAY)
+             })
 
-          // set up the sub-tasks
-          return task.newListr(subTasks, {
-            concurrent: false, // no need to run concurrently since if one node is up, the rest should be up by then
-            rendererOptions: {
-              collapseSubtasks: false
-            }
-          })
-        }
-      },
-      RemoteConfigTasks.addNodesAndProxies.bind(this)()
+             // set up the sub-tasks
+             return task.newListr(subTasks, {
+               concurrent: false, // no need to run concurrently since if one node is up, the rest should be up by then
+               rendererOptions: {
+                 collapseSubtasks: false
+               }
+             })
+           }
+      }
     ], {
       concurrent: false,
       rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION

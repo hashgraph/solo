@@ -27,7 +27,7 @@ import { type Opts } from '../types/index.js'
 
 /**
  * Return a list of Yargs command builder to be exposed through CLI
- * @param opts - it is an Options object containing logger
+ * @param opts it is an Options object containing logger
  * @returns an array of Yargs command builder
  */
 function Initialize (opts: Opts) {

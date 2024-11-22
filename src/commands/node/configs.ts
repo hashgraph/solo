@@ -15,7 +15,7 @@
  *
  */
 import { FREEZE_ADMIN_ACCOUNT } from '../../core/constants.js'
-import { constants, type K8, Templates } from '../../core/index.js'
+import { constants, Templates } from '../../core/index.js'
 import { PrivateKey } from '@hashgraph/sdk'
 import { SoloError } from '../../core/errors.js'
 import * as helpers from '../../core/helpers.js'
@@ -23,10 +23,8 @@ import path from 'path'
 import fs from 'fs'
 import { validatePath } from '../../core/helpers.js'
 import * as flags from '../flags.js'
-import type { NodeAlias, NodeAliases, PodName } from '../../types/aliases.js'
-import type { NetworkNodeServices } from '../../core/network_node_services.js'
-import type { NodeCommandHandlers } from './handlers.js'
-import type { ListrTaskWrapper } from 'listr2'
+import { type NodeAlias, type NodeAliases, type PodName } from '../../types/aliases.js'
+import { type NetworkNodeServices } from '../../core/network_node_services.js'
 
 export const PREPARE_UPGRADE_CONFIGS_NAME = 'prepareUpgradeConfig'
 export const DOWNLOAD_GENERATED_FILES_CONFIGS_NAME = 'downloadGeneratedFilesConfig'
@@ -38,7 +36,7 @@ export const KEYS_CONFIGS_NAME = 'keyConfigs'
 export const SETUP_CONFIGS_NAME = 'setupConfigs'
 export const START_CONFIGS_NAME = 'startConfigs'
 
-const initializeSetup = async (config: any, k8: K8) => {
+const initializeSetup = async (config, k8) => {
     // compute other config parameters
     config.keysDir = path.join(validatePath(config.cacheDir), 'keys')
     config.stagingDir = Templates.renderStagingDir(
@@ -62,9 +60,7 @@ const initializeSetup = async (config: any, k8: K8) => {
     }
 }
 
-export const prepareUpgradeConfigBuilder = async function (
-  this: NodeCommandHandlers, argv: any, ctx: any, task: ListrTaskWrapper<any, any, any>
-) {
+export const prepareUpgradeConfigBuilder = async function (argv, ctx, task) {
     interface NodePrepareUpgradeConfigClass {
         cacheDir: string
         namespace: string
@@ -89,9 +85,7 @@ export const prepareUpgradeConfigBuilder = async function (
     return config
 }
 
-export const downloadGeneratedFilesConfigBuilder = async function (
-   this: NodeCommandHandlers, argv: any, ctx: any, task: ListrTaskWrapper<any, any, any>
-) {
+export const downloadGeneratedFilesConfigBuilder = async function (argv, ctx, task) {
     interface NodeDownloadGeneratedFilesConfigClass {
         cacheDir: string
         namespace: string
@@ -117,9 +111,7 @@ export const downloadGeneratedFilesConfigBuilder = async function (
     return config
 }
 
-export const updateConfigBuilder = async function (
-   this: NodeCommandHandlers, argv: any, ctx: any, task: ListrTaskWrapper<any, any, any>
-) {
+export const updateConfigBuilder = async function (argv, ctx, task) {
     const config = this.getConfig(UPDATE_CONFIGS_NAME, argv.flags,
             [
                 'allNodeAliases',
@@ -158,9 +150,7 @@ export const updateConfigBuilder = async function (
     return config
 }
 
-export const deleteConfigBuilder = async function (
-   this: NodeCommandHandlers, argv: any, ctx: any, task: ListrTaskWrapper<any, any, any>
-) {
+export const deleteConfigBuilder = async function (argv, ctx, task) {
     const config = this.getConfig(DELETE_CONFIGS_NAME, argv.flags, [
         'adminKey',
         'allNodeAliases',
@@ -199,9 +189,7 @@ export const deleteConfigBuilder = async function (
     return config
 }
 
-export const addConfigBuilder = async function (
-  this: NodeCommandHandlers, argv: any, ctx: any, task: ListrTaskWrapper<any, any, any>
-) {
+export const addConfigBuilder = async function (argv, ctx, task) {
     const config = this.getConfig(ADD_CONFIGS_NAME, argv.flags, [
         'allNodeAliases',
         'chartPath',
@@ -246,10 +234,9 @@ export const addConfigBuilder = async function (
     return config
 }
 
-export const logsConfigBuilder = function (
-  this: NodeCommandHandlers, argv: any, ctx: any, task: ListrTaskWrapper<any, any, any>
-) {
-    const config: { namespace: string; nodeAliases: NodeAliases; nodeAliasesUnparsed: string } = {
+export const logsConfigBuilder = function (argv, ctx, task) {
+    /** @type {{namespace: string, nodeAliases: NodeAliases, nodeAliasesUnparsed: string}} */
+    const config = {
         namespace: this.configManager.getFlag(flags.namespace),
         nodeAliases: helpers.parseNodeAliases(this.configManager.getFlag(flags.nodeAliasesUnparsed)),
         nodeAliasesUnparsed: this.configManager.getFlag(flags.nodeAliasesUnparsed)
@@ -258,9 +245,7 @@ export const logsConfigBuilder = function (
     return config
 }
 
-export const refreshConfigBuilder = async function (
-  this: NodeCommandHandlers, argv: any, ctx: any, task: ListrTaskWrapper<any, any, any>
-) {
+export const refreshConfigBuilder = async function (argv, ctx, task) {
     ctx.config = this.getConfig(REFRESH_CONFIGS_NAME, argv.flags,
         [
             'nodeAliases',
@@ -274,9 +259,7 @@ export const refreshConfigBuilder = async function (
     return ctx.config
 }
 
-export const keysConfigBuilder = function (
-  this: NodeCommandHandlers, argv: any, ctx: any, task: ListrTaskWrapper<any, any, any>
-) {
+export const keysConfigBuilder = function (argv, ctx, task) {
     const config = this.getConfig(KEYS_CONFIGS_NAME, argv.flags,
             [
                 'curDate',
@@ -294,9 +277,8 @@ export const keysConfigBuilder = function (
     return config
 }
 
-export const stopConfigBuilder = async function (
-  this: NodeCommandHandlers, argv: any, ctx: any, task: ListrTaskWrapper<any, any, any>
-) {
+export const stopConfigBuilder = async function (argv, ctx, task) {
+    /** @type {{namespace: string, nodeAliases: NodeAliases}} */
     ctx.config = {
         namespace: this.configManager.getFlag(flags.namespace),
         nodeAliases: helpers.parseNodeAliases(this.configManager.getFlag(flags.nodeAliasesUnparsed)),
@@ -310,9 +292,7 @@ export const stopConfigBuilder = async function (
     return ctx.config
 }
 
-export const startConfigBuilder = async function (
-  this: NodeCommandHandlers, argv: any, ctx: any, task: ListrTaskWrapper<any, any, any>
-) {
+export const startConfigBuilder = async function (argv, ctx, task) {
     const config = this.getConfig(START_CONFIGS_NAME, argv.flags,
             [
                 'nodeAliases'
@@ -327,9 +307,7 @@ export const startConfigBuilder = async function (
     return config
 }
 
-export const setupConfigBuilder = async function (
-  this: NodeCommandHandlers, argv: any, ctx: any, task: ListrTaskWrapper<any, any, any>
-) {
+export const setupConfigBuilder = async function (argv, ctx, task) {
     const config = this.getConfig(SETUP_CONFIGS_NAME, argv.flags,
             [
                 'nodeAliases',

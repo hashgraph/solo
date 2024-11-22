@@ -14,10 +14,10 @@
  * limitations under the License.
  *
  */
+import { type ListrTaskWrapper } from 'listr2'
 import chalk from 'chalk'
+import { type Lease } from './lease.js'
 import { LeaseAcquisitionError } from './lease_errors.js'
-import type { Lease } from './lease.js'
-import type { Listr, ListrTaskWrapper } from 'listr2'
 
 /**
  * A utility class for managing lease acquisition tasks in Listr2 based workflows.
@@ -46,11 +46,11 @@ export class ListrLease {
      * @param task - the parent task to which the lease acquisition task will be added.
      * @returns a new Listr2 task for acquiring a lease with retry logic.
      */
-    public static newAcquireLeaseTask (lease: Lease, task: ListrTaskWrapper<any, any, any>): Listr<any, any, any> {
+    public static newAcquireLeaseTask (lease: Lease, task: ListrTaskWrapper<any, any, any>) {
         return task.newListr([
             {
                 title: ListrLease.ACQUIRE_LEASE_TASK_TITLE,
-                task: async (_, task): Promise<void> => {
+                task: async (_, task) => {
                     await ListrLease.acquireWithRetry(lease, task)
                 }
             }

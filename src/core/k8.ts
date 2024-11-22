@@ -33,7 +33,7 @@ import type * as WebSocket from 'ws'
 import type { PodName } from '../types/aliases.js'
 import type { ExtendedNetServer, LocalContextObject } from '../types/index.js'
 import type * as http from 'node:http'
-import { Context, Cluster } from "./config/remote/types.js";
+import type { Context, Cluster } from './config/remote/types.ts'
 
 interface TDirectoryData {directory: boolean; owner: string; group: string; size: string; modifiedAt: string; name: string}
 
@@ -800,6 +800,7 @@ export class K8 {
    * This simple server just forwards traffic from itself to a service running in kubernetes
    * -> localhost:localPort -> port-forward-tunnel -> kubernetes-pod:targetPort
    */
+
   async portForward (podName: PodName, localPort: number, podPort: number) {
     const ns = this._getNamespace()
     const forwarder = new k8s.PortForward(this.kubeConfig, false)
@@ -1252,7 +1253,7 @@ export class K8 {
     return body as k8s.V1Lease
   }
 
-  public async readNamespacedLease (leaseName: string, namespace: string): Promise<k8s.V1Lease> {
+  async readNamespacedLease (leaseName: string, namespace: string) {
     const { response, body } = await this.coordinationApiClient.readNamespacedLease(leaseName, namespace)
       .catch(e => e)
 
@@ -1261,7 +1262,7 @@ export class K8 {
     return body as k8s.V1Lease
   }
 
-  public async renewNamespaceLease (leaseName: string, namespace: string, lease: k8s.V1Lease): Promise<k8s.V1Lease> {
+  async renewNamespaceLease (leaseName: string, namespace: string, lease: k8s.V1Lease) {
     lease.spec.renewTime = new k8s.V1MicroTime()
 
     const { response, body } = await this.coordinationApiClient.replaceNamespacedLease(leaseName, namespace, lease)
@@ -1286,7 +1287,7 @@ export class K8 {
     return body as k8s.V1Lease
   }
 
-  public async deleteNamespacedLease (name: string, namespace: string): Promise<k8s.V1Status> {
+  async deleteNamespacedLease (name: string, namespace: string) {
     const { response, body } = await this.coordinationApiClient.deleteNamespacedLease(name, namespace)
       .catch(e => e)
 
@@ -1314,20 +1315,19 @@ export class K8 {
     throw new SoloError(errorMessage, errorMessage, { statusCode: statusCode })
   }
 
-  private _getNamespace (): string {
+
+  private _getNamespace () {
     const ns = this.configManager.getFlag<string>(flags.namespace)
-    if (!ns) {
-      throw new MissingArgumentError('namespace is not set')
-    }
+    if (!ns) throw new MissingArgumentError('namespace is not set')
     return ns
   }
 
-  private _tempFileFor (fileName: string): string {
+  private _tempFileFor (fileName: string) {
     const tmpFile = `${fileName}-${uuid4()}`
     return path.join(os.tmpdir(), tmpFile)
   }
 
-  private _deleteTempFile (tmpFile: string): void {
+  private _deleteTempFile (tmpFile: string) {
     if (fs.existsSync(tmpFile)) {
       fs.rmSync(tmpFile)
     }

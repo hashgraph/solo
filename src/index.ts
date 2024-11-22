@@ -33,7 +33,7 @@ import { type Opts } from './types/index.js'
 import { IntervalLeaseRenewalService, type LeaseRenewalService } from './core/lease/lease_renewal.js'
 import path from 'path'
 
-export function main (argv: any): any {
+export function main (argv: any) {
   const logger = logging.NewLogger('debug')
   constants.LISTR_DEFAULT_RENDERER_OPTION.logger = new ListrLogger({ processOutput: new CustomProcessOutput(logger) })
   if (argv.length >= 3 && ['-version', '--version', '-v', '--v'].includes(argv[2])) {
