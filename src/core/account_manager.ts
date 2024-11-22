@@ -219,17 +219,19 @@ export class AccountManager {
     try {
       let localPort = constants.LOCAL_NODE_START_PORT
 
-      if (useSecondNodeOnly && networkNodeServicesMap.size > 1) {
-        const networkNodeService = networkNodeServicesMap.get(networkNodeServicesMap.keys()[1]) as NetworkNodeServices
+      let iteration = 0
+      for (const networkNodeService of networkNodeServicesMap.values()) {
+        if (useSecondNodeOnly && networkNodeServicesMap.size > 1 && (iteration < 1 || iteration > 1)) {
+          continue
+        }
+
         const addlNode = await this.configureNodeAccess(networkNodeService, localPort, networkNodeServicesMap.size)
         nodes = { ...nodes, ...addlNode }
-      } else {
-        for (const networkNodeService of networkNodeServicesMap.values()) {
-          const addlNode = await this.configureNodeAccess(networkNodeService, localPort, networkNodeServicesMap.size)
-          nodes = { ...nodes, ...addlNode }
-          localPort++
-        }
+
+        localPort++
+        iteration++
       }
+
 
       this.logger.debug(`creating client from network configuration: ${JSON.stringify(nodes)}`)
       // scheduleNetworkUpdate is set to false, because the ports 50212/50211 are hardcoded in JS SDK that will not work when running locally or in a pipeline
