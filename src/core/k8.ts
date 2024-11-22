@@ -33,6 +33,7 @@ import type * as WebSocket from 'ws'
 import type { PodName } from '../types/aliases.js'
 import type { ExtendedNetServer, LocalContextObject } from '../types/index.js'
 import type * as http from 'node:http'
+import { MINUTES } from './constants.js'
 
 interface TDirectoryData {directory: boolean; owner: string; group: string; size: string; modifiedAt: string; name: string}
 
@@ -193,7 +194,13 @@ export class K8 {
       undefined,
       undefined,
       undefined,
-      fieldSelector
+      fieldSelector,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      5 * MINUTES
     )
 
     return this.filterItem(resp.body.items, { name })
@@ -212,7 +219,12 @@ export class K8 {
       undefined,
       undefined,
       undefined,
-      labelSelector
+      labelSelector,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      5 * MINUTES
     )
 
     return result.body.items
@@ -265,7 +277,13 @@ export class K8 {
       undefined,
       undefined,
       undefined,
-      fieldSelector
+      fieldSelector,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      5 * MINUTES
     )
 
     return this.filterItem(resp.body.items, { name })
@@ -932,7 +950,11 @@ export class K8 {
           undefined,
           undefined,
           labelSelector,
-          podCount
+          podCount,
+          undefined,
+          undefined,
+          undefined,
+          5 * MINUTES
         )
 
         this.logger.debug(`${resp.body?.items?.length}/${podCount} pod found [namespace:${ns}, labelSelector: ${labelSelector}] [attempt: ${attempts}/${maxAttempts}]`)
@@ -1026,7 +1048,12 @@ export class K8 {
       undefined,
       undefined,
       undefined,
-      labelSelector
+      labelSelector,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      5 * MINUTES,
     )
 
     for (const item of resp.body.items) {
@@ -1051,7 +1078,12 @@ export class K8 {
       undefined,
       undefined,
       undefined,
-      labelSelector
+      labelSelector,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      5 * MINUTES,
     )
 
     for (const item of resp.body.items) {
@@ -1084,8 +1116,19 @@ export class K8 {
    *   objects must be base64 decoded
    */
   async getSecret (namespace: string, labelSelector: string) {
-    const result = await this.kubeClient.listNamespacedSecret(namespace,
-      undefined, undefined, undefined, undefined, labelSelector)
+    const result = await this.kubeClient.listNamespacedSecret(
+        namespace,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        labelSelector,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        5 * MINUTES
+    )
 
     if (result.response.statusCode === 200 && result.body.items && result.body.items.length > 0) {
       const secretObject = result.body.items[0]

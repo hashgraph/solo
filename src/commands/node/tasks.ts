@@ -855,6 +855,7 @@ export class NodeCommandTasks {
   }
 
   addNodeStakes () {
+    const self = this
     // @ts-ignore
     return new Task('Add node stakes', (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
       if (ctx.config.app === '' || ctx.config.app === constants.HEDERA_APP_NAME) {
@@ -864,7 +865,7 @@ export class NodeCommandTasks {
           const accountId = accountMap.get(nodeAlias)
           subTasks.push({
             title: `Adding stake for node: ${chalk.yellow(nodeAlias)}`,
-            task: async () => await this._addStake(ctx.config.namespace, accountId, nodeAlias)
+            task: async () => await self._addStake(ctx.config.namespace, accountId, nodeAlias)
           })
         }
 

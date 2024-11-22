@@ -637,6 +637,7 @@ export class AccountManager {
       const transaction = new TransferTransaction()
         .addHbarTransfer(fromAccountId, new Hbar(-1 * hbarAmount))
         .addHbarTransfer(toAccountId, new Hbar(hbarAmount))
+        .freezeWith(this._nodeClient)
 
       // @ts-ignore
       const txResponse = await transaction.execute(this._nodeClient)
