@@ -21,10 +21,9 @@ import { flags } from '../../commands/index.js'
 import { MissingArgumentError, SoloError } from '../errors.js'
 import { promptDeploymentClusters, promptDeploymentName, promptUserEmailAddress } from '../../commands/prompts.js'
 import type { ListrTask, ListrTaskWrapper } from 'listr2'
-import type { Deployments, LocalConfigData } from './local_config_data.js'
+import type { Deployments, LocalConfigData, DeploymentStructure} from './local_config_data.js'
 import type { SoloLogger } from '../logging.js'
 import type { EmailAddress, Namespace } from './remote/types.js'
-import type { K8 } from '../k8.js'
 import type { ConfigManager } from '../config_manager.js'
 import { IsDeployments } from '../validator_decorators.js'
 
@@ -49,7 +48,6 @@ export class LocalConfig implements LocalConfigData {
     public constructor (
       private readonly filePath: string,
       private readonly logger: SoloLogger,
-      private readonly k8: K8,
       private readonly configManager: ConfigManager,
     ) {
         if (!filePath || filePath === '') throw new MissingArgumentError('a valid filePath is required')

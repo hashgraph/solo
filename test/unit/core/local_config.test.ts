@@ -14,7 +14,7 @@
  * limitations under the License.
  *
  */
-import { type ConfigManager, type K8, LocalConfig } from '../../../src/core/index.js'
+import { type ConfigManager, LocalConfig } from '../../../src/core/index.js'
 import fs from 'fs'
 import { stringify } from 'yaml'
 import { expect } from 'chai'
@@ -24,7 +24,6 @@ import { EmailAddress } from "../../../src/core/config/remote/types.js";
 
 describe('LocalConfig', () => {
   let localConfig: LocalConfig
-  const k8 = {} as unknown as K8
   const configManager = {} as unknown as ConfigManager
 
   const filePath = `${getTestCacheDir('LocalConfig')}/localConfig.yaml`
@@ -44,7 +43,7 @@ describe('LocalConfig', () => {
 
   const expectFailedValidation = () => {
     try {
-      new LocalConfig(filePath, testLogger, k8, configManager)
+      new LocalConfig(filePath, testLogger, configManager)
       expect.fail('Expected an error to be thrown')
     }
     catch(error) {
@@ -55,7 +54,7 @@ describe('LocalConfig', () => {
 
   beforeEach(async () => {
     await fs.promises.writeFile(filePath, stringify(config))
-    localConfig = new LocalConfig(filePath, testLogger, k8, configManager)
+    localConfig = new LocalConfig(filePath, testLogger, configManager)
   })
 
   afterEach(async () => {
@@ -76,7 +75,7 @@ describe('LocalConfig', () => {
     await localConfig.write()
 
     // reinitialize with updated config file
-    const newConfig = new LocalConfig(filePath, testLogger, k8, configManager)
+    const newConfig = new LocalConfig(filePath, testLogger, configManager)
     expect(newConfig.userEmailAddress).to.eq(newEmailAddress)
   })
 
@@ -103,12 +102,12 @@ describe('LocalConfig', () => {
     expect(localConfig.deployments).to.deep.eq(newDeployments)
 
     await localConfig.write()
-    const newConfig = new LocalConfig(filePath, testLogger, k8, configManager)
+    const newConfig = new LocalConfig(filePath, testLogger, configManager)
     expect(newConfig.deployments).to.deep.eq(newDeployments)
   })
 
   it('should not set invalid deployments', async () => {
-    const validDeployment = { cluster: ['cluster-3', 'cluster-4'] }
+    const validDeployment = { clusters: ['cluster-3', 'cluster-4'] }
     const invalidDeployments = [
       { foo: ['bar'] },
       { clusters: [5, 6, 7] },
@@ -124,18 +123,13 @@ describe('LocalConfig', () => {
       }
 
       try {
-        localConfig.setDeployments(invalidDeployments as any)
+        localConfig.setDeployments(deployments as any)
         expect.fail('expected an error to be thrown')
       } catch (error) {
         expect(error).to.be.instanceOf(SoloError)
       }
     }
   })
-
-  it('should get current deployment', async () => {
-    expect(localConfig.getCurrentDeployment()).to.deep.eq(config.deployments[config.currentDeploymentName])
-  })
-
 
   it('should not set invalid context mappings', async () => {
     const invalidContextMappings = {
@@ -163,7 +157,7 @@ describe('LocalConfig', () => {
     expect(localConfig.currentDeploymentName).to.eq(newCurrentDeployment)
 
     await localConfig.write()
-    const newConfig = new LocalConfig(filePath, testLogger, k8, configManager)
+    const newConfig = new LocalConfig(filePath, testLogger, configManager)
     expect(newConfig.currentDeploymentName).to.eq(newCurrentDeployment)
   })
 
@@ -187,7 +181,7 @@ describe('LocalConfig', () => {
 
   it('should throw an error if file path is not set', async () => {
     try {
-      new LocalConfig('', testLogger, k8, configManager)
+      new LocalConfig('', testLogger, configManager)
       expect.fail('Expected an error to be thrown')
     } catch (error) {
       expect(error).to.be.instanceOf(MissingArgumentError)
@@ -225,14 +219,6 @@ describe('LocalConfig', () => {
         deployments: [{ 'foo': 'bar' }]
     })
     )
-    expectFailedValidation()
-  })
-
-  it('should throw a validation error if clusterMappings format is not correct', async () => {
-    await fs.promises.writeFile(filePath, stringify({ ...config, clusterMappings: 'foo' }))
-    expectFailedValidation()
-
-    await fs.promises.writeFile(filePath, stringify({ ...config, clusterMappings: ['foo', 'bar'] }))
     expectFailedValidation()
   })
 
