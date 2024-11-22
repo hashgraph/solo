@@ -111,7 +111,7 @@ export function e2eNodeKeyRefreshTest (testName: string, mode: string, releaseTa
           }
         })
 
-        nodePodShouldBeRunning(nodeCmd, nodeAlias)
+        nodePodShouldBeRunning(nodeCmd, namespace, nodeAlias)
 
         nodeShouldNotBeActive(nodeCmd, nodeAlias)
 
@@ -122,7 +122,7 @@ export function e2eNodeKeyRefreshTest (testName: string, mode: string, releaseTa
         accountCreationShouldSucceed(accountManager, nodeCmd, namespace)
       })
 
-      function nodePodShouldBeRunning (nodeCmd: NodeCommand, nodeAlias: NodeAlias) {
+      function nodePodShouldBeRunning (nodeCmd: NodeCommand, namespace: string, nodeAlias: NodeAlias) {
         it(`${nodeAlias} should be running`, async () => {
           try {
             // @ts-ignore to access tasks which is a private property
@@ -161,7 +161,7 @@ export function e2eNodeKeyRefreshTest (testName: string, mode: string, releaseTa
           expect(2)
           try {
             await expect(
-                nodeCmd.tasks._checkNetworkNodeActiveness(nodeAlias, { title: '' } as ListrTaskWrapper<any, any, any>,
+                nodeCmd.tasks._checkNetworkNodeActiveness(namespace, nodeAlias, { title: '' } as ListrTaskWrapper<any, any, any>,
                     '', 44, undefined, 15)
             ).to.be.rejected
           } catch (e) {
