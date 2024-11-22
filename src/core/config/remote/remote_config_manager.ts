@@ -29,7 +29,7 @@ import type { ListrTask } from 'listr2'
 import type { ConfigManager } from '../../config_manager.js'
 import type { LocalConfig } from '../local_config.js'
 import type { DeploymentStructure } from '../local_config_data.js'
-import type { ContextClusterStructure } from '../../../types/index.js'
+import type { ContextClusterStructure, Optional } from '../../../types/index.js'
 import type * as k8s from '@kubernetes/client-node'
 
 interface ListrContext { config: { contextCluster: ContextClusterStructure } }
@@ -40,7 +40,7 @@ interface ListrContext { config: { contextCluster: ContextClusterStructure } }
  */
 export class RemoteConfigManager {
   /** Stores the loaded remote configuration data. */
-  private remoteConfig?: RemoteConfigDataWrapper
+  private remoteConfig: Optional<RemoteConfigDataWrapper>
 
   /**
    * @param k8 - The Kubernetes client used for interacting with ConfigMaps.
@@ -72,7 +72,10 @@ export class RemoteConfigManager {
    */
   public async modify (callback: (remoteConfig: RemoteConfigDataWrapper) => Promise<void> ): Promise<void> {
     if (!this.remoteConfig) {
-      throw new SoloError('Attempting to modify remote config without loading it first')
+      return
+
+      // TODO see if this should be disabled to make it an optional feature
+      // throw new SoloError('Attempting to modify remote config without loading it first')
     }
 
     await callback(this.remoteConfig)
@@ -103,8 +106,6 @@ export class RemoteConfigManager {
       lastExecutedCommand: 'deployment create',
       commandHistory: [ 'deployment create' ]
     })
-
-    console.dir(this.remoteConfig.toObject(), { depth: null })
 
     await this.createConfigMap()
   }
@@ -156,7 +157,9 @@ export class RemoteConfigManager {
         if (!await self.load()) {
           task.title = `${task.title} - ${chalk.red('remote config not found')}`
 
-          throw new SoloError('Failed to load remote config')
+          // TODO see if this should be disabled to make it an optional feature
+          return
+          // throw new SoloError('Failed to load remote config')
         }
 
         const currentCommand = argv._.join(' ')

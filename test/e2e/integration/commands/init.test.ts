@@ -24,7 +24,7 @@ import {
 } from '../../../../src/core/dependency_managers/index.js'
 import {
   ChartManager, ConfigManager, constants, Helm, K8, KeyManager, LeaseManager,
-  LocalConfig, logging, PackageDownloader, Zippy
+  LocalConfig, logging, PackageDownloader, RemoteConfigManager, Zippy
 } from '../../../../src/core/index.js'
 import { SECONDS } from '../../../../src/core/constants.js'
 import sinon from 'sinon'
@@ -51,6 +51,7 @@ describe('InitCommand', () => {
   const keyManager = new KeyManager(testLogger)
 
   let leaseManager: LeaseManager
+  let remoteConfigManager: RemoteConfigManager
 
   let sandbox = sinon.createSandbox()
   let initCmd: InitCommand
@@ -60,10 +61,11 @@ describe('InitCommand', () => {
     sandbox.stub(K8.prototype, 'init').callsFake(() => this)
     k8 = new K8(configManager, testLogger)
     localConfig = new LocalConfig(path.join(BASE_TEST_DIR, 'local-config.yaml'), testLogger, k8, configManager)
+    remoteConfigManager = new RemoteConfigManager(k8, testLogger, localConfig, configManager)
     leaseManager = new LeaseManager(k8, configManager, testLogger, new IntervalLeaseRenewalService())
     // @ts-ignore
     initCmd = new InitCommand({
-      logger: testLogger, helm, k8, chartManager, configManager, depManager, keyManager, leaseManager, localConfig
+      logger: testLogger, helm, k8, chartManager, configManager, depManager, keyManager, leaseManager, localConfig, remoteConfigManager
     })
   })
 
