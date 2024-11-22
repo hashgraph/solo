@@ -179,3 +179,5 @@ export const RELAY_PODS_READY_MAX_ATTEMPTS = +process.env.RELAY_PODS_READY_MAX_A
 export const RELAY_PODS_READY_DELAY = +process.env.RELAY_PODS_READY_DELAY || 1_000
 
 export const NETWORK_DESTROY_WAIT_TIMEOUT = +process.env.NETWORK_DESTROY_WAIT_TIMEOUT || 120
+
+export const DEFAULT_LOCAL_CONFIG_FILE = 'local-config.yaml'
