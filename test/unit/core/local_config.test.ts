@@ -20,7 +20,7 @@ import { stringify } from 'yaml'
 import { expect } from 'chai'
 import { MissingArgumentError, SoloError } from '../../../src/core/errors.js'
 import { getTestCacheDir, testLogger } from '../../test_util.js'
-import { EmailAddress } from "../../../src/core/config/remote/types.js";
+import type { EmailAddress } from '../../../src/core/config/remote/types.js'
 
 describe('LocalConfig', () => {
   let localConfig: LocalConfig
@@ -219,6 +219,14 @@ describe('LocalConfig', () => {
         deployments: [{ 'foo': 'bar' }]
     })
     )
+    expectFailedValidation()
+  })
+
+  it('should throw a validation error if clusterMappings format is not correct', async () => {
+    await fs.promises.writeFile(filePath, stringify({ ...config, clusterMappings: 'foo' }))
+    expectFailedValidation()
+
+    await fs.promises.writeFile(filePath, stringify({ ...config, clusterMappings: ['foo', 'bar'] }))
     expectFailedValidation()
   })
 

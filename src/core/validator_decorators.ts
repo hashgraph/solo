@@ -39,8 +39,8 @@ export const IsDeployments = (validationOptions?: ValidationOptions) => {
                     return keys.every(key => {
                         if (typeof key !== 'string') return false
                         if (!isObject(value[key])) return false
-                        if (!Array.isArray(value[key].clusterAliases)) return false
-                        if (!value[key].clusterAliases.every(val => typeof val === 'string')) return false
+                        if (!Array.isArray(value[key].clusters)) return false
+                        if (!value[key].clusters.every(val => typeof val === 'string')) return false
 
                         return true
                     })
