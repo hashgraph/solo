@@ -52,6 +52,8 @@
     "@peculiar/x509": "^1.12.3",
     "adm-zip": "^0.5.16",
     "chalk": "^5.3.0",
+    "class-transformer": "^0.5.1",
+    "class-validator": "^0.14.1",
     "dot-object": "^2.1.5",
     "dotenv": "^16.4.5",
     "enquirer": "^2.4.1",
