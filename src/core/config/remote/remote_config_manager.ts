@@ -151,8 +151,12 @@ export class RemoteConfigManager {
     return {
       title: 'Load remote config',
       task: async (_, task): Promise<void> => {
-        self.setDefaultNamespaceIfNotSet()
-        self.setDefaultContextIfNotSet()
+        try {
+          self.setDefaultNamespaceIfNotSet()
+          self.setDefaultContextIfNotSet()
+        } catch {
+          return // TODO
+        }
 
         if (!await self.load()) {
           task.title = `${task.title} - ${chalk.red('remote config not found')}`
