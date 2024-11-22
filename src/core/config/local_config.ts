@@ -149,6 +149,13 @@ export class LocalConfig implements LocalConfigData {
     }
 
     public async write (): Promise<void> {
+        console.dir({
+            userEmailAddress: this.userEmailAddress,
+            deployments: this.deployments,
+            currentDeploymentName: this.currentDeploymentName,
+            clusterMappings: this.clusterMappings
+        }, { depth: null })
+
         const yamlContent = yaml.stringify({
             userEmailAddress: this.userEmailAddress,
             deployments: this.deployments,

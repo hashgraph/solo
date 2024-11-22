@@ -508,7 +508,7 @@ export async function promptContextCluster (task: ListrTaskWrapper<any, any, any
     null,
     'Enter context cluster mapping: ',
     'context-cluster cannot be empty',
-    flags.contextCluster.name)
+    flags.contextClusterUnparsed.name)
 }
 
 //! ------------- Node Proxy Certificates ------------- !//
@@ -590,8 +590,9 @@ export function getPromptMap (): Map<string, Function> {
     .set(flags.hederaExplorerVersion, promptHederaExplorerVersion)
     .set(flags.inputDir.name, promptInputDir)
     .set(flags.outputDir.name, promptOutputDir)
-    .set(flags.contextCluster.name, promptContextCluster)
+    .set(flags.contextClusterUnparsed.name, promptContextCluster)
     .set(flags.context.name, promptContext)
+    .set(flags.deploymentName.name, promptDeploymentName)
 
     //! Node Proxy Certificates
     .set(flags.grpcTlsCertificatePath.name, promptGrpcTlsCertificatePath)

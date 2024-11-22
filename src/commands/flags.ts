@@ -75,7 +75,7 @@ export const namespace: CommandFlag = {
   }
 }
 
-export const contextCluster: CommandFlag = {
+export const contextClusterUnparsed: CommandFlag = {
   constName: 'contextClusterUnparsed',
   name: 'context-cluster',
   definition: {
@@ -884,6 +884,7 @@ export const allFlags: CommandFlag[] = [
   grpcWebTlsCertificatePath,
   grpcTlsKeyPath,
   grpcWebTlsKeyPath,
+  contextClusterUnparsed
 ]
 
 /** Resets the definition.disablePrompt for all flags */

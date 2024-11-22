@@ -27,17 +27,23 @@ import type { Namespace } from '../core/config/remote/types.js'
 import type { CommandFlag, ContextClusterStructure } from '../types/index.js'
 
 export class DeploymentCommand extends BaseCommand {
-  public static CREATE_DEPLOYMENT_NAME = 'createDeployment'
-
   private static get DEPLOY_FLAGS_LIST (): CommandFlag[] {
-    return [ flags.namespace, flags.contextCluster ]
+    return [
+      flags.namespace,
+      flags.contextClusterUnparsed,
+      flags.userEmailAddress,
+      flags.deploymentName
+    ]
   }
 
   private async create (argv: any): Promise<boolean> {
     const self = this
     const lease = await self.leaseManager.create()
 
-    interface Config { namespace: Namespace; contextClusterUnparsed: string, contextCluster: ContextClusterStructure }
+    interface Config {
+      namespace: Namespace
+      contextClusterUnparsed: string
+      contextCluster: ContextClusterStructure }
     interface Context { config: Config }
 
     const tasks = new Listr<Context>([
@@ -47,11 +53,12 @@ export class DeploymentCommand extends BaseCommand {
           self.configManager.update(argv)
           self.logger.debug('Loaded cached config', { config: self.configManager.config })
 
-          await prompts.execute(task, self.configManager, DeploymentCommand.DEPLOY_FLAGS_LIST)
+          await prompts.execute(task, self.configManager, [flags.namespace])
 
-          ctx.config = self.getConfig(
-            DeploymentCommand.CREATE_DEPLOYMENT_NAME, DeploymentCommand.DEPLOY_FLAGS_LIST
-          ) as Config
+          ctx.config = {
+            contextClusterUnparsed: self.configManager.getFlag<string>(flags.contextClusterUnparsed),
+            namespace: self.configManager.getFlag<Namespace>(flags.namespace),
+          } as Config
 
           ctx.config.contextCluster = Templates.parseContextCluster(ctx.config.contextClusterUnparsed)
 
@@ -63,18 +70,28 @@ export class DeploymentCommand extends BaseCommand {
 
           self.logger.debug('Prepared config', { config: ctx.config, cachedConfig: self.configManager.config })
 
-          console.log('ENDING HEALTHY')
-          process.exit(0)
-
           return ListrLease.newAcquireLeaseTask(lease, task)
         }
       },
+      this.localConfig.promptLocalConfigTask(),
       {
         title: 'Validate cluster connections',
         task: async (ctx, task): Promise<Listr<Context, any, any>> => {
           const subTasks = []
 
           for (const cluster of Object.keys(ctx.config.contextCluster)) {
+            subTasks.push({
+              title: 'Cluster exists in cluster mapping',
+              task: async (_: Context, task: ListrTaskWrapper<Context, any, any>): Promise<void> => {
+                if (!self.localConfig.clusterMappings.hasOwnProperty(cluster)) {
+                  task.title = `${task.title} - ${chalk.red('Cluster not found in mapping')}`
+
+                  throw new SoloError(`Cluster not found in cluster mapping: ${cluster} ` +
+                    `${JSON.stringify(self.localConfig.clusterMappings)}`)
+                }
+              }
+            })
+
             subTasks.push({
               title: `Testing connection to cluster: ${chalk.cyan(cluster)}`,
               task: async (_: Context, task: ListrTaskWrapper<Context, any, any>) => {
@@ -93,7 +110,6 @@ export class DeploymentCommand extends BaseCommand {
           })
         }
       },
-      this.localConfig.promptLocalConfigTask(),
       RemoteConfigTasks.createRemoteConfig.bind(this)(),
     ], {
       concurrent: false,
@@ -103,6 +119,7 @@ export class DeploymentCommand extends BaseCommand {
     try {
       await tasks.run()
     } catch (e: Error | any) {
+      console.error(e)
       throw new SoloError(`Error installing chart ${constants.SOLO_DEPLOYMENT_CHART}`, e)
     } finally {
       await lease.release()

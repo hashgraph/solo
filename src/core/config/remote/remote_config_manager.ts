@@ -104,6 +104,8 @@ export class RemoteConfigManager {
       commandHistory: [ 'deployment create' ]
     })
 
+    console.dir(this.remoteConfig.toObject(), { depth: null })
+
     await this.createConfigMap()
   }
 
