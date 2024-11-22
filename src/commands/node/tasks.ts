@@ -90,7 +90,7 @@ export class NodeCommandTasks {
 
   constructor (opts: { logger: SoloLogger; accountManager: AccountManager; configManager: ConfigManager,
     k8: K8, platformInstaller: PlatformInstaller, keyManager: KeyManager, profileManager: ProfileManager,
-  chartManager: ChartManager, certificateManager: CertificateManager, parent: NodeCommand}
+    chartManager: ChartManager, certificateManager: CertificateManager, parent: NodeCommand}
   ) {
     if (!opts || !opts.accountManager) throw new IllegalArgumentError('An instance of core/AccountManager is required', opts.accountManager as any)
     if (!opts || !opts.configManager) throw new Error('An instance of core/ConfigManager is required')
@@ -163,12 +163,12 @@ export class NodeCommandTasks {
 
         if (start === 0) {
           fileTransaction = new FileUpdateTransaction()
-            .setFileId(constants.UPGRADE_FILE_ID)
-            .setContents(zipBytesChunk)
+              .setFileId(constants.UPGRADE_FILE_ID)
+              .setContents(zipBytesChunk)
         } else {
           fileTransaction = new FileAppendTransaction()
-            .setFileId(constants.UPGRADE_FILE_ID)
-            .setContents(zipBytesChunk)
+              .setFileId(constants.UPGRADE_FILE_ID)
+              .setContents(zipBytesChunk)
         }
         const resp = await fileTransaction.execute(nodeClient)
         const receipt = await resp.getReceipt(nodeClient)
@@ -240,7 +240,7 @@ export class NodeCommandTasks {
   }
 
   _fetchPlatformSoftware (nodeAliases: NodeAliases, podNames: Record<NodeAlias, PodName>, releaseTag: string,
-    task: ListrTaskWrapper<any, any, any>, platformInstaller: PlatformInstaller
+                          task: ListrTaskWrapper<any, any, any>, platformInstaller: PlatformInstaller
   ) {
     const subTasks = []
     for (const nodeAlias of nodeAliases) {
@@ -248,7 +248,7 @@ export class NodeCommandTasks {
       subTasks.push({
         title: `Update node: ${chalk.yellow(nodeAlias)} [ platformVersion = ${releaseTag} ]`,
         task: async () =>
-          await platformInstaller.fetchPlatform(podName, releaseTag)
+            await platformInstaller.fetchPlatform(podName, releaseTag)
       })
     }
 
@@ -284,10 +284,10 @@ export class NodeCommandTasks {
   }
 
   async _checkNetworkNodeActiveness (namespace: string, nodeAlias: NodeAlias, task: ListrTaskWrapper<any, any, any>,
-    title: string, index: number, status = NodeStatusCodes.ACTIVE,
-    maxAttempts = constants.NETWORK_NODE_ACTIVE_MAX_ATTEMPTS,
-    delay = constants.NETWORK_NODE_ACTIVE_DELAY,
-    timeout = constants.NETWORK_NODE_ACTIVE_TIMEOUT
+                                     title: string, index: number, status = NodeStatusCodes.ACTIVE,
+                                     maxAttempts = constants.NETWORK_NODE_ACTIVE_MAX_ATTEMPTS,
+                                     delay = constants.NETWORK_NODE_ACTIVE_DELAY,
+                                     timeout = constants.NETWORK_NODE_ACTIVE_TIMEOUT
   ) {
     nodeAlias = nodeAlias.trim() as NodeAlias
     const podName = Templates.renderNetworkPodName(nodeAlias)
@@ -319,8 +319,8 @@ export class NodeCommandTasks {
 
         const text = await response.text()
         const statusLine = text
-          .split('\n')
-          .find(line => line.startsWith('platform_PlatformStatus'))
+            .split('\n')
+            .find(line => line.startsWith('platform_PlatformStatus'))
 
         if (!statusLine) {
           task.title = `${title} - status ${chalk.yellow('STARTING')}, attempt: ${chalk.blueBright(`${attempt}/${maxAttempts}`)}`
@@ -368,8 +368,8 @@ export class NodeCommandTasks {
       subTasks.push({
         title: `Check proxy for node: ${chalk.yellow(nodeAlias)}`,
         task: async () => await this.k8.waitForPodReady(
-          [`app=haproxy-${nodeAlias}`, 'solo.hedera.com/type=haproxy'],
-          1, constants.NETWORK_PROXY_MAX_ATTEMPTS, constants.NETWORK_PROXY_DELAY)
+            [`app=haproxy-${nodeAlias}`, 'solo.hedera.com/type=haproxy'],
+            1, constants.NETWORK_PROXY_MAX_ATTEMPTS, constants.NETWORK_PROXY_DELAY)
       })
     }
 
@@ -424,15 +424,15 @@ export class NodeCommandTasks {
 
   copyGrpcTlsCertificates () {
     return new Task('Copy gRPC TLS Certificates',
-      (ctx: { config: NodeAddConfigClass }, parentTask: ListrTaskWrapper<any, any, any>) =>
-        this.certificateManager.buildCopyTlsCertificatesTasks(
-          parentTask,
-          ctx.config.grpcTlsCertificatePath,
-          ctx.config.grpcWebTlsCertificatePath,
-          ctx.config.grpcTlsKeyPath,
-          ctx.config.grpcWebTlsKeyPath
-        ),
-      (ctx: any) => !ctx.config.grpcTlsCertificatePath && !ctx.config.grpcWebTlsCertificatePath
+        (ctx: { config: NodeAddConfigClass }, parentTask: ListrTaskWrapper<any, any, any>) =>
+            this.certificateManager.buildCopyTlsCertificatesTasks(
+                parentTask,
+                ctx.config.grpcTlsCertificatePath,
+                ctx.config.grpcWebTlsCertificatePath,
+                ctx.config.grpcTlsKeyPath,
+                ctx.config.grpcWebTlsKeyPath
+            ),
+        (ctx: any) => !ctx.config.grpcTlsCertificatePath && !ctx.config.grpcWebTlsCertificatePath
     )
   }
 
@@ -464,15 +464,15 @@ export class NodeCommandTasks {
 
       // check balance
       const balance = await new AccountBalanceQuery()
-        .setAccountId(accountId)
-        .execute(client)
+          .setAccountId(accountId)
+          .execute(client)
       this.logger.debug(`Account ${accountId} balance: ${balance.hbars}`)
 
       // Create the transaction
       const transaction = new AccountUpdateTransaction()
-        .setAccountId(accountId)
-        .setStakedNodeId(Templates.nodeIdFromNodeAlias(nodeAlias) - 1)
-        .freezeWith(client)
+          .setAccountId(accountId)
+          .setStakedNodeId(Templates.nodeIdFromNodeAlias(nodeAlias) - 1)
+          .freezeWith(client)
 
       // Sign the transaction with the account's private key
       const signTx = await transaction.sign(treasuryPrivateKey)
@@ -526,8 +526,8 @@ export class NodeCommandTasks {
       try {
         // query the balance
         const balance = await new AccountBalanceQuery()
-          .setAccountId(FREEZE_ADMIN_ACCOUNT)
-          .execute(nodeClient)
+            .setAccountId(FREEZE_ADMIN_ACCOUNT)
+            .execute(nodeClient)
         this.logger.debug(`Freeze admin account balance: ${balance.hbars}`)
 
         // transfer some tiny amount to the freeze admin account
@@ -537,17 +537,17 @@ export class NodeCommandTasks {
         nodeClient.setOperator(FREEZE_ADMIN_ACCOUNT, freezeAdminPrivateKey)
 
         const prepareUpgradeTx = await new FreezeTransaction()
-          .setFreezeType(FreezeType.PrepareUpgrade)
-          .setFileId(constants.UPGRADE_FILE_ID)
-          .setFileHash(upgradeZipHash)
-          .freezeWith(nodeClient)
-          .execute(nodeClient)
+            .setFreezeType(FreezeType.PrepareUpgrade)
+            .setFileId(constants.UPGRADE_FILE_ID)
+            .setFileHash(upgradeZipHash)
+            .freezeWith(nodeClient)
+            .execute(nodeClient)
 
         const prepareUpgradeReceipt = await prepareUpgradeTx.getReceipt(nodeClient)
 
         this.logger.debug(
-          `sent prepare upgrade transaction [id: ${prepareUpgradeTx.transactionId.toString()}]`,
-          prepareUpgradeReceipt.status.toString()
+            `sent prepare upgrade transaction [id: ${prepareUpgradeTx.transactionId.toString()}]`,
+            prepareUpgradeReceipt.status.toString()
         )
       } catch (e: Error | any) {
         this.logger.error(`Error in prepare upgrade: ${e.message}`, e)
@@ -575,16 +575,16 @@ export class NodeCommandTasks {
 
         nodeClient.setOperator(FREEZE_ADMIN_ACCOUNT, freezeAdminPrivateKey)
         const freezeUpgradeTx = await new FreezeTransaction()
-          .setFreezeType(FreezeType.FreezeUpgrade)
-          .setStartTimestamp(Timestamp.fromDate(futureDate))
-          .setFileId(constants.UPGRADE_FILE_ID)
-          .setFileHash(upgradeZipHash)
-          .freezeWith(nodeClient)
-          .execute(nodeClient)
+            .setFreezeType(FreezeType.FreezeUpgrade)
+            .setStartTimestamp(Timestamp.fromDate(futureDate))
+            .setFileId(constants.UPGRADE_FILE_ID)
+            .setFileHash(upgradeZipHash)
+            .freezeWith(nodeClient)
+            .execute(nodeClient)
 
         const freezeUpgradeReceipt = await freezeUpgradeTx.getReceipt(nodeClient)
         this.logger.debug(`Upgrade frozen with transaction id: ${freezeUpgradeTx.transactionId.toString()}`,
-          freezeUpgradeReceipt.status.toString())
+            freezeUpgradeReceipt.status.toString())
       } catch (e: Error | any) {
         this.logger.error(`Error in freeze upgrade: ${e.message}`, e)
         throw new SoloError(`Error in freeze upgrade: ${e.message}`, e)
@@ -687,7 +687,7 @@ export class NodeCommandTasks {
       if (localBuildPath !== '') {
         return this._uploadPlatformSoftware(ctx.config[aliasesField], podNames, task, localBuildPath)
       }
-        return this._fetchPlatformSoftware(ctx.config[aliasesField], podNames, releaseTag, task, this.platformInstaller)
+      return this._fetchPlatformSoftware(ctx.config[aliasesField], podNames, releaseTag, task, this.platformInstaller)
 
     })
   }
@@ -695,7 +695,7 @@ export class NodeCommandTasks {
   populateServiceMap () {
     return new Task('Populate serviceMap', async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
       ctx.config.serviceMap = await this.accountManager.getNodeServiceMap(
-        ctx.config.namespace)
+          ctx.config.namespace)
       ctx.config.podNames[ctx.config.nodeAlias] = ctx.config.serviceMap.get(ctx.config.nodeAlias).nodePodName
     })
   }
@@ -708,7 +708,7 @@ export class NodeCommandTasks {
         subTasks.push({
           title: `Node: ${chalk.yellow(nodeAlias)}`,
           task: () =>
-            this.platformInstaller.taskSetup(podName)
+              this.platformInstaller.taskSetup(podName)
         })
       }
 
@@ -908,7 +908,7 @@ export class NodeCommandTasks {
         subTasks.push({
           title: `Node: ${chalk.yellow(nodeAlias)}`,
           task: async () =>
-            await this.k8.execContainer(podName, constants.ROOT_CONTAINER, ['bash', '-c', `rm -rf ${constants.HEDERA_HAPI_PATH}/data/saved/*`])
+              await this.k8.execContainer(podName, constants.ROOT_CONTAINER, ['bash', '-c', `rm -rf ${constants.HEDERA_HAPI_PATH}/data/saved/*`])
         })
       }
 
@@ -950,8 +950,8 @@ export class NodeCommandTasks {
           name: networkNodeServices.nodeAlias
         })
         maxNum = maxNum > AccountId.fromString(networkNodeServices.accountId).num
-          ? maxNum
-          : AccountId.fromString(networkNodeServices.accountId).num
+            ? maxNum
+            : AccountId.fromString(networkNodeServices.accountId).num
         lastNodeAlias = networkNodeServices.nodeAlias
       }
 
@@ -1154,8 +1154,8 @@ export class NodeCommandTasks {
         valuesArg += ` --set "hedera.nodes[${index}].accountId=${ctx.newNode.accountId}" --set "hedera.nodes[${index}].name=${ctx.newNode.name}"`
       }
       const profileValuesFile = await this.profileManager.prepareValuesForNodeAdd(
-        path.join(config.stagingDir, 'config.txt'),
-        path.join(config.stagingDir, 'templates', 'application.properties'))
+          path.join(config.stagingDir, 'config.txt'),
+          path.join(config.stagingDir, 'templates', 'application.properties'))
       if (profileValuesFile) {
         valuesArg += this.prepareValuesFiles(profileValuesFile)
       }
@@ -1163,10 +1163,10 @@ export class NodeCommandTasks {
       valuesArg = addDebugOptions(valuesArg, config.debugNodeAlias)
 
       await this.chartManager.upgrade(
-        config.namespace,
-        constants.SOLO_DEPLOYMENT_CHART, constants.SOLO_TESTING_CHART_URL + constants.SOLO_DEPLOYMENT_CHART,
-        valuesArg,
-        config.soloChartVersion
+          config.namespace,
+          constants.SOLO_DEPLOYMENT_CHART, constants.SOLO_TESTING_CHART_URL + constants.SOLO_DEPLOYMENT_CHART,
+          valuesArg,
+          config.soloChartVersion
       )
     }, skip)
   }
@@ -1237,10 +1237,10 @@ export class NodeCommandTasks {
         subTasks.push({
           title: `Check Node: ${chalk.yellow(nodeAlias)}`,
           task: async () =>
-            await this.k8.waitForPods([constants.POD_PHASE_RUNNING], [
-              'solo.hedera.com/type=network-node',
+              await this.k8.waitForPods([constants.POD_PHASE_RUNNING], [
+                'solo.hedera.com/type=network-node',
                 `solo.hedera.com/node-name=${nodeAlias}`
-            ], 1, constants.PODS_RUNNING_MAX_ATTEMPTS, constants.PODS_RUNNING_DELAY) // timeout 15 minutes
+              ], 1, constants.PODS_RUNNING_MAX_ATTEMPTS, constants.PODS_RUNNING_DELAY) // timeout 15 minutes
         })
       }
 
@@ -1296,8 +1296,8 @@ export class NodeCommandTasks {
         this.logger.debug(`Deleting node: ${config.nodeAlias} with account: ${deleteAccountId}`)
         const nodeId = Templates.nodeIdFromNodeAlias(config.nodeAlias) - 1
         const nodeDeleteTx = new NodeDeleteTransaction()
-          .setNodeId(nodeId)
-          .freezeWith(config.nodeClient)
+            .setNodeId(nodeId)
+            .freezeWith(config.nodeClient)
 
         const signedTx = await nodeDeleteTx.sign(config.adminKey)
         const txResp = await signedTx.execute(config.nodeClient)
@@ -1317,13 +1317,13 @@ export class NodeCommandTasks {
 
       try {
         const nodeCreateTx = new NodeCreateTransaction()
-          .setAccountId(ctx.newNode.accountId)
-          .setGossipEndpoints(ctx.gossipEndpoints)
-          .setServiceEndpoints(ctx.grpcServiceEndpoints)
-          .setGossipCaCertificate(ctx.signingCertDer)
-          .setCertificateHash(ctx.tlsCertHash)
-          .setAdminKey(ctx.adminKey.publicKey)
-          .freezeWith(config.nodeClient)
+            .setAccountId(ctx.newNode.accountId)
+            .setGossipEndpoints(ctx.gossipEndpoints)
+            .setServiceEndpoints(ctx.grpcServiceEndpoints)
+            .setGossipCaCertificate(ctx.signingCertDer)
+            .setCertificateHash(ctx.tlsCertHash)
+            .setAdminKey(ctx.adminKey.publicKey)
+            .freezeWith(config.nodeClient)
         const signedTx = await nodeCreateTx.sign(ctx.adminKey)
         const txResp = await signedTx.execute(config.nodeClient)
         const nodeCreateReceipt = await txResp.getReceipt(config.nodeClient)
@@ -1332,12 +1332,6 @@ export class NodeCommandTasks {
         this.logger.error(`Error adding node to network: ${e.message}`, e)
         throw new SoloError(`Error adding node to network: ${e.message}`, e)
       }
-    })
-  }
-
-  templateTask () {
-    return new Task('TEMPLATE', async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
-
     })
   }
 

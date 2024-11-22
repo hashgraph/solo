@@ -21,10 +21,11 @@ import * as yaml from 'yaml'
 import { flags } from '../../commands/index.js'
 import { type Deployment, type Deployments, type LocalConfigData } from './local_config_data.js'
 import { MissingArgumentError, SoloError } from '../errors.js'
-import { promptDeploymentClusters, promptDeploymentName, promptUserEmailAddress } from '../../commands/prompts.js'
+import { promptDeploymentClusters, promptNamespace, promptUserEmailAddress } from '../../commands/prompts.js'
 import { type SoloLogger } from '../logging.js'
 import { Task } from '../task.js'
 import { IsDeployments } from '../validator_decorators.js'
+import { Templates } from '../templates.js'
 
 export class LocalConfig implements LocalConfigData {
     @IsNotEmpty()
@@ -118,20 +119,20 @@ export class LocalConfig implements LocalConfigData {
         this.logger.info(`Wrote local config to ${this.filePath}`)
     }
 
-    public promptLocalConfigTask (k8, argv): ListrTask<any, any, any>[]  {
+    public promptLocalConfigTask (k8, argv): Task  {
         return new Task('Prompt local configuration', async (ctx, task) => {
             let userEmailAddress = argv[flags.userEmailAddress.name]
             if (!userEmailAddress) userEmailAddress = await promptUserEmailAddress(task, userEmailAddress)
 
-            let deploymentName = argv[flags.deploymentName.name]
-            if (!deploymentName) deploymentName = await promptDeploymentName(task, deploymentName)
+            let deploymentName = argv[flags.namespace.name]
+            if (!deploymentName) deploymentName = await promptNamespace(task, deploymentName)
 
             let deploymentClusters = argv[flags.deploymentClusters.name]
             if (!deploymentClusters) deploymentClusters = await promptDeploymentClusters(task, deploymentClusters)
 
             const deployments = {}
             deployments[deploymentName] = {
-                clusterAliases: deploymentClusters.split(',')
+                clusterAliases: Templates.parseClusterAliases(deploymentClusters)
             }
 
             this.userEmailAddress = userEmailAddress
@@ -141,6 +142,6 @@ export class LocalConfig implements LocalConfigData {
             await this.write()
 
             return this
-        }, this.skipPromptTask) as ListrTask<any, any, any>[]
+        }, this.skipPromptTask) as Task
     }
 }

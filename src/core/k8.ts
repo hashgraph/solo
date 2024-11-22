@@ -23,7 +23,7 @@ import { flags } from '../commands/index.js'
 import { SoloError, IllegalArgumentError, MissingArgumentError } from './errors.js'
 import * as tar from 'tar'
 import { v4 as uuid4 } from 'uuid'
-import { type V1Lease, V1ObjectMeta, V1Secret } from '@kubernetes/client-node'
+import { type V1Lease, V1ObjectMeta, V1Secret, Config } from '@kubernetes/client-node'
 import { sleep } from './helpers.js'
 import { type ConfigManager, constants } from './index.js'
 import * as stream from 'node:stream'
@@ -44,7 +44,7 @@ interface TDirectoryData {directory: boolean; owner: string; group: string; size
  */
 export class K8 {
   static PodReadyCondition = new Map<string, string>()
-    .set(constants.POD_CONDITION_READY, constants.POD_CONDITION_STATUS_TRUE)
+      .set(constants.POD_CONDITION_READY, constants.POD_CONDITION_STATUS_TRUE)
   private kubeConfig!: k8s.KubeConfig
   kubeClient!: k8s.CoreV1Api
   private coordinationApiClient: k8s.CoordinationV1Api
@@ -75,7 +75,7 @@ export class K8 {
 
     if (!this.kubeConfig.getCurrentContext()) {
       throw new SoloError('No active kubernetes context found. ' +
-        'Please set current kubernetes context.')
+          'Please set current kubernetes context.')
     }
 
     if (!this.kubeConfig.getCurrentCluster()) {
@@ -189,11 +189,11 @@ export class K8 {
     const ns = this._getNamespace()
     const fieldSelector = `metadata.name=${name}`
     const resp = await this.kubeClient.listNamespacedPod(
-      ns,
-      undefined,
-      undefined,
-      undefined,
-      fieldSelector
+        ns,
+        undefined,
+        undefined,
+        undefined,
+        fieldSelector
     )
 
     return this.filterItem(resp.body.items, { name })
@@ -207,12 +207,12 @@ export class K8 {
     const ns = this._getNamespace()
     const labelSelector = labels.join(',')
     const result = await this.kubeClient.listNamespacedPod(
-      ns,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      labelSelector
+        ns,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        labelSelector
     )
 
     return result.body.items
@@ -226,12 +226,12 @@ export class K8 {
     const ns = this._getNamespace()
     const labelSelector = labels.join(',')
     const result = await this.kubeClient.listNamespacedSecret(
-      ns,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      labelSelector
+        ns,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        labelSelector
     )
 
     return result.body.items
@@ -261,11 +261,11 @@ export class K8 {
     const ns = this._getNamespace()
     const fieldSelector = `metadata.name=${name}`
     const resp = await this.kubeClient.listNamespacedService(
-      ns,
-      undefined,
-      undefined,
-      undefined,
-      fieldSelector
+        ns,
+        undefined,
+        undefined,
+        undefined,
+        fieldSelector
     )
 
     return this.filterItem(resp.body.items, { name })
@@ -424,17 +424,17 @@ export class K8 {
    */
   async hasDir (podName: string, containerName: string, destPath: string) {
     return await this.execContainer(
-      podName,
-      containerName,
-      ['bash', '-c', '[[ -d "' + destPath + '" ]] && echo -n "true" || echo -n "false"']
+        podName,
+        containerName,
+        ['bash', '-c', '[[ -d "' + destPath + '" ]] && echo -n "true" || echo -n "false"']
     ) === 'true'
   }
 
   mkdir (podName: PodName, containerName: string, destPath: string) {
     return this.execContainer(
-      podName,
-      containerName,
-      ['bash', '-c', 'mkdir -p "' + destPath + '"']
+        podName,
+        containerName,
+        ['bash', '-c', 'mkdir -p "' + destPath + '"']
     )
   }
 
@@ -448,7 +448,7 @@ export class K8 {
     if (status === 'Failure') {
       return this.exitWithError(localContext, `${messagePrefix} Failure occurred`)
     }
-      this.logger.debug(`${messagePrefix} callback(status)=${status}`)
+    this.logger.debug(`${messagePrefix} callback(status)=${status}`)
 
   }
 
@@ -475,7 +475,7 @@ export class K8 {
   }
 
   registerOutputPassthroughStreamOnData (localContext: LocalContextObject, messagePrefix: string,
-    outputPassthroughStream: stream.PassThrough, outputFileStream: fs.WriteStream) {
+                                         outputPassthroughStream: stream.PassThrough, outputFileStream: fs.WriteStream) {
     outputPassthroughStream.on('data', (chunk) => {
       this.logger.debug(`${messagePrefix} received chunk size=${chunk.length}`)
       const canWrite = outputFileStream.write(chunk) // Write chunk to file and check if buffer is full
@@ -487,7 +487,7 @@ export class K8 {
   }
 
   registerOutputFileStreamOnDrain (localContext: LocalContextObject, messagePrefix: string,
-    outputPassthroughStream: stream.PassThrough, outputFileStream: fs.WriteStream) {
+                                   outputPassthroughStream: stream.PassThrough, outputFileStream: fs.WriteStream) {
     outputFileStream.on('drain', () => {
       outputPassthroughStream.resume()
       this.logger.debug(`${messagePrefix} stream drained, resume write`)
@@ -547,28 +547,28 @@ export class K8 {
         inputStream.pipe(inputPassthroughStream)
 
         execInstance.exec(namespace, podName, containerName, command, null, errPassthroughStream, inputPassthroughStream, false,
-          ({ status }) => self.handleCallback(status, localContext, messagePrefix))
-          .then(conn => {
-            self.logger.info(`${messagePrefix} connection established`)
-            localContext.connection = conn
+            ({ status }) => self.handleCallback(status, localContext, messagePrefix))
+            .then(conn => {
+              self.logger.info(`${messagePrefix} connection established`)
+              localContext.connection = conn
 
-            self.registerConnectionOnError(localContext, messagePrefix, conn)
+              self.registerConnectionOnError(localContext, messagePrefix, conn)
 
-            self.registerConnectionOnMessage(messagePrefix)
+              self.registerConnectionOnMessage(messagePrefix)
 
-            conn.on('close', (code, reason) => {
-              self.logger.debug(`${messagePrefix} connection closed`)
-              if (code !== 1000) { // code 1000 is the success code
-                return self.exitWithError(localContext, `${messagePrefix} failed with code=${code}, reason=${reason}`)
-              }
+              conn.on('close', (code, reason) => {
+                self.logger.debug(`${messagePrefix} connection closed`)
+                if (code !== 1000) { // code 1000 is the success code
+                  return self.exitWithError(localContext, `${messagePrefix} failed with code=${code}, reason=${reason}`)
+                }
 
-              // Cleanup temp file after successful copy
-              inputPassthroughStream.end() // End the passthrough stream
-              self._deleteTempFile(tmpFile) // Cleanup temp file
-              self.logger.info(`${messagePrefix} Successfully copied!`)
-              return resolve(true)
+                // Cleanup temp file after successful copy
+                inputPassthroughStream.end() // End the passthrough stream
+                self._deleteTempFile(tmpFile) // Cleanup temp file
+                self.logger.info(`${messagePrefix} Successfully copied!`)
+                return resolve(true)
+              })
             })
-          })
 
         self.registerErrorStreamOnData(localContext, errPassthroughStream)
 
@@ -648,59 +648,59 @@ export class K8 {
 
         self.logger.debug(`${messagePrefix} running...`)
         execInstance.exec(
-          namespace,
-          podName,
-          containerName,
-          command,
-          outputFileStream,
-          errPassthroughStream,
-          null,
-          false,
-          ({ status }) => {
-            if (status === 'Failure') {
-              self._deleteTempFile(tmpFile)
-              return self.exitWithError(localContext, `${messagePrefix} Failure occurred`)
-            }
+            namespace,
+            podName,
+            containerName,
+            command,
+            outputFileStream,
+            errPassthroughStream,
+            null,
+            false,
+            ({ status }) => {
+              if (status === 'Failure') {
+                self._deleteTempFile(tmpFile)
+                return self.exitWithError(localContext, `${messagePrefix} Failure occurred`)
+              }
               self.logger.debug(`${messagePrefix} callback(status)=${status}`)
 
-          })
-          .then(conn => {
-            self.logger.debug(`${messagePrefix} connection established`)
-            localContext.connection = conn
-
-            conn.on('error', (e) => {
-              self._deleteTempFile(tmpFile)
-              return self.exitWithError(localContext, `${messagePrefix} failed, connection error: ${e.message}`)
             })
+            .then(conn => {
+              self.logger.debug(`${messagePrefix} connection established`)
+              localContext.connection = conn
 
-            self.registerConnectionOnMessage(messagePrefix)
+              conn.on('error', (e) => {
+                self._deleteTempFile(tmpFile)
+                return self.exitWithError(localContext, `${messagePrefix} failed, connection error: ${e.message}`)
+              })
 
-            conn.on('close', (code, reason) => {
-              self.logger.debug(`${messagePrefix} connection closed`)
-              if (code !== 1000) { // code 1000 is the success code
-                return self.exitWithError(localContext, `${messagePrefix} failed with code=${code}, reason=${reason}`)
-              }
+              self.registerConnectionOnMessage(messagePrefix)
 
-              outputFileStream.end()
-              outputFileStream.close(() => {
-                try {
-                  fs.copyFileSync(tmpFile, destPath)
-
-                  self._deleteTempFile(tmpFile)
-
-                  const stat = fs.statSync(destPath)
-                  if (stat && stat.size === srcFileSize) {
-                    self.logger.debug(`${messagePrefix} finished`)
-                    return resolve(true)
-                  }
-
-                  return self.exitWithError(localContext, `${messagePrefix} files did not match, srcFileSize=${srcFileSize}, stat.size=${stat?.size}`)
-                } catch (e: Error | any) {
-                  return self.exitWithError(localContext, `${messagePrefix} failed to complete download`)
+              conn.on('close', (code, reason) => {
+                self.logger.debug(`${messagePrefix} connection closed`)
+                if (code !== 1000) { // code 1000 is the success code
+                  return self.exitWithError(localContext, `${messagePrefix} failed with code=${code}, reason=${reason}`)
                 }
+
+                outputFileStream.end()
+                outputFileStream.close(() => {
+                  try {
+                    fs.copyFileSync(tmpFile, destPath)
+
+                    self._deleteTempFile(tmpFile)
+
+                    const stat = fs.statSync(destPath)
+                    if (stat && stat.size === srcFileSize) {
+                      self.logger.debug(`${messagePrefix} finished`)
+                      return resolve(true)
+                    }
+
+                    return self.exitWithError(localContext, `${messagePrefix} files did not match, srcFileSize=${srcFileSize}, stat.size=${stat?.size}`)
+                  } catch (e: Error | any) {
+                    return self.exitWithError(localContext, `${messagePrefix} failed to complete download`)
+                  }
+                })
               })
             })
-          })
 
         self.registerErrorStreamOnData(localContext, errPassthroughStream)
 
@@ -753,39 +753,39 @@ export class K8 {
 
       self.logger.debug(`${messagePrefix} running...`)
       execInstance.exec(
-        namespace,
-        podName,
-        containerName,
-        command,
-        outputFileStream,
-        errPassthroughStream,
-        null,
-        false,
-        ({ status }) => self.handleCallback(status, localContext, messagePrefix))
-        .then(conn => {
-          self.logger.debug(`${messagePrefix} connection established`)
-          localContext.connection = conn
+          namespace,
+          podName,
+          containerName,
+          command,
+          outputFileStream,
+          errPassthroughStream,
+          null,
+          false,
+          ({ status }) => self.handleCallback(status, localContext, messagePrefix))
+          .then(conn => {
+            self.logger.debug(`${messagePrefix} connection established`)
+            localContext.connection = conn
 
-          self.registerConnectionOnError(localContext, messagePrefix, conn)
+            self.registerConnectionOnError(localContext, messagePrefix, conn)
 
-          self.registerConnectionOnMessage(messagePrefix)
+            self.registerConnectionOnMessage(messagePrefix)
 
-          conn.on('close', (code, reason) => {
-            self.logger.debug(`${messagePrefix} connection closed`)
-            if (!localContext.errorMessage) {
-              if (code !== 1000) { // code 1000 is the success code
-                return self.exitWithError(localContext, `${messagePrefix} failed with code=${code}, reason=${reason}`)
+            conn.on('close', (code, reason) => {
+              self.logger.debug(`${messagePrefix} connection closed`)
+              if (!localContext.errorMessage) {
+                if (code !== 1000) { // code 1000 is the success code
+                  return self.exitWithError(localContext, `${messagePrefix} failed with code=${code}, reason=${reason}`)
+                }
+
+                outputFileStream.end()
+                outputFileStream.close(() => {
+                  self.logger.debug(`${messagePrefix} finished`)
+                  const outData = fs.readFileSync(tmpFile)
+                  return resolve(outData.toString())
+                })
               }
-
-              outputFileStream.end()
-              outputFileStream.close(() => {
-                self.logger.debug(`${messagePrefix} finished`)
-                const outData = fs.readFileSync(tmpFile)
-                return resolve(outData.toString())
-              })
-            }
+            })
           })
-        })
 
       self.registerErrorStreamOnData(localContext, errPassthroughStream)
 
@@ -878,24 +878,24 @@ export class K8 {
       try {
         const isPortOpen = await new Promise((resolve) => {
           const testServer = net.createServer()
-            .once('error', err => {
-              if (err) {
-                resolve(false)
-              }
-            })
-            .once('listening', () => {
-              testServer
-                .once('close', () => {
-                  hasError++
-                  if (hasError > 1) {
-                    resolve(false)
-                  } else {
-                    resolve(true)
-                  }
-                })
-                .close()
-            })
-            .listen(server.localPort, '0.0.0.0')
+              .once('error', err => {
+                if (err) {
+                  resolve(false)
+                }
+              })
+              .once('listening', () => {
+                testServer
+                    .once('close', () => {
+                      hasError++
+                      if (hasError > 1) {
+                        resolve(false)
+                      } else {
+                        resolve(true)
+                      }
+                    })
+                    .close()
+              })
+              .listen(server.localPort, '0.0.0.0')
         })
         if (isPortOpen) {
           return
@@ -911,7 +911,7 @@ export class K8 {
   }
 
   async waitForPods (phases = [constants.POD_PHASE_RUNNING], labels: string[] = [], podCount = 1, maxAttempts = constants.PODS_RUNNING_MAX_ATTEMPTS,
-    delay = constants.PODS_RUNNING_DELAY, podItemPredicate?: (items: k8s.V1Pod) => any): Promise<k8s.V1Pod[]> {
+                     delay = constants.PODS_RUNNING_DELAY, podItemPredicate?: (items: k8s.V1Pod) => any): Promise<k8s.V1Pod[]> {
     const ns = this._getNamespace()
     const labelSelector = labels.join(',')
 
@@ -925,14 +925,14 @@ export class K8 {
 
         // wait for the pod to be available with the given status and labels
         const resp = await this.kubeClient.listNamespacedPod(
-          ns,
-          // @ts-ignore
-          false,
-          false,
-          undefined,
-          undefined,
-          labelSelector,
-          podCount
+            ns,
+            // @ts-ignore
+            false,
+            false,
+            undefined,
+            undefined,
+            labelSelector,
+            podCount
         )
 
         this.logger.debug(`${resp.body?.items?.length}/${podCount} pod found [namespace:${ns}, labelSelector: ${labelSelector}] [attempt: ${attempts}/${maxAttempts}]`)
@@ -1021,12 +1021,12 @@ export class K8 {
     const pvcs: string[] = []
     const labelSelector = labels.join(',')
     const resp = await this.kubeClient.listNamespacedPersistentVolumeClaim(
-      namespace,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      labelSelector
+        namespace,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        labelSelector
     )
 
     for (const item of resp.body.items) {
@@ -1046,12 +1046,12 @@ export class K8 {
     const secrets: string[] = []
     const labelSelector = labels.join(',')
     const resp = await this.kubeClient.listNamespacedSecret(
-      namespace,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      labelSelector
+        namespace,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        labelSelector
     )
 
     for (const item of resp.body.items) {
@@ -1069,8 +1069,8 @@ export class K8 {
    */
   async deletePvc (name: string, namespace: string) {
     const resp = await this.kubeClient.deleteNamespacedPersistentVolumeClaim(
-      name,
-      namespace
+        name,
+        namespace
     )
 
     return resp.response.statusCode === 200.0
@@ -1085,7 +1085,7 @@ export class K8 {
    */
   async getSecret (namespace: string, labelSelector: string) {
     const result = await this.kubeClient.listNamespacedSecret(namespace,
-      undefined, undefined, undefined, undefined, labelSelector)
+        undefined, undefined, undefined, undefined, labelSelector)
 
     if (result.response.statusCode === 200 && result.body.items && result.body.items.length > 0) {
       const secretObject = result.body.items[0]
@@ -1097,7 +1097,7 @@ export class K8 {
         data: secretObject.data as Record<string, string>
       }
     }
-      return null
+    return null
 
   }
 
@@ -1165,7 +1165,7 @@ export class K8 {
     lease.spec = spec
 
     const { response, body } = await this.coordinationApiClient.createNamespacedLease(namespace, lease)
-      .catch(e => e)
+        .catch(e => e)
 
     this._handleKubernetesClientError(response, body, 'Failed to create namespaced lease')
 
@@ -1174,7 +1174,7 @@ export class K8 {
 
   async readNamespacedLease (leaseName: string, namespace: string) {
     const { response, body } = await this.coordinationApiClient.readNamespacedLease(leaseName, namespace)
-      .catch(e => e)
+        .catch(e => e)
 
     this._handleKubernetesClientError(response, body, 'Failed to read namespaced lease')
 
@@ -1185,7 +1185,7 @@ export class K8 {
     lease.spec.renewTime = new k8s.V1MicroTime()
 
     const { response, body } = await this.coordinationApiClient.replaceNamespacedLease(leaseName, namespace, lease)
-      .catch(e => e)
+        .catch(e => e)
 
     this._handleKubernetesClientError(response, body, 'Failed to renew namespaced lease')
 
@@ -1208,7 +1208,7 @@ export class K8 {
 
   async deleteNamespacedLease (name: string, namespace: string) {
     const { response, body } = await this.coordinationApiClient.deleteNamespacedLease(name, namespace)
-      .catch(e => e)
+        .catch(e => e)
 
     this._handleKubernetesClientError(response, body, 'Failed to delete namespaced lease')
 

@@ -718,6 +718,16 @@ export const userEmailAddress: CommandFlag = {
   }
 }
 
+export const context: CommandFlag = {
+  constName: 'contextName',
+  name: 'context',
+  definition: {
+    describe: 'The kind context name to be used',
+    defaultValue: '',
+    type: 'string'
+  }
+}
+
 export const deploymentName: CommandFlag = {
   constName: 'deploymentName',
   name: 'deployment-name',
@@ -745,9 +755,9 @@ export const grpcTlsCertificatePath: CommandFlag = {
   name: 'grpc-tls-cert',
   definition: {
     describe:
-      'TLS Certificate path for the gRPC ' +
-      '(e.g. "node1=/Users/username/node1-grpc.cert" ' +
-      'with multiple nodes comma seperated)',
+        'TLS Certificate path for the gRPC ' +
+        '(e.g. "node1=/Users/username/node1-grpc.cert" ' +
+        'with multiple nodes comma seperated)',
     defaultValue: '',
     type: 'string'
   }
@@ -758,9 +768,9 @@ export const grpcWebTlsCertificatePath: CommandFlag = {
   name: 'grpc-web-tls-cert',
   definition: {
     describe:
-      'TLS Certificate path for gRPC Web ' +
-      '(e.g. "node1=/Users/username/node1-grpc-web.cert" ' +
-      'with multiple nodes comma seperated)',
+        'TLS Certificate path for gRPC Web ' +
+        '(e.g. "node1=/Users/username/node1-grpc-web.cert" ' +
+        'with multiple nodes comma seperated)',
     defaultValue: '',
     type: 'string'
   }
@@ -771,9 +781,9 @@ export const grpcTlsKeyPath: CommandFlag = {
   name: 'grpc-tls-key',
   definition: {
     describe:
-      'TLS Certificate key path for the gRPC ' +
-      '(e.g. "node1=/Users/username/node1-grpc.key" ' +
-      'with multiple nodes comma seperated)',
+        'TLS Certificate key path for the gRPC ' +
+        '(e.g. "node1=/Users/username/node1-grpc.key" ' +
+        'with multiple nodes comma seperated)',
     defaultValue: '',
     type: 'string'
   }
@@ -784,9 +794,9 @@ export const grpcWebTlsKeyPath: CommandFlag = {
   name: 'grpc-web-tls-key',
   definition: {
     describe:
-      'TLC Certificate key path for gRPC Web ' +
-      '(e.g. "node1=/Users/username/node1-grpc-web.key" ' +
-      'with multiple nodes comma seperated)',
+        'TLC Certificate key path for gRPC Web ' +
+        '(e.g. "node1=/Users/username/node1-grpc-web.key" ' +
+        'with multiple nodes comma seperated)',
     defaultValue: '',
     type: 'string'
   }

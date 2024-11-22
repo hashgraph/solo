@@ -19,24 +19,12 @@ import fs from 'fs'
 import { stringify } from 'yaml'
 import { expect } from 'chai'
 import { MissingArgumentError, SoloError } from '../../../src/core/errors.js'
-import { getTestCacheDir, testLogger } from '../../test_util.js'
+import { getTestCacheDir, testLogger, testLocalConfigData } from '../../test_util.js'
 
 describe('LocalConfig', () => {
     let localConfig
     const filePath = `${getTestCacheDir('LocalConfig')}/localConfig.yaml`
-    const config = {
-        userEmailAddress: 'john.doe@example.com',
-        deployments: {
-            'my-deployment': {
-                clusterAliases: ['cluster-1', 'context-1'],
-            },
-            'my-other-deployment': {
-                clusterAliases: ['cluster-2', 'context-2'],
-            }
-        },
-        currentDeploymentName: 'my-deployment'
-    }
-
+    const config = testLocalConfigData
 
     const expectFailedValidation = () => {
         try {
@@ -87,10 +75,10 @@ describe('LocalConfig', () => {
 
     it('should set deployments', async () => {
         const newDeployments = {
-            'my-deployment': {
+            'deployment': {
                 clusterAliases: ['cluster-1', 'context-1'],
             },
-            'my-new-deployment': {
+            'deployment-2': {
                 clusterAliases: ['cluster-3', 'context-3'],
             }
         }
@@ -147,7 +135,7 @@ describe('LocalConfig', () => {
     })
 
     it('should set current deployment', async () => {
-        const newCurrentDeployment = 'my-other-deployment'
+        const newCurrentDeployment = 'deployment-2'
         localConfig.setCurrentDeployment(newCurrentDeployment)
 
         expect(localConfig.currentDeploymentName).to.eq(newCurrentDeployment)

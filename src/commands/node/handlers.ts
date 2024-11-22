@@ -35,8 +35,9 @@ import type { SoloLogger } from '../../core/logging.js'
 import type { NodeCommand } from './index.js'
 import type { NodeCommandTasks } from './tasks.js'
 import { type Lease } from '../../core/lease/lease.js'
+import { type CommandHandlers } from '../../types/index.js'
 
-export class NodeCommandHandlers {
+export class NodeCommandHandlers implements CommandHandlers {
   private readonly accountManager: AccountManager
   private readonly configManager: ConfigManager
   private readonly platformInstaller: PlatformInstaller
@@ -319,20 +320,20 @@ export class NodeCommandHandlers {
     const action = helpers.commandActionBuilder([
       this.tasks.initialize(argv, updateConfigBuilder.bind(this), lease),
       this.tasks.loadContextData(argv, NodeCommandHandlers.UPDATE_CONTEXT_FILE, helpers.updateLoadContextParser),
-        ...this.updateSubmitTransactionsTasks(argv)
+      ...this.updateSubmitTransactionsTasks(argv)
     ], {
-        concurrent: false,
-        rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
+      concurrent: false,
+      rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
     }, 'Error in submitting transactions for node update', lease)
 
-      await action(argv, this)
-      return true
+    await action(argv, this)
+    return true
   }
 
   async updateExecute (argv) {
     const lease = await this.leaseManager.create()
     argv = helpers.addFlagsToArgv(argv, NodeFlags.UPDATE_EXECUTE_FLAGS)
-      const action = helpers.commandActionBuilder([
+    const action = helpers.commandActionBuilder([
       this.tasks.initialize(argv, updateConfigBuilder.bind(this), lease),
       this.tasks.loadContextData(argv, NodeCommandHandlers.UPDATE_CONTEXT_FILE, helpers.updateLoadContextParser),
       ...this.updateExecuteTasks(argv)

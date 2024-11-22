@@ -28,7 +28,7 @@ import { Listr } from 'listr2'
 import { type AccountManager } from './account_manager.js'
 import { type NodeAlias, type NodeAliases, type PodName } from '../types/aliases.js'
 import { type NodeDeleteConfigClass, type NodeUpdateConfigClass } from '../commands/node/configs.js'
-import { type CommandFlag } from '../types/index.js'
+import { type CommandFlag, type CommandHandlers } from '../types/index.js'
 import { type V1Pod } from '@kubernetes/client-node'
 import { type SoloLogger } from './logging.js'
 import { type NodeCommandHandlers } from '../commands/node/handlers.js'
@@ -50,9 +50,9 @@ export function splitFlagInput (input: string, separator = ',') {
   }
 
   return input
-    .split(separator)
-    .map(s => s.trim())
-    .filter(Boolean)
+      .split(separator)
+      .map(s => s.trim())
+      .filter(Boolean)
 }
 
 /**
@@ -98,12 +98,12 @@ export function getTmpDir () {
 
 export function createBackupDir (destDir: string, prefix = 'backup', curDate = new Date()) {
   const dateDir = util.format('%s%s%s_%s%s%s',
-    curDate.getFullYear(),
-    curDate.getMonth().toString().padStart(2, '0'),
-    curDate.getDate().toString().padStart(2, '0'),
-    curDate.getHours().toString().padStart(2, '0'),
-    curDate.getMinutes().toString().padStart(2, '0'),
-    curDate.getSeconds().toString().padStart(2, '0')
+      curDate.getFullYear(),
+      curDate.getMonth().toString().padStart(2, '0'),
+      curDate.getDate().toString().padStart(2, '0'),
+      curDate.getHours().toString().padStart(2, '0'),
+      curDate.getMinutes().toString().padStart(2, '0'),
+      curDate.getSeconds().toString().padStart(2, '0')
   )
 
   const backupDir = path.join(destDir, prefix, dateDir)
@@ -160,7 +160,7 @@ export function backupOldPemKeys (nodeAliases: NodeAliases, keysDir: string, cur
 export function isNumeric (str: string) {
   if (typeof str !== 'string') return false // we only process strings!
   return !isNaN(str as any) && // use type coercion to parse the _entirety_ of the string (`parseFloat` alone does not do this)...
-    !isNaN(parseFloat(str)) // ...and ensure strings of whitespace fail
+      !isNaN(parseFloat(str)) // ...and ensure strings of whitespace fail
 }
 
 /**
@@ -466,7 +466,7 @@ export function prepareEndpoints (endpointType: string, endpoints: string[], def
 }
 
 export function commandActionBuilder (actionTasks: any, options: any, errorString: string, lease: Lease | null) {
-  return async function (argv: any, commandDef: NodeCommandHandlers) {
+  return async function (argv: any, commandDef: CommandHandlers) {
     const tasks = new Listr([
       ...actionTasks
     ], options)
@@ -477,7 +477,14 @@ export function commandActionBuilder (actionTasks: any, options: any, errorStrin
       commandDef.parent.logger.error(`${errorString}: ${e.message}`, e)
       throw new SoloError(`${errorString}: ${e.message}`, e)
     } finally {
-      const promises = [commandDef.close()]
+      const promises = []
+
+      // @ts-ignore
+      if (commandDef.close) {
+        // @ts-ignore
+        promises.push(commandDef.close())
+      }
+
       if (lease) promises.push(lease.release())
       await Promise.all(promises)
     }
