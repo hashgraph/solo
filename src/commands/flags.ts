@@ -198,7 +198,7 @@ export const relayReleaseTag: CommandFlag = {
   name: 'relay-release',
   definition: {
     describe: 'Relay release tag to be used (e.g. v0.48.0)',
-    defaultValue: 'v0.53.0',
+    defaultValue: version.HEDERA_JSON_RPC_RELAY_VERSION,
     type: 'string'
   }
 }
@@ -286,6 +286,16 @@ export const operatorKey: CommandFlag = {
     describe: 'Operator Key',
     defaultValue: constants.OPERATOR_KEY,
     type: 'string'
+  }
+}
+
+export const privateKey: CommandFlag = {
+  constName: 'privateKey',
+  name: 'private-key',
+  definition: {
+    describe: 'Show private key information',
+    defaultValue: false,
+    type: 'boolean'
   }
 }
 
@@ -844,6 +854,7 @@ export const allFlags: CommandFlag[] = [
   operatorKey,
   outputDir,
   persistentVolumeClaims,
+  privateKey,
   profileFile,
   profileName,
   relayReleaseTag,

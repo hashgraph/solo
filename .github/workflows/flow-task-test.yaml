@@ -18,6 +18,7 @@ name: "Test Taskfile Commands"
 # The purpose of this reusable workflow is to make sure task files are working as expected.
 
 on:
+  workflow_dispatch:
   workflow_call:
   pull_request:
     types:
@@ -35,6 +36,7 @@ permissions:
 
 jobs:
   example-task-file-test:
+    timeout-minutes: 20
     runs-on: solo-linux-large
     steps:
       - name: Harden Runner
@@ -51,6 +53,16 @@ jobs:
           node-version: 20
           cache: npm
 
+      - name: Setup Kind
+        uses: helm/kind-action@0025e74a8c7512023d06dc019c617aa3cf561fde # v1.10.0
+        with:
+          install_only: true
+          node_image: kindest/node:v1.27.3@sha256:3966ac761ae0136263ffdb6cfd4db23ef8a83cba8a463690e98317add2c9ba72
+          version: v0.21.0
+          kubectl_version: v1.28.6
+          verbosity: 3
+          wait: 120s
+
       - name: Install Dependencies
         id: npm-deps
         run: npm ci
@@ -60,6 +72,5 @@ jobs:
 
       - name: Run Example Task File Test
         run: |
-          task readme
-          task default-with-mirror
+          task default-with-relay
           task clean
