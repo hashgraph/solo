@@ -39,7 +39,8 @@ export function testNodeAdd (localBuildPath: string, testDescription = 'Node add
   const suffix = localBuildPath.substring(0, 5)
   const namespace = 'node-add' + suffix
   const argv = getDefaultArgv()
-  argv[flags.nodeAliasesUnparsed.name] = 'node1,node2,node3'
+  argv[flags.nodeAliasesUnparsed.name] = 'node1,node2'
+  argv[flags.stakeAmounts.name] = '1500,1'
   argv[flags.generateGossipKeys.name] = true
   argv[flags.generateTlsKeys.name] = true
   // set the env variable SOLO_CHARTS_DIR if developer wants to use local Solo charts
@@ -63,11 +64,11 @@ export function testNodeAdd (localBuildPath: string, testDescription = 'Node add
       after(async function () {
         this.timeout(10 * MINUTES)
 
-        await getNodeLogs(k8, namespace)
+        // await getNodeLogs(k8, namespace)
         await bootstrapResp.opts.accountManager.close()
-        await nodeCmd.handlers.stop(argv)
-        await networkCmd.destroy(argv)
-        await k8.deleteNamespace(namespace)
+        // await nodeCmd.handlers.stop(argv)
+        // await networkCmd.destroy(argv)
+        // await k8.deleteNamespace(namespace)
       })
 
       it('cache current version of private keys', async () => {
