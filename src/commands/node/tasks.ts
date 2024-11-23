@@ -899,7 +899,9 @@ export class NodeCommandTasks {
   }
 
   stakeNewNode () {
+    const self = this
     return new Task('Stake new node', async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
+      await self.accountManager.refreshNodeClient(ctx.config.namespace, ctx.config.nodeAlias)
       await this._addStake(ctx.config.namespace, ctx.newNode.accountId, ctx.config.nodeAlias)
     })
   }
@@ -1242,7 +1244,7 @@ export class NodeCommandTasks {
     return new Task('Kill nodes', async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
       const config = ctx.config
       for (const service of config.serviceMap.values()) {
-        await this.k8.kubeClient.deleteNamespacedPod(service.nodePodName, config.namespace, undefined, undefined, 1)
+        await this.k8.killPod(service.nodePodName, config.namespace)
       }
     })
   }
@@ -1254,10 +1256,8 @@ export class NodeCommandTasks {
       config.serviceMap = await this.accountManager.getNodeServiceMap(config.namespace)
 
       for (const service of config.serviceMap.values()) {
-        await this.k8.kubeClient.deleteNamespacedPod(service.nodePodName, config.namespace, undefined, undefined, 1)
+        await this.k8.killPod(service.nodePodName, config.namespace)
       }
-      this.logger.info('sleep for 15 seconds to give time for pods to finish terminating')
-      await sleep(15 * SECONDS)
 
       // again, the pod names will change after the pods are killed
       config.serviceMap = await this.accountManager.getNodeServiceMap(config.namespace)
