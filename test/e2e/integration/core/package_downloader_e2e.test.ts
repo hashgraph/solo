@@ -23,7 +23,7 @@ import * as fs from 'fs';
 import {PackageDownloader} from '../../../../src/core/package_downloader.js';
 import {Templates} from '../../../../src/core/templates.js';
 import * as logging from '../../../../src/core/logging.js';
-import {MINUTES} from '../../../../src/core/constants.js';
+import {Duration} from '../../../../src/core/time/duration.js';
 
 describe('PackageDownloaderE2E', () => {
   const testLogger = logging.NewLogger('debug', true);
@@ -39,5 +39,5 @@ describe('PackageDownloaderE2E', () => {
     await expect(downloader.fetchPlatform(tag, testCacheDir)).to.eventually.be.equal(destPath);
     expect(fs.existsSync(destPath)).to.be.ok;
     testLogger.showUser(destPath);
-  }).timeout(3 * MINUTES);
+  }).timeout(Duration.ofMinutes(3).toMillis());
 });

@@ -42,9 +42,9 @@ import {
 } from '../../test_util.js';
 import {AccountCommand} from '../../../src/commands/account.js';
 import {Flags as flags} from '../../../src/commands/flags.js';
-import {MINUTES, SECONDS} from '../../../src/core/constants.js';
+import {Duration} from '../../../src/core/time/duration.js';
 
-const defaultTimeout = 20 * SECONDS;
+const defaultTimeout = Duration.ofSeconds(20).toMillis();
 
 const testName = 'account-cmd-e2e';
 const namespace = testName;
@@ -70,7 +70,7 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
     const nodeCmd = bootstrapResp.cmd.nodeCmd;
 
     after(async function () {
-      this.timeout(3 * MINUTES);
+      this.timeout(Duration.ofMinutes(3).toMillis());
 
       await k8.getNodeLogs(namespace);
       await k8.deleteNamespace(namespace);
@@ -81,8 +81,13 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
     describe('node proxies should be UP', () => {
       for (const nodeAlias of argv[flags.nodeAliasesUnparsed.name].split(',')) {
         it(`proxy should be UP: ${nodeAlias} `, async () => {
-          await k8.waitForPodReady([`app=haproxy-${nodeAlias}`, 'solo.hedera.com/type=haproxy'], 1, 300, 2 * SECONDS);
-        }).timeout(30 * SECONDS);
+          await k8.waitForPodReady(
+            [`app=haproxy-${nodeAlias}`, 'solo.hedera.com/type=haproxy'],
+            1,
+            300,
+            Duration.ofSeconds(2).toMillis(),
+          );
+        }).timeout(Duration.ofSeconds(30).toMillis());
       }
     });
 
@@ -90,7 +95,7 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
       it('should succeed with init command', async () => {
         const status = await accountCmd.init(argv);
         expect(status).to.be.ok;
-      }).timeout(3 * MINUTES);
+      }).timeout(Duration.ofMinutes(3).toMillis());
 
       describe('special accounts should have new keys', () => {
         const genesisKey = PrivateKey.fromStringED25519(constants.GENESIS_KEY);
@@ -98,12 +103,12 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
         const shard = constants.HEDERA_NODE_ACCOUNT_ID_START.shard;
 
         before(async function () {
-          this.timeout(20 * SECONDS);
+          this.timeout(Duration.ofSeconds(20).toMillis());
           await accountManager.loadNodeClient(namespace);
         });
 
         after(async function () {
-          this.timeout(20 * SECONDS);
+          this.timeout(Duration.ofSeconds(20).toMillis());
           await accountManager.close();
         });
 
@@ -119,7 +124,7 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
 
               expect(keys.length).not.to.equal(0);
               expect(keys[0].toString()).not.to.equal(genesisKey.toString());
-            }).timeout(20 * SECONDS);
+            }).timeout(Duration.ofSeconds(20).toMillis());
           }
         }
       });
@@ -148,7 +153,7 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
           testLogger.showUserError(e);
           expect.fail();
         }
-      }).timeout(40 * SECONDS);
+      }).timeout(Duration.ofSeconds(40).toMillis());
 
       it('should create account with private key and hbar amount options', async () => {
         try {
@@ -329,7 +334,7 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
         } catch (e) {
           networkCmd.logger.showUserError(e);
         }
-      }).timeout(2 * MINUTES);
+      }).timeout(Duration.ofMinutes(2).toMillis());
 
       it('Create client from network config and submit topic/message should succeed', async () => {
         try {
@@ -358,7 +363,7 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
         } catch (e) {
           networkCmd.logger.showUserError(e);
         }
-      }).timeout(2 * MINUTES);
+      }).timeout(Duration.ofMinutes(2).toMillis());
     });
   });
 });

@@ -20,8 +20,8 @@ import {expect} from 'chai';
 import {Flags as flags} from '../../../../src/commands/flags.js';
 import {e2eTestSuite, getDefaultArgv, TEST_CLUSTER} from '../../../test_util.js';
 import * as version from '../../../../version.js';
-import {MINUTES} from '../../../../src/core/constants.js';
 import type {PodName} from '../../../../src/types/aliases.js';
+import {Duration} from '../../../../src/core/time/duration.js';
 
 const namespace = 'account-mngr-e2e';
 const argv = getDefaultArgv();
@@ -51,7 +51,7 @@ e2eTestSuite(
       const configManager = bootstrapResp.opts.configManager;
 
       after(async function () {
-        this.timeout(3 * MINUTES);
+        this.timeout(Duration.ofMinutes(3).toMillis());
 
         await k8.deleteNamespace(namespace);
         await accountManager.close();

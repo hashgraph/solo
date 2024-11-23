@@ -31,9 +31,9 @@ import {sleep} from '../../../src/core/helpers.js';
 import {MirrorNodeCommand} from '../../../src/commands/mirror_node.js';
 import {Status, TopicCreateTransaction, TopicMessageSubmitTransaction} from '@hashgraph/sdk';
 import * as http from 'http';
-import {MINUTES, SECONDS} from '../../../src/core/constants.js';
 import type {PodName} from '../../../src/types/aliases.js';
 import {PackageDownloader} from '../../../src/core/package_downloader.js';
+import {Duration} from '../../../src/core/time/duration.js';
 
 const testName = 'mirror-cmd-e2e';
 const namespace = testName;
@@ -69,7 +69,7 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
     });
 
     after(async function () {
-      this.timeout(3 * MINUTES);
+      this.timeout(Duration.ofMinutes(3).toMillis());
 
       await k8.getNodeLogs(namespace);
       await k8.deleteNamespace(namespace);
@@ -79,7 +79,7 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
     });
 
     // give a few ticks so that connections can close
-    afterEach(async () => await sleep(500));
+    afterEach(async () => await sleep(Duration.ofMillis(500)));
 
     balanceQueryShouldSucceed(accountManager, mirrorNodeCmd, namespace);
 
@@ -100,7 +100,7 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
         flags.quiet.constName,
         flags.tlsClusterIssuerType.constName,
       ]);
-    }).timeout(10 * MINUTES);
+    }).timeout(Duration.ofMinutes(10).toMillis());
 
     it('mirror node API should be running', async () => {
       await accountManager.loadNodeClient(namespace);
@@ -110,30 +110,30 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
         const explorerPod = pods[0];
 
         portForwarder = await k8.portForward(explorerPod.metadata.name as PodName, 8_080, 8_080);
-        await sleep(2 * SECONDS);
+        await sleep(Duration.ofSeconds(2));
 
         // check if mirror node api server is running
         const apiURL = 'http://127.0.0.1:8080/api/v1/transactions';
         expect(await downloader.urlExists(apiURL)).to.be.true;
-        await sleep(2 * SECONDS);
+        await sleep(Duration.ofSeconds(2));
       } catch (e) {
         mirrorNodeCmd.logger.showUserError(e);
         expect.fail();
       }
-    }).timeout(MINUTES);
+    }).timeout(Duration.ofMinutes(1).toMillis());
 
     it('Explorer GUI should be running', async () => {
       try {
         const guiURL = 'http://127.0.0.1:8080/localnet/dashboard';
         expect(await downloader.urlExists(guiURL)).to.be.true;
-        await sleep(2 * SECONDS);
+        await sleep(Duration.ofSeconds(2));
 
         mirrorNodeCmd.logger.debug('mirror node API and explorer GUI are running');
       } catch (e) {
         mirrorNodeCmd.logger.showUserError(e);
         expect.fail();
       }
-    }).timeout(MINUTES);
+    }).timeout(Duration.ofMinutes(1).toMillis());
 
     it('Create topic and submit message should success', async () => {
       try {
@@ -154,7 +154,7 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
         mirrorNodeCmd.logger.showUserError(e);
         expect.fail();
       }
-    }).timeout(MINUTES);
+    }).timeout(Duration.ofMinutes(1).toMillis());
 
     // trigger some extra transactions to trigger MirrorNode to fetch the transactions
     accountCreationShouldSucceed(accountManager, mirrorNodeCmd, namespace);
@@ -189,16 +189,16 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
             mirrorNodeCmd.logger.debug(`problem with request: ${e.message}`);
           });
           req.end(); // make the request
-          await sleep(2 * SECONDS);
+          await sleep(Duration.ofSeconds(2));
         }
-        await sleep(SECONDS);
+        await sleep(Duration.ofSeconds(1));
         expect(receivedMessage).to.equal(testMessage);
         await k8.stopPortForward(portForwarder);
       } catch (e) {
         mirrorNodeCmd.logger.showUserError(e);
         expect.fail();
       }
-    }).timeout(5 * MINUTES);
+    }).timeout(Duration.ofMinutes(5).toMillis());
 
     it('mirror node destroy should success', async () => {
       try {
@@ -207,6 +207,6 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
         mirrorNodeCmd.logger.showUserError(e);
         expect.fail();
       }
-    }).timeout(MINUTES);
+    }).timeout(Duration.ofMinutes(1).toMillis());
   });
 });

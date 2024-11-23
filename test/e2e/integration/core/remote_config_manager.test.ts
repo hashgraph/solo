@@ -24,12 +24,13 @@ import {RemoteConfigManager} from '../../../../src/core/config/remote/remote_con
 import {e2eTestSuite, getDefaultArgv, getTestCacheDir, TEST_CLUSTER} from '../../../test_util.js';
 import {Flags as flags} from '../../../../src/commands/flags.js';
 import * as version from '../../../../version.js';
-import {MINUTES, SECONDS} from '../../../../src/core/constants.js';
+
 import path from 'path';
 import {SoloError} from '../../../../src/core/errors.js';
 import {RemoteConfigDataWrapper} from '../../../../src/core/config/remote/remote_config_data_wrapper.js';
+import {Duration} from '../../../../src/core/time/duration.js';
 
-const defaultTimeout = 20 * SECONDS;
+const defaultTimeout = Duration.ofSeconds(20).toMillis();
 
 const namespace = 'remote-config-manager-e2e';
 const argv = getDefaultArgv();
@@ -71,7 +72,7 @@ e2eTestSuite(
       localConfig.currentDeploymentName = namespace;
 
       after(async function () {
-        this.timeout(3 * MINUTES);
+        this.timeout(Duration.ofMinutes(3).toMillis());
         await k8.deleteNamespace(namespace);
       });
 

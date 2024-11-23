@@ -23,9 +23,9 @@ import * as fs from 'fs';
 import {e2eTestSuite, getDefaultArgv, getTestCacheDir, TEST_CLUSTER, testLogger} from '../../../test_util.js';
 import {Flags as flags} from '../../../../src/commands/flags.js';
 import * as version from '../../../../version.js';
-import {MINUTES, SECONDS} from '../../../../src/core/constants.js';
+import {Duration} from '../../../../src/core/time/duration.js';
 
-const defaultTimeout = 20 * SECONDS;
+const defaultTimeout = Duration.ofSeconds(20).toMillis();
 
 const namespace = 'pkg-installer-e2e';
 const argv = getDefaultArgv();
@@ -59,7 +59,7 @@ e2eTestSuite(
       const packageVersion = 'v0.42.5';
 
       after(async function () {
-        this.timeout(3 * MINUTES);
+        this.timeout(Duration.ofMinutes(3).toMillis());
 
         await k8.deleteNamespace(namespace);
         await accountManager.close();
@@ -109,7 +109,7 @@ e2eTestSuite(
             `ls -la ${constants.HEDERA_HAPI_PATH}`,
           );
           testLogger.showUser(outputs);
-        }).timeout(MINUTES);
+        }).timeout(Duration.ofMinutes(1).toMillis());
       });
     });
   },

@@ -14,13 +14,25 @@
  * limitations under the License.
  *
  */
-import {describe} from 'mocha';
 
-import {testNodeAdd} from '../../test_add.js';
-import {Duration} from '../../../src/core/time/duration.js';
+/**
+ * Thrown when an arithmetic operation fails due to NaN, Infinity, Division by Zero, or other arithmetic errors.
+ */
+export class ArithmeticError extends Error {
+  /**
+   * Constructs a new `ArithmeticError` instance.
+   *
+   * @param message - The error message.
+   * @param cause - The nest error (if any).
+   */
+  constructor(message: string, cause: Error | any = {}) {
+    super(message);
+    this.name = this.constructor.name;
 
-describe('Node add with hedera local build', () => {
-  const localBuildPath =
-    'node1=../hedera-services/hedera-node/data/,../hedera-services/hedera-node/data,node3=../hedera-services/hedera-node/data';
-  testNodeAdd(localBuildPath);
-}).timeout(Duration.ofMinutes(3).toMillis());
+    if (cause) {
+      this.cause = cause;
+    }
+
+    Error.captureStackTrace(this, this.constructor);
+  }
+}

@@ -23,7 +23,7 @@ import {
   PREPARE_UPGRADE_CONFIGS_NAME,
   DOWNLOAD_GENERATED_FILES_CONFIGS_NAME,
 } from '../../../src/commands/node/configs.js';
-import {MINUTES} from '../../../src/core/constants.js';
+import {Duration} from '../../../src/core/time/duration.js';
 
 const namespace = 'node-upgrade';
 const argv = getDefaultArgv();
@@ -45,7 +45,7 @@ e2eTestSuite(namespace, argv, undefined, undefined, undefined, undefined, undefi
     const k8 = bootstrapResp.opts.k8;
 
     after(async function () {
-      this.timeout(10 * MINUTES);
+      this.timeout(Duration.ofMinutes(10).toMillis());
 
       await k8.getNodeLogs(namespace);
       await k8.deleteNamespace(namespace);
@@ -54,12 +54,12 @@ e2eTestSuite(namespace, argv, undefined, undefined, undefined, undefined, undefi
     it('should succeed with init command', async () => {
       const status = await accountCmd.init(argv);
       expect(status).to.be.ok;
-    }).timeout(8 * MINUTES);
+    }).timeout(Duration.ofMinutes(8).toMillis());
 
     it('should prepare network upgrade successfully', async () => {
       await nodeCmd.handlers.prepareUpgrade(upgradeArgv);
       expect(nodeCmd.getUnusedConfigs(PREPARE_UPGRADE_CONFIGS_NAME)).to.deep.equal([flags.devMode.constName]);
-    }).timeout(5 * MINUTES);
+    }).timeout(Duration.ofMinutes(5).toMillis());
 
     it('should download generated files successfully', async () => {
       await nodeCmd.handlers.downloadGeneratedFiles(upgradeArgv);
@@ -67,13 +67,13 @@ e2eTestSuite(namespace, argv, undefined, undefined, undefined, undefined, undefi
         flags.devMode.constName,
         'allNodeAliases',
       ]);
-    }).timeout(5 * MINUTES);
+    }).timeout(Duration.ofMinutes(5).toMillis());
 
     it('should upgrade all nodes on the network successfully', async () => {
       await nodeCmd.handlers.freezeUpgrade(upgradeArgv);
       expect(nodeCmd.getUnusedConfigs(PREPARE_UPGRADE_CONFIGS_NAME)).to.deep.equal([flags.devMode.constName]);
 
       await bootstrapResp.opts.accountManager.close();
-    }).timeout(5 * MINUTES);
+    }).timeout(Duration.ofMinutes(5).toMillis());
   });
 });
