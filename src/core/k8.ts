@@ -1283,4 +1283,36 @@ export class K8 {
       fs.rmSync(tmpFile)
     }
   }
+
+  /**
+   * Get a pod by name and namespace, will check every 1 second until the pod is no longer found.
+   * Can throw a SoloError if there is an error while deleting the pod.
+   * @param podName - the name of the pod
+   * @param namespace - the namespace of the pod
+   */
+  async killPod (podName: string, namespace: string) {
+    try {
+      const result = await this.kubeClient.deleteNamespacedPod(podName, namespace, undefined, undefined, 1)
+      if (result.response.statusCode !== 200) {
+        throw new SoloError(`Failed to delete pod ${podName} in namespace ${namespace}: statusCode: ${result.response.statusCode}`)
+      }
+      let podExists = true
+      while (podExists) {
+        const pod = await this.getPodByName(podName)
+        if (!pod?.metadata?.deletionTimestamp) {
+          podExists = false
+        } else {
+          await sleep(1000)
+        }
+      }
+    } catch (e) {
+      const errorMessage = `Failed to delete pod ${podName} in namespace ${namespace}: ${e.message}`
+      if (e.body?.code === 404 || e.response?.body?.code === 404) {
+        this.logger.info(`Pod not found: ${errorMessage}`, e)
+        return
+      }
+      this.logger.error(errorMessage, e)
+      throw new SoloError(errorMessage, e)
+    }
+  }
 }
