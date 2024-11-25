@@ -64,11 +64,11 @@ export function testNodeAdd (localBuildPath: string, testDescription = 'Node add
       after(async function () {
         this.timeout(10 * MINUTES)
 
-        // await getNodeLogs(k8, namespace)
+        await getNodeLogs(k8, namespace)
         await bootstrapResp.opts.accountManager.close()
-        // await nodeCmd.handlers.stop(argv)
-        // await networkCmd.destroy(argv)
-        // await k8.deleteNamespace(namespace)
+        await nodeCmd.handlers.stop(argv)
+        await networkCmd.destroy(argv)
+        await k8.deleteNamespace(namespace)
       })
 
       it('cache current version of private keys', async () => {
