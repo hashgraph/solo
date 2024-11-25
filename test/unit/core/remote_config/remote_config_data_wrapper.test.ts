@@ -17,7 +17,7 @@
 import { expect } from 'chai'
 import { describe, it } from 'mocha'
 
-import yaml from 'js-yaml'
+import * as yaml from 'yaml'
 import { RemoteConfigDataWrapper } from '../../../../src/core/config/remote/remote_config_data_wrapper.js'
 import { createMetadata } from './metadata.test.js'
 import { createComponentsDataWrapper } from './components_data_wrapper.test.js'
@@ -69,7 +69,7 @@ describe('RemoteConfigDataWrapper', () => {
     const { dataWrapper } = createRemoteConfigDataWrapper()
     const dataWrapperObject = dataWrapper.toObject()
 
-    const yamlData = yaml.dump({
+    const yamlData = yaml.stringify({
       metadata: dataWrapperObject.metadata,
       components: dataWrapperObject.components as any,
       clusters: dataWrapperObject.clusters,

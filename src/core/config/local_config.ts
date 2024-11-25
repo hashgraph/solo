@@ -141,7 +141,7 @@ export class LocalConfig implements LocalConfigData {
         if (!deploymentClusters) deploymentClusters = await promptDeploymentClusters(task, deploymentClusters)
 
         const deployments: Deployments = {
-          [deploymentName]: {clusters: deploymentClusters.split(',')}
+          [deploymentName]: { clusters: deploymentClusters.split(',') }
         }
 
         this.userEmailAddress = userEmailAddress

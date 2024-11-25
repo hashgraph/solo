@@ -16,7 +16,7 @@
  */
 import { SoloError } from '../../errors.js'
 import * as version from '../../../../version.js'
-import yaml from 'js-yaml'
+import * as yaml from 'yaml'
 import { RemoteConfigMetadata } from './metadata.js'
 import { ComponentsDataWrapper } from './components_data_wrapper.js'
 import * as constants from '../../constants.js'
@@ -101,14 +101,14 @@ export class RemoteConfigDataWrapper implements Validate, ToObject<RemoteConfigD
   }
 
   public static fromConfigmap (configMap: k8s.V1ConfigMap): RemoteConfigDataWrapper {
-    const unparsed = yaml.load(configMap.data['remote-config-data']) as any
+    const data = yaml.parse(configMap.data['remote-config-data']) as any
 
     return new RemoteConfigDataWrapper({
-      metadata: RemoteConfigMetadata.fromObject(unparsed.metadata),
-      components: ComponentsDataWrapper.fromObject(unparsed.components),
-      clusters: unparsed.clusters,
-      commandHistory: unparsed.commandHistory,
-      lastExecutedCommand: unparsed.lastExecutedCommand,
+      metadata: RemoteConfigMetadata.fromObject(data.metadata),
+      components: ComponentsDataWrapper.fromObject(data.components),
+      clusters: data.clusters,
+      commandHistory: data.commandHistory,
+      lastExecutedCommand: data.lastExecutedCommand,
     })
   }
 

@@ -20,7 +20,7 @@ import { RemoteConfigDataWrapper } from './remote_config_data_wrapper.js'
 import chalk from 'chalk'
 import { RemoteConfigMetadata } from './metadata.js'
 import { flags } from '../../../commands/index.js'
-import yaml from 'js-yaml'
+import * as yaml from 'yaml'
 import { ComponentsDataWrapper } from './components_data_wrapper.js'
 import type { K8 } from '../../k8.js'
 import type { Cluster, Namespace } from './types.js'
@@ -229,7 +229,7 @@ export class RemoteConfigManager {
     await this.k8.createNamespacedConfigMap(
       constants.SOLO_REMOTE_CONFIGMAP_NAME,
       constants.SOLO_REMOTE_CONFIGMAP_LABELS,
-      { 'remote-config-data': yaml.dump(this.remoteConfig.toObject()) }
+      { 'remote-config-data': yaml.stringify(this.remoteConfig.toObject()) }
     )
   }
 
@@ -238,7 +238,7 @@ export class RemoteConfigManager {
     await this.k8.replaceNamespacedConfigMap(
       constants.SOLO_REMOTE_CONFIGMAP_NAME,
       constants.SOLO_REMOTE_CONFIGMAP_LABELS,
-      { 'remote-config-data': yaml.dump(this.remoteConfig.toObject() as any) }
+      { 'remote-config-data': yaml.stringify(this.remoteConfig.toObject() as any) }
     )
   }
 
