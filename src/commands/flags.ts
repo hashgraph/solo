@@ -198,7 +198,7 @@ export const relayReleaseTag: CommandFlag = {
   name: 'relay-release',
   definition: {
     describe: 'Relay release tag to be used (e.g. v0.48.0)',
-    defaultValue: 'v0.53.0',
+    defaultValue: version.HEDERA_JSON_RPC_RELAY_VERSION,
     type: 'string'
   }
 }
@@ -286,6 +286,16 @@ export const operatorKey: CommandFlag = {
     describe: 'Operator Key',
     defaultValue: constants.OPERATOR_KEY,
     type: 'string'
+  }
+}
+
+export const privateKey: CommandFlag = {
+  constName: 'privateKey',
+  name: 'private-key',
+  definition: {
+    describe: 'Show private key information',
+    defaultValue: false,
+    type: 'boolean'
   }
 }
 
@@ -802,6 +812,17 @@ export const grpcWebTlsKeyPath: CommandFlag = {
   }
 }
 
+export const stakeAmounts: CommandFlag = {
+  constName: 'stakeAmounts',
+  name: 'stake-amounts',
+  definition: {
+    describe:
+        'The amount to be staked in the same order you list the node aliases with multiple node staked values comma seperated',
+    defaultValue: '',
+    type: 'string'
+  }
+}
+
 export const allFlags: CommandFlag[] = [
   accountId,
   amount,
@@ -854,6 +875,7 @@ export const allFlags: CommandFlag[] = [
   operatorKey,
   outputDir,
   persistentVolumeClaims,
+  privateKey,
   profileFile,
   profileName,
   relayReleaseTag,
@@ -861,6 +883,7 @@ export const allFlags: CommandFlag[] = [
   replicaCount,
   setAlias,
   settingTxt,
+  stakeAmounts,
   tlsClusterIssuerType,
   tlsPrivateKey,
   tlsPublicKey,

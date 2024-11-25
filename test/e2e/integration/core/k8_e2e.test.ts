@@ -47,6 +47,28 @@ import type { PodName } from '../../../../src/types/aliases.js'
 
 const defaultTimeout = 2 * MINUTES
 
+async function createPod (podName: PodName, containerName: string, podLabelValue: string, testNamespace: string, k8: K8): Promise<void> {
+  const v1Pod = new V1Pod()
+  const v1Metadata = new V1ObjectMeta()
+  v1Metadata.name = podName as PodName
+  v1Metadata.namespace = testNamespace
+  v1Metadata.labels = { app: podLabelValue }
+  v1Pod.metadata = v1Metadata
+  const v1Container = new V1Container()
+  v1Container.name = containerName
+  v1Container.image = 'alpine:latest'
+  v1Container.command = ['/bin/sh', '-c', 'apk update && apk upgrade && apk add --update bash && sleep 7200']
+  const v1Probe = new V1Probe()
+  const v1ExecAction = new V1ExecAction()
+  v1ExecAction.command = ['bash', '-c', 'exit 0']
+  v1Probe.exec = v1ExecAction
+  v1Container.startupProbe = v1Probe
+  const v1Spec = new V1PodSpec()
+  v1Spec.containers = [v1Container]
+  v1Pod.spec = v1Spec
+  await k8.kubeClient.createNamespacedPod(testNamespace, v1Pod)
+}
+
 describe('K8', () => {
   const testLogger = logging.NewLogger('debug', true)
   const configManager = new ConfigManager(testLogger)
@@ -66,25 +88,7 @@ describe('K8', () => {
       if (!await k8.hasNamespace(testNamespace)) {
         await k8.createNamespace(testNamespace)
       }
-      const v1Pod = new V1Pod()
-      const v1Metadata = new V1ObjectMeta()
-      v1Metadata.name = podName as PodName
-      v1Metadata.namespace = testNamespace
-      v1Metadata.labels = { app: podLabelValue }
-      v1Pod.metadata = v1Metadata
-      const v1Container = new V1Container()
-      v1Container.name = containerName
-      v1Container.image = 'alpine:latest'
-      v1Container.command = ['/bin/sh', '-c', 'apk update && apk upgrade && apk add --update bash && sleep 7200']
-      const v1Probe = new V1Probe()
-      const v1ExecAction = new V1ExecAction()
-      v1ExecAction.command = ['bash', '-c', 'exit 0']
-      v1Probe.exec = v1ExecAction
-      v1Container.startupProbe = v1Probe
-      const v1Spec = new V1PodSpec()
-      v1Spec.containers = [v1Container]
-      v1Pod.spec = v1Spec
-      await k8.kubeClient.createNamespacedPod(testNamespace, v1Pod)
+      await createPod(podName, containerName, podLabelValue, testNamespace, k8)
       const v1Svc = new V1Service()
       const v1SvcMetadata = new V1ObjectMeta()
       v1SvcMetadata.name = serviceName
@@ -107,7 +111,7 @@ describe('K8', () => {
   after(async function () {
     this.timeout(defaultTimeout)
     try {
-      await k8.kubeClient.deleteNamespacedPod(podName, testNamespace, undefined, undefined, 1)
+      await k8.killPod(podName, testNamespace)
       argv[flags.namespace.name] = constants.SOLO_SETUP_NAMESPACE
       configManager.update(argv)
     } catch (e) {
@@ -276,4 +280,13 @@ describe('K8', () => {
       await k8.deletePvc(v1Pvc.name, testNamespace)
     }
   }).timeout(defaultTimeout)
+
+  it('should be able to kill a pod', async () => {
+    const podName = `test-pod-${uuid4()}` as PodName
+    const podLabelValue = `test-${uuid4()}`
+    await createPod(podName, containerName, podLabelValue, testNamespace, k8)
+    await k8.killPod(podName, testNamespace)
+    const newPods = await k8.getPodsByLabel([`app=${podLabelValue}`])
+    expect(newPods).to.have.lengthOf(0)
+  })
 })

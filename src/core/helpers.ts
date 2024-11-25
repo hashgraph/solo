@@ -46,7 +46,7 @@ export function parseNodeAliases (input: string): NodeAliases {
 
 export function splitFlagInput (input: string, separator = ',') {
   if (typeof input !== 'string') {
-    throw new SoloError('input is not a comma separated string')
+    throw new SoloError(`input [input='${input}'] is not a comma separated string`)
   }
 
   return input
@@ -204,7 +204,9 @@ async function getNodeLog (pod: V1Pod, namespace: string, timeString: string, k8
     const scriptName = 'support-zip.sh'
     const sourcePath = path.join(constants.RESOURCES_DIR, scriptName) // script source path
     await k8.copyTo(podName, ROOT_CONTAINER, sourcePath, `${HEDERA_HAPI_PATH}`)
-    await k8.execContainer(podName, ROOT_CONTAINER, `chmod 0755 ${HEDERA_HAPI_PATH}/${scriptName}`)
+    await sleep(1000) // wait for the script to sync to the file system
+    await k8.execContainer(podName, ROOT_CONTAINER, ['bash', '-c', `sync ${HEDERA_HAPI_PATH} && sudo chown hedera:hedera ${HEDERA_HAPI_PATH}/${scriptName}`])
+    await k8.execContainer(podName, ROOT_CONTAINER, ['bash', '-c', `sudo chmod 0755 ${HEDERA_HAPI_PATH}/${scriptName}`])
     await k8.execContainer(podName, ROOT_CONTAINER, `${HEDERA_HAPI_PATH}/${scriptName}`)
     await k8.copyFrom(podName, ROOT_CONTAINER, `${HEDERA_HAPI_PATH}/data/${podName}.zip`, targetDir)
   } catch (e: Error | any) {

@@ -51,3 +51,9 @@ export enum GrpcProxyTlsEnums {
   GRPC,
   GRPC_WEB,
 }
+
+export enum NodeSubcommandType {
+  ADD,
+  DELETE,
+  UPDATE,
+}

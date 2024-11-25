@@ -35,7 +35,7 @@
     "check": "remark . --quiet --frail && eslint . --ignore-pattern 'docs/*' --ignore-pattern 'dist/*'; cd docs; jsdoc -c jsdoc.conf.json && tsc",
     "format": "remark . --quiet --frail --output && eslint --fix . --ignore-pattern 'docs/*' --ignore-pattern 'dist/*' && tsc",
     "test-setup": "./test/e2e/setup-e2e.sh",
-    "build": "tsc && node resources/post-build-script.js"
+    "build": "rm -Rf dist && tsc && node resources/post-build-script.js"
   },
   "keywords": [
     "solo",
@@ -106,7 +106,7 @@
     "eslint-plugin-headers": "^1.2.0",
     "eslint-plugin-import": "^2.30.0",
     "eslint-plugin-mocha": "^10.5.0",
-    "eslint-plugin-n": "^17.13.2",
+    "eslint-plugin-n": "^17.14.0",
     "eslint-plugin-promise": "^7.1.0",
     "eslint-plugin-tsdoc": "^0.3.0",
     "globals": "^15.12.0",
