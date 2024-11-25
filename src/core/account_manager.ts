@@ -46,6 +46,7 @@ import { type SoloLogger } from './logging.js'
 import { type K8 } from './k8.js'
 import { type AccountIdWithKeyPairObject, type ExtendedNetServer } from '../types/index.js'
 import { type NodeAlias, type PodName } from '../types/aliases.js'
+import { IGNORED_NODE_ACCOUNT_ID } from './constants.js'
 
 const REASON_FAILED_TO_GET_KEYS = 'failed to get keys for accountId'
 const REASON_SKIPPED = 'skipped since it does not have a genesis key'
@@ -151,7 +152,9 @@ export class AccountManager {
    * @param namespace - the namespace of the network
    */
   async loadNodeClient (namespace: string) {
+    this.logger.debug(`loading node client: [!this._nodeClient=${!this._nodeClient}, this._nodeClient.isClientShutDown=${this._nodeClient?.isClientShutDown}]`)
     if (!this._nodeClient || this._nodeClient.isClientShutDown) {
+      this.logger.debug(`refreshing node client: [!this._nodeClient=${!this._nodeClient}, this._nodeClient.isClientShutDown=${this._nodeClient?.isClientShutDown}]`)
       await this.refreshNodeClient(namespace)
     }
 
@@ -161,14 +164,15 @@ export class AccountManager {
   /**
    * loads and initializes the Node Client
    * @param namespace - the namespace of the network
+   * @param skipNodeAlias - the node alias to skip
    */
-  async refreshNodeClient (namespace: string) {
+  async refreshNodeClient (namespace: string, skipNodeAlias? : NodeAlias) {
     await this.close()
     const treasuryAccountInfo = await this.getTreasuryAccountKeys(namespace)
     const networkNodeServicesMap = await this.getNodeServiceMap(namespace)
 
     this._nodeClient = await this._getNodeClient(namespace,
-      networkNodeServicesMap, treasuryAccountInfo.accountId, treasuryAccountInfo.privateKey)
+      networkNodeServicesMap, treasuryAccountInfo.accountId, treasuryAccountInfo.privateKey, skipNodeAlias)
   }
 
   /**
@@ -213,19 +217,16 @@ export class AccountManager {
    * @param operatorKey - the private key of the operator of the transactions
    * @returns a node client that can be used to call transactions
    */
-  async _getNodeClient (namespace: string, networkNodeServicesMap: Map<string, NetworkNodeServices>, operatorId: string,
-    operatorKey: string, useFirstNodeOnly = true) {
+  async _getNodeClient (namespace: string, networkNodeServicesMap: Map<string, NetworkNodeServices>, operatorId: string, operatorKey: string, skipNodeAlias: string) {
     let nodes = {}
     try {
       let localPort = constants.LOCAL_NODE_START_PORT
 
       for (const networkNodeService of networkNodeServicesMap.values()) {
-        const addlNode = await this.configureNodeAccess(networkNodeService, localPort, networkNodeServicesMap.size)
-        nodes = { ...nodes, ...addlNode }
-        localPort++
-
-        if (useFirstNodeOnly) {
-          break
+        if (networkNodeService.accountId !== IGNORED_NODE_ACCOUNT_ID && networkNodeService.nodeAlias !== skipNodeAlias) {
+          const addlNode = await this.configureNodeAccess(networkNodeService, localPort, networkNodeServicesMap.size)
+          nodes = { ...nodes, ...addlNode }
+          localPort++
         }
       }
 
@@ -637,6 +638,7 @@ export class AccountManager {
       const transaction = new TransferTransaction()
         .addHbarTransfer(fromAccountId, new Hbar(-1 * hbarAmount))
         .addHbarTransfer(toAccountId, new Hbar(hbarAmount))
+        .freezeWith(this._nodeClient)
 
       // @ts-ignore
       const txResponse = await transaction.execute(this._nodeClient)

@@ -236,7 +236,7 @@ export const STOP_FLAGS = {
 export const START_FLAGS = {
     requiredFlags: [
         flags.namespace,
-        flags.releaseTag
+        flags.releaseTag,
     ],
     requiredFlagsWithDisabledPrompt: [
         flags.app,
@@ -246,6 +246,7 @@ export const START_FLAGS = {
         flags.nodeAliasesUnparsed,
         flags.debugNodeAlias,
         flags.stateFile,
+        flags.stakeAmounts,
     ]
 }
 

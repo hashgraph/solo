@@ -144,10 +144,10 @@ export const ALL_PROFILES = [PROFILE_LOCAL, PROFILE_TINY, PROFILE_SMALL, PROFILE
 export const DEFAULT_PROFILE_FILE = path.join(SOLO_CACHE_DIR, 'profiles', 'custom-spec.yaml')
 
 // ------ Hedera SDK Related ------
-export const NODE_CLIENT_MAX_ATTEMPTS = +process.env.NODE_CLIENT_MAX_ATTEMPTS || 60
+export const NODE_CLIENT_MAX_ATTEMPTS = +process.env.NODE_CLIENT_MAX_ATTEMPTS || 600
 export const NODE_CLIENT_MIN_BACKOFF = +process.env.NODE_CLIENT_MIN_BACKOFF || 1000
 export const NODE_CLIENT_MAX_BACKOFF = +process.env.NODE_CLIENT_MAX_BACKOFF || 1000
-export const NODE_CLIENT_REQUEST_TIMEOUT = +process.env.NODE_CLIENT_REQUEST_TIMEOUT || 120000
+export const NODE_CLIENT_REQUEST_TIMEOUT = +process.env.NODE_CLIENT_REQUEST_TIMEOUT || 600000
 
 // ---- New Node Related ----
 export const ENDPOINT_TYPE_IP = 'IP'
@@ -180,3 +180,4 @@ export const RELAY_PODS_READY_DELAY = +process.env.RELAY_PODS_READY_DELAY || 1_0
 
 
 export const DEFAULT_LOCAL_CONFIG_FILE = 'local-config.yaml'
+export const IGNORED_NODE_ACCOUNT_ID = '0.0.0'
