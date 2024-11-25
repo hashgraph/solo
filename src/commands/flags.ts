@@ -559,6 +559,16 @@ export const ed25519PrivateKey: CommandFlag = {
   }
 }
 
+export const generateEcdsaKey: CommandFlag = {
+  constName: 'generateEcdsaKey',
+  name: 'generate-ecdsa-key',
+  definition: {
+    describe: 'Generate ECDSA private key for the Hedera account',
+    defaultValue: false,
+    type: 'boolean'
+  }
+}
+
 export const ecdsaPrivateKey: CommandFlag = {
   constName: 'ecdsaPrivateKey',
   name: 'ecdsa-private-key',
@@ -833,6 +843,7 @@ export const allFlags: CommandFlag[] = [
   enablePrometheusSvcMonitor,
   endpointType,
   soloChartVersion,
+  generateEcdsaKey,
   generateGossipKeys,
   generateTlsKeys,
   gossipEndpoints,

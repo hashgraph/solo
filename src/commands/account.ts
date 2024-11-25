@@ -54,7 +54,7 @@ export class AccountCommand extends BaseCommand {
   async buildAccountInfo (accountInfo: AccountInfo, namespace: string, shouldRetrievePrivateKey: boolean) {
     if (!accountInfo || !(accountInfo instanceof AccountInfo)) throw new IllegalArgumentError('An instance of AccountInfo is required')
 
-    const newAccountInfo: { accountId: string; balance: number; publicKey: string, privateKey?: string} = {
+    const newAccountInfo: { accountId: string; balance: number; publicKey: string; privateKey?: string; privateKeyRaw?: string} = {
       accountId: accountInfo.accountId.toString(),
       publicKey: accountInfo.key.toString(),
       balance: accountInfo.balance.to(HbarUnit.Hbar).toNumber()
@@ -63,23 +63,35 @@ export class AccountCommand extends BaseCommand {
     if (shouldRetrievePrivateKey) {
       const accountKeys = await this.accountManager.getAccountKeysFromSecret(newAccountInfo.accountId, namespace)
       newAccountInfo.privateKey = accountKeys.privateKey
+
+      // reconstruct private key to retrieve EVM address if private key is ECDSA type
+      try {
+        const privateKey = PrivateKey.fromStringDer(newAccountInfo.privateKey)
+        newAccountInfo.privateKeyRaw = privateKey.toStringRaw()
+      } catch (e: Error | any) {
+        this.logger.error(`failed to retrieve EVM address for accountId ${newAccountInfo.accountId}`)
+      }
     }
 
     return newAccountInfo
   }
 
-  async createNewAccount (ctx: { config: { ecdsaPrivateKey?: string; ed25519PrivateKey?: string; namespace: string;
+  async createNewAccount (ctx: { config: {
+      generateEcdsaKey: boolean;
+      ecdsaPrivateKey?: string; ed25519PrivateKey?: string; namespace: string;
       setAlias: boolean; amount: number}; privateKey: PrivateKey; }) {
     if (ctx.config.ecdsaPrivateKey) {
       ctx.privateKey = PrivateKey.fromStringECDSA(ctx.config.ecdsaPrivateKey)
     } else if (ctx.config.ed25519PrivateKey) {
       ctx.privateKey = PrivateKey.fromStringED25519(ctx.config.ed25519PrivateKey)
+    } else if (ctx.config.generateEcdsaKey) {
+      ctx.privateKey = PrivateKey.generateECDSA()
     } else {
       ctx.privateKey = PrivateKey.generateED25519()
     }
 
     return await this.accountManager.createNewAccount(ctx.config.namespace,
-        ctx.privateKey, ctx.config.amount, ctx.config.ecdsaPrivateKey ? ctx.config.setAlias : false)
+        ctx.privateKey, ctx.config.amount, (ctx.config.ecdsaPrivateKey || ctx.config.generateEcdsaKey) ? ctx.config.setAlias : false)
   }
 
   getAccountInfo (ctx: { config: { accountId: string } }) {
@@ -260,6 +272,7 @@ export class AccountCommand extends BaseCommand {
         ed25519PrivateKey: string
         namespace: string
         setAlias: boolean
+        generateEcdsaKey: boolean
       };
       privateKey: PrivateKey
     }
@@ -278,7 +291,8 @@ export class AccountCommand extends BaseCommand {
             ecdsaPrivateKey: self.configManager.getFlag<string>(flags.ecdsaPrivateKey) as string,
             namespace: self.configManager.getFlag<string>(flags.namespace) as string,
             ed25519PrivateKey: self.configManager.getFlag<string>(flags.ed25519PrivateKey) as string,
-            setAlias: self.configManager.getFlag<boolean>(flags.setAlias) as boolean
+            setAlias: self.configManager.getFlag<boolean>(flags.setAlias) as boolean,
+            generateEcdsaKey: self.configManager.getFlag<boolean>(flags.generateEcdsaKey) as boolean
           }
 
           if (!config.amount) {
@@ -504,6 +518,7 @@ export class AccountCommand extends BaseCommand {
               flags.ecdsaPrivateKey,
               flags.namespace,
               flags.ed25519PrivateKey,
+              flags.generateEcdsaKey,
               flags.setAlias
             ),
             handler: (argv: any) => {

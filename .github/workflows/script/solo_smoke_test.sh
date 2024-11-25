@@ -72,20 +72,6 @@ function clone_smart_contract_repo ()
   fi
 }
 
-function clone_sdk_repo ()
-{
-  echo "Clone hedera-sdk-js"
-  if [ -d "hedera-sdk-js" ]; then
-    echo "Directory hedera-sdk-js exists."
-  else
-    echo "Directory hedera-sdk-js does not exist."
-    git clone https://github.com/hashgraph/hedera-sdk-js --branch v2.53.0
-    cd hedera-sdk-js
-    npm install --save @hashgraph/sdk
-    cd -
-  fi
-}
-
 # clone hedera local node repo and call function create_account_and_extract_key
 # to extract private keys
 function clone_local_node_repo ()
@@ -211,14 +197,12 @@ function start_sdk_test ()
 
   rm test.log
 
-  cd ../hedera-sdk-js
   node examples/create-topic.js
-  cd -
 }
 
 echo "Change to parent directory"
 cd ../
-clone_sdk_repo
+
 background_keep_port_forward
 clone_local_node_repo
 clone_smart_contract_repo
