@@ -30,8 +30,9 @@ import {
 import { flags } from '../../../../src/commands/index.js'
 import * as version from '../../../../version.js'
 import { MINUTES, SECONDS } from '../../../../src/core/constants.js'
-import path from "path";
-import { Listr } from "listr2";
+import path from 'path'
+import { SoloError } from '../../../../src/core/errors.js'
+import { RemoteConfigDataWrapper } from '../../../../src/core/config/remote/remote_config_data_wrapper.js'
 
 const defaultTimeout = 20 * SECONDS
 
@@ -58,9 +59,14 @@ e2eTestSuite(namespace, argv, undefined, undefined, undefined, undefined, undefi
     const localConfig = new LocalConfig(filePath, logger, configManager)
     const remoteConfigManager = new RemoteConfigManager(k8, logger, localConfig, configManager)
 
+    const email = 'john@gmail.com'
+
+    localConfig.userEmailAddress = email
+    localConfig.deployments = { [namespace]: { clusters: [ `kind-${namespace}`] } }
+    localConfig.currentDeploymentName = namespace
+
     after(async function () {
       this.timeout(3 * MINUTES)
-
       await k8.deleteNamespace(namespace)
     })
 
@@ -70,6 +76,38 @@ e2eTestSuite(namespace, argv, undefined, undefined, undefined, undefined, undefi
       if (!fs.existsSync(testCacheDir)) {
         fs.mkdirSync(testCacheDir)
       }
+    })
+
+    it ('Attempting to load and save without existing remote config should fail', async () => {
+      // @ts-ignore
+      expect(await remoteConfigManager.load()).to.equal(false)
+
+      // @ts-ignore
+      await expect(remoteConfigManager.save()).to.be.rejectedWith(SoloError, 'Attempted to save remote config without data')
+    })
+
+    it ('Should be able to use create method to populate the configMap', async () => {
+      // @ts-ignore
+      await remoteConfigManager.create()
+
+      // @ts-ignore
+      const remoteConfigData = remoteConfigManager.remoteConfig
+
+      expect(remoteConfigData).to.be.ok
+      expect(remoteConfigData).to.be.instanceOf(RemoteConfigDataWrapper)
+
+      expect(remoteConfigData.metadata.lastUpdatedAt).to.be.instanceOf(Date)
+      expect(remoteConfigData.metadata.lastUpdateBy).to.equal(email)
+      expect(remoteConfigData.metadata.migration).not.to.be.ok
+
+      expect(remoteConfigData.lastExecutedCommand).to.equal('deployment create')
+      expect(remoteConfigData.commandHistory).to.deep.equal([ 'deployment create' ])
+
+      // @ts-ignore
+      expect(await remoteConfigManager.load()).to.equal(true)
+
+      // @ts-ignore
+      expect(remoteConfigData.toObject()).to.deep.equal(remoteConfigManager.remoteConfig.toObject())
     })
   })
 })

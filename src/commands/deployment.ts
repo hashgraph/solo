@@ -29,10 +29,12 @@ import type { CommandFlag, ContextClusterStructure } from '../types/index.js'
 export class DeploymentCommand extends BaseCommand {
   private static get DEPLOY_FLAGS_LIST (): CommandFlag[] {
     return [
+      flags.quiet,
       flags.namespace,
-      flags.contextClusterUnparsed,
+      flags.deploymentName,
       flags.userEmailAddress,
-      flags.deploymentName
+      flags.deploymentClusters,
+      flags.contextClusterUnparsed,
     ]
   }
 

@@ -20,12 +20,12 @@ import * as yaml from 'yaml'
 import { flags } from '../../commands/index.js'
 import { MissingArgumentError, SoloError } from '../errors.js'
 import { promptDeploymentClusters, promptDeploymentName, promptUserEmailAddress } from '../../commands/prompts.js'
+import { IsDeployments } from '../validator_decorators.js'
 import type { ListrTask, ListrTaskWrapper } from 'listr2'
 import type { Deployments, LocalConfigData, DeploymentStructure } from './local_config_data.js'
 import type { SoloLogger } from '../logging.js'
 import type { EmailAddress, Namespace } from './remote/types.js'
 import type { ConfigManager } from '../config_manager.js'
-import { IsDeployments } from '../validator_decorators.js'
 
 export class LocalConfig implements LocalConfigData {
   @IsNotEmpty()
