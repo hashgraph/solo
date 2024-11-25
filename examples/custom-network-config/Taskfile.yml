@@ -5,12 +5,12 @@ dotenv:
   - .env
 
 env:
-  SOLO_CHART_VERSION: v0.32.0
-  CONSENSUS_NODE_VERSION: v0.54.1
-  SOLO_NAMESPACE: solo-{{ env "USER" | replace "." "-" | trunc 63 }}
+  SOLO_CHART_VERSION: 0.34.0
+  CONSENSUS_NODE_VERSION: v0.56.0
+  SOLO_NAMESPACE: solo-{{ env "USER" | replace "." "-" | trunc 63 | default "test" }}
   SOLO_CLUSTER_SETUP_NAMESPACE: solo-setup
-  SOLO_NETWORK_SIZE: 7
   SOLO_CLUSTER_RELEASE_NAME: solo-cluster-setup
+  SOLO_NETWORK_SIZE: 7
   SOLO_CLUSTER_NAME: solo-cluster
   MIRROR_RELEASE_NAME: mirror
 
