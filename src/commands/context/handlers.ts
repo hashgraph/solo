@@ -30,7 +30,7 @@ export class ContextCommandHandlers implements CommandHandlers {
     this.tasks = tasks
   }
 
-  async use (argv: any) {
+  async connect (argv: any) {
     argv = helpers.addFlagsToArgv(argv, ContextFlags.USE_FLAGS)
 
     const action = helpers.commandActionBuilder([

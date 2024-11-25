@@ -120,6 +120,7 @@ export class LocalConfig implements LocalConfigData {
     }
 
     public promptLocalConfigTask (k8, argv): Task  {
+        const self = this
         return new Task('Prompt local configuration', async (ctx, task) => {
             let userEmailAddress = argv[flags.userEmailAddress.name]
             if (!userEmailAddress) userEmailAddress = await promptUserEmailAddress(task, userEmailAddress)
@@ -135,13 +136,13 @@ export class LocalConfig implements LocalConfigData {
                 clusterAliases: Templates.parseClusterAliases(deploymentClusters)
             }
 
-            this.userEmailAddress = userEmailAddress
-            this.deployments = deployments
-            this.currentDeploymentName = deploymentName
-            this.validate()
-            await this.write()
+            self.userEmailAddress = userEmailAddress
+            self.deployments = deployments
+            self.currentDeploymentName = deploymentName
+            self.validate()
+            await self.write()
 
-            return this
-        }, this.skipPromptTask) as Task
+            return self
+        }, self.skipPromptTask) as Task
     }
 }

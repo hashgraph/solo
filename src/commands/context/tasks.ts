@@ -36,24 +36,37 @@ export class ContextCommandTasks {
       this.parent.logger.info('Updating local configuration...')
 
       const isQuiet = !!argv[flags.quiet.name]
-      const isForcing = !!argv[flags.force.name]
 
       let currentDeploymentName = argv[flags.namespace.name]
       let clusterAliases = Templates.parseClusterAliases(argv[flags.clusterName.name])
       let contextName = argv[flags.context.name]
 
+      const kubeContexts = await this.parent.getK8().getKubeConfig().getContexts()
+
       if (isQuiet) {
-        const currentCluster = (await this.parent.getK8().getKubeConfig().getCurrentCluster()).name
-        if (!clusterAliases.length) clusterAliases = [currentCluster]
+        const currentCluster = (await this.parent.getK8().getKubeConfig().getCurrentCluster())
+        if (!clusterAliases.length) clusterAliases = [currentCluster.name]
         if (!contextName) contextName = await this.parent.getK8().getKubeConfig().getCurrentContext()
 
-        // TODO properly get the active namespace
-        if (!currentDeploymentName) currentDeploymentName = currentCluster
+        if (!currentDeploymentName) {
+          const selectedContext = kubeContexts.find(e => e.name === contextName)
+          currentDeploymentName = selectedContext && selectedContext.namespace ? selectedContext.namespace : 'default'
+        }
       }
       else {
-        if (!clusterAliases.length) clusterAliases = Templates.parseClusterAliases(await (this.promptMap.get(flags.clusterName.name))(task, clusterAliases))
-        if (!contextName) contextName = await (this.promptMap.get(flags.context.name))(task, contextName)
-        if (!currentDeploymentName) currentDeploymentName = await (this.promptMap.get(flags.namespace.name))(task, currentDeploymentName)
+        if (!clusterAliases.length) {
+          const prompt = this.promptMap.get(flags.clusterName.name)
+          const unparsedClusterAliases = await prompt(task, clusterAliases)
+          clusterAliases = Templates.parseClusterAliases(unparsedClusterAliases)
+        }
+        if (!contextName) {
+          const prompt = this.promptMap.get(flags.context.name)
+          contextName = await prompt(task, kubeContexts.map(c => c.name),  contextName)
+        }
+        if (!currentDeploymentName) {
+          const prompt = this.promptMap.get(flags.namespace.name)
+          currentDeploymentName = await prompt(task, currentDeploymentName)
+        }
       }
 
       // Select current deployment
@@ -66,6 +79,9 @@ export class ContextCommandTasks {
 
       this.parent.getK8().getKubeConfig().setCurrentContext(contextName)
 
+      this.parent.logger.info(`currentDeploymentName: ${currentDeploymentName}`)
+      this.parent.logger.info(`contextName: ${contextName}`)
+      this.parent.logger.info(`clusterAliases: ${clusterAliases.join(' ')}`)
       this.parent.logger.info('Save LocalConfig file')
       await this.parent.getLocalConfig().write()
     })

@@ -39,13 +39,19 @@ import { stringify } from 'yaml'
 import { type Cluster, KubeConfig } from '@kubernetes/client-node'
 
 
-describe('ContextCommandTasks unit tests', () => {
+describe.only('ContextCommandTasks unit tests', () => {
     const filePath = `${getTestCacheDir('ContextCommandTasks')}/localConfig.yaml`
 
     const getBaseCommandOpts = () => {
         const loggerStub = sinon.createStubInstance(SoloLogger)
         const k8Stub = sinon.createStubInstance(K8)
         const kubeConfigStub = sinon.createStubInstance(KubeConfig)
+        kubeConfigStub.getContexts.returns([
+            { cluster: 'cluster-1', user: 'user-1', name: 'context-1', namespace: 'deployment-1' },
+            { cluster: 'cluster-2', user: 'user-2', name: 'context-2', namespace: 'deployment-2' },
+            { cluster: 'cluster-3', user: 'user-3', name: 'context-3', namespace: 'deployment-3' },
+        ])
+        kubeConfigStub.getCurrentContext.returns('context-3')
         kubeConfigStub.getCurrentContext.returns('context-3')
         kubeConfigStub.getCurrentCluster.returns({
             name: 'cluster-3',
@@ -217,8 +223,7 @@ describe('ContextCommandTasks unit tests', () => {
             expect(promptMap.get(flags.context.name)).to.not.have.been.called
         })
 
-        // TODO enable when namespace is retrieved from kubectl
-        xit('should use namespace from kubectl if no value is provided and quiet=true', async () => {
+        it('should use namespace from kubectl if no value is provided and quiet=true', async () => {
             const argv = {
                 [flags.clusterName.name]: 'cluster-2',
                 [flags.context.name]: 'context-2',
@@ -230,7 +235,7 @@ describe('ContextCommandTasks unit tests', () => {
 
             expect(localConfig.currentDeploymentName).to.equal('deployment-2')
             expect(localConfig.getCurrentDeployment().clusterAliases).to.deep.equal(['cluster-2'])
-            expect(command.getK8().getKubeConfig().setCurrentContext).to.have.been.calledWith('context-3')
+            expect(command.getK8().getKubeConfig().setCurrentContext).to.have.been.calledWith('context-2')
             expect(promptMap.get(flags.namespace.name)).to.not.have.been.called
             expect(promptMap.get(flags.clusterName.name)).to.not.have.been.called
             expect(promptMap.get(flags.context.name)).to.not.have.been.called

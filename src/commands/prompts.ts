@@ -447,12 +447,13 @@ export async function promptEndpointType (task: ListrTaskWrapper<any, any, any>,
       flags.endpointType.name)
 }
 
-export async function promptContext (task: ListrTaskWrapper<any, any, any>, input: any) {
-  return await promptText(task, input,
-      flags.context.definition.defaultValue,
-      'Enter the context name: ',
-      null,
-      flags.context.name)
+export async function promptContext (task: ListrTaskWrapper<any, any, any>, contexts: string[], input: any) {
+  return await task.prompt(ListrEnquirerPromptAdapter).run({
+    type: 'select',
+    name: 'context',
+    message: 'Select kubectl context',
+    choices: contexts
+  })
 }
 
 export async function promptClusterName (task: ListrTaskWrapper<any, any, any>, input: any) {

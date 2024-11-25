@@ -42,10 +42,10 @@ export class ContextCommand extends BaseCommand {
       builder: (yargs: any) => {
         return yargs
           .command(new YargsCommand({
-            command: 'use',
+            command: 'connect',
             description: 'updates the local configuration by connecting a deployment to a k8s context',
             commandDef: this,
-            handler: 'use'
+            handler: 'connect'
           }, ContextFlags.USE_FLAGS))
           .demandCommand(1, 'Select a context command')
       }
