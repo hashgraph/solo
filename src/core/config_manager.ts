@@ -85,12 +85,10 @@ export class ConfigManager {
                 this.logger.debug(`Resolving directory path for '${flag.name}': ${val}, to: ${paths.resolve(val)}, note: ~/ is not supported`)
                 val = paths.resolve(val)
               }
-              this.logger.debug(`Setting flag '${flag.name}' of type '${flag.definition.type}': ${val}`)
               this.config.flags[flag.name] = `${val}` // force convert to string
               break
 
             case 'number':
-              this.logger.debug(`Setting flag '${flag.name}' of type '${flag.definition.type}': ${val}`)
               try {
                 if (flags.integerFlags.has(flag.name)) {
                   this.config.flags[flag.name] = Number.parseInt(val)
@@ -103,7 +101,6 @@ export class ConfigManager {
               break
 
             case 'boolean':
-              this.logger.debug(`Setting flag '${flag.name}' of type '${flag.definition.type}': ${val}`)
               this.config.flags[flag.name] = (val === true) || (val === 'true') // use comparison to enforce boolean value
               break
 
@@ -119,6 +116,15 @@ export class ConfigManager {
       }
 
       this.config.updatedAt = new Date().toISOString()
+      let flagMessage = ''
+      for (const key of Object.keys(this.config.flags)) {
+        if (this.config.flags[key]) {
+          flagMessage += `${key}=${this.config.flags[key]}, `
+        }
+      }
+      if (flagMessage) {
+        this.logger.debug(`Updated config with flags: ${flagMessage}`)
+      }
     }
   }
 
