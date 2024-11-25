@@ -571,22 +571,12 @@ export class AccountManager {
    */
   async createNewAccount (namespace: string, privateKey: PrivateKey, amount: number, setAlias = false
       ) {
-    let newAccountTransaction: any
-
-    newAccountTransaction = new AccountCreateTransaction()
+    const newAccountTransaction = new AccountCreateTransaction()
       .setKey(privateKey)
       .setInitialBalance(Hbar.from(amount, HbarUnit.Hbar))
 
-    const aliasAccountId = privateKey.publicKey.toAccountId(0, 0)
-
-    // set alias need to use a specail crypto transfer transaction to create a new account
-    // but the receipt would not contain account id, must use aliasAccountId
-    // to query to get the account id
     if (setAlias) {
-      const hbarAmount = new Hbar(amount)
-      newAccountTransaction = new TransferTransaction()
-      .addHbarTransfer(this._nodeClient.operatorAccountId!, hbarAmount.negated())
-      .addHbarTransfer(aliasAccountId, hbarAmount)
+      newAccountTransaction.setAlias(privateKey.publicKey.toEvmAddress())
     }
 
     // @ts-ignore
@@ -595,19 +585,8 @@ export class AccountManager {
     // Get the new account ID
     // @ts-ignore
     const transactionReceipt = await newAccountResponse.getReceipt(this._nodeClient)
-
-    let createdAliasAccountId: AccountId
-    let createdAliasContractIdString: string
-    if (setAlias) {
-      const createdAliasAccountInfo = await new AccountInfoQuery()
-      .setAccountId(aliasAccountId)
-      .execute(this._nodeClient)
-      createdAliasAccountId = createdAliasAccountInfo.accountId
-      createdAliasContractIdString = createdAliasAccountInfo.contractAccountId
-    }
-
     const accountInfo: {accountId: string; privateKey: string; publicKey: string; balance: number; accountAlias?: string} = {
-      accountId: setAlias ? createdAliasAccountId.toString() : transactionReceipt.accountId!.toString(),
+      accountId: transactionReceipt.accountId!.toString(),
       privateKey: privateKey.toString(),
       publicKey: privateKey.publicKey.toString(),
       balance: amount
@@ -615,9 +594,11 @@ export class AccountManager {
 
     // add the account alias if setAlias is true
     if (setAlias) {
-      const realm = createdAliasAccountId.realm
-      const shard = createdAliasAccountId.shard
-      accountInfo.accountAlias = `${realm}.${shard}.${createdAliasContractIdString}`
+      const accountId = accountInfo.accountId
+      const realm = transactionReceipt.accountId!.realm
+      const shard = transactionReceipt.accountId!.shard
+      const accountInfoQueryResult = await this.accountInfoQuery(accountId)
+      accountInfo.accountAlias = `${realm}.${shard}.${accountInfoQueryResult.contractAccountId}`
     }
 
     try {

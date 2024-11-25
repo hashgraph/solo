@@ -609,6 +609,16 @@ export const amount: CommandFlag = {
   }
 }
 
+export const createAmount: CommandFlag = {
+  constName: 'createAmount',
+  name: 'create-amount',
+  definition: {
+    describe: 'Amount of new account to create',
+    defaultValue: 1,
+    type: 'number'
+  }
+}
+
 export const nodeAlias: CommandFlag = {
   constName: 'nodeAlias',
   name: 'node-alias',
@@ -826,6 +836,7 @@ export const allFlags: CommandFlag[] = [
   chartDirectory,
   clusterName,
   clusterSetupNamespace,
+  createAmount,
   deletePvcs,
   deleteSecrets,
   deployCertManager,

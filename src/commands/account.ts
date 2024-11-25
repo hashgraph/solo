@@ -25,6 +25,7 @@ import { type AccountId, AccountInfo, HbarUnit, PrivateKey } from '@hashgraph/sd
 import { FREEZE_ADMIN_ACCOUNT } from '../core/constants.js'
 import { type Opts } from '../types/index.js'
 import { ListrLease } from '../core/lease/listr_lease.js'
+import { sleep } from '../core/helpers.js'
 
 export class AccountCommand extends BaseCommand {
   private readonly accountManager: AccountManager
@@ -273,6 +274,7 @@ export class AccountCommand extends BaseCommand {
         namespace: string
         setAlias: boolean
         generateEcdsaKey: boolean
+        createAmount: number
       };
       privateKey: PrivateKey
     }
@@ -292,7 +294,8 @@ export class AccountCommand extends BaseCommand {
             namespace: self.configManager.getFlag<string>(flags.namespace) as string,
             ed25519PrivateKey: self.configManager.getFlag<string>(flags.ed25519PrivateKey) as string,
             setAlias: self.configManager.getFlag<boolean>(flags.setAlias) as boolean,
-            generateEcdsaKey: self.configManager.getFlag<boolean>(flags.generateEcdsaKey) as boolean
+            generateEcdsaKey: self.configManager.getFlag<boolean>(flags.generateEcdsaKey) as boolean,
+            createAmount: self.configManager.getFlag<number>(flags.createAmount) as number
           }
 
           if (!config.amount) {
@@ -316,10 +319,13 @@ export class AccountCommand extends BaseCommand {
       {
         title: 'create the new account',
         task: async (ctx) => {
-          self.accountInfo = await self.createNewAccount(ctx)
-          const accountInfoCopy = { ...self.accountInfo }
-          delete accountInfoCopy.privateKey
-          this.logger.showJSON('new account created', accountInfoCopy)
+          for (let i = 0; i < ctx.config.createAmount; i++) {
+            self.accountInfo = await self.createNewAccount(ctx)
+            const accountInfoCopy = { ...self.accountInfo }
+            delete accountInfoCopy.privateKey
+            this.logger.showJSON('new account created', accountInfoCopy)
+            await sleep(1000)
+          }
         }
       }
     ], {
@@ -515,6 +521,7 @@ export class AccountCommand extends BaseCommand {
             desc: 'Creates a new account with a new key and stores the key in the Kubernetes secrets, if you supply no key one will be generated for you, otherwise you may supply either a ECDSA or ED25519 private key',
             builder: (y: any) => flags.setCommandFlags(y,
               flags.amount,
+              flags.createAmount,
               flags.ecdsaPrivateKey,
               flags.namespace,
               flags.ed25519PrivateKey,
