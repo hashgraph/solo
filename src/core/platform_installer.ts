@@ -210,16 +210,8 @@ export class PlatformInstaller {
     if (!destPath) throw new MissingArgumentError('destPath is required')
 
     const recursiveFlag = recursive ? '-R' : ''
-    try {
-      await this.k8.execContainer(podName, container, `chown ${recursiveFlag} hedera:hedera ${destPath}`)
-    } catch (e: Error | any) {
-      // ignore error, can't change settings on files that come from configMaps or secrets
-    }
-    try {
-      await this.k8.execContainer(podName, container, `chmod ${recursiveFlag} ${mode} ${destPath}`)
-    } catch (e: Error | any) {
-      // ignore error, can't change settings on files that come from configMaps or secrets
-    }
+    await this.k8.execContainer(podName, container, ['bash','-c', `chown ${recursiveFlag} hedera:hedera ${destPath} 2>/dev/null || true`])
+    await this.k8.execContainer(podName, container, ['bash','-c', `chmod ${recursiveFlag} ${mode} ${destPath} 2>/dev/null || true`])
 
     return true
   }

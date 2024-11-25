@@ -33,7 +33,8 @@ import { MINUTES } from '../../../src/core/constants.js'
 const defaultTimeout = 2 * MINUTES
 const namespace = 'node-add-separated'
 const argv = getDefaultArgv()
-argv[flags.nodeAliasesUnparsed.name] = 'node1,node2,node3'
+argv[flags.nodeAliasesUnparsed.name] = 'node1,node2'
+argv[flags.stakeAmounts.name] = '1500,1'
 argv[flags.generateGossipKeys.name] = true
 argv[flags.generateTlsKeys.name] = true
 // set the env variable SOLO_CHARTS_DIR if developer wants to use local Solo charts

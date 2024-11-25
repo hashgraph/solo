@@ -33,6 +33,7 @@ import type * as WebSocket from 'ws'
 import type { PodName } from '../types/aliases.js'
 import type { ExtendedNetServer, LocalContextObject } from '../types/index.js'
 import type * as http from 'node:http'
+import { MINUTES } from './constants.js'
 import type { Context } from './config/remote/types.ts'
 
 interface TDirectoryData {directory: boolean; owner: string; group: string; size: string; modifiedAt: string; name: string}
@@ -194,7 +195,13 @@ export class K8 {
       undefined,
       undefined,
       undefined,
-      fieldSelector
+      fieldSelector,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      5 * MINUTES
     )
 
     return this.filterItem(resp.body.items, { name })
@@ -213,7 +220,12 @@ export class K8 {
       undefined,
       undefined,
       undefined,
-      labelSelector
+      labelSelector,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      5 * MINUTES
     )
 
     return result.body.items
@@ -266,7 +278,13 @@ export class K8 {
       undefined,
       undefined,
       undefined,
-      fieldSelector
+      fieldSelector,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      5 * MINUTES
     )
 
     return this.filterItem(resp.body.items, { name })
@@ -916,14 +934,12 @@ export class K8 {
     const ns = this._getNamespace()
     const labelSelector = labels.join(',')
 
-    this.logger.debug(`WaitForPod [namespace:${ns}, labelSelector: ${labelSelector}, maxAttempts: ${maxAttempts}]`)
+    this.logger.debug(`WaitForPod [labelSelector: ${labelSelector}, namespace:${ns}, maxAttempts: ${maxAttempts}]`)
 
     return new Promise<k8s.V1Pod[]>((resolve, reject) => {
       let attempts = 0
 
       const check = async (resolve: (items: k8s.V1Pod[]) => void, reject: (reason?: any) => void) => {
-        this.logger.debug(`Checking for pod [namespace:${ns}, labelSelector: ${labelSelector}] [attempt: ${attempts}/${maxAttempts}]`)
-
         // wait for the pod to be available with the given status and labels
         const resp = await this.kubeClient.listNamespacedPod(
           ns,
@@ -933,10 +949,14 @@ export class K8 {
           undefined,
           undefined,
           labelSelector,
-          podCount
+          podCount,
+          undefined,
+          undefined,
+          undefined,
+          5 * MINUTES
         )
 
-        this.logger.debug(`${resp.body?.items?.length}/${podCount} pod found [namespace:${ns}, labelSelector: ${labelSelector}] [attempt: ${attempts}/${maxAttempts}]`)
+        this.logger.debug(`[attempt: ${attempts}/${maxAttempts}] ${resp.body?.items?.length}/${podCount} pod found [labelSelector: ${labelSelector}, namespace:${ns}]`)
         if (resp.body?.items?.length === podCount) {
           let phaseMatchCount = 0
           let predicateMatchCount = 0
@@ -1027,7 +1047,12 @@ export class K8 {
       undefined,
       undefined,
       undefined,
-      labelSelector
+      labelSelector,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      5 * MINUTES,
     )
 
     for (const item of resp.body.items) {
@@ -1052,7 +1077,12 @@ export class K8 {
       undefined,
       undefined,
       undefined,
-      labelSelector
+      labelSelector,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      5 * MINUTES,
     )
 
     for (const item of resp.body.items) {
@@ -1099,8 +1129,19 @@ export class K8 {
    *   objects must be base64 decoded
    */
   async getSecret (namespace: string, labelSelector: string) {
-    const result = await this.kubeClient.listNamespacedSecret(namespace,
-      undefined, undefined, undefined, undefined, labelSelector)
+    const result = await this.kubeClient.listNamespacedSecret(
+        namespace,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        labelSelector,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        5 * MINUTES
+    )
 
     if (result.response.statusCode === 200 && result.body.items && result.body.items.length > 0) {
       const secretObject = result.body.items[0]
@@ -1330,6 +1371,38 @@ export class K8 {
   private _deleteTempFile (tmpFile: string) {
     if (fs.existsSync(tmpFile)) {
       fs.rmSync(tmpFile)
+    }
+  }
+
+  /**
+   * Get a pod by name and namespace, will check every 1 second until the pod is no longer found.
+   * Can throw a SoloError if there is an error while deleting the pod.
+   * @param podName - the name of the pod
+   * @param namespace - the namespace of the pod
+   */
+  async killPod (podName: string, namespace: string) {
+    try {
+      const result = await this.kubeClient.deleteNamespacedPod(podName, namespace, undefined, undefined, 1)
+      if (result.response.statusCode !== 200) {
+        throw new SoloError(`Failed to delete pod ${podName} in namespace ${namespace}: statusCode: ${result.response.statusCode}`)
+      }
+      let podExists = true
+      while (podExists) {
+        const pod = await this.getPodByName(podName)
+        if (!pod?.metadata?.deletionTimestamp) {
+          podExists = false
+        } else {
+          await sleep(1000)
+        }
+      }
+    } catch (e) {
+      const errorMessage = `Failed to delete pod ${podName} in namespace ${namespace}: ${e.message}`
+      if (e.body?.code === 404 || e.response?.body?.code === 404) {
+        this.logger.info(`Pod not found: ${errorMessage}`, e)
+        return
+      }
+      this.logger.error(errorMessage, e)
+      throw new SoloError(errorMessage, e)
     }
   }
 }

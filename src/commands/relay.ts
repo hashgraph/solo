@@ -80,8 +80,8 @@ export class RelayCommand extends BaseCommand {
       valuesArg += this.prepareValuesFiles(profileValuesFile)
     }
 
-    valuesArg += ` --set config.MIRROR_NODE_URL=http://${constants.SOLO_DEPLOYMENT_CHART}-rest`
-    valuesArg += ` --set config.MIRROR_NODE_URL_WEB3=http://${constants.SOLO_DEPLOYMENT_CHART}-web3`
+    valuesArg += ` --set config.MIRROR_NODE_URL=http://${constants.MIRROR_NODE_RELEASE_NAME}-rest`
+    valuesArg += ` --set config.MIRROR_NODE_URL_WEB3=http://${constants.MIRROR_NODE_RELEASE_NAME}-web3`
     valuesArg += ' --set config.MIRROR_NODE_AGENT_CACHEABLE_DNS=false'
     valuesArg += ' --set config.MIRROR_NODE_RETRY_DELAY=2001'
     valuesArg += ' --set config.MIRROR_NODE_GET_CONTRACT_RESULTS_DEFAULT_RETRIES=21'

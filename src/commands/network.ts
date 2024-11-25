@@ -337,8 +337,8 @@ export class NetworkCommand extends BaseCommand {
                  title: `Check Node: ${chalk.yellow(nodeAlias)}`,
                  task: async () =>
                    await self.k8.waitForPods([constants.POD_PHASE_RUNNING], [
-                     'solo.hedera.com/type=network-node',
-                    `solo.hedera.com/node-name=${nodeAlias}`
+                     `solo.hedera.com/node-name=${nodeAlias}`,
+                     'solo.hedera.com/type=network-node'
                    ], 1, constants.PODS_RUNNING_MAX_ATTEMPTS, constants.PODS_RUNNING_DELAY)
                })
              }
