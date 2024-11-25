@@ -228,6 +228,33 @@ export class NetworkCommand extends BaseCommand {
     return config
   }
 
+  async destroyTask (ctx: any, task: any) {
+    const self = this
+    task.title = `Uninstalling chart ${constants.SOLO_DEPLOYMENT_CHART}`
+    await self.chartManager.uninstall(ctx.config.namespace, constants.SOLO_DEPLOYMENT_CHART)
+
+    if (ctx.config.deletePvcs) {
+      const pvcs = await self.k8.listPvcsByNamespace(ctx.config.namespace)
+      task.title = `Deleting PVCs in namespace ${ctx.config.namespace}`
+      if (pvcs) {
+        for (const pvc of pvcs) {
+          await self.k8.deletePvc(pvc, ctx.config.namespace)
+        }
+      }
+    }
+
+    if (ctx.config.deleteSecrets) {
+      task.title = `Deleting secrets in namespace ${ctx.config.namespace}`
+      const secrets = await self.k8.listSecretsByNamespace(ctx.config.namespace)
+
+      if (secrets) {
+        for (const secret of secrets) {
+          await self.k8.deleteSecret(secret, ctx.config.namespace)
+        }
+      }
+    }
+  }
+
   /** Run helm install and deploy network components */
   async deploy (argv: any) {
     const self = this
@@ -437,9 +464,12 @@ export class NetworkCommand extends BaseCommand {
         deletePvcs: boolean
         deleteSecrets: boolean
         namespace: string
+        enableTimeout: boolean
+        force: boolean
       }
+      checkTimeout: boolean
     }
-
+    let networkDestroySuccess = true
     const tasks = new Listr<Context>([
       {
         title: 'Initialize',
@@ -466,43 +496,35 @@ export class NetworkCommand extends BaseCommand {
           ctx.config = {
             deletePvcs: self.configManager.getFlag<boolean>(flags.deletePvcs) as boolean,
             deleteSecrets: self.configManager.getFlag<boolean>(flags.deleteSecrets) as boolean,
-            namespace: self.configManager.getFlag<string>(flags.namespace) as string
+            namespace: self.configManager.getFlag<string>(flags.namespace) as string,
+            enableTimeout: self.configManager.getFlag<boolean>(flags.enableTimeout) as boolean,
+            force: self.configManager.getFlag<boolean>(flags.force) as boolean,
           }
 
           return ListrLease.newAcquireLeaseTask(lease, task)
         }
       },
       {
-        title: `Uninstall chart ${constants.SOLO_DEPLOYMENT_CHART}`,
-        task: async (ctx) => {
-          await self.chartManager.uninstall(ctx.config.namespace, constants.SOLO_DEPLOYMENT_CHART)
+        title: 'Running sub-tasks to destroy network',
+        task: async (ctx, task) => {
+          if (ctx.config.enableTimeout) {
+            const timeoutId = setTimeout(() => {
+              const message = `\n\nUnable to finish network destroy in ${constants.NETWORK_DESTROY_WAIT_TIMEOUT} seconds\n\n`
+              self.logger.error(message)
+              self.logger.showUser(chalk.red(message))
+              networkDestroySuccess = false
+              if (ctx.config.deletePvcs && ctx.config.deleteSecrets && ctx.config.force) {
+                self.k8.deleteNamespace(ctx.config.namespace)
+              }
+            }, constants.NETWORK_DESTROY_WAIT_TIMEOUT * 1000)
+
+            await self.destroyTask(ctx, task)
+            
+            clearTimeout(timeoutId)
+          } else {
+            await self.destroyTask(ctx, task)
+          }
         }
-      },
-      {
-        title: 'Delete PVCs',
-        task: async (ctx) => {
-          const pvcs = await self.k8.listPvcsByNamespace(ctx.config.namespace)
-
-          if (pvcs) {
-            for (const pvc of pvcs) {
-              await self.k8.deletePvc(pvc, ctx.config.namespace)
-            }
-          }
-        },
-        skip: (ctx) => !ctx.config.deletePvcs
-      },
-      {
-        title: 'Delete Secrets',
-        task: async (ctx) => {
-          const secrets = await self.k8.listSecretsByNamespace(ctx.config.namespace)
-
-          if (secrets) {
-            for (const secret of secrets) {
-              await self.k8.deleteSecret(secret, ctx.config.namespace)
-            }
-          }
-        },
-        skip: (ctx) => !ctx.config.deleteSecrets
       }
     ], {
       concurrent: false,
@@ -517,7 +539,7 @@ export class NetworkCommand extends BaseCommand {
       await lease.release()
     }
 
-    return true
+    return networkDestroySuccess
   }
 
   /** Run helm upgrade to refresh network components with new settings */
@@ -606,7 +628,8 @@ export class NetworkCommand extends BaseCommand {
               flags.deletePvcs,
               flags.deleteSecrets,
               flags.force,
-              flags.namespace
+              flags.namespace,
+              flags.enableTimeout
             ),
             handler: (argv: any) => {
               networkCmd.logger.debug('==== Running \'network destroy\' ===')
