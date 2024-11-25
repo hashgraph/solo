@@ -184,6 +184,12 @@ export const LOGS_FLAGS = {
     optionalFlags: []
 }
 
+export const STATES_FLAGS = {
+    requiredFlags: [flags.namespace, flags.nodeAliasesUnparsed],
+    requiredFlagsWithDisabledPrompt: [],
+    optionalFlags: []
+}
+
 export const REFRESH_FLAGS = {
     requiredFlags: [
         flags.cacheDir,
@@ -239,6 +245,7 @@ export const START_FLAGS = {
         flags.quiet,
         flags.nodeAliasesUnparsed,
         flags.debugNodeAlias,
+        flags.stateFile,
         flags.stakeAmounts,
     ]
 }

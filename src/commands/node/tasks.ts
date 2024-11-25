@@ -55,7 +55,7 @@ import crypto from 'crypto'
 import {
   addDebugOptions,
   getNodeAccountMap,
-  getNodeLogs,
+  getNodeLogs, getNodeStatesFromPod,
   prepareEndpoints,
   renameAndCopyFile,
   sleep,
@@ -691,6 +691,26 @@ export class NodeCommandTasks {
     })
   }
 
+  uploadStateFiles (skip: Function | boolean) {
+    const self = this
+    return new Task('Upload state files network nodes', async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
+      const config = ctx.config
+
+      const zipFile = config.stateFile
+      self.logger.debug(`zip file: ${zipFile}`)
+      for (const nodeAlias of ctx.config.nodeAliases) {
+        const podName = ctx.config.podNames[nodeAlias]
+        self.logger.debug(`Uploading state files to pod ${podName}`)
+        await self.k8.copyTo(podName, constants.ROOT_CONTAINER, zipFile, `${constants.HEDERA_HAPI_PATH}/data`)
+
+        self.logger.info(`Deleting the previous state files in pod ${podName} directory ${constants.HEDERA_HAPI_PATH}/data/saved`)
+        await self.k8.execContainer(podName, constants.ROOT_CONTAINER, ['rm', '-rf', `${constants.HEDERA_HAPI_PATH}/data/saved/*`])
+        await self.k8.execContainer(podName, constants.ROOT_CONTAINER,
+            ['tar', '-xvf', `${constants.HEDERA_HAPI_PATH}/data/${path.basename(zipFile)}`, '-C', `${constants.HEDERA_HAPI_PATH}/data/saved`])
+      }
+    }, skip)
+  }
+
   identifyNetworkPods () {
     const self = this
     return new Task('Identify network pods', (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
@@ -962,6 +982,15 @@ export class NodeCommandTasks {
   getNodeLogsAndConfigs () {
     return new Task('Get node logs and configs', async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
       await getNodeLogs(this.k8, ctx.config.namespace)
+    })
+  }
+
+  getNodeStateFiles () {
+    const self = this
+    return new Task('Get node states', async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
+      for (const nodeAlias of ctx.config.nodeAliases) {
+        await getNodeStatesFromPod(self.k8, ctx.config.namespace, nodeAlias)
+      }
     })
   }
 
