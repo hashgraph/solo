@@ -339,6 +339,16 @@ export const generateTlsKeys: CommandFlag = {
   }
 }
 
+export const enableTimeout: CommandFlag = {
+  constName: 'enableTimeout',
+  name: 'enable-timeout',
+  definition: {
+    describe: 'enable time out for running a command',
+    defaultValue: false,
+    type: 'boolean'
+  }
+}
+
 export const tlsClusterIssuerType: CommandFlag = {
   constName: 'tlsClusterIssuerType',
   name: 'tls-cluster-issuer-type',
@@ -863,6 +873,7 @@ export const allFlags: CommandFlag[] = [
   ed25519PrivateKey,
   enableHederaExplorerTls,
   enablePrometheusSvcMonitor,
+  enableTimeout,
   endpointType,
   soloChartVersion,
   generateGossipKeys,
