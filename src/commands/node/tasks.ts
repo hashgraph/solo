@@ -15,8 +15,8 @@
  *
  */
 import {
-  constants, Task, Templates,
-  Zippy, type K8, type ChartManager, type ConfigManager, type KeyManager, type PlatformInstaller,
+  constants, Task, Templates, Zippy,
+  type K8, type ChartManager, type ConfigManager, type KeyManager, type PlatformInstaller,
   type ProfileManager, type AccountManager, type CertificateManager
 } from '../../core/index.js'
 import {
@@ -81,12 +81,11 @@ export class NodeCommandTasks {
 
   private readonly prepareValuesFiles: any
 
-  constructor (
-    opts: {
-      logger: SoloLogger; accountManager: AccountManager; configManager: ConfigManager,
-      k8: K8, platformInstaller: PlatformInstaller, keyManager: KeyManager, profileManager: ProfileManager,
-      chartManager: ChartManager, certificateManager: CertificateManager, parent: NodeCommand
-    }
+  constructor (opts: {
+                logger: SoloLogger; accountManager: AccountManager; configManager: ConfigManager,
+                k8: K8, platformInstaller: PlatformInstaller, keyManager: KeyManager, profileManager: ProfileManager,
+                chartManager: ChartManager, certificateManager: CertificateManager, parent: NodeCommand
+              }
   ) {
     if (!opts || !opts.accountManager) throw new IllegalArgumentError('An instance of core/AccountManager is required', opts.accountManager as any)
     if (!opts || !opts.configManager) throw new Error('An instance of core/ConfigManager is required')

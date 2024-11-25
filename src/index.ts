@@ -63,7 +63,6 @@ export function main (argv: any) {
     const leaseRenewalService: LeaseRenewalService = new IntervalLeaseRenewalService()
     const leaseManager = new LeaseManager(k8, configManager, logger, leaseRenewalService)
     const certificateManager = new CertificateManager(k8, logger, configManager)
-
     const localConfigPath = path.join(constants.SOLO_CACHE_DIR, constants.DEFAULT_LOCAL_CONFIG_FILE)
     const localConfig = new LocalConfig(localConfigPath, logger,configManager)
     const remoteConfigManager = new RemoteConfigManager(k8, logger, localConfig, configManager)

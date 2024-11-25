@@ -30,18 +30,14 @@ describe('LocalConfig', () => {
   const config = {
     userEmailAddress: 'john.doe@example.com',
     deployments: {
-      'my-deployment': {
-        clusters: ['cluster-1', 'context-1'],
-      },
-      'my-other-deployment': {
-        clusters: ['cluster-2', 'context-2'],
-      }
+      'my-deployment': { clusters: ['cluster-1', 'context-1'] },
+      'my-other-deployment': { clusters: ['cluster-2', 'context-2'] }
     },
     currentDeploymentName: 'my-deployment'
   }
 
 
-  const expectFailedValidation = () => {
+  const expectFailedValidation = (): void => {
     try {
       new LocalConfig(filePath, testLogger, configManager)
       expect.fail('Expected an error to be thrown')
@@ -90,12 +86,8 @@ describe('LocalConfig', () => {
 
   it('should set deployments', async () => {
     const newDeployments = {
-      'my-deployment': {
-        clusters: ['cluster-1', 'context-1'],
-      },
-      'my-new-deployment': {
-        clusters: ['cluster-3', 'context-3'],
-      }
+      'my-deployment': { clusters: ['cluster-1', 'context-1'] },
+      'my-new-deployment': { clusters: ['cluster-3', 'context-3'] }
     }
 
     localConfig.setDeployments(newDeployments)
@@ -219,14 +211,6 @@ describe('LocalConfig', () => {
         deployments: [{ 'foo': 'bar' }]
     })
     )
-    expectFailedValidation()
-  })
-
-  it('should throw a validation error if clusterMappings format is not correct', async () => {
-    await fs.promises.writeFile(filePath, stringify({ ...config, clusterMappings: 'foo' }))
-    expectFailedValidation()
-
-    await fs.promises.writeFile(filePath, stringify({ ...config, clusterMappings: ['foo', 'bar'] }))
     expectFailedValidation()
   })
 

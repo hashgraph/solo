@@ -20,8 +20,9 @@ import type * as WebSocket from 'ws'
 import type crypto from 'crypto'
 import type { SoloLogger } from '../core/logging.js'
 import type {
-  ChartManager, ConfigManager, Helm, K8, KeyManager, PackageDownloader, PlatformInstaller, LocalConfig,
+  ChartManager, ConfigManager, Helm, K8, KeyManager, PackageDownloader, PlatformInstaller,
   ProfileManager, DependencyManager, AccountManager, LeaseManager, CertificateManager, RemoteConfigManager,
+  LocalConfig
 } from '../core/index.js'
 import type { Cluster, Context } from '../core/config/remote/types.js'
 
@@ -79,8 +80,8 @@ export interface Opts {
   keyManager: KeyManager
   accountManager: AccountManager
   profileManager: ProfileManager
+  leaseManager: LeaseManager,
   certificateManager: CertificateManager
-  leaseManager: LeaseManager
   localConfig: LocalConfig
   remoteConfigManager: RemoteConfigManager
 }

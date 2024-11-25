@@ -345,10 +345,10 @@ export class NodeCommandHandlers {
     const lease = await this.leaseManager.create()
     argv = helpers.addFlagsToArgv(argv, NodeFlags.UPDATE_EXECUTE_FLAGS)
       const action = helpers.commandActionBuilder([
-        this.tasks.initialize(argv, updateConfigBuilder.bind(this), lease),
-        RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
-        this.tasks.loadContextData(argv, NodeCommandHandlers.UPDATE_CONTEXT_FILE, helpers.updateLoadContextParser),
-        ...this.updateExecuteTasks(argv)
+      this.tasks.initialize(argv, updateConfigBuilder.bind(this), lease),
+      RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
+      this.tasks.loadContextData(argv, NodeCommandHandlers.UPDATE_CONTEXT_FILE, helpers.updateLoadContextParser),
+      ...this.updateExecuteTasks(argv)
     ], {
       concurrent: false,
       rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
@@ -569,7 +569,6 @@ export class NodeCommandHandlers {
       this.tasks.identifyNetworkPods(),
       this.tasks.stopNodes(),
       RemoteConfigTasks.changeAllNodeStates.bind(this)(ConsensusNodeStates.SETUP),
-
     ], {
       concurrent: false,
       rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
