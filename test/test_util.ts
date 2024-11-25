@@ -224,7 +224,7 @@ export function e2eTestSuite (
       })
 
       after(async function () {
-        this.timeout(3 * MINUTES)
+        this.timeout(5 * MINUTES)
         await getNodeLogs(k8, namespace)
         bootstrapResp.opts.logger.showUser(`------------------------- END: bootstrap (${testName}) ----------------------------`)
       })
@@ -272,7 +272,7 @@ export function e2eTestSuite (
           flags.grpcWebTlsKeyPath.constName,
           'chartPath'
         ])
-      }).timeout(3 * MINUTES)
+      }).timeout(5 * MINUTES)
 
       if (startNodes) {
         it('should succeed with node setup command', async () => {
@@ -298,13 +298,13 @@ export function e2eTestSuite (
         }).timeout(30 * MINUTES)
 
         it('node log command should work', async () => {
-          await expect(nodeCmd.handlers.logs(argv)).to.eventually.be.ok
+          expect(await nodeCmd.handlers.logs(argv)).to.be.true
 
           const soloLogPath = path.join(SOLO_LOGS_DIR, 'solo.log')
           const soloLog = fs.readFileSync(soloLogPath, 'utf8')
 
           expect(soloLog).to.not.have.string(NODE_LOG_FAILURE_MSG)
-        }).timeout(30 * MINUTES)
+        }).timeout(5 * MINUTES)
       }
     })
 

@@ -139,7 +139,7 @@ export class SoloLogger {
     }
     console.log(chalk.red('***********************************************************************************'))
 
-    this.debug(err.message, { error: err.message, stacktrace: stack })
+    this.error(err.message, err)
   }
 
   error (msg: any, ...args: any) {

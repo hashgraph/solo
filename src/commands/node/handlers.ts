@@ -35,6 +35,7 @@ import type { SoloLogger } from '../../core/logging.js'
 import type { NodeCommand } from './index.js'
 import type { NodeCommandTasks } from './tasks.js'
 import { type Lease } from '../../core/lease/lease.js'
+import { NodeSubcommandType } from '../../core/enumerations.js'
 
 export class NodeCommandHandlers {
   private readonly accountManager: AccountManager
@@ -108,14 +109,13 @@ export class NodeCommandHandlers {
 
   deleteExecuteTaskList (argv: any) {
     return [
+      this.tasks.checkAllNodesAreFrozen('existingNodeAliases'),
       this.tasks.downloadNodeGeneratedFiles(),
       this.tasks.prepareStagingDirectory('existingNodeAliases'),
-      this.tasks.copyNodeKeysToSecrets(),
       this.tasks.refreshNodeList(),
       this.tasks.copyNodeKeysToSecrets(),
-      this.tasks.checkAllNodesAreFrozen('existingNodeAliases'),
       this.tasks.getNodeLogsAndConfigs(),
-      this.tasks.updateChartWithConfigMap('Update chart to use new configMap'),
+      this.tasks.updateChartWithConfigMap('Delete network node', NodeSubcommandType.DELETE),
       this.tasks.killNodes(),
       this.tasks.sleep('Give time for pods to come up after being killed', 20000),
       this.tasks.checkNodePodsAreRunning(),
@@ -126,7 +126,7 @@ export class NodeCommandHandlers {
       this.tasks.enablePortForwarding(),
       this.tasks.checkAllNodesAreActive('allNodeAliases'),
       this.tasks.checkAllNodeProxiesAreActive(),
-      this.tasks.triggerStakeWeightCalculate(),
+      this.tasks.triggerStakeWeightCalculate(NodeSubcommandType.DELETE),
       this.tasks.finalize()
     ]
   }
@@ -159,12 +159,12 @@ export class NodeCommandHandlers {
 
   addExecuteTasks (argv: any) {
     return [
+      this.tasks.checkAllNodesAreFrozen('existingNodeAliases'),
       this.tasks.downloadNodeGeneratedFiles(),
       this.tasks.prepareStagingDirectory('allNodeAliases'),
       this.tasks.copyNodeKeysToSecrets(),
-      this.tasks.checkAllNodesAreFrozen('existingNodeAliases'),
       this.tasks.getNodeLogsAndConfigs(),
-      this.tasks.updateChartWithConfigMap('Deploy new network node'),
+      this.tasks.updateChartWithConfigMap('Deploy new network node', NodeSubcommandType.ADD),
       this.tasks.killNodes(),
       this.tasks.checkNodePodsAreRunning(),
       this.tasks.populateServiceMap(),
@@ -177,7 +177,7 @@ export class NodeCommandHandlers {
       this.tasks.checkAllNodesAreActive('allNodeAliases'),
       this.tasks.checkAllNodeProxiesAreActive(),
       this.tasks.stakeNewNode(),
-      this.tasks.triggerStakeWeightCalculate(),
+      this.tasks.triggerStakeWeightCalculate(NodeSubcommandType.ADD),
       this.tasks.finalize()
     ]
   }
@@ -202,13 +202,13 @@ export class NodeCommandHandlers {
 
   updateExecuteTasks (argv) {
     return [
+      this.tasks.checkAllNodesAreFrozen('existingNodeAliases'),
       this.tasks.downloadNodeGeneratedFiles(),
       this.tasks.prepareStagingDirectory('allNodeAliases'),
       this.tasks.copyNodeKeysToSecrets(),
-      this.tasks.checkAllNodesAreFrozen('existingNodeAliases'),
       this.tasks.getNodeLogsAndConfigs(),
       this.tasks.updateChartWithConfigMap(
-          'Update chart to use new configMap due to account number change',
+          'Update chart to use new configMap due to account number change', NodeSubcommandType.UPDATE,
           (ctx: any) => !ctx.config.newAccountNumber && !ctx.config.debugNodeAlias
       ),
       this.tasks.killNodesAndUpdateConfigMap(),
@@ -219,7 +219,7 @@ export class NodeCommandHandlers {
       this.tasks.enablePortForwarding(),
       this.tasks.checkAllNodesAreActive('allNodeAliases'),
       this.tasks.checkAllNodeProxiesAreActive(),
-      this.tasks.triggerStakeWeightCalculate(),
+      this.tasks.triggerStakeWeightCalculate(NodeSubcommandType.UPDATE),
       this.tasks.finalize()
     ]
   }
