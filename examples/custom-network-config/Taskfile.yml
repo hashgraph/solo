@@ -1,6 +1,6 @@
 version: 3
 includes:
-  helper: ../HelperTasks.yml
+  helper: ../../HelperTasks.yml
 dotenv:
   - .env
 
@@ -20,7 +20,7 @@ vars:
   ip_list_template_file: "{{.ROOT_DIR}}/list-external-ips.gotemplate"
   nodes:
     ref: until (env "SOLO_NETWORK_SIZE" | default .SOLO_NETWORK_SIZE | int)
-  node_list_internal: "{{range $idx, $n := .nodes }}node{{$n}},{{end}}"
+  node_list_internal: "{{range $idx, $n := .nodes }}node{{add $n 1}},{{end}}"
   node_identifiers: "{{ .node_list_internal | trimSuffix \",\" }}"
   solo_user_dir: "{{ env \"HOME\" }}/.solo"
   solo_cache_dir: "{{ .solo_user_dir }}/cache"
