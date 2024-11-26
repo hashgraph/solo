@@ -579,6 +579,16 @@ export const ed25519PrivateKey: CommandFlag = {
   }
 }
 
+export const generateEcdsaKey: CommandFlag = {
+  constName: 'generateEcdsaKey',
+  name: 'generate-ecdsa-key',
+  definition: {
+    describe: 'Generate ECDSA private key for the Hedera account',
+    defaultValue: false,
+    type: 'boolean'
+  }
+}
+
 export const ecdsaPrivateKey: CommandFlag = {
   constName: 'ecdsaPrivateKey',
   name: 'ecdsa-private-key',
@@ -615,6 +625,16 @@ export const amount: CommandFlag = {
   definition: {
     describe: 'Amount of HBAR to add',
     defaultValue: 100,
+    type: 'number'
+  }
+}
+
+export const createAmount: CommandFlag = {
+  constName: 'createAmount',
+  name: 'create-amount',
+  definition: {
+    describe: 'Amount of new account to create',
+    defaultValue: 1,
     type: 'number'
   }
 }
@@ -847,6 +867,7 @@ export const allFlags: CommandFlag[] = [
   chartDirectory,
   clusterName,
   clusterSetupNamespace,
+  createAmount,
   deletePvcs,
   deleteSecrets,
   deployCertManager,
@@ -865,6 +886,7 @@ export const allFlags: CommandFlag[] = [
   enableTimeout,
   endpointType,
   soloChartVersion,
+  generateEcdsaKey,
   generateGossipKeys,
   generateTlsKeys,
   gossipEndpoints,
