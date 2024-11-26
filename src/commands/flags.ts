@@ -182,6 +182,16 @@ export const deployJsonRpcRelay: CommandFlag = {
   }
 }
 
+export const stateFile: CommandFlag = {
+  constName: 'stateFile',
+  name: 'state-file',
+  definition: {
+    describe: 'A zipped state file to be used for the network',
+    defaultValue: '',
+    type: 'string'
+  }
+}
+
 export const releaseTag: CommandFlag = {
   constName: 'releaseTag',
   name: 'release-tag',
@@ -314,6 +324,16 @@ export const generateTlsKeys: CommandFlag = {
   name: 'tls-keys',
   definition: {
     describe: 'Generate gRPC TLS keys for nodes',
+    defaultValue: false,
+    type: 'boolean'
+  }
+}
+
+export const enableTimeout: CommandFlag = {
+  constName: 'enableTimeout',
+  name: 'enable-timeout',
+  definition: {
+    describe: 'enable time out for running a command',
     defaultValue: false,
     type: 'boolean'
   }
@@ -852,6 +872,7 @@ export const allFlags: CommandFlag[] = [
   ed25519PrivateKey,
   enableHederaExplorerTls,
   enablePrometheusSvcMonitor,
+  enableTimeout,
   endpointType,
   soloChartVersion,
   generateGossipKeys,
@@ -881,6 +902,7 @@ export const allFlags: CommandFlag[] = [
   relayReleaseTag,
   releaseTag,
   replicaCount,
+  stateFile,
   setAlias,
   settingTxt,
   stakeAmounts,

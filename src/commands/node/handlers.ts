@@ -18,8 +18,17 @@
 import * as helpers from '../../core/helpers.js'
 import * as NodeFlags from './flags.js'
 import {
-  addConfigBuilder, deleteConfigBuilder, downloadGeneratedFilesConfigBuilder, keysConfigBuilder, logsConfigBuilder,
-  prepareUpgradeConfigBuilder, refreshConfigBuilder, setupConfigBuilder, startConfigBuilder, stopConfigBuilder,
+  addConfigBuilder,
+  deleteConfigBuilder,
+  downloadGeneratedFilesConfigBuilder,
+  keysConfigBuilder,
+  logsConfigBuilder,
+  prepareUpgradeConfigBuilder,
+  refreshConfigBuilder,
+  setupConfigBuilder,
+  startConfigBuilder,
+  statesConfigBuilder,
+  stopConfigBuilder,
   updateConfigBuilder
 } from './configs.js'
 import {
@@ -501,6 +510,21 @@ export class NodeCommandHandlers implements CommandHandlers {
     return true
   }
 
+  async states (argv: any) {
+    argv = helpers.addFlagsToArgv(argv, NodeFlags.STATES_FLAGS)
+
+    const action = helpers.commandActionBuilder([
+      this.tasks.initialize(argv, statesConfigBuilder.bind(this), null),
+      this.tasks.getNodeStateFiles()
+    ], {
+      concurrent: false,
+      rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
+    }, 'Error in downloading states from nodes', null)
+
+    await action(argv, this)
+    return true
+  }
+
   async refresh (argv: any) {
     argv = helpers.addFlagsToArgv(argv, NodeFlags.REFRESH_FLAGS)
 
@@ -567,6 +591,9 @@ export class NodeCommandHandlers implements CommandHandlers {
     const action = helpers.commandActionBuilder([
       this.tasks.initialize(argv, startConfigBuilder.bind(this), lease),
       this.tasks.identifyExistingNodes(),
+      this.tasks.uploadStateFiles(
+          (ctx: any) => ctx.config.stateFile.length === 0
+      ),
       this.tasks.startNodes('nodeAliases'),
       this.tasks.enablePortForwarding(),
       this.tasks.checkAllNodesAreActive('nodeAliases'),
