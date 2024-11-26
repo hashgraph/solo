@@ -18,6 +18,22 @@ function enable_port_forward ()
   kubectl port-forward -n solo-e2e svc/relay-node1-hedera-json-rpc-relay 7546:7546 > /dev/null 2>&1 &
 }
 
+function clone_sdk_repo ()
+{
+  echo "Clone hedera-sdk-js"
+  if [ -d "hedera-sdk-js" ]; then
+    echo "Directory hedera-sdk-js exists."
+  else
+    echo "Directory hedera-sdk-js does not exist."
+    git clone https://github.com/hashgraph/hedera-sdk-js --branch v2.53.0
+    cd hedera-sdk-js
+    npm install --save @hashgraph/sdk
+    cd -
+  fi
+}
+
+
+
 function clone_smart_contract_repo ()
 {
   echo "Clone hedera-smart-contracts"
@@ -146,9 +162,13 @@ function creat_test_account ()
 
 function start_sdk_test ()
 {
-  cd solo
+#  cd solo
+#  node examples/create-topic.js
+#  cd -
+  cd hedera-sdk-js
   node examples/create-topic.js
   cd -
+
 }
 
 
@@ -157,6 +177,8 @@ cd ../
 
 
 creat_test_account
+clone_sdk_repo
+
 clone_smart_contract_repo
 setup_smart_contract_test
 start_background_transactions
