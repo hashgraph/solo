@@ -161,5 +161,6 @@ clone_smart_contract_repo
 setup_smart_contract_test
 start_background_transactions
 background_keep_port_forward
+sleep 5
 #start_contract_test
 start_sdk_test
