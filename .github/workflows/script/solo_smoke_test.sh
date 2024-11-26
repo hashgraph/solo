@@ -155,10 +155,11 @@ function start_sdk_test ()
 echo "Change to parent directory"
 cd ../
 
-#background_keep_port_forward
+
 creat_test_account
 clone_smart_contract_repo
 setup_smart_contract_test
 start_background_transactions
+background_keep_port_forward
 start_contract_test
 start_sdk_test
