@@ -120,7 +120,7 @@ tasks:
   solo:node:addresses:
     internal: true
     cmds:
-      - kubectl get svc -n "${SOLO_NAMESPACE}" -l "solo.hedera.com/type=network-node-svc"
+      - kubectl get svc -n "${SOLO_NAMESPACE}" -l "solo.hedera.com/type=network-node-svc" --output=go-template-file={{ .ip_list_template_file }}
 
   solo:relay:
     cmds:
