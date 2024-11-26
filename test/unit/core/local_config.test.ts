@@ -20,7 +20,7 @@ import { stringify } from 'yaml'
 import { expect } from 'chai'
 import { MissingArgumentError, SoloError } from '../../../src/core/errors.js'
 import { getTestCacheDir, testLogger, testLocalConfigData } from '../../test_util.js'
-import {ErrorMessages} from "../../../src/core/error_messages.js";
+import { ErrorMessages } from '../../../src/core/error_messages.js'
 
 describe('LocalConfig', () => {
     let localConfig

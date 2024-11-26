@@ -15,7 +15,6 @@
  *
  */
 import { registerDecorator, type ValidationOptions, type ValidationArguments } from 'class-validator'
-import { ErrorMessages } from "./error_messages.js";
 
 const isObject = (obj) => obj === Object(obj)
 
