@@ -20,20 +20,21 @@ import { stringify } from 'yaml'
 import { expect } from 'chai'
 import { MissingArgumentError, SoloError } from '../../../src/core/errors.js'
 import { getTestCacheDir, testLogger, testLocalConfigData } from '../../test_util.js'
+import {ErrorMessages} from "../../../src/core/error_messages.js";
 
 describe('LocalConfig', () => {
     let localConfig
     const filePath = `${getTestCacheDir('LocalConfig')}/localConfig.yaml`
     const config = testLocalConfigData
 
-    const expectFailedValidation = () => {
+    const expectFailedValidation = (expectedMessage) => {
         try {
             new LocalConfig(filePath, testLogger)
             expect.fail('Expected an error to be thrown')
         }
         catch(error) {
             expect(error).to.be.instanceOf(SoloError)
-            expect(error.message).to.equal('Validation of local config failed')
+            expect(error.message).to.equal(expectedMessage)
         }
     }
 
@@ -176,41 +177,41 @@ describe('LocalConfig', () => {
     it('should throw a validation error if the config file is not a valid LocalConfig', async () => {
         // without any known properties
         await fs.promises.writeFile(filePath, 'foo: bar')
-        expectFailedValidation()
+        expectFailedValidation(ErrorMessages.LOCAL_CONFIG_GENERIC)
 
         // with extra property
         await fs.promises.writeFile(filePath, stringify({ ...config, foo: 'bar' }))
-        expectFailedValidation()
+        expectFailedValidation(ErrorMessages.LOCAL_CONFIG_GENERIC)
     })
 
     it('should throw a validation error if userEmailAddress is not a valid email', async () => {
         await fs.promises.writeFile(filePath, stringify({ ...config, userEmailAddress: 'foo' }))
-        expectFailedValidation()
+        expectFailedValidation(ErrorMessages.LOCAL_CONFIG_INVALID_EMAIL)
 
         await fs.promises.writeFile(filePath, stringify({ ...config, userEmailAddress: 5 }))
-        expectFailedValidation()
+        expectFailedValidation(ErrorMessages.LOCAL_CONFIG_INVALID_EMAIL)
     })
 
     it('should throw a validation error if deployments format is not correct', async () => {
         await fs.promises.writeFile(filePath, stringify({ ...config, deployments: 'foo' }))
-        expectFailedValidation()
+        expectFailedValidation(ErrorMessages.LOCAL_CONFIG_INVALID_DEPLOYMENTS_FORMAT)
 
         await fs.promises.writeFile(filePath, stringify({ ...config, deployments: { 'foo': 'bar' } }))
-        expectFailedValidation()
+        expectFailedValidation(ErrorMessages.LOCAL_CONFIG_INVALID_DEPLOYMENTS_FORMAT)
 
         await fs.promises.writeFile(filePath, stringify({
                 ...config,
                 deployments: [{ 'foo': 'bar' }]
             })
         )
-        expectFailedValidation()
+        expectFailedValidation(ErrorMessages.LOCAL_CONFIG_INVALID_DEPLOYMENTS_FORMAT)
     })
 
     it('should throw a validation error if currentDeploymentName format is not correct', async () => {
         await fs.promises.writeFile(filePath, stringify({ ...config, currentDeploymentName: 5 }))
-        expectFailedValidation()
+        expectFailedValidation(ErrorMessages.LOCAL_CONFIG_CURRENT_DEPLOYMENT_DOES_NOT_EXIST)
 
         await fs.promises.writeFile(filePath, stringify({ ...config, currentDeploymentName: ['foo', 'bar'] }))
-        expectFailedValidation()
+        expectFailedValidation(ErrorMessages.LOCAL_CONFIG_CURRENT_DEPLOYMENT_DOES_NOT_EXIST)
     })
 })

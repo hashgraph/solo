@@ -39,7 +39,7 @@ import { stringify } from 'yaml'
 import { type Cluster, KubeConfig } from '@kubernetes/client-node'
 
 
-describe.only('ContextCommandTasks unit tests', () => {
+describe('ContextCommandTasks unit tests', () => {
     const filePath = `${getTestCacheDir('ContextCommandTasks')}/localConfig.yaml`
 
     const getBaseCommandOpts = () => {

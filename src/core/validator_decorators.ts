@@ -15,6 +15,7 @@
  *
  */
 import { registerDecorator, type ValidationOptions, type ValidationArguments } from 'class-validator'
+import { ErrorMessages } from "./error_messages.js";
 
 const isObject = (obj) => obj === Object(obj)
 
@@ -26,7 +27,6 @@ export const IsDeployments = (validationOptions?: ValidationOptions) => {
             propertyName: propertyName,
             constraints: [],
             options: {
-                message: 'Wrong deployments format',
                 ...validationOptions,
             },
             validator: {

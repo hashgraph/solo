@@ -15,7 +15,6 @@
  *
  */
 import { IsEmail, IsNotEmpty, IsObject, IsString, validateSync } from 'class-validator'
-import { type ListrTask } from 'listr2'
 import fs from 'fs'
 import * as yaml from 'yaml'
 import { flags } from '../../commands/index.js'
@@ -26,21 +25,29 @@ import { type SoloLogger } from '../logging.js'
 import { Task } from '../task.js'
 import { IsDeployments } from '../validator_decorators.js'
 import { Templates } from '../templates.js'
+import { ErrorMessages }  from '../error_messages.js'
 
 export class LocalConfig implements LocalConfigData {
-    @IsNotEmpty()
-    @IsEmail()
+    @IsEmail({}, {
+        message: ErrorMessages.LOCAL_CONFIG_INVALID_EMAIL
+    })
     userEmailAddress: string
 
     // The string is the name of the deployment, will be used as the namespace,
     // so it needs to be available in all targeted clusters
+    @IsDeployments({
+        message: ErrorMessages.LOCAL_CONFIG_INVALID_DEPLOYMENTS_FORMAT
+    })
     @IsNotEmpty()
-    @IsObject()
-    @IsDeployments()
+    @IsObject({
+        message: ErrorMessages.LOCAL_CONFIG_INVALID_DEPLOYMENTS_FORMAT
+    })
     deployments: Deployments
 
+    @IsString({
+        message: ErrorMessages.LOCAL_CONFIG_CURRENT_DEPLOYMENT_DOES_NOT_EXIST
+    })
     @IsNotEmpty()
-    @IsString()
     currentDeploymentName : string
 
     private readonly skipPromptTask: boolean = false
@@ -56,7 +63,7 @@ export class LocalConfig implements LocalConfigData {
 
             for(const key in parsedConfig) {
                 if (!allowedKeys.includes(key)) {
-                    throw new SoloError('Validation of local config failed')
+                    throw new SoloError(ErrorMessages.LOCAL_CONFIG_GENERIC)
                 }
                 this[key] = parsedConfig[key]
             }
@@ -67,20 +74,23 @@ export class LocalConfig implements LocalConfigData {
     }
 
     private validate () {
-        const genericMessage = 'Validation of local config failed'
         const errors = validateSync(this, {})
 
         if (errors.length) {
-            throw new SoloError(genericMessage)
-        }
-
-        try {
-            // Custom validations:
-            if (!this.deployments[this.currentDeploymentName]) {
-                throw new SoloError(genericMessage)
+            // throw the first error:
+            const prop = Object.keys(errors[0]?.constraints)
+            if (prop[0]) {
+                throw new SoloError(errors[0].constraints[prop[0]])
+            }
+            else {
+                throw new SoloError(ErrorMessages.LOCAL_CONFIG_GENERIC)
             }
         }
-        catch(e: any) { throw new SoloError(genericMessage) }
+
+        // Custom validations:
+        if (!this.deployments[this.currentDeploymentName]) {
+            throw new SoloError(ErrorMessages.LOCAL_CONFIG_CURRENT_DEPLOYMENT_DOES_NOT_EXIST)
+        }
     }
 
     public setUserEmailAddress (emailAddress: string): this {
