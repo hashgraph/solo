@@ -82,7 +82,7 @@ tasks:
       - solo network deploy --namespace "${SOLO_NAMESPACE}" --node-aliases-unparsed {{.node_identifiers}} --release-tag "${CONSENSUS_NODE_VERSION}" --solo-chart-version "${SOLO_CHART_VERSION}" --values-file {{ .solo_values_file }} --settings-txt {{ .solo_settings_file }}
       - solo node setup --namespace "${SOLO_NAMESPACE}" --node-aliases-unparsed {{.node_identifiers}} --release-tag "${CONSENSUS_NODE_VERSION}"
 
-  # Do not use node:addresses from HelperTasks.yml since we need to output the list of external IPs
+  # Do not use node:addresses from HelperTasks.yml since we need to use template file to get output the list of IPs
   solo:node:addresses:
     internal: true
     cmds:
