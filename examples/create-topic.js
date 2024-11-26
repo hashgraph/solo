@@ -35,8 +35,8 @@ async function main() {
         let transaction = await new TopicCreateTransaction().freezeWithSigner(
             wallet,
         );
-        console.log('before sign transaction');
         transaction = await transaction.signWithSigner(wallet);
+        console.log('after sign transaction');
         const createResponse = await transaction.executeWithSigner(wallet);
         const createReceipt = await createResponse.getReceiptWithSigner(wallet);
 
