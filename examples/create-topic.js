@@ -20,6 +20,7 @@ async function main() {
         );
     }
 
+    console.log(`Hedera network = ${process.env.HEDERA_NETWORK}`);
     const provider = new LocalProvider();
 
     const wallet = new Wallet(
@@ -29,10 +30,12 @@ async function main() {
     );
 
     try {
+        console.log('before create topic');
         // create topic
         let transaction = await new TopicCreateTransaction().freezeWithSigner(
             wallet,
         );
+        console.log('before sign transaction');
         transaction = await transaction.signWithSigner(wallet);
         const createResponse = await transaction.executeWithSigner(wallet);
         const createReceipt = await createResponse.getReceiptWithSigner(wallet);
