@@ -161,5 +161,5 @@ clone_smart_contract_repo
 setup_smart_contract_test
 start_background_transactions
 background_keep_port_forward
-start_contract_test
+retry_contract_test
 start_sdk_test
