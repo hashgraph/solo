@@ -73,4 +73,5 @@ jobs:
       - name: Run Example Task File Test
         run: |
           task default-with-relay
+          .github/workflows/scripts/solo-smoke-test.sh
           task clean
