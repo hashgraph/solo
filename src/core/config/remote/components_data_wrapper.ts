@@ -119,6 +119,22 @@ export class ComponentsDataWrapper implements Validate, ToObject<ComponentsDataS
 
   /* -------- Utilities -------- */
 
+  public getComponent <T extends BaseComponent> (type: ComponentType, serviceName: ComponentName): T {
+    let component: T
+
+    function getComponentCallback (components: Record<ComponentName, BaseComponent>): void {
+      if (!components.hasOwnProperty(serviceName)) {
+        throw new SoloError(`Component ${serviceName} of type ${type} not found while attempting to read`)
+      }
+
+      component = components[serviceName] as T
+    }
+
+    this.applyCallbackToComponentGroup(type, serviceName, getComponentCallback)
+
+    return component
+  }
+
   /**
    * Method used to map the type to the specific component group
    * and pass it to a callback to apply modifications
@@ -230,7 +246,7 @@ export class ComponentsDataWrapper implements Validate, ToObject<ComponentsDataS
   /** Used to create an empty instance used to keep the constructor private */
   public static initializeEmpty (): ComponentsDataWrapper { return new ComponentsDataWrapper() }
 
-  /** checks if component exist in the respective group */
+  /** checks if component exists in the respective group */
   private exists (components: Record<ComponentName, BaseComponent>, newComponent: BaseComponent): boolean {
     return Object.values(components).some(component => BaseComponent.compare(component, newComponent))
   }
@@ -276,5 +292,11 @@ export class ComponentsDataWrapper implements Validate, ToObject<ComponentsDataS
       [ComponentType.ConsensusNode]: transform(this.consensusNodes),
       [ComponentType.MirrorNodeExplorer]: transform(this.mirrorNodeExplorers),
     }
+  }
+
+  public clone (): ComponentsDataWrapper {
+    const data = this.toObject()
+
+    return ComponentsDataWrapper.fromObject(data)
   }
 }

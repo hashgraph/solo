@@ -19,7 +19,7 @@ import fs from 'fs'
 import * as yaml from 'yaml'
 import { flags } from '../../commands/index.js'
 import { MissingArgumentError, SoloError } from '../errors.js'
-import { promptDeploymentClusters, promptDeploymentName, promptUserEmailAddress } from '../../commands/prompts.js'
+import { promptDeploymentClusters, promptUserEmailAddress } from '../../commands/prompts.js'
 import { IsDeployments } from '../validator_decorators.js'
 import type { ListrTask, ListrTaskWrapper } from 'listr2'
 import type { Deployments, LocalConfigData, DeploymentStructure } from './local_config_data.js'
@@ -100,7 +100,7 @@ export class LocalConfig implements LocalConfigData {
     return this
   }
 
-  public setCurrentDeployment (deploymentName: string): this {
+  public setCurrentDeployment (deploymentName: Namespace): this {
     this.currentDeploymentName = deploymentName
     this.validate()
     return this
@@ -134,8 +134,8 @@ export class LocalConfig implements LocalConfigData {
         let userEmailAddress = self.configManager.getFlag<EmailAddress>(flags.userEmailAddress)
         if (!userEmailAddress) userEmailAddress = await promptUserEmailAddress(task, userEmailAddress)
 
-        let deploymentName = self.configManager.getFlag<Namespace>(flags.deploymentName)
-        if (!deploymentName) deploymentName = await promptDeploymentName(task, deploymentName)
+        const deploymentName = self.configManager.getFlag<Namespace>(flags.namespace)
+        if (!deploymentName) throw new SoloError('Namespace was not specified')
 
         let deploymentClusters = self.configManager.getFlag<string>(flags.deploymentClusters)
         if (!deploymentClusters) deploymentClusters = await promptDeploymentClusters(task, deploymentClusters)

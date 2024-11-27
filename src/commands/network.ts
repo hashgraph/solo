@@ -440,7 +440,8 @@ export class NetworkCommand extends BaseCommand {
                }
              })
            }
-      }
+      },
+      RemoteConfigTasks.addNodesAndProxies.bind(this)(),
     ], {
       concurrent: false,
       rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION

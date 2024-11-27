@@ -1347,10 +1347,10 @@ export class K8 {
    * @throws SoloError - if the status code is not OK
    */
   private _handleKubernetesClientError (response: http.IncomingMessage, error: Error | any, errorMessage: string): void {
-    const statusCode = +response.statusCode
+    const statusCode = +response?.statusCode || 500
 
     if (statusCode <= 202) return
-    errorMessage += `, statusCode: ${response.statusCode}`
+    errorMessage += `, statusCode: ${statusCode}`
     this.logger.error(errorMessage, error)
 
     throw new SoloError(errorMessage, errorMessage, { statusCode: statusCode })

@@ -265,7 +265,6 @@ export class NodeCommandHandlers {
   async freezeUpgrade (argv: any) {
     argv = helpers.addFlagsToArgv(argv, NodeFlags.DEFAULT_FLAGS)
 
-
     const action = helpers.commandActionBuilder([
       this.tasks.initialize(argv, prepareUpgradeConfigBuilder.bind(this), null),
       RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
@@ -548,6 +547,8 @@ export class NodeCommandHandlers {
     const action = helpers.commandActionBuilder([
       this.tasks.initialize(argv, refreshConfigBuilder.bind(this), lease),
       RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
+      RemoteConfigTasks.validateAllNodeStates.bind(this)([
+        ConsensusNodeStates.STARTED, ConsensusNodeStates.SETUP, ConsensusNodeStates.INITIALIZED ]),
       this.tasks.identifyNetworkPods(),
       this.tasks.dumpNetworkNodesSaveState(),
       this.tasks.fetchPlatformSoftware('nodeAliases'),
@@ -590,9 +591,10 @@ export class NodeCommandHandlers {
     const action = helpers.commandActionBuilder([
       this.tasks.initialize(argv, stopConfigBuilder.bind(this), lease),
       RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
+      RemoteConfigTasks.validateAllNodeStates.bind(this)([ ConsensusNodeStates.STARTED, ConsensusNodeStates.SETUP ]),
       this.tasks.identifyNetworkPods(),
       this.tasks.stopNodes(),
-      RemoteConfigTasks.changeAllNodeStates.bind(this)(ConsensusNodeStates.SETUP),
+      RemoteConfigTasks.changeAllNodeStates.bind(this)(ConsensusNodeStates.INITIALIZED),
     ], {
       concurrent: false,
       rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
@@ -610,6 +612,7 @@ export class NodeCommandHandlers {
     const action = helpers.commandActionBuilder([
       this.tasks.initialize(argv, startConfigBuilder.bind(this), lease),
       RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
+      RemoteConfigTasks.validateAllNodeStates.bind(this)([ ConsensusNodeStates.SETUP ]),
       this.tasks.identifyExistingNodes(),
       this.tasks.uploadStateFiles(
           (ctx: any) => ctx.config.stateFile.length === 0
@@ -637,6 +640,7 @@ export class NodeCommandHandlers {
     const action = helpers.commandActionBuilder([
       this.tasks.initialize(argv, setupConfigBuilder.bind(this), lease),
       RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
+      RemoteConfigTasks.validateAllNodeStates.bind(this)([ ConsensusNodeStates.INITIALIZED ]),
       this.tasks.identifyNetworkPods(),
       this.tasks.fetchPlatformSoftware('nodeAliases'),
       this.tasks.setupNetworkNodes('nodeAliases'),

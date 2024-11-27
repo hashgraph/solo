@@ -18,15 +18,17 @@ import {
   RelayComponent, HaProxyComponent, EnvoyProxyComponent, MirrorNodeComponent, ConsensusNodeComponent,
 } from './components/index.js'
 import { ComponentType, ConsensusNodeStates } from './enumerations.js'
+import chalk from 'chalk'
+import { SoloError } from '../../errors.js'
 
+import type { Listr, ListrTask } from 'listr2'
+import type { NodeAliases } from '../../../types/aliases.js'
 import type { BaseCommand } from '../../../commands/base.js'
 import type { RelayCommand } from '../../../commands/relay.js'
 import type { NetworkCommand } from '../../../commands/network.js'
 import type { DeploymentCommand } from '../../../commands/deployment.js'
 import type { MirrorNodeCommand } from '../../../commands/mirror_node.js'
 import type { NodeCommandHandlers } from '../../../commands/node/handlers.js'
-import type { ListrTask } from 'listr2'
-import type { NodeAliases } from '../../../types/aliases.js'
 
 /**
  * Static class that handles all tasks related to remote config used by other commands.
@@ -36,7 +38,7 @@ export class RemoteConfigTasks {
   /* ----------- Create and Load ----------- */
 
   /**
-   * Loads the remote config from the config class
+   * Loads the remote config from the config class.
    *
    * @param argv - used to update the last executed command and command history
    */
@@ -44,14 +46,14 @@ export class RemoteConfigTasks {
     return this.remoteConfigManager.buildLoadTask(argv)
   }
 
-  /** Creates remote config */
+  /** Creates remote config. */
   public static createRemoteConfig (this: DeploymentCommand): ListrTask<any, any, any> {
     return this.remoteConfigManager.buildCreateTask()
   }
 
   /* ----------- Component Modifying ----------- */
 
-  /** Adds the relay component to remote config */
+  /** Adds the relay component to remote config. */
   public static addRelayComponent (this: RelayCommand): ListrTask<any, any, any> {
     return {
       title: 'Add relay component in remote config',
@@ -69,7 +71,7 @@ export class RemoteConfigTasks {
     }
   }
 
-  /** Remove the relay component from remote config */
+  /** Remove the relay component from remote config. */
   public static removeRelayComponent (this: RelayCommand): ListrTask<any, any, any> {
     return {
       title: 'Remove relay component from remote config',
@@ -81,7 +83,7 @@ export class RemoteConfigTasks {
     }
   }
 
-  /** Adds the mirror node and mirror node explorer components to remote config */
+  /** Adds the mirror node and mirror node explorer components to remote config. */
   public static addMirrorNodeAndMirrorNodeToExplorer (this: MirrorNodeCommand): ListrTask<any, any, any> {
     return {
       title: 'Add mirror node and mirror node explorer to remote config',
@@ -104,7 +106,7 @@ export class RemoteConfigTasks {
     }
   }
 
-  /** Removes the mirror node and mirror node explorer components from remote config */
+  /** Removes the mirror node and mirror node explorer components from remote config. */
   public static removeMirrorNodeAndMirrorNodeToExplorer (this: MirrorNodeCommand): ListrTask<any, any, any> {
     return {
       title: 'Remove mirror node and mirror node explorer from remote config',
@@ -118,7 +120,7 @@ export class RemoteConfigTasks {
     }
   }
 
-  /** Adds the consensus node, envoy and haproxy components to remote config  */
+  /** Adds the consensus node, envoy and haproxy components to remote config.  */
   public static addNodesAndProxies (this: NetworkCommand): ListrTask<any, any, any> {
     return {
       title: 'Add node and proxies to remote config',
@@ -148,7 +150,7 @@ export class RemoteConfigTasks {
     }
   }
 
-  /** Removes the consensus node, envoy and haproxy components from remote config  */
+  /** Removes the consensus node, envoy and haproxy components from remote config.  */
   public static removeNodeAndProxies (this: NodeCommandHandlers): ListrTask<any, any, any> {
     return {
       title: 'Remove node and proxies from remote config',
@@ -163,14 +165,16 @@ export class RemoteConfigTasks {
   }
 
   /**
-   * Changes the state from all consensus nodes components in remote config
+   * Changes the state from all consensus nodes components in remote config.
    *
    * @param state - to which to change the consensus node component
    */
   public static changeAllNodeStates (this: NodeCommandHandlers, state: ConsensusNodeStates): ListrTask<any, any, any> {
+    interface Context { config: { namespace: string, nodeAliases: NodeAliases } }
+
     return {
       title: `Change node state to ${state} in remote config`,
-      task: async (ctx: { config: { namespace: string, nodeAliases: NodeAliases } }): Promise<void> => {
+      task: async (ctx: Context): Promise<void> => {
         await this.remoteConfigManager.modify(async (remoteConfig) => {
           const { config: { namespace, nodeAliases } } = ctx
           const cluster = this.remoteConfigManager.currentCluster
@@ -181,6 +185,60 @@ export class RemoteConfigTasks {
               new ConsensusNodeComponent(nodeAlias, cluster, namespace, state)
             )
           }
+        })
+      }
+    }
+  }
+
+  /**
+   * Creates tasks to validate that each node state is one of the accepted states.
+   *
+   * @param acceptedStates - the state at which the nodes can be, not matching any of the states throws and error
+   */
+  public static validateAllNodeStates (
+    this: NodeCommandHandlers,
+    acceptedStates: ConsensusNodeStates[]
+  ): ListrTask<any, any, any> {
+    interface Context { config: { namespace: string, nodeAliases: NodeAliases } }
+
+    return {
+      title: 'Validate nodes states',
+      task: async (ctx: Context, task): Promise<Listr<any, any, any>> => {
+        const { config: { namespace, nodeAliases } } = ctx
+        const components = this.remoteConfigManager.components
+
+        const subTasks: ListrTask<Context, any, any>[] = []
+
+        for (const nodeAlias of nodeAliases) {
+          subTasks.push({
+            title: `Validating state for node ${nodeAlias}`,
+            task: async (_, task): Promise<void> => {
+              let nodeComponent: ConsensusNodeComponent
+              try {
+                nodeComponent = components.getComponent<ConsensusNodeComponent>(
+                  ComponentType.ConsensusNode,
+                  nodeAlias
+                )
+              } catch (e) {
+                throw new SoloError(`${nodeAlias} not found in remote config for namespace ${namespace}`)
+              }
+
+              if (!acceptedStates.includes(nodeComponent.state)) {
+                const errorMessageData =
+                  `accepted states: ${acceptedStates.join(', ')}, ` +
+                  `current state: ${nodeComponent.state}`
+
+                throw new SoloError(`${nodeAlias} has invalid state - ` + errorMessageData)
+              }
+
+              task.title = `${task.title} - ${chalk.green('valid state')}: ${chalk.cyan(nodeComponent.state)}`
+            }
+          })
+        }
+
+        return task.newListr(subTasks, {
+          concurrent: false,
+          rendererOptions: { collapseSubtasks: false }
         })
       }
     }

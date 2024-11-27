@@ -600,6 +600,9 @@ export class NodeCommandTasks {
     const self = this
     return new Task('Download generated files from an existing node', async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
       const config = ctx.config
+
+      // TODO: Note seems this doesn't work if you have only one node
+      
       // don't try to download from the same node we are deleting, it won't work
       const nodeAlias = ctx.config.nodeAlias === config.existingNodeAliases[0] ? config.existingNodeAliases[1] : config.existingNodeAliases[0]
 

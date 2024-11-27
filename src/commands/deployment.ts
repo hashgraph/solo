@@ -31,7 +31,6 @@ export class DeploymentCommand extends BaseCommand {
     return [
       flags.quiet,
       flags.namespace,
-      flags.deploymentName,
       flags.userEmailAddress,
       flags.deploymentClusters,
       flags.contextClusterUnparsed,
@@ -55,7 +54,7 @@ export class DeploymentCommand extends BaseCommand {
           self.configManager.update(argv)
           self.logger.debug('Loaded cached config', { config: self.configManager.config })
 
-          await prompts.execute(task, self.configManager, [flags.namespace])
+          await prompts.execute(task, self.configManager, DeploymentCommand.DEPLOY_FLAGS_LIST)
 
           ctx.config = {
             contextClusterUnparsed: self.configManager.getFlag<string>(flags.contextClusterUnparsed),

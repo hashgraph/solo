@@ -37,5 +37,6 @@ export enum ConsensusNodeStates {
   SETUP = 'setup',
   STARTED = 'started',
   FREEZED = 'freezed',
+  STOPPED = 'stopped',
 }
 

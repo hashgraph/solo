@@ -763,17 +763,6 @@ export const userEmailAddress: CommandFlag = {
   name: 'email',
   definition: {
     describe: 'User email address used for local configuration',
-    defaultValue: '',
-    type: 'string'
-  }
-}
-
-export const deploymentName: CommandFlag = {
-  constName: 'deploymentName',
-  name: 'deployment-name',
-  definition: {
-    describe: 'Solo deployment name',
-    defaultValue: '',
     type: 'string'
   }
 }
@@ -783,7 +772,6 @@ export const deploymentClusters: CommandFlag = {
   name: 'deployment-clusters',
   definition: {
     describe: 'Solo deployment cluster list (comma separated)',
-    defaultValue: '',
     type: 'string'
   }
 }
@@ -875,7 +863,6 @@ export const allFlags: CommandFlag[] = [
   deployHederaExplorer,
   deployJsonRpcRelay,
   deploymentClusters,
-  deploymentName,
   deployMinio,
   deployPrometheusStack,
   devMode,

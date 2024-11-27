@@ -61,6 +61,11 @@ export class RemoteConfigManager {
     return this.localConfig.currentDeploymentName as Cluster
   }
 
+  /** @returns the components data wrapper cloned */
+  public get components (): ComponentsDataWrapper {
+    return this.remoteConfig.components.clone()
+  }
+
   /* ---------- Readers and Modifiers ---------- */
 
   /**

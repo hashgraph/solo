@@ -20,7 +20,7 @@ import { SoloError, IllegalArgumentError } from '../core/errors.js'
 import { ConfigManager, constants } from '../core/index.js'
 import * as flags from './flags.js'
 import * as helpers from '../core/helpers.js'
-import { hederaExplorerVersion, resetDisabledPrompts } from './flags.js'
+import { resetDisabledPrompts } from './flags.js'
 import type { ListrTaskWrapper } from 'listr2'
 import { type CommandFlag } from '../types/index.js'
 import validator from 'validator'
@@ -368,6 +368,10 @@ export async function promptUpdateAccountKeys (task: ListrTaskWrapper<any, any, 
 }
 
 export async function promptUserEmailAddress (task: ListrTaskWrapper<any, any, any>, input: any) {
+  if (input?.length) {
+    return input
+  }
+
   const promptForInput = async () => {
     return await task.prompt(ListrEnquirerPromptAdapter).run({
       type: 'text',
@@ -381,14 +385,6 @@ export async function promptUserEmailAddress (task: ListrTaskWrapper<any, any, a
   }
 
   return input
-}
-
-export async function promptDeploymentName (task: ListrTaskWrapper<any, any, any>, input: any) {
-  return await promptText(task, input,
-    flags.deploymentName.definition.defaultValue,
-    'Enter the Solo deployment name: ',
-    null,
-    flags.deploymentName.name)
 }
 
 export async function promptDeploymentClusters (task: ListrTaskWrapper<any, any, any>, input: any) {
@@ -592,7 +588,7 @@ export function getPromptMap (): Map<string, Function> {
     .set(flags.outputDir.name, promptOutputDir)
     .set(flags.contextClusterUnparsed.name, promptContextCluster)
     .set(flags.context.name, promptContext)
-    .set(flags.deploymentName.name, promptDeploymentName)
+    .set(flags.deploymentClusters.name, promptDeploymentClusters)
 
     //! Node Proxy Certificates
     .set(flags.grpcTlsCertificatePath.name, promptGrpcTlsCertificatePath)
@@ -622,7 +618,7 @@ export async function execute (task: ListrTaskWrapper<any, any, any>, configMana
       throw new SoloError(`No prompt available for flag: ${flag.name}`)
     }
 
-    const prompt = prompts.get(flag.name) as Function
+    const prompt = prompts.get(flag.name) as (task: ListrTaskWrapper<any, any, any>, input: any) => Promise<any>
     if (configManager.getFlag(flags.quiet)) {
       return
     }
