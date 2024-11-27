@@ -202,6 +202,16 @@ export const deployJsonRpcRelay: CommandFlag = {
   }
 }
 
+export const stateFile: CommandFlag = {
+  constName: 'stateFile',
+  name: 'state-file',
+  definition: {
+    describe: 'A zipped state file to be used for the network',
+    defaultValue: '',
+    type: 'string'
+  }
+}
+
 export const releaseTag: CommandFlag = {
   constName: 'releaseTag',
   name: 'release-tag',
@@ -903,6 +913,7 @@ export const allFlags: CommandFlag[] = [
   relayReleaseTag,
   releaseTag,
   replicaCount,
+  stateFile,
   setAlias,
   settingTxt,
   stakeAmounts,

@@ -139,6 +139,13 @@ export class NodeCommand extends BaseCommand {
           }, NodeFlags.LOGS_FLAGS))
 
           .command(new YargsCommand({
+            command: 'states',
+            description: 'Download hedera states from the network nodes and stores them in <SOLO_LOGS_DIR>/<namespace>/<podName>/ directory',
+            commandDef: nodeCmd,
+            handler: 'states'
+          }, NodeFlags.STATES_FLAGS))
+
+          .command(new YargsCommand({
             command: 'add',
             description: 'Adds a node with a specific version of Hedera platform',
             commandDef: nodeCmd,

@@ -12,3 +12,4 @@ crypto.enableNewKeyStoreModel,                 true
 
 # TODO: remove this? only defaults to true when going from 0.52 to 0.53
 event.migrateEventHashing, false
+state.saveStatePeriod, 60

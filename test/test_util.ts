@@ -117,6 +117,9 @@ interface TestOpts {
 interface BootstrapResponse {
   namespace: string,
   opts: TestOpts,
+  manager: {
+    accountManager: AccountManager
+  },
   cmd: {
     initCmd: InitCommand,
     clusterCmd: ClusterCommand,
@@ -185,6 +188,9 @@ export function bootstrapTestVariables (
   return {
     namespace,
     opts,
+    manager: {
+      accountManager
+    },
     cmd: {
       initCmd,
       clusterCmd,
