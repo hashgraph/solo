@@ -25,6 +25,8 @@ import { getFileContents, getEnvValue } from '../core/helpers.js'
 import { type PodName } from '../types/aliases.js'
 import { type Opts } from '../types/index.js'
 import { ListrLease } from '../core/lease/listr_lease.js'
+import {AccountId} from "@hashgraph/sdk";
+import chalk from "chalk";
 
 export class MirrorNodeCommand extends BaseCommand {
   private readonly accountManager: AccountManager
@@ -56,6 +58,16 @@ export class MirrorNodeCommand extends BaseCommand {
       flags.profileName,
       flags.quiet,
       flags.tlsClusterIssuerType,
+      flags.valuesFile,
+      flags.mirrorNodeVersion
+    ]
+  }
+
+  static get START_PINGER_FLAGS_LIST () {
+    return [
+      flags.chartDirectory,
+      flags.namespace,
+      flags.quiet,
       flags.valuesFile,
       flags.mirrorNodeVersion
     ]
@@ -440,6 +452,138 @@ export class MirrorNodeCommand extends BaseCommand {
     return true
   }
 
+
+  async startPinger (argv: any) {
+    const self = this
+    const lease = await self.leaseManager.create()
+
+    interface MirrorNodeDeployConfigClass {
+      chartDirectory: string
+      deployHederaExplorer: boolean
+      enableHederaExplorerTls: string
+      hederaExplorerTlsHostName: string
+      hederaExplorerTlsLoadBalancerIp: string
+      hederaExplorerVersion: string
+      namespace: string
+      profileFile: string
+      profileName: string
+      tlsClusterIssuerType: string
+      valuesFile: string
+      chartPath: string
+      valuesArg: string
+      mirrorNodeVersion: string
+      getUnusedConfigs: () => string[]
+    }
+
+    interface Context {
+      config: MirrorNodeDeployConfigClass
+      addressBook: string
+    }
+
+    const tasks = new Listr<Context>([
+      {
+        title: 'Initialize',
+        task: async (ctx, task) => {
+          self.configManager.update(argv)
+
+          // disable the prompts that we don't want to prompt the user for
+          prompts.disablePrompts([
+            flags.chartDirectory,
+            flags.deployHederaExplorer,
+            flags.enableHederaExplorerTls,
+            flags.hederaExplorerTlsHostName,
+            flags.hederaExplorerTlsLoadBalancerIp,
+            flags.hederaExplorerVersion,
+            flags.tlsClusterIssuerType,
+            flags.valuesFile,
+            flags.mirrorNodeVersion
+          ])
+
+          await prompts.execute(task, self.configManager, MirrorNodeCommand.START_PINGER_FLAGS_LIST)
+
+          ctx.config = this.getConfig(MirrorNodeCommand.DEPLOY_CONFIGS_NAME, MirrorNodeCommand.START_PINGER_FLAGS_LIST,
+              ['chartPath', 'valuesArg']) as MirrorNodeDeployConfigClass
+
+          ctx.config.chartPath = await self.prepareChartPath('', // don't use chartPath which is for local solo-charts only
+              constants.MIRROR_NODE_RELEASE_NAME, constants.MIRROR_NODE_CHART)
+
+          ctx.config.valuesArg = await self.prepareValuesArg(ctx.config)
+
+          ctx.config.valuesArg += this.prepareValuesFiles(constants.MIRROR_NODE_VALUES_FILE)
+
+
+          // Prepare values for Monitor Pinger
+          const startAccId = constants.HEDERA_NODE_ACCOUNT_ID_START
+          const networkPods = await this.k8.getPodsByLabel(['solo.hedera.com/type=network-node'])
+          const grpcPod = await this.k8.getPodsByLabel(['app.kubernetes.io/name=grpc'])
+          const restPod = await this.k8.getPodsByLabel(['app.kubernetes.io/name=rest'])
+
+          if (grpcPod.length && restPod.length) {
+            for (let i = 0; i < networkPods.length; i++) {
+              const pod = networkPods[i]
+              const accountId = new AccountId(startAccId.realm as number, startAccId.shard as number, Number(startAccId.num) + 1)
+              ctx.config.valuesArg += ` --set monitor.config.hedera.mirror.monitor.nodes.${i}.accountId=${accountId}`
+              // ctx.config.valuesArg += ` --set monitor.config.hedera.mirror.monitor.nodes.${i}.host=haproxy-node1-8657f78cdf-f4sfv`
+              ctx.config.valuesArg += ` --set monitor.config.hedera.mirror.monitor.nodes.${i}.host=${pod.metadata.name}`
+            }
+
+            ctx.config.valuesArg += ` --set monitor.config.hedera.mirror.monitor.operator.accountId=${constants.OPERATOR_ID}`
+            ctx.config.valuesArg += ` --set monitor.config.hedera.mirror.monitor.operator.privateKey=${constants.OPERATOR_KEY}`
+
+            ctx.config.valuesArg += ` --set monitor.config.hedera.mirror.monitor.mirrorNode.grpc.host=${grpcPod[0].metadata.name}`
+            ctx.config.valuesArg += ' --set monitor.config.hedera.mirror.monitor.mirrorNode.grpc.port=5600'
+            ctx.config.valuesArg += ` --set monitor.config.hedera.mirror.monitor.mirrorNode.rest.host=${restPod[0].metadata.name}`
+            ctx.config.valuesArg += ' --set monitor.config.hedera.mirror.monitor.mirrorNode.rest.port=5551'
+          }
+
+
+          if (!await self.k8.hasNamespace(ctx.config.namespace)) {
+            throw new SoloError(`namespace ${ctx.config.namespace} does not exist`)
+          }
+
+          await self.accountManager.loadNodeClient(ctx.config.namespace)
+
+          return ListrLease.newAcquireLeaseTask(lease, task)
+        }
+      },
+      {
+        title: 'Deploy mirror-node',
+        task: async (ctx) => {
+          await self.chartManager.install(ctx.config.namespace, constants.MIRROR_NODE_RELEASE_NAME, ctx.config.chartPath, ctx.config.mirrorNodeVersion, ctx.config.valuesArg)
+        }
+      },
+      // {
+      //   title: `Restart Monitor pod`,
+      //   task: async () => {
+      //     const podName = await self.k8.getPodByName(['app.kubernetes.io/name=monitor'])
+      //     await this.k8.execContainer(podName, constants.ROOT_CONTAINER, ['systemctl', 'restart', 'network-node'])
+      //   }
+      // },
+      {
+        title: 'Check Monitor',
+        task: async () => await self.k8.waitForPodReady([
+          'app.kubernetes.io/component=monitor',
+          'app.kubernetes.io/name=monitor'
+        ], 1, constants.PODS_READY_MAX_ATTEMPTS, constants.PODS_READY_DELAY)
+      }
+    ], {
+      concurrent: false,
+      rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
+    })
+
+    try {
+      await tasks.run()
+      self.logger.debug('mirror node depolyment has completed')
+    } catch (e: Error | any) {
+      throw new SoloError(`Error deploying node: ${e.message}`, e)
+    } finally {
+      await lease.release()
+      await self.accountManager.close()
+    }
+
+    return true
+  }
+
   /** Return Yargs command definition for 'mirror-mirror-node' command */
   getCommandDefinition (): { command: string; desc: string; builder: Function } {
     const mirrorNodeCmd = this
@@ -479,6 +623,27 @@ export class MirrorNodeCommand extends BaseCommand {
 
               mirrorNodeCmd.destroy(argv).then(r => {
                 mirrorNodeCmd.logger.debug('==== Finished running `mirror-node destroy`====')
+                if (!r) process.exit(1)
+              }).catch(err => {
+                mirrorNodeCmd.logger.showUserError(err)
+                process.exit(1)
+              })
+            }
+          })
+          .command({
+            command: 'start-pinger',
+            desc: 'Restarts the monitor pod and configures a pinger service',
+            builder: (y: any) => flags.setCommandFlags(y,
+              flags.chartDirectory,
+              flags.force,
+              flags.namespace
+            ),
+            handler: (argv: any) => {
+              mirrorNodeCmd.logger.debug('==== Running \'mirror-node start-pinger\' ===')
+              mirrorNodeCmd.logger.debug(argv)
+
+              mirrorNodeCmd.startPinger(argv).then(r => {
+                mirrorNodeCmd.logger.debug('==== Finished running `mirror-node start-pinger`====')
                 if (!r) process.exit(1)
               }).catch(err => {
                 mirrorNodeCmd.logger.showUserError(err)
