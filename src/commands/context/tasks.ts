@@ -79,10 +79,7 @@ export class ContextCommandTasks {
 
       this.parent.getK8().getKubeConfig().setCurrentContext(contextName)
 
-      this.parent.logger.info(`currentDeploymentName: ${currentDeploymentName}`)
-      this.parent.logger.info(`contextName: ${contextName}`)
-      this.parent.logger.info(`clusterAliases: ${clusterAliases.join(' ')}`)
-      this.parent.logger.info('Save LocalConfig file')
+      this.parent.logger.info(`Save LocalConfig file: [currentDeploymentName: ${currentDeploymentName}, contextName: ${contextName}, clusterAliases: ${clusterAliases.join(' ')}]`)
       await this.parent.getLocalConfig().write()
     })
   }

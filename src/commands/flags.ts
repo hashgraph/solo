@@ -752,7 +752,7 @@ export const context: CommandFlag = {
   constName: 'contextName',
   name: 'context',
   definition: {
-    describe: 'The kind context name to be used',
+    describe: 'The Kubernetes context name to be used',
     defaultValue: '',
     type: 'string'
   }

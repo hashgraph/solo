@@ -17,12 +17,6 @@
 
 import * as flags from '../flags.js'
 
-export const DEFAULT_FLAGS = {
-    requiredFlags: [],
-    requiredFlagsWithDisabledPrompt: [flags.namespace, flags.cacheDir, flags.releaseTag],
-    optionalFlags: [flags.devMode]
-}
-
 export const USE_FLAGS = {
     requiredFlags: [],
     requiredFlagsWithDisabledPrompt: [],
