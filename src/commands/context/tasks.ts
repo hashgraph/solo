@@ -41,7 +41,7 @@ export class ContextCommandTasks {
       let clusterAliases = Templates.parseClusterAliases(argv[flags.clusterName.name])
       let contextName = argv[flags.context.name]
 
-      const kubeContexts = await this.parent.getK8().getKubeConfig().getContexts()
+      const kubeContexts = await this.parent.getK8().getContexts()
 
       if (isQuiet) {
         const currentCluster = (await this.parent.getK8().getKubeConfig().getCurrentCluster())

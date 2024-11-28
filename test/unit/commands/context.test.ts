@@ -45,12 +45,12 @@ describe('ContextCommandTasks unit tests', () => {
     const getBaseCommandOpts = () => {
         const loggerStub = sinon.createStubInstance(SoloLogger)
         const k8Stub = sinon.createStubInstance(K8)
-        const kubeConfigStub = sinon.createStubInstance(KubeConfig)
-        kubeConfigStub.getContexts.returns([
+        k8Stub.getContexts.returns([
             { cluster: 'cluster-1', user: 'user-1', name: 'context-1', namespace: 'deployment-1' },
             { cluster: 'cluster-2', user: 'user-2', name: 'context-2', namespace: 'deployment-2' },
             { cluster: 'cluster-3', user: 'user-3', name: 'context-3', namespace: 'deployment-3' },
         ])
+        const kubeConfigStub = sinon.createStubInstance(KubeConfig)
         kubeConfigStub.getCurrentContext.returns('context-3')
         kubeConfigStub.getCurrentContext.returns('context-3')
         kubeConfigStub.getCurrentCluster.returns({

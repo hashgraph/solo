@@ -23,7 +23,7 @@ import { flags } from '../commands/index.js'
 import { SoloError, IllegalArgumentError, MissingArgumentError } from './errors.js'
 import * as tar from 'tar'
 import { v4 as uuid4 } from 'uuid'
-import { type V1Lease, V1ObjectMeta, V1Secret, Config } from '@kubernetes/client-node'
+import { type V1Lease, V1ObjectMeta, V1Secret, type Context } from '@kubernetes/client-node'
 import { sleep } from './helpers.js'
 import { type ConfigManager, constants } from './index.js'
 import * as stream from 'node:stream'
@@ -44,6 +44,8 @@ interface TDirectoryData {directory: boolean; owner: string; group: string; size
  * For parallel execution, create separate instances by invoking clone()
  */
 export class K8 {
+  private _cachedContexts: Context[]
+
   static PodReadyCondition = new Map<string, string>()
     .set(constants.POD_CONDITION_READY, constants.POD_CONDITION_STATUS_TRUE)
   private kubeConfig!: k8s.KubeConfig
@@ -320,13 +322,22 @@ export class K8 {
    * Get a list of contexts
    * @returns a list of context names
    */
-  getContexts () {
+  getContextNames () : string[] {
     const contexts: string[] = []
-    for (const context of this.kubeConfig.getContexts()) {
+
+    for (const context of this.getContexts()) {
       contexts.push(context.name)
     }
 
     return contexts
+  }
+
+  getContexts () :Context[] {
+    if (!this._cachedContexts) {
+      this._cachedContexts = this.kubeConfig.getContexts()
+    }
+
+    return this._cachedContexts
   }
 
   /**

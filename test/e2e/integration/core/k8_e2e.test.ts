@@ -131,6 +131,11 @@ describe('K8', () => {
     expect(namespaces).to.contain(constants.DEFAULT_NAMESPACE)
   }).timeout(defaultTimeout)
 
+  it('should be able to list context names', () => {
+    const contexts = k8.getContextNames()
+    expect(contexts).not.to.have.lengthOf(0)
+  }).timeout(defaultTimeout)
+
   it('should be able to list contexts', () => {
     const contexts = k8.getContexts()
     expect(contexts).not.to.have.lengthOf(0)
