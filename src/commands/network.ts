@@ -567,8 +567,8 @@ export class NetworkCommand extends BaseCommand {
             config.namespace,
             constants.SOLO_DEPLOYMENT_CHART,
             constants.SOLO_TESTING_CHART_URL + constants.SOLO_DEPLOYMENT_CHART,
-            config.valuesArg,
-            config.soloChartVersion
+            config.soloChartVersion,
+            config.valuesArg
           )
         }
       },

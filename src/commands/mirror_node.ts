@@ -499,9 +499,9 @@ export class MirrorNodeCommand extends BaseCommand {
             flags.mirrorNodeVersion
           ])
 
-          await prompts.execute(task, self.configManager, MirrorNodeCommand.START_PINGER_FLAGS_LIST)
+          await prompts.execute(task, self.configManager, MirrorNodeCommand.DEPLOY_FLAGS_LIST)
 
-          ctx.config = this.getConfig(MirrorNodeCommand.DEPLOY_CONFIGS_NAME, MirrorNodeCommand.START_PINGER_FLAGS_LIST,
+          ctx.config = this.getConfig(MirrorNodeCommand.DEPLOY_CONFIGS_NAME, MirrorNodeCommand.DEPLOY_FLAGS_LIST,
               ['chartPath', 'valuesArg']) as MirrorNodeDeployConfigClass
 
           ctx.config.chartPath = await self.prepareChartPath('', // don't use chartPath which is for local solo-charts only
@@ -521,10 +521,9 @@ export class MirrorNodeCommand extends BaseCommand {
           if (grpcPod.length && restPod.length) {
             for (let i = 0; i < networkPods.length; i++) {
               const pod = networkPods[i]
-              const accountId = new AccountId(startAccId.realm as number, startAccId.shard as number, Number(startAccId.num) + 1)
+              const accountId = new AccountId(startAccId.realm as number, startAccId.shard as number, Number(startAccId.num) + i)
               ctx.config.valuesArg += ` --set monitor.config.hedera.mirror.monitor.nodes.${i}.accountId=${accountId}`
-              // ctx.config.valuesArg += ` --set monitor.config.hedera.mirror.monitor.nodes.${i}.host=haproxy-node1-8657f78cdf-f4sfv`
-              ctx.config.valuesArg += ` --set monitor.config.hedera.mirror.monitor.nodes.${i}.host=${pod.metadata.name}`
+              ctx.config.valuesArg += ` --set monitor.config.hedera.mirror.monitor.nodes.${i}.host=${pod.status.podIP}`
             }
 
             ctx.config.valuesArg += ` --set monitor.config.hedera.mirror.monitor.operator.accountId=${constants.OPERATOR_ID}`
@@ -549,16 +548,18 @@ export class MirrorNodeCommand extends BaseCommand {
       {
         title: 'Deploy mirror-node',
         task: async (ctx) => {
-          await self.chartManager.install(ctx.config.namespace, constants.MIRROR_NODE_RELEASE_NAME, ctx.config.chartPath, ctx.config.mirrorNodeVersion, ctx.config.valuesArg)
+          await self.chartManager.upgrade(ctx.config.namespace, constants.MIRROR_NODE_RELEASE_NAME, ctx.config.chartPath, ctx.config.mirrorNodeVersion, ctx.config.valuesArg)
         }
       },
-      // {
-      //   title: `Restart Monitor pod`,
-      //   task: async () => {
-      //     const podName = await self.k8.getPodByName(['app.kubernetes.io/name=monitor'])
-      //     await this.k8.execContainer(podName, constants.ROOT_CONTAINER, ['systemctl', 'restart', 'network-node'])
-      //   }
-      // },
+      {
+        title: `Restart Monitor pod`,
+        task: async (ctx) => {
+          const monitorPods = await self.k8.getPodsByLabel(['app.kubernetes.io/name=monitor'])
+          for (const pod of monitorPods) {
+            await this.k8.killPod(pod.metadata.name as PodName, ctx.config.namespace)
+          }
+        }
+      },
       {
         title: 'Check Monitor',
         task: async () => await self.k8.waitForPodReady([
@@ -633,10 +634,7 @@ export class MirrorNodeCommand extends BaseCommand {
           .command({
             command: 'start-pinger',
             desc: 'Restarts the monitor pod and configures a pinger service',
-            builder: (y: any) => flags.setCommandFlags(y,
-              flags.chartDirectory,
-              flags.force,
-              flags.namespace
+            builder: (y: any) => flags.setCommandFlags(y, ...MirrorNodeCommand.DEPLOY_FLAGS_LIST
             ),
             handler: (argv: any) => {
               mirrorNodeCmd.logger.debug('==== Running \'mirror-node start-pinger\' ===')
