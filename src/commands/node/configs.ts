@@ -62,15 +62,6 @@ const initializeSetup = async (config, k8) => {
 }
 
 export const prepareUpgradeConfigBuilder = async function (argv, ctx, task) {
-    interface NodePrepareUpgradeConfigClass {
-        cacheDir: string
-        namespace: string
-        releaseTag: string
-        freezeAdminPrivateKey: string
-        nodeClient: any
-        getUnusedConfigs: () => string[]
-    }
-
     const config = this.getConfig(
         PREPARE_UPGRADE_CONFIGS_NAME, argv.flags, [
             'nodeClient',
@@ -87,18 +78,6 @@ export const prepareUpgradeConfigBuilder = async function (argv, ctx, task) {
 }
 
 export const downloadGeneratedFilesConfigBuilder = async function (argv, ctx, task) {
-    interface NodeDownloadGeneratedFilesConfigClass {
-        cacheDir: string
-        namespace: string
-        releaseTag: string
-        freezeAdminPrivateKey: string
-        nodeClient: any
-        getUnusedConfigs: () => string[]
-        existingNodeAliases: NodeAliases[]
-        allNodeAliases: NodeAliases[]
-        serviceMap: Map<string, NetworkNodeServices>
-    }
-
     const config = this.getConfig(
         DOWNLOAD_GENERATED_FILES_CONFIGS_NAME, argv.flags, [
             'allNodeAliases',
@@ -497,4 +476,25 @@ export interface NodeUpdateConfigClass {
     treasuryKey: PrivateKey
     getUnusedConfigs: () => string[]
     curDate: Date
+}
+
+interface NodePrepareUpgradeConfigClass {
+    cacheDir: string
+    namespace: string
+    releaseTag: string
+    freezeAdminPrivateKey: string
+    nodeClient: any
+    getUnusedConfigs: () => string[]
+}
+
+interface NodeDownloadGeneratedFilesConfigClass {
+    cacheDir: string
+    namespace: string
+    releaseTag: string
+    freezeAdminPrivateKey: string
+    nodeClient: any
+    getUnusedConfigs: () => string[]
+    existingNodeAliases: NodeAliases[]
+    allNodeAliases: NodeAliases[]
+    serviceMap: Map<string, NetworkNodeServices>
 }
