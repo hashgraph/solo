@@ -14,36 +14,40 @@
  * limitations under the License.
  *
  */
-import { type BaseCommand } from '../base.js'
-import { type ContextCommandTasks } from './tasks.js'
-import * as helpers from '../../core/helpers.js'
-import { constants } from '../../core/index.js'
-import { type CommandHandlers } from '../../types/index.js'
-import * as ContextFlags from './flags.js'
+import {type BaseCommand} from '../base.js';
+import {type ContextCommandTasks} from './tasks.js';
+import * as helpers from '../../core/helpers.js';
+import {constants} from '../../core/index.js';
+import {type CommandHandlers} from '../../types/index.js';
+import * as ContextFlags from './flags.js';
 
 export class ContextCommandHandlers implements CommandHandlers {
-  readonly parent: BaseCommand
-  readonly tasks: ContextCommandTasks
+  readonly parent: BaseCommand;
+  readonly tasks: ContextCommandTasks;
 
-  constructor (parent: BaseCommand, tasks: ContextCommandTasks) {
-    this.parent = parent
-    this.tasks = tasks
+  constructor(parent: BaseCommand, tasks: ContextCommandTasks) {
+    this.parent = parent;
+    this.tasks = tasks;
   }
 
-  async connect (argv: any) {
-    argv = helpers.addFlagsToArgv(argv, ContextFlags.USE_FLAGS)
+  async connect(argv: any) {
+    argv = helpers.addFlagsToArgv(argv, ContextFlags.USE_FLAGS);
 
-    const action = helpers.commandActionBuilder([
-      this.tasks.initialize(argv),
-      this.parent.getLocalConfig().promptLocalConfigTask(this.parent.getK8(), argv),
-      this.tasks.updateLocalConfig(argv),
-    ], {
-      concurrent: false,
-      rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
-    }, 'context use', null)
+    const action = helpers.commandActionBuilder(
+      [
+        this.tasks.initialize(argv),
+        this.parent.getLocalConfig().promptLocalConfigTask(this.parent.getK8(), argv),
+        this.tasks.updateLocalConfig(argv),
+      ],
+      {
+        concurrent: false,
+        rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION,
+      },
+      'context use',
+      null,
+    );
 
-    await action(argv, this)
-    return true
+    await action(argv, this);
+    return true;
   }
-
 }

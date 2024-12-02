@@ -14,11 +14,11 @@
  * limitations under the License.
  *
  */
-import * as chai from 'chai'
-import chaiAsPromised from 'chai-as-promised'
-import sinonChai from 'sinon-chai'
+import * as chai from 'chai';
+import chaiAsPromised from 'chai-as-promised';
+import sinonChai from 'sinon-chai';
 
-chai.use(chaiAsPromised)
-chai.use(sinonChai)
+chai.use(chaiAsPromised);
+chai.use(sinonChai);
 
-chai.config.truncateThreshold = Infinity
+chai.config.truncateThreshold = Infinity;

@@ -15,10 +15,10 @@
  *
  */
 
-import * as flags from '../flags.js'
+import * as flags from '../flags.js';
 
 export const USE_FLAGS = {
-    requiredFlags: [],
-    requiredFlagsWithDisabledPrompt: [],
-    optionalFlags: [flags.devMode, flags.quiet, flags.clusterName, flags.context, flags.force, flags.namespace]
-}
+  requiredFlags: [],
+  requiredFlagsWithDisabledPrompt: [],
+  optionalFlags: [flags.devMode, flags.quiet, flags.clusterName, flags.context, flags.force, flags.namespace],
+};

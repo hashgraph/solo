@@ -14,77 +14,87 @@
  * limitations under the License.
  *
  */
-import type * as x509 from '@peculiar/x509'
-import type net from 'net'
-import type * as WebSocket from 'ws'
-import type crypto from 'crypto'
-import type { SoloLogger } from '../core/logging.js'
+import type * as x509 from '@peculiar/x509';
+import type net from 'net';
+import type * as WebSocket from 'ws';
+import type crypto from 'crypto';
+import type {SoloLogger} from '../core/logging.js';
 import type {
-  ChartManager, ConfigManager, Helm, K8, KeyManager, PackageDownloader, PlatformInstaller,
-  ProfileManager, DependencyManager, AccountManager, LeaseManager, CertificateManager,
-  LocalConfig
-} from '../core/index.js'
-import { type BaseCommand } from '../commands/base.js'
+  ChartManager,
+  ConfigManager,
+  Helm,
+  K8,
+  KeyManager,
+  PackageDownloader,
+  PlatformInstaller,
+  ProfileManager,
+  DependencyManager,
+  AccountManager,
+  LeaseManager,
+  CertificateManager,
+  LocalConfig,
+} from '../core/index.js';
+import {type BaseCommand} from '../commands/base.js';
 
 export interface NodeKeyObject {
-  privateKey: crypto.webcrypto.CryptoKey
-  certificate: x509.X509Certificate
-  certificateChain: x509.X509Certificates
+  privateKey: crypto.webcrypto.CryptoKey;
+  certificate: x509.X509Certificate;
+  certificateChain: x509.X509Certificates;
 }
 
 export interface PrivateKeyAndCertificateObject {
-  privateKeyFile: string
-  certificateFile: string
+  privateKeyFile: string;
+  certificateFile: string;
 }
 
 export interface ExtendedNetServer extends net.Server {
-  localPort: number
-  info: string
+  localPort: number;
+  info: string;
 }
 
 export interface LocalContextObject {
-  reject: (reason?: any) => void
-  connection: WebSocket.WebSocket
-  errorMessage: string
+  reject: (reason?: any) => void;
+  connection: WebSocket.WebSocket;
+  errorMessage: string;
 }
 
 export interface AccountIdWithKeyPairObject {
-  accountId: string
-  privateKey: string
-  publicKey: string
+  accountId: string;
+  privateKey: string;
+  publicKey: string;
 }
 
 export interface CommandFlag {
-  constName: string
-  name: string
-  definition: Definition
+  constName: string;
+  name: string;
+  definition: Definition;
 }
 
 export interface Definition {
-  describe: string
-  defaultValue?: (boolean | string | number)
-  alias?: string
-  type?: string
-  disablePrompt?: boolean
+  describe: string;
+  defaultValue?: boolean | string | number;
+  alias?: string;
+  type?: string;
+  disablePrompt?: boolean;
 }
 
 export interface Opts {
-  logger: SoloLogger
-  helm: Helm
-  k8: K8
-  downloader: PackageDownloader
-  platformInstaller: PlatformInstaller
-  chartManager: ChartManager
-  configManager: ConfigManager
-  depManager: DependencyManager
-  keyManager: KeyManager
-  accountManager: AccountManager
-  profileManager: ProfileManager
-  leaseManager: LeaseManager,
-  certificateManager: CertificateManager
-  localConfig: LocalConfig
+  logger: SoloLogger;
+  helm: Helm;
+  k8: K8;
+  downloader: PackageDownloader;
+  platformInstaller: PlatformInstaller;
+  chartManager: ChartManager;
+  configManager: ConfigManager;
+  depManager: DependencyManager;
+  keyManager: KeyManager;
+  accountManager: AccountManager;
+  profileManager: ProfileManager;
+  leaseManager: LeaseManager;
+  certificateManager: CertificateManager;
+  localConfig: LocalConfig;
 }
 
 export interface CommandHandlers {
-  parent: BaseCommand
+  parent: BaseCommand;
 }

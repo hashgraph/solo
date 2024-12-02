@@ -16,8 +16,9 @@
  */
 
 export const ErrorMessages = {
-    LOCAL_CONFIG_CURRENT_DEPLOYMENT_DOES_NOT_EXIST: 'The selected namespace does not correspond to a deployment in the local configuration',
-    LOCAL_CONFIG_GENERIC: 'Validation of local config failed',
-    LOCAL_CONFIG_INVALID_EMAIL: 'Invalid email address provided',
-    LOCAL_CONFIG_INVALID_DEPLOYMENTS_FORMAT: 'Wrong deployments format'
-}
+  LOCAL_CONFIG_CURRENT_DEPLOYMENT_DOES_NOT_EXIST:
+    'The selected namespace does not correspond to a deployment in the local configuration',
+  LOCAL_CONFIG_GENERIC: 'Validation of local config failed',
+  LOCAL_CONFIG_INVALID_EMAIL: 'Invalid email address provided',
+  LOCAL_CONFIG_INVALID_DEPLOYMENTS_FORMAT: 'Wrong deployments format',
+};

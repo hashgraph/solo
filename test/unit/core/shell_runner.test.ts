@@ -14,46 +14,46 @@
  * limitations under the License.
  *
  */
-import 'sinon-chai'
+import 'sinon-chai';
 
-import type { SinonSpy, SinonStub } from 'sinon'
-import sinon from 'sinon'
-import { expect } from 'chai'
-import { describe, it, beforeEach, afterEach } from 'mocha'
-import { ShellRunner } from '../../../src/core/shell_runner.js'
-import { NewLogger, SoloLogger } from '../../../src/core/logging.js'
-import { ChildProcess } from 'child_process'
-import { Readable } from 'stream'
-import { SECONDS } from '../../../src/core/constants.js'
+import type {SinonSpy, SinonStub} from 'sinon';
+import sinon from 'sinon';
+import {expect} from 'chai';
+import {describe, it, beforeEach, afterEach} from 'mocha';
+import {ShellRunner} from '../../../src/core/shell_runner.js';
+import {NewLogger, SoloLogger} from '../../../src/core/logging.js';
+import {ChildProcess} from 'child_process';
+import {Readable} from 'stream';
+import {SECONDS} from '../../../src/core/constants.js';
 
 describe('ShellRunner', () => {
   let logger: SoloLogger,
     shellRunner: ShellRunner,
     loggerStub: SinonStub,
     childProcessSpy: SinonSpy,
-    readableSpy: SinonSpy
+    readableSpy: SinonSpy;
 
   beforeEach(() => {
-    logger = NewLogger('debug')
-    shellRunner = new ShellRunner(logger)
+    logger = NewLogger('debug');
+    shellRunner = new ShellRunner(logger);
 
     // Spy on methods
-    loggerStub = sinon.stub(SoloLogger.prototype, 'debug')
-    childProcessSpy = sinon.spy(ChildProcess.prototype, 'on')
-    readableSpy = sinon.spy(Readable.prototype, 'on')
-  })
+    loggerStub = sinon.stub(SoloLogger.prototype, 'debug');
+    childProcessSpy = sinon.spy(ChildProcess.prototype, 'on');
+    readableSpy = sinon.spy(Readable.prototype, 'on');
+  });
 
-  afterEach(() => sinon.restore())
+  afterEach(() => sinon.restore());
 
   it('should run command', async () => {
-    await shellRunner.run('ls -l')
+    await shellRunner.run('ls -l');
 
-    loggerStub.withArgs('Executing command: \'ls -l\'').onFirstCall()
-    loggerStub.withArgs('Finished executing: \'ls -l\'', sinon.match.any).onSecondCall()
+    loggerStub.withArgs("Executing command: 'ls -l'").onFirstCall();
+    loggerStub.withArgs("Finished executing: 'ls -l'", sinon.match.any).onSecondCall();
 
-    expect(loggerStub).to.have.been.calledTwice
+    expect(loggerStub).to.have.been.calledTwice;
 
-    expect(readableSpy).to.have.been.calledWith('data', sinon.match.any)
-    expect(childProcessSpy).to.have.been.calledWith('exit', sinon.match.any)
-  }).timeout(10 * SECONDS)
-})
+    expect(readableSpy).to.have.been.calledWith('data', sinon.match.any);
+    expect(childProcessSpy).to.have.been.calledWith('exit', sinon.match.any);
+  }).timeout(10 * SECONDS);
+});

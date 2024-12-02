@@ -14,16 +14,11 @@
  * limitations under the License.
  *
  */
-import {
-  AccountBalanceQuery,
-  AccountId,
-  Client,
-  Logger, LogLevel,
-  PrivateKey
-} from '@hashgraph/sdk'
+import {AccountBalanceQuery, AccountId, Client, Logger, LogLevel, PrivateKey} from '@hashgraph/sdk';
 
-export const TREASURY_ACCOUNT_ID = '0.0.2'
-export const GENESIS_KEY = '302e020100300506032b65700422042091132178e72057a1d7528025956fe39b0b847f200ab59b2fdd367017f3087137'
+export const TREASURY_ACCOUNT_ID = '0.0.2';
+export const GENESIS_KEY =
+  '302e020100300506032b65700422042091132178e72057a1d7528025956fe39b0b847f200ab59b2fdd367017f3087137';
 
 /**
  * Given that you have deployed Solo in a cluster on your local machine
@@ -34,46 +29,47 @@ export const GENESIS_KEY = '302e020100300506032b65700422042091132178e72057a1d752
  * $ kubectl port-forward svc/mirror-grpc -n "${SOLO_NAMESPACE}" 5600:5600 &
  **/
 
-
 function main() {
-  console.log('begin...')
-  const treasuryAccountId = TREASURY_ACCOUNT_ID
-  const treasuryPrivateKey = PrivateKey.fromStringED25519(GENESIS_KEY)
-  const network = {}
+  console.log('begin...');
+  const treasuryAccountId = TREASURY_ACCOUNT_ID;
+  const treasuryPrivateKey = PrivateKey.fromStringED25519(GENESIS_KEY);
+  const network = {};
 
-  network['127.0.0.1:50211'] = AccountId.fromString('0.0.3')
+  network['127.0.0.1:50211'] = AccountId.fromString('0.0.3');
 
-  const mirrorNetwork = '127.0.0.1:5600'
+  const mirrorNetwork = '127.0.0.1:5600';
 
   // scheduleNetworkUpdate is set to false, because the ports 50212/50211 are hardcoded in JS SDK that will not work when running locally or in a pipeline
-  console.log('creating client')
+  console.log('creating client');
   const nodeClient = Client.fromConfig({
     network,
     mirrorNetwork,
-    scheduleNetworkUpdate: false
-  })
-  nodeClient.setOperator(treasuryAccountId, treasuryPrivateKey)
-  nodeClient.setLogger(new Logger(LogLevel.Trace, 'hashgraph-sdk.log'))
-  console.log('client created')
+    scheduleNetworkUpdate: false,
+  });
+  nodeClient.setOperator(treasuryAccountId, treasuryPrivateKey);
+  nodeClient.setLogger(new Logger(LogLevel.Trace, 'hashgraph-sdk.log'));
+  console.log('client created');
 
   // check balance
   try {
-    console.log('checking balance')
+    console.log('checking balance');
     new AccountBalanceQuery()
-    .setAccountId('0.0.2')
-    .execute(nodeClient).then(balance => {
-      console.log('checking balance...end')
-      console.log(`Account ${treasuryAccountId} balance: ${balance?.hbars}`)
-      console.log('...end')
-    }).catch(err => {
-      console.log('failure')
-      console.log(err.message, err.stacktrace)
-    })
-  }catch(e){
-    console.log('failure')
-    console.log(e.message, e.stacktrace)
-  }finally{
-    console.log('finally')
+      .setAccountId('0.0.2')
+      .execute(nodeClient)
+      .then(balance => {
+        console.log('checking balance...end');
+        console.log(`Account ${treasuryAccountId} balance: ${balance?.hbars}`);
+        console.log('...end');
+      })
+      .catch(err => {
+        console.log('failure');
+        console.log(err.message, err.stacktrace);
+      });
+  } catch (e) {
+    console.log('failure');
+    console.log(e.message, e.stacktrace);
+  } finally {
+    console.log('finally');
   }
 }
-main()
+main();
