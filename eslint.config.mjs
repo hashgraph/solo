@@ -14,22 +14,19 @@
  * limitations under the License.
  *
  */
-import globals from "globals";
-import eslintJs from "@eslint/js";
-import nodePlugin from "eslint-plugin-n"
-import eslintConfigPrettier from 'eslint-config-prettier'
-import eslintPluginPrettier from 'eslint-plugin-prettier'
-import tsEslint from "typescript-eslint";
-import headers from 'eslint-plugin-headers'
-import tsdoc from "eslint-plugin-tsdoc"
+import globals from 'globals';
+import eslintJs from '@eslint/js';
+import nodePlugin from 'eslint-plugin-n';
+import eslintConfigPrettier from 'eslint-config-prettier';
+import eslintPluginPrettier from 'eslint-plugin-prettier';
+import tsEslint from 'typescript-eslint';
+import headers from 'eslint-plugin-headers';
+import tsdoc from 'eslint-plugin-tsdoc';
 
 export default [
   eslintJs.configs.recommended,
   nodePlugin.configs['flat/recommended'],
   eslintConfigPrettier,
-  // ...tsEslint.configs.strict,
-  // ...tsEslint.configs.recommended,
-  // ...tsEslint.configs.stylistic,
   ...tsEslint.configs.recommended.map(config => ({
     ...config,
     files: ['**/*.ts', '**/*.tsx'],
@@ -37,14 +34,15 @@ export default [
   {
     ignores: ['docs/**/*', 'dist/*'],
   },
-  { // all files not excluded, mostly js files
+  {
+    // all files not excluded, mostly js files
     languageOptions: {
       globals: {
         ...globals.mocha,
         ...globals.node,
       },
       ecmaVersion: 'latest',
-      sourceType: 'module'
+      sourceType: 'module',
     },
     plugins: {
       n: nodePlugin,
@@ -52,13 +50,17 @@ export default [
       headers: headers,
     },
     rules: {
-      'headers/header-format': ['error', {
-        source: 'string',
-        variables: {
-          year: '2024'
+      'headers/header-format': [
+        'error',
+        {
+          source: 'string',
+          variables: {
+            year: '2024',
+          },
+          content:
+            'Copyright (C) {year} Hedera Hashgraph, LLC\n\nLicensed under the Apache License, Version 2.0 (the ""License"");\nyou may not use this file except in compliance with the License.\nYou may obtain a copy of the License at\n\n     http://www.apache.org/licenses/LICENSE-2.0\n\nUnless required by applicable law or agreed to in writing, software\ndistributed under the License is distributed on an ""AS IS"" BASIS,\nWITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\nSee the License for the specific language governing permissions and\nlimitations under the License.\n',
         },
-        content: 'Copyright (C) {year} Hedera Hashgraph, LLC\n\nLicensed under the Apache License, Version 2.0 (the ""License"");\nyou may not use this file except in compliance with the License.\nYou may obtain a copy of the License at\n\n     http://www.apache.org/licenses/LICENSE-2.0\n\nUnless required by applicable law or agreed to in writing, software\ndistributed under the License is distributed on an ""AS IS"" BASIS,\nWITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\nSee the License for the specific language governing permissions and\nlimitations under the License.\n'
-      }],
+      ],
       'prettier/prettier': 'error',
       'block-scoped-var': 'error',
       eqeqeq: 'error',
@@ -79,22 +81,38 @@ export default [
           property: 'only',
         },
       ],
+      'n/no-missing-import': 'off',
+      'n/no-empty-function': 'off',
+      'n/no-unsupported-features/es-syntax': 'off',
+      'n/no-missing-require': 'off',
+      'n/shebang': 'off',
+      'n/no-unpublished-import': [
+        'error',
+        {
+          allowModules: [
+            'globals',
+            '@eslint/js',
+            'eslint-plugin-n',
+            'eslint-config-prettier',
+            'eslint-plugin-prettier',
+            'typescript-eslint',
+            'eslint-plugin-headers',
+            'eslint-plugin-tsdoc',
+          ],
+          convertPath: [
+            {
+              include: ['src/**'],
+              replace: ['^src/(.+)$', 'dist/$1'],
+            },
+          ],
+        },
+      ],
+      'no-dupe-class-members': 'off',
+      'require-atomic-updates': 'off',
     },
-    // rules: {
-    //   '@typescript-eslint/no-unused-expressions': 'off',
-    //   '@typescript-eslint/ban-ts-comment': 'off',
-    //   '@typescript-eslint/no-explicit-any': 'off',
-    //   '@typescript-eslint/no-this-alias': 'off',
-    //   '@typescript-eslint/no-unsafe-function-type': 'off',
-    //   '@typescript-eslint/no-unused-vars': 'off',
-    //   'no-unused-vars': 'off',
-    //   'no-empty': 'off',
-    //   '@typescript-eslint/no-extraneous-class': 'off',
-    //   '@typescript-eslint/no-non-null-assertion': 'off',
-    //   'no-duplicate-imports': 'off'
-    // },
   },
-  { // all ts files
+  {
+    // all ts files
     files: ['**/*.ts'],
     plugins: {
       tsdoc: tsdoc,
@@ -105,7 +123,7 @@ export default [
         ...globals.node,
       },
       ecmaVersion: 'latest',
-      sourceType: 'module'
+      sourceType: 'module',
     },
     rules: {
       '@typescript-eslint/ban-ts-comment': 'warn',
@@ -118,59 +136,13 @@ export default [
       '@typescript-eslint/explicit-module-boundary-types': 'off',
       '@typescript-eslint/ban-types': 'off',
       '@typescript-eslint/camelcase': 'off',
-      'n/no-missing-import': 'off',
-      'n/no-empty-function': 'off',
-      'n/no-unsupported-features/es-syntax': 'off',
-      'n/no-missing-require': 'off',
-      'n/shebang': 'off',
-      'n/no-unpublished-import': [
-        'error',
-        {
-          convertPath: [
-            {
-              include: ['src/**'],
-              replace: ['^src/(.+)$', 'build/$1'],
-            },
-          ],
-        },
-      ],
-      'no-dupe-class-members': 'off',
-      'require-atomic-updates': 'off',
     },
-    // rules: {
-    //   'tsdoc/syntax':'warn',
-    //   'no-template-curly-in-string': 'off',
-    //   'headers/header-format': ['error', {
-    //     source: 'string',
-    //     variables: {
-    //       year: '2024'
-    //     },
-    //     content: 'Copyright (C) {year} Hedera Hashgraph, LLC\n\nLicensed under the Apache License, Version 2.0 (the ""License"");\nyou may not use this file except in compliance with the License.\nYou may obtain a copy of the License at\n\n     http://www.apache.org/licenses/LICENSE-2.0\n\nUnless required by applicable law or agreed to in writing, software\ndistributed under the License is distributed on an ""AS IS"" BASIS,\nWITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\nSee the License for the specific language governing permissions and\nlimitations under the License.\n'
-    //   }],
-    //   'quotes': ['error', 'single', { 'avoidEscape': true }],
-    //   'semi': ['error', 'never'],
-    //   'no-duplicate-imports': ['error'],
-    //   'object-curly-spacing': ["error", "always"],
-    //   eqeqeq: "error",
-    //   'dot-notation': 'error',
-    //   'no-promise-executor-return': 'error',
-    //   'no-unneeded-ternary': 'error',
-    //   'no-shadow-restricted-names': 'error',
-    //   'no-else-return': 'error',
-    //   '@typescript-eslint/array-type': [ 'error', { default: 'array' } ],
-    //   '@typescript-eslint/consistent-generic-constructors': 'error',
-    //   '@typescript-eslint/consistent-indexed-object-style': [ 'error', 'record' ],
-    //   "@typescript-eslint/consistent-type-imports": ["error", { fixStyle: 'inline-type-imports'}],
-    //   'space-before-function-paren': 'error',
-    //   '@typescript-eslint/no-empty-function': 'off',
-    //   '@typescript-eslint/class-literal-property-style': 'off',
-    //   'no-invalid-this': [ 'error', { capIsConstructor : false } ],
-    // },
   },
-  { // test ts files
+  {
+    // test ts files
     files: ['test/**/*.ts'],
     rules: {
-      'no-invalid-this': [ 'off', { } ],
-    }
+      'no-invalid-this': ['off', {}],
+    },
   },
-]
+];
