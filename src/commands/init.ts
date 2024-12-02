@@ -157,7 +157,7 @@ export class InitCommand extends BaseCommand {
    * @returns A object representing the Yargs command definition
    */
   getCommandDefinition() {
-    const initCmd = this;
+    const self = this;
     return {
       command: 'init',
       desc: 'Initialize local environment',
@@ -165,13 +165,13 @@ export class InitCommand extends BaseCommand {
         flags.setCommandFlags(y, flags.cacheDir);
       },
       handler: (argv: any) => {
-        initCmd
+        self
           .init(argv)
           .then(r => {
             if (!r) process.exit(1);
           })
           .catch(err => {
-            initCmd.logger.showUserError(err);
+            self.logger.showUserError(err);
             process.exit(1);
           });
       },

@@ -535,7 +535,7 @@ export class MirrorNodeCommand extends BaseCommand {
 
   /** Return Yargs command definition for 'mirror-mirror-node' command */
   getCommandDefinition(): {command: string; desc: string; builder: Function} {
-    const mirrorNodeCmd = this;
+    const self = this;
     return {
       command: 'mirror-node',
       desc: 'Manage Hedera Mirror Node in solo network',
@@ -546,17 +546,17 @@ export class MirrorNodeCommand extends BaseCommand {
             desc: 'Deploy mirror-node and its components',
             builder: (y: any) => flags.setCommandFlags(y, ...MirrorNodeCommand.DEPLOY_FLAGS_LIST),
             handler: (argv: any) => {
-              mirrorNodeCmd.logger.debug("==== Running 'mirror-node deploy' ===");
-              mirrorNodeCmd.logger.debug(argv);
+              self.logger.debug("==== Running 'mirror-node deploy' ===");
+              self.logger.debug(argv);
 
-              mirrorNodeCmd
+              self
                 .deploy(argv)
                 .then(r => {
-                  mirrorNodeCmd.logger.debug('==== Finished running `mirror-node deploy`====');
+                  self.logger.debug('==== Finished running `mirror-node deploy`====');
                   if (!r) process.exit(1);
                 })
                 .catch(err => {
-                  mirrorNodeCmd.logger.showUserError(err);
+                  self.logger.showUserError(err);
                   process.exit(1);
                 });
             },
@@ -566,17 +566,17 @@ export class MirrorNodeCommand extends BaseCommand {
             desc: 'Destroy mirror-node components and database',
             builder: (y: any) => flags.setCommandFlags(y, flags.chartDirectory, flags.force, flags.namespace),
             handler: (argv: any) => {
-              mirrorNodeCmd.logger.debug("==== Running 'mirror-node destroy' ===");
-              mirrorNodeCmd.logger.debug(argv);
+              self.logger.debug("==== Running 'mirror-node destroy' ===");
+              self.logger.debug(argv);
 
-              mirrorNodeCmd
+              self
                 .destroy(argv)
                 .then(r => {
-                  mirrorNodeCmd.logger.debug('==== Finished running `mirror-node destroy`====');
+                  self.logger.debug('==== Finished running `mirror-node destroy`====');
                   if (!r) process.exit(1);
                 })
                 .catch(err => {
-                  mirrorNodeCmd.logger.showUserError(err);
+                  self.logger.showUserError(err);
                   process.exit(1);
                 });
             },

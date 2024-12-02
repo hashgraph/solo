@@ -132,7 +132,7 @@ export default [
       sourceType: 'module',
     },
     rules: {
-      '@typescript-eslint/ban-ts-comment': 'warn', // TODO change to warn
+      '@typescript-eslint/ban-ts-comment': 'warn',
       '@typescript-eslint/no-non-null-assertion': 'off',
       '@typescript-eslint/no-use-before-define': 'off',
       '@typescript-eslint/no-warning-comments': 'off',
@@ -143,7 +143,12 @@ export default [
       '@typescript-eslint/ban-types': 'off',
       '@typescript-eslint/camelcase': 'off',
       '@typescript-eslint/no-explicit-any': 'warn', // TODO remove
-      '@typescript-eslint/no-this-alias': 'warn', // TODO remove
+      '@typescript-eslint/no-this-alias': [
+        'error',
+        {
+          allowedNames: ['self'], // TODO remove
+        },
+      ],
       '@typescript-eslint/no-unused-expressions': 'warn', // TODO remove
       '@typescript-eslint/no-unused-vars': 'warn', // TODO remove
       '@typescript-eslint/no-unsafe-function-type': 'warn', // TODO remove

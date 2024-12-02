@@ -94,7 +94,7 @@ export class NodeCommand extends BaseCommand {
   }
 
   getCommandDefinition() {
-    const nodeCmd = this;
+    const self = this;
     return {
       command: 'node',
       desc: 'Manage Hedera platform node in solo network',
@@ -105,7 +105,7 @@ export class NodeCommand extends BaseCommand {
               {
                 command: 'setup',
                 description: 'Setup node with a specific version of Hedera platform',
-                commandDef: nodeCmd,
+                commandDef: self,
                 handler: 'setup',
               },
               NodeFlags.SETUP_FLAGS,
@@ -117,7 +117,7 @@ export class NodeCommand extends BaseCommand {
               {
                 command: 'start',
                 description: 'Start a node',
-                commandDef: nodeCmd,
+                commandDef: self,
                 handler: 'start',
               },
               NodeFlags.START_FLAGS,
@@ -129,7 +129,7 @@ export class NodeCommand extends BaseCommand {
               {
                 command: 'stop',
                 description: 'Stop a node',
-                commandDef: nodeCmd,
+                commandDef: self,
                 handler: 'stop',
               },
               NodeFlags.STOP_FLAGS,
@@ -141,7 +141,7 @@ export class NodeCommand extends BaseCommand {
               {
                 command: 'keys',
                 description: 'Generate node keys',
-                commandDef: nodeCmd,
+                commandDef: self,
                 handler: 'keys',
               },
               NodeFlags.KEYS_FLAGS,
@@ -153,7 +153,7 @@ export class NodeCommand extends BaseCommand {
               {
                 command: 'refresh',
                 description: 'Reset and restart a node',
-                commandDef: nodeCmd,
+                commandDef: self,
                 handler: 'refresh',
               },
               NodeFlags.REFRESH_FLAGS,
@@ -166,7 +166,7 @@ export class NodeCommand extends BaseCommand {
                 command: 'logs',
                 description:
                   'Download application logs from the network nodes and stores them in <SOLO_LOGS_DIR>/<namespace>/<podName>/ directory',
-                commandDef: nodeCmd,
+                commandDef: self,
                 handler: 'logs',
               },
               NodeFlags.LOGS_FLAGS,
@@ -179,7 +179,7 @@ export class NodeCommand extends BaseCommand {
                 command: 'states',
                 description:
                   'Download hedera states from the network nodes and stores them in <SOLO_LOGS_DIR>/<namespace>/<podName>/ directory',
-                commandDef: nodeCmd,
+                commandDef: self,
                 handler: 'states',
               },
               NodeFlags.STATES_FLAGS,
@@ -191,7 +191,7 @@ export class NodeCommand extends BaseCommand {
               {
                 command: 'add',
                 description: 'Adds a node with a specific version of Hedera platform',
-                commandDef: nodeCmd,
+                commandDef: self,
                 handler: 'add',
               },
               NodeFlags.ADD_FLAGS,
@@ -203,7 +203,7 @@ export class NodeCommand extends BaseCommand {
               {
                 command: 'add-prepare',
                 description: 'Prepares the addition of a node with a specific version of Hedera platform',
-                commandDef: nodeCmd,
+                commandDef: self,
                 handler: 'addPrepare',
               },
               NodeFlags.ADD_PREPARE_FLAGS,
@@ -215,7 +215,7 @@ export class NodeCommand extends BaseCommand {
               {
                 command: 'add-submit-transactions',
                 description: 'Submits NodeCreateTransaction and Upgrade transactions to the network nodes',
-                commandDef: nodeCmd,
+                commandDef: self,
                 handler: 'addSubmitTransactions',
               },
               NodeFlags.ADD_SUBMIT_TRANSACTIONS_FLAGS,
@@ -227,7 +227,7 @@ export class NodeCommand extends BaseCommand {
               {
                 command: 'add-execute',
                 description: 'Executes the addition of a previously prepared node',
-                commandDef: nodeCmd,
+                commandDef: self,
                 handler: 'addExecute',
               },
               NodeFlags.ADD_EXECUTE_FLAGS,
@@ -239,7 +239,7 @@ export class NodeCommand extends BaseCommand {
               {
                 command: 'update',
                 description: 'Update a node with a specific version of Hedera platform',
-                commandDef: nodeCmd,
+                commandDef: self,
                 handler: 'update',
               },
               NodeFlags.UPDATE_FLAGS,
@@ -251,7 +251,7 @@ export class NodeCommand extends BaseCommand {
               {
                 command: 'update-prepare',
                 description: 'Prepare the deployment to update a node with a specific version of Hedera platform',
-                commandDef: nodeCmd,
+                commandDef: self,
                 handler: 'updatePrepare',
               },
               NodeFlags.UPDATE_PREPARE_FLAGS,
@@ -263,7 +263,7 @@ export class NodeCommand extends BaseCommand {
               {
                 command: 'update-submit-transactions',
                 description: 'Submit transactions for updating a node with a specific version of Hedera platform',
-                commandDef: nodeCmd,
+                commandDef: self,
                 handler: 'updateSubmitTransactions',
               },
               NodeFlags.UPDATE_SUBMIT_TRANSACTIONS_FLAGS,
@@ -275,7 +275,7 @@ export class NodeCommand extends BaseCommand {
               {
                 command: 'update-execute',
                 description: 'Executes the updating of a node with a specific version of Hedera platform',
-                commandDef: nodeCmd,
+                commandDef: self,
                 handler: 'updateExecute',
               },
               NodeFlags.UPDATE_SUBMIT_TRANSACTIONS_FLAGS,
@@ -287,7 +287,7 @@ export class NodeCommand extends BaseCommand {
               {
                 command: 'delete',
                 description: 'Delete a node with a specific version of Hedera platform',
-                commandDef: nodeCmd,
+                commandDef: self,
                 handler: 'delete',
               },
               NodeFlags.DELETE_FLAGS,
@@ -299,7 +299,7 @@ export class NodeCommand extends BaseCommand {
               {
                 command: 'delete-prepare',
                 description: 'Prepares the deletion of a node with a specific version of Hedera platform',
-                commandDef: nodeCmd,
+                commandDef: self,
                 handler: 'deletePrepare',
               },
               NodeFlags.DELETE_PREPARE_FLAGS,
@@ -311,7 +311,7 @@ export class NodeCommand extends BaseCommand {
               {
                 command: 'delete-submit-transactions',
                 description: 'Submits transactions to the network nodes for deleting a node',
-                commandDef: nodeCmd,
+                commandDef: self,
                 handler: 'deleteSubmitTransactions',
               },
               NodeFlags.DELETE_SUBMIT_TRANSACTIONS_FLAGS,
@@ -323,7 +323,7 @@ export class NodeCommand extends BaseCommand {
               {
                 command: 'delete-execute',
                 description: 'Executes the deletion of a previously prepared node',
-                commandDef: nodeCmd,
+                commandDef: self,
                 handler: 'deleteExecute',
               },
               NodeFlags.DELETE_EXECUTE_FLAGS,
@@ -335,7 +335,7 @@ export class NodeCommand extends BaseCommand {
               {
                 command: 'prepare-upgrade',
                 description: 'Prepare the network for a Freeze Upgrade operation',
-                commandDef: nodeCmd,
+                commandDef: self,
                 handler: 'prepareUpgrade',
               },
               NodeFlags.DEFAULT_FLAGS,
@@ -348,7 +348,7 @@ export class NodeCommand extends BaseCommand {
                 command: 'freeze-upgrade',
                 description:
                   'Performs a Freeze Upgrade operation with on the network after it has been prepared with prepare-upgrade',
-                commandDef: nodeCmd,
+                commandDef: self,
                 handler: 'freezeUpgrade',
               },
               NodeFlags.DEFAULT_FLAGS,
@@ -360,7 +360,7 @@ export class NodeCommand extends BaseCommand {
               {
                 command: 'download-generated-files',
                 description: 'Downloads the generated files from an existing node',
-                commandDef: nodeCmd,
+                commandDef: self,
                 handler: 'downloadGeneratedFiles',
               },
               NodeFlags.DEFAULT_FLAGS,

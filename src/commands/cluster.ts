@@ -251,7 +251,7 @@ export class ClusterCommand extends BaseCommand {
 
   /** Return Yargs command definition for 'cluster' command */
   getCommandDefinition(): {command: string; desc: string; builder: Function} {
-    const clusterCmd = this;
+    const self = this;
     return {
       command: 'cluster',
       desc: 'Manage solo testing cluster',
@@ -261,15 +261,15 @@ export class ClusterCommand extends BaseCommand {
             command: 'list',
             desc: 'List all available clusters',
             handler: (argv: any) => {
-              clusterCmd.logger.debug("==== Running 'cluster list' ===", {argv});
+              self.logger.debug("==== Running 'cluster list' ===", {argv});
 
               try {
-                const r = clusterCmd.showClusterList();
-                clusterCmd.logger.debug('==== Finished running `cluster list`====');
+                const r = self.showClusterList();
+                self.logger.debug('==== Finished running `cluster list`====');
 
                 if (!r) process.exit(1);
               } catch (err) {
-                clusterCmd.logger.showUserError(err);
+                self.logger.showUserError(err);
                 process.exit(1);
               }
             },
@@ -278,14 +278,14 @@ export class ClusterCommand extends BaseCommand {
             command: 'info',
             desc: 'Get cluster info',
             handler: (argv: any) => {
-              clusterCmd.logger.debug("==== Running 'cluster info' ===", {argv});
+              self.logger.debug("==== Running 'cluster info' ===", {argv});
               try {
                 const r = this.getClusterInfo();
-                clusterCmd.logger.debug('==== Finished running `cluster info`====');
+                self.logger.debug('==== Finished running `cluster info`====');
 
                 if (!r) process.exit(1);
               } catch (err: Error | any) {
-                clusterCmd.logger.showUserError(err);
+                self.logger.showUserError(err);
                 process.exit(1);
               }
             },
@@ -306,17 +306,17 @@ export class ClusterCommand extends BaseCommand {
                 flags.soloChartVersion,
               ),
             handler: (argv: any) => {
-              clusterCmd.logger.debug("==== Running 'cluster setup' ===", {argv});
+              self.logger.debug("==== Running 'cluster setup' ===", {argv});
 
-              clusterCmd
+              self
                 .setup(argv)
                 .then(r => {
-                  clusterCmd.logger.debug('==== Finished running `cluster setup`====');
+                  self.logger.debug('==== Finished running `cluster setup`====');
 
                   if (!r) process.exit(1);
                 })
                 .catch(err => {
-                  clusterCmd.logger.showUserError(err);
+                  self.logger.showUserError(err);
                   process.exit(1);
                 });
             },
@@ -326,17 +326,17 @@ export class ClusterCommand extends BaseCommand {
             desc: 'Uninstall shared components from cluster',
             builder: (y: any) => flags.setCommandFlags(y, flags.clusterName, flags.clusterSetupNamespace, flags.force),
             handler: (argv: any) => {
-              clusterCmd.logger.debug("==== Running 'cluster reset' ===", {argv});
+              self.logger.debug("==== Running 'cluster reset' ===", {argv});
 
-              clusterCmd
+              self
                 .reset(argv)
                 .then(r => {
-                  clusterCmd.logger.debug('==== Finished running `cluster reset`====');
+                  self.logger.debug('==== Finished running `cluster reset`====');
 
                   if (!r) process.exit(1);
                 })
                 .catch(err => {
-                  clusterCmd.logger.showUserError(err);
+                  self.logger.showUserError(err);
                   process.exit(1);
                 });
             },
