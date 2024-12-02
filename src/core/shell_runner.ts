@@ -14,56 +14,56 @@
  * limitations under the License.
  *
  */
-import { spawn } from 'child_process'
-import chalk from 'chalk'
-import { type SoloLogger } from './logging.js'
+import {spawn} from 'child_process';
+import chalk from 'chalk';
+import {type SoloLogger} from './logging.js';
 
 export class ShellRunner {
-  constructor (public logger: SoloLogger) {
-    if (!logger) throw new Error('An instance of core/SoloLogger is required')
+  constructor(public logger: SoloLogger) {
+    if (!logger) throw new Error('An instance of core/SoloLogger is required');
   }
 
   /** Returns a promise that invokes the shell command */
-  run (cmd: string, verbose = false) {
-    const self = this
-    const callStack = new Error().stack // capture the callstack to be included in error
-    self.logger.debug(`Executing command: '${cmd}'`)
+  run(cmd: string, verbose = false) {
+    const self = this;
+    const callStack = new Error().stack; // capture the callstack to be included in error
+    self.logger.debug(`Executing command: '${cmd}'`);
 
     return new Promise<string[]>((resolve, reject) => {
       const child = spawn(cmd, {
-        shell: true
-      })
+        shell: true,
+      });
 
-      const output: string[] = []
+      const output: string[] = [];
       child.stdout.on('data', d => {
-        const items: string[] = d.toString().split(/\r?\n/)
+        const items: string[] = d.toString().split(/\r?\n/);
         items.forEach(item => {
           if (item) {
-            output.push(item)
+            output.push(item);
           }
-        })
-      })
+        });
+      });
 
-      const errOutput: string[] = []
+      const errOutput: string[] = [];
       child.stderr.on('data', d => {
-        const items: string[] = d.toString().split(/\r?\n/)
+        const items: string[] = d.toString().split(/\r?\n/);
         items.forEach(item => {
           if (item) {
-            errOutput.push(item.trim())
+            errOutput.push(item.trim());
           }
-        })
-      })
+        });
+      });
 
       child.on('exit', (code, signal) => {
         if (code) {
-          const err = new Error(`Command exit with error code ${code}: ${cmd}`)
+          const err = new Error(`Command exit with error code ${code}: ${cmd}`);
 
           // include the callStack to the parent run() instead of from inside this handler.
           // this is needed to ensure we capture the proper callstack for easier debugging.
-          err.stack = callStack
+          err.stack = callStack;
 
           if (verbose) {
-            errOutput.forEach(m => self.logger.showUser(chalk.red(m)))
+            errOutput.forEach(m => self.logger.showUser(chalk.red(m)));
           }
 
           self.logger.error(`Error executing: '${cmd}'`, {
@@ -71,20 +71,20 @@ export class ShellRunner {
             commandExitSignal: signal,
             commandOutput: output,
             errOutput,
-            error: { message: err.message, stack: err.stack }
-          })
+            error: {message: err.message, stack: err.stack},
+          });
 
-          reject(err)
+          reject(err);
         }
 
         self.logger.debug(`Finished executing: '${cmd}'`, {
           commandExitCode: code,
           commandExitSignal: signal,
           commandOutput: output,
-          errOutput
-        })
-        resolve(output)
-      })
-    })
+          errOutput,
+        });
+        resolve(output);
+      });
+    });
   }
 }

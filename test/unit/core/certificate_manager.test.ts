@@ -14,64 +14,63 @@
  * limitations under the License.
  *
  */
-import { expect } from 'chai'
-import { after, before, describe, it } from 'mocha'
-import jest from 'jest-mock'
+import {expect} from 'chai';
+import {after, before, describe, it} from 'mocha';
+import jest from 'jest-mock';
 
-import { CertificateManager, ConfigManager, K8 } from '../../../src/core/index.js'
-import { flags } from '../../../src/commands/index.js'
-import { testLogger } from '../../test_util.js'
-import { SoloError } from '../../../src/core/errors.js'
+import {CertificateManager, ConfigManager, K8} from '../../../src/core/index.js';
+import {flags} from '../../../src/commands/index.js';
+import {testLogger} from '../../test_util.js';
+import {SoloError} from '../../../src/core/errors.js';
 
 describe('Certificate Manager', () => {
-
-  const argv = {}
+  const argv = {};
   // @ts-ignore
-  const k8InitSpy = jest.spyOn(K8.prototype, 'init').mockImplementation(() => {})
-  const k8CreateSecret = jest.spyOn(K8.prototype, 'createSecret').mockResolvedValue(true)
-  let k8: K8
-  let certificateManager: CertificateManager
+  const k8InitSpy = jest.spyOn(K8.prototype, 'init').mockImplementation(() => {});
+  const k8CreateSecret = jest.spyOn(K8.prototype, 'createSecret').mockResolvedValue(true);
+  let k8: K8;
+  let certificateManager: CertificateManager;
 
   before(() => {
-    argv[flags.namespace.name] = 'namespace'
-    const configManager = new ConfigManager(testLogger)
-    configManager.update(argv)
-    k8 = new K8(configManager, testLogger)
-    certificateManager = new CertificateManager(k8, testLogger, configManager)
-  })
+    argv[flags.namespace.name] = 'namespace';
+    const configManager = new ConfigManager(testLogger);
+    configManager.update(argv);
+    k8 = new K8(configManager, testLogger);
+    certificateManager = new CertificateManager(k8, testLogger, configManager);
+  });
 
   after(() => {
-    k8InitSpy.mockRestore()
-    k8CreateSecret.mockRestore()
-  })
+    k8InitSpy.mockRestore();
+    k8CreateSecret.mockRestore();
+  });
 
-  it ('should throw if and error if nodeAlias is not provided', async () => {
-    const input = '=/usr/bin/fake.cert'
-
-    // @ts-ignore to access private method
-    expect(() => certificateManager.parseAndValidate(input, 'testing')).to.throw(
-      SoloError,
-      'Failed to parse input =/usr/bin/fake.cert of type testing on =/usr/bin/fake.cert, index 0'
-    )
-  })
-
-  it ('should throw if and error if path is not provided', async () => {
-    const input = 'node='
+  it('should throw if and error if nodeAlias is not provided', async () => {
+    const input = '=/usr/bin/fake.cert';
 
     // @ts-ignore to access private method
     expect(() => certificateManager.parseAndValidate(input, 'testing')).to.throw(
       SoloError,
-      'Failed to parse input node= of type testing on node=, index 0'
-    )
-  })
+      'Failed to parse input =/usr/bin/fake.cert of type testing on =/usr/bin/fake.cert, index 0',
+    );
+  });
 
-  it ('should throw if and error if type is not valid', () => {
-    const input = 'node=/invalid/path'
+  it('should throw if and error if path is not provided', async () => {
+    const input = 'node=';
 
     // @ts-ignore to access private method
     expect(() => certificateManager.parseAndValidate(input, 'testing')).to.throw(
       SoloError,
-      'File doesn\'t exist on path node=/invalid/path input of type testing on node=/invalid/path, index 0'
-    )
-  })
-})
+      'Failed to parse input node= of type testing on node=, index 0',
+    );
+  });
+
+  it('should throw if and error if type is not valid', () => {
+    const input = 'node=/invalid/path';
+
+    // @ts-ignore to access private method
+    expect(() => certificateManager.parseAndValidate(input, 'testing')).to.throw(
+      SoloError,
+      "File doesn't exist on path node=/invalid/path input of type testing on node=/invalid/path, index 0",
+    );
+  });
+});

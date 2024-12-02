@@ -14,82 +14,88 @@
  * limitations under the License.
  *
  */
-import { it, describe, after } from 'mocha'
-import { expect } from 'chai'
+import {it, describe, after} from 'mocha';
+import {expect} from 'chai';
 
-import { flags } from '../../../src/commands/index.js'
+import {flags} from '../../../src/commands/index.js';
 import {
   accountCreationShouldSucceed,
   balanceQueryShouldSucceed,
   e2eTestSuite,
   getDefaultArgv,
-  getNodeAliasesPrivateKeysHash, getTmpDir,
-  HEDERA_PLATFORM_VERSION_TAG
-} from '../../test_util.js'
-import { getNodeLogs } from '../../../src/core/helpers.js'
-import * as NodeCommandConfigs from '../../../src/commands/node/configs.js'
-import { MINUTES } from '../../../src/core/constants.js'
+  getNodeAliasesPrivateKeysHash,
+  getTmpDir,
+  HEDERA_PLATFORM_VERSION_TAG,
+} from '../../test_util.js';
+import {getNodeLogs} from '../../../src/core/helpers.js';
+import * as NodeCommandConfigs from '../../../src/commands/node/configs.js';
+import {MINUTES} from '../../../src/core/constants.js';
 
-const defaultTimeout = 2 * MINUTES
-const namespace = 'node-add-separated'
-const argv = getDefaultArgv()
-argv[flags.nodeAliasesUnparsed.name] = 'node1,node2'
-argv[flags.stakeAmounts.name] = '1500,1'
-argv[flags.generateGossipKeys.name] = true
-argv[flags.generateTlsKeys.name] = true
+const defaultTimeout = 2 * MINUTES;
+const namespace = 'node-add-separated';
+const argv = getDefaultArgv();
+argv[flags.nodeAliasesUnparsed.name] = 'node1,node2';
+argv[flags.stakeAmounts.name] = '1500,1';
+argv[flags.generateGossipKeys.name] = true;
+argv[flags.generateTlsKeys.name] = true;
 // set the env variable SOLO_CHARTS_DIR if developer wants to use local Solo charts
-argv[flags.chartDirectory.name] = process.env.SOLO_CHARTS_DIR ?? undefined
-argv[flags.releaseTag.name] = HEDERA_PLATFORM_VERSION_TAG
-argv[flags.namespace.name] = namespace
-argv[flags.force.name] = true
-argv[flags.persistentVolumeClaims.name] = true
-argv[flags.quiet.name] = true
+argv[flags.chartDirectory.name] = process.env.SOLO_CHARTS_DIR ?? undefined;
+argv[flags.releaseTag.name] = HEDERA_PLATFORM_VERSION_TAG;
+argv[flags.namespace.name] = namespace;
+argv[flags.force.name] = true;
+argv[flags.persistentVolumeClaims.name] = true;
+argv[flags.quiet.name] = true;
 
-const argvPrepare = Object.assign({}, argv)
+const argvPrepare = Object.assign({}, argv);
 
-const tempDir = 'contextDir'
-argvPrepare[flags.outputDir.name] = tempDir
-argvPrepare[flags.outputDir.constName] = tempDir
+const tempDir = 'contextDir';
+argvPrepare[flags.outputDir.name] = tempDir;
+argvPrepare[flags.outputDir.constName] = tempDir;
 
-const argvExecute = getDefaultArgv()
-argvExecute[flags.inputDir.name] = tempDir
-argvExecute[flags.inputDir.constName] = tempDir
+const argvExecute = getDefaultArgv();
+argvExecute[flags.inputDir.name] = tempDir;
+argvExecute[flags.inputDir.constName] = tempDir;
 
-e2eTestSuite(namespace, argv, undefined, undefined, undefined, undefined, undefined, undefined, true, (bootstrapResp) => {
+e2eTestSuite(namespace, argv, undefined, undefined, undefined, undefined, undefined, undefined, true, bootstrapResp => {
   describe('Node add via separated commands should success', async () => {
-    const nodeCmd = bootstrapResp.cmd.nodeCmd
-    const accountCmd = bootstrapResp.cmd.accountCmd
-    const networkCmd = bootstrapResp.cmd.networkCmd
-    const k8 = bootstrapResp.opts.k8
-    let existingServiceMap
-    let existingNodeIdsPrivateKeysHash
+    const nodeCmd = bootstrapResp.cmd.nodeCmd;
+    const accountCmd = bootstrapResp.cmd.accountCmd;
+    const networkCmd = bootstrapResp.cmd.networkCmd;
+    const k8 = bootstrapResp.opts.k8;
+    let existingServiceMap;
+    let existingNodeIdsPrivateKeysHash;
 
     after(async function () {
-      this.timeout(10 * MINUTES)
+      this.timeout(10 * MINUTES);
 
-      await getNodeLogs(k8, namespace)
+      await getNodeLogs(k8, namespace);
       // @ts-ignore
-      await nodeCmd.accountManager.close()
-      await nodeCmd.handlers.stop(argv)
-      await networkCmd.destroy(argv)
-      await k8.deleteNamespace(namespace)
-    })
+      await nodeCmd.accountManager.close();
+      await nodeCmd.handlers.stop(argv);
+      await networkCmd.destroy(argv);
+      await k8.deleteNamespace(namespace);
+    });
 
     it('cache current version of private keys', async () => {
       // @ts-ignore
-      existingServiceMap = await nodeCmd.accountManager.getNodeServiceMap(namespace)
-      existingNodeIdsPrivateKeysHash = await getNodeAliasesPrivateKeysHash(existingServiceMap, namespace, k8, getTmpDir())
-    }).timeout(defaultTimeout)
+      existingServiceMap = await nodeCmd.accountManager.getNodeServiceMap(namespace);
+      existingNodeIdsPrivateKeysHash = await getNodeAliasesPrivateKeysHash(
+        existingServiceMap,
+        namespace,
+        k8,
+        getTmpDir(),
+      );
+    }).timeout(defaultTimeout);
 
     it('should succeed with init command', async () => {
-      const status = await accountCmd.init(argv)
-      expect(status).to.be.ok
-    }).timeout(8 * MINUTES)
+      const status = await accountCmd.init(argv);
+      expect(status).to.be.ok;
+    }).timeout(8 * MINUTES);
 
     it('should add a new node to the network via the segregated commands successfully', async () => {
-      await nodeCmd.handlers.addPrepare(argvPrepare)
-      await nodeCmd.handlers.addSubmitTransactions(argvExecute)
-      await nodeCmd.handlers.addExecute(argvExecute)
+      await nodeCmd.handlers.addPrepare(argvPrepare);
+      await nodeCmd.handlers.addSubmitTransactions(argvExecute);
+      await nodeCmd.handlers.addExecute(argvExecute);
       expect(nodeCmd.getUnusedConfigs(NodeCommandConfigs.ADD_CONFIGS_NAME)).to.deep.equal([
         flags.gossipEndpoints.constName,
         flags.grpcEndpoints.constName,
@@ -98,28 +104,34 @@ e2eTestSuite(namespace, argv, undefined, undefined, undefined, undefined, undefi
         flags.quiet.constName,
         'chartPath',
         'curDate',
-        'freezeAdminPrivateKey'
-      ])
-      await bootstrapResp.opts.accountManager.close()
-    }).timeout(12 * MINUTES)
+        'freezeAdminPrivateKey',
+      ]);
+      await bootstrapResp.opts.accountManager.close();
+    }).timeout(12 * MINUTES);
 
     // @ts-ignore
-    balanceQueryShouldSucceed(bootstrapResp.opts.accountManager, nodeCmd, namespace)
+    balanceQueryShouldSucceed(bootstrapResp.opts.accountManager, nodeCmd, namespace);
 
     // @ts-ignore
-    accountCreationShouldSucceed(bootstrapResp.opts.accountManager, nodeCmd, namespace)
+    accountCreationShouldSucceed(bootstrapResp.opts.accountManager, nodeCmd, namespace);
 
     it('existing nodes private keys should not have changed', async () => {
-      const currentNodeIdsPrivateKeysHash = await getNodeAliasesPrivateKeysHash(existingServiceMap, namespace, k8, getTmpDir())
+      const currentNodeIdsPrivateKeysHash = await getNodeAliasesPrivateKeysHash(
+        existingServiceMap,
+        namespace,
+        k8,
+        getTmpDir(),
+      );
 
       for (const [nodeAlias, existingKeyHashMap] of existingNodeIdsPrivateKeysHash.entries()) {
-        const currentNodeKeyHashMap = currentNodeIdsPrivateKeysHash.get(nodeAlias)
+        const currentNodeKeyHashMap = currentNodeIdsPrivateKeysHash.get(nodeAlias);
 
         for (const [keyFileName, existingKeyHash] of existingKeyHashMap.entries()) {
           expect(`${nodeAlias}:${keyFileName}:${currentNodeKeyHashMap.get(keyFileName)}`).to.equal(
-              `${nodeAlias}:${keyFileName}:${existingKeyHash}`)
+            `${nodeAlias}:${keyFileName}:${existingKeyHash}`,
+          );
         }
       }
-    }).timeout(defaultTimeout)
-  }).timeout(3 * MINUTES)
-})
+    }).timeout(defaultTimeout);
+  }).timeout(3 * MINUTES);
+});

@@ -14,26 +14,27 @@
  * limitations under the License.
  *
  */
-import { expect } from 'chai'
-import { describe, it } from 'mocha'
+import {expect} from 'chai';
+import {describe, it} from 'mocha';
 
-import { DependencyManager, HelmDependencyManager } from '../../../../src/core/dependency_managers/index.js'
-import { logging, constants, PackageDownloader, Zippy } from '../../../../src/core/index.js'
-import { SECONDS } from '../../../../src/core/constants.js'
+import {DependencyManager, HelmDependencyManager} from '../../../../src/core/dependency_managers/index.js';
+import {logging, constants, PackageDownloader, Zippy} from '../../../../src/core/index.js';
+import {SECONDS} from '../../../../src/core/constants.js';
 
-const testLogger = logging.NewLogger('debug', true)
+const testLogger = logging.NewLogger('debug', true);
 describe('DependencyManager', () => {
   // prepare dependency manger registry
-  const downloader = new PackageDownloader(testLogger)
-  const zippy = new Zippy(testLogger)
-  const helmDepManager = new HelmDependencyManager(downloader, zippy, testLogger)
-  const depManagerMap: Map<string, HelmDependencyManager> = new Map()
-    .set(constants.HELM, helmDepManager)
-  const depManager = new DependencyManager(testLogger, depManagerMap)
+  const downloader = new PackageDownloader(testLogger);
+  const zippy = new Zippy(testLogger);
+  const helmDepManager = new HelmDependencyManager(downloader, zippy, testLogger);
+  const depManagerMap: Map<string, HelmDependencyManager> = new Map().set(constants.HELM, helmDepManager);
+  const depManager = new DependencyManager(testLogger, depManagerMap);
 
   describe('checkDependency', () => {
     it('should fail during invalid dependency check', async () => {
-      await expect(depManager.checkDependency('INVALID_PROGRAM')).to.be.rejectedWith("Dependency 'INVALID_PROGRAM' is not found")
-    })
-  })
-})
+      await expect(depManager.checkDependency('INVALID_PROGRAM')).to.be.rejectedWith(
+        "Dependency 'INVALID_PROGRAM' is not found",
+      );
+    });
+  });
+});
