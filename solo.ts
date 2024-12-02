@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 /**
  * Copyright (C) 2024 Hedera Hashgraph, LLC
  *

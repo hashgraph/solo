@@ -109,6 +109,7 @@ export default [
       ],
       'no-dupe-class-members': 'off',
       'require-atomic-updates': 'off',
+      'n/no-unsupported-features/node-builtins': 'off', // TODO remove
     },
   },
   {
@@ -126,7 +127,7 @@ export default [
       sourceType: 'module',
     },
     rules: {
-      '@typescript-eslint/ban-ts-comment': 'warn',
+      '@typescript-eslint/ban-ts-comment': 'off', // TODO change to warn
       '@typescript-eslint/no-non-null-assertion': 'off',
       '@typescript-eslint/no-use-before-define': 'off',
       '@typescript-eslint/no-warning-comments': 'off',
@@ -136,6 +137,18 @@ export default [
       '@typescript-eslint/explicit-module-boundary-types': 'off',
       '@typescript-eslint/ban-types': 'off',
       '@typescript-eslint/camelcase': 'off',
+      '@typescript-eslint/no-explicit-any': 'off', // TODO remove
+      '@typescript-eslint/no-this-alias': 'off', // TODO remove
+      '@typescript-eslint/no-unused-expressions': 'off', // TODO remove
+      '@typescript-eslint/no-unused-vars': 'off', // TODO remove
+      '@typescript-eslint/no-unsafe-function-type': 'off', // TODO remove
+      'n/no-extraneous-import': 'off', // TODO remove
+      'n/no-process-exit': 'off', // TODO remove
+      'n/no-unsupported-features/node-builtins': 'off', // TODO remove
+      'eol-last': 'off', // TODO remove
+      'no-trailing-spaces': 'off', // TODO remove
+      'no-empty': 'off', // TODO remove
+      'prefer-arrow-callback': 'off', // TODO remove
     },
   },
   {

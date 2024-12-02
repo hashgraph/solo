@@ -14,7 +14,6 @@
  * limitations under the License.
  *
  */
-/* eslint-disable no-invalid-this */
 import { FREEZE_ADMIN_ACCOUNT } from '../../core/constants.js'
 import { constants, Templates } from '../../core/index.js'
 import { PrivateKey } from '@hashgraph/sdk'
