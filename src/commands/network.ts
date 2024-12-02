@@ -630,7 +630,7 @@ export class NetworkCommand extends BaseCommand {
   }
 
   getCommandDefinition(): {command: string; desc: string; builder: Function} {
-    const networkCmd = this;
+    const self = this;
     return {
       command: 'network',
       desc: 'Manage solo network deployment',
@@ -641,18 +641,18 @@ export class NetworkCommand extends BaseCommand {
             desc: "Deploy solo network.  Requires the chart `solo-cluster-setup` to have been installed in the cluster.  If it hasn't the following command can be ran: `solo cluster setup`",
             builder: (y: any) => flags.setCommandFlags(y, ...NetworkCommand.DEPLOY_FLAGS_LIST),
             handler: (argv: any) => {
-              networkCmd.logger.debug("==== Running 'network deploy' ===");
-              networkCmd.logger.debug(argv);
+              self.logger.debug("==== Running 'network deploy' ===");
+              self.logger.debug(argv);
 
-              networkCmd
+              self
                 .deploy(argv)
                 .then(r => {
-                  networkCmd.logger.debug('==== Finished running `network deploy`====');
+                  self.logger.debug('==== Finished running `network deploy`====');
 
                   if (!r) process.exit(1);
                 })
                 .catch(err => {
-                  networkCmd.logger.showUserError(err);
+                  self.logger.showUserError(err);
                   process.exit(1);
                 });
             },
@@ -670,18 +670,18 @@ export class NetworkCommand extends BaseCommand {
                 flags.enableTimeout,
               ),
             handler: (argv: any) => {
-              networkCmd.logger.debug("==== Running 'network destroy' ===");
-              networkCmd.logger.debug(argv);
+              self.logger.debug("==== Running 'network destroy' ===");
+              self.logger.debug(argv);
 
-              networkCmd
+              self
                 .destroy(argv)
                 .then(r => {
-                  networkCmd.logger.debug('==== Finished running `network destroy`====');
+                  self.logger.debug('==== Finished running `network destroy`====');
 
                   if (!r) process.exit(1);
                 })
                 .catch(err => {
-                  networkCmd.logger.showUserError(err);
+                  self.logger.showUserError(err);
                   process.exit(1);
                 });
             },
@@ -691,18 +691,18 @@ export class NetworkCommand extends BaseCommand {
             desc: 'Refresh solo network deployment',
             builder: (y: any) => flags.setCommandFlags(y, ...NetworkCommand.DEPLOY_FLAGS_LIST),
             handler: (argv: any) => {
-              networkCmd.logger.debug("==== Running 'chart upgrade' ===");
-              networkCmd.logger.debug(argv);
+              self.logger.debug("==== Running 'chart upgrade' ===");
+              self.logger.debug(argv);
 
-              networkCmd
+              self
                 .refresh(argv)
                 .then(r => {
-                  networkCmd.logger.debug('==== Finished running `chart upgrade`====');
+                  self.logger.debug('==== Finished running `chart upgrade`====');
 
                   if (!r) process.exit(1);
                 })
                 .catch(err => {
-                  networkCmd.logger.showUserError(err);
+                  self.logger.showUserError(err);
                   process.exit(1);
                 });
             },

@@ -378,7 +378,7 @@ export class RelayCommand extends BaseCommand {
   }
 
   getCommandDefinition(): {command: string; desc: string; builder: Function} {
-    const relayCmd = this;
+    const self = this;
     return {
       command: 'relay',
       desc: 'Manage JSON RPC relays in solo network',
@@ -391,17 +391,17 @@ export class RelayCommand extends BaseCommand {
               flags.setCommandFlags(y, ...RelayCommand.DEPLOY_FLAGS_LIST);
             },
             handler: (argv: any) => {
-              relayCmd.logger.debug("==== Running 'relay install' ===", {argv});
+              self.logger.debug("==== Running 'relay install' ===", {argv});
 
-              relayCmd
+              self
                 .deploy(argv)
                 .then(r => {
-                  relayCmd.logger.debug('==== Finished running `relay install`====');
+                  self.logger.debug('==== Finished running `relay install`====');
 
                   if (!r) process.exit(1);
                 })
                 .catch(err => {
-                  relayCmd.logger.showUserError(err);
+                  self.logger.showUserError(err);
                   process.exit(1);
                 });
             },
@@ -412,11 +412,11 @@ export class RelayCommand extends BaseCommand {
             builder: (y: any) =>
               flags.setCommandFlags(y, flags.chartDirectory, flags.namespace, flags.nodeAliasesUnparsed),
             handler: (argv: any) => {
-              relayCmd.logger.debug("==== Running 'relay uninstall' ===", {argv});
-              relayCmd.logger.debug(argv);
+              self.logger.debug("==== Running 'relay uninstall' ===", {argv});
+              self.logger.debug(argv);
 
-              relayCmd.destroy(argv).then(r => {
-                relayCmd.logger.debug('==== Finished running `relay uninstall`====');
+              self.destroy(argv).then(r => {
+                self.logger.debug('==== Finished running `relay uninstall`====');
 
                 if (!r) process.exit(1);
               });

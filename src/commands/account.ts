@@ -519,7 +519,7 @@ export class AccountCommand extends BaseCommand {
 
   /** Return Yargs command definition for 'node' command */
   getCommandDefinition(): {command: string; desc: string; builder: Function} {
-    const accountCmd = this;
+    const self = this;
     return {
       command: 'account',
       desc: 'Manage Hedera accounts in solo network',
@@ -530,17 +530,17 @@ export class AccountCommand extends BaseCommand {
             desc: 'Initialize system accounts with new keys',
             builder: (y: any) => flags.setCommandFlags(y, flags.namespace),
             handler: (argv: any) => {
-              accountCmd.logger.debug("==== Running 'account init' ===");
-              accountCmd.logger.debug(argv);
+              self.logger.debug("==== Running 'account init' ===");
+              self.logger.debug(argv);
 
-              accountCmd
+              self
                 .init(argv)
                 .then(r => {
-                  accountCmd.logger.debug("==== Finished running 'account init' ===");
+                  self.logger.debug("==== Finished running 'account init' ===");
                   if (!r) process.exit(1);
                 })
                 .catch(err => {
-                  accountCmd.logger.showUserError(err);
+                  self.logger.showUserError(err);
                   process.exit(1);
                 });
             },
@@ -558,17 +558,17 @@ export class AccountCommand extends BaseCommand {
                 flags.setAlias,
               ),
             handler: (argv: any) => {
-              accountCmd.logger.debug("==== Running 'account create' ===");
-              accountCmd.logger.debug(argv);
+              self.logger.debug("==== Running 'account create' ===");
+              self.logger.debug(argv);
 
-              accountCmd
+              self
                 .create(argv)
                 .then(r => {
-                  accountCmd.logger.debug("==== Finished running 'account create' ===");
+                  self.logger.debug("==== Finished running 'account create' ===");
                   if (!r) process.exit(1);
                 })
                 .catch(err => {
-                  accountCmd.logger.showUserError(err);
+                  self.logger.showUserError(err);
                   process.exit(1);
                 });
             },
@@ -586,17 +586,17 @@ export class AccountCommand extends BaseCommand {
                 flags.ed25519PrivateKey,
               ),
             handler: (argv: any) => {
-              accountCmd.logger.debug("==== Running 'account update' ===");
-              accountCmd.logger.debug(argv);
+              self.logger.debug("==== Running 'account update' ===");
+              self.logger.debug(argv);
 
-              accountCmd
+              self
                 .update(argv)
                 .then(r => {
-                  accountCmd.logger.debug("==== Finished running 'account update' ===");
+                  self.logger.debug("==== Finished running 'account update' ===");
                   if (!r) process.exit(1);
                 })
                 .catch(err => {
-                  accountCmd.logger.showUserError(err);
+                  self.logger.showUserError(err);
                   process.exit(1);
                 });
             },
@@ -606,17 +606,17 @@ export class AccountCommand extends BaseCommand {
             desc: 'Gets the account info including the current amount of HBAR',
             builder: (y: any) => flags.setCommandFlags(y, flags.accountId, flags.privateKey, flags.namespace),
             handler: (argv: any) => {
-              accountCmd.logger.debug("==== Running 'account get' ===");
-              accountCmd.logger.debug(argv);
+              self.logger.debug("==== Running 'account get' ===");
+              self.logger.debug(argv);
 
-              accountCmd
+              self
                 .get(argv)
                 .then(r => {
-                  accountCmd.logger.debug("==== Finished running 'account get' ===");
+                  self.logger.debug("==== Finished running 'account get' ===");
                   if (!r) process.exit(1);
                 })
                 .catch(err => {
-                  accountCmd.logger.showUserError(err);
+                  self.logger.showUserError(err);
                   process.exit(1);
                 });
             },
