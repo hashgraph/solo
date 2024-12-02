@@ -51,6 +51,7 @@ argv[flags.relayReleaseTag.name] = flags.relayReleaseTag.definition.defaultValue
 // set the env variable SOLO_CHARTS_DIR if developer wants to use local Solo charts
 argv[flags.chartDirectory.name] = process.env.SOLO_CHARTS_DIR ?? undefined
 argv[flags.quiet.name] = true
+argv[flags.pinger.name] = true
 
 e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefined, undefined, true, (bootstrapResp) => {
   describe('MirrorNodeCommand', async () => {
