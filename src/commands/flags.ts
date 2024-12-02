@@ -768,6 +768,16 @@ export const deploymentClusters: CommandFlag = {
   }
 }
 
+export const pinger: CommandFlag = {
+  constName: 'pinger',
+  name: 'pinger',
+  definition: {
+    describe: 'Enable Pinger service in the Mirror node monitor',
+    defaultValue: false,
+    type: 'boolean'
+  }
+}
+
 //* ------------- Node Proxy Certificates ------------- !//
 
 export const grpcTlsCertificatePath: CommandFlag = {
@@ -889,6 +899,7 @@ export const allFlags: CommandFlag[] = [
   privateKey,
   profileFile,
   profileName,
+  pinger,
   relayReleaseTag,
   releaseTag,
   replicaCount,

@@ -113,7 +113,7 @@ export class ChartManager {
     return true
   }
 
-  async upgrade (namespaceName: string, chartReleaseName: string, chartPath: string, valuesArg = '', version = '') {
+  async upgrade (namespaceName: string, chartReleaseName: string, chartPath: string, version = '', valuesArg = '') {
     const versionArg = version ? `--version ${version}` : ''
 
     try {

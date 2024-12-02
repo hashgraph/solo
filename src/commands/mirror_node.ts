@@ -57,7 +57,8 @@ export class MirrorNodeCommand extends BaseCommand {
       flags.quiet,
       flags.tlsClusterIssuerType,
       flags.valuesFile,
-      flags.mirrorNodeVersion
+      flags.mirrorNodeVersion,
+      flags.pinger
     ]
   }
 
@@ -147,7 +148,8 @@ export class MirrorNodeCommand extends BaseCommand {
       chartPath: string
       valuesArg: string
       mirrorNodeVersion: string
-      getUnusedConfigs: () => string[]
+      getUnusedConfigs: () => string[],
+      pinger: boolean
     }
 
     interface Context {
@@ -171,7 +173,8 @@ export class MirrorNodeCommand extends BaseCommand {
             flags.hederaExplorerVersion,
             flags.tlsClusterIssuerType,
             flags.valuesFile,
-            flags.mirrorNodeVersion
+            flags.mirrorNodeVersion,
+            flags.pinger
           ])
 
           await prompts.execute(task, self.configManager, MirrorNodeCommand.DEPLOY_FLAGS_LIST)
@@ -185,6 +188,20 @@ export class MirrorNodeCommand extends BaseCommand {
           ctx.config.valuesArg = await self.prepareValuesArg(ctx.config)
 
           ctx.config.valuesArg += this.prepareValuesFiles(constants.MIRROR_NODE_VALUES_FILE)
+
+          if (ctx.config.pinger) {
+            const startAccId = constants.HEDERA_NODE_ACCOUNT_ID_START
+            const networkPods = await this.k8.getPodsByLabel(['solo.hedera.com/type=network-node'])
+
+            if (networkPods.length) {
+              const pod = networkPods[0]
+              ctx.config.valuesArg += ` --set monitor.config.hedera.mirror.monitor.nodes.0.accountId=${startAccId}`
+              ctx.config.valuesArg += ` --set monitor.config.hedera.mirror.monitor.nodes.0.host=${pod.status.podIP}`
+
+              ctx.config.valuesArg += ` --set monitor.config.hedera.mirror.monitor.operator.accountId=${constants.OPERATOR_ID}`
+              ctx.config.valuesArg += ` --set monitor.config.hedera.mirror.monitor.operator.privateKey=${constants.OPERATOR_KEY}`
+            }
+          }
 
           if (!await self.k8.hasNamespace(ctx.config.namespace)) {
             throw new SoloError(`namespace ${ctx.config.namespace} does not exist`)

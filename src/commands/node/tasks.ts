@@ -1236,8 +1236,8 @@ export class NodeCommandTasks {
       await self.chartManager.upgrade(
         config.namespace,
         constants.SOLO_DEPLOYMENT_CHART, constants.SOLO_TESTING_CHART_URL + constants.SOLO_DEPLOYMENT_CHART,
-        valuesArg,
-        config.soloChartVersion
+        config.soloChartVersion,
+        valuesArg
       )
     }, skip)
   }
