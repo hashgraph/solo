@@ -97,13 +97,11 @@ describe('ComponentsDataWrapper', () => {
   })
 
   it ('should not be able to add new component with the .add() method if it already exist', () => {
-    const { wrapper: { componentsDataWrapper } } = createComponentsDataWrapper()
+    const { wrapper: { componentsDataWrapper }, components: { consensusNodes }, serviceName } = createComponentsDataWrapper()
 
-    const newServiceName = 'newServiceName'
-    const { name, cluster, namespace } = { name: 'envoy', cluster: 'cluster', namespace: 'namespace' }
-    const newComponent = new EnvoyProxyComponent(name, cluster, namespace)
+    const existingComponent = consensusNodes[serviceName]
 
-    expect(() => componentsDataWrapper.add(newServiceName, newComponent))
+    expect(() => componentsDataWrapper.add(serviceName, existingComponent))
       .to.throw(SoloError, 'Component exists')
   })
 
