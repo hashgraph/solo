@@ -24,6 +24,7 @@ import type {
   ProfileManager, DependencyManager, AccountManager, LeaseManager, CertificateManager,
   LocalConfig
 } from '../core/index.js'
+import { type BaseCommand } from '../commands/base.js'
 
 export interface NodeKeyObject {
   privateKey: crypto.webcrypto.CryptoKey
@@ -82,4 +83,8 @@ export interface Opts {
   leaseManager: LeaseManager,
   certificateManager: CertificateManager
   localConfig: LocalConfig
+}
+
+export interface CommandHandlers {
+  parent: BaseCommand
 }

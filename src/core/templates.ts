@@ -105,12 +105,12 @@ export class Templates {
   }
 
   static renderDistinguishedName (
-    nodeAlias: NodeAlias,
-    state = 'TX',
-    locality = 'Richardson',
-    org = 'Hedera',
-    orgUnit = 'Hedera',
-    country = 'US'
+      nodeAlias: NodeAlias,
+      state = 'TX',
+      locality = 'Richardson',
+      org = 'Hedera',
+      orgUnit = 'Hedera',
+      country = 'US'
   ) {
     return new x509.Name(`CN=${nodeAlias},ST=${state},L=${locality},O=${org},OU=${orgUnit},C=${country}`)
   }
@@ -133,9 +133,9 @@ export class Templates {
   }
 
   public static installationPath (
-    dep: string,
-    osPlatform: NodeJS.Platform | string = os.platform(),
-    installationDir: string = path.join(constants.SOLO_HOME_DIR, 'bin')
+      dep: string,
+      osPlatform: NodeJS.Platform | string = os.platform(),
+      installationDir: string = path.join(constants.SOLO_HOME_DIR, 'bin')
   ) {
     switch (dep) {
       case constants.HELM:
@@ -191,11 +191,11 @@ export class Templates {
    */
   static renderGrpcTlsCertificatesSecretName (nodeAlias: NodeAlias, type: GrpcProxyTlsEnums) {
     switch (type) {
-      //? HAProxy Proxy
+        //? HAProxy Proxy
       case GrpcProxyTlsEnums.GRPC:
         return `haproxy-proxy-secret-${nodeAlias}`
 
-      //? Envoy Proxy
+        //? Envoy Proxy
       case GrpcProxyTlsEnums.GRPC_WEB:
         return `envoy-proxy-secret-${nodeAlias}`
     }
@@ -211,13 +211,17 @@ export class Templates {
    */
   static renderGrpcTlsCertificatesSecretLabelObject (nodeAlias: NodeAlias, type: GrpcProxyTlsEnums) {
     switch (type) {
-      //? HAProxy Proxy
+        //? HAProxy Proxy
       case GrpcProxyTlsEnums.GRPC:
         return { 'haproxy-proxy-secret': nodeAlias }
 
-      //? Envoy Proxy
+        //? Envoy Proxy
       case GrpcProxyTlsEnums.GRPC_WEB:
         return { 'envoy-proxy-secret': nodeAlias }
     }
+  }
+
+  static parseClusterAliases (clusterAliases: string) {
+    return clusterAliases ? clusterAliases.split(',') : []
   }
 }

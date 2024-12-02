@@ -89,10 +89,10 @@ export class NodeCommandTasks {
   private readonly prepareValuesFiles: any
 
   constructor (opts: {
-                logger: SoloLogger; accountManager: AccountManager; configManager: ConfigManager,
-                k8: K8, platformInstaller: PlatformInstaller, keyManager: KeyManager, profileManager: ProfileManager,
-                chartManager: ChartManager, certificateManager: CertificateManager, parent: NodeCommand
-              }
+        logger: SoloLogger; accountManager: AccountManager; configManager: ConfigManager,
+        k8: K8, platformInstaller: PlatformInstaller, keyManager: KeyManager, profileManager: ProfileManager,
+        chartManager: ChartManager, certificateManager: CertificateManager, parent: NodeCommand
+      }
   ) {
     if (!opts || !opts.accountManager) throw new IllegalArgumentError('An instance of core/AccountManager is required', opts.accountManager as any)
     if (!opts || !opts.configManager) throw new Error('An instance of core/ConfigManager is required')
@@ -965,7 +965,7 @@ export class NodeCommandTasks {
         subTasks.push({
           title: `Node: ${chalk.yellow(nodeAlias)}`,
           task: async () =>
-            await this.k8.execContainer(podName, constants.ROOT_CONTAINER, ['bash', '-c', `rm -rf ${constants.HEDERA_HAPI_PATH}/data/saved/*`])
+              await this.k8.execContainer(podName, constants.ROOT_CONTAINER, ['bash', '-c', `rm -rf ${constants.HEDERA_HAPI_PATH}/data/saved/*`])
         })
       }
 
@@ -1016,8 +1016,8 @@ export class NodeCommandTasks {
           name: networkNodeServices.nodeAlias
         })
         maxNum = maxNum > AccountId.fromString(networkNodeServices.accountId).num
-          ? maxNum
-          : AccountId.fromString(networkNodeServices.accountId).num
+            ? maxNum
+            : AccountId.fromString(networkNodeServices.accountId).num
         lastNodeAlias = networkNodeServices.nodeAlias
       }
 
@@ -1365,8 +1365,8 @@ export class NodeCommandTasks {
         this.logger.debug(`Deleting node: ${config.nodeAlias} with account: ${deleteAccountId}`)
         const nodeId = Templates.nodeIdFromNodeAlias(config.nodeAlias) - 1
         const nodeDeleteTx = new NodeDeleteTransaction()
-          .setNodeId(nodeId)
-          .freezeWith(config.nodeClient)
+            .setNodeId(nodeId)
+            .freezeWith(config.nodeClient)
 
         const signedTx = await nodeDeleteTx.sign(config.adminKey)
         const txResp = await signedTx.execute(config.nodeClient)
@@ -1386,13 +1386,13 @@ export class NodeCommandTasks {
 
       try {
         const nodeCreateTx = new NodeCreateTransaction()
-          .setAccountId(ctx.newNode.accountId)
-          .setGossipEndpoints(ctx.gossipEndpoints)
-          .setServiceEndpoints(ctx.grpcServiceEndpoints)
-          .setGossipCaCertificate(ctx.signingCertDer)
-          .setCertificateHash(ctx.tlsCertHash)
-          .setAdminKey(ctx.adminKey.publicKey)
-          .freezeWith(config.nodeClient)
+            .setAccountId(ctx.newNode.accountId)
+            .setGossipEndpoints(ctx.gossipEndpoints)
+            .setServiceEndpoints(ctx.grpcServiceEndpoints)
+            .setGossipCaCertificate(ctx.signingCertDer)
+            .setCertificateHash(ctx.tlsCertHash)
+            .setAdminKey(ctx.adminKey.publicKey)
+            .freezeWith(config.nodeClient)
         const signedTx = await nodeCreateTx.sign(ctx.adminKey)
         const txResp = await signedTx.execute(config.nodeClient)
         const nodeCreateReceipt = await txResp.getReceipt(config.nodeClient)
@@ -1401,12 +1401,6 @@ export class NodeCommandTasks {
         this.logger.error(`Error adding node to network: ${e.message}`, e)
         throw new SoloError(`Error adding node to network: ${e.message}`, e)
       }
-    })
-  }
-
-  templateTask () {
-    return new Task('TEMPLATE', async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
-
     })
   }
 

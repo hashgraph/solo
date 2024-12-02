@@ -26,7 +26,6 @@ export const IsDeployments = (validationOptions?: ValidationOptions) => {
             propertyName: propertyName,
             constraints: [],
             options: {
-                message: 'Wrong deployments format',
                 ...validationOptions,
             },
             validator: {

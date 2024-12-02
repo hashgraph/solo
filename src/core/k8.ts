@@ -23,7 +23,7 @@ import { flags } from '../commands/index.js'
 import { SoloError, IllegalArgumentError, MissingArgumentError } from './errors.js'
 import * as tar from 'tar'
 import { v4 as uuid4 } from 'uuid'
-import { type V1Lease, V1ObjectMeta, V1Secret } from '@kubernetes/client-node'
+import { type V1Lease, V1ObjectMeta, V1Secret, type Context } from '@kubernetes/client-node'
 import { sleep } from './helpers.js'
 import { type ConfigManager, constants } from './index.js'
 import * as stream from 'node:stream'
@@ -44,6 +44,8 @@ interface TDirectoryData {directory: boolean; owner: string; group: string; size
  * For parallel execution, create separate instances by invoking clone()
  */
 export class K8 {
+  private _cachedContexts: Context[]
+
   static PodReadyCondition = new Map<string, string>()
     .set(constants.POD_CONDITION_READY, constants.POD_CONDITION_STATUS_TRUE)
   private kubeConfig!: k8s.KubeConfig
@@ -320,13 +322,22 @@ export class K8 {
    * Get a list of contexts
    * @returns a list of context names
    */
-  getContexts () {
+  getContextNames () : string[] {
     const contexts: string[] = []
-    for (const context of this.kubeConfig.getContexts()) {
+
+    for (const context of this.getContexts()) {
       contexts.push(context.name)
     }
 
     return contexts
+  }
+
+  getContexts () :Context[] {
+    if (!this._cachedContexts) {
+      this._cachedContexts = this.kubeConfig.getContexts()
+    }
+
+    return this._cachedContexts
   }
 
   /**
@@ -466,7 +477,7 @@ export class K8 {
     if (status === 'Failure') {
       return this.exitWithError(localContext, `${messagePrefix} Failure occurred`)
     }
-      this.logger.debug(`${messagePrefix} callback(status)=${status}`)
+    this.logger.debug(`${messagePrefix} callback(status)=${status}`)
 
   }
 
@@ -679,7 +690,7 @@ export class K8 {
               self._deleteTempFile(tmpFile)
               return self.exitWithError(localContext, `${messagePrefix} Failure occurred`)
             }
-              self.logger.debug(`${messagePrefix} callback(status)=${status}`)
+            self.logger.debug(`${messagePrefix} callback(status)=${status}`)
 
           })
           .then(conn => {
@@ -896,24 +907,24 @@ export class K8 {
       try {
         const isPortOpen = await new Promise((resolve) => {
           const testServer = net.createServer()
-            .once('error', err => {
-              if (err) {
-                resolve(false)
-              }
-            })
-            .once('listening', () => {
-              testServer
-                .once('close', () => {
-                  hasError++
-                  if (hasError > 1) {
-                    resolve(false)
-                  } else {
-                    resolve(true)
-                  }
-                })
-                .close()
-            })
-            .listen(server.localPort, '0.0.0.0')
+              .once('error', err => {
+                if (err) {
+                  resolve(false)
+                }
+              })
+              .once('listening', () => {
+                testServer
+                    .once('close', () => {
+                      hasError++
+                      if (hasError > 1) {
+                        resolve(false)
+                      } else {
+                        resolve(true)
+                      }
+                    })
+                    .close()
+              })
+              .listen(server.localPort, '0.0.0.0')
         })
         if (isPortOpen) {
           return
@@ -929,7 +940,7 @@ export class K8 {
   }
 
   async waitForPods (phases = [constants.POD_PHASE_RUNNING], labels: string[] = [], podCount = 1, maxAttempts = constants.PODS_RUNNING_MAX_ATTEMPTS,
-    delay = constants.PODS_RUNNING_DELAY, podItemPredicate?: (items: k8s.V1Pod) => any): Promise<k8s.V1Pod[]> {
+                     delay = constants.PODS_RUNNING_DELAY, podItemPredicate?: (items: k8s.V1Pod) => any): Promise<k8s.V1Pod[]> {
     const ns = this._getNamespace()
     const labelSelector = labels.join(',')
 
@@ -1099,8 +1110,8 @@ export class K8 {
    */
   async deletePvc (name: string, namespace: string) {
     const resp = await this.kubeClient.deleteNamespacedPersistentVolumeClaim(
-      name,
-      namespace
+        name,
+        namespace
     )
 
     return resp.response.statusCode === 200.0
@@ -1115,17 +1126,17 @@ export class K8 {
    */
   async getSecret (namespace: string, labelSelector: string) {
     const result = await this.kubeClient.listNamespacedSecret(
-        namespace,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        labelSelector,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        5 * MINUTES
+      namespace,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      labelSelector,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      5 * MINUTES
     )
 
     if (result.response.statusCode === 200 && result.body.items && result.body.items.length > 0) {
@@ -1138,7 +1149,7 @@ export class K8 {
         data: secretObject.data as Record<string, string>
       }
     }
-      return null
+    return null
 
   }
 
@@ -1206,7 +1217,7 @@ export class K8 {
     lease.spec = spec
 
     const { response, body } = await this.coordinationApiClient.createNamespacedLease(namespace, lease)
-      .catch(e => e)
+        .catch(e => e)
 
     this._handleKubernetesClientError(response, body, 'Failed to create namespaced lease')
 
@@ -1215,7 +1226,7 @@ export class K8 {
 
   async readNamespacedLease (leaseName: string, namespace: string) {
     const { response, body } = await this.coordinationApiClient.readNamespacedLease(leaseName, namespace)
-      .catch(e => e)
+        .catch(e => e)
 
     this._handleKubernetesClientError(response, body, 'Failed to read namespaced lease')
 
@@ -1226,7 +1237,7 @@ export class K8 {
     lease.spec.renewTime = new k8s.V1MicroTime()
 
     const { response, body } = await this.coordinationApiClient.replaceNamespacedLease(leaseName, namespace, lease)
-      .catch(e => e)
+        .catch(e => e)
 
     this._handleKubernetesClientError(response, body, 'Failed to renew namespaced lease')
 
@@ -1249,7 +1260,7 @@ export class K8 {
 
   async deleteNamespacedLease (name: string, namespace: string) {
     const { response, body } = await this.coordinationApiClient.deleteNamespacedLease(name, namespace)
-      .catch(e => e)
+        .catch(e => e)
 
     this._handleKubernetesClientError(response, body, 'Failed to delete namespaced lease')
 

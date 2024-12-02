@@ -15,16 +15,10 @@
  *
  */
 
-export interface Deployment {
-    clusterAliases : string[]
-}
+import * as flags from '../flags.js'
 
-// an alias for the cluster, provided during the configuration
-// of the deployment, must be unique
-export type Deployments = Record<string, Deployment>
-
-export interface LocalConfigData {
-    userEmailAddress: string
-    deployments: Deployments
-    currentDeploymentName: string
+export const USE_FLAGS = {
+    requiredFlags: [],
+    requiredFlagsWithDisabledPrompt: [],
+    optionalFlags: [flags.devMode, flags.quiet, flags.clusterName, flags.context, flags.force, flags.namespace]
 }

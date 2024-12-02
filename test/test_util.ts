@@ -328,8 +328,8 @@ export function balanceQueryShouldSucceed (accountManager: AccountManager, cmd: 
       expect(accountManager._nodeClient).not.to.be.null
 
       const balance = await new AccountBalanceQuery()
-      .setAccountId(accountManager._nodeClient.getOperator().accountId)
-      .execute(accountManager._nodeClient)
+          .setAccountId(accountManager._nodeClient.getOperator().accountId)
+          .execute(accountManager._nodeClient)
 
       expect(balance.hbars).not.be.null
     } catch (e) {
@@ -349,9 +349,9 @@ export function accountCreationShouldSucceed (accountManager: AccountManager, no
       const amount = 100
 
       const newAccount = await new AccountCreateTransaction()
-      .setKey(privateKey)
-      .setInitialBalance(Hbar.from(amount, HbarUnit.Hbar))
-      .execute(accountManager._nodeClient)
+          .setKey(privateKey)
+          .setInitialBalance(Hbar.from(amount, HbarUnit.Hbar))
+          .execute(accountManager._nodeClient)
 
       // Get the new account ID
       const getReceipt = await newAccount.getReceipt(accountManager._nodeClient)
@@ -418,4 +418,20 @@ export function getK8Instance (configManager: ConfigManager) {
     execSync(`kind create cluster --name "${process.env.SOLO_CLUSTER_NAME}"`, { stdio: 'inherit' })
     return new K8(configManager, testLogger)
   }
+}
+
+export const testLocalConfigData = {
+  userEmailAddress: 'john.doe@example.com',
+  deployments: {
+    'deployment': {
+      clusterAliases: ['cluster-1'],
+    },
+    'deployment-2': {
+      clusterAliases: ['cluster-2'],
+    },
+    'deployment-3': {
+      clusterAliases: ['cluster-3'],
+    }
+  },
+  currentDeploymentName: 'deployment',
 }
