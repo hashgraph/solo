@@ -85,7 +85,12 @@ export default [
       'n/no-empty-function': 'off',
       'n/no-unsupported-features/es-syntax': 'off',
       'n/no-missing-require': 'off',
-      'n/shebang': 'off',
+      'n/hashbang': [
+        'error',
+        {
+          additionalExecutables: ['solo.ts'],
+        },
+      ],
       'n/no-unpublished-import': [
         'error',
         {

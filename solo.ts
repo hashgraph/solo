@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 /**
  * Copyright (C) 2024 Hedera Hashgraph, LLC
  *
@@ -14,6 +15,6 @@
  * limitations under the License.
  *
  */
-import * as fnm from './src/index.js'
+import * as fnm from './src/index.js';
 
-fnm.main(process.argv)
+fnm.main(process.argv);
