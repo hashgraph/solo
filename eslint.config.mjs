@@ -61,7 +61,7 @@ export default [
             'Copyright (C) {year} Hedera Hashgraph, LLC\n\nLicensed under the Apache License, Version 2.0 (the ""License"");\nyou may not use this file except in compliance with the License.\nYou may obtain a copy of the License at\n\n     http://www.apache.org/licenses/LICENSE-2.0\n\nUnless required by applicable law or agreed to in writing, software\ndistributed under the License is distributed on an ""AS IS"" BASIS,\nWITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\nSee the License for the specific language governing permissions and\nlimitations under the License.\n',
         },
       ],
-      'prettier/prettier': 'off', // TODO change to warn, then to error
+      'prettier/prettier': 'warn', // TODO change to error
       'block-scoped-var': 'error',
       eqeqeq: 'error',
       'no-var': 'error',
@@ -109,7 +109,7 @@ export default [
       ],
       'no-dupe-class-members': 'off',
       'require-atomic-updates': 'off',
-      'n/no-unsupported-features/node-builtins': 'off', // TODO remove
+      'n/no-unsupported-features/node-builtins': 'warn', // TODO remove
     },
   },
   {
@@ -127,7 +127,7 @@ export default [
       sourceType: 'module',
     },
     rules: {
-      '@typescript-eslint/ban-ts-comment': 'off', // TODO change to warn
+      '@typescript-eslint/ban-ts-comment': 'warn', // TODO change to warn
       '@typescript-eslint/no-non-null-assertion': 'off',
       '@typescript-eslint/no-use-before-define': 'off',
       '@typescript-eslint/no-warning-comments': 'off',
@@ -137,18 +137,18 @@ export default [
       '@typescript-eslint/explicit-module-boundary-types': 'off',
       '@typescript-eslint/ban-types': 'off',
       '@typescript-eslint/camelcase': 'off',
-      '@typescript-eslint/no-explicit-any': 'off', // TODO remove
-      '@typescript-eslint/no-this-alias': 'off', // TODO remove
-      '@typescript-eslint/no-unused-expressions': 'off', // TODO remove
-      '@typescript-eslint/no-unused-vars': 'off', // TODO remove
-      '@typescript-eslint/no-unsafe-function-type': 'off', // TODO remove
-      'n/no-extraneous-import': 'off', // TODO remove
-      'n/no-process-exit': 'off', // TODO remove
-      'n/no-unsupported-features/node-builtins': 'off', // TODO remove
-      'eol-last': 'off', // TODO remove
-      'no-trailing-spaces': 'off', // TODO remove
-      'no-empty': 'off', // TODO remove
-      'prefer-arrow-callback': 'off', // TODO remove
+      '@typescript-eslint/no-explicit-any': 'warn', // TODO remove
+      '@typescript-eslint/no-this-alias': 'warn', // TODO remove
+      '@typescript-eslint/no-unused-expressions': 'warn', // TODO remove
+      '@typescript-eslint/no-unused-vars': 'warn', // TODO remove
+      '@typescript-eslint/no-unsafe-function-type': 'warn', // TODO remove
+      'n/no-extraneous-import': 'warn', // TODO remove
+      'n/no-process-exit': 'warn', // TODO remove
+      'n/no-unsupported-features/node-builtins': 'warn', // TODO remove
+      'eol-last': 'warn', // TODO remove
+      'no-trailing-spaces': 'warn', // TODO remove
+      'no-empty': 'warn', // TODO remove
+      'prefer-arrow-callback': 'warn', // TODO remove
     },
   },
   {
