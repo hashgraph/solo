@@ -25,8 +25,6 @@ import { getFileContents, getEnvValue } from '../core/helpers.js'
 import { type PodName } from '../types/aliases.js'
 import { type Opts } from '../types/index.js'
 import { ListrLease } from '../core/lease/listr_lease.js'
-import {AccountId} from "@hashgraph/sdk";
-import chalk from "chalk";
 
 export class MirrorNodeCommand extends BaseCommand {
   private readonly accountManager: AccountManager
