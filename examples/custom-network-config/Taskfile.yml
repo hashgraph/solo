@@ -1,6 +1,6 @@
 version: 3
 includes:
-  helper: ../HelperTasks.yml
+  helper: ../../HelperTasks.yml
 dotenv:
   - .env
 
@@ -20,7 +20,7 @@ vars:
   ip_list_template_file: "{{.ROOT_DIR}}/list-external-ips.gotemplate"
   nodes:
     ref: until (env "SOLO_NETWORK_SIZE" | default .SOLO_NETWORK_SIZE | int)
-  node_list_internal: "{{range $idx, $n := .nodes }}node{{$n}},{{end}}"
+  node_list_internal: "{{range $idx, $n := .nodes }}node{{add $n 1}},{{end}}"
   node_identifiers: "{{ .node_list_internal | trimSuffix \",\" }}"
   solo_user_dir: "{{ env \"HOME\" }}/.solo"
   solo_cache_dir: "{{ .solo_user_dir }}/cache"
@@ -41,7 +41,7 @@ tasks:
     cmds:
       - task: "helper:solo:init"
       - task: "helper:solo:keys"
-      - task: "helper:solo:network:deploy"
+      - task: "solo:network:deploy"
 
   start:
     cmds:
@@ -53,7 +53,7 @@ tasks:
 
   show:ips:
     cmds:
-      - task: "helper:solo:node:addresses"
+      - task: "solo:node:addresses"
 
   destroy:
     cmds:
@@ -73,3 +73,18 @@ tasks:
   clean:logs:
     cmds:
       - task: "helper:solo:logs:remove"
+
+  # Do not use network:deploy from HelperTasks.yml since custom network need extra settings and values files
+  solo:network:deploy:
+    internal: true
+    cmds:
+      - npm run build
+      - solo network deploy --namespace "${SOLO_NAMESPACE}" --node-aliases-unparsed {{.node_identifiers}} --release-tag "${CONSENSUS_NODE_VERSION}" --solo-chart-version "${SOLO_CHART_VERSION}" --values-file {{ .solo_values_file }} --settings-txt {{ .solo_settings_file }}
+      - solo node setup --namespace "${SOLO_NAMESPACE}" --node-aliases-unparsed {{.node_identifiers}} --release-tag "${CONSENSUS_NODE_VERSION}"
+
+  # Do not use node:addresses from HelperTasks.yml since we need to use template file to get output the list of IPs
+  solo:node:addresses:
+    internal: true
+    cmds:
+      - kubectl get svc -n "${SOLO_NAMESPACE}" -l "solo.hedera.com/type=network-node-svc" --output=go-template-file={{ .ip_list_template_file }}
+
