@@ -163,6 +163,7 @@ function creat_test_account ()
 
 function start_sdk_test ()
 {
+  echo "Start sdk test"
 #  cd solo
 #  node examples/create-topic.js
 #  cd -
