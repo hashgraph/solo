@@ -15,5 +15,9 @@
  *
  */
 export class Task {
-  constructor (public title: string, public task: Function, public skip: Function | boolean = false) { }
+  constructor(
+    public title: string,
+    public task: Function,
+    public skip: Function | boolean = false,
+  ) {}
 }

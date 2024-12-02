@@ -14,88 +14,87 @@
  * limitations under the License.
  *
  */
-import {
-  Task, Templates
-} from '../../core/index.js'
-import * as flags from '../flags.js'
-import type { ListrTaskWrapper } from 'listr2'
-import { type BaseCommand } from '../base.js'
+import {Task, Templates} from '../../core/index.js';
+import * as flags from '../flags.js';
+import type {ListrTaskWrapper} from 'listr2';
+import {type BaseCommand} from '../base.js';
 
 export class ContextCommandTasks {
+  private readonly parent: BaseCommand;
+  private readonly promptMap: Map<string, Function>;
 
-  private readonly parent: BaseCommand
-  private readonly promptMap: Map<string, Function>
-
-  constructor (parent, promptMap) {
-    this.parent = parent
-    this.promptMap = promptMap
+  constructor(parent, promptMap) {
+    this.parent = parent;
+    this.promptMap = promptMap;
   }
 
-  updateLocalConfig (argv) {
+  updateLocalConfig(argv) {
     return new Task('Update local configuration', async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
-      this.parent.logger.info('Updating local configuration...')
+      this.parent.logger.info('Updating local configuration...');
 
-      const isQuiet = !!argv[flags.quiet.name]
+      const isQuiet = !!argv[flags.quiet.name];
 
-      let currentDeploymentName = argv[flags.namespace.name]
-      let clusterAliases = Templates.parseClusterAliases(argv[flags.clusterName.name])
-      let contextName = argv[flags.context.name]
+      let currentDeploymentName = argv[flags.namespace.name];
+      let clusterAliases = Templates.parseClusterAliases(argv[flags.clusterName.name]);
+      let contextName = argv[flags.context.name];
 
-      const kubeContexts = await this.parent.getK8().getContexts()
+      const kubeContexts = await this.parent.getK8().getContexts();
 
       if (isQuiet) {
-        const currentCluster = (await this.parent.getK8().getKubeConfig().getCurrentCluster())
-        if (!clusterAliases.length) clusterAliases = [currentCluster.name]
-        if (!contextName) contextName = await this.parent.getK8().getKubeConfig().getCurrentContext()
+        const currentCluster = await this.parent.getK8().getKubeConfig().getCurrentCluster();
+        if (!clusterAliases.length) clusterAliases = [currentCluster.name];
+        if (!contextName) contextName = await this.parent.getK8().getKubeConfig().getCurrentContext();
 
         if (!currentDeploymentName) {
-          const selectedContext = kubeContexts.find(e => e.name === contextName)
-          currentDeploymentName = selectedContext && selectedContext.namespace ? selectedContext.namespace : 'default'
+          const selectedContext = kubeContexts.find(e => e.name === contextName);
+          currentDeploymentName = selectedContext && selectedContext.namespace ? selectedContext.namespace : 'default';
         }
-      }
-      else {
+      } else {
         if (!clusterAliases.length) {
-          const prompt = this.promptMap.get(flags.clusterName.name)
-          const unparsedClusterAliases = await prompt(task, clusterAliases)
-          clusterAliases = Templates.parseClusterAliases(unparsedClusterAliases)
+          const prompt = this.promptMap.get(flags.clusterName.name);
+          const unparsedClusterAliases = await prompt(task, clusterAliases);
+          clusterAliases = Templates.parseClusterAliases(unparsedClusterAliases);
         }
         if (!contextName) {
-          const prompt = this.promptMap.get(flags.context.name)
-          contextName = await prompt(task, kubeContexts.map(c => c.name),  contextName)
+          const prompt = this.promptMap.get(flags.context.name);
+          contextName = await prompt(
+            task,
+            kubeContexts.map(c => c.name),
+            contextName,
+          );
         }
         if (!currentDeploymentName) {
-          const prompt = this.promptMap.get(flags.namespace.name)
-          currentDeploymentName = await prompt(task, currentDeploymentName)
+          const prompt = this.promptMap.get(flags.namespace.name);
+          currentDeploymentName = await prompt(task, currentDeploymentName);
         }
       }
 
       // Select current deployment
-      this.parent.getLocalConfig().setCurrentDeployment(currentDeploymentName)
+      this.parent.getLocalConfig().setCurrentDeployment(currentDeploymentName);
 
       // Set clusters for active deployment
-      const deployments = this.parent.getLocalConfig().deployments
-      deployments[currentDeploymentName].clusterAliases = clusterAliases
-      this.parent.getLocalConfig().setDeployments(deployments)
+      const deployments = this.parent.getLocalConfig().deployments;
+      deployments[currentDeploymentName].clusterAliases = clusterAliases;
+      this.parent.getLocalConfig().setDeployments(deployments);
 
-      this.parent.getK8().getKubeConfig().setCurrentContext(contextName)
+      this.parent.getK8().getKubeConfig().setCurrentContext(contextName);
 
-      this.parent.logger.info(`Save LocalConfig file: [currentDeploymentName: ${currentDeploymentName}, contextName: ${contextName}, clusterAliases: ${clusterAliases.join(' ')}]`)
-      await this.parent.getLocalConfig().write()
-    })
+      this.parent.logger.info(
+        `Save LocalConfig file: [currentDeploymentName: ${currentDeploymentName}, contextName: ${contextName}, clusterAliases: ${clusterAliases.join(' ')}]`,
+      );
+      await this.parent.getLocalConfig().write();
+    });
   }
 
-  initialize (argv: any) {
-    const { requiredFlags, optionalFlags } = argv
+  initialize(argv: any) {
+    const {requiredFlags, optionalFlags} = argv;
 
-    argv.flags = [
-      ...requiredFlags,
-      ...optionalFlags
-    ]
+    argv.flags = [...requiredFlags, ...optionalFlags];
 
     return new Task('Initialize', async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
       if (argv[flags.devMode.name]) {
-        this.parent.logger.setDevMode(true)
+        this.parent.logger.setDevMode(true);
       }
-    })
+    });
   }
 }

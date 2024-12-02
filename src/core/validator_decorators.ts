@@ -14,37 +14,37 @@
  * limitations under the License.
  *
  */
-import { registerDecorator, type ValidationOptions, type ValidationArguments } from 'class-validator'
+import {registerDecorator, type ValidationOptions, type ValidationArguments} from 'class-validator';
 
-const isObject = (obj) => obj === Object(obj)
+const isObject = obj => obj === Object(obj);
 
 export const IsDeployments = (validationOptions?: ValidationOptions) => {
-    return function (object: any, propertyName: string) {
-        registerDecorator({
-            name: 'IsDeployments',
-            target: object.constructor,
-            propertyName: propertyName,
-            constraints: [],
-            options: {
-                ...validationOptions,
-            },
-            validator: {
-                validate (value: any, args: ValidationArguments) {
-                    if (!isObject(value)) return false
-                    if (Object.keys(value).length === 0) return true
+  return function (object: any, propertyName: string) {
+    registerDecorator({
+      name: 'IsDeployments',
+      target: object.constructor,
+      propertyName: propertyName,
+      constraints: [],
+      options: {
+        ...validationOptions,
+      },
+      validator: {
+        validate(value: any, args: ValidationArguments) {
+          if (!isObject(value)) return false;
+          if (Object.keys(value).length === 0) return true;
 
-                    const keys = Object.keys(value)
+          const keys = Object.keys(value);
 
-                    return keys.every(key => {
-                        if (typeof key !== 'string') return false
-                        if (!isObject(value[key])) return false
-                        if (!Array.isArray(value[key].clusterAliases)) return false
-                        if (!value[key].clusterAliases.every(val => typeof val === 'string')) return false
+          return keys.every(key => {
+            if (typeof key !== 'string') return false;
+            if (!isObject(value[key])) return false;
+            if (!Array.isArray(value[key].clusterAliases)) return false;
+            if (!value[key].clusterAliases.every(val => typeof val === 'string')) return false;
 
-                        return true
-                    })
-                },
-            },
-        })
-    }
-}
+            return true;
+          });
+        },
+      },
+    });
+  };
+};
