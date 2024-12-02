@@ -24,6 +24,7 @@ import {resetDisabledPrompts} from './flags.js';
 import type {ListrTaskWrapper} from 'listr2';
 import {type CommandFlag} from '../types/index.js';
 import validator from 'validator';
+import {UserPrompt} from '../types/aliases.js';
 
 async function prompt(
   type: string,
@@ -577,12 +578,12 @@ export async function promptEndpointType(task: ListrTaskWrapper<any, any, any>, 
   );
 }
 
-export async function promptContext(task: ListrTaskWrapper<any, any, any>, contexts: string[], input: any) {
+export async function promptContext(task: ListrTaskWrapper<any, any, any>, input: string[]) {
   return await task.prompt(ListrEnquirerPromptAdapter).run({
     type: 'select',
     name: 'context',
     message: 'Select kubectl context',
-    choices: contexts,
+    choices: input,
   });
 }
 
@@ -709,7 +710,7 @@ export async function promptGrpcWebTlsKeyPath(task: ListrTaskWrapper<any, any, a
   );
 }
 
-export function getPromptMap(): Map<string, Function> {
+export function getPromptMap(): Map<string, UserPrompt> {
   return (
     new Map()
       .set(flags.accountId.name, promptAccountId)
@@ -794,7 +795,7 @@ export async function execute(
       throw new SoloError(`No prompt available for flag: ${flag.name}`);
     }
 
-    const prompt = prompts.get(flag.name) as (task: ListrTaskWrapper<any, any, any>, input: any) => Promise<any>;
+    const prompt = prompts.get(flag.name) as UserPrompt;
     if (configManager.getFlag(flags.quiet)) {
       return;
     }

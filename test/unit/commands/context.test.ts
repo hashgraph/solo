@@ -44,6 +44,7 @@ import {type Opts} from '../../../src/types/index.js';
 import fs from 'fs';
 import {stringify} from 'yaml';
 import {type Cluster, KubeConfig} from '@kubernetes/client-node';
+import {UserPrompt} from '../../../src/types/aliases.js';
 
 describe('ContextCommandTasks unit tests', () => {
   const filePath = `${getTestCacheDir('ContextCommandTasks')}/localConfig.yaml`;
@@ -96,14 +97,14 @@ describe('ContextCommandTasks unit tests', () => {
     let command: BaseCommand;
     let loggerStub: Sinon.SinonStubbedInstance<SoloLogger>;
     let localConfig: LocalConfig;
-    let promptMap: Map<string, Function>;
+    let promptMap: Map<string, UserPrompt>;
 
     async function runUpdateLocalConfigTask(argv) {
       const taskObj = tasks.updateLocalConfig(argv);
       return taskObj.task({}, sinon.stub());
     }
 
-    function getPromptMap(): Map<string, Function> {
+    function getPromptMap(): Map<string, UserPrompt> {
       return new Map()
         .set(
           flags.namespace.name,

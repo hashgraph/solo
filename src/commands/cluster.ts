@@ -24,6 +24,7 @@ import {constants} from '../core/index.js';
 import * as prompts from './prompts.js';
 import path from 'path';
 import {ListrLease} from '../core/lease/listr_lease.js';
+import {CommandBuilder} from '../types/aliases.js';
 
 /**
  * Define the core functionalities of 'cluster' command
@@ -250,7 +251,7 @@ export class ClusterCommand extends BaseCommand {
   }
 
   /** Return Yargs command definition for 'cluster' command */
-  getCommandDefinition(): {command: string; desc: string; builder: Function} {
+  getCommandDefinition(): {command: string; desc: string; builder: CommandBuilder} {
     const self = this;
     return {
       command: 'cluster',

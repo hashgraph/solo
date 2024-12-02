@@ -18,10 +18,11 @@ import {Task, Templates} from '../../core/index.js';
 import * as flags from '../flags.js';
 import type {ListrTaskWrapper} from 'listr2';
 import {type BaseCommand} from '../base.js';
+import {UserPrompt} from '../../types/aliases.js';
 
 export class ContextCommandTasks {
   private readonly parent: BaseCommand;
-  private readonly promptMap: Map<string, Function>;
+  private readonly promptMap: Map<string, UserPrompt>;
 
   constructor(parent, promptMap) {
     this.parent = parent;
@@ -60,7 +61,6 @@ export class ContextCommandTasks {
           contextName = await prompt(
             task,
             kubeContexts.map(c => c.name),
-            contextName,
           );
         }
         if (!currentDeploymentName) {

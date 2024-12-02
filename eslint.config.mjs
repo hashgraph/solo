@@ -155,7 +155,6 @@ export default [
         },
       ],
       '@typescript-eslint/no-unused-vars': 'warn', // TODO remove (83 errors)
-      '@typescript-eslint/no-unsafe-function-type': 'warn', // TODO remove (16 errors)
       'n/no-process-exit': 'warn', // TODO remove (38 errors)
     },
   },

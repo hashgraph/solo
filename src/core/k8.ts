@@ -30,7 +30,7 @@ import * as stream from 'node:stream';
 
 import {type SoloLogger} from './logging.js';
 import type * as WebSocket from 'ws';
-import type {PodName} from '../types/aliases.js';
+import {PodName, TarCreateFilter} from '../types/aliases.js';
 import type {ExtendedNetServer, LocalContextObject} from '../types/index.js';
 import type * as http from 'node:http';
 import {MINUTES} from './constants.js';
@@ -569,7 +569,7 @@ export class K8 {
     containerName: string,
     srcPath: string,
     destDir: string,
-    filter: Function | undefined = undefined,
+    filter: TarCreateFilter | undefined = undefined,
   ) {
     const self = this;
     const namespace = this._getNamespace();
@@ -596,7 +596,6 @@ export class K8 {
       // Create a temporary tar file for the source file
       const tmpFile = self._tempFileFor(srcFile);
 
-      // @ts-ignore
       await tar.c({file: tmpFile, cwd: srcDir, filter}, [srcFile]);
 
       return new Promise<boolean>((resolve, reject) => {
