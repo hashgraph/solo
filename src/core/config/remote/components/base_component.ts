@@ -24,56 +24,18 @@ import type { ToObject, Validate } from '../../../../types/index.js'
  * This class provides validation, comparison, and serialization functionality for components.
  */
 export abstract class BaseComponent implements Component, Validate, ToObject<Component> {
-  /** The type of the component */
-  private readonly _type: ComponentType
-
-  /** The name of the component. */
-  private readonly _name: ComponentName
-
-  /** The cluster associated with the component. */
-  private readonly _cluster: Cluster
-
-  /** The namespace associated with the component. */
-  private readonly _namespace: Namespace
-
   /**
-   * @param type - for identifying.
-   * @param name - to distinguish components.
-   * @param cluster - in which the component is deployed.
-   * @param namespace - associated with the component.
+   * @param type - type for identifying.
+   * @param name - the name to distinguish components.
+   * @param cluster - the cluster in which the component is deployed.
+   * @param namespace - the namespace associated with the component.
    */
-  protected constructor (type: ComponentType, name: ComponentName, cluster: Cluster, namespace: Namespace) {
-    this._type = type
-    this._name = name
-    this._cluster = cluster
-    this._namespace = namespace
-  }
-
-  /* -------- Getters -------- */
-
-  /**
-   * Retrieves the type of the component
-   * @readonly
-   */
-  public get type (): ComponentType { return this._type }
-
-  /**
-   * Retrieves the name of the component.
-   * @readonly
-   */
-  public get name (): ComponentName { return this._name }
-
-  /**
-   * Retrieves the cluster associated with the component.
-   * @readonly
-   */
-  public get cluster (): Cluster { return this._cluster }
-
-  /**
-   * Retrieves the namespace associated with the component.
-   * @readonly
-   */
-  public get namespace (): Namespace { return this._namespace }
+  protected constructor (
+    public readonly type: ComponentType,
+    public readonly name: ComponentName,
+    public readonly cluster: Cluster,
+    public readonly namespace: Namespace
+  ) {}
 
   /* -------- Utilities -------- */
 
@@ -86,6 +48,7 @@ export abstract class BaseComponent implements Component, Validate, ToObject<Com
    */
   public static compare (x: BaseComponent, y: BaseComponent): boolean {
     return (
+      x.name === y.name &&
       x.type === y.type &&
       x.cluster === y.cluster &&
       x.namespace === y.namespace

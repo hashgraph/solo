@@ -107,6 +107,8 @@ export class NodeCommandHandlers {
     return [
       this.tasks.initialize(argv, deleteConfigBuilder.bind(this), lease),
       RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
+      RemoteConfigTasks.validateAllNodeStates.bind(this)(
+        { excludedStates: [] }),
       this.tasks.identifyExistingNodes(),
       this.tasks.loadAdminKey(),
       this.tasks.prepareUpgradeZip(),
@@ -150,6 +152,8 @@ export class NodeCommandHandlers {
     return [
       this.tasks.initialize(argv, addConfigBuilder.bind(this), lease),
       RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
+      RemoteConfigTasks.validateAllNodeStates.bind(this)(
+        { excludedStates: [] }),
       this.tasks.checkPVCsEnabled(),
       this.tasks.identifyExistingNodes(),
       this.tasks.determineNewNodeAccountNumber(),
@@ -202,6 +206,8 @@ export class NodeCommandHandlers {
     return [
       this.tasks.initialize(argv, updateConfigBuilder.bind(this), lease),
       RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
+      RemoteConfigTasks.validateAllNodeStates.bind(this)(
+        { excludedStates: [] }),
       this.tasks.identifyExistingNodes(),
       this.tasks.loadAdminKey(),
       this.tasks.prepareUpgradeZip(),
@@ -547,8 +553,8 @@ export class NodeCommandHandlers {
     const action = helpers.commandActionBuilder([
       this.tasks.initialize(argv, refreshConfigBuilder.bind(this), lease),
       RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
-      RemoteConfigTasks.validateAllNodeStates.bind(this)([
-        ConsensusNodeStates.STARTED, ConsensusNodeStates.SETUP, ConsensusNodeStates.INITIALIZED ]),
+      RemoteConfigTasks.validateAllNodeStates.bind(this)(
+        { acceptedStates: [ ConsensusNodeStates.STARTED, ConsensusNodeStates.SETUP, ConsensusNodeStates.INITIALIZED ] }),
       this.tasks.identifyNetworkPods(),
       this.tasks.dumpNetworkNodesSaveState(),
       this.tasks.fetchPlatformSoftware('nodeAliases'),
@@ -591,7 +597,8 @@ export class NodeCommandHandlers {
     const action = helpers.commandActionBuilder([
       this.tasks.initialize(argv, stopConfigBuilder.bind(this), lease),
       RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
-      RemoteConfigTasks.validateAllNodeStates.bind(this)([ ConsensusNodeStates.STARTED, ConsensusNodeStates.SETUP ]),
+      RemoteConfigTasks.validateAllNodeStates.bind(this)(
+        { acceptedStates: [ ConsensusNodeStates.STARTED, ConsensusNodeStates.SETUP ] }),
       this.tasks.identifyNetworkPods(),
       this.tasks.stopNodes(),
       RemoteConfigTasks.changeAllNodeStates.bind(this)(ConsensusNodeStates.INITIALIZED),
@@ -612,7 +619,8 @@ export class NodeCommandHandlers {
     const action = helpers.commandActionBuilder([
       this.tasks.initialize(argv, startConfigBuilder.bind(this), lease),
       RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
-      RemoteConfigTasks.validateAllNodeStates.bind(this)([ ConsensusNodeStates.SETUP ]),
+      RemoteConfigTasks.validateAllNodeStates.bind(this)(
+        { acceptedStates: [ ConsensusNodeStates.SETUP ] }),
       this.tasks.identifyExistingNodes(),
       this.tasks.uploadStateFiles(
           (ctx: any) => ctx.config.stateFile.length === 0
@@ -640,7 +648,8 @@ export class NodeCommandHandlers {
     const action = helpers.commandActionBuilder([
       this.tasks.initialize(argv, setupConfigBuilder.bind(this), lease),
       RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
-      RemoteConfigTasks.validateAllNodeStates.bind(this)([ ConsensusNodeStates.INITIALIZED ]),
+      RemoteConfigTasks.validateAllNodeStates.bind(this)({
+        acceptedStates: [ ConsensusNodeStates.INITIALIZED ] }),
       this.tasks.identifyNetworkPods(),
       this.tasks.fetchPlatformSoftware('nodeAliases'),
       this.tasks.setupNetworkNodes('nodeAliases'),

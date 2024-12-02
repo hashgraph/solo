@@ -31,7 +31,9 @@ export class RelayComponent extends BaseComponent
    * @param consensusNodeAliases - list node aliases
    */
   public constructor (
-    name: string, cluster: string, namespace: string,
+    name: string,
+    cluster: string,
+    namespace: string,
     public readonly consensusNodeAliases: NodeAliases = []
   ) {
     super(ComponentType.Relay, name, cluster, namespace)

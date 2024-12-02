@@ -29,11 +29,8 @@ import type { ToObject } from '../../../../types/index.js'
 export class ConsensusNodeComponent extends BaseComponent
   implements IConsensusNodeComponent, ToObject<IConsensusNodeComponent>
 {
-  /** The state of the node. */
-  private _state: ConsensusNodeStates
-
   /**
-   * @param name - of the consensus node
+   * @param name - the name to distinguish components.
    * @param cluster - associated to component
    * @param namespace - associated to component
    * @param state - of the consensus node
@@ -42,22 +39,10 @@ export class ConsensusNodeComponent extends BaseComponent
     name: ComponentName,
     cluster: Cluster,
     namespace: Namespace,
-    state: ConsensusNodeStates
+    public readonly state: ConsensusNodeStates
   ) {
     super(ComponentType.ConsensusNode, name, cluster, namespace)
-    this._state = state
 
-    this.validate()
-  }
-
-  /* -------- Getters & Setters -------- */
-
-  /** Retrieves the state of the consensus node. */
-  public get state (): ConsensusNodeStates { return this._state }
-
-  /** Updates the state of the consensus node and validates it. */
-  public set state (state: ConsensusNodeStates) {
-    this._state = state
     this.validate()
   }
 

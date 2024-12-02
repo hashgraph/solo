@@ -1216,7 +1216,7 @@ export class K8 {
     const { response, body }  = await this.kubeClient.readNamespacedConfigMap(name, this._getNamespace())
       .catch(e => e)
 
-    this._handleKubernetesClientError(response, body, 'Failed to get namespaced configmap')
+    this.handleKubernetesClientError(response, body, 'Failed to get namespaced configmap')
 
     return body as k8s.V1ConfigMap
   }
@@ -1238,7 +1238,7 @@ export class K8 {
     metadata.labels = labels
     configMap.metadata = metadata
     try {
-      const resp  =await this.kubeClient.createNamespacedConfigMap(namespace, configMap)
+      const resp = await this.kubeClient.createNamespacedConfigMap(namespace, configMap)
 
       return resp.response.statusCode === 201
     } catch (e: Error | any) {
@@ -1263,7 +1263,7 @@ export class K8 {
     metadata.labels = labels
     configMap.metadata = metadata
     try {
-      const resp  =await this.kubeClient.replaceNamespacedConfigMap(name, namespace, configMap)
+      const resp = await this.kubeClient.replaceNamespacedConfigMap(name, namespace, configMap)
 
       return resp.response.statusCode === 201
     } catch (e: Error | any) {
@@ -1289,7 +1289,7 @@ export class K8 {
     const { response, body } = await this.coordinationApiClient.createNamespacedLease(namespace, lease)
       .catch(e => e)
 
-    this._handleKubernetesClientError(response, body, 'Failed to create namespaced lease')
+    this.handleKubernetesClientError(response, body, 'Failed to create namespaced lease')
 
     return body as k8s.V1Lease
   }
@@ -1298,7 +1298,7 @@ export class K8 {
     const { response, body } = await this.coordinationApiClient.readNamespacedLease(leaseName, namespace)
       .catch(e => e)
 
-    this._handleKubernetesClientError(response, body, 'Failed to read namespaced lease')
+    this.handleKubernetesClientError(response, body, 'Failed to read namespaced lease')
 
     return body as k8s.V1Lease
   }
@@ -1309,7 +1309,7 @@ export class K8 {
     const { response, body } = await this.coordinationApiClient.replaceNamespacedLease(leaseName, namespace, lease)
       .catch(e => e)
 
-    this._handleKubernetesClientError(response, body, 'Failed to renew namespaced lease')
+    this.handleKubernetesClientError(response, body, 'Failed to renew namespaced lease')
 
     return body as k8s.V1Lease
   }
@@ -1323,7 +1323,7 @@ export class K8 {
         .replaceNamespacedLease(lease.metadata.name, lease.metadata.namespace, lease)
         .catch(e => e)
 
-    this._handleKubernetesClientError(response, body, 'Failed to transfer namespaced lease')
+    this.handleKubernetesClientError(response, body, 'Failed to transfer namespaced lease')
 
     return body as k8s.V1Lease
   }
@@ -1332,7 +1332,7 @@ export class K8 {
     const { response, body } = await this.coordinationApiClient.deleteNamespacedLease(name, namespace)
       .catch(e => e)
 
-    this._handleKubernetesClientError(response, body, 'Failed to delete namespaced lease')
+    this.handleKubernetesClientError(response, body, 'Failed to delete namespaced lease')
 
     return body as k8s.V1Status
   }
@@ -1346,7 +1346,7 @@ export class K8 {
    *
    * @throws SoloError - if the status code is not OK
    */
-  private _handleKubernetesClientError (response: http.IncomingMessage, error: Error | any, errorMessage: string): void {
+  private handleKubernetesClientError (response: http.IncomingMessage, error: Error | any, errorMessage: string): void {
     const statusCode = +response?.statusCode || 500
 
     if (statusCode <= 202) return

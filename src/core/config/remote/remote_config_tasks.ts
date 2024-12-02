@@ -22,7 +22,7 @@ import chalk from 'chalk'
 import { SoloError } from '../../errors.js'
 
 import type { Listr, ListrTask } from 'listr2'
-import type { NodeAliases } from '../../../types/aliases.js'
+import type { NodeAlias, NodeAliases } from '../../../types/aliases.js'
 import type { BaseCommand } from '../../../commands/base.js'
 import type { RelayCommand } from '../../../commands/relay.js'
 import type { NetworkCommand } from '../../../commands/network.js'
@@ -191,13 +191,13 @@ export class RemoteConfigTasks {
   }
 
   /**
-   * Creates tasks to validate that each node state is one of the accepted states.
+   * Creates tasks to validate that each node state is either one of the accepted states or not one of the excluded.
    *
-   * @param acceptedStates - the state at which the nodes can be, not matching any of the states throws and error
+   * @param acceptedStates - the state at which the nodes can be, not matching any of the states throws an error
+   * @param excludedStates - the state at which the nodes can't be, matching any of the states throws an error
    */
-  public static validateAllNodeStates (
-    this: NodeCommandHandlers,
-    acceptedStates: ConsensusNodeStates[]
+  public static validateAllNodeStates (this: NodeCommandHandlers, { acceptedStates, excludedStates }
+    : { acceptedStates?: ConsensusNodeStates[], excludedStates?: ConsensusNodeStates[] }
   ): ListrTask<any, any, any> {
     interface Context { config: { namespace: string, nodeAliases: NodeAliases } }
 
@@ -207,34 +207,38 @@ export class RemoteConfigTasks {
         const { config: { namespace, nodeAliases } } = ctx
         const components = this.remoteConfigManager.components
 
-        const subTasks: ListrTask<Context, any, any>[] = []
-
-        for (const nodeAlias of nodeAliases) {
-          subTasks.push({
-            title: `Validating state for node ${nodeAlias}`,
-            task: async (_, task): Promise<void> => {
-              let nodeComponent: ConsensusNodeComponent
-              try {
-                nodeComponent = components.getComponent<ConsensusNodeComponent>(
-                  ComponentType.ConsensusNode,
-                  nodeAlias
-                )
-              } catch (e) {
-                throw new SoloError(`${nodeAlias} not found in remote config for namespace ${namespace}`)
-              }
-
-              if (!acceptedStates.includes(nodeComponent.state)) {
-                const errorMessageData =
-                  `accepted states: ${acceptedStates.join(', ')}, ` +
-                  `current state: ${nodeComponent.state}`
-
-                throw new SoloError(`${nodeAlias} has invalid state - ` + errorMessageData)
-              }
-
-              task.title = `${task.title} - ${chalk.green('valid state')}: ${chalk.cyan(nodeComponent.state)}`
+        const subTasks: ListrTask<Context, any, any>[] = nodeAliases.map(nodeAlias => ({
+          title: `Validating state for node ${nodeAlias}`,
+          task: async (_, task): Promise<void> => {
+            let nodeComponent: ConsensusNodeComponent
+            try {
+              nodeComponent = components.getComponent<ConsensusNodeComponent>(
+                ComponentType.ConsensusNode,
+                nodeAlias
+              )
+            } catch (e) {
+              throw new SoloError(`${nodeAlias} not found in remote config for namespace ${namespace}`)
             }
-          })
-        }
+
+            if (acceptedStates && !acceptedStates.includes(nodeComponent.state)) {
+              const errorMessageData =
+                `accepted states: ${acceptedStates.join(', ')}, ` +
+                `current state: ${nodeComponent.state}`
+
+              throw new SoloError(`${nodeAlias} has invalid state - ` + errorMessageData)
+            }
+
+            if (excludedStates && excludedStates.includes(nodeComponent.state)) {
+              const errorMessageData =
+                `excluded states: ${excludedStates.join(', ')}, ` +
+                `current state: ${nodeComponent.state}`
+
+              throw new SoloError(`${nodeAlias} has invalid state - ` + errorMessageData)
+            }
+
+            task.title += ` - ${chalk.green('valid state')}: ${chalk.cyan(nodeComponent.state)}`
+          }
+        }))
 
         return task.newListr(subTasks, {
           concurrent: false,

@@ -20,11 +20,11 @@
  * {@link ComponentsDataWrapper}
  */
 export enum ComponentType {
-  ConsensusNode = 'consensus nodes',
-  HaProxy = 'ha proxies',
-  EnvoyProxy = 'envoy proxies',
-  MirrorNode = 'mirror nodes',
-  MirrorNodeExplorer = 'mirror node explorers',
+  ConsensusNode = 'consensusNodes',
+  HaProxy = 'haProxies',
+  EnvoyProxy = 'envoyProxies',
+  MirrorNode = 'mirrorNodes',
+  MirrorNodeExplorer = 'mirrorNodeExplorers',
   Relay = 'replays',
 }
 
@@ -39,4 +39,3 @@ export enum ConsensusNodeStates {
   FREEZED = 'freezed',
   STOPPED = 'stopped',
 }
-

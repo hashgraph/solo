@@ -25,7 +25,7 @@ import type * as k8s from '@kubernetes/client-node'
 import type { ToObject, Validate } from '../../../types/index.js'
 
 export class RemoteConfigDataWrapper implements Validate, ToObject<RemoteConfigDataStructure> {
-  private readonly _version: Version = version.HEDERA_PLATFORM_VERSION
+  private readonly _version: Version = '1.0.0'
   private _metadata: RemoteConfigMetadata
   private _clusters: Record<Cluster, Namespace>
   private _components: ComponentsDataWrapper
