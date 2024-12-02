@@ -23,7 +23,7 @@
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
-    "strict": false,
+    "strict": false, // TODO: set to true (which is default), fix a few issues as often as possible, until we can leave true
     "noImplicitReturns": true,
     "skipLibCheck": true
   },
