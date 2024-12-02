@@ -19,17 +19,10 @@ import { expect } from 'chai'
 
 import { constants, LocalConfig, RemoteConfigManager } from '../../../../src/core/index.js'
 import * as fs from 'fs'
-
-import {
-  e2eTestSuite,
-  getDefaultArgv,
-  getTestCacheDir,
-  TEST_CLUSTER,
-  testLogger
-} from '../../../test_util.js'
+import { e2eTestSuite, getDefaultArgv, getTestCacheDir, TEST_CLUSTER } from '../../../test_util.js'
 import { flags } from '../../../../src/commands/index.js'
 import * as version from '../../../../version.js'
-import { MINUTES, SECONDS } from '../../../../src/core/constants.js'
+import { MINUTES, SECONDS, SOLO_REMOTE_CONFIGMAP_NAME } from '../../../../src/core/constants.js'
 import path from 'path'
 import { SoloError } from '../../../../src/core/errors.js'
 import { RemoteConfigDataWrapper } from '../../../../src/core/config/remote/remote_config_data_wrapper.js'
@@ -86,10 +79,18 @@ e2eTestSuite(namespace, argv, undefined, undefined, undefined, undefined, undefi
       await expect(remoteConfigManager.save()).to.be.rejectedWith(SoloError, 'Attempted to save remote config without data')
     })
 
-    it ('Should be able to use create method to populate the configMap', async () => {
+    it ('isLoaded() should return false if config is not loaded', async () => {
+      expect(remoteConfigManager.isLoaded()).to.not.be.ok
+    })
+
+    it ('isLoaded() should return true if config is loaded', async () => {
       // @ts-ignore
       await remoteConfigManager.create()
 
+      expect(remoteConfigManager.isLoaded()).to.be.ok
+    })
+
+    it ('should be able to use create method to populate the configMap', async () => {
       // @ts-ignore
       const remoteConfigData = remoteConfigManager.remoteConfig
 
@@ -108,6 +109,29 @@ e2eTestSuite(namespace, argv, undefined, undefined, undefined, undefined, undefi
 
       // @ts-ignore
       expect(remoteConfigData.toObject()).to.deep.equal(remoteConfigManager.remoteConfig.toObject())
+    })
+
+    it ('should be able to mutate remote config with the modify method', async () => {
+      // @ts-ignore
+      const remoteConfigData = remoteConfigManager.remoteConfig
+
+      const oldRemoteConfig = remoteConfigData.components.clone()
+
+      await remoteConfigManager.modify(async (remoteConfig) => {
+        remoteConfig.metadata.makeMigration('email@address.com', '1.0.0')
+      })
+
+      // @ts-ignore
+      expect(oldRemoteConfig.toObject()).not.to.deep.equal(remoteConfigManager.remoteConfig.toObject())
+
+      // @ts-ignore
+      const updatedRemoteConfig = remoteConfigManager.remoteConfig
+
+      // @ts-ignore
+      await remoteConfigManager.load()
+
+      // @ts-ignore
+      expect(remoteConfigManager.remoteConfig.toObject()).to.deep.equal(updatedRemoteConfig.toObject())
     })
   })
 })
