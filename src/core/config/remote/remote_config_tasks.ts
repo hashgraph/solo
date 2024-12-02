@@ -57,6 +57,7 @@ export class RemoteConfigTasks {
   public static addRelayComponent (this: RelayCommand): ListrTask<any, any, any> {
     return {
       title: 'Add relay component in remote config',
+      skip: (): boolean => this.remoteConfigManager.isLoaded(),
       task: async (ctx): Promise<void> => {
         await this.remoteConfigManager.modify(async (remoteConfig) => {
           const { config: { namespace, nodeAliases } } = ctx
@@ -75,6 +76,7 @@ export class RemoteConfigTasks {
   public static removeRelayComponent (this: RelayCommand): ListrTask<any, any, any> {
     return {
       title: 'Remove relay component from remote config',
+      skip: (): boolean => this.remoteConfigManager.isLoaded(),
       task: async (): Promise<void> => {
         await this.remoteConfigManager.modify(async (remoteConfig) => {
           remoteConfig.components.remove('relay', ComponentType.Relay)
@@ -87,6 +89,7 @@ export class RemoteConfigTasks {
   public static addMirrorNodeAndMirrorNodeToExplorer (this: MirrorNodeCommand): ListrTask<any, any, any> {
     return {
       title: 'Add mirror node and mirror node explorer to remote config',
+      skip: (): boolean => this.remoteConfigManager.isLoaded(),
       task: async (ctx): Promise<void> => {
         await this.remoteConfigManager.modify(async (remoteConfig) => {
           const { config: { namespace } } = ctx
@@ -110,6 +113,7 @@ export class RemoteConfigTasks {
   public static removeMirrorNodeAndMirrorNodeToExplorer (this: MirrorNodeCommand): ListrTask<any, any, any> {
     return {
       title: 'Remove mirror node and mirror node explorer from remote config',
+      skip: (): boolean => this.remoteConfigManager.isLoaded(),
       task: async (): Promise<void> => {
         await this.remoteConfigManager.modify(async (remoteConfig) => {
           remoteConfig.components.remove('mirrorNode', ComponentType.MirrorNode)
@@ -124,6 +128,7 @@ export class RemoteConfigTasks {
   public static addNodesAndProxies (this: NetworkCommand): ListrTask<any, any, any> {
     return {
       title: 'Add node and proxies to remote config',
+      skip: (): boolean => this.remoteConfigManager.isLoaded(),
       task: async (ctx): Promise<void> => {
         const { config: { namespace, nodeAliases } } = ctx
         const cluster = this.remoteConfigManager.currentCluster
@@ -153,6 +158,7 @@ export class RemoteConfigTasks {
   /** Removes the consensus node, envoy and haproxy components from remote config.  */
   public static removeNodeAndProxies (this: NodeCommandHandlers): ListrTask<any, any, any> {
     return {
+      skip: (): boolean => this.remoteConfigManager.isLoaded(),
       title: 'Remove node and proxies from remote config',
       task: async (): Promise<void> => {
         await this.remoteConfigManager.modify(async (remoteConfig) => {
@@ -174,6 +180,7 @@ export class RemoteConfigTasks {
 
     return {
       title: `Change node state to ${state} in remote config`,
+      skip: (): boolean => this.remoteConfigManager.isLoaded(),
       task: async (ctx: Context): Promise<void> => {
         await this.remoteConfigManager.modify(async (remoteConfig) => {
           const { config: { namespace, nodeAliases } } = ctx
@@ -203,6 +210,7 @@ export class RemoteConfigTasks {
 
     return {
       title: 'Validate nodes states',
+      skip: (): boolean => this.remoteConfigManager.isLoaded(),
       task: async (ctx: Context, task): Promise<Listr<any, any, any>> => {
         const { config: { namespace, nodeAliases } } = ctx
         const components = this.remoteConfigManager.components

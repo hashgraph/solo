@@ -209,6 +209,8 @@ export class RemoteConfigManager {
 
   /* ---------- Utilities ---------- */
 
+  public isLoaded (): boolean { return !!this.remoteConfig }
+
   /**
    * Retrieves the ConfigMap containing the remote configuration from the Kubernetes cluster.
    *
