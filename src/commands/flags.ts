@@ -745,7 +745,6 @@ export const userEmailAddress: CommandFlag = {
   name: 'email',
   definition: {
     describe: 'User email address used for local configuration',
-    defaultValue: '',
     type: 'string',
   },
 };
@@ -760,22 +759,11 @@ export const context: CommandFlag = {
   },
 };
 
-export const deploymentName: CommandFlag = {
-  constName: 'deploymentName',
-  name: 'deployment-name',
-  definition: {
-    describe: 'Solo deployment name',
-    defaultValue: '',
-    type: 'string',
-  },
-};
-
 export const deploymentClusters: CommandFlag = {
   constName: 'deploymentClusters',
   name: 'deployment-clusters',
   definition: {
     describe: 'Solo deployment cluster list (comma separated)',
-    defaultValue: '',
     type: 'string',
   },
 };
@@ -855,6 +843,17 @@ export const stakeAmounts: CommandFlag = {
   },
 };
 
+export const contextClusterUnparsed: CommandFlag = {
+  constName: 'contextClusterUnparsed',
+  name: 'context-cluster',
+  definition: {
+    describe:
+      'Context cluster mapping where context is key = value is cluster and comma delimited if more than one, ' +
+      '(e.g.: --context-cluster kind-solo=kind-solo,kind-solo-2=kind-solo-2)',
+    type: 'string',
+  },
+};
+
 export const allFlags: CommandFlag[] = [
   accountId,
   amount,
@@ -869,6 +868,7 @@ export const allFlags: CommandFlag[] = [
   chartDirectory,
   clusterName,
   clusterSetupNamespace,
+  context,
   deletePvcs,
   deleteSecrets,
   deployCertManager,
@@ -876,7 +876,6 @@ export const allFlags: CommandFlag[] = [
   deployHederaExplorer,
   deployJsonRpcRelay,
   deploymentClusters,
-  deploymentName,
   deployMinio,
   deployPrometheusStack,
   devMode,
@@ -931,6 +930,7 @@ export const allFlags: CommandFlag[] = [
   grpcWebTlsCertificatePath,
   grpcTlsKeyPath,
   grpcWebTlsKeyPath,
+  contextClusterUnparsed,
 ];
 
 /** Resets the definition.disablePrompt for all flags */

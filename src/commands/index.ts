@@ -23,6 +23,7 @@ import {NetworkCommand} from './network.js';
 import {NodeCommand} from './node/index.js';
 import {RelayCommand} from './relay.js';
 import {AccountCommand} from './account.js';
+import {DeploymentCommand} from './deployment.js';
 import {type Opts} from '../types/index.js';
 
 /**
@@ -39,16 +40,19 @@ function Initialize(opts: Opts) {
   const relayCmd = new RelayCommand(opts);
   const accountCmd = new AccountCommand(opts);
   const mirrorNodeCmd = new MirrorNodeCommand(opts);
+  const deploymentCommand = new DeploymentCommand(opts);
 
   return [
     initCmd.getCommandDefinition(),
     clusterCmd.getCommandDefinition(),
+    contextCmd.getCommandDefinition(),
     contextCmd.getCommandDefinition(),
     networkCommand.getCommandDefinition(),
     nodeCmd.getCommandDefinition(),
     relayCmd.getCommandDefinition(),
     accountCmd.getCommandDefinition(),
     mirrorNodeCmd.getCommandDefinition(),
+    deploymentCommand.getCommandDefinition(),
   ];
 }
 

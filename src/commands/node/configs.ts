@@ -457,7 +457,7 @@ export interface NodeUpdateConfigClass {
   allNodeAliases: NodeAliases;
   chartPath: string;
   existingNodeAliases: NodeAliases;
-  freezeAdminPrivateKey: PrivateKey;
+  freezeAdminPrivateKey: PrivateKey | string;
   keysDir: string;
   nodeClient: any;
   podNames: Record<NodeAlias, PodName>;

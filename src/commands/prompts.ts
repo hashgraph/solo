@@ -469,6 +469,10 @@ export async function promptUpdateAccountKeys(task: ListrTaskWrapper<any, any, a
 }
 
 export async function promptUserEmailAddress(task: ListrTaskWrapper<any, any, any>, input: any) {
+  if (input?.length) {
+    return input;
+  }
+
   const promptForInput = async () => {
     return await task.prompt(ListrEnquirerPromptAdapter).run({
       type: 'text',
@@ -648,6 +652,17 @@ export async function promptOutputDir(task: ListrTaskWrapper<any, any, any>, inp
   );
 }
 
+export async function promptContextCluster(task: ListrTaskWrapper<any, any, any>, input: any) {
+  return await promptText(
+    task,
+    input,
+    null,
+    'Enter context cluster mapping: ',
+    'context-cluster cannot be empty',
+    flags.contextClusterUnparsed.name,
+  );
+}
+
 //! ------------- Node Proxy Certificates ------------- !//
 
 export async function promptGrpcTlsCertificatePath(task: ListrTaskWrapper<any, any, any>, input: any) {
@@ -742,6 +757,9 @@ export function getPromptMap(): Map<string, Function> {
       .set(flags.hederaExplorerVersion, promptHederaExplorerVersion)
       .set(flags.inputDir.name, promptInputDir)
       .set(flags.outputDir.name, promptOutputDir)
+      .set(flags.contextClusterUnparsed.name, promptContextCluster)
+      .set(flags.context.name, promptContext)
+      .set(flags.deploymentClusters.name, promptDeploymentClusters)
 
       //! Node Proxy Certificates
       .set(flags.grpcTlsCertificatePath.name, promptGrpcTlsCertificatePath)
@@ -776,7 +794,7 @@ export async function execute(
       throw new SoloError(`No prompt available for flag: ${flag.name}`);
     }
 
-    const prompt = prompts.get(flag.name) as Function;
+    const prompt = prompts.get(flag.name) as (task: ListrTaskWrapper<any, any, any>, input: any) => Promise<any>;
     if (configManager.getFlag(flags.quiet)) {
       return;
     }

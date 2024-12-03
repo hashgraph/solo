@@ -15,16 +15,16 @@
  *
  */
 import {
-  type ChartManager,
-  type ConfigManager,
   constants,
-  type K8,
-  type KeyManager,
-  type PlatformInstaller,
-  type ProfileManager,
   Task,
   Templates,
   Zippy,
+  type K8,
+  type ChartManager,
+  type ConfigManager,
+  type KeyManager,
+  type PlatformInstaller,
+  type ProfileManager,
   type AccountManager,
   type CertificateManager,
 } from '../../core/index.js';
@@ -74,8 +74,12 @@ import {type NodeAlias, type NodeAliases, type PodName} from '../../types/aliase
 import {NodeStatusCodes, NodeStatusEnums, NodeSubcommandType} from '../../core/enumerations.js';
 import * as x509 from '@peculiar/x509';
 import {type NodeCommand} from './index.js';
-import type {NodeDeleteConfigClass, NodeRefreshConfigClass, NodeUpdateConfigClass} from './configs.js';
-import type {NodeAddConfigClass} from './configs.js';
+import type {
+  NodeAddConfigClass,
+  NodeDeleteConfigClass,
+  NodeRefreshConfigClass,
+  NodeUpdateConfigClass,
+} from './configs.js';
 import {type Lease} from '../../core/lease/lease.js';
 import {ListrLease} from '../../core/lease/listr_lease.js';
 
@@ -675,6 +679,7 @@ export class NodeCommandTasks {
       'Download generated files from an existing node',
       async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
         const config = ctx.config;
+
         // don't try to download from the same node we are deleting, it won't work
         const nodeAlias =
           ctx.config.nodeAlias === config.existingNodeAliases[0]

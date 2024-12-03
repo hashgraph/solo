@@ -26,6 +26,7 @@ import * as helpers from '../core/helpers.js';
 import path from 'path';
 import {addDebugOptions, validatePath} from '../core/helpers.js';
 import fs from 'fs';
+import {RemoteConfigTasks} from '../core/config/remote/remote_config_tasks.js';
 import type {CertificateManager, KeyManager, PlatformInstaller, ProfileManager} from '../core/index.js';
 import type {NodeAlias, NodeAliases} from '../types/aliases.js';
 import type {Opts} from '../types/index.js';
@@ -286,6 +287,7 @@ export class NetworkCommand extends BaseCommand {
             return ListrLease.newAcquireLeaseTask(lease, task);
           },
         },
+        RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
         {
           title: 'Copy gRPC TLS Certificates',
           task: (ctx, parentTask) =>
@@ -470,6 +472,7 @@ export class NetworkCommand extends BaseCommand {
             });
           },
         },
+        RemoteConfigTasks.addNodesAndProxies.bind(this)(),
       ],
       {
         concurrent: false,

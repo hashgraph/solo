@@ -22,8 +22,9 @@ import {BaseCommand} from './base.js';
 import * as flags from './flags.js';
 import * as prompts from './prompts.js';
 import {getFileContents, getEnvValue} from '../core/helpers.js';
-import {type PodName} from '../types/aliases.js';
-import {type Opts} from '../types/index.js';
+import {RemoteConfigTasks} from '../core/config/remote/remote_config_tasks.js';
+import type {PodName} from '../types/aliases.js';
+import type {Opts} from '../types/index.js';
 import {ListrLease} from '../core/lease/listr_lease.js';
 
 export class MirrorNodeCommand extends BaseCommand {
@@ -232,6 +233,7 @@ export class MirrorNodeCommand extends BaseCommand {
             return ListrLease.newAcquireLeaseTask(lease, task);
           },
         },
+        RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
         {
           title: 'Enable mirror-node',
           task: (_, parentTask) => {
@@ -418,6 +420,7 @@ export class MirrorNodeCommand extends BaseCommand {
             );
           },
         },
+        RemoteConfigTasks.addMirrorNodeAndMirrorNodeToExplorer.bind(this)(),
       ],
       {
         concurrent: false,
@@ -488,6 +491,7 @@ export class MirrorNodeCommand extends BaseCommand {
             return ListrLease.newAcquireLeaseTask(lease, task);
           },
         },
+        RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
         {
           title: 'Destroy mirror-node',
           task: async ctx => {
@@ -513,6 +517,7 @@ export class MirrorNodeCommand extends BaseCommand {
           },
           skip: ctx => !ctx.config.isChartInstalled,
         },
+        RemoteConfigTasks.removeMirrorNodeAndMirrorNodeToExplorer.bind(this)(),
       ],
       {
         concurrent: false,

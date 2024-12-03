@@ -14,16 +14,28 @@
  * limitations under the License.
  *
  */
-import type {Cluster, EmailAddress, Namespace} from './remote/types.js';
 
-export interface DeploymentStructure {
-  clusters: Cluster[];
+/**
+ * Enumerations that represent the component types used in remote config
+ * {@link ComponentsDataWrapper}
+ */
+export enum ComponentType {
+  ConsensusNode = 'consensusNodes',
+  HaProxy = 'haProxies',
+  EnvoyProxy = 'envoyProxies',
+  MirrorNode = 'mirrorNodes',
+  MirrorNodeExplorer = 'mirrorNodeExplorers',
+  Relay = 'replays',
 }
 
-export type Deployments = Record<Namespace, DeploymentStructure>;
-
-export interface LocalConfigData {
-  userEmailAddress: EmailAddress;
-  deployments: Deployments;
-  currentDeploymentName: Namespace;
+/**
+ * Enumerations that represent the state of consensus node in remote config
+ * {@link ConsensusNodeComponent}
+ */
+export enum ConsensusNodeStates {
+  INITIALIZED = 'initialized',
+  SETUP = 'setup',
+  STARTED = 'started',
+  FREEZED = 'freezed',
+  STOPPED = 'stopped',
 }

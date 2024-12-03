@@ -18,9 +18,17 @@
 import paths from 'path';
 import {MissingArgumentError} from '../core/errors.js';
 import {ShellRunner} from '../core/shell_runner.js';
-import type {ChartManager, ConfigManager, Helm, K8, DependencyManager, LeaseManager} from '../core/index.js';
+import type {
+  ChartManager,
+  ConfigManager,
+  Helm,
+  K8,
+  DependencyManager,
+  LeaseManager,
+  RemoteConfigManager,
+  LocalConfig,
+} from '../core/index.js';
 import type {CommandFlag, Opts} from '../types/index.js';
-import {type LocalConfig} from '../core/config/local_config.js';
 
 export class BaseCommand extends ShellRunner {
   protected readonly helm: Helm;
@@ -31,6 +39,7 @@ export class BaseCommand extends ShellRunner {
   protected readonly leaseManager: LeaseManager;
   protected readonly _configMaps = new Map<string, any>();
   protected readonly localConfig: LocalConfig;
+  protected readonly remoteConfigManager: RemoteConfigManager;
 
   constructor(opts: Opts) {
     if (!opts || !opts.logger) throw new Error('An instance of core/SoloLogger is required');
@@ -40,6 +49,8 @@ export class BaseCommand extends ShellRunner {
     if (!opts || !opts.configManager) throw new Error('An instance of core/ConfigManager is required');
     if (!opts || !opts.depManager) throw new Error('An instance of core/DependencyManager is required');
     if (!opts || !opts.localConfig) throw new Error('An instance of core/LocalConfig is required');
+    if (!opts || !opts.remoteConfigManager)
+      throw new Error('An instance of core/config/RemoteConfigManager is required');
 
     super(opts.logger);
 
@@ -50,6 +61,7 @@ export class BaseCommand extends ShellRunner {
     this.depManager = opts.depManager;
     this.leaseManager = opts.leaseManager;
     this.localConfig = opts.localConfig;
+    this.remoteConfigManager = opts.remoteConfigManager;
   }
 
   async prepareChartPath(chartDir: string, chartRepo: string, chartReleaseName: string) {

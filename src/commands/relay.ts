@@ -23,9 +23,10 @@ import {BaseCommand} from './base.js';
 import * as flags from './flags.js';
 import * as prompts from './prompts.js';
 import {getNodeAccountMap} from '../core/helpers.js';
-import {type NodeAliases} from '../types/aliases.js';
-import {type Opts} from '../types/index.js';
+import {RemoteConfigTasks} from '../core/config/remote/remote_config_tasks.js';
 import {ListrLease} from '../core/lease/listr_lease.js';
+import type {NodeAliases} from '../types/aliases.js';
+import type {Opts} from '../types/index.js';
 
 export class RelayCommand extends BaseCommand {
   private readonly profileManager: ProfileManager;
@@ -218,6 +219,7 @@ export class RelayCommand extends BaseCommand {
             return ListrLease.newAcquireLeaseTask(lease, task);
           },
         },
+        RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
         {
           title: 'Prepare chart values',
           task: async ctx => {
@@ -280,6 +282,7 @@ export class RelayCommand extends BaseCommand {
             }
           },
         },
+        RemoteConfigTasks.addRelayComponent.bind(this)(),
       ],
       {
         concurrent: false,
@@ -345,6 +348,7 @@ export class RelayCommand extends BaseCommand {
             return ListrLease.newAcquireLeaseTask(lease, task);
           },
         },
+        RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
         {
           title: 'Destroy JSON RPC Relay',
           task: async ctx => {
@@ -359,6 +363,7 @@ export class RelayCommand extends BaseCommand {
           },
           skip: ctx => !ctx.config.isChartInstalled,
         },
+        RemoteConfigTasks.removeRelayComponent.bind(this)(),
       ],
       {
         concurrent: false,

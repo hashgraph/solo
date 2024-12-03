@@ -14,22 +14,25 @@
  * limitations under the License.
  *
  */
-import {LocalConfig} from '../../../src/core/config/local_config.js';
+import {type ConfigManager, LocalConfig} from '../../../src/core/index.js';
 import fs from 'fs';
 import {stringify} from 'yaml';
 import {expect} from 'chai';
 import {MissingArgumentError, SoloError} from '../../../src/core/errors.js';
 import {getTestCacheDir, testLogger, testLocalConfigData} from '../../test_util.js';
+import type {EmailAddress} from '../../../src/core/config/remote/types.js';
 import {ErrorMessages} from '../../../src/core/error_messages.js';
 
 describe('LocalConfig', () => {
-  let localConfig;
+  let localConfig: LocalConfig;
+  const configManager = {} as unknown as ConfigManager;
+
   const filePath = `${getTestCacheDir('LocalConfig')}/localConfig.yaml`;
   const config = testLocalConfigData;
 
   const expectFailedValidation = expectedMessage => {
     try {
-      new LocalConfig(filePath, testLogger);
+      new LocalConfig(filePath, testLogger, configManager);
       expect.fail('Expected an error to be thrown');
     } catch (error) {
       expect(error).to.be.instanceOf(SoloError);
@@ -39,7 +42,7 @@ describe('LocalConfig', () => {
 
   beforeEach(async () => {
     await fs.promises.writeFile(filePath, stringify(config));
-    localConfig = new LocalConfig(filePath, testLogger);
+    localConfig = new LocalConfig(filePath, testLogger, configManager);
   });
 
   afterEach(async () => {
@@ -60,13 +63,13 @@ describe('LocalConfig', () => {
     await localConfig.write();
 
     // reinitialize with updated config file
-    const newConfig = new LocalConfig(filePath, testLogger);
+    const newConfig = new LocalConfig(filePath, testLogger, configManager);
     expect(newConfig.userEmailAddress).to.eq(newEmailAddress);
   });
 
   it('should not set an invalid email as user email address', async () => {
     try {
-      localConfig.setUserEmailAddress('invalidEmail');
+      localConfig.setUserEmailAddress('invalidEmail' as EmailAddress);
       expect.fail('expected an error to be thrown');
     } catch (error) {
       expect(error).to.be.instanceOf(SoloError);
@@ -76,10 +79,10 @@ describe('LocalConfig', () => {
   it('should set deployments', async () => {
     const newDeployments = {
       deployment: {
-        clusterAliases: ['cluster-1', 'context-1'],
+        clusters: ['cluster-1', 'context-1'],
       },
       'deployment-2': {
-        clusterAliases: ['cluster-3', 'context-3'],
+        clusters: ['cluster-3', 'context-3'],
       },
     };
 
@@ -87,18 +90,18 @@ describe('LocalConfig', () => {
     expect(localConfig.deployments).to.deep.eq(newDeployments);
 
     await localConfig.write();
-    const newConfig = new LocalConfig(filePath, testLogger);
+    const newConfig = new LocalConfig(filePath, testLogger, configManager);
     expect(newConfig.deployments).to.deep.eq(newDeployments);
   });
 
   it('should not set invalid deployments', async () => {
-    const validDeployment = {clusterAliases: ['cluster-3', 'cluster-4']};
+    const validDeployment = {clusters: ['cluster-3', 'cluster-4']};
     const invalidDeployments = [
       {foo: ['bar']},
-      {clusterAliases: [5, 6, 7]},
-      {clusterAliases: 'bar'},
-      {clusterAliases: 5},
-      {clusterAliases: {foo: 'bar '}},
+      {clusters: [5, 6, 7]},
+      {clusters: 'bar'},
+      {clusters: 5},
+      {clusters: {foo: 'bar '}},
     ];
 
     for (const invalidDeployment of invalidDeployments) {
@@ -108,7 +111,7 @@ describe('LocalConfig', () => {
       };
 
       try {
-        localConfig.setDeployments(deployments);
+        localConfig.setDeployments(deployments as any);
         expect.fail('expected an error to be thrown');
       } catch (error) {
         expect(error).to.be.instanceOf(SoloError);
@@ -123,6 +126,7 @@ describe('LocalConfig', () => {
     };
 
     try {
+      // @ts-ignore
       localConfig.setContextMappings(invalidContextMappings);
       expect.fail('expected an error to be thrown');
     } catch (error) {
@@ -141,14 +145,14 @@ describe('LocalConfig', () => {
     expect(localConfig.currentDeploymentName).to.eq(newCurrentDeployment);
 
     await localConfig.write();
-    const newConfig = new LocalConfig(filePath, testLogger);
+    const newConfig = new LocalConfig(filePath, testLogger, configManager);
     expect(newConfig.currentDeploymentName).to.eq(newCurrentDeployment);
   });
 
   it('should not set invalid or non-existent current deployment', async () => {
     const invalidCurrentDeploymentName = 5;
     try {
-      localConfig.setCurrentDeployment(invalidCurrentDeploymentName);
+      localConfig.setCurrentDeployment(invalidCurrentDeploymentName as any);
       expect.fail('expected an error to be thrown');
     } catch (error) {
       expect(error).to.be.instanceOf(SoloError);
@@ -165,7 +169,7 @@ describe('LocalConfig', () => {
 
   it('should throw an error if file path is not set', async () => {
     try {
-      new LocalConfig('', testLogger);
+      new LocalConfig('', testLogger, configManager);
       expect.fail('Expected an error to be thrown');
     } catch (error) {
       expect(error).to.be.instanceOf(MissingArgumentError);

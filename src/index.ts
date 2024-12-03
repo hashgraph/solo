@@ -34,8 +34,9 @@ import {
   AccountManager,
   LeaseManager,
   CertificateManager,
-  helpers,
   LocalConfig,
+  helpers,
+  RemoteConfigManager,
 } from './core/index.js';
 import 'dotenv/config';
 import {K8} from './core/k8.js';
@@ -74,10 +75,9 @@ export function main(argv: any) {
     const leaseRenewalService: LeaseRenewalService = new IntervalLeaseRenewalService();
     const leaseManager = new LeaseManager(k8, configManager, logger, leaseRenewalService);
     const certificateManager = new CertificateManager(k8, logger, configManager);
-    const localConfig = new LocalConfig(
-      path.join(constants.SOLO_CACHE_DIR, constants.DEFAULT_LOCAL_CONFIG_FILE),
-      logger,
-    );
+    const localConfigPath = path.join(constants.SOLO_CACHE_DIR, constants.DEFAULT_LOCAL_CONFIG_FILE);
+    const localConfig = new LocalConfig(localConfigPath, logger, configManager);
+    const remoteConfigManager = new RemoteConfigManager(k8, logger, localConfig, configManager);
 
     // set cluster and namespace in the global configManager from kubernetes context
     // so that we don't need to prompt the user
@@ -98,11 +98,12 @@ export function main(argv: any) {
       accountManager,
       profileManager,
       leaseManager,
+      remoteConfigManager,
       certificateManager,
       localConfig,
     };
 
-    const processArguments = (argv: any, yargs: any) => {
+    const processArguments = (argv: any, yargs: any): any => {
       if (argv._[0] === 'init') {
         configManager.reset();
       }

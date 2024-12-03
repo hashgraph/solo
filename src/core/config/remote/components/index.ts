@@ -14,16 +14,20 @@
  * limitations under the License.
  *
  */
-import type {Cluster, EmailAddress, Namespace} from './remote/types.js';
+import {BaseComponent} from './base_component.js';
+import {ConsensusNodeComponent} from './consensus_node_component.js';
+import {HaProxyComponent} from './ha_proxy_component.js';
+import {EnvoyProxyComponent} from './envoy_proxy_component.js';
+import {MirrorNodeComponent} from './mirror_node_component.js';
+import {MirrorNodeExplorerComponent} from './mirror_node_explorer_component.js';
+import {RelayComponent} from './relay_component.js';
 
-export interface DeploymentStructure {
-  clusters: Cluster[];
-}
-
-export type Deployments = Record<Namespace, DeploymentStructure>;
-
-export interface LocalConfigData {
-  userEmailAddress: EmailAddress;
-  deployments: Deployments;
-  currentDeploymentName: Namespace;
-}
+export {
+  BaseComponent,
+  ConsensusNodeComponent,
+  HaProxyComponent,
+  EnvoyProxyComponent,
+  MirrorNodeComponent,
+  MirrorNodeExplorerComponent,
+  RelayComponent,
+};
