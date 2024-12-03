@@ -29,6 +29,8 @@ import type { NetworkCommand } from '../../../commands/network.js'
 import type { DeploymentCommand } from '../../../commands/deployment.js'
 import type { MirrorNodeCommand } from '../../../commands/mirror_node.js'
 import type { NodeCommandHandlers } from '../../../commands/node/handlers.js'
+import type { Optional } from '../../../types/index.js'
+import { ComponentsDataWrapper } from './components_data_wrapper.js'
 
 /**
  * Static class that handles all tasks related to remote config used by other commands.
@@ -211,41 +213,17 @@ export class RemoteConfigTasks {
     return {
       title: 'Validate nodes states',
       skip: (): boolean => !this.remoteConfigManager.isLoaded(),
-      task: async (ctx: Context, task): Promise<Listr<any, any, any>> => {
-        const { config: { namespace, nodeAliases } } = ctx
+      task: (ctx: Context, task): Listr<any, any, any> => {
+        const nodeAliases = ctx.config.nodeAliases
 
         const components = this.remoteConfigManager.components
 
         const subTasks: ListrTask<Context, any, any>[] = nodeAliases.map(nodeAlias => ({
           title: `Validating state for node ${nodeAlias}`,
-          task: async (_, task): Promise<void> => {
-            let nodeComponent: ConsensusNodeComponent
-            try {
-              nodeComponent = components.getComponent<ConsensusNodeComponent>(
-                ComponentType.ConsensusNode,
-                nodeAlias
-              )
-            } catch (e) {
-              throw new SoloError(`${nodeAlias} not found in remote config for namespace ${namespace}`)
-            }
+          task: (_, task): void => {
+            const state = RemoteConfigTasks.validateNodeState(nodeAlias, components, acceptedStates, excludedStates)
 
-            if (acceptedStates && !acceptedStates.includes(nodeComponent.state)) {
-              const errorMessageData =
-                `accepted states: ${acceptedStates.join(', ')}, ` +
-                `current state: ${nodeComponent.state}`
-
-              throw new SoloError(`${nodeAlias} has invalid state - ` + errorMessageData)
-            }
-
-            if (excludedStates && excludedStates.includes(nodeComponent.state)) {
-              const errorMessageData =
-                `excluded states: ${excludedStates.join(', ')}, ` +
-                `current state: ${nodeComponent.state}`
-
-              throw new SoloError(`${nodeAlias} has invalid state - ` + errorMessageData)
-            }
-
-            task.title += ` - ${chalk.green('valid state')}: ${chalk.cyan(nodeComponent.state)}`
+            task.title += ` - ${chalk.green('valid state')}: ${chalk.cyan(state)}`
           }
         }))
 
@@ -255,5 +233,74 @@ export class RemoteConfigTasks {
         })
       }
     }
+  }
+
+  /**
+   * Creates tasks to validate that specific node state is either one of the accepted states or not one of the excluded.
+   *
+   * @param acceptedStates - the state at which the node can be, not matching any of the states throws an error
+   * @param excludedStates - the state at which the node can't be, matching any of the states throws an error
+   */
+  public static validateSingleNodeState (this: NodeCommandHandlers, { acceptedStates, excludedStates }
+    : { acceptedStates?: ConsensusNodeStates[], excludedStates?: ConsensusNodeStates[] }
+  ): ListrTask<any, any, any> {
+    interface Context { config: { namespace: string, nodeAlias: NodeAlias } }
+
+    return {
+      title: 'Validate nodes state',
+      skip: (): boolean => !this.remoteConfigManager.isLoaded(),
+      task: (ctx: Context, task): void => {
+        const nodeAlias = ctx.config.nodeAlias
+
+        task.title += ` ${nodeAlias}`
+
+        const components = this.remoteConfigManager.components
+
+        const state = RemoteConfigTasks.validateNodeState(nodeAlias, components, acceptedStates, excludedStates)
+
+        task.title += ` - ${chalk.green('valid state')}: ${chalk.cyan(state)}`
+      }
+    }
+  }
+
+  /**
+   * @param nodeAlias - the alias of the node whose state to validate
+   * @param components - the component data wrapper
+   * @param acceptedStates - the state at which the node can be, not matching any of the states throws an error
+   * @param excludedStates - the state at which the node can't be, matching any of the states throws an error
+   */
+  private static validateNodeState (
+    nodeAlias: NodeAlias,
+    components: ComponentsDataWrapper,
+    acceptedStates: Optional<ConsensusNodeStates[]>,
+    excludedStates: Optional<ConsensusNodeStates[]>,
+  ): ConsensusNodeStates {
+    let nodeComponent: ConsensusNodeComponent
+    try {
+      nodeComponent = components.getComponent<ConsensusNodeComponent>(
+        ComponentType.ConsensusNode,
+        nodeAlias
+      )
+    } catch (e) {
+      throw new SoloError(`${nodeAlias} not found in remote config`)
+    }
+
+    if (acceptedStates && !acceptedStates.includes(nodeComponent.state)) {
+      const errorMessageData =
+        `accepted states: ${acceptedStates.join(', ')}, ` +
+        `current state: ${nodeComponent.state}`
+
+      throw new SoloError(`${nodeAlias} has invalid state - ` + errorMessageData)
+    }
+
+    if (excludedStates && excludedStates.includes(nodeComponent.state)) {
+      const errorMessageData =
+        `excluded states: ${excludedStates.join(', ')}, ` +
+        `current state: ${nodeComponent.state}`
+
+      throw new SoloError(`${nodeAlias} has invalid state - ` + errorMessageData)
+    }
+
+    return nodeComponent.state
   }
 }

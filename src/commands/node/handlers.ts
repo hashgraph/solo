@@ -107,7 +107,7 @@ export class NodeCommandHandlers {
     return [
       this.tasks.initialize(argv, deleteConfigBuilder.bind(this), lease),
       RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
-      RemoteConfigTasks.validateAllNodeStates.bind(this)(
+      RemoteConfigTasks.validateSingleNodeState.bind(this)(
         { excludedStates: [] }),
       this.tasks.identifyExistingNodes(),
       this.tasks.loadAdminKey(),
@@ -152,7 +152,7 @@ export class NodeCommandHandlers {
     return [
       this.tasks.initialize(argv, addConfigBuilder.bind(this), lease),
       RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
-      RemoteConfigTasks.validateAllNodeStates.bind(this)(
+      RemoteConfigTasks.validateSingleNodeState.bind(this)(
         { excludedStates: [] }),
       this.tasks.checkPVCsEnabled(),
       this.tasks.identifyExistingNodes(),
@@ -206,7 +206,7 @@ export class NodeCommandHandlers {
     return [
       this.tasks.initialize(argv, updateConfigBuilder.bind(this), lease),
       RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
-      RemoteConfigTasks.validateAllNodeStates.bind(this)(
+      RemoteConfigTasks.validateSingleNodeState.bind(this)(
         { excludedStates: [] }),
       this.tasks.identifyExistingNodes(),
       this.tasks.loadAdminKey(),
