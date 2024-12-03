@@ -33,8 +33,6 @@ function clone_sdk_repo ()
   fi
 }
 
-
-
 function clone_smart_contract_repo ()
 {
   echo "Clone hedera-smart-contracts"
@@ -60,6 +58,9 @@ function retry_function ()
       echo "Function $function_name failed with return code $return_code"
     fi
     echo "Retry $function_name in 2 seconds"
+    echo "-----------------------"
+    cat retry.log
+    echo "-----------------------"
     sleep 2
   done
   echo "Function $function_name failed after 5 retries"
@@ -88,11 +89,11 @@ function setup_smart_contract_test ()
 
 function background_keep_port_forward ()
 {
-  for i in {1..40}; do
+  for i in {1..25}; do
+    ps -ef |grep port-forward
     echo "Enable port forward round $i"
     enable_port_forward
     sleep 2
-    ps -ef |grep port-forward
   done &
 }
 
@@ -102,7 +103,7 @@ function start_background_transactions ()
   # generate accounts as background traffic for two minutes
   # so record stream files can be kept pushing to mirror node
   cd solo
-  npm run solo-test -- account create -n solo-e2e --create-amount 20 > /dev/null 2>&1 &
+  npm run solo-test -- account create -n solo-e2e --create-amount 15 > /dev/null 2>&1 &
   cd -
 }
 
@@ -125,7 +126,7 @@ function retry_contract_test ()
   retry_function 5
 }
 
-function creat_test_account ()
+function create_test_account ()
 {
   echo "Create test account with solo network"
   cd solo
@@ -160,31 +161,31 @@ function creat_test_account ()
   cd -
 }
 
-
 function start_sdk_test ()
 {
-  echo "Start sdk test"
-#  cd solo
-#  node examples/create-topic.js
-#  cd -
-  cd hedera-sdk-js
+  cd solo
   node examples/create-topic.js
-  cd -
+  result=$?
 
+  cd -
+  return $result
 }
 
+function retry_sdk_test ()
+{
+  function_name="start_sdk_test"
+  retry_function 5
+}
 
 echo "Change to parent directory"
 cd ../
-
-
-creat_test_account
+create_test_account
 clone_sdk_repo
-
 clone_smart_contract_repo
 setup_smart_contract_test
-start_background_transactions
 background_keep_port_forward
-sleep 5
-#start_contract_test
-start_sdk_test
+start_background_transactions
+retry_contract_test
+retry_sdk_test
+echo "Sleep a while to wait background transactions to finish"
+sleep 30
