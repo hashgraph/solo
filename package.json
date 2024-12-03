@@ -115,7 +115,7 @@
     "eslint-plugin-tsdoc": "^0.4.0",
     "globals": "^15.13.0",
     "jest-mock": "^29.7.0",
-    "mocha": "^10.8.2",
+    "mocha": "^11.0.1",
     "mocha-each": "^2.0.1",
     "mocha-junit-reporter": "^2.2.1",
     "mocha-multi-reporters": "^1.5.1",
