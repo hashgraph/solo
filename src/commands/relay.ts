@@ -27,8 +27,6 @@ import {RemoteConfigTasks} from '../core/config/remote/remote_config_tasks.js';
 import {CommandBuilder, type NodeAliases} from '../types/aliases.js';
 import {type Opts} from '../types/index.js';
 import {ListrLease} from '../core/lease/listr_lease.js';
-import type {NodeAliases} from '../types/aliases.js';
-import type {Opts} from '../types/index.js';
 
 export class RelayCommand extends BaseCommand {
   private readonly profileManager: ProfileManager;

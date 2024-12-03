@@ -45,6 +45,7 @@ import fs from 'fs';
 import {stringify} from 'yaml';
 import {type Cluster, KubeConfig} from '@kubernetes/client-node';
 import {UserPrompt} from '../../../src/types/aliases.js';
+import {ListrTaskWrapper} from 'listr2';
 
 describe('ContextCommandTasks unit tests', () => {
   const filePath = `${getTestCacheDir('ContextCommandTasks')}/localConfig.yaml`;
@@ -101,7 +102,7 @@ describe('ContextCommandTasks unit tests', () => {
 
     async function runUpdateLocalConfigTask(argv) {
       const taskObj = tasks.updateLocalConfig(argv);
-      return taskObj.task({}, sinon.stub());
+      return taskObj.task({}, sinon.stub() as unknown as ListrTaskWrapper<any, any, any>);
     }
 
     function getPromptMap(): Map<string, UserPrompt> {
