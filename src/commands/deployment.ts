@@ -17,9 +17,8 @@
 import {Listr, type ListrTaskWrapper} from 'listr2';
 import {SoloError} from '../core/errors.js';
 import {BaseCommand} from './base.js';
-import * as flags from './flags.js';
+import {flags} from './index.js';
 import {constants, Templates} from '../core/index.js';
-import * as prompts from './prompts.js';
 import chalk from 'chalk';
 import {RemoteConfigTasks} from '../core/config/remote/remote_config_tasks.js';
 import {ListrLease} from '../core/lease/listr_lease.js';
@@ -59,7 +58,7 @@ export class DeploymentCommand extends BaseCommand {
             self.configManager.update(argv);
             self.logger.debug('Loaded cached config', {config: self.configManager.config});
 
-            await prompts.execute(task, self.configManager, DeploymentCommand.DEPLOY_FLAGS_LIST);
+            await flags.execute(task, self.configManager, DeploymentCommand.DEPLOY_FLAGS_LIST);
 
             ctx.config = {
               contextClusterUnparsed: self.configManager.getFlag<string>(flags.contextClusterUnparsed),

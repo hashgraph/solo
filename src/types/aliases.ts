@@ -31,3 +31,4 @@ export type TaskFunction = (
   task: ListrTaskWrapper<any, any, any>,
 ) => Promise<Listr<any, any, any>> | Listr<any, any, any> | Promise<void> | void;
 export type ConfigBuilder = (argv, ctx, task) => Promise<any>;
+export type PromptFunction = (task: ListrTaskWrapper<any, any, any>, input: any) => Promise<any>;

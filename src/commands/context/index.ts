@@ -21,7 +21,6 @@ import type {Opts} from '../../types/index.js';
 import {ContextCommandTasks} from './tasks.js';
 import {ContextCommandHandlers} from './handlers.js';
 import * as ContextFlags from './flags.js';
-import {getPromptMap} from '../prompts.js';
 
 /**
  * Defines the core functionalities of 'node' command
@@ -32,7 +31,7 @@ export class ContextCommand extends BaseCommand {
   constructor(opts: Opts) {
     super(opts);
 
-    this.handlers = new ContextCommandHandlers(this, new ContextCommandTasks(this, getPromptMap()));
+    this.handlers = new ContextCommandHandlers(this, new ContextCommandTasks(this));
   }
 
   getCommandDefinition() {

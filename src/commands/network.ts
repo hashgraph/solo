@@ -19,9 +19,8 @@ import chalk from 'chalk';
 import {Listr} from 'listr2';
 import {SoloError, IllegalArgumentError, MissingArgumentError} from '../core/errors.js';
 import {BaseCommand} from './base.js';
-import * as flags from './flags.js';
+import {flags} from './index.js';
 import {constants, Templates} from '../core/index.js';
-import * as prompts from './prompts.js';
 import * as helpers from '../core/helpers.js';
 import path from 'path';
 import {addDebugOptions, validatePath} from '../core/helpers.js';
@@ -173,7 +172,7 @@ export class NetworkCommand extends BaseCommand {
     this.logger.debug('Loaded cached config', {config: this.configManager.config});
 
     // disable the prompts that we don't want to prompt the user for
-    prompts.disablePrompts([
+    flags.disablePrompts([
       flags.apiPermissionProperties,
       flags.app,
       flags.applicationEnv,
@@ -193,7 +192,7 @@ export class NetworkCommand extends BaseCommand {
       flags.grpcWebTlsKeyPath,
     ]);
 
-    await prompts.execute(task, this.configManager, NetworkCommand.DEPLOY_FLAGS_LIST);
+    await flags.execute(task, this.configManager, NetworkCommand.DEPLOY_FLAGS_LIST);
 
     // create a config object for subsequent steps
     const config = this.getConfig(NetworkCommand.DEPLOY_CONFIGS_NAME, NetworkCommand.DEPLOY_FLAGS_LIST, [
@@ -524,7 +523,7 @@ export class NetworkCommand extends BaseCommand {
             }
 
             self.configManager.update(argv);
-            await prompts.execute(task, self.configManager, [flags.deletePvcs, flags.deleteSecrets, flags.namespace]);
+            await flags.execute(task, self.configManager, [flags.deletePvcs, flags.deleteSecrets, flags.namespace]);
 
             ctx.config = {
               deletePvcs: self.configManager.getFlag<boolean>(flags.deletePvcs) as boolean,

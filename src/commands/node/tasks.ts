@@ -52,7 +52,6 @@ import {
   Timestamp,
 } from '@hashgraph/sdk';
 import {IllegalArgumentError, MissingArgumentError, SoloError} from '../../core/errors.js';
-import * as prompts from '../prompts.js';
 import path from 'path';
 import fs from 'fs';
 import crypto from 'crypto';
@@ -67,7 +66,7 @@ import {
   splitFlagInput,
 } from '../../core/helpers.js';
 import chalk from 'chalk';
-import * as flags from '../flags.js';
+import {flags} from '../index.js';
 import {type SoloLogger} from '../../core/logging.js';
 import type {Listr, ListrTaskWrapper} from 'listr2';
 import {ConfigBuilder, type NodeAlias, type NodeAliases, type PodName, SkipCheck} from '../../types/aliases.js';
@@ -1606,7 +1605,7 @@ export class NodeCommandTasks {
       this.configManager.update(argv);
 
       // disable the prompts that we don't want to prompt the user for
-      prompts.disablePrompts([...requiredFlagsWithDisabledPrompt, ...optionalFlags]);
+      flags.disablePrompts([...requiredFlagsWithDisabledPrompt, ...optionalFlags]);
 
       const flagsToPrompt = [];
       for (const pFlag of requiredFlags) {
@@ -1616,7 +1615,7 @@ export class NodeCommandTasks {
         }
       }
 
-      await prompts.execute(task, this.configManager, flagsToPrompt);
+      await flags.execute(task, this.configManager, flagsToPrompt);
 
       const config = await configInit(argv, ctx, task);
       ctx.config = config;

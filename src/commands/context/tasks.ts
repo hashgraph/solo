@@ -15,18 +15,15 @@
  *
  */
 import {Task, Templates} from '../../core/index.js';
-import * as flags from '../flags.js';
+import {flags} from '../index.js';
 import type {ListrTaskWrapper} from 'listr2';
 import {type BaseCommand} from '../base.js';
-import {UserPrompt} from '../../types/aliases.js';
 
 export class ContextCommandTasks {
   private readonly parent: BaseCommand;
-  private readonly promptMap: Map<string, UserPrompt>;
 
-  constructor(parent, promptMap) {
+  constructor(parent) {
     this.parent = parent;
-    this.promptMap = promptMap;
   }
 
   updateLocalConfig(argv) {
@@ -52,19 +49,19 @@ export class ContextCommandTasks {
         }
       } else {
         if (!clusters.length) {
-          const prompt = this.promptMap.get(flags.clusterName.name);
+          const prompt = flags.clusterName.prompt;
           const unparsedClusterAliases = await prompt(task, clusters);
           clusters = Templates.parseClusterAliases(unparsedClusterAliases);
         }
         if (!contextName) {
-          const prompt = this.promptMap.get(flags.context.name);
+          const prompt = flags.context.prompt;
           contextName = await prompt(
             task,
             kubeContexts.map(c => c.name),
           );
         }
         if (!currentDeploymentName) {
-          const prompt = this.promptMap.get(flags.namespace.name);
+          const prompt = flags.namespace.prompt;
           currentDeploymentName = await prompt(task, currentDeploymentName);
         }
       }

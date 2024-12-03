@@ -20,8 +20,7 @@ import * as helpers from '../core/helpers.js';
 import type {ProfileManager, AccountManager} from '../core/index.js';
 import {constants} from '../core/index.js';
 import {BaseCommand} from './base.js';
-import * as flags from './flags.js';
-import * as prompts from './prompts.js';
+import {flags} from './index.js';
 import {getNodeAccountMap} from '../core/helpers.js';
 import {RemoteConfigTasks} from '../core/config/remote/remote_config_tasks.js';
 import {CommandBuilder, type NodeAliases} from '../types/aliases.js';
@@ -200,7 +199,7 @@ export class RelayCommand extends BaseCommand {
 
             self.configManager.update(argv);
 
-            await prompts.execute(task, self.configManager, RelayCommand.DEPLOY_FLAGS_LIST);
+            await flags.execute(task, self.configManager, RelayCommand.DEPLOY_FLAGS_LIST);
 
             // prompt if inputs are empty and set it in the context
             ctx.config = this.getConfig(RelayCommand.DEPLOY_CONFIGS_NAME, RelayCommand.DEPLOY_FLAGS_LIST, [
@@ -326,7 +325,7 @@ export class RelayCommand extends BaseCommand {
             self.configManager.setFlag(flags.nodeAliasesUnparsed, '');
 
             self.configManager.update(argv);
-            await prompts.execute(task, self.configManager, RelayCommand.DESTROY_FLAGS_LIST);
+            await flags.execute(task, self.configManager, RelayCommand.DESTROY_FLAGS_LIST);
 
             // prompt if inputs are empty and set it in the context
             ctx.config = {

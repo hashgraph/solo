@@ -14,7 +14,7 @@
  * limitations under the License.
  *
  */
-import * as flags from './flags.js';
+import {Flags as flags} from './flags.js';
 import {ClusterCommand} from './cluster.js';
 import {ContextCommand} from './context/index.js';
 import {InitCommand} from './init.js';

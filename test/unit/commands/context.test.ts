@@ -142,7 +142,7 @@ describe('ContextCommandTasks unit tests', () => {
       loggerStub = sinon.createStubInstance(SoloLogger);
       await fs.promises.writeFile(filePath, stringify(testLocalConfigData));
       command = new BaseCommand(getBaseCommandOpts());
-      tasks = new ContextCommandTasks(command, promptMap);
+      tasks = new ContextCommandTasks(command);
     });
 
     it('should update local configuration with provided values', async () => {
