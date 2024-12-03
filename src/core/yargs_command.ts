@@ -14,7 +14,7 @@
  * limitations under the License.
  *
  */
-import {Flags} from '../commands/flags.js';
+import {Flags as commandFlags} from '../commands/flags.js';
 import {IllegalArgumentError} from './errors.js';
 import {type BaseCommand} from '../commands/base.js';
 import {type CommandFlag} from '../types/index.js';
@@ -61,7 +61,7 @@ export class YargsCommand {
     return {
       command,
       desc: description,
-      builder: (y: any) => Flags.setCommandFlags(y, ...allFlags),
+      builder: (y: any) => commandFlags.setCommandFlags(y, ...allFlags),
       handler: (argv: any) => {
         commandDef.logger.debug(`==== Running '${commandNamespace} ${command}' ===`);
         commandDef.logger.debug(argv);
