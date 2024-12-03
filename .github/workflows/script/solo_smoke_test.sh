@@ -19,20 +19,6 @@ function enable_port_forward ()
   kubectl port-forward -n solo-e2e svc/mirror-grpc 5600:5600 > /dev/null 2>&1 &
 }
 
-function clone_sdk_repo ()
-{
-  echo "Clone hedera-sdk-js"
-  if [ -d "hedera-sdk-js" ]; then
-    echo "Directory hedera-sdk-js exists."
-  else
-    echo "Directory hedera-sdk-js does not exist."
-    git clone https://github.com/hashgraph/hedera-sdk-js --branch v2.53.0
-    cd hedera-sdk-js
-    npm install --save @hashgraph/sdk
-    cd -
-  fi
-}
-
 function clone_smart_contract_repo ()
 {
   echo "Clone hedera-smart-contracts"
@@ -180,7 +166,6 @@ function retry_sdk_test ()
 echo "Change to parent directory"
 cd ../
 create_test_account
-clone_sdk_repo
 clone_smart_contract_repo
 setup_smart_contract_test
 background_keep_port_forward
