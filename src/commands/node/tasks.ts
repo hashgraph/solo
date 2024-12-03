@@ -1615,7 +1615,7 @@ export class NodeCommandTasks {
         }
       }
 
-      await flags.execute(task, this.configManager, flagsToPrompt);
+      await flags.executePrompt(task, this.configManager, flagsToPrompt);
 
       const config = await configInit(argv, ctx, task);
       ctx.config = config;

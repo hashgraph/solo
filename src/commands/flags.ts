@@ -92,8 +92,7 @@ export class Flags {
    * @param configManager config manager to store flag values
    * @param flagList list of flag objects
    */
-  static async execute(
-    // TODO rename executePrompt
+  static async executePrompt(
     task: ListrTaskWrapper<any, any, any>,
     configManager: ConfigManager,
     flagList: CommandFlag[] = [],

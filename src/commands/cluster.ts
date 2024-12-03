@@ -78,7 +78,7 @@ export class ClusterCommand extends BaseCommand {
           title: 'Initialize',
           task: async (ctx, task) => {
             self.configManager.update(argv);
-            await flags.execute(task, self.configManager, [
+            await flags.executePrompt(task, self.configManager, [
               flags.chartDirectory,
               flags.clusterSetupNamespace,
               flags.deployCertManager,

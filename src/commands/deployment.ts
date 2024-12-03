@@ -58,7 +58,7 @@ export class DeploymentCommand extends BaseCommand {
             self.configManager.update(argv);
             self.logger.debug('Loaded cached config', {config: self.configManager.config});
 
-            await flags.execute(task, self.configManager, DeploymentCommand.DEPLOY_FLAGS_LIST);
+            await flags.executePrompt(task, self.configManager, DeploymentCommand.DEPLOY_FLAGS_LIST);
 
             ctx.config = {
               contextClusterUnparsed: self.configManager.getFlag<string>(flags.contextClusterUnparsed),
