@@ -75,7 +75,7 @@ export class NodeCommand extends BaseCommand {
       parent: this,
       leaseManager: opts.leaseManager,
       remoteConfigManager: opts.remoteConfigManager,
-    })
+    });
   }
 
   /**

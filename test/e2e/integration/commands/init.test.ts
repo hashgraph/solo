@@ -20,18 +20,24 @@ import {expect} from 'chai';
 import {InitCommand} from '../../../../src/commands/init.js';
 import {HelmDependencyManager, DependencyManager} from '../../../../src/core/dependency_managers/index.js';
 import {
-  HelmDependencyManager,
-  DependencyManager
-} from '../../../../src/core/dependency_managers/index.js'
-import {
-  ChartManager, ConfigManager, constants, Helm, K8, KeyManager, LeaseManager,
-  LocalConfig, logging, PackageDownloader, RemoteConfigManager, Zippy
-} from '../../../../src/core/index.js'
-import { SECONDS } from '../../../../src/core/constants.js'
-import sinon from 'sinon'
-import { IntervalLeaseRenewalService } from '../../../../src/core/lease/lease_renewal.js'
-import path from 'path'
-import { BASE_TEST_DIR } from '../../../test_util.js'
+  ChartManager,
+  ConfigManager,
+  constants,
+  Helm,
+  K8,
+  KeyManager,
+  LeaseManager,
+  LocalConfig,
+  logging,
+  PackageDownloader,
+  RemoteConfigManager,
+  Zippy,
+} from '../../../../src/core/index.js';
+import {SECONDS} from '../../../../src/core/constants.js';
+import sinon from 'sinon';
+import {IntervalLeaseRenewalService} from '../../../../src/core/lease/lease_renewal.js';
+import path from 'path';
+import {BASE_TEST_DIR} from '../../../test_util.js';
 
 const testLogger = logging.NewLogger('debug', true);
 describe('InitCommand', () => {
@@ -42,32 +48,41 @@ describe('InitCommand', () => {
   const depManagerMap = new Map().set(constants.HELM, helmDepManager);
   const depManager = new DependencyManager(testLogger, depManagerMap);
 
-  const helm = new Helm(testLogger)
-  const chartManager = new ChartManager(helm, testLogger)
-  const configManager = new ConfigManager(testLogger)
-  let k8 : K8
-  let localConfig: LocalConfig
+  const helm = new Helm(testLogger);
+  const chartManager = new ChartManager(helm, testLogger);
+  const configManager = new ConfigManager(testLogger);
+  let k8: K8;
+  let localConfig: LocalConfig;
 
   const keyManager = new KeyManager(testLogger);
 
-  let leaseManager: LeaseManager
-  let remoteConfigManager: RemoteConfigManager
+  let leaseManager: LeaseManager;
+  let remoteConfigManager: RemoteConfigManager;
 
   let sandbox = sinon.createSandbox();
   let initCmd: InitCommand;
 
   before(() => {
-    sandbox = sinon.createSandbox()
-    sandbox.stub(K8.prototype, 'init').callsFake(() => this)
-    k8 = new K8(configManager, testLogger)
-    localConfig = new LocalConfig(path.join(BASE_TEST_DIR, 'local-config.yaml'), testLogger, configManager)
-    remoteConfigManager = new RemoteConfigManager(k8, testLogger, localConfig, configManager)
-    leaseManager = new LeaseManager(k8, configManager, testLogger, new IntervalLeaseRenewalService())
+    sandbox = sinon.createSandbox();
+    sandbox.stub(K8.prototype, 'init').callsFake(() => this);
+    k8 = new K8(configManager, testLogger);
+    localConfig = new LocalConfig(path.join(BASE_TEST_DIR, 'local-config.yaml'), testLogger, configManager);
+    remoteConfigManager = new RemoteConfigManager(k8, testLogger, localConfig, configManager);
+    leaseManager = new LeaseManager(k8, configManager, testLogger, new IntervalLeaseRenewalService());
     // @ts-ignore
     initCmd = new InitCommand({
-      logger: testLogger, helm, k8, chartManager, configManager, depManager, keyManager, leaseManager, localConfig, remoteConfigManager
-    })
-  })
+      logger: testLogger,
+      helm,
+      k8,
+      chartManager,
+      configManager,
+      depManager,
+      keyManager,
+      leaseManager,
+      localConfig,
+      remoteConfigManager,
+    });
+  });
 
   after(() => {
     sandbox.restore();

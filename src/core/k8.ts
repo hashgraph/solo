@@ -28,13 +28,12 @@ import {sleep} from './helpers.js';
 import {type ConfigManager, constants} from './index.js';
 import * as stream from 'node:stream';
 
-import { type SoloLogger } from './logging.js'
-import type * as WebSocket from 'ws'
-import type { PodName } from '../types/aliases.js'
-import type { ExtendedNetServer, LocalContextObject } from '../types/index.js'
-import type * as http from 'node:http'
-import { MINUTES } from './constants.js'
-import type { Context } from './config/remote/types.ts'
+import {type SoloLogger} from './logging.js';
+import type * as WebSocket from 'ws';
+import type {PodName} from '../types/aliases.js';
+import type {ExtendedNetServer, LocalContextObject} from '../types/index.js';
+import type * as http from 'node:http';
+import {MINUTES} from './constants.js';
 
 interface TDirectoryData {
   directory: boolean;
@@ -896,12 +895,12 @@ export class K8 {
    * This simple server just forwards traffic from itself to a service running in kubernetes
    * -> localhost:localPort -> port-forward-tunnel -> kubernetes-pod:targetPort
    */
-  async portForward (podName: PodName, localPort: number, podPort: number) {
-    const ns = this._getNamespace()
-    const forwarder = new k8s.PortForward(this.kubeConfig, false)
-    const server = await net.createServer((socket) => {
-      forwarder.portForward(ns, podName, [podPort], socket, null, socket, 3)
-    }) as ExtendedNetServer
+  async portForward(podName: PodName, localPort: number, podPort: number) {
+    const ns = this._getNamespace();
+    const forwarder = new k8s.PortForward(this.kubeConfig, false);
+    const server = (await net.createServer(socket => {
+      forwarder.portForward(ns, podName, [podPort], socket, null, socket, 3);
+    })) as ExtendedNetServer;
 
     // add info for logging
     server.info = `${podName}:${podPort} -> ${constants.LOCAL_HOST}:${localPort}`;
@@ -1204,14 +1203,14 @@ export class K8 {
 
   // --------------------------------------- Utility Methods --------------------------------------- //
 
-  public async testClusterConnection (context: Context): Promise<boolean> {
-    this.kubeConfig.setCurrentContext(context)
+  public async testClusterConnection(context: string): Promise<boolean> {
+    this.kubeConfig.setCurrentContext(context);
 
     return await this.kubeConfig
       .makeApiClient(k8s.CoreV1Api)
       .listNamespace()
       .then(() => true)
-      .catch(() => false)
+      .catch(() => false);
   }
 
   // --------------------------------------- Secret --------------------------------------- //
@@ -1316,13 +1315,12 @@ export class K8 {
    * @returns the configmap if found
    * @throws SoloError - if the response if not found or the response is not OK
    */
-  public async getNamespacedConfigMap (name: string): Promise<k8s.V1ConfigMap> {
-    const { response, body }  = await this.kubeClient.readNamespacedConfigMap(name, this._getNamespace())
-      .catch(e => e)
+  public async getNamespacedConfigMap(name: string): Promise<k8s.V1ConfigMap> {
+    const {response, body} = await this.kubeClient.readNamespacedConfigMap(name, this._getNamespace()).catch(e => e);
 
-    this.handleKubernetesClientError(response, body, 'Failed to get namespaced configmap')
+    this.handleKubernetesClientError(response, body, 'Failed to get namespaced configmap');
 
-    return body as k8s.V1ConfigMap
+    return body as k8s.V1ConfigMap;
   }
 
   /**
@@ -1330,23 +1328,30 @@ export class K8 {
    * @param labels - for the config metadata
    * @param data - to contain in the config
    */
-  public async createNamespacedConfigMap (name: string, labels: Record<string, string>, data: Record<string, string>): Promise<boolean> {
-    const namespace = this._getNamespace()
+  public async createNamespacedConfigMap(
+    name: string,
+    labels: Record<string, string>,
+    data: Record<string, string>,
+  ): Promise<boolean> {
+    const namespace = this._getNamespace();
 
-    const configMap = new k8s.V1ConfigMap()
-    configMap.data = data
+    const configMap = new k8s.V1ConfigMap();
+    configMap.data = data;
 
-    const metadata = new k8s.V1ObjectMeta()
-    metadata.name = name
-    metadata.namespace = namespace
-    metadata.labels = labels
-    configMap.metadata = metadata
+    const metadata = new k8s.V1ObjectMeta();
+    metadata.name = name;
+    metadata.namespace = namespace;
+    metadata.labels = labels;
+    configMap.metadata = metadata;
     try {
-      const resp = await this.kubeClient.createNamespacedConfigMap(namespace, configMap)
+      const resp = await this.kubeClient.createNamespacedConfigMap(namespace, configMap);
 
-      return resp.response.statusCode === 201
+      return resp.response.statusCode === 201;
     } catch (e: Error | any) {
-      throw new SoloError(`failed to create configmap ${name} in namespace ${namespace}: ${e.message}, ${e?.body?.message}`, e)
+      throw new SoloError(
+        `failed to create configmap ${name} in namespace ${namespace}: ${e.message}, ${e?.body?.message}`,
+        e,
+      );
     }
   }
 
@@ -1355,33 +1360,43 @@ export class K8 {
    * @param labels - for the config metadata
    * @param data - to contain in the config
    */
-  public async replaceNamespacedConfigMap (name: string, labels: Record<string, string>, data: Record<string, string>): Promise<boolean> {
-    const namespace = this._getNamespace()
+  public async replaceNamespacedConfigMap(
+    name: string,
+    labels: Record<string, string>,
+    data: Record<string, string>,
+  ): Promise<boolean> {
+    const namespace = this._getNamespace();
 
-    const configMap = new k8s.V1ConfigMap()
-    configMap.data = data
+    const configMap = new k8s.V1ConfigMap();
+    configMap.data = data;
 
-    const metadata = new k8s.V1ObjectMeta()
-    metadata.name = name
-    metadata.namespace = namespace
-    metadata.labels = labels
-    configMap.metadata = metadata
+    const metadata = new k8s.V1ObjectMeta();
+    metadata.name = name;
+    metadata.namespace = namespace;
+    metadata.labels = labels;
+    configMap.metadata = metadata;
     try {
-      const resp = await this.kubeClient.replaceNamespacedConfigMap(name, namespace, configMap)
+      const resp = await this.kubeClient.replaceNamespacedConfigMap(name, namespace, configMap);
 
-      return resp.response.statusCode === 201
+      return resp.response.statusCode === 201;
     } catch (e: Error | any) {
-      throw new SoloError(`failed to create configmap ${name} in namespace ${namespace}: ${e.message}, ${e?.body?.message}`, e)
+      throw new SoloError(
+        `failed to create configmap ${name} in namespace ${namespace}: ${e.message}, ${e?.body?.message}`,
+        e,
+      );
     }
   }
 
-  public async deleteNamespacedConfigMap (name: string, namespace: string): Promise<boolean> {
+  public async deleteNamespacedConfigMap(name: string, namespace: string): Promise<boolean> {
     try {
-      const resp = await this.kubeClient.deleteNamespacedConfigMap(name, namespace)
+      const resp = await this.kubeClient.deleteNamespacedConfigMap(name, namespace);
 
-      return resp.response.statusCode === 201
+      return resp.response.statusCode === 201;
     } catch (e: Error | any) {
-      throw new SoloError(`failed to create configmap ${name} in namespace ${namespace}: ${e.message}, ${e?.body?.message}`, e)
+      throw new SoloError(
+        `failed to create configmap ${name} in namespace ${namespace}: ${e.message}, ${e?.body?.message}`,
+        e,
+      );
     }
   }
 
@@ -1458,8 +1473,8 @@ export class K8 {
    *
    * @throws SoloError - if the status code is not OK
    */
-  private handleKubernetesClientError (response: http.IncomingMessage, error: Error | any, errorMessage: string): void {
-    const statusCode = +response?.statusCode || 500
+  private handleKubernetesClientError(response: http.IncomingMessage, error: Error | any, errorMessage: string): void {
+    const statusCode = +response?.statusCode || 500;
 
     if (statusCode <= 202) return;
     errorMessage += `, statusCode: ${statusCode}`;

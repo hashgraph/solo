@@ -15,45 +15,53 @@
  *
  */
 
-import paths from 'path'
-import { MissingArgumentError } from '../core/errors.js'
-import { ShellRunner } from '../core/shell_runner.js'
+import paths from 'path';
+import {MissingArgumentError} from '../core/errors.js';
+import {ShellRunner} from '../core/shell_runner.js';
 import type {
-  ChartManager, ConfigManager, Helm, K8, DependencyManager, LeaseManager, RemoteConfigManager, LocalConfig
-} from '../core/index.js'
-import type { CommandFlag,  Opts } from '../types/index.js'
+  ChartManager,
+  ConfigManager,
+  Helm,
+  K8,
+  DependencyManager,
+  LeaseManager,
+  RemoteConfigManager,
+  LocalConfig,
+} from '../core/index.js';
+import type {CommandFlag, Opts} from '../types/index.js';
 
 export class BaseCommand extends ShellRunner {
-  protected readonly helm: Helm
-  protected readonly k8: K8
-  protected readonly chartManager: ChartManager
-  protected readonly configManager: ConfigManager
-  protected readonly depManager: DependencyManager
-  protected readonly leaseManager: LeaseManager
-  protected readonly _configMaps = new Map<string, any>()
-  protected readonly localConfig: LocalConfig
-  protected readonly remoteConfigManager: RemoteConfigManager
+  protected readonly helm: Helm;
+  protected readonly k8: K8;
+  protected readonly chartManager: ChartManager;
+  protected readonly configManager: ConfigManager;
+  protected readonly depManager: DependencyManager;
+  protected readonly leaseManager: LeaseManager;
+  protected readonly _configMaps = new Map<string, any>();
+  protected readonly localConfig: LocalConfig;
+  protected readonly remoteConfigManager: RemoteConfigManager;
 
-  constructor (opts: Opts) {
-    if (!opts || !opts.logger) throw new Error('An instance of core/SoloLogger is required')
-    if (!opts || !opts.helm) throw new Error('An instance of core/Helm is required')
-    if (!opts || !opts.k8) throw new Error('An instance of core/K8 is required')
-    if (!opts || !opts.chartManager) throw new Error('An instance of core/ChartManager is required')
-    if (!opts || !opts.configManager) throw new Error('An instance of core/ConfigManager is required')
-    if (!opts || !opts.depManager) throw new Error('An instance of core/DependencyManager is required')
-    if (!opts || !opts.localConfig) throw new Error('An instance of core/LocalConfig is required')
-    if (!opts || !opts.remoteConfigManager) throw new Error('An instance of core/config/RemoteConfigManager is required')
+  constructor(opts: Opts) {
+    if (!opts || !opts.logger) throw new Error('An instance of core/SoloLogger is required');
+    if (!opts || !opts.helm) throw new Error('An instance of core/Helm is required');
+    if (!opts || !opts.k8) throw new Error('An instance of core/K8 is required');
+    if (!opts || !opts.chartManager) throw new Error('An instance of core/ChartManager is required');
+    if (!opts || !opts.configManager) throw new Error('An instance of core/ConfigManager is required');
+    if (!opts || !opts.depManager) throw new Error('An instance of core/DependencyManager is required');
+    if (!opts || !opts.localConfig) throw new Error('An instance of core/LocalConfig is required');
+    if (!opts || !opts.remoteConfigManager)
+      throw new Error('An instance of core/config/RemoteConfigManager is required');
 
     super(opts.logger);
 
-    this.helm = opts.helm
-    this.k8 = opts.k8
-    this.chartManager = opts.chartManager
-    this.configManager = opts.configManager
-    this.depManager = opts.depManager
-    this.leaseManager = opts.leaseManager
-    this.localConfig = opts.localConfig
-    this.remoteConfigManager = opts.remoteConfigManager
+    this.helm = opts.helm;
+    this.k8 = opts.k8;
+    this.chartManager = opts.chartManager;
+    this.configManager = opts.configManager;
+    this.depManager = opts.depManager;
+    this.leaseManager = opts.leaseManager;
+    this.localConfig = opts.localConfig;
+    this.remoteConfigManager = opts.remoteConfigManager;
   }
 
   async prepareChartPath(chartDir: string, chartRepo: string, chartReleaseName: string) {

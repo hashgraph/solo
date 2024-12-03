@@ -22,9 +22,9 @@ import {BaseCommand} from './base.js';
 import * as flags from './flags.js';
 import * as prompts from './prompts.js';
 import {getFileContents, getEnvValue} from '../core/helpers.js';
-import {RemoteConfigTasks } from '../core/config/remote/remote_config_tasks.js'
-import type { PodName } from '../types/aliases.js';
-import type { Opts } from '../types/index.js';
+import {RemoteConfigTasks} from '../core/config/remote/remote_config_tasks.js';
+import type {PodName} from '../types/aliases.js';
+import type {Opts} from '../types/index.js';
 import {ListrLease} from '../core/lease/listr_lease.js';
 
 export class MirrorNodeCommand extends BaseCommand {
@@ -234,10 +234,10 @@ export class MirrorNodeCommand extends BaseCommand {
           },
         },
         RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
-      {
-        title: 'Enable mirror-node',
-        task: (_, parentTask) => {
-          return parentTask.newListr<Context>(
+        {
+          title: 'Enable mirror-node',
+          task: (_, parentTask) => {
+            return parentTask.newListr<Context>(
               [
                 {
                   title: 'Prepare address book',
@@ -404,25 +404,29 @@ export class MirrorNodeCommand extends BaseCommand {
                       'HEDERA_MIRROR_IMPORTER_DB_NAME',
                     );
 
-                await self.k8.execContainer(postgresPodName, postgresContainerName, [
-                  'psql',
-                  `postgresql://${HEDERA_MIRROR_IMPORTER_DB_OWNER}:${HEDERA_MIRROR_IMPORTER_DB_OWNERPASSWORD}@localhost:5432/${HEDERA_MIRROR_IMPORTER_DB_NAME}`,
-                  '-c',
-                  sqlQuery
-                ])
-              }
-            }
-          ], {
-            concurrent: false,
-            rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
-          })
-        }
+                    await self.k8.execContainer(postgresPodName, postgresContainerName, [
+                      'psql',
+                      `postgresql://${HEDERA_MIRROR_IMPORTER_DB_OWNER}:${HEDERA_MIRROR_IMPORTER_DB_OWNERPASSWORD}@localhost:5432/${HEDERA_MIRROR_IMPORTER_DB_NAME}`,
+                      '-c',
+                      sqlQuery,
+                    ]);
+                  },
+                },
+              ],
+              {
+                concurrent: false,
+                rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION,
+              },
+            );
+          },
+        },
+        RemoteConfigTasks.addMirrorNodeAndMirrorNodeToExplorer.bind(this)(),
+      ],
+      {
+        concurrent: false,
+        rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION,
       },
-      RemoteConfigTasks.addMirrorNodeAndMirrorNodeToExplorer.bind(this)()
-    ], {
-      concurrent: false,
-      rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
-    })
+    );
 
     try {
       await tasks.run();
@@ -488,9 +492,9 @@ export class MirrorNodeCommand extends BaseCommand {
           },
         },
         RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
-      {
-        title: 'Destroy mirror-node',
-        task: async ctx => {
+        {
+          title: 'Destroy mirror-node',
+          task: async ctx => {
             await this.chartManager.uninstall(ctx.config.namespace, constants.MIRROR_NODE_RELEASE_NAME);
             await this.chartManager.uninstall(ctx.config.namespace, constants.HEDERA_EXPLORER_CHART);
           },
@@ -512,9 +516,9 @@ export class MirrorNodeCommand extends BaseCommand {
             }
           },
           skip: ctx => !ctx.config.isChartInstalled,
-      },
-      RemoteConfigTasks.removeMirrorNodeAndMirrorNodeToExplorer.bind(this)(),
-    ],
+        },
+        RemoteConfigTasks.removeMirrorNodeAndMirrorNodeToExplorer.bind(this)(),
+      ],
       {
         concurrent: false,
         rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION,

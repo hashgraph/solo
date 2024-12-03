@@ -14,23 +14,23 @@
  * limitations under the License.
  *
  */
-import { ListrEnquirerPromptAdapter } from '@listr2/prompt-adapter-enquirer'
-import chalk from 'chalk'
-import { Listr } from 'listr2'
-import { SoloError, IllegalArgumentError, MissingArgumentError } from '../core/errors.js'
-import { BaseCommand } from './base.js'
-import * as flags from './flags.js'
-import { constants, Templates } from '../core/index.js'
-import * as prompts from './prompts.js'
-import * as helpers from '../core/helpers.js'
-import path from 'path'
-import { addDebugOptions, validatePath } from '../core/helpers.js'
-import fs from 'fs'
-import { RemoteConfigTasks } from '../core/config/remote/remote_config_tasks.js'
-import type { CertificateManager, KeyManager, PlatformInstaller, ProfileManager } from '../core/index.js'
-import type { NodeAlias, NodeAliases } from '../types/aliases.js'
-import type { Opts } from '../types/index.js'
-import { ListrLease } from '../core/lease/listr_lease.js'
+import {ListrEnquirerPromptAdapter} from '@listr2/prompt-adapter-enquirer';
+import chalk from 'chalk';
+import {Listr} from 'listr2';
+import {SoloError, IllegalArgumentError, MissingArgumentError} from '../core/errors.js';
+import {BaseCommand} from './base.js';
+import * as flags from './flags.js';
+import {constants, Templates} from '../core/index.js';
+import * as prompts from './prompts.js';
+import * as helpers from '../core/helpers.js';
+import path from 'path';
+import {addDebugOptions, validatePath} from '../core/helpers.js';
+import fs from 'fs';
+import {RemoteConfigTasks} from '../core/config/remote/remote_config_tasks.js';
+import type {CertificateManager, KeyManager, PlatformInstaller, ProfileManager} from '../core/index.js';
+import type {NodeAlias, NodeAliases} from '../types/aliases.js';
+import type {Opts} from '../types/index.js';
+import {ListrLease} from '../core/lease/listr_lease.js';
 
 export interface NetworkDeployConfigClass {
   applicationEnv: string;
@@ -278,44 +278,48 @@ export class NetworkCommand extends BaseCommand {
       config: NetworkDeployConfigClass;
     }
 
-    const tasks = new Listr<Context>([
-      {
-        title: 'Initialize',
-        task: async (ctx, task) => {
-          ctx.config = await self.prepareConfig(task, argv)
-          return ListrLease.newAcquireLeaseTask(lease, task)
-        }
-      },
-      RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
-      {
-        title: 'Copy gRPC TLS Certificates',
-        task: (ctx, parentTask) =>
-          self.certificateManager.buildCopyTlsCertificatesTasks(
-            parentTask,
-            ctx.config.grpcTlsCertificatePath,
-            ctx.config.grpcWebTlsCertificatePath,
-            ctx.config.grpcTlsKeyPath,
-            ctx.config.grpcWebTlsKeyPath
-          ),
-        skip: (ctx) => !ctx.config.grpcTlsCertificatePath && !ctx.config.grpcWebTlsCertificatePath
-      },
-      {
-        title: 'Check if cluster setup chart is installed',
-        task: async (ctx, task) => {
-          const isChartInstalled = await this.chartManager.isChartInstalled('', constants.SOLO_CLUSTER_SETUP_CHART)
-          if (!isChartInstalled) {
-            throw new SoloError(`Chart ${constants.SOLO_CLUSTER_SETUP_CHART} is not installed. Run 'solo cluster setup'`)
-          }
-        }
-      },
-      {
-        title: 'Prepare staging directory',
-        task: (_, parentTask) => {
-          return parentTask.newListr([
-            {
-              title: 'Copy Gossip keys to staging',
-              task: (ctx) => {
-                const config = ctx.config
+    const tasks = new Listr<Context>(
+      [
+        {
+          title: 'Initialize',
+          task: async (ctx, task) => {
+            ctx.config = await self.prepareConfig(task, argv);
+            return ListrLease.newAcquireLeaseTask(lease, task);
+          },
+        },
+        RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
+        {
+          title: 'Copy gRPC TLS Certificates',
+          task: (ctx, parentTask) =>
+            self.certificateManager.buildCopyTlsCertificatesTasks(
+              parentTask,
+              ctx.config.grpcTlsCertificatePath,
+              ctx.config.grpcWebTlsCertificatePath,
+              ctx.config.grpcTlsKeyPath,
+              ctx.config.grpcWebTlsKeyPath,
+            ),
+          skip: ctx => !ctx.config.grpcTlsCertificatePath && !ctx.config.grpcWebTlsCertificatePath,
+        },
+        {
+          title: 'Check if cluster setup chart is installed',
+          task: async (ctx, task) => {
+            const isChartInstalled = await this.chartManager.isChartInstalled('', constants.SOLO_CLUSTER_SETUP_CHART);
+            if (!isChartInstalled) {
+              throw new SoloError(
+                `Chart ${constants.SOLO_CLUSTER_SETUP_CHART} is not installed. Run 'solo cluster setup'`,
+              );
+            }
+          },
+        },
+        {
+          title: 'Prepare staging directory',
+          task: (_, parentTask) => {
+            return parentTask.newListr(
+              [
+                {
+                  title: 'Copy Gossip keys to staging',
+                  task: ctx => {
+                    const config = ctx.config;
 
                     this.keyManager.copyGossipKeysToStaging(config.keysDir, config.stagingKeysDir, config.nodeAliases);
                   },
@@ -459,20 +463,22 @@ export class NetworkCommand extends BaseCommand {
                 ),
             });
 
-             // set up the sub-tasks
-             return task.newListr(subTasks, {
-               concurrent: false, // no need to run concurrently since if one node is up, the rest should be up by then
-               rendererOptions: {
-                 collapseSubtasks: false
-               }
-             })
-           }
+            // set up the sub-tasks
+            return task.newListr(subTasks, {
+              concurrent: false, // no need to run concurrently since if one node is up, the rest should be up by then
+              rendererOptions: {
+                collapseSubtasks: false,
+              },
+            });
+          },
+        },
+        RemoteConfigTasks.addNodesAndProxies.bind(this)(),
+      ],
+      {
+        concurrent: false,
+        rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION,
       },
-      RemoteConfigTasks.addNodesAndProxies.bind(this)(),
-    ], {
-      concurrent: false,
-      rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
-    })
+    );
 
     try {
       await tasks.run();

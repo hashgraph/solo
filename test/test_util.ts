@@ -43,26 +43,25 @@ import {
   ProfileManager,
   Templates,
   Zippy,
-  AccountManager, CertificateManager, RemoteConfigManager, LocalConfig,
-} from '../src/core/index.js'
-import {
-  AccountBalanceQuery,
-  AccountCreateTransaction, Hbar, HbarUnit,
-  PrivateKey
-} from '@hashgraph/sdk'
-import { MINUTES, NODE_LOG_FAILURE_MSG, ROOT_CONTAINER, SECONDS, SOLO_LOGS_DIR } from '../src/core/constants.js'
-import crypto from 'crypto'
-import { AccountCommand } from '../src/commands/account.js'
-import { SoloError } from '../src/core/errors.js'
-import { execSync } from 'child_process'
-import * as NodeCommandConfigs from '../src/commands/node/configs.js'
-import type { SoloLogger } from '../src/core/logging.js'
-import type { BaseCommand } from '../src/commands/base.js'
-import type { NodeAlias } from '../src/types/aliases.js'
-import type { NetworkNodeServices } from '../src/core/network_node_services.js'
-import sinon from 'sinon'
-import { HEDERA_PLATFORM_VERSION } from '../version.js'
-import { IntervalLeaseRenewalService } from '../src/core/lease/lease_renewal.js'
+  AccountManager,
+  CertificateManager,
+  RemoteConfigManager,
+  LocalConfig,
+} from '../src/core/index.js';
+import {AccountBalanceQuery, AccountCreateTransaction, Hbar, HbarUnit, PrivateKey} from '@hashgraph/sdk';
+import {MINUTES, NODE_LOG_FAILURE_MSG, ROOT_CONTAINER, SECONDS, SOLO_LOGS_DIR} from '../src/core/constants.js';
+import crypto from 'crypto';
+import {AccountCommand} from '../src/commands/account.js';
+import {SoloError} from '../src/core/errors.js';
+import {execSync} from 'child_process';
+import * as NodeCommandConfigs from '../src/commands/node/configs.js';
+import type {SoloLogger} from '../src/core/logging.js';
+import type {BaseCommand} from '../src/commands/base.js';
+import type {NodeAlias} from '../src/types/aliases.js';
+import type {NetworkNodeServices} from '../src/core/network_node_services.js';
+import sinon from 'sinon';
+import {HEDERA_PLATFORM_VERSION} from '../version.js';
+import {IntervalLeaseRenewalService} from '../src/core/lease/lease_renewal.js';
 
 export const testLogger = logging.NewLogger('debug', true);
 export const TEST_CLUSTER = 'solo-e2e';
@@ -108,7 +107,7 @@ interface TestOpts {
   profileManager: ProfileManager;
   leaseManager: LeaseManager;
   certificateManager: CertificateManager;
-  remoteConfigManager: RemoteConfigManager
+  remoteConfigManager: RemoteConfigManager;
   localConfig: LocalConfig;
 }
 
@@ -156,7 +155,7 @@ export function bootstrapTestVariables(
   const profileManager = new ProfileManager(testLogger, configManager);
   const leaseManager = new LeaseManager(k8, configManager, testLogger, new IntervalLeaseRenewalService());
   const certificateManager = new CertificateManager(k8, testLogger, configManager);
-  const localConfig = new LocalConfig(path.join(BASE_TEST_DIR, 'local-config.yaml'), testLogger, configManager)
+  const localConfig = new LocalConfig(path.join(BASE_TEST_DIR, 'local-config.yaml'), testLogger, configManager);
   const remoteConfigManager = new RemoteConfigManager(k8, testLogger, localConfig, configManager);
 
   const opts: TestOpts = {
@@ -459,13 +458,13 @@ export const testLocalConfigData = {
   userEmailAddress: 'john.doe@example.com',
   deployments: {
     deployment: {
-      clusterAliases: ['cluster-1'],
+      clusters: ['cluster-1'],
     },
     'deployment-2': {
-      clusterAliases: ['cluster-2'],
+      clusters: ['cluster-2'],
     },
     'deployment-3': {
-      clusterAliases: ['cluster-3'],
+      clusters: ['cluster-3'],
     },
   },
   currentDeploymentName: 'deployment',

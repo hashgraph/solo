@@ -35,10 +35,10 @@ export const IsDeployments = (validationOptions?: ValidationOptions) => {
 
           const keys = Object.keys(value);
           return keys.every(key => {
-            if (typeof key !== 'string') return false
-            if (!isObject(value[key])) return false
-            if (!Array.isArray(value[key].clusters)) return false
-            if (!value[key].clusters.every(val => typeof val === 'string')) return false
+            if (typeof key !== 'string') return false;
+            if (!isObject(value[key])) return false;
+            if (!Array.isArray(value[key].clusters)) return false;
+            if (!value[key].clusters.every(val => typeof val === 'string')) return false;
             return true;
           });
         },

@@ -25,9 +25,9 @@ import {getNodeAccountMap} from './helpers.js';
 import * as semver from 'semver';
 import {readFile, writeFile} from 'fs/promises';
 
-import type { SoloLogger } from './logging.js';
-import type { SemVer } from 'semver';
-import type { NodeAlias, NodeAliases } from '../types/aliases.js';
+import type {SoloLogger} from './logging.js';
+import type {SemVer} from 'semver';
+import type {NodeAlias, NodeAliases} from '../types/aliases.js';
 
 const consensusSidecars = [
   'recordStreamUploader',

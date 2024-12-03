@@ -14,94 +14,106 @@
  * limitations under the License.
  *
  */
-import { SoloError } from '../../errors.js'
-import * as version from '../../../../version.js'
-import * as yaml from 'yaml'
-import { RemoteConfigMetadata } from './metadata.js'
-import { ComponentsDataWrapper } from './components_data_wrapper.js'
-import * as constants from '../../constants.js'
-import type { Cluster, Version, Namespace, RemoteConfigData, RemoteConfigDataStructure } from './types.js'
-import type * as k8s from '@kubernetes/client-node'
-import type { ToObject, Validate } from '../../../types/index.js'
+import {SoloError} from '../../errors.js';
+import * as version from '../../../../version.js';
+import * as yaml from 'yaml';
+import {RemoteConfigMetadata} from './metadata.js';
+import {ComponentsDataWrapper} from './components_data_wrapper.js';
+import * as constants from '../../constants.js';
+import type {Cluster, Version, Namespace, RemoteConfigData, RemoteConfigDataStructure} from './types.js';
+import type * as k8s from '@kubernetes/client-node';
+import type {ToObject, Validate} from '../../../types/index.js';
 
 export class RemoteConfigDataWrapper implements Validate, ToObject<RemoteConfigDataStructure> {
-  private readonly _version: Version = '1.0.0'
-  private _metadata: RemoteConfigMetadata
-  private _clusters: Record<Cluster, Namespace>
-  private _components: ComponentsDataWrapper
-  private _commandHistory: string[]
-  private _lastExecutedCommand: string
+  private readonly _version: Version = '1.0.0';
+  private _metadata: RemoteConfigMetadata;
+  private _clusters: Record<Cluster, Namespace>;
+  private _components: ComponentsDataWrapper;
+  private _commandHistory: string[];
+  private _lastExecutedCommand: string;
 
-  public constructor (data: RemoteConfigData) {
-    this._metadata = data.metadata
-    this._clusters = data.clusters
-    this._components = data.components
-    this._commandHistory = data.commandHistory
-    this._lastExecutedCommand = data.lastExecutedCommand ?? ''
-    this.validate()
+  public constructor(data: RemoteConfigData) {
+    this._metadata = data.metadata;
+    this._clusters = data.clusters;
+    this._components = data.components;
+    this._commandHistory = data.commandHistory;
+    this._lastExecutedCommand = data.lastExecutedCommand ?? '';
+    this.validate();
   }
 
   //! -------- Modifiers -------- //
 
-  public addCommandToHistory (command: string): void {
-    this._commandHistory.push(command)
-    this.lastExecutedCommand = command
+  public addCommandToHistory(command: string): void {
+    this._commandHistory.push(command);
+    this.lastExecutedCommand = command;
 
     if (this._commandHistory.length > constants.SOLO_REMOTE_CONFIG_MAX_COMMAND_IN_HISTORY) {
-      this._commandHistory.shift()
+      this._commandHistory.shift();
     }
 
-    this.validate()
+    this.validate();
   }
 
   //! -------- Getters & Setters -------- //
 
-  private get version (): Version { return this._version }
-
-  public get metadata (): RemoteConfigMetadata { return this._metadata }
-
-  public set metadata (metadata: RemoteConfigMetadata) {
-    this._metadata = metadata
-    this.validate()
+  private get version(): Version {
+    return this._version;
   }
 
-  public get clusters (): Record<Cluster, Namespace> { return this._clusters }
-
-  public set clusters (clusters: Record<Cluster, Namespace>) {
-    this._clusters = clusters
-    this.validate()
+  public get metadata(): RemoteConfigMetadata {
+    return this._metadata;
   }
 
-  public get components (): ComponentsDataWrapper { return this._components }
-
-  public set components (components: ComponentsDataWrapper) {
-    this._components = components
-    this.validate()
+  public set metadata(metadata: RemoteConfigMetadata) {
+    this._metadata = metadata;
+    this.validate();
   }
 
-  public get lastExecutedCommand (): string { return this._lastExecutedCommand }
-
-  private set lastExecutedCommand (lastExecutedCommand: string) {
-    this._lastExecutedCommand = lastExecutedCommand
-    this.validate()
+  public get clusters(): Record<Cluster, Namespace> {
+    return this._clusters;
   }
 
-  public get commandHistory (): string[] { return this._commandHistory }
+  public set clusters(clusters: Record<Cluster, Namespace>) {
+    this._clusters = clusters;
+    this.validate();
+  }
 
-  private set commandHistory (commandHistory: string[]) {
-    this._commandHistory = commandHistory
-    this.validate()
+  public get components(): ComponentsDataWrapper {
+    return this._components;
+  }
+
+  public set components(components: ComponentsDataWrapper) {
+    this._components = components;
+    this.validate();
+  }
+
+  public get lastExecutedCommand(): string {
+    return this._lastExecutedCommand;
+  }
+
+  private set lastExecutedCommand(lastExecutedCommand: string) {
+    this._lastExecutedCommand = lastExecutedCommand;
+    this.validate();
+  }
+
+  public get commandHistory(): string[] {
+    return this._commandHistory;
+  }
+
+  private set commandHistory(commandHistory: string[]) {
+    this._commandHistory = commandHistory;
+    this.validate();
   }
 
   //! -------- Utilities -------- //
 
-  public static compare (x: RemoteConfigDataWrapper, y: RemoteConfigDataWrapper): boolean {
+  public static compare(x: RemoteConfigDataWrapper, y: RemoteConfigDataWrapper): boolean {
     // TODO
-    return true
+    return true;
   }
 
-  public static fromConfigmap (configMap: k8s.V1ConfigMap): RemoteConfigDataWrapper {
-    const data = yaml.parse(configMap.data['remote-config-data']) as any
+  public static fromConfigmap(configMap: k8s.V1ConfigMap): RemoteConfigDataWrapper {
+    const data = yaml.parse(configMap.data['remote-config-data']) as any;
 
     return new RemoteConfigDataWrapper({
       metadata: RemoteConfigMetadata.fromObject(data.metadata),
@@ -109,40 +121,40 @@ export class RemoteConfigDataWrapper implements Validate, ToObject<RemoteConfigD
       clusters: data.clusters,
       commandHistory: data.commandHistory,
       lastExecutedCommand: data.lastExecutedCommand,
-    })
+    });
   }
 
-  public validate (): void {
+  public validate(): void {
     if (!this._version || typeof this._version !== 'string') {
-      throw new SoloError(`Invalid remote config version: ${this._version}`)
+      throw new SoloError(`Invalid remote config version: ${this._version}`);
     }
 
     if (!this.metadata || !(this.metadata instanceof RemoteConfigMetadata)) {
-      throw new SoloError(`Invalid remote config metadata: ${this.metadata}`)
+      throw new SoloError(`Invalid remote config metadata: ${this.metadata}`);
     }
 
     if (!this.lastExecutedCommand || typeof this.lastExecutedCommand !== 'string') {
-      throw new SoloError(`Invalid remote config last executed command: ${this.lastExecutedCommand}`)
+      throw new SoloError(`Invalid remote config last executed command: ${this.lastExecutedCommand}`);
     }
 
-    if (!Array.isArray(this.commandHistory) || this.commandHistory.some((c) => typeof c !== 'string')) {
-      throw new SoloError(`Invalid remote config command history: ${this.commandHistory}`)
+    if (!Array.isArray(this.commandHistory) || this.commandHistory.some(c => typeof c !== 'string')) {
+      throw new SoloError(`Invalid remote config command history: ${this.commandHistory}`);
     }
 
     Object.entries(this.clusters).forEach(([cluster, namespace]: [Cluster, Namespace]): void => {
-      const clusterDataString = `cluster: { name: ${cluster}, namespace: ${namespace} }`
+      const clusterDataString = `cluster: { name: ${cluster}, namespace: ${namespace} }`;
 
       if (!cluster || typeof cluster !== 'string') {
-        throw new SoloError(`Invalid remote config clusters name: ${clusterDataString}`)
+        throw new SoloError(`Invalid remote config clusters name: ${clusterDataString}`);
       }
 
       if (!namespace || typeof namespace !== 'string') {
-        throw new SoloError(`Invalid remote config clusters namespace: ${clusterDataString}`)
+        throw new SoloError(`Invalid remote config clusters namespace: ${clusterDataString}`);
       }
-    })
+    });
   }
 
-  public toObject (): RemoteConfigDataStructure {
+  public toObject(): RemoteConfigDataStructure {
     return {
       metadata: this.metadata.toObject(),
       version: this.version,
@@ -150,6 +162,6 @@ export class RemoteConfigDataWrapper implements Validate, ToObject<RemoteConfigD
       components: this.components.toObject(),
       commandHistory: this.commandHistory,
       lastExecutedCommand: this.lastExecutedCommand,
-    }
+    };
   }
 }

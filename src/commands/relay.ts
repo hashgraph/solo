@@ -14,19 +14,19 @@
  * limitations under the License.
  *
  */
-import { Listr } from 'listr2'
-import { SoloError, MissingArgumentError } from '../core/errors.js'
-import * as helpers from '../core/helpers.js'
-import type { ProfileManager, AccountManager } from '../core/index.js'
-import { constants } from '../core/index.js'
-import { BaseCommand } from './base.js'
-import * as flags from './flags.js'
-import * as prompts from './prompts.js'
-import { getNodeAccountMap } from '../core/helpers.js'
-import { RemoteConfigTasks } from '../core/config/remote/remote_config_tasks.js'
-import { ListrLease } from '../core/lease/listr_lease.js'
-import type { NodeAliases } from '../types/aliases.js'
-import type { Opts } from '../types/index.js'
+import {Listr} from 'listr2';
+import {SoloError, MissingArgumentError} from '../core/errors.js';
+import * as helpers from '../core/helpers.js';
+import type {ProfileManager, AccountManager} from '../core/index.js';
+import {constants} from '../core/index.js';
+import {BaseCommand} from './base.js';
+import * as flags from './flags.js';
+import * as prompts from './prompts.js';
+import {getNodeAccountMap} from '../core/helpers.js';
+import {RemoteConfigTasks} from '../core/config/remote/remote_config_tasks.js';
+import {ListrLease} from '../core/lease/listr_lease.js';
+import type {NodeAliases} from '../types/aliases.js';
+import type {Opts} from '../types/index.js';
 
 export class RelayCommand extends BaseCommand {
   private readonly profileManager: ProfileManager;
@@ -220,9 +220,9 @@ export class RelayCommand extends BaseCommand {
           },
         },
         RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
-      {
-        title: 'Prepare chart values',
-        task: async ctx => {
+        {
+          title: 'Prepare chart values',
+          task: async ctx => {
             const config = ctx.config;
             config.chartPath = await self.prepareChartPath(
               config.chartDirectory,
@@ -282,8 +282,8 @@ export class RelayCommand extends BaseCommand {
             }
           },
         },
-      RemoteConfigTasks.addRelayComponent.bind(this)(),
-    ],
+        RemoteConfigTasks.addRelayComponent.bind(this)(),
+      ],
       {
         concurrent: false,
         rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION,
@@ -349,9 +349,9 @@ export class RelayCommand extends BaseCommand {
           },
         },
         RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
-      {
-        title: 'Destroy JSON RPC Relay',
-        task: async ctx => {
+        {
+          title: 'Destroy JSON RPC Relay',
+          task: async ctx => {
             const config = ctx.config;
 
             await this.chartManager.uninstall(config.namespace, config.releaseName);
@@ -363,13 +363,13 @@ export class RelayCommand extends BaseCommand {
           },
           skip: ctx => !ctx.config.isChartInstalled,
         },
-        skip: (ctx) => !ctx.config.isChartInstalled
+        RemoteConfigTasks.removeRelayComponent.bind(this)(),
+      ],
+      {
+        concurrent: false,
+        rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION,
       },
-      RemoteConfigTasks.removeRelayComponent.bind(this)(),
-    ], {
-      concurrent: false,
-      rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
-    })
+    );
 
     try {
       await tasks.run();

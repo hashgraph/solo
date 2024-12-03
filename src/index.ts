@@ -21,17 +21,30 @@ import {flags} from './commands/index.js';
 import * as commands from './commands/index.js';
 import {HelmDependencyManager, DependencyManager} from './core/dependency_managers/index.js';
 import {
-  ChartManager, ConfigManager, PackageDownloader, PlatformInstaller, Helm, logging,
-  KeyManager, Zippy, constants, ProfileManager, AccountManager, LeaseManager, CertificateManager, LocalConfig,
-  helpers, RemoteConfigManager
-} from './core/index.js'
-import 'dotenv/config'
-import { K8 } from './core/k8.js'
-import { ListrLogger } from 'listr2'
-import { CustomProcessOutput } from './core/process_output.js'
-import { type Opts } from './types/index.js'
-import { IntervalLeaseRenewalService, type LeaseRenewalService } from './core/lease/lease_renewal.js'
-import path from 'path'
+  ChartManager,
+  ConfigManager,
+  PackageDownloader,
+  PlatformInstaller,
+  Helm,
+  logging,
+  KeyManager,
+  Zippy,
+  constants,
+  ProfileManager,
+  AccountManager,
+  LeaseManager,
+  CertificateManager,
+  LocalConfig,
+  helpers,
+  RemoteConfigManager,
+} from './core/index.js';
+import 'dotenv/config';
+import {K8} from './core/k8.js';
+import {ListrLogger} from 'listr2';
+import {CustomProcessOutput} from './core/process_output.js';
+import {type Opts} from './types/index.js';
+import {IntervalLeaseRenewalService, type LeaseRenewalService} from './core/lease/lease_renewal.js';
+import path from 'path';
 
 export function main(argv: any) {
   const logger = logging.NewLogger('debug');
@@ -51,26 +64,26 @@ export function main(argv: any) {
     const depManagerMap = new Map().set(constants.HELM, helmDepManager);
     const depManager = new DependencyManager(logger, depManagerMap);
 
-    const helm = new Helm(logger)
-    const chartManager = new ChartManager(helm, logger)
-    const configManager = new ConfigManager(logger)
-    const k8 = new K8(configManager, logger)
-    const accountManager = new AccountManager(logger, k8)
-    const platformInstaller = new PlatformInstaller(logger, k8, configManager)
-    const keyManager = new KeyManager(logger)
-    const profileManager = new ProfileManager(logger, configManager)
-    const leaseRenewalService: LeaseRenewalService = new IntervalLeaseRenewalService()
-    const leaseManager = new LeaseManager(k8, configManager, logger, leaseRenewalService)
-    const certificateManager = new CertificateManager(k8, logger, configManager)
-    const localConfigPath = path.join(constants.SOLO_CACHE_DIR, constants.DEFAULT_LOCAL_CONFIG_FILE)
-    const localConfig = new LocalConfig(localConfigPath, logger,configManager)
-    const remoteConfigManager = new RemoteConfigManager(k8, logger, localConfig, configManager)
+    const helm = new Helm(logger);
+    const chartManager = new ChartManager(helm, logger);
+    const configManager = new ConfigManager(logger);
+    const k8 = new K8(configManager, logger);
+    const accountManager = new AccountManager(logger, k8);
+    const platformInstaller = new PlatformInstaller(logger, k8, configManager);
+    const keyManager = new KeyManager(logger);
+    const profileManager = new ProfileManager(logger, configManager);
+    const leaseRenewalService: LeaseRenewalService = new IntervalLeaseRenewalService();
+    const leaseManager = new LeaseManager(k8, configManager, logger, leaseRenewalService);
+    const certificateManager = new CertificateManager(k8, logger, configManager);
+    const localConfigPath = path.join(constants.SOLO_CACHE_DIR, constants.DEFAULT_LOCAL_CONFIG_FILE);
+    const localConfig = new LocalConfig(localConfigPath, logger, configManager);
+    const remoteConfigManager = new RemoteConfigManager(k8, logger, localConfig, configManager);
 
     // set cluster and namespace in the global configManager from kubernetes context
     // so that we don't need to prompt the user
-    const kubeConfig = k8.getKubeConfig()
-    const context = kubeConfig.getContextObject(kubeConfig.getCurrentContext())
-    const cluster = kubeConfig.getCurrentCluster()
+    const kubeConfig = k8.getKubeConfig();
+    const context = kubeConfig.getContextObject(kubeConfig.getCurrentContext());
+    const cluster = kubeConfig.getCurrentCluster();
 
     const opts: Opts = {
       logger,

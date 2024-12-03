@@ -14,31 +14,31 @@
  * limitations under the License.
  *
  */
-import { type ConfigManager, LocalConfig } from '../../../src/core/index.js'
-import fs from 'fs'
-import { stringify } from 'yaml'
-import { expect } from 'chai'
-import { MissingArgumentError, SoloError } from '../../../src/core/errors.js'
-import { getTestCacheDir, testLogger, testLocalConfigData } from '../../test_util.js'
-import type { EmailAddress } from '../../../src/core/config/remote/types.js'
+import {type ConfigManager, LocalConfig} from '../../../src/core/index.js';
+import fs from 'fs';
+import {stringify} from 'yaml';
+import {expect} from 'chai';
+import {MissingArgumentError, SoloError} from '../../../src/core/errors.js';
+import {getTestCacheDir, testLogger, testLocalConfigData} from '../../test_util.js';
+import type {EmailAddress} from '../../../src/core/config/remote/types.js';
 import {ErrorMessages} from '../../../src/core/error_messages.js';
 
 describe('LocalConfig', () => {
-  let localConfig: LocalConfig
-  const configManager = {} as unknown as ConfigManager
+  let localConfig: LocalConfig;
+  const configManager = {} as unknown as ConfigManager;
 
-  const filePath = `${getTestCacheDir('LocalConfig')}/localConfig.yaml`
+  const filePath = `${getTestCacheDir('LocalConfig')}/localConfig.yaml`;
   const config = testLocalConfigData;
 
   const expectFailedValidation = expectedMessage => {
     try {
-      new LocalConfig(filePath, testLogger, configManager)
-      expect.fail('Expected an error to be thrown')
-    } catch(error) {
-      expect(error).to.be.instanceOf(SoloError)
+      new LocalConfig(filePath, testLogger, configManager);
+      expect.fail('Expected an error to be thrown');
+    } catch (error) {
+      expect(error).to.be.instanceOf(SoloError);
       expect(error.message).to.equal(expectedMessage);
     }
-  }
+  };
 
   beforeEach(async () => {
     await fs.promises.writeFile(filePath, stringify(config));
@@ -95,13 +95,13 @@ describe('LocalConfig', () => {
   });
 
   it('should not set invalid deployments', async () => {
-    const validDeployment = { clusters: ['cluster-3', 'cluster-4']};
+    const validDeployment = {clusters: ['cluster-3', 'cluster-4']};
     const invalidDeployments = [
-      { foo: ['bar'] },
-      { clusters: [5, 6, 7] },
-      { clusters: 'bar' },
-      { clusters: 5 },
-      { clusters: {foo: 'bar '}},
+      {foo: ['bar']},
+      {clusters: [5, 6, 7]},
+      {clusters: 'bar'},
+      {clusters: 5},
+      {clusters: {foo: 'bar '}},
     ];
 
     for (const invalidDeployment of invalidDeployments) {
@@ -202,10 +202,12 @@ describe('LocalConfig', () => {
     await fs.promises.writeFile(filePath, stringify({...config, deployments: {foo: 'bar'}}));
     expectFailedValidation(ErrorMessages.LOCAL_CONFIG_INVALID_DEPLOYMENTS_FORMAT);
 
-    await fs.promises.writeFile(filePath, stringify({
+    await fs.promises.writeFile(
+      filePath,
+      stringify({
         ...config,
-        deployments: [{ foo: 'bar'}],
-    }),
+        deployments: [{foo: 'bar'}],
+      }),
     );
     expectFailedValidation(ErrorMessages.LOCAL_CONFIG_INVALID_DEPLOYMENTS_FORMAT);
   });
@@ -214,7 +216,7 @@ describe('LocalConfig', () => {
     await fs.promises.writeFile(filePath, stringify({...config, currentDeploymentName: 5}));
     expectFailedValidation(ErrorMessages.LOCAL_CONFIG_CURRENT_DEPLOYMENT_DOES_NOT_EXIST);
 
-    await fs.promises.writeFile(filePath, stringify({ ...config, currentDeploymentName: ['foo', 'bar'] }));
+    await fs.promises.writeFile(filePath, stringify({...config, currentDeploymentName: ['foo', 'bar']}));
     expectFailedValidation(ErrorMessages.LOCAL_CONFIG_CURRENT_DEPLOYMENT_DOES_NOT_EXIST);
   });
-  });
+});

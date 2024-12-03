@@ -38,27 +38,27 @@ import {
   type PlatformInstaller,
   type AccountManager,
   type LeaseManager,
-  type RemoteConfigManager
-} from '../../core/index.js'
-import { IllegalArgumentError } from '../../core/errors.js'
-import { ConsensusNodeStates } from '../../core/config/remote/enumerations.js'
-import { RemoteConfigTasks } from '../../core/config/remote/remote_config_tasks.js'
-import type { SoloLogger } from '../../core/logging.js'
-import type { NodeCommand } from './index.js'
-import type { NodeCommandTasks } from './tasks.js'
-import { type Lease } from '../../core/lease/lease.js'
-import { NodeSubcommandType } from '../../core/enumerations.js'
+  type RemoteConfigManager,
+} from '../../core/index.js';
+import {IllegalArgumentError} from '../../core/errors.js';
+import {ConsensusNodeStates} from '../../core/config/remote/enumerations.js';
+import {RemoteConfigTasks} from '../../core/config/remote/remote_config_tasks.js';
+import type {SoloLogger} from '../../core/logging.js';
+import type {NodeCommand} from './index.js';
+import type {NodeCommandTasks} from './tasks.js';
+import {type Lease} from '../../core/lease/lease.js';
+import {NodeSubcommandType} from '../../core/enumerations.js';
 import {type CommandHandlers} from '../../types/index.js';
 
 export class NodeCommandHandlers implements CommandHandlers {
-  private readonly accountManager: AccountManager
-  private readonly configManager: ConfigManager
-  private readonly platformInstaller: PlatformInstaller
-  private readonly logger: SoloLogger
-  private readonly k8: K8
-  private readonly tasks: NodeCommandTasks
-  private readonly leaseManager: LeaseManager
-  public readonly remoteConfigManager: RemoteConfigManager
+  private readonly accountManager: AccountManager;
+  private readonly configManager: ConfigManager;
+  private readonly platformInstaller: PlatformInstaller;
+  private readonly logger: SoloLogger;
+  private readonly k8: K8;
+  private readonly tasks: NodeCommandTasks;
+  private readonly leaseManager: LeaseManager;
+  public readonly remoteConfigManager: RemoteConfigManager;
 
   private getConfig: any;
   private prepareChartPath: any;
@@ -75,14 +75,14 @@ export class NodeCommandHandlers implements CommandHandlers {
     if (!opts || !opts.platformInstaller)
       throw new IllegalArgumentError('An instance of core/PlatformInstaller is required', opts.platformInstaller);
 
-    this.logger = opts.logger
-    this.tasks = opts.tasks
-    this.accountManager = opts.accountManager
-    this.configManager = opts.configManager
-    this.k8 = opts.k8
-    this.platformInstaller = opts.platformInstaller
-    this.leaseManager = opts.leaseManager
-    this.remoteConfigManager = opts.remoteConfigManager
+    this.logger = opts.logger;
+    this.tasks = opts.tasks;
+    this.accountManager = opts.accountManager;
+    this.configManager = opts.configManager;
+    this.k8 = opts.k8;
+    this.platformInstaller = opts.platformInstaller;
+    this.leaseManager = opts.leaseManager;
+    this.remoteConfigManager = opts.remoteConfigManager;
 
     this.getConfig = opts.parent.getConfig.bind(opts.parent);
     this.prepareChartPath = opts.parent.prepareChartPath.bind(opts.parent);
@@ -110,8 +110,7 @@ export class NodeCommandHandlers implements CommandHandlers {
     return [
       this.tasks.initialize(argv, deleteConfigBuilder.bind(this), lease),
       RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
-      RemoteConfigTasks.validateSingleNodeState.bind(this)(
-        { excludedStates: [] }),
+      RemoteConfigTasks.validateSingleNodeState.bind(this)({excludedStates: []}),
       this.tasks.identifyExistingNodes(),
       this.tasks.loadAdminKey(),
       this.tasks.prepareUpgradeZip(),
@@ -155,8 +154,7 @@ export class NodeCommandHandlers implements CommandHandlers {
     return [
       this.tasks.initialize(argv, addConfigBuilder.bind(this), lease),
       RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
-      RemoteConfigTasks.validateSingleNodeState.bind(this)(
-        { excludedStates: [] }),
+      RemoteConfigTasks.validateSingleNodeState.bind(this)({excludedStates: []}),
       this.tasks.checkPVCsEnabled(),
       this.tasks.identifyExistingNodes(),
       this.tasks.determineNewNodeAccountNumber(),
@@ -209,8 +207,7 @@ export class NodeCommandHandlers implements CommandHandlers {
     return [
       this.tasks.initialize(argv, updateConfigBuilder.bind(this), lease),
       RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
-      RemoteConfigTasks.validateSingleNodeState.bind(this)(
-        { excludedStates: [] }),
+      RemoteConfigTasks.validateSingleNodeState.bind(this)({excludedStates: []}),
       this.tasks.identifyExistingNodes(),
       this.tasks.loadAdminKey(),
       this.tasks.prepareUpgradeZip(),
@@ -258,15 +255,20 @@ export class NodeCommandHandlers implements CommandHandlers {
 
     const lease = await this.leaseManager.create();
 
-    const action = helpers.commandActionBuilder([
-      this.tasks.initialize(argv, prepareUpgradeConfigBuilder.bind(this), lease),
-      RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
-      this.tasks.prepareUpgradeZip(),
-      this.tasks.sendPrepareUpgradeTransaction()
-    ], {
-      concurrent: false,
-      rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
-    }, 'Error in preparing node upgrade', lease)
+    const action = helpers.commandActionBuilder(
+      [
+        this.tasks.initialize(argv, prepareUpgradeConfigBuilder.bind(this), lease),
+        RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
+        this.tasks.prepareUpgradeZip(),
+        this.tasks.sendPrepareUpgradeTransaction(),
+      ],
+      {
+        concurrent: false,
+        rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION,
+      },
+      'Error in preparing node upgrade',
+      lease,
+    );
 
     await action(argv, this);
     return true;
@@ -275,15 +277,20 @@ export class NodeCommandHandlers implements CommandHandlers {
   async freezeUpgrade(argv: any) {
     argv = helpers.addFlagsToArgv(argv, NodeFlags.DEFAULT_FLAGS);
 
-    const action = helpers.commandActionBuilder([
-      this.tasks.initialize(argv, prepareUpgradeConfigBuilder.bind(this), null),
-      RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
-      this.tasks.prepareUpgradeZip(),
-      this.tasks.sendFreezeUpgradeTransaction()
-    ], {
-      concurrent: false,
-      rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
-    }, 'Error in executing node freeze upgrade', null)
+    const action = helpers.commandActionBuilder(
+      [
+        this.tasks.initialize(argv, prepareUpgradeConfigBuilder.bind(this), null),
+        RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
+        this.tasks.prepareUpgradeZip(),
+        this.tasks.sendFreezeUpgradeTransaction(),
+      ],
+      {
+        concurrent: false,
+        rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION,
+      },
+      'Error in executing node freeze upgrade',
+      null,
+    );
 
     await action(argv, this);
     return true;
@@ -294,15 +301,20 @@ export class NodeCommandHandlers implements CommandHandlers {
 
     const lease = await this.leaseManager.create();
 
-    const action = helpers.commandActionBuilder([
-      this.tasks.initialize(argv, downloadGeneratedFilesConfigBuilder.bind(this), lease),
-      RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
-      this.tasks.identifyExistingNodes(),
-      this.tasks.downloadNodeGeneratedFiles()
-    ], {
-      concurrent: false,
-      rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
-    }, 'Error in downloading generated files', lease)
+    const action = helpers.commandActionBuilder(
+      [
+        this.tasks.initialize(argv, downloadGeneratedFilesConfigBuilder.bind(this), lease),
+        RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
+        this.tasks.identifyExistingNodes(),
+        this.tasks.downloadNodeGeneratedFiles(),
+      ],
+      {
+        concurrent: false,
+        rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION,
+      },
+      'Error in downloading generated files',
+      lease,
+    );
 
     await action(argv, this);
     return true;
@@ -352,15 +364,17 @@ export class NodeCommandHandlers implements CommandHandlers {
     return true;
   }
 
-  async updateSubmitTransactions (argv) {
-    const lease = await this.leaseManager.create()
-    argv = helpers.addFlagsToArgv(argv, NodeFlags.UPDATE_SUBMIT_TRANSACTIONS_FLAGS)
-    const action = helpers.commandActionBuilder([
-      this.tasks.initialize(argv, updateConfigBuilder.bind(this), lease),
-      RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
-      this.tasks.loadContextData(argv, NodeCommandHandlers.UPDATE_CONTEXT_FILE, helpers.updateLoadContextParser),
-        ...this.updateSubmitTransactionsTasks(argv)
-    ], {
+  async updateSubmitTransactions(argv) {
+    const lease = await this.leaseManager.create();
+    argv = helpers.addFlagsToArgv(argv, NodeFlags.UPDATE_SUBMIT_TRANSACTIONS_FLAGS);
+    const action = helpers.commandActionBuilder(
+      [
+        this.tasks.initialize(argv, updateConfigBuilder.bind(this), lease),
+        RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
+        this.tasks.loadContextData(argv, NodeCommandHandlers.UPDATE_CONTEXT_FILE, helpers.updateLoadContextParser),
+        ...this.updateSubmitTransactionsTasks(argv),
+      ],
+      {
         concurrent: false,
         rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION,
       },
@@ -372,18 +386,23 @@ export class NodeCommandHandlers implements CommandHandlers {
     return true;
   }
 
-  async updateExecute (argv) {
-    const lease = await this.leaseManager.create()
-    argv = helpers.addFlagsToArgv(argv, NodeFlags.UPDATE_EXECUTE_FLAGS)
-      const action = helpers.commandActionBuilder([
-      this.tasks.initialize(argv, updateConfigBuilder.bind(this), lease),
-      RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
-      this.tasks.loadContextData(argv, NodeCommandHandlers.UPDATE_CONTEXT_FILE, helpers.updateLoadContextParser),
-      ...this.updateExecuteTasks(argv)
-    ], {
-      concurrent: false,
-      rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
-    }, 'Error in executing node update', lease)
+  async updateExecute(argv) {
+    const lease = await this.leaseManager.create();
+    argv = helpers.addFlagsToArgv(argv, NodeFlags.UPDATE_EXECUTE_FLAGS);
+    const action = helpers.commandActionBuilder(
+      [
+        this.tasks.initialize(argv, updateConfigBuilder.bind(this), lease),
+        RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
+        this.tasks.loadContextData(argv, NodeCommandHandlers.UPDATE_CONTEXT_FILE, helpers.updateLoadContextParser),
+        ...this.updateExecuteTasks(argv),
+      ],
+      {
+        concurrent: false,
+        rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION,
+      },
+      'Error in executing node update',
+      lease,
+    );
 
     await action(argv, this);
     return true;
@@ -524,15 +543,20 @@ export class NodeCommandHandlers implements CommandHandlers {
 
     const lease = await this.leaseManager.create();
 
-    const action = helpers.commandActionBuilder([
-      this.tasks.initialize(argv, addConfigBuilder.bind(this), lease),
-      RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
-      this.tasks.loadContextData(argv, NodeCommandHandlers.ADD_CONTEXT_FILE, helpers.addLoadContextParser),
-      ...this.addSubmitTransactionsTasks(argv)
-    ], {
-      concurrent: false,
-      rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
-    }, '`Error in submitting transactions to node', lease)
+    const action = helpers.commandActionBuilder(
+      [
+        this.tasks.initialize(argv, addConfigBuilder.bind(this), lease),
+        RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
+        this.tasks.loadContextData(argv, NodeCommandHandlers.ADD_CONTEXT_FILE, helpers.addLoadContextParser),
+        ...this.addSubmitTransactionsTasks(argv),
+      ],
+      {
+        concurrent: false,
+        rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION,
+      },
+      '`Error in submitting transactions to node',
+      lease,
+    );
 
     await action(argv, this);
     return true;
@@ -543,31 +567,41 @@ export class NodeCommandHandlers implements CommandHandlers {
 
     const lease = await this.leaseManager.create();
 
-    const action = helpers.commandActionBuilder([
-      this.tasks.initialize(argv, addConfigBuilder.bind(this), lease),
-      RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
-      this.tasks.identifyExistingNodes(),
-      this.tasks.loadContextData(argv, NodeCommandHandlers.ADD_CONTEXT_FILE, helpers.addLoadContextParser),
-      ...this.addExecuteTasks(argv)
-    ], {
-      concurrent: false,
-      rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
-    }, 'Error in adding node', lease)
+    const action = helpers.commandActionBuilder(
+      [
+        this.tasks.initialize(argv, addConfigBuilder.bind(this), lease),
+        RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
+        this.tasks.identifyExistingNodes(),
+        this.tasks.loadContextData(argv, NodeCommandHandlers.ADD_CONTEXT_FILE, helpers.addLoadContextParser),
+        ...this.addExecuteTasks(argv),
+      ],
+      {
+        concurrent: false,
+        rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION,
+      },
+      'Error in adding node',
+      lease,
+    );
 
     await action(argv, this);
     return true;
   }
 
-  async logs (argv: any) {
-    argv = helpers.addFlagsToArgv(argv, NodeFlags.LOGS_FLAGS)
-    const action = helpers.commandActionBuilder([
-      this.tasks.initialize(argv, logsConfigBuilder.bind(this), null),
-      RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
-      this.tasks.getNodeLogsAndConfigs()
-    ], {
-      concurrent: false,
-      rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
-    }, 'Error in downloading log from nodes', null)
+  async logs(argv: any) {
+    argv = helpers.addFlagsToArgv(argv, NodeFlags.LOGS_FLAGS);
+    const action = helpers.commandActionBuilder(
+      [
+        this.tasks.initialize(argv, logsConfigBuilder.bind(this), null),
+        RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
+        this.tasks.getNodeLogsAndConfigs(),
+      ],
+      {
+        concurrent: false,
+        rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION,
+      },
+      'Error in downloading log from nodes',
+      null,
+    );
 
     await action(argv, this);
     return true;
@@ -595,22 +629,28 @@ export class NodeCommandHandlers implements CommandHandlers {
 
     const lease = await this.leaseManager.create();
 
-    const action = helpers.commandActionBuilder([
-      this.tasks.initialize(argv, refreshConfigBuilder.bind(this), lease),
-      RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
-      RemoteConfigTasks.validateAllNodeStates.bind(this)(
-        { acceptedStates: [ ConsensusNodeStates.STARTED, ConsensusNodeStates.SETUP, ConsensusNodeStates.INITIALIZED ] }),
-      this.tasks.identifyNetworkPods(),
-      this.tasks.dumpNetworkNodesSaveState(),
-      this.tasks.fetchPlatformSoftware('nodeAliases'),
-      this.tasks.setupNetworkNodes('nodeAliases'),
-      this.tasks.startNodes('nodeAliases'),
-      this.tasks.checkAllNodesAreActive('nodeAliases'),
-      this.tasks.checkNodeProxiesAreActive()
-    ], {
-      concurrent: false,
-      rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
-    }, 'Error in refreshing nodes', lease)
+    const action = helpers.commandActionBuilder(
+      [
+        this.tasks.initialize(argv, refreshConfigBuilder.bind(this), lease),
+        RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
+        RemoteConfigTasks.validateAllNodeStates.bind(this)({
+          acceptedStates: [ConsensusNodeStates.STARTED, ConsensusNodeStates.SETUP, ConsensusNodeStates.INITIALIZED],
+        }),
+        this.tasks.identifyNetworkPods(),
+        this.tasks.dumpNetworkNodesSaveState(),
+        this.tasks.fetchPlatformSoftware('nodeAliases'),
+        this.tasks.setupNetworkNodes('nodeAliases'),
+        this.tasks.startNodes('nodeAliases'),
+        this.tasks.checkAllNodesAreActive('nodeAliases'),
+        this.tasks.checkNodeProxiesAreActive(),
+      ],
+      {
+        concurrent: false,
+        rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION,
+      },
+      'Error in refreshing nodes',
+      lease,
+    );
 
     await action(argv, this);
     return true;
@@ -619,16 +659,21 @@ export class NodeCommandHandlers implements CommandHandlers {
   async keys(argv: any) {
     argv = helpers.addFlagsToArgv(argv, NodeFlags.KEYS_FLAGS);
 
-    const action = helpers.commandActionBuilder([
-      this.tasks.initialize(argv, keysConfigBuilder.bind(this), null),
-      RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
-      this.tasks.generateGossipKeys(),
-      this.tasks.generateGrpcTlsKeys(),
-      this.tasks.finalize()
-    ], {
-      concurrent: false,
-      rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
-    }, 'Error generating keys', null)
+    const action = helpers.commandActionBuilder(
+      [
+        this.tasks.initialize(argv, keysConfigBuilder.bind(this), null),
+        RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
+        this.tasks.generateGossipKeys(),
+        this.tasks.generateGrpcTlsKeys(),
+        this.tasks.finalize(),
+      ],
+      {
+        concurrent: false,
+        rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION,
+      },
+      'Error generating keys',
+      null,
+    );
 
     await action(argv, this);
     return true;
@@ -639,18 +684,24 @@ export class NodeCommandHandlers implements CommandHandlers {
 
     const lease = await this.leaseManager.create();
 
-    const action = helpers.commandActionBuilder([
-      this.tasks.initialize(argv, stopConfigBuilder.bind(this), lease),
-      RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
-      RemoteConfigTasks.validateAllNodeStates.bind(this)(
-        { acceptedStates: [ ConsensusNodeStates.STARTED, ConsensusNodeStates.SETUP ] }),
-      this.tasks.identifyNetworkPods(),
-      this.tasks.stopNodes(),
-      RemoteConfigTasks.changeAllNodeStates.bind(this)(ConsensusNodeStates.INITIALIZED),
-    ], {
-      concurrent: false,
-      rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
-    }, 'Error stopping node', lease)
+    const action = helpers.commandActionBuilder(
+      [
+        this.tasks.initialize(argv, stopConfigBuilder.bind(this), lease),
+        RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
+        RemoteConfigTasks.validateAllNodeStates.bind(this)({
+          acceptedStates: [ConsensusNodeStates.STARTED, ConsensusNodeStates.SETUP],
+        }),
+        this.tasks.identifyNetworkPods(),
+        this.tasks.stopNodes(),
+        RemoteConfigTasks.changeAllNodeStates.bind(this)(ConsensusNodeStates.INITIALIZED),
+      ],
+      {
+        concurrent: false,
+        rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION,
+      },
+      'Error stopping node',
+      lease,
+    );
 
     await action(argv, this);
     return true;
@@ -661,25 +712,27 @@ export class NodeCommandHandlers implements CommandHandlers {
 
     const lease = await this.leaseManager.create();
 
-    const action = helpers.commandActionBuilder([
-      this.tasks.initialize(argv, startConfigBuilder.bind(this), lease),
-      RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
-      RemoteConfigTasks.validateAllNodeStates.bind(this)(
-        { acceptedStates: [ ConsensusNodeStates.SETUP ] }),
-      this.tasks.identifyExistingNodes(),
-      this.tasks.uploadStateFiles(
-          (ctx: any) => ctx.config.stateFile.length === 0
-      ),
-      this.tasks.startNodes('nodeAliases'),
-      this.tasks.enablePortForwarding(),
-      this.tasks.checkAllNodesAreActive('nodeAliases'),
-      this.tasks.checkNodeProxiesAreActive(),
-      RemoteConfigTasks.changeAllNodeStates.bind(this)(ConsensusNodeStates.STARTED),
-      this.tasks.addNodeStakes()
-    ], {
-      concurrent: false,
-      rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
-    }, 'Error starting node', lease)
+    const action = helpers.commandActionBuilder(
+      [
+        this.tasks.initialize(argv, startConfigBuilder.bind(this), lease),
+        RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
+        RemoteConfigTasks.validateAllNodeStates.bind(this)({acceptedStates: [ConsensusNodeStates.SETUP]}),
+        this.tasks.identifyExistingNodes(),
+        this.tasks.uploadStateFiles((ctx: any) => ctx.config.stateFile.length === 0),
+        this.tasks.startNodes('nodeAliases'),
+        this.tasks.enablePortForwarding(),
+        this.tasks.checkAllNodesAreActive('nodeAliases'),
+        this.tasks.checkNodeProxiesAreActive(),
+        RemoteConfigTasks.changeAllNodeStates.bind(this)(ConsensusNodeStates.STARTED),
+        this.tasks.addNodeStakes(),
+      ],
+      {
+        concurrent: false,
+        rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION,
+      },
+      'Error starting node',
+      lease,
+    );
 
     await action(argv, this);
     return true;
@@ -690,19 +743,25 @@ export class NodeCommandHandlers implements CommandHandlers {
 
     const lease = await this.leaseManager.create();
 
-    const action = helpers.commandActionBuilder([
-      this.tasks.initialize(argv, setupConfigBuilder.bind(this), lease),
-      RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
-      RemoteConfigTasks.validateAllNodeStates.bind(this)({
-        acceptedStates: [ ConsensusNodeStates.INITIALIZED ] }),
-      this.tasks.identifyNetworkPods(),
-      this.tasks.fetchPlatformSoftware('nodeAliases'),
-      this.tasks.setupNetworkNodes('nodeAliases'),
-      RemoteConfigTasks.changeAllNodeStates.bind(this)(ConsensusNodeStates.SETUP)
-    ], {
-      concurrent: false,
-      rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION
-    }, 'Error in setting up nodes', lease)
+    const action = helpers.commandActionBuilder(
+      [
+        this.tasks.initialize(argv, setupConfigBuilder.bind(this), lease),
+        RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
+        RemoteConfigTasks.validateAllNodeStates.bind(this)({
+          acceptedStates: [ConsensusNodeStates.INITIALIZED],
+        }),
+        this.tasks.identifyNetworkPods(),
+        this.tasks.fetchPlatformSoftware('nodeAliases'),
+        this.tasks.setupNetworkNodes('nodeAliases'),
+        RemoteConfigTasks.changeAllNodeStates.bind(this)(ConsensusNodeStates.SETUP),
+      ],
+      {
+        concurrent: false,
+        rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION,
+      },
+      'Error in setting up nodes',
+      lease,
+    );
 
     await action(argv, this);
     return true;

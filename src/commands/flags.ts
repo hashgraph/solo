@@ -843,6 +843,17 @@ export const stakeAmounts: CommandFlag = {
   },
 };
 
+export const contextClusterUnparsed: CommandFlag = {
+  constName: 'contextClusterUnparsed',
+  name: 'context-cluster',
+  definition: {
+    describe:
+      'Context cluster mapping where context is key = value is cluster and comma delimited if more than one, ' +
+      '(e.g.: --context-cluster kind-solo=kind-solo,kind-solo-2=kind-solo-2)',
+    type: 'string',
+  },
+};
+
 export const allFlags: CommandFlag[] = [
   accountId,
   amount,
@@ -919,6 +930,7 @@ export const allFlags: CommandFlag[] = [
   grpcWebTlsCertificatePath,
   grpcTlsKeyPath,
   grpcWebTlsKeyPath,
+  contextClusterUnparsed,
 ];
 
 /** Resets the definition.disablePrompt for all flags */

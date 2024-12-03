@@ -15,12 +15,12 @@
  *
  */
 
-import { AccountId, FileId } from '@hashgraph/sdk'
-import { color, type ListrLogger, PRESET_TIMER } from 'listr2'
-import path, { dirname, normalize } from 'path'
-import { fileURLToPath } from 'url'
+import {AccountId, FileId} from '@hashgraph/sdk';
+import {color, type ListrLogger, PRESET_TIMER} from 'listr2';
+import path, {dirname, normalize} from 'path';
+import {fileURLToPath} from 'url';
 
-export const ROOT_DIR = path.join(dirname(fileURLToPath(import.meta.url)), '..', '..')
+export const ROOT_DIR = path.join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 
 // -------------------- solo related constants ---------------------------------------------------------------------
 export const SOLO_HOME_DIR = process.env.SOLO_HOME || path.join(process.env.HOME as string, '.solo');
@@ -31,10 +31,10 @@ export const DEFAULT_NAMESPACE = 'default';
 export const HELM = 'helm';
 export const RESOURCES_DIR = normalize(path.join(ROOT_DIR, 'resources'));
 
-export const ROOT_CONTAINER = 'root-container'
-export const SOLO_REMOTE_CONFIGMAP_NAME = 'solo-remote-config'
-export const SOLO_REMOTE_CONFIGMAP_LABELS = { 'solo.hedera.com/type': 'remote-config' }
-export const SOLO_REMOTE_CONFIG_MAX_COMMAND_IN_HISTORY = 50
+export const ROOT_CONTAINER = 'root-container';
+export const SOLO_REMOTE_CONFIGMAP_NAME = 'solo-remote-config';
+export const SOLO_REMOTE_CONFIGMAP_LABELS = {'solo.hedera.com/type': 'remote-config'};
+export const SOLO_REMOTE_CONFIG_MAX_COMMAND_IN_HISTORY = 50;
 
 // --------------- Hedera network and node related constants --------------------------------------------------------------------
 export const HEDERA_CHAIN_ID = process.env.SOLO_CHAIN_ID || '298';

@@ -20,11 +20,22 @@ import type * as WebSocket from 'ws';
 import type crypto from 'crypto';
 import type {SoloLogger} from '../core/logging.js';
 import type {
-  ChartManager, ConfigManager, Helm, K8, KeyManager, PackageDownloader, PlatformInstaller,
-  ProfileManager, DependencyManager, AccountManager, LeaseManager, CertificateManager, RemoteConfigManager,
-  LocalConfig
-} from '../core/index.js'
-import type { Cluster, Context } from '../core/config/remote/types.js'
+  ChartManager,
+  ConfigManager,
+  Helm,
+  K8,
+  KeyManager,
+  PackageDownloader,
+  PlatformInstaller,
+  ProfileManager,
+  DependencyManager,
+  AccountManager,
+  LeaseManager,
+  CertificateManager,
+  RemoteConfigManager,
+  LocalConfig,
+} from '../core/index.js';
+import type {Cluster, Context} from '../core/config/remote/types.js';
 import {type BaseCommand} from '../commands/base.js';
 
 export interface NodeKeyObject {
@@ -70,34 +81,33 @@ export interface Definition {
 }
 
 export interface Opts {
-  logger: SoloLogger
-  helm: Helm
-  k8: K8
-  downloader: PackageDownloader
-  platformInstaller: PlatformInstaller
-  chartManager: ChartManager
-  configManager: ConfigManager
-  depManager: DependencyManager
-  keyManager: KeyManager
-  accountManager: AccountManager
-  profileManager: ProfileManager
-  leaseManager: LeaseManager,
-  certificateManager: CertificateManager
-  localConfig: LocalConfig
-  remoteConfigManager: RemoteConfigManager
+  logger: SoloLogger;
+  helm: Helm;
+  k8: K8;
+  downloader: PackageDownloader;
+  platformInstaller: PlatformInstaller;
+  chartManager: ChartManager;
+  configManager: ConfigManager;
+  depManager: DependencyManager;
+  keyManager: KeyManager;
+  accountManager: AccountManager;
+  profileManager: ProfileManager;
+  leaseManager: LeaseManager;
+  certificateManager: CertificateManager;
+  localConfig: LocalConfig;
+  remoteConfigManager: RemoteConfigManager;
 }
 
 export interface CommandHandlers {
   parent: BaseCommand;
 }
 
-
 /**
  * Generic type for representing optional types
  */
 export type Optional<T> = T | undefined;
 
-export type ContextClusterStructure = Record<Context, Cluster>
+export type ContextClusterStructure = Record<Context, Cluster>;
 
 /**
  * Interface for capsuling validating for class's own properties
@@ -106,7 +116,7 @@ export interface Validate {
   /**
    * Validates all properties of the class and throws if data is invalid
    */
-  validate(): void
+  validate(): void;
 }
 
 /**
@@ -118,5 +128,5 @@ export interface ToObject<T> {
    *
    * @returns the plain object representation of the class.
    */
-  toObject(): T
+  toObject(): T;
 }

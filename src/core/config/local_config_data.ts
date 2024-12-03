@@ -14,14 +14,16 @@
  * limitations under the License.
  *
  */
-import type { Cluster, EmailAddress, Namespace } from './remote/types.js'
+import type {Cluster, EmailAddress, Namespace} from './remote/types.js';
 
-export interface DeploymentStructure { clusters : Cluster[] }
+export interface DeploymentStructure {
+  clusters: Cluster[];
+}
 
-export type Deployments = Record<Namespace, DeploymentStructure>
+export type Deployments = Record<Namespace, DeploymentStructure>;
 
 export interface LocalConfigData {
-  userEmailAddress: EmailAddress
-  deployments: Deployments
-  currentDeploymentName: Namespace
+  userEmailAddress: EmailAddress;
+  deployments: Deployments;
+  currentDeploymentName: Namespace;
 }

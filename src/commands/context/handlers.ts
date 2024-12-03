@@ -36,7 +36,7 @@ export class ContextCommandHandlers implements CommandHandlers {
     const action = helpers.commandActionBuilder(
       [
         this.tasks.initialize(argv),
-        this.parent.getLocalConfig().promptLocalConfigTask(this.parent.getK8(), argv),
+        this.parent.getLocalConfig().promptLocalConfigTask(),
         this.tasks.updateLocalConfig(argv),
       ],
       {

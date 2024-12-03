@@ -35,14 +35,14 @@ export class ContextCommandTasks {
       const isQuiet = !!argv[flags.quiet.name];
 
       let currentDeploymentName = argv[flags.namespace.name];
-      let clusterAliases = Templates.parseClusterAliases(argv[flags.clusterName.name]);
+      let clusters = Templates.parseClusterAliases(argv[flags.clusterName.name]);
       let contextName = argv[flags.context.name];
 
       const kubeContexts = await this.parent.getK8().getContexts();
 
       if (isQuiet) {
         const currentCluster = await this.parent.getK8().getKubeConfig().getCurrentCluster();
-        if (!clusterAliases.length) clusterAliases = [currentCluster.name];
+        if (!clusters.length) clusters = [currentCluster.name];
         if (!contextName) contextName = await this.parent.getK8().getKubeConfig().getCurrentContext();
 
         if (!currentDeploymentName) {
@@ -50,10 +50,10 @@ export class ContextCommandTasks {
           currentDeploymentName = selectedContext && selectedContext.namespace ? selectedContext.namespace : 'default';
         }
       } else {
-        if (!clusterAliases.length) {
+        if (!clusters.length) {
           const prompt = this.promptMap.get(flags.clusterName.name);
-          const unparsedClusterAliases = await prompt(task, clusterAliases);
-          clusterAliases = Templates.parseClusterAliases(unparsedClusterAliases);
+          const unparsedClusterAliases = await prompt(task, clusters);
+          clusters = Templates.parseClusterAliases(unparsedClusterAliases);
         }
         if (!contextName) {
           const prompt = this.promptMap.get(flags.context.name);
@@ -74,13 +74,13 @@ export class ContextCommandTasks {
 
       // Set clusters for active deployment
       const deployments = this.parent.getLocalConfig().deployments;
-      deployments[currentDeploymentName].clusterAliases = clusterAliases;
+      deployments[currentDeploymentName].clusters = clusters;
       this.parent.getLocalConfig().setDeployments(deployments);
 
       this.parent.getK8().getKubeConfig().setCurrentContext(contextName);
 
       this.parent.logger.info(
-        `Save LocalConfig file: [currentDeploymentName: ${currentDeploymentName}, contextName: ${contextName}, clusterAliases: ${clusterAliases.join(' ')}]`,
+        `Save LocalConfig file: [currentDeploymentName: ${currentDeploymentName}, contextName: ${contextName}, clusters: ${clusters.join(' ')}]`,
       );
       await this.parent.getLocalConfig().write();
     });

@@ -15,10 +15,19 @@
  *
  */
 import {
-  constants, Task, Templates, Zippy,
-  type K8, type ChartManager, type ConfigManager, type KeyManager, type PlatformInstaller,
-  type ProfileManager, type AccountManager, type CertificateManager
-} from '../../core/index.js'
+  constants,
+  Task,
+  Templates,
+  Zippy,
+  type K8,
+  type ChartManager,
+  type ConfigManager,
+  type KeyManager,
+  type PlatformInstaller,
+  type ProfileManager,
+  type AccountManager,
+  type CertificateManager,
+} from '../../core/index.js';
 import {
   DEFAULT_NETWORK_NODE_NAME,
   FREEZE_ADMIN_ACCOUNT,
@@ -55,21 +64,24 @@ import {
   prepareEndpoints,
   renameAndCopyFile,
   sleep,
-  splitFlagInput
-} from '../../core/helpers.js'
-import chalk from 'chalk'
-import * as flags from '../flags.js'
-import { type SoloLogger } from '../../core/logging.js'
-import type { Listr, ListrTaskWrapper } from 'listr2'
-import { type NodeAlias, type NodeAliases, type PodName } from '../../types/aliases.js'
-import { NodeStatusCodes, NodeStatusEnums, NodeSubcommandType } from '../../core/enumerations.js'
-import * as x509 from '@peculiar/x509'
-import { type NodeCommand } from './index.js'
+  splitFlagInput,
+} from '../../core/helpers.js';
+import chalk from 'chalk';
+import * as flags from '../flags.js';
+import {type SoloLogger} from '../../core/logging.js';
+import type {Listr, ListrTaskWrapper} from 'listr2';
+import {type NodeAlias, type NodeAliases, type PodName} from '../../types/aliases.js';
+import {NodeStatusCodes, NodeStatusEnums, NodeSubcommandType} from '../../core/enumerations.js';
+import * as x509 from '@peculiar/x509';
+import {type NodeCommand} from './index.js';
 import type {
-  NodeAddConfigClass, NodeDeleteConfigClass, NodeRefreshConfigClass, NodeUpdateConfigClass
-} from './configs.js'
-import { type Lease } from '../../core/lease/lease.js'
-import { ListrLease } from '../../core/lease/listr_lease.js'
+  NodeAddConfigClass,
+  NodeDeleteConfigClass,
+  NodeRefreshConfigClass,
+  NodeUpdateConfigClass,
+} from './configs.js';
+import {type Lease} from '../../core/lease/lease.js';
+import {ListrLease} from '../../core/lease/listr_lease.js';
 
 export class NodeCommandTasks {
   private readonly accountManager: AccountManager;
@@ -666,8 +678,11 @@ export class NodeCommandTasks {
       async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
         const config = ctx.config;
 
-      // don't try to download from the same node we are deleting, it won't work
-      const nodeAlias = ctx.config.nodeAlias === config.existingNodeAliases[0] ? config.existingNodeAliases[1] : config.existingNodeAliases[0];
+        // don't try to download from the same node we are deleting, it won't work
+        const nodeAlias =
+          ctx.config.nodeAlias === config.existingNodeAliases[0]
+            ? config.existingNodeAliases[1]
+            : config.existingNodeAliases[0];
 
         const nodeFullyQualifiedPodName = Templates.renderNetworkPodName(nodeAlias);
 
