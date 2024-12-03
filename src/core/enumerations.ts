@@ -26,7 +26,7 @@ export enum NodeStatusCodes {
   OBSERVING = 8,
   CHECKING = 9,
   RECONNECT_COMPLETE = 10,
-  CATASTROPHIC_FAILURE = 11
+  CATASTROPHIC_FAILURE = 11,
 }
 
 export const NodeStatusEnums = {
@@ -40,8 +40,8 @@ export const NodeStatusEnums = {
   8: 'OBSERVING',
   9: 'CHECKING',
   10: 'RECONNECT_COMPLETE',
-  11: 'CATASTROPHIC_FAILURE'
-}
+  11: 'CATASTROPHIC_FAILURE',
+};
 
 /**
  * - GRPC - Represents HAProxy Proxy

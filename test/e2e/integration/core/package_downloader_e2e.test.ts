@@ -14,28 +14,28 @@
  * limitations under the License.
  *
  */
-import 'chai-as-promised'
+import 'chai-as-promised';
 
-import { it, describe } from 'mocha'
-import { expect } from 'chai'
+import {it, describe} from 'mocha';
+import {expect} from 'chai';
 
-import * as fs from 'fs'
-import { logging, PackageDownloader, Templates } from '../../../../src/core/index.js'
-import { MINUTES } from '../../../../src/core/constants.js'
+import * as fs from 'fs';
+import {logging, PackageDownloader, Templates} from '../../../../src/core/index.js';
+import {MINUTES} from '../../../../src/core/constants.js';
 
 describe('PackageDownloaderE2E', () => {
-  const testLogger = logging.NewLogger('debug', true)
-  const downloader = new PackageDownloader(testLogger)
+  const testLogger = logging.NewLogger('debug', true);
+  const downloader = new PackageDownloader(testLogger);
 
   it('should succeed with a valid Hedera release tag', async () => {
-    const testCacheDir = 'test/data/tmp'
+    const testCacheDir = 'test/data/tmp';
 
-    const tag = 'v0.42.5'
-    const releasePrefix = Templates.prepareReleasePrefix(tag)
+    const tag = 'v0.42.5';
+    const releasePrefix = Templates.prepareReleasePrefix(tag);
 
-    const destPath = `${testCacheDir}/${releasePrefix}/build-${tag}.zip`
-    await expect(downloader.fetchPlatform(tag, testCacheDir)).to.eventually.be.equal(destPath)
-    expect(fs.existsSync(destPath)).to.be.ok
-    testLogger.showUser(destPath)
-  }).timeout(3 * MINUTES)
-})
+    const destPath = `${testCacheDir}/${releasePrefix}/build-${tag}.zip`;
+    await expect(downloader.fetchPlatform(tag, testCacheDir)).to.eventually.be.equal(destPath);
+    expect(fs.existsSync(destPath)).to.be.ok;
+    testLogger.showUser(destPath);
+  }).timeout(3 * MINUTES);
+});

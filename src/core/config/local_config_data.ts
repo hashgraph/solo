@@ -14,17 +14,16 @@
  * limitations under the License.
  *
  */
+import type {Cluster, EmailAddress, Namespace} from './remote/types.js';
 
-export interface Deployment {
-    clusterAliases : string[]
+export interface DeploymentStructure {
+  clusters: Cluster[];
 }
 
-// an alias for the cluster, provided during the configuration
-// of the deployment, must be unique
-export type Deployments = Record<string, Deployment>;
+export type Deployments = Record<Namespace, DeploymentStructure>;
 
 export interface LocalConfigData {
-    userEmailAddress: string;
-    deployments: Deployments;
-    currentDeploymentName: string;
+  userEmailAddress: EmailAddress;
+  deployments: Deployments;
+  currentDeploymentName: Namespace;
 }

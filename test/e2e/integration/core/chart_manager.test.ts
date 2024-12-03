@@ -14,27 +14,27 @@
  * limitations under the License.
  *
  */
-import { it, describe } from 'mocha'
-import { expect } from 'chai'
+import {it, describe} from 'mocha';
+import {expect} from 'chai';
 
-import { ChartManager, Helm, constants } from '../../../../src/core/index.js'
-import { testLogger } from '../../../test_util.js'
+import {ChartManager, Helm, constants} from '../../../../src/core/index.js';
+import {testLogger} from '../../../test_util.js';
 
 describe('ChartManager', () => {
-  const helm = new Helm(testLogger)
-  const chartManager = new ChartManager(helm, testLogger)
+  const helm = new Helm(testLogger);
+  const chartManager = new ChartManager(helm, testLogger);
 
   it('should be able to list installed charts', async () => {
-    const ns = constants.SOLO_SETUP_NAMESPACE
-    expect(ns, 'namespace should not be null').not.to.be.null
-    const list = await chartManager.getInstalledCharts(ns)
-    expect(list, 'should have at least one installed chart').not.to.have.lengthOf(0)
-  })
+    const ns = constants.SOLO_SETUP_NAMESPACE;
+    expect(ns, 'namespace should not be null').not.to.be.null;
+    const list = await chartManager.getInstalledCharts(ns);
+    expect(list, 'should have at least one installed chart').not.to.have.lengthOf(0);
+  });
 
   it('should be able to check if a chart is installed', async () => {
-    const ns = constants.SOLO_SETUP_NAMESPACE
-    expect(ns, 'namespace should not be null').not.to.be.null
-    const isInstalled = await chartManager.isChartInstalled(ns, constants.SOLO_CLUSTER_SETUP_CHART)
-    expect(isInstalled, `${constants.SOLO_CLUSTER_SETUP_CHART} should be installed`).to.be.ok
-  })
-})
+    const ns = constants.SOLO_SETUP_NAMESPACE;
+    expect(ns, 'namespace should not be null').not.to.be.null;
+    const isInstalled = await chartManager.isChartInstalled(ns, constants.SOLO_CLUSTER_SETUP_CHART);
+    expect(isInstalled, `${constants.SOLO_CLUSTER_SETUP_CHART} should be installed`).to.be.ok;
+  });
+});

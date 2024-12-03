@@ -14,72 +14,71 @@
  * limitations under the License.
  *
  */
-import { after, afterEach, describe } from 'mocha'
-import { expect } from 'chai'
-import each from 'mocha-each'
+import {after, afterEach, describe} from 'mocha';
+import {expect} from 'chai';
+import each from 'mocha-each';
 
-import { flags } from '../../../src/commands/index.js'
-import { e2eTestSuite, getDefaultArgv, HEDERA_PLATFORM_VERSION_TAG, TEST_CLUSTER } from '../../test_util.js'
-import * as version from '../../../version.js'
-import { getNodeLogs, sleep } from '../../../src/core/helpers.js'
-import { RelayCommand } from '../../../src/commands/relay.js'
-import { MINUTES } from '../../../src/core/constants.js'
+import {flags} from '../../../src/commands/index.js';
+import {e2eTestSuite, getDefaultArgv, HEDERA_PLATFORM_VERSION_TAG, TEST_CLUSTER} from '../../test_util.js';
+import * as version from '../../../version.js';
+import {getNodeLogs, sleep} from '../../../src/core/helpers.js';
+import {RelayCommand} from '../../../src/commands/relay.js';
+import {MINUTES} from '../../../src/core/constants.js';
 
-const testName = 'relay-cmd-e2e'
-const namespace = testName
-const argv = getDefaultArgv()
-argv[flags.namespace.name] = namespace
-argv[flags.releaseTag.name] = HEDERA_PLATFORM_VERSION_TAG
-argv[flags.nodeAliasesUnparsed.name] = 'node1,node2'
-argv[flags.generateGossipKeys.name] = true
-argv[flags.generateTlsKeys.name] = true
-argv[flags.clusterName.name] = TEST_CLUSTER
-argv[flags.soloChartVersion.name] = version.SOLO_CHART_VERSION
-argv[flags.force.name] = true
-argv[flags.relayReleaseTag.name] = flags.relayReleaseTag.definition.defaultValue
-argv[flags.quiet.name] = true
+const testName = 'relay-cmd-e2e';
+const namespace = testName;
+const argv = getDefaultArgv();
+argv[flags.namespace.name] = namespace;
+argv[flags.releaseTag.name] = HEDERA_PLATFORM_VERSION_TAG;
+argv[flags.nodeAliasesUnparsed.name] = 'node1,node2';
+argv[flags.generateGossipKeys.name] = true;
+argv[flags.generateTlsKeys.name] = true;
+argv[flags.clusterName.name] = TEST_CLUSTER;
+argv[flags.soloChartVersion.name] = version.SOLO_CHART_VERSION;
+argv[flags.force.name] = true;
+argv[flags.relayReleaseTag.name] = flags.relayReleaseTag.definition.defaultValue;
+argv[flags.quiet.name] = true;
 
-e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefined, undefined, true, (bootstrapResp) => {
+e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefined, undefined, true, bootstrapResp => {
   describe('RelayCommand', async () => {
-    const k8 = bootstrapResp.opts.k8
-    const configManager = bootstrapResp.opts.configManager
-    const relayCmd = new RelayCommand(bootstrapResp.opts)
+    const k8 = bootstrapResp.opts.k8;
+    const configManager = bootstrapResp.opts.configManager;
+    const relayCmd = new RelayCommand(bootstrapResp.opts);
 
     after(async () => {
-      await getNodeLogs(k8, namespace)
-      await k8.deleteNamespace(namespace)
-    })
+      await getNodeLogs(k8, namespace);
+      await k8.deleteNamespace(namespace);
+    });
 
-    afterEach(async () => await sleep(5))
+    afterEach(async () => await sleep(5));
 
-    each(['node1', 'node1,node2'])
-    .it('relay deploy and destroy should work with $value', async function (relayNodes) {
-      this.timeout(5 * MINUTES)
+    each(['node1', 'node1,node2']).it('relay deploy and destroy should work with $value', async function (relayNodes) {
+      this.timeout(5 * MINUTES);
 
-      argv[flags.nodeAliasesUnparsed.name] = relayNodes
-      configManager.update(argv)
+      argv[flags.nodeAliasesUnparsed.name] = relayNodes;
+      configManager.update(argv);
 
       // test relay deploy
       try {
-        expect(await relayCmd.deploy(argv)).to.be.true
+        expect(await relayCmd.deploy(argv)).to.be.true;
       } catch (e) {
-        relayCmd.logger.showUserError(e)
-        expect.fail()
+        relayCmd.logger.showUserError(e);
+        expect.fail();
       }
       expect(relayCmd.getUnusedConfigs(RelayCommand.DEPLOY_CONFIGS_NAME)).to.deep.equal([
         flags.profileFile.constName,
         flags.profileName.constName,
-        flags.quiet.constName
-      ])
-      await sleep(500)
+        flags.quiet.constName,
+      ]);
+      await sleep(500);
 
       // test relay destroy
       try {
-        expect(await relayCmd.destroy(argv)).to.be.true
+        expect(await relayCmd.destroy(argv)).to.be.true;
       } catch (e) {
-        relayCmd.logger.showUserError(e)
-        expect.fail()
+        relayCmd.logger.showUserError(e);
+        expect.fail();
       }
-    })
-  })
-})
+    });
+  });
+});

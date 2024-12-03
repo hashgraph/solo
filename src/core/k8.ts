@@ -14,28 +14,35 @@
  * limitations under the License.
  *
  */
-import * as k8s from '@kubernetes/client-node'
-import fs from 'fs'
-import net from 'net'
-import os from 'os'
-import path from 'path'
-import { flags } from '../commands/index.js'
-import { SoloError, IllegalArgumentError, MissingArgumentError } from './errors.js'
-import * as tar from 'tar'
-import { v4 as uuid4 } from 'uuid'
-import { type V1Lease, V1ObjectMeta, V1Secret } from '@kubernetes/client-node'
-import { sleep } from './helpers.js'
-import { type ConfigManager, constants } from './index.js'
-import * as stream from 'node:stream'
+import * as k8s from '@kubernetes/client-node';
+import fs from 'fs';
+import net from 'net';
+import os from 'os';
+import path from 'path';
+import {flags} from '../commands/index.js';
+import {SoloError, IllegalArgumentError, MissingArgumentError} from './errors.js';
+import * as tar from 'tar';
+import {v4 as uuid4} from 'uuid';
+import {type V1Lease, V1ObjectMeta, V1Secret, type Context} from '@kubernetes/client-node';
+import {sleep} from './helpers.js';
+import {type ConfigManager, constants} from './index.js';
+import * as stream from 'node:stream';
 
-import { type SoloLogger } from './logging.js'
-import type * as WebSocket from 'ws'
-import type { PodName } from '../types/aliases.js'
-import type { ExtendedNetServer, LocalContextObject } from '../types/index.js'
-import type * as http from 'node:http'
-import { MINUTES } from './constants.js'
+import {type SoloLogger} from './logging.js';
+import type * as WebSocket from 'ws';
+import type {PodName} from '../types/aliases.js';
+import type {ExtendedNetServer, LocalContextObject} from '../types/index.js';
+import type * as http from 'node:http';
+import {MINUTES} from './constants.js';
 
-interface TDirectoryData {directory: boolean; owner: string; group: string; size: string; modifiedAt: string; name: string}
+interface TDirectoryData {
+  directory: boolean;
+  owner: string;
+  group: string;
+  size: string;
+  modifiedAt: string;
+  name: string;
+}
 
 /**
  * A kubernetes API wrapper class providing custom functionalities required by solo
@@ -44,50 +51,55 @@ interface TDirectoryData {directory: boolean; owner: string; group: string; size
  * For parallel execution, create separate instances by invoking clone()
  */
 export class K8 {
-  static PodReadyCondition = new Map<string, string>()
-    .set(constants.POD_CONDITION_READY, constants.POD_CONDITION_STATUS_TRUE)
-  private kubeConfig!: k8s.KubeConfig
-  kubeClient!: k8s.CoreV1Api
-  private coordinationApiClient: k8s.CoordinationV1Api
+  private _cachedContexts: Context[];
 
-  constructor (private readonly configManager: ConfigManager, public readonly logger: SoloLogger) {
-    if (!configManager) throw new MissingArgumentError('An instance of core/ConfigManager is required')
-    if (!logger) throw new MissingArgumentError('An instance of core/SoloLogger is required')
+  static PodReadyCondition = new Map<string, string>().set(
+    constants.POD_CONDITION_READY,
+    constants.POD_CONDITION_STATUS_TRUE,
+  );
+  private kubeConfig!: k8s.KubeConfig;
+  kubeClient!: k8s.CoreV1Api;
+  private coordinationApiClient: k8s.CoordinationV1Api;
 
-    this.init()
+  constructor(
+    private readonly configManager: ConfigManager,
+    public readonly logger: SoloLogger,
+  ) {
+    if (!configManager) throw new MissingArgumentError('An instance of core/ConfigManager is required');
+    if (!logger) throw new MissingArgumentError('An instance of core/SoloLogger is required');
+
+    this.init();
   }
 
   /**
    * Clone a new instance with the same config manager and logger
    * Internally it instantiates a new kube API client
    */
-  clone () {
-    const c = new K8(this.configManager, this.logger)
-    return c.init()
+  clone() {
+    const c = new K8(this.configManager, this.logger);
+    return c.init();
   }
 
-  getKubeConfig () {
-    return this.kubeConfig
+  getKubeConfig() {
+    return this.kubeConfig;
   }
 
-  init () {
-    this.kubeConfig = new k8s.KubeConfig()
-    this.kubeConfig.loadFromDefault()
+  init() {
+    this.kubeConfig = new k8s.KubeConfig();
+    this.kubeConfig.loadFromDefault();
 
     if (!this.kubeConfig.getCurrentContext()) {
-      throw new SoloError('No active kubernetes context found. ' +
-        'Please set current kubernetes context.')
+      throw new SoloError('No active kubernetes context found. ' + 'Please set current kubernetes context.');
     }
 
     if (!this.kubeConfig.getCurrentCluster()) {
-      throw new SoloError('No active kubernetes cluster found. ' +
-          'Please create a cluster and set current context.')
+      throw new SoloError('No active kubernetes cluster found. ' + 'Please create a cluster and set current context.');
     }
 
-    this.kubeClient = this.kubeConfig.makeApiClient(k8s.CoreV1Api)
-    this.coordinationApiClient = this.kubeConfig.makeApiClient(k8s.CoordinationV1Api)
+    this.kubeClient = this.kubeConfig.makeApiClient(k8s.CoreV1Api);
+    this.coordinationApiClient = this.kubeConfig.makeApiClient(k8s.CoordinationV1Api);
 
-    return this // to enable chaining
+    return this; // to enable chaining
   }
 
   /**
@@ -96,30 +108,30 @@ export class K8 {
    * @param [filters] - an object with metadata fields and value
    * @returns a list of items that match the filters
    */
-  applyMetadataFilter (items: (object | any)[], filters = {}) {
-    if (!filters) throw new MissingArgumentError('filters are required')
+  applyMetadataFilter(items: (object | any)[], filters = {}) {
+    if (!filters) throw new MissingArgumentError('filters are required');
 
-    const matched = []
-    const filterMap = new Map(Object.entries(filters))
+    const matched = [];
+    const filterMap = new Map(Object.entries(filters));
     for (const item of items) {
       // match all filters
-      let foundMatch = true
+      let foundMatch = true;
       for (const entry of filterMap.entries()) {
-        const field = entry[0]
-        const value = entry[1]
+        const field = entry[0];
+        const value = entry[1];
 
         if (item.metadata[field] !== value) {
-          foundMatch = false
-          break
+          foundMatch = false;
+          break;
         }
       }
 
       if (foundMatch) {
-        matched.push(item)
+        matched.push(item);
       }
     }
 
-    return matched
+    return matched;
   }
 
   /**
@@ -127,68 +139,68 @@ export class K8 {
    * @param items - list of items
    * @param [filters] - an object with metadata fields and value
    */
-  filterItem (items: (object | any)[], filters = {}) {
-    const filtered = this.applyMetadataFilter(items, filters)
-    if (filtered.length > 1) throw new SoloError('multiple items found with filters', { filters })
-    return filtered[0]
+  filterItem(items: (object | any)[], filters = {}) {
+    const filtered = this.applyMetadataFilter(items, filters);
+    if (filtered.length > 1) throw new SoloError('multiple items found with filters', {filters});
+    return filtered[0];
   }
 
   /**
    * Create a new namespace
    * @param name - name of the namespace
    */
-  async createNamespace (name: string) {
+  async createNamespace(name: string) {
     const payload = {
       metadata: {
-        name
-      }
-    }
+        name,
+      },
+    };
 
-    const resp = await this.kubeClient.createNamespace(payload)
-    return resp.response.statusCode === 201
+    const resp = await this.kubeClient.createNamespace(payload);
+    return resp.response.statusCode === 201;
   }
 
   /**
    * Delete a namespace
    * @param name - name of the namespace
    */
-  async deleteNamespace (name: string) {
-    const resp = await this.kubeClient.deleteNamespace(name)
-    return resp.response.statusCode === 200.0
+  async deleteNamespace(name: string) {
+    const resp = await this.kubeClient.deleteNamespace(name);
+    return resp.response.statusCode === 200.0;
   }
 
   /** Get a list of namespaces */
-  async getNamespaces () {
-    const resp = await this.kubeClient.listNamespace()
+  async getNamespaces() {
+    const resp = await this.kubeClient.listNamespace();
     if (resp.body && resp.body.items) {
-      const namespaces: string[] = []
+      const namespaces: string[] = [];
       resp.body.items.forEach(item => {
         // @ts-ignore
-        namespaces.push(item.metadata.name as string)
-      })
+        namespaces.push(item.metadata.name as string);
+      });
 
-      return namespaces
+      return namespaces;
     }
 
-    throw new SoloError('incorrect response received from kubernetes API. Unable to list namespaces')
+    throw new SoloError('incorrect response received from kubernetes API. Unable to list namespaces');
   }
 
   /**
    * Returns true if a namespace exists with the given name
    * @param namespace namespace name
    */
-  async hasNamespace (namespace: string) {
-    const namespaces = await this.getNamespaces()
-    return namespaces.includes(namespace)
+  async hasNamespace(namespace: string) {
+    const namespaces = await this.getNamespaces();
+    return namespaces.includes(namespace);
   }
 
   /**
    * Get a podName by name
    * @param name - podName name
    */
-  async getPodByName (name: string): Promise<k8s.V1Pod> {
-    const ns = this._getNamespace()
-    const fieldSelector = `metadata.name=${name}`
+  async getPodByName(name: string): Promise<k8s.V1Pod> {
+    const ns = this._getNamespace();
+    const fieldSelector = `metadata.name=${name}`;
     const resp = await this.kubeClient.listNamespacedPod(
       ns,
       undefined,
@@ -200,19 +212,19 @@ export class K8 {
       undefined,
       undefined,
       undefined,
-      5 * MINUTES
-    )
+      5 * MINUTES,
+    );
 
-    return this.filterItem(resp.body.items, { name })
+    return this.filterItem(resp.body.items, {name});
   }
 
   /**
    * Get pods by labels
    * @param labels - list of labels
    */
-  async getPodsByLabel (labels: string[] = []) {
-    const ns = this._getNamespace()
-    const labelSelector = labels.join(',')
+  async getPodsByLabel(labels: string[] = []) {
+    const ns = this._getNamespace();
+    const labelSelector = labels.join(',');
     const result = await this.kubeClient.listNamespacedPod(
       ns,
       undefined,
@@ -224,29 +236,29 @@ export class K8 {
       undefined,
       undefined,
       undefined,
-      5 * MINUTES
-    )
+      5 * MINUTES,
+    );
 
-    return result.body.items
+    return result.body.items;
   }
 
   /**
    * Get secrets by labels
    * @param labels - list of labels
    */
-  async getSecretsByLabel (labels: string[] = []) {
-    const ns = this._getNamespace()
-    const labelSelector = labels.join(',')
+  async getSecretsByLabel(labels: string[] = []) {
+    const ns = this._getNamespace();
+    const labelSelector = labels.join(',');
     const result = await this.kubeClient.listNamespacedSecret(
       ns,
       undefined,
       undefined,
       undefined,
       undefined,
-      labelSelector
-    )
+      labelSelector,
+    );
 
-    return result.body.items
+    return result.body.items;
   }
 
   /**
@@ -254,24 +266,24 @@ export class K8 {
    * @param podNameName -  name of the podName
    * @returns podName IP
    */
-  async getPodIP (podNameName: string) {
-    const pod = await this.getPodByName(podNameName)
+  async getPodIP(podNameName: string) {
+    const pod = await this.getPodByName(podNameName);
     if (pod && pod.status && pod.status.podIP) {
-      this.logger.debug(`Found pod IP for ${podNameName}: ${pod.status.podIP}`)
-      return pod.status.podIP
+      this.logger.debug(`Found pod IP for ${podNameName}: ${pod.status.podIP}`);
+      return pod.status.podIP;
     }
 
-    this.logger.debug(`Unable to find pod IP for ${podNameName}`)
-    throw new SoloError(`unable to find host IP of podName: ${podNameName}`)
+    this.logger.debug(`Unable to find pod IP for ${podNameName}`);
+    throw new SoloError(`unable to find host IP of podName: ${podNameName}`);
   }
 
   /**
    * Get a svc by name
    * @param name - svc name
    */
-  async getSvcByName (name: string): Promise<k8s.V1Service> {
-    const ns = this._getNamespace()
-    const fieldSelector = `metadata.name=${name}`
+  async getSvcByName(name: string): Promise<k8s.V1Service> {
+    const ns = this._getNamespace();
+    const fieldSelector = `metadata.name=${name}`;
     const resp = await this.kubeClient.listNamespacedService(
       ns,
       undefined,
@@ -283,10 +295,10 @@ export class K8 {
       undefined,
       undefined,
       undefined,
-      5 * MINUTES
-    )
+      5 * MINUTES,
+    );
 
-    return this.filterItem(resp.body.items, { name })
+    return this.filterItem(resp.body.items, {name});
   }
 
   /**
@@ -294,39 +306,48 @@ export class K8 {
    * @param svcName - name of the service
    * @returns cluster IP
    */
-  async getClusterIP (svcName: string) {
-    const svc = await this.getSvcByName(svcName)
+  async getClusterIP(svcName: string) {
+    const svc = await this.getSvcByName(svcName);
     if (svc && svc.spec && svc.spec.clusterIP) {
-      return svc.spec.clusterIP
+      return svc.spec.clusterIP;
     }
 
-    throw new SoloError(`unable to find cluster IP for svc: ${svcName}`)
+    throw new SoloError(`unable to find cluster IP for svc: ${svcName}`);
   }
 
   /**
    * Get a list of clusters
    * @returns a list of cluster names
    */
-  getClusters () {
-    const clusters: string[] = []
+  getClusters() {
+    const clusters: string[] = [];
     for (const cluster of this.kubeConfig.getClusters()) {
-      clusters.push(cluster.name)
+      clusters.push(cluster.name);
     }
 
-    return clusters
+    return clusters;
   }
 
   /**
    * Get a list of contexts
    * @returns a list of context names
    */
-  getContexts () {
-    const contexts: string[] = []
-    for (const context of this.kubeConfig.getContexts()) {
-      contexts.push(context.name)
+  getContextNames(): string[] {
+    const contexts: string[] = [];
+
+    for (const context of this.getContexts()) {
+      contexts.push(context.name);
     }
 
-    return contexts
+    return contexts;
+  }
+
+  getContexts(): Context[] {
+    if (!this._cachedContexts) {
+      this._cachedContexts = this.kubeConfig.getContexts();
+    }
+
+    return this._cachedContexts;
   }
 
   /**
@@ -348,43 +369,43 @@ export class K8 {
    * @param destPath - path inside the container
    * @returns a promise that returns array of directory entries, custom object
    */
-  async listDir (podName: PodName, containerName: string, destPath: string) {
+  async listDir(podName: PodName, containerName: string, destPath: string) {
     try {
-      const output = await this.execContainer(podName, containerName, ['ls', '-la', destPath]) as string
-      if (!output) return []
+      const output = (await this.execContainer(podName, containerName, ['ls', '-la', destPath])) as string;
+      if (!output) return [];
 
       // parse the output and return the entries
-      const items: TDirectoryData[] = []
-      const lines = output.split('\n')
+      const items: TDirectoryData[] = [];
+      const lines = output.split('\n');
       for (let line of lines) {
-        line = line.replace(/\s+/g, '|')
-        const parts = line.split('|')
+        line = line.replace(/\s+/g, '|');
+        const parts = line.split('|');
         if (parts.length >= 9) {
-          let name = parts[parts.length - 1]
+          let name = parts[parts.length - 1];
           // handle unique file format (without single quotes): 'usedAddressBook_vHederaSoftwareVersion{hapiVersion=v0.53.0, servicesVersion=v0.53.0}_2024-07-30-20-39-06_node_0.txt.debug'
           for (let i = parts.length - 1; i > 8; i--) {
-            name = `${parts[i - 1]} ${name}`
+            name = `${parts[i - 1]} ${name}`;
           }
 
           if (name !== '.' && name !== '..') {
-            const permission = parts[0]
-            const item: TDirectoryData  = {
+            const permission = parts[0];
+            const item: TDirectoryData = {
               directory: permission[0] === 'd',
               owner: parts[2],
               group: parts[3],
               size: parts[4],
               modifiedAt: `${parts[5]} ${parts[6]} ${parts[7]}`,
-              name
-            }
+              name,
+            };
 
-            items.push(item)
+            items.push(item);
           }
         }
       }
 
-      return items
+      return items;
     } catch (e: Error | any) {
-      throw new SoloError(`unable to check path in '${podName}':${containerName}' - ${destPath}: ${e.message}`, e)
+      throw new SoloError(`unable to check path in '${podName}':${containerName}' - ${destPath}: ${e.message}`, e);
     }
   }
 
@@ -395,43 +416,49 @@ export class K8 {
    * @param destPath - path inside the container
    * @param [filters] - an object with metadata fields and value
    */
-  async hasFile (podName: PodName, containerName: string, destPath: string, filters: object = {}) {
-    const parentDir = path.dirname(destPath)
-    const fileName = path.basename(destPath)
-    const filterMap = new Map(Object.entries(filters))
+  async hasFile(podName: PodName, containerName: string, destPath: string, filters: object = {}) {
+    const parentDir = path.dirname(destPath);
+    const fileName = path.basename(destPath);
+    const filterMap = new Map(Object.entries(filters));
 
     try {
-      const entries = await this.listDir(podName, containerName, parentDir)
+      const entries = await this.listDir(podName, containerName, parentDir);
 
       for (const item of entries) {
         if (item.name === fileName && !item.directory) {
-          let found = true
+          let found = true;
 
           for (const entry of filterMap.entries()) {
-            const field = entry[0]
-            const value = entry[1]
+            const field = entry[0];
+            const value = entry[1];
             // @ts-ignore
-            this.logger.debug(`Checking file ${podName}:${containerName} ${destPath}; ${field} expected ${value}, found ${item[field]}`, { filters })
+            this.logger.debug(
+              `Checking file ${podName}:${containerName} ${destPath}; ${field} expected ${value}, found ${item[field]}`,
+              {filters},
+            );
             // @ts-ignore
             if (`${value}` !== `${item[field]}`) {
-              found = false
-              break
+              found = false;
+              break;
             }
           }
 
           if (found) {
-            this.logger.debug(`File check succeeded ${podName}:${containerName} ${destPath}`, { filters })
-            return true
+            this.logger.debug(`File check succeeded ${podName}:${containerName} ${destPath}`, {filters});
+            return true;
           }
         }
       }
     } catch (e: Error | any) {
-      const error = new SoloError(`unable to check file in '${podName}':${containerName}' - ${destPath}: ${e.message}`, e)
-      this.logger.error(error.message, error)
-      throw error
+      const error = new SoloError(
+        `unable to check file in '${podName}':${containerName}' - ${destPath}: ${e.message}`,
+        e,
+      );
+      this.logger.error(error.message, error);
+      throw error;
     }
 
-    return false
+    return false;
   }
 
   /**
@@ -440,76 +467,89 @@ export class K8 {
    * @param containerName
    * @param destPath - path inside the container
    */
-  async hasDir (podName: string, containerName: string, destPath: string) {
-    return await this.execContainer(
-      podName,
-      containerName,
-      ['bash', '-c', '[[ -d "' + destPath + '" ]] && echo -n "true" || echo -n "false"']
-    ) === 'true'
+  async hasDir(podName: string, containerName: string, destPath: string) {
+    return (
+      (await this.execContainer(podName, containerName, [
+        'bash',
+        '-c',
+        '[[ -d "' + destPath + '" ]] && echo -n "true" || echo -n "false"',
+      ])) === 'true'
+    );
   }
 
-  mkdir (podName: PodName, containerName: string, destPath: string) {
-    return this.execContainer(
-      podName,
-      containerName,
-      ['bash', '-c', 'mkdir -p "' + destPath + '"']
-    )
+  mkdir(podName: PodName, containerName: string, destPath: string) {
+    return this.execContainer(podName, containerName, ['bash', '-c', 'mkdir -p "' + destPath + '"']);
   }
 
-  exitWithError (localContext: LocalContextObject, errorMessage: string) {
-    localContext.errorMessage = localContext.errorMessage ? `${localContext.errorMessage}:${errorMessage}` : errorMessage
-    this.logger.error(errorMessage)
-    return localContext.reject(new SoloError(localContext.errorMessage))
+  exitWithError(localContext: LocalContextObject, errorMessage: string) {
+    localContext.errorMessage = localContext.errorMessage
+      ? `${localContext.errorMessage}:${errorMessage}`
+      : errorMessage;
+    this.logger.error(errorMessage);
+    return localContext.reject(new SoloError(localContext.errorMessage));
   }
 
-  handleCallback (status: string, localContext: LocalContextObject, messagePrefix: string) {
+  handleCallback(status: string, localContext: LocalContextObject, messagePrefix: string) {
     if (status === 'Failure') {
-      return this.exitWithError(localContext, `${messagePrefix} Failure occurred`)
+      return this.exitWithError(localContext, `${messagePrefix} Failure occurred`);
     }
-      this.logger.debug(`${messagePrefix} callback(status)=${status}`)
-
+    this.logger.debug(`${messagePrefix} callback(status)=${status}`);
   }
 
-  registerConnectionOnError (localContext: LocalContextObject, messagePrefix: string, conn: WebSocket.WebSocket) {
-    conn.on('error', (e) => {
-      return this.exitWithError(localContext, `${messagePrefix} failed, connection error: ${e.message}`)
-    })
+  registerConnectionOnError(localContext: LocalContextObject, messagePrefix: string, conn: WebSocket.WebSocket) {
+    conn.on('error', e => {
+      return this.exitWithError(localContext, `${messagePrefix} failed, connection error: ${e.message}`);
+    });
   }
 
-  registerConnectionOnMessage (messagePrefix: string) {
-    this.logger.debug(`${messagePrefix} received message`)
+  registerConnectionOnMessage(messagePrefix: string) {
+    this.logger.debug(`${messagePrefix} received message`);
   }
 
-  registerErrorStreamOnData (localContext: LocalContextObject, stream: stream.PassThrough) {
-    stream.on('data', (data) => {
-      localContext.errorMessage = localContext.errorMessage ? `${localContext.errorMessage}${data.toString()}` : data.toString()
-    })
+  registerErrorStreamOnData(localContext: LocalContextObject, stream: stream.PassThrough) {
+    stream.on('data', data => {
+      localContext.errorMessage = localContext.errorMessage
+        ? `${localContext.errorMessage}${data.toString()}`
+        : data.toString();
+    });
   }
 
-  registerErrorStreamOnError (localContext: LocalContextObject, messagePrefix: string, stream: stream.PassThrough | fs.WriteStream) {
-    stream.on('error', (err) => {
-      return this.exitWithError(localContext, `${messagePrefix} error encountered, err: ${err.toString()}`)
-    })
+  registerErrorStreamOnError(
+    localContext: LocalContextObject,
+    messagePrefix: string,
+    stream: stream.PassThrough | fs.WriteStream,
+  ) {
+    stream.on('error', err => {
+      return this.exitWithError(localContext, `${messagePrefix} error encountered, err: ${err.toString()}`);
+    });
   }
 
-  registerOutputPassthroughStreamOnData (localContext: LocalContextObject, messagePrefix: string,
-    outputPassthroughStream: stream.PassThrough, outputFileStream: fs.WriteStream) {
-    outputPassthroughStream.on('data', (chunk) => {
-      this.logger.debug(`${messagePrefix} received chunk size=${chunk.length}`)
-      const canWrite = outputFileStream.write(chunk) // Write chunk to file and check if buffer is full
+  registerOutputPassthroughStreamOnData(
+    localContext: LocalContextObject,
+    messagePrefix: string,
+    outputPassthroughStream: stream.PassThrough,
+    outputFileStream: fs.WriteStream,
+  ) {
+    outputPassthroughStream.on('data', chunk => {
+      this.logger.debug(`${messagePrefix} received chunk size=${chunk.length}`);
+      const canWrite = outputFileStream.write(chunk); // Write chunk to file and check if buffer is full
       if (!canWrite) {
-        this.logger.debug(`${messagePrefix} buffer is full, pausing data stream...`)
-        outputPassthroughStream.pause() // Pause the data stream if buffer is full
+        this.logger.debug(`${messagePrefix} buffer is full, pausing data stream...`);
+        outputPassthroughStream.pause(); // Pause the data stream if buffer is full
       }
-    })
+    });
   }
 
-  registerOutputFileStreamOnDrain (localContext: LocalContextObject, messagePrefix: string,
-    outputPassthroughStream: stream.PassThrough, outputFileStream: fs.WriteStream) {
+  registerOutputFileStreamOnDrain(
+    localContext: LocalContextObject,
+    messagePrefix: string,
+    outputPassthroughStream: stream.PassThrough,
+    outputFileStream: fs.WriteStream,
+  ) {
     outputFileStream.on('drain', () => {
-      outputPassthroughStream.resume()
-      this.logger.debug(`${messagePrefix} stream drained, resume write`)
-    })
+      outputPassthroughStream.resume();
+      this.logger.debug(`${messagePrefix} stream drained, resume write`);
+    });
   }
 
   /**
@@ -524,78 +564,95 @@ export class K8 {
    * @param [filter] - the filter to pass to tar to keep or skip files or directories
    * @returns a Promise that performs the copy operation
    */
-  async copyTo (podName: PodName, containerName: string, srcPath: string, destDir: string, filter: Function | undefined = undefined) {
-    const self = this
-    const namespace = this._getNamespace()
-    const guid = uuid4()
-    const messagePrefix = `copyTo[${podName},${guid}]: `
+  async copyTo(
+    podName: PodName,
+    containerName: string,
+    srcPath: string,
+    destDir: string,
+    filter: Function | undefined = undefined,
+  ) {
+    const self = this;
+    const namespace = this._getNamespace();
+    const guid = uuid4();
+    const messagePrefix = `copyTo[${podName},${guid}]: `;
 
-    if (!await self.getPodByName(podName)) throw new IllegalArgumentError(`Invalid pod ${podName}`)
+    if (!(await self.getPodByName(podName))) throw new IllegalArgumentError(`Invalid pod ${podName}`);
 
-    self.logger.info(`${messagePrefix}[srcPath=${srcPath}, destDir=${destDir}]`)
+    self.logger.info(`${messagePrefix}[srcPath=${srcPath}, destDir=${destDir}]`);
 
-    if (!await this.hasDir(podName, containerName, destDir)) {
-      throw new SoloError(`invalid destination path: ${destDir}`)
+    if (!(await this.hasDir(podName, containerName, destDir))) {
+      throw new SoloError(`invalid destination path: ${destDir}`);
     }
 
     if (!fs.existsSync(srcPath)) {
-      throw new SoloError(`invalid source path: ${srcPath}`)
+      throw new SoloError(`invalid source path: ${srcPath}`);
     }
 
-    const localContext = {} as LocalContextObject
+    const localContext = {} as LocalContextObject;
     try {
-      const srcFile = path.basename(srcPath)
-      const srcDir = path.dirname(srcPath)
+      const srcFile = path.basename(srcPath);
+      const srcDir = path.dirname(srcPath);
 
       // Create a temporary tar file for the source file
-      const tmpFile = self._tempFileFor(srcFile)
+      const tmpFile = self._tempFileFor(srcFile);
 
       // @ts-ignore
-      await tar.c({ file: tmpFile, cwd: srcDir, filter }, [srcFile])
+      await tar.c({file: tmpFile, cwd: srcDir, filter}, [srcFile]);
 
       return new Promise<boolean>((resolve, reject) => {
-        localContext.reject = reject
-        const execInstance = new k8s.Exec(self.kubeConfig)
-        const command = ['tar', 'xf', '-', '-C', destDir]
-        const inputStream = fs.createReadStream(tmpFile)
-        const errPassthroughStream = new stream.PassThrough()
-        const inputPassthroughStream = new stream.PassThrough({ highWaterMark: 10 * 1024 * 1024 }) // Handle backpressure
+        localContext.reject = reject;
+        const execInstance = new k8s.Exec(self.kubeConfig);
+        const command = ['tar', 'xf', '-', '-C', destDir];
+        const inputStream = fs.createReadStream(tmpFile);
+        const errPassthroughStream = new stream.PassThrough();
+        const inputPassthroughStream = new stream.PassThrough({highWaterMark: 10 * 1024 * 1024}); // Handle backpressure
 
         // Use pipe() to automatically handle backpressure
-        inputStream.pipe(inputPassthroughStream)
+        inputStream.pipe(inputPassthroughStream);
 
-        execInstance.exec(namespace, podName, containerName, command, null, errPassthroughStream, inputPassthroughStream, false,
-          ({ status }) => self.handleCallback(status, localContext, messagePrefix))
+        execInstance
+          .exec(
+            namespace,
+            podName,
+            containerName,
+            command,
+            null,
+            errPassthroughStream,
+            inputPassthroughStream,
+            false,
+            ({status}) => self.handleCallback(status, localContext, messagePrefix),
+          )
           .then(conn => {
-            self.logger.info(`${messagePrefix} connection established`)
-            localContext.connection = conn
+            self.logger.info(`${messagePrefix} connection established`);
+            localContext.connection = conn;
 
-            self.registerConnectionOnError(localContext, messagePrefix, conn)
+            self.registerConnectionOnError(localContext, messagePrefix, conn);
 
-            self.registerConnectionOnMessage(messagePrefix)
+            self.registerConnectionOnMessage(messagePrefix);
 
             conn.on('close', (code, reason) => {
-              self.logger.debug(`${messagePrefix} connection closed`)
-              if (code !== 1000) { // code 1000 is the success code
-                return self.exitWithError(localContext, `${messagePrefix} failed with code=${code}, reason=${reason}`)
+              self.logger.debug(`${messagePrefix} connection closed`);
+              if (code !== 1000) {
+                // code 1000 is the success code
+                return self.exitWithError(localContext, `${messagePrefix} failed with code=${code}, reason=${reason}`);
               }
 
               // Cleanup temp file after successful copy
-              inputPassthroughStream.end() // End the passthrough stream
-              self._deleteTempFile(tmpFile) // Cleanup temp file
-              self.logger.info(`${messagePrefix} Successfully copied!`)
-              return resolve(true)
-            })
-          })
+              inputPassthroughStream.end(); // End the passthrough stream
+              self._deleteTempFile(tmpFile); // Cleanup temp file
+              self.logger.info(`${messagePrefix} Successfully copied!`);
+              return resolve(true);
+            });
+          });
 
-        self.registerErrorStreamOnData(localContext, errPassthroughStream)
+        self.registerErrorStreamOnData(localContext, errPassthroughStream);
 
-        self.registerErrorStreamOnError(localContext, messagePrefix, inputPassthroughStream)
-      })
+        self.registerErrorStreamOnError(localContext, messagePrefix, inputPassthroughStream);
+      });
     } catch (e: Error | any) {
-      const errorMessage = `${messagePrefix} failed to upload file: ${e.message}`
-      self.logger.error(errorMessage, e)
-      throw new SoloError(errorMessage, e)
+      const errorMessage = `${messagePrefix} failed to upload file: ${e.message}`;
+      self.logger.error(errorMessage, e);
+      throw new SoloError(errorMessage, e);
     }
   }
 
@@ -609,125 +666,138 @@ export class K8 {
    * @param srcPath - source file path in the container
    * @param destDir - destination directory in the local
    */
-  async copyFrom (podName: PodName, containerName: string, srcPath: string, destDir: string) {
-    const self = this
-    const namespace = self._getNamespace()
-    const guid = uuid4()
-    const messagePrefix = `copyFrom[${podName},${guid}]: `
+  async copyFrom(podName: PodName, containerName: string, srcPath: string, destDir: string) {
+    const self = this;
+    const namespace = self._getNamespace();
+    const guid = uuid4();
+    const messagePrefix = `copyFrom[${podName},${guid}]: `;
 
-    if (!await self.getPodByName(podName)) throw new IllegalArgumentError(`Invalid pod ${podName}`)
+    if (!(await self.getPodByName(podName))) throw new IllegalArgumentError(`Invalid pod ${podName}`);
 
-    self.logger.info(`${messagePrefix}[srcPath=${srcPath}, destDir=${destDir}]`)
+    self.logger.info(`${messagePrefix}[srcPath=${srcPath}, destDir=${destDir}]`);
 
     // get stat for source file in the container
-    let entries = await self.listDir(podName, containerName, srcPath)
+    let entries = await self.listDir(podName, containerName, srcPath);
     if (entries.length !== 1) {
-      throw new SoloError(`${messagePrefix}invalid source path: ${srcPath}`)
+      throw new SoloError(`${messagePrefix}invalid source path: ${srcPath}`);
     }
     // handle symbolic link
     if (entries[0].name.indexOf(' -> ') > -1) {
-      const redirectSrcPath = path.join(path.dirname(srcPath), entries[0].name.substring(entries[0].name.indexOf(' -> ') + 4))
-      entries = await self.listDir(podName, containerName, redirectSrcPath)
+      const redirectSrcPath = path.join(
+        path.dirname(srcPath),
+        entries[0].name.substring(entries[0].name.indexOf(' -> ') + 4),
+      );
+      entries = await self.listDir(podName, containerName, redirectSrcPath);
       if (entries.length !== 1) {
-        throw new SoloError(`${messagePrefix}invalid source path: ${redirectSrcPath}`)
+        throw new SoloError(`${messagePrefix}invalid source path: ${redirectSrcPath}`);
       }
     }
-    const srcFileDesc = entries[0] // cache for later comparison after copy
+    const srcFileDesc = entries[0]; // cache for later comparison after copy
 
     if (!fs.existsSync(destDir)) {
-      throw new SoloError(`${messagePrefix}invalid destination path: ${destDir}`)
+      throw new SoloError(`${messagePrefix}invalid destination path: ${destDir}`);
     }
 
-    const localContext = {} as LocalContextObject
+    const localContext = {} as LocalContextObject;
     try {
-      const srcFileSize = Number.parseInt(srcFileDesc.size)
+      const srcFileSize = Number.parseInt(srcFileDesc.size);
 
-      const srcFile = path.basename(entries[0].name)
-      const srcDir = path.dirname(entries[0].name)
-      const destPath = path.join(destDir, srcFile)
+      const srcFile = path.basename(entries[0].name);
+      const srcDir = path.dirname(entries[0].name);
+      const destPath = path.join(destDir, srcFile);
 
       // download the tar file to a temp location
-      const tmpFile = self._tempFileFor(srcFile)
+      const tmpFile = self._tempFileFor(srcFile);
 
       return new Promise((resolve, reject) => {
-        localContext.reject = reject
-        const execInstance = new k8s.Exec(self.kubeConfig)
-        const command = ['cat', `${srcDir}/${srcFile}`]
-        const outputFileStream = fs.createWriteStream(tmpFile)
-        const outputPassthroughStream = new stream.PassThrough({ highWaterMark: 10 * 1024 * 1024 })
-        const errPassthroughStream = new stream.PassThrough()
+        localContext.reject = reject;
+        const execInstance = new k8s.Exec(self.kubeConfig);
+        const command = ['cat', `${srcDir}/${srcFile}`];
+        const outputFileStream = fs.createWriteStream(tmpFile);
+        const outputPassthroughStream = new stream.PassThrough({highWaterMark: 10 * 1024 * 1024});
+        const errPassthroughStream = new stream.PassThrough();
 
         // Use pipe() to automatically handle backpressure between streams
-        outputPassthroughStream.pipe(outputFileStream)
+        outputPassthroughStream.pipe(outputFileStream);
 
-        self.registerOutputPassthroughStreamOnData(localContext, messagePrefix, outputPassthroughStream, outputFileStream)
-
-        self.registerOutputFileStreamOnDrain(localContext, messagePrefix, outputPassthroughStream, outputFileStream)
-
-        self.logger.debug(`${messagePrefix} running...`)
-        execInstance.exec(
-          namespace,
-          podName,
-          containerName,
-          command,
+        self.registerOutputPassthroughStreamOnData(
+          localContext,
+          messagePrefix,
+          outputPassthroughStream,
           outputFileStream,
-          errPassthroughStream,
-          null,
-          false,
-          ({ status }) => {
-            if (status === 'Failure') {
-              self._deleteTempFile(tmpFile)
-              return self.exitWithError(localContext, `${messagePrefix} Failure occurred`)
-            }
-              self.logger.debug(`${messagePrefix} callback(status)=${status}`)
+        );
 
-          })
+        self.registerOutputFileStreamOnDrain(localContext, messagePrefix, outputPassthroughStream, outputFileStream);
+
+        self.logger.debug(`${messagePrefix} running...`);
+        execInstance
+          .exec(
+            namespace,
+            podName,
+            containerName,
+            command,
+            outputFileStream,
+            errPassthroughStream,
+            null,
+            false,
+            ({status}) => {
+              if (status === 'Failure') {
+                self._deleteTempFile(tmpFile);
+                return self.exitWithError(localContext, `${messagePrefix} Failure occurred`);
+              }
+              self.logger.debug(`${messagePrefix} callback(status)=${status}`);
+            },
+          )
           .then(conn => {
-            self.logger.debug(`${messagePrefix} connection established`)
-            localContext.connection = conn
+            self.logger.debug(`${messagePrefix} connection established`);
+            localContext.connection = conn;
 
-            conn.on('error', (e) => {
-              self._deleteTempFile(tmpFile)
-              return self.exitWithError(localContext, `${messagePrefix} failed, connection error: ${e.message}`)
-            })
+            conn.on('error', e => {
+              self._deleteTempFile(tmpFile);
+              return self.exitWithError(localContext, `${messagePrefix} failed, connection error: ${e.message}`);
+            });
 
-            self.registerConnectionOnMessage(messagePrefix)
+            self.registerConnectionOnMessage(messagePrefix);
 
             conn.on('close', (code, reason) => {
-              self.logger.debug(`${messagePrefix} connection closed`)
-              if (code !== 1000) { // code 1000 is the success code
-                return self.exitWithError(localContext, `${messagePrefix} failed with code=${code}, reason=${reason}`)
+              self.logger.debug(`${messagePrefix} connection closed`);
+              if (code !== 1000) {
+                // code 1000 is the success code
+                return self.exitWithError(localContext, `${messagePrefix} failed with code=${code}, reason=${reason}`);
               }
 
-              outputFileStream.end()
+              outputFileStream.end();
               outputFileStream.close(() => {
                 try {
-                  fs.copyFileSync(tmpFile, destPath)
+                  fs.copyFileSync(tmpFile, destPath);
 
-                  self._deleteTempFile(tmpFile)
+                  self._deleteTempFile(tmpFile);
 
-                  const stat = fs.statSync(destPath)
+                  const stat = fs.statSync(destPath);
                   if (stat && stat.size === srcFileSize) {
-                    self.logger.debug(`${messagePrefix} finished`)
-                    return resolve(true)
+                    self.logger.debug(`${messagePrefix} finished`);
+                    return resolve(true);
                   }
 
-                  return self.exitWithError(localContext, `${messagePrefix} files did not match, srcFileSize=${srcFileSize}, stat.size=${stat?.size}`)
+                  return self.exitWithError(
+                    localContext,
+                    `${messagePrefix} files did not match, srcFileSize=${srcFileSize}, stat.size=${stat?.size}`,
+                  );
                 } catch (e: Error | any) {
-                  return self.exitWithError(localContext, `${messagePrefix} failed to complete download`)
+                  return self.exitWithError(localContext, `${messagePrefix} failed to complete download`);
                 }
-              })
-            })
-          })
+              });
+            });
+          });
 
-        self.registerErrorStreamOnData(localContext, errPassthroughStream)
+        self.registerErrorStreamOnData(localContext, errPassthroughStream);
 
-        self.registerErrorStreamOnError(localContext, messagePrefix, outputFileStream)
-      })
+        self.registerErrorStreamOnError(localContext, messagePrefix, outputFileStream);
+      });
     } catch (e: Error | any) {
-      const errorMessage = `${messagePrefix}failed to download file: ${e.message}`
-      self.logger.error(errorMessage, e)
-      throw new SoloError(errorMessage, e)
+      const errorMessage = `${messagePrefix}failed to download file: ${e.message}`;
+      self.logger.error(errorMessage, e);
+      throw new SoloError(errorMessage, e);
     }
   }
 
@@ -738,77 +808,85 @@ export class K8 {
    * @param command - sh commands as an array to be run within the containerName (e.g 'ls -la /opt/hgcapp')
    * @returns console output as string
    */
-  async execContainer (podName: string, containerName: string, command: string | string[]) {
-    const self = this
-    const namespace = self._getNamespace()
-    const guid = uuid4()
-    const messagePrefix = `execContainer[${podName},${guid}]:`
+  async execContainer(podName: string, containerName: string, command: string | string[]) {
+    const self = this;
+    const namespace = self._getNamespace();
+    const guid = uuid4();
+    const messagePrefix = `execContainer[${podName},${guid}]:`;
 
-    if (!await self.getPodByName(podName)) throw new IllegalArgumentError(`Invalid pod ${podName}`)
+    if (!(await self.getPodByName(podName))) throw new IllegalArgumentError(`Invalid pod ${podName}`);
 
-    if (!command) throw new MissingArgumentError('command cannot be empty')
+    if (!command) throw new MissingArgumentError('command cannot be empty');
     if (!Array.isArray(command)) {
-      command = command.split(' ')
+      command = command.split(' ');
     }
 
-    self.logger.info(`${messagePrefix} begin... command=[${command.join(' ')}]`)
+    self.logger.info(`${messagePrefix} begin... command=[${command.join(' ')}]`);
 
     return new Promise<string>((resolve, reject) => {
-      const localContext = {} as LocalContextObject
-      localContext.reject = reject
-      const execInstance = new k8s.Exec(self.kubeConfig)
-      const tmpFile = self._tempFileFor(`${podName}-output.txt`)
-      const outputFileStream = fs.createWriteStream(tmpFile)
-      const outputPassthroughStream = new stream.PassThrough({ highWaterMark: 10 * 1024 * 1024 })
-      const errPassthroughStream = new stream.PassThrough()
+      const localContext = {} as LocalContextObject;
+      localContext.reject = reject;
+      const execInstance = new k8s.Exec(self.kubeConfig);
+      const tmpFile = self._tempFileFor(`${podName}-output.txt`);
+      const outputFileStream = fs.createWriteStream(tmpFile);
+      const outputPassthroughStream = new stream.PassThrough({highWaterMark: 10 * 1024 * 1024});
+      const errPassthroughStream = new stream.PassThrough();
 
       // Use pipe() to automatically handle backpressure between streams
-      outputPassthroughStream.pipe(outputFileStream)
+      outputPassthroughStream.pipe(outputFileStream);
 
-      self.registerOutputPassthroughStreamOnData(localContext, messagePrefix, outputPassthroughStream, outputFileStream)
-
-      self.registerOutputFileStreamOnDrain(localContext, messagePrefix, outputPassthroughStream, outputFileStream)
-
-      self.logger.debug(`${messagePrefix} running...`)
-      execInstance.exec(
-        namespace,
-        podName,
-        containerName,
-        command,
+      self.registerOutputPassthroughStreamOnData(
+        localContext,
+        messagePrefix,
+        outputPassthroughStream,
         outputFileStream,
-        errPassthroughStream,
-        null,
-        false,
-        ({ status }) => self.handleCallback(status, localContext, messagePrefix))
+      );
+
+      self.registerOutputFileStreamOnDrain(localContext, messagePrefix, outputPassthroughStream, outputFileStream);
+
+      self.logger.debug(`${messagePrefix} running...`);
+      execInstance
+        .exec(
+          namespace,
+          podName,
+          containerName,
+          command,
+          outputFileStream,
+          errPassthroughStream,
+          null,
+          false,
+          ({status}) => self.handleCallback(status, localContext, messagePrefix),
+        )
         .then(conn => {
-          self.logger.debug(`${messagePrefix} connection established`)
-          localContext.connection = conn
+          self.logger.debug(`${messagePrefix} connection established`);
+          localContext.connection = conn;
 
-          self.registerConnectionOnError(localContext, messagePrefix, conn)
+          self.registerConnectionOnError(localContext, messagePrefix, conn);
 
-          self.registerConnectionOnMessage(messagePrefix)
+          self.registerConnectionOnMessage(messagePrefix);
 
           conn.on('close', (code, reason) => {
-            self.logger.debug(`${messagePrefix} connection closed`)
+            self.logger.debug(`${messagePrefix} connection closed`);
             if (!localContext.errorMessage) {
-              if (code !== 1000) { // code 1000 is the success code
-                return self.exitWithError(localContext, `${messagePrefix} failed with code=${code}, reason=${reason}`)
+              if (code !== 1000) {
+                // code 1000 is the success code
+                return self.exitWithError(localContext, `${messagePrefix} failed with code=${code}, reason=${reason}`);
               }
 
-              outputFileStream.end()
+              outputFileStream.end();
               outputFileStream.close(() => {
-                self.logger.debug(`${messagePrefix} finished`)
-                const outData = fs.readFileSync(tmpFile)
-                return resolve(outData.toString())
-              })
+                self.logger.debug(`${messagePrefix} finished`);
+                const outData = fs.readFileSync(tmpFile);
+                return resolve(outData.toString());
+              });
             }
-          })
-        })
+          });
+        });
 
-      self.registerErrorStreamOnData(localContext, errPassthroughStream)
+      self.registerErrorStreamOnData(localContext, errPassthroughStream);
 
-      self.registerErrorStreamOnError(localContext, messagePrefix, outputFileStream)
-    })
+      self.registerErrorStreamOnError(localContext, messagePrefix, outputFileStream);
+    });
   }
 
   /**
@@ -817,19 +895,18 @@ export class K8 {
    * This simple server just forwards traffic from itself to a service running in kubernetes
    * -> localhost:localPort -> port-forward-tunnel -> kubernetes-pod:targetPort
    */
-
-  async portForward (podName: PodName, localPort: number, podPort: number) {
-    const ns = this._getNamespace()
-    const forwarder = new k8s.PortForward(this.kubeConfig, false)
-    const server = await net.createServer((socket) => {
-      forwarder.portForward(ns, podName, [podPort], socket, null, socket, 3)
-    }) as ExtendedNetServer
+  async portForward(podName: PodName, localPort: number, podPort: number) {
+    const ns = this._getNamespace();
+    const forwarder = new k8s.PortForward(this.kubeConfig, false);
+    const server = (await net.createServer(socket => {
+      forwarder.portForward(ns, podName, [podPort], socket, null, socket, 3);
+    })) as ExtendedNetServer;
 
     // add info for logging
-    server.info = `${podName}:${podPort} -> ${constants.LOCAL_HOST}:${localPort}`
-    server.localPort = localPort
-    this.logger.debug(`Starting port-forwarder [${server.info}]`)
-    return server.listen(localPort, constants.LOCAL_HOST)
+    server.info = `${podName}:${podPort} -> ${constants.LOCAL_HOST}:${localPort}`;
+    server.localPort = localPort;
+    this.logger.debug(`Starting port-forwarder [${server.info}]`);
+    return server.listen(localPort, constants.LOCAL_HOST);
   }
 
   /**
@@ -837,22 +914,22 @@ export class K8 {
    * @param host - the host of the target connection
    * @param port - the port of the target connection
    */
-  testConnection (host: string, port: number) {
-    const self = this
+  testConnection(host: string, port: number) {
+    const self = this;
 
     return new Promise<boolean>((resolve, reject) => {
-      const s = new net.Socket()
-      s.on('error', (e) => {
-        s.destroy()
-        reject(new SoloError(`failed to connect to '${host}:${port}': ${e.message}`, e))
-      })
+      const s = new net.Socket();
+      s.on('error', e => {
+        s.destroy();
+        reject(new SoloError(`failed to connect to '${host}:${port}': ${e.message}`, e));
+      });
 
       s.connect(port, host, () => {
-        self.logger.debug(`Connection test successful: ${host}:${port}`)
-        s.destroy()
-        resolve(true)
-      })
-    })
+        self.logger.debug(`Connection test successful: ${host}:${port}`);
+        s.destroy();
+        resolve(true);
+      });
+    });
   }
 
   /**
@@ -862,81 +939,88 @@ export class K8 {
    * @param [maxAttempts] - the maximum number of attempts to check if the server is stopped
    * @param [timeout] - the delay between checks in milliseconds
    */
-  async stopPortForward (server: ExtendedNetServer, maxAttempts = 20, timeout = 500) {
+  async stopPortForward(server: ExtendedNetServer, maxAttempts = 20, timeout = 500) {
     if (!server) {
-      return
+      return;
     }
 
-    this.logger.debug(`Stopping port-forwarder [${server.info}]`)
+    this.logger.debug(`Stopping port-forwarder [${server.info}]`);
 
     // try to close the websocket server
     await new Promise<void>((resolve, reject) => {
-      server.close((e) => {
+      server.close(e => {
         if (e) {
           if (e.message?.includes('Server is not running')) {
-            this.logger.debug(`Server not running, port-forwarder [${server.info}]`)
-            resolve()
+            this.logger.debug(`Server not running, port-forwarder [${server.info}]`);
+            resolve();
           } else {
-            this.logger.debug(`Failed to stop port-forwarder [${server.info}]: ${e.message}`, e)
-            reject(e)
+            this.logger.debug(`Failed to stop port-forwarder [${server.info}]: ${e.message}`, e);
+            reject(e);
           }
         } else {
-          this.logger.debug(`Stopped port-forwarder [${server.info}]`)
-          resolve()
+          this.logger.debug(`Stopped port-forwarder [${server.info}]`);
+          resolve();
         }
-      })
-    })
+      });
+    });
 
     // test to see if the port has been closed or if it is still open
-    let attempts = 0
+    let attempts = 0;
     while (attempts < maxAttempts) {
-      let hasError = 0
-      attempts++
+      let hasError = 0;
+      attempts++;
 
       try {
-        const isPortOpen = await new Promise((resolve) => {
-          const testServer = net.createServer()
+        const isPortOpen = await new Promise(resolve => {
+          const testServer = net
+            .createServer()
             .once('error', err => {
               if (err) {
-                resolve(false)
+                resolve(false);
               }
             })
             .once('listening', () => {
               testServer
                 .once('close', () => {
-                  hasError++
+                  hasError++;
                   if (hasError > 1) {
-                    resolve(false)
+                    resolve(false);
                   } else {
-                    resolve(true)
+                    resolve(true);
                   }
                 })
-                .close()
+                .close();
             })
-            .listen(server.localPort, '0.0.0.0')
-        })
+            .listen(server.localPort, '0.0.0.0');
+        });
         if (isPortOpen) {
-          return
+          return;
         }
       } catch (e: Error | any) {
-        return
+        return;
       }
-      await sleep(timeout)
+      await sleep(timeout);
     }
     if (attempts >= maxAttempts) {
-      throw new SoloError(`failed to stop port-forwarder [${server.info}]`)
+      throw new SoloError(`failed to stop port-forwarder [${server.info}]`);
     }
   }
 
-  async waitForPods (phases = [constants.POD_PHASE_RUNNING], labels: string[] = [], podCount = 1, maxAttempts = constants.PODS_RUNNING_MAX_ATTEMPTS,
-    delay = constants.PODS_RUNNING_DELAY, podItemPredicate?: (items: k8s.V1Pod) => any): Promise<k8s.V1Pod[]> {
-    const ns = this._getNamespace()
-    const labelSelector = labels.join(',')
+  async waitForPods(
+    phases = [constants.POD_PHASE_RUNNING],
+    labels: string[] = [],
+    podCount = 1,
+    maxAttempts = constants.PODS_RUNNING_MAX_ATTEMPTS,
+    delay = constants.PODS_RUNNING_DELAY,
+    podItemPredicate?: (items: k8s.V1Pod) => any,
+  ): Promise<k8s.V1Pod[]> {
+    const ns = this._getNamespace();
+    const labelSelector = labels.join(',');
 
-    this.logger.debug(`WaitForPod [labelSelector: ${labelSelector}, namespace:${ns}, maxAttempts: ${maxAttempts}]`)
+    this.logger.debug(`WaitForPod [labelSelector: ${labelSelector}, namespace:${ns}, maxAttempts: ${maxAttempts}]`);
 
     return new Promise<k8s.V1Pod[]>((resolve, reject) => {
-      let attempts = 0
+      let attempts = 0;
 
       const check = async (resolve: (items: k8s.V1Pod[]) => void, reject: (reason?: any) => void) => {
         // wait for the pod to be available with the given status and labels
@@ -952,38 +1036,44 @@ export class K8 {
           undefined,
           undefined,
           undefined,
-          5 * MINUTES
-        )
+          5 * MINUTES,
+        );
 
-        this.logger.debug(`[attempt: ${attempts}/${maxAttempts}] ${resp.body?.items?.length}/${podCount} pod found [labelSelector: ${labelSelector}, namespace:${ns}]`)
+        this.logger.debug(
+          `[attempt: ${attempts}/${maxAttempts}] ${resp.body?.items?.length}/${podCount} pod found [labelSelector: ${labelSelector}, namespace:${ns}]`,
+        );
         if (resp.body?.items?.length === podCount) {
-          let phaseMatchCount = 0
-          let predicateMatchCount = 0
+          let phaseMatchCount = 0;
+          let predicateMatchCount = 0;
 
           for (const item of resp.body.items) {
             if (phases.includes(item.status?.phase)) {
-              phaseMatchCount++
+              phaseMatchCount++;
             }
 
             if (podItemPredicate && podItemPredicate(item)) {
-              predicateMatchCount++
+              predicateMatchCount++;
             }
           }
 
-          if (phaseMatchCount === podCount && (!podItemPredicate || (predicateMatchCount === podCount))) {
-            return resolve(resp.body.items)
+          if (phaseMatchCount === podCount && (!podItemPredicate || predicateMatchCount === podCount)) {
+            return resolve(resp.body.items);
           }
         }
 
         if (++attempts < maxAttempts) {
-          setTimeout(() => check(resolve, reject), delay)
+          setTimeout(() => check(resolve, reject), delay);
         } else {
-          return reject(new SoloError(`Expected number of pod (${podCount}) not found for labels: ${labelSelector}, phases: ${phases.join(',')} [attempts = ${attempts}/${maxAttempts}]`))
+          return reject(
+            new SoloError(
+              `Expected number of pod (${podCount}) not found for labels: ${labelSelector}, phases: ${phases.join(',')} [attempts = ${attempts}/${maxAttempts}]`,
+            ),
+          );
         }
-      }
+      };
 
-      check(resolve, reject)
-    })
+      check(resolve, reject);
+    });
   }
 
   /**
@@ -993,11 +1083,11 @@ export class K8 {
    * @param [maxAttempts] - maximum attempts to check
    * @param [delay] - delay between checks in milliseconds
    */
-  async waitForPodReady (labels: string[] = [], podCount = 1, maxAttempts = 10, delay = 500) {
+  async waitForPodReady(labels: string[] = [], podCount = 1, maxAttempts = 10, delay = 500) {
     try {
-      return await this.waitForPodConditions(K8.PodReadyCondition, labels, podCount, maxAttempts, delay)
+      return await this.waitForPodConditions(K8.PodReadyCondition, labels, podCount, maxAttempts, delay);
     } catch (e: Error | any) {
-      throw new SoloError(`Pod not ready [maxAttempts = ${maxAttempts}]`, e)
+      throw new SoloError(`Pod not ready [maxAttempts = ${maxAttempts}]`, e);
     }
   }
 
@@ -1009,26 +1099,34 @@ export class K8 {
    * @param [maxAttempts] - maximum attempts to check
    * @param [delay] - delay between checks in milliseconds
    */
-  async waitForPodConditions (conditionsMap: Map<string, string>, labels: string[] = [], podCount = 1, maxAttempts = 10, delay = 500) {
-    if (!conditionsMap || conditionsMap.size === 0) throw new MissingArgumentError('pod conditions are required')
+  async waitForPodConditions(
+    conditionsMap: Map<string, string>,
+    labels: string[] = [],
+    podCount = 1,
+    maxAttempts = 10,
+    delay = 500,
+  ) {
+    if (!conditionsMap || conditionsMap.size === 0) throw new MissingArgumentError('pod conditions are required');
 
-    return await this.waitForPods([constants.POD_PHASE_RUNNING], labels, podCount, maxAttempts, delay, (pod) => {
+    return await this.waitForPods([constants.POD_PHASE_RUNNING], labels, podCount, maxAttempts, delay, pod => {
       if (pod.status?.conditions?.length > 0) {
         for (const cond of pod.status.conditions) {
           for (const entry of conditionsMap.entries()) {
-            const condType = entry[0]
-            const condStatus = entry[1]
+            const condType = entry[0];
+            const condStatus = entry[1];
             if (cond.type === condType && cond.status === condStatus) {
-              this.logger.debug(`Pod condition met for ${pod.metadata?.name} [type: ${cond.type} status: ${cond.status}]`)
-              return true
+              this.logger.debug(
+                `Pod condition met for ${pod.metadata?.name} [type: ${cond.type} status: ${cond.status}]`,
+              );
+              return true;
             }
           }
         }
       }
 
       // condition not found
-      return false
-    })
+      return false;
+    });
   }
 
   /**
@@ -1037,9 +1135,9 @@ export class K8 {
    * @param [labels] - labels
    * @returns list of persistent volume claim names
    */
-  async listPvcsByNamespace (namespace: string, labels: string[] = []) {
-    const pvcs: string[] = []
-    const labelSelector = labels.join(',')
+  async listPvcsByNamespace(namespace: string, labels: string[] = []) {
+    const pvcs: string[] = [];
+    const labelSelector = labels.join(',');
     const resp = await this.kubeClient.listNamespacedPersistentVolumeClaim(
       namespace,
       undefined,
@@ -1052,13 +1150,13 @@ export class K8 {
       undefined,
       undefined,
       5 * MINUTES,
-    )
+    );
 
     for (const item of resp.body.items) {
-      pvcs.push(item.metadata!.name as string)
+      pvcs.push(item.metadata!.name as string);
     }
 
-    return pvcs
+    return pvcs;
   }
 
   /**
@@ -1067,9 +1165,9 @@ export class K8 {
    * @param [labels] - labels
    * @returns list of secret names
    */
-  async listSecretsByNamespace (namespace: string, labels: string[] = []) {
-    const secrets: string[] = []
-    const labelSelector = labels.join(',')
+  async listSecretsByNamespace(namespace: string, labels: string[] = []) {
+    const secrets: string[] = [];
+    const labelSelector = labels.join(',');
     const resp = await this.kubeClient.listNamespacedSecret(
       namespace,
       undefined,
@@ -1082,13 +1180,13 @@ export class K8 {
       undefined,
       undefined,
       5 * MINUTES,
-    )
+    );
 
     for (const item of resp.body.items) {
-      secrets.push(item.metadata!.name as string)
+      secrets.push(item.metadata!.name as string);
     }
 
-    return secrets
+    return secrets;
   }
 
   /**
@@ -1097,14 +1195,25 @@ export class K8 {
    * @param namespace - the namespace of the persistent volume claim to delete
    * @returns true if the persistent volume claim was deleted
    */
-  async deletePvc (name: string, namespace: string) {
-    const resp = await this.kubeClient.deleteNamespacedPersistentVolumeClaim(
-      name,
-      namespace
-    )
+  async deletePvc(name: string, namespace: string) {
+    const resp = await this.kubeClient.deleteNamespacedPersistentVolumeClaim(name, namespace);
 
-    return resp.response.statusCode === 200.0
+    return resp.response.statusCode === 200.0;
   }
+
+  // --------------------------------------- Utility Methods --------------------------------------- //
+
+  public async testClusterConnection(context: string): Promise<boolean> {
+    this.kubeConfig.setCurrentContext(context);
+
+    return await this.kubeConfig
+      .makeApiClient(k8s.CoreV1Api)
+      .listNamespace()
+      .then(() => true)
+      .catch(() => false);
+  }
+
+  // --------------------------------------- Secret --------------------------------------- //
 
   /**
    * retrieve the secret of the given namespace and label selector, if there is more than one, it returns the first
@@ -1113,33 +1222,32 @@ export class K8 {
    * @returns a custom secret object with the relevant attributes, the values of the data key:value pair
    *   objects must be base64 decoded
    */
-  async getSecret (namespace: string, labelSelector: string) {
+  async getSecret(namespace: string, labelSelector: string) {
     const result = await this.kubeClient.listNamespacedSecret(
-        namespace,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        labelSelector,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        5 * MINUTES
-    )
+      namespace,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      labelSelector,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      5 * MINUTES,
+    );
 
     if (result.response.statusCode === 200 && result.body.items && result.body.items.length > 0) {
-      const secretObject = result.body.items[0]
+      const secretObject = result.body.items[0];
       return {
         name: secretObject.metadata!.name as string,
         labels: secretObject.metadata!.labels as Record<string, string>,
         namespace: secretObject.metadata!.namespace as string,
         type: secretObject.type as string,
-        data: secretObject.data as Record<string, string>
-      }
+        data: secretObject.data as Record<string, string>,
+      };
     }
-      return null
-
+    return null;
   }
 
   /**
@@ -1152,30 +1260,40 @@ export class K8 {
    * @param recreate - if we should first run delete in the case that there the secret exists from a previous install
    * @returns whether the secret was created successfully
    */
-  async createSecret (name: string, namespace: string, secretType: string, data: Record<string, string>, labels: any, recreate: boolean) {
+  async createSecret(
+    name: string,
+    namespace: string,
+    secretType: string,
+    data: Record<string, string>,
+    labels: any,
+    recreate: boolean,
+  ) {
     if (recreate) {
       try {
-        await this.kubeClient.deleteNamespacedSecret(name, namespace)
+        await this.kubeClient.deleteNamespacedSecret(name, namespace);
       } catch {
         // do nothing
       }
     }
 
-    const v1Secret = new V1Secret()
-    v1Secret.apiVersion = 'v1'
-    v1Secret.kind = 'Secret'
-    v1Secret.type = secretType
-    v1Secret.data = data
-    v1Secret.metadata = new V1ObjectMeta()
-    v1Secret.metadata.name = name
-    v1Secret.metadata.labels = labels
+    const v1Secret = new V1Secret();
+    v1Secret.apiVersion = 'v1';
+    v1Secret.kind = 'Secret';
+    v1Secret.type = secretType;
+    v1Secret.data = data;
+    v1Secret.metadata = new V1ObjectMeta();
+    v1Secret.metadata.name = name;
+    v1Secret.metadata.labels = labels;
 
     try {
-      const resp = await this.kubeClient.createNamespacedSecret(namespace, v1Secret)
+      const resp = await this.kubeClient.createNamespacedSecret(namespace, v1Secret);
 
-      return resp.response.statusCode === 201
+      return resp.response.statusCode === 201;
     } catch (e: Error | any) {
-      throw new SoloError(`failed to create secret ${name} in namespace ${namespace}: ${e.message}, ${e?.body?.message}`, e)
+      throw new SoloError(
+        `failed to create secret ${name} in namespace ${namespace}: ${e.message}, ${e?.body?.message}`,
+        e,
+      );
     }
   }
 
@@ -1185,102 +1303,200 @@ export class K8 {
    * @param namespace - the namespace to store the secret
    * @returns whether the secret was deleted successfully
    */
-  async deleteSecret (name: string, namespace: string) {
-    const resp = await this.kubeClient.deleteNamespacedSecret(name, namespace)
-    return resp.response.statusCode === 200.0
+  async deleteSecret(name: string, namespace: string) {
+    const resp = await this.kubeClient.deleteNamespacedSecret(name, namespace);
+    return resp.response.statusCode === 200.0;
+  }
+
+  /* ------------- ConfigMap ------------- */
+
+  /**
+   * @param name - name of the configmap
+   * @returns the configmap if found
+   * @throws SoloError - if the response if not found or the response is not OK
+   */
+  public async getNamespacedConfigMap(name: string): Promise<k8s.V1ConfigMap> {
+    const {response, body} = await this.kubeClient.readNamespacedConfigMap(name, this._getNamespace()).catch(e => e);
+
+    this.handleKubernetesClientError(response, body, 'Failed to get namespaced configmap');
+
+    return body as k8s.V1ConfigMap;
+  }
+
+  /**
+   * @param name - for the config name
+   * @param labels - for the config metadata
+   * @param data - to contain in the config
+   */
+  public async createNamespacedConfigMap(
+    name: string,
+    labels: Record<string, string>,
+    data: Record<string, string>,
+  ): Promise<boolean> {
+    const namespace = this._getNamespace();
+
+    const configMap = new k8s.V1ConfigMap();
+    configMap.data = data;
+
+    const metadata = new k8s.V1ObjectMeta();
+    metadata.name = name;
+    metadata.namespace = namespace;
+    metadata.labels = labels;
+    configMap.metadata = metadata;
+    try {
+      const resp = await this.kubeClient.createNamespacedConfigMap(namespace, configMap);
+
+      return resp.response.statusCode === 201;
+    } catch (e: Error | any) {
+      throw new SoloError(
+        `failed to create configmap ${name} in namespace ${namespace}: ${e.message}, ${e?.body?.message}`,
+        e,
+      );
+    }
+  }
+
+  /**
+   * @param name - for the config name
+   * @param labels - for the config metadata
+   * @param data - to contain in the config
+   */
+  public async replaceNamespacedConfigMap(
+    name: string,
+    labels: Record<string, string>,
+    data: Record<string, string>,
+  ): Promise<boolean> {
+    const namespace = this._getNamespace();
+
+    const configMap = new k8s.V1ConfigMap();
+    configMap.data = data;
+
+    const metadata = new k8s.V1ObjectMeta();
+    metadata.name = name;
+    metadata.namespace = namespace;
+    metadata.labels = labels;
+    configMap.metadata = metadata;
+    try {
+      const resp = await this.kubeClient.replaceNamespacedConfigMap(name, namespace, configMap);
+
+      return resp.response.statusCode === 201;
+    } catch (e: Error | any) {
+      throw new SoloError(
+        `failed to create configmap ${name} in namespace ${namespace}: ${e.message}, ${e?.body?.message}`,
+        e,
+      );
+    }
+  }
+
+  public async deleteNamespacedConfigMap(name: string, namespace: string): Promise<boolean> {
+    try {
+      const resp = await this.kubeClient.deleteNamespacedConfigMap(name, namespace);
+
+      return resp.response.statusCode === 201;
+    } catch (e: Error | any) {
+      throw new SoloError(
+        `failed to create configmap ${name} in namespace ${namespace}: ${e.message}, ${e?.body?.message}`,
+        e,
+      );
+    }
   }
 
   // --------------------------------------- LEASES --------------------------------------- //
-  async createNamespacedLease (namespace: string, leaseName: string, holderName: string, durationSeconds = 20) {
-    const lease = new k8s.V1Lease()
+  async createNamespacedLease(namespace: string, leaseName: string, holderName: string, durationSeconds = 20) {
+    const lease = new k8s.V1Lease();
 
-    const metadata = new k8s.V1ObjectMeta()
-    metadata.name = leaseName
-    metadata.namespace = namespace
-    lease.metadata = metadata
+    const metadata = new k8s.V1ObjectMeta();
+    metadata.name = leaseName;
+    metadata.namespace = namespace;
+    lease.metadata = metadata;
 
-    const spec = new k8s.V1LeaseSpec()
-    spec.holderIdentity = holderName
-    spec.leaseDurationSeconds = durationSeconds
-    spec.acquireTime = new k8s.V1MicroTime()
-    lease.spec = spec
+    const spec = new k8s.V1LeaseSpec();
+    spec.holderIdentity = holderName;
+    spec.leaseDurationSeconds = durationSeconds;
+    spec.acquireTime = new k8s.V1MicroTime();
+    lease.spec = spec;
 
-    const { response, body } = await this.coordinationApiClient.createNamespacedLease(namespace, lease)
-      .catch(e => e)
+    const {response, body} = await this.coordinationApiClient.createNamespacedLease(namespace, lease).catch(e => e);
 
-    this._handleKubernetesClientError(response, body, 'Failed to create namespaced lease')
+    this.handleKubernetesClientError(response, body, 'Failed to create namespaced lease');
 
-    return body as k8s.V1Lease
+    return body as k8s.V1Lease;
   }
 
-  async readNamespacedLease (leaseName: string, namespace: string) {
-    const { response, body } = await this.coordinationApiClient.readNamespacedLease(leaseName, namespace)
-      .catch(e => e)
+  async readNamespacedLease(leaseName: string, namespace: string) {
+    const {response, body} = await this.coordinationApiClient.readNamespacedLease(leaseName, namespace).catch(e => e);
 
-    this._handleKubernetesClientError(response, body, 'Failed to read namespaced lease')
+    this.handleKubernetesClientError(response, body, 'Failed to read namespaced lease');
 
-    return body as k8s.V1Lease
+    return body as k8s.V1Lease;
   }
 
-  async renewNamespaceLease (leaseName: string, namespace: string, lease: k8s.V1Lease) {
-    lease.spec.renewTime = new k8s.V1MicroTime()
+  async renewNamespaceLease(leaseName: string, namespace: string, lease: k8s.V1Lease) {
+    lease.spec.renewTime = new k8s.V1MicroTime();
 
-    const { response, body } = await this.coordinationApiClient.replaceNamespacedLease(leaseName, namespace, lease)
-      .catch(e => e)
+    const {response, body} = await this.coordinationApiClient
+      .replaceNamespacedLease(leaseName, namespace, lease)
+      .catch(e => e);
 
-    this._handleKubernetesClientError(response, body, 'Failed to renew namespaced lease')
+    this.handleKubernetesClientError(response, body, 'Failed to renew namespaced lease');
 
-    return body as k8s.V1Lease
+    return body as k8s.V1Lease;
   }
 
-  async transferNamespaceLease (lease: k8s.V1Lease, newHolderName: string): Promise<V1Lease> {
-    lease.spec.leaseTransitions++
-    lease.spec.renewTime = new k8s.V1MicroTime()
-    lease.spec.holderIdentity = newHolderName
+  async transferNamespaceLease(lease: k8s.V1Lease, newHolderName: string): Promise<V1Lease> {
+    lease.spec.leaseTransitions++;
+    lease.spec.renewTime = new k8s.V1MicroTime();
+    lease.spec.holderIdentity = newHolderName;
 
-    const { response, body } = await this.coordinationApiClient
-        .replaceNamespacedLease(lease.metadata.name, lease.metadata.namespace, lease)
-        .catch(e => e)
+    const {response, body} = await this.coordinationApiClient
+      .replaceNamespacedLease(lease.metadata.name, lease.metadata.namespace, lease)
+      .catch(e => e);
 
-    this._handleKubernetesClientError(response, body, 'Failed to transfer namespaced lease')
+    this.handleKubernetesClientError(response, body, 'Failed to transfer namespaced lease');
 
-    return body as k8s.V1Lease
+    return body as k8s.V1Lease;
   }
 
-  async deleteNamespacedLease (name: string, namespace: string) {
-    const { response, body } = await this.coordinationApiClient.deleteNamespacedLease(name, namespace)
-      .catch(e => e)
+  async deleteNamespacedLease(name: string, namespace: string) {
+    const {response, body} = await this.coordinationApiClient.deleteNamespacedLease(name, namespace).catch(e => e);
 
-    this._handleKubernetesClientError(response, body, 'Failed to delete namespaced lease')
+    this.handleKubernetesClientError(response, body, 'Failed to delete namespaced lease');
 
-    return body as k8s.V1Status
+    return body as k8s.V1Status;
   }
 
-  private _handleKubernetesClientError (response: http.IncomingMessage, error: Error | any, errorMessage: string) {
-    const statusCode = +response.statusCode
+  /* ------------- Utilities ------------- */
 
-    if (statusCode <= 202) return
-    errorMessage += `, statusCode: ${response.statusCode}`
-    this.logger.error(errorMessage, error)
+  /**
+   * @param response - response object from the kubeclient call
+   * @param error - body of the response becomes the error if the status is not OK
+   * @param errorMessage - the error message to be passed in case it fails
+   *
+   * @throws SoloError - if the status code is not OK
+   */
+  private handleKubernetesClientError(response: http.IncomingMessage, error: Error | any, errorMessage: string): void {
+    const statusCode = +response?.statusCode || 500;
 
-    throw new SoloError(errorMessage, errorMessage, { statusCode: statusCode })
+    if (statusCode <= 202) return;
+    errorMessage += `, statusCode: ${statusCode}`;
+    this.logger.error(errorMessage, error);
+
+    throw new SoloError(errorMessage, errorMessage, {statusCode: statusCode});
   }
 
-
-  private _getNamespace () {
-    const ns = this.configManager.getFlag<string>(flags.namespace)
-    if (!ns) throw new MissingArgumentError('namespace is not set')
-    return ns
+  private _getNamespace() {
+    const ns = this.configManager.getFlag<string>(flags.namespace);
+    if (!ns) throw new MissingArgumentError('namespace is not set');
+    return ns;
   }
 
-  private _tempFileFor (fileName: string) {
-    const tmpFile = `${fileName}-${uuid4()}`
-    return path.join(os.tmpdir(), tmpFile)
+  private _tempFileFor(fileName: string) {
+    const tmpFile = `${fileName}-${uuid4()}`;
+    return path.join(os.tmpdir(), tmpFile);
   }
 
-  private _deleteTempFile (tmpFile: string) {
+  private _deleteTempFile(tmpFile: string) {
     if (fs.existsSync(tmpFile)) {
-      fs.rmSync(tmpFile)
+      fs.rmSync(tmpFile);
     }
   }
 
@@ -1290,29 +1506,31 @@ export class K8 {
    * @param podName - the name of the pod
    * @param namespace - the namespace of the pod
    */
-  async killPod (podName: string, namespace: string) {
+  async killPod(podName: string, namespace: string) {
     try {
-      const result = await this.kubeClient.deleteNamespacedPod(podName, namespace, undefined, undefined, 1)
+      const result = await this.kubeClient.deleteNamespacedPod(podName, namespace, undefined, undefined, 1);
       if (result.response.statusCode !== 200) {
-        throw new SoloError(`Failed to delete pod ${podName} in namespace ${namespace}: statusCode: ${result.response.statusCode}`)
+        throw new SoloError(
+          `Failed to delete pod ${podName} in namespace ${namespace}: statusCode: ${result.response.statusCode}`,
+        );
       }
-      let podExists = true
+      let podExists = true;
       while (podExists) {
-        const pod = await this.getPodByName(podName)
+        const pod = await this.getPodByName(podName);
         if (!pod?.metadata?.deletionTimestamp) {
-          podExists = false
+          podExists = false;
         } else {
-          await sleep(1000)
+          await sleep(1000);
         }
       }
     } catch (e) {
-      const errorMessage = `Failed to delete pod ${podName} in namespace ${namespace}: ${e.message}`
+      const errorMessage = `Failed to delete pod ${podName} in namespace ${namespace}: ${e.message}`;
       if (e.body?.code === 404 || e.response?.body?.code === 404) {
-        this.logger.info(`Pod not found: ${errorMessage}`, e)
-        return
+        this.logger.info(`Pod not found: ${errorMessage}`, e);
+        return;
       }
-      this.logger.error(errorMessage, e)
-      throw new SoloError(errorMessage, e)
+      this.logger.error(errorMessage, e);
+      throw new SoloError(errorMessage, e);
     }
   }
 }

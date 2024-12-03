@@ -14,11 +14,11 @@
  * limitations under the License.
  *
  */
-import { constants } from '../core/index.js'
-import * as core from '../core/index.js'
-import * as version from '../../version.js'
-import path from 'path'
-import type { CommandFlag } from '../types/index.js'
+import {constants} from '../core/index.js';
+import * as core from '../core/index.js';
+import * as version from '../../version.js';
+import path from 'path';
+import type {CommandFlag} from '../types/index.js';
 
 /**
  * Set flag from the flag option
@@ -26,10 +26,10 @@ import type { CommandFlag } from '../types/index.js'
  * @param commandFlags a set of command flags
  *
  */
-export function setCommandFlags (y: any, ...commandFlags: CommandFlag[]) {
+export function setCommandFlags(y: any, ...commandFlags: CommandFlag[]) {
   commandFlags.forEach(flag => {
-    y.option(flag.name, flag.definition)
-  })
+    y.option(flag.name, flag.definition);
+  });
 }
 
 export const devMode: CommandFlag = {
@@ -38,9 +38,9 @@ export const devMode: CommandFlag = {
   definition: {
     describe: 'Enable developer mode',
     defaultValue: false,
-    type: 'boolean'
-  }
-}
+    type: 'boolean',
+  },
+};
 
 // list of common flags across commands. command specific flags are defined in the command's module.
 export const clusterName: CommandFlag = {
@@ -50,9 +50,9 @@ export const clusterName: CommandFlag = {
     describe: 'Cluster name',
     defaultValue: 'solo-cluster-setup',
     alias: 'c',
-    type: 'string'
-  }
-}
+    type: 'string',
+  },
+};
 
 export const clusterSetupNamespace: CommandFlag = {
   constName: 'clusterSetupNamespace',
@@ -61,9 +61,9 @@ export const clusterSetupNamespace: CommandFlag = {
     describe: 'Cluster Setup Namespace',
     defaultValue: constants.SOLO_SETUP_NAMESPACE,
     alias: 's',
-    type: 'string'
-  }
-}
+    type: 'string',
+  },
+};
 
 export const namespace: CommandFlag = {
   constName: 'namespace',
@@ -71,9 +71,9 @@ export const namespace: CommandFlag = {
   definition: {
     describe: 'Namespace',
     alias: 'n',
-    type: 'string'
-  }
-}
+    type: 'string',
+  },
+};
 
 export const deployHederaExplorer: CommandFlag = {
   constName: 'deployHederaExplorer',
@@ -82,9 +82,9 @@ export const deployHederaExplorer: CommandFlag = {
     describe: 'Deploy hedera explorer',
     defaultValue: true,
     alias: 'x',
-    type: 'boolean'
-  }
-}
+    type: 'boolean',
+  },
+};
 
 export const valuesFile: CommandFlag = {
   constName: 'valuesFile',
@@ -93,9 +93,9 @@ export const valuesFile: CommandFlag = {
     describe: 'Comma separated chart values files',
     defaultValue: '',
     alias: 'f',
-    type: 'string'
-  }
-}
+    type: 'string',
+  },
+};
 
 export const profileFile: CommandFlag = {
   constName: 'profileFile',
@@ -103,9 +103,9 @@ export const profileFile: CommandFlag = {
   definition: {
     describe: 'Resource profile definition (e.g. custom-spec.yaml)',
     defaultValue: constants.DEFAULT_PROFILE_FILE,
-    type: 'string'
-  }
-}
+    type: 'string',
+  },
+};
 
 export const profileName: CommandFlag = {
   constName: 'profileName',
@@ -113,9 +113,9 @@ export const profileName: CommandFlag = {
   definition: {
     describe: `Resource profile (${constants.ALL_PROFILES.join(' | ')})`,
     defaultValue: constants.PROFILE_LOCAL,
-    type: 'string'
-  }
-}
+    type: 'string',
+  },
+};
 
 export const deployPrometheusStack: CommandFlag = {
   constName: 'deployPrometheusStack',
@@ -123,9 +123,9 @@ export const deployPrometheusStack: CommandFlag = {
   definition: {
     describe: 'Deploy prometheus stack',
     defaultValue: false,
-    type: 'boolean'
-  }
-}
+    type: 'boolean',
+  },
+};
 
 export const enablePrometheusSvcMonitor: CommandFlag = {
   constName: 'enablePrometheusSvcMonitor',
@@ -133,9 +133,9 @@ export const enablePrometheusSvcMonitor: CommandFlag = {
   definition: {
     describe: 'Enable prometheus service monitor for the network nodes',
     defaultValue: false,
-    type: 'boolean'
-  }
-}
+    type: 'boolean',
+  },
+};
 
 export const deployMinio: CommandFlag = {
   constName: 'deployMinio',
@@ -143,9 +143,9 @@ export const deployMinio: CommandFlag = {
   definition: {
     describe: 'Deploy minio operator',
     defaultValue: true,
-    type: 'boolean'
-  }
-}
+    type: 'boolean',
+  },
+};
 
 export const deployCertManager: CommandFlag = {
   constName: 'deployCertManager',
@@ -153,9 +153,9 @@ export const deployCertManager: CommandFlag = {
   definition: {
     describe: 'Deploy cert manager, also deploys acme-cluster-issuer',
     defaultValue: false,
-    type: 'boolean'
-  }
-}
+    type: 'boolean',
+  },
+};
 
 /*
     Deploy cert manager CRDs separately from cert manager itself.  Cert manager
@@ -167,9 +167,9 @@ export const deployCertManagerCrds: CommandFlag = {
   definition: {
     describe: 'Deploy cert manager CRDs',
     defaultValue: false,
-    type: 'boolean'
-  }
-}
+    type: 'boolean',
+  },
+};
 
 export const deployJsonRpcRelay: CommandFlag = {
   constName: 'deployJsonRpcRelay',
@@ -178,9 +178,9 @@ export const deployJsonRpcRelay: CommandFlag = {
     describe: 'Deploy JSON RPC Relay',
     defaultValue: false,
     alias: 'j',
-    type: 'boolean'
-  }
-}
+    type: 'boolean',
+  },
+};
 
 export const stateFile: CommandFlag = {
   constName: 'stateFile',
@@ -188,9 +188,9 @@ export const stateFile: CommandFlag = {
   definition: {
     describe: 'A zipped state file to be used for the network',
     defaultValue: '',
-    type: 'string'
-  }
-}
+    type: 'string',
+  },
+};
 
 export const releaseTag: CommandFlag = {
   constName: 'releaseTag',
@@ -199,9 +199,9 @@ export const releaseTag: CommandFlag = {
     describe: `Release tag to be used (e.g. ${version.HEDERA_PLATFORM_VERSION})`,
     alias: 't',
     defaultValue: version.HEDERA_PLATFORM_VERSION,
-    type: 'string'
-  }
-}
+    type: 'string',
+  },
+};
 
 export const relayReleaseTag: CommandFlag = {
   constName: 'relayReleaseTag',
@@ -209,9 +209,9 @@ export const relayReleaseTag: CommandFlag = {
   definition: {
     describe: 'Relay release tag to be used (e.g. v0.48.0)',
     defaultValue: version.HEDERA_JSON_RPC_RELAY_VERSION,
-    type: 'string'
-  }
-}
+    type: 'string',
+  },
+};
 
 export const cacheDir: CommandFlag = {
   constName: 'cacheDir',
@@ -219,9 +219,9 @@ export const cacheDir: CommandFlag = {
   definition: {
     describe: 'Local cache directory',
     defaultValue: core.constants.SOLO_CACHE_DIR,
-    type: 'string'
-  }
-}
+    type: 'string',
+  },
+};
 
 export const nodeAliasesUnparsed: CommandFlag = {
   constName: 'nodeAliasesUnparsed',
@@ -229,9 +229,9 @@ export const nodeAliasesUnparsed: CommandFlag = {
   definition: {
     describe: 'Comma separated node aliases (empty means all nodes)',
     alias: 'i',
-    type: 'string'
-  }
-}
+    type: 'string',
+  },
+};
 
 export const force: CommandFlag = {
   constName: 'force',
@@ -240,9 +240,9 @@ export const force: CommandFlag = {
     describe: 'Force actions even if those can be skipped',
     defaultValue: false,
     alias: 'f',
-    type: 'boolean'
-  }
-}
+    type: 'boolean',
+  },
+};
 
 export const chartDirectory: CommandFlag = {
   constName: 'chartDirectory',
@@ -251,9 +251,9 @@ export const chartDirectory: CommandFlag = {
     describe: 'Local chart directory path (e.g. ~/solo-charts/charts',
     defaultValue: '',
     alias: 'd',
-    type: 'string'
-  }
-}
+    type: 'string',
+  },
+};
 
 export const replicaCount: CommandFlag = {
   constName: 'replicaCount',
@@ -262,9 +262,9 @@ export const replicaCount: CommandFlag = {
     describe: 'Replica count',
     defaultValue: 1,
     alias: '',
-    type: 'number'
-  }
-}
+    type: 'number',
+  },
+};
 
 export const chainId: CommandFlag = {
   constName: 'chainId',
@@ -273,9 +273,9 @@ export const chainId: CommandFlag = {
     describe: 'Ledger ID (a.k.a. Chain ID)',
     defaultValue: constants.HEDERA_CHAIN_ID, // Ref: https://github.com/hashgraph/hedera-json-rpc-relay#configuration
     alias: 'l',
-    type: 'string'
-  }
-}
+    type: 'string',
+  },
+};
 
 // Ref: https://github.com/hashgraph/hedera-json-rpc-relay/blob/main/docs/configuration.md
 export const operatorId: CommandFlag = {
@@ -284,9 +284,9 @@ export const operatorId: CommandFlag = {
   definition: {
     describe: 'Operator ID',
     defaultValue: constants.OPERATOR_ID,
-    type: 'string'
-  }
-}
+    type: 'string',
+  },
+};
 
 // Ref: https://github.com/hashgraph/hedera-json-rpc-relay/blob/main/docs/configuration.md
 export const operatorKey: CommandFlag = {
@@ -295,9 +295,9 @@ export const operatorKey: CommandFlag = {
   definition: {
     describe: 'Operator Key',
     defaultValue: constants.OPERATOR_KEY,
-    type: 'string'
-  }
-}
+    type: 'string',
+  },
+};
 
 export const privateKey: CommandFlag = {
   constName: 'privateKey',
@@ -305,9 +305,9 @@ export const privateKey: CommandFlag = {
   definition: {
     describe: 'Show private key information',
     defaultValue: false,
-    type: 'boolean'
-  }
-}
+    type: 'boolean',
+  },
+};
 
 export const generateGossipKeys: CommandFlag = {
   constName: 'generateGossipKeys',
@@ -315,9 +315,9 @@ export const generateGossipKeys: CommandFlag = {
   definition: {
     describe: 'Generate gossip keys for nodes',
     defaultValue: false,
-    type: 'boolean'
-  }
-}
+    type: 'boolean',
+  },
+};
 
 export const generateTlsKeys: CommandFlag = {
   constName: 'generateTlsKeys',
@@ -325,9 +325,9 @@ export const generateTlsKeys: CommandFlag = {
   definition: {
     describe: 'Generate gRPC TLS keys for nodes',
     defaultValue: false,
-    type: 'boolean'
-  }
-}
+    type: 'boolean',
+  },
+};
 
 export const enableTimeout: CommandFlag = {
   constName: 'enableTimeout',
@@ -335,29 +335,31 @@ export const enableTimeout: CommandFlag = {
   definition: {
     describe: 'enable time out for running a command',
     defaultValue: false,
-    type: 'boolean'
-  }
-}
+    type: 'boolean',
+  },
+};
 
 export const tlsClusterIssuerType: CommandFlag = {
   constName: 'tlsClusterIssuerType',
   name: 'tls-cluster-issuer-type',
   definition: {
-    describe: 'The TLS cluster issuer type to use for hedera explorer, defaults to "self-signed", the available options are: "acme-staging", "acme-prod", or "self-signed"',
+    describe:
+      'The TLS cluster issuer type to use for hedera explorer, defaults to "self-signed", the available options are: "acme-staging", "acme-prod", or "self-signed"',
     defaultValue: 'self-signed',
-    type: 'string'
-  }
-}
+    type: 'string',
+  },
+};
 
 export const enableHederaExplorerTls: CommandFlag = {
   constName: 'enableHederaExplorerTls',
   name: 'enable-hedera-explorer-tls',
   definition: {
-    describe: 'Enable the Hedera Explorer TLS, defaults to false, requires certManager and certManagerCrds, which can be deployed through solo-cluster-setup chart or standalone',
+    describe:
+      'Enable the Hedera Explorer TLS, defaults to false, requires certManager and certManagerCrds, which can be deployed through solo-cluster-setup chart or standalone',
     defaultValue: false,
-    type: 'boolean'
-  }
-}
+    type: 'boolean',
+  },
+};
 
 export const hederaExplorerTlsLoadBalancerIp: CommandFlag = {
   constName: 'hederaExplorerTlsLoadBalancerIp',
@@ -365,9 +367,9 @@ export const hederaExplorerTlsLoadBalancerIp: CommandFlag = {
   definition: {
     describe: 'The static IP address to use for the Hedera Explorer TLS load balancer, defaults to ""',
     defaultValue: '',
-    type: 'string'
-  }
-}
+    type: 'string',
+  },
+};
 
 export const hederaExplorerTlsHostName: CommandFlag = {
   constName: 'hederaExplorerTlsHostName',
@@ -375,9 +377,9 @@ export const hederaExplorerTlsHostName: CommandFlag = {
   definition: {
     describe: 'The host name to use for the Hedera Explorer TLS, defaults to "explorer.solo.local"',
     defaultValue: 'explorer.solo.local',
-    type: 'string'
-  }
-}
+    type: 'string',
+  },
+};
 
 export const deletePvcs: CommandFlag = {
   constName: 'deletePvcs',
@@ -385,9 +387,9 @@ export const deletePvcs: CommandFlag = {
   definition: {
     describe: 'Delete the persistent volume claims',
     defaultValue: false,
-    type: 'boolean'
-  }
-}
+    type: 'boolean',
+  },
+};
 
 export const deleteSecrets: CommandFlag = {
   constName: 'deleteSecrets',
@@ -395,9 +397,9 @@ export const deleteSecrets: CommandFlag = {
   definition: {
     describe: 'Delete the network secrets',
     defaultValue: false,
-    type: 'boolean'
-  }
-}
+    type: 'boolean',
+  },
+};
 
 export const soloChartVersion: CommandFlag = {
   constName: 'soloChartVersion',
@@ -405,9 +407,9 @@ export const soloChartVersion: CommandFlag = {
   definition: {
     describe: 'Solo testing chart version',
     defaultValue: version.SOLO_CHART_VERSION,
-    type: 'string'
-  }
-}
+    type: 'string',
+  },
+};
 
 export const applicationProperties: CommandFlag = {
   constName: 'applicationProperties',
@@ -415,9 +417,9 @@ export const applicationProperties: CommandFlag = {
   definition: {
     describe: 'application.properties file for node',
     defaultValue: path.join(constants.SOLO_CACHE_DIR, 'templates', 'application.properties'),
-    type: 'string'
-  }
-}
+    type: 'string',
+  },
+};
 
 export const applicationEnv: CommandFlag = {
   constName: 'applicationEnv',
@@ -425,9 +427,9 @@ export const applicationEnv: CommandFlag = {
   definition: {
     describe: 'application.env file for node',
     defaultValue: '',
-    type: 'string'
-  }
-}
+    type: 'string',
+  },
+};
 
 export const apiPermissionProperties: CommandFlag = {
   constName: 'apiPermissionProperties',
@@ -435,9 +437,9 @@ export const apiPermissionProperties: CommandFlag = {
   definition: {
     describe: 'api-permission.properties file for node',
     defaultValue: path.join(constants.SOLO_CACHE_DIR, 'templates', 'api-permission.properties'),
-    type: 'string'
-  }
-}
+    type: 'string',
+  },
+};
 
 export const bootstrapProperties: CommandFlag = {
   constName: 'bootstrapProperties',
@@ -445,9 +447,9 @@ export const bootstrapProperties: CommandFlag = {
   definition: {
     describe: 'bootstrap.properties file for node',
     defaultValue: path.join(constants.SOLO_CACHE_DIR, 'templates', 'bootstrap.properties'),
-    type: 'string'
-  }
-}
+    type: 'string',
+  },
+};
 
 export const settingTxt: CommandFlag = {
   constName: 'settingTxt',
@@ -455,9 +457,9 @@ export const settingTxt: CommandFlag = {
   definition: {
     describe: 'settings.txt file for node',
     defaultValue: path.join(constants.SOLO_CACHE_DIR, 'templates', 'settings.txt'),
-    type: 'string'
-  }
-}
+    type: 'string',
+  },
+};
 
 export const app: CommandFlag = {
   constName: 'app',
@@ -465,9 +467,9 @@ export const app: CommandFlag = {
   definition: {
     describe: 'Testing app name',
     defaultValue: constants.HEDERA_APP_NAME,
-    type: 'string'
-  }
-}
+    type: 'string',
+  },
+};
 
 export const appConfig: CommandFlag = {
   constName: 'appConfig',
@@ -475,9 +477,9 @@ export const appConfig: CommandFlag = {
   definition: {
     describe: 'json config file of testing app',
     defaultValue: '',
-    type: 'string'
-  }
-}
+    type: 'string',
+  },
+};
 
 export const localBuildPath: CommandFlag = {
   constName: 'localBuildPath',
@@ -485,9 +487,9 @@ export const localBuildPath: CommandFlag = {
   definition: {
     describe: 'path of hedera local repo',
     defaultValue: '',
-    type: 'string'
-  }
-}
+    type: 'string',
+  },
+};
 
 export const newAccountNumber: CommandFlag = {
   constName: 'newAccountNumber',
@@ -495,9 +497,9 @@ export const newAccountNumber: CommandFlag = {
   definition: {
     describe: 'new account number for node update transaction',
     defaultValue: '',
-    type: 'string'
-  }
-}
+    type: 'string',
+  },
+};
 
 export const newAdminKey: CommandFlag = {
   constName: 'newAdminKey',
@@ -505,9 +507,9 @@ export const newAdminKey: CommandFlag = {
   definition: {
     describe: 'new admin key for the Hedera account',
     defaultValue: '',
-    type: 'string'
-  }
-}
+    type: 'string',
+  },
+};
 
 export const gossipPublicKey: CommandFlag = {
   constName: 'gossipPublicKey',
@@ -515,9 +517,9 @@ export const gossipPublicKey: CommandFlag = {
   definition: {
     describe: 'path and file name of the public key for signing gossip in PEM key format to be used',
     defaultValue: '',
-    type: 'string'
-  }
-}
+    type: 'string',
+  },
+};
 
 export const gossipPrivateKey: CommandFlag = {
   constName: 'gossipPrivateKey',
@@ -525,9 +527,9 @@ export const gossipPrivateKey: CommandFlag = {
   definition: {
     describe: 'path and file name of the private key for signing gossip in PEM key format to be used',
     defaultValue: '',
-    type: 'string'
-  }
-}
+    type: 'string',
+  },
+};
 
 export const tlsPublicKey: CommandFlag = {
   constName: 'tlsPublicKey',
@@ -535,9 +537,9 @@ export const tlsPublicKey: CommandFlag = {
   definition: {
     describe: 'path and file name of the public TLS key to be used',
     defaultValue: '',
-    type: 'string'
-  }
-}
+    type: 'string',
+  },
+};
 
 export const tlsPrivateKey: CommandFlag = {
   constName: 'tlsPrivateKey',
@@ -545,9 +547,9 @@ export const tlsPrivateKey: CommandFlag = {
   definition: {
     describe: 'path and file name of the private TLS key to be used',
     defaultValue: '',
-    type: 'string'
-  }
-}
+    type: 'string',
+  },
+};
 
 export const log4j2Xml: CommandFlag = {
   constName: 'log4j2Xml',
@@ -555,9 +557,9 @@ export const log4j2Xml: CommandFlag = {
   definition: {
     describe: 'log4j2.xml file for node',
     defaultValue: path.join(constants.SOLO_CACHE_DIR, 'templates', 'log4j2.xml'),
-    type: 'string'
-  }
-}
+    type: 'string',
+  },
+};
 
 export const updateAccountKeys: CommandFlag = {
   constName: 'updateAccountKeys',
@@ -565,9 +567,9 @@ export const updateAccountKeys: CommandFlag = {
   definition: {
     describe: 'Updates the special account keys to new keys and stores their keys in a corresponding Kubernetes secret',
     defaultValue: true,
-    type: 'boolean'
-  }
-}
+    type: 'boolean',
+  },
+};
 
 export const ed25519PrivateKey: CommandFlag = {
   constName: 'ed25519PrivateKey',
@@ -575,9 +577,9 @@ export const ed25519PrivateKey: CommandFlag = {
   definition: {
     describe: 'ED25519 private key for the Hedera account',
     defaultValue: '',
-    type: 'string'
-  }
-}
+    type: 'string',
+  },
+};
 
 export const generateEcdsaKey: CommandFlag = {
   constName: 'generateEcdsaKey',
@@ -585,9 +587,9 @@ export const generateEcdsaKey: CommandFlag = {
   definition: {
     describe: 'Generate ECDSA private key for the Hedera account',
     defaultValue: false,
-    type: 'boolean'
-  }
-}
+    type: 'boolean',
+  },
+};
 
 export const ecdsaPrivateKey: CommandFlag = {
   constName: 'ecdsaPrivateKey',
@@ -595,9 +597,9 @@ export const ecdsaPrivateKey: CommandFlag = {
   definition: {
     describe: 'ECDSA private key for the Hedera account',
     defaultValue: '',
-    type: 'string'
-  }
-}
+    type: 'string',
+  },
+};
 
 export const setAlias: CommandFlag = {
   constName: 'setAlias',
@@ -605,9 +607,9 @@ export const setAlias: CommandFlag = {
   definition: {
     describe: 'Sets the alias for the Hedera account when it is created, requires --ecdsa-private-key',
     defaultValue: false,
-    type: 'boolean'
-  }
-}
+    type: 'boolean',
+  },
+};
 
 export const accountId: CommandFlag = {
   constName: 'accountId',
@@ -615,9 +617,9 @@ export const accountId: CommandFlag = {
   definition: {
     describe: 'The Hedera account id, e.g.: 0.0.1001',
     defaultValue: '',
-    type: 'string'
-  }
-}
+    type: 'string',
+  },
+};
 
 export const amount: CommandFlag = {
   constName: 'amount',
@@ -625,9 +627,9 @@ export const amount: CommandFlag = {
   definition: {
     describe: 'Amount of HBAR to add',
     defaultValue: 100,
-    type: 'number'
-  }
-}
+    type: 'number',
+  },
+};
 
 export const createAmount: CommandFlag = {
   constName: 'createAmount',
@@ -635,36 +637,36 @@ export const createAmount: CommandFlag = {
   definition: {
     describe: 'Amount of new account to create',
     defaultValue: 1,
-    type: 'number'
-  }
-}
+    type: 'number',
+  },
+};
 
 export const nodeAlias: CommandFlag = {
   constName: 'nodeAlias',
   name: 'node-alias',
   definition: {
     describe: 'Node alias (e.g. node99)',
-    type: 'string'
-  }
-}
+    type: 'string',
+  },
+};
 
 export const gossipEndpoints: CommandFlag = {
   constName: 'gossipEndpoints',
   name: 'gossip-endpoints',
   definition: {
     describe: 'Comma separated gossip endpoints of the node(e.g. first one is internal, second one is external)',
-    type: 'string'
-  }
-}
+    type: 'string',
+  },
+};
 
 export const grpcEndpoints: CommandFlag = {
   constName: 'grpcEndpoints',
   name: 'grpc-endpoints',
   definition: {
     describe: 'Comma separated gRPC endpoints of the node (at most 8)',
-    type: 'string'
-  }
-}
+    type: 'string',
+  },
+};
 
 export const endpointType: CommandFlag = {
   constName: 'endpointType',
@@ -672,9 +674,9 @@ export const endpointType: CommandFlag = {
   definition: {
     describe: 'Endpoint type (IP or FQDN)',
     defaultValue: constants.ENDPOINT_TYPE_FQDN,
-    type: 'string'
-  }
-}
+    type: 'string',
+  },
+};
 
 export const persistentVolumeClaims: CommandFlag = {
   constName: 'persistentVolumeClaims',
@@ -682,9 +684,9 @@ export const persistentVolumeClaims: CommandFlag = {
   definition: {
     describe: 'Enable persistent volume claims to store data outside the pod, required for node add',
     defaultValue: false,
-    type: 'boolean'
-  }
-}
+    type: 'boolean',
+  },
+};
 
 export const debugNodeAlias: CommandFlag = {
   constName: 'debugNodeAlias',
@@ -692,9 +694,9 @@ export const debugNodeAlias: CommandFlag = {
   definition: {
     describe: 'Enable default jvm debug port (5005) for the given node id',
     defaultValue: '',
-    type: 'string'
-  }
-}
+    type: 'string',
+  },
+};
 
 export const outputDir: CommandFlag = {
   constName: 'outputDir',
@@ -702,9 +704,9 @@ export const outputDir: CommandFlag = {
   definition: {
     describe: 'Path to the directory where the command context will be saved to',
     defaultValue: '',
-    type: 'string'
-  }
-}
+    type: 'string',
+  },
+};
 
 export const inputDir: CommandFlag = {
   constName: 'inputDir',
@@ -712,9 +714,9 @@ export const inputDir: CommandFlag = {
   definition: {
     describe: 'Path to the directory where the command context will be loaded from',
     defaultValue: '',
-    type: 'string'
-  }
-}
+    type: 'string',
+  },
+};
 
 export const adminKey: CommandFlag = {
   constName: 'adminKey',
@@ -722,9 +724,9 @@ export const adminKey: CommandFlag = {
   definition: {
     describe: 'Admin key',
     defaultValue: constants.GENESIS_KEY,
-    type: 'string'
-  }
-}
+    type: 'string',
+  },
+};
 
 export const quiet: CommandFlag = {
   constName: 'quiet',
@@ -734,9 +736,9 @@ export const quiet: CommandFlag = {
     defaultValue: false,
     alias: 'q',
     type: 'boolean',
-    disablePrompt: true
-  }
-}
+    disablePrompt: true,
+  },
+};
 
 export const mirrorNodeVersion: CommandFlag = {
   constName: 'mirrorNodeVersion',
@@ -744,9 +746,9 @@ export const mirrorNodeVersion: CommandFlag = {
   definition: {
     describe: 'Mirror node chart version',
     defaultValue: version.MIRROR_NODE_VERSION,
-    type: 'string'
-  }
-}
+    type: 'string',
+  },
+};
 
 export const hederaExplorerVersion: CommandFlag = {
   constName: 'hederaExplorerVersion',
@@ -754,39 +756,47 @@ export const hederaExplorerVersion: CommandFlag = {
   definition: {
     describe: 'Hedera explorer chart version',
     defaultValue: version.HEDERA_EXPLORER_VERSION,
-    type: 'string'
-  }
-}
+    type: 'string',
+  },
+};
 
 export const userEmailAddress: CommandFlag = {
   constName: 'userEmailAddress',
   name: 'email',
   definition: {
     describe: 'User email address used for local configuration',
-    defaultValue: '',
-    type: 'string'
-  }
-}
+    type: 'string',
+  },
+};
 
-export const deploymentName: CommandFlag = {
-  constName: 'deploymentName',
-  name: 'deployment-name',
+export const context: CommandFlag = {
+  constName: 'contextName',
+  name: 'context',
   definition: {
-    describe: 'Solo deployment name',
+    describe: 'The Kubernetes context name to be used',
     defaultValue: '',
-    type: 'string'
-  }
-}
+    type: 'string',
+  },
+};
 
 export const deploymentClusters: CommandFlag = {
   constName: 'deploymentClusters',
   name: 'deployment-clusters',
   definition: {
     describe: 'Solo deployment cluster list (comma separated)',
-    defaultValue: '',
-    type: 'string'
-  }
-}
+    type: 'string',
+  },
+};
+
+export const pinger: CommandFlag = {
+  constName: 'pinger',
+  name: 'pinger',
+  definition: {
+    describe: 'Enable Pinger service in the Mirror node monitor',
+    defaultValue: false,
+    type: 'boolean',
+  },
+};
 
 //* ------------- Node Proxy Certificates ------------- !//
 
@@ -799,9 +809,9 @@ export const grpcTlsCertificatePath: CommandFlag = {
       '(e.g. "node1=/Users/username/node1-grpc.cert" ' +
       'with multiple nodes comma seperated)',
     defaultValue: '',
-    type: 'string'
-  }
-}
+    type: 'string',
+  },
+};
 
 export const grpcWebTlsCertificatePath: CommandFlag = {
   constName: 'grpcWebTlsCertificatePath',
@@ -812,9 +822,9 @@ export const grpcWebTlsCertificatePath: CommandFlag = {
       '(e.g. "node1=/Users/username/node1-grpc-web.cert" ' +
       'with multiple nodes comma seperated)',
     defaultValue: '',
-    type: 'string'
-  }
-}
+    type: 'string',
+  },
+};
 
 export const grpcTlsKeyPath: CommandFlag = {
   constName: 'grpcTlsKeyPath',
@@ -825,9 +835,9 @@ export const grpcTlsKeyPath: CommandFlag = {
       '(e.g. "node1=/Users/username/node1-grpc.key" ' +
       'with multiple nodes comma seperated)',
     defaultValue: '',
-    type: 'string'
-  }
-}
+    type: 'string',
+  },
+};
 
 export const grpcWebTlsKeyPath: CommandFlag = {
   constName: 'grpcWebTlsKeyPath',
@@ -838,20 +848,31 @@ export const grpcWebTlsKeyPath: CommandFlag = {
       '(e.g. "node1=/Users/username/node1-grpc-web.key" ' +
       'with multiple nodes comma seperated)',
     defaultValue: '',
-    type: 'string'
-  }
-}
+    type: 'string',
+  },
+};
 
 export const stakeAmounts: CommandFlag = {
   constName: 'stakeAmounts',
   name: 'stake-amounts',
   definition: {
     describe:
-        'The amount to be staked in the same order you list the node aliases with multiple node staked values comma seperated',
+      'The amount to be staked in the same order you list the node aliases with multiple node staked values comma seperated',
     defaultValue: '',
-    type: 'string'
-  }
-}
+    type: 'string',
+  },
+};
+
+export const contextClusterUnparsed: CommandFlag = {
+  constName: 'contextClusterUnparsed',
+  name: 'context-cluster',
+  definition: {
+    describe:
+      'Context cluster mapping where context is key = value is cluster and comma delimited if more than one, ' +
+      '(e.g.: --context-cluster kind-solo=kind-solo,kind-solo-2=kind-solo-2)',
+    type: 'string',
+  },
+};
 
 export const allFlags: CommandFlag[] = [
   accountId,
@@ -868,6 +889,7 @@ export const allFlags: CommandFlag[] = [
   clusterName,
   clusterSetupNamespace,
   createAmount,
+  context,
   deletePvcs,
   deleteSecrets,
   deployCertManager,
@@ -875,7 +897,6 @@ export const allFlags: CommandFlag[] = [
   deployHederaExplorer,
   deployJsonRpcRelay,
   deploymentClusters,
-  deploymentName,
   deployMinio,
   deployPrometheusStack,
   devMode,
@@ -911,6 +932,7 @@ export const allFlags: CommandFlag[] = [
   privateKey,
   profileFile,
   profileName,
+  pinger,
   relayReleaseTag,
   releaseTag,
   replicaCount,
@@ -930,31 +952,28 @@ export const allFlags: CommandFlag[] = [
   grpcWebTlsCertificatePath,
   grpcTlsKeyPath,
   grpcWebTlsKeyPath,
-]
+  contextClusterUnparsed,
+];
 
 /** Resets the definition.disablePrompt for all flags */
-export function resetDisabledPrompts () {
+export function resetDisabledPrompts() {
   allFlags.forEach(f => {
     if (f.definition.disablePrompt) {
-      delete f.definition.disablePrompt
+      delete f.definition.disablePrompt;
     }
-  })
+  });
 }
 
-export const allFlagsMap = new Map(allFlags.map(f => [f.name, f]))
+export const allFlagsMap = new Map(allFlags.map(f => [f.name, f]));
 
-export const nodeConfigFileFlags = new Map([
-  apiPermissionProperties,
-  applicationProperties,
-  bootstrapProperties,
-  log4j2Xml,
-  settingTxt
-].map(f => [f.name, f]))
+export const nodeConfigFileFlags = new Map(
+  [apiPermissionProperties, applicationProperties, bootstrapProperties, log4j2Xml, settingTxt].map(f => [f.name, f]),
+);
 
-export const integerFlags = new Map([replicaCount].map(f => [f.name, f]))
+export const integerFlags = new Map([replicaCount].map(f => [f.name, f]));
 
 export const DEFAULT_FLAGS = {
   requiredFlags: [],
   requiredFlagsWithDisabledPrompt: [namespace, cacheDir, releaseTag],
-  optionalFlags: [devMode]
-}
+  optionalFlags: [devMode],
+};
