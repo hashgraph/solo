@@ -14,12 +14,13 @@
  * limitations under the License.
  *
  */
-import { describe } from 'mocha'
+import {describe} from 'mocha';
 
-import { testNodeAdd } from '../../test_add.js'
-import { MINUTES } from '../../../src/core/constants.js'
+import {testNodeAdd} from '../../test_add.js';
+import {MINUTES} from '../../../src/core/constants.js';
 
 describe('Node add with hedera local build', () => {
-  const localBuildPath = 'node1=../hedera-services/hedera-node/data/,../hedera-services/hedera-node/data,node3=../hedera-services/hedera-node/data'
-  testNodeAdd(localBuildPath)
-}).timeout(3 * MINUTES)
+  const localBuildPath =
+    'node1=../hedera-services/hedera-node/data/,../hedera-services/hedera-node/data,node3=../hedera-services/hedera-node/data';
+  testNodeAdd(localBuildPath);
+}).timeout(3 * MINUTES);

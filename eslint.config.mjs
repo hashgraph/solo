@@ -14,24 +14,113 @@
  * limitations under the License.
  *
  */
-import globals from "globals";
-import pluginJs from "@eslint/js";
-import tseslint from "typescript-eslint";
-import headers from 'eslint-plugin-headers'
-import tsdoc from "eslint-plugin-tsdoc"
+import globals from 'globals';
+import eslintJs from '@eslint/js';
+import nodePlugin from 'eslint-plugin-n';
+import eslintConfigPrettier from 'eslint-config-prettier';
+import eslintPluginPrettier from 'eslint-plugin-prettier';
+import tsEslint from 'typescript-eslint';
+import headers from 'eslint-plugin-headers';
+import tsdoc from 'eslint-plugin-tsdoc';
 
 export default [
-  pluginJs.configs.recommended,
-  ...tseslint.configs.strict,
-  ...tseslint.configs.recommended,
-  ...tseslint.configs.stylistic,
+  eslintJs.configs.recommended,
+  nodePlugin.configs['flat/recommended'],
+  eslintConfigPrettier,
+  ...tsEslint.configs.recommended.map(config => ({
+    ...config,
+    files: ['**/*.ts', '**/*.tsx'],
+  })),
   {
-    ignores: ['docs/**/*', 'dist/*'],
+    ignores: ['docs/**/*', 'dist/*', '**/dist/*', '.github/workflows/autogen/**/*'],
   },
-  { // all ts files
+  {
+    // all files not excluded, mostly js files
+    languageOptions: {
+      globals: {
+        ...globals.mocha,
+        ...globals.node,
+      },
+      ecmaVersion: 'latest',
+      sourceType: 'module',
+    },
+    plugins: {
+      n: nodePlugin,
+      prettier: eslintPluginPrettier,
+      headers: headers,
+    },
+    rules: {
+      'headers/header-format': [
+        'error',
+        {
+          source: 'string',
+          variables: {
+            year: '2024',
+          },
+          content:
+            'Copyright (C) {year} Hedera Hashgraph, LLC\n\nLicensed under the Apache License, Version 2.0 (the ""License"");\nyou may not use this file except in compliance with the License.\nYou may obtain a copy of the License at\n\n     http://www.apache.org/licenses/LICENSE-2.0\n\nUnless required by applicable law or agreed to in writing, software\ndistributed under the License is distributed on an ""AS IS"" BASIS,\nWITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\nSee the License for the specific language governing permissions and\nlimitations under the License.\n',
+        },
+      ],
+      'prettier/prettier': 'warn', // TODO change to error
+      'block-scoped-var': 'error',
+      eqeqeq: 'error',
+      'no-var': 'error',
+      'prefer-const': 'error',
+      'eol-last': 'error',
+      'prefer-arrow-callback': 'error',
+      'no-trailing-spaces': 'error',
+      quotes: ['warn', 'single', {avoidEscape: true}],
+      'no-restricted-properties': [
+        'error',
+        {
+          object: 'describe',
+          property: 'only',
+        },
+        {
+          object: 'it',
+          property: 'only',
+        },
+      ],
+      'n/no-missing-import': 'off',
+      'n/no-empty-function': 'off',
+      'n/no-unsupported-features/es-syntax': 'off',
+      'n/no-missing-require': 'off',
+      'n/hashbang': [
+        'error',
+        {
+          additionalExecutables: ['solo.ts'],
+        },
+      ],
+      'n/no-unpublished-import': [
+        'error',
+        {
+          allowModules: [
+            'globals',
+            '@eslint/js',
+            'eslint-plugin-n',
+            'eslint-config-prettier',
+            'eslint-plugin-prettier',
+            'typescript-eslint',
+            'eslint-plugin-headers',
+            'eslint-plugin-tsdoc',
+          ],
+          convertPath: [
+            {
+              include: ['src/**'],
+              replace: ['^src/(.+)$', 'dist/$1'],
+            },
+          ],
+        },
+      ],
+      'no-dupe-class-members': 'off',
+      'require-atomic-updates': 'off',
+      'n/no-unsupported-features/node-builtins': 'warn', // TODO remove
+    },
+  },
+  {
+    // all ts files
     files: ['**/*.ts'],
     plugins: {
-      headers: headers,
       tsdoc: tsdoc,
     },
     languageOptions: {
@@ -40,77 +129,43 @@ export default [
         ...globals.node,
       },
       ecmaVersion: 'latest',
-      sourceType: 'module'
+      sourceType: 'module',
     },
     rules: {
-      'tsdoc/syntax':'warn',
-      'no-template-curly-in-string': 'off',
-      'headers/header-format': ['error', {
-        source: 'string',
-        variables: {
-          year: '2024'
-        },
-        content: 'Copyright (C) {year} Hedera Hashgraph, LLC\n\nLicensed under the Apache License, Version 2.0 (the ""License"");\nyou may not use this file except in compliance with the License.\nYou may obtain a copy of the License at\n\n     http://www.apache.org/licenses/LICENSE-2.0\n\nUnless required by applicable law or agreed to in writing, software\ndistributed under the License is distributed on an ""AS IS"" BASIS,\nWITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\nSee the License for the specific language governing permissions and\nlimitations under the License.\n'
-      }],
-      'quotes': ['error', 'single', { 'avoidEscape': true }],
-      'semi': ['error', 'never'],
-      'no-duplicate-imports': ['error'],
-      'object-curly-spacing': ["error", "always"],
-      eqeqeq: "error",
-      'dot-notation': 'error',
-      'no-promise-executor-return': 'error',
-      'no-unneeded-ternary': 'error',
-      'no-shadow-restricted-names': 'error',
-      'no-else-return': 'error',
-      '@typescript-eslint/array-type': [ 'error', { default: 'array' } ],
-      '@typescript-eslint/consistent-generic-constructors': 'error',
-      '@typescript-eslint/consistent-indexed-object-style': [ 'error', 'record' ],
-      "@typescript-eslint/consistent-type-imports": ["error", { fixStyle: 'inline-type-imports'}],
-      'space-before-function-paren': 'error',
+      '@typescript-eslint/ban-ts-comment': 'warn',
+      '@typescript-eslint/no-non-null-assertion': 'off',
+      '@typescript-eslint/no-use-before-define': 'off',
+      '@typescript-eslint/no-warning-comments': 'off',
       '@typescript-eslint/no-empty-function': 'off',
-      '@typescript-eslint/class-literal-property-style': 'off',
-      'no-invalid-this': [ 'error', { capIsConstructor : false } ],
-      'no-prototype-builtins': 'off',
-      '@typescript-eslint/no-dynamic-delete': 'off',
-
-      // Ensure all class members have explicit access modifiers
-      "@typescript-eslint/explicit-member-accessibility": ["warn", { "accessibility": "explicit" }],
-
-      // Require return types on all functions and methods
-      "@typescript-eslint/explicit-function-return-type": "warn",
-
-      // Require return types on exported functions or methods
-      "@typescript-eslint/explicit-module-boundary-types": "warn"
-    }
-  },
-  { // test ts files
-    files: ['test/**/*.ts'],
-    rules: {
-      'no-invalid-this': [ 'off', { } ],
-    }
+      '@typescript-eslint/no-var-requires': 'off',
+      '@typescript-eslint/explicit-function-return-type': 'off',
+      '@typescript-eslint/explicit-module-boundary-types': 'off',
+      '@typescript-eslint/ban-types': 'off',
+      '@typescript-eslint/camelcase': 'off',
+      '@typescript-eslint/no-explicit-any': 'warn', // TODO remove
+      '@typescript-eslint/no-this-alias': [
+        'error',
+        {
+          allowedNames: ['self'], // TODO remove
+        },
+      ],
+      '@typescript-eslint/no-unused-expressions': 'warn', // TODO remove
+      '@typescript-eslint/no-unused-vars': 'warn', // TODO remove
+      '@typescript-eslint/no-unsafe-function-type': 'warn', // TODO remove
+      'n/no-extraneous-import': 'warn', // TODO remove
+      'n/no-process-exit': 'warn', // TODO remove
+      'n/no-unsupported-features/node-builtins': 'warn', // TODO remove
+      'eol-last': 'warn', // TODO remove
+      'no-trailing-spaces': 'warn', // TODO remove
+      'no-empty': 'warn', // TODO remove
+      'prefer-arrow-callback': 'warn', // TODO remove
+    },
   },
   {
-    files: ['**/*'],
-    languageOptions: {
-      globals: {
-        ...globals.mocha,
-        ...globals.node,
-      },
-      ecmaVersion: 'latest',
-      sourceType: 'module'
-    },
+    // test ts files
+    files: ['test/**/*.ts'],
     rules: {
-      '@typescript-eslint/no-unused-expressions': 'off',
-      '@typescript-eslint/ban-ts-comment': 'off',
-      '@typescript-eslint/no-explicit-any': 'off',
-      '@typescript-eslint/no-this-alias': 'off',
-      '@typescript-eslint/no-unsafe-function-type': 'off',
-      '@typescript-eslint/no-unused-vars': 'off',
-      'no-unused-vars': 'off',
-      'no-empty': 'off',
-      '@typescript-eslint/no-extraneous-class': 'off',
-      '@typescript-eslint/no-non-null-assertion': 'off',
-      'no-duplicate-imports': 'off'
+      'no-invalid-this': ['off', {}],
     },
   },
-]
+];

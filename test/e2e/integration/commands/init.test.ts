@@ -14,10 +14,11 @@
  * limitations under the License.
  *
  */
-import { describe, it } from 'mocha'
-import { expect } from 'chai'
+import {describe, it} from 'mocha';
+import {expect} from 'chai';
 
-import { InitCommand } from '../../../../src/commands/init.js'
+import {InitCommand} from '../../../../src/commands/init.js';
+import {HelmDependencyManager, DependencyManager} from '../../../../src/core/dependency_managers/index.js';
 import {
   HelmDependencyManager,
   DependencyManager
@@ -32,15 +33,14 @@ import { IntervalLeaseRenewalService } from '../../../../src/core/lease/lease_re
 import path from 'path'
 import { BASE_TEST_DIR } from '../../../test_util.js'
 
-const testLogger = logging.NewLogger('debug', true)
+const testLogger = logging.NewLogger('debug', true);
 describe('InitCommand', () => {
   // prepare dependency manger registry
-  const downloader = new PackageDownloader(testLogger)
-  const zippy = new Zippy(testLogger)
-  const helmDepManager = new HelmDependencyManager(downloader, zippy, testLogger)
-  const depManagerMap = new Map()
-    .set(constants.HELM, helmDepManager)
-  const depManager = new DependencyManager(testLogger, depManagerMap)
+  const downloader = new PackageDownloader(testLogger);
+  const zippy = new Zippy(testLogger);
+  const helmDepManager = new HelmDependencyManager(downloader, zippy, testLogger);
+  const depManagerMap = new Map().set(constants.HELM, helmDepManager);
+  const depManager = new DependencyManager(testLogger, depManagerMap);
 
   const helm = new Helm(testLogger)
   const chartManager = new ChartManager(helm, testLogger)
@@ -48,13 +48,13 @@ describe('InitCommand', () => {
   let k8 : K8
   let localConfig: LocalConfig
 
-  const keyManager = new KeyManager(testLogger)
+  const keyManager = new KeyManager(testLogger);
 
   let leaseManager: LeaseManager
   let remoteConfigManager: RemoteConfigManager
 
-  let sandbox = sinon.createSandbox()
-  let initCmd: InitCommand
+  let sandbox = sinon.createSandbox();
+  let initCmd: InitCommand;
 
   before(() => {
     sandbox = sinon.createSandbox()
@@ -70,24 +70,23 @@ describe('InitCommand', () => {
   })
 
   after(() => {
-    sandbox.restore()
-  })
-
+    sandbox.restore();
+  });
 
   describe('commands', () => {
     it('init execution should succeed', async () => {
-      await expect(initCmd.init({})).to.eventually.equal(true)
-    }).timeout(60 * SECONDS)
-  })
+      await expect(initCmd.init({})).to.eventually.equal(true);
+    }).timeout(60 * SECONDS);
+  });
 
   describe('methods', () => {
     it('command definition should return a valid command def', () => {
-      const def = initCmd.getCommandDefinition()
+      const def = initCmd.getCommandDefinition();
 
       // @ts-ignore
-      expect(def.name).not.to.be.null
-      expect(def.desc).not.to.be.null
-      expect(def.handler).not.to.be.null
-    })
-  })
-})
+      expect(def.name).not.to.be.null;
+      expect(def.desc).not.to.be.null;
+      expect(def.handler).not.to.be.null;
+    });
+  });
+});

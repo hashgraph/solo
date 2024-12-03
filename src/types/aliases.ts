@@ -14,7 +14,7 @@
  * limitations under the License.
  *
  */
-export type NodeAlias = `node${number}`
-export type PodName = `network-${NodeAlias}-0`
+export type NodeAlias = `node${number}`;
+export type PodName = `network-${NodeAlias}-0`;
 
-export type NodeAliases = NodeAlias[]
+export type NodeAliases = NodeAlias[];

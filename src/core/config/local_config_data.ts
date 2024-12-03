@@ -21,7 +21,7 @@ export interface DeploymentStructure { clusters : Cluster[] }
 export type Deployments = Record<Namespace, DeploymentStructure>
 
 export interface LocalConfigData {
-    userEmailAddress: EmailAddress
-    deployments: Deployments
-    currentDeploymentName: Namespace
+  userEmailAddress: EmailAddress
+  deployments: Deployments
+  currentDeploymentName: Namespace
 }

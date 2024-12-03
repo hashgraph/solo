@@ -1,4 +1,5 @@
 # Instructions for using Solo with Hedera JavaScript SDK
+
 First, please follow solo repository README to install solo and Docker Desktop.
 You also need to install the Taskfile tool following the instructions here:
 https://taskfile.dev/installation/
@@ -9,10 +10,13 @@ Then we start with launching a local Solo network with the following commands:
 # launch a local Solo network with mirror node and hedera explorer
 task default-with-mirror-node
 ```
+
 Then create a new test account with the following command:
+
 ```
 npm run solo-test -- account create -n solo-e2e --hbar-amount 100
 ```
+
 The output would be similar to the following:
 
 ```bash
@@ -26,10 +30,13 @@ The output would be similar to the following:
 ```
 
 Then use the following commmand to get private key of the account `0.0.1007`:
+
 ```bash
  npm run solo-test -- account get --account-id 0.0.1007 -n solo-e2e --private-key
 ```
+
 The output would be similar to the following:
+
 ```bash
 {
  "accountId": "0.0.1007",
@@ -52,7 +59,8 @@ OPERATOR_KEY="302a300506032b65700321001d8978e647aca1195c54a4d3d5dc469b95666de14e
 # Hedera Network
 HEDERA_NETWORK="local-node"
 ```
-Make sure to assign the value of accountId to OPERATOR_ID and the value of privateKey to OPERATOR_KEY.
+
+Make sure to assign the value of accountId to OPERATOR\_ID and the value of privateKey to OPERATOR\_KEY.
 
 Then try the following command to run the test
 
@@ -69,9 +77,11 @@ account id = 0.0.1009
 ```
 
 Or try the topic creation example:
+
 ```bash
 node examples/create-topic.js
 ```
+
 The output should be similar to the following:
 
 ```bash
@@ -89,4 +99,3 @@ Finally, after done with using solo, using the following command to tear down th
 ```bash
 task clean
 ```
-

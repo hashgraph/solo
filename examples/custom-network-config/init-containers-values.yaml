@@ -8,7 +8,7 @@ hedera:
         - name: hgcapp-data-saved
           mountPath: /data-saved
   nodes:
-    - name: node0
+    - name: node1
       accountId: 0.0.3
       root:
         resources:
@@ -18,7 +18,7 @@ hedera:
           limits:
             cpu: 24
             memory: 256Gi
-    - name: node1
+    - name: node2
       accountId: 0.0.4
       root:
         resources:
@@ -28,7 +28,7 @@ hedera:
           limits:
             cpu: 24
             memory: 256Gi
-    - name: node2
+    - name: node3
       accountId: 0.0.5
       root:
         resources:
@@ -38,7 +38,7 @@ hedera:
           limits:
             cpu: 24
             memory: 256Gi
-    - name: node3
+    - name: node4
       accountId: 0.0.6
       root:
         resources:
@@ -48,7 +48,7 @@ hedera:
           limits:
             cpu: 24
             memory: 256Gi
-    - name: node4
+    - name: node5
       accountId: 0.0.7
       root:
         resources:
@@ -58,7 +58,7 @@ hedera:
           limits:
             cpu: 24000m
             memory: 64000Mi
-    - name: node5
+    - name: node6
       accountId: 0.0.8
       root:
         resources:
@@ -68,7 +68,7 @@ hedera:
           limits:
             cpu: 24
             memory: 256Gi
-    - name: node6
+    - name: node7
       accountId: 0.0.9
       root:
         resources:

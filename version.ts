@@ -19,10 +19,10 @@
  * This file should only contain versions for dependencies
  */
 
-export const JAVA_VERSION = '21.0.1+12'
-export const HELM_VERSION = 'v3.14.2'
-export const SOLO_CHART_VERSION = '0.34.1'
-export const HEDERA_PLATFORM_VERSION = 'v0.56.5'
-export const MIRROR_NODE_VERSION = '0.116.0'
-export const HEDERA_EXPLORER_VERSION = '0.2.1'
-export const HEDERA_JSON_RPC_RELAY_VERSION = 'v0.59.0'
+export const JAVA_VERSION = '21.0.1+12';
+export const HELM_VERSION = 'v3.14.2';
+export const SOLO_CHART_VERSION = '0.34.1';
+export const HEDERA_PLATFORM_VERSION = 'v0.56.5';
+export const MIRROR_NODE_VERSION = '0.116.0';
+export const HEDERA_EXPLORER_VERSION = '0.2.1';
+export const HEDERA_JSON_RPC_RELAY_VERSION = 'v0.59.0';

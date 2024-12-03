@@ -16,6 +16,7 @@
  */
 import * as flags from './flags.js'
 import { ClusterCommand } from './cluster.js'
+import {ContextCommand} from './context/index.js';
 import { InitCommand } from './init.js'
 import { MirrorNodeCommand } from './mirror_node.js'
 import { NetworkCommand } from './network.js'
@@ -33,6 +34,7 @@ import { type Opts } from '../types/index.js'
 function Initialize (opts: Opts) {
   const initCmd = new InitCommand(opts)
   const clusterCmd = new ClusterCommand(opts)
+  const contextCmd = new ContextCommand(opts);
   const networkCommand = new NetworkCommand(opts)
   const nodeCmd = new NodeCommand(opts)
   const relayCmd = new RelayCommand(opts)
@@ -43,6 +45,8 @@ function Initialize (opts: Opts) {
   return [
     initCmd.getCommandDefinition(),
     clusterCmd.getCommandDefinition(),
+    contextCmd.getCommandDefinition(),
+    contextCmd.getCommandDefinition(),
     networkCommand.getCommandDefinition(),
     nodeCmd.getCommandDefinition(),
     relayCmd.getCommandDefinition(),
@@ -53,4 +57,4 @@ function Initialize (opts: Opts) {
 }
 
 // Expose components from the command module
-export { Initialize, flags }
+export {Initialize, flags};
