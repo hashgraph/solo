@@ -23,7 +23,7 @@ import * as flags from './flags.js';
 import * as prompts from './prompts.js';
 import {getFileContents, getEnvValue} from '../core/helpers.js';
 import {RemoteConfigTasks} from '../core/config/remote/remote_config_tasks.js';
-import type {PodName} from '../types/aliases.js';
+import {CommandBuilder, type PodName} from '../types/aliases.js';
 import type {Opts} from '../types/index.js';
 import {ListrLease} from '../core/lease/listr_lease.js';
 
@@ -539,7 +539,7 @@ export class MirrorNodeCommand extends BaseCommand {
   }
 
   /** Return Yargs command definition for 'mirror-mirror-node' command */
-  getCommandDefinition(): {command: string; desc: string; builder: Function} {
+  getCommandDefinition(): {command: string; desc: string; builder: CommandBuilder} {
     const self = this;
     return {
       command: 'mirror-node',

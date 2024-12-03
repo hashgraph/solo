@@ -24,9 +24,9 @@ import * as flags from './flags.js';
 import * as prompts from './prompts.js';
 import {getNodeAccountMap} from '../core/helpers.js';
 import {RemoteConfigTasks} from '../core/config/remote/remote_config_tasks.js';
+import {CommandBuilder, type NodeAliases} from '../types/aliases.js';
+import {type Opts} from '../types/index.js';
 import {ListrLease} from '../core/lease/listr_lease.js';
-import type {NodeAliases} from '../types/aliases.js';
-import type {Opts} from '../types/index.js';
 
 export class RelayCommand extends BaseCommand {
   private readonly profileManager: ProfileManager;
@@ -382,7 +382,7 @@ export class RelayCommand extends BaseCommand {
     return true;
   }
 
-  getCommandDefinition(): {command: string; desc: string; builder: Function} {
+  getCommandDefinition(): {command: string; desc: string; builder: CommandBuilder} {
     const self = this;
     return {
       command: 'relay',

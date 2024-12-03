@@ -25,6 +25,7 @@ import {RemoteConfigTasks} from '../core/config/remote/remote_config_tasks.js';
 import {ListrLease} from '../core/lease/listr_lease.js';
 import type {Namespace} from '../core/config/remote/types.js';
 import type {CommandFlag, ContextClusterStructure} from '../types/index.js';
+import {CommandBuilder} from '../types/aliases.js';
 
 export class DeploymentCommand extends BaseCommand {
   private static get DEPLOY_FLAGS_LIST(): CommandFlag[] {
@@ -122,7 +123,7 @@ export class DeploymentCommand extends BaseCommand {
     return true;
   }
 
-  public getCommandDefinition(): {command: string; desc: string; builder: Function} {
+  public getCommandDefinition(): {command: string; desc: string; builder: CommandBuilder} {
     const self = this;
     return {
       command: 'deployment',

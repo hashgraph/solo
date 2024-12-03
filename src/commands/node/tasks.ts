@@ -70,7 +70,7 @@ import chalk from 'chalk';
 import * as flags from '../flags.js';
 import {type SoloLogger} from '../../core/logging.js';
 import type {Listr, ListrTaskWrapper} from 'listr2';
-import {type NodeAlias, type NodeAliases, type PodName} from '../../types/aliases.js';
+import {ConfigBuilder, type NodeAlias, type NodeAliases, type PodName, SkipCheck} from '../../types/aliases.js';
 import {NodeStatusCodes, NodeStatusEnums, NodeSubcommandType} from '../../core/enumerations.js';
 import * as x509 from '@peculiar/x509';
 import {type NodeCommand} from './index.js';
@@ -800,7 +800,7 @@ export class NodeCommandTasks {
     });
   }
 
-  uploadStateFiles(skip: Function | boolean) {
+  uploadStateFiles(skip: SkipCheck | boolean) {
     const self = this;
     return new Task(
       'Upload state files network nodes',
@@ -1343,7 +1343,7 @@ export class NodeCommandTasks {
     });
   }
 
-  updateChartWithConfigMap(title: string, transactionType: NodeSubcommandType, skip: Function | boolean = false) {
+  updateChartWithConfigMap(title: string, transactionType: NodeSubcommandType, skip: SkipCheck | boolean = false) {
     const self = this;
     return new Task(
       title,
@@ -1591,7 +1591,7 @@ export class NodeCommandTasks {
     });
   }
 
-  initialize(argv: any, configInit: Function, lease: Lease | null) {
+  initialize(argv: any, configInit: ConfigBuilder, lease: Lease | null) {
     const {requiredFlags, requiredFlagsWithDisabledPrompt, optionalFlags} = argv;
     const allRequiredFlags = [...requiredFlags, ...requiredFlagsWithDisabledPrompt];
 

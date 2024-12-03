@@ -28,7 +28,7 @@ import {addDebugOptions, validatePath} from '../core/helpers.js';
 import fs from 'fs';
 import {RemoteConfigTasks} from '../core/config/remote/remote_config_tasks.js';
 import type {CertificateManager, KeyManager, PlatformInstaller, ProfileManager} from '../core/index.js';
-import type {NodeAlias, NodeAliases} from '../types/aliases.js';
+import {CommandBuilder, NodeAlias, NodeAliases} from '../types/aliases.js';
 import type {Opts} from '../types/index.js';
 import {ListrLease} from '../core/lease/listr_lease.js';
 
@@ -632,7 +632,7 @@ export class NetworkCommand extends BaseCommand {
     return true;
   }
 
-  getCommandDefinition(): {command: string; desc: string; builder: Function} {
+  getCommandDefinition(): {command: string; desc: string; builder: CommandBuilder} {
     const self = this;
     return {
       command: 'network',
