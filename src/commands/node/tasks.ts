@@ -392,7 +392,9 @@ export class NodeCommandTasks {
           task.title = `${title} - status ${chalk.yellow(NodeStatusEnums[statusNumber])}, attempt: ${chalk.blueBright(`${attempt}/${maxAttempts}`)}`;
         }
         clearTimeout(timeoutId);
-      } catch {} // Catch all guard and fetch errors
+      } catch {
+        // Catch all guard and fetch errors
+      }
 
       attempt++;
       clearTimeout(timeoutId);

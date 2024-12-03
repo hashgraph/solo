@@ -61,7 +61,7 @@ export default [
             'Copyright (C) {year} Hedera Hashgraph, LLC\n\nLicensed under the Apache License, Version 2.0 (the ""License"");\nyou may not use this file except in compliance with the License.\nYou may obtain a copy of the License at\n\n     http://www.apache.org/licenses/LICENSE-2.0\n\nUnless required by applicable law or agreed to in writing, software\ndistributed under the License is distributed on an ""AS IS"" BASIS,\nWITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\nSee the License for the specific language governing permissions and\nlimitations under the License.\n',
         },
       ],
-      'prettier/prettier': 'warn', // TODO change to error
+      'prettier/prettier': 'error',
       'block-scoped-var': 'error',
       eqeqeq: 'error',
       'no-var': 'error',
@@ -114,7 +114,12 @@ export default [
       ],
       'no-dupe-class-members': 'off',
       'require-atomic-updates': 'off',
-      'n/no-unsupported-features/node-builtins': 'warn', // TODO remove
+      'n/no-unsupported-features/node-builtins': [
+        'error',
+        {
+          ignores: ['fs.cpSync', 'CryptoKey', 'fetch'],
+        },
+      ],
     },
   },
   {
@@ -142,23 +147,16 @@ export default [
       '@typescript-eslint/explicit-module-boundary-types': 'off',
       '@typescript-eslint/ban-types': 'off',
       '@typescript-eslint/camelcase': 'off',
-      '@typescript-eslint/no-explicit-any': 'warn', // TODO remove
+      '@typescript-eslint/no-explicit-any': 'warn', // TODO remove (771 errors)
       '@typescript-eslint/no-this-alias': [
         'error',
         {
-          allowedNames: ['self'], // TODO remove
+          allowedNames: ['self'], // TODO remove (59 errors)
         },
       ],
-      '@typescript-eslint/no-unused-expressions': 'warn', // TODO remove
-      '@typescript-eslint/no-unused-vars': 'warn', // TODO remove
-      '@typescript-eslint/no-unsafe-function-type': 'warn', // TODO remove
-      'n/no-extraneous-import': 'warn', // TODO remove
-      'n/no-process-exit': 'warn', // TODO remove
-      'n/no-unsupported-features/node-builtins': 'warn', // TODO remove
-      'eol-last': 'warn', // TODO remove
-      'no-trailing-spaces': 'warn', // TODO remove
-      'no-empty': 'warn', // TODO remove
-      'prefer-arrow-callback': 'warn', // TODO remove
+      '@typescript-eslint/no-unused-vars': 'warn', // TODO remove (83 errors)
+      '@typescript-eslint/no-unsafe-function-type': 'warn', // TODO remove (16 errors)
+      'n/no-process-exit': 'warn', // TODO remove (38 errors)
     },
   },
   {
@@ -166,6 +164,7 @@ export default [
     files: ['test/**/*.ts'],
     rules: {
       'no-invalid-this': ['off', {}],
+      '@typescript-eslint/no-unused-expressions': 'off',
     },
   },
 ];

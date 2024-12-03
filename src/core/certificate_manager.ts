@@ -194,7 +194,9 @@ export class CertificateManager {
       let fileExists = false;
       try {
         fileExists = fs.statSync(filePath).isFile();
-      } catch {}
+      } catch {
+        fileExists = false;
+      }
       if (!fileExists) {
         throw new SoloError(`File doesn't exist on path ${input} input of type ${type} on ${line}, index ${i}`);
       }
