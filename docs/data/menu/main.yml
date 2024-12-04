@@ -4,6 +4,13 @@ main:
     ref: "/User/README.md"
   - name: How to use Hashgraph javascript SDK with Solo
     ref: "/User/SDK.md"
+  - name: User Guide for Platform Developer
+    ref: "/User/PlatformDeveloper.md"
+  - name: User Guide for Hedera Developer
+    ref: "/User/HederaDeveloper.md"
+
+  - name: Deploy Solo Network
+    ref: "/User/DeploySolo.md"
   - name: Development
     ref: "/Developer/DEV.md"
   - name: Classes
