@@ -1,7 +1,7 @@
 ---
 main:
   - name: Getting Started
-    ref: "/User/README.md"
+    ref: "/User/Index.md"
   - name: How to use Hashgraph javascript SDK with Solo
     ref: "/User/SDK.md"
   - name: User Guide for Platform Developer
