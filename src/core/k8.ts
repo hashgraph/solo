@@ -30,7 +30,7 @@ import * as stream from 'node:stream';
 
 import {type SoloLogger} from './logging.js';
 import type * as WebSocket from 'ws';
-import {PodName, TarCreateFilter} from '../types/aliases.js';
+import {type PodName, type TarCreateFilter} from '../types/aliases.js';
 import type {ExtendedNetServer, LocalContextObject} from '../types/index.js';
 import type * as http from 'node:http';
 import {MINUTES} from './constants.js';

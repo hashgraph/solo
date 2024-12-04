@@ -34,7 +34,7 @@ import type {DeploymentCommand} from '../../../commands/deployment.js';
 import type {MirrorNodeCommand} from '../../../commands/mirror_node.js';
 import type {NodeCommandHandlers} from '../../../commands/node/handlers.js';
 import type {Optional} from '../../../types/index.js';
-import {ComponentsDataWrapper} from './components_data_wrapper.js';
+import {type ComponentsDataWrapper} from './components_data_wrapper.js';
 
 /**
  * Static class that handles all tasks related to remote config used by other commands.

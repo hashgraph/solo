@@ -69,7 +69,13 @@ import chalk from 'chalk';
 import {flags} from '../index.js';
 import {type SoloLogger} from '../../core/logging.js';
 import type {Listr, ListrTaskWrapper} from 'listr2';
-import {ConfigBuilder, type NodeAlias, type NodeAliases, type PodName, SkipCheck} from '../../types/aliases.js';
+import {
+  type ConfigBuilder,
+  type NodeAlias,
+  type NodeAliases,
+  type PodName,
+  type SkipCheck,
+} from '../../types/aliases.js';
 import {NodeStatusCodes, NodeStatusEnums, NodeSubcommandType} from '../../core/enumerations.js';
 import * as x509 from '@peculiar/x509';
 import {type NodeCommand} from './index.js';

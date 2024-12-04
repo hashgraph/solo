@@ -23,7 +23,7 @@ import {BaseCommand} from './base.js';
 import {flags} from './index.js';
 import {getNodeAccountMap} from '../core/helpers.js';
 import {RemoteConfigTasks} from '../core/config/remote/remote_config_tasks.js';
-import {CommandBuilder, type NodeAliases} from '../types/aliases.js';
+import {type CommandBuilder, type NodeAliases} from '../types/aliases.js';
 import {type Opts} from '../types/index.js';
 import {ListrLease} from '../core/lease/listr_lease.js';
 

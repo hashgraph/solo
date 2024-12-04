@@ -43,7 +43,7 @@ import {type Opts} from '../../../src/types/index.js';
 import fs from 'fs';
 import {stringify} from 'yaml';
 import {type Cluster, KubeConfig} from '@kubernetes/client-node';
-import {ListrTaskWrapper} from 'listr2';
+import {type ListrTaskWrapper} from 'listr2';
 
 describe('ContextCommandTasks unit tests', () => {
   const filePath = `${getTestCacheDir('ContextCommandTasks')}/localConfig.yaml`;
