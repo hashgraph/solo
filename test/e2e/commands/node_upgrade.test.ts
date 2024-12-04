@@ -19,7 +19,6 @@ import {expect} from 'chai';
 
 import {Flags as flags} from '../../../src/commands/flags.js';
 import {e2eTestSuite, getDefaultArgv, HEDERA_PLATFORM_VERSION_TAG} from '../../test_util.js';
-import {getNodeLogs} from '../../../src/core/helpers.js';
 import {
   PREPARE_UPGRADE_CONFIGS_NAME,
   DOWNLOAD_GENERATED_FILES_CONFIGS_NAME,
@@ -48,7 +47,7 @@ e2eTestSuite(namespace, argv, undefined, undefined, undefined, undefined, undefi
     after(async function () {
       this.timeout(10 * MINUTES);
 
-      await getNodeLogs(k8, namespace);
+      await k8.getNodeLogs(namespace);
       await k8.deleteNamespace(namespace);
     });
 

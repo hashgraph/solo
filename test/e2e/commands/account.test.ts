@@ -42,7 +42,6 @@ import {
 } from '../../test_util.js';
 import {AccountCommand} from '../../../src/commands/account.js';
 import {Flags as flags} from '../../../src/commands/flags.js';
-import {getNodeLogs} from '../../../src/core/helpers.js';
 import {MINUTES, SECONDS} from '../../../src/core/constants.js';
 
 const defaultTimeout = 20 * SECONDS;
@@ -73,7 +72,7 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
     after(async function () {
       this.timeout(3 * MINUTES);
 
-      await getNodeLogs(k8, namespace);
+      await k8.getNodeLogs(namespace);
       await k8.deleteNamespace(namespace);
       await accountManager.close();
       await nodeCmd.close();

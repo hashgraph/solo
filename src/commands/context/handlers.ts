@@ -33,7 +33,7 @@ export class ContextCommandHandlers implements CommandHandlers {
   async connect(argv: any) {
     argv = helpers.addFlagsToArgv(argv, ContextFlags.USE_FLAGS);
 
-    const action = helpers.commandActionBuilder(
+    const action = this.parent.commandActionBuilder(
       [
         this.tasks.initialize(argv),
         this.parent.getLocalConfig().promptLocalConfigTask(),

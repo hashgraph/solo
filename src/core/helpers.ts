@@ -24,11 +24,9 @@ import {Templates} from './templates.js';
 import {ROOT_DIR} from './constants.js';
 import * as constants from './constants.js';
 import {PrivateKey, ServiceEndpoint} from '@hashgraph/sdk';
-import {Listr} from 'listr2';
 import {type NodeAlias, type NodeAliases} from '../types/aliases.js';
-import {type CommandFlag, type CommandHandlers} from '../types/index.js';
+import {type CommandFlag} from '../types/index.js';
 import {type SoloLogger} from './logging.js';
-import {type Lease} from './lease/lease.js';
 
 export function sleep(ms: number) {
   return new Promise<void>(resolve => {
@@ -338,30 +336,6 @@ export function prepareEndpoints(endpointType: string, endpoints: string[], defa
   }
 
   return ret;
-}
-
-export function commandActionBuilder(actionTasks: any, options: any, errorString: string, lease: Lease | null) {
-  return async function (argv: any, commandDef: CommandHandlers) {
-    const tasks = new Listr([...actionTasks], options);
-
-    try {
-      await tasks.run();
-    } catch (e: Error | any) {
-      commandDef.parent.logger.error(`${errorString}: ${e.message}`, e);
-      throw new SoloError(`${errorString}: ${e.message}`, e);
-    } finally {
-      const promises = [];
-
-      // @ts-ignore
-      if (commandDef.close) {
-        // @ts-ignore
-        promises.push(commandDef.close());
-      }
-
-      if (lease) promises.push(lease.release());
-      await Promise.all(promises);
-    }
-  };
 }
 
 /** Adds all the types of flags as properties on the provided argv object */

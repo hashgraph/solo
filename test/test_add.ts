@@ -27,7 +27,6 @@ import {
   getTmpDir,
   HEDERA_PLATFORM_VERSION_TAG,
 } from './test_util.js';
-import {getNodeLogs} from '../src/core/helpers.js';
 import * as NodeCommandConfigs from '../src/commands/node/configs.js';
 import {MINUTES} from '../src/core/constants.js';
 import type {NodeAlias} from '../src/types/aliases.js';
@@ -78,7 +77,7 @@ export function testNodeAdd(
         after(async function () {
           this.timeout(10 * MINUTES);
 
-          await getNodeLogs(k8, namespace);
+          await k8.getNodeLogs(namespace);
           await bootstrapResp.opts.accountManager.close();
           await nodeCmd.handlers.stop(argv);
           await networkCmd.destroy(argv);

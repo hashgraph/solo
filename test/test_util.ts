@@ -28,7 +28,7 @@ import {InitCommand} from '../src/commands/init.js';
 import {NetworkCommand} from '../src/commands/network.js';
 import {NodeCommand} from '../src/commands/node/index.js';
 import {DependencyManager, HelmDependencyManager} from '../src/core/dependency_managers/index.js';
-import {getNodeLogs, sleep} from '../src/core/helpers.js';
+import {sleep} from '../src/core/helpers.js';
 import {AccountBalanceQuery, AccountCreateTransaction, Hbar, HbarUnit, PrivateKey} from '@hashgraph/sdk';
 import {MINUTES, NODE_LOG_FAILURE_MSG, ROOT_CONTAINER, SECONDS, SOLO_LOGS_DIR} from '../src/core/constants.js';
 import crypto from 'crypto';
@@ -238,7 +238,7 @@ export function e2eTestSuite(
 
       after(async function () {
         this.timeout(5 * MINUTES);
-        await getNodeLogs(k8, namespace);
+        await k8.getNodeLogs(namespace);
         bootstrapResp.opts.logger.showUser(
           `------------------------- END: bootstrap (${testName}) ----------------------------`,
         );

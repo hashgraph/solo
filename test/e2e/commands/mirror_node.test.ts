@@ -27,7 +27,7 @@ import {
   TEST_CLUSTER,
 } from '../../test_util.js';
 import * as version from '../../../version.js';
-import {getNodeLogs, sleep} from '../../../src/core/helpers.js';
+import {sleep} from '../../../src/core/helpers.js';
 import {MirrorNodeCommand} from '../../../src/commands/mirror_node.js';
 import {Status, TopicCreateTransaction, TopicMessageSubmitTransaction} from '@hashgraph/sdk';
 import * as http from 'http';
@@ -71,7 +71,7 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
     after(async function () {
       this.timeout(3 * MINUTES);
 
-      await getNodeLogs(k8, namespace);
+      await k8.getNodeLogs(namespace);
       await k8.deleteNamespace(namespace);
       await accountManager.close();
 

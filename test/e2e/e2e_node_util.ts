@@ -27,7 +27,7 @@ import {
   TEST_CLUSTER,
   testLogger,
 } from '../test_util.js';
-import {getNodeLogs, sleep} from '../../src/core/helpers.js';
+import {sleep} from '../../src/core/helpers.js';
 import * as NodeCommandConfigs from '../../src/commands/node/configs.js';
 import {MINUTES, SECONDS} from '../../src/core/constants.js';
 import type {NodeAlias} from '../../src/types/aliases.js';
@@ -78,7 +78,7 @@ export function e2eNodeKeyRefreshTest(testName: string, mode: string, releaseTag
         after(async function () {
           this.timeout(10 * MINUTES);
 
-          await getNodeLogs(k8, namespace);
+          await k8.getNodeLogs(namespace);
           await k8.deleteNamespace(namespace);
         });
 
