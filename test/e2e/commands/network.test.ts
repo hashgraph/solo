@@ -25,7 +25,7 @@ import path from 'path';
 import fs from 'fs';
 import {NetworkCommand} from '../../../src/commands/network.js';
 import {MINUTES, SECONDS} from '../../../src/core/constants.js';
-import {flags} from '../../../src/commands/index.js';
+import {Flags as flags} from '../../../src/commands/flags.js';
 
 describe('NetworkCommand', () => {
   const testName = 'network-cmd-e2e';

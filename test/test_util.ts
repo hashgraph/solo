@@ -22,7 +22,7 @@ import {describe, it, after, before} from 'mocha';
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
-import {flags} from '../src/commands/index.js';
+import {Flags as flags} from '../src/commands/flags.js';
 import {ClusterCommand} from '../src/commands/cluster.js';
 import {InitCommand} from '../src/commands/init.js';
 import {NetworkCommand} from '../src/commands/network.js';

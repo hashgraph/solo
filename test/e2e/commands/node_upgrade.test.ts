@@ -17,7 +17,7 @@
 import {it, describe, after} from 'mocha';
 import {expect} from 'chai';
 
-import {flags} from '../../../src/commands/index.js';
+import {Flags as flags} from '../../../src/commands/flags.js';
 import {e2eTestSuite, getDefaultArgv, HEDERA_PLATFORM_VERSION_TAG} from '../../test_util.js';
 import {getNodeLogs} from '../../../src/core/helpers.js';
 import {

@@ -18,7 +18,7 @@ import sinon from 'sinon';
 import {it, describe, after, before, afterEach, beforeEach} from 'mocha';
 import {expect} from 'chai';
 
-import {flags} from '../../../src/commands/index.js';
+import {Flags as flags} from '../../../src/commands/flags.js';
 import {bootstrapTestVariables, getDefaultArgv, HEDERA_PLATFORM_VERSION_TAG, TEST_CLUSTER} from '../../test_util.js';
 import * as constants from '../../../src/core/constants.js';
 import * as logging from '../../../src/core/logging.js';

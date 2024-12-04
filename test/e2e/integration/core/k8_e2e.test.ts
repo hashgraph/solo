@@ -29,7 +29,7 @@ import {Templates} from '../../../../src/core/templates.js';
 import {ConfigManager} from '../../../../src/core/config_manager.js';
 import * as logging from '../../../../src/core/logging.js';
 import {K8} from '../../../../src/core/k8.js';
-import {flags} from '../../../../src/commands/index.js';
+import {Flags as flags} from '../../../../src/commands/flags.js';
 import {
   V1Container,
   V1ExecAction,

@@ -22,7 +22,7 @@ import * as constants from '../../../../src/core/constants.js';
 import {LocalConfig} from '../../../../src/core/config/local_config.js';
 import {RemoteConfigManager} from '../../../../src/core/config/remote/remote_config_manager.js';
 import {e2eTestSuite, getDefaultArgv, getTestCacheDir, TEST_CLUSTER} from '../../../test_util.js';
-import {flags} from '../../../../src/commands/index.js';
+import {Flags as flags} from '../../../../src/commands/flags.js';
 import * as version from '../../../../version.js';
 import {MINUTES, SECONDS} from '../../../../src/core/constants.js';
 import path from 'path';

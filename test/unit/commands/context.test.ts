@@ -35,7 +35,7 @@ import {Helm} from '../../../src/core/helm.js';
 import {ChartManager} from '../../../src/core/chart_manager.js';
 import {getTestCacheDir, testLocalConfigData} from '../../test_util.js';
 import {BaseCommand} from '../../../src/commands/base.js';
-import {flags} from '../../../src/commands/index.js';
+import {Flags as flags} from '../../../src/commands/flags.js';
 import {SoloLogger} from '../../../src/core/logging.js';
 import {type Opts} from '../../../src/types/index.js';
 import fs from 'fs';

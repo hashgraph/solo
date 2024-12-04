@@ -19,7 +19,7 @@ import chalk from 'chalk';
 import {Listr} from 'listr2';
 import {SoloError, IllegalArgumentError, MissingArgumentError} from '../core/errors.js';
 import {BaseCommand} from './base.js';
-import {flags} from './index.js';
+import {Flags as flags} from './flags.js';
 import * as constants from '../core/constants.js';
 import {Templates} from '../core/templates.js';
 import * as helpers from '../core/helpers.js';

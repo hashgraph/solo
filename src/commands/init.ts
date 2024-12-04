@@ -20,7 +20,7 @@ import {BaseCommand} from './base.js';
 import fs from 'fs';
 import * as constants from '../core/constants.js';
 import {SoloError} from '../core/errors.js';
-import {flags} from './index.js';
+import {Flags as flags} from './flags.js';
 import chalk from 'chalk';
 
 /**

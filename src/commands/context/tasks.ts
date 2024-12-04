@@ -16,7 +16,7 @@
  */
 import {Task} from '../../core/task.js';
 import {Templates} from '../../core/templates.js';
-import {flags} from '../index.js';
+import {Flags as flags} from '../flags.js';
 import type {ListrTaskWrapper} from 'listr2';
 import {type BaseCommand} from '../base.js';
 

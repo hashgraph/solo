@@ -17,7 +17,7 @@
 import {expect} from 'chai';
 import {describe, it, after} from 'mocha';
 
-import {flags} from '../src/commands/index.js';
+import {Flags as flags} from '../src/commands/flags.js';
 import {
   accountCreationShouldSucceed,
   balanceQueryShouldSucceed,

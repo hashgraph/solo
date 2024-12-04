@@ -16,7 +16,7 @@
  */
 import {describe} from 'mocha';
 
-import {flags} from '../../../src/commands/index.js';
+import {Flags as flags} from '../../../src/commands/flags.js';
 import {e2eTestSuite, getDefaultArgv, TEST_CLUSTER} from '../../test_util.js';
 import {getNodeLogs, sleep} from '../../../src/core/helpers.js';
 import {MINUTES, SOLO_LOGS_DIR} from '../../../src/core/constants.js';

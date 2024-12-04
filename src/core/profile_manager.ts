@@ -23,7 +23,7 @@ import * as semver from 'semver';
 import type {SemVer} from 'semver';
 import {readFile, writeFile} from 'fs/promises';
 
-import {flags} from '../commands/index.js';
+import {Flags as flags} from '../commands/flags.js';
 import {Templates} from './templates.js';
 import * as constants from './constants.js';
 import {type ConfigManager} from './config_manager.js';

@@ -41,7 +41,7 @@ import {
   testLogger,
 } from '../../test_util.js';
 import {AccountCommand} from '../../../src/commands/account.js';
-import {flags} from '../../../src/commands/index.js';
+import {Flags as flags} from '../../../src/commands/flags.js';
 import {getNodeLogs} from '../../../src/core/helpers.js';
 import {MINUTES, SECONDS} from '../../../src/core/constants.js';
 

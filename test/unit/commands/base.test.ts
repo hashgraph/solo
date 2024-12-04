@@ -28,7 +28,7 @@ import {RemoteConfigManager} from '../../../src/core/config/remote/remote_config
 import {K8} from '../../../src/core/k8.js';
 import * as logging from '../../../src/core/logging.js';
 import {BaseCommand} from '../../../src/commands/base.js';
-import {flags} from '../../../src/commands/index.js';
+import {Flags as flags} from '../../../src/commands/flags.js';
 import sinon from 'sinon';
 import path from 'path';
 import {BASE_TEST_DIR} from '../../test_util.js';

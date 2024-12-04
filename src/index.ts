@@ -21,7 +21,7 @@ import 'dotenv/config';
 import path from 'path';
 import {ListrLogger} from 'listr2';
 
-import {flags} from './commands/index.js';
+import {Flags as flags} from './commands/flags.js';
 import * as commands from './commands/index.js';
 import {HelmDependencyManager, DependencyManager} from './core/dependency_managers/index.js';
 import * as constants from './core/constants.js';

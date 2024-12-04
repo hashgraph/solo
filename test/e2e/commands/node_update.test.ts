@@ -17,7 +17,7 @@
 import {it, describe, after} from 'mocha';
 import {expect} from 'chai';
 
-import {flags} from '../../../src/commands/index.js';
+import {Flags as flags} from '../../../src/commands/flags.js';
 import * as constants from '../../../src/core/constants.js';
 import {
   accountCreationShouldSucceed,

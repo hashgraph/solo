@@ -17,7 +17,7 @@
 import {ListrEnquirerPromptAdapter} from '@listr2/prompt-adapter-enquirer';
 import {Listr} from 'listr2';
 import {SoloError} from '../core/errors.js';
-import {flags} from './index.js';
+import {Flags as flags} from './flags.js';
 import {BaseCommand} from './base.js';
 import chalk from 'chalk';
 import * as constants from '../core/constants.js';

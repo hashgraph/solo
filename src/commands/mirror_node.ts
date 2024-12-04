@@ -21,7 +21,7 @@ import * as constants from '../core/constants.js';
 import {type AccountManager} from '../core/account_manager.js';
 import {type ProfileManager} from '../core/profile_manager.js';
 import {BaseCommand} from './base.js';
-import {flags} from './index.js';
+import {Flags as flags} from './flags.js';
 import {getFileContents, getEnvValue} from '../core/helpers.js';
 import {RemoteConfigTasks} from '../core/config/remote/remote_config_tasks.js';
 import {type CommandBuilder, type PodName} from '../types/aliases.js';

@@ -20,7 +20,7 @@ import {describe, it, after} from 'mocha';
 import fs from 'fs';
 import * as yaml from 'yaml';
 import path from 'path';
-import {flags} from '../../../src/commands/index.js';
+import {Flags as flags} from '../../../src/commands/flags.js';
 import * as constants from '../../../src/core/constants.js';
 import {ConfigManager} from '../../../src/core/config_manager.js';
 import {ProfileManager} from '../../../src/core/profile_manager.js';

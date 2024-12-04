@@ -23,7 +23,7 @@ import * as helpers from '../../core/helpers.js';
 import path from 'path';
 import fs from 'fs';
 import {validatePath} from '../../core/helpers.js';
-import {flags} from '../index.js';
+import {Flags as flags} from '../flags.js';
 import {type NodeAlias, type NodeAliases, type PodName} from '../../types/aliases.js';
 import {type NetworkNodeServices} from '../../core/network_node_services.js';
 

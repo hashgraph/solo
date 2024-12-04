@@ -64,7 +64,7 @@ import {
   splitFlagInput,
 } from '../../core/helpers.js';
 import chalk from 'chalk';
-import {flags} from '../index.js';
+import {Flags as flags} from '../flags.js';
 import {type SoloLogger} from '../../core/logging.js';
 import type {Listr, ListrTaskWrapper} from 'listr2';
 import {

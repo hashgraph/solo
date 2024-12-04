@@ -21,7 +21,7 @@ import * as constants from '../../../../src/core/constants.js';
 import * as fs from 'fs';
 
 import {e2eTestSuite, getDefaultArgv, getTestCacheDir, TEST_CLUSTER, testLogger} from '../../../test_util.js';
-import {flags} from '../../../../src/commands/index.js';
+import {Flags as flags} from '../../../../src/commands/flags.js';
 import * as version from '../../../../version.js';
 import {MINUTES, SECONDS} from '../../../../src/core/constants.js';
 
