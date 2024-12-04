@@ -43,7 +43,7 @@ You can now use your cluster with:
 
 kubectl cluster-info --context kind-solo
 
-Thanks for using kind! 😊
+Have a question, bug, or feature request? Let us know! https://kind.sigs.k8s.io/#community 🙂
 ```
 
 You may now view pods in your cluster using `k9s -A` as below:
@@ -131,8 +131,8 @@ Kubernetes Cluster	: kind-solo
 ✔ Gossip key for node: node3
 ✔ Generate gossip keys
 ✔ Backup old files
-✔ TLS key for node: node2
 ✔ TLS key for node: node1
+✔ TLS key for node: node2
 ✔ TLS key for node: node3
 ✔ Generate gRPC TLS Keys
 ✔ Finalize
@@ -193,11 +193,11 @@ Kubernetes Namespace	: solo
 ✔ Prepare staging directory
 ✔ Copy TLS keys
 ✔ Copy Gossip keys
+✔ Node: node1
+✔ Copy Gossip keys
 ✔ Node: node3
 ✔ Copy Gossip keys
 ✔ Node: node2
-✔ Copy Gossip keys
-✔ Node: node1
 ✔ Copy node keys to secrets
 ✔ Install chart 'solo-deployment'
 ✔ Check Node: node1
@@ -206,10 +206,10 @@ Kubernetes Namespace	: solo
 ✔ Check node pods are running
 ✔ Check Envoy Proxy for: node1
 ✔ Check Envoy Proxy for: node2
-✔ Check HAProxy for: node1
 ✔ Check Envoy Proxy for: node3
 ✔ Check HAProxy for: node2
 ✔ Check HAProxy for: node3
+✔ Check HAProxy for: node1
 ✔ Check proxy pods are running
 ✔ Check MinIO
 ✔ Check auxiliary pods are ready
@@ -235,8 +235,8 @@ Kubernetes Namespace	: solo
 ✔ Acquire lease - lease acquired successfully, attempt: 1/10
 ✔ Initialize
 ✔ Load remote config - remote config not found
-✔ Check network pod: node1
 ✔ Check network pod: node2
+✔ Check network pod: node1
 ✔ Check network pod: node3
 ✔ Identify network pods
 ✔ Update node: node1 [ platformVersion = v0.56.5 ]
@@ -244,11 +244,11 @@ Kubernetes Namespace	: solo
 ✔ Update node: node2 [ platformVersion = v0.56.5 ]
 ✔ Fetch platform software into network nodes
 ✔ Set file permissions
+✔ Node: node2
+✔ Set file permissions
 ✔ Node: node1
 ✔ Set file permissions
 ✔ Node: node3
-✔ Set file permissions
-✔ Node: node2
 ✔ Setup network nodes
 ```
 
@@ -271,17 +271,17 @@ Kubernetes Namespace	: solo
 ✔ Acquire lease - lease acquired successfully, attempt: 1/10
 ✔ Initialize
 ✔ Load remote config - remote config not found
-✔ Check network pod: node1
 ✔ Check network pod: node3
+✔ Check network pod: node1
 ✔ Check network pod: node2
 ✔ Identify existing network nodes
-✔ Start node: node1
 ✔ Start node: node3
 ✔ Start node: node2
+✔ Start node: node1
 ✔ Starting nodes
-✔ Check network pod: node1  - status ACTIVE, attempt: 17/120
-✔ Check network pod: node3  - status ACTIVE, attempt: 17/120
-✔ Check network pod: node2  - status ACTIVE, attempt: 17/120
+✔ Check network pod: node3  - status ACTIVE, attempt: 16/120
+✔ Check network pod: node2  - status ACTIVE, attempt: 16/120
+✔ Check network pod: node1  - status ACTIVE, attempt: 16/120
 ✔ Check all nodes are ACTIVE
 ✔ Check proxy for node: node1
 ✔ Check proxy for node: node2
@@ -320,8 +320,8 @@ Kubernetes Namespace	: solo
 ✔ Check Postgres DB
 ✔ Check REST API
 ✔ Check GRPC
-✔ Check Monitor
 ✔ Check Importer
+✔ Check Monitor
 ✔ Check pods are ready
 ✔ Insert data in public.file_data
 ✔ Seed DB data
@@ -396,5 +396,4 @@ Context: kind-solo                                <0> all   <a>       Attach    
 │ solo-cluster        minio-operator-7d575c5f84-xdwwz                                ●  1/1   Running         0 1 │
 │                                                                                                                 │
 └─────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
-  <pod>
 ```
