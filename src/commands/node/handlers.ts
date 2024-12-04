@@ -47,6 +47,7 @@ import type {NodeCommandTasks} from './tasks.js';
 import {type Lease} from '../../core/lease/lease.js';
 import {NodeSubcommandType} from '../../core/enumerations.js';
 import {type CommandHandlers} from '../../types/index.js';
+import {NodeHelper} from './helper.js';
 
 export class NodeCommandHandlers implements CommandHandlers {
   private readonly accountManager: AccountManager;
@@ -348,7 +349,7 @@ export class NodeCommandHandlers implements CommandHandlers {
     const action = helpers.commandActionBuilder(
       [
         ...this.updatePrepareTasks(argv, lease),
-        this.tasks.saveContextData(argv, NodeCommandHandlers.UPDATE_CONTEXT_FILE, helpers.updateSaveContextParser),
+        this.tasks.saveContextData(argv, NodeCommandHandlers.UPDATE_CONTEXT_FILE, NodeHelper.updateSaveContextParser),
       ],
       {
         concurrent: false,
@@ -369,7 +370,7 @@ export class NodeCommandHandlers implements CommandHandlers {
       [
         this.tasks.initialize(argv, updateConfigBuilder.bind(this), lease),
         RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
-        this.tasks.loadContextData(argv, NodeCommandHandlers.UPDATE_CONTEXT_FILE, helpers.updateLoadContextParser),
+        this.tasks.loadContextData(argv, NodeCommandHandlers.UPDATE_CONTEXT_FILE, NodeHelper.updateLoadContextParser),
         ...this.updateSubmitTransactionsTasks(argv),
       ],
       {
@@ -391,7 +392,7 @@ export class NodeCommandHandlers implements CommandHandlers {
       [
         this.tasks.initialize(argv, updateConfigBuilder.bind(this), lease),
         RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
-        this.tasks.loadContextData(argv, NodeCommandHandlers.UPDATE_CONTEXT_FILE, helpers.updateLoadContextParser),
+        this.tasks.loadContextData(argv, NodeCommandHandlers.UPDATE_CONTEXT_FILE, NodeHelper.updateLoadContextParser),
         ...this.updateExecuteTasks(argv),
       ],
       {
@@ -435,7 +436,7 @@ export class NodeCommandHandlers implements CommandHandlers {
     const action = helpers.commandActionBuilder(
       [
         ...this.deletePrepareTaskList(argv, lease),
-        this.tasks.saveContextData(argv, NodeCommandHandlers.DELETE_CONTEXT_FILE, helpers.deleteSaveContextParser),
+        this.tasks.saveContextData(argv, NodeCommandHandlers.DELETE_CONTEXT_FILE, NodeHelper.deleteSaveContextParser),
       ],
       {
         concurrent: false,
@@ -457,7 +458,7 @@ export class NodeCommandHandlers implements CommandHandlers {
     const action = helpers.commandActionBuilder(
       [
         this.tasks.initialize(argv, deleteConfigBuilder.bind(this), lease),
-        this.tasks.loadContextData(argv, NodeCommandHandlers.DELETE_CONTEXT_FILE, helpers.deleteLoadContextParser),
+        this.tasks.loadContextData(argv, NodeCommandHandlers.DELETE_CONTEXT_FILE, NodeHelper.deleteLoadContextParser),
         ...this.deleteSubmitTransactionsTaskList(argv),
       ],
       {
@@ -480,7 +481,7 @@ export class NodeCommandHandlers implements CommandHandlers {
     const action = helpers.commandActionBuilder(
       [
         this.tasks.initialize(argv, deleteConfigBuilder.bind(this), lease),
-        this.tasks.loadContextData(argv, NodeCommandHandlers.DELETE_CONTEXT_FILE, helpers.deleteLoadContextParser),
+        this.tasks.loadContextData(argv, NodeCommandHandlers.DELETE_CONTEXT_FILE, NodeHelper.deleteLoadContextParser),
         ...this.deleteExecuteTaskList(argv),
       ],
       {
