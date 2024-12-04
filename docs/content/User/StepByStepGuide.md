@@ -31,7 +31,19 @@ kind create cluster -n "${SOLO_CLUSTER_NAME}"
 Example output
 
 ```
-$KIND_CREATE_CLUSTER_OUTPUT
+Creating cluster "solo" ...
+ ✓ Ensuring node image (kindest/node:v1.29.1) 🖼
+ ✓ Preparing nodes 📦 
+ ✓ Writing configuration 📜
+ ✓ Starting control-plane 🕹️
+ ✓ Installing CNI 🔌
+ ✓ Installing StorageClass 💾
+Set kubectl context to "kind-solo"
+You can now use your cluster with:
+
+kubectl cluster-info --context kind-solo
+
+Thanks for using kind! 😊
 ```
 
 You may now view pods in your cluster using `k9s -A` as below:
@@ -78,7 +90,22 @@ solo init"
 * Example output
 
 ```
-$SOLO_INIT_OUTPUT
+
+******************************* Solo *********************************************
+Version			: 0.99.0
+Kubernetes Context	: kind-solo
+Kubernetes Cluster	: kind-solo
+**********************************************************************************
+✔ Setup home directory and cache
+✔ Check dependency: helm [OS: linux, Release: 5.15.0-125-generic, Arch: x64]
+✔ Check dependencies
+✔ Setup chart manager
+
+***************************************************************************************
+Note: solo stores various artifacts (config, logs, keys etc.) in its home directory: /home/runner/.solo
+If a full reset is needed, delete the directory or relevant sub-directories before running 'solo init'.
+***************************************************************************************
+✔ Copy templates in '/home/runner/.solo/cache'
 ```
 
 * Generate `pem` formatted node keys
@@ -90,7 +117,25 @@ solo node keys --gossip-keys --tls-keys -i node1,node2,node3
 * Example output
 
 ```
-$SOLO_NODE_KEY_PEM_OUTPUT
+
+******************************* Solo *********************************************
+Version			: 0.99.0
+Kubernetes Context	: kind-solo
+Kubernetes Cluster	: kind-solo
+**********************************************************************************
+✔ Initialize
+✔ Load remote config
+✔ Backup old files
+✔ Gossip key for node: node1
+✔ Gossip key for node: node2
+✔ Gossip key for node: node3
+✔ Generate gossip keys
+✔ Backup old files
+✔ TLS key for node: node2
+✔ TLS key for node: node1
+✔ TLS key for node: node3
+✔ Generate gRPC TLS Keys
+✔ Finalize
 ```
 PEM key files are generated in `~/.solo/keys` directory.
 ```
@@ -108,7 +153,15 @@ solo cluster setup -s "${SOLO_CLUSTER_SETUP_NAMESPACE}"
 * Example output
 
 ```
-$SOLO_CLUSTER_SETUP_OUTPUT
+
+******************************* Solo *********************************************
+Version			: 0.99.0
+Kubernetes Context	: kind-solo
+Kubernetes Cluster	: kind-solo
+**********************************************************************************
+✔ Initialize
+✔ Prepare chart values
+✔ Install 'solo-cluster-setup' chart
 ```
 
 In a separate terminal, you may run `k9s` to view the pod status.
@@ -124,7 +177,42 @@ solo network deploy -i node1,node2,node3 -n "${SOLO_NAMESPACE}"
 * Example output
 
 ```
-$SOLO_NETWORK_DEPLOY_OUTPUT
+
+******************************* Solo *********************************************
+Version			: 0.99.0
+Kubernetes Context	: kind-solo
+Kubernetes Cluster	: kind-solo
+Kubernetes Namespace	: solo
+**********************************************************************************
+✔ Acquire lease - lease acquired successfully, attempt: 1/10
+✔ Initialize
+✔ Load remote config - remote config not found
+✔ Check if cluster setup chart is installed
+✔ Copy Gossip keys to staging
+✔ Copy gRPC TLS keys to staging
+✔ Prepare staging directory
+✔ Copy TLS keys
+✔ Copy Gossip keys
+✔ Node: node3
+✔ Copy Gossip keys
+✔ Node: node2
+✔ Copy Gossip keys
+✔ Node: node1
+✔ Copy node keys to secrets
+✔ Install chart 'solo-deployment'
+✔ Check Node: node1
+✔ Check Node: node2
+✔ Check Node: node3
+✔ Check node pods are running
+✔ Check Envoy Proxy for: node1
+✔ Check Envoy Proxy for: node2
+✔ Check HAProxy for: node1
+✔ Check Envoy Proxy for: node3
+✔ Check HAProxy for: node2
+✔ Check HAProxy for: node3
+✔ Check proxy pods are running
+✔ Check MinIO
+✔ Check auxiliary pods are ready
 ```
 
 * Setup node with Hedera platform software.
@@ -137,7 +225,31 @@ solo node setup -i node1,node2,node3 -n "${SOLO_NAMESPACE}"
 * Example output
 
 ```
-$SOLO_NODE_SETUP_OUTPUT
+
+******************************* Solo *********************************************
+Version			: 0.99.0
+Kubernetes Context	: kind-solo
+Kubernetes Cluster	: kind-solo
+Kubernetes Namespace	: solo
+**********************************************************************************
+✔ Acquire lease - lease acquired successfully, attempt: 1/10
+✔ Initialize
+✔ Load remote config - remote config not found
+✔ Check network pod: node1
+✔ Check network pod: node2
+✔ Check network pod: node3
+✔ Identify network pods
+✔ Update node: node1 [ platformVersion = v0.56.5 ]
+✔ Update node: node3 [ platformVersion = v0.56.5 ]
+✔ Update node: node2 [ platformVersion = v0.56.5 ]
+✔ Fetch platform software into network nodes
+✔ Set file permissions
+✔ Node: node1
+✔ Set file permissions
+✔ Node: node3
+✔ Set file permissions
+✔ Node: node2
+✔ Setup network nodes
 ```
 
 * Start the nodes
@@ -149,7 +261,36 @@ solo node start -i node1,node2,node3 -n "${SOLO_NAMESPACE}"
 * Example output
 
 ```
-$SOLO_NODE_START_OUTPUT
+
+******************************* Solo *********************************************
+Version			: 0.99.0
+Kubernetes Context	: kind-solo
+Kubernetes Cluster	: kind-solo
+Kubernetes Namespace	: solo
+**********************************************************************************
+✔ Acquire lease - lease acquired successfully, attempt: 1/10
+✔ Initialize
+✔ Load remote config - remote config not found
+✔ Check network pod: node1
+✔ Check network pod: node3
+✔ Check network pod: node2
+✔ Identify existing network nodes
+✔ Start node: node1
+✔ Start node: node3
+✔ Start node: node2
+✔ Starting nodes
+✔ Check network pod: node1  - status ACTIVE, attempt: 17/120
+✔ Check network pod: node3  - status ACTIVE, attempt: 17/120
+✔ Check network pod: node2  - status ACTIVE, attempt: 17/120
+✔ Check all nodes are ACTIVE
+✔ Check proxy for node: node1
+✔ Check proxy for node: node2
+✔ Check proxy for node: node3
+✔ Check node proxies are ACTIVE
+✔ Adding stake for node: node1
+✔ Adding stake for node: node2
+✔ Adding stake for node: node3
+✔ Add node stakes
 ```
 
 * Deploy mirror node
@@ -161,7 +302,29 @@ solo mirror-node deploy -n "${SOLO_NAMESPACE}"
 * Example output
 
 ```
-$SOLO_MIRROR_NODE_DEPLOY_OUTPUT
+
+******************************* Solo *********************************************
+Version			: 0.99.0
+Kubernetes Context	: kind-solo
+Kubernetes Cluster	: kind-solo
+Kubernetes Namespace	: solo
+**********************************************************************************
+✔ Acquire lease - lease acquired successfully, attempt: 1/10
+✔ Initialize
+✔ Load remote config - remote config not found
+✔ Prepare address book
+✔ Deploy mirror-node
+✔ Deploy hedera-explorer
+✔ Enable mirror-node
+✔ Check Hedera Explorer
+✔ Check Postgres DB
+✔ Check REST API
+✔ Check GRPC
+✔ Check Monitor
+✔ Check Importer
+✔ Check pods are ready
+✔ Insert data in public.file_data
+✔ Seed DB data
 ```
 
 * Deploy a JSON RPC relay
@@ -173,7 +336,19 @@ solo relay deploy -i node1 -n "${SOLO_NAMESPACE}"
 * Example output
 
 ```
-$SOLO_RELAY_DEPLOY_OUTPUT
+
+******************************* Solo *********************************************
+Version			: 0.99.0
+Kubernetes Context	: kind-solo
+Kubernetes Cluster	: kind-solo
+Kubernetes Namespace	: solo
+**********************************************************************************
+✔ Acquire lease - lease acquired successfully, attempt: 1/10
+✔ Initialize
+✔ Load remote config - remote config not found
+✔ Prepare chart values
+✔ Deploy JSON RPC Relay
+✔ Check relay is ready
 ```
 
 You may view the list of pods using `k9s` as below:
