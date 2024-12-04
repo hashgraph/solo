@@ -2,6 +2,10 @@
 main:
   - name: Getting Started
     ref: "/User/Index.md"
+  - name: Step by Step Guide
+    ref: "/User/StepByStepGuide.md"
+  - name: Access Hedera Services
+    ref: "/User/AccessHederaServices.md"
   - name: How to use Hashgraph javascript SDK with Solo
     ref: "/User/SDK.md"
   - name: User Guide for Platform Developer
@@ -12,9 +16,10 @@ main:
     ref: "/User/DebugLog.mc"
   - name: Solo CLI
     ref: "/User/SoloCLI.md"
-
-  - name: Deploy Solo Network
-    ref: "/User/DeploySolo.md"
+  - name: Solo With Mirror Node
+    ref: "/User/SoloWithMirrorNode.md"
+  - name: Launch solo with Task tool
+    ref: "/User/TaskTool.md"
   - name: Development
     ref: "/Developer/DEV.md"
   - name: Classes
