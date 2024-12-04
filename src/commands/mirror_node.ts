@@ -22,7 +22,7 @@ import {type AccountManager} from '../core/account_manager.js';
 import {type ProfileManager} from '../core/profile_manager.js';
 import {BaseCommand} from './base.js';
 import {Flags as flags} from './flags.js';
-import {getFileContents, getEnvValue} from '../core/helpers.js';
+import {getEnvValue} from '../core/helpers.js';
 import {RemoteConfigTasks} from '../core/config/remote/remote_config_tasks.js';
 import {type CommandBuilder, type PodName} from '../types/aliases.js';
 import type {Opts} from '../types/index.js';
@@ -371,8 +371,8 @@ export class MirrorNodeCommand extends BaseCommand {
                     const exchangeRatesFileIdNum = 112;
                     const timestamp = Date.now();
 
-                    const fees = await getFileContents(this.accountManager, namespace, feesFileIdNum);
-                    const exchangeRates = await getFileContents(this.accountManager, namespace, exchangeRatesFileIdNum);
+                    const fees = await this.accountManager.getFileContents(namespace, feesFileIdNum);
+                    const exchangeRates = await this.accountManager.getFileContents(namespace, exchangeRatesFileIdNum);
 
                     const importFeesQuery = `INSERT INTO public.file_data(file_data, consensus_timestamp, entity_id, transaction_type) VALUES (decode('${fees}', 'hex'), ${timestamp + '000000'}, ${feesFileIdNum}, 17);`;
                     const importExchangeRatesQuery = `INSERT INTO public.file_data(file_data, consensus_timestamp, entity_id, transaction_type) VALUES (decode('${exchangeRates}', 'hex'), ${

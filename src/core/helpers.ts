@@ -24,9 +24,8 @@ import {Templates} from './templates.js';
 import {HEDERA_HAPI_PATH, ROOT_CONTAINER, ROOT_DIR, SOLO_LOGS_DIR} from './constants.js';
 import * as constants from './constants.js';
 import {type K8} from './k8.js';
-import {FileContentsQuery, FileId, PrivateKey, ServiceEndpoint} from '@hashgraph/sdk';
+import {PrivateKey, ServiceEndpoint} from '@hashgraph/sdk';
 import {Listr} from 'listr2';
-import {type AccountManager} from './account_manager.js';
 import {type NodeAlias, type NodeAliases, type PodName} from '../types/aliases.js';
 import {type CommandFlag, type CommandHandlers} from '../types/index.js';
 import {type V1Pod} from '@kubernetes/client-node';
@@ -283,14 +282,6 @@ export function getNodeAccountMap(nodeAliases: NodeAliases) {
     accountMap.set(nodeAlias, nodeAccount);
   });
   return accountMap;
-}
-
-export async function getFileContents(accountManager: AccountManager, namespace: string, fileNum: number) {
-  await accountManager.loadNodeClient(namespace);
-  const client = accountManager._nodeClient;
-  const fileId = FileId.fromString(`0.0.${fileNum}`);
-  const queryFees = new FileContentsQuery().setFileId(fileId);
-  return Buffer.from(await queryFees.execute(client)).toString('hex');
 }
 
 export function getEnvValue(envVarArray: string[], name: string) {
