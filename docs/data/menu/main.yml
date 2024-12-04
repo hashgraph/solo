@@ -8,6 +8,10 @@ main:
     ref: "/User/PlatformDeveloper.md"
   - name: User Guide for Hedera Developer
     ref: "/User/HederaDeveloper.md"
+  - name: How to use intellij jvm debugger with Solo
+    ref: "/User/DebugLog.mc"
+  - name: Solo CLI
+    ref: "/User/SoloCLI.md"
 
   - name: Deploy Solo Network
     ref: "/User/DeploySolo.md"

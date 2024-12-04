@@ -124,9 +124,6 @@ solo account create -n solo-e2e --hbar-amount 500 --generate-ecdsa-key
 # create a new account providing ecdsk key
 solo account create -n solo-e2e --ecdsa-private-key 302a300506032b65700321001d8978e647aca1195c54a4d3d5dc469b95666de14e9b6edde8ed337917b96013
 
-# create a new account providing ed25519 key
-solo account create -n solo-e2e --ed25519-private-key xxxxx
-
 # create a new account with alias
 solo account create -n solo-e2e --set-alias --generate-ecdsa-key
 ```

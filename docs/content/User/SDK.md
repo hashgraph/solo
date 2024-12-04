@@ -99,3 +99,10 @@ Finally, after done with using solo, using the following command to tear down th
 ```bash
 task clean
 ```
+
+Retrieving Logs
+You can find log for running solo command under the directory ~/.solo/logs/ 
+
+The file solo.log contains the logs for the solo command. 
+The file hashgraph-sdk.log contains the logs from Solo client when sending transactions to network nodes.
+
