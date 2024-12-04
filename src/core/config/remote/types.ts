@@ -14,7 +14,7 @@
  * limitations under the License.
  *
  */
-import type {NodeAliases} from '../../../types/aliases.js';
+import type {NodeAlias, NodeAliases} from '../../../types/aliases.js';
 import type {Migration} from './migration.js';
 import type {ComponentsDataWrapper} from './components_data_wrapper.js';
 import type {RemoteConfigMetadata} from './metadata.js';
@@ -71,4 +71,35 @@ export interface RemoteConfigDataStructure {
   components: ComponentsDataStructure;
   commandHistory: string[];
   lastExecutedCommand: string;
+}
+
+export interface ValidateStatesObject {
+  acceptedStates?: ConsensusNodeStates[];
+  excludedStates?: ConsensusNodeStates[];
+}
+
+// ---------- Component Modifying Tasks Contexts ---------- //
+
+export interface AddRelayComponentContext {
+  config: {namespace: Namespace; nodeAliases: NodeAliases};
+}
+
+export interface AddMirrorNodeComponentsContext {
+  config: {namespace: Namespace; deployHederaExplorer: boolean};
+}
+
+export interface AddNodesAndProxiesContext {
+  config: {namespace: Namespace; nodeAliases: NodeAliases};
+}
+
+export interface ChangeAllNodeStatesContext {
+  config: {namespace: Namespace; nodeAliases: NodeAliases};
+}
+
+export interface ValidateAllNodeStatesContext {
+  config: {namespace: string; nodeAliases: NodeAliases};
+}
+
+export interface ValidateSingleNodeStateContext {
+  config: {namespace: string; nodeAlias: NodeAlias};
 }

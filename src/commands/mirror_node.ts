@@ -420,7 +420,7 @@ export class MirrorNodeCommand extends BaseCommand {
             );
           },
         },
-        RemoteConfigTasks.addMirrorNodeAndMirrorNodeToExplorer.bind(this)(),
+        RemoteConfigTasks.addMirrorNodeComponents.bind(this)(),
       ],
       {
         concurrent: false,
@@ -517,7 +517,7 @@ export class MirrorNodeCommand extends BaseCommand {
           },
           skip: ctx => !ctx.config.isChartInstalled,
         },
-        RemoteConfigTasks.removeMirrorNodeAndMirrorNodeToExplorer.bind(this)(),
+        RemoteConfigTasks.removeMirrorNodeComponents.bind(this)(),
       ],
       {
         concurrent: false,

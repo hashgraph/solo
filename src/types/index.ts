@@ -35,8 +35,9 @@ import type {
   RemoteConfigManager,
   LocalConfig,
 } from '../core/index.js';
-import type {Cluster, Context} from '../core/config/remote/types.js';
+import {Cluster, Context} from '../core/config/remote/types.js';
 import {type BaseCommand} from '../commands/base.js';
+import type {ListrTask} from 'listr2';
 
 export interface NodeKeyObject {
   privateKey: crypto.webcrypto.CryptoKey;
@@ -130,3 +131,7 @@ export interface ToObject<T> {
    */
   toObject(): T;
 }
+
+export type SoloListrTask<T> = ListrTask<T, any, any>;
+
+export type EmptyContextConfig = object;

@@ -20,21 +20,31 @@ import {
   EnvoyProxyComponent,
   MirrorNodeComponent,
   ConsensusNodeComponent,
+  MirrorNodeExplorerComponent,
 } from './components/index.js';
 import {ComponentType, ConsensusNodeStates} from './enumerations.js';
 import chalk from 'chalk';
 import {SoloError} from '../../errors.js';
 
-import type {Listr, ListrTask} from 'listr2';
-import type {NodeAlias, NodeAliases} from '../../../types/aliases.js';
+import type {Listr} from 'listr2';
+import type {NodeAlias} from '../../../types/aliases.js';
 import type {BaseCommand} from '../../../commands/base.js';
 import type {RelayCommand} from '../../../commands/relay.js';
 import type {NetworkCommand} from '../../../commands/network.js';
 import type {DeploymentCommand} from '../../../commands/deployment.js';
 import type {MirrorNodeCommand} from '../../../commands/mirror_node.js';
 import type {NodeCommandHandlers} from '../../../commands/node/handlers.js';
-import type {Optional} from '../../../types/index.js';
-import {ComponentsDataWrapper} from './components_data_wrapper.js';
+import type {EmptyContextConfig, Optional, SoloListrTask} from '../../../types/index.js';
+import type {ComponentsDataWrapper} from './components_data_wrapper.js';
+import type {
+  ValidateStatesObject,
+  AddRelayComponentContext,
+  AddNodesAndProxiesContext,
+  ChangeAllNodeStatesContext,
+  ValidateAllNodeStatesContext,
+  ValidateSingleNodeStateContext,
+  AddMirrorNodeComponentsContext,
+} from './types.js';
 
 /**
  * Static class that handles all tasks related to remote config used by other commands.
@@ -47,19 +57,19 @@ export class RemoteConfigTasks {
    *
    * @param argv - used to update the last executed command and command history
    */
-  public static loadRemoteConfig(this: BaseCommand, argv: any): ListrTask<any, any, any> {
+  public static loadRemoteConfig(this: BaseCommand, argv: any): SoloListrTask<EmptyContextConfig> {
     return this.remoteConfigManager.buildLoadTask(argv);
   }
 
   /** Creates remote config. */
-  public static createRemoteConfig(this: DeploymentCommand): ListrTask<any, any, any> {
+  public static createRemoteConfig(this: DeploymentCommand): SoloListrTask<EmptyContextConfig> {
     return this.remoteConfigManager.buildCreateTask();
   }
 
   /* ----------- Component Modifying ----------- */
 
   /** Adds the relay component to remote config. */
-  public static addRelayComponent(this: RelayCommand): ListrTask<any, any, any> {
+  public static addRelayComponent(this: RelayCommand): SoloListrTask<AddRelayComponentContext> {
     return {
       title: 'Add relay component in remote config',
       skip: (): boolean => !this.remoteConfigManager.isLoaded(),
@@ -70,14 +80,16 @@ export class RemoteConfigTasks {
           } = ctx;
           const cluster = this.remoteConfigManager.currentCluster;
 
-          remoteConfig.components.add('relay', new RelayComponent('relay', cluster, namespace, nodeAliases));
+          const component = new RelayComponent('relay', cluster, namespace, nodeAliases);
+
+          remoteConfig.components.add('relay', component);
         });
       },
     };
   }
 
   /** Remove the relay component from remote config. */
-  public static removeRelayComponent(this: RelayCommand): ListrTask<any, any, any> {
+  public static removeRelayComponent(this: RelayCommand): SoloListrTask<EmptyContextConfig> {
     return {
       title: 'Remove relay component from remote config',
       skip: (): boolean => !this.remoteConfigManager.isLoaded(),
@@ -90,30 +102,42 @@ export class RemoteConfigTasks {
   }
 
   /** Adds the mirror node and mirror node explorer components to remote config. */
-  public static addMirrorNodeAndMirrorNodeToExplorer(this: MirrorNodeCommand): ListrTask<any, any, any> {
+  public static addMirrorNodeComponents(this: MirrorNodeCommand): SoloListrTask<AddMirrorNodeComponentsContext> {
     return {
       title: 'Add mirror node and mirror node explorer to remote config',
       skip: (): boolean => !this.remoteConfigManager.isLoaded(),
       task: async (ctx): Promise<void> => {
         await this.remoteConfigManager.modify(async remoteConfig => {
           const {
-            config: {namespace},
+            config: {namespace, deployHederaExplorer},
           } = ctx;
           const cluster = this.remoteConfigManager.currentCluster;
 
-          remoteConfig.components.add('mirrorNode', new MirrorNodeComponent('mirrorNode', cluster, namespace));
+          try {
+            const component = new MirrorNodeComponent('mirrorNode', cluster, namespace);
 
-          remoteConfig.components.add(
-            'mirrorNodeExplorer',
-            new MirrorNodeComponent('mirrorNodeExplorer', cluster, namespace),
-          );
+            remoteConfig.components.add('mirrorNode', component);
+          } catch (e) {
+            throw new SoloError('Mirror node component already exists', e);
+          }
+
+          // Add a mirror node explorer component to remote config only if the flag is enabled
+          if (!deployHederaExplorer) return;
+
+          try {
+            const component = new MirrorNodeExplorerComponent('mirrorNodeExplorer', cluster, namespace);
+
+            remoteConfig.components.add('mirrorNodeExplorer', component);
+          } catch (e) {
+            throw new SoloError('Mirror node explorer component already exists', e);
+          }
         });
       },
     };
   }
 
   /** Removes the mirror node and mirror node explorer components from remote config. */
-  public static removeMirrorNodeAndMirrorNodeToExplorer(this: MirrorNodeCommand): ListrTask<any, any, any> {
+  public static removeMirrorNodeComponents(this: MirrorNodeCommand): SoloListrTask<EmptyContextConfig> {
     return {
       title: 'Remove mirror node and mirror node explorer from remote config',
       skip: (): boolean => !this.remoteConfigManager.isLoaded(),
@@ -121,14 +145,19 @@ export class RemoteConfigTasks {
         await this.remoteConfigManager.modify(async remoteConfig => {
           remoteConfig.components.remove('mirrorNode', ComponentType.MirrorNode);
 
-          remoteConfig.components.remove('mirrorNodeExplorer', ComponentType.MirrorNode);
+          try {
+            remoteConfig.components.remove('mirrorNodeExplorer', ComponentType.MirrorNode);
+          } catch {
+            // When the mirror node explorer component is not deployed,
+            // error is thrown since is not found, in this case ignore it
+          }
         });
       },
     };
   }
 
   /** Adds the consensus node, envoy and haproxy components to remote config.  */
-  public static addNodesAndProxies(this: NetworkCommand): ListrTask<any, any, any> {
+  public static addNodesAndProxies(this: NetworkCommand): SoloListrTask<AddNodesAndProxiesContext> {
     return {
       title: 'Add node and proxies to remote config',
       skip: (): boolean => !this.remoteConfigManager.isLoaded(),
@@ -161,7 +190,7 @@ export class RemoteConfigTasks {
   }
 
   /** Removes the consensus node, envoy and haproxy components from remote config.  */
-  public static removeNodeAndProxies(this: NodeCommandHandlers): ListrTask<any, any, any> {
+  public static removeNodeAndProxies(this: NodeCommandHandlers): SoloListrTask<EmptyContextConfig> {
     return {
       skip: (): boolean => !this.remoteConfigManager.isLoaded(),
       title: 'Remove node and proxies from remote config',
@@ -180,23 +209,25 @@ export class RemoteConfigTasks {
    *
    * @param state - to which to change the consensus node component
    */
-  public static changeAllNodeStates(this: NodeCommandHandlers, state: ConsensusNodeStates): ListrTask<any, any, any> {
-    interface Context {
-      config: {namespace: string; nodeAliases: NodeAliases};
-    }
-
+  public static changeAllNodeStates(
+    this: NodeCommandHandlers,
+    state: ConsensusNodeStates,
+  ): SoloListrTask<ChangeAllNodeStatesContext> {
     return {
       title: `Change node state to ${state} in remote config`,
       skip: (): boolean => !this.remoteConfigManager.isLoaded(),
-      task: async (ctx: Context): Promise<void> => {
+      task: async (ctx): Promise<void> => {
         await this.remoteConfigManager.modify(async remoteConfig => {
           const {
             config: {namespace, nodeAliases},
           } = ctx;
+
           const cluster = this.remoteConfigManager.currentCluster;
 
           for (const nodeAlias of nodeAliases) {
-            remoteConfig.components.edit(nodeAlias, new ConsensusNodeComponent(nodeAlias, cluster, namespace, state));
+            const component = new ConsensusNodeComponent(nodeAlias, cluster, namespace, state);
+
+            remoteConfig.components.edit(nodeAlias, component);
           }
         });
       },
@@ -211,21 +242,17 @@ export class RemoteConfigTasks {
    */
   public static validateAllNodeStates(
     this: NodeCommandHandlers,
-    {acceptedStates, excludedStates}: {acceptedStates?: ConsensusNodeStates[]; excludedStates?: ConsensusNodeStates[]},
-  ): ListrTask<any, any, any> {
-    interface Context {
-      config: {namespace: string; nodeAliases: NodeAliases};
-    }
-
+    {acceptedStates, excludedStates}: ValidateStatesObject,
+  ): SoloListrTask<ValidateAllNodeStatesContext> {
     return {
       title: 'Validate nodes states',
       skip: (): boolean => !this.remoteConfigManager.isLoaded(),
-      task: (ctx: Context, task): Listr<any, any, any> => {
+      task: (ctx, task): Listr<ValidateAllNodeStatesContext> => {
         const nodeAliases = ctx.config.nodeAliases;
 
         const components = this.remoteConfigManager.components;
 
-        const subTasks: ListrTask<Context, any, any>[] = nodeAliases.map(nodeAlias => ({
+        const subTasks: SoloListrTask<ValidateAllNodeStatesContext>[] = nodeAliases.map(nodeAlias => ({
           title: `Validating state for node ${nodeAlias}`,
           task: (_, task): void => {
             const state = RemoteConfigTasks.validateNodeState(nodeAlias, components, acceptedStates, excludedStates);
@@ -250,16 +277,12 @@ export class RemoteConfigTasks {
    */
   public static validateSingleNodeState(
     this: NodeCommandHandlers,
-    {acceptedStates, excludedStates}: {acceptedStates?: ConsensusNodeStates[]; excludedStates?: ConsensusNodeStates[]},
-  ): ListrTask<any, any, any> {
-    interface Context {
-      config: {namespace: string; nodeAlias: NodeAlias};
-    }
-
+    {acceptedStates, excludedStates}: ValidateStatesObject,
+  ): SoloListrTask<ValidateSingleNodeStateContext> {
     return {
       title: 'Validate nodes state',
       skip: (): boolean => !this.remoteConfigManager.isLoaded(),
-      task: (ctx: Context, task): void => {
+      task: (ctx, task): void => {
         const nodeAlias = ctx.config.nodeAlias;
 
         task.title += ` ${nodeAlias}`;
@@ -289,7 +312,7 @@ export class RemoteConfigTasks {
     try {
       nodeComponent = components.getComponent<ConsensusNodeComponent>(ComponentType.ConsensusNode, nodeAlias);
     } catch (e) {
-      throw new SoloError(`${nodeAlias} not found in remote config`);
+      throw new SoloError(`${nodeAlias} not found in remote config`, e);
     }
 
     if (acceptedStates && !acceptedStates.includes(nodeComponent.state)) {
