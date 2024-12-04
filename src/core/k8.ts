@@ -19,20 +19,21 @@ import fs from 'fs';
 import net from 'net';
 import os from 'os';
 import path from 'path';
-import {flags} from '../commands/index.js';
+import {Flags as flags} from '../commands/flags.js';
 import {SoloError, IllegalArgumentError, MissingArgumentError} from './errors.js';
 import * as tar from 'tar';
 import {v4 as uuid4} from 'uuid';
 import {type V1Lease, V1ObjectMeta, V1Secret, type Context} from '@kubernetes/client-node';
-import {sleep} from './helpers.js';
-import {type ConfigManager, constants} from './index.js';
 import * as stream from 'node:stream';
-
-import {type SoloLogger} from './logging.js';
+import type * as http from 'node:http';
 import type * as WebSocket from 'ws';
+
+import {sleep} from './helpers.js';
+import * as constants from './constants.js';
+import {type ConfigManager} from './config_manager.js';
+import {type SoloLogger} from './logging.js';
 import {type PodName, type TarCreateFilter} from '../types/aliases.js';
 import type {ExtendedNetServer, LocalContextObject} from '../types/index.js';
-import type * as http from 'node:http';
 import {MINUTES} from './constants.js';
 
 interface TDirectoryData {

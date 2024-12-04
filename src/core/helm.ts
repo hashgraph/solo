@@ -15,7 +15,7 @@
  *
  */
 import os from 'os';
-import {constants} from './index.js';
+import * as constants from './constants.js';
 import {ShellRunner} from './shell_runner.js';
 import {Templates} from './templates.js';
 import {IllegalArgumentError} from './errors.js';

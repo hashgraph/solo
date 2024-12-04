@@ -29,25 +29,6 @@ import {NetworkCommand} from '../src/commands/network.js';
 import {NodeCommand} from '../src/commands/node/index.js';
 import {DependencyManager, HelmDependencyManager} from '../src/core/dependency_managers/index.js';
 import {getNodeLogs, sleep} from '../src/core/helpers.js';
-import {
-  ChartManager,
-  ConfigManager,
-  constants,
-  Helm,
-  K8,
-  KeyManager,
-  LeaseManager,
-  logging,
-  PackageDownloader,
-  PlatformInstaller,
-  ProfileManager,
-  Templates,
-  Zippy,
-  AccountManager,
-  CertificateManager,
-  RemoteConfigManager,
-  LocalConfig,
-} from '../src/core/index.js';
 import {AccountBalanceQuery, AccountCreateTransaction, Hbar, HbarUnit, PrivateKey} from '@hashgraph/sdk';
 import {MINUTES, NODE_LOG_FAILURE_MSG, ROOT_CONTAINER, SECONDS, SOLO_LOGS_DIR} from '../src/core/constants.js';
 import crypto from 'crypto';
@@ -59,7 +40,23 @@ import type {SoloLogger} from '../src/core/logging.js';
 import type {BaseCommand} from '../src/commands/base.js';
 import type {NodeAlias} from '../src/types/aliases.js';
 import type {NetworkNodeServices} from '../src/core/network_node_services.js';
-import sinon from 'sinon';
+import {K8} from '../src/core/k8.js';
+import {AccountManager} from '../src/core/account_manager.js';
+import {PlatformInstaller} from '../src/core/platform_installer.js';
+import {ProfileManager} from '../src/core/profile_manager.js';
+import {LeaseManager} from '../src/core/lease/lease_manager.js';
+import {CertificateManager} from '../src/core/certificate_manager.js';
+import {LocalConfig} from '../src/core/config/local_config.js';
+import {RemoteConfigManager} from '../src/core/config/remote/remote_config_manager.js';
+import * as constants from '../src/core/constants.js';
+import {Templates} from '../src/core/templates.js';
+import {ConfigManager} from '../src/core/config_manager.js';
+import * as logging from '../src/core/logging.js';
+import {Helm} from '../src/core/helm.js';
+import {ChartManager} from '../src/core/chart_manager.js';
+import {PackageDownloader} from '../src/core/package_downloader.js';
+import {KeyManager} from '../src/core/key_manager.js';
+import {Zippy} from '../src/core/zippy.js';
 import {HEDERA_PLATFORM_VERSION} from '../version.js';
 import {IntervalLeaseRenewalService} from '../src/core/lease/lease_renewal.js';
 

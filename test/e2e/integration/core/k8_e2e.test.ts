@@ -24,7 +24,10 @@ import os from 'os';
 import path from 'path';
 import {v4 as uuid4} from 'uuid';
 import {SoloError} from '../../../../src/core/errors.js';
-import {ConfigManager, constants, logging, Templates} from '../../../../src/core/index.js';
+import * as constants from '../../../../src/core/constants.js';
+import {Templates} from '../../../../src/core/templates.js';
+import {ConfigManager} from '../../../../src/core/config_manager.js';
+import * as logging from '../../../../src/core/logging.js';
 import {K8} from '../../../../src/core/k8.js';
 import {flags} from '../../../../src/commands/index.js';
 import {

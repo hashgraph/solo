@@ -20,7 +20,8 @@ import {expect} from 'chai';
 
 import {flags} from '../../../src/commands/index.js';
 import {bootstrapTestVariables, getDefaultArgv, HEDERA_PLATFORM_VERSION_TAG, TEST_CLUSTER} from '../../test_util.js';
-import {constants, logging} from '../../../src/core/index.js';
+import * as constants from '../../../src/core/constants.js';
+import * as logging from '../../../src/core/logging.js';
 import {sleep} from '../../../src/core/helpers.js';
 import * as version from '../../../version.js';
 import {MINUTES, SECONDS} from '../../../src/core/constants.js';

@@ -17,7 +17,7 @@
 import {it, describe, after, before} from 'mocha';
 import {expect} from 'chai';
 
-import {constants} from '../../../../src/core/index.js';
+import * as constants from '../../../../src/core/constants.js';
 import * as fs from 'fs';
 
 import {e2eTestSuite, getDefaultArgv, getTestCacheDir, TEST_CLUSTER, testLogger} from '../../../test_util.js';

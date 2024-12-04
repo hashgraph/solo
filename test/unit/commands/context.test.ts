@@ -19,22 +19,20 @@ import {describe, it, beforeEach} from 'mocha';
 import {expect} from 'chai';
 
 import {ContextCommandTasks} from '../../../src/commands/context/tasks.js';
-import {
-  AccountManager,
-  CertificateManager,
-  ChartManager,
-  ConfigManager,
-  DependencyManager,
-  Helm,
-  K8,
-  KeyManager,
-  LeaseManager,
-  LocalConfig,
-  PackageDownloader,
-  PlatformInstaller,
-  ProfileManager,
-  RemoteConfigManager,
-} from '../../../src/core/index.js';
+import {DependencyManager} from '../../../src/core/dependency_managers/index.js';
+import {LocalConfig} from '../../../src/core/config/local_config.js';
+import {PackageDownloader} from '../../../src/core/package_downloader.js';
+import {KeyManager} from '../../../src/core/key_manager.js';
+import {AccountManager} from '../../../src/core/account_manager.js';
+import {PlatformInstaller} from '../../../src/core/platform_installer.js';
+import {ProfileManager} from '../../../src/core/profile_manager.js';
+import {LeaseManager} from '../../../src/core/lease/lease_manager.js';
+import {CertificateManager} from '../../../src/core/certificate_manager.js';
+import {RemoteConfigManager} from '../../../src/core/config/remote/remote_config_manager.js';
+import {K8} from '../../../src/core/k8.js';
+import {ConfigManager} from '../../../src/core/config_manager.js';
+import {Helm} from '../../../src/core/helm.js';
+import {ChartManager} from '../../../src/core/chart_manager.js';
 import {getTestCacheDir, testLocalConfigData} from '../../test_util.js';
 import {BaseCommand} from '../../../src/commands/base.js';
 import {flags} from '../../../src/commands/index.js';

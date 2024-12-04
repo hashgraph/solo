@@ -19,15 +19,15 @@ import 'chai-as-promised';
 import {expect} from 'chai';
 import {describe, it} from 'mocha';
 
-import * as core from '../../../src/core/index.js';
 import {IllegalArgumentError, MissingArgumentError, SoloError} from '../../../src/core/errors.js';
 import os from 'os';
 import fs from 'fs';
 import path from 'path';
 import {Zippy} from '../../../src/core/zippy.js';
+import * as logging from '../../../src/core/logging.js';
 
 describe('Zippy', () => {
-  const testLogger = core.logging.NewLogger('debug', true);
+  const testLogger = logging.NewLogger('debug', true);
   const zippy = new Zippy(testLogger);
 
   describe('unzip', () => {

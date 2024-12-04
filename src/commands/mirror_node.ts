@@ -17,7 +17,9 @@
 import {ListrEnquirerPromptAdapter} from '@listr2/prompt-adapter-enquirer';
 import {Listr} from 'listr2';
 import {SoloError, IllegalArgumentError, MissingArgumentError} from '../core/errors.js';
-import {constants, type ProfileManager, type AccountManager} from '../core/index.js';
+import * as constants from '../core/constants.js';
+import {type AccountManager} from '../core/account_manager.js';
+import {type ProfileManager} from '../core/profile_manager.js';
 import {BaseCommand} from './base.js';
 import {flags} from './index.js';
 import {getFileContents, getEnvValue} from '../core/helpers.js';

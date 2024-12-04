@@ -17,8 +17,9 @@
 import {Listr} from 'listr2';
 import {SoloError, MissingArgumentError} from '../core/errors.js';
 import * as helpers from '../core/helpers.js';
-import type {ProfileManager, AccountManager} from '../core/index.js';
-import {constants} from '../core/index.js';
+import * as constants from '../core/constants.js';
+import {type ProfileManager} from '../core/profile_manager.js';
+import {type AccountManager} from '../core/account_manager.js';
 import {BaseCommand} from './base.js';
 import {flags} from './index.js';
 import {getNodeAccountMap} from '../core/helpers.js';

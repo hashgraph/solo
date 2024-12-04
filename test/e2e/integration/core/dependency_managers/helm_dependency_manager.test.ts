@@ -21,7 +21,8 @@ import each from 'mocha-each';
 import fs from 'fs';
 import path from 'path';
 import {HelmDependencyManager} from '../../../../../src/core/dependency_managers/index.js';
-import {PackageDownloader, Zippy} from '../../../../../src/core/index.js';
+import {PackageDownloader} from '../../../../../src/core/package_downloader.js';
+import {Zippy} from '../../../../../src/core/zippy.js';
 import {getTestCacheDir, getTmpDir, testLogger} from '../../../../test_util.js';
 import * as version from '../../../../../version.js';
 

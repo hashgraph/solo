@@ -32,7 +32,8 @@ import * as NodeCommandConfigs from '../../src/commands/node/configs.js';
 import {MINUTES, SECONDS} from '../../src/core/constants.js';
 import type {NodeAlias} from '../../src/types/aliases.js';
 import type {ListrTaskWrapper} from 'listr2';
-import {ConfigManager, type K8} from '../../src/core/index.js';
+import {ConfigManager} from '../../src/core/config_manager.js';
+import {type K8} from '../../src/core/k8.js';
 import {type NodeCommand} from '../../src/commands/node/index.js';
 
 export function e2eNodeKeyRefreshTest(testName: string, mode: string, releaseTag = HEDERA_PLATFORM_VERSION_TAG) {

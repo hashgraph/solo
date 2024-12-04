@@ -18,7 +18,9 @@ import {expect} from 'chai';
 import {describe, it, after, before} from 'mocha';
 import jest from 'jest-mock';
 
-import {ConfigManager, constants, K8} from '../../../src/core/index.js';
+import * as constants from '../../../src/core/constants.js';
+import {K8} from '../../../src/core/k8.js';
+import {ConfigManager} from '../../../src/core/config_manager.js';
 import {testLogger} from '../../test_util.js';
 import {flags} from '../../../src/commands/index.js';
 import {SECONDS} from '../../../src/core/constants.js';

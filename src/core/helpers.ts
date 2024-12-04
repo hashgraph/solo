@@ -22,7 +22,8 @@ import {SoloError} from './errors.js';
 import * as semver from 'semver';
 import {Templates} from './templates.js';
 import {HEDERA_HAPI_PATH, ROOT_CONTAINER, ROOT_DIR, SOLO_LOGS_DIR} from './constants.js';
-import {constants, type K8} from './index.js';
+import * as constants from './constants.js';
+import {type K8} from './k8.js';
 import {FileContentsQuery, FileId, PrivateKey, ServiceEndpoint} from '@hashgraph/sdk';
 import {Listr} from 'listr2';
 import {type AccountManager} from './account_manager.js';
@@ -31,7 +32,6 @@ import {type NodeDeleteConfigClass, type NodeUpdateConfigClass} from '../command
 import {type CommandFlag, type CommandHandlers} from '../types/index.js';
 import {type V1Pod} from '@kubernetes/client-node';
 import {type SoloLogger} from './logging.js';
-import {type NodeCommandHandlers} from '../commands/node/handlers.js';
 import {type Lease} from './lease/lease.js';
 
 export function sleep(ms: number) {

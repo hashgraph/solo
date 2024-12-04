@@ -18,7 +18,7 @@ import {it, describe, after, before} from 'mocha';
 import {expect} from 'chai';
 
 import {bootstrapTestVariables, getDefaultArgv, getTmpDir, HEDERA_PLATFORM_VERSION_TAG} from '../../test_util.js';
-import {constants} from '../../../src/core/index.js';
+import * as constants from '../../../src/core/constants.js';
 import * as version from '../../../version.js';
 import {getNodeLogs, sleep} from '../../../src/core/helpers.js';
 import path from 'path';

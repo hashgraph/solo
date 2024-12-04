@@ -17,34 +17,33 @@
 import chalk from 'chalk';
 import yargs from 'yargs';
 import {hideBin} from 'yargs/helpers';
+import 'dotenv/config';
+import path from 'path';
+import {ListrLogger} from 'listr2';
+
 import {flags} from './commands/index.js';
 import * as commands from './commands/index.js';
 import {HelmDependencyManager, DependencyManager} from './core/dependency_managers/index.js';
-import {
-  ChartManager,
-  ConfigManager,
-  PackageDownloader,
-  PlatformInstaller,
-  Helm,
-  logging,
-  KeyManager,
-  Zippy,
-  constants,
-  ProfileManager,
-  AccountManager,
-  LeaseManager,
-  CertificateManager,
-  LocalConfig,
-  helpers,
-  RemoteConfigManager,
-} from './core/index.js';
-import 'dotenv/config';
+import * as constants from './core/constants.js';
+import {PackageDownloader} from './core/package_downloader.js';
+import {Zippy} from './core/zippy.js';
+import {Helm} from './core/helm.js';
+import {ChartManager} from './core/chart_manager.js';
+import {ConfigManager} from './core/config_manager.js';
+import {AccountManager} from './core/account_manager.js';
+import {PlatformInstaller} from './core/platform_installer.js';
+import {KeyManager} from './core/key_manager.js';
+import {ProfileManager} from './core/profile_manager.js';
+import {LeaseManager} from './core/lease/lease_manager.js';
+import {CertificateManager} from './core/certificate_manager.js';
+import {LocalConfig} from './core/config/local_config.js';
+import {RemoteConfigManager} from './core/config/remote/remote_config_manager.js';
+import * as logging from './core/logging.js';
+import * as helpers from './core/helpers.js';
 import {K8} from './core/k8.js';
-import {ListrLogger} from 'listr2';
 import {CustomProcessOutput} from './core/process_output.js';
 import {type Opts} from './types/index.js';
 import {IntervalLeaseRenewalService, type LeaseRenewalService} from './core/lease/lease_renewal.js';
-import path from 'path';
 
 export function main(argv: any) {
   const logger = logging.NewLogger('debug');

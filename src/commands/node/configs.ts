@@ -15,7 +15,8 @@
  *
  */
 import {FREEZE_ADMIN_ACCOUNT} from '../../core/constants.js';
-import {constants, Templates} from '../../core/index.js';
+import {Templates} from '../../core/templates.js';
+import * as constants from '../../core/constants.js';
 import {PrivateKey} from '@hashgraph/sdk';
 import {SoloError} from '../../core/errors.js';
 import * as helpers from '../../core/helpers.js';

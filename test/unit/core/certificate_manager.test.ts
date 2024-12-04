@@ -18,7 +18,9 @@ import {expect} from 'chai';
 import {after, before, describe, it} from 'mocha';
 import jest from 'jest-mock';
 
-import {CertificateManager, ConfigManager, K8} from '../../../src/core/index.js';
+import {ConfigManager} from '../../../src/core/config_manager.js';
+import {K8} from '../../../src/core/k8.js';
+import {CertificateManager} from '../../../src/core/certificate_manager.js';
 import {flags} from '../../../src/commands/index.js';
 import {testLogger} from '../../test_util.js';
 import {SoloError} from '../../../src/core/errors.js';

@@ -30,7 +30,7 @@ import {
   TopicCreateTransaction,
   TopicMessageSubmitTransaction,
 } from '@hashgraph/sdk';
-import {constants} from '../../../src/core/index.js';
+import * as constants from '../../../src/core/constants.js';
 import * as version from '../../../version.js';
 import {
   bootstrapTestVariables,

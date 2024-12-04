@@ -18,7 +18,7 @@ import * as x509 from '@peculiar/x509';
 import os from 'os';
 import path from 'path';
 import {DataValidationError, SoloError, IllegalArgumentError, MissingArgumentError} from './errors.js';
-import {constants} from './index.js';
+import * as constants from './constants.js';
 import {type AccountId} from '@hashgraph/sdk';
 import type {NodeAlias, PodName} from '../types/aliases.js';
 import {GrpcProxyTlsEnums} from './enumerations.js';

@@ -20,7 +20,7 @@ import {SoloError} from '../core/errors.js';
 import {flags} from './index.js';
 import {BaseCommand} from './base.js';
 import chalk from 'chalk';
-import {constants} from '../core/index.js';
+import * as constants from '../core/constants.js';
 import path from 'path';
 import {ListrLease} from '../core/lease/listr_lease.js';
 import {type CommandBuilder} from '../types/aliases.js';
