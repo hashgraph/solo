@@ -615,7 +615,7 @@ export const amount: CommandFlag = {
   constName: 'amount',
   name: 'hbar-amount',
   definition: {
-    describe: 'Amount of HBAR to add',
+    describe: 'Amount of HBAR to add, default is 100',
     defaultValue: 100,
     type: 'number',
   },
