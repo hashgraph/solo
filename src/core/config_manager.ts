@@ -16,7 +16,7 @@
  */
 import {SoloError, MissingArgumentError} from './errors.js';
 import {SoloLogger} from './logging.js';
-import * as flags from '../commands/flags.js';
+import {flags} from '../commands/index.js';
 import * as paths from 'path';
 import * as helpers from './helpers.js';
 import type * as yargs from 'yargs';

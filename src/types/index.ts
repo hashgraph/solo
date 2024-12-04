@@ -37,6 +37,7 @@ import type {
 } from '../core/index.js';
 import type {Cluster, Context} from '../core/config/remote/types.js';
 import {type BaseCommand} from '../commands/base.js';
+import {PromptFunction} from './aliases.js';
 
 export interface NodeKeyObject {
   privateKey: crypto.webcrypto.CryptoKey;
@@ -70,6 +71,7 @@ export interface CommandFlag {
   constName: string;
   name: string;
   definition: Definition;
+  prompt: PromptFunction;
 }
 
 export interface Definition {
