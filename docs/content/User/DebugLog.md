@@ -54,7 +54,7 @@ in intellij:
 
 ![alt text](image/jvm-platform-app.png)
 
-Setup breakpoint if necessary
+Setup breakpoint if necessary.
 
 From solo repo directory, run the following command from terminal to launch a three node network, assume we are trying to attach debug to `node2` .
 Make sure the path following `local-build-path` points to the correct directory.
@@ -125,7 +125,7 @@ solo node stop -i node1,node2 -n solo-e2e
 solo node states -i node1,node2 -n solo-e2e
 ```
 
-By default the state files are saved under `~/solo` directory
+By default, the state files are saved under `~/solo` directory
 
 ```bash
 └── logs
@@ -142,6 +142,6 @@ solo node keys --gossip-keys --tls-keys -i node1,node2,node3
 solo network deploy -i node1,node2,node3 -n "${SOLO_NAMESPACE}"
 solo node setup -i node1,node2,node3 --local-build-path ../hedera-services/hedera-node/data -n "${SOLO_NAMESPACE}"
 
-# start network with pre-exsit state files
+# start network with pre-existing state files
 solo node start -i node1,node2 -n solo-e2e --state-file network-node1-0-state.zip
 ```

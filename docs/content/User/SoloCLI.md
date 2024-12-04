@@ -9,7 +9,7 @@ are available.
 
 `solo command --help` will return the help information for the specific command to show which options
 
-```bash
+```text
 solo account --help
 
 Manage Hedera accounts in solo network
@@ -30,7 +30,7 @@ Options:
 ```
 `solo command subcommand --help` will return the help information for the specific subcommand to show which options
 
-```bash
+```text
 solo account create --help
 Creates a new account with a new key and stores the key in the Kubernetes secrets, if you supply no key one will be gene
 rated for you, otherwise you may supply either a ECDSA or ED25519 private key
@@ -52,7 +52,7 @@ Options:
 ## init command
 `init` command is used to initialize system accounts with new keys, it accepts the following options:
 
-```bash
+```text
       --cache-dir  Local cache directory                                                                        [string]
 ```
 
@@ -67,7 +67,7 @@ It has the following subcommands:
 ### account init
 `account init` subcommand is used to initialize system accounts with new keys, it accepts the following options:
 
-```bash
+```text
   -n, --namespace  Namespace                                                                                    [string]
 ```
 
@@ -75,7 +75,7 @@ It has the following subcommands:
 Get an account balance and retrieve account information such as account ID, public key, and private key.
 `account get` subcommand accepts the following options:
 
-```bash
+```text
       --account-id   The Hedera account id, e.g.: 0.0.1001                                                      [string]
       --private-key  Show private key information                                                              [boolean]
   -n, --namespace    Namespace                                                                                  [string]
@@ -101,7 +101,7 @@ The output would be similar to the following:
 
 `accoutn create` subcommand accepts the following options:
 
-```
+```text
       --hbar-amount          Amount of HBAR to add, default is 100                                                              [number]
       --ecdsa-private-key    ECDSA private key for the Hedera account                                           [string]
   -n, --namespace            Namespace                                                                          [string]
@@ -131,7 +131,7 @@ solo account create -n solo-e2e --set-alias --generate-ecdsa-key
 `account update` subcommand is used to update an existing account with the provided info, 
 if you want to update the private key, you can supply either ECDSA or ED25519 but not both.
 
-```bash
+```text
       --account-id           The Hedera account id, e.g.: 0.0.1001                                              [string]
       --hbar-amount          Amount of HBAR to add                                                              [number]
   -n, --namespace            Namespace                                                                          [string]
@@ -183,7 +183,7 @@ Kubernetes Cluster	: kind-solo-e2e
 ### cluster setup
 `cluster setup` subcommand is used to setup the solo network cluster, it accepts the following options:
 
-```bash
+```text
   -d, --chart-dir                Local chart directory path (e.g. ~/solo-charts/charts                          [string]
   -c, --cluster-name             Cluster name                                                                   [string]
   -s, --cluster-setup-namespace  Cluster Setup Namespace                                                        [string]
@@ -198,7 +198,7 @@ Kubernetes Cluster	: kind-solo-e2e
 ### cluster reset
 `cluster reset` subcommand is used to reset the solo network cluster, it accepts the following options:
 
-```bash
+```text
   -c, --cluster-name             Cluster name                                                                   [string]
   -s, --cluster-setup-namespace  Cluster Setup Namespace                                                        [string]
   -f, --force                    Force actions even if those can be skipped                                    [boolean]
@@ -214,7 +214,7 @@ Kubernetes Cluster	: kind-solo-e2e
 ### network deploy
 `network deploy` subcommand is used to deploy the solo network, it accepts the following options:
 
-```bash
+```text
       --api-permission-properties  api-permission.properties file for node                                      [string]
       --app                        Testing app name                                                             [string]
       --application-env            application.env file for node                                                [string]
@@ -249,7 +249,7 @@ Kubernetes Cluster	: kind-solo-e2e
 ### network destroy
 `network destroy` subcommand is used to destroy the solo network, it accepts the following options:
 
-```bash
+```text
       --delete-pvcs     Delete the persistent volume claims                                                    [boolean]
       --delete-secrets  Delete the network secrets                                                             [boolean]
   -f, --force           Force actions even if those can be skipped                                             [boolean]
@@ -260,7 +260,7 @@ Kubernetes Cluster	: kind-solo-e2e
 ### network refresh
 `network refresh` subcommand is used to refresh or update the solo network, it accepts the following options:
 
-```bash
+```text
       --api-permission-properties  api-permission.properties file for node                                      [string]
       --app                        Testing app name                                                             [string]
       --application-env            application.env file for node                                                [string]
@@ -296,7 +296,7 @@ Kubernetes Cluster	: kind-solo-e2e
 ## node command
 solo node command is used to manage hedera network nodes, it has the following subcommands:
 
-```bash
+```text
   node setup                        Setup node with a specific version of Hedera platform
   node start                        Start a node
   node stop                         Stop a node
@@ -316,7 +316,7 @@ solo node command is used to manage hedera network nodes, it has the following s
 
 `solo mirror-node` command is used to manage mirror node deplooyment and destruction, it has the following subcommands:
 
-```bash
+```text
   mirror-node deploy                Deploy a mirror node
   mirror-node destroy               Destroy a mirror node
 ```
@@ -324,7 +324,7 @@ solo node command is used to manage hedera network nodes, it has the following s
 ### mirror-node deploy
 `mirror-node deploy` subcommand accepts the following options:
 
-```bash
+```text
   -d, --chart-dir                             Local chart directory path (e.g. ~/solo-charts/charts             [string]
   -x, --hedera-explorer                       Deploy hedera explorer                                           [boolean]
       --enable-hedera-explorer-tls            Enable the Hedera Explorer TLS, defaults to false, requires certManager an
@@ -350,7 +350,7 @@ solo node command is used to manage hedera network nodes, it has the following s
 
 `mirror-node destroy` subcommand accepts the following options:
 
-```bash
+```text
   -d, --chart-dir  Local chart directory path (e.g. ~/solo-charts/charts                                        [string]
   -f, --force      Force actions even if those can be skipped                                                  [boolean]
   -n, --namespace  Namespace                                                                                    [string]
@@ -360,7 +360,7 @@ solo node command is used to manage hedera network nodes, it has the following s
 
 `solo relay` command is used to manage relay nodes, it has the following subcommands:
 
-```bash
+```text
   relay deploy    Deploy a JSON RPC relay
   relay destroy   Destroy JSON RPC relay
 ```
@@ -368,7 +368,7 @@ solo node command is used to manage hedera network nodes, it has the following s
 
 `relay deploy` subcommand accepts the following options:
 
-```bash
+```text
   -l, --ledger-id              Ledger ID (a.k.a. Chain ID)                                                      [string]
   -d, --chart-dir              Local chart directory path (e.g. ~/solo-charts/charts                            [string]
   -n, --namespace              Namespace                                                                        [string]
@@ -386,7 +386,7 @@ solo node command is used to manage hedera network nodes, it has the following s
 ### relay destroy
 `relay destroy` subcommand accepts the following options:
 
-```bash
+```text
   -d, --chart-dir              Local chart directory path (e.g. ~/solo-charts/charts                            [string]
   -n, --namespace              Namespace                                                                        [string]
   -i, --node-aliases-unparsed  Comma separated node aliases (empty means all nodes)                             [string]                                                                                  [string]

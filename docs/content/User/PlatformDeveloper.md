@@ -1,4 +1,4 @@
-### For Developers Working on Platform core
+### Use solo with local build platform code
 
 First, please clone hedera service repo `https://github.com/hashgraph/hedera-services/` and build the code
 with `./gradlew assemble`. If need to running nodes with different versions or releases, please duplicate the repo or build directories in
@@ -16,8 +16,11 @@ solo cluster setup -s "${SOLO_CLUSTER_SETUP_NAMESPACE}"
 solo node keys --gossip-keys --tls-keys -i node1,node2,node3 
 solo network deploy -i node1,node2,node3 -n "${SOLO_NAMESPACE}" --app PlatformTestingTool.jar
 
-# Usage: solo node setup -i node1,node2,node3 -n "${SOLO_NAMESPACE}" --local-build-path <default path to hedera repo>,node1=<custom build hedera repo>,node2=<custom build repo> --app PlatformTestingTool.jar --app-config <path-to-test-json1,path-to-test-json2>
-solo node setup -i node1,node2,node3 -n "${SOLO_NAMESPACE}" --local-build-path ../hedera-services/platform-sdk/sdk/data,node1=../hedera-services/platform-sdk/sdk/data,node2=../hedera-services/platform-sdk/sdk/data --app PlatformTestingTool.jar --app-config ../hedera-services/platform-sdk/platform-apps/tests/PlatformTestingTool/src/main/resources/FCMFCQ-Basic-2.5k-5m.json
+# option 1) if all nodes are running the same version of platform testing app
+solo node setup -i node1,node2,node3 -n "${SOLO_NAMESPACE}" --local-build-path ../hedera-services/platform-sdk/sdk/data
+
+# option 2) if each node is running different version of platform testing app, please provide different paths to the local repositories
+solo node setup -i node1,node2,node3 -n "${SOLO_NAMESPACE}" --local-build-path node1=../hedera-services/platform-sdk/sdk/data,node1=<path2>,node3=<path3>
 
 solo node start -i node1,node2,node3 -n "${SOLO_NAMESPACE}" --app PlatformTestingTool.jar
 ```

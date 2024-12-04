@@ -38,12 +38,12 @@ echo "Generate README.md"
 envsubst '$KIND_CREATE_CLUSTER_OUTPUT,$SOLO_INIT_OUTPUT,$SOLO_NODE_KEY_PEM_OUTPUT,$SOLO_CLUSTER_SETUP_OUTPUT, \
 $SOLO_NETWORK_DEPLOY_OUTPUT,$SOLO_NODE_SETUP_OUTPUT,$SOLO_NODE_START_OUTPUT,$SOLO_MIRROR_NODE_DEPLOY_OUTPUT,\
 $SOLO_RELAY_DEPLOY_OUTPUT'\
-< README.md.template > README.md
+< content/User/StepByStepGuide.md.template > content/User/StepByStepGuide.md
 
 echo "Remove color codes and lines showing intermediate progress"
 
-sed -i 's/\[32m//g' README.md
-sed -i 's/\[33m//g' README.md
-sed -i 's/\[39m//g' README.md
-egrep -v '↓|❯|•' README.md > README.md.tmp && mv README.md.tmp README.md
+sed -i 's/\[32m//g' content/User/StepByStepGuide.md
+sed -i 's/\[33m//g' content/User/StepByStepGuide.md
+sed -i 's/\[39m//g' content/User/StepByStepGuide.md
+egrep -v '↓|❯|•' content/User/StepByStepGuide.md > content/User/StepByStepGuide.md.tmp && mv content/User/StepByStepGuide.md.tmp content/User/StepByStepGuide.md
 set +x

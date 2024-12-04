@@ -1,3 +1,4 @@
+## Using Solo with mirror node
 
 User can deploy a solo network with mirror node by running the following command:
 
