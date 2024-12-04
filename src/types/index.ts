@@ -35,9 +35,10 @@ import type {
   RemoteConfigManager,
   LocalConfig,
 } from '../core/index.js';
-import {Cluster, Context} from '../core/config/remote/types.js';
-import {type BaseCommand} from '../commands/base.js';
+import type {Cluster, Context} from '../core/config/remote/types.js';
+import type {BaseCommand} from '../commands/base.js';
 import type {ListrTask} from 'listr2';
+import type {PromptFunction} from './aliases.js';
 
 export interface NodeKeyObject {
   privateKey: crypto.webcrypto.CryptoKey;
@@ -71,6 +72,7 @@ export interface CommandFlag {
   constName: string;
   name: string;
   definition: Definition;
+  prompt: PromptFunction;
 }
 
 export interface Definition {

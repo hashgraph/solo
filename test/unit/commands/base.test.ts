@@ -30,7 +30,7 @@ import {
   RemoteConfigManager,
 } from '../../../src/core/index.js';
 import {BaseCommand} from '../../../src/commands/base.js';
-import * as flags from '../../../src/commands/flags.js';
+import {flags} from '../../../src/commands/index.js';
 import sinon from 'sinon';
 import path from 'path';
 import {BASE_TEST_DIR} from '../../test_util.js';

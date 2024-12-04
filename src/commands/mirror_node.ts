@@ -19,8 +19,7 @@ import {Listr} from 'listr2';
 import {SoloError, IllegalArgumentError, MissingArgumentError} from '../core/errors.js';
 import {constants, type ProfileManager, type AccountManager} from '../core/index.js';
 import {BaseCommand} from './base.js';
-import * as flags from './flags.js';
-import * as prompts from './prompts.js';
+import {flags} from './index.js';
 import {getFileContents, getEnvValue} from '../core/helpers.js';
 import {RemoteConfigTasks} from '../core/config/remote/remote_config_tasks.js';
 import {CommandBuilder, type PodName} from '../types/aliases.js';
@@ -180,7 +179,7 @@ export class MirrorNodeCommand extends BaseCommand {
             self.configManager.update(argv);
 
             // disable the prompts that we don't want to prompt the user for
-            prompts.disablePrompts([
+            flags.disablePrompts([
               flags.chartDirectory,
               flags.deployHederaExplorer,
               flags.enableHederaExplorerTls,
@@ -193,7 +192,7 @@ export class MirrorNodeCommand extends BaseCommand {
               flags.pinger,
             ]);
 
-            await prompts.execute(task, self.configManager, MirrorNodeCommand.DEPLOY_FLAGS_LIST);
+            await flags.executePrompt(task, self.configManager, MirrorNodeCommand.DEPLOY_FLAGS_LIST);
 
             ctx.config = this.getConfig(MirrorNodeCommand.DEPLOY_CONFIGS_NAME, MirrorNodeCommand.DEPLOY_FLAGS_LIST, [
               'chartPath',
@@ -470,7 +469,7 @@ export class MirrorNodeCommand extends BaseCommand {
             }
 
             self.configManager.update(argv);
-            await prompts.execute(task, self.configManager, [flags.namespace]);
+            await flags.executePrompt(task, self.configManager, [flags.namespace]);
 
             // @ts-ignore
             ctx.config = {
