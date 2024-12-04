@@ -220,9 +220,9 @@ Kubernetes Cluster	: kind-solo
 ✔ Gossip key for node: node3
 ✔ Generate gossip keys
 ✔ Backup old files
+✔ TLS key for node: node2
 ✔ TLS key for node: node1
 ✔ TLS key for node: node3
-✔ TLS key for node: node2
 ✔ Generate gRPC TLS Keys
 ✔ Finalize
 ```
@@ -280,11 +280,11 @@ Kubernetes Namespace	: solo
 ✔ Copy Gossip keys to staging
 ✔ Copy gRPC TLS keys to staging
 ✔ Prepare staging directory
+✔ Copy TLS keys
 ✔ Copy Gossip keys
 ✔ Node: node1
 ✔ Copy Gossip keys
 ✔ Node: node3
-✔ Copy TLS keys
 ✔ Copy Gossip keys
 ✔ Node: node2
 ✔ Copy node keys to secrets
@@ -293,11 +293,11 @@ Kubernetes Namespace	: solo
 ✔ Check Node: node2
 ✔ Check Node: node3
 ✔ Check node pods are running
-✔ Check HAProxy for: node1
-✔ Check Envoy Proxy for: node1
-✔ Check HAProxy for: node3
 ✔ Check Envoy Proxy for: node2
+✔ Check Envoy Proxy for: node1
 ✔ Check Envoy Proxy for: node3
+✔ Check HAProxy for: node3
+✔ Check HAProxy for: node1
 ✔ Check HAProxy for: node2
 ✔ Check proxy pods are running
 ✔ Check MinIO
@@ -324,20 +324,20 @@ Kubernetes Namespace	: solo
 ✔ Acquire lease - lease acquired successfully, attempt: 1/10
 ✔ Initialize
 ✔ Load remote config - remote config not found
+✔ Check network pod: node1
 ✔ Check network pod: node3
 ✔ Check network pod: node2
-✔ Check network pod: node1
 ✔ Identify network pods
 ✔ Update node: node2 [ platformVersion = v0.56.5 ]
 ✔ Update node: node1 [ platformVersion = v0.56.5 ]
 ✔ Update node: node3 [ platformVersion = v0.56.5 ]
 ✔ Fetch platform software into network nodes
 ✔ Set file permissions
-✔ Node: node3
-✔ Set file permissions
 ✔ Node: node1
 ✔ Set file permissions
 ✔ Node: node2
+✔ Set file permissions
+✔ Node: node3
 ✔ Setup network nodes
 ```
 
@@ -360,17 +360,17 @@ Kubernetes Namespace	: solo
 ✔ Acquire lease - lease acquired successfully, attempt: 1/10
 ✔ Initialize
 ✔ Load remote config - remote config not found
+✔ Check network pod: node2
 ✔ Check network pod: node1
 ✔ Check network pod: node3
-✔ Check network pod: node2
 ✔ Identify existing network nodes
+✔ Start node: node3
 ✔ Start node: node1
 ✔ Start node: node2
-✔ Start node: node3
 ✔ Starting nodes
-✔ Check network pod: node1  - status ACTIVE, attempt: 16/120
-✔ Check network pod: node3  - status ACTIVE, attempt: 16/120
-✔ Check network pod: node2  - status ACTIVE, attempt: 16/120
+✔ Check network pod: node2  - status ACTIVE, attempt: 17/120
+✔ Check network pod: node1  - status ACTIVE, attempt: 17/120
+✔ Check network pod: node3  - status ACTIVE, attempt: 17/120
 ✔ Check all nodes are ACTIVE
 ✔ Check proxy for node: node1
 ✔ Check proxy for node: node2
@@ -407,10 +407,10 @@ Kubernetes Namespace	: solo
 ✔ Enable mirror-node
 ✔ Check Hedera Explorer
 ✔ Check Postgres DB
-✔ Check REST API
 ✔ Check GRPC
-✔ Check Importer
 ✔ Check Monitor
+✔ Check REST API
+✔ Check Importer
 ✔ Check pods are ready
 ✔ Insert data in public.file_data
 ✔ Seed DB data
@@ -539,114 +539,6 @@ Kubernetes Namespace	: solo
 ✔ Prepare chart values
 ✔ Deploy JSON RPC Relay
 ✔ Check relay is ready
-```
-## For Hashgraph Developers
-### For Developers Working on Hedera Service Repo
-
-First, please clone hedera service repo `https://github.com/hashgraph/hedera-services/` and build the code
-with `./gradlew assemble`. If need to running nodes with different versions or releases, please duplicate the repo or build directories in
-multiple directories, checkout to the respective version and build the code.
-
-To set customized `settings.txt` file, edit the file
-`~/.solo/cache/templates/settings.txt` after `solo init` command.
-
-Then you can start customized built hedera network with the following command:
-```
-solo node setup -i node1,node2,node3 -n "${SOLO_NAMESPACE}" --local-build-path <default path to hedera repo>,node1=<custom build hedera repo>,node2=<custom build repo>
-
-# example: solo node setup -i node1,node2,node3 -n "${SOLO_NAMESPACE}" --local-build-path node1=../hedera-services/hedera-node/data/,../hedera-services/hedera-node/data,node3=../hedera-services/hedera-node/data
-```
-
-### For Developers Working on Platform core
-
-To deploy node with local build PTT jar files, run the following command:
-```
-solo node setup -i node1,node2,node3 -n "${SOLO_NAMESPACE}" --local-build-path <default path to hedera repo>,node1=<custom build hedera repo>,node2=<custom build repo> --app PlatformTestingTool.jar --app-config <path-to-test-json1,path-to-test-json2>
-
-# example: solo node setup -i node1,node2,node3 -n "${SOLO_NAMESPACE}" --local-build-path ../hedera-services/platform-sdk/sdk/data,node1=../hedera-services/platform-sdk/sdk/data,node2=../hedera-services/platform-sdk/sdk/data --app PlatformTestingTool.jar --app-config ../hedera-services/platform-sdk/platform-apps/tests/PlatformTestingTool/src/main/resources/FCMFCQ-Basic-2.5k-5m.json
-```
-### Retrieving Logs
-You can find log for running solo command under the directory `~/.solo/logs/`
-The file `solo.log` contains the logs for the solo command.
-The file `hashgraph-sdk.log` contains the logs from Solo client when sending transactions to network nodes.
-
-### Using IntelliJ remote debug with Solo
-
-NOTE: the hedera-services path referenced '../hedera-services/hedera-node/data' may need to be updated based on what directory you are currently in.  This also assumes that you have done an assemble/build and the directory contents are up-to-date.
-
-Example 1: attach jvm debugger to a hedera node
-```bash
-./test/e2e/setup-e2e.sh
-solo node keys --gossip-keys --tls-keys -i node1,node2,node3
-solo network deploy -i node1,node2,node3 --debug-node-alias node2 -n "${SOLO_NAMESPACE}"
-solo node setup -i node1,node2,node3 --local-build-path ../hedera-services/hedera-node/data -n "${SOLO_NAMESPACE}"
-solo node start -i node1,node2,node3 --debug-node-alias node2 -n "${SOLO_NAMESPACE}"
-```
-
-Once you see the following message, you can launch jvm debugger from Intellij
-
-```
-  Check node: node1,
-  Check node: node3,  Please attach JVM debugger now.
-  Check node: node4,
-```
-
-Example 2: attach jvm debugger with node add operation
-
-```bash
-./test/e2e/setup-e2e.sh
-solo node keys --gossip-keys --tls-keys -i node1,node2,node3
-solo network deploy -i node1,node2,node3 --pvcs -n "${SOLO_NAMESPACE}"
-solo node setup -i node1,node2,node3 --local-build-path ../hedera-services/hedera-node/data -n "${SOLO_NAMESPACE}"
-solo node start -i node1,node2,node3 -n "${SOLO_NAMESPACE}"
-solo node add --gossip-keys --tls-keys --node-alias node4 --debug-node-alias node4 --local-build-path ../hedera-services/hedera-node/data -n "${SOLO_NAMESPACE}"
-```
-
-Example 3: attach jvm debugger with node update operation
-
-```bash
-./test/e2e/setup-e2e.sh
-solo node keys --gossip-keys --tls-keys -i node1,node2,node3
-solo network deploy -i node1,node2,node3 -n "${SOLO_NAMESPACE}"
-solo node setup -i node1,node2,node3 --local-build-path ../hedera-services/hedera-node/data -n "${SOLO_NAMESPACE}"
-solo node start -i node1,node2,node3 -n "${SOLO_NAMESPACE}"
-solo node update --node-alias node2  --debug-node-alias node2 --local-build-path ../hedera-services/hedera-node/data --new-account-number 0.0.7 --gossip-public-key ./s-public-node2.pem --gossip-private-key ./s-private-node2.pem --agreement-public-key ./a-public-node2.pem --agreement-private-key ./a-private-node2.pem  -n "${SOLO_NAMESPACE}"
-```
-
-Example 4: attach jvm debugger with node delete operation
-
-```bash
-./test/e2e/setup-e2e.sh
-solo node keys --gossip-keys --tls-keys -i node1,node2,node3
-solo network deploy -i node1,node2,node3,node4 -n "${SOLO_NAMESPACE}"
-solo node setup -i node1,node2,node3,node4 --local-build-path ../hedera-services/hedera-node/data -n "${SOLO_NAMESPACE}"
-solo node start -i node1,node2,node3,node4 -n "${SOLO_NAMESPACE}"
-solo node delete --node-alias node2  --debug-node-alias node3 -n "${SOLO_NAMESPACE}"
-```
-### Save and reuse network state files
-
-With the following command you can save the network state to a file.
-```bash
-# must stop hedera node operation first
-npm run solo-test -- node stop -i node1,node2 -n solo-e2e
-
-# download state file to default location at ~/.solo/logs/<namespace>
-npm run solo-test -- node states -i node1,node2 -n solo-e2e
-```
-
-By default the state files are saved under `~/solo` directory
-
-```bash
-└── logs
-    ├── solo-e2e
-    │   ├── network-node1-0-state.zip
-    │   └── network-node2-0-state.zip
-    └── solo.log
-```
-
-Later, user can use the following command to upload the state files to the network and restart hedera nodes.
-```bash
-npm run solo-test -- node start -i node1,node2 -n solo-e2e --state-file network-node1-0-state.zip
 ```
 
 ## Support
