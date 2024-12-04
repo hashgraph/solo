@@ -45,6 +45,7 @@ import type {
   ValidateSingleNodeStateContext,
   AddMirrorNodeComponentsContext,
 } from './types.js';
+import {Templates} from '../../templates.js';
 
 /**
  * Static class that handles all tasks related to remote config used by other commands.
@@ -174,15 +175,13 @@ export class RemoteConfigTasks {
               new ConsensusNodeComponent(nodeAlias, cluster, namespace, ConsensusNodeStates.INITIALIZED),
             );
 
-            remoteConfig.components.add(
-              `envoy-${nodeAlias}`,
-              new EnvoyProxyComponent(`envoy-${nodeAlias}`, cluster, namespace),
-            );
+            const envoyProxyName = Templates.renderEnvoyProxyName(nodeAlias);
 
-            remoteConfig.components.add(
-              `haproxy-${nodeAlias}`,
-              new HaProxyComponent(`haproxy-${nodeAlias}`, cluster, namespace),
-            );
+            remoteConfig.components.add(envoyProxyName, new EnvoyProxyComponent(envoyProxyName, cluster, namespace));
+
+            const haProxyName = Templates.renderHaProxyName(nodeAlias);
+
+            remoteConfig.components.add(haProxyName, new HaProxyComponent(haProxyName, cluster, namespace));
           }
         });
       },

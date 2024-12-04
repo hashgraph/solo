@@ -255,4 +255,12 @@ export class Templates {
   static parseClusterAliases(clusters: string) {
     return clusters ? clusters.split(',') : [];
   }
+
+  public static renderEnvoyProxyName(nodeAlias: NodeAlias): string {
+    return `envoy-proxy-${nodeAlias}`;
+  }
+
+  public static renderHaProxyName(nodeAlias: NodeAlias): string {
+    return `haproxy-${nodeAlias}`;
+  }
 }
