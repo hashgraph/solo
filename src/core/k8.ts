@@ -34,6 +34,7 @@ import type {PodName} from '../types/aliases.js';
 import type {ExtendedNetServer, LocalContextObject} from '../types/index.js';
 import type * as http from 'node:http';
 import {MINUTES} from './constants.js';
+import {autoInjectable} from "tsyringe-neo";
 
 interface TDirectoryData {
   directory: boolean;
@@ -50,6 +51,7 @@ interface TDirectoryData {
  * Note: Take care if the same instance is used for parallel execution, as the behaviour may be unpredictable.
  * For parallel execution, create separate instances by invoking clone()
  */
+@autoInjectable()
 export class K8 {
   private _cachedContexts: Context[];
 
@@ -62,8 +64,8 @@ export class K8 {
   private coordinationApiClient: k8s.CoordinationV1Api;
 
   constructor(
-    private readonly configManager: ConfigManager,
-    public readonly logger: SoloLogger,
+    private readonly configManager?: ConfigManager,
+    public readonly logger?: SoloLogger,
   ) {
     if (!configManager) throw new MissingArgumentError('An instance of core/ConfigManager is required');
     if (!logger) throw new MissingArgumentError('An instance of core/SoloLogger is required');

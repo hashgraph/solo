@@ -18,11 +18,13 @@ import {constants, type Helm} from './index.js';
 import chalk from 'chalk';
 import {SoloError} from './errors.js';
 import {type SoloLogger} from './logging.js';
+import {autoInjectable} from "tsyringe-neo";
 
+@autoInjectable()
 export class ChartManager {
   constructor(
-    private readonly helm: Helm,
-    private readonly logger: SoloLogger,
+    private readonly helm?: Helm,
+    private readonly logger?: SoloLogger,
   ) {
     if (!logger) throw new Error('An instance of core/SoloLogger is required');
     if (!helm) throw new Error('An instance of core/Helm is required');

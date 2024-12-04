@@ -27,10 +27,12 @@ import chalk from 'chalk';
 import {type NodeAlias, type NodeAliases} from '../types/aliases.js';
 import {type NodeKeyObject, type PrivateKeyAndCertificateObject} from '../types/index.js';
 import type {ListrTask} from 'listr2';
+import {autoInjectable} from "tsyringe-neo";
 
 // @ts-ignore
 x509.cryptoProvider.set(crypto);
 
+@autoInjectable()
 export class KeyManager {
   static SigningKeyAlgo = {
     name: 'RSASSA-PKCS1-v1_5',
@@ -60,7 +62,7 @@ export class KeyManager {
     hash: 'SHA-384',
   };
 
-  constructor(private readonly logger: SoloLogger) {
+  constructor(private readonly logger?: SoloLogger) {
     if (!logger || !(logger instanceof SoloLogger))
       throw new MissingArgumentError('An instance of core/SoloLogger is required');
     this.logger = logger;

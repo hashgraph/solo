@@ -30,6 +30,7 @@ import type {CertificateManager, KeyManager, PlatformInstaller, ProfileManager} 
 import type {NodeAlias, NodeAliases} from '../types/aliases.js';
 import type {Opts} from '../types/index.js';
 import {ListrLease} from '../core/lease/listr_lease.js';
+import {autoInjectable} from "tsyringe-neo";
 
 export interface NetworkDeployConfigClass {
   applicationEnv: string;
@@ -56,30 +57,17 @@ export interface NetworkDeployConfigClass {
   getUnusedConfigs: () => string[];
 }
 
+@autoInjectable()
 export class NetworkCommand extends BaseCommand {
-  private readonly keyManager: KeyManager;
-  private readonly platformInstaller: PlatformInstaller;
-  private readonly profileManager: ProfileManager;
-  private readonly certificateManager: CertificateManager;
   private profileValuesFile?: string;
 
-  constructor(opts: Opts) {
-    super(opts);
-
-    if (!opts || !opts.k8) throw new Error('An instance of core/K8 is required');
-    if (!opts || !opts.keyManager)
-      throw new IllegalArgumentError('An instance of core/KeyManager is required', opts.keyManager);
-    if (!opts || !opts.platformInstaller)
-      throw new IllegalArgumentError('An instance of core/PlatformInstaller is required', opts.platformInstaller);
-    if (!opts || !opts.profileManager)
-      throw new MissingArgumentError('An instance of core/ProfileManager is required', opts.downloader);
-    if (!opts || !opts.certificateManager)
-      throw new MissingArgumentError('An instance of core/CertificateManager is required', opts.certificateManager);
-
-    this.certificateManager = opts.certificateManager;
-    this.keyManager = opts.keyManager;
-    this.platformInstaller = opts.platformInstaller;
-    this.profileManager = opts.profileManager;
+  constructor(
+    private readonly keyManager?: KeyManager,
+    private readonly platformInstaller?: PlatformInstaller,
+    private readonly profileManager?: ProfileManager,
+    private readonly certificateManager?: CertificateManager
+  ) {
+    super();
   }
 
   static get DEPLOY_CONFIGS_NAME() {

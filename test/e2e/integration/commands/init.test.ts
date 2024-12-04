@@ -37,6 +37,7 @@ import sinon from 'sinon';
 import {IntervalLeaseRenewalService} from '../../../../src/core/lease/lease_renewal.js';
 import path from 'path';
 import {BASE_TEST_DIR} from '../../../test_util.js';
+import {SoloLogger} from "../../../../src/core/logging.js";
 
 const testLogger = logging.NewLogger('debug', true);
 describe('InitCommand', () => {
@@ -65,18 +66,17 @@ describe('InitCommand', () => {
     sandbox.stub(K8.prototype, 'init').callsFake(() => this);
     k8 = new K8(configManager, testLogger);
     leaseManager = new LeaseManager(k8, configManager, testLogger, new IntervalLeaseRenewalService());
-    // @ts-ignore
-    initCmd = new InitCommand({
-      logger: testLogger,
+
+    initCmd = new InitCommand(
+      testLogger,
       helm,
       k8,
       chartManager,
       configManager,
       depManager,
-      keyManager,
       leaseManager,
       localConfig,
-    });
+    );
   });
 
   after(() => {

@@ -26,21 +26,15 @@ import chalk from 'chalk';
 
 import {type SoloLogger} from './logging.js';
 import type {NodeAlias, NodeAliases, PodName} from '../types/aliases.js';
+import {autoInjectable} from "tsyringe-neo";
 
 /** PlatformInstaller install platform code in the root-container of a network pod */
+@autoInjectable()
 export class PlatformInstaller {
-  private logger: SoloLogger;
-  private k8: K8;
-  private configManager: ConfigManager;
-
-  constructor(logger: SoloLogger, k8: K8, configManager: ConfigManager) {
+  constructor(private logger?: SoloLogger, private k8?: K8, private configManager?: ConfigManager) {
     if (!logger) throw new MissingArgumentError('an instance of core/SoloLogger is required');
     if (!k8) throw new MissingArgumentError('an instance of core/K8 is required');
     if (!configManager) throw new MissingArgumentError('an instance of core/ConfigManager is required');
-
-    this.logger = logger;
-    this.k8 = k8;
-    this.configManager = configManager;
   }
 
   private _getNamespace(): string {

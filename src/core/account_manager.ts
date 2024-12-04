@@ -47,6 +47,7 @@ import {type K8} from './k8.js';
 import {type AccountIdWithKeyPairObject, type ExtendedNetServer} from '../types/index.js';
 import {type NodeAlias, type PodName} from '../types/aliases.js';
 import {IGNORED_NODE_ACCOUNT_ID} from './constants.js';
+import {autoInjectable} from "tsyringe-neo";
 
 const REASON_FAILED_TO_GET_KEYS = 'failed to get keys for accountId';
 const REASON_SKIPPED = 'skipped since it does not have a genesis key';
@@ -55,13 +56,14 @@ const REASON_FAILED_TO_CREATE_K8S_S_KEY = 'failed to create k8s scrt key';
 const FULFILLED = 'fulfilled';
 const REJECTED = 'rejected';
 
+@autoInjectable()
 export class AccountManager {
   private _portForwards: ExtendedNetServer[];
   public _nodeClient: Client | null;
 
   constructor(
-    private readonly logger: SoloLogger,
-    private readonly k8: K8,
+    private readonly logger?: SoloLogger,
+    private readonly k8?: K8,
   ) {
     if (!logger) throw new Error('An instance of core/SoloLogger is required');
     if (!k8) throw new Error('An instance of core/K8 is required');

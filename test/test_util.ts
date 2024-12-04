@@ -173,11 +173,11 @@ export function bootstrapTestVariables(
     localConfig,
   };
 
-  const initCmd = initCmdArg || new InitCommand(opts);
-  const clusterCmd = clusterCmdArg || new ClusterCommand(opts);
-  const networkCmd = networkCmdArg || new NetworkCommand(opts);
-  const nodeCmd = nodeCmdArg || new NodeCommand(opts);
-  const accountCmd = accountCmdArg || new AccountCommand(opts, constants.SHORTER_SYSTEM_ACCOUNTS);
+  const initCmd = initCmdArg || new InitCommand();
+  const clusterCmd = clusterCmdArg || new ClusterCommand();
+  const networkCmd = networkCmdArg || new NetworkCommand();
+  const nodeCmd = nodeCmdArg || new NodeCommand();
+  const accountCmd = accountCmdArg || new AccountCommand(constants.SHORTER_SYSTEM_ACCOUNTS);
   return {
     namespace,
     opts,

@@ -17,20 +17,26 @@
 import {Task, Templates} from '../../core/index.js';
 import * as flags from '../flags.js';
 import type {ListrTaskWrapper} from 'listr2';
-import {type BaseCommand} from '../base.js';
+import {BaseCommand} from '../base.js';
+import {CommandTasks} from "../../types/index.js";
+import {autoInjectable} from "tsyringe-neo";
 
-export class ContextCommandTasks {
-  private readonly parent: BaseCommand;
-  private readonly promptMap: Map<string, Function>;
+@autoInjectable()
+export class ContextCommandTasks extends BaseCommand implements CommandTasks {
+  public tasks: any
 
-  constructor(parent, promptMap) {
-    this.parent = parent;
+  constructor(private readonly promptMap?: Map<string, Function>) {
+    super()
     this.promptMap = promptMap;
+    this.tasks = [
+        this.updateLocalConfig,
+        this.initialize
+    ]
   }
 
   updateLocalConfig(argv) {
     return new Task('Update local configuration', async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
-      this.parent.logger.info('Updating local configuration...');
+      this.logger.info('Updating local configuration...');
 
       const isQuiet = !!argv[flags.quiet.name];
 
@@ -38,12 +44,12 @@ export class ContextCommandTasks {
       let clusterAliases = Templates.parseClusterAliases(argv[flags.clusterName.name]);
       let contextName = argv[flags.context.name];
 
-      const kubeContexts = await this.parent.getK8().getContexts();
+      const kubeContexts = await this.getK8().getContexts();
 
       if (isQuiet) {
-        const currentCluster = await this.parent.getK8().getKubeConfig().getCurrentCluster();
+        const currentCluster = await this.getK8().getKubeConfig().getCurrentCluster();
         if (!clusterAliases.length) clusterAliases = [currentCluster.name];
-        if (!contextName) contextName = await this.parent.getK8().getKubeConfig().getCurrentContext();
+        if (!contextName) contextName = await this.getK8().getKubeConfig().getCurrentContext();
 
         if (!currentDeploymentName) {
           const selectedContext = kubeContexts.find(e => e.name === contextName);
@@ -70,19 +76,19 @@ export class ContextCommandTasks {
       }
 
       // Select current deployment
-      this.parent.getLocalConfig().setCurrentDeployment(currentDeploymentName);
+      this.getLocalConfig().setCurrentDeployment(currentDeploymentName);
 
       // Set clusters for active deployment
-      const deployments = this.parent.getLocalConfig().deployments;
+      const deployments = this.getLocalConfig().deployments;
       deployments[currentDeploymentName].clusterAliases = clusterAliases;
-      this.parent.getLocalConfig().setDeployments(deployments);
+      this.getLocalConfig().setDeployments(deployments);
 
-      this.parent.getK8().getKubeConfig().setCurrentContext(contextName);
+      this.getK8().getKubeConfig().setCurrentContext(contextName);
 
-      this.parent.logger.info(
+      this.logger.info(
         `Save LocalConfig file: [currentDeploymentName: ${currentDeploymentName}, contextName: ${contextName}, clusterAliases: ${clusterAliases.join(' ')}]`,
       );
-      await this.parent.getLocalConfig().write();
+      await this.getLocalConfig().write();
     });
   }
 
@@ -93,7 +99,7 @@ export class ContextCommandTasks {
 
     return new Task('Initialize', async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
       if (argv[flags.devMode.name]) {
-        this.parent.logger.setDevMode(true);
+        this.logger.setDevMode(true);
       }
     });
   }

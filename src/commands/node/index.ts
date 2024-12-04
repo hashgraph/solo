@@ -15,82 +15,22 @@
  *
  */
 
-import {IllegalArgumentError} from '../../core/errors.js';
 import {type AccountManager, YargsCommand} from '../../core/index.js';
 import {BaseCommand} from './../base.js';
 import {NodeCommandTasks} from './tasks.js';
 import * as NodeFlags from './flags.js';
 import {NodeCommandHandlers} from './handlers.js';
-import type {Opts} from '../../types/index.js';
+import {autoInjectable} from "tsyringe-neo";
+import {CommandWithHandlers} from "../../types/index.js";
 
 /**
  * Defines the core functionalities of 'node' command
  */
-export class NodeCommand extends BaseCommand {
-  private readonly accountManager: AccountManager;
+@autoInjectable()
+export class NodeCommand extends NodeCommandHandlers implements CommandWithHandlers {
 
-  public readonly tasks: NodeCommandTasks;
-  public readonly handlers: NodeCommandHandlers;
-  public _portForwards: any;
-
-  constructor(opts: Opts) {
-    super(opts);
-
-    if (!opts || !opts.downloader)
-      throw new IllegalArgumentError('An instance of core/PackageDownloader is required', opts.downloader);
-    if (!opts || !opts.platformInstaller)
-      throw new IllegalArgumentError('An instance of core/PlatformInstaller is required', opts.platformInstaller);
-    if (!opts || !opts.keyManager)
-      throw new IllegalArgumentError('An instance of core/KeyManager is required', opts.keyManager);
-    if (!opts || !opts.accountManager)
-      throw new IllegalArgumentError('An instance of core/AccountManager is required', opts.accountManager);
-    if (!opts || !opts.profileManager)
-      throw new IllegalArgumentError('An instance of ProfileManager is required', opts.profileManager);
-    if (!opts || !opts.certificateManager)
-      throw new IllegalArgumentError('An instance of CertificateManager is required', opts.certificateManager);
-
-    this.accountManager = opts.accountManager;
-    this._portForwards = [];
-
-    this.tasks = new NodeCommandTasks({
-      accountManager: opts.accountManager,
-      configManager: opts.configManager,
-      logger: opts.logger,
-      platformInstaller: opts.platformInstaller,
-      profileManager: opts.profileManager,
-      k8: opts.k8,
-      keyManager: opts.keyManager,
-      chartManager: opts.chartManager,
-      certificateManager: opts.certificateManager,
-      parent: this,
-    });
-
-    this.handlers = new NodeCommandHandlers({
-      accountManager: opts.accountManager,
-      configManager: opts.configManager,
-      platformInstaller: opts.platformInstaller,
-      logger: opts.logger,
-      k8: opts.k8,
-      tasks: this.tasks,
-      parent: this,
-      leaseManager: opts.leaseManager,
-    });
-  }
-
-  /**
-   * stops and closes the port forwards
-   * - calls the accountManager.close()
-   * - for all portForwards, calls k8.stopPortForward(srv)
-   */
-  async close() {
-    await this.accountManager.close();
-    if (this._portForwards) {
-      for (const srv of this._portForwards) {
-        await this.k8.stopPortForward(srv);
-      }
-    }
-
-    this._portForwards = [];
+  constructor() {
+    super();
   }
 
   getCommandDefinition() {

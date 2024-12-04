@@ -14,20 +14,21 @@
  * limitations under the License.
  *
  */
-import {type BaseCommand} from '../base.js';
-import {type ContextCommandTasks} from './tasks.js';
+import {ContextCommandTasks} from './tasks.js';
 import * as helpers from '../../core/helpers.js';
 import {constants} from '../../core/index.js';
 import {type CommandHandlers} from '../../types/index.js';
 import * as ContextFlags from './flags.js';
 
-export class ContextCommandHandlers implements CommandHandlers {
-  readonly parent: BaseCommand;
-  readonly tasks: ContextCommandTasks;
+export class ContextCommandHandlers extends ContextCommandTasks implements CommandHandlers {
+  public handlers: any
 
-  constructor(parent: BaseCommand, tasks: ContextCommandTasks) {
-    this.parent = parent;
-    this.tasks = tasks;
+  constructor() {
+    super()
+
+    this.handlers = [
+        this.connect
+    ]
   }
 
   async connect(argv: any) {
@@ -36,7 +37,7 @@ export class ContextCommandHandlers implements CommandHandlers {
     const action = helpers.commandActionBuilder(
       [
         this.tasks.initialize(argv),
-        this.parent.getLocalConfig().promptLocalConfigTask(this.parent.getK8(), argv),
+        this.getLocalConfig().promptLocalConfigTask(this.getK8(), argv),
         this.tasks.updateLocalConfig(argv),
       ],
       {

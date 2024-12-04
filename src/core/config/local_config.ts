@@ -26,7 +26,9 @@ import {Task} from '../task.js';
 import {IsDeployments} from '../validator_decorators.js';
 import {Templates} from '../templates.js';
 import {ErrorMessages} from '../error_messages.js';
+import {autoInjectable} from "tsyringe-neo";
 
+@autoInjectable()
 export class LocalConfig implements LocalConfigData {
   @IsEmail(
     {},
@@ -56,8 +58,8 @@ export class LocalConfig implements LocalConfigData {
   private readonly skipPromptTask: boolean = false;
 
   constructor(
-    private readonly filePath: string,
-    private readonly logger: SoloLogger,
+    private readonly filePath?: string,
+    private readonly logger?: SoloLogger,
   ) {
     if (!filePath || filePath === '') throw new MissingArgumentError('a valid filePath is required');
     if (!logger) throw new Error('An instance of core/SoloLogger is required');

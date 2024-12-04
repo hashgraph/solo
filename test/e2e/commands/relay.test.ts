@@ -43,7 +43,7 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
   describe('RelayCommand', async () => {
     const k8 = bootstrapResp.opts.k8;
     const configManager = bootstrapResp.opts.configManager;
-    const relayCmd = new RelayCommand(bootstrapResp.opts);
+    const relayCmd = new RelayCommand(bootstrapResp.opts.accountManager, bootstrapResp.opts.profileManager);
 
     after(async () => {
       await getNodeLogs(k8, namespace);

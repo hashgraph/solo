@@ -24,21 +24,16 @@ import * as flags from './flags.js';
 import * as prompts from './prompts.js';
 import {getNodeAccountMap} from '../core/helpers.js';
 import {type NodeAliases} from '../types/aliases.js';
-import {type Opts} from '../types/index.js';
 import {ListrLease} from '../core/lease/listr_lease.js';
+import {autoInjectable} from "tsyringe-neo";
 
+@autoInjectable()
 export class RelayCommand extends BaseCommand {
-  private readonly profileManager: ProfileManager;
-  private readonly accountManager: AccountManager;
-
-  constructor(opts: Opts) {
-    super(opts);
-
-    if (!opts || !opts.profileManager)
-      throw new MissingArgumentError('An instance of core/ProfileManager is required', opts.downloader);
-
-    this.profileManager = opts.profileManager;
-    this.accountManager = opts.accountManager;
+  constructor(
+    private readonly accountManager?: AccountManager,
+    private readonly profileManager?: ProfileManager
+  ) {
+    super();
   }
 
   static get DEPLOY_CONFIGS_NAME() {

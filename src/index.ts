@@ -16,34 +16,20 @@
  */
 import chalk from 'chalk';
 import yargs from 'yargs';
+import {container} from './core/container.js'
 import {hideBin} from 'yargs/helpers';
 import {flags} from './commands/index.js';
 import * as commands from './commands/index.js';
-import {HelmDependencyManager, DependencyManager} from './core/dependency_managers/index.js';
 import {
-  ChartManager,
   ConfigManager,
-  PackageDownloader,
-  PlatformInstaller,
-  Helm,
   logging,
-  KeyManager,
-  Zippy,
   constants,
-  ProfileManager,
-  AccountManager,
-  LeaseManager,
-  CertificateManager,
   helpers,
-  LocalConfig,
 } from './core/index.js';
 import 'dotenv/config';
 import {K8} from './core/k8.js';
 import {ListrLogger} from 'listr2';
 import {CustomProcessOutput} from './core/process_output.js';
-import {type Opts} from './types/index.js';
-import {IntervalLeaseRenewalService, type LeaseRenewalService} from './core/lease/lease_renewal.js';
-import path from 'path';
 
 export function main(argv: any) {
   const logger = logging.NewLogger('debug');
@@ -56,53 +42,16 @@ export function main(argv: any) {
   }
 
   try {
-    // prepare dependency manger registry
-    const downloader = new PackageDownloader(logger);
-    const zippy = new Zippy(logger);
-    const helmDepManager = new HelmDependencyManager(downloader, zippy, logger);
-    const depManagerMap = new Map().set(constants.HELM, helmDepManager);
-    const depManager = new DependencyManager(logger, depManagerMap);
-
-    const helm = new Helm(logger);
-    const chartManager = new ChartManager(helm, logger);
-    const configManager = new ConfigManager(logger);
-    const k8 = new K8(configManager, logger);
-    const accountManager = new AccountManager(logger, k8);
-    const platformInstaller = new PlatformInstaller(logger, k8, configManager);
-    const keyManager = new KeyManager(logger);
-    const profileManager = new ProfileManager(logger, configManager);
-    const leaseRenewalService: LeaseRenewalService = new IntervalLeaseRenewalService();
-    const leaseManager = new LeaseManager(k8, configManager, logger, leaseRenewalService);
-    const certificateManager = new CertificateManager(k8, logger, configManager);
-    const localConfig = new LocalConfig(
-      path.join(constants.SOLO_CACHE_DIR, constants.DEFAULT_LOCAL_CONFIG_FILE),
-      logger,
-    );
-
-    // set cluster and namespace in the global configManager from kubernetes context
-    // so that we don't need to prompt the user
-    const kubeConfig = k8.getKubeConfig();
-    const context = kubeConfig.getContextObject(kubeConfig.getCurrentContext());
-    const cluster = kubeConfig.getCurrentCluster();
-
-    const opts: Opts = {
-      logger,
-      helm,
-      k8,
-      downloader,
-      platformInstaller,
-      chartManager,
-      configManager,
-      depManager,
-      keyManager,
-      accountManager,
-      profileManager,
-      leaseManager,
-      certificateManager,
-      localConfig,
-    };
-
     const processArguments = (argv: any, yargs: any) => {
+      // set cluster and namespace in the global configManager from kubernetes context
+      // so that we don't need to prompt the user
+      const k8 = container.resolve<K8>('k8');
+      const kubeConfig = k8.getKubeConfig();
+      const context = kubeConfig.getContextObject(kubeConfig.getCurrentContext());
+      const cluster = kubeConfig.getCurrentCluster();
+
+      const configManager = container.resolve<ConfigManager>('configManager');
+
       if (argv._[0] === 'init') {
         configManager.reset();
       }
@@ -141,7 +90,7 @@ export function main(argv: any) {
         .alias('h', 'help')
         .alias('v', 'version')
         // @ts-ignore
-        .command(commands.Initialize(opts))
+        .command(commands.Initialize())
         .strict()
         // @ts-ignore
         .option(flags.devMode.name, flags.devMode.definition)

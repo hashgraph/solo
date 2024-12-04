@@ -20,15 +20,13 @@ import {ShellRunner} from './shell_runner.js';
 import {Templates} from './templates.js';
 import {IllegalArgumentError} from './errors.js';
 import type {SoloLogger} from './logging.js';
+import {autoInjectable} from "tsyringe-neo";
 
+@autoInjectable()
 export class Helm extends ShellRunner {
   private readonly helmPath: string;
 
-  constructor(
-    logger: SoloLogger,
-    private readonly osPlatform: NodeJS.Platform = os.platform(),
-  ) {
-    if (!logger) throw new IllegalArgumentError('an instance of core/SoloLogger is required', logger);
+  constructor(public logger?: SoloLogger, private readonly osPlatform?: NodeJS.Platform | string) {
     super(logger);
     this.helmPath = Templates.installationPath(constants.HELM, this.osPlatform);
   }

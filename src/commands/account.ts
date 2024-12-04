@@ -15,19 +15,23 @@
  *
  */
 import chalk from 'chalk';
+import {autoInjectable} from "tsyringe-neo";
+
 import {BaseCommand} from './base.js';
 import {SoloError, IllegalArgumentError} from '../core/errors.js';
 import {flags} from './index.js';
 import {Listr} from 'listr2';
 import * as prompts from './prompts.js';
-import {constants, type AccountManager} from '../core/index.js';
+import {
+    constants,
+    type AccountManager
+} from '../core/index.js';
 import {type AccountId, AccountInfo, HbarUnit, PrivateKey} from '@hashgraph/sdk';
 import {FREEZE_ADMIN_ACCOUNT} from '../core/constants.js';
-import {type Opts} from '../types/index.js';
 import {ListrLease} from '../core/lease/listr_lease.js';
 
+@autoInjectable()
 export class AccountCommand extends BaseCommand {
-  private readonly accountManager: AccountManager;
   private accountInfo: {
     accountId: string;
     balance: number;
@@ -35,17 +39,12 @@ export class AccountCommand extends BaseCommand {
     privateKey?: string;
     accountAlias?: string;
   } | null;
-  private readonly systemAccounts: number[][];
 
-  constructor(opts: Opts, systemAccounts = constants.SYSTEM_ACCOUNTS) {
-    super(opts);
+  constructor(private readonly systemAccounts?: number[][], private readonly accountManager?: AccountManager) {
 
-    if (!opts || !opts.accountManager)
-      throw new IllegalArgumentError('An instance of core/AccountManager is required', opts.accountManager as any);
+    super();
 
-    this.accountManager = opts.accountManager;
     this.accountInfo = null;
-    this.systemAccounts = systemAccounts;
   }
 
   async closeConnections() {

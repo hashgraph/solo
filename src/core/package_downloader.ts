@@ -31,9 +31,11 @@ import * as http from 'http';
 import {Templates} from './templates.js';
 import {constants} from './index.js';
 import {type SoloLogger} from './logging.js';
+import {autoInjectable} from "tsyringe-neo";
 
+@autoInjectable()
 export class PackageDownloader {
-  constructor(public readonly logger: SoloLogger) {
+  constructor(public readonly logger?: SoloLogger) {
     if (!logger) throw new IllegalArgumentError('an instance of core/SoloLogger is required', logger);
   }
 

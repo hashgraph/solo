@@ -40,20 +40,20 @@ describe('NodeCommand unit tests', () => {
 
     it('should throw an error if platformInstaller is not provided', () => {
       opts.downloader = sinon.stub();
-      expect(() => new NodeCommand(opts)).to.throw('An instance of core/PlatformInstaller is required');
+      expect(() => new NodeCommand()).to.throw('An instance of core/PlatformInstaller is required');
     });
 
     it('should throw an error if keyManager is not provided', () => {
       opts.downloader = sinon.stub();
       opts.platformInstaller = sinon.stub();
-      expect(() => new NodeCommand(opts)).to.throw('An instance of core/KeyManager is required');
+      expect(() => new NodeCommand()).to.throw('An instance of core/KeyManager is required');
     });
 
     it('should throw an error if accountManager is not provided', () => {
       opts.downloader = sinon.stub();
       opts.platformInstaller = sinon.stub();
       opts.keyManager = sinon.stub();
-      expect(() => new NodeCommand(opts)).to.throw('An instance of core/AccountManager is required');
+      expect(() => new NodeCommand()).to.throw('An instance of core/AccountManager is required');
     });
   });
 });

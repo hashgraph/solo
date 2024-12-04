@@ -78,58 +78,79 @@ import type {NodeDeleteConfigClass, NodeRefreshConfigClass, NodeUpdateConfigClas
 import type {NodeAddConfigClass} from './configs.js';
 import {type Lease} from '../../core/lease/lease.js';
 import {ListrLease} from '../../core/lease/listr_lease.js';
+import {autoInjectable} from "tsyringe-neo";
+import {BaseCommand} from "../base.js";
+import {CommandTasks} from "../../types/index.js";
 
-export class NodeCommandTasks {
-  private readonly accountManager: AccountManager;
-  private readonly configManager: ConfigManager;
-  private readonly keyManager: KeyManager;
-  private readonly profileManager: ProfileManager;
-  private readonly platformInstaller: PlatformInstaller;
-  private readonly logger: SoloLogger;
-  private readonly k8: K8;
-  private readonly parent: NodeCommand;
-  private readonly chartManager: ChartManager;
-  private readonly certificateManager: CertificateManager;
+autoInjectable()
+export class NodeCommandTasks extends BaseCommand implements CommandTasks {
+  public readonly tasks: any
 
-  private readonly prepareValuesFiles: any;
+  constructor(
+    private readonly accountManager?: AccountManager,
+    private readonly platformInstaller?: PlatformInstaller,
+    private readonly keyManager?: KeyManager,
+    private readonly profileManager?: ProfileManager,
+    private readonly certificateManager?: CertificateManager,
+  ) {
+    super()
 
-  constructor(opts: {
-    logger: SoloLogger;
-    accountManager: AccountManager;
-    configManager: ConfigManager;
-    k8: K8;
-    platformInstaller: PlatformInstaller;
-    keyManager: KeyManager;
-    profileManager: ProfileManager;
-    chartManager: ChartManager;
-    certificateManager: CertificateManager;
-    parent: NodeCommand;
-  }) {
-    if (!opts || !opts.accountManager)
-      throw new IllegalArgumentError('An instance of core/AccountManager is required', opts.accountManager as any);
-    if (!opts || !opts.configManager) throw new Error('An instance of core/ConfigManager is required');
-    if (!opts || !opts.logger) throw new Error('An instance of core/Logger is required');
-    if (!opts || !opts.k8) throw new Error('An instance of core/K8 is required');
-    if (!opts || !opts.platformInstaller)
-      throw new IllegalArgumentError('An instance of core/PlatformInstaller is required', opts.platformInstaller);
-    if (!opts || !opts.keyManager)
-      throw new IllegalArgumentError('An instance of core/KeyManager is required', opts.keyManager);
-    if (!opts || !opts.profileManager)
-      throw new IllegalArgumentError('An instance of ProfileManager is required', opts.profileManager);
-    if (!opts || !opts.certificateManager)
-      throw new IllegalArgumentError('An instance of CertificateManager is required', opts.certificateManager);
-
-    this.accountManager = opts.accountManager;
-    this.configManager = opts.configManager;
-    this.logger = opts.logger;
-    this.k8 = opts.k8;
-
-    this.platformInstaller = opts.platformInstaller;
-    this.profileManager = opts.profileManager;
-    this.keyManager = opts.keyManager;
-    this.chartManager = opts.chartManager;
-    this.certificateManager = opts.certificateManager;
-    this.prepareValuesFiles = opts.parent.prepareValuesFiles.bind(opts.parent);
+    this.tasks = [
+        this.prepareUpgradeZip,
+        this.loadAdminKey,
+        this.checkExistingNodesStakedAmount,
+        this.sendPrepareUpgradeTransaction,
+        this.sendFreezeUpgradeTransaction,
+        this.downloadNodeGeneratedFiles,
+        this.taskCheckNetworkNodePods,
+        this.checkNetworkNodePod,
+        this.identifyExistingNodes,
+        this.uploadStateFiles,
+        this.identifyNetworkPods,
+        this.fetchPlatformSoftware,
+        this.populateServiceMap,
+        this.setupNetworkNodes,
+        this.prepareStagingDirectory,
+        this.startNodes,
+        this.enablePortForwarding,
+        this.checkAllNodesAreActive,
+        this.checkAllNodesAreFrozen,
+        this.checkNodeProxiesAreActive,
+        this.checkAllNodeProxiesAreActive,
+        this.triggerStakeWeightCalculate,
+        this.addNodeStakes,
+        this.stakeNewNode,
+        this.stopNodes,
+        this.finalize,
+        this.dumpNetworkNodesSaveState,
+        this.getNodeLogsAndConfigs,
+        this.getNodeStateFiles,
+        this.checkPVCsEnabled,
+        this.determineNewNodeAccountNumber,
+        this.generateGossipKeys,
+        this.generateGossipKey,
+        this.generateGrpcTlsKeys,
+        this.generateGrpcTlsKey,
+        this.loadSigningKeyCertificate,
+        this.computeMTLSCertificateHash,
+        this.prepareGossipEndpoints,
+        this.refreshNodeList,
+        this.prepareGrpcServiceEndpoints,
+        this.sendNodeUpdateTransaction,
+        this.copyNodeKeysToSecrets,
+        this.updateChartWithConfigMap,
+        this.saveContextData,
+        this.loadContextData,
+        this.killNodes,
+        this.killNodesAndUpdateConfigMap,
+        this.checkNodePodsAreRunning,
+        this.sleep,
+        this.downloadLastState,
+        this.uploadStateToNewNode,
+        this.sendNodeDeleteTransaction,
+        this.sendNodeCreateTransaction,
+        this.initialize
+    ]
   }
 
   private async _prepareUpgradeZip(stagingDir: string) {

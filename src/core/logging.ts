@@ -20,6 +20,7 @@ import {v4 as uuidv4} from 'uuid';
 import * as util from 'util';
 import chalk from 'chalk';
 import path from 'path';
+import {injectable} from "tsyringe-neo";
 
 const customFormat = winston.format.combine(
   winston.format.label({label: 'SOLO', message: false}),
@@ -47,6 +48,7 @@ const customFormat = winston.format.combine(
   winston.format(data => (data.private ? false : data))(),
 );
 
+@injectable()
 export class SoloLogger {
   private winstonLogger: winston.Logger;
   private traceId?: string;

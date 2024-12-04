@@ -25,20 +25,15 @@ import {getFileContents, getEnvValue} from '../core/helpers.js';
 import {type PodName} from '../types/aliases.js';
 import {type Opts} from '../types/index.js';
 import {ListrLease} from '../core/lease/listr_lease.js';
+import {autoInjectable} from "tsyringe-neo";
 
+@autoInjectable()
 export class MirrorNodeCommand extends BaseCommand {
-  private readonly accountManager: AccountManager;
-  private readonly profileManager: ProfileManager;
-
-  constructor(opts: Opts) {
-    super(opts);
-    if (!opts || !opts.accountManager)
-      throw new IllegalArgumentError('An instance of core/AccountManager is required', opts.accountManager);
-    if (!opts || !opts.profileManager)
-      throw new MissingArgumentError('An instance of core/ProfileManager is required', opts.downloader);
-
-    this.accountManager = opts.accountManager;
-    this.profileManager = opts.profileManager;
+  constructor(
+    private readonly accountManager?: AccountManager,
+    private readonly profileManager?: ProfileManager
+  ) {
+    super();
   }
 
   static get DEPLOY_CONFIGS_NAME() {

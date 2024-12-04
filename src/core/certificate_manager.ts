@@ -25,15 +25,17 @@ import type {K8} from './k8.js';
 import type {SoloLogger} from './logging.js';
 import type {ListrTaskWrapper} from 'listr2';
 import type {NodeAlias} from '../types/aliases.js';
+import {autoInjectable} from "tsyringe-neo";
 
 /**
  * Used to handle interactions with certificates data and inject it into the K8s cluster secrets
  */
+@autoInjectable()
 export class CertificateManager {
   constructor(
-    private readonly k8: K8,
-    private readonly logger: SoloLogger,
-    private readonly configManager: ConfigManager,
+    private readonly k8?: K8,
+    private readonly logger?: SoloLogger,
+    private readonly configManager?: ConfigManager,
   ) {
     if (!k8) throw new MissingArgumentError('an instance of core/K8 is required');
     if (!logger) throw new MissingArgumentError('an instance of core/SoloLogger is required');

@@ -26,6 +26,7 @@ import {ShellRunner} from '../shell_runner.js';
 import * as semver from 'semver';
 import {OS_WIN32, OS_WINDOWS} from '../constants.js';
 import {type SoloLogger} from '../logging.js';
+import {autoInjectable} from "tsyringe-neo";
 
 // constants required by HelmDependencyManager
 const HELM_RELEASE_BASE_URL = 'https://get.helm.sh';
@@ -39,6 +40,7 @@ const HELM_ARTIFACT_EXT: Map<string, string> = new Map()
 /**
  * Helm dependency manager installs or uninstalls helm client at SOLO_HOME_DIR/bin directory
  */
+@autoInjectable()
 export class HelmDependencyManager extends ShellRunner {
   private readonly osPlatform: string;
   private readonly osArch: string;

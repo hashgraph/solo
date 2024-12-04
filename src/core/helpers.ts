@@ -538,15 +538,15 @@ export function commandActionBuilder(actionTasks: any, options: any, errorString
     try {
       await tasks.run();
     } catch (e: Error | any) {
-      commandDef.parent.logger.error(`${errorString}: ${e.message}`, e);
+      commandDef.logger.error(`${errorString}: ${e.message}`, e);
       throw new SoloError(`${errorString}: ${e.message}`, e);
     } finally {
       const promises = [];
 
       // @ts-ignore
-      if (commandDef.close) {
+      if (commandDef.accountManager) {
         // @ts-ignore
-        promises.push(commandDef.close());
+        promises.push(commandDef.accountManager.close());
       }
 
       if (lease) promises.push(lease.release());
