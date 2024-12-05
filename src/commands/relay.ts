@@ -14,7 +14,7 @@
  * limitations under the License.
  *
  */
-import {Listr} from 'listr2';
+import {Listr, type ListrTask} from 'listr2';
 import {SoloError, MissingArgumentError} from '../core/errors.js';
 import * as helpers from '../core/helpers.js';
 import * as constants from '../core/constants.js';
@@ -27,6 +27,8 @@ import {RemoteConfigTasks} from '../core/config/remote/remote_config_tasks.js';
 import {type CommandBuilder, type NodeAliases} from '../types/aliases.js';
 import {type Opts} from '../types/command_types.js';
 import {ListrLease} from '../core/lease/listr_lease.js';
+import {RelayComponent} from '../core/config/remote/components/relay_component.js';
+import {ComponentType} from '../core/config/remote/enumerations.js';
 
 export class RelayCommand extends BaseCommand {
   private readonly profileManager: ProfileManager;
@@ -282,7 +284,7 @@ export class RelayCommand extends BaseCommand {
             }
           },
         },
-        RemoteConfigTasks.addRelayComponent.bind(this)(),
+        RelayCommand.addRelayComponent.bind(this)(),
       ],
       {
         concurrent: false,
@@ -363,7 +365,7 @@ export class RelayCommand extends BaseCommand {
           },
           skip: ctx => !ctx.config.isChartInstalled,
         },
-        RemoteConfigTasks.removeRelayComponent.bind(this)(),
+        RelayCommand.removeRelayComponent.bind(this)(),
       ],
       {
         concurrent: false,
@@ -428,6 +430,37 @@ export class RelayCommand extends BaseCommand {
             },
           })
           .demandCommand(1, 'Select a relay command');
+      },
+    };
+  }
+
+  /** Adds the relay component to remote config. */
+  public static addRelayComponent(this: RelayCommand): ListrTask<any, any, any> {
+    return {
+      title: 'Add relay component in remote config',
+      skip: (): boolean => !this.remoteConfigManager.isLoaded(),
+      task: async (ctx): Promise<void> => {
+        await this.remoteConfigManager.modify(async remoteConfig => {
+          const {
+            config: {namespace, nodeAliases},
+          } = ctx;
+          const cluster = this.remoteConfigManager.currentCluster;
+
+          remoteConfig.components.add('relay', new RelayComponent('relay', cluster, namespace, nodeAliases));
+        });
+      },
+    };
+  }
+
+  /** Remove the relay component from remote config. */
+  public static removeRelayComponent(this: RelayCommand): ListrTask<any, any, any> {
+    return {
+      title: 'Remove relay component from remote config',
+      skip: (): boolean => !this.remoteConfigManager.isLoaded(),
+      task: async (): Promise<void> => {
+        await this.remoteConfigManager.modify(async remoteConfig => {
+          remoteConfig.components.remove('relay', ComponentType.Relay);
+        });
       },
     };
   }
