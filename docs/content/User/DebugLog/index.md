@@ -4,11 +4,11 @@
 
 Running the command `k9s -A` in terminal, and select one of the network nodes: 
 
-![alt text](image/select_network_node0.png)
+![alt text](select_network_node0.png)
 
 Next, select the `root-container` and press the key `s` to enter the shell of the container.
 
-![alt text](image/select_root_container.png)
+![alt text](select_root_container.png)
 
 Once inside the shell, you can change to directory `cd /opt/hgcapp/services-hedera/HapiApp2.0/`
 to view all hedera related logs and properties files.
@@ -47,12 +47,12 @@ need to be updated based on what directory you are currently in.  This also assu
 
 Setup a Intellij run/debug configuration for remote JVM Debug as shown in the below screenshot:
 
-![alt text](image/jvm-hedera-app.png)
+![alt text](jvm-hedera-app.png)
 
 If you are working on platform testing application, you should use the following configuration
 in intellij:
 
-![alt text](image/jvm-platform-app.png)
+![alt text](jvm-platform-app.png)
 
 Setup breakpoint if necessary.
 
@@ -79,8 +79,8 @@ Once you see the following message, you can launch jvm debugger from Intellij
 ```
 The Hedera Application should stop at the breakpoint you set:
 
-![alt text](image/hedera-breakpoint.png)
-
+![alt text](hedera-breakpoint.png)
+![alt text](platform-breakpoint.png)
 
 Example 2: attach jvm debugger with node add operation
 
