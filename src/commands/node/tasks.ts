@@ -259,10 +259,12 @@ export class NodeCommandTasks {
             `${constants.HEDERA_HAPI_PATH}`,
             filterFunction,
           );
-          const testJsonFiles: string[] = this.configManager.getFlag<string>(flags.appConfig)!.split(',');
-          for (const jsonFile of testJsonFiles) {
-            if (fs.existsSync(jsonFile)) {
-              await self.k8.copyTo(podName, constants.ROOT_CONTAINER, jsonFile, `${constants.HEDERA_HAPI_PATH}`);
+          if (self.configManager.getFlag<string>(flags.appConfig)) {
+            const testJsonFiles: string[] = this.configManager.getFlag<string>(flags.appConfig)!.split(',');
+            for (const jsonFile of testJsonFiles) {
+              if (fs.existsSync(jsonFile)) {
+                await self.k8.copyTo(podName, constants.ROOT_CONTAINER, jsonFile, `${constants.HEDERA_HAPI_PATH}`);
+              }
             }
           }
         },
@@ -312,7 +314,9 @@ export class NodeCommandTasks {
 
     const subTasks = nodeAliases.map((nodeAlias, i) => {
       const reminder =
-        'debugNodeAlias' in ctx.config && ctx.config.debugNodeAlias === nodeAlias
+        'debugNodeAlias' in ctx.config &&
+        ctx.config.debugNodeAlias === nodeAlias &&
+        status !== NodeStatusCodes.FREEZE_COMPLETE
           ? 'Please attach JVM debugger now.'
           : '';
       const title = `Check network pod: ${chalk.yellow(nodeAlias)} ${chalk.red(reminder)}`;
