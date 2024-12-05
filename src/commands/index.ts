@@ -14,7 +14,7 @@
  * limitations under the License.
  *
  */
-import * as flags from './flags.js';
+import {Flags as flags} from './flags.js';
 import {ClusterCommand} from './cluster.js';
 import {ContextCommand} from './context/index.js';
 import {InitCommand} from './init.js';
@@ -23,6 +23,7 @@ import {NetworkCommand} from './network.js';
 import {NodeCommand} from './node/index.js';
 import {RelayCommand} from './relay.js';
 import {AccountCommand} from './account.js';
+import {DeploymentCommand} from './deployment.js';
 
 /**
  * Return a list of Yargs command builder to be exposed through CLI
@@ -37,6 +38,7 @@ function Initialize() {
   const relayCmd = new RelayCommand();
   const accountCmd = new AccountCommand();
   const mirrorNodeCmd = new MirrorNodeCommand();
+  const deploymentCommand = new DeploymentCommand();
 
   return [
     initCmd.getCommandDefinition(),
@@ -47,6 +49,7 @@ function Initialize() {
     relayCmd.getCommandDefinition(),
     accountCmd.getCommandDefinition(),
     mirrorNodeCmd.getCommandDefinition(),
+    deploymentCommand.getCommandDefinition(),
   ];
 }
 

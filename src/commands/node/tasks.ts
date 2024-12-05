@@ -15,16 +15,16 @@
  *
  */
 import {
-  type ChartManager,
-  type ConfigManager,
   constants,
-  type K8,
-  type KeyManager,
-  type PlatformInstaller,
-  type ProfileManager,
   Task,
   Templates,
   Zippy,
+  type K8,
+  type ChartManager,
+  type ConfigManager,
+  type KeyManager,
+  type PlatformInstaller,
+  type ProfileManager,
   type AccountManager,
   type CertificateManager,
 } from '../../core/index.js';
@@ -52,7 +52,6 @@ import {
   Timestamp,
 } from '@hashgraph/sdk';
 import {IllegalArgumentError, MissingArgumentError, SoloError} from '../../core/errors.js';
-import * as prompts from '../prompts.js';
 import path from 'path';
 import fs from 'fs';
 import crypto from 'crypto';
@@ -67,15 +66,19 @@ import {
   splitFlagInput,
 } from '../../core/helpers.js';
 import chalk from 'chalk';
-import * as flags from '../flags.js';
+import {flags} from '../index.js';
 import {type SoloLogger} from '../../core/logging.js';
 import type {Listr, ListrTaskWrapper} from 'listr2';
-import {type NodeAlias, type NodeAliases, type PodName} from '../../types/aliases.js';
+import {ConfigBuilder, type NodeAlias, type NodeAliases, type PodName, SkipCheck} from '../../types/aliases.js';
 import {NodeStatusCodes, NodeStatusEnums, NodeSubcommandType} from '../../core/enumerations.js';
 import * as x509 from '@peculiar/x509';
 import {type NodeCommand} from './index.js';
-import type {NodeDeleteConfigClass, NodeRefreshConfigClass, NodeUpdateConfigClass} from './configs.js';
-import type {NodeAddConfigClass} from './configs.js';
+import type {
+  NodeAddConfigClass,
+  NodeDeleteConfigClass,
+  NodeRefreshConfigClass,
+  NodeUpdateConfigClass,
+} from './configs.js';
 import {type Lease} from '../../core/lease/lease.js';
 import {ListrLease} from '../../core/lease/listr_lease.js';
 import {autoInjectable} from "tsyringe-neo";
@@ -413,7 +416,9 @@ export class NodeCommandTasks extends BaseCommand implements CommandTasks {
           task.title = `${title} - status ${chalk.yellow(NodeStatusEnums[statusNumber])}, attempt: ${chalk.blueBright(`${attempt}/${maxAttempts}`)}`;
         }
         clearTimeout(timeoutId);
-      } catch {} // Catch all guard and fetch errors
+      } catch {
+        // Catch all guard and fetch errors
+      }
 
       attempt++;
       clearTimeout(timeoutId);
@@ -694,6 +699,7 @@ export class NodeCommandTasks extends BaseCommand implements CommandTasks {
       'Download generated files from an existing node',
       async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
         const config = ctx.config;
+
         // don't try to download from the same node we are deleting, it won't work
         const nodeAlias =
           ctx.config.nodeAlias === config.existingNodeAliases[0]
@@ -814,7 +820,7 @@ export class NodeCommandTasks extends BaseCommand implements CommandTasks {
     });
   }
 
-  uploadStateFiles(skip: Function | boolean) {
+  uploadStateFiles(skip: SkipCheck | boolean) {
     const self = this;
     return new Task(
       'Upload state files network nodes',
@@ -1357,7 +1363,7 @@ export class NodeCommandTasks extends BaseCommand implements CommandTasks {
     });
   }
 
-  updateChartWithConfigMap(title: string, transactionType: NodeSubcommandType, skip: Function | boolean = false) {
+  updateChartWithConfigMap(title: string, transactionType: NodeSubcommandType, skip: SkipCheck | boolean = false) {
     const self = this;
     return new Task(
       title,
@@ -1605,7 +1611,7 @@ export class NodeCommandTasks extends BaseCommand implements CommandTasks {
     });
   }
 
-  initialize(argv: any, configInit: Function, lease: Lease | null) {
+  initialize(argv: any, configInit: ConfigBuilder, lease: Lease | null) {
     const {requiredFlags, requiredFlagsWithDisabledPrompt, optionalFlags} = argv;
     const allRequiredFlags = [...requiredFlags, ...requiredFlagsWithDisabledPrompt];
 
@@ -1620,7 +1626,7 @@ export class NodeCommandTasks extends BaseCommand implements CommandTasks {
       this.configManager.update(argv);
 
       // disable the prompts that we don't want to prompt the user for
-      prompts.disablePrompts([...requiredFlagsWithDisabledPrompt, ...optionalFlags]);
+      flags.disablePrompts([...requiredFlagsWithDisabledPrompt, ...optionalFlags]);
 
       const flagsToPrompt = [];
       for (const pFlag of requiredFlags) {
@@ -1630,7 +1636,7 @@ export class NodeCommandTasks extends BaseCommand implements CommandTasks {
         }
       }
 
-      await prompts.execute(task, this.configManager, flagsToPrompt);
+      await flags.executePrompt(task, this.configManager, flagsToPrompt);
 
       const config = await configInit(argv, ctx, task);
       ctx.config = config;

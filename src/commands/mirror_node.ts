@@ -19,11 +19,11 @@ import {Listr} from 'listr2';
 import {SoloError, IllegalArgumentError, MissingArgumentError} from '../core/errors.js';
 import {constants, type ProfileManager, type AccountManager} from '../core/index.js';
 import {BaseCommand} from './base.js';
-import * as flags from './flags.js';
-import * as prompts from './prompts.js';
+import {flags} from './index.js';
 import {getFileContents, getEnvValue} from '../core/helpers.js';
-import {type PodName} from '../types/aliases.js';
-import {type Opts} from '../types/index.js';
+import {RemoteConfigTasks} from '../core/config/remote/remote_config_tasks.js';
+import {CommandBuilder, type PodName} from '../types/aliases.js';
+import type {Opts} from '../types/index.js';
 import {ListrLease} from '../core/lease/listr_lease.js';
 import {autoInjectable} from "tsyringe-neo";
 
@@ -174,7 +174,7 @@ export class MirrorNodeCommand extends BaseCommand {
             self.configManager.update(argv);
 
             // disable the prompts that we don't want to prompt the user for
-            prompts.disablePrompts([
+            flags.disablePrompts([
               flags.chartDirectory,
               flags.deployHederaExplorer,
               flags.enableHederaExplorerTls,
@@ -187,7 +187,7 @@ export class MirrorNodeCommand extends BaseCommand {
               flags.pinger,
             ]);
 
-            await prompts.execute(task, self.configManager, MirrorNodeCommand.DEPLOY_FLAGS_LIST);
+            await flags.executePrompt(task, self.configManager, MirrorNodeCommand.DEPLOY_FLAGS_LIST);
 
             ctx.config = this.getConfig(MirrorNodeCommand.DEPLOY_CONFIGS_NAME, MirrorNodeCommand.DEPLOY_FLAGS_LIST, [
               'chartPath',
@@ -227,6 +227,7 @@ export class MirrorNodeCommand extends BaseCommand {
             return ListrLease.newAcquireLeaseTask(lease, task);
           },
         },
+        RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
         {
           title: 'Enable mirror-node',
           task: (_, parentTask) => {
@@ -413,6 +414,7 @@ export class MirrorNodeCommand extends BaseCommand {
             );
           },
         },
+        RemoteConfigTasks.addMirrorNodeAndMirrorNodeToExplorer.bind(this)(),
       ],
       {
         concurrent: false,
@@ -462,7 +464,7 @@ export class MirrorNodeCommand extends BaseCommand {
             }
 
             self.configManager.update(argv);
-            await prompts.execute(task, self.configManager, [flags.namespace]);
+            await flags.executePrompt(task, self.configManager, [flags.namespace]);
 
             // @ts-ignore
             ctx.config = {
@@ -483,6 +485,7 @@ export class MirrorNodeCommand extends BaseCommand {
             return ListrLease.newAcquireLeaseTask(lease, task);
           },
         },
+        RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
         {
           title: 'Destroy mirror-node',
           task: async ctx => {
@@ -508,6 +511,7 @@ export class MirrorNodeCommand extends BaseCommand {
           },
           skip: ctx => !ctx.config.isChartInstalled,
         },
+        RemoteConfigTasks.removeMirrorNodeAndMirrorNodeToExplorer.bind(this)(),
       ],
       {
         concurrent: false,
@@ -529,7 +533,7 @@ export class MirrorNodeCommand extends BaseCommand {
   }
 
   /** Return Yargs command definition for 'mirror-mirror-node' command */
-  getCommandDefinition(): {command: string; desc: string; builder: Function} {
+  getCommandDefinition(): {command: string; desc: string; builder: CommandBuilder} {
     const self = this;
     return {
       command: 'mirror-node',

@@ -17,13 +17,13 @@
 import {ListrEnquirerPromptAdapter} from '@listr2/prompt-adapter-enquirer';
 import {Listr} from 'listr2';
 import {SoloError} from '../core/errors.js';
-import * as flags from './flags.js';
+import {flags} from './index.js';
 import {BaseCommand} from './base.js';
 import chalk from 'chalk';
 import {constants} from '../core/index.js';
-import * as prompts from './prompts.js';
 import path from 'path';
 import {ListrLease} from '../core/lease/listr_lease.js';
+import {CommandBuilder} from '../types/aliases.js';
 
 /**
  * Define the core functionalities of 'cluster' command
@@ -78,7 +78,7 @@ export class ClusterCommand extends BaseCommand {
           title: 'Initialize',
           task: async (ctx, task) => {
             self.configManager.update(argv);
-            await prompts.execute(task, self.configManager, [
+            await flags.executePrompt(task, self.configManager, [
               flags.chartDirectory,
               flags.clusterSetupNamespace,
               flags.deployCertManager,
@@ -250,7 +250,7 @@ export class ClusterCommand extends BaseCommand {
   }
 
   /** Return Yargs command definition for 'cluster' command */
-  getCommandDefinition(): {command: string; desc: string; builder: Function} {
+  getCommandDefinition(): {command: string; desc: string; builder: CommandBuilder} {
     const self = this;
     return {
       command: 'cluster',

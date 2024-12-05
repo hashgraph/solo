@@ -17,7 +17,7 @@
 import fs from 'fs';
 import path from 'path';
 import {SoloError, IllegalArgumentError, MissingArgumentError} from './errors.js';
-import * as yaml from 'js-yaml';
+import * as yaml from 'yaml';
 import {flags} from '../commands/index.js';
 import {type ConfigManager, constants, helpers, Templates} from './index.js';
 import dot from 'dot-object';
@@ -69,7 +69,7 @@ export class ProfileManager {
     // load profile file
     this.profiles = new Map();
     const yamlData = fs.readFileSync(profileFile, 'utf8');
-    const profileItems = yaml.load(yamlData) as Record<string, object>;
+    const profileItems = yaml.parse(yamlData) as Record<string, object>;
 
     // add profiles
     for (const key in profileItems) {
@@ -313,7 +313,7 @@ export class ProfileManager {
     // write the yaml
     const cachedValuesFile = path.join(this.cacheDir, `solo-${profileName}.yaml`);
     return new Promise<string>((resolve, reject) => {
-      fs.writeFile(cachedValuesFile, yaml.dump(yamlRoot), err => {
+      fs.writeFile(cachedValuesFile, yaml.stringify(yamlRoot), err => {
         if (err) {
           reject(err);
         }
@@ -346,7 +346,7 @@ export class ProfileManager {
     // write the yaml
     const cachedValuesFile = path.join(this.cacheDir, 'solo-node-add.yaml');
     return new Promise<string>((resolve, reject) => {
-      fs.writeFile(cachedValuesFile, yaml.dump(yamlRoot), err => {
+      fs.writeFile(cachedValuesFile, yaml.stringify(yamlRoot), err => {
         if (err) {
           reject(err);
         }
@@ -373,7 +373,7 @@ export class ProfileManager {
     // write the yaml
     const cachedValuesFile = path.join(this.cacheDir, `rpcRelay-${profileName}.yaml`);
     return new Promise<string>((resolve, reject) => {
-      fs.writeFile(cachedValuesFile, yaml.dump(yamlRoot), err => {
+      fs.writeFile(cachedValuesFile, yaml.stringify(yamlRoot), err => {
         if (err) {
           reject(err);
         }
@@ -393,7 +393,7 @@ export class ProfileManager {
     // write the yaml
     const cachedValuesFile = path.join(this.cacheDir, `explorer-${profileName}.yaml`);
     return new Promise<string>((resolve, reject) => {
-      fs.writeFile(cachedValuesFile, yaml.dump(yamlRoot), err => {
+      fs.writeFile(cachedValuesFile, yaml.stringify(yamlRoot), err => {
         if (err) {
           reject(err);
         }
@@ -432,7 +432,7 @@ export class ProfileManager {
     // write the yaml
     const cachedValuesFile = path.join(this.cacheDir, `mirror-${profileName}.yaml`);
     return new Promise<string>((resolve, reject) => {
-      fs.writeFile(cachedValuesFile, yaml.dump(yamlRoot), err => {
+      fs.writeFile(cachedValuesFile, yaml.stringify(yamlRoot), err => {
         if (err) {
           reject(err);
         }

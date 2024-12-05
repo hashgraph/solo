@@ -22,6 +22,9 @@ import {constants} from './index.js';
 import {type AccountId} from '@hashgraph/sdk';
 import type {NodeAlias, PodName} from '../types/aliases.js';
 import {GrpcProxyTlsEnums} from './enumerations.js';
+import type {ContextClusterStructure} from '../types/index.js';
+import type {Cluster, Context} from './config/remote/types.js';
+import {flags} from '../commands/index.js';
 
 export class Templates {
   public static renderNetworkPodName(nodeAlias: NodeAlias): PodName {
@@ -223,7 +226,33 @@ export class Templates {
     }
   }
 
-  static parseClusterAliases(clusterAliases: string) {
-    return clusterAliases ? clusterAliases.split(',') : [];
+  /**
+   * Parsed and validates the unparsed value of flag clusterMappings
+   *
+   * @param unparsed - value of flag clusterMappings
+   */
+  public static parseContextCluster(unparsed: string): ContextClusterStructure {
+    const mapping = {};
+    const errorMessage = `Invalid context in context-cluster, expected structure: ${flags.contextClusterUnparsed.definition.describe}`;
+
+    unparsed.split(',').forEach(data => {
+      const [context, cluster] = data.split('=') as [Context, Cluster];
+
+      if (!context || typeof context !== 'string') {
+        throw new SoloError(errorMessage, null, {data});
+      }
+
+      if (!cluster || typeof cluster !== 'string') {
+        throw new SoloError(errorMessage, null, {data});
+      }
+
+      mapping[context] = cluster;
+    });
+
+    return mapping;
+  }
+
+  static parseClusterAliases(clusters: string) {
+    return clusters ? clusters.split(',') : [];
   }
 }

@@ -15,15 +15,16 @@
  *
  */
 import {IsEmail, IsNotEmpty, IsObject, IsString, validateSync} from 'class-validator';
+import type {ListrTask, ListrTaskWrapper} from 'listr2';
 import fs from 'fs';
 import * as yaml from 'yaml';
 import {flags} from '../../commands/index.js';
-import {type Deployment, type Deployments, type LocalConfigData} from './local_config_data.js';
+import {type Deployments, DeploymentStructure, type LocalConfigData} from './local_config_data.js';
 import {MissingArgumentError, SoloError} from '../errors.js';
-import {promptDeploymentClusters, promptNamespace, promptUserEmailAddress} from '../../commands/prompts.js';
 import {type SoloLogger} from '../logging.js';
-import {Task} from '../task.js';
 import {IsDeployments} from '../validator_decorators.js';
+import type {ConfigManager} from '../config_manager.js';
+import type {EmailAddress, Namespace} from './remote/types.js';
 import {Templates} from '../templates.js';
 import {ErrorMessages} from '../error_messages.js';
 import {autoInjectable} from "tsyringe-neo";
@@ -36,7 +37,7 @@ export class LocalConfig implements LocalConfigData {
       message: ErrorMessages.LOCAL_CONFIG_INVALID_EMAIL,
     },
   )
-  userEmailAddress: string;
+  userEmailAddress: EmailAddress;
 
   // The string is the name of the deployment, will be used as the namespace,
   // so it needs to be available in all targeted clusters
@@ -47,7 +48,7 @@ export class LocalConfig implements LocalConfigData {
   @IsObject({
     message: ErrorMessages.LOCAL_CONFIG_INVALID_DEPLOYMENTS_FORMAT,
   })
-  deployments: Deployments;
+  public deployments: Deployments;
 
   @IsString({
     message: ErrorMessages.LOCAL_CONFIG_CURRENT_DEPLOYMENT_DOES_NOT_EXIST,
@@ -57,9 +58,10 @@ export class LocalConfig implements LocalConfigData {
 
   private readonly skipPromptTask: boolean = false;
 
-  constructor(
+  public constructor(
     private readonly filePath?: string,
     private readonly logger?: SoloLogger,
+    private readonly configManager?: ConfigManager,
   ) {
     if (!filePath || filePath === '') throw new MissingArgumentError('a valid filePath is required');
     if (!logger) throw new Error('An instance of core/SoloLogger is required');
@@ -81,7 +83,7 @@ export class LocalConfig implements LocalConfigData {
     }
   }
 
-  private validate() {
+  private validate(): void {
     const errors = validateSync(this, {});
 
     if (errors.length) {
@@ -100,7 +102,7 @@ export class LocalConfig implements LocalConfigData {
     }
   }
 
-  public setUserEmailAddress(emailAddress: string): this {
+  public setUserEmailAddress(emailAddress: EmailAddress): this {
     this.userEmailAddress = emailAddress;
     this.validate();
     return this;
@@ -112,17 +114,17 @@ export class LocalConfig implements LocalConfigData {
     return this;
   }
 
-  public setCurrentDeployment(deploymentName: string): this {
+  public setCurrentDeployment(deploymentName: Namespace): this {
     this.currentDeploymentName = deploymentName;
     this.validate();
     return this;
   }
 
-  public getCurrentDeployment(): Deployment {
+  public getCurrentDeployment(): DeploymentStructure {
     return this.deployments[this.currentDeploymentName];
   }
 
-  private configFileExists(): boolean {
+  public configFileExists(): boolean {
     return fs.existsSync(this.filePath);
   }
 
@@ -136,34 +138,32 @@ export class LocalConfig implements LocalConfigData {
     this.logger.info(`Wrote local config to ${this.filePath}`);
   }
 
-  public promptLocalConfigTask(k8, argv): Task {
+  public promptLocalConfigTask(): ListrTask<any, any, any> {
     const self = this;
-    return new Task(
-      'Prompt local configuration',
-      async (ctx, task) => {
-        let userEmailAddress = argv[flags.userEmailAddress.name];
-        if (!userEmailAddress) userEmailAddress = await promptUserEmailAddress(task, userEmailAddress);
 
-        let deploymentName = argv[flags.namespace.name];
-        if (!deploymentName) deploymentName = await promptNamespace(task, deploymentName);
+    return {
+      title: 'Prompt local configuration',
+      skip: this.skipPromptTask,
+      task: async (_: any, task: ListrTaskWrapper<any, any, any>): Promise<void> => {
+        let userEmailAddress = self.configManager.getFlag<EmailAddress>(flags.userEmailAddress);
+        if (!userEmailAddress) userEmailAddress = await flags.userEmailAddress.prompt(task, userEmailAddress);
 
-        let deploymentClusters = argv[flags.deploymentClusters.name];
-        if (!deploymentClusters) deploymentClusters = await promptDeploymentClusters(task, deploymentClusters);
+        const deploymentName = self.configManager.getFlag<Namespace>(flags.namespace);
+        if (!deploymentName) throw new SoloError('Namespace was not specified');
 
-        const deployments = {};
-        deployments[deploymentName] = {
-          clusterAliases: Templates.parseClusterAliases(deploymentClusters),
+        let deploymentClusters = self.configManager.getFlag<string>(flags.deploymentClusters);
+        if (!deploymentClusters) deploymentClusters = await flags.deploymentClusters.prompt(task, deploymentClusters);
+
+        const deployments: Deployments = {
+          [deploymentName]: {clusters: Templates.parseClusterAliases(deploymentClusters)},
         };
 
-        self.userEmailAddress = userEmailAddress;
-        self.deployments = deployments;
-        self.currentDeploymentName = deploymentName;
-        self.validate();
-        await self.write();
-
-        return self;
+        this.userEmailAddress = userEmailAddress;
+        this.deployments = deployments;
+        this.currentDeploymentName = deploymentName;
+        this.validate();
+        await this.write();
       },
-      self.skipPromptTask,
-    ) as Task;
+    };
   }
 }

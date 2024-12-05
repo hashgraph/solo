@@ -32,9 +32,12 @@ import type {
   AccountManager,
   LeaseManager,
   CertificateManager,
+  RemoteConfigManager,
   LocalConfig,
 } from '../core/index.js';
+import type {Cluster, Context} from '../core/config/remote/types.js';
 import {type BaseCommand} from '../commands/base.js';
+import {PromptFunction} from './aliases.js';
 
 export interface NodeKeyObject {
   privateKey: crypto.webcrypto.CryptoKey;
@@ -68,6 +71,7 @@ export interface CommandFlag {
   constName: string;
   name: string;
   definition: Definition;
+  prompt: PromptFunction;
 }
 
 export interface Definition {
@@ -93,6 +97,7 @@ export interface Opts {
   leaseManager: LeaseManager;
   certificateManager: CertificateManager;
   localConfig: LocalConfig;
+  remoteConfigManager: RemoteConfigManager;
 }
 
 export interface CommandTasks extends BaseCommand {
@@ -105,4 +110,33 @@ export interface CommandHandlers extends CommandTasks {
 
 export interface CommandWithHandlers extends CommandHandlers {
     getCommandDefinition(): {command: string; desc: string; builder: Function}
+}
+
+/**
+ * Generic type for representing optional types
+ */
+export type Optional<T> = T | undefined;
+
+export type ContextClusterStructure = Record<Context, Cluster>;
+
+/**
+ * Interface for capsuling validating for class's own properties
+ */
+export interface Validate {
+  /**
+   * Validates all properties of the class and throws if data is invalid
+   */
+  validate(): void;
+}
+
+/**
+ * Interface for converting a class to a plain object.
+ */
+export interface ToObject<T> {
+  /**
+   * Converts the class instance to a plain object.
+   *
+   * @returns the plain object representation of the class.
+   */
+  toObject(): T;
 }

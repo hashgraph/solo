@@ -14,7 +14,7 @@
  * limitations under the License.
  *
  */
-import * as commandFlags from '../commands/flags.js';
+import {Flags as commandFlags} from '../commands/flags.js';
 import {IllegalArgumentError} from './errors.js';
 import {type BaseCommand} from '../commands/base.js';
 import {type CommandFlag} from '../types/index.js';

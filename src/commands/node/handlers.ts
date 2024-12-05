@@ -31,12 +31,35 @@ import {
   stopConfigBuilder,
   updateConfigBuilder,
 } from './configs.js';
-import { constants } from '../../core/index.js';
+import {
+  type ConfigManager,
+  constants,
+  type K8,
+  type PlatformInstaller,
+  type AccountManager,
+  type LeaseManager,
+  type RemoteConfigManager,
+} from '../../core/index.js';
+import {IllegalArgumentError} from '../../core/errors.js';
+import {ConsensusNodeStates} from '../../core/config/remote/enumerations.js';
+import {RemoteConfigTasks} from '../../core/config/remote/remote_config_tasks.js';
+import type {SoloLogger} from '../../core/logging.js';
+import type {NodeCommand} from './index.js';
 import {NodeCommandTasks} from './tasks.js';
 import {type Lease} from '../../core/lease/lease.js';
-import {type CommandHandlers} from '../../types/index.js';
 import {NodeSubcommandType} from '../../core/enumerations.js';
+import {type CommandHandlers} from '../../types/index.js';
 import {autoInjectable} from "tsyringe-neo";
+
+export class NodeCommandHandlers implements CommandHandlers {
+  private readonly accountManager: AccountManager;
+  private readonly configManager: ConfigManager;
+  private readonly platformInstaller: PlatformInstaller;
+  private readonly logger: SoloLogger;
+  private readonly k8: K8;
+  private readonly tasks: NodeCommandTasks;
+  private readonly leaseManager: LeaseManager;
+  public readonly remoteConfigManager: RemoteConfigManager;
 
 @autoInjectable()
 export class NodeCommandHandlers extends NodeCommandTasks implements CommandHandlers {
@@ -81,6 +104,8 @@ export class NodeCommandHandlers extends NodeCommandTasks implements CommandHand
   deletePrepareTaskList(argv: any, lease: Lease) {
     return [
       this.tasks.initialize(argv, deleteConfigBuilder.bind(this), lease),
+      RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
+      RemoteConfigTasks.validateSingleNodeState.bind(this)({excludedStates: []}),
       this.tasks.identifyExistingNodes(),
       this.tasks.loadAdminKey(),
       this.tasks.prepareUpgradeZip(),
@@ -123,6 +148,8 @@ export class NodeCommandHandlers extends NodeCommandTasks implements CommandHand
   addPrepareTasks(argv: any, lease: Lease) {
     return [
       this.tasks.initialize(argv, addConfigBuilder.bind(this), lease),
+      RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
+      RemoteConfigTasks.validateSingleNodeState.bind(this)({excludedStates: []}),
       this.tasks.checkPVCsEnabled(),
       this.tasks.identifyExistingNodes(),
       this.tasks.determineNewNodeAccountNumber(),
@@ -174,6 +201,8 @@ export class NodeCommandHandlers extends NodeCommandTasks implements CommandHand
   updatePrepareTasks(argv, lease: Lease) {
     return [
       this.tasks.initialize(argv, updateConfigBuilder.bind(this), lease),
+      RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
+      RemoteConfigTasks.validateSingleNodeState.bind(this)({excludedStates: []}),
       this.tasks.identifyExistingNodes(),
       this.tasks.loadAdminKey(),
       this.tasks.prepareUpgradeZip(),
@@ -224,6 +253,7 @@ export class NodeCommandHandlers extends NodeCommandTasks implements CommandHand
     const action = helpers.commandActionBuilder(
       [
         this.tasks.initialize(argv, prepareUpgradeConfigBuilder.bind(this), lease),
+        RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
         this.tasks.prepareUpgradeZip(),
         this.tasks.sendPrepareUpgradeTransaction(),
       ],
@@ -245,6 +275,7 @@ export class NodeCommandHandlers extends NodeCommandTasks implements CommandHand
     const action = helpers.commandActionBuilder(
       [
         this.tasks.initialize(argv, prepareUpgradeConfigBuilder.bind(this), null),
+        RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
         this.tasks.prepareUpgradeZip(),
         this.tasks.sendFreezeUpgradeTransaction(),
       ],
@@ -268,6 +299,7 @@ export class NodeCommandHandlers extends NodeCommandTasks implements CommandHand
     const action = helpers.commandActionBuilder(
       [
         this.tasks.initialize(argv, downloadGeneratedFilesConfigBuilder.bind(this), lease),
+        RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
         this.tasks.identifyExistingNodes(),
         this.tasks.downloadNodeGeneratedFiles(),
       ],
@@ -333,6 +365,7 @@ export class NodeCommandHandlers extends NodeCommandTasks implements CommandHand
     const action = helpers.commandActionBuilder(
       [
         this.tasks.initialize(argv, updateConfigBuilder.bind(this), lease),
+        RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
         this.tasks.loadContextData(argv, NodeCommandHandlers.UPDATE_CONTEXT_FILE, helpers.updateLoadContextParser),
         ...this.updateSubmitTransactionsTasks(argv),
       ],
@@ -354,6 +387,7 @@ export class NodeCommandHandlers extends NodeCommandTasks implements CommandHand
     const action = helpers.commandActionBuilder(
       [
         this.tasks.initialize(argv, updateConfigBuilder.bind(this), lease),
+        RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
         this.tasks.loadContextData(argv, NodeCommandHandlers.UPDATE_CONTEXT_FILE, helpers.updateLoadContextParser),
         ...this.updateExecuteTasks(argv),
       ],
@@ -507,6 +541,7 @@ export class NodeCommandHandlers extends NodeCommandTasks implements CommandHand
     const action = helpers.commandActionBuilder(
       [
         this.tasks.initialize(argv, addConfigBuilder.bind(this), lease),
+        RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
         this.tasks.loadContextData(argv, NodeCommandHandlers.ADD_CONTEXT_FILE, helpers.addLoadContextParser),
         ...this.addSubmitTransactionsTasks(argv),
       ],
@@ -530,6 +565,7 @@ export class NodeCommandHandlers extends NodeCommandTasks implements CommandHand
     const action = helpers.commandActionBuilder(
       [
         this.tasks.initialize(argv, addConfigBuilder.bind(this), lease),
+        RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
         this.tasks.identifyExistingNodes(),
         this.tasks.loadContextData(argv, NodeCommandHandlers.ADD_CONTEXT_FILE, helpers.addLoadContextParser),
         ...this.addExecuteTasks(argv),
@@ -549,7 +585,11 @@ export class NodeCommandHandlers extends NodeCommandTasks implements CommandHand
   async logs(argv: any) {
     argv = helpers.addFlagsToArgv(argv, NodeFlags.LOGS_FLAGS);
     const action = helpers.commandActionBuilder(
-      [this.tasks.initialize(argv, logsConfigBuilder.bind(this), null), this.tasks.getNodeLogsAndConfigs()],
+      [
+        this.tasks.initialize(argv, logsConfigBuilder.bind(this), null),
+        RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
+        this.tasks.getNodeLogsAndConfigs(),
+      ],
       {
         concurrent: false,
         rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION,
@@ -587,6 +627,10 @@ export class NodeCommandHandlers extends NodeCommandTasks implements CommandHand
     const action = helpers.commandActionBuilder(
       [
         this.tasks.initialize(argv, refreshConfigBuilder.bind(this), lease),
+        RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
+        RemoteConfigTasks.validateAllNodeStates.bind(this)({
+          acceptedStates: [ConsensusNodeStates.STARTED, ConsensusNodeStates.SETUP, ConsensusNodeStates.INITIALIZED],
+        }),
         this.tasks.identifyNetworkPods(),
         this.tasks.dumpNetworkNodesSaveState(),
         this.tasks.fetchPlatformSoftware('nodeAliases'),
@@ -613,6 +657,7 @@ export class NodeCommandHandlers extends NodeCommandTasks implements CommandHand
     const action = helpers.commandActionBuilder(
       [
         this.tasks.initialize(argv, keysConfigBuilder.bind(this), null),
+        RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
         this.tasks.generateGossipKeys(),
         this.tasks.generateGrpcTlsKeys(),
         this.tasks.finalize(),
@@ -637,8 +682,13 @@ export class NodeCommandHandlers extends NodeCommandTasks implements CommandHand
     const action = helpers.commandActionBuilder(
       [
         this.tasks.initialize(argv, stopConfigBuilder.bind(this), lease),
+        RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
+        RemoteConfigTasks.validateAllNodeStates.bind(this)({
+          acceptedStates: [ConsensusNodeStates.STARTED, ConsensusNodeStates.SETUP],
+        }),
         this.tasks.identifyNetworkPods(),
         this.tasks.stopNodes(),
+        RemoteConfigTasks.changeAllNodeStates.bind(this)(ConsensusNodeStates.INITIALIZED),
       ],
       {
         concurrent: false,
@@ -660,12 +710,15 @@ export class NodeCommandHandlers extends NodeCommandTasks implements CommandHand
     const action = helpers.commandActionBuilder(
       [
         this.tasks.initialize(argv, startConfigBuilder.bind(this), lease),
+        RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
+        RemoteConfigTasks.validateAllNodeStates.bind(this)({acceptedStates: [ConsensusNodeStates.SETUP]}),
         this.tasks.identifyExistingNodes(),
         this.tasks.uploadStateFiles((ctx: any) => ctx.config.stateFile.length === 0),
         this.tasks.startNodes('nodeAliases'),
         this.tasks.enablePortForwarding(),
         this.tasks.checkAllNodesAreActive('nodeAliases'),
         this.tasks.checkNodeProxiesAreActive(),
+        RemoteConfigTasks.changeAllNodeStates.bind(this)(ConsensusNodeStates.STARTED),
         this.tasks.addNodeStakes(),
       ],
       {
@@ -688,9 +741,14 @@ export class NodeCommandHandlers extends NodeCommandTasks implements CommandHand
     const action = helpers.commandActionBuilder(
       [
         this.tasks.initialize(argv, setupConfigBuilder.bind(this), lease),
+        RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
+        RemoteConfigTasks.validateAllNodeStates.bind(this)({
+          acceptedStates: [ConsensusNodeStates.INITIALIZED],
+        }),
         this.tasks.identifyNetworkPods(),
         this.tasks.fetchPlatformSoftware('nodeAliases'),
         this.tasks.setupNetworkNodes('nodeAliases'),
+        RemoteConfigTasks.changeAllNodeStates.bind(this)(ConsensusNodeStates.SETUP),
       ],
       {
         concurrent: false,

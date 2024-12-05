@@ -20,10 +20,11 @@ import * as helpers from '../core/helpers.js';
 import type {ProfileManager, AccountManager} from '../core/index.js';
 import {constants} from '../core/index.js';
 import {BaseCommand} from './base.js';
-import * as flags from './flags.js';
-import * as prompts from './prompts.js';
+import {flags} from './index.js';
 import {getNodeAccountMap} from '../core/helpers.js';
 import {type NodeAliases} from '../types/aliases.js';
+import {RemoteConfigTasks} from '../core/config/remote/remote_config_tasks.js';
+import {CommandBuilder, type NodeAliases} from '../types/aliases.js';
 import {ListrLease} from '../core/lease/listr_lease.js';
 import {autoInjectable} from "tsyringe-neo";
 
@@ -194,7 +195,7 @@ export class RelayCommand extends BaseCommand {
 
             self.configManager.update(argv);
 
-            await prompts.execute(task, self.configManager, RelayCommand.DEPLOY_FLAGS_LIST);
+            await flags.executePrompt(task, self.configManager, RelayCommand.DEPLOY_FLAGS_LIST);
 
             // prompt if inputs are empty and set it in the context
             ctx.config = this.getConfig(RelayCommand.DEPLOY_CONFIGS_NAME, RelayCommand.DEPLOY_FLAGS_LIST, [
@@ -213,6 +214,7 @@ export class RelayCommand extends BaseCommand {
             return ListrLease.newAcquireLeaseTask(lease, task);
           },
         },
+        RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
         {
           title: 'Prepare chart values',
           task: async ctx => {
@@ -275,6 +277,7 @@ export class RelayCommand extends BaseCommand {
             }
           },
         },
+        RemoteConfigTasks.addRelayComponent.bind(this)(),
       ],
       {
         concurrent: false,
@@ -318,7 +321,7 @@ export class RelayCommand extends BaseCommand {
             self.configManager.setFlag(flags.nodeAliasesUnparsed, '');
 
             self.configManager.update(argv);
-            await prompts.execute(task, self.configManager, RelayCommand.DESTROY_FLAGS_LIST);
+            await flags.executePrompt(task, self.configManager, RelayCommand.DESTROY_FLAGS_LIST);
 
             // prompt if inputs are empty and set it in the context
             ctx.config = {
@@ -340,6 +343,7 @@ export class RelayCommand extends BaseCommand {
             return ListrLease.newAcquireLeaseTask(lease, task);
           },
         },
+        RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
         {
           title: 'Destroy JSON RPC Relay',
           task: async ctx => {
@@ -354,6 +358,7 @@ export class RelayCommand extends BaseCommand {
           },
           skip: ctx => !ctx.config.isChartInstalled,
         },
+        RemoteConfigTasks.removeRelayComponent.bind(this)(),
       ],
       {
         concurrent: false,
@@ -372,7 +377,7 @@ export class RelayCommand extends BaseCommand {
     return true;
   }
 
-  getCommandDefinition(): {command: string; desc: string; builder: Function} {
+  getCommandDefinition(): {command: string; desc: string; builder: CommandBuilder} {
     const self = this;
     return {
       command: 'relay',

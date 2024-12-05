@@ -37,7 +37,7 @@ export class ContextCommandHandlers extends ContextCommandTasks implements Comma
     const action = helpers.commandActionBuilder(
       [
         this.tasks.initialize(argv),
-        this.getLocalConfig().promptLocalConfigTask(this.getK8(), argv),
+        this.getLocalConfig().promptLocalConfigTask(),
         this.tasks.updateLocalConfig(argv),
       ],
       {

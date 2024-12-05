@@ -303,7 +303,7 @@ export class Lease {
 
       if (e.meta.statusCode !== 404) {
         throw new LeaseAcquisitionError(
-          'failed to read existing leases, unexpected server response of' + `'${e.meta.statusCode}' received`,
+          'failed to read existing leases, unexpected server response of ' + `'${e.meta.statusCode}' received`,
           e,
         );
       }

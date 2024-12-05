@@ -42,7 +42,7 @@ export function main(argv: any) {
   }
 
   try {
-    const processArguments = (argv: any, yargs: any) => {
+    const processArguments = (argv: any, yargs: any): any => {
       // set cluster and namespace in the global configManager from kubernetes context
       // so that we don't need to prompt the user
       const k8 = container.resolve<K8>('k8');

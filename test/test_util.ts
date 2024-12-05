@@ -45,6 +45,7 @@ import {
   Zippy,
   AccountManager,
   CertificateManager,
+  RemoteConfigManager,
   LocalConfig,
 } from '../src/core/index.js';
 import {AccountBalanceQuery, AccountCreateTransaction, Hbar, HbarUnit, PrivateKey} from '@hashgraph/sdk';
@@ -106,6 +107,7 @@ interface TestOpts {
   profileManager: ProfileManager;
   leaseManager: LeaseManager;
   certificateManager: CertificateManager;
+  remoteConfigManager: RemoteConfigManager;
   localConfig: LocalConfig;
 }
 
@@ -153,7 +155,8 @@ export function bootstrapTestVariables(
   const profileManager = new ProfileManager(testLogger, configManager);
   const leaseManager = new LeaseManager(k8, configManager, testLogger, new IntervalLeaseRenewalService());
   const certificateManager = new CertificateManager(k8, testLogger, configManager);
-  const localConfig = new LocalConfig(path.join(BASE_TEST_DIR, 'local-config.yaml'), testLogger);
+  const localConfig = new LocalConfig(path.join(BASE_TEST_DIR, 'local-config.yaml'), testLogger, configManager);
+  const remoteConfigManager = new RemoteConfigManager(k8, testLogger, localConfig, configManager);
 
   const opts: TestOpts = {
     logger: testLogger,
@@ -171,6 +174,7 @@ export function bootstrapTestVariables(
     leaseManager,
     certificateManager,
     localConfig,
+    remoteConfigManager,
   };
 
   const initCmd = initCmdArg || new InitCommand();
@@ -454,13 +458,13 @@ export const testLocalConfigData = {
   userEmailAddress: 'john.doe@example.com',
   deployments: {
     deployment: {
-      clusterAliases: ['cluster-1'],
+      clusters: ['cluster-1'],
     },
     'deployment-2': {
-      clusterAliases: ['cluster-2'],
+      clusters: ['cluster-2'],
     },
     'deployment-3': {
-      clusterAliases: ['cluster-3'],
+      clusters: ['cluster-3'],
     },
   },
   currentDeploymentName: 'deployment',

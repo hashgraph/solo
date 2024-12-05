@@ -27,9 +27,10 @@ import {
   constants,
   K8,
   LocalConfig,
+  RemoteConfigManager,
 } from '../../../src/core/index.js';
 import {BaseCommand} from '../../../src/commands/base.js';
-import * as flags from '../../../src/commands/flags.js';
+import {flags} from '../../../src/commands/index.js';
 import sinon from 'sinon';
 import path from 'path';
 import {BASE_TEST_DIR} from '../../test_util.js';
@@ -47,7 +48,8 @@ describe('BaseCommand', () => {
   const helmDepManager = new HelmDependencyManager(downloader, zippy, testLogger);
   const depManagerMap = new Map().set(constants.HELM, helmDepManager);
   const depManager = new DependencyManager(testLogger, depManagerMap);
-  const localConfig = new LocalConfig(path.join(BASE_TEST_DIR, 'local-config.yaml'), testLogger);
+  const localConfig = new LocalConfig(path.join(BASE_TEST_DIR, 'local-config.yaml'), testLogger, configManager);
+  const remoteConfigManager = new RemoteConfigManager({} as any, testLogger, localConfig, configManager);
 
   let sandbox = sinon.createSandbox();
 
@@ -67,7 +69,8 @@ describe('BaseCommand', () => {
           configManager,
           depManager,
           undefined,
-          localConfig
+          localConfig,
+          remoteConfigManager,
       );
     });
 

@@ -21,14 +21,11 @@ import {BaseCommand} from './base.js';
 import {SoloError, IllegalArgumentError} from '../core/errors.js';
 import {flags} from './index.js';
 import {Listr} from 'listr2';
-import * as prompts from './prompts.js';
-import {
-    constants,
-    type AccountManager
-} from '../core/index.js';
+import {constants, type AccountManager} from '../core/index.js';
 import {type AccountId, AccountInfo, HbarUnit, PrivateKey} from '@hashgraph/sdk';
 import {FREEZE_ADMIN_ACCOUNT} from '../core/constants.js';
 import {ListrLease} from '../core/lease/listr_lease.js';
+import {CommandBuilder} from '../types/aliases.js';
 
 @autoInjectable()
 export class AccountCommand extends BaseCommand {
@@ -157,7 +154,7 @@ export class AccountCommand extends BaseCommand {
           title: 'Initialize',
           task: async (ctx, task) => {
             self.configManager.update(argv);
-            await prompts.execute(task, self.configManager, [flags.namespace]);
+            await flags.executePrompt(task, self.configManager, [flags.namespace]);
 
             const config = {
               namespace: self.configManager.getFlag<string>(flags.namespace) as string,
@@ -308,7 +305,7 @@ export class AccountCommand extends BaseCommand {
           title: 'Initialize',
           task: async (ctx, task) => {
             self.configManager.update(argv);
-            await prompts.execute(task, self.configManager, [flags.namespace]);
+            await flags.executePrompt(task, self.configManager, [flags.namespace]);
 
             const config = {
               amount: self.configManager.getFlag<number>(flags.amount) as number,
@@ -384,7 +381,7 @@ export class AccountCommand extends BaseCommand {
           title: 'Initialize',
           task: async (ctx, task) => {
             self.configManager.update(argv);
-            await prompts.execute(task, self.configManager, [flags.accountId, flags.namespace]);
+            await flags.executePrompt(task, self.configManager, [flags.accountId, flags.namespace]);
 
             const config = {
               accountId: self.configManager.getFlag<string>(flags.accountId) as string,
@@ -467,7 +464,7 @@ export class AccountCommand extends BaseCommand {
           title: 'Initialize',
           task: async (ctx, task) => {
             self.configManager.update(argv);
-            await prompts.execute(task, self.configManager, [flags.accountId, flags.namespace]);
+            await flags.executePrompt(task, self.configManager, [flags.accountId, flags.namespace]);
 
             const config = {
               accountId: self.configManager.getFlag<string>(flags.accountId) as string,
@@ -517,7 +514,7 @@ export class AccountCommand extends BaseCommand {
   }
 
   /** Return Yargs command definition for 'node' command */
-  getCommandDefinition(): {command: string; desc: string; builder: Function} {
+  getCommandDefinition(): {command: string; desc: string; builder: CommandBuilder} {
     const self = this;
     return {
       command: 'account',

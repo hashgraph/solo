@@ -23,6 +23,17 @@ import {SoloLogger} from '../core/logging.js';
 import type {ChartManager, ConfigManager, Helm, K8, DependencyManager, LeaseManager} from '../core/index.js';
 import type {CommandFlag} from '../types/index.js';
 import {type LocalConfig} from '../core/config/local_config.js';
+import type {
+  ChartManager,
+  ConfigManager,
+  Helm,
+  K8,
+  DependencyManager,
+  LeaseManager,
+  RemoteConfigManager,
+  LocalConfig,
+} from '../core/index.js';
+import type {CommandFlag, Opts} from '../types/index.js';
 
 @autoInjectable()
 export class BaseCommand extends ShellRunner {
@@ -36,7 +47,8 @@ export class BaseCommand extends ShellRunner {
     protected readonly configManager?: ConfigManager,
     protected readonly depManager?: DependencyManager,
     protected readonly leaseManager?: LeaseManager,
-    protected readonly localConfig?: LocalConfig
+    protected readonly localConfig?: LocalConfig,
+    protected readonly remoteConfigManager?: RemoteConfigManager
   ) { super(); }
 
   async prepareChartPath(chartDir: string, chartRepo: string, chartReleaseName: string) {

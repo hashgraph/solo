@@ -30,7 +30,7 @@ import * as stream from 'node:stream';
 
 import {type SoloLogger} from './logging.js';
 import type * as WebSocket from 'ws';
-import type {PodName} from '../types/aliases.js';
+import {PodName, TarCreateFilter} from '../types/aliases.js';
 import type {ExtendedNetServer, LocalContextObject} from '../types/index.js';
 import type * as http from 'node:http';
 import {MINUTES} from './constants.js';
@@ -571,7 +571,7 @@ export class K8 {
     containerName: string,
     srcPath: string,
     destDir: string,
-    filter: Function | undefined = undefined,
+    filter: TarCreateFilter | undefined = undefined,
   ) {
     const self = this;
     const namespace = this._getNamespace();
@@ -598,7 +598,6 @@ export class K8 {
       // Create a temporary tar file for the source file
       const tmpFile = self._tempFileFor(srcFile);
 
-      // @ts-ignore
       await tar.c({file: tmpFile, cwd: srcDir, filter}, [srcFile]);
 
       return new Promise<boolean>((resolve, reject) => {
@@ -897,7 +896,6 @@ export class K8 {
    * This simple server just forwards traffic from itself to a service running in kubernetes
    * -> localhost:localPort -> port-forward-tunnel -> kubernetes-pod:targetPort
    */
-
   async portForward(podName: PodName, localPort: number, podPort: number) {
     const ns = this._getNamespace();
     const forwarder = new k8s.PortForward(this.kubeConfig, false);
@@ -1204,6 +1202,20 @@ export class K8 {
     return resp.response.statusCode === 200.0;
   }
 
+  // --------------------------------------- Utility Methods --------------------------------------- //
+
+  public async testClusterConnection(context: string): Promise<boolean> {
+    this.kubeConfig.setCurrentContext(context);
+
+    return await this.kubeConfig
+      .makeApiClient(k8s.CoreV1Api)
+      .listNamespace()
+      .then(() => true)
+      .catch(() => false);
+  }
+
+  // --------------------------------------- Secret --------------------------------------- //
+
   /**
    * retrieve the secret of the given namespace and label selector, if there is more than one, it returns the first
    * @param namespace - the namespace of the secret to search for
@@ -1297,6 +1309,98 @@ export class K8 {
     return resp.response.statusCode === 200.0;
   }
 
+  /* ------------- ConfigMap ------------- */
+
+  /**
+   * @param name - name of the configmap
+   * @returns the configmap if found
+   * @throws SoloError - if the response if not found or the response is not OK
+   */
+  public async getNamespacedConfigMap(name: string): Promise<k8s.V1ConfigMap> {
+    const {response, body} = await this.kubeClient.readNamespacedConfigMap(name, this._getNamespace()).catch(e => e);
+
+    this.handleKubernetesClientError(response, body, 'Failed to get namespaced configmap');
+
+    return body as k8s.V1ConfigMap;
+  }
+
+  /**
+   * @param name - for the config name
+   * @param labels - for the config metadata
+   * @param data - to contain in the config
+   */
+  public async createNamespacedConfigMap(
+    name: string,
+    labels: Record<string, string>,
+    data: Record<string, string>,
+  ): Promise<boolean> {
+    const namespace = this._getNamespace();
+
+    const configMap = new k8s.V1ConfigMap();
+    configMap.data = data;
+
+    const metadata = new k8s.V1ObjectMeta();
+    metadata.name = name;
+    metadata.namespace = namespace;
+    metadata.labels = labels;
+    configMap.metadata = metadata;
+    try {
+      const resp = await this.kubeClient.createNamespacedConfigMap(namespace, configMap);
+
+      return resp.response.statusCode === 201;
+    } catch (e: Error | any) {
+      throw new SoloError(
+        `failed to create configmap ${name} in namespace ${namespace}: ${e.message}, ${e?.body?.message}`,
+        e,
+      );
+    }
+  }
+
+  /**
+   * @param name - for the config name
+   * @param labels - for the config metadata
+   * @param data - to contain in the config
+   */
+  public async replaceNamespacedConfigMap(
+    name: string,
+    labels: Record<string, string>,
+    data: Record<string, string>,
+  ): Promise<boolean> {
+    const namespace = this._getNamespace();
+
+    const configMap = new k8s.V1ConfigMap();
+    configMap.data = data;
+
+    const metadata = new k8s.V1ObjectMeta();
+    metadata.name = name;
+    metadata.namespace = namespace;
+    metadata.labels = labels;
+    configMap.metadata = metadata;
+    try {
+      const resp = await this.kubeClient.replaceNamespacedConfigMap(name, namespace, configMap);
+
+      return resp.response.statusCode === 201;
+    } catch (e: Error | any) {
+      throw new SoloError(
+        `failed to create configmap ${name} in namespace ${namespace}: ${e.message}, ${e?.body?.message}`,
+        e,
+      );
+    }
+  }
+
+  public async deleteNamespacedConfigMap(name: string, namespace: string): Promise<boolean> {
+    try {
+      const resp = await this.kubeClient.deleteNamespacedConfigMap(name, namespace);
+
+      return resp.response.statusCode === 201;
+    } catch (e: Error | any) {
+      throw new SoloError(
+        `failed to create configmap ${name} in namespace ${namespace}: ${e.message}, ${e?.body?.message}`,
+        e,
+      );
+    }
+  }
+
   // --------------------------------------- LEASES --------------------------------------- //
   async createNamespacedLease(namespace: string, leaseName: string, holderName: string, durationSeconds = 20) {
     const lease = new k8s.V1Lease();
@@ -1314,7 +1418,7 @@ export class K8 {
 
     const {response, body} = await this.coordinationApiClient.createNamespacedLease(namespace, lease).catch(e => e);
 
-    this._handleKubernetesClientError(response, body, 'Failed to create namespaced lease');
+    this.handleKubernetesClientError(response, body, 'Failed to create namespaced lease');
 
     return body as k8s.V1Lease;
   }
@@ -1322,7 +1426,7 @@ export class K8 {
   async readNamespacedLease(leaseName: string, namespace: string) {
     const {response, body} = await this.coordinationApiClient.readNamespacedLease(leaseName, namespace).catch(e => e);
 
-    this._handleKubernetesClientError(response, body, 'Failed to read namespaced lease');
+    this.handleKubernetesClientError(response, body, 'Failed to read namespaced lease');
 
     return body as k8s.V1Lease;
   }
@@ -1334,7 +1438,7 @@ export class K8 {
       .replaceNamespacedLease(leaseName, namespace, lease)
       .catch(e => e);
 
-    this._handleKubernetesClientError(response, body, 'Failed to renew namespaced lease');
+    this.handleKubernetesClientError(response, body, 'Failed to renew namespaced lease');
 
     return body as k8s.V1Lease;
   }
@@ -1348,7 +1452,7 @@ export class K8 {
       .replaceNamespacedLease(lease.metadata.name, lease.metadata.namespace, lease)
       .catch(e => e);
 
-    this._handleKubernetesClientError(response, body, 'Failed to transfer namespaced lease');
+    this.handleKubernetesClientError(response, body, 'Failed to transfer namespaced lease');
 
     return body as k8s.V1Lease;
   }
@@ -1356,16 +1460,25 @@ export class K8 {
   async deleteNamespacedLease(name: string, namespace: string) {
     const {response, body} = await this.coordinationApiClient.deleteNamespacedLease(name, namespace).catch(e => e);
 
-    this._handleKubernetesClientError(response, body, 'Failed to delete namespaced lease');
+    this.handleKubernetesClientError(response, body, 'Failed to delete namespaced lease');
 
     return body as k8s.V1Status;
   }
 
-  private _handleKubernetesClientError(response: http.IncomingMessage, error: Error | any, errorMessage: string) {
-    const statusCode = +response.statusCode;
+  /* ------------- Utilities ------------- */
+
+  /**
+   * @param response - response object from the kubeclient call
+   * @param error - body of the response becomes the error if the status is not OK
+   * @param errorMessage - the error message to be passed in case it fails
+   *
+   * @throws SoloError - if the status code is not OK
+   */
+  private handleKubernetesClientError(response: http.IncomingMessage, error: Error | any, errorMessage: string): void {
+    const statusCode = +response?.statusCode || 500;
 
     if (statusCode <= 202) return;
-    errorMessage += `, statusCode: ${response.statusCode}`;
+    errorMessage += `, statusCode: ${statusCode}`;
     this.logger.error(errorMessage, error);
 
     throw new SoloError(errorMessage, errorMessage, {statusCode: statusCode});

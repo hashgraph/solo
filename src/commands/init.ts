@@ -21,7 +21,7 @@ import * as core from '../core/index.js';
 import {constants} from '../core/index.js';
 import * as fs from 'fs';
 import {SoloError} from '../core/errors.js';
-import * as flags from './flags.js';
+import {flags} from './index.js';
 import chalk from 'chalk';
 
 /**
