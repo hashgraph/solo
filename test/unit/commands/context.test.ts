@@ -37,7 +37,7 @@ import {getTestCacheDir, testLocalConfigData} from '../../test_util.js';
 import {BaseCommand} from '../../../src/commands/base.js';
 import {Flags as flags} from '../../../src/commands/flags.js';
 import {SoloLogger} from '../../../src/core/logging.js';
-import {type Opts} from '../../../src/types/index.js';
+import {type Opts} from '../../../src/types/command_types.js';
 import fs from 'fs';
 import {stringify} from 'yaml';
 import {type Cluster, KubeConfig} from '@kubernetes/client-node';

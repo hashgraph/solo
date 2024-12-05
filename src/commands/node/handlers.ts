@@ -46,7 +46,7 @@ import type {NodeCommand} from './index.js';
 import type {NodeCommandTasks} from './tasks.js';
 import {type Lease} from '../../core/lease/lease.js';
 import {NodeSubcommandType} from '../../core/enumerations.js';
-import {type CommandHandlers} from '../../types/index.js';
+import {type CommandHandlers} from '../base.js';
 import {NodeHelper} from './helper.js';
 
 export class NodeCommandHandlers implements CommandHandlers {

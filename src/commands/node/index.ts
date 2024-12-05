@@ -22,7 +22,7 @@ import {BaseCommand} from './../base.js';
 import {NodeCommandTasks} from './tasks.js';
 import * as NodeFlags from './flags.js';
 import {NodeCommandHandlers} from './handlers.js';
-import type {Opts} from '../../types/index.js';
+import {type Opts} from '../../types/command_types.js';
 
 /**
  * Defines the core functionalities of 'node' command

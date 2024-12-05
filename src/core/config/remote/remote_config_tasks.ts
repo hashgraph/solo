@@ -14,13 +14,10 @@
  * limitations under the License.
  *
  */
-import {
-  RelayComponent,
-  HaProxyComponent,
-  EnvoyProxyComponent,
-  MirrorNodeComponent,
-  ConsensusNodeComponent,
-} from './components/index.js';
+import {RelayComponent} from './components/relay_component.js';
+import {ConsensusNodeComponent} from './components/consensus_node_component.js';
+import {EnvoyProxyComponent} from './components/envoy_proxy_component.js';
+import {HaProxyComponent} from './components/ha_proxy_component.js';
 import {ComponentType, ConsensusNodeStates} from './enumerations.js';
 import chalk from 'chalk';
 import {SoloError} from '../../errors.js';
@@ -31,7 +28,6 @@ import type {BaseCommand} from '../../../commands/base.js';
 import type {RelayCommand} from '../../../commands/relay.js';
 import type {NetworkCommand} from '../../../commands/network.js';
 import type {DeploymentCommand} from '../../../commands/deployment.js';
-import type {MirrorNodeCommand} from '../../../commands/mirror_node.js';
 import type {NodeCommandHandlers} from '../../../commands/node/handlers.js';
 import type {Optional} from '../../../types/index.js';
 import {type ComponentsDataWrapper} from './components_data_wrapper.js';
@@ -84,44 +80,6 @@ export class RemoteConfigTasks {
       task: async (): Promise<void> => {
         await this.remoteConfigManager.modify(async remoteConfig => {
           remoteConfig.components.remove('relay', ComponentType.Relay);
-        });
-      },
-    };
-  }
-
-  /** Adds the mirror node and mirror node explorer components to remote config. */
-  public static addMirrorNodeAndMirrorNodeToExplorer(this: MirrorNodeCommand): ListrTask<any, any, any> {
-    return {
-      title: 'Add mirror node and mirror node explorer to remote config',
-      skip: (): boolean => !this.remoteConfigManager.isLoaded(),
-      task: async (ctx): Promise<void> => {
-        await this.remoteConfigManager.modify(async remoteConfig => {
-          const {
-            config: {namespace},
-          } = ctx;
-          const cluster = this.remoteConfigManager.currentCluster;
-
-          remoteConfig.components.add('mirrorNode', new MirrorNodeComponent('mirrorNode', cluster, namespace));
-
-          remoteConfig.components.add(
-            'mirrorNodeExplorer',
-            new MirrorNodeComponent('mirrorNodeExplorer', cluster, namespace),
-          );
-        });
-      },
-    };
-  }
-
-  /** Removes the mirror node and mirror node explorer components from remote config. */
-  public static removeMirrorNodeAndMirrorNodeToExplorer(this: MirrorNodeCommand): ListrTask<any, any, any> {
-    return {
-      title: 'Remove mirror node and mirror node explorer from remote config',
-      skip: (): boolean => !this.remoteConfigManager.isLoaded(),
-      task: async (): Promise<void> => {
-        await this.remoteConfigManager.modify(async remoteConfig => {
-          remoteConfig.components.remove('mirrorNode', ComponentType.MirrorNode);
-
-          remoteConfig.components.remove('mirrorNodeExplorer', ComponentType.MirrorNode);
         });
       },
     };

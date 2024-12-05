@@ -32,7 +32,7 @@ import {type PlatformInstaller} from '../core/platform_installer.js';
 import {type ProfileManager} from '../core/profile_manager.js';
 import {type CertificateManager} from '../core/certificate_manager.js';
 import {type CommandBuilder, type NodeAlias, type NodeAliases} from '../types/aliases.js';
-import type {Opts} from '../types/index.js';
+import {type Opts} from '../types/command_types.js';
 import {ListrLease} from '../core/lease/listr_lease.js';
 
 export interface NetworkDeployConfigClass {

@@ -18,7 +18,7 @@
 import * as ContextFlags from './flags.js';
 import {YargsCommand} from '../../core/yargs_command.js';
 import {BaseCommand} from './../base.js';
-import type {Opts} from '../../types/index.js';
+import {type Opts} from '../../types/command_types.js';
 import {ContextCommandTasks} from './tasks.js';
 import {ContextCommandHandlers} from './handlers.js';
 

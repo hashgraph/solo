@@ -42,7 +42,7 @@ import * as logging from './core/logging.js';
 import * as helpers from './core/helpers.js';
 import {K8} from './core/k8.js';
 import {CustomProcessOutput} from './core/process_output.js';
-import {type Opts} from './types/index.js';
+import {type Opts} from './types/command_types.js';
 import {IntervalLeaseRenewalService, type LeaseRenewalService} from './core/lease/lease_renewal.js';
 
 export function main(argv: any) {

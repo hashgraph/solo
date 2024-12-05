@@ -26,9 +26,14 @@ import {type K8} from '../core/k8.js';
 import {type ChartManager} from '../core/chart_manager.js';
 import {type ConfigManager} from '../core/config_manager.js';
 import {type DependencyManager} from '../core/dependency_managers/index.js';
-import type {CommandFlag, CommandHandlers, Opts} from '../types/index.js';
+import {type Opts} from '../types/command_types.js';
+import {type CommandFlag} from '../types/flag_types.js';
 import type {Lease} from '../core/lease/lease.js';
 import {Listr} from 'listr2';
+
+export interface CommandHandlers {
+  parent: BaseCommand;
+}
 
 export class BaseCommand extends ShellRunner {
   protected readonly helm: Helm;

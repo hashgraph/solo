@@ -18,14 +18,12 @@ import {expect} from 'chai';
 import {describe, it} from 'mocha';
 
 import {ComponentsDataWrapper} from '../../../../src/core/config/remote/components_data_wrapper.js';
-import {
-  ConsensusNodeComponent,
-  EnvoyProxyComponent,
-  HaProxyComponent,
-  MirrorNodeComponent,
-  MirrorNodeExplorerComponent,
-  RelayComponent,
-} from '../../../../src/core/config/remote/components/index.js';
+import {HaProxyComponent} from '../../../../src/core/config/remote/components/ha_proxy_component.js';
+import {MirrorNodeComponent} from '../../../../src/core/config/remote/components/mirror_node_component.js';
+import {EnvoyProxyComponent} from '../../../../src/core/config/remote/components/envoy_proxy_component.js';
+import {ConsensusNodeComponent} from '../../../../src/core/config/remote/components/consensus_node_component.js';
+import {MirrorNodeExplorerComponent} from '../../../../src/core/config/remote/components/mirror_node_explorer_component.js';
+import {RelayComponent} from '../../../../src/core/config/remote/components/relay_component.js';
 import {ComponentType, ConsensusNodeStates} from '../../../../src/core/config/remote/enumerations.js';
 import {SoloError} from '../../../../src/core/errors.js';
 import type {NodeAliases} from '../../../../src/types/aliases.js';

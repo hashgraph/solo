@@ -24,7 +24,8 @@ import chalk from 'chalk';
 import {RemoteConfigTasks} from '../core/config/remote/remote_config_tasks.js';
 import {ListrLease} from '../core/lease/listr_lease.js';
 import type {Namespace} from '../core/config/remote/types.js';
-import type {CommandFlag, ContextClusterStructure} from '../types/index.js';
+import {type ContextClusterStructure} from '../types/config_types.js';
+import {type CommandFlag} from '../types/flag_types.js';
 import {type CommandBuilder} from '../types/aliases.js';
 
 export class DeploymentCommand extends BaseCommand {
