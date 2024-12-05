@@ -12,7 +12,6 @@ import {
     constants,
     ProfileManager, PackageDownloader, PlatformInstaller, KeyManager, AccountManager, CertificateManager, Zippy
 } from '../core/index.js';
-import {getPromptMap} from "../commands/prompts.js";
 import type {LeaseRenewalService} from "./lease/lease_renewal.js";
 import {IntervalLeaseRenewalService} from "./lease/lease_renewal.js";
 import {HelmDependencyManager} from "./dependency_managers/index.js";
@@ -48,7 +47,6 @@ container.register<AccountManager>('accountManager', {useClass: AccountManager})
 container.register<CertificateManager>('certificateManager', {useClass: CertificateManager});
 
 container.register('systemAccounts', {useValue: constants.SYSTEM_ACCOUNTS});
-container.register('promptMap', {useValue: getPromptMap()});
 container.register('cacheDir', {useValue: constants.SOLO_VALUES_DIR});
 container.register('filePath', {useValue: path.join(constants.SOLO_CACHE_DIR, constants.DEFAULT_LOCAL_CONFIG_FILE)});
 

@@ -25,9 +25,8 @@ import {autoInjectable} from "tsyringe-neo";
 export class ContextCommandTasks extends BaseCommand implements CommandTasks {
   public tasks: any
 
-  constructor(private readonly promptMap?: Map<string, Function>) {
+  constructor() {
     super()
-    this.promptMap = promptMap;
     this.tasks = [
         this.updateLocalConfig,
         this.initialize

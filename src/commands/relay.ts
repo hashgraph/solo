@@ -22,7 +22,6 @@ import {constants} from '../core/index.js';
 import {BaseCommand} from './base.js';
 import {flags} from './index.js';
 import {getNodeAccountMap} from '../core/helpers.js';
-import {type NodeAliases} from '../types/aliases.js';
 import {RemoteConfigTasks} from '../core/config/remote/remote_config_tasks.js';
 import {CommandBuilder, type NodeAliases} from '../types/aliases.js';
 import {ListrLease} from '../core/lease/listr_lease.js';

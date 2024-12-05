@@ -129,10 +129,9 @@ describe('ContextCommandTasks unit tests', () => {
         });
       });
       loggerStub = sandbox.createStubInstance(SoloLogger);
-      promptMap = getPromptMap();
       await fs.promises.writeFile(filePath, stringify(testLocalConfigData));
       // command = new BaseCommand(getBaseCommandOpts(sandbox));
-      tasks = new ContextCommandTasks(promptMap);
+      tasks = new ContextCommandTasks();
     });
 
     it('should update local configuration with provided values', async () => {

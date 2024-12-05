@@ -31,35 +31,15 @@ import {
   stopConfigBuilder,
   updateConfigBuilder,
 } from './configs.js';
-import {
-  type ConfigManager,
-  constants,
-  type K8,
-  type PlatformInstaller,
-  type AccountManager,
-  type LeaseManager,
-  type RemoteConfigManager,
-} from '../../core/index.js';
-import {IllegalArgumentError} from '../../core/errors.js';
+import {constants} from '../../core/index.js';
+
 import {ConsensusNodeStates} from '../../core/config/remote/enumerations.js';
 import {RemoteConfigTasks} from '../../core/config/remote/remote_config_tasks.js';
-import type {SoloLogger} from '../../core/logging.js';
-import type {NodeCommand} from './index.js';
 import {NodeCommandTasks} from './tasks.js';
 import {type Lease} from '../../core/lease/lease.js';
 import {NodeSubcommandType} from '../../core/enumerations.js';
 import {type CommandHandlers} from '../../types/index.js';
 import {autoInjectable} from "tsyringe-neo";
-
-export class NodeCommandHandlers implements CommandHandlers {
-  private readonly accountManager: AccountManager;
-  private readonly configManager: ConfigManager;
-  private readonly platformInstaller: PlatformInstaller;
-  private readonly logger: SoloLogger;
-  private readonly k8: K8;
-  private readonly tasks: NodeCommandTasks;
-  private readonly leaseManager: LeaseManager;
-  public readonly remoteConfigManager: RemoteConfigManager;
 
 @autoInjectable()
 export class NodeCommandHandlers extends NodeCommandTasks implements CommandHandlers {

@@ -20,9 +20,6 @@ import {autoInjectable, inject} from 'tsyringe-neo';
 import {MissingArgumentError} from '../core/errors.js';
 import {ShellRunner} from '../core/shell_runner.js';
 import {SoloLogger} from '../core/logging.js';
-import type {ChartManager, ConfigManager, Helm, K8, DependencyManager, LeaseManager} from '../core/index.js';
-import type {CommandFlag} from '../types/index.js';
-import {type LocalConfig} from '../core/config/local_config.js';
 import type {
   ChartManager,
   ConfigManager,
@@ -33,7 +30,7 @@ import type {
   RemoteConfigManager,
   LocalConfig,
 } from '../core/index.js';
-import type {CommandFlag, Opts} from '../types/index.js';
+import type {CommandFlag} from '../types/index.js';
 
 @autoInjectable()
 export class BaseCommand extends ShellRunner {
