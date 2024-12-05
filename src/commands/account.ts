@@ -24,7 +24,7 @@ import {type AccountId, AccountInfo, HbarUnit, PrivateKey} from '@hashgraph/sdk'
 import {FREEZE_ADMIN_ACCOUNT} from '../core/constants.js';
 import {type Opts} from '../types/index.js';
 import {ListrLease} from '../core/lease/listr_lease.js';
-import {CommandBuilder} from '../types/aliases.js';
+import {type CommandBuilder} from '../types/aliases.js';
 
 export class AccountCommand extends BaseCommand {
   private readonly accountManager: AccountManager;

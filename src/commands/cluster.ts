@@ -23,7 +23,7 @@ import chalk from 'chalk';
 import {constants} from '../core/index.js';
 import path from 'path';
 import {ListrLease} from '../core/lease/listr_lease.js';
-import {CommandBuilder} from '../types/aliases.js';
+import {type CommandBuilder} from '../types/aliases.js';
 
 /**
  * Define the core functionalities of 'cluster' command

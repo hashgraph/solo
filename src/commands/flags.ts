@@ -19,7 +19,7 @@ import * as core from '../core/index.js';
 import * as version from '../../version.js';
 import path from 'path';
 import type {CommandFlag} from '../types/index.js';
-import {ListrTaskWrapper} from 'listr2';
+import {type ListrTaskWrapper} from 'listr2';
 import fs from 'fs';
 import {IllegalArgumentError, SoloError} from '../core/errors.js';
 import {ListrEnquirerPromptAdapter} from '@listr2/prompt-adapter-enquirer';
