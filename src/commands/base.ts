@@ -35,7 +35,7 @@ export interface CommandHandlers {
   parent: BaseCommand;
 }
 
-export class BaseCommand extends ShellRunner {
+export abstract class BaseCommand extends ShellRunner {
   protected readonly helm: Helm;
   protected readonly k8: K8;
   protected readonly chartManager: ChartManager;
@@ -184,6 +184,8 @@ export class BaseCommand extends ShellRunner {
     return this.localConfig;
   }
 
+  abstract close(): Promise<void>;
+
   commandActionBuilder(actionTasks: any, options: any, errorString: string, lease: Lease | null) {
     return async function (argv: any, commandDef: CommandHandlers) {
       const tasks = new Listr([...actionTasks], options);
@@ -196,11 +198,7 @@ export class BaseCommand extends ShellRunner {
       } finally {
         const promises = [];
 
-        // @ts-ignore
-        if (commandDef.close) {
-          // @ts-ignore
-          promises.push(commandDef.close());
-        }
+        promises.push(commandDef.parent.close());
 
         if (lease) promises.push(lease.release());
         await Promise.all(promises);

@@ -176,4 +176,9 @@ export class InitCommand extends BaseCommand {
       },
     };
   }
+
+  close(): Promise<void> {
+    // no-op
+    return Promise.resolve();
+  }
 }

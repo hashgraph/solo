@@ -757,4 +757,9 @@ export class NetworkCommand extends BaseCommand {
       },
     };
   }
+
+  close(): Promise<void> {
+    // no-op
+    return Promise.resolve();
+  }
 }

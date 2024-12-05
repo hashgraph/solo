@@ -626,4 +626,8 @@ export class AccountCommand extends BaseCommand {
       },
     };
   }
+
+  close(): Promise<void> {
+    return this.closeConnections();
+  }
 }
