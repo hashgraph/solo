@@ -2,9 +2,25 @@
 main:
   - name: Getting Started
     ref: "/User/README.md"
-  - name: How to use Hashgraph javascript SDK with Solo
+  - name: Solo with JS SDK
     ref: "/User/SDK.md"
-  - name: Development
+  - name: Step by Step Guide
+    ref: "/User/StepByStepGuide.md"
+  - name: Using the Task Tool
+    ref: "/User/TaskTool.md"
+  - name: Hedera Developer
+    ref: "HederaDeveloper.md"
+  - name: Platform Developer
+    ref: "PlatformDeveloper.md"
+  - name: Access Hedera Services
+    ref: "/User/AccessHederaServices.md"
+  - name: Debug Application with Solo
+    ref: "/User/DebugLog.md"
+  - name: Solo CLI manual
+    ref: "/User/SoloCLI.md"
+  - name: Solo with Mirror Node
+    ref: "/User/SoloWithMirrorNode.md"
+  - name: Solo Development
     ref: "/Developer/DEV.md"
   - name: Classes
     ref: "/solo/static/Classes/index.html"

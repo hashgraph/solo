@@ -1,4 +1,4 @@
-# Instructions for using Solo with Hedera JavaScript SDK
+# Using Solo with Hedera JavaScript SDK
 
 First, please follow solo repository README to install solo and Docker Desktop.
 You also need to install the Taskfile tool following the instructions here:
@@ -60,7 +60,7 @@ OPERATOR_KEY="302a300506032b65700321001d8978e647aca1195c54a4d3d5dc469b95666de14e
 HEDERA_NETWORK="local-node"
 ```
 
-Make sure to assign the value of accountId to OPERATOR\_ID and the value of privateKey to OPERATOR\_KEY.
+Make sure to assign the value of accountId to `OPERATOR\_ID` and the value of privateKey to `OPERATOR\_KEY`.
 
 Then try the following command to run the test
 
@@ -99,3 +99,10 @@ Finally, after done with using solo, using the following command to tear down th
 ```bash
 task clean
 ```
+
+Retrieving Logs
+You can find log for running solo command under the directory ~/.solo/logs/ 
+
+The file solo.log contains the logs for the solo command. 
+The file hashgraph-sdk.log contains the logs from Solo client when sending transactions to network nodes.
+
