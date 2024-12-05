@@ -18,21 +18,21 @@ import 'reflect-metadata';
 import {container} from 'tsyringe-neo';
 import {SoloLogger} from './logging.js';
 import {
-  Helm,
-  K8,
-  ChartManager,
-  ConfigManager,
-  DependencyManager,
-  LeaseManager,
-  LocalConfig,
-  constants,
-  ProfileManager,
-  PackageDownloader,
-  PlatformInstaller,
-  KeyManager,
-  AccountManager,
-  CertificateManager,
-  Zippy,
+    Helm,
+    K8,
+    ChartManager,
+    ConfigManager,
+    DependencyManager,
+    LeaseManager,
+    LocalConfig,
+    constants,
+    ProfileManager,
+    PackageDownloader,
+    PlatformInstaller,
+    KeyManager,
+    AccountManager,
+    CertificateManager,
+    Zippy, RemoteConfigManager,
 } from '../core/index.js';
 import type {LeaseRenewalService} from './lease/lease_renewal.js';
 import {IntervalLeaseRenewalService} from './lease/lease_renewal.js';
@@ -46,11 +46,6 @@ container.register<SoloLogger>('logger', {useClass: SoloLogger});
 container.register<PackageDownloader>('downloader', {useClass: PackageDownloader});
 container.register<Zippy>('zippy', {useClass: Zippy});
 container.register<HelmDependencyManager>('helmDepManager', {useClass: HelmDependencyManager});
-
-container.register('osPlatform', {useValue: os.platform()});
-
-const helmDepManager = container.resolve('helmDepManager');
-container.register('depManagerMap', {useValue: new Map().set(constants.HELM, helmDepManager)});
 container.register<DependencyManager>('dependencyManager', {useClass: DependencyManager});
 
 container.register<Helm>('helm', {useClass: Helm});
@@ -61,6 +56,7 @@ container.register<ConfigManager>('configManager', {useClass: ConfigManager});
 container.register<LeaseRenewalService>('leaseRenewalService', {useClass: IntervalLeaseRenewalService});
 container.register<LeaseManager>('leaseManager', {useClass: LeaseManager});
 container.register<LocalConfig>('localConfig', {useClass: LocalConfig});
+container.register<RemoteConfigManager>('remoteConfigManager', {useClass: RemoteConfigManager});
 container.register<ProfileManager>('profileManager', {useClass: ProfileManager});
 
 container.register<PlatformInstaller>('platformInstaller', {useClass: PlatformInstaller});

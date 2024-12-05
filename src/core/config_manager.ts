@@ -15,7 +15,7 @@
  *
  */
 import {SoloError, MissingArgumentError} from './errors.js';
-import {SoloLogger} from './logging.js';
+import type {SoloLogger} from './logging.js';
 import {flags} from '../commands/index.js';
 import * as paths from 'path';
 import * as helpers from './helpers.js';
@@ -34,9 +34,6 @@ export class ConfigManager {
   config!: Record<string, any>;
 
   constructor(private readonly logger?: SoloLogger) {
-    if (!logger || !(logger instanceof SoloLogger))
-      throw new MissingArgumentError('An instance of core/SoloLogger is required');
-
     this.reset();
   }
 

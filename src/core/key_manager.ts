@@ -20,7 +20,7 @@ import fs from 'fs';
 import path from 'path';
 import {SoloError, IllegalArgumentError, MissingArgumentError} from './errors.js';
 import {constants} from './index.js';
-import {SoloLogger} from './logging.js';
+import type {SoloLogger} from './logging.js';
 import {Templates} from './templates.js';
 import * as helpers from './helpers.js';
 import chalk from 'chalk';
@@ -62,11 +62,7 @@ export class KeyManager {
     hash: 'SHA-384',
   };
 
-  constructor(private readonly logger?: SoloLogger) {
-    if (!logger || !(logger instanceof SoloLogger))
-      throw new MissingArgumentError('An instance of core/SoloLogger is required');
-    this.logger = logger;
-  }
+  constructor(private readonly logger?: SoloLogger) {}
 
   /** Convert CryptoKey into PEM string */
   async convertPrivateKeyToPem(privateKey: CryptoKey) {

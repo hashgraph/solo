@@ -16,10 +16,10 @@
  */
 
 import paths from 'path';
-import {autoInjectable, inject} from 'tsyringe-neo';
+import {autoInjectable, inject, injectable} from 'tsyringe-neo';
 import {MissingArgumentError} from '../core/errors.js';
 import {ShellRunner} from '../core/shell_runner.js';
-import {SoloLogger} from '../core/logging.js';
+import type {SoloLogger} from '../core/logging.js';
 import type {
   ChartManager,
   ConfigManager,
