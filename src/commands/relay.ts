@@ -25,13 +25,13 @@ import {getNodeAccountMap} from '../core/helpers.js';
 import {RemoteConfigTasks} from '../core/config/remote/remote_config_tasks.js';
 import {CommandBuilder, type NodeAliases} from '../types/aliases.js';
 import {ListrLease} from '../core/lease/listr_lease.js';
-import {autoInjectable} from "tsyringe-neo";
+import {autoInjectable} from 'tsyringe-neo';
 
 @autoInjectable()
 export class RelayCommand extends BaseCommand {
   constructor(
     private readonly accountManager?: AccountManager,
-    private readonly profileManager?: ProfileManager
+    private readonly profileManager?: ProfileManager,
   ) {
     super();
   }

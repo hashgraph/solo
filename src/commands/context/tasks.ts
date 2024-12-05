@@ -18,19 +18,16 @@ import {Task, Templates} from '../../core/index.js';
 import {flags} from '../index.js';
 import type {ListrTaskWrapper} from 'listr2';
 import {BaseCommand} from '../base.js';
-import {CommandTasks} from "../../types/index.js";
-import {autoInjectable} from "tsyringe-neo";
+import {CommandTasks} from '../../types/index.js';
+import {autoInjectable} from 'tsyringe-neo';
 
 @autoInjectable()
 export class ContextCommandTasks extends BaseCommand implements CommandTasks {
-  public tasks: any
+  public tasks: any;
 
   constructor() {
-    super()
-    this.tasks = [
-        this.updateLocalConfig,
-        this.initialize
-    ]
+    super();
+    this.tasks = [this.updateLocalConfig, this.initialize];
   }
 
   updateLocalConfig(argv) {

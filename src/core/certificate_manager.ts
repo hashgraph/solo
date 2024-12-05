@@ -25,7 +25,7 @@ import type {K8} from './k8.js';
 import type {SoloLogger} from './logging.js';
 import type {ListrTaskWrapper} from 'listr2';
 import type {NodeAlias} from '../types/aliases.js';
-import {autoInjectable} from "tsyringe-neo";
+import {autoInjectable} from 'tsyringe-neo';
 
 /**
  * Used to handle interactions with certificates data and inject it into the K8s cluster secrets

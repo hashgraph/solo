@@ -21,25 +21,19 @@ import {type CommandHandlers} from '../../types/index.js';
 import * as ContextFlags from './flags.js';
 
 export class ContextCommandHandlers extends ContextCommandTasks implements CommandHandlers {
-  public handlers: any
+  public handlers: any;
 
   constructor() {
-    super()
+    super();
 
-    this.handlers = [
-        this.connect
-    ]
+    this.handlers = [this.connect];
   }
 
   async connect(argv: any) {
     argv = helpers.addFlagsToArgv(argv, ContextFlags.USE_FLAGS);
 
     const action = helpers.commandActionBuilder(
-      [
-        this.tasks.initialize(argv),
-        this.getLocalConfig().promptLocalConfigTask(),
-        this.tasks.updateLocalConfig(argv),
-      ],
+      [this.tasks.initialize(argv), this.getLocalConfig().promptLocalConfigTask(), this.tasks.updateLocalConfig(argv)],
       {
         concurrent: false,
         rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION,

@@ -34,7 +34,7 @@ import {PodName, TarCreateFilter} from '../types/aliases.js';
 import type {ExtendedNetServer, LocalContextObject} from '../types/index.js';
 import type * as http from 'node:http';
 import {MINUTES} from './constants.js';
-import {autoInjectable} from "tsyringe-neo";
+import {autoInjectable} from 'tsyringe-neo';
 
 interface TDirectoryData {
   directory: boolean;

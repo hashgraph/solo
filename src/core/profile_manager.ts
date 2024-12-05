@@ -28,7 +28,7 @@ import {readFile, writeFile} from 'fs/promises';
 import {type SoloLogger} from './logging.js';
 import {type SemVer} from 'semver';
 import {type NodeAlias, type NodeAliases} from '../types/aliases.js';
-import {autoInjectable} from "tsyringe-neo";
+import {autoInjectable} from 'tsyringe-neo';
 
 const consensusSidecars = [
   'recordStreamUploader',
@@ -45,7 +45,11 @@ export class ProfileManager {
   private profiles: Map<string, object>;
   private profileFile: string | undefined;
 
-  constructor(private readonly logger?: SoloLogger, private readonly configManager?: ConfigManager, cacheDir?: string) {
+  constructor(
+    private readonly logger?: SoloLogger,
+    private readonly configManager?: ConfigManager,
+    cacheDir?: string,
+  ) {
     if (!logger) throw new MissingArgumentError('An instance of core/SoloLogger is required');
     if (!configManager) throw new MissingArgumentError('An instance of core/ConfigManager is required');
 

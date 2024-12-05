@@ -18,15 +18,14 @@
 import {YargsCommand} from '../../core/index.js';
 import {ContextCommandHandlers} from './handlers.js';
 import * as ContextFlags from './flags.js';
-import {autoInjectable} from "tsyringe-neo";
-import {CommandWithHandlers} from "../../types/index.js";
+import {autoInjectable} from 'tsyringe-neo';
+import {CommandWithHandlers} from '../../types/index.js';
 
 /**
  * Defines the core functionalities of 'node' command
  */
 @autoInjectable()
 export class ContextCommand extends ContextCommandHandlers implements CommandWithHandlers {
-
   constructor() {
     super();
   }

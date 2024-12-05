@@ -20,15 +20,14 @@ import {BaseCommand} from './../base.js';
 import {NodeCommandTasks} from './tasks.js';
 import * as NodeFlags from './flags.js';
 import {NodeCommandHandlers} from './handlers.js';
-import {autoInjectable} from "tsyringe-neo";
-import {CommandWithHandlers} from "../../types/index.js";
+import {autoInjectable} from 'tsyringe-neo';
+import {CommandWithHandlers} from '../../types/index.js';
 
 /**
  * Defines the core functionalities of 'node' command
  */
 @autoInjectable()
 export class NodeCommand extends NodeCommandHandlers implements CommandWithHandlers {
-
   constructor() {
     super();
   }

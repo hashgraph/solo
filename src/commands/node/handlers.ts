@@ -39,40 +39,39 @@ import {NodeCommandTasks} from './tasks.js';
 import {type Lease} from '../../core/lease/lease.js';
 import {NodeSubcommandType} from '../../core/enumerations.js';
 import {type CommandHandlers} from '../../types/index.js';
-import {autoInjectable} from "tsyringe-neo";
+import {autoInjectable} from 'tsyringe-neo';
 
 @autoInjectable()
 export class NodeCommandHandlers extends NodeCommandTasks implements CommandHandlers {
-
-  public handlers: any
+  public handlers: any;
 
   constructor() {
-    super()
+    super();
 
     this.handlers = [
-        this.prepareUpgrade,
-        this.freezeUpgrade,
-        this.downloadGeneratedFiles,
-        this.update,
-        this.updatePrepare,
-        this.updateSubmitTransactions,
-        this.updateExecute,
-        this.delete,
-        this.deletePrepare,
-        this.deleteSubmitTransactions,
-        this.deleteExecute,
-        this.add,
-        this.addPrepare,
-        this.addSubmitTransactions,
-        this.addExecute,
-        this.logs,
-        this.states,
-        this.refresh,
-        this.keys,
-        this.stop,
-        this.start,
-        this.setup
-    ]
+      this.prepareUpgrade,
+      this.freezeUpgrade,
+      this.downloadGeneratedFiles,
+      this.update,
+      this.updatePrepare,
+      this.updateSubmitTransactions,
+      this.updateExecute,
+      this.delete,
+      this.deletePrepare,
+      this.deleteSubmitTransactions,
+      this.deleteExecute,
+      this.add,
+      this.addPrepare,
+      this.addSubmitTransactions,
+      this.addExecute,
+      this.logs,
+      this.states,
+      this.refresh,
+      this.keys,
+      this.stop,
+      this.start,
+      this.setup,
+    ];
   }
 
   static readonly ADD_CONTEXT_FILE = 'node-add.json';

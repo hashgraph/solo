@@ -45,8 +45,10 @@ export class BaseCommand extends ShellRunner {
     protected readonly depManager?: DependencyManager,
     protected readonly leaseManager?: LeaseManager,
     protected readonly localConfig?: LocalConfig,
-    protected readonly remoteConfigManager?: RemoteConfigManager
-  ) { super(); }
+    protected readonly remoteConfigManager?: RemoteConfigManager,
+  ) {
+    super();
+  }
 
   async prepareChartPath(chartDir: string, chartRepo: string, chartReleaseName: string) {
     if (!chartRepo) throw new MissingArgumentError('chart repo name is required');

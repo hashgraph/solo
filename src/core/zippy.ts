@@ -21,7 +21,7 @@ import * as tar from 'tar';
 import chalk from 'chalk';
 import path from 'path';
 import type {SoloLogger} from './logging.js';
-import {autoInjectable} from "tsyringe-neo";
+import {autoInjectable} from 'tsyringe-neo';
 
 @autoInjectable()
 export class Zippy {

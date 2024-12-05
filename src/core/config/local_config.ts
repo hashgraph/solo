@@ -27,7 +27,7 @@ import type {ConfigManager} from '../config_manager.js';
 import type {EmailAddress, Namespace} from './remote/types.js';
 import {Templates} from '../templates.js';
 import {ErrorMessages} from '../error_messages.js';
-import {autoInjectable} from "tsyringe-neo";
+import {autoInjectable} from 'tsyringe-neo';
 
 @autoInjectable()
 export class LocalConfig implements LocalConfigData {

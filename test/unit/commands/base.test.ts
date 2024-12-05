@@ -62,15 +62,15 @@ describe('BaseCommand', () => {
       const k8 = new K8(configManager, testLogger);
 
       baseCmd = new BaseCommand(
-          testLogger,
-          helm,
-          k8,
-          chartManager,
-          configManager,
-          depManager,
-          undefined,
-          localConfig,
-          remoteConfigManager,
+        testLogger,
+        helm,
+        k8,
+        chartManager,
+        configManager,
+        depManager,
+        undefined,
+        localConfig,
+        remoteConfigManager,
       );
     });
 

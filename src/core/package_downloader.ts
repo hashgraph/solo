@@ -31,7 +31,7 @@ import * as http from 'http';
 import {Templates} from './templates.js';
 import {constants} from './index.js';
 import {type SoloLogger} from './logging.js';
-import {autoInjectable} from "tsyringe-neo";
+import {autoInjectable} from 'tsyringe-neo';
 
 @autoInjectable()
 export class PackageDownloader {

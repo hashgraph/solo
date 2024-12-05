@@ -30,7 +30,7 @@ import type {CertificateManager, KeyManager, PlatformInstaller, ProfileManager} 
 import {CommandBuilder, NodeAlias, NodeAliases} from '../types/aliases.js';
 import type {Opts} from '../types/index.js';
 import {ListrLease} from '../core/lease/listr_lease.js';
-import {autoInjectable} from "tsyringe-neo";
+import {autoInjectable} from 'tsyringe-neo';
 
 export interface NetworkDeployConfigClass {
   applicationEnv: string;
@@ -65,7 +65,7 @@ export class NetworkCommand extends BaseCommand {
     private readonly keyManager?: KeyManager,
     private readonly platformInstaller?: PlatformInstaller,
     private readonly profileManager?: ProfileManager,
-    private readonly certificateManager?: CertificateManager
+    private readonly certificateManager?: CertificateManager,
   ) {
     super();
   }

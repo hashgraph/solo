@@ -101,15 +101,15 @@ export interface Opts {
 }
 
 export interface CommandTasks extends BaseCommand {
-    tasks: any;
+  tasks: any;
 }
 
 export interface CommandHandlers extends CommandTasks {
-    handlers: any;
+  handlers: any;
 }
 
 export interface CommandWithHandlers extends CommandHandlers {
-    getCommandDefinition(): {command: string; desc: string; builder: Function}
+  getCommandDefinition(): {command: string; desc: string; builder: Function};
 }
 
 /**

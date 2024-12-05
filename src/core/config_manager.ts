@@ -21,7 +21,7 @@ import * as paths from 'path';
 import * as helpers from './helpers.js';
 import type * as yargs from 'yargs';
 import {type CommandFlag} from '../types/index.js';
-import {autoInjectable} from "tsyringe-neo";
+import {autoInjectable} from 'tsyringe-neo';
 
 /**
  * ConfigManager cache command flag values so that user doesn't need to enter the same values repeatedly.

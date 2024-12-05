@@ -81,13 +81,13 @@ import type {
 } from './configs.js';
 import {type Lease} from '../../core/lease/lease.js';
 import {ListrLease} from '../../core/lease/listr_lease.js';
-import {autoInjectable} from "tsyringe-neo";
-import {BaseCommand} from "../base.js";
-import {CommandTasks} from "../../types/index.js";
+import {autoInjectable} from 'tsyringe-neo';
+import {BaseCommand} from '../base.js';
+import {CommandTasks} from '../../types/index.js';
 
-autoInjectable()
+autoInjectable();
 export class NodeCommandTasks extends BaseCommand implements CommandTasks {
-  public readonly tasks: any
+  public readonly tasks: any;
 
   constructor(
     private readonly accountManager?: AccountManager,
@@ -96,64 +96,64 @@ export class NodeCommandTasks extends BaseCommand implements CommandTasks {
     private readonly profileManager?: ProfileManager,
     private readonly certificateManager?: CertificateManager,
   ) {
-    super()
+    super();
 
     this.tasks = [
-        this.prepareUpgradeZip,
-        this.loadAdminKey,
-        this.checkExistingNodesStakedAmount,
-        this.sendPrepareUpgradeTransaction,
-        this.sendFreezeUpgradeTransaction,
-        this.downloadNodeGeneratedFiles,
-        this.taskCheckNetworkNodePods,
-        this.checkNetworkNodePod,
-        this.identifyExistingNodes,
-        this.uploadStateFiles,
-        this.identifyNetworkPods,
-        this.fetchPlatformSoftware,
-        this.populateServiceMap,
-        this.setupNetworkNodes,
-        this.prepareStagingDirectory,
-        this.startNodes,
-        this.enablePortForwarding,
-        this.checkAllNodesAreActive,
-        this.checkAllNodesAreFrozen,
-        this.checkNodeProxiesAreActive,
-        this.checkAllNodeProxiesAreActive,
-        this.triggerStakeWeightCalculate,
-        this.addNodeStakes,
-        this.stakeNewNode,
-        this.stopNodes,
-        this.finalize,
-        this.dumpNetworkNodesSaveState,
-        this.getNodeLogsAndConfigs,
-        this.getNodeStateFiles,
-        this.checkPVCsEnabled,
-        this.determineNewNodeAccountNumber,
-        this.generateGossipKeys,
-        this.generateGossipKey,
-        this.generateGrpcTlsKeys,
-        this.generateGrpcTlsKey,
-        this.loadSigningKeyCertificate,
-        this.computeMTLSCertificateHash,
-        this.prepareGossipEndpoints,
-        this.refreshNodeList,
-        this.prepareGrpcServiceEndpoints,
-        this.sendNodeUpdateTransaction,
-        this.copyNodeKeysToSecrets,
-        this.updateChartWithConfigMap,
-        this.saveContextData,
-        this.loadContextData,
-        this.killNodes,
-        this.killNodesAndUpdateConfigMap,
-        this.checkNodePodsAreRunning,
-        this.sleep,
-        this.downloadLastState,
-        this.uploadStateToNewNode,
-        this.sendNodeDeleteTransaction,
-        this.sendNodeCreateTransaction,
-        this.initialize
-    ]
+      this.prepareUpgradeZip,
+      this.loadAdminKey,
+      this.checkExistingNodesStakedAmount,
+      this.sendPrepareUpgradeTransaction,
+      this.sendFreezeUpgradeTransaction,
+      this.downloadNodeGeneratedFiles,
+      this.taskCheckNetworkNodePods,
+      this.checkNetworkNodePod,
+      this.identifyExistingNodes,
+      this.uploadStateFiles,
+      this.identifyNetworkPods,
+      this.fetchPlatformSoftware,
+      this.populateServiceMap,
+      this.setupNetworkNodes,
+      this.prepareStagingDirectory,
+      this.startNodes,
+      this.enablePortForwarding,
+      this.checkAllNodesAreActive,
+      this.checkAllNodesAreFrozen,
+      this.checkNodeProxiesAreActive,
+      this.checkAllNodeProxiesAreActive,
+      this.triggerStakeWeightCalculate,
+      this.addNodeStakes,
+      this.stakeNewNode,
+      this.stopNodes,
+      this.finalize,
+      this.dumpNetworkNodesSaveState,
+      this.getNodeLogsAndConfigs,
+      this.getNodeStateFiles,
+      this.checkPVCsEnabled,
+      this.determineNewNodeAccountNumber,
+      this.generateGossipKeys,
+      this.generateGossipKey,
+      this.generateGrpcTlsKeys,
+      this.generateGrpcTlsKey,
+      this.loadSigningKeyCertificate,
+      this.computeMTLSCertificateHash,
+      this.prepareGossipEndpoints,
+      this.refreshNodeList,
+      this.prepareGrpcServiceEndpoints,
+      this.sendNodeUpdateTransaction,
+      this.copyNodeKeysToSecrets,
+      this.updateChartWithConfigMap,
+      this.saveContextData,
+      this.loadContextData,
+      this.killNodes,
+      this.killNodesAndUpdateConfigMap,
+      this.checkNodePodsAreRunning,
+      this.sleep,
+      this.downloadLastState,
+      this.uploadStateToNewNode,
+      this.sendNodeDeleteTransaction,
+      this.sendNodeCreateTransaction,
+      this.initialize,
+    ];
   }
 
   private async _prepareUpgradeZip(stagingDir: string) {

@@ -15,7 +15,7 @@
  *
  */
 import chalk from 'chalk';
-import {autoInjectable} from "tsyringe-neo";
+import {autoInjectable} from 'tsyringe-neo';
 
 import {BaseCommand} from './base.js';
 import {SoloError, IllegalArgumentError} from '../core/errors.js';
@@ -37,8 +37,10 @@ export class AccountCommand extends BaseCommand {
     accountAlias?: string;
   } | null;
 
-  constructor(private readonly systemAccounts?: number[][], private readonly accountManager?: AccountManager) {
-
+  constructor(
+    private readonly systemAccounts?: number[][],
+    private readonly accountManager?: AccountManager,
+  ) {
     super();
 
     this.accountInfo = null;

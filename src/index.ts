@@ -16,16 +16,11 @@
  */
 import chalk from 'chalk';
 import yargs from 'yargs';
-import {container} from './core/container.js'
+import {container} from './core/container.js';
 import {hideBin} from 'yargs/helpers';
 import {flags} from './commands/index.js';
 import * as commands from './commands/index.js';
-import {
-  ConfigManager,
-  logging,
-  constants,
-  helpers,
-} from './core/index.js';
+import {ConfigManager, logging, constants, helpers} from './core/index.js';
 import 'dotenv/config';
 import {K8} from './core/k8.js';
 import {ListrLogger} from 'listr2';
