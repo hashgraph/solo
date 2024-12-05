@@ -74,7 +74,6 @@ import {
 } from '../../types/aliases.js';
 import {NodeStatusCodes, NodeStatusEnums, NodeSubcommandType} from '../../core/enumerations.js';
 import * as x509 from '@peculiar/x509';
-import {type NodeCommand} from './index.js';
 import type {
   NodeAddConfigClass,
   NodeDeleteConfigClass,
@@ -83,6 +82,7 @@ import type {
 } from './configs.js';
 import {type Lease} from '../../core/lease/lease.js';
 import {ListrLease} from '../../core/lease/listr_lease.js';
+import {type BaseCommand} from '../base.js';
 
 export class NodeCommandTasks {
   private readonly accountManager: AccountManager;
@@ -92,7 +92,7 @@ export class NodeCommandTasks {
   private readonly platformInstaller: PlatformInstaller;
   private readonly logger: SoloLogger;
   private readonly k8: K8;
-  private readonly parent: NodeCommand;
+  private readonly parent: BaseCommand;
   private readonly chartManager: ChartManager;
   private readonly certificateManager: CertificateManager;
 
@@ -108,7 +108,7 @@ export class NodeCommandTasks {
     profileManager: ProfileManager;
     chartManager: ChartManager;
     certificateManager: CertificateManager;
-    parent: NodeCommand;
+    parent: BaseCommand;
   }) {
     if (!opts || !opts.accountManager)
       throw new IllegalArgumentError('An instance of core/AccountManager is required', opts.accountManager as any);
