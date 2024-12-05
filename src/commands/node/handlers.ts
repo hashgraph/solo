@@ -42,11 +42,10 @@ import {IllegalArgumentError, SoloError} from '../../core/errors.js';
 import {ComponentType, ConsensusNodeStates} from '../../core/config/remote/enumerations.js';
 import {RemoteConfigTasks} from '../../core/config/remote/remote_config_tasks.js';
 import type {SoloLogger} from '../../core/logging.js';
-import type {NodeCommand} from './index.js';
 import type {NodeCommandTasks} from './tasks.js';
 import {type Lease} from '../../core/lease/lease.js';
 import {NodeSubcommandType} from '../../core/enumerations.js';
-import {type CommandHandlers} from '../base.js';
+import {type BaseCommand, type CommandHandlers} from '../base.js';
 import {NodeHelper} from './helper.js';
 import type {NodeAlias, NodeAliases} from '../../types/aliases.js';
 import {ConsensusNodeComponent} from '../../core/config/remote/components/consensus_node_component.js';
@@ -68,7 +67,7 @@ export class NodeCommandHandlers implements CommandHandlers {
   private getConfig: any;
   private prepareChartPath: any;
 
-  public readonly parent: NodeCommand;
+  public readonly parent: BaseCommand;
 
   constructor(opts: any) {
     if (!opts || !opts.accountManager)
@@ -97,17 +96,6 @@ export class NodeCommandHandlers implements CommandHandlers {
   static readonly ADD_CONTEXT_FILE = 'node-add.json';
   static readonly DELETE_CONTEXT_FILE = 'node-delete.json';
   static readonly UPDATE_CONTEXT_FILE = 'node-update.json';
-
-  async close() {
-    await this.accountManager.close();
-    if (this.parent._portForwards) {
-      for (const srv of this.parent._portForwards) {
-        await this.k8.stopPortForward(srv);
-      }
-    }
-
-    this.parent._portForwards = [];
-  }
 
   /** ******** Task Lists **********/
 
