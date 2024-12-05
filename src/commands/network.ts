@@ -479,7 +479,7 @@ export class NetworkCommand extends BaseCommand {
             });
           },
         },
-        NetworkCommand.addNodesAndProxies.bind(this)(),
+        this.addNodesAndProxies(),
       ],
       {
         concurrent: false,
@@ -726,7 +726,7 @@ export class NetworkCommand extends BaseCommand {
     };
   }
   /** Adds the consensus node, envoy and haproxy components to remote config.  */
-  public static addNodesAndProxies(this: NetworkCommand): ListrTask<any, any, any> {
+  public addNodesAndProxies(): ListrTask<any, any, any> {
     return {
       title: 'Add node and proxies to remote config',
       skip: (): boolean => !this.remoteConfigManager.isLoaded(),

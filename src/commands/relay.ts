@@ -284,7 +284,7 @@ export class RelayCommand extends BaseCommand {
             }
           },
         },
-        RelayCommand.addRelayComponent.bind(this)(),
+        this.addRelayComponent(),
       ],
       {
         concurrent: false,
@@ -365,7 +365,7 @@ export class RelayCommand extends BaseCommand {
           },
           skip: ctx => !ctx.config.isChartInstalled,
         },
-        RelayCommand.removeRelayComponent.bind(this)(),
+        this.removeRelayComponent(),
       ],
       {
         concurrent: false,
@@ -435,7 +435,7 @@ export class RelayCommand extends BaseCommand {
   }
 
   /** Adds the relay component to remote config. */
-  public static addRelayComponent(this: RelayCommand): ListrTask<any, any, any> {
+  public addRelayComponent(): ListrTask<any, any, any> {
     return {
       title: 'Add relay component in remote config',
       skip: (): boolean => !this.remoteConfigManager.isLoaded(),
@@ -453,7 +453,7 @@ export class RelayCommand extends BaseCommand {
   }
 
   /** Remove the relay component from remote config. */
-  public static removeRelayComponent(this: RelayCommand): ListrTask<any, any, any> {
+  public removeRelayComponent(): ListrTask<any, any, any> {
     return {
       title: 'Remove relay component from remote config',
       skip: (): boolean => !this.remoteConfigManager.isLoaded(),

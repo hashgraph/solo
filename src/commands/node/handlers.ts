@@ -103,7 +103,7 @@ export class NodeCommandHandlers implements CommandHandlers {
     return [
       this.tasks.initialize(argv, deleteConfigBuilder.bind(this), lease),
       RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
-      NodeCommandHandlers.validateSingleNodeState.bind(this)({excludedStates: []}),
+      this.validateSingleNodeState({excludedStates: []}),
       this.tasks.identifyExistingNodes(),
       this.tasks.loadAdminKey(),
       this.tasks.prepareUpgradeZip(),
@@ -147,7 +147,7 @@ export class NodeCommandHandlers implements CommandHandlers {
     return [
       this.tasks.initialize(argv, addConfigBuilder.bind(this), lease),
       RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
-      NodeCommandHandlers.validateSingleNodeState.bind(this)({excludedStates: []}),
+      this.validateSingleNodeState({excludedStates: []}),
       this.tasks.checkPVCsEnabled(),
       this.tasks.identifyExistingNodes(),
       this.tasks.determineNewNodeAccountNumber(),
@@ -200,7 +200,7 @@ export class NodeCommandHandlers implements CommandHandlers {
     return [
       this.tasks.initialize(argv, updateConfigBuilder.bind(this), lease),
       RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
-      NodeCommandHandlers.validateSingleNodeState.bind(this)({excludedStates: []}),
+      this.validateSingleNodeState({excludedStates: []}),
       this.tasks.identifyExistingNodes(),
       this.tasks.loadAdminKey(),
       this.tasks.prepareUpgradeZip(),
@@ -626,7 +626,7 @@ export class NodeCommandHandlers implements CommandHandlers {
       [
         this.tasks.initialize(argv, refreshConfigBuilder.bind(this), lease),
         RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
-        NodeCommandHandlers.validateAllNodeStates.bind(this)({
+        this.validateAllNodeStates({
           acceptedStates: [ConsensusNodeStates.STARTED, ConsensusNodeStates.SETUP, ConsensusNodeStates.INITIALIZED],
         }),
         this.tasks.identifyNetworkPods(),
@@ -681,12 +681,12 @@ export class NodeCommandHandlers implements CommandHandlers {
       [
         this.tasks.initialize(argv, stopConfigBuilder.bind(this), lease),
         RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
-        NodeCommandHandlers.validateAllNodeStates.bind(this)({
+        this.validateAllNodeStates({
           acceptedStates: [ConsensusNodeStates.STARTED, ConsensusNodeStates.SETUP],
         }),
         this.tasks.identifyNetworkPods(),
         this.tasks.stopNodes(),
-        NodeCommandHandlers.changeAllNodeStates.bind(this)(ConsensusNodeStates.INITIALIZED),
+        this.changeAllNodeStates(ConsensusNodeStates.INITIALIZED),
       ],
       {
         concurrent: false,
@@ -709,14 +709,14 @@ export class NodeCommandHandlers implements CommandHandlers {
       [
         this.tasks.initialize(argv, startConfigBuilder.bind(this), lease),
         RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
-        NodeCommandHandlers.validateAllNodeStates.bind(this)({acceptedStates: [ConsensusNodeStates.SETUP]}),
+        this.validateAllNodeStates({acceptedStates: [ConsensusNodeStates.SETUP]}),
         this.tasks.identifyExistingNodes(),
         this.tasks.uploadStateFiles((ctx: any) => ctx.config.stateFile.length === 0),
         this.tasks.startNodes('nodeAliases'),
         this.tasks.enablePortForwarding(),
         this.tasks.checkAllNodesAreActive('nodeAliases'),
         this.tasks.checkNodeProxiesAreActive(),
-        NodeCommandHandlers.changeAllNodeStates.bind(this)(ConsensusNodeStates.STARTED),
+        this.changeAllNodeStates(ConsensusNodeStates.STARTED),
         this.tasks.addNodeStakes(),
       ],
       {
@@ -740,13 +740,13 @@ export class NodeCommandHandlers implements CommandHandlers {
       [
         this.tasks.initialize(argv, setupConfigBuilder.bind(this), lease),
         RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
-        NodeCommandHandlers.validateAllNodeStates.bind(this)({
+        this.validateAllNodeStates({
           acceptedStates: [ConsensusNodeStates.INITIALIZED],
         }),
         this.tasks.identifyNetworkPods(),
         this.tasks.fetchPlatformSoftware('nodeAliases'),
         this.tasks.setupNetworkNodes('nodeAliases'),
-        NodeCommandHandlers.changeAllNodeStates.bind(this)(ConsensusNodeStates.SETUP),
+        this.changeAllNodeStates(ConsensusNodeStates.SETUP),
       ],
       {
         concurrent: false,
@@ -761,7 +761,7 @@ export class NodeCommandHandlers implements CommandHandlers {
   }
 
   /** Removes the consensus node, envoy and haproxy components from remote config.  */
-  public static removeNodeAndProxies(this: NodeCommandHandlers): ListrTask<any, any, any> {
+  public removeNodeAndProxies(): ListrTask<any, any, any> {
     return {
       skip: (): boolean => !this.remoteConfigManager.isLoaded(),
       title: 'Remove node and proxies from remote config',
@@ -780,7 +780,7 @@ export class NodeCommandHandlers implements CommandHandlers {
    *
    * @param state - to which to change the consensus node component
    */
-  public static changeAllNodeStates(this: NodeCommandHandlers, state: ConsensusNodeStates): ListrTask<any, any, any> {
+  public changeAllNodeStates(state: ConsensusNodeStates): ListrTask<any, any, any> {
     interface Context {
       config: {namespace: string; nodeAliases: NodeAliases};
     }
@@ -809,10 +809,13 @@ export class NodeCommandHandlers implements CommandHandlers {
    * @param acceptedStates - the state at which the nodes can be, not matching any of the states throws an error
    * @param excludedStates - the state at which the nodes can't be, matching any of the states throws an error
    */
-  public static validateAllNodeStates(
-    this: NodeCommandHandlers,
-    {acceptedStates, excludedStates}: {acceptedStates?: ConsensusNodeStates[]; excludedStates?: ConsensusNodeStates[]},
-  ): ListrTask<any, any, any> {
+  public validateAllNodeStates({
+    acceptedStates,
+    excludedStates,
+  }: {
+    acceptedStates?: ConsensusNodeStates[];
+    excludedStates?: ConsensusNodeStates[];
+  }): ListrTask<any, any, any> {
     interface Context {
       config: {namespace: string; nodeAliases: NodeAliases};
     }
@@ -828,7 +831,7 @@ export class NodeCommandHandlers implements CommandHandlers {
         const subTasks: ListrTask<Context, any, any>[] = nodeAliases.map(nodeAlias => ({
           title: `Validating state for node ${nodeAlias}`,
           task: (_, task): void => {
-            const state = NodeCommandHandlers.validateNodeState(nodeAlias, components, acceptedStates, excludedStates);
+            const state = this.validateNodeState(nodeAlias, components, acceptedStates, excludedStates);
 
             task.title += ` - ${chalk.green('valid state')}: ${chalk.cyan(state)}`;
           },
@@ -848,10 +851,13 @@ export class NodeCommandHandlers implements CommandHandlers {
    * @param acceptedStates - the state at which the node can be, not matching any of the states throws an error
    * @param excludedStates - the state at which the node can't be, matching any of the states throws an error
    */
-  public static validateSingleNodeState(
-    this: NodeCommandHandlers,
-    {acceptedStates, excludedStates}: {acceptedStates?: ConsensusNodeStates[]; excludedStates?: ConsensusNodeStates[]},
-  ): ListrTask<any, any, any> {
+  public validateSingleNodeState({
+    acceptedStates,
+    excludedStates,
+  }: {
+    acceptedStates?: ConsensusNodeStates[];
+    excludedStates?: ConsensusNodeStates[];
+  }): ListrTask<any, any, any> {
     interface Context {
       config: {namespace: string; nodeAlias: NodeAlias};
     }
@@ -866,7 +872,7 @@ export class NodeCommandHandlers implements CommandHandlers {
 
         const components = this.remoteConfigManager.components;
 
-        const state = NodeCommandHandlers.validateNodeState(nodeAlias, components, acceptedStates, excludedStates);
+        const state = this.validateNodeState(nodeAlias, components, acceptedStates, excludedStates);
 
         task.title += ` - ${chalk.green('valid state')}: ${chalk.cyan(state)}`;
       },
@@ -879,7 +885,7 @@ export class NodeCommandHandlers implements CommandHandlers {
    * @param acceptedStates - the state at which the node can be, not matching any of the states throws an error
    * @param excludedStates - the state at which the node can't be, matching any of the states throws an error
    */
-  private static validateNodeState(
+  private validateNodeState(
     nodeAlias: NodeAlias,
     components: ComponentsDataWrapper,
     acceptedStates: Optional<ConsensusNodeStates[]>,
