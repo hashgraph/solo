@@ -17,15 +17,16 @@
 import {expect} from 'chai';
 import {describe, it} from 'mocha';
 
-import * as core from '../../../src/core/index.js';
+import {PackageDownloader} from '../../../src/core/package_downloader.js';
+import * as logging from '../../../src/core/logging.js';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
 import {IllegalArgumentError, MissingArgumentError, ResourceNotFoundError} from '../../../src/core/errors.js';
 
 describe('PackageDownloader', () => {
-  const testLogger = core.logging.NewLogger('debug', true);
-  const downloader = new core.PackageDownloader(testLogger);
+  const testLogger = logging.NewLogger('debug', true);
+  const downloader = new PackageDownloader(testLogger);
 
   describe('urlExists', () => {
     it('should return true if source URL is valid', async () => {

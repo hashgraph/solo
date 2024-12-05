@@ -15,7 +15,8 @@
  *
  */
 import {it, describe, before, after} from 'mocha';
-import {ConfigManager, logging} from '../../../../src/core/index.js';
+import {ConfigManager} from '../../../../src/core/config_manager.js';
+import * as logging from '../../../../src/core/logging.js';
 import {K8} from '../../../../src/core/k8.js';
 import {MINUTES, SECONDS} from '../../../../src/core/constants.js';
 import {expect} from 'chai';

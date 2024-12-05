@@ -19,22 +19,20 @@ import type net from 'net';
 import type * as WebSocket from 'ws';
 import type crypto from 'crypto';
 import type {SoloLogger} from '../core/logging.js';
-import type {
-  ChartManager,
-  ConfigManager,
-  Helm,
-  K8,
-  KeyManager,
-  PackageDownloader,
-  PlatformInstaller,
-  ProfileManager,
-  DependencyManager,
-  AccountManager,
-  LeaseManager,
-  CertificateManager,
-  RemoteConfigManager,
-  LocalConfig,
-} from '../core/index.js';
+import {type PlatformInstaller} from '../core/platform_installer.js';
+import {type ChartManager} from '../core/chart_manager.js';
+import {type ConfigManager} from '../core/config_manager.js';
+import {type DependencyManager} from '../core/dependency_managers/index.js';
+import {type KeyManager} from '../core/key_manager.js';
+import {type AccountManager} from '../core/account_manager.js';
+import {type ProfileManager} from '../core/profile_manager.js';
+import {type LeaseManager} from '../core/lease/lease_manager.js';
+import {type CertificateManager} from '../core/certificate_manager.js';
+import {type LocalConfig} from '../core/config/local_config.js';
+import {type RemoteConfigManager} from '../core/config/remote/remote_config_manager.js';
+import {type Helm} from '../core/helm.js';
+import {type K8} from '../core/k8.js';
+import {type PackageDownloader} from '../core/package_downloader.js';
 import type {Cluster, Context} from '../core/config/remote/types.js';
 import {type BaseCommand} from '../commands/base.js';
 import {type PromptFunction} from './aliases.js';

@@ -19,7 +19,7 @@ import {MissingArgumentError, SoloError} from '../../errors.js';
 import {RemoteConfigDataWrapper} from './remote_config_data_wrapper.js';
 import chalk from 'chalk';
 import {RemoteConfigMetadata} from './metadata.js';
-import {flags} from '../../../commands/index.js';
+import {Flags as flags} from '../../../commands/flags.js';
 import * as yaml from 'yaml';
 import {ComponentsDataWrapper} from './components_data_wrapper.js';
 import type {K8} from '../../k8.js';

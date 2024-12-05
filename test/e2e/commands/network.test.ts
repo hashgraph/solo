@@ -18,14 +18,14 @@ import {it, describe, after, before} from 'mocha';
 import {expect} from 'chai';
 
 import {bootstrapTestVariables, getDefaultArgv, getTmpDir, HEDERA_PLATFORM_VERSION_TAG} from '../../test_util.js';
-import {constants} from '../../../src/core/index.js';
+import * as constants from '../../../src/core/constants.js';
 import * as version from '../../../version.js';
-import {getNodeLogs, sleep} from '../../../src/core/helpers.js';
+import {sleep} from '../../../src/core/helpers.js';
 import path from 'path';
 import fs from 'fs';
 import {NetworkCommand} from '../../../src/commands/network.js';
 import {MINUTES, SECONDS} from '../../../src/core/constants.js';
-import {flags} from '../../../src/commands/index.js';
+import {Flags as flags} from '../../../src/commands/flags.js';
 
 describe('NetworkCommand', () => {
   const testName = 'network-cmd-e2e';
@@ -60,7 +60,7 @@ describe('NetworkCommand', () => {
   after(async function () {
     this.timeout(3 * MINUTES);
 
-    await getNodeLogs(k8, namespace);
+    await k8.getNodeLogs(namespace);
     await k8.deleteNamespace(namespace);
     await accountManager.close();
   });
