@@ -423,7 +423,7 @@ export class MirrorNodeCommand extends BaseCommand {
             );
           },
         },
-        this.addMirrorNodeAndMirrorNodeToExplorer(),
+        this.addMirrorNodeAndMirrorNodeExplorer(),
       ],
       {
         concurrent: false,
@@ -610,7 +610,7 @@ export class MirrorNodeCommand extends BaseCommand {
   }
 
   /** Adds the mirror node and mirror node explorer components to remote config. */
-  public addMirrorNodeAndMirrorNodeToExplorer(): ListrTask<any, any, any> {
+  public addMirrorNodeAndMirrorNodeExplorer(): ListrTask<any, any, any> {
     return {
       title: 'Add mirror node and mirror node explorer to remote config',
       skip: (): boolean => !this.remoteConfigManager.isLoaded(),
