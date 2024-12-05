@@ -41,7 +41,7 @@ nvm use lts/hydrogen
 
 ## Documentation
 
-- [Getting Started](docs/content/User/Index.md)
+- [Getting Started](docs/content/User/GetStarted.md)
 
 ## Support
 
