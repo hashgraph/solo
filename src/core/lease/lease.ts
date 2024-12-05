@@ -20,8 +20,8 @@ import {type K8} from '../k8.js';
 import {SECONDS} from '../constants.js';
 import {LeaseHolder} from './lease_holder.js';
 import {LeaseAcquisitionError, LeaseRelinquishmentError} from './lease_errors.js';
-import {type LeaseRenewalService} from './lease_renewal.js';
 import {sleep} from '../helpers.js';
+import {type Lease, type LeaseRenewalService} from './types.js';
 
 /**
  * Concrete implementation of a Kubernetes based time-based mutually exclusive lock via the Coordination API.
@@ -31,7 +31,7 @@ import {sleep} from '../helpers.js';
  *
  * @public
  */
-export class Lease {
+export class IntervalLease implements Lease {
   /** The default duration in seconds for which the lease is to be held before being considered expired. */
   public static readonly DEFAULT_LEASE_DURATION = 20;
 
@@ -59,8 +59,8 @@ export class Lease {
    * @param durationSeconds - The duration in seconds for which the lease is to be held; if not provided, the default value is used.
    */
   public constructor(
-    private readonly client: K8,
-    private readonly renewalService: LeaseRenewalService,
+    readonly client: K8,
+    readonly renewalService: LeaseRenewalService,
     leaseHolder: LeaseHolder,
     namespace: string,
     leaseName: string | null = null,
@@ -80,7 +80,7 @@ export class Lease {
 
     // In most production cases, the environment variable should be preferred over the constructor argument.
     if (!durationSeconds) {
-      this._durationSeconds = +process.env.SOLO_LEASE_DURATION || Lease.DEFAULT_LEASE_DURATION;
+      this._durationSeconds = +process.env.SOLO_LEASE_DURATION || IntervalLease.DEFAULT_LEASE_DURATION;
     } else {
       this._durationSeconds = durationSeconds;
     }
@@ -89,14 +89,14 @@ export class Lease {
   /**
    * The name of the lease.
    */
-  public get leaseName(): string {
+  get leaseName(): string {
     return this._leaseName;
   }
 
   /**
    * The holder of the lease.
    */
-  public get leaseHolder(): LeaseHolder {
+  get leaseHolder(): LeaseHolder {
     return this._leaseHolder;
   }
 
@@ -104,7 +104,7 @@ export class Lease {
    * The namespace in which the lease is to be acquired. By default, the namespace is used as the lease name.
    * The defaults assume there is only a single deployment in a given namespace.
    */
-  public get namespace(): string {
+  get namespace(): string {
     return this._namespace;
   }
 
@@ -112,14 +112,14 @@ export class Lease {
    * The duration in seconds for which the lease is held before being considered expired. By default, the duration
    * is set to 20 seconds. It is recommended to renew the lease at 50% of the duration to prevent unexpected expiration.
    */
-  public get durationSeconds(): number {
+  get durationSeconds(): number {
     return this._durationSeconds;
   }
 
   /**
    * The identifier of the scheduled lease renewal task.
    */
-  public get scheduleId(): number | null {
+  get scheduleId(): number | null {
     return this._scheduleId;
   }
 
@@ -139,10 +139,10 @@ export class Lease {
    *
    * @throws LeaseAcquisitionError - If the lease is already acquired by another process or an error occurs during acquisition.
    */
-  public async acquire(): Promise<void> {
+  async acquire(): Promise<void> {
     const lease = await this.retrieveLease();
 
-    if (!lease || Lease.checkExpiration(lease) || this.heldBySameProcess(lease)) {
+    if (!lease || IntervalLease.checkExpiration(lease) || this.heldBySameProcess(lease)) {
       return this.createOrRenewLease(lease);
     }
 
@@ -166,7 +166,7 @@ export class Lease {
    *
    * @returns true if the lease is successfully acquired; otherwise, false.
    */
-  public async tryAcquire(): Promise<boolean> {
+  async tryAcquire(): Promise<boolean> {
     try {
       await this.acquire();
       return true;
@@ -181,7 +181,7 @@ export class Lease {
    *
    * @throws LeaseAcquisitionError - If the lease is already acquired by another process or an error occurs during renewal.
    */
-  public async renew(): Promise<void> {
+  async renew(): Promise<void> {
     const lease = await this.retrieveLease();
 
     if (!lease || this.heldBySameProcess(lease)) {
@@ -202,7 +202,7 @@ export class Lease {
    *
    * @returns true if the lease is successfully renewed; otherwise, false.
    */
-  public async tryRenew(): Promise<boolean> {
+  async tryRenew(): Promise<boolean> {
     try {
       await this.renew();
       return true;
@@ -217,7 +217,7 @@ export class Lease {
    *
    * @throws LeaseRelinquishmentError - If the lease is already acquired by another process or an error occurs during relinquishment.
    */
-  public async release(): Promise<void> {
+  async release(): Promise<void> {
     const lease = await this.retrieveLease();
 
     if (this.scheduleId) {
@@ -235,7 +235,7 @@ export class Lease {
 
     const otherHolder: LeaseHolder = LeaseHolder.fromJson(lease.spec.holderIdentity);
 
-    if (this.heldBySameProcess(lease) || Lease.checkExpiration(lease)) {
+    if (this.heldBySameProcess(lease) || IntervalLease.checkExpiration(lease)) {
       return await this.deleteLease();
     }
 
@@ -253,7 +253,7 @@ export class Lease {
    *
    * @returns true if the lease is successfully released; otherwise, false.
    */
-  public async tryRelease(): Promise<boolean> {
+  async tryRelease(): Promise<boolean> {
     try {
       await this.release();
       return true;
@@ -267,9 +267,9 @@ export class Lease {
    *
    * @returns true if the lease is acquired and not expired; otherwise, false.
    */
-  public async isAcquired(): Promise<boolean> {
+  async isAcquired(): Promise<boolean> {
     const lease = await this.retrieveLease();
-    return !!lease && !Lease.checkExpiration(lease) && this.heldBySameProcess(lease);
+    return !!lease && !IntervalLease.checkExpiration(lease) && this.heldBySameProcess(lease);
   }
 
   /**
@@ -278,9 +278,9 @@ export class Lease {
    *
    * @returns true if the lease is expired; otherwise, false.
    */
-  public async isExpired(): Promise<boolean> {
+  async isExpired(): Promise<boolean> {
     const lease = await this.retrieveLease();
-    return !!lease && Lease.checkExpiration(lease);
+    return !!lease && IntervalLease.checkExpiration(lease);
   }
 
   /**
@@ -383,7 +383,7 @@ export class Lease {
    */
   private static checkExpiration(lease: V1Lease): boolean {
     const now = Date.now();
-    const durationSec = lease.spec.leaseDurationSeconds || Lease.DEFAULT_LEASE_DURATION;
+    const durationSec = lease.spec.leaseDurationSeconds || IntervalLease.DEFAULT_LEASE_DURATION;
     const lastRenewal = lease.spec?.renewTime || lease.spec?.acquireTime;
     const deltaSec = (now - new Date(lastRenewal).valueOf()) / SECONDS;
     return deltaSec > durationSec;
