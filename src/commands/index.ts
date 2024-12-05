@@ -24,28 +24,25 @@ import {NodeCommand} from './node/index.js';
 import {RelayCommand} from './relay.js';
 import {AccountCommand} from './account.js';
 import {DeploymentCommand} from './deployment.js';
-import {type Opts} from '../types/index.js';
 
 /**
  * Return a list of Yargs command builder to be exposed through CLI
- * @param opts it is an Options object containing logger
  * @returns an array of Yargs command builder
  */
-function Initialize(opts: Opts) {
-  const initCmd = new InitCommand(opts);
-  const clusterCmd = new ClusterCommand(opts);
-  const contextCmd = new ContextCommand(opts);
-  const networkCommand = new NetworkCommand(opts);
-  const nodeCmd = new NodeCommand(opts);
-  const relayCmd = new RelayCommand(opts);
-  const accountCmd = new AccountCommand(opts);
-  const mirrorNodeCmd = new MirrorNodeCommand(opts);
-  const deploymentCommand = new DeploymentCommand(opts);
+function Initialize() {
+  const initCmd = new InitCommand();
+  const clusterCmd = new ClusterCommand();
+  const contextCmd = new ContextCommand();
+  const networkCommand = new NetworkCommand();
+  const nodeCmd = new NodeCommand();
+  const relayCmd = new RelayCommand();
+  const accountCmd = new AccountCommand();
+  const mirrorNodeCmd = new MirrorNodeCommand();
+  const deploymentCommand = new DeploymentCommand();
 
   return [
     initCmd.getCommandDefinition(),
     clusterCmd.getCommandDefinition(),
-    contextCmd.getCommandDefinition(),
     contextCmd.getCommandDefinition(),
     networkCommand.getCommandDefinition(),
     nodeCmd.getCommandDefinition(),

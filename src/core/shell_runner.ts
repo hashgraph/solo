@@ -16,12 +16,12 @@
  */
 import {spawn} from 'child_process';
 import chalk from 'chalk';
+import {autoInjectable} from 'tsyringe-neo';
 import {type SoloLogger} from './logging.js';
 
+@autoInjectable()
 export class ShellRunner {
-  constructor(public logger: SoloLogger) {
-    if (!logger) throw new Error('An instance of core/SoloLogger is required');
-  }
+  constructor(public logger?: SoloLogger) {}
 
   /** Returns a promise that invokes the shell command */
   run(cmd: string, verbose = false) {

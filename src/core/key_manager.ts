@@ -20,17 +20,19 @@ import fs from 'fs';
 import path from 'path';
 import {SoloError, IllegalArgumentError, MissingArgumentError} from './errors.js';
 import {constants} from './index.js';
-import {SoloLogger} from './logging.js';
+import type {SoloLogger} from './logging.js';
 import {Templates} from './templates.js';
 import * as helpers from './helpers.js';
 import chalk from 'chalk';
 import {type NodeAlias, type NodeAliases} from '../types/aliases.js';
 import {type NodeKeyObject, type PrivateKeyAndCertificateObject} from '../types/index.js';
 import type {ListrTask} from 'listr2';
+import {autoInjectable} from 'tsyringe-neo';
 
 // @ts-ignore
 x509.cryptoProvider.set(crypto);
 
+@autoInjectable()
 export class KeyManager {
   static SigningKeyAlgo = {
     name: 'RSASSA-PKCS1-v1_5',
@@ -60,11 +62,7 @@ export class KeyManager {
     hash: 'SHA-384',
   };
 
-  constructor(private readonly logger: SoloLogger) {
-    if (!logger || !(logger instanceof SoloLogger))
-      throw new MissingArgumentError('An instance of core/SoloLogger is required');
-    this.logger = logger;
-  }
+  constructor(private readonly logger?: SoloLogger) {}
 
   /** Convert CryptoKey into PEM string */
   async convertPrivateKeyToPem(privateKey: CryptoKey) {

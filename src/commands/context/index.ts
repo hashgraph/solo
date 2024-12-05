@@ -16,22 +16,18 @@
  */
 
 import {YargsCommand} from '../../core/index.js';
-import {BaseCommand} from './../base.js';
-import type {Opts} from '../../types/index.js';
-import {ContextCommandTasks} from './tasks.js';
 import {ContextCommandHandlers} from './handlers.js';
 import * as ContextFlags from './flags.js';
+import {autoInjectable} from 'tsyringe-neo';
+import {CommandWithHandlers} from '../../types/index.js';
 
 /**
  * Defines the core functionalities of 'node' command
  */
-export class ContextCommand extends BaseCommand {
-  private handlers: ContextCommandHandlers;
-
-  constructor(opts: Opts) {
-    super(opts);
-
-    this.handlers = new ContextCommandHandlers(this, new ContextCommandTasks(this));
+@autoInjectable()
+export class ContextCommand extends ContextCommandHandlers implements CommandWithHandlers {
+  constructor() {
+    super();
   }
 
   getCommandDefinition() {

@@ -63,7 +63,8 @@ argv[flags.chartDirectory.name] = process.env.SOLO_CHARTS_DIR ?? undefined;
 
 e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefined, undefined, true, bootstrapResp => {
   describe('AccountCommand', async () => {
-    const accountCmd = new AccountCommand(bootstrapResp.opts, testSystemAccounts);
+    const accountCmd = new AccountCommand();
+    // const accountCmd = new AccountCommand(bootstrapResp.opts, testSystemAccounts);
     bootstrapResp.cmd.accountCmd = accountCmd;
     const k8 = bootstrapResp.opts.k8;
     const accountManager = bootstrapResp.opts.accountManager;
@@ -76,7 +77,6 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
       await getNodeLogs(k8, namespace);
       await k8.deleteNamespace(namespace);
       await accountManager.close();
-      await nodeCmd.close();
     });
 
     describe('node proxies should be UP', () => {

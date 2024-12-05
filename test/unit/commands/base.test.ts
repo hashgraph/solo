@@ -61,17 +61,17 @@ describe('BaseCommand', () => {
       sandbox.stub(K8.prototype, 'init').callsFake(() => this);
       const k8 = new K8(configManager, testLogger);
 
-      // @ts-ignore
-      baseCmd = new BaseCommand({
-        logger: testLogger,
+      baseCmd = new BaseCommand(
+        testLogger,
         helm,
         k8,
         chartManager,
         configManager,
         depManager,
+        undefined,
         localConfig,
         remoteConfigManager,
-      });
+      );
     });
 
     after(() => {

@@ -100,8 +100,16 @@ export interface Opts {
   remoteConfigManager: RemoteConfigManager;
 }
 
-export interface CommandHandlers {
-  parent: BaseCommand;
+export interface CommandTasks extends BaseCommand {
+  tasks: any;
+}
+
+export interface CommandHandlers extends CommandTasks {
+  handlers: any;
+}
+
+export interface CommandWithHandlers extends CommandHandlers {
+  getCommandDefinition(): {command: string; desc: string; builder: Function};
 }
 
 /**

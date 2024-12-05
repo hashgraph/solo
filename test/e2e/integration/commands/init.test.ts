@@ -38,6 +38,7 @@ import sinon from 'sinon';
 import {IntervalLeaseRenewalService} from '../../../../src/core/lease/lease_renewal.js';
 import path from 'path';
 import {BASE_TEST_DIR} from '../../../test_util.js';
+import {SoloLogger} from '../../../../src/core/logging.js';
 
 const testLogger = logging.NewLogger('debug', true);
 describe('InitCommand', () => {
@@ -69,19 +70,18 @@ describe('InitCommand', () => {
     localConfig = new LocalConfig(path.join(BASE_TEST_DIR, 'local-config.yaml'), testLogger, configManager);
     remoteConfigManager = new RemoteConfigManager(k8, testLogger, localConfig, configManager);
     leaseManager = new LeaseManager(k8, configManager, testLogger, new IntervalLeaseRenewalService());
-    // @ts-ignore
-    initCmd = new InitCommand({
-      logger: testLogger,
+
+    initCmd = new InitCommand(
+      testLogger,
       helm,
       k8,
       chartManager,
       configManager,
       depManager,
-      keyManager,
       leaseManager,
       localConfig,
       remoteConfigManager,
-    });
+    );
   });
 
   after(() => {

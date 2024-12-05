@@ -97,7 +97,6 @@ describe('ContextCommandTasks unit tests', () => {
     let clusterNamePromptStub: sinon.SinonStub;
     let contextPromptStub: sinon.SinonStub;
     let tasks: ContextCommandTasks;
-    let command: BaseCommand;
     let loggerStub: sinon.SinonStubbedInstance<SoloLogger>;
     let localConfig: LocalConfig;
 
@@ -131,8 +130,8 @@ describe('ContextCommandTasks unit tests', () => {
       });
       loggerStub = sandbox.createStubInstance(SoloLogger);
       await fs.promises.writeFile(filePath, stringify(testLocalConfigData));
-      command = new BaseCommand(getBaseCommandOpts(sandbox));
-      tasks = new ContextCommandTasks(command);
+      // command = new BaseCommand(getBaseCommandOpts(sandbox));
+      tasks = new ContextCommandTasks();
     });
 
     it('should update local configuration with provided values', async () => {
@@ -147,7 +146,7 @@ describe('ContextCommandTasks unit tests', () => {
 
       expect(localConfig.currentDeploymentName).to.equal('deployment-2');
       expect(localConfig.getCurrentDeployment().clusters).to.deep.equal(['cluster-2']);
-      expect(command.getK8().getKubeConfig().setCurrentContext).to.have.been.calledWith('context-2');
+      expect(tasks.getK8().getKubeConfig().setCurrentContext).to.have.been.calledWith('context-2');
     });
 
     it('should prompt for all flags if none are provided', async () => {
@@ -157,7 +156,7 @@ describe('ContextCommandTasks unit tests', () => {
 
       expect(localConfig.currentDeploymentName).to.equal('deployment-3');
       expect(localConfig.getCurrentDeployment().clusters).to.deep.equal(['cluster-3']);
-      expect(command.getK8().getKubeConfig().setCurrentContext).to.have.been.calledWith('context-3');
+      expect(tasks.getK8().getKubeConfig().setCurrentContext).to.have.been.calledWith('context-3');
       expect(namespacePromptStub).to.have.been.calledOnce;
       expect(clusterNamePromptStub).to.have.been.calledOnce;
       expect(contextPromptStub).to.have.been.calledOnce;
@@ -174,7 +173,7 @@ describe('ContextCommandTasks unit tests', () => {
 
       expect(localConfig.currentDeploymentName).to.equal('deployment-3');
       expect(localConfig.getCurrentDeployment().clusters).to.deep.equal(['cluster-2']);
-      expect(command.getK8().getKubeConfig().setCurrentContext).to.have.been.calledWith('context-2');
+      expect(tasks.getK8().getKubeConfig().setCurrentContext).to.have.been.calledWith('context-2');
       expect(namespacePromptStub).to.have.been.calledOnce;
       expect(clusterNamePromptStub).to.have.been.not.called;
       expect(contextPromptStub).to.have.been.not.called;
@@ -191,7 +190,7 @@ describe('ContextCommandTasks unit tests', () => {
 
       expect(localConfig.currentDeploymentName).to.equal('deployment-2');
       expect(localConfig.getCurrentDeployment().clusters).to.deep.equal(['cluster-3']);
-      expect(command.getK8().getKubeConfig().setCurrentContext).to.have.been.calledWith('context-2');
+      expect(tasks.getK8().getKubeConfig().setCurrentContext).to.have.been.calledWith('context-2');
       expect(namespacePromptStub).to.have.been.not.called;
       expect(clusterNamePromptStub).to.have.been.calledOnce;
       expect(contextPromptStub).to.have.been.not.called;
@@ -208,7 +207,7 @@ describe('ContextCommandTasks unit tests', () => {
 
       expect(localConfig.currentDeploymentName).to.equal('deployment-2');
       expect(localConfig.getCurrentDeployment().clusters).to.deep.equal(['cluster-2']);
-      expect(command.getK8().getKubeConfig().setCurrentContext).to.have.been.calledWith('context-3');
+      expect(tasks.getK8().getKubeConfig().setCurrentContext).to.have.been.calledWith('context-3');
       expect(namespacePromptStub).to.have.been.not.called;
       expect(clusterNamePromptStub).to.have.been.not.called;
       expect(contextPromptStub).to.have.been.calledOnce;
@@ -226,7 +225,7 @@ describe('ContextCommandTasks unit tests', () => {
 
       expect(localConfig.currentDeploymentName).to.equal('deployment-2');
       expect(localConfig.getCurrentDeployment().clusters).to.deep.equal(['cluster-3']);
-      expect(command.getK8().getKubeConfig().setCurrentContext).to.have.been.calledWith('context-2');
+      expect(tasks.getK8().getKubeConfig().setCurrentContext).to.have.been.calledWith('context-2');
       expect(namespacePromptStub).to.have.been.not.called;
       expect(clusterNamePromptStub).to.have.been.not.called;
       expect(contextPromptStub).to.have.been.not.called;
@@ -244,7 +243,7 @@ describe('ContextCommandTasks unit tests', () => {
 
       expect(localConfig.currentDeploymentName).to.equal('deployment-2');
       expect(localConfig.getCurrentDeployment().clusters).to.deep.equal(['cluster-2']);
-      expect(command.getK8().getKubeConfig().setCurrentContext).to.have.been.calledWith('context-2');
+      expect(tasks.getK8().getKubeConfig().setCurrentContext).to.have.been.calledWith('context-2');
       expect(namespacePromptStub).to.have.been.not.called;
       expect(clusterNamePromptStub).to.have.been.not.called;
       expect(contextPromptStub).to.have.been.not.called;

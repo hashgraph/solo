@@ -31,6 +31,7 @@ import type {LocalConfig} from '../local_config.js';
 import type {DeploymentStructure} from '../local_config_data.js';
 import type {ContextClusterStructure, Optional} from '../../../types/index.js';
 import type * as k8s from '@kubernetes/client-node';
+import {autoInjectable} from "tsyringe-neo";
 
 interface ListrContext {
   config: {contextCluster: ContextClusterStructure};
@@ -40,6 +41,7 @@ interface ListrContext {
  * Uses Kubernetes ConfigMaps to manage the remote configuration data by creating, loading, modifying,
  * and saving the configuration data to and from a Kubernetes cluster.
  */
+@autoInjectable()
 export class RemoteConfigManager {
   /** Stores the loaded remote configuration data. */
   private remoteConfig: Optional<RemoteConfigDataWrapper>;
@@ -51,10 +53,10 @@ export class RemoteConfigManager {
    * @param configManager - Manager to retrieve application flags and settings.
    */
   public constructor(
-    private readonly k8: K8,
-    private readonly logger: SoloLogger,
-    private readonly localConfig: LocalConfig,
-    private readonly configManager: ConfigManager,
+    private readonly k8?: K8,
+    private readonly logger?: SoloLogger,
+    private readonly localConfig?: LocalConfig,
+    private readonly configManager?: ConfigManager,
   ) {}
 
   /* ---------- Getters ---------- */

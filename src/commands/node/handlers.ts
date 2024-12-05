@@ -31,78 +31,52 @@ import {
   stopConfigBuilder,
   updateConfigBuilder,
 } from './configs.js';
-import {
-  type ConfigManager,
-  constants,
-  type K8,
-  type PlatformInstaller,
-  type AccountManager,
-  type LeaseManager,
-  type RemoteConfigManager,
-} from '../../core/index.js';
-import {IllegalArgumentError} from '../../core/errors.js';
+import {constants} from '../../core/index.js';
+
 import {ConsensusNodeStates} from '../../core/config/remote/enumerations.js';
 import {RemoteConfigTasks} from '../../core/config/remote/remote_config_tasks.js';
-import type {SoloLogger} from '../../core/logging.js';
-import type {NodeCommand} from './index.js';
-import type {NodeCommandTasks} from './tasks.js';
+import {NodeCommandTasks} from './tasks.js';
 import {type Lease} from '../../core/lease/lease.js';
 import {NodeSubcommandType} from '../../core/enumerations.js';
 import {type CommandHandlers} from '../../types/index.js';
+import {autoInjectable} from 'tsyringe-neo';
 
-export class NodeCommandHandlers implements CommandHandlers {
-  private readonly accountManager: AccountManager;
-  private readonly configManager: ConfigManager;
-  private readonly platformInstaller: PlatformInstaller;
-  private readonly logger: SoloLogger;
-  private readonly k8: K8;
-  private readonly tasks: NodeCommandTasks;
-  private readonly leaseManager: LeaseManager;
-  public readonly remoteConfigManager: RemoteConfigManager;
+@autoInjectable()
+export class NodeCommandHandlers extends NodeCommandTasks implements CommandHandlers {
+  public handlers: any;
 
-  private getConfig: any;
-  private prepareChartPath: any;
+  constructor() {
+    super();
 
-  public readonly parent: NodeCommand;
-
-  constructor(opts: any) {
-    if (!opts || !opts.accountManager)
-      throw new IllegalArgumentError('An instance of core/AccountManager is required', opts.accountManager);
-    if (!opts || !opts.configManager) throw new Error('An instance of core/ConfigManager is required');
-    if (!opts || !opts.logger) throw new Error('An instance of core/Logger is required');
-    if (!opts || !opts.tasks) throw new Error('An instance of NodeCommandTasks is required');
-    if (!opts || !opts.k8) throw new Error('An instance of core/K8 is required');
-    if (!opts || !opts.platformInstaller)
-      throw new IllegalArgumentError('An instance of core/PlatformInstaller is required', opts.platformInstaller);
-
-    this.logger = opts.logger;
-    this.tasks = opts.tasks;
-    this.accountManager = opts.accountManager;
-    this.configManager = opts.configManager;
-    this.k8 = opts.k8;
-    this.platformInstaller = opts.platformInstaller;
-    this.leaseManager = opts.leaseManager;
-    this.remoteConfigManager = opts.remoteConfigManager;
-
-    this.getConfig = opts.parent.getConfig.bind(opts.parent);
-    this.prepareChartPath = opts.parent.prepareChartPath.bind(opts.parent);
-    this.parent = opts.parent;
+    this.handlers = [
+      this.prepareUpgrade,
+      this.freezeUpgrade,
+      this.downloadGeneratedFiles,
+      this.update,
+      this.updatePrepare,
+      this.updateSubmitTransactions,
+      this.updateExecute,
+      this.delete,
+      this.deletePrepare,
+      this.deleteSubmitTransactions,
+      this.deleteExecute,
+      this.add,
+      this.addPrepare,
+      this.addSubmitTransactions,
+      this.addExecute,
+      this.logs,
+      this.states,
+      this.refresh,
+      this.keys,
+      this.stop,
+      this.start,
+      this.setup,
+    ];
   }
 
   static readonly ADD_CONTEXT_FILE = 'node-add.json';
   static readonly DELETE_CONTEXT_FILE = 'node-delete.json';
   static readonly UPDATE_CONTEXT_FILE = 'node-update.json';
-
-  async close() {
-    await this.accountManager.close();
-    if (this.parent._portForwards) {
-      for (const srv of this.parent._portForwards) {
-        await this.k8.stopPortForward(srv);
-      }
-    }
-
-    this.parent._portForwards = [];
-  }
 
   /** ******** Task Lists **********/
 

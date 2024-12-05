@@ -15,12 +15,13 @@
  *
  */
 import {SoloError, MissingArgumentError} from './errors.js';
-import {SoloLogger} from './logging.js';
+import type {SoloLogger} from './logging.js';
 import {flags} from '../commands/index.js';
 import * as paths from 'path';
 import * as helpers from './helpers.js';
 import type * as yargs from 'yargs';
 import {type CommandFlag} from '../types/index.js';
+import {autoInjectable} from 'tsyringe-neo';
 
 /**
  * ConfigManager cache command flag values so that user doesn't need to enter the same values repeatedly.
@@ -28,13 +29,11 @@ import {type CommandFlag} from '../types/index.js';
  * For example, 'namespace' is usually remains the same across commands once it is entered, and therefore user
  * doesn't need to enter it repeatedly. However, user should still be able to specify the flag explicitly for any command.
  */
+@autoInjectable()
 export class ConfigManager {
   config!: Record<string, any>;
 
-  constructor(private readonly logger: SoloLogger) {
-    if (!logger || !(logger instanceof SoloLogger))
-      throw new MissingArgumentError('An instance of core/SoloLogger is required');
-
+  constructor(private readonly logger?: SoloLogger) {
     this.reset();
   }
 

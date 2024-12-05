@@ -56,7 +56,7 @@ argv[flags.pinger.name] = true;
 e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefined, undefined, true, bootstrapResp => {
   describe('MirrorNodeCommand', async () => {
     const k8 = bootstrapResp.opts.k8;
-    const mirrorNodeCmd = new MirrorNodeCommand(bootstrapResp.opts);
+    const mirrorNodeCmd = new MirrorNodeCommand(bootstrapResp.opts.accountManager, bootstrapResp.opts.profileManager);
     const downloader = new core.PackageDownloader(mirrorNodeCmd.logger);
     const accountManager = bootstrapResp.opts.accountManager;
 

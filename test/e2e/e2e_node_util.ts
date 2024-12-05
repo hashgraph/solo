@@ -70,7 +70,6 @@ export function e2eNodeKeyRefreshTest(testName: string, mode: string, releaseTag
         afterEach(async function () {
           this.timeout(defaultTimeout);
 
-          await nodeCmd.close();
           await accountManager.close();
         });
 
@@ -97,7 +96,7 @@ export function e2eNodeKeyRefreshTest(testName: string, mode: string, releaseTag
               nodeCmd.logger.showUserError(e);
               expect.fail();
             } finally {
-              await nodeCmd.close();
+              await accountManager.close();
             }
           }).timeout(defaultTimeout);
         });
@@ -141,7 +140,7 @@ export function e2eNodeKeyRefreshTest(testName: string, mode: string, releaseTag
               nodeCmd.logger.showUserError(e);
               expect.fail();
             } finally {
-              await nodeCmd.close();
+              await accountManager.close();
             }
           }).timeout(defaultTimeout);
         }
@@ -158,7 +157,7 @@ export function e2eNodeKeyRefreshTest(testName: string, mode: string, releaseTag
               nodeCmd.logger.showUserError(e);
               expect.fail();
             } finally {
-              await nodeCmd.close();
+              await accountManager.close();
               await sleep(10 * SECONDS); // sleep to wait for node to finish starting
             }
           }).timeout(20 * MINUTES);
@@ -182,7 +181,7 @@ export function e2eNodeKeyRefreshTest(testName: string, mode: string, releaseTag
             } catch (e) {
               expect(e).not.to.be.null;
             } finally {
-              await nodeCmd.close();
+              await accountManager.close();
             }
           }).timeout(defaultTimeout);
         }
