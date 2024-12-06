@@ -1176,6 +1176,27 @@ export class Flags {
     },
   };
 
+  static readonly createAmount: CommandFlag = {
+    constName: 'createAmount',
+    name: 'create-amount',
+    definition: {
+      describe: 'Amount of new account to create',
+      defaultValue: 1,
+      type: 'number',
+    },
+    prompt: async function promptCreateAmount(task: ListrTaskWrapper<any, any, any>, input: any) {
+      return await Flags.prompt(
+        'number',
+        task,
+        input,
+        Flags.createAmount.definition.defaultValue,
+        'How many account to create? ',
+        null,
+        Flags.createAmount.name,
+      );
+    },
+  };
+
   static readonly nodeAlias: CommandFlag = {
     constName: 'nodeAlias',
     name: 'node-alias',
@@ -1624,6 +1645,7 @@ export class Flags {
     Flags.endpointType,
     Flags.soloChartVersion,
     Flags.generateGossipKeys,
+    Flags.generateEcdsaKey,
     Flags.generateTlsKeys,
     Flags.gossipEndpoints,
     Flags.gossipPrivateKey,
@@ -1638,6 +1660,7 @@ export class Flags {
     Flags.namespace,
     Flags.newAccountNumber,
     Flags.newAdminKey,
+    Flags.createAmount,
     Flags.nodeAlias,
     Flags.nodeAliasesUnparsed,
     Flags.operatorId,
