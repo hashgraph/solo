@@ -15,7 +15,7 @@
  *
  */
 import {MissingArgumentError} from '../errors.js';
-import {flags} from '../../commands/index.js';
+import {Flags as flags} from '../../commands/flags.js';
 import type {ConfigManager} from '../config_manager.js';
 import type {K8} from '../k8.js';
 import type {SoloLogger} from '../logging.js';

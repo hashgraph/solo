@@ -16,7 +16,8 @@
  */
 
 import {IllegalArgumentError} from '../../core/errors.js';
-import {type AccountManager, YargsCommand} from '../../core/index.js';
+import {type AccountManager} from '../../core/account_manager.js';
+import {YargsCommand} from '../../core/yargs_command.js';
 import {BaseCommand} from './../base.js';
 import {NodeCommandTasks} from './tasks.js';
 import * as NodeFlags from './flags.js';

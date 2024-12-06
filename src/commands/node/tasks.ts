@@ -14,20 +14,18 @@
  * limitations under the License.
  *
  */
-import {
-  constants,
-  Task,
-  Templates,
-  Zippy,
-  type K8,
-  type ChartManager,
-  type ConfigManager,
-  type KeyManager,
-  type PlatformInstaller,
-  type ProfileManager,
-  type AccountManager,
-  type CertificateManager,
-} from '../../core/index.js';
+import {type AccountManager} from '../../core/account_manager.js';
+import {type ConfigManager} from '../../core/config_manager.js';
+import {type KeyManager} from '../../core/key_manager.js';
+import {type ProfileManager} from '../../core/profile_manager.js';
+import {type PlatformInstaller} from '../../core/platform_installer.js';
+import {type K8} from '../../core/k8.js';
+import {type ChartManager} from '../../core/chart_manager.js';
+import {type CertificateManager} from '../../core/certificate_manager.js';
+import {Zippy} from '../../core/zippy.js';
+import * as constants from '../../core/constants.js';
+import {Templates} from '../../core/templates.js';
+import {Task} from '../../core/task.js';
 import {
   DEFAULT_NETWORK_NODE_NAME,
   FREEZE_ADMIN_ACCOUNT,
@@ -58,15 +56,13 @@ import crypto from 'crypto';
 import {
   addDebugOptions,
   getNodeAccountMap,
-  getNodeLogs,
-  getNodeStatesFromPod,
   prepareEndpoints,
   renameAndCopyFile,
   sleep,
   splitFlagInput,
 } from '../../core/helpers.js';
 import chalk from 'chalk';
-import {flags} from '../index.js';
+import {Flags as flags} from '../flags.js';
 import {type SoloLogger} from '../../core/logging.js';
 import type {Listr, ListrTaskWrapper} from 'listr2';
 import {
@@ -1123,7 +1119,7 @@ export class NodeCommandTasks {
 
   getNodeLogsAndConfigs() {
     return new Task('Get node logs and configs', async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
-      await getNodeLogs(this.k8, ctx.config.namespace);
+      await this.k8.getNodeLogs(ctx.config.namespace);
     });
   }
 
@@ -1131,7 +1127,7 @@ export class NodeCommandTasks {
     const self = this;
     return new Task('Get node states', async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
       for (const nodeAlias of ctx.config.nodeAliases) {
-        await getNodeStatesFromPod(self.k8, ctx.config.namespace, nodeAlias);
+        await self.k8.getNodeStatesFromPod(ctx.config.namespace, nodeAlias);
       }
     });
   }

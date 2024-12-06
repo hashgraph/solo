@@ -18,13 +18,13 @@ import * as x509 from '@peculiar/x509';
 import os from 'os';
 import path from 'path';
 import {DataValidationError, SoloError, IllegalArgumentError, MissingArgumentError} from './errors.js';
-import {constants} from './index.js';
+import * as constants from './constants.js';
 import {type AccountId} from '@hashgraph/sdk';
 import type {NodeAlias, PodName} from '../types/aliases.js';
 import {GrpcProxyTlsEnums} from './enumerations.js';
 import type {ContextClusterStructure} from '../types/index.js';
 import type {Cluster, Context} from './config/remote/types.js';
-import {flags} from '../commands/index.js';
+import {Flags as flags} from '../commands/flags.js';
 
 export class Templates {
   public static renderNetworkPodName(nodeAlias: NodeAlias): PodName {

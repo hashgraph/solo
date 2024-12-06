@@ -15,7 +15,7 @@
  *
  */
 
-import {flags} from '../index.js';
+import {Flags as flags} from '../flags.js';
 
 export const USE_FLAGS = {
   requiredFlags: [],

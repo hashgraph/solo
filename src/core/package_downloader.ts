@@ -29,7 +29,7 @@ import {
 import * as https from 'https';
 import * as http from 'http';
 import {Templates} from './templates.js';
-import {constants} from './index.js';
+import * as constants from './constants.js';
 import {type SoloLogger} from './logging.js';
 
 export class PackageDownloader {

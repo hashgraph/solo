@@ -16,19 +16,19 @@
  */
 
 import paths from 'path';
-import {MissingArgumentError} from '../core/errors.js';
+import {MissingArgumentError, SoloError} from '../core/errors.js';
 import {ShellRunner} from '../core/shell_runner.js';
-import type {
-  ChartManager,
-  ConfigManager,
-  Helm,
-  K8,
-  DependencyManager,
-  LeaseManager,
-  RemoteConfigManager,
-  LocalConfig,
-} from '../core/index.js';
-import type {CommandFlag, Opts} from '../types/index.js';
+import {type LeaseManager} from '../core/lease/lease_manager.js';
+import {type LocalConfig} from '../core/config/local_config.js';
+import {type RemoteConfigManager} from '../core/config/remote/remote_config_manager.js';
+import {type Helm} from '../core/helm.js';
+import {type K8} from '../core/k8.js';
+import {type ChartManager} from '../core/chart_manager.js';
+import {type ConfigManager} from '../core/config_manager.js';
+import {type DependencyManager} from '../core/dependency_managers/index.js';
+import type {CommandFlag, CommandHandlers, Opts} from '../types/index.js';
+import type {Lease} from '../core/lease/lease.js';
+import {Listr} from 'listr2';
 
 export class BaseCommand extends ShellRunner {
   protected readonly helm: Helm;
@@ -177,5 +177,29 @@ export class BaseCommand extends ShellRunner {
 
   getLocalConfig() {
     return this.localConfig;
+  }
+
+  commandActionBuilder(actionTasks: any, options: any, errorString: string, lease: Lease | null) {
+    return async function (argv: any, commandDef: CommandHandlers) {
+      const tasks = new Listr([...actionTasks], options);
+
+      try {
+        await tasks.run();
+      } catch (e: Error | any) {
+        commandDef.parent.logger.error(`${errorString}: ${e.message}`, e);
+        throw new SoloError(`${errorString}: ${e.message}`, e);
+      } finally {
+        const promises = [];
+
+        // @ts-ignore
+        if (commandDef.close) {
+          // @ts-ignore
+          promises.push(commandDef.close());
+        }
+
+        if (lease) promises.push(lease.release());
+        await Promise.all(promises);
+      }
+    };
   }
 }

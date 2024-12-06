@@ -19,20 +19,18 @@ import {expect} from 'chai';
 
 import {InitCommand} from '../../../../src/commands/init.js';
 import {HelmDependencyManager, DependencyManager} from '../../../../src/core/dependency_managers/index.js';
-import {
-  ChartManager,
-  ConfigManager,
-  constants,
-  Helm,
-  K8,
-  KeyManager,
-  LeaseManager,
-  LocalConfig,
-  logging,
-  PackageDownloader,
-  RemoteConfigManager,
-  Zippy,
-} from '../../../../src/core/index.js';
+import {Zippy} from '../../../../src/core/zippy.js';
+import * as constants from '../../../../src/core/constants.js';
+import {Helm} from '../../../../src/core/helm.js';
+import {ChartManager} from '../../../../src/core/chart_manager.js';
+import {ConfigManager} from '../../../../src/core/config_manager.js';
+import {K8} from '../../../../src/core/k8.js';
+import {LocalConfig} from '../../../../src/core/config/local_config.js';
+import {KeyManager} from '../../../../src/core/key_manager.js';
+import {LeaseManager} from '../../../../src/core/lease/lease_manager.js';
+import {RemoteConfigManager} from '../../../../src/core/config/remote/remote_config_manager.js';
+import * as logging from '../../../../src/core/logging.js';
+import {PackageDownloader} from '../../../../src/core/package_downloader.js';
 import {SECONDS} from '../../../../src/core/constants.js';
 import sinon from 'sinon';
 import {IntervalLeaseRenewalService} from '../../../../src/core/lease/lease_renewal.js';

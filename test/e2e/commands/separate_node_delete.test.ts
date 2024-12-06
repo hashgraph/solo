@@ -17,7 +17,7 @@
 import {it, describe, after} from 'mocha';
 import {expect} from 'chai';
 
-import {flags} from '../../../src/commands/index.js';
+import {Flags as flags} from '../../../src/commands/flags.js';
 import {
   accountCreationShouldSucceed,
   balanceQueryShouldSucceed,
@@ -25,7 +25,7 @@ import {
   getDefaultArgv,
   HEDERA_PLATFORM_VERSION_TAG,
 } from '../../test_util.js';
-import {getNodeLogs, getTmpDir} from '../../../src/core/helpers.js';
+import {getTmpDir} from '../../../src/core/helpers.js';
 import {HEDERA_HAPI_PATH, MINUTES, ROOT_CONTAINER} from '../../../src/core/constants.js';
 import fs from 'fs';
 import type {NodeAlias, PodName} from '../../../src/types/aliases.js';
@@ -61,7 +61,7 @@ e2eTestSuite(namespace, argv, undefined, undefined, undefined, undefined, undefi
     after(async function () {
       this.timeout(10 * MINUTES);
 
-      await getNodeLogs(k8, namespace);
+      await k8.getNodeLogs(namespace);
       await k8.deleteNamespace(namespace);
     });
 

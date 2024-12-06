@@ -14,8 +14,8 @@
  * limitations under the License.
  *
  */
-import {ConfigManager, constants} from '../core/index.js';
-import * as core from '../core/index.js';
+import * as constants from '../core/constants.js';
+import {ConfigManager} from '../core/config_manager.js';
 import * as version from '../../version.js';
 import path from 'path';
 import type {CommandFlag} from '../types/index.js';
@@ -497,7 +497,7 @@ export class Flags {
     name: 'cache-dir',
     definition: {
       describe: 'Local cache directory',
-      defaultValue: core.constants.SOLO_CACHE_DIR,
+      defaultValue: constants.SOLO_CACHE_DIR,
       type: 'string',
     },
     prompt: async function promptCacheDir(task: ListrTaskWrapper<any, any, any>, input: any) {
