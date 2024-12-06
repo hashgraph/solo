@@ -19,11 +19,12 @@ import {describe} from 'mocha';
 import {Flags as flags} from '../../../src/commands/flags.js';
 import {e2eTestSuite, getDefaultArgv, TEST_CLUSTER} from '../../test_util.js';
 import {sleep} from '../../../src/core/helpers.js';
-import {MINUTES, SOLO_LOGS_DIR} from '../../../src/core/constants.js';
+import {SOLO_LOGS_DIR} from '../../../src/core/constants.js';
 import {type K8} from '../../../src/core/k8.js';
 import path from 'path';
 import {expect} from 'chai';
 import {AccountBalanceQuery, AccountCreateTransaction, Hbar, HbarUnit, PrivateKey} from '@hashgraph/sdk';
+import {Duration} from '../../../src/core/time/duration.js';
 
 const LOCAL_HEDERA = 'local-hedera-app';
 const argv = getDefaultArgv();
@@ -79,9 +80,9 @@ e2eTestSuite(
 
         // create more transactions to save more round of states
         await accountCmd.create(argv);
-        await sleep(3);
+        await sleep(Duration.ofMillis(3));
         await accountCmd.create(argv);
-        await sleep(3);
+        await sleep(Duration.ofMillis(3));
 
         // stop network and save the state
         await nodeCmd.handlers.stop(argv);
@@ -97,12 +98,12 @@ e2eTestSuite(
           .execute(accountManager._nodeClient);
 
         expect(balance.hbars).to.be.eql(Hbar.from(accountInfo.balance, HbarUnit.Hbar));
-      }).timeout(10 * MINUTES);
+      }).timeout(Duration.ofMinutes(10).toMillis());
 
       it('get the logs and delete the namespace', async () => {
         await hederaK8.getNodeLogs(LOCAL_HEDERA);
         await hederaK8.deleteNamespace(LOCAL_HEDERA);
-      }).timeout(10 * MINUTES);
+      }).timeout(Duration.ofMinutes(10).toMillis());
     });
   },
 );

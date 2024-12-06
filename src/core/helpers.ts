@@ -27,10 +27,11 @@ import {PrivateKey, ServiceEndpoint} from '@hashgraph/sdk';
 import {type NodeAlias, type NodeAliases} from '../types/aliases.js';
 import {type CommandFlag} from '../types/flag_types.js';
 import {type SoloLogger} from './logging.js';
+import {type Duration} from './time/duration.js';
 
-export function sleep(ms: number) {
+export function sleep(duration: Duration) {
   return new Promise<void>(resolve => {
-    setTimeout(resolve, ms);
+    setTimeout(resolve, duration.toMillis());
   });
 }
 

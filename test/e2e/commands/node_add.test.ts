@@ -15,7 +15,7 @@
  *
  */
 import {testNodeAdd} from '../../test_add.js';
-import {MINUTES} from '../../../src/core/constants.js';
+import {Duration} from '../../../src/core/time/duration.js';
 
 const localBuildPath = '';
-testNodeAdd(localBuildPath, 'Node add with released hedera', 3 * MINUTES);
+testNodeAdd(localBuildPath, 'Node add with released hedera', Duration.ofMinutes(3).toMillis());

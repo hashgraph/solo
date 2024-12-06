@@ -28,9 +28,9 @@ import {
   HEDERA_PLATFORM_VERSION_TAG,
 } from '../../test_util.js';
 import * as NodeCommandConfigs from '../../../src/commands/node/configs.js';
-import {MINUTES} from '../../../src/core/constants.js';
+import {Duration} from '../../../src/core/time/duration.js';
 
-const defaultTimeout = 2 * MINUTES;
+const defaultTimeout = Duration.ofMinutes(2).toMillis();
 const namespace = 'node-add-separated';
 const argv = getDefaultArgv();
 argv[flags.nodeAliasesUnparsed.name] = 'node1,node2';
@@ -65,7 +65,7 @@ e2eTestSuite(namespace, argv, undefined, undefined, undefined, undefined, undefi
     let existingNodeIdsPrivateKeysHash;
 
     after(async function () {
-      this.timeout(10 * MINUTES);
+      this.timeout(Duration.ofMinutes(10).toMillis());
 
       await k8.getNodeLogs(namespace);
       // @ts-ignore
@@ -89,7 +89,7 @@ e2eTestSuite(namespace, argv, undefined, undefined, undefined, undefined, undefi
     it('should succeed with init command', async () => {
       const status = await accountCmd.init(argv);
       expect(status).to.be.ok;
-    }).timeout(8 * MINUTES);
+    }).timeout(Duration.ofMinutes(8).toMillis());
 
     it('should add a new node to the network via the segregated commands successfully', async () => {
       await nodeCmd.handlers.addPrepare(argvPrepare);
@@ -106,7 +106,7 @@ e2eTestSuite(namespace, argv, undefined, undefined, undefined, undefined, undefi
         'freezeAdminPrivateKey',
       ]);
       await bootstrapResp.opts.accountManager.close();
-    }).timeout(12 * MINUTES);
+    }).timeout(Duration.ofMinutes(12).toMillis());
 
     // @ts-ignore
     balanceQueryShouldSucceed(bootstrapResp.opts.accountManager, nodeCmd, namespace);
@@ -132,5 +132,5 @@ e2eTestSuite(namespace, argv, undefined, undefined, undefined, undefined, undefi
         }
       }
     }).timeout(defaultTimeout);
-  }).timeout(3 * MINUTES);
+  }).timeout(Duration.ofMinutes(3).toMillis());
 });

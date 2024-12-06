@@ -24,7 +24,7 @@ import {ShellRunner} from '../../../src/core/shell_runner.js';
 import {NewLogger, SoloLogger} from '../../../src/core/logging.js';
 import {ChildProcess} from 'child_process';
 import {Readable} from 'stream';
-import {SECONDS} from '../../../src/core/constants.js';
+import {Duration} from '../../../src/core/time/duration.js';
 
 describe('ShellRunner', () => {
   let logger: SoloLogger,
@@ -55,5 +55,5 @@ describe('ShellRunner', () => {
 
     expect(readableSpy).to.have.been.calledWith('data', sinon.match.any);
     expect(childProcessSpy).to.have.been.calledWith('exit', sinon.match.any);
-  }).timeout(10 * SECONDS);
+  }).timeout(Duration.ofSeconds(10).toMillis());
 });

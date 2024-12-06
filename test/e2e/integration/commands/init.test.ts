@@ -31,11 +31,11 @@ import {LeaseManager} from '../../../../src/core/lease/lease_manager.js';
 import {RemoteConfigManager} from '../../../../src/core/config/remote/remote_config_manager.js';
 import * as logging from '../../../../src/core/logging.js';
 import {PackageDownloader} from '../../../../src/core/package_downloader.js';
-import {SECONDS} from '../../../../src/core/constants.js';
 import sinon from 'sinon';
 import {IntervalLeaseRenewalService} from '../../../../src/core/lease/lease_renewal.js';
 import path from 'path';
 import {BASE_TEST_DIR} from '../../../test_util.js';
+import {Duration} from '../../../../src/core/time/duration.js';
 
 const testLogger = logging.NewLogger('debug', true);
 describe('InitCommand', () => {
@@ -89,7 +89,7 @@ describe('InitCommand', () => {
   describe('commands', () => {
     it('init execution should succeed', async () => {
       await expect(initCmd.init({})).to.eventually.equal(true);
-    }).timeout(60 * SECONDS);
+    }).timeout(Duration.ofSeconds(60).toMillis());
   });
 
   describe('methods', () => {

@@ -29,12 +29,12 @@ import {
 } from '../test_util.js';
 import {sleep} from '../../src/core/helpers.js';
 import * as NodeCommandConfigs from '../../src/commands/node/configs.js';
-import {MINUTES, SECONDS} from '../../src/core/constants.js';
 import type {NodeAlias} from '../../src/types/aliases.js';
 import type {ListrTaskWrapper} from 'listr2';
 import {ConfigManager} from '../../src/core/config_manager.js';
 import {type K8} from '../../src/core/k8.js';
 import {type NodeCommand} from '../../src/commands/node/index.js';
+import {Duration} from '../../src/core/time/duration.js';
 
 export function e2eNodeKeyRefreshTest(testName: string, mode: string, releaseTag = HEDERA_PLATFORM_VERSION_TAG) {
   const namespace = testName;
@@ -61,7 +61,7 @@ export function e2eNodeKeyRefreshTest(testName: string, mode: string, releaseTag
     undefined,
     true,
     bootstrapResp => {
-      const defaultTimeout = 2 * MINUTES;
+      const defaultTimeout = Duration.ofMinutes(2).toMillis();
 
       describe(`NodeCommand [testName ${testName}, mode ${mode}, release ${releaseTag}]`, async () => {
         const accountManager = bootstrapResp.opts.accountManager;
@@ -76,7 +76,7 @@ export function e2eNodeKeyRefreshTest(testName: string, mode: string, releaseTag
         });
 
         after(async function () {
-          this.timeout(10 * MINUTES);
+          this.timeout(Duration.ofMinutes(10).toMillis());
 
           await k8.getNodeLogs(namespace);
           await k8.deleteNamespace(namespace);
@@ -107,16 +107,16 @@ export function e2eNodeKeyRefreshTest(testName: string, mode: string, releaseTag
           const nodeAlias = 'node1';
 
           before(async function () {
-            this.timeout(2 * MINUTES);
+            this.timeout(Duration.ofMinutes(2).toMillis());
 
             const podName = await nodeRefreshTestSetup(argv, testName, k8, nodeAlias);
             if (mode === 'kill') {
               const resp = await k8.kubeClient.deleteNamespacedPod(podName, namespace);
               expect(resp.response.statusCode).to.equal(200);
-              await sleep(20 * SECONDS); // sleep to wait for pod to finish terminating
+              await sleep(Duration.ofSeconds(20)); // sleep to wait for pod to finish terminating
             } else if (mode === 'stop') {
               expect(await nodeCmd.handlers.stop(argv)).to.be.true;
-              await sleep(20 * SECONDS); // give time for node to stop and update its logs
+              await sleep(Duration.ofSeconds(20)); // give time for node to stop and update its logs
             } else {
               throw new Error(`invalid mode: ${mode}`);
             }
@@ -160,9 +160,9 @@ export function e2eNodeKeyRefreshTest(testName: string, mode: string, releaseTag
               expect.fail();
             } finally {
               await nodeCmd.close();
-              await sleep(10 * SECONDS); // sleep to wait for node to finish starting
+              await sleep(Duration.ofSeconds(10)); // sleep to wait for node to finish starting
             }
-          }).timeout(20 * MINUTES);
+          }).timeout(Duration.ofMinutes(20).toMillis());
         }
 
         function nodeShouldNotBeActive(nodeCmd: NodeCommand, nodeAlias: NodeAlias) {

@@ -30,7 +30,7 @@ import {NodeCommand} from '../src/commands/node/index.js';
 import {DependencyManager, HelmDependencyManager} from '../src/core/dependency_managers/index.js';
 import {sleep} from '../src/core/helpers.js';
 import {AccountBalanceQuery, AccountCreateTransaction, Hbar, HbarUnit, PrivateKey} from '@hashgraph/sdk';
-import {MINUTES, NODE_LOG_FAILURE_MSG, ROOT_CONTAINER, SECONDS, SOLO_LOGS_DIR} from '../src/core/constants.js';
+import {NODE_LOG_FAILURE_MSG, ROOT_CONTAINER, SOLO_LOGS_DIR} from '../src/core/constants.js';
 import crypto from 'crypto';
 import {AccountCommand} from '../src/commands/account.js';
 import {SoloError} from '../src/core/errors.js';
@@ -59,6 +59,7 @@ import {KeyManager} from '../src/core/key_manager.js';
 import {Zippy} from '../src/core/zippy.js';
 import {HEDERA_PLATFORM_VERSION} from '../version.js';
 import {IntervalLeaseRenewalService} from '../src/core/lease/lease_renewal.js';
+import {Duration} from '../src/core/time/duration.js';
 
 export const testLogger = logging.NewLogger('debug', true);
 export const TEST_CLUSTER = 'solo-e2e';
@@ -237,7 +238,7 @@ export function e2eTestSuite(
       });
 
       after(async function () {
-        this.timeout(5 * MINUTES);
+        this.timeout(Duration.ofMinutes(5).toMillis());
         await k8.getNodeLogs(namespace);
         bootstrapResp.opts.logger.showUser(
           `------------------------- END: bootstrap (${testName}) ----------------------------`,
@@ -252,7 +253,7 @@ export function e2eTestSuite(
 
           while (await k8.hasNamespace(namespace)) {
             testLogger.debug(`Namespace ${namespace} still exist. Waiting...`);
-            await sleep(1.5 * SECONDS);
+            await sleep(Duration.ofSeconds(2));
           }
         }
 
@@ -261,7 +262,7 @@ export function e2eTestSuite(
         ) {
           await clusterCmd.setup(argv);
         }
-      }).timeout(2 * MINUTES);
+      }).timeout(Duration.ofMinutes(2).toMillis());
 
       it('generate key files', async () => {
         expect(await nodeCmd.handlers.keys(argv)).to.be.true;
@@ -269,7 +270,7 @@ export function e2eTestSuite(
           flags.devMode.constName,
           flags.quiet.constName,
         ]);
-      }).timeout(2 * MINUTES);
+      }).timeout(Duration.ofMinutes(2).toMillis());
 
       it('should succeed with network deploy', async () => {
         await networkCmd.deploy(argv);
@@ -289,7 +290,7 @@ export function e2eTestSuite(
           flags.grpcWebTlsKeyPath.constName,
           'chartPath',
         ]);
-      }).timeout(5 * MINUTES);
+      }).timeout(Duration.ofMinutes(5).toMillis());
 
       if (startNodes) {
         it('should succeed with node setup command', async () => {
@@ -303,7 +304,7 @@ export function e2eTestSuite(
             nodeCmd.logger.showUserError(e);
             expect.fail();
           }
-        }).timeout(4 * MINUTES);
+        }).timeout(Duration.ofMinutes(4).toMillis());
 
         it('should succeed with node start command', async () => {
           try {
@@ -312,7 +313,7 @@ export function e2eTestSuite(
             nodeCmd.logger.showUserError(e);
             expect.fail();
           }
-        }).timeout(30 * MINUTES);
+        }).timeout(Duration.ofMinutes(30).toMillis());
 
         it('node log command should work', async () => {
           expect(await nodeCmd.handlers.logs(argv)).to.be.true;
@@ -321,7 +322,7 @@ export function e2eTestSuite(
           const soloLog = fs.readFileSync(soloLogPath, 'utf8');
 
           expect(soloLog).to.not.have.string(NODE_LOG_FAILURE_MSG);
-        }).timeout(5 * MINUTES);
+        }).timeout(Duration.ofMinutes(5).toMillis());
       }
     });
 
@@ -347,8 +348,8 @@ export function balanceQueryShouldSucceed(accountManager: AccountManager, cmd: B
       cmd.logger.showUserError(e);
       expect.fail();
     }
-    await sleep(SECONDS);
-  }).timeout(2 * MINUTES);
+    await sleep(Duration.ofSeconds(1));
+  }).timeout(Duration.ofMinutes(2).toMillis());
 }
 
 export function accountCreationShouldSucceed(accountManager: AccountManager, nodeCmd: BaseCommand, namespace: string) {
@@ -379,7 +380,7 @@ export function accountCreationShouldSucceed(accountManager: AccountManager, nod
       nodeCmd.logger.showUserError(e);
       expect.fail();
     }
-  }).timeout(2 * MINUTES);
+  }).timeout(Duration.ofMinutes(2).toMillis());
 }
 
 export async function getNodeAliasesPrivateKeysHash(

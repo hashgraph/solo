@@ -18,15 +18,15 @@ import {it, describe, before, after} from 'mocha';
 import {ConfigManager} from '../../../../src/core/config_manager.js';
 import * as logging from '../../../../src/core/logging.js';
 import {K8} from '../../../../src/core/k8.js';
-import {MINUTES, SECONDS} from '../../../../src/core/constants.js';
 import {expect} from 'chai';
 import {IntervalLease} from '../../../../src/core/lease/lease.js';
 import {LeaseHolder} from '../../../../src/core/lease/lease_holder.js';
 import {sleep} from '../../../../src/core/helpers.js';
 import {LeaseRelinquishmentError} from '../../../../src/core/lease/lease_errors.js';
 import {NoopLeaseRenewalService} from './noop_lease_renewal_service.test.js';
+import {Duration} from '../../../../src/core/time/duration.js';
 
-const defaultTimeout = 2 * MINUTES;
+const defaultTimeout = Duration.ofMinutes(2).toMillis();
 const leaseDuration = 4;
 
 describe('Lease', async () => {
@@ -40,7 +40,7 @@ describe('Lease', async () => {
     this.timeout(defaultTimeout);
     if (await k8.hasNamespace(testNamespace)) {
       await k8.deleteNamespace(testNamespace);
-      await sleep(5 * SECONDS);
+      await sleep(Duration.ofSeconds(5));
     }
 
     await k8.createNamespace(testNamespace);
@@ -103,7 +103,7 @@ describe('Lease', async () => {
       expect(await lease.isAcquired()).to.be.true;
       expect(await lease.isExpired()).to.be.false;
 
-      await sleep(lease.durationSeconds * SECONDS);
+      await sleep(Duration.ofSeconds(lease.durationSeconds).plusSeconds(1));
       expect(await lease.isAcquired()).to.be.false;
       expect(await lease.isExpired()).to.be.true;
 
@@ -118,7 +118,7 @@ describe('Lease', async () => {
       await lease.acquire();
       expect(await lease.isAcquired()).to.be.true;
 
-      await sleep(lease.durationSeconds * SECONDS);
+      await sleep(Duration.ofSeconds(lease.durationSeconds).plusSeconds(1));
       expect(await lease.isAcquired()).to.be.false;
       expect(await lease.isExpired()).to.be.true;
 
@@ -182,7 +182,7 @@ describe('Lease', async () => {
       expect(await lease.isAcquired()).to.be.true;
       expect(await lease.isExpired()).to.be.false;
 
-      await sleep(lease.durationSeconds * SECONDS);
+      await sleep(Duration.ofSeconds(lease.durationSeconds).plusSeconds(1));
       expect(await lease.isAcquired()).to.be.false;
       expect(await lease.isExpired()).to.be.true;
 
@@ -198,7 +198,7 @@ describe('Lease', async () => {
       expect(await lease.isAcquired()).to.be.true;
       expect(await lease.isExpired()).to.be.false;
 
-      await sleep(lease.durationSeconds * SECONDS);
+      await sleep(Duration.ofSeconds(lease.durationSeconds).plusSeconds(1));
       expect(await lease.isAcquired()).to.be.false;
       expect(await lease.isExpired()).to.be.true;
 

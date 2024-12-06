@@ -17,11 +17,11 @@
 import {MissingArgumentError, SoloError} from '../errors.js';
 import {type V1Lease} from '@kubernetes/client-node';
 import {type K8} from '../k8.js';
-import {SECONDS} from '../constants.js';
 import {LeaseHolder} from './lease_holder.js';
 import {LeaseAcquisitionError, LeaseRelinquishmentError} from './lease_errors.js';
 import {sleep} from '../helpers.js';
-import {type Lease, type LeaseRenewalService} from './types.js';
+import {Duration} from '../time/duration.js';
+import type {Lease, LeaseRenewalService} from './types.js';
 
 /**
  * Concrete implementation of a Kubernetes based time-based mutually exclusive lock via the Coordination API.
@@ -382,10 +382,11 @@ export class IntervalLease implements Lease {
    * @returns true if the lease has expired; otherwise, false.
    */
   private static checkExpiration(lease: V1Lease): boolean {
-    const now = Date.now();
+    const now = Duration.ofMillis(Date.now());
     const durationSec = lease.spec.leaseDurationSeconds || IntervalLease.DEFAULT_LEASE_DURATION;
-    const lastRenewal = lease.spec?.renewTime || lease.spec?.acquireTime;
-    const deltaSec = (now - new Date(lastRenewal).valueOf()) / SECONDS;
+    const lastRenewalTime = lease.spec?.renewTime || lease.spec?.acquireTime;
+    const lastRenewal = Duration.ofMillis(new Date(lastRenewalTime).valueOf());
+    const deltaSec = now.minus(lastRenewal).seconds;
     return deltaSec > durationSec;
   }
 

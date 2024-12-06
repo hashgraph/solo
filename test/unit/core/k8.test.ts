@@ -23,7 +23,7 @@ import {K8} from '../../../src/core/k8.js';
 import {ConfigManager} from '../../../src/core/config_manager.js';
 import {testLogger} from '../../test_util.js';
 import {Flags as flags} from '../../../src/commands/flags.js';
-import {SECONDS} from '../../../src/core/constants.js';
+import {Duration} from '../../../src/core/time/duration.js';
 
 function listNamespacedPodMockSetup(k8: K8, numOfFailures: number, result: any) {
   for (let i = 0; i < numOfFailures - 1; i++) {
@@ -45,7 +45,7 @@ function listNamespacedPodMockSetup(k8: K8, numOfFailures: number, result: any) 
   );
 }
 
-const defaultTimeout = 20 * SECONDS;
+const defaultTimeout = Duration.ofSeconds(20).toMillis();
 
 describe('K8 Unit Tests', function () {
   this.timeout(defaultTimeout);

@@ -26,10 +26,11 @@ import {
   HEDERA_PLATFORM_VERSION_TAG,
 } from '../../test_util.js';
 import {getTmpDir} from '../../../src/core/helpers.js';
-import {HEDERA_HAPI_PATH, MINUTES, ROOT_CONTAINER} from '../../../src/core/constants.js';
+import {HEDERA_HAPI_PATH, ROOT_CONTAINER} from '../../../src/core/constants.js';
 import fs from 'fs';
 import type {NodeAlias, PodName} from '../../../src/types/aliases.js';
 import * as NodeCommandConfigs from '../../../src/commands/node/configs.js';
+import {Duration} from '../../../src/core/time/duration.js';
 
 const namespace = 'node-delete-separate';
 const nodeAlias = 'node1' as NodeAlias;
@@ -59,7 +60,7 @@ e2eTestSuite(namespace, argv, undefined, undefined, undefined, undefined, undefi
     const k8 = bootstrapResp.opts.k8;
 
     after(async function () {
-      this.timeout(10 * MINUTES);
+      this.timeout(Duration.ofMinutes(10).toMillis());
 
       await k8.getNodeLogs(namespace);
       await k8.deleteNamespace(namespace);
@@ -68,7 +69,7 @@ e2eTestSuite(namespace, argv, undefined, undefined, undefined, undefined, undefi
     it('should succeed with init command', async () => {
       const status = await accountCmd.init(argv);
       expect(status).to.be.ok;
-    }).timeout(8 * MINUTES);
+    }).timeout(Duration.ofMinutes(8).toMillis());
 
     it('should delete a node from the network successfully', async () => {
       await nodeCmd.handlers.deletePrepare(argvPrepare);
@@ -83,7 +84,7 @@ e2eTestSuite(namespace, argv, undefined, undefined, undefined, undefined, undefi
       ]);
 
       await bootstrapResp.opts.accountManager.close();
-    }).timeout(10 * MINUTES);
+    }).timeout(Duration.ofMinutes(10).toMillis());
 
     balanceQueryShouldSucceed(bootstrapResp.opts.accountManager, nodeCmd, namespace);
 
@@ -98,6 +99,6 @@ e2eTestSuite(namespace, argv, undefined, undefined, undefined, undefined, undefi
       const configTxt = fs.readFileSync(`${tmpDir}/config.txt`, 'utf8');
       console.log('config.txt:', configTxt);
       expect(configTxt).not.to.contain(nodeAlias);
-    }).timeout(10 * MINUTES);
+    }).timeout(Duration.ofMinutes(10).toMillis());
   });
 });

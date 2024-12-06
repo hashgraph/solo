@@ -34,7 +34,8 @@ import {type ConfigManager} from './config_manager.js';
 import {type SoloLogger} from './logging.js';
 import {type PodName, type TarCreateFilter} from '../types/aliases.js';
 import type {ExtendedNetServer, LocalContextObject} from '../types/index.js';
-import {HEDERA_HAPI_PATH, MINUTES, ROOT_CONTAINER, SOLO_LOGS_DIR} from './constants.js';
+import {HEDERA_HAPI_PATH, ROOT_CONTAINER, SOLO_LOGS_DIR} from './constants.js';
+import {Duration} from './time/duration.js';
 
 interface TDirectoryData {
   directory: boolean;
@@ -213,7 +214,7 @@ export class K8 {
       undefined,
       undefined,
       undefined,
-      5 * MINUTES,
+      Duration.ofMinutes(5).toMillis(),
     );
 
     return this.filterItem(resp.body.items, {name});
@@ -237,7 +238,7 @@ export class K8 {
       undefined,
       undefined,
       undefined,
-      5 * MINUTES,
+      Duration.ofMinutes(5).toMillis(),
     );
 
     return result.body.items;
@@ -296,7 +297,7 @@ export class K8 {
       undefined,
       undefined,
       undefined,
-      5 * MINUTES,
+      Duration.ofMinutes(5).toMillis(),
     );
 
     return this.filterItem(resp.body.items, {name});
@@ -999,7 +1000,7 @@ export class K8 {
       } catch (e: Error | any) {
         return;
       }
-      await sleep(timeout);
+      await sleep(Duration.ofMillis(timeout));
     }
     if (attempts >= maxAttempts) {
       throw new SoloError(`failed to stop port-forwarder [${server.info}]`);
@@ -1036,7 +1037,7 @@ export class K8 {
           undefined,
           undefined,
           undefined,
-          5 * MINUTES,
+          Duration.ofMinutes(5).toMillis(),
         );
 
         this.logger.debug(
@@ -1149,7 +1150,7 @@ export class K8 {
       undefined,
       undefined,
       undefined,
-      5 * MINUTES,
+      Duration.ofMinutes(5).toMillis(),
     );
 
     for (const item of resp.body.items) {
@@ -1179,7 +1180,7 @@ export class K8 {
       undefined,
       undefined,
       undefined,
-      5 * MINUTES,
+      Duration.ofMinutes(5).toMillis(),
     );
 
     for (const item of resp.body.items) {
@@ -1234,7 +1235,7 @@ export class K8 {
       undefined,
       undefined,
       undefined,
-      5 * MINUTES,
+      Duration.ofMinutes(5).toMillis(),
     );
 
     if (result.response.statusCode === 200 && result.body.items && result.body.items.length > 0) {
@@ -1520,7 +1521,7 @@ export class K8 {
         if (!pod?.metadata?.deletionTimestamp) {
           podExists = false;
         } else {
-          await sleep(1000);
+          await sleep(Duration.ofSeconds(1));
         }
       }
     } catch (e) {
@@ -1562,7 +1563,7 @@ export class K8 {
       const scriptName = 'support-zip.sh';
       const sourcePath = path.join(constants.RESOURCES_DIR, scriptName); // script source path
       await this.copyTo(podName, ROOT_CONTAINER, sourcePath, `${HEDERA_HAPI_PATH}`);
-      await sleep(1000); // wait for the script to sync to the file system
+      await sleep(Duration.ofSeconds(1)); // wait for the script to sync to the file system
       await this.execContainer(podName, ROOT_CONTAINER, [
         'bash',
         '-c',
