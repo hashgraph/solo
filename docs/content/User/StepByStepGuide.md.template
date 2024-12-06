@@ -72,7 +72,7 @@ You may now view pods in your cluster using `k9s -A` as below:
 # reset .solo directory
 rm -rf ~/.solo
 
-solo init"
+solo init
 ```
 
 * Example output
@@ -113,7 +113,7 @@ $SOLO_CLUSTER_SETUP_OUTPUT
 
 In a separate terminal, you may run `k9s` to view the pod status.
 
-Deploy helm chart with Hedera network components
+* Deploy helm chart with Hedera network components
 
 It may take a while (5~15 minutes depending on your internet speed) to download various docker images and get the pods started.
 
