@@ -43,7 +43,7 @@ You can now use your cluster with:
 
 kubectl cluster-info --context kind-solo
 
-Have a nice day! 👋
+Thanks for using kind! 😊
 ```
 
 You may now view pods in your cluster using `k9s -A` as below:
@@ -131,9 +131,9 @@ Kubernetes Cluster	: kind-solo
 ✔ Gossip key for node: node3
 ✔ Generate gossip keys
 ✔ Backup old files
-✔ TLS key for node: node1
-✔ TLS key for node: node2
 ✔ TLS key for node: node3
+✔ TLS key for node: node2
+✔ TLS key for node: node1
 ✔ Generate gRPC TLS Keys
 ✔ Finalize
 ```
@@ -191,23 +191,23 @@ Kubernetes Namespace	: solo
 ✔ Copy Gossip keys to staging
 ✔ Copy gRPC TLS keys to staging
 ✔ Prepare staging directory
+✔ Copy Gossip keys
+✔ Node: node3
+✔ Copy Gossip keys
+✔ Node: node1
 ✔ Copy TLS keys
 ✔ Copy Gossip keys
 ✔ Node: node2
-✔ Copy Gossip keys
-✔ Node: node1
-✔ Copy Gossip keys
-✔ Node: node3
 ✔ Copy node keys to secrets
 ✔ Install chart 'solo-deployment'
 ✔ Check Node: node1
 ✔ Check Node: node2
 ✔ Check Node: node3
 ✔ Check node pods are running
-✔ Check Envoy Proxy for: node1
-✔ Check Envoy Proxy for: node3
 ✔ Check Envoy Proxy for: node2
+✔ Check Envoy Proxy for: node3
 ✔ Check HAProxy for: node1
+✔ Check Envoy Proxy for: node1
 ✔ Check HAProxy for: node2
 ✔ Check HAProxy for: node3
 ✔ Check proxy pods are running
@@ -239,16 +239,16 @@ Kubernetes Namespace	: solo
 ✔ Check network pod: node3
 ✔ Check network pod: node2
 ✔ Identify network pods
-✔ Update node: node3 [ platformVersion = v0.56.5 ]
 ✔ Update node: node2 [ platformVersion = v0.56.5 ]
 ✔ Update node: node1 [ platformVersion = v0.56.5 ]
+✔ Update node: node3 [ platformVersion = v0.56.5 ]
 ✔ Fetch platform software into network nodes
+✔ Set file permissions
+✔ Node: node1
 ✔ Set file permissions
 ✔ Node: node2
 ✔ Set file permissions
 ✔ Node: node3
-✔ Set file permissions
-✔ Node: node1
 ✔ Setup network nodes
 ```
 
@@ -275,13 +275,13 @@ Kubernetes Namespace	: solo
 ✔ Check network pod: node2
 ✔ Check network pod: node3
 ✔ Identify existing network nodes
-✔ Start node: node3
 ✔ Start node: node1
+✔ Start node: node3
 ✔ Start node: node2
 ✔ Starting nodes
 ✔ Check network pod: node1  - status ACTIVE, attempt: 17/120
-✔ Check network pod: node3  - status ACTIVE, attempt: 17/120
 ✔ Check network pod: node2  - status ACTIVE, attempt: 17/120
+✔ Check network pod: node3  - status ACTIVE, attempt: 17/120
 ✔ Check all nodes are ACTIVE
 ✔ Check proxy for node: node1
 ✔ Check proxy for node: node2
@@ -318,10 +318,10 @@ Kubernetes Namespace	: solo
 ✔ Enable mirror-node
 ✔ Check Hedera Explorer
 ✔ Check Postgres DB
-✔ Check Monitor
 ✔ Check GRPC
 ✔ Check REST API
 ✔ Check Importer
+✔ Check Monitor
 ✔ Check pods are ready
 ✔ Insert data in public.file_data
 ✔ Seed DB data
