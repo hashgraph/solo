@@ -17,14 +17,16 @@
 import {Listr, type ListrTaskWrapper} from 'listr2';
 import {SoloError} from '../core/errors.js';
 import {BaseCommand} from './base.js';
-import * as flags from './flags.js';
-import {constants, Templates} from '../core/index.js';
-import * as prompts from './prompts.js';
+import {Flags as flags} from './flags.js';
+import * as constants from '../core/constants.js';
+import {Templates} from '../core/templates.js';
 import chalk from 'chalk';
 import {RemoteConfigTasks} from '../core/config/remote/remote_config_tasks.js';
 import {ListrLease} from '../core/lease/listr_lease.js';
 import type {Namespace} from '../core/config/remote/types.js';
-import type {CommandFlag, ContextClusterStructure} from '../types/index.js';
+import {type ContextClusterStructure} from '../types/config_types.js';
+import {type CommandFlag} from '../types/flag_types.js';
+import {type CommandBuilder} from '../types/aliases.js';
 
 export class DeploymentCommand extends BaseCommand {
   private static get DEPLOY_FLAGS_LIST(): CommandFlag[] {
@@ -58,7 +60,7 @@ export class DeploymentCommand extends BaseCommand {
             self.configManager.update(argv);
             self.logger.debug('Loaded cached config', {config: self.configManager.config});
 
-            await prompts.execute(task, self.configManager, DeploymentCommand.DEPLOY_FLAGS_LIST);
+            await flags.executePrompt(task, self.configManager, DeploymentCommand.DEPLOY_FLAGS_LIST);
 
             ctx.config = {
               contextClusterUnparsed: self.configManager.getFlag<string>(flags.contextClusterUnparsed),
@@ -122,7 +124,7 @@ export class DeploymentCommand extends BaseCommand {
     return true;
   }
 
-  public getCommandDefinition(): {command: string; desc: string; builder: Function} {
+  public getCommandDefinition(): {command: string; desc: string; builder: CommandBuilder} {
     const self = this;
     return {
       command: 'deployment',
@@ -153,5 +155,10 @@ export class DeploymentCommand extends BaseCommand {
           .demandCommand(1, 'Select a chart command');
       },
     };
+  }
+
+  close(): Promise<void> {
+    // no-op
+    return Promise.resolve();
   }
 }

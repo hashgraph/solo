@@ -17,8 +17,8 @@
 import {expect} from 'chai';
 import {describe, it} from 'mocha';
 
-import {ConfigManager} from '../../../src/core/index.js';
-import * as flags from '../../../src/commands/flags.js';
+import {ConfigManager} from '../../../src/core/config_manager.js';
+import {Flags as flags} from '../../../src/commands/flags.js';
 import {testLogger} from '../../test_util.js';
 
 describe('ConfigManager', () => {

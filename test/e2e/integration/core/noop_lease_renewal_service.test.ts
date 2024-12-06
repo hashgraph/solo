@@ -14,8 +14,7 @@
  * limitations under the License.
  *
  */
-import type {Lease} from '../../../../src/core/lease/lease.js';
-import {type LeaseRenewalService} from '../../../../src/core/lease/lease_renewal.js';
+import type {Lease, LeaseRenewalService} from '../../../../src/core/lease/types.js';
 
 export class NoopLeaseRenewalService implements LeaseRenewalService {
   private readonly buffer: SharedArrayBuffer;

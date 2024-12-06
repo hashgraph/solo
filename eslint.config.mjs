@@ -147,6 +147,13 @@ export default [
       '@typescript-eslint/explicit-module-boundary-types': 'off',
       '@typescript-eslint/ban-types': 'off',
       '@typescript-eslint/camelcase': 'off',
+      '@typescript-eslint/consistent-type-imports': [
+        // optional: assists in reducing circular dependencies
+        'error',
+        {
+          fixStyle: 'inline-type-imports',
+        },
+      ],
       '@typescript-eslint/no-explicit-any': 'warn', // TODO remove (771 errors)
       '@typescript-eslint/no-this-alias': [
         'error',
@@ -155,7 +162,6 @@ export default [
         },
       ],
       '@typescript-eslint/no-unused-vars': 'warn', // TODO remove (83 errors)
-      '@typescript-eslint/no-unsafe-function-type': 'warn', // TODO remove (16 errors)
       'n/no-process-exit': 'warn', // TODO remove (38 errors)
     },
   },

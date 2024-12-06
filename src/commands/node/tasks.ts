@@ -14,20 +14,18 @@
  * limitations under the License.
  *
  */
-import {
-  constants,
-  Task,
-  Templates,
-  Zippy,
-  type K8,
-  type ChartManager,
-  type ConfigManager,
-  type KeyManager,
-  type PlatformInstaller,
-  type ProfileManager,
-  type AccountManager,
-  type CertificateManager,
-} from '../../core/index.js';
+import {type AccountManager} from '../../core/account_manager.js';
+import {type ConfigManager} from '../../core/config_manager.js';
+import {type KeyManager} from '../../core/key_manager.js';
+import {type ProfileManager} from '../../core/profile_manager.js';
+import {type PlatformInstaller} from '../../core/platform_installer.js';
+import {type K8} from '../../core/k8.js';
+import {type ChartManager} from '../../core/chart_manager.js';
+import {type CertificateManager} from '../../core/certificate_manager.js';
+import {Zippy} from '../../core/zippy.js';
+import * as constants from '../../core/constants.js';
+import {Templates} from '../../core/templates.js';
+import {Task} from '../../core/task.js';
 import {
   DEFAULT_NETWORK_NODE_NAME,
   FREEZE_ADMIN_ACCOUNT,
@@ -52,36 +50,39 @@ import {
   Timestamp,
 } from '@hashgraph/sdk';
 import {IllegalArgumentError, MissingArgumentError, SoloError} from '../../core/errors.js';
-import * as prompts from '../prompts.js';
 import path from 'path';
 import fs from 'fs';
 import crypto from 'crypto';
 import {
   addDebugOptions,
   getNodeAccountMap,
-  getNodeLogs,
-  getNodeStatesFromPod,
   prepareEndpoints,
   renameAndCopyFile,
   sleep,
   splitFlagInput,
 } from '../../core/helpers.js';
 import chalk from 'chalk';
-import * as flags from '../flags.js';
+import {Flags as flags} from '../flags.js';
 import {type SoloLogger} from '../../core/logging.js';
 import type {Listr, ListrTaskWrapper} from 'listr2';
-import {type NodeAlias, type NodeAliases, type PodName} from '../../types/aliases.js';
+import {
+  type ConfigBuilder,
+  type NodeAlias,
+  type NodeAliases,
+  type PodName,
+  type SkipCheck,
+} from '../../types/aliases.js';
 import {NodeStatusCodes, NodeStatusEnums, NodeSubcommandType} from '../../core/enumerations.js';
 import * as x509 from '@peculiar/x509';
-import {type NodeCommand} from './index.js';
 import type {
   NodeAddConfigClass,
   NodeDeleteConfigClass,
   NodeRefreshConfigClass,
   NodeUpdateConfigClass,
 } from './configs.js';
-import {type Lease} from '../../core/lease/lease.js';
+import {type Lease} from '../../core/lease/types.js';
 import {ListrLease} from '../../core/lease/listr_lease.js';
+import {type BaseCommand} from '../base.js';
 
 export class NodeCommandTasks {
   private readonly accountManager: AccountManager;
@@ -91,7 +92,7 @@ export class NodeCommandTasks {
   private readonly platformInstaller: PlatformInstaller;
   private readonly logger: SoloLogger;
   private readonly k8: K8;
-  private readonly parent: NodeCommand;
+  private readonly parent: BaseCommand;
   private readonly chartManager: ChartManager;
   private readonly certificateManager: CertificateManager;
 
@@ -107,7 +108,7 @@ export class NodeCommandTasks {
     profileManager: ProfileManager;
     chartManager: ChartManager;
     certificateManager: CertificateManager;
-    parent: NodeCommand;
+    parent: BaseCommand;
   }) {
     if (!opts || !opts.accountManager)
       throw new IllegalArgumentError('An instance of core/AccountManager is required', opts.accountManager as any);
@@ -800,7 +801,7 @@ export class NodeCommandTasks {
     });
   }
 
-  uploadStateFiles(skip: Function | boolean) {
+  uploadStateFiles(skip: SkipCheck | boolean) {
     const self = this;
     return new Task(
       'Upload state files network nodes',
@@ -1118,7 +1119,7 @@ export class NodeCommandTasks {
 
   getNodeLogsAndConfigs() {
     return new Task('Get node logs and configs', async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
-      await getNodeLogs(this.k8, ctx.config.namespace);
+      await this.k8.getNodeLogs(ctx.config.namespace);
     });
   }
 
@@ -1126,7 +1127,7 @@ export class NodeCommandTasks {
     const self = this;
     return new Task('Get node states', async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
       for (const nodeAlias of ctx.config.nodeAliases) {
-        await getNodeStatesFromPod(self.k8, ctx.config.namespace, nodeAlias);
+        await self.k8.getNodeStatesFromPod(ctx.config.namespace, nodeAlias);
       }
     });
   }
@@ -1343,7 +1344,7 @@ export class NodeCommandTasks {
     });
   }
 
-  updateChartWithConfigMap(title: string, transactionType: NodeSubcommandType, skip: Function | boolean = false) {
+  updateChartWithConfigMap(title: string, transactionType: NodeSubcommandType, skip: SkipCheck | boolean = false) {
     const self = this;
     return new Task(
       title,
@@ -1591,7 +1592,7 @@ export class NodeCommandTasks {
     });
   }
 
-  initialize(argv: any, configInit: Function, lease: Lease | null) {
+  initialize(argv: any, configInit: ConfigBuilder, lease: Lease | null) {
     const {requiredFlags, requiredFlagsWithDisabledPrompt, optionalFlags} = argv;
     const allRequiredFlags = [...requiredFlags, ...requiredFlagsWithDisabledPrompt];
 
@@ -1606,7 +1607,7 @@ export class NodeCommandTasks {
       this.configManager.update(argv);
 
       // disable the prompts that we don't want to prompt the user for
-      prompts.disablePrompts([...requiredFlagsWithDisabledPrompt, ...optionalFlags]);
+      flags.disablePrompts([...requiredFlagsWithDisabledPrompt, ...optionalFlags]);
 
       const flagsToPrompt = [];
       for (const pFlag of requiredFlags) {
@@ -1616,7 +1617,7 @@ export class NodeCommandTasks {
         }
       }
 
-      await prompts.execute(task, this.configManager, flagsToPrompt);
+      await flags.executePrompt(task, this.configManager, flagsToPrompt);
 
       const config = await configInit(argv, ctx, task);
       ctx.config = config;

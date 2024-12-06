@@ -15,13 +15,12 @@
  *
  */
 
-import {YargsCommand} from '../../core/index.js';
+import * as ContextFlags from './flags.js';
+import {YargsCommand} from '../../core/yargs_command.js';
 import {BaseCommand} from './../base.js';
-import type {Opts} from '../../types/index.js';
+import {type Opts} from '../../types/command_types.js';
 import {ContextCommandTasks} from './tasks.js';
 import {ContextCommandHandlers} from './handlers.js';
-import * as ContextFlags from './flags.js';
-import {getPromptMap} from '../prompts.js';
 
 /**
  * Defines the core functionalities of 'node' command
@@ -32,7 +31,7 @@ export class ContextCommand extends BaseCommand {
   constructor(opts: Opts) {
     super(opts);
 
-    this.handlers = new ContextCommandHandlers(this, new ContextCommandTasks(this, getPromptMap()));
+    this.handlers = new ContextCommandHandlers(this, new ContextCommandTasks(this));
   }
 
   getCommandDefinition() {
@@ -55,5 +54,10 @@ export class ContextCommand extends BaseCommand {
           .demandCommand(1, 'Select a context command');
       },
     };
+  }
+
+  close(): Promise<void> {
+    // no-op
+    return Promise.resolve();
   }
 }

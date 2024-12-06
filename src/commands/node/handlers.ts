@@ -31,24 +31,28 @@ import {
   stopConfigBuilder,
   updateConfigBuilder,
 } from './configs.js';
-import {
-  type ConfigManager,
-  constants,
-  type K8,
-  type PlatformInstaller,
-  type AccountManager,
-  type LeaseManager,
-  type RemoteConfigManager,
-} from '../../core/index.js';
-import {IllegalArgumentError} from '../../core/errors.js';
-import {ConsensusNodeStates} from '../../core/config/remote/enumerations.js';
+import * as constants from '../../core/constants.js';
+import {type AccountManager} from '../../core/account_manager.js';
+import {type ConfigManager} from '../../core/config_manager.js';
+import {type PlatformInstaller} from '../../core/platform_installer.js';
+import {type K8} from '../../core/k8.js';
+import {type LeaseManager} from '../../core/lease/lease_manager.js';
+import {type RemoteConfigManager} from '../../core/config/remote/remote_config_manager.js';
+import {IllegalArgumentError, SoloError} from '../../core/errors.js';
+import {ComponentType, ConsensusNodeStates} from '../../core/config/remote/enumerations.js';
 import {RemoteConfigTasks} from '../../core/config/remote/remote_config_tasks.js';
 import type {SoloLogger} from '../../core/logging.js';
-import type {NodeCommand} from './index.js';
 import type {NodeCommandTasks} from './tasks.js';
-import {type Lease} from '../../core/lease/lease.js';
+import {type Lease} from '../../core/lease/types.js';
 import {NodeSubcommandType} from '../../core/enumerations.js';
-import {type CommandHandlers} from '../../types/index.js';
+import {type BaseCommand, type CommandHandlers} from '../base.js';
+import {NodeHelper} from './helper.js';
+import type {NodeAlias, NodeAliases} from '../../types/aliases.js';
+import {ConsensusNodeComponent} from '../../core/config/remote/components/consensus_node_component.js';
+import {type Listr, type ListrTask} from 'listr2';
+import chalk from 'chalk';
+import type {ComponentsDataWrapper} from '../../core/config/remote/components_data_wrapper.js';
+import type {Optional} from '../../types/index.js';
 
 export class NodeCommandHandlers implements CommandHandlers {
   private readonly accountManager: AccountManager;
@@ -63,7 +67,7 @@ export class NodeCommandHandlers implements CommandHandlers {
   private getConfig: any;
   private prepareChartPath: any;
 
-  public readonly parent: NodeCommand;
+  public readonly parent: BaseCommand;
 
   constructor(opts: any) {
     if (!opts || !opts.accountManager)
@@ -93,24 +97,13 @@ export class NodeCommandHandlers implements CommandHandlers {
   static readonly DELETE_CONTEXT_FILE = 'node-delete.json';
   static readonly UPDATE_CONTEXT_FILE = 'node-update.json';
 
-  async close() {
-    await this.accountManager.close();
-    if (this.parent._portForwards) {
-      for (const srv of this.parent._portForwards) {
-        await this.k8.stopPortForward(srv);
-      }
-    }
-
-    this.parent._portForwards = [];
-  }
-
   /** ******** Task Lists **********/
 
   deletePrepareTaskList(argv: any, lease: Lease) {
     return [
       this.tasks.initialize(argv, deleteConfigBuilder.bind(this), lease),
       RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
-      RemoteConfigTasks.validateSingleNodeState.bind(this)({excludedStates: []}),
+      this.validateSingleNodeState({excludedStates: []}),
       this.tasks.identifyExistingNodes(),
       this.tasks.loadAdminKey(),
       this.tasks.prepareUpgradeZip(),
@@ -154,7 +147,7 @@ export class NodeCommandHandlers implements CommandHandlers {
     return [
       this.tasks.initialize(argv, addConfigBuilder.bind(this), lease),
       RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
-      RemoteConfigTasks.validateSingleNodeState.bind(this)({excludedStates: []}),
+      this.validateSingleNodeState({excludedStates: []}),
       this.tasks.checkPVCsEnabled(),
       this.tasks.identifyExistingNodes(),
       this.tasks.determineNewNodeAccountNumber(),
@@ -207,7 +200,7 @@ export class NodeCommandHandlers implements CommandHandlers {
     return [
       this.tasks.initialize(argv, updateConfigBuilder.bind(this), lease),
       RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
-      RemoteConfigTasks.validateSingleNodeState.bind(this)({excludedStates: []}),
+      this.validateSingleNodeState({excludedStates: []}),
       this.tasks.identifyExistingNodes(),
       this.tasks.loadAdminKey(),
       this.tasks.prepareUpgradeZip(),
@@ -255,7 +248,7 @@ export class NodeCommandHandlers implements CommandHandlers {
 
     const lease = await this.leaseManager.create();
 
-    const action = helpers.commandActionBuilder(
+    const action = this.parent.commandActionBuilder(
       [
         this.tasks.initialize(argv, prepareUpgradeConfigBuilder.bind(this), lease),
         RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
@@ -277,7 +270,7 @@ export class NodeCommandHandlers implements CommandHandlers {
   async freezeUpgrade(argv: any) {
     argv = helpers.addFlagsToArgv(argv, NodeFlags.DEFAULT_FLAGS);
 
-    const action = helpers.commandActionBuilder(
+    const action = this.parent.commandActionBuilder(
       [
         this.tasks.initialize(argv, prepareUpgradeConfigBuilder.bind(this), null),
         RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
@@ -301,7 +294,7 @@ export class NodeCommandHandlers implements CommandHandlers {
 
     const lease = await this.leaseManager.create();
 
-    const action = helpers.commandActionBuilder(
+    const action = this.parent.commandActionBuilder(
       [
         this.tasks.initialize(argv, downloadGeneratedFilesConfigBuilder.bind(this), lease),
         RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
@@ -325,7 +318,7 @@ export class NodeCommandHandlers implements CommandHandlers {
 
     const lease = await this.leaseManager.create();
 
-    const action = helpers.commandActionBuilder(
+    const action = this.parent.commandActionBuilder(
       [
         ...this.updatePrepareTasks(argv, lease),
         ...this.updateSubmitTransactionsTasks(argv),
@@ -347,10 +340,10 @@ export class NodeCommandHandlers implements CommandHandlers {
     argv = helpers.addFlagsToArgv(argv, NodeFlags.UPDATE_PREPARE_FLAGS);
     const lease = await this.leaseManager.create();
 
-    const action = helpers.commandActionBuilder(
+    const action = this.parent.commandActionBuilder(
       [
         ...this.updatePrepareTasks(argv, lease),
-        this.tasks.saveContextData(argv, NodeCommandHandlers.UPDATE_CONTEXT_FILE, helpers.updateSaveContextParser),
+        this.tasks.saveContextData(argv, NodeCommandHandlers.UPDATE_CONTEXT_FILE, NodeHelper.updateSaveContextParser),
       ],
       {
         concurrent: false,
@@ -367,11 +360,11 @@ export class NodeCommandHandlers implements CommandHandlers {
   async updateSubmitTransactions(argv) {
     const lease = await this.leaseManager.create();
     argv = helpers.addFlagsToArgv(argv, NodeFlags.UPDATE_SUBMIT_TRANSACTIONS_FLAGS);
-    const action = helpers.commandActionBuilder(
+    const action = this.parent.commandActionBuilder(
       [
         this.tasks.initialize(argv, updateConfigBuilder.bind(this), lease),
         RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
-        this.tasks.loadContextData(argv, NodeCommandHandlers.UPDATE_CONTEXT_FILE, helpers.updateLoadContextParser),
+        this.tasks.loadContextData(argv, NodeCommandHandlers.UPDATE_CONTEXT_FILE, NodeHelper.updateLoadContextParser),
         ...this.updateSubmitTransactionsTasks(argv),
       ],
       {
@@ -389,11 +382,11 @@ export class NodeCommandHandlers implements CommandHandlers {
   async updateExecute(argv) {
     const lease = await this.leaseManager.create();
     argv = helpers.addFlagsToArgv(argv, NodeFlags.UPDATE_EXECUTE_FLAGS);
-    const action = helpers.commandActionBuilder(
+    const action = this.parent.commandActionBuilder(
       [
         this.tasks.initialize(argv, updateConfigBuilder.bind(this), lease),
         RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
-        this.tasks.loadContextData(argv, NodeCommandHandlers.UPDATE_CONTEXT_FILE, helpers.updateLoadContextParser),
+        this.tasks.loadContextData(argv, NodeCommandHandlers.UPDATE_CONTEXT_FILE, NodeHelper.updateLoadContextParser),
         ...this.updateExecuteTasks(argv),
       ],
       {
@@ -411,7 +404,7 @@ export class NodeCommandHandlers implements CommandHandlers {
   async delete(argv: any) {
     argv = helpers.addFlagsToArgv(argv, NodeFlags.DELETE_FLAGS);
     const lease = await this.leaseManager.create();
-    const action = helpers.commandActionBuilder(
+    const action = this.parent.commandActionBuilder(
       [
         ...this.deletePrepareTaskList(argv, lease),
         ...this.deleteSubmitTransactionsTaskList(argv),
@@ -434,10 +427,10 @@ export class NodeCommandHandlers implements CommandHandlers {
 
     const lease = await this.leaseManager.create();
 
-    const action = helpers.commandActionBuilder(
+    const action = this.parent.commandActionBuilder(
       [
         ...this.deletePrepareTaskList(argv, lease),
-        this.tasks.saveContextData(argv, NodeCommandHandlers.DELETE_CONTEXT_FILE, helpers.deleteSaveContextParser),
+        this.tasks.saveContextData(argv, NodeCommandHandlers.DELETE_CONTEXT_FILE, NodeHelper.deleteSaveContextParser),
       ],
       {
         concurrent: false,
@@ -456,10 +449,10 @@ export class NodeCommandHandlers implements CommandHandlers {
 
     const lease = await this.leaseManager.create();
 
-    const action = helpers.commandActionBuilder(
+    const action = this.parent.commandActionBuilder(
       [
         this.tasks.initialize(argv, deleteConfigBuilder.bind(this), lease),
-        this.tasks.loadContextData(argv, NodeCommandHandlers.DELETE_CONTEXT_FILE, helpers.deleteLoadContextParser),
+        this.tasks.loadContextData(argv, NodeCommandHandlers.DELETE_CONTEXT_FILE, NodeHelper.deleteLoadContextParser),
         ...this.deleteSubmitTransactionsTaskList(argv),
       ],
       {
@@ -479,10 +472,10 @@ export class NodeCommandHandlers implements CommandHandlers {
 
     const lease = await this.leaseManager.create();
 
-    const action = helpers.commandActionBuilder(
+    const action = this.parent.commandActionBuilder(
       [
         this.tasks.initialize(argv, deleteConfigBuilder.bind(this), lease),
-        this.tasks.loadContextData(argv, NodeCommandHandlers.DELETE_CONTEXT_FILE, helpers.deleteLoadContextParser),
+        this.tasks.loadContextData(argv, NodeCommandHandlers.DELETE_CONTEXT_FILE, NodeHelper.deleteLoadContextParser),
         ...this.deleteExecuteTaskList(argv),
       ],
       {
@@ -502,7 +495,7 @@ export class NodeCommandHandlers implements CommandHandlers {
 
     const lease = await this.leaseManager.create();
 
-    const action = helpers.commandActionBuilder(
+    const action = this.parent.commandActionBuilder(
       [...this.addPrepareTasks(argv, lease), ...this.addSubmitTransactionsTasks(argv), ...this.addExecuteTasks(argv)],
       {
         concurrent: false,
@@ -521,7 +514,7 @@ export class NodeCommandHandlers implements CommandHandlers {
 
     const lease = await this.leaseManager.create();
 
-    const action = helpers.commandActionBuilder(
+    const action = this.parent.commandActionBuilder(
       [
         ...this.addPrepareTasks(argv, lease),
         this.tasks.saveContextData(argv, NodeCommandHandlers.ADD_CONTEXT_FILE, helpers.addSaveContextParser),
@@ -543,7 +536,7 @@ export class NodeCommandHandlers implements CommandHandlers {
 
     const lease = await this.leaseManager.create();
 
-    const action = helpers.commandActionBuilder(
+    const action = this.parent.commandActionBuilder(
       [
         this.tasks.initialize(argv, addConfigBuilder.bind(this), lease),
         RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
@@ -567,7 +560,7 @@ export class NodeCommandHandlers implements CommandHandlers {
 
     const lease = await this.leaseManager.create();
 
-    const action = helpers.commandActionBuilder(
+    const action = this.parent.commandActionBuilder(
       [
         this.tasks.initialize(argv, addConfigBuilder.bind(this), lease),
         RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
@@ -589,7 +582,7 @@ export class NodeCommandHandlers implements CommandHandlers {
 
   async logs(argv: any) {
     argv = helpers.addFlagsToArgv(argv, NodeFlags.LOGS_FLAGS);
-    const action = helpers.commandActionBuilder(
+    const action = this.parent.commandActionBuilder(
       [
         this.tasks.initialize(argv, logsConfigBuilder.bind(this), null),
         RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
@@ -610,7 +603,7 @@ export class NodeCommandHandlers implements CommandHandlers {
   async states(argv: any) {
     argv = helpers.addFlagsToArgv(argv, NodeFlags.STATES_FLAGS);
 
-    const action = helpers.commandActionBuilder(
+    const action = this.parent.commandActionBuilder(
       [this.tasks.initialize(argv, statesConfigBuilder.bind(this), null), this.tasks.getNodeStateFiles()],
       {
         concurrent: false,
@@ -629,11 +622,11 @@ export class NodeCommandHandlers implements CommandHandlers {
 
     const lease = await this.leaseManager.create();
 
-    const action = helpers.commandActionBuilder(
+    const action = this.parent.commandActionBuilder(
       [
         this.tasks.initialize(argv, refreshConfigBuilder.bind(this), lease),
         RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
-        RemoteConfigTasks.validateAllNodeStates.bind(this)({
+        this.validateAllNodeStates({
           acceptedStates: [ConsensusNodeStates.STARTED, ConsensusNodeStates.SETUP, ConsensusNodeStates.INITIALIZED],
         }),
         this.tasks.identifyNetworkPods(),
@@ -659,7 +652,7 @@ export class NodeCommandHandlers implements CommandHandlers {
   async keys(argv: any) {
     argv = helpers.addFlagsToArgv(argv, NodeFlags.KEYS_FLAGS);
 
-    const action = helpers.commandActionBuilder(
+    const action = this.parent.commandActionBuilder(
       [
         this.tasks.initialize(argv, keysConfigBuilder.bind(this), null),
         RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
@@ -684,16 +677,16 @@ export class NodeCommandHandlers implements CommandHandlers {
 
     const lease = await this.leaseManager.create();
 
-    const action = helpers.commandActionBuilder(
+    const action = this.parent.commandActionBuilder(
       [
         this.tasks.initialize(argv, stopConfigBuilder.bind(this), lease),
         RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
-        RemoteConfigTasks.validateAllNodeStates.bind(this)({
+        this.validateAllNodeStates({
           acceptedStates: [ConsensusNodeStates.STARTED, ConsensusNodeStates.SETUP],
         }),
         this.tasks.identifyNetworkPods(),
         this.tasks.stopNodes(),
-        RemoteConfigTasks.changeAllNodeStates.bind(this)(ConsensusNodeStates.INITIALIZED),
+        this.changeAllNodeStates(ConsensusNodeStates.INITIALIZED),
       ],
       {
         concurrent: false,
@@ -712,18 +705,18 @@ export class NodeCommandHandlers implements CommandHandlers {
 
     const lease = await this.leaseManager.create();
 
-    const action = helpers.commandActionBuilder(
+    const action = this.parent.commandActionBuilder(
       [
         this.tasks.initialize(argv, startConfigBuilder.bind(this), lease),
         RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
-        RemoteConfigTasks.validateAllNodeStates.bind(this)({acceptedStates: [ConsensusNodeStates.SETUP]}),
+        this.validateAllNodeStates({acceptedStates: [ConsensusNodeStates.SETUP]}),
         this.tasks.identifyExistingNodes(),
         this.tasks.uploadStateFiles((ctx: any) => ctx.config.stateFile.length === 0),
         this.tasks.startNodes('nodeAliases'),
         this.tasks.enablePortForwarding(),
         this.tasks.checkAllNodesAreActive('nodeAliases'),
         this.tasks.checkNodeProxiesAreActive(),
-        RemoteConfigTasks.changeAllNodeStates.bind(this)(ConsensusNodeStates.STARTED),
+        this.changeAllNodeStates(ConsensusNodeStates.STARTED),
         this.tasks.addNodeStakes(),
       ],
       {
@@ -743,17 +736,17 @@ export class NodeCommandHandlers implements CommandHandlers {
 
     const lease = await this.leaseManager.create();
 
-    const action = helpers.commandActionBuilder(
+    const action = this.parent.commandActionBuilder(
       [
         this.tasks.initialize(argv, setupConfigBuilder.bind(this), lease),
         RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
-        RemoteConfigTasks.validateAllNodeStates.bind(this)({
+        this.validateAllNodeStates({
           acceptedStates: [ConsensusNodeStates.INITIALIZED],
         }),
         this.tasks.identifyNetworkPods(),
         this.tasks.fetchPlatformSoftware('nodeAliases'),
         this.tasks.setupNetworkNodes('nodeAliases'),
-        RemoteConfigTasks.changeAllNodeStates.bind(this)(ConsensusNodeStates.SETUP),
+        this.changeAllNodeStates(ConsensusNodeStates.SETUP),
       ],
       {
         concurrent: false,
@@ -765,5 +758,160 @@ export class NodeCommandHandlers implements CommandHandlers {
 
     await action(argv, this);
     return true;
+  }
+
+  /** Removes the consensus node, envoy and haproxy components from remote config.  */
+  public removeNodeAndProxies(): ListrTask<any, any, any> {
+    return {
+      skip: (): boolean => !this.remoteConfigManager.isLoaded(),
+      title: 'Remove node and proxies from remote config',
+      task: async (): Promise<void> => {
+        await this.remoteConfigManager.modify(async remoteConfig => {
+          remoteConfig.components.remove('Consensus node name', ComponentType.ConsensusNode);
+          remoteConfig.components.remove('Envoy proxy name', ComponentType.EnvoyProxy);
+          remoteConfig.components.remove('HaProxy name', ComponentType.HaProxy);
+        });
+      },
+    };
+  }
+
+  /**
+   * Changes the state from all consensus nodes components in remote config.
+   *
+   * @param state - to which to change the consensus node component
+   */
+  public changeAllNodeStates(state: ConsensusNodeStates): ListrTask<any, any, any> {
+    interface Context {
+      config: {namespace: string; nodeAliases: NodeAliases};
+    }
+
+    return {
+      title: `Change node state to ${state} in remote config`,
+      skip: (): boolean => !this.remoteConfigManager.isLoaded(),
+      task: async (ctx: Context): Promise<void> => {
+        await this.remoteConfigManager.modify(async remoteConfig => {
+          const {
+            config: {namespace, nodeAliases},
+          } = ctx;
+          const cluster = this.remoteConfigManager.currentCluster;
+
+          for (const nodeAlias of nodeAliases) {
+            remoteConfig.components.edit(nodeAlias, new ConsensusNodeComponent(nodeAlias, cluster, namespace, state));
+          }
+        });
+      },
+    };
+  }
+
+  /**
+   * Creates tasks to validate that each node state is either one of the accepted states or not one of the excluded.
+   *
+   * @param acceptedStates - the state at which the nodes can be, not matching any of the states throws an error
+   * @param excludedStates - the state at which the nodes can't be, matching any of the states throws an error
+   */
+  public validateAllNodeStates({
+    acceptedStates,
+    excludedStates,
+  }: {
+    acceptedStates?: ConsensusNodeStates[];
+    excludedStates?: ConsensusNodeStates[];
+  }): ListrTask<any, any, any> {
+    interface Context {
+      config: {namespace: string; nodeAliases: NodeAliases};
+    }
+
+    return {
+      title: 'Validate nodes states',
+      skip: (): boolean => !this.remoteConfigManager.isLoaded(),
+      task: (ctx: Context, task): Listr<any, any, any> => {
+        const nodeAliases = ctx.config.nodeAliases;
+
+        const components = this.remoteConfigManager.components;
+
+        const subTasks: ListrTask<Context, any, any>[] = nodeAliases.map(nodeAlias => ({
+          title: `Validating state for node ${nodeAlias}`,
+          task: (_, task): void => {
+            const state = this.validateNodeState(nodeAlias, components, acceptedStates, excludedStates);
+
+            task.title += ` - ${chalk.green('valid state')}: ${chalk.cyan(state)}`;
+          },
+        }));
+
+        return task.newListr(subTasks, {
+          concurrent: false,
+          rendererOptions: {collapseSubtasks: false},
+        });
+      },
+    };
+  }
+
+  /**
+   * Creates tasks to validate that specific node state is either one of the accepted states or not one of the excluded.
+   *
+   * @param acceptedStates - the state at which the node can be, not matching any of the states throws an error
+   * @param excludedStates - the state at which the node can't be, matching any of the states throws an error
+   */
+  public validateSingleNodeState({
+    acceptedStates,
+    excludedStates,
+  }: {
+    acceptedStates?: ConsensusNodeStates[];
+    excludedStates?: ConsensusNodeStates[];
+  }): ListrTask<any, any, any> {
+    interface Context {
+      config: {namespace: string; nodeAlias: NodeAlias};
+    }
+
+    return {
+      title: 'Validate nodes state',
+      skip: (): boolean => !this.remoteConfigManager.isLoaded(),
+      task: (ctx: Context, task): void => {
+        const nodeAlias = ctx.config.nodeAlias;
+
+        task.title += ` ${nodeAlias}`;
+
+        const components = this.remoteConfigManager.components;
+
+        const state = this.validateNodeState(nodeAlias, components, acceptedStates, excludedStates);
+
+        task.title += ` - ${chalk.green('valid state')}: ${chalk.cyan(state)}`;
+      },
+    };
+  }
+
+  /**
+   * @param nodeAlias - the alias of the node whose state to validate
+   * @param components - the component data wrapper
+   * @param acceptedStates - the state at which the node can be, not matching any of the states throws an error
+   * @param excludedStates - the state at which the node can't be, matching any of the states throws an error
+   */
+  private validateNodeState(
+    nodeAlias: NodeAlias,
+    components: ComponentsDataWrapper,
+    acceptedStates: Optional<ConsensusNodeStates[]>,
+    excludedStates: Optional<ConsensusNodeStates[]>,
+  ): ConsensusNodeStates {
+    let nodeComponent: ConsensusNodeComponent;
+    try {
+      nodeComponent = components.getComponent<ConsensusNodeComponent>(ComponentType.ConsensusNode, nodeAlias);
+    } catch (e) {
+      throw new SoloError(`${nodeAlias} not found in remote config`);
+    }
+
+    if (acceptedStates && !acceptedStates.includes(nodeComponent.state)) {
+      const errorMessageData =
+        `accepted states: ${acceptedStates.join(', ')}, ` + `current state: ${nodeComponent.state}`;
+
+      throw new SoloError(`${nodeAlias} has invalid state - ` + errorMessageData);
+    }
+
+    if (excludedStates && excludedStates.includes(nodeComponent.state)) {
+      const errorMessageData =
+        `excluded states: ${excludedStates.join(', ')}, ` + `current state: ${nodeComponent.state}`;
+
+      throw new SoloError(`${nodeAlias} has invalid state - ` + errorMessageData);
+    }
+
+    return nodeComponent.state;
   }
 }

@@ -14,10 +14,11 @@
  * limitations under the License.
  *
  */
-import {type ConfigManager, LocalConfig} from '../../../src/core/index.js';
 import fs from 'fs';
 import {stringify} from 'yaml';
 import {expect} from 'chai';
+import {LocalConfig} from '../../../src/core/config/local_config.js';
+import {type ConfigManager} from '../../../src/core/config_manager.js';
 import {MissingArgumentError, SoloError} from '../../../src/core/errors.js';
 import {getTestCacheDir, testLogger, testLocalConfigData} from '../../test_util.js';
 import type {EmailAddress} from '../../../src/core/config/remote/types.js';

@@ -18,10 +18,10 @@ import {after, afterEach, describe} from 'mocha';
 import {expect} from 'chai';
 import each from 'mocha-each';
 
-import {flags} from '../../../src/commands/index.js';
+import {Flags as flags} from '../../../src/commands/flags.js';
 import {e2eTestSuite, getDefaultArgv, HEDERA_PLATFORM_VERSION_TAG, TEST_CLUSTER} from '../../test_util.js';
 import * as version from '../../../version.js';
-import {getNodeLogs, sleep} from '../../../src/core/helpers.js';
+import {sleep} from '../../../src/core/helpers.js';
 import {RelayCommand} from '../../../src/commands/relay.js';
 import {MINUTES} from '../../../src/core/constants.js';
 
@@ -46,7 +46,7 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
     const relayCmd = new RelayCommand(bootstrapResp.opts);
 
     after(async () => {
-      await getNodeLogs(k8, namespace);
+      await k8.getNodeLogs(namespace);
       await k8.deleteNamespace(namespace);
     });
 

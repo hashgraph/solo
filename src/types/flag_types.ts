@@ -14,20 +14,21 @@
  * limitations under the License.
  *
  */
-import {BaseComponent} from './base_component.js';
-import {ConsensusNodeComponent} from './consensus_node_component.js';
-import {HaProxyComponent} from './ha_proxy_component.js';
-import {EnvoyProxyComponent} from './envoy_proxy_component.js';
-import {MirrorNodeComponent} from './mirror_node_component.js';
-import {MirrorNodeExplorerComponent} from './mirror_node_explorer_component.js';
-import {RelayComponent} from './relay_component.js';
+import {type ListrTaskWrapper} from 'listr2';
 
-export {
-  BaseComponent,
-  ConsensusNodeComponent,
-  HaProxyComponent,
-  EnvoyProxyComponent,
-  MirrorNodeComponent,
-  MirrorNodeExplorerComponent,
-  RelayComponent,
-};
+export type PromptFunction = (task: ListrTaskWrapper<any, any, any>, input: any) => Promise<any>;
+
+export interface CommandFlag {
+  constName: string;
+  name: string;
+  definition: Definition;
+  prompt: PromptFunction;
+}
+
+export interface Definition {
+  describe: string;
+  defaultValue?: boolean | string | number;
+  alias?: string;
+  type?: string;
+  disablePrompt?: boolean;
+}

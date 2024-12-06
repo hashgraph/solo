@@ -16,23 +16,32 @@
  */
 import {ComponentType} from './enumerations.js';
 import {SoloError} from '../../errors.js';
+import {BaseComponent} from './components/base_component.js';
+import {RelayComponent} from './components/relay_component.js';
+import {HaProxyComponent} from './components/ha_proxy_component.js';
+import {MirrorNodeComponent} from './components/mirror_node_component.js';
+import {EnvoyProxyComponent} from './components/envoy_proxy_component.js';
+import {ConsensusNodeComponent} from './components/consensus_node_component.js';
+import {MirrorNodeExplorerComponent} from './components/mirror_node_explorer_component.js';
 import {
-  BaseComponent,
-  ConsensusNodeComponent,
-  HaProxyComponent,
-  EnvoyProxyComponent,
-  MirrorNodeComponent,
-  MirrorNodeExplorerComponent,
-  RelayComponent,
-} from './components/index.js';
-import type {
-  Component,
-  ComponentsDataStructure,
-  IConsensusNodeComponent,
-  IRelayComponent,
-  ComponentName,
+  type Component,
+  type ComponentsDataStructure,
+  type IConsensusNodeComponent,
+  type IRelayComponent,
+  type ComponentName,
+  type Cluster,
+  type Namespace,
 } from './types.js';
 import type {ToObject, Validate} from '../../../types/index.js';
+import type {RemoteConfigMetadata} from './metadata.js';
+
+export interface RemoteConfigData {
+  metadata: RemoteConfigMetadata;
+  clusters: Record<Cluster, Namespace>;
+  components: ComponentsDataWrapper;
+  lastExecutedCommand: string;
+  commandHistory: string[];
+}
 
 /**
  * Represent the components in the remote config and handles:
@@ -50,12 +59,12 @@ export class ComponentsDataWrapper implements Validate, ToObject<ComponentsDataS
    * @param mirrorNodeExplorers - Mirror Node Explorers record mapping service name to mirror node explorers components
    */
   private constructor(
-    private readonly relays: Record<ComponentName, RelayComponent> = {},
-    private readonly haProxies: Record<ComponentName, HaProxyComponent> = {},
-    private readonly mirrorNodes: Record<ComponentName, MirrorNodeComponent> = {},
-    private readonly envoyProxies: Record<ComponentName, EnvoyProxyComponent> = {},
-    private readonly consensusNodes: Record<ComponentName, ConsensusNodeComponent> = {},
-    private readonly mirrorNodeExplorers: Record<ComponentName, MirrorNodeExplorerComponent> = {},
+    public readonly relays: Record<ComponentName, RelayComponent> = {},
+    public readonly haProxies: Record<ComponentName, HaProxyComponent> = {},
+    public readonly mirrorNodes: Record<ComponentName, MirrorNodeComponent> = {},
+    public readonly envoyProxies: Record<ComponentName, EnvoyProxyComponent> = {},
+    public readonly consensusNodes: Record<ComponentName, ConsensusNodeComponent> = {},
+    public readonly mirrorNodeExplorers: Record<ComponentName, MirrorNodeExplorerComponent> = {},
   ) {
     this.validate();
   }

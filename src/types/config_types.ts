@@ -14,11 +14,6 @@
  * limitations under the License.
  *
  */
+import type {Cluster, Context} from '../core/config/remote/types.js';
 
-import {Flags as flags} from '../flags.js';
-
-export const USE_FLAGS = {
-  requiredFlags: [],
-  requiredFlagsWithDisabledPrompt: [],
-  optionalFlags: [flags.devMode, flags.quiet, flags.clusterName, flags.context, flags.force, flags.namespace],
-};
+export type ContextClusterStructure = Record<Context, Cluster>;

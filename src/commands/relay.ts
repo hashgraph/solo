@@ -14,19 +14,21 @@
  * limitations under the License.
  *
  */
-import {Listr} from 'listr2';
+import {Listr, type ListrTask} from 'listr2';
 import {SoloError, MissingArgumentError} from '../core/errors.js';
 import * as helpers from '../core/helpers.js';
-import type {ProfileManager, AccountManager} from '../core/index.js';
-import {constants} from '../core/index.js';
+import * as constants from '../core/constants.js';
+import {type ProfileManager} from '../core/profile_manager.js';
+import {type AccountManager} from '../core/account_manager.js';
 import {BaseCommand} from './base.js';
-import * as flags from './flags.js';
-import * as prompts from './prompts.js';
+import {Flags as flags} from './flags.js';
 import {getNodeAccountMap} from '../core/helpers.js';
 import {RemoteConfigTasks} from '../core/config/remote/remote_config_tasks.js';
+import {type CommandBuilder, type NodeAliases} from '../types/aliases.js';
+import {type Opts} from '../types/command_types.js';
 import {ListrLease} from '../core/lease/listr_lease.js';
-import type {NodeAliases} from '../types/aliases.js';
-import type {Opts} from '../types/index.js';
+import {RelayComponent} from '../core/config/remote/components/relay_component.js';
+import {ComponentType} from '../core/config/remote/enumerations.js';
 
 export class RelayCommand extends BaseCommand {
   private readonly profileManager: ProfileManager;
@@ -200,7 +202,7 @@ export class RelayCommand extends BaseCommand {
 
             self.configManager.update(argv);
 
-            await prompts.execute(task, self.configManager, RelayCommand.DEPLOY_FLAGS_LIST);
+            await flags.executePrompt(task, self.configManager, RelayCommand.DEPLOY_FLAGS_LIST);
 
             // prompt if inputs are empty and set it in the context
             ctx.config = this.getConfig(RelayCommand.DEPLOY_CONFIGS_NAME, RelayCommand.DEPLOY_FLAGS_LIST, [
@@ -282,7 +284,7 @@ export class RelayCommand extends BaseCommand {
             }
           },
         },
-        RemoteConfigTasks.addRelayComponent.bind(this)(),
+        this.addRelayComponent(),
       ],
       {
         concurrent: false,
@@ -326,7 +328,7 @@ export class RelayCommand extends BaseCommand {
             self.configManager.setFlag(flags.nodeAliasesUnparsed, '');
 
             self.configManager.update(argv);
-            await prompts.execute(task, self.configManager, RelayCommand.DESTROY_FLAGS_LIST);
+            await flags.executePrompt(task, self.configManager, RelayCommand.DESTROY_FLAGS_LIST);
 
             // prompt if inputs are empty and set it in the context
             ctx.config = {
@@ -363,7 +365,7 @@ export class RelayCommand extends BaseCommand {
           },
           skip: ctx => !ctx.config.isChartInstalled,
         },
-        RemoteConfigTasks.removeRelayComponent.bind(this)(),
+        this.removeRelayComponent(),
       ],
       {
         concurrent: false,
@@ -382,7 +384,7 @@ export class RelayCommand extends BaseCommand {
     return true;
   }
 
-  getCommandDefinition(): {command: string; desc: string; builder: Function} {
+  getCommandDefinition(): {command: string; desc: string; builder: CommandBuilder} {
     const self = this;
     return {
       command: 'relay',
@@ -430,5 +432,41 @@ export class RelayCommand extends BaseCommand {
           .demandCommand(1, 'Select a relay command');
       },
     };
+  }
+
+  /** Adds the relay component to remote config. */
+  public addRelayComponent(): ListrTask<any, any, any> {
+    return {
+      title: 'Add relay component in remote config',
+      skip: (): boolean => !this.remoteConfigManager.isLoaded(),
+      task: async (ctx): Promise<void> => {
+        await this.remoteConfigManager.modify(async remoteConfig => {
+          const {
+            config: {namespace, nodeAliases},
+          } = ctx;
+          const cluster = this.remoteConfigManager.currentCluster;
+
+          remoteConfig.components.add('relay', new RelayComponent('relay', cluster, namespace, nodeAliases));
+        });
+      },
+    };
+  }
+
+  /** Remove the relay component from remote config. */
+  public removeRelayComponent(): ListrTask<any, any, any> {
+    return {
+      title: 'Remove relay component from remote config',
+      skip: (): boolean => !this.remoteConfigManager.isLoaded(),
+      task: async (): Promise<void> => {
+        await this.remoteConfigManager.modify(async remoteConfig => {
+          remoteConfig.components.remove('relay', ComponentType.Relay);
+        });
+      },
+    };
+  }
+
+  close(): Promise<void> {
+    // no-op
+    return Promise.resolve();
   }
 }

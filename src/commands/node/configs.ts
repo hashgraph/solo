@@ -15,14 +15,15 @@
  *
  */
 import {FREEZE_ADMIN_ACCOUNT} from '../../core/constants.js';
-import {constants, Templates} from '../../core/index.js';
+import {Templates} from '../../core/templates.js';
+import * as constants from '../../core/constants.js';
 import {PrivateKey} from '@hashgraph/sdk';
 import {SoloError} from '../../core/errors.js';
 import * as helpers from '../../core/helpers.js';
 import path from 'path';
 import fs from 'fs';
 import {validatePath} from '../../core/helpers.js';
-import * as flags from '../flags.js';
+import {Flags as flags} from '../flags.js';
 import {type NodeAlias, type NodeAliases, type PodName} from '../../types/aliases.js';
 import {type NetworkNodeServices} from '../../core/network_node_services.js';
 

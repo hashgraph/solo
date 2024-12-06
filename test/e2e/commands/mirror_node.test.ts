@@ -17,7 +17,7 @@
 import {it, describe, after, before, afterEach} from 'mocha';
 import {expect} from 'chai';
 
-import {flags} from '../../../src/commands/index.js';
+import {Flags as flags} from '../../../src/commands/flags.js';
 import {
   accountCreationShouldSucceed,
   balanceQueryShouldSucceed,
@@ -27,13 +27,13 @@ import {
   TEST_CLUSTER,
 } from '../../test_util.js';
 import * as version from '../../../version.js';
-import {getNodeLogs, sleep} from '../../../src/core/helpers.js';
+import {sleep} from '../../../src/core/helpers.js';
 import {MirrorNodeCommand} from '../../../src/commands/mirror_node.js';
-import * as core from '../../../src/core/index.js';
 import {Status, TopicCreateTransaction, TopicMessageSubmitTransaction} from '@hashgraph/sdk';
 import * as http from 'http';
 import {MINUTES, SECONDS} from '../../../src/core/constants.js';
 import type {PodName} from '../../../src/types/aliases.js';
+import {PackageDownloader} from '../../../src/core/package_downloader.js';
 
 const testName = 'mirror-cmd-e2e';
 const namespace = testName;
@@ -57,7 +57,7 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
   describe('MirrorNodeCommand', async () => {
     const k8 = bootstrapResp.opts.k8;
     const mirrorNodeCmd = new MirrorNodeCommand(bootstrapResp.opts);
-    const downloader = new core.PackageDownloader(mirrorNodeCmd.logger);
+    const downloader = new PackageDownloader(mirrorNodeCmd.logger);
     const accountManager = bootstrapResp.opts.accountManager;
 
     const testMessage = 'Mirror node test message';
@@ -71,7 +71,7 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
     after(async function () {
       this.timeout(3 * MINUTES);
 
-      await getNodeLogs(k8, namespace);
+      await k8.getNodeLogs(namespace);
       await k8.deleteNamespace(namespace);
       await accountManager.close();
 

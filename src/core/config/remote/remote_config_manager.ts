@@ -19,17 +19,18 @@ import {MissingArgumentError, SoloError} from '../../errors.js';
 import {RemoteConfigDataWrapper} from './remote_config_data_wrapper.js';
 import chalk from 'chalk';
 import {RemoteConfigMetadata} from './metadata.js';
-import {flags} from '../../../commands/index.js';
+import {Flags as flags} from '../../../commands/flags.js';
 import * as yaml from 'yaml';
 import {ComponentsDataWrapper} from './components_data_wrapper.js';
+import {RemoteConfigValidator} from './remote_config_validator.js';
 import type {K8} from '../../k8.js';
 import type {Cluster, Namespace} from './types.js';
 import type {SoloLogger} from '../../logging.js';
-import type {ListrTask} from 'listr2';
 import type {ConfigManager} from '../../config_manager.js';
 import type {LocalConfig} from '../local_config.js';
 import type {DeploymentStructure} from '../local_config_data.js';
-import type {ContextClusterStructure, Optional} from '../../../types/index.js';
+import {type ContextClusterStructure} from '../../../types/config_types.js';
+import {type EmptyContextConfig, type Optional, type SoloListrTask} from '../../../types/index.js';
 import type * as k8s from '@kubernetes/client-node';
 
 interface ListrContext {
@@ -137,6 +138,7 @@ export class RemoteConfigManager {
     if (!configMap) return false;
 
     this.remoteConfig = RemoteConfigDataWrapper.fromConfigmap(configMap);
+
     return true;
   }
 
@@ -149,7 +151,7 @@ export class RemoteConfigManager {
    * @param argv - arguments containing command input for historical reference.
    * @returns a Listr task which loads the remote configuration.
    */
-  public buildLoadTask(argv: {_: string[]}): ListrTask {
+  public buildLoadTask(argv: {_: string[]}): SoloListrTask<EmptyContextConfig> {
     const self = this;
 
     return {
@@ -170,6 +172,8 @@ export class RemoteConfigManager {
           // throw new SoloError('Failed to load remote config')
         }
 
+        await RemoteConfigValidator.validateComponents(self.remoteConfig.components, self.k8);
+
         const currentCommand = argv._.join(' ');
         self.remoteConfig!.addCommandToHistory(currentCommand);
 
@@ -184,7 +188,7 @@ export class RemoteConfigManager {
    *
    * @returns a Listr task which creates the remote configuration.
    */
-  public buildCreateTask(): ListrTask<ListrContext> {
+  public buildCreateTask(): SoloListrTask<ListrContext> {
     const self = this;
 
     return {

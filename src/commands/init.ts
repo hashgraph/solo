@@ -17,11 +17,10 @@
 import {Listr} from 'listr2';
 import path from 'path';
 import {BaseCommand} from './base.js';
-import * as core from '../core/index.js';
-import {constants} from '../core/index.js';
-import * as fs from 'fs';
+import fs from 'fs';
+import * as constants from '../core/constants.js';
 import {SoloError} from '../core/errors.js';
-import * as flags from './flags.js';
+import {Flags as flags} from './flags.js';
 import chalk from 'chalk';
 
 /**
@@ -82,7 +81,7 @@ export class InitCommand extends BaseCommand {
         {
           title: 'Check dependencies',
           task: (_, task) => {
-            const deps = [core.constants.HELM];
+            const deps = [constants.HELM];
 
             const subTasks = self.depManager.taskCheckDependencies<Context>(deps);
 
@@ -176,5 +175,10 @@ export class InitCommand extends BaseCommand {
           });
       },
     };
+  }
+
+  close(): Promise<void> {
+    // no-op
+    return Promise.resolve();
   }
 }

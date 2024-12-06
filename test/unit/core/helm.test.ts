@@ -19,7 +19,10 @@ import {expect} from 'chai';
 import {afterEach, beforeEach, describe, it} from 'mocha';
 import each from 'mocha-each';
 
-import {constants, Helm, logging, Templates} from '../../../src/core/index.js';
+import * as constants from '../../../src/core/constants.js';
+import * as logging from '../../../src/core/logging.js';
+import {Helm} from '../../../src/core/helm.js';
+import {Templates} from '../../../src/core/templates.js';
 import {ShellRunner} from '../../../src/core/shell_runner.js';
 
 describe('Helm platform specific tests', () => {

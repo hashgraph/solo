@@ -17,7 +17,7 @@
 import {it, describe, after} from 'mocha';
 import {expect} from 'chai';
 
-import {flags} from '../../../../src/commands/index.js';
+import {Flags as flags} from '../../../../src/commands/flags.js';
 import {e2eTestSuite, getDefaultArgv, TEST_CLUSTER} from '../../../test_util.js';
 import * as version from '../../../../version.js';
 import {MINUTES} from '../../../../src/core/constants.js';

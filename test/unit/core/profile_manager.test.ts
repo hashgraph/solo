@@ -18,10 +18,12 @@ import {expect} from 'chai';
 import {describe, it, after} from 'mocha';
 
 import fs from 'fs';
-import * as yaml from 'js-yaml';
+import * as yaml from 'yaml';
 import path from 'path';
-import {flags} from '../../../src/commands/index.js';
-import {ConfigManager, constants, ProfileManager} from '../../../src/core/index.js';
+import {Flags as flags} from '../../../src/commands/flags.js';
+import * as constants from '../../../src/core/constants.js';
+import {ConfigManager} from '../../../src/core/config_manager.js';
+import {ProfileManager} from '../../../src/core/profile_manager.js';
 import {getTestCacheDir, getTmpDir, testLogger} from '../../test_util.js';
 import * as version from '../../../version.js';
 import type {NodeAlias} from '../../../src/types/aliases.js';
@@ -94,7 +96,7 @@ describe('ProfileManager', () => {
         expect(fs.existsSync(valuesFile)).to.be.ok;
 
         // validate the yaml
-        const valuesYaml: any = yaml.load(fs.readFileSync(valuesFile).toString());
+        const valuesYaml: any = yaml.parse(fs.readFileSync(valuesFile).toString());
         expect(valuesYaml.hedera.nodes.length).to.equal(3);
         expect(valuesYaml.defaults.root.resources.limits.cpu).not.to.be.null;
         expect(valuesYaml.defaults.root.resources.limits.memory).not.to.be.null;
@@ -131,7 +133,7 @@ describe('ProfileManager', () => {
         fs.writeFileSync(file, fileContents);
         configManager.setFlag(flags.applicationEnv, file);
         const cachedValuesFile = await profileManager.prepareValuesForSoloChart('test');
-        const valuesYaml: any = yaml.load(fs.readFileSync(cachedValuesFile).toString());
+        const valuesYaml: any = yaml.parse(fs.readFileSync(cachedValuesFile).toString());
         expect(valuesYaml.hedera.configMaps.applicationEnv).to.equal(fileContents);
       });
 
@@ -144,7 +146,7 @@ describe('ProfileManager', () => {
         expect(fs.existsSync(valuesFile)).to.be.ok;
 
         // validate yaml
-        const valuesYaml: any = yaml.load(fs.readFileSync(valuesFile).toString());
+        const valuesYaml: any = yaml.parse(fs.readFileSync(valuesFile).toString());
         expect(valuesYaml.postgresql.persistence.size).not.to.be.null;
         expect(valuesYaml.postgresql.postgresql.resources.limits.cpu).not.to.be.null;
         expect(valuesYaml.postgresql.postgresql.resources.limits.memory).not.to.be.null;
@@ -165,7 +167,7 @@ describe('ProfileManager', () => {
         expect(fs.existsSync(valuesFile)).to.be.ok;
 
         // validate yaml
-        const valuesYaml: any = yaml.load(fs.readFileSync(valuesFile).toString());
+        const valuesYaml: any = yaml.parse(fs.readFileSync(valuesFile).toString());
         expect(valuesYaml.resources.limits.cpu).not.to.be.null;
         expect(valuesYaml.resources.limits.memory).not.to.be.null;
       });
@@ -176,7 +178,7 @@ describe('ProfileManager', () => {
         const valuesFile = (await profileManager.prepareValuesForRpcRelayChart(input.profileName)) as string;
         expect(fs.existsSync(valuesFile)).to.be.ok;
         // validate yaml
-        const valuesYaml: any = yaml.load(fs.readFileSync(valuesFile).toString());
+        const valuesYaml: any = yaml.parse(fs.readFileSync(valuesFile).toString());
         expect(valuesYaml.resources.limits.cpu).not.to.be.null;
         expect(valuesYaml.resources.limits.memory).not.to.be.null;
       });

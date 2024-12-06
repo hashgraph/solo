@@ -753,4 +753,12 @@ export class AccountManager {
     // @ts-ignore
     return Base64.encode(addressBookBytes);
   }
+
+  async getFileContents(namespace: string, fileNum: number) {
+    await this.loadNodeClient(namespace);
+    const client = this._nodeClient;
+    const fileId = FileId.fromString(`0.0.${fileNum}`);
+    const queryFees = new FileContentsQuery().setFileId(fileId);
+    return Buffer.from(await queryFees.execute(client)).toString('hex');
+  }
 }

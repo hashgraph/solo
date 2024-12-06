@@ -14,11 +14,10 @@
  * limitations under the License.
  *
  */
-import {type BaseCommand} from '../base.js';
+import {type BaseCommand, type CommandHandlers} from '../base.js';
 import {type ContextCommandTasks} from './tasks.js';
 import * as helpers from '../../core/helpers.js';
-import {constants} from '../../core/index.js';
-import {type CommandHandlers} from '../../types/index.js';
+import * as constants from '../../core/constants.js';
 import * as ContextFlags from './flags.js';
 
 export class ContextCommandHandlers implements CommandHandlers {
@@ -33,7 +32,7 @@ export class ContextCommandHandlers implements CommandHandlers {
   async connect(argv: any) {
     argv = helpers.addFlagsToArgv(argv, ContextFlags.USE_FLAGS);
 
-    const action = helpers.commandActionBuilder(
+    const action = this.parent.commandActionBuilder(
       [
         this.tasks.initialize(argv),
         this.parent.getLocalConfig().promptLocalConfigTask(),

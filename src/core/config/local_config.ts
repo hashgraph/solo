@@ -18,10 +18,9 @@ import {IsEmail, IsNotEmpty, IsObject, IsString, validateSync} from 'class-valid
 import type {ListrTask, ListrTaskWrapper} from 'listr2';
 import fs from 'fs';
 import * as yaml from 'yaml';
-import {flags} from '../../commands/index.js';
-import {type Deployments, DeploymentStructure, type LocalConfigData} from './local_config_data.js';
+import {Flags as flags} from '../../commands/flags.js';
+import {type Deployments, type DeploymentStructure, type LocalConfigData} from './local_config_data.js';
 import {MissingArgumentError, SoloError} from '../errors.js';
-import {promptDeploymentClusters, promptUserEmailAddress} from '../../commands/prompts.js';
 import {type SoloLogger} from '../logging.js';
 import {IsDeployments} from '../validator_decorators.js';
 import type {ConfigManager} from '../config_manager.js';
@@ -145,13 +144,13 @@ export class LocalConfig implements LocalConfigData {
       skip: this.skipPromptTask,
       task: async (_: any, task: ListrTaskWrapper<any, any, any>): Promise<void> => {
         let userEmailAddress = self.configManager.getFlag<EmailAddress>(flags.userEmailAddress);
-        if (!userEmailAddress) userEmailAddress = await promptUserEmailAddress(task, userEmailAddress);
+        if (!userEmailAddress) userEmailAddress = await flags.userEmailAddress.prompt(task, userEmailAddress);
 
         const deploymentName = self.configManager.getFlag<Namespace>(flags.namespace);
         if (!deploymentName) throw new SoloError('Namespace was not specified');
 
         let deploymentClusters = self.configManager.getFlag<string>(flags.deploymentClusters);
-        if (!deploymentClusters) deploymentClusters = await promptDeploymentClusters(task, deploymentClusters);
+        if (!deploymentClusters) deploymentClusters = await flags.deploymentClusters.prompt(task, deploymentClusters);
 
         const deployments: Deployments = {
           [deploymentName]: {clusters: Templates.parseClusterAliases(deploymentClusters)},

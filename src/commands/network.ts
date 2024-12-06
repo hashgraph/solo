@@ -16,21 +16,28 @@
  */
 import {ListrEnquirerPromptAdapter} from '@listr2/prompt-adapter-enquirer';
 import chalk from 'chalk';
-import {Listr} from 'listr2';
+import {Listr, type ListrTask} from 'listr2';
 import {SoloError, IllegalArgumentError, MissingArgumentError} from '../core/errors.js';
 import {BaseCommand} from './base.js';
-import * as flags from './flags.js';
-import {constants, Templates} from '../core/index.js';
-import * as prompts from './prompts.js';
+import {Flags as flags} from './flags.js';
+import * as constants from '../core/constants.js';
+import {Templates} from '../core/templates.js';
 import * as helpers from '../core/helpers.js';
 import path from 'path';
 import {addDebugOptions, validatePath} from '../core/helpers.js';
 import fs from 'fs';
 import {RemoteConfigTasks} from '../core/config/remote/remote_config_tasks.js';
-import type {CertificateManager, KeyManager, PlatformInstaller, ProfileManager} from '../core/index.js';
-import type {NodeAlias, NodeAliases} from '../types/aliases.js';
-import type {Opts} from '../types/index.js';
+import {type KeyManager} from '../core/key_manager.js';
+import {type PlatformInstaller} from '../core/platform_installer.js';
+import {type ProfileManager} from '../core/profile_manager.js';
+import {type CertificateManager} from '../core/certificate_manager.js';
+import {type CommandBuilder, type NodeAlias, type NodeAliases} from '../types/aliases.js';
+import {type Opts} from '../types/command_types.js';
 import {ListrLease} from '../core/lease/listr_lease.js';
+import {ConsensusNodeComponent} from '../core/config/remote/components/consensus_node_component.js';
+import {ConsensusNodeStates} from '../core/config/remote/enumerations.js';
+import {EnvoyProxyComponent} from '../core/config/remote/components/envoy_proxy_component.js';
+import {HaProxyComponent} from '../core/config/remote/components/ha_proxy_component.js';
 
 export interface NetworkDeployConfigClass {
   applicationEnv: string;
@@ -173,7 +180,7 @@ export class NetworkCommand extends BaseCommand {
     this.logger.debug('Loaded cached config', {config: this.configManager.config});
 
     // disable the prompts that we don't want to prompt the user for
-    prompts.disablePrompts([
+    flags.disablePrompts([
       flags.apiPermissionProperties,
       flags.app,
       flags.applicationEnv,
@@ -193,7 +200,7 @@ export class NetworkCommand extends BaseCommand {
       flags.grpcWebTlsKeyPath,
     ]);
 
-    await prompts.execute(task, this.configManager, NetworkCommand.DEPLOY_FLAGS_LIST);
+    await flags.executePrompt(task, this.configManager, NetworkCommand.DEPLOY_FLAGS_LIST);
 
     // create a config object for subsequent steps
     const config = this.getConfig(NetworkCommand.DEPLOY_CONFIGS_NAME, NetworkCommand.DEPLOY_FLAGS_LIST, [
@@ -472,7 +479,7 @@ export class NetworkCommand extends BaseCommand {
             });
           },
         },
-        RemoteConfigTasks.addNodesAndProxies.bind(this)(),
+        this.addNodesAndProxies(),
       ],
       {
         concurrent: false,
@@ -524,7 +531,11 @@ export class NetworkCommand extends BaseCommand {
             }
 
             self.configManager.update(argv);
-            await prompts.execute(task, self.configManager, [flags.deletePvcs, flags.deleteSecrets, flags.namespace]);
+            await flags.executePrompt(task, self.configManager, [
+              flags.deletePvcs,
+              flags.deleteSecrets,
+              flags.namespace,
+            ]);
 
             ctx.config = {
               deletePvcs: self.configManager.getFlag<boolean>(flags.deletePvcs) as boolean,
@@ -632,7 +643,7 @@ export class NetworkCommand extends BaseCommand {
     return true;
   }
 
-  getCommandDefinition(): {command: string; desc: string; builder: Function} {
+  getCommandDefinition(): {command: string; desc: string; builder: CommandBuilder} {
     const self = this;
     return {
       command: 'network',
@@ -713,5 +724,42 @@ export class NetworkCommand extends BaseCommand {
           .demandCommand(1, 'Select a chart command');
       },
     };
+  }
+  /** Adds the consensus node, envoy and haproxy components to remote config.  */
+  public addNodesAndProxies(): ListrTask<any, any, any> {
+    return {
+      title: 'Add node and proxies to remote config',
+      skip: (): boolean => !this.remoteConfigManager.isLoaded(),
+      task: async (ctx): Promise<void> => {
+        const {
+          config: {namespace, nodeAliases},
+        } = ctx;
+        const cluster = this.remoteConfigManager.currentCluster;
+
+        await this.remoteConfigManager.modify(async remoteConfig => {
+          for (const nodeAlias of nodeAliases) {
+            remoteConfig.components.add(
+              nodeAlias,
+              new ConsensusNodeComponent(nodeAlias, cluster, namespace, ConsensusNodeStates.INITIALIZED),
+            );
+
+            remoteConfig.components.add(
+              `envoy-${nodeAlias}`,
+              new EnvoyProxyComponent(`envoy-${nodeAlias}`, cluster, namespace),
+            );
+
+            remoteConfig.components.add(
+              `haproxy-${nodeAlias}`,
+              new HaProxyComponent(`haproxy-${nodeAlias}`, cluster, namespace),
+            );
+          }
+        });
+      },
+    };
+  }
+
+  close(): Promise<void> {
+    // no-op
+    return Promise.resolve();
   }
 }

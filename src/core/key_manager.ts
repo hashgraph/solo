@@ -19,7 +19,7 @@ import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
 import {SoloError, IllegalArgumentError, MissingArgumentError} from './errors.js';
-import {constants} from './index.js';
+import * as constants from './constants.js';
 import {SoloLogger} from './logging.js';
 import {Templates} from './templates.js';
 import * as helpers from './helpers.js';

@@ -17,7 +17,9 @@
 import {it, describe} from 'mocha';
 import {expect} from 'chai';
 
-import {ChartManager, Helm, constants} from '../../../../src/core/index.js';
+import * as constants from '../../../../src/core/constants.js';
+import {Helm} from '../../../../src/core/helm.js';
+import {ChartManager} from '../../../../src/core/chart_manager.js';
 import {testLogger} from '../../../test_util.js';
 
 describe('ChartManager', () => {
