@@ -23,7 +23,7 @@ import {NodeCommand} from './node/index.js';
 import {RelayCommand} from './relay.js';
 import {AccountCommand} from './account.js';
 import {DeploymentCommand} from './deployment.js';
-import {type Opts} from '../types/index.js';
+import {type Opts} from '../types/command_types.js';
 
 /**
  * Return a list of Yargs command builder to be exposed through CLI

@@ -20,7 +20,7 @@ import {Flags as flags} from '../commands/flags.js';
 import * as paths from 'path';
 import * as helpers from './helpers.js';
 import type * as yargs from 'yargs';
-import {type CommandFlag} from '../types/index.js';
+import {type CommandFlag} from '../types/flag_types.js';
 
 /**
  * ConfigManager cache command flag values so that user doesn't need to enter the same values repeatedly.

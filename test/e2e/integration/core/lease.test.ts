@@ -20,7 +20,7 @@ import * as logging from '../../../../src/core/logging.js';
 import {K8} from '../../../../src/core/k8.js';
 import {MINUTES, SECONDS} from '../../../../src/core/constants.js';
 import {expect} from 'chai';
-import {Lease} from '../../../../src/core/lease/lease.js';
+import {IntervalLease} from '../../../../src/core/lease/lease.js';
 import {LeaseHolder} from '../../../../src/core/lease/lease_holder.js';
 import {sleep} from '../../../../src/core/helpers.js';
 import {LeaseRelinquishmentError} from '../../../../src/core/lease/lease_errors.js';
@@ -55,7 +55,7 @@ describe('Lease', async () => {
     this.timeout(defaultTimeout);
 
     it('non-expired lease', async () => {
-      const lease = new Lease(k8, renewalService, LeaseHolder.default(), testNamespace, null, leaseDuration);
+      const lease = new IntervalLease(k8, renewalService, LeaseHolder.default(), testNamespace, null, leaseDuration);
 
       await lease.acquire();
       expect(await lease.isAcquired()).to.be.true;
@@ -65,8 +65,15 @@ describe('Lease', async () => {
     });
 
     it('non-expired lease held by another user should not be released', async () => {
-      const lease = new Lease(k8, renewalService, LeaseHolder.default(), testNamespace, null, leaseDuration);
-      const newLease = new Lease(k8, renewalService, LeaseHolder.of('other'), testNamespace, null, leaseDuration);
+      const lease = new IntervalLease(k8, renewalService, LeaseHolder.default(), testNamespace, null, leaseDuration);
+      const newLease = new IntervalLease(
+        k8,
+        renewalService,
+        LeaseHolder.of('other'),
+        testNamespace,
+        null,
+        leaseDuration,
+      );
 
       await lease.acquire();
       expect(await lease.isAcquired()).to.be.true;
@@ -82,8 +89,15 @@ describe('Lease', async () => {
     });
 
     it('expired lease held by another user should be released', async () => {
-      const lease = new Lease(k8, renewalService, LeaseHolder.default(), testNamespace, null, leaseDuration);
-      const newLease = new Lease(k8, renewalService, LeaseHolder.of('other'), testNamespace, null, leaseDuration);
+      const lease = new IntervalLease(k8, renewalService, LeaseHolder.default(), testNamespace, null, leaseDuration);
+      const newLease = new IntervalLease(
+        k8,
+        renewalService,
+        LeaseHolder.of('other'),
+        testNamespace,
+        null,
+        leaseDuration,
+      );
 
       await lease.acquire();
       expect(await lease.isAcquired()).to.be.true;
@@ -99,7 +113,7 @@ describe('Lease', async () => {
     });
 
     it('expired lease should be released', async () => {
-      const lease = new Lease(k8, renewalService, LeaseHolder.default(), testNamespace, null, leaseDuration);
+      const lease = new IntervalLease(k8, renewalService, LeaseHolder.default(), testNamespace, null, leaseDuration);
 
       await lease.acquire();
       expect(await lease.isAcquired()).to.be.true;
@@ -118,7 +132,7 @@ describe('Lease', async () => {
     this.timeout(defaultTimeout);
 
     it('non-expired lease', async () => {
-      const lease = new Lease(k8, renewalService, LeaseHolder.default(), testNamespace, null, leaseDuration);
+      const lease = new IntervalLease(k8, renewalService, LeaseHolder.default(), testNamespace, null, leaseDuration);
 
       expect(await lease.tryAcquire()).to.be.true;
       expect(await lease.isAcquired()).to.be.true;
@@ -130,8 +144,15 @@ describe('Lease', async () => {
     });
 
     it('non-expired lease held by another user should not be released', async () => {
-      const lease = new Lease(k8, renewalService, LeaseHolder.default(), testNamespace, null, leaseDuration);
-      const newLease = new Lease(k8, renewalService, LeaseHolder.of('other'), testNamespace, null, leaseDuration);
+      const lease = new IntervalLease(k8, renewalService, LeaseHolder.default(), testNamespace, null, leaseDuration);
+      const newLease = new IntervalLease(
+        k8,
+        renewalService,
+        LeaseHolder.of('other'),
+        testNamespace,
+        null,
+        leaseDuration,
+      );
 
       expect(await lease.tryAcquire()).to.be.true;
       expect(await lease.isAcquired()).to.be.true;
@@ -147,8 +168,15 @@ describe('Lease', async () => {
     });
 
     it('expired lease held by another user should be released', async () => {
-      const lease = new Lease(k8, renewalService, LeaseHolder.default(), testNamespace, null, leaseDuration);
-      const newLease = new Lease(k8, renewalService, LeaseHolder.of('other'), testNamespace, null, leaseDuration);
+      const lease = new IntervalLease(k8, renewalService, LeaseHolder.default(), testNamespace, null, leaseDuration);
+      const newLease = new IntervalLease(
+        k8,
+        renewalService,
+        LeaseHolder.of('other'),
+        testNamespace,
+        null,
+        leaseDuration,
+      );
 
       expect(await lease.tryAcquire()).to.be.true;
       expect(await lease.isAcquired()).to.be.true;
@@ -164,7 +192,7 @@ describe('Lease', async () => {
     });
 
     it('expired lease should be released', async () => {
-      const lease = new Lease(k8, renewalService, LeaseHolder.default(), testNamespace, null, leaseDuration);
+      const lease = new IntervalLease(k8, renewalService, LeaseHolder.default(), testNamespace, null, leaseDuration);
 
       expect(await lease.tryAcquire()).to.be.true;
       expect(await lease.isAcquired()).to.be.true;

@@ -19,8 +19,8 @@ import {Flags as flags} from '../../commands/flags.js';
 import type {ConfigManager} from '../config_manager.js';
 import type {K8} from '../k8.js';
 import type {SoloLogger} from '../logging.js';
-import {type LeaseRenewalService} from './lease_renewal.js';
-import {Lease} from './lease.js';
+import {type Lease, type LeaseRenewalService} from './types.js';
+import {IntervalLease} from './lease.js';
 import {LeaseHolder} from './lease_holder.js';
 import {LeaseAcquisitionError} from './lease_errors.js';
 
@@ -63,7 +63,7 @@ export class LeaseManager {
    * @returns a new lease instance.
    */
   public async create(): Promise<Lease> {
-    return new Lease(this.k8, this._renewalService, LeaseHolder.default(), await this.currentNamespace());
+    return new IntervalLease(this.k8, this._renewalService, LeaseHolder.default(), await this.currentNamespace());
   }
 
   /**

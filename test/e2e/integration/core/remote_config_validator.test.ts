@@ -26,16 +26,14 @@ import {Flags as flags} from '../../../../src/commands/flags.js';
 import {V1Container, V1ExecAction, V1ObjectMeta, V1Pod, V1PodSpec, V1Probe} from '@kubernetes/client-node';
 import {RemoteConfigValidator} from '../../../../src/core/config/remote/remote_config_validator.js';
 import {ConsensusNodeStates} from '../../../../src/core/config/remote/enumerations.js';
-import {
-  ConsensusNodeComponent,
-  EnvoyProxyComponent,
-  HaProxyComponent,
-  MirrorNodeComponent,
-  MirrorNodeExplorerComponent,
-  RelayComponent,
-} from '../../../../src/core/config/remote/components/index.js';
 import {ComponentsDataWrapper} from '../../../../src/core/config/remote/components_data_wrapper.js';
 import {SoloError} from '../../../../src/core/errors.js';
+import {RelayComponent} from '../../../../src/core/config/remote/components/relay_component.js';
+import {HaProxyComponent} from '../../../../src/core/config/remote/components/ha_proxy_component.js';
+import {MirrorNodeComponent} from '../../../../src/core/config/remote/components/mirror_node_component.js';
+import {ConsensusNodeComponent} from '../../../../src/core/config/remote/components/consensus_node_component.js';
+import {MirrorNodeExplorerComponent} from '../../../../src/core/config/remote/components/mirror_node_explorer_component.js';
+import {EnvoyProxyComponent} from '../../../../src/core/config/remote/components/envoy_proxy_component.js';
 
 import type {NodeAlias, NodeAliases} from '../../../../src/types/aliases.js';
 

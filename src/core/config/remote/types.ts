@@ -14,10 +14,7 @@
  * limitations under the License.
  *
  */
-import type {NodeAlias, NodeAliases} from '../../../types/aliases.js';
-import type {Migration} from './migration.js';
-import type {ComponentsDataWrapper} from './components_data_wrapper.js';
-import type {RemoteConfigMetadata} from './metadata.js';
+import type {NodeAliases} from '../../../types/aliases.js';
 import type {ComponentType, ConsensusNodeStates} from './enumerations.js';
 
 export type EmailAddress = `${string}@${string}.${string}`;
@@ -26,13 +23,6 @@ export type Namespace = string;
 export type Cluster = string;
 export type Context = string;
 export type ComponentName = string;
-
-export interface RemoteConfigMetadataStructure {
-  name: Namespace;
-  lastUpdatedAt: Date;
-  lastUpdateBy: EmailAddress;
-  migration?: Migration;
-}
 
 export interface IMigration {
   migratedAt: Date;
@@ -54,52 +44,4 @@ export interface IConsensusNodeComponent extends Component {
   state: ConsensusNodeStates;
 }
 
-export interface RemoteConfigData {
-  metadata: RemoteConfigMetadata;
-  clusters: Record<Cluster, Namespace>;
-  components: ComponentsDataWrapper;
-  lastExecutedCommand: string;
-  commandHistory: string[];
-}
-
 export type ComponentsDataStructure = Record<ComponentType, Record<ComponentName, Component>>;
-
-export interface RemoteConfigDataStructure {
-  metadata: RemoteConfigMetadataStructure;
-  version: Version;
-  clusters: Record<Cluster, Namespace>;
-  components: ComponentsDataStructure;
-  commandHistory: string[];
-  lastExecutedCommand: string;
-}
-
-export interface ValidateStatesObject {
-  acceptedStates?: ConsensusNodeStates[];
-  excludedStates?: ConsensusNodeStates[];
-}
-
-// ---------- Component Modifying Tasks Contexts ---------- //
-
-export interface AddRelayComponentContext {
-  config: {namespace: Namespace; nodeAliases: NodeAliases};
-}
-
-export interface AddMirrorNodeComponentsContext {
-  config: {namespace: Namespace; deployHederaExplorer: boolean};
-}
-
-export interface AddNodesAndProxiesContext {
-  config: {namespace: Namespace; nodeAliases: NodeAliases};
-}
-
-export interface ChangeAllNodeStatesContext {
-  config: {namespace: Namespace; nodeAliases: NodeAliases};
-}
-
-export interface ValidateAllNodeStatesContext {
-  config: {namespace: string; nodeAliases: NodeAliases};
-}
-
-export interface ValidateSingleNodeStateContext {
-  config: {namespace: string; nodeAlias: NodeAlias};
-}

@@ -20,7 +20,7 @@ import * as logging from '../../../../src/core/logging.js';
 import {K8} from '../../../../src/core/k8.js';
 import {MINUTES, SECONDS} from '../../../../src/core/constants.js';
 import {expect} from 'chai';
-import {Lease} from '../../../../src/core/lease/lease.js';
+import {IntervalLease} from '../../../../src/core/lease/lease.js';
 import {LeaseHolder} from '../../../../src/core/lease/lease_holder.js';
 import {sleep} from '../../../../src/core/helpers.js';
 import {IntervalLeaseRenewalService} from '../../../../src/core/lease/lease_renewal.js';
@@ -52,7 +52,7 @@ describe('LeaseRenewalService', async () => {
   });
 
   it('acquired leases should be scheduled', async () => {
-    const lease = new Lease(k8, renewalService, LeaseHolder.default(), testNamespace, null, leaseDuration);
+    const lease = new IntervalLease(k8, renewalService, LeaseHolder.default(), testNamespace, null, leaseDuration);
     await lease.acquire();
     expect(lease.scheduleId).to.not.be.null;
     expect(await renewalService.isScheduled(lease.scheduleId)).to.be.true;
@@ -65,7 +65,7 @@ describe('LeaseRenewalService', async () => {
   it('acquired leases should be renewed', async function () {
     this.timeout(defaultTimeout);
 
-    const lease = new Lease(k8, renewalService, LeaseHolder.default(), testNamespace, null, leaseDuration);
+    const lease = new IntervalLease(k8, renewalService, LeaseHolder.default(), testNamespace, null, leaseDuration);
     await lease.acquire();
     expect(lease.scheduleId).to.not.be.null;
     expect(await renewalService.isScheduled(lease.scheduleId)).to.be.true;
@@ -98,7 +98,7 @@ describe('LeaseRenewalService', async () => {
   it('acquired leases with cancelled schedules should not be renewed', async function () {
     this.timeout(defaultTimeout);
 
-    const lease = new Lease(k8, renewalService, LeaseHolder.default(), testNamespace, null, leaseDuration);
+    const lease = new IntervalLease(k8, renewalService, LeaseHolder.default(), testNamespace, null, leaseDuration);
     await lease.acquire();
     expect(lease.scheduleId).to.not.be.null;
     expect(await renewalService.isScheduled(lease.scheduleId)).to.be.true;

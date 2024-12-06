@@ -25,7 +25,7 @@ import {ROOT_DIR} from './constants.js';
 import * as constants from './constants.js';
 import {PrivateKey, ServiceEndpoint} from '@hashgraph/sdk';
 import {type NodeAlias, type NodeAliases} from '../types/aliases.js';
-import {type CommandFlag} from '../types/index.js';
+import {type CommandFlag} from '../types/flag_types.js';
 import {type SoloLogger} from './logging.js';
 
 export function sleep(ms: number) {

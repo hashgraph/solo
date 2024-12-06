@@ -14,11 +14,10 @@
  * limitations under the License.
  *
  */
-import {type BaseCommand} from '../base.js';
+import {type BaseCommand, type CommandHandlers} from '../base.js';
 import {type ContextCommandTasks} from './tasks.js';
 import * as helpers from '../../core/helpers.js';
 import * as constants from '../../core/constants.js';
-import {type CommandHandlers} from '../../types/index.js';
 import * as ContextFlags from './flags.js';
 
 export class ContextCommandHandlers implements CommandHandlers {

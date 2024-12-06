@@ -394,4 +394,9 @@ export class ClusterCommand extends BaseCommand {
 
     return chartPath;
   }
+
+  close(): Promise<void> {
+    // no-op
+    return Promise.resolve();
+  }
 }
