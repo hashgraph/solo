@@ -143,6 +143,7 @@ jobs:
 
       - name: Commit docs/content/User/StepByStepGuide.md Changes
         id: commit-readme
+        if : ${{ github.event.inputs.dry-run-enabled != 'true' && !cancelled() && !failure() && inputs.commit-changes }}
         uses: stefanzweifel/git-auto-commit-action@8621497c8c39c72f3e2a999a26b4ca1b5058a842 # v5.0.1
         with:
           commit_message: "auto update docs/content/User/StepByStepGuide.md [skip ci]"
