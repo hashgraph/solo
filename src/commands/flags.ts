@@ -15,7 +15,6 @@
  *
  */
 import * as constants from '../core/constants.js';
-import {ConfigManager} from '../core/config_manager.js';
 import * as version from '../../version.js';
 import path from 'path';
 import {type CommandFlag} from '../types/flag_types.js';
@@ -84,33 +83,6 @@ export class Flags {
     flagName: string,
   ) {
     return await Flags.prompt('toggle', task, input, defaultValue, promptMessage, emptyCheckMessage, flagName);
-  }
-
-  /**
-   * Run prompts for the given set of flags
-   * @param task task object from listr2
-   * @param configManager config manager to store flag values
-   * @param flagList list of flag objects
-   */
-  static async executePrompt(
-    task: ListrTaskWrapper<any, any, any>,
-    configManager: ConfigManager,
-    flagList: CommandFlag[] = [],
-  ) {
-    if (!configManager || !(configManager instanceof ConfigManager)) {
-      throw new IllegalArgumentError('an instance of ConfigManager is required');
-    }
-    for (const flag of flagList) {
-      if (flag.definition.disablePrompt || flag.prompt === undefined) {
-        continue;
-      }
-
-      if (configManager.getFlag(Flags.quiet)) {
-        return;
-      }
-      const input = await flag.prompt(task, configManager.getFlag(flag));
-      configManager.setFlag(flag, input);
-    }
   }
 
   /**

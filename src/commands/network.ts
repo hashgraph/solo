@@ -200,7 +200,7 @@ export class NetworkCommand extends BaseCommand {
       flags.grpcWebTlsKeyPath,
     ]);
 
-    await flags.executePrompt(task, this.configManager, NetworkCommand.DEPLOY_FLAGS_LIST);
+    await this.configManager.executePrompt(task, NetworkCommand.DEPLOY_FLAGS_LIST);
 
     // create a config object for subsequent steps
     const config = this.getConfig(NetworkCommand.DEPLOY_CONFIGS_NAME, NetworkCommand.DEPLOY_FLAGS_LIST, [
@@ -531,11 +531,7 @@ export class NetworkCommand extends BaseCommand {
             }
 
             self.configManager.update(argv);
-            await flags.executePrompt(task, self.configManager, [
-              flags.deletePvcs,
-              flags.deleteSecrets,
-              flags.namespace,
-            ]);
+            await self.configManager.executePrompt(task, [flags.deletePvcs, flags.deleteSecrets, flags.namespace]);
 
             ctx.config = {
               deletePvcs: self.configManager.getFlag<boolean>(flags.deletePvcs) as boolean,
