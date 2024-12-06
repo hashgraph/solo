@@ -196,7 +196,7 @@ export class MirrorNodeCommand extends BaseCommand {
               flags.pinger,
             ]);
 
-            await flags.executePrompt(task, self.configManager, MirrorNodeCommand.DEPLOY_FLAGS_LIST);
+            await self.configManager.executePrompt(task, MirrorNodeCommand.DEPLOY_FLAGS_LIST);
 
             ctx.config = this.getConfig(MirrorNodeCommand.DEPLOY_CONFIGS_NAME, MirrorNodeCommand.DEPLOY_FLAGS_LIST, [
               'chartPath',
@@ -473,7 +473,7 @@ export class MirrorNodeCommand extends BaseCommand {
             }
 
             self.configManager.update(argv);
-            await flags.executePrompt(task, self.configManager, [flags.namespace]);
+            await self.configManager.executePrompt(task, [flags.namespace]);
 
             // @ts-ignore
             ctx.config = {

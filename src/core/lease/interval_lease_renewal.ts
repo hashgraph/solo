@@ -14,8 +14,7 @@
  * limitations under the License.
  *
  */
-import {type Lease} from './types.js';
-import {type LeaseRenewalService} from './types.js';
+import {type Lease, type LeaseRenewalService} from './lease.js';
 import {Duration} from '../time/duration.js';
 
 /**

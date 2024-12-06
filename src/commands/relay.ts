@@ -202,7 +202,7 @@ export class RelayCommand extends BaseCommand {
 
             self.configManager.update(argv);
 
-            await flags.executePrompt(task, self.configManager, RelayCommand.DEPLOY_FLAGS_LIST);
+            await self.configManager.executePrompt(task, RelayCommand.DEPLOY_FLAGS_LIST);
 
             // prompt if inputs are empty and set it in the context
             ctx.config = this.getConfig(RelayCommand.DEPLOY_CONFIGS_NAME, RelayCommand.DEPLOY_FLAGS_LIST, [
@@ -328,7 +328,7 @@ export class RelayCommand extends BaseCommand {
             self.configManager.setFlag(flags.nodeAliasesUnparsed, '');
 
             self.configManager.update(argv);
-            await flags.executePrompt(task, self.configManager, RelayCommand.DESTROY_FLAGS_LIST);
+            await self.configManager.executePrompt(task, RelayCommand.DESTROY_FLAGS_LIST);
 
             // prompt if inputs are empty and set it in the context
             ctx.config = {

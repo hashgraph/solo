@@ -14,7 +14,7 @@
  * limitations under the License.
  *
  */
-import type {Lease, LeaseRenewalService} from '../../../../src/core/lease/types.js';
+import type {Lease, LeaseRenewalService} from '../../../../src/core/lease/lease.js';
 import {Duration} from '../../../../src/core/time/duration.js';
 
 export class NoopLeaseRenewalService implements LeaseRenewalService {

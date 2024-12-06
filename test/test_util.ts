@@ -58,7 +58,7 @@ import {PackageDownloader} from '../src/core/package_downloader.js';
 import {KeyManager} from '../src/core/key_manager.js';
 import {Zippy} from '../src/core/zippy.js';
 import {HEDERA_PLATFORM_VERSION} from '../version.js';
-import {IntervalLeaseRenewalService} from '../src/core/lease/lease_renewal.js';
+import {IntervalLeaseRenewalService} from '../src/core/lease/interval_lease_renewal.js';
 import {Duration} from '../src/core/time/duration.js';
 
 export const testLogger = logging.NewLogger('debug', true);

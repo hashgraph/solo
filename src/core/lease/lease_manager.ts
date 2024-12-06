@@ -19,8 +19,8 @@ import {Flags as flags} from '../../commands/flags.js';
 import type {ConfigManager} from '../config_manager.js';
 import type {K8} from '../k8.js';
 import type {SoloLogger} from '../logging.js';
-import {type Lease, type LeaseRenewalService} from './types.js';
-import {IntervalLease} from './lease.js';
+import {type Lease, type LeaseRenewalService} from './lease.js';
+import {IntervalLease} from './interval_lease.js';
 import {LeaseHolder} from './lease_holder.js';
 import {LeaseAcquisitionError} from './lease_errors.js';
 
