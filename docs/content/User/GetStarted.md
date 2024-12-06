@@ -13,7 +13,7 @@ For Hedera JavaScript SDK users:
 
 For Hedera extended users:
 * [Using Solo with mirror node](SoloWithMirrorNode.md)
-* [Access Hedera Network services](AccessHederaServices.md)
+* [Access Hedera Network Services](AccessHederaServices.md)
 
 For curious mind:
 * [Step-by-step guide](StepByStepGuide.md)

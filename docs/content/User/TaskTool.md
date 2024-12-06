@@ -1,5 +1,5 @@
 ## Use the Task tool to launch Solo
-For users who want to quickly deploy a standalone solo network without needing to know what is under the hood, 
+For users who want to quickly deploy a standalone solo network without need to know what is under the hood, 
 they can use the Task tool to launch the network with a single command.
 
 First, install the cluster tool `kind` with this [link](https://kind.sigs.k8s.io/docs/user/quick-start#installation)
@@ -13,7 +13,9 @@ npm ci
 npm run build
 ```
 
-Then, user can use one of the following three commands to quickly deploy a standalone solo network.
+### Start solo network
+
+User can use one of the following three commands to quickly deploy a standalone solo network.
 
 ```bash
 # Option 1) deploy solo network with two nodes
@@ -25,6 +27,8 @@ task default-with-mirror
 # Option 3) deploy solo network with two nodes, mirror node, and JSON RPC relay
 task default-with-relay
 ```
+
+### Stop solo network
 
 To tear down the solo network
 

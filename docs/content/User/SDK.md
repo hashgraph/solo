@@ -100,7 +100,8 @@ Finally, after done with using solo, using the following command to tear down th
 task clean
 ```
 
-Retrieving Logs
+### Retrieving Logs
+
 You can find log for running solo command under the directory ~/.solo/logs/
 
 The file solo.log contains the logs for the solo command.

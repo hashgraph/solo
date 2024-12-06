@@ -1,4 +1,4 @@
-## Access Hedera Network services
+## Access Hedera Network Services
 
 Once the nodes are up, you may now expose various services (using `k9s` (shift-f) or `kubectl port-forward`) and access. Below are most used services that you may expose.
 
@@ -23,14 +23,16 @@ Once the nodes are up, you may now expose various services (using `k9s` (shift-f
 * Hedera explorer: `solo-deployment-hedera-explorer`
   ```bash
   #enable portforwarding for hedera explorer, can be access at http://localhost:8080/
-  kubectl port-forward svc/solo-deployment-hedera-explorer -n "${SOLO_NAMESPACE}" 8080:80 &
+  kubectl port-forward svc/hedera-explorer -n "${SOLO_NAMESPACE}" 8080:80 &
   ```
 * JSON Rpc Relays
 
 You can deploy JSON RPC relays for one or more nodes as below:
 
 ```bash
+# deploy relay node first
 solo relay deploy -i node1
+
 # enable relay for node1
 kubectl port-forward svc/relay-node1-hedera-json-rpc-relay -n "${SOLO_NAMESPACE}" 7546:7546 &
 ```
