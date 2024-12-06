@@ -26,6 +26,8 @@ import {FREEZE_ADMIN_ACCOUNT} from '../core/constants.js';
 import {type Opts} from '../types/command_types.js';
 import {ListrLease} from '../core/lease/listr_lease.js';
 import {type CommandBuilder} from '../types/aliases.js';
+import {sleep} from '../core/helpers.js';
+import {Duration} from '../core/time/duration.js';
 
 export class AccountCommand extends BaseCommand {
   private readonly accountManager: AccountManager;
@@ -367,7 +369,9 @@ export class AccountCommand extends BaseCommand {
               const accountInfoCopy = {...self.accountInfo};
               delete accountInfoCopy.privateKey;
               this.logger.showJSON('new account created', accountInfoCopy);
-              await sleep(1000);
+              if (ctx.config.createAmount > 0) {
+                await sleep(Duration.ofSeconds(1));
+              }
             }
           },
         },

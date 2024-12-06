@@ -1095,13 +1095,13 @@ export class Flags {
 
   static readonly generateEcdsaKey: CommandFlag = {
     constName: 'generateEcdsaKey',
-  name: 'generate-ecdsa-key',
-  definition: {
-    describe: 'Generate ECDSA private key for the Hedera account',
-    defaultValue: false,
-    type: 'boolean',
-  },
-  prompt: undefined,
+    name: 'generate-ecdsa-key',
+    definition: {
+      describe: 'Generate ECDSA private key for the Hedera account',
+      defaultValue: false,
+      type: 'boolean',
+    },
+    prompt: undefined,
   };
 
   static readonly ecdsaPrivateKey: CommandFlag = {
