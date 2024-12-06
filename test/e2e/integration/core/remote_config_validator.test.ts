@@ -18,9 +18,11 @@ import {it, describe} from 'mocha';
 import {expect} from 'chai';
 
 import * as constants from '../../../../src/core/constants.js';
-import {ConfigManager, K8, Templates} from '../../../../src/core/index.js';
+import {ConfigManager} from '../../../../src/core/config_manager.js';
+import {K8} from '../../../../src/core/k8.js';
+import {Templates} from '../../../../src/core/templates.js';
 import {testLogger} from '../../../test_util.js';
-import {flags} from '../../../../src/commands/index.js';
+import {Flags as flags} from '../../../../src/commands/flags.js';
 import {V1Container, V1ExecAction, V1ObjectMeta, V1Pod, V1PodSpec, V1Probe} from '@kubernetes/client-node';
 import {RemoteConfigValidator} from '../../../../src/core/config/remote/remote_config_validator.js';
 import {ConsensusNodeStates} from '../../../../src/core/config/remote/enumerations.js';
