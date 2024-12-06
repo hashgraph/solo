@@ -20,7 +20,9 @@ import {describe, it} from 'mocha';
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
-import {constants, logging, KeyManager} from '../../../src/core/index.js';
+import {KeyManager} from '../../../src/core/key_manager.js';
+import * as constants from '../../../src/core/constants.js';
+import * as logging from '../../../src/core/logging.js';
 import {SECONDS} from '../../../src/core/constants.js';
 import type {NodeAlias} from '../../../src/types/aliases.js';
 

@@ -17,8 +17,9 @@
 import {Listr, type ListrTaskWrapper} from 'listr2';
 import {SoloError} from '../core/errors.js';
 import {BaseCommand} from './base.js';
-import {flags} from './index.js';
-import {constants, Templates} from '../core/index.js';
+import {Flags as flags} from './flags.js';
+import * as constants from '../core/constants.js';
+import {Templates} from '../core/templates.js';
 import chalk from 'chalk';
 import {RemoteConfigTasks} from '../core/config/remote/remote_config_tasks.js';
 import {ListrLease} from '../core/lease/listr_lease.js';

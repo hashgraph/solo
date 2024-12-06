@@ -18,7 +18,7 @@ import {IsEmail, IsNotEmpty, IsObject, IsString, validateSync} from 'class-valid
 import type {ListrTask, ListrTaskWrapper} from 'listr2';
 import fs from 'fs';
 import * as yaml from 'yaml';
-import {flags} from '../../commands/index.js';
+import {Flags as flags} from '../../commands/flags.js';
 import {type Deployments, type DeploymentStructure, type LocalConfigData} from './local_config_data.js';
 import {MissingArgumentError, SoloError} from '../errors.js';
 import {type SoloLogger} from '../logging.js';

@@ -17,20 +17,18 @@
 import {expect} from 'chai';
 
 import {HelmDependencyManager, DependencyManager} from '../../../src/core/dependency_managers/index.js';
-import {
-  ChartManager,
-  ConfigManager,
-  Helm,
-  logging,
-  PackageDownloader,
-  Zippy,
-  constants,
-  K8,
-  LocalConfig,
-  RemoteConfigManager,
-} from '../../../src/core/index.js';
+import {Helm} from '../../../src/core/helm.js';
+import {ChartManager} from '../../../src/core/chart_manager.js';
+import {ConfigManager} from '../../../src/core/config_manager.js';
+import {PackageDownloader} from '../../../src/core/package_downloader.js';
+import {Zippy} from '../../../src/core/zippy.js';
+import * as constants from '../../../src/core/constants.js';
+import {LocalConfig} from '../../../src/core/config/local_config.js';
+import {RemoteConfigManager} from '../../../src/core/config/remote/remote_config_manager.js';
+import {K8} from '../../../src/core/k8.js';
+import * as logging from '../../../src/core/logging.js';
 import {BaseCommand} from '../../../src/commands/base.js';
-import {flags} from '../../../src/commands/index.js';
+import {Flags as flags} from '../../../src/commands/flags.js';
 import sinon from 'sinon';
 import path from 'path';
 import {BASE_TEST_DIR} from '../../test_util.js';

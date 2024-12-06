@@ -17,17 +17,19 @@
 import {expect} from 'chai';
 import {describe, it} from 'mocha';
 
-import * as core from '../../../src/core/index.js';
-import {ConfigManager, PlatformInstaller} from '../../../src/core/index.js';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
+import * as constants from '../../../src/core/constants.js';
+import {ConfigManager} from '../../../src/core/config_manager.js';
+import {PlatformInstaller} from '../../../src/core/platform_installer.js';
+import * as logging from '../../../src/core/logging.js';
 import {IllegalArgumentError, MissingArgumentError} from '../../../src/core/errors.js';
 import {getK8Instance} from '../../test_util.js';
 import type {PodName} from '../../../src/types/aliases.js';
 
 describe('PackageInstaller', () => {
-  const testLogger = core.logging.NewLogger('debug', true);
+  const testLogger = logging.NewLogger('debug', true);
   const configManager = new ConfigManager(testLogger);
 
   const k8 = getK8Instance(configManager);
@@ -45,23 +47,23 @@ describe('PackageInstaller', () => {
 
     it('should fail if directory does not have data/apps directory', () => {
       const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'installer-'));
-      fs.mkdirSync(`${tmpDir}/${core.constants.HEDERA_DATA_LIB_DIR}`, {recursive: true});
+      fs.mkdirSync(`${tmpDir}/${constants.HEDERA_DATA_LIB_DIR}`, {recursive: true});
       expect(() => installer.validatePlatformReleaseDir(tmpDir)).to.throw(IllegalArgumentError);
       fs.rmSync(tmpDir, {recursive: true});
     });
 
     it('should fail if directory does not have data/libs directory', () => {
       const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'installer-'));
-      fs.mkdirSync(`${tmpDir}/${core.constants.HEDERA_DATA_APPS_DIR}`, {recursive: true});
+      fs.mkdirSync(`${tmpDir}/${constants.HEDERA_DATA_APPS_DIR}`, {recursive: true});
       expect(() => installer.validatePlatformReleaseDir(tmpDir)).to.throw(IllegalArgumentError);
       fs.rmSync(tmpDir, {recursive: true});
     });
 
     it('should fail if directory does not have data/app directory is empty', () => {
       const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'installer-'));
-      fs.mkdirSync(`${tmpDir}/${core.constants.HEDERA_DATA_APPS_DIR}`, {recursive: true});
-      fs.mkdirSync(`${tmpDir}/${core.constants.HEDERA_DATA_LIB_DIR}`, {recursive: true});
-      fs.writeFileSync(`${tmpDir}/${core.constants.HEDERA_DATA_LIB_DIR}/test.jar`, '');
+      fs.mkdirSync(`${tmpDir}/${constants.HEDERA_DATA_APPS_DIR}`, {recursive: true});
+      fs.mkdirSync(`${tmpDir}/${constants.HEDERA_DATA_LIB_DIR}`, {recursive: true});
+      fs.writeFileSync(`${tmpDir}/${constants.HEDERA_DATA_LIB_DIR}/test.jar`, '');
       // @ts-ignore
       expect(() => installer.validatePlatformReleaseDir()).to.throw(MissingArgumentError);
       fs.rmSync(tmpDir, {recursive: true});
@@ -69,9 +71,9 @@ describe('PackageInstaller', () => {
 
     it('should fail if directory does not have data/apps directory is empty', () => {
       const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'installer-app-'));
-      fs.mkdirSync(`${tmpDir}/${core.constants.HEDERA_DATA_APPS_DIR}`, {recursive: true});
-      fs.writeFileSync(`${tmpDir}/${core.constants.HEDERA_DATA_APPS_DIR}/app.jar`, '');
-      fs.mkdirSync(`${tmpDir}/${core.constants.HEDERA_DATA_LIB_DIR}`, {recursive: true});
+      fs.mkdirSync(`${tmpDir}/${constants.HEDERA_DATA_APPS_DIR}`, {recursive: true});
+      fs.writeFileSync(`${tmpDir}/${constants.HEDERA_DATA_APPS_DIR}/app.jar`, '');
+      fs.mkdirSync(`${tmpDir}/${constants.HEDERA_DATA_LIB_DIR}`, {recursive: true});
       // @ts-ignore
       expect(() => installer.validatePlatformReleaseDir()).to.throw(MissingArgumentError);
       fs.rmSync(tmpDir, {recursive: true});
@@ -79,10 +81,10 @@ describe('PackageInstaller', () => {
 
     it('should succeed with non-empty data/apps and data/libs directory', () => {
       const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'installer-lib-'));
-      fs.mkdirSync(`${tmpDir}/${core.constants.HEDERA_DATA_APPS_DIR}`, {recursive: true});
-      fs.writeFileSync(`${tmpDir}/${core.constants.HEDERA_DATA_APPS_DIR}/app.jar`, '');
-      fs.mkdirSync(`${tmpDir}/${core.constants.HEDERA_DATA_LIB_DIR}`, {recursive: true});
-      fs.writeFileSync(`${tmpDir}/${core.constants.HEDERA_DATA_LIB_DIR}/lib-1.jar`, '');
+      fs.mkdirSync(`${tmpDir}/${constants.HEDERA_DATA_APPS_DIR}`, {recursive: true});
+      fs.writeFileSync(`${tmpDir}/${constants.HEDERA_DATA_APPS_DIR}/app.jar`, '');
+      fs.mkdirSync(`${tmpDir}/${constants.HEDERA_DATA_LIB_DIR}`, {recursive: true});
+      fs.writeFileSync(`${tmpDir}/${constants.HEDERA_DATA_LIB_DIR}/lib-1.jar`, '');
       // @ts-ignore
       expect(() => installer.validatePlatformReleaseDir()).to.throw(MissingArgumentError);
       fs.rmSync(tmpDir, {recursive: true});

@@ -20,7 +20,9 @@ import {it, describe} from 'mocha';
 import {expect} from 'chai';
 
 import * as fs from 'fs';
-import {logging, PackageDownloader, Templates} from '../../../../src/core/index.js';
+import {PackageDownloader} from '../../../../src/core/package_downloader.js';
+import {Templates} from '../../../../src/core/templates.js';
+import * as logging from '../../../../src/core/logging.js';
 import {MINUTES} from '../../../../src/core/constants.js';
 
 describe('PackageDownloaderE2E', () => {

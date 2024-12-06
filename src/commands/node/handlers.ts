@@ -31,15 +31,13 @@ import {
   stopConfigBuilder,
   updateConfigBuilder,
 } from './configs.js';
-import {
-  type ConfigManager,
-  constants,
-  type K8,
-  type PlatformInstaller,
-  type AccountManager,
-  type LeaseManager,
-  type RemoteConfigManager,
-} from '../../core/index.js';
+import * as constants from '../../core/constants.js';
+import {type AccountManager} from '../../core/account_manager.js';
+import {type ConfigManager} from '../../core/config_manager.js';
+import {type PlatformInstaller} from '../../core/platform_installer.js';
+import {type K8} from '../../core/k8.js';
+import {type LeaseManager} from '../../core/lease/lease_manager.js';
+import {type RemoteConfigManager} from '../../core/config/remote/remote_config_manager.js';
 import {IllegalArgumentError} from '../../core/errors.js';
 import {ConsensusNodeStates} from '../../core/config/remote/enumerations.js';
 import {RemoteConfigTasks} from '../../core/config/remote/remote_config_tasks.js';
@@ -49,6 +47,7 @@ import type {NodeCommandTasks} from './tasks.js';
 import {type Lease} from '../../core/lease/lease.js';
 import {NodeSubcommandType} from '../../core/enumerations.js';
 import {type CommandHandlers} from '../../types/index.js';
+import {NodeHelper} from './helper.js';
 
 export class NodeCommandHandlers implements CommandHandlers {
   private readonly accountManager: AccountManager;
@@ -255,7 +254,7 @@ export class NodeCommandHandlers implements CommandHandlers {
 
     const lease = await this.leaseManager.create();
 
-    const action = helpers.commandActionBuilder(
+    const action = this.parent.commandActionBuilder(
       [
         this.tasks.initialize(argv, prepareUpgradeConfigBuilder.bind(this), lease),
         RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
@@ -277,7 +276,7 @@ export class NodeCommandHandlers implements CommandHandlers {
   async freezeUpgrade(argv: any) {
     argv = helpers.addFlagsToArgv(argv, NodeFlags.DEFAULT_FLAGS);
 
-    const action = helpers.commandActionBuilder(
+    const action = this.parent.commandActionBuilder(
       [
         this.tasks.initialize(argv, prepareUpgradeConfigBuilder.bind(this), null),
         RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
@@ -301,7 +300,7 @@ export class NodeCommandHandlers implements CommandHandlers {
 
     const lease = await this.leaseManager.create();
 
-    const action = helpers.commandActionBuilder(
+    const action = this.parent.commandActionBuilder(
       [
         this.tasks.initialize(argv, downloadGeneratedFilesConfigBuilder.bind(this), lease),
         RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
@@ -325,7 +324,7 @@ export class NodeCommandHandlers implements CommandHandlers {
 
     const lease = await this.leaseManager.create();
 
-    const action = helpers.commandActionBuilder(
+    const action = this.parent.commandActionBuilder(
       [
         ...this.updatePrepareTasks(argv, lease),
         ...this.updateSubmitTransactionsTasks(argv),
@@ -347,10 +346,10 @@ export class NodeCommandHandlers implements CommandHandlers {
     argv = helpers.addFlagsToArgv(argv, NodeFlags.UPDATE_PREPARE_FLAGS);
     const lease = await this.leaseManager.create();
 
-    const action = helpers.commandActionBuilder(
+    const action = this.parent.commandActionBuilder(
       [
         ...this.updatePrepareTasks(argv, lease),
-        this.tasks.saveContextData(argv, NodeCommandHandlers.UPDATE_CONTEXT_FILE, helpers.updateSaveContextParser),
+        this.tasks.saveContextData(argv, NodeCommandHandlers.UPDATE_CONTEXT_FILE, NodeHelper.updateSaveContextParser),
       ],
       {
         concurrent: false,
@@ -367,11 +366,11 @@ export class NodeCommandHandlers implements CommandHandlers {
   async updateSubmitTransactions(argv) {
     const lease = await this.leaseManager.create();
     argv = helpers.addFlagsToArgv(argv, NodeFlags.UPDATE_SUBMIT_TRANSACTIONS_FLAGS);
-    const action = helpers.commandActionBuilder(
+    const action = this.parent.commandActionBuilder(
       [
         this.tasks.initialize(argv, updateConfigBuilder.bind(this), lease),
         RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
-        this.tasks.loadContextData(argv, NodeCommandHandlers.UPDATE_CONTEXT_FILE, helpers.updateLoadContextParser),
+        this.tasks.loadContextData(argv, NodeCommandHandlers.UPDATE_CONTEXT_FILE, NodeHelper.updateLoadContextParser),
         ...this.updateSubmitTransactionsTasks(argv),
       ],
       {
@@ -389,11 +388,11 @@ export class NodeCommandHandlers implements CommandHandlers {
   async updateExecute(argv) {
     const lease = await this.leaseManager.create();
     argv = helpers.addFlagsToArgv(argv, NodeFlags.UPDATE_EXECUTE_FLAGS);
-    const action = helpers.commandActionBuilder(
+    const action = this.parent.commandActionBuilder(
       [
         this.tasks.initialize(argv, updateConfigBuilder.bind(this), lease),
         RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
-        this.tasks.loadContextData(argv, NodeCommandHandlers.UPDATE_CONTEXT_FILE, helpers.updateLoadContextParser),
+        this.tasks.loadContextData(argv, NodeCommandHandlers.UPDATE_CONTEXT_FILE, NodeHelper.updateLoadContextParser),
         ...this.updateExecuteTasks(argv),
       ],
       {
@@ -411,7 +410,7 @@ export class NodeCommandHandlers implements CommandHandlers {
   async delete(argv: any) {
     argv = helpers.addFlagsToArgv(argv, NodeFlags.DELETE_FLAGS);
     const lease = await this.leaseManager.create();
-    const action = helpers.commandActionBuilder(
+    const action = this.parent.commandActionBuilder(
       [
         ...this.deletePrepareTaskList(argv, lease),
         ...this.deleteSubmitTransactionsTaskList(argv),
@@ -434,10 +433,10 @@ export class NodeCommandHandlers implements CommandHandlers {
 
     const lease = await this.leaseManager.create();
 
-    const action = helpers.commandActionBuilder(
+    const action = this.parent.commandActionBuilder(
       [
         ...this.deletePrepareTaskList(argv, lease),
-        this.tasks.saveContextData(argv, NodeCommandHandlers.DELETE_CONTEXT_FILE, helpers.deleteSaveContextParser),
+        this.tasks.saveContextData(argv, NodeCommandHandlers.DELETE_CONTEXT_FILE, NodeHelper.deleteSaveContextParser),
       ],
       {
         concurrent: false,
@@ -456,10 +455,10 @@ export class NodeCommandHandlers implements CommandHandlers {
 
     const lease = await this.leaseManager.create();
 
-    const action = helpers.commandActionBuilder(
+    const action = this.parent.commandActionBuilder(
       [
         this.tasks.initialize(argv, deleteConfigBuilder.bind(this), lease),
-        this.tasks.loadContextData(argv, NodeCommandHandlers.DELETE_CONTEXT_FILE, helpers.deleteLoadContextParser),
+        this.tasks.loadContextData(argv, NodeCommandHandlers.DELETE_CONTEXT_FILE, NodeHelper.deleteLoadContextParser),
         ...this.deleteSubmitTransactionsTaskList(argv),
       ],
       {
@@ -479,10 +478,10 @@ export class NodeCommandHandlers implements CommandHandlers {
 
     const lease = await this.leaseManager.create();
 
-    const action = helpers.commandActionBuilder(
+    const action = this.parent.commandActionBuilder(
       [
         this.tasks.initialize(argv, deleteConfigBuilder.bind(this), lease),
-        this.tasks.loadContextData(argv, NodeCommandHandlers.DELETE_CONTEXT_FILE, helpers.deleteLoadContextParser),
+        this.tasks.loadContextData(argv, NodeCommandHandlers.DELETE_CONTEXT_FILE, NodeHelper.deleteLoadContextParser),
         ...this.deleteExecuteTaskList(argv),
       ],
       {
@@ -502,7 +501,7 @@ export class NodeCommandHandlers implements CommandHandlers {
 
     const lease = await this.leaseManager.create();
 
-    const action = helpers.commandActionBuilder(
+    const action = this.parent.commandActionBuilder(
       [...this.addPrepareTasks(argv, lease), ...this.addSubmitTransactionsTasks(argv), ...this.addExecuteTasks(argv)],
       {
         concurrent: false,
@@ -521,7 +520,7 @@ export class NodeCommandHandlers implements CommandHandlers {
 
     const lease = await this.leaseManager.create();
 
-    const action = helpers.commandActionBuilder(
+    const action = this.parent.commandActionBuilder(
       [
         ...this.addPrepareTasks(argv, lease),
         this.tasks.saveContextData(argv, NodeCommandHandlers.ADD_CONTEXT_FILE, helpers.addSaveContextParser),
@@ -543,7 +542,7 @@ export class NodeCommandHandlers implements CommandHandlers {
 
     const lease = await this.leaseManager.create();
 
-    const action = helpers.commandActionBuilder(
+    const action = this.parent.commandActionBuilder(
       [
         this.tasks.initialize(argv, addConfigBuilder.bind(this), lease),
         RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
@@ -567,7 +566,7 @@ export class NodeCommandHandlers implements CommandHandlers {
 
     const lease = await this.leaseManager.create();
 
-    const action = helpers.commandActionBuilder(
+    const action = this.parent.commandActionBuilder(
       [
         this.tasks.initialize(argv, addConfigBuilder.bind(this), lease),
         RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
@@ -589,7 +588,7 @@ export class NodeCommandHandlers implements CommandHandlers {
 
   async logs(argv: any) {
     argv = helpers.addFlagsToArgv(argv, NodeFlags.LOGS_FLAGS);
-    const action = helpers.commandActionBuilder(
+    const action = this.parent.commandActionBuilder(
       [
         this.tasks.initialize(argv, logsConfigBuilder.bind(this), null),
         RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
@@ -610,7 +609,7 @@ export class NodeCommandHandlers implements CommandHandlers {
   async states(argv: any) {
     argv = helpers.addFlagsToArgv(argv, NodeFlags.STATES_FLAGS);
 
-    const action = helpers.commandActionBuilder(
+    const action = this.parent.commandActionBuilder(
       [this.tasks.initialize(argv, statesConfigBuilder.bind(this), null), this.tasks.getNodeStateFiles()],
       {
         concurrent: false,
@@ -629,7 +628,7 @@ export class NodeCommandHandlers implements CommandHandlers {
 
     const lease = await this.leaseManager.create();
 
-    const action = helpers.commandActionBuilder(
+    const action = this.parent.commandActionBuilder(
       [
         this.tasks.initialize(argv, refreshConfigBuilder.bind(this), lease),
         RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
@@ -659,7 +658,7 @@ export class NodeCommandHandlers implements CommandHandlers {
   async keys(argv: any) {
     argv = helpers.addFlagsToArgv(argv, NodeFlags.KEYS_FLAGS);
 
-    const action = helpers.commandActionBuilder(
+    const action = this.parent.commandActionBuilder(
       [
         this.tasks.initialize(argv, keysConfigBuilder.bind(this), null),
         RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
@@ -684,7 +683,7 @@ export class NodeCommandHandlers implements CommandHandlers {
 
     const lease = await this.leaseManager.create();
 
-    const action = helpers.commandActionBuilder(
+    const action = this.parent.commandActionBuilder(
       [
         this.tasks.initialize(argv, stopConfigBuilder.bind(this), lease),
         RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
@@ -712,7 +711,7 @@ export class NodeCommandHandlers implements CommandHandlers {
 
     const lease = await this.leaseManager.create();
 
-    const action = helpers.commandActionBuilder(
+    const action = this.parent.commandActionBuilder(
       [
         this.tasks.initialize(argv, startConfigBuilder.bind(this), lease),
         RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
@@ -743,7 +742,7 @@ export class NodeCommandHandlers implements CommandHandlers {
 
     const lease = await this.leaseManager.create();
 
-    const action = helpers.commandActionBuilder(
+    const action = this.parent.commandActionBuilder(
       [
         this.tasks.initialize(argv, setupConfigBuilder.bind(this), lease),
         RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
