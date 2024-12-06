@@ -26,10 +26,11 @@ Once the nodes are up, you may now expose various services (using `k9s` (shift-f
   kubectl port-forward svc/solo-deployment-hedera-explorer -n "${SOLO_NAMESPACE}" 8080:80 &
   ```
 * JSON Rpc Relays
-    * You can deploy JSON RPC relays for one or more nodes as below:
-  ```bash
-  solo relay deploy -i node1
-  # enable relay for node1
-  kubectl port-forward svc/relay-node1-hedera-json-rpc-relay -n "${SOLO_NAMESPACE}" 7546:7546 &
-  ```
 
+You can deploy JSON RPC relays for one or more nodes as below:
+
+```bash
+solo relay deploy -i node1
+# enable relay for node1
+kubectl port-forward svc/relay-node1-hedera-json-rpc-relay -n "${SOLO_NAMESPACE}" 7546:7546 &
+```

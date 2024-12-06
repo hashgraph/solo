@@ -10,6 +10,7 @@ Then, use the following steps to install dependencies and build solo project.
 npm ci
 npm run build
 ```
+
 Then, user can use one of the following three commands to quickly deploy a standalone solo network.
 
 ```bash
@@ -22,7 +23,9 @@ task default-with-mirror
 # Option 3) deploy solo network with two nodes, mirror node, and JSON RPC relay
 task default-with-relay
 ```
+
 To tear down the solo network
+
 ```bash
 task clean
 ```

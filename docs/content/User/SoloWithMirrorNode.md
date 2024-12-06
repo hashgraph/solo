@@ -30,9 +30,11 @@ You can try to create a few accounts with solo and see the transactions in the e
 solo account create -n solo-e2e --hbar-amount 100
 solo account create -n solo-e2e --hbar-amount 100
 ```
+
 Or you can use Hedera java SDK examples to create topic, submit message and subscribe to the topic.
 
 <!---
 Add SDK.md link here
 -->
-- [Instructions for using Solo with Hedera JavaScript SDK](SDK.md)
+
+* [Instructions for using Solo with Hedera JavaScript SDK](SDK.md)

@@ -5,6 +5,7 @@ with `./gradlew assemble`. If need to running multiple nodes with different vers
 multiple directories, checkout to the respective version and build the code.
 
 Then you can start customized built hedera network with the following command:
+
 ```bash
 SOLO_CLUSTER_NAME=solo-e2e
 SOLO_NAMESPACE=solo-e2e

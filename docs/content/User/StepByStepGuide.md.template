@@ -113,9 +113,11 @@ $SOLO_CLUSTER_SETUP_OUTPUT
 
 In a separate terminal, you may run `k9s` to view the pod status.
 
-* Deploy helm chart with Hedera network components
-    * It may take a while (5~15 minutes depending on your internet speed) to download various docker images and get the pods started.
-    * If it fails, ensure you have enough resources allocated for Docker engine and retry the command.
+Deploy helm chart with Hedera network components
+
+It may take a while (5~15 minutes depending on your internet speed) to download various docker images and get the pods started.
+
+If it fails, ensure you have enough resources allocated for Docker engine and retry the command.
 
 ```
 solo network deploy -i node1,node2,node3 -n "${SOLO_NAMESPACE}"

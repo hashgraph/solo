@@ -1,11 +1,10 @@
-
 # Solo command line user manual
+
 Solo has a series of commands to use, and some commands have subcommands.
 User can get help information by running with the following methods:
 
 `solo --help` will return the help information for the `solo` command to show which commands
 are available.
-
 
 `solo command --help` will return the help information for the specific command to show which options
 
@@ -28,6 +27,7 @@ Options:
   -h, --help     Show help                                                                                     [boolean]
   -v, --version  Show version number                                                                           [boolean]
 ```
+
 `solo command subcommand --help` will return the help information for the specific subcommand to show which options
 
 ```text
@@ -50,6 +50,7 @@ Options:
 ```
 
 ## init command
+
 `init` command is used to initialize system accounts with new keys, it accepts the following options:
 
 ```text
@@ -57,14 +58,17 @@ Options:
 ```
 
 ## account command
+
 `account` command is used to create a crypto account, get account information, or update account information.
 It has the following subcommands:
-- init
-- create
-- get
-- update
+
+* init
+* create
+* get
+* update
 
 ### account init
+
 `account init` subcommand is used to initialize system accounts with new keys, it accepts the following options:
 
 ```text
@@ -72,6 +76,7 @@ It has the following subcommands:
 ```
 
 ### account get
+
 Get an account balance and retrieve account information such as account ID, public key, and private key.
 `account get` subcommand accepts the following options:
 
@@ -80,7 +85,9 @@ Get an account balance and retrieve account information such as account ID, publ
       --private-key  Show private key information                                                              [boolean]
   -n, --namespace    Namespace                                                                                  [string]
 ```
+
 Some examples of getting an account are as follows:
+
 ```bash
 # get account info of 0.0.1007 and also show the private key
 solo account get --account-id 0.0.1007 -n solo-e2e --private-key
@@ -109,6 +116,7 @@ The output would be similar to the following:
       --generate-ecdsa-key   Generate ECDSA private key for the Hedera account                                 [boolean]
       --set-alias            Sets the alias for the Hedera account when it is created, requires --ecdsa-private-key
 ```
+
 If no private key is provided, the command will generate a new ED25519 key for the account.
 unless `--generate-ecdsa-key` is provided, in which case an ECDSA key will be generated.
 
@@ -127,8 +135,10 @@ solo account create -n solo-e2e --ecdsa-private-key 302a300506032b65700321001d89
 # create a new account with alias
 solo account create -n solo-e2e --set-alias --generate-ecdsa-key
 ```
+
 ### account update
-`account update` subcommand is used to update an existing account with the provided info, 
+
+`account update` subcommand is used to update an existing account with the provided info,
 if you want to update the private key, you can supply either ECDSA or ED25519 but not both.
 
 ```text
@@ -149,17 +159,22 @@ solo account update --account-id 0.0.1007 --hbar-amount 100 -n solo-e2e
 solo account update --account-id 0.0.1007 --ecdsa-private-key 302a300506032b65700321001d8978e647aca1195c54a4d3d5dc469b95666de14e9b6edde8ed337917b96013 -n solo-e2e
 
 ```
+
 ## context command
 
 ## cluster command
+
 `cluster` command is used to manage the solo network cluster, it has the following subcommands:
-- list
-- info
-- setup
-- reset
+
+* list
+* info
+* setup
+* reset
 
 ### cluster list
+
 `cluster list` subcommand is used to list the solo network clusters
+
 ```bash
 solo cluster list
 
@@ -178,9 +193,11 @@ Kubernetes Cluster	: kind-solo-e2e
 ```
 
 ### cluster info
+
 `cluster info` subcommand is used to get the information of current solo network cluster
 
 ### cluster setup
+
 `cluster setup` subcommand is used to setup the solo network cluster, it accepts the following options:
 
 ```text
@@ -196,6 +213,7 @@ Kubernetes Cluster	: kind-solo-e2e
 ```
 
 ### cluster reset
+
 `cluster reset` subcommand is used to reset the solo network cluster, it accepts the following options:
 
 ```text
@@ -204,14 +222,16 @@ Kubernetes Cluster	: kind-solo-e2e
   -f, --force                    Force actions even if those can be skipped                                    [boolean]
 ```
 
-
 ## network command
+
 `solo network` command is used to manage the solo network, it has the following subcommands:
-- deploy
-- destroy
-- refresh
+
+* deploy
+* destroy
+* refresh
 
 ### network deploy
+
 `network deploy` subcommand is used to deploy the solo network, it accepts the following options:
 
 ```text
@@ -246,7 +266,9 @@ Kubernetes Cluster	: kind-solo-e2e
       --grpc-web-tls-key           TLC Certificate key path for gRPC Web (e.g. "node1=/Users/username/node1-grpc-web.key
                                    " with multiple nodes comma seperated)                                       [string]                                                [string]
 ```
+
 ### network destroy
+
 `network destroy` subcommand is used to destroy the solo network, it accepts the following options:
 
 ```text
@@ -258,6 +280,7 @@ Kubernetes Cluster	: kind-solo-e2e
 ```
 
 ### network refresh
+
 `network refresh` subcommand is used to refresh or update the solo network, it accepts the following options:
 
 ```text
@@ -294,6 +317,7 @@ Kubernetes Cluster	: kind-solo-e2e
 ```
 
 ## node command
+
 solo node command is used to manage hedera network nodes, it has the following subcommands:
 
 ```text
@@ -322,6 +346,7 @@ solo node command is used to manage hedera network nodes, it has the following s
 ```
 
 ### mirror-node deploy
+
 `mirror-node deploy` subcommand accepts the following options:
 
 ```text
@@ -346,6 +371,7 @@ solo node command is used to manage hedera network nodes, it has the following s
       --mirror-node-version                   Mirror node chart version                                         [string]
       --pinger                                Enable Pinger service in the Mirror node monitor                 [boolean]                                      [string]                                                [string]
 ```
+
 ### mirror-node destroy
 
 `mirror-node destroy` subcommand accepts the following options:
@@ -364,6 +390,7 @@ solo node command is used to manage hedera network nodes, it has the following s
   relay deploy    Deploy a JSON RPC relay
   relay destroy   Destroy JSON RPC relay
 ```
+
 ### relay deploy
 
 `relay deploy` subcommand accepts the following options:
@@ -384,6 +411,7 @@ solo node command is used to manage hedera network nodes, it has the following s
 ```
 
 ### relay destroy
+
 `relay destroy` subcommand accepts the following options:
 
 ```text
@@ -391,4 +419,3 @@ solo node command is used to manage hedera network nodes, it has the following s
   -n, --namespace              Namespace                                                                        [string]
   -i, --node-aliases-unparsed  Comma separated node aliases (empty means all nodes)                             [string]                                                                                  [string]
 ```
-
