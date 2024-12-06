@@ -14,47 +14,9 @@
  * limitations under the License.
  *
  */
-import {type Lease} from './lease.js';
+import {type Lease} from './types.js';
 import {SECONDS} from '../constants.js';
-
-/**
- * A service for managing cancellable lease renewals.
- */
-export interface LeaseRenewalService {
-  /**
-   * Determines if a lease renewal is scheduled.
-   * @param scheduleId - the unique identifier of the scheduled lease renewal.
-   * @returns true if the lease renewal is scheduled; false otherwise.
-   */
-  isScheduled(scheduleId: number): Promise<boolean>;
-
-  /**
-   * Schedules a lease renewal.
-   * @param lease - the lease to be renewed.
-   * @returns the unique identifier of the scheduled lease renewal.
-   */
-  schedule(lease: Lease): Promise<number>;
-
-  /**
-   * Cancels a scheduled lease renewal.
-   * @param scheduleId - the unique identifier of the scheduled lease renewal.
-   * @returns true if the lease renewal was successfully cancelled; false otherwise.
-   */
-  cancel(scheduleId: number): Promise<boolean>;
-
-  /**
-   * Cancels all scheduled lease renewals.
-   * @returns a map of the unique identifiers of the scheduled lease renewals and their cancellation status.
-   */
-  cancelAll(): Promise<Map<number, boolean>>;
-
-  /**
-   * Calculates the delay before the next lease renewal.
-   * @param lease - the lease to be renewed.
-   * @returns the delay in milliseconds.
-   */
-  calculateRenewalDelay(lease: Lease): number;
-}
+import {type LeaseRenewalService} from './types.js';
 
 /**
  * Implements a lease renewal service which utilizes a setInterval() based approach to renew leases at regular intervals.

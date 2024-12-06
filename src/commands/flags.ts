@@ -18,7 +18,7 @@ import * as constants from '../core/constants.js';
 import {ConfigManager} from '../core/config_manager.js';
 import * as version from '../../version.js';
 import path from 'path';
-import type {CommandFlag} from '../types/index.js';
+import {type CommandFlag} from '../types/flag_types.js';
 import {type ListrTaskWrapper} from 'listr2';
 import fs from 'fs';
 import {IllegalArgumentError, SoloError} from '../core/errors.js';

@@ -34,14 +34,15 @@ import {ConfigManager} from '../../../src/core/config_manager.js';
 import {Helm} from '../../../src/core/helm.js';
 import {ChartManager} from '../../../src/core/chart_manager.js';
 import {getTestCacheDir, testLocalConfigData} from '../../test_util.js';
-import {BaseCommand} from '../../../src/commands/base.js';
+import {type BaseCommand} from '../../../src/commands/base.js';
 import {Flags as flags} from '../../../src/commands/flags.js';
 import {SoloLogger} from '../../../src/core/logging.js';
-import {type Opts} from '../../../src/types/index.js';
+import {type Opts} from '../../../src/types/command_types.js';
 import fs from 'fs';
 import {stringify} from 'yaml';
 import {type Cluster, KubeConfig} from '@kubernetes/client-node';
 import {type ListrTaskWrapper} from 'listr2';
+import {ContextCommand} from '../../../src/commands/context/index.js';
 
 describe('ContextCommandTasks unit tests', () => {
   const filePath = `${getTestCacheDir('ContextCommandTasks')}/localConfig.yaml`;
@@ -129,7 +130,7 @@ describe('ContextCommandTasks unit tests', () => {
       });
       loggerStub = sandbox.createStubInstance(SoloLogger);
       await fs.promises.writeFile(filePath, stringify(testLocalConfigData));
-      command = new BaseCommand(getBaseCommandOpts(sandbox));
+      command = new ContextCommand(getBaseCommandOpts(sandbox));
       tasks = new ContextCommandTasks(command);
     });
 

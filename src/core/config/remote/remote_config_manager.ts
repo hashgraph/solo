@@ -29,7 +29,8 @@ import type {ListrTask} from 'listr2';
 import type {ConfigManager} from '../../config_manager.js';
 import type {LocalConfig} from '../local_config.js';
 import type {DeploymentStructure} from '../local_config_data.js';
-import type {ContextClusterStructure, Optional} from '../../../types/index.js';
+import {type ContextClusterStructure} from '../../../types/config_types.js';
+import {type Optional} from '../../../types/index.js';
 import type * as k8s from '@kubernetes/client-node';
 
 interface ListrContext {

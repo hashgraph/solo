@@ -16,7 +16,7 @@
  */
 import {ListrEnquirerPromptAdapter} from '@listr2/prompt-adapter-enquirer';
 import chalk from 'chalk';
-import {Listr} from 'listr2';
+import {Listr, type ListrTask} from 'listr2';
 import {SoloError, IllegalArgumentError, MissingArgumentError} from '../core/errors.js';
 import {BaseCommand} from './base.js';
 import {Flags as flags} from './flags.js';
@@ -32,8 +32,12 @@ import {type PlatformInstaller} from '../core/platform_installer.js';
 import {type ProfileManager} from '../core/profile_manager.js';
 import {type CertificateManager} from '../core/certificate_manager.js';
 import {type CommandBuilder, type NodeAlias, type NodeAliases} from '../types/aliases.js';
-import type {Opts} from '../types/index.js';
+import {type Opts} from '../types/command_types.js';
 import {ListrLease} from '../core/lease/listr_lease.js';
+import {ConsensusNodeComponent} from '../core/config/remote/components/consensus_node_component.js';
+import {ConsensusNodeStates} from '../core/config/remote/enumerations.js';
+import {EnvoyProxyComponent} from '../core/config/remote/components/envoy_proxy_component.js';
+import {HaProxyComponent} from '../core/config/remote/components/ha_proxy_component.js';
 
 export interface NetworkDeployConfigClass {
   applicationEnv: string;
@@ -475,7 +479,7 @@ export class NetworkCommand extends BaseCommand {
             });
           },
         },
-        RemoteConfigTasks.addNodesAndProxies.bind(this)(),
+        this.addNodesAndProxies(),
       ],
       {
         concurrent: false,
@@ -720,5 +724,42 @@ export class NetworkCommand extends BaseCommand {
           .demandCommand(1, 'Select a chart command');
       },
     };
+  }
+  /** Adds the consensus node, envoy and haproxy components to remote config.  */
+  public addNodesAndProxies(): ListrTask<any, any, any> {
+    return {
+      title: 'Add node and proxies to remote config',
+      skip: (): boolean => !this.remoteConfigManager.isLoaded(),
+      task: async (ctx): Promise<void> => {
+        const {
+          config: {namespace, nodeAliases},
+        } = ctx;
+        const cluster = this.remoteConfigManager.currentCluster;
+
+        await this.remoteConfigManager.modify(async remoteConfig => {
+          for (const nodeAlias of nodeAliases) {
+            remoteConfig.components.add(
+              nodeAlias,
+              new ConsensusNodeComponent(nodeAlias, cluster, namespace, ConsensusNodeStates.INITIALIZED),
+            );
+
+            remoteConfig.components.add(
+              `envoy-${nodeAlias}`,
+              new EnvoyProxyComponent(`envoy-${nodeAlias}`, cluster, namespace),
+            );
+
+            remoteConfig.components.add(
+              `haproxy-${nodeAlias}`,
+              new HaProxyComponent(`haproxy-${nodeAlias}`, cluster, namespace),
+            );
+          }
+        });
+      },
+    };
+  }
+
+  close(): Promise<void> {
+    // no-op
+    return Promise.resolve();
   }
 }

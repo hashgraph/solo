@@ -26,11 +26,16 @@ import {type K8} from '../core/k8.js';
 import {type ChartManager} from '../core/chart_manager.js';
 import {type ConfigManager} from '../core/config_manager.js';
 import {type DependencyManager} from '../core/dependency_managers/index.js';
-import type {CommandFlag, CommandHandlers, Opts} from '../types/index.js';
-import type {Lease} from '../core/lease/lease.js';
+import {type Opts} from '../types/command_types.js';
+import {type CommandFlag} from '../types/flag_types.js';
+import {type Lease} from '../core/lease/types.js';
 import {Listr} from 'listr2';
 
-export class BaseCommand extends ShellRunner {
+export interface CommandHandlers {
+  parent: BaseCommand;
+}
+
+export abstract class BaseCommand extends ShellRunner {
   protected readonly helm: Helm;
   protected readonly k8: K8;
   protected readonly chartManager: ChartManager;
@@ -179,6 +184,8 @@ export class BaseCommand extends ShellRunner {
     return this.localConfig;
   }
 
+  abstract close(): Promise<void>;
+
   commandActionBuilder(actionTasks: any, options: any, errorString: string, lease: Lease | null) {
     return async function (argv: any, commandDef: CommandHandlers) {
       const tasks = new Listr([...actionTasks], options);
@@ -191,11 +198,7 @@ export class BaseCommand extends ShellRunner {
       } finally {
         const promises = [];
 
-        // @ts-ignore
-        if (commandDef.close) {
-          // @ts-ignore
-          promises.push(commandDef.close());
-        }
+        promises.push(commandDef.parent.close());
 
         if (lease) promises.push(lease.release());
         await Promise.all(promises);
