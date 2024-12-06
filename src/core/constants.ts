@@ -181,9 +181,6 @@ export const UPGRADE_FILE_CHUNK_SIZE = 1024 * 5; // 5Kb
 
 export const JVM_DEBUG_PORT = 5005;
 
-export const SECONDS = 1000;
-export const MINUTES = 60 * SECONDS;
-
 export const PODS_RUNNING_MAX_ATTEMPTS = +process.env.PODS_RUNNING_MAX_ATTEMPTS || 60 * 15;
 export const PODS_RUNNING_DELAY = +process.env.PODS_RUNNING_DELAY || 1000;
 export const NETWORK_NODE_ACTIVE_MAX_ATTEMPTS = +process.env.NETWORK_NODE_ACTIVE_MAX_ATTEMPTS || 120;

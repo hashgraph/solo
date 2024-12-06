@@ -32,7 +32,6 @@ import {
   HEDERA_NODE_DEFAULT_STAKE_AMOUNT,
   IGNORED_NODE_ACCOUNT_ID,
   LOCAL_HOST,
-  SECONDS,
   TREASURY_ACCOUNT_ID,
 } from '../../core/constants.js';
 import {
@@ -82,6 +81,7 @@ import type {
 } from './configs.js';
 import {type Lease} from '../../core/lease/types.js';
 import {ListrLease} from '../../core/lease/listr_lease.js';
+import {Duration} from '../../core/time/duration.js';
 import {type BaseCommand} from '../base.js';
 
 export class NodeCommandTasks {
@@ -403,7 +403,7 @@ export class NodeCommandTasks {
 
       attempt++;
       clearTimeout(timeoutId);
-      await sleep(delay);
+      await sleep(Duration.ofMillis(delay));
     }
 
     await this.k8.stopPortForward(srv);
@@ -415,7 +415,7 @@ export class NodeCommandTasks {
       );
     }
 
-    await sleep(1.5 * SECONDS); // delaying prevents - gRPC service error
+    await sleep(Duration.ofSeconds(2)); // delaying prevents - gRPC service error
 
     return podName;
   }
@@ -990,7 +990,7 @@ export class NodeCommandTasks {
       self.logger.info(
         'sleep 60 seconds for the handler to be able to trigger the network node stake weight recalculate',
       );
-      await sleep(60 * SECONDS);
+      await sleep(Duration.ofSeconds(60));
       const accountMap = getNodeAccountMap(config.allNodeAliases);
 
       switch (transactionType) {
@@ -1490,7 +1490,7 @@ export class NodeCommandTasks {
 
   sleep(title: string, milliseconds: number) {
     return new Task(title, async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
-      await sleep(milliseconds);
+      await sleep(Duration.ofMillis(milliseconds));
     });
   }
 

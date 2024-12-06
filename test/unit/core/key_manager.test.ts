@@ -23,8 +23,8 @@ import path from 'path';
 import {KeyManager} from '../../../src/core/key_manager.js';
 import * as constants from '../../../src/core/constants.js';
 import * as logging from '../../../src/core/logging.js';
-import {SECONDS} from '../../../src/core/constants.js';
 import type {NodeAlias} from '../../../src/types/aliases.js';
+import {Duration} from '../../../src/core/time/duration.js';
 
 describe('KeyManager', () => {
   const logger = logging.NewLogger('debug', true);
@@ -84,5 +84,5 @@ describe('KeyManager', () => {
     ).to.be.true;
 
     fs.rmSync(tmpDir, {recursive: true});
-  }).timeout(20 * SECONDS);
+  }).timeout(Duration.ofSeconds(20).toMillis());
 });

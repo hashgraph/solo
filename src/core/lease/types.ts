@@ -16,6 +16,7 @@
  */
 import type {K8} from '../k8.js';
 import {type LeaseHolder} from './lease_holder.js';
+import {type Duration} from '../time/duration.js';
 
 /**
  * Copyright (C) 2024 Hedera Hashgraph, LLC
@@ -66,7 +67,7 @@ export interface LeaseRenewalService {
    * @param lease - the lease to be renewed.
    * @returns the delay in milliseconds.
    */
-  calculateRenewalDelay(lease: Lease): number;
+  calculateRenewalDelay(lease: Lease): Duration;
 }
 export interface Lease {
   readonly client: K8;
