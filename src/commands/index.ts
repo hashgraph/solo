@@ -43,13 +43,12 @@ export function Initialize(opts: Opts) {
 
   return [
     initCmd.getCommandDefinition(),
+    accountCmd.getCommandDefinition(),
     clusterCmd.getCommandDefinition(),
-    contextCmd.getCommandDefinition(),
     contextCmd.getCommandDefinition(),
     networkCommand.getCommandDefinition(),
     nodeCmd.getCommandDefinition(),
     relayCmd.getCommandDefinition(),
-    accountCmd.getCommandDefinition(),
     mirrorNodeCmd.getCommandDefinition(),
     deploymentCommand.getCommandDefinition(),
   ];

@@ -26,6 +26,10 @@ enableRobotsTXT = true
 [markup.highlight]
 style = "vs"
 
+[[module.mounts]]
+source = "layouts"
+target = "layouts"
+
 [taxonomies]
 tag = "tags"
 

@@ -15,7 +15,10 @@
 ##
 
 name: Update README.md
+
+# This workflow calls script update_md.sh to update the docs/content/User/StepByStepGuide.md file
 on:
+  workflow_dispatch:
   workflow_call:
     secrets:
       GH_ACCESS_TOKEN:
@@ -92,7 +95,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install gettext-base
 
-      - name: Update README.md
+      - name: Update docs/content/User/StepByStepGuide.md
         run: |
           set -xeo pipefail
           npm install
@@ -107,7 +110,7 @@ jobs:
           ./.github/workflows/script/update_md.sh </dev/null | cat
           set +x
 
-      - name: Check README.md Changes
+      - name: Check docs/content/User/StepByStepGuide.md Changes
         id: check-readme-changes
         run: |
           CHANGES=$(git diff --stat)
@@ -138,15 +141,15 @@ jobs:
           git_user_signingkey: true
           git_commit_gpgsign: true
 
-      - name: Commit README.md Changes
+      - name: Commit docs/content/User/StepByStepGuide.md Changes
         id: commit-readme
         if : ${{ github.event.inputs.dry-run-enabled != 'true' && !cancelled() && !failure() && inputs.commit-changes }}
         uses: stefanzweifel/git-auto-commit-action@8621497c8c39c72f3e2a999a26b4ca1b5058a842 # v5.0.1
         with:
-          commit_message: "auto update README.md [skip ci]"
+          commit_message: "auto update docs/content/User/StepByStepGuide.md [skip ci]"
           commit_options: '--no-verify --signoff'
           add_options: '-u'
-          file_pattern: 'README.md'
+          file_pattern: 'docs/content/User/StepByStepGuide.md'
           commit_user_name: Swirlds Automation
           commit_user_email: swirlds-eng-automation@swirlds.com
           commit_author: Swirlds Automation <swirlds-eng-automation@swirlds.com>
