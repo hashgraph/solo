@@ -64,6 +64,13 @@ export const MIRROR_NODE_CHART = 'hedera-mirror';
 export const MIRROR_NODE_RELEASE_NAME = 'mirror';
 export const HEDERA_EXPLORER_CHART_UTL = 'oci://ghcr.io/hashgraph/hedera-mirror-node-explorer/hedera-explorer';
 export const HEDERA_EXPLORER_CHART = 'hedera-explorer';
+export const SOLO_RELAY_LABEL = 'app=hedera-json-rpc-relay';
+export const SOLO_HEDERA_EXPLORER_LABEL = 'app.kubernetes.io/name=hedera-explorer';
+
+export const SOLO_HEDERA_MIRROR_IMPORTER = [
+  'app.kubernetes.io/component=importer',
+  'app.kubernetes.io/instance=mirror',
+];
 
 export const DEFAULT_CHART_REPO: Map<string, string> = new Map()
   .set(JSON_RPC_RELAY_CHART, JSON_RPC_RELAY_CHART_URL)

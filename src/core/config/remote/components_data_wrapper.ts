@@ -59,12 +59,12 @@ export class ComponentsDataWrapper implements Validate, ToObject<ComponentsDataS
    * @param mirrorNodeExplorers - Mirror Node Explorers record mapping service name to mirror node explorers components
    */
   private constructor(
-    private readonly relays: Record<ComponentName, RelayComponent> = {},
-    private readonly haProxies: Record<ComponentName, HaProxyComponent> = {},
-    private readonly mirrorNodes: Record<ComponentName, MirrorNodeComponent> = {},
-    private readonly envoyProxies: Record<ComponentName, EnvoyProxyComponent> = {},
-    private readonly consensusNodes: Record<ComponentName, ConsensusNodeComponent> = {},
-    private readonly mirrorNodeExplorers: Record<ComponentName, MirrorNodeExplorerComponent> = {},
+    public readonly relays: Record<ComponentName, RelayComponent> = {},
+    public readonly haProxies: Record<ComponentName, HaProxyComponent> = {},
+    public readonly mirrorNodes: Record<ComponentName, MirrorNodeComponent> = {},
+    public readonly envoyProxies: Record<ComponentName, EnvoyProxyComponent> = {},
+    public readonly consensusNodes: Record<ComponentName, ConsensusNodeComponent> = {},
+    public readonly mirrorNodeExplorers: Record<ComponentName, MirrorNodeExplorerComponent> = {},
   ) {
     this.validate();
   }

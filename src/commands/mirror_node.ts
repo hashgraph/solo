@@ -423,7 +423,7 @@ export class MirrorNodeCommand extends BaseCommand {
             );
           },
         },
-        this.addMirrorNodeAndMirrorNodeExplorer(),
+        this.addMirrorNodeComponents(),
       ],
       {
         concurrent: false,
@@ -520,7 +520,7 @@ export class MirrorNodeCommand extends BaseCommand {
           },
           skip: ctx => !ctx.config.isChartInstalled,
         },
-        this.removeMirrorNodeAndMirrorNodeExplorer(),
+        this.removeMirrorNodeComponents(),
       ],
       {
         concurrent: false,
@@ -595,7 +595,7 @@ export class MirrorNodeCommand extends BaseCommand {
   }
 
   /** Removes the mirror node and mirror node explorer components from remote config. */
-  public removeMirrorNodeAndMirrorNodeExplorer(): ListrTask<any, any, any> {
+  public removeMirrorNodeComponents(): ListrTask<any, any, any> {
     return {
       title: 'Remove mirror node and mirror node explorer from remote config',
       skip: (): boolean => !this.remoteConfigManager.isLoaded(),
@@ -610,7 +610,7 @@ export class MirrorNodeCommand extends BaseCommand {
   }
 
   /** Adds the mirror node and mirror node explorer components to remote config. */
-  public addMirrorNodeAndMirrorNodeExplorer(): ListrTask<any, any, any> {
+  public addMirrorNodeComponents(): ListrTask<any, any, any> {
     return {
       title: 'Add mirror node and mirror node explorer to remote config',
       skip: (): boolean => !this.remoteConfigManager.isLoaded(),
