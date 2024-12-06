@@ -21,18 +21,12 @@ import util from 'util';
 import {SoloError} from './errors.js';
 import * as semver from 'semver';
 import {Templates} from './templates.js';
-import {HEDERA_HAPI_PATH, ROOT_CONTAINER, ROOT_DIR, SOLO_LOGS_DIR} from './constants.js';
-import {constants, type K8} from './index.js';
-import {FileContentsQuery, FileId, PrivateKey, ServiceEndpoint} from '@hashgraph/sdk';
-import {Listr} from 'listr2';
-import {type AccountManager} from './account_manager.js';
-import {type NodeAlias, type NodeAliases, type PodName} from '../types/aliases.js';
-import {type NodeDeleteConfigClass, type NodeUpdateConfigClass} from '../commands/node/configs.js';
-import {type CommandFlag, type CommandHandlers} from '../types/index.js';
-import {type V1Pod} from '@kubernetes/client-node';
+import {ROOT_DIR} from './constants.js';
+import * as constants from './constants.js';
+import {PrivateKey, ServiceEndpoint} from '@hashgraph/sdk';
+import {type NodeAlias, type NodeAliases} from '../types/aliases.js';
+import {type CommandFlag} from '../types/flag_types.js';
 import {type SoloLogger} from './logging.js';
-import {type NodeCommandHandlers} from '../commands/node/handlers.js';
-import {type Lease} from './lease/lease.js';
 
 export function sleep(ms: number) {
   return new Promise<void>(resolve => {
@@ -184,91 +178,6 @@ export function validatePath(input: string) {
 }
 
 /**
- * Download logs files from all network pods and save to local solo log directory
- * @param k8 - an instance of core/K8
- * @param namespace - the namespace of the network
- * @returns a promise that resolves when the logs are downloaded
- */
-export async function getNodeLogs(k8: K8, namespace: string) {
-  const pods = await k8.getPodsByLabel(['solo.hedera.com/type=network-node']);
-
-  const timeString = new Date().toISOString().replace(/:/g, '-').replace(/\./g, '-');
-
-  const promises = [];
-  for (const pod of pods) {
-    promises.push(getNodeLog(pod, namespace, timeString, k8));
-  }
-  return await Promise.all(promises);
-}
-
-async function getNodeLog(pod: V1Pod, namespace: string, timeString: string, k8: K8) {
-  const podName = pod.metadata!.name as PodName;
-  k8.logger.debug(`getNodeLogs(${pod.metadata.name}): begin...`);
-  const targetDir = path.join(SOLO_LOGS_DIR, namespace, timeString);
-  try {
-    if (!fs.existsSync(targetDir)) {
-      fs.mkdirSync(targetDir, {recursive: true});
-    }
-    const scriptName = 'support-zip.sh';
-    const sourcePath = path.join(constants.RESOURCES_DIR, scriptName); // script source path
-    await k8.copyTo(podName, ROOT_CONTAINER, sourcePath, `${HEDERA_HAPI_PATH}`);
-    await sleep(1000); // wait for the script to sync to the file system
-    await k8.execContainer(podName, ROOT_CONTAINER, [
-      'bash',
-      '-c',
-      `sync ${HEDERA_HAPI_PATH} && sudo chown hedera:hedera ${HEDERA_HAPI_PATH}/${scriptName}`,
-    ]);
-    await k8.execContainer(podName, ROOT_CONTAINER, [
-      'bash',
-      '-c',
-      `sudo chmod 0755 ${HEDERA_HAPI_PATH}/${scriptName}`,
-    ]);
-    await k8.execContainer(podName, ROOT_CONTAINER, `${HEDERA_HAPI_PATH}/${scriptName}`);
-    await k8.copyFrom(podName, ROOT_CONTAINER, `${HEDERA_HAPI_PATH}/data/${podName}.zip`, targetDir);
-  } catch (e: Error | any) {
-    // not throw error here, so we can continue to finish downloading logs from other pods
-    // and also delete namespace in the end
-    k8.logger.error(`${constants.NODE_LOG_FAILURE_MSG} ${podName}`, e);
-  }
-  k8.logger.debug(`getNodeLogs(${pod.metadata.name}): ...end`);
-}
-
-/**
- * Download state files from a pod
- * @param k8 - an instance of core/K8
- * @param namespace - the namespace of the network
- * @param nodeAlias - the pod name
- * @returns a promise that resolves when the state files are downloaded
- */
-export async function getNodeStatesFromPod(k8: K8, namespace: string, nodeAlias: string) {
-  const pods = await k8.getPodsByLabel([`solo.hedera.com/node-name=${nodeAlias}`]);
-  // get length of pods
-  const promises = [];
-  for (const pod of pods) {
-    promises.push(getNodeState(pod, namespace, k8));
-  }
-  return await Promise.all(promises);
-}
-
-async function getNodeState(pod: V1Pod, namespace: string, k8: K8) {
-  const podName = pod.metadata!.name as PodName;
-  k8.logger.debug(`getNodeState(${pod.metadata.name}): begin...`);
-  const targetDir = path.join(SOLO_LOGS_DIR, namespace);
-  try {
-    if (!fs.existsSync(targetDir)) {
-      fs.mkdirSync(targetDir, {recursive: true});
-    }
-    const zipCommand = `tar -czf ${HEDERA_HAPI_PATH}/${podName}-state.zip -C ${HEDERA_HAPI_PATH}/data/saved .`;
-    await k8.execContainer(podName, ROOT_CONTAINER, zipCommand);
-    await k8.copyFrom(podName, ROOT_CONTAINER, `${HEDERA_HAPI_PATH}/${podName}-state.zip`, targetDir);
-  } catch (e: Error | any) {
-    k8.logger.error(`failed to download state from pod ${podName}`, e);
-    k8.logger.showUser(`Failed to download state from pod ${podName}` + e);
-  }
-  k8.logger.debug(`getNodeState(${pod.metadata.name}): ...end`);
-}
-
-/**
  * Create a map of node aliases to account IDs
  * @param nodeAliases
  * @returns the map of node IDs to account IDs
@@ -284,14 +193,6 @@ export function getNodeAccountMap(nodeAliases: NodeAliases) {
     accountMap.set(nodeAlias, nodeAccount);
   });
   return accountMap;
-}
-
-export async function getFileContents(accountManager: AccountManager, namespace: string, fileNum: number) {
-  await accountManager.loadNodeClient(namespace);
-  const client = accountManager._nodeClient;
-  const fileId = FileId.fromString(`0.0.${fileNum}`);
-  const queryFees = new FileContentsQuery().setFileId(fileId);
-  return Buffer.from(await queryFees.execute(client)).toString('hex');
 }
 
 export function getEnvValue(envVarArray: string[], name: string) {
@@ -398,100 +299,6 @@ export function addLoadContextParser(ctx: any, ctxData: any) {
   }
 }
 
-/**
- * Returns an object that can be written to a file without data loss.
- * Contains fields needed for deleting a node through separate commands
- * @param ctx - accumulator object
- * @returns file writable object
- */
-export function deleteSaveContextParser(ctx: {config: NodeDeleteConfigClass; upgradeZipHash: any}) {
-  const exportedCtx = {} as {
-    adminKey: string;
-    existingNodeAliases: NodeAliases;
-    upgradeZipHash: string;
-    nodeAlias: NodeAlias;
-  };
-
-  const config = ctx.config;
-  exportedCtx.adminKey = config.adminKey.toString();
-  exportedCtx.existingNodeAliases = config.existingNodeAliases;
-  exportedCtx.upgradeZipHash = ctx.upgradeZipHash;
-  exportedCtx.nodeAlias = config.nodeAlias;
-  return exportedCtx;
-}
-
-/**
- * Initializes objects in the context from a provided string
- * Contains fields needed for deleting a node through separate commands
- * @param ctx - accumulator object
- * @param ctxData - data in string format
- * @returns file writable object
- */
-export function deleteLoadContextParser(ctx: {config: NodeDeleteConfigClass; upgradeZipHash: any}, ctxData: any) {
-  const config = ctx.config;
-  config.adminKey = PrivateKey.fromStringED25519(ctxData.adminKey);
-  config.existingNodeAliases = ctxData.existingNodeAliases;
-  config.allNodeAliases = ctxData.existingNodeAliases;
-  ctx.upgradeZipHash = ctxData.upgradeZipHash;
-  config.podNames = {};
-}
-
-/**
- * Returns an object that can be written to a file without data loss.
- * Contains fields needed for updating a node through separate commands
- * @param ctx - accumulator object
- * @returns file writable object
- */
-export function updateSaveContextParser(ctx: {config: NodeUpdateConfigClass; upgradeZipHash: any}) {
-  const exportedCtx: any = {};
-
-  const config = /** @type {NodeUpdateConfigClass} **/ ctx.config;
-  exportedCtx.adminKey = config.adminKey.toString();
-  exportedCtx.newAdminKey = config.newAdminKey.toString();
-  exportedCtx.freezeAdminPrivateKey = config.freezeAdminPrivateKey.toString();
-  exportedCtx.treasuryKey = config.treasuryKey.toString();
-  exportedCtx.existingNodeAliases = config.existingNodeAliases;
-  exportedCtx.upgradeZipHash = ctx.upgradeZipHash;
-  exportedCtx.nodeAlias = config.nodeAlias;
-  exportedCtx.newAccountNumber = config.newAccountNumber;
-  exportedCtx.tlsPublicKey = config.tlsPublicKey;
-  exportedCtx.tlsPrivateKey = config.tlsPrivateKey;
-  exportedCtx.gossipPublicKey = config.gossipPublicKey;
-  exportedCtx.gossipPrivateKey = config.gossipPrivateKey;
-  exportedCtx.allNodeAliases = config.allNodeAliases;
-
-  return exportedCtx;
-}
-
-/**
- * Initializes objects in the context from a provided string
- * Contains fields needed for updating a node through separate commands
- * @param ctx - accumulator object
- * @param ctxData - data in string format
- * @returns file writable object
- */
-export function updateLoadContextParser(ctx: {config: NodeUpdateConfigClass; upgradeZipHash: any}, ctxData: any) {
-  const config = ctx.config;
-
-  if (ctxData.newAdminKey && ctxData.newAdminKey.length) {
-    config.newAdminKey = PrivateKey.fromStringED25519(ctxData.newAdminKey);
-  }
-
-  config.freezeAdminPrivateKey = PrivateKey.fromStringED25519(ctxData.freezeAdminPrivateKey);
-  config.treasuryKey = PrivateKey.fromStringED25519(ctxData.treasuryKey);
-  config.adminKey = PrivateKey.fromStringED25519(ctxData.adminKey);
-  config.existingNodeAliases = ctxData.existingNodeAliases;
-  config.nodeAlias = ctxData.nodeAlias;
-  config.newAccountNumber = ctxData.newAccountNumber;
-  config.tlsPublicKey = ctxData.tlsPublicKey;
-  config.tlsPrivateKey = ctxData.tlsPrivateKey;
-  config.gossipPublicKey = ctxData.gossipPublicKey;
-  config.gossipPrivateKey = ctxData.gossipPrivateKey;
-  config.allNodeAliases = ctxData.allNodeAliases;
-  ctx.upgradeZipHash = ctxData.upgradeZipHash;
-  config.podNames = {};
-}
-
 export function prepareEndpoints(endpointType: string, endpoints: string[], defaultPort: number | string) {
   const ret: ServiceEndpoint[] = [];
   for (const endpoint of endpoints) {
@@ -529,30 +336,6 @@ export function prepareEndpoints(endpointType: string, endpoints: string[], defa
   }
 
   return ret;
-}
-
-export function commandActionBuilder(actionTasks: any, options: any, errorString: string, lease: Lease | null) {
-  return async function (argv: any, commandDef: CommandHandlers) {
-    const tasks = new Listr([...actionTasks], options);
-
-    try {
-      await tasks.run();
-    } catch (e: Error | any) {
-      commandDef.parent.logger.error(`${errorString}: ${e.message}`, e);
-      throw new SoloError(`${errorString}: ${e.message}`, e);
-    } finally {
-      const promises = [];
-
-      // @ts-ignore
-      if (commandDef.close) {
-        // @ts-ignore
-        promises.push(commandDef.close());
-      }
-
-      if (lease) promises.push(lease.release());
-      await Promise.all(promises);
-    }
-  };
 }
 
 /** Adds all the types of flags as properties on the provided argv object */

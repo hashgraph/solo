@@ -18,9 +18,11 @@ import * as fs from 'fs';
 import {Listr} from 'listr2';
 import * as path from 'path';
 import {SoloError, IllegalArgumentError, MissingArgumentError} from './errors.js';
-import {type ConfigManager, constants, type K8} from './index.js';
+import * as constants from './constants.js';
+import {type ConfigManager} from './config_manager.js';
+import {type K8} from './k8.js';
 import {Templates} from './templates.js';
-import {flags} from '../commands/index.js';
+import {Flags as flags} from '../commands/flags.js';
 import * as Base64 from 'js-base64';
 import chalk from 'chalk';
 

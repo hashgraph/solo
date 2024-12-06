@@ -18,8 +18,10 @@ import {expect} from 'chai';
 import {describe, it} from 'mocha';
 
 import {DependencyManager, HelmDependencyManager} from '../../../../src/core/dependency_managers/index.js';
-import {logging, constants, PackageDownloader, Zippy} from '../../../../src/core/index.js';
-import {SECONDS} from '../../../../src/core/constants.js';
+import {PackageDownloader} from '../../../../src/core/package_downloader.js';
+import {Zippy} from '../../../../src/core/zippy.js';
+import * as constants from '../../../../src/core/constants.js';
+import * as logging from '../../../../src/core/logging.js';
 
 const testLogger = logging.NewLogger('debug', true);
 describe('DependencyManager', () => {

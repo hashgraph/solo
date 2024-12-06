@@ -19,31 +19,30 @@ import {describe, it, beforeEach} from 'mocha';
 import {expect} from 'chai';
 
 import {ContextCommandTasks} from '../../../src/commands/context/tasks.js';
-import {
-  AccountManager,
-  CertificateManager,
-  ChartManager,
-  ConfigManager,
-  DependencyManager,
-  Helm,
-  K8,
-  KeyManager,
-  LeaseManager,
-  LocalConfig,
-  PackageDownloader,
-  PlatformInstaller,
-  ProfileManager,
-  RemoteConfigManager,
-} from '../../../src/core/index.js';
+import {DependencyManager} from '../../../src/core/dependency_managers/index.js';
+import {LocalConfig} from '../../../src/core/config/local_config.js';
+import {PackageDownloader} from '../../../src/core/package_downloader.js';
+import {KeyManager} from '../../../src/core/key_manager.js';
+import {AccountManager} from '../../../src/core/account_manager.js';
+import {PlatformInstaller} from '../../../src/core/platform_installer.js';
+import {ProfileManager} from '../../../src/core/profile_manager.js';
+import {LeaseManager} from '../../../src/core/lease/lease_manager.js';
+import {CertificateManager} from '../../../src/core/certificate_manager.js';
+import {RemoteConfigManager} from '../../../src/core/config/remote/remote_config_manager.js';
+import {K8} from '../../../src/core/k8.js';
+import {ConfigManager} from '../../../src/core/config_manager.js';
+import {Helm} from '../../../src/core/helm.js';
+import {ChartManager} from '../../../src/core/chart_manager.js';
 import {getTestCacheDir, testLocalConfigData} from '../../test_util.js';
-import {BaseCommand} from '../../../src/commands/base.js';
-import {flags} from '../../../src/commands/index.js';
+import {type BaseCommand} from '../../../src/commands/base.js';
+import {Flags as flags} from '../../../src/commands/flags.js';
 import {SoloLogger} from '../../../src/core/logging.js';
-import {type Opts} from '../../../src/types/index.js';
+import {type Opts} from '../../../src/types/command_types.js';
 import fs from 'fs';
 import {stringify} from 'yaml';
 import {type Cluster, KubeConfig} from '@kubernetes/client-node';
 import {type ListrTaskWrapper} from 'listr2';
+import {ContextCommand} from '../../../src/commands/context/index.js';
 
 describe('ContextCommandTasks unit tests', () => {
   const filePath = `${getTestCacheDir('ContextCommandTasks')}/localConfig.yaml`;
@@ -131,7 +130,7 @@ describe('ContextCommandTasks unit tests', () => {
       });
       loggerStub = sandbox.createStubInstance(SoloLogger);
       await fs.promises.writeFile(filePath, stringify(testLocalConfigData));
-      command = new BaseCommand(getBaseCommandOpts(sandbox));
+      command = new ContextCommand(getBaseCommandOpts(sandbox));
       tasks = new ContextCommandTasks(command);
     });
 

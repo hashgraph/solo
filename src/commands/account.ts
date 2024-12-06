@@ -17,12 +17,13 @@
 import chalk from 'chalk';
 import {BaseCommand} from './base.js';
 import {SoloError, IllegalArgumentError} from '../core/errors.js';
-import {flags} from './index.js';
+import {Flags as flags} from './flags.js';
 import {Listr} from 'listr2';
-import {constants, type AccountManager} from '../core/index.js';
+import * as constants from '../core/constants.js';
+import {type AccountManager} from '../core/account_manager.js';
 import {type AccountId, AccountInfo, HbarUnit, PrivateKey} from '@hashgraph/sdk';
 import {FREEZE_ADMIN_ACCOUNT} from '../core/constants.js';
-import {type Opts} from '../types/index.js';
+import {type Opts} from '../types/command_types.js';
 import {ListrLease} from '../core/lease/listr_lease.js';
 import {type CommandBuilder} from '../types/aliases.js';
 
@@ -624,5 +625,9 @@ export class AccountCommand extends BaseCommand {
           .demandCommand(1, 'Select an account command');
       },
     };
+  }
+
+  close(): Promise<void> {
+    return this.closeConnections();
   }
 }

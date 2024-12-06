@@ -15,16 +15,20 @@
  *
  */
 import {ListrEnquirerPromptAdapter} from '@listr2/prompt-adapter-enquirer';
-import {Listr} from 'listr2';
+import {Listr, type ListrTask} from 'listr2';
 import {SoloError, IllegalArgumentError, MissingArgumentError} from '../core/errors.js';
-import {constants, type ProfileManager, type AccountManager} from '../core/index.js';
+import * as constants from '../core/constants.js';
+import {type AccountManager} from '../core/account_manager.js';
+import {type ProfileManager} from '../core/profile_manager.js';
 import {BaseCommand} from './base.js';
-import {flags} from './index.js';
-import {getFileContents, getEnvValue} from '../core/helpers.js';
+import {Flags as flags} from './flags.js';
+import {getEnvValue} from '../core/helpers.js';
 import {RemoteConfigTasks} from '../core/config/remote/remote_config_tasks.js';
 import {type CommandBuilder, type PodName} from '../types/aliases.js';
-import type {Opts} from '../types/index.js';
+import {type Opts} from '../types/command_types.js';
 import {ListrLease} from '../core/lease/listr_lease.js';
+import {ComponentType} from '../core/config/remote/enumerations.js';
+import {MirrorNodeComponent} from '../core/config/remote/components/mirror_node_component.js';
 
 export class MirrorNodeCommand extends BaseCommand {
   private readonly accountManager: AccountManager;
@@ -369,8 +373,8 @@ export class MirrorNodeCommand extends BaseCommand {
                     const exchangeRatesFileIdNum = 112;
                     const timestamp = Date.now();
 
-                    const fees = await getFileContents(this.accountManager, namespace, feesFileIdNum);
-                    const exchangeRates = await getFileContents(this.accountManager, namespace, exchangeRatesFileIdNum);
+                    const fees = await this.accountManager.getFileContents(namespace, feesFileIdNum);
+                    const exchangeRates = await this.accountManager.getFileContents(namespace, exchangeRatesFileIdNum);
 
                     const importFeesQuery = `INSERT INTO public.file_data(file_data, consensus_timestamp, entity_id, transaction_type) VALUES (decode('${fees}', 'hex'), ${timestamp + '000000'}, ${feesFileIdNum}, 17);`;
                     const importExchangeRatesQuery = `INSERT INTO public.file_data(file_data, consensus_timestamp, entity_id, transaction_type) VALUES (decode('${exchangeRates}', 'hex'), ${
@@ -419,7 +423,7 @@ export class MirrorNodeCommand extends BaseCommand {
             );
           },
         },
-        RemoteConfigTasks.addMirrorNodeAndMirrorNodeToExplorer.bind(this)(),
+        this.addMirrorNodeComponents(),
       ],
       {
         concurrent: false,
@@ -516,7 +520,7 @@ export class MirrorNodeCommand extends BaseCommand {
           },
           skip: ctx => !ctx.config.isChartInstalled,
         },
-        RemoteConfigTasks.removeMirrorNodeAndMirrorNodeToExplorer.bind(this)(),
+        this.removeMirrorNodeComponents(),
       ],
       {
         concurrent: false,
@@ -588,5 +592,48 @@ export class MirrorNodeCommand extends BaseCommand {
           .demandCommand(1, 'Select a mirror-node command');
       },
     };
+  }
+
+  /** Removes the mirror node and mirror node explorer components from remote config. */
+  public removeMirrorNodeComponents(): ListrTask<any, any, any> {
+    return {
+      title: 'Remove mirror node and mirror node explorer from remote config',
+      skip: (): boolean => !this.remoteConfigManager.isLoaded(),
+      task: async (): Promise<void> => {
+        await this.remoteConfigManager.modify(async remoteConfig => {
+          remoteConfig.components.remove('mirrorNode', ComponentType.MirrorNode);
+
+          remoteConfig.components.remove('mirrorNodeExplorer', ComponentType.MirrorNode);
+        });
+      },
+    };
+  }
+
+  /** Adds the mirror node and mirror node explorer components to remote config. */
+  public addMirrorNodeComponents(): ListrTask<any, any, any> {
+    return {
+      title: 'Add mirror node and mirror node explorer to remote config',
+      skip: (): boolean => !this.remoteConfigManager.isLoaded(),
+      task: async (ctx): Promise<void> => {
+        await this.remoteConfigManager.modify(async remoteConfig => {
+          const {
+            config: {namespace},
+          } = ctx;
+          const cluster = this.remoteConfigManager.currentCluster;
+
+          remoteConfig.components.add('mirrorNode', new MirrorNodeComponent('mirrorNode', cluster, namespace));
+
+          remoteConfig.components.add(
+            'mirrorNodeExplorer',
+            new MirrorNodeComponent('mirrorNodeExplorer', cluster, namespace),
+          );
+        });
+      },
+    };
+  }
+
+  close(): Promise<void> {
+    // no-op
+    return Promise.resolve();
   }
 }

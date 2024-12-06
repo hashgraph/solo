@@ -17,7 +17,7 @@
 import {it, describe, after, before, afterEach} from 'mocha';
 import {expect} from 'chai';
 
-import {flags} from '../../src/commands/index.js';
+import {Flags as flags} from '../../src/commands/flags.js';
 import {
   accountCreationShouldSucceed,
   balanceQueryShouldSucceed,
@@ -27,12 +27,13 @@ import {
   TEST_CLUSTER,
   testLogger,
 } from '../test_util.js';
-import {getNodeLogs, sleep} from '../../src/core/helpers.js';
+import {sleep} from '../../src/core/helpers.js';
 import * as NodeCommandConfigs from '../../src/commands/node/configs.js';
 import {MINUTES, SECONDS} from '../../src/core/constants.js';
 import type {NodeAlias} from '../../src/types/aliases.js';
 import type {ListrTaskWrapper} from 'listr2';
-import {ConfigManager, type K8} from '../../src/core/index.js';
+import {ConfigManager} from '../../src/core/config_manager.js';
+import {type K8} from '../../src/core/k8.js';
 import {type NodeCommand} from '../../src/commands/node/index.js';
 
 export function e2eNodeKeyRefreshTest(testName: string, mode: string, releaseTag = HEDERA_PLATFORM_VERSION_TAG) {
@@ -77,7 +78,7 @@ export function e2eNodeKeyRefreshTest(testName: string, mode: string, releaseTag
         after(async function () {
           this.timeout(10 * MINUTES);
 
-          await getNodeLogs(k8, namespace);
+          await k8.getNodeLogs(namespace);
           await k8.deleteNamespace(namespace);
         });
 

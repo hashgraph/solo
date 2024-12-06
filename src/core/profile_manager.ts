@@ -18,15 +18,18 @@ import fs from 'fs';
 import path from 'path';
 import {SoloError, IllegalArgumentError, MissingArgumentError} from './errors.js';
 import * as yaml from 'yaml';
-import {flags} from '../commands/index.js';
-import {type ConfigManager, constants, helpers, Templates} from './index.js';
 import dot from 'dot-object';
-import {getNodeAccountMap} from './helpers.js';
 import * as semver from 'semver';
+import type {SemVer} from 'semver';
 import {readFile, writeFile} from 'fs/promises';
 
+import {Flags as flags} from '../commands/flags.js';
+import {Templates} from './templates.js';
+import * as constants from './constants.js';
+import {type ConfigManager} from './config_manager.js';
+import * as helpers from './helpers.js';
+import {getNodeAccountMap} from './helpers.js';
 import type {SoloLogger} from './logging.js';
-import type {SemVer} from 'semver';
 import type {NodeAlias, NodeAliases} from '../types/aliases.js';
 
 const consensusSidecars = [

@@ -16,11 +16,11 @@
  */
 import {describe} from 'mocha';
 
-import {flags} from '../../../src/commands/index.js';
+import {Flags as flags} from '../../../src/commands/flags.js';
 import {e2eTestSuite, getDefaultArgv, TEST_CLUSTER} from '../../test_util.js';
-import {getNodeLogs, sleep} from '../../../src/core/helpers.js';
+import {sleep} from '../../../src/core/helpers.js';
 import {MINUTES, SOLO_LOGS_DIR} from '../../../src/core/constants.js';
-import type {K8} from '../../../src/core/index.js';
+import {type K8} from '../../../src/core/k8.js';
 import path from 'path';
 import {expect} from 'chai';
 import {AccountBalanceQuery, AccountCreateTransaction, Hbar, HbarUnit, PrivateKey} from '@hashgraph/sdk';
@@ -100,7 +100,7 @@ e2eTestSuite(
       }).timeout(10 * MINUTES);
 
       it('get the logs and delete the namespace', async () => {
-        await getNodeLogs(hederaK8, LOCAL_HEDERA);
+        await hederaK8.getNodeLogs(LOCAL_HEDERA);
         await hederaK8.deleteNamespace(LOCAL_HEDERA);
       }).timeout(10 * MINUTES);
     });

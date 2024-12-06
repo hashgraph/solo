@@ -15,7 +15,7 @@
  *
  */
 import {MissingArgumentError, SoloError} from './errors.js';
-import {flags} from '../commands/index.js';
+import {Flags as flags} from '../commands/flags.js';
 import fs from 'fs';
 import {Templates} from './templates.js';
 import {GrpcProxyTlsEnums} from './enumerations.js';

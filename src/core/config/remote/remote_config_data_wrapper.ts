@@ -15,14 +15,22 @@
  *
  */
 import {SoloError} from '../../errors.js';
-import * as version from '../../../../version.js';
 import * as yaml from 'yaml';
-import {RemoteConfigMetadata} from './metadata.js';
-import {ComponentsDataWrapper} from './components_data_wrapper.js';
+import {RemoteConfigMetadata, type RemoteConfigMetadataStructure} from './metadata.js';
+import {ComponentsDataWrapper, type RemoteConfigData} from './components_data_wrapper.js';
 import * as constants from '../../constants.js';
-import type {Cluster, Version, Namespace, RemoteConfigData, RemoteConfigDataStructure} from './types.js';
+import {type Cluster, type Version, type Namespace, type ComponentsDataStructure} from './types.js';
 import type * as k8s from '@kubernetes/client-node';
 import type {ToObject, Validate} from '../../../types/index.js';
+
+export interface RemoteConfigDataStructure {
+  metadata: RemoteConfigMetadataStructure;
+  version: Version;
+  clusters: Record<Cluster, Namespace>;
+  components: ComponentsDataStructure;
+  commandHistory: string[];
+  lastExecutedCommand: string;
+}
 
 export class RemoteConfigDataWrapper implements Validate, ToObject<RemoteConfigDataStructure> {
   private readonly _version: Version = '1.0.0';

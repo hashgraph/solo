@@ -14,8 +14,9 @@
  * limitations under the License.
  *
  */
-import {Task, Templates} from '../../core/index.js';
-import {flags} from '../index.js';
+import {Task} from '../../core/task.js';
+import {Templates} from '../../core/templates.js';
+import {Flags as flags} from '../flags.js';
 import type {ListrTaskWrapper} from 'listr2';
 import {type BaseCommand} from '../base.js';
 

@@ -14,7 +14,6 @@
  * limitations under the License.
  *
  */
-import {Flags as flags} from './flags.js';
 import {ClusterCommand} from './cluster.js';
 import {ContextCommand} from './context/index.js';
 import {InitCommand} from './init.js';
@@ -24,14 +23,14 @@ import {NodeCommand} from './node/index.js';
 import {RelayCommand} from './relay.js';
 import {AccountCommand} from './account.js';
 import {DeploymentCommand} from './deployment.js';
-import {type Opts} from '../types/index.js';
+import {type Opts} from '../types/command_types.js';
 
 /**
  * Return a list of Yargs command builder to be exposed through CLI
  * @param opts it is an Options object containing logger
  * @returns an array of Yargs command builder
  */
-function Initialize(opts: Opts) {
+export function Initialize(opts: Opts) {
   const initCmd = new InitCommand(opts);
   const clusterCmd = new ClusterCommand(opts);
   const contextCmd = new ContextCommand(opts);
@@ -54,6 +53,3 @@ function Initialize(opts: Opts) {
     deploymentCommand.getCommandDefinition(),
   ];
 }
-
-// Expose components from the command module
-export {Initialize, flags};

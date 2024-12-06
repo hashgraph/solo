@@ -17,7 +17,7 @@
 import {it, describe, after} from 'mocha';
 import {expect} from 'chai';
 
-import {flags} from '../../../src/commands/index.js';
+import {Flags as flags} from '../../../src/commands/flags.js';
 import {
   accountCreationShouldSucceed,
   balanceQueryShouldSucceed,
@@ -27,7 +27,6 @@ import {
   getTmpDir,
   HEDERA_PLATFORM_VERSION_TAG,
 } from '../../test_util.js';
-import {getNodeLogs} from '../../../src/core/helpers.js';
 import * as NodeCommandConfigs from '../../../src/commands/node/configs.js';
 import {MINUTES} from '../../../src/core/constants.js';
 
@@ -68,7 +67,7 @@ e2eTestSuite(namespace, argv, undefined, undefined, undefined, undefined, undefi
     after(async function () {
       this.timeout(10 * MINUTES);
 
-      await getNodeLogs(k8, namespace);
+      await k8.getNodeLogs(namespace);
       // @ts-ignore
       await nodeCmd.accountManager.close();
       await nodeCmd.handlers.stop(argv);
