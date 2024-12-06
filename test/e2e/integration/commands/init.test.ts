@@ -32,7 +32,7 @@ import {RemoteConfigManager} from '../../../../src/core/config/remote/remote_con
 import * as logging from '../../../../src/core/logging.js';
 import {PackageDownloader} from '../../../../src/core/package_downloader.js';
 import sinon from 'sinon';
-import {IntervalLeaseRenewalService} from '../../../../src/core/lease/lease_renewal.js';
+import {IntervalLeaseRenewalService} from '../../../../src/core/lease/interval_lease_renewal.js';
 import path from 'path';
 import {BASE_TEST_DIR} from '../../../test_util.js';
 import {Duration} from '../../../../src/core/time/duration.js';

@@ -19,10 +19,10 @@ import {ConfigManager} from '../../../../src/core/config_manager.js';
 import * as logging from '../../../../src/core/logging.js';
 import {K8} from '../../../../src/core/k8.js';
 import {expect} from 'chai';
-import {IntervalLease} from '../../../../src/core/lease/lease.js';
+import {IntervalLease} from '../../../../src/core/lease/interval_lease.js';
 import {LeaseHolder} from '../../../../src/core/lease/lease_holder.js';
 import {sleep} from '../../../../src/core/helpers.js';
-import {IntervalLeaseRenewalService} from '../../../../src/core/lease/lease_renewal.js';
+import {IntervalLeaseRenewalService} from '../../../../src/core/lease/interval_lease_renewal.js';
 import {type V1Lease} from '@kubernetes/client-node';
 import {Duration} from '../../../../src/core/time/duration.js';
 
