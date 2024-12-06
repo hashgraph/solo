@@ -1093,6 +1093,17 @@ export class Flags {
     },
   };
 
+  static readonly generateEcdsaKey: CommandFlag = {
+    constName: 'generateEcdsaKey',
+    name: 'generate-ecdsa-key',
+    definition: {
+      describe: 'Generate ECDSA private key for the Hedera account',
+      defaultValue: false,
+      type: 'boolean',
+    },
+    prompt: undefined,
+  };
+
   static readonly ecdsaPrivateKey: CommandFlag = {
     constName: 'ecdsaPrivateKey',
     name: 'ecdsa-private-key',
@@ -1161,6 +1172,27 @@ export class Flags {
         'How much HBAR do you want to add? ',
         null,
         Flags.amount.name,
+      );
+    },
+  };
+
+  static readonly createAmount: CommandFlag = {
+    constName: 'createAmount',
+    name: 'create-amount',
+    definition: {
+      describe: 'Amount of new account to create',
+      defaultValue: 1,
+      type: 'number',
+    },
+    prompt: async function promptCreateAmount(task: ListrTaskWrapper<any, any, any>, input: any) {
+      return await Flags.prompt(
+        'number',
+        task,
+        input,
+        Flags.createAmount.definition.defaultValue,
+        'How many account to create? ',
+        null,
+        Flags.createAmount.name,
       );
     },
   };
@@ -1613,6 +1645,7 @@ export class Flags {
     Flags.endpointType,
     Flags.soloChartVersion,
     Flags.generateGossipKeys,
+    Flags.generateEcdsaKey,
     Flags.generateTlsKeys,
     Flags.gossipEndpoints,
     Flags.gossipPrivateKey,
@@ -1627,6 +1660,7 @@ export class Flags {
     Flags.namespace,
     Flags.newAccountNumber,
     Flags.newAdminKey,
+    Flags.createAmount,
     Flags.nodeAlias,
     Flags.nodeAliasesUnparsed,
     Flags.operatorId,
