@@ -16,6 +16,10 @@ main:
     ref: "/User/SoloWithMirrorNode.md"
   - name: Access Hedera Network services
     ref: "/User/AccessHederaServices.md"
+  - name: "Using Environment Variables"
+    ref: "/User/Env.md"
+  - name: FAQ
+    ref: "/User/FAQ.md"
   - name: Step-by-step guide
     ref: "/User/StepByStepGuide.md"
   - name: Solo CLI manual
