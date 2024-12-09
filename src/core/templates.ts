@@ -24,7 +24,6 @@ import type {IP, NodeAlias, NodeId, PodName} from '../types/aliases.js';
 import {GrpcProxyTlsEnums} from './enumerations.js';
 import {type ContextClusterStructure} from '../types/config_types.js';
 import type {Cluster, Context} from './config/remote/types.js';
-import {Flags as flags} from '../commands/flags.js';
 
 export class Templates {
   public static renderNetworkPodName(nodeAlias: NodeAlias): PodName {
@@ -234,7 +233,10 @@ export class Templates {
    */
   public static parseContextCluster(unparsed: string): ContextClusterStructure {
     const mapping = {};
-    const errorMessage = `Invalid context in context-cluster, expected structure: ${flags.contextClusterUnparsed.definition.describe}`;
+    const errorMessage =
+      'Invalid context in context-cluster, expected structure where context' +
+      ' is key = value is cluster and comma delimited if more than one, ' +
+      '(e.g.: --context-cluster kind-solo=kind-solo,kind-solo-2=kind-solo-2)';
 
     unparsed.split(',').forEach(data => {
       const [context, cluster] = data.split('=') as [Context, Cluster];

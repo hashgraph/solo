@@ -43,7 +43,7 @@ import {ComponentType, ConsensusNodeStates} from '../../core/config/remote/enume
 import {RemoteConfigTasks} from '../../core/config/remote/remote_config_tasks.js';
 import type {SoloLogger} from '../../core/logging.js';
 import type {NodeCommandTasks} from './tasks.js';
-import {type Lease} from '../../core/lease/types.js';
+import {type Lease} from '../../core/lease/lease.js';
 import {NodeSubcommandType} from '../../core/enumerations.js';
 import {type BaseCommand, type CommandHandlers} from '../base.js';
 import {NodeHelper} from './helper.js';

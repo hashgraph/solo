@@ -80,7 +80,7 @@ import type {
   NodeRefreshConfigClass,
   NodeUpdateConfigClass,
 } from './configs.js';
-import {type Lease} from '../../core/lease/types.js';
+import {type Lease} from '../../core/lease/lease.js';
 import {ListrLease} from '../../core/lease/listr_lease.js';
 import {Duration} from '../../core/time/duration.js';
 import {type BaseCommand} from '../base.js';
@@ -1645,7 +1645,7 @@ export class NodeCommandTasks {
         }
       }
 
-      await flags.executePrompt(task, this.configManager, flagsToPrompt);
+      await this.configManager.executePrompt(task, flagsToPrompt);
 
       const config = await configInit(argv, ctx, task);
       ctx.config = config;
