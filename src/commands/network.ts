@@ -180,7 +180,7 @@ export class NetworkCommand extends BaseCommand {
       config.nodeAliases?.forEach((nodeAlias, index) => {
         const ip = config.haproxyIpsParsed?.[nodeAlias];
 
-        if (ip) valuesArg += ` --set "hedera.nodes[${index}].haproxy.staticIP=${ip}"`;
+        if (ip) valuesArg += ` --set "hedera.nodes[${index}].haproxyStaticIP=${ip}"`;
       });
     }
 
@@ -189,7 +189,7 @@ export class NetworkCommand extends BaseCommand {
       config.nodeAliases?.forEach((nodeAlias, index) => {
         const ip = config.envoyIpsParsed?.[nodeAlias];
 
-        if (ip) valuesArg += ` --set "hedera.nodes[${index}].envoyProxy.staticIP=${ip}"`;
+        if (ip) valuesArg += ` --set "hedera.nodes[${index}].envoyProxyStaticIP=${ip}"`;
       });
     }
 
