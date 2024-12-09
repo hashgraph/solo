@@ -133,7 +133,7 @@ describe('RemoteConfigValidator', () => {
     });
 
     it('should succeed if component is present', async () => {
-      await createPod(haProxyName, {});
+      await createPod(haProxyName, {app: haProxyName});
 
       // @ts-ignore
       await Promise.all(RemoteConfigValidator.validateHaProxies(components, k8));
@@ -173,7 +173,7 @@ describe('RemoteConfigValidator', () => {
     });
 
     it('should succeed if component is present', async () => {
-      await createPod(envoyProxyName, {});
+      await createPod(envoyProxyName, {app: envoyProxyName});
 
       // @ts-ignore
       await Promise.all(RemoteConfigValidator.validateEnvoyProxies(components, k8));
@@ -192,7 +192,7 @@ describe('RemoteConfigValidator', () => {
     });
 
     it('should succeed if component is present', async () => {
-      await createPod(nodeAlias, {});
+      await createPod(nodeAlias, {app: `network-${nodeAlias}`});
 
       // @ts-ignore
       await Promise.all(RemoteConfigValidator.validateConsensusNodes(components, k8));
