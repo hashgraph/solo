@@ -60,10 +60,10 @@ export class RemoteConfigValidator {
   private static validateHaProxies(components: ComponentsDataWrapper, k8: K8): Promise<void>[] {
     return Object.values(components.haProxies).map(async component => {
       try {
-        const pod = await k8.getPodByName(component.name);
+        const pods = await k8.getPodsByLabel([`app=${component.name}`]);
 
         // to return the generic error message
-        if (!pod) throw new Error('Pod not found');
+        if (!pods.length) throw new Error('Pod not found');
       } catch (e) {
         RemoteConfigValidator.throwValidationError('HaProxy', component, e);
       }
@@ -86,10 +86,10 @@ export class RemoteConfigValidator {
   private static validateEnvoyProxies(components: ComponentsDataWrapper, k8: K8): Promise<void>[] {
     return Object.values(components.envoyProxies).map(async component => {
       try {
-        const pod = await k8.getPodByName(component.name);
+        const pods = await k8.getPodsByLabel([`app=${component.name}`]);
 
         // to return the generic error message
-        if (!pod) throw new Error('Pod not found');
+        if (!pods.length) throw new Error('Pod not found');
       } catch (e) {
         RemoteConfigValidator.throwValidationError('Envoy proxy', component, e);
       }
@@ -99,10 +99,10 @@ export class RemoteConfigValidator {
   private static validateConsensusNodes(components: ComponentsDataWrapper, k8: K8): Promise<void>[] {
     return Object.values(components.consensusNodes).map(async component => {
       try {
-        const pod = await k8.getPodByName(component.name);
+        const pods = await k8.getPodsByLabel([`app=network-${component.name}`]);
 
         // to return the generic error message
-        if (!pod) throw new Error('Pod not found');
+        if (!pods.length) throw new Error('Pod not found');
       } catch (e) {
         RemoteConfigValidator.throwValidationError('Consensus node', component, e);
       }
