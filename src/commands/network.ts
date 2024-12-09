@@ -31,7 +31,7 @@ import {type KeyManager} from '../core/key_manager.js';
 import {type PlatformInstaller} from '../core/platform_installer.js';
 import {type ProfileManager} from '../core/profile_manager.js';
 import {type CertificateManager} from '../core/certificate_manager.js';
-import {type CommandBuilder, type NodeAlias, type NodeAliases} from '../types/aliases.js';
+import {type CommandBuilder, type IP, type NodeAlias, type NodeAliases} from '../types/aliases.js';
 import {type Opts} from '../types/command_types.js';
 import {ListrLease} from '../core/lease/listr_lease.js';
 import {ConsensusNodeComponent} from '../core/config/remote/components/consensus_node_component.js';
@@ -62,6 +62,10 @@ export interface NetworkDeployConfigClass {
   grpcTlsKeyPath: string;
   grpcWebTlsKeyPath: string;
   getUnusedConfigs: () => string[];
+  haproxyIps: string;
+  envoyIps: string;
+  haproxyIpsParsed?: Record<NodeAlias, IP>;
+  envoyIpsParsed?: Record<NodeAlias, IP>;
 }
 
 export class NetworkCommand extends BaseCommand {
@@ -121,6 +125,8 @@ export class NetworkCommand extends BaseCommand {
       flags.grpcWebTlsCertificatePath,
       flags.grpcTlsKeyPath,
       flags.grpcWebTlsKeyPath,
+      flags.haproxyIps,
+      flags.envoyIps,
     ];
   }
 
@@ -134,6 +140,8 @@ export class NetworkCommand extends BaseCommand {
       releaseTag?: string;
       persistentVolumeClaims?: string;
       valuesFile?: string;
+      haproxyIpsParsed?: Record<NodeAlias, IP>;
+      envoyIpsParsed?: Record<NodeAlias, IP>;
     } = {},
   ) {
     let valuesArg = config.chartDirectory
@@ -167,6 +175,24 @@ export class NetworkCommand extends BaseCommand {
 
     valuesArg += ` --set "defaults.volumeClaims.enabled=${config.persistentVolumeClaims}"`;
 
+    // Iterate over each node and set static IPs for HAProxy
+    if (config.haproxyIpsParsed) {
+      config.nodeAliases?.forEach((nodeAlias, index) => {
+        const ip = config.haproxyIpsParsed?.[nodeAlias];
+
+        if (ip) valuesArg += ` --set "hedera.nodes[${index}].haproxyStaticIP=${ip}"`;
+      });
+    }
+
+    // Iterate over each node and set static IPs for Envoy Proxy
+    if (config.envoyIpsParsed) {
+      config.nodeAliases?.forEach((nodeAlias, index) => {
+        const ip = config.envoyIpsParsed?.[nodeAlias];
+
+        if (ip) valuesArg += ` --set "hedera.nodes[${index}].envoyProxyStaticIP=${ip}"`;
+      });
+    }
+
     if (config.valuesFile) {
       valuesArg += this.prepareValuesFiles(config.valuesFile);
     }
@@ -198,9 +224,11 @@ export class NetworkCommand extends BaseCommand {
       flags.grpcWebTlsCertificatePath,
       flags.grpcTlsKeyPath,
       flags.grpcWebTlsKeyPath,
+      flags.haproxyIps,
+      flags.envoyIps,
     ]);
 
-    await flags.executePrompt(task, this.configManager, NetworkCommand.DEPLOY_FLAGS_LIST);
+    await this.configManager.executePrompt(task, NetworkCommand.DEPLOY_FLAGS_LIST);
 
     // create a config object for subsequent steps
     const config = this.getConfig(NetworkCommand.DEPLOY_CONFIGS_NAME, NetworkCommand.DEPLOY_FLAGS_LIST, [
@@ -213,6 +241,14 @@ export class NetworkCommand extends BaseCommand {
     ]) as NetworkDeployConfigClass;
 
     config.nodeAliases = helpers.parseNodeAliases(config.nodeAliasesUnparsed);
+
+    if (config.haproxyIps) {
+      config.haproxyIpsParsed = Templates.parseNodeAliasToIpMapping(config.haproxyIps);
+    }
+
+    if (config.envoyIps) {
+      config.envoyIpsParsed = Templates.parseNodeAliasToIpMapping(config.envoyIps);
+    }
 
     // compute values
     config.chartPath = await this.prepareChartPath(
@@ -531,11 +567,7 @@ export class NetworkCommand extends BaseCommand {
             }
 
             self.configManager.update(argv);
-            await flags.executePrompt(task, self.configManager, [
-              flags.deletePvcs,
-              flags.deleteSecrets,
-              flags.namespace,
-            ]);
+            await self.configManager.executePrompt(task, [flags.deletePvcs, flags.deleteSecrets, flags.namespace]);
 
             ctx.config = {
               deletePvcs: self.configManager.getFlag<boolean>(flags.deletePvcs) as boolean,

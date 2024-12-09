@@ -178,7 +178,7 @@ export class AccountCommand extends BaseCommand {
           title: 'Initialize',
           task: async (ctx, task) => {
             self.configManager.update(argv);
-            await flags.executePrompt(task, self.configManager, [flags.namespace]);
+            await self.configManager.executePrompt(task, [flags.namespace]);
 
             const config = {
               namespace: self.configManager.getFlag<string>(flags.namespace) as string,
@@ -331,7 +331,7 @@ export class AccountCommand extends BaseCommand {
           title: 'Initialize',
           task: async (ctx, task) => {
             self.configManager.update(argv);
-            await flags.executePrompt(task, self.configManager, [flags.namespace]);
+            await self.configManager.executePrompt(task, [flags.namespace]);
 
             const config = {
               amount: self.configManager.getFlag<number>(flags.amount) as number,
@@ -414,7 +414,7 @@ export class AccountCommand extends BaseCommand {
           title: 'Initialize',
           task: async (ctx, task) => {
             self.configManager.update(argv);
-            await flags.executePrompt(task, self.configManager, [flags.accountId, flags.namespace]);
+            await self.configManager.executePrompt(task, [flags.accountId, flags.namespace]);
 
             const config = {
               accountId: self.configManager.getFlag<string>(flags.accountId) as string,
@@ -497,7 +497,7 @@ export class AccountCommand extends BaseCommand {
           title: 'Initialize',
           task: async (ctx, task) => {
             self.configManager.update(argv);
-            await flags.executePrompt(task, self.configManager, [flags.accountId, flags.namespace]);
+            await self.configManager.executePrompt(task, [flags.accountId, flags.namespace]);
 
             const config = {
               accountId: self.configManager.getFlag<string>(flags.accountId) as string,

@@ -15,7 +15,6 @@
  *
  */
 import * as constants from '../core/constants.js';
-import {ConfigManager} from '../core/config_manager.js';
 import * as version from '../../version.js';
 import path from 'path';
 import {type CommandFlag} from '../types/flag_types.js';
@@ -84,33 +83,6 @@ export class Flags {
     flagName: string,
   ) {
     return await Flags.prompt('toggle', task, input, defaultValue, promptMessage, emptyCheckMessage, flagName);
-  }
-
-  /**
-   * Run prompts for the given set of flags
-   * @param task task object from listr2
-   * @param configManager config manager to store flag values
-   * @param flagList list of flag objects
-   */
-  static async executePrompt(
-    task: ListrTaskWrapper<any, any, any>,
-    configManager: ConfigManager,
-    flagList: CommandFlag[] = [],
-  ) {
-    if (!configManager || !(configManager instanceof ConfigManager)) {
-      throw new IllegalArgumentError('an instance of ConfigManager is required');
-    }
-    for (const flag of flagList) {
-      if (flag.definition.disablePrompt || flag.prompt === undefined) {
-        continue;
-      }
-
-      if (configManager.getFlag(Flags.quiet)) {
-        return;
-      }
-      const input = await flag.prompt(task, configManager.getFlag(flag));
-      configManager.setFlag(flag, input);
-    }
   }
 
   /**
@@ -1612,6 +1584,30 @@ export class Flags {
     },
   };
 
+  static readonly haproxyIps: CommandFlag = {
+    constName: 'haproxyIps',
+    name: 'haproxy-ips',
+    definition: {
+      describe:
+        'IP mapping where key = value is node alias and static ip for haproxy, ' +
+        '(e.g.: --haproxy-ips node1=127.0.0.1,node2=127.0.0.1)',
+      type: 'string',
+    },
+    prompt: undefined,
+  };
+
+  static readonly envoyIps: CommandFlag = {
+    constName: 'envoyIps',
+    name: 'envoy-ips',
+    definition: {
+      describe:
+        'IP mapping where key = value is node alias and static ip for envoy proxy, ' +
+        '(e.g.: --envoy-ips node1=127.0.0.1,node2=127.0.0.1)',
+      type: 'string',
+    },
+    prompt: undefined,
+  };
+
   static readonly allFlags: CommandFlag[] = [
     Flags.accountId,
     Flags.amount,
@@ -1691,6 +1687,8 @@ export class Flags {
     Flags.grpcTlsKeyPath,
     Flags.grpcWebTlsKeyPath,
     Flags.contextClusterUnparsed,
+    Flags.haproxyIps,
+    Flags.envoyIps,
   ];
 
   /** Resets the definition.disablePrompt for all flags */

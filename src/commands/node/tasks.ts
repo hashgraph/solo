@@ -68,6 +68,7 @@ import {
   type ConfigBuilder,
   type NodeAlias,
   type NodeAliases,
+  type NodeId,
   type PodName,
   type SkipCheck,
 } from '../../types/aliases.js';
@@ -79,7 +80,7 @@ import type {
   NodeRefreshConfigClass,
   NodeUpdateConfigClass,
 } from './configs.js';
-import {type Lease} from '../../core/lease/types.js';
+import {type Lease} from '../../core/lease/lease.js';
 import {ListrLease} from '../../core/lease/listr_lease.js';
 import {Duration} from '../../core/time/duration.js';
 import {type BaseCommand} from '../base.js';
@@ -255,10 +256,12 @@ export class NodeCommandTasks {
             `${constants.HEDERA_HAPI_PATH}`,
             filterFunction,
           );
-          const testJsonFiles: string[] = this.configManager.getFlag<string>(flags.appConfig)!.split(',');
-          for (const jsonFile of testJsonFiles) {
-            if (fs.existsSync(jsonFile)) {
-              await self.k8.copyTo(podName, constants.ROOT_CONTAINER, jsonFile, `${constants.HEDERA_HAPI_PATH}`);
+          if (self.configManager.getFlag<string>(flags.appConfig)) {
+            const testJsonFiles: string[] = this.configManager.getFlag<string>(flags.appConfig)!.split(',');
+            for (const jsonFile of testJsonFiles) {
+              if (fs.existsSync(jsonFile)) {
+                await self.k8.copyTo(podName, constants.ROOT_CONTAINER, jsonFile, `${constants.HEDERA_HAPI_PATH}`);
+              }
             }
           }
         },
@@ -308,7 +311,9 @@ export class NodeCommandTasks {
 
     const subTasks = nodeAliases.map((nodeAlias, i) => {
       const reminder =
-        'debugNodeAlias' in ctx.config && ctx.config.debugNodeAlias === nodeAlias
+        'debugNodeAlias' in ctx.config &&
+        ctx.config.debugNodeAlias === nodeAlias &&
+        status !== NodeStatusCodes.FREEZE_COMPLETE
           ? 'Please attach JVM debugger now.'
           : '';
       const title = `Check network pod: ${chalk.yellow(nodeAlias)} ${chalk.red(reminder)}`;
@@ -1373,10 +1378,37 @@ export class NodeCommandTasks {
           }
         }
 
-        // for the case of adding new node
+        // for the case of adding a new node
         if (transactionType === NodeSubcommandType.ADD && ctx.newNode && ctx.newNode.accountId) {
           valuesArg += ` --set "hedera.nodes[${index}].accountId=${ctx.newNode.accountId}" --set "hedera.nodes[${index}].name=${ctx.newNode.name}"`;
+
+          if (config.haproxyIps) {
+            config.haproxyIpsParsed = Templates.parseNodeAliasToIpMapping(config.haproxyIps);
+          }
+
+          if (config.envoyIps) {
+            config.envoyIpsParsed = Templates.parseNodeAliasToIpMapping(config.envoyIps);
+          }
+
+          const nodeAlias: NodeAlias = config.nodeAlias;
+          const nodeId: NodeId = Templates.nodeIdFromNodeAlias(nodeAlias);
+          const nodeIndexInValues = nodeId - 1;
+
+          // Set static IPs for HAProxy
+          if (config.haproxyIpsParsed) {
+            const ip: string = config.haproxyIpsParsed?.[nodeAlias];
+
+            if (ip) valuesArg += ` --set "hedera.nodes[${nodeIndexInValues}].haproxyStaticIP=${ip}"`;
+          }
+
+          // Set static IPs for Envoy Proxy
+          if (config.envoyIpsParsed) {
+            const ip: string = config.envoyIpsParsed?.[nodeAlias];
+
+            if (ip) valuesArg += ` --set "hedera.nodes[${nodeIndexInValues}].envoyProxyStaticIP=${ip}"`;
+          }
         }
+
         const profileValuesFile = await self.profileManager.prepareValuesForNodeAdd(
           path.join(config.stagingDir, 'config.txt'),
           path.join(config.stagingDir, 'templates', 'application.properties'),
@@ -1617,7 +1649,7 @@ export class NodeCommandTasks {
         }
       }
 
-      await flags.executePrompt(task, this.configManager, flagsToPrompt);
+      await this.configManager.executePrompt(task, flagsToPrompt);
 
       const config = await configInit(argv, ctx, task);
       ctx.config = config;
