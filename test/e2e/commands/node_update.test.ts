@@ -28,12 +28,13 @@ import {
   getTmpDir,
   HEDERA_PLATFORM_VERSION_TAG,
 } from '../../test_util.js';
-import {HEDERA_HAPI_PATH, MINUTES, ROOT_CONTAINER} from '../../../src/core/constants.js';
+import {HEDERA_HAPI_PATH, ROOT_CONTAINER} from '../../../src/core/constants.js';
 import fs from 'fs';
 import type {PodName} from '../../../src/types/aliases.js';
 import * as NodeCommandConfigs from '../../../src/commands/node/configs.js';
+import {Duration} from '../../../src/core/time/duration.js';
 
-const defaultTimeout = 2 * MINUTES;
+const defaultTimeout = Duration.ofMinutes(2).toMillis();
 const namespace = 'node-update';
 const updateNodeId = 'node2';
 const newAccountId = '0.0.7';
@@ -63,7 +64,7 @@ e2eTestSuite(namespace, argv, undefined, undefined, undefined, undefined, undefi
     let existingNodeIdsPrivateKeysHash;
 
     after(async function () {
-      this.timeout(10 * MINUTES);
+      this.timeout(Duration.ofMinutes(10).toMillis());
 
       await k8.getNodeLogs(namespace);
       await nodeCmd.handlers.stop(argv);
@@ -83,7 +84,7 @@ e2eTestSuite(namespace, argv, undefined, undefined, undefined, undefined, undefi
     it('should succeed with init command', async () => {
       const status = await accountCmd.init(argv);
       expect(status).to.be.ok;
-    }).timeout(8 * MINUTES);
+    }).timeout(Duration.ofMinutes(8).toMillis());
 
     it('should update a new node property successfully', async () => {
       // generate gossip and tls keys for the updated node
@@ -112,7 +113,7 @@ e2eTestSuite(namespace, argv, undefined, undefined, undefined, undefined, undefi
         flags.grpcEndpoints.constName,
       ]);
       await bootstrapResp.opts.accountManager.close();
-    }).timeout(30 * MINUTES);
+    }).timeout(Duration.ofMinutes(30).toMillis());
 
     balanceQueryShouldSucceed(bootstrapResp.opts.accountManager, nodeCmd, namespace);
 
@@ -156,6 +157,6 @@ e2eTestSuite(namespace, argv, undefined, undefined, undefined, undefined, undefi
       console.log('config.txt:', configTxt);
 
       expect(configTxt).to.contain(newAccountId);
-    }).timeout(10 * MINUTES);
+    }).timeout(Duration.ofMinutes(10).toMillis());
   });
 });

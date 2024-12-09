@@ -15,6 +15,7 @@
  *
  */
 import type {Lease, LeaseRenewalService} from '../../../../src/core/lease/types.js';
+import {Duration} from '../../../../src/core/time/duration.js';
 
 export class NoopLeaseRenewalService implements LeaseRenewalService {
   private readonly buffer: SharedArrayBuffer;
@@ -42,7 +43,7 @@ export class NoopLeaseRenewalService implements LeaseRenewalService {
     return new Map<number, boolean>();
   }
 
-  public calculateRenewalDelay(lease: Lease): number {
-    return 10;
+  public calculateRenewalDelay(lease: Lease): Duration {
+    return Duration.ofSeconds(10);
   }
 }

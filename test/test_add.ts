@@ -28,11 +28,11 @@ import {
   HEDERA_PLATFORM_VERSION_TAG,
 } from './test_util.js';
 import * as NodeCommandConfigs from '../src/commands/node/configs.js';
-import {MINUTES} from '../src/core/constants.js';
 import type {NodeAlias} from '../src/types/aliases.js';
 import type {NetworkNodeServices} from '../src/core/network_node_services.js';
+import {Duration} from '../src/core/time/duration.js';
 
-const defaultTimeout = 2 * MINUTES;
+const defaultTimeout = Duration.ofMinutes(2).toMillis();
 
 export function testNodeAdd(
   localBuildPath: string,
@@ -75,7 +75,7 @@ export function testNodeAdd(
         let existingNodeIdsPrivateKeysHash: Map<NodeAlias, Map<string, string>>;
 
         after(async function () {
-          this.timeout(10 * MINUTES);
+          this.timeout(Duration.ofMinutes(10).toMillis());
 
           await k8.getNodeLogs(namespace);
           await bootstrapResp.opts.accountManager.close();
@@ -96,7 +96,7 @@ export function testNodeAdd(
 
         it('should succeed with init command', async () => {
           expect(await accountCmd.init(argv)).to.be.true;
-        }).timeout(8 * MINUTES);
+        }).timeout(Duration.ofMinutes(8).toMillis());
 
         it('should add a new node to the network successfully', async () => {
           await nodeCmd.handlers.add(argv);
@@ -108,7 +108,7 @@ export function testNodeAdd(
             'chartPath',
           ]);
           await bootstrapResp.opts.accountManager.close();
-        }).timeout(12 * MINUTES);
+        }).timeout(Duration.ofMinutes(12).toMillis());
 
         balanceQueryShouldSucceed(bootstrapResp.opts.accountManager, nodeCmd, namespace);
 

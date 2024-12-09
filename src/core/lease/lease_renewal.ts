@@ -15,8 +15,8 @@
  *
  */
 import {type Lease} from './types.js';
-import {SECONDS} from '../constants.js';
 import {type LeaseRenewalService} from './types.js';
+import {Duration} from '../time/duration.js';
 
 /**
  * Implements a lease renewal service which utilizes a setInterval() based approach to renew leases at regular intervals.
@@ -53,7 +53,7 @@ export class IntervalLeaseRenewalService implements LeaseRenewalService {
    */
   public async schedule(lease: Lease): Promise<number> {
     const renewalDelay = this.calculateRenewalDelay(lease);
-    const timeout = setInterval(() => lease.tryRenew(), renewalDelay);
+    const timeout = setInterval(() => lease.tryRenew(), renewalDelay.toMillis());
     const scheduleId = Number(timeout);
 
     this._scheduledLeases.set(scheduleId, lease);
@@ -102,7 +102,7 @@ export class IntervalLeaseRenewalService implements LeaseRenewalService {
    * @param lease - the lease to be renewed.
    * @returns the delay in milliseconds.
    */
-  public calculateRenewalDelay(lease: Lease): number {
-    return Math.round(lease.durationSeconds * 0.5) * SECONDS;
+  public calculateRenewalDelay(lease: Lease): Duration {
+    return Duration.ofSeconds(lease.durationSeconds * 0.5);
   }
 }

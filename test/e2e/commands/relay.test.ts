@@ -23,7 +23,7 @@ import {e2eTestSuite, getDefaultArgv, HEDERA_PLATFORM_VERSION_TAG, TEST_CLUSTER}
 import * as version from '../../../version.js';
 import {sleep} from '../../../src/core/helpers.js';
 import {RelayCommand} from '../../../src/commands/relay.js';
-import {MINUTES} from '../../../src/core/constants.js';
+import {Duration} from '../../../src/core/time/duration.js';
 
 const testName = 'relay-cmd-e2e';
 const namespace = testName;
@@ -50,10 +50,10 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
       await k8.deleteNamespace(namespace);
     });
 
-    afterEach(async () => await sleep(5));
+    afterEach(async () => await sleep(Duration.ofMillis(5)));
 
     each(['node1', 'node1,node2']).it('relay deploy and destroy should work with $value', async function (relayNodes) {
-      this.timeout(5 * MINUTES);
+      this.timeout(Duration.ofMinutes(5).toMillis());
 
       argv[flags.nodeAliasesUnparsed.name] = relayNodes;
       configManager.update(argv);
@@ -70,7 +70,7 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
         flags.profileName.constName,
         flags.quiet.constName,
       ]);
-      await sleep(500);
+      await sleep(Duration.ofMillis(500));
 
       // test relay destroy
       try {

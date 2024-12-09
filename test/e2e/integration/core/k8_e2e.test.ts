@@ -45,10 +45,10 @@ import {
   V1VolumeResourceRequirements,
 } from '@kubernetes/client-node';
 import crypto from 'crypto';
-import {MINUTES} from '../../../../src/core/constants.js';
 import type {PodName} from '../../../../src/types/aliases.js';
+import {Duration} from '../../../../src/core/time/duration.js';
 
-const defaultTimeout = 2 * MINUTES;
+const defaultTimeout = Duration.ofMinutes(2).toMillis();
 
 async function createPod(
   podName: PodName,

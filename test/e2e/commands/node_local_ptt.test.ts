@@ -18,7 +18,7 @@ import {describe} from 'mocha';
 
 import {Flags as flags} from '../../../src/commands/flags.js';
 import {e2eTestSuite, getDefaultArgv, TEST_CLUSTER} from '../../test_util.js';
-import {MINUTES} from '../../../src/core/constants.js';
+import {Duration} from '../../../src/core/time/duration.js';
 
 const LOCAL_PTT = 'local-ptt-app';
 const argv = getDefaultArgv();
@@ -44,6 +44,6 @@ e2eTestSuite(LOCAL_PTT, argv, undefined, undefined, undefined, undefined, undefi
     it('get the logs and delete the namespace', async () => {
       await pttK8.getNodeLogs(LOCAL_PTT);
       await pttK8.deleteNamespace(LOCAL_PTT);
-    }).timeout(2 * MINUTES);
+    }).timeout(Duration.ofMinutes(2).toMillis());
   });
 });

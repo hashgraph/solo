@@ -24,8 +24,8 @@ import {sleep} from '../../../src/core/helpers.js';
 import path from 'path';
 import fs from 'fs';
 import {NetworkCommand} from '../../../src/commands/network.js';
-import {MINUTES, SECONDS} from '../../../src/core/constants.js';
 import {Flags as flags} from '../../../src/commands/flags.js';
+import {Duration} from '../../../src/core/time/duration.js';
 
 describe('NetworkCommand', () => {
   const testName = 'network-cmd-e2e';
@@ -58,7 +58,7 @@ describe('NetworkCommand', () => {
   const nodeCmd = bootstrapResp.cmd.nodeCmd;
 
   after(async function () {
-    this.timeout(3 * MINUTES);
+    this.timeout(Duration.ofMinutes(3).toMillis());
 
     await k8.getNodeLogs(namespace);
     await k8.deleteNamespace(namespace);
@@ -108,7 +108,7 @@ describe('NetworkCommand', () => {
       networkCmd.logger.showUserError(e);
       expect.fail();
     }
-  }).timeout(4 * MINUTES);
+  }).timeout(Duration.ofMinutes(4).toMillis());
 
   it('application env file contents should be in cached values file', () => {
     // @ts-ignore in order to access the private property
@@ -131,12 +131,12 @@ describe('NetworkCommand', () => {
 
       while ((await k8.getPodsByLabel(['solo.hedera.com/type=network-node'])).length > 0) {
         networkCmd.logger.debug('Pods are still running. Waiting...');
-        await sleep(3 * SECONDS);
+        await sleep(Duration.ofSeconds(3));
       }
 
       while ((await k8.getPodsByLabel(['app=minio'])).length > 0) {
         networkCmd.logger.showUser('Waiting for minio container to be deleted...');
-        await sleep(3 * SECONDS);
+        await sleep(Duration.ofSeconds(3));
       }
 
       // check if chart is uninstalled
@@ -155,5 +155,5 @@ describe('NetworkCommand', () => {
       networkCmd.logger.showUserError(e);
       expect.fail();
     }
-  }).timeout(2 * MINUTES);
+  }).timeout(Duration.ofMinutes(2).toMillis());
 });
