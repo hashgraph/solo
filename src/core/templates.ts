@@ -20,7 +20,7 @@ import path from 'path';
 import {DataValidationError, SoloError, IllegalArgumentError, MissingArgumentError} from './errors.js';
 import * as constants from './constants.js';
 import {type AccountId} from '@hashgraph/sdk';
-import type {NodeAlias, PodName} from '../types/aliases.js';
+import type {IP, NodeAlias, NodeId, PodName} from '../types/aliases.js';
 import {GrpcProxyTlsEnums} from './enumerations.js';
 import {type ContextClusterStructure} from '../types/config_types.js';
 import type {Cluster, Context} from './config/remote/types.js';
@@ -168,7 +168,6 @@ export class Templates {
     return this.nodeAliasFromNetworkSvcName(parts[0]);
   }
 
-  // @ts-ignore
   public static nodeIdFromNodeAlias(nodeAlias: NodeAlias): NodeId {
     for (let i = nodeAlias.length - 1; i > 0; i--) {
       // @ts-ignore
@@ -176,6 +175,8 @@ export class Templates {
         return parseInt(nodeAlias.substring(i + 1, nodeAlias.length));
       }
     }
+
+    throw new SoloError(`Can't get node id from node ${nodeAlias}`);
   }
 
   public static renderGossipKeySecretName(nodeAlias: NodeAlias): string {
@@ -262,5 +263,16 @@ export class Templates {
 
   public static renderHaProxyName(nodeAlias: NodeAlias): string {
     return `haproxy-${nodeAlias}`;
+  }
+
+  public static parseNodeAliasToIpMapping(unparsed: string): Record<NodeAlias, IP> {
+    const mapping: Record<NodeAlias, IP> = {};
+
+    unparsed.split(',').forEach(data => {
+      const [nodeAlias, ip] = data.split('=') as [NodeAlias, IP];
+      mapping[nodeAlias] = ip;
+    });
+
+    return mapping;
   }
 }

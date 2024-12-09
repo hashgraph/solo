@@ -20,14 +20,23 @@ import {type ReadEntry} from 'tar';
 
 export type NodeAlias = `node${number}`;
 export type PodName = `network-${NodeAlias}-0`;
+export type NodeId = number;
 
 export type NodeAliases = NodeAlias[];
+
 export type CommandBuilder = (yargs: any) => any;
+
 export type UserPrompt = (task: ListrTaskWrapper<any, any, any>, input: any | string[]) => Promise<any>;
+
 export type TarCreateFilter = (path: string, entry: Stats | ReadEntry) => boolean;
+
 export type SkipCheck = (ctx: any) => Promise<boolean> | boolean;
+
 export type TaskFunction = (
   ctx: any,
   task: ListrTaskWrapper<any, any, any>,
 ) => Promise<Listr<any, any, any>> | Listr<any, any, any> | Promise<void> | void;
+
 export type ConfigBuilder = (argv, ctx, task) => Promise<any>;
+
+export type IP = string;

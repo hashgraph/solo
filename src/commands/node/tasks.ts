@@ -68,6 +68,7 @@ import {
   type ConfigBuilder,
   type NodeAlias,
   type NodeAliases,
+  type NodeId,
   type PodName,
   type SkipCheck,
 } from '../../types/aliases.js';
@@ -1373,10 +1374,37 @@ export class NodeCommandTasks {
           }
         }
 
-        // for the case of adding new node
+        // for the case of adding a new node
         if (transactionType === NodeSubcommandType.ADD && ctx.newNode && ctx.newNode.accountId) {
           valuesArg += ` --set "hedera.nodes[${index}].accountId=${ctx.newNode.accountId}" --set "hedera.nodes[${index}].name=${ctx.newNode.name}"`;
+
+          if (config.haproxyIps) {
+            config.haproxyIpsParsed = Templates.parseNodeAliasToIpMapping(config.haproxyIps);
+          }
+
+          if (config.envoyIps) {
+            config.envoyIpsParsed = Templates.parseNodeAliasToIpMapping(config.envoyIps);
+          }
+
+          const nodeAlias: NodeAlias = config.nodeAlias;
+          const nodeId: NodeId = Templates.nodeIdFromNodeAlias(nodeAlias);
+          const nodeIndexInValues = nodeId - 1;
+
+          // Set static IPs for HAProxy
+          if (config.haproxyIpsParsed) {
+            const ip: string = config.haproxyIpsParsed?.[nodeAlias];
+
+            if (ip) valuesArg += ` --set "hedera.nodes[${nodeIndexInValues}].haproxyStaticIP=${ip}"`;
+          }
+
+          // Set static IPs for Envoy Proxy
+          if (config.envoyIpsParsed) {
+            const ip: string = config.envoyIpsParsed?.[nodeAlias];
+
+            if (ip) valuesArg += ` --set "hedera.nodes[${nodeIndexInValues}].envoyProxyStaticIP=${ip}"`;
+          }
         }
+
         const profileValuesFile = await self.profileManager.prepareValuesForNodeAdd(
           path.join(config.stagingDir, 'config.txt'),
           path.join(config.stagingDir, 'templates', 'application.properties'),
