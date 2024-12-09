@@ -389,6 +389,8 @@ export interface NodeAddConfigClass {
   grpcWebTlsCertificatePath: string;
   grpcTlsKeyPath: string;
   grpcWebTlsKeyPath: string;
+  haproxyIps: string;
+  envoyIps: string;
   getUnusedConfigs: () => string[];
 }
 

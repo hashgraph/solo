@@ -20,6 +20,7 @@ import {type ReadEntry} from 'tar';
 
 export type NodeAlias = `node${number}`;
 export type PodName = `network-${NodeAlias}-0`;
+export type NodeId = number;
 
 export type NodeAliases = NodeAlias[];
 
