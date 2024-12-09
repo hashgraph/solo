@@ -28,6 +28,8 @@ import chalk from 'chalk';
 
 import {type SoloLogger} from './logging.js';
 import type {NodeAlias, NodeAliases, PodName} from '../types/aliases.js';
+import {Duration} from './time/duration.js';
+import {sleep} from './helpers.js';
 
 /** PlatformInstaller install platform code in the root-container of a network pod */
 export class PlatformInstaller {
@@ -99,6 +101,9 @@ export class PlatformInstaller {
       const scriptName = 'extract-platform.sh';
       const sourcePath = path.join(constants.RESOURCES_DIR, scriptName); // script source path
       await this.copyFiles(podName, [sourcePath], constants.HEDERA_USER_HOME_DIR);
+
+      // wait a few seconds before calling the script to avoid "No such file" error
+      await sleep(Duration.ofSeconds(2));
 
       const extractScript = path.join(constants.HEDERA_USER_HOME_DIR, scriptName); // inside the container
       await this.k8.execContainer(podName, constants.ROOT_CONTAINER, `chmod +x ${extractScript}`);
