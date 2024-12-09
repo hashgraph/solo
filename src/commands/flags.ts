@@ -1580,6 +1580,16 @@ export class Flags {
     },
   };
 
+  static readonly mirrorNodeExplorerIp: CommandFlag = {
+    constName: 'mirrorNodeExplorerIp',
+    name: 'mirror-node-explorer-ip',
+    definition: {
+      describe: 'Static ip for mirror node explorer',
+      type: 'string',
+    },
+    prompt: undefined,
+  };
+
   static readonly allFlags: CommandFlag[] = [
     Flags.accountId,
     Flags.amount,
@@ -1657,6 +1667,7 @@ export class Flags {
     Flags.grpcTlsKeyPath,
     Flags.grpcWebTlsKeyPath,
     Flags.contextClusterUnparsed,
+    Flags.mirrorNodeExplorerIp,
   ];
 
   /** Resets the definition.disablePrompt for all flags */

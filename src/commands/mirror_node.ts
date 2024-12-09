@@ -65,6 +65,7 @@ export class MirrorNodeCommand extends BaseCommand {
       flags.valuesFile,
       flags.mirrorNodeVersion,
       flags.pinger,
+      flags.mirrorNodeExplorerIp,
     ];
   }
 
@@ -89,6 +90,11 @@ export class MirrorNodeCommand extends BaseCommand {
 
     if (config.valuesFile) {
       valuesArg += this.prepareValuesFiles(config.valuesFile);
+    }
+
+    // Set static IP address for the Mirror Node Explorer if provided
+    if (config.mirrorNodeExplorerIp) {
+      valuesArg += ` --set haproxy-ingress.controller.service.loadBalancerIP=${config.mirrorNodeExplorerIp}`;
     }
 
     valuesArg += ` --set proxyPass./api="http://${constants.MIRROR_NODE_RELEASE_NAME}-rest" `;
@@ -168,6 +174,7 @@ export class MirrorNodeCommand extends BaseCommand {
       mirrorNodeVersion: string;
       getUnusedConfigs: () => string[];
       pinger: boolean;
+      mirrorNodeIp: string;
     }
 
     interface Context {
@@ -194,6 +201,7 @@ export class MirrorNodeCommand extends BaseCommand {
               flags.valuesFile,
               flags.mirrorNodeVersion,
               flags.pinger,
+              flags.mirrorNodeExplorerIp,
             ]);
 
             await flags.executePrompt(task, self.configManager, MirrorNodeCommand.DEPLOY_FLAGS_LIST);
@@ -204,7 +212,7 @@ export class MirrorNodeCommand extends BaseCommand {
             ]) as MirrorNodeDeployConfigClass;
 
             ctx.config.chartPath = await self.prepareChartPath(
-              '', // don't use chartPath which is for local solo-charts only
+              '', // don't use chartPath, which is for local solo-charts only
               constants.MIRROR_NODE_RELEASE_NAME,
               constants.MIRROR_NODE_CHART,
             );
