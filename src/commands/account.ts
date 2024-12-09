@@ -26,6 +26,8 @@ import {FREEZE_ADMIN_ACCOUNT} from '../core/constants.js';
 import {type Opts} from '../types/command_types.js';
 import {ListrLease} from '../core/lease/listr_lease.js';
 import {type CommandBuilder} from '../types/aliases.js';
+import {sleep} from '../core/helpers.js';
+import {Duration} from '../core/time/duration.js';
 
 export class AccountCommand extends BaseCommand {
   private readonly accountManager: AccountManager;
@@ -57,7 +59,13 @@ export class AccountCommand extends BaseCommand {
     if (!accountInfo || !(accountInfo instanceof AccountInfo))
       throw new IllegalArgumentError('An instance of AccountInfo is required');
 
-    const newAccountInfo: {accountId: string; balance: number; publicKey: string; privateKey?: string} = {
+    const newAccountInfo: {
+      accountId: string;
+      balance: number;
+      publicKey: string;
+      privateKey?: string;
+      privateKeyRaw?: string;
+    } = {
       accountId: accountInfo.accountId.toString(),
       publicKey: accountInfo.key.toString(),
       balance: accountInfo.balance.to(HbarUnit.Hbar).toNumber(),
@@ -66,6 +74,14 @@ export class AccountCommand extends BaseCommand {
     if (shouldRetrievePrivateKey) {
       const accountKeys = await this.accountManager.getAccountKeysFromSecret(newAccountInfo.accountId, namespace);
       newAccountInfo.privateKey = accountKeys.privateKey;
+
+      // reconstruct private key to retrieve EVM address if private key is ECDSA type
+      try {
+        const privateKey = PrivateKey.fromStringDer(newAccountInfo.privateKey);
+        newAccountInfo.privateKeyRaw = privateKey.toStringRaw();
+      } catch (e: Error | any) {
+        this.logger.error(`failed to retrieve EVM address for accountId ${newAccountInfo.accountId}`);
+      }
     }
 
     return newAccountInfo;
@@ -73,6 +89,7 @@ export class AccountCommand extends BaseCommand {
 
   async createNewAccount(ctx: {
     config: {
+      generateEcdsaKey: boolean;
       ecdsaPrivateKey?: string;
       ed25519PrivateKey?: string;
       namespace: string;
@@ -85,6 +102,8 @@ export class AccountCommand extends BaseCommand {
       ctx.privateKey = PrivateKey.fromStringECDSA(ctx.config.ecdsaPrivateKey);
     } else if (ctx.config.ed25519PrivateKey) {
       ctx.privateKey = PrivateKey.fromStringED25519(ctx.config.ed25519PrivateKey);
+    } else if (ctx.config.generateEcdsaKey) {
+      ctx.privateKey = PrivateKey.generateECDSA();
     } else {
       ctx.privateKey = PrivateKey.generateED25519();
     }
@@ -93,7 +112,7 @@ export class AccountCommand extends BaseCommand {
       ctx.config.namespace,
       ctx.privateKey,
       ctx.config.amount,
-      ctx.config.ecdsaPrivateKey ? ctx.config.setAlias : false,
+      ctx.config.ecdsaPrivateKey || ctx.config.generateEcdsaKey ? ctx.config.setAlias : false,
     );
   }
 
@@ -300,6 +319,8 @@ export class AccountCommand extends BaseCommand {
         ed25519PrivateKey: string;
         namespace: string;
         setAlias: boolean;
+        generateEcdsaKey: boolean;
+        createAmount: number;
       };
       privateKey: PrivateKey;
     }
@@ -318,6 +339,8 @@ export class AccountCommand extends BaseCommand {
               namespace: self.configManager.getFlag<string>(flags.namespace) as string,
               ed25519PrivateKey: self.configManager.getFlag<string>(flags.ed25519PrivateKey) as string,
               setAlias: self.configManager.getFlag<boolean>(flags.setAlias) as boolean,
+              generateEcdsaKey: self.configManager.getFlag<boolean>(flags.generateEcdsaKey) as boolean,
+              createAmount: self.configManager.getFlag<number>(flags.createAmount) as number,
             };
 
             if (!config.amount) {
@@ -341,10 +364,15 @@ export class AccountCommand extends BaseCommand {
         {
           title: 'create the new account',
           task: async ctx => {
-            self.accountInfo = await self.createNewAccount(ctx);
-            const accountInfoCopy = {...self.accountInfo};
-            delete accountInfoCopy.privateKey;
-            this.logger.showJSON('new account created', accountInfoCopy);
+            for (let i = 0; i < ctx.config.createAmount; i++) {
+              self.accountInfo = await self.createNewAccount(ctx);
+              const accountInfoCopy = {...self.accountInfo};
+              delete accountInfoCopy.privateKey;
+              this.logger.showJSON('new account created', accountInfoCopy);
+              if (ctx.config.createAmount > 0) {
+                await sleep(Duration.ofSeconds(1));
+              }
+            }
           },
         },
       ],
@@ -553,9 +581,11 @@ export class AccountCommand extends BaseCommand {
               flags.setCommandFlags(
                 y,
                 flags.amount,
+                flags.createAmount,
                 flags.ecdsaPrivateKey,
                 flags.namespace,
                 flags.ed25519PrivateKey,
+                flags.generateEcdsaKey,
                 flags.setAlias,
               ),
             handler: (argv: any) => {
