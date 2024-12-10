@@ -42,6 +42,7 @@ import {
   FileUpdateTransaction,
   FreezeTransaction,
   FreezeType,
+  Long,
   PrivateKey,
   NodeCreateTransaction,
   NodeDeleteTransaction,
@@ -1149,7 +1150,7 @@ export class NodeCommandTasks {
     return new Task('Determine new node account number', (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
       const config: NodeAddConfigClass = ctx.config;
       const values = {hedera: {nodes: []}};
-      let maxNum = 0;
+      let maxNum: Long = Long.fromNumber(0);
 
       let lastNodeAlias = DEFAULT_NETWORK_NODE_NAME;
 
@@ -1171,9 +1172,9 @@ export class NodeCommandTasks {
         lastNodeAlias = lastNodeAlias.replace(/\d+$/, incremented.toString());
       }
 
-      ctx.maxNum = maxNum;
+      ctx.maxNum = maxNum.add(1);
       ctx.newNode = {
-        accountId: `${constants.HEDERA_NODE_ACCOUNT_ID_START.realm}.${constants.HEDERA_NODE_ACCOUNT_ID_START.shard}.${++maxNum}`,
+        accountId: `${constants.HEDERA_NODE_ACCOUNT_ID_START.realm}.${constants.HEDERA_NODE_ACCOUNT_ID_START.shard}.${ctx.maxNum}`,
         name: lastNodeAlias,
       };
       config.nodeAlias = lastNodeAlias as NodeAlias;
