@@ -14,11 +14,17 @@ An opinionated CLI tool to deploy and manage standalone test networks.
 
 ## Requirements
 
-| Solo Version | Node.js                   | Kind       | Solo Chart | Hedera   | Kubernetes | Kubectl    | Helm    | k9s        | Docker Resources        | Java         |
-|--------------|---------------------------|------------|-----------|----------|------------|------------|---------|------------|-------------------------|--------------|
-| 0.29.0       | >= 20.14.0 (lts/hydrogen) | >= v1.29.1 | v0.30.0   | v0.53.0+ | >= v1.27.3 | >= v1.27.3 | v3.14.2 | >= v0.27.4 | Memory >= 8GB, CPU >= 4 | >= 21.0.1+12 |
-| 0.30.0       | >= 20.14.0 (lts/hydrogen) | >= v1.29.1 | v0.30.0   | v0.54.0+ | >= v1.27.3 | >= v1.27.3 | v3.14.2 | >= v0.27.4 | Memory >= 8GB, CPU >= 4 | >= 21.0.1+12 |
-| 0.31.4       | >= 20.18.0 (lts/iron)     | >= v1.29.1 | v0.31.4   | v0.54.0+ | >= v1.27.3 | >= v1.27.3 | v3.14.2 | >= v0.27.4 | Memory >= 8GB, CPU >= 4 | >= 21.0.1+12 |
+| Solo Version | Node.js                   | Kind       | Solo Chart | Hedera   | Kubernetes | Kubectl    | Helm    | k9s        | Docker Resources        |
+|--------------|---------------------------|------------|------------|----------|------------|------------|---------|------------|-------------------------|
+| 0.29.0       | >= 20.14.0 (lts/hydrogen) | >= v1.29.1 | v0.30.0    | v0.53.0+ | >= v1.27.3 | >= v1.27.3 | v3.14.2 | >= v0.27.4 | Memory >= 8GB, CPU >= 4 |
+| 0.30.0       | >= 20.14.0 (lts/hydrogen) | >= v1.29.1 | v0.30.0    | v0.54.0+ | >= v1.27.3 | >= v1.27.3 | v3.14.2 | >= v0.27.4 | Memory >= 8GB, CPU >= 4 |
+| 0.31.4       | >= 20.18.0 (lts/iron)     | >= v1.29.1 | v0.31.4    | v0.54.0+ | >= v1.27.3 | >= v1.27.3 | v3.14.2 | >= v0.27.4 | Memory >= 8GB, CPU >= 4 |
+
+### Hardware Requirements
+
+To run a three-node network, you will need to set up Docker Desktop with at least 8GB of memory and 4 CPUs.  
+
+![alt text](/docs/content/User/DockerDesktop.png)
 
 ## Setup
 
@@ -35,6 +41,8 @@ nvm use lts/hydrogen
 
 ## Install Solo
 
+* Run `npm clean install` or `npm ci`
+* Run `npm run build`
 * Run `npm install -g @hashgraph/solo`
 
 ## Documentation
