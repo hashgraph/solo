@@ -1,0 +1,6 @@
+{{- range .items -}}
+  {{ $name := .metadata.name }}
+  {{- range .status.loadBalancer.ingress -}}
+    {{$name}} {{": "}} {{ .ip }} {{"\n"}}
+  {{- end -}}
+{{- end -}}
