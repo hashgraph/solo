@@ -19,14 +19,21 @@ import {type ContextCommandTasks} from './tasks.js';
 import * as helpers from '../../core/helpers.js';
 import * as constants from '../../core/constants.js';
 import * as ContextFlags from './flags.js';
+import {RemoteConfigTasks} from '../../core/config/remote/remote_config_tasks.js';
+import type {RemoteConfigManager} from '../../core/config/remote/remote_config_manager.js';
+import {connectConfigBuilder} from "./configs.js";
 
 export class ContextCommandHandlers implements CommandHandlers {
   readonly parent: BaseCommand;
   readonly tasks: ContextCommandTasks;
+  public readonly remoteConfigManager: RemoteConfigManager;
+  private getConfig: any;
 
-  constructor(parent: BaseCommand, tasks: ContextCommandTasks) {
+  constructor(parent: BaseCommand, tasks: ContextCommandTasks, remoteConfigManager: RemoteConfigManager) {
     this.parent = parent;
     this.tasks = tasks;
+    this.remoteConfigManager = remoteConfigManager;
+    this.getConfig = parent.getConfig.bind(parent);
   }
 
   async connect(argv: any) {
@@ -34,8 +41,11 @@ export class ContextCommandHandlers implements CommandHandlers {
 
     const action = this.parent.commandActionBuilder(
       [
-        this.tasks.initialize(argv),
+        this.tasks.initialize(argv, connectConfigBuilder.bind(this)),
         this.parent.getLocalConfig().promptLocalConfigTask(),
+        this.tasks.readLocalConfig(argv),
+        RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
+        // todo validate remoteConfig
         this.tasks.updateLocalConfig(argv),
       ],
       {

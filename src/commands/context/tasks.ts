@@ -18,7 +18,8 @@ import {Task} from '../../core/task.js';
 import {Templates} from '../../core/templates.js';
 import {Flags as flags} from '../flags.js';
 import type {ListrTaskWrapper} from 'listr2';
-import {type BaseCommand} from '../base.js';
+import type {ConfigBuilder} from "../../types/aliases.js";
+import {BaseCommand} from "../base.js";
 
 export class ContextCommandTasks {
   private readonly parent: BaseCommand;
@@ -27,15 +28,35 @@ export class ContextCommandTasks {
     this.parent = parent;
   }
 
-  updateLocalConfig(argv) {
-    return new Task('Update local configuration', async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
-      this.parent.logger.info('Updating local configuration...');
+    updateLocalConfig(argv) {
+        return new Task('Update local configuration', async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
+            this.parent.logger.info('Compare local and remote configuration...');
 
-      const isQuiet = !!argv[flags.quiet.name];
+            await this.parent.getRemoteConfigManager().modify(async remoteConfig => {
+                const localConfig = this.parent.getLocalConfig()
+                const localDeployments = localConfig.deployments
+                ctx.config.clusters = Object.keys(remoteConfig.clusters)
+                localDeployments[localConfig.currentDeploymentName].clusters = ctx.config.clusters
+                localConfig.setDeployments(localDeployments)
+            });
 
-      let currentDeploymentName = argv[flags.namespace.name];
-      let clusters = Templates.parseClusterAliases(argv[flags.clusterName.name]);
-      let contextName = argv[flags.context.name];
+            this.parent.logger.info('Update local configuration...');
+            const {currentDeploymentName, contextName, clusters} = ctx.config;
+            this.parent.logger.info(
+                `Save LocalConfig file: [currentDeploymentName: ${currentDeploymentName}, contextName: ${contextName}, clusters: ${clusters.join(' ')}]`,
+            );
+            await this.parent.getLocalConfig().write();
+        })
+    }
+
+  readLocalConfig(argv) {
+    return new Task('Read local configuration settings', async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
+      this.parent.logger.info('Read local configuration settings...');
+      const isQuiet = !!ctx.config.quiet;
+
+      let currentDeploymentName = ctx.config.namespace;
+      let clusters = Templates.parseClusterAliases(ctx.config.clusterName);
+      let contextName = ctx.config.context;
 
       const kubeContexts = await this.parent.getK8().getContexts();
 
@@ -50,20 +71,17 @@ export class ContextCommandTasks {
         }
       } else {
         if (!clusters.length) {
-          const prompt = flags.clusterName.prompt;
-          const unparsedClusterAliases = await prompt(task, clusters);
+          const unparsedClusterAliases = await flags.clusterName.prompt(task, clusters);
           clusters = Templates.parseClusterAliases(unparsedClusterAliases);
         }
         if (!contextName) {
-          const prompt = flags.context.prompt;
-          contextName = await prompt(
+          contextName = await flags.context.prompt(
             task,
             kubeContexts.map(c => c.name),
           );
         }
         if (!currentDeploymentName) {
-          const prompt = flags.namespace.prompt;
-          currentDeploymentName = await prompt(task, currentDeploymentName);
+          currentDeploymentName = await flags.namespace.prompt(task, currentDeploymentName);
         }
       }
 
@@ -77,14 +95,11 @@ export class ContextCommandTasks {
 
       this.parent.getK8().getKubeConfig().setCurrentContext(contextName);
 
-      this.parent.logger.info(
-        `Save LocalConfig file: [currentDeploymentName: ${currentDeploymentName}, contextName: ${contextName}, clusters: ${clusters.join(' ')}]`,
-      );
-      await this.parent.getLocalConfig().write();
+
     });
   }
 
-  initialize(argv: any) {
+  initialize(argv: any, configInit: ConfigBuilder) {
     const {requiredFlags, optionalFlags} = argv;
 
     argv.flags = [...requiredFlags, ...optionalFlags];
@@ -93,6 +108,8 @@ export class ContextCommandTasks {
       if (argv[flags.devMode.name]) {
         this.parent.logger.setDevMode(true);
       }
+
+      ctx.config = await configInit(argv, ctx, task);
     });
   }
 }

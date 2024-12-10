@@ -184,6 +184,10 @@ export abstract class BaseCommand extends ShellRunner {
     return this.localConfig;
   }
 
+  getRemoteConfigManager() {
+    return this.remoteConfigManager;
+  }
+
   abstract close(): Promise<void>;
 
   commandActionBuilder(actionTasks: any, options: any, errorString: string, lease: Lease | null) {
