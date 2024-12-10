@@ -60,33 +60,6 @@ describe('ClusterCommand unit tests', () => {
 
     beforeEach(() => {
       opts = getBaseCommandOpts();
-    });
-
-    it('Install function is called with expected parameters', async () => {
-      opts.logger = new SoloLogger();
-      opts.helm = new Helm(opts.logger);
-      opts.k8 = sinon.stub();
-      opts.chartManager = sinon.stub();
-      opts.chartManager = new ChartManager(opts.helm, opts.logger);
-      opts.chartManager.isChartInstalled = sinon.stub().returns(false);
-      opts.chartManager.install = sinon.stub().returns(true);
-
-      opts.configManager = new ConfigManager(opts.logger);
-      opts.depManager = sinon.stub();
-      opts.localConfig = sinon.stub();
-      opts.remoteConfigManager = sinon.stub();
-
-      const clusterCommand = new ClusterCommand(opts);
-      await clusterCommand.setup(argv);
-      expect(opts.chartManager.install.args[0][0]).to.equal(constants.SOLO_SETUP_NAMESPACE);
-      expect(opts.chartManager.install.args[0][1]).to.equal(constants.SOLO_CLUSTER_SETUP_CHART);
-      expect(opts.chartManager.install.args[0][2]).to.equal(
-        path.join(constants.SOLO_TESTING_CHART, constants.SOLO_CLUSTER_SETUP_CHART),
-      );
-      expect(opts.chartManager.install.args[0][3]).to.equal(version.SOLO_CHART_VERSION);
-    });
-
-    it('Should use local chart directory', async () => {
       opts.logger = new SoloLogger();
       opts.helm = new Helm(opts.logger);
       opts.helm.dependency = sinon.stub();
@@ -100,10 +73,25 @@ describe('ClusterCommand unit tests', () => {
       opts.depManager = sinon.stub();
       opts.localConfig = sinon.stub();
       opts.remoteConfigManager = sinon.stub();
+    });
 
+    it('Install function is called with expected parameters', async () => {
       const clusterCommand = new ClusterCommand(opts);
+      await clusterCommand.setup(argv);
+      expect(opts.chartManager.install.args[0][0]).to.equal(constants.SOLO_SETUP_NAMESPACE);
+      expect(opts.chartManager.install.args[0][1]).to.equal(constants.SOLO_CLUSTER_SETUP_CHART);
+      expect(opts.chartManager.install.args[0][2]).to.equal(
+        path.join(constants.SOLO_TESTING_CHART, constants.SOLO_CLUSTER_SETUP_CHART),
+      );
+      expect(opts.chartManager.install.args[0][3]).to.equal(version.SOLO_CHART_VERSION);
+    });
+
+    it('Should use local chart directory', async () => {
+      const clusterCommand = new ClusterCommand(opts);
+
       argv[flags.chartDirectory.name] = 'test-directory';
       argv[flags.force.name] = true;
+
       await clusterCommand.setup(argv);
       expect(opts.chartManager.install.args[0][0]).to.equal(constants.SOLO_SETUP_NAMESPACE);
       expect(opts.chartManager.install.args[0][1]).to.equal(constants.SOLO_CLUSTER_SETUP_CHART);
