@@ -29,6 +29,7 @@ on:
       - '**/*.js'
       - '**/*.ts'
       - '**/package*.json'
+      - 'docs/content/User/*.md'
       - 'DEV.md'
       - 'README.md'
   # run in the pull request, but don't publish

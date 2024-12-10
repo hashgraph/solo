@@ -1,4 +1,8 @@
 #!/bin/bash
+
+# This script is used to run some common solo commands, and use the output to update
+# the docs/content/User/StepByStepGuide.md file. This is useful to keep the guide up to date
+
 set -xeo pipefail
 export SOLO_CLUSTER_NAME=solo
 export SOLO_NAMESPACE=solo
@@ -38,12 +42,12 @@ echo "Generate README.md"
 envsubst '$KIND_CREATE_CLUSTER_OUTPUT,$SOLO_INIT_OUTPUT,$SOLO_NODE_KEY_PEM_OUTPUT,$SOLO_CLUSTER_SETUP_OUTPUT, \
 $SOLO_NETWORK_DEPLOY_OUTPUT,$SOLO_NODE_SETUP_OUTPUT,$SOLO_NODE_START_OUTPUT,$SOLO_MIRROR_NODE_DEPLOY_OUTPUT,\
 $SOLO_RELAY_DEPLOY_OUTPUT'\
-< README.md.template > README.md
+< docs/content/User/StepByStepGuide.md.template > docs/content/User/StepByStepGuide.md
 
 echo "Remove color codes and lines showing intermediate progress"
 
-sed -i 's/\[32m//g' README.md
-sed -i 's/\[33m//g' README.md
-sed -i 's/\[39m//g' README.md
-egrep -v '↓|❯|•' README.md > README.md.tmp && mv README.md.tmp README.md
+sed -i 's/\[32m//g' docs/content/User/StepByStepGuide.md
+sed -i 's/\[33m//g' docs/content/User/StepByStepGuide.md
+sed -i 's/\[39m//g' docs/content/User/StepByStepGuide.md
+egrep -v '↓|❯|•' docs/content/User/StepByStepGuide.md > docs/content/User/StepByStepGuide.md.tmp && mv docs/content/User/StepByStepGuide.md.tmp docs/content/User/StepByStepGuide.md
 set +x

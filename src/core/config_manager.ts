@@ -14,13 +14,14 @@
  * limitations under the License.
  *
  */
-import {SoloError, MissingArgumentError} from './errors.js';
+import {SoloError, MissingArgumentError, IllegalArgumentError} from './errors.js';
 import {SoloLogger} from './logging.js';
-import {Flags as flags} from '../commands/flags.js';
+import {Flags, Flags as flags} from '../commands/flags.js';
 import * as paths from 'path';
 import * as helpers from './helpers.js';
 import type * as yargs from 'yargs';
 import {type CommandFlag} from '../types/flag_types.js';
+import {type ListrTaskWrapper} from 'listr2';
 
 /**
  * ConfigManager cache command flag values so that user doesn't need to enter the same values repeatedly.
@@ -157,5 +158,24 @@ export class ConfigManager {
   /** Get package version */
   getVersion(): string {
     return this.config.version;
+  }
+
+  /**
+   * Run prompts for the given set of flags
+   * @param task task object from listr2
+   * @param flagList list of flag objects
+   */
+  async executePrompt(task: ListrTaskWrapper<any, any, any>, flagList: CommandFlag[] = []) {
+    for (const flag of flagList) {
+      if (flag.definition.disablePrompt || flag.prompt === undefined) {
+        continue;
+      }
+
+      if (this.getFlag(Flags.quiet)) {
+        return;
+      }
+      const input = await flag.prompt(task, this.getFlag(flag));
+      this.setFlag(flag, input);
+    }
   }
 }
