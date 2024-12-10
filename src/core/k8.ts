@@ -1423,8 +1423,17 @@ export class K8 {
     return body as k8s.V1Lease;
   }
 
-  async readNamespacedLease(leaseName: string, namespace: string) {
+  async readNamespacedLease(leaseName: string, namespace: string, timesCalled = 0) {
     const {response, body} = await this.coordinationApiClient.readNamespacedLease(leaseName, namespace).catch(e => e);
+
+    if (response?.statusCode === 500 && timesCalled < 4) {
+      // could be k8s control plane has no resources available
+      this.logger.debug(
+        `Retrying readNamespacedLease(${leaseName}, ${namespace}) in 5 seconds because of statusCode 500`,
+      );
+      await sleep(Duration.ofSeconds(5));
+      return await this.readNamespacedLease(leaseName, namespace, timesCalled + 1);
+    }
 
     this.handleKubernetesClientError(response, body, 'Failed to read namespaced lease');
 
