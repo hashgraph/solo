@@ -19,4 +19,4 @@ Example:
 * HashSphere/nlg-values.yaml
 * Latitude/nlg-values.yaml
 Start as the following:
-> helm upgrade --install nlg oci://swirldslabs.jfrog.io/load-generator-helm-release-local/network-load-generator --version 0.2.1 --values nlg-values.yaml -n solo-hashsphere1
+>  helm upgrade --install nlg oci://swirldslabs.jfrog.io/load-generator-helm-release-local/network-load-generator --version 0.2.1 --values nlg-values.yaml -n solo-hashsphere1
