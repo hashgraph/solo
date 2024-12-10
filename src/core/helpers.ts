@@ -190,7 +190,8 @@ export function getNodeAccountMap(nodeAliases: NodeAliases) {
   let accountId = constants.HEDERA_NODE_ACCOUNT_ID_START.num;
 
   nodeAliases.forEach(nodeAlias => {
-    const nodeAccount = `${realm}.${shard}.${accountId++}`;
+    const nodeAccount = `${realm}.${shard}.${accountId}`;
+    accountId = accountId.add(1);
     accountMap.set(nodeAlias, nodeAccount);
   });
   return accountMap;
