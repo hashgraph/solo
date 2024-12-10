@@ -78,6 +78,8 @@ export class ClusterCommand extends BaseCommand {
           title: 'Initialize',
           task: async (ctx, task) => {
             self.configManager.update(argv);
+            flags.disablePrompts([flags.chartDirectory]);
+
             await self.configManager.executePrompt(task, [
               flags.chartDirectory,
               flags.clusterSetupNamespace,
@@ -125,7 +127,9 @@ export class ClusterCommand extends BaseCommand {
             const clusterSetupNamespace = ctx.config.clusterSetupNamespace;
             const version = ctx.config.soloChartVersion;
 
-            const chartPath = constants.SOLO_TESTING_CHART_URL + constants.SOLO_CLUSTER_SETUP_CHART;
+            const chartPath = ctx.chartPath
+              ? ctx.chartPath
+              : constants.SOLO_TESTING_CHART_URL + constants.SOLO_CLUSTER_SETUP_CHART;
             const valuesArg = ctx.valuesArg;
 
             try {
