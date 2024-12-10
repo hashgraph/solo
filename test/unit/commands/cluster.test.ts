@@ -55,7 +55,7 @@ argv[flags.force.name] = true;
 argv[flags.clusterSetupNamespace.name] = constants.SOLO_SETUP_NAMESPACE;
 
 describe('ClusterCommand unit tests', () => {
-  describe('constructor error handling', () => {
+  describe('Chart Install Function is called correctly', () => {
     let opts: any;
 
     beforeEach(() => {
@@ -78,6 +78,7 @@ describe('ClusterCommand unit tests', () => {
     it('Install function is called with expected parameters', async () => {
       const clusterCommand = new ClusterCommand(opts);
       await clusterCommand.setup(argv);
+
       expect(opts.chartManager.install.args[0][0]).to.equal(constants.SOLO_SETUP_NAMESPACE);
       expect(opts.chartManager.install.args[0][1]).to.equal(constants.SOLO_CLUSTER_SETUP_CHART);
       expect(opts.chartManager.install.args[0][2]).to.equal(
@@ -87,18 +88,15 @@ describe('ClusterCommand unit tests', () => {
     });
 
     it('Should use local chart directory', async () => {
-      const clusterCommand = new ClusterCommand(opts);
-
       argv[flags.chartDirectory.name] = 'test-directory';
       argv[flags.force.name] = true;
 
+      const clusterCommand = new ClusterCommand(opts);
       await clusterCommand.setup(argv);
-      expect(opts.chartManager.install.args[0][0]).to.equal(constants.SOLO_SETUP_NAMESPACE);
-      expect(opts.chartManager.install.args[0][1]).to.equal(constants.SOLO_CLUSTER_SETUP_CHART);
+
       expect(opts.chartManager.install.args[0][2]).to.equal(
         path.join(ROOT_DIR, 'test-directory', constants.SOLO_CLUSTER_SETUP_CHART),
       );
-      expect(opts.chartManager.install.args[0][3]).to.equal(version.SOLO_CHART_VERSION);
     });
   });
 });
