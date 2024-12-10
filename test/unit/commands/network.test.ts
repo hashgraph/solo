@@ -44,6 +44,9 @@ import {RemoteConfigValidator} from "../../../src/core/config/remote/remote_conf
 import {RemoteConfigManager} from "../../../src/core/config/remote/remote_config_manager.js";
 import {LocalConfig} from "../../../src/core/config/local_config.js";
 import * as k8s from "@kubernetes/client-node";
+import {K8} from "../../../src/core/k8.js";
+import {ProfileManager} from "../../../src/core/profile_manager.js";
+import {KeyManager} from "../../../src/core/key_manager.js";
 
 const getBaseCommandOpts = () => ({
   logger: sinon.stub(),
@@ -77,42 +80,56 @@ describe('NetworkCommand unit tests', () => {
     const bootstrapResp = bootstrapTestVariables(testName, argv);
 
     beforeEach(() => {
-      // opts = getBaseCommandOpts();
-      // opts.logger = new SoloLogger();
-      // opts.helm = new Helm(opts.logger);
-      // opts.helm.dependency = sinon.stub();
+      opts = getBaseCommandOpts();
+      opts.logger = testLogger;
+      opts.helm = new Helm(opts.logger);
+      opts.helm.dependency = sinon.stub();
       // opts.k8 = sinon.stub();
-      // opts.k8.readNamespacedLease = sinon.stub().returns(k8s.V1Lease);
+      opts.configManager = new ConfigManager(testLogger);
+      opts.configManager.update(argv);
+      opts.k8 = new K8(opts.configManager, testLogger); // inon.stub().returns(k8s.V1Lease);
+      opts.k8.waitForPods = sinon.stub();
       // opts.chartManager = sinon.stub();
-      // opts.keyManager = sinon.stub();
-      // opts.platformInstaller = sinon.stub();
-      // opts.profileManager = sinon.stub();
-      // opts.certificateManager = sinon.stub();
-      //
-      // opts.chartManager = new ChartManager(opts.helm, opts.logger);
-      // opts.chartManager.isChartInstalled = sinon.stub().returns(false);
-      // opts.chartManager.install = sinon.stub().returns(true);
-      // const localConfig = new LocalConfig(path.join(BASE_TEST_DIR, 'local-config.yaml'), opts.logger, opts.configManager);
-      // opts.remoteConfigManager = new RemoteConfigManager(opts.k8, opts.logger, localConfig, opts.configManager);
-      //
-      // // opts.remoteConfigManager.buildLoadTask = sinon.stub().returns({
-      // //   title: 'Load remote config',
-      // //   task: async (_, task): Promise<void> => {
-      // //     task.output = 'Remote config loaded';
-      // //   },
-      // // });
-      //
-      // opts.configManager = new ConfigManager(opts.logger);
-      // opts.leaseManager = new LeaseManager(opts.k8, opts.configManager, opts.logger, new IntervalLeaseRenewalService());
-      // opts.leaseManager.currentNamespace = sinon.stub().returns(testName);
-      // opts.depManager = sinon.stub();
-      // opts.localConfig = sinon.stub();
-      // // opts.remoteConfigManager = sinon.stub();
+      opts.keyManager = new KeyManager(testLogger);
+      opts.platformInstaller = sinon.stub();
+      opts.platformInstaller.copyNodeKeys = sinon.stub();
+      opts.profileManager = new ProfileManager(testLogger, opts.configManager); //sinon.stub();
+      opts.certificateManager = sinon.stub();
+
+      opts.chartManager = sinon.stub();
+      opts.chartManager = new ChartManager(opts.helm, opts.logger);
+      opts.chartManager.isChartInstalled = sinon.stub().returns(true);
+      opts.chartManager.isChartInstalled.onSecondCall().returns(false);
+
+      opts.chartManager.install = sinon.stub().returns(true);
+      const localConfig = new LocalConfig(
+        path.join(BASE_TEST_DIR, 'local-config.yaml'),
+        opts.logger,
+        opts.configManager,
+      );
+      opts.remoteConfigManager = new RemoteConfigManager(opts.k8, opts.logger, localConfig, opts.configManager);
+
+      // opts.remoteConfigManager.buildLoadTask = sinon.stub().returns({
+      //   title: 'Load remote config',
+      //   task: async (_, task): Promise<void> => {
+      //     task.output = 'Remote config loaded';
+      //   },
+      // });
+
+      opts.configManager = new ConfigManager(opts.logger);
+      opts.leaseManager = new LeaseManager(opts.k8, opts.configManager, opts.logger, new IntervalLeaseRenewalService());
+      opts.leaseManager.currentNamespace = sinon.stub().returns(testName);
+      opts.depManager = sinon.stub();
+      opts.localConfig = sinon.stub();
+      // opts.remoteConfigManager = sinon.stub();
     });
 
     it('Install function is called with expected parameters', async () => {
-      const networkCommand = bootstrapResp.cmd.networkCmd;
+      const networkCommand = new NetworkCommand(opts);
+      networkCommand.addNodesAndProxies = sinon.stub();
+
       await networkCommand.deploy(argv);
+
       expect(opts.chartManager.install.args[0][0]).to.equal(constants.SOLO_SETUP_NAMESPACE);
       expect(opts.chartManager.install.args[0][1]).to.equal(constants.SOLO_CLUSTER_SETUP_CHART);
       expect(opts.chartManager.install.args[0][2]).to.equal(
