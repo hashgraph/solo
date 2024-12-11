@@ -1282,8 +1282,11 @@ export class NodeCommandTasks {
 
       const nodeId = Templates.nodeIdFromNodeAlias(config.nodeAlias) - 1;
       self.logger.info(`nodeId: ${nodeId}, config.newAccountNumber: ${config.newAccountNumber}`);
-      // await self.accountManager.refreshNodeClient(config.namespace, config.nodeAlias);
-      // config.nodeClient = await this.accountManager.loadNodeClient(config.namespace);
+
+      if (config.existingNodeAliases.length > 1) {
+        await self.accountManager.refreshNodeClient(config.namespace, config.nodeAlias);
+        config.nodeClient = await this.accountManager.loadNodeClient(config.namespace);
+      }
 
       try {
         let nodeUpdateTx = new NodeUpdateTransaction().setNodeId(nodeId);
