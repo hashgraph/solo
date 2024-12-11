@@ -1423,7 +1423,7 @@ export class NodeCommandTasks {
         await self.chartManager.upgrade(
           config.namespace,
           constants.SOLO_DEPLOYMENT_CHART,
-          constants.SOLO_TESTING_CHART_URL + constants.SOLO_DEPLOYMENT_CHART,
+          ctx.config.chartPath,
           config.soloChartVersion,
           valuesArg,
         );

@@ -35,11 +35,7 @@ import path from 'path';
 import {NetworkCommand} from '../../../src/commands/network.js';
 import {LeaseManager} from '../../../src/core/lease/lease_manager.js';
 import {IntervalLeaseRenewalService} from '../../../src/core/lease/interval_lease_renewal.js';
-import chalk from 'chalk';
-import {RemoteConfigValidator} from '../../../src/core/config/remote/remote_config_validator.js';
 import {RemoteConfigManager} from '../../../src/core/config/remote/remote_config_manager.js';
-import {LocalConfig} from '../../../src/core/config/local_config.js';
-import * as k8s from '@kubernetes/client-node';
 import {K8} from '../../../src/core/k8.js';
 import {ProfileManager} from '../../../src/core/profile_manager.js';
 import {KeyManager} from '../../../src/core/key_manager.js';
@@ -84,12 +80,16 @@ describe('NetworkCommand unit tests', () => {
 
       opts.configManager = new ConfigManager(testLogger);
       opts.configManager.update(argv);
-      opts.k8 = new K8(opts.configManager, testLogger); // inon.stub().returns(k8s.V1Lease);
+      opts.k8 = new K8(opts.configManager, testLogger);
       opts.k8.waitForPods = sinon.stub();
       opts.keyManager = new KeyManager(testLogger);
+      opts.keyManager.copyGossipKeysToStaging = sinon.stub();
+      opts.keyManager.copyNodeKeysToStaging = sinon.stub();
       opts.platformInstaller = sinon.stub();
       opts.platformInstaller.copyNodeKeys = sinon.stub();
-      opts.profileManager = new ProfileManager(testLogger, opts.configManager); //sinon.stub();
+
+      opts.profileManager = new ProfileManager(testLogger, opts.configManager);
+      opts.profileManager.prepareValuesForSoloChart = sinon.stub();
       opts.certificateManager = sinon.stub();
 
       opts.chartManager = new ChartManager(opts.helm, opts.logger);

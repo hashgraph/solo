@@ -130,10 +130,6 @@ export class ClusterCommand extends BaseCommand {
           task: async (ctx, _) => {
             const clusterSetupNamespace = ctx.config.clusterSetupNamespace;
             const version = ctx.config.soloChartVersion;
-
-            const chartPath = ctx.chartPath
-              ? ctx.chartPath
-              : constants.SOLO_TESTING_CHART_URL + constants.SOLO_CLUSTER_SETUP_CHART;
             const valuesArg = ctx.valuesArg;
 
             try {

@@ -27,7 +27,7 @@ import {ConfigManager} from '../../../src/core/config_manager.js';
 import {SoloLogger} from '../../../src/core/logging.js';
 import {ChartManager} from '../../../src/core/chart_manager.js';
 import {Helm} from '../../../src/core/helm.js';
-import {ROOT_DIR, SOLO_HOME_DIR, SOLO_TESTING_CHART, SOLO_TESTING_CHART_URL} from '../../../src/core/constants.js';
+import {ROOT_DIR} from '../../../src/core/constants.js';
 import path from 'path';
 
 const getBaseCommandOpts = () => ({
