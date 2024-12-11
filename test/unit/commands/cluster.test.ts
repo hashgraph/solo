@@ -78,7 +78,7 @@ describe('ClusterCommand unit tests', () => {
       expect(opts.chartManager.install.args[0][0]).to.equal(constants.SOLO_SETUP_NAMESPACE);
       expect(opts.chartManager.install.args[0][1]).to.equal(constants.SOLO_CLUSTER_SETUP_CHART);
       expect(opts.chartManager.install.args[0][2]).to.equal(
-        path.join(constants.SOLO_TESTING_CHART, constants.SOLO_CLUSTER_SETUP_CHART),
+        constants.SOLO_TESTING_CHART_URL + '/' + constants.SOLO_CLUSTER_SETUP_CHART,
       );
       expect(opts.chartManager.install.args[0][3]).to.equal(version.SOLO_CHART_VERSION);
     });

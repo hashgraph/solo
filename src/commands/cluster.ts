@@ -110,7 +110,11 @@ export class ClusterCommand extends BaseCommand {
         {
           title: 'Prepare chart values',
           task: async (ctx, _) => {
-            ctx.chartPath = await this.prepareChartPath(ctx.config.chartDir);
+            ctx.chartPath = await this.prepareChartPath(
+              ctx.config.chartDir,
+              constants.SOLO_TESTING_CHART_URL,
+              constants.SOLO_CLUSTER_SETUP_CHART,
+            );
             ctx.valuesArg = this.prepareValuesArg(
               ctx.config.chartDir,
               ctx.config.deployPrometheusStack,
@@ -133,11 +137,11 @@ export class ClusterCommand extends BaseCommand {
             const valuesArg = ctx.valuesArg;
 
             try {
-              self.logger.debug(`Installing chart chartPath = ${chartPath}, version = ${version}`);
+              self.logger.debug(`Installing chart chartPath = ${ctx.chartPath}, version = ${version}`);
               await self.chartManager.install(
                 clusterSetupNamespace,
                 constants.SOLO_CLUSTER_SETUP_CHART,
-                chartPath,
+                ctx.chartPath,
                 version,
                 valuesArg,
               );
@@ -383,20 +387,6 @@ export class ClusterCommand extends BaseCommand {
     }
 
     return valuesArg;
-  }
-
-  /**
-   * Prepare chart path
-   * @param [chartDir] - local charts directory (default is empty)
-   */
-  async prepareChartPath(chartDir = flags.chartDirectory.definition.defaultValue as string) {
-    let chartPath = 'solo-charts/solo-cluster-setup';
-    if (chartDir) {
-      chartPath = path.join(chartDir, 'solo-cluster-setup');
-      await this.helm.dependency('update', chartPath);
-    }
-
-    return chartPath;
   }
 
   close(): Promise<void> {

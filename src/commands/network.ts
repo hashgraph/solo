@@ -254,7 +254,7 @@ export class NetworkCommand extends BaseCommand {
     // compute values
     config.chartPath = await this.prepareChartPath(
       config.chartDirectory,
-      constants.SOLO_TESTING_CHART,
+      constants.SOLO_TESTING_CHART_URL,
       constants.SOLO_DEPLOYMENT_CHART,
     );
 
@@ -409,9 +409,7 @@ export class NetworkCommand extends BaseCommand {
             await this.chartManager.install(
               config.namespace,
               constants.SOLO_DEPLOYMENT_CHART,
-              ctx.config.chartPath
-                ? ctx.config.chartPath
-                : constants.SOLO_TESTING_CHART_URL + constants.SOLO_DEPLOYMENT_CHART,
+              ctx.config.chartPath,
               config.soloChartVersion,
               config.valuesArg,
             );
