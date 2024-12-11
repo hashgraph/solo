@@ -144,13 +144,19 @@ export class LocalConfig implements LocalConfigData {
       skip: this.skipPromptTask,
       task: async (_: any, task: ListrTaskWrapper<any, any, any>): Promise<void> => {
         let userEmailAddress = self.configManager.getFlag<EmailAddress>(flags.userEmailAddress);
-        if (!userEmailAddress) userEmailAddress = await flags.userEmailAddress.prompt(task, userEmailAddress);
+        if (!userEmailAddress) {
+            userEmailAddress = await flags.userEmailAddress.prompt(task, userEmailAddress);
+            self.configManager.setFlag(flags.userEmailAddress, userEmailAddress);
+        }
 
         const deploymentName = self.configManager.getFlag<Namespace>(flags.namespace);
         if (!deploymentName) throw new SoloError('Namespace was not specified');
 
         let deploymentClusters = self.configManager.getFlag<string>(flags.deploymentClusters);
-        if (!deploymentClusters) deploymentClusters = await flags.deploymentClusters.prompt(task, deploymentClusters);
+        if (!deploymentClusters) {
+            deploymentClusters = await flags.deploymentClusters.prompt(task, deploymentClusters);
+            self.configManager.setFlag(flags.deploymentClusters, deploymentClusters);
+        }
 
         const deployments: Deployments = {
           [deploymentName]: {clusters: Templates.parseClusterAliases(deploymentClusters)},
