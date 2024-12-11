@@ -18,35 +18,32 @@ import sinon from 'sinon';
 import {describe, it, beforeEach} from 'mocha';
 import {expect} from 'chai';
 
-import {ClusterCommand} from '../../../src/commands/cluster.js';
 import {
-  BASE_TEST_DIR,
   bootstrapTestVariables,
   getDefaultArgv,
   HEDERA_PLATFORM_VERSION_TAG,
   TEST_CLUSTER,
-  testLogger
+  testLogger,
 } from '../../test_util.js';
 import {Flags as flags} from '../../../src/commands/flags.js';
 import * as version from '../../../version.js';
 import * as constants from '../../../src/core/constants.js';
 import {ConfigManager} from '../../../src/core/config_manager.js';
-import {SoloLogger} from '../../../src/core/logging.js';
 import {ChartManager} from '../../../src/core/chart_manager.js';
 import {Helm} from '../../../src/core/helm.js';
-import {ROOT_DIR, SOLO_HOME_DIR, SOLO_TESTING_CHART, SOLO_TESTING_CHART_URL} from '../../../src/core/constants.js';
 import path from 'path';
 import {NetworkCommand} from '../../../src/commands/network.js';
-import {LeaseManager} from "../../../src/core/lease/lease_manager.js";
-import {IntervalLeaseRenewalService} from "../../../src/core/lease/interval_lease_renewal.js";
-import chalk from "chalk";
-import {RemoteConfigValidator} from "../../../src/core/config/remote/remote_config_validator.js";
-import {RemoteConfigManager} from "../../../src/core/config/remote/remote_config_manager.js";
-import {LocalConfig} from "../../../src/core/config/local_config.js";
-import * as k8s from "@kubernetes/client-node";
-import {K8} from "../../../src/core/k8.js";
-import {ProfileManager} from "../../../src/core/profile_manager.js";
-import {KeyManager} from "../../../src/core/key_manager.js";
+import {LeaseManager} from '../../../src/core/lease/lease_manager.js';
+import {IntervalLeaseRenewalService} from '../../../src/core/lease/interval_lease_renewal.js';
+import chalk from 'chalk';
+import {RemoteConfigValidator} from '../../../src/core/config/remote/remote_config_validator.js';
+import {RemoteConfigManager} from '../../../src/core/config/remote/remote_config_manager.js';
+import {LocalConfig} from '../../../src/core/config/local_config.js';
+import * as k8s from '@kubernetes/client-node';
+import {K8} from '../../../src/core/k8.js';
+import {ProfileManager} from '../../../src/core/profile_manager.js';
+import {KeyManager} from '../../../src/core/key_manager.js';
+import {ROOT_DIR} from '../../../src/core/constants.js';
 
 const getBaseCommandOpts = () => ({
   logger: sinon.stub(),
@@ -84,72 +81,53 @@ describe('NetworkCommand unit tests', () => {
       opts.logger = testLogger;
       opts.helm = new Helm(opts.logger);
       opts.helm.dependency = sinon.stub();
-      // opts.k8 = sinon.stub();
+
       opts.configManager = new ConfigManager(testLogger);
       opts.configManager.update(argv);
       opts.k8 = new K8(opts.configManager, testLogger); // inon.stub().returns(k8s.V1Lease);
       opts.k8.waitForPods = sinon.stub();
-      // opts.chartManager = sinon.stub();
       opts.keyManager = new KeyManager(testLogger);
       opts.platformInstaller = sinon.stub();
       opts.platformInstaller.copyNodeKeys = sinon.stub();
       opts.profileManager = new ProfileManager(testLogger, opts.configManager); //sinon.stub();
       opts.certificateManager = sinon.stub();
 
-      opts.chartManager = sinon.stub();
       opts.chartManager = new ChartManager(opts.helm, opts.logger);
       opts.chartManager.isChartInstalled = sinon.stub().returns(true);
       opts.chartManager.isChartInstalled.onSecondCall().returns(false);
 
       opts.chartManager.install = sinon.stub().returns(true);
-      const localConfig = new LocalConfig(
-        path.join(BASE_TEST_DIR, 'local-config.yaml'),
-        opts.logger,
-        opts.configManager,
-      );
-      opts.remoteConfigManager = new RemoteConfigManager(opts.k8, opts.logger, localConfig, opts.configManager);
-
-      // opts.remoteConfigManager.buildLoadTask = sinon.stub().returns({
-      //   title: 'Load remote config',
-      //   task: async (_, task): Promise<void> => {
-      //     task.output = 'Remote config loaded';
-      //   },
-      // });
+      opts.remoteConfigManager = new RemoteConfigManager(opts.k8, opts.logger, opts.localConfig, opts.configManager);
 
       opts.configManager = new ConfigManager(opts.logger);
       opts.leaseManager = new LeaseManager(opts.k8, opts.configManager, opts.logger, new IntervalLeaseRenewalService());
       opts.leaseManager.currentNamespace = sinon.stub().returns(testName);
-      opts.depManager = sinon.stub();
-      opts.localConfig = sinon.stub();
-      // opts.remoteConfigManager = sinon.stub();
     });
 
     it('Install function is called with expected parameters', async () => {
       const networkCommand = new NetworkCommand(opts);
-      networkCommand.addNodesAndProxies = sinon.stub();
-
       await networkCommand.deploy(argv);
 
-      expect(opts.chartManager.install.args[0][0]).to.equal(constants.SOLO_SETUP_NAMESPACE);
-      expect(opts.chartManager.install.args[0][1]).to.equal(constants.SOLO_CLUSTER_SETUP_CHART);
+      expect(opts.chartManager.install.args[0][0]).to.equal(testName);
+      expect(opts.chartManager.install.args[0][1]).to.equal(constants.SOLO_DEPLOYMENT_CHART);
       expect(opts.chartManager.install.args[0][2]).to.equal(
-        path.join(constants.SOLO_TESTING_CHART, constants.SOLO_CLUSTER_SETUP_CHART),
+        path.join(constants.SOLO_TESTING_CHART, constants.SOLO_DEPLOYMENT_CHART),
       );
       expect(opts.chartManager.install.args[0][3]).to.equal(version.SOLO_CHART_VERSION);
     });
 
-    // it('Should use local chart directory', async () => {
-    //   argv[flags.chartDirectory.name] = 'test-directory';
-    //   argv[flags.force.name] = true;
-    //
-    //   const networkCommand = new NetworkCommand(opts);
-    //   await networkCommand.deploy(argv);
-    //   expect(opts.chartManager.install.args[0][0]).to.equal(constants.SOLO_SETUP_NAMESPACE);
-    //   expect(opts.chartManager.install.args[0][1]).to.equal(constants.SOLO_CLUSTER_SETUP_CHART);
-    //   expect(opts.chartManager.install.args[0][2]).to.equal(
-    //     path.join(ROOT_DIR, 'test-directory', constants.SOLO_CLUSTER_SETUP_CHART),
-    //   );
-    //   expect(opts.chartManager.install.args[0][3]).to.equal(version.SOLO_CHART_VERSION);
-    // });
+    it('Should use local chart directory', async () => {
+      argv[flags.chartDirectory.name] = 'test-directory';
+      argv[flags.force.name] = true;
+
+      const networkCommand = new NetworkCommand(opts);
+      await networkCommand.deploy(argv);
+      expect(opts.chartManager.install.args[0][0]).to.equal(testName);
+      expect(opts.chartManager.install.args[0][1]).to.equal(constants.SOLO_DEPLOYMENT_CHART);
+      expect(opts.chartManager.install.args[0][2]).to.equal(
+        path.join(ROOT_DIR, 'test-directory', constants.SOLO_DEPLOYMENT_CHART),
+      );
+      expect(opts.chartManager.install.args[0][3]).to.equal(version.SOLO_CHART_VERSION);
+    });
   });
 });

@@ -214,6 +214,7 @@ export class NetworkCommand extends BaseCommand {
       flags.bootstrapProperties,
       flags.cacheDir,
       flags.chainId,
+      flags.chartDirectory,
       flags.debugNodeAlias,
       flags.log4j2Xml,
       flags.persistentVolumeClaims,
