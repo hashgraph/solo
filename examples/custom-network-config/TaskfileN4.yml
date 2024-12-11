@@ -1,0 +1,186 @@
+version: 3
+output: prefixed
+dotenv:
+  - .env
+silent: false
+
+env:
+  FST_CHART_VERSION: v0.30.0
+#  CONSENSUS_NODE_VERSION: v0.54.1
+  LOCALDIR: /home/cluster4/workspaces/10nodes/hedera-services
+  SOLO_CLUSTER_NUMBER: 4
+#  SOLO_NAMESPACE: solo-{{ env "USER" | replace "." "-" | trunc 63 }}-N"${SOLO_CLUSTER_NUMBER}"
+  SOLO_NAMESPACE: solo-alex-kuzmin-n4
+  SOLO_CLUSTER_SETUP_NAMESPACE: fullstack-setup
+  SOLO_NETWORK_SIZE: 10
+
+vars:
+  solo_settings_file: "{{.ROOT_DIR}}/settings.txt"
+  solo_values_file: "{{.ROOT_DIR}}/init-containers-values.yaml"
+  ip_list_template_file: "{{.ROOT_DIR}}/list-external-ips.gotemplate"
+
+  nodes:
+    ref: until (env "SOLO_NETWORK_SIZE" | default .SOLO_NETWORK_SIZE | int)
+  node_list_internal: "{{range $idx, $n := .nodes }}node{{$n}},{{end}}"
+  node_identifiers: "{{ .node_list_internal | trimSuffix \",\" }}"
+
+  solo_user_dir: "{{ env \"HOME\" }}/.solo"
+  solo_cache_dir: "{{ .solo_user_dir }}/cache"
+  solo_logs_dir: "{{ .solo_user_dir }}/logs"
+  solo_keys_dir: "{{ .solo_cache_dir }}/keys"
+  solo_bin_dir: "{{ .solo_user_dir }}/bin"
+
+tasks:
+  default:
+    cmds:
+      - task: "install:kubectl:darwin"
+      - task: "install:kubectl:linux"
+      - task: "install:solo"
+      - task: "install"
+      - task: "start"
+
+  install:
+    cmds:
+      - task: "solo:init"
+      - task: "solo:keys"
+      - task: "solo:network:deploy"
+
+  start:
+    cmds:
+      - task: "solo:node:start"
+
+  stop:
+    cmds:
+      - task: "solo:node:stop"
+
+  show:ips:
+    cmds:
+      - task: "solo:node:addresses"
+
+  destroy:
+    cmds:
+      - task: "solo:node:stop"
+      - task: "solo:network:destroy"
+
+  clean:
+    cmds:
+      - task: "destroy"
+      - task: "clean:cache"
+      - task: "clean:logs"
+
+  clean:cache:
+    cmds:
+      - task: "solo:cache:remove"
+
+  clean:logs:
+    cmds:
+      - task: "solo:logs:remove"
+
+  solo:init:
+    internal: true
+    status:
+      - test -f {{ .solo_bin_dir }}/helm
+      - test -f {{ .solo_cache_dir }}/profiles/custom-spec.yaml
+      - test -f {{ .solo_cache_dir }}/templates/api-permission.properties
+      - test -f {{ .solo_cache_dir }}/templates/application.properties
+      - test -f {{ .solo_cache_dir }}/templates/bootstrap.properties
+      - test -f {{ .solo_cache_dir }}/templates/settings.txt
+      - test -f {{ .solo_cache_dir }}/templates/log4j2.xml
+      #- test "$(yq -r '.flags."node-ids"' < {{ .solo_user_dir }}/solo.yaml)" == "{{ .node_identifiers }}"
+      - test "$(jq -r '.flags."node-ids"' < {{ .solo_user_dir }}/solo.config)" == "{{ .node_identifiers }}"
+    cmds:
+#--release-tag "${CONSENSUS_NODE_VERSION}"
+      - solo init --namespace "${SOLO_NAMESPACE}" -i {{.node_identifiers}} --cluster-setup-namespace "${SOLO_CLUSTER_SETUP_NAMESPACE}" --cache-dir {{ .solo_cache_dir }}
+#      - solo init --namespace "${SOLO_NAMESPACE}" --node-ids {{.node_identifiers}} --local-build-path "${LOCALDIR}/hedera-node/data" --cluster-setup-namespace "${SOLO_CLUSTER_SETUP_NAMESPACE}"
+
+  solo:keys:
+    internal: true
+    status:
+      - |
+         for n in $(seq 0 {{ sub (env "SOLO_NETWORK_SIZE" | default .SOLO_NETWORK_SIZE | int) 1 }}); do
+          test -f {{ .solo_keys_dir }}/hedera-node${n}.crt
+          test -f {{ .solo_keys_dir }}/hedera-node${n}.key
+          test -f {{ .solo_keys_dir }}/s-public-node${n}.pem
+          test -f {{ .solo_keys_dir }}/s-private-node${n}.pem
+         done
+    cmds:
+      - solo node keys --gossip-keys --tls-keys
+
+  solo:network:deploy:
+    internal: true
+    cmds:
+#--release-tag "${CONSENSUS_NODE_VERSION}"
+      - solo network deploy  --fst-chart-version "${FST_CHART_VERSION}" --values-file {{ .solo_values_file }} --settings-txt {{ .solo_settings_file }} --log4j2-xml ./log4j2.xml --application-properties ./application.properties
+#      - solo node setup --release-tag "${CONSENSUS_NODE_VERSION}"
+#      - solo network deploy --local-build-path "${LOCALDIR}/hedera-node/data" --fst-chart-version "${FST_CHART_VERSION}" --values-file {{ .solo_values_file }} --settings-txt {{ .solo_settings_file }}
+      - solo node setup --local-build-path "${LOCALDIR}/hedera-node/data"
+  solo:network:destroy:
+    internal: true
+    cmds:
+      - solo network destroy --namespace "${SOLO_NAMESPACE}" --delete-pvcs --delete-secrets --force
+
+  solo:node:start:
+    internal: true
+    cmds:
+      - solo node start --namespace "${SOLO_NAMESPACE}" {{ .CLI_ARGS }}
+
+  solo:node:stop:
+    internal: true
+    ignore_error: true
+    cmds:
+      - solo node stop --namespace "${SOLO_NAMESPACE}" {{ .CLI_ARGS }}
+
+  solo:node:addresses:
+    internal: true
+    cmds:
+      - kubectl get svc -n "${SOLO_NAMESPACE}" -l "fullstack.hedera.com/type=network-node-svc" --output=go-template-file={{ .ip_list_template_file }}
+
+  solo:cache:remove:
+    internal: true
+    status:
+      - test [[ ! -d {{ .solo_cache_dir }} ]]
+    cmds:
+      - rm -rf {{ .solo_cache_dir }}
+
+  solo:logs:remove:
+    internal: true
+    status:
+      - test [[ ! -d {{ .solo_logs_dir }} ]]
+    cmds:
+      - rm -rf {{ .solo_logs_dir }}
+
+  solo:config:remove:
+    internal: true
+    status:
+      - test [[ ! -f {{ .solo_user_dir }}/solo.yaml ]]
+    cmds:
+      - rm -rf {{ .solo_user_dir }}/solo.yaml
+
+  install:solo:
+    internal: true
+    status:
+      - command -v solo
+    cmds:
+      - npm install -g @hashgraph/solo
+
+  install:kubectl:darwin:
+    internal: true
+    platforms:
+      - darwin
+    status:
+      - command -v kubectl
+    cmds:
+      - brew update
+      - brew install kubernetes-cli
+
+  install:kubectl:linux:
+    internal: true
+    platforms:
+      - linux
+    status:
+      - command -v kubectl
+    cmds:
+      - curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/{{ ARCH }}/kubectl"
+      - sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
+      - rm -rf kubectl
+

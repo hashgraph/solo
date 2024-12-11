@@ -1,0 +1,8 @@
+export NVM_DIR="$HOME/.nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
+nvm install v22.9.0
+nvm use v22.9.0
+
+tsh login  --ttl=18000 --proxy=teleport.eng.hashgraph.io:443 --auth=local --user=alex.kuzmin teleport.eng.hashgraph.io
+export KUBECONFIG=${HOME?}/teleport-kubeconfig.yaml
+tsh kube login k8s.pft.dal.lat.ope.eng.hashgraph.io
