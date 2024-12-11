@@ -689,7 +689,7 @@ export class NodeCommandTasks {
 
         // don't try to download from the same node we are deleting, it won't work
         const nodeAlias =
-          ctx.config.nodeAlias === config.existingNodeAliases[0]
+          ctx.config.nodeAlias === config.existingNodeAliases[0] && config.existingNodeAliases.length > 1
             ? config.existingNodeAliases[1]
             : config.existingNodeAliases[0];
 
@@ -1282,17 +1282,17 @@ export class NodeCommandTasks {
 
       const nodeId = Templates.nodeIdFromNodeAlias(config.nodeAlias) - 1;
       self.logger.info(`nodeId: ${nodeId}, config.newAccountNumber: ${config.newAccountNumber}`);
-      await self.accountManager.refreshNodeClient(config.namespace, config.nodeAlias);
-      config.nodeClient = await this.accountManager.loadNodeClient(config.namespace);
+      // await self.accountManager.refreshNodeClient(config.namespace, config.nodeAlias);
+      // config.nodeClient = await this.accountManager.loadNodeClient(config.namespace);
 
       try {
-        const nodeUpdateTx = new NodeUpdateTransaction().setNodeId(nodeId);
+        let nodeUpdateTx = new NodeUpdateTransaction().setNodeId(nodeId);
 
         if (config.tlsPublicKey && config.tlsPrivateKey) {
           self.logger.info(`config.tlsPublicKey: ${config.tlsPublicKey}`);
           const tlsCertDer = self._loadPermCertificate(config.tlsPublicKey);
           const tlsCertHash = crypto.createHash('sha384').update(tlsCertDer).digest();
-          nodeUpdateTx.setCertificateHash(tlsCertHash);
+          nodeUpdateTx = nodeUpdateTx.setCertificateHash(tlsCertHash);
 
           const publicKeyFile = Templates.renderTLSPemPublicKeyFile(config.nodeAlias);
           const privateKeyFile = Templates.renderTLSPemPrivateKeyFile(config.nodeAlias);
@@ -1303,7 +1303,7 @@ export class NodeCommandTasks {
         if (config.gossipPublicKey && config.gossipPrivateKey) {
           self.logger.info(`config.gossipPublicKey: ${config.gossipPublicKey}`);
           const signingCertDer = self._loadPermCertificate(config.gossipPublicKey);
-          nodeUpdateTx.setGossipCaCertificate(signingCertDer);
+          nodeUpdateTx = nodeUpdateTx.setGossipCaCertificate(signingCertDer);
 
           const publicKeyFile = Templates.renderGossipPemPublicKeyFile(config.nodeAlias);
           const privateKeyFile = Templates.renderGossipPemPrivateKeyFile(config.nodeAlias);
@@ -1312,19 +1312,19 @@ export class NodeCommandTasks {
         }
 
         if (config.newAccountNumber) {
-          nodeUpdateTx.setAccountId(config.newAccountNumber);
+          nodeUpdateTx = nodeUpdateTx.setAccountId(config.newAccountNumber);
         }
 
         let parsedNewKey;
         if (config.newAdminKey) {
           parsedNewKey = PrivateKey.fromStringED25519(config.newAdminKey.toString());
-          nodeUpdateTx.setAdminKey(parsedNewKey.publicKey);
+          nodeUpdateTx = nodeUpdateTx.setAdminKey(parsedNewKey.publicKey);
         }
-        await nodeUpdateTx.freezeWith(config.nodeClient);
+        nodeUpdateTx = nodeUpdateTx.freezeWith(config.nodeClient);
 
         // config.adminKey contains the original key, needed to sign the transaction
         if (config.newAdminKey) {
-          await nodeUpdateTx.sign(parsedNewKey);
+          nodeUpdateTx = await nodeUpdateTx.sign(parsedNewKey);
         }
         const signedTx = await nodeUpdateTx.sign(config.adminKey);
         const txResp = await signedTx.execute(config.nodeClient);
