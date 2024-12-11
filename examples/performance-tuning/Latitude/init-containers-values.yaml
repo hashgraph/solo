@@ -8,7 +8,7 @@ hedera:
         - name: hgcapp-data-saved
           mountPath: /data-saved
   nodes:
-    - name: node1
+    - name: node0
       accountId: 0.0.3
       root:
         resources:
@@ -18,7 +18,7 @@ hedera:
           limits:
             cpu: 24
             memory: 256Gi
-    - name: node2
+    - name: node1
       accountId: 0.0.4
       root:
         resources:
@@ -28,7 +28,7 @@ hedera:
           limits:
             cpu: 24
             memory: 256Gi
-    - name: node3
+    - name: node2
       accountId: 0.0.5
       root:
         resources:
@@ -38,7 +38,7 @@ hedera:
           limits:
             cpu: 24
             memory: 256Gi
-    - name: node4
+    - name: node3
       accountId: 0.0.6
       root:
         resources:
@@ -48,7 +48,7 @@ hedera:
           limits:
             cpu: 24
             memory: 256Gi
-    - name: node5
+    - name: node4
       accountId: 0.0.7
       root:
         resources:
@@ -58,7 +58,7 @@ hedera:
           limits:
             cpu: 24
             memory: 256Gi
-    - name: node6
+    - name: node5
       accountId: 0.0.8
       root:
         resources:
@@ -68,8 +68,38 @@ hedera:
           limits:
             cpu: 24
             memory: 256Gi
-    - name: node7
+    - name: node6
       accountId: 0.0.9
+      root:
+        resources:
+          requests:
+            cpu: 18
+            memory: 256Gi
+          limits:
+            cpu: 24
+            memory: 256Gi
+    - name: node7
+      accountId: 0.0.10
+      root:
+        resources:
+          requests:
+            cpu: 18
+            memory: 256Gi
+          limits:
+            cpu: 24
+            memory: 256Gi
+    - name: node8
+      accountId: 0.0.11
+      root:
+        resources:
+          requests:
+            cpu: 18
+            memory: 256Gi
+          limits:
+            cpu: 24
+            memory: 256Gi
+    - name: node9
+      accountId: 0.0.12
       root:
         resources:
           requests:
@@ -81,31 +111,6 @@ hedera:
 defaults:
   envoyProxy:
     loadBalancerEnabled: true
-  sidecars:
-    recordStreamUploader:
-      resources:
-        requests:
-          cpu: 100m
-          memory: 100Mi
-        limits:
-          cpu: 150m
-          memory: 200Mi
-    eventStreamUploader:
-      resources:
-        requests:
-          cpu: 100m
-          memory: 100Mi
-        limits:
-          cpu: 150m
-          memory: 200Mi
-    recordStreamSidecarUploader:
-      resources:
-        requests:
-          cpu: 100m
-          memory: 100Mi
-        limits:
-          cpu: 150m
-          memory: 200Mi
   root:
     resources:
       requests:
@@ -136,3 +141,23 @@ minio-server:
           limits:
             cpu: 0
             memory: 0
+deployment:
+  podAnnotations: {}
+  podLabels: {}
+  nodeSelector:
+    solo.hashgraph.io/role: "consensus-node"
+    solo.hashgraph.io/owner: "alex.kuzmin"
+    solo.hashgraph.io/network-id: "1"
+  tolerations:
+    - key: "solo.hashgraph.io/role"
+      operator: "Equal"
+      value: "consensus-node"
+      effect: "NoSchedule"
+    - key: "solo.hashgraph.io/owner"
+      operator: "Equal"
+      value: "alex.kuzmin"
+      effect: "NoSchedule"
+    - key: "solo.hashgraph.io/network-id"
+      operator: "Equal"
+      value: "1"
+      effect: "NoSchedule"

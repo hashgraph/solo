@@ -779,8 +779,8 @@ export class NetworkCommand extends BaseCommand {
             );
 
             remoteConfig.components.add(
-              `envoy-${nodeAlias}`,
-              new EnvoyProxyComponent(`envoy-${nodeAlias}`, cluster, namespace),
+              `envoy-proxy-${nodeAlias}`,
+              new EnvoyProxyComponent(`envoy-proxy-${nodeAlias}`, cluster, namespace),
             );
 
             remoteConfig.components.add(
