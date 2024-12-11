@@ -30,29 +30,6 @@ function clone_smart_contract_repo ()
   fi
 }
 
-# retry the function saved in function_name for few times
-function retry_function ()
-{
-  local num=$1
-  for ((i=1; i<=$num; i++)); do
-    return_code=$( ( $function_name > retry.log; echo $? ))
-    # Use the return code
-    if [[ $return_code -eq 0 ]]; then
-      echo "Function $function_name is successful"
-      return
-    else
-      echo "Function $function_name failed with return code $return_code"
-    fi
-    echo "Retry $function_name in 2 seconds"
-    echo "-----------------------"
-    cat retry.log
-    echo "-----------------------"
-    sleep 2
-  done
-  echo "Function $function_name failed after 5 retries"
-  exit 1
-}
-
 function setup_smart_contract_test ()
 {
   echo "Setup smart contract test"
@@ -71,16 +48,6 @@ function setup_smart_contract_test ()
   echo "MAX_RETRY=5" >> .env
   cat .env
   cd -
-}
-
-function background_keep_port_forward ()
-{
-  for i in {1..25}; do
-    ps -ef |grep port-forward
-    echo "Enable port forward round $i"
-    enable_port_forward
-    sleep 2
-  done &
 }
 
 function start_background_transactions ()
@@ -104,12 +71,6 @@ function start_contract_test ()
 
   cd -
   return $result
-}
-
-function retry_contract_test ()
-{
-  function_name="start_contract_test"
-  retry_function 5
 }
 
 function create_test_account ()
@@ -157,20 +118,18 @@ function start_sdk_test ()
   return $result
 }
 
-function retry_sdk_test ()
-{
-  function_name="start_sdk_test"
-  retry_function 5
-}
+echo "Restart port-forward"
+task helper:clean:port-forward
+enable_port_forward
+
 
 echo "Change to parent directory"
 cd ../
 create_test_account
 clone_smart_contract_repo
 setup_smart_contract_test
-background_keep_port_forward
 start_background_transactions
-retry_contract_test
-retry_sdk_test
+start_contract_test
+start_sdk_test
 echo "Sleep a while to wait background transactions to finish"
 sleep 30
