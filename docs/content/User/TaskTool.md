@@ -29,6 +29,8 @@ task default-with-mirror
 task default-with-relay
 ```
 
+If mirror node or relay node is deployed, user can access the hedera explorer at http://localhost:8080
+
 ### Stop solo network
 
 To tear down the solo network
