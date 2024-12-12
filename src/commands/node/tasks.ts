@@ -743,7 +743,12 @@ export class NodeCommandTasks {
     );
   }
 
-  taskCheckNetworkNodePods(ctx: any, task: ListrTaskWrapper<any, any, any>, nodeAliases: NodeAliases): Listr {
+  taskCheckNetworkNodePods(
+    ctx: any,
+    task: ListrTaskWrapper<any, any, any>,
+    nodeAliases: NodeAliases,
+    maxAttempts = undefined,
+  ): Listr {
     if (!ctx.config) ctx.config = {};
 
     ctx.config.podNames = {};
@@ -754,7 +759,15 @@ export class NodeCommandTasks {
       subTasks.push({
         title: `Check network pod: ${chalk.yellow(nodeAlias)}`,
         task: async (ctx: any) => {
-          ctx.config.podNames[nodeAlias] = await self.checkNetworkNodePod(ctx.config.namespace, nodeAlias);
+          try {
+            ctx.config.podNames[nodeAlias] = await self.checkNetworkNodePod(
+              ctx.config.namespace,
+              nodeAlias,
+              maxAttempts,
+            );
+          } catch (_) {
+            ctx.config.skipStop = true;
+          }
         },
       });
     }
@@ -842,10 +855,10 @@ export class NodeCommandTasks {
     );
   }
 
-  identifyNetworkPods() {
+  identifyNetworkPods(maxAttempts = undefined) {
     const self = this;
     return new Task('Identify network pods', (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
-      return self.taskCheckNetworkNodePods(ctx, task, ctx.config.nodeAliases);
+      return self.taskCheckNetworkNodePods(ctx, task, ctx.config.nodeAliases, maxAttempts);
     });
   }
 
@@ -1068,13 +1081,15 @@ export class NodeCommandTasks {
   stopNodes() {
     return new Task('Stopping nodes', (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
       const subTasks = [];
-      for (const nodeAlias of ctx.config.nodeAliases) {
-        const podName = ctx.config.podNames[nodeAlias];
-        subTasks.push({
-          title: `Stop node: ${chalk.yellow(nodeAlias)}`,
-          task: async () =>
-            await this.k8.execContainer(podName, constants.ROOT_CONTAINER, 'systemctl stop network-node'),
-        });
+      if (!ctx.config.skipStop) {
+        for (const nodeAlias of ctx.config.nodeAliases) {
+          const podName = ctx.config.podNames[nodeAlias];
+          subTasks.push({
+            title: `Stop node: ${chalk.yellow(nodeAlias)}`,
+            task: async () =>
+              await this.k8.execContainer(podName, constants.ROOT_CONTAINER, 'systemctl stop network-node'),
+          });
+        }
       }
 
       // setup the sub-tasks
