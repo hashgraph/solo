@@ -78,6 +78,8 @@ export class ClusterCommand extends BaseCommand {
           title: 'Initialize',
           task: async (ctx, task) => {
             self.configManager.update(argv);
+            flags.disablePrompts([flags.chartDirectory]);
+
             await self.configManager.executePrompt(task, [
               flags.chartDirectory,
               flags.clusterSetupNamespace,
@@ -108,7 +110,11 @@ export class ClusterCommand extends BaseCommand {
         {
           title: 'Prepare chart values',
           task: async (ctx, _) => {
-            ctx.chartPath = await this.prepareChartPath(ctx.config.chartDir);
+            ctx.chartPath = await this.prepareChartPath(
+              ctx.config.chartDir,
+              constants.SOLO_TESTING_CHART_URL,
+              constants.SOLO_CLUSTER_SETUP_CHART,
+            );
             ctx.valuesArg = this.prepareValuesArg(
               ctx.config.chartDir,
               ctx.config.deployPrometheusStack,
@@ -124,16 +130,14 @@ export class ClusterCommand extends BaseCommand {
           task: async (ctx, _) => {
             const clusterSetupNamespace = ctx.config.clusterSetupNamespace;
             const version = ctx.config.soloChartVersion;
-
-            const chartPath = constants.SOLO_TESTING_CHART_URL + constants.SOLO_CLUSTER_SETUP_CHART;
             const valuesArg = ctx.valuesArg;
 
             try {
-              self.logger.debug(`Installing chart chartPath = ${chartPath}, version = ${version}`);
+              self.logger.debug(`Installing chart chartPath = ${ctx.chartPath}, version = ${version}`);
               await self.chartManager.install(
                 clusterSetupNamespace,
                 constants.SOLO_CLUSTER_SETUP_CHART,
-                chartPath,
+                ctx.chartPath,
                 version,
                 valuesArg,
               );
@@ -379,20 +383,6 @@ export class ClusterCommand extends BaseCommand {
     }
 
     return valuesArg;
-  }
-
-  /**
-   * Prepare chart path
-   * @param [chartDir] - local charts directory (default is empty)
-   */
-  async prepareChartPath(chartDir = flags.chartDirectory.definition.defaultValue as string) {
-    let chartPath = 'solo-charts/solo-cluster-setup';
-    if (chartDir) {
-      chartPath = path.join(chartDir, 'solo-cluster-setup');
-      await this.helm.dependency('update', chartPath);
-    }
-
-    return chartPath;
   }
 
   close(): Promise<void> {

@@ -53,8 +53,7 @@ export const HEDERA_NODE_DEFAULT_STAKE_AMOUNT = +process.env.SOLO_NODE_DEFAULT_S
 
 // --------------- Charts related constants ----------------------------------------------------------------------------
 export const SOLO_SETUP_NAMESPACE = 'solo-setup';
-export const SOLO_TESTING_CHART_URL = 'oci://ghcr.io/hashgraph/solo-charts/';
-export const SOLO_TESTING_CHART = 'solo-charts';
+export const SOLO_TESTING_CHART_URL = 'oci://ghcr.io/hashgraph/solo-charts';
 export const SOLO_CLUSTER_SETUP_CHART = 'solo-cluster-setup';
 export const SOLO_DEPLOYMENT_CHART = 'solo-deployment';
 export const JSON_RPC_RELAY_CHART_URL = 'https://hashgraph.github.io/hedera-json-rpc-relay/charts';

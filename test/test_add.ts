@@ -105,7 +105,6 @@ export function testNodeAdd(
             flags.force.constName,
             flags.quiet.constName,
             flags.adminKey.constName,
-            'chartPath',
           ]);
           await bootstrapResp.opts.accountManager.close();
         }).timeout(Duration.ofMinutes(12).toMillis());

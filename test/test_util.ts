@@ -288,7 +288,6 @@ export function e2eTestSuite(
           flags.settingTxt.constName,
           flags.grpcTlsKeyPath.constName,
           flags.grpcWebTlsKeyPath.constName,
-          'chartPath',
         ]);
       }).timeout(Duration.ofMinutes(5).toMillis());
 

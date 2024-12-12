@@ -102,7 +102,6 @@ describe('NetworkCommand', () => {
         flags.settingTxt.constName,
         flags.grpcTlsKeyPath.constName,
         flags.grpcWebTlsKeyPath.constName,
-        'chartPath',
       ]);
     } catch (e) {
       networkCmd.logger.showUserError(e);
