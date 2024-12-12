@@ -314,28 +314,26 @@ jobs:
           name: ${{ inputs.e2e-node-local-ptt-coverage-report }}
           path: 'coverage/${{ inputs.e2e-node-local-ptt-test-subdir }}'
 
-          # Node Add tests are disabled and are not viable for the amount of memory available. The teacher crashes during
-          # the reconnect attempt.
-#      - name: Download E2E Node Add Coverage Report
-#        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
-#        if: ${{ (inputs.enable-codecov-analysis || inputs.enable-codacy-coverage) && inputs.enable-e2e-coverage-report && !cancelled() && !failure() }}
-#        with:
-#          name: ${{ inputs.e2e-node-add-coverage-report }}
-#          path: 'coverage/${{ inputs.e2e-node-add-test-subdir }}'
-#
-#      - name: Download E2E Node Add Local Coverage Report
-#        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
-#        if: ${{ (inputs.enable-codecov-analysis || inputs.enable-codacy-coverage) && inputs.enable-e2e-coverage-report && !cancelled() && !failure() }}
-#        with:
-#          name: ${{ inputs.e2e-node-add-local-coverage-report }}
-#          path: 'coverage/${{ inputs.e2e-node-add-local-test-subdir }}'
-#
-#      - name: Download E2E Node Add - Separate commands Coverage Report
-#        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
-#        if: ${{ (inputs.enable-codecov-analysis || inputs.enable-codacy-coverage) && inputs.enable-e2e-coverage-report && !cancelled() && !failure() }}
-#        with:
-#          name: ${{ inputs.e2e-node-add-separate-commands-coverage-report }}
-#          path: 'coverage/${{ inputs.e2e-node-add-separate-commands-test-subdir }}'
+      - name: Download E2E Node Add Coverage Report
+        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
+        if: ${{ (inputs.enable-codecov-analysis || inputs.enable-codacy-coverage) && inputs.enable-e2e-coverage-report && !cancelled() && !failure() }}
+        with:
+          name: ${{ inputs.e2e-node-add-coverage-report }}
+          path: 'coverage/${{ inputs.e2e-node-add-test-subdir }}'
+
+      - name: Download E2E Node Add Local Coverage Report
+        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
+        if: ${{ (inputs.enable-codecov-analysis || inputs.enable-codacy-coverage) && inputs.enable-e2e-coverage-report && !cancelled() && !failure() }}
+        with:
+          name: ${{ inputs.e2e-node-add-local-coverage-report }}
+          path: 'coverage/${{ inputs.e2e-node-add-local-test-subdir }}'
+
+      - name: Download E2E Node Add - Separate commands Coverage Report
+        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
+        if: ${{ (inputs.enable-codecov-analysis || inputs.enable-codacy-coverage) && inputs.enable-e2e-coverage-report && !cancelled() && !failure() }}
+        with:
+          name: ${{ inputs.e2e-node-add-separate-commands-coverage-report }}
+          path: 'coverage/${{ inputs.e2e-node-add-separate-commands-test-subdir }}'
 
       - name: Download E2E Node Update Coverage Report
         uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
