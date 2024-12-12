@@ -36,10 +36,10 @@ import {NetworkCommand} from '../../../src/commands/network.js';
 import {LeaseManager} from '../../../src/core/lease/lease_manager.js';
 import {IntervalLeaseRenewalService} from '../../../src/core/lease/interval_lease_renewal.js';
 import {RemoteConfigManager} from '../../../src/core/config/remote/remote_config_manager.js';
-import {K8} from '../../../src/core/k8.js';
 import {ProfileManager} from '../../../src/core/profile_manager.js';
 import {KeyManager} from '../../../src/core/key_manager.js';
 import {ROOT_DIR} from '../../../src/core/constants.js';
+import {ListrLease} from '../../../src/core/lease/listr_lease.js';
 
 const getBaseCommandOpts = () => ({
   logger: sinon.stub(),
@@ -80,8 +80,17 @@ describe('NetworkCommand unit tests', () => {
 
       opts.configManager = new ConfigManager(testLogger);
       opts.configManager.update(argv);
-      opts.k8 = new K8(opts.configManager, testLogger);
+      opts.k8 = sinon.stub();
+      opts.k8.hasNamespace = sinon.stub().returns(true);
+      opts.k8.getNamespacedConfigMap = sinon.stub().returns(null);
+      opts.k8.waitForPodReady = sinon.stub();
       opts.k8.waitForPods = sinon.stub();
+      opts.k8.readNamespacedLease = sinon.stub();
+
+      ListrLease.newAcquireLeaseTask = sinon.stub().returns({
+        run: sinon.stub().returns({}),
+      });
+
       opts.keyManager = new KeyManager(testLogger);
       opts.keyManager.copyGossipKeysToStaging = sinon.stub();
       opts.keyManager.copyNodeKeysToStaging = sinon.stub();
