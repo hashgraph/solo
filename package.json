@@ -47,7 +47,7 @@
   "license": "Apache2.0",
   "dependencies": {
     "@eslint/eslintrc": "^3.2.0",
-    "@hashgraph/sdk": "^2.55.0",
+    "@hashgraph/sdk": "^2.55.1",
     "@kubernetes/client-node": "^0.22.3",
     "@listr2/prompt-adapter-enquirer": "^2.0.12",
     "@peculiar/x509": "^1.12.3",
