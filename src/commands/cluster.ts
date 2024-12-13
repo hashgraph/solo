@@ -23,7 +23,8 @@ import chalk from 'chalk';
 import * as constants from '../core/constants.js';
 import path from 'path';
 import {ListrLease} from '../core/lease/listr_lease.js';
-import {type CommandBuilder} from '../types/aliases.js';
+import type {CommandBuilder} from '../types/aliases.js';
+import type {AnyObject} from '../types/index.js';
 
 /**
  * Define the core functionalities of 'cluster' command
@@ -41,7 +42,7 @@ export class ClusterCommand extends BaseCommand {
       this.logger.showJSON(`Cluster Information (${cluster.name})`, cluster);
       this.logger.showUser('\n');
       return true;
-    } catch (e: Error | any) {
+    } catch (e: Error | unknown) {
       this.logger.showUserError(e);
     }
 
@@ -54,7 +55,7 @@ export class ClusterCommand extends BaseCommand {
   }
 
   /** Setup cluster with shared components */
-  async setup(argv: any) {
+  async setup(argv: AnyObject) {
     const self = this;
 
     interface Context {
@@ -109,7 +110,7 @@ export class ClusterCommand extends BaseCommand {
         },
         {
           title: 'Prepare chart values',
-          task: async (ctx, _) => {
+          task: async ctx => {
             ctx.chartPath = await this.prepareChartPath(
               ctx.config.chartDir,
               constants.SOLO_TESTING_CHART_URL,
@@ -127,7 +128,7 @@ export class ClusterCommand extends BaseCommand {
         },
         {
           title: `Install '${constants.SOLO_CLUSTER_SETUP_CHART}' chart`,
-          task: async (ctx, _) => {
+          task: async ctx => {
             const clusterSetupNamespace = ctx.config.clusterSetupNamespace;
             const version = ctx.config.soloChartVersion;
             const valuesArg = ctx.valuesArg;
@@ -141,7 +142,7 @@ export class ClusterCommand extends BaseCommand {
                 version,
                 valuesArg,
               );
-            } catch (e: Error | any) {
+            } catch (e: Error | unknown) {
               // if error, uninstall the chart and rethrow the error
               self.logger.debug(
                 `Error on installing ${constants.SOLO_CLUSTER_SETUP_CHART}. attempting to rollback by uninstalling the chart`,
@@ -149,8 +150,8 @@ export class ClusterCommand extends BaseCommand {
               );
               try {
                 await self.chartManager.uninstall(clusterSetupNamespace, constants.SOLO_CLUSTER_SETUP_CHART);
-              } catch (ex) {
-                // ignore error during uninstall since we are doing the best-effort uninstall here
+              } catch {
+                // ignore error during uninstallation since we are doing the best-effort uninstallation here
               }
 
               throw e;
@@ -171,14 +172,14 @@ export class ClusterCommand extends BaseCommand {
 
     try {
       await tasks.run();
-    } catch (e: Error | any) {
+    } catch (e: Error | unknown) {
       throw new SoloError('Error on cluster setup', e);
     }
 
     return true;
   }
 
-  async reset(argv: any) {
+  async reset(argv: AnyObject) {
     const self = this;
     const lease = await self.leaseManager.create();
 
@@ -203,6 +204,7 @@ export class ClusterCommand extends BaseCommand {
               });
 
               if (!confirm) {
+                // eslint-disable-next-line n/no-process-exit
                 process.exit(0);
               }
             }
@@ -226,7 +228,7 @@ export class ClusterCommand extends BaseCommand {
         },
         {
           title: `Uninstall '${constants.SOLO_CLUSTER_SETUP_CHART}' chart`,
-          task: async (ctx, _) => {
+          task: async ctx => {
             const clusterSetupNamespace = ctx.config.clusterSetupNamespace;
             await self.chartManager.uninstall(clusterSetupNamespace, constants.SOLO_CLUSTER_SETUP_CHART);
             if (argv.dev) {
@@ -244,7 +246,7 @@ export class ClusterCommand extends BaseCommand {
 
     try {
       await tasks.run();
-    } catch (e: Error | any) {
+    } catch (e: Error | unknown) {
       throw new SoloError('Error on cluster reset', e);
     } finally {
       await lease.release();
@@ -259,21 +261,23 @@ export class ClusterCommand extends BaseCommand {
     return {
       command: 'cluster',
       desc: 'Manage solo testing cluster',
-      builder: (yargs: any) => {
+      builder: (yargs: AnyObject) => {
         return yargs
           .command({
             command: 'list',
             desc: 'List all available clusters',
-            handler: (argv: any) => {
+            handler: (argv: AnyObject) => {
               self.logger.debug("==== Running 'cluster list' ===", {argv});
 
               try {
                 const r = self.showClusterList();
                 self.logger.debug('==== Finished running `cluster list`====');
 
+                // eslint-disable-next-line n/no-process-exit
                 if (!r) process.exit(1);
               } catch (err) {
                 self.logger.showUserError(err);
+                // eslint-disable-next-line n/no-process-exit
                 process.exit(1);
               }
             },
@@ -281,15 +285,17 @@ export class ClusterCommand extends BaseCommand {
           .command({
             command: 'info',
             desc: 'Get cluster info',
-            handler: (argv: any) => {
+            handler: (argv: AnyObject) => {
               self.logger.debug("==== Running 'cluster info' ===", {argv});
               try {
                 const r = this.getClusterInfo();
                 self.logger.debug('==== Finished running `cluster info`====');
 
+                // eslint-disable-next-line n/no-process-exit
                 if (!r) process.exit(1);
-              } catch (err: Error | any) {
+              } catch (err: Error | unknown) {
                 self.logger.showUserError(err);
+                // eslint-disable-next-line n/no-process-exit
                 process.exit(1);
               }
             },
@@ -297,7 +303,7 @@ export class ClusterCommand extends BaseCommand {
           .command({
             command: 'setup',
             desc: 'Setup cluster with shared components',
-            builder: (y: any) =>
+            builder: (y: AnyObject) =>
               flags.setCommandFlags(
                 y,
                 flags.chartDirectory,
@@ -309,18 +315,19 @@ export class ClusterCommand extends BaseCommand {
                 flags.deployPrometheusStack,
                 flags.soloChartVersion,
               ),
-            handler: (argv: any) => {
+            handler: (argv: AnyObject) => {
               self.logger.debug("==== Running 'cluster setup' ===", {argv});
 
               self
                 .setup(argv)
                 .then(r => {
                   self.logger.debug('==== Finished running `cluster setup`====');
-
+                  // eslint-disable-next-line n/no-process-exit
                   if (!r) process.exit(1);
                 })
                 .catch(err => {
                   self.logger.showUserError(err);
+                  // eslint-disable-next-line n/no-process-exit
                   process.exit(1);
                 });
             },
@@ -328,19 +335,21 @@ export class ClusterCommand extends BaseCommand {
           .command({
             command: 'reset',
             desc: 'Uninstall shared components from cluster',
-            builder: (y: any) => flags.setCommandFlags(y, flags.clusterName, flags.clusterSetupNamespace, flags.force),
-            handler: (argv: any) => {
+            builder: (y: AnyObject) =>
+              flags.setCommandFlags(y, flags.clusterName, flags.clusterSetupNamespace, flags.force),
+            handler: (argv: AnyObject) => {
               self.logger.debug("==== Running 'cluster reset' ===", {argv});
 
               self
                 .reset(argv)
                 .then(r => {
                   self.logger.debug('==== Finished running `cluster reset`====');
-
+                  // eslint-disable-next-line n/no-process-exit
                   if (!r) process.exit(1);
                 })
                 .catch(err => {
                   self.logger.showUserError(err);
+                  // eslint-disable-next-line n/no-process-exit
                   process.exit(1);
                 });
             },

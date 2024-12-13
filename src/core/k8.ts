@@ -252,14 +252,7 @@ export class K8 {
   async getSecretsByLabel(labels: string[] = []) {
     const ns = this._getNamespace();
     const labelSelector = labels.join(',');
-    const result = await this.kubeClient.listNamespacedSecret(
-      ns,
-      _,
-      _,
-      _,
-      _,
-      labelSelector,
-    );
+    const result = await this.kubeClient.listNamespacedSecret(ns, _, _, _, _, labelSelector);
 
     return result.body.items;
   }
@@ -1485,6 +1478,7 @@ export class K8 {
       return pods.body.items.length > 0;
     } catch (e) {
       this.logger.error('Failed to find cert-manager:', e);
+
       return false;
     }
   }
@@ -1501,6 +1495,7 @@ export class K8 {
       return pods.body.items.length > 0;
     } catch (e) {
       this.logger.error('Failed to find cert-manager:', e);
+
       return false;
     }
   }
