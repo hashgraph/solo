@@ -80,3 +80,5 @@ export interface ToObject<T> {
 export type SoloListrTask<T> = ListrTask<T, any, any>;
 
 export type EmptyContextConfig = object;
+
+export type AnyObject = Record<any, any>;
