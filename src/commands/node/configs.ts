@@ -110,7 +110,7 @@ export const updateConfigBuilder = async function (argv, ctx, task) {
 
   ctx.config.chartPath = await this.prepareChartPath(
     ctx.config.chartDirectory,
-    constants.SOLO_TESTING_CHART,
+    constants.SOLO_TESTING_CHART_URL,
     constants.SOLO_DEPLOYMENT_CHART,
   );
 
@@ -152,7 +152,7 @@ export const deleteConfigBuilder = async function (argv, ctx, task) {
 
   ctx.config.chartPath = await this.prepareChartPath(
     ctx.config.chartDirectory,
-    constants.SOLO_TESTING_CHART,
+    constants.SOLO_TESTING_CHART_URL,
     constants.SOLO_DEPLOYMENT_CHART,
   );
 
@@ -199,7 +199,7 @@ export const addConfigBuilder = async function (argv, ctx, task) {
 
   ctx.config.chartPath = await this.prepareChartPath(
     ctx.config.chartDirectory,
-    constants.SOLO_TESTING_CHART,
+    constants.SOLO_TESTING_CHART_URL,
     constants.SOLO_DEPLOYMENT_CHART,
   );
 

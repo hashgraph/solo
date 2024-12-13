@@ -689,7 +689,7 @@ export class NodeCommandTasks {
 
         // don't try to download from the same node we are deleting, it won't work
         const nodeAlias =
-          ctx.config.nodeAlias === config.existingNodeAliases[0]
+          ctx.config.nodeAlias === config.existingNodeAliases[0] && config.existingNodeAliases.length > 1
             ? config.existingNodeAliases[1]
             : config.existingNodeAliases[0];
 
@@ -743,7 +743,12 @@ export class NodeCommandTasks {
     );
   }
 
-  taskCheckNetworkNodePods(ctx: any, task: ListrTaskWrapper<any, any, any>, nodeAliases: NodeAliases): Listr {
+  taskCheckNetworkNodePods(
+    ctx: any,
+    task: ListrTaskWrapper<any, any, any>,
+    nodeAliases: NodeAliases,
+    maxAttempts = undefined,
+  ): Listr {
     if (!ctx.config) ctx.config = {};
 
     ctx.config.podNames = {};
@@ -754,7 +759,15 @@ export class NodeCommandTasks {
       subTasks.push({
         title: `Check network pod: ${chalk.yellow(nodeAlias)}`,
         task: async (ctx: any) => {
-          ctx.config.podNames[nodeAlias] = await self.checkNetworkNodePod(ctx.config.namespace, nodeAlias);
+          try {
+            ctx.config.podNames[nodeAlias] = await self.checkNetworkNodePod(
+              ctx.config.namespace,
+              nodeAlias,
+              maxAttempts,
+            );
+          } catch (_) {
+            ctx.config.skipStop = true;
+          }
         },
       });
     }
@@ -842,10 +855,10 @@ export class NodeCommandTasks {
     );
   }
 
-  identifyNetworkPods() {
+  identifyNetworkPods(maxAttempts = undefined) {
     const self = this;
     return new Task('Identify network pods', (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
-      return self.taskCheckNetworkNodePods(ctx, task, ctx.config.nodeAliases);
+      return self.taskCheckNetworkNodePods(ctx, task, ctx.config.nodeAliases, maxAttempts);
     });
   }
 
@@ -1068,13 +1081,15 @@ export class NodeCommandTasks {
   stopNodes() {
     return new Task('Stopping nodes', (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
       const subTasks = [];
-      for (const nodeAlias of ctx.config.nodeAliases) {
-        const podName = ctx.config.podNames[nodeAlias];
-        subTasks.push({
-          title: `Stop node: ${chalk.yellow(nodeAlias)}`,
-          task: async () =>
-            await this.k8.execContainer(podName, constants.ROOT_CONTAINER, 'systemctl stop network-node'),
-        });
+      if (!ctx.config.skipStop) {
+        for (const nodeAlias of ctx.config.nodeAliases) {
+          const podName = ctx.config.podNames[nodeAlias];
+          subTasks.push({
+            title: `Stop node: ${chalk.yellow(nodeAlias)}`,
+            task: async () =>
+              await this.k8.execContainer(podName, constants.ROOT_CONTAINER, 'systemctl stop network-node'),
+          });
+        }
       }
 
       // setup the sub-tasks
@@ -1282,17 +1297,20 @@ export class NodeCommandTasks {
 
       const nodeId = Templates.nodeIdFromNodeAlias(config.nodeAlias) - 1;
       self.logger.info(`nodeId: ${nodeId}, config.newAccountNumber: ${config.newAccountNumber}`);
-      await self.accountManager.refreshNodeClient(config.namespace, config.nodeAlias);
-      config.nodeClient = await this.accountManager.loadNodeClient(config.namespace);
+
+      if (config.existingNodeAliases.length > 1) {
+        await self.accountManager.refreshNodeClient(config.namespace, config.nodeAlias);
+        config.nodeClient = await this.accountManager.loadNodeClient(config.namespace);
+      }
 
       try {
-        const nodeUpdateTx = new NodeUpdateTransaction().setNodeId(nodeId);
+        let nodeUpdateTx = new NodeUpdateTransaction().setNodeId(nodeId);
 
         if (config.tlsPublicKey && config.tlsPrivateKey) {
           self.logger.info(`config.tlsPublicKey: ${config.tlsPublicKey}`);
           const tlsCertDer = self._loadPermCertificate(config.tlsPublicKey);
           const tlsCertHash = crypto.createHash('sha384').update(tlsCertDer).digest();
-          nodeUpdateTx.setCertificateHash(tlsCertHash);
+          nodeUpdateTx = nodeUpdateTx.setCertificateHash(tlsCertHash);
 
           const publicKeyFile = Templates.renderTLSPemPublicKeyFile(config.nodeAlias);
           const privateKeyFile = Templates.renderTLSPemPrivateKeyFile(config.nodeAlias);
@@ -1303,7 +1321,7 @@ export class NodeCommandTasks {
         if (config.gossipPublicKey && config.gossipPrivateKey) {
           self.logger.info(`config.gossipPublicKey: ${config.gossipPublicKey}`);
           const signingCertDer = self._loadPermCertificate(config.gossipPublicKey);
-          nodeUpdateTx.setGossipCaCertificate(signingCertDer);
+          nodeUpdateTx = nodeUpdateTx.setGossipCaCertificate(signingCertDer);
 
           const publicKeyFile = Templates.renderGossipPemPublicKeyFile(config.nodeAlias);
           const privateKeyFile = Templates.renderGossipPemPrivateKeyFile(config.nodeAlias);
@@ -1312,19 +1330,19 @@ export class NodeCommandTasks {
         }
 
         if (config.newAccountNumber) {
-          nodeUpdateTx.setAccountId(config.newAccountNumber);
+          nodeUpdateTx = nodeUpdateTx.setAccountId(config.newAccountNumber);
         }
 
         let parsedNewKey;
         if (config.newAdminKey) {
           parsedNewKey = PrivateKey.fromStringED25519(config.newAdminKey.toString());
-          nodeUpdateTx.setAdminKey(parsedNewKey.publicKey);
+          nodeUpdateTx = nodeUpdateTx.setAdminKey(parsedNewKey.publicKey);
         }
-        await nodeUpdateTx.freezeWith(config.nodeClient);
+        nodeUpdateTx = nodeUpdateTx.freezeWith(config.nodeClient);
 
         // config.adminKey contains the original key, needed to sign the transaction
         if (config.newAdminKey) {
-          await nodeUpdateTx.sign(parsedNewKey);
+          nodeUpdateTx = await nodeUpdateTx.sign(parsedNewKey);
         }
         const signedTx = await nodeUpdateTx.sign(config.adminKey);
         const txResp = await signedTx.execute(config.nodeClient);
@@ -1423,7 +1441,7 @@ export class NodeCommandTasks {
         await self.chartManager.upgrade(
           config.namespace,
           constants.SOLO_DEPLOYMENT_CHART,
-          constants.SOLO_TESTING_CHART_URL + constants.SOLO_DEPLOYMENT_CHART,
+          ctx.config.chartPath,
           config.soloChartVersion,
           valuesArg,
         );

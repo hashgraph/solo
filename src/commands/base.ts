@@ -30,6 +30,7 @@ import {type Opts} from '../types/command_types.js';
 import {type CommandFlag} from '../types/flag_types.js';
 import {type Lease} from '../core/lease/lease.js';
 import {Listr} from 'listr2';
+import path from 'path';
 
 export interface CommandHandlers {
   parent: BaseCommand;
@@ -74,7 +75,7 @@ export abstract class BaseCommand extends ShellRunner {
     if (!chartReleaseName) throw new MissingArgumentError('chart release name is required');
 
     if (chartDir) {
-      const chartPath = `${chartDir}/${chartReleaseName}`;
+      const chartPath = path.join(chartDir, chartReleaseName);
       await this.helm.dependency('update', chartPath);
       return chartPath;
     }

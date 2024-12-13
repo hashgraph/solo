@@ -684,7 +684,7 @@ export class NodeCommandHandlers implements CommandHandlers {
         this.validateAllNodeStates({
           acceptedStates: [ConsensusNodeStates.STARTED, ConsensusNodeStates.SETUP],
         }),
-        this.tasks.identifyNetworkPods(),
+        this.tasks.identifyNetworkPods(1),
         this.tasks.stopNodes(),
         this.changeAllNodeStates(ConsensusNodeStates.INITIALIZED),
       ],
