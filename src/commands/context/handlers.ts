@@ -21,7 +21,7 @@ import * as constants from '../../core/constants.js';
 import * as ContextFlags from './flags.js';
 import {RemoteConfigTasks} from '../../core/config/remote/remote_config_tasks.js';
 import type {RemoteConfigManager} from '../../core/config/remote/remote_config_manager.js';
-import {connectConfigBuilder} from "./configs.js";
+import {connectConfigBuilder} from './configs.js';
 
 export class ContextCommandHandlers implements CommandHandlers {
   readonly parent: BaseCommand;

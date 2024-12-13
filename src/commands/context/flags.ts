@@ -20,5 +20,12 @@ import {Flags as flags} from '../flags.js';
 export const USE_FLAGS = {
   requiredFlags: [],
   requiredFlagsWithDisabledPrompt: [],
-  optionalFlags: [flags.devMode, flags.quiet, flags.clusterName, flags.context, flags.namespace, flags.userEmailAddress],
+  optionalFlags: [
+    flags.devMode,
+    flags.quiet,
+    flags.clusterName,
+    flags.context,
+    flags.namespace,
+    flags.userEmailAddress,
+  ],
 };

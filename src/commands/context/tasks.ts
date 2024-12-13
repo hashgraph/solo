@@ -18,8 +18,8 @@ import {Task} from '../../core/task.js';
 import {Templates} from '../../core/templates.js';
 import {Flags as flags} from '../flags.js';
 import type {ListrTaskWrapper} from 'listr2';
-import type {ConfigBuilder} from "../../types/aliases.js";
-import {BaseCommand} from "../base.js";
+import type {ConfigBuilder} from '../../types/aliases.js';
+import {type BaseCommand} from '../base.js';
 
 export class ContextCommandTasks {
   private readonly parent: BaseCommand;
@@ -28,26 +28,26 @@ export class ContextCommandTasks {
     this.parent = parent;
   }
 
-    updateLocalConfig(argv) {
-        return new Task('Update local configuration', async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
-            this.parent.logger.info('Compare local and remote configuration...');
+  updateLocalConfig(argv) {
+    return new Task('Update local configuration', async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
+      this.parent.logger.info('Compare local and remote configuration...');
 
-            await this.parent.getRemoteConfigManager().modify(async remoteConfig => {
-                const localConfig = this.parent.getLocalConfig()
-                const localDeployments = localConfig.deployments
-                ctx.config.clusters = Object.keys(remoteConfig.clusters)
-                localDeployments[localConfig.currentDeploymentName].clusters = ctx.config.clusters
-                localConfig.setDeployments(localDeployments)
-            });
+      await this.parent.getRemoteConfigManager().modify(async remoteConfig => {
+        const localConfig = this.parent.getLocalConfig();
+        const localDeployments = localConfig.deployments;
+        ctx.config.clusters = Object.keys(remoteConfig.clusters);
+        localDeployments[localConfig.currentDeploymentName].clusters = ctx.config.clusters;
+        localConfig.setDeployments(localDeployments);
+      });
 
-            this.parent.logger.info('Update local configuration...');
-            const {currentDeploymentName, contextName, clusters} = ctx.config;
-            this.parent.logger.info(
-                `Save LocalConfig file: [currentDeploymentName: ${currentDeploymentName}, contextName: ${contextName}, clusters: ${clusters.join(' ')}]`,
-            );
-            await this.parent.getLocalConfig().write();
-        })
-    }
+      this.parent.logger.info('Update local configuration...');
+      const {currentDeploymentName, contextName, clusters} = ctx.config;
+      this.parent.logger.info(
+        `Save LocalConfig file: [currentDeploymentName: ${currentDeploymentName}, contextName: ${contextName}, clusters: ${clusters.join(' ')}]`,
+      );
+      await this.parent.getLocalConfig().write();
+    });
+  }
 
   readLocalConfig(argv) {
     return new Task('Read local configuration settings', async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
@@ -55,7 +55,7 @@ export class ContextCommandTasks {
       const isQuiet = !!ctx.config.quiet;
 
       let currentDeploymentName = ctx.config.namespace;
-      let clusters = Templates.parseClusterAliases(ctx.config.clusterName);
+      let clusters = Templates.parseCommaSeparatedList(ctx.config.clusterName);
       let contextName = ctx.config.context;
 
       const kubeContexts = await this.parent.getK8().getContexts();
@@ -72,7 +72,7 @@ export class ContextCommandTasks {
       } else {
         if (!clusters.length) {
           const unparsedClusterAliases = await flags.clusterName.prompt(task, clusters);
-          clusters = Templates.parseClusterAliases(unparsedClusterAliases);
+          clusters = Templates.parseCommaSeparatedList(unparsedClusterAliases);
         }
         if (!contextName) {
           contextName = await flags.context.prompt(
@@ -94,8 +94,6 @@ export class ContextCommandTasks {
       this.parent.getLocalConfig().setDeployments(deployments);
 
       this.parent.getK8().getKubeConfig().setCurrentContext(contextName);
-
-
     });
   }
 

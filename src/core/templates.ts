@@ -255,8 +255,8 @@ export class Templates {
     return mapping;
   }
 
-  static parseClusterAliases(clusters: string) {
-    return clusters ? clusters.split(',') : [];
+  static parseCommaSeparatedList(data: string) {
+    return data ? data.split(',') : [];
   }
 
   public static renderEnvoyProxyName(nodeAlias: NodeAlias): string {

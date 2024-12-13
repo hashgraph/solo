@@ -1381,15 +1381,15 @@ export class Flags {
     constName: 'contextName',
     name: 'context',
     definition: {
-      describe: 'The Kubernetes context name to be used',
+      describe: 'The Kubernetes context name to be used. Multiple contexts can be separated by a comma',
       defaultValue: '',
       type: 'string',
     },
-    prompt: async function promptContext(task: ListrTaskWrapper<any, any, any>, input: string[]) {
+    prompt: async function promptContext(task: ListrTaskWrapper<any, any, any>, input: string[], cluster?: string) {
       return await task.prompt(ListrEnquirerPromptAdapter).run({
         type: 'select',
         name: 'context',
-        message: 'Select kubectl context',
+        message: 'Select kubectl context' + (cluster ? ` to be associated with cluster: ${cluster}` : ''),
         choices: input,
       });
     },

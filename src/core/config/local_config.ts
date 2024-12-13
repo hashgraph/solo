@@ -19,10 +19,15 @@ import type {ListrTask, ListrTaskWrapper} from 'listr2';
 import fs from 'fs';
 import * as yaml from 'yaml';
 import {Flags as flags} from '../../commands/flags.js';
-import {type Deployments, type DeploymentStructure, type LocalConfigData} from './local_config_data.js';
+import {
+  type ClusterContextMapping,
+  type Deployments,
+  type DeploymentStructure,
+  type LocalConfigData,
+} from './local_config_data.js';
 import {MissingArgumentError, SoloError} from '../errors.js';
 import {type SoloLogger} from '../logging.js';
-import {IsDeployments} from '../validator_decorators.js';
+import {IsClusterContextMapping, IsDeployments} from '../validator_decorators.js';
 import type {ConfigManager} from '../config_manager.js';
 import type {EmailAddress, Namespace} from './remote/types.js';
 import {Templates} from '../templates.js';
@@ -54,6 +59,12 @@ export class LocalConfig implements LocalConfigData {
   @IsNotEmpty()
   currentDeploymentName: string;
 
+  @IsClusterContextMapping({
+    message: ErrorMessages.LOCAL_CONFIG_CONTEXT_CLUSTER_MAPPING_FORMAT,
+  })
+  @IsNotEmpty()
+  clusterContextMapping: ClusterContextMapping;
+
   private readonly skipPromptTask: boolean = false;
 
   public constructor(
@@ -64,7 +75,7 @@ export class LocalConfig implements LocalConfigData {
     if (!filePath || filePath === '') throw new MissingArgumentError('a valid filePath is required');
     if (!logger) throw new Error('An instance of core/SoloLogger is required');
 
-    const allowedKeys = ['userEmailAddress', 'deployments', 'currentDeploymentName'];
+    const allowedKeys = ['userEmailAddress', 'deployments', 'currentDeploymentName', 'clusterContextMapping'];
     if (this.configFileExists()) {
       const fileContent = fs.readFileSync(filePath, 'utf8');
       const parsedConfig = yaml.parse(fileContent);
@@ -118,6 +129,12 @@ export class LocalConfig implements LocalConfigData {
     return this;
   }
 
+  public setClusterContextMapping(clusterContextMapping: ClusterContextMapping): this {
+    this.clusterContextMapping = clusterContextMapping;
+    this.validate();
+    return this;
+  }
+
   public getCurrentDeployment(): DeploymentStructure {
     return this.deployments[this.currentDeploymentName];
   }
@@ -131,6 +148,7 @@ export class LocalConfig implements LocalConfigData {
       userEmailAddress: this.userEmailAddress,
       deployments: this.deployments,
       currentDeploymentName: this.currentDeploymentName,
+      clusterContextMapping: this.clusterContextMapping,
     });
     await fs.promises.writeFile(this.filePath, yamlContent);
     this.logger.info(`Wrote local config to ${this.filePath}`);
@@ -145,8 +163,8 @@ export class LocalConfig implements LocalConfigData {
       task: async (_: any, task: ListrTaskWrapper<any, any, any>): Promise<void> => {
         let userEmailAddress = self.configManager.getFlag<EmailAddress>(flags.userEmailAddress);
         if (!userEmailAddress) {
-            userEmailAddress = await flags.userEmailAddress.prompt(task, userEmailAddress);
-            self.configManager.setFlag(flags.userEmailAddress, userEmailAddress);
+          userEmailAddress = await flags.userEmailAddress.prompt(task, userEmailAddress);
+          self.configManager.setFlag(flags.userEmailAddress, userEmailAddress);
         }
 
         const deploymentName = self.configManager.getFlag<Namespace>(flags.namespace);
@@ -154,13 +172,30 @@ export class LocalConfig implements LocalConfigData {
 
         let deploymentClusters = self.configManager.getFlag<string>(flags.deploymentClusters);
         if (!deploymentClusters) {
-            deploymentClusters = await flags.deploymentClusters.prompt(task, deploymentClusters);
-            self.configManager.setFlag(flags.deploymentClusters, deploymentClusters);
+          deploymentClusters = await flags.deploymentClusters.prompt(task, deploymentClusters);
+          self.configManager.setFlag(flags.deploymentClusters, deploymentClusters);
         }
 
+        const parsedClusters = Templates.parseCommaSeparatedList(deploymentClusters);
+
         const deployments: Deployments = {
-          [deploymentName]: {clusters: Templates.parseClusterAliases(deploymentClusters)},
+          [deploymentName]: {clusters: parsedClusters},
         };
+
+        const contexts = self.configManager.getFlag<string>(flags.context);
+        const parsedContexts = Templates.parseCommaSeparatedList(contexts);
+
+        if (parsedContexts.length < parsedClusters.length) {
+          for (const cluster of parsedClusters) {
+            let context;
+            this.clusterContextMapping[cluster] = await flags.context.prompt(task, context, cluster);
+          }
+        } else {
+          for (let i = 0; i < parsedClusters.length; i++) {
+            const cluster = parsedClusters[i];
+            this.clusterContextMapping[cluster] = parsedContexts[i];
+          }
+        }
 
         this.userEmailAddress = userEmailAddress;
         this.deployments = deployments;
