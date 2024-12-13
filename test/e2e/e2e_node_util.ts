@@ -35,6 +35,7 @@ import {ConfigManager} from '../../src/core/config_manager.js';
 import {type K8} from '../../src/core/k8.js';
 import {type NodeCommand} from '../../src/commands/node/index.js';
 import {Duration} from '../../src/core/time/duration.js';
+import {StatusCodes} from 'http-status-codes';
 
 export function e2eNodeKeyRefreshTest(testName: string, mode: string, releaseTag = HEDERA_PLATFORM_VERSION_TAG) {
   const namespace = testName;
@@ -112,7 +113,7 @@ export function e2eNodeKeyRefreshTest(testName: string, mode: string, releaseTag
             const podName = await nodeRefreshTestSetup(argv, testName, k8, nodeAlias);
             if (mode === 'kill') {
               const resp = await k8.kubeClient.deleteNamespacedPod(podName, namespace);
-              expect(resp.response.statusCode).to.equal(200);
+              expect(resp.response.statusCode).to.equal(StatusCodes.OK);
               await sleep(Duration.ofSeconds(20)); // sleep to wait for pod to finish terminating
             } else if (mode === 'stop') {
               expect(await nodeCmd.handlers.stop(argv)).to.be.true;

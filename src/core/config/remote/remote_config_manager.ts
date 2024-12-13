@@ -32,6 +32,7 @@ import type {DeploymentStructure} from '../local_config_data.js';
 import {type ContextClusterStructure} from '../../../types/config_types.js';
 import {type EmptyContextConfig, type Optional, type SoloListrTask} from '../../../types/index.js';
 import type * as k8s from '@kubernetes/client-node';
+import {StatusCodes} from 'http-status-codes';
 
 interface ListrContext {
   config: {contextCluster: ContextClusterStructure};
@@ -226,7 +227,7 @@ export class RemoteConfigManager {
     try {
       return await this.k8.getNamespacedConfigMap(constants.SOLO_REMOTE_CONFIGMAP_NAME);
     } catch (error: any) {
-      if (error.meta.statusCode !== 404) {
+      if (error.meta.statusCode !== StatusCodes.NOT_FOUND) {
         throw new SoloError('Failed to read remote config from cluster', error);
       }
 
