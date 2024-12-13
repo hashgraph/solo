@@ -42,8 +42,8 @@ export class ContextCommandHandlers implements CommandHandlers {
     const action = this.parent.commandActionBuilder(
       [
         this.tasks.initialize(argv, connectConfigBuilder.bind(this)),
-        this.parent.getLocalConfig().promptLocalConfigTask(),
-        this.tasks.readLocalConfig(argv),
+        this.parent.getLocalConfig().promptLocalConfigTask(this.parent.getK8()),
+        this.tasks.selectContext(argv),
         RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
         // todo validate remoteConfig
         this.tasks.updateLocalConfig(argv),

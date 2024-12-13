@@ -32,6 +32,7 @@ import type {ConfigManager} from '../config_manager.js';
 import type {EmailAddress, Namespace} from './remote/types.js';
 import {Templates} from '../templates.js';
 import {ErrorMessages} from '../error_messages.js';
+import {type K8} from '../k8.js';
 
 export class LocalConfig implements LocalConfigData {
   @IsEmail(
@@ -63,7 +64,7 @@ export class LocalConfig implements LocalConfigData {
     message: ErrorMessages.LOCAL_CONFIG_CONTEXT_CLUSTER_MAPPING_FORMAT,
   })
   @IsNotEmpty()
-  clusterContextMapping: ClusterContextMapping;
+  public clusterContextMapping: ClusterContextMapping = {};
 
   private readonly skipPromptTask: boolean = false;
 
@@ -154,7 +155,7 @@ export class LocalConfig implements LocalConfigData {
     this.logger.info(`Wrote local config to ${this.filePath}`);
   }
 
-  public promptLocalConfigTask(): ListrTask<any, any, any> {
+  public promptLocalConfigTask(k8: K8): ListrTask<any, any, any> {
     const self = this;
 
     return {
@@ -187,21 +188,25 @@ export class LocalConfig implements LocalConfigData {
 
         if (parsedContexts.length < parsedClusters.length) {
           for (const cluster of parsedClusters) {
-            let context;
-            this.clusterContextMapping[cluster] = await flags.context.prompt(task, context, cluster);
+            const kubeContexts = k8.getContexts();
+            self.clusterContextMapping[cluster] = await flags.context.prompt(
+              task,
+              kubeContexts.map(c => c.name),
+              cluster,
+            );
           }
         } else {
           for (let i = 0; i < parsedClusters.length; i++) {
             const cluster = parsedClusters[i];
-            this.clusterContextMapping[cluster] = parsedContexts[i];
+            self.clusterContextMapping[cluster] = parsedContexts[i];
           }
         }
 
-        this.userEmailAddress = userEmailAddress;
-        this.deployments = deployments;
-        this.currentDeploymentName = deploymentName;
-        this.validate();
-        await this.write();
+        self.userEmailAddress = userEmailAddress;
+        self.deployments = deployments;
+        self.currentDeploymentName = deploymentName;
+        self.validate();
+        await self.write();
       },
     };
   }

@@ -21,7 +21,7 @@ export const CONNECT_CONFIGS_NAME = 'connectConfig';
 
 export const connectConfigBuilder = async function (argv, ctx, task) {
   const config = this.getConfig(CONNECT_CONFIGS_NAME, argv.flags, [
-      'currentDeploymentName'
+    'currentDeploymentName',
   ]) as ContextConnectConfigClass;
 
   // set config in the context for later tasks to use
