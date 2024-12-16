@@ -113,6 +113,8 @@ async function main() {
       console.log('Message received successfully');
     } else {
       console.error('Message received but not match');
+      // eslint-disable-next-line n/no-process-exit
+      process.exit(1);
     }
   } catch (error) {
     console.error(error);
