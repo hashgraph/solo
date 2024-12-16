@@ -1,0 +1,82 @@
+##
+# Copyright (C) 2023-2024 Hedera Hashgraph, LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+##
+
+name: "Test GCS as bucket storage"
+# The purpose of this reusable workflow is to make sure task files are working as expected.
+
+on:
+  workflow_dispatch:
+  workflow_call:
+  pull_request:
+    types:
+      - opened
+      - reopened
+      - synchronize
+secrets:
+  GCS_ACCESS_KEY:
+    description: "GCS Access Key"
+  GCS_SECRET_KEY:
+    description: "GCS Secret
+defaults:
+  run:
+    shell: bash
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  example-task-file-test:
+    timeout-minutes: 20
+    runs-on: solo-linux-large
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@0080882f6c36860b6ba35c610c98ce87d4e2f26f # v2.10.2
+        with:
+          egress-policy: audit
+
+      - name: Checkout Code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Setup Node
+        uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4.1.0
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Setup Kind
+        uses: helm/kind-action@0025e74a8c7512023d06dc019c617aa3cf561fde # v1.10.0
+        with:
+          install_only: true
+          node_image: kindest/node:v1.27.3@sha256:3966ac761ae0136263ffdb6cfd4db23ef8a83cba8a463690e98317add2c9ba72
+          version: v0.21.0
+          kubectl_version: v1.28.6
+          verbosity: 3
+          wait: 120s
+
+      - name: Install Dependencies
+        id: npm-deps
+        run: npm ci
+
+      - name: Compile Project
+        run: npm run build
+
+      - name: Run Example Task File Test
+        env:
+          GCS_ACCESS_KEY: ${{ secrets.GCS_ACCESS_KEY }}
+          GCS_SECRET_KEY: ${{ secrets.GCS_SECRET_KEY }}
+        run: |
+          .github/workflows/script/gcs_test.sh
