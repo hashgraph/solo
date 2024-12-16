@@ -31,6 +31,7 @@ import * as http from 'http';
 import {Templates} from './templates.js';
 import * as constants from './constants.js';
 import {type SoloLogger} from './logging.js';
+import {StatusCodes} from 'http-status-codes';
 
 export class PackageDownloader {
   constructor(public readonly logger: SoloLogger) {
@@ -70,7 +71,7 @@ export class PackageDownloader {
             },
           });
           req.destroy();
-          if ([200, 302].includes(statusCode)) {
+          if ([StatusCodes.OK, StatusCodes.MOVED_TEMPORARILY].includes(statusCode)) {
             resolve(true);
           }
 
