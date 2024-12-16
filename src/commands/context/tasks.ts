@@ -31,6 +31,8 @@ export class ContextCommandTasks {
   updateLocalConfig(argv) {
     return new Task('Update local configuration', async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
       this.parent.logger.info('Compare local and remote configuration...');
+      const configManager = this.parent.getConfigManager();
+      const isQuiet = configManager.getFlag(flags.quiet);
 
       await this.parent.getRemoteConfigManager().modify(async remoteConfig => {
         const localConfig = this.parent.getLocalConfig();
@@ -39,12 +41,35 @@ export class ContextCommandTasks {
         localDeployments[localConfig.currentDeploymentName].clusters = ctx.config.clusters;
         localConfig.setDeployments(localDeployments);
 
+        const contexts = Templates.parseCommaSeparatedList(configManager.getFlag(flags.context));
+
+        for (let i = 0; i < ctx.config.clusters.length; i++) {
+          const cluster = ctx.config.clusters[i];
+          const context = contexts[i];
+
+          // If a context is provided use it to update the mapping
+          if (context) {
+            localConfig.clusterContextMapping[cluster] = context;
+          }
+
+          // In quiet mode use the currently selected context to update the mapping
+          else if (isQuiet) {
+            //default
+            localConfig.clusterContextMapping[cluster] = this.parent.getK8().getKubeConfig().getCurrentContext();
+          }
+
+          // Prompt the user to select a context if mapping value is missing
+          else if (!localConfig.clusterContextMapping[cluster]) {
+            const kubeContexts = this.parent.getK8().getContexts();
+            localConfig.clusterContextMapping[cluster] = await flags.context.prompt(
+              task,
+              kubeContexts.map(c => c.name),
+              cluster,
+            );
+          }
+        }
         this.parent.logger.info('Update local configuration...');
-        const {currentDeploymentName, contextName, clusters} = ctx.config;
-        this.parent.logger.info(
-          `Save LocalConfig file: [currentDeploymentName: ${currentDeploymentName}, contextName: ${contextName}, clusters: ${clusters.join(' ')}]`,
-        );
-        await this.parent.getLocalConfig().write();
+        await localConfig.write();
       });
     });
   }
@@ -52,12 +77,11 @@ export class ContextCommandTasks {
   selectContext(argv) {
     return new Task('Read local configuration settings', async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
       this.parent.logger.info('Read local configuration settings...');
-
-      const isQuiet = !!ctx.config.quiet;
-
-      const deploymentName = ctx.config.namespace;
-      let clusters = Templates.parseCommaSeparatedList(ctx.config.clusterName);
-      const contexts = Templates.parseCommaSeparatedList(ctx.config.context);
+      const configManager = this.parent.getConfigManager();
+      const isQuiet = configManager.getFlag(flags.quiet);
+      const deploymentName: string = configManager.getFlag(flags.namespace);
+      let clusters = Templates.parseCommaSeparatedList(configManager.getFlag(flags.clusterName));
+      const contexts = Templates.parseCommaSeparatedList(configManager.getFlag(flags.context));
       let selectedContext;
 
       // If one or more contexts are provided use the first one
@@ -86,6 +110,7 @@ export class ContextCommandTasks {
               kubeContexts.map(c => c.name),
               selectedCluster,
             );
+            localConfig.clusterContextMapping[selectedCluster] = selectedContext;
           }
         }
       }

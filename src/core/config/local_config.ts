@@ -152,7 +152,8 @@ export class LocalConfig implements LocalConfigData {
       clusterContextMapping: this.clusterContextMapping,
     });
     await fs.promises.writeFile(this.filePath, yamlContent);
-    this.logger.info(`Wrote local config to ${this.filePath}`);
+
+    this.logger.info(`Wrote local config to ${this.filePath}: ${yamlContent}`);
   }
 
   public promptLocalConfigTask(k8: K8): ListrTask<any, any, any> {
@@ -162,18 +163,26 @@ export class LocalConfig implements LocalConfigData {
       title: 'Prompt local configuration',
       skip: this.skipPromptTask,
       task: async (_: any, task: ListrTaskWrapper<any, any, any>): Promise<void> => {
+        const isQuiet = self.configManager.getFlag<boolean>(flags.quiet);
+        const contexts = self.configManager.getFlag<string>(flags.context);
+        const deploymentName = self.configManager.getFlag<Namespace>(flags.namespace);
         let userEmailAddress = self.configManager.getFlag<EmailAddress>(flags.userEmailAddress);
+        let deploymentClusters: string = self.configManager.getFlag<string>(flags.deploymentClusters);
+
         if (!userEmailAddress) {
+          if (isQuiet) throw new SoloError(ErrorMessages.LOCAL_CONFIG_INVALID_EMAIL);
           userEmailAddress = await flags.userEmailAddress.prompt(task, userEmailAddress);
           self.configManager.setFlag(flags.userEmailAddress, userEmailAddress);
         }
 
-        const deploymentName = self.configManager.getFlag<Namespace>(flags.namespace);
         if (!deploymentName) throw new SoloError('Namespace was not specified');
 
-        let deploymentClusters = self.configManager.getFlag<string>(flags.deploymentClusters);
         if (!deploymentClusters) {
-          deploymentClusters = await flags.deploymentClusters.prompt(task, deploymentClusters);
+          if (isQuiet) {
+            deploymentClusters = k8.getKubeConfig().getCurrentCluster().name;
+          } else {
+            deploymentClusters = await flags.deploymentClusters.prompt(task, deploymentClusters);
+          }
           self.configManager.setFlag(flags.deploymentClusters, deploymentClusters);
         }
 
@@ -183,17 +192,28 @@ export class LocalConfig implements LocalConfigData {
           [deploymentName]: {clusters: parsedClusters},
         };
 
-        const contexts = self.configManager.getFlag<string>(flags.context);
         const parsedContexts = Templates.parseCommaSeparatedList(contexts);
 
         if (parsedContexts.length < parsedClusters.length) {
-          for (const cluster of parsedClusters) {
-            const kubeContexts = k8.getContexts();
-            self.clusterContextMapping[cluster] = await flags.context.prompt(
-              task,
-              kubeContexts.map(c => c.name),
-              cluster,
-            );
+          if (!isQuiet) {
+            const promptedContexts = [];
+            for (const cluster of parsedClusters) {
+              const kubeContexts = k8.getContexts();
+              const context = await flags.context.prompt(
+                task,
+                kubeContexts.map(c => c.name),
+                cluster,
+              );
+              self.clusterContextMapping[cluster] = context;
+              promptedContexts.push(context);
+            }
+            self.configManager.setFlag(flags.context, promptedContexts.join(','));
+          } else {
+            const context = k8.getKubeConfig().getCurrentContext();
+            for (const cluster of parsedClusters) {
+              self.clusterContextMapping[cluster] = context;
+            }
+            self.configManager.setFlag(flags.context, context);
           }
         } else {
           for (let i = 0; i < parsedClusters.length; i++) {
