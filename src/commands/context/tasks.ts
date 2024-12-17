@@ -15,11 +15,11 @@
  *
  */
 import {Task} from '../../core/task.js';
-import {Templates} from '../../core/templates.js';
 import {Flags as flags} from '../flags.js';
 import type {ListrTaskWrapper} from 'listr2';
 import type {ConfigBuilder} from '../../types/aliases.js';
 import {type BaseCommand} from '../base.js';
+import {splitFlagInput} from "../../core/helpers.js";
 
 export class ContextCommandTasks {
   private readonly parent: BaseCommand;
@@ -35,21 +35,21 @@ export class ContextCommandTasks {
       const isQuiet = configManager.getFlag(flags.quiet);
 
       await this.parent.getRemoteConfigManager().modify(async remoteConfig => {
+
+        // Update current deployment with cluster list from remoteConfig
         const localConfig = this.parent.getLocalConfig();
         const localDeployments = localConfig.deployments;
         const remoteClusterList = [];
-
         for (const cluster of Object.keys(remoteConfig.clusters)) {
             if (localConfig.currentDeploymentName === remoteConfig.clusters[cluster]) {
                 remoteClusterList.push(cluster);
             }
         }
-
         ctx.config.clusters = remoteClusterList;
         localDeployments[localConfig.currentDeploymentName].clusters = ctx.config.clusters;
         localConfig.setDeployments(localDeployments);
 
-        const contexts = Templates.parseCommaSeparatedList(configManager.getFlag(flags.context));
+        const contexts = splitFlagInput(configManager.getFlag(flags.context));
 
         for (let i = 0; i < ctx.config.clusters.length; i++) {
           const cluster = ctx.config.clusters[i];
@@ -60,23 +60,16 @@ export class ContextCommandTasks {
             localConfig.clusterContextMapping[cluster] = context;
           }
 
-
           else if (!localConfig.clusterContextMapping[cluster]) {
 
             // In quiet mode use the currently selected context to update the mapping
             if (isQuiet) {
-              //default
               localConfig.clusterContextMapping[cluster] = this.parent.getK8().getKubeConfig().getCurrentContext();
             }
 
             // Prompt the user to select a context if mapping value is missing
              else {
-                const kubeContexts = this.parent.getK8().getContexts();
-                localConfig.clusterContextMapping[cluster] = await flags.context.prompt(
-                    task,
-                    kubeContexts.map(c => c.name),
-                    cluster,
-                );
+                localConfig.clusterContextMapping[cluster] = await this._promptForContext(task, cluster)
             }
           }
         }
@@ -91,15 +84,19 @@ export class ContextCommandTasks {
       if (isQuiet) {
           selectedContext = this.parent.getK8().getKubeConfig().getCurrentContext();
       } else {
-          const kubeContexts = this.parent.getK8().getContexts();
-          selectedContext = await flags.context.prompt(
-              task,
-              kubeContexts.map(c => c.name),
-              selectedCluster,
-          );
+          selectedContext = await this._promptForContext(task, selectedCluster);
           localConfig.clusterContextMapping[selectedCluster] = selectedContext;
       }
       return selectedContext
+  }
+
+  async _promptForContext(task, cluster) {
+      const kubeContexts = this.parent.getK8().getContexts();
+      return flags.context.prompt(
+          task,
+          kubeContexts.map(c => c.name),
+          cluster,
+      );
   }
 
   selectContext(argv) {
@@ -108,8 +105,9 @@ export class ContextCommandTasks {
       const configManager = this.parent.getConfigManager();
       const isQuiet = configManager.getFlag(flags.quiet);
       const deploymentName: string = configManager.getFlag(flags.namespace);
-      let clusters = Templates.parseCommaSeparatedList(configManager.getFlag(flags.clusterName));
-      const contexts = Templates.parseCommaSeparatedList(configManager.getFlag(flags.context));
+      let clusters = splitFlagInput(configManager.getFlag(flags.clusterName));
+      const contexts = splitFlagInput(configManager.getFlag(flags.context));
+      const localConfig = this.parent.getLocalConfig();
       let selectedContext;
 
       // If one or more contexts are provided use the first one
@@ -121,7 +119,6 @@ export class ContextCommandTasks {
       // from the mapping in the LocalConfig
       else if (clusters.length) {
         const selectedCluster = clusters[0];
-        const localConfig = this.parent.getLocalConfig();
 
         if (localConfig.clusterContextMapping[selectedCluster]) {
           selectedContext = localConfig.clusterContextMapping[selectedCluster];
@@ -136,7 +133,6 @@ export class ContextCommandTasks {
       // If a deployment name is provided get the clusters associated with the deployment from the LocalConfig
       // and select the context from the mapping, corresponding to the first deployment cluster
       else if (deploymentName) {
-        const localConfig = this.parent.getLocalConfig();
         const deployment = localConfig.deployments[deploymentName];
 
         if (deployment && deployment.clusters.length) {
@@ -164,16 +160,11 @@ export class ContextCommandTasks {
 
           // Prompt user for clusters and contexts
           else {
-            clusters = Templates.parseCommaSeparatedList(await flags.clusterName.prompt(task, clusters));
+            clusters = splitFlagInput(await flags.clusterName.prompt(task, clusters));
 
-            const kubeContexts = this.parent.getK8().getContexts();
             for (const cluster of clusters) {
               if (!localConfig.clusterContextMapping[cluster]) {
-                localConfig.clusterContextMapping[cluster] = await flags.context.prompt(
-                  task,
-                  kubeContexts.map(c => c.name),
-                  cluster,
-                );
+                localConfig.clusterContextMapping[cluster] = await this._promptForContext(task, cluster);
               }
             }
 

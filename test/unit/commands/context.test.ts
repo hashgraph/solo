@@ -45,7 +45,7 @@ import {type ListrTaskWrapper} from 'listr2';
 import {ContextCommand} from '../../../src/commands/context/index.js';
 import {CommandFlag} from "../../../src/types/flag_types.js";
 
-describe.only('ContextCommandTasks unit tests', () => {
+describe('ContextCommandTasks unit tests', () => {
   const filePath = `${getTestCacheDir('ContextCommandTasks')}/localConfig.yaml`;
     const sandbox = sinon.createSandbox();
     let namespacePromptStub: sinon.SinonStub;

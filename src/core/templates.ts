@@ -255,10 +255,6 @@ export class Templates {
     return mapping;
   }
 
-  static parseCommaSeparatedList(data: string) {
-    return data ? data.split(',') : [];
-  }
-
   public static renderEnvoyProxyName(nodeAlias: NodeAlias): string {
     return `envoy-proxy-${nodeAlias}`;
   }

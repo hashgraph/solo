@@ -30,9 +30,9 @@ import {type SoloLogger} from '../logging.js';
 import {IsClusterContextMapping, IsDeployments} from '../validator_decorators.js';
 import type {ConfigManager} from '../config_manager.js';
 import type {EmailAddress, Namespace} from './remote/types.js';
-import {Templates} from '../templates.js';
 import {ErrorMessages} from '../error_messages.js';
 import {type K8} from '../k8.js';
+import {splitFlagInput} from "../helpers.js";
 
 export class LocalConfig implements LocalConfigData {
   @IsEmail(
@@ -186,13 +186,13 @@ export class LocalConfig implements LocalConfigData {
           self.configManager.setFlag(flags.deploymentClusters, deploymentClusters);
         }
 
-        const parsedClusters = Templates.parseCommaSeparatedList(deploymentClusters);
+        const parsedClusters = splitFlagInput(deploymentClusters);
 
         const deployments: Deployments = {
           [deploymentName]: {clusters: parsedClusters},
         };
 
-        const parsedContexts = Templates.parseCommaSeparatedList(contexts);
+        const parsedContexts = splitFlagInput(contexts);
 
         if (parsedContexts.length < parsedClusters.length) {
           if (!isQuiet) {

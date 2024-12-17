@@ -41,7 +41,7 @@ export function parseNodeAliases(input: string): NodeAliases {
 
 export function splitFlagInput(input: string, separator = ',') {
   if (typeof input !== 'string') {
-    throw new SoloError(`input [input='${input}'] is not a comma separated string`);
+    return [];
   }
 
   return input
