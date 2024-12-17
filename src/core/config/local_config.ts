@@ -32,7 +32,7 @@ import type {ConfigManager} from '../config_manager.js';
 import type {EmailAddress, Namespace} from './remote/types.js';
 import {ErrorMessages} from '../error_messages.js';
 import {type K8} from '../k8.js';
-import {splitFlagInput} from "../helpers.js";
+import {splitFlagInput} from '../helpers.js';
 
 export class LocalConfig implements LocalConfigData {
   @IsEmail(
