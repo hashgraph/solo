@@ -39,6 +39,12 @@ nvm use lts/hydrogen
   * Install [kubectl](https://kubernetes.io/docs/tasks/tools/)
   * Install [k9s](https://k9scli.io/)
 
+## Clone the Hedera Repository and navigate to the project directory:
+```
+git clone https://github.com/hashgraph/solo.git
+cd solo
+```
+
 ## Install Solo
 
 * Run `npm clean install` or `npm ci`
