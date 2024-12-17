@@ -56,10 +56,10 @@ describe('ContextCommandTasks unit tests', () => {
   let loggerStub: sinon.SinonStubbedInstance<SoloLogger>;
   let localConfig: LocalConfig;
 
-  // @ts-ignore
   const getBaseCommandOpts = (
     sandbox: sinon.SinonSandbox,
     remoteConfig: any = {},
+    // @ts-ignore
     stubbedFlags: Record<CommandFlag, any>[] = [],
   ) => {
     const loggerStub = sandbox.createStubInstance(SoloLogger);
