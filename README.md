@@ -41,7 +41,7 @@ nvm use lts/hydrogen
 
 ## Install Solo
 
-* Run `npm clean install` or `npm ci`
+* Run `npm clean-install` or `npm ci`
 * Run `npm run build`
 * Run `npm install -g @hashgraph/solo`
 
