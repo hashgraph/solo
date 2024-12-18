@@ -75,7 +75,7 @@ export class GenesisNetworkDataConstructor implements ToJSON {
         const tlsCertDer = new Uint8Array(x509.PemConverter.decode(certPem)[0]);
 
         //* Generate the SHA-384 hash
-        this.nodes[nodeAlias].grpcCertificateHash = crypto.createHash('sha384').update(tlsCertDer).digest('hex');
+        this.nodes[nodeAlias].grpcCertificateHash = crypto.createHash('sha384').update(tlsCertDer).digest('base64');
       }),
     );
   }

@@ -266,11 +266,13 @@ export class ProfileManager {
       yamlRoot,
     );
 
-    const genesisNetworkJson = path.join(stagingDir, 'genesis-network.json');
+    if (genesisNetworkData) {
+      const genesisNetworkJson = path.join(stagingDir, 'genesis-network.json');
 
-    fs.writeFileSync(genesisNetworkJson, genesisNetworkData.toJSON());
+      fs.writeFileSync(genesisNetworkJson, genesisNetworkData.toJSON());
 
-    this._setFileContentsAsValue('hedera.configMaps.genesisNetworkJson', genesisNetworkJson, yamlRoot);
+      this._setFileContentsAsValue('hedera.configMaps.genesisNetworkJson', genesisNetworkJson, yamlRoot);
+    }
 
     if (this.configManager.getFlag(flags.applicationEnv)) {
       this._setFileContentsAsValue(
