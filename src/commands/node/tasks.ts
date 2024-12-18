@@ -354,11 +354,7 @@ export class NodeCommandTasks {
   ) {
     nodeAlias = nodeAlias.trim() as NodeAlias;
     const podName = Templates.renderNetworkPodName(nodeAlias);
-    const podPort = 9_999;
-    const localPort = 19_000 + index;
     task.title = `${title} - status ${chalk.yellow('STARTING')}, attempt ${chalk.blueBright(`0/${maxAttempts}`)}`;
-
-    const srv = await this.k8.portForward(podName, localPort, podPort);
 
     let attempt = 0;
     let success = false;
@@ -371,22 +367,24 @@ export class NodeCommandTasks {
       }, timeout);
 
       try {
-        const url = `http://${LOCAL_HOST}:${localPort}/metrics`;
-        const response = await fetch(url, {signal: controller.signal});
+        const response = await this.k8.execContainer(podName, constants.ROOT_CONTAINER, [
+          'bash',
+          '-c',
+          'curl -s http://localhost:9999/metrics | grep platform_PlatformStatus | grep -v \\#',
+        ]);
 
-        if (!response.ok) {
+        if (!response) {
           task.title = `${title} - status ${chalk.yellow('UNKNOWN')}, attempt ${chalk.blueBright(`${attempt}/${maxAttempts}`)}`;
           clearTimeout(timeoutId);
-          throw new Error(); // Guard
+          throw new Error('empty response'); // Guard
         }
 
-        const text = await response.text();
-        const statusLine = text.split('\n').find(line => line.startsWith('platform_PlatformStatus'));
+        const statusLine = response.split('\n').find(line => line.startsWith('platform_PlatformStatus'));
 
         if (!statusLine) {
           task.title = `${title} - status ${chalk.yellow('STARTING')}, attempt: ${chalk.blueBright(`${attempt}/${maxAttempts}`)}`;
           clearTimeout(timeoutId);
-          throw new Error(); // Guard
+          throw new Error('missing status line'); // Guard
         }
 
         const statusNumber = parseInt(statusLine.split(' ').pop());
@@ -413,8 +411,6 @@ export class NodeCommandTasks {
       clearTimeout(timeoutId);
       await sleep(Duration.ofMillis(delay));
     }
-
-    await this.k8.stopPortForward(srv);
 
     if (!success) {
       throw new SoloError(
