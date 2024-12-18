@@ -13,8 +13,15 @@ if [ -z "${GCS_SECRET_KEY}" ]; then
   exit 1
 fi
 
+if [ -z "${BUCKET_PREFIX}" ]; then
+  echo "BUCKET_PREFIX is not set. Exiting..."
+  exit 1
+fi
+
 echo "Generate GCS credentials to file gcs_values.yaml"
 echo "cloud:" > gcs_values.yaml
+echo "  buckets:" >> gcs_values.yaml
+echo "    streamBucket: ${BUCKET_PREFIX}-solo-streams" >> gcs_values.yaml
 echo "  gcs:" >> gcs_values.yaml
 echo "    enabled: true" >> gcs_values.yaml
 echo '    GCS_ACCESS_KEY: "'${GCS_ACCESS_KEY}'"' >> gcs_values.yaml
