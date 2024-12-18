@@ -65,7 +65,7 @@ export class ContextCommandTasks {
 
             // Prompt the user to select a context if mapping value is missing
             else {
-              localConfig.clusterContextMapping[cluster] = await this._promptForContext(task, cluster);
+              localConfig.clusterContextMapping[cluster] = await this.promptForContext(task, cluster);
             }
           }
         }
@@ -75,18 +75,18 @@ export class ContextCommandTasks {
     });
   }
 
-  async _getSelectedContext(task, selectedCluster, localConfig, isQuiet) {
+  private async getSelectedContext(task, selectedCluster, localConfig, isQuiet) {
     let selectedContext;
     if (isQuiet) {
       selectedContext = this.parent.getK8().getKubeConfig().getCurrentContext();
     } else {
-      selectedContext = await this._promptForContext(task, selectedCluster);
+      selectedContext = await this.promptForContext(task, selectedCluster);
       localConfig.clusterContextMapping[selectedCluster] = selectedContext;
     }
     return selectedContext;
   }
 
-  async _promptForContext(task, cluster) {
+  private async promptForContext(task, cluster) {
     const kubeContexts = this.parent.getK8().getContexts();
     return flags.context.prompt(
       task,
@@ -95,7 +95,7 @@ export class ContextCommandTasks {
     );
   }
 
-  async _selectContextForFirstCluster(task, clusters, localConfig, isQuiet) {
+  private async selectContextForFirstCluster(task, clusters, localConfig, isQuiet) {
     const selectedCluster = clusters[0];
 
     if (localConfig.clusterContextMapping[selectedCluster]) {
@@ -104,7 +104,7 @@ export class ContextCommandTasks {
 
     // If cluster does not exist in LocalConfig mapping prompt the user to select a context or use the current one
     else {
-      return this._getSelectedContext(task, selectedCluster, localConfig, isQuiet);
+      return this.getSelectedContext(task, selectedCluster, localConfig, isQuiet);
     }
   }
 
@@ -127,7 +127,7 @@ export class ContextCommandTasks {
       // If one or more clusters are provided use the first one to determine the context
       // from the mapping in the LocalConfig
       else if (clusters.length) {
-        selectedContext = await this._selectContextForFirstCluster(task, clusters, localConfig, isQuiet);
+        selectedContext = await this.selectContextForFirstCluster(task, clusters, localConfig, isQuiet);
       }
 
       // If a deployment name is provided get the clusters associated with the deployment from the LocalConfig
@@ -136,7 +136,7 @@ export class ContextCommandTasks {
         const deployment = localConfig.deployments[deploymentName];
 
         if (deployment && deployment.clusters.length) {
-          selectedContext = await this._selectContextForFirstCluster(task, deployment.clusters, localConfig, isQuiet);
+          selectedContext = await this.selectContextForFirstCluster(task, deployment.clusters, localConfig, isQuiet);
         }
 
         // The provided deployment does not exist in the LocalConfig
@@ -160,7 +160,7 @@ export class ContextCommandTasks {
 
             for (const cluster of clusters) {
               if (!localConfig.clusterContextMapping[cluster]) {
-                localConfig.clusterContextMapping[cluster] = await this._promptForContext(task, cluster);
+                localConfig.clusterContextMapping[cluster] = await this.promptForContext(task, cluster);
               }
             }
 
