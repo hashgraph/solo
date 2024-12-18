@@ -20,8 +20,6 @@ vars:
   minio_flag_file:
     sh: (echo "/tmp/minio-flag-$(date +%Y%m%d%H%M%S)")
 
-  # TODO: test with port forward
-
 env:
   SOLO_CLUSTER_SETUP_NAMESPACE: solo-setup
   SOLO_CLUSTER_RELEASE_NAME: solo-cluster-setup
