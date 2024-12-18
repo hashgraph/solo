@@ -9,34 +9,21 @@ env:
   SOLO_CHART_VERSION: 0.36.3
   CONSENSUS_NODE_VERSION: v0.57.3
 vars:
-  ip_list_template_file: "{{.ROOT_DIR}}/list-external-ips.gotemplate"
+  use_port_forwards: "true"
 
 tasks:
   default:
+    silent: true
     desc: install Solo, create a kind cluster, deploy the network, set it up, and start it
     deps:
       - task: "init"
     cmds:
+      - echo "This command is meant to deploy a Solo network to a Kind cluster on your local machine, "
+      - echo "ctrl-c if this is not what you want to do."
+      - sleep 5
       - task: "install:solo"
       - task: "install"
       - task: "start"
-
-  default-with-mirror:
-    desc: in addition to the defaults, also deploy the mirror node
-    deps:
-      - task: "init"
-    cmds:
-      - task: "default"
-      - task: "solo:mirror-node"
-
-  default-with-relay:
-    desc: in addition to default-with-mirror, deploy the JSON RPC relay
-    deps:
-      - task: "init"
-    cmds:
-      - task: "default"
-      - task: "solo:mirror-node"
-      - task: "solo:relay"
 
   install:
     desc: create the cluster, solo init, solo cluster create, solo node keys, solo network deploy
@@ -49,40 +36,9 @@ tasks:
       - task: "solo:keys"
       - task: "solo:network:deploy"
 
-  solo:mirror-node:
-    desc: solo mirror-node deploy with port forward on explorer
-    deps:
-      - task: "init"
-    cmds:
-      - SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- mirror-node deploy --namespace "${SOLO_NAMESPACE}" -q
-      - echo "Enable port forwarding for Hedera Explorer & Mirror Node Network"
-      - kubectl port-forward -n "${SOLO_NAMESPACE}" svc/hedera-explorer 8080:80 &
-      - kubectl port-forward svc/mirror-grpc -n "${SOLO_NAMESPACE}" 5600:5600 &
-      - task: "sleep_after_port_forward"
-
-  solo:destroy-mirror-node:
-    desc: solo mirror-node destroy
-    status:
-      - helm list -n "${SOLO_NAMESPACE}" | grep -vqz "${MIRROR_RELEASE_NAME}"
-    deps:
-      - task: "init"
-    cmds:
-      - SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- mirror-node destroy --namespace "${SOLO_NAMESPACE}" --force -q || true
-
   destroy:
     desc: destroy relay, mirror-node, and network
     deps:
       - task: "init"
     cmds:
       - task: "cluster:destroy"
-
-  clean:
-    desc: destroy, then remove cache directory, logs directory, config, and port forwards
-    deps:
-      - task: "init"
-    cmds:
-      - task: "destroy"
-      - task: "clean:cache"
-      - task: "clean:logs"
-      - task: "solo:config:remove"
-      - task: "clean:port-forward"
