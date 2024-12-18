@@ -4,10 +4,10 @@ includes:
     taskfile: ../Taskfile.yml
     flatten: true
 vars:
-  solo_home_override_dir: "/Users/user/.solo-jeromy-20241231"
+  solo_home_override_dir: "/Users/user/.solo-gke-test"
 env:
   SOLO_NETWORK_SIZE: 5
-  SOLO_NAMESPACE: solo-jeromy-20241231
+  SOLO_NAMESPACE: solo-gke-test
   SOLO_CHART_VERSION: 0.36.3
   CONSENSUS_NODE_VERSION: v0.57.3
   VALUES_FLAG: "--values-file {{.USER_WORKING_DIR}}/init-containers-values.yaml"
