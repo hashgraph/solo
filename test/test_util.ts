@@ -60,6 +60,7 @@ import {Zippy} from '../src/core/zippy.js';
 import {HEDERA_PLATFORM_VERSION} from '../version.js';
 import {IntervalLeaseRenewalService} from '../src/core/lease/interval_lease_renewal.js';
 import {Duration} from '../src/core/time/duration.js';
+import {container} from "tsyringe-neo";
 
 export const testLogger = logging.NewLogger('debug', true);
 export const TEST_CLUSTER = 'solo-e2e';
@@ -139,13 +140,20 @@ export function bootstrapTestVariables(
   const cacheDir: string = argv[flags.cacheDir.name] || getTestCacheDir(testName);
   const configManager = new ConfigManager(testLogger);
   configManager.update(argv);
-  const downloader = new PackageDownloader(testLogger);
-  const zippy = new Zippy(testLogger);
-  const helmDepManager = new HelmDependencyManager(downloader, zippy, testLogger);
-  const depManagerMap = new Map<string, HelmDependencyManager>().set(constants.HELM, helmDepManager);
-  const depManager = new DependencyManager(testLogger, depManagerMap);
+
+  // const downloader = new PackageDownloader(testLogger);
+  // const zippy = new Zippy(testLogger);
+
+  const downloader = container.resolve(PackageDownloader);
+
+  // const helmDepManager = new HelmDependencyManager(downloader, zippy, testLogger);
+  // const helmDepManager = new HelmDependencyManager();
+  // const depManagerMap = new Map<string, HelmDependencyManager>().set(constants.HELM, helmDepManager);
+  // const depManager = new DependencyManager(testLogger, depManagerMap);
+  const depManager = container.resolve(DependencyManager);
+  const helm = container.resolve(Helm);
+
   const keyManager = new KeyManager(testLogger);
-  const helm = new Helm(testLogger);
   const chartManager = new ChartManager(helm, testLogger);
   const k8 = k8Arg || new K8(configManager, testLogger);
   const accountManager = new AccountManager(testLogger, k8);

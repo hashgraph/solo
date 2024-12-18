@@ -28,7 +28,7 @@ import {ShellRunner} from '../../../src/core/shell_runner.js';
 describe('Helm platform specific tests', () => {
   each(['linux', 'windows', 'darwin']).describe('Helm on %s platform', osPlatform => {
     const logger = logging.NewLogger('debug', true);
-    const helm = new Helm(logger, osPlatform);
+    const helm = new Helm(osPlatform);
 
     let shellStub: sinon.SinonStub<[cmd: string, verbose?: boolean], Promise<string[]>>;
 

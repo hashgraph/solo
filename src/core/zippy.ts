@@ -20,12 +20,12 @@ import AdmZip from 'adm-zip';
 import * as tar from 'tar';
 import chalk from 'chalk';
 import path from 'path';
-import type {SoloLogger} from './logging.js';
+import {SoloLogger} from './logging.js';
+import {autoInjectable} from "tsyringe-neo";
 
+@autoInjectable()
 export class Zippy {
-  constructor(private readonly logger: SoloLogger) {
-    if (!logger) throw new Error('An instance of core/SoloLogger is required');
-  }
+  constructor(private readonly logger?: SoloLogger) {}
 
   /**
    * Zip a file or directory

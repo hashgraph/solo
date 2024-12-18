@@ -31,6 +31,7 @@ import {type CommandFlag} from '../types/flag_types.js';
 import {type Lease} from '../core/lease/lease.js';
 import {Listr} from 'listr2';
 import path from 'path';
+import {container, injectable} from "tsyringe-neo";
 
 export interface CommandHandlers {
   parent: BaseCommand;
@@ -48,7 +49,7 @@ export abstract class BaseCommand extends ShellRunner {
   protected readonly remoteConfigManager: RemoteConfigManager;
 
   constructor(opts: Opts) {
-    if (!opts || !opts.logger) throw new Error('An instance of core/SoloLogger is required');
+    // if (!opts || !opts.logger) throw new Error('An instance of core/SoloLogger is required');
     if (!opts || !opts.helm) throw new Error('An instance of core/Helm is required');
     if (!opts || !opts.k8) throw new Error('An instance of core/K8 is required');
     if (!opts || !opts.chartManager) throw new Error('An instance of core/ChartManager is required');
@@ -57,8 +58,7 @@ export abstract class BaseCommand extends ShellRunner {
     if (!opts || !opts.localConfig) throw new Error('An instance of core/LocalConfig is required');
     if (!opts || !opts.remoteConfigManager)
       throw new Error('An instance of core/config/RemoteConfigManager is required');
-
-    super(opts.logger);
+    super();
 
     this.helm = opts.helm;
     this.k8 = opts.k8;

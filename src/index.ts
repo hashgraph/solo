@@ -19,6 +19,8 @@ import yargs from 'yargs';
 import {hideBin} from 'yargs/helpers';
 import 'dotenv/config';
 import path from 'path';
+import "reflect-metadata";
+import './core/container_init.js'
 import {ListrLogger} from 'listr2';
 
 import {Flags as flags} from './commands/flags.js';
@@ -38,16 +40,17 @@ import {LeaseManager} from './core/lease/lease_manager.js';
 import {CertificateManager} from './core/certificate_manager.js';
 import {LocalConfig} from './core/config/local_config.js';
 import {RemoteConfigManager} from './core/config/remote/remote_config_manager.js';
-import * as logging from './core/logging.js';
 import * as helpers from './core/helpers.js';
 import {K8} from './core/k8.js';
 import {CustomProcessOutput} from './core/process_output.js';
 import {type Opts} from './types/command_types.js';
 import {IntervalLeaseRenewalService} from './core/lease/interval_lease_renewal.js';
 import {type LeaseRenewalService} from './core/lease/lease.js';
+import {container} from "tsyringe-neo";
+import {SoloLogger} from "./core/logging.js";
 
 export function main(argv: any) {
-  const logger = logging.NewLogger('debug');
+  const logger = container.resolve(SoloLogger)
   constants.LISTR_DEFAULT_RENDERER_OPTION.logger = new ListrLogger({processOutput: new CustomProcessOutput(logger)});
   if (argv.length >= 3 && ['-version', '--version', '-v', '--v'].includes(argv[2])) {
     logger.showUser(chalk.cyan('\n******************************* Solo *********************************************'));
@@ -58,13 +61,12 @@ export function main(argv: any) {
 
   try {
     // prepare dependency manger registry
-    const downloader = new PackageDownloader(logger);
-    const zippy = new Zippy(logger);
-    const helmDepManager = new HelmDependencyManager(downloader, zippy, logger);
-    const depManagerMap = new Map().set(constants.HELM, helmDepManager);
-    const depManager = new DependencyManager(logger, depManagerMap);
+    const downloader = container.resolve(PackageDownloader)
+    const zippy = container.resolve(Zippy)
+    const helmDepManager = container.resolve(HelmDependencyManager)
+    const depManager = container.resolve(DependencyManager)
+    const helm = container.resolve(Helm)
 
-    const helm = new Helm(logger);
     const chartManager = new ChartManager(helm, logger);
     const configManager = new ConfigManager(logger);
     const k8 = new K8(configManager, logger);

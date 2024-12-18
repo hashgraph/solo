@@ -32,20 +32,16 @@ import {Flags as flags} from '../../../src/commands/flags.js';
 import sinon from 'sinon';
 import path from 'path';
 import {BASE_TEST_DIR} from '../../test_util.js';
+import {container} from "tsyringe-neo";
 
 const testLogger = logging.NewLogger('debug', true);
 
 describe('BaseCommand', () => {
-  const helm = new Helm(testLogger);
+  const helm = container.resolve(Helm);
   const chartManager = new ChartManager(helm, testLogger);
   const configManager = new ConfigManager(testLogger);
 
-  // prepare dependency manger registry
-  const downloader = new PackageDownloader(testLogger);
-  const zippy = new Zippy(testLogger);
-  const helmDepManager = new HelmDependencyManager(downloader, zippy, testLogger);
-  const depManagerMap = new Map().set(constants.HELM, helmDepManager);
-  const depManager = new DependencyManager(testLogger, depManagerMap);
+  const depManager = container.resolve(DependencyManager);
   const localConfig = new LocalConfig(path.join(BASE_TEST_DIR, 'local-config.yaml'), testLogger, configManager);
   const remoteConfigManager = new RemoteConfigManager({} as any, testLogger, localConfig, configManager);
 

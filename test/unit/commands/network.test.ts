@@ -40,6 +40,7 @@ import {ProfileManager} from '../../../src/core/profile_manager.js';
 import {KeyManager} from '../../../src/core/key_manager.js';
 import {ROOT_DIR} from '../../../src/core/constants.js';
 import {ListrLease} from '../../../src/core/lease/listr_lease.js';
+import {container} from "tsyringe-neo";
 
 const getBaseCommandOpts = () => ({
   logger: sinon.stub(),
@@ -75,7 +76,7 @@ describe('NetworkCommand unit tests', () => {
     beforeEach(() => {
       opts = getBaseCommandOpts();
       opts.logger = testLogger;
-      opts.helm = new Helm(opts.logger);
+      opts.helm = container.resolve(Helm);
       opts.helm.dependency = sinon.stub();
 
       opts.configManager = new ConfigManager(testLogger);

@@ -35,7 +35,7 @@ describe('ShellRunner', () => {
 
   beforeEach(() => {
     logger = NewLogger('debug');
-    shellRunner = new ShellRunner(logger);
+    shellRunner = new ShellRunner();
 
     // Spy on methods
     loggerStub = sinon.stub(SoloLogger.prototype, 'debug');

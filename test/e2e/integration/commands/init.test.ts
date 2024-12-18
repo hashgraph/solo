@@ -36,17 +36,19 @@ import {IntervalLeaseRenewalService} from '../../../../src/core/lease/interval_l
 import path from 'path';
 import {BASE_TEST_DIR} from '../../../test_util.js';
 import {Duration} from '../../../../src/core/time/duration.js';
+import {container} from "tsyringe-neo";
 
 const testLogger = logging.NewLogger('debug', true);
 describe('InitCommand', () => {
   // prepare dependency manger registry
-  const downloader = new PackageDownloader(testLogger);
-  const zippy = new Zippy(testLogger);
-  const helmDepManager = new HelmDependencyManager(downloader, zippy, testLogger);
-  const depManagerMap = new Map().set(constants.HELM, helmDepManager);
-  const depManager = new DependencyManager(testLogger, depManagerMap);
+  // const downloader = new PackageDownloader(testLogger);
+  // const zippy = new Zippy(testLogger);
+  // const helmDepManager = new HelmDependencyManager(downloader, zippy, testLogger);
 
-  const helm = new Helm(testLogger);
+  // const depManager = new DependencyManager(helmDepManager);
+  const depManager = container.resolve(DependencyManager);
+  const helm = container.resolve(Helm);
+
   const chartManager = new ChartManager(helm, testLogger);
   const configManager = new ConfigManager(testLogger);
   let k8: K8;

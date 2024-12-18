@@ -1,0 +1,43 @@
+import {container} from "tsyringe-neo";
+import {SoloLogger} from "./logging.js";
+import {PackageDownloader} from "./package_downloader.js";
+import {Zippy} from "./zippy.js";
+import {DependencyManager, HelmDependencyManager} from "./dependency_managers/index.js";
+import * as constants from "./constants.js";
+import {Helm} from "./helm.js";
+import {ChartManager} from "./chart_manager.js";
+import {ConfigManager} from "./config_manager.js";
+import {K8} from "./k8.js";
+import {AccountManager} from "./account_manager.js";
+import {PlatformInstaller} from "./platform_installer.js";
+import {KeyManager} from "./key_manager.js";
+import {ProfileManager} from "./profile_manager.js";
+import type {LeaseRenewalService} from "./lease/lease.js";
+import {IntervalLeaseRenewalService} from "./lease/interval_lease_renewal.js";
+import {LeaseManager} from "./lease/lease_manager.js";
+import {CertificateManager} from "./certificate_manager.js";
+import path from "path";
+import {LocalConfig} from "./config/local_config.js";
+import {RemoteConfigManager} from "./config/remote/remote_config_manager.js";
+
+container.register<SoloLogger>(SoloLogger, {useValue: new SoloLogger('debug', false)});
+container.register<PackageDownloader>(PackageDownloader, {useValue: new PackageDownloader()});
+container.register<Zippy>(Zippy, {useValue: new Zippy()});
+container.register<HelmDependencyManager>(HelmDependencyManager, {useValue: new HelmDependencyManager()});
+container.register<DependencyManager>(DependencyManager, {useValue: new DependencyManager()});
+container.register<Helm>(Helm, {useValue: new Helm()});
+
+
+// const chartManager = new ChartManager(helm, logger);
+// const configManager = new ConfigManager(logger);
+// const k8 = new K8(configManager, logger);
+// const accountManager = new AccountManager(logger, k8);
+// const platformInstaller = new PlatformInstaller(logger, k8, configManager);
+// const keyManager = new KeyManager(logger);
+// const profileManager = new ProfileManager(logger, configManager);
+// const leaseRenewalService: LeaseRenewalService = new IntervalLeaseRenewalService();
+// const leaseManager = new LeaseManager(k8, configManager, logger, leaseRenewalService);
+// const certificateManager = new CertificateManager(k8, logger, configManager);
+// const localConfigPath = path.join(constants.SOLO_CACHE_DIR, constants.DEFAULT_LOCAL_CONFIG_FILE);
+// const localConfig = new LocalConfig(localConfigPath, logger, configManager);
+// const remoteConfigManager = new RemoteConfigManager(k8, logger, localConfig, configManager);

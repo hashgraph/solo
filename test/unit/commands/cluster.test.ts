@@ -29,6 +29,7 @@ import {ChartManager} from '../../../src/core/chart_manager.js';
 import {Helm} from '../../../src/core/helm.js';
 import {ROOT_DIR} from '../../../src/core/constants.js';
 import path from 'path';
+import {container} from "tsyringe-neo";
 
 const getBaseCommandOpts = () => ({
   logger: sinon.stub(),
@@ -61,7 +62,7 @@ describe('ClusterCommand unit tests', () => {
     beforeEach(() => {
       opts = getBaseCommandOpts();
       opts.logger = new SoloLogger();
-      opts.helm = new Helm(opts.logger);
+      opts.helm = container.resolve(Helm);
       opts.helm.dependency = sinon.stub();
       opts.chartManager = new ChartManager(opts.helm, opts.logger);
       opts.chartManager.isChartInstalled = sinon.stub().returns(false);
