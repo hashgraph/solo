@@ -191,33 +191,8 @@ export class AccountManager {
    * @param networkNodeServices
    * @returns whether to use the local host port forward
    */
-  shouldUseLocalHostPortForward(networkNodeServices: NetworkNodeServices) {
-    if (!networkNodeServices.haProxyLoadBalancerIp) return true;
-
-    const loadBalancerIp = networkNodeServices.haProxyLoadBalancerIp;
-    const interfaces = os.networkInterfaces();
-    let usePortForward = true;
-    const loadBalancerIpFormat = ip.isV6Format(loadBalancerIp) ? 'ipv4' : 'ipv6';
-
-    // TODO: due to some edge cases, if using the load balancer fails, fall back to using the local host port forward
-    // check if serviceIP falls into any subnet of the network interfaces
-    for (const nic of Object.keys(interfaces)) {
-      const inf = interfaces[nic] as os.NetworkInterfaceInfo[];
-      for (const item of inf) {
-        if (item.family.toLowerCase() === loadBalancerIpFormat && ip.cidrSubnet(item.cidr).contains(loadBalancerIp)) {
-          usePortForward = false;
-          break;
-        }
-      }
-    }
-
-    if (usePortForward) {
-      this.logger.debug('Local network and Load balancer are in different network, using local host port forward');
-    } else {
-      this.logger.debug('Local network and Load balancer are in the same network, using load balancer IP port forward');
-    }
-
-    return usePortForward;
+  private shouldUseLocalHostPortForward(networkNodeServices: NetworkNodeServices) {
+    return !networkNodeServices.haProxyLoadBalancerIp;
   }
 
   /**
@@ -250,7 +225,9 @@ export class AccountManager {
         }
       }
 
-      this.logger.debug(`creating client from network configuration: ${JSON.stringify(nodes)}`);
+      let formattedNetworkConnection = '';
+      Object.keys(nodes).forEach(key => (formattedNetworkConnection += `${key}:${nodes[key]}, `));
+      this.logger.debug(`creating client from network configuration: [${formattedNetworkConnection}]`);
       // scheduleNetworkUpdate is set to false, because the ports 50212/50211 are hardcoded in JS SDK that will not work when running locally or in a pipeline
       this._nodeClient = Client.fromConfig({network: nodes, scheduleNetworkUpdate: false});
       this._nodeClient.setOperator(operatorId, operatorKey);
@@ -267,16 +244,33 @@ export class AccountManager {
 
   private async configureNodeAccess(networkNodeService: NetworkNodeServices, localPort: number, totalNodes: number) {
     const obj = {};
-    const usePortForward = this.shouldUseLocalHostPortForward(networkNodeService);
-    const host = usePortForward ? '127.0.0.1' : (networkNodeService.haProxyLoadBalancerIp as string);
     const port = +networkNodeService.haProxyGrpcPort;
-    const targetPort = usePortForward ? localPort : port;
 
-    if (usePortForward && this._portForwards.length < totalNodes) {
+    // if the load balancer IP is set, then we should use that and avoid the local host port forward
+    if (!this.shouldUseLocalHostPortForward(networkNodeService)) {
+      const host = networkNodeService.haProxyLoadBalancerIp as string;
+      const targetPort = port;
+      try {
+        await this.k8.testConnection(host, targetPort);
+        obj[`${host}:${targetPort}`] = AccountId.fromString(networkNodeService.accountId as string);
+        this.logger.debug(`using load balancer IP: ${host}:${targetPort}`);
+
+        return obj;
+      } catch {
+        // if the connection fails, then we should use the local host port forward
+      }
+    }
+    // if the load balancer IP is not set or the test connection fails, then we should use the local host port forward
+    const host = '127.0.0.1';
+    const targetPort = localPort;
+
+    if (this._portForwards.length < totalNodes) {
       this._portForwards.push(await this.k8.portForward(networkNodeService.haProxyPodName, localPort, port));
     }
 
     await this.k8.testConnection(host, targetPort);
+
+    this.logger.debug(`using local host port forward: ${host}:${targetPort}`);
     obj[`${host}:${targetPort}`] = AccountId.fromString(networkNodeService.accountId as string);
 
     return obj;
