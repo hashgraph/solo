@@ -22,6 +22,7 @@ import {LeaseAcquisitionError, LeaseRelinquishmentError} from './lease_errors.js
 import {sleep} from '../helpers.js';
 import {Duration} from '../time/duration.js';
 import type {Lease, LeaseRenewalService} from './lease.js';
+import {StatusCodes} from 'http-status-codes';
 
 /**
  * Concrete implementation of a Kubernetes based time-based mutually exclusive lock via the Coordination API.
@@ -301,7 +302,7 @@ export class IntervalLease implements Lease {
         );
       }
 
-      if (e.meta.statusCode !== 404) {
+      if (e.meta.statusCode !== StatusCodes.NOT_FOUND) {
         throw new LeaseAcquisitionError(
           'failed to read existing leases, unexpected server response of ' + `'${e.meta.statusCode}' received`,
           e,

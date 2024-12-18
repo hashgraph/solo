@@ -5,7 +5,7 @@ they can use the Task tool to launch the network with a single command.
 
 First, install the cluster tool `kind` with this [link](https://kind.sigs.k8s.io/docs/user/quick-start#installation)
 
-Then, install the task tool `task` with this [link](https://taskfile.dev/#/installation)
+Then, install the task tool `task` with this [link](https://taskfile.dev/installation/)
 
 Then, use the following steps to install dependencies and build solo project.
 

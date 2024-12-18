@@ -25,6 +25,10 @@ import * as tar from 'tar';
 import {v4 as uuid4} from 'uuid';
 import {type V1Lease, V1ObjectMeta, V1Secret, type Context, type V1Pod} from '@kubernetes/client-node';
 import * as stream from 'node:stream';
+import type * as http from 'node:http';
+import type * as WebSocket from 'ws';
+import {getReasonPhrase, StatusCodes} from 'http-status-codes';
+
 import {sleep} from './helpers.js';
 import * as constants from './constants.js';
 import {HEDERA_HAPI_PATH, ROOT_CONTAINER, SOLO_LOGS_DIR} from './constants.js';
@@ -161,7 +165,7 @@ export class K8 {
     };
 
     const resp = await this.kubeClient.createNamespace(payload);
-    return resp.response.statusCode === 201;
+    return resp.response.statusCode === StatusCodes.CREATED;
   }
 
   /**
@@ -170,7 +174,7 @@ export class K8 {
    */
   async deleteNamespace(name: string) {
     const resp = await this.kubeClient.deleteNamespace(name);
-    return resp.response.statusCode === 200.0;
+    return resp.response.statusCode === StatusCodes.OK;
   }
 
   /** Get a list of namespaces */
@@ -1190,7 +1194,7 @@ export class K8 {
   async deletePvc(name: string, namespace: string) {
     const resp = await this.kubeClient.deleteNamespacedPersistentVolumeClaim(name, namespace);
 
-    return resp.response.statusCode === 200.0;
+    return resp.response.statusCode === StatusCodes.OK;
   }
 
   // --------------------------------------- Utility Methods --------------------------------------- //
@@ -1229,7 +1233,7 @@ export class K8 {
       Duration.ofMinutes(5).toMillis(),
     );
 
-    if (result.response.statusCode === 200 && result.body.items && result.body.items.length > 0) {
+    if (result.response.statusCode === StatusCodes.OK && result.body.items && result.body.items.length > 0) {
       const secretObject = result.body.items[0];
       return {
         name: secretObject.metadata!.name as string,
@@ -1280,7 +1284,7 @@ export class K8 {
     try {
       const resp = await this.kubeClient.createNamespacedSecret(namespace, v1Secret);
 
-      return resp.response.statusCode === 201;
+      return resp.response.statusCode === StatusCodes.CREATED;
     } catch (e) {
       throw new SoloError(
         `failed to create secret ${name} in namespace ${namespace}: ${e.message}, ${e?.body?.message}`,
@@ -1297,7 +1301,7 @@ export class K8 {
    */
   async deleteSecret(name: string, namespace: string) {
     const resp = await this.kubeClient.deleteNamespacedSecret(name, namespace);
-    return resp.response.statusCode === 200.0;
+    return resp.response.statusCode === StatusCodes.OK;
   }
 
   /* ------------- ConfigMap ------------- */
@@ -1338,7 +1342,7 @@ export class K8 {
     try {
       const resp = await this.kubeClient.createNamespacedConfigMap(namespace, configMap);
 
-      return resp.response.statusCode === 201;
+      return resp.response.statusCode === StatusCodes.CREATED;
     } catch (e) {
       throw new SoloError(
         `failed to create configmap ${name} in namespace ${namespace}: ${e.message}, ${e?.body?.message}`,
@@ -1370,7 +1374,7 @@ export class K8 {
     try {
       const resp = await this.kubeClient.replaceNamespacedConfigMap(name, namespace, configMap);
 
-      return resp.response.statusCode === 201;
+      return resp.response.statusCode === StatusCodes.CREATED;
     } catch (e) {
       throw new SoloError(
         `failed to create configmap ${name} in namespace ${namespace}: ${e.message}, ${e?.body?.message}`,
@@ -1383,7 +1387,7 @@ export class K8 {
     try {
       const resp = await this.kubeClient.deleteNamespacedConfigMap(name, namespace);
 
-      return resp.response.statusCode === 201;
+      return resp.response.statusCode === StatusCodes.CREATED;
     } catch (e) {
       throw new SoloError(
         `failed to create configmap ${name} in namespace ${namespace}: ${e.message}, ${e?.body?.message}`,
@@ -1417,10 +1421,10 @@ export class K8 {
   async readNamespacedLease(leaseName: string, namespace: string, timesCalled = 0) {
     const {response, body} = await this.coordinationApiClient.readNamespacedLease(leaseName, namespace).catch(e => e);
 
-    if (response?.statusCode === 500 && timesCalled < 4) {
+    if (response?.statusCode === StatusCodes.INTERNAL_SERVER_ERROR && timesCalled < 4) {
       // could be k8s control plane has no resources available
       this.logger.debug(
-        `Retrying readNamespacedLease(${leaseName}, ${namespace}) in 5 seconds because of statusCode 500`,
+        `Retrying readNamespacedLease(${leaseName}, ${namespace}) in 5 seconds because of ${getReasonPhrase(StatusCodes.INTERNAL_SERVER_ERROR)}`,
       );
       await sleep(Duration.ofSeconds(5));
       return await this.readNamespacedLease(leaseName, namespace, timesCalled + 1);
@@ -1514,9 +1518,9 @@ export class K8 {
     error: Error | unknown,
     errorMessage: string,
   ): void {
-    const statusCode = +response?.statusCode || 500;
+    const statusCode = +response?.statusCode || StatusCodes.INTERNAL_SERVER_ERROR;
 
-    if (statusCode <= 202) return;
+    if (statusCode <= StatusCodes.ACCEPTED) return;
     errorMessage += `, statusCode: ${statusCode}`;
     this.logger.error(errorMessage, error);
 
@@ -1549,7 +1553,7 @@ export class K8 {
   async killPod(podName: string, namespace: string) {
     try {
       const result = await this.kubeClient.deleteNamespacedPod(podName, namespace, _, _, 1);
-      if (result.response.statusCode !== 200) {
+      if (result.response.statusCode !== StatusCodes.OK) {
         throw new SoloError(
           `Failed to delete pod ${podName} in namespace ${namespace}: statusCode: ${result.response.statusCode}`,
         );
@@ -1565,7 +1569,7 @@ export class K8 {
       }
     } catch (e) {
       const errorMessage = `Failed to delete pod ${podName} in namespace ${namespace}: ${e.message}`;
-      if (e.body?.code === 404 || e.response?.body?.code === 404) {
+      if (e.body?.code === StatusCodes.NOT_FOUND || e.response?.body?.code === StatusCodes.NOT_FOUND) {
         this.logger.info(`Pod not found: ${errorMessage}`, e);
         return;
       }
