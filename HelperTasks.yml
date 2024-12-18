@@ -20,7 +20,7 @@ vars:
   minio_flag_file:
     sh: (echo "/tmp/minio-flag-$(date +%Y%m%d%H%M%S)")
 
-  # TODO: test local build path
+  # TODO: test with port forward
 
 env:
   SOLO_CLUSTER_SETUP_NAMESPACE: solo-setup
@@ -67,6 +67,7 @@ tasks:
       - echo "SOLO_NAMESPACE=${SOLO_NAMESPACE}"
       - echo "nodes={{ .nodes }}"
       - echo "node_identifiers={{ .node_identifiers }}"
+      - echo "use_port_forwards={{ .use_port_forwards }}"
       - echo "VALUES_FLAG=${VALUES_FLAG}"
       - echo "SETTINGS_FLAG=${SETTINGS_FLAG}"
       - echo "LOG4J2_FLAG=${LOG4J2_FLAG}"
@@ -169,8 +170,12 @@ tasks:
       - task: "init"
     cmds:
       - SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- node start --namespace "${SOLO_NAMESPACE}" --node-aliases-unparsed {{.node_identifiers}} -q {{ .CLI_ARGS }}
-      - kubectl port-forward -n "${SOLO_NAMESPACE}" svc/haproxy-node1-svc 50211:50211 &
-      - task: "sleep_after_port_forward"
+      - |
+        if [[ "{{ .use_port_forwards }}" == "true" ]];then
+          echo "Enable port forwarding for Hedera Node"
+          kubectl port-forward -n "${SOLO_NAMESPACE}" svc/haproxy-node1-svc 50211:50211 &
+          sleep 4
+        fi
 
   solo:node:stop:
     internal: true
@@ -185,9 +190,12 @@ tasks:
       - task: "init"
     cmds:
       - SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- relay deploy -n "${SOLO_NAMESPACE}" -i node1 -q
-      - echo "Enable port forwarding for Hedera JSON RPC Relay"
-      - kubectl port-forward -n "${SOLO_NAMESPACE}" svc/relay-node1-hedera-json-rpc-relay 7546:7546 &
-      - task: "sleep_after_port_forward"
+      - |
+        if [[ "{{ .use_port_forwards }}" == "true" ]];then
+          echo "Enable port forwarding for Hedera JSON RPC Relay"
+          kubectl port-forward -n "${SOLO_NAMESPACE}" svc/relay-node1-hedera-json-rpc-relay 7546:7546 &
+          sleep 4
+        fi
 
   solo:destroy-relay:
     status:
@@ -224,6 +232,7 @@ tasks:
     cmds:
       - kind create cluster -n "${SOLO_CLUSTER_NAME}" --image "${KIND_IMAGE}"
       - sleep 10 # wait for control plane to come up
+      - kubectl config set-context kind-${SOLO_CLUSTER_NAME}
 
   cluster:setup:
     deps:
@@ -237,13 +246,10 @@ tasks:
 
   clean:port-forward:
     cmds:
-      - pkill -f "kubectl port-forward -n {{ .SOLO_NAMESPACE }}" | grep ${UID} || true
-
-  sleep_after_port_forward:
-    cmds:
-      # somehow without the sleep, when port-forward is the last command of a series of tasks, port-forward
-      # prematurely killed when task is exiting
-      - sleep 4
+      - |
+        if [[ "{{ .use_port_forwards }}" == "true" ]];then
+          pkill -f "kubectl port-forward -n {{ .SOLO_NAMESPACE }}" | grep ${UID} || true
+        fi
 
   run:build:
     silent: true
@@ -279,8 +285,12 @@ tasks:
 
   solo:node:addresses:
     internal: true
+    silent: true
     cmds:
-      - kubectl get svc -n "${SOLO_NAMESPACE}" -l "solo.hedera.com/type=network-node-svc" --output=go-template-file={{ .ip_list_template_file }}
+      - |
+        echo "External IPs of the network nodes:"
+        export IP_LIST_TEMPLATE_FILE={{ .TASKFILE_DIR }}/list-external-ips.gotemplate
+        kubectl get svc -n "${SOLO_NAMESPACE}" -l "solo.hedera.com/type=network-node-svc" --output=go-template-file=${IP_LIST_TEMPLATE_FILE}
 
   start:
     desc: solo node start
@@ -315,3 +325,55 @@ tasks:
       - task: "init"
     cmds:
       - task: "solo:logs:remove"
+
+
+  default-with-mirror:
+    desc: in addition to the defaults, also deploy the mirror node
+    deps:
+      - task: "init"
+    cmds:
+      - task: "default"
+      - task: "solo:mirror-node"
+
+  default-with-relay:
+    desc: in addition to default-with-mirror, deploy the JSON RPC relay
+    deps:
+      - task: "init"
+    cmds:
+      - task: "default"
+      - task: "solo:mirror-node"
+      - task: "solo:relay"
+
+  solo:mirror-node:
+    desc: solo mirror-node deploy with port forward on explorer
+    deps:
+      - task: "init"
+    cmds:
+      - SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- mirror-node deploy --namespace "${SOLO_NAMESPACE}" -q
+      - |
+        if [[ "{{ .use_port_forwards }}" == "true" ]];then
+          echo "Enable port forwarding for Hedera Explorer & Mirror Node Network"
+          kubectl port-forward -n "${SOLO_NAMESPACE}" svc/hedera-explorer 8080:80 &
+          kubectl port-forward svc/mirror-grpc -n "${SOLO_NAMESPACE}" 5600:5600 &
+          sleep 4
+        fi
+
+  solo:destroy-mirror-node:
+    desc: solo mirror-node destroy
+    status:
+      - helm list -n "${SOLO_NAMESPACE}" | grep -vqz "${MIRROR_RELEASE_NAME}"
+    deps:
+      - task: "init"
+    cmds:
+      - SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- mirror-node destroy --namespace "${SOLO_NAMESPACE}" --force -q || true
+
+  clean:
+    desc: destroy, then remove cache directory, logs directory, config, and port forwards
+    deps:
+      - task: "init"
+    cmds:
+      - task: "destroy"
+      - task: "clean:cache"
+      - task: "clean:logs"
+      - task: "solo:config:remove"
+      - task: "clean:port-forward"
