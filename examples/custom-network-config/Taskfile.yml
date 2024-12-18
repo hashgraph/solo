@@ -7,7 +7,7 @@ env:
   SOLO_NETWORK_SIZE: 10
   SOLO_NAMESPACE: solo-alex-kuzmin-n4
   SOLO_CHART_VERSION: 0.36.3
-  CONSENSUS_NODE_VERSION: v0.57.2
+  CONSENSUS_NODE_VERSION: v0.57.3
   VALUES_FLAG: "--values-file {{.USER_WORKING_DIR}}/init-containers-values.yaml"
   SETTINGS_FLAG: "--settings-txt {{.USER_WORKING_DIR}}/settings.txt"
   SOLO_HOME: "/Users/user/.solo-alex-kuzmin-n4"

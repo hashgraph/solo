@@ -7,7 +7,7 @@ env:
   SOLO_NETWORK_SIZE: 2
   SOLO_NAMESPACE: solo-e2e
   SOLO_CHART_VERSION: 0.36.3
-  CONSENSUS_NODE_VERSION: v0.57.2
+  CONSENSUS_NODE_VERSION: v0.57.3
 vars:
   ip_list_template_file: "{{.ROOT_DIR}}/list-external-ips.gotemplate"
 
