@@ -21,7 +21,6 @@ vars:
     sh: (echo "/tmp/minio-flag-$(date +%Y%m%d%H%M%S)")
 
   # TODO: test local build path
-  # TODO: make port forwards optional, doesn't work in Alex's multiple users on the same machine setup
 
 env:
   SOLO_CLUSTER_SETUP_NAMESPACE: solo-setup
