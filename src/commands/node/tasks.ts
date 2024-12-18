@@ -403,8 +403,10 @@ export class NodeCommandTasks {
           task.title = `${title} - status ${chalk.yellow(NodeStatusEnums[statusNumber])}, attempt: ${chalk.blueBright(`${attempt}/${maxAttempts}`)}`;
         }
         clearTimeout(timeoutId);
-      } catch {
-        // Catch all guard and fetch errors
+      } catch (e: Error | any) {
+        this.logger.debug(
+          `${title} : Error in checking node activeness: attempt: ${attempt}/${maxAttempts}: ${JSON.stringify(e)}`,
+        );
       }
 
       attempt++;
@@ -976,7 +978,7 @@ export class NodeCommandTasks {
   }
 
   checkAllNodesAreFrozen(nodeAliasesProperty: string) {
-    return new Task('Check all nodes are ACTIVE', (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
+    return new Task('Check all nodes are FROZEN', (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
       return this._checkNodeActivenessTask(ctx, task, ctx.config[nodeAliasesProperty], NodeStatusCodes.FREEZE_COMPLETE);
     });
   }

@@ -13,13 +13,13 @@ Example:
 
 ## Provided examples for Consensus nodes:
 
-* HashSphere/init-containers-values.yaml (HashSphere on Google Cloud, for 4-core/32Gb 7-node )
+* solo-perf-test/init-containers-values.yaml (Solo on Google Cloud, for 4-core/32Gb 7-node )
 * Latitude/init-containers-values.yaml (Latitude, 128Gb, 10-node)
 
 ## and corresponding NetworkLoadGenerator templates:
 
-* HashSphere/nlg-values.yaml
+* solo-perf-test/nlg-values.yaml
 * Latitude/nlg-values.yaml
   Start as the following:
 
-> helm upgrade --install nlg oci://swirldslabs.jfrog.io/load-generator-helm-release-local/network-load-generator --version 0.2.1 --values nlg-values.yaml -n solo-hashsphere1
+> helm upgrade --install nlg oci://swirldslabs.jfrog.io/load-generator-helm-release-local/network-load-generator --version 0.2.1 --values nlg-values.yaml -n solo-perf-test

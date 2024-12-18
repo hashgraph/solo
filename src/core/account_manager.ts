@@ -199,6 +199,7 @@ export class AccountManager {
     let usePortForward = true;
     const loadBalancerIpFormat = ip.isV6Format(loadBalancerIp) ? 'ipv4' : 'ipv6';
 
+    // TODO: due to some edge cases, if using the load balancer fails, fall back to using the local host port forward
     // check if serviceIP falls into any subnet of the network interfaces
     for (const nic of Object.keys(interfaces)) {
       const inf = interfaces[nic] as os.NetworkInterfaceInfo[];

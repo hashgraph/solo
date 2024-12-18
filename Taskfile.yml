@@ -1,102 +1,88 @@
 version: 3
 includes:
-  helper: ./HelperTasks.yml
-dotenv:
-  - .env
+  helper:
+    taskfile: ./HelperTasks.yml
+    flatten: true
 env:
-  SOLO_CHART_VERSION: 0.34.0
-  CONSENSUS_NODE_VERSION: v0.56.0
-  SOLO_NAMESPACE: solo-e2e
-  SOLO_CLUSTER_SETUP_NAMESPACE: solo-setup
-  SOLO_CLUSTER_RELEASE_NAME: solo-cluster-setup
   SOLO_NETWORK_SIZE: 2
-  SOLO_CLUSTER_NAME: solo-cluster
-  KIND_IMAGE: kindest/node:v1.27.3@sha256:3966ac761ae0136263ffdb6cfd4db23ef8a83cba8a463690e98317add2c9ba72
-  MIRROR_RELEASE_NAME: mirror
-
+  SOLO_NAMESPACE: solo-e2e
+  SOLO_CHART_VERSION: 0.36.3
+  CONSENSUS_NODE_VERSION: v0.57.2
+vars:
+  ip_list_template_file: "{{.ROOT_DIR}}/list-external-ips.gotemplate"
 
 tasks:
   default:
-    desc: install Solo, deploy the network, set it up, and start it
+    desc: install Solo, create a kind cluster, deploy the network, set it up, and start it
+    deps:
+      - task: "init"
     cmds:
-      - task: "helper:install:solo"
+      - task: "install:solo"
       - task: "install"
       - task: "start"
 
   default-with-mirror:
     desc: in addition to the defaults, also deploy the mirror node
+    deps:
+      - task: "init"
     cmds:
       - task: "default"
       - task: "solo:mirror-node"
 
   default-with-relay:
     desc: in addition to default-with-mirror, deploy the JSON RPC relay
+    deps:
+      - task: "init"
     cmds:
       - task: "default"
       - task: "solo:mirror-node"
-      - task: "helper:solo:relay"
+      - task: "solo:relay"
 
   install:
     desc: create the cluster, solo init, solo cluster create, solo node keys, solo network deploy
+    deps:
+      - task: "init"
     cmds:
-      - task: "helper:cluster:create"
-      - task: "helper:solo:init"
-      - task: "helper:cluster:setup"
-      - task: "helper:solo:keys"
-      - task: "helper:solo:network:deploy"
-
-  start:
-    desc: solo node start
-    cmds:
-      - task: "helper:solo:node:start"
-
-  stop:
-    desc: solo node stop
-    cmds:
-      - task: "helper:solo:node:stop"
+      - task: "cluster:create"
+      - task: "solo:init"
+      - task: "cluster:setup"
+      - task: "solo:keys"
+      - task: "solo:network:deploy"
 
   solo:mirror-node:
     desc: solo mirror-node deploy with port forward on explorer
+    deps:
+      - task: "init"
     cmds:
-      - npm run build
-      - solo mirror-node deploy --namespace "${SOLO_NAMESPACE}"
+      - SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- mirror-node deploy --namespace "${SOLO_NAMESPACE}" -q
       - echo "Enable port forwarding for Hedera Explorer & Mirror Node Network"
       - kubectl port-forward -n "${SOLO_NAMESPACE}" svc/hedera-explorer 8080:80 &
       - kubectl port-forward svc/mirror-grpc -n "${SOLO_NAMESPACE}" 5600:5600 &
-      - task: "helper:sleep_after_port_forward"
+      - task: "sleep_after_port_forward"
 
   solo:destroy-mirror-node:
     desc: solo mirror-node destroy
     status:
       - helm list -n "${SOLO_NAMESPACE}" | grep -vqz "${MIRROR_RELEASE_NAME}"
+    deps:
+      - task: "init"
     cmds:
-      - npm run build
-      - solo mirror-node destroy --namespace "${SOLO_NAMESPACE}" --force || true
+      - SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- mirror-node destroy --namespace "${SOLO_NAMESPACE}" --force -q || true
 
   destroy:
     desc: destroy relay, mirror-node, and network
+    deps:
+      - task: "init"
     cmds:
-      - task: "helper:solo:node:stop"
-      - task: "helper:solo:network:destroy"
-      - task: "solo:destroy-mirror-node"
-      - task: "helper:solo:destroy-relay"
-      - task: "helper:cluster:destroy"
+      - task: "cluster:destroy"
 
   clean:
     desc: destroy, then remove cache directory, logs directory, config, and port forwards
+    deps:
+      - task: "init"
     cmds:
       - task: "destroy"
       - task: "clean:cache"
       - task: "clean:logs"
-      - task: "helper:solo:config:remove"
-      - task: "helper:clean:port-forward"
-
-  clean:cache:
-    desc: remove solo cache directory
-    cmds:
-      - task: "helper:solo:cache:remove"
-
-  clean:logs:
-    desc: remove solo logs director
-    cmds:
-      - task: "helper:solo:logs:remove"
+      - task: "solo:config:remove"
+      - task: "clean:port-forward"
