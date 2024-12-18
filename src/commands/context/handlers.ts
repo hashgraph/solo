@@ -45,7 +45,6 @@ export class ContextCommandHandlers implements CommandHandlers {
         this.parent.getLocalConfig().promptLocalConfigTask(this.parent.getK8()),
         this.tasks.selectContext(argv),
         RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
-        // todo validate remoteConfig
         this.tasks.updateLocalConfig(argv),
       ],
       {

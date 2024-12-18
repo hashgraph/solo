@@ -95,6 +95,19 @@ export class ContextCommandTasks {
     );
   }
 
+  async _selectContextForFirstCluster(task, clusters, localConfig, isQuiet) {
+    const selectedCluster = clusters[0];
+
+    if (localConfig.clusterContextMapping[selectedCluster]) {
+      return localConfig.clusterContextMapping[selectedCluster];
+    }
+
+    // If cluster does not exist in LocalConfig mapping prompt the user to select a context or use the current one
+    else {
+      return this._getSelectedContext(task, selectedCluster, localConfig, isQuiet);
+    }
+  }
+
   selectContext(argv) {
     return new Task('Read local configuration settings', async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
       this.parent.logger.info('Read local configuration settings...');
@@ -114,16 +127,7 @@ export class ContextCommandTasks {
       // If one or more clusters are provided use the first one to determine the context
       // from the mapping in the LocalConfig
       else if (clusters.length) {
-        const selectedCluster = clusters[0];
-
-        if (localConfig.clusterContextMapping[selectedCluster]) {
-          selectedContext = localConfig.clusterContextMapping[selectedCluster];
-        }
-
-        // If cluster does not exist in LocalConfig mapping prompt the user to select a context or use the current one
-        else {
-          selectedContext = await this._getSelectedContext(task, selectedCluster, localConfig, isQuiet);
-        }
+        selectedContext = await this._selectContextForFirstCluster(task, clusters, localConfig, isQuiet);
       }
 
       // If a deployment name is provided get the clusters associated with the deployment from the LocalConfig
@@ -132,11 +136,7 @@ export class ContextCommandTasks {
         const deployment = localConfig.deployments[deploymentName];
 
         if (deployment && deployment.clusters.length) {
-          const selectedCluster = deployment.clusters[0];
-          selectedContext = localConfig.clusterContextMapping[selectedCluster];
-          if (!selectedContext) {
-            selectedContext = await this._getSelectedContext(task, selectedCluster, localConfig, isQuiet);
-          }
+          selectedContext = await this._selectContextForFirstCluster(task, deployment.clusters, localConfig, isQuiet);
         }
 
         // The provided deployment does not exist in the LocalConfig
