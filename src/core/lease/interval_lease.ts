@@ -145,6 +145,7 @@ export class IntervalLease implements Lease {
     const lease = await this.retrieveLease();
 
     if (!lease || this.checkExpiration(lease) || this.heldBySameProcess(lease)) {
+      lease.spec!.holderIdentity = this.leaseHolder.toJson();
       return this.createOrRenewLease(lease);
     }
 
