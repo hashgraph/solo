@@ -19,7 +19,7 @@ import {Flags as flags} from '../flags.js';
 export const DEFAULT_FLAGS = {
   requiredFlags: [],
   requiredFlagsWithDisabledPrompt: [flags.namespace, flags.cacheDir, flags.releaseTag],
-  optionalFlags: [flags.devMode],
+  optionalFlags: [flags.quiet, flags.devMode],
 };
 
 const COMMON_UPDATE_FLAGS_REQUIRED_FLAGS = [flags.cacheDir, flags.namespace, flags.releaseTag];
@@ -179,13 +179,13 @@ export const ADD_EXECUTE_FLAGS = {
 export const LOGS_FLAGS = {
   requiredFlags: [flags.namespace, flags.nodeAliasesUnparsed],
   requiredFlagsWithDisabledPrompt: [],
-  optionalFlags: [],
+  optionalFlags: [flags.quiet],
 };
 
 export const STATES_FLAGS = {
   requiredFlags: [flags.namespace, flags.nodeAliasesUnparsed],
   requiredFlagsWithDisabledPrompt: [],
-  optionalFlags: [],
+  optionalFlags: [flags.quiet],
 };
 
 export const REFRESH_FLAGS = {
@@ -215,5 +215,5 @@ export const START_FLAGS = {
 export const SETUP_FLAGS = {
   requiredFlags: [flags.cacheDir, flags.namespace, flags.releaseTag],
   requiredFlagsWithDisabledPrompt: [flags.app, flags.appConfig, flags.nodeAliasesUnparsed],
-  optionalFlags: [flags.devMode, flags.localBuildPath],
+  optionalFlags: [flags.quiet, flags.devMode, flags.localBuildPath],
 };

@@ -23,6 +23,7 @@ import {sleep} from '../helpers.js';
 import {Duration} from '../time/duration.js';
 import type {Lease, LeaseRenewalService} from './lease.js';
 import {StatusCodes} from 'http-status-codes';
+import chalk from 'chalk';
 
 /**
  * Concrete implementation of a Kubernetes based time-based mutually exclusive lock via the Coordination API.
@@ -143,7 +144,7 @@ export class IntervalLease implements Lease {
   async acquire(): Promise<void> {
     const lease = await this.retrieveLease();
 
-    if (!lease || IntervalLease.checkExpiration(lease) || this.heldBySameProcess(lease)) {
+    if (!lease || this.checkExpiration(lease) || this.heldBySameProcess(lease)) {
       return this.createOrRenewLease(lease);
     }
 
@@ -154,7 +155,7 @@ export class IntervalLease implements Lease {
     }
 
     throw new LeaseAcquisitionError(
-      `lease already acquired by '${otherHolder.username}' on the ` +
+      `acquire: lease already acquired by '${otherHolder.username}' on the ` +
         `'${otherHolder.hostname}' machine (PID: '${otherHolder.processId}')`,
       null,
       {self: this.leaseHolder.toObject(), other: otherHolder.toObject()},
@@ -190,7 +191,7 @@ export class IntervalLease implements Lease {
     }
 
     throw new LeaseAcquisitionError(
-      `lease already acquired by '${this._leaseHolder.username}' on the ` +
+      `renew: lease already acquired by '${this._leaseHolder.username}' on the ` +
         `'${this._leaseHolder.hostname}' machine (PID: '${this._leaseHolder.processId}')`,
       null,
       {self: this._leaseHolder.toObject(), other: this._leaseHolder.toObject()},
@@ -219,6 +220,7 @@ export class IntervalLease implements Lease {
    * @throws LeaseRelinquishmentError - If the lease is already acquired by another process or an error occurs during relinquishment.
    */
   async release(): Promise<void> {
+    this.client.logger.showUser(`${chalk.gray('releasing lease')}`);
     const lease = await this.retrieveLease();
 
     if (this.scheduleId) {
@@ -236,12 +238,12 @@ export class IntervalLease implements Lease {
 
     const otherHolder: LeaseHolder = LeaseHolder.fromJson(lease.spec.holderIdentity);
 
-    if (this.heldBySameProcess(lease) || IntervalLease.checkExpiration(lease)) {
+    if (this.heldBySameProcess(lease) || this.checkExpiration(lease)) {
       return await this.deleteLease();
     }
 
     throw new LeaseRelinquishmentError(
-      `lease already acquired by '${otherHolder.username}' on the ` +
+      `release: lease already acquired by '${otherHolder.username}' on the ` +
         `'${otherHolder.hostname}' machine (PID: '${otherHolder.processId}')`,
       null,
       {self: this._leaseHolder.toObject(), other: otherHolder.toObject()},
@@ -270,7 +272,7 @@ export class IntervalLease implements Lease {
    */
   async isAcquired(): Promise<boolean> {
     const lease = await this.retrieveLease();
-    return !!lease && !IntervalLease.checkExpiration(lease) && this.heldBySameProcess(lease);
+    return !!lease && !this.checkExpiration(lease) && this.heldBySameProcess(lease);
   }
 
   /**
@@ -281,7 +283,7 @@ export class IntervalLease implements Lease {
    */
   async isExpired(): Promise<boolean> {
     const lease = await this.retrieveLease();
-    return !!lease && IntervalLease.checkExpiration(lease);
+    return !!lease && this.checkExpiration(lease);
   }
 
   /**
@@ -382,12 +384,15 @@ export class IntervalLease implements Lease {
    * @param lease - The lease to be checked for expiration.
    * @returns true if the lease has expired; otherwise, false.
    */
-  private static checkExpiration(lease: V1Lease): boolean {
+  private checkExpiration(lease: V1Lease): boolean {
     const now = Duration.ofMillis(Date.now());
     const durationSec = lease.spec.leaseDurationSeconds || IntervalLease.DEFAULT_LEASE_DURATION;
     const lastRenewalTime = lease.spec?.renewTime || lease.spec?.acquireTime;
     const lastRenewal = Duration.ofMillis(new Date(lastRenewalTime).valueOf());
     const deltaSec = now.minus(lastRenewal).seconds;
+    this.client.logger.debug(
+      `checkExpiration: lease duration is ${durationSec} seconds, delta is ${deltaSec} seconds, last renewal time is ${lastRenewal}`,
+    );
     return deltaSec > durationSec;
   }
 
