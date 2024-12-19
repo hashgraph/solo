@@ -248,7 +248,7 @@ tasks:
     cmds:
       - |
         if [[ "{{ .use_port_forwards }}" == "true" ]];then
-          pkill -f "kubectl port-forward -n {{ .SOLO_NAMESPACE }}" | grep ${UID} || true
+          pkill -f "kubectl port-forward -n {{ .SOLO_NAMESPACE }}" | grep -w ${UID} || true
         fi
 
   run:build:
