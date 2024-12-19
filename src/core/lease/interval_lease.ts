@@ -155,7 +155,7 @@ export class IntervalLease implements Lease {
     }
 
     throw new LeaseAcquisitionError(
-      `lease already acquired by '${otherHolder.username}' on the ` +
+      `acquire: lease already acquired by '${otherHolder.username}' on the ` +
         `'${otherHolder.hostname}' machine (PID: '${otherHolder.processId}')`,
       null,
       {self: this.leaseHolder.toObject(), other: otherHolder.toObject()},
@@ -191,7 +191,7 @@ export class IntervalLease implements Lease {
     }
 
     throw new LeaseAcquisitionError(
-      `lease already acquired by '${this._leaseHolder.username}' on the ` +
+      `renew: lease already acquired by '${this._leaseHolder.username}' on the ` +
         `'${this._leaseHolder.hostname}' machine (PID: '${this._leaseHolder.processId}')`,
       null,
       {self: this._leaseHolder.toObject(), other: this._leaseHolder.toObject()},
@@ -243,7 +243,7 @@ export class IntervalLease implements Lease {
     }
 
     throw new LeaseRelinquishmentError(
-      `lease already acquired by '${otherHolder.username}' on the ` +
+      `release: lease already acquired by '${otherHolder.username}' on the ` +
         `'${otherHolder.hostname}' machine (PID: '${otherHolder.processId}')`,
       null,
       {self: this._leaseHolder.toObject(), other: otherHolder.toObject()},
