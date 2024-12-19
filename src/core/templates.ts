@@ -255,10 +255,6 @@ export class Templates {
     return mapping;
   }
 
-  static parseClusterAliases(clusters: string) {
-    return clusters ? clusters.split(',') : [];
-  }
-
   public static renderEnvoyProxyName(nodeAlias: NodeAlias): string {
     return `envoy-proxy-${nodeAlias}`;
   }

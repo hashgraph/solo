@@ -46,3 +46,33 @@ export const IsDeployments = (validationOptions?: ValidationOptions) => {
     });
   };
 };
+
+export const IsClusterContextMapping = (validationOptions?: ValidationOptions) => {
+  return function (object: any, propertyName: string) {
+    registerDecorator({
+      name: 'IsClusterContextMapping',
+      target: object.constructor,
+      propertyName: propertyName,
+      constraints: [],
+      options: {
+        ...validationOptions,
+      },
+      validator: {
+        validate(value: any, args: ValidationArguments) {
+          if (!isObject(value)) return false;
+          if (Object.keys(value).length === 0) return true;
+
+          // TODO expand the validation. Check if the context exists in the local kube config
+          //  and that it can actually establish a connection to the cluster
+          for (const clusterName in value) {
+            const contextName = value[clusterName];
+            if (typeof clusterName !== 'string' || typeof contextName !== 'string') {
+              return false;
+            }
+          }
+          return true;
+        },
+      },
+    });
+  };
+};
