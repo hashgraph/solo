@@ -75,7 +75,10 @@ e2eTestSuite(namespace, argv, undefined, undefined, undefined, undefined, undefi
 
     it('should upgrade all nodes on the network successfully', async () => {
       await nodeCmd.handlers.freezeUpgrade(upgradeArgv);
-      expect(nodeCmd.getUnusedConfigs(PREPARE_UPGRADE_CONFIGS_NAME)).to.deep.equal([flags.devMode.constName]);
+      expect(nodeCmd.getUnusedConfigs(PREPARE_UPGRADE_CONFIGS_NAME)).to.deep.equal([
+        flags.quiet.constName,
+        flags.devMode.constName,
+      ]);
 
       await bootstrapResp.opts.accountManager.close();
     }).timeout(Duration.ofMinutes(5).toMillis());
