@@ -4,5 +4,6 @@ deployments:
     clusterAliases:
       - cluster-1
 currentDeploymentName: deployment-1
-clusterMappings:
-  kind-node-add: kind-node-add
+clusterContextMapping:
+  cluster-1: context-1
+  cluster-2: context-2
