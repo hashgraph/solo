@@ -112,7 +112,7 @@ async function main() {
     if (receivedMessage === TEST_MESSAGE) {
       console.log('Message received successfully');
     } else {
-      console.error('Message received but not match');
+      console.error('Message received but not match: ' + receivedMessage);
       // eslint-disable-next-line n/no-process-exit
       process.exit(1);
     }

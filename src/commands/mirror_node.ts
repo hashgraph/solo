@@ -209,9 +209,10 @@ export class MirrorNodeCommand extends BaseCommand {
               constants.MIRROR_NODE_CHART,
             );
 
-            ctx.config.valuesArg = await self.prepareValuesArg(ctx.config);
-
+            // predefined values first
             ctx.config.valuesArg += this.prepareValuesFiles(constants.MIRROR_NODE_VALUES_FILE);
+            // user defined values later to override predefined values
+            ctx.config.valuesArg += await self.prepareValuesArg(ctx.config);
 
             if (ctx.config.pinger) {
               const startAccId = constants.HEDERA_NODE_ACCOUNT_ID_START;
