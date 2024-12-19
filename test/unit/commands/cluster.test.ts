@@ -29,7 +29,7 @@ import {ChartManager} from '../../../src/core/chart_manager.js';
 import {Helm} from '../../../src/core/helm.js';
 import {ROOT_DIR} from '../../../src/core/constants.js';
 import path from 'path';
-import {container} from "tsyringe-neo";
+import {container} from 'tsyringe-neo';
 
 const getBaseCommandOpts = () => ({
   logger: sinon.stub(),

@@ -25,14 +25,14 @@ import {sleep} from '../../../../src/core/helpers.js';
 import {LeaseRelinquishmentError} from '../../../../src/core/lease/lease_errors.js';
 import {NoopLeaseRenewalService} from './noop_lease_renewal_service.test.js';
 import {Duration} from '../../../../src/core/time/duration.js';
-import {container} from "tsyringe-neo";
+import {container} from 'tsyringe-neo';
 
 const defaultTimeout = Duration.ofMinutes(2).toMillis();
 const leaseDuration = 4;
 
 describe('Lease', async () => {
   const testLogger = logging.NewLogger('debug', true);
-  const configManager = container.resolve(ConfigManager)
+  const configManager = container.resolve(ConfigManager);
   const k8 = container.resolve(K8);
   const testNamespace = 'lease-e2e';
   const renewalService = new NoopLeaseRenewalService();

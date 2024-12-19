@@ -11,10 +11,10 @@
  * distributed under the License is distributed on an ""AS IS"" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
- * limitations under the Licen}se.
+ * limitations under the License.
  *
  */
-import {SoloError, MissingArgumentError, IllegalArgumentError} from './errors.js';
+import {SoloError, MissingArgumentError} from './errors.js';
 import {SoloLogger} from './logging.js';
 import {Flags, Flags as flags} from '../commands/flags.js';
 import * as paths from 'path';
@@ -22,7 +22,7 @@ import * as helpers from './helpers.js';
 import type * as yargs from 'yargs';
 import {type CommandFlag} from '../types/flag_types.js';
 import {type ListrTaskWrapper} from 'listr2';
-import {autoInjectable} from "tsyringe-neo";
+import {autoInjectable} from 'tsyringe-neo';
 
 /**
  * ConfigManager cache command flag values so that user doesn't need to enter the same values repeatedly.

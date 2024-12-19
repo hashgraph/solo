@@ -36,12 +36,12 @@ import {MirrorNodeExplorerComponent} from '../../../../src/core/config/remote/co
 import {EnvoyProxyComponent} from '../../../../src/core/config/remote/components/envoy_proxy_component.js';
 
 import type {NodeAlias, NodeAliases} from '../../../../src/types/aliases.js';
-import {container} from "tsyringe-neo";
+import {container} from 'tsyringe-neo';
 
 describe('RemoteConfigValidator', () => {
   const namespace = 'remote-config-validator';
 
-  const configManager = container.resolve(ConfigManager)
+  const configManager = container.resolve(ConfigManager);
   configManager.update({[flags.namespace.name]: namespace});
   const k8 = container.resolve(K8);
 

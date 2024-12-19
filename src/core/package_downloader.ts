@@ -32,7 +32,7 @@ import {Templates} from './templates.js';
 import * as constants from './constants.js';
 import {SoloLogger} from './logging.js';
 import {StatusCodes} from 'http-status-codes';
-import {autoInjectable} from "tsyringe-neo";
+import {autoInjectable} from 'tsyringe-neo';
 
 @autoInjectable()
 export class PackageDownloader {

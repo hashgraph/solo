@@ -27,11 +27,11 @@ import * as logging from '../../../src/core/logging.js';
 import {IllegalArgumentError, MissingArgumentError} from '../../../src/core/errors.js';
 import {getK8Instance} from '../../test_util.js';
 import type {PodName} from '../../../src/types/aliases.js';
-import {container} from "tsyringe-neo";
+import {container} from 'tsyringe-neo';
 
 describe('PackageInstaller', () => {
   const testLogger = logging.NewLogger('debug', true);
-  const configManager = container.resolve(ConfigManager)
+  const configManager = container.resolve(ConfigManager);
 
   const k8 = getK8Instance(configManager);
 

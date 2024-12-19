@@ -19,8 +19,8 @@ import yargs from 'yargs';
 import {hideBin} from 'yargs/helpers';
 import 'dotenv/config';
 import path from 'path';
-import "reflect-metadata";
-import './core/container_init.js'
+import 'reflect-metadata';
+import './core/container_init.js';
 import {ListrLogger} from 'listr2';
 
 import {Flags as flags} from './commands/flags.js';
@@ -46,11 +46,11 @@ import {CustomProcessOutput} from './core/process_output.js';
 import {type Opts} from './types/command_types.js';
 import {IntervalLeaseRenewalService} from './core/lease/interval_lease_renewal.js';
 import {type LeaseRenewalService} from './core/lease/lease.js';
-import {container} from "tsyringe-neo";
-import {SoloLogger} from "./core/logging.js";
+import {container} from 'tsyringe-neo';
+import {SoloLogger} from './core/logging.js';
 
 export function main(argv: any) {
-  const logger = container.resolve(SoloLogger)
+  const logger = container.resolve(SoloLogger);
   constants.LISTR_DEFAULT_RENDERER_OPTION.logger = new ListrLogger({processOutput: new CustomProcessOutput(logger)});
   if (argv.length >= 3 && ['-version', '--version', '-v', '--v'].includes(argv[2])) {
     logger.showUser(chalk.cyan('\n******************************* Solo *********************************************'));
@@ -61,19 +61,16 @@ export function main(argv: any) {
 
   try {
     // prepare dependency manger registry
-    const downloader = container.resolve(PackageDownloader)
-    const zippy = container.resolve(Zippy)
-    const helmDepManager = container.resolve(HelmDependencyManager)
-    const depManager = container.resolve(DependencyManager)
-    const helm = container.resolve(Helm)
+    const downloader = container.resolve(PackageDownloader);
+    const depManager = container.resolve(DependencyManager);
+    const helm = container.resolve(Helm);
     const chartManager = container.resolve(ChartManager);
-    const configManager = container.resolve(ConfigManager)
+    const configManager = container.resolve(ConfigManager);
     const k8 = container.resolve(K8);
     const accountManager = container.resolve(AccountManager);
     const platformInstaller = container.resolve(PlatformInstaller);
     const keyManager = container.resolve(KeyManager);
     const profileManager = container.resolve(ProfileManager);
-    const leaseRenewalService: LeaseRenewalService = container.resolve(IntervalLeaseRenewalService);
     const leaseManager = container.resolve(LeaseManager);
     const certificateManager = container.resolve(CertificateManager);
     const localConfigPath = path.join(constants.SOLO_CACHE_DIR, constants.DEFAULT_LOCAL_CONFIG_FILE);

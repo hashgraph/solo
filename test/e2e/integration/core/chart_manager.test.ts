@@ -21,7 +21,7 @@ import * as constants from '../../../../src/core/constants.js';
 import {Helm} from '../../../../src/core/helm.js';
 import {ChartManager} from '../../../../src/core/chart_manager.js';
 import {testLogger} from '../../../test_util.js';
-import {container} from "tsyringe-neo";
+import {container} from 'tsyringe-neo';
 
 describe('ChartManager', () => {
   const chartManager = container.resolve(ChartManager);

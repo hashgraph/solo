@@ -19,8 +19,8 @@ import {SoloError} from '../errors.js';
 import {ShellRunner} from '../shell_runner.js';
 import {HelmDependencyManager} from './helm_dependency_manager.js';
 import {type ListrTask} from 'listr2';
-import {autoInjectable} from "tsyringe-neo";
-import * as constants from "../constants.js";
+import {autoInjectable} from 'tsyringe-neo';
+import * as constants from '../constants.js';
 
 @autoInjectable()
 export class DependencyManager extends ShellRunner {

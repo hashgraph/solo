@@ -19,7 +19,7 @@ import {Helm} from './helm.js';
 import chalk from 'chalk';
 import {SoloError} from './errors.js';
 import {SoloLogger} from './logging.js';
-import {autoInjectable} from "tsyringe-neo";
+import {autoInjectable} from 'tsyringe-neo';
 
 @autoInjectable()
 export class ChartManager {

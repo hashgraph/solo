@@ -33,7 +33,7 @@ import {type ContextClusterStructure} from '../../../types/config_types.js';
 import {type EmptyContextConfig, type Optional, type SoloListrTask} from '../../../types/index.js';
 import type * as k8s from '@kubernetes/client-node';
 import {StatusCodes} from 'http-status-codes';
-import {autoInjectable} from "tsyringe-neo";
+import {autoInjectable} from 'tsyringe-neo';
 
 interface ListrContext {
   config: {contextCluster: ContextClusterStructure};

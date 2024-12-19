@@ -18,7 +18,7 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 import * as util from 'util';
-import {IllegalArgumentError, MissingArgumentError} from '../errors.js';
+import {MissingArgumentError} from '../errors.js';
 import * as helpers from '../helpers.js';
 import * as constants from '../constants.js';
 import {PackageDownloader} from '../package_downloader.js';
@@ -28,8 +28,7 @@ import * as version from '../../../version.js';
 import {ShellRunner} from '../shell_runner.js';
 import * as semver from 'semver';
 import {OS_WIN32, OS_WINDOWS} from '../constants.js';
-import {type SoloLogger} from '../logging.js';
-import {autoInjectable, container, singleton} from "tsyringe-neo";
+import {container, singleton} from 'tsyringe-neo';
 
 // constants required by HelmDependencyManager
 const HELM_RELEASE_BASE_URL = 'https://get.helm.sh';

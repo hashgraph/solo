@@ -22,7 +22,7 @@ import {type Lease, LeaseRenewalService} from './lease.js';
 import {IntervalLease} from './interval_lease.js';
 import {LeaseHolder} from './lease_holder.js';
 import {LeaseAcquisitionError} from './lease_errors.js';
-import {autoInjectable} from "tsyringe-neo";
+import {autoInjectable} from 'tsyringe-neo';
 
 /**
  * Manages the acquisition and renewal of leases.
@@ -41,7 +41,7 @@ export class LeaseManager {
     private readonly _renewalService?: LeaseRenewalService,
     private readonly _logger?: SoloLogger,
     private readonly k8?: K8,
-    private readonly configManager?: ConfigManager
+    private readonly configManager?: ConfigManager,
   ) {}
 
   /**

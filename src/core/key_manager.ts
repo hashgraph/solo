@@ -27,7 +27,7 @@ import chalk from 'chalk';
 import {type NodeAlias, type NodeAliases} from '../types/aliases.js';
 import {type NodeKeyObject, type PrivateKeyAndCertificateObject} from '../types/index.js';
 import type {ListrTask} from 'listr2';
-import {autoInjectable} from "tsyringe-neo";
+import {autoInjectable} from 'tsyringe-neo';
 
 // @ts-ignore
 x509.cryptoProvider.set(crypto);

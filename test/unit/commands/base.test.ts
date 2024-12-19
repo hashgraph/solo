@@ -16,13 +16,10 @@
  */
 import {expect} from 'chai';
 
-import {HelmDependencyManager, DependencyManager} from '../../../src/core/dependency_managers/index.js';
+import {DependencyManager} from '../../../src/core/dependency_managers/index.js';
 import {Helm} from '../../../src/core/helm.js';
 import {ChartManager} from '../../../src/core/chart_manager.js';
 import {ConfigManager} from '../../../src/core/config_manager.js';
-import {PackageDownloader} from '../../../src/core/package_downloader.js';
-import {Zippy} from '../../../src/core/zippy.js';
-import * as constants from '../../../src/core/constants.js';
 import {LocalConfig} from '../../../src/core/config/local_config.js';
 import {RemoteConfigManager} from '../../../src/core/config/remote/remote_config_manager.js';
 import {K8} from '../../../src/core/k8.js';
@@ -32,14 +29,14 @@ import {Flags as flags} from '../../../src/commands/flags.js';
 import sinon from 'sinon';
 import path from 'path';
 import {BASE_TEST_DIR} from '../../test_util.js';
-import {container} from "tsyringe-neo";
+import {container} from 'tsyringe-neo';
 
 const testLogger = logging.NewLogger('debug', true);
 
 describe('BaseCommand', () => {
   const helm = container.resolve(Helm);
   const chartManager = container.resolve(ChartManager);
-  const configManager = container.resolve(ConfigManager)
+  const configManager = container.resolve(ConfigManager);
 
   const depManager = container.resolve(DependencyManager);
   const localConfig = new LocalConfig(path.join(BASE_TEST_DIR, 'local-config.yaml'));

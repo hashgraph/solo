@@ -18,15 +18,13 @@ import os from 'os';
 import * as constants from './constants.js';
 import {ShellRunner} from './shell_runner.js';
 import {Templates} from './templates.js';
-import {singleton} from "tsyringe-neo";
+import {singleton} from 'tsyringe-neo';
 
 @singleton()
 export class Helm extends ShellRunner {
   private readonly helmPath: string;
 
-  constructor(
-    private readonly osPlatform: NodeJS.Platform = os.platform(),
-  ) {
+  constructor(private readonly osPlatform: NodeJS.Platform = os.platform()) {
     super();
     this.helmPath = Templates.installationPath(constants.HELM, this.osPlatform);
   }

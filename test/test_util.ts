@@ -60,7 +60,7 @@ import {Zippy} from '../src/core/zippy.js';
 import {HEDERA_PLATFORM_VERSION} from '../version.js';
 import {IntervalLeaseRenewalService} from '../src/core/lease/interval_lease_renewal.js';
 import {Duration} from '../src/core/time/duration.js';
-import {container} from "tsyringe-neo";
+import {container} from 'tsyringe-neo';
 
 export const testLogger = logging.NewLogger('debug', true);
 export const TEST_CLUSTER = 'solo-e2e';
@@ -138,7 +138,7 @@ export function bootstrapTestVariables(
 ): BootstrapResponse {
   const namespace: string = argv[flags.namespace.name] || 'bootstrap-ns';
   const cacheDir: string = argv[flags.cacheDir.name] || getTestCacheDir(testName);
-  const configManager = container.resolve(ConfigManager)
+  const configManager = container.resolve(ConfigManager);
   configManager.update(argv);
 
   const downloader = container.resolve(PackageDownloader);

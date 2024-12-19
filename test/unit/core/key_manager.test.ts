@@ -25,7 +25,7 @@ import * as constants from '../../../src/core/constants.js';
 import * as logging from '../../../src/core/logging.js';
 import type {NodeAlias} from '../../../src/types/aliases.js';
 import {Duration} from '../../../src/core/time/duration.js';
-import {container} from "tsyringe-neo";
+import {container} from 'tsyringe-neo';
 
 describe('KeyManager', () => {
   const logger = logging.NewLogger('debug', true);

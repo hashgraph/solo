@@ -1,24 +1,39 @@
-import {container} from "tsyringe-neo";
-import {SoloLogger} from "./logging.js";
-import {PackageDownloader} from "./package_downloader.js";
-import {Zippy} from "./zippy.js";
-import {DependencyManager, HelmDependencyManager} from "./dependency_managers/index.js";
-import * as constants from "./constants.js";
-import {Helm} from "./helm.js";
-import {ChartManager} from "./chart_manager.js";
-import {ConfigManager} from "./config_manager.js";
-import {K8} from "./k8.js";
-import {AccountManager} from "./account_manager.js";
-import {PlatformInstaller} from "./platform_installer.js";
-import {KeyManager} from "./key_manager.js";
-import {ProfileManager} from "./profile_manager.js";
-import type {LeaseRenewalService} from "./lease/lease.js";
-import {IntervalLeaseRenewalService} from "./lease/interval_lease_renewal.js";
-import {LeaseManager} from "./lease/lease_manager.js";
-import {CertificateManager} from "./certificate_manager.js";
-import path from "path";
-import {LocalConfig} from "./config/local_config.js";
-import {RemoteConfigManager} from "./config/remote/remote_config_manager.js";
+/**
+ * Copyright (C) 2024 Hedera Hashgraph, LLC
+ *
+ * Licensed under the Apache License, Version 2.0 (the ""License"");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an ""AS IS"" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ */
+import {container} from 'tsyringe-neo';
+import {SoloLogger} from './logging.js';
+import {PackageDownloader} from './package_downloader.js';
+import {Zippy} from './zippy.js';
+import {DependencyManager, HelmDependencyManager} from './dependency_managers/index.js';
+import * as constants from './constants.js';
+import {Helm} from './helm.js';
+import {ChartManager} from './chart_manager.js';
+import {ConfigManager} from './config_manager.js';
+import {K8} from './k8.js';
+import {AccountManager} from './account_manager.js';
+import {PlatformInstaller} from './platform_installer.js';
+import {KeyManager} from './key_manager.js';
+import {ProfileManager} from './profile_manager.js';
+import {IntervalLeaseRenewalService} from './lease/interval_lease_renewal.js';
+import {LeaseManager} from './lease/lease_manager.js';
+import {CertificateManager} from './certificate_manager.js';
+import path from 'path';
+import {LocalConfig} from './config/local_config.js';
+import {RemoteConfigManager} from './config/remote/remote_config_manager.js';
 
 container.register<SoloLogger>(SoloLogger, {useValue: new SoloLogger('debug', false)});
 container.register<PackageDownloader>(PackageDownloader, {useValue: new PackageDownloader()});
@@ -33,11 +48,13 @@ container.register<AccountManager>(AccountManager, {useValue: new AccountManager
 container.register<PlatformInstaller>(PlatformInstaller, {useValue: new PlatformInstaller()});
 container.register<KeyManager>(KeyManager, {useValue: new KeyManager()});
 container.register<ProfileManager>(ProfileManager, {useValue: new ProfileManager()});
-container.register<IntervalLeaseRenewalService>(IntervalLeaseRenewalService, {useValue: new IntervalLeaseRenewalService()});
-container.register<LeaseManager>(LeaseManager, {useValue: new LeaseManager(container.resolve(IntervalLeaseRenewalService))});
+container.register<IntervalLeaseRenewalService>(IntervalLeaseRenewalService, {
+  useValue: new IntervalLeaseRenewalService(),
+});
+container.register<LeaseManager>(LeaseManager, {
+  useValue: new LeaseManager(container.resolve(IntervalLeaseRenewalService)),
+});
 container.register<CertificateManager>(CertificateManager, {useValue: new CertificateManager()});
-
 const localConfigPath = path.join(constants.SOLO_CACHE_DIR, constants.DEFAULT_LOCAL_CONFIG_FILE);
 container.register<LocalConfig>(LocalConfig, {useValue: new LocalConfig(localConfigPath)});
-
-const remoteConfigManager = container.resolve(RemoteConfigManager);
+container.register<RemoteConfigManager>(RemoteConfigManager, {useValue: new RemoteConfigManager()});

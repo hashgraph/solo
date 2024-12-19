@@ -20,7 +20,7 @@ import * as util from 'util';
 import chalk from 'chalk';
 import path from 'path';
 import * as constants from './constants.js';
-import {injectable, singleton} from "tsyringe-neo";
+import {singleton} from 'tsyringe-neo';
 
 const customFormat = winston.format.combine(
   winston.format.label({label: 'SOLO', message: false}),

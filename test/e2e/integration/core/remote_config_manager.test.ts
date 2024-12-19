@@ -29,7 +29,7 @@ import path from 'path';
 import {SoloError} from '../../../../src/core/errors.js';
 import {RemoteConfigDataWrapper} from '../../../../src/core/config/remote/remote_config_data_wrapper.js';
 import {Duration} from '../../../../src/core/time/duration.js';
-import {container} from "tsyringe-neo";
+import {container} from 'tsyringe-neo';
 
 const defaultTimeout = Duration.ofSeconds(20).toMillis();
 

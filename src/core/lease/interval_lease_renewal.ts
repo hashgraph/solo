@@ -16,7 +16,7 @@
  */
 import {type Lease, type LeaseRenewalService} from './lease.js';
 import {Duration} from '../time/duration.js';
-import {autoInjectable} from "tsyringe-neo";
+import {autoInjectable} from 'tsyringe-neo';
 
 /**
  * Implements a lease renewal service which utilizes a setInterval() based approach to renew leases at regular intervals.

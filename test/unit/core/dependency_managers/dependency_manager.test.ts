@@ -17,12 +17,9 @@
 import {expect} from 'chai';
 import {describe, it} from 'mocha';
 
-import {DependencyManager, HelmDependencyManager} from '../../../../src/core/dependency_managers/index.js';
-import {PackageDownloader} from '../../../../src/core/package_downloader.js';
-import {Zippy} from '../../../../src/core/zippy.js';
-import * as constants from '../../../../src/core/constants.js';
+import {DependencyManager} from '../../../../src/core/dependency_managers/index.js';
 import * as logging from '../../../../src/core/logging.js';
-import {container} from "tsyringe-neo";
+import {container} from 'tsyringe-neo';
 
 const testLogger = logging.NewLogger('debug', true);
 describe('DependencyManager', () => {

@@ -25,14 +25,14 @@ import {sleep} from '../../../../src/core/helpers.js';
 import {IntervalLeaseRenewalService} from '../../../../src/core/lease/interval_lease_renewal.js';
 import {type V1Lease} from '@kubernetes/client-node';
 import {Duration} from '../../../../src/core/time/duration.js';
-import {container} from "tsyringe-neo";
+import {container} from 'tsyringe-neo';
 
 const defaultTimeout = Duration.ofMinutes(2).toMillis();
 const leaseDuration = 4;
 
 describe('LeaseRenewalService', async () => {
   const testLogger = logging.NewLogger('debug', true);
-  const configManager = container.resolve(ConfigManager)
+  const configManager = container.resolve(ConfigManager);
   const k8 = container.resolve(K8);
   const renewalService = container.resolve(IntervalLeaseRenewalService);
   const testNamespace = 'lease-renewal-e2e';

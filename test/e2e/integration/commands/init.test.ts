@@ -36,7 +36,7 @@ import {IntervalLeaseRenewalService} from '../../../../src/core/lease/interval_l
 import path from 'path';
 import {BASE_TEST_DIR} from '../../../test_util.js';
 import {Duration} from '../../../../src/core/time/duration.js';
-import {container} from "tsyringe-neo";
+import {container} from 'tsyringe-neo';
 
 const testLogger = logging.NewLogger('debug', true);
 describe('InitCommand', () => {
@@ -50,7 +50,7 @@ describe('InitCommand', () => {
   const helm = container.resolve(Helm);
   const chartManager = container.resolve(ChartManager);
 
-  const configManager = container.resolve(ConfigManager)
+  const configManager = container.resolve(ConfigManager);
   let k8: K8;
   let localConfig: LocalConfig;
 

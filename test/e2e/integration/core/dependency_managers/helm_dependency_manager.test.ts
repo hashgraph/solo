@@ -73,11 +73,7 @@ describe('HelmDependencyManager', () => {
       //   input.osPlatform,
       //   input.osArch,
       // );
-      const helmDependencyManager = new HelmDependencyManager(
-        tmpDir,
-        input.osPlatform,
-        input.osArch,
-      );
+      const helmDependencyManager = new HelmDependencyManager(tmpDir, input.osPlatform, input.osArch);
 
       if (fs.existsSync(tmpDir)) {
         fs.rmSync(tmpDir, {recursive: true});

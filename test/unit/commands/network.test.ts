@@ -40,7 +40,7 @@ import {ProfileManager} from '../../../src/core/profile_manager.js';
 import {KeyManager} from '../../../src/core/key_manager.js';
 import {ROOT_DIR} from '../../../src/core/constants.js';
 import {ListrLease} from '../../../src/core/lease/listr_lease.js';
-import {container} from "tsyringe-neo";
+import {container} from 'tsyringe-neo';
 
 const getBaseCommandOpts = () => ({
   logger: sinon.stub(),
@@ -102,7 +102,7 @@ describe('NetworkCommand unit tests', () => {
       opts.profileManager.prepareValuesForSoloChart = sinon.stub();
       opts.certificateManager = sinon.stub();
 
-      opts.chartManager = container.resolve(ChartManager)
+      opts.chartManager = container.resolve(ChartManager);
       opts.chartManager.isChartInstalled = sinon.stub().returns(true);
       opts.chartManager.isChartInstalled.onSecondCall().returns(false);
 

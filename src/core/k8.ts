@@ -37,7 +37,7 @@ import {type PodName, type TarCreateFilter} from '../types/aliases.js';
 import type {ExtendedNetServer, LocalContextObject} from '../types/index.js';
 import {HEDERA_HAPI_PATH, ROOT_CONTAINER, SOLO_LOGS_DIR} from './constants.js';
 import {Duration} from './time/duration.js';
-import {autoInjectable, container} from "tsyringe-neo";
+import {autoInjectable, container} from 'tsyringe-neo';
 
 interface TDirectoryData {
   directory: boolean;

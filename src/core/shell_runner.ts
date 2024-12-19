@@ -17,7 +17,7 @@
 import {spawn} from 'child_process';
 import chalk from 'chalk';
 import {SoloLogger} from './logging.js';
-import {autoInjectable} from "tsyringe-neo";
+import {autoInjectable} from 'tsyringe-neo';
 
 @autoInjectable()
 export class ShellRunner {

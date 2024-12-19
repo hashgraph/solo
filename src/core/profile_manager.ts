@@ -31,7 +31,7 @@ import * as helpers from './helpers.js';
 import {getNodeAccountMap} from './helpers.js';
 import {SoloLogger} from './logging.js';
 import type {NodeAlias, NodeAliases} from '../types/aliases.js';
-import {container, singleton} from "tsyringe-neo";
+import {container, singleton} from 'tsyringe-neo';
 
 const consensusSidecars = [
   'recordStreamUploader',

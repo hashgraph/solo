@@ -30,12 +30,16 @@ import {SoloLogger} from './logging.js';
 import type {NodeAlias, NodeAliases, PodName} from '../types/aliases.js';
 import {Duration} from './time/duration.js';
 import {sleep} from './helpers.js';
-import {autoInjectable} from "tsyringe-neo";
+import {autoInjectable} from 'tsyringe-neo';
 
 /** PlatformInstaller install platform code in the root-container of a network pod */
 @autoInjectable()
 export class PlatformInstaller {
-  constructor(private logger?: SoloLogger, private k8?: K8, private configManager?: ConfigManager) {}
+  constructor(
+    private logger?: SoloLogger,
+    private k8?: K8,
+    private configManager?: ConfigManager,
+  ) {}
 
   private _getNamespace(): string {
     const ns = this.configManager.getFlag<string>(flags.namespace) as string;

@@ -31,7 +31,6 @@ import {type CommandFlag} from '../types/flag_types.js';
 import {type Lease} from '../core/lease/lease.js';
 import {Listr} from 'listr2';
 import path from 'path';
-import {container, injectable} from "tsyringe-neo";
 
 export interface CommandHandlers {
   parent: BaseCommand;
