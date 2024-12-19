@@ -13,10 +13,10 @@ if [ -z "${GCS_SECRET_KEY}" ]; then
   exit 1
 fi
 
-if [ -z "${BUCKET_PREFIX}" ]; then
+if [ -z "${BUCKET_NAME}" ]; then
   streamBucket="solo-ci-test-streams"
 else
-  streamBucket="${BUCKET_PREFIX}-solo-ci-test-streams"
+  streamBucket=${BUCKET_NAME}"
 fi
 
 echo "Generate GCS credentials to file gcs_values.yaml"

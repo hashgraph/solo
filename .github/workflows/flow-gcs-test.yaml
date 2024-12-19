@@ -47,15 +47,17 @@ jobs:
         uses: google-github-actions/auth@6fc4af4b145ae7821d527454aa9bd537d1f2dc5f # v2.1.7
         with:
           workload_identity_provider: 'projects/785813846068/locations/global/workloadIdentityPools/jrs-identity-pool/providers/gh-provider'
-          service_account: 'swirlds-automation@swirlds-regression.iam.gserviceaccount.com'
+          service_account: ${{ vars.GCP_S3_SERVICE_ACCOUNT }}
 
       - name: Setup Google Cloud SDK
         uses: google-github-actions/setup-gcloud@6189d56e4096ee891640bb02ac264be376592d6a # v2.1.2
 
       - name: Create GCS bucket
-        # use gstuil to create a bucket and job runner id as prefix
+        # create a new bucket and use job runner id as prefix
         run: |
-          gcloud storage buckets create gs://${{ runner.job_run_id }}-solo-streams --project=solo-test
+          export BUCKET_NAME=${{ runner.job_run_id }}-solo-streams
+          gcloud storage buckets create gs://${BUCKET_NAME} --project=${{ vars.GCP_S3_PROJECT_ID }}
+          echo "BUCKET_NAME=${BUCKET_NAME}" >> $GITHUB_ENV
 
       - name: Setup Node
         uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4.1.0
@@ -84,10 +86,10 @@ jobs:
         env:
           GCS_ACCESS_KEY: ${{ secrets.GCP_S3_ACCESS_KEY }}
           GCS_SECRET_KEY: ${{ secrets.GCP_S3_SECRET_KEY }}
-          BUCKET_PREFIX: ${{ runner.job_run_id }}
+          BUCKET_NAME: ${{ env.BUCKET_NAME }}
         run: |
           .github/workflows/script/gcs_test.sh
 
       - name: Delete Bucket after Test
         run: |
-          gcloud storage buckets delete gs://${{ runner.job_run_id }}-solo-streams --project=solo-test --force
+          gcloud storage buckets delete gs://${BUCKET_NAME} --project=${{ vars.GCP_S3_PROJECT_ID }} --force
