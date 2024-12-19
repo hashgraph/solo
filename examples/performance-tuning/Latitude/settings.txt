@@ -1,0 +1,16 @@
+checkSignedStateFromDisk,                      1
+csvFileName,                                   MainNetStats
+doUpnp,                                        false
+loadKeysFromPfxFiles,                          0
+maxOutgoingSyncs,                              1
+reconnect.active,                              1
+reconnect.reconnectWindowSeconds,              -1
+showInternalStats,                             1
+state.saveStatePeriod,                         300
+useLoopbackIp,                                 false
+waitAtStartup,                                 false
+state.mainClassNameOverride,                   com.hedera.services.ServicesMain
+maxEventQueueForCons,                          1000
+merkleDb.hashesRamToDiskThreshold,             8388608
+event.creation.maxCreationRate,                20
+virtualMap.familyThrottleThreshold,            6000000000

@@ -203,7 +203,7 @@ export class NetworkCommand extends BaseCommand {
 
   async prepareConfig(task: any, argv: any) {
     this.configManager.update(argv);
-    this.logger.debug('Loaded cached config', {config: this.configManager.config});
+    this.logger.debug('Updated config with argv', {config: this.configManager.config});
 
     // disable the prompts that we don't want to prompt the user for
     flags.disablePrompts([
@@ -712,9 +712,10 @@ export class NetworkCommand extends BaseCommand {
                 y,
                 flags.deletePvcs,
                 flags.deleteSecrets,
+                flags.enableTimeout,
                 flags.force,
                 flags.namespace,
-                flags.enableTimeout,
+                flags.quiet,
               ),
             handler: (argv: any) => {
               self.logger.debug("==== Running 'network destroy' ===");

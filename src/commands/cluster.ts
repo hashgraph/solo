@@ -307,6 +307,7 @@ export class ClusterCommand extends BaseCommand {
                 flags.deployCertManagerCrds,
                 flags.deployMinio,
                 flags.deployPrometheusStack,
+                flags.quiet,
                 flags.soloChartVersion,
               ),
             handler: (argv: any) => {
@@ -328,7 +329,8 @@ export class ClusterCommand extends BaseCommand {
           .command({
             command: 'reset',
             desc: 'Uninstall shared components from cluster',
-            builder: (y: any) => flags.setCommandFlags(y, flags.clusterName, flags.clusterSetupNamespace, flags.force),
+            builder: (y: any) =>
+              flags.setCommandFlags(y, flags.clusterName, flags.clusterSetupNamespace, flags.force, flags.quiet),
             handler: (argv: any) => {
               self.logger.debug("==== Running 'cluster reset' ===", {argv});
 
