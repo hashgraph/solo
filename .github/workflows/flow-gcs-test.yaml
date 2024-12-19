@@ -15,7 +15,6 @@
 ##
 
 name: "Test GCS as bucket storage"
-# The purpose of this reusable workflow is to make sure task files are working as expected.
 
 on:
   workflow_dispatch:
@@ -34,7 +33,7 @@ permissions:
   actions: read
 
 jobs:
-  example-task-file-test:
+  gcs-storage-test:
     timeout-minutes: 20
     runs-on: solo-linux-large
     steps:
@@ -58,11 +57,9 @@ jobs:
         uses: google-github-actions/setup-gcloud@6189d56e4096ee891640bb02ac264be376592d6a # v2.1.2
 
       - name: Create GCS bucket
-        # use gstuil to create a bucket
-        # use job runner id as prefix
+        # use gstuil to create a bucket and job runner id as prefix
         run: |
           gcloud storage buckets create gs://${{ runner.job_run_id }}-solo-streams --project=solo-test
-          
 
       - name: Setup Node
         uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4.1.0
@@ -87,7 +84,7 @@ jobs:
       - name: Compile Project
         run: npm run build
 
-      - name: Run Example Task File Test
+      - name: Run GCS Test Script
         env:
           GCS_ACCESS_KEY: ${{ secrets.GCS_ACCESS_KEY }}
           GCS_SECRET_KEY: ${{ secrets.GCS_SECRET_KEY }}

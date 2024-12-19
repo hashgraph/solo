@@ -29,7 +29,6 @@ echo '    GCS_ACCESS_KEY: "'${GCS_ACCESS_KEY}'"' >> gcs_values.yaml
 echo '    GCS_SECRET_KEY: "'${GCS_SECRET_KEY}'"' >> gcs_values.yaml
 echo '    endpoint: "https://storage.googleapis.com"' >> gcs_values.yaml
 
-
 SOLO_CLUSTER_NAME=solo-e2e
 SOLO_NAMESPACE=solo-e2e
 SOLO_CLUSTER_SETUP_NAMESPACE=solo-setup
