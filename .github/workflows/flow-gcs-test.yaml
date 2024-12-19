@@ -19,11 +19,7 @@ name: "Test GCS as bucket storage"
 on:
   workflow_dispatch:
   workflow_call:
-  pull_request:
-    types:
-      - opened
-      - reopened
-      - synchronize
+
 defaults:
   run:
     shell: bash
