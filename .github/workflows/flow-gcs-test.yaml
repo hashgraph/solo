@@ -57,7 +57,7 @@ jobs:
         id: jobs
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          job_name: "Retrieve Job ID"
+          job_name: "gcs-storage-test"
 
       - name: Create GCS bucket
         # create a new bucket and use job runner id as prefix
