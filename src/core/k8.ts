@@ -25,8 +25,6 @@ import * as tar from 'tar';
 import {v4 as uuid4} from 'uuid';
 import {type V1Lease, V1ObjectMeta, V1Secret, type Context, type V1Pod} from '@kubernetes/client-node';
 import * as stream from 'node:stream';
-import type * as http from 'node:http';
-import type * as WebSocket from 'ws';
 import {getReasonPhrase, StatusCodes} from 'http-status-codes';
 
 import {sleep} from './helpers.js';
