@@ -310,6 +310,10 @@ export class NodeCommandTasks {
       config: {namespace},
     } = ctx;
 
+    if (nodeAliases.length === 0 || !nodeAliases) {
+      throw new MissingArgumentError('nodeAliases is empty or undefined');
+    }
+
     const subTasks = nodeAliases.map((nodeAlias, i) => {
       const reminder =
         'debugNodeAlias' in ctx.config &&
@@ -579,7 +583,13 @@ export class NodeCommandTasks {
       'Prepare upgrade zip file for node upgrade process',
       async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
         const config = ctx.config;
-        ctx.upgradeZipFile = await self._prepareUpgradeZip(config.stagingDir);
+        const {upgradeZipFile} = ctx.config;
+        if (upgradeZipFile !== undefined) {
+          this.logger.debug(`Using upgrade zip file: ${ctx.upgradeZipFile}`);
+          ctx.upgradeZipFile = upgradeZipFile;
+        } else {
+          ctx.upgradeZipFile = await self._prepareUpgradeZip(config.stagingDir);
+        }
         ctx.upgradeZipHash = await self._uploadUpgradeZip(ctx.upgradeZipFile, config.nodeClient);
       },
     );
@@ -976,7 +986,7 @@ export class NodeCommandTasks {
   }
 
   checkAllNodesAreFrozen(nodeAliasesProperty: string) {
-    return new Task('Check all nodes are ACTIVE', (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
+    return new Task('Check all nodes are frozen', (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
       return this._checkNodeActivenessTask(ctx, task, ctx.config[nodeAliasesProperty], NodeStatusCodes.FREEZE_COMPLETE);
     });
   }

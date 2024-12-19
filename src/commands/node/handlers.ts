@@ -30,6 +30,7 @@ import {
   statesConfigBuilder,
   stopConfigBuilder,
   updateConfigBuilder,
+  upgradeConfigBuilder,
 } from './configs.js';
 import * as constants from '../../core/constants.js';
 import {type AccountManager} from '../../core/account_manager.js';
@@ -241,10 +242,36 @@ export class NodeCommandHandlers implements CommandHandlers {
     ];
   }
 
+  upgradeExecuteTasks(argv) {
+    return [
+      this.tasks.identifyExistingNodes(),
+      this.tasks.checkAllNodesAreFrozen('existingNodeAliases'),
+      this.tasks.prepareStagingDirectory('allNodeAliases'),
+      this.tasks.copyNodeKeysToSecrets(),
+
+      // this.tasks.getNodeLogsAndConfigs(),
+      // this.tasks.updateChartWithConfigMap(
+      //   'Update chart to use new configMap due to account number change',
+      //   NodeSubcommandType.UPDATE,
+      //   (ctx: any) => !ctx.config.newAccountNumber && !ctx.config.debugNodeAlias,
+      // ),
+      // this.tasks.killNodesAndUpdateConfigMap(),
+      this.tasks.checkNodePodsAreRunning(),
+      // this.tasks.fetchPlatformSoftware('allNodeAliases'),
+      // this.tasks.setupNetworkNodes('allNodeAliases'),
+      this.tasks.startNodes('allNodeAliases'),
+      this.tasks.enablePortForwarding(),
+      this.tasks.checkAllNodesAreActive('allNodeAliases'),
+      this.tasks.checkAllNodeProxiesAreActive(),
+      this.tasks.triggerStakeWeightCalculate(NodeSubcommandType.UPDATE),
+      this.tasks.finalize(),
+    ];
+  }
+
   /** ******** Handlers **********/
 
   async prepareUpgrade(argv: any) {
-    argv = helpers.addFlagsToArgv(argv, NodeFlags.DEFAULT_FLAGS);
+    argv = helpers.addFlagsToArgv(argv, NodeFlags.UPGRADE_FLAGS);
 
     const lease = await this.leaseManager.create();
 
@@ -372,6 +399,27 @@ export class NodeCommandHandlers implements CommandHandlers {
         rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION,
       },
       'Error in submitting transactions for node update',
+      lease,
+    );
+
+    await action(argv, this);
+    return true;
+  }
+
+  async upgradeExecute(argv) {
+    const lease = await this.leaseManager.create();
+    argv = helpers.addFlagsToArgv(argv, NodeFlags.UPGRADE_FLAGS);
+    const action = this.parent.commandActionBuilder(
+      [
+        this.tasks.initialize(argv, upgradeConfigBuilder.bind(this), lease),
+        RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
+        ...this.upgradeExecuteTasks(argv),
+      ],
+      {
+        concurrent: false,
+        rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION,
+      },
+      'Error in executing node update',
       lease,
     );
 

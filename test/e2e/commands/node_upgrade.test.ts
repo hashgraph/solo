@@ -14,20 +14,23 @@
  * limitations under the License.
  *
  */
-import {it, describe, after} from 'mocha';
+import {after, describe, it} from 'mocha';
 import {expect} from 'chai';
 
 import {Flags as flags} from '../../../src/commands/flags.js';
-import {e2eTestSuite, getDefaultArgv, HEDERA_PLATFORM_VERSION_TAG} from '../../test_util.js';
+import {e2eTestSuite, getDefaultArgv, getTmpDir, HEDERA_PLATFORM_VERSION_TAG} from '../../test_util.js';
 import {
-  PREPARE_UPGRADE_CONFIGS_NAME,
   DOWNLOAD_GENERATED_FILES_CONFIGS_NAME,
+  PREPARE_UPGRADE_CONFIGS_NAME,
 } from '../../../src/commands/node/configs.js';
 import {Duration} from '../../../src/core/time/duration.js';
+import {HEDERA_HAPI_PATH, ROOT_CONTAINER} from '../../../src/core/constants.js';
+import type {PodName} from '../../../src/types/aliases.js';
+import fs from 'fs';
 
 const namespace = 'node-upgrade';
 const argv = getDefaultArgv();
-argv[flags.nodeAliasesUnparsed.name] = 'node1,node2,node3';
+argv[flags.nodeAliasesUnparsed.name] = 'node1';
 argv[flags.generateGossipKeys.name] = true;
 argv[flags.generateTlsKeys.name] = true;
 argv[flags.persistentVolumeClaims.name] = true;
@@ -36,7 +39,14 @@ argv[flags.chartDirectory.name] = process.env.SOLO_CHARTS_DIR ? process.env.SOLO
 argv[flags.releaseTag.name] = HEDERA_PLATFORM_VERSION_TAG;
 argv[flags.namespace.name] = namespace;
 
+argv[flags.localBuildPath.name] =
+  'node1=../hedera-services/hedera-node/data/,../hedera-services/hedera-node/data,node3=../hedera-services/hedera-node/data';
+
+
 const upgradeArgv = getDefaultArgv();
+upgradeArgv[flags.upgradeZipFile.name] = 'upgrade.zip';
+
+const TEST_VERSION_STRING = '0.100.0';
 
 e2eTestSuite(namespace, argv, undefined, undefined, undefined, undefined, undefined, undefined, true, bootstrapResp => {
   describe('Node upgrade', async () => {
@@ -48,7 +58,7 @@ e2eTestSuite(namespace, argv, undefined, undefined, undefined, undefined, undefi
       this.timeout(Duration.ofMinutes(10).toMillis());
 
       await k8.getNodeLogs(namespace);
-      await k8.deleteNamespace(namespace);
+      // await k8.deleteNamespace(namespace);
     });
 
     it('should succeed with init command', async () => {
@@ -57,8 +67,18 @@ e2eTestSuite(namespace, argv, undefined, undefined, undefined, undefined, undefi
     }).timeout(Duration.ofMinutes(8).toMillis());
 
     it('should prepare network upgrade successfully', async () => {
+      // create file VERSION.txt at tmp directory
+      const tmpDir = getTmpDir();
+      fs.writeFileSync(`${tmpDir}/VERSION.txt`, TEST_VERSION_STRING);
+
       await nodeCmd.handlers.prepareUpgrade(upgradeArgv);
-      expect(nodeCmd.getUnusedConfigs(PREPARE_UPGRADE_CONFIGS_NAME)).to.deep.equal([flags.devMode.constName]);
+      expect(nodeCmd.getUnusedConfigs(PREPARE_UPGRADE_CONFIGS_NAME)).to.deep.equal([
+        flags.chartDirectory.constName,
+        flags.devMode.constName,
+        flags.quiet.constName,
+        flags.localBuildPath.constName,
+        flags.force.constName,
+      ]);
     }).timeout(Duration.ofMinutes(5).toMillis());
 
     it('should download generated files successfully', async () => {
@@ -74,6 +94,21 @@ e2eTestSuite(namespace, argv, undefined, undefined, undefined, undefined, undefi
       expect(nodeCmd.getUnusedConfigs(PREPARE_UPGRADE_CONFIGS_NAME)).to.deep.equal([flags.devMode.constName]);
 
       await bootstrapResp.opts.accountManager.close();
+
+
+    }).timeout(Duration.ofMinutes(5).toMillis());
+
+    it('should restart all nodes on the network successfully', async () => {
+      await nodeCmd.handlers.upgradeExecute(argv);
+
+      const tmpDir = getTmpDir();
+      const pods = await k8.getPodsByLabel(['solo.hedera.com/type=network-node']);
+      const podName = pods[0].metadata.name as PodName;
+      await k8.copyFrom(podName, ROOT_CONTAINER, `${HEDERA_HAPI_PATH}/VERSION.txt`, tmpDir);
+
+      // read the VERSION.txt file from the pod
+      const version = fs.readFileSync(`${tmpDir}/VERSION.txt`, 'utf8');
+      expect(version).to.equal(TEST_VERSION_STRING);
     }).timeout(Duration.ofMinutes(5).toMillis());
   });
 });

@@ -22,6 +22,22 @@ export const DEFAULT_FLAGS = {
   optionalFlags: [flags.devMode],
 };
 
+const COMMON_UPGRADE_FLAGS_REQUIRED_FLAGS = [flags.cacheDir, flags.namespace, flags.releaseTag];
+const COMMON_UPGRADE_FLAGS_REQUIRED_NO_PROMPT_FLAGS = [
+  flags.app,
+  flags.debugNodeAlias,
+  flags.upgradeZipFile,
+  flags.nodeAliasesUnparsed,
+  flags.soloChartVersion,
+];
+const COMMON_UPGRADE_FLAGS_OPTIONAL_FLAGS = [
+  flags.chartDirectory,
+  flags.devMode,
+  flags.quiet,
+  flags.localBuildPath,
+  flags.force,
+];
+
 const COMMON_UPDATE_FLAGS_REQUIRED_FLAGS = [flags.cacheDir, flags.namespace, flags.releaseTag];
 const COMMON_UPDATE_FLAGS_REQUIRED_NO_PROMPT_FLAGS = [
   flags.app,
@@ -38,6 +54,12 @@ const COMMON_UPDATE_FLAGS_OPTIONAL_FLAGS = [
   flags.gossipEndpoints,
   flags.grpcEndpoints,
 ];
+
+export const UPGRADE_FLAGS = {
+  requiredFlags: [...COMMON_UPGRADE_FLAGS_REQUIRED_FLAGS],
+  requiredFlagsWithDisabledPrompt: [...COMMON_UPGRADE_FLAGS_REQUIRED_NO_PROMPT_FLAGS],
+  optionalFlags: COMMON_UPGRADE_FLAGS_OPTIONAL_FLAGS,
+};
 
 export const UPDATE_FLAGS = {
   requiredFlags: [...COMMON_UPDATE_FLAGS_REQUIRED_FLAGS, flags.nodeAlias],

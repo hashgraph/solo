@@ -423,6 +423,17 @@ export class Flags {
     prompt: undefined,
   };
 
+  static readonly upgradeZipFile: CommandFlag = {
+    constName: 'upgradeZipFile',
+    name: 'upgrade-zip-file',
+    definition: {
+      describe: 'A zipped state file to be during network upgrade',
+      defaultValue: '',
+      type: 'string',
+    },
+    prompt: undefined,
+  };
+
   static readonly releaseTag: CommandFlag = {
     constName: 'releaseTag',
     name: 'release-tag',
@@ -1678,6 +1689,7 @@ export class Flags {
     Flags.tlsPrivateKey,
     Flags.tlsPublicKey,
     Flags.updateAccountKeys,
+    Flags.upgradeZipFile,
     Flags.userEmailAddress,
     Flags.valuesFile,
     Flags.mirrorNodeVersion,
