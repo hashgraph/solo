@@ -391,7 +391,7 @@ export class IntervalLease implements Lease {
     const lastRenewal = Duration.ofMillis(new Date(lastRenewalTime).valueOf());
     const deltaSec = now.minus(lastRenewal).seconds;
     this.client.logger.debug(
-      `checkExpiration: lease duration is ${durationSec} seconds, delta is ${deltaSec} seconds, last renewal time is ${lastRenewal}`,
+      `checkExpiration: lease duration is ${durationSec} seconds, delta is ${deltaSec} seconds, last renewal time is ${lastRenewal.seconds} seconds, now is ${now.seconds} seconds`,
     );
     return deltaSec > durationSec;
   }
