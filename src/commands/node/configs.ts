@@ -107,24 +107,24 @@ export const upgradeConfigBuilder = async function (argv, ctx, task) {
 
   await initializeSetup(config, this.k8);
 
-  // // set config in the context for later tasks to use
-  // ctx.config = config;
-  //
-  // ctx.config.chartPath = await this.prepareChartPath(
-  //   ctx.config.chartDirectory,
-  //   constants.SOLO_TESTING_CHART_URL,
-  //   constants.SOLO_DEPLOYMENT_CHART,
-  // );
-  //
-  // // initialize Node Client with existing network nodes prior to adding the new node which isn't functioning, yet
-  // ctx.config.nodeClient = await this.accountManager.loadNodeClient(ctx.config.namespace);
-  //
-  // const accountKeys = await this.accountManager.getAccountKeysFromSecret(FREEZE_ADMIN_ACCOUNT, config.namespace);
-  // config.freezeAdminPrivateKey = accountKeys.privateKey;
-  //
-  // const treasuryAccount = await this.accountManager.getTreasuryAccountKeys(config.namespace);
-  // const treasuryAccountPrivateKey = treasuryAccount.privateKey;
-  // config.treasuryKey = PrivateKey.fromStringED25519(treasuryAccountPrivateKey);
+  // set config in the context for later tasks to use
+  ctx.config = config;
+
+  ctx.config.chartPath = await this.prepareChartPath(
+    ctx.config.chartDirectory,
+    constants.SOLO_TESTING_CHART_URL,
+    constants.SOLO_DEPLOYMENT_CHART,
+  );
+
+  // initialize Node Client with existing network nodes prior to adding the new node which isn't functioning, yet
+  ctx.config.nodeClient = await this.accountManager.loadNodeClient(ctx.config.namespace);
+
+  const accountKeys = await this.accountManager.getAccountKeysFromSecret(FREEZE_ADMIN_ACCOUNT, config.namespace);
+  config.freezeAdminPrivateKey = accountKeys.privateKey;
+
+  const treasuryAccount = await this.accountManager.getTreasuryAccountKeys(config.namespace);
+  const treasuryAccountPrivateKey = treasuryAccount.privateKey;
+  config.treasuryKey = PrivateKey.fromStringED25519(treasuryAccountPrivateKey);
 
   return config;
 };

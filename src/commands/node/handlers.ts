@@ -246,8 +246,8 @@ export class NodeCommandHandlers implements CommandHandlers {
     return [
       this.tasks.identifyExistingNodes(),
       this.tasks.checkAllNodesAreFrozen('existingNodeAliases'),
-      this.tasks.prepareStagingDirectory('allNodeAliases'),
-      this.tasks.copyNodeKeysToSecrets(),
+      // this.tasks.prepareStagingDirectory('allNodeAliases'),
+      // this.tasks.copyNodeKeysToSecrets(),
 
       // this.tasks.getNodeLogsAndConfigs(),
       // this.tasks.updateChartWithConfigMap(
