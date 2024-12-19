@@ -67,6 +67,7 @@ e2eTestSuite(namespace, argv, undefined, undefined, undefined, undefined, undefi
     it('should download generated files successfully', async () => {
       await nodeCmd.handlers.downloadGeneratedFiles(upgradeArgv);
       expect(nodeCmd.getUnusedConfigs(DOWNLOAD_GENERATED_FILES_CONFIGS_NAME)).to.deep.equal([
+        flags.quiet.constName,
         flags.devMode.constName,
         'allNodeAliases',
       ]);
