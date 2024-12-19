@@ -81,8 +81,6 @@ export class GenesisNetworkDataConstructor implements ToJSON {
   }
 
   public toJSON(): JsonString {
-    return JSON.stringify({
-      nodeMetadata: Object.values(this.nodes).map(node => node.toObject()),
-    });
+    return JSON.stringify({nodeMetadata: Object.values(this.nodes).map(node => node.toObject())});
   }
 }
