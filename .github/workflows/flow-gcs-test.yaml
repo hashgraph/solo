@@ -52,10 +52,17 @@ jobs:
       - name: Setup Google Cloud SDK
         uses: google-github-actions/setup-gcloud@6189d56e4096ee891640bb02ac264be376592d6a # v2.1.2
 
+      - name: Get Current Job Log URL
+        uses: Tiryoh/gha-jobid-action@v1
+        id: jobs
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          job_name: "Retrieve Job ID"
+
       - name: Create GCS bucket
         # create a new bucket and use job runner id as prefix
         run: |
-          export BUCKET_NAME=${{ runner.job_run_id }}-solo-streams
+          export BUCKET_NAME=${{ steps.jobs.outputs.job_id }}-solo-streams
           gcloud storage buckets create gs://${BUCKET_NAME} --project=${{ vars.GCP_S3_PROJECT_ID }}
           echo "BUCKET_NAME=${BUCKET_NAME}" >> $GITHUB_ENV
 
