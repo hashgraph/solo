@@ -21,13 +21,15 @@ import * as yaml from 'yaml';
 import {Flags as flags} from '../../commands/flags.js';
 import {type Deployments, type DeploymentStructure, type LocalConfigData} from './local_config_data.js';
 import {MissingArgumentError, SoloError} from '../errors.js';
-import {type SoloLogger} from '../logging.js';
+import {SoloLogger} from '../logging.js';
 import {IsDeployments} from '../validator_decorators.js';
-import type {ConfigManager} from '../config_manager.js';
+import {ConfigManager} from '../config_manager.js';
 import type {EmailAddress, Namespace} from './remote/types.js';
 import {Templates} from '../templates.js';
 import {ErrorMessages} from '../error_messages.js';
+import {autoInjectable} from "tsyringe-neo";
 
+@autoInjectable()
 export class LocalConfig implements LocalConfigData {
   @IsEmail(
     {},
@@ -58,11 +60,10 @@ export class LocalConfig implements LocalConfigData {
 
   public constructor(
     private readonly filePath: string,
-    private readonly logger: SoloLogger,
-    private readonly configManager: ConfigManager,
+    private readonly logger?: SoloLogger,
+    private readonly configManager?: ConfigManager,
   ) {
     if (!filePath || filePath === '') throw new MissingArgumentError('a valid filePath is required');
-    if (!logger) throw new Error('An instance of core/SoloLogger is required');
 
     const allowedKeys = ['userEmailAddress', 'deployments', 'currentDeploymentName'];
     if (this.configFileExists()) {

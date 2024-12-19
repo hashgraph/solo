@@ -27,10 +27,11 @@ import {ProfileManager} from '../../../src/core/profile_manager.js';
 import {getTestCacheDir, getTmpDir, testLogger} from '../../test_util.js';
 import * as version from '../../../version.js';
 import type {NodeAlias} from '../../../src/types/aliases.js';
+import {container} from "tsyringe-neo";
 
 const tmpDir = getTmpDir();
-const configManager = new ConfigManager(testLogger);
-const profileManager = new ProfileManager(testLogger, configManager, tmpDir);
+const configManager = container.resolve(ConfigManager)
+const profileManager = new ProfileManager(tmpDir);
 configManager.setFlag(flags.nodeAliasesUnparsed, 'node1,node2,node4');
 const testProfileFile = path.join('test', 'data', 'test-profiles.yaml');
 configManager.setFlag(flags.cacheDir, getTestCacheDir('ProfileManager'));

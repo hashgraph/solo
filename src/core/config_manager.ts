@@ -11,7 +11,7 @@
  * distributed under the License is distributed on an ""AS IS"" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
- * limitations under the License.
+ * limitations under the Licen}se.
  *
  */
 import {SoloError, MissingArgumentError, IllegalArgumentError} from './errors.js';
@@ -22,6 +22,7 @@ import * as helpers from './helpers.js';
 import type * as yargs from 'yargs';
 import {type CommandFlag} from '../types/flag_types.js';
 import {type ListrTaskWrapper} from 'listr2';
+import {autoInjectable} from "tsyringe-neo";
 
 /**
  * ConfigManager cache command flag values so that user doesn't need to enter the same values repeatedly.
@@ -29,13 +30,11 @@ import {type ListrTaskWrapper} from 'listr2';
  * For example, 'namespace' is usually remains the same across commands once it is entered, and therefore user
  * doesn't need to enter it repeatedly. However, user should still be able to specify the flag explicitly for any command.
  */
+@autoInjectable()
 export class ConfigManager {
   config!: Record<string, any>;
 
-  constructor(private readonly logger: SoloLogger) {
-    if (!logger || !(logger instanceof SoloLogger))
-      throw new MissingArgumentError('An instance of core/SoloLogger is required');
-
+  constructor(private readonly logger?: SoloLogger) {
     this.reset();
   }
 

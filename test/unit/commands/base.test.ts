@@ -38,12 +38,12 @@ const testLogger = logging.NewLogger('debug', true);
 
 describe('BaseCommand', () => {
   const helm = container.resolve(Helm);
-  const chartManager = new ChartManager(helm, testLogger);
-  const configManager = new ConfigManager(testLogger);
+  const chartManager = container.resolve(ChartManager);
+  const configManager = container.resolve(ConfigManager)
 
   const depManager = container.resolve(DependencyManager);
-  const localConfig = new LocalConfig(path.join(BASE_TEST_DIR, 'local-config.yaml'), testLogger, configManager);
-  const remoteConfigManager = new RemoteConfigManager({} as any, testLogger, localConfig, configManager);
+  const localConfig = new LocalConfig(path.join(BASE_TEST_DIR, 'local-config.yaml'));
+  const remoteConfigManager = container.resolve(RemoteConfigManager);
 
   let sandbox = sinon.createSandbox();
 
@@ -53,7 +53,7 @@ describe('BaseCommand', () => {
     before(() => {
       sandbox = sinon.createSandbox();
       sandbox.stub(K8.prototype, 'init').callsFake(() => this);
-      const k8 = new K8(configManager, testLogger);
+      const k8 = container.resolve(K8);
 
       // @ts-ignore
       baseCmd = new BaseCommand({

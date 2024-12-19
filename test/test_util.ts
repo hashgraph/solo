@@ -138,31 +138,22 @@ export function bootstrapTestVariables(
 ): BootstrapResponse {
   const namespace: string = argv[flags.namespace.name] || 'bootstrap-ns';
   const cacheDir: string = argv[flags.cacheDir.name] || getTestCacheDir(testName);
-  const configManager = new ConfigManager(testLogger);
+  const configManager = container.resolve(ConfigManager)
   configManager.update(argv);
 
-  // const downloader = new PackageDownloader(testLogger);
-  // const zippy = new Zippy(testLogger);
-
   const downloader = container.resolve(PackageDownloader);
-
-  // const helmDepManager = new HelmDependencyManager(downloader, zippy, testLogger);
-  // const helmDepManager = new HelmDependencyManager();
-  // const depManagerMap = new Map<string, HelmDependencyManager>().set(constants.HELM, helmDepManager);
-  // const depManager = new DependencyManager(testLogger, depManagerMap);
   const depManager = container.resolve(DependencyManager);
   const helm = container.resolve(Helm);
-
-  const keyManager = new KeyManager(testLogger);
-  const chartManager = new ChartManager(helm, testLogger);
-  const k8 = k8Arg || new K8(configManager, testLogger);
-  const accountManager = new AccountManager(testLogger, k8);
-  const platformInstaller = new PlatformInstaller(testLogger, k8, configManager);
-  const profileManager = new ProfileManager(testLogger, configManager);
-  const leaseManager = new LeaseManager(k8, configManager, testLogger, new IntervalLeaseRenewalService());
-  const certificateManager = new CertificateManager(k8, testLogger, configManager);
-  const localConfig = new LocalConfig(path.join(BASE_TEST_DIR, 'local-config.yaml'), testLogger, configManager);
-  const remoteConfigManager = new RemoteConfigManager(k8, testLogger, localConfig, configManager);
+  const chartManager = container.resolve(ChartManager);
+  const keyManager = container.resolve(KeyManager);
+  const k8 = k8Arg || container.resolve(K8);
+  const accountManager = container.resolve(AccountManager);
+  const platformInstaller = container.resolve(PlatformInstaller);
+  const profileManager = container.resolve(ProfileManager);
+  const leaseManager = container.resolve(LeaseManager);
+  const certificateManager = container.resolve(CertificateManager);
+  const localConfig = new LocalConfig(path.join(BASE_TEST_DIR, 'local-config.yaml'));
+  const remoteConfigManager = container.resolve(RemoteConfigManager);
 
   const opts: TestOpts = {
     logger: testLogger,
@@ -441,7 +432,7 @@ async function addKeyHashToMap(
 
 export function getK8Instance(configManager: ConfigManager) {
   try {
-    return new K8(configManager, testLogger);
+    return container.resolve(K8);
     // TODO: return a mock without running the init within constructor after we convert to Mocha, Jest ESModule mocks are broke.
   } catch (e) {
     if (!(e instanceof SoloError)) {
@@ -455,7 +446,7 @@ export function getK8Instance(configManager: ConfigManager) {
 
     // Create cluster
     execSync(`kind create cluster --name "${process.env.SOLO_CLUSTER_NAME}"`, {stdio: 'inherit'});
-    return new K8(configManager, testLogger);
+    return container.resolve(K8);
   }
 }
 

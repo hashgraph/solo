@@ -24,8 +24,7 @@ import {testLogger} from '../../../test_util.js';
 import {container} from "tsyringe-neo";
 
 describe('ChartManager', () => {
-  const helm = container.resolve(Helm);
-  const chartManager = new ChartManager(helm, testLogger);
+  const chartManager = container.resolve(ChartManager);
 
   it('should be able to list installed charts', async () => {
     const ns = constants.SOLO_SETUP_NAMESPACE;

@@ -48,13 +48,13 @@ describe('InitCommand', () => {
   // const depManager = new DependencyManager(helmDepManager);
   const depManager = container.resolve(DependencyManager);
   const helm = container.resolve(Helm);
+  const chartManager = container.resolve(ChartManager);
 
-  const chartManager = new ChartManager(helm, testLogger);
-  const configManager = new ConfigManager(testLogger);
+  const configManager = container.resolve(ConfigManager)
   let k8: K8;
   let localConfig: LocalConfig;
 
-  const keyManager = new KeyManager(testLogger);
+  const keyManager = container.resolve(KeyManager);
 
   let leaseManager: LeaseManager;
   let remoteConfigManager: RemoteConfigManager;
@@ -65,10 +65,11 @@ describe('InitCommand', () => {
   before(() => {
     sandbox = sinon.createSandbox();
     sandbox.stub(K8.prototype, 'init').callsFake(() => this);
-    k8 = new K8(configManager, testLogger);
-    localConfig = new LocalConfig(path.join(BASE_TEST_DIR, 'local-config.yaml'), testLogger, configManager);
-    remoteConfigManager = new RemoteConfigManager(k8, testLogger, localConfig, configManager);
-    leaseManager = new LeaseManager(k8, configManager, testLogger, new IntervalLeaseRenewalService());
+    k8 = container.resolve(K8);
+    localConfig = new LocalConfig(path.join(BASE_TEST_DIR, 'local-config.yaml'));
+    remoteConfigManager = container.resolve(RemoteConfigManager);
+    leaseManager = container.resolve(LeaseManager);
+
     // @ts-ignore
     initCmd = new InitCommand({
       logger: testLogger,

@@ -78,7 +78,7 @@ describe('ContextCommandTasks unit tests', () => {
       chartManager: sandbox.createStubInstance(ChartManager),
       configManager,
       depManager: sandbox.createStubInstance(DependencyManager),
-      localConfig: new LocalConfig(filePath, loggerStub, configManager),
+      localConfig: new LocalConfig(filePath),
       downloader: sandbox.createStubInstance(PackageDownloader),
       keyManager: sandbox.createStubInstance(KeyManager),
       accountManager: sandbox.createStubInstance(AccountManager),
@@ -142,7 +142,7 @@ describe('ContextCommandTasks unit tests', () => {
       };
 
       await runUpdateLocalConfigTask(argv); // @ts-ignore
-      localConfig = new LocalConfig(filePath, loggerStub, command.configManager);
+      localConfig = new LocalConfig(filePath);
 
       expect(localConfig.currentDeploymentName).to.equal('deployment-2');
       expect(localConfig.getCurrentDeployment().clusters).to.deep.equal(['cluster-2']);
@@ -152,7 +152,7 @@ describe('ContextCommandTasks unit tests', () => {
     it('should prompt for all flags if none are provided', async () => {
       const argv = {};
       await runUpdateLocalConfigTask(argv); //@ts-ignore
-      localConfig = new LocalConfig(filePath, loggerStub, command.configManager);
+      localConfig = new LocalConfig(filePath);
 
       expect(localConfig.currentDeploymentName).to.equal('deployment-3');
       expect(localConfig.getCurrentDeployment().clusters).to.deep.equal(['cluster-3']);
@@ -169,7 +169,7 @@ describe('ContextCommandTasks unit tests', () => {
       };
 
       await runUpdateLocalConfigTask(argv); // @ts-ignore
-      localConfig = new LocalConfig(filePath, loggerStub, command.configManager);
+      localConfig = new LocalConfig(filePath);
 
       expect(localConfig.currentDeploymentName).to.equal('deployment-3');
       expect(localConfig.getCurrentDeployment().clusters).to.deep.equal(['cluster-2']);
@@ -186,7 +186,7 @@ describe('ContextCommandTasks unit tests', () => {
       };
 
       await runUpdateLocalConfigTask(argv); // @ts-ignore
-      localConfig = new LocalConfig(filePath, loggerStub, command.configManager);
+      localConfig = new LocalConfig(filePath);
 
       expect(localConfig.currentDeploymentName).to.equal('deployment-2');
       expect(localConfig.getCurrentDeployment().clusters).to.deep.equal(['cluster-3']);
@@ -203,7 +203,7 @@ describe('ContextCommandTasks unit tests', () => {
       };
 
       await runUpdateLocalConfigTask(argv); // @ts-ignore
-      localConfig = new LocalConfig(filePath, loggerStub, command.configManager);
+      localConfig = new LocalConfig(filePath);
 
       expect(localConfig.currentDeploymentName).to.equal('deployment-2');
       expect(localConfig.getCurrentDeployment().clusters).to.deep.equal(['cluster-2']);
@@ -221,7 +221,7 @@ describe('ContextCommandTasks unit tests', () => {
       };
 
       await runUpdateLocalConfigTask(argv); // @ts-ignore
-      localConfig = new LocalConfig(filePath, loggerStub, command.configManager);
+      localConfig = new LocalConfig(filePath);
 
       expect(localConfig.currentDeploymentName).to.equal('deployment-2');
       expect(localConfig.getCurrentDeployment().clusters).to.deep.equal(['cluster-3']);
@@ -239,7 +239,7 @@ describe('ContextCommandTasks unit tests', () => {
       };
 
       await runUpdateLocalConfigTask(argv); // @ts-ignore
-      localConfig = new LocalConfig(filePath, loggerStub, command.configManager);
+      localConfig = new LocalConfig(filePath);
 
       expect(localConfig.currentDeploymentName).to.equal('deployment-2');
       expect(localConfig.getCurrentDeployment().clusters).to.deep.equal(['cluster-2']);

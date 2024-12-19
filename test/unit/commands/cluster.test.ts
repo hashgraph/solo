@@ -63,12 +63,13 @@ describe('ClusterCommand unit tests', () => {
       opts = getBaseCommandOpts();
       opts.logger = new SoloLogger();
       opts.helm = container.resolve(Helm);
+      opts.chartManager = container.resolve(ChartManager);
       opts.helm.dependency = sinon.stub();
-      opts.chartManager = new ChartManager(opts.helm, opts.logger);
+
       opts.chartManager.isChartInstalled = sinon.stub().returns(false);
       opts.chartManager.install = sinon.stub().returns(true);
 
-      opts.configManager = new ConfigManager(opts.logger);
+      opts.configManager = container.resolve(ConfigManager);
       opts.remoteConfigManager = sinon.stub();
     });
 

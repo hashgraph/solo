@@ -79,7 +79,7 @@ describe('NetworkCommand unit tests', () => {
       opts.helm = container.resolve(Helm);
       opts.helm.dependency = sinon.stub();
 
-      opts.configManager = new ConfigManager(testLogger);
+      opts.configManager = container.resolve(ConfigManager);
       opts.configManager.update(argv);
       opts.k8 = sinon.stub();
       opts.k8.hasNamespace = sinon.stub().returns(true);
@@ -92,25 +92,27 @@ describe('NetworkCommand unit tests', () => {
         run: sinon.stub().returns({}),
       });
 
-      opts.keyManager = new KeyManager(testLogger);
+      opts.keyManager = container.resolve(KeyManager);
       opts.keyManager.copyGossipKeysToStaging = sinon.stub();
       opts.keyManager.copyNodeKeysToStaging = sinon.stub();
       opts.platformInstaller = sinon.stub();
       opts.platformInstaller.copyNodeKeys = sinon.stub();
 
-      opts.profileManager = new ProfileManager(testLogger, opts.configManager);
+      opts.profileManager = container.resolve(ProfileManager);
       opts.profileManager.prepareValuesForSoloChart = sinon.stub();
       opts.certificateManager = sinon.stub();
 
-      opts.chartManager = new ChartManager(opts.helm, opts.logger);
+      opts.chartManager = container.resolve(ChartManager)
       opts.chartManager.isChartInstalled = sinon.stub().returns(true);
       opts.chartManager.isChartInstalled.onSecondCall().returns(false);
 
       opts.chartManager.install = sinon.stub().returns(true);
-      opts.remoteConfigManager = new RemoteConfigManager(opts.k8, opts.logger, opts.localConfig, opts.configManager);
 
-      opts.configManager = new ConfigManager(opts.logger);
-      opts.leaseManager = new LeaseManager(opts.k8, opts.configManager, opts.logger, new IntervalLeaseRenewalService());
+      opts.remoteConfigManager = container.resolve(RemoteConfigManager);
+
+      opts.configManager = container.resolve(ConfigManager);
+
+      opts.leaseManager = container.resolve(LeaseManager);
       opts.leaseManager.currentNamespace = sinon.stub().returns(testName);
     });
 

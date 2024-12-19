@@ -31,12 +31,13 @@ import {getReasonPhrase, StatusCodes} from 'http-status-codes';
 
 import {sleep} from './helpers.js';
 import * as constants from './constants.js';
-import {type ConfigManager} from './config_manager.js';
-import {type SoloLogger} from './logging.js';
+import {ConfigManager} from './config_manager.js';
+import {SoloLogger} from './logging.js';
 import {type PodName, type TarCreateFilter} from '../types/aliases.js';
 import type {ExtendedNetServer, LocalContextObject} from '../types/index.js';
 import {HEDERA_HAPI_PATH, ROOT_CONTAINER, SOLO_LOGS_DIR} from './constants.js';
 import {Duration} from './time/duration.js';
+import {autoInjectable, container} from "tsyringe-neo";
 
 interface TDirectoryData {
   directory: boolean;
@@ -53,6 +54,7 @@ interface TDirectoryData {
  * Note: Take care if the same instance is used for parallel execution, as the behaviour may be unpredictable.
  * For parallel execution, create separate instances by invoking clone()
  */
+@autoInjectable()
 export class K8 {
   private _cachedContexts: Context[];
 
@@ -65,12 +67,9 @@ export class K8 {
   private coordinationApiClient: k8s.CoordinationV1Api;
 
   constructor(
-    private readonly configManager: ConfigManager,
-    public readonly logger: SoloLogger,
+    private readonly configManager?: ConfigManager,
+    public readonly logger?: SoloLogger,
   ) {
-    if (!configManager) throw new MissingArgumentError('An instance of core/ConfigManager is required');
-    if (!logger) throw new MissingArgumentError('An instance of core/SoloLogger is required');
-
     this.init();
   }
 
@@ -79,7 +78,7 @@ export class K8 {
    * Internally it instantiates a new kube API client
    */
   clone() {
-    const c = new K8(this.configManager, this.logger);
+    const c = container.resolve(K8);
     return c.init();
   }
 

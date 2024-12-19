@@ -66,20 +66,19 @@ export function main(argv: any) {
     const helmDepManager = container.resolve(HelmDependencyManager)
     const depManager = container.resolve(DependencyManager)
     const helm = container.resolve(Helm)
-
-    const chartManager = new ChartManager(helm, logger);
-    const configManager = new ConfigManager(logger);
-    const k8 = new K8(configManager, logger);
-    const accountManager = new AccountManager(logger, k8);
-    const platformInstaller = new PlatformInstaller(logger, k8, configManager);
-    const keyManager = new KeyManager(logger);
-    const profileManager = new ProfileManager(logger, configManager);
-    const leaseRenewalService: LeaseRenewalService = new IntervalLeaseRenewalService();
-    const leaseManager = new LeaseManager(k8, configManager, logger, leaseRenewalService);
-    const certificateManager = new CertificateManager(k8, logger, configManager);
+    const chartManager = container.resolve(ChartManager);
+    const configManager = container.resolve(ConfigManager)
+    const k8 = container.resolve(K8);
+    const accountManager = container.resolve(AccountManager);
+    const platformInstaller = container.resolve(PlatformInstaller);
+    const keyManager = container.resolve(KeyManager);
+    const profileManager = container.resolve(ProfileManager);
+    const leaseRenewalService: LeaseRenewalService = container.resolve(IntervalLeaseRenewalService);
+    const leaseManager = container.resolve(LeaseManager);
+    const certificateManager = container.resolve(CertificateManager);
     const localConfigPath = path.join(constants.SOLO_CACHE_DIR, constants.DEFAULT_LOCAL_CONFIG_FILE);
-    const localConfig = new LocalConfig(localConfigPath, logger, configManager);
-    const remoteConfigManager = new RemoteConfigManager(k8, logger, localConfig, configManager);
+    const localConfig = new LocalConfig(localConfigPath);
+    const remoteConfigManager = container.resolve(RemoteConfigManager);
 
     // set cluster and namespace in the global configManager from kubernetes context
     // so that we don't need to prompt the user

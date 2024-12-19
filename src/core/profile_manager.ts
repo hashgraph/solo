@@ -26,11 +26,12 @@ import {readFile, writeFile} from 'fs/promises';
 import {Flags as flags} from '../commands/flags.js';
 import {Templates} from './templates.js';
 import * as constants from './constants.js';
-import {type ConfigManager} from './config_manager.js';
+import {ConfigManager} from './config_manager.js';
 import * as helpers from './helpers.js';
 import {getNodeAccountMap} from './helpers.js';
-import type {SoloLogger} from './logging.js';
+import {SoloLogger} from './logging.js';
 import type {NodeAlias, NodeAliases} from '../types/aliases.js';
+import {container, singleton} from "tsyringe-neo";
 
 const consensusSidecars = [
   'recordStreamUploader',
@@ -40,6 +41,7 @@ const consensusSidecars = [
   'otelCollector',
 ];
 
+@singleton()
 export class ProfileManager {
   private readonly logger: SoloLogger;
   private readonly configManager: ConfigManager;
@@ -48,12 +50,9 @@ export class ProfileManager {
   private profiles: Map<string, object>;
   private profileFile: string | undefined;
 
-  constructor(logger: SoloLogger, configManager: ConfigManager, cacheDir: string = constants.SOLO_VALUES_DIR) {
-    if (!logger) throw new MissingArgumentError('An instance of core/SoloLogger is required');
-    if (!configManager) throw new MissingArgumentError('An instance of core/ConfigManager is required');
-
-    this.logger = logger;
-    this.configManager = configManager;
+  constructor(cacheDir: string = constants.SOLO_VALUES_DIR) {
+    this.logger = container.resolve(SoloLogger);
+    this.configManager = container.resolve(ConfigManager);
 
     this.profiles = new Map();
 
