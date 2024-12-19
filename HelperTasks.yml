@@ -57,12 +57,14 @@ tasks:
         - MIRROR_RELEASE_NAME
     cmds:
       - echo "Checking variables..."
+      - echo "current directory=$(pwd)"
       - echo "solo_user_dir={{ .solo_user_dir }}"
       - echo "SOLO_HOME=${SOLO_HOME}"
       - echo "SOLO_NETWORK_SIZE=${SOLO_NETWORK_SIZE}"
       - echo "SOLO_CHART_VERSION=${SOLO_CHART_VERSION}"
       - echo "CONSENSUS_NODE_VERSION=${CONSENSUS_NODE_VERSION}"
       - echo "SOLO_NAMESPACE=${SOLO_NAMESPACE}"
+      - echo "SOLO_CLUSTER_RELEASE_NAME=${SOLO_CLUSTER_RELEASE_NAME}"
       - echo "nodes={{ .nodes }}"
       - echo "node_identifiers={{ .node_identifiers }}"
       - echo "use_port_forwards={{ .use_port_forwards }}"
