@@ -225,6 +225,7 @@ export class AccountManager {
    * @param networkNodeServicesMap - a map of the service objects that proxy the nodes
    * @param operatorId - the account id of the operator of the transactions
    * @param operatorKey - the private key of the operator of the transactions
+   * @param skipNodeAlias -
    * @returns a node client that can be used to call transactions
    */
   async _getNodeClient(

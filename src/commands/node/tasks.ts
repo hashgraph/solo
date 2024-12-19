@@ -457,6 +457,7 @@ export class NodeCommandTasks {
    */
   _generateGossipKeys(generateMultiple: boolean) {
     const self = this;
+
     return new Task(
       'Generate gossip keys',
       (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
@@ -703,7 +704,7 @@ export class NodeCommandTasks {
           config.stagingDir,
         );
 
-        // if directory data/upgrade/current/data/keys does not exist then use data/upgrade/current
+        // if directory data/upgrade/current/data/keys does not exist, then use data/upgrade/current
         let keyDir = `${constants.HEDERA_HAPI_PATH}/data/upgrade/current/data/keys`;
         if (!(await self.k8.hasDir(nodeFullyQualifiedPodName, constants.ROOT_CONTAINER, keyDir))) {
           keyDir = `${constants.HEDERA_HAPI_PATH}/data/upgrade/current`;
