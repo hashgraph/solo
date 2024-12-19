@@ -168,11 +168,6 @@ export class NetworkCommand extends BaseCommand {
     // do not deploy mirror node until after we have the updated address book
     valuesArg += ` --set "telemetry.prometheus.svcMonitor.enabled=${config.enablePrometheusSvcMonitor}"`;
 
-    if (config.releaseTag) {
-      const rootImage = helpers.getRootImageRepository(config.releaseTag);
-      valuesArg += ` --set "defaults.root.image.repository=${rootImage}"`;
-    }
-
     valuesArg += ` --set "defaults.volumeClaims.enabled=${config.persistentVolumeClaims}"`;
 
     // Iterate over each node and set static IPs for HAProxy
