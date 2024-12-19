@@ -25,9 +25,9 @@ defaults:
     shell: bash
 
 permissions:
+  id-token: write
   contents: read
   actions: read
-  checks: write
 
 jobs:
   gcs-storage-test:
@@ -46,7 +46,7 @@ jobs:
         id: google-auth
         uses: google-github-actions/auth@6fc4af4b145ae7821d527454aa9bd537d1f2dc5f # v2.1.7
         with:
-          workload_identity_provider: 'projects/785813846068/locations/global/workloadIdentityPools/jrs-identity-pool/providers/gh-provider'
+          workload_identity_provider: "projects/235822363393/locations/global/workloadIdentityPools/hedera-builds-pool/providers/hedera-builds-gh-actions"
           service_account: ${{ vars.GCP_S3_SERVICE_ACCOUNT }}
 
       - name: Setup Google Cloud SDK
