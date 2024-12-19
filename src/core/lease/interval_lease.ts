@@ -144,7 +144,7 @@ export class IntervalLease implements Lease {
   async acquire(): Promise<void> {
     const lease = await this.retrieveLease();
 
-    if (!lease || IntervalLease.checkExpiration(lease) || this.heldBySameProcess(lease)) {
+    if (!lease || this.checkExpiration(lease) || this.heldBySameProcess(lease)) {
       return this.createOrRenewLease(lease);
     }
 
@@ -238,7 +238,7 @@ export class IntervalLease implements Lease {
 
     const otherHolder: LeaseHolder = LeaseHolder.fromJson(lease.spec.holderIdentity);
 
-    if (this.heldBySameProcess(lease) || IntervalLease.checkExpiration(lease)) {
+    if (this.heldBySameProcess(lease) || this.checkExpiration(lease)) {
       return await this.deleteLease();
     }
 
@@ -272,7 +272,7 @@ export class IntervalLease implements Lease {
    */
   async isAcquired(): Promise<boolean> {
     const lease = await this.retrieveLease();
-    return !!lease && !IntervalLease.checkExpiration(lease) && this.heldBySameProcess(lease);
+    return !!lease && !this.checkExpiration(lease) && this.heldBySameProcess(lease);
   }
 
   /**
@@ -283,7 +283,7 @@ export class IntervalLease implements Lease {
    */
   async isExpired(): Promise<boolean> {
     const lease = await this.retrieveLease();
-    return !!lease && IntervalLease.checkExpiration(lease);
+    return !!lease && this.checkExpiration(lease);
   }
 
   /**
@@ -384,12 +384,15 @@ export class IntervalLease implements Lease {
    * @param lease - The lease to be checked for expiration.
    * @returns true if the lease has expired; otherwise, false.
    */
-  private static checkExpiration(lease: V1Lease): boolean {
+  private checkExpiration(lease: V1Lease): boolean {
     const now = Duration.ofMillis(Date.now());
     const durationSec = lease.spec.leaseDurationSeconds || IntervalLease.DEFAULT_LEASE_DURATION;
     const lastRenewalTime = lease.spec?.renewTime || lease.spec?.acquireTime;
     const lastRenewal = Duration.ofMillis(new Date(lastRenewalTime).valueOf());
     const deltaSec = now.minus(lastRenewal).seconds;
+    this.client.logger.debug(
+      `checkExpiration: lease duration is ${durationSec} seconds, delta is ${deltaSec} seconds, last renewal time is ${lastRenewal}`,
+    );
     return deltaSec > durationSec;
   }
 
