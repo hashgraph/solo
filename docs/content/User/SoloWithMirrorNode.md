@@ -33,7 +33,7 @@ solo account create -n solo-e2e --hbar-amount 100
 solo account create -n solo-e2e --hbar-amount 100
 ```
 
-Or you can use Hedera java SDK examples to create topic, submit message and subscribe to the topic.
+Or you can use Hedera JavaScript SDK examples to create topic, submit message and subscribe to the topic.
 
 <!---
 Add SDK.md link here

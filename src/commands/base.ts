@@ -96,6 +96,10 @@ export abstract class BaseCommand extends ShellRunner {
     return valuesArg;
   }
 
+  getConfigManager(): ConfigManager {
+    return this.configManager;
+  }
+
   /**
    * Dynamically builds a class with properties from the provided list of flags
    * and extra properties, will keep track of which properties are used.  Call
@@ -183,6 +187,10 @@ export abstract class BaseCommand extends ShellRunner {
 
   getLocalConfig() {
     return this.localConfig;
+  }
+
+  getRemoteConfigManager() {
+    return this.remoteConfigManager;
   }
 
   abstract close(): Promise<void>;
