@@ -57,7 +57,6 @@ tasks:
         - MIRROR_RELEASE_NAME
     cmds:
       - echo "Checking variables..."
-      - echo "current directory=$(pwd)"
       - echo "solo_user_dir={{ .solo_user_dir }}"
       - echo "SOLO_HOME=${SOLO_HOME}"
       - echo "SOLO_NETWORK_SIZE=${SOLO_NETWORK_SIZE}"
@@ -199,7 +198,8 @@ tasks:
 
   solo:destroy-relay:
     status:
-      - helm list -n "${SOLO_NAMESPACE}" | grep -vqz relay-node1
+      - |
+        {{.solo_bin_dir}}/helm list -n "${SOLO_NAMESPACE}" | grep -vqz relay-node1
     deps:
       - task: "init"
     cmds:
@@ -277,7 +277,8 @@ tasks:
       - task: "init"
       - task: "solo:cluster:minio"
     status:
-      - helm list --all-namespaces | grep -qz "${SOLO_CLUSTER_RELEASE_NAME}"
+      - |
+        {{.solo_bin_dir}}/helm list --all-namespaces | grep -qz "${SOLO_CLUSTER_RELEASE_NAME}"
     cmds:
       - |
         export MINIO_FLAG=$(cat {{ .minio_flag_file }})
@@ -361,7 +362,8 @@ tasks:
   solo:destroy-mirror-node:
     desc: solo mirror-node destroy
     status:
-      - helm list -n "${SOLO_NAMESPACE}" | grep -vqz "${MIRROR_RELEASE_NAME}"
+      - |
+        {{.solo_bin_dir}}/helm list -n "${SOLO_NAMESPACE}" | grep -vqz "${MIRROR_RELEASE_NAME}"
     deps:
       - task: "init"
     cmds:
