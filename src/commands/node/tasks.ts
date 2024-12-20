@@ -1573,7 +1573,7 @@ export class NodeCommandTasks {
       async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
         const config = ctx.config;
         const newNodeFullyQualifiedPodName = Templates.renderNetworkPodName(config.nodeAlias);
-        const nodeId = Templates.nodeIdFromNodeAlias(config.nodeAlias);
+        const nodeId = Templates.nodeIdFromNodeAlias(config.nodeAlias) - 1;
         const savedStateDir = config.lastStateZipPath.match(/\/(\d+)\.zip$/)[1];
         const savedStatePath = `${constants.HEDERA_HAPI_PATH}/data/saved/com.hedera.services.ServicesMain/${nodeId}/123/${savedStateDir}`;
         await this.k8.execContainer(newNodeFullyQualifiedPodName, constants.ROOT_CONTAINER, [

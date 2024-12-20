@@ -519,6 +519,8 @@ export class ProfileManager {
         const account = nodeAccountMap.get(nodeAlias);
 
         if (genesisNetworkData) {
+          // TODO: Use the "nodeSeq"
+
           const nodeDataWrapper = genesisNetworkData.nodes[nodeAlias];
 
           nodeDataWrapper.weight = nodeStakeAmount;
@@ -527,8 +529,10 @@ export class ProfileManager {
           //? Add gossip endpoints
           nodeDataWrapper.addGossipEndpoint(externalIP, externalPort);
 
+          const haProxyFqdn = Templates.renderFullyQualifiedHaProxyName(nodeAlias, namespace);
+
           //? Add service endpoints
-          nodeDataWrapper.addServiceEndpoint(internalIP, internalPort);
+          nodeDataWrapper.addServiceEndpoint(haProxyFqdn, constants.GRPC_PORT);
         }
 
         if (releaseVersion.minor >= 40) {

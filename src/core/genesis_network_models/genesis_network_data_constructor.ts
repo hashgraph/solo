@@ -36,13 +36,13 @@ export class GenesisNetworkDataConstructor implements ToJSON {
     private readonly keyManager: KeyManager,
     private readonly keysDir: string,
   ) {
-    for (const nodeAlias of nodeAliases) {
-      const nodeId = Templates.nodeIdFromNodeAlias(nodeAlias);
+    nodeAliases.forEach((nodeAlias, nodeId) => {
+      // TODO: get nodeId from label in pod.
       const adminPrivateKey = PrivateKey.fromStringED25519(constants.GENESIS_KEY);
       const adminPubKey = adminPrivateKey.publicKey;
 
       this.nodes[nodeAlias] = new GenesisNetworkNodeDataWrapper(nodeId, adminPubKey, nodeAlias);
-    }
+    });
   }
 
   public static async initialize(
