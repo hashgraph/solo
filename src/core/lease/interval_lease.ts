@@ -145,7 +145,6 @@ export class IntervalLease implements Lease {
     const lease = await this.retrieveLease();
 
     if (!lease || this.checkExpiration(lease) || this.heldBySameProcess(lease)) {
-      lease.spec!.holderIdentity = this.leaseHolder.toJson();
       return this.createOrRenewLease(lease);
     }
 
@@ -330,8 +329,10 @@ export class IntervalLease implements Lease {
           this.leaseHolder.toJson(),
           this.durationSeconds,
         );
-      } else {
+      } else if (this.leaseHolder.equals(LeaseHolder.fromJson(lease.spec.holderIdentity))) {
         await this.client.renewNamespaceLease(this.leaseName, this.namespace, lease);
+      } else {
+        await this.client.transferNamespaceLease(lease, this.leaseHolder.toJson());
       }
 
       if (!this.scheduleId) {
