@@ -157,7 +157,7 @@ export class AccountManager {
     this.logger.debug(
       `loading node client: [!this._nodeClient=${!this._nodeClient}, this._nodeClient.isClientShutDown=${this._nodeClient?.isClientShutDown}]`,
     );
-    if (!this._nodeClient || this._nodeClient.isClientShutDown) {
+    if (!this._nodeClient || this._nodeClient?.isClientShutDown) {
       this.logger.debug(
         `refreshing node client: [!this._nodeClient=${!this._nodeClient}, this._nodeClient.isClientShutDown=${this._nodeClient?.isClientShutDown}]`,
       );
@@ -268,7 +268,7 @@ export class AccountManager {
   private startIntervalPinger(operatorId: string) {
     const interval = constants.NODE_CLIENT_PING_INTERVAL;
     const intervalId = setInterval(async () => {
-      if (this._nodeClient || !this._nodeClient.isClientShutDown) {
+      if (this._nodeClient || !this._nodeClient?.isClientShutDown) {
         this.logger.debug('node client has been closed, clearing node client ping interval');
         clearInterval(intervalId);
       } else {
