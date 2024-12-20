@@ -100,6 +100,7 @@ e2eTestSuite(
       }).timeout(Duration.ofMinutes(10).toMillis());
 
       it('get the logs and delete the namespace', async () => {
+        await accountManager.close();
         await hederaK8.getNodeLogs(LOCAL_HEDERA);
         await hederaK8.deleteNamespace(LOCAL_HEDERA);
       }).timeout(Duration.ofMinutes(10).toMillis());

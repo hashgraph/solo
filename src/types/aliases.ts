@@ -14,6 +14,7 @@
  * limitations under the License.
  *
  */
+import {type AccountId} from '@hashgraph/sdk';
 import type {Listr, ListrTaskWrapper} from 'listr2';
 import {type Stats} from 'node:fs';
 import {type ReadEntry} from 'tar';
@@ -40,3 +41,5 @@ export type TaskFunction = (
 export type ConfigBuilder = (argv, ctx, task) => Promise<any>;
 
 export type IP = string;
+
+export type SdkNetworkEndpoint = `${string}:${number}`;

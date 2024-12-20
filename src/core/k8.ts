@@ -916,7 +916,7 @@ export class K8 {
    * @param host - the host of the target connection
    * @param port - the port of the target connection
    */
-  testConnection(host: string, port: number) {
+  testSocketConnection(host: string, port: number) {
     const self = this;
 
     return new Promise<boolean>((resolve, reject) => {

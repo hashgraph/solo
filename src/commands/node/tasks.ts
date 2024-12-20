@@ -1077,9 +1077,10 @@ export class NodeCommandTasks {
   }
 
   stopNodes() {
-    return new Task('Stopping nodes', (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
+    return new Task('Stopping nodes', async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
       const subTasks = [];
       if (!ctx.config.skipStop) {
+        await this.accountManager.close();
         for (const nodeAlias of ctx.config.nodeAliases) {
           const podName = ctx.config.podNames[nodeAlias];
           subTasks.push({
@@ -1570,7 +1571,7 @@ export class NodeCommandTasks {
       async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
         const config = ctx.config;
         const newNodeFullyQualifiedPodName = Templates.renderNetworkPodName(config.nodeAlias);
-        const nodeId = Templates.nodeIdFromNodeAlias(config.nodeAlias);
+        const nodeId = Templates.nodeIdFromNodeAlias(config.nodeAlias) - 1;
         const savedStateDir = config.lastStateZipPath.match(/\/(\d+)\.zip$/)[1];
         const savedStatePath = `${constants.HEDERA_HAPI_PATH}/data/saved/com.hedera.services.ServicesMain/${nodeId}/123/${savedStateDir}`;
         await this.k8.execContainer(newNodeFullyQualifiedPodName, constants.ROOT_CONTAINER, [

@@ -74,13 +74,13 @@ e2eTestSuite(
         // ports should be opened
         // @ts-expect-error - TS2341: Property _portForwards is private and only accessible within class AccountManager
         accountManager._portForwards.push(await k8.portForward(podName, localPort, podPort));
-        const status = await k8.testConnection(localHost, localPort);
+        const status = await k8.testSocketConnection(localHost, localPort);
         expect(status, 'test connection status should be true').to.be.ok;
 
         // ports should be closed
         await accountManager.close();
         try {
-          await k8.testConnection(localHost, localPort);
+          await k8.testSocketConnection(localHost, localPort);
         } catch (e) {
           expect(e.message, 'expect failed test connection').to.include(
             `failed to connect to '${localHost}:${localPort}'`,
