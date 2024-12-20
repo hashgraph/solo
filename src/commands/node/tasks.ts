@@ -1642,7 +1642,7 @@ export class NodeCommandTasks {
     });
   }
 
-  initialize(argv: any, configInit: ConfigBuilder, lease: Lease | null) {
+  initialize(argv: any, configInit: ConfigBuilder, lease: Lease | null, shouldLoadNodeClient = true) {
     const {requiredFlags, requiredFlagsWithDisabledPrompt, optionalFlags} = argv;
     const allRequiredFlags = [...requiredFlags, ...requiredFlagsWithDisabledPrompt];
 
@@ -1669,7 +1669,7 @@ export class NodeCommandTasks {
 
       await this.configManager.executePrompt(task, flagsToPrompt);
 
-      const config = await configInit(argv, ctx, task);
+      const config = await configInit(argv, ctx, task, shouldLoadNodeClient);
       ctx.config = config;
 
       for (const flag of allRequiredFlags) {
