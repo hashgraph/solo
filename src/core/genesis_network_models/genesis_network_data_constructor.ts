@@ -17,7 +17,7 @@
 import crypto from 'node:crypto';
 import {PrivateKey} from '@hashgraph/sdk';
 import {Templates} from '../templates.js';
-import {GenesisNetworkNodeDataWrapper} from './genesisNetworkNodeDataWrapper.js';
+import {GenesisNetworkNodeDataWrapper} from './genesis_network_node_data_wrapper.js';
 import * as x509 from '@peculiar/x509';
 import * as constants from '../constants.js';
 
