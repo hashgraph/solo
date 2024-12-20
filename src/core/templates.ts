@@ -23,7 +23,7 @@ import {type AccountId} from '@hashgraph/sdk';
 import type {IP, NodeAlias, NodeId, PodName} from '../types/aliases.js';
 import {GrpcProxyTlsEnums} from './enumerations.js';
 import {type ContextClusterStructure} from '../types/config_types.js';
-import type {Cluster, Context} from './config/remote/types.js';
+import type {Cluster, Context, Namespace} from './config/remote/types.js';
 
 export class Templates {
   public static renderNetworkPodName(nodeAlias: NodeAlias): PodName {
@@ -261,6 +261,10 @@ export class Templates {
 
   public static renderHaProxyName(nodeAlias: NodeAlias): string {
     return `haproxy-${nodeAlias}`;
+  }
+
+  public static renderFullyQualifiedHaProxyName(nodeAlias: NodeAlias, namespace: Namespace): string {
+    return `${Templates.renderHaProxyName(nodeAlias)}-svc.${namespace}.svc.cluster.local`;
   }
 
   public static parseNodeAliasToIpMapping(unparsed: string): Record<NodeAlias, IP> {
