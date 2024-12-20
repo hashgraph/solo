@@ -14,7 +14,6 @@
  * limitations under the License.
  *
  */
-import {type AccountId} from '@hashgraph/sdk';
 import type {Listr, ListrTaskWrapper} from 'listr2';
 import {type Stats} from 'node:fs';
 import {type ReadEntry} from 'tar';
