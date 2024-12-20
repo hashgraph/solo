@@ -115,7 +115,6 @@ export const updateConfigBuilder = async function (argv, ctx, task, shouldLoadNo
   );
 
   if (shouldLoadNodeClient) {
-    // initialize Node Client with existing network nodes prior to adding the new node which isn't functioning, yet
     ctx.config.nodeClient = await this.accountManager.loadNodeClient(ctx.config.namespace);
   }
 
