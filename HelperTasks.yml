@@ -156,7 +156,7 @@ tasks:
       - |
         unset RELEASE_FLAG
         if [[ "${LOCAL_BUILD_FLAG}" == "" ]]; then
-          export RELEASE_FLAG='--release-tag "${CONSENSUS_NODE_VERSION}"'
+          export RELEASE_FLAG='--release-tag {{.CONSENSUS_NODE_VERSION}}'
         fi
         SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- network deploy --namespace "${SOLO_NAMESPACE}" --node-aliases-unparsed {{.node_identifiers}} ${RELEASE_FLAG} --solo-chart-version "${SOLO_CHART_VERSION}" ${VALUES_FLAG} ${SETTINGS_FLAG} ${LOG4J2_FLAG} ${APPLICATION_PROPERTIES_FLAG} -q
       - SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- node setup --namespace "${SOLO_NAMESPACE}" --node-aliases-unparsed {{.node_identifiers}} --release-tag "${CONSENSUS_NODE_VERSION}" ${LOCAL_BUILD_FLAG} -q
