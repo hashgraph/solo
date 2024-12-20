@@ -17,6 +17,10 @@
 import * as chai from 'chai';
 import chaiAsPromised from 'chai-as-promised';
 import sinonChai from 'sinon-chai';
+import 'reflect-metadata';
+import {resetTestContainer} from './test_container.js';
+
+resetTestContainer();
 
 chai.use(chaiAsPromised);
 chai.use(sinonChai);

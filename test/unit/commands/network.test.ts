@@ -70,8 +70,11 @@ argv[flags.chartDirectory.name] = undefined;
 describe('NetworkCommand unit tests', () => {
   describe('Chart Install Function is called correctly', () => {
     let opts: any;
+    let bootstrapResp: any;
 
-    const bootstrapResp = bootstrapTestVariables(testName, argv);
+    before(() => {
+        bootstrapResp = bootstrapTestVariables(testName, argv);
+    })
 
     beforeEach(() => {
       opts = getBaseCommandOpts();

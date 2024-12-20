@@ -28,14 +28,17 @@ import {IllegalArgumentError, MissingArgumentError} from '../../../src/core/erro
 import {getK8Instance} from '../../test_util.js';
 import type {PodName} from '../../../src/types/aliases.js';
 import {container} from 'tsyringe-neo';
+import {K8} from "../../../src/core/k8.js";
+import {SoloLogger} from "../../../src/core/logging.js";
 
 describe('PackageInstaller', () => {
-  const testLogger = logging.NewLogger('debug', true);
-  const configManager = container.resolve(ConfigManager);
-
-  const k8 = getK8Instance(configManager);
-
-  const installer = container.resolve(PlatformInstaller);
+    let testLogger: SoloLogger, configManager: ConfigManager, k8: K8, installer: PlatformInstaller;
+    before(() => {
+        testLogger = logging.NewLogger('debug', true);
+        configManager = container.resolve(ConfigManager);
+        k8 = getK8Instance(configManager);
+        installer = container.resolve(PlatformInstaller);
+    })
 
   describe('validatePlatformReleaseDir', () => {
     it('should fail for missing path', () => {

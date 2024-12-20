@@ -36,7 +36,7 @@ import {AccountCommand} from '../src/commands/account.js';
 import {SoloError} from '../src/core/errors.js';
 import {execSync} from 'child_process';
 import * as NodeCommandConfigs from '../src/commands/node/configs.js';
-import type {SoloLogger} from '../src/core/logging.js';
+import {SoloLogger} from '../src/core/logging.js';
 import type {BaseCommand} from '../src/commands/base.js';
 import type {NodeAlias} from '../src/types/aliases.js';
 import type {NetworkNodeServices} from '../src/core/network_node_services.js';
@@ -61,6 +61,7 @@ import {HEDERA_PLATFORM_VERSION} from '../version.js';
 import {IntervalLeaseRenewalService} from '../src/core/lease/interval_lease_renewal.js';
 import {Duration} from '../src/core/time/duration.js';
 import {container} from 'tsyringe-neo';
+import {resetTestContainer} from "./test_container.js";
 
 export const testLogger = logging.NewLogger('debug', true);
 export const TEST_CLUSTER = 'solo-e2e';
@@ -138,6 +139,9 @@ export function bootstrapTestVariables(
 ): BootstrapResponse {
   const namespace: string = argv[flags.namespace.name] || 'bootstrap-ns';
   const cacheDir: string = argv[flags.cacheDir.name] || getTestCacheDir(testName);
+
+  // resetTestContainer(cacheDir)
+
   const configManager = container.resolve(ConfigManager);
   configManager.update(argv);
 

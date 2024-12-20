@@ -22,7 +22,7 @@ import * as helpers from './helpers.js';
 import type * as yargs from 'yargs';
 import {type CommandFlag} from '../types/flag_types.js';
 import {type ListrTaskWrapper} from 'listr2';
-import {autoInjectable} from 'tsyringe-neo';
+import {autoInjectable, container} from 'tsyringe-neo';
 
 /**
  * ConfigManager cache command flag values so that user doesn't need to enter the same values repeatedly.
@@ -35,6 +35,7 @@ export class ConfigManager {
   config!: Record<string, any>;
 
   constructor(private readonly logger?: SoloLogger) {
+      const logger2 = container.resolve(SoloLogger)
     this.reset();
   }
 

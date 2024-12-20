@@ -28,7 +28,6 @@ import * as commands from './commands/index.js';
 import {HelmDependencyManager, DependencyManager} from './core/dependency_managers/index.js';
 import * as constants from './core/constants.js';
 import {PackageDownloader} from './core/package_downloader.js';
-import {Zippy} from './core/zippy.js';
 import {Helm} from './core/helm.js';
 import {ChartManager} from './core/chart_manager.js';
 import {ConfigManager} from './core/config_manager.js';
@@ -44,8 +43,6 @@ import * as helpers from './core/helpers.js';
 import {K8} from './core/k8.js';
 import {CustomProcessOutput} from './core/process_output.js';
 import {type Opts} from './types/command_types.js';
-import {IntervalLeaseRenewalService} from './core/lease/interval_lease_renewal.js';
-import {type LeaseRenewalService} from './core/lease/lease.js';
 import {container} from 'tsyringe-neo';
 import {SoloLogger} from './core/logging.js';
 

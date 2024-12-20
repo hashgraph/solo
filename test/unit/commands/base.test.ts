@@ -27,28 +27,34 @@ import * as logging from '../../../src/core/logging.js';
 import {BaseCommand} from '../../../src/commands/base.js';
 import {Flags as flags} from '../../../src/commands/flags.js';
 import sinon from 'sinon';
-import path from 'path';
-import {BASE_TEST_DIR} from '../../test_util.js';
 import {container} from 'tsyringe-neo';
+import {SoloLogger} from "../../../src/core/logging.js";
+import {resetTestContainer} from "../../test_container.js";
 
-const testLogger = logging.NewLogger('debug', true);
-
-describe('BaseCommand', () => {
-  const helm = container.resolve(Helm);
-  const chartManager = container.resolve(ChartManager);
-  const configManager = container.resolve(ConfigManager);
-
-  const depManager = container.resolve(DependencyManager);
-  const localConfig = new LocalConfig(path.join(BASE_TEST_DIR, 'local-config.yaml'));
-  const remoteConfigManager = container.resolve(RemoteConfigManager);
-
+describe.only('BaseCommand', () => {
+    let helm: Helm;
+    let chartManager: ChartManager;
+    let configManager: ConfigManager;
+    let depManager: DependencyManager;
+    let localConfig: LocalConfig;
+    let remoteConfigManager: RemoteConfigManager;
   let sandbox = sinon.createSandbox();
+  let testLogger: SoloLogger;
 
   let baseCmd: BaseCommand;
 
   describe('runShell', () => {
     before(() => {
-      sandbox = sinon.createSandbox();
+        // resetTestContainer();
+        testLogger = container.resolve(SoloLogger);
+        helm = container.resolve(Helm);
+        chartManager = container.resolve(ChartManager);
+        configManager = container.resolve(ConfigManager);
+        depManager = container.resolve(DependencyManager);
+        localConfig = container.resolve(LocalConfig);
+        remoteConfigManager = container.resolve(RemoteConfigManager);
+
+        sandbox = sinon.createSandbox();
       sandbox.stub(K8.prototype, 'init').callsFake(() => this);
       const k8 = container.resolve(K8);
 
