@@ -1028,6 +1028,8 @@ export class NodeCommandTasks {
           }
       }
 
+      config.nodeClient = self.accountManager.loadNodeClient(config.namespace);
+
       // send some write transactions to invoke the handler that will trigger the stake weight recalculate
       for (const nodeAlias of accountMap.keys()) {
         const accountId = accountMap.get(nodeAlias);
