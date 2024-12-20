@@ -80,7 +80,7 @@ export class DeploymentCommand extends BaseCommand {
             return ListrLease.newAcquireLeaseTask(lease, task);
           },
         },
-        this.localConfig.promptLocalConfigTask(),
+        this.localConfig.promptLocalConfigTask(self.k8),
         {
           title: 'Validate cluster connections',
           task: async (ctx, task): Promise<Listr<Context, any, any>> => {

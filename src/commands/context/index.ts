@@ -31,7 +31,7 @@ export class ContextCommand extends BaseCommand {
   constructor(opts: Opts) {
     super(opts);
 
-    this.handlers = new ContextCommandHandlers(this, new ContextCommandTasks(this));
+    this.handlers = new ContextCommandHandlers(this, new ContextCommandTasks(this), this.remoteConfigManager);
   }
 
   getCommandDefinition() {

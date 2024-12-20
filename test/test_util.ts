@@ -465,4 +465,8 @@ export const testLocalConfigData = {
     },
   },
   currentDeploymentName: 'deployment',
+  clusterContextMapping: {
+    'cluster-1': 'context-1',
+    'cluster-2': 'context-2',
+  },
 };
