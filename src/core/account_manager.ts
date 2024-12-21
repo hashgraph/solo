@@ -167,7 +167,6 @@ export class AccountManager {
         await this._nodeClient.ping(this._nodeClient.operatorAccountId);
       } catch {
         this.logger.debug('node client ping failed, refreshing node client');
-        await this.close();
         await this.refreshNodeClient(namespace);
       }
     }
@@ -209,6 +208,7 @@ export class AccountManager {
    * @param networkNodeServicesMap - a map of the service objects that proxy the nodes
    * @param operatorId - the account id of the operator of the transactions
    * @param operatorKey - the private key of the operator of the transactions
+   * @param skipNodeAlias - the node alias to skip
    * @returns a node client that can be used to call transactions
    */
   async _getNodeClient(
