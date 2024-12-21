@@ -37,6 +37,8 @@ export type TaskFunction = (
   task: ListrTaskWrapper<any, any, any>,
 ) => Promise<Listr<any, any, any>> | Listr<any, any, any> | Promise<void> | void;
 
-export type ConfigBuilder = (argv, ctx, task) => Promise<any>;
+export type ConfigBuilder = (argv, ctx, task, shouldLoadNodeClient?) => Promise<any>;
 
 export type IP = string;
+
+export type SdkNetworkEndpoint = `${string}:${number}`;

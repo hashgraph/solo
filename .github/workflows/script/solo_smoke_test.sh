@@ -119,7 +119,7 @@ function start_sdk_test ()
 }
 
 echo "Restart port-forward"
-task helper:clean:port-forward
+task clean:port-forward
 enable_port_forward
 
 

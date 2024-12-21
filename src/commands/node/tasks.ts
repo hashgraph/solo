@@ -354,11 +354,7 @@ export class NodeCommandTasks {
   ) {
     nodeAlias = nodeAlias.trim() as NodeAlias;
     const podName = Templates.renderNetworkPodName(nodeAlias);
-    const podPort = 9_999;
-    const localPort = 19_000 + index;
     task.title = `${title} - status ${chalk.yellow('STARTING')}, attempt ${chalk.blueBright(`0/${maxAttempts}`)}`;
-
-    const srv = await this.k8.portForward(podName, localPort, podPort);
 
     let attempt = 0;
     let success = false;
@@ -371,22 +367,24 @@ export class NodeCommandTasks {
       }, timeout);
 
       try {
-        const url = `http://${LOCAL_HOST}:${localPort}/metrics`;
-        const response = await fetch(url, {signal: controller.signal});
+        const response = await this.k8.execContainer(podName, constants.ROOT_CONTAINER, [
+          'bash',
+          '-c',
+          'curl -s http://localhost:9999/metrics | grep platform_PlatformStatus | grep -v \\#',
+        ]);
 
-        if (!response.ok) {
+        if (!response) {
           task.title = `${title} - status ${chalk.yellow('UNKNOWN')}, attempt ${chalk.blueBright(`${attempt}/${maxAttempts}`)}`;
           clearTimeout(timeoutId);
-          throw new Error(); // Guard
+          throw new Error('empty response'); // Guard
         }
 
-        const text = await response.text();
-        const statusLine = text.split('\n').find(line => line.startsWith('platform_PlatformStatus'));
+        const statusLine = response.split('\n').find(line => line.startsWith('platform_PlatformStatus'));
 
         if (!statusLine) {
           task.title = `${title} - status ${chalk.yellow('STARTING')}, attempt: ${chalk.blueBright(`${attempt}/${maxAttempts}`)}`;
           clearTimeout(timeoutId);
-          throw new Error(); // Guard
+          throw new Error('missing status line'); // Guard
         }
 
         const statusNumber = parseInt(statusLine.split(' ').pop());
@@ -403,16 +401,16 @@ export class NodeCommandTasks {
           task.title = `${title} - status ${chalk.yellow(NodeStatusEnums[statusNumber])}, attempt: ${chalk.blueBright(`${attempt}/${maxAttempts}`)}`;
         }
         clearTimeout(timeoutId);
-      } catch {
-        // Catch all guard and fetch errors
+      } catch (e: Error | any) {
+        this.logger.debug(
+          `${title} : Error in checking node activeness: attempt: ${attempt}/${maxAttempts}: ${JSON.stringify(e)}`,
+        );
       }
 
       attempt++;
       clearTimeout(timeoutId);
       await sleep(Duration.ofMillis(delay));
     }
-
-    await this.k8.stopPortForward(srv);
 
     if (!success) {
       throw new SoloError(
@@ -976,7 +974,7 @@ export class NodeCommandTasks {
   }
 
   checkAllNodesAreFrozen(nodeAliasesProperty: string) {
-    return new Task('Check all nodes are ACTIVE', (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
+    return new Task('Check all nodes are FROZEN', (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
       return this._checkNodeActivenessTask(ctx, task, ctx.config[nodeAliasesProperty], NodeStatusCodes.FREEZE_COMPLETE);
     });
   }
@@ -1030,6 +1028,8 @@ export class NodeCommandTasks {
           }
       }
 
+      config.nodeClient = await self.accountManager.loadNodeClient(config.namespace);
+
       // send some write transactions to invoke the handler that will trigger the stake weight recalculate
       for (const nodeAlias of accountMap.keys()) {
         const accountId = accountMap.get(nodeAlias);
@@ -1079,9 +1079,10 @@ export class NodeCommandTasks {
   }
 
   stopNodes() {
-    return new Task('Stopping nodes', (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
+    return new Task('Stopping nodes', async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
       const subTasks = [];
       if (!ctx.config.skipStop) {
+        await this.accountManager.close();
         for (const nodeAlias of ctx.config.nodeAliases) {
           const podName = ctx.config.podNames[nodeAlias];
           subTasks.push({
@@ -1572,7 +1573,7 @@ export class NodeCommandTasks {
       async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
         const config = ctx.config;
         const newNodeFullyQualifiedPodName = Templates.renderNetworkPodName(config.nodeAlias);
-        const nodeId = Templates.nodeIdFromNodeAlias(config.nodeAlias);
+        const nodeId = Templates.nodeIdFromNodeAlias(config.nodeAlias) - 1;
         const savedStateDir = config.lastStateZipPath.match(/\/(\d+)\.zip$/)[1];
         const savedStatePath = `${constants.HEDERA_HAPI_PATH}/data/saved/com.hedera.services.ServicesMain/${nodeId}/123/${savedStateDir}`;
         await this.k8.execContainer(newNodeFullyQualifiedPodName, constants.ROOT_CONTAINER, [
@@ -1643,7 +1644,7 @@ export class NodeCommandTasks {
     });
   }
 
-  initialize(argv: any, configInit: ConfigBuilder, lease: Lease | null) {
+  initialize(argv: any, configInit: ConfigBuilder, lease: Lease | null, shouldLoadNodeClient = true) {
     const {requiredFlags, requiredFlagsWithDisabledPrompt, optionalFlags} = argv;
     const allRequiredFlags = [...requiredFlags, ...requiredFlagsWithDisabledPrompt];
 
@@ -1670,7 +1671,7 @@ export class NodeCommandTasks {
 
       await this.configManager.executePrompt(task, flagsToPrompt);
 
-      const config = await configInit(argv, ctx, task);
+      const config = await configInit(argv, ctx, task, shouldLoadNodeClient);
       ctx.config = config;
 
       for (const flag of allRequiredFlags) {

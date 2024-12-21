@@ -23,6 +23,7 @@ import {sleep} from '../helpers.js';
 import {Duration} from '../time/duration.js';
 import type {Lease, LeaseRenewalService} from './lease.js';
 import {StatusCodes} from 'http-status-codes';
+import chalk from 'chalk';
 
 /**
  * Concrete implementation of a Kubernetes based time-based mutually exclusive lock via the Coordination API.
@@ -154,7 +155,7 @@ export class IntervalLease implements Lease {
     }
 
     throw new LeaseAcquisitionError(
-      `lease already acquired by '${otherHolder.username}' on the ` +
+      `acquire: lease already acquired by '${otherHolder.username}' on the ` +
         `'${otherHolder.hostname}' machine (PID: '${otherHolder.processId}')`,
       null,
       {self: this.leaseHolder.toObject(), other: otherHolder.toObject()},
@@ -190,7 +191,7 @@ export class IntervalLease implements Lease {
     }
 
     throw new LeaseAcquisitionError(
-      `lease already acquired by '${this._leaseHolder.username}' on the ` +
+      `renew: lease already acquired by '${this._leaseHolder.username}' on the ` +
         `'${this._leaseHolder.hostname}' machine (PID: '${this._leaseHolder.processId}')`,
       null,
       {self: this._leaseHolder.toObject(), other: this._leaseHolder.toObject()},
@@ -219,6 +220,7 @@ export class IntervalLease implements Lease {
    * @throws LeaseRelinquishmentError - If the lease is already acquired by another process or an error occurs during relinquishment.
    */
   async release(): Promise<void> {
+    this.client.logger.showUser(`${chalk.gray('releasing lease')}`);
     const lease = await this.retrieveLease();
 
     if (this.scheduleId) {
@@ -241,7 +243,7 @@ export class IntervalLease implements Lease {
     }
 
     throw new LeaseRelinquishmentError(
-      `lease already acquired by '${otherHolder.username}' on the ` +
+      `release: lease already acquired by '${otherHolder.username}' on the ` +
         `'${otherHolder.hostname}' machine (PID: '${otherHolder.processId}')`,
       null,
       {self: this._leaseHolder.toObject(), other: otherHolder.toObject()},
@@ -327,8 +329,10 @@ export class IntervalLease implements Lease {
           this.leaseHolder.toJson(),
           this.durationSeconds,
         );
-      } else {
+      } else if (this.leaseHolder.equals(LeaseHolder.fromJson(lease.spec.holderIdentity))) {
         await this.client.renewNamespaceLease(this.leaseName, this.namespace, lease);
+      } else {
+        await this.client.transferNamespaceLease(lease, this.leaseHolder.toJson());
       }
 
       if (!this.scheduleId) {

@@ -503,19 +503,14 @@ export class ProfileManager {
         const externalIP = Templates.renderFullyQualifiedNetworkSvcName(namespace, nodeAlias);
 
         const account = nodeAccountMap.get(nodeAlias);
-        if (releaseVersion.minor >= 40) {
-          configLines.push(
-            `address, ${nodeSeq}, ${nodeSeq}, ${nodeAlias}, ${nodeStakeAmount}, ${internalIP}, ${internalPort}, ${externalIP}, ${externalPort}, ${account}`,
-          );
-        } else {
-          configLines.push(
-            `address, ${nodeSeq}, ${nodeAlias}, ${nodeStakeAmount}, ${internalIP}, ${internalPort}, ${externalIP}, ${externalPort}, ${account}`,
-          );
-        }
+        configLines.push(
+          `address, ${nodeSeq}, ${nodeSeq}, ${nodeAlias}, ${nodeStakeAmount}, ${internalIP}, ${internalPort}, ${externalIP}, ${externalPort}, ${account}`,
+        );
 
         nodeSeq += 1;
       }
 
+      // TODO: remove once we no longer need less than v0.56
       if (releaseVersion.minor >= 41 && releaseVersion.minor < 56) {
         configLines.push(`nextNodeId, ${nodeSeq}`);
       }

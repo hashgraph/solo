@@ -28,7 +28,7 @@ import {Duration} from '../../../src/core/time/duration.js';
 
 const LOCAL_HEDERA = 'local-hedera-app';
 const argv = getDefaultArgv();
-argv[flags.nodeAliasesUnparsed.name] = 'node1,node2,node3';
+argv[flags.nodeAliasesUnparsed.name] = 'node1,node2';
 argv[flags.generateGossipKeys.name] = true;
 argv[flags.generateTlsKeys.name] = true;
 argv[flags.clusterName.name] = TEST_CLUSTER;
@@ -38,8 +38,7 @@ argv[flags.quiet.name] = true;
 
 let hederaK8: K8;
 console.log('Starting local build for Hedera app');
-argv[flags.localBuildPath.name] =
-  'node1=../hedera-services/hedera-node/data/,../hedera-services/hedera-node/data,node3=../hedera-services/hedera-node/data';
+argv[flags.localBuildPath.name] = 'node1=../hedera-services/hedera-node/data/,../hedera-services/hedera-node/data';
 argv[flags.namespace.name] = LOCAL_HEDERA;
 
 e2eTestSuite(
@@ -101,6 +100,7 @@ e2eTestSuite(
       }).timeout(Duration.ofMinutes(10).toMillis());
 
       it('get the logs and delete the namespace', async () => {
+        await accountManager.close();
         await hederaK8.getNodeLogs(LOCAL_HEDERA);
         await hederaK8.deleteNamespace(LOCAL_HEDERA);
       }).timeout(Duration.ofMinutes(10).toMillis());

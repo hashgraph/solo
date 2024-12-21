@@ -1,0 +1,32 @@
+version: 3
+includes:
+  helper:
+    taskfile: ../HelperTasks.yml
+    flatten: true
+
+tasks:
+  default:
+    deps:
+      - task: "init"
+    cmds:
+      - task: "install:kubectl:darwin"
+      - task: "install:kubectl:linux"
+      - task: "install:solo"
+      - task: "install"
+      - task: "start"
+
+  install:
+    desc: solo init, solo cluster create, solo node keys, solo network deploy
+    deps:
+      - task: "init"
+    cmds:
+      - task: "solo:init"
+      - task: "solo:cluster:setup"
+      - task: "solo:keys"
+      - task: "solo:network:deploy"
+
+  destroy:
+    deps:
+      - task: "init"
+    cmds:
+      - task: "solo:network:destroy"

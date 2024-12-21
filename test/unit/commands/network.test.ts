@@ -86,6 +86,7 @@ describe('NetworkCommand unit tests', () => {
       opts.k8.waitForPodReady = sinon.stub();
       opts.k8.waitForPods = sinon.stub();
       opts.k8.readNamespacedLease = sinon.stub();
+      opts.k8.logger = opts.logger;
 
       ListrLease.newAcquireLeaseTask = sinon.stub().returns({
         run: sinon.stub().returns({}),
