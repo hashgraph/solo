@@ -164,9 +164,12 @@ export const DEFAULT_PROFILE_FILE = path.join(SOLO_CACHE_DIR, 'profiles', 'custo
 
 // ------ Hedera SDK Related ------
 export const NODE_CLIENT_MAX_ATTEMPTS = +process.env.NODE_CLIENT_MAX_ATTEMPTS || 600;
-export const NODE_CLIENT_MIN_BACKOFF = +process.env.NODE_CLIENT_MIN_BACKOFF || 1000;
-export const NODE_CLIENT_MAX_BACKOFF = +process.env.NODE_CLIENT_MAX_BACKOFF || 1000;
-export const NODE_CLIENT_REQUEST_TIMEOUT = +process.env.NODE_CLIENT_REQUEST_TIMEOUT || 600000;
+export const NODE_CLIENT_MIN_BACKOFF = +process.env.NODE_CLIENT_MIN_BACKOFF || 1_000;
+export const NODE_CLIENT_MAX_BACKOFF = +process.env.NODE_CLIENT_MAX_BACKOFF || 1_000;
+export const NODE_CLIENT_REQUEST_TIMEOUT = +process.env.NODE_CLIENT_REQUEST_TIMEOUT || 600_000;
+export const NODE_CLIENT_PING_INTERVAL = +process.env.NODE_CLIENT_PING_INTERVAL || 30_000;
+export const NODE_CLIENT_PING_MAX_RETRIES = +process.env.NODE_CLIENT_PING_MAX_RETRIES || 10;
+export const NODE_CLIENT_PING_RETRY_INTERVAL = +process.env.NODE_CLIENT_PING_RETRY_INTERVAL || 30_000;
 
 // ---- New Node Related ----
 export const ENDPOINT_TYPE_IP = 'IP';

@@ -86,7 +86,7 @@ export const downloadGeneratedFilesConfigBuilder = async function (argv, ctx, ta
   return config;
 };
 
-export const updateConfigBuilder = async function (argv, ctx, task) {
+export const updateConfigBuilder = async function (argv, ctx, task, shouldLoadNodeClient = true) {
   const config = this.getConfig(UPDATE_CONFIGS_NAME, argv.flags, [
     'allNodeAliases',
     'existingNodeAliases',
@@ -114,8 +114,9 @@ export const updateConfigBuilder = async function (argv, ctx, task) {
     constants.SOLO_DEPLOYMENT_CHART,
   );
 
-  // initialize Node Client with existing network nodes prior to adding the new node which isn't functioning, yet
-  ctx.config.nodeClient = await this.accountManager.loadNodeClient(ctx.config.namespace);
+  if (shouldLoadNodeClient) {
+    ctx.config.nodeClient = await this.accountManager.loadNodeClient(ctx.config.namespace);
+  }
 
   const accountKeys = await this.accountManager.getAccountKeysFromSecret(FREEZE_ADMIN_ACCOUNT, config.namespace);
   config.freezeAdminPrivateKey = accountKeys.privateKey;
@@ -127,7 +128,7 @@ export const updateConfigBuilder = async function (argv, ctx, task) {
   return config;
 };
 
-export const deleteConfigBuilder = async function (argv, ctx, task) {
+export const deleteConfigBuilder = async function (argv, ctx, task, shouldLoadNodeClient = true) {
   const config = this.getConfig(DELETE_CONFIGS_NAME, argv.flags, [
     'adminKey',
     'allNodeAliases',
@@ -156,8 +157,9 @@ export const deleteConfigBuilder = async function (argv, ctx, task) {
     constants.SOLO_DEPLOYMENT_CHART,
   );
 
-  // initialize Node Client with existing network nodes prior to adding the new node which isn't functioning, yet
-  ctx.config.nodeClient = await this.accountManager.loadNodeClient(ctx.config.namespace);
+  if (shouldLoadNodeClient) {
+    ctx.config.nodeClient = await this.accountManager.loadNodeClient(ctx.config.namespace);
+  }
 
   const accountKeys = await this.accountManager.getAccountKeysFromSecret(FREEZE_ADMIN_ACCOUNT, config.namespace);
   config.freezeAdminPrivateKey = accountKeys.privateKey;
@@ -169,7 +171,7 @@ export const deleteConfigBuilder = async function (argv, ctx, task) {
   return config;
 };
 
-export const addConfigBuilder = async function (argv, ctx, task) {
+export const addConfigBuilder = async function (argv, ctx, task, shouldLoadNodeClient = true) {
   const config = this.getConfig(ADD_CONFIGS_NAME, argv.flags, [
     'allNodeAliases',
     'chartPath',
@@ -203,8 +205,9 @@ export const addConfigBuilder = async function (argv, ctx, task) {
     constants.SOLO_DEPLOYMENT_CHART,
   );
 
-  // initialize Node Client with existing network nodes prior to adding the new node which isn't functioning, yet
-  ctx.config.nodeClient = await this.accountManager.loadNodeClient(ctx.config.namespace);
+  if (shouldLoadNodeClient) {
+    ctx.config.nodeClient = await this.accountManager.loadNodeClient(ctx.config.namespace);
+  }
 
   const accountKeys = await this.accountManager.getAccountKeysFromSecret(FREEZE_ADMIN_ACCOUNT, config.namespace);
   config.freezeAdminPrivateKey = accountKeys.privateKey;

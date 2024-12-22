@@ -168,11 +168,6 @@ export class NetworkCommand extends BaseCommand {
     // do not deploy mirror node until after we have the updated address book
     valuesArg += ` --set "telemetry.prometheus.svcMonitor.enabled=${config.enablePrometheusSvcMonitor}"`;
 
-    if (config.releaseTag) {
-      const rootImage = helpers.getRootImageRepository(config.releaseTag);
-      valuesArg += ` --set "defaults.root.image.repository=${rootImage}"`;
-    }
-
     valuesArg += ` --set "defaults.volumeClaims.enabled=${config.persistentVolumeClaims}"`;
 
     // Iterate over each node and set static IPs for HAProxy
@@ -203,7 +198,7 @@ export class NetworkCommand extends BaseCommand {
 
   async prepareConfig(task: any, argv: any) {
     this.configManager.update(argv);
-    this.logger.debug('Loaded cached config', {config: this.configManager.config});
+    this.logger.debug('Updated config with argv', {config: this.configManager.config});
 
     // disable the prompts that we don't want to prompt the user for
     flags.disablePrompts([
@@ -712,9 +707,10 @@ export class NetworkCommand extends BaseCommand {
                 y,
                 flags.deletePvcs,
                 flags.deleteSecrets,
+                flags.enableTimeout,
                 flags.force,
                 flags.namespace,
-                flags.enableTimeout,
+                flags.quiet,
               ),
             handler: (argv: any) => {
               self.logger.debug("==== Running 'network destroy' ===");

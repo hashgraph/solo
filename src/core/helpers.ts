@@ -19,7 +19,6 @@ import os from 'os';
 import path from 'path';
 import util from 'util';
 import {SoloError} from './errors.js';
-import * as semver from 'semver';
 import {Templates} from './templates.js';
 import {ROOT_DIR} from './constants.js';
 import * as constants from './constants.js';
@@ -73,20 +72,6 @@ export function loadPackageJSON(): any {
 export function packageVersion(): string {
   const packageJson = loadPackageJSON();
   return packageJson.version;
-}
-
-/**
- * Return the required root image for a platform version
- * @param releaseTag - platform version
- */
-export function getRootImageRepository(releaseTag: string) {
-  // @ts-ignore
-  const releaseVersion = semver.parse(releaseTag, {includePrerelease: true}) as Semver;
-  if (releaseVersion.minor < 46) {
-    return 'hashgraph/solo-containers/ubi8-init-java17';
-  }
-
-  return 'hashgraph/solo-containers/ubi8-init-java21';
 }
 
 export function getTmpDir() {
