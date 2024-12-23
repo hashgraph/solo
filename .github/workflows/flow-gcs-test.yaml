@@ -106,4 +106,4 @@ jobs:
 
       - name: Delete Bucket after Test
         run: |
-          gcloud storage buckets delete gs://${BUCKET_NAME} --project=${{ vars.GCP_S3_PROJECT_ID }} --force
+          gcloud storage buckets delete gs://${BUCKET_NAME} --project=${{ vars.GCP_S3_PROJECT_ID }} 
