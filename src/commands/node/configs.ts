@@ -24,8 +24,8 @@ import path from 'path';
 import fs from 'fs';
 import {validatePath} from '../../core/helpers.js';
 import {Flags as flags} from '../flags.js';
-import {type NodeAlias, type NodeAliases, type PodName} from '../../types/aliases.js';
-import {type NetworkNodeServices} from '../../core/network_node_services.js';
+import type {NodeAlias, NodeAliases, PodName} from '../../types/aliases.js';
+import type {NetworkNodeServices} from '../../core/network_node_services.js';
 
 export const PREPARE_UPGRADE_CONFIGS_NAME = 'prepareUpgradeConfig';
 export const DOWNLOAD_GENERATED_FILES_CONFIGS_NAME = 'downloadGeneratedFilesConfig';

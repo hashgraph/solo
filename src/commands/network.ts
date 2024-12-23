@@ -38,6 +38,7 @@ import {ConsensusNodeComponent} from '../core/config/remote/components/consensus
 import {ConsensusNodeStates} from '../core/config/remote/enumerations.js';
 import {EnvoyProxyComponent} from '../core/config/remote/components/envoy_proxy_component.js';
 import {HaProxyComponent} from '../core/config/remote/components/ha_proxy_component.js';
+import {GenesisNetworkDataConstructor} from '../core/genesis_network_models/genesis_network_data_constructor.js';
 
 export interface NetworkDeployConfigClass {
   applicationEnv: string;
@@ -61,6 +62,7 @@ export interface NetworkDeployConfigClass {
   grpcWebTlsCertificatePath: string;
   grpcTlsKeyPath: string;
   grpcWebTlsKeyPath: string;
+  genesisNetworkData: GenesisNetworkDataConstructor;
   getUnusedConfigs: () => string[];
   haproxyIps: string;
   envoyIps: string;
@@ -130,20 +132,19 @@ export class NetworkCommand extends BaseCommand {
     ];
   }
 
-  async prepareValuesArg(
-    config: {
-      chartDirectory?: string;
-      app?: string;
-      nodeAliases?: string[];
-      debugNodeAlias?: NodeAlias;
-      enablePrometheusSvcMonitor?: boolean;
-      releaseTag?: string;
-      persistentVolumeClaims?: string;
-      valuesFile?: string;
-      haproxyIpsParsed?: Record<NodeAlias, IP>;
-      envoyIpsParsed?: Record<NodeAlias, IP>;
-    } = {},
-  ) {
+  async prepareValuesArg(config: {
+    chartDirectory?: string;
+    app?: string;
+    nodeAliases: string[];
+    debugNodeAlias?: NodeAlias;
+    enablePrometheusSvcMonitor?: boolean;
+    releaseTag?: string;
+    persistentVolumeClaims?: string;
+    valuesFile?: string;
+    haproxyIpsParsed?: Record<NodeAlias, IP>;
+    envoyIpsParsed?: Record<NodeAlias, IP>;
+    genesisNetworkData: GenesisNetworkDataConstructor;
+  }) {
     let valuesArg = config.chartDirectory
       ? `-f ${path.join(config.chartDirectory, 'solo-deployment', 'values.yaml')}`
       : '';
@@ -160,7 +161,10 @@ export class NetworkCommand extends BaseCommand {
     }
 
     const profileName = this.configManager.getFlag<string>(flags.profileName) as string;
-    this.profileValuesFile = await this.profileManager.prepareValuesForSoloChart(profileName);
+    this.profileValuesFile = await this.profileManager.prepareValuesForSoloChart(
+      profileName,
+      config.genesisNetworkData,
+    );
     if (this.profileValuesFile) {
       valuesArg += this.prepareValuesFiles(this.profileValuesFile);
     }
@@ -172,7 +176,7 @@ export class NetworkCommand extends BaseCommand {
 
     // Iterate over each node and set static IPs for HAProxy
     if (config.haproxyIpsParsed) {
-      config.nodeAliases?.forEach((nodeAlias, index) => {
+      config.nodeAliases.forEach((nodeAlias, index) => {
         const ip = config.haproxyIpsParsed?.[nodeAlias];
 
         if (ip) valuesArg += ` --set "hedera.nodes[${index}].haproxyStaticIP=${ip}"`;
@@ -181,7 +185,7 @@ export class NetworkCommand extends BaseCommand {
 
     // Iterate over each node and set static IPs for Envoy Proxy
     if (config.envoyIpsParsed) {
-      config.nodeAliases?.forEach((nodeAlias, index) => {
+      config.nodeAliases.forEach((nodeAlias, index) => {
         const ip = config.envoyIpsParsed?.[nodeAlias];
 
         if (ip) valuesArg += ` --set "hedera.nodes[${index}].envoyProxyStaticIP=${ip}"`;
@@ -253,12 +257,18 @@ export class NetworkCommand extends BaseCommand {
       constants.SOLO_DEPLOYMENT_CHART,
     );
 
-    config.valuesArg = await this.prepareValuesArg(config);
-
     // compute other config parameters
     config.keysDir = path.join(validatePath(config.cacheDir), 'keys');
     config.stagingDir = Templates.renderStagingDir(config.cacheDir, config.releaseTag);
     config.stagingKeysDir = path.join(validatePath(config.stagingDir), 'keys');
+
+    config.genesisNetworkData = await GenesisNetworkDataConstructor.initialize(
+      config.nodeAliases,
+      this.keyManager,
+      config.keysDir,
+    );
+
+    config.valuesArg = await this.prepareValuesArg(config);
 
     if (!(await this.k8.hasNamespace(config.namespace))) {
       await this.k8.createNamespace(config.namespace);
@@ -341,7 +351,7 @@ export class NetworkCommand extends BaseCommand {
         },
         {
           title: 'Check if cluster setup chart is installed',
-          task: async (ctx, task) => {
+          task: async () => {
             const isChartInstalled = await this.chartManager.isChartInstalled('', constants.SOLO_CLUSTER_SETUP_CHART);
             if (!isChartInstalled) {
               throw new SoloError(
@@ -386,7 +396,7 @@ export class NetworkCommand extends BaseCommand {
           task: (ctx, parentTask) => {
             const config = ctx.config;
 
-            // set up the sub-tasks
+            // set up the subtasks
             return parentTask.newListr(self.platformInstaller.copyNodeKeys(config.stagingDir, config.nodeAliases), {
               concurrent: true,
               rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION,
@@ -502,7 +512,7 @@ export class NetworkCommand extends BaseCommand {
                 ),
             });
 
-            // set up the sub-tasks
+            // set up the subtasks
             return task.newListr(subTasks, {
               concurrent: false, // no need to run concurrently since if one node is up, the rest should be up by then
               rendererOptions: {
@@ -754,6 +764,7 @@ export class NetworkCommand extends BaseCommand {
       },
     };
   }
+
   /** Adds the consensus node, envoy and haproxy components to remote config.  */
   public addNodesAndProxies(): ListrTask<any, any, any> {
     return {
