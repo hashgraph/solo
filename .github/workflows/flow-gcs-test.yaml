@@ -102,7 +102,7 @@ jobs:
           GCS_SECRET_KEY: ${{ secrets.GCP_S3_SECRET_KEY }}
           BUCKET_NAME: ${{ env.BUCKET_NAME }}
         run: |
-          .github/workflows/script/gcs_test.sh || true
+          .github/workflows/script/gcs_test.sh
 
       - name: Delete Bucket after Test
         run: |

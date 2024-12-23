@@ -1,5 +1,5 @@
 #!/bin/bash
-#set -eo pipefail
+set -eo pipefail
 
 source .github/workflows/script/helper.sh
 
@@ -20,7 +20,6 @@ else
 fi
 
 echo "Using bucket name: ${streamBucket}"
-
 
 echo "Generate GCS credentials to file gcs_values.yaml"
 echo "cloud:" > gcs_values.yaml
@@ -63,18 +62,8 @@ npm run solo-test -- mirror-node deploy --namespace "${SOLO_NAMESPACE}" -f gcs_m
 kubectl port-forward -n "${SOLO_NAMESPACE}" svc/haproxy-node1-svc 50211:50211 > /dev/null 2>&1 &
 kubectl port-forward -n "${SOLO_NAMESPACE}" svc/hedera-explorer 8080:80 > /dev/null 2>&1 &
 
-ps -ef |grep port-forward
-
 cd ..; create_test_account ; cd -
-
-echo "-------------------------"
-helm get values solo-deployment -n solo-e2e
-echo "-------------------------"
-helm get values mirror -n solo-e2e
-echo "-------------------------"
-# echo all pod logs
-kubectl describe pods -n solo-e2e
-echo "-------------------------"
 
 node examples/create-topic.js
 
+npm run solo-test -- node stop -i node1,node2 -n "${SOLO_NAMESPACE}"
