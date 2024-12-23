@@ -121,21 +121,6 @@ defaults:
         value: "16g"
       - name: JAVA_HEAP_MAX
         value: "19g"
-minio-server:
-  tenant:
-    pools:
-      - servers: 1
-        name: pool-1
-        volumesPerServer: 1
-        size: 500Gi
-        storageClassName: local-path
-        resources:
-          requests:
-            cpu: 0
-            memory: 0
-          limits:
-            cpu: 0
-            memory: 0
 deployment:
   podAnnotations: {}
   podLabels: {}

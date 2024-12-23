@@ -297,6 +297,7 @@ export function e2eTestSuite(
           try {
             expect(await nodeCmd.handlers.setup(argv)).to.be.true;
             expect(nodeCmd.getUnusedConfigs(NodeCommandConfigs.SETUP_CONFIGS_NAME)).to.deep.equal([
+              flags.quiet.constName,
               flags.devMode.constName,
             ]);
           } catch (e) {

@@ -295,9 +295,9 @@ export class Duration {
   }
 
   /**
-   * Converts this duration to seconds.
+   * Converts this duration to milliseconds.
    *
-   * @returns the number of seconds in this duration.
+   * @returns the number of milliseconds in this duration.
    */
   public toMillis(): number {
     const millis = MathEx.multiplyExact(this.seconds, Time.MILLIS_PER_SECOND);
