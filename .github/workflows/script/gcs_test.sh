@@ -75,8 +75,9 @@ solo mirror-node deploy --namespace "${SOLO_NAMESPACE}" -f gcs_mirror_values.yam
 kubectl port-forward -n "${SOLO_NAMESPACE}" svc/haproxy-node1-svc 50211:50211 > /dev/null 2>&1 &
 kubectl port-forward -n "${SOLO_NAMESPACE}" svc/hedera-explorer 8080:80 > /dev/null 2>&1 &
 
+ps -ef |grep port-forward
+
 cd ..; create_test_account ; cd -
 
 node examples/create-topic.js
 
-ps -ef |grep port-forward
