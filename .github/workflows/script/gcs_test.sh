@@ -16,7 +16,7 @@ fi
 if [ -z "${BUCKET_NAME}" ]; then
   streamBucket="solo-ci-test-streams"
 else
-  streamBucket=${BUCKET_NAME}"
+  streamBucket=${BUCKET_NAME}
 fi
 
 echo "Generate GCS credentials to file gcs_values.yaml"
