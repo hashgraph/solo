@@ -19,7 +19,6 @@
  * This file should only contain versions for dependencies
  */
 
-export const JAVA_VERSION = '21.0.1+12';
 export const HELM_VERSION = 'v3.14.2';
 export const SOLO_CHART_VERSION = '0.38.2';
 export const HEDERA_PLATFORM_VERSION = 'v0.58.0';

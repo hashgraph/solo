@@ -24,8 +24,9 @@ import path from 'path';
 import fs from 'fs';
 import {validatePath} from '../../core/helpers.js';
 import {Flags as flags} from '../flags.js';
-import {type NodeAlias, type NodeAliases, type PodName} from '../../types/aliases.js';
-import {type NetworkNodeServices} from '../../core/network_node_services.js';
+import type {NodeAlias, NodeAliases, PodName} from '../../types/aliases.js';
+import type {NetworkNodeServices} from '../../core/network_node_services.js';
+import {type NodeAddConfigClass} from './node_add_config.js';
 
 export const PREPARE_UPGRADE_CONFIGS_NAME = 'prepareUpgradeConfig';
 export const DOWNLOAD_GENERATED_FILES_CONFIGS_NAME = 'downloadGeneratedFilesConfig';
@@ -355,46 +356,6 @@ export interface NodeStartConfigClass {
   stagingDir: string;
   podNames: Record<NodeAlias, PodName>;
   nodeAliasesUnparsed: string;
-}
-
-export interface NodeAddConfigClass {
-  app: string;
-  cacheDir: string;
-  chainId: string;
-  chartDirectory: string;
-  devMode: boolean;
-  debugNodeAlias: NodeAlias;
-  endpointType: string;
-  soloChartVersion: string;
-  generateGossipKeys: boolean;
-  generateTlsKeys: boolean;
-  gossipEndpoints: string;
-  grpcEndpoints: string;
-  localBuildPath: string;
-  namespace: string;
-  nodeAlias: NodeAlias;
-  releaseTag: string;
-  adminKey: PrivateKey;
-  allNodeAliases: NodeAliases;
-  chartPath: string;
-  curDate: Date;
-  existingNodeAliases: NodeAliases;
-  freezeAdminPrivateKey: string;
-  keysDir: string;
-  lastStateZipPath: string;
-  nodeClient: any;
-  podNames: Record<NodeAlias, PodName>;
-  serviceMap: Map<string, NetworkNodeServices>;
-  treasuryKey: PrivateKey;
-  stagingDir: string;
-  stagingKeysDir: string;
-  grpcTlsCertificatePath: string;
-  grpcWebTlsCertificatePath: string;
-  grpcTlsKeyPath: string;
-  grpcWebTlsKeyPath: string;
-  haproxyIps: string;
-  envoyIps: string;
-  getUnusedConfigs: () => string[];
 }
 
 export interface NodeDeleteConfigClass {

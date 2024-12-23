@@ -27,6 +27,7 @@ import {type NodeAlias, type NodeAliases} from '../types/aliases.js';
 import {type CommandFlag} from '../types/flag_types.js';
 import {type SoloLogger} from './logging.js';
 import {type Duration} from './time/duration.js';
+import {type NodeAddConfigClass} from '../commands/node/node_add_config.js';
 
 export function sleep(duration: Duration) {
   return new Promise<void>(resolve => {
@@ -241,13 +242,14 @@ export function addDebugOptions(valuesArg: string, debugNodeAlias: NodeAlias, in
 export function addSaveContextParser(ctx: any) {
   const exportedCtx = {} as Record<string, string>;
 
-  const config = /** @type {NodeAddConfigClass} **/ ctx.config;
+  const config = ctx.config as NodeAddConfigClass;
   const exportedFields = ['tlsCertHash', 'upgradeZipHash', 'newNode'];
 
   exportedCtx.signingCertDer = ctx.signingCertDer.toString();
   exportedCtx.gossipEndpoints = ctx.gossipEndpoints.map((ep: any) => `${ep.getDomainName}:${ep.getPort}`);
   exportedCtx.grpcServiceEndpoints = ctx.grpcServiceEndpoints.map((ep: any) => `${ep.getDomainName}:${ep.getPort}`);
   exportedCtx.adminKey = ctx.adminKey.toString();
+  // @ts-ignore
   exportedCtx.existingNodeAliases = config.existingNodeAliases;
 
   for (const prop of exportedFields) {
@@ -308,16 +310,14 @@ export function prepareEndpoints(endpointType: string, endpoints: string[], defa
     if (endpointType.toUpperCase() === constants.ENDPOINT_TYPE_IP) {
       ret.push(
         new ServiceEndpoint({
-          // @ts-ignore
-          port,
+          port: +port,
           ipAddressV4: parseIpAddressToUint8Array(url),
         }),
       );
     } else {
       ret.push(
         new ServiceEndpoint({
-          // @ts-ignore
-          port,
+          port: +port,
           domainName: url,
         }),
       );

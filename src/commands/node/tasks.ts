@@ -31,7 +31,6 @@ import {
   FREEZE_ADMIN_ACCOUNT,
   HEDERA_NODE_DEFAULT_STAKE_AMOUNT,
   IGNORED_NODE_ACCOUNT_ID,
-  LOCAL_HOST,
   TREASURY_ACCOUNT_ID,
 } from '../../core/constants.js';
 import {
@@ -75,16 +74,12 @@ import {
 } from '../../types/aliases.js';
 import {NodeStatusCodes, NodeStatusEnums, NodeSubcommandType} from '../../core/enumerations.js';
 import * as x509 from '@peculiar/x509';
-import type {
-  NodeAddConfigClass,
-  NodeDeleteConfigClass,
-  NodeRefreshConfigClass,
-  NodeUpdateConfigClass,
-} from './configs.js';
+import type {NodeDeleteConfigClass, NodeRefreshConfigClass, NodeUpdateConfigClass} from './configs.js';
 import {type Lease} from '../../core/lease/lease.js';
 import {ListrLease} from '../../core/lease/listr_lease.js';
 import {Duration} from '../../core/time/duration.js';
 import {type BaseCommand} from '../base.js';
+import {type NodeAddConfigClass} from './node_add_config.js';
 
 export class NodeCommandTasks {
   private readonly accountManager: AccountManager;
@@ -455,6 +450,7 @@ export class NodeCommandTasks {
    */
   _generateGossipKeys(generateMultiple: boolean) {
     const self = this;
+
     return new Task(
       'Generate gossip keys',
       (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
@@ -701,7 +697,7 @@ export class NodeCommandTasks {
           config.stagingDir,
         );
 
-        // if directory data/upgrade/current/data/keys does not exist then use data/upgrade/current
+        // if directory data/upgrade/current/data/keys does not exist, then use data/upgrade/current
         let keyDir = `${constants.HEDERA_HAPI_PATH}/data/upgrade/current/data/keys`;
         if (!(await self.k8.hasDir(nodeFullyQualifiedPodName, constants.ROOT_CONTAINER, keyDir))) {
           keyDir = `${constants.HEDERA_HAPI_PATH}/data/upgrade/current`;
