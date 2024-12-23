@@ -31,7 +31,7 @@ permissions:
 
 jobs:
   gcs-storage-test:
-    timeout-minutes: 20
+    timeout-minutes: 7200
     runs-on: solo-linux-large
     steps:
       - name: Harden Runner
@@ -97,8 +97,7 @@ jobs:
           GCS_SECRET_KEY: ${{ secrets.GCP_S3_SECRET_KEY }}
           BUCKET_NAME: ${{ env.BUCKET_NAME }}
         run: |
-          #.github/workflows/script/gcs_test.sh || true
-          sleep 7200
+          .github/workflows/script/gcs_test.sh || true
 
       - name: Delete Bucket after Test
         run: |

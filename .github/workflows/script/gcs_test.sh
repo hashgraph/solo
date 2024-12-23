@@ -64,13 +64,13 @@ SOLO_CLUSTER_SETUP_NAMESPACE=solo-setup
 
 kind delete cluster -n "${SOLO_CLUSTER_NAME}"
 kind create cluster -n "${SOLO_CLUSTER_NAME}"
-solo init
-solo cluster setup -s "${SOLO_CLUSTER_SETUP_NAMESPACE}"
-solo node keys --gossip-keys --tls-keys -i node1,node2
-solo network deploy -i node1,node2 -n "${SOLO_NAMESPACE}" -f gcs_values.yaml
-solo node setup -i node1,node2 -n "${SOLO_NAMESPACE}"
-solo node start -i node1,node2 -n "${SOLO_NAMESPACE}"
-solo mirror-node deploy --namespace "${SOLO_NAMESPACE}" -f gcs_mirror_values.yaml
+npm run solo-test -- init
+npm run solo-test -- cluster setup -s "${SOLO_CLUSTER_SETUP_NAMESPACE}"
+npm run solo-test -- node keys --gossip-keys --tls-keys -i node1,node2
+npm run solo-test -- network deploy -i node1,node2 -n "${SOLO_NAMESPACE}" -f gcs_values.yaml
+npm run solo-test -- node setup -i node1,node2 -n "${SOLO_NAMESPACE}"
+npm run solo-test -- node start -i node1,node2 -n "${SOLO_NAMESPACE}"
+npm run solo-test -- mirror-node deploy --namespace "${SOLO_NAMESPACE}" -f gcs_mirror_values.yaml
 
 kubectl port-forward -n "${SOLO_NAMESPACE}" svc/haproxy-node1-svc 50211:50211 > /dev/null 2>&1 &
 kubectl port-forward -n "${SOLO_NAMESPACE}" svc/hedera-explorer 8080:80 > /dev/null 2>&1 &
@@ -78,6 +78,15 @@ kubectl port-forward -n "${SOLO_NAMESPACE}" svc/hedera-explorer 8080:80 > /dev/n
 ps -ef |grep port-forward
 
 cd ..; create_test_account ; cd -
+
+echo "-------------------------"
+helm get values solo-deployment -n solo-e2e
+echo "-------------------------"
+helm get values mirror -n solo-e2e
+echo "-------------------------"
+# echo all pod logs
+kubectl describe pods -n solo-e2e
+echo "-------------------------"
 
 node examples/create-topic.js
 
