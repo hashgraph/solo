@@ -27,7 +27,7 @@ import {type NodeAlias, type NodeAliases} from '../types/aliases.js';
 import {type CommandFlag} from '../types/flag_types.js';
 import {type SoloLogger} from './logging.js';
 import {type Duration} from './time/duration.js';
-import {type NodeAddConfigClass} from '../commands/node/configs.js';
+import {type NodeAddConfigClass} from '../commands/node/node_add_config.js';
 
 export function sleep(duration: Duration) {
   return new Promise<void>(resolve => {

@@ -74,16 +74,12 @@ import {
 } from '../../types/aliases.js';
 import {NodeStatusCodes, NodeStatusEnums, NodeSubcommandType} from '../../core/enumerations.js';
 import * as x509 from '@peculiar/x509';
-import type {
-  NodeAddConfigClass,
-  NodeDeleteConfigClass,
-  NodeRefreshConfigClass,
-  NodeUpdateConfigClass,
-} from './configs.js';
+import type {NodeDeleteConfigClass, NodeRefreshConfigClass, NodeUpdateConfigClass} from './configs.js';
 import {type Lease} from '../../core/lease/lease.js';
 import {ListrLease} from '../../core/lease/listr_lease.js';
 import {Duration} from '../../core/time/duration.js';
 import {type BaseCommand} from '../base.js';
+import {type NodeAddConfigClass} from './node_add_config.js';
 
 export class NodeCommandTasks {
   private readonly accountManager: AccountManager;
