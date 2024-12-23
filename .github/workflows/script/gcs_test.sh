@@ -19,6 +19,9 @@ else
   streamBucket=${BUCKET_NAME}
 fi
 
+echo "Using bucket name: ${streamBucket}"
+
+
 echo "Generate GCS credentials to file gcs_values.yaml"
 echo "cloud:" > gcs_values.yaml
 echo "  buckets:" >> gcs_values.yaml
@@ -63,3 +66,5 @@ kubectl port-forward -n "${SOLO_NAMESPACE}" svc/hedera-explorer 8080:80 > /dev/n
 cd ..; create_test_account ; cd -
 
 node examples/create-topic.js
+
+ps -ef |grep port-forward
