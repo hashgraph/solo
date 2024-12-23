@@ -31,7 +31,6 @@ import {
   FREEZE_ADMIN_ACCOUNT,
   HEDERA_NODE_DEFAULT_STAKE_AMOUNT,
   IGNORED_NODE_ACCOUNT_ID,
-  LOCAL_HOST,
   TREASURY_ACCOUNT_ID,
 } from '../../core/constants.js';
 import {
