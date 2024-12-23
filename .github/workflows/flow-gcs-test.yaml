@@ -31,7 +31,7 @@ permissions:
 
 jobs:
   gcs-storage-test:
-    timeout-minutes: 7200
+    timeout-minutes: 20
     runs-on: solo-linux-large
     steps:
       - name: Harden Runner
@@ -106,4 +106,4 @@ jobs:
 
       - name: Delete Bucket after Test
         run: |
-          gcloud storage buckets delete gs://${BUCKET_NAME} --project=${{ vars.GCP_S3_PROJECT_ID }} 
+          gcloud storage rm --recursive gs://${BUCKET_NAME} --project=${{ vars.GCP_S3_PROJECT_ID }} 
