@@ -37,6 +37,10 @@ echo "    buckets:" >> gcs_values.yaml
 echo "      - name: ${streamBucket}" >> gcs_values.yaml
 echo "      - name: solo-backups" >> gcs_values.yaml
 
+echo "---------------------"
+cat gcs_values.yaml
+
+
 echo "Generate mirror value file gcs_mirror_values.yaml"
 echo "importer:" > gcs_mirror_values.yaml
 echo "  config:" >> gcs_mirror_values.yaml
@@ -45,6 +49,14 @@ echo "      mirror:" >> gcs_mirror_values.yaml
 echo "        importer:" >> gcs_mirror_values.yaml
 echo "          downloader:" >> gcs_mirror_values.yaml
 echo "            bucketName: ${streamBucket}" >> gcs_mirror_values.yaml
+
+echo "---------------------"
+cat gcs_mirror_values.yaml
+
+echo "---------------------"
+env
+echo "---------------------"
+
 
 SOLO_CLUSTER_NAME=solo-e2e
 SOLO_NAMESPACE=solo-e2e
