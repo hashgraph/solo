@@ -294,7 +294,6 @@ export class AccountManager {
       const host = networkNodeService.haProxyLoadBalancerIp as string;
       const targetPort = port;
       try {
-        await this.k8.testSocketConnection(host, targetPort);
         obj[`${host}:${targetPort}`] = accountId;
         await this.pingNetworkNode(obj, accountId);
         this.logger.debug(`using load balancer IP: ${host}:${targetPort}`);
@@ -311,8 +310,6 @@ export class AccountManager {
     if (this._portForwards.length < totalNodes) {
       this._portForwards.push(await this.k8.portForward(networkNodeService.haProxyPodName, localPort, port));
     }
-
-    await this.k8.testSocketConnection(host, targetPort);
 
     this.logger.debug(`using local host port forward: ${host}:${targetPort}`);
     obj[`${host}:${targetPort}`] = accountId;
