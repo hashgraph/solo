@@ -28,7 +28,8 @@ import * as version from '../../../version.js';
 import {ShellRunner} from '../shell_runner.js';
 import * as semver from 'semver';
 import {OS_WIN32, OS_WINDOWS} from '../constants.js';
-import {container, injectable, singleton} from 'tsyringe-neo';
+import {inject, Lifecycle, scoped} from 'tsyringe-neo';
+import {Container} from '../container_init.js';
 
 // constants required by HelmDependencyManager
 const HELM_RELEASE_BASE_URL = 'https://get.helm.sh';
@@ -42,7 +43,7 @@ const HELM_ARTIFACT_EXT: Map<string, string> = new Map()
 /**
  * Helm dependency manager installs or uninstalls helm client at SOLO_HOME_DIR/bin directory
  */
-@injectable()
+@scoped(Lifecycle.ContainerScoped)
 export class HelmDependencyManager extends ShellRunner {
   private readonly osPlatform: string;
   private readonly osArch: string;
@@ -50,10 +51,10 @@ export class HelmDependencyManager extends ShellRunner {
   private readonly artifactName: string;
   private readonly helmURL: string;
   private readonly checksumURL: string;
-  private readonly downloader;
-  private readonly zippy;
 
   constructor(
+    @inject(PackageDownloader) private readonly downloader: PackageDownloader,
+    @inject(Zippy) private readonly zippy: Zippy,
     private readonly installationDir = path.join(constants.SOLO_HOME_DIR, 'bin'),
     osPlatform = os.platform(),
     osArch = os.arch(),
@@ -63,8 +64,8 @@ export class HelmDependencyManager extends ShellRunner {
 
     if (!installationDir) throw new MissingArgumentError('installation directory is required');
 
-    this.downloader = container.resolve(PackageDownloader);
-    this.zippy = container.resolve(Zippy);
+    this.downloader = Container.patchInject(downloader, PackageDownloader);
+    this.zippy = Container.patchInject(zippy, Zippy);
     this.installationDir = installationDir;
     // Node.js uses 'win32' for windows in package.json os field, but helm uses 'windows'
     if (osPlatform === OS_WIN32) {
