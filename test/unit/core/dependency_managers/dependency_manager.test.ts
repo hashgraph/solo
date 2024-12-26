@@ -18,16 +18,13 @@ import {expect} from 'chai';
 import {describe, it} from 'mocha';
 
 import {DependencyManager} from '../../../../src/core/dependency_managers/index.js';
-import * as logging from '../../../../src/core/logging.js';
 import {container} from 'tsyringe-neo';
-import {SoloLogger} from '../../../../src/core/logging.js';
 
 describe('DependencyManager', () => {
-  let depManager, testLogger;
+  let depManager;
 
   before(() => {
     depManager = container.resolve(DependencyManager);
-    testLogger = container.resolve(SoloLogger);
   });
 
   describe('checkDependency', () => {

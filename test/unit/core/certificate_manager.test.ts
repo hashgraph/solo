@@ -22,7 +22,6 @@ import {ConfigManager} from '../../../src/core/config_manager.js';
 import {K8} from '../../../src/core/k8.js';
 import {CertificateManager} from '../../../src/core/certificate_manager.js';
 import {Flags as flags} from '../../../src/commands/flags.js';
-import {testLogger} from '../../test_util.js';
 import {SoloError} from '../../../src/core/errors.js';
 import {container} from 'tsyringe-neo';
 
@@ -31,14 +30,12 @@ describe('Certificate Manager', () => {
   // @ts-ignore
   const k8InitSpy = jest.spyOn(K8.prototype, 'init').mockImplementation(() => {});
   const k8CreateSecret = jest.spyOn(K8.prototype, 'createSecret').mockResolvedValue(true);
-  let k8: K8;
   let certificateManager: CertificateManager;
 
   before(() => {
     argv[flags.namespace.name] = 'namespace';
     const configManager = container.resolve(ConfigManager);
     configManager.update(argv);
-    k8 = container.resolve(K8);
     certificateManager = container.resolve(CertificateManager);
   });
 
