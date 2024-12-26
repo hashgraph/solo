@@ -20,7 +20,7 @@ import * as util from 'util';
 import chalk from 'chalk';
 import path from 'path';
 import * as constants from './constants.js';
-import {autoInjectable, singleton} from 'tsyringe-neo';
+import {inject, singleton} from 'tsyringe-neo';
 
 const customFormat = winston.format.combine(
   winston.format.label({label: 'SOLO', message: false}),
@@ -48,7 +48,7 @@ const customFormat = winston.format.combine(
   winston.format(data => (data.private ? false : data))(),
 );
 
-@autoInjectable()
+@singleton()
 export class SoloLogger {
   private winstonLogger: winston.Logger;
   private traceId?: string;
@@ -58,8 +58,8 @@ export class SoloLogger {
    * @param [devMode] - if true, show full stack traces in error messages
    */
   constructor(
-    level = 'debug',
-    private devMode = false,
+    @inject('logLevel') level = 'debug',
+    @inject('devMode') private devMode = false,
   ) {
     this.nextTraceId();
     this.devMode = devMode;

@@ -15,19 +15,17 @@
  *
  */
 import * as constants from './constants.js';
-// eslint-disable-next-line @typescript-eslint/consistent-type-imports -- required for dependency injection
 import {Helm} from './helm.js';
 import chalk from 'chalk';
 import {SoloError} from './errors.js';
-// eslint-disable-next-line @typescript-eslint/consistent-type-imports -- required for dependency injection
 import {SoloLogger} from './logging.js';
-import {autoInjectable} from 'tsyringe-neo';
+import {inject, singleton} from 'tsyringe-neo';
 
-@autoInjectable()
+@singleton()
 export class ChartManager {
   constructor(
-    private readonly helm?: Helm,
-    private readonly logger?: SoloLogger,
+    @inject(Helm) private readonly helm?: Helm,
+    @inject(SoloLogger) private readonly logger?: SoloLogger,
   ) {}
 
   /**

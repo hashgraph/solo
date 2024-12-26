@@ -20,7 +20,6 @@ import fs from 'fs';
 import path from 'path';
 import {SoloError, IllegalArgumentError, MissingArgumentError} from './errors.js';
 import * as constants from './constants.js';
-// eslint-disable-next-line @typescript-eslint/consistent-type-imports -- required for dependency injection
 import {SoloLogger} from './logging.js';
 import {Templates} from './templates.js';
 import * as helpers from './helpers.js';
@@ -28,12 +27,12 @@ import chalk from 'chalk';
 import {type NodeAlias, type NodeAliases} from '../types/aliases.js';
 import {type NodeKeyObject, type PrivateKeyAndCertificateObject} from '../types/index.js';
 import type {ListrTask} from 'listr2';
-import {autoInjectable} from 'tsyringe-neo';
+import {inject, singleton} from 'tsyringe-neo';
 
 // @ts-ignore
 x509.cryptoProvider.set(crypto);
 
-@autoInjectable()
+@singleton()
 export class KeyManager {
   static SigningKeyAlgo = {
     name: 'RSASSA-PKCS1-v1_5',
@@ -63,7 +62,7 @@ export class KeyManager {
     hash: 'SHA-384',
   };
 
-  constructor(private readonly logger?: SoloLogger) {}
+  constructor(@inject(SoloLogger) private readonly logger?: SoloLogger) {}
 
   /** Convert CryptoKey into PEM string */
   async convertPrivateKeyToPem(privateKey: CryptoKey) {

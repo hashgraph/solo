@@ -20,25 +20,24 @@ import fs from 'fs';
 import {Templates} from './templates.js';
 import {GrpcProxyTlsEnums} from './enumerations.js';
 
-// eslint-disable-next-line @typescript-eslint/consistent-type-imports -- required for dependency injection
 import {ConfigManager} from './config_manager.js';
-// eslint-disable-next-line @typescript-eslint/consistent-type-imports -- required for dependency injection
+
 import {K8} from './k8.js';
-// eslint-disable-next-line @typescript-eslint/consistent-type-imports -- required for dependency injection
+
 import {SoloLogger} from './logging.js';
 import type {ListrTaskWrapper} from 'listr2';
 import type {NodeAlias} from '../types/aliases.js';
-import {autoInjectable} from 'tsyringe-neo';
+import {inject, singleton} from 'tsyringe-neo';
 
 /**
  * Used to handle interactions with certificates data and inject it into the K8s cluster secrets
  */
-@autoInjectable()
+@singleton()
 export class CertificateManager {
   constructor(
-    private readonly k8?: K8,
-    private readonly logger?: SoloLogger,
-    private readonly configManager?: ConfigManager,
+    @inject(K8) private readonly k8?: K8,
+    @inject(SoloLogger) private readonly logger?: SoloLogger,
+    @inject(ConfigManager) private readonly configManager?: ConfigManager,
   ) {}
 
   /**

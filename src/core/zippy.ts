@@ -20,13 +20,12 @@ import AdmZip from 'adm-zip';
 import * as tar from 'tar';
 import chalk from 'chalk';
 import path from 'path';
-// eslint-disable-next-line @typescript-eslint/consistent-type-imports -- required for dependency injection
 import {SoloLogger} from './logging.js';
-import {autoInjectable} from 'tsyringe-neo';
+import {inject, singleton} from 'tsyringe-neo';
 
-@autoInjectable()
+@singleton()
 export class Zippy {
-  constructor(private readonly logger?: SoloLogger) {}
+  constructor(@inject(SoloLogger) private readonly logger?: SoloLogger) {}
 
   /**
    * Zip a file or directory

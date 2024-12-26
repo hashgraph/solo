@@ -40,16 +40,14 @@ import type {NetworkNodeServices} from './network_node_services.js';
 import {NetworkNodeServicesBuilder} from './network_node_services.js';
 import path from 'path';
 
-// eslint-disable-next-line @typescript-eslint/consistent-type-imports -- required for dependency injection
 import {SoloLogger} from './logging.js';
-// eslint-disable-next-line @typescript-eslint/consistent-type-imports -- required for dependency injection
 import {K8} from './k8.js';
 import {type AccountIdWithKeyPairObject, type ExtendedNetServer} from '../types/index.js';
 import {type NodeAlias, type PodName, type SdkNetworkEndpoint} from '../types/aliases.js';
 import {IGNORED_NODE_ACCOUNT_ID} from './constants.js';
 import {sleep} from './helpers.js';
 import {Duration} from './time/duration.js';
-import {autoInjectable} from 'tsyringe-neo';
+import {inject, singleton} from 'tsyringe-neo';
 
 const REASON_FAILED_TO_GET_KEYS = 'failed to get keys for accountId';
 const REASON_SKIPPED = 'skipped since it does not have a genesis key';
@@ -58,14 +56,14 @@ const REASON_FAILED_TO_CREATE_K8S_S_KEY = 'failed to create k8s scrt key';
 const FULFILLED = 'fulfilled';
 const REJECTED = 'rejected';
 
-@autoInjectable()
+@singleton()
 export class AccountManager {
   private _portForwards: ExtendedNetServer[];
   public _nodeClient: Client | null;
 
   constructor(
-    private readonly logger?: SoloLogger,
-    private readonly k8?: K8,
+    @inject(SoloLogger) private readonly logger?: SoloLogger,
+    @inject(K8) private readonly k8?: K8,
   ) {
     this._portForwards = [];
     this._nodeClient = null;

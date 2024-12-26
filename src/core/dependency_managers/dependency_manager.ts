@@ -17,17 +17,16 @@
 import os from 'os';
 import {SoloError} from '../errors.js';
 import {ShellRunner} from '../shell_runner.js';
-// eslint-disable-next-line @typescript-eslint/consistent-type-imports -- required for dependency injection
 import {HelmDependencyManager} from './helm_dependency_manager.js';
 import {type ListrTask} from 'listr2';
-import {autoInjectable} from 'tsyringe-neo';
+import {inject, singleton} from 'tsyringe-neo';
 import * as constants from '../constants.js';
 
-@autoInjectable()
+@singleton()
 export class DependencyManager extends ShellRunner {
   private readonly depManagerMap: Map<string, HelmDependencyManager>;
 
-  constructor(helmDepManager?: HelmDependencyManager) {
+  constructor(@inject(HelmDependencyManager) helmDepManager?: HelmDependencyManager) {
     super();
     this.depManagerMap = new Map().set(constants.HELM, helmDepManager);
   }

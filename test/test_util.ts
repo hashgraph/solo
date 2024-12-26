@@ -36,7 +36,8 @@ import {AccountCommand} from '../src/commands/account.js';
 import {SoloError} from '../src/core/errors.js';
 import {execSync} from 'child_process';
 import * as NodeCommandConfigs from '../src/commands/node/configs.js';
-import {type SoloLogger} from '../src/core/logging.js';
+
+import {SoloLogger} from '../src/core/logging.js';
 import type {BaseCommand} from '../src/commands/base.js';
 import type {NodeAlias} from '../src/types/aliases.js';
 import type {NetworkNodeServices} from '../src/core/network_node_services.js';

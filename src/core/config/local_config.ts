@@ -26,18 +26,18 @@ import {
   type LocalConfigData,
 } from './local_config_data.js';
 import {MissingArgumentError, SoloError} from '../errors.js';
-// eslint-disable-next-line @typescript-eslint/consistent-type-imports -- required for dependency injection
+
 import {SoloLogger} from '../logging.js';
 import {IsClusterContextMapping, IsDeployments} from '../validator_decorators.js';
-// eslint-disable-next-line @typescript-eslint/consistent-type-imports -- required for dependency injection
+
 import {ConfigManager} from '../config_manager.js';
 import type {EmailAddress, Namespace} from './remote/types.js';
 import {ErrorMessages} from '../error_messages.js';
 import {type K8} from '../k8.js';
 import {splitFlagInput} from '../helpers.js';
-import {autoInjectable, inject} from 'tsyringe-neo';
+import {inject, singleton} from 'tsyringe-neo';
 
-@autoInjectable()
+@singleton()
 export class LocalConfig implements LocalConfigData {
   @IsEmail(
     {},
@@ -74,8 +74,8 @@ export class LocalConfig implements LocalConfigData {
 
   public constructor(
     @inject('localConfigFilePath') private readonly filePath?: string,
-    private readonly logger?: SoloLogger,
-    private readonly configManager?: ConfigManager,
+    @inject(SoloLogger) private readonly logger?: SoloLogger,
+    @inject(ConfigManager) private readonly configManager?: ConfigManager,
   ) {
     if (!filePath || filePath === '') throw new MissingArgumentError('a valid filePath is required');
 

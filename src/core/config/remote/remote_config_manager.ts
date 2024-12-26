@@ -23,21 +23,21 @@ import {Flags as flags} from '../../../commands/flags.js';
 import * as yaml from 'yaml';
 import {ComponentsDataWrapper} from './components_data_wrapper.js';
 import {RemoteConfigValidator} from './remote_config_validator.js';
-// eslint-disable-next-line @typescript-eslint/consistent-type-imports -- required for dependency injection
+
 import {K8} from '../../k8.js';
 import type {Cluster, Namespace} from './types.js';
-// eslint-disable-next-line @typescript-eslint/consistent-type-imports -- required for dependency injection
+
 import {SoloLogger} from '../../logging.js';
-// eslint-disable-next-line @typescript-eslint/consistent-type-imports -- required for dependency injection
+
 import {ConfigManager} from '../../config_manager.js';
-// eslint-disable-next-line @typescript-eslint/consistent-type-imports -- required for dependency injection
+
 import {LocalConfig} from '../local_config.js';
 import type {DeploymentStructure} from '../local_config_data.js';
 import {type ContextClusterStructure} from '../../../types/config_types.js';
 import {type EmptyContextConfig, type Optional, type SoloListrTask} from '../../../types/index.js';
 import type * as k8s from '@kubernetes/client-node';
 import {StatusCodes} from 'http-status-codes';
-import {autoInjectable} from 'tsyringe-neo';
+import {inject, singleton} from 'tsyringe-neo';
 
 interface ListrContext {
   config: {contextCluster: ContextClusterStructure};
@@ -47,7 +47,7 @@ interface ListrContext {
  * Uses Kubernetes ConfigMaps to manage the remote configuration data by creating, loading, modifying,
  * and saving the configuration data to and from a Kubernetes cluster.
  */
-@autoInjectable()
+@singleton()
 export class RemoteConfigManager {
   /** Stores the loaded remote configuration data. */
   private remoteConfig: Optional<RemoteConfigDataWrapper>;
@@ -59,10 +59,10 @@ export class RemoteConfigManager {
    * @param configManager - Manager to retrieve application flags and settings.
    */
   public constructor(
-    private readonly k8?: K8,
-    private readonly logger?: SoloLogger,
-    private readonly localConfig?: LocalConfig,
-    private readonly configManager?: ConfigManager,
+    @inject(K8) private readonly k8?: K8,
+    @inject(SoloLogger) private readonly logger?: SoloLogger,
+    @inject(LocalConfig) private readonly localConfig?: LocalConfig,
+    @inject(ConfigManager) private readonly configManager?: ConfigManager,
   ) {}
 
   /* ---------- Getters ---------- */

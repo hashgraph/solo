@@ -37,6 +37,7 @@ import {RemoteConfigManager} from './config/remote/remote_config_manager.js';
 
 export class Container {
   private static instance: Container = null;
+  private static isInitialized = false;
 
   private constructor() {}
 
@@ -48,8 +49,10 @@ export class Container {
     return Container.instance;
   }
 
-  init(cacheDir: string = constants.SOLO_CACHE_DIR) {
-    container.register<SoloLogger>(SoloLogger, {useValue: new SoloLogger('debug', false)});
+  init(cacheDir: string = constants.SOLO_CACHE_DIR, logLevel: string = 'debug', devMode: boolean = false) {
+    container.register('logLevel', {useValue: logLevel});
+    container.register('devMode', {useValue: devMode});
+    container.register<SoloLogger>(SoloLogger, {useValue: new SoloLogger()});
     container.register<PackageDownloader>(PackageDownloader, {useValue: new PackageDownloader()});
     container.register<Zippy>(Zippy, {useValue: new Zippy()});
     container.register<HelmDependencyManager>(HelmDependencyManager, {useValue: new HelmDependencyManager()});
@@ -73,6 +76,7 @@ export class Container {
     container.register('localConfigFilePath', {useValue: localConfigPath});
     container.register<LocalConfig>(LocalConfig, {useValue: new LocalConfig()});
     container.register<RemoteConfigManager>(RemoteConfigManager, {useValue: new RemoteConfigManager()});
+    Container.isInitialized = true;
   }
 
   /**
@@ -80,7 +84,7 @@ export class Container {
    * @param cacheDir - the cache directory to use, defaults to constants.SOLO_CACHE_DIR
    */
   reset(cacheDir: string = constants.SOLO_CACHE_DIR) {
-    if (Container.instance) {
+    if (Container.instance && Container.isInitialized) {
       container.reset();
     }
     Container.getInstance().init(cacheDir);
@@ -91,11 +95,12 @@ export class Container {
    * @param cacheDir - the cache directory to use, defaults to constants.SOLO_CACHE_DIR
    */
   clearInstances(cacheDir: string = constants.SOLO_CACHE_DIR) {
-    // if (Container.instance) {
-    //   container.clearInstances();
-    // } else {
-    Container.getInstance().init(cacheDir);
-    // }
+    if (Container.instance && Container.isInitialized) {
+      container.clearInstances();
+      console.log();
+    } else {
+      Container.getInstance().init(cacheDir);
+    }
   }
 
   /**

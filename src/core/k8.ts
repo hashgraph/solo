@@ -31,15 +31,13 @@ import {getReasonPhrase, StatusCodes} from 'http-status-codes';
 
 import {sleep} from './helpers.js';
 import * as constants from './constants.js';
-// eslint-disable-next-line @typescript-eslint/consistent-type-imports -- required for dependency injection
 import {ConfigManager} from './config_manager.js';
-// eslint-disable-next-line @typescript-eslint/consistent-type-imports -- required for dependency injection
 import {SoloLogger} from './logging.js';
 import {type PodName, type TarCreateFilter} from '../types/aliases.js';
 import type {ExtendedNetServer, LocalContextObject} from '../types/index.js';
 import {HEDERA_HAPI_PATH, ROOT_CONTAINER, SOLO_LOGS_DIR} from './constants.js';
 import {Duration} from './time/duration.js';
-import {autoInjectable, container} from 'tsyringe-neo';
+import {container, inject, singleton} from 'tsyringe-neo';
 
 interface TDirectoryData {
   directory: boolean;
@@ -56,7 +54,7 @@ interface TDirectoryData {
  * Note: Take care if the same instance is used for parallel execution, as the behaviour may be unpredictable.
  * For parallel execution, create separate instances by invoking clone()
  */
-@autoInjectable()
+@singleton()
 export class K8 {
   private _cachedContexts: Context[];
 
@@ -69,8 +67,8 @@ export class K8 {
   private coordinationApiClient: k8s.CoordinationV1Api;
 
   constructor(
-    private readonly configManager?: ConfigManager,
-    public readonly logger?: SoloLogger,
+    @inject(ConfigManager) private readonly configManager?: ConfigManager,
+    @inject(SoloLogger) public readonly logger?: SoloLogger,
   ) {
     this.init();
   }

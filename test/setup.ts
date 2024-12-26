@@ -21,7 +21,7 @@ import sinonChai from 'sinon-chai';
 import 'reflect-metadata';
 import {resetTestContainer} from './test_container.js';
 
-await resetTestContainer();
+resetTestContainer();
 
 chai.use(chaiAsPromised);
 chai.use(sinonChai);

@@ -19,29 +19,25 @@ import {Listr} from 'listr2';
 import * as path from 'path';
 import {SoloError, IllegalArgumentError, MissingArgumentError} from './errors.js';
 import * as constants from './constants.js';
-// eslint-disable-next-line @typescript-eslint/consistent-type-imports -- required for dependency injection
 import {ConfigManager} from './config_manager.js';
-// eslint-disable-next-line @typescript-eslint/consistent-type-imports -- required for dependency injection
 import {K8} from './k8.js';
 import {Templates} from './templates.js';
 import {Flags as flags} from '../commands/flags.js';
 import * as Base64 from 'js-base64';
 import chalk from 'chalk';
-
-// eslint-disable-next-line @typescript-eslint/consistent-type-imports -- required for dependency injection
 import {SoloLogger} from './logging.js';
 import type {NodeAlias, NodeAliases, PodName} from '../types/aliases.js';
 import {Duration} from './time/duration.js';
 import {sleep} from './helpers.js';
-import {autoInjectable} from 'tsyringe-neo';
+import {inject, singleton} from 'tsyringe-neo';
 
 /** PlatformInstaller install platform code in the root-container of a network pod */
-@autoInjectable()
+@singleton()
 export class PlatformInstaller {
   constructor(
-    private logger?: SoloLogger,
-    private k8?: K8,
-    private configManager?: ConfigManager,
+    @inject(SoloLogger) private logger?: SoloLogger,
+    @inject(K8) private k8?: K8,
+    @inject(ConfigManager) private configManager?: ConfigManager,
   ) {}
 
   private _getNamespace(): string {
