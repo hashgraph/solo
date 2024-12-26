@@ -20,21 +20,15 @@ import {afterEach, beforeEach, describe, it} from 'mocha';
 import each from 'mocha-each';
 
 import * as constants from '../../../src/core/constants.js';
-import * as logging from '../../../src/core/logging.js';
 import {Helm} from '../../../src/core/helm.js';
 import {Templates} from '../../../src/core/templates.js';
 import {ShellRunner} from '../../../src/core/shell_runner.js';
-import {SoloLogger} from '../../../src/core/logging.js';
 
 describe('Helm platform specific tests', () => {
   each(['linux', 'windows', 'darwin']).describe('Helm on %s platform', osPlatform => {
-    let logger: SoloLogger,
-      helm: Helm,
-      shellStub: sinon.SinonStub<[cmd: string, verbose?: boolean], Promise<string[]>>,
-      helmPath: string;
+    let helm: Helm, shellStub: sinon.SinonStub<[cmd: string, verbose?: boolean], Promise<string[]>>, helmPath: string;
 
     before(() => {
-      logger = logging.NewLogger('debug', true);
       helm = new Helm(osPlatform);
       helmPath = Templates.installationPath(constants.HELM, osPlatform);
     });

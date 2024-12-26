@@ -74,8 +74,7 @@ export function main(argv: any) {
     const profileManager = container.resolve(ProfileManager);
     const leaseManager = container.resolve(LeaseManager);
     const certificateManager = container.resolve(CertificateManager);
-    const localConfigPath = path.join(constants.SOLO_CACHE_DIR, constants.DEFAULT_LOCAL_CONFIG_FILE);
-    const localConfig = new LocalConfig(localConfigPath);
+    const localConfig = container.resolve(LocalConfig);
     const remoteConfigManager = container.resolve(RemoteConfigManager);
 
     // set cluster and namespace in the global configManager from kubernetes context
