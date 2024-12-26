@@ -23,7 +23,7 @@ import {LeaseHolder} from './lease_holder.js';
 import {LeaseAcquisitionError} from './lease_errors.js';
 import {inject, Lifecycle, scoped} from 'tsyringe-neo';
 import {type Lease, type LeaseRenewalService} from './lease.js';
-import {Container} from '../container_init.js';
+import {patchInject} from '../container_helper.js';
 
 /**
  * Manages the acquisition and renewal of leases.
@@ -44,10 +44,10 @@ export class LeaseManager {
     @inject(K8) private readonly k8?: K8,
     @inject(ConfigManager) private readonly configManager?: ConfigManager,
   ) {
-    this._renewalService = Container.patchInject(_renewalService, 'LeaseRenewalService');
-    this._logger = Container.patchInject(_logger, SoloLogger);
-    this.k8 = Container.patchInject(k8, K8);
-    this.configManager = Container.patchInject(configManager, ConfigManager);
+    this._renewalService = patchInject(_renewalService, 'LeaseRenewalService');
+    this._logger = patchInject(_logger, SoloLogger);
+    this.k8 = patchInject(k8, K8);
+    this.configManager = patchInject(configManager, ConfigManager);
   }
 
   /**

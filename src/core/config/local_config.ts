@@ -34,7 +34,7 @@ import {ErrorMessages} from '../error_messages.js';
 import {type K8} from '../k8.js';
 import {splitFlagInput} from '../helpers.js';
 import {inject, Lifecycle, scoped} from 'tsyringe-neo';
-import {Container} from '../container_init.js';
+import {patchInject} from '../container_helper.js';
 
 @scoped(Lifecycle.ContainerScoped)
 export class LocalConfig implements LocalConfigData {
@@ -76,9 +76,9 @@ export class LocalConfig implements LocalConfigData {
     @inject(SoloLogger) private readonly logger?: SoloLogger,
     @inject(ConfigManager) private readonly configManager?: ConfigManager,
   ) {
-    this.filePath = Container.patchInject(filePath, 'localConfigFilePath');
-    this.logger = Container.patchInject(logger, SoloLogger);
-    this.configManager = Container.patchInject(configManager, ConfigManager);
+    this.filePath = patchInject(filePath, 'localConfigFilePath');
+    this.logger = patchInject(logger, SoloLogger);
+    this.configManager = patchInject(configManager, ConfigManager);
 
     if (!this.filePath || this.filePath === '') throw new MissingArgumentError('a valid filePath is required');
 

@@ -22,12 +22,12 @@ import chalk from 'chalk';
 import path from 'path';
 import {SoloLogger} from './logging.js';
 import {inject, Lifecycle, scoped} from 'tsyringe-neo';
-import {Container} from './container_init.js';
+import {patchInject} from './container_helper.js';
 
 @scoped(Lifecycle.ContainerScoped)
 export class Zippy {
   constructor(@inject(SoloLogger) private readonly logger?: SoloLogger) {
-    this.logger = Container.patchInject(logger, SoloLogger);
+    this.logger = patchInject(logger, SoloLogger);
   }
 
   /**

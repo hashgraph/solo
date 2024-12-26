@@ -24,6 +24,7 @@ import type * as yargs from 'yargs';
 import {type CommandFlag} from '../types/flag_types.js';
 import {type ListrTaskWrapper} from 'listr2';
 import {Container} from './container_init.js';
+import {patchInject} from './container_helper.js';
 
 /**
  * ConfigManager cache command flag values so that user doesn't need to enter the same values repeatedly.
@@ -36,7 +37,7 @@ export class ConfigManager {
   config!: Record<string, any>;
 
   constructor(@inject(SoloLogger) private readonly logger?: SoloLogger) {
-    this.logger = Container.patchInject(logger, SoloLogger);
+    this.logger = patchInject(logger, SoloLogger);
 
     this.reset();
   }

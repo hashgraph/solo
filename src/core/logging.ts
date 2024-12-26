@@ -21,7 +21,7 @@ import chalk from 'chalk';
 import path from 'path';
 import * as constants from './constants.js';
 import {inject, Lifecycle, scoped} from 'tsyringe-neo';
-import {Container} from './container_init.js';
+import {patchInject} from './container_helper.js';
 
 const customFormat = winston.format.combine(
   winston.format.label({label: 'SOLO', message: false}),
@@ -62,8 +62,8 @@ export class SoloLogger {
     @inject('logLevel') logLevel?: string,
     @inject('devMode') private devMode?: boolean | null,
   ) {
-    logLevel = Container.patchInject(logLevel, 'logLevel');
-    this.devMode = Container.patchInject(devMode, 'devMode');
+    logLevel = patchInject(logLevel, 'logLevel');
+    this.devMode = patchInject(devMode, 'devMode');
 
     this.nextTraceId();
 

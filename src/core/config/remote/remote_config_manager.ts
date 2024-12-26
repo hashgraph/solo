@@ -23,14 +23,10 @@ import {Flags as flags} from '../../../commands/flags.js';
 import * as yaml from 'yaml';
 import {ComponentsDataWrapper} from './components_data_wrapper.js';
 import {RemoteConfigValidator} from './remote_config_validator.js';
-
 import {K8} from '../../k8.js';
 import type {Cluster, Namespace} from './types.js';
-
 import {SoloLogger} from '../../logging.js';
-
 import {ConfigManager} from '../../config_manager.js';
-
 import {LocalConfig} from '../local_config.js';
 import type {DeploymentStructure} from '../local_config_data.js';
 import {type ContextClusterStructure} from '../../../types/config_types.js';
@@ -38,7 +34,7 @@ import {type EmptyContextConfig, type Optional, type SoloListrTask} from '../../
 import type * as k8s from '@kubernetes/client-node';
 import {StatusCodes} from 'http-status-codes';
 import {inject, Lifecycle, scoped} from 'tsyringe-neo';
-import {Container} from '../../container_init.js';
+import {patchInject} from '../../container_helper.js';
 
 interface ListrContext {
   config: {contextCluster: ContextClusterStructure};
@@ -65,10 +61,10 @@ export class RemoteConfigManager {
     @inject(LocalConfig) private readonly localConfig?: LocalConfig,
     @inject(ConfigManager) private readonly configManager?: ConfigManager,
   ) {
-    this.k8 = Container.patchInject(K8, k8);
-    this.logger = Container.patchInject(logger, SoloLogger);
-    this.localConfig = Container.patchInject(localConfig, LocalConfig);
-    this.configManager = Container.patchInject(configManager, ConfigManager);
+    this.k8 = patchInject(K8, k8);
+    this.logger = patchInject(logger, SoloLogger);
+    this.localConfig = patchInject(localConfig, LocalConfig);
+    this.configManager = patchInject(configManager, ConfigManager);
   }
 
   /* ---------- Getters ---------- */

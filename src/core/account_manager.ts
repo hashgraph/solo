@@ -47,7 +47,7 @@ import {IGNORED_NODE_ACCOUNT_ID} from './constants.js';
 import {sleep} from './helpers.js';
 import {Duration} from './time/duration.js';
 import {inject, Lifecycle, scoped} from 'tsyringe-neo';
-import {Container} from './container_init.js';
+import {patchInject} from './container_helper.js';
 
 const REASON_FAILED_TO_GET_KEYS = 'failed to get keys for accountId';
 const REASON_SKIPPED = 'skipped since it does not have a genesis key';
@@ -65,8 +65,8 @@ export class AccountManager {
     @inject(SoloLogger) private readonly logger?: SoloLogger,
     @inject(K8) private readonly k8?: K8,
   ) {
-    this.logger = Container.patchInject(logger, SoloLogger);
-    this.k8 = Container.patchInject(k8, K8);
+    this.logger = patchInject(logger, SoloLogger);
+    this.k8 = patchInject(k8, K8);
 
     this._portForwards = [];
     this._nodeClient = null;

@@ -35,7 +35,8 @@ import type {AnyObject, DirPath, NodeAlias, NodeAliases, Path} from '../types/al
 import type {GenesisNetworkDataConstructor} from './genesis_network_models/genesis_network_data_constructor.js';
 import type {Optional} from '../types/index.js';
 import {inject, Lifecycle, scoped} from 'tsyringe-neo';
-import {Container} from './container_init.js';
+import {patchInject} from './container_helper.js';
+
 const consensusSidecars = [
   'recordStreamUploader',
   'eventStreamUploader',
@@ -58,9 +59,9 @@ export class ProfileManager {
     @inject(ConfigManager) configManager?: ConfigManager,
     @inject('cacheDir') cacheDir?: DirPath,
   ) {
-    this.logger = Container.patchInject(logger, SoloLogger);
-    this.configManager = Container.patchInject(configManager, ConfigManager);
-    this.cacheDir = Container.patchInject(cacheDir, 'cacheDir');
+    this.logger = patchInject(logger, SoloLogger);
+    this.configManager = patchInject(configManager, ConfigManager);
+    this.cacheDir = patchInject(cacheDir, 'cacheDir');
 
     this.profiles = new Map();
   }

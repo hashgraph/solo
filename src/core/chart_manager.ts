@@ -20,7 +20,7 @@ import chalk from 'chalk';
 import {SoloError} from './errors.js';
 import {SoloLogger} from './logging.js';
 import {inject, Lifecycle, scoped} from 'tsyringe-neo';
-import {Container} from './container_init.js';
+import {patchInject} from './container_helper.js';
 
 @scoped(Lifecycle.ContainerScoped)
 export class ChartManager {
@@ -28,8 +28,8 @@ export class ChartManager {
     @inject(Helm) private readonly helm?: Helm,
     @inject(SoloLogger) private readonly logger?: SoloLogger,
   ) {
-    this.helm = Container.patchInject(helm, Helm);
-    this.logger = Container.patchInject(logger, SoloLogger);
+    this.helm = patchInject(helm, Helm);
+    this.logger = patchInject(logger, SoloLogger);
   }
 
   /**

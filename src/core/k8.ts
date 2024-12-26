@@ -37,8 +37,8 @@ import {type PodName, type TarCreateFilter} from '../types/aliases.js';
 import type {ExtendedNetServer, LocalContextObject} from '../types/index.js';
 import {HEDERA_HAPI_PATH, ROOT_CONTAINER, SOLO_LOGS_DIR} from './constants.js';
 import {Duration} from './time/duration.js';
-import {container, inject, Lifecycle, scoped} from 'tsyringe-neo';
-import {Container} from './container_init.js';
+import {inject, Lifecycle, scoped} from 'tsyringe-neo';
+import {patchInject} from './container_helper.js';
 
 interface TDirectoryData {
   directory: boolean;
@@ -71,8 +71,8 @@ export class K8 {
     @inject(ConfigManager) private readonly configManager?: ConfigManager,
     @inject(SoloLogger) public readonly logger?: SoloLogger,
   ) {
-    this.configManager = Container.patchInject(configManager, ConfigManager);
-    this.logger = Container.patchInject(logger, SoloLogger);
+    this.configManager = patchInject(configManager, ConfigManager);
+    this.logger = patchInject(logger, SoloLogger);
 
     this.init();
   }

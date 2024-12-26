@@ -113,17 +113,4 @@ export class Container {
   async dispose() {
     await container.dispose();
   }
-
-  /**
-   * code to patch inject bug with tsyringe: https://github.com/risen228/tsyringe-neo/issues/5
-   * @param parameterValue - the value that should have been injected as a parameter in the constructor
-   * @param registryToken - the token to resolve from the container
-   */
-  static patchInject(parameterValue: any, registryToken: any) {
-    if (parameterValue === undefined || parameterValue === null) {
-      return container.resolve(registryToken);
-    }
-
-    return parameterValue;
-  }
 }

@@ -26,6 +26,7 @@ import type {ListrTaskWrapper} from 'listr2';
 import type {NodeAlias} from '../types/aliases.js';
 import {inject, Lifecycle, scoped} from 'tsyringe-neo';
 import {Container} from './container_init.js';
+import {patchInject} from './container_helper.js';
 
 /**
  * Used to handle interactions with certificates data and inject it into the K8s cluster secrets
@@ -37,9 +38,9 @@ export class CertificateManager {
     @inject(SoloLogger) private readonly logger?: SoloLogger,
     @inject(ConfigManager) private readonly configManager?: ConfigManager,
   ) {
-    this.k8 = Container.patchInject(k8, K8);
-    this.logger = Container.patchInject(logger, SoloLogger);
-    this.configManager = Container.patchInject(configManager, ConfigManager);
+    this.k8 = patchInject(k8, K8);
+    this.logger = patchInject(logger, SoloLogger);
+    this.configManager = patchInject(configManager, ConfigManager);
   }
 
   /**

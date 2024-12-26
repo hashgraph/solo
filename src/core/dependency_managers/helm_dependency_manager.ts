@@ -29,7 +29,7 @@ import {ShellRunner} from '../shell_runner.js';
 import * as semver from 'semver';
 import {OS_WIN32, OS_WINDOWS} from '../constants.js';
 import {inject, Lifecycle, scoped} from 'tsyringe-neo';
-import {Container} from '../container_init.js';
+import {patchInject} from '../container_helper.js';
 
 // constants required by HelmDependencyManager
 const HELM_RELEASE_BASE_URL = 'https://get.helm.sh';
@@ -64,8 +64,8 @@ export class HelmDependencyManager extends ShellRunner {
 
     if (!installationDir) throw new MissingArgumentError('installation directory is required');
 
-    this.downloader = Container.patchInject(downloader, PackageDownloader);
-    this.zippy = Container.patchInject(zippy, Zippy);
+    this.downloader = patchInject(downloader, PackageDownloader);
+    this.zippy = patchInject(zippy, Zippy);
     this.installationDir = installationDir;
     // Node.js uses 'win32' for windows in package.json os field, but helm uses 'windows'
     if (osPlatform === OS_WIN32) {
