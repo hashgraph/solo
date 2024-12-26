@@ -20,9 +20,20 @@ import {describe, it} from 'mocha';
 import {ConfigManager} from '../../../src/core/config_manager.js';
 import {Flags as flags} from '../../../src/commands/flags.js';
 import {container} from 'tsyringe-neo';
+import {SoloLogger} from '../../../src/core/logging.js';
+import {testLogger} from '../../test_util.js';
 
 describe('ConfigManager', () => {
   describe('update values using argv', () => {
+    beforeEach(() => {
+      container.clearInstances();
+      container.register('logLevel', {useValue: 'debug'});
+      container.register('devMode', {useValue: true});
+      container.register(SoloLogger, {useValue: new SoloLogger()});
+      container.registerInstance(SoloLogger, testLogger);
+      container.register(ConfigManager, {useClass: ConfigManager});
+    });
+
     it('should update string flag value', () => {
       const cm = container.resolve(ConfigManager);
       const argv = {};
