@@ -18,9 +18,9 @@ import os from 'os';
 import * as constants from './constants.js';
 import {ShellRunner} from './shell_runner.js';
 import {Templates} from './templates.js';
-import {injectable} from 'tsyringe-neo';
+import {Lifecycle, scoped} from 'tsyringe-neo';
 
-@injectable()
+@scoped(Lifecycle.ContainerScoped)
 export class Helm extends ShellRunner {
   private readonly helmPath: string;
 
