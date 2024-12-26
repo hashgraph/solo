@@ -48,7 +48,6 @@ export abstract class BaseCommand extends ShellRunner {
   protected readonly remoteConfigManager: RemoteConfigManager;
 
   constructor(opts: Opts) {
-    // if (!opts || !opts.logger) throw new Error('An instance of core/SoloLogger is required');
     if (!opts || !opts.helm) throw new Error('An instance of core/Helm is required');
     if (!opts || !opts.k8) throw new Error('An instance of core/K8 is required');
     if (!opts || !opts.chartManager) throw new Error('An instance of core/ChartManager is required');
