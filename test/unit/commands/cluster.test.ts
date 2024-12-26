@@ -31,6 +31,7 @@ import {ROOT_DIR} from '../../../src/core/constants.js';
 import path from 'path';
 import {container} from 'tsyringe-neo';
 import {resetTestContainer} from '../../test_container.js';
+import * as test from 'node:test';
 
 const getBaseCommandOpts = () => ({
   logger: sinon.stub(),
@@ -98,7 +99,7 @@ describe('ClusterCommand unit tests', () => {
       await clusterCommand.setup(argv);
 
       expect(opts.chartManager.install.args[0][2]).to.equal(
-        path.join(ROOT_DIR, '..', 'test-directory', constants.SOLO_CLUSTER_SETUP_CHART),
+        path.join(ROOT_DIR, 'test-directory', constants.SOLO_CLUSTER_SETUP_CHART),
       );
     });
   });
