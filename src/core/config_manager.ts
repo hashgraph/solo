@@ -18,11 +18,11 @@ import {inject, Lifecycle, scoped} from 'tsyringe-neo';
 import {SoloError, MissingArgumentError} from './errors.js';
 import {SoloLogger} from './logging.js';
 import {Flags, Flags as flags} from '../commands/flags.js';
+import * as helpers from './helpers.js';
 import * as paths from 'path';
 import type * as yargs from 'yargs';
 import {type CommandFlag} from '../types/flag_types.js';
 import {type ListrTaskWrapper} from 'listr2';
-import {packageVersion} from './helpers.js';
 import {Container} from './container_init.js';
 
 /**
@@ -45,7 +45,7 @@ export class ConfigManager {
   reset() {
     this.config = {
       flags: {},
-      version: packageVersion(),
+      version: helpers.packageVersion(),
       updatedAt: new Date().toISOString(),
     };
   }
