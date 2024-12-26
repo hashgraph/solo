@@ -20,5 +20,5 @@ import {Container} from '../src/core/container_init.js';
 const cacheDirectory = path.join('test', 'data', 'tmp');
 
 export function resetTestContainer(cacheDir: string = cacheDirectory) {
-  Container.getInstance().clearInstances(cacheDir);
+  Container.getInstance().reset(cacheDir);
 }

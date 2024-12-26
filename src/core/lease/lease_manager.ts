@@ -15,24 +15,20 @@
  *
  */
 import {Flags as flags} from '../../commands/flags.js';
-
 import {ConfigManager} from '../config_manager.js';
-
 import {K8} from '../k8.js';
-
 import {SoloLogger} from '../logging.js';
-// eslint-disable-next-line @typescript-eslint/consistent-type-imports -- required for dependency injection
-import * as leaseJs from './lease.js';
 import {IntervalLease} from './interval_lease.js';
 import {LeaseHolder} from './lease_holder.js';
 import {LeaseAcquisitionError} from './lease_errors.js';
-import {inject, singleton} from 'tsyringe-neo';
-import {IntervalLeaseRenewalService} from './interval_lease_renewal.js';
+import {inject, Lifecycle, scoped} from 'tsyringe-neo';
+import {type Lease, type LeaseRenewalService} from './lease.js';
+import {Container} from '../container_init.js';
 
 /**
  * Manages the acquisition and renewal of leases.
  */
-@singleton()
+@scoped(Lifecycle.ContainerScoped)
 export class LeaseManager {
   /**
    * Creates a new lease manager.
@@ -43,18 +39,23 @@ export class LeaseManager {
    * @param configManager - the configuration manager.
    */
   constructor(
-    @inject(IntervalLeaseRenewalService) private readonly _renewalService?: leaseJs.LeaseRenewalService,
+    @inject('LeaseRenewalService') private readonly _renewalService?: LeaseRenewalService,
     @inject(SoloLogger) private readonly _logger?: SoloLogger,
     @inject(K8) private readonly k8?: K8,
     @inject(ConfigManager) private readonly configManager?: ConfigManager,
-  ) {}
+  ) {
+    this._renewalService = Container.patchInject(_renewalService, 'LeaseRenewalService');
+    this._logger = Container.patchInject(_logger, SoloLogger);
+    this.k8 = Container.patchInject(k8, K8);
+    this.configManager = Container.patchInject(configManager, ConfigManager);
+  }
 
   /**
    * Creates a new lease. This lease is not acquired until the `acquire` method is called.
    *
    * @returns a new lease instance.
    */
-  public async create(): Promise<leaseJs.Lease> {
+  public async create(): Promise<Lease> {
     return new IntervalLease(this.k8, this._renewalService, LeaseHolder.default(), await this.currentNamespace());
   }
 
@@ -63,7 +64,7 @@ export class LeaseManager {
    *
    * @returns the lease renewal service.
    */
-  public get renewalService(): leaseJs.LeaseRenewalService {
+  public get renewalService(): LeaseRenewalService {
     return this._renewalService;
   }
 

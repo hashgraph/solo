@@ -19,16 +19,20 @@ import {SoloError} from '../errors.js';
 import {ShellRunner} from '../shell_runner.js';
 import {HelmDependencyManager} from './helm_dependency_manager.js';
 import {type ListrTask} from 'listr2';
-import {inject, singleton} from 'tsyringe-neo';
+import {container, inject, Lifecycle, scoped} from 'tsyringe-neo';
 import * as constants from '../constants.js';
 
-@singleton()
+@scoped(Lifecycle.ContainerScoped)
 export class DependencyManager extends ShellRunner {
   private readonly depManagerMap: Map<string, HelmDependencyManager>;
 
   constructor(@inject(HelmDependencyManager) helmDepManager?: HelmDependencyManager) {
     super();
-    this.depManagerMap = new Map().set(constants.HELM, helmDepManager);
+    if (helmDepManager) {
+      this.depManagerMap = new Map().set(constants.HELM, helmDepManager);
+    } else {
+      this.depManagerMap = new Map().set(constants.HELM, container.resolve(HelmDependencyManager));
+    }
   }
 
   /**

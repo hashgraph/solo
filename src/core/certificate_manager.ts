@@ -19,26 +19,28 @@ import {Flags as flags} from '../commands/flags.js';
 import fs from 'fs';
 import {Templates} from './templates.js';
 import {GrpcProxyTlsEnums} from './enumerations.js';
-
 import {ConfigManager} from './config_manager.js';
-
 import {K8} from './k8.js';
-
 import {SoloLogger} from './logging.js';
 import type {ListrTaskWrapper} from 'listr2';
 import type {NodeAlias} from '../types/aliases.js';
-import {inject, singleton} from 'tsyringe-neo';
+import {inject, Lifecycle, scoped} from 'tsyringe-neo';
+import {Container} from './container_init.js';
 
 /**
  * Used to handle interactions with certificates data and inject it into the K8s cluster secrets
  */
-@singleton()
+@scoped(Lifecycle.ContainerScoped)
 export class CertificateManager {
   constructor(
     @inject(K8) private readonly k8?: K8,
     @inject(SoloLogger) private readonly logger?: SoloLogger,
     @inject(ConfigManager) private readonly configManager?: ConfigManager,
-  ) {}
+  ) {
+    this.k8 = Container.patchInject(k8, K8);
+    this.logger = Container.patchInject(logger, SoloLogger);
+    this.configManager = Container.patchInject(configManager, ConfigManager);
+  }
 
   /**
    * Reads the certificate and key and build the secret with the appropriate structure

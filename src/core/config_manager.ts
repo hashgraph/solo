@@ -14,15 +14,16 @@
  * limitations under the License.
  *
  */
-import {inject, singleton} from 'tsyringe-neo';
+import {inject, Lifecycle, scoped} from 'tsyringe-neo';
 import {SoloError, MissingArgumentError} from './errors.js';
 import {SoloLogger} from './logging.js';
 import {Flags, Flags as flags} from '../commands/flags.js';
 import * as paths from 'path';
-import * as helpers from './helpers.js';
 import type * as yargs from 'yargs';
 import {type CommandFlag} from '../types/flag_types.js';
 import {type ListrTaskWrapper} from 'listr2';
+import {packageVersion} from './helpers.js';
+import {Container} from './container_init.js';
 
 /**
  * ConfigManager cache command flag values so that user doesn't need to enter the same values repeatedly.
@@ -30,11 +31,13 @@ import {type ListrTaskWrapper} from 'listr2';
  * For example, 'namespace' is usually remains the same across commands once it is entered, and therefore user
  * doesn't need to enter it repeatedly. However, user should still be able to specify the flag explicitly for any command.
  */
-@singleton()
+@scoped(Lifecycle.ContainerScoped)
 export class ConfigManager {
   config!: Record<string, any>;
 
   constructor(@inject(SoloLogger) private readonly logger?: SoloLogger) {
+    this.logger = Container.patchInject(logger, SoloLogger);
+
     this.reset();
   }
 
@@ -42,7 +45,7 @@ export class ConfigManager {
   reset() {
     this.config = {
       flags: {},
-      version: helpers.packageVersion(),
+      version: packageVersion(),
       updatedAt: new Date().toISOString(),
     };
   }

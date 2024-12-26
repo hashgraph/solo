@@ -34,8 +34,8 @@ import {SoloLogger} from './logging.js';
 import type {AnyObject, DirPath, NodeAlias, NodeAliases, Path} from '../types/aliases.js';
 import type {GenesisNetworkDataConstructor} from './genesis_network_models/genesis_network_data_constructor.js';
 import type {Optional} from '../types/index.js';
-import {container, injectable} from 'tsyringe-neo';
-
+import {inject, Lifecycle, scoped} from 'tsyringe-neo';
+import {Container} from './container_init.js';
 const consensusSidecars = [
   'recordStreamUploader',
   'eventStreamUploader',
@@ -44,7 +44,7 @@ const consensusSidecars = [
   'otelCollector',
 ];
 
-@injectable()
+@scoped(Lifecycle.ContainerScoped)
 export class ProfileManager {
   private readonly logger: SoloLogger;
   private readonly configManager: ConfigManager;
@@ -53,14 +53,16 @@ export class ProfileManager {
   private profiles: Map<string, AnyObject>;
   private profileFile: Optional<string>;
 
-  constructor(cacheDir: DirPath = constants.SOLO_VALUES_DIR) {
-    this.logger = container.resolve(SoloLogger);
-    this.configManager = container.resolve(ConfigManager);
+  constructor(
+    @inject(SoloLogger) logger?: SoloLogger,
+    @inject(ConfigManager) configManager?: ConfigManager,
+    @inject('cacheDir') cacheDir?: DirPath,
+  ) {
+    this.logger = Container.patchInject(logger, SoloLogger);
+    this.configManager = Container.patchInject(configManager, ConfigManager);
+    this.cacheDir = Container.patchInject(cacheDir, 'cacheDir');
 
     this.profiles = new Map();
-
-    cacheDir = path.resolve(cacheDir);
-    this.cacheDir = cacheDir;
   }
 
   /**

@@ -14,6 +14,8 @@
  * limitations under the License.
  *
  */
+// eslint-disable-next-line n/no-extraneous-import
+import 'reflect-metadata';
 import {container} from 'tsyringe-neo';
 import {SoloLogger} from './logging.js';
 import {PackageDownloader} from './package_downloader.js';
@@ -64,8 +66,9 @@ export class Container {
     container.register<AccountManager>(AccountManager, {useValue: new AccountManager()});
     container.register<PlatformInstaller>(PlatformInstaller, {useValue: new PlatformInstaller()});
     container.register<KeyManager>(KeyManager, {useValue: new KeyManager()});
+    container.register('cacheDir', {useValue: cacheDir});
     container.register<ProfileManager>(ProfileManager, {useValue: new ProfileManager()});
-    container.register<IntervalLeaseRenewalService>(IntervalLeaseRenewalService, {
+    container.register('LeaseRenewalService', {
       useValue: new IntervalLeaseRenewalService(),
     });
     container.register<LeaseManager>(LeaseManager, {
@@ -82,24 +85,27 @@ export class Container {
   /**
    * clears the container registries and re-initializes the container
    * @param cacheDir - the cache directory to use, defaults to constants.SOLO_CACHE_DIR
+   * @param logLevel - the log level to use, defaults to 'debug'
+   * @param devMode - if true, show full stack traces in error messages
    */
-  reset(cacheDir: string = constants.SOLO_CACHE_DIR) {
+  reset(cacheDir?: string, logLevel?: string, devMode?: boolean) {
     if (Container.instance && Container.isInitialized) {
       container.reset();
     }
-    Container.getInstance().init(cacheDir);
+    Container.getInstance().init(cacheDir, logLevel, devMode);
   }
 
   /**
-   * clears the container instances, useful for testing
+   * clears the container instances, useful for testing when you are using container.registerInstance()
    * @param cacheDir - the cache directory to use, defaults to constants.SOLO_CACHE_DIR
+   * @param logLevel - the log level to use, defaults to 'debug'
+   * @param devMode - if true, show full stack traces in error messages
    */
-  clearInstances(cacheDir: string = constants.SOLO_CACHE_DIR) {
+  clearInstances(cacheDir?: string, logLevel?: string, devMode?: boolean) {
     if (Container.instance && Container.isInitialized) {
       container.clearInstances();
-      console.log();
     } else {
-      Container.getInstance().init(cacheDir);
+      Container.getInstance().init(cacheDir, logLevel, devMode);
     }
   }
 
@@ -108,5 +114,18 @@ export class Container {
    */
   async dispose() {
     await container.dispose();
+  }
+
+  /**
+   * code to patch inject bug with tsyringe: https://github.com/risen228/tsyringe-neo/issues/5
+   * @param parameterValue - the value that should have been injected as a parameter in the constructor
+   * @param registryToken - the token to resolve from the container
+   */
+  static patchInject(parameterValue: any, registryToken: any) {
+    if (parameterValue === undefined || parameterValue === null) {
+      return container.resolve(registryToken);
+    }
+
+    return parameterValue;
   }
 }

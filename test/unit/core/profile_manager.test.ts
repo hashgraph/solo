@@ -39,7 +39,7 @@ describe('ProfileManager', () => {
     resetTestContainer();
     tmpDir = getTmpDir();
     configManager = container.resolve(ConfigManager);
-    profileManager = new ProfileManager(tmpDir);
+    profileManager = new ProfileManager(undefined, undefined, tmpDir);
     configManager.setFlag(flags.nodeAliasesUnparsed, 'node1,node2,node4');
     configManager.setFlag(flags.cacheDir, getTestCacheDir('ProfileManager'));
     configManager.setFlag(flags.releaseTag, version.HEDERA_PLATFORM_VERSION);

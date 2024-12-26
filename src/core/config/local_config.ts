@@ -26,18 +26,17 @@ import {
   type LocalConfigData,
 } from './local_config_data.js';
 import {MissingArgumentError, SoloError} from '../errors.js';
-
 import {SoloLogger} from '../logging.js';
 import {IsClusterContextMapping, IsDeployments} from '../validator_decorators.js';
-
 import {ConfigManager} from '../config_manager.js';
 import type {EmailAddress, Namespace} from './remote/types.js';
 import {ErrorMessages} from '../error_messages.js';
 import {type K8} from '../k8.js';
 import {splitFlagInput} from '../helpers.js';
-import {inject, singleton} from 'tsyringe-neo';
+import {inject, Lifecycle, scoped} from 'tsyringe-neo';
+import {Container} from '../container_init.js';
 
-@singleton()
+@scoped(Lifecycle.ContainerScoped)
 export class LocalConfig implements LocalConfigData {
   @IsEmail(
     {},
@@ -77,7 +76,11 @@ export class LocalConfig implements LocalConfigData {
     @inject(SoloLogger) private readonly logger?: SoloLogger,
     @inject(ConfigManager) private readonly configManager?: ConfigManager,
   ) {
-    if (!filePath || filePath === '') throw new MissingArgumentError('a valid filePath is required');
+    this.filePath = Container.patchInject(filePath, 'localConfigFilePath');
+    this.logger = Container.patchInject(logger, SoloLogger);
+    this.configManager = Container.patchInject(configManager, ConfigManager);
+
+    if (!this.filePath || this.filePath === '') throw new MissingArgumentError('a valid filePath is required');
 
     const allowedKeys = ['userEmailAddress', 'deployments', 'currentDeploymentName', 'clusterContextMapping'];
     if (this.configFileExists()) {

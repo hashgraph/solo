@@ -19,14 +19,18 @@ import {Helm} from './helm.js';
 import chalk from 'chalk';
 import {SoloError} from './errors.js';
 import {SoloLogger} from './logging.js';
-import {inject, singleton} from 'tsyringe-neo';
+import {inject, Lifecycle, scoped} from 'tsyringe-neo';
+import {Container} from './container_init.js';
 
-@singleton()
+@scoped(Lifecycle.ContainerScoped)
 export class ChartManager {
   constructor(
     @inject(Helm) private readonly helm?: Helm,
     @inject(SoloLogger) private readonly logger?: SoloLogger,
-  ) {}
+  ) {
+    this.helm = Container.patchInject(helm, Helm);
+    this.logger = Container.patchInject(logger, SoloLogger);
+  }
 
   /**
    * Setup chart repositories

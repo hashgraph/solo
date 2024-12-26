@@ -19,8 +19,6 @@ import yargs from 'yargs';
 import {hideBin} from 'yargs/helpers';
 import 'dotenv/config';
 import path from 'path';
-// eslint-disable-next-line n/no-extraneous-import
-import 'reflect-metadata';
 import {container} from 'tsyringe-neo';
 import './core/container_init.js';
 import {ListrLogger} from 'listr2';

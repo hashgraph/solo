@@ -20,7 +20,8 @@ import * as util from 'util';
 import chalk from 'chalk';
 import path from 'path';
 import * as constants from './constants.js';
-import {inject, singleton} from 'tsyringe-neo';
+import {inject, Lifecycle, scoped} from 'tsyringe-neo';
+import {Container} from './container_init.js';
 
 const customFormat = winston.format.combine(
   winston.format.label({label: 'SOLO', message: false}),
@@ -48,24 +49,26 @@ const customFormat = winston.format.combine(
   winston.format(data => (data.private ? false : data))(),
 );
 
-@singleton()
+@scoped(Lifecycle.ContainerScoped)
 export class SoloLogger {
   private winstonLogger: winston.Logger;
   private traceId?: string;
 
   /**
-   * @param [level] - logging level as supported by winston library:
-   * @param [devMode] - if true, show full stack traces in error messages
+   * @param logLevel - the log level to use
+   * @param devMode - if true, show full stack traces in error messages
    */
   constructor(
-    @inject('logLevel') level = 'debug',
-    @inject('devMode') private devMode = false,
+    @inject('logLevel') logLevel?: string,
+    @inject('devMode') private devMode?: boolean | null,
   ) {
+    logLevel = Container.patchInject(logLevel, 'logLevel');
+    this.devMode = Container.patchInject(devMode, 'devMode');
+
     this.nextTraceId();
-    this.devMode = devMode;
 
     this.winstonLogger = winston.createLogger({
-      level,
+      level: logLevel,
       format: winston.format.combine(customFormat, winston.format.json()),
       // format: winston.format.json(),
       // defaultMeta: { service: 'user-service' },

@@ -16,13 +16,12 @@
  */
 import {type Lease, type LeaseRenewalService} from './lease.js';
 import {Duration} from '../time/duration.js';
-import {singleton} from 'tsyringe-neo';
-
+import {Lifecycle, scoped} from 'tsyringe-neo';
 /**
  * Implements a lease renewal service which utilizes a setInterval() based approach to renew leases at regular intervals.
  * The renewal delay is calculated as half the duration of the lease in seconds.
  */
-@singleton()
+@scoped(Lifecycle.ContainerScoped)
 export class IntervalLeaseRenewalService implements LeaseRenewalService {
   /** The internal registry used to track all non-cancelled lease renewals. */
   private readonly _scheduledLeases: Map<number, Lease>;

@@ -17,11 +17,14 @@
 import {spawn} from 'child_process';
 import chalk from 'chalk';
 import {SoloLogger} from './logging.js';
-import {inject, singleton} from 'tsyringe-neo';
+import {inject, Lifecycle, scoped} from 'tsyringe-neo';
+import {Container} from './container_init.js';
 
-@singleton()
+@scoped(Lifecycle.ContainerScoped)
 export class ShellRunner {
-  constructor(@inject(SoloLogger) public logger?: SoloLogger) {}
+  constructor(@inject(SoloLogger) public logger?: SoloLogger) {
+    this.logger = Container.patchInject(logger, SoloLogger);
+  }
 
   /** Returns a promise that invokes the shell command */
   run(cmd: string, verbose = false) {

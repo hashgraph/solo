@@ -37,7 +37,8 @@ import {type ContextClusterStructure} from '../../../types/config_types.js';
 import {type EmptyContextConfig, type Optional, type SoloListrTask} from '../../../types/index.js';
 import type * as k8s from '@kubernetes/client-node';
 import {StatusCodes} from 'http-status-codes';
-import {inject, singleton} from 'tsyringe-neo';
+import {inject, Lifecycle, scoped} from 'tsyringe-neo';
+import {Container} from '../../container_init.js';
 
 interface ListrContext {
   config: {contextCluster: ContextClusterStructure};
@@ -47,7 +48,7 @@ interface ListrContext {
  * Uses Kubernetes ConfigMaps to manage the remote configuration data by creating, loading, modifying,
  * and saving the configuration data to and from a Kubernetes cluster.
  */
-@singleton()
+@scoped(Lifecycle.ContainerScoped)
 export class RemoteConfigManager {
   /** Stores the loaded remote configuration data. */
   private remoteConfig: Optional<RemoteConfigDataWrapper>;
@@ -63,7 +64,12 @@ export class RemoteConfigManager {
     @inject(SoloLogger) private readonly logger?: SoloLogger,
     @inject(LocalConfig) private readonly localConfig?: LocalConfig,
     @inject(ConfigManager) private readonly configManager?: ConfigManager,
-  ) {}
+  ) {
+    this.k8 = Container.patchInject(K8, k8);
+    this.logger = Container.patchInject(logger, SoloLogger);
+    this.localConfig = Container.patchInject(localConfig, LocalConfig);
+    this.configManager = Container.patchInject(configManager, ConfigManager);
+  }
 
   /* ---------- Getters ---------- */
 

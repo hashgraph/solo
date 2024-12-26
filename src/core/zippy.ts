@@ -21,11 +21,14 @@ import * as tar from 'tar';
 import chalk from 'chalk';
 import path from 'path';
 import {SoloLogger} from './logging.js';
-import {inject, singleton} from 'tsyringe-neo';
+import {inject, Lifecycle, scoped} from 'tsyringe-neo';
+import {Container} from './container_init.js';
 
-@singleton()
+@scoped(Lifecycle.ContainerScoped)
 export class Zippy {
-  constructor(@inject(SoloLogger) private readonly logger?: SoloLogger) {}
+  constructor(@inject(SoloLogger) private readonly logger?: SoloLogger) {
+    this.logger = Container.patchInject(logger, SoloLogger);
+  }
 
   /**
    * Zip a file or directory

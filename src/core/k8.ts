@@ -37,7 +37,8 @@ import {type PodName, type TarCreateFilter} from '../types/aliases.js';
 import type {ExtendedNetServer, LocalContextObject} from '../types/index.js';
 import {HEDERA_HAPI_PATH, ROOT_CONTAINER, SOLO_LOGS_DIR} from './constants.js';
 import {Duration} from './time/duration.js';
-import {container, inject, singleton} from 'tsyringe-neo';
+import {container, inject, Lifecycle, scoped} from 'tsyringe-neo';
+import {Container} from './container_init.js';
 
 interface TDirectoryData {
   directory: boolean;
@@ -54,7 +55,7 @@ interface TDirectoryData {
  * Note: Take care if the same instance is used for parallel execution, as the behaviour may be unpredictable.
  * For parallel execution, create separate instances by invoking clone()
  */
-@singleton()
+@scoped(Lifecycle.ContainerScoped)
 export class K8 {
   private _cachedContexts: Context[];
 
@@ -70,6 +71,9 @@ export class K8 {
     @inject(ConfigManager) private readonly configManager?: ConfigManager,
     @inject(SoloLogger) public readonly logger?: SoloLogger,
   ) {
+    this.configManager = Container.patchInject(configManager, ConfigManager);
+    this.logger = Container.patchInject(logger, SoloLogger);
+
     this.init();
   }
 
