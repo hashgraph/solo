@@ -25,7 +25,6 @@ import {SoloLogger} from './logging.js';
 import type {ListrTaskWrapper} from 'listr2';
 import type {NodeAlias} from '../types/aliases.js';
 import {inject, Lifecycle, scoped} from 'tsyringe-neo';
-import {Container} from './container_init.js';
 import {patchInject} from './container_helper.js';
 
 /**

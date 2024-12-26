@@ -23,7 +23,6 @@ import * as paths from 'path';
 import type * as yargs from 'yargs';
 import {type CommandFlag} from '../types/flag_types.js';
 import {type ListrTaskWrapper} from 'listr2';
-import {Container} from './container_init.js';
 import {patchInject} from './container_helper.js';
 
 /**
