@@ -139,8 +139,6 @@ export function bootstrapTestVariables(
   const namespace: string = argv[flags.namespace.name] || 'bootstrap-ns';
   const cacheDir: string = argv[flags.cacheDir.name] || getTestCacheDir(testName);
 
-  // resetTestContainer(cacheDir)
-
   const configManager = container.resolve(ConfigManager);
   configManager.update(argv);
 
@@ -155,7 +153,7 @@ export function bootstrapTestVariables(
   const profileManager = container.resolve(ProfileManager);
   const leaseManager = container.resolve(LeaseManager);
   const certificateManager = container.resolve(CertificateManager);
-  const localConfig = new LocalConfig(path.join(BASE_TEST_DIR, 'local-config.yaml'));
+  const localConfig = container.resolve(LocalConfig);
   const remoteConfigManager = container.resolve(RemoteConfigManager);
   testLogger = container.resolve(SoloLogger);
 
