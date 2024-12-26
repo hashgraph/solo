@@ -61,7 +61,7 @@ export class RemoteConfigManager {
     @inject(LocalConfig) private readonly localConfig?: LocalConfig,
     @inject(ConfigManager) private readonly configManager?: ConfigManager,
   ) {
-    this.k8 = patchInject(K8, k8);
+    this.k8 = patchInject(k8, K8);
     this.logger = patchInject(logger, SoloLogger);
     this.localConfig = patchInject(localConfig, LocalConfig);
     this.configManager = patchInject(configManager, ConfigManager);
@@ -235,7 +235,7 @@ export class RemoteConfigManager {
     try {
       return await this.k8.getNamespacedConfigMap(constants.SOLO_REMOTE_CONFIGMAP_NAME);
     } catch (error: any) {
-      if (error.meta.statusCode !== StatusCodes.NOT_FOUND) {
+      if (error.meta?.statusCode !== StatusCodes.NOT_FOUND) {
         throw new SoloError('Failed to read remote config from cluster', error);
       }
 

@@ -32,14 +32,7 @@ import {
 } from '@hashgraph/sdk';
 import * as constants from '../../../src/core/constants.js';
 import * as version from '../../../version.js';
-import {
-  bootstrapTestVariables,
-  e2eTestSuite,
-  getDefaultArgv,
-  HEDERA_PLATFORM_VERSION_TAG,
-  TEST_CLUSTER,
-  testLogger,
-} from '../../test_util.js';
+import {e2eTestSuite, getDefaultArgv, HEDERA_PLATFORM_VERSION_TAG, TEST_CLUSTER, testLogger} from '../../test_util.js';
 import {AccountCommand} from '../../../src/commands/account.js';
 import {Flags as flags} from '../../../src/commands/flags.js';
 import {Duration} from '../../../src/core/time/duration.js';

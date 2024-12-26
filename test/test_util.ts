@@ -59,13 +59,13 @@ import {KeyManager} from '../src/core/key_manager.js';
 import {HEDERA_PLATFORM_VERSION} from '../version.js';
 import {Duration} from '../src/core/time/duration.js';
 import {container} from 'tsyringe-neo';
+import {resetTestContainer} from './test_container.js';
 
 export const TEST_CLUSTER = 'solo-e2e';
 export const HEDERA_PLATFORM_VERSION_TAG = HEDERA_PLATFORM_VERSION;
 
 export const BASE_TEST_DIR = path.join('test', 'data', 'tmp');
 
-container.register<SoloLogger>(SoloLogger, {useValue: new SoloLogger('debug', true)});
 export let testLogger = container.resolve(SoloLogger);
 
 export function getTestCacheDir(testName?: string) {
@@ -138,7 +138,7 @@ export function bootstrapTestVariables(
 ): BootstrapResponse {
   const namespace: string = argv[flags.namespace.name] || 'bootstrap-ns';
   const cacheDir: string = argv[flags.cacheDir.name] || getTestCacheDir(testName);
-
+  resetTestContainer(cacheDir);
   const configManager = container.resolve(ConfigManager);
   configManager.update(argv);
 
@@ -210,7 +210,7 @@ export function e2eTestSuite(
   startNodes = true,
   testsCallBack: (bootstrapResp: BootstrapResponse) => void = () => {},
 ) {
-  describe(`E2E Test Suite for '${testName}'`, () => {
+  describe(`E2E Test Suite for '${testName}'`, function e2eTestSuite() {
     let bootstrapResp: BootstrapResponse;
     let namespace, initCmd, k8, clusterCmd, networkCmd, nodeCmd, chartManager, testLogger;
 
