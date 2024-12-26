@@ -16,9 +16,13 @@
  */
 import path from 'path';
 import {Container} from '../src/core/container_init.js';
+import {container} from 'tsyringe-neo';
+import {SoloLogger} from '../src/core/logging.js';
+import {testLogger} from './test_util.js';
 
 const cacheDirectory = path.join('test', 'data', 'tmp');
 
 export function resetTestContainer(cacheDir: string = cacheDirectory) {
   Container.getInstance().reset(cacheDir);
+  container.registerInstance(SoloLogger, testLogger);
 }

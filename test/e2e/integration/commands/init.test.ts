@@ -18,9 +18,7 @@ import {describe, it} from 'mocha';
 import {expect} from 'chai';
 
 import {InitCommand} from '../../../../src/commands/init.js';
-import {HelmDependencyManager, DependencyManager} from '../../../../src/core/dependency_managers/index.js';
-import {Zippy} from '../../../../src/core/zippy.js';
-import * as constants from '../../../../src/core/constants.js';
+import {DependencyManager} from '../../../../src/core/dependency_managers/index.js';
 import {Helm} from '../../../../src/core/helm.js';
 import {ChartManager} from '../../../../src/core/chart_manager.js';
 import {ConfigManager} from '../../../../src/core/config_manager.js';
@@ -30,9 +28,7 @@ import {KeyManager} from '../../../../src/core/key_manager.js';
 import {LeaseManager} from '../../../../src/core/lease/lease_manager.js';
 import {RemoteConfigManager} from '../../../../src/core/config/remote/remote_config_manager.js';
 import * as logging from '../../../../src/core/logging.js';
-import {PackageDownloader} from '../../../../src/core/package_downloader.js';
 import sinon from 'sinon';
-import {IntervalLeaseRenewalService} from '../../../../src/core/lease/interval_lease_renewal.js';
 import path from 'path';
 import {BASE_TEST_DIR} from '../../../test_util.js';
 import {Duration} from '../../../../src/core/time/duration.js';
@@ -40,12 +36,6 @@ import {container} from 'tsyringe-neo';
 
 const testLogger = logging.NewLogger('debug', true);
 describe('InitCommand', () => {
-  // prepare dependency manger registry
-  // const downloader = new PackageDownloader(testLogger);
-  // const zippy = new Zippy(testLogger);
-  // const helmDepManager = new HelmDependencyManager(downloader, zippy, testLogger);
-
-  // const depManager = new DependencyManager(helmDepManager);
   const depManager = container.resolve(DependencyManager);
   const helm = container.resolve(Helm);
   const chartManager = container.resolve(ChartManager);
