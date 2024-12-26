@@ -27,7 +27,7 @@ import {ClusterCommand} from '../src/commands/cluster.js';
 import {InitCommand} from '../src/commands/init.js';
 import {NetworkCommand} from '../src/commands/network.js';
 import {NodeCommand} from '../src/commands/node/index.js';
-import {DependencyManager, HelmDependencyManager} from '../src/core/dependency_managers/index.js';
+import {DependencyManager} from '../src/core/dependency_managers/index.js';
 import {sleep} from '../src/core/helpers.js';
 import {AccountBalanceQuery, AccountCreateTransaction, Hbar, HbarUnit, PrivateKey} from '@hashgraph/sdk';
 import {NODE_LOG_FAILURE_MSG, ROOT_CONTAINER, SOLO_LOGS_DIR} from '../src/core/constants.js';
@@ -36,7 +36,7 @@ import {AccountCommand} from '../src/commands/account.js';
 import {SoloError} from '../src/core/errors.js';
 import {execSync} from 'child_process';
 import * as NodeCommandConfigs from '../src/commands/node/configs.js';
-import type {SoloLogger} from '../src/core/logging.js';
+import {type SoloLogger} from '../src/core/logging.js';
 import type {BaseCommand} from '../src/commands/base.js';
 import type {NodeAlias} from '../src/types/aliases.js';
 import type {NetworkNodeServices} from '../src/core/network_node_services.js';
@@ -51,21 +51,21 @@ import {RemoteConfigManager} from '../src/core/config/remote/remote_config_manag
 import * as constants from '../src/core/constants.js';
 import {Templates} from '../src/core/templates.js';
 import {ConfigManager} from '../src/core/config_manager.js';
-import * as logging from '../src/core/logging.js';
 import {Helm} from '../src/core/helm.js';
 import {ChartManager} from '../src/core/chart_manager.js';
 import {PackageDownloader} from '../src/core/package_downloader.js';
 import {KeyManager} from '../src/core/key_manager.js';
-import {Zippy} from '../src/core/zippy.js';
 import {HEDERA_PLATFORM_VERSION} from '../version.js';
-import {IntervalLeaseRenewalService} from '../src/core/lease/interval_lease_renewal.js';
 import {Duration} from '../src/core/time/duration.js';
+import {container} from 'tsyringe-neo';
 
-export const testLogger = logging.NewLogger('debug', true);
 export const TEST_CLUSTER = 'solo-e2e';
 export const HEDERA_PLATFORM_VERSION_TAG = HEDERA_PLATFORM_VERSION;
 
 export const BASE_TEST_DIR = path.join('test', 'data', 'tmp');
+
+container.register<SoloLogger>(SoloLogger, {useValue: new SoloLogger('debug', true)});
+export let testLogger = container.resolve(SoloLogger);
 
 export function getTestCacheDir(testName?: string) {
   const d = testName ? path.join(BASE_TEST_DIR, testName) : BASE_TEST_DIR;
@@ -137,24 +137,26 @@ export function bootstrapTestVariables(
 ): BootstrapResponse {
   const namespace: string = argv[flags.namespace.name] || 'bootstrap-ns';
   const cacheDir: string = argv[flags.cacheDir.name] || getTestCacheDir(testName);
-  const configManager = new ConfigManager(testLogger);
+
+  // resetTestContainer(cacheDir)
+
+  const configManager = container.resolve(ConfigManager);
   configManager.update(argv);
-  const downloader = new PackageDownloader(testLogger);
-  const zippy = new Zippy(testLogger);
-  const helmDepManager = new HelmDependencyManager(downloader, zippy, testLogger);
-  const depManagerMap = new Map<string, HelmDependencyManager>().set(constants.HELM, helmDepManager);
-  const depManager = new DependencyManager(testLogger, depManagerMap);
-  const keyManager = new KeyManager(testLogger);
-  const helm = new Helm(testLogger);
-  const chartManager = new ChartManager(helm, testLogger);
-  const k8 = k8Arg || new K8(configManager, testLogger);
-  const accountManager = new AccountManager(testLogger, k8);
-  const platformInstaller = new PlatformInstaller(testLogger, k8, configManager);
-  const profileManager = new ProfileManager(testLogger, configManager);
-  const leaseManager = new LeaseManager(k8, configManager, testLogger, new IntervalLeaseRenewalService());
-  const certificateManager = new CertificateManager(k8, testLogger, configManager);
-  const localConfig = new LocalConfig(path.join(BASE_TEST_DIR, 'local-config.yaml'), testLogger, configManager);
-  const remoteConfigManager = new RemoteConfigManager(k8, testLogger, localConfig, configManager);
+
+  const downloader = container.resolve(PackageDownloader);
+  const depManager = container.resolve(DependencyManager);
+  const helm = container.resolve(Helm);
+  const chartManager = container.resolve(ChartManager);
+  const keyManager = container.resolve(KeyManager);
+  const k8 = k8Arg || container.resolve(K8);
+  const accountManager = container.resolve(AccountManager);
+  const platformInstaller = container.resolve(PlatformInstaller);
+  const profileManager = container.resolve(ProfileManager);
+  const leaseManager = container.resolve(LeaseManager);
+  const certificateManager = container.resolve(CertificateManager);
+  const localConfig = new LocalConfig(path.join(BASE_TEST_DIR, 'local-config.yaml'));
+  const remoteConfigManager = container.resolve(RemoteConfigManager);
+  testLogger = container.resolve(SoloLogger);
 
   const opts: TestOpts = {
     logger: testLogger,
@@ -209,26 +211,32 @@ export function e2eTestSuite(
   startNodes = true,
   testsCallBack: (bootstrapResp: BootstrapResponse) => void = () => {},
 ) {
-  const bootstrapResp = bootstrapTestVariables(
-    testName,
-    argv,
-    k8Arg,
-    initCmdArg,
-    clusterCmdArg,
-    networkCmdArg,
-    nodeCmdArg,
-    accountCmdArg,
-  );
-  const namespace = bootstrapResp.namespace;
-  const initCmd = bootstrapResp.cmd.initCmd;
-  const k8 = bootstrapResp.opts.k8;
-  const clusterCmd = bootstrapResp.cmd.clusterCmd;
-  const networkCmd = bootstrapResp.cmd.networkCmd;
-  const nodeCmd = bootstrapResp.cmd.nodeCmd;
-  const chartManager = bootstrapResp.opts.chartManager;
+  describe(`E2E Test Suite for '${testName}'`, () => {
+    let bootstrapResp: BootstrapResponse;
+    let namespace, initCmd, k8, clusterCmd, networkCmd, nodeCmd, chartManager, testLogger;
 
-  describe(`E2E Test Suite for '${testName}'`, function () {
-    this.bail(true); // stop on first failure, nothing else will matter if network doesn't come up correctly
+    before(() => {
+      bootstrapResp = bootstrapTestVariables(
+        testName,
+        argv,
+        k8Arg,
+        initCmdArg,
+        clusterCmdArg,
+        networkCmdArg,
+        nodeCmdArg,
+        accountCmdArg,
+      );
+      namespace = bootstrapResp.namespace;
+      initCmd = bootstrapResp.cmd.initCmd;
+      k8 = bootstrapResp.opts.k8;
+      clusterCmd = bootstrapResp.cmd.clusterCmd;
+      networkCmd = bootstrapResp.cmd.networkCmd;
+      nodeCmd = bootstrapResp.cmd.nodeCmd;
+      chartManager = bootstrapResp.opts.chartManager;
+      testLogger = bootstrapResp.opts.logger;
+
+      this.bail(true); // stop on first failure, nothing else will matter if network doesn't come up correctly
+    });
 
     describe(`Bootstrap network for test [release ${argv[flags.releaseTag.name]}}]`, () => {
       before(() => {
@@ -434,7 +442,7 @@ async function addKeyHashToMap(
 
 export function getK8Instance(configManager: ConfigManager) {
   try {
-    return new K8(configManager, testLogger);
+    return container.resolve(K8);
     // TODO: return a mock without running the init within constructor after we convert to Mocha, Jest ESModule mocks are broke.
   } catch (e) {
     if (!(e instanceof SoloError)) {
@@ -448,7 +456,7 @@ export function getK8Instance(configManager: ConfigManager) {
 
     // Create cluster
     execSync(`kind create cluster --name "${process.env.SOLO_CLUSTER_NAME}"`, {stdio: 'inherit'});
-    return new K8(configManager, testLogger);
+    return container.resolve(K8);
   }
 }
 

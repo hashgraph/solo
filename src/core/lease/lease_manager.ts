@@ -14,26 +14,25 @@
  * limitations under the License.
  *
  */
-import {MissingArgumentError} from '../errors.js';
 import {Flags as flags} from '../../commands/flags.js';
-import type {ConfigManager} from '../config_manager.js';
-import type {K8} from '../k8.js';
-import type {SoloLogger} from '../logging.js';
-import {type Lease, type LeaseRenewalService} from './lease.js';
+// eslint-disable-next-line @typescript-eslint/consistent-type-imports -- required for dependency injection
+import {ConfigManager} from '../config_manager.js';
+// eslint-disable-next-line @typescript-eslint/consistent-type-imports -- required for dependency injection
+import {K8} from '../k8.js';
+// eslint-disable-next-line @typescript-eslint/consistent-type-imports -- required for dependency injection
+import {SoloLogger} from '../logging.js';
+// eslint-disable-next-line @typescript-eslint/consistent-type-imports -- required for dependency injection
+import {type Lease, LeaseRenewalService} from './lease.js';
 import {IntervalLease} from './interval_lease.js';
 import {LeaseHolder} from './lease_holder.js';
 import {LeaseAcquisitionError} from './lease_errors.js';
+import {autoInjectable} from 'tsyringe-neo';
 
 /**
  * Manages the acquisition and renewal of leases.
  */
+@autoInjectable()
 export class LeaseManager {
-  /** The injected logger instance. */
-  private readonly _logger: SoloLogger;
-
-  /** The injected lease renewal service instance. */
-  private readonly _renewalService: LeaseRenewalService;
-
   /**
    * Creates a new lease manager.
    *
@@ -43,19 +42,11 @@ export class LeaseManager {
    * @param renewalService - the lease renewal service.
    */
   constructor(
-    private readonly k8: K8,
-    private readonly configManager: ConfigManager,
-    logger: SoloLogger,
-    renewalService: LeaseRenewalService,
-  ) {
-    if (!k8) throw new MissingArgumentError('an instance of core/K8 is required');
-    if (!logger) throw new MissingArgumentError('an instance of core/SoloLogger is required');
-    if (!configManager) throw new MissingArgumentError('an instance of core/ConfigManager is required');
-    if (!renewalService) throw new MissingArgumentError('an instance of core/LeaseRenewalService is required');
-
-    this._logger = logger;
-    this._renewalService = renewalService;
-  }
+    private readonly _renewalService?: LeaseRenewalService,
+    private readonly _logger?: SoloLogger,
+    private readonly k8?: K8,
+    private readonly configManager?: ConfigManager,
+  ) {}
 
   /**
    * Creates a new lease. This lease is not acquired until the `acquire` method is called.

@@ -26,14 +26,18 @@ import {
   type LocalConfigData,
 } from './local_config_data.js';
 import {MissingArgumentError, SoloError} from '../errors.js';
-import {type SoloLogger} from '../logging.js';
+// eslint-disable-next-line @typescript-eslint/consistent-type-imports -- required for dependency injection
+import {SoloLogger} from '../logging.js';
 import {IsClusterContextMapping, IsDeployments} from '../validator_decorators.js';
-import type {ConfigManager} from '../config_manager.js';
+// eslint-disable-next-line @typescript-eslint/consistent-type-imports -- required for dependency injection
+import {ConfigManager} from '../config_manager.js';
 import type {EmailAddress, Namespace} from './remote/types.js';
 import {ErrorMessages} from '../error_messages.js';
 import {type K8} from '../k8.js';
 import {splitFlagInput} from '../helpers.js';
+import {autoInjectable, inject} from 'tsyringe-neo';
 
+@autoInjectable()
 export class LocalConfig implements LocalConfigData {
   @IsEmail(
     {},
@@ -69,12 +73,11 @@ export class LocalConfig implements LocalConfigData {
   private readonly skipPromptTask: boolean = false;
 
   public constructor(
-    private readonly filePath: string,
-    private readonly logger: SoloLogger,
-    private readonly configManager: ConfigManager,
+    @inject('localConfigFilePath') private readonly filePath?: string,
+    private readonly logger?: SoloLogger,
+    private readonly configManager?: ConfigManager,
   ) {
     if (!filePath || filePath === '') throw new MissingArgumentError('a valid filePath is required');
-    if (!logger) throw new Error('An instance of core/SoloLogger is required');
 
     const allowedKeys = ['userEmailAddress', 'deployments', 'currentDeploymentName', 'clusterContextMapping'];
     if (this.configFileExists()) {

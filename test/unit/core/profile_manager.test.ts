@@ -24,25 +24,33 @@ import {Flags as flags} from '../../../src/commands/flags.js';
 import * as constants from '../../../src/core/constants.js';
 import {ConfigManager} from '../../../src/core/config_manager.js';
 import {ProfileManager} from '../../../src/core/profile_manager.js';
-import {getTestCacheDir, getTmpDir, testLogger} from '../../test_util.js';
+import {getTestCacheDir, getTmpDir} from '../../test_util.js';
 import * as version from '../../../version.js';
 import type {NodeAlias} from '../../../src/types/aliases.js';
-
-const tmpDir = getTmpDir();
-const configManager = new ConfigManager(testLogger);
-const profileManager = new ProfileManager(testLogger, configManager, tmpDir);
-configManager.setFlag(flags.nodeAliasesUnparsed, 'node1,node2,node4');
-const testProfileFile = path.join('test', 'data', 'test-profiles.yaml');
-configManager.setFlag(flags.cacheDir, getTestCacheDir('ProfileManager'));
-configManager.setFlag(flags.releaseTag, version.HEDERA_PLATFORM_VERSION);
-const cacheDir = configManager.getFlag<string>(flags.cacheDir) as string;
-configManager.setFlag(flags.apiPermissionProperties, path.join(cacheDir, 'templates', 'api-permission.properties'));
-configManager.setFlag(flags.applicationProperties, path.join(cacheDir, 'templates', 'application.properties'));
-configManager.setFlag(flags.bootstrapProperties, path.join(cacheDir, 'templates', 'bootstrap.properties'));
-configManager.setFlag(flags.log4j2Xml, path.join(cacheDir, 'templates', 'log4j2.xml'));
-configManager.setFlag(flags.settingTxt, path.join(cacheDir, 'templates', 'settings.txt'));
+import {container} from 'tsyringe-neo';
+import {resetTestContainer} from '../../test_container.js';
 
 describe('ProfileManager', () => {
+  let tmpDir: string, configManager: ConfigManager, profileManager: ProfileManager, cacheDir: string;
+
+  const testProfileFile = path.join('test', 'data', 'test-profiles.yaml');
+
+  before(() => {
+    resetTestContainer();
+    tmpDir = getTmpDir();
+    configManager = container.resolve(ConfigManager);
+    profileManager = new ProfileManager(tmpDir);
+    configManager.setFlag(flags.nodeAliasesUnparsed, 'node1,node2,node4');
+    configManager.setFlag(flags.cacheDir, getTestCacheDir('ProfileManager'));
+    configManager.setFlag(flags.releaseTag, version.HEDERA_PLATFORM_VERSION);
+    cacheDir = configManager.getFlag<string>(flags.cacheDir) as string;
+    configManager.setFlag(flags.apiPermissionProperties, path.join(cacheDir, 'templates', 'api-permission.properties'));
+    configManager.setFlag(flags.applicationProperties, path.join(cacheDir, 'templates', 'application.properties'));
+    configManager.setFlag(flags.bootstrapProperties, path.join(cacheDir, 'templates', 'bootstrap.properties'));
+    configManager.setFlag(flags.log4j2Xml, path.join(cacheDir, 'templates', 'log4j2.xml'));
+    configManager.setFlag(flags.settingTxt, path.join(cacheDir, 'templates', 'settings.txt'));
+  });
+
   after(() => {
     fs.rmSync(tmpDir, {recursive: true});
   });

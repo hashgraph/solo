@@ -25,15 +25,16 @@ import {readFile, writeFile} from 'fs/promises';
 import {Flags as flags} from '../commands/flags.js';
 import {Templates} from './templates.js';
 import * as constants from './constants.js';
-import {type ConfigManager} from './config_manager.js';
+import {ConfigManager} from './config_manager.js';
 import * as helpers from './helpers.js';
 import {getNodeAccountMap} from './helpers.js';
 import {AccountId} from '@hashgraph/sdk';
 import type {SemVer} from 'semver';
-import type {SoloLogger} from './logging.js';
+import {SoloLogger} from './logging.js';
 import type {AnyObject, DirPath, NodeAlias, NodeAliases, Path} from '../types/aliases.js';
 import type {GenesisNetworkDataConstructor} from './genesis_network_models/genesis_network_data_constructor.js';
 import type {Optional} from '../types/index.js';
+import {container, injectable} from 'tsyringe-neo';
 
 const consensusSidecars = [
   'recordStreamUploader',
@@ -43,6 +44,7 @@ const consensusSidecars = [
   'otelCollector',
 ];
 
+@injectable()
 export class ProfileManager {
   private readonly logger: SoloLogger;
   private readonly configManager: ConfigManager;
@@ -51,12 +53,9 @@ export class ProfileManager {
   private profiles: Map<string, AnyObject>;
   private profileFile: Optional<string>;
 
-  constructor(logger: SoloLogger, configManager: ConfigManager, cacheDir: DirPath = constants.SOLO_VALUES_DIR) {
-    if (!logger) throw new MissingArgumentError('An instance of core/SoloLogger is required');
-    if (!configManager) throw new MissingArgumentError('An instance of core/ConfigManager is required');
-
-    this.logger = logger;
-    this.configManager = configManager;
+  constructor(cacheDir: DirPath = constants.SOLO_VALUES_DIR) {
+    this.logger = container.resolve(SoloLogger);
+    this.configManager = container.resolve(ConfigManager);
 
     this.profiles = new Map();
 

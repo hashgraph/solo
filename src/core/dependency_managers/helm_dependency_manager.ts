@@ -18,17 +18,17 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 import * as util from 'util';
-import {IllegalArgumentError, MissingArgumentError} from '../errors.js';
+import {MissingArgumentError} from '../errors.js';
 import * as helpers from '../helpers.js';
 import * as constants from '../constants.js';
-import {type PackageDownloader} from '../package_downloader.js';
-import {type Zippy} from '../zippy.js';
+import {PackageDownloader} from '../package_downloader.js';
+import {Zippy} from '../zippy.js';
 import {Templates} from '../templates.js';
 import * as version from '../../../version.js';
 import {ShellRunner} from '../shell_runner.js';
 import * as semver from 'semver';
 import {OS_WIN32, OS_WINDOWS} from '../constants.js';
-import {type SoloLogger} from '../logging.js';
+import {container, injectable, singleton} from 'tsyringe-neo';
 
 // constants required by HelmDependencyManager
 const HELM_RELEASE_BASE_URL = 'https://get.helm.sh';
@@ -42,6 +42,7 @@ const HELM_ARTIFACT_EXT: Map<string, string> = new Map()
 /**
  * Helm dependency manager installs or uninstalls helm client at SOLO_HOME_DIR/bin directory
  */
+@injectable()
 export class HelmDependencyManager extends ShellRunner {
   private readonly osPlatform: string;
   private readonly osArch: string;
@@ -49,25 +50,21 @@ export class HelmDependencyManager extends ShellRunner {
   private readonly artifactName: string;
   private readonly helmURL: string;
   private readonly checksumURL: string;
+  private readonly downloader;
+  private readonly zippy;
 
   constructor(
-    private readonly downloader: PackageDownloader,
-    private readonly zippy: Zippy,
-    logger: SoloLogger,
     private readonly installationDir = path.join(constants.SOLO_HOME_DIR, 'bin'),
     osPlatform = os.platform(),
     osArch = os.arch(),
     private readonly helmVersion = version.HELM_VERSION,
   ) {
-    super(logger);
+    super();
 
-    if (!downloader) throw new MissingArgumentError('An instance of core/PackageDownloader is required');
-    if (!zippy) throw new MissingArgumentError('An instance of core/Zippy is required');
-    if (!logger) throw new IllegalArgumentError('an instance of core/SoloLogger is required', logger);
     if (!installationDir) throw new MissingArgumentError('installation directory is required');
 
-    this.downloader = downloader;
-    this.zippy = zippy;
+    this.downloader = container.resolve(PackageDownloader);
+    this.zippy = container.resolve(Zippy);
     this.installationDir = installationDir;
     // Node.js uses 'win32' for windows in package.json os field, but helm uses 'windows'
     if (osPlatform === OS_WIN32) {

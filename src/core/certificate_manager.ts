@@ -20,25 +20,26 @@ import fs from 'fs';
 import {Templates} from './templates.js';
 import {GrpcProxyTlsEnums} from './enumerations.js';
 
-import type {ConfigManager} from './config_manager.js';
-import type {K8} from './k8.js';
-import type {SoloLogger} from './logging.js';
+// eslint-disable-next-line @typescript-eslint/consistent-type-imports -- required for dependency injection
+import {ConfigManager} from './config_manager.js';
+// eslint-disable-next-line @typescript-eslint/consistent-type-imports -- required for dependency injection
+import {K8} from './k8.js';
+// eslint-disable-next-line @typescript-eslint/consistent-type-imports -- required for dependency injection
+import {SoloLogger} from './logging.js';
 import type {ListrTaskWrapper} from 'listr2';
 import type {NodeAlias} from '../types/aliases.js';
+import {autoInjectable} from 'tsyringe-neo';
 
 /**
  * Used to handle interactions with certificates data and inject it into the K8s cluster secrets
  */
+@autoInjectable()
 export class CertificateManager {
   constructor(
-    private readonly k8: K8,
-    private readonly logger: SoloLogger,
-    private readonly configManager: ConfigManager,
-  ) {
-    if (!k8) throw new MissingArgumentError('an instance of core/K8 is required');
-    if (!logger) throw new MissingArgumentError('an instance of core/SoloLogger is required');
-    if (!configManager) throw new MissingArgumentError('an instance of core/ConfigManager is required');
-  }
+    private readonly k8?: K8,
+    private readonly logger?: SoloLogger,
+    private readonly configManager?: ConfigManager,
+  ) {}
 
   /**
    * Reads the certificate and key and build the secret with the appropriate structure

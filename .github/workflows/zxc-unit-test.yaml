@@ -75,6 +75,9 @@ jobs:
         id: npm-deps
         run: npm ci
 
+      - name: Compile Project
+        run: npm run build
+
       - name: Run Unit Tests
         run: npm test
 

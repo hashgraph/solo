@@ -36,23 +36,25 @@ import {IntervalLeaseRenewalService} from '../../../../src/core/lease/interval_l
 import path from 'path';
 import {BASE_TEST_DIR} from '../../../test_util.js';
 import {Duration} from '../../../../src/core/time/duration.js';
+import {container} from 'tsyringe-neo';
 
 const testLogger = logging.NewLogger('debug', true);
 describe('InitCommand', () => {
   // prepare dependency manger registry
-  const downloader = new PackageDownloader(testLogger);
-  const zippy = new Zippy(testLogger);
-  const helmDepManager = new HelmDependencyManager(downloader, zippy, testLogger);
-  const depManagerMap = new Map().set(constants.HELM, helmDepManager);
-  const depManager = new DependencyManager(testLogger, depManagerMap);
+  // const downloader = new PackageDownloader(testLogger);
+  // const zippy = new Zippy(testLogger);
+  // const helmDepManager = new HelmDependencyManager(downloader, zippy, testLogger);
 
-  const helm = new Helm(testLogger);
-  const chartManager = new ChartManager(helm, testLogger);
-  const configManager = new ConfigManager(testLogger);
+  // const depManager = new DependencyManager(helmDepManager);
+  const depManager = container.resolve(DependencyManager);
+  const helm = container.resolve(Helm);
+  const chartManager = container.resolve(ChartManager);
+
+  const configManager = container.resolve(ConfigManager);
   let k8: K8;
   let localConfig: LocalConfig;
 
-  const keyManager = new KeyManager(testLogger);
+  const keyManager = container.resolve(KeyManager);
 
   let leaseManager: LeaseManager;
   let remoteConfigManager: RemoteConfigManager;
@@ -63,10 +65,11 @@ describe('InitCommand', () => {
   before(() => {
     sandbox = sinon.createSandbox();
     sandbox.stub(K8.prototype, 'init').callsFake(() => this);
-    k8 = new K8(configManager, testLogger);
-    localConfig = new LocalConfig(path.join(BASE_TEST_DIR, 'local-config.yaml'), testLogger, configManager);
-    remoteConfigManager = new RemoteConfigManager(k8, testLogger, localConfig, configManager);
-    leaseManager = new LeaseManager(k8, configManager, testLogger, new IntervalLeaseRenewalService());
+    k8 = container.resolve(K8);
+    localConfig = new LocalConfig(path.join(BASE_TEST_DIR, 'local-config.yaml'));
+    remoteConfigManager = container.resolve(RemoteConfigManager);
+    leaseManager = container.resolve(LeaseManager);
+
     // @ts-ignore
     initCmd = new InitCommand({
       logger: testLogger,

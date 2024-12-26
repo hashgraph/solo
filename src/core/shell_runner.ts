@@ -16,12 +16,13 @@
  */
 import {spawn} from 'child_process';
 import chalk from 'chalk';
-import {type SoloLogger} from './logging.js';
+// eslint-disable-next-line @typescript-eslint/consistent-type-imports -- required for dependency injection
+import {SoloLogger} from './logging.js';
+import {autoInjectable} from 'tsyringe-neo';
 
+@autoInjectable()
 export class ShellRunner {
-  constructor(public logger: SoloLogger) {
-    if (!logger) throw new Error('An instance of core/SoloLogger is required');
-  }
+  constructor(public logger?: SoloLogger) {}
 
   /** Returns a promise that invokes the shell command */
   run(cmd: string, verbose = false) {

@@ -24,6 +24,7 @@ import {ConfigManager} from '../../../src/core/config_manager.js';
 import {testLogger} from '../../test_util.js';
 import {Flags as flags} from '../../../src/commands/flags.js';
 import {Duration} from '../../../src/core/time/duration.js';
+import {container} from 'tsyringe-neo';
 
 function listNamespacedPodMockSetup(k8: K8, numOfFailures: number, result: any) {
   for (let i = 0; i < numOfFailures - 1; i++) {
@@ -72,9 +73,9 @@ describe('K8 Unit Tests', function () {
 
   before(() => {
     argv[flags.namespace.name] = 'namespace';
-    const configManager = new ConfigManager(testLogger);
+    const configManager = container.resolve(ConfigManager);
     configManager.update(argv);
-    k8 = new K8(configManager, testLogger);
+    k8 = container.resolve(K8);
     k8.kubeClient = {
       // @ts-ignore
       listNamespacedPod: jest.fn(),

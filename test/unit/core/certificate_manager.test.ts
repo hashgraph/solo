@@ -24,6 +24,7 @@ import {CertificateManager} from '../../../src/core/certificate_manager.js';
 import {Flags as flags} from '../../../src/commands/flags.js';
 import {testLogger} from '../../test_util.js';
 import {SoloError} from '../../../src/core/errors.js';
+import {container} from 'tsyringe-neo';
 
 describe('Certificate Manager', () => {
   const argv = {};
@@ -35,10 +36,10 @@ describe('Certificate Manager', () => {
 
   before(() => {
     argv[flags.namespace.name] = 'namespace';
-    const configManager = new ConfigManager(testLogger);
+    const configManager = container.resolve(ConfigManager);
     configManager.update(argv);
-    k8 = new K8(configManager, testLogger);
-    certificateManager = new CertificateManager(k8, testLogger, configManager);
+    k8 = container.resolve(K8);
+    certificateManager = container.resolve(CertificateManager);
   });
 
   after(() => {

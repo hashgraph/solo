@@ -29,6 +29,8 @@ import {ChartManager} from '../../../src/core/chart_manager.js';
 import {Helm} from '../../../src/core/helm.js';
 import {ROOT_DIR} from '../../../src/core/constants.js';
 import path from 'path';
+import {container} from 'tsyringe-neo';
+import {resetTestContainer} from '../../test_container.js';
 
 const getBaseCommandOpts = () => ({
   logger: sinon.stub(),
@@ -55,19 +57,24 @@ argv[flags.force.name] = true;
 argv[flags.clusterSetupNamespace.name] = constants.SOLO_SETUP_NAMESPACE;
 
 describe('ClusterCommand unit tests', () => {
+  before(() => {
+    resetTestContainer();
+  });
+
   describe('Chart Install Function is called correctly', () => {
     let opts: any;
 
     beforeEach(() => {
       opts = getBaseCommandOpts();
-      opts.logger = new SoloLogger();
-      opts.helm = new Helm(opts.logger);
+      opts.logger = container.resolve(SoloLogger);
+      opts.helm = container.resolve(Helm);
+      opts.chartManager = container.resolve(ChartManager);
       opts.helm.dependency = sinon.stub();
-      opts.chartManager = new ChartManager(opts.helm, opts.logger);
+
       opts.chartManager.isChartInstalled = sinon.stub().returns(false);
       opts.chartManager.install = sinon.stub().returns(true);
 
-      opts.configManager = new ConfigManager(opts.logger);
+      opts.configManager = container.resolve(ConfigManager);
       opts.remoteConfigManager = sinon.stub();
     });
 
@@ -91,7 +98,7 @@ describe('ClusterCommand unit tests', () => {
       await clusterCommand.setup(argv);
 
       expect(opts.chartManager.install.args[0][2]).to.equal(
-        path.join(ROOT_DIR, 'test-directory', constants.SOLO_CLUSTER_SETUP_CHART),
+        path.join(ROOT_DIR, '..', 'test-directory', constants.SOLO_CLUSTER_SETUP_CHART),
       );
     });
   });

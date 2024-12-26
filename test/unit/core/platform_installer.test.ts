@@ -27,14 +27,18 @@ import * as logging from '../../../src/core/logging.js';
 import {IllegalArgumentError, MissingArgumentError} from '../../../src/core/errors.js';
 import {getK8Instance} from '../../test_util.js';
 import type {PodName} from '../../../src/types/aliases.js';
+import {container} from 'tsyringe-neo';
+import {type K8} from '../../../src/core/k8.js';
+import {type SoloLogger} from '../../../src/core/logging.js';
 
 describe('PackageInstaller', () => {
-  const testLogger = logging.NewLogger('debug', true);
-  const configManager = new ConfigManager(testLogger);
-
-  const k8 = getK8Instance(configManager);
-
-  const installer = new PlatformInstaller(testLogger, k8, configManager);
+  let testLogger: SoloLogger, configManager: ConfigManager, k8: K8, installer: PlatformInstaller;
+  before(() => {
+    testLogger = logging.NewLogger('debug', true);
+    configManager = container.resolve(ConfigManager);
+    k8 = getK8Instance(configManager);
+    installer = container.resolve(PlatformInstaller);
+  });
 
   describe('validatePlatformReleaseDir', () => {
     it('should fail for missing path', () => {

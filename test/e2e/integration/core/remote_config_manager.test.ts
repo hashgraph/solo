@@ -29,6 +29,7 @@ import path from 'path';
 import {SoloError} from '../../../../src/core/errors.js';
 import {RemoteConfigDataWrapper} from '../../../../src/core/config/remote/remote_config_data_wrapper.js';
 import {Duration} from '../../../../src/core/time/duration.js';
+import {container} from 'tsyringe-neo';
 
 const defaultTimeout = Duration.ofSeconds(20).toMillis();
 
@@ -58,12 +59,10 @@ e2eTestSuite(
   bootstrapResp => {
     describe('RemoteConfigManager', async () => {
       const k8 = bootstrapResp.opts.k8;
-      const logger = bootstrapResp.opts.logger;
-      const configManager = bootstrapResp.opts.configManager;
       const filePath = path.join(constants.SOLO_CACHE_DIR, constants.DEFAULT_LOCAL_CONFIG_FILE);
 
-      const localConfig = new LocalConfig(filePath, logger, configManager);
-      const remoteConfigManager = new RemoteConfigManager(k8, logger, localConfig, configManager);
+      const localConfig = new LocalConfig(filePath);
+      const remoteConfigManager = container.resolve(RemoteConfigManager);
 
       const email = 'john@gmail.com';
 
