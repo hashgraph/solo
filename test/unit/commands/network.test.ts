@@ -18,13 +18,7 @@ import sinon from 'sinon';
 import {describe, it, beforeEach} from 'mocha';
 import {expect} from 'chai';
 
-import {
-  bootstrapTestVariables,
-  getDefaultArgv,
-  HEDERA_PLATFORM_VERSION_TAG,
-  TEST_CLUSTER,
-  testLogger,
-} from '../../test_util.js';
+import {getDefaultArgv, HEDERA_PLATFORM_VERSION_TAG, TEST_CLUSTER} from '../../test_util.js';
 import {Flags as flags} from '../../../src/commands/flags.js';
 import * as version from '../../../version.js';
 import * as constants from '../../../src/core/constants.js';
@@ -34,7 +28,6 @@ import {Helm} from '../../../src/core/helm.js';
 import path from 'path';
 import {NetworkCommand} from '../../../src/commands/network.js';
 import {LeaseManager} from '../../../src/core/lease/lease_manager.js';
-import {IntervalLeaseRenewalService} from '../../../src/core/lease/interval_lease_renewal.js';
 import {RemoteConfigManager} from '../../../src/core/config/remote/remote_config_manager.js';
 import {ProfileManager} from '../../../src/core/profile_manager.js';
 import {KeyManager} from '../../../src/core/key_manager.js';
@@ -42,16 +35,26 @@ import {ROOT_DIR} from '../../../src/core/constants.js';
 import {ListrLease} from '../../../src/core/lease/listr_lease.js';
 import {GenesisNetworkDataConstructor} from '../../../src/core/genesis_network_models/genesis_network_data_constructor.js';
 import {container} from 'tsyringe-neo';
+import {SoloLogger} from '../../../src/core/logging.js';
+import {K8} from '../../../src/core/k8.js';
+import {PlatformInstaller} from '../../../src/core/platform_installer.js';
+import {CertificateManager} from '../../../src/core/certificate_manager.js';
+import {DependencyManager} from '../../../src/core/dependency_managers/index.js';
+import {LocalConfig} from '../../../src/core/config/local_config.js';
 
-const getBaseCommandOpts = () => ({
-  logger: sinon.stub(),
-  helm: sinon.stub(),
-  k8: sinon.stub(),
-  chartManager: sinon.stub(),
-  configManager: sinon.stub(),
-  depManager: sinon.stub(),
-  localConfig: sinon.stub(),
-});
+const getBaseCommandOpts = () => {
+  const opts = {
+    k8: sinon.stub() as unknown as K8,
+    depManager: sinon.stub() as unknown as DependencyManager,
+    localConfig: sinon.stub() as unknown as LocalConfig,
+  };
+
+  container.registerInstance(K8, opts.k8);
+  container.registerInstance(DependencyManager, opts.depManager);
+  container.registerInstance(LocalConfig, opts.localConfig);
+
+  return opts;
+};
 
 const testName = 'network-cmd-unit';
 const namespace = testName;
@@ -71,21 +74,16 @@ argv[flags.chartDirectory.name] = undefined;
 describe('NetworkCommand unit tests', () => {
   describe('Chart Install Function is called correctly', () => {
     let opts: any;
-    let bootstrapResp: any;
-
-    before(() => {
-      bootstrapResp = bootstrapTestVariables(testName, argv);
-    });
 
     beforeEach(() => {
       opts = getBaseCommandOpts();
-      opts.logger = testLogger;
+      opts.logger = container.resolve(SoloLogger);
       opts.helm = container.resolve(Helm);
       opts.helm.dependency = sinon.stub();
 
       opts.configManager = container.resolve(ConfigManager);
       opts.configManager.update(argv);
-      opts.k8 = sinon.stub();
+      opts.k8 = container.resolve(K8);
       opts.k8.hasNamespace = sinon.stub().returns(true);
       opts.k8.getNamespacedConfigMap = sinon.stub().returns(null);
       opts.k8.waitForPodReady = sinon.stub();
@@ -101,11 +99,13 @@ describe('NetworkCommand unit tests', () => {
       opts.keyManager.copyGossipKeysToStaging = sinon.stub();
       opts.keyManager.copyNodeKeysToStaging = sinon.stub();
       opts.platformInstaller = sinon.stub();
+      container.registerInstance(PlatformInstaller, opts.platformInstaller);
       opts.platformInstaller.copyNodeKeys = sinon.stub();
 
       opts.profileManager = container.resolve(ProfileManager);
       opts.profileManager.prepareValuesForSoloChart = sinon.stub();
       opts.certificateManager = sinon.stub();
+      container.registerInstance(CertificateManager, opts.certificateManager);
 
       opts.chartManager = container.resolve(ChartManager);
       opts.chartManager.isChartInstalled = sinon.stub().returns(true);
@@ -114,6 +114,7 @@ describe('NetworkCommand unit tests', () => {
       opts.chartManager.install = sinon.stub().returns(true);
 
       opts.remoteConfigManager = container.resolve(RemoteConfigManager);
+      opts.remoteConfigManager.getConfigMap = sinon.stub().returns(null);
 
       opts.configManager = container.resolve(ConfigManager);
 
