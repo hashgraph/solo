@@ -14,8 +14,6 @@
  * limitations under the License.
  *
  */
-// eslint-disable-next-line n/no-extraneous-import
-import 'reflect-metadata';
 import {container} from 'tsyringe-neo';
 import {SoloLogger} from './logging.js';
 import {PackageDownloader} from './package_downloader.js';

@@ -53,8 +53,8 @@ export class HelmDependencyManager extends ShellRunner {
   private readonly checksumURL: string;
 
   constructor(
-    @inject(PackageDownloader) private readonly downloader: PackageDownloader,
-    @inject(Zippy) private readonly zippy: Zippy,
+    @inject(PackageDownloader) private readonly downloader?: PackageDownloader,
+    @inject(Zippy) private readonly zippy?: Zippy,
     private readonly installationDir = path.join(constants.SOLO_HOME_DIR, 'bin'),
     osPlatform = os.platform(),
     osArch = os.arch(),
