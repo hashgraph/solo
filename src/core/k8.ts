@@ -77,15 +77,6 @@ export class K8 {
     this.init();
   }
 
-  /**
-   * Clone a new instance with the same config manager and logger
-   * Internally it instantiates a new kube API client
-   */
-  clone() {
-    const c = container.resolve(K8);
-    return c.init();
-  }
-
   getKubeConfig() {
     return this.kubeConfig;
   }
