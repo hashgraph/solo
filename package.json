@@ -48,7 +48,7 @@
   "dependencies": {
     "@eslint/eslintrc": "^3.2.0",
     "@hashgraph/sdk": "^2.56.0",
-    "@kubernetes/client-node": "^0.22.3",
+    "@kubernetes/client-node": "^1.0.0",
     "@listr2/prompt-adapter-enquirer": "^2.0.12",
     "@peculiar/x509": "^1.12.3",
     "adm-zip": "^0.5.16",
