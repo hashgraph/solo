@@ -61,7 +61,7 @@ export class ProfileManager {
   ) {
     this.logger = patchInject(logger, SoloLogger, this.constructor.name);
     this.configManager = patchInject(configManager, ConfigManager, this.constructor.name);
-    this.cacheDir = patchInject(cacheDir, 'cacheDir', this.constructor.name);
+    this.cacheDir = path.resolve(patchInject(cacheDir, 'cacheDir', this.constructor.name));
 
     this.profiles = new Map();
   }

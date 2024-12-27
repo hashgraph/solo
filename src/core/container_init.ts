@@ -37,12 +37,18 @@ import {RemoteConfigManager} from './config/remote/remote_config_manager.js';
 import os from 'os';
 import * as version from '../../version.js';
 
+/**
+ * Container class to manage the dependency injection container
+ */
 export class Container {
   private static instance: Container = null;
   private static isInitialized = false;
 
   private constructor() {}
 
+  /**
+   * Get the singleton instance of the container
+   */
   static getInstance() {
     if (!Container.instance) {
       Container.instance = new Container();
@@ -51,6 +57,12 @@ export class Container {
     return Container.instance;
   }
 
+  /**
+   * Initialize the container with the default dependencies
+   * @param cacheDir - the cache directory to use, defaults to constants.SOLO_CACHE_DIR
+   * @param logLevel - the log level to use, defaults to 'debug'
+   * @param devMode - if true, show full stack traces in error messages
+   */
   init(cacheDir: string = constants.SOLO_CACHE_DIR, logLevel: string = 'debug', devMode: boolean = false) {
     // SoloLogger
     container.register('logLevel', {useValue: logLevel});

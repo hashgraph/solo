@@ -49,7 +49,6 @@ const customFormat = winston.format.combine(
   winston.format(data => (data.private ? false : data))(),
 );
 
-// @injectable()
 @injectable()
 export class SoloLogger {
   private winstonLogger: winston.Logger;
@@ -71,17 +70,7 @@ export class SoloLogger {
     this.winstonLogger = winston.createLogger({
       level: logLevel,
       format: winston.format.combine(customFormat, winston.format.json()),
-      // format: winston.format.json(),
-      // defaultMeta: { service: 'user-service' },
-      transports: [
-        //
-        // - Write all logs with importance level of `error` or less to `error.log`
-        // - Write all logs with importance level of `info` or less to `solo.log`
-        //
-        new winston.transports.File({filename: path.join(constants.SOLO_LOGS_DIR, 'solo.log')}),
-        // new winston.transports.File({filename: constants.TMP_DIR + "/logs/error.log", level: 'error'}),
-        // new winston.transports.Console({format: customFormat})
-      ],
+      transports: [new winston.transports.File({filename: path.join(constants.SOLO_LOGS_DIR, 'solo.log')})],
     });
   }
 
