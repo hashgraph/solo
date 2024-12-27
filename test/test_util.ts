@@ -210,9 +210,17 @@ export function e2eTestSuite(
   startNodes = true,
   testsCallBack: (bootstrapResp: BootstrapResponse) => void = () => {},
 ) {
+  let bootstrapResp: BootstrapResponse;
+
   describe(`E2E Test Suite for '${testName}'`, function e2eTestSuite() {
-    let bootstrapResp: BootstrapResponse;
-    let namespace, initCmd, k8, clusterCmd, networkCmd, nodeCmd, chartManager, testLogger;
+    let namespace: string,
+      initCmd: InitCommand,
+      k8: K8,
+      clusterCmd: ClusterCommand,
+      networkCmd: NetworkCommand,
+      nodeCmd: NodeCommand,
+      chartManager: ChartManager,
+      testLogger: SoloLogger;
 
     before(() => {
       bootstrapResp = bootstrapTestVariables(

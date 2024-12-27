@@ -19,6 +19,7 @@ import {describe} from 'mocha';
 import {Flags as flags} from '../../../src/commands/flags.js';
 import {e2eTestSuite, getDefaultArgv, TEST_CLUSTER} from '../../test_util.js';
 import {Duration} from '../../../src/core/time/duration.js';
+import {type K8} from '../../../src/core/k8.js';
 
 const LOCAL_PTT = 'local-ptt-app';
 const argv = getDefaultArgv();
@@ -39,7 +40,11 @@ argv[flags.namespace.name] = LOCAL_PTT;
 
 e2eTestSuite(LOCAL_PTT, argv, undefined, undefined, undefined, undefined, undefined, undefined, true, bootstrapResp => {
   describe('Node for platform app should start successfully', () => {
-    const pttK8 = bootstrapResp.opts.k8;
+    let pttK8: K8;
+
+    before(() => {
+      pttK8 = bootstrapResp.opts.k8;
+    });
 
     it('get the logs and delete the namespace', async () => {
       await pttK8.getNodeLogs(LOCAL_PTT);

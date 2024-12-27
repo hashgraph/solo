@@ -18,18 +18,17 @@ import {it, describe, after, before} from 'mocha';
 import {expect} from 'chai';
 
 import * as fs from 'fs';
-import * as constants from '../../../../src/core/constants.js';
 import {LocalConfig} from '../../../../src/core/config/local_config.js';
 import {RemoteConfigManager} from '../../../../src/core/config/remote/remote_config_manager.js';
 import {e2eTestSuite, getDefaultArgv, getTestCacheDir, TEST_CLUSTER} from '../../../test_util.js';
 import {Flags as flags} from '../../../../src/commands/flags.js';
 import * as version from '../../../../version.js';
 
-import path from 'path';
 import {SoloError} from '../../../../src/core/errors.js';
 import {RemoteConfigDataWrapper} from '../../../../src/core/config/remote/remote_config_data_wrapper.js';
 import {Duration} from '../../../../src/core/time/duration.js';
 import {container} from 'tsyringe-neo';
+import {type K8} from '../../../../src/core/k8.js';
 
 const defaultTimeout = Duration.ofSeconds(20).toMillis();
 
@@ -58,17 +57,12 @@ e2eTestSuite(
   false,
   bootstrapResp => {
     describe('RemoteConfigManager', async () => {
-      const k8 = bootstrapResp.opts.k8;
-      const filePath = path.join(constants.SOLO_CACHE_DIR, constants.DEFAULT_LOCAL_CONFIG_FILE);
+      let k8: K8;
 
-      const localConfig = new LocalConfig(filePath);
-      const remoteConfigManager = container.resolve(RemoteConfigManager);
+      let localConfig: LocalConfig;
+      let remoteConfigManager: RemoteConfigManager;
 
       const email = 'john@gmail.com';
-
-      localConfig.userEmailAddress = email;
-      localConfig.deployments = {[namespace]: {clusters: [`kind-${namespace}`]}};
-      localConfig.currentDeploymentName = namespace;
 
       after(async function () {
         this.timeout(Duration.ofMinutes(3).toMillis());
@@ -77,6 +71,14 @@ e2eTestSuite(
 
       before(function () {
         this.timeout(defaultTimeout);
+
+        k8 = bootstrapResp.opts.k8;
+        localConfig = container.resolve(LocalConfig);
+        remoteConfigManager = container.resolve(RemoteConfigManager);
+
+        localConfig.userEmailAddress = email;
+        localConfig.deployments = {[namespace]: {clusters: [`kind-${namespace}`]}};
+        localConfig.currentDeploymentName = namespace;
 
         if (!fs.existsSync(testCacheDir)) {
           fs.mkdirSync(testCacheDir);

@@ -21,7 +21,6 @@ import * as constants from '../../../../src/core/constants.js';
 import {ConfigManager} from '../../../../src/core/config_manager.js';
 import {K8} from '../../../../src/core/k8.js';
 import {Templates} from '../../../../src/core/templates.js';
-import {testLogger} from '../../../test_util.js';
 import {Flags as flags} from '../../../../src/commands/flags.js';
 import {V1Container, V1ExecAction, V1ObjectMeta, V1Pod, V1PodSpec, V1Probe} from '@kubernetes/client-node';
 import {RemoteConfigValidator} from '../../../../src/core/config/remote/remote_config_validator.js';
@@ -41,11 +40,13 @@ import {container} from 'tsyringe-neo';
 describe('RemoteConfigValidator', () => {
   const namespace = 'remote-config-validator';
 
-  const configManager = container.resolve(ConfigManager);
-  configManager.update({[flags.namespace.name]: namespace});
-  const k8 = container.resolve(K8);
+  let configManager: ConfigManager;
+  let k8: K8;
 
   before(async () => {
+    configManager = container.resolve(ConfigManager);
+    configManager.update({[flags.namespace.name]: namespace});
+    k8 = container.resolve(K8);
     await k8.createNamespace(namespace);
   });
 
