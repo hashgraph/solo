@@ -32,13 +32,13 @@ import {Templates} from './templates.js';
 import * as constants from './constants.js';
 import {SoloLogger} from './logging.js';
 import {StatusCodes} from 'http-status-codes';
-import {inject, Lifecycle, scoped} from 'tsyringe-neo';
+import {inject, singleton} from 'tsyringe-neo';
 import {patchInject} from './container_helper.js';
 
-@scoped(Lifecycle.ContainerScoped)
+@singleton()
 export class PackageDownloader {
   constructor(@inject(SoloLogger) public readonly logger?: SoloLogger) {
-    this.logger = patchInject(logger, SoloLogger);
+    this.logger = patchInject(logger, SoloLogger, this.constructor.name);
   }
 
   isValidURL(url: string) {

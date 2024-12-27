@@ -14,7 +14,7 @@
  * limitations under the License.
  *
  */
-import {container} from 'tsyringe-neo';
+import {container, instanceCachingFactory} from 'tsyringe-neo';
 import {SoloLogger} from './logging.js';
 import {PackageDownloader} from './package_downloader.js';
 import {Zippy} from './zippy.js';
@@ -34,6 +34,8 @@ import {CertificateManager} from './certificate_manager.js';
 import path from 'path';
 import {LocalConfig} from './config/local_config.js';
 import {RemoteConfigManager} from './config/remote/remote_config_manager.js';
+import os from 'os';
+import * as version from '../../version.js';
 
 export class Container {
   private static instance: Container = null;
@@ -50,33 +52,53 @@ export class Container {
   }
 
   init(cacheDir: string = constants.SOLO_CACHE_DIR, logLevel: string = 'debug', devMode: boolean = false) {
+    // SoloLogger
     container.register('logLevel', {useValue: logLevel});
     container.register('devMode', {useValue: devMode});
-    container.register<SoloLogger>(SoloLogger, {useValue: new SoloLogger()});
-    container.register<PackageDownloader>(PackageDownloader, {useValue: new PackageDownloader()});
-    container.register<Zippy>(Zippy, {useValue: new Zippy()});
-    container.register<HelmDependencyManager>(HelmDependencyManager, {useValue: new HelmDependencyManager()});
-    container.register<DependencyManager>(DependencyManager, {useValue: new DependencyManager()});
-    container.register<Helm>(Helm, {useValue: new Helm()});
-    container.register<ChartManager>(ChartManager, {useValue: new ChartManager()});
-    container.register<ConfigManager>(ConfigManager, {useValue: new ConfigManager()});
-    container.register<K8>(K8, {useValue: new K8()});
-    container.register<AccountManager>(AccountManager, {useValue: new AccountManager()});
-    container.register<PlatformInstaller>(PlatformInstaller, {useValue: new PlatformInstaller()});
-    container.register<KeyManager>(KeyManager, {useValue: new KeyManager()});
+
+    // container.register<SoloLogger>(SoloLogger, {useValue: new SoloLogger()});
+    // container.register<PackageDownloader>(PackageDownloader, {useValue: new PackageDownloader()});
+    // container.register<Zippy>(Zippy, {useValue: new Zippy()});
+    // container.register<HelmDependencyManager>(HelmDependencyManager, {useValue: new HelmDependencyManager()});
+    // container.register<DependencyManager>(DependencyManager, {useValue: new DependencyManager()});
+
+    // Helm & HelmDependencyManager
+    container.register('osPlatform', {useValue: os.platform()});
+
+    // HelmDependencyManager
+    container.register('helmInstallationDir', {useValue: path.join(constants.SOLO_HOME_DIR, 'bin')});
+    container.register('osArch', {useValue: os.arch()});
+    container.register('helmVersion', {useValue: version.HELM_VERSION});
+
+    // container.register<Helm>(Helm, {useValue: new Helm()});
+    // container.register<ChartManager>(ChartManager, {useValue: new ChartManager()});
+    // container.register<ConfigManager>(ConfigManager, {useValue: new ConfigManager()});
+    // container.register<K8>(K8, {useValue: new K8()});
+    // container.register<AccountManager>(AccountManager, {useValue: new AccountManager()});
+    // container.register<PlatformInstaller>(PlatformInstaller, {useValue: new PlatformInstaller()});
+    // container.register<KeyManager>(KeyManager, {useValue: new KeyManager()});
+
+    // ProfileManager
     container.register('cacheDir', {useValue: cacheDir});
-    container.register<ProfileManager>(ProfileManager, {useValue: new ProfileManager()});
+
+    // container.register<ProfileManager>(ProfileManager, {useValue: new ProfileManager()});
+
+    // LeaseRenewalService
     container.register('LeaseRenewalService', {
       useValue: new IntervalLeaseRenewalService(),
     });
-    container.register<LeaseManager>(LeaseManager, {
-      useValue: new LeaseManager(container.resolve(IntervalLeaseRenewalService)),
-    });
-    container.register<CertificateManager>(CertificateManager, {useValue: new CertificateManager()});
+
+    // container.register<LeaseManager>(LeaseManager, {
+    //   useValue: new LeaseManager(container.resolve(IntervalLeaseRenewalService)),
+    // });
+    // container.register<CertificateManager>(CertificateManager, {useValue: new CertificateManager()});
+
+    // LocalConfig
     const localConfigPath = path.join(cacheDir, constants.DEFAULT_LOCAL_CONFIG_FILE);
     container.register('localConfigFilePath', {useValue: localConfigPath});
-    container.register<LocalConfig>(LocalConfig, {useValue: new LocalConfig()});
-    container.register<RemoteConfigManager>(RemoteConfigManager, {useValue: new RemoteConfigManager()});
+
+    // container.register<LocalConfig>(LocalConfig, {useValue: new LocalConfig()});
+    // container.register<RemoteConfigManager>(RemoteConfigManager, {useValue: new RemoteConfigManager()});
     Container.isInitialized = true;
   }
 

@@ -20,7 +20,7 @@ import * as util from 'util';
 import chalk from 'chalk';
 import path from 'path';
 import * as constants from './constants.js';
-import {inject, Lifecycle, scoped} from 'tsyringe-neo';
+import {inject, injectable, Lifecycle, registry, scoped, singleton} from 'tsyringe-neo';
 import {patchInject} from './container_helper.js';
 
 const customFormat = winston.format.combine(
@@ -49,10 +49,23 @@ const customFormat = winston.format.combine(
   winston.format(data => (data.private ? false : data))(),
 );
 
-@scoped(Lifecycle.ContainerScoped)
+@singleton()
+// @singleton()
+// @injectable()
+// @registry([
+//   {
+//     token: 'logLevel',
+//     useValue: 'debug',
+//   },
+//   {
+//     token: 'devMode',
+//     useValue: false,
+//   },
+// ])
 export class SoloLogger {
   private winstonLogger: winston.Logger;
   private traceId?: string;
+  private constructorCallCount = 0;
 
   /**
    * @param logLevel - the log level to use
@@ -62,8 +75,12 @@ export class SoloLogger {
     @inject('logLevel') logLevel?: string,
     @inject('devMode') private devMode?: boolean | null,
   ) {
-    logLevel = patchInject(logLevel, 'logLevel');
-    this.devMode = patchInject(devMode, 'devMode');
+    logLevel = patchInject(logLevel, 'logLevel', this.constructor.name);
+    this.devMode = patchInject(devMode, 'devMode', this.constructor.name);
+    this.constructorCallCount++;
+    if (this.constructorCallCount > 1) {
+      throw new Error('SoloLogger should only be instantiated once');
+    }
 
     this.nextTraceId();
 

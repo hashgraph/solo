@@ -18,14 +18,24 @@ import os from 'os';
 import * as constants from './constants.js';
 import {ShellRunner} from './shell_runner.js';
 import {Templates} from './templates.js';
-import {Lifecycle, scoped} from 'tsyringe-neo';
+import {inject, instanceCachingFactory, Lifecycle, registry, scoped, singleton} from 'tsyringe-neo';
+import {patchInject} from './container_helper.js';
 
-@scoped(Lifecycle.ContainerScoped)
+@singleton()
+// @registry([
+//   {
+//     token: 'osPlatform',
+//     useFactory: instanceCachingFactory<NodeJS.Platform>(() => {
+//       return os.platform();
+//     }),
+//   },
+// ])
 export class Helm extends ShellRunner {
   private readonly helmPath: string;
 
-  constructor(private readonly osPlatform: NodeJS.Platform = os.platform()) {
+  constructor(@inject('osPlatform') private readonly osPlatform?: NodeJS.Platform) {
     super();
+    this.osPlatform = patchInject(osPlatform, 'osPlatform', this.constructor.name);
     this.helmPath = Templates.installationPath(constants.HELM, this.osPlatform);
   }
 

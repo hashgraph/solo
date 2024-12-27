@@ -34,7 +34,7 @@ import {SoloLogger} from './logging.js';
 import type {AnyObject, DirPath, NodeAlias, NodeAliases, Path} from '../types/aliases.js';
 import type {GenesisNetworkDataConstructor} from './genesis_network_models/genesis_network_data_constructor.js';
 import type {Optional} from '../types/index.js';
-import {inject, Lifecycle, scoped} from 'tsyringe-neo';
+import {inject, singleton} from 'tsyringe-neo';
 import {patchInject} from './container_helper.js';
 
 const consensusSidecars = [
@@ -45,7 +45,7 @@ const consensusSidecars = [
   'otelCollector',
 ];
 
-@scoped(Lifecycle.ContainerScoped)
+@singleton()
 export class ProfileManager {
   private readonly logger: SoloLogger;
   private readonly configManager: ConfigManager;
@@ -59,9 +59,9 @@ export class ProfileManager {
     @inject(ConfigManager) configManager?: ConfigManager,
     @inject('cacheDir') cacheDir?: DirPath,
   ) {
-    this.logger = patchInject(logger, SoloLogger);
-    this.configManager = patchInject(configManager, ConfigManager);
-    this.cacheDir = patchInject(cacheDir, 'cacheDir');
+    this.logger = patchInject(logger, SoloLogger, this.constructor.name);
+    this.configManager = patchInject(configManager, ConfigManager, this.constructor.name);
+    this.cacheDir = patchInject(cacheDir, 'cacheDir', this.constructor.name);
 
     this.profiles = new Map();
   }

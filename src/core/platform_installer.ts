@@ -29,20 +29,20 @@ import {SoloLogger} from './logging.js';
 import type {NodeAlias, NodeAliases, PodName} from '../types/aliases.js';
 import {Duration} from './time/duration.js';
 import {sleep} from './helpers.js';
-import {inject, Lifecycle, scoped} from 'tsyringe-neo';
+import {inject, singleton} from 'tsyringe-neo';
 import {patchInject} from './container_helper.js';
 
 /** PlatformInstaller install platform code in the root-container of a network pod */
-@scoped(Lifecycle.ContainerScoped)
+@singleton()
 export class PlatformInstaller {
   constructor(
     @inject(SoloLogger) private logger?: SoloLogger,
     @inject(K8) private k8?: K8,
     @inject(ConfigManager) private configManager?: ConfigManager,
   ) {
-    this.logger = patchInject(logger, SoloLogger);
-    this.k8 = patchInject(k8, K8);
-    this.configManager = patchInject(configManager, ConfigManager);
+    this.logger = patchInject(logger, SoloLogger, this.constructor.name);
+    this.k8 = patchInject(k8, K8, this.constructor.name);
+    this.configManager = patchInject(configManager, ConfigManager, this.constructor.name);
   }
 
   private _getNamespace(): string {

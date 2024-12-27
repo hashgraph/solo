@@ -17,13 +17,13 @@
 import {expect} from 'chai';
 import {after, before, describe, it} from 'mocha';
 import jest from 'jest-mock';
-
 import {ConfigManager} from '../../../src/core/config_manager.js';
 import {K8} from '../../../src/core/k8.js';
 import {CertificateManager} from '../../../src/core/certificate_manager.js';
 import {Flags as flags} from '../../../src/commands/flags.js';
 import {SoloError} from '../../../src/core/errors.js';
 import {container} from 'tsyringe-neo';
+import {resetTestContainer} from '../../test_container.js';
 
 describe('Certificate Manager', () => {
   const argv = {};
@@ -33,6 +33,7 @@ describe('Certificate Manager', () => {
   let certificateManager: CertificateManager;
 
   before(() => {
+    resetTestContainer();
     argv[flags.namespace.name] = 'namespace';
     const configManager = container.resolve(ConfigManager);
     configManager.update(argv);

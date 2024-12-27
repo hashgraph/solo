@@ -27,13 +27,13 @@ import chalk from 'chalk';
 import {type NodeAlias, type NodeAliases} from '../types/aliases.js';
 import {type NodeKeyObject, type PrivateKeyAndCertificateObject} from '../types/index.js';
 import type {ListrTask} from 'listr2';
-import {inject, Lifecycle, scoped} from 'tsyringe-neo';
+import {inject, singleton} from 'tsyringe-neo';
 import {patchInject} from './container_helper.js';
 
 // @ts-ignore
 x509.cryptoProvider.set(crypto);
 
-@scoped(Lifecycle.ContainerScoped)
+@singleton()
 export class KeyManager {
   static SigningKeyAlgo = {
     name: 'RSASSA-PKCS1-v1_5',
@@ -64,7 +64,7 @@ export class KeyManager {
   };
 
   constructor(@inject(SoloLogger) private readonly logger?: SoloLogger) {
-    this.logger = patchInject(logger, SoloLogger);
+    this.logger = patchInject(logger, SoloLogger, this.constructor.name);
   }
 
   /** Convert CryptoKey into PEM string */

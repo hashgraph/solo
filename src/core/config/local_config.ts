@@ -33,10 +33,10 @@ import type {EmailAddress, Namespace} from './remote/types.js';
 import {ErrorMessages} from '../error_messages.js';
 import {type K8} from '../k8.js';
 import {splitFlagInput} from '../helpers.js';
-import {inject, Lifecycle, scoped} from 'tsyringe-neo';
+import {inject, singleton} from 'tsyringe-neo';
 import {patchInject} from '../container_helper.js';
 
-@scoped(Lifecycle.ContainerScoped)
+@singleton()
 export class LocalConfig implements LocalConfigData {
   @IsEmail(
     {},
@@ -76,9 +76,9 @@ export class LocalConfig implements LocalConfigData {
     @inject(SoloLogger) private readonly logger?: SoloLogger,
     @inject(ConfigManager) private readonly configManager?: ConfigManager,
   ) {
-    this.filePath = patchInject(filePath, 'localConfigFilePath');
-    this.logger = patchInject(logger, SoloLogger);
-    this.configManager = patchInject(configManager, ConfigManager);
+    this.filePath = patchInject(filePath, 'localConfigFilePath', this.constructor.name);
+    this.logger = patchInject(logger, SoloLogger, this.constructor.name);
+    this.configManager = patchInject(configManager, ConfigManager, this.constructor.name);
 
     if (!this.filePath || this.filePath === '') throw new MissingArgumentError('a valid filePath is required');
 

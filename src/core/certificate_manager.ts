@@ -24,22 +24,22 @@ import {K8} from './k8.js';
 import {SoloLogger} from './logging.js';
 import type {ListrTaskWrapper} from 'listr2';
 import type {NodeAlias} from '../types/aliases.js';
-import {inject, Lifecycle, scoped} from 'tsyringe-neo';
+import {inject, singleton} from 'tsyringe-neo';
 import {patchInject} from './container_helper.js';
 
 /**
  * Used to handle interactions with certificates data and inject it into the K8s cluster secrets
  */
-@scoped(Lifecycle.ContainerScoped)
+@singleton()
 export class CertificateManager {
   constructor(
     @inject(K8) private readonly k8?: K8,
     @inject(SoloLogger) private readonly logger?: SoloLogger,
     @inject(ConfigManager) private readonly configManager?: ConfigManager,
   ) {
-    this.k8 = patchInject(k8, K8);
-    this.logger = patchInject(logger, SoloLogger);
-    this.configManager = patchInject(configManager, ConfigManager);
+    this.k8 = patchInject(k8, K8, this.constructor.name);
+    this.logger = patchInject(logger, SoloLogger, this.constructor.name);
+    this.configManager = patchInject(configManager, ConfigManager, this.constructor.name);
   }
 
   /**

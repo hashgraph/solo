@@ -46,7 +46,7 @@ import {type NodeAlias, type PodName, type SdkNetworkEndpoint} from '../types/al
 import {IGNORED_NODE_ACCOUNT_ID} from './constants.js';
 import {sleep} from './helpers.js';
 import {Duration} from './time/duration.js';
-import {inject, Lifecycle, scoped} from 'tsyringe-neo';
+import {inject, singleton} from 'tsyringe-neo';
 import {patchInject} from './container_helper.js';
 
 const REASON_FAILED_TO_GET_KEYS = 'failed to get keys for accountId';
@@ -56,7 +56,7 @@ const REASON_FAILED_TO_CREATE_K8S_S_KEY = 'failed to create k8s scrt key';
 const FULFILLED = 'fulfilled';
 const REJECTED = 'rejected';
 
-@scoped(Lifecycle.ContainerScoped)
+@singleton()
 export class AccountManager {
   private _portForwards: ExtendedNetServer[];
   public _nodeClient: Client | null;
@@ -65,8 +65,8 @@ export class AccountManager {
     @inject(SoloLogger) private readonly logger?: SoloLogger,
     @inject(K8) private readonly k8?: K8,
   ) {
-    this.logger = patchInject(logger, SoloLogger);
-    this.k8 = patchInject(k8, K8);
+    this.logger = patchInject(logger, SoloLogger, this.constructor.name);
+    this.k8 = patchInject(k8, K8, this.constructor.name);
 
     this._portForwards = [];
     this._nodeClient = null;

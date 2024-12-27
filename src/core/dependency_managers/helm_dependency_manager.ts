@@ -28,7 +28,7 @@ import * as version from '../../../version.js';
 import {ShellRunner} from '../shell_runner.js';
 import * as semver from 'semver';
 import {OS_WIN32, OS_WINDOWS} from '../constants.js';
-import {inject, Lifecycle, scoped} from 'tsyringe-neo';
+import {inject, singleton} from 'tsyringe-neo';
 import {patchInject} from '../container_helper.js';
 
 // constants required by HelmDependencyManager
@@ -43,7 +43,7 @@ const HELM_ARTIFACT_EXT: Map<string, string> = new Map()
 /**
  * Helm dependency manager installs or uninstalls helm client at SOLO_HOME_DIR/bin directory
  */
-@scoped(Lifecycle.ContainerScoped)
+@singleton()
 export class HelmDependencyManager extends ShellRunner {
   private readonly osPlatform: string;
   private readonly osArch: string;
@@ -55,17 +55,21 @@ export class HelmDependencyManager extends ShellRunner {
   constructor(
     @inject(PackageDownloader) private readonly downloader?: PackageDownloader,
     @inject(Zippy) private readonly zippy?: Zippy,
-    private readonly installationDir = path.join(constants.SOLO_HOME_DIR, 'bin'),
-    osPlatform = os.platform(),
-    osArch = os.arch(),
-    private readonly helmVersion = version.HELM_VERSION,
+    @inject('helmInstallationDir') private readonly installationDir?: string,
+    @inject('osPlatform') osPlatform?: NodeJS.Platform,
+    @inject('osArch') osArch?: string,
+    @inject('helmVersion') private readonly helmVersion?: string,
   ) {
     super();
+    this.installationDir = patchInject(installationDir, 'helmInstallationDir', this.constructor.name);
+    this.osPlatform = patchInject(osPlatform, 'osPlatform', this.constructor.name);
+    this.osArch = patchInject(osArch, 'osArch', this.constructor.name);
+    this.helmVersion = patchInject(helmVersion, 'helmVersion', this.constructor.name);
 
     if (!installationDir) throw new MissingArgumentError('installation directory is required');
 
-    this.downloader = patchInject(downloader, PackageDownloader);
-    this.zippy = patchInject(zippy, Zippy);
+    this.downloader = patchInject(downloader, PackageDownloader, this.constructor.name);
+    this.zippy = patchInject(zippy, Zippy, this.constructor.name);
     this.installationDir = installationDir;
     // Node.js uses 'win32' for windows in package.json os field, but helm uses 'windows'
     if (osPlatform === OS_WIN32) {

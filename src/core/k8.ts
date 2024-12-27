@@ -28,7 +28,6 @@ import * as stream from 'node:stream';
 import type * as http from 'node:http';
 import type * as WebSocket from 'ws';
 import {getReasonPhrase, StatusCodes} from 'http-status-codes';
-
 import {sleep} from './helpers.js';
 import * as constants from './constants.js';
 import {ConfigManager} from './config_manager.js';
@@ -37,7 +36,7 @@ import {type PodName, type TarCreateFilter} from '../types/aliases.js';
 import type {ExtendedNetServer, LocalContextObject} from '../types/index.js';
 import {HEDERA_HAPI_PATH, ROOT_CONTAINER, SOLO_LOGS_DIR} from './constants.js';
 import {Duration} from './time/duration.js';
-import {inject, Lifecycle, scoped} from 'tsyringe-neo';
+import {inject, singleton} from 'tsyringe-neo';
 import {patchInject} from './container_helper.js';
 
 interface TDirectoryData {
@@ -55,9 +54,10 @@ interface TDirectoryData {
  * Note: Take care if the same instance is used for parallel execution, as the behaviour may be unpredictable.
  * For parallel execution, create separate instances by invoking clone()
  */
-@scoped(Lifecycle.ContainerScoped)
+@singleton()
 export class K8 {
   private _cachedContexts: Context[];
+  private constructorCallCount = 0;
 
   static PodReadyCondition = new Map<string, string>().set(
     constants.POD_CONDITION_READY,
@@ -71,8 +71,12 @@ export class K8 {
     @inject(ConfigManager) private readonly configManager?: ConfigManager,
     @inject(SoloLogger) public readonly logger?: SoloLogger,
   ) {
-    this.configManager = patchInject(configManager, ConfigManager);
-    this.logger = patchInject(logger, SoloLogger);
+    this.configManager = patchInject(configManager, ConfigManager, this.constructor.name);
+    this.logger = patchInject(logger, SoloLogger, this.constructor.name);
+    this.constructorCallCount++;
+    if (this.constructorCallCount > 1) {
+      throw new Error('K8 should only be instantiated once');
+    }
 
     this.init();
   }

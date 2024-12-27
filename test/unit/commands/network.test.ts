@@ -41,20 +41,7 @@ import {PlatformInstaller} from '../../../src/core/platform_installer.js';
 import {CertificateManager} from '../../../src/core/certificate_manager.js';
 import {DependencyManager} from '../../../src/core/dependency_managers/index.js';
 import {LocalConfig} from '../../../src/core/config/local_config.js';
-
-const getBaseCommandOpts = () => {
-  const opts = {
-    k8: sinon.stub() as unknown as K8,
-    depManager: sinon.stub() as unknown as DependencyManager,
-    localConfig: sinon.stub() as unknown as LocalConfig,
-  };
-
-  container.registerInstance(K8, opts.k8);
-  container.registerInstance(DependencyManager, opts.depManager);
-  container.registerInstance(LocalConfig, opts.localConfig);
-
-  return opts;
-};
+import {resetTestContainer} from '../../test_container.js';
 
 const testName = 'network-cmd-unit';
 const namespace = testName;
@@ -76,20 +63,31 @@ describe('NetworkCommand unit tests', () => {
     let opts: any;
 
     beforeEach(() => {
-      opts = getBaseCommandOpts();
+      resetTestContainer();
+      opts = {};
+
       opts.logger = container.resolve(SoloLogger);
-      opts.helm = container.resolve(Helm);
-      opts.helm.dependency = sinon.stub();
 
       opts.configManager = container.resolve(ConfigManager);
       opts.configManager.update(argv);
-      opts.k8 = container.resolve(K8);
+
+      opts.k8 = sinon.stub() as unknown as K8;
       opts.k8.hasNamespace = sinon.stub().returns(true);
       opts.k8.getNamespacedConfigMap = sinon.stub().returns(null);
       opts.k8.waitForPodReady = sinon.stub();
       opts.k8.waitForPods = sinon.stub();
       opts.k8.readNamespacedLease = sinon.stub();
       opts.k8.logger = opts.logger;
+      container.registerInstance(K8, opts.k8);
+
+      opts.depManager = sinon.stub() as unknown as DependencyManager;
+      container.registerInstance(DependencyManager, opts.depManager);
+
+      opts.localConfig = sinon.stub() as unknown as LocalConfig;
+      container.registerInstance(LocalConfig, opts.localConfig);
+
+      opts.helm = container.resolve(Helm);
+      opts.helm.dependency = sinon.stub();
 
       ListrLease.newAcquireLeaseTask = sinon.stub().returns({
         run: sinon.stub().returns({}),
@@ -98,25 +96,25 @@ describe('NetworkCommand unit tests', () => {
       opts.keyManager = container.resolve(KeyManager);
       opts.keyManager.copyGossipKeysToStaging = sinon.stub();
       opts.keyManager.copyNodeKeysToStaging = sinon.stub();
+
       opts.platformInstaller = sinon.stub();
-      container.registerInstance(PlatformInstaller, opts.platformInstaller);
       opts.platformInstaller.copyNodeKeys = sinon.stub();
+      container.registerInstance(PlatformInstaller, opts.platformInstaller);
 
       opts.profileManager = container.resolve(ProfileManager);
       opts.profileManager.prepareValuesForSoloChart = sinon.stub();
+
       opts.certificateManager = sinon.stub();
       container.registerInstance(CertificateManager, opts.certificateManager);
 
       opts.chartManager = container.resolve(ChartManager);
       opts.chartManager.isChartInstalled = sinon.stub().returns(true);
       opts.chartManager.isChartInstalled.onSecondCall().returns(false);
-
       opts.chartManager.install = sinon.stub().returns(true);
+      opts.chartManager.uninstall = sinon.stub().returns(true);
 
       opts.remoteConfigManager = container.resolve(RemoteConfigManager);
       opts.remoteConfigManager.getConfigMap = sinon.stub().returns(null);
-
-      opts.configManager = container.resolve(ConfigManager);
 
       opts.leaseManager = container.resolve(LeaseManager);
       opts.leaseManager.currentNamespace = sinon.stub().returns(testName);
