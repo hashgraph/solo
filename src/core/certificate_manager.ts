@@ -24,13 +24,13 @@ import {K8} from './k8.js';
 import {SoloLogger} from './logging.js';
 import type {ListrTaskWrapper} from 'listr2';
 import type {NodeAlias} from '../types/aliases.js';
-import {inject, singleton} from 'tsyringe-neo';
+import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from './container_helper.js';
 
 /**
  * Used to handle interactions with certificates data and inject it into the K8s cluster secrets
  */
-@singleton()
+@injectable()
 export class CertificateManager {
   constructor(
     @inject(K8) private readonly k8?: K8,

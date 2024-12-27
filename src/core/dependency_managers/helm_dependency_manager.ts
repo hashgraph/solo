@@ -15,7 +15,6 @@
  *
  */
 import fs from 'fs';
-import os from 'os';
 import path from 'path';
 import * as util from 'util';
 import {MissingArgumentError} from '../errors.js';
@@ -28,7 +27,7 @@ import * as version from '../../../version.js';
 import {ShellRunner} from '../shell_runner.js';
 import * as semver from 'semver';
 import {OS_WIN32, OS_WINDOWS} from '../constants.js';
-import {inject, singleton} from 'tsyringe-neo';
+import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from '../container_helper.js';
 
 // constants required by HelmDependencyManager
@@ -43,7 +42,7 @@ const HELM_ARTIFACT_EXT: Map<string, string> = new Map()
 /**
  * Helm dependency manager installs or uninstalls helm client at SOLO_HOME_DIR/bin directory
  */
-@singleton()
+@injectable()
 export class HelmDependencyManager extends ShellRunner {
   private readonly osPlatform: string;
   private readonly osArch: string;

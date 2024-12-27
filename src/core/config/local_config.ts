@@ -33,10 +33,10 @@ import type {EmailAddress, Namespace} from './remote/types.js';
 import {ErrorMessages} from '../error_messages.js';
 import {type K8} from '../k8.js';
 import {splitFlagInput} from '../helpers.js';
-import {inject, singleton} from 'tsyringe-neo';
+import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from '../container_helper.js';
 
-@singleton()
+@injectable()
 export class LocalConfig implements LocalConfigData {
   @IsEmail(
     {},

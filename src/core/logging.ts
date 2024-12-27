@@ -49,23 +49,11 @@ const customFormat = winston.format.combine(
   winston.format(data => (data.private ? false : data))(),
 );
 
-@singleton()
-// @singleton()
 // @injectable()
-// @registry([
-//   {
-//     token: 'logLevel',
-//     useValue: 'debug',
-//   },
-//   {
-//     token: 'devMode',
-//     useValue: false,
-//   },
-// ])
+@injectable()
 export class SoloLogger {
   private winstonLogger: winston.Logger;
   private traceId?: string;
-  private constructorCallCount = 0;
 
   /**
    * @param logLevel - the log level to use
@@ -77,10 +65,6 @@ export class SoloLogger {
   ) {
     logLevel = patchInject(logLevel, 'logLevel', this.constructor.name);
     this.devMode = patchInject(devMode, 'devMode', this.constructor.name);
-    this.constructorCallCount++;
-    if (this.constructorCallCount > 1) {
-      throw new Error('SoloLogger should only be instantiated once');
-    }
 
     this.nextTraceId();
 

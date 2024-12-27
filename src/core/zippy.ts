@@ -21,10 +21,10 @@ import * as tar from 'tar';
 import chalk from 'chalk';
 import path from 'path';
 import {SoloLogger} from './logging.js';
-import {inject, singleton} from 'tsyringe-neo';
+import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from './container_helper.js';
 
-@singleton()
+@injectable()
 export class Zippy {
   constructor(@inject(SoloLogger) private readonly logger?: SoloLogger) {
     this.logger = patchInject(logger, SoloLogger, this.constructor.name);

@@ -21,14 +21,14 @@ import {SoloLogger} from '../logging.js';
 import {IntervalLease} from './interval_lease.js';
 import {LeaseHolder} from './lease_holder.js';
 import {LeaseAcquisitionError} from './lease_errors.js';
-import {inject, singleton} from 'tsyringe-neo';
+import {inject, injectable} from 'tsyringe-neo';
 import {type Lease, type LeaseRenewalService} from './lease.js';
 import {patchInject} from '../container_helper.js';
 
 /**
  * Manages the acquisition and renewal of leases.
  */
-@singleton()
+@injectable()
 export class LeaseManager {
   /**
    * Creates a new lease manager.

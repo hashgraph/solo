@@ -19,11 +19,13 @@ import {describe, it} from 'mocha';
 
 import {DependencyManager} from '../../../../src/core/dependency_managers/index.js';
 import {container} from 'tsyringe-neo';
+import {resetTestContainer} from '../../../test_container.js';
 
 describe('DependencyManager', () => {
   let depManager;
 
   before(() => {
+    resetTestContainer();
     depManager = container.resolve(DependencyManager);
   });
 

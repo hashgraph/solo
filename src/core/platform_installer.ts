@@ -29,11 +29,11 @@ import {SoloLogger} from './logging.js';
 import type {NodeAlias, NodeAliases, PodName} from '../types/aliases.js';
 import {Duration} from './time/duration.js';
 import {sleep} from './helpers.js';
-import {inject, singleton} from 'tsyringe-neo';
+import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from './container_helper.js';
 
 /** PlatformInstaller install platform code in the root-container of a network pod */
-@singleton()
+@injectable()
 export class PlatformInstaller {
   constructor(
     @inject(SoloLogger) private logger?: SoloLogger,

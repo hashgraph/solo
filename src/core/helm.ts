@@ -14,22 +14,13 @@
  * limitations under the License.
  *
  */
-import os from 'os';
 import * as constants from './constants.js';
 import {ShellRunner} from './shell_runner.js';
 import {Templates} from './templates.js';
-import {inject, instanceCachingFactory, Lifecycle, registry, scoped, singleton} from 'tsyringe-neo';
+import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from './container_helper.js';
 
-@singleton()
-// @registry([
-//   {
-//     token: 'osPlatform',
-//     useFactory: instanceCachingFactory<NodeJS.Platform>(() => {
-//       return os.platform();
-//     }),
-//   },
-// ])
+@injectable()
 export class Helm extends ShellRunner {
   private readonly helmPath: string;
 

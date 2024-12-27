@@ -19,10 +19,10 @@ import {SoloError} from '../errors.js';
 import {ShellRunner} from '../shell_runner.js';
 import {HelmDependencyManager} from './helm_dependency_manager.js';
 import {type ListrTask} from 'listr2';
-import {container, inject, singleton} from 'tsyringe-neo';
+import {container, inject, injectable} from 'tsyringe-neo';
 import * as constants from '../constants.js';
 
-@singleton()
+@injectable()
 export class DependencyManager extends ShellRunner {
   private readonly depManagerMap: Map<string, HelmDependencyManager>;
 

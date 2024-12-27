@@ -14,7 +14,7 @@
  * limitations under the License.
  *
  */
-import {inject, singleton} from 'tsyringe-neo';
+import {inject, injectable} from 'tsyringe-neo';
 import {SoloError, MissingArgumentError} from './errors.js';
 import {SoloLogger} from './logging.js';
 import {Flags, Flags as flags} from '../commands/flags.js';
@@ -31,7 +31,7 @@ import {patchInject} from './container_helper.js';
  * For example, 'namespace' is usually remains the same across commands once it is entered, and therefore user
  * doesn't need to enter it repeatedly. However, user should still be able to specify the flag explicitly for any command.
  */
-@singleton()
+@injectable()
 export class ConfigManager {
   config!: Record<string, any>;
 

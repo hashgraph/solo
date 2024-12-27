@@ -19,10 +19,10 @@ import {Helm} from './helm.js';
 import chalk from 'chalk';
 import {SoloError} from './errors.js';
 import {SoloLogger} from './logging.js';
-import {inject, singleton} from 'tsyringe-neo';
+import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from './container_helper.js';
 
-@singleton()
+@injectable()
 export class ChartManager {
   constructor(
     @inject(Helm) private readonly helm?: Helm,

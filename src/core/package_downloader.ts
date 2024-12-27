@@ -32,10 +32,10 @@ import {Templates} from './templates.js';
 import * as constants from './constants.js';
 import {SoloLogger} from './logging.js';
 import {StatusCodes} from 'http-status-codes';
-import {inject, singleton} from 'tsyringe-neo';
+import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from './container_helper.js';
 
-@singleton()
+@injectable()
 export class PackageDownloader {
   constructor(@inject(SoloLogger) public readonly logger?: SoloLogger) {
     this.logger = patchInject(logger, SoloLogger, this.constructor.name);
