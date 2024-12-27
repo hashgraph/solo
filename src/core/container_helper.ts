@@ -20,30 +20,15 @@ import {container} from 'tsyringe-neo';
  * code to patch inject bug with tsyringe: https://github.com/risen228/tsyringe-neo/issues/5
  * @param parameterValue - the value that should have been injected as a parameter in the constructor
  * @param registryToken - the token to resolve from the container
+ * @param callingClassName - the name of the class that is calling this function
  */
 export function patchInject(parameterValue: any, registryToken: any, callingClassName: string) {
   if (registryToken === undefined || registryToken === null) {
-    throw new Error('registryToken is undefined or null');
+    throw new Error(`registryToken is undefined or null, callingClassName: ${callingClassName}`);
   }
   if (parameterValue === undefined || parameterValue === null) {
-    console.log(
-      '!!!! patch inject (no inject) called with parameterValue: ',
-      parameterValue?.constructor?.name ? parameterValue?.constructor?.name : parameterValue,
-      ' and registryToken: ',
-      registryToken.prototype?.name ? registryToken.prototype?.name : registryToken,
-      ' and callingClassName: ',
-      callingClassName,
-    );
     return container.resolve(registryToken);
   }
 
-  console.log(
-    'patch inject (with inject) called with parameterValue: ',
-    parameterValue.constructor?.name ? parameterValue.constructor?.name : parameterValue,
-    ' and registryToken: ',
-    registryToken.prototype?.name ? registryToken.prototype?.name : registryToken,
-    ' and callingClassName: ',
-    callingClassName,
-  );
   return parameterValue;
 }
