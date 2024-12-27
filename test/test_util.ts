@@ -210,40 +210,26 @@ export function e2eTestSuite(
   startNodes = true,
   testsCallBack: (bootstrapResp: BootstrapResponse) => void = () => {},
 ) {
-  let bootstrapResp: BootstrapResponse;
+  const bootstrapResp = bootstrapTestVariables(
+    testName,
+    argv,
+    k8Arg,
+    initCmdArg,
+    clusterCmdArg,
+    networkCmdArg,
+    nodeCmdArg,
+    accountCmdArg,
+  );
+  const namespace = bootstrapResp.namespace;
+  const initCmd = bootstrapResp.cmd.initCmd;
+  const k8 = bootstrapResp.opts.k8;
+  const clusterCmd = bootstrapResp.cmd.clusterCmd;
+  const networkCmd = bootstrapResp.cmd.networkCmd;
+  const nodeCmd = bootstrapResp.cmd.nodeCmd;
+  const chartManager = bootstrapResp.opts.chartManager;
 
-  describe(`E2E Test Suite for '${testName}'`, function e2eTestSuite() {
-    let namespace: string,
-      initCmd: InitCommand,
-      k8: K8,
-      clusterCmd: ClusterCommand,
-      networkCmd: NetworkCommand,
-      nodeCmd: NodeCommand,
-      chartManager: ChartManager,
-      testLogger: SoloLogger;
-
-    before(() => {
-      bootstrapResp = bootstrapTestVariables(
-        testName,
-        argv,
-        k8Arg,
-        initCmdArg,
-        clusterCmdArg,
-        networkCmdArg,
-        nodeCmdArg,
-        accountCmdArg,
-      );
-      namespace = bootstrapResp.namespace;
-      initCmd = bootstrapResp.cmd.initCmd;
-      k8 = bootstrapResp.opts.k8;
-      clusterCmd = bootstrapResp.cmd.clusterCmd;
-      networkCmd = bootstrapResp.cmd.networkCmd;
-      nodeCmd = bootstrapResp.cmd.nodeCmd;
-      chartManager = bootstrapResp.opts.chartManager;
-      testLogger = bootstrapResp.opts.logger;
-
-      this.bail(true); // stop on first failure, nothing else will matter if network doesn't come up correctly
-    });
+  describe(`E2E Test Suite for '${testName}'`, function () {
+    this.bail(true); // stop on first failure, nothing else will matter if network doesn't come up correctly
 
     describe(`Bootstrap network for test [release ${argv[flags.releaseTag.name]}}]`, () => {
       before(() => {
