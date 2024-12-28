@@ -2,9 +2,9 @@ replicas: 1
 
 resources:
   limits:
-    memory: 50Gi
+    memory: 32Gi
   requests:
-    memory: 48Gi
+    memory: 30Gi
 
 nodeSelector: {}
 tolerations: []
@@ -12,7 +12,7 @@ affinity: {}
 
 loadGenerator:
   java:
-    maxMemory: '48g'
+    maxMemory: '30g'
   test:
     className: com.hedera.benchmark.NftTransferLoadTest
     args:
