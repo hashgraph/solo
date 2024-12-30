@@ -246,25 +246,22 @@ export class NodeCommandHandlers implements CommandHandlers {
     return [
       this.tasks.identifyExistingNodes(),
       this.tasks.checkAllNodesAreFrozen('existingNodeAliases'),
-      // this.tasks.prepareStagingDirectory('allNodeAliases'),
-      // this.tasks.copyNodeKeysToSecrets(),
+      this.tasks.downloadNodeUpgradeFiles(),
 
-      // this.tasks.getNodeLogsAndConfigs(),
-      // this.tasks.updateChartWithConfigMap(
-      //   'Update chart to use new configMap due to account number change',
-      //   NodeSubcommandType.UPDATE,
-      //   (ctx: any) => !ctx.config.newAccountNumber && !ctx.config.debugNodeAlias,
-      // ),
-      // this.tasks.killNodesAndUpdateConfigMap(),
-      this.tasks.checkNodePodsAreRunning(),
+      this.tasks.prepareStagingDirectory('allNodeAliases'),
+      this.tasks.copyNodeKeysToSecrets(),
+      this.tasks.getNodeLogsAndConfigs(),
+      this.tasks.killNodes(),
+      // this.tasks.checkNodePodsAreRunning(),
       // this.tasks.fetchPlatformSoftware('allNodeAliases'),
       // this.tasks.setupNetworkNodes('allNodeAliases'),
-      this.tasks.startNodes('allNodeAliases'),
-      this.tasks.enablePortForwarding(),
-      this.tasks.checkAllNodesAreActive('allNodeAliases'),
-      this.tasks.checkAllNodeProxiesAreActive(),
-      this.tasks.triggerStakeWeightCalculate(NodeSubcommandType.UPDATE),
-      this.tasks.finalize(),
+      //
+      // this.tasks.startNodes('allNodeAliases'),
+      // this.tasks.enablePortForwarding(),
+      // this.tasks.checkAllNodesAreActive('allNodeAliases'),
+      // this.tasks.checkAllNodeProxiesAreActive(),
+      // this.tasks.triggerStakeWeightCalculate(NodeSubcommandType.UPDATE),
+      // this.tasks.finalize(),
     ];
   }
 

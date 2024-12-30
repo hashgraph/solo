@@ -29,8 +29,11 @@ import {Task} from '../../core/task.js';
 import {
   DEFAULT_NETWORK_NODE_NAME,
   FREEZE_ADMIN_ACCOUNT,
+  HEDERA_HAPI_PATH,
   HEDERA_NODE_DEFAULT_STAKE_AMOUNT,
   IGNORED_NODE_ACCOUNT_ID,
+  LOCAL_HOST,
+  ROOT_CONTAINER,
   TREASURY_ACCOUNT_ID,
 } from '../../core/constants.js';
 import {
@@ -179,7 +182,7 @@ export class NodeCommandTasks {
       let start = 0;
 
       while (start < zipBytes.length) {
-        const zipBytesChunk = new Uint8Array(zipBytes.subarray(start, constants.UPGRADE_FILE_CHUNK_SIZE));
+        const zipBytesChunk = new Uint8Array(zipBytes.subarray(start, start + constants.UPGRADE_FILE_CHUNK_SIZE));
         let fileTransaction = null;
 
         if (start === 0) {
@@ -187,13 +190,14 @@ export class NodeCommandTasks {
         } else {
           fileTransaction = new FileAppendTransaction().setFileId(constants.UPGRADE_FILE_ID).setContents(zipBytesChunk);
         }
-        const resp = await fileTransaction.execute(nodeClient);
-        const receipt = await resp.getReceipt(nodeClient);
-        this.logger.debug(
-          `updated file ${constants.UPGRADE_FILE_ID} [chunkSize= ${zipBytesChunk.length}, txReceipt = ${receipt.toString()}]`,
-        );
+        fileTransaction.execute(nodeClient);
+        // const receipt = await resp.getReceipt(nodeClient);
+        // this.logger.debug(
+        //   `updated file ${constants.UPGRADE_FILE_ID} [chunkSize= ${zipBytesChunk.length}, txReceipt = ${receipt.toString()}]`,
+        // );
 
         start += constants.UPGRADE_FILE_CHUNK_SIZE;
+        this.logger.debug(`uploaded ${start} bytes of ${zipBytes.length} bytes`);
       }
 
       return zipHash;
@@ -745,6 +749,72 @@ export class NodeCommandTasks {
         }
       },
     );
+  }
+
+  downloadNodeUpgradeFiles(): Task {
+    const self = this;
+    return new Task(
+      'Download upgrade files from an existing node',
+      async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
+        const config = ctx.config;
+
+        const nodeAlias = ctx.config.nodeAliases[0];
+        const nodeFullyQualifiedPodName = Templates.renderNetworkPodName(nodeAlias);
+
+        // found all files under ${constants.HEDERA_HAPI_PATH}/data/upgrade/current/
+        const upgradeDirectories = [
+          `${constants.HEDERA_HAPI_PATH}/data/upgrade/current`,
+          `${constants.HEDERA_HAPI_PATH}/data/upgrade/current/data/apps`,
+          `${constants.HEDERA_HAPI_PATH}/data/upgrade/current/data/libs`,
+        ];
+        for (const upgradeDir of upgradeDirectories) {
+          // check if directory upgradeDir exist in root container
+          if (!(await self.k8.hasDir(nodeFullyQualifiedPodName, constants.ROOT_CONTAINER, upgradeDir))) {
+            continue;
+          }
+          const files = await self.k8.listDir(nodeFullyQualifiedPodName, constants.ROOT_CONTAINER, upgradeDir);
+          // iterate all files and copy them to the staging directory
+          for (const file of files) {
+            if (file.name.endsWith('.mf')) {
+              continue;
+            }
+            if (file.directory) {
+              continue;
+            }
+            this.logger.debug(`Copying file: ${file.name}`);
+            await self.k8.copyFrom(
+              nodeFullyQualifiedPodName,
+              constants.ROOT_CONTAINER,
+              `${upgradeDir}/${file.name}`,
+              `${config.stagingDir}`,
+            );
+          }
+        }
+      },
+    );
+  }
+
+  /** Copy files from data/upgarde/curent directory to root of HAPI directory */
+  copyUpgradeFiles(): Task {
+    const self = this;
+    return new Task('Copy upgrade file to Hapi directory', async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
+      for (const nodeAlias of ctx.config.nodeAliases) {
+        const podName = ctx.config.podNames[nodeAlias];
+        const upgradeDir = `${constants.HEDERA_HAPI_PATH}/data/upgrade/current`;
+        const newNodeFullyQualifiedPodName = Templates.renderNetworkPodName(nodeAlias);
+        await this.platformInstaller.setPathPermission(
+          newNodeFullyQualifiedPodName,
+          constants.HEDERA_HAPI_PATH,
+          '777',
+          true,
+        );
+        await self.k8.execContainer(podName, constants.ROOT_CONTAINER, [
+          'bash',
+          '-c',
+          `cp -r ${upgradeDir}/* ${constants.HEDERA_HAPI_PATH}`,
+        ]);
+      }
+    });
   }
 
   taskCheckNetworkNodePods(
