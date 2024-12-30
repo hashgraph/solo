@@ -58,7 +58,7 @@ export class DeploymentCommand extends BaseCommand {
           title: 'Initialize',
           task: async (ctx, task): Promise<Listr<Context, any, any>> => {
             self.configManager.update(argv);
-            self.logger.debug('Loaded cached config', {config: self.configManager.config});
+            self.logger.debug('Updated config with argv', {config: self.configManager.config});
 
             await self.configManager.executePrompt(task, DeploymentCommand.DEPLOY_FLAGS_LIST);
 
@@ -80,7 +80,7 @@ export class DeploymentCommand extends BaseCommand {
             return ListrLease.newAcquireLeaseTask(lease, task);
           },
         },
-        this.localConfig.promptLocalConfigTask(),
+        this.localConfig.promptLocalConfigTask(self.k8),
         {
           title: 'Validate cluster connections',
           task: async (ctx, task): Promise<Listr<Context, any, any>> => {

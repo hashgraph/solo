@@ -297,6 +297,7 @@ export function e2eTestSuite(
           try {
             expect(await nodeCmd.handlers.setup(argv)).to.be.true;
             expect(nodeCmd.getUnusedConfigs(NodeCommandConfigs.SETUP_CONFIGS_NAME)).to.deep.equal([
+              flags.quiet.constName,
               flags.devMode.constName,
             ]);
           } catch (e) {
@@ -465,4 +466,8 @@ export const testLocalConfigData = {
     },
   },
   currentDeploymentName: 'deployment',
+  clusterContextMapping: {
+    'cluster-1': 'context-1',
+    'cluster-2': 'context-2',
+  },
 };

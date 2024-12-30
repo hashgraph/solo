@@ -7,20 +7,15 @@ First, install the cluster tool `kind` with this [link](https://kind.sigs.k8s.io
 
 Then, install the task tool `task` with this [link](https://taskfile.dev/installation/)
 
-Then, use the following steps to install dependencies and build solo project.
-
-```bash
-npm ci
-npm run build
-```
+`task` will install dependencies and build the solo project.
 
 ### Start solo network
 
 User can use one of the following three commands to quickly deploy a standalone solo network.
 
 ```bash
-# Option 1) deploy solo network with two nodes
-task default
+# Option 1) deploy solo network with two nodes `task` is the same as `task default`
+task
 
 # Option 2) deploy solo network with two nodes, and mirror node
 task default-with-mirror

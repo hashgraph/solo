@@ -1,90 +1,17 @@
 version: 3
 includes:
-  helper: ../../HelperTasks.yml
-dotenv:
-  - .env
-
+  main:
+    taskfile: ../ExamplesTasks.yml
+    flatten: true
 env:
-  SOLO_CHART_VERSION: 0.34.0
-  CONSENSUS_NODE_VERSION: v0.56.0
-  SOLO_NAMESPACE: solo-{{ env "USER" | replace "." "-" | trunc 63 | default "test" }}
-  SOLO_CLUSTER_SETUP_NAMESPACE: solo-setup
-  SOLO_CLUSTER_RELEASE_NAME: solo-cluster-setup
-  SOLO_NETWORK_SIZE: 7
-  SOLO_CLUSTER_NAME: solo-cluster
-  MIRROR_RELEASE_NAME: mirror
-
-vars:
-  solo_settings_file: "{{.ROOT_DIR}}/settings.txt"
-  solo_values_file: "{{.ROOT_DIR}}/init-containers-values.yaml"
-  ip_list_template_file: "{{.ROOT_DIR}}/list-external-ips.gotemplate"
-  nodes:
-    ref: until (env "SOLO_NETWORK_SIZE" | default .SOLO_NETWORK_SIZE | int)
-  node_list_internal: "{{range $idx, $n := .nodes }}node{{add $n 1}},{{end}}"
-  node_identifiers: "{{ .node_list_internal | trimSuffix \",\" }}"
-  solo_user_dir: "{{ env \"HOME\" }}/.solo"
-  solo_cache_dir: "{{ .solo_user_dir }}/cache"
-  solo_logs_dir: "{{ .solo_user_dir }}/logs"
-  solo_keys_dir: "{{ .solo_cache_dir }}/keys"
-  solo_bin_dir: "{{ .solo_user_dir }}/bin"
-
-tasks:
-  default:
-    cmds:
-      - task: "helper:install:kubectl:darwin"
-      - task: "helper:install:kubectl:linux"
-      - task: "helper:install:solo"
-      - task: "install"
-      - task: "start"
-
-  install:
-    cmds:
-      - task: "helper:solo:init"
-      - task: "helper:solo:keys"
-      - task: "solo:network:deploy"
-
-  start:
-    cmds:
-      - task: "helper:solo:node:start"
-
-  stop:
-    cmds:
-      - task: "helper:solo:node:stop"
-
-  show:ips:
-    cmds:
-      - task: "solo:node:addresses"
-
-  destroy:
-    cmds:
-      - task: "helper:solo:node:stop"
-      - task: "helper:solo:network:destroy"
-
-  clean:
-    cmds:
-      - task: "destroy"
-      - task: "clean:cache"
-      - task: "clean:logs"
-
-  clean:cache:
-    cmds:
-      - task: "helper:solo:cache:remove"
-
-  clean:logs:
-    cmds:
-      - task: "helper:solo:logs:remove"
-
-  # Do not use network:deploy from HelperTasks.yml since custom network need extra settings and values files
-  solo:network:deploy:
-    internal: true
-    cmds:
-      - npm run build
-      - solo network deploy --namespace "${SOLO_NAMESPACE}" --node-aliases-unparsed {{.node_identifiers}} --release-tag "${CONSENSUS_NODE_VERSION}" --solo-chart-version "${SOLO_CHART_VERSION}" --values-file {{ .solo_values_file }} --settings-txt {{ .solo_settings_file }}
-      - solo node setup --namespace "${SOLO_NAMESPACE}" --node-aliases-unparsed {{.node_identifiers}} --release-tag "${CONSENSUS_NODE_VERSION}"
-
-  # Do not use node:addresses from HelperTasks.yml since we need to use template file to get output the list of IPs
-  solo:node:addresses:
-    internal: true
-    cmds:
-      - kubectl get svc -n "${SOLO_NAMESPACE}" -l "solo.hedera.com/type=network-node-svc" --output=go-template-file={{ .ip_list_template_file }}
-
+  SOLO_NETWORK_SIZE: 10
+  SOLO_NAMESPACE: solo-alex-kuzmin-n4
+  SOLO_CHART_VERSION: 0.36.3
+  CONSENSUS_NODE_VERSION: v0.58.0
+  VALUES_FLAG: "--values-file {{.USER_WORKING_DIR}}/init-containers-values.yaml"
+  SETTINGS_FLAG: "--settings-txt {{.USER_WORKING_DIR}}/settings.txt"
+  SOLO_HOME: "/Users/user/.solo-alex-kuzmin-n4"
+  LOG4J2_FLAG: "--log4j2-xml {{.USER_WORKING_DIR}}/log4j2.xml"
+  APPLICATION_PROPERTIES_FLAG: "--application-properties {{.USER_WORKING_DIR}}/application.properties"
+  # HEDERA_SERVICES_ROOT: "/Users/user/source/hedera-services"
+  # LOCAL_BUILD_FLAG: "--local-build-path {{.HEDERA_SERVICES_ROOT}}/hedera-node/data"

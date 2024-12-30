@@ -21,4 +21,5 @@ export const ErrorMessages = {
   LOCAL_CONFIG_GENERIC: 'Validation of local config failed',
   LOCAL_CONFIG_INVALID_EMAIL: 'Invalid email address provided',
   LOCAL_CONFIG_INVALID_DEPLOYMENTS_FORMAT: 'Wrong deployments format',
+  LOCAL_CONFIG_CONTEXT_CLUSTER_MAPPING_FORMAT: 'Wrong clusterContextMapping format',
 };

@@ -40,6 +40,7 @@ import {ProfileManager} from '../../../src/core/profile_manager.js';
 import {KeyManager} from '../../../src/core/key_manager.js';
 import {ROOT_DIR} from '../../../src/core/constants.js';
 import {ListrLease} from '../../../src/core/lease/listr_lease.js';
+import {GenesisNetworkDataConstructor} from '../../../src/core/genesis_network_models/genesis_network_data_constructor.js';
 
 const getBaseCommandOpts = () => ({
   logger: sinon.stub(),
@@ -86,6 +87,7 @@ describe('NetworkCommand unit tests', () => {
       opts.k8.waitForPodReady = sinon.stub();
       opts.k8.waitForPods = sinon.stub();
       opts.k8.readNamespacedLease = sinon.stub();
+      opts.k8.logger = opts.logger;
 
       ListrLease.newAcquireLeaseTask = sinon.stub().returns({
         run: sinon.stub().returns({}),
@@ -111,6 +113,8 @@ describe('NetworkCommand unit tests', () => {
       opts.configManager = new ConfigManager(opts.logger);
       opts.leaseManager = new LeaseManager(opts.k8, opts.configManager, opts.logger, new IntervalLeaseRenewalService());
       opts.leaseManager.currentNamespace = sinon.stub().returns(testName);
+
+      GenesisNetworkDataConstructor.initialize = sinon.stub().returns(null);
     });
 
     it('Install function is called with expected parameters', async () => {

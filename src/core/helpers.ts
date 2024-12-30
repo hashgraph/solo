@@ -19,7 +19,6 @@ import os from 'os';
 import path from 'path';
 import util from 'util';
 import {SoloError} from './errors.js';
-import * as semver from 'semver';
 import {Templates} from './templates.js';
 import {ROOT_DIR} from './constants.js';
 import * as constants from './constants.js';
@@ -28,6 +27,7 @@ import {type NodeAlias, type NodeAliases} from '../types/aliases.js';
 import {type CommandFlag} from '../types/flag_types.js';
 import {type SoloLogger} from './logging.js';
 import {type Duration} from './time/duration.js';
+import {type NodeAddConfigClass} from '../commands/node/node_add_config.js';
 
 export function sleep(duration: Duration) {
   return new Promise<void>(resolve => {
@@ -40,7 +40,9 @@ export function parseNodeAliases(input: string): NodeAliases {
 }
 
 export function splitFlagInput(input: string, separator = ',') {
-  if (typeof input !== 'string') {
+  if (!input) {
+    return [];
+  } else if (typeof input !== 'string') {
     throw new SoloError(`input [input='${input}'] is not a comma separated string`);
   }
 
@@ -71,20 +73,6 @@ export function loadPackageJSON(): any {
 export function packageVersion(): string {
   const packageJson = loadPackageJSON();
   return packageJson.version;
-}
-
-/**
- * Return the required root image for a platform version
- * @param releaseTag - platform version
- */
-export function getRootImageRepository(releaseTag: string) {
-  // @ts-ignore
-  const releaseVersion = semver.parse(releaseTag, {includePrerelease: true}) as Semver;
-  if (releaseVersion.minor < 46) {
-    return 'hashgraph/solo-containers/ubi8-init-java17';
-  }
-
-  return 'hashgraph/solo-containers/ubi8-init-java21';
 }
 
 export function getTmpDir() {
@@ -254,13 +242,14 @@ export function addDebugOptions(valuesArg: string, debugNodeAlias: NodeAlias, in
 export function addSaveContextParser(ctx: any) {
   const exportedCtx = {} as Record<string, string>;
 
-  const config = /** @type {NodeAddConfigClass} **/ ctx.config;
+  const config = ctx.config as NodeAddConfigClass;
   const exportedFields = ['tlsCertHash', 'upgradeZipHash', 'newNode'];
 
   exportedCtx.signingCertDer = ctx.signingCertDer.toString();
   exportedCtx.gossipEndpoints = ctx.gossipEndpoints.map((ep: any) => `${ep.getDomainName}:${ep.getPort}`);
   exportedCtx.grpcServiceEndpoints = ctx.grpcServiceEndpoints.map((ep: any) => `${ep.getDomainName}:${ep.getPort}`);
   exportedCtx.adminKey = ctx.adminKey.toString();
+  // @ts-ignore
   exportedCtx.existingNodeAliases = config.existingNodeAliases;
 
   for (const prop of exportedFields) {
@@ -321,16 +310,14 @@ export function prepareEndpoints(endpointType: string, endpoints: string[], defa
     if (endpointType.toUpperCase() === constants.ENDPOINT_TYPE_IP) {
       ret.push(
         new ServiceEndpoint({
-          // @ts-ignore
-          port,
+          port: +port,
           ipAddressV4: parseIpAddressToUint8Array(url),
         }),
       );
     } else {
       ret.push(
         new ServiceEndpoint({
-          // @ts-ignore
-          port,
+          port: +port,
           domainName: url,
         }),
       );

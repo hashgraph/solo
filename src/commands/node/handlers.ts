@@ -432,7 +432,7 @@ export class NodeCommandHandlers implements CommandHandlers {
     argv = helpers.addFlagsToArgv(argv, NodeFlags.UPDATE_EXECUTE_FLAGS);
     const action = this.parent.commandActionBuilder(
       [
-        this.tasks.initialize(argv, updateConfigBuilder.bind(this), lease),
+        this.tasks.initialize(argv, updateConfigBuilder.bind(this), lease, false),
         RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
         this.tasks.loadContextData(argv, NodeCommandHandlers.UPDATE_CONTEXT_FILE, NodeHelper.updateLoadContextParser),
         ...this.updateExecuteTasks(argv),
@@ -522,7 +522,7 @@ export class NodeCommandHandlers implements CommandHandlers {
 
     const action = this.parent.commandActionBuilder(
       [
-        this.tasks.initialize(argv, deleteConfigBuilder.bind(this), lease),
+        this.tasks.initialize(argv, deleteConfigBuilder.bind(this), lease, false),
         this.tasks.loadContextData(argv, NodeCommandHandlers.DELETE_CONTEXT_FILE, NodeHelper.deleteLoadContextParser),
         ...this.deleteExecuteTaskList(argv),
       ],
@@ -610,7 +610,7 @@ export class NodeCommandHandlers implements CommandHandlers {
 
     const action = this.parent.commandActionBuilder(
       [
-        this.tasks.initialize(argv, addConfigBuilder.bind(this), lease),
+        this.tasks.initialize(argv, addConfigBuilder.bind(this), lease, false),
         RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
         this.tasks.identifyExistingNodes(),
         this.tasks.loadContextData(argv, NodeCommandHandlers.ADD_CONTEXT_FILE, helpers.addLoadContextParser),

@@ -24,8 +24,9 @@ import path from 'path';
 import fs from 'fs';
 import {validatePath} from '../../core/helpers.js';
 import {Flags as flags} from '../flags.js';
-import {type NodeAlias, type NodeAliases, type PodName} from '../../types/aliases.js';
-import {type NetworkNodeServices} from '../../core/network_node_services.js';
+import type {NodeAlias, NodeAliases, PodName} from '../../types/aliases.js';
+import type {NetworkNodeServices} from '../../core/network_node_services.js';
+import {type NodeAddConfigClass} from './node_add_config.js';
 
 export const PREPARE_UPGRADE_CONFIGS_NAME = 'prepareUpgradeConfig';
 export const DOWNLOAD_GENERATED_FILES_CONFIGS_NAME = 'downloadGeneratedFilesConfig';
@@ -129,7 +130,7 @@ export const upgradeConfigBuilder = async function (argv, ctx, task) {
   return config;
 };
 
-export const updateConfigBuilder = async function (argv, ctx, task) {
+export const updateConfigBuilder = async function (argv, ctx, task, shouldLoadNodeClient = true) {
   const config = this.getConfig(UPDATE_CONFIGS_NAME, argv.flags, [
     'allNodeAliases',
     'existingNodeAliases',
@@ -157,8 +158,9 @@ export const updateConfigBuilder = async function (argv, ctx, task) {
     constants.SOLO_DEPLOYMENT_CHART,
   );
 
-  // initialize Node Client with existing network nodes prior to adding the new node which isn't functioning, yet
-  ctx.config.nodeClient = await this.accountManager.loadNodeClient(ctx.config.namespace);
+  if (shouldLoadNodeClient) {
+    ctx.config.nodeClient = await this.accountManager.loadNodeClient(ctx.config.namespace);
+  }
 
   const accountKeys = await this.accountManager.getAccountKeysFromSecret(FREEZE_ADMIN_ACCOUNT, config.namespace);
   config.freezeAdminPrivateKey = accountKeys.privateKey;
@@ -170,7 +172,7 @@ export const updateConfigBuilder = async function (argv, ctx, task) {
   return config;
 };
 
-export const deleteConfigBuilder = async function (argv, ctx, task) {
+export const deleteConfigBuilder = async function (argv, ctx, task, shouldLoadNodeClient = true) {
   const config = this.getConfig(DELETE_CONFIGS_NAME, argv.flags, [
     'adminKey',
     'allNodeAliases',
@@ -199,8 +201,9 @@ export const deleteConfigBuilder = async function (argv, ctx, task) {
     constants.SOLO_DEPLOYMENT_CHART,
   );
 
-  // initialize Node Client with existing network nodes prior to adding the new node which isn't functioning, yet
-  ctx.config.nodeClient = await this.accountManager.loadNodeClient(ctx.config.namespace);
+  if (shouldLoadNodeClient) {
+    ctx.config.nodeClient = await this.accountManager.loadNodeClient(ctx.config.namespace);
+  }
 
   const accountKeys = await this.accountManager.getAccountKeysFromSecret(FREEZE_ADMIN_ACCOUNT, config.namespace);
   config.freezeAdminPrivateKey = accountKeys.privateKey;
@@ -212,7 +215,7 @@ export const deleteConfigBuilder = async function (argv, ctx, task) {
   return config;
 };
 
-export const addConfigBuilder = async function (argv, ctx, task) {
+export const addConfigBuilder = async function (argv, ctx, task, shouldLoadNodeClient = true) {
   const config = this.getConfig(ADD_CONFIGS_NAME, argv.flags, [
     'allNodeAliases',
     'chartPath',
@@ -246,8 +249,9 @@ export const addConfigBuilder = async function (argv, ctx, task) {
     constants.SOLO_DEPLOYMENT_CHART,
   );
 
-  // initialize Node Client with existing network nodes prior to adding the new node which isn't functioning, yet
-  ctx.config.nodeClient = await this.accountManager.loadNodeClient(ctx.config.namespace);
+  if (shouldLoadNodeClient) {
+    ctx.config.nodeClient = await this.accountManager.loadNodeClient(ctx.config.namespace);
+  }
 
   const accountKeys = await this.accountManager.getAccountKeysFromSecret(FREEZE_ADMIN_ACCOUNT, config.namespace);
   config.freezeAdminPrivateKey = accountKeys.privateKey;
@@ -395,46 +399,6 @@ export interface NodeStartConfigClass {
   stagingDir: string;
   podNames: Record<NodeAlias, PodName>;
   nodeAliasesUnparsed: string;
-}
-
-export interface NodeAddConfigClass {
-  app: string;
-  cacheDir: string;
-  chainId: string;
-  chartDirectory: string;
-  devMode: boolean;
-  debugNodeAlias: NodeAlias;
-  endpointType: string;
-  soloChartVersion: string;
-  generateGossipKeys: boolean;
-  generateTlsKeys: boolean;
-  gossipEndpoints: string;
-  grpcEndpoints: string;
-  localBuildPath: string;
-  namespace: string;
-  nodeAlias: NodeAlias;
-  releaseTag: string;
-  adminKey: PrivateKey;
-  allNodeAliases: NodeAliases;
-  chartPath: string;
-  curDate: Date;
-  existingNodeAliases: NodeAliases;
-  freezeAdminPrivateKey: string;
-  keysDir: string;
-  lastStateZipPath: string;
-  nodeClient: any;
-  podNames: Record<NodeAlias, PodName>;
-  serviceMap: Map<string, NetworkNodeServices>;
-  treasuryKey: PrivateKey;
-  stagingDir: string;
-  stagingKeysDir: string;
-  grpcTlsCertificatePath: string;
-  grpcWebTlsCertificatePath: string;
-  grpcTlsKeyPath: string;
-  grpcWebTlsKeyPath: string;
-  haproxyIps: string;
-  envoyIps: string;
-  getUnusedConfigs: () => string[];
 }
 
 export interface NodeDeleteConfigClass {

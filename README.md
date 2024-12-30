@@ -22,7 +22,7 @@ An opinionated CLI tool to deploy and manage standalone test networks.
 
 ### Hardware Requirements
 
-To run a three-node network, you will need to set up Docker Desktop with at least 8GB of memory and 4 CPUs.  
+To run a three-node network, you will need to set up Docker Desktop with at least 8GB of memory and 4 CPUs.
 
 ![alt text](/docs/content/User/DockerDesktop.png)
 
@@ -41,8 +41,6 @@ nvm use lts/hydrogen
 
 ## Install Solo
 
-* Run `npm clean install` or `npm ci`
-* Run `npm run build`
 * Run `npm install -g @hashgraph/solo`
 
 ## Documentation
