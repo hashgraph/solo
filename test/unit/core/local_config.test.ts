@@ -33,7 +33,7 @@ describe('LocalConfig', () => {
 
   const expectFailedValidation = expectedMessage => {
     try {
-      new LocalConfig(filePath, testLogger, configManager);
+      new LocalConfig(filePath);
       expect.fail('Expected an error to be thrown');
     } catch (error) {
       expect(error).to.be.instanceOf(SoloError);
@@ -43,7 +43,7 @@ describe('LocalConfig', () => {
 
   beforeEach(async () => {
     await fs.promises.writeFile(filePath, stringify(config));
-    localConfig = new LocalConfig(filePath, testLogger, configManager);
+    localConfig = new LocalConfig(filePath);
   });
 
   afterEach(async () => {
@@ -65,7 +65,7 @@ describe('LocalConfig', () => {
     await localConfig.write();
 
     // reinitialize with updated config file
-    const newConfig = new LocalConfig(filePath, testLogger, configManager);
+    const newConfig = new LocalConfig(filePath);
     expect(newConfig.userEmailAddress).to.eq(newEmailAddress);
   });
 
@@ -92,7 +92,7 @@ describe('LocalConfig', () => {
     expect(localConfig.deployments).to.deep.eq(newDeployments);
 
     await localConfig.write();
-    const newConfig = new LocalConfig(filePath, testLogger, configManager);
+    const newConfig = new LocalConfig(filePath);
     expect(newConfig.deployments).to.deep.eq(newDeployments);
   });
 
@@ -160,7 +160,7 @@ describe('LocalConfig', () => {
     expect(localConfig.currentDeploymentName).to.eq(newCurrentDeployment);
 
     await localConfig.write();
-    const newConfig = new LocalConfig(filePath, testLogger, configManager);
+    const newConfig = new LocalConfig(filePath);
     expect(newConfig.currentDeploymentName).to.eq(newCurrentDeployment);
   });
 
@@ -184,7 +184,7 @@ describe('LocalConfig', () => {
 
   it('should throw an error if file path is not set', async () => {
     try {
-      new LocalConfig('', testLogger, configManager);
+      new LocalConfig('');
       expect.fail('Expected an error to be thrown');
     } catch (error) {
       expect(error).to.be.instanceOf(MissingArgumentError);

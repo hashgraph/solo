@@ -100,7 +100,7 @@ describe('ContextCommandTasks unit tests', () => {
       chartManager: sandbox.createStubInstance(ChartManager),
       configManager,
       depManager: sandbox.createStubInstance(DependencyManager),
-      localConfig: new LocalConfig(filePath, loggerStub, configManager),
+      localConfig: new LocalConfig(filePath),
       downloader: sandbox.createStubInstance(PackageDownloader),
       keyManager: sandbox.createStubInstance(KeyManager),
       accountManager: sandbox.createStubInstance(AccountManager),
@@ -156,7 +156,7 @@ describe('ContextCommandTasks unit tests', () => {
       };
       const opts = getBaseCommandOpts(sandbox, remoteConfig, []);
       command = await runUpdateLocalConfigTask(opts); // @ts-ignore
-      localConfig = new LocalConfig(filePath, loggerStub, command.configManager);
+      localConfig = new LocalConfig(filePath);
 
       expect(localConfig.currentDeploymentName).to.equal('deployment');
       expect(localConfig.getCurrentDeployment().clusters).to.deep.equal(['cluster-2']);
@@ -174,7 +174,7 @@ describe('ContextCommandTasks unit tests', () => {
       };
       const opts = getBaseCommandOpts(sandbox, remoteConfig, [[flags.context, 'provided-context']]);
       command = await runUpdateLocalConfigTask(opts); // @ts-ignore
-      localConfig = new LocalConfig(filePath, loggerStub, command.configManager);
+      localConfig = new LocalConfig(filePath);
 
       expect(localConfig.currentDeploymentName).to.equal('deployment');
       expect(localConfig.getCurrentDeployment().clusters).to.deep.equal(['cluster-2']);
@@ -196,7 +196,7 @@ describe('ContextCommandTasks unit tests', () => {
         [flags.context, 'provided-context-2,provided-context-3,provided-context-4'],
       ]);
       command = await runUpdateLocalConfigTask(opts); // @ts-ignore
-      localConfig = new LocalConfig(filePath, loggerStub, command.configManager);
+      localConfig = new LocalConfig(filePath);
 
       expect(localConfig.currentDeploymentName).to.equal('deployment');
       expect(localConfig.getCurrentDeployment().clusters).to.deep.equal(['cluster-2', 'cluster-3', 'cluster-4']);
@@ -217,7 +217,7 @@ describe('ContextCommandTasks unit tests', () => {
       };
       const opts = getBaseCommandOpts(sandbox, remoteConfig, [[flags.quiet, true]]);
       command = await runUpdateLocalConfigTask(opts); // @ts-ignore
-      localConfig = new LocalConfig(filePath, loggerStub, command.configManager);
+      localConfig = new LocalConfig(filePath);
 
       expect(localConfig.currentDeploymentName).to.equal('deployment');
       expect(localConfig.getCurrentDeployment().clusters).to.deep.equal(['cluster-2', 'cluster-3']);
@@ -238,7 +238,7 @@ describe('ContextCommandTasks unit tests', () => {
       const opts = getBaseCommandOpts(sandbox, remoteConfig, []);
 
       command = await runUpdateLocalConfigTask(opts); // @ts-ignore
-      localConfig = new LocalConfig(filePath, loggerStub, command.configManager);
+      localConfig = new LocalConfig(filePath);
 
       expect(localConfig.currentDeploymentName).to.equal('deployment');
       expect(localConfig.getCurrentDeployment().clusters).to.deep.equal(['cluster-2', 'new-cluster']);

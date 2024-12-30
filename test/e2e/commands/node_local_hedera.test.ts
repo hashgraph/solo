@@ -25,6 +25,9 @@ import path from 'path';
 import {expect} from 'chai';
 import {AccountBalanceQuery, AccountCreateTransaction, Hbar, HbarUnit, PrivateKey} from '@hashgraph/sdk';
 import {Duration} from '../../../src/core/time/duration.js';
+import {type NodeCommand} from '../../../src/commands/node/index.js';
+import {type AccountCommand} from '../../../src/commands/account.js';
+import {type AccountManager} from '../../../src/core/account_manager.js';
 
 const LOCAL_HEDERA = 'local-hedera-app';
 const argv = getDefaultArgv();
@@ -52,11 +55,17 @@ e2eTestSuite(
   undefined,
   true,
   bootstrapResp => {
-    const nodeCmd = bootstrapResp.cmd.nodeCmd;
-    const accountCmd = bootstrapResp.cmd.accountCmd;
-    const accountManager = bootstrapResp.manager.accountManager;
     describe('Node for hedera app should have started successfully', () => {
-      hederaK8 = bootstrapResp.opts.k8;
+      let nodeCmd: NodeCommand;
+      let accountCmd: AccountCommand;
+      let accountManager: AccountManager;
+
+      before(() => {
+        nodeCmd = bootstrapResp.cmd.nodeCmd;
+        accountCmd = bootstrapResp.cmd.accountCmd;
+        accountManager = bootstrapResp.manager.accountManager;
+        hederaK8 = bootstrapResp.opts.k8;
+      });
 
       it('save the state and restart the node with saved state', async () => {
         // create an account so later we can verify its balance after restart

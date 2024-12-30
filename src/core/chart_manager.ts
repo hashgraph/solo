@@ -15,18 +15,21 @@
  *
  */
 import * as constants from './constants.js';
-import {type Helm} from './helm.js';
+import {Helm} from './helm.js';
 import chalk from 'chalk';
 import {SoloError} from './errors.js';
-import {type SoloLogger} from './logging.js';
+import {SoloLogger} from './logging.js';
+import {inject, injectable} from 'tsyringe-neo';
+import {patchInject} from './container_helper.js';
 
+@injectable()
 export class ChartManager {
   constructor(
-    private readonly helm: Helm,
-    private readonly logger: SoloLogger,
+    @inject(Helm) private readonly helm?: Helm,
+    @inject(SoloLogger) private readonly logger?: SoloLogger,
   ) {
-    if (!logger) throw new Error('An instance of core/SoloLogger is required');
-    if (!helm) throw new Error('An instance of core/Helm is required');
+    this.helm = patchInject(helm, Helm, this.constructor.name);
+    this.logger = patchInject(logger, SoloLogger, this.constructor.name);
   }
 
   /**

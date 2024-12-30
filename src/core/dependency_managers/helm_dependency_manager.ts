@@ -15,20 +15,20 @@
  *
  */
 import fs from 'fs';
-import os from 'os';
 import path from 'path';
 import * as util from 'util';
-import {IllegalArgumentError, MissingArgumentError} from '../errors.js';
+import {MissingArgumentError} from '../errors.js';
 import * as helpers from '../helpers.js';
 import * as constants from '../constants.js';
-import {type PackageDownloader} from '../package_downloader.js';
-import {type Zippy} from '../zippy.js';
+import {PackageDownloader} from '../package_downloader.js';
+import {Zippy} from '../zippy.js';
 import {Templates} from '../templates.js';
 import * as version from '../../../version.js';
 import {ShellRunner} from '../shell_runner.js';
 import * as semver from 'semver';
 import {OS_WIN32, OS_WINDOWS} from '../constants.js';
-import {type SoloLogger} from '../logging.js';
+import {inject, injectable} from 'tsyringe-neo';
+import {patchInject} from '../container_helper.js';
 
 // constants required by HelmDependencyManager
 const HELM_RELEASE_BASE_URL = 'https://get.helm.sh';
@@ -42,6 +42,7 @@ const HELM_ARTIFACT_EXT: Map<string, string> = new Map()
 /**
  * Helm dependency manager installs or uninstalls helm client at SOLO_HOME_DIR/bin directory
  */
+@injectable()
 export class HelmDependencyManager extends ShellRunner {
   private readonly osPlatform: string;
   private readonly osArch: string;
@@ -51,23 +52,23 @@ export class HelmDependencyManager extends ShellRunner {
   private readonly checksumURL: string;
 
   constructor(
-    private readonly downloader: PackageDownloader,
-    private readonly zippy: Zippy,
-    logger: SoloLogger,
-    private readonly installationDir = path.join(constants.SOLO_HOME_DIR, 'bin'),
-    osPlatform = os.platform(),
-    osArch = os.arch(),
-    private readonly helmVersion = version.HELM_VERSION,
+    @inject(PackageDownloader) private readonly downloader?: PackageDownloader,
+    @inject(Zippy) private readonly zippy?: Zippy,
+    @inject('helmInstallationDir') private readonly installationDir?: string,
+    @inject('osPlatform') osPlatform?: NodeJS.Platform,
+    @inject('osArch') osArch?: string,
+    @inject('helmVersion') private readonly helmVersion?: string,
   ) {
-    super(logger);
+    super();
+    this.installationDir = patchInject(installationDir, 'helmInstallationDir', this.constructor.name);
+    this.osPlatform = patchInject(osPlatform, 'osPlatform', this.constructor.name);
+    this.osArch = patchInject(osArch, 'osArch', this.constructor.name);
+    this.helmVersion = patchInject(helmVersion, 'helmVersion', this.constructor.name);
 
-    if (!downloader) throw new MissingArgumentError('An instance of core/PackageDownloader is required');
-    if (!zippy) throw new MissingArgumentError('An instance of core/Zippy is required');
-    if (!logger) throw new IllegalArgumentError('an instance of core/SoloLogger is required', logger);
     if (!installationDir) throw new MissingArgumentError('installation directory is required');
 
-    this.downloader = downloader;
-    this.zippy = zippy;
+    this.downloader = patchInject(downloader, PackageDownloader, this.constructor.name);
+    this.zippy = patchInject(zippy, Zippy, this.constructor.name);
     this.installationDir = installationDir;
     // Node.js uses 'win32' for windows in package.json os field, but helm uses 'windows'
     if (osPlatform === OS_WIN32) {

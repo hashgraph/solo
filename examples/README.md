@@ -18,7 +18,7 @@ NOTES:
 ## Customizing the examples
 
 * take a look at the Taskfile.yml sitting in the subdirectory for the deployment you want to run
-* make sure your cluster can handle the number in SOLO_NETWORK_SIZE, if not, then you will have to update that and make it match the number of nodes in the `init-containers-values.yaml`: `hedera.nodes[]` 
+* make sure your cluster can handle the number in SOLO\_NETWORK\_SIZE, if not, then you will have to update that and make it match the number of nodes in the `init-containers-values.yaml`: `hedera.nodes[]`
 * take a look at the `init-containers-values.yaml` file and make sure the values are correct for your deployment with special attention to:
   * resources
   * nodeSelector
