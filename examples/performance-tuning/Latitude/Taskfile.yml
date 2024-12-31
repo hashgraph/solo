@@ -7,8 +7,8 @@ vars:
   solo_home_override_dir: "%HOME%/.solo"
 env:
   SOLO_NETWORK_SIZE: 10
-  SOLO_NAMESPACE: "{{.SOLO_NAMESPACE}}"
-  SOLO_CHART_VERSION: 0.39.0
+  SOLO_NAMESPACE: %SOLO_NAMESPACE%
+  # SOLO_CHART_VERSION: 0.39.0
   # CONSENSUS_NODE_VERSION: 0.0.0
   VALUES_FLAG: "--values-file {{.USER_WORKING_DIR}}/init-containers-values.yaml"
   SETTINGS_FLAG: "--settings-txt {{.USER_WORKING_DIR}}/settings.txt"
