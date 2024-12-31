@@ -36,6 +36,7 @@ import type {GenesisNetworkDataConstructor} from './genesis_network_models/genes
 import type {Optional} from '../types/index.js';
 import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from './container_helper.js';
+import {HEDERA_PLATFORM_VERSION} from '../../version.js';
 
 const consensusSidecars = [
   'recordStreamUploader',
@@ -486,16 +487,17 @@ export class ProfileManager {
     namespace: string,
     nodeAccountMap: Map<NodeAlias, string>,
     destPath: string,
-    releaseTag: string,
+    releaseTagOverride: string,
     appName = constants.HEDERA_APP_NAME,
     chainId = constants.HEDERA_CHAIN_ID,
     genesisNetworkData?: GenesisNetworkDataConstructor,
   ) {
+    let releaseTag = releaseTagOverride;
     if (!nodeAccountMap || nodeAccountMap.size === 0) {
       throw new MissingArgumentError('nodeAccountMap the map of node IDs to account IDs is required');
     }
 
-    if (!releaseTag) throw new MissingArgumentError('release tag is required');
+    if (!releaseTag) releaseTag = HEDERA_PLATFORM_VERSION;
 
     if (!fs.existsSync(destPath)) {
       throw new IllegalArgumentError(`config destPath does not exist: ${destPath}`, destPath);

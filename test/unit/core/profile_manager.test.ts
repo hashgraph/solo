@@ -229,14 +229,6 @@ describe('ProfileManager', () => {
       );
     });
 
-    it('should fail when no releaseTag is provided', () => {
-      const nodeAccountMap = new Map<NodeAlias, string>();
-      nodeAccountMap.set('node1', '0.0.3');
-      expect(() => profileManager.prepareConfigTxt('', nodeAccountMap, '', undefined)).to.throw(
-        'release tag is required',
-      );
-    });
-
     it('should fail when destPath does not exist', () => {
       const nodeAccountMap = new Map<NodeAlias, string>();
       nodeAccountMap.set('node1', '0.0.3');

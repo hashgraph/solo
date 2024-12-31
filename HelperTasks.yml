@@ -19,6 +19,10 @@ vars:
     sh: (echo "/tmp/var-check-$(date +%Y%m%d%H%M%S)")
   minio_flag_file:
     sh: (echo "/tmp/minio-flag-$(date +%Y%m%d%H%M%S)")
+  solo_chart_file:
+    sh: (echo "/tmp/solo-chart-$(date +%Y%m%d%H%M%S)")
+  solo_consensus_file:
+    sh: (echo "/tmp/solo-consensus-$(date +%Y%m%d%H%M%S)")
 
 env:
   SOLO_CLUSTER_SETUP_NAMESPACE: solo-setup
@@ -47,8 +51,6 @@ tasks:
         - node_list_internal
         - node_identifiers
         - run_build_file
-        - SOLO_CHART_VERSION
-        - CONSENSUS_NODE_VERSION
         - SOLO_NAMESPACE
         - SOLO_CLUSTER_SETUP_NAMESPACE
         - SOLO_CLUSTER_RELEASE_NAME
@@ -158,8 +160,15 @@ tasks:
         if [[ "${LOCAL_BUILD_FLAG}" == "" ]]; then
           export RELEASE_FLAG='--release-tag {{.CONSENSUS_NODE_VERSION}}'
         fi
-        SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- network deploy --namespace "${SOLO_NAMESPACE}" --node-aliases-unparsed {{.node_identifiers}} ${RELEASE_FLAG} --solo-chart-version "${SOLO_CHART_VERSION}" ${VALUES_FLAG} ${SETTINGS_FLAG} ${LOG4J2_FLAG} ${APPLICATION_PROPERTIES_FLAG} -q
-      - SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- node setup --namespace "${SOLO_NAMESPACE}" --node-aliases-unparsed {{.node_identifiers}} --release-tag "${CONSENSUS_NODE_VERSION}" ${LOCAL_BUILD_FLAG} -q
+        if [[ "${SOLO_CHART_VERSION}" != "" ]]; then
+          export SOLO_CHART_FLAG='--solo-chart-version ${SOLO_CHART_VERSION}'
+        fi
+        SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- network deploy --namespace "${SOLO_NAMESPACE}" --node-aliases-unparsed {{.node_identifiers}} ${RELEASE_FLAG} ${SOLO_CHART_FLAG} ${VALUES_FLAG} ${SETTINGS_FLAG} ${LOG4J2_FLAG} ${APPLICATION_PROPERTIES_FLAG} -q
+      - |
+        if [[ "${CONSENSUS_NODE_VERSION}" != "" ]]; then
+          export CONSENSUS_NODE_FLAG='--release-tag ${CONSENSUS_NODE_VERSION}'
+        fi
+        SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- node setup --namespace "${SOLO_NAMESPACE}" --node-aliases-unparsed {{.node_identifiers}} ${CONSENSUS_NODE_FLAG} ${LOCAL_BUILD_FLAG} -q
 
   solo:network:destroy:
     internal: true
@@ -211,24 +220,30 @@ tasks:
       - SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- relay destroy -n "${SOLO_NAMESPACE}" -i node1 -q
 
   solo:cache:remove:
+    silent: true
     internal: true
     status:
       - test [[ ! -d {{ .solo_cache_dir }} ]]
     cmds:
+      - echo "Removing solo cache directory..."
       - rm -rf {{ .solo_cache_dir }}
 
   solo:logs:remove:
+    silent: true
     internal: true
     status:
       - test [[ ! -d {{ .solo_logs_dir }} ]]
     cmds:
+      - echo "Removing solo logs directory..."
       - rm -rf {{ .solo_logs_dir }}
 
   solo:config:remove:
+    silent: true
     internal: true
     status:
       - test [[ ! -f {{ .solo_user_dir }}/solo.yaml ]]
     cmds:
+      - echo "Removing solo config..."
       - rm -rf {{ .solo_user_dir }}/solo.yaml
 
   cluster:create:
@@ -250,7 +265,9 @@ tasks:
       - kind delete cluster --name "${SOLO_CLUSTER_NAME}"
 
   clean:port-forward:
+    silent: true
     cmds:
+      - echo "Cleaning up port forwards..."
       - |
         if [[ "{{ .use_port_forwards }}" == "true" ]];then
           pkill -f "kubectl port-forward -n {{ .SOLO_NAMESPACE }}" | grep -w ${UID} || true
@@ -384,3 +401,15 @@ tasks:
       - task: "clean:logs"
       - task: "solo:config:remove"
       - task: "clean:port-forward"
+      - task: "clean:tmp"
+
+  clean:tmp:
+    desc: remove temporary files
+    silent: true
+    cmds:
+      - echo "Cleaning up temporary files..."
+      - rm -f /tmp/run-build-*
+      - rm -f /tmp/var-check-*
+      - rm -f /tmp/minio-flag-*
+      - rm -f /tmp/solo-chart-*
+      - rm -f /tmp/solo-consensus-*
