@@ -218,7 +218,7 @@ releasing lease
 ```
 
 * Setup node with Hedera platform software.
-    * It may take a while as it download the hedera platform code from <https://builds.hedera.com/>
+  * It may take a while as it download the hedera platform code from <https://builds.hedera.com/>
 
 ```
 solo node setup -i node1,node2,node3 -n "${SOLO_NAMESPACE}"
