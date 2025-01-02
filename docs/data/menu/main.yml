@@ -1,7 +1,7 @@
 ---
 main:
   - name: Getting Started
-    ref: "/User/README.md"
+    ref: "/User/README/index.md"
   - name: Start solo network with single command
     ref: "/User/TaskTool.md"
   - name: Hedera Developer

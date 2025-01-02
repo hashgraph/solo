@@ -72,9 +72,10 @@ tasks:
       - mkdir -p content/Developer
       - cp ../DEV.md content/Developer/DEV.md
       - mkdir -p content/User
-      - cp ../README.md content/User/README.md
-      - mkdir -p content/User/images
-      - cp ../images/* content/User/images
+      - mkdir -p content/User/README
+      - cp ../README.md content/User/README/index.md
+      - mkdir -p content/User/README/images
+      - cp ../images/DockerDesktop.png content/User/README/images/DockerDesktop.png
 
   install:
     cmds:
