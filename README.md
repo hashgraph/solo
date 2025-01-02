@@ -46,7 +46,7 @@ nvm use lts/hydrogen
 
 ## Documentation
 
-[Getting Started](docs/content/User/GetStarted.md)
+[Getting Started](https://hashgraph.github.io/solo/)
 
 ## Support
 
