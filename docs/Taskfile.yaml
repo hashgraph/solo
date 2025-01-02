@@ -73,6 +73,8 @@ tasks:
       - cp ../DEV.md content/Developer/DEV.md
       - mkdir -p content/User
       - cp ../README.md content/User/README.md
+      - mkdir -p content/User/images
+      - cp ../images/* content/User/images
 
   install:
     cmds:
