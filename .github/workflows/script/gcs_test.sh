@@ -44,14 +44,10 @@ echo "        importer:" >> gcs_mirror_values.yaml
 echo "          downloader:" >> gcs_mirror_values.yaml
 echo "            bucketName: ${streamBucket}" >> gcs_mirror_values.yaml
 echo "  env:" >> gcs_mirror_values.yaml
-echo "    - name: HEDERA_MIRROR_IMPORTER_DOWNLOADER_SOURCES_0_TYPE" >> gcs_mirror_values.yaml
-echo "      value: GCP" >> gcs_mirror_values.yaml
-echo "    - name: HEDERA_MIRROR_IMPORTER_DOWNLOADER_SOURCES_0_URI" >> gcs_mirror_values.yaml
-echo "      value: https://storage.googleapis.com" >> gcs_mirror_values.yaml
-echo "    - name: HEDERA_MIRROR_IMPORTER_DOWNLOADER_SOURCES_0_CREDENTIALS_ACCESSKEY" >> gcs_mirror_values.yaml
-echo "      value: ${GCS_ACCESS_KEY}" >> gcs_mirror_values.yaml
-echo "    - name: HEDERA_MIRROR_IMPORTER_DOWNLOADER_SOURCES_0_CREDENTIALS_SECRETKEY" >> gcs_mirror_values.yaml
-echo "      value: ${GCS_SECRET_KEY}" >> gcs_mirror_values.yaml
+echo "    HEDERA_MIRROR_IMPORTER_DOWNLOADER_SOURCES_0_TYPE: gcp" >> gcs_mirror_values.yaml
+echo "    HEDERA_MIRROR_IMPORTER_DOWNLOADER_SOURCES_0_URI: https://storage.googleapis.com" >> gcs_mirror_values.yaml
+echo "    HEDERA_MIRROR_IMPORTER_DOWNLOADER_SOURCES_0_CREDENTIALS_ACCESSKEY: ${GCS_ACCESS_KEY}" >> gcs_mirror_values.yaml
+echo "    HEDERA_MIRROR_IMPORTER_DOWNLOADER_SOURCES_0_CREDENTIALS_SECRETKEY: ${GCS_SECRET_KEY}" >> gcs_mirror_values.yaml
 
 #echo "  extraEnvFrom:" >> gcs_mirror_values.yaml
 #echo "    - secretRef:" >> gcs_mirror_values.yaml
