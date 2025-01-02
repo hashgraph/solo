@@ -290,6 +290,7 @@ export class MirrorNodeCommand extends BaseCommand {
                       soloChartSetupValuesArg,
                     );
                   },
+                  skip: ctx => !ctx.config.enableHederaExplorerTls,
                 },
                 {
                   title: 'Deploy hedera-explorer',
