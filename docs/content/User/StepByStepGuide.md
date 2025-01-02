@@ -1,7 +1,5 @@
 ## Advanced User Guide
-
 For those who would like to have more control or need some customized setups, here are some step by step instructions of how to setup and deploy a solo network.
-
 ### Setup Kubernetes cluster
 
 #### Remote cluster
@@ -30,7 +28,6 @@ Then run the following command to set the kubectl context to the new cluster:
 ```bash
 kind create cluster -n "${SOLO_CLUSTER_NAME}"
 ```
-
 Example output
 
 ```
@@ -50,6 +47,7 @@ Thanks for using kind! 😊
 ```
 
 You may now view pods in your cluster using `k9s -A` as below:
+
 
 ```
  Context: kind-solo                                <0> all   <a>       Attach       <ctr… ____  __.________
@@ -77,6 +75,7 @@ You may now view pods in your cluster using `k9s -A` as below:
 └─────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
+
 ### Step by Step Instructions
 
 * Initialize `solo` directories:
@@ -85,7 +84,7 @@ You may now view pods in your cluster using `k9s -A` as below:
 # reset .solo directory
 rm -rf ~/.solo
 
-solo init"
+solo init
 ```
 
 * Example output
@@ -125,29 +124,25 @@ Kubernetes Context	: kind-solo
 Kubernetes Cluster	: kind-solo
 **********************************************************************************
 ✔ Initialize
-✔ Load remote config
 ✔ Backup old files
 ✔ Gossip key for node: node1
 ✔ Gossip key for node: node2
 ✔ Gossip key for node: node3
 ✔ Generate gossip keys
 ✔ Backup old files
-✔ TLS key for node: node3
-✔ TLS key for node: node2
 ✔ TLS key for node: node1
+✔ TLS key for node: node2
+✔ TLS key for node: node3
 ✔ Generate gRPC TLS Keys
 ✔ Finalize
 ```
-
 PEM key files are generated in `~/.solo/keys` directory.
-
 ```
 hedera-node1.crt    hedera-node3.crt    s-private-node1.pem s-public-node1.pem  unused-gossip-pem
 hedera-node1.key    hedera-node3.key    s-private-node2.pem s-public-node2.pem  unused-tls
 hedera-node2.crt    hedera-node4.crt    s-private-node3.pem s-public-node3.pem
 hedera-node2.key    hedera-node4.key    s-private-node4.pem s-public-node4.pem
 ```
-
 * Setup cluster with shared components
 
 ```
@@ -170,7 +165,7 @@ Kubernetes Cluster	: kind-solo
 
 In a separate terminal, you may run `k9s` to view the pod status.
 
-Deploy helm chart with Hedera network components
+* Deploy helm chart with Hedera network components
 
 It may take a while (5~15 minutes depending on your internet speed) to download various docker images and get the pods started.
 
@@ -197,28 +192,29 @@ Kubernetes Namespace	: solo
 ✔ Copy Gossip keys to staging
 ✔ Copy gRPC TLS keys to staging
 ✔ Prepare staging directory
+✔ Copy TLS keys
 ✔ Copy Gossip keys
 ✔ Node: node3
 ✔ Copy Gossip keys
-✔ Node: node1
-✔ Copy TLS keys
-✔ Copy Gossip keys
 ✔ Node: node2
+✔ Copy Gossip keys
+✔ Node: node1
 ✔ Copy node keys to secrets
 ✔ Install chart 'solo-deployment'
 ✔ Check Node: node1
 ✔ Check Node: node2
 ✔ Check Node: node3
 ✔ Check node pods are running
+✔ Check Envoy Proxy for: node1
 ✔ Check Envoy Proxy for: node2
 ✔ Check Envoy Proxy for: node3
-✔ Check HAProxy for: node1
-✔ Check Envoy Proxy for: node1
 ✔ Check HAProxy for: node2
+✔ Check HAProxy for: node1
 ✔ Check HAProxy for: node3
 ✔ Check proxy pods are running
 ✔ Check MinIO
 ✔ Check auxiliary pods are ready
+releasing lease
 ```
 
 * Setup node with Hedera platform software.
@@ -242,20 +238,21 @@ Kubernetes Namespace	: solo
 ✔ Initialize
 ✔ Load remote config - remote config not found
 ✔ Check network pod: node1
-✔ Check network pod: node3
 ✔ Check network pod: node2
+✔ Check network pod: node3
 ✔ Identify network pods
-✔ Update node: node2 [ platformVersion = v0.56.5 ]
-✔ Update node: node1 [ platformVersion = v0.56.5 ]
-✔ Update node: node3 [ platformVersion = v0.56.5 ]
+✔ Update node: node2 [ platformVersion = v0.58.0 ]
+✔ Update node: node3 [ platformVersion = v0.58.0 ]
+✔ Update node: node1 [ platformVersion = v0.58.0 ]
 ✔ Fetch platform software into network nodes
 ✔ Set file permissions
-✔ Node: node1
+✔ Node: node3
 ✔ Set file permissions
 ✔ Node: node2
 ✔ Set file permissions
-✔ Node: node3
+✔ Node: node1
 ✔ Setup network nodes
+releasing lease
 ```
 
 * Start the nodes
@@ -277,17 +274,17 @@ Kubernetes Namespace	: solo
 ✔ Acquire lease - lease acquired successfully, attempt: 1/10
 ✔ Initialize
 ✔ Load remote config - remote config not found
+✔ Check network pod: node3
 ✔ Check network pod: node1
 ✔ Check network pod: node2
-✔ Check network pod: node3
 ✔ Identify existing network nodes
 ✔ Start node: node1
-✔ Start node: node3
 ✔ Start node: node2
+✔ Start node: node3
 ✔ Starting nodes
-✔ Check network pod: node1  - status ACTIVE, attempt: 17/120
-✔ Check network pod: node2  - status ACTIVE, attempt: 17/120
-✔ Check network pod: node3  - status ACTIVE, attempt: 17/120
+✔ Check network pod: node3  - status ACTIVE, attempt: 19/120
+✔ Check network pod: node2  - status ACTIVE, attempt: 19/120
+✔ Check network pod: node1  - status ACTIVE, attempt: 19/120
 ✔ Check all nodes are ACTIVE
 ✔ Check proxy for node: node1
 ✔ Check proxy for node: node2
@@ -297,6 +294,7 @@ Kubernetes Namespace	: solo
 ✔ Adding stake for node: node2
 ✔ Adding stake for node: node3
 ✔ Add node stakes
+releasing lease
 ```
 
 * Deploy mirror node
@@ -324,13 +322,14 @@ Kubernetes Namespace	: solo
 ✔ Enable mirror-node
 ✔ Check Hedera Explorer
 ✔ Check Postgres DB
-✔ Check GRPC
 ✔ Check REST API
+✔ Check GRPC
 ✔ Check Importer
 ✔ Check Monitor
 ✔ Check pods are ready
 ✔ Insert data in public.file_data
 ✔ Seed DB data
+releasing lease
 ```
 
 * Deploy a JSON RPC relay
@@ -355,6 +354,7 @@ Kubernetes Namespace	: solo
 ✔ Prepare chart values
 ✔ Deploy JSON RPC Relay
 ✔ Check relay is ready
+releasing lease
 ```
 
 You may view the list of pods using `k9s` as below:

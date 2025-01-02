@@ -1,6 +1,6 @@
 {
   "name": "@hashgraph/solo",
-  "version": "0.99.0",
+  "version": "0.32.0",
   "description": "An opinionated CLI tool to deploy and manage private Hedera Networks.",
   "main": "./dist/src/index.js",
   "type": "module",
@@ -91,7 +91,7 @@
     "@types/ip": "^1.1.3",
     "@types/mocha": "^10.0.10",
     "@types/mocha-each": "^2.0.4",
-    "@types/node": "^22.10.2",
+    "@types/node": "^22.10.3",
     "@types/semver": "^7.5.8",
     "@types/sinon": "^17.0.3",
     "@types/sinon-chai": "^4.0.0",
