@@ -131,7 +131,7 @@ jobs:
           sudo apt-get install -y wget
 
       - name: Setup Kind
-        uses: helm/kind-action@ae94020eaf628e9b9b9f341a10cc0cdcf5c018fb # v1.11.0
+        uses: helm/kind-action@a1b0e391336a6ee6713a0583f8c6240d70863de3 # v1.12.0
         with:
           install_only: true
           node_image: kindest/node:v1.27.3@sha256:3966ac761ae0136263ffdb6cfd4db23ef8a83cba8a463690e98317add2c9ba72
@@ -167,7 +167,7 @@ jobs:
         if: ${{ runner.os == 'linux' && (inputs.npm-test-script == 'test-e2e-node-local-hedera' || inputs.npm-test-script == 'test-e2e-node-local-ptt' || inputs.npm-test-script == 'test-e2e-node-add-local') && !cancelled() && !failure() }}
         run: |
           cd ..
-          git clone https://github.com/hashgraph/hedera-services.git --depth 1 --branch v0.56.0
+          git clone https://github.com/hashgraph/hedera-services.git --depth 1 --branch v0.58.0
           cd hedera-services
           ls -ltr
           ${{ env.CG_EXEC }} ./gradlew assemble --stacktrace --info

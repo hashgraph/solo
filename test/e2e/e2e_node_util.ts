@@ -36,6 +36,7 @@ import {type K8} from '../../src/core/k8.js';
 import {type NodeCommand} from '../../src/commands/node/index.js';
 import {Duration} from '../../src/core/time/duration.js';
 import {StatusCodes} from 'http-status-codes';
+import {container} from 'tsyringe-neo';
 
 export function e2eNodeKeyRefreshTest(testName: string, mode: string, releaseTag = HEDERA_PLATFORM_VERSION_TAG) {
   const namespace = testName;
@@ -191,7 +192,7 @@ export function e2eNodeKeyRefreshTest(testName: string, mode: string, releaseTag
 
         async function nodeRefreshTestSetup(argv: Record<any, any>, testName: string, k8: K8, nodeAliases: string) {
           argv[flags.nodeAliasesUnparsed.name] = nodeAliases;
-          const configManager = new ConfigManager(testLogger);
+          const configManager = container.resolve(ConfigManager);
           configManager.update(argv);
 
           const podArray = await k8.getPodsByLabel([`app=network-${nodeAliases}`, 'solo.hedera.com/type=network-node']);

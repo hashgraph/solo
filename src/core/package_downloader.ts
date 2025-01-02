@@ -30,12 +30,15 @@ import * as https from 'https';
 import * as http from 'http';
 import {Templates} from './templates.js';
 import * as constants from './constants.js';
-import {type SoloLogger} from './logging.js';
+import {SoloLogger} from './logging.js';
 import {StatusCodes} from 'http-status-codes';
+import {inject, injectable} from 'tsyringe-neo';
+import {patchInject} from './container_helper.js';
 
+@injectable()
 export class PackageDownloader {
-  constructor(public readonly logger: SoloLogger) {
-    if (!logger) throw new IllegalArgumentError('an instance of core/SoloLogger is required', logger);
+  constructor(@inject(SoloLogger) public readonly logger?: SoloLogger) {
+    this.logger = patchInject(logger, SoloLogger, this.constructor.name);
   }
 
   isValidURL(url: string) {

@@ -20,19 +20,18 @@ import {afterEach, beforeEach, describe, it} from 'mocha';
 import each from 'mocha-each';
 
 import * as constants from '../../../src/core/constants.js';
-import * as logging from '../../../src/core/logging.js';
 import {Helm} from '../../../src/core/helm.js';
 import {Templates} from '../../../src/core/templates.js';
 import {ShellRunner} from '../../../src/core/shell_runner.js';
 
 describe('Helm platform specific tests', () => {
   each(['linux', 'windows', 'darwin']).describe('Helm on %s platform', osPlatform => {
-    const logger = logging.NewLogger('debug', true);
-    const helm = new Helm(logger, osPlatform);
+    let helm: Helm, shellStub: sinon.SinonStub<[cmd: string, verbose?: boolean], Promise<string[]>>, helmPath: string;
 
-    let shellStub: sinon.SinonStub<[cmd: string, verbose?: boolean], Promise<string[]>>;
-
-    const helmPath = Templates.installationPath(constants.HELM, osPlatform);
+    before(() => {
+      helm = new Helm(osPlatform);
+      helmPath = Templates.installationPath(constants.HELM, osPlatform);
+    });
 
     // Stub the ShellRunner.prototype.run method for all tests
     beforeEach(() => {

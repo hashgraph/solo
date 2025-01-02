@@ -8,13 +8,74 @@ vars:
   node_list_internal: "{{range $idx, $n := .nodes }}node{{add $n 1}},{{end}}"
   node_identifiers: "{{ .node_list_internal | trimSuffix \",\" }}"
 
-  solo_user_dir: "{{ env \"HOME\" }}/.solo"
+  solo_user_dir: "{{ .solo_home_override_dir | default (printf \"%s/.solo\" (env \"HOME\")) }}"
   solo_cache_dir: "{{ .solo_user_dir }}/cache"
   solo_logs_dir: "{{ .solo_user_dir }}/logs"
   solo_keys_dir: "{{ .solo_cache_dir }}/keys"
   solo_bin_dir: "{{ .solo_user_dir }}/bin"
+  run_build_file:
+    sh: (echo "/tmp/run-build-$(date +%Y%m%d%H%M%S)")
+  var_check_file:
+    sh: (echo "/tmp/var-check-$(date +%Y%m%d%H%M%S)")
+  minio_flag_file:
+    sh: (echo "/tmp/minio-flag-$(date +%Y%m%d%H%M%S)")
+  solo_chart_file:
+    sh: (echo "/tmp/solo-chart-$(date +%Y%m%d%H%M%S)")
+  solo_consensus_file:
+    sh: (echo "/tmp/solo-consensus-$(date +%Y%m%d%H%M%S)")
+
+env:
+  SOLO_CLUSTER_SETUP_NAMESPACE: solo-setup
+  SOLO_CLUSTER_RELEASE_NAME: solo-cluster-setup
+  SOLO_CLUSTER_NAME: solo-cluster
+  MIRROR_RELEASE_NAME: mirror
 
 tasks:
+  init:
+    cmds:
+      - task: "var:check"
+      - task: "run:build"
+
+  var:check:
+    silent: true
+    status:
+      - test -f {{ .var_check_file }}
+    requires:
+      vars:
+        - solo_user_dir
+        - solo_cache_dir
+        - solo_logs_dir
+        - solo_keys_dir
+        - solo_bin_dir
+        - nodes
+        - node_list_internal
+        - node_identifiers
+        - run_build_file
+        - SOLO_NAMESPACE
+        - SOLO_CLUSTER_SETUP_NAMESPACE
+        - SOLO_CLUSTER_RELEASE_NAME
+        - SOLO_NETWORK_SIZE
+        - SOLO_CLUSTER_NAME
+        - MIRROR_RELEASE_NAME
+    cmds:
+      - echo "Checking variables..."
+      - echo "solo_user_dir={{ .solo_user_dir }}"
+      - echo "SOLO_HOME=${SOLO_HOME}"
+      - echo "SOLO_NETWORK_SIZE=${SOLO_NETWORK_SIZE}"
+      - echo "SOLO_CHART_VERSION=${SOLO_CHART_VERSION}"
+      - echo "CONSENSUS_NODE_VERSION=${CONSENSUS_NODE_VERSION}"
+      - echo "SOLO_NAMESPACE=${SOLO_NAMESPACE}"
+      - echo "SOLO_CLUSTER_RELEASE_NAME=${SOLO_CLUSTER_RELEASE_NAME}"
+      - echo "nodes={{ .nodes }}"
+      - echo "node_identifiers={{ .node_identifiers }}"
+      - echo "use_port_forwards={{ .use_port_forwards }}"
+      - echo "VALUES_FLAG=${VALUES_FLAG}"
+      - echo "SETTINGS_FLAG=${SETTINGS_FLAG}"
+      - echo "LOG4J2_FLAG=${LOG4J2_FLAG}"
+      - echo "APPLICATION_PROPERTIES_FLAG=${APPLICATION_PROPERTIES_FLAG}"
+      - echo "LOCAL_BUILD_FLAG=${LOCAL_BUILD_FLAG}"
+      - touch {{ .var_check_file }}
+
   readme:
     silent: true
     cmds:
@@ -31,12 +92,9 @@ tasks:
 
   install:solo:
     internal: true
-    status:
-      - command -v solo
     cmds:
-      - npm install -g @hashgraph/solo
-      - cd ../..
-      - npm link
+      - cd ..
+      - npm install
 
   install:kubectl:darwin:
     internal: true
@@ -61,6 +119,9 @@ tasks:
 
   solo:init:
     internal: true
+    silent: true
+    deps:
+      - task: "init"
     status:
       - test -f {{ .solo_bin_dir }}/helm
       - test -f {{ .solo_cache_dir }}/profiles/custom-spec.yaml
@@ -72,8 +133,7 @@ tasks:
       #- test "$(yq -r '.flags."node-ids"' < {{ .solo_user_dir }}/solo.yaml)" == "{{ .node_identifiers }}"
       - test "$(jq -r '.flags."node-ids"' < {{ .solo_user_dir }}/solo.config)" == "{{ .node_identifiers }}"
     cmds:
-      - npm run build
-      - solo init
+      - SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- init
 
   solo:keys:
     internal: true
@@ -85,77 +145,105 @@ tasks:
          test -f {{ .solo_keys_dir }}/s-public-node${n}.pem
          test -f {{ .solo_keys_dir }}/s-private-node${n}.pem
         done
+    deps:
+      - task: "init"
     cmds:
-      - npm run build
-      - solo node keys --gossip-keys --tls-keys --node-aliases-unparsed {{.node_identifiers}}
+      - SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- node keys --gossip-keys --tls-keys --node-aliases-unparsed {{.node_identifiers}} -q
 
   solo:network:deploy:
     internal: true
+    deps:
+      - task: "init"
     cmds:
-      - npm run build
-      - solo network deploy --namespace "${SOLO_NAMESPACE}" --node-aliases-unparsed {{.node_identifiers}} --release-tag "${CONSENSUS_NODE_VERSION}" --solo-chart-version "${SOLO_CHART_VERSION}"
-      - solo node setup --namespace "${SOLO_NAMESPACE}" --node-aliases-unparsed {{.node_identifiers}} --release-tag "${CONSENSUS_NODE_VERSION}"
+      - |
+        unset RELEASE_FLAG
+        if [[ "${LOCAL_BUILD_FLAG}" == "" ]]; then
+          export RELEASE_FLAG='--release-tag {{.CONSENSUS_NODE_VERSION}}'
+        fi
+        if [[ "${SOLO_CHART_VERSION}" != "" ]]; then
+          export SOLO_CHART_FLAG='--solo-chart-version ${SOLO_CHART_VERSION}'
+        fi
+        SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- network deploy --namespace "${SOLO_NAMESPACE}" --node-aliases-unparsed {{.node_identifiers}} ${RELEASE_FLAG} ${SOLO_CHART_FLAG} ${VALUES_FLAG} ${SETTINGS_FLAG} ${LOG4J2_FLAG} ${APPLICATION_PROPERTIES_FLAG} -q
+      - |
+        if [[ "${CONSENSUS_NODE_VERSION}" != "" ]]; then
+          export CONSENSUS_NODE_FLAG='--release-tag ${CONSENSUS_NODE_VERSION}'
+        fi
+        SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- node setup --namespace "${SOLO_NAMESPACE}" --node-aliases-unparsed {{.node_identifiers}} ${CONSENSUS_NODE_FLAG} ${LOCAL_BUILD_FLAG} -q
 
   solo:network:destroy:
     internal: true
+    deps:
+      - task: "init"
     cmds:
-      - npm run build
-      - solo network destroy --namespace "${SOLO_NAMESPACE}" --delete-pvcs --delete-secrets --force
+      - SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- network destroy --namespace "${SOLO_NAMESPACE}" --delete-pvcs --delete-secrets --force -q
 
   solo:node:start:
     internal: true
+    deps:
+      - task: "init"
     cmds:
-      - npm run build
-      - solo node start --namespace "${SOLO_NAMESPACE}" --node-aliases-unparsed {{.node_identifiers}} {{ .CLI_ARGS }}
-      - kubectl port-forward -n "${SOLO_NAMESPACE}" svc/haproxy-node1-svc 50211:50211 &
-      - task: "sleep_after_port_forward"
+      - SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- node start --namespace "${SOLO_NAMESPACE}" --node-aliases-unparsed {{.node_identifiers}} -q {{ .CLI_ARGS }}
+      - |
+        if [[ "{{ .use_port_forwards }}" == "true" ]];then
+          echo "Enable port forwarding for Hedera Node"
+          kubectl port-forward -n "${SOLO_NAMESPACE}" svc/haproxy-node1-svc 50211:50211 &
+          sleep 4
+        fi
 
   solo:node:stop:
     internal: true
     ignore_error: true
+    deps:
+      - task: "init"
     cmds:
-      - npm run build
-      - solo node stop --namespace "${SOLO_NAMESPACE}" --node-aliases-unparsed {{.node_identifiers}} {{ .CLI_ARGS }}
-
-  solo:node:addresses:
-    internal: true
-    cmds:
-      - kubectl get svc -n "${SOLO_NAMESPACE}" -l "solo.hedera.com/type=network-node-svc"
+      - SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- node stop --namespace "${SOLO_NAMESPACE}" --node-aliases-unparsed {{.node_identifiers}} -q {{ .CLI_ARGS }}
 
   solo:relay:
+    deps:
+      - task: "init"
     cmds:
-      - npm run build
-      - solo relay deploy -n "${SOLO_NAMESPACE}" -i node1
-      - echo "Enable port forwarding for Hedera JSON RPC Relay"
-      - kubectl port-forward -n "${SOLO_NAMESPACE}" svc/relay-node1-hedera-json-rpc-relay 7546:7546 &
-      - task: "sleep_after_port_forward"
+      - SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- relay deploy -n "${SOLO_NAMESPACE}" -i node1 -q
+      - |
+        if [[ "{{ .use_port_forwards }}" == "true" ]];then
+          echo "Enable port forwarding for Hedera JSON RPC Relay"
+          kubectl port-forward -n "${SOLO_NAMESPACE}" svc/relay-node1-hedera-json-rpc-relay 7546:7546 &
+          sleep 4
+        fi
 
   solo:destroy-relay:
     status:
-      - helm list -n "${SOLO_NAMESPACE}" | grep -vqz relay-node1
+      - |
+        {{.solo_bin_dir}}/helm list -n "${SOLO_NAMESPACE}" | grep -vqz relay-node1
+    deps:
+      - task: "init"
     cmds:
-      - npm run build
-      - solo relay destroy -n "${SOLO_NAMESPACE}" -i node1
+      - SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- relay destroy -n "${SOLO_NAMESPACE}" -i node1 -q
 
   solo:cache:remove:
+    silent: true
     internal: true
     status:
       - test [[ ! -d {{ .solo_cache_dir }} ]]
     cmds:
+      - echo "Removing solo cache directory..."
       - rm -rf {{ .solo_cache_dir }}
 
   solo:logs:remove:
+    silent: true
     internal: true
     status:
       - test [[ ! -d {{ .solo_logs_dir }} ]]
     cmds:
+      - echo "Removing solo logs directory..."
       - rm -rf {{ .solo_logs_dir }}
 
   solo:config:remove:
+    silent: true
     internal: true
     status:
       - test [[ ! -f {{ .solo_user_dir }}/solo.yaml ]]
     cmds:
+      - echo "Removing solo config..."
       - rm -rf {{ .solo_user_dir }}/solo.yaml
 
   cluster:create:
@@ -163,22 +251,165 @@ tasks:
       - kind get clusters | grep -q "${SOLO_CLUSTER_NAME}"
     cmds:
       - kind create cluster -n "${SOLO_CLUSTER_NAME}" --image "${KIND_IMAGE}"
+      - sleep 10 # wait for control plane to come up
+      - kubectl config set-context kind-${SOLO_CLUSTER_NAME}
 
   cluster:setup:
+    deps:
+      - task: "init"
     cmds:
-      - npm run build
-      - solo cluster setup --cluster-setup-namespace "${SOLO_CLUSTER_SETUP_NAMESPACE}"
+      - SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- cluster setup --cluster-setup-namespace "${SOLO_CLUSTER_SETUP_NAMESPACE}" -q
 
   cluster:destroy:
     cmds:
       - kind delete cluster --name "${SOLO_CLUSTER_NAME}"
 
   clean:port-forward:
+    silent: true
     cmds:
-      - pkill -f "kubectl port-forward -n {{ .SOLO_NAMESPACE }}" || true
+      - echo "Cleaning up port forwards..."
+      - |
+        if [[ "{{ .use_port_forwards }}" == "true" ]];then
+          pkill -f "kubectl port-forward -n {{ .SOLO_NAMESPACE }}" | grep -w ${UID} || true
+        fi
 
-  sleep_after_port_forward:
+  run:build:
+    silent: true
+    status:
+      - test -f {{ .run_build_file }}
     cmds:
-      # somehow without the sleep, when port-forward is the last command of a series of tasks, port-forward
-      # prematurely killed when task is exiting
-      - sleep 4
+      - npm run build
+      - touch {{ .run_build_file }}
+
+  solo:cluster:minio:
+    internal: true
+    silent: true
+    cmds:
+      - |
+        if ! kubectl get svc -l app.kubernetes.io/instance=minio-operator --all-namespaces --no-headers | grep -q . ; then
+          echo "No services found with label app.kubernetes.io/name=operator app.kubernetes.io/instance=minio-operator"
+          echo "--minio" > {{ .minio_flag_file }}
+        else 
+          echo "--no-minio" > {{ .minio_flag_file }}
+        fi
+
+  solo:cluster:setup:
+    silent: true
+    deps:
+      - task: "init"
+      - task: "solo:cluster:minio"
+    status:
+      - |
+        {{.solo_bin_dir}}/helm list --all-namespaces | grep -qz "${SOLO_CLUSTER_RELEASE_NAME}"
+    cmds:
+      - |
+        export MINIO_FLAG=$(cat {{ .minio_flag_file }})
+        SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- cluster setup --cluster-setup-namespace "${SOLO_CLUSTER_SETUP_NAMESPACE}" ${MINIO_FLAG} -q
+
+  solo:node:addresses:
+    internal: true
+    silent: true
+    cmds:
+      - |
+        echo "External IPs of the network nodes:"
+        export IP_LIST_TEMPLATE_FILE={{ .TASKFILE_DIR }}/list-external-ips.gotemplate
+        kubectl get svc -n "${SOLO_NAMESPACE}" -l "solo.hedera.com/type=network-node-svc" --output=go-template-file=${IP_LIST_TEMPLATE_FILE}
+
+  start:
+    desc: solo node start
+    deps:
+      - task: "init"
+    cmds:
+      - task: "solo:node:start"
+
+  stop:
+    desc: solo node stop
+    deps:
+      - task: "init"
+    cmds:
+      - task: "solo:node:stop"
+
+  show:ips:
+    deps:
+      - task: "init"
+    cmds:
+      - task: "solo:node:addresses"
+
+  clean:cache:
+    desc: remove solo cache directory
+    deps:
+      - task: "init"
+    cmds:
+      - task: "solo:cache:remove"
+
+  clean:logs:
+    desc: remove solo logs director
+    deps:
+      - task: "init"
+    cmds:
+      - task: "solo:logs:remove"
+
+
+  default-with-mirror:
+    desc: in addition to the defaults, also deploy the mirror node
+    deps:
+      - task: "init"
+    cmds:
+      - task: "default"
+      - task: "solo:mirror-node"
+
+  default-with-relay:
+    desc: in addition to default-with-mirror, deploy the JSON RPC relay
+    deps:
+      - task: "init"
+    cmds:
+      - task: "default"
+      - task: "solo:mirror-node"
+      - task: "solo:relay"
+
+  solo:mirror-node:
+    desc: solo mirror-node deploy with port forward on explorer
+    deps:
+      - task: "init"
+    cmds:
+      - SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- mirror-node deploy --namespace "${SOLO_NAMESPACE}" -q
+      - |
+        if [[ "{{ .use_port_forwards }}" == "true" ]];then
+          echo "Enable port forwarding for Hedera Explorer & Mirror Node Network"
+          kubectl port-forward -n "${SOLO_NAMESPACE}" svc/hedera-explorer 8080:80 &
+          kubectl port-forward svc/mirror-grpc -n "${SOLO_NAMESPACE}" 5600:5600 &
+          sleep 4
+        fi
+
+  solo:destroy-mirror-node:
+    desc: solo mirror-node destroy
+    status:
+      - |
+        {{.solo_bin_dir}}/helm list -n "${SOLO_NAMESPACE}" | grep -vqz "${MIRROR_RELEASE_NAME}"
+    deps:
+      - task: "init"
+    cmds:
+      - SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- mirror-node destroy --namespace "${SOLO_NAMESPACE}" --force -q || true
+
+  clean:
+    desc: destroy, then remove cache directory, logs directory, config, and port forwards
+    deps:
+      - task: "init"
+    cmds:
+      - task: "destroy"
+      - task: "clean:cache"
+      - task: "clean:logs"
+      - task: "solo:config:remove"
+      - task: "clean:port-forward"
+      - task: "clean:tmp"
+
+  clean:tmp:
+    desc: remove temporary files
+    silent: true
+    cmds:
+      - echo "Cleaning up temporary files..."
+      - rm -f /tmp/run-build-*
+      - rm -f /tmp/var-check-*
+      - rm -f /tmp/minio-flag-*
+      - rm -f /tmp/solo-chart-*
+      - rm -f /tmp/solo-consensus-*

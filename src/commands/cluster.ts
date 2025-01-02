@@ -23,8 +23,7 @@ import chalk from 'chalk';
 import * as constants from '../core/constants.js';
 import path from 'path';
 import {ListrLease} from '../core/lease/listr_lease.js';
-import type {CommandBuilder} from '../types/aliases.js';
-import type {AnyObject} from '../types/index.js';
+import {type CommandBuilder} from '../types/aliases.js';
 
 /**
  * Define the core functionalities of 'cluster' command
@@ -55,7 +54,7 @@ export class ClusterCommand extends BaseCommand {
   }
 
   /** Setup cluster with shared components */
-  async setup(argv: AnyObject) {
+  async setup(argv: any) {
     const self = this;
 
     interface Context {
@@ -179,7 +178,7 @@ export class ClusterCommand extends BaseCommand {
     return true;
   }
 
-  async reset(argv: AnyObject) {
+  async reset(argv: any) {
     const self = this;
     const lease = await self.leaseManager.create();
 
@@ -261,12 +260,12 @@ export class ClusterCommand extends BaseCommand {
     return {
       command: 'cluster',
       desc: 'Manage solo testing cluster',
-      builder: (yargs: AnyObject) => {
+      builder: (yargs: any) => {
         return yargs
           .command({
             command: 'list',
             desc: 'List all available clusters',
-            handler: (argv: AnyObject) => {
+            handler: (argv: any) => {
               self.logger.debug("==== Running 'cluster list' ===", {argv});
 
               try {
@@ -285,7 +284,7 @@ export class ClusterCommand extends BaseCommand {
           .command({
             command: 'info',
             desc: 'Get cluster info',
-            handler: (argv: AnyObject) => {
+            handler: (argv: any) => {
               self.logger.debug("==== Running 'cluster info' ===", {argv});
               try {
                 const r = this.getClusterInfo();
@@ -303,7 +302,7 @@ export class ClusterCommand extends BaseCommand {
           .command({
             command: 'setup',
             desc: 'Setup cluster with shared components',
-            builder: (y: AnyObject) =>
+            builder: (y: any) =>
               flags.setCommandFlags(
                 y,
                 flags.chartDirectory,
@@ -313,9 +312,10 @@ export class ClusterCommand extends BaseCommand {
                 flags.deployCertManagerCrds,
                 flags.deployMinio,
                 flags.deployPrometheusStack,
+                flags.quiet,
                 flags.soloChartVersion,
               ),
-            handler: (argv: AnyObject) => {
+            handler: (argv: any) => {
               self.logger.debug("==== Running 'cluster setup' ===", {argv});
 
               self
@@ -335,9 +335,9 @@ export class ClusterCommand extends BaseCommand {
           .command({
             command: 'reset',
             desc: 'Uninstall shared components from cluster',
-            builder: (y: AnyObject) =>
-              flags.setCommandFlags(y, flags.clusterName, flags.clusterSetupNamespace, flags.force),
-            handler: (argv: AnyObject) => {
+            builder: (y: any) =>
+              flags.setCommandFlags(y, flags.clusterName, flags.clusterSetupNamespace, flags.force, flags.quiet),
+            handler: (argv: any) => {
               self.logger.debug("==== Running 'cluster reset' ===", {argv});
 
               self

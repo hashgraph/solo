@@ -1,102 +1,44 @@
 version: 3
 includes:
-  helper: ./HelperTasks.yml
-dotenv:
-  - .env
+  helper:
+    taskfile: ./HelperTasks.yml
+    flatten: true
 env:
-  SOLO_CHART_VERSION: 0.34.0
-  CONSENSUS_NODE_VERSION: v0.56.0
-  SOLO_NAMESPACE: solo-e2e
-  SOLO_CLUSTER_SETUP_NAMESPACE: solo-setup
-  SOLO_CLUSTER_RELEASE_NAME: solo-cluster-setup
   SOLO_NETWORK_SIZE: 2
-  SOLO_CLUSTER_NAME: solo-cluster
-  KIND_IMAGE: kindest/node:v1.27.3@sha256:3966ac761ae0136263ffdb6cfd4db23ef8a83cba8a463690e98317add2c9ba72
-  MIRROR_RELEASE_NAME: mirror
-
+  SOLO_NAMESPACE: solo-e2e
+  # SOLO_CHART_VERSION: 0.39.0
+  # CONSENSUS_NODE_VERSION: v0.58.0
+vars:
+  use_port_forwards: "true"
 
 tasks:
   default:
-    desc: install Solo, deploy the network, set it up, and start it
+    silent: true
+    desc: install Solo, create a kind cluster, deploy the network, set it up, and start it
+    deps:
+      - task: "init"
     cmds:
-      - task: "helper:install:solo"
+      - echo "This command is meant to deploy a Solo network to a Kind cluster on your local machine, "
+      - echo "ctrl-c if this is not what you want to do."
+      - sleep 5
+      - task: "install:solo"
       - task: "install"
       - task: "start"
 
-  default-with-mirror:
-    desc: in addition to the defaults, also deploy the mirror node
-    cmds:
-      - task: "default"
-      - task: "solo:mirror-node"
-
-  default-with-relay:
-    desc: in addition to default-with-mirror, deploy the JSON RPC relay
-    cmds:
-      - task: "default"
-      - task: "solo:mirror-node"
-      - task: "helper:solo:relay"
-
   install:
     desc: create the cluster, solo init, solo cluster create, solo node keys, solo network deploy
+    deps:
+      - task: "init"
     cmds:
-      - task: "helper:cluster:create"
-      - task: "helper:solo:init"
-      - task: "helper:cluster:setup"
-      - task: "helper:solo:keys"
-      - task: "helper:solo:network:deploy"
-
-  start:
-    desc: solo node start
-    cmds:
-      - task: "helper:solo:node:start"
-
-  stop:
-    desc: solo node stop
-    cmds:
-      - task: "helper:solo:node:stop"
-
-  solo:mirror-node:
-    desc: solo mirror-node deploy with port forward on explorer
-    cmds:
-      - npm run build
-      - solo mirror-node deploy --namespace "${SOLO_NAMESPACE}"
-      - echo "Enable port forwarding for Hedera Explorer & Mirror Node Network"
-      - kubectl port-forward -n "${SOLO_NAMESPACE}" svc/hedera-explorer 8080:80 &
-      - kubectl port-forward svc/mirror-grpc -n "${SOLO_NAMESPACE}" 5600:5600 &
-      - task: "helper:sleep_after_port_forward"
-
-  solo:destroy-mirror-node:
-    desc: solo mirror-node destroy
-    status:
-      - helm list -n "${SOLO_NAMESPACE}" | grep -vqz "${MIRROR_RELEASE_NAME}"
-    cmds:
-      - npm run build
-      - solo mirror-node destroy --namespace "${SOLO_NAMESPACE}" --force || true
+      - task: "cluster:create"
+      - task: "solo:init"
+      - task: "cluster:setup"
+      - task: "solo:keys"
+      - task: "solo:network:deploy"
 
   destroy:
     desc: destroy relay, mirror-node, and network
+    deps:
+      - task: "init"
     cmds:
-      - task: "helper:solo:node:stop"
-      - task: "helper:solo:network:destroy"
-      - task: "solo:destroy-mirror-node"
-      - task: "helper:solo:destroy-relay"
-      - task: "helper:cluster:destroy"
-
-  clean:
-    desc: destroy, then remove cache directory, logs directory, config, and port forwards
-    cmds:
-      - task: "destroy"
-      - task: "clean:cache"
-      - task: "clean:logs"
-      - task: "helper:solo:config:remove"
-      - task: "helper:clean:port-forward"
-
-  clean:cache:
-    desc: remove solo cache directory
-    cmds:
-      - task: "helper:solo:cache:remove"
-
-  clean:logs:
-    desc: remove solo logs director
-    cmds:
-      - task: "helper:solo:logs:remove"
+      - task: "cluster:destroy"

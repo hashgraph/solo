@@ -21,20 +21,17 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
 import * as constants from '../../../src/core/constants.js';
-import {ConfigManager} from '../../../src/core/config_manager.js';
 import {PlatformInstaller} from '../../../src/core/platform_installer.js';
-import * as logging from '../../../src/core/logging.js';
 import {IllegalArgumentError, MissingArgumentError} from '../../../src/core/errors.js';
-import {getK8Instance} from '../../test_util.js';
 import type {PodName} from '../../../src/types/aliases.js';
+import {container} from 'tsyringe-neo';
 
 describe('PackageInstaller', () => {
-  const testLogger = logging.NewLogger('debug', true);
-  const configManager = new ConfigManager(testLogger);
+  let installer: PlatformInstaller;
 
-  const k8 = getK8Instance(configManager);
-
-  const installer = new PlatformInstaller(testLogger, k8, configManager);
+  before(() => {
+    installer = container.resolve(PlatformInstaller);
+  });
 
   describe('validatePlatformReleaseDir', () => {
     it('should fail for missing path', () => {
@@ -64,7 +61,7 @@ describe('PackageInstaller', () => {
       fs.mkdirSync(`${tmpDir}/${constants.HEDERA_DATA_APPS_DIR}`, {recursive: true});
       fs.mkdirSync(`${tmpDir}/${constants.HEDERA_DATA_LIB_DIR}`, {recursive: true});
       fs.writeFileSync(`${tmpDir}/${constants.HEDERA_DATA_LIB_DIR}/test.jar`, '');
-      // @ts-ignore
+      // @ts-expect-error - TS2554: Expected 1 arguments, but got 0
       expect(() => installer.validatePlatformReleaseDir()).to.throw(MissingArgumentError);
       fs.rmSync(tmpDir, {recursive: true});
     });
@@ -74,7 +71,7 @@ describe('PackageInstaller', () => {
       fs.mkdirSync(`${tmpDir}/${constants.HEDERA_DATA_APPS_DIR}`, {recursive: true});
       fs.writeFileSync(`${tmpDir}/${constants.HEDERA_DATA_APPS_DIR}/app.jar`, '');
       fs.mkdirSync(`${tmpDir}/${constants.HEDERA_DATA_LIB_DIR}`, {recursive: true});
-      // @ts-ignore
+      // @ts-expect-error - TS2554: Expected 1 arguments, but got 0
       expect(() => installer.validatePlatformReleaseDir()).to.throw(MissingArgumentError);
       fs.rmSync(tmpDir, {recursive: true});
     });
@@ -85,7 +82,7 @@ describe('PackageInstaller', () => {
       fs.writeFileSync(`${tmpDir}/${constants.HEDERA_DATA_APPS_DIR}/app.jar`, '');
       fs.mkdirSync(`${tmpDir}/${constants.HEDERA_DATA_LIB_DIR}`, {recursive: true});
       fs.writeFileSync(`${tmpDir}/${constants.HEDERA_DATA_LIB_DIR}/lib-1.jar`, '');
-      // @ts-ignore
+      // @ts-expect-error - TS2554: Expected 1 arguments, but got 0
       expect(() => installer.validatePlatformReleaseDir()).to.throw(MissingArgumentError);
       fs.rmSync(tmpDir, {recursive: true});
     });
@@ -102,12 +99,12 @@ describe('PackageInstaller', () => {
 
   describe('copyGossipKeys', () => {
     it('should fail for missing podName', async () => {
-      // @ts-ignore
+      // @ts-expect-error - TS2554: Expected 3 arguments, but got 2
       await expect(installer.copyGossipKeys('', os.tmpdir())).to.be.rejectedWith(MissingArgumentError);
     });
 
     it('should fail for missing stagingDir path', async () => {
-      // @ts-ignore
+      // @ts-expect-error - TS2554: Expected 3 arguments, but got 2
       await expect(installer.copyGossipKeys('node1', '')).to.be.rejectedWith(MissingArgumentError);
     });
   });

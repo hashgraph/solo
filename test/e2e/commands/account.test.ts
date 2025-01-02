@@ -32,17 +32,14 @@ import {
 } from '@hashgraph/sdk';
 import * as constants from '../../../src/core/constants.js';
 import * as version from '../../../version.js';
-import {
-  bootstrapTestVariables,
-  e2eTestSuite,
-  getDefaultArgv,
-  HEDERA_PLATFORM_VERSION_TAG,
-  TEST_CLUSTER,
-  testLogger,
-} from '../../test_util.js';
+import {e2eTestSuite, getDefaultArgv, HEDERA_PLATFORM_VERSION_TAG, TEST_CLUSTER, testLogger} from '../../test_util.js';
 import {AccountCommand} from '../../../src/commands/account.js';
 import {Flags as flags} from '../../../src/commands/flags.js';
 import {Duration} from '../../../src/core/time/duration.js';
+import {type K8} from '../../../src/core/k8.js';
+import {type AccountManager} from '../../../src/core/account_manager.js';
+import {type ConfigManager} from '../../../src/core/config_manager.js';
+import {type NodeCommand} from '../../../src/commands/node/index.js';
 
 const defaultTimeout = Duration.ofSeconds(20).toMillis();
 
@@ -62,12 +59,20 @@ argv[flags.chartDirectory.name] = process.env.SOLO_CHARTS_DIR ?? undefined;
 
 e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefined, undefined, true, bootstrapResp => {
   describe('AccountCommand', async () => {
-    const accountCmd = new AccountCommand(bootstrapResp.opts, testSystemAccounts);
-    bootstrapResp.cmd.accountCmd = accountCmd;
-    const k8 = bootstrapResp.opts.k8;
-    const accountManager = bootstrapResp.opts.accountManager;
-    const configManager = bootstrapResp.opts.configManager;
-    const nodeCmd = bootstrapResp.cmd.nodeCmd;
+    let accountCmd: AccountCommand;
+    let k8: K8;
+    let accountManager: AccountManager;
+    let configManager: ConfigManager;
+    let nodeCmd: NodeCommand;
+
+    before(() => {
+      accountCmd = new AccountCommand(bootstrapResp.opts, testSystemAccounts);
+      bootstrapResp.cmd.accountCmd = accountCmd;
+      k8 = bootstrapResp.opts.k8;
+      accountManager = bootstrapResp.opts.accountManager;
+      configManager = bootstrapResp.opts.configManager;
+      nodeCmd = bootstrapResp.cmd.nodeCmd;
+    });
 
     after(async function () {
       this.timeout(Duration.ofMinutes(3).toMillis());

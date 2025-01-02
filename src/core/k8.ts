@@ -25,19 +25,19 @@ import * as tar from 'tar';
 import {v4 as uuid4} from 'uuid';
 import {type V1Lease, V1ObjectMeta, V1Secret, type Context, type V1Pod} from '@kubernetes/client-node';
 import * as stream from 'node:stream';
-import {getReasonPhrase, StatusCodes} from 'http-status-codes';
-
-import {sleep} from './helpers.js';
-import * as constants from './constants.js';
-import {HEDERA_HAPI_PATH, ROOT_CONTAINER, SOLO_LOGS_DIR} from './constants.js';
-import {Duration} from './time/duration.js';
 import type * as http from 'node:http';
 import type * as WebSocket from 'ws';
-import type {ConfigManager} from './config_manager.js';
-import type {SoloLogger} from './logging.js';
-import type {PodName, TarCreateFilter} from '../types/aliases.js';
-import type {AnyObject, ExtendedNetServer, LocalContextObject, Optional} from '../types/index.js';
-import type {Namespace} from './config/remote/types.js';
+import {getReasonPhrase, StatusCodes} from 'http-status-codes';
+import {sleep} from './helpers.js';
+import * as constants from './constants.js';
+import {ConfigManager} from './config_manager.js';
+import {SoloLogger} from './logging.js';
+import {type PodName, type TarCreateFilter} from '../types/aliases.js';
+import type {ExtendedNetServer, LocalContextObject, Optional} from '../types/index.js';
+import {HEDERA_HAPI_PATH, ROOT_CONTAINER, SOLO_LOGS_DIR} from './constants.js';
+import {Duration} from './time/duration.js';
+import {inject, injectable} from 'tsyringe-neo';
+import {patchInject} from './container_helper.js';
 
 interface TDirectoryData {
   directory: boolean;
@@ -48,14 +48,13 @@ interface TDirectoryData {
   name: string;
 }
 
-const _ = undefined;
-
 /**
  * A kubernetes API wrapper class providing custom functionalities required by solo
  *
  * Note: Take care if the same instance is used for parallel execution, as the behaviour may be unpredictable.
  * For parallel execution, create separate instances by invoking clone()
  */
+@injectable()
 export class K8 {
   private _cachedContexts: Context[];
 
@@ -68,22 +67,13 @@ export class K8 {
   private coordinationApiClient: k8s.CoordinationV1Api;
 
   constructor(
-    private readonly configManager: ConfigManager,
-    public readonly logger: SoloLogger,
+    @inject(ConfigManager) private readonly configManager?: ConfigManager,
+    @inject(SoloLogger) public readonly logger?: SoloLogger,
   ) {
-    if (!configManager) throw new MissingArgumentError('An instance of core/ConfigManager is required');
-    if (!logger) throw new MissingArgumentError('An instance of core/SoloLogger is required');
+    this.configManager = patchInject(configManager, ConfigManager, this.constructor.name);
+    this.logger = patchInject(logger, SoloLogger, this.constructor.name);
 
     this.init();
-  }
-
-  /**
-   * Clone a new instance with the same config manager and logger
-   * Internally it instantiates a new kube API client
-   */
-  clone() {
-    const c = new K8(this.configManager, this.logger);
-    return c.init();
   }
 
   getKubeConfig() {
@@ -114,7 +104,7 @@ export class K8 {
    * @param [filters] - an object with metadata fields and value
    * @returns a list of items that match the filters
    */
-  applyMetadataFilter(items: AnyObject[], filters: Record<string, string> = {}) {
+  applyMetadataFilter(items: (object | any)[], filters: Record<string, string> = {}) {
     if (!filters) throw new MissingArgumentError('filters are required');
 
     const matched = [];
@@ -145,7 +135,7 @@ export class K8 {
    * @param items - list of items
    * @param [filters] - an object with metadata fields and value
    */
-  filterItem(items: AnyObject[], filters: Record<string, string> = {}) {
+  filterItem(items: (object | any)[], filters: Record<string, string> = {}) {
     const filtered = this.applyMetadataFilter(items, filters);
     if (filtered.length > 1) throw new SoloError('multiple items found with filters', {filters});
     return filtered[0];
@@ -208,15 +198,15 @@ export class K8 {
     const fieldSelector = `metadata.name=${name}`;
     const resp = await this.kubeClient.listNamespacedPod(
       ns,
-      _,
-      _,
-      _,
+      undefined,
+      undefined,
+      undefined,
       fieldSelector,
-      _,
-      _,
-      _,
-      _,
-      _,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
       Duration.ofMinutes(5).toMillis(),
     );
 
@@ -232,15 +222,15 @@ export class K8 {
     const labelSelector = labels.join(',');
     const result = await this.kubeClient.listNamespacedPod(
       ns,
-      _,
-      _,
-      _,
-      _,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
       labelSelector,
-      _,
-      _,
-      _,
-      _,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
       Duration.ofMinutes(5).toMillis(),
     );
 
@@ -254,7 +244,14 @@ export class K8 {
   async getSecretsByLabel(labels: string[] = []) {
     const ns = this._getNamespace();
     const labelSelector = labels.join(',');
-    const result = await this.kubeClient.listNamespacedSecret(ns, _, _, _, _, labelSelector);
+    const result = await this.kubeClient.listNamespacedSecret(
+      ns,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      labelSelector,
+    );
 
     return result.body.items;
   }
@@ -284,15 +281,15 @@ export class K8 {
     const fieldSelector = `metadata.name=${name}`;
     const resp = await this.kubeClient.listNamespacedService(
       ns,
-      _,
-      _,
-      _,
+      undefined,
+      undefined,
+      undefined,
       fieldSelector,
-      _,
-      _,
-      _,
-      _,
-      _,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
       Duration.ofMinutes(5).toMillis(),
     );
 
@@ -909,7 +906,7 @@ export class K8 {
    * @param host - the host of the target connection
    * @param port - the port of the target connection
    */
-  testConnection(host: string, port: number) {
+  testSocketConnection(host: string, port: number) {
     const self = this;
 
     return new Promise<boolean>((resolve, reject) => {
@@ -1019,40 +1016,44 @@ export class K8 {
 
       const check = async (resolve: (items: k8s.V1Pod[]) => void, reject: (reason?: Error) => void) => {
         // wait for the pod to be available with the given status and labels
-        const resp = await this.kubeClient.listNamespacedPod(
-          ns,
-          _,
-          false,
-          _,
-          _,
-          labelSelector,
-          podCount,
-          _,
-          _,
-          _,
-          Duration.ofMinutes(5).toMillis(),
-        );
+        try {
+          const resp = await this.kubeClient.listNamespacedPod(
+            ns,
+            // @ts-ignore
+            false,
+            false,
+            undefined,
+            undefined,
+            labelSelector,
+            podCount,
+            undefined,
+            undefined,
+            undefined,
+            Duration.ofMinutes(5).toMillis(),
+          );
+          this.logger.debug(
+            `[attempt: ${attempts}/${maxAttempts}] ${resp.body?.items?.length}/${podCount} pod found [labelSelector: ${labelSelector}, namespace:${ns}]`,
+          );
+          if (resp.body?.items?.length === podCount) {
+            let phaseMatchCount = 0;
+            let predicateMatchCount = 0;
 
-        this.logger.debug(
-          `[attempt: ${attempts}/${maxAttempts}] ${resp.body?.items?.length}/${podCount} pod found [labelSelector: ${labelSelector}, namespace:${ns}]`,
-        );
-        if (resp.body?.items?.length === podCount) {
-          let phaseMatchCount = 0;
-          let predicateMatchCount = 0;
+            for (const item of resp.body.items) {
+              if (phases.includes(item.status?.phase)) {
+                phaseMatchCount++;
+              }
 
-          for (const item of resp.body.items) {
-            if (phases.includes(item.status?.phase)) {
-              phaseMatchCount++;
+              if (podItemPredicate && podItemPredicate(item)) {
+                predicateMatchCount++;
+              }
             }
 
-            if (podItemPredicate && podItemPredicate(item)) {
-              predicateMatchCount++;
+            if (phaseMatchCount === podCount && (!podItemPredicate || predicateMatchCount === podCount)) {
+              return resolve(resp.body.items);
             }
           }
-
-          if (phaseMatchCount === podCount && (!podItemPredicate || predicateMatchCount === podCount)) {
-            return resolve(resp.body.items);
-          }
+        } catch (e) {
+          this.logger.info('Error occurred while waiting for pods, retrying', e);
         }
 
         if (++attempts < maxAttempts) {
@@ -1134,15 +1135,15 @@ export class K8 {
     const labelSelector = labels.join(',');
     const resp = await this.kubeClient.listNamespacedPersistentVolumeClaim(
       namespace,
-      _,
-      _,
-      _,
-      _,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
       labelSelector,
-      _,
-      _,
-      _,
-      _,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
       Duration.ofMinutes(5).toMillis(),
     );
 
@@ -1164,15 +1165,15 @@ export class K8 {
     const labelSelector = labels.join(',');
     const resp = await this.kubeClient.listNamespacedSecret(
       namespace,
-      _,
-      _,
-      _,
-      _,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
       labelSelector,
-      _,
-      _,
-      _,
-      _,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
       Duration.ofMinutes(5).toMillis(),
     );
 
@@ -1219,15 +1220,15 @@ export class K8 {
   async getSecret(namespace: string, labelSelector: string) {
     const result = await this.kubeClient.listNamespacedSecret(
       namespace,
-      _,
-      _,
-      _,
-      _,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
       labelSelector,
-      _,
-      _,
-      _,
-      _,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
       Duration.ofMinutes(5).toMillis(),
     );
 
@@ -1550,7 +1551,7 @@ export class K8 {
    */
   async killPod(podName: string, namespace: string) {
     try {
-      const result = await this.kubeClient.deleteNamespacedPod(podName, namespace, _, _, 1);
+      const result = await this.kubeClient.deleteNamespacedPod(podName, namespace, undefined, undefined, 1);
       if (result.response.statusCode !== StatusCodes.OK) {
         throw new SoloError(
           `Failed to delete pod ${podName} in namespace ${namespace}: statusCode: ${result.response.statusCode}`,
@@ -1604,7 +1605,7 @@ export class K8 {
       const scriptName = 'support-zip.sh';
       const sourcePath = path.join(constants.RESOURCES_DIR, scriptName); // script source path
       await this.copyTo(podName, ROOT_CONTAINER, sourcePath, `${HEDERA_HAPI_PATH}`);
-      await sleep(Duration.ofSeconds(1)); // wait for the script to sync to the file system
+      await sleep(Duration.ofSeconds(3)); // wait for the script to sync to the file system
       await this.execContainer(podName, ROOT_CONTAINER, [
         'bash',
         '-c',

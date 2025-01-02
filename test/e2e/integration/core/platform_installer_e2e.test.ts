@@ -24,6 +24,9 @@ import {e2eTestSuite, getDefaultArgv, getTestCacheDir, TEST_CLUSTER, testLogger}
 import {Flags as flags} from '../../../../src/commands/flags.js';
 import * as version from '../../../../version.js';
 import {Duration} from '../../../../src/core/time/duration.js';
+import {type K8} from '../../../../src/core/k8.js';
+import {type AccountManager} from '../../../../src/core/account_manager.js';
+import {type PlatformInstaller} from '../../../../src/core/platform_installer.js';
 
 const defaultTimeout = Duration.ofSeconds(20).toMillis();
 
@@ -51,12 +54,18 @@ e2eTestSuite(
   undefined,
   false,
   bootstrapResp => {
-    describe('PackageInstallerE2E', async () => {
-      const k8 = bootstrapResp.opts.k8;
-      const accountManager = bootstrapResp.opts.accountManager;
-      const installer = bootstrapResp.opts.platformInstaller;
+    describe('Platform Installer E2E', async () => {
+      let k8: K8;
+      let accountManager: AccountManager;
+      let installer: PlatformInstaller;
       const podName = 'network-node1-0';
       const packageVersion = 'v0.42.5';
+
+      before(() => {
+        k8 = bootstrapResp.opts.k8;
+        accountManager = bootstrapResp.opts.accountManager;
+        installer = bootstrapResp.opts.platformInstaller;
+      });
 
       after(async function () {
         this.timeout(Duration.ofMinutes(3).toMillis());

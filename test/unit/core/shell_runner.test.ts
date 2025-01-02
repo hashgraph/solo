@@ -21,21 +21,16 @@ import sinon from 'sinon';
 import {expect} from 'chai';
 import {describe, it, beforeEach, afterEach} from 'mocha';
 import {ShellRunner} from '../../../src/core/shell_runner.js';
-import {NewLogger, SoloLogger} from '../../../src/core/logging.js';
+import {SoloLogger} from '../../../src/core/logging.js';
 import {ChildProcess} from 'child_process';
 import {Readable} from 'stream';
 import {Duration} from '../../../src/core/time/duration.js';
 
 describe('ShellRunner', () => {
-  let logger: SoloLogger,
-    shellRunner: ShellRunner,
-    loggerStub: SinonStub,
-    childProcessSpy: SinonSpy,
-    readableSpy: SinonSpy;
+  let shellRunner: ShellRunner, loggerStub: SinonStub, childProcessSpy: SinonSpy, readableSpy: SinonSpy;
 
   beforeEach(() => {
-    logger = NewLogger('debug');
-    shellRunner = new ShellRunner(logger);
+    shellRunner = new ShellRunner();
 
     // Spy on methods
     loggerStub = sinon.stub(SoloLogger.prototype, 'debug');

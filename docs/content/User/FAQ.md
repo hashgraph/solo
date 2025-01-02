@@ -4,11 +4,12 @@ You can run `solo account init` anytime after `solo node start`
 
 ### Where can I find the default account keys ?
 
-It is the well known default genesis key [Link](https://github.com/hashgraph/hedera-services/blob/develop/hedera-node/data/onboard/GenesisPrivKey.txt)  
+It is the well known default genesis key [Link](https://github.com/hashgraph/hedera-services/blob/develop/hedera-node/data/onboard/GenesisPrivKey.txt)
 
 ### How do I get the key for an account?
 
 Use the following command to get account balance and private key of the account `0.0.1007`:
+
 ```bash
 # get account info of 0.0.1007 and also show the private key
 solo account get --account-id 0.0.1007 -n solo-e2e --private-key

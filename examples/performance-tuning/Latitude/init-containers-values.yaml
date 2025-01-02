@@ -8,7 +8,7 @@ hedera:
         - name: hgcapp-data-saved
           mountPath: /data-saved
   nodes:
-    - name: node0
+    - name: node1
       accountId: 0.0.3
       root:
         resources:
@@ -18,7 +18,7 @@ hedera:
           limits:
             cpu: 24
             memory: 256Gi
-    - name: node1
+    - name: node2
       accountId: 0.0.4
       root:
         resources:
@@ -28,7 +28,7 @@ hedera:
           limits:
             cpu: 24
             memory: 256Gi
-    - name: node2
+    - name: node3
       accountId: 0.0.5
       root:
         resources:
@@ -38,7 +38,7 @@ hedera:
           limits:
             cpu: 24
             memory: 256Gi
-    - name: node3
+    - name: node4
       accountId: 0.0.6
       root:
         resources:
@@ -48,7 +48,7 @@ hedera:
           limits:
             cpu: 24
             memory: 256Gi
-    - name: node4
+    - name: node5
       accountId: 0.0.7
       root:
         resources:
@@ -58,7 +58,7 @@ hedera:
           limits:
             cpu: 24
             memory: 256Gi
-    - name: node5
+    - name: node6
       accountId: 0.0.8
       root:
         resources:
@@ -68,7 +68,7 @@ hedera:
           limits:
             cpu: 24
             memory: 256Gi
-    - name: node6
+    - name: node7
       accountId: 0.0.9
       root:
         resources:
@@ -78,7 +78,7 @@ hedera:
           limits:
             cpu: 24
             memory: 256Gi
-    - name: node7
+    - name: node8
       accountId: 0.0.10
       root:
         resources:
@@ -88,7 +88,7 @@ hedera:
           limits:
             cpu: 24
             memory: 256Gi
-    - name: node8
+    - name: node9
       accountId: 0.0.11
       root:
         resources:
@@ -98,7 +98,7 @@ hedera:
           limits:
             cpu: 24
             memory: 256Gi
-    - name: node9
+    - name: node10
       accountId: 0.0.12
       root:
         resources:
@@ -109,8 +109,35 @@ hedera:
             cpu: 24
             memory: 256Gi
 defaults:
+  haproxy:
+    serviceType: NodePort
   envoyProxy:
     loadBalancerEnabled: true
+  sidecars:
+    recordStreamUploader:
+      resources:
+        requests:
+          cpu: 100m
+          memory: 200Mi
+        limits:
+          cpu: 150m
+          memory: 400Mi
+    eventStreamUploader:
+      resources:
+        requests:
+          cpu: 100m
+          memory: 200Mi
+        limits:
+          cpu: 150m
+          memory: 400Mi
+    recordStreamSidecarUploader:
+      resources:
+        requests:
+          cpu: 100m
+          memory: 200Mi
+        limits:
+          cpu: 150m
+          memory: 400Mi
   root:
     resources:
       requests:
@@ -126,6 +153,8 @@ defaults:
         value: "32g"
       - name: JAVA_HEAP_MAX
         value: "118g"
+      - name: MALLOC_ARENA_MAX
+        value: "4"
 minio-server:
   tenant:
     pools:
@@ -147,7 +176,7 @@ deployment:
   nodeSelector:
     solo.hashgraph.io/role: "consensus-node"
     solo.hashgraph.io/owner: "alex.kuzmin"
-    solo.hashgraph.io/network-id: "1"
+    solo.hashgraph.io/network-id: "%NETWORK_ID%"
   tolerations:
     - key: "solo.hashgraph.io/role"
       operator: "Equal"
@@ -159,5 +188,5 @@ deployment:
       effect: "NoSchedule"
     - key: "solo.hashgraph.io/network-id"
       operator: "Equal"
-      value: "1"
+      value: "%NETWORK_ID%"
       effect: "NoSchedule"

@@ -1,6 +1,7 @@
 {
   "extends": "./tsconfig-google.json",
   "compilerOptions": {
+    "isolatedModules": true,
     "target": "ES2022",
     "lib": [
       "ES2022",

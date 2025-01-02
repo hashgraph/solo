@@ -23,7 +23,8 @@ import {type AccountId} from '@hashgraph/sdk';
 import type {IP, NodeAlias, NodeId, PodName} from '../types/aliases.js';
 import {GrpcProxyTlsEnums} from './enumerations.js';
 import {type ContextClusterStructure} from '../types/config_types.js';
-import type {Cluster, Context} from './config/remote/types.js';
+import type {Cluster, Context, Namespace} from './config/remote/types.js';
+import {HEDERA_PLATFORM_VERSION} from '../../version.js';
 
 export class Templates {
   public static renderNetworkPodName(nodeAlias: NodeAlias): PodName {
@@ -119,13 +120,14 @@ export class Templates {
     return new x509.Name(`CN=${nodeAlias},ST=${state},L=${locality},O=${org},OU=${orgUnit},C=${country}`);
   }
 
-  public static renderStagingDir(cacheDir: string, releaseTag: string): string {
+  public static renderStagingDir(cacheDir: string, releaseTagOverride: string): string {
+    let releaseTag = releaseTagOverride;
     if (!cacheDir) {
       throw new IllegalArgumentError('cacheDir cannot be empty');
     }
 
     if (!releaseTag) {
-      throw new IllegalArgumentError('releaseTag cannot be empty');
+      releaseTag = HEDERA_PLATFORM_VERSION;
     }
 
     const releasePrefix = this.prepareReleasePrefix(releaseTag);
@@ -255,16 +257,16 @@ export class Templates {
     return mapping;
   }
 
-  static parseClusterAliases(clusters: string) {
-    return clusters ? clusters.split(',') : [];
-  }
-
   public static renderEnvoyProxyName(nodeAlias: NodeAlias): string {
     return `envoy-proxy-${nodeAlias}`;
   }
 
   public static renderHaProxyName(nodeAlias: NodeAlias): string {
     return `haproxy-${nodeAlias}`;
+  }
+
+  public static renderFullyQualifiedHaProxyName(nodeAlias: NodeAlias, namespace: Namespace): string {
+    return `${Templates.renderHaProxyName(nodeAlias)}-svc.${namespace}.svc.cluster.local`;
   }
 
   public static parseNodeAliasToIpMapping(unparsed: string): Record<NodeAlias, IP> {

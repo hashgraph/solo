@@ -15,7 +15,6 @@
  *
  */
 import * as Base64 from 'js-base64';
-import os from 'os';
 import * as constants from './constants.js';
 import type {Key} from '@hashgraph/sdk';
 import {
@@ -37,16 +36,19 @@ import {
 } from '@hashgraph/sdk';
 import {SoloError, MissingArgumentError} from './errors.js';
 import {Templates} from './templates.js';
-import ip from 'ip';
 import type {NetworkNodeServices} from './network_node_services.js';
 import {NetworkNodeServicesBuilder} from './network_node_services.js';
 import path from 'path';
 
-import {type SoloLogger} from './logging.js';
-import {type K8} from './k8.js';
+import {SoloLogger} from './logging.js';
+import {K8} from './k8.js';
 import {type AccountIdWithKeyPairObject, type ExtendedNetServer} from '../types/index.js';
-import {type NodeAlias, type PodName} from '../types/aliases.js';
+import {type NodeAlias, type PodName, type SdkNetworkEndpoint} from '../types/aliases.js';
 import {IGNORED_NODE_ACCOUNT_ID} from './constants.js';
+import {sleep} from './helpers.js';
+import {Duration} from './time/duration.js';
+import {inject, injectable} from 'tsyringe-neo';
+import {patchInject} from './container_helper.js';
 
 const REASON_FAILED_TO_GET_KEYS = 'failed to get keys for accountId';
 const REASON_SKIPPED = 'skipped since it does not have a genesis key';
@@ -55,16 +57,17 @@ const REASON_FAILED_TO_CREATE_K8S_S_KEY = 'failed to create k8s scrt key';
 const FULFILLED = 'fulfilled';
 const REJECTED = 'rejected';
 
+@injectable()
 export class AccountManager {
   private _portForwards: ExtendedNetServer[];
   public _nodeClient: Client | null;
 
   constructor(
-    private readonly logger: SoloLogger,
-    private readonly k8: K8,
+    @inject(SoloLogger) private readonly logger?: SoloLogger,
+    @inject(K8) private readonly k8?: K8,
   ) {
-    if (!logger) throw new Error('An instance of core/SoloLogger is required');
-    if (!k8) throw new Error('An instance of core/K8 is required');
+    this.logger = patchInject(logger, SoloLogger, this.constructor.name);
+    this.k8 = patchInject(k8, K8, this.constructor.name);
 
     this._portForwards = [];
     this._nodeClient = null;
@@ -157,11 +160,18 @@ export class AccountManager {
     this.logger.debug(
       `loading node client: [!this._nodeClient=${!this._nodeClient}, this._nodeClient.isClientShutDown=${this._nodeClient?.isClientShutDown}]`,
     );
-    if (!this._nodeClient || this._nodeClient.isClientShutDown) {
+    if (!this._nodeClient || this._nodeClient?.isClientShutDown) {
       this.logger.debug(
         `refreshing node client: [!this._nodeClient=${!this._nodeClient}, this._nodeClient.isClientShutDown=${this._nodeClient?.isClientShutDown}]`,
       );
       await this.refreshNodeClient(namespace);
+    } else {
+      try {
+        await this._nodeClient.ping(this._nodeClient.operatorAccountId);
+      } catch {
+        this.logger.debug('node client ping failed, refreshing node client');
+        await this.refreshNodeClient(namespace);
+      }
     }
 
     return this._nodeClient!;
@@ -191,32 +201,8 @@ export class AccountManager {
    * @param networkNodeServices
    * @returns whether to use the local host port forward
    */
-  shouldUseLocalHostPortForward(networkNodeServices: NetworkNodeServices) {
-    if (!networkNodeServices.haProxyLoadBalancerIp) return true;
-
-    const loadBalancerIp = networkNodeServices.haProxyLoadBalancerIp;
-    const interfaces = os.networkInterfaces();
-    let usePortForward = true;
-    const loadBalancerIpFormat = ip.isV6Format(loadBalancerIp) ? 'ipv4' : 'ipv6';
-
-    // check if serviceIP falls into any subnet of the network interfaces
-    for (const nic of Object.keys(interfaces)) {
-      const inf = interfaces[nic] as os.NetworkInterfaceInfo[];
-      for (const item of inf) {
-        if (item.family.toLowerCase() === loadBalancerIpFormat && ip.cidrSubnet(item.cidr).contains(loadBalancerIp)) {
-          usePortForward = false;
-          break;
-        }
-      }
-    }
-
-    if (usePortForward) {
-      this.logger.debug('Local network and Load balancer are in different network, using local host port forward');
-    } else {
-      this.logger.debug('Local network and Load balancer are in the same network, using load balancer IP port forward');
-    }
-
-    return usePortForward;
+  private shouldUseLocalHostPortForward(networkNodeServices: NetworkNodeServices) {
+    return !networkNodeServices.haProxyLoadBalancerIp;
   }
 
   /**
@@ -225,6 +211,7 @@ export class AccountManager {
    * @param networkNodeServicesMap - a map of the service objects that proxy the nodes
    * @param operatorId - the account id of the operator of the transactions
    * @param operatorKey - the private key of the operator of the transactions
+   * @param skipNodeAlias - the node alias to skip
    * @returns a node client that can be used to call transactions
    */
   async _getNodeClient(
@@ -249,8 +236,12 @@ export class AccountManager {
         }
       }
 
-      this.logger.debug(`creating client from network configuration: ${JSON.stringify(nodes)}`);
-      // scheduleNetworkUpdate is set to false, because the ports 50212/50211 are hardcoded in JS SDK that will not work when running locally or in a pipeline
+      let formattedNetworkConnection = '';
+      Object.keys(nodes).forEach(key => (formattedNetworkConnection += `${key}:${nodes[key]}, `));
+      this.logger.debug(`creating client from network configuration: [${formattedNetworkConnection}]`);
+
+      // scheduleNetworkUpdate is set to false, because the ports 50212/50211 are hardcoded in JS SDK that will not work
+      // when running locally or in a pipeline
       this._nodeClient = Client.fromConfig({network: nodes, scheduleNetworkUpdate: false});
       this._nodeClient.setOperator(operatorId, operatorKey);
       this._nodeClient.setLogger(new Logger(LogLevel.Trace, path.join(constants.SOLO_LOGS_DIR, 'hashgraph-sdk.log')));
@@ -258,27 +249,109 @@ export class AccountManager {
       this._nodeClient.setMinBackoff(constants.NODE_CLIENT_MIN_BACKOFF as number);
       this._nodeClient.setMaxBackoff(constants.NODE_CLIENT_MAX_BACKOFF as number);
       this._nodeClient.setRequestTimeout(constants.NODE_CLIENT_REQUEST_TIMEOUT as number);
+
+      // ping the node client to ensure it is working
+      await this._nodeClient.ping(AccountId.fromString(operatorId));
+
+      // start a background pinger to keep the node client alive, Hashgraph SDK JS has a 90-second keep alive time, and
+      // 5-second keep alive timeout
+      this.startIntervalPinger(operatorId);
+
       return this._nodeClient;
     } catch (e: Error | any) {
       throw new SoloError(`failed to setup node client: ${e.message}`, e);
     }
   }
 
-  private async configureNodeAccess(networkNodeService: NetworkNodeServices, localPort: number, totalNodes: number) {
-    const obj = {};
-    const usePortForward = this.shouldUseLocalHostPortForward(networkNodeService);
-    const host = usePortForward ? '127.0.0.1' : (networkNodeService.haProxyLoadBalancerIp as string);
-    const port = +networkNodeService.haProxyGrpcPort;
-    const targetPort = usePortForward ? localPort : port;
+  /**
+   * pings the node client at a set interval, can throw an exception if the ping fails
+   * @param operatorId
+   * @private
+   */
+  private startIntervalPinger(operatorId: string) {
+    const interval = constants.NODE_CLIENT_PING_INTERVAL;
+    const intervalId = setInterval(async () => {
+      if (this._nodeClient || !this._nodeClient?.isClientShutDown) {
+        this.logger.debug('node client has been closed, clearing node client ping interval');
+        clearInterval(intervalId);
+      } else {
+        try {
+          this.logger.debug(`pinging node client at an interval of ${Duration.ofMillis(interval).seconds} seconds`);
+          await this._nodeClient.ping(AccountId.fromString(operatorId));
+        } catch (e: Error | any) {
+          const message = `failed to ping node client while running the interval pinger: ${e.message}`;
+          this.logger.error(message, e);
+          throw new SoloError(message, e);
+        }
+      }
+    }, interval);
+  }
 
-    if (usePortForward && this._portForwards.length < totalNodes) {
+  private async configureNodeAccess(networkNodeService: NetworkNodeServices, localPort: number, totalNodes: number) {
+    const obj = {} as Record<SdkNetworkEndpoint, AccountId>;
+    const port = +networkNodeService.haProxyGrpcPort;
+    const accountId = AccountId.fromString(networkNodeService.accountId as string);
+
+    // if the load balancer IP is set, then we should use that and avoid the local host port forward
+    if (!this.shouldUseLocalHostPortForward(networkNodeService)) {
+      const host = networkNodeService.haProxyLoadBalancerIp as string;
+      const targetPort = port;
+      try {
+        obj[`${host}:${targetPort}`] = accountId;
+        await this.pingNetworkNode(obj, accountId);
+        this.logger.debug(`using load balancer IP: ${host}:${targetPort}`);
+
+        return obj;
+      } catch {
+        // if the connection fails, then we should use the local host port forward
+      }
+    }
+    // if the load balancer IP is not set or the test connection fails, then we should use the local host port forward
+    const host = '127.0.0.1';
+    const targetPort = localPort;
+
+    if (this._portForwards.length < totalNodes) {
       this._portForwards.push(await this.k8.portForward(networkNodeService.haProxyPodName, localPort, port));
     }
 
-    await this.k8.testConnection(host, targetPort);
-    obj[`${host}:${targetPort}`] = AccountId.fromString(networkNodeService.accountId as string);
+    this.logger.debug(`using local host port forward: ${host}:${targetPort}`);
+    obj[`${host}:${targetPort}`] = accountId;
+
+    await this.testNodeClientConnection(obj, accountId);
 
     return obj;
+  }
+
+  /**
+   * pings the network node to ensure that the connection is working
+   * @param obj - the object containing the network node service and the account id
+   * @param accountId - the account id to ping
+   * @throws {@link SoloError} if the ping fails
+   * @private
+   */
+  private async testNodeClientConnection(obj: Record<SdkNetworkEndpoint, AccountId>, accountId: AccountId) {
+    const maxRetries = constants.NODE_CLIENT_PING_MAX_RETRIES;
+    const sleepInterval = constants.NODE_CLIENT_PING_RETRY_INTERVAL;
+
+    let currentRetry = 0;
+    let success = false;
+
+    while (!success && currentRetry < maxRetries) {
+      try {
+        this.logger.debug(
+          `attempting to ping network node: ${Object.keys(obj)[0]}, attempt: ${currentRetry}, of ${maxRetries}`,
+        );
+        await this.pingNetworkNode(obj, accountId);
+        success = true;
+      } catch (e: Error | any) {
+        this.logger.error(`failed to ping network node: ${Object.keys(obj)[0]}, ${e.message}`);
+        currentRetry++;
+        await sleep(Duration.ofMillis(sleepInterval));
+      }
+    }
+    if (currentRetry >= maxRetries) {
+      throw new SoloError(`failed to ping network node: ${Object.keys(obj)[0]}, after ${maxRetries} retries`);
+    }
   }
 
   /**
@@ -760,5 +833,23 @@ export class AccountManager {
     const fileId = FileId.fromString(`0.0.${fileNum}`);
     const queryFees = new FileContentsQuery().setFileId(fileId);
     return Buffer.from(await queryFees.execute(client)).toString('hex');
+  }
+
+  /**
+   * Pings the network node with a grpc call to ensure it is working
+   * @param obj - the network node object where the key is the network endpoint and the value is the account id
+   * @param accountId - the account id to ping
+   * @throws {@link SoloError} if the ping fails
+   * @private
+   */
+  private async pingNetworkNode(obj: Record<SdkNetworkEndpoint, AccountId>, accountId: AccountId) {
+    const nodeClient = Client.fromConfig({network: obj, scheduleNetworkUpdate: false});
+    try {
+      await nodeClient.ping(accountId);
+    } catch (e: Error | any) {
+      throw new SoloError(`failed to ping network node: ${Object.keys(obj)[0]} ${e.message}`, e);
+    } finally {
+      nodeClient.close();
+    }
   }
 }

@@ -35,10 +35,3 @@ User can configure the following environment variables to customize the behavior
 | `RELAY_PODS_READY_MAX_ATTEMPTS`    | The maximum number of attempts to check if relay pods are ready.                                 | `100`                                                                                              |
 | `RELAY_PODS_READY_DELAY`           | The interval between attempts to check if relay pods are ready, in the unit of milliseconds.     | `120`                                                                                              |
 | `NETWORK_DESTROY_WAIT_TIMEOUT`     | The period of time to wait for network to be destroyed, in the unit of milliseconds.             | `60000`                                                                                            |
-
-
-
-
-
-
-

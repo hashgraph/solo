@@ -16,7 +16,7 @@
  */
 import {type ListrTaskWrapper} from 'listr2';
 
-export type PromptFunction = (task: ListrTaskWrapper<any, any, any>, input: any) => Promise<any>;
+export type PromptFunction = (task: ListrTaskWrapper<any, any, any>, input: any, data?: any) => Promise<any>;
 
 export interface CommandFlag {
   constName: string;

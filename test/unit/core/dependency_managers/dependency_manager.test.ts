@@ -17,20 +17,17 @@
 import {expect} from 'chai';
 import {describe, it} from 'mocha';
 
-import {DependencyManager, HelmDependencyManager} from '../../../../src/core/dependency_managers/index.js';
-import {PackageDownloader} from '../../../../src/core/package_downloader.js';
-import {Zippy} from '../../../../src/core/zippy.js';
-import * as constants from '../../../../src/core/constants.js';
-import * as logging from '../../../../src/core/logging.js';
+import {DependencyManager} from '../../../../src/core/dependency_managers/index.js';
+import {container} from 'tsyringe-neo';
+import {resetTestContainer} from '../../../test_container.js';
 
-const testLogger = logging.NewLogger('debug', true);
 describe('DependencyManager', () => {
-  // prepare dependency manger registry
-  const downloader = new PackageDownloader(testLogger);
-  const zippy = new Zippy(testLogger);
-  const helmDepManager = new HelmDependencyManager(downloader, zippy, testLogger);
-  const depManagerMap: Map<string, HelmDependencyManager> = new Map().set(constants.HELM, helmDepManager);
-  const depManager = new DependencyManager(testLogger, depManagerMap);
+  let depManager;
+
+  before(() => {
+    resetTestContainer();
+    depManager = container.resolve(DependencyManager);
+  });
 
   describe('checkDependency', () => {
     it('should fail during invalid dependency check', async () => {

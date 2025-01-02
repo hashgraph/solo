@@ -1,15 +1,16 @@
-#############################
-#           State           #
-#############################
-
+checkSignedStateFromDisk,                      1
+csvFileName,                                   MainNetStats
+doUpnp,                                        false
+loadKeysFromPfxFiles,                          0
+maxOutgoingSyncs,                              1
+reconnect.active,                              1
+reconnect.reconnectWindowSeconds,              -1
+showInternalStats,                             1
+state.saveStatePeriod,                         900
+useLoopbackIp,                                 false
+waitAtStartup,                                 false
 state.mainClassNameOverride,                   com.hedera.services.ServicesMain
-
-#############################
-#           Crypto          #
-#############################
-
-crypto.enableNewKeyStoreModel,                 true
-
-# TODO: remove this? only defaults to true when going from 0.52 to 0.53
-event.migrateEventHashing, false
-state.saveStatePeriod, 60
+maxEventQueueForCons,                          1000
+merkleDb.hashesRamToDiskThreshold,             8388608
+event.creation.maxCreationRate,                20
+virtualMap.familyThrottleThreshold,            6000000000

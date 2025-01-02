@@ -25,10 +25,13 @@ import path from 'path';
 import {expect} from 'chai';
 import {AccountBalanceQuery, AccountCreateTransaction, Hbar, HbarUnit, PrivateKey} from '@hashgraph/sdk';
 import {Duration} from '../../../src/core/time/duration.js';
+import {type NodeCommand} from '../../../src/commands/node/index.js';
+import {type AccountCommand} from '../../../src/commands/account.js';
+import {type AccountManager} from '../../../src/core/account_manager.js';
 
 const LOCAL_HEDERA = 'local-hedera-app';
 const argv = getDefaultArgv();
-argv[flags.nodeAliasesUnparsed.name] = 'node1,node2,node3';
+argv[flags.nodeAliasesUnparsed.name] = 'node1,node2';
 argv[flags.generateGossipKeys.name] = true;
 argv[flags.generateTlsKeys.name] = true;
 argv[flags.clusterName.name] = TEST_CLUSTER;
@@ -38,8 +41,7 @@ argv[flags.quiet.name] = true;
 
 let hederaK8: K8;
 console.log('Starting local build for Hedera app');
-argv[flags.localBuildPath.name] =
-  'node1=../hedera-services/hedera-node/data/,../hedera-services/hedera-node/data,node3=../hedera-services/hedera-node/data';
+argv[flags.localBuildPath.name] = 'node1=../hedera-services/hedera-node/data/,../hedera-services/hedera-node/data';
 argv[flags.namespace.name] = LOCAL_HEDERA;
 
 e2eTestSuite(
@@ -53,11 +55,17 @@ e2eTestSuite(
   undefined,
   true,
   bootstrapResp => {
-    const nodeCmd = bootstrapResp.cmd.nodeCmd;
-    const accountCmd = bootstrapResp.cmd.accountCmd;
-    const accountManager = bootstrapResp.manager.accountManager;
     describe('Node for hedera app should have started successfully', () => {
-      hederaK8 = bootstrapResp.opts.k8;
+      let nodeCmd: NodeCommand;
+      let accountCmd: AccountCommand;
+      let accountManager: AccountManager;
+
+      before(() => {
+        nodeCmd = bootstrapResp.cmd.nodeCmd;
+        accountCmd = bootstrapResp.cmd.accountCmd;
+        accountManager = bootstrapResp.manager.accountManager;
+        hederaK8 = bootstrapResp.opts.k8;
+      });
 
       it('save the state and restart the node with saved state', async () => {
         // create an account so later we can verify its balance after restart
@@ -101,6 +109,7 @@ e2eTestSuite(
       }).timeout(Duration.ofMinutes(10).toMillis());
 
       it('get the logs and delete the namespace', async () => {
+        await accountManager.close();
         await hederaK8.getNodeLogs(LOCAL_HEDERA);
         await hederaK8.deleteNamespace(LOCAL_HEDERA);
       }).timeout(Duration.ofMinutes(10).toMillis());
