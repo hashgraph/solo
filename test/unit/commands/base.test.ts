@@ -16,48 +16,46 @@
  */
 import {expect} from 'chai';
 
-import {HelmDependencyManager, DependencyManager} from '../../../src/core/dependency_managers/index.js';
+import {DependencyManager} from '../../../src/core/dependency_managers/index.js';
 import {Helm} from '../../../src/core/helm.js';
 import {ChartManager} from '../../../src/core/chart_manager.js';
 import {ConfigManager} from '../../../src/core/config_manager.js';
-import {PackageDownloader} from '../../../src/core/package_downloader.js';
-import {Zippy} from '../../../src/core/zippy.js';
-import * as constants from '../../../src/core/constants.js';
 import {LocalConfig} from '../../../src/core/config/local_config.js';
 import {RemoteConfigManager} from '../../../src/core/config/remote/remote_config_manager.js';
 import {K8} from '../../../src/core/k8.js';
-import * as logging from '../../../src/core/logging.js';
 import {BaseCommand} from '../../../src/commands/base.js';
 import {Flags as flags} from '../../../src/commands/flags.js';
 import sinon from 'sinon';
-import path from 'path';
-import {BASE_TEST_DIR} from '../../test_util.js';
-
-const testLogger = logging.NewLogger('debug', true);
+import {container} from 'tsyringe-neo';
+import {SoloLogger} from '../../../src/core/logging.js';
+import {resetTestContainer} from '../../test_container.js';
 
 describe('BaseCommand', () => {
-  const helm = new Helm(testLogger);
-  const chartManager = new ChartManager(helm, testLogger);
-  const configManager = new ConfigManager(testLogger);
-
-  // prepare dependency manger registry
-  const downloader = new PackageDownloader(testLogger);
-  const zippy = new Zippy(testLogger);
-  const helmDepManager = new HelmDependencyManager(downloader, zippy, testLogger);
-  const depManagerMap = new Map().set(constants.HELM, helmDepManager);
-  const depManager = new DependencyManager(testLogger, depManagerMap);
-  const localConfig = new LocalConfig(path.join(BASE_TEST_DIR, 'local-config.yaml'), testLogger, configManager);
-  const remoteConfigManager = new RemoteConfigManager({} as any, testLogger, localConfig, configManager);
-
+  let helm: Helm;
+  let chartManager: ChartManager;
+  let configManager: ConfigManager;
+  let depManager: DependencyManager;
+  let localConfig: LocalConfig;
+  let remoteConfigManager: RemoteConfigManager;
   let sandbox = sinon.createSandbox();
+  let testLogger: SoloLogger;
 
   let baseCmd: BaseCommand;
 
   describe('runShell', () => {
     before(() => {
+      resetTestContainer();
+      testLogger = container.resolve(SoloLogger);
+      helm = container.resolve(Helm);
+      chartManager = container.resolve(ChartManager);
+      configManager = container.resolve(ConfigManager);
+      depManager = container.resolve(DependencyManager);
+      localConfig = container.resolve(LocalConfig);
+      remoteConfigManager = container.resolve(RemoteConfigManager);
+
       sandbox = sinon.createSandbox();
       sandbox.stub(K8.prototype, 'init').callsFake(() => this);
-      const k8 = new K8(configManager, testLogger);
+      const k8 = container.resolve(K8);
 
       // @ts-ignore
       baseCmd = new BaseCommand({

@@ -99,11 +99,11 @@ jobs:
         run: |
           set -xeo pipefail
           npm install
+          echo "VERSION=${{ inputs.version }}"
+          [[ -n "${{ inputs.version }}" ]] && npm version ${{ inputs.version }} -f --no-git-tag-version
           npm run build
           npm install -g @hashgraph/solo
           npm link
-          echo "VERSION=${{ inputs.version }}"
-          [[ -n "${{ inputs.version }}" ]] && npm version ${{ inputs.version }} -f --no-git-tag-version
           which solo
           node -p -e "Boolean(process.stdout.isTTY)"
           chmod 755 ./.github/workflows/script/update_md.sh

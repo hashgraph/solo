@@ -436,9 +436,9 @@ export class Flags {
       return await Flags.promptText(
         task,
         input,
-        'v0.42.5',
+        version.HEDERA_PLATFORM_VERSION,
         'Enter release version: ',
-        'release tag cannot be empty',
+        undefined,
         Flags.releaseTag.name,
       );
     },

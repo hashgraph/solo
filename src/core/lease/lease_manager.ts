@@ -14,47 +14,40 @@
  * limitations under the License.
  *
  */
-import {MissingArgumentError} from '../errors.js';
 import {Flags as flags} from '../../commands/flags.js';
-import type {ConfigManager} from '../config_manager.js';
-import type {K8} from '../k8.js';
-import type {SoloLogger} from '../logging.js';
+import {ConfigManager} from '../config_manager.js';
+import {K8} from '../k8.js';
+import {SoloLogger} from '../logging.js';
 import {type Lease, type LeaseRenewalService} from './lease.js';
 import {IntervalLease} from './interval_lease.js';
 import {LeaseHolder} from './lease_holder.js';
 import {LeaseAcquisitionError} from './lease_errors.js';
+import {inject, injectable} from 'tsyringe-neo';
+import {patchInject} from '../container_helper.js';
 
 /**
  * Manages the acquisition and renewal of leases.
  */
+@injectable()
 export class LeaseManager {
-  /** The injected logger instance. */
-  private readonly _logger: SoloLogger;
-
-  /** The injected lease renewal service instance. */
-  private readonly _renewalService: LeaseRenewalService;
-
   /**
    * Creates a new lease manager.
    *
+   * @param _renewalService - the lease renewal service.
+   * @param _logger - the logger.
    * @param k8 - the Kubernetes client.
    * @param configManager - the configuration manager.
-   * @param logger - the logger.
-   * @param renewalService - the lease renewal service.
    */
   constructor(
-    private readonly k8: K8,
-    private readonly configManager: ConfigManager,
-    logger: SoloLogger,
-    renewalService: LeaseRenewalService,
+    @inject('LeaseRenewalService') private readonly _renewalService?: LeaseRenewalService,
+    @inject(SoloLogger) private readonly _logger?: SoloLogger,
+    @inject(K8) private readonly k8?: K8,
+    @inject(ConfigManager) private readonly configManager?: ConfigManager,
   ) {
-    if (!k8) throw new MissingArgumentError('an instance of core/K8 is required');
-    if (!logger) throw new MissingArgumentError('an instance of core/SoloLogger is required');
-    if (!configManager) throw new MissingArgumentError('an instance of core/ConfigManager is required');
-    if (!renewalService) throw new MissingArgumentError('an instance of core/LeaseRenewalService is required');
-
-    this._logger = logger;
-    this._renewalService = renewalService;
+    this._renewalService = patchInject(_renewalService, 'LeaseRenewalService', this.constructor.name);
+    this._logger = patchInject(_logger, SoloLogger, this.constructor.name);
+    this.k8 = patchInject(k8, K8, this.constructor.name);
+    this.configManager = patchInject(configManager, ConfigManager, this.constructor.name);
   }
 
   /**

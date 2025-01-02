@@ -15,20 +15,24 @@
  *
  */
 import os from 'os';
-import {SoloError, MissingArgumentError} from '../errors.js';
+import {SoloError} from '../errors.js';
 import {ShellRunner} from '../shell_runner.js';
-import {type SoloLogger} from '../logging.js';
-import {type HelmDependencyManager} from './helm_dependency_manager.js';
+import {HelmDependencyManager} from './helm_dependency_manager.js';
 import {type ListrTask} from 'listr2';
+import {container, inject, injectable} from 'tsyringe-neo';
+import * as constants from '../constants.js';
 
+@injectable()
 export class DependencyManager extends ShellRunner {
-  constructor(
-    logger: SoloLogger,
-    private readonly depManagerMap: Map<string, HelmDependencyManager>,
-  ) {
-    if (!logger) throw new MissingArgumentError('an instance of core/SoloLogger is required', logger);
-    super(logger);
-    if (!depManagerMap) throw new MissingArgumentError('A map of dependency managers are required');
+  private readonly depManagerMap: Map<string, HelmDependencyManager>;
+
+  constructor(@inject(HelmDependencyManager) helmDepManager?: HelmDependencyManager) {
+    super();
+    if (helmDepManager) {
+      this.depManagerMap = new Map().set(constants.HELM, helmDepManager);
+    } else {
+      this.depManagerMap = new Map().set(constants.HELM, container.resolve(HelmDependencyManager));
+    }
   }
 
   /**

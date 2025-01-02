@@ -40,13 +40,15 @@ import type {NetworkNodeServices} from './network_node_services.js';
 import {NetworkNodeServicesBuilder} from './network_node_services.js';
 import path from 'path';
 
-import {type SoloLogger} from './logging.js';
-import {type K8} from './k8.js';
+import {SoloLogger} from './logging.js';
+import {K8} from './k8.js';
 import {type AccountIdWithKeyPairObject, type ExtendedNetServer} from '../types/index.js';
 import {type NodeAlias, type PodName, type SdkNetworkEndpoint} from '../types/aliases.js';
 import {IGNORED_NODE_ACCOUNT_ID} from './constants.js';
 import {sleep} from './helpers.js';
 import {Duration} from './time/duration.js';
+import {inject, injectable} from 'tsyringe-neo';
+import {patchInject} from './container_helper.js';
 
 const REASON_FAILED_TO_GET_KEYS = 'failed to get keys for accountId';
 const REASON_SKIPPED = 'skipped since it does not have a genesis key';
@@ -55,16 +57,17 @@ const REASON_FAILED_TO_CREATE_K8S_S_KEY = 'failed to create k8s scrt key';
 const FULFILLED = 'fulfilled';
 const REJECTED = 'rejected';
 
+@injectable()
 export class AccountManager {
   private _portForwards: ExtendedNetServer[];
   public _nodeClient: Client | null;
 
   constructor(
-    private readonly logger: SoloLogger,
-    private readonly k8: K8,
+    @inject(SoloLogger) private readonly logger?: SoloLogger,
+    @inject(K8) private readonly k8?: K8,
   ) {
-    if (!logger) throw new Error('An instance of core/SoloLogger is required');
-    if (!k8) throw new Error('An instance of core/K8 is required');
+    this.logger = patchInject(logger, SoloLogger, this.constructor.name);
+    this.k8 = patchInject(k8, K8, this.constructor.name);
 
     this._portForwards = [];
     this._nodeClient = null;
@@ -219,6 +222,8 @@ export class AccountManager {
     skipNodeAlias: string,
   ) {
     let nodes = {};
+    const configureNodeAccessPromiseArray = [];
+
     try {
       let localPort = constants.LOCAL_NODE_START_PORT;
 
@@ -227,11 +232,24 @@ export class AccountManager {
           networkNodeService.accountId !== IGNORED_NODE_ACCOUNT_ID &&
           networkNodeService.nodeAlias !== skipNodeAlias
         ) {
-          const addlNode = await this.configureNodeAccess(networkNodeService, localPort, networkNodeServicesMap.size);
-          nodes = {...nodes, ...addlNode};
+          configureNodeAccessPromiseArray.push(
+            this.configureNodeAccess(networkNodeService, localPort, networkNodeServicesMap.size),
+          );
           localPort++;
         }
       }
+
+      await Promise.allSettled(configureNodeAccessPromiseArray).then(results => {
+        for (const result of results) {
+          switch (result.status) {
+            case REJECTED:
+              throw new SoloError(`failed to configure node access: ${result.reason}`);
+            case FULFILLED:
+              nodes = {...nodes, ...result.value};
+              break;
+          }
+        }
+      });
 
       let formattedNetworkConnection = '';
       Object.keys(nodes).forEach(key => (formattedNetworkConnection += `${key}:${nodes[key]}, `));

@@ -20,24 +20,27 @@ import fs from 'fs';
 import {Templates} from './templates.js';
 import {GrpcProxyTlsEnums} from './enumerations.js';
 
-import type {ConfigManager} from './config_manager.js';
-import type {K8} from './k8.js';
-import type {SoloLogger} from './logging.js';
+import {ConfigManager} from './config_manager.js';
+import {K8} from './k8.js';
+import {SoloLogger} from './logging.js';
 import type {ListrTaskWrapper} from 'listr2';
 import type {NodeAlias} from '../types/aliases.js';
+import {inject, injectable} from 'tsyringe-neo';
+import {patchInject} from './container_helper.js';
 
 /**
  * Used to handle interactions with certificates data and inject it into the K8s cluster secrets
  */
+@injectable()
 export class CertificateManager {
   constructor(
-    private readonly k8: K8,
-    private readonly logger: SoloLogger,
-    private readonly configManager: ConfigManager,
+    @inject(K8) private readonly k8?: K8,
+    @inject(SoloLogger) private readonly logger?: SoloLogger,
+    @inject(ConfigManager) private readonly configManager?: ConfigManager,
   ) {
-    if (!k8) throw new MissingArgumentError('an instance of core/K8 is required');
-    if (!logger) throw new MissingArgumentError('an instance of core/SoloLogger is required');
-    if (!configManager) throw new MissingArgumentError('an instance of core/ConfigManager is required');
+    this.k8 = patchInject(k8, K8, this.constructor.name);
+    this.logger = patchInject(logger, SoloLogger, this.constructor.name);
+    this.configManager = patchInject(configManager, ConfigManager, this.constructor.name);
   }
 
   /**

@@ -19,14 +19,17 @@ import yargs from 'yargs';
 import {hideBin} from 'yargs/helpers';
 import 'dotenv/config';
 import path from 'path';
+// eslint-disable-next-line n/no-extraneous-import
+import 'reflect-metadata';
+import {container} from 'tsyringe-neo';
+import './core/container_init.js';
 import {ListrLogger} from 'listr2';
 
 import {Flags as flags} from './commands/flags.js';
 import * as commands from './commands/index.js';
-import {HelmDependencyManager, DependencyManager} from './core/dependency_managers/index.js';
+import {DependencyManager} from './core/dependency_managers/index.js';
 import * as constants from './core/constants.js';
 import {PackageDownloader} from './core/package_downloader.js';
-import {Zippy} from './core/zippy.js';
 import {Helm} from './core/helm.js';
 import {ChartManager} from './core/chart_manager.js';
 import {ConfigManager} from './core/config_manager.js';
@@ -38,16 +41,17 @@ import {LeaseManager} from './core/lease/lease_manager.js';
 import {CertificateManager} from './core/certificate_manager.js';
 import {LocalConfig} from './core/config/local_config.js';
 import {RemoteConfigManager} from './core/config/remote/remote_config_manager.js';
-import * as logging from './core/logging.js';
 import * as helpers from './core/helpers.js';
 import {K8} from './core/k8.js';
 import {CustomProcessOutput} from './core/process_output.js';
 import {type Opts} from './types/command_types.js';
-import {IntervalLeaseRenewalService} from './core/lease/interval_lease_renewal.js';
-import {type LeaseRenewalService} from './core/lease/lease.js';
+import {SoloLogger} from './core/logging.js';
+import {Container} from './core/container_init.js';
 
 export function main(argv: any) {
-  const logger = logging.NewLogger('debug');
+  Container.getInstance().init();
+
+  const logger = container.resolve(SoloLogger);
   constants.LISTR_DEFAULT_RENDERER_OPTION.logger = new ListrLogger({processOutput: new CustomProcessOutput(logger)});
   if (argv.length >= 3 && ['-version', '--version', '-v', '--v'].includes(argv[2])) {
     logger.showUser(chalk.cyan('\n******************************* Solo *********************************************'));
@@ -58,26 +62,20 @@ export function main(argv: any) {
 
   try {
     // prepare dependency manger registry
-    const downloader = new PackageDownloader(logger);
-    const zippy = new Zippy(logger);
-    const helmDepManager = new HelmDependencyManager(downloader, zippy, logger);
-    const depManagerMap = new Map().set(constants.HELM, helmDepManager);
-    const depManager = new DependencyManager(logger, depManagerMap);
-
-    const helm = new Helm(logger);
-    const chartManager = new ChartManager(helm, logger);
-    const configManager = new ConfigManager(logger);
-    const k8 = new K8(configManager, logger);
-    const accountManager = new AccountManager(logger, k8);
-    const platformInstaller = new PlatformInstaller(logger, k8, configManager);
-    const keyManager = new KeyManager(logger);
-    const profileManager = new ProfileManager(logger, configManager);
-    const leaseRenewalService: LeaseRenewalService = new IntervalLeaseRenewalService();
-    const leaseManager = new LeaseManager(k8, configManager, logger, leaseRenewalService);
-    const certificateManager = new CertificateManager(k8, logger, configManager);
-    const localConfigPath = path.join(constants.SOLO_CACHE_DIR, constants.DEFAULT_LOCAL_CONFIG_FILE);
-    const localConfig = new LocalConfig(localConfigPath, logger, configManager);
-    const remoteConfigManager = new RemoteConfigManager(k8, logger, localConfig, configManager);
+    const downloader = container.resolve(PackageDownloader);
+    const depManager = container.resolve(DependencyManager);
+    const helm = container.resolve(Helm);
+    const chartManager = container.resolve(ChartManager);
+    const configManager = container.resolve(ConfigManager);
+    const k8 = container.resolve(K8);
+    const accountManager = container.resolve(AccountManager);
+    const platformInstaller = container.resolve(PlatformInstaller);
+    const keyManager = container.resolve(KeyManager);
+    const profileManager = container.resolve(ProfileManager);
+    const leaseManager = container.resolve(LeaseManager);
+    const certificateManager = container.resolve(CertificateManager);
+    const localConfig = container.resolve(LocalConfig);
+    const remoteConfigManager = container.resolve(RemoteConfigManager);
 
     // set cluster and namespace in the global configManager from kubernetes context
     // so that we don't need to prompt the user

@@ -14,16 +14,11 @@
  * limitations under the License.
  *
  */
-// eslint-disable-next-line n/no-extraneous-import
-import 'reflect-metadata';
-import * as chai from 'chai';
-import chaiAsPromised from 'chai-as-promised';
-import sinonChai from 'sinon-chai';
-import {resetTestContainer} from './test_container.js';
+import path from 'path';
+import {Container} from '../src/core/container_init.js';
 
-resetTestContainer();
+const cacheDirectory = path.join('test', 'data', 'tmp');
 
-chai.use(chaiAsPromised);
-chai.use(sinonChai);
-
-chai.config.truncateThreshold = Infinity;
+export function resetTestContainer(cacheDir: string = cacheDirectory) {
+  Container.getInstance().reset(cacheDir, 'debug', true);
+}
