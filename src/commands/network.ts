@@ -39,6 +39,14 @@ import {ConsensusNodeStates} from '../core/config/remote/enumerations.js';
 import {EnvoyProxyComponent} from '../core/config/remote/components/envoy_proxy_component.js';
 import {HaProxyComponent} from '../core/config/remote/components/ha_proxy_component.js';
 import {GenesisNetworkDataConstructor} from '../core/genesis_network_models/genesis_network_data_constructor.js';
+import {
+  CLOUD_STORAGE_SECRET_NAME,
+  GCP_STORAGE_TYPE,
+  NEW_MINIO_SECRET_NAME,
+  SOLO_DEPLOYMENT_CHART,
+} from '../core/constants.js';
+import {v4 as uuidv4} from 'uuid';
+import * as Base64 from 'js-base64';
 
 export interface NetworkDeployConfigClass {
   applicationEnv: string;
@@ -68,6 +76,10 @@ export interface NetworkDeployConfigClass {
   envoyIps: string;
   haproxyIpsParsed?: Record<NodeAlias, IP>;
   envoyIpsParsed?: Record<NodeAlias, IP>;
+  storageType: string;
+  storageAccessKey: string;
+  storageSecrets: string;
+  storageEndpoint: string;
 }
 
 export class NetworkCommand extends BaseCommand {
@@ -129,7 +141,95 @@ export class NetworkCommand extends BaseCommand {
       flags.grpcWebTlsKeyPath,
       flags.haproxyIps,
       flags.envoyIps,
+      flags.storageType,
+      flags.storageAccessKey,
+      flags.storageSecrets,
+      flags.storageEndpoint,
     ];
+  }
+
+  async prepareStorageSecrets(config: NetworkDeployConfigClass) {
+    try {
+      const minioAccessKey = uuidv4();
+      const minioSecretKey = uuidv4();
+      const minioData = {};
+      const namespace = config.namespace;
+
+      // using export MINIO_ROOT_USER=%s\nexport MINIO_ROOT_PASSWORD=%s to generate cloudData
+      const envString = `MINIO_ROOT_USER=${minioAccessKey}\nMINIO_ROOT_PASSWORD=${minioSecretKey}`;
+      // generate key config.env:
+      minioData['config.env'] = Base64.encode(envString);
+      this.logger.debug(`storage secrets data = ${JSON.stringify(minioData)}`);
+      const labels = {
+        'app.kubernetes.io/managed-by': 'Helm',
+        'meta.helm.sh/release-namespace': namespace,
+        'meta.helm.sh/release-name': SOLO_DEPLOYMENT_CHART,
+      };
+      const isMinioSecretCreated = await this.k8.createSecret(
+        constants.NEW_MINIO_SECRET_NAME,
+        namespace,
+        'Opaque',
+        minioData,
+        labels,
+        true,
+      );
+      if (!isMinioSecretCreated) {
+        throw new SoloError('ailed to create new minio secret');
+      }
+
+      this.logger.debug(`Preparing storage secrets config = ${JSON.stringify(config)}`);
+      const {storageAccessKey, storageSecrets, storageEndpoint} = config;
+      this.logger.debug(
+        `storageAccessKey = ${storageAccessKey}, storageSecrets = ${storageSecrets}, storageEndpoint = ${storageEndpoint}`,
+      );
+      const cloudData = {};
+      if (config.storageType === constants.AWS_STORAGE_TYPE) {
+        cloudData['S3_ACCESS_KEY'] = Base64.encode(storageAccessKey);
+        cloudData['S3_SECRET_KEY'] = Base64.encode(storageSecrets);
+        cloudData['S3_ENDPOINT'] = Base64.encode(storageEndpoint);
+
+        // used by mirror node importer
+        cloudData['HEDERA_MIRROR_IMPORTER_DOWNLOADER_SOURCES_0_TYPE'] = Base64.encode('S3');
+        cloudData['HEDERA_MIRROR_IMPORTER_DOWNLOADER_SOURCES_0_URI'] = Base64.encode(storageEndpoint);
+        cloudData['HEDERA_MIRROR_IMPORTER_DOWNLOADER_SOURCES_0_CREDENTIALS_ACCESSKEY'] =
+          Base64.encode(storageAccessKey);
+        cloudData['HEDERA_MIRROR_IMPORTER_DOWNLOADER_SOURCES_0_CREDENTIALS_SECRETKEY'] = Base64.encode(storageSecrets);
+      } else if (config.storageType === constants.GCP_STORAGE_TYPE) {
+        cloudData['GCS_ACCESS_KEY'] = Base64.encode(storageAccessKey);
+        cloudData['GCS_SECRET_KEY'] = Base64.encode(storageSecrets);
+        cloudData['GCS_ENDPOINT'] = Base64.encode(storageEndpoint);
+
+        // used by minio
+        cloudData['S3_ACCESS_KEY'] = Base64.encode(minioAccessKey);
+        cloudData['S3_SECRET_KEY'] = Base64.encode(minioSecretKey);
+
+        // used by mirror node importer
+        cloudData['HEDERA_MIRROR_IMPORTER_DOWNLOADER_SOURCES_0_TYPE'] = Base64.encode('GCP');
+        cloudData['HEDERA_MIRROR_IMPORTER_DOWNLOADER_SOURCES_0_URI'] = Base64.encode(storageEndpoint);
+        cloudData['HEDERA_MIRROR_IMPORTER_DOWNLOADER_SOURCES_0_CREDENTIALS_ACCESSKEY'] =
+          Base64.encode(storageAccessKey);
+        cloudData['HEDERA_MIRROR_IMPORTER_DOWNLOADER_SOURCES_0_CREDENTIALS_SECRETKEY'] = Base64.encode(storageSecrets);
+      } else {
+        throw new SoloError(`unsupported storage type ${config.storageType}`);
+      }
+      this.logger.debug(`storage secrets data = ${JSON.stringify(cloudData)}`);
+
+      const isCloudSecretCreated = await this.k8.createSecret(
+        constants.CLOUD_STORAGE_SECRET_NAME,
+        namespace,
+        'Opaque',
+        cloudData,
+        labels,
+        true,
+      );
+      if (!isCloudSecretCreated) {
+        throw new SoloError(`failed to create secret for tsc certificates for storage type '${config.storageType}'`);
+      }
+    } catch (e: Error | any) {
+      const errorMessage = 'failed to create storage secret ';
+      this.logger.error(errorMessage, e);
+      throw new SoloError(errorMessage, e);
+    }
   }
 
   async prepareValuesArg(config: {
@@ -226,6 +326,10 @@ export class NetworkCommand extends BaseCommand {
       flags.grpcWebTlsKeyPath,
       flags.haproxyIps,
       flags.envoyIps,
+      flags.storageType,
+      flags.storageAccessKey,
+      flags.storageSecrets,
+      flags.storageEndpoint,
     ]);
 
     await this.configManager.executePrompt(task, NetworkCommand.DEPLOY_FLAGS_LIST);
@@ -282,6 +386,17 @@ export class NetworkCommand extends BaseCommand {
     // create cached keys dir if it does not exist yet
     if (!fs.existsSync(config.keysDir)) {
       fs.mkdirSync(config.keysDir);
+    }
+
+    // if storageType is set, then we need to set the storage secrets
+    if (
+      this.configManager.getFlag<string>(flags.storageType) &&
+      this.configManager.getFlag<string>(flags.storageAccessKey) &&
+      this.configManager.getFlag<string>(flags.storageSecrets) &&
+      this.configManager.getFlag<string>(flags.storageEndpoint)
+    ) {
+      this.logger.debug('Preparing storage secrets');
+      await this.prepareStorageSecrets(config);
     }
 
     this.logger.debug('Prepared config', {

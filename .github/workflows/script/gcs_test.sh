@@ -27,11 +27,10 @@ echo "  buckets:" >> gcs_values.yaml
 echo "    streamBucket: ${streamBucket}" >> gcs_values.yaml
 echo "  gcs:" >> gcs_values.yaml
 echo "    enabled: true" >> gcs_values.yaml
-echo '    GCS_ACCESS_KEY: "'${GCS_ACCESS_KEY}'"' >> gcs_values.yaml
-echo '    GCS_SECRET_KEY: "'${GCS_SECRET_KEY}'"' >> gcs_values.yaml
-echo '    endpoint: "https://storage.googleapis.com"' >> gcs_values.yaml
 echo 'minio-server:' >> gcs_values.yaml
 echo "  tenant:" >> gcs_values.yaml
+echo "    configuration:" >> gcs_values.yaml
+echo "      name: new-minio-secrets" >> gcs_values.yaml
 echo "    buckets:" >> gcs_values.yaml
 echo "      - name: ${streamBucket}" >> gcs_values.yaml
 echo "      - name: solo-backups" >> gcs_values.yaml
@@ -44,6 +43,31 @@ echo "      mirror:" >> gcs_mirror_values.yaml
 echo "        importer:" >> gcs_mirror_values.yaml
 echo "          downloader:" >> gcs_mirror_values.yaml
 echo "            bucketName: ${streamBucket}" >> gcs_mirror_values.yaml
+echo "  env:" >> gcs_mirror_values.yaml
+echo "    - name: HEDERA_MIRROR_IMPORTER_DOWNLOADER_SOURCES_0_TYPE" >> gcs_mirror_values.yaml
+echo "      value: GCP" >> gcs_mirror_values.yaml
+echo "    - name: HEDERA_MIRROR_IMPORTER_DOWNLOADER_SOURCES_0_URI" >> gcs_mirror_values.yaml
+echo "      value: https://storage.googleapis.com" >> gcs_mirror_values.yaml
+echo "    - name: HEDERA_MIRROR_IMPORTER_DOWNLOADER_SOURCES_0_CREDENTIALS_ACCESSKEY" >> gcs_mirror_values.yaml
+echo "      value: ${GCS_ACCESS_KEY}" >> gcs_mirror_values.yaml
+echo "    - name: HEDERA_MIRROR_IMPORTER_DOWNLOADER_SOURCES_0_CREDENTIALS_SECRETKEY" >> gcs_mirror_values.yaml
+echo "      value: ${GCS_SECRET_KEY}" >> gcs_mirror_values.yaml
+
+#echo "  extraEnvFrom:" >> gcs_mirror_values.yaml
+#echo "    - secretRef:" >> gcs_mirror_values.yaml
+#echo "        name: cloud-storage-secrets" >> gcs_mirror_values.yaml
+#echo "monitor:" >> gcs_mirror_values.yaml
+#echo "  extraEnvFrom:" >> gcs_mirror_values.yaml
+#echo "    - secretRef:" >> gcs_mirror_values.yaml
+#echo "        name: cloud-storage-secrets" >> gcs_mirror_values.yaml
+
+#echo "  envFrom:" >> gcs_mirror_values.yaml
+#echo "    - secretRef:" >> gcs_mirror_values.yaml
+#echo "        name: cloud-storage-secrets" >> gcs_mirror_values.yaml
+#echo "monitor:" >> gcs_mirror_values.yaml
+#echo "  envFrom:" >> gcs_mirror_values.yaml
+#echo "    - secretRef:" >> gcs_mirror_values.yaml
+#echo "        name: cloud-storage-secrets" >> gcs_mirror_values.yaml
 
 SOLO_CLUSTER_NAME=solo-e2e
 SOLO_NAMESPACE=solo-e2e
@@ -52,9 +76,10 @@ SOLO_CLUSTER_SETUP_NAMESPACE=solo-setup
 kind delete cluster -n "${SOLO_CLUSTER_NAME}"
 kind create cluster -n "${SOLO_CLUSTER_NAME}"
 npm run solo-test -- init
-npm run solo-test -- cluster setup -s "${SOLO_CLUSTER_SETUP_NAMESPACE}"
+npm run solo-test -- cluster setup --chart-dir /Users/jeffrey/solo-charts/charts -s "${SOLO_CLUSTER_SETUP_NAMESPACE}"
 npm run solo-test -- node keys --gossip-keys --tls-keys -i node1,node2
-npm run solo-test -- network deploy -i node1,node2 -n "${SOLO_NAMESPACE}" -f gcs_values.yaml
+npm run solo-test -- network deploy --chart-dir /Users/jeffrey/solo-charts/charts -i node1,node2 -n "${SOLO_NAMESPACE}" -f gcs_values.yaml --storage-endpoint "https://storage.googleapis.com" \
+  --storage-access-key "${GCS_ACCESS_KEY}" --storage-secrets "${GCS_SECRET_KEY}" --storage-type "gcs"
 npm run solo-test -- node setup -i node1,node2 -n "${SOLO_NAMESPACE}"
 npm run solo-test -- node start -i node1,node2 -n "${SOLO_NAMESPACE}"
 npm run solo-test -- mirror-node deploy --namespace "${SOLO_NAMESPACE}" -f gcs_mirror_values.yaml

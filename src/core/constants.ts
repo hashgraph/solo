@@ -202,3 +202,8 @@ export const NETWORK_DESTROY_WAIT_TIMEOUT = +process.env.NETWORK_DESTROY_WAIT_TI
 
 export const DEFAULT_LOCAL_CONFIG_FILE = 'local-config.yaml';
 export const IGNORED_NODE_ACCOUNT_ID = '0.0.0';
+
+export const AWS_STORAGE_TYPE = 's3';
+export const GCP_STORAGE_TYPE = 'gcs';
+export const CLOUD_STORAGE_SECRET_NAME = 'cloud-storage-secrets';
+export const NEW_MINIO_SECRET_NAME = 'new-minio-secrets';
