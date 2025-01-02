@@ -98,7 +98,7 @@ export class MirrorNodeCommand extends BaseCommand {
     ];
   }
 
-  async prepareHederaExplorerValuesArg(config: any) {
+  async prepareHederaExplorerValuesArg(config: {valuesFile: string}) {
     let valuesArg = '';
 
     const profileName = this.configManager.getFlag<string>(flags.profileName) as string;
@@ -163,7 +163,7 @@ export class MirrorNodeCommand extends BaseCommand {
     return valuesArg;
   }
 
-  async prepareValuesArg(config: any) {
+  async prepareValuesArg(config: {valuesFile: string}) {
     let valuesArg = '';
 
     const profileName = this.configManager.getFlag<string>(flags.profileName) as string;
@@ -466,7 +466,7 @@ export class MirrorNodeCommand extends BaseCommand {
     try {
       await tasks.run();
       self.logger.debug('mirror node depolyment has completed');
-    } catch (e: Error | any) {
+    } catch (e) {
       throw new SoloError(`Error deploying node: ${e.message}`, e);
     } finally {
       await lease.release();
@@ -563,7 +563,7 @@ export class MirrorNodeCommand extends BaseCommand {
     try {
       await tasks.run();
       self.logger.debug('mirror node destruction has completed');
-    } catch (e: Error | any) {
+    } catch (e) {
       throw new SoloError(`Error destrong mirror node: ${e.message}`, e);
     } finally {
       await lease.release();
@@ -579,13 +579,13 @@ export class MirrorNodeCommand extends BaseCommand {
     return {
       command: 'mirror-node',
       desc: 'Manage Hedera Mirror Node in solo network',
-      builder: (yargs: any) => {
+      builder: yargs => {
         return yargs
           .command({
             command: 'deploy',
             desc: 'Deploy mirror-node and its components',
-            builder: (y: any) => flags.setCommandFlags(y, ...MirrorNodeCommand.DEPLOY_FLAGS_LIST),
-            handler: (argv: any) => {
+            builder: y => flags.setCommandFlags(y, ...MirrorNodeCommand.DEPLOY_FLAGS_LIST),
+            handler: argv => {
               self.logger.debug("==== Running 'mirror-node deploy' ===");
               self.logger.debug(argv);
 
@@ -604,8 +604,8 @@ export class MirrorNodeCommand extends BaseCommand {
           .command({
             command: 'destroy',
             desc: 'Destroy mirror-node components and database',
-            builder: (y: any) => flags.setCommandFlags(y, flags.chartDirectory, flags.force, flags.namespace),
-            handler: (argv: any) => {
+            builder: y => flags.setCommandFlags(y, flags.chartDirectory, flags.force, flags.namespace),
+            handler: argv => {
               self.logger.debug("==== Running 'mirror-node destroy' ===");
               self.logger.debug(argv);
 

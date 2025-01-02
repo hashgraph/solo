@@ -92,7 +92,6 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
       }
 
       expect(mirrorNodeCmd.getUnusedConfigs(MirrorNodeCommand.DEPLOY_CONFIGS_NAME)).to.deep.equal([
-        flags.chartDirectory.constName,
         flags.hederaExplorerTlsHostName.constName,
         flags.hederaExplorerTlsLoadBalancerIp.constName,
         flags.profileFile.constName,
