@@ -94,7 +94,6 @@ export class MirrorNodeCommand extends BaseCommand {
       flags.mirrorNodeVersion,
       flags.pinger,
       flags.clusterSetupNamespace,
-      flags.chartDirectory,
       flags.soloChartVersion,
     ];
   }
@@ -193,7 +192,6 @@ export class MirrorNodeCommand extends BaseCommand {
 
             // disable the prompts that we don't want to prompt the user for
             flags.disablePrompts([
-              flags.chartDirectory,
               flags.deployHederaExplorer,
               flags.enableHederaExplorerTls,
               flags.hederaExplorerTlsHostName,
