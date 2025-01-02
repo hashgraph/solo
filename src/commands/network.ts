@@ -155,11 +155,9 @@ export class NetworkCommand extends BaseCommand {
       const minioData = {};
       const namespace = config.namespace;
 
-      // using export MINIO_ROOT_USER=%s\nexport MINIO_ROOT_PASSWORD=%s to generate cloudData
+      // Generating new minio credentials
       const envString = `MINIO_ROOT_USER=${minioAccessKey}\nMINIO_ROOT_PASSWORD=${minioSecretKey}`;
-      // generate key config.env:
       minioData['config.env'] = Base64.encode(envString);
-      this.logger.debug(`storage secrets data = ${JSON.stringify(minioData)}`);
       const labels = {
         'app.kubernetes.io/managed-by': 'Helm',
         'meta.helm.sh/release-namespace': namespace,
@@ -177,23 +175,13 @@ export class NetworkCommand extends BaseCommand {
         throw new SoloError('ailed to create new minio secret');
       }
 
-      this.logger.debug(`Preparing storage secrets config = ${JSON.stringify(config)}`);
+      // Generating cloud storage secrets
       const {storageAccessKey, storageSecrets, storageEndpoint} = config;
-      this.logger.debug(
-        `storageAccessKey = ${storageAccessKey}, storageSecrets = ${storageSecrets}, storageEndpoint = ${storageEndpoint}`,
-      );
       const cloudData = {};
       if (config.storageType === constants.AWS_STORAGE_TYPE) {
         cloudData['S3_ACCESS_KEY'] = Base64.encode(storageAccessKey);
         cloudData['S3_SECRET_KEY'] = Base64.encode(storageSecrets);
         cloudData['S3_ENDPOINT'] = Base64.encode(storageEndpoint);
-
-        // used by mirror node importer
-        cloudData['HEDERA_MIRROR_IMPORTER_DOWNLOADER_SOURCES_0_TYPE'] = Base64.encode('S3');
-        cloudData['HEDERA_MIRROR_IMPORTER_DOWNLOADER_SOURCES_0_URI'] = Base64.encode(storageEndpoint);
-        cloudData['HEDERA_MIRROR_IMPORTER_DOWNLOADER_SOURCES_0_CREDENTIALS_ACCESSKEY'] =
-          Base64.encode(storageAccessKey);
-        cloudData['HEDERA_MIRROR_IMPORTER_DOWNLOADER_SOURCES_0_CREDENTIALS_SECRETKEY'] = Base64.encode(storageSecrets);
       } else if (config.storageType === constants.GCP_STORAGE_TYPE) {
         cloudData['GCS_ACCESS_KEY'] = Base64.encode(storageAccessKey);
         cloudData['GCS_SECRET_KEY'] = Base64.encode(storageSecrets);
@@ -202,13 +190,6 @@ export class NetworkCommand extends BaseCommand {
         // used by minio
         cloudData['S3_ACCESS_KEY'] = Base64.encode(minioAccessKey);
         cloudData['S3_SECRET_KEY'] = Base64.encode(minioSecretKey);
-
-        // used by mirror node importer
-        cloudData['HEDERA_MIRROR_IMPORTER_DOWNLOADER_SOURCES_0_TYPE'] = Base64.encode('GCP');
-        cloudData['HEDERA_MIRROR_IMPORTER_DOWNLOADER_SOURCES_0_URI'] = Base64.encode(storageEndpoint);
-        cloudData['HEDERA_MIRROR_IMPORTER_DOWNLOADER_SOURCES_0_CREDENTIALS_ACCESSKEY'] =
-          Base64.encode(storageAccessKey);
-        cloudData['HEDERA_MIRROR_IMPORTER_DOWNLOADER_SOURCES_0_CREDENTIALS_SECRETKEY'] = Base64.encode(storageSecrets);
       } else {
         throw new SoloError(`unsupported storage type ${config.storageType}`);
       }
