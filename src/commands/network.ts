@@ -158,17 +158,12 @@ export class NetworkCommand extends BaseCommand {
       // Generating new minio credentials
       const envString = `MINIO_ROOT_USER=${minioAccessKey}\nMINIO_ROOT_PASSWORD=${minioSecretKey}`;
       minioData['config.env'] = Base64.encode(envString);
-      const labels = {
-        'app.kubernetes.io/managed-by': 'Helm',
-        'meta.helm.sh/release-namespace': namespace,
-        'meta.helm.sh/release-name': SOLO_DEPLOYMENT_CHART,
-      };
       const isMinioSecretCreated = await this.k8.createSecret(
         constants.NEW_MINIO_SECRET_NAME,
         namespace,
         'Opaque',
         minioData,
-        labels,
+        undefined,
         true,
       );
       if (!isMinioSecretCreated) {
@@ -200,7 +195,7 @@ export class NetworkCommand extends BaseCommand {
         namespace,
         'Opaque',
         cloudData,
-        labels,
+        undefined,
         true,
       );
       if (!isCloudSecretCreated) {

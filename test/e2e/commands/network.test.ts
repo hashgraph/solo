@@ -102,6 +102,10 @@ describe('NetworkCommand', () => {
         flags.settingTxt.constName,
         flags.grpcTlsKeyPath.constName,
         flags.grpcWebTlsKeyPath.constName,
+        flags.storageType.constName,
+        flags.storageAccessKey.constName,
+        flags.storageSecrets.constName,
+        flags.storageEndpoint.constName,
       ]);
     } catch (e) {
       networkCmd.logger.showUserError(e);
