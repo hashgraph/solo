@@ -102,6 +102,7 @@ jobs:
     name: Github / Release
     runs-on: solo-linux-medium
     needs:
+      - prepare-release
       - update-readme
     steps:
       - name: Harden Runner
@@ -147,6 +148,8 @@ jobs:
         run: |
           set -x
           npm install
+          echo "VERSION=${{ needs.prepare-release.outputs.version }}"
+          [[ -n "${{ needs.prepare-release.outputs.version }}" ]] && npm version ${{ needs.prepare-release.outputs.version }} -f --no-git-tag-version
           npm run build
 
       - name: Setup JFrog CLI
