@@ -49,22 +49,6 @@ echo "    HEDERA_MIRROR_IMPORTER_DOWNLOADER_SOURCES_0_URI: https://storage.googl
 echo "    HEDERA_MIRROR_IMPORTER_DOWNLOADER_SOURCES_0_CREDENTIALS_ACCESSKEY: ${GCS_ACCESS_KEY}" >> gcs_mirror_values.yaml
 echo "    HEDERA_MIRROR_IMPORTER_DOWNLOADER_SOURCES_0_CREDENTIALS_SECRETKEY: ${GCS_SECRET_KEY}" >> gcs_mirror_values.yaml
 
-#echo "  extraEnvFrom:" >> gcs_mirror_values.yaml
-#echo "    - secretRef:" >> gcs_mirror_values.yaml
-#echo "        name: cloud-storage-secrets" >> gcs_mirror_values.yaml
-#echo "monitor:" >> gcs_mirror_values.yaml
-#echo "  extraEnvFrom:" >> gcs_mirror_values.yaml
-#echo "    - secretRef:" >> gcs_mirror_values.yaml
-#echo "        name: cloud-storage-secrets" >> gcs_mirror_values.yaml
-
-#echo "  envFrom:" >> gcs_mirror_values.yaml
-#echo "    - secretRef:" >> gcs_mirror_values.yaml
-#echo "        name: cloud-storage-secrets" >> gcs_mirror_values.yaml
-#echo "monitor:" >> gcs_mirror_values.yaml
-#echo "  envFrom:" >> gcs_mirror_values.yaml
-#echo "    - secretRef:" >> gcs_mirror_values.yaml
-#echo "        name: cloud-storage-secrets" >> gcs_mirror_values.yaml
-
 SOLO_CLUSTER_NAME=solo-e2e
 SOLO_NAMESPACE=solo-e2e
 SOLO_CLUSTER_SETUP_NAMESPACE=solo-setup
