@@ -101,7 +101,7 @@ export class ClusterCommand extends BaseCommand {
 
             self.logger.debug('Prepare ctx.config', {config: ctx.config, argv});
 
-            ctx.isChartInstalled = await this.chartManager.isChartInstalled(
+            ctx.isChartInstalled = await self.chartManager.isChartInstalled(
               ctx.config.clusterSetupNamespace,
               constants.SOLO_CLUSTER_SETUP_CHART,
             );
@@ -110,21 +110,21 @@ export class ClusterCommand extends BaseCommand {
         {
           title: 'Prepare chart values',
           task: async ctx => {
-            ctx.chartPath = await this.prepareChartPath(
+            ctx.chartPath = await self.prepareChartPath(
               ctx.config.chartDir,
               constants.SOLO_TESTING_CHART_URL,
               constants.SOLO_CLUSTER_SETUP_CHART,
             );
 
             // if minio is already present, don't deploy it
-            if (ctx.config.deployMinio && (await this.k8.isMinioInstalled(ctx.config.clusterSetupNamespace))) {
+            if (ctx.config.deployMinio && (await self.k8.isMinioInstalled(ctx.config.clusterSetupNamespace))) {
               ctx.config.deployMinio = false;
             }
 
             // if prometheus is found, don't deploy it
             if (
               ctx.config.deployPrometheusStack &&
-              !(await this.k8.isPrometheusInstalled(ctx.config.clusterSetupNamespace))
+              !(await self.k8.isPrometheusInstalled(ctx.config.clusterSetupNamespace))
             ) {
               ctx.config.deployPrometheusStack = false;
             }
@@ -132,7 +132,7 @@ export class ClusterCommand extends BaseCommand {
             // if cert manager is installed, don't deploy it
             if (
               (ctx.config.deployCertManager || ctx.config.deployCertManagerCrds) &&
-              (await this.k8.isCertManagerInstalled())
+              (await self.k8.isCertManagerInstalled())
             ) {
               ctx.config.deployCertManager = false;
               ctx.config.deployCertManagerCrds = false;
@@ -149,7 +149,7 @@ export class ClusterCommand extends BaseCommand {
               return;
             }
 
-            ctx.valuesArg = this.prepareValuesArg(
+            ctx.valuesArg = self.prepareValuesArg(
               ctx.config.chartDir,
               ctx.config.deployPrometheusStack,
               ctx.config.deployMinio,
@@ -248,7 +248,7 @@ export class ClusterCommand extends BaseCommand {
               clusterSetupNamespace: self.configManager.getFlag<string>(flags.clusterSetupNamespace) as string,
             };
 
-            ctx.isChartInstalled = await this.chartManager.isChartInstalled(
+            ctx.isChartInstalled = await self.chartManager.isChartInstalled(
               ctx.config.clusterSetupNamespace,
               constants.SOLO_CLUSTER_SETUP_CHART,
             );
@@ -264,7 +264,7 @@ export class ClusterCommand extends BaseCommand {
           task: async (ctx, task) => {
             const clusterSetupNamespace = ctx.config.clusterSetupNamespace;
 
-            if (!argv.force && (await this.k8.isRemoteConfigPresentInAnyNamespace())) {
+            if (!argv.force && (await self.k8.isRemoteConfigPresentInAnyNamespace())) {
               const confirm = await task.prompt(ListrEnquirerPromptAdapter).run({
                 type: 'toggle',
                 default: false,
