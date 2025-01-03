@@ -190,7 +190,6 @@ export class NetworkCommand extends BaseCommand {
         cloudData['S3_ACCESS_KEY'] = Base64.encode(minioAccessKey);
         cloudData['S3_SECRET_KEY'] = Base64.encode(minioSecretKey);
       }
-      this.logger.debug(`storage secrets data = ${JSON.stringify(cloudData)}`);
 
       const isCloudSecretCreated = await this.k8.createSecret(
         constants.CLOUD_STORAGE_SECRET_NAME,
