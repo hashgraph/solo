@@ -92,7 +92,7 @@ export class CertificateManager {
 
       const isSecretCreated = await this.k8.createSecret(name, namespace, 'Opaque', data, labels, true);
       if (!isSecretCreated) {
-        throw new SoloError(`failed to create secret for tsc certificates for node '${nodeAlias}'`);
+        throw new SoloError(`failed to create secret for TLS certificates for node '${nodeAlias}'`);
       }
     } catch (e: Error | any) {
       const errorMessage =

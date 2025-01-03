@@ -903,6 +903,17 @@ export class Flags {
     prompt: undefined,
   };
 
+  static readonly genesisThrottlesFile: CommandFlag = {
+    constName: 'genesisThrottlesFile',
+    name: 'genesis-throttles-file',
+    definition: {
+      describe: 'throttles.json file used during network genesis',
+      defaultValue: '',
+      type: 'string',
+    },
+    prompt: undefined,
+  };
+
   static readonly settingTxt: CommandFlag = {
     constName: 'settingTxt',
     name: 'settings-txt',
@@ -1646,6 +1657,7 @@ export class Flags {
     Flags.generateEcdsaKey,
     Flags.generateGossipKeys,
     Flags.generateTlsKeys,
+    Flags.genesisThrottlesFile,
     Flags.gossipEndpoints,
     Flags.gossipPrivateKey,
     Flags.gossipPublicKey,
