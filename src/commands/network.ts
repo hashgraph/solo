@@ -41,6 +41,7 @@ import {HaProxyComponent} from '../core/config/remote/components/ha_proxy_compon
 import {GenesisNetworkDataConstructor} from '../core/genesis_network_models/genesis_network_data_constructor.js';
 import {v4 as uuidv4} from 'uuid';
 import * as Base64 from 'js-base64';
+import {NEW_MINIO_SECRET_NAME} from '../core/constants.js';
 
 export interface NetworkDeployConfigClass {
   applicationEnv: string;
@@ -271,7 +272,7 @@ export class NetworkCommand extends BaseCommand {
 
     // if any cloud storage is enabled, need to generate new minio secrets
     if (config.storageType !== constants.StorageType.MINIO_ONLY) {
-      valuesArg += ' --set minio-server.tenant.configuration.name=new-minio-secrets';
+      valuesArg += ' --set minio-server.tenant.configuration.name=' + constants.NEW_MINIO_SECRET_NAME;
       if (config.storageBucket) {
         valuesArg += ` --set minio-server.tenant.buckets[0].name=${config.storageBucket}`;
       }
